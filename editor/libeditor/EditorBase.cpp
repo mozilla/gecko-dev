@@ -4210,6 +4210,16 @@ void EditorBase::OnCompositionEnd(
   NotifyEditorObservers(eNotifyEditorObserversOfEnd);
 }
 
+bool EditorBase::WillHandleMouseButtonEvent(WidgetMouseEvent& aMouseEvent) {
+  MOZ_ASSERT(aMouseEvent.mMessage == eMouseDown ||
+             aMouseEvent.mMessage == eMouseUp);
+  if (!mEventListener) {
+    return false;
+  }
+  OwningNonNull<EditorEventListener> editorEventListener(*mEventListener);
+  return editorEventListener->WillHandleMouseButtonEvent(aMouseEvent);
+}
+
 void EditorBase::DoAfterDoTransaction(nsITransaction* aTransaction) {
   bool isTransientTransaction;
   MOZ_ALWAYS_SUCCEEDS(aTransaction->GetIsTransient(&isTransientTransaction));

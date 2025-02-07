@@ -387,15 +387,6 @@ NS_IMETHODIMP EditorEventListener::HandleEvent(Event* aEvent) {
     }
     // mousedown
     case eMouseDown: {
-      // EditorEventListener may receive (1) all mousedown, mouseup and click
-      // events, (2) only mousedown event or (3) only mouseup event.
-      // mMouseDownOrUpConsumedByIME is used only for ignoring click event if
-      // preceding mousedown and/or mouseup event is consumed by IME.
-      // Therefore, even if case #2 or case #3 occurs,
-      // mMouseDownOrUpConsumedByIME is true here.  Therefore, we should always
-      // overwrite it here.
-      mMouseDownOrUpConsumedByIME =
-          NotifyIMEOfMouseButtonEvent(internalEvent->AsMouseEvent());
       if (mMouseDownOrUpConsumedByIME) {
         return NS_OK;
       }
@@ -410,19 +401,6 @@ NS_IMETHODIMP EditorEventListener::HandleEvent(Event* aEvent) {
     }
     // mouseup
     case eMouseUp: {
-      // See above comment in the eMouseDown case, first.
-      // This code assumes that case #1 is occuring.  However, if case #3 may
-      // occurs after case #2 and the mousedown is consumed,
-      // mMouseDownOrUpConsumedByIME is true even though EditorEventListener
-      // has not received the preceding mousedown event of this mouseup event.
-      // So, mMouseDownOrUpConsumedByIME may be invalid here.  However,
-      // this is not a matter because mMouseDownOrUpConsumedByIME is referred
-      // only by ePointerClick case but click event is fired only in case #1.
-      // So, before a click event is fired, mMouseDownOrUpConsumedByIME is
-      // always initialized in the eMouseDown case if it's referred.
-      if (NotifyIMEOfMouseButtonEvent(internalEvent->AsMouseEvent())) {
-        mMouseDownOrUpConsumedByIME = true;
-      }
       if (mMouseDownOrUpConsumedByIME) {
         return NS_OK;
       }
@@ -769,10 +747,43 @@ nsresult EditorEventListener::PointerClick(
   return NS_OK;
 }
 
-bool EditorEventListener::NotifyIMEOfMouseButtonEvent(
-    WidgetMouseEvent* aMouseEvent) {
-  MOZ_ASSERT(aMouseEvent);
+bool EditorEventListener::WillHandleMouseButtonEvent(
+    WidgetMouseEvent& aMouseEvent) {
+  // EditorEventListener may receive (1) all mousedown, mouseup and click
+  // events, (2) only mousedown event or (3) only mouseup event.
+  // mMouseDownOrUpConsumedByIME is used only for ignoring click event if
+  // preceding mousedown and/or mouseup event is consumed by IME.
+  // Therefore, even if case #2 or case #3 occurs,
+  // mMouseDownOrUpConsumedByIME is set to true here.  Therefore, we should
+  // always overwrite it if the event is mousedown.
+  if (aMouseEvent.mMessage == eMouseDown) {
+    mMouseDownOrUpConsumedByIME = NotifyIMEOfMouseButtonEvent(aMouseEvent);
+  }
+  // This code assumes that the case #1 usually occurs.  However, if the case #3
+  // may occurs after the case #2 and the mousedown is consumed,
+  // mMouseDownOrUpConsumedByIME is true even though EditorEventListener
+  // has not received the preceding mousedown event of this mouseup event.
+  // So, mMouseDownOrUpConsumedByIME may be invalid here.  However,
+  // this is not a matter because mMouseDownOrUpConsumedByIME is referred
+  // only by ePointerClick case but it is fired only in case #1.
+  // So, before a click event is fired, mMouseDownOrUpConsumedByIME is
+  // always initialized in the eMouseDown case if it's referred.
+  else {
+    MOZ_ASSERT(aMouseEvent.mMessage == eMouseUp);
+    if (NotifyIMEOfMouseButtonEvent(aMouseEvent)) {
+      mMouseDownOrUpConsumedByIME = true;
+    }
+  }
+  if (!mMouseDownOrUpConsumedByIME) {
+    // If the mouse button event is not consumed by IME, we should commit the
+    // composition to make the things simpler.
+    Unused << EnsureCommitComposition();
+  }
+  return mMouseDownOrUpConsumedByIME;
+}
 
+bool EditorEventListener::NotifyIMEOfMouseButtonEvent(
+    WidgetMouseEvent& aMouseEvent) {
   if (!EditorHasFocus()) {
     return false;
   }
@@ -783,18 +794,11 @@ bool EditorEventListener::NotifyIMEOfMouseButtonEvent(
   }
   RefPtr<Element> focusedElement = mEditorBase->GetFocusedElement();
   return IMEStateManager::OnMouseButtonEventInEditor(
-      *presContext, focusedElement, *aMouseEvent);
+      *presContext, focusedElement, aMouseEvent);
 }
 
 nsresult EditorEventListener::MouseDown(MouseEvent* aMouseEvent) {
-  // FYI: We don't need to check if it's already consumed here because
-  //      we need to commit composition at mouse button operation.
-  // FYI: This may be called by HTMLEditorEventListener::MouseDown() even
-  //      when the event is not acceptable for committing composition.
-  if (DetachedFromEditor()) {
-    return NS_OK;
-  }
-  Unused << EnsureCommitComposition();
+  MOZ_ASSERT_IF(!DetachedFromEditor(), !mEditorBase->IsIMEComposing());
   return NS_OK;
 }
 

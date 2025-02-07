@@ -89,6 +89,10 @@ class TextComposition final {
     }
     return do_AddRef(mPresContext->GetRootWidget());
   }
+  /**
+   * GetEditorBase() returns EditorBase pointer of mEditorBaseWeak.
+   */
+  already_AddRefed<EditorBase> GetEditorBase() const;
   // Returns the tab parent which has this composition in its remote process.
   BrowserParent* GetBrowserParent() const { return mBrowserParent; }
   // Returns true if the composition is started with synthesized event which
@@ -424,11 +428,6 @@ class TextComposition final {
   // mWasCompositionStringEmpty is true if the composition string was empty
   // when DispatchCompositionEvent() is called.
   bool mWasCompositionStringEmpty;
-
-  /**
-   * GetEditorBase() returns EditorBase pointer of mEditorBaseWeak.
-   */
-  already_AddRefed<EditorBase> GetEditorBase() const;
 
   /**
    * HasEditor() returns true if mEditorBaseWeak holds EditorBase instance

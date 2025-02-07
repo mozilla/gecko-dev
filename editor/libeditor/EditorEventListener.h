@@ -56,6 +56,14 @@ class EditorEventListener : public nsIDOMEventListener {
   // nsIDOMEventListener
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD HandleEvent(dom::Event* aEvent) override;
 
+  /**
+   * Called before starting to handle eMouseDown or eMouseUp in PresShell.
+   *
+   * @return true if IME consumed aMouseEvent.
+   */
+  MOZ_CAN_RUN_SCRIPT bool WillHandleMouseButtonEvent(
+      WidgetMouseEvent& aMouseEvent);
+
  protected:
   virtual ~EditorEventListener();
 
@@ -90,9 +98,13 @@ class EditorEventListener : public nsIDOMEventListener {
   void CleanupDragDropCaret();
   PresShell* GetPresShell() const;
   nsPresContext* GetPresContext() const;
-  // Returns true if IME consumes the mouse event.
+
+  /**
+   * @return true if IME consumed aMouseEvent.
+   */
   MOZ_CAN_RUN_SCRIPT bool NotifyIMEOfMouseButtonEvent(
-      WidgetMouseEvent* aMouseEvent);
+      WidgetMouseEvent& aMouseEvent);
+
   bool EditorHasFocus();
   bool IsFileControlTextBox();
   bool ShouldHandleNativeKeyBindings(WidgetKeyboardEvent* aKeyboardEvent);

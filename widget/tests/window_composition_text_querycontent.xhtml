@@ -7102,6 +7102,73 @@ function runCompositionWithSelectionChange() {
   doTest(contenteditable, "runCompositionWithSelectionChange(contenteditable)");
 }
 
+function runCompositionWithClick() {
+  let events = [];
+  function eventHandler(aEvent) {
+    events.push(aEvent);
+  }
+  function stringifyEventAt(aIndex) {
+    if (aIndex >= events.length) {
+      return "<undefined>";
+    }
+    return `${events[aIndex].type}@${events[aIndex].target?.nodeName}`;
+  }
+
+  textarea.focus();
+  textarea.value = "";
+  input.value = "";
+  synthesizeCompositionChange(
+    { "composition":
+      { "string": "abc",
+        "clauses":
+        [
+          { "length": 3, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
+        ]
+      },
+      "caret": { "start": 3, "length": 0 }
+    });
+  for (const type of ["compositionend", "input", "mousedown", "blur"]) {
+    window.addEventListener(type, eventHandler, {capture: true});
+  }
+  // Commit the composition with clicking outside the composition string (in
+  // this case, another text control).
+  synthesizeMouseAtCenter(input, {});
+  for (const type of ["compositionend", "input", "mousedown", "blur"]) {
+    window.removeEventListener(type, eventHandler, {capture: true});
+  }
+
+  let index = -1;
+  if (kExpectInputBeforeCompositionEnd) {
+    is(
+      stringifyEventAt(++index),
+      "input@textarea",
+      `runCompositionWithClick: events[${index}]`
+    );
+  }
+  is(
+    stringifyEventAt(++index),
+    "compositionend@textarea",
+    `runCompositionWithClick: events[${index}]`
+  );
+  is(
+    stringifyEventAt(++index),
+    "input@textarea",
+    `runCompositionWithClick: events[${index}]`
+  );
+  is(
+    stringifyEventAt(++index),
+    "mousedown@input",
+    `runCompositionWithClick: events[${index}]`
+  );
+  is(
+    stringifyEventAt(++index),
+    "blur@textarea",
+    `runCompositionWithClick: events[${index}]`
+  );
+  is(textarea.value, "abc", "runCompositionWithClick: Composition should be committed in <textarea> which had it");
+  is(input.value, "", "runCompositionWithClick: Composition should not be committed in <input> which newly gets focus");
+}
+
 function runForceCommitTest()
 {
   let events;
@@ -11333,6 +11400,7 @@ async function runTest()
   runBug1675313Test();
   runCommitCompositionWithSpaceKey();
   runCompositionWithSelectionChange();
+  runCompositionWithClick();
   runForceCommitTest();
   runNestedSettingValue();
   runBug811755Test();

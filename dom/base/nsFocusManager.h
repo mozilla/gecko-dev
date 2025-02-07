@@ -98,6 +98,9 @@ class nsFocusManager final : public nsIFocusManager,
    * Return a focused window. Version of nsIFocusManager::GetFocusedWindow.
    */
   nsPIDOMWindowOuter* GetFocusedWindow() const { return mFocusedWindow; }
+  static nsPIDOMWindowOuter* GetFocusedWindowStatic() {
+    return sInstance ? sInstance->GetFocusedWindow() : nullptr;
+  }
 
   /**
    * In the chrome process, retrieves the BrowsingContext corresponding

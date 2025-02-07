@@ -57,6 +57,7 @@
 #include "mozilla/dom/Touch.h"
 #include "mozilla/dom/TouchEvent.h"
 #include "mozilla/dom/UserActivation.h"
+#include "mozilla/EditorBase.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventForwards.h"
@@ -110,6 +111,7 @@
 #include "mozilla/SVGFragmentIdentifier.h"
 #include "mozilla/SVGObserverUtils.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/TouchEvents.h"
@@ -7145,6 +7147,53 @@ nsresult PresShell::HandleEvent(nsIFrame* aFrameForPresShell,
   // content in the old document.
   if (!CanHandleUserInputEvents(aGUIEvent)) {
     return NS_OK;
+  }
+
+  // If there is a composition and we got a pointing device events which may not
+  // impossible to continue the composition, we should notify the editor of the
+  // event before dispatching it.  Then, composition will be commited before
+  // the editor loses focus.  This behavior is compatible with Chrome.
+  // FIXME: Perhaps, we should do same thing before dispatching touch events.
+  switch (aGUIEvent->mMessage) {
+    case eMouseDown:
+    case eMouseUp: {
+      nsPIDOMWindowOuter* const focusedWindow =
+          nsFocusManager::GetFocusedWindowStatic();
+      if (!focusedWindow) {
+        break;
+      }
+      Document* const focusedDocument = focusedWindow->GetExtantDoc();
+      if (!focusedDocument) {
+        break;
+      }
+      nsPresContext* const focusedPresContext =
+          focusedDocument->GetPresContext();
+      if (!focusedPresContext) {
+        break;
+      }
+      const RefPtr<TextComposition> textComposition =
+          IMEStateManager::GetTextCompositionFor(focusedPresContext);
+      if (!textComposition) {
+        break;
+      }
+      // If there is a composition and it's managed by an editor, let's notify
+      // the editor of mouse button event.  The editor commits the composition
+      // unless IME consumes the event.
+      if (RefPtr<EditorBase> editorBase = textComposition->GetEditorBase()) {
+        MOZ_ASSERT(aGUIEvent->AsMouseEvent());
+        editorBase->WillHandleMouseButtonEvent(*aGUIEvent->AsMouseEvent());
+      }
+      // Otherwise, we should commit the orphan composition instead.
+      else if (nsCOMPtr<nsIWidget> widget = textComposition->GetWidget()) {
+        textComposition->RequestToCommit(widget, false);
+      }
+      if (!CanHandleUserInputEvents(aGUIEvent)) {
+        return NS_OK;
+      }
+      break;
+    }
+    default:
+      break;
   }
 
   if (mPresContext) {

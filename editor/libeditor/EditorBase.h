@@ -425,6 +425,14 @@ class EditorBase : public nsIEditor,
   }
 
   /**
+   * Called before starting to handle eMouseDown or eMouseUp in PresShell.
+   *
+   * @return true if IME consumed aMouseEvent.
+   */
+  MOZ_CAN_RUN_SCRIPT bool WillHandleMouseButtonEvent(
+      WidgetMouseEvent& aMouseEvent);
+
+  /**
    * HandleDropEvent() is called from EditorEventListener::Drop that is handler
    * of drop event.
    */
