@@ -61,8 +61,6 @@ ClipboardData nsRetrievalContextWayland::WaitForClipboardData(
   PRTime entryTime = PR_Now();
   while (!request.HasCompleted()) {
     if (iteration++ > kClipboardFastIterationNum) {
-      /* sleep for 10 ms/iteration */
-      PR_Sleep(PR_MillisecondsToInterval(10));
       if (PR_Now() - entryTime > kClipboardTimeout) {
         MOZ_CLIPBOARD_LOG(
             "  failed to get async clipboard data in time limit\n");
