@@ -645,34 +645,6 @@ rtc_source_set("rtc_operations_chain") {
   ]
 }
 
-if (rtc_enable_libevent) {
-  rtc_library("rtc_task_queue_libevent") {
-    visibility = [ "../api/task_queue:default_task_queue_factory" ]
-    sources = [
-      "task_queue_libevent.cc",
-      "task_queue_libevent.h",
-    ]
-    deps = [
-      ":checks",
-      ":logging",
-      ":macromagic",
-      ":platform_thread",
-      ":platform_thread_types",
-      ":safe_conversions",
-      ":timeutils",
-      "../api/task_queue",
-      "../api/units:time_delta",
-      "synchronization:mutex",
-      "//third_party/abseil-cpp/absl/container:inlined_vector",
-      "//third_party/abseil-cpp/absl/functional:any_invocable",
-      "//third_party/abseil-cpp/absl/strings:string_view",
-    ]
-    if (rtc_build_libevent) {
-      deps += [ "//third_party/libevent" ]
-    }
-  }
-}
-
 if (is_mac || is_ios) {
   rtc_library("rtc_task_queue_gcd") {
     visibility = [ "../api/task_queue:default_task_queue_factory" ]

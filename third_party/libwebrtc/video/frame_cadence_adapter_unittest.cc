@@ -1096,18 +1096,7 @@ TEST(FrameCadenceAdapterRealTimeTest, TimestampsDoNotDrift) {
   finalized.Wait(rtc::Event::kForever);
 }
 
-// TODO(bugs.webrtc.org/15462) Disable ScheduledRepeatAllowsForSlowEncode for
-// TaskQueueLibevent.
-#if defined(WEBRTC_ENABLE_LIBEVENT)
-#define MAYBE_ScheduledRepeatAllowsForSlowEncode \
-  DISABLED_ScheduledRepeatAllowsForSlowEncode
-#else
-#define MAYBE_ScheduledRepeatAllowsForSlowEncode \
-  ScheduledRepeatAllowsForSlowEncode
-#endif
-
-TEST(FrameCadenceAdapterRealTimeTest,
-     MAYBE_ScheduledRepeatAllowsForSlowEncode) {
+TEST(FrameCadenceAdapterRealTimeTest, ScheduledRepeatAllowsForSlowEncode) {
   // This regression test must be performed in realtime because of limitations
   // in GlobalSimulatedTimeController.
   //

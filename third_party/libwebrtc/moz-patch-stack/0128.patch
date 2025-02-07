@@ -79,7 +79,7 @@ index c810498584..6cec17ccb0 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index d61a507f9f..4f00955d5e 100644
+index 585880a08a..12b513dabb 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -102,7 +102,7 @@ index d61a507f9f..4f00955d5e 100644
    import("//third_party/jni_zero/jni_zero.gni")
  }
  
-@@ -538,7 +538,7 @@ if (!build_with_chromium) {
+@@ -534,7 +534,7 @@ if (!build_with_chromium) {
  
      sources = []
      complete_static_lib = true
@@ -111,7 +111,7 @@ index d61a507f9f..4f00955d5e 100644
      defines = []
  
      deps = [
-@@ -879,7 +879,7 @@ rtc_static_library("dcsctp") {
+@@ -875,7 +875,7 @@ rtc_static_library("dcsctp") {
    visibility = [ "//:default" ]
    sources = []
    complete_static_lib = true
@@ -659,7 +659,7 @@ index 12ca1bf189..7a2d01350b 100644
  
  if (rtc_build_libsrtp) {
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 25e066f27b..8fe10311fc 100644
+index 826c807550..2212ce5737 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -9,8 +9,8 @@
@@ -874,7 +874,7 @@ index fb107ef1a3..b718fa583d 100644
  
  declare_args() {
 diff --git a/webrtc.gni b/webrtc.gni
-index 5b3d0d3c04..111f88933c 100644
+index d3e3920c50..60cb81271c 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -5,12 +5,12 @@
@@ -922,7 +922,7 @@ index 5b3d0d3c04..111f88933c 100644
  }
  
  if (build_with_chromium) {
-@@ -378,8 +378,8 @@ rtc_common_configs = [ webrtc_root + ":common_config" ]
+@@ -373,8 +373,8 @@ rtc_common_configs = [ webrtc_root + ":common_config" ]
  
  if (is_mac || is_ios) {
    if (filter_include(default_compiler_configs,
@@ -933,7 +933,7 @@ index 5b3d0d3c04..111f88933c 100644
    }
  }
  
-@@ -397,7 +397,7 @@ rtc_common_inherited_config = webrtc_root + ":common_inherited_config"
+@@ -392,7 +392,7 @@ rtc_common_inherited_config = webrtc_root + ":common_inherited_config"
  # Common configs to remove or add in all rtc targets.
  rtc_remove_configs = []
  if (!build_with_chromium && is_clang) {
