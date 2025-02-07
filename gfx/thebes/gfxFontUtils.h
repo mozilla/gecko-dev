@@ -1224,9 +1224,10 @@ constexpr double kStretchFactor = 1.0e8;
 constexpr double kStyleFactor = 1.0e4;
 constexpr double kWeightFactor = 1.0e0;
 
-// style distance ==> [0,500]
+// style distance ==> [0,900]
 static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
-                                   mozilla::FontSlantStyle aTargetStyle) {
+                                   mozilla::FontSlantStyle aTargetStyle,
+                                   bool aItalicToObliqueFallback) {
   const mozilla::FontSlantStyle minStyle = aRange.Min();
   if (aTargetStyle == minStyle) {
     return 0.0;  // styles match exactly ==> 0
@@ -1239,6 +1240,10 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
   // bias added when we've crossed from positive to negative angles or
   // vice versa
   const double kNegate = 200.0;
+
+  // bias added for oblique faces when italic is requested, and only-oblique
+  // font-synthesis-style is in effect
+  const double kBadFallback = 400.0;
 
   if (aTargetStyle.IsNormal()) {
     if (minStyle.IsItalic()) {
@@ -1269,22 +1274,31 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
       // Must be a font with an 'ital' axis, so consider this a match.
       return 0.0;
     }
+    double targetAngle = kDefaultAngle;
+    double fallbackBias = 0.0;
+    if (!aItalicToObliqueFallback) {
+      // If 'font-style-synthesis: oblique-only' is applied, we should not use
+      // oblique as a fallback for italic, so we add a large "fallback bias" to
+      // all results here, and prefer an angle as close to zero as possible.
+      targetAngle = 0.0;
+      fallbackBias = kBadFallback;
+    }
     const double minAngle = minStyle.ObliqueAngle();
-    if (minAngle >= kDefaultAngle) {
+    if (minAngle >= targetAngle) {
       // Add 1.0 to ensure italic vs non-italic never returns 0.0, even if the
       // angle matches.
-      return minAngle - kDefaultAngle + 1.0;
+      return fallbackBias + minAngle - targetAngle + 1.0;
     }
     const double maxAngle = maxStyle.ObliqueAngle();
-    if (maxAngle >= kDefaultAngle) {
-      return 1.0;
+    if (maxAngle >= targetAngle) {
+      return fallbackBias + 1.0;
     }
     if (maxAngle > 0.0) {
       // wrong direction but still > 0, add bias of 100
-      return kReverse + (kDefaultAngle - maxAngle);
+      return fallbackBias + kReverse + (targetAngle - maxAngle);
     }
     // negative oblique angle, add bias of 300
-    return kReverse + kNegate + (kDefaultAngle - maxAngle);
+    return fallbackBias + kReverse + kNegate + (targetAngle - maxAngle);
   }
 
   // target is oblique <angle>: four different cases depending on

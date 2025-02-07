@@ -1535,8 +1535,9 @@ static inline double WeightStyleStretchDistance(
     gfxFontEntry* aFontEntry, const gfxFontStyle& aTargetStyle) {
   double stretchDist =
       StretchDistance(aFontEntry->Stretch(), aTargetStyle.stretch);
-  double styleDist =
-      StyleDistance(aFontEntry->SlantStyle(), aTargetStyle.style);
+  double styleDist = StyleDistance(
+      aFontEntry->SlantStyle(), aTargetStyle.style,
+      aTargetStyle.synthesisStyle != StyleFontSynthesisStyle::ObliqueOnly);
   double weightDist = WeightDistance(aFontEntry->Weight(), aTargetStyle.weight);
 
   // Sanity-check that the distances are within the expected range

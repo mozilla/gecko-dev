@@ -903,7 +903,7 @@ gfxFont* gfxFontconfigFontEntry::CreateFontInstance(
 
   // will synthetic oblique be applied using a transform?
   if (IsUpright() && !aFontStyle->style.IsNormal() &&
-      aFontStyle->allowSyntheticStyle) {
+      aFontStyle->synthesisStyle != StyleFontSynthesisStyle::None) {
     // disable embedded bitmaps (mimics behavior in 90-synthetic.conf)
     FcPatternDel(renderPattern, FC_EMBEDDED_BITMAP);
     FcPatternAddBool(renderPattern, FC_EMBEDDED_BITMAP, FcFalse);

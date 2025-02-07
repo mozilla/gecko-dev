@@ -7,7 +7,7 @@
 #include <math.h>                // for floor, ceil
 #include <algorithm>             // for max
 #include "gfxContext.h"          // for gfxContext
-#include "gfxFontConstants.h"    // for NS_FONT_SYNTHESIS_*
+#include "gfxFontConstants.h"    // for NS_FONT_{SUB,SUPER}SCRIPT_OFFSET_RATIO
 #include "gfxPlatform.h"         // for gfxPlatform
 #include "gfxPoint.h"            // for gfxPoint
 #include "gfxRect.h"             // for gfxRect
@@ -134,7 +134,7 @@ nsFontMetrics::nsFontMetrics(const nsFont& aFont, const Params& aParams,
                      mAllowForceGDIClassic,
 #endif
                      aFont.synthesisWeight == StyleFontSynthesis::Auto,
-                     aFont.synthesisStyle == StyleFontSynthesisStyle::Auto,
+                     aFont.synthesisStyle,
                      aFont.synthesisSmallCaps == StyleFontSynthesis::Auto,
                      aFont.synthesisPosition == StyleFontSynthesis::Auto,
                      aFont.languageOverride);

@@ -102,7 +102,8 @@ struct gfxFontStyle {
 #ifdef XP_WIN
                bool aAllowForceGDIClassic,
 #endif
-               bool aWeightSynthesis, bool aStyleSynthesis,
+               bool aWeightSynthesis,
+               mozilla::StyleFontSynthesisStyle aStyleSynthesis,
                bool aSmallCapsSynthesis, bool aPositionSynthesis,
                mozilla::StyleFontLanguageOverride aLanguageOverride);
   // Features are composed of (1) features from style rules (2) features
@@ -198,7 +199,7 @@ struct gfxFontStyle {
 
   // Whether synthetic styles are allowed (required, in the case of position)
   bool allowSyntheticWeight : 1;
-  bool allowSyntheticStyle : 1;
+  mozilla::StyleFontSynthesisStyle synthesisStyle : 2;
   bool allowSyntheticSmallCaps : 1;
   bool useSyntheticPosition : 1;
 
@@ -243,7 +244,7 @@ struct gfxFontStyle {
            (stretch == other.stretch) && (variantCaps == other.variantCaps) &&
            (variantSubSuper == other.variantSubSuper) &&
            (allowSyntheticWeight == other.allowSyntheticWeight) &&
-           (allowSyntheticStyle == other.allowSyntheticStyle) &&
+           (synthesisStyle == other.synthesisStyle) &&
            (allowSyntheticSmallCaps == other.allowSyntheticSmallCaps) &&
            (useSyntheticPosition == other.useSyntheticPosition) &&
            (systemFont == other.systemFont) &&
