@@ -104,6 +104,10 @@
               new CustomEvent("TabGroupRemoved", { bubbles: true })
             );
             this.remove();
+            Services.obs.notifyObservers(
+              this,
+              "browser-tabgroup-removed-from-dom"
+            );
           }
         });
       }

@@ -359,6 +359,13 @@ add_task(async function test_tabGroupsViewContextMenu_savedGroups() {
   menu.querySelector("#saved-tab-group-context-menu_openInThisWindow").click();
   menu.hidePopup();
   await waitForGroup;
+  await BrowserTestUtils.waitForCondition(
+    () =>
+      !allTabsMenu.querySelector(
+        `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
+      ),
+    "Saved group item has been removed from the menu"
+  );
   await closeTabsMenu(newWindow);
 
   group1 = gBrowser.getTabGroupById(savedGroupId);
@@ -380,13 +387,14 @@ add_task(async function test_tabGroupsViewContextMenu_savedGroups() {
   menu = await getContextMenu(savedGroupButton, "saved-tab-group-context-menu");
   menu.querySelector("#saved-tab-group-context-menu_delete").click();
   menu.hidePopup();
-  await closeTabsMenu(newWindow);
 
-  allTabsMenu = await openTabsMenu(newWindow);
-  savedGroupButton = allTabsMenu.querySelector(
-    `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
+  await BrowserTestUtils.waitForCondition(
+    () =>
+      !allTabsMenu.querySelector(
+        `#allTabsMenu-groupsView [data-tab-group-id="${savedGroupId}"]`
+      ),
+    "Saved group item has been removed"
   );
-  Assert.ok(!savedGroupButton, "saved group should have been forgotten");
   await closeTabsMenu(newWindow);
 
   await BrowserTestUtils.closeWindow(newWindow, { animate: false });
@@ -427,8 +435,18 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
     "'Move to New Window' is disabled"
   );
   menu.hidePopup();
+  await closeTabsMenu();
   await addTabTo(otherWindow.gBrowser);
+  allTabsMenu = await openTabsMenu();
+  group1MenuItem = allTabsMenu.querySelector(
+    `#allTabsMenu-groupsView [data-tab-group-id="${groupId}"]`
+  );
   menu = await getContextMenu(group1MenuItem, "open-tab-group-context-menu");
+  Assert.ok(
+    !menu.querySelector("#open-tab-group-context-menu_moveToNewWindow")
+      .disabled,
+    "'Move to New Window' is enabled"
+  );
   menu.querySelector("#open-tab-group-context-menu_moveToThisWindow").click();
   await waitForGroup;
 
@@ -448,6 +466,13 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
     groupId,
     "tab group in window should be the one that was moved"
   );
+  await BrowserTestUtils.waitForCondition(
+    () =>
+      !allTabsMenu.querySelector(
+        `#allTabsMenu-groupsView [data-tab-group-id="${groupId}"]`
+      ),
+    "Group item has been removed from the menu"
+  );
   await closeTabsMenu();
 
   info("move group to a new window");
@@ -461,12 +486,12 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
     gBrowser.tabContainer,
     "TabGroupRemoved"
   );
-  Assert.ok(
-    !menu.querySelector("#open-tab-group-context-menu_moveToNewWindow")
-      .disabled,
-    "'Move to New Window' is enabled"
+  let newWindow;
+  let waitForWindow = BrowserTestUtils.waitForNewWindow().then(
+    receivedWindow => {
+      newWindow = receivedWindow;
+    }
   );
-  let waitForWindow = BrowserTestUtils.waitForNewWindow();
   menu.querySelector("#open-tab-group-context-menu_moveToNewWindow").click();
   let menuHidden = BrowserTestUtils.waitForPopupEvent(menu, "hidden");
   menu.hidePopup();
@@ -483,18 +508,36 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
 
   info("delete group");
 
+  await addTabTo(newWindow.gBrowser);
+
   allTabsMenu = await openTabsMenu(window);
   group1MenuItem = allTabsMenu.querySelector(
     `#allTabsMenu-groupsView [data-tab-group-id="${groupId}"]`
   );
   menu = await getContextMenu(group1MenuItem, "open-tab-group-context-menu");
 
+  info("ensure there's at least one tab group");
+  info(gBrowser.getAllTabGroups().length);
+  await TestUtils.waitForCondition(
+    () => gBrowser.getAllTabGroups().length,
+    "there's at least one tab group"
+  );
   menu.querySelector("#open-tab-group-context-menu_delete").click();
   menu.hidePopup();
+  info("waiting for delete");
   await TestUtils.waitForCondition(
     () => !gBrowser.getAllTabGroups().length,
     "wait for tab group to be deleted"
   );
+  info("waiting for menu sync");
+  await BrowserTestUtils.waitForCondition(
+    () =>
+      !allTabsMenu.querySelector(
+        `#allTabsMenu-groupsView [data-tab-group-id="${groupId}"]`
+      ),
+    "Group item has been removed from the menu"
+  );
   await closeTabsMenu(window);
   Assert.equal(gBrowser.getAllTabGroups().length, 0, "Group was deleted");
+  await BrowserTestUtils.closeWindow(newWindow);
 });
