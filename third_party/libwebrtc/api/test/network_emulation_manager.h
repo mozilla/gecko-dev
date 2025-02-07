@@ -92,6 +92,7 @@ struct EmulatedEndpointConfig {
 struct EmulatedTURNServerConfig {
   EmulatedEndpointConfig client_config;
   EmulatedEndpointConfig peer_config;
+  bool enable_permission_checks = true;
 };
 
 // EmulatedTURNServer is an abstraction for a TURN server.

@@ -371,7 +371,7 @@ EmulatedTURNServerInterface* NetworkEmulationManagerImpl::CreateTURNServer(
   str.AppendFormat("turn_server_%u",
                    static_cast<unsigned>(turn_servers_.size()));
   auto turn = std::make_unique<EmulatedTURNServer>(
-      time_controller_->CreateThread(str.str()), client, peer);
+      config, time_controller_->CreateThread(str.str()), client, peer);
   auto out = turn.get();
   turn_servers_.push_back(std::move(turn));
   return out;

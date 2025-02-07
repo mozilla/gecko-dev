@@ -42,7 +42,8 @@ class EmulatedTURNServer : public EmulatedTURNServerInterface,
   // Create an EmulatedTURNServer.
   // `thread` is a thread that will be used to run cricket::TurnServer
   // that expects all calls to be made from a single thread.
-  EmulatedTURNServer(std::unique_ptr<rtc::Thread> thread,
+  EmulatedTURNServer(const EmulatedTURNServerConfig& config,
+                     std::unique_ptr<rtc::Thread> thread,
                      EmulatedEndpoint* client,
                      EmulatedEndpoint* peer);
   ~EmulatedTURNServer() override;
