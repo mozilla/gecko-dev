@@ -7,8 +7,7 @@ import React, { useEffect } from "react";
 import { Localized } from "./MSLocalized";
 import { AboutWelcomeUtils } from "../lib/aboutwelcome-utils.mjs";
 
-// This component was formerly "Themes" and continues to support theme and
-// wallpaper pickers.
+// This component was formerly "Themes" and continues to support theme
 export const SingleSelect = ({
   activeSingleSelect,
   activeTheme,

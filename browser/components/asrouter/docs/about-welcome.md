@@ -68,8 +68,3 @@ Provides users with set of mutually exclusive options.
 Allows users to select from a set of themes to personalize the browser’s appearance.
 
 ![About Welcome Themes](./aboutwelcome-themes.png)
-
-#### Wallpaper Picker
-Allows users to select from a set of wallpapers to personalize the appearance of about:newtab.
-
-![About Welcome Wallpaper](./aboutwelcome-wallpaper.png)

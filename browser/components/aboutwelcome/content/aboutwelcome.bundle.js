@@ -616,22 +616,7 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
     if (action.theme) {
       let themeToUse = action.theme === "<event>" ? event.currentTarget.value : this.props.initialTheme || action.theme;
       this.props.setActiveTheme(themeToUse);
-      if (props.content.tiles?.category?.type === "wallpaper") {
-        const theme = themeToUse.split("-")?.[1];
-        let actionWallpaper = {
-          ...props.content.tiles.category.action
-        };
-        actionWallpaper.data.actions.forEach(async wpAction => {
-          if (wpAction.data.pref.name?.includes("dark")) {
-            wpAction.data.pref.value = `dark-${theme}`;
-          } else {
-            wpAction.data.pref.value = `light-${theme}`;
-          }
-          _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(actionWallpaper);
-        });
-      } else {
-        window.AWSelectTheme(themeToUse);
-      }
+      window.AWSelectTheme(themeToUse);
     }
     if (action.picker) {
       let options = props.content.tiles.data;
@@ -2300,8 +2285,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-// This component was formerly "Themes" and continues to support theme and
-// wallpaper pickers.
+// This component was formerly "Themes" and continues to support theme
 const SingleSelect = ({
   activeSingleSelect,
   activeTheme,
