@@ -67,19 +67,15 @@ struct DeleteEntry {
  * reside on the leaf itself, rather than requiring offsets.
  */
 struct TextOffsetAttribute {
-  // An offset used to indicate that this attribute extends outside of this
-  // leaf.
-  static const int32_t kOutsideLeaf = -1;
-  // The offset in the text leaf where the attribute starts. If this is
-  // kOutsideLeaf, the attribute begins before this leaf, crossing Accessibles.
+  // The offset in the text leaf where the attribute starts. If this is -1, the
+  // attribute begins before this leaf, crossing Accessibles.
   int32_t mStartOffset;
   // The offset in the text leaf where the attribute ends (exclusive). If this
-  // is kOutsideLeaf, the attribute ends after this leaf, crossing Accessibles.
+  // is -1, the attribute ends after this leaf, crossing Accessibles.
   int32_t mEndOffset;
   // The attribute:
-  // nsGkAtoms::grammar: Grammar error.
-  // nsGkAtoms::mark: Semantic highlight such as a text fragment.
-  // nsGkAtoms::spelling: Spelling error.
+  // nsGkAtoms::mark: Semantic highlights such as text fragments.
+  // nsGkAtoms::spelling: spelling errors
   RefPtr<nsAtom> mAttribute;
 
   bool operator==(const TextOffsetAttribute& aOther) const {

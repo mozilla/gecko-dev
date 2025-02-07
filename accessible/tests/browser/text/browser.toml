@@ -6,7 +6,6 @@ support-files = [
   "!/accessible/tests/mochitest/*.js",
 ]
 prefs = [
-  "dom.customHighlightAPI.enabled=true",
   "dom.text_fragments.enabled=true",
 ]
 
