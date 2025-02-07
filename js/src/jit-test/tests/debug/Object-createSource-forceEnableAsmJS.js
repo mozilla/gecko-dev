@@ -1,5 +1,7 @@
 // |jit-test| skip-if: !wasmDebuggingEnabled()
 
+gczeal(0);
+
 const text = `
 function normalFunction() {
 }

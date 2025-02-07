@@ -76,7 +76,7 @@ bool ParallelMarker::markOneColor(MarkColor color, SliceBudget& sliceBudget) {
     // TODO: When tuning for more than two markers we may need to adopt a more
     // sophisticated approach.
     if (!marker->hasEntriesForCurrentColor() && gc->marker().canDonateWork()) {
-      GCMarker::moveWork(marker, &gc->marker());
+      GCMarker::moveWork(marker, &gc->marker(), false);
     }
   }
 
@@ -327,7 +327,7 @@ void ParallelMarker::donateWorkFrom(GCMarker* src) {
 
   // Move some work from this thread's mark stack to the waiting task.
   MOZ_ASSERT(!waitingTask->hasWork());
-  GCMarker::moveWork(waitingTask->marker, src);
+  GCMarker::moveWork(waitingTask->marker, src, true);
 
   gc->stats().count(gcstats::COUNT_PARALLEL_MARK_INTERRUPTIONS);
 

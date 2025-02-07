@@ -9,6 +9,7 @@
 
 #include "mozilla/Maybe.h"
 #include "mozilla/Variant.h"
+#include "mozilla/XorShift128PlusRNG.h"
 
 #include "gc/Barrier.h"
 #include "js/HashTable.h"
@@ -177,6 +178,7 @@ class MarkStack {
 
   template <typename T>
   [[nodiscard]] bool push(T* ptr);
+  void infalliblePush(const SlotsOrElementsRange& range);
   void infalliblePush(JSObject* obj, SlotsOrElementsKind kind, size_t start);
   [[nodiscard]] bool push(const TaggedPtr& ptr);
   void infalliblePush(const TaggedPtr& ptr);
@@ -199,7 +201,8 @@ class MarkStack {
 
   [[nodiscard]] bool ensureSpace(size_t count);
 
-  static void moveWork(MarkStack& dst, MarkStack& src);
+  static void moveWork(GCMarker* marker, MarkStack& dst, MarkStack& src,
+                       bool allowDistribute);
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
@@ -268,13 +271,13 @@ class MOZ_STACK_CLASS MarkStackIter {
   void next();
 
   MarkStack::Tag peekTag() const;
+  MarkStack::TaggedPtr peekPtr() const;
   bool isSlotsOrElementsRange() const;
   MarkStack::SlotsOrElementsRange slotsOrElementsRange() const;
   void setSlotsOrElementsRange(const MarkStack::SlotsOrElementsRange& range);
 
  private:
   size_t position() const;
-  MarkStack::TaggedPtr peekPtr() const;
 };
 
 // Bitmask of options to parameterize MarkingTracerT.
@@ -415,7 +418,7 @@ class GCMarker {
   template <uint32_t markingOptions, gc::MarkColor>
   bool markOneColor(JS::SliceBudget& budget);
 
-  static void moveWork(GCMarker* dst, GCMarker* src);
+  static void moveWork(GCMarker* dst, GCMarker* src, bool allowDistribute);
 
   [[nodiscard]] bool initStack();
   void resetStackCapacity();
@@ -595,6 +598,9 @@ class GCMarker {
    * pref: javascript.options.mem.incremental_weakmap
    */
   MainThreadOrGCTaskData<bool> incrementalWeakMapMarkingEnabled;
+
+  /* Random number generator state. */
+  MainThreadOrGCTaskData<mozilla::non_crypto::XorShift128PlusRNG> random;
 
 #ifdef DEBUG
  private:
