@@ -21,7 +21,6 @@
     padding-block-end: var(--space-small);
     padding-inline-end: var(--space-small);
     position: relative;
-    z-index: var(--browser-area-z-index-sidebar);
 
     &[positionend] {
       padding-inline: 0;
@@ -233,12 +232,12 @@ sidebar-main,
 
 #sidebar-wrapper {
   position: relative;
+  z-index: var(--browser-area-z-index-sidebar-wrapper);
 
   &.expandOnHover {
     position: absolute;
     inset: 0;
     inset-inline-end: unset;
-    z-index: var(--browser-area-z-index-sidebar-wrapper);
 
     &:not([positionend]):hover {
       border-start-end-radius: var(--border-radius-medium);

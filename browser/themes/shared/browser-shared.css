@@ -68,10 +68,8 @@ body {
 
   /* z-indices that fight in the general browser / toolbox area */
   --browser-area-z-index-toolbox: 0;
-  --browser-area-z-index-sidebar: 1;
   --browser-area-z-index-tabbox: 2;
   --browser-area-z-index-sidebar-wrapper: 3;
-  --browser-area-z-index-sidebar-splitter: 3;
 
   /* on macOS the animation of the toolbox in fullscreen needs the toolbox to be higher */
   --browser-area-z-index-toolbox-while-animating: 4;

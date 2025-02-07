@@ -1007,7 +1007,7 @@ var SidebarController = {
   async _animateSidebarMain() {
     let tabbox = document.getElementById("tabbrowser-tabbox");
     let animatingElements = [this.sidebarContainer, this._box, this._splitter];
-    if (this.sidebarRevampVisibility !== "expand-on-hover") {
+    if (!this.sidebarRevampVisibility === "expand-on-hover") {
       animatingElements.push(tabbox);
     }
     let resetElements = () => {
