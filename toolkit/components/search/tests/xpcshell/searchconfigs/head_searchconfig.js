@@ -26,8 +26,6 @@ const TEST_DEBUG = Services.env.get("TEST_DEBUG");
 const URLTYPE_SUGGEST_JSON = "application/x-suggestions+json";
 const URLTYPE_SEARCH_HTML = "text/html";
 
-let engineSelector;
-
 /**
  * This function is used to override the remote settings configuration
  * if the SEARCH_CONFIG environment variable is set. This allows testing
@@ -87,6 +85,11 @@ async function maybeSetupConfig() {
  */
 class SearchConfigTest {
   /**
+   * @type {?SearchEngineSelector}
+   */
+  #engineSelector;
+
+  /**
    * @param {object} config
    *   The initial configuration for this test, see above.
    */
@@ -124,21 +127,7 @@ class SearchConfigTest {
       true
     );
 
-    await Services.search.init();
-
-    // We must use the engine selector that the search service has created (if
-    // it has), as remote settings can only easily deal with us loading the
-    // configuration once - after that, it tries to access the network.
-    engineSelector =
-      Services.search.wrappedJSObject._engineSelector ||
-      new SearchEngineSelector();
-
-    // Note: we don't use the helper function here, so that we have at least
-    // one message output per process.
-    Assert.ok(
-      Services.search.isInitialized,
-      "Should have correctly initialized the search service"
-    );
+    this.#engineSelector = new SearchEngineSelector();
   }
 
   /**
@@ -163,7 +152,7 @@ class SearchConfigTest {
   }
 
   async _getEngines(region, locale) {
-    let configs = await engineSelector.fetchEngineConfiguration({
+    let configs = await this.#engineSelector.fetchEngineConfiguration({
       locale,
       region: region || "default",
       channel: SearchUtils.MODIFIED_APP_CHANNEL,

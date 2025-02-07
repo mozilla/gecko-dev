@@ -294,8 +294,6 @@ function hasEnginesFirst(engines, expectedEngines) {
   }
 }
 
-engineSelector = new SearchEngineSelector();
-
 add_setup(async function () {
   updateAppInfo({
     name: "firefox",
@@ -308,6 +306,8 @@ add_setup(async function () {
 });
 
 add_task(async function test_expected_distribution_engines() {
+  let engineSelector = new SearchEngineSelector();
+
   for (const { distribution, locale = "en-US", region = "US", test } of tests) {
     let config = await engineSelector.fetchEngineConfiguration({
       locale,
