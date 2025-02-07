@@ -400,7 +400,10 @@ rtc_library("codec_list") {
   ]
   deps = [
     ":codec",
+    ":media_constants",
     "../rtc_base:checks",
+    "../rtc_base:logging",
+    "../rtc_base:stringutils",
   ]
 }
 

@@ -720,6 +720,7 @@ void MergeCodecs(const CodecList& reference_codecs,
       offered_codecs.push_back(red_codec);
     }
   }
+  offered_codecs.CheckConsistency();
 }
 
 // `codecs` is a full list of codecs with correct payload type mappings, which
