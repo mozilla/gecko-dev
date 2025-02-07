@@ -9,7 +9,10 @@
 loadScripts({ name: "attributes.js", dir: MOCHITESTS_DIR });
 
 const boldAttrs = { "font-weight": "700" };
-const fragmentAttrs = { mark: "true" };
+const highlightAttrs = { mark: "true" };
+const fragmentAttrs = highlightAttrs;
+const spellingAttrs = { invalid: "spelling" };
+const grammarAttrs = { invalid: "grammar" };
 const snippet = `
 <p id="first">The first phrase.</p>
 <p id="second">The <i>second <b>phrase.</b></i></p>
@@ -162,3 +165,185 @@ add_task(async function testTextFragmentSamePage() {
     );
   });
 });
+
+/**
+ * Test custom highlight mutations.
+ */
+addAccessibleTask(
+  `
+${snippet}
+<script>
+  const firstText = document.getElementById("first").firstChild;
+  // Highlight the word "first".
+  const range1 = new Range();
+  range1.setStart(firstText, 4);
+  range1.setEnd(firstText, 9);
+  const highlight1 = new Highlight(range1);
+  CSS.highlights.set("highlight1", highlight1);
+</script>
+  `,
+  async function testCustomHighlightMutations(browser, docAcc) {
+    info("Checking initial highlight");
+    const first = findAccessibleChildByID(docAcc, "first");
+    ok(
+      textAttrRangesMatch(
+        first,
+        [
+          [4, 9], // "first"
+        ],
+        highlightAttrs
+      ),
+      "first attr ranges correct"
+    );
+    const second = findAccessibleChildByID(docAcc, "second");
+    ok(
+      textAttrRangesMatch(second, [], highlightAttrs),
+      "second attr ranges correct"
+    );
+
+    info("Adding range2 to highlight1");
+    let rangeCheck = waitForTextAttrRanges(
+      first,
+      [
+        [0, 3], // "The "
+        [4, 9], // "first"
+      ],
+      highlightAttrs,
+      true
+    );
+    await invokeContentTask(browser, [], () => {
+      content.firstText = content.document.getElementById("first").firstChild;
+      // Highlight the word "The".
+      content.range2 = new content.Range();
+      content.range2.setStart(content.firstText, 0);
+      content.range2.setEnd(content.firstText, 3);
+      content.highlight1 = content.CSS.highlights.get("highlight1");
+      content.highlight1.add(content.range2);
+    });
+    await rangeCheck;
+
+    info("Adding highlight2");
+    rangeCheck = waitForTextAttrRanges(
+      first,
+      [
+        [0, 3], // "The "
+        [4, 9], // "first"
+        [10, 16], // "phrase"
+      ],
+      highlightAttrs,
+      true
+    );
+    await invokeContentTask(browser, [], () => {
+      // Highlight the word "phrase".
+      const range3 = new content.Range();
+      range3.setStart(content.firstText, 10);
+      range3.setEnd(content.firstText, 16);
+      const highlight2 = new content.Highlight(range3);
+      content.CSS.highlights.set("highlight2", highlight2);
+    });
+    await rangeCheck;
+
+    info("Removing range2");
+    rangeCheck = waitForTextAttrRanges(
+      first,
+      [
+        [4, 9], // "first"
+        [10, 16], // "phrase"
+      ],
+      highlightAttrs,
+      true
+    );
+    await invokeContentTask(browser, [], () => {
+      content.highlight1.delete(content.range2);
+    });
+    await rangeCheck;
+
+    info("Removing highlight1");
+    rangeCheck = waitForTextAttrRanges(
+      first,
+      [
+        [10, 16], // "phrase"
+      ],
+      highlightAttrs,
+      true
+    );
+    await invokeContentTask(browser, [], () => {
+      content.CSS.highlights.delete("highlight1");
+    });
+    await rangeCheck;
+  },
+  { chrome: true, topLevel: true }
+);
+
+/**
+ * Test custom highlight types.
+ */
+addAccessibleTask(
+  `
+${snippet}
+<script>
+  const firstText = document.getElementById("first").firstChild;
+  // Highlight the word "The".
+  const range1 = new Range();
+  range1.setStart(firstText, 0);
+  range1.setEnd(firstText, 3);
+  const highlight = new Highlight(range1);
+  CSS.highlights.set("highlight", highlight);
+
+  // Make the word "first" a spelling error.
+  const range2 = new Range();
+  range2.setStart(firstText, 4);
+  range2.setEnd(firstText, 9);
+  const spelling = new Highlight(range2);
+  spelling.type = "spelling-error";
+  CSS.highlights.set("spelling", spelling);
+
+  // Make the word "phrase" a grammar error.
+  const range3 = new Range();
+  range3.setStart(firstText, 10);
+  range3.setEnd(firstText, 16);
+  const grammar = new Highlight(range3);
+  grammar.type = "grammar-error";
+  CSS.highlights.set("grammar", grammar);
+</script>
+  `,
+  async function testCustomHighlightTypes(browser, docAcc) {
+    const first = findAccessibleChildByID(docAcc, "first");
+    ok(
+      textAttrRangesMatch(
+        first,
+        [
+          [0, 3], // "the"
+        ],
+        highlightAttrs
+      ),
+      "first highlight ranges correct"
+    );
+    ok(
+      textAttrRangesMatch(
+        first,
+        [
+          [4, 9], // "first"
+        ],
+        spellingAttrs
+      ),
+      "first spelling ranges correct"
+    );
+    ok(
+      textAttrRangesMatch(
+        first,
+        [
+          [10, 16], // "phrase"
+        ],
+        grammarAttrs
+      ),
+      "first grammar ranges correct"
+    );
+    const second = findAccessibleChildByID(docAcc, "second");
+    ok(
+      textAttrRangesMatch(second, [], highlightAttrs),
+      "second highlight ranges correct"
+    );
+  },
+  { chrome: true, topLevel: true }
+);
