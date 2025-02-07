@@ -393,6 +393,17 @@ rtc_library("codec") {
   ]
 }
 
+rtc_library("codec_list") {
+  sources = [
+    "base/codec_list.cc",
+    "base/codec_list.h",
+  ]
+  deps = [
+    ":codec",
+    "../rtc_base:checks",
+  ]
+}
+
 # MOZILLA Bug 1931241 - how much of this do we need?
 rtc_library("rtp_utils") {
 if (!build_with_mozilla) {

@@ -32,6 +32,7 @@
 #include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/codec_comparators.h"
+#include "media/base/codec_list.h"
 #include "media/base/media_constants.h"
 #include "media/base/media_engine.h"
 #include "media/base/rid_description.h"
@@ -145,12 +146,12 @@ bool IsComfortNoiseCodec(const Codec& codec) {
   return absl::EqualsIgnoreCase(codec.name, kComfortNoiseCodecName);
 }
 
-void StripCNCodecs(Codecs* audio_codecs) {
-  audio_codecs->erase(std::remove_if(audio_codecs->begin(), audio_codecs->end(),
-                                     [](const Codec& codec) {
-                                       return IsComfortNoiseCodec(codec);
-                                     }),
-                      audio_codecs->end());
+void StripCNCodecs(CodecList& audio_codecs) {
+  audio_codecs.writable_codecs().erase(
+      std::remove_if(
+          audio_codecs.begin(), audio_codecs.end(),
+          [](const Codec& codec) { return IsComfortNoiseCodec(codec); }),
+      audio_codecs.end());
 }
 
 RtpTransceiverDirection NegotiateRtpTransceiverDirection(
@@ -577,7 +578,7 @@ void NegotiateCodecs(const std::vector<Codec>& local_codecs,
 }
 
 // Find the codec in `codec_list` that `rtx_codec` is associated with.
-const Codec* GetAssociatedCodecForRtx(const std::vector<Codec>& codec_list,
+const Codec* GetAssociatedCodecForRtx(const CodecList& codec_list,
                                       const Codec& rtx_codec) {
   std::string associated_pt_str;
   if (!rtx_codec.GetParam(kCodecParamAssociatedPayloadType,
@@ -596,7 +597,8 @@ const Codec* GetAssociatedCodecForRtx(const std::vector<Codec>& codec_list,
   }
 
   // Find the associated codec for the RTX codec.
-  const Codec* associated_codec = FindCodecById(codec_list, associated_pt);
+  const Codec* associated_codec =
+      FindCodecById(codec_list.codecs(), associated_pt);
   if (!associated_codec) {
     RTC_LOG(LS_WARNING) << "Couldn't find associated codec with payload type "
                         << associated_pt << " for RTX codec " << rtx_codec.id
@@ -606,7 +608,7 @@ const Codec* GetAssociatedCodecForRtx(const std::vector<Codec>& codec_list,
 }
 
 // Find the codec in `codec_list` that `red_codec` is associated with.
-const Codec* GetAssociatedCodecForRed(const std::vector<Codec>& codec_list,
+const Codec* GetAssociatedCodecForRed(const CodecList& codec_list,
                                       const Codec& red_codec) {
   std::string fmtp;
   if (!red_codec.GetParam(kCodecParamNotInNameValueFormat, &fmtp)) {
@@ -633,7 +635,8 @@ const Codec* GetAssociatedCodecForRed(const std::vector<Codec>& codec_list,
   }
 
   // Find the associated codec for the RED codec.
-  const Codec* associated_codec = FindCodecById(codec_list, associated_pt);
+  const Codec* associated_codec =
+      FindCodecById(codec_list.codecs(), associated_pt);
   if (!associated_codec) {
     RTC_LOG(LS_WARNING) << "Couldn't find associated codec with payload type "
                         << associated_pt << " for RED codec " << red_codec.id
@@ -645,8 +648,8 @@ const Codec* GetAssociatedCodecForRed(const std::vector<Codec>& codec_list,
 // Adds all codecs from `reference_codecs` to `offered_codecs` that don't
 // already exist in `offered_codecs` and ensure the payload types don't
 // collide.
-void MergeCodecs(const std::vector<Codec>& reference_codecs,
-                 std::vector<Codec>* offered_codecs,
+void MergeCodecs(const CodecList& reference_codecs,
+                 CodecList& offered_codecs,
                  UsedPayloadTypes* used_pltypes) {
   // Add all new codecs that are not RTX/RED codecs.
   // The two-pass splitting of the loops means preferring payload types
@@ -654,19 +657,19 @@ void MergeCodecs(const std::vector<Codec>& reference_codecs,
   for (const Codec& reference_codec : reference_codecs) {
     if (reference_codec.GetResiliencyType() != Codec::ResiliencyType::kRtx &&
         reference_codec.GetResiliencyType() != Codec::ResiliencyType::kRed &&
-        !webrtc::FindMatchingCodec(reference_codecs, *offered_codecs,
-                                   reference_codec)) {
+        !webrtc::FindMatchingCodec(reference_codecs.codecs(),
+                                   offered_codecs.codecs(), reference_codec)) {
       Codec codec = reference_codec;
       used_pltypes->FindAndSetIdUsed(&codec);
-      offered_codecs->push_back(codec);
+      offered_codecs.push_back(codec);
     }
   }
 
   // Add all new RTX or RED codecs.
   for (const Codec& reference_codec : reference_codecs) {
     if (reference_codec.GetResiliencyType() == Codec::ResiliencyType::kRtx &&
-        !webrtc::FindMatchingCodec(reference_codecs, *offered_codecs,
-                                   reference_codec)) {
+        !webrtc::FindMatchingCodec(reference_codecs.codecs(),
+                                   offered_codecs.codecs(), reference_codec)) {
       Codec rtx_codec = reference_codec;
       const Codec* associated_codec =
           GetAssociatedCodecForRtx(reference_codecs, rtx_codec);
@@ -675,8 +678,9 @@ void MergeCodecs(const std::vector<Codec>& reference_codecs,
       }
       // Find a codec in the offered list that matches the reference codec.
       // Its payload type may be different than the reference codec.
-      std::optional<Codec> matching_codec = webrtc::FindMatchingCodec(
-          reference_codecs, *offered_codecs, *associated_codec);
+      std::optional<Codec> matching_codec =
+          webrtc::FindMatchingCodec(reference_codecs.codecs(),
+                                    offered_codecs.codecs(), *associated_codec);
       if (!matching_codec) {
         RTC_LOG(LS_WARNING)
             << "Couldn't find matching " << associated_codec->name << " codec.";
@@ -686,17 +690,19 @@ void MergeCodecs(const std::vector<Codec>& reference_codecs,
       rtx_codec.params[kCodecParamAssociatedPayloadType] =
           rtc::ToString(matching_codec->id);
       used_pltypes->FindAndSetIdUsed(&rtx_codec);
-      offered_codecs->push_back(rtx_codec);
+      offered_codecs.push_back(rtx_codec);
     } else if (reference_codec.GetResiliencyType() ==
                    Codec::ResiliencyType::kRed &&
-               !webrtc::FindMatchingCodec(reference_codecs, *offered_codecs,
+               !webrtc::FindMatchingCodec(reference_codecs.codecs(),
+                                          offered_codecs.codecs(),
                                           reference_codec)) {
       Codec red_codec = reference_codec;
       const Codec* associated_codec =
           GetAssociatedCodecForRed(reference_codecs, red_codec);
       if (associated_codec) {
         std::optional<Codec> matching_codec = webrtc::FindMatchingCodec(
-            reference_codecs, *offered_codecs, *associated_codec);
+            reference_codecs.codecs(), offered_codecs.codecs(),
+            *associated_codec);
         if (!matching_codec) {
           RTC_LOG(LS_WARNING) << "Couldn't find matching "
                               << associated_codec->name << " codec.";
@@ -708,7 +714,7 @@ void MergeCodecs(const std::vector<Codec>& reference_codecs,
             rtc::ToString(matching_codec->id);
       }
       used_pltypes->FindAndSetIdUsed(&red_codec);
-      offered_codecs->push_back(red_codec);
+      offered_codecs.push_back(red_codec);
     }
   }
 }
@@ -717,11 +723,11 @@ void MergeCodecs(const std::vector<Codec>& reference_codecs,
 // don't conflict with mappings of the other media type; `supported_codecs` is
 // a list filtered for the media section`s direction but with default payload
 // types.
-std::vector<Codec> MatchCodecPreference(
+CodecList MatchCodecPreference(
     const std::vector<webrtc::RtpCodecCapability>& codec_preferences,
-    const std::vector<Codec>& codecs,
-    const std::vector<Codec>& supported_codecs) {
-  std::vector<Codec> filtered_codecs;
+    const CodecList& codecs,
+    const CodecList& supported_codecs) {
+  CodecList filtered_codecs;
   bool want_rtx = false;
   bool want_red = false;
 
@@ -745,7 +751,8 @@ std::vector<Codec> MatchCodecPreference(
 
     if (found_codec != supported_codecs.end()) {
       std::optional<Codec> found_codec_with_correct_pt =
-          webrtc::FindMatchingCodec(supported_codecs, codecs, *found_codec);
+          webrtc::FindMatchingCodec(supported_codecs.codecs(), codecs.codecs(),
+                                    *found_codec);
       if (found_codec_with_correct_pt) {
         // RED may already have been added if its primary codec is before RED
         // in the codec list.
@@ -796,9 +803,8 @@ std::vector<Codec> MatchCodecPreference(
 }
 
 // Compute the union of `codecs1` and `codecs2`.
-std::vector<Codec> ComputeCodecsUnion(const std::vector<Codec>& codecs1,
-                                      const std::vector<Codec>& codecs2) {
-  std::vector<Codec> all_codecs;
+CodecList ComputeCodecsUnion(const CodecList codecs1, const CodecList codecs2) {
+  CodecList all_codecs;
   UsedPayloadTypes used_payload_types;
   for (const Codec& codec : codecs1) {
     Codec codec_mutable = codec;
@@ -808,7 +814,7 @@ std::vector<Codec> ComputeCodecsUnion(const std::vector<Codec>& codecs1,
 
   // Use MergeCodecs to merge the second half of our list as it already checks
   // and fixes problems with duplicate payload types.
-  MergeCodecs(codecs2, &all_codecs, &used_payload_types);
+  MergeCodecs(codecs2, all_codecs, &used_payload_types);
 
   return all_codecs;
 }
@@ -1069,8 +1075,8 @@ const TransportDescription* GetTransportDescription(
 // |supported_codecs| with same profile.
 void NegotiateVideoCodecLevelsForOffer(
     const MediaDescriptionOptions& media_description_options,
-    const std::vector<Codec>& supported_codecs,
-    std::vector<Codec>& filtered_codecs) {
+    const CodecList& supported_codecs,
+    CodecList& filtered_codecs) {
   if (filtered_codecs.empty() || supported_codecs.empty()) {
     return;
   }
@@ -1119,13 +1125,13 @@ void NegotiateVideoCodecLevelsForOffer(
 #endif
 }
 
-webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForOffer(
+webrtc::RTCErrorOr<std::vector<Codec>> GetNegotiatedCodecsForOffer(
     const MediaDescriptionOptions& media_description_options,
     const MediaSessionOptions& session_options,
     const ContentInfo* current_content,
-    const std::vector<Codec>& codecs,
-    const std::vector<Codec>& supported_codecs) {
-  std::vector<Codec> filtered_codecs;
+    const CodecList& codecs,
+    const CodecList& supported_codecs) {
+  CodecList filtered_codecs;
   if (!media_description_options.codec_preferences.empty()) {
     // Add the codecs from the current transceiver's codec preferences.
     // They override any existing codecs from previous negotiations.
@@ -1146,17 +1152,18 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForOffer(
       }
       const MediaContentDescription* mcd = current_content->media_description();
       for (const Codec& codec : mcd->codecs()) {
-        if (webrtc::FindMatchingCodec(mcd->codecs(), codecs, codec)) {
+        if (webrtc::FindMatchingCodec(mcd->codecs(), codecs.codecs(), codec)) {
           filtered_codecs.push_back(codec);
         }
       }
     }
     // Add other supported codecs.
     for (const Codec& codec : supported_codecs) {
-      std::optional<Codec> found_codec =
-          webrtc::FindMatchingCodec(supported_codecs, codecs, codec);
-      if (found_codec && !webrtc::FindMatchingCodec(supported_codecs,
-                                                    filtered_codecs, codec)) {
+      std::optional<Codec> found_codec = webrtc::FindMatchingCodec(
+          supported_codecs.codecs(), codecs.codecs(), codec);
+      if (found_codec &&
+          !webrtc::FindMatchingCodec(supported_codecs.codecs(),
+                                     filtered_codecs.codecs(), codec)) {
         // Use the `found_codec` from `codecs` because it has the
         // correctly mapped payload type.
         // This is only done for video since we do not yet have rtx for audio.
@@ -1170,7 +1177,8 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForOffer(
 
           // Find the codec we should be referencing and point to it.
           std::optional<Codec> changed_referenced_codec =
-              webrtc::FindMatchingCodec(supported_codecs, filtered_codecs,
+              webrtc::FindMatchingCodec(supported_codecs.codecs(),
+                                        filtered_codecs.codecs(),
                                         *referenced_codec);
           if (changed_referenced_codec) {
             found_codec->SetParam(kCodecParamAssociatedPayloadType,
@@ -1185,7 +1193,7 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForOffer(
   if (media_description_options.type == MEDIA_TYPE_AUDIO &&
       !session_options.vad_enabled) {
     // If application doesn't want CN codecs in offer.
-    StripCNCodecs(&filtered_codecs);
+    StripCNCodecs(filtered_codecs);
   } else if (media_description_options.type == MEDIA_TYPE_VIDEO &&
              session_options.raw_packetization_for_video) {
     for (Codec& codec : filtered_codecs) {
@@ -1196,16 +1204,16 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForOffer(
   }
   NegotiateVideoCodecLevelsForOffer(media_description_options, supported_codecs,
                                     filtered_codecs);
-  return filtered_codecs;
+  return filtered_codecs.codecs();
 }
 
 webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForAnswer(
     const MediaDescriptionOptions& media_description_options,
     const MediaSessionOptions& session_options,
     const ContentInfo* current_content,
-    const std::vector<Codec>& codecs,
-    const std::vector<Codec>& supported_codecs) {
-  std::vector<Codec> filtered_codecs;
+    const CodecList& codecs,
+    const CodecList& supported_codecs) {
+  CodecList filtered_codecs;
 
   if (!media_description_options.codec_preferences.empty()) {
     filtered_codecs = MatchCodecPreference(
@@ -1225,17 +1233,18 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForAnswer(
       }
       const MediaContentDescription* mcd = current_content->media_description();
       for (const Codec& codec : mcd->codecs()) {
-        if (webrtc::FindMatchingCodec(mcd->codecs(), codecs, codec)) {
+        if (webrtc::FindMatchingCodec(mcd->codecs(), codecs.codecs(), codec)) {
           filtered_codecs.push_back(codec);
         }
       }
     }
     // Add other supported codecs.
-    std::vector<Codec> other_codecs;
+    CodecList other_codecs;
     for (const Codec& codec : supported_codecs) {
-      if (webrtc::FindMatchingCodec(supported_codecs, codecs, codec) &&
-          !webrtc::FindMatchingCodec(supported_codecs, filtered_codecs,
-                                     codec)) {
+      if (webrtc::FindMatchingCodec(supported_codecs.codecs(), codecs.codecs(),
+                                    codec) &&
+          !webrtc::FindMatchingCodec(supported_codecs.codecs(),
+                                     filtered_codecs.codecs(), codec)) {
         // We should use the local codec with local parameters and the codec id
         // would be correctly mapped in `NegotiateCodecs`.
         other_codecs.push_back(codec);
@@ -1250,7 +1259,7 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForAnswer(
   if (media_description_options.type == MEDIA_TYPE_AUDIO &&
       !session_options.vad_enabled) {
     // If application doesn't want CN codecs in offer.
-    StripCNCodecs(&filtered_codecs);
+    StripCNCodecs(filtered_codecs);
   } else if (media_description_options.type == MEDIA_TYPE_VIDEO &&
              session_options.raw_packetization_for_video) {
     for (Codec& codec : filtered_codecs) {
@@ -1259,7 +1268,7 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForAnswer(
       }
     }
   }
-  return filtered_codecs;
+  return filtered_codecs.codecs();
 }
 
 }  // namespace
@@ -1809,16 +1818,16 @@ const Codecs& MediaSessionDescriptionFactory::GetVideoCodecsForAnswer(
 
 void MergeCodecsFromDescription(
     const std::vector<const ContentInfo*>& current_active_contents,
-    Codecs* audio_codecs,
-    Codecs* video_codecs,
+    CodecList& audio_codecs,
+    CodecList& video_codecs,
     UsedPayloadTypes* used_pltypes) {
   for (const ContentInfo* content : current_active_contents) {
     if (IsMediaContentOfType(content, MEDIA_TYPE_AUDIO)) {
-      MergeCodecs(content->media_description()->codecs(), audio_codecs,
-                  used_pltypes);
+      MergeCodecs(CodecList{content->media_description()->codecs()},
+                  audio_codecs, used_pltypes);
     } else if (IsMediaContentOfType(content, MEDIA_TYPE_VIDEO)) {
-      MergeCodecs(content->media_description()->codecs(), video_codecs,
-                  used_pltypes);
+      MergeCodecs(CodecList{content->media_description()->codecs()},
+                  video_codecs, used_pltypes);
     }
   }
 }
@@ -1837,12 +1846,16 @@ void MediaSessionDescriptionFactory::GetCodecsForOffer(
   // is used. Add them to `used_pltypes` so the payload type is not reused if a
   // new media type is added.
   UsedPayloadTypes used_pltypes;
-  MergeCodecsFromDescription(current_active_contents, audio_codecs,
-                             video_codecs, &used_pltypes);
+  CodecList video_codec_list(*video_codecs);
+  CodecList audio_codec_list(*audio_codecs);
+  MergeCodecsFromDescription(current_active_contents, audio_codec_list,
+                             video_codec_list, &used_pltypes);
 
   // Add our codecs that are not in the current description.
-  MergeCodecs(all_audio_codecs_, audio_codecs, &used_pltypes);
-  MergeCodecs(all_video_codecs_, video_codecs, &used_pltypes);
+  MergeCodecs(CodecList{all_audio_codecs_}, audio_codec_list, &used_pltypes);
+  MergeCodecs(CodecList{all_video_codecs_}, video_codec_list, &used_pltypes);
+  *audio_codecs = audio_codec_list.codecs();
+  *video_codecs = video_codec_list.codecs();
 }
 
 // Getting codecs for an answer involves these steps:
@@ -1861,32 +1874,34 @@ void MediaSessionDescriptionFactory::GetCodecsForAnswer(
   // is used. Add them to `used_pltypes` so the payload type is not reused if a
   // new media type is added.
   UsedPayloadTypes used_pltypes;
-  MergeCodecsFromDescription(current_active_contents, audio_codecs,
-                             video_codecs, &used_pltypes);
+  CodecList video_codec_list(*video_codecs);
+  CodecList audio_codec_list(*audio_codecs);
+  MergeCodecsFromDescription(current_active_contents, audio_codec_list,
+                             video_codec_list, &used_pltypes);
 
   // Second - filter out codecs that we don't support at all and should ignore.
-  Codecs filtered_offered_audio_codecs;
-  Codecs filtered_offered_video_codecs;
+  CodecList filtered_offered_audio_codecs;
+  CodecList filtered_offered_video_codecs;
   for (const ContentInfo& content : remote_offer.contents()) {
     if (IsMediaContentOfType(&content, MEDIA_TYPE_AUDIO)) {
-      std::vector<Codec> offered_codecs = content.media_description()->codecs();
+      CodecList offered_codecs(content.media_description()->codecs());
       for (const Codec& offered_audio_codec : offered_codecs) {
-        if (!webrtc::FindMatchingCodec(offered_codecs,
-                                       filtered_offered_audio_codecs,
+        if (!webrtc::FindMatchingCodec(offered_codecs.codecs(),
+                                       filtered_offered_audio_codecs.codecs(),
                                        offered_audio_codec) &&
-            webrtc::FindMatchingCodec(offered_codecs, all_audio_codecs_,
-                                      offered_audio_codec)) {
+            webrtc::FindMatchingCodec(offered_codecs.codecs(),
+                                      all_audio_codecs_, offered_audio_codec)) {
           filtered_offered_audio_codecs.push_back(offered_audio_codec);
         }
       }
     } else if (IsMediaContentOfType(&content, MEDIA_TYPE_VIDEO)) {
-      std::vector<Codec> offered_codecs = content.media_description()->codecs();
+      CodecList offered_codecs(content.media_description()->codecs());
       for (const Codec& offered_video_codec : offered_codecs) {
-        if (!webrtc::FindMatchingCodec(offered_codecs,
-                                       filtered_offered_video_codecs,
+        if (!webrtc::FindMatchingCodec(offered_codecs.codecs(),
+                                       filtered_offered_video_codecs.codecs(),
                                        offered_video_codec) &&
-            webrtc::FindMatchingCodec(offered_codecs, all_video_codecs_,
-                                      offered_video_codec)) {
+            webrtc::FindMatchingCodec(offered_codecs.codecs(),
+                                      all_video_codecs_, offered_video_codec)) {
           filtered_offered_video_codecs.push_back(offered_video_codec);
         }
       }
@@ -1895,8 +1910,10 @@ void MediaSessionDescriptionFactory::GetCodecsForAnswer(
 
   // Add codecs that are not in the current description but were in
   // `remote_offer`.
-  MergeCodecs(filtered_offered_audio_codecs, audio_codecs, &used_pltypes);
-  MergeCodecs(filtered_offered_video_codecs, video_codecs, &used_pltypes);
+  MergeCodecs(filtered_offered_audio_codecs, audio_codec_list, &used_pltypes);
+  MergeCodecs(filtered_offered_video_codecs, video_codec_list, &used_pltypes);
+  *audio_codecs = audio_codec_list.codecs();
+  *video_codecs = video_codec_list.codecs();
 }
 
 MediaSessionDescriptionFactory::AudioVideoRtpHeaderExtensions
@@ -2038,7 +2055,8 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForOffer(
             : GetVideoCodecsForOffer(media_description_options.direction);
     webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
         GetNegotiatedCodecsForOffer(media_description_options, session_options,
-                                    current_content, codecs, supported_codecs);
+                                    current_content, CodecList(codecs),
+                                    CodecList(supported_codecs));
     if (!error_or_filtered_codecs.ok()) {
       return error_or_filtered_codecs.MoveError();
     }
@@ -2207,7 +2225,8 @@ RTCError MediaSessionDescriptionFactory::AddRtpContentForAnswer(
             : GetVideoCodecsForAnswer(offer_rtd, answer_rtd);
     webrtc::RTCErrorOr<std::vector<Codec>> error_or_filtered_codecs =
         GetNegotiatedCodecsForAnswer(media_description_options, session_options,
-                                     current_content, codecs, supported_codecs);
+                                     current_content, CodecList(codecs),
+                                     CodecList(supported_codecs));
     if (!error_or_filtered_codecs.ok()) {
       return error_or_filtered_codecs.MoveError();
     }
@@ -2438,8 +2457,9 @@ void MediaSessionDescriptionFactory::ComputeVideoCodecsIntersectionAndUnion() {
   video_sendrecv_codecs_.clear();
 
   // Use ComputeCodecsUnion to avoid having duplicate payload IDs
-  all_video_codecs_ =
-      ComputeCodecsUnion(video_recv_codecs_, video_send_codecs_);
+  all_video_codecs_ = ComputeCodecsUnion(CodecList(video_recv_codecs_),
+                                         CodecList(video_send_codecs_))
+                          .codecs();
 
   // Use NegotiateCodecs to merge our codec lists, since the operation is
   // essentially the same. Put send_codecs as the offered_codecs, which is the
