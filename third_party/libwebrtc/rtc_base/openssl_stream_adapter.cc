@@ -930,10 +930,12 @@ int OpenSSLStreamAdapter::ContinueSSL() {
     }
   }
 
-  struct timeval timeout;
-  if (DTLSv1_get_timeout(ssl_, &timeout)) {
-    int delay = timeout.tv_sec * 1000 + timeout.tv_usec / 1000;
-    SetTimeout(delay);
+  if (ssl_ != nullptr) {
+    struct timeval timeout;
+    if (DTLSv1_get_timeout(ssl_, &timeout)) {
+      int delay = timeout.tv_sec * 1000 + timeout.tv_usec / 1000;
+      SetTimeout(delay);
+    }
   }
 
   return 0;
