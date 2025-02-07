@@ -13,6 +13,7 @@ if (rtc_include_tests) {
     testonly = true
     sources = [
       "bwe_ramp_up_test.cc",
+      "l4s_test.cc",
       "peer_scenario_quality_test.cc",
       "remote_estimate_test.cc",
       "unsignaled_stream_test.cc",
@@ -30,6 +31,7 @@ if (rtc_include_tests) {
       "../../../pc:media_session",
       "../../../pc:pc_test_utils",
       "../../../pc:session_description",
+      "../../../rtc_base:logging",
     ]
     if (rtc_enable_protobuf) {
       deps += [
