@@ -511,19 +511,25 @@ rtc_library("ice_transport_internal") {
     "base/ice_transport_internal.h",
   ]
   deps = [
+    ":candidate_pair_interface",
     ":connection",
+    ":connection_info",
     ":p2p_constants",
     ":packet_transport_internal",
     ":port",
     ":stun_dictionary",
     ":transport_description",
+    "../api:array_view",
     "../api:candidate",
     "../api:rtc_error",
     "../api/transport:enums",
+    "../rtc_base:callback_list",
+    "../rtc_base:checks",
     "../rtc_base:network_constants",
     "../rtc_base:timeutils",
     "../rtc_base/system:rtc_export",
     "../rtc_base/third_party/sigslot",
+    "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
@@ -543,6 +549,7 @@ rtc_library("p2p_transport_channel") {
   ]
   deps = [
     ":active_ice_controller_factory_interface",
+    ":active_ice_controller_interface",
     ":basic_ice_controller",
     ":candidate_pair_interface",
     ":connection",
@@ -581,6 +588,7 @@ rtc_library("p2p_transport_channel") {
     "../rtc_base:logging",
     "../rtc_base:macromagic",
     "../rtc_base:net_helper",
+    "../rtc_base:net_helpers",
     "../rtc_base:network",
     "../rtc_base:network_constants",
     "../rtc_base:network_route",
@@ -590,6 +598,7 @@ rtc_library("p2p_transport_channel") {
     "../rtc_base:threading",
     "../rtc_base:timeutils",
     "../rtc_base/experiments:field_trial_parser",
+    "../rtc_base/network:received_packet",
     "../rtc_base/network:sent_packet",
     "../rtc_base/system:rtc_export",
     "../system_wrappers:metrics",

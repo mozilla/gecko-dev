@@ -14,36 +14,64 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <set>
+#include <string>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "api/async_dns_resolver.h"
 #include "api/candidate.h"
 #include "api/field_trials_view.h"
+#include "api/ice_transport_interface.h"
+#include "api/rtc_error.h"
+#include "api/sequence_checker.h"
+#include "api/transport/enums.h"
+#include "api/transport/stun.h"
 #include "api/units/time_delta.h"
+#include "logging/rtc_event_log/events/rtc_event_ice_candidate_pair_config.h"
 #include "logging/rtc_event_log/ice_logger.h"
-#include "p2p/base/basic_ice_controller.h"
+#include "p2p/base/active_ice_controller_factory_interface.h"
+#include "p2p/base/candidate_pair_interface.h"
 #include "p2p/base/connection.h"
 #include "p2p/base/connection_info.h"
+#include "p2p/base/ice_controller_factory_interface.h"
+#include "p2p/base/ice_switch_reason.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
+#include "p2p/base/port_allocator.h"
+#include "p2p/base/port_interface.h"
+#include "p2p/base/regathering_controller.h"
+#include "p2p/base/transport_description.h"
 #include "p2p/base/wrapping_active_ice_controller.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/dscp.h"
 #include "rtc_base/experiments/struct_parameters_parser.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/network.h"
+#include "rtc_base/network/received_packet.h"
+#include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_constants.h"
-#include "rtc_base/string_encode.h"
+#include "rtc_base/network_route.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
-#include "system_wrappers/include/metrics.h"
 
 namespace cricket {
 namespace {
@@ -987,6 +1015,7 @@ void P2PTransportChannel::OnUnknownAddress(PortInterface* port,
                                            const std::string& remote_username,
                                            bool port_muxed) {
   RTC_DCHECK_RUN_ON(network_thread_);
+  RTC_DCHECK(stun_msg);
 
   // Port has received a valid stun packet from an address that no Connection
   // is currently available for. See if we already have a candidate with the

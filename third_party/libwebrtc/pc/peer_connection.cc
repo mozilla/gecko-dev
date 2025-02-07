@@ -584,8 +584,7 @@ RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
         << "PeerConnection constructed with legacy SDP semantics!";
   }
 
-  RTCError config_error = cricket::P2PTransportChannel::ValidateIceConfig(
-      ParseIceConfig(configuration));
+  RTCError config_error = ValidateConfiguration(configuration);
   if (!config_error.ok()) {
     RTC_LOG(LS_ERROR) << "Invalid ICE configuration: "
                       << config_error.message();

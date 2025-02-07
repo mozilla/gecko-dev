@@ -13,24 +13,30 @@
 
 #include <stdint.h>
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "api/candidate.h"
 #include "api/rtc_error.h"
 #include "api/transport/enums.h"
+#include "p2p/base/candidate_pair_interface.h"
 #include "p2p/base/connection.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/packet_transport_internal.h"
 #include "p2p/base/port.h"
 #include "p2p/base/stun_dictionary.h"
 #include "p2p/base/transport_description.h"
+#include "rtc_base/callback_list.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
-#include "rtc_base/time_utils.h"
 
 namespace cricket {
 
@@ -276,6 +282,7 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   virtual void SetRemoteIceMode(IceMode mode) = 0;
 
   virtual void SetIceConfig(const IceConfig& config) = 0;
+  virtual const IceConfig& config() const = 0;
 
   // Start gathering candidates if not already started, or if an ICE restart
   // occurred.

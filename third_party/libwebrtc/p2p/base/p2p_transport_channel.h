@@ -23,16 +23,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <algorithm>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/async_dns_resolver.h"
@@ -40,12 +37,12 @@
 #include "api/ice_transport_interface.h"
 #include "api/rtc_error.h"
 #include "api/sequence_checker.h"
-#include "api/task_queue/pending_task_safety_flag.h"
 #include "api/transport/enums.h"
 #include "api/transport/stun.h"
 #include "logging/rtc_event_log/events/rtc_event_ice_candidate_pair_config.h"
 #include "logging/rtc_event_log/ice_logger.h"
 #include "p2p/base/active_ice_controller_factory_interface.h"
+#include "p2p/base/active_ice_controller_interface.h"
 #include "p2p/base/candidate_pair_interface.h"
 #include "p2p/base/connection.h"
 #include "p2p/base/ice_agent_interface.h"
@@ -64,6 +61,7 @@
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/dscp.h"
+#include "rtc_base/network/received_packet.h"
 #include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/socket.h"
@@ -146,7 +144,7 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   // will not use it to update the respective parameter in `config_`.
   // TODO(deadbeef): Use std::optional instead of negative values.
   void SetIceConfig(const IceConfig& config) override;
-  const IceConfig& config() const;
+  const IceConfig& config() const override;
   static webrtc::RTCError ValidateIceConfig(const IceConfig& config);
 
   // From TransportChannel:

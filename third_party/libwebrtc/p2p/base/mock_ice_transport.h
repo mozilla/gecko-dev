@@ -16,11 +16,7 @@
 #include <vector>
 
 #include "p2p/base/ice_transport_internal.h"
-#include "rtc_base/gunit.h"
 #include "test/gmock.h"
-
-using ::testing::_;
-using ::testing::Return;
 
 namespace cricket {
 
@@ -62,7 +58,8 @@ class MockIceTransport : public IceTransportInternal {
   void SetIceParameters(const IceParameters& /* ice_params */) override {}
   void SetRemoteIceParameters(const IceParameters& /* ice_params */) override {}
   void SetRemoteIceMode(IceMode /* mode */) override {}
-  void SetIceConfig(const IceConfig& /* config */) override {}
+  void SetIceConfig(const IceConfig& config) override { ice_config_ = config; }
+  const IceConfig& config() const override { return ice_config_; }
   std::optional<int> GetRttEstimate() override { return std::nullopt; }
   const Connection* selected_connection() const override { return nullptr; }
   std::optional<const CandidatePair> GetSelectedCandidatePair() const override {
@@ -81,6 +78,7 @@ class MockIceTransport : public IceTransportInternal {
 
  private:
   std::string transport_name_;
+  IceConfig ice_config_;
 };
 
 }  // namespace cricket

@@ -257,6 +257,8 @@ class FakeIceTransport : public IceTransportInternal {
     ice_config_ = config;
   }
 
+  const IceConfig& config() const override { return ice_config_; }
+
   void AddRemoteCandidate(const Candidate& candidate) override {
     RTC_DCHECK_RUN_ON(network_thread_);
     remote_candidates_.push_back(candidate);
