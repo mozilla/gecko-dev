@@ -437,8 +437,7 @@ nsWindow::nsWindow()
       mWindowShouldStartDragging(false),
       mHasMappedToplevel(false),
       mPanInProgress(false),
-      mPendingBoundsChange(false),
-      mPendingBoundsChangeMayChangeMargin(false),
+      mPendingBounds(false),
       mTitlebarBackdropState(false),
       mIsChildWindow(false),
       mAlwaysOnTop(false),
@@ -3228,14 +3227,11 @@ LayoutDeviceIntMargin nsWindow::NormalSizeModeClientToWindowMargin() {
 }
 
 void nsWindow::RecomputeBounds() {
-  mPendingBoundsChange = false;
+  mPendingBounds = false;
   auto* toplevel = GetToplevelGdkWindow();
   if (!toplevel || mIsDestroyed) {
     return;
   }
-
-  const bool mayChangeMargin = mPendingBoundsChangeMayChangeMargin;
-  mPendingBoundsChangeMayChangeMargin = false;
 
   LOG("RecomputeBounds()");
 
@@ -3264,29 +3260,35 @@ void nsWindow::RecomputeBounds() {
   auto oldMargin = mClientMargin;
 
   mBounds = GetFrameBounds(toplevel);
-  if (mayChangeMargin) {
-    mClientMargin = [&] {
-      if (!IsTopLevelWidget() || mSizeMode == nsSizeMode_Fullscreen ||
-          !gtk_window_get_decorated(GTK_WINDOW(mShell))) {
+  mClientMargin = [&] {
+    if (!IsTopLevelWidget() || mSizeMode == nsSizeMode_Fullscreen) {
+      return LayoutDeviceIntMargin();
+    }
+    auto systemMargin = mBounds - GetBounds(toplevel);
+    // TODO(emilio): Something like the bit below would technically be a bit
+    // more correct, but it turns out to be very non-trivial because mContainer
+    // gets sizes allocated at a different time.
+    // So, for now, do it by hand.
+    //   auto csdMargin =
+    //       LayoutDeviceIntRect(LayoutDeviceIntPoint(),
+    //       GetBounds(toplevel).Size())
+    //       - GetBounds(mGdkWindow);
+    LayoutDeviceIntMargin csdMargin = [&] {
+      if (!ToplevelUsesCSD()) {
         return LayoutDeviceIntMargin();
       }
-
-      const auto toplevelBounds = GetBounds(toplevel);
-      const auto systemMargin = mBounds - toplevelBounds;
-      LayoutDeviceIntMargin csdMargin;
-      if (mGdkWindow) {
-        auto gdkWindowBounds = GetBounds(mGdkWindow);
-        if (gdkWindowBounds.X() >= 0 && gdkWindowBounds.Y() >= 0 &&
-            gdkWindowBounds.Width() > 1 && gdkWindowBounds.Height() > 1) {
-          csdMargin = LayoutDeviceIntRect(LayoutDeviceIntPoint(),
-                                          toplevelBounds.Size()) -
-                      gdkWindowBounds;
-        }
+      GtkBorder decorationRect{0};
+      if (mSizeMode == nsSizeMode_Normal) {
+        decorationRect = GetTopLevelCSDDecorationSize();
       }
-      return systemMargin + csdMargin;
+      if (!mDrawInTitlebar) {
+        decorationRect.top += moz_gtk_get_titlebar_preferred_height();
+      }
+      return GtkBorderToDevicePixels(decorationRect);
     }();
-    mClientMargin.EnsureAtLeast(LayoutDeviceIntMargin());
-  }
+    return systemMargin + csdMargin;
+  }();
+  mClientMargin.EnsureAtLeast(LayoutDeviceIntMargin());
 
   // Sometimes the window manager gives us garbage sizes (way past the maximum
   // texture size) causing crashes if we don't enforce size constraints again
@@ -3358,7 +3360,7 @@ gboolean nsWindow::OnPropertyNotifyEvent(GtkWidget* aWidget,
                                          GdkEventProperty* aEvent) {
   if (aEvent->atom == gdk_atom_intern("_NET_FRAME_EXTENTS", FALSE)) {
     LOG("OnPropertyNotifyEvent(_NET_FRAME_EXTENTS)");
-    SchedulePendingBounds(MayChangeMargin::Yes);
+    SchedulePendingBounds();
     return FALSE;
   }
   if (!mGdkWindow) {
@@ -4044,10 +4046,10 @@ gboolean nsWindow::OnConfigureEvent(GtkWidget* aWidget,
 
 #ifdef MOZ_LOGGING
   int scale = mGdkWindow ? gdk_window_get_scale_factor(mGdkWindow) : -1;
-  LOG("configure event [%d] %d,%d -> %d x %d direct mGdkWindow scale %d "
-      "(scaled size %d x %d)\n",
-      aEvent->window == mGdkWindow, aEvent->x, aEvent->y, aEvent->width,
-      aEvent->height, scale, aEvent->width * scale, aEvent->height * scale);
+  LOG("configure event %d,%d -> %d x %d direct mGdkWindow scale %d (scaled "
+      "size %d x %d)\n",
+      aEvent->x, aEvent->y, aEvent->width, aEvent->height, scale,
+      aEvent->width * scale, aEvent->height * scale);
 #endif
 
   if (mPendingConfigures > 0) {
@@ -4063,32 +4065,27 @@ gboolean nsWindow::OnConfigureEvent(GtkWidget* aWidget,
     return FALSE;
   }
 
-  SchedulePendingBounds(MayChangeMargin(aEvent->window == mGdkWindow));
+  SchedulePendingBounds();
+  RecomputeBounds();
   return FALSE;
 }
 
-void nsWindow::OnSizeAllocate(GtkWidget* aWidget, GtkAllocation* aAllocation) {
-  LOG("nsWindow::OnSizeAllocate [%d] %d,%d -> %d x %d\n",
-      aWidget == GTK_WIDGET(mContainer), aAllocation->x, aAllocation->y,
-      aAllocation->width, aAllocation->height);
+void nsWindow::OnSizeAllocate(GtkAllocation* aAllocation) {
+  LOG("nsWindow::OnSizeAllocate %d,%d -> %d x %d\n", aAllocation->x,
+      aAllocation->y, aAllocation->width, aAllocation->height);
   mHasReceivedSizeAllocate = true;
   if (!mGdkWindow) {
     return;
   }
   // Bounds will get updated on the main configure.
-  // Gecko permits running nested event loops during processing of events,
-  // GtkWindow callers of gtk_widget_size_allocate expect the signal handlers
-  // to return sometime in the near future.
-  // Also, this runs for both top level size_allocate and MozContainer size
-  // allocate, so even if the client bounds are the same, we need to recompute
-  // the bounds because the client margin might not.
-  SchedulePendingBounds(MayChangeMargin(aWidget == GTK_WIDGET(mContainer)));
-
   auto oldClientBounds = GetClientBounds();
   // Invalidate the new part of the window now for the pending paint to
   // minimize background flashes (GDK does not do this for external
   // renewClientSizes of toplevels.)
   LayoutDeviceIntRect newClientBounds = GdkRectToDevicePixels(*aAllocation);
+  if (oldClientBounds.Size() == newClientBounds.Size()) {
+    return;
+  }
   if (oldClientBounds.width < newClientBounds.width) {
     GdkRectangle rect = DevicePixelsToGdkRectRoundOut(LayoutDeviceIntRect(
         oldClientBounds.width, 0, newClientBounds.width - oldClientBounds.width,
@@ -4101,30 +4098,30 @@ void nsWindow::OnSizeAllocate(GtkWidget* aWidget, GtkAllocation* aAllocation) {
                             newClientBounds.height - oldClientBounds.height));
     gdk_window_invalidate_rect(mGdkWindow, &rect, FALSE);
   }
+  // Gecko permits running nested event loops during processing of events,
+  // GtkWindow callers of gtk_widget_size_allocate expect the signal
+  // handlers to return sometime in the near future.
+  SchedulePendingBounds();
 }
 
-void nsWindow::SchedulePendingBounds(MayChangeMargin aMayChangeMargin) {
-  mPendingBoundsChangeMayChangeMargin |=
-      aMayChangeMargin == MayChangeMargin::Yes;
-  if (mPendingBoundsChange) {
+void nsWindow::SchedulePendingBounds() {
+  if (mPendingBounds) {
     return;
   }
-  mPendingBoundsChange = true;
+  mPendingBounds = true;
   NS_DispatchToCurrentThread(NewRunnableMethod(
       "nsWindow::MaybeRecomputeBounds", this, &nsWindow::MaybeRecomputeBounds));
 }
 
 void nsWindow::MaybeRecomputeBounds() {
-  LOG("MaybeRecomputeBounds %d", mPendingBoundsChange);
-  if (mPendingBoundsChange) {
+  LOG("MaybeRecomputeBounds %d", mPendingBounds);
+  if (mPendingBounds) {
     RecomputeBounds();
   }
 }
 
 void nsWindow::OnDeleteEvent() {
-  if (mWidgetListener) {
-    mWidgetListener->RequestWindowClose(this);
-  }
+  if (mWidgetListener) mWidgetListener->RequestWindowClose(this);
 }
 
 void nsWindow::OnEnterNotifyEvent(GdkEventCrossing* aEvent) {
@@ -5432,7 +5429,7 @@ void nsWindow::RefreshScale(bool aRefreshScreen) {
     return;
   }
 
-  SchedulePendingBounds(MayChangeMargin::Yes);
+  SchedulePendingBounds();
 
   if (mWidgetListener) {
     if (PresShell* presShell = mWidgetListener->GetPresShell()) {
@@ -7169,27 +7166,23 @@ nsresult nsWindow::MakeFullScreen(bool aFullScreen) {
 void nsWindow::SetWindowDecoration(BorderStyle aStyle) {
   LOG("nsWindow::SetWindowDecoration() Border style %x\n", int(aStyle));
 
+  // We can't use mGdkWindow directly here as it can be
+  // derived from mContainer which is not a top-level GdkWindow.
+  GdkWindow* window = GetToplevelGdkWindow();
+
   // Sawfish, metacity, and presumably other window managers get
   // confused if we change the window decorations while the window
   // is visible.
   bool wasVisible = false;
-
-  if (gtk_widget_is_visible(GTK_WIDGET(mShell))) {
-    gtk_widget_hide(GTK_WIDGET(mShell));
+  if (gdk_window_is_visible(window)) {
+    gdk_window_hide(window);
     wasVisible = true;
   }
 
-  gtk_window_set_decorated(GTK_WINDOW(mShell),
-                           !mUndecorated && aStyle != BorderStyle::None);
-
   gint wmd = ConvertBorderStyles(aStyle);
-  if (wmd != -1) {
-    gdk_window_set_decorations(GetToplevelGdkWindow(), (GdkWMDecoration)wmd);
-  }
+  if (wmd != -1) gdk_window_set_decorations(window, (GdkWMDecoration)wmd);
 
-  if (wasVisible) {
-    gtk_widget_show(GTK_WIDGET(mShell));
-  }
+  if (wasVisible) gdk_window_show(window);
 
 #ifdef MOZ_X11
   // For some window managers, adding or removing window decorations
@@ -7848,7 +7841,7 @@ static void size_allocate_cb(GtkWidget* widget, GtkAllocation* allocation) {
     return;
   }
 
-  window->OnSizeAllocate(widget, allocation);
+  window->OnSizeAllocate(allocation);
 }
 
 static void toplevel_window_size_allocate_cb(GtkWidget* widget,

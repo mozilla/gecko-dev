@@ -218,8 +218,7 @@ class nsWindow final : public nsBaseWidget {
   // move / resizes as needed.
   void RecomputeBounds();
   void ConstrainSize(int* aWidth, int* aHeight) override;
-  enum class MayChangeMargin : bool { No = false, Yes };
-  void SchedulePendingBounds(MayChangeMargin);
+  void SchedulePendingBounds();
   void MaybeRecomputeBounds();
 
   void SetCursor(const Cursor&) override;
@@ -260,9 +259,9 @@ class nsWindow final : public nsBaseWidget {
   // event callbacks
   gboolean OnExposeEvent(cairo_t* cr);
   gboolean OnConfigureEvent(GtkWidget* aWidget, GdkEventConfigure* aEvent);
-  void OnSizeAllocate(GtkWidget* aWidget, GtkAllocation* aAllocation);
   void OnMap();
   void OnUnmap();
+  void OnSizeAllocate(GtkAllocation* aAllocation);
   void OnDeleteEvent();
   void OnEnterNotifyEvent(GdkEventCrossing* aEvent);
   void OnLeaveNotifyEvent(GdkEventCrossing* aEvent);
@@ -684,13 +683,7 @@ class nsWindow final : public nsBaseWidget {
   bool mWindowShouldStartDragging : 1;
   bool mHasMappedToplevel : 1;
   bool mPanInProgress : 1;
-  bool mPendingBoundsChange : 1;
-  // Whether our pending bounds change event might change the window margin.
-  // This is needed because we might get two configures (one for mShell, one
-  // for mContainer's window) in quick succession, which might cause us to send
-  // spurious sequences of resizes if we don't do this on some compositors
-  // (older mutter at least).
-  bool mPendingBoundsChangeMayChangeMargin : 1;
+  bool mPendingBounds : 1;
   // Draw titlebar with :backdrop css state (inactive/unfocused).
   bool mTitlebarBackdropState : 1;
   // It's child window, i.e. window which is nested in parent window.
