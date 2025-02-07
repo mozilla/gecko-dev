@@ -27,6 +27,7 @@ on a monolithic Abseil build target that will generate a shared library.
 * `absl::AnyInvocable`
 * `absl::bind_front`
 * `absl::Cleanup`
+* [Hash tables, and B-tree ordered][abseil-containers] containers
 * `absl::InlinedVector`
 * `absl::Nonnull` and `absl::Nullable`
 * `absl::WrapUnique`
@@ -48,6 +49,7 @@ on a monolithic Abseil build target that will generate a shared library.
 
 * ABSL_FLAG is allowed in tests and tools, but disallowed in in non-test code.
 
+[abseil-containers]: https://abseil.io/docs/cpp/guides/container
 
 ## **Disallowed**
 
@@ -81,5 +83,5 @@ with a modest number of arguments can easily add several hundred bytes
 to the binary.
 
 Exception: Single-argument absl::StrCat is allowed in order to make it
-easy to use AbslStringify. See [TOTW #2015](https://abseil.io/tips/215) for
+easy to use AbslStringify. See [TOTW #215](https://abseil.io/tips/215) for
 details on AbslStringify.
