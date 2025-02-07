@@ -257,4 +257,16 @@ bool H264IsSameProfile(const CodecParameterMap& params1,
          profile_level_id->profile == other_profile_level_id->profile;
 }
 
+bool H264IsSameProfileAndLevel(const CodecParameterMap& params1,
+                               const CodecParameterMap& params2) {
+  const std::optional<H264ProfileLevelId> profile_level_id =
+      ParseSdpForH264ProfileLevelId(params1);
+  const std::optional<H264ProfileLevelId> other_profile_level_id =
+      ParseSdpForH264ProfileLevelId(params2);
+  // Compare H264 profiles, but not levels.
+  return profile_level_id && other_profile_level_id &&
+         profile_level_id->profile == other_profile_level_id->profile &&
+         profile_level_id->level == other_profile_level_id->level;
+}
+
 }  // namespace webrtc

@@ -8,19 +8,25 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/strings/match.h"
 #include "absl/strings/str_replace.h"
-#include "api/audio/audio_device.h"
-#include "api/audio/audio_mixer.h"
-#include "api/audio/audio_processing.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/create_peerconnection_factory.h"
+#include "api/jsep.h"
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_transceiver_direction.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
@@ -33,12 +39,14 @@
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp8_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_libvpx_vp9_adapter.h"
 #include "api/video_codecs/video_encoder_factory_template_open_h264_adapter.h"
-#include "p2p/base/port_allocator.h"
+#include "media/base/codec.h"
+#include "media/base/media_constants.h"
+#include "media/base/stream_params.h"
 #include "pc/peer_connection_wrapper.h"
 #include "pc/session_description.h"
 #include "pc/test/fake_audio_capture_module.h"
 #include "pc/test/mock_peer_connection_observers.h"
-#include "rtc_base/rtc_certificate_generator.h"
+#include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/metrics.h"
 #include "test/gmock.h"
@@ -658,19 +666,28 @@ TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
   // Verify that the serialized SDP includes pt=.
   std::string sdp;
   offer->ToString(&sdp);
-  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:1 send pt=" +
-                                      std::to_string(send_codecs[0].id)));
-  EXPECT_THAT(sdp, testing::HasSubstr("a=rid:2 send pt=" +
-                                      std::to_string(send_codecs[1].id)));
+  int vp8_pt = cricket::Codec::kIdNotSet;
+  int vp9_pt = cricket::Codec::kIdNotSet;
+  for (auto& codec : send_codecs) {
+    if (codec.name == vp8_codec->name && vp8_pt == cricket::Codec::kIdNotSet) {
+      vp8_pt = codec.id;
+    }
+    if (codec.name == vp9_codec->name && vp9_pt == cricket::Codec::kIdNotSet) {
+      vp9_pt = codec.id;
+    }
+  }
+  EXPECT_THAT(sdp,
+              testing::HasSubstr("a=rid:1 send pt=" + std::to_string(vp8_pt)));
+  EXPECT_THAT(sdp,
+              testing::HasSubstr("a=rid:2 send pt=" + std::to_string(vp9_pt)));
   // Verify that SDP containing pt= can be parsed correctly.
   auto offer2 = CreateSessionDescription(SdpType::kOffer, sdp);
   auto& offer_contents2 = offer2->description()->contents();
   auto send_rids2 = offer_contents2[0].media_description()->streams()[0].rids();
-  auto send_codecs2 = offer_contents2[0].media_description()->codecs();
   EXPECT_EQ(send_rids2[0].payload_types.size(), 1u);
-  EXPECT_EQ(send_rids2[0].payload_types[0], send_codecs2[0].id);
+  EXPECT_EQ(send_rids2[0].payload_types[0], vp8_pt);
   EXPECT_EQ(send_rids2[1].payload_types.size(), 1u);
-  EXPECT_EQ(send_rids2[1].payload_types[0], send_codecs2[1].id);
+  EXPECT_EQ(send_rids2[1].payload_types[0], vp9_pt);
 }
 
 TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithPayloadType) {

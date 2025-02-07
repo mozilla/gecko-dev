@@ -37,7 +37,6 @@
 #include "api/environment/environment.h"
 #include "api/frame_transformer_interface.h"
 #include "api/media_types.h"
-#include "api/rtc_error.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
@@ -54,15 +53,14 @@
 #include "call/audio_receive_stream.h"
 #include "call/audio_send_stream.h"
 #include "call/call.h"
+#include "call/fake_payload_type_suggester.h"
 #include "call/flexfec_receive_stream.h"
 #include "call/packet_receiver.h"
 #include "call/payload_type.h"
-#include "call/payload_type_picker.h"
 #include "call/rtp_transport_controller_send_interface.h"
 #include "call/test/mock_rtp_transport_controller_send.h"
 #include "call/video_receive_stream.h"
 #include "call/video_send_stream.h"
-#include "media/base/codec.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/buffer.h"
@@ -397,26 +395,6 @@ class FakeFlexfecReceiveStream final : public webrtc::FlexfecReceiveStream {
   webrtc::FlexfecReceiveStream::Config config_;
 };
 
-// Fake payload type suggester.
-// This is injected into FakeCall at initialization.
-class FakePayloadTypeSuggester : public webrtc::PayloadTypeSuggester {
- public:
-  webrtc::RTCErrorOr<webrtc::PayloadType> SuggestPayloadType(
-      const std::string& /* mid */,
-      cricket::Codec codec) override {
-    // Ignores mid argument.
-    return pt_picker_.SuggestMapping(codec, nullptr);
-  }
-  webrtc::RTCError AddLocalMapping(const std::string& /* mid */,
-                                   webrtc::PayloadType /* payload_type */,
-                                   const cricket::Codec& /* codec */) override {
-    return webrtc::RTCError::OK();
-  }
-
- private:
-  webrtc::PayloadTypePicker pt_picker_;
-};
-
 class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
  public:
   explicit FakeCall(const webrtc::Environment& env);
@@ -563,7 +541,7 @@ class FakeCall final : public webrtc::Call, public webrtc::PacketReceiver {
   int num_created_send_streams_;
   int num_created_receive_streams_;
 
-  FakePayloadTypeSuggester pt_suggester_;
+  webrtc::FakePayloadTypeSuggester pt_suggester_;
 };
 
 }  // namespace cricket

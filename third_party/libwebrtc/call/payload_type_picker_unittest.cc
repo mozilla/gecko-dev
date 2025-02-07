@@ -19,6 +19,8 @@
 namespace webrtc {
 
 using testing::Eq;
+using testing::Ge;
+using testing::Lt;
 using testing::Ne;
 
 TEST(PayloadTypePicker, PayloadTypeAssignmentWorks) {
@@ -176,6 +178,36 @@ TEST(PayloadTypePicker, RecordedValueExcluded) {
   auto result = picker.SuggestMapping(b_codec, &recorder1);
   ASSERT_TRUE(result.ok());
   EXPECT_NE(47, result.value());
+}
+
+TEST(PayloadTypePicker, AudioGetsHigherRange) {
+  PayloadTypePicker picker;
+  cricket::Codec an_audio_codec =
+      cricket::CreateAudioCodec(-1, "lyra", 8000, 1);
+  auto result = picker.SuggestMapping(an_audio_codec, nullptr).value();
+  EXPECT_THAT(result, Ge(96));
+}
+
+TEST(PayloadTypePicker, VideoGetsTreatedSpecially) {
+  PayloadTypePicker picker;
+  cricket::Codec h264_constrained = cricket::CreateVideoCodec(SdpVideoFormat(
+      cricket::kH264CodecName, {{cricket::kH264FmtpProfileLevelId, "42e01f"},
+                                {cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                                {cricket::kH264FmtpPacketizationMode, "1"}}));
+  cricket::Codec h264_yuv444 = cricket::CreateVideoCodec(SdpVideoFormat(
+      cricket::kH264CodecName, {{cricket::kH264FmtpProfileLevelId, "f4001f"},
+                                {cricket::kH264FmtpLevelAsymmetryAllowed, "1"},
+                                {cricket::kH264FmtpPacketizationMode, "1"}}));
+  cricket::Codec vp9_profile_2 = cricket::CreateVideoCodec(SdpVideoFormat(
+      {cricket::kVp9CodecName, {{cricket::kVP9ProfileId, "2"}}}));
+  cricket::Codec vp9_profile_3 = cricket::CreateVideoCodec(SdpVideoFormat(
+      {cricket::kVp9CodecName, {{cricket::kVP9ProfileId, "3"}}}));
+  // Valid for high range only.
+  EXPECT_THAT(picker.SuggestMapping(h264_constrained, nullptr).value(), Ge(96));
+  EXPECT_THAT(picker.SuggestMapping(vp9_profile_2, nullptr).value(), Ge(96));
+  // Valud for lower range.
+  EXPECT_THAT(picker.SuggestMapping(h264_yuv444, nullptr).value(), Lt(63));
+  EXPECT_THAT(picker.SuggestMapping(vp9_profile_3, nullptr).value(), Lt(63));
 }
 
 TEST(PayloadTypePicker, ChoosingH264Profiles) {

@@ -23,11 +23,13 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/candidate.h"
 #include "api/media_types.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
+#include "call/fake_payload_type_suggester.h"
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
 #include "media/base/rid_description.h"
@@ -164,6 +166,25 @@ const Codec kVideoCodecsH265Level52[] = {
     CreateVideoCodec(96, kH265MainProfileLevel52Sdp)};
 const Codec kVideoCodecsH265Level6[] = {
     CreateVideoCodec(96, kH265MainProfileLevel6Sdp)};
+// Match two codec lists for content, but ignore the ID.
+bool CodecListsMatch(rtc::ArrayView<const Codec> list1,
+                     rtc::ArrayView<const Codec> list2) {
+  if (list1.size() != list2.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < list1.size(); ++i) {
+    Codec codec1 = list1[i];
+    Codec codec2 = list2[i];
+    codec1.id = Codec::kIdNotSet;
+    codec2.id = Codec::kIdNotSet;
+    if (codec1 != codec2) {
+      RTC_LOG(LS_ERROR) << "Mismatch at position " << i << " between " << codec1
+                        << " and " << codec2;
+      return false;
+    }
+  }
+  return true;
+}
 
 const RtpExtension kAudioRtpExtension1[] = {
     RtpExtension("urn:ietf:params:rtp-hdrext:ssrc-audio-level", 8),
@@ -486,8 +507,8 @@ class MediaSessionDescriptionFactoryTest : public testing::Test {
   MediaSessionDescriptionFactoryTest()
       : tdf1_(field_trials),
         tdf2_(field_trials),
-        f1_(nullptr, false, &ssrc_generator1, &tdf1_, nullptr),
-        f2_(nullptr, false, &ssrc_generator2, &tdf2_, nullptr) {
+        f1_(nullptr, false, &ssrc_generator1, &tdf1_, &pt_suggester_1_),
+        f2_(nullptr, false, &ssrc_generator2, &tdf2_, &pt_suggester_2_) {
     f1_.set_audio_codecs(MAKE_VECTOR(kAudioCodecs1),
                          MAKE_VECTOR(kAudioCodecs1));
     f1_.set_video_codecs(MAKE_VECTOR(kVideoCodecs1),
@@ -736,6 +757,8 @@ class MediaSessionDescriptionFactoryTest : public testing::Test {
   UniqueRandomIdGenerator ssrc_generator2;
   TransportDescriptionFactory tdf1_;
   TransportDescriptionFactory tdf2_;
+  webrtc::FakePayloadTypeSuggester pt_suggester_1_;
+  webrtc::FakePayloadTypeSuggester pt_suggester_2_;
   MediaSessionDescriptionFactory f1_;
   MediaSessionDescriptionFactory f2_;
 };
@@ -879,7 +902,6 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateOfferWithCustomCodecs) {
   // Fields in codec are set during the gen process, so simple compare
   // does not work.
   EXPECT_EQ(acd->codecs()[0].name, custom_audio_codec.name);
-  RTC_LOG(LS_ERROR) << "DEBUG: audio PT assigned is " << acd->codecs()[0].id;
 
   EXPECT_EQ(MEDIA_TYPE_VIDEO, vcd->type());
   ASSERT_EQ(vcd->codecs().size(), 1U);
@@ -2995,11 +3017,11 @@ TEST_F(MediaSessionDescriptionFactoryTest,
 
   const AudioContentDescription* updated_acd =
       GetFirstAudioContentDescription(updated_offer.get());
-  EXPECT_THAT(updated_acd->codecs(), ElementsAreArray(kUpdatedAudioCodecOffer));
+  EXPECT_TRUE(CodecListsMatch(updated_acd->codecs(), kUpdatedAudioCodecOffer));
 
   const VideoContentDescription* updated_vcd =
       GetFirstVideoContentDescription(updated_offer.get());
-  EXPECT_THAT(updated_vcd->codecs(), ElementsAreArray(kUpdatedVideoCodecOffer));
+  EXPECT_TRUE(CodecListsMatch(updated_vcd->codecs(), kUpdatedVideoCodecOffer));
 }
 
 // Test that a reoffer does not reuse audio codecs from a previous media section
@@ -3027,7 +3049,13 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   // section was not recycled the payload types would match the initial offerer.
   const AudioContentDescription* acd =
       GetFirstAudioContentDescription(reoffer.get());
-  EXPECT_THAT(acd->codecs(), ElementsAreArray(kAudioCodecs2));
+  // EXPECT_THAT(acd->codecs(), ElementsAreArray(kAudioCodecs2)),
+  // except that we don't want to check the PT numbers.
+  EXPECT_EQ(acd->codecs().size(),
+            sizeof(kAudioCodecs2) / sizeof(kAudioCodecs2[0]));
+  for (size_t i = 0; i < acd->codecs().size(); ++i) {
+    EXPECT_EQ(acd->codecs()[i].name, kAudioCodecs2[i].name);
+  }
 }
 
 // Test that a reoffer does not reuse video codecs from a previous media section
@@ -3054,7 +3082,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   // section was not recycled the payload types would match the initial offerer.
   const VideoContentDescription* vcd =
       GetFirstVideoContentDescription(reoffer.get());
-  EXPECT_THAT(vcd->codecs(), ElementsAreArray(kVideoCodecs2));
+  EXPECT_TRUE(CodecListsMatch(vcd->codecs(), kVideoCodecs2));
 }
 
 // Test that a reanswer does not reuse audio codecs from a previous media
@@ -3152,7 +3180,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   std::vector<Codec> expected_codecs = MAKE_VECTOR(kVideoCodecsAnswer);
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &expected_codecs);
 
-  EXPECT_EQ(expected_codecs, vcd->codecs());
+  EXPECT_TRUE(CodecListsMatch(expected_codecs, vcd->codecs()));
 
   // Now, make sure we get same result (except for the order) if `f2_` creates
   // an updated offer even though the default payload types between `f1_` and
@@ -3167,7 +3195,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   const VideoContentDescription* updated_vcd =
       GetFirstVideoContentDescription(updated_answer.get());
 
-  EXPECT_EQ(expected_codecs, updated_vcd->codecs());
+  EXPECT_TRUE(CodecListsMatch(expected_codecs, updated_vcd->codecs()));
 }
 
 // Regression test for:
@@ -3322,7 +3350,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   // New offer should attempt to add H263, and RTX for H264.
   expected_codecs.push_back(kVideoCodecs2[1]);
   AddRtxCodec(CreateVideoRtxCodec(125, kVideoCodecs1[1].id), &expected_codecs);
-  EXPECT_EQ(expected_codecs, updated_vcd->codecs());
+  EXPECT_TRUE(CodecListsMatch(expected_codecs, updated_vcd->codecs()));
 }
 
 // Test that RTX is ignored when there is no associated payload type parameter.
@@ -3431,7 +3459,7 @@ TEST_F(MediaSessionDescriptionFactoryTest,
   std::vector<Codec> expected_codecs = MAKE_VECTOR(kVideoCodecsAnswer);
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &expected_codecs);
 
-  EXPECT_EQ(expected_codecs, vcd->codecs());
+  EXPECT_TRUE(CodecListsMatch(expected_codecs, vcd->codecs()));
 }
 
 // Test that after one RTX codec has been negotiated, a new offer can attempt
@@ -3454,7 +3482,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, AddSecondRtxInNewOffer) {
 
   std::vector<Codec> expected_codecs = MAKE_VECTOR(kVideoCodecs1);
   AddRtxCodec(CreateVideoRtxCodec(126, kVideoCodecs1[1].id), &expected_codecs);
-  EXPECT_EQ(expected_codecs, vcd->codecs());
+  EXPECT_TRUE(CodecListsMatch(expected_codecs, vcd->codecs()));
 
   // Now, attempt to add RTX for H264-SVC.
   AddRtxCodec(CreateVideoRtxCodec(125, kVideoCodecs1[0].id), &f1_codecs);
@@ -3466,7 +3494,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, AddSecondRtxInNewOffer) {
   vcd = GetFirstVideoContentDescription(updated_offer.get());
 
   AddRtxCodec(CreateVideoRtxCodec(125, kVideoCodecs1[0].id), &expected_codecs);
-  EXPECT_EQ(expected_codecs, vcd->codecs());
+  EXPECT_TRUE(CodecListsMatch(expected_codecs, vcd->codecs()));
 }
 
 // Test that when RTX is used in conjunction with simulcast, an RTX ssrc is
@@ -4555,8 +4583,8 @@ class MediaProtocolTest : public testing::TestWithParam<const char*> {
   MediaProtocolTest()
       : tdf1_(field_trials_),
         tdf2_(field_trials_),
-        f1_(nullptr, false, &ssrc_generator1, &tdf1_, nullptr),
-        f2_(nullptr, false, &ssrc_generator2, &tdf2_, nullptr) {
+        f1_(nullptr, false, &ssrc_generator1, &tdf1_, &pt_suggester_1_),
+        f2_(nullptr, false, &ssrc_generator2, &tdf2_, &pt_suggester_2_) {
     f1_.set_audio_codecs(MAKE_VECTOR(kAudioCodecs1),
                          MAKE_VECTOR(kAudioCodecs1));
     f1_.set_video_codecs(MAKE_VECTOR(kVideoCodecs1),
@@ -4575,6 +4603,8 @@ class MediaProtocolTest : public testing::TestWithParam<const char*> {
   webrtc::test::ScopedKeyValueConfig field_trials_;
   TransportDescriptionFactory tdf1_;
   TransportDescriptionFactory tdf2_;
+  webrtc::FakePayloadTypeSuggester pt_suggester_1_;
+  webrtc::FakePayloadTypeSuggester pt_suggester_2_;
   MediaSessionDescriptionFactory f1_;
   MediaSessionDescriptionFactory f2_;
   UniqueRandomIdGenerator ssrc_generator1;
@@ -4619,8 +4649,9 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestSetAudioCodecs) {
       std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id"))));
 
   UniqueRandomIdGenerator ssrc_generator;
+  webrtc::FakePayloadTypeSuggester pt_suggester;
   MediaSessionDescriptionFactory sf(nullptr, false, &ssrc_generator, &tdf,
-                                    nullptr);
+                                    &pt_suggester);
   std::vector<Codec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
   std::vector<Codec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
 
@@ -4691,8 +4722,9 @@ void TestAudioCodecsOffer(RtpTransceiverDirection direction) {
       std::unique_ptr<rtc::SSLIdentity>(new rtc::FakeSSLIdentity("id"))));
 
   UniqueRandomIdGenerator ssrc_generator;
+  webrtc::FakePayloadTypeSuggester pt_suggester;
   MediaSessionDescriptionFactory sf(nullptr, false, &ssrc_generator, &tdf,
-                                    nullptr);
+                                    &pt_suggester);
   const std::vector<Codec> send_codecs = MAKE_VECTOR(kAudioCodecs1);
   const std::vector<Codec> recv_codecs = MAKE_VECTOR(kAudioCodecs2);
   const std::vector<Codec> sendrecv_codecs = MAKE_VECTOR(kAudioCodecsAnswer);
@@ -4733,13 +4765,15 @@ void TestAudioCodecsOffer(RtpTransceiverDirection direction) {
   }
 }
 
-const Codec kOfferAnswerCodecs[] = {CreateAudioCodec(0, "codec0", 16000, 1),
-                                    CreateAudioCodec(1, "codec1", 8000, 1),
-                                    CreateAudioCodec(2, "codec2", 8000, 1),
-                                    CreateAudioCodec(3, "codec3", 8000, 1),
-                                    CreateAudioCodec(4, "codec4", 8000, 2),
-                                    CreateAudioCodec(5, "codec5", 32000, 1),
-                                    CreateAudioCodec(6, "codec6", 48000, 1)};
+// Since the PT suggester reserves the static range for specific codecs,
+// PT numbers from the 36-63 range are used.
+const Codec kOfferAnswerCodecs[] = {CreateAudioCodec(40, "codec0", 16000, 1),
+                                    CreateAudioCodec(41, "codec1", 8000, 1),
+                                    CreateAudioCodec(42, "codec2", 8000, 1),
+                                    CreateAudioCodec(43, "codec3", 8000, 1),
+                                    CreateAudioCodec(44, "codec4", 8000, 2),
+                                    CreateAudioCodec(45, "codec5", 32000, 1),
+                                    CreateAudioCodec(46, "codec6", 48000, 1)};
 
 /* The codecs groups below are chosen as per the matrix below. The objective
  * is to have different sets of codecs in the inputs, to get unique sets of
@@ -4795,10 +4829,12 @@ void TestAudioCodecsAnswer(RtpTransceiverDirection offer_direction,
       rtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
           new rtc::FakeSSLIdentity("answer_id"))));
   UniqueRandomIdGenerator ssrc_generator1, ssrc_generator2;
+  webrtc::FakePayloadTypeSuggester offer_pt_suggester;
   MediaSessionDescriptionFactory offer_factory(nullptr, false, &ssrc_generator1,
-                                               &offer_tdf, nullptr);
+                                               &offer_tdf, &offer_pt_suggester);
+  webrtc::FakePayloadTypeSuggester answer_pt_suggester;
   MediaSessionDescriptionFactory answer_factory(
-      nullptr, false, &ssrc_generator2, &answer_tdf, nullptr);
+      nullptr, false, &ssrc_generator2, &answer_tdf, &answer_pt_suggester);
 
   offer_factory.set_audio_codecs(
       VectorFromIndices(kOfferAnswerCodecs, kOfferSendCodecs),
@@ -4881,7 +4917,7 @@ void TestAudioCodecsAnswer(RtpTransceiverDirection offer_direction,
       bool first = true;
       os << "{";
       for (const auto& c : codecs) {
-        os << (first ? " " : ", ") << c.id;
+        os << (first ? " " : ", ") << c.id << ":" << c.name;
         first = false;
       }
       os << " }";
@@ -4946,12 +4982,12 @@ class VideoCodecsOfferH265LevelIdTest : public testing::Test {
                     false,
                     &ssrc_generator_offerer_,
                     &tdf_offerer_,
-                    nullptr),
+                    &pt_suggester_offerer_),
         sf_answerer_(nullptr,
                      false,
                      &ssrc_generator_answerer_,
                      &tdf_answerer_,
-                     nullptr) {
+                     &pt_suggester_answerer_) {
     tdf_offerer_.set_certificate(
         rtc::RTCCertificate::Create(std::unique_ptr<rtc::SSLIdentity>(
             new rtc::FakeSSLIdentity("offer_id"))));
@@ -4979,6 +5015,8 @@ class VideoCodecsOfferH265LevelIdTest : public testing::Test {
   UniqueRandomIdGenerator ssrc_generator_answerer_;
   MediaSessionDescriptionFactory sf_offerer_;
   MediaSessionDescriptionFactory sf_answerer_;
+  webrtc::FakePayloadTypeSuggester pt_suggester_offerer_;
+  webrtc::FakePayloadTypeSuggester pt_suggester_answerer_;
 };
 
 // Both sides support H.265 level 5.2 for encoding and decoding.

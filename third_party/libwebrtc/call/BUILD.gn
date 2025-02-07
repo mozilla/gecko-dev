@@ -783,6 +783,17 @@ if (rtc_include_tests) {
     ]
   }
 
+  rtc_source_set("fake_payload_type_suggester") {
+    testonly = true
+    sources = [ "fake_payload_type_suggester.h" ]
+    deps = [
+      ":payload_type",
+      ":payload_type_picker",
+      "../api:rtc_error",
+      "../media:codec",
+    ]
+  }
+
   rtc_library("fake_network_pipe_unittests") {
     testonly = true
 

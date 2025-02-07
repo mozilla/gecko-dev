@@ -2015,6 +2015,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api/video:builtin_video_bitrate_allocator_factory",
       "../api/video:recordable_encoded_frame",
       "../api/video/test:mock_recordable_encoded_frame",
+      "../call:fake_payload_type_suggester",
       "../call:payload_type_picker",
       "../call:rtp_interfaces",
       "../call:rtp_receiver",
