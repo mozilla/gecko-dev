@@ -750,7 +750,6 @@ add_task(async function testTabsFromGroupClosedBeforeGroupDeleted() {
     "Sanity check number of closed tabs from closed windows"
   );
 
-  prepareHistoryPanel();
   let closeTabsPanel = await openRecentlyClosedTabsMenu();
 
   const topLevelClosedTabItems = closeTabsPanel
@@ -769,6 +768,101 @@ add_task(async function testTabsFromGroupClosedBeforeGroupDeleted() {
     tabGroupClosedTabItems.length,
     3,
     "We have the expected number of closed tab items within the tab group"
+  );
+
+  await hideHistoryPanel();
+
+  await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
+});
+
+add_task(async function testOpenTabFromClosedGroupInClosedWindow() {
+  // Asserts fix for bug1944416
+  info(
+    "Open a tab from a closed tab group in a closed window as a standalone tab"
+  );
+  await Sanitizer.sanitize(["history"]);
+  await resetClosedTabsAndWindows();
+  const ORIG_STATE = SessionStore.getBrowserState();
+
+  const closedTabUrl = "about:robots";
+  const closedTabGroupUrls = ["about:logo", "https://example.com"];
+  const closedTabGroupId = "1234567890-1";
+
+  await SessionStoreTestUtils.promiseBrowserState({
+    windows: [
+      {
+        tabs: [makeTabState("about:blank")],
+        _closedTabs: [],
+        closedGroups: [],
+      },
+    ],
+    _closedWindows: [
+      {
+        tabs: [makeTabState("about:blank")],
+        _closedTabs: [makeClosedTabState(closedTabUrl)],
+        closedGroups: [
+          {
+            id: closedTabGroupId,
+            color: "red",
+            name: "tab-group",
+            tabs: closedTabGroupUrls.map(url =>
+              makeClosedTabState(url, {
+                groupId: closedTabGroupId,
+                closedInTabGroup: true,
+              })
+            ),
+          },
+        ],
+      },
+    ],
+  });
+
+  Assert.equal(
+    SessionStore.getClosedTabCountFromClosedWindows(),
+    closedTabGroupUrls.length + 1, // Add the lone ungrouped closed tab
+    "Sanity check number of closed tabs from closed windows"
+  );
+
+  let closeTabsPanel = await openRecentlyClosedTabsMenu();
+  const closedTabItems = closeTabsPanel.querySelectorAll(
+    "toolbarbutton[targetURI]"
+  );
+
+  let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
+  let closedObjectsChangePromise = TestUtils.topicObserved(
+    "sessionstore-closed-objects-changed"
+  );
+  EventUtils.sendMouseEvent({ type: "click" }, closedTabItems[0], window);
+  await newTabPromise;
+  await closedObjectsChangePromise;
+
+  Assert.equal(
+    gBrowser.tabs.at(-1).linkedBrowser.currentURI.spec,
+    closedTabUrl,
+    "Ungrouped closed tab from closed window is opened correctly in the presence of closed tab groups"
+  );
+
+  closeTabsPanel = await openRecentlyClosedTabsMenu();
+  const tabGroupClosedTabItems = closeTabsPanel.querySelectorAll(
+    `panelview#closed-tabs-tab-group-${closedTabGroupId} toolbarbutton[targetURI]`
+  );
+
+  newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
+  closedObjectsChangePromise = TestUtils.topicObserved(
+    "sessionstore-closed-objects-changed"
+  );
+  EventUtils.sendMouseEvent(
+    { type: "click" },
+    tabGroupClosedTabItems[0],
+    window
+  );
+  await newTabPromise;
+  await closedObjectsChangePromise;
+
+  Assert.equal(
+    gBrowser.tabs.at(-1).linkedBrowser.currentURI.spec,
+    closedTabGroupUrls[0],
+    "Grouped closed tab from closed window is opened correctly"
   );
 
   await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);

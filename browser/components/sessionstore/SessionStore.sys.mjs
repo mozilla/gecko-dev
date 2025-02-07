@@ -4093,6 +4093,12 @@ var SessionStoreInternal = {
     }
     if (sourceOptions.closedTabsFromClosedWindows) {
       for (let winData of this.getClosedWindowData()) {
+        // Add a property pointing back to the closed window source
+        for (let groupData of winData.closedGroups) {
+          for (let tabData of groupData.tabs) {
+            tabData.sourceClosedId = winData.closedId;
+          }
+        }
         closedTabGroups.push(...winData.closedGroups);
       }
     }
@@ -4207,7 +4213,7 @@ var SessionStoreInternal = {
 
   /**
    * For a given closed tab that was retrieved by `_getStateForClosedTabsAndClosedGroupTabs`,
-   * returns the specific closed tab list data source and the index wihin that data source
+   * returns the specific closed tab list data source and the index within that data source
    * where the closed tab can be found.
    *
    * This bridges the gap between callers that want a unified list of all closed tabs
@@ -4323,7 +4329,9 @@ var SessionStoreInternal = {
     aTargetWindow
   ) {
     const sourceWinData = this._resolveClosedDataSource(aSource);
-    const closedIndex = sourceWinData._closedTabs.findIndex(
+    const closedTabs =
+      this._getStateForClosedTabsAndClosedGroupTabs(sourceWinData);
+    const closedIndex = closedTabs.findIndex(
       tabData => tabData.closedId == aClosedId
     );
     if (closedIndex >= 0) {
