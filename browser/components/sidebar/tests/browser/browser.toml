@@ -9,6 +9,10 @@ prefs = [
 ["browser_adopt_sidebar_from_opener.js"]
 
 ["browser_customize_sidebar.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && !opt && swgl", # Bug 1903937
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && !opt && socketprocess_networking", # Bug 1903937
+]
 
 ["browser_domfullscreen_sidebar.js"]
 
