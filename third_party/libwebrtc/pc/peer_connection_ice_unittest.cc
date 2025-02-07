@@ -23,6 +23,7 @@
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
 #include "api/candidate.h"
+#include "api/field_trials.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
@@ -54,7 +55,6 @@
 #include "rtc_base/socket_address.h"
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
@@ -1445,7 +1445,7 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
     std::unique_ptr<cricket::FakePortAllocator> port_allocator(
         new cricket::FakePortAllocator(rtc::Thread::Current(),
                                        packet_socket_factory_.get(),
-                                       &field_trials_));
+                                       field_trials_.get()));
     port_allocator_ = port_allocator.get();
     PeerConnectionDependencies pc_dependencies(&observer_);
     pc_dependencies.allocator = std::move(port_allocator);
@@ -1455,7 +1455,7 @@ class PeerConnectionIceConfigTest : public ::testing::Test {
     pc_ = result.MoveValue();
   }
 
-  test::ScopedKeyValueConfig field_trials_;
+  std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<rtc::SocketServer> socket_server_;
   rtc::AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_ = nullptr;

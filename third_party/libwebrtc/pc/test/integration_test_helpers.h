@@ -33,6 +33,7 @@
 #include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
 #include "api/data_channel_interface.h"
+#include "api/field_trials.h"
 #include "api/field_trials_view.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
@@ -94,7 +95,6 @@
 #include "system_wrappers/include/metrics.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 
 namespace webrtc {
 
@@ -741,6 +741,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
             rtc::SocketServer* socket_server,
             rtc::Thread* network_thread,
             rtc::Thread* worker_thread,
+            std::unique_ptr<FieldTrialsView> field_trials,
             std::unique_ptr<FakeRtcEventLogFactory> event_log_factory,
             bool reset_encoder_factory,
             bool reset_decoder_factory,
@@ -1322,17 +1323,12 @@ class MockIceTransportFactory : public IceTransportFactory {
 // of everything else (including "PeerConnectionFactory"s).
 class PeerConnectionIntegrationBaseTest : public ::testing::Test {
  public:
-  PeerConnectionIntegrationBaseTest(
-      SdpSemantics sdp_semantics,
-      std::optional<std::string> field_trials = std::nullopt)
+  explicit PeerConnectionIntegrationBaseTest(SdpSemantics sdp_semantics)
       : sdp_semantics_(sdp_semantics),
         ss_(new rtc::VirtualSocketServer()),
         fss_(new rtc::FirewallSocketServer(ss_.get())),
         network_thread_(new rtc::Thread(fss_.get())),
-        worker_thread_(rtc::Thread::Create()),
-        // TODO(bugs.webrtc.org/10335): Pass optional ScopedKeyValueConfig.
-        field_trials_(new test::ScopedKeyValueConfig(
-            field_trials.has_value() ? *field_trials : "")) {
+        worker_thread_(rtc::Thread::Create()) {
     network_thread_->SetName("PCNetworkThread", this);
     worker_thread_->SetName("PCWorkerThread", this);
     RTC_CHECK(network_thread_->Start());
@@ -1383,6 +1379,14 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
                 PeerConnectionInterface::kIceConnectionCompleted);
   }
 
+  // Sets field trials to pass to created PeerConnectionWrapper.
+  // Must be called before PeerConnectionWrappers are created.
+  void SetFieldTrials(absl::string_view field_trials) {
+    RTC_CHECK(caller_ == nullptr);
+    RTC_CHECK(callee_ == nullptr);
+    field_trials_ = std::string(field_trials);
+  }
+
   // When `event_log_factory` is null, the default implementation of the event
   // log factory will be used.
   std::unique_ptr<PeerConnectionIntegrationWrapper> CreatePeerConnectionWrapper(
@@ -1408,6 +1412,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
 
     if (!client->Init(options, &modified_config, std::move(dependencies),
                       fss_.get(), network_thread_.get(), worker_thread_.get(),
+                      FieldTrials::CreateNoGlobal(field_trials_),
                       std::move(event_log_factory), reset_encoder_factory,
                       reset_decoder_factory, create_media_engine)) {
       return nullptr;
@@ -1837,8 +1842,6 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
                               expected_cipher_suite);
   }
 
-  const FieldTrialsView& trials() const { return *field_trials_.get(); }
-
  protected:
   SdpSemantics sdp_semantics_;
 
@@ -1859,7 +1862,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
   std::vector<std::unique_ptr<cricket::TestTurnCustomizer>> turn_customizers_;
   std::unique_ptr<PeerConnectionIntegrationWrapper> caller_;
   std::unique_ptr<PeerConnectionIntegrationWrapper> callee_;
-  std::unique_ptr<FieldTrialsView> field_trials_;
+  std::string field_trials_;
 };
 
 }  // namespace webrtc

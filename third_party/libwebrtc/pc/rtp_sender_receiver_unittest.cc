@@ -67,7 +67,6 @@
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/run_loop.h"
-#include "test/scoped_key_value_config.h"
 
 using ::testing::_;
 using ::testing::ContainerEq;
@@ -111,7 +110,7 @@ class RtpSenderReceiverTest
         // Create fake media engine/etc. so we can create channels to use to
         // test RtpSenders/RtpReceivers.
         media_engine_(std::make_unique<cricket::FakeMediaEngine>()),
-        fake_call_(CreateEnvironment(), worker_thread_, network_thread_),
+        fake_call_(env_, worker_thread_, network_thread_),
         local_stream_(MediaStream::Create(kStreamId1)) {
     rtp_dtls_transport_ = std::make_unique<cricket::FakeDtlsTransport>(
         "fake_dtls_transport", cricket::ICE_CANDIDATE_COMPONENT_RTP);
@@ -166,7 +165,7 @@ class RtpSenderReceiverTest
 
   std::unique_ptr<RtpTransportInternal> CreateDtlsSrtpTransport() {
     auto dtls_srtp_transport = std::make_unique<DtlsSrtpTransport>(
-        /*rtcp_mux_required=*/true, field_trials_);
+        /*rtcp_mux_required=*/true, env_.field_trials());
     dtls_srtp_transport->SetDtlsTransports(rtp_dtls_transport_.get(),
                                            /*rtcp_dtls_transport=*/nullptr);
     return dtls_srtp_transport;
@@ -519,7 +518,7 @@ class RtpSenderReceiverTest
   test::RunLoop run_loop_;
   rtc::Thread* const network_thread_;
   rtc::Thread* const worker_thread_;
-  RtcEventLogNull event_log_;
+  const Environment env_ = CreateEnvironment();
   // The `rtp_dtls_transport_` and `rtp_transport_` should be destroyed after
   // the `channel_manager`.
   std::unique_ptr<cricket::DtlsTransportInternal> rtp_dtls_transport_;
@@ -544,7 +543,6 @@ class RtpSenderReceiverTest
   rtc::scoped_refptr<MediaStreamInterface> local_stream_;
   rtc::scoped_refptr<VideoTrackInterface> video_track_;
   rtc::scoped_refptr<AudioTrackInterface> audio_track_;
-  test::ScopedKeyValueConfig field_trials_;
 };
 
 // Test that `voice_channel_` is updated when an audio track is associated

@@ -27,6 +27,7 @@
 #include "api/create_peerconnection_factory.h"
 #include "api/data_channel_interface.h"
 #include "api/enable_media_with_defaults.h"
+#include "api/field_trials.h"
 #include "api/jsep.h"
 #include "api/media_stream_interface.h"
 #include "api/media_types.h"
@@ -85,7 +86,6 @@
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
@@ -708,7 +708,7 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
         new cricket::FakePortAllocator(
             rtc::Thread::Current(),
             std::make_unique<rtc::BasicPacketSocketFactory>(vss_.get()),
-            &field_trials_));
+            field_trials_.get()));
     port_allocator_ = port_allocator.get();
 
     // Create certificate generator unless DTLS constraint is explicitly set to
@@ -1227,7 +1227,7 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
 
   rtc::SocketServer* socket_server() const { return vss_.get(); }
 
-  test::ScopedKeyValueConfig field_trials_;
+  std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<rtc::VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread main_;
   rtc::scoped_refptr<FakeAudioCaptureModule> fake_audio_capture_module_;
@@ -1336,8 +1336,9 @@ TEST_P(PeerConnectionInterfaceTest,
   std::unique_ptr<rtc::PacketSocketFactory> packet_socket_factory(
       new rtc::BasicPacketSocketFactory(socket_server()));
   std::unique_ptr<cricket::FakePortAllocator> port_allocator(
-      new cricket::FakePortAllocator(
-          rtc::Thread::Current(), packet_socket_factory.get(), &field_trials_));
+      new cricket::FakePortAllocator(rtc::Thread::Current(),
+                                     packet_socket_factory.get(),
+                                     field_trials_.get()));
   cricket::FakePortAllocator* raw_port_allocator = port_allocator.get();
 
   // Create RTCConfiguration with some network-related fields relevant to

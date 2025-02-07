@@ -51,12 +51,12 @@
 #include "rtc_base/string_encode.h"
 #include "rtc_base/time_utils.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 
 namespace {
 
 using ::webrtc::Environment;
 using ::webrtc::FakeVideoTrackRenderer;
+using ::webrtc::FieldTrialsView;
 using ::webrtc::IceCandidateInterface;
 using ::webrtc::MediaStreamInterface;
 using ::webrtc::MediaStreamTrackInterface;
@@ -134,21 +134,6 @@ PeerConnectionTestWrapper::PeerConnectionTestWrapper(
   pc_thread_checker_.Detach();
 }
 
-PeerConnectionTestWrapper::PeerConnectionTestWrapper(
-    const std::string& name,
-    rtc::SocketServer* socket_server,
-    rtc::Thread* network_thread,
-    rtc::Thread* worker_thread,
-    webrtc::test::ScopedKeyValueConfig& field_trials)
-    : field_trials_(field_trials, ""),
-      name_(name),
-      socket_server_(socket_server),
-      network_thread_(network_thread),
-      worker_thread_(worker_thread),
-      pending_negotiation_(false) {
-  pc_thread_checker_.Detach();
-}
-
 PeerConnectionTestWrapper::~PeerConnectionTestWrapper() {
   RTC_DCHECK_RUN_ON(&pc_thread_checker_);
   // To avoid flaky bot failures, make sure fake sources are stopped prior to
@@ -166,12 +151,13 @@ PeerConnectionTestWrapper::~PeerConnectionTestWrapper() {
 bool PeerConnectionTestWrapper::CreatePc(
     const webrtc::PeerConnectionInterface::RTCConfiguration& config,
     rtc::scoped_refptr<webrtc::AudioEncoderFactory> audio_encoder_factory,
-    rtc::scoped_refptr<webrtc::AudioDecoderFactory> audio_decoder_factory) {
+    rtc::scoped_refptr<webrtc::AudioDecoderFactory> audio_decoder_factory,
+    std::unique_ptr<webrtc::FieldTrialsView> field_trials) {
   std::unique_ptr<cricket::PortAllocator> port_allocator(
       new cricket::FakePortAllocator(
           network_thread_,
           std::make_unique<rtc::BasicPacketSocketFactory>(socket_server_),
-          &field_trials_));
+          field_trials.get()));
 
   RTC_DCHECK_RUN_ON(&pc_thread_checker_);
 
@@ -191,7 +177,7 @@ bool PeerConnectionTestWrapper::CreatePc(
           webrtc::OpenH264DecoderTemplateAdapter,
           webrtc::Dav1dDecoderTemplateAdapter>>(),
       nullptr /* audio_mixer */, nullptr /* audio_processing */, nullptr,
-      std::make_unique<webrtc::test::ScopedKeyValueConfig>(field_trials_, ""));
+      std::move(field_trials));
   if (!peer_connection_factory_) {
     return false;
   }

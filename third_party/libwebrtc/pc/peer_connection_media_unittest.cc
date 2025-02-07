@@ -62,7 +62,6 @@
 #include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
@@ -176,7 +175,6 @@ class PeerConnectionMediaBaseTest : public ::testing::Test {
     EnableFakeMedia(factory_dependencies, std::move(media_engine));
     factory_dependencies.event_log_factory =
         std::make_unique<RtcEventLogFactory>();
-    factory_dependencies.trials = std::move(field_trials_);
     auto pc_factory =
         CreateModularPeerConnectionFactory(std::move(factory_dependencies));
 
@@ -253,7 +251,6 @@ class PeerConnectionMediaBaseTest : public ::testing::Test {
     return sdp_semantics_ == SdpSemantics::kUnifiedPlan;
   }
 
-  std::unique_ptr<test::ScopedKeyValueConfig> field_trials_;
   std::unique_ptr<rtc::VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread main_;
   const SdpSemantics sdp_semantics_;

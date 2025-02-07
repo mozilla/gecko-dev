@@ -25,6 +25,7 @@
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/audio_options.h"
+#include "api/field_trials.h"
 #include "api/field_trials_view.h"
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
@@ -55,7 +56,6 @@
 #include "rtc_base/thread.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 #include "test/wait_until.h"
 
 using ::testing::AllOf;
@@ -143,12 +143,13 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
     RTC_CHECK(background_thread_->Start());
   }
 
-  rtc::scoped_refptr<PeerConnectionTestWrapper> CreatePc() {
-    auto pc_wrapper = rtc::make_ref_counted<PeerConnectionTestWrapper>(
-        "pc", &pss_, background_thread_.get(), background_thread_.get(),
-        field_trials_);
+  scoped_refptr<PeerConnectionTestWrapper> CreatePc(
+      std::unique_ptr<FieldTrialsView> field_trials = nullptr) {
+    auto pc_wrapper = make_ref_counted<PeerConnectionTestWrapper>(
+        "pc", &pss_, background_thread_.get(), background_thread_.get());
     pc_wrapper->CreatePc({}, CreateBuiltinAudioEncoderFactory(),
-                         CreateBuiltinAudioDecoderFactory());
+                         CreateBuiltinAudioDecoderFactory(),
+                         std::move(field_trials));
     return pc_wrapper;
   }
 
@@ -505,7 +506,6 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
     return true;
   }
 
-  test::ScopedKeyValueConfig field_trials_;
   rtc::PhysicalSocketServer pss_;
   std::unique_ptr<rtc::Thread> background_thread_;
 };
@@ -2220,10 +2220,11 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 TEST_F(PeerConnectionEncodingsIntegrationTest,
        AddTransceiverAcceptsMixedCodecSimulcast) {
   // Enable WIP mixed codec simulcast support
-  test::ScopedKeyValueConfig field_trials(
-      field_trials_, "WebRTC-MixedCodecSimulcast/Enabled/");
-  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
-  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+  std::string field_trials = "WebRTC-MixedCodecSimulcast/Enabled/";
+  scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper =
+      CreatePc(FieldTrials::CreateNoGlobal(field_trials));
+  scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper =
+      CreatePc(FieldTrials::CreateNoGlobal(field_trials));
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
   std::optional<RtpCodecCapability> vp8 =

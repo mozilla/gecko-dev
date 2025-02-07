@@ -28,7 +28,6 @@
 #include "api/task_queue/default_task_queue_factory.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/units/time_delta.h"
 #include "logging/rtc_event_log/fake_rtc_event_log_factory.h"
 #include "p2p/base/basic_packet_socket_factory.h"
@@ -223,6 +222,7 @@ bool PeerConnectionIntegrationWrapper::Init(
     rtc::SocketServer* socket_server,
     rtc::Thread* network_thread,
     rtc::Thread* worker_thread,
+    std::unique_ptr<FieldTrialsView> field_trials,
     std::unique_ptr<FakeRtcEventLogFactory> event_log_factory,
     bool reset_encoder_factory,
     bool reset_decoder_factory,
@@ -251,7 +251,7 @@ bool PeerConnectionIntegrationWrapper::Init(
   pc_factory_dependencies.worker_thread = worker_thread;
   pc_factory_dependencies.signaling_thread = signaling_thread;
   pc_factory_dependencies.task_queue_factory = CreateDefaultTaskQueueFactory();
-  pc_factory_dependencies.trials = std::make_unique<FieldTrialBasedConfig>();
+  pc_factory_dependencies.trials = std::move(field_trials);
   pc_factory_dependencies.decode_metronome =
       std::make_unique<TaskQueueMetronome>(TimeDelta::Millis(8));
 

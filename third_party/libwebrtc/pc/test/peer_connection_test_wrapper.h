@@ -35,7 +35,6 @@
 #include "pc/test/fake_video_track_renderer.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
-#include "test/scoped_key_value_config.h"
 
 class PeerConnectionTestWrapper
     : public webrtc::PeerConnectionObserver,
@@ -49,17 +48,13 @@ class PeerConnectionTestWrapper
                             rtc::SocketServer* socket_server,
                             rtc::Thread* network_thread,
                             rtc::Thread* worker_thread);
-  PeerConnectionTestWrapper(const std::string& name,
-                            rtc::SocketServer* socket_server,
-                            rtc::Thread* network_thread,
-                            rtc::Thread* worker_thread,
-                            webrtc::test::ScopedKeyValueConfig& field_trials);
   virtual ~PeerConnectionTestWrapper();
 
   bool CreatePc(
       const webrtc::PeerConnectionInterface::RTCConfiguration& config,
       rtc::scoped_refptr<webrtc::AudioEncoderFactory> audio_encoder_factory,
-      rtc::scoped_refptr<webrtc::AudioDecoderFactory> audio_decoder_factory);
+      rtc::scoped_refptr<webrtc::AudioDecoderFactory> audio_decoder_factory,
+      std::unique_ptr<webrtc::FieldTrialsView> field_trials = nullptr);
 
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface> pc_factory()
       const {
@@ -136,7 +131,6 @@ class PeerConnectionTestWrapper
   bool CheckForAudio();
   bool CheckForVideo();
 
-  webrtc::test::ScopedKeyValueConfig field_trials_;
   std::string name_;
   rtc::SocketServer* const socket_server_;
   rtc::Thread* const network_thread_;

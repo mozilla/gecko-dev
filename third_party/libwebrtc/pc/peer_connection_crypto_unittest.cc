@@ -26,6 +26,7 @@
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/create_peerconnection_factory.h"
 #include "api/crypto/crypto_options.h"
+#include "api/field_trials.h"
 #include "api/jsep.h"
 #include "api/peer_connection_interface.h"
 #include "api/scoped_refptr.h"
@@ -56,7 +57,6 @@
 #include "rtc_base/thread.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
@@ -113,7 +113,7 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
     auto fake_port_allocator = std::make_unique<cricket::FakePortAllocator>(
         rtc::Thread::Current(),
         std::make_unique<rtc::BasicPacketSocketFactory>(vss_.get()),
-        &field_trials_);
+        field_trials_.get());
     auto observer = std::make_unique<MockPeerConnectionObserver>();
     RTCConfiguration modified_config = config;
     modified_config.sdp_semantics = sdp_semantics_;
@@ -163,7 +163,7 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
     return transport_info->description.connection_role;
   }
 
-  test::ScopedKeyValueConfig field_trials_;
+  std::unique_ptr<FieldTrials> field_trials_ = FieldTrials::CreateNoGlobal("");
   std::unique_ptr<rtc::VirtualSocketServer> vss_;
   rtc::AutoSocketServerThread main_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_;

@@ -11,12 +11,15 @@
 // This file contains tests that verify that field trials do what they're
 // supposed to do.
 
+#include <memory>
 #include <set>
 
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/create_peerconnection_factory.h"
 #include "api/enable_media_with_defaults.h"
+#include "api/field_trials.h"
+#include "api/field_trials_view.h"
 #include "api/peer_connection_interface.h"
 #include "api/stats/rtcstats_objects.h"
 #include "api/task_queue/default_task_queue_factory.h"
@@ -33,7 +36,6 @@
 #include "rtc_base/physical_socket_server.h"
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
-#include "test/scoped_key_value_config.h"
 
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
@@ -100,10 +102,8 @@ class PeerConnectionFieldTrialTest : public ::testing::Test {
 // Tests for the dependency descriptor field trial. The dependency descriptor
 // field trial is implemented in media/engine/webrtc_video_engine.cc.
 TEST_F(PeerConnectionFieldTrialTest, EnableDependencyDescriptorAdvertised) {
-  std::unique_ptr<test::ScopedKeyValueConfig> field_trials =
-      std::make_unique<test::ScopedKeyValueConfig>(
-          "WebRTC-DependencyDescriptorAdvertised/Enabled/");
-  CreatePCFactory(std::move(field_trials));
+  CreatePCFactory(FieldTrials::CreateNoGlobal(
+      "WebRTC-DependencyDescriptorAdvertised/Enabled/"));
 
   WrapperPtr caller = CreatePeerConnection();
   caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
@@ -135,10 +135,8 @@ TEST_F(PeerConnectionFieldTrialTest, EnableDependencyDescriptorAdvertised) {
 #define MAYBE_InjectDependencyDescriptor InjectDependencyDescriptor
 #endif
 TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
-  std::unique_ptr<test::ScopedKeyValueConfig> field_trials =
-      std::make_unique<test::ScopedKeyValueConfig>(
-          "WebRTC-DependencyDescriptorAdvertised/Disabled/");
-  CreatePCFactory(std::move(field_trials));
+  CreatePCFactory(FieldTrials::CreateNoGlobal(
+      "WebRTC-DependencyDescriptorAdvertised/Disabled/"));
 
   WrapperPtr caller = CreatePeerConnection();
   WrapperPtr callee = CreatePeerConnection();
