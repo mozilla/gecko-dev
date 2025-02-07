@@ -406,6 +406,7 @@ class WebExtensionPromptFeatureTest {
             addon = addon,
             forOptionalPermissions = false,
             permissions = listOf("tabs"),
+            origins = emptyList(),
             onLearnMoreClicked = {
                 onLinkClicked(expectedUrl, false)
             },

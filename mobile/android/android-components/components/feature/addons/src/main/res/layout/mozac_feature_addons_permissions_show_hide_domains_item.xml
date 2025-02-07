@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView android:id="@+id/show_hide_permissions"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:textColor="@color/photonViolet70"
+    android:textSize="14sp"
+    android:textStyle="bold"
+    tools:text="@string/mozac_feature_addons_permissions_show_all_sites"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:paddingStart="36dp"
+    android:paddingEnd="0dp"
+    android:paddingTop="8dp"
+    android:layout_marginTop="4dp"
+    />

@@ -1393,7 +1393,8 @@ class GeckoEngineTest {
 
         verify(webExtensionsDelegate).onInstallPermissionRequest(
             extensionCaptor.capture(),
-            eq(permissions.asList() + origins.asList()),
+            eq(permissions.asList()),
+            eq(origins.asList()),
             onConfirmCaptor.capture(),
         )
 
@@ -1438,7 +1439,8 @@ class GeckoEngineTest {
 
         verify(webExtensionsDelegate).onInstallPermissionRequest(
             extensionCaptor.capture(),
-            eq(permissions.asList() + origins.asList()),
+            eq(permissions.asList()),
+            eq(origins.asList()),
             onConfirmCaptor.capture(),
         )
 
@@ -1484,7 +1486,8 @@ class GeckoEngineTest {
 
         verify(webExtensionsDelegate).onInstallPermissionRequest(
             extensionCaptor.capture(),
-            eq(permissions.asList() + origins.asList()),
+            eq(permissions.asList()),
+            eq(origins.asList()),
             onConfirmCaptor.capture(),
         )
 

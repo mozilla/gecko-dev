@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="4dp"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingStart="36dp"
+    android:paddingEnd="0dp">
+
+    <TextView
+        android:id="@+id/bullet"
+        android:layout_width="20dp"
+        android:layout_height="wrap_content"
+        android:text="•"
+        android:textAlignment="center"
+        android:textColor="?android:attr/textColorPrimary"
+        tools:ignore="HardcodedText,RtlSymmetry"
+        android:importantForAccessibility="no"
+        />
+
+    <TextView
+        android:id="@+id/permission_domain_item"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="?android:attr/textColorPrimary"
+        tools:text="https://www.somesite.com" />
+
+</LinearLayout>

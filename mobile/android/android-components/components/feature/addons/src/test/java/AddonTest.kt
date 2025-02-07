@@ -130,6 +130,58 @@ class AddonTest {
     }
 
     @Test
+    fun `classifyOriginPermissions - normalizes origins and returns HostPermissions`() {
+        val origins = listOf(
+            "https://developer.mozilla.org/",
+            "*://*.developer.mozilla.org/*",
+            "*://developer.mozilla.org/*",
+            "https://wikipedia.org/",
+            "*://*.wikipedia.org/*",
+            "*://wikipedia.org/*",
+        )
+
+        val hostNormalizationResult = Addon.classifyOriginPermissions(origins)
+        assertNotNull(hostNormalizationResult.getOrNull())
+
+        val hostPermissions = hostNormalizationResult.getOrNull()!!
+
+        assertEquals(hostPermissions.sites.size, 2)
+        assertEquals(hostPermissions.wildcards.size, 2)
+
+        val displayDomainList = hostPermissions.wildcards + hostPermissions.sites
+
+        assertEquals(displayDomainList.size, 2)
+
+        assertEquals(displayDomainList.first(), "developer.mozilla.org")
+        assertTrue(displayDomainList.contains("wikipedia.org"))
+    }
+
+    @Test
+    fun `permissionsListContainsAllUrls - true if any permission in the list maps to the All Urls permission`() {
+        val permissionsWithoutAllUrls = listOf("privacy", "tabs")
+        val permissionsWithAllUrls = listOf("privacy", "<all_urls>", "tabs")
+
+        val domainsWithoutAllUrls = listOf(
+            "https://www.mozilla.org",
+            "http://testsite.com",
+            "testing.com",
+            "testing.com/*",
+            "*.testing.com/*",
+        )
+
+        val domainsWithAllUrls = listOf(
+            "testing.com",
+            "*://*/*",
+        )
+
+        assertFalse("Found all_urls permission when none exists", Addon.permissionsListContainsAllUrls(permissionsWithoutAllUrls))
+        assertTrue("Did not find the all_urls permission in the list", Addon.permissionsListContainsAllUrls(permissionsWithAllUrls))
+
+        assertFalse("Found all_urls permission when none exists", Addon.permissionsListContainsAllUrls(domainsWithoutAllUrls))
+        assertTrue("Did not find the all_urls permission in the list", Addon.permissionsListContainsAllUrls(domainsWithAllUrls))
+    }
+
+    @Test
     fun `filterTranslations - only keeps specified translations`() {
         val addon = Addon(
             id = "id",

@@ -446,17 +446,18 @@ class WebExtensionSupportTest {
         val ext: WebExtension = mock()
         val onPermissionsGranted: ((PermissionPromptResponse) -> Unit) = mock()
         val permissions = listOf("permissions")
+        val origins = listOf("https://www.mozilla.org")
 
         val delegateCaptor = argumentCaptor<WebExtensionDelegate>()
         WebExtensionSupport.initialize(engine, store)
         verify(engine).registerWebExtensionDelegate(delegateCaptor.capture())
 
         // Verify they we confirm the permission request
-        delegateCaptor.value.onInstallPermissionRequest(ext, permissions, onPermissionsGranted)
+        delegateCaptor.value.onInstallPermissionRequest(ext, permissions, origins, onPermissionsGranted)
 
         verify(store).dispatch(
             WebExtensionAction.UpdatePromptRequestWebExtensionAction(
-                WebExtensionPromptRequest.AfterInstallation.Permissions.Required(ext, permissions, onPermissionsGranted),
+                WebExtensionPromptRequest.AfterInstallation.Permissions.Required(ext, permissions, origins, onPermissionsGranted),
             ),
         )
     }

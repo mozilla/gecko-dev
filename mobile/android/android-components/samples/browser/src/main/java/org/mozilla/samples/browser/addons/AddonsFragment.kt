@@ -157,6 +157,9 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
             addon = addon,
             onPositiveButtonClicked = onConfirmPermissionButtonClicked,
             permissions = addon.permissions,
+            origins = addon.optionalOrigins.map {
+                it.name
+            },
         )
 
         if (!isAlreadyADialogCreated() && isAdded) {

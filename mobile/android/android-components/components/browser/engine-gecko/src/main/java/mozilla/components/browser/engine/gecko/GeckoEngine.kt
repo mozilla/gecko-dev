@@ -356,9 +356,8 @@ class GeckoEngine(
 
                 webExtensionDelegate.onInstallPermissionRequest(
                     GeckoWebExtension(ext, runtime),
-                    // We pass both permissions and origins as a single list of
-                    // permissions to be shown to the user.
-                    permissions.toList() + origins.toList(),
+                    permissions.toList(),
+                    origins.toList(),
                 ) { data ->
                     result.complete(
                         NativePermissionPromptResponse(

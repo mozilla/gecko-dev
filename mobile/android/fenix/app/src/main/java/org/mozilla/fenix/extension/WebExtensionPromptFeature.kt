@@ -128,7 +128,12 @@ class WebExtensionPromptFeature(
         addon: Addon,
         promptRequest: WebExtensionPromptRequest.AfterInstallation.Permissions.Required,
     ) {
-        showPermissionDialog(addon = addon, promptRequest = promptRequest, permissions = promptRequest.permissions)
+        showPermissionDialog(
+            addon = addon,
+            promptRequest = promptRequest,
+            permissions = promptRequest.permissions,
+            origins = promptRequest.origins,
+        )
     }
 
     @VisibleForTesting
@@ -136,7 +141,10 @@ class WebExtensionPromptFeature(
         addon: Addon,
         promptRequest: WebExtensionPromptRequest.AfterInstallation.Permissions.Optional,
     ) {
-        val shouldGrantWithoutPrompt = Addon.localizePermissions(promptRequest.permissions, context).isEmpty()
+        val shouldGrantWithoutPrompt = Addon.localizePermissions(
+            promptRequest.permissions,
+            context,
+        ).isEmpty()
 
         // If we don't have any promptable permissions, just proceed.
         if (shouldGrantWithoutPrompt) {
@@ -251,6 +259,7 @@ class WebExtensionPromptFeature(
         promptRequest: WebExtensionPromptRequest.AfterInstallation.Permissions,
         forOptionalPermissions: Boolean = false,
         permissions: List<String> = emptyList(),
+        origins: List<String> = emptyList(),
     ) {
         if (isInstallationInProgress || hasExistingPermissionDialogFragment()) {
             return
@@ -260,6 +269,7 @@ class WebExtensionPromptFeature(
             addon = addon,
             forOptionalPermissions = forOptionalPermissions,
             permissions = permissions,
+            origins = origins,
             promptsStyling = AddonDialogFragment.PromptsStyling(
                 gravity = Gravity.BOTTOM,
                 shouldWidthMatchParent = true,

@@ -279,7 +279,8 @@ data class Addon(
     /**
      * Returns whether this [Addon] is currently disabled because it isn't correctly signed.
      */
-    fun isDisabledAsNotCorrectlySigned() = installedState?.disabledReason == DisabledReason.NOT_CORRECTLY_SIGNED
+    fun isDisabledAsNotCorrectlySigned() =
+        installedState?.disabledReason == DisabledReason.NOT_CORRECTLY_SIGNED
 
     /**
      * Returns whether this [Addon] is currently disabled because it isn't compatible
@@ -305,7 +306,11 @@ data class Addon(
         val descriptions = translatableDescription.filterKeys { internalLocales.contains(it) }
         val names = translatableName.filterKeys { internalLocales.contains(it) }
         val summaries = translatableSummary.filterKeys { internalLocales.contains(it) }
-        return copy(translatableName = names, translatableDescription = descriptions, translatableSummary = summaries)
+        return copy(
+            translatableName = names,
+            translatableDescription = descriptions,
+            translatableSummary = summaries,
+        )
     }
 
     companion object {
@@ -360,7 +365,8 @@ data class Addon(
             }.map { context.getString(it) }
 
             if (!requireAllUrlsAccess && notFoundPermissions.isNotEmpty()) {
-                localizedUrlAccessPermissions = localizedURLAccessPermissions(context, notFoundPermissions)
+                localizedUrlAccessPermissions =
+                    localizedURLAccessPermissions(context, notFoundPermissions)
             }
 
             return localizedNormalPermissions + localizedUrlAccessPermissions
@@ -380,16 +386,17 @@ data class Addon(
             val notFoundPermissions = mutableListOf<Permission>()
             val localizedURLAccessPermissions = mutableListOf<LocalizedPermission>()
 
-            val localizedOptionalPermissions: List<LocalizedPermission> = optionalPermissions.mapNotNull {
-                val resourceId = permissionToTranslation[it.name]
-                if (resourceId != null) {
-                    if (resourceId.isAllURLsPermission()) allUrlAccessPermissionFound = true
-                    LocalizedPermission(context.getString(resourceId), it)
-                } else {
-                    notFoundPermissions.add(it)
-                    null
+            val localizedOptionalPermissions: List<LocalizedPermission> =
+                optionalPermissions.mapNotNull {
+                    val resourceId = permissionToTranslation[it.name]
+                    if (resourceId != null) {
+                        if (resourceId.isAllURLsPermission()) allUrlAccessPermissionFound = true
+                        LocalizedPermission(context.getString(resourceId), it)
+                    } else {
+                        notFoundPermissions.add(it)
+                        null
+                    }
                 }
-            }
 
             if (!allUrlAccessPermissionFound && notFoundPermissions.isNotEmpty()) {
                 notFoundPermissions.mapNotNullTo(localizedURLAccessPermissions) { permission ->
@@ -398,6 +405,7 @@ data class Addon(
                             // Hide if we can't find a string resource to localize the permission
                             null
                         }
+
                         else -> {
                             val localizedName = context.getString(localizedResourceId)
                             LocalizedPermission(localizedName, permission)
@@ -416,11 +424,15 @@ data class Addon(
          * @param extension a WebExtension instance.
          * @param installedState optional - an installed state.
          */
-        fun newFromWebExtension(extension: WebExtension, installedState: InstalledState? = null): Addon {
+        fun newFromWebExtension(
+            extension: WebExtension,
+            installedState: InstalledState? = null,
+        ): Addon {
             val metadata = extension.getMetadata()
             val name = metadata?.name ?: extension.id
             val description = metadata?.description ?: extension.id
-            val permissions = metadata?.requiredPermissions.orEmpty() + metadata?.requiredOrigins.orEmpty()
+            val permissions =
+                metadata?.requiredPermissions.orEmpty() + metadata?.requiredOrigins.orEmpty()
             val averageRating = metadata?.averageRating ?: 0f
             val reviewCount = metadata?.reviewCount ?: 0
             val homepageUrl = metadata?.homepageUrl.orEmpty()
@@ -512,7 +524,10 @@ data class Addon(
             return updatedAt
         }
 
-        internal fun localizedURLAccessPermissions(context: Context, accessPermissions: List<String>): List<String> {
+        internal fun localizedURLAccessPermissions(
+            context: Context,
+            accessPermissions: List<String>,
+        ): List<String> {
             val localizedSiteAccessPermissions = mutableListOf<String>()
             val permissionsToTranslations = mutableMapOf<String, Int>()
 
@@ -528,7 +543,11 @@ data class Addon(
                     context.getString(R.string.mozac_feature_addons_permissions_all_urls_description),
                 )
             } else {
-                formatURLAccessPermission(permissionsToTranslations, localizedSiteAccessPermissions, context)
+                formatURLAccessPermission(
+                    permissionsToTranslations,
+                    localizedSiteAccessPermissions,
+                    context,
+                )
             }
             return localizedSiteAccessPermissions
         }
@@ -540,12 +559,21 @@ data class Addon(
             context: Context,
         ) {
             val maxShownPermissionsEntries = 4
-            fun addExtraEntriesIfNeeded(count: Int, oneExtraPermission: Int, multiplePermissions: Int) {
+            fun addExtraEntriesIfNeeded(
+                count: Int,
+                oneExtraPermission: Int,
+                multiplePermissions: Int,
+            ) {
                 val collapsedPermissions = count - maxShownPermissionsEntries
                 if (collapsedPermissions == 1) {
                     localizedSiteAccessPermissions.add(context.getString(oneExtraPermission))
                 } else {
-                    localizedSiteAccessPermissions.add(context.getString(multiplePermissions, collapsedPermissions))
+                    localizedSiteAccessPermissions.add(
+                        context.getString(
+                            multiplePermissions,
+                            collapsedPermissions,
+                        ),
+                    )
                 }
             }
 
@@ -573,13 +601,17 @@ data class Addon(
             // If we have [maxPermissionsEntries] or fewer permissions, display them all, otherwise we
             // display the first [maxPermissionsEntries] followed by an item that says "...plus N others"
             if (domainCount > maxShownPermissionsEntries) {
-                val onePermission = R.string.mozac_feature_addons_permissions_one_extra_domain_description
-                val multiplePermissions = R.string.mozac_feature_addons_permissions_extra_domains_description_plural
+                val onePermission =
+                    R.string.mozac_feature_addons_permissions_one_extra_domain_description
+                val multiplePermissions =
+                    R.string.mozac_feature_addons_permissions_extra_domains_description_plural
                 addExtraEntriesIfNeeded(domainCount, onePermission, multiplePermissions)
             }
             if (siteCount > maxShownPermissionsEntries) {
-                val onePermission = R.string.mozac_feature_addons_permissions_one_extra_site_description
-                val multiplePermissions = R.string.mozac_feature_addons_permissions_extra_sites_description
+                val onePermission =
+                    R.string.mozac_feature_addons_permissions_one_extra_site_description
+                val multiplePermissions =
+                    R.string.mozac_feature_addons_permissions_extra_sites_description
                 addExtraEntriesIfNeeded(siteCount, onePermission, multiplePermissions)
             }
         }
@@ -602,6 +634,81 @@ data class Addon(
         fun Permission.isAllURLsPermission(): Boolean {
             return permissionToTranslation[name]?.isAllURLsPermission()
                 ?: (localizeURLAccessPermission(name)?.isAllURLsPermission() == true)
+        }
+
+        /**
+         * Checks the permissions list input for any permission that maps to <all_urls>
+         *
+         * @param permissions the list of permissions to check
+         */
+        fun permissionsListContainsAllUrls(permissions: List<String>): Boolean =
+            permissions.any {
+                localizeURLAccessPermission(it)?.isAllURLsPermission() == true
+            }
+
+        /**
+         * Data class representing host permissions.
+         *
+         * @property allUrls Permission string for accessing all URLs.
+         * @property wildcards Set of permissions with wildcards.
+         * @property sites Set of explicit host permissions.
+         */
+        data class HostPermissions(
+            val allUrls: String?,
+            val wildcards: Set<String>,
+            val sites: Set<String>,
+        )
+
+        /**
+         * Classify host permissions.
+         * This is a direct conversion of the desktop function found at:
+         * https://searchfox.org/mozilla-central/rev/b765e2890b0eb85b24f54bc7ff04491fd0704e30/toolkit/components/extensions/Extension.sys.mjs#2367
+         *
+         * @param origins List of permission origins.
+         * @param ignoreNonWebSchemes Whether to return only schemes like *, http, https, ws, wss.
+         *
+         * @return [HostPermissions] containing categorized permissions.
+         */
+        fun classifyOriginPermissions(
+            origins: List<String> = emptyList(),
+            ignoreNonWebSchemes: Boolean = false,
+        ): Result<HostPermissions> {
+            var allUrls: String? = null
+            val wildcards = mutableSetOf<String>()
+            val sites = mutableSetOf<String>()
+
+            val wildcardSchemes = listOf("*", "http", "https", "ws", "wss")
+
+            for (permission in origins) {
+                if (permission == "<all_urls>") {
+                    allUrls = permission
+                    continue
+                }
+
+                val match = Regex("^([a-z*]+)://([^/]*)/|^about:").find(permission)
+                    ?: return Result.failure(
+                        IllegalArgumentException(
+                            "Illegal origin permission pattern found: $permission",
+                        ),
+                    )
+
+                val scheme = match.groups[1]?.value
+                val host = match.groups[2]?.value
+
+                if (ignoreNonWebSchemes && scheme !in wildcardSchemes) {
+                    continue
+                }
+
+                if (host == null || host == "*") {
+                    allUrls = allUrls ?: permission
+                } else if (host.startsWith("*.")) {
+                    wildcards.add(host.substring(2))
+                } else {
+                    sites.add(host)
+                }
+            }
+
+            return Result.success(HostPermissions(allUrls, wildcards, sites))
         }
 
         internal fun localizeURLAccessPermission(urlAccess: String): Int? {

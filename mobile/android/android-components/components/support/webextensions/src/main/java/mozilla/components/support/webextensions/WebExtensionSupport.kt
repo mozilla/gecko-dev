@@ -307,6 +307,7 @@ object WebExtensionSupport {
                 override fun onInstallPermissionRequest(
                     extension: WebExtension,
                     permissions: List<String>,
+                    origins: List<String>,
                     onConfirm: (PermissionPromptResponse) -> Unit,
                 ) {
                     store.dispatch(
@@ -314,6 +315,7 @@ object WebExtensionSupport {
                             WebExtensionPromptRequest.AfterInstallation.Permissions.Required(
                                 extension,
                                 permissions,
+                                origins,
                                 onConfirm,
                             ),
                         ),
