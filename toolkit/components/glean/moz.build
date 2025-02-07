@@ -173,16 +173,28 @@ GeneratedFile(
 GeneratedFile(
     "GleanMetrics.h",
     *metrics_headers,
-    "GleanJSMetricsLookup.h",
+    script="build_scripts/glean_parser_ext/run_glean_parser.py",
+    flags=glean_parser_flags,
+    inputs=["!metrics_yamls.cached"],
+)
+
+GeneratedFile(
     "GleanJSMetricsLookup.cpp",
-    "api/src/metrics.rs",
+    "GleanJSMetricsLookup.h",
+    entry_point="js_metrics",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     flags=glean_parser_flags
     + [
         "GleanJSMetricsLookup.h",
-        "GleanJSMetricsLookup.cpp",
-        "api/src/metrics.rs",
     ],
+    inputs=["!metrics_yamls.cached"],
+)
+
+GeneratedFile(
+    "api/src/metrics.rs",
+    entry_point="rust_metrics",
+    script="build_scripts/glean_parser_ext/run_glean_parser.py",
+    flags=glean_parser_flags,
     inputs=["!metrics_yamls.cached"],
 )
 
@@ -191,6 +203,7 @@ GeneratedFile(
     "GleanJSPingsLookup.h",
     "GleanJSPingsLookup.cpp",
     "api/src/pings.rs",
+    entry_point="pings",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     flags=glean_parser_flags
     + [

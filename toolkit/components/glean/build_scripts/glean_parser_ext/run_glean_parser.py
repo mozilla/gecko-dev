@@ -144,8 +144,6 @@ def main(cpp_fd, *args):
     def open_output(filename):
         return FileAvoidWrite(os.path.join(os.path.dirname(cpp_fd.name), filename))
 
-    [js_h_path, js_cpp_path, rust_path] = args[-3:]
-    args = args[:-3]
     all_objs, options = parse(args)
     all_metric_header_files = {}
 
@@ -164,37 +162,69 @@ def main(cpp_fd, *args):
                 all_metric_header_files[filename][category_name] = {}
             all_metric_header_files[filename][category_name][name] = metric
 
-    if "pings" in all_objs:
-        cpp.output_cpp(all_objs, cpp_fd, options)
-    else:
-        get_metric_id = generate_metric_ids(all_objs, options)
-        for header_name, objs in all_metric_header_files.items():
-            cpp.output_cpp(
-                objs,
-                (
-                    cpp_fd
-                    if header_name == "GleanMetrics"
-                    else open_output(header_name + ".h")
-                ),
-                {"header_name": header_name, "get_metric_id": get_metric_id},
-            )
+    get_metric_id = generate_metric_ids(all_objs, options)
+    for header_name, objs in all_metric_header_files.items():
+        cpp.output_cpp(
+            objs,
+            (
+                cpp_fd
+                if header_name == "GleanMetrics"
+                else open_output(header_name + ".h")
+            ),
+            {"header_name": header_name, "get_metric_id": get_metric_id},
+        )
+
+    return get_deps()
+
+
+def js_metrics(js_cpp_fd, *args):
+    def open_output(filename):
+        return FileAvoidWrite(os.path.join(os.path.dirname(js_cpp_fd.name), filename))
+
+    js_h_path = args[-1]
+    args = args[:-1]
+    all_objs, options = parse(args)
+
+    with open_output(js_h_path) as js_fd:
+        js.output_js(all_objs, js_fd, js_cpp_fd, options)
+
+    return get_deps()
+
+
+def rust_metrics(rust_fd, *args):
+    all_objs, options = parse(args)
+
+    # We only need this info if we're dealing with pings.
+    ping_names_by_app_id = {}
+    rust.output_rust(all_objs, rust_fd, ping_names_by_app_id, options)
+
+    return get_deps()
+
+
+def pings(cpp_fd, *args):
+    def open_output(filename):
+        return FileAvoidWrite(os.path.join(os.path.dirname(cpp_fd.name), filename))
+
+    [js_h_path, js_cpp_path, rust_path] = args[-3:]
+    args = args[:-3]
+    all_objs, options = parse(args)
+
+    cpp.output_cpp(all_objs, cpp_fd, options)
 
     with open_output(js_h_path) as js_fd:
         with open_output(js_cpp_path) as js_cpp_fd:
             js.output_js(all_objs, js_fd, js_cpp_fd, options)
 
-    # We only need this info if we're dealing with pings.
     ping_names_by_app_id = {}
-    if "pings" in all_objs:
-        from os import path
+    from os import path
 
-        sys.path.append(path.join(path.dirname(__file__), path.pardir, path.pardir))
-        from metrics_index import pings_by_app_id
+    sys.path.append(path.join(path.dirname(__file__), path.pardir, path.pardir))
+    from metrics_index import pings_by_app_id
 
-        for app_id, ping_yamls in pings_by_app_id.items():
-            input_files = [Path(path.join(topsrcdir, x)) for x in ping_yamls]
-            ping_objs, _ = parse_with_options(input_files, options)
-            ping_names_by_app_id[app_id] = sorted(ping_objs["pings"].keys())
+    for app_id, ping_yamls in pings_by_app_id.items():
+        input_files = [Path(path.join(topsrcdir, x)) for x in ping_yamls]
+        ping_objs, _ = parse_with_options(input_files, options)
+        ping_names_by_app_id[app_id] = sorted(ping_objs["pings"].keys())
 
     with open_output(rust_path) as rust_fd:
         rust.output_rust(all_objs, rust_fd, ping_names_by_app_id, options)
