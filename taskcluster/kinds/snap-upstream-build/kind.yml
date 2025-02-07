@@ -150,44 +150,6 @@ tasks:
         treeherder:
             platform: linux64-snap-amd64-stable/debug
 
-    amd64-esr/opt:
-        description: Build Firefox ESR as a Snap using upstream definition
-        attributes:
-            build_platform: linux64-snap-upstream-esr
-            build_type: opt
-        index:
-            product: firefox
-            job-name: amd64-esr
-            type: generic
-        worker:
-            docker-image: {in-tree: snap-build-core22}
-            max-run-time: 9000
-        run:
-            using: run-task
-            command: >-
-              ./run.sh esr amd64
-        treeherder:
-            platform: linux64-snap-amd64-esr/opt
-
-    amd64-esr/debug:
-        description: Build Firefox ESR (debug) as a Snap using upstream definition
-        attributes:
-            build_platform: linux64-snap-upstream-esr
-            build_type: debug
-        index:
-            product: firefox
-            job-name: amd64-esr-debug
-            type: generic
-        worker:
-            docker-image: {in-tree: snap-build-core22}
-            max-run-time: 7200
-        run:
-            using: run-task
-            command: >-
-              ./run.sh esr amd64 --debug
-        treeherder:
-            platform: linux64-snap-amd64-esr/debug
-
     amd64-esr128/opt:
         description: Build Firefox ESR 128 as a Snap using upstream definition
         attributes:
@@ -203,7 +165,7 @@ tasks:
         run:
             using: run-task
             command: >-
-              ./run.sh esr-128
+              ./run.sh esr-128 amd64
         treeherder:
             platform: linux64-snap-amd64-esr128/opt
 
@@ -222,7 +184,7 @@ tasks:
         run:
             using: run-task
             command: >-
-              ./run.sh esr-128 1
+              ./run.sh esr-128 amd64 --debug
         treeherder:
             platform: linux64-snap-amd64-esr128/debug
 
