@@ -272,14 +272,13 @@ document.addEventListener(
         case "viewGenaiChatSidebarKb": {
           const pref = "browser.ml.chat.enabled";
           const enabled = Services.prefs.getBoolPref(pref);
-          if (!enabled) {
-            Services.prefs.setBoolPref(pref, true);
-          }
           Glean.genaiChatbot.keyboardShortcut.record({
             enabled,
             sidebar: SidebarController.currentID,
           });
-          SidebarController.toggle("viewGenaiChatSidebar");
+          if (enabled) {
+            SidebarController.toggle("viewGenaiChatSidebar");
+          }
           break;
         }
         case "toggleSidebarKb":
