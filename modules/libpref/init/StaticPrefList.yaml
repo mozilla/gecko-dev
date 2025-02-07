@@ -244,7 +244,7 @@
 
 - name: accessibility.ARIAElementReflection.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Whether to enable all accessibility cache domains on startup.

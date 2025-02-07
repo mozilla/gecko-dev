@@ -15,9 +15,6 @@ support-files = [
   "!/accessible/tests/mochitest/letters.gif",
   "!/accessible/tests/mochitest/moz.png",
 ]
-prefs = [
-  "accessibility.ARIAElementReflection.enabled=true"
-]
 
 ["browser_aria_activedescendant.js"]
 
