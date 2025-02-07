@@ -73,6 +73,8 @@ rtc_library("rtc_p2p") {
     ":p2p_transport_channel",
     ":p2p_transport_channel_ice_field_trials",
     ":packet_transport_internal",
+    ":port",
+    ":port_allocator",
     ":port_interface",
     ":pseudo_tcp",
     ":regathering_controller",
@@ -1006,8 +1008,11 @@ if (rtc_include_tests) {
     visibility = [ "*" ]
     sources = [ "base/fake_ice_transport.h" ]
     deps = [
+      ":candidate_pair_interface",
+      ":connection",
+      ":connection_info",
       ":ice_transport_internal",
-      ":rtc_p2p",
+      ":port",
       ":transport_description",
       "../api:candidate",
       "../api:ice_transport_interface",

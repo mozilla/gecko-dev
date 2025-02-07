@@ -74,7 +74,6 @@ rtc_library("media_quality_test_params") {
     "../../../api/video_codecs:video_codecs_api",
     "../../../p2p:connection",
     "../../../p2p:port_allocator",
-    "../../../p2p:rtc_p2p",
     "../../../rtc_base:checks",
     "../../../rtc_base:network",
     "../../../rtc_base:rtc_certificate_generator",

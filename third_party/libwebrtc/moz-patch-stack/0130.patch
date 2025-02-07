@@ -121,7 +121,7 @@ index d61a507f9f..4f00955d5e 100644
    deps = [
      "net/dcsctp/public:factory",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 388ec39994..2cd1483fc4 100644
+index 5188fab1f0..433169a48d 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -369,7 +369,7 @@ index a0ddf777db..cf15513e18 100644
      }
    }
 diff --git a/examples/BUILD.gn b/examples/BUILD.gn
-index aeef257ecf..59ffdb0b1d 100644
+index 3c95783dfc..344bf3da95 100644
 --- a/examples/BUILD.gn
 +++ b/examples/BUILD.gn
 @@ -9,15 +9,15 @@
@@ -402,7 +402,7 @@ index aeef257ecf..59ffdb0b1d 100644
            "//third_party/ocmock",
          ]
        }
-@@ -742,7 +742,7 @@ if (is_linux || is_chromeos || is_win) {
+@@ -741,7 +741,7 @@ if (is_linux || is_chromeos || is_win) {
          "peerconnection/client/main_wnd.cc",
          "peerconnection/client/main_wnd.h",
        ]
@@ -470,7 +470,7 @@ index d91a446629..3c18ef1841 100644
  
  group("logging") {
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 5dce3e2689..68cf6a0557 100644
+index 58e299c92c..7143a69637 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -6,7 +6,7 @@
@@ -644,7 +644,7 @@ index 3053b829f2..703e561c85 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index 9bedae8e5c..76ace595fe 100644
+index 12ca1bf189..7a2d01350b 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -30,8 +30,8 @@
@@ -719,10 +719,10 @@ index 3ca6994c81..f248ce40da 100644
  
  rtc_source_set("arch") {
 diff --git a/rtc_tools/network_tester/BUILD.gn b/rtc_tools/network_tester/BUILD.gn
-index 995c3d081a..ec6a7b26b9 100644
+index f8ce64e215..56d0b1e6c2 100644
 --- a/rtc_tools/network_tester/BUILD.gn
 +++ b/rtc_tools/network_tester/BUILD.gn
-@@ -175,8 +175,8 @@ if (is_android) {
+@@ -174,8 +174,8 @@ if (is_android) {
        "../../rtc_base:threading",
      ]
  
@@ -812,7 +812,7 @@ index edfcb94bd2..5f368847f3 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index e8957f1083..f253c3466c 100644
+index 65e460a303..569f150c86 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@

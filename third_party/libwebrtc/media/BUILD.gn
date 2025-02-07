@@ -734,7 +734,6 @@ rtc_source_set("rtc_data_sctp_transport_internal") {
     "../api:rtc_error",
     "../api/transport:datagram_transport_interface",
     "../p2p:packet_transport_internal",
-    "../p2p:rtc_p2p",
     "../rtc_base:copy_on_write_buffer",
     "../rtc_base:threading",
   ]
@@ -761,7 +760,6 @@ if (rtc_build_dcsctp) {
       "../net/dcsctp/public:utils",
       "../net/dcsctp/timer:task_queue_timeout",
       "../p2p:packet_transport_internal",
-      "../p2p:rtc_p2p",
       "../rtc_base:checks",
       "../rtc_base:copy_on_write_buffer",
       "../rtc_base:event_tracer",
@@ -872,7 +870,6 @@ if (rtc_include_tests) {
       "../modules/video_coding:video_codec_interface",
       "../modules/video_coding:video_coding_utility",
       "../modules/video_coding/svc:scalability_mode_util",
-      "../p2p:rtc_p2p",
       "../rtc_base:buffer",
       "../rtc_base:byte_order",
       "../rtc_base:checks",

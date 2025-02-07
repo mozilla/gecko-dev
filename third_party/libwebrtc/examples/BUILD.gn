@@ -711,7 +711,6 @@ if (is_linux || is_chromeos || is_win) {
       "../media:video_common",
       "../p2p:connection",
       "../p2p:port_allocator",
-      "../p2p:rtc_p2p",
       "../pc:video_track_source",
       "../rtc_base:async_dns_resolver",
       "../rtc_base:buffer",
@@ -824,7 +823,6 @@ if (is_linux || is_chromeos || is_win) {
       "../p2p:basic_packet_socket_factory",
       "../p2p:p2p_server_utils",
       "../p2p:port_interface",
-      "../p2p:rtc_p2p",
       "../pc:rtc_pc",
       "../rtc_base:async_udp_socket",
       "../rtc_base:ip_address",
@@ -839,7 +837,6 @@ if (is_linux || is_chromeos || is_win) {
     sources = [ "stunserver/stunserver_main.cc" ]
     deps = [
       "../p2p:p2p_server_utils",
-      "../p2p:rtc_p2p",
       "../pc:rtc_pc",
       "../rtc_base:async_udp_socket",
       "../rtc_base:socket_address",
@@ -879,7 +876,6 @@ if (!build_with_chromium) {
     deps = [
       "../p2p:basic_packet_socket_factory",
       "../p2p:libstunprober",
-      "../p2p:rtc_p2p",
       "../rtc_base:checks",
       "../rtc_base:crypto_random",
       "../rtc_base:logging",
