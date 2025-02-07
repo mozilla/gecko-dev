@@ -278,7 +278,7 @@ a11y::AccType BRFrame::AccessibleType() {
   // must not work well with such layout.  So, this should be okay for the
   // web apps in the wild.
   nsIFrame* const parentFrame = GetParent();
-  if (!parentFrame) {
+  if (HasAnyStateBits(NS_FRAME_OUT_OF_FLOW) || !parentFrame) {
     return a11y::eHTMLBRType;
   }
   nsIFrame* const currentBlock =
@@ -296,6 +296,7 @@ a11y::AccType BRFrame::AccessibleType() {
     if (precedingContentFrame->IsBlockFrameOrSubclass()) {
       break;  // Reached a child block.
     }
+    // FIXME: Oh, this should be a11y::eNoType because it's a meaningless <br>.
     return a11y::eHTMLBRType;
   }
   return a11y::eHTMLBRType;

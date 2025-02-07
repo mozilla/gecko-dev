@@ -173,6 +173,21 @@ addAccessibleTask(
   { chrome: true, topLevel: false /* bug 1834129 */ }
 );
 
+addAccessibleTask(
+  `<style>
+  br {
+    position: fixed;
+  }
+</style>
+<div id="input" contenteditable="true" role="textbox"></div>`,
+  async function (browser, docAcc) {
+    document.execCommand("insertText", false, "a");
+    document.execCommand("delete");
+    await testEditable(browser, findAccessibleChildByID(docAcc, "input"));
+  },
+  { chrome: true, topLevel: false /* bug 1834129 */ }
+);
+
 if (
   Services.prefs.getBoolPref(
     "dom.element.contenteditable.plaintext-only.enabled"
