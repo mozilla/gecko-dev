@@ -42,7 +42,7 @@ headless:
 a11y-checks:
     description: "{description} with accessibility checks enabled"
     component: "Core::Disability Access APIs"
-    expiration: "2025-03-01"
+    expiration: "2025-09-01"
     suffix: "a11y-checks"
     mozinfo: "a11y_checks"
     replace:
