@@ -971,6 +971,11 @@ export class TelemetryFeed {
         this.handleCardSectionUserEvent(action);
         break;
       }
+      case at.INLINE_SELECTION_CLICK:
+      // Intentional fall-through
+      case at.INLINE_SELECTION_IMPRESSION:
+        this.handleInlineSelectionUserEvent(action);
+        break;
     }
   }
 
@@ -1021,6 +1026,31 @@ export class TelemetryFeed {
           });
           break;
         default:
+          break;
+      }
+    }
+  }
+
+  handleInlineSelectionUserEvent(action) {
+    const session = this.sessions.get(au.getPortIdOfSender(action));
+    if (session) {
+      switch (action.type) {
+        case "INLINE_SELECTION_CLICK": {
+          const { topic, topic_position, position, is_followed } = action.data;
+          Glean.newtab.inlineSelectionClick.record({
+            newtab_visit_id: session.session_id,
+            topic,
+            topic_position,
+            position,
+            is_followed,
+          });
+          break;
+        }
+        case "INLINE_SELECTION_IMPRESSION":
+          Glean.newtab.inlineSelectionImpression.record({
+            newtab_visit_id: session.session_id,
+            position: action.data.position,
+          });
           break;
       }
     }
