@@ -65,6 +65,8 @@ SPHINX_TREES["code-coverage"] = "code-coverage/docs"
 
 SPHINX_TREES["profiler"] = "profiler/docs"
 
+SPHINX_TREES["update-verify"] = "update-verify/docs"
+
 with Files("tryselect/docs/**"):
     SCHEDULES.exclusive = ["docs"]
 
