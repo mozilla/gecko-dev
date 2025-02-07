@@ -31,7 +31,8 @@ LOCAL_INCLUDES += [
 ]
 
 UNIFIED_SOURCES += [
-    "/third_party/libwebrtc/rtc_base/event_tracer.cc"
+    "/third_party/libwebrtc/rtc_base/event_tracer.cc",
+    "/third_party/libwebrtc/rtc_base/trace_categories.cc"
 ]
 
 if not CONFIG["MOZ_DEBUG"]:
