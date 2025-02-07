@@ -292,6 +292,10 @@ class ChromeUtils {
   static void UnregisterProcessActor(const GlobalObject& aGlobal,
                                      const nsACString& aName);
 
+  static already_AddRefed<Promise> EnsureHeadlessContentProcess(
+      const GlobalObject& aGlobal, const nsACString& aRemoteType,
+      ErrorResult& aRv);
+
   static bool IsClassifierBlockingErrorCode(GlobalObject& aGlobal,
                                             uint32_t aError);
 
