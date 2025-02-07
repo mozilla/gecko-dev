@@ -705,6 +705,7 @@ class UpdateVerifyConfigCreator(BaseScript):
                 fromVersion,
                 self.config["platform"],
                 locale="%locale%",
+                last_linux_bz2_version=self.config.get("last_linux_bz2_version"),
             )
             from_path = "{}/{}".format(release_dir, path_)
 
@@ -716,6 +717,7 @@ class UpdateVerifyConfigCreator(BaseScript):
                     fromVersion,
                     self.config["updater_platform"],
                     locale="%locale%",
+                    last_linux_bz2_version=self.config.get("last_linux_bz2_version"),
                 ),
             )
 
