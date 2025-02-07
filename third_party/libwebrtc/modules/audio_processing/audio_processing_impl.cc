@@ -431,7 +431,8 @@ AudioProcessingImpl::AudioProcessingImpl(
     std::unique_ptr<EchoControlFactory> echo_control_factory,
     rtc::scoped_refptr<EchoDetector> echo_detector,
     std::unique_ptr<CustomAudioAnalyzer> capture_analyzer)
-    : data_dumper_(new ApmDataDumper(instance_count_.fetch_add(1) + 1)),
+    : env_(env),
+      data_dumper_(new ApmDataDumper(instance_count_.fetch_add(1) + 1)),
       use_setup_specific_default_aec3_config_(
           UseSetupSpecificDefaultAec3Congfig(env.field_trials())),
       capture_runtime_settings_(RuntimeSettingQueueSize()),
@@ -2038,7 +2039,7 @@ void AudioProcessingImpl::InitializeGainController2() {
   const InputVolumeController::Config input_volume_controller_config =
       InputVolumeController::Config{};
   submodules_.gain_controller2 = std::make_unique<GainController2>(
-      config_.gain_controller2, input_volume_controller_config,
+      env_, config_.gain_controller2, input_volume_controller_config,
       proc_fullband_sample_rate_hz(), num_output_channels(),
       /*use_internal_vad=*/true);
   submodules_.gain_controller2->SetCaptureOutputUsed(
