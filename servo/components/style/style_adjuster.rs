@@ -886,7 +886,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn adjust_for_marker_pseudo(&mut self) {
         use crate::values::computed::counters::Content;
-        use crate::values::computed::font::{FontFamily, FontSynthesis};
+        use crate::values::computed::font::{FontFamily, FontSynthesis, FontSynthesisStyle};
         use crate::values::computed::text::{LetterSpacing, WordSpacing};
 
         let is_legacy_marker = self.style.pseudo.map_or(false, |p| p.is_marker()) &&
@@ -912,7 +912,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             if !flags.contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_SYNTHESIS_STYLE) {
                 self.style
                     .mutate_font()
-                    .set_font_synthesis_style(FontSynthesis::None);
+                    .set_font_synthesis_style(FontSynthesisStyle::None);
             }
         }
         if !flags.contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_LETTER_SPACING) {

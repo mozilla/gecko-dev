@@ -82,8 +82,8 @@ struct nsFont final {
   // Synthesis setting, controls use of fake bolding/italics/small-caps
   mozilla::StyleFontSynthesis synthesisWeight =
       mozilla::StyleFontSynthesis::Auto;
-  mozilla::StyleFontSynthesis synthesisStyle =
-      mozilla::StyleFontSynthesis::Auto;
+  mozilla::StyleFontSynthesisStyle synthesisStyle =
+      mozilla::StyleFontSynthesisStyle::Auto;
   mozilla::StyleFontSynthesis synthesisSmallCaps =
       mozilla::StyleFontSynthesis::Auto;
   mozilla::StyleFontSynthesis synthesisPosition =

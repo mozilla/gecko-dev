@@ -1508,7 +1508,7 @@ impl Parse for FontLanguageOverride {
     }
 }
 
-/// A value for any of the font-synthesis-{weight,style,small-caps} properties.
+/// A value for any of the font-synthesis-{weight,small-caps,position} properties.
 #[repr(u8)]
 #[derive(
     Clone,
@@ -1529,6 +1529,31 @@ pub enum FontSynthesis {
     Auto,
     /// Do not attempt to synthesis this style attribute.
     None,
+}
+
+/// A value for the font-synthesis-style property.
+#[repr(u8)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub enum FontSynthesisStyle {
+    /// This attribute may be synthesized if not supported by a face.
+    Auto,
+    /// Do not attempt to synthesis this style attribute.
+    None,
+    /// Allow synthesis for oblique, but not for italic.
+    ObliqueOnly,
 }
 
 #[derive(

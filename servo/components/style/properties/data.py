@@ -554,6 +554,7 @@ class Longhand(Property):
                 "FontStretch",
                 "FontStyle",
                 "FontSynthesis",
+                "FontSynthesisStyle",
                 "FontVariantEastAsian",
                 "FontVariantLigatures",
                 "FontVariantNumeric",

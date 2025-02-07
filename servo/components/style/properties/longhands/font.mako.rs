@@ -98,10 +98,10 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "font-synthesis-style",
-    "FontSynthesis",
+    "FontSynthesisStyle",
     engines="gecko",
-    initial_value="computed::FontSynthesis::Auto",
-    initial_specified_value="specified::FontSynthesis::Auto",
+    initial_value="computed::FontSynthesisStyle::Auto",
+    initial_specified_value="specified::FontSynthesisStyle::Auto",
     gecko_ffi_name="mFont.synthesisStyle",
     animation_type="discrete",
     spec="https://drafts.csswg.org/css-fonts-4/#font-synthesis-style",

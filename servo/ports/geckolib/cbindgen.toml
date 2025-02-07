@@ -140,6 +140,7 @@ include = [
   "FontFaceSourceTechFlags",
   "FontLanguageOverride",
   "FontSynthesis",
+  "FontSynthesisStyle",
   "GenericFontFamily",
   "FontFamily",
   "FontFamilyNameSyntax",
