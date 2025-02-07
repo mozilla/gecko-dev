@@ -318,7 +318,7 @@ class MediaSessionDescriptionFactory {
   // This object may or may not be owned by this class.
   webrtc::AlwaysValidPointer<rtc::UniqueRandomIdGenerator> const
       ssrc_generator_;
-  bool enable_encrypted_rtp_header_extensions_ = false;
+  bool enable_encrypted_rtp_header_extensions_ = true;
   const TransportDescriptionFactory* transport_desc_factory_;
   // Payoad type tracker interface. Must live longer than this object.
   webrtc::PayloadTypeSuggester* pt_suggester_;

@@ -53,9 +53,10 @@ struct RTC_EXPORT CryptoOptions {
     // purposes.
     bool enable_aes128_sha1_80_crypto_cipher = true;
 
-    // If set to true, encrypted RTP header extensions as defined in RFC 6904
-    // will be negotiated. They will only be used if both peers support them.
-    bool enable_encrypted_rtp_header_extensions = false;
+    // This feature enables encrypting RTP header extensions using RFC 6904, if
+    // requested. For this to work the Chromium field trial
+    // `kWebRtcEncryptedRtpHeaderExtensions` must be enabled.
+    bool enable_encrypted_rtp_header_extensions = true;
   } srtp;
 
   // Options to be used when the FrameEncryptor / FrameDecryptor APIs are used.
