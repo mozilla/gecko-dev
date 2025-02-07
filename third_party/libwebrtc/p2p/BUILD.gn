@@ -61,6 +61,7 @@ rtc_library("rtc_p2p") {
     ":candidate_pair_interface",
     ":connection",
     ":connection_info",
+    ":dtls_stun_piggyback_controller",
     ":dtls_transport",
     ":dtls_transport_internal",
     ":ice_agent_interface",
@@ -797,6 +798,28 @@ rtc_library("dtls_utils") {
   ]
 }
 
+rtc_library("dtls_stun_piggyback_controller") {
+  sources = [
+    "dtls/dtls_stun_piggyback_controller.cc",
+    "dtls/dtls_stun_piggyback_controller.h",
+  ]
+  deps = [
+    ":dtls_utils",
+    "../api:array_view",
+    "../api:sequence_checker",
+    "../api/transport:stun_types",
+    "../rtc_base:buffer",
+    "../rtc_base:byte_buffer",
+    "../rtc_base:checks",
+    "../rtc_base:logging",
+    "../rtc_base:macromagic",
+    "../rtc_base:stringutils",
+    "../rtc_base/system:no_unique_address",
+    "//third_party/abseil-cpp/absl/functional:any_invocable",
+    "//third_party/abseil-cpp/absl/strings:string_view",
+  ]
+}
+
 rtc_library("stun_port") {
   sources = [
     "base/stun_port.cc",
@@ -1142,6 +1165,7 @@ if (rtc_include_tests) {
       "base/turn_server_unittest.cc",
       "base/wrapping_active_ice_controller_unittest.cc",
       "client/basic_port_allocator_unittest.cc",
+      "dtls/dtls_stun_piggyback_controller_unittest.cc",
       "dtls/dtls_transport_unittest.cc",
       "dtls/dtls_utils_unittest.cc",
     ]
@@ -1153,6 +1177,7 @@ if (rtc_include_tests) {
       ":basic_packet_socket_factory",
       ":basic_port_allocator",
       ":connection",
+      ":dtls_stun_piggyback_controller",
       ":dtls_transport",
       ":dtls_transport_internal",
       ":dtls_utils",
