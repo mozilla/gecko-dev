@@ -120,6 +120,10 @@ void SSLStreamAdapter::EnableTimeCallbackForTesting() {
   OpenSSLStreamAdapter::EnableTimeCallbackForTesting();
 }
 
+SSLProtocolVersion SSLStreamAdapter::GetMaxSupportedDTLSProtocolVersion() {
+  return OpenSSLStreamAdapter::GetMaxSupportedDTLSProtocolVersion();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 }  // namespace rtc

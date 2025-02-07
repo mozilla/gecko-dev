@@ -801,24 +801,8 @@ void DtlsTransport::MaybeStartDtls() {
 
 // Called from OnReadPacket when a DTLS packet is received.
 bool DtlsTransport::HandleDtlsPacket(rtc::ArrayView<const uint8_t> payload) {
-  // Sanity check we're not passing junk that
-  // just looks like DTLS.
-  const uint8_t* tmp_data = payload.data();
-  size_t tmp_size = payload.size();
-  while (tmp_size > 0) {
-    if (tmp_size < kDtlsRecordHeaderLen)
-      return false;  // Too short for the header
-
-    size_t record_len = (tmp_data[11] << 8) | (tmp_data[12]);
-    if ((record_len + kDtlsRecordHeaderLen) > tmp_size)
-      return false;  // Body too short
-
-    tmp_data += record_len + kDtlsRecordHeaderLen;
-    tmp_size -= record_len + kDtlsRecordHeaderLen;
-  }
-
-  // Looks good. Pass to the SIC which ends up being passed to
-  // the DTLS stack.
+  // Pass to the StreamInterfaceChannel which ends up being passed to the DTLS
+  // stack.
   return downward_->OnPacketReceived(
       reinterpret_cast<const char*>(payload.data()), payload.size());
 }

@@ -730,6 +730,16 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     connection_change_callback_ = std::move(func);
   }
 
+  std::optional<int> tls_version() {
+    return network_thread_->BlockingCall([&] {
+      return pc()
+          ->GetSctpTransport()
+          ->dtls_transport()
+          ->Information()
+          .tls_version();
+    });
+  }
+
  private:
   // Constructor used by friend class PeerConnectionIntegrationBaseTest.
   explicit PeerConnectionIntegrationWrapper(const std::string& debug_name)
@@ -1098,6 +1108,8 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
 
   std::unique_ptr<rtc::FakeNetworkManager> fake_network_manager_;
   std::unique_ptr<rtc::BasicPacketSocketFactory> socket_factory_;
+  rtc::Thread* network_thread_;
+
   // Reference to the mDNS responder owned by `fake_network_manager_` after set.
   FakeMdnsResponder* mdns_responder_ = nullptr;
 

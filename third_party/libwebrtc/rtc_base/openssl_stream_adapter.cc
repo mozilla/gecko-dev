@@ -980,10 +980,11 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
     return nullptr;
   }
 
-  SSL_CTX_set_min_proto_version(
-      ctx, ssl_mode_ == SSL_MODE_DTLS ? DTLS1_2_VERSION : TLS1_2_VERSION);
-  SSL_CTX_set_max_proto_version(ctx,
-                                GetMaxVersion(ssl_mode_, ssl_max_version_));
+  auto min_version =
+      ssl_mode_ == SSL_MODE_DTLS ? DTLS1_2_VERSION : TLS1_2_VERSION;
+  auto max_version = GetMaxVersion(ssl_mode_, ssl_max_version_);
+  SSL_CTX_set_min_proto_version(ctx, min_version);
+  SSL_CTX_set_max_proto_version(ctx, max_version);
 
 #ifdef OPENSSL_IS_BORINGSSL
   // SSL_CTX_set_current_time_cb is only supported in BoringSSL.
@@ -1188,6 +1189,21 @@ static const cipher_list OK_ECDSA_ciphers[] = {
 };
 #undef CDEF
 
+static const cipher_list OK_DTLS13_ciphers[] = {
+#ifdef TLS1_3_CK_AES_128_GCM_SHA256  // BoringSSL TLS 1.3
+    {static_cast<uint16_t>(TLS1_3_CK_AES_128_GCM_SHA256 & 0xffff),
+     "TLS_AES_128_GCM_SHA256"},
+#endif
+#ifdef TLS1_3_CK_AES_256_GCM_SHA256  // BoringSSL TLS 1.3
+    {static_cast<uint16_t>(TLS1_3_CK_AES_256_GCM_SHA256 & 0xffff),
+     "TLS_AES_256_GCM_SHA256"},
+#endif
+#ifdef TLS1_3_CK_CHACHA20_POLY1305_SHA256  // BoringSSL TLS 1.3
+    {static_cast<uint16_t>(TLS1_3_CK_CHACHA20_POLY1305_SHA256 & 0xffff),
+     "TLS_CHACHA20_POLY1305_SHA256"},
+#endif
+};
+
 bool OpenSSLStreamAdapter::IsAcceptableCipher(int cipher, KeyType key_type) {
   if (key_type == KT_RSA) {
     for (const cipher_list& c : OK_RSA_ciphers) {
@@ -1202,6 +1218,12 @@ bool OpenSSLStreamAdapter::IsAcceptableCipher(int cipher, KeyType key_type) {
       if (cipher == c.cipher) {
         return true;
       }
+    }
+  }
+
+  for (const cipher_list& c : OK_DTLS13_ciphers) {
+    if (cipher == c.cipher) {
+      return true;
     }
   }
 
@@ -1226,12 +1248,26 @@ bool OpenSSLStreamAdapter::IsAcceptableCipher(absl::string_view cipher,
     }
   }
 
+  for (const cipher_list& c : OK_DTLS13_ciphers) {
+    if (cipher == c.cipher_str) {
+      return true;
+    }
+  }
+
   return false;
 }
 
 void OpenSSLStreamAdapter::EnableTimeCallbackForTesting() {
 #ifdef OPENSSL_IS_BORINGSSL
   g_use_time_callback_for_testing = true;
+#endif
+}
+
+SSLProtocolVersion OpenSSLStreamAdapter::GetMaxSupportedDTLSProtocolVersion() {
+#if defined(OPENSSL_IS_BORINGSSL) && defined(DTLS1_3_VERSION)
+  return SSL_PROTOCOL_DTLS_13;
+#else
+  return SSL_PROTOCOL_DTLS_12;
 #endif
 }
 

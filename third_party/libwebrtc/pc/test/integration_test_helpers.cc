@@ -235,6 +235,7 @@ bool PeerConnectionIntegrationWrapper::Init(
   fake_network_manager_->AddInterface(kDefaultLocalAddress);
 
   socket_factory_.reset(new rtc::BasicPacketSocketFactory(socket_server));
+  network_thread_ = network_thread;
 
   std::unique_ptr<cricket::PortAllocator> port_allocator(
       new cricket::BasicPortAllocator(fake_network_manager_.get(),

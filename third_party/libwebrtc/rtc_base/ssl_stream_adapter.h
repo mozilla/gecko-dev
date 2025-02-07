@@ -97,6 +97,12 @@ enum SSLProtocolVersion {
   SSL_PROTOCOL_DTLS_12 = SSL_PROTOCOL_TLS_12,
   SSL_PROTOCOL_DTLS_13 = SSL_PROTOCOL_TLS_13,
 };
+
+// Versions returned from BoringSSL.
+const uint16_t kDtls10VersionBytes = 0xfeff;
+const uint16_t kDtls12VersionBytes = 0xfefd;
+const uint16_t kDtls13VersionBytes = 0xfefc;
+
 enum class SSLPeerCertificateDigestError {
   NONE,
   UNKNOWN_ALGORITHM,
@@ -239,6 +245,9 @@ class SSLStreamAdapter : public StreamInterface {
   // Use our timeutils.h source of timing in BoringSSL, allowing us to test
   // using a fake clock.
   static void EnableTimeCallbackForTesting();
+
+  // Return max DTLS SSLProtocolVersion supported by implementation.
+  static SSLProtocolVersion GetMaxSupportedDTLSProtocolVersion();
 
   // Deprecated. Do not use this API outside of testing.
   // Do not set this to false outside of testing.

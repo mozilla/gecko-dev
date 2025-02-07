@@ -17,6 +17,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
@@ -29,6 +30,7 @@
 #include "p2p/base/packet_transport_internal.h"
 #include "p2p/base/transport_description.h"
 #include "p2p/dtls/dtls_transport_internal.h"
+#include "p2p/dtls/dtls_utils.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/byte_order.h"
 #include "rtc_base/fake_clock.h"
@@ -41,6 +43,7 @@
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
+#include "test/field_trial.h"
 #include "test/gtest.h"
 
 #define MAYBE_SKIP_TEST(feature)                                  \
@@ -56,8 +59,10 @@ static const size_t kPacketHeaderLen = 12;
 static const int kFakePacketId = 0x1234;
 static const int kTimeout = 10000;
 
+const uint8_t kRtpLeadByte = 0x80;
+
 static bool IsRtpLeadByte(uint8_t b) {
-  return ((b & 0xC0) == 0x80);
+  return b == kRtpLeadByte;
 }
 
 // `modify_digest` is used to set modified fingerprints that are meant to fail
@@ -100,7 +105,8 @@ class DtlsTestClient : public sigslot::has_slots<> {
     dtls_transport_ = nullptr;
     fake_ice_transport_ = nullptr;
 
-    fake_ice_transport_.reset(new FakeIceTransport("fake", 0));
+    fake_ice_transport_.reset(
+        new FakeIceTransport(absl::StrCat("fake-", name_), 0));
     fake_ice_transport_->SetAsync(true);
     fake_ice_transport_->SetAsyncDelay(async_delay_ms);
     fake_ice_transport_->SetIceRole(role);
@@ -148,6 +154,14 @@ class DtlsTestClient : public sigslot::has_slots<> {
     return received_dtls_server_hellos_;
   }
 
+  std::optional<int> GetVersionBytes() {
+    int value;
+    if (dtls_transport_->GetSslVersionBytes(&value)) {
+      return value;
+    }
+    return std::nullopt;
+  }
+
   void CheckRole(rtc::SSLRole role) {
     if (role == rtc::SSL_CLIENT) {
       ASSERT_EQ(0, received_dtls_client_hellos_);
@@ -188,7 +202,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
       // Fill the packet with a known value and a sequence number to check
       // against, and make sure that it doesn't look like DTLS.
       memset(packet.get(), sent & 0xff, size);
-      packet[0] = (srtp) ? 0x80 : 0x00;
+      packet[0] = (srtp) ? kRtpLeadByte : 0x00;
       rtc::SetBE32(packet.get() + kPacketNumOffset,
                    static_cast<uint32_t>(sent));
 
@@ -257,9 +271,15 @@ class DtlsTestClient : public sigslot::has_slots<> {
   }
 
   // Transport callbacks
+  void set_writable_callback(absl::AnyInvocable<void()> func) {
+    writable_func_ = std::move(func);
+  }
   void OnTransportWritableState(rtc::PacketTransportInternal* transport) {
     RTC_LOG(LS_INFO) << name_ << ": Transport '" << transport->transport_name()
                      << "' is writable";
+    if (writable_func_) {
+      writable_func_();
+    }
   }
 
   void OnTransportReadPacket(rtc::PacketTransportInternal* /* transport */,
@@ -297,20 +317,19 @@ class DtlsTestClient : public sigslot::has_slots<> {
     // Look at the handshake packets to see what role we played.
     // Check that non-handshake packets are DTLS data or SRTP bypass.
     const uint8_t* data = packet.payload().data();
-    size_t size = packet.payload().size();
-    if (data[0] == 22 && size > 17) {
-      if (data[13] == 1) {
+    if (IsDtlsHandshakePacket(packet.payload())) {
+      if (IsDtlsClientHelloPacket(packet.payload())) {
         ++received_dtls_client_hellos_;
       } else if (data[13] == 2) {
         ++received_dtls_server_hellos_;
       }
-    } else if (dtls_transport_->IsDtlsActive() &&
-               !(data[0] >= 20 && data[0] <= 22)) {
-      ASSERT_TRUE(data[0] == 23 || IsRtpLeadByte(data[0]));
-      if (data[0] == 23) {
-        ASSERT_TRUE(VerifyEncryptedPacket(data, size));
-      } else if (IsRtpLeadByte(data[0])) {
+    } else if (data[0] == 26) {
+      RTC_LOG(LS_INFO) << "Found DTLS ACK";
+    } else if (dtls_transport_->IsDtlsActive()) {
+      if (IsRtpLeadByte(data[0])) {
         ASSERT_TRUE(VerifyPacket(packet.payload(), NULL));
+      } else if (packet_size_ && packet.payload().size() >= packet_size_) {
+        ASSERT_TRUE(VerifyEncryptedPacket(data, packet.payload().size()));
       }
     }
   }
@@ -326,6 +345,7 @@ class DtlsTestClient : public sigslot::has_slots<> {
   int received_dtls_client_hellos_ = 0;
   int received_dtls_server_hellos_ = 0;
   rtc::SentPacket sent_packet_;
+  absl::AnyInvocable<void()> writable_func_;
 };
 
 // Base class for DtlsTransportTest and DtlsEventOrderingTest, which
@@ -493,6 +513,18 @@ class DtlsTransportVersionTest
           ::testing::tuple<rtc::SSLProtocolVersion, rtc::SSLProtocolVersion>> {
 };
 
+// Will test every combination of 1.0/1.2/1.3 on the client and server.
+// DTLS will negotiate an effective version (the min of client & sewrver).
+INSTANTIATE_TEST_SUITE_P(
+    DtlsTransportVersionTest,
+    DtlsTransportVersionTest,
+    ::testing::Combine(::testing::Values(rtc::SSL_PROTOCOL_DTLS_10,
+                                         rtc::SSL_PROTOCOL_DTLS_12,
+                                         rtc::SSL_PROTOCOL_DTLS_13),
+                       ::testing::Values(rtc::SSL_PROTOCOL_DTLS_10,
+                                         rtc::SSL_PROTOCOL_DTLS_12,
+                                         rtc::SSL_PROTOCOL_DTLS_13)));
+
 // Test that an acceptable cipher suite is negotiated when different versions
 // of DTLS are supported. Note that it's IsAcceptableCipher that does the actual
 // work.
@@ -503,14 +535,156 @@ TEST_P(DtlsTransportVersionTest, TestCipherSuiteNegotiation) {
   ASSERT_TRUE(Connect());
 }
 
-// Will test every combination of 1.0/1.2 on the client and server.
-INSTANTIATE_TEST_SUITE_P(
-    TestCipherSuiteNegotiation,
-    DtlsTransportVersionTest,
-    ::testing::Combine(::testing::Values(rtc::SSL_PROTOCOL_DTLS_10,
-                                         rtc::SSL_PROTOCOL_DTLS_12),
-                       ::testing::Values(rtc::SSL_PROTOCOL_DTLS_10,
-                                         rtc::SSL_PROTOCOL_DTLS_12)));
+enum HandshakeTestEvent {
+  EV_CLIENT_SEND = 0,
+  EV_SERVER_SEND = 1,
+  EV_CLIENT_RECV = 2,
+  EV_SERVER_RECV = 3,
+  EV_CLIENT_WRITABLE = 4,
+  EV_SERVER_WRITABLE = 5,
+};
+
+static const std::vector<HandshakeTestEvent> dtls_12_handshake_events{
+    // Flight 1
+    EV_CLIENT_SEND,
+    EV_SERVER_RECV,
+    EV_SERVER_SEND,
+    EV_CLIENT_RECV,
+
+    // Flight 2
+    EV_CLIENT_SEND,
+    EV_SERVER_RECV,
+    EV_SERVER_SEND,
+    EV_SERVER_WRITABLE,
+    EV_CLIENT_RECV,
+    EV_CLIENT_WRITABLE,
+};
+
+static const std::vector<HandshakeTestEvent> dtls_13_handshake_events{
+    // Flight 1
+    EV_CLIENT_SEND,
+    EV_SERVER_RECV,
+    EV_SERVER_SEND,
+    EV_CLIENT_RECV,
+
+    // Flight 2
+    EV_CLIENT_SEND,
+    EV_CLIENT_WRITABLE,
+    EV_SERVER_RECV,
+    EV_SERVER_SEND,
+    EV_SERVER_WRITABLE,
+};
+
+static const struct {
+  int version_bytes;
+  const std::vector<HandshakeTestEvent>& events;
+} kEventsPerVersion[] = {
+    {rtc::kDtls12VersionBytes, dtls_12_handshake_events},
+    {rtc::kDtls13VersionBytes, dtls_13_handshake_events},
+};
+
+bool LogRecv(absl::string_view name,
+             const rtc::CopyOnWriteBuffer& packet,
+             uint64_t timestamp_ms) {
+  RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
+                   << ": ReceivePacket packet len=" << packet.size()
+                   << ", data[0]: " << static_cast<uint8_t>(packet.data()[0]);
+  return false;
+}
+
+bool LogSend(absl::string_view name,
+             uint64_t timestamp_ms,
+             bool drop,
+             const char* data,
+             size_t len) {
+  if (drop) {
+    RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
+                     << ": dropping packet len=" << len
+                     << ", data[0]: " << static_cast<uint8_t>(data[0]);
+  } else {
+    RTC_LOG(LS_INFO) << "time=" << timestamp_ms << " : " << name
+                     << ": SendPacket, len=" << len
+                     << ", data[0]: " << static_cast<uint8_t>(data[0]);
+  }
+  return drop;
+}
+
+TEST_P(DtlsTransportVersionTest, TestHandshakeFlights) {
+  // We can only change the retransmission schedule with a recently-added
+  // BoringSSL API. Skip the test if not built with BoringSSL.
+  MAYBE_SKIP_TEST(IsBoringSsl);
+
+  // Disable any forcing of Dtls1.3.
+  webrtc::test::ScopedFieldTrials trials("WebRTC-ForceDtls13/Off/");
+  PrepareDtls(rtc::KT_DEFAULT);
+  SetMaxProtocolVersions(::testing::get<0>(GetParam()),
+                         ::testing::get<1>(GetParam()));
+
+  Negotiate(/* client1_server= */ false);
+
+  std::vector<HandshakeTestEvent> events;
+
+  auto start_time_ns = fake_clock_.TimeNanos();
+  client1_.fake_ice_transport()->set_rtt_estimate(50, true);
+  client2_.fake_ice_transport()->set_rtt_estimate(50, true);
+
+  client1_.fake_ice_transport()->set_packet_recv_filter(
+      [&](auto packet, auto timestamp_us) {
+        events.push_back(EV_CLIENT_RECV);
+        return LogRecv("client", packet,
+                       (timestamp_us - start_time_ns / 1000) / 1000);
+      });
+  client2_.fake_ice_transport()->set_packet_recv_filter(
+      [&](auto packet, auto timestamp_us) {
+        events.push_back(EV_SERVER_RECV);
+        return LogRecv("server", packet,
+                       (timestamp_us - start_time_ns / 1000) / 1000);
+      });
+  client1_.set_writable_callback(
+      [&]() { events.push_back(EV_CLIENT_WRITABLE); });
+  client2_.set_writable_callback(
+      [&]() { events.push_back(EV_SERVER_WRITABLE); });
+
+  client1_.fake_ice_transport()->set_packet_send_filter(
+      [&](auto data, auto len, auto options, auto flags) {
+        events.push_back(EV_CLIENT_SEND);
+        bool drop = false;
+        auto diff_ms = (fake_clock_.TimeNanos() - start_time_ns) / 1000000;
+        return LogSend("client", diff_ms, drop, data, len);
+      });
+  client2_.fake_ice_transport()->set_packet_send_filter(
+      [&](auto data, auto len, auto options, auto flags) {
+        events.push_back(EV_SERVER_SEND);
+        bool drop = false;
+        auto diff_ms = (fake_clock_.TimeNanos() - start_time_ns) / 1000000;
+        return LogSend("server", diff_ms, drop, data, len);
+      });
+
+  EXPECT_TRUE(client1_.Connect(&client2_, false));
+
+  EXPECT_TRUE_SIMULATED_WAIT(client1_.dtls_transport()->writable() &&
+                                 client2_.dtls_transport()->writable(),
+                             kTimeout, fake_clock_);
+
+  client1_.fake_ice_transport()->set_packet_send_filter(nullptr);
+  client2_.fake_ice_transport()->set_packet_send_filter(nullptr);
+  client1_.fake_ice_transport()->set_packet_recv_filter(nullptr);
+  client2_.fake_ice_transport()->set_packet_recv_filter(nullptr);
+
+  auto dtls_version_bytes = client1_.GetVersionBytes();
+  ASSERT_EQ(dtls_version_bytes, client2_.GetVersionBytes());
+
+  std::vector<HandshakeTestEvent> expect;
+  for (const auto e : kEventsPerVersion) {
+    if (e.version_bytes == dtls_version_bytes) {
+      expect = e.events;
+      break;
+    }
+  }
+  RTC_LOG(LS_INFO) << "Verifying events with ssl version bytes= "
+                   << *dtls_version_bytes;
+  EXPECT_EQ(events, expect);
+}
 
 // Connect with DTLS, negotiating DTLS-SRTP, and transfer SRTP using bypass.
 TEST_F(DtlsTransportTest, TestTransferDtlsSrtp) {

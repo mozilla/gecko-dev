@@ -416,6 +416,11 @@ TEST_P(DataChannelIntegrationTest, EndToEndCallWithSctpDataChannelHarmfulMtu) {
   EXPECT_TRUE_WAIT(caller()->data_observer()->IsOpen(), kDefaultTimeout);
   EXPECT_TRUE_WAIT(callee()->data_observer()->IsOpen(), kDefaultTimeout);
 
+  if (caller()->tls_version() == rtc::kDtls13VersionBytes) {
+    ASSERT_EQ(caller()->tls_version(), rtc::kDtls13VersionBytes);
+    GTEST_SKIP() << "DTLS1.3 fragments packets larger than MTU";
+  }
+
   virtual_socket_server()->set_max_udp_payload(kLowestSafePayloadSizeLimit - 1);
   // Probe for an undelivered or slowly delivered message. The exact
   // size limit seems to be dependent on the message history, so make the
