@@ -1103,6 +1103,30 @@ class PromptDelegateTest : BaseSessionTest(
         })
     }
 
+    @WithDisplay(width = 100, height = 100)
+    @Test
+    fun fileMultipleTest() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("dom.disable_open_during_load" to false))
+
+        mainSession.loadTestPath(PROMPT_HTML_PATH)
+        mainSession.waitForPageStop()
+
+        mainSession.evaluateJS("document.addEventListener('click', () => document.getElementById('filemultipleexample').click(), { once: true });")
+        mainSession.synthesizeTap(1, 1)
+
+        sessionRule.waitUntilCalled(object : PromptDelegate {
+            @AssertCalled(count = 1)
+            override fun onFilePrompt(session: GeckoSession, prompt: PromptDelegate.FilePrompt): GeckoResult<PromptDelegate.PromptResponse> {
+                assertThat("Length of mimeTypes should match", 2, equalTo(prompt.mimeTypes!!.size))
+                assertThat("First accept attribute should match", "image/*", equalTo(prompt.mimeTypes?.get(0)))
+                assertThat("Second accept attribute should match", ".pdf", equalTo(prompt.mimeTypes?.get(1)))
+                assertThat("Capture attribute should match", PromptDelegate.FilePrompt.Capture.NONE, equalTo(prompt.capture))
+                assertThat("Type should match", prompt.type, equalTo(PromptDelegate.FilePrompt.Type.MULTIPLE))
+                return GeckoResult.fromValue(prompt.dismiss())
+            }
+        })
+    }
+
     @Test fun shareTextSucceeds() {
         sessionRule.setPrefsUntilTestEnd(mapOf("dom.webshare.requireinteraction" to false))
         mainSession.loadTestPath(HELLO_HTML_PATH)
