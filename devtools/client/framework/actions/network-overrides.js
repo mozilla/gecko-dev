@@ -39,7 +39,7 @@ function removeNetworkOverride(commands, url) {
     if (hasWatcherSupport) {
       const networkFront =
         await commands.targetCommand.watcherFront.getNetworkParentActor();
-      networkFront.removeOverride(url);
+      await networkFront.removeOverride(url);
       dispatch({
         type: "REMOVE_NETWORK_OVERRIDE",
         url,

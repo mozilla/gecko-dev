@@ -875,7 +875,7 @@ async function triggerSourceTreeContextMenu(
   const onHidden = new Promise(resolve => {
     menupopup.addEventListener("popuphidden", resolve, { once: true });
   });
-  selectContextMenuItem(dbg, contextMenuItem);
+  selectDebuggerContextMenuItem(dbg, contextMenuItem);
   await onHidden;
 }
 
@@ -2122,7 +2122,7 @@ function findContextMenu(dbg, selector) {
 }
 
 // Waits for the context menu to exist and to fully open. Once this function
-// completes, selectContextMenuItem can be called.
+// completes, selectDebuggerContextMenuItem can be called.
 // waitForContextMenu must be called after menu opening has been triggered, e.g.
 // after synthesizing a right click / contextmenu event.
 async function waitForContextMenu(dbg) {
@@ -2163,7 +2163,7 @@ async function closeContextMenu(dbg, popup) {
   return onHidden;
 }
 
-function selectContextMenuItem(dbg, selector) {
+function selectDebuggerContextMenuItem(dbg, selector) {
   const item = findContextMenu(dbg, selector);
   item.closest("menupopup").activateItem(item);
 }
@@ -3336,7 +3336,7 @@ async function clickOnSourceMapMenuItem(dbg, className) {
 async function setLogPoint(dbg, index, value) {
   rightClickElement(dbg, "gutterElement", index);
   await waitForContextMenu(dbg);
-  selectContextMenuItem(
+  selectDebuggerContextMenuItem(
     dbg,
     `${selectors.addLogItem},${selectors.editLogItem}`
   );
@@ -3457,7 +3457,7 @@ async function selectBlackBoxContextMenuItem(dbg, itemName) {
   }
 
   info(`Select the ${itemName} context menu item`);
-  selectContextMenuItem(dbg, `#node-menu-${itemName}`);
+  selectDebuggerContextMenuItem(dbg, `#node-menu-${itemName}`);
   return wait;
 }
 
@@ -3523,6 +3523,6 @@ async function toggleJsTracerMenuItem(dbg, selector) {
   );
   const popup = await waitForContextMenu(dbg);
   const onHidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
-  selectContextMenuItem(dbg, selector);
+  selectDebuggerContextMenuItem(dbg, selector);
   await onHidden;
 }

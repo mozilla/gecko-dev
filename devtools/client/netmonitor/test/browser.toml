@@ -74,6 +74,7 @@ support-files = [
   "js_worker-test.js",
   "js_worker-test2.js",
   "js_websocket-worker-test.js",
+  "network-overrides-test-helpers.js",
   "sjs_content-type-test-server.sjs",
   "sjs_cors-test-server.sjs",
   "sjs_early-hint-test-server.sjs",
@@ -103,6 +104,7 @@ support-files = [
   "xhr_bundle.js",
   "xhr_bundle.js.map",
   "xhr_original.js",
+  "!/devtools/client/debugger/test/mochitest/shared-head.js",
   "!/devtools/client/shared/test/shared-head.js",
   "!/devtools/client/shared/test/telemetry-test-helpers.js",
   "!/devtools/client/webconsole/test/browser/shared-head.js",
@@ -380,6 +382,11 @@ skip-if = ["!fission"]
 ["browser_net_open_in_style_editor.js"]
 
 ["browser_net_open_request_in_tab.js"]
+
+["browser_net_overrides.js"]
+
+["browser_net_overrides_with_debugger.js"]
+fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_pane-collapse.js"]
 

@@ -297,3 +297,10 @@ async function waitForCursorPosition(dbg, expectedLine) {
     return parseInt(line, 10) == expectedLine;
   });
 }
+
+/**
+ * @see selectDebuggerContextMenuItem in debugger/test/mochitest/shared-head.js
+ */
+function selectContextMenuItem(dbg, selector) {
+  return selectDebuggerContextMenuItem(dbg, selector);
+}

@@ -1318,6 +1318,21 @@ function getContextMenuItem(monitor, id) {
 }
 
 /**
+ * Hides the provided netmonitor context menu
+ *
+ * @param {XULPopupElement} popup
+ *        The popup to hide.
+ */
+async function hideContextMenu(popup) {
+  if (popup.state !== "open") {
+    return;
+  }
+  const onPopupHidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
+  popup.hidePopup();
+  await onPopupHidden;
+}
+
+/**
  * @see selectNetmonitorContextMenuItem in shared-head.js
  */
 async function selectContextMenuItem(monitor, id) {
