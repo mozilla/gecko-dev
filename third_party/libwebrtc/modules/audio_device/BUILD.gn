@@ -502,7 +502,6 @@ if (rtc_include_tests && !build_with_chromium && !build_with_mozilla) {
         "../../sdk/android:internal_jni",
         "../../sdk/android:libjingle_peerconnection_java",
         "../../sdk/android:native_api_jni",
-        "../../sdk/android:native_test_jni_onload",
         "../utility",
       ]
     }

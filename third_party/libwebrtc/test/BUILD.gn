@@ -10,6 +10,7 @@ import("//chromium/build/config/ui.gni")
 import("../webrtc.gni")
 if (is_android) {
   import("//chromium/build/config/android/rules.gni")
+  import("//third_party/jni_zero/jni_zero.gni")
 }
 
 if (!build_with_chromium) {
@@ -812,7 +813,6 @@ if (rtc_include_tests) {
 
       data = test_support_unittests_resources
       if (is_android) {
-        deps += [ "//testing/android/native_test:native_test_support" ]
         shard_timeout = 900
       }
 
@@ -1316,13 +1316,42 @@ if (!build_with_chromium && is_android) {
   rtc_android_library("native_test_java") {
     testonly = true
     sources = [
+      "android/org/webrtc/native_test/NativeTestWebrtc.java",
+      "android/org/webrtc/native_test/RTCNativeTestApplication.java",
       "android/org/webrtc/native_test/RTCNativeUnitTest.java",
       "android/org/webrtc/native_test/RTCNativeUnitTestActivity.java",
+      "android/org/webrtc/native_test/StrictModeContext.java",
+    ]
+    srcjar_deps = [ ":native_test_jni" ]
+    deps = [
+      ":native_test_support",
+      "../rtc_base:base_java",
+      "//build/android:build_java",
+      "//build/android/gtest_apk:native_test_instrumentation_test_runner_java",
+      "//testing/android/reporter:reporter_java",
+      "//third_party/jni_zero:jni_zero_java",
+    ]
+  }
+
+  source_set("native_test_support") {
+    testonly = true
+    sources = [
+      "android/native_test_launcher.cc",
+      "android/native_test_launcher.h",
+      "android/native_test_util.cc",
+      "android/native_test_util.h",
     ]
     deps = [
-      "../rtc_base:base_java",
-      "//testing/android/native_test:native_test_java",
+      ":native_test_jni",
+      "//testing/gtest",
+      "//third_party/abseil-cpp/absl/strings",
+      "//third_party/jni_zero:jni_zero",
     ]
+  }
+
+  generate_jni("native_test_jni") {
+    testonly = true
+    sources = [ "android/org/webrtc/native_test/NativeTestWebrtc.java" ]
   }
 }
 }

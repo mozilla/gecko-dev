@@ -118,7 +118,7 @@ index 12d5e3d4fc..6c011fd453 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 373e029de9..8e1550ce04 100644
+index f05f71b687..2f38fb3ec2 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {
@@ -528,7 +528,7 @@ index 3bf13c5e74..2f5ff4ad3c 100644
  #include "api/video/video_content_type.h"
  #include "api/video/video_frame.h"
 diff --git a/common_audio/BUILD.gn b/common_audio/BUILD.gn
-index 1342eefd4f..6929ffe264 100644
+index 4845bc71ef..0b5f6cb858 100644
 --- a/common_audio/BUILD.gn
 +++ b/common_audio/BUILD.gn
 @@ -267,14 +267,10 @@ if (current_cpu == "x86" || current_cpu == "x64") {
@@ -574,7 +574,7 @@ index 0000000000..f6ff7f218f
 +  #endif
 +#endif
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 1b8f4cc12d..f7920c267f 100644
+index 7a27f40ffe..93ea680ad4 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -76,7 +76,7 @@ rtc_library("rtc_media_base") {
@@ -753,7 +753,7 @@ index e354db54a0..d2855cbfb0 100644
  using webrtc::FrameDecryptorInterface;
  using webrtc::FrameEncryptorInterface;
 diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
-index bdc4860716..f0c4af1e85 100644
+index 3511b8ffed..d671360baf 100644
 --- a/modules/audio_coding/BUILD.gn
 +++ b/modules/audio_coding/BUILD.gn
 @@ -358,7 +358,7 @@ rtc_library("webrtc_opus_wrapper") {
@@ -766,7 +766,7 @@ index bdc4860716..f0c4af1e85 100644
  }
  
 diff --git a/modules/audio_device/BUILD.gn b/modules/audio_device/BUILD.gn
-index b69ada7f31..52bc0c0c63 100644
+index aa4d216b28..55c39a530f 100644
 --- a/modules/audio_device/BUILD.gn
 +++ b/modules/audio_device/BUILD.gn
 @@ -30,6 +30,7 @@ rtc_source_set("audio_device_default") {
@@ -1229,10 +1229,10 @@ index b18114f107..3ca6994c81 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index 09bfbf8785..9c15c23833 100644
+index bfe3cc3279..9be8d14cbd 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
-@@ -229,6 +229,7 @@ rtc_library("audio_test_common") {
+@@ -230,6 +230,7 @@ rtc_library("audio_test_common") {
    ]
  }
  
@@ -1240,7 +1240,7 @@ index 09bfbf8785..9c15c23833 100644
  if (!build_with_chromium) {
    if (is_mac || is_ios) {
      rtc_library("video_test_mac") {
-@@ -282,8 +283,12 @@ if (!build_with_chromium) {
+@@ -283,8 +284,12 @@ if (!build_with_chromium) {
      }
    }
  }
@@ -1253,7 +1253,7 @@ index 09bfbf8785..9c15c23833 100644
    testonly = true
    sources = [
      "rtcp_packet_parser.cc",
-@@ -293,6 +298,7 @@ rtc_library("rtp_test_utils") {
+@@ -294,6 +299,7 @@ rtc_library("rtp_test_utils") {
      "rtp_file_writer.cc",
      "rtp_file_writer.h",
    ]
@@ -1261,7 +1261,7 @@ index 09bfbf8785..9c15c23833 100644
  
    deps = [
      "../api:array_view",
-@@ -515,7 +521,9 @@ rtc_library("video_frame_writer") {
+@@ -516,7 +522,9 @@ rtc_library("video_frame_writer") {
    ]
  
    if (!is_ios) {
@@ -1279,8 +1279,8 @@ index 09bfbf8785..9c15c23833 100644
  if (!build_with_chromium && is_android) {
    rtc_android_library("native_test_java") {
      testonly = true
-@@ -1310,6 +1319,7 @@ if (!build_with_chromium && is_android) {
-     ]
+@@ -1339,6 +1348,7 @@ if (!build_with_chromium && is_android) {
+     sources = [ "android/org/webrtc/native_test/NativeTestWebrtc.java" ]
    }
  }
 +}
@@ -1310,7 +1310,7 @@ index fdd12cf2a7..b767851b13 100644
      "../api/adaptation:resource_adaptation_api",
      "../api/environment",
 diff --git a/webrtc.gni b/webrtc.gni
-index b4f0cad7ab..72f7d29fef 100644
+index 5f99830c67..955c6c36b5 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -35,6 +35,11 @@ if (is_mac) {
@@ -1410,7 +1410,7 @@ index b4f0cad7ab..72f7d29fef 100644
  # Make it possible to provide custom locations for some libraries (move these
  # up into declare_args should we need to actually use them for the GN build).
  rtc_libvpx_dir = "//third_party/libvpx"
-@@ -1199,7 +1209,7 @@ if (is_mac || is_ios) {
+@@ -1203,7 +1213,7 @@ if (is_mac || is_ios) {
    }
  }
  

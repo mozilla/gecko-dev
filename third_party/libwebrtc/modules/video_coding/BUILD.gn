@@ -1000,8 +1000,6 @@ if (rtc_include_tests) {
       deps += [
         ":android_codec_factory_helper",
         "../../sdk/android:hwcodecs_java",
-        "//sdk/android:native_test_jni_onload",
-        "//testing/android/native_test:native_test_support",
       ]
       shard_timeout = 900
     }

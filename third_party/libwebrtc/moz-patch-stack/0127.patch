@@ -35,7 +35,7 @@ index e379d18527..c810498584 100644
  # Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
  # available yet.
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 39ce13c335..63d99ba93f 100644
+index 5a294a4595..5dce3e2689 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -7,7 +7,7 @@
@@ -48,7 +48,7 @@ index 39ce13c335..63d99ba93f 100644
  
  group("media") {
 diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index c5c6ce13dd..ee3a30dc4c 100644
+index 2318bcdaa3..b267c50cac 100644
 --- a/modules/video_coding/BUILD.gn
 +++ b/modules/video_coding/BUILD.gn
 @@ -7,7 +7,7 @@
@@ -61,7 +61,7 @@ index c5c6ce13dd..ee3a30dc4c 100644
  
  rtc_library("encoded_frame") {
 diff --git a/webrtc.gni b/webrtc.gni
-index 5efc1979fd..60fd992710 100644
+index 34bcc10b99..883e2eb7ff 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -11,7 +11,7 @@ import("//build/config/mips.gni")

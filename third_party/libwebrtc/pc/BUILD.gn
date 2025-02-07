@@ -2098,11 +2098,7 @@ if (rtc_include_tests && !build_with_chromium) {
 
     if (is_android) {
       use_default_launcher = false
-      deps += [
-        "//build/android/gtest_apk:native_test_instrumentation_test_runner_java",
-        "//testing/android/native_test:native_test_java",
-        "//testing/android/native_test:native_test_support",
-      ]
+      deps += [ "//build/android/gtest_apk:native_test_instrumentation_test_runner_java" ]
     }
   }
 
@@ -2448,8 +2444,7 @@ if (rtc_include_tests && !build_with_chromium) {
 
         # We need to depend on this one directly, or classloads will fail for
         # the voice engine BuildInfo, for instance.
-        "//sdk/android:libjingle_peerconnection_java",
-        "//sdk/android:native_test_jni_onload",
+        "../sdk/android:libjingle_peerconnection_java",
       ]
       shard_timeout = 900
     }
@@ -2519,12 +2514,11 @@ if (rtc_include_tests && !build_with_chromium) {
         "test/android_test_initializer.h",
       ]
       deps = [
+        "../modules/utility:utility",
+        "../rtc_base:checks",
         "../rtc_base:ssl_adapter",
         "../sdk/android:internal_jni",
         "../sdk/android:libjingle_peerconnection_jni",
-        "//modules/utility:utility",
-        "//rtc_base:checks",
-        "//testing/android/native_test:native_test_support",
       ]
     }
   }
@@ -2818,7 +2812,6 @@ if (rtc_include_tests && !build_with_chromium) {
     sources = [ "test/svc_e2e_tests.cc" ]
     data = svc_tests_resources
     deps = [
-      "..//test/network:simulated_network",
       "../api:create_network_emulation_manager",
       "../api:create_peer_connection_quality_test_frame_generator",
       "../api:create_peerconnection_quality_test_fixture",
@@ -2843,6 +2836,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../test:fileutils",
       "../test:test_main",
       "../test:test_support",
+      "../test/network:simulated_network",
       "../test/pc/e2e:network_quality_metrics_reporter",
       "../test/pc/e2e/analyzer/video:default_video_quality_analyzer",
     ]

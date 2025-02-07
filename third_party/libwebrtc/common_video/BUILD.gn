@@ -219,7 +219,6 @@ if (rtc_include_tests && !build_with_chromium) {
 
     data = common_video_resources
     if (is_android) {
-      deps += [ "//testing/android/native_test:native_test_support" ]
       shard_timeout = 900
     }
 

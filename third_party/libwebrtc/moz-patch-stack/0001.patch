@@ -52,7 +52,7 @@ Cr-Commit-Position: refs/heads/main@{#43506}
  create mode 100644 p2p/stunprober/stun_prober_unittest.cc
 
 diff --git a/BUILD.gn b/BUILD.gn
-index b3c84aa9b0..373e029de9 100644
+index d829c0fccc..f05f71b687 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -650,6 +650,7 @@ if (rtc_include_tests && !build_with_chromium) {
