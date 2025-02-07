@@ -76,10 +76,6 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
 
         requirePreference<SwitchPreference>(R.string.pref_key_telemetry).apply {
             isChecked = context.settings().isTelemetryEnabled
-
-            val appName = context.getString(R.string.app_name)
-            summary = context.getString(R.string.preferences_usage_data_description, appName)
-
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
@@ -114,9 +110,20 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         context?.also { context ->
             when (preference.key) {
+                getPreferenceKey(R.string.pref_key_learn_about_telemetry) -> openLearnMoreUrlInSandboxedTab(
+                    context,
+                    SupportUtils.getSumoURLForTopic(
+                        context = context,
+                        topic = SupportUtils.SumoTopic.TECHNICAL_AND_INTERACTION_DATA,
+                    ),
+                )
+
                 getPreferenceKey(R.string.pref_key_learn_about_marketing_telemetry) -> openLearnMoreUrlInSandboxedTab(
                     context,
-                    SupportUtils.getGenericSumoURLForTopic(SupportUtils.SumoTopic.HELP),
+                    SupportUtils.getSumoURLForTopic(
+                        context = context,
+                        topic = SupportUtils.SumoTopic.MARKETING_DATA,
+                    ),
                 )
 
                 getPreferenceKey(R.string.pref_key_learn_about_daily_usage_ping) -> openLearnMoreUrlInSandboxedTab(
@@ -124,6 +131,14 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
                     SupportUtils.getSumoURLForTopic(
                         context = context,
                         topic = SupportUtils.SumoTopic.USAGE_PING_SETTINGS,
+                    ),
+                )
+
+                getPreferenceKey(R.string.pref_key_learn_about_crash_reporting) -> openLearnMoreUrlInSandboxedTab(
+                    context,
+                    SupportUtils.getSumoURLForTopic(
+                        context = context,
+                        topic = SupportUtils.SumoTopic.CRASH_REPORTS,
                     ),
                 )
             }

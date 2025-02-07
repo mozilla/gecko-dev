@@ -40,20 +40,20 @@ class SettingsSubMenuDataCollectionRobot {
             goBackButton(),
             itemContainingText(getStringResource(R.string.preferences_data_collection)),
             itemContainingText(getStringResource(R.string.preference_usage_data_1)),
-            itemContainingText(getStringResource(R.string.preferences_usage_data_description)),
+            itemContainingText(getStringResource(R.string.preferences_usage_data_description_1)),
             itemContainingText(getStringResource(R.string.preferences_daily_usage_ping_title)),
         )
         verifyDailyUsagePingToggle(isDailyUsagePingEnabled)
         verifyUsageAndTechnicalDataToggle(isUsageAndTechnicalDataEnabled)
         assertUIObjectExists(
-            itemContainingText(getStringResource(R.string.preference_experiments_2)),
+            itemContainingText(getStringResource(R.string.studies_title)),
             itemContainingText(studiesSummary),
         )
     }
 
     fun verifyUsageAndTechnicalDataToggle(enabled: Boolean) {
         Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Trying to verify that the \"Technical and interaction data\" toggle is checked: $enabled")
-        onView(withText(R.string.preference_usage_data_1))
+        onView(withText(R.string.preference_usage_data_2))
             .check(
                 matches(
                     hasCousin(
@@ -108,7 +108,7 @@ class SettingsSubMenuDataCollectionRobot {
 
     fun clickUsageAndTechnicalDataToggle() {
         Log.i(TAG, "clickUsageAndTechnicalDataToggle: Trying to click the \"Technical and interaction data\" toggle")
-        itemContainingText(getStringResource(R.string.preference_usage_data_1)).click()
+        itemContainingText(getStringResource(R.string.preference_usage_data_2)).click()
         Log.i(TAG, "clickUsageAndTechnicalDataToggle: Clicked the \"Technical and interaction data\" toggle")
     }
 
@@ -120,7 +120,7 @@ class SettingsSubMenuDataCollectionRobot {
 
     fun clickStudiesOption() {
         Log.i(TAG, "clickStudiesOption: Trying to click the \"Studies\" option")
-        itemContainingText(getStringResource(R.string.preference_experiments_2)).click()
+        itemContainingText(getStringResource(R.string.studies_title)).click()
         Log.i(TAG, "clickStudiesOption: Clicked the \"Studies\" option")
     }
 

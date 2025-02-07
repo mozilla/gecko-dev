@@ -2,36 +2,81 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <SwitchPreference
-        android:key="@string/pref_key_telemetry"
-        android:summary="@string/preferences_usage_data_description"
-        android:title="@string/preference_usage_data_1" />
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <SwitchPreference
-        android:key="@string/pref_key_marketing_telemetry"
-        android:summary="@string/preferences_marketing_data_description_3"
-        android:title="@string/preferences_marketing_data" />
+    <androidx.preference.PreferenceCategory
+        android:layout="@layout/preference_category_empty"
+        app:allowDividerAbove="true"
+        app:iconSpaceReserved="false">
 
-    <Preference
-        android:key="@string/pref_key_learn_about_marketing_telemetry"
-        android:title="@string/preferences_marketing_data_learn_more" />
+        <SwitchPreference
+            android:key="@string/pref_key_telemetry"
+            android:summary="@string/preferences_usage_data_description_1"
+            android:title="@string/preference_usage_data_2" />
 
-    <SwitchPreference
-        android:key="@string/pref_key_daily_usage_ping"
-        android:summary="@string/preferences_daily_usage_ping_description"
-        android:title="@string/preferences_daily_usage_ping_title" />
+        <Preference
+            android:key="@string/pref_key_learn_about_telemetry"
+            android:title="@string/preference_usage_data_learn_more" />
 
-    <Preference
-        android:key="@string/pref_key_learn_about_daily_usage_ping"
-        android:title="@string/preferences_daily_usage_ping_learn_more" />
+    </androidx.preference.PreferenceCategory>
 
-    <SwitchPreference
-        android:key="@string/pref_key_crash_reporting_always_report"
-        android:summary="@string/preferences_automatically_send_crashes_description"
-        android:title="@string/preferences_automatically_send_crashes_title" />
+    <androidx.preference.PreferenceCategory
+        android:layout="@layout/preference_category_empty"
+        app:allowDividerAbove="true"
+        app:iconSpaceReserved="false">
 
-    <androidx.preference.Preference
-        android:key="@string/pref_key_studies_section"
-        android:title="@string/preference_experiments_2" />
+        <androidx.preference.Preference
+            android:key="@string/pref_key_studies_section"
+            android:title="@string/studies_title" />
+
+    </androidx.preference.PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:layout="@layout/preference_category_empty"
+        app:allowDividerAbove="true"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreference
+            android:key="@string/pref_key_daily_usage_ping"
+            android:summary="@string/preferences_daily_usage_ping_description"
+            android:title="@string/preferences_daily_usage_ping_title" />
+
+        <Preference
+            android:key="@string/pref_key_learn_about_daily_usage_ping"
+            android:title="@string/preferences_daily_usage_ping_learn_more" />
+
+    </androidx.preference.PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:layout="@layout/preference_category_empty"
+        app:allowDividerAbove="true"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreference
+            android:key="@string/pref_key_crash_reporting_always_report"
+            android:summary="@string/preferences_automatically_send_crashes_description"
+            android:title="@string/preferences_automatically_send_crashes_title" />
+
+        <Preference
+            android:key="@string/pref_key_learn_about_crash_reporting"
+            android:title="@string/onboarding_preferences_dialog_crash_reporting_learn_more" />
+
+    </androidx.preference.PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:layout="@layout/preference_category_empty"
+        app:allowDividerAbove="true"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreference
+            android:key="@string/pref_key_marketing_telemetry"
+            android:summary="@string/preferences_marketing_data_description_4"
+            android:title="@string/preferences_marketing_data_2" />
+
+        <Preference
+            android:key="@string/pref_key_learn_about_marketing_telemetry"
+            android:title="@string/preferences_marketing_data_learn_more" />
+
+    </androidx.preference.PreferenceCategory>
 </PreferenceScreen>
