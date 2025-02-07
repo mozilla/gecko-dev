@@ -40,7 +40,7 @@ using ::testing::NotNull;
 
 class MockInitialize : public AudioProcessingImpl {
  public:
-  MockInitialize() : AudioProcessingImpl() {}
+  MockInitialize() : AudioProcessingImpl(CreateEnvironment()) {}
 
   MOCK_METHOD(void, InitializeLocked, (), (override));
   void RealInitializeLocked() {

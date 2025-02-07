@@ -25,6 +25,7 @@
 #include "api/array_view.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio/audio_processing_statistics.h"
+#include "api/environment/environment.h"
 #include "api/function_view.h"
 #include "api/task_queue/task_queue_base.h"
 #include "modules/audio_processing/aec3/echo_canceller3.h"
@@ -60,8 +61,9 @@ class AudioProcessingImpl : public AudioProcessing {
  public:
   // Methods forcing APM to run in a single-threaded manner.
   // Acquires both the render and capture locks.
-  AudioProcessingImpl();
-  AudioProcessingImpl(const AudioProcessing::Config& config,
+  explicit AudioProcessingImpl(const Environment& env);
+  AudioProcessingImpl(const Environment& env,
+                      const AudioProcessing::Config& config,
                       std::unique_ptr<CustomProcessing> capture_post_processor,
                       std::unique_ptr<CustomProcessing> render_pre_processor,
                       std::unique_ptr<EchoControlFactory> echo_control_factory,

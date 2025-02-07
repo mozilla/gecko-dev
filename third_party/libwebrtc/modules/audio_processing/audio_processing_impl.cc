@@ -20,10 +20,11 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
-#include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/audio/audio_frame.h"
+#include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "api/task_queue/task_queue_base.h"
 #include "common_audio/audio_converter.h"
 #include "common_audio/include/audio_util.h"
@@ -32,12 +33,10 @@
 #include "modules/audio_processing/include/audio_frame_view.h"
 #include "modules/audio_processing/logging/apm_data_dumper.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/denormal_disabler.h"
-#include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/metrics.h"
 
 #define RETURN_ON_ERR(expr) \
@@ -58,15 +57,15 @@ bool SampleRateSupportsMultiBand(int sample_rate_hz) {
 }
 
 // Checks whether the high-pass filter should be done in the full-band.
-bool EnforceSplitBandHpf() {
-  return field_trial::IsEnabled("WebRTC-FullBandHpfKillSwitch");
+bool EnforceSplitBandHpf(const FieldTrialsView& field_trials) {
+  return field_trials.IsEnabled("WebRTC-FullBandHpfKillSwitch");
 }
 
 // Checks whether AEC3 should be allowed to decide what the default
 // configuration should be based on the render and capture channel configuration
 // at hand.
-bool UseSetupSpecificDefaultAec3Congfig() {
-  return !field_trial::IsEnabled(
+bool UseSetupSpecificDefaultAec3Congfig(const FieldTrialsView& field_trials) {
+  return !field_trials.IsEnabled(
       "WebRTC-Aec3SetupSpecificDefaultConfigDefaultsKillSwitch");
 }
 
@@ -102,8 +101,8 @@ GainControl::Mode Agc1ConfigModeToInterfaceMode(
   RTC_CHECK_NOTREACHED();
 }
 
-bool MinimizeProcessingForUnusedOutput() {
-  return !field_trial::IsEnabled("WebRTC-MutedStateKillSwitch");
+bool MinimizeProcessingForUnusedOutput(const FieldTrialsView& field_trials) {
+  return !field_trials.IsEnabled("WebRTC-MutedStateKillSwitch");
 }
 
 // Maximum lengths that frame of samples being passed from the render side to
@@ -413,8 +412,9 @@ bool AudioProcessingImpl::SubmoduleStates::HighPassFilteringRequired() const {
          noise_suppressor_enabled_;
 }
 
-AudioProcessingImpl::AudioProcessingImpl()
-    : AudioProcessingImpl(/*config=*/{},
+AudioProcessingImpl::AudioProcessingImpl(const Environment& env)
+    : AudioProcessingImpl(env,
+                          /*config=*/{},
                           /*capture_post_processor=*/nullptr,
                           /*render_pre_processor=*/nullptr,
                           /*echo_control_factory=*/nullptr,
@@ -424,6 +424,7 @@ AudioProcessingImpl::AudioProcessingImpl()
 std::atomic<int> AudioProcessingImpl::instance_count_(0);
 
 AudioProcessingImpl::AudioProcessingImpl(
+    const Environment& env,
     const AudioProcessing::Config& config,
     std::unique_ptr<CustomProcessing> capture_post_processor,
     std::unique_ptr<CustomProcessing> render_pre_processor,
@@ -432,7 +433,7 @@ AudioProcessingImpl::AudioProcessingImpl(
     std::unique_ptr<CustomAudioAnalyzer> capture_analyzer)
     : data_dumper_(new ApmDataDumper(instance_count_.fetch_add(1) + 1)),
       use_setup_specific_default_aec3_config_(
-          UseSetupSpecificDefaultAec3Congfig()),
+          UseSetupSpecificDefaultAec3Congfig(env.field_trials())),
       capture_runtime_settings_(RuntimeSettingQueueSize()),
       render_runtime_settings_(RuntimeSettingQueueSize()),
       capture_runtime_settings_enqueuer_(&capture_runtime_settings_),
@@ -446,12 +447,12 @@ AudioProcessingImpl::AudioProcessingImpl(
                   std::move(render_pre_processor),
                   std::move(echo_detector),
                   std::move(capture_analyzer)),
-      constants_(!field_trial::IsEnabled(
+      constants_(!env.field_trials().IsEnabled(
                      "WebRTC-ApmExperimentalMultiChannelRenderKillSwitch"),
-                 !field_trial::IsEnabled(
+                 !env.field_trials().IsEnabled(
                      "WebRTC-ApmExperimentalMultiChannelCaptureKillSwitch"),
-                 EnforceSplitBandHpf(),
-                 MinimizeProcessingForUnusedOutput()),
+                 EnforceSplitBandHpf(env.field_trials()),
+                 MinimizeProcessingForUnusedOutput(env.field_trials())),
       capture_(),
       capture_nonlocked_(),
       applied_input_volume_stats_reporter_(

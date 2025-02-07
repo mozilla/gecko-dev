@@ -152,6 +152,7 @@ rtc_library("audio_processing") {
     ":high_pass_filter",
     ":rms_level",
     "../../api:array_view",
+    "../../api:field_trials_view",
     "../../api:function_view",
     "../../api:make_ref_counted",
     "../../api/audio:aec3_config",
@@ -159,9 +160,13 @@ rtc_library("audio_processing") {
     "../../api/audio:audio_processing",
     "../../api/audio:audio_processing_statistics",
     "../../api/audio:echo_control",
+    "../../api/environment",
     "../../api/task_queue",
     "../../audio/utility:audio_frame_operations",
+    "../../common_audio",
     "../../common_audio:common_audio_c",
+    "../../common_audio:fir_filter",
+    "../../common_audio:fir_filter_factory",
     "../../common_audio/third_party/ooura:fft_size_256",
     "../../rtc_base:checks",
     "../../rtc_base:event_tracer",
@@ -172,7 +177,6 @@ rtc_library("audio_processing") {
     "../../rtc_base:sanitizer",
     "../../rtc_base:swap_queue",
     "../../rtc_base:timeutils",
-    "../../rtc_base/experiments:field_trial_parser",
     "../../rtc_base/synchronization:mutex",
     "../../rtc_base/system:rtc_export",
     "../../system_wrappers",
@@ -180,7 +184,7 @@ rtc_library("audio_processing") {
     "../../system_wrappers:field_trial",
     "../../system_wrappers:metrics",
     "aec3",
-    "aec_dump:aec_dump",
+    "aec_dump",
     "aecm:aecm_core",
     "agc",
     "agc:gain_control_interface",
@@ -190,15 +194,7 @@ rtc_library("audio_processing") {
     "ns",
     "vad",
     "//third_party/abseil-cpp/absl/base:nullability",
-    "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-  ]
-
-  deps += [
-    "../../common_audio",
-    "../../common_audio:fir_filter",
-    "../../common_audio:fir_filter_factory",
-    "../../system_wrappers",
   ]
 
   if (rtc_enable_protobuf) {
