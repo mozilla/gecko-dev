@@ -42,6 +42,9 @@ TEST_F(PeerConnectionCongestionControlTest, OfferContainsCcfbIfEnabled) {
   auto offer = caller()->CreateOfferAndWait();
   std::string offer_str = absl::StrCat(*offer);
   EXPECT_THAT(offer_str, HasSubstr("a=rtcp-fb:* ack ccfb\r\n"));
+  // Closing peer connections before ScopedFieldTrials gets out of scope to
+  // avoid a race condition.
+  ClosePeerConnections();
 }
 
 TEST_F(PeerConnectionCongestionControlTest, ReceiveOfferSetsCcfbFlag) {
@@ -69,6 +72,9 @@ TEST_F(PeerConnectionCongestionControlTest, ReceiveOfferSetsCcfbFlag) {
   // Check that the answer does not contain transport-cc
   std::string answer_str = absl::StrCat(*caller()->pc()->remote_description());
   EXPECT_THAT(answer_str, Not(HasSubstr("transport-cc")));
+  // Closing peer connections before ScopedFieldTrials gets out of scope to
+  // avoid a race condition.
+  ClosePeerConnections();
 }
 
 TEST_F(PeerConnectionCongestionControlTest, CcfbGetsUsed) {
@@ -89,6 +95,9 @@ TEST_F(PeerConnectionCongestionControlTest, CcfbGetsUsed) {
   // There should be no transport-cc generated.
   EXPECT_THAT(pc_internal->FeedbackAccordingToTransportCcCountForTesting(),
               Eq(0));
+  // Closing peer connections before ScopedFieldTrials gets out of scope to
+  // avoid a race condition.
+  ClosePeerConnections();
 }
 
 TEST_F(PeerConnectionCongestionControlTest, TransportCcGetsUsed) {
@@ -109,6 +118,9 @@ TEST_F(PeerConnectionCongestionControlTest, TransportCcGetsUsed) {
       kDefaultTimeout);
   // Test that RFC 8888 feedback is NOT generated when field trial disabled.
   EXPECT_THAT(pc_internal->FeedbackAccordingToRfc8888CountForTesting(), Eq(0));
+  // Closing peer connections before ScopedFieldTrials gets out of scope to
+  // avoid a race condition.
+  ClosePeerConnections();
 }
 
 }  // namespace webrtc
