@@ -265,7 +265,6 @@ rtc_library("basic_port_allocator") {
     ":port",
     ":port_allocator",
     ":relay_port_factory_interface",
-    ":rtc_p2p",
     ":stun_port",
     ":tcp_port",
     ":turn_port",
@@ -909,7 +908,6 @@ rtc_source_set("transport_info") {
   sources = [ "base/transport_info.h" ]
   deps = [
     ":p2p_constants",
-    ":rtc_p2p",
     ":transport_description",
     "../api:candidate",
     "../rtc_base:ssl",
@@ -963,7 +961,6 @@ rtc_library("turn_port_factory") {
     ":port",
     ":port_allocator",
     ":relay_port_factory_interface",
-    ":rtc_p2p",
     ":turn_port",
     "../rtc_base:async_packet_socket",
   ]
@@ -1174,7 +1171,6 @@ if (rtc_include_tests) {
       ":pseudo_tcp",
       ":regathering_controller",
       ":relay_port_factory_interface",
-      ":rtc_p2p",
       ":stun_dictionary",
       ":stun_port",
       ":stun_request",

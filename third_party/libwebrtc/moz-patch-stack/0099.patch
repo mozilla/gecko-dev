@@ -11,10 +11,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2185cab977988fd4a
  3 files changed, 16 insertions(+)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index fe17cd52eb..2866f42f90 100644
+index 535c2d996b..1c18eac685 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -609,6 +609,7 @@ if (!build_with_chromium) {
+@@ -608,6 +608,7 @@ if (!build_with_chromium) {
  
      if (build_with_mozilla) {
        deps += [
