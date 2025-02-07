@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': '54e82a98c6dcf87636345b93ff30eacd4eef08d8',
+  'chromium_revision': '0bfc269bb6e2db08307c42bb36dcfeac6b1f7850',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -64,7 +64,7 @@ vars = {
 deps = {
   # TODO(kjellander): Move this to be Android-only.
   'src/base':
-    'https://chromium.googlesource.com/chromium/src/base@5e7792b22a2e895490e05bb5f7a07896c4415d9d',
+    'https://chromium.googlesource.com/chromium/src/base@061e5521cbc62b85a9ccf2eaba89f20a1305ded2',
   'src/build':
     'https://chromium.googlesource.com/chromium/src/build@f46b6520935dacdd81e487cf2e66eed6b9989e03',
   'src/buildtools':
@@ -75,13 +75,13 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/ios': {
-    'url': 'https://chromium.googlesource.com/chromium/src/ios@fc3a9e56223a26c1506f54a4c32cd305182ad5a5',
+    'url': 'https://chromium.googlesource.com/chromium/src/ios@12d031d64d1735d6ee7be0435d1e2283c820e533',
     'condition': 'checkout_ios',
   },
   'src/testing':
     'https://chromium.googlesource.com/chromium/src/testing@c70a12830ebd6c9a81eff4d24f1e834b439cc301',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@2a576de2d2a95f77095cebcb842de5c4a1a0dcb9',
+    'https://chromium.googlesource.com/chromium/src/third_party@663e03da704e1f65cf76479d54f6194574facff8',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -402,7 +402,7 @@ deps = {
       'condition': 'checkout_android',
   },
   'src/third_party/perfetto':
-    'https://android.googlesource.com/platform/external/perfetto.git@b01e3ae88f223ecfa865f46918688481f15f0865',
+    'https://android.googlesource.com/platform/external/perfetto.git@26b31f3cc28e517fa50437a8c1a013b53c8c03d8',
   'src/third_party/protobuf-javascript/src':
     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + 'e34549db516f8712f678fcd4bc411613b5cc5295',
   'src/third_party/libvpx/source/libvpx':
@@ -461,7 +461,7 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/tools':
-    'https://chromium.googlesource.com/chromium/src/tools@97332566246752e1b6a76a433c75ee8c7925bac1',
+    'https://chromium.googlesource.com/chromium/src/tools@97a6c0d2638ca5be5cfbaa6e9159b14070729cc6',
 
   'src/third_party/espresso': {
       'packages': [
@@ -500,7 +500,7 @@ deps = {
     'packages': [
       {
           'package': 'chromium/third_party/androidx',
-          'version': '5FPxOMviuHFLMoBhoe5SlMKIsBwoKK7JF1_OxzjvFDYC',
+          'version': 'oeziDgbVl2RxyswdgbxynuxMb8M_SLNxMz4OpfGHQYUC',
       },
     ],
     'condition': 'checkout_android and non_git_source',
