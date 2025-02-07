@@ -114,14 +114,4 @@ PeerConnectionFactoryInterface::CreatePeerConnectionOrError(
   return RTCError(RTCErrorType::INTERNAL_ERROR);
 }
 
-RtpCapabilities PeerConnectionFactoryInterface::GetRtpSenderCapabilities(
-    cricket::MediaType /* kind */) const {
-  return {};
-}
-
-RtpCapabilities PeerConnectionFactoryInterface::GetRtpReceiverCapabilities(
-    cricket::MediaType /* kind */) const {
-  return {};
-}
-
 }  // namespace webrtc
