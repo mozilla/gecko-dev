@@ -68,6 +68,9 @@ ABSL_FLAG(bool,
 namespace webrtc {
 namespace {
 
+using ::testing::_;
+using ::testing::WithoutArgs;
+
 // All sample rates used by APM internally during processing. Other input /
 // output rates are resampled to / from one of these.
 const int kProcessSampleRates[] = {16000, 32000, 48000};
@@ -2460,8 +2463,6 @@ constexpr void Toggle(bool& b) {
   b ^= true;
 }
 
-}  // namespace
-
 TEST(RuntimeSettingTest, TestDefaultCtor) {
   auto s = AudioProcessing::RuntimeSetting();
   EXPECT_EQ(AudioProcessing::RuntimeSetting::Type::kNotSpecified, s.type());
@@ -2573,28 +2574,25 @@ TEST(ApmConfiguration, PreProcessingReceivesRuntimeSettings) {
       audio.data.data());
 }
 
-class MyEchoControlFactory : public EchoControlFactory {
+class MockEchoControlFactory : public EchoControlFactory {
  public:
-  std::unique_ptr<EchoControl> Create(int /* sample_rate_hz */) {
-    auto ec = new test::MockEchoControl();
-    EXPECT_CALL(*ec, AnalyzeRender(::testing::_)).Times(1);
-    EXPECT_CALL(*ec, AnalyzeCapture(::testing::_)).Times(2);
-    EXPECT_CALL(*ec, ProcessCapture(::testing::_, ::testing::_, ::testing::_))
-        .Times(2);
-    return std::unique_ptr<EchoControl>(ec);
-  }
-
-  std::unique_ptr<EchoControl> Create(int sample_rate_hz,
-                                      int /* num_render_channels */,
-                                      int /* num_capture_channels */) {
-    return Create(sample_rate_hz);
-  }
+  MOCK_METHOD(std::unique_ptr<EchoControl>,
+              Create,
+              (const Environment&, int, int, int),
+              (override));
 };
 
 TEST(ApmConfiguration, EchoControlInjection) {
   // Verify that apm uses an injected echo controller if one is provided.
-  std::unique_ptr<EchoControlFactory> echo_control_factory(
-      new MyEchoControlFactory());
+  auto echo_control_factory = std::make_unique<MockEchoControlFactory>();
+  EXPECT_CALL(*echo_control_factory, Create(_, _, _, _))
+      .WillOnce(WithoutArgs([] {
+        auto ec = std::make_unique<test::MockEchoControl>();
+        EXPECT_CALL(*ec, AnalyzeRender).Times(1);
+        EXPECT_CALL(*ec, AnalyzeCapture).Times(2);
+        EXPECT_CALL(*ec, ProcessCapture(_, _, _)).Times(2);
+        return ec;
+      }));
 
   scoped_refptr<AudioProcessing> apm =
       BuiltinAudioProcessingBuilder()
@@ -3417,4 +3415,5 @@ TEST(ApmAnalyzeReverseStreamFormatTest, AnalyzeReverseStream) {
   }
 }
 
+}  // namespace
 }  // namespace webrtc

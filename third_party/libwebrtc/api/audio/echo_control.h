@@ -13,6 +13,8 @@
 
 #include <memory>
 
+#include "absl/base/nullability.h"
+#include "api/environment/environment.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {
@@ -64,11 +66,25 @@ class EchoControl {
 // Interface for a factory that creates EchoControllers.
 class EchoControlFactory {
  public:
+  virtual ~EchoControlFactory() = default;
+
+  // TODO: bugs.webrtc.org/369904700 - Make pure virtual when implemented by
+  // all derived classes.
+  virtual absl::Nonnull<std::unique_ptr<EchoControl>> Create(
+      const Environment& env,
+      int sample_rate_hz,
+      int num_render_channels,
+      int num_capture_channels) {
+    return Create(sample_rate_hz, num_render_channels, num_capture_channels);
+  }
+
+  // TODO: bugs.webrtc.org/369904700 - Delete when implementations are removed
+  // from the derived classes.
   virtual std::unique_ptr<EchoControl> Create(int sample_rate_hz,
                                               int num_render_channels,
-                                              int num_capture_channels) = 0;
-
-  virtual ~EchoControlFactory() = default;
+                                              int num_capture_channels) {
+    RTC_CHECK_NOTREACHED();
+  }
 };
 }  // namespace webrtc
 
