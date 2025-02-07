@@ -573,12 +573,13 @@ void FallbackToDefaultScalabilityModeIfNotSupported(
 // "codecs". Note that VideoCodecSettings correspond to concrete codecs like
 // VP8, VP9, H264 while VideoCodecs correspond also to "virtual" codecs like
 // RTX, ULPFEC, FLEXFEC.
-std::vector<VideoCodecSettings> MapCodecs(const std::vector<Codec>& codecs) {
+webrtc::RTCErrorOr<std::vector<VideoCodecSettings>> MapCodecs(
+    const std::vector<Codec>& codecs) {
+  std::vector<VideoCodecSettings> video_codecs;
   if (codecs.empty()) {
-    return {};
+    return video_codecs;
   }
 
-  std::vector<VideoCodecSettings> video_codecs;
   std::map<int, Codec::ResiliencyType> payload_codec_type;
   // `rtx_mapping` maps video payload type to rtx payload type.
   std::map<int, int> rtx_mapping;
@@ -593,7 +594,8 @@ std::vector<VideoCodecSettings> MapCodecs(const std::vector<Codec>& codecs) {
     if (payload_codec_type.find(payload_type) != payload_codec_type.end()) {
       RTC_LOG(LS_ERROR) << "Payload type already registered: "
                         << in_codec.ToString();
-      return {};
+      return webrtc::RTCError(webrtc::RTCErrorType::INVALID_PARAMETER,
+                              "Duplicate payload type");
     }
     payload_codec_type[payload_type] = in_codec.GetResiliencyType();
 
@@ -642,7 +644,8 @@ std::vector<VideoCodecSettings> MapCodecs(const std::vector<Codec>& codecs) {
           RTC_LOG(LS_ERROR)
               << "RTX codec with invalid or no associated payload type: "
               << in_codec.ToString();
-          return {};
+          return webrtc::RTCError(webrtc::RTCErrorType::INVALID_PARAMETER,
+                                  "RTX codec with invalid APT");
         }
         int rtx_time;
         if (in_codec.GetParam(kCodecParamRtxTime, &rtx_time) && rtx_time > 0) {
@@ -671,7 +674,8 @@ std::vector<VideoCodecSettings> MapCodecs(const std::vector<Codec>& codecs) {
       RTC_LOG(LS_ERROR) << "RTX codec (PT=" << rtx_payload_type
                         << ") mapped to PT=" << associated_payload_type
                         << " which is not in the codec list.";
-      return {};
+      return webrtc::RTCError(webrtc::RTCErrorType::INVALID_PARAMETER,
+                              "RTX codec with unlisted APT");
     }
     const Codec::ResiliencyType associated_codec_type = it->second;
     if (associated_codec_type != Codec::ResiliencyType::kNone &&
@@ -680,7 +684,8 @@ std::vector<VideoCodecSettings> MapCodecs(const std::vector<Codec>& codecs) {
           << "RTX PT=" << rtx_payload_type
           << " not mapped to regular video codec or RED codec (PT="
           << associated_payload_type << ").";
-      return {};
+      return webrtc::RTCError(webrtc::RTCErrorType::INVALID_PARAMETER,
+                              "RTX codec with APT not video");
     }
 
     if (associated_payload_type == ulpfec_config.red_payload_type) {
@@ -918,9 +923,11 @@ WebRtcVideoSendChannel::WebRtcVideoSendChannel(
       crypto_options_(crypto_options) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   rtcp_receiver_report_ssrc_ = kDefaultRtcpReceiverReportSsrc;
+  // Crash if MapCodecs fails.
   recv_codecs_ = MapCodecs(GetPayloadTypesAndDefaultCodecs(
-      decoder_factory_, /*is_decoder_factory=*/true,
-      /*include_rtx=*/true, call_->trials()));
+                               decoder_factory_, /*is_decoder_factory=*/true,
+                               /*include_rtx=*/true, call_->trials()))
+                     .value();
   recv_flexfec_payload_type_ =
       recv_codecs_.empty() ? 0 : recv_codecs_.front().flexfec_payload_type;
 }
@@ -1072,11 +1079,12 @@ bool WebRtcVideoSendChannel::GetChangedSenderParameters(
     return false;
   }
 
-  std::vector<VideoCodecSettings> mapped_codecs = MapCodecs(params.codecs);
-  if (mapped_codecs.empty()) {
-    // This suggests a failure in MapCodecs, e.g. inconsistent RTX codecs.
+  auto result = MapCodecs(params.codecs);
+  if (!result.ok()) {
+    RTC_LOG(LS_ERROR) << "Failure in codec list, error = " << result.error();
     return false;
   }
+  std::vector<VideoCodecSettings> mapped_codecs = result.value();
 
   std::vector<VideoCodecSettings> negotiated_codecs =
       SelectSendVideoCodecs(mapped_codecs);
@@ -2709,9 +2717,11 @@ WebRtcVideoReceiveChannel::WebRtcVideoReceiveChannel(
       receive_buffer_size_(ParseReceiveBufferSize(call_->trials())) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   rtcp_receiver_report_ssrc_ = kDefaultRtcpReceiverReportSsrc;
+  // Crash if MapCodecs fails.
   recv_codecs_ = MapCodecs(GetPayloadTypesAndDefaultCodecs(
-      decoder_factory_, /*is_decoder_factory=*/true,
-      /*include_rtx=*/true, call_->trials()));
+                               decoder_factory_, /*is_decoder_factory=*/true,
+                               /*include_rtx=*/true, call_->trials()))
+                     .value();
   recv_flexfec_payload_type_ =
       recv_codecs_.empty() ? 0 : recv_codecs_.front().flexfec_payload_type;
 }
@@ -2797,13 +2807,14 @@ bool WebRtcVideoReceiveChannel::GetChangedReceiverParameters(
   }
 
   // Handle receive codecs.
-  const std::vector<VideoCodecSettings> mapped_codecs =
-      MapCodecs(params.codecs);
-  if (mapped_codecs.empty()) {
-    RTC_LOG(LS_ERROR)
-        << "GetChangedReceiverParameters called without any video codecs.";
+  auto result = MapCodecs(params.codecs);
+  if (!result.ok()) {
+    RTC_LOG(LS_ERROR) << "GetChangedReceiverParameters called without valid "
+                         "video codecs, error ="
+                      << result.error();
     return false;
   }
+  const std::vector<VideoCodecSettings> mapped_codecs = result.value();
 
   // Verify that every mapped codec is supported locally.
   if (params.is_stream_active) {
