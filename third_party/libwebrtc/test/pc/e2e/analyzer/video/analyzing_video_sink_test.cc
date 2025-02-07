@@ -321,6 +321,74 @@ TEST_F(AnalyzingVideoSinkTest,
   ExpectOutputFilesCount(2);
 }
 
+TEST_F(AnalyzingVideoSinkTest, KeepsCountingFrameWhenUnsucsribed) {
+  VideoSubscription subscription_before;
+  subscription_before.SubscribeToPeer(
+      "alice", VideoResolution(/*width=*/1280, /*height=*/720, /*fps=*/30));
+
+  VideoConfig video_config("alice_video", /*width=*/1280, /*height=*/720,
+                           /*fps=*/30);
+
+  ExampleVideoQualityAnalyzer analyzer;
+  std::unique_ptr<test::FrameGeneratorInterface> frame_generator =
+      CreateFrameGenerator(/*width=*/1280, /*height=*/720);
+  VideoFrame frame_before = CreateFrame(*frame_generator);
+  frame_before.set_id(
+      analyzer.OnFrameCaptured("alice", "alice_video", frame_before));
+  VideoFrame frame_after = CreateFrame(*frame_generator);
+  frame_after.set_id(
+      analyzer.OnFrameCaptured("alice", "alice_video", frame_after));
+
+  {
+    AnalyzingVideoSinksHelper helper;
+    helper.AddConfig("alice", video_config);
+    AnalyzingVideoSink sink("bob", Clock::GetRealTimeClock(), analyzer, helper,
+                            subscription_before, /*report_infra_stats=*/false);
+    sink.OnFrame(frame_before);
+
+    sink.UpdateSubscription(VideoSubscription());
+    sink.OnFrame(frame_after);
+  }
+
+  EXPECT_THAT(analyzer.frames_rendered(), Eq(2));
+}
+
+TEST_F(AnalyzingVideoSinkTest,
+       KeepsCountingFrameWhenUnsucsribedUsingEmptyResolution) {
+  VideoSubscription subscription_before;
+  subscription_before.SubscribeToPeer(
+      "alice", VideoResolution(/*width=*/1280, /*height=*/720, /*fps=*/30));
+  VideoSubscription subscription_after;
+  subscription_after.SubscribeToPeer(
+      "alice", VideoResolution(/*width=*/0, /*height=*/0, /*fps=*/0));
+
+  VideoConfig video_config("alice_video", /*width=*/1280, /*height=*/720,
+                           /*fps=*/30);
+
+  ExampleVideoQualityAnalyzer analyzer;
+  std::unique_ptr<test::FrameGeneratorInterface> frame_generator =
+      CreateFrameGenerator(/*width=*/1280, /*height=*/720);
+  VideoFrame frame_before = CreateFrame(*frame_generator);
+  frame_before.set_id(
+      analyzer.OnFrameCaptured("alice", "alice_video", frame_before));
+  VideoFrame frame_after = CreateFrame(*frame_generator);
+  frame_after.set_id(
+      analyzer.OnFrameCaptured("alice", "alice_video", frame_after));
+
+  {
+    AnalyzingVideoSinksHelper helper;
+    helper.AddConfig("alice", video_config);
+    AnalyzingVideoSink sink("bob", Clock::GetRealTimeClock(), analyzer, helper,
+                            subscription_before, /*report_infra_stats=*/false);
+    sink.OnFrame(frame_before);
+
+    sink.UpdateSubscription(subscription_after);
+    sink.OnFrame(frame_after);
+  }
+
+  EXPECT_THAT(analyzer.frames_rendered(), Eq(2));
+}
+
 TEST_F(AnalyzingVideoSinkTest,
        VideoFramesAreDumpedCorrectlyWhenSubscriptionChangedOnTheSameOne) {
   VideoSubscription subscription_before;

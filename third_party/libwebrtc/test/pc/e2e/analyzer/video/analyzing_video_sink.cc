@@ -9,6 +9,7 @@
  */
 #include "test/pc/e2e/analyzer/video/analyzing_video_sink.h"
 
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <set>
@@ -60,13 +61,14 @@ void AnalyzingVideoSink::UpdateSubscription(
     for (auto it = stream_sinks_.cbegin(); it != stream_sinks_.cend();) {
       std::optional<VideoResolution> new_requested_resolution =
           subscription_.GetResolutionForPeer(it->second.sender_peer_name);
-      if (!new_requested_resolution.has_value() ||
-          (*new_requested_resolution != it->second.resolution)) {
+      if (new_requested_resolution != it->second.resolution) {
         RTC_LOG(LS_INFO) << peer_name_ << ": Subscribed resolution for stream "
                          << it->first << " from " << it->second.sender_peer_name
                          << " was updated from "
                          << it->second.resolution.ToString() << " to "
-                         << new_requested_resolution->ToString()
+                         << (new_requested_resolution.has_value()
+                                 ? new_requested_resolution->ToString()
+                                 : "none")
                          << ". Repopulating all video sinks and recreating "
                          << "requested video writers";
         writers_to_close.insert(it->second.video_frame_writer);
@@ -140,8 +142,10 @@ VideoFrame AnalyzingVideoSink::ScaleVideoFrame(
     const VideoFrame& frame,
     const VideoResolution& required_resolution) {
   Timestamp processing_started = clock_->CurrentTime();
-  if (required_resolution.width() == static_cast<size_t>(frame.width()) &&
-      required_resolution.height() == static_cast<size_t>(frame.height())) {
+  if ((required_resolution.width() == static_cast<size_t>(frame.width()) &&
+       required_resolution.height() == static_cast<size_t>(frame.height())) ||
+      !required_resolution.IsRegular() ||
+      (required_resolution.width() == 0 || required_resolution.height() == 0)) {
     if (report_infra_stats_) {
       stats_.scaling_tims_ms.AddSample(
           (clock_->CurrentTime() - processing_started).ms<double>());
