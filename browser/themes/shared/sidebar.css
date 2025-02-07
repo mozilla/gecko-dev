@@ -21,6 +21,7 @@
     padding-block-end: var(--space-small);
     padding-inline-end: var(--space-small);
     position: relative;
+    z-index: var(--browser-area-z-index-sidebar);
 
     &[positionend] {
       padding-inline: 0;
@@ -75,6 +76,9 @@
 
 .sidebar-splitter {
   --splitter-width: 4px;
+  /* Ensure the splitter is painted on top of the sidebar box it overlaps.
+  Otherwise, the user may be unable to drag the splitter to resize the sidebar. */
+  z-index: var(--browser-area-z-index-sidebar-splitter);
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") or (not (-moz-platform: linux)) {
@@ -232,12 +236,12 @@ sidebar-main,
 
 #sidebar-wrapper {
   position: relative;
-  z-index: var(--browser-area-z-index-sidebar-wrapper);
 
   &.expandOnHover {
     position: absolute;
     inset: 0;
     inset-inline-end: unset;
+    z-index: var(--browser-area-z-index-sidebar-wrapper);
 
     &:not([positionend]):hover {
       border-start-end-radius: var(--border-radius-medium);
