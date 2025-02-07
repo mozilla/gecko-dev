@@ -598,7 +598,7 @@ if (!build_with_chromium) {
         "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
         "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
         "logging:rtc_event_log_api",
-        "p2p:rtc_p2p",
+#        "p2p:rtc_p2p",
         "pc:libjingle_peerconnection",
         "pc:rtc_pc",
         "sdk",
