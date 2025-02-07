@@ -77,6 +77,16 @@ export default class MozSelect extends MozBaseInputElement {
     this.value = event.target.value;
   }
 
+  /**
+   * @type {MozBaseInputElement['inputStylesTemplate']}
+   */
+  inputStylesTemplate() {
+    return html` <link
+      rel="stylesheet"
+      href="chrome://global/content/elements/moz-select.css"
+    />`;
+  }
+
   inputTemplate() {
     return html`
       <select

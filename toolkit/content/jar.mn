@@ -119,6 +119,7 @@ toolkit.jar:
    content/global/elements/moz-message-bar.css    (widgets/moz-message-bar/moz-message-bar.css)
    content/global/elements/moz-message-bar.mjs    (widgets/moz-message-bar/moz-message-bar.mjs)
    content/global/elements/moz-radio-group.mjs    (widgets/moz-radio-group/moz-radio-group.mjs)
+   content/global/elements/moz-select.css    (widgets/moz-select/moz-select.css)
    content/global/elements/moz-select.mjs    (widgets/moz-select/moz-select.mjs)
    content/global/elements/moz-support-link.mjs    (widgets/moz-support-link/moz-support-link.mjs)
    content/global/elements/moz-toggle.css      (widgets/moz-toggle/moz-toggle.css)

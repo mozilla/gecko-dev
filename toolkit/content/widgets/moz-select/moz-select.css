@@ -1,0 +1,21 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+select {
+  border: var(--button-border);
+  border-radius: var(--button-border-radius);
+  font-weight: var(--button-font-weight);
+  padding-block: var(--space-xsmall);
+  padding-inline:  var(--space-large) var(--space-xxlarge);
+  min-height: var(--button-min-height);
+  font-size: var(--button-font-size);
+  appearance: none;
+  background: no-repeat url("chrome://global/skin/icons/arrow-down.svg") calc(100% - var(--space-medium)) / var(--icon-size-default) var(--icon-size-default) var(--button-background-color);
+  -moz-context-properties: fill;
+  fill: var(--icon-color);
+
+  &:dir(rtl) {
+    background-position-x: left var(--space-medium);
+  }
+}
