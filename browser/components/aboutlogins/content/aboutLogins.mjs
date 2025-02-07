@@ -18,6 +18,9 @@ const gElements = {
     .querySelector("login-list")
     .shadowRoot.querySelector("login-filter"),
   menuButton: document.querySelector("menu-button"),
+  get exportButton() {
+    return this.menuButton.shadowRoot.querySelector(".menuitem-export");
+  },
   // removeAllLogins button is nested inside of menuButton
   get removeAllButton() {
     return this.menuButton.shadowRoot.querySelector(
@@ -32,6 +35,7 @@ function updateNoLogins() {
   document.documentElement.classList.toggle("no-logins", numberOfLogins == 0);
   gElements.loginList.classList.toggle("no-logins", numberOfLogins == 0);
   gElements.loginItem.classList.toggle("no-logins", numberOfLogins == 0);
+  gElements.exportButton.disabled = numberOfLogins == 0;
   gElements.removeAllButton.disabled = numberOfLogins == 0;
 }
 

@@ -15,6 +15,14 @@ let { TelemetryTestUtils } = ChromeUtils.importESModule(
 let { MockFilePicker } = SpecialPowers;
 
 add_setup(async function () {
+  const exampleLogin = LoginTestUtils.testData.formLogin({
+    origin: "https://www.example.com",
+    formActionOrigin: "https://www.example.com",
+    username: "username",
+    password: "password",
+    timePasswordChanged: new Date("2025-02-05").getTime(),
+  });
+  await Services.logins.addLoginAsync(exampleLogin);
   await TestUtils.waitForCondition(() => {
     Services.telemetry.clearEvents();
     let events = Services.telemetry.snapshotEvents(
@@ -30,6 +38,7 @@ add_setup(async function () {
 
   registerCleanupFunction(() => {
     MockFilePicker.cleanup();
+    LoginTestUtils.clearData();
   });
 });
 

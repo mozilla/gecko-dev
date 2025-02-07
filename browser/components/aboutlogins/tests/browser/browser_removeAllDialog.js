@@ -370,9 +370,15 @@ add_task(async function test_remove_all_dialog_remove_logins() {
     let removeAllMenuButton = menuButton.shadowRoot.querySelector(
       ".menuitem-remove-all-logins"
     );
+    let exportLoginsButton =
+      menuButton.shadowRoot.querySelector(".menuitem-export");
     Assert.ok(
       removeAllMenuButton.disabled,
       "Remove all logins menu button is disabled if there are no logins"
+    );
+    ok(
+      exportLoginsButton.disabled,
+      "Remove export logins button is disabled if there are no logins"
     );
   });
   await SpecialPowers.spawn(browser, [], async () => {
