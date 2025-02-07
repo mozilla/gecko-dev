@@ -87,9 +87,10 @@ void PacketRouter::RegisterNotifyBweCallback(
   notify_bwe_callback_ = std::move(callback);
 }
 
-void PacketRouter::EnableCongestionControlFeedbackAccordingToRfc8888() {
+void PacketRouter::ConfigureForRfc8888Feedback(bool send_rtp_packets_as_ect1) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   use_cc_feedback_according_to_rfc8888_ = true;
+  send_rtp_packets_as_ect1_ = send_rtp_packets_as_ect1;
 }
 
 void PacketRouter::AddSendRtpModuleToMap(RtpRtcpInterface* rtp_module,
@@ -202,6 +203,9 @@ void PacketRouter::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
   if (use_cc_feedback_according_to_rfc8888_ ||
       packet->HasExtension<TransportSequenceNumber>()) {
     packet->set_transport_sequence_number(transport_seq_++);
+  }
+  if (send_rtp_packets_as_ect1_) {
+    packet->set_send_as_ect1();
   }
   rtp_module->AssignSequenceNumber(*packet);
   if (notify_bwe_callback_) {

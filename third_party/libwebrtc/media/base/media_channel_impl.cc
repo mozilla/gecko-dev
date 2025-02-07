@@ -194,7 +194,7 @@ bool MediaChannelUtil::TransportForMediaChannels::SendRtp(
        included_in_allocation = options.included_in_allocation,
        batchable = options.batchable,
        last_packet_in_batch = options.last_packet_in_batch,
-       is_media = options.is_media,
+       is_media = options.is_media, ect_1 = options.send_as_ect1,
        packet = rtc::CopyOnWriteBuffer(packet, kMaxRtpPacketLen)]() mutable {
         rtc::PacketOptions rtc_options;
         rtc_options.packet_id = packet_id;
@@ -206,6 +206,7 @@ bool MediaChannelUtil::TransportForMediaChannels::SendRtp(
         rtc_options.info_signaled_after_sent.included_in_allocation =
             included_in_allocation;
         rtc_options.info_signaled_after_sent.is_media = is_media;
+        rtc_options.ecn_1 = ect_1;
         rtc_options.batchable = batchable;
         rtc_options.last_packet_in_batch = last_packet_in_batch;
         DoSendPacket(&packet, false, rtc_options);

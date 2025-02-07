@@ -47,6 +47,26 @@ class RtcpFeedbackCounter {
     }
     if (header.fmt() == rtcp::CongestionControlFeedback::kFeedbackMessageType) {
       ++congestion_control_feedback_;
+      rtcp::CongestionControlFeedback fb;
+      ASSERT_TRUE(fb.Parse(header));
+      for (const rtcp::CongestionControlFeedback::PacketInfo& info :
+           fb.packets()) {
+        switch (info.ecn) {
+          case EcnMarking::kNotEct:
+            ++not_ect_;
+            break;
+          case EcnMarking::kEct0:
+            // Not used.
+            RTC_CHECK_NOTREACHED();
+            break;
+          case EcnMarking::kEct1:
+            // ECN-Capable Transport
+            ++ect1_;
+            break;
+          case EcnMarking::kCe:
+            ++ce_;
+        }
+      }
     }
     if (header.fmt() == rtcp::TransportFeedback::kFeedbackMessageType) {
       ++transport_sequence_number_feedback_;
@@ -59,10 +79,16 @@ class RtcpFeedbackCounter {
   int FeedbackAccordingToTransportCc() const {
     return transport_sequence_number_feedback_;
   }
+  int not_ect() const { return not_ect_; }
+  int ect1() const { return ect1_; }
+  int ce() const { return ce_; }
 
  private:
   int congestion_control_feedback_ = 0;
   int transport_sequence_number_feedback_ = 0;
+  int not_ect_ = 0;
+  int ect1_ = 0;
+  int ce_ = 0;
 };
 
 rtc::scoped_refptr<const RTCStatsReport> GetStatsAndProcess(
@@ -102,14 +128,12 @@ TEST(L4STest, NegotiateAndUseCcfbIfEnabled) {
   s.net()->CreateRoute(callee->endpoint(), {ret_node}, caller->endpoint());
 
   RtcpFeedbackCounter send_node_feedback_counter;
-  send_node->router()->SetFilter([&](const EmulatedIpPacket& packet) {
+  send_node->router()->SetWatcher([&](const EmulatedIpPacket& packet) {
     send_node_feedback_counter.Count(packet);
-    return true;
   });
   RtcpFeedbackCounter ret_node_feedback_counter;
-  ret_node->router()->SetFilter([&](const EmulatedIpPacket& packet) {
+  ret_node->router()->SetWatcher([&](const EmulatedIpPacket& packet) {
     ret_node_feedback_counter.Count(packet);
-    return true;
   });
 
   auto signaling = s.ConnectSignaling(caller, callee, {send_node}, {ret_node});
@@ -200,6 +224,61 @@ TEST(L4STest, CallerAdaptToLinkCapacityWithoutEcn) {
       GetAvailableSendBitrate(GetStatsAndProcess(s, caller));
   EXPECT_GT(available_bwe.kbps(), 500);
   EXPECT_LT(available_bwe.kbps(), 610);
+}
+
+TEST(L4STest, SendsEct1UntilFirstFeedback) {
+  test::ScopedFieldTrials trials(
+      "WebRTC-RFC8888CongestionControlFeedback/Enabled/");
+  PeerScenario s(*test_info_);
+
+  PeerScenarioClient::Config config = PeerScenarioClient::Config();
+  config.disable_encryption = true;
+  PeerScenarioClient* caller = s.CreateClient(config);
+  PeerScenarioClient* callee = s.CreateClient(config);
+
+  // Create network path from caller to callee.
+  auto caller_to_callee = s.net()->NodeBuilder().Build().node;
+  auto callee_to_caller = s.net()->NodeBuilder().Build().node;
+  s.net()->CreateRoute(caller->endpoint(), {caller_to_callee},
+                       callee->endpoint());
+  s.net()->CreateRoute(callee->endpoint(), {callee_to_caller},
+                       caller->endpoint());
+
+  RtcpFeedbackCounter feedback_counter;
+  std::atomic<bool> seen_ect1_feedback = false;
+  std::atomic<bool> seen_not_ect_feedback = false;
+  callee_to_caller->router()->SetWatcher([&](const EmulatedIpPacket& packet) {
+    feedback_counter.Count(packet);
+    if (feedback_counter.ect1() > 0) {
+      seen_ect1_feedback = true;
+      RTC_LOG(LS_INFO) << " ect 1" << feedback_counter.ect1();
+    }
+    if (feedback_counter.not_ect() > 0) {
+      seen_not_ect_feedback = true;
+      RTC_LOG(LS_INFO) << " not ect" << feedback_counter.not_ect();
+    }
+  });
+
+  auto signaling = s.ConnectSignaling(caller, callee, {caller_to_callee},
+                                      {callee_to_caller});
+  PeerScenarioClient::VideoSendTrackConfig video_conf;
+  video_conf.generator.squares_video->framerate = 15;
+
+  caller->CreateVideo("VIDEO_1", video_conf);
+  signaling.StartIceSignaling();
+
+  std::atomic<bool> offer_exchange_done(false);
+  signaling.NegotiateSdp([&](const SessionDescriptionInterface& answer) {
+    offer_exchange_done = true;
+  });
+  s.WaitAndProcess(&offer_exchange_done);
+
+  // Wait for first feedback where packets have been sent with ECT(1). Then
+  // feedback for packets sent as not ECT since currently webrtc does not
+  // implement adaptation to ECN.
+  s.WaitAndProcess(&seen_ect1_feedback, TimeDelta::Seconds(1));
+  EXPECT_FALSE(seen_not_ect_feedback);
+  s.WaitAndProcess(&seen_not_ect_feedback, TimeDelta::Seconds(1));
 }
 
 }  // namespace

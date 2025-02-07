@@ -24,6 +24,7 @@ if (rtc_include_tests) {
       "../../:field_trial",
       "../../:test_support",
       "../../../api:rtc_stats_api",
+      "../../../api/transport:ecn_marking",
       "../../../api/units:data_rate",
       "../../../api/units:time_delta",
       "../../../media:stream_params",

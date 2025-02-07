@@ -147,6 +147,11 @@ class RtpPacketToSend : public RtpPacket {
   void set_transport_sequence_number(int64_t transport_sequence_number) {
     transport_sequence_number_ = transport_sequence_number;
   }
+  // Transport is capable of handling explicit congestion notification and the
+  // RTP packet should be sent as ect(1)
+  // https://www.rfc-editor.org/rfc/rfc9331.html
+  bool send_as_ect1() const { return send_as_ect1_; }
+  void set_send_as_ect1() { send_as_ect1_ = true; }
 
  private:
   webrtc::Timestamp capture_time_ = webrtc::Timestamp::Zero();
@@ -161,6 +166,7 @@ class RtpPacketToSend : public RtpPacket {
   bool is_key_frame_ = false;
   bool fec_protect_packet_ = false;
   bool is_red_ = false;
+  bool send_as_ect1_ = false;
   std::optional<TimeDelta> time_in_send_queue_;
 };
 

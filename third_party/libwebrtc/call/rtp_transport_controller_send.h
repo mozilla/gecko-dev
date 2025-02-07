@@ -142,6 +142,9 @@ class RtpTransportControllerSend final
     return controller_.get();
   }
 
+  // Called once it's known that the remote end supports RFC 8888.
+  void EnableCongestionControlFeedbackAccordingToRfc8888() override;
+
   int ReceivedCongestionControlFeedbackCount() const override {
     RTC_DCHECK_RUN_ON(&sequence_checker_);
     return feedback_count_;
@@ -153,6 +156,8 @@ class RtpTransportControllerSend final
 
  private:
   void MaybeCreateControllers() RTC_RUN_ON(sequence_checker_);
+  void HandleTransportPacketsFeedback(const TransportPacketsFeedback& feedback)
+      RTC_RUN_ON(sequence_checker_);
   void UpdateNetworkAvailability() RTC_RUN_ON(sequence_checker_);
   void UpdateInitialConstraints(TargetRateConstraints new_contraints)
       RTC_RUN_ON(sequence_checker_);
@@ -237,6 +242,7 @@ class RtpTransportControllerSend final
 
   DataSize congestion_window_size_ RTC_GUARDED_BY(sequence_checker_);
   bool is_congested_ RTC_GUARDED_BY(sequence_checker_);
+  bool transport_is_ecn_capable_ = false;
   // Count of feedback messages received.
   int feedback_count_ RTC_GUARDED_BY(sequence_checker_) = 0;
   int transport_cc_feedback_count_ RTC_GUARDED_BY(sequence_checker_) = 0;

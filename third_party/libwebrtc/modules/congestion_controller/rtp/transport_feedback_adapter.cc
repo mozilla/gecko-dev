@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "api/transport/ecn_marking.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
@@ -247,7 +248,7 @@ TransportFeedbackAdapter::ProcessTransportFeedback(
                      << " packets because they were sent on a different route.";
   }
   return ToTransportFeedback(std::move(packet_result_vector),
-                             feedback_receive_time);
+                             feedback_receive_time, /*suports_ecn=*/false);
 }
 
 std::optional<TransportPacketsFeedback>
@@ -277,6 +278,7 @@ TransportFeedbackAdapter::ProcessCongestionControlFeedback(
 
   int ignored_packets = 0;
   int failed_lookups = 0;
+  bool supports_ecn = true;
   std::vector<PacketResult> packet_result_vector;
   for (const rtcp::CongestionControlFeedback::PacketInfo& packet_info :
        feedback.packets()) {
@@ -296,6 +298,7 @@ TransportFeedbackAdapter::ProcessCongestionControlFeedback(
     result.sent_packet = packet_feedback->sent;
     if (packet_info.arrival_time_offset.IsFinite()) {
       result.receive_time = current_offset_ - packet_info.arrival_time_offset;
+      supports_ecn &= packet_info.ecn != EcnMarking::kNotEct;
     }
     result.ecn = packet_info.ecn;
     packet_result_vector.push_back(result);
@@ -318,13 +321,14 @@ TransportFeedbackAdapter::ProcessCongestionControlFeedback(
     return lhs.sent_packet.sequence_number < rhs.sent_packet.sequence_number;
   });
   return ToTransportFeedback(std::move(packet_result_vector),
-                             feedback_receive_time);
+                             feedback_receive_time, supports_ecn);
 }
 
 std::optional<TransportPacketsFeedback>
 TransportFeedbackAdapter::ToTransportFeedback(
     std::vector<PacketResult> packet_results,
-    Timestamp feedback_receive_time) {
+    Timestamp feedback_receive_time,
+    bool supports_ecn) {
   TransportPacketsFeedback msg;
   msg.feedback_time = feedback_receive_time;
   if (packet_results.empty()) {
@@ -332,6 +336,7 @@ TransportFeedbackAdapter::ToTransportFeedback(
   }
   msg.packet_feedbacks = std::move(packet_results);
   msg.data_in_flight = in_flight_.GetOutstandingData(network_route_);
+  msg.transport_supports_ecn = supports_ecn;
 
   return msg;
 }

@@ -423,7 +423,7 @@ TEST_F(PacketRouterTest,
   EXPECT_CALL(rtp_1, CanSendPacket).WillRepeatedly(Return(true));
 
   packet_router.AddSendRtpModule(&rtp_1, false);
-  packet_router.EnableCongestionControlFeedbackAccordingToRfc8888();
+  packet_router.ConfigureForRfc8888Feedback(/*send_rtp_packets_as_ect1=*/false);
 
   auto packet = BuildRtpPacket(kSsrc1);
   EXPECT_CALL(notify_bwe_callback, Call)
@@ -432,6 +432,34 @@ TEST_F(PacketRouterTest,
         EXPECT_EQ(packet.transport_sequence_number(), 1);
       });
   packet_router.SendPacket(std::move(packet), PacedPacketInfo());
+
+  packet_router.OnBatchComplete();
+  packet_router.RemoveSendRtpModule(&rtp_1);
+}
+
+TEST_F(PacketRouterTest, SendPacketsAsEct1IfConfigured) {
+  const uint16_t kSsrc1 = 1234;
+  PacketRouter packet_router;
+  NiceMock<MockRtpRtcpInterface> rtp_1;
+  ON_CALL(rtp_1, SSRC()).WillByDefault(Return(kSsrc1));
+  ON_CALL(rtp_1, CanSendPacket).WillByDefault(Return(kSsrc1));
+
+  packet_router.AddSendRtpModule(&rtp_1, false);
+  packet_router.ConfigureForRfc8888Feedback(/*send_rtp_packets_as_ect1=*/true);
+
+  testing::Sequence s;
+  EXPECT_CALL(
+      rtp_1,
+      SendPacket(Pointee(Property(&RtpPacketToSend::send_as_ect1, true)), _))
+      .InSequence(s);
+  EXPECT_CALL(
+      rtp_1,
+      SendPacket(Pointee(Property(&RtpPacketToSend::send_as_ect1, false)), _))
+      .InSequence(s);
+
+  packet_router.SendPacket(BuildRtpPacket(kSsrc1), PacedPacketInfo());
+  packet_router.ConfigureForRfc8888Feedback(/*send_rtp_packets_as_ect1=*/false);
+  packet_router.SendPacket(BuildRtpPacket(kSsrc1), PacedPacketInfo());
 
   packet_router.OnBatchComplete();
   packet_router.RemoveSendRtpModule(&rtp_1);

@@ -115,6 +115,10 @@ class MockRtpTransportControllerSend
               GetNetworkController,
               (),
               (override));
+  MOCK_METHOD(void,
+              EnableCongestionControlFeedbackAccordingToRfc8888,
+              (),
+              (override));
   MOCK_METHOD(int,
               ReceivedCongestionControlFeedbackCount,
               (),

@@ -41,6 +41,7 @@ rtc_library("transport_feedback") {
   deps = [
     "../..:module_api_public",
     "../../../api:sequence_checker",
+    "../../../api/transport:ecn_marking",
     "../../../api/transport:network_control",
     "../../../api/units:data_size",
     "../../../api/units:time_delta",

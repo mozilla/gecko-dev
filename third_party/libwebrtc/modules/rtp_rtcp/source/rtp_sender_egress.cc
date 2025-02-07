@@ -302,6 +302,7 @@ void RtpSenderEgress::CompleteSendPacket(const Packet& compound_packet,
     send_packet_observer_->OnSendPacket(packet_id, packet->capture_time(),
                                         packet->Ssrc());
   }
+  options.send_as_ect1 = packet->send_as_ect1();
   options.batchable = enable_send_packet_batching_ && !is_audio_;
   options.last_packet_in_batch = last_in_batch;
   const bool send_success = SendPacketToNetwork(*packet, options, pacing_info);

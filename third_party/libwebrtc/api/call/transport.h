@@ -31,6 +31,7 @@ struct PacketOptions {
   bool is_media = true;
   bool included_in_feedback = false;
   bool included_in_allocation = false;
+  bool send_as_ect1 = false;
   // Whether this packet can be part of a packet batch at lower levels.
   bool batchable = false;
   // Whether this packet is the last of a batch.

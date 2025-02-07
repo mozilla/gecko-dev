@@ -635,6 +635,13 @@ void RtpTransportControllerSend::NotifyBweOfPacedSentPacket(
       packet, pacing_info, transport_overhead_bytes_per_packet_, creation_time);
 }
 
+void RtpTransportControllerSend::
+    EnableCongestionControlFeedbackAccordingToRfc8888() {
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
+  transport_is_ecn_capable_ = true;
+  packet_router_.ConfigureForRfc8888Feedback(transport_is_ecn_capable_);
+}
+
 void RtpTransportControllerSend::OnTransportFeedback(
     Timestamp receive_time,
     const rtcp::TransportFeedback& feedback) {
@@ -645,11 +652,7 @@ void RtpTransportControllerSend::OnTransportFeedback(
       transport_feedback_adapter_.ProcessTransportFeedback(feedback,
                                                            receive_time);
   if (feedback_msg) {
-    if (controller_)
-      PostUpdates(controller_->OnTransportPacketsFeedback(*feedback_msg));
-
-    // Only update outstanding data if any packet is first time acked.
-    UpdateCongestedState();
+    HandleTransportPacketsFeedback(*feedback_msg);
   }
 }
 
@@ -665,12 +668,27 @@ void RtpTransportControllerSend::OnCongestionControlFeedback(
       transport_feedback_adapter_.ProcessCongestionControlFeedback(
           feedback, receive_time);
   if (feedback_msg) {
-    if (controller_)
-      PostUpdates(controller_->OnTransportPacketsFeedback(*feedback_msg));
-
-    // Only update outstanding data if any packet is first time acked.
-    UpdateCongestedState();
+    HandleTransportPacketsFeedback(*feedback_msg);
   }
+}
+
+void RtpTransportControllerSend::HandleTransportPacketsFeedback(
+    const TransportPacketsFeedback& feedback) {
+  if (transport_is_ecn_capable_) {
+    // If transport does not support ECN, packets should not be sent as ECT(1).
+    // TODO: bugs.webrtc.org/42225697 - adapt to ECN feedback and continue to
+    // send packets as ECT(1) if transport is ECN capable.
+    transport_is_ecn_capable_ = false;
+    RTC_LOG(LS_INFO) << " Transport is "
+                     << (feedback.transport_supports_ecn ? "" : " not ")
+                     << " ECN capable. Stop sending ECT(1).";
+    packet_router_.ConfigureForRfc8888Feedback(transport_is_ecn_capable_);
+  }
+  if (controller_)
+    PostUpdates(controller_->OnTransportPacketsFeedback(feedback));
+
+  // Only update outstanding data if any packet is first time acked.
+  UpdateCongestedState();
 }
 
 void RtpTransportControllerSend::OnRemoteNetworkEstimate(
