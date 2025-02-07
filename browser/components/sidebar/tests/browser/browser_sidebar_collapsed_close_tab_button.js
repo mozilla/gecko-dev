@@ -59,19 +59,9 @@ add_task(async function test_toggle_collapse_close_button() {
   computedStyle = window.getComputedStyle(selectedTab);
 
   is(
-    computedStyle.opacity,
-    "0",
-    "The active pinned tab is not showing the close button."
-  );
-
-  EventUtils.synthesizeMouse(gBrowser.selectedTab, 10, 10, {
-    type: "mouseover",
-  });
-  computedStyle = window.getComputedStyle(selectedTab);
-  is(
-    computedStyle.opacity,
-    "0",
-    "The inactive pinned tab is not showing the close button on hover."
+    computedStyle.display,
+    "none",
+    "The pinned tab is not showing the close button."
   );
   gBrowser.unpinTab(gBrowser.selectedTab);
 
