@@ -2296,7 +2296,7 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
     if (!this.props.isRecentSave) {
       // Show Pocket context menu options if applicable.
       // Additionally, show these menu options for all section cards.
-      if (this.props.pocket_button_enabled && this.props.saveToPocketCard || this.props.isSectionsCard) {
+      if (this.props.pocket_button_enabled && (this.props.saveToPocketCard || this.props.isSectionsCard)) {
         pocketMenuOptions = ["CheckSavedToPocket"];
       }
       TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmark", "CheckArchiveFromPocket", ...pocketMenuOptions, "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl", ...(this.props.showPrivacyInfo ? ["ShowPrivacyInfo"] : [])];
