@@ -57,19 +57,6 @@ wr::WrExternalImage RenderDMABUFTextureHost::Lock(uint8_t aChannelIndex,
       static_cast<float>(size.width), static_cast<float>(size.height));
 }
 
-gfx::IntSize RenderDMABUFTextureHost::GetSize(uint8_t aChannelIndex) const {
-  MOZ_ASSERT(mSurface);
-  MOZ_ASSERT((mSurface->GetTextureCount() == 0)
-                 ? (aChannelIndex == mSurface->GetTextureCount())
-                 : (aChannelIndex < mSurface->GetTextureCount()));
-
-  if (!mSurface) {
-    return gfx::IntSize();
-  }
-  return gfx::IntSize(mSurface->GetWidth(aChannelIndex),
-                      mSurface->GetHeight(aChannelIndex));
-}
-
 void RenderDMABUFTextureHost::Unlock() {}
 
 void RenderDMABUFTextureHost::DeleteTextureHandle() {

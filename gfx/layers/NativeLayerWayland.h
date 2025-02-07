@@ -11,30 +11,49 @@
 
 #include "mozilla/Mutex.h"
 #include "mozilla/layers/NativeLayer.h"
-#include "mozilla/layers/SurfacePoolWayland.h"
-#include "mozilla/widget/DMABufFormats.h"
+#include "mozilla/widget/MozContainerWayland.h"
 #include "nsRegion.h"
 #include "nsTArray.h"
 
-namespace mozilla::wr {
-class RenderDMABUFTextureHost;
-}  // namespace mozilla::wr
-
 namespace mozilla::widget {
-class WaylandSurfaceLock;
+class WaylandBuffer;
+class WaylandBufferSHM;
 }  // namespace mozilla::widget
 
 namespace mozilla::layers {
-class NativeLayerWaylandExternal;
 
-struct LayerState {
-  bool mIsVisible : 1;
+class SurfacePoolHandleWayland;
+
+typedef void (*CallbackFunc)(void* aData, uint32_t aTime);
+
+class CallbackMultiplexHelper final {
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CallbackMultiplexHelper);
+
+  explicit CallbackMultiplexHelper(CallbackFunc aCallbackFunc,
+                                   void* aCallbackData);
+
+  void Callback(uint32_t aTime);
+  bool IsActive() { return mActive; }
+
+ private:
+  ~CallbackMultiplexHelper() = default;
+
+  void RunCallback(uint32_t aTime);
+
+  bool mActive = true;
+  CallbackFunc mCallbackFunc = nullptr;
+  void* mCallbackData = nullptr;
 };
 
 class NativeLayerRootWayland final : public NativeLayerRoot {
  public:
-  static already_AddRefed<NativeLayerRootWayland> Create(
-      RefPtr<widget::WaylandSurface> aWaylandSurface);
+  static already_AddRefed<NativeLayerRootWayland> CreateForMozContainer(
+      MozContainer* aContainer);
+
+  virtual NativeLayerRootWayland* AsNativeLayerRootWayland() override {
+    return this;
+  }
 
   // Overridden methods
   already_AddRefed<NativeLayer> CreateLayer(
@@ -46,95 +65,45 @@ class NativeLayerRootWayland final : public NativeLayerRoot {
   void AppendLayer(NativeLayer* aLayer) override;
   void RemoveLayer(NativeLayer* aLayer) override;
   void SetLayers(const nsTArray<RefPtr<NativeLayer>>& aLayers) override;
-  void ClearLayers();
 
   void PrepareForCommit() override { mFrameInProcess = true; };
   bool CommitToScreen() override;
 
-  // Main thread only
-  GdkWindow* GetGdkWindow() const;
-
-  RefPtr<widget::WaylandSurface> GetWaylandSurface() { return mSurface; }
-
-  RefPtr<widget::DRMFormat> GetDRMFormat() { return mDRMFormat; }
-
-  void FrameCallbackHandler(uint32_t aTime);
-
-#ifdef MOZ_LOGGING
-  nsAutoCString GetDebugTag() const;
-  void* GetLoggingWidget() const;
-#endif
-
-  // We use explicit Init() function as we take reference to this inside.
-  void Init();
-
   void UpdateLayersOnMainThread();
-  void RequestUpdateOnMainThreadLocked(const MutexAutoLock& aProofOfLock);
-
-  explicit NativeLayerRootWayland(
-      RefPtr<widget::WaylandSurface> aWaylandSurface);
+  void AfterFrameClockAfterPaint();
+  void RequestFrameCallback(CallbackFunc aCallbackFunc, void* aCallbackData);
 
  private:
+  explicit NativeLayerRootWayland(MozContainer* aContainer);
   ~NativeLayerRootWayland();
 
-  bool CommitToScreenLocked(const MutexAutoLock& aProofOfLock);
-
-  // Map NativeLayerRootWayland and all child surfaces.
-  // Returns true if we're set.
-  bool MapLocked(const MutexAutoLock& aProofOfLock);
-
-  bool UpdateLayersLocked(const MutexAutoLock& aProofOfLock);
-
-  bool IsEmptyLocked(const MutexAutoLock& aProofOfLock);
-
-#ifdef MOZ_LOGGING
-  void LogStatsLocked(const MutexAutoLock& aProofOfLock);
-#endif
+  bool CommitToScreen(const MutexAutoLock& aProofOfLock);
 
   Mutex mMutex MOZ_UNANNOTATED;
 
-#ifdef MOZ_LOGGING
-  void* mLoggingWidget = nullptr;
+  MozContainer* mContainer = nullptr;
+#if 0
+  wl_surface* mWlSurface = nullptr;
 #endif
+  RefPtr<widget::WaylandBufferSHM> mShmBuffer;
 
-  // WaylandSurface of nsWindow (our root window).
-  // This WaylandSurface is owned by nsWindow so we don't map/unmap it
-  // or handle any callbacks.
-  RefPtr<widget::WaylandSurface> mSurface;
-
-  // Copy of DRM format we use to create DMABuf surfaces
-  RefPtr<widget::DRMFormat> mDRMFormat;
-
-  // Empty buffer attached to mSurface. We need to have something
-  // attached to make mSurface and all child visible.
-  RefPtr<widget::WaylandBufferSHM> mTmpBuffer;
-
-  // Child layers attached to this root, they're all on the same level
-  // so all child layers are attached to mContainer as subsurfaces.
-  // Layer visibility is sorted by Z-order, mSublayers[0] is on bottom.
   nsTArray<RefPtr<NativeLayerWayland>> mSublayers;
+  nsTArray<RefPtr<NativeLayerWayland>> mOldSublayers;
+  nsTArray<RefPtr<NativeLayerWayland>> mSublayersOnMainThread;
+  bool mNewLayers = false;
 
-  // Child layers which needs to be updated on main thread,
-  // they have been added or removed.
-  nsTArray<RefPtr<NativeLayerWayland>> mMainThreadUpdateSublayers;
+  bool mFrameInProcess = false;
+#if 0
+  bool mCallbackRequested = false;
 
-  // We're between CompositorBeginFrame() / CompositorEndFrame() calls.
-  mozilla::Atomic<bool, mozilla::Relaxed> mFrameInProcess{false};
-
-  uint32_t aLastFrameCallbackTime = 0;
-
-  // State flags used for optimizations
-  // Layers have been added/removed
-  bool mNeedsLayerUpdate = false;
-  bool mMainThreadUpdateQueued = false;
+  gulong mGdkAfterPaintId = 0;
+#endif
+  RefPtr<CallbackMultiplexHelper> mCallbackMultiplexHelper;
 };
 
-class NativeLayerWayland : public NativeLayer {
+class NativeLayerWayland final : public NativeLayer {
  public:
   virtual NativeLayerWayland* AsNativeLayerWayland() override { return this; }
-  virtual NativeLayerWaylandExternal* AsNativeLayerWaylandExternal() {
-    return nullptr;
-  }
 
   // Overridden methods
   gfx::IntSize GetSize() override;
@@ -144,127 +113,6 @@ class NativeLayerWayland : public NativeLayer {
   gfx::Matrix4x4 GetTransform() override;
   gfx::IntRect GetRect() override;
   void SetSamplingFilter(gfx::SamplingFilter aSamplingFilter) override;
-
-  bool IsOpaque() override;
-  void SetClipRect(const Maybe<gfx::IntRect>& aClipRect) override;
-  Maybe<gfx::IntRect> ClipRect() override;
-  gfx::IntRect CurrentSurfaceDisplayRect() override;
-  void SetSurfaceIsFlipped(bool aIsFlipped) override;
-  bool SurfaceIsFlipped() override;
-
-  void UpdateLayer(double aScale);
-  // TODO
-  GpuFence* GetGpuFence() override { return nullptr; }
-
-  RefPtr<widget::WaylandSurface> GetWaylandSurface() { return mSurface; }
-
-  virtual void CommitSurfaceToScreenLocked(
-      const MutexAutoLock& aProofOfLock,
-      widget::WaylandSurfaceLock& aSurfaceLock) = 0;
-  void RemoveAttachedBufferLocked(const MutexAutoLock& aProofOfLock,
-                                  widget::WaylandSurfaceLock& aSurfaceLock);
-
-  // Surface Map/Unamp happens on rendering thread.
-  //
-  // We can use surface right after map but we need to finish mapping
-  // on main thread to render it correctly.
-  //
-  // Also Unmap() needs to be finished on main thread.
-  bool IsMapped();
-  bool Map(widget::WaylandSurfaceLock* aParentWaylandSurfaceLock);
-  void Unmap();
-
-  void UpdateOnMainThread();
-  void MainThreadMap();
-  void MainThreadUnmap();
-
-  void ForceCommit();
-
-  void PlaceAbove(NativeLayerWayland* aLowerLayer);
-
-#ifdef MOZ_LOGGING
-  nsAutoCString GetDebugTag() const;
-#endif
-
-  virtual void DiscardBackbuffersLocked(const MutexAutoLock& aProofOfLock,
-                                        bool aForce = false) = 0;
-  void DiscardBackbuffers() override;
-
-  NativeLayerWayland(NativeLayerRootWayland* aRootLayer,
-                     const gfx::IntSize& aSize, bool aIsOpaque);
-
-  // No need to lock as we used it when new layers are added only
-  constexpr static int sLayerClear = 0;
-  constexpr static int sLayerRemoved = 1;
-  constexpr static int sLayerAdded = 2;
-
-  void MarkClear() { mUsageCount = sLayerClear; }
-  void MarkRemoved() { mUsageCount = sLayerRemoved; }
-  void MarkAdded() { mUsageCount += sLayerAdded; }
-
-  bool IsRemoved() const { return mUsageCount == sLayerRemoved; }
-  bool IsNew() const { return mUsageCount == sLayerAdded; }
-
-  LayerState* State() { return &mState; }
-
- protected:
-  ~NativeLayerWayland();
-
-  Mutex mMutex MOZ_UNANNOTATED;
-
-  // There's a cycle dependency here as NativeLayerRootWayland holds strong
-  // reference to NativeLayerWayland and vice versa.
-  //
-  // Shutdown sequence is:
-  //
-  // 1) NativeLayerRootWayland is released by GtkCompositorWidget
-  // 2) NativeLayerRootWayland calls childs NativeLayerWayland release code and
-  //    unrefs them.
-  // 3) Child NativeLayerWayland register main thread callback to clean up
-  //    and release itself.
-  // 4) Child NativeLayerWayland unref itself and parent NativeLayerRootWayland.
-  // 5) NativeLayerRootWayland is released when there isn't any
-  //    NativeLayerWayland left.
-  //
-  RefPtr<NativeLayerRootWayland> mRootLayer;
-
-  RefPtr<widget::WaylandSurface> mSurface;
-
-  const bool mIsOpaque = false;
-
-  // Used at SetLayers() when we need to identify removed layers, new layers
-  // and layers removed but returned back.
-  // We're adding respective constants to mUsageCount for each layer
-  // so removed layers have usage count 1, newly added 2 and removed+added 3.
-  int mUsageCount = 0;
-
-  gfx::IntSize mSize;
-  gfx::IntPoint mPosition;
-  gfx::Matrix4x4 mTransform;
-  gfx::IntRect mDisplayRect;
-  Maybe<gfx::IntRect> mClipRect;
-  gfx::SamplingFilter mSamplingFilter = gfx::SamplingFilter::POINT;
-  LayerState mState{};
-  bool mSurfaceIsFlipped = false;
-  bool mIsHDR = false;
-
-  enum class MainThreadUpdate {
-    None,
-    Map,
-    Unmap,
-  };
-
-  // Indicate that we need to finish surface map/unmap
-  // on main thread.
-  // We need to perform main thread unmap even if mapping on main thread
-  // is not finished, some main thread resources are created
-  // by WaylandSurface itself.
-  Atomic<MainThreadUpdate, mozilla::Relaxed> mNeedsMainThreadUpdate{
-      MainThreadUpdate::None};
-};
-
-class NativeLayerWaylandRender final : public NativeLayerWayland {
- public:
   RefPtr<gfx::DrawTarget> NextSurfaceAsDrawTarget(
       const gfx::IntRect& aDisplayRect, const gfx::IntRegion& aUpdateRegion,
       gfx::BackendType aBackendType) override;
@@ -272,58 +120,69 @@ class NativeLayerWaylandRender final : public NativeLayerWayland {
                                          const gfx::IntRegion& aUpdateRegion,
                                          bool aNeedsDepth) override;
   void NotifySurfaceReady() override;
-  void AttachExternalImage(wr::RenderTextureHost* aExternalImage) override;
-  void CommitSurfaceToScreenLocked(
-      const MutexAutoLock& aProofOfLock,
-      widget::WaylandSurfaceLock& aSurfaceLock) override;
+  void DiscardBackbuffers() override;
+  bool IsOpaque() override;
+  void SetClipRect(const Maybe<gfx::IntRect>& aClipRect) override;
+  Maybe<gfx::IntRect> ClipRect() override;
+  gfx::IntRect CurrentSurfaceDisplayRect() override;
+  void SetSurfaceIsFlipped(bool aIsFlipped) override;
+  bool SurfaceIsFlipped() override;
 
-  NativeLayerWaylandRender(NativeLayerRootWayland* aRootLayer,
-                           const gfx::IntSize& aSize, bool aIsOpaque,
-                           SurfacePoolHandleWayland* aSurfacePoolHandle);
+  void AttachExternalImage(wr::RenderTextureHost* aExternalImage) override;
+  GpuFence* GetGpuFence() override { return nullptr; }
+
+  void Commit();
+  void Unmap();
+  void EnsureParentSurface(wl_surface* aParentSurface);
+  const auto& GetSurfacePoolHandle() { return mSurfacePoolHandle; };
+  void SetBufferTransformFlipped(bool aFlippedX, bool aFlippedY);
+  void SetSubsurfacePosition(int aX, int aY);
+  void SetViewportSourceRect(const gfx::Rect aSourceRect);
+  void SetViewportDestinationSize(int aWidth, int aHeight);
+
+  void RequestFrameCallback(
+      const RefPtr<CallbackMultiplexHelper>& aMultiplexHelper);
+  static void FrameCallbackHandler(void* aData, wl_callback* aCallback,
+                                   uint32_t aTime);
 
  private:
-  ~NativeLayerWaylandRender() override;
+  friend class NativeLayerRootWayland;
 
-  void DiscardBackbuffersLocked(const MutexAutoLock& aProofOfLock,
-                                bool aForce) override;
-  void HandlePartialUpdateLocked(const MutexAutoLock& aProofOfLock);
+  NativeLayerWayland(const gfx::IntSize& aSize, bool aIsOpaque,
+                     SurfacePoolHandleWayland* aSurfacePoolHandle);
+  explicit NativeLayerWayland(bool aIsOpaque);
+  ~NativeLayerWayland() override;
+
+  void HandlePartialUpdate(const MutexAutoLock& aProofOfLock);
+  void FrameCallbackHandler(wl_callback* aCallback, uint32_t aTime);
+
+  Mutex mMutex MOZ_UNANNOTATED;
 
   const RefPtr<SurfacePoolHandleWayland> mSurfacePoolHandle;
-  RefPtr<widget::WaylandBuffer> mInProgressBuffer;
-  RefPtr<widget::WaylandBuffer> mFrontBuffer;
+  const gfx::IntSize mSize;
+  const bool mIsOpaque = false;
+  gfx::IntPoint mPosition;
+  gfx::Matrix4x4 mTransform;
+  gfx::IntRect mDisplayRect;
   gfx::IntRegion mDirtyRegion;
-};
+  Maybe<gfx::IntRect> mClipRect;
+  gfx::SamplingFilter mSamplingFilter = gfx::SamplingFilter::POINT;
+  bool mSurfaceIsFlipped = false;
+  bool mHasBufferAttached = false;
 
-class NativeLayerWaylandExternal final : public NativeLayerWayland {
- public:
-  // Overridden methods
-  virtual NativeLayerWaylandExternal* AsNativeLayerWaylandExternal() override {
-    return this;
-  }
-  RefPtr<gfx::DrawTarget> NextSurfaceAsDrawTarget(
-      const gfx::IntRect& aDisplayRect, const gfx::IntRegion& aUpdateRegion,
-      gfx::BackendType aBackendType) override;
-  Maybe<GLuint> NextSurfaceAsFramebuffer(const gfx::IntRect& aDisplayRect,
-                                         const gfx::IntRegion& aUpdateRegion,
-                                         bool aNeedsDepth) override;
-  void NotifySurfaceReady() override {};
-  void AttachExternalImage(wr::RenderTextureHost* aExternalImage) override;
-  void CommitSurfaceToScreenLocked(
-      const MutexAutoLock& aProofOfLock,
-      widget::WaylandSurfaceLock& aSurfaceLock) override;
+  wl_surface* mWlSurface = nullptr;
+  wl_surface* mParentWlSurface = nullptr;
+  wl_subsurface* mWlSubsurface = nullptr;
+  wl_callback* mCallback = nullptr;
+  wp_viewport* mViewport = nullptr;
+  bool mBufferTransformFlippedX = false;
+  bool mBufferTransformFlippedY = false;
+  gfx::IntPoint mSubsurfacePosition = gfx::IntPoint(0, 0);
+  gfx::Rect mViewportSourceRect = gfx::Rect(-1, -1, -1, -1);
+  gfx::IntSize mViewportDestinationSize = gfx::IntSize(-1, -1);
+  nsTArray<RefPtr<CallbackMultiplexHelper>> mCallbackMultiplexHelpers;
 
-  NativeLayerWaylandExternal(NativeLayerRootWayland* aRootLayer,
-                             bool aIsOpaque);
-
- private:
-  ~NativeLayerWaylandExternal() override;
-
-  void DiscardBackbuffersLocked(const MutexAutoLock& aProofOfLock,
-                                bool aForce) override;
-  void FreeUnusedBackBuffers();
-
-  bool mBufferInvalided = false;
-  RefPtr<wr::RenderDMABUFTextureHost> mTextureHost;
+  RefPtr<widget::WaylandBuffer> mInProgressBuffer;
   RefPtr<widget::WaylandBuffer> mFrontBuffer;
 };
 
