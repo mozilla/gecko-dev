@@ -410,7 +410,7 @@ class MacroAssemblerX86Shared : public Assembler {
   void convertFloat16ToFloat32(FloatRegister src, FloatRegister dest) {
     // Zero extend word to quadword. This ensures all high words in the result
     // are zeroed after vcvtph2ps.
-    vpmovzxwq(Operand(dest), dest);
+    vpmovzxwq(Operand(src), dest);
 
     // Convert Float16 to Float32.
     vcvtph2ps(dest, dest);

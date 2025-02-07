@@ -173,9 +173,9 @@ load 1835118.adts
 load trimming_needed_and_last_sample_invalid_duration.ogg
 load 1839193.html
 load 1850453.html
-test-pref(media.wmf.hevc.enabled,1) load 1859384.mp4
-test-pref(media.wmf.hevc.enabled,1) load 1859600.mp4
-test-pref(media.wmf.hevc.enabled,1) load 1860840.mp4
+test-pref(media.hevc.enabled,true) load 1859384.mp4
+test-pref(media.hevc.enabled,true) load 1859600.mp4
+test-pref(media.hevc.enabled,true) load 1860840.mp4
 load 1864450.html
 load 1872787.html
 load small-timebase.html

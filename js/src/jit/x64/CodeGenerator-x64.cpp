@@ -6,6 +6,7 @@
 
 #include "jit/x64/CodeGenerator-x64.h"
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/FloatingPoint.h"
 
 #include "jit/CodeGenerator.h"
@@ -508,6 +509,12 @@ void CodeGeneratorX64::wasmStore(const wasm::MemoryAccessDesc& access,
         masm.movl(cst, dstAddr);
         break;
       case Scalar::Int64:
+        MOZ_ASSERT_IF(mir->type() == MIRType::Int64,
+                      mozilla::CheckedInt32(mir->toInt64()).isValid());
+        masm.append(access, wasm::TrapMachineInsn::Store64,
+                    FaultingCodeOffset(masm.currentOffset()));
+        masm.movq(cst, dstAddr);
+        break;
       case Scalar::Simd128:
       case Scalar::Float16:
       case Scalar::Float32:
@@ -728,8 +735,8 @@ void CodeGeneratorX64::visitOutOfLineTruncate(OutOfLineTruncate* ool) {
   masm.moveDoubleToGPR64(input, Register64(output));
 
   // Extract the exponent.
-  masm.movePtr(output, temp);
-  masm.rshiftPtr(Imm32(mozilla::FloatingPoint<double>::kExponentShift), temp);
+  masm.rshiftPtr(Imm32(mozilla::FloatingPoint<double>::kExponentShift), output,
+                 temp);
   masm.and32(Imm32(ShiftedExponentBits), temp);
 #ifdef DEBUG
   // The biased exponent must be at least `1023 + 63`, because otherwise

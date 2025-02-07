@@ -485,16 +485,6 @@ nsDocShellTreeOwner::GetPersistence(bool* aPersistPosition, bool* aPersistSize,
 }
 
 NS_IMETHODIMP
-nsDocShellTreeOwner::GetTabCount(uint32_t* aResult) {
-  if (mTreeOwner) {
-    return mTreeOwner->GetTabCount(aResult);
-  }
-
-  *aResult = 0;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsDocShellTreeOwner::GetHasPrimaryContent(bool* aResult) {
   *aResult = mPrimaryRemoteTab || mPrimaryContentShell;
   return NS_OK;

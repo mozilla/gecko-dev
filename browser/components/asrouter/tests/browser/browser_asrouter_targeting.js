@@ -1335,6 +1335,31 @@ add_task(async function test_fxViewButtonAreaType_removed() {
   CustomizableUI.reset();
 });
 
+add_task(async function test_alltabsButtonAreaType_default() {
+  is(
+    typeof (await ASRouterTargeting.Environment.alltabsButtonAreaType),
+    "string",
+    "Should return a string"
+  );
+
+  is(
+    await ASRouterTargeting.Environment.alltabsButtonAreaType,
+    "toolbar",
+    "Should return name of container if button hasn't been removed"
+  );
+});
+
+add_task(async function test_alltabsButtonAreaType_removed() {
+  CustomizableUI.removeWidgetFromArea("alltabs-button");
+
+  is(
+    await ASRouterTargeting.Environment.alltabsButtonAreaType,
+    null,
+    "Should return null if button has been removed"
+  );
+  CustomizableUI.reset();
+});
+
 add_task(async function test_creditCardsSaved() {
   await SpecialPowers.pushPrefEnv({
     set: [

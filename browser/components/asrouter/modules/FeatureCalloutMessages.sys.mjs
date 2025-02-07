@@ -84,6 +84,202 @@ function add24HourImpressionJEXLTargeting(
 const MESSAGES = () => {
   let messages = [
     {
+      id: "DESKTOP_TO_MOBILE_ADOPTION_SIGNED_INTO_ACCOUNT_NON_EU",
+      template: "feature_callout",
+      groups: ["cfr"],
+      content: {
+        id: "DESKTOP_TO_MOBILE_ADOPTION_SIGNED_INTO_ACCOUNT_NON_EU",
+        padding: "16",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "DESKTOP_TO_MOBILE_ADOPTION_SIGNED_INTO_ACCOUNT_NON_EU",
+            anchors: [
+              {
+                selector: "#fxa-toolbar-menu-button",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "400px",
+              padding: 16,
+              title: {
+                string_id: "desktop-to-mobile-headline",
+                marginInline: "4px 0",
+              },
+              logo: {
+                height: "128px",
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/desktop-to-mobile-banner.svg",
+              },
+              subtitle: {
+                string_id: "desktop-to-mobile-subtitle",
+                marginBlock: "-44px 0",
+                marginInline: "84px 0",
+              },
+              title_logo: {
+                height: "103px",
+                width: "75px",
+                alignment: "top",
+                marginBlock: "40px 0",
+                marginInline: "32px",
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/desktop-to-mobile-non-eu-QR.svg",
+              },
+              additional_button: {
+                action: {
+                  dismiss: true,
+                },
+                label: {
+                  string_id: "dismiss-button-label",
+                  fontWeight: "590",
+                  fontSize: "11px",
+                },
+                style: "secondary",
+              },
+              secondary_button: {
+                action: {
+                  type: "OPEN_ABOUT_PAGE",
+                  data: {
+                    args: "preferences?action=pair#sync",
+                    where: "tab",
+                  },
+                  dismiss: true,
+                },
+                label: {
+                  string_id: "sync-to-mobile-button-label",
+                  fontWeight: "590",
+                  fontSize: "11px",
+                },
+                style: "secondary",
+              },
+            },
+          },
+        ],
+      },
+      frequency: {
+        custom: [
+          {
+            cap: 1,
+            period: 2628000000,
+          },
+        ],
+        lifetime: 3,
+      },
+      trigger: {
+        id: "defaultBrowserCheck",
+      },
+      targeting:
+        "(region in ['CA', 'US']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      id: "DESKTOP_TO_MOBILE_ADOPTION_SIGNED_INTO_ACCOUNT_EU",
+      template: "feature_callout",
+      groups: ["cfr"],
+      content: {
+        id: "DESKTOP_TO_MOBILE_ADOPTION_SIGNED_INTO_ACCOUNT_EU",
+        padding: "16",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "DESKTOP_TO_MOBILE_ADOPTION_SIGNED_INTO_ACCOUNT_EU",
+            anchors: [
+              {
+                selector: "#fxa-toolbar-menu-button",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "400px",
+              padding: 16,
+              title: {
+                string_id: "desktop-to-mobile-headline",
+                marginInline: "4px 0",
+              },
+              logo: {
+                height: "128px",
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/desktop-to-mobile-banner.svg",
+              },
+              subtitle: {
+                string_id: "desktop-to-mobile-subtitle",
+                marginBlock: "-44px 0",
+                marginInline: "84px 0",
+              },
+              title_logo: {
+                height: "103px",
+                width: "75px",
+                alignment: "top",
+                marginBlock: "40px 0",
+                marginInline: "32px",
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/desktop-to-mobile-eu-QR.svg",
+              },
+              additional_button: {
+                action: {
+                  dismiss: true,
+                },
+                label: {
+                  string_id: "dismiss-button-label",
+                  fontWeight: "590",
+                  fontSize: "11px",
+                },
+                style: "secondary",
+              },
+              secondary_button: {
+                action: {
+                  type: "OPEN_ABOUT_PAGE",
+                  data: {
+                    args: "preferences?action=pair#sync",
+                    where: "tab",
+                  },
+                  dismiss: true,
+                },
+                label: {
+                  string_id: "sync-to-mobile-button-label",
+                  fontWeight: "590",
+                  fontSize: "11px",
+                },
+                style: "secondary",
+              },
+            },
+          },
+        ],
+      },
+      frequency: {
+        custom: [
+          {
+            cap: 1,
+            period: 2628000000,
+          },
+        ],
+        lifetime: 3,
+      },
+      trigger: {
+        id: "defaultBrowserCheck",
+      },
+      targeting:
+        "(locale in ['de', 'en-CA', 'en-GB', 'en-US', 'fr']) && (region in ['DE', 'FR', 'GB']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
       id: "TAB_GROUP_ONBOARDING_CALLOUT",
       template: "feature_callout",
       groups: ["cfr"],
@@ -172,7 +368,7 @@ const MESSAGES = () => {
             anchors: [
               {
                 selector:
-                  "#tabbrowser-tabs:not([overflow]) .tab-content[selected]",
+                  "#tabbrowser-tabs:not([overflow]) .tab-content[selected]:not([pinned])",
                 panel_position: {
                   anchor_attachment: "rightcenter",
                   callout_attachment: "topleft",
@@ -242,7 +438,7 @@ const MESSAGES = () => {
         transitions: false,
         screens: [
           {
-            id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
+            id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT_ALLTABS_BUTTON",
             anchors: [
               {
                 selector: "#alltabs-button",
@@ -280,7 +476,67 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000)",
+        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType != null",
+      trigger: {
+        id: "tabGroupSaved",
+      },
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
+      template: "feature_callout",
+      groups: [],
+      content: {
+        id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT_URLBAR",
+            anchors: [
+              {
+                selector: ".urlbar-input-box",
+                panel_position: {
+                  anchor_attachment: "bottomleft",
+                  callout_attachment: "topleft",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              padding: 16,
+              width: "330px",
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 16px",
+                alignment: "top",
+              },
+              title: {
+                string_id:
+                  "tab-groups-onboarding-saved-groups-no-alltabs-button-title",
+              },
+              primary_button: {
+                label: {
+                  string_id: "tab-groups-onboarding-dismiss",
+                },
+                action: {
+                  dismiss: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.CREATE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType == null",
       trigger: {
         id: "tabGroupSaved",
       },
@@ -304,10 +560,10 @@ const MESSAGES = () => {
             id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
             anchors: [
               {
-                selector: "#alltabs-button",
+                selector: ".urlbar-input-box",
                 panel_position: {
-                  anchor_attachment: "bottomcenter",
-                  callout_attachment: "topright",
+                  anchor_attachment: "bottomleft",
+                  callout_attachment: "topleft",
                 },
               },
             ],
@@ -324,7 +580,7 @@ const MESSAGES = () => {
                 alignment: "top",
               },
               title: {
-                string_id: "tab-groups-onboarding-saved-groups-title",
+                string_id: "tab-groups-onboarding-create-group-title",
               },
               primary_button: {
                 label: {

@@ -11,9 +11,9 @@
 # clear_cache
 # create_cache
 
-ftp_server_to="http://stage.mozilla.org/pub/mozilla.org"
-ftp_server_from="http://stage.mozilla.org/pub/mozilla.org"
-aus_server="https://aus4.mozilla.org"
+ftp_server_to="https://archive.mozilla.org/pub"
+ftp_server_from="https://archive.mozilla.org/pub"
+aus_server="https://aus5.mozilla.org"
 to=""
 to_build_id=""
 to_app_version=""

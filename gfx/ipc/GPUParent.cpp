@@ -115,7 +115,7 @@ static media::MediaCodecsSupported GetFullMediaCodecSupport(
     WMFDecoderModule::Init(WMFDecoderModule::Config::ForceEnableHEVC);
   }
   auto disableHEVCIfNeeded = MakeScopeExit([]() {
-    if (StaticPrefs::media_wmf_hevc_enabled() != 1) {
+    if (!StaticPrefs::media_hevc_enabled()) {
       WMFDecoderModule::DisableForceEnableHEVC();
     }
   });

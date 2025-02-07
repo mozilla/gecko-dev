@@ -23,9 +23,9 @@
 #include "nsIDNSListener.h"
 #include "nsIDNSRecord.h"
 #include "nsIClassInfo.h"
+#include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/net/DNS.h"
 #include "nsASocketHandler.h"
-#include "mozilla/Telemetry.h"
 
 #include "prerror.h"
 #include "ssl.h"
@@ -110,10 +110,12 @@ class nsSocketTransport final : public nsASocketHandler,
   uint64_t ByteCountSent() override;
   static void CloseSocket(PRFileDesc* aFd, bool aTelemetryEnabled);
   static void SendPRBlockingTelemetry(
-      PRIntervalTime aStart, Telemetry::HistogramID aIDNormal,
-      Telemetry::HistogramID aIDShutdown,
-      Telemetry::HistogramID aIDConnectivityChange,
-      Telemetry::HistogramID aIDLinkChange, Telemetry::HistogramID aIDOffline);
+      PRIntervalTime aStart,
+      const glean::impl::TimingDistributionMetric& aMetricNormal,
+      const glean::impl::TimingDistributionMetric& aMetricShutdown,
+      const glean::impl::TimingDistributionMetric& aMetricConnectivityChange,
+      const glean::impl::TimingDistributionMetric& aMetricLinkChange,
+      const glean::impl::TimingDistributionMetric& aMetricOffline);
 
  protected:
   virtual ~nsSocketTransport();

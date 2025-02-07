@@ -33,6 +33,55 @@ profiles.default:
     expires: never
     telemetry_mirror: Profiles_Default_Updated
 
+profiles.delete:
+  cancel:
+    type: event
+    description: >
+      Recorded when the user clicks the "Cancel" button on the
+      about:deleteprofile page, canceling deletion of the current profile
+      and closing the page.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927608
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927608
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_Delete_Cancel
+  confirm:
+    type: event
+    description: >
+      Recorded when the user clicks the "Delete" button on the
+      about:deleteprofile page, triggering deletion of the current profile.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927608
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927608
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_Delete_Confirm
+  displayed:
+    type: event
+    description: Recorded when the about:deleteprofile page is loaded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927608
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1927608
+    notification_emails:
+      - cmkm@mozilla.com
+      - dtownsend@mozilla.com
+      - jhirsch@mozilla.com
+      - nbaumgardner@mozilla.com
+    expires: never
+    telemetry_mirror: Profiles_Delete_Displayed
+
 profiles.existing:
   alert:
     type: event

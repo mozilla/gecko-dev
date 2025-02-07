@@ -16,7 +16,18 @@ add_task(async function () {
       variables: {
         pagesNumSampledVisits:
           "places.frecency.pages.alternative.numSampledVisits",
+        pagesNumInteractions:
+          "places.frecency.pages.alternative.interactions.numInteractions",
+        pagesMaxVisitGap:
+          "places.frecency.pages.alternative.interactions.maxVisitGapSeconds",
+        pagesViewTimeSeconds:
+          "places.frecency.pages.alternative.interactions.viewTimeSeconds",
+        pageViewTimeIfManyKeypressesSeconds:
+          "places.frecency.pages.alternative.interactions.viewTimeIfManyKeypressesSeconds",
+        manyKeypresses:
+          "places.frecency.pages.alternative.interactions.manyKeypresses",
         pagesHalfLifeDays: "places.frecency.pages.alternative.halfLifeDays",
+        pagesVeryHighWeight: "places.frecency.pages.alternative.veryHighWeight",
         pagesHighWeight: "places.frecency.pages.alternative.highWeight",
         pagesMediumWeight: "places.frecency.pages.alternative.mediumWeight",
         pagesLowWeight: "places.frecency.pages.alternative.lowWeight",

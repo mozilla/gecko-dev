@@ -868,6 +868,7 @@ package org.mozilla.geckoview {
     method public boolean getCookieBehaviorOptInPartitioning();
     method public boolean getCookieBehaviorOptInPartitioningPBM();
     method @Nullable public Class<? extends android.app.Service> getCrashHandler();
+    method @Nullable public String getDefaultRecursiveResolverUri();
     method @Nullable public Boolean getDisableShip();
     method @Nullable public Float getDisplayDensityOverride();
     method @Nullable public Integer getDisplayDpiOverride();
@@ -919,6 +920,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings setConsoleOutputEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setCookieBehaviorOptInPartitioning(boolean);
     method @NonNull public GeckoRuntimeSettings setCookieBehaviorOptInPartitioningPBM(boolean);
+    method @NonNull public GeckoRuntimeSettings setDefaultRecursiveResolverUri(@NonNull String);
     method @NonNull public GeckoRuntimeSettings setDoubleTapZoomingEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setEnterpriseRootsEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setExtensionsProcessCrashThreshold(@NonNull Integer);
@@ -979,6 +981,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings.Builder contentBlocking(@NonNull ContentBlocking.Settings);
     method @NonNull public GeckoRuntimeSettings.Builder crashHandler(@Nullable Class<? extends android.app.Service>);
     method @NonNull public GeckoRuntimeSettings.Builder debugLogging(boolean);
+    method @NonNull public GeckoRuntimeSettings.Builder defaultRecursiveResolverUri(@NonNull String);
     method @NonNull public GeckoRuntimeSettings.Builder disableShip(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder displayDensityOverride(float);
     method @NonNull public GeckoRuntimeSettings.Builder displayDpiOverride(int);

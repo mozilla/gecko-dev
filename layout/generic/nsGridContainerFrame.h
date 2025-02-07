@@ -140,7 +140,8 @@ class nsGridContainerFrame final : public nsContainerFrame,
 
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override;
-  void ExtraContainerFrameInfo(nsACString& aTo) const override;
+  void ExtraContainerFrameInfo(nsACString& aTo,
+                               bool aListOnlyDeterministic) const override;
 #endif
 
   // nsContainerFrame overrides

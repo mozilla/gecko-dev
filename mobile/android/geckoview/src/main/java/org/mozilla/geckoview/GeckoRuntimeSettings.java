@@ -580,6 +580,17 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     }
 
     /**
+     * Set the default DNS-over-HTTPS server URI.
+     *
+     * @param uri default URI of the DNS-over-HTTPS server.
+     * @return This Builder instance.
+     */
+    public @NonNull Builder defaultRecursiveResolverUri(final @NonNull String uri) {
+      getSettings().setDefaultRecursiveResolverUri(uri);
+      return this;
+    }
+
+    /**
      * Set the factor by which to increase the keepalive timeout when the NS_HTTP_LARGE_KEEPALIVE
      * flag is used for a connection.
      *
@@ -646,6 +657,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new PrefWithoutDefault<>("network.trr.mode");
   /* package */ final PrefWithoutDefault<String> mTrustedRecursiveResolverUri =
       new PrefWithoutDefault<>("network.trr.uri");
+  /* package */ final PrefWithoutDefault<String> mDefaultRecursiveResolverUri =
+      new PrefWithoutDefault<>("network.trr.default_provider_uri");
   /* package */ final PrefWithoutDefault<String> mTrustedRecursiveResolverExcludedDomains =
       new PrefWithoutDefault<>("network.trr.excluded-domains");
   /* package */ final PrefWithoutDefault<Integer> mLargeKeepalivefactor =
@@ -1918,6 +1931,26 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public @NonNull GeckoRuntimeSettings setTrustedRecursiveResolverUri(final @NonNull String uri) {
     mTrustedRecursiveResolverUri.commit(uri);
+    return this;
+  }
+
+  /**
+   * Get the default DNS-over-HTTPS (DoH) server URI.
+   *
+   * @return default URI of the DoH server.
+   */
+  public @Nullable String getDefaultRecursiveResolverUri() {
+    return mDefaultRecursiveResolverUri.get();
+  }
+
+  /**
+   * Set the default DNS-over-HTTPS server URI.
+   *
+   * @param uri default URI of the DNS-over-HTTPS server.
+   * @return This GeckoRuntimeSettings instance.
+   */
+  public @NonNull GeckoRuntimeSettings setDefaultRecursiveResolverUri(final @NonNull String uri) {
+    mDefaultRecursiveResolverUri.commit(uri);
     return this;
   }
 

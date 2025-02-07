@@ -360,6 +360,10 @@ void MacroAssembler::and32(Imm32 imm, Register dest) {
   ma_and(dest, dest, imm);
 }
 
+void MacroAssembler::and32(Imm32 imm, Register src, Register dest) {
+  ma_and(dest, src, imm);
+}
+
 void MacroAssembler::and32(Imm32 imm, const Address& dest) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
@@ -404,6 +408,10 @@ void MacroAssembler::andPtr(Register src, Register dest) {
 
 void MacroAssembler::andPtr(Imm32 imm, Register dest) {
   ma_and(dest, dest, imm);
+}
+
+void MacroAssembler::andPtr(Imm32 imm, Register src, Register dest) {
+  ma_and(dest, src, imm);
 }
 
 void MacroAssembler::branch8(Condition cond, const Address& lhs, Imm32 rhs,
@@ -1565,8 +1573,13 @@ void MacroAssembler::lshift32(Register src, Register dest) {
 }
 
 void MacroAssembler::lshift32(Imm32 imm, Register dest) {
-  slliw(dest, dest, imm.value % 32);
+  lshift32(imm, dest, dest);
 }
+
+void MacroAssembler::lshift32(Imm32 imm, Register src, Register dest) {
+  slliw(dest, src, imm.value % 32);
+}
+
 void MacroAssembler::lshift64(Register shift, Register64 dest) {
   sll(dest.reg, dest.reg, shift);
 }
@@ -1580,8 +1593,12 @@ void MacroAssembler::lshiftPtr(Register shift, Register dest) {
 }
 
 void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
+  lshiftPtr(imm, dest, dest);
+}
+
+void MacroAssembler::lshiftPtr(Imm32 imm, Register src, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  slli(dest, dest, imm.value);
+  slli(dest, src, imm.value);
 }
 
 void MacroAssembler::flexibleLshiftPtr(Register shift, Register srcDest) {
@@ -1774,6 +1791,10 @@ void MacroAssembler::or32(Register src, Register dest) {
 
 void MacroAssembler::or32(Imm32 imm, Register dest) { ma_or(dest, dest, imm); }
 
+void MacroAssembler::or32(Imm32 imm, Register src, Register dest) {
+  ma_or(dest, src, imm);
+}
+
 void MacroAssembler::or32(Imm32 imm, const Address& dest) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
@@ -1810,6 +1831,10 @@ void MacroAssembler::orPtr(Register src, Register dest) {
 }
 
 void MacroAssembler::orPtr(Imm32 imm, Register dest) { ma_or(dest, dest, imm); }
+
+void MacroAssembler::orPtr(Imm32 imm, Register src, Register dest) {
+  ma_or(dest, src, imm);
+}
 
 void MacroAssembler::patchSub32FromStackPtr(CodeOffset offset, Imm32 imm) {
   DEBUG_PRINTF("patchSub32FromStackPtr at offset %lu with immediate %d\n",
@@ -1928,14 +1953,24 @@ void MacroAssembler::rshift32Arithmetic(Register src, Register dest) {
 }
 
 void MacroAssembler::rshift32Arithmetic(Imm32 imm, Register dest) {
-  sraiw(dest, dest, imm.value % 32);
+  rshift32Arithmetic(imm, dest, dest);
 }
+
+void MacroAssembler::rshift32Arithmetic(Imm32 imm, Register src,
+                                        Register dest) {
+  sraiw(dest, src, imm.value % 32);
+}
+
 void MacroAssembler::rshift32(Register src, Register dest) {
   srlw(dest, dest, src);
 }
 
 void MacroAssembler::rshift32(Imm32 imm, Register dest) {
-  srliw(dest, dest, imm.value % 32);
+  rshift32(imm, dest, dest);
+}
+
+void MacroAssembler::rshift32(Imm32 imm, Register src, Register dest) {
+  srliw(dest, src, imm.value % 32);
 }
 
 void MacroAssembler::rshift64Arithmetic(Imm32 imm, Register64 dest) {
@@ -1957,8 +1992,13 @@ void MacroAssembler::rshift64(Imm32 imm, Register64 dest) {
 }
 
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
+  rshiftPtrArithmetic(imm, dest, dest);
+}
+
+void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register src,
+                                         Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  srai(dest, dest, imm.value);
+  srai(dest, src, imm.value);
 }
 
 void MacroAssembler::rshiftPtrArithmetic(Register shift, Register dest) {
@@ -1975,8 +2015,12 @@ void MacroAssembler::rshiftPtr(Register shift, Register dest) {
 }
 
 void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
+  rshiftPtr(imm, dest, dest);
+}
+
+void MacroAssembler::rshiftPtr(Imm32 imm, Register src, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  srli(dest, dest, imm.value);
+  srli(dest, src, imm.value);
 }
 
 void MacroAssembler::flexibleRshiftPtr(Register shift, Register srcDest) {
@@ -2143,6 +2187,10 @@ void MacroAssembler::xor32(Imm32 imm, Register dest) {
   ma_xor(dest, dest, imm);
 }
 
+void MacroAssembler::xor32(Imm32 imm, Register src, Register dest) {
+  ma_xor(dest, src, imm);
+}
+
 void MacroAssembler::xor32(Imm32 imm, const Address& dest) {
   UseScratchRegisterScope temps(this);
   Register scratch2 = temps.Acquire();
@@ -2185,6 +2233,10 @@ void MacroAssembler::xorPtr(Register src, Register dest) {
 
 void MacroAssembler::xorPtr(Imm32 imm, Register dest) {
   ma_xor(dest, dest, imm);
+}
+
+void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
+  ma_xor(dest, src, imm);
 }
 //}}} check_macroassembler_style
 

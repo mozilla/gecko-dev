@@ -50,10 +50,10 @@
 #  include <d3d10_1.h>
 #  include <stdlib.h>
 #  include "HelpersD2D.h"
-#  include "DXVA2Manager.h"
 #  include "ImageContainer.h"
 #  include "mozilla/layers/LayersSurfaces.h"
 #  include "mozilla/layers/TextureD3D11.h"
+#  include "mozilla/layers/VideoProcessorD3D11.h"
 #  include "nsWindowsHelpers.h"
 #endif
 
@@ -1176,7 +1176,8 @@ void Factory::CopyDataSourceSurface(DataSourceSurface* aSource,
 /* static */
 already_AddRefed<DataSourceSurface>
 Factory::CreateBGRA8DataSourceSurfaceForD3D11Texture(
-    ID3D11Texture2D* aSrcTexture, uint32_t aArrayIndex) {
+    ID3D11Texture2D* aSrcTexture, uint32_t aArrayIndex,
+    gfx::ColorSpace2 aColorSpace, gfx::ColorRange aColorRange) {
   D3D11_TEXTURE2D_DESC srcDesc = {0};
   aSrcTexture->GetDesc(&srcDesc);
 
@@ -1186,7 +1187,8 @@ Factory::CreateBGRA8DataSourceSurfaceForD3D11Texture(
   if (NS_WARN_IF(!destTexture)) {
     return nullptr;
   }
-  if (!ReadbackTexture(destTexture, aSrcTexture, aArrayIndex)) {
+  if (!ReadbackTexture(destTexture, aSrcTexture, aArrayIndex, aColorSpace,
+                       aColorRange)) {
     return nullptr;
   }
   return destTexture.forget();
@@ -1221,10 +1223,14 @@ Factory::CreateBGRA8DataSourceSurfaceForD3D11Texture(
 }
 
 /* static */
-template <typename DestTextureT>
-bool Factory::ConvertSourceAndRetryReadback(DestTextureT* aDestCpuTexture,
+bool Factory::ConvertSourceAndRetryReadback(DataSourceSurface* aDestCpuTexture,
                                             ID3D11Texture2D* aSrcTexture,
-                                            uint32_t aArrayIndex) {
+                                            uint32_t aArrayIndex,
+                                            gfx::ColorSpace2 aColorSpace,
+                                            gfx::ColorRange aColorRange) {
+  MOZ_ASSERT(aDestCpuTexture);
+  MOZ_ASSERT(aSrcTexture);
+
   RefPtr<ID3D11Device> device;
   aSrcTexture->GetDevice(getter_AddRefs(device));
   if (!device) {
@@ -1232,57 +1238,57 @@ bool Factory::ConvertSourceAndRetryReadback(DestTextureT* aDestCpuTexture,
     return false;
   }
 
-  nsAutoCString error;
-  std::unique_ptr<DXVA2Manager> manager(DXVA2Manager::CreateD3D11DXVA(
-      nullptr, error, device, DXVA2Usage::ColorConversionOnly));
-  if (!manager) {
-    gfxWarning() << "Failed to create DXVA2 manager!";
+  CD3D11_TEXTURE2D_DESC desc;
+  aSrcTexture->GetDesc(&desc);
+
+  if (desc.Format != DXGI_FORMAT_NV12 && desc.Format != DXGI_FORMAT_P010 &&
+      desc.Format != DXGI_FORMAT_P016) {
+    gfxWarning() << "Unexpected DXGI format";
     return false;
   }
+
+  desc = CD3D11_TEXTURE2D_DESC(
+      DXGI_FORMAT_B8G8R8A8_UNORM, desc.Width, desc.Height, 1, 1,
+      D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
 
   RefPtr<ID3D11Texture2D> newSrcTexture;
-  HRESULT hr = manager->CopyToBGRATexture(aSrcTexture, aArrayIndex,
-                                          getter_AddRefs(newSrcTexture));
+  HRESULT hr =
+      device->CreateTexture2D(&desc, nullptr, getter_AddRefs(newSrcTexture));
   if (FAILED(hr)) {
-    gfxWarning() << "Failed to copy to BGRA texture.";
+    gfxWarning() << "Failed to create newSrcTexture: " << gfx::hexa(hr);
     return false;
   }
 
-  return ReadbackTexture(aDestCpuTexture, newSrcTexture);
-}
-
-/* static */
-bool Factory::ReadbackTexture(layers::TextureData* aDestCpuTexture,
-                              ID3D11Texture2D* aSrcTexture) {
-  layers::MappedTextureData mappedData;
-  if (!aDestCpuTexture->BorrowMappedData(mappedData)) {
-    gfxWarning() << "Could not access in-memory texture";
+  RefPtr<layers::VideoProcessorD3D11> videoProcessor =
+      layers::VideoProcessorD3D11::Create(device);
+  if (!videoProcessor) {
+    gfxWarning() << "Failed to create VideoProcessorD3D11";
     return false;
   }
 
-  D3D11_TEXTURE2D_DESC srcDesc = {0};
-  aSrcTexture->GetDesc(&srcDesc);
-
-  // Special case: If the source and destination have different formats and the
-  // destination is B8G8R8A8 then convert the source to B8G8R8A8 and readback.
-  if ((srcDesc.Format != DXGIFormat(mappedData.format)) &&
-      (mappedData.format == SurfaceFormat::B8G8R8A8)) {
-    return ConvertSourceAndRetryReadback(aDestCpuTexture, aSrcTexture);
-  }
-
-  if ((IntSize(srcDesc.Width, srcDesc.Height) != mappedData.size) ||
-      (srcDesc.Format != DXGIFormat(mappedData.format))) {
-    gfxWarning() << "Attempted readback between incompatible textures";
+  hr = videoProcessor->Init(aDestCpuTexture->GetSize());
+  if (FAILED(hr)) {
+    gfxWarning() << "Failed to init VideoProcessorD3D11" << gfx::hexa(hr);
     return false;
   }
 
-  return ReadbackTexture(mappedData.data, mappedData.stride, aSrcTexture);
+  layers::VideoProcessorD3D11::InputTextureInfo info(aColorSpace, aColorRange,
+                                                     aArrayIndex, aSrcTexture);
+  if (!videoProcessor->CallVideoProcessorBlt(info, newSrcTexture)) {
+    gfxWarning() << "CallVideoProcessorBlt failed";
+    return false;
+  }
+
+  return ReadbackTexture(aDestCpuTexture, newSrcTexture, 0, aColorSpace,
+                         aColorRange);
 }
 
 /* static */
 bool Factory::ReadbackTexture(DataSourceSurface* aDestCpuTexture,
                               ID3D11Texture2D* aSrcTexture,
-                              uint32_t aArrayIndex) {
+                              uint32_t aArrayIndex,
+                              gfx::ColorSpace2 aColorSpace,
+                              gfx::ColorRange aColorRange) {
   D3D11_TEXTURE2D_DESC srcDesc = {0};
   aSrcTexture->GetDesc(&srcDesc);
 
@@ -1291,7 +1297,7 @@ bool Factory::ReadbackTexture(DataSourceSurface* aDestCpuTexture,
   if ((srcDesc.Format != DXGIFormat(aDestCpuTexture->GetFormat())) &&
       (aDestCpuTexture->GetFormat() == SurfaceFormat::B8G8R8A8)) {
     return ConvertSourceAndRetryReadback(aDestCpuTexture, aSrcTexture,
-                                         aArrayIndex);
+                                         aArrayIndex, aColorSpace, aColorRange);
   }
 
   if ((IntSize(srcDesc.Width, srcDesc.Height) != aDestCpuTexture->GetSize()) ||

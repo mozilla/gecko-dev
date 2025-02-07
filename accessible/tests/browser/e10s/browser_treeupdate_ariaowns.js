@@ -622,8 +622,8 @@ addAccessibleTask(
   async function (browser, accDoc) {
     const p = findAccessibleChildByID(accDoc, "p");
     const textbox = findAccessibleChildByID(accDoc, "textbox");
-    testStates(textbox, 0, EXT_STATE_EDITABLE, 0, 0);
 
+    testStates(textbox, 0, EXT_STATE_EDITABLE, 0, 0);
     isnot(getAccessibleDOMNodeID(p.lastChild), "btn", "'p' owns relocated btn");
     is(textbox.value, "Hello");
 
@@ -698,5 +698,41 @@ addAccessibleTask(
       "p2",
       "textbox is still relocated"
     );
+  }
+);
+
+addAccessibleTask(
+  `
+  <div id="box" role="combobox"
+         aria-owns="listbox"
+         aria-expanded="true"
+         aria-haspopup="listbox"
+         aria-autocomplete="list"
+         contenteditable="true"></div>
+  <ul role="listbox" id="listbox">
+    <li role="option">apple</li>
+    <li role="option">peach</li>
+  </ul>
+`,
+  async (browser, accDoc) => {
+    const combobox = findAccessibleChildByID(accDoc, "box");
+    const listbox = findAccessibleChildByID(accDoc, "listbox");
+
+    testStates(combobox, 0, EXT_STATE_EDITABLE, 0, 0);
+    is(combobox.childCount, 0, "combobox has no children");
+    await testCachedRelation(combobox, RELATION_CONTROLLER_FOR, [listbox]);
+    await testCachedRelation(listbox, RELATION_CONTROLLED_BY, [combobox]);
+
+    let expectedEvents = Promise.all([
+      waitForStateChange(combobox, EXT_STATE_EDITABLE, false, true),
+      waitForEvent(EVENT_REORDER, accDoc),
+    ]);
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("box").contentEditable = false;
+    });
+    await expectedEvents;
+    await testCachedRelation(combobox, RELATION_CONTROLLER_FOR, []);
+    await testCachedRelation(listbox, RELATION_CONTROLLED_BY, []);
+    is(combobox.childCount, 1, "combobox has listbox");
   }
 );

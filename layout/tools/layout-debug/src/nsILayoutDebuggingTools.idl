@@ -16,6 +16,10 @@ interface mozIDOMWindow;
 [builtinclass, scriptable, uuid(f336d8d3-9721-4ad3-85d0-a7018c0a3383)]
 interface nsILayoutDebuggingTools : nsISupports
 {
+    cenum DumpFrameFlags : 8 {
+        DUMP_FRAME_FLAGS_CSS_PIXELS    = 1,
+        DUMP_FRAME_FLAGS_DETERMINISTIC = 2,
+    };
     /*
      * Initialize debugger object to act on a docshell.
      */
@@ -30,8 +34,7 @@ interface nsILayoutDebuggingTools : nsISupports
 
     /* Run various tests. */
     void dumpContent();
-    void dumpFrames();
-    void dumpFramesInCSSPixels();
+    void dumpFrames(in uint8_t flags);
     void dumpTextRuns();
     void dumpViews();
     void dumpCounterManager();

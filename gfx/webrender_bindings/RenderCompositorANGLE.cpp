@@ -817,6 +817,11 @@ bool RenderCompositorANGLE::UseCompositor() const {
 }
 
 bool RenderCompositorANGLE::SupportAsyncScreenshot() {
+#ifdef NIGHTLY_BUILD
+  if (StaticPrefs::gfx_webrender_layer_compositor_AtStartup()) {
+    return true;
+  }
+#endif
   return !UseCompositor() && !mDisablingNativeCompositor;
 }
 

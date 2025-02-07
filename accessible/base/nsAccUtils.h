@@ -301,6 +301,8 @@ class nsAccUtils {
                                      const nsAtom* aName,
                                      AttrArray::AttrValuesArray* aValues,
                                      nsCaseTreatment aCaseSensitive);
+
+  static bool IsEditableARIACombobox(const LocalAccessible* aAccessible);
 };
 
 }  // namespace a11y

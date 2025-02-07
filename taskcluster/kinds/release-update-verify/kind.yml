@@ -9,6 +9,7 @@ kind-dependencies:
     - post-beetmover-dummy
     - release-balrog-submit-toplevel
     - release-update-verify-config
+    - toolchain
 
 transforms:
     - gecko_taskgraph.transforms.release_deps:transforms
@@ -75,6 +76,9 @@ tasks:
             build_platform: macosx64-shippable
         extra:
             chunks: 30
+        fetches:
+            toolchain:
+                - linux64-libdmg
 
     devedition-linux64:
         description: linux64 update verify
@@ -113,3 +117,6 @@ tasks:
             build_platform: macosx64-devedition
         extra:
             chunks: 30
+        fetches:
+            toolchain:
+                - linux64-libdmg

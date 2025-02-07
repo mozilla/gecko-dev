@@ -1057,12 +1057,9 @@ Toolbox.prototype = {
       this.webconsolePanel = this.doc.querySelector(
         "#toolbox-panel-webconsole"
       );
-      this.webconsolePanel.style.height =
-        Services.prefs.getIntPref(SPLITCONSOLE_HEIGHT_PREF) + "px";
-      this.webconsolePanel.addEventListener(
-        "resize",
-        this._saveSplitConsoleHeight
-      );
+      this.doc
+        .getElementById("toolbox-console-splitter")
+        .addEventListener("command", this._saveSplitConsoleHeight);
 
       this._buildButtons();
 
@@ -1859,18 +1856,24 @@ Toolbox.prototype = {
     const openedConsolePanel = this.currentToolId === "webconsole";
 
     if (openedConsolePanel) {
-      deck.collapsed = true;
+      deck.setAttribute("hidden", "");
       deck.removeAttribute("expanded");
       splitter.hidden = true;
-      webconsolePanel.collapsed = false;
+      webconsolePanel.removeAttribute("hidden");
       webconsolePanel.setAttribute("expanded", "");
     } else {
-      deck.collapsed = false;
+      deck.removeAttribute("hidden");
       deck.toggleAttribute("expanded", !this.splitConsole);
       splitter.hidden = !this.splitConsole;
       webconsolePanel.collapsed = !this.splitConsole;
       webconsolePanel.removeAttribute("expanded");
     }
+
+    // Either restore the last known split console height, if in split console mode,
+    // or ensure there is no height set to prevent shrinking the regular console.
+    this.webconsolePanel.style.height = openedConsolePanel
+      ? ""
+      : Services.prefs.getIntPref(SPLITCONSOLE_HEIGHT_PREF) + "px";
   },
 
   /**
@@ -2785,7 +2788,6 @@ Toolbox.prototype = {
       iframe.setAttribute("flex", 1);
       iframe.setAttribute("forceOwnRefreshDriver", "");
       iframe.tooltip = "aHTMLTooltip";
-      iframe.style.visibility = "hidden";
 
       gDevTools.emit(id + "-init", this, iframe);
       this.emit(id + "-init", iframe);
@@ -2794,13 +2796,9 @@ Toolbox.prototype = {
       if (!iframe.parentNode) {
         const vbox = this.doc.getElementById("toolbox-panel-" + id);
         vbox.appendChild(iframe);
-        vbox.visibility = "visible";
       }
 
       const onLoad = async () => {
-        // Prevent flicker while loading by waiting to make visible until now.
-        iframe.style.visibility = "visible";
-
         // Try to set the dir attribute as early as possible.
         this.setIframeDocumentDir(iframe);
 
@@ -3009,10 +3007,6 @@ Toolbox.prototype = {
       throw new Error("No tool found");
     }
 
-    // and select the right iframe
-    const toolboxPanels = this.doc.querySelectorAll(".toolbox-panel");
-    this.selectSingleNode(toolboxPanels, "toolbox-panel-" + id);
-
     this.lastUsedToolId = this.currentToolId;
     this.currentToolId = id;
     this._refreshConsoleDisplay();
@@ -3021,6 +3015,11 @@ Toolbox.prototype = {
     }
 
     return this.loadTool(id, options).then(panel => {
+      // Only select the panel once it is loaded to prevent showing it
+      // while it is bootstrapping and prevent blinks
+      const toolboxPanels = this.doc.querySelectorAll(".toolbox-panel");
+      this.selectSingleNode(toolboxPanels, "toolbox-panel-" + id);
+
       // focus the tool's frame to start receiving key events
       this.focusTool(id);
 
@@ -3224,6 +3223,8 @@ Toolbox.prototype = {
   closeSplitConsole() {
     this._splitConsole = false;
     Services.prefs.setBoolPref(SPLITCONSOLE_OPEN_PREF, false);
+    this._saveSplitConsoleHeight();
+
     this._refreshConsoleDisplay();
     this.component.setIsSplitConsoleActive(false);
 

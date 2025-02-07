@@ -2,12 +2,13 @@ import asyncio
 from asyncio.exceptions import TimeoutError
 
 import pytest
+from webdriver import NoSuchElementException
 
 URL = "https://www.bing.com/images/feed?form=Z9LH"
 
 IMAGE_SEARCH_CSS = "#sb_sbi"
 EXAMPLE_IMAGE_CSS = "img.sbiDmImg"
-PAGES_WITH_TEXT = "Pages with this image"
+PAGES_WITH_THIS_TEXT = "Pages with this"
 EXTERNAL_LINK_CSS = ".tab-content.pim a.richImgLnk img"
 
 
@@ -16,10 +17,16 @@ async def does_link_work(client):
     client.soft_click(client.await_css(IMAGE_SEARCH_CSS, is_displayed=True))
     await asyncio.sleep(1)
     client.soft_click(client.await_css(EXAMPLE_IMAGE_CSS, is_displayed=True))
-    await asyncio.sleep(1)
-    client.soft_click(
-        client.await_text(PAGES_WITH_TEXT, is_displayed=True, timeout=4000)
-    )
+    await asyncio.sleep(2)
+    try:
+        client.soft_click(
+            client.await_text(PAGES_WITH_THIS_TEXT, is_displayed=True, timeout=5)
+        )
+    except NoSuchElementException:
+        # Sometimes the page loads incorrectly and doesn't show "pages with this image",
+        # and it isn't easy to just reload/click around to fix it.
+        pytest.xfail("Page loaded incorrectly; please try again")
+        return False
     await asyncio.sleep(1)
     link = client.await_css(EXTERNAL_LINK_CSS, is_displayed=True)
 

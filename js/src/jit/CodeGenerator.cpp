@@ -10599,8 +10599,7 @@ void CodeGenerator::visitWasmLoadElement(LWasmLoadElement* ins) {
     MOZ_ASSERT(wideningOp == MWideningOp::None);
     FaultingCodeOffset fco;
     Register temp = ToRegister(ins->temp0());
-    masm.movePtr(index, temp);
-    masm.lshiftPtr(Imm32(4), temp);
+    masm.lshiftPtr(Imm32(4), index, temp);
     fco = masm.loadUnalignedSimd128(BaseIndex(base, temp, Scale::TimesOne),
                                     dst.fpu());
     EmitSignalNullCheckTrapSite(masm, ins, fco, wasm::TrapMachineInsn::Load128);
@@ -10645,8 +10644,7 @@ void CodeGenerator::visitWasmStoreElement(LWasmStoreElement* ins) {
 #ifdef ENABLE_WASM_SIMD
   if (type == MIRType::Simd128) {
     Register temp = ToRegister(ins->temp0());
-    masm.movePtr(index, temp);
-    masm.lshiftPtr(Imm32(4), temp);
+    masm.lshiftPtr(Imm32(4), index, temp);
     FaultingCodeOffset fco = masm.storeUnalignedSimd128(
         src.fpu(), BaseIndex(base, temp, Scale::TimesOne));
     EmitSignalNullCheckTrapSite(masm, ins, fco,
@@ -10837,8 +10835,7 @@ void CodeGenerator::visitOutOfLineWasmCallPostWriteBarrierIndex(
   // Fold the value offset into the value base
   Register temp = ool->temp();
   if (ool->elemSize() == 16) {
-    masm.movePtr(ool->index(), temp);
-    masm.lshiftPtr(Imm32(4), temp);
+    masm.lshiftPtr(Imm32(4), ool->index(), temp);
     masm.addPtr(ool->valueBase(), temp);
   } else {
     masm.computeEffectiveAddress(BaseIndex(ool->valueBase(), ool->index(),
@@ -11888,23 +11885,19 @@ void CodeGenerator::visitBigIntPtrLsh(LBigIntPtrLsh* ins) {
       MOZ_ASSERT(!ins->mir()->fallible());
 
       // x << -DigitBits == x >> DigitBits, which is either 0n or -1n.
-      masm.movePtr(lhs, output);
-      masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), output);
+      masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), lhs, output);
     } else if (rhs <= 0) {
       MOZ_ASSERT(!ins->mir()->fallible());
 
       // |x << -y| is computed as |x >> y|.
-      masm.movePtr(lhs, output);
-      masm.rshiftPtrArithmetic(Imm32(-rhs), output);
+      masm.rshiftPtrArithmetic(Imm32(-rhs), lhs, output);
     } else {
       MOZ_ASSERT(ins->mir()->fallible());
 
-      masm.movePtr(lhs, output);
-      masm.lshiftPtr(Imm32(rhs), output);
+      masm.lshiftPtr(Imm32(rhs), lhs, output);
 
       // Check for overflow: ((lhs << rhs) >> rhs) == lhs.
-      masm.movePtr(output, temp);
-      masm.rshiftPtrArithmetic(Imm32(rhs), temp);
+      masm.rshiftPtrArithmetic(Imm32(rhs), output, temp);
       bailoutCmpPtr(Assembler::NotEqual, temp, lhs, ins->snapshot());
     }
   } else {
@@ -11976,24 +11969,20 @@ void CodeGenerator::visitBigIntPtrRsh(LBigIntPtrRsh* ins) {
       MOZ_ASSERT(!ins->mir()->fallible());
 
       // x >> DigitBits is either 0n or -1n.
-      masm.movePtr(lhs, output);
-      masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), output);
+      masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), lhs, output);
     } else if (rhs < 0) {
       MOZ_ASSERT(ins->mir()->fallible());
 
       // |x >> -y| is computed as |x << y|.
-      masm.movePtr(lhs, output);
-      masm.lshiftPtr(Imm32(-rhs), output);
+      masm.lshiftPtr(Imm32(-rhs), lhs, output);
 
       // Check for overflow: ((lhs << rhs) >> rhs) == lhs.
-      masm.movePtr(output, temp);
-      masm.rshiftPtrArithmetic(Imm32(-rhs), temp);
+      masm.rshiftPtrArithmetic(Imm32(-rhs), output, temp);
       bailoutCmpPtr(Assembler::NotEqual, temp, lhs, ins->snapshot());
     } else {
       MOZ_ASSERT(!ins->mir()->fallible());
 
-      masm.movePtr(lhs, output);
-      masm.rshiftPtrArithmetic(Imm32(rhs), output);
+      masm.rshiftPtrArithmetic(Imm32(rhs), lhs, output);
     }
   } else {
     Register rhs = ToRegister(ins->rhs());
@@ -14097,16 +14086,14 @@ void CodeGenerator::visitFromCodePoint(LFromCodePoint* lir) {
       masm.loadInlineStringCharsForStore(output, temp0);
 
       // Inlined unicode::LeadSurrogate(uint32_t).
-      masm.move32(codePoint, temp1);
-      masm.rshift32(Imm32(10), temp1);
+      masm.rshift32(Imm32(10), codePoint, temp1);
       masm.add32(Imm32(unicode::LeadSurrogateMin - (unicode::NonBMPMin >> 10)),
                  temp1);
 
       masm.store16(temp1, Address(temp0, 0));
 
       // Inlined unicode::TrailSurrogate(uint32_t).
-      masm.move32(codePoint, temp1);
-      masm.and32(Imm32(0x3FF), temp1);
+      masm.and32(Imm32(0x3FF), codePoint, temp1);
       masm.or32(Imm32(unicode::TrailSurrogateMin), temp1);
 
       masm.store16(temp1, Address(temp0, sizeof(char16_t)));
@@ -14720,16 +14707,14 @@ void CodeGenerator::visitCharCodeToUpperCase(LCharCodeToUpperCase* lir) {
   constexpr size_t shift = unicode::CharInfoShift;
 
   // code >> shift
-  masm.move32(code, temp);
-  masm.rshift32(Imm32(shift), temp);
+  masm.rshift32(Imm32(shift), code, temp);
 
   // index = index1[code >> shift];
   masm.movePtr(ImmPtr(unicode::index1), output);
   masm.load8ZeroExtend(BaseIndex(output, temp, TimesOne), temp);
 
   // (code & ((1 << shift) - 1)
-  masm.move32(code, output);
-  masm.and32(Imm32((1 << shift) - 1), output);
+  masm.and32(Imm32((1 << shift) - 1), code, output);
 
   // (index << shift) + (code & ((1 << shift) - 1))
   masm.lshift32(Imm32(shift), temp);
@@ -22307,8 +22292,7 @@ void CodeGenerator::visitFuzzilliHashT(LFuzzilliHashT* ins) {
     }
 
     case MIRType::Boolean: {
-      masm.move32(ToRegister(value), scratch);
-      masm.add32(Imm32(3), scratch);
+      masm.add32(Imm32(3), ToRegister(value), scratch);
       masm.convertInt32ToDouble(scratch, scratchFloat);
       masm.fuzzilliHashDouble(scratchFloat, output, scratch);
       break;

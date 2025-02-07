@@ -379,7 +379,6 @@ impl FontStretchRange {
 #[derive(Clone, Debug, PartialEq, ToShmem)]
 #[allow(missing_docs)]
 pub enum FontStyle {
-    Normal,
     Italic,
     Oblique(Angle, Angle),
 }
@@ -389,7 +388,6 @@ pub enum FontStyle {
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum ComputedFontStyleDescriptor {
-    Normal,
     Italic,
     Oblique(f32, f32),
 }
@@ -399,9 +397,14 @@ impl Parse for FontStyle {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        // We parse 'normal' explicitly here to distinguish it from 'oblique 0deg',
+        // because we must not accept a following angle.
+        if input.try_parse(|i| i.expect_ident_matching("normal")).is_ok() {
+            return Ok(FontStyle::Oblique(Angle::zero(), Angle::zero()));
+        }
+
         let style = SpecifiedFontStyle::parse(context, input)?;
         Ok(match style {
-            GenericFontStyle::Normal => FontStyle::Normal,
             GenericFontStyle::Italic => FontStyle::Italic,
             GenericFontStyle::Oblique(angle) => {
                 let second_angle = input
@@ -420,9 +423,13 @@ impl ToCss for FontStyle {
         W: fmt::Write,
     {
         match *self {
-            FontStyle::Normal => dest.write_str("normal"),
             FontStyle::Italic => dest.write_str("italic"),
             FontStyle::Oblique(ref first, ref second) => {
+                // Not first.is_zero() because we don't want to serialize
+                // `oblique calc(0deg)` as `normal`.
+                if *first == Angle::zero() && first == second {
+                    return dest.write_str("normal");
+                }
                 dest.write_str("oblique")?;
                 if *first != SpecifiedFontStyle::default_angle() || first != second {
                     dest.write_char(' ')?;
@@ -442,7 +449,6 @@ impl FontStyle {
     /// Returns a computed font-style descriptor.
     pub fn compute(&self) -> ComputedFontStyleDescriptor {
         match *self {
-            FontStyle::Normal => ComputedFontStyleDescriptor::Normal,
             FontStyle::Italic => ComputedFontStyleDescriptor::Italic,
             FontStyle::Oblique(ref first, ref second) => {
                 let (min, max) = sort_range(

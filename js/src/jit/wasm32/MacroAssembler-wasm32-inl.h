@@ -73,6 +73,10 @@ void MacroAssembler::andPtr(Register src, Register dest) { MOZ_CRASH(); }
 
 void MacroAssembler::andPtr(Imm32 imm, Register dest) { MOZ_CRASH(); }
 
+void MacroAssembler::andPtr(Imm32 imm, Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::and64(Imm64 imm, Register64 dest) { MOZ_CRASH(); }
 
 void MacroAssembler::or64(Imm64 imm, Register64 dest) { MOZ_CRASH(); }
@@ -83,6 +87,10 @@ void MacroAssembler::orPtr(Register src, Register dest) { MOZ_CRASH(); }
 
 void MacroAssembler::orPtr(Imm32 imm, Register dest) { MOZ_CRASH(); }
 
+void MacroAssembler::orPtr(Imm32 imm, Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::and64(Register64 src, Register64 dest) { MOZ_CRASH(); }
 
 void MacroAssembler::or64(Register64 src, Register64 dest) { MOZ_CRASH(); }
@@ -92,6 +100,10 @@ void MacroAssembler::xor64(Register64 src, Register64 dest) { MOZ_CRASH(); }
 void MacroAssembler::xorPtr(Register src, Register dest) { MOZ_CRASH(); }
 
 void MacroAssembler::xorPtr(Imm32 imm, Register dest) { MOZ_CRASH(); }
+
+void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
+  MOZ_CRASH();
+}
 
 void MacroAssembler::byteSwap64(Register64 reg) { MOZ_CRASH(); }
 
@@ -142,9 +154,22 @@ void MacroAssembler::negPtr(Register reg) { MOZ_CRASH(); }
 
 void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) { MOZ_CRASH(); }
 
+void MacroAssembler::lshiftPtr(Imm32 imm, Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) { MOZ_CRASH(); }
 
+void MacroAssembler::rshiftPtr(Imm32 imm, Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register src,
+                                         Register dest) {
   MOZ_CRASH();
 }
 
@@ -217,6 +242,10 @@ void MacroAssembler::and32(Register src, Register dest) { MOZ_CRASH(); }
 
 void MacroAssembler::and32(Imm32 imm, Register dest) { MOZ_CRASH(); }
 
+void MacroAssembler::and32(Imm32 imm, Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::and32(Imm32 imm, const Address& dest) { MOZ_CRASH(); }
 
 void MacroAssembler::and32(const Address& src, Register dest) { MOZ_CRASH(); }
@@ -225,11 +254,19 @@ void MacroAssembler::or32(Register src, Register dest) { MOZ_CRASH(); }
 
 void MacroAssembler::or32(Imm32 imm, Register dest) { MOZ_CRASH(); }
 
+void MacroAssembler::or32(Imm32 imm, Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::or32(Imm32 imm, const Address& dest) { MOZ_CRASH(); }
 
 void MacroAssembler::xor32(Register src, Register dest) { MOZ_CRASH(); }
 
 void MacroAssembler::xor32(Imm32 imm, Register dest) { MOZ_CRASH(); }
+
+void MacroAssembler::xor32(Imm32 imm, Register src, Register dest) {
+  MOZ_CRASH();
+}
 
 void MacroAssembler::xor32(Imm32 imm, const Address& dest) { MOZ_CRASH(); }
 
@@ -319,9 +356,22 @@ void MacroAssembler::sqrtDouble(FloatRegister src, FloatRegister dest) {
 
 void MacroAssembler::lshift32(Imm32 shift, Register srcDest) { MOZ_CRASH(); }
 
+void MacroAssembler::lshift32(Imm32 shift, Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::rshift32(Imm32 shift, Register srcDest) { MOZ_CRASH(); }
 
+void MacroAssembler::rshift32(Imm32 shift, Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::rshift32Arithmetic(Imm32 shift, Register srcDest) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::rshift32Arithmetic(Imm32 shift, Register src,
+                                        Register dest) {
   MOZ_CRASH();
 }
 

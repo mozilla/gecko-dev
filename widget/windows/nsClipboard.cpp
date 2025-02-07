@@ -47,6 +47,7 @@
 #include "nsMimeTypes.h"
 #include "imgITools.h"
 #include "imgIContainer.h"
+#include "WinOLELock.h"
 #include "WinUtils.h"
 
 /* static */
@@ -166,18 +167,17 @@ nsresult nsClipboard::CreateNativeDataObject(
 
 static nsresult StoreValueInDataObject(nsDataObj* aObj,
                                        LPCWSTR aClipboardFormat, DWORD value) {
-  HGLOBAL hGlobalMemory = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(DWORD));
+  ScopedOLEMemory<DWORD> hGlobalMemory;
   if (!hGlobalMemory) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  DWORD* pdw = (DWORD*)::GlobalLock(hGlobalMemory);
-  *pdw = value;
-  ::GlobalUnlock(hGlobalMemory);
+
+  *hGlobalMemory.lock() = value;
 
   STGMEDIUM stg;
   stg.tymed = TYMED_HGLOBAL;
   stg.pUnkForRelease = nullptr;
-  stg.hGlobal = hGlobalMemory;
+  stg.hGlobal = hGlobalMemory.forget();
 
   FORMATETC fe;
   SET_FORMATETC(fe, ::RegisterClipboardFormat(aClipboardFormat), 0,
@@ -574,54 +574,57 @@ nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void** aData,
   MOZ_CLIPBOARD_LOG("%s", __FUNCTION__);
 
   // Allocate a new memory buffer and copy the data from global memory.
-  // Recall that win98 allocates to nearest DWORD boundary. As a safety
-  // precaution, allocate an extra 3 bytes (but don't report them in |aLen|!)
-  // and null them out to ensure that all of our NS_strlen calls will succeed.
-  // NS_strlen operates on char16_t, so we need 3 NUL bytes to ensure it finds
-  // a full NUL char16_t when |*aLen| is odd.
-  nsresult result = NS_ERROR_FAILURE;
+  //
+  // Some callers of this function call `NS_strlen(char16_t*)` on the returned
+  // data buffer -- even though there's no guarantee that the data is a wide
+  // string, let alone NUL-terminated. As a safety precaution, allocate a
+  // slightly longer buffer than necessary, and append three bytes' worth of
+  // NUL.
+  //
+  // (These bytes are not reported in *aLen, so callers which sensibly use that
+  // as a limit will not need to worry about stray trailing bytes.)
+
   if (aHGBL != nullptr) {
-    LPSTR lpStr = (LPSTR)GlobalLock(aHGBL);
+    ScopedOLELock<CHAR[]> lpStr(aHGBL);
     mozilla::CheckedInt<uint32_t> allocSize =
-        mozilla::CheckedInt<uint32_t>(GlobalSize(aHGBL)) + 3;
+        mozilla::CheckedInt<uint32_t>(lpStr.size()) + 3;
     if (!allocSize.isValid()) {
       return NS_ERROR_INVALID_ARG;
     }
     char* data = static_cast<char*>(malloc(allocSize.value()));
-    if (data) {
-      uint32_t size = allocSize.value() - 3;
-      memcpy(data, lpStr, size);
-      // null terminate for safety
-      data[size] = data[size + 1] = data[size + 2] = '\0';
+    if (!data) return NS_ERROR_FAILURE;
 
-      GlobalUnlock(aHGBL);
-      *aData = data;
-      *aLen = size;
+    std::copy(lpStr.begin(), lpStr.end(), data);
 
-      result = NS_OK;
-    }
-  } else {
-    // We really shouldn't ever get here
-    // but just in case
-    *aData = nullptr;
-    *aLen = 0;
-    LPVOID lpMsgBuf;
+    // null terminate for safety
+    std::fill_n(data + lpStr.size(), 3, '\0');
 
-    FormatMessageW(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
-        GetLastError(),
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),  // Default language
-        (LPWSTR)&lpMsgBuf, 0, nullptr);
+    *aData = data;
+    *aLen = lpStr.size();
 
-    // Display the string.
-    MessageBoxW(nullptr, (LPCWSTR)lpMsgBuf, L"GetLastError",
-                MB_OK | MB_ICONINFORMATION);
-
-    // Free the buffer.
-    LocalFree(lpMsgBuf);
+    return NS_OK;
   }
 
-  return result;
+  // We really shouldn't ever get here
+  // but just in case
+  *aData = nullptr;
+  *aLen = 0;
+
+  LPVOID lpMsgBuf;
+  ::FormatMessageW(
+      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, nullptr,
+      GetLastError(),
+      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),  // Default language
+      (LPWSTR)&lpMsgBuf, 0, nullptr);
+
+  // Display the string.
+  ::MessageBoxW(nullptr, (LPCWSTR)lpMsgBuf, L"GetLastError",
+                MB_OK | MB_ICONINFORMATION);
+
+  // Free the buffer.
+  ::LocalFree(lpMsgBuf);
+
+  return NS_ERROR_FAILURE;
 }
 
 //-------------------------------------------------------------------------
@@ -697,23 +700,18 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
                                                 void** aData, uint32_t* aLen) {
   MOZ_CLIPBOARD_LOG("%s: overload taking IDataObject*.", __FUNCTION__);
 
-  nsresult result = NS_ERROR_FAILURE;
   *aData = nullptr;
   *aLen = 0;
 
   if (!aDataObject) {
-    return result;
+    return NS_ERROR_FAILURE;
   }
 
-  UINT format = aFormat;
-  HRESULT hres = S_FALSE;
+  UINT const format = aFormat;
 
-  // XXX at the moment we only support global memory transfers
-  // It is here where we will add support for native images
-  // and IStream
   FORMATETC fe;
   STGMEDIUM stm;
-  hres = FillSTGMedium(aDataObject, format, &fe, &stm, TYMED_HGLOBAL);
+  HRESULT hres = FillSTGMedium(aDataObject, format, &fe, &stm, TYMED_HGLOBAL);
 
   // If the format is CF_HDROP and we haven't found any files we can try looking
   // for virtual files with FILEDESCRIPTOR.
@@ -728,208 +726,199 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject* aDataObject,
     }
   }
 
-  // Currently this is only handling TYMED_HGLOBAL data
-  // For Text, Dibs, Files, and generic data (like HTML)
-  if (S_OK == hres) {
-    static CLIPFORMAT fileDescriptorFlavorA =
-        ::RegisterClipboardFormat(CFSTR_FILEDESCRIPTORA);
-    static CLIPFORMAT fileDescriptorFlavorW =
-        ::RegisterClipboardFormat(CFSTR_FILEDESCRIPTORW);
-    static CLIPFORMAT fileFlavor =
-        ::RegisterClipboardFormat(CFSTR_FILECONTENTS);
-    static CLIPFORMAT preferredDropEffect =
-        ::RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
-
-    switch (stm.tymed) {
-      case TYMED_HGLOBAL: {
-        switch (fe.cfFormat) {
-          case CF_TEXT: {
-            // Get the data out of the global data handle. The size we
-            // return should not include the null because the other
-            // platforms don't use nulls, so just return the length we get
-            // back from strlen(), since we know CF_TEXT is null
-            // terminated. Recall that GetGlobalData() returns the size of
-            // the allocated buffer, not the size of the data (on 98, these
-            // are not the same) so we can't use that.
-            uint32_t allocLen = 0;
-            if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen))) {
-              *aLen = strlen(reinterpret_cast<char*>(*aData));
-              result = NS_OK;
-            }
-          } break;
-
-          case CF_UNICODETEXT: {
-            // Get the data out of the global data handle. The size we
-            // return should not include the null because the other
-            // platforms don't use nulls, so just return the length we get
-            // back from strlen(), since we know CF_UNICODETEXT is null
-            // terminated. Recall that GetGlobalData() returns the size of
-            // the allocated buffer, not the size of the data (on 98, these
-            // are not the same) so we can't use that.
-            uint32_t allocLen = 0;
-            if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen))) {
-              *aLen = NS_strlen(reinterpret_cast<char16_t*>(*aData)) * 2;
-              result = NS_OK;
-            }
-          } break;
-
-          case CF_DIBV5:
-            if (aMIMEImageFormat) {
-              uint32_t allocLen = 0;
-              const char* clipboardData;
-              if (NS_SUCCEEDED(GetGlobalData(
-                      stm.hGlobal, (void**)&clipboardData, &allocLen))) {
-                nsCOMPtr<imgIContainer> container;
-                nsCOMPtr<imgITools> imgTools =
-                    do_CreateInstance("@mozilla.org/image/tools;1");
-                result = imgTools->DecodeImageFromBuffer(
-                    clipboardData, allocLen,
-                    nsLiteralCString(IMAGE_BMP_MS_CLIPBOARD),
-                    getter_AddRefs(container));
-                if (NS_FAILED(result)) {
-                  break;
-                }
-
-                nsAutoCString mimeType;
-                if (strcmp(aMIMEImageFormat, kJPGImageMime) == 0) {
-                  mimeType.Assign(IMAGE_JPEG);
-                } else {
-                  mimeType.Assign(aMIMEImageFormat);
-                }
-
-                nsCOMPtr<nsIInputStream> inputStream;
-                result = imgTools->EncodeImage(container, mimeType, u""_ns,
-                                               getter_AddRefs(inputStream));
-                if (NS_FAILED(result)) {
-                  break;
-                }
-
-                if (!inputStream) {
-                  result = NS_ERROR_FAILURE;
-                  break;
-                }
-
-                *aData = inputStream.forget().take();
-                *aLen = sizeof(nsIInputStream*);
-              }
-            }
-            break;
-
-          case CF_HDROP: {
-            // in the case of a file drop, multiple files are stashed within a
-            // single data object. In order to match mozilla's D&D apis, we
-            // just pull out the file at the requested index, pretending as
-            // if there really are multiple drag items.
-            HDROP dropFiles = (HDROP)GlobalLock(stm.hGlobal);
-
-            UINT numFiles = ::DragQueryFileW(dropFiles, 0xFFFFFFFF, nullptr, 0);
-            NS_ASSERTION(numFiles > 0,
-                         "File drop flavor, but no files...hmmmm");
-            NS_ASSERTION(aIndex < numFiles,
-                         "Asked for a file index out of range of list");
-            if (numFiles > 0) {
-              UINT fileNameLen =
-                  ::DragQueryFileW(dropFiles, aIndex, nullptr, 0);
-              wchar_t* buffer = reinterpret_cast<wchar_t*>(
-                  moz_xmalloc((fileNameLen + 1) * sizeof(wchar_t)));
-              ::DragQueryFileW(dropFiles, aIndex, buffer, fileNameLen + 1);
-              *aData = buffer;
-              *aLen = fileNameLen * sizeof(char16_t);
-              result = NS_OK;
-            }
-            GlobalUnlock(stm.hGlobal);
-
-          } break;
-
-          default: {
-            if (fe.cfFormat == fileDescriptorFlavorA ||
-                fe.cfFormat == fileDescriptorFlavorW) {
-              nsAutoString tempPath;
-
-              LPFILEGROUPDESCRIPTOR fgdesc =
-                  static_cast<LPFILEGROUPDESCRIPTOR>(GlobalLock(stm.hGlobal));
-              if (fgdesc) {
-                result = GetTempFilePath(
-                    nsDependentString((fgdesc->fgd)[aIndex].cFileName),
-                    tempPath);
-                GlobalUnlock(stm.hGlobal);
-              }
-              if (NS_FAILED(result)) {
-                break;
-              }
-              result = SaveStorageOrStream(aDataObject, aIndex, tempPath);
-              if (NS_FAILED(result)) {
-                break;
-              }
-              wchar_t* buffer = reinterpret_cast<wchar_t*>(
-                  moz_xmalloc((tempPath.Length() + 1) * sizeof(wchar_t)));
-              wcscpy(buffer, tempPath.get());
-              *aData = buffer;
-              *aLen = tempPath.Length() * sizeof(wchar_t);
-              result = NS_OK;
-            } else if (fe.cfFormat == fileFlavor) {
-              NS_WARNING(
-                  "Mozilla doesn't yet understand how to read this type of "
-                  "file flavor");
-            } else {
-              // Get the data out of the global data handle. The size we
-              // return should not include the null because the other
-              // platforms don't use nulls, so just return the length we get
-              // back from strlen(), since we know CF_UNICODETEXT is null
-              // terminated. Recall that GetGlobalData() returns the size of
-              // the allocated buffer, not the size of the data (on 98, these
-              // are not the same) so we can't use that.
-              //
-              // NOTE: we are assuming that anything that falls into this
-              //        default case is unicode. As we start to get more
-              //        kinds of binary data, this may become an incorrect
-              //        assumption. Stay tuned.
-              uint32_t allocLen = 0;
-              if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen))) {
-                if (fe.cfFormat == GetHtmlClipboardFormat()) {
-                  // CF_HTML is actually UTF8, not unicode, so disregard the
-                  // assumption above. We have to check the header for the
-                  // actual length, and we'll do that in FindPlatformHTML().
-                  // For now, return the allocLen. This case is mostly to
-                  // ensure we don't try to call strlen on the buffer.
-                  *aLen = allocLen;
-                } else if (fe.cfFormat == GetCustomClipboardFormat()) {
-                  // Binary data
-                  *aLen = allocLen;
-                } else if (fe.cfFormat == preferredDropEffect) {
-                  // As per the MSDN doc entitled: "Shell Clipboard Formats"
-                  // CFSTR_PREFERREDDROPEFFECT should return a DWORD
-                  // Reference:
-                  // http://msdn.microsoft.com/en-us/library/bb776902(v=vs.85).aspx
-                  NS_ASSERTION(
-                      allocLen == sizeof(DWORD),
-                      "CFSTR_PREFERREDDROPEFFECT should return a DWORD");
-                  *aLen = allocLen;
-                } else {
-                  *aLen = NS_strlen(reinterpret_cast<char16_t*>(*aData)) *
-                          sizeof(char16_t);
-                }
-                result = NS_OK;
-              }
-            }
-          } break;
-        }  // switch
-      } break;
-
-      case TYMED_GDI: {
-#ifdef DEBUG
-        MOZ_CLIPBOARD_LOG("*********************** TYMED_GDI");
-#endif
-      } break;
-
-      default:
-        break;
-    }  // switch
-
-    ReleaseStgMedium(&stm);
+  // N.B.: not `FAILED(hres)`, as this can be `S_FALSE`!
+  if (hres != S_OK) {
+    return NS_ERROR_FAILURE;
   }
 
-  return result;
+  // otherwise, there is something in stm; make sure we delete it on exit
+  auto const _release_stm =
+      mozilla::MakeScopeExit([&stm] { ::ReleaseStgMedium(&stm); });
+
+  static CLIPFORMAT fileDescriptorFlavorA =
+      ::RegisterClipboardFormat(CFSTR_FILEDESCRIPTORA);
+  static CLIPFORMAT fileDescriptorFlavorW =
+      ::RegisterClipboardFormat(CFSTR_FILEDESCRIPTORW);
+  static CLIPFORMAT fileFlavor = ::RegisterClipboardFormat(CFSTR_FILECONTENTS);
+  static CLIPFORMAT preferredDropEffect =
+      ::RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
+
+  // Historical note: when this code was first written (bug #9367, 1999-07-09),
+  // it was believed we would need to handle other values of stm.tymed. As of
+  // 2024-01-09, such a need has not yet materialized.
+  if (stm.tymed != TYMED_HGLOBAL) {
+    MOZ_CLIPBOARD_LOG("unhandled TYMED_* value: %lu", stm.tymed);
+    return NS_ERROR_FAILURE;
+  }
+
+  // compile-time-constant format indicators:
+  switch (fe.cfFormat) {
+    case CF_TEXT: {
+      // Get the data out of the global data handle. The size we
+      // return should not include the null because the other
+      // platforms don't use nulls, so just return the length we get
+      // back from strlen(), since we know CF_TEXT is null
+      // terminated. Recall that GetGlobalData() returns the size of
+      // the allocated buffer, not the size of the data (on 98, these
+      // are not the same) so we can't use that.
+      uint32_t allocLen = 0;
+      MOZ_TRY(GetGlobalData(stm.hGlobal, aData, &allocLen));
+      *aLen = strlen(reinterpret_cast<char*>(*aData));
+      return NS_OK;
+    }
+
+    case CF_UNICODETEXT: {
+      // Get the data out of the global data handle. The size we
+      // return should not include the null because the other
+      // platforms don't use nulls, so just return the length we get
+      // back from strlen(), since we know CF_UNICODETEXT is null
+      // terminated. Recall that GetGlobalData() returns the size of
+      // the allocated buffer, not the size of the data (on 98, these
+      // are not the same) so we can't use that.
+      uint32_t allocLen = 0;
+      MOZ_TRY(GetGlobalData(stm.hGlobal, aData, &allocLen));
+      *aLen = NS_strlen(reinterpret_cast<char16_t*>(*aData)) * 2;
+      return NS_OK;
+    }
+
+    case CF_DIBV5: {
+      if (!aMIMEImageFormat) {
+        return NS_ERROR_FAILURE;
+      }
+      uint32_t allocLen = 0;
+      const char* clipboardData = nullptr;
+      auto const _freeClipboardData =
+          mozilla::MakeScopeExit([&]() { free((void*)clipboardData); });
+
+      MOZ_TRY(GetGlobalData(stm.hGlobal, (void**)&clipboardData, &allocLen));
+      nsCOMPtr<imgIContainer> container;
+      nsCOMPtr<imgITools> imgTools =
+          do_CreateInstance("@mozilla.org/image/tools;1");
+      MOZ_TRY(imgTools->DecodeImageFromBuffer(
+          clipboardData, allocLen, nsLiteralCString(IMAGE_BMP_MS_CLIPBOARD),
+          getter_AddRefs(container)));
+
+      nsAutoCString mimeType;
+      if (strcmp(aMIMEImageFormat, kJPGImageMime) == 0) {
+        mimeType.Assign(IMAGE_JPEG);
+      } else {
+        mimeType.Assign(aMIMEImageFormat);
+      }
+
+      nsCOMPtr<nsIInputStream> inputStream;
+      MOZ_TRY(imgTools->EncodeImage(container, mimeType, u""_ns,
+                                    getter_AddRefs(inputStream)));
+
+      if (!inputStream) {
+        return NS_ERROR_FAILURE;
+      }
+
+      *aData = inputStream.forget().take();
+      *aLen = sizeof(nsIInputStream*);
+      return NS_OK;
+    }
+
+    case CF_HDROP: {
+      // in the case of a file drop, multiple files are stashed within a
+      // single data object. In order to match mozilla's D&D apis, we
+      // just pull out the file at the requested index, pretending as
+      // if there really are multiple drag items.
+      ScopedOLELock<HDROP> dropFiles(stm.hGlobal);
+
+      UINT numFiles = ::DragQueryFileW(dropFiles.get(), 0xFFFFFFFF, nullptr, 0);
+
+      if (numFiles == 0) {
+        NS_WARNING("CF_HDROP received with empty file list");
+        return NS_ERROR_FAILURE;
+      }
+
+      // Note that (partly for historical reasons) we do not consider it to be
+      // an error on Gecko's part to request index 0 of a data object that turns
+      // out to be empty. That case is handled above.
+      if (aIndex >= numFiles) {
+        MOZ_ASSERT(false, "Asked for a file index out of range of list");
+        return NS_ERROR_INVALID_ARG;
+      }
+
+      UINT fileNameLen = ::DragQueryFileW(dropFiles.get(), aIndex, nullptr, 0);
+      wchar_t* buffer = reinterpret_cast<wchar_t*>(
+          moz_xmalloc((fileNameLen + 1) * sizeof(wchar_t)));
+      ::DragQueryFileW(dropFiles.get(), aIndex, buffer, fileNameLen + 1);
+      *aData = buffer;
+      *aLen = fileNameLen * sizeof(char16_t);
+      return NS_OK;
+    }
+
+    default: /* fallthrough */;
+  }  // switch (fe.cfFormat)
+
+  // non-compile-time-constant format indicators:
+
+  if (fe.cfFormat == fileDescriptorFlavorA ||
+      fe.cfFormat == fileDescriptorFlavorW) {
+    nsAutoString tempPath;
+
+    // BUG(?): this should probably use FILEGROUPDESCRIPTOR[A,W] depending on
+    // the above
+    ScopedOLELock<LPFILEGROUPDESCRIPTOR> fgdesc(stm.hGlobal);
+    if (fgdesc) {
+      MOZ_TRY(GetTempFilePath(
+          nsDependentString((fgdesc->fgd)[aIndex].cFileName), tempPath));
+    }
+
+    MOZ_TRY(SaveStorageOrStream(aDataObject, aIndex, tempPath));
+
+    wchar_t* buffer = reinterpret_cast<wchar_t*>(
+        moz_xmalloc((tempPath.Length() + 1) * sizeof(wchar_t)));
+    wcscpy(buffer, tempPath.get());
+    *aData = buffer;
+    *aLen = tempPath.Length() * sizeof(wchar_t);
+    return NS_OK;
+  }
+
+  if (fe.cfFormat == fileFlavor) {
+    NS_WARNING(
+        "Mozilla doesn't yet understand how to read this type of "
+        "file flavor");
+    return NS_ERROR_FAILURE;
+  }
+
+  // Get the data out of the global data handle. The size we
+  // return should not include the null because the other
+  // platforms don't use nulls, so just return the length we get
+  // back from strlen(), since we know CF_UNICODETEXT is null
+  // terminated. Recall that GetGlobalData() returns the size of
+  // the allocated buffer, not the size of the data (on 98, these
+  // are not the same) so we can't use that.
+  //
+  // NOTE: we are assuming that anything that falls into this
+  //        default case is unicode. As we start to get more
+  //        kinds of binary data, this may become an incorrect
+  //        assumption. Stay tuned.
+  uint32_t allocLen = 0;
+  MOZ_TRY(GetGlobalData(stm.hGlobal, aData, &allocLen));
+  if (fe.cfFormat == GetHtmlClipboardFormat()) {
+    // CF_HTML is actually UTF8, not unicode, so disregard the
+    // assumption above. We have to check the header for the
+    // actual length, and we'll do that in FindPlatformHTML().
+    // For now, return the allocLen. This case is mostly to
+    // ensure we don't try to call strlen on the buffer.
+    *aLen = allocLen;
+  } else if (fe.cfFormat == GetCustomClipboardFormat()) {
+    // Binary data
+    *aLen = allocLen;
+  } else if (fe.cfFormat == preferredDropEffect) {
+    // As per the MSDN doc entitled: "Shell Clipboard Formats"
+    // CFSTR_PREFERREDDROPEFFECT should return a DWORD
+    // Reference:
+    // http://msdn.microsoft.com/en-us/library/bb776902(v=vs.85).aspx
+    NS_ASSERTION(allocLen == sizeof(DWORD),
+                 "CFSTR_PREFERREDDROPEFFECT should return a DWORD");
+    *aLen = allocLen;
+  } else {
+    *aLen = NS_strlen(reinterpret_cast<char16_t*>(*aData)) * sizeof(char16_t);
+  }
+  return NS_OK;
 }
 
 //-------------------------------------------------------------------------

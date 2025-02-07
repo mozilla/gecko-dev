@@ -8,6 +8,7 @@
 #define vm_Float16_h
 
 #include "mozilla/FloatingPoint.h"
+#include "mozilla/MathAlgorithms.h"
 
 #include <cstdint>
 #include <cstring>
@@ -153,7 +154,16 @@ inline double half2float_impl(unsigned int value) {
   unsigned int abs = value & 0x7FFF;
   if (abs) {
     hi |= 0x3F000000 << static_cast<unsigned>(abs >= 0x7C00);
-    for (; abs < 0x400; abs <<= 1, hi -= 0x100000);
+
+    // Mozilla change: Replace the loop with CountLeadingZeroes32.
+    // for (; abs < 0x400; abs <<= 1, hi -= 0x100000);
+    if (abs < 0x400) {
+      // NOTE: CountLeadingZeroes32(0x400) is 21.
+      uint32 shift = mozilla::CountLeadingZeroes32(uint32_t(abs)) - 21;
+      abs <<= shift;
+      hi -= shift * 0x100000;
+    }
+
     hi += static_cast<uint32>(abs) << 10;
   }
   bits<double>::type dbits = static_cast<bits<double>::type>(hi) << 32;
@@ -169,10 +179,19 @@ template <>
 inline float half2float_impl(unsigned int value) {
   bits<float>::type fbits = static_cast<bits<float>::type>(value & 0x8000)
                             << 16;
-  int abs = value & 0x7FFF;
+  unsigned int abs = value & 0x7FFF;
   if (abs) {
     fbits |= 0x38000000 << static_cast<unsigned>(abs >= 0x7C00);
-    for (; abs < 0x400; abs <<= 1, fbits -= 0x800000);
+
+    // Mozilla change: Replace the loop with CountLeadingZeroes32.
+    // for (; abs < 0x400; abs <<= 1, fbits -= 0x800000);
+    if (abs < 0x400) {
+      // NOTE: CountLeadingZeroes32(0x400) is 21.
+      uint32 shift = mozilla::CountLeadingZeroes32(uint32_t(abs)) - 21;
+      abs <<= shift;
+      fbits -= shift * 0x800000;
+    }
+
     fbits += static_cast<bits<float>::type>(abs) << 13;
   }
 

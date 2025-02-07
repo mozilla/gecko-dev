@@ -33,10 +33,8 @@ const FEATURES = {
   reflowCounts: "layout.reflow.showframecounts",
 };
 
-const COMMANDS = [
+const SIMPLE_COMMANDS = [
   "dumpContent",
-  "dumpFrames",
-  "dumpFramesInCSSPixels",
   "dumpTextRuns",
   "dumpViews",
   "dumpCounterManager",
@@ -51,6 +49,7 @@ class Debugger {
     this._flags = new Map();
     this._pagedMode = false;
     this._attached = false;
+    this._deterministicFrameDumping = false;
 
     for (let [name, pref] of Object.entries(FEATURES)) {
       this._flags.set(name, !!Services.prefs.getBoolPref(pref, false));
@@ -105,8 +104,27 @@ class Debugger {
     this._sendMessage("setPagedMode", v);
   }
 
+  get deterministicFrameDumping() {
+    return this._deterministicFrameDumping;
+  }
+
+  set deterministicFrameDumping(v) {
+    this._deterministicFrameDumping = !!v;
+  }
+
   openDevTools() {
     lazy.BrowserToolboxLauncher.init();
+  }
+
+  sendDumpFrames(css_pixels) {
+    let flags = 0;
+    if (css_pixels) {
+      flags |= Ci.nsILayoutDebuggingTools.DUMP_FRAME_FLAGS_CSS_PIXELS;
+    }
+    if (this.deterministicFrameDumping) {
+      flags |= Ci.nsILayoutDebuggingTools.DUMP_FRAME_FLAGS_DETERMINISTIC;
+    }
+    this._sendMessage("dumpFrames", flags);
   }
 
   async _sendMessage(name, arg) {
@@ -145,11 +163,19 @@ for (let [name, pref] of Object.entries(FEATURES)) {
   });
 }
 
-for (let name of COMMANDS) {
+for (let name of SIMPLE_COMMANDS) {
   Debugger.prototype[name] = function () {
     this._sendMessage(name);
   };
 }
+
+Debugger.prototype.dumpFrames = function () {
+  this.sendDumpFrames(false);
+};
+
+Debugger.prototype.dumpFramesInCSSPixels = function () {
+  this.sendDumpFrames(true);
+};
 
 function autoCloseIfNeeded(aCrash) {
   if (!gArgs.autoclose) {
@@ -272,6 +298,7 @@ function parseArguments() {
     autoclose: false,
     delay: 0,
     paged: false,
+    deterministicFrameDumping: false,
   };
   if (window.arguments) {
     args.url = window.arguments[0];
@@ -285,6 +312,8 @@ function parseArguments() {
         args.profileFilename = RegExp.$1;
       } else if (/^paged$/.test(arg)) {
         args.paged = true;
+      } else if (/^deterministic-frame-dumping$/.test(arg)) {
+        args.deterministicFrameDumping = true;
       } else {
         throw `Unknown option ${arg}`;
       }
@@ -371,6 +400,8 @@ function OnLDBLoad() {
     loadStringURI(gArgs.url);
   }
 
+  gDebugger._deterministicFrameDumping = gArgs.deterministicFrameDumping;
+
   // Some command line arguments may toggle menu items. Call this after
   // processing all the arguments.
   checkPersistentMenus();
@@ -390,6 +421,7 @@ function checkPersistentMenus() {
   checkPersistentMenu("crossingEventDumping");
   checkPersistentMenu("reflowCounts");
   checkPersistentMenu("pagedMode");
+  checkPersistentMenu("deterministicFrameDumping");
 }
 
 function dumpProfile() {

@@ -986,7 +986,7 @@ class nsIFrame : public nsQueryFrame {
 
   /** Also forward GetVisitedDependentColor to the style */
   template <typename T, typename S>
-  nscolor GetVisitedDependentColor(T S::*aField) {
+  nscolor GetVisitedDependentColor(T S::* aField) {
     return mComputedStyle->GetVisitedDependentColor(aField);
   }
 
@@ -5562,9 +5562,13 @@ class nsIFrame : public nsQueryFrame {
     }
   }
   void ListTag(FILE* out) const { fputs(ListTag().get(), out); }
-  nsAutoCString ListTag() const;
+  nsAutoCString ListTag(bool aListOnlyDeterministic = false) const;
 
-  enum class ListFlag{TraverseSubdocumentFrames, DisplayInCSSPixels};
+  enum class ListFlag {
+    TraverseSubdocumentFrames,
+    DisplayInCSSPixels,
+    OnlyListDeterministicInfo
+  };
   using ListFlags = mozilla::EnumSet<ListFlag>;
 
   template <typename T>
@@ -5581,6 +5585,22 @@ class nsIFrame : public nsQueryFrame {
                                      const mozilla::WritingMode aWM,
                                      ListFlags aFlags);
 
+  template <typename T>
+  static void ListPtr(nsACString& aTo, const ListFlags& aFlags, const T* aPtr,
+                      const char* aPrefix = "=") {
+    ListPtr(aTo, aFlags.contains(ListFlag::OnlyListDeterministicInfo), aPtr,
+            aPrefix);
+  }
+
+  template <typename T>
+  static void ListPtr(nsACString& aTo, bool aSkip, const T* aPtr,
+                      const char* aPrefix = "=") {
+    if (aSkip) {
+      return;
+    }
+    aTo += nsPrintfCString("%s%p", aPrefix, static_cast<const void*>(aPtr));
+  }
+
   void ListGeneric(nsACString& aTo, const char* aPrefix = "",
                    ListFlags aFlags = ListFlags()) const;
   virtual void List(FILE* out = stderr, const char* aPrefix = "",
@@ -5596,8 +5616,8 @@ class nsIFrame : public nsQueryFrame {
   /**
    * Dump the frame tree beginning from the root frame.
    */
-  void DumpFrameTree() const;
-  void DumpFrameTreeInCSSPixels() const;
+  void DumpFrameTree(bool aListOnlyDeterministic = false) const;
+  void DumpFrameTreeInCSSPixels(bool aListOnlyDeterministic = false) const;
 
   /**
    * Dump the frame tree beginning from ourselves.

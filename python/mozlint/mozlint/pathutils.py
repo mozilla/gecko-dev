@@ -196,8 +196,12 @@ def filterpaths(
         # First handle include/exclude directives
         # that exist (i.e don't have globs)
         for inc in include:
-            if inc.isfile:
+
+            # If the include directive is a file and we're specifically linting
+            # it, keep it.
+            if inc.isfile and path.path == inc.path:
                 keep.add(inc)
+                continue
 
             # Only excludes that are subdirectories of the include
             # path matter.

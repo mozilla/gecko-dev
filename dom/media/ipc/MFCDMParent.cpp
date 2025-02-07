@@ -862,7 +862,7 @@ void MFCDMParent::GetCapabilities(const nsString& aKeySystem,
   if (aFlags.contains(CapabilitesFlag::NeedClearLeadCheck)) {
     for (const auto& codec : kVideoCodecs) {
       if (codec == KeySystemConfig::EME_CODEC_HEVC &&
-          !StaticPrefs::media_wmf_hevc_enabled()) {
+          !StaticPrefs::media_hevc_enabled()) {
         continue;
       }
       CryptoSchemeSet supportedScheme;
@@ -927,7 +927,7 @@ void MFCDMParent::GetCapabilities(const nsString& aKeySystem,
     // Non clearlead situation for video codecs
     for (const auto& codec : kVideoCodecs) {
       if (codec == KeySystemConfig::EME_CODEC_HEVC &&
-          !StaticPrefs::media_wmf_hevc_enabled()) {
+          !StaticPrefs::media_hevc_enabled()) {
         continue;
       }
       if (FactorySupports(factory, aKeySystem, convertCodecToFourCC(codec),

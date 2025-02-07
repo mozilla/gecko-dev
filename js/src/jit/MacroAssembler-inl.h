@@ -283,10 +283,7 @@ void MacroAssembler::PushFrameDescriptorForJitCall(FrameType type,
 void MacroAssembler::pushFrameDescriptorForJitCall(FrameType type,
                                                    Register argc,
                                                    Register scratch) {
-  if (argc != scratch) {
-    mov(argc, scratch);
-  }
-  lshift32(Imm32(NUMACTUALARGS_SHIFT), scratch);
+  lshift32(Imm32(NUMACTUALARGS_SHIFT), argc, scratch);
   or32(Imm32(int32_t(type)), scratch);
   push(scratch);
 }

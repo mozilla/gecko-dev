@@ -187,7 +187,7 @@ static OPUS_INLINE __m128i silk_mm_smulww_epi32(__m128i a, opus_int32 b)
 /* (a32 * (opus_int32)((opus_int16)(b32))) >> 16 output have to be 32bit int */
 static OPUS_INLINE __m128i silk_mm_smulwb_epi32(__m128i a, opus_int32 b)
 {
-    return silk_cvtepi64_epi32_high(_mm256_mul_epi32(_mm256_cvtepi32_epi64(a), _mm256_set1_epi32(silk_LSHIFT(b, 16))));
+    return silk_cvtepi64_epi32_high(_mm256_mul_epi32(_mm256_cvtepi32_epi64(a), _mm256_set1_epi32((opus_uint32)b<<16)));
 }
 
 /* (opus_int32)((opus_int16)(a3))) * (opus_int32)((opus_int16)(b32)) output have to be 32bit int */

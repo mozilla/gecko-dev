@@ -8540,13 +8540,13 @@ Maybe<uint32_t> nsIFrame::ContentIndexInContainer(const nsIFrame* aFrame) {
   return Nothing();
 }
 
-nsAutoCString nsIFrame::ListTag() const {
+nsAutoCString nsIFrame::ListTag(bool aListOnlyDeterministic) const {
   nsAutoString tmp;
   GetFrameName(tmp);
 
   nsAutoCString tag;
   tag += NS_ConvertUTF16toUTF8(tmp);
-  tag += nsPrintfCString("@%p", static_cast<const void*>(this));
+  ListPtr(tag, aListOnlyDeterministic, this, "@");
   return tag;
 }
 
@@ -8576,25 +8576,31 @@ std::string nsIFrame::ConvertToString(const LogicalSize& aSize,
 void nsIFrame::ListGeneric(nsACString& aTo, const char* aPrefix,
                            ListFlags aFlags) const {
   aTo += aPrefix;
-  aTo += ListTag();
+  const bool onlyDeterministic =
+      aFlags.contains(ListFlag::OnlyListDeterministicInfo);
+  aTo += ListTag(onlyDeterministic);
   if (HasView()) {
-    aTo += nsPrintfCString(" [view=%p]", static_cast<void*>(GetView()));
+    aTo += " [view";
+    ListPtr(aTo, aFlags, GetView());
+    aTo += "]";
   }
-  if (GetParent()) {
-    aTo += nsPrintfCString(" parent=%p", static_cast<void*>(GetParent()));
-  }
-  if (GetNextSibling()) {
-    aTo += nsPrintfCString(" next=%p", static_cast<void*>(GetNextSibling()));
+  if (!onlyDeterministic) {
+    if (GetParent()) {
+      aTo += nsPrintfCString(" parent=%p", static_cast<void*>(GetParent()));
+    }
+    if (GetNextSibling()) {
+      aTo += nsPrintfCString(" next=%p", static_cast<void*>(GetNextSibling()));
+    }
   }
   if (GetPrevContinuation()) {
     bool fluid = GetPrevInFlow() == GetPrevContinuation();
-    aTo += nsPrintfCString(" prev-%s=%p", fluid ? "in-flow" : "continuation",
-                           static_cast<void*>(GetPrevContinuation()));
+    aTo += nsPrintfCString(" prev-%s", fluid ? "in-flow" : "continuation");
+    ListPtr(aTo, aFlags, GetPrevContinuation());
   }
   if (GetNextContinuation()) {
     bool fluid = GetNextInFlow() == GetNextContinuation();
-    aTo += nsPrintfCString(" next-%s=%p", fluid ? "in-flow" : "continuation",
-                           static_cast<void*>(GetNextContinuation()));
+    aTo += nsPrintfCString(" next-%s", fluid ? "in-flow" : "continuation");
+    ListPtr(aTo, aFlags, GetNextContinuation());
   }
   if (const nsAtom* const autoPageValue =
           GetProperty(AutoPageValueProperty())) {
@@ -8619,11 +8625,13 @@ void nsIFrame::ListGeneric(nsACString& aTo, const char* aPrefix,
   }
   void* IBsibling = GetProperty(IBSplitSibling());
   if (IBsibling) {
-    aTo += nsPrintfCString(" IBSplitSibling=%p", IBsibling);
+    aTo += nsPrintfCString(" IBSplitSibling");
+    ListPtr(aTo, aFlags, IBsibling);
   }
   void* IBprevsibling = GetProperty(IBSplitPrevSibling());
   if (IBprevsibling) {
-    aTo += nsPrintfCString(" IBSplitPrevSibling=%p", IBprevsibling);
+    aTo += nsPrintfCString(" IBSplitPrevSibling");
+    ListPtr(aTo, aFlags, IBprevsibling);
   }
   if (nsLayoutUtils::FontSizeInflationEnabled(PresContext())) {
     if (HasAnyStateBits(NS_FRAME_FONT_INFLATION_FLOW_ROOT)) {
@@ -8715,20 +8723,25 @@ void nsIFrame::ListGeneric(nsACString& aTo, const char* aPrefix,
     aTo += nsPrintfCString(" combines-3d-transform-with-ancestors");
   }
   if (mContent) {
-    aTo += nsPrintfCString(" [content=%p", static_cast<void*>(mContent));
+    if (!onlyDeterministic) {
+      aTo += nsPrintfCString(" [content=%p]", static_cast<void*>(mContent));
+    }
     if (IsPrimaryFrame() && DisplayPortUtils::HasDisplayPort(mContent)) {
       // Anon boxes and continuations point to the same content - Just print on
       // primary frame.
-      aTo += ",displayport"_ns;
+      aTo += "[displayport]"_ns;
     }
-    aTo += "]"_ns;
   }
-  aTo += nsPrintfCString(" [cs=%p", static_cast<void*>(mComputedStyle));
+  if (!onlyDeterministic) {
+    aTo += nsPrintfCString("[cs=%p]", static_cast<void*>(mComputedStyle));
+  }
   if (mComputedStyle) {
-    auto pseudoType = mComputedStyle->GetPseudoType();
-    aTo += ToString(pseudoType).c_str();
+    const auto pseudoType = mComputedStyle->GetPseudoType();
+    const auto pseudoTypeStr = ToString(pseudoType);
+    if (!pseudoTypeStr.empty()) {
+      aTo += nsPrintfCString("[%s]", pseudoTypeStr.c_str());
+    }
   }
-  aTo += "]";
 
   auto contentVisibility = StyleDisplay()->ContentVisibility(*this);
   if (contentVisibility != StyleContentVisibility::Visible) {
@@ -8829,12 +8842,20 @@ nsresult nsIFrame::MakeFrameName(const nsAString& aType,
   return NS_OK;
 }
 
-void nsIFrame::DumpFrameTree() const {
-  PresShell()->GetRootFrame()->List(stderr);
+void nsIFrame::DumpFrameTree(bool aListOnlyDeterministic) const {
+  ListFlags flags;
+  if (aListOnlyDeterministic) {
+    flags += ListFlag::OnlyListDeterministicInfo;
+  }
+  PresShell()->GetRootFrame()->List(stderr, "", flags);
 }
 
-void nsIFrame::DumpFrameTreeInCSSPixels() const {
-  PresShell()->GetRootFrame()->List(stderr, "", ListFlag::DisplayInCSSPixels);
+void nsIFrame::DumpFrameTreeInCSSPixels(bool aListOnlyDeterministic) const {
+  ListFlags flags{ListFlag::DisplayInCSSPixels};
+  if (aListOnlyDeterministic) {
+    flags += ListFlag::OnlyListDeterministicInfo;
+  }
+  PresShell()->GetRootFrame()->List(stderr, "", flags);
 }
 
 void nsIFrame::DumpFrameTreeLimited() const { List(stderr); }

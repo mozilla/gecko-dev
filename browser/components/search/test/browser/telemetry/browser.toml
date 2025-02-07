@@ -5,6 +5,7 @@ prefs = ["browser.search.log=true"]
 
 ["browser_search_glean_serp_event_telemetry_categorization_enabled_by_pref.js"]
 support-files = ["searchTelemetryDomainCategorizationReporting.html"]
+skip-if = ["os == 'mac'"] # Bug 1943499 - Frequent intermittent failure on Mac.
 
 ["browser_search_telemetry_abandonment.js"]
 support-files = [

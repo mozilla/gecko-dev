@@ -36,10 +36,6 @@
         "issue": "broken-interactive-elements",
         "matches": ["*://*.arcsivr.com/*"]
       },
-      "1944006": {
-        "issue": "broken-interactive-elements",
-        "matches": ["*://*.co2meter.com/*"]
-      },
       "1944007": {
         "issue": "broken-interactive-elements",
         "matches": ["*://*.discountcoffee.co.uk/*"]
@@ -678,25 +674,6 @@
       {
         "platforms": ["android"],
         "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
-  "1753461": {
-    "label": "serieson.naver.com",
-    "bugs": {
-      "1753461": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://serieson.naver.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["mac", "windows"],
-        "ua_string": ["Chrome_with_FxQuantum"]
-      },
-      {
-        "platforms": ["linux"],
-        "ua_string": ["change_OS_to_Windows"]
       }
     ]
   },
@@ -1945,23 +1922,6 @@
       }
     ]
   },
-  "1879879": {
-    "label": "developers.pinterest.com",
-    "bugs": {
-      "1879879": {
-        "issue": "broken-layout",
-        "matches": ["*://developers.pinterest.com/docs/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1879879-developers.pinterest.com-list-alignment-fix.css"]
-        }
-      }
-    ]
-  },
   "1881922": {
     "label": "helpdeskgeek.com",
     "bugs": {
@@ -2144,23 +2104,6 @@
       }
     ]
   },
-  "1895994": {
-    "label": "www.softrans.ro",
-    "bugs": {
-      "1895994": {
-        "issue": "broken-scrolling",
-        "matches": ["*://*.softrans.ro/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["android"],
-        "content_scripts": {
-          "css": ["bug1895994-softtrans.ro-unlock-scrolling.css"]
-        }
-      }
-    ]
-  },
   "1896349": {
     "label": "vivaldi.com",
     "bugs": {
@@ -2188,7 +2131,7 @@
     },
     "interventions": [
       {
-        "platforms": ["all"],
+        "platforms": ["desktop"],
         "ua_string": ["add_Chrome"]
       }
     ]
@@ -2354,21 +2297,6 @@
       }
     ]
   },
-  "1898992": {
-    "label": "asp.attenix.co.il",
-    "bugs": {
-      "1898992": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://asp.attenix.co.il/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["change_Firefox_to_FireFox"]
-      }
-    ]
-  },
   "1898994": {
     "label": "eportal.uestc.edu.cn",
     "bugs": {
@@ -2523,6 +2451,7 @@
     "interventions": [
       {
         "platforms": ["desktop"],
+        "max_version": 134,
         "content_scripts": {
           "css": ["bug1901000-eyebuydirect.ca-fix-paypal-button.css"]
         }
@@ -2558,21 +2487,6 @@
       {
         "platforms": ["android"],
         "ua_string": ["desktop_not_mobile"]
-      }
-    ]
-  },
-  "1903970": {
-    "label": "www.unimedlitoral.com.br",
-    "bugs": {
-      "1903970": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://www.unimedlitoral.com.br/agendaonline/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
       }
     ]
   },

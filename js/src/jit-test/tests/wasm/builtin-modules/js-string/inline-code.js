@@ -8,8 +8,7 @@ codegenTestARM64_adhoc(`
   )
   (export "test" (func $testImp))`,
   'test',
-  `aa0003e1  mov     x1, x0
-  92400421  and     x1, x1, #0x3
+  `92400401  and     x1, x0, #0x3
   7100083f  cmp     w1, #0x2 \\(2\\)
   54000060  b\\.eq    #\\+0xc \\(addr .*\\)
   52800000  mov     w0, #0x0
@@ -26,8 +25,7 @@ codegenTestARM64_adhoc(`
   )
   (export "cast" (func $castImp))`,
   'cast',
-  `aa0003e1  mov     x1, x0
-  92400421  and     x1, x1, #0x3
+  `92400401  and     x1, x0, #0x3
   7100083f  cmp     w1, #0x2 \\(2\\)
   54000040  b.eq    #\\+0x8 \\(addr .*\\)
   d4a00000  unimplemented \\(Exception\\)`,

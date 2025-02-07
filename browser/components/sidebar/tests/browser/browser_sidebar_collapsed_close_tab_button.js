@@ -5,11 +5,13 @@
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["sidebar.verticalTabs", true],
-      ["sidebar.visibility", "always-show"],
-    ],
+    set: [["sidebar.verticalTabs", true]],
   });
+  Assert.equal(
+    Services.prefs.getStringPref("sidebar.visibility"),
+    "always-show",
+    "Sanity check the visibilty pref when verticalTabs are enabled"
+  );
 });
 registerCleanupFunction(async () => {
   await SpecialPowers.popPrefEnv();

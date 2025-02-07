@@ -29,7 +29,6 @@ static gboolean notebook_has_tab_gap;
 
 static ToolbarGTKMetrics sToolbarMetrics;
 static CSDWindowDecorationSize sToplevelWindowDecorationSize;
-static CSDWindowDecorationSize sPopupWindowDecorationSize;
 
 using mozilla::Span;
 
@@ -196,7 +195,6 @@ void moz_gtk_refresh() {
 
   sToolbarMetrics.initialized = false;
   sToplevelWindowDecorationSize.initialized = false;
-  sPopupWindowDecorationSize.initialized = false;
 
   /* This will destroy all of our widgets */
   ResetWidgetCache();
@@ -1643,18 +1641,14 @@ gint moz_gtk_get_scalethumb_metrics(GtkOrientation orient, gint* thumb_length,
   return MOZ_GTK_SUCCESS;
 }
 
-/*
- * get_shadow_width() from gtkwindow.c is not public so we need
- * to implement it.
- */
-void InitWindowDecorationSize(CSDWindowDecorationSize* sWindowDecorationSize,
-                              bool aPopupWindow) {
-  bool solidDecorations = gtk_style_context_has_class(
+// Best effort implementation of get_shadow_width() from gtkwindow.c...
+static GtkBorder ComputeWindowDecorationSize() {
+  GtkBorder decorationSize = {0, 0, 0, 0};
+  const bool solidDecorations = gtk_style_context_has_class(
       GetStyleContext(MOZ_GTK_HEADERBAR_WINDOW, 1), "solid-csd");
   // solid-csd does not use frame extents, quit now.
   if (solidDecorations) {
-    sWindowDecorationSize->decorationSize = {0, 0, 0, 0};
-    return;
+    return decorationSize;
   }
 
   // Scale factor is applied later when decoration size is used for actual
@@ -1664,10 +1658,9 @@ void InitWindowDecorationSize(CSDWindowDecorationSize* sWindowDecorationSize,
   /* Always sum border + padding */
   GtkBorder padding;
   GtkStateFlags state = gtk_style_context_get_state(context);
-  gtk_style_context_get_border(context, state,
-                               &sWindowDecorationSize->decorationSize);
+  gtk_style_context_get_border(context, state, &decorationSize);
   gtk_style_context_get_padding(context, state, &padding);
-  sWindowDecorationSize->decorationSize += padding;
+  decorationSize += padding;
 
   // Available on GTK 3.20+.
   static auto sGtkRenderBackgroundGetClip = (void (*)(
@@ -1675,7 +1668,7 @@ void InitWindowDecorationSize(CSDWindowDecorationSize* sWindowDecorationSize,
       GdkRectangle*))dlsym(RTLD_DEFAULT, "gtk_render_background_get_clip");
 
   if (!sGtkRenderBackgroundGetClip) {
-    return;
+    return decorationSize;
   }
 
   GdkRectangle clip;
@@ -1690,27 +1683,25 @@ void InitWindowDecorationSize(CSDWindowDecorationSize* sWindowDecorationSize,
   // Get shadow extents but combine with style margin; use the bigger value.
   // Margin is used for resize grip size - it's not present on
   // popup windows.
-  if (!aPopupWindow) {
-    GtkBorder margin;
-    gtk_style_context_get_margin(context, state, &margin);
+  GtkBorder margin;
+  gtk_style_context_get_margin(context, state, &margin);
 
-    extents.top = MAX(extents.top, margin.top);
-    extents.right = MAX(extents.right, margin.right);
-    extents.bottom = MAX(extents.bottom, margin.bottom);
-    extents.left = MAX(extents.left, margin.left);
-  }
+  extents.top = MAX(extents.top, margin.top);
+  extents.right = MAX(extents.right, margin.right);
+  extents.bottom = MAX(extents.bottom, margin.bottom);
+  extents.left = MAX(extents.left, margin.left);
 
-  sWindowDecorationSize->decorationSize += extents;
+  decorationSize += extents;
+  return decorationSize;
 }
 
-GtkBorder GetCSDDecorationSize(bool aIsPopup) {
-  auto metrics =
-      aIsPopup ? &sPopupWindowDecorationSize : &sToplevelWindowDecorationSize;
-  if (!metrics->initialized) {
-    InitWindowDecorationSize(metrics, aIsPopup);
-    metrics->initialized = true;
+GtkBorder GetTopLevelCSDDecorationSize() {
+  if (!sToplevelWindowDecorationSize.initialized) {
+    sToplevelWindowDecorationSize.decorationSize =
+        ComputeWindowDecorationSize();
+    sToplevelWindowDecorationSize.initialized = true;
   }
-  return metrics->decorationSize;
+  return sToplevelWindowDecorationSize.decorationSize;
 }
 
 /* cairo_t *cr argument has to be a system-cairo. */

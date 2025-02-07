@@ -57,6 +57,8 @@ class MarsSpocsEndpointRawTest {
 
     @Test
     fun `WHEN requesting sponsored stories with a custom request config THEN ensure the correct request parameters are used`() {
+        MarsSpocsEndpointRaw.isDebugBuild = false
+
         val placement = Placement(placement = "newtab_mobile_spocs", count = 10)
         val config = getRequestConfig(
             placements = listOf(placement),
@@ -203,6 +205,20 @@ class MarsSpocsEndpointRawTest {
         assertResponseIsClosed(client, errorResponse) {
             endpoint.deleteUser()
         }
+    }
+
+    @Test
+    fun `GIVEN a debug build WHEN querying the base url THEN use the staging endpoint`() {
+        MarsSpocsEndpointRaw.isDebugBuild = true
+
+        assertEquals(MARS_ENDPOINT_STAGING_BASE_URL, MarsSpocsEndpointRaw.baseUrl)
+    }
+
+    @Test
+    fun `GIVEN a release build WHEN querying the base url THEN use the production endpoint`() {
+        MarsSpocsEndpointRaw.isDebugBuild = false
+
+        assertEquals(MARS_ENDPOINT_BASE_URL, MarsSpocsEndpointRaw.baseUrl)
     }
 
     private fun getRequestConfig(

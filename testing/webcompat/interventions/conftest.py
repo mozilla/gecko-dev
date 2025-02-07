@@ -18,6 +18,11 @@ def pytest_generate_tests(metafunc):
     argvalues = []
     ids = []
 
+    if "only_firefox_versions" in marks:
+        for mark in metafunc.function.pytestmark:
+            if mark.name == "only_firefox_versions":
+                otherargs["only_firefox_versions"] = mark.args
+
     if "only_platforms" in marks:
         for mark in metafunc.function.pytestmark:
             if mark.name == "only_platforms":

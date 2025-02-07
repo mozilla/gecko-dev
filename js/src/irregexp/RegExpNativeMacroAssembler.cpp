@@ -396,8 +396,7 @@ void SMRegExpMacroAssembler::SkipUntilBitInTable(int cp_offset,
   Register index = current_character_;
   if (mode_ != LATIN1 || kTableMask != String::kMaxOneByteCharCode) {
     index = temp1_;
-    masm_.move32(current_character_, index);
-    masm_.and32(Imm32(kTableMask), index);
+    masm_.and32(Imm32(kTableMask), current_character_, index);
   }
 
   masm_.load8ZeroExtend(BaseIndex(tableReg, index, js::jit::TimesOne), index);
@@ -718,8 +717,7 @@ bool SMRegExpMacroAssembler::CheckSpecialCharacterClass(
       // To test for 0x0a and 0x0d efficiently, we XOR the input with 1.
       // This converts 0x0a to 0x0b, and 0x0d to 0x0c, allowing us to
       // test for the contiguous range 0x0b..0x0c.
-      masm_.move32(current_character_, temp0_);
-      masm_.xor32(Imm32(0x01), temp0_);
+      masm_.xor32(Imm32(0x01), current_character_, temp0_);
       masm_.sub32(Imm32(0x0b), temp0_);
       masm_.branch32(Assembler::BelowOrEqual, temp0_, Imm32(0x0c - 0x0b),
                      no_match);
@@ -773,8 +771,7 @@ bool SMRegExpMacroAssembler::CheckSpecialCharacterClass(
       return true;
     case StandardCharacterSet::kLineTerminator:
       // Match newlines. The opposite of '.'. See '.' above.
-      masm_.move32(current_character_, temp0_);
-      masm_.xor32(Imm32(0x01), temp0_);
+      masm_.xor32(Imm32(0x01), current_character_, temp0_);
       masm_.sub32(Imm32(0x0b), temp0_);
       if (mode_ == LATIN1) {
         masm_.branch32(Assembler::Above, temp0_, Imm32(0x0c - 0x0b), no_match);

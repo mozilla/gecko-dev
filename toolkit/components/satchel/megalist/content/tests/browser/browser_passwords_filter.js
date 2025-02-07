@@ -20,11 +20,12 @@ const getAlertsRenderedPromise = megalist => {
     async () => {
       const passwordsList = megalist.querySelector(".passwords-list");
       const logins = await Services.logins.getAllLogins();
-      const breaches =
-        await LoginBreaches.getPotentialBreachesByLoginGUID(logins);
+      const loginsWithAlerts = [
+        ...(await LoginBreaches.getPotentialBreachesByLoginGUID(logins)),
+      ].concat(logins.filter(login => !login.username.length));
       return (
         passwordsList?.querySelectorAll("password-card").length ===
-        breaches.size
+        loginsWithAlerts.length
       );
     }
   );
@@ -55,6 +56,14 @@ add_task(async function test_filter_passwords() {
   await addMockPasswords();
   info("Adding breached login");
   await Services.logins.addLoginAsync(BREACHED_LOGIN);
+  info("Adding login with no username");
+  await Services.logins.addLoginAsync(
+    LoginTestUtils.testData.formLogin({
+      origin: "example4.com",
+      username: "",
+      password: "pass4",
+    })
+  );
   const megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
   info("Toggle showing only alerts");

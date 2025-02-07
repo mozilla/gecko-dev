@@ -31,7 +31,7 @@
 [DEFAULT]
 subsuite = "media"
 tags = "media-engine-compatible media-gpu"
-prefs = ["media.wmf.hevc.enabled=1"] # for test_hevc_playback
+prefs = ["media.hevc.enabled=1"] # for test_hevc_playback
 support-files = [
   "16bit_wave_extrametadata.wav",
   "16bit_wave_extrametadata.wav^headers^",

@@ -114,7 +114,7 @@ void anti_collapse(const CELTMode *m, celt_norm *X_,
       unsigned char *collapse_masks, int LM, int C, int size, int start,
       int end, const opus_val16 *logE, const opus_val16 *prev1logE,
       const opus_val16 *prev2logE, const int *pulses, opus_uint32 seed,
-      int arch);
+      int encode, int arch);
 
 opus_uint32 celt_lcg_rand(opus_uint32 seed);
 

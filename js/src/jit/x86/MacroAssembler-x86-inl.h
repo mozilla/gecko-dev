@@ -129,6 +129,13 @@ void MacroAssembler::andPtr(Register src, Register dest) { andl(src, dest); }
 
 void MacroAssembler::andPtr(Imm32 imm, Register dest) { andl(imm, dest); }
 
+void MacroAssembler::andPtr(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  andl(imm, dest);
+}
+
 void MacroAssembler::and64(Imm64 imm, Register64 dest) {
   if (imm.low().value != int32_t(0xFFFFFFFF)) {
     andl(imm.low(), dest.low);
@@ -160,6 +167,13 @@ void MacroAssembler::orPtr(Register src, Register dest) { orl(src, dest); }
 
 void MacroAssembler::orPtr(Imm32 imm, Register dest) { orl(imm, dest); }
 
+void MacroAssembler::orPtr(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  orl(imm, dest);
+}
+
 void MacroAssembler::and64(Register64 src, Register64 dest) {
   andl(src.low, dest.low);
   andl(src.high, dest.high);
@@ -178,6 +192,13 @@ void MacroAssembler::xor64(Register64 src, Register64 dest) {
 void MacroAssembler::xorPtr(Register src, Register dest) { xorl(src, dest); }
 
 void MacroAssembler::xorPtr(Imm32 imm, Register dest) { xorl(imm, dest); }
+
+void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movl(src, dest);
+  }
+  xorl(imm, dest);
+}
 
 // ===============================================================
 // Swap instructions
@@ -425,6 +446,10 @@ void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
   lshift32(imm, dest);
 }
 
+void MacroAssembler::lshiftPtr(Imm32 imm, Register src, Register dest) {
+  lshift32(imm, src, dest);
+}
+
 void MacroAssembler::lshiftPtr(Register shift, Register srcDest) {
   lshift32(shift, srcDest);
 }
@@ -469,6 +494,10 @@ void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
   rshift32(imm, dest);
 }
 
+void MacroAssembler::rshiftPtr(Imm32 imm, Register src, Register dest) {
+  rshift32(imm, src, dest);
+}
+
 void MacroAssembler::rshiftPtr(Register shift, Register srcDest) {
   rshift32(shift, srcDest);
 }
@@ -511,6 +540,11 @@ void MacroAssembler::rshift64(Register shift, Register64 srcDest) {
 
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   rshift32Arithmetic(imm, dest);
+}
+
+void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register src,
+                                         Register dest) {
+  rshift32Arithmetic(imm, src, dest);
 }
 
 void MacroAssembler::rshiftPtrArithmetic(Register shift, Register srcDest) {

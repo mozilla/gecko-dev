@@ -31,7 +31,6 @@ DevToolsModules(
     "StackTrace.js",
     "Tree.js",
     "VirtualizedTree.js",
-    "VisibilityHandler.js",
 )
 
 MOCHITEST_CHROME_MANIFESTS += ["test/chrome/chrome.toml"]

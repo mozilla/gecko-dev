@@ -162,7 +162,7 @@ static bool CreateMFTDecoderOnMTA(const WMFStreamType& aType) {
       break;
 #endif
     case WMFStreamType::HEVC:
-      if (StaticPrefs::media_wmf_hevc_enabled()) {
+      if (StaticPrefs::media_hevc_enabled()) {
         result =
             SUCCEEDED(decoder->Create(MFT_CATEGORY_VIDEO_DECODER,
                                       MFVideoFormat_HEVC, MFVideoFormat_NV12));

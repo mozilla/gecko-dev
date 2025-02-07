@@ -55,12 +55,12 @@ struct InitData;
 
 // AppWindow
 
-#define NS_APPWINDOW_IMPL_CID                        \
-  { /* 8eaec2f3-ed02-4be2-8e0f-342798477298 */       \
-    0x8eaec2f3, 0xed02, 0x4be2, {                    \
-      0x8e, 0x0f, 0x34, 0x27, 0x98, 0x47, 0x72, 0x98 \
-    }                                                \
-  }
+#define NS_APPWINDOW_IMPL_CID                 \
+  {/* 8eaec2f3-ed02-4be2-8e0f-342798477298 */ \
+   0x8eaec2f3,                                \
+   0xed02,                                    \
+   0x4be2,                                    \
+   {0x8e, 0x0f, 0x34, 0x27, 0x98, 0x47, 0x72, 0x98}}
 
 class nsContentShellInfo;
 
@@ -253,7 +253,6 @@ class AppWindow final : public nsIBaseWindow,
   enum PersistentAttributeUpdate { Sync, Async };
   void PersistentAttributesDirty(PersistentAttributes,
                                  PersistentAttributeUpdate);
-  nsresult GetTabCount(uint32_t* aResult);
 
   void LoadPersistentWindowState();
   nsresult GetPersistentValue(const nsAtom* aAttr, nsAString& aValue);

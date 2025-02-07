@@ -223,7 +223,8 @@ void nsPlaceholderFrame::List(FILE* out, const char* aPrefix,
 
   if (mOutOfFlowFrame) {
     str += " outOfFlowFrame=";
-    str += mOutOfFlowFrame->ListTag();
+    str += mOutOfFlowFrame->ListTag(
+        aFlags.contains(ListFlag::OnlyListDeterministicInfo));
   }
   fprintf_stderr(out, "%s\n", str.get());
 }

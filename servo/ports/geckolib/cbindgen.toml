@@ -1025,8 +1025,7 @@ renaming_overrides_prefixing = true
  SERVO_FIXED_POINT_HELPERS(StyleFontStyle, int16_t, StyleFONT_STYLE_FRACTION_BITS);
  bool IsNormal() const { return *this == NORMAL; }
  inline bool IsItalic() const;
- inline bool IsOblique() const;
- inline float ObliqueAngle() const;  // Only for use when IsOblique() is true
+ inline float ObliqueAngle() const;  // Not for use when IsItalic() is true
  inline float SlantAngle() const;  // Returns angle for any font-style, including
                                    // normal/italic as well as explicit oblique
 """
@@ -1074,6 +1073,12 @@ renaming_overrides_prefixing = true
 "Time" = """
  float ToSeconds() const { return seconds; }
  float ToMilliseconds() const { return seconds * 1000.0f; }
+"""
+
+"ComputedFontStyleDescriptor" = """
+  inline static StyleComputedFontStyleDescriptor Normal() {
+    return StyleComputedFontStyleDescriptor::Oblique(0, 0);
+  }
 """
 
 "FontFaceSourceTechFlags" = """

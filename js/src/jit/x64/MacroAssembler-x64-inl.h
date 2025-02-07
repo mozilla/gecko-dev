@@ -86,6 +86,13 @@ void MacroAssembler::andPtr(Register src, Register dest) { andq(src, dest); }
 
 void MacroAssembler::andPtr(Imm32 imm, Register dest) { andq(imm, dest); }
 
+void MacroAssembler::andPtr(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movq(src, dest);
+  }
+  andq(imm, dest);
+}
+
 void MacroAssembler::and64(Imm64 imm, Register64 dest) {
   if (INT32_MIN <= int64_t(imm.value) && int64_t(imm.value) <= INT32_MAX) {
     andq(Imm32(imm.value), dest.reg);
@@ -120,6 +127,13 @@ void MacroAssembler::orPtr(Register src, Register dest) { orq(src, dest); }
 
 void MacroAssembler::orPtr(Imm32 imm, Register dest) { orq(imm, dest); }
 
+void MacroAssembler::orPtr(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movq(src, dest);
+  }
+  orq(imm, dest);
+}
+
 void MacroAssembler::and64(Register64 src, Register64 dest) {
   andq(src.reg, dest.reg);
 }
@@ -135,6 +149,13 @@ void MacroAssembler::xor64(Register64 src, Register64 dest) {
 void MacroAssembler::xorPtr(Register src, Register dest) { xorq(src, dest); }
 
 void MacroAssembler::xorPtr(Imm32 imm, Register dest) { xorq(imm, dest); }
+
+void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
+  if (src != dest) {
+    movq(src, dest);
+  }
+  xorq(imm, dest);
+}
 
 void MacroAssembler::and64(const Operand& src, Register64 dest) {
   andq(src, dest.reg);
@@ -332,6 +353,14 @@ void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
   shlq(imm, dest);
 }
 
+void MacroAssembler::lshiftPtr(Imm32 imm, Register src, Register dest) {
+  MOZ_ASSERT(0 <= imm.value && imm.value < 64);
+  if (src != dest) {
+    movq(src, dest);
+  }
+  shlq(imm, dest);
+}
+
 void MacroAssembler::lshiftPtr(Register shift, Register srcDest) {
   if (Assembler::HasBMI2()) {
     shlxq(srcDest, shift, srcDest);
@@ -375,6 +404,14 @@ void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
   shrq(imm, dest);
 }
 
+void MacroAssembler::rshiftPtr(Imm32 imm, Register src, Register dest) {
+  MOZ_ASSERT(0 <= imm.value && imm.value < 64);
+  if (src != dest) {
+    movq(src, dest);
+  }
+  shrq(imm, dest);
+}
+
 void MacroAssembler::rshiftPtr(Register shift, Register srcDest) {
   if (Assembler::HasBMI2()) {
     shrxq(srcDest, shift, srcDest);
@@ -414,6 +451,15 @@ void MacroAssembler::rshift64(Register shift, Register64 srcDest) {
 
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
+  sarq(imm, dest);
+}
+
+void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register src,
+                                         Register dest) {
+  MOZ_ASSERT(0 <= imm.value && imm.value < 64);
+  if (src != dest) {
+    movq(src, dest);
+  }
   sarq(imm, dest);
 }
 

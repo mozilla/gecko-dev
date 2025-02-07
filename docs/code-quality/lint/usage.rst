@@ -54,45 +54,9 @@ Examples:
     ./mach lint --outgoing origin/master
     ./mach lint -wo
 
-.. _lint-vcs-hook:
-
-Using a VCS Hook
-----------------
-
-There are also both pre-commit and pre-push version control hooks that work in
-either hg or git. To enable a pre-push hg hook, add the following to hgrc:
-
-.. parsed-literal::
-
-    [hooks]
-    pre-push.lint = python:./tools/lint/hooks.py:hg
-
-
-To enable a pre-commit hg hook, add the following to hgrc:
-
-.. parsed-literal::
-
-    [hooks]
-    pretxncommit.lint = python:./tools/lint/hooks.py:hg
-
-
-To enable a pre-push git hook, run the following command:
-
-.. parsed-literal::
-
-    $ ln -s ../../tools/lint/hooks.py .git/hooks/pre-push
-
-
-To enable a pre-commit git hook, run the following command:
-
-.. parsed-literal::
-
-    $ ln -s ../../tools/lint/hooks.py .git/hooks/pre-commit
-
-Note that the symlink will be interpreted as ``.git/hooks/../../tools/lint/hooks.py``.
 
 Automatically Fixing Lint Errors
---------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``Mozlint`` has a best-effort ability to fix lint errors:
 
@@ -116,8 +80,62 @@ The ``--fix`` and ``--edit`` arguments can be combined, in which case any
 errors that can be fixed automatically will be, and the rest will be opened
 with your $EDITOR.
 
-Editor Integration
-==================
+VCS Integrations
+----------------
+
+.. _lint-vcs-hook:
+
+Using a Git or Mercurial Hook
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are also both pre-commit and pre-push version control hooks that work in
+either hg or git. To enable a pre-push hg hook, add the following to hgrc:
+
+.. code-block:: ini
+
+    [hooks]
+    pre-push.lint = python:./tools/lint/hooks.py:hg
+
+
+To enable a pre-commit hg hook, add the following to hgrc:
+
+.. code-block:: ini
+
+    [hooks]
+    pretxncommit.lint = python:./tools/lint/hooks.py:hg
+
+
+To enable a pre-push git hook, run the following command:
+
+.. code-block:: console
+
+    $ ln -s ../../tools/lint/hooks.py .git/hooks/pre-push
+
+
+To enable a pre-commit git hook, run the following command:
+
+.. code-block:: console
+
+    $ ln -s ../../tools/lint/hooks.py .git/hooks/pre-commit
+
+Note that the symlink will be interpreted as ``.git/hooks/../../tools/lint/hooks.py``.
+
+Jujutsu Integration
+~~~~~~~~~~~~~~~~~~~
+
+Mach lint can also integrate with `Jujutsu SCM's`_ ``jj fix`` command. Add
+the following to your repo config:
+
+.. code-block:: toml
+
+   [fix.tools.mozlint]
+   command = ["path/to/mozilla-unified/tools/lint/pipelint", "$path"]
+   patterns = ["glob:'**/*'"]
+
+.. _Jujutsu SCM's: https://jj-vcs.github.io/jj/latest/
+
+Editor Integrations
+-------------------
 
 .. note::
 

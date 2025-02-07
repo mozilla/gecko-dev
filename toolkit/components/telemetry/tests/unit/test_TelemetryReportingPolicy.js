@@ -19,10 +19,10 @@ const { Policy, TelemetryReportingPolicy } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryReportingPolicy.sys.mjs"
 );
 
-// Some tests in this test file can't run on Android because of the search
-// service or Nimbus.
-const skipOnAndroid = () => ({
-  skip_if: () => AppConstants.platform === "android",
+// Some tests in this test file can't outside desktop Firefox because of
+// features that aren't included in the build.
+const skipIfNotBrowser = () => ({
+  skip_if: () => AppConstants.MOZ_BUILD_APP != "browser",
 });
 
 const TEST_CHANNEL = "TestChannelABC";
@@ -112,13 +112,13 @@ add_setup(async function test_setup() {
   TelemetryReportingPolicy.setup();
 });
 
-add_setup(skipOnAndroid(), async () => {
+add_setup(skipIfNotBrowser(), async () => {
   // Needed to interact with Nimbus.
   await ExperimentManager.onStartup();
   await ExperimentAPI.ready();
 });
 
-add_task(skipOnAndroid(), async function test_firstRun() {
+add_task(skipIfNotBrowser(), async function test_firstRun() {
   await Services.search.init();
 
   const FIRST_RUN_TIMEOUT_MSEC = 60 * 1000; // 60s
@@ -444,7 +444,7 @@ add_task(async function test_canSend() {
   await PingServer.stop();
 });
 
-add_task(skipOnAndroid(), async function test_feature_prefs() {
+add_task(skipIfNotBrowser(), async function test_feature_prefs() {
   // Verify that feature values impact Gecko preferences at
   // `sessionstore-windows-restored` time, but not afterward.
   function assertPrefs(
@@ -604,64 +604,76 @@ async function doOneModalFlow(version) {
   sinon.restore();
 }
 
-add_task(skipOnAndroid(), async function test_modal_flow_before_notification() {
-  // Test the `--first-startup` flow.  Suppose the user has not been notified.
-  // Verify that when the Nimbus feature is configured, the modal branch is
-  // taken, that the ensure promise waits, and that the observer notification
-  // resolves the ensure promise.
+add_task(
+  skipIfNotBrowser(),
+  async function test_modal_flow_before_notification() {
+    // Test the `--first-startup` flow.  Suppose the user has not been notified.
+    // Verify that when the Nimbus feature is configured, the modal branch is
+    // taken, that the ensure promise waits, and that the observer notification
+    // resolves the ensure promise.
 
-  fakeResetAcceptedPolicy();
-  Services.prefs.clearUserPref(TelemetryUtils.Preferences.FirstRun);
+    fakeResetAcceptedPolicy();
+    Services.prefs.clearUserPref(TelemetryUtils.Preferences.FirstRun);
 
-  await doOneModalFlow(900);
+    await doOneModalFlow(900);
 
-  // The user accepted the version from the experiment/rollout.
-  Assert.equal(
-    Services.prefs.getIntPref(TelemetryUtils.Preferences.AcceptedPolicyVersion),
-    900
-  );
-});
+    // The user accepted the version from the experiment/rollout.
+    Assert.equal(
+      Services.prefs.getIntPref(
+        TelemetryUtils.Preferences.AcceptedPolicyVersion
+      ),
+      900
+    );
+  }
+);
 
-add_task(skipOnAndroid(), async function test_modal_flow_after_notification() {
-  // Test the existing user flow.  Suppose the user **has** been notified, but
-  // is then enrolled into an experiment which configures the Nimbus feature.
-  // Verify that the modal branch is taken, that the ensure promise waits, and
-  // that the observer notification resolves the ensure promise.
+add_task(
+  skipIfNotBrowser(),
+  async function test_modal_flow_after_notification() {
+    // Test the existing user flow.  Suppose the user **has** been notified, but
+    // is then enrolled into an experiment which configures the Nimbus feature.
+    // Verify that the modal branch is taken, that the ensure promise waits, and
+    // that the observer notification resolves the ensure promise.
 
-  unsetMinimumPolicyVersion();
-  Services.prefs.clearUserPref(TelemetryUtils.Preferences.CurrentPolicyVersion);
+    unsetMinimumPolicyVersion();
+    Services.prefs.clearUserPref(
+      TelemetryUtils.Preferences.CurrentPolicyVersion
+    );
 
-  fakeResetAcceptedPolicy();
-  Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, false);
+    fakeResetAcceptedPolicy();
+    Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, false);
 
-  TelemetryReportingPolicy.reset();
+    TelemetryReportingPolicy.reset();
 
-  // Showing the notification bar should make the user notified.
-  fakeNow(2012, 11, 11);
-  TelemetryReportingPolicy.testInfobarShown();
-  Assert.ok(
-    TelemetryReportingPolicy.testIsUserNotified(),
-    "User is notified after seeing the legacy infobar"
-  );
+    // Showing the notification bar should make the user notified.
+    fakeNow(2012, 11, 11);
+    TelemetryReportingPolicy.testInfobarShown();
+    Assert.ok(
+      TelemetryReportingPolicy.testIsUserNotified(),
+      "User is notified after seeing the legacy infobar"
+    );
 
-  Assert.ok(
-    Services.prefs.getIntPref(
-      TelemetryUtils.Preferences.AcceptedPolicyVersion
-    ) < 900,
-    "Before, the user has not accepted experiment/rollout version"
-  );
+    Assert.ok(
+      Services.prefs.getIntPref(
+        TelemetryUtils.Preferences.AcceptedPolicyVersion
+      ) < 900,
+      "Before, the user has not accepted experiment/rollout version"
+    );
 
-  // This resets, witnesses `sessionstore-windows-restored`, and fakes the modal flow.
-  await doOneModalFlow(900);
+    // This resets, witnesses `sessionstore-windows-restored`, and fakes the modal flow.
+    await doOneModalFlow(900);
 
-  Assert.ok(
-    TelemetryReportingPolicy.testIsUserNotified(),
-    "User is notified after seeing the experiment modal"
-  );
+    Assert.ok(
+      TelemetryReportingPolicy.testIsUserNotified(),
+      "User is notified after seeing the experiment modal"
+    );
 
-  Assert.equal(
-    Services.prefs.getIntPref(TelemetryUtils.Preferences.AcceptedPolicyVersion),
-    900,
-    "After, the user has accepted the experiment/rollout version."
-  );
-});
+    Assert.equal(
+      Services.prefs.getIntPref(
+        TelemetryUtils.Preferences.AcceptedPolicyVersion
+      ),
+      900,
+      "After, the user has accepted the experiment/rollout version."
+    );
+  }
+);

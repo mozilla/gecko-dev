@@ -1335,6 +1335,45 @@ bool ScriptLoader::ProcessExternalScript(nsIScriptElement* aElement,
         }
         return false;
       }
+    } else {
+      // https://html.spec.whatwg.org/#prepare-the-script-element
+      //
+      // Step 33. If el's type is "classic" and el has a src attribute, or el's
+      //          type is "module":
+      // ...
+      // Step 33.2. If el has an async attribute or el's force async is true:
+      // Step 33.2.1. Let scripts be el's preparation-time document's set of
+      //              scripts that will execute as soon as possible.
+      // Step 33.2.2. Append el to scripts.
+      // ...
+      // Step 33.3. Otherwise, if el is not parser-inserted:
+      // Step 33.3.1. Let scripts be el's preparation-time document's list of
+      //              scripts that will execute in order as soon as possible.
+      // Step 33.3.2. Append el to scripts.
+      // ...
+      //
+      // https://html.spec.whatwg.org/#the-end
+      //
+      // Step 7. Spin the event loop until the set of scripts that will execute
+      //         as soon as possible and the list of scripts that will execute
+      //         in order as soon as possible are empty.
+      //
+      // For scripts that creates the actual necko channel, the request is
+      // associated with the document's load group, and the load group manages
+      // the script set and the script list above implicitly, and the above
+      // "spin the event loop" is handled by IsBusy() check inside
+      // nsDocLoader::DocLoaderIsEmpty.
+      //
+      // https://searchfox.org/mozilla-central/rev/e85232b4b28ecc970240d39203e417d1c320623c/uriloader/base/nsDocLoader.cpp#704
+      //
+      // For in-memory-cached scripts, no channel is created, and those scripts
+      // should explicitly block the step 7 above.
+      //
+      // NOTE: IsAsyncScript represents both "async" and "force async".
+      if (request->GetScriptLoadContext()->IsAsyncScript() ||
+          parserMetadata == ParserMetadata::NotParserInserted) {
+        request->GetScriptLoadContext()->BlockOnload(mDocument);
+      }
     }
   }
 

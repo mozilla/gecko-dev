@@ -124,6 +124,13 @@ internal class DefaultPocketStoriesController(
             }
 
             is SponsoredContent -> {
+                Pocket.homeRecsSpocShown.record(
+                    Pocket.HomeRecsSpocShownExtra(
+                        position = "${storyPosition.first}x${storyPosition.second}",
+                        timesShown = storyShown.getCurrentFlightImpressions().size.inc().toString(),
+                    ),
+                )
+
                 viewLifecycleScope.launch(Dispatchers.IO) {
                     marsUseCases.recordInteraction(storyShown.callbacks.impressionUrl)
                 }
@@ -234,6 +241,13 @@ internal class DefaultPocketStoriesController(
             }
 
             is SponsoredContent -> {
+                Pocket.homeRecsSpocClicked.record(
+                    Pocket.HomeRecsSpocClickedExtra(
+                        position = "${storyPosition.first}x${storyPosition.second}",
+                        timesShown = storyClicked.getCurrentFlightImpressions().size.inc().toString(),
+                    ),
+                )
+
                 viewLifecycleScope.launch(Dispatchers.IO) {
                     marsUseCases.recordInteraction(storyClicked.callbacks.clickUrl)
                 }

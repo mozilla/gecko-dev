@@ -173,10 +173,12 @@ void nsLineBox::Cleanup() {
 
 #ifdef DEBUG_FRAME_DUMP
 static void ListFloats(FILE* out, const char* aPrefix,
-                       const nsTArray<nsIFrame*>& aFloats) {
+                       const nsTArray<nsIFrame*>& aFloats,
+                       bool aListOnlyDeterministic) {
   for (nsIFrame* f : aFloats) {
     nsCString str(aPrefix);
-    str += nsPrintfCString("floatframe@%p ", static_cast<void*>(f));
+    str += "floatframe";
+    nsIFrame::ListPtr(str, aListOnlyDeterministic, f, "@");
     nsAutoString frameName;
     f->GetFrameName(frameName);
     str += NS_ConvertUTF16toUTF8(frameName).get();
@@ -210,9 +212,11 @@ void nsLineBox::List(FILE* out, int32_t aIndent,
 void nsLineBox::List(FILE* out, const char* aPrefix,
                      nsIFrame::ListFlags aFlags) const {
   nsCString str(aPrefix);
+  str += "line";
+  nsIFrame::ListPtr(str, aFlags, this, "@");
   str += nsPrintfCString(
-      "line@%p count=%d state=%s,%s,%s,%s,%s,%s,clear-before:%s,clear-after:%s",
-      this, GetChildCount(), IsBlock() ? "block" : "inline",
+      " count=%d state=%s,%s,%s,%s,%s,%s,clear-before:%s,clear-after:%s",
+      GetChildCount(), IsBlock() ? "block" : "inline",
       IsDirty() ? "dirty" : "clean",
       IsPreviousMarginDirty() ? "prevmargindirty" : "prevmarginclean",
       IsImpactedByFloat() ? "impacted" : "not-impacted",
@@ -263,7 +267,8 @@ void nsLineBox::List(FILE* out, const char* aPrefix,
 
   if (HasFloats()) {
     fprintf_stderr(out, "%s> floats <\n", aPrefix);
-    ListFloats(out, pfx.get(), mInlineData->mFloats);
+    ListFloats(out, pfx.get(), mInlineData->mFloats,
+               aFlags.contains(nsIFrame::ListFlag::OnlyListDeterministicInfo));
   }
   fprintf_stderr(out, "%s>\n", aPrefix);
 }

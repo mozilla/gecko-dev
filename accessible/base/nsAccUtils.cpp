@@ -637,3 +637,13 @@ int32_t nsAccUtils::FindARIAAttrValueIn(dom::Element* aElement,
   }
   return index;
 }
+
+bool nsAccUtils::IsEditableARIACombobox(const LocalAccessible* aAccessible) {
+  const nsRoleMapEntry* roleMap = aAccessible->ARIARoleMap();
+  if (!roleMap || roleMap->role != roles::EDITCOMBOBOX) {
+    return false;
+  }
+
+  return aAccessible->IsTextField() ||
+         aAccessible->Elm()->State().HasState(dom::ElementState::READWRITE);
+}

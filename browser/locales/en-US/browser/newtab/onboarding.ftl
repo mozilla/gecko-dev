@@ -442,7 +442,9 @@ onboarding-checklist-sign-up = Sign up or sign in to your account
 
 tab-groups-onboarding-feature-callout-title = Try tab groups for less clutter, more focus
 tab-groups-onboarding-feature-callout-subtitle = Get organized by dragging one tab on top of another to create your first group.
+tab-groups-onboarding-create-group-title = Find your open groups on the tab bar or by searching for them in the address bar.
 tab-groups-onboarding-saved-groups-title = If you close a tab group, you can reopen it here anytime.
+tab-groups-onboarding-saved-groups-no-alltabs-button-title = Find your open or closed tab groups anytime by searching in the address bar.
 tab-groups-onboarding-dismiss = OK
 
 ## Multi Profiles feature onboarding messages
@@ -454,3 +456,14 @@ multi-profile-spotlight-cta = Create a profile
 multi-profile-callout-title = Create different profiles for work and fun
 multi-profile-callout-subtitle = Profiles let you keep your browsing info, like search history and passwords, totally separate.
 multi-profile-callout-cta = Create a profile
+
+## Desktop to Mobile Adoption feature callout strings
+
+# If translating the headline is challenging, consider using a simplified alternative as a reference: 'Sync your browsing with Firefox for mobile.'
+desktop-to-mobile-headline = Download, sync, and go!
+
+# The phrase, 'on the go', is used to describe when people are very busy and are traveling from place to place.
+desktop-to-mobile-subtitle = Scan the QR code to download { -brand-product-name } for mobile. Once installed, select “Sync to mobile” to access your passwords, bookmarks, and more on the go.
+
+dismiss-button-label = Dismiss
+sync-to-mobile-button-label = Sync to mobile

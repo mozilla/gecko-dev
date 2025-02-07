@@ -326,14 +326,43 @@ export class EditProfileCard extends MozLitElement {
       t =>
         html`<profiles-theme-card
           @click=${this.handleThemeClick}
+          @keydown=${this.handleThemeKeydown}
           .theme=${t}
           ?selected=${t.isActive}
+          aria-checked=${t.isActive}
         ></profiles-theme-card>`
     );
   }
 
   handleThemeClick(event) {
     this.updateTheme(event.target.theme.id);
+  }
+
+  /*
+   * Handles radiogroup arrow key behavior for the theme picker.
+   *
+   * The Enter or Space keys are handled by handleThemeClick.
+   */
+  handleThemeKeydown(event) {
+    let currentTheme = event.target;
+
+    // Wrap around the ends of the list.
+    let nextTheme = currentTheme.nextElementSibling || this.themeCards[0];
+    let previousTheme =
+      currentTheme.previousElementSibling ||
+      this.themeCards[this.themeCards.length - 1];
+
+    // Focus the <moz-card> within the target element.
+    let nextCard = nextTheme.shadowRoot.querySelector("moz-card");
+    let previousCard = previousTheme.shadowRoot.querySelector("moz-card");
+
+    if (event.code == "ArrowUp" || event.code == "ArrowLeft") {
+      event.preventDefault();
+      previousCard.focus();
+    } else if (event.code == "ArrowDown" || event.code == "ArrowRight") {
+      event.preventDefault();
+      nextCard.focus();
+    }
   }
 
   avatarsTemplate() {
@@ -455,8 +484,13 @@ export class EditProfileCard extends MozLitElement {
           <div id="profile-content">
             ${this.headerTemplate()}${this.profilesNameTemplate()}
 
-            <h3 data-l10n-id="edit-profile-page-theme-header"></h3>
-            <div id="themes">${this.themesTemplate()}</div>
+            <h3
+              data-l10n-id="edit-profile-page-theme-header"
+              id="theme-header"
+            ></h3>
+            <div id="themes" role="radiogroup" aria-labelledby="theme-header">
+              ${this.themesTemplate()}
+            </div>
             <a
               id="more-themes"
               href="https://addons.mozilla.org/firefox/themes/"
@@ -465,12 +499,11 @@ export class EditProfileCard extends MozLitElement {
               data-l10n-id="edit-profile-page-explore-themes"
             ></a>
 
-            <h3 data-l10n-id="edit-profile-page-avatar-header"></h3>
-            <div
-              id="avatars"
-              role="radiogroup"
-              aria-labelledby="edit-profile-page-avatar-header"
-            >
+            <h3
+              data-l10n-id="edit-profile-page-avatar-header"
+              id="avatar-header"
+            ></h3>
+            <div id="avatars" role="radiogroup" aria-labelledby="avatar-header">
               ${this.avatarsTemplate()}
             </div>
 

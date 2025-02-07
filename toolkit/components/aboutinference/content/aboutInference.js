@@ -13,7 +13,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
   HttpInference: "chrome://global/content/ml/HttpInference.sys.mjs",
-  IndexedDBCache: "chrome://global/content/ml/ModelHub.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
   getInferenceProcessInfo: "chrome://global/content/ml/Utils.sys.mjs",
 });
@@ -347,15 +346,15 @@ async function updateProcInfo() {
 }
 
 async function updateModels() {
-  let cache = await lazy.IndexedDBCache.init();
-  let models = await cache.listModels();
+  const hub = getModelHub();
+  const models = await hub.listModels();
   let modelFilesDiv = document.getElementById("modelFiles");
 
   // Use DocumentFragment to avoid reflows
   let fragment = document.createDocumentFragment();
 
   for (const { name: model, revision } of models) {
-    let files = await cache.listFiles({ model, revision });
+    let files = await hub.listFiles({ model, revision });
 
     // Create a new table for the current model
     let table = document.createElement("table");
@@ -367,7 +366,7 @@ async function updateModels() {
     let deleteButton = document.createElement("button");
     document.l10n.setAttributes(deleteButton, "about-inference-delete-button");
     deleteButton.onclick = async () => {
-      await cache.deleteModels({ model, revision });
+      await hub.deleteModels({ model, revision });
       modelFilesDiv.removeChild(table); // Remove the table from the DOM
     };
 

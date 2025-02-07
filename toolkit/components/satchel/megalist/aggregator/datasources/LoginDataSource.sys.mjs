@@ -36,7 +36,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
 const ALERT_VALUES = {
   breached: 0,
   vulnerable: 1,
-  none: 2,
+  noUsername: 2,
+  none: 3,
 };
 
 export const DISPLAY_MODES = {
@@ -766,16 +767,15 @@ export class LoginDataSource extends DataSourceBase {
       ? await lazy.LoginBreaches.getPotentialBreachesByLoginGUID(logins)
       : new Map();
 
-    const breachedOrVulnerableLogins = logins.filter(
+    const loginsWithAlerts = logins.filter(
       login =>
         breachesMap.has(login.guid) ||
-        lazy.LoginBreaches.isVulnerablePassword(login)
+        lazy.LoginBreaches.isVulnerablePassword(login) ||
+        !login.username.length
     );
 
     const filteredLogins =
-      this.#displayMode === DISPLAY_MODES.ALERTS
-        ? breachedOrVulnerableLogins
-        : logins;
+      this.#displayMode === DISPLAY_MODES.ALERTS ? loginsWithAlerts : logins;
 
     filteredLogins.forEach(login => {
       // Similar domains will be grouped together
@@ -789,12 +789,15 @@ export class LoginDataSource extends DataSourceBase {
       }
       const isLoginBreached = breachesMap.has(login.guid);
       const isLoginVulnerable = lazy.LoginBreaches.isVulnerablePassword(login);
+      const loginNoUsername = !login.username.length;
 
       let alertValue;
       if (isLoginBreached) {
         alertValue = ALERT_VALUES.breached;
       } else if (isLoginVulnerable) {
         alertValue = ALERT_VALUES.vulnerable;
+      } else if (loginNoUsername) {
+        alertValue = ALERT_VALUES.noUsername;
       } else {
         alertValue = ALERT_VALUES.none;
       }
@@ -822,7 +825,7 @@ export class LoginDataSource extends DataSourceBase {
     });
 
     this.#header.value.total = logins.length;
-    this.#header.value.alerts = breachedOrVulnerableLogins.length;
+    this.#header.value.alerts = loginsWithAlerts.length;
     this.afterReloadingDataSource();
     this.doneReloadDataSource = true;
   }

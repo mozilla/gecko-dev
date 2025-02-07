@@ -27,3 +27,6 @@ browser.jar:
   content/browser/asrouter/assets/tabgroups/hort-static-light.svg        (content/assets/tabgroups/hort-static-light.svg)
   content/browser/asrouter/assets/tabgroups/vert-static-dark.svg         (content/assets/tabgroups/vert-static-dark.svg)
   content/browser/asrouter/assets/tabgroups/vert-static-light.svg        (content/assets/tabgroups/vert-static-light.svg)
+  content/browser/asrouter/assets/desktop-to-mobile-non-eu-QR.svg        (content/assets/desktop-to-mobile-non-eu-QR.svg)
+  content/browser/asrouter/assets/desktop-to-mobile-eu-QR.svg            (content/assets/desktop-to-mobile-eu-QR.svg)
+  content/browser/asrouter/assets/desktop-to-mobile-banner.svg           (content/assets/desktop-to-mobile-banner.svg)

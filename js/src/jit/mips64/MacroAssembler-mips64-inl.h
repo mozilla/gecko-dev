@@ -88,6 +88,10 @@ void MacroAssembler::andPtr(Register src, Register dest) { ma_and(dest, src); }
 
 void MacroAssembler::andPtr(Imm32 imm, Register dest) { ma_and(dest, imm); }
 
+void MacroAssembler::andPtr(Imm32 imm, Register src, Register dest) {
+  ma_and(dest, src, imm);
+}
+
 void MacroAssembler::and64(Imm64 imm, Register64 dest) {
   ma_li(ScratchRegister, ImmWord(imm.value));
   ma_and(dest.reg, ScratchRegister);
@@ -122,6 +126,10 @@ void MacroAssembler::orPtr(Register src, Register dest) { ma_or(dest, src); }
 
 void MacroAssembler::orPtr(Imm32 imm, Register dest) { ma_or(dest, imm); }
 
+void MacroAssembler::orPtr(Imm32 imm, Register src, Register dest) {
+  ma_or(dest, src, imm);
+}
+
 void MacroAssembler::or64(Register64 src, Register64 dest) {
   ma_or(dest.reg, src.reg);
 }
@@ -155,6 +163,10 @@ void MacroAssembler::xor64(const Operand& src, Register64 dest) {
 void MacroAssembler::xorPtr(Register src, Register dest) { ma_xor(dest, src); }
 
 void MacroAssembler::xorPtr(Imm32 imm, Register dest) { ma_xor(dest, imm); }
+
+void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
+  ma_xor(dest, src, imm);
+}
 
 // ===============================================================
 // Swap instructions
@@ -371,8 +383,12 @@ void MacroAssembler::negPtr(Register reg) { as_dsubu(reg, zero, reg); }
 // Shift functions
 
 void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
+  lshiftPtr(imm, dest, dest);
+}
+
+void MacroAssembler::lshiftPtr(Imm32 imm, Register src, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  ma_dsll(dest, dest, imm);
+  ma_dsll(dest, src, imm);
 }
 
 void MacroAssembler::lshiftPtr(Register shift, Register dest) {
@@ -389,8 +405,12 @@ void MacroAssembler::lshift64(Register shift, Register64 dest) {
 }
 
 void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
+  rshiftPtr(imm, dest, dest);
+}
+
+void MacroAssembler::rshiftPtr(Imm32 imm, Register src, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  ma_dsrl(dest, dest, imm);
+  ma_dsrl(dest, src, imm);
 }
 
 void MacroAssembler::rshiftPtr(Register shift, Register dest) {
@@ -407,8 +427,13 @@ void MacroAssembler::rshift64(Register shift, Register64 dest) {
 }
 
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
+  rshiftPtrArithmetic(imm, dest, dest);
+}
+
+void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register src,
+                                         Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
-  ma_dsra(dest, dest, imm);
+  ma_dsra(dest, src, imm);
 }
 
 void MacroAssembler::rshiftPtrArithmetic(Register shift, Register dest) {

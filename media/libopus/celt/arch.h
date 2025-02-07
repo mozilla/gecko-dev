@@ -132,9 +132,14 @@ typedef opus_val32 celt_ener;
 #define Q15ONE 32767
 
 #define SIG_SHIFT 12
-/* Safe saturation value for 32-bit signals. Should be less than
-   2^31*(1-0.85) to avoid blowing up on DC at deemphasis.*/
-#define SIG_SAT (300000000)
+/* Safe saturation value for 32-bit signals. We need to make sure that we can
+   add two sig values and that the first stages of the MDCT don't cause an overflow.
+   The most constraining is the ARM_ASM comb filter where we shift left by one
+   and then add two values. Because of that, we use 2^29-1. SIG_SAT must be large
+   enough to fit a full-scale high-freq tone through the prefilter and comb filter,
+   meaning 1.85*1.75*2^(15+SIG_SHIFT) =  434529895.
+   so the limit should be about 2^31*sqrt(.5). */
+#define SIG_SAT (536870911)
 
 #define NORM_SCALING 16384
 

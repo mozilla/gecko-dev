@@ -367,6 +367,9 @@
     <!-- Link to Focus licensing information from other libraries that we use. -->
     <string name="preference_libraries_we_use">Βιβλιοθήκες που χρησιμοποιούμε</string>
 
+    <!-- Link to Focus Crash reports list. -->
+    <string name="preference_crashes">Καταρρεύσεις</string>
+
     <!-- Open Source Licenses page title. The first parameter is the app name -->
     <string name="open_source_licenses_title">%s | Βιβλιοθήκες OSS</string>
 

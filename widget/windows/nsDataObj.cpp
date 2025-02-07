@@ -46,6 +46,7 @@
 #include "nsIMIMEService.h"
 #include "imgIEncoder.h"
 #include "imgITools.h"
+#include "WinOLELock.h"
 #include "WinUtils.h"
 #include "nsLocalFile.h"
 
@@ -1072,17 +1073,18 @@ nsDataObj::GetDib(const nsACString& inFlavor, FORMATETC& aFormat,
     size -= BFH_LENGTH;
   }
 
-  HGLOBAL glob = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size);
+  ScopedOLEMemory<char[]> glob(size);
   if (!glob) {
     return E_FAIL;
   }
 
-  char* dst = (char*)::GlobalLock(glob);
-  ::CopyMemory(dst, src, size);
-  ::GlobalUnlock(glob);
+  {
+    auto lock = glob.lock();
+    ::CopyMemory(lock.begin(), src, size);
+  }
 
-  aSTG.hGlobal = glob;
   aSTG.tymed = TYMED_HGLOBAL;
+  aSTG.hGlobal = glob.forget();
   return S_OK;
 }
 
@@ -1457,10 +1459,9 @@ HRESULT nsDataObj::GetPreferredDropEffect(FORMATETC& aFE, STGMEDIUM& aSTG) {
   HRESULT res = S_OK;
   aSTG.tymed = TYMED_HGLOBAL;
   aSTG.pUnkForRelease = nullptr;
-  HGLOBAL hGlobalMemory = nullptr;
-  hGlobalMemory = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(DWORD));
+
+  ScopedOLEMemory<DWORD> hGlobalMemory;
   if (hGlobalMemory) {
-    DWORD* pdw = (DWORD*)GlobalLock(hGlobalMemory);
     // The PreferredDropEffect clipboard format is only registered if a
     // drag/drop of an image happens from Mozilla to the desktop.  We want its
     // value to be DROPEFFECT_MOVE in that case so that the file is moved from
@@ -1468,23 +1469,37 @@ HRESULT nsDataObj::GetPreferredDropEffect(FORMATETC& aFE, STGMEDIUM& aSTG) {
     // the data object via SetData() but our IDataObject implementation doesn't
     // implement SetData.  It adds data to the data object lazily only when the
     // drop target asks for it.
-    *pdw = (DWORD)DROPEFFECT_MOVE;
-    GlobalUnlock(hGlobalMemory);
+    *hGlobalMemory.lock() = (DWORD)DROPEFFECT_MOVE;
   } else {
     res = E_OUTOFMEMORY;
   }
-  aSTG.hGlobal = hGlobalMemory;
+  aSTG.hGlobal = hGlobalMemory.forget();
   return res;
 }
 
 //-----------------------------------------------------
 HRESULT nsDataObj::GetText(const nsACString& aDataFlavor, FORMATETC& aFE,
                            STGMEDIUM& aSTG) {
-  void* data = nullptr;
+  // assignDataToStg
+  //
+  // Helper function to fill the STG with a block of data.
+  auto const assignDataToStg = [&aSTG](void* data, size_t extent) -> HRESULT {
+    aSTG.tymed = TYMED_HGLOBAL;
+    aSTG.pUnkForRelease = nullptr;
+
+    ScopedOLEMemory<char[]> hGlobalMemory(extent);
+    if (hGlobalMemory) {
+      auto dest = hGlobalMemory.lock();
+      memcpy(dest.get(), data, extent);
+    }
+
+    aSTG.hGlobal = hGlobalMemory.forget();
+
+    return S_OK;
+  };
 
   const nsPromiseFlatCString& flavorStr = PromiseFlatCString(aDataFlavor);
 
-  // NOTE: CreateDataFromPrimitive creates new memory, that needs to be deleted
   nsCOMPtr<nsISupports> genericDataWrapper;
   nsresult rv = mTransferable->GetTransferData(
       flavorStr.get(), getter_AddRefs(genericDataWrapper));
@@ -1492,84 +1507,77 @@ HRESULT nsDataObj::GetText(const nsACString& aDataFlavor, FORMATETC& aFE,
     return E_FAIL;
   }
 
-  uint32_t len;
-  nsPrimitiveHelpers::CreateDataFromPrimitive(
-      nsDependentCString(flavorStr.get()), genericDataWrapper, &data, &len);
+  // data is a possibly-wide NUL-terminated string. len is its strlen() -- not
+  // its allocation length!
+  auto const [data, len] = [&]() {
+    void* data = nullptr;
+    uint32_t len;
+    nsPrimitiveHelpers::CreateDataFromPrimitive(
+        nsDependentCString(flavorStr.get()), genericDataWrapper, &data, &len);
+    return std::tuple{data, size_t(len)};
+  }();
   if (!data) return E_FAIL;
 
-  HGLOBAL hGlobalMemory = nullptr;
+  // CreateDataFromPrimitive allocates memory; free it on exit.
+  auto const _release_data =
+      mozilla::MakeScopeExit([data = data]() { ::free(data); });
 
-  aSTG.tymed = TYMED_HGLOBAL;
-  aSTG.pUnkForRelease = nullptr;
-
-  // We play games under the hood and advertise flavors that we know we
-  // can support, only they require a bit of conversion or munging of the data.
-  // Do that here.
+  // We play games under the hood and advertise flavors that we know we can
+  // support, only they require a bit of conversion or munging of the data. Do
+  // that here.
   //
   // The transferable gives us data that is null-terminated, but this isn't
-  // reflected in the |len| parameter. Windoze apps expect this null to be there
+  // reflected in the |len| parameter. Windows apps expect this null to be there
   // so bump our data buffer by the appropriate size to account for the null
   // (one char for CF_TEXT, one char16_t for CF_UNICODETEXT).
-  DWORD allocLen = (DWORD)len;
+
   if (aFE.cfFormat == CF_TEXT) {
     // Someone is asking for text/plain; convert the unicode (assuming it's
     // present) to text with the correct platform encoding.
     size_t bufferSize = sizeof(char) * (len + 2);
     char* plainTextData = static_cast<char*>(moz_xmalloc(bufferSize));
+    auto const _release =
+        mozilla::MakeScopeExit([plainTextData]() { ::free(plainTextData); });
+
     char16_t* castedUnicode = reinterpret_cast<char16_t*>(data);
     int32_t plainTextLen =
         WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)castedUnicode, len / 2 + 1,
                             plainTextData, bufferSize, NULL, NULL);
-    // replace the unicode data with our plaintext data. Recall that
-    // |plainTextLen| doesn't include the null in the length.
-    free(data);
+
     if (plainTextLen) {
-      data = plainTextData;
-      allocLen = plainTextLen;
-    } else {
-      free(plainTextData);
-      NS_WARNING("Oh no, couldn't convert unicode to plain text");
-      return S_OK;
+      return assignDataToStg(plainTextData, plainTextLen);
     }
-  } else if (aFE.cfFormat == nsClipboard::GetHtmlClipboardFormat()) {
+
+    NS_WARNING("Oh no, couldn't convert unicode to plain text");
+    return S_OK;
+  }
+
+  if (aFE.cfFormat == nsClipboard::GetHtmlClipboardFormat()) {
     // Someone is asking for win32's HTML flavor. Convert our html fragment
     // from unicode to UTF-8 then put it into a format specified by msft.
     NS_ConvertUTF16toUTF8 converter(reinterpret_cast<char16_t*>(data));
     char* utf8HTML = nullptr;
     nsresult rv =
         BuildPlatformHTML(converter.get(), &utf8HTML);  // null terminates
+    auto const _release =
+        mozilla::MakeScopeExit([utf8HTML]() { ::free(utf8HTML); });
 
-    free(data);
     if (NS_SUCCEEDED(rv) && utf8HTML) {
-      // replace the unicode data with our HTML data. Don't forget the null.
-      data = utf8HTML;
-      allocLen = strlen(utf8HTML) + sizeof(char);
-    } else {
-      NS_WARNING("Oh no, couldn't convert to HTML");
-      return S_OK;
+      // return our HTML data. Don't forget the null.
+      return assignDataToStg(utf8HTML, strlen(utf8HTML) + sizeof(char));
     }
-  } else if (aFE.cfFormat != nsClipboard::GetCustomClipboardFormat()) {
-    // we assume that any data that isn't caught above is unicode. This may
-    // be an erroneous assumption, but is true so far.
-    allocLen += sizeof(char16_t);
+
+    NS_WARNING("Oh no, couldn't convert to HTML");
+    return S_OK;
   }
 
-  hGlobalMemory = (HGLOBAL)GlobalAlloc(GMEM_MOVEABLE, allocLen);
+  // We assume that any data-format that isn't caught above can be satisfied by
+  // Unicode text. (This may be an erroneous assumption, but seems to have been
+  // true so far.)
+  bool const excludeNull =
+      aFE.cfFormat == nsClipboard::GetCustomClipboardFormat();
 
-  // Copy text to Global Memory Area
-  if (hGlobalMemory) {
-    char* dest = reinterpret_cast<char*>(GlobalLock(hGlobalMemory));
-    char* source = reinterpret_cast<char*>(data);
-    memcpy(dest, source, allocLen);  // copies the null as well
-    GlobalUnlock(hGlobalMemory);
-  }
-  aSTG.hGlobal = hGlobalMemory;
-
-  // Now, delete the memory that was created by CreateDataFromPrimitive (or our
-  // text/plain data)
-  free(data);
-
-  return S_OK;
+  return assignDataToStg(data, len + (excludeNull ? 0 : sizeof(char16_t)));
 }
 
 //-----------------------------------------------------
@@ -1591,6 +1599,69 @@ HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   return E_FAIL;
 }
 
+static HRESULT AssignDropfile(STGMEDIUM& aSTG, nsAString const& aPath) {
+  // Struct describing the data in the OLE memory space. Marginally cleaner than
+  // completely-manual pointer manipulation.
+  struct DFWithPaths {
+    DROPFILES dropfiles;
+    // An epsilon-terminated list of NUL-terminated strings.
+    // See the CF_HDROP shell clipboard format for more info.
+    WCHAR paths[];
+  };
+
+  // C++ doesn't have a dependent-type system robust enough for ScopedOLEMemory
+  // to handle a struct-with-flexible-array-member well, so we eschew it here
+  // for the less-strongly-typed (and slightly more awkward) nsAutoGlobalMem.
+  size_t const allocSize =
+      // Size of the initial header block...
+      sizeof(DFWithPaths) +
+      // ... size of the first path...
+      ((aPath.Length() + 1) * sizeof(WCHAR)) +
+      // ... and size of the terminating empty string.
+      sizeof(L"");
+
+  nsAutoGlobalMem hGlobalMemory(
+      nsHGLOBAL(::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, allocSize)));
+
+  if (!hGlobalMemory) {
+    return E_FAIL;
+  }
+
+  {
+    ScopedOLELock<DFWithPaths*> pDFWithPaths(hGlobalMemory.get());
+
+    // First, populate the dropfile structure...
+    DROPFILES* pDropFile = &pDFWithPaths->dropfiles;
+    pDropFile->pFiles =
+        offsetof(DFWithPaths, paths) - offsetof(DFWithPaths, dropfiles);
+    pDropFile->fNC = 0;
+    pDropFile->pt.x = 0;
+    pDropFile->pt.y = 0;
+    pDropFile->fWide = TRUE;
+
+    // ... then copy the filename into `paths`.
+    WCHAR* dest = pDFWithPaths->paths;
+    WCHAR* after_dest [[maybe_unused]] =
+        std::copy_n(aPath.BeginReading(), aPath.Length(), dest);
+
+    // Two NULs are needed after the file name; the GMEM_ZEROINIT above should
+    // provide them.
+    size_t const offset [[maybe_unused]] =
+        (char*)after_dest - (char*)pDFWithPaths.get();
+    MOZ_ASSERT(allocSize - offset == sizeof(WCHAR) * 2);
+    MOZ_ASSERT(after_dest[0] == L'\0');
+    MOZ_ASSERT(after_dest[1] == L'\0');
+  }
+
+  aSTG = {
+      .tymed = TYMED_HGLOBAL,
+      .hGlobal = hGlobalMemory.disown(),
+      .pUnkForRelease = nullptr,
+  };
+
+  return S_OK;
+}
+
 HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   nsresult rv;
   nsCOMPtr<nsISupports> genericDataWrapper;
@@ -1602,44 +1673,11 @@ HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   nsCOMPtr<nsIFile> file(do_QueryInterface(genericDataWrapper));
   if (!file) return E_FAIL;
 
-  aSTG.tymed = TYMED_HGLOBAL;
-  aSTG.pUnkForRelease = nullptr;
-
   nsAutoString path;
   rv = file->GetPath(path);
   if (NS_FAILED(rv)) return E_FAIL;
 
-  uint32_t allocLen = path.Length() + 2;
-  HGLOBAL hGlobalMemory = nullptr;
-  char16_t* dest;
-
-  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE,
-                              sizeof(DROPFILES) + allocLen * sizeof(char16_t));
-  if (!hGlobalMemory) return E_FAIL;
-
-  DROPFILES* pDropFile = (DROPFILES*)GlobalLock(hGlobalMemory);
-
-  // First, populate the drop file structure
-  pDropFile->pFiles = sizeof(DROPFILES);  // Offset to start of file name string
-  pDropFile->fNC = 0;
-  pDropFile->pt.x = 0;
-  pDropFile->pt.y = 0;
-  pDropFile->fWide = TRUE;
-
-  // Copy the filename right after the DROPFILES structure
-  dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(), (allocLen - 1) * sizeof(char16_t));
-
-  // Two null characters are needed at the end of the file name.
-  // Lookup the CF_HDROP shell clipboard format for more info.
-  // Add the second null character right after the first one.
-  dest[allocLen - 1] = L'\0';
-
-  GlobalUnlock(hGlobalMemory);
-
-  aSTG.hGlobal = hGlobalMemory;
-
-  return S_OK;
+  return AssignDropfile(aSTG, path);
 }
 
 HRESULT nsDataObj::DropImage(FORMATETC& /* aFE */, STGMEDIUM& aSTG) {
@@ -1742,44 +1780,7 @@ HRESULT nsDataObj::DropImage(FORMATETC& /* aFE */, STGMEDIUM& aSTG) {
   rv = mCachedTempFile->GetPath(path);
   if (NS_FAILED(rv)) return E_FAIL;
 
-  // Two null characters are needed to terminate the file name list.
-  HGLOBAL hGlobalMemory = nullptr;
-
-  uint32_t allocLen = path.Length() + 2;
-
-  aSTG.tymed = TYMED_HGLOBAL;
-  aSTG.pUnkForRelease = nullptr;
-
-  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE,
-                              sizeof(DROPFILES) + allocLen * sizeof(char16_t));
-  if (!hGlobalMemory) return E_FAIL;
-
-  DROPFILES* pDropFile = (DROPFILES*)GlobalLock(hGlobalMemory);
-
-  // First, populate the drop file structure.
-  pDropFile->pFiles =
-      sizeof(DROPFILES);  // Offset to start of file name char array.
-  pDropFile->fNC = 0;
-  pDropFile->pt.x = 0;
-  pDropFile->pt.y = 0;
-  pDropFile->fWide = TRUE;
-
-  // Copy the filename right after the DROPFILES structure.
-  char16_t* dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(),
-         (allocLen - 1) *
-             sizeof(char16_t));  // Copies the null character in path as well.
-
-  // Two null characters are needed at the end of the file name.
-  // Lookup the CF_HDROP shell clipboard format for more info.
-  // Add the second null character right after the first one.
-  dest[allocLen - 1] = L'\0';
-
-  GlobalUnlock(hGlobalMemory);
-
-  aSTG.hGlobal = hGlobalMemory;
-
-  return S_OK;
+  return AssignDropfile(aSTG, path);
 }
 
 HRESULT nsDataObj::DropTempFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
@@ -1836,44 +1837,7 @@ HRESULT nsDataObj::DropTempFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
   rv = mCachedTempFile->GetPath(path);
   if (NS_FAILED(rv)) return E_FAIL;
 
-  uint32_t allocLen = path.Length() + 2;
-
-  // Two null characters are needed to terminate the file name list.
-  HGLOBAL hGlobalMemory = nullptr;
-
-  aSTG.tymed = TYMED_HGLOBAL;
-  aSTG.pUnkForRelease = nullptr;
-
-  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE,
-                              sizeof(DROPFILES) + allocLen * sizeof(char16_t));
-  if (!hGlobalMemory) return E_FAIL;
-
-  DROPFILES* pDropFile = (DROPFILES*)GlobalLock(hGlobalMemory);
-
-  // First, populate the drop file structure.
-  pDropFile->pFiles =
-      sizeof(DROPFILES);  // Offset to start of file name char array.
-  pDropFile->fNC = 0;
-  pDropFile->pt.x = 0;
-  pDropFile->pt.y = 0;
-  pDropFile->fWide = TRUE;
-
-  // Copy the filename right after the DROPFILES structure.
-  char16_t* dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(),
-         (allocLen - 1) *
-             sizeof(char16_t));  // Copies the null character in path as well.
-
-  // Two null characters are needed at the end of the file name.
-  // Lookup the CF_HDROP shell clipboard format for more info.
-  // Add the second null character right after the first one.
-  dest[allocLen - 1] = L'\0';
-
-  GlobalUnlock(hGlobalMemory);
-
-  aSTG.hGlobal = hGlobalMemory;
-
-  return S_OK;
+  return AssignDropfile(aSTG, path);
 }
 
 //-----------------------------------------------------

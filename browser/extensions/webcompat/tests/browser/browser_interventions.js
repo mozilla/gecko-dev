@@ -153,6 +153,8 @@ add_task(async function test_json_data() {
 
     const non_custom_names = [
       "content_scripts",
+      "max_version",
+      "min_version",
       "not_platforms",
       "platforms",
       "skip_if",
@@ -180,6 +182,15 @@ add_task(async function test_json_data() {
               `expected detail '${detailName}' is being passed to custom function ${name} in id ${id}`
             );
           }
+        }
+      }
+      for (const version_type of ["min_version", "max_version"]) {
+        if (version_type in intervention) {
+          const val = intervention[version_type];
+          ok(
+            typeof val == "number" && val > 0,
+            `Invalid ${version_type} value ${JSON.stringify(val)}, should be a positive number`
+          );
         }
       }
       let { content_scripts, not_platforms, platforms, skip_if, ua_string } =

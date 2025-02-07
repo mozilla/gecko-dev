@@ -265,8 +265,14 @@ var InterventionHelpers = {
 
   valid_platforms: ["all", "android", "desktop", "linux", "mac", "windows"],
 
-  shouldSkip(intervention) {
-    const { bug, skip_if } = intervention;
+  shouldSkip(intervention, firefoxVersion) {
+    const { bug, max_version, min_version, skip_if } = intervention;
+    if (min_version && firefoxVersion < min_version) {
+      return true;
+    }
+    if (max_version && firefoxVersion > max_version) {
+      return true;
+    }
     if (skip_if) {
       try {
         if (this.skip_if_functions[skip_if]?.()) {

@@ -208,7 +208,8 @@ D3D11ShareHandleImage::GetAsSourceSurface() {
     return nullptr;
   }
 
-  return gfx::Factory::CreateBGRA8DataSourceSurfaceForD3D11Texture(src);
+  return gfx::Factory::CreateBGRA8DataSourceSurfaceForD3D11Texture(
+      src, 0, mColorSpace, mColorRange);
 }
 
 nsresult D3D11ShareHandleImage::BuildSurfaceDescriptorBuffer(
