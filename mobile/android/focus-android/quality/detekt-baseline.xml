@@ -90,7 +90,6 @@
     <ID>UndocumentedPublicClass:IconGenerator.kt$IconGenerator</ID>
     <ID>UndocumentedPublicClass:InputToolbarIntegration.kt$InputToolbarIntegration : LifecycleAwareFeature</ID>
     <ID>UndocumentedPublicClass:InstallBannerViewHolder.kt$InstallBannerViewHolder$Companion</ID>
-    <ID>UndocumentedPublicClass:InstallFirefoxActivity.kt$InstallFirefoxActivity$Companion</ID>
     <ID>UndocumentedPublicClass:InstalledSearchEnginesSettingsFragment.kt$InstalledSearchEnginesSettingsFragment : BaseSettingsFragment</ID>
     <ID>UndocumentedPublicClass:InstalledSearchEnginesSettingsFragment.kt$InstalledSearchEnginesSettingsFragment$Companion</ID>
     <ID>UndocumentedPublicClass:IntentProcessor.kt$IntentProcessor$Result</ID>
@@ -290,8 +289,6 @@
     <ID>UndocumentedPublicFunction:FocusTheme.kt$fun tabletDimensions()</ID>
     <ID>UndocumentedPublicFunction:HomeMenu.kt$HomeMenu$fun getMenuBuilder(): BrowserMenuBuilder</ID>
     <ID>UndocumentedPublicFunction:IconGenerator.kt$IconGenerator$@JvmStatic fun generateLauncherIconPreOreo(context: Context, character: Char): Bitmap</ID>
-    <ID>UndocumentedPublicFunction:InstallFirefoxActivity.kt$InstallFirefoxActivity.Companion$fun open(context: Context)</ID>
-    <ID>UndocumentedPublicFunction:InstallFirefoxActivity.kt$InstallFirefoxActivity.Companion$fun resolveAppStore(context: Context): ActivityInfo?</ID>
     <ID>UndocumentedPublicFunction:InstalledSearchEnginesSettingsFragment.kt$InstalledSearchEnginesSettingsFragment.Companion$fun newInstance()</ID>
     <ID>UndocumentedPublicFunction:LearnMoreSwitchPreference.kt$LearnMoreSwitchPreference$abstract fun getLearnMoreUrl(): String</ID>
     <ID>UndocumentedPublicFunction:LearnMoreSwitchPreference.kt$LearnMoreSwitchPreference$open fun getDescription(): String?</ID>

@@ -7,7 +7,7 @@ import android.view.View
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import org.mozilla.focus.R
-import org.mozilla.focus.activity.InstallFirefoxActivity.Companion.open
+import org.mozilla.focus.activity.FirefoxInstallationHelper.open
 
 /**
  * View holder for install Firefox item in the [OpenWithFragment] list.

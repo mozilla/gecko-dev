@@ -145,9 +145,6 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".activity.InstallFirefoxActivity"
-            android:theme="@style/Theme.AppCompat.NoActionBar" />
-
         <activity android:name=".activity.EraseShortcutActivity"
             android:theme="@android:style/Theme.Translucent" />
 

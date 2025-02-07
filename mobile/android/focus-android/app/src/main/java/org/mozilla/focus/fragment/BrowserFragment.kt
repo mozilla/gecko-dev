@@ -77,7 +77,7 @@ import org.mozilla.focus.GleanMetrics.OpenWith
 import org.mozilla.focus.GleanMetrics.TabCount
 import org.mozilla.focus.GleanMetrics.TrackingProtection
 import org.mozilla.focus.R
-import org.mozilla.focus.activity.InstallFirefoxActivity
+import org.mozilla.focus.activity.FirefoxInstallationHelper
 import org.mozilla.focus.activity.MainActivity
 import org.mozilla.focus.browser.integration.BrowserMenuController
 import org.mozilla.focus.browser.integration.BrowserToolbarIntegration
@@ -955,7 +955,7 @@ class BrowserFragment :
         val store = if (browsers.hasFirefoxBrandedBrowserInstalled) {
             null
         } else {
-            InstallFirefoxActivity.resolveAppStore(requireContext())
+            FirefoxInstallationHelper.resolveAppStore(requireContext())
         }
 
         val fragment = OpenWithFragment.newInstance(
