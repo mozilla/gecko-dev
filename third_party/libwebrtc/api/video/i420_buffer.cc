@@ -35,17 +35,16 @@ namespace webrtc {
 
 namespace {
 
-// Do the size calculation using 64bit integers and check for int overflow.
-int I420DataSize(int64_t height,
-                 int64_t stride_y,
-                 int64_t stride_u,
-                 int64_t stride_v) {
-  RTC_DCHECK(height >= 0 && height <= std::numeric_limits<int>::max());
-  RTC_DCHECK(stride_y >= 0 && stride_y <= std::numeric_limits<int>::max());
-  RTC_DCHECK(stride_u >= 0 && stride_u <= std::numeric_limits<int>::max());
-  RTC_DCHECK(stride_v >= 0 && stride_v <= std::numeric_limits<int>::max());
-  return rtc::checked_cast<int>(stride_y * height +
-                                (stride_u + stride_v) * ((height + 1) / 2));
+int I420DataSize(int width,
+                 int height,
+                 int stride_y,
+                 int stride_u,
+                 int stride_v) {
+  CheckValidDimensions(width, height, stride_y, stride_u, stride_v);
+  // Do the size calculation using 64bit integers and use checked_cast to catch
+  // overflow.
+  int64_t h = height, y = stride_y, u = stride_u, v = stride_v;
+  return rtc::checked_cast<int>(y * h + (u + v) * ((h + 1) / 2));
 }
 
 }  // namespace
@@ -63,12 +62,9 @@ I420Buffer::I420Buffer(int width,
       stride_y_(stride_y),
       stride_u_(stride_u),
       stride_v_(stride_v),
-      data_(static_cast<uint8_t*>(
-          AlignedMalloc(I420DataSize(height, stride_y, stride_u, stride_v),
-                        kBufferAlignment))) {
-  RTC_DCHECK_GT(width, 0);
-  RTC_DCHECK_GT(height, 0);
-  RTC_DCHECK_GE(stride_y, width);
+      data_(static_cast<uint8_t*>(AlignedMalloc(
+          I420DataSize(width, height, stride_y, stride_u, stride_v),
+          kBufferAlignment))) {
   RTC_DCHECK_GE(stride_u, (width + 1) / 2);
   RTC_DCHECK_GE(stride_v, (width + 1) / 2);
 }
@@ -148,7 +144,7 @@ rtc::scoped_refptr<I420Buffer> I420Buffer::Rotate(
 
 void I420Buffer::InitializeData() {
   memset(data_.get(), 0,
-         I420DataSize(height_, stride_y_, stride_u_, stride_v_));
+         I420DataSize(width_, height_, stride_y_, stride_u_, stride_v_));
 }
 
 int I420Buffer::width() const {

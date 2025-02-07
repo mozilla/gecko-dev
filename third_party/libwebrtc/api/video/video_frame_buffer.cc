@@ -247,4 +247,16 @@ rtc::scoped_refptr<VideoFrameBuffer> NV12BufferInterface::CropAndScale(
   return result;
 }
 
+void CheckValidDimensions(int width,
+                          int height,
+                          int stride_y,
+                          int stride_u,
+                          int stride_v) {
+  RTC_CHECK_GT(width, 0);
+  RTC_CHECK_GT(height, 0);
+  RTC_CHECK_GE(stride_y, width);
+  RTC_CHECK_GT(stride_u, 0);
+  RTC_CHECK_GT(stride_v, 0);
+}
+
 }  // namespace webrtc

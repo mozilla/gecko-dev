@@ -20,6 +20,7 @@
 #include "api/video/video_frame_buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/memory/aligned_malloc.h"
+#include "rtc_base/numerics/safe_conversions.h"
 #include "third_party/libyuv/include/libyuv/convert.h"
 #include "third_party/libyuv/include/libyuv/scale.h"
 
@@ -29,8 +30,10 @@ namespace {
 
 static const int kBufferAlignment = 64;
 
-int NV12DataSize(int height, int stride_y, int stride_uv) {
-  return stride_y * height + stride_uv * ((height + 1) / 2);
+int NV12DataSize(int width, int height, int stride_y, int stride_uv) {
+  CheckValidDimensions(width, height, stride_y, stride_uv, stride_uv);
+  int64_t h = height, y = stride_y, uv = stride_uv;
+  return rtc::checked_cast<int>(y * h + uv * ((h + 1) / 2));
 }
 
 }  // namespace
@@ -44,12 +47,9 @@ NV12Buffer::NV12Buffer(int width, int height, int stride_y, int stride_uv)
       stride_y_(stride_y),
       stride_uv_(stride_uv),
       data_(static_cast<uint8_t*>(
-          AlignedMalloc(NV12DataSize(height_, stride_y_, stride_uv),
+          AlignedMalloc(NV12DataSize(width, height, stride_y, stride_uv),
                         kBufferAlignment))) {
-  RTC_DCHECK_GT(width, 0);
-  RTC_DCHECK_GT(height, 0);
-  RTC_DCHECK_GE(stride_y, width);
-  RTC_DCHECK_GE(stride_uv, (width + width % 2));
+  RTC_DCHECK_GE(stride_uv, width + width % 2);
 }
 
 NV12Buffer::~NV12Buffer() = default;
@@ -126,7 +126,7 @@ size_t NV12Buffer::UVOffset() const {
 }
 
 void NV12Buffer::InitializeData() {
-  memset(data_.get(), 0, NV12DataSize(height_, stride_y_, stride_uv_));
+  memset(data_.get(), 0, NV12DataSize(width_, height_, stride_y_, stride_uv_));
 }
 
 void NV12Buffer::CropAndScaleFrom(const NV12BufferInterface& src,

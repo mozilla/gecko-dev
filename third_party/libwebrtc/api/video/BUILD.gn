@@ -102,6 +102,7 @@ rtc_library("video_frame_i010") {
     "..:scoped_refptr",
     "../../rtc_base:checks",
     "../../rtc_base:refcount",
+    "../../rtc_base:safe_conversions",
     "../../rtc_base/memory:aligned_malloc",
     "../../rtc_base/system:rtc_export",
     "//third_party/libyuv",

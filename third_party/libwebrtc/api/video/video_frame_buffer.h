@@ -324,6 +324,17 @@ class RTC_EXPORT NV12BufferInterface : public BiplanarYuv8Buffer {
   ~NV12BufferInterface() override {}
 };
 
+// RTC_CHECKs that common values used to calculate buffer sizes are within the
+// range of [1..std::numeric_limits<int>::max()].
+// `width` and `height` must be > 0, `stride_y` must be >= `width` whereas
+// `stride_u` and `stride_v` must be `> 0` as this is where the various yuv
+// formats differ.
+void CheckValidDimensions(int width,
+                          int height,
+                          int stride_y,
+                          int stride_u,
+                          int stride_v);
+
 }  // namespace webrtc
 
 #endif  // API_VIDEO_VIDEO_FRAME_BUFFER_H_
