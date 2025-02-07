@@ -17,7 +17,6 @@
   skin/classic/mozapps/extensions/category-recent.svg        (../../shared/extensions/category-recent.svg)
   skin/classic/mozapps/extensions/category-sitepermission.svg  (../../shared/extensions/category-sitepermission.svg)
   skin/classic/mozapps/extensions/extension.svg              (../../shared/extensions/extension.svg)
-  skin/classic/mozapps/extensions/recommended.svg            (../../shared/extensions/recommended.svg)
   skin/classic/mozapps/extensions/line.svg                   (../../shared/extensions/line.svg)
   skin/classic/mozapps/aboutProfiles.css                     (../../shared/aboutProfiles.css)
   skin/classic/mozapps/aboutServiceWorkers.css               (../../shared/aboutServiceWorkers.css)

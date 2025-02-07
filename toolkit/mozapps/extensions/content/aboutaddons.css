@@ -332,24 +332,32 @@ addon-card[expanded] .update-postponed-bar + .addon-card-message {
   flex-shrink: 0;
   border-radius: 11px;
   -moz-context-properties: fill;
-  fill: #fff;
 }
 
 .addon-badge-private-browsing-allowed {
   background-image: url("chrome://global/skin/icons/indicator-private-browsing.svg");
 }
 
+.addon-badge-recommended,
+.addon-badge-line {
+  border: 1px solid #CFCFD8;
+  width: 20px;
+  height: 20px;
+
+  @media (prefers-color-scheme: dark) {
+    border-color: #3A3944;
+  }
+}
+
 .addon-badge-recommended {
-  background-color: var(--orange-50);
-  background-image: url("chrome://mozapps/skin/extensions/recommended.svg");
+  background-image: url("chrome://global/skin/icons/trophy.svg");
+  background-size: 14px;
+  fill: var(--orange-50);
 }
 
 .addon-badge-line {
   background-image: url("chrome://mozapps/skin/extensions/line.svg");
   background-size: 16px;
-  border: 1px solid #CFCFD8;
-  width: 20px;
-  height: 20px;
 }
 
 .addon-badge-verified {
