@@ -216,9 +216,7 @@ export class _ExperimentManager {
 
     this._prefFlips.init();
 
-    if (!this.studiesEnabled) {
-      this._handleStudiesOptOut();
-    }
+    this.observe();
 
     lazy.NimbusFeatures.nimbusTelemetry.onUpdate(() => {
       // Providing default values ensure we disable metrics when unenrolling.
@@ -942,24 +940,20 @@ export class _ExperimentManager {
     lazy.log.debug(`Recipe unenrolled: ${slug}`);
   }
 
-  observe() {
-    if (!this.studiesEnabled) {
-      this._handleStudiesOptOut();
-    }
-
-    Services.obs.notifyObservers(null, STUDIES_ENABLED_CHANGED);
-  }
-
   /**
    * Unenroll from all active studies if user opts out.
    */
-  _handleStudiesOptOut() {
-    for (const { slug } of this.store.getAllActiveExperiments()) {
-      this.unenroll(slug, "studies-opt-out");
+  observe() {
+    if (!this.studiesEnabled) {
+      for (const { slug } of this.store.getAllActiveExperiments()) {
+        this.unenroll(slug, "studies-opt-out");
+      }
+      for (const { slug } of this.store.getAllActiveRollouts()) {
+        this.unenroll(slug, "studies-opt-out");
+      }
     }
-    for (const { slug } of this.store.getAllActiveRollouts()) {
-      this.unenroll(slug, "studies-opt-out");
-    }
+
+    Services.obs.notifyObservers(null, STUDIES_ENABLED_CHANGED);
   }
 
   /**
