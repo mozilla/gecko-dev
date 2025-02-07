@@ -132,7 +132,6 @@ rtc_library("audio_processing") {
   visibility = [ "*" ]
   configs += [ ":apm_debug_dump" ]
   sources = [
-    "audio_processing_builder_impl.cc",
     "audio_processing_impl.cc",
     "audio_processing_impl.h",
     "echo_control_mobile_impl.cc",
