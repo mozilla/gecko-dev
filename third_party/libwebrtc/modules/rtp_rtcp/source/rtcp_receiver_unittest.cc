@@ -1747,13 +1747,13 @@ TEST(RtcpReceiverTest, NotifiesNetworkLinkObserverOnCongestionControlFeedback) {
   ReceiverMocks mocks;
   mocks.field_trials = "WebRTC-RFC8888CongestionControlFeedback/Enabled/";
   RTCPReceiver receiver = Create(mocks);
-  receiver.SetRemoteSSRC(kSenderSsrc);
 
-  rtcp::CongestionControlFeedback packet({{
-                                             .ssrc = 123,
-                                             .sequence_number = 1,
-                                         }},
-                                         /*report_timestamp_compact_ntp=*/324);
+  rtcp::CongestionControlFeedback packet(
+      {{
+          .ssrc = mocks.config.local_media_ssrc,
+          .sequence_number = 1,
+      }},
+      /*report_timestamp_compact_ntp=*/324);
   packet.SetSenderSsrc(kSenderSsrc);
 
   EXPECT_CALL(
@@ -1762,6 +1762,33 @@ TEST(RtcpReceiverTest, NotifiesNetworkLinkObserverOnCongestionControlFeedback) {
           mocks.clock.CurrentTime(),
           Property(&rtcp::CongestionControlFeedback::packets, SizeIs(1))));
   receiver.IncomingPacket(packet.Build());
+}
+
+TEST(RtcpReceiverTest, FiltersCongestionControlFeedbackOnFirstSsrc) {
+  ReceiverMocks mocks_1;
+  mocks_1.field_trials = "WebRTC-RFC8888CongestionControlFeedback/Enabled/";
+  RTCPReceiver receiver_1 = Create(mocks_1);
+
+  ReceiverMocks mocks_2;
+  mocks_2.field_trials = "WebRTC-RFC8888CongestionControlFeedback/Enabled/";
+  mocks_2.config.local_media_ssrc = 789;
+  mocks_2.config.rtx_send_ssrc = 345;
+  RTCPReceiver receiver_2 = Create(mocks_2);
+
+  rtcp::CongestionControlFeedback packet(
+      {{
+          .ssrc = mocks_2.config.local_media_ssrc,
+          .sequence_number = 1,
+      }},
+      /*report_timestamp_compact_ntp=*/324);
+  packet.SetSenderSsrc(kSenderSsrc);
+
+  EXPECT_CALL(mocks_1.network_link_rtcp_observer, OnCongestionControlFeedback)
+      .Times(0);
+  EXPECT_CALL(mocks_2.network_link_rtcp_observer, OnCongestionControlFeedback)
+      .Times(1);
+  receiver_1.IncomingPacket(packet.Build());
+  receiver_2.IncomingPacket(packet.Build());
 }
 
 TEST(RtcpReceiverTest,

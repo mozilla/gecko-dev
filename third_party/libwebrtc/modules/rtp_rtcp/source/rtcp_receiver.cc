@@ -1102,10 +1102,15 @@ bool RTCPReceiver::HandleCongestionControlFeedback(
     const CommonHeader& rtcp_block,
     PacketInformation* packet_information) {
   rtcp::CongestionControlFeedback feedback;
-  if (!feedback.Parse(rtcp_block)) {
+  if (!feedback.Parse(rtcp_block) || feedback.packets().empty()) {
     return false;
   }
-  packet_information->congestion_control_feedback.emplace(std::move(feedback));
+  uint32_t first_media_source_ssrc = feedback.packets()[0].ssrc;
+  if (first_media_source_ssrc == local_media_ssrc() ||
+      registered_ssrcs_.contains(first_media_source_ssrc)) {
+    packet_information->congestion_control_feedback.emplace(
+        std::move(feedback));
+  }
   return true;
 }
 
