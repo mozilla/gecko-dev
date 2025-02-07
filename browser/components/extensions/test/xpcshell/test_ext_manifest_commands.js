@@ -44,9 +44,9 @@ add_task(async function test_manifest_commands() {
   }
 
   for (let shortcut of validShortcuts) {
-    validateShortcut(shortcut, true);
+    await validateShortcut(shortcut, true);
   }
   for (let shortcut of invalidShortcuts) {
-    validateShortcut(shortcut, false);
+    await validateShortcut(shortcut, false);
   }
 });
