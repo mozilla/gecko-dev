@@ -238,6 +238,23 @@ pub struct VariableValue {
 
 trivial_to_computed_value!(VariableValue);
 
+/// Given a potentially registered variable value turn it into a computed custom property value.
+pub fn compute_variable_value(
+    value: &Arc<VariableValue>,
+    registration: &PropertyRegistrationData,
+    computed_context: &computed::Context,
+) -> Option<ComputedRegisteredValue> {
+    if registration.syntax.is_universal() {
+        return Some(ComputedRegisteredValue::universal(Arc::clone(value)));
+    }
+    compute_value(
+        &value.css,
+        &value.url_data,
+        registration,
+        computed_context,
+    ).ok()
+}
+
 // For all purposes, we want values to be considered equal if their css text is equal.
 impl PartialEq for VariableValue {
     fn eq(&self, other: &Self) -> bool {

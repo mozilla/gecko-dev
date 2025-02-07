@@ -123,6 +123,8 @@ bitflags! {
         const CONTAINER_REQUIRES_HEIGHT_AXIS = 1 << 5;
         /// The feature evaluation depends on the viewport size.
         const VIEWPORT_DEPENDENT = 1 << 6;
+        /// The feature evaluation depends on style queries.
+        const STYLE = 1 << 7;
     }
 }
 
