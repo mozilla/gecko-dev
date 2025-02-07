@@ -188,6 +188,10 @@ function getOverriddenUrl(toolboxState, url) {
   return toolboxState.networkOverrides.mutableOverrides[url] || null;
 }
 
+function hasOverride(toolboxState) {
+  return !!Object.keys(toolboxState.networkOverrides.mutableOverrides).length;
+}
+
 module.exports = {
   getClickedRequest,
   getDisplayedRequestById,
@@ -200,5 +204,6 @@ module.exports = {
   getSelectedRequest,
   getSortedRequests,
   getTypeFilteredRequests,
+  hasOverride,
   isSelectedRequestVisible,
 };

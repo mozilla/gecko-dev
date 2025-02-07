@@ -29,6 +29,7 @@ const {
 const {
   getColumns,
   getWaterfallScale,
+  hasOverride,
 } = require("resource://devtools/client/netmonitor/src/selectors/index.js");
 const {
   getFormattedTime,
@@ -49,7 +50,7 @@ const { div, button } = dom;
  * Displays tick marks in the waterfall column header.
  * Also draws the waterfall background canvas and updates it when needed.
  */
-class RequestListHeader extends Component {
+class RequestListHeaderContent extends Component {
   static get propTypes() {
     return {
       columns: PropTypes.object.isRequired,
@@ -721,9 +722,9 @@ class RequestListHeader extends Component {
   }
 }
 
-module.exports = connect(
-  state => ({
-    columns: getColumns(state),
+const RequestListHeader = connect(
+  (state, props) => ({
+    columns: getColumns(state, props.hasOverride),
     columnsData: state.ui.columnsData,
     firstRequestStartedMs: state.requests.firstStartedMs,
     scale: getWaterfallScale(state),
@@ -739,4 +740,15 @@ module.exports = connect(
     toggleColumn: column => dispatch(Actions.toggleColumn(column)),
     setColumnsWidth: widths => dispatch(Actions.setColumnsWidth(widths)),
   })
+)(RequestListHeaderContent);
+
+module.exports = connect(
+  state => {
+    return {
+      hasOverride: hasOverride(state),
+    };
+  },
+  {},
+  undefined,
+  { storeKey: "toolbox-store" }
 )(RequestListHeader);
