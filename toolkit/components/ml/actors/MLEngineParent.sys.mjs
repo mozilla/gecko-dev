@@ -7,7 +7,6 @@
  * @typedef {import("../content/Utils.sys.mjs").ProgressAndStatusCallbackParams} ProgressAndStatusCallbackParams
  * @property {typeof console} console
  * @property {typeof import("../content/Utils.sys.mjs").getRuntimeWasmFilename} getRuntimeWasmFilename
- * @property {typeof import("../content/EngineProcess.sys.mjs").EngineProcess} EngineProcess
  * @property {typeof import("../../../../services/settings/remote-settings.sys.mjs").RemoteSettings} RemoteSettings
  * @property {typeof import("../../translations/actors/TranslationsParent.sys.mjs").TranslationsParent} TranslationsParent
  */
@@ -23,7 +22,6 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
@@ -42,7 +40,7 @@ const TERMINATE_TIMEOUT = 5000;
  * The ML engine is in its own content process. This actor handles the
  * marshalling of the data such as the engine payload.
  */
-export class MLEngineParent extends JSWindowActorParent {
+export class MLEngineParent extends JSProcessActorParent {
   /**
    * The RemoteSettingsClient that downloads the wasm binaries.
    *
@@ -109,6 +107,18 @@ export class MLEngineParent extends JSWindowActorParent {
    * @type {?function(ProgressAndStatusCallbackParams):void}
    */
   notificationsCallback = null;
+
+  /**
+   * Set by EngineProcess when creating the MLEngineParent.
+   * Keeps the "inference" process alive until it is cleared.
+   *
+   * NOTE: Invalidating this keepAlive does not guarantee that the process will
+   * exit, and this actor may be re-used if it does not (e.g. because the
+   * inference process was kept alive by TranslationsEngine).
+   *
+   * @type {nsIContentParentKeepAlive | null}
+   */
+  processKeepAlive = null;
 
   /**
    * Remote settings isn't available in tests, so provide mocked responses.
@@ -207,15 +217,6 @@ export class MLEngineParent extends JSWindowActorParent {
   // eslint-disable-next-line consistent-return
   async receiveMessage(message) {
     switch (message.name) {
-      case "MLEngine:Ready":
-        if (lazy.EngineProcess.resolveMLEngineParent) {
-          lazy.EngineProcess.resolveMLEngineParent(this);
-        } else {
-          lazy.console.error(
-            "Expected #resolveMLEngineParent to exist when then ML Engine is ready."
-          );
-        }
-        break;
       case "MLEngine:GetWasmArrayBuffer":
         return MLEngineParent.getWasmArrayBuffer();
 
@@ -226,9 +227,15 @@ export class MLEngineParent extends JSWindowActorParent {
         return lazy.getInferenceProcessInfo();
 
       case "MLEngine:DestroyEngineProcess":
-        lazy.EngineProcess.destroyMLEngine().catch(error =>
-          console.error(error)
-        );
+        if (this.processKeepAlive) {
+          ChromeUtils.addProfilerMarker(
+            "EngineProcess",
+            {},
+            `Dropping MLEngine "inference" process keep-alive`
+          );
+          this.processKeepAlive.invalidateKeepAlive();
+          this.processKeepAlive = null;
+        }
         break;
       case "MLEngine:GetInferenceOptions":
         this.checkTaskName(message.json.taskName);

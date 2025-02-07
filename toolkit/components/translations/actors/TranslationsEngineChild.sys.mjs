@@ -11,11 +11,16 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
   });
 });
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  handleActorMessage:
+    "chrome://global/content/translations/translations-engine.sys.mjs",
+});
+
 /**
  * The engine child is responsible for exposing privileged code to the un-privileged
  * space the engine runs in.
  */
-export class TranslationsEngineChild extends JSWindowActorChild {
+export class TranslationsEngineChild extends JSProcessActorChild {
   /**
    * The resolve function for the Promise returned by the
    * "TranslationsEngine:ForceShutdown" message.
@@ -24,43 +29,30 @@ export class TranslationsEngineChild extends JSWindowActorChild {
    */
   #resolveForceShutdown = null;
 
-  actorCreated() {
-    this.#exportFunctions();
-  }
-
-  handleEvent(event) {
-    switch (event.type) {
-      case "DOMContentLoaded":
-        this.sendAsyncMessage("TranslationsEngine:Ready");
-        break;
-    }
-  }
-
   // eslint-disable-next-line consistent-return
   async receiveMessage({ name, data }) {
     switch (name) {
       case "TranslationsEngine:StartTranslation": {
         const { languagePair, innerWindowId, port } = data;
-        const transferables = [port];
         const message = {
           type: "StartTranslation",
           languagePair,
           innerWindowId,
           port,
         };
-        this.contentWindow.postMessage(message, "*", transferables);
+        lazy.handleActorMessage(message);
         break;
       }
       case "TranslationsEngine:DiscardTranslations": {
         const { innerWindowId } = data;
-        this.contentWindow.postMessage({
+        lazy.handleActorMessage({
           type: "DiscardTranslations",
           innerWindowId,
         });
         break;
       }
       case "TranslationsEngine:ForceShutdown": {
-        this.contentWindow.postMessage({
+        lazy.handleActorMessage({
           type: "ForceShutdown",
         });
         return new Promise(resolve => {
@@ -70,64 +62,6 @@ export class TranslationsEngineChild extends JSWindowActorChild {
       default:
         console.error("Unknown message received", name);
     }
-  }
-
-  /**
-   * Export any of the child functions that start with "TE_" to the unprivileged content
-   * page. This restricts the security capabilities of the content page.
-   */
-  #exportFunctions() {
-    const fns = [
-      "TE_addProfilerMarker",
-      "TE_getLogLevel",
-      "TE_log",
-      "TE_logError",
-      "TE_reportEnginePerformance",
-      "TE_requestEnginePayload",
-      "TE_reportEngineStatus",
-      "TE_resolveForceShutdown",
-      "TE_destroyEngineProcess",
-    ];
-    for (const defineAs of fns) {
-      Cu.exportFunction(this[defineAs].bind(this), this.contentWindow, {
-        defineAs,
-      });
-    }
-  }
-
-  /**
-   * A privileged promise can't be used in the content page, so convert a privileged
-   * promise into a content one.
-   *
-   * @param {Promise<any>} promise
-   * @returns {Promise<any>}
-   */
-  #convertToContentPromise(promise) {
-    return new this.contentWindow.Promise((resolve, reject) =>
-      promise.then(resolve, error => {
-        let contentWindow;
-        try {
-          contentWindow = this.contentWindow;
-        } catch (error) {
-          // The content window is no longer available.
-          reject();
-          return;
-        }
-        // Create an error in the content window, if the content window is still around.
-        let message = "An error occured in the TranslationsEngine actor.";
-        if (typeof error === "string") {
-          message = error;
-        }
-        if (typeof error?.message === "string") {
-          message = error.message;
-        }
-        if (typeof error?.stack === "string") {
-          message += `\n\nOriginal stack:\n\n${error.stack}\n`;
-        }
-
-        reject(new contentWindow.Error(message));
-      })
-    );
   }
 
   /**
@@ -149,6 +83,7 @@ export class TranslationsEngineChild extends JSWindowActorChild {
    */
   TE_resolveForceShutdown() {
     this.#resolveForceShutdown();
+    this.#resolveForceShutdown = null;
   }
 
   /**
@@ -206,11 +141,9 @@ export class TranslationsEngineChild extends JSWindowActorChild {
    * @param {LanguagePair} languagePair
    */
   TE_requestEnginePayload(languagePair) {
-    return this.#convertToContentPromise(
-      this.sendQuery("TranslationsEngine:RequestEnginePayload", {
-        languagePair,
-      })
-    );
+    return this.sendQuery("TranslationsEngine:RequestEnginePayload", {
+      languagePair,
+    });
   }
 
   /**

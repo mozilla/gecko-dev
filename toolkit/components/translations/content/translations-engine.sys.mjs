@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* eslint-env browser */
-/* globals TE_addProfilerMarker, TE_getLogLevel, TE_log, TE_logError, TE_getLogLevel,
-           TE_destroyEngineProcess, TE_reportEnginePerformance, TE_requestEnginePayload, 
-           TE_reportEngineStatus, TE_resolveForceShutdown */
 
 /**
  * This file lives in the translation engine's process and is in charge of managing the
@@ -50,19 +47,51 @@
  * │  [TranslationsParent]  ←────→  [TranslationsEngineParent]   │
  * │                  ↑                                    ↑     │
  * └──────────────────│────────────────────────────────────│─────┘
- *                    │ JSWindowActor IPC calls            │ JSWindowActor IPC calls
+ *                    │ JSWindowActor IPC calls            │ JSProcessActor IPC calls
  *                    │                                    │
  * ┌──────────────────│────────┐                     ┌─────│─────────────────────────────┐
  * │ CONTENT PROCESS  │        │                     │     │    ENGINE PROCESS           │
  * │                  │        │                     │     ↓                             │
  * │  [french.html]   │        │                     │ [TranslationsEngineChild]         │
  * │        ↕         ↓        │                     │            ↕                      │
- * │  [TranslationsChild]      │                     │ [translations-engine.html]        │
+ * │  [TranslationsChild]      │                     │ [translations-engine.sys.mjs]     │
  * │  └──TranslationsDocument  │                     │    ├── "fr to en" engine          │
  * │     └──port1     « ═══════════ MessageChannel ════ » │   └── port2                  │
  * │                           │                     │    └── "de to en" engine (idle)   │
  * └───────────────────────────┘                     └───────────────────────────────────┘
  */
+
+// FIXME: Currently, `translations-engine.sys.mjs` is loaded with the system
+// principal within the sys.mjs context.
+//
+// There is some existing code which exported these methods in a global scope
+// from when this file was being loaded within a chrome .html document within
+// the content process, however this code no longer exists.
+//
+// This block re-exports various methods from the singleton TranslationsEngine
+// actor into this scope so they can be called as they were called before the
+// change to use a ProcessActor.
+//
+// In the future, this code could perhaps be modified to run within an
+// unprivileged Cu.Sandbox, with these specific methods re-exported into the
+// sandbox scope.
+
+const engineActor = ChromeUtils.domProcessChild.getActor("TranslationsEngine");
+
+const TE_addProfilerMarker = engineActor.TE_addProfilerMarker.bind(engineActor);
+const TE_getLogLevel = engineActor.TE_getLogLevel.bind(engineActor);
+const TE_log = engineActor.TE_log.bind(engineActor);
+const TE_logError = engineActor.TE_logError.bind(engineActor);
+const TE_requestEnginePayload =
+  engineActor.TE_requestEnginePayload.bind(engineActor);
+const TE_reportEnginePerformance =
+  engineActor.TE_reportEnginePerformance.bind(engineActor);
+const TE_reportEngineStatus =
+  engineActor.TE_reportEngineStatus.bind(engineActor);
+const TE_resolveForceShutdown =
+  engineActor.TE_resolveForceShutdown.bind(engineActor);
+const TE_destroyEngineProcess =
+  engineActor.TE_destroyEngineProcess.bind(engineActor);
 
 // How long the cache remains alive between uses, in milliseconds. In automation the
 // engine is manually created and destroyed to avoid timing issues.
@@ -221,7 +250,7 @@ export class TranslationsEngine {
    * @returns {Promise<TranslationsEngine>}
    */
   static async create(languagePair, innerWindowId) {
-    const startTime = performance.now();
+    const startTime = Cu.now();
     if (!languagePair.sourceLanguage || !languagePair.targetLanguage) {
       throw new Error(
         "Attempt to create Translator with missing language tags."
@@ -652,7 +681,7 @@ function discardTranslations(innerWindowId) {
 /**
  * Listen for events coming from the TranslationsEngine actor.
  */
-window.addEventListener("message", ({ data }) => {
+export function handleActorMessage(data) {
   switch (data.type) {
     case "StartTranslation": {
       const { languagePair, innerWindowId, port } = data;
@@ -679,4 +708,4 @@ window.addEventListener("message", ({ data }) => {
     default:
       throw new Error("Unknown TranslationsEngineChromeToContent event.");
   }
-});
+}
