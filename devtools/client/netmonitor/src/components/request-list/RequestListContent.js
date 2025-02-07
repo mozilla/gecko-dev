@@ -27,6 +27,7 @@ const {
   getSelectedRequest,
   getClickedRequest,
   getWaterfallScale,
+  hasOverride,
 } = require("resource://devtools/client/netmonitor/src/selectors/index.js");
 
 loader.lazyRequireGetter(
@@ -67,7 +68,7 @@ const RIGHT_MOUSE_BUTTON = 2;
 /**
  * Renders the actual contents of the request list.
  */
-class RequestListContent extends Component {
+class RequestListContentComponent extends Component {
   static get propTypes() {
     return {
       blockedUrls: PropTypes.array.isRequired,
@@ -480,10 +481,10 @@ class RequestListContent extends Component {
   }
 }
 
-module.exports = connect(
-  state => ({
+const RequestListContent = connect(
+  (state, props) => ({
     blockedUrls: state.requestBlocking.blockedUrls,
-    columns: getColumns(state),
+    columns: getColumns(state, props.hasOverride),
     networkActionOpen: state.ui.networkActionOpen,
     networkDetailsOpen: state.ui.networkDetailsOpen,
     networkDetailsWidth: state.ui.networkDetailsWidth,
@@ -543,4 +544,15 @@ module.exports = connect(
       dispatch(Actions.selectDetailsPanelTab("timings"));
     },
   })
+)(RequestListContentComponent);
+
+module.exports = connect(
+  state => {
+    return {
+      hasOverride: hasOverride(state),
+    };
+  },
+  {},
+  undefined,
+  { storeKey: "toolbox-store" }
 )(RequestListContent);

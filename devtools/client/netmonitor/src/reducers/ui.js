@@ -29,7 +29,6 @@ const {
 } = require("resource://devtools/client/netmonitor/src/constants.js");
 
 const cols = {
-  override: true,
   status: true,
   method: true,
   domain: true,

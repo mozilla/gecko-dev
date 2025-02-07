@@ -43,7 +43,9 @@ class RequestListHeaderContextMenu {
   open(event = {}, columns) {
     const menu = [];
     const subMenu = { timings: [], responseHeaders: [] };
-    const onlyOneColumn = getVisibleColumns(columns).length === 1;
+    const onlyOneColumn =
+      getVisibleColumns(columns).filter(([column]) => column !== "override")
+        .length === 1;
 
     for (const column in columns) {
       const shown = columns[column];
@@ -56,8 +58,9 @@ class RequestListHeaderContextMenu {
         type: "checkbox",
         checked: shown,
         click: () => this.props.toggleColumn(column),
-        // We don't want to allow hiding the last visible column
-        disabled: onlyOneColumn && shown,
+        // We don't want to allow hiding the last visible column,
+        // or to modify the visibility of the override column.
+        disabled: (onlyOneColumn && shown) || column === "override",
       };
       subMenuMap.hasOwnProperty(column)
         ? subMenu[subMenuMap[column]].push(entry)

@@ -55,15 +55,20 @@ function getVisibleColumns(columns) {
 const getColumns = createSelector(
   state => state.ui.columns,
   state => state.ui.networkDetailsOpen || state.search.panelOpen,
-  (columns, isSidePanelOpen) => {
+  (_, hasOverride) => hasOverride,
+  (columns, isSidePanelOpen, hasOverride) => {
+    columns = { ...columns };
     const isWaterfallOnly =
       getVisibleColumns(columns).length === 1 && columns.waterfall;
     if (isSidePanelOpen && !isWaterfallOnly) {
       // Remove the Waterfall column if it is not the only column and a side
       // panel is open.
-      columns = { ...columns };
       delete columns.waterfall;
     }
+
+    // Automatically add the override column if any override is currently
+    // configured in the toolbox.
+    columns.override = hasOverride;
     return columns;
   }
 );
