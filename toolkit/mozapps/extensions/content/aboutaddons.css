@@ -94,7 +94,7 @@ h2 {
 }
 
 .category[name="discover"] {
-  background-image: url("chrome://mozapps/skin/extensions/category-discover.svg");
+  background-image: url("chrome://global/skin/icons/trophy.svg");
 }
 .category[name="locale"] {
   background-image: url("chrome://mozapps/skin/extensions/category-languages.svg");

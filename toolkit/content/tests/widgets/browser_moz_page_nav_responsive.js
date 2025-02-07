@@ -18,18 +18,18 @@ add_task(async function testMozPageNavResponsive() {
       <moz-page-nav heading="Test">
         <moz-page-nav-button
           view="view-one"
-          iconSrc="chrome://mozapps/skin/extensions/category-discover.svg"
+          iconSrc="chrome://mozapps/skin/extensions/category-extensions.svg"
         >
           <span class="view-name">View 1</span>
         </moz-page-nav-button>
         <moz-page-nav-button
           view="view-two"
-          iconSrc="chrome://mozapps/skin/extensions/category-discover.svg"
+          iconSrc="chrome://mozapps/skin/extensions/category-extensions.svg"
         >
           <span class="view-name">View 2</span>
         </moz-page-nav-button>
         <moz-page-nav-button
-          iconSrc="chrome://mozapps/skin/extensions/category-discover.svg"
+          iconSrc="chrome://mozapps/skin/extensions/category-extensions.svg"
           support-page="test"
           slot="secondary-nav"
         >
