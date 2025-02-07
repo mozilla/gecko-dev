@@ -2470,6 +2470,13 @@ void DocAccessible::DoARIAOwnsRelocation(LocalAccessible* aOwner) {
   logging::TreeInfo("aria owns relocation", logging::eVerbose, aOwner);
 #endif
 
+  const nsRoleMapEntry* roleMap = aOwner->ARIARoleMap();
+  if (roleMap && roleMap->role == roles::EDITCOMBOBOX) {
+    // The READWRITE state of a combobox may sever aria-owns relations
+    // we fallback to "controls" relations.
+    QueueCacheUpdate(aOwner, CacheDomain::Relations);
+  }
+
   nsTArray<RefPtr<LocalAccessible>>* owned =
       mARIAOwnsHash.GetOrInsertNew(aOwner);
 
