@@ -57,6 +57,7 @@ function setupServiceContainer({
     const { highlight, unhighlight } = toolbox.getHighlighter();
 
     Object.assign(serviceContainer, {
+      getToolboxStore: () => toolbox.store,
       sourceMapURLService: toolbox.sourceMapURLService,
       highlightDomElement: highlight,
       unHighlightDomElement: unhighlight,
