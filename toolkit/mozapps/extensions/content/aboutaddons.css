@@ -345,10 +345,8 @@ addon-card[expanded] .update-postponed-bar + .addon-card-message {
 }
 
 .addon-badge-line {
-  background-color: #fff;
   background-image: url("chrome://mozapps/skin/extensions/line.svg");
   background-size: 16px;
-  border-radius: 10px;
   border: 1px solid #CFCFD8;
   width: 20px;
   height: 20px;
