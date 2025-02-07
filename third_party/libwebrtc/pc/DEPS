@@ -16,9 +16,3 @@ include_rules = [
   "+system_wrappers",
   "+absl/strings/str_cat.h",
 ]
-
-specific_include_rules = {
-  "srtpfilter_unittest\.cc": [
-    "+crypto",
-  ],
-}
