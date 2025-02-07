@@ -708,6 +708,10 @@ fail-if = ["xorigin"]
 skip-if = [
   "os == 'linux' && tsan && verify", # intermittent in chaos mode
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug && xorigin", # Bug 1932914 (secondary)
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1905949
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64' && display == 'wayland'", # Bug 1905949
+  "os == 'android' && processor == 'x86_64' && debug", # Bug 1905949
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1905949
 ]
 
 ["test_transitions_replacement_with_setKeyframes.html"]
