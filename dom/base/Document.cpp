@@ -11004,17 +11004,18 @@ nsViewportInfo Document::GetViewportInfo(const ScreenIntSize& aDisplaySize) {
       // value after setting it, above.
       if (maxWidth == nsViewportInfo::kAuto && !mValidScaleFloat) {
         maxWidth = StaticPrefs::browser_viewport_desktopWidth();
-        if (inRDM &&
-            bc->TouchEventsOverride() == TouchEventsOverride::Enabled) {
-          // If RDM and touch simulation are active, then use the simulated
-          // screen width to accommodate for cases where the screen width is
-          // larger than the desktop viewport default.
-          maxWidth = nsViewportInfo::Max(displaySize.width, maxWidth);
-        }
         // Divide by fullZoom to stretch CSS pixel size of viewport in order
         // to keep device pixel size unchanged after full zoom applied.
         // See bug 974242.
         maxWidth /= fullZoom;
+
+        // The fallback behaviour of using browser.viewport.desktopWidth
+        // was designed with small screens in mind, where we are _expanding_ the
+        // viewport width to this value. On wider displays (e.g. most tablets),
+        // we would actually be _shrinking_ the viewport width to this value,
+        // which we want to avoid because it constrains the viewport width
+        // (and often results in a larger initial scale) unnecessarily.
+        maxWidth = nsViewportInfo::Max(displaySize.width, maxWidth);
 
         // We set minWidth to ExtendToZoom, which will cause our later width
         // calculation to expand to maxWidth, if scale restrictions allow it.

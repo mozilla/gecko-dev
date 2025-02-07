@@ -42,6 +42,12 @@ pref(ui.useOverlayScrollbars,1) == overflow-hidden-region-with-negative-left-pos
 pref(layout.dynamic-toolbar-max-height,100) == device-height-with-dynamic-toolbar.html device-height-with-dynamic-toolbar-ref.html
 == reflow-on-minimum-scale-size.html about:blank
 
+# Test that on a device with a screen that's wider than the fallback viewport
+# width, on a page with no meta viewport tag the ICB is sized to the screen width.
+# Since we cannot alter the screen width in a reftest, to set up the scenario we
+# reduce the fallback viewport width to 600px from the default 980px.
+pref(browser.viewport.desktopWidth,600) == no-viewport-wide-device.html no-viewport-wide-device-ref.html
+
 # The next two tests (desktop-mode.html and desktop-mode-cleanup.html) must run
 # consecutively; do not insert anything between them. (As the naming suggests,
 # the latter test just does some cleanup work on behalf of the former test.)
