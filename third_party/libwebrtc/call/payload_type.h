@@ -33,7 +33,11 @@ class PayloadType : public StrongAlias<class PayloadTypeTag, uint8_t> {
     if (rtcp_mux && (id > 63 && id < 96)) {
       return false;
     }
+#if defined(WEBRTC_MOZILLA_BUILD)
+    return id <= 127; // id is unsigned, therefor always >= 0
+#else
     return id >= 0 && id <= 127;
+#endif
   }
   template <typename Sink>
   friend void AbslStringify(Sink& sink, const PayloadType pt) {
