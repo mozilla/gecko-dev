@@ -1,7 +1,7 @@
 From: Michael Froman <mfroman@mozilla.com>
 Date: Mon, 13 Jan 2025 08:14:00 -0600
-Subject: Bug 1234 - (fix-69cc695699) uncomment an arg that upstream thinks is
- unused
+Subject: Bug 1942428 - (fix-69cc695699) uncomment an arg that upstream thinks
+ is unused
 
 Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/73f9e0e64eb65e9f2579b0f3eb34b88e2b5e5d74
 ---
