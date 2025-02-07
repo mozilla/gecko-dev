@@ -433,6 +433,16 @@ export class TranslationsParent extends JSWindowActorParent {
   firstShowUriSpec = null;
 
   /**
+   * The TranslationsEngineParent instance which requests from this
+   * TranslationsParent are being handled by.
+   *
+   * Used to ensure translations are discarded when the actor dies.
+   *
+   * @type {null | TranslationsEngineParent}
+   */
+  engineActor = null;
+
+  /**
    * Do not send queries or do work when the actor is already destroyed. This flag needs
    * to be checked after calls to `await`.
    */
@@ -1222,6 +1232,12 @@ export class TranslationsParent extends JSWindowActorParent {
     } catch (error) {
       lazy.console.error("Failed to get the translation engine process", error);
       return undefined;
+    }
+
+    if (translationsParent) {
+      // NOTE: It's OK if this overrides an existing engine actor reference, as
+      // only one TranslationsEngineParent instance may be active at a time.
+      translationsParent.engineActor = translationsEngineParent;
     }
 
     // The MessageChannel will be used for communicating directly between the content
@@ -3696,20 +3712,9 @@ export class TranslationsParent extends JSWindowActorParent {
    * are misbehaving.
    */
   #ensureTranslationsDiscarded() {
-    if (!lazy.EngineProcess.translationsEngineParent) {
-      return;
+    if (this.engineActor && this.languageState.requestedLanguagePair) {
+      this.engineActor.discardTranslations(this.innerWindowId);
     }
-    lazy.EngineProcess.translationsEngineParent
-      // If the engine fails to load, ignore it since we are ending translations.
-      .catch(() => null)
-      .then(actor => {
-        if (actor && this.languageState.requestedLanguagePair) {
-          actor.discardTranslations(this.innerWindowId);
-        }
-      })
-      // This error will be one from the endTranslation code, which we need to
-      // surface.
-      .catch(error => lazy.console.error(error));
   }
 
   didDestroy() {
