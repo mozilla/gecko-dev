@@ -17,6 +17,7 @@ FOG_ROOT_PATH = path.abspath(
 sys.path.append(path.join(FOG_ROOT_PATH, "build_scripts", "glean_parser_ext"))
 import cpp
 import run_glean_parser
+from util import generate_metric_ids
 
 
 def test_all_metric_types():
@@ -29,7 +30,7 @@ def test_all_metric_types():
     UPDATE_EXPECT=1 mach test toolkit/components/glean/tests/pytest
     """
 
-    options = {"allow_reserved": False}
+    options = {"allow_reserved": False, "is_local_build": False}
     input_files = [
         Path(path.join(path.dirname(__file__), x))
         for x in ["metrics_test.yaml", "metrics2_test.yaml"]
@@ -43,7 +44,10 @@ def test_all_metric_types():
     all_objs, options = run_glean_parser.parse_with_options(input_files, options)
 
     output_fd = io.StringIO()
-    cpp.output_cpp(all_objs, output_fd, {"header_name": "Metrics"})
+    get_metric_id = generate_metric_ids(all_objs, options)
+    cpp.output_cpp(
+        all_objs, output_fd, {"header_name": "Metrics", "get_metric_id": get_metric_id}
+    )
 
     expect(
         path.join(path.dirname(__file__), "metrics_test_output_cpp"),

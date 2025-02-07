@@ -222,7 +222,7 @@ def output_rust(objs, output_fd, ping_names_by_app_id, options={}):
         return env.get_template(template_name)
 
     util.get_jinja2_template = get_local_template
-    get_metric_id = generate_metric_ids(objs)
+    get_metric_id = generate_metric_ids(objs, options)
     get_ping_id = generate_ping_ids(objs)
     ping_schedule_reverse_map = get_schedule_reverse_map(objs)
 

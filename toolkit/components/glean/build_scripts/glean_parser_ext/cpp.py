@@ -105,7 +105,7 @@ def output_cpp(objs, output_fd, options={}):
         template = get_metrics_template(
             options["get_metric_id"]
             if "get_metric_id" in options
-            else generate_metric_ids(objs)
+            else generate_metric_ids(objs, options)
         )
         objs = get_metrics(objs)
 

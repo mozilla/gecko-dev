@@ -142,11 +142,18 @@ def output_js(objs, output_fd_h, output_fd_cpp, options={}):
         )
     else:
         write_metrics(
-            get_metrics(objs), output_fd_cpp, "js.jinja2", output_fd_h, "js_h.jinja2"
+            get_metrics(objs),
+            output_fd_cpp,
+            "js.jinja2",
+            output_fd_h,
+            "js_h.jinja2",
+            options,
         )
 
 
-def write_metrics(objs, output_fd, template_filename, output_fd_h, template_filename_h):
+def write_metrics(
+    objs, output_fd, template_filename, output_fd_h, template_filename_h, options
+):
     """
     Given a tree of objects `objs`, output metrics-only code for the JS API to the
     file-like object `output_fd` using template `template_filename`
@@ -160,7 +167,7 @@ def write_metrics(objs, output_fd, template_filename, output_fd_h, template_file
         INDEX_BITS + TYPE_BITS + ID_BITS <= ENTRY_WIDTH
     ), "INDEX_BITS, TYPE_BITS, or ID_BITS are larger than allowed"
 
-    get_metric_id = generate_metric_ids(objs)
+    get_metric_id = generate_metric_ids(objs, options)
     # Mapping from a metric's identifier to the entry (metric ID | type id | index)
     metric_id_mapping = {}
     categories = []

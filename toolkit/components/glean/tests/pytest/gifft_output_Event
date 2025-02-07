@@ -17,10 +17,10 @@ using Telemetry::EventID;
 
 Maybe<EventID> EventIdForMetric(uint32_t aId) {
   switch(aId) {
-    case 110940: { // test.nested.event_metric
+    case 20: { // test.nested.event_metric
       return Some(EventID::EventMetric_EnumNames_AreStrange);
     }
-    case 20015710: { // test.nested.event_metric_with_extra
+    case 21: { // test.nested.event_metric_with_extra
       return Some(EventID::EventMetric_EnumName_WithExtra);
     }
     default: {

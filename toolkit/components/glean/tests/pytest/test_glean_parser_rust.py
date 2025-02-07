@@ -33,7 +33,7 @@ def test_all_metric_types():
     UPDATE_EXPECT=1 mach test toolkit/components/glean/tests/pytest
     """
 
-    options = {"allow_reserved": False}
+    options = {"allow_reserved": False, "is_local_build": False}
     input_files = [
         Path(path.join(path.dirname(__file__), x))
         for x in ["metrics_test.yaml", "metrics2_test.yaml"]
@@ -81,7 +81,7 @@ def test_expires_version():
     """
 
     # The test file has 41, 42, 100. Use 42.0a1 here to ensure "expires == version" means expired.
-    options = run_glean_parser.get_parser_options("42.0a1")
+    options = run_glean_parser.get_parser_options("42.0a1", False)
     input_files = [
         Path(path.join(path.dirname(__file__), "metrics_expires_versions_test.yaml"))
     ]

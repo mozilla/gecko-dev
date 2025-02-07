@@ -149,21 +149,24 @@ metrics_yamls = ["../../../" + x for x in metrics_yamls]
 pings_yamls = ["../../../" + x for x in pings_yamls]
 tags_yamls = ["../../../" + x for x in tags_yamls]
 
+glean_parser_flags = [CONFIG["MOZ_APP_VERSION"]]
+
+# In local developer builds, we optimize for speed of recompilation above
+# binary size, see bug 1944663.
+if CONFIG["DEVELOPER_OPTIONS"]:
+    glean_parser_flags += ["--fast-rebuild"]
+
 GeneratedFile(
     "metrics_yamls.cached",
     script="build_scripts/glean_parser_ext/cache_yaml.py",
-    flags=[
-        CONFIG["MOZ_APP_VERSION"],
-    ],
+    flags=glean_parser_flags,
     inputs=metrics_yamls + tags_yamls,
 )
 
 GeneratedFile(
     "pings_yamls.cached",
     script="build_scripts/glean_parser_ext/cache_yaml.py",
-    flags=[
-        CONFIG["MOZ_APP_VERSION"],
-    ],
+    flags=glean_parser_flags,
     inputs=pings_yamls + tags_yamls,
 )
 
@@ -174,8 +177,8 @@ GeneratedFile(
     "GleanJSMetricsLookup.cpp",
     "api/src/metrics.rs",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
-    flags=[
-        CONFIG["MOZ_APP_VERSION"],
+    flags=glean_parser_flags
+    + [
         "GleanJSMetricsLookup.h",
         "GleanJSMetricsLookup.cpp",
         "api/src/metrics.rs",
@@ -189,8 +192,8 @@ GeneratedFile(
     "GleanJSPingsLookup.cpp",
     "api/src/pings.rs",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
-    flags=[
-        CONFIG["MOZ_APP_VERSION"],
+    flags=glean_parser_flags
+    + [
         "GleanJSPingsLookup.h",
         "GleanJSPingsLookup.cpp",
         "api/src/pings.rs",
@@ -204,7 +207,7 @@ GeneratedFile(
     "EventGIFFTMap.cpp",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="gifft_map",
-    flags=[CONFIG["MOZ_APP_VERSION"], "Event"],
+    flags=glean_parser_flags + ["Event"],
     inputs=["!metrics_yamls.cached"],
 )
 
@@ -212,7 +215,7 @@ GeneratedFile(
     "HistogramGIFFTMap.cpp",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="gifft_map",
-    flags=[CONFIG["MOZ_APP_VERSION"], "Histogram"],
+    flags=glean_parser_flags + ["Histogram"],
     inputs=["!metrics_yamls.cached"],
 )
 
@@ -220,7 +223,7 @@ GeneratedFile(
     "ScalarGIFFTMap.cpp",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="gifft_map",
-    flags=[CONFIG["MOZ_APP_VERSION"], "Scalar"],
+    flags=glean_parser_flags + ["Scalar"],
     inputs=["!metrics_yamls.cached"],
 )
 
@@ -232,7 +235,7 @@ GeneratedFile(
     "api/src/factory.rs",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="jog_factory",
-    flags=[CONFIG["MOZ_APP_VERSION"]],
+    flags=glean_parser_flags,
     inputs=["!metrics_yamls.cached", "!pings_yamls.cached"],
 )
 
@@ -243,7 +246,7 @@ if CONFIG["MOZ_ARTIFACT_BUILDS"]:
         "jogfile.json",
         script="build_scripts/glean_parser_ext/run_glean_parser.py",
         entry_point="jog_file",
-        flags=[CONFIG["MOZ_APP_VERSION"]],
+        flags=glean_parser_flags,
         inputs=["!metrics_yamls.cached", "!pings_yamls.cached"],
     )
     # Once generated, it needs to be placed in GreD so it can be found.
@@ -256,7 +259,7 @@ GeneratedFile(
     "src/ohttp_pings.rs",
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="ohttp_pings",
-    flags=[CONFIG["MOZ_APP_VERSION"]],
+    flags=glean_parser_flags,
     inputs=["!pings_yamls.cached"],
 )
 

@@ -35,7 +35,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        BooleanMetric::new(MetricId(22495729), meta)
+        BooleanMetric::new(MetricId(1), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -53,7 +53,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        CounterMetric::new(MetricId(30349935), meta)
+        CounterMetric::new(MetricId(2), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -71,7 +71,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        CustomDistributionMetric::new(MetricId(28021745), meta, 0, 100, 100, HistogramType::Linear)
+        CustomDistributionMetric::new(MetricId(3), meta, 0, 100, 100, HistogramType::Linear)
     });
 
     #[allow(non_upper_case_globals)]
@@ -91,7 +91,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(21875658), meta, None)
+        LabeledMetric::new(MetricId(4), meta, None)
     });
 
     #[repr(u16)]
@@ -159,7 +159,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(7966417), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
+        LabeledMetric::new(MetricId(5), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -179,7 +179,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(139440), meta, None)
+        LabeledMetric::new(MetricId(6), meta, None)
     });
 
     #[repr(u16)]
@@ -223,7 +223,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(6593356), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        LabeledMetric::new(MetricId(7), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -243,7 +243,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(22655931), meta, None)
+        LabeledMetric::new(MetricId(8), meta, None)
     });
 
     #[repr(u16)]
@@ -287,7 +287,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(10006522), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        LabeledMetric::new(MetricId(9), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -305,7 +305,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        MemoryDistributionMetric::new(MetricId(6804861), meta, MemoryUnit::Kilobyte)
+        MemoryDistributionMetric::new(MetricId(10), meta, MemoryUnit::Kilobyte)
     });
 
     #[allow(non_upper_case_globals)]
@@ -323,7 +323,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        StringListMetric::new(MetricId(18320715), meta)
+        StringListMetric::new(MetricId(11), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -341,7 +341,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        StringMetric::new(MetricId(25252540), meta)
+        StringMetric::new(MetricId(12), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -359,7 +359,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        TextMetric::new(MetricId(23203570), meta)
+        TextMetric::new(MetricId(13), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -377,7 +377,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        TimespanMetric::new(MetricId(11887791), meta, TimeUnit::Millisecond)
+        TimespanMetric::new(MetricId(14), meta, TimeUnit::Millisecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -395,7 +395,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        TimingDistributionMetric::new(MetricId(25552771), meta, TimeUnit::Nanosecond)
+        TimingDistributionMetric::new(MetricId(15), meta, TimeUnit::Nanosecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -413,7 +413,7 @@ pub mod test {
                 disabled: false,
                 ..Default::default()
             };
-        BooleanMetric::with_unordered_ipc(MetricId(23138752), meta)
+        BooleanMetric::with_unordered_ipc(MetricId(16), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -433,7 +433,7 @@ pub mod test {
                     ..Default::default()
                 },
             };
-        LabeledMetric::with_unordered_ipc(MetricId(11455568), meta, None)
+        LabeledMetric::with_unordered_ipc(MetricId(17), meta, None)
     });
 
 }
@@ -476,7 +476,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        ObjectMetric::new(MetricId(25398426), meta)
+        ObjectMetric::new(MetricId(18), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -494,7 +494,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        DatetimeMetric::new(MetricId(32461197), meta, TimeUnit::Millisecond)
+        DatetimeMetric::new(MetricId(19), meta, TimeUnit::Millisecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -512,7 +512,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        EventMetric::new(MetricId(110940), meta)
+        EventMetric::new(MetricId(20), meta)
     });
 
     #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
@@ -547,7 +547,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        EventMetric::new(MetricId(20015710), meta)
+        EventMetric::new(MetricId(21), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -565,7 +565,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        DenominatorMetric::new(MetricId(21877185), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}, CommonMetricData {name: "rate_with_external_denominator".into(), category: "test2.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: true,  ..Default::default()}])
+        DenominatorMetric::new(MetricId(22), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}, CommonMetricData {name: "rate_with_external_denominator".into(), category: "test2.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: true,  ..Default::default()}])
     });
 
     #[allow(non_upper_case_globals)]
@@ -575,7 +575,7 @@ pub mod test_nested {
     /// description
     pub static optimizable_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_new(
-            14212265,
+            23,
             "test.nested",
             "optimizable_counter_metric",
             "metrics"
@@ -589,7 +589,7 @@ pub mod test_nested {
     /// description
     pub static optimizable_disabled_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_disabled_new(
-            7676830,
+            24,
             "test.nested",
             "optimizable_disabled_counter_metric",
             "metrics"
@@ -611,7 +611,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        QuantityMetric::new(MetricId(8082779), meta)
+        QuantityMetric::new(MetricId(25), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -629,7 +629,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        RateMetric::new(MetricId(30750772), meta)
+        RateMetric::new(MetricId(26), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -647,7 +647,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        NumeratorMetric::new(MetricId(1413969), meta)
+        NumeratorMetric::new(MetricId(27), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -665,7 +665,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        UuidMetric::new(MetricId(32794253), meta)
+        UuidMetric::new(MetricId(28), meta)
     });
 
 }
@@ -695,7 +695,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        BooleanMetric::new(MetricId(5536416), meta)
+        BooleanMetric::new(MetricId(29), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -713,7 +713,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        CounterMetric::new(MetricId(27435907), meta)
+        CounterMetric::new(MetricId(30), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -731,7 +731,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        CustomDistributionMetric::new(MetricId(27313004), meta, 0, 100, 100, HistogramType::Linear)
+        CustomDistributionMetric::new(MetricId(31), meta, 0, 100, 100, HistogramType::Linear)
     });
 
     #[allow(non_upper_case_globals)]
@@ -751,7 +751,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(9102331), meta, None)
+        LabeledMetric::new(MetricId(32), meta, None)
     });
 
     #[repr(u16)]
@@ -819,7 +819,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(27310108), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
+        LabeledMetric::new(MetricId(33), meta, Some(vec![::std::borrow::Cow::from("eight_labels"), ::std::borrow::Cow::from("five_labels"), ::std::borrow::Cow::from("four_labels"), ::std::borrow::Cow::from("nine_labels"), ::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("seven_labels"), ::std::borrow::Cow::from("six_labels"), ::std::borrow::Cow::from("ten_labels"), ::std::borrow::Cow::from("three_labels"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -839,7 +839,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(4435991), meta, None)
+        LabeledMetric::new(MetricId(34), meta, None)
     });
 
     #[repr(u16)]
@@ -883,7 +883,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(27714779), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        LabeledMetric::new(MetricId(35), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -903,7 +903,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(13299578), meta, None)
+        LabeledMetric::new(MetricId(36), meta, None)
     });
 
     #[repr(u16)]
@@ -947,7 +947,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::new(MetricId(21201865), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
+        LabeledMetric::new(MetricId(37), meta, Some(vec![::std::borrow::Cow::from("one_label"), ::std::borrow::Cow::from("two_labels")]))
     });
 
     #[allow(non_upper_case_globals)]
@@ -965,7 +965,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        MemoryDistributionMetric::new(MetricId(29118730), meta, MemoryUnit::Kilobyte)
+        MemoryDistributionMetric::new(MetricId(38), meta, MemoryUnit::Kilobyte)
     });
 
     #[allow(non_upper_case_globals)]
@@ -983,7 +983,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        StringListMetric::new(MetricId(27603867), meta)
+        StringListMetric::new(MetricId(39), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1001,7 +1001,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        StringMetric::new(MetricId(31008897), meta)
+        StringMetric::new(MetricId(40), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1019,7 +1019,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        TextMetric::new(MetricId(3163718), meta)
+        TextMetric::new(MetricId(41), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1037,7 +1037,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        TimespanMetric::new(MetricId(18482215), meta, TimeUnit::Millisecond)
+        TimespanMetric::new(MetricId(42), meta, TimeUnit::Millisecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1055,7 +1055,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        TimingDistributionMetric::new(MetricId(14261116), meta, TimeUnit::Nanosecond)
+        TimingDistributionMetric::new(MetricId(43), meta, TimeUnit::Nanosecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1073,7 +1073,7 @@ pub mod test2 {
                 disabled: true,
                 ..Default::default()
             };
-        BooleanMetric::with_unordered_ipc(MetricId(17090832), meta)
+        BooleanMetric::with_unordered_ipc(MetricId(44), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1093,7 +1093,7 @@ pub mod test2 {
                     ..Default::default()
                 },
             };
-        LabeledMetric::with_unordered_ipc(MetricId(13310781), meta, None)
+        LabeledMetric::with_unordered_ipc(MetricId(45), meta, None)
     });
 
 }
@@ -1136,7 +1136,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        ObjectMetric::new(MetricId(21851592), meta)
+        ObjectMetric::new(MetricId(46), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1154,7 +1154,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        DatetimeMetric::new(MetricId(9930003), meta, TimeUnit::Millisecond)
+        DatetimeMetric::new(MetricId(47), meta, TimeUnit::Millisecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1172,7 +1172,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        EventMetric::new(MetricId(1091783), meta)
+        EventMetric::new(MetricId(48), meta)
     });
 
     #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
@@ -1207,7 +1207,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        EventMetric::new(MetricId(20312052), meta)
+        EventMetric::new(MetricId(49), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1217,7 +1217,7 @@ pub mod test2_nested {
     /// description
     pub static external_denominator: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_disabled_new(
-            2838206,
+            50,
             "test2.nested",
             "external_denominator",
             "metrics"
@@ -1231,7 +1231,7 @@ pub mod test2_nested {
     /// description
     pub static optimizable_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_disabled_new(
-            8514908,
+            51,
             "test2.nested",
             "optimizable_counter_metric",
             "metrics"
@@ -1245,7 +1245,7 @@ pub mod test2_nested {
     /// description
     pub static optimizable_disabled_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_disabled_new(
-            17063655,
+            52,
             "test2.nested",
             "optimizable_disabled_counter_metric",
             "metrics"
@@ -1267,7 +1267,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        QuantityMetric::new(MetricId(20268999), meta)
+        QuantityMetric::new(MetricId(53), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1285,7 +1285,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        RateMetric::new(MetricId(15523628), meta)
+        RateMetric::new(MetricId(54), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1303,7 +1303,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        NumeratorMetric::new(MetricId(25857163), meta)
+        NumeratorMetric::new(MetricId(55), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -1321,7 +1321,7 @@ pub mod test2_nested {
                 disabled: true,
                 ..Default::default()
             };
-        UuidMetric::new(MetricId(23885948), meta)
+        UuidMetric::new(MetricId(56), meta)
     });
 
 }
@@ -1337,123 +1337,123 @@ pub(crate) mod __glean_metric_maps {
 
     pub static BOOLEAN_MAP: Lazy<HashMap<MetricId, &Lazy<BooleanMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(4);
-        map.insert(MetricId(22495729), &super::test::boolean_metric);
-        map.insert(MetricId(23138752), &super::test::unordered_boolean_metric);
-        map.insert(MetricId(5536416), &super::test2::boolean_metric);
-        map.insert(MetricId(17090832), &super::test2::unordered_boolean_metric);
+        map.insert(MetricId(1), &super::test::boolean_metric);
+        map.insert(MetricId(16), &super::test::unordered_boolean_metric);
+        map.insert(MetricId(29), &super::test2::boolean_metric);
+        map.insert(MetricId(44), &super::test2::unordered_boolean_metric);
         map
     });
 
     pub static COUNTER_MAP: Lazy<HashMap<MetricId, &Lazy<CounterMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(7);
-        map.insert(MetricId(30349935), &super::test::counter_metric);
-        map.insert(MetricId(14212265), &super::test_nested::optimizable_counter_metric);
-        map.insert(MetricId(7676830), &super::test_nested::optimizable_disabled_counter_metric);
-        map.insert(MetricId(27435907), &super::test2::counter_metric);
-        map.insert(MetricId(2838206), &super::test2_nested::external_denominator);
-        map.insert(MetricId(8514908), &super::test2_nested::optimizable_counter_metric);
-        map.insert(MetricId(17063655), &super::test2_nested::optimizable_disabled_counter_metric);
+        map.insert(MetricId(2), &super::test::counter_metric);
+        map.insert(MetricId(23), &super::test_nested::optimizable_counter_metric);
+        map.insert(MetricId(24), &super::test_nested::optimizable_disabled_counter_metric);
+        map.insert(MetricId(30), &super::test2::counter_metric);
+        map.insert(MetricId(50), &super::test2_nested::external_denominator);
+        map.insert(MetricId(51), &super::test2_nested::optimizable_counter_metric);
+        map.insert(MetricId(52), &super::test2_nested::optimizable_disabled_counter_metric);
         map
     });
 
     pub static CUSTOM_DISTRIBUTION_MAP: Lazy<HashMap<MetricId, &Lazy<CustomDistributionMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(28021745), &super::test::custom_distribution_metric);
-        map.insert(MetricId(27313004), &super::test2::custom_distribution_metric);
+        map.insert(MetricId(3), &super::test::custom_distribution_metric);
+        map.insert(MetricId(31), &super::test2::custom_distribution_metric);
         map
     });
 
     pub static MEMORY_DISTRIBUTION_MAP: Lazy<HashMap<MetricId, &Lazy<MemoryDistributionMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(6804861), &super::test::memory_distribution_metric);
-        map.insert(MetricId(29118730), &super::test2::memory_distribution_metric);
+        map.insert(MetricId(10), &super::test::memory_distribution_metric);
+        map.insert(MetricId(38), &super::test2::memory_distribution_metric);
         map
     });
 
     pub static STRING_LIST_MAP: Lazy<HashMap<MetricId, &Lazy<StringListMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(18320715), &super::test::string_list_metric);
-        map.insert(MetricId(27603867), &super::test2::string_list_metric);
+        map.insert(MetricId(11), &super::test::string_list_metric);
+        map.insert(MetricId(39), &super::test2::string_list_metric);
         map
     });
 
     pub static STRING_MAP: Lazy<HashMap<MetricId, &Lazy<StringMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(25252540), &super::test::string_metric);
-        map.insert(MetricId(31008897), &super::test2::string_metric);
+        map.insert(MetricId(12), &super::test::string_metric);
+        map.insert(MetricId(40), &super::test2::string_metric);
         map
     });
 
     pub static TEXT_MAP: Lazy<HashMap<MetricId, &Lazy<TextMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(23203570), &super::test::text_metric);
-        map.insert(MetricId(3163718), &super::test2::text_metric);
+        map.insert(MetricId(13), &super::test::text_metric);
+        map.insert(MetricId(41), &super::test2::text_metric);
         map
     });
 
     pub static TIMESPAN_MAP: Lazy<HashMap<MetricId, &Lazy<TimespanMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(11887791), &super::test::timespan_metric);
-        map.insert(MetricId(18482215), &super::test2::timespan_metric);
+        map.insert(MetricId(14), &super::test::timespan_metric);
+        map.insert(MetricId(42), &super::test2::timespan_metric);
         map
     });
 
     pub static TIMING_DISTRIBUTION_MAP: Lazy<HashMap<MetricId, &Lazy<TimingDistributionMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(25552771), &super::test::timing_distribution_metric);
-        map.insert(MetricId(14261116), &super::test2::timing_distribution_metric);
+        map.insert(MetricId(15), &super::test::timing_distribution_metric);
+        map.insert(MetricId(43), &super::test2::timing_distribution_metric);
         map
     });
 
     pub static DATETIME_MAP: Lazy<HashMap<MetricId, &Lazy<DatetimeMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(32461197), &super::test_nested::datetime_metric);
-        map.insert(MetricId(9930003), &super::test2_nested::datetime_metric);
+        map.insert(MetricId(19), &super::test_nested::datetime_metric);
+        map.insert(MetricId(47), &super::test2_nested::datetime_metric);
         map
     });
 
     pub static DENOMINATOR_MAP: Lazy<HashMap<MetricId, &Lazy<DenominatorMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(MetricId(21877185), &super::test_nested::external_denominator);
+        map.insert(MetricId(22), &super::test_nested::external_denominator);
         map
     });
 
     pub static QUANTITY_MAP: Lazy<HashMap<MetricId, &Lazy<QuantityMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(8082779), &super::test_nested::quantity_metric);
-        map.insert(MetricId(20268999), &super::test2_nested::quantity_metric);
+        map.insert(MetricId(25), &super::test_nested::quantity_metric);
+        map.insert(MetricId(53), &super::test2_nested::quantity_metric);
         map
     });
 
     pub static RATE_MAP: Lazy<HashMap<MetricId, &Lazy<RateMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(30750772), &super::test_nested::rate_metric);
-        map.insert(MetricId(15523628), &super::test2_nested::rate_metric);
+        map.insert(MetricId(26), &super::test_nested::rate_metric);
+        map.insert(MetricId(54), &super::test2_nested::rate_metric);
         map
     });
 
     pub static NUMERATOR_MAP: Lazy<HashMap<MetricId, &Lazy<NumeratorMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(1413969), &super::test_nested::rate_with_external_denominator);
-        map.insert(MetricId(25857163), &super::test2_nested::rate_with_external_denominator);
+        map.insert(MetricId(27), &super::test_nested::rate_with_external_denominator);
+        map.insert(MetricId(55), &super::test2_nested::rate_with_external_denominator);
         map
     });
 
     pub static UUID_MAP: Lazy<HashMap<MetricId, &Lazy<UuidMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
-        map.insert(MetricId(32794253), &super::test_nested::uuid_metric);
-        map.insert(MetricId(23885948), &super::test2_nested::uuid_metric);
+        map.insert(MetricId(28), &super::test_nested::uuid_metric);
+        map.insert(MetricId(56), &super::test2_nested::uuid_metric);
         map
     });
 
 
     pub(crate) fn set_object_by_id(metric_id: u32, value: String) -> Result<(), ()> {
         match metric_id {
-          25398426 => {
+          18 => {
               super::test_nested::an_object.set_string(value);
               Ok(())
           }
-          21851592 => {
+          46 => {
               super::test2_nested::an_object.set_string(value);
               Ok(())
           }
@@ -1478,8 +1478,8 @@ pub(crate) mod __glean_metric_maps {
     /// Panics if no object by the given metric ID could be found.
     pub(crate) fn object_test_get_value(metric_id: u32, ping_name: Option<String>) -> Option<String> {
         match metric_id {
-           25398426 => super::test_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
-           21851592 => super::test2_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
+           18 => super::test_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
+           46 => super::test2_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
            _ => panic!("No object for metric id {}", metric_id),
         }
     }
@@ -1501,8 +1501,8 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) fn object_test_get_error(metric_id: u32) -> Option<String> {
         #[cfg(feature = "with_gecko")]
         match metric_id {
-           25398426 => test_get_errors!(super::test_nested::an_object),
-           21851592 => test_get_errors!(super::test2_nested::an_object),
+           18 => test_get_errors!(super::test_nested::an_object),
+           46 => test_get_errors!(super::test2_nested::an_object),
            _ => panic!("No object for metric id {}", metric_id),
         }
 
@@ -1526,19 +1526,19 @@ pub(crate) mod __glean_metric_maps {
     /// or an `EventRecordingError::InvalidExtraKey` if the `extra` map could not be deserialized.
     pub(crate) fn record_event_by_id(metric_id: u32, extra: HashMap<String, String>) -> Result<(), EventRecordingError> {
         match metric_id {
-          110940 => {
+          20 => {
               super::test_nested::event_metric.record_raw(extra);
               Ok(())
           }
-          20015710 => {
+          21 => {
               super::test_nested::event_metric_with_extra.record_raw(extra);
               Ok(())
           }
-          1091783 => {
+          48 => {
               super::test2_nested::event_metric.record_raw(extra);
               Ok(())
           }
-          20312052 => {
+          49 => {
               super::test2_nested::event_metric_with_extra.record_raw(extra);
               Ok(())
           }
@@ -1562,7 +1562,7 @@ pub(crate) mod __glean_metric_maps {
     /// but some are passed in.
     pub(crate) fn record_event_by_id_with_time(metric_id: MetricId, timestamp: u64, extra: HashMap<String, String>) -> Result<(), EventRecordingError> {
         match metric_id {
-          MetricId(110940) => {
+          MetricId(20) => {
               if extra_keys_len(&super::test_nested::event_metric) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -1570,7 +1570,7 @@ pub(crate) mod __glean_metric_maps {
               super::test_nested::event_metric.record_with_time(timestamp, extra);
               Ok(())
           }
-          MetricId(20015710) => {
+          MetricId(21) => {
               if extra_keys_len(&super::test_nested::event_metric_with_extra) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -1578,7 +1578,7 @@ pub(crate) mod __glean_metric_maps {
               super::test_nested::event_metric_with_extra.record_with_time(timestamp, extra);
               Ok(())
           }
-          MetricId(1091783) => {
+          MetricId(48) => {
               if extra_keys_len(&super::test2_nested::event_metric) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -1586,7 +1586,7 @@ pub(crate) mod __glean_metric_maps {
               super::test2_nested::event_metric.record_with_time(timestamp, extra);
               Ok(())
           }
-          MetricId(20312052) => {
+          MetricId(49) => {
               if extra_keys_len(&super::test2_nested::event_metric_with_extra) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -1615,10 +1615,10 @@ pub(crate) mod __glean_metric_maps {
     /// Panics if no event by the given metric ID could be found.
     pub(crate) fn event_test_get_value_wrapper(metric_id: u32, ping_name: Option<String>) -> Option<Vec<RecordedEvent>> {
         match metric_id {
-           110940 => super::test_nested::event_metric.test_get_value(ping_name.as_deref()),
-           20015710 => super::test_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
-           1091783 => super::test2_nested::event_metric.test_get_value(ping_name.as_deref()),
-           20312052 => super::test2_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
+           20 => super::test_nested::event_metric.test_get_value(ping_name.as_deref()),
+           21 => super::test_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
+           48 => super::test2_nested::event_metric.test_get_value(ping_name.as_deref()),
+           49 => super::test2_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
            _ => panic!("No event for metric id {}", metric_id),
         }
     }
@@ -1642,10 +1642,10 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) fn event_test_get_error(metric_id: u32) -> Option<String> {
         #[cfg(feature = "with_gecko")]
         match metric_id {
-           110940 => test_get_errors!(super::test_nested::event_metric),
-           20015710 => test_get_errors!(super::test_nested::event_metric_with_extra),
-           1091783 => test_get_errors!(super::test2_nested::event_metric),
-           20312052 => test_get_errors!(super::test2_nested::event_metric_with_extra),
+           20 => test_get_errors!(super::test_nested::event_metric),
+           21 => test_get_errors!(super::test_nested::event_metric_with_extra),
+           48 => test_get_errors!(super::test2_nested::event_metric),
+           49 => test_get_errors!(super::test2_nested::event_metric_with_extra),
            _ => panic!("No event for metric id {}", metric_id),
         }
 
@@ -1672,12 +1672,12 @@ pub(crate) mod __glean_metric_maps {
     #[allow(unused_variables)]
     pub(crate) fn labeled_boolean_get(metric_id: u32, label: &str) -> Arc<LabeledBooleanMetric> {
         match metric_id {
-            21875658 => super::test::labeled_boolean_metric.get(label),
-            7966417 => super::test::labeled_boolean_metric_labels.get(label),
-            11455568 => super::test::unordered_labeled_boolean_metric.get(label),
-            9102331 => super::test2::labeled_boolean_metric.get(label),
-            27310108 => super::test2::labeled_boolean_metric_labels.get(label),
-            13310781 => super::test2::unordered_labeled_boolean_metric.get(label),
+            4 => super::test::labeled_boolean_metric.get(label),
+            5 => super::test::labeled_boolean_metric_labels.get(label),
+            17 => super::test::unordered_labeled_boolean_metric.get(label),
+            32 => super::test2::labeled_boolean_metric.get(label),
+            33 => super::test2::labeled_boolean_metric_labels.get(label),
+            45 => super::test2::unordered_labeled_boolean_metric.get(label),
             _ => panic!("No labeled_boolean for metric id {}", metric_id),
         }
     }
@@ -1698,10 +1698,10 @@ pub(crate) mod __glean_metric_maps {
     #[allow(unused_variables)]
     pub(crate) fn labeled_counter_get(metric_id: u32, label: &str) -> Arc<LabeledCounterMetric> {
         match metric_id {
-            139440 => super::test::labeled_counter_metric.get(label),
-            6593356 => super::test::labeled_counter_metric_labels.get(label),
-            4435991 => super::test2::labeled_counter_metric.get(label),
-            27714779 => super::test2::labeled_counter_metric_labels.get(label),
+            6 => super::test::labeled_counter_metric.get(label),
+            7 => super::test::labeled_counter_metric_labels.get(label),
+            34 => super::test2::labeled_counter_metric.get(label),
+            35 => super::test2::labeled_counter_metric_labels.get(label),
             _ => panic!("No labeled_counter for metric id {}", metric_id),
         }
     }
@@ -1722,42 +1722,42 @@ pub(crate) mod __glean_metric_maps {
     #[allow(unused_variables)]
     pub(crate) fn labeled_string_get(metric_id: u32, label: &str) -> Arc<LabeledStringMetric> {
         match metric_id {
-            22655931 => super::test::labeled_string_metric.get(label),
-            10006522 => super::test::labeled_string_metric_labels.get(label),
-            13299578 => super::test2::labeled_string_metric.get(label),
-            21201865 => super::test2::labeled_string_metric_labels.get(label),
+            8 => super::test::labeled_string_metric.get(label),
+            9 => super::test::labeled_string_metric_labels.get(label),
+            36 => super::test2::labeled_string_metric.get(label),
+            37 => super::test2::labeled_string_metric_labels.get(label),
             _ => panic!("No labeled_string for metric id {}", metric_id),
         }
     }
 
     pub(crate) fn labeled_enum_to_str(metric_id: u32, label: u16) -> &'static str {
         match metric_id {
-            7966417 => super::test::LabeledBooleanMetricLabelsLabel::from(label).into(),
-            6593356 => super::test::LabeledCounterMetricLabelsLabel::from(label).into(),
-            10006522 => super::test::LabeledStringMetricLabelsLabel::from(label).into(),
-            27310108 => super::test2::LabeledBooleanMetricLabelsLabel::from(label).into(),
-            27714779 => super::test2::LabeledCounterMetricLabelsLabel::from(label).into(),
-            21201865 => super::test2::LabeledStringMetricLabelsLabel::from(label).into(),
+            5 => super::test::LabeledBooleanMetricLabelsLabel::from(label).into(),
+            7 => super::test::LabeledCounterMetricLabelsLabel::from(label).into(),
+            9 => super::test::LabeledStringMetricLabelsLabel::from(label).into(),
+            33 => super::test2::LabeledBooleanMetricLabelsLabel::from(label).into(),
+            35 => super::test2::LabeledCounterMetricLabelsLabel::from(label).into(),
+            37 => super::test2::LabeledStringMetricLabelsLabel::from(label).into(),
             _ => panic!("Can't turn label enum to string for metric {} which isn't a labeled metric with static labels", metric_id),
         }
     }
 
     pub(crate) fn labeled_submetric_id_get(metric_id: u32, label: &str) -> u32 {
         match metric_id {
-            21875658 => super::test::labeled_boolean_metric.get_submetric_id(label),
-            7966417 => super::test::labeled_boolean_metric_labels.get_submetric_id(label),
-            139440 => super::test::labeled_counter_metric.get_submetric_id(label),
-            6593356 => super::test::labeled_counter_metric_labels.get_submetric_id(label),
-            22655931 => super::test::labeled_string_metric.get_submetric_id(label),
-            10006522 => super::test::labeled_string_metric_labels.get_submetric_id(label),
-            11455568 => super::test::unordered_labeled_boolean_metric.get_submetric_id(label),
-            9102331 => super::test2::labeled_boolean_metric.get_submetric_id(label),
-            27310108 => super::test2::labeled_boolean_metric_labels.get_submetric_id(label),
-            4435991 => super::test2::labeled_counter_metric.get_submetric_id(label),
-            27714779 => super::test2::labeled_counter_metric_labels.get_submetric_id(label),
-            13299578 => super::test2::labeled_string_metric.get_submetric_id(label),
-            21201865 => super::test2::labeled_string_metric_labels.get_submetric_id(label),
-            13310781 => super::test2::unordered_labeled_boolean_metric.get_submetric_id(label),
+            4 => super::test::labeled_boolean_metric.get_submetric_id(label),
+            5 => super::test::labeled_boolean_metric_labels.get_submetric_id(label),
+            6 => super::test::labeled_counter_metric.get_submetric_id(label),
+            7 => super::test::labeled_counter_metric_labels.get_submetric_id(label),
+            8 => super::test::labeled_string_metric.get_submetric_id(label),
+            9 => super::test::labeled_string_metric_labels.get_submetric_id(label),
+            17 => super::test::unordered_labeled_boolean_metric.get_submetric_id(label),
+            32 => super::test2::labeled_boolean_metric.get_submetric_id(label),
+            33 => super::test2::labeled_boolean_metric_labels.get_submetric_id(label),
+            34 => super::test2::labeled_counter_metric.get_submetric_id(label),
+            35 => super::test2::labeled_counter_metric_labels.get_submetric_id(label),
+            36 => super::test2::labeled_string_metric.get_submetric_id(label),
+            37 => super::test2::labeled_string_metric_labels.get_submetric_id(label),
+            45 => super::test2::unordered_labeled_boolean_metric.get_submetric_id(label),
             _ => panic!("No labeled metric for id {}", metric_id),
         }
     }

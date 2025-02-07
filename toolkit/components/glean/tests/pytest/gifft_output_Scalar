@@ -17,40 +17,40 @@ using Telemetry::ScalarID;
 
 Maybe<ScalarID> ScalarIdForMetric(uint32_t aId) {
   switch(aId) {
-    case 22495729: { // test.boolean_metric
+    case 1: { // test.boolean_metric
       return Some(ScalarID::SOME_BOOL_SCALAR);
     }
-    case 30349935: { // test.counter_metric
+    case 2: { // test.counter_metric
       return Some(ScalarID::SOME_UINT_SCALAR);
     }
-    case 21875658: { // test.labeled_boolean_metric
+    case 4: { // test.labeled_boolean_metric
       return Some(ScalarID::SOME_KEYED_BOOL_SCALAR);
     }
-    case 7966417: { // test.labeled_boolean_metric_labels
+    case 5: { // test.labeled_boolean_metric_labels
       return Some(ScalarID::SOME_OTHER_KEYED_BOOL_SCALAR);
     }
-    case 139440: { // test.labeled_counter_metric
+    case 6: { // test.labeled_counter_metric
       return Some(ScalarID::SOME_KEYED_UINT_SCALAR);
     }
-    case 6593356: { // test.labeled_counter_metric_labels
+    case 7: { // test.labeled_counter_metric_labels
       return Some(ScalarID::SOME_OTHER_KEYED_UINT_SCALAR);
     }
-    case 18320715: { // test.string_list_metric
+    case 11: { // test.string_list_metric
       return Some(ScalarID::YET_ANOTHER_KEYED_BOOL_SCALAR);
     }
-    case 25252540: { // test.string_metric
+    case 12: { // test.string_metric
       return Some(ScalarID::SOME_STRING_SCALAR);
     }
-    case 11887791: { // test.timespan_metric
+    case 14: { // test.timespan_metric
       return Some(ScalarID::SOME_OTHER_UINT_SCALAR);
     }
-    case 32461197: { // test.nested.datetime_metric
+    case 19: { // test.nested.datetime_metric
       return Some(ScalarID::SOME_STILL_OTHER_STRING_SCALAR);
     }
-    case 8082779: { // test.nested.quantity_metric
+    case 25: { // test.nested.quantity_metric
       return Some(ScalarID::TELEMETRY_TEST_MIRROR_FOR_QUANTITY);
     }
-    case 32794253: { // test.nested.uuid_metric
+    case 28: { // test.nested.uuid_metric
       return Some(ScalarID::SOME_OTHER_STRING_SCALAR);
     }
     default: {
