@@ -519,6 +519,20 @@ H265BitstreamParser::ParsePpsIdFromSliceSegmentLayerRbsp(
   return slice_pic_parameter_set_id;
 }
 
+std::optional<bool> H265BitstreamParser::IsFirstSliceSegmentInPic(
+    rtc::ArrayView<const uint8_t> data) {
+  std::vector<uint8_t> unpacked_buffer = H265::ParseRbsp(data);
+  BitstreamReader slice_reader(unpacked_buffer);
+
+  // first_slice_segment_in_pic_flag: u(1)
+  bool first_slice_segment_in_pic_flag = slice_reader.Read<bool>();
+  if (!slice_reader.Ok()) {
+    return std::nullopt;
+  }
+
+  return first_slice_segment_in_pic_flag;
+}
+
 void H265BitstreamParser::ParseBitstream(
     rtc::ArrayView<const uint8_t> bitstream) {
   std::vector<H265::NaluIndex> nalu_indices = H265::FindNaluIndices(bitstream);

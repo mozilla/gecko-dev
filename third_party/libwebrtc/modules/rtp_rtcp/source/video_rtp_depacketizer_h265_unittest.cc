@@ -388,14 +388,255 @@ TEST(VideoRtpDepacketizerH265Test, InvalidNaluSizeApNalu) {
   EXPECT_FALSE(depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload)));
 }
 
-TEST(VideoRtpDepacketizerH265Test, SeiPacket) {
+TEST(VideoRtpDepacketizerH265Test, PrefixSeiSetsFirstPacketInFrame) {
   const uint8_t kPayload[] = {
-      0x4e, 0x02,             // F=0, Type=39 (kPrefixSei).
+      0x4e, 0x02,             // F=0, Type=39 (H265::kPrefixSei).
       0x03, 0x03, 0x03, 0x03  // Payload.
   };
   VideoRtpDepacketizerH265 depacketizer;
   auto parsed = depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
-  ASSERT_TRUE(parsed);
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, ApVpsSpsPpsMultiIdrSlices) {
+  uint8_t payload_header[] = {0x60, 0x02};
+  uint8_t vps_nalu_size[] = {0, 0x17};
+  uint8_t sps_nalu_size[] = {0, 0x27};
+  uint8_t pps_nalu_size[] = {0, 0x32};
+  uint8_t slice_nalu_size[] = {0, 0xa};
+  uint8_t start_code[] = {0x00, 0x00, 0x00, 0x01};
+  // The VPS/SPS/PPS/IDR bytes are generated using the same way as above case.
+  // Slices are truncated to contain enough data for test.
+  uint8_t vps[] = {0x40, 0x02, 0x1c, 0x01, 0xff, 0xff, 0x04, 0x08,
+                   0x00, 0x00, 0x03, 0x00, 0x9d, 0x08, 0x00, 0x00,
+                   0x03, 0x00, 0x00, 0x78, 0x95, 0x98, 0x09};
+  uint8_t sps[] = {0x42, 0x02, 0x01, 0x04, 0x08, 0x00, 0x00, 0x03, 0x00, 0x9d,
+                   0x08, 0x00, 0x00, 0x03, 0x00, 0x00, 0x5d, 0xb0, 0x02, 0x80,
+                   0x80, 0x2d, 0x16, 0x59, 0x59, 0xa4, 0x93, 0x2b, 0x80, 0x40,
+                   0x00, 0x00, 0x03, 0x00, 0x40, 0x00, 0x00, 0x07, 0x82};
+  uint8_t pps[] = {0x44, 0x02, 0xa4, 0x04, 0x55, 0xa2, 0x6d, 0xce, 0xc0, 0xc3,
+                   0xed, 0x0b, 0xac, 0xbc, 0x00, 0xc4, 0x44, 0x2e, 0xf7, 0x55,
+                   0xfd, 0x05, 0x86, 0x92, 0x19, 0xdf, 0x58, 0xec, 0x38, 0x36,
+                   0xb7, 0x7c, 0x00, 0x15, 0x33, 0x78, 0x03, 0x67, 0x26, 0x0f,
+                   0x7b, 0x30, 0x1c, 0xd7, 0xd4, 0x3a, 0xec, 0xad, 0xef, 0x73};
+  uint8_t idr_slice1[] = {0x28, 0x01, 0xac, 0x6d, 0xa0,
+                          0x7b, 0x4c, 0xe2, 0x09, 0xef};
+  uint8_t idr_slice2[] = {0x28, 0x01, 0x27, 0xf8, 0x63,
+                          0x6d, 0x7b, 0x6f, 0xcf, 0xff};
+
+  rtc::CopyOnWriteBuffer rtp_payload;
+  rtp_payload.AppendData(payload_header);
+  rtp_payload.AppendData(vps_nalu_size);
+  rtp_payload.AppendData(vps);
+  rtp_payload.AppendData(sps_nalu_size);
+  rtp_payload.AppendData(sps);
+  rtp_payload.AppendData(pps_nalu_size);
+  rtp_payload.AppendData(pps);
+  rtp_payload.AppendData(slice_nalu_size);
+  rtp_payload.AppendData(idr_slice1);
+  rtp_payload.AppendData(slice_nalu_size);
+  rtp_payload.AppendData(idr_slice2);
+
+  rtc::Buffer expected_packet;
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(vps);
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(sps);
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(pps);
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(idr_slice1);
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(idr_slice2);
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtp_payload);
+  ASSERT_TRUE(parsed.has_value());
+
+  EXPECT_THAT(rtc::MakeArrayView(parsed->video_payload.cdata(),
+                                 parsed->video_payload.size()),
+              ElementsAreArray(expected_packet));
+  EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameKey);
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, ApMultiNonFirstSlicesFromSingleNonIdrFrame) {
+  uint8_t payload_header[] = {0x60, 0x02};
+  uint8_t slice_nalu_size[] = {0, 0xa};
+  uint8_t start_code[] = {0x00, 0x00, 0x00, 0x01};
+  // First few bytes of two non-IDR slices from the same frame, both with the
+  // first_slice_segment_in_pic_flag set to 0.
+  uint8_t non_idr_slice1[] = {0x02, 0x01, 0x23, 0xfc, 0x20,
+                              0x42, 0xad, 0x1b, 0x68, 0xdf};
+  uint8_t non_idr_slice2[] = {0x02, 0x01, 0x27, 0xf8, 0x20,
+                              0x42, 0xad, 0x1b, 0x68, 0xe0};
+
+  rtc::CopyOnWriteBuffer rtp_payload;
+  rtp_payload.AppendData(payload_header);
+  rtp_payload.AppendData(slice_nalu_size);
+  rtp_payload.AppendData(non_idr_slice1);
+  rtp_payload.AppendData(slice_nalu_size);
+  rtp_payload.AppendData(non_idr_slice2);
+
+  rtc::Buffer expected_packet;
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(non_idr_slice1);
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(non_idr_slice2);
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtp_payload);
+  ASSERT_TRUE(parsed.has_value());
+
+  EXPECT_THAT(rtc::MakeArrayView(parsed->video_payload.cdata(),
+                                 parsed->video_payload.size()),
+              ElementsAreArray(expected_packet));
+  EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameDelta);
+  EXPECT_FALSE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, ApFirstTwoSlicesFromSingleNonIdrFrame) {
+  uint8_t payload_header[] = {0x60, 0x02};
+  uint8_t slice_nalu_size[] = {0, 0xa};
+  uint8_t start_code[] = {0x00, 0x00, 0x00, 0x01};
+  // First few bytes of two non-IDR slices from the same frame, with the first
+  // slice's first_slice_segment_in_pic_flag set to 1, and second set to 0.
+  uint8_t non_idr_slice1[] = {0x02, 0x01, 0xa4, 0x08, 0x55,
+                              0xa3, 0x6d, 0xcc, 0xcf, 0x26};
+  uint8_t non_idr_slice2[] = {0x02, 0x01, 0x23, 0xfc, 0x20,
+                              0x42, 0xad, 0x1b, 0x68, 0xdf};
+
+  rtc::CopyOnWriteBuffer rtp_payload;
+  rtp_payload.AppendData(payload_header);
+  rtp_payload.AppendData(slice_nalu_size);
+  rtp_payload.AppendData(non_idr_slice1);
+  rtp_payload.AppendData(slice_nalu_size);
+  rtp_payload.AppendData(non_idr_slice2);
+
+  rtc::Buffer expected_packet;
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(non_idr_slice1);
+  expected_packet.AppendData(start_code);
+  expected_packet.AppendData(non_idr_slice2);
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtp_payload);
+  ASSERT_TRUE(parsed.has_value());
+
+  EXPECT_THAT(rtc::MakeArrayView(parsed->video_payload.cdata(),
+                                 parsed->video_payload.size()),
+              ElementsAreArray(expected_packet));
+  EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameDelta);
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, SingleNaluFromIdrSecondSlice) {
+  // First few bytes of the second slice of an IDR_N_LP nalu with
+  // first_slice_segment_in_pic_flag set to 0.
+  const uint8_t kPayload[] = {0x28, 0x01, 0x27, 0xf8, 0x63, 0x6d, 0x7b, 0x6f,
+                              0xcf, 0xff, 0x0d, 0xf5, 0xc7, 0xfe, 0x57, 0x77,
+                              0xdc, 0x29, 0x24, 0x89, 0x89, 0xea, 0xd1, 0x88};
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameKey);
+  EXPECT_FALSE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, SingleNaluFromNonIdrSecondSlice) {
+  // First few bytes of the second slice of an TRAIL_R nalu with
+  // first_slice_segment_in_pic_flag set to 0.
+  const uint8_t kPayload[] = {0x02, 0x01, 0x23, 0xfc, 0x20, 0x22, 0xad, 0x13,
+                              0x68, 0xce, 0xc3, 0x5a, 0x00, 0xdc, 0xeb, 0x86,
+                              0x4b, 0x0b, 0xa7, 0x6a, 0xe1, 0x9c, 0x5c, 0xea};
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameDelta);
+  EXPECT_FALSE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, FuFromIdrFrameSecondSlice) {
+  // First few bytes of the second slice of an IDR_N_LP nalu with
+  // first_slice_segment_in_pic_flag set to 0.
+  const uint8_t kPayload[] = {
+      0x62, 0x02,  // F=0, Type=49 (H265::kFu).
+      0x93,        // FU header kH265SBitMask | H265::kIdrWRadl.
+      0x23, 0xfc, 0x20, 0x22, 0xad, 0x13, 0x68, 0xce, 0xc3, 0x5a, 0x00, 0xdc};
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameKey);
+  EXPECT_FALSE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, FuFromNonIdrFrameSecondSlice) {
+  // First few bytes of the second slice of an TRAIL_R nalu with
+  // first_slice_segment_in_pic_flag set to 0.
+  const uint8_t kPayload[] = {0x62, 0x02,  // F=0, Type=49 (H265::kFu).
+                              0x80,  // FU header kH265SBitMask | H265::kTrailR.
+                              0x23, 0xfc, 0x20, 0x22, 0xad, 0x13,
+                              0x68, 0xce, 0xc3, 0x5a, 0x00, 0xdc};
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameDelta);
+  EXPECT_FALSE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, AudSetsFirstPacketInFrame) {
+  const uint8_t kPayload[] = {0x46, 0x01, 0x10};
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, PpsSetsFirstPacketInFrame) {
+  const uint8_t kPayload[] = {
+      0x44, 0x02, 0xa4, 0x04, 0x55, 0xa2, 0x6d, 0xce, 0xc0, 0xc3,
+      0xed, 0x0b, 0xac, 0xbc, 0x00, 0xc4, 0x44, 0x2e, 0xf7, 0x55,
+      0xfd, 0x05, 0x86, 0x92, 0x19, 0xdf, 0x58, 0xec, 0x38, 0x36,
+      0xb7, 0x7c, 0x00, 0x15, 0x33, 0x78, 0x03, 0x67, 0x26, 0x0f,
+      0x7b, 0x30, 0x1c, 0xd7, 0xd4, 0x3a, 0xec, 0xad, 0xef, 0x73};
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, SuffixSeiNotSetFirstPacketInFrame) {
+  const uint8_t kPayload[] = {0x50, 0x01, 0x81, 0x01, 0x03, 0x80};
+
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_FALSE(parsed->video_header.is_first_packet_in_frame);
+}
+
+TEST(VideoRtpDepacketizerH265Test, EmptyNaluPayload) {
+  const uint8_t kPayload[] = {0x48, 0x00};  // F=0, Type=36 (H265::kEos).
+  VideoRtpDepacketizerH265 depacketizer;
+  std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed =
+      depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
+  ASSERT_TRUE(parsed.has_value());
 }
 
 }  // namespace

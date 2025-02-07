@@ -63,10 +63,8 @@ bool ParseApStartOffsets(const uint8_t* nalu_ptr,
 // https://datatracker.ietf.org/doc/html/rfc7798#section-4.4.2
 std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
     rtc::CopyOnWriteBuffer rtp_payload) {
-  // Skip the single NALU header (payload header), aggregated packet case will
-  // be checked later.
-  if (rtp_payload.size() <= kH265PayloadHeaderSizeBytes) {
-    RTC_LOG(LS_ERROR) << "Single NALU header truncated.";
+  if (rtp_payload.size() < kH265PayloadHeaderSizeBytes) {
+    RTC_LOG(LS_ERROR) << "RTP payload truncated.";
     return std::nullopt;
   }
   const uint8_t* const payload_data = rtp_payload.cdata();
@@ -75,7 +73,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
   parsed_payload->video_header.width = 0;
   parsed_payload->video_header.height = 0;
   parsed_payload->video_header.codec = kVideoCodecH265;
-  parsed_payload->video_header.is_first_packet_in_frame = true;
+  parsed_payload->video_header.is_first_packet_in_frame = false;
 
   const uint8_t* nalu_start = payload_data + kH265PayloadHeaderSizeBytes;
   const size_t nalu_length = rtp_payload.size() - kH265PayloadHeaderSizeBytes;
@@ -129,20 +127,13 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
       case H265::NaluType::kIdrWRadl:
       case H265::NaluType::kIdrNLp:
       case H265::NaluType::kCra:
-      case H265::NaluType::kRsvIrapVcl23:
         // Mark IRAP(Intra Random Access Point) frames as key frames. Their NALU
-        // types are in the range of BLA_W_LP (16) to RSV_IRAP_VCL23 (23),
-        // inclusive.
+        // types are in the range of BLA_W_LP (16) to CRA (21), inclusive.
         // https://datatracker.ietf.org/doc/html/rfc7798#section-3.1.1
         parsed_payload->video_header.frame_type =
             VideoFrameType::kVideoFrameKey;
         break;
       case H265::NaluType::kSps: {
-        // Copy any previous data first (likely just the first header).
-        std::unique_ptr<rtc::Buffer> output_buffer(new rtc::Buffer());
-        if (start_offset)
-          output_buffer->AppendData(payload_data, start_offset);
-
         std::optional<H265SpsParser::SpsState> sps =
             H265SpsParser::ParseSps(nalu_data);
 
@@ -160,14 +151,14 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
       case H265::NaluType::kPps:
       case H265::NaluType::kTrailN:
       case H265::NaluType::kTrailR:
-      // Slices below don't contain SPS or PPS ids.
-      case H265::NaluType::kAud:
       case H265::NaluType::kTsaN:
       case H265::NaluType::kTsaR:
       case H265::NaluType::kStsaN:
       case H265::NaluType::kStsaR:
       case H265::NaluType::kRadlN:
       case H265::NaluType::kRadlR:
+      // Slices below don't contain SPS or PPS ids.
+      case H265::NaluType::kAud:
       case H265::NaluType::kPrefixSei:
       case H265::NaluType::kSuffixSei:
         break;
@@ -176,6 +167,20 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
       case H265::NaluType::kPaci:
         RTC_LOG(LS_WARNING) << "Unexpected AP, FU or PACI received.";
         return std::nullopt;
+    }
+
+    // Spec 7.4.2.4.4: Order of NAL units and codec pictures.
+    if ((nalu_type >= H265::NaluType::kVps &&
+         nalu_type <= H265::NaluType::kAud) ||
+        nalu_type == H265::NaluType::kPrefixSei) {
+      parsed_payload->video_header.is_first_packet_in_frame = true;
+    } else if (nalu_type >= H265::NaluType::kTrailN &&
+               nalu_type <= H265::NaluType::kRsvVcl31) {
+      std::optional<bool> first_slice_segment_in_pic_flag =
+          H265BitstreamParser::IsFirstSliceSegmentInPic(nalu_data);
+      if (first_slice_segment_in_pic_flag.value_or(false)) {
+        parsed_payload->video_header.is_first_packet_in_frame = true;
+      }
     }
   }
   parsed_payload->video_payload = video_payload;
@@ -200,7 +205,20 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
 
   uint8_t original_nal_type = rtp_payload.cdata()[2] & kH265TypeMaskInFuHeader;
   bool first_fragment = rtp_payload.cdata()[2] & kH265SBitMask;
+  bool is_first_packet_in_frame = false;
   if (first_fragment) {
+    if (original_nal_type >= H265::NaluType::kTrailN &&
+        original_nal_type <= H265::NaluType::kRsvVcl31) {
+      size_t slice_offset =
+          kH265FuHeaderSizeBytes + kH265PayloadHeaderSizeBytes;
+      std::optional<bool> first_slice_segment_in_pic_flag =
+          H265BitstreamParser::IsFirstSliceSegmentInPic(
+              rtc::ArrayView<const uint8_t>(rtp_payload.cdata() + slice_offset,
+                                            rtp_payload.size() - slice_offset));
+      if (first_slice_segment_in_pic_flag.value_or(false)) {
+        is_first_packet_in_frame = true;
+      }
+    }
     rtp_payload = rtp_payload.Slice(
         kH265FuHeaderSizeBytes, rtp_payload.size() - kH265FuHeaderSizeBytes);
     rtp_payload.MutableData()[0] = f | original_nal_type << 1 | layer_id_h;
@@ -227,7 +245,8 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
   parsed_payload->video_header.width = 0;
   parsed_payload->video_header.height = 0;
   parsed_payload->video_header.codec = kVideoCodecH265;
-  parsed_payload->video_header.is_first_packet_in_frame = first_fragment;
+  parsed_payload->video_header.is_first_packet_in_frame =
+      is_first_packet_in_frame;
 
   return parsed_payload;
 }

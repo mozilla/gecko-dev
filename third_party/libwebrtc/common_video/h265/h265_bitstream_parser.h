@@ -43,6 +43,11 @@ class RTC_EXPORT H265BitstreamParser : public BitstreamParser {
       rtc::ArrayView<const uint8_t> data,
       uint8_t nalu_type);
 
+  // Returns true if the slice segment is the first in the picture; otherwise
+  // return false. If parse failed, return nullopt.
+  static std::optional<bool> IsFirstSliceSegmentInPic(
+      rtc::ArrayView<const uint8_t> data);
+
  protected:
   enum Result {
     kOk,

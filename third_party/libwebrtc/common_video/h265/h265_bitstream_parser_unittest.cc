@@ -11,7 +11,11 @@
 #include "common_video/h265/h265_bitstream_parser.h"
 
 #include "common_video/h265/h265_common.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+
+using ::testing::Eq;
+using ::testing::Optional;
 
 namespace webrtc {
 
@@ -51,6 +55,12 @@ const uint8_t kH265SliceChunk[] = {
     0x00, 0xc4, 0x44, 0x2e, 0xf7, 0x55, 0xfd, 0x05, 0x86, 0x92, 0x19, 0xdf,
     0x58, 0xec, 0x38, 0x36, 0xb7, 0x7c, 0x00, 0x15, 0x33, 0x78, 0x03, 0x67,
     0x26, 0x0f, 0x7b, 0x30, 0x1c, 0xd7, 0xd4, 0x3a, 0xec, 0xad, 0xef, 0x73,
+};
+
+// Contains enough of data for the second slice of a frame.
+const uint8_t kH265SecondSliceChunkInAFrame[] = {
+    0x02, 0x01, 0x23, 0xfc, 0x20, 0x22, 0xad, 0x13, 0x68, 0xce, 0xc3, 0x5a,
+    0x00, 0xdc, 0xeb, 0x86, 0x4b, 0x0b, 0xa7, 0x6a, 0xe1, 0x9c, 0x5c, 0xea,
 };
 
 // Contains short term ref pic set slice to verify Log2Ceiling path.
@@ -142,6 +152,24 @@ TEST(H265BitstreamParserTest, ReportsLastSliceQpInvalidQPSlices) {
   h265_parser.ParseBitstream(kH265BitstreamInvalidQPChunk52);
   qp = h265_parser.GetLastSliceQp();
   ASSERT_FALSE(qp.has_value());
+}
+
+TEST(H265BitstreamParserTest, ReportsFirstSliceSegmentInPic) {
+  EXPECT_THAT(H265BitstreamParser::IsFirstSliceSegmentInPic(kH265SliceChunk),
+              Optional(Eq(true)));
+}
+
+TEST(H265BitstreamParserTest, ReportsFirstSliceSegmentInPicFalse) {
+  EXPECT_THAT(H265BitstreamParser::IsFirstSliceSegmentInPic(
+                  kH265SecondSliceChunkInAFrame),
+              Optional(Eq(false)));
+}
+
+TEST(H265BitstreamParserTest, ReportsFirstSliceSegmentInPicParseInvalidSlice) {
+  rtc::ArrayView<const uint8_t> slice_data(kH265SliceChunk);
+  EXPECT_THAT(
+      H265BitstreamParser::IsFirstSliceSegmentInPic(slice_data.subview(50)),
+      Eq(std::nullopt));
 }
 
 }  // namespace webrtc

@@ -50,6 +50,7 @@ enum NaluType : uint8_t {
   kIdrNLp = 20,
   kCra = 21,
   kRsvIrapVcl23 = 23,
+  kRsvVcl31 = 31,
   kVps = 32,
   kSps = 33,
   kPps = 34,
