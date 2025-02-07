@@ -83,7 +83,7 @@ void URLMainThread::CreateObjectURL(const GlobalObject& aGlobal,
 
   nsCOMPtr<nsIRunnable> revocation = NS_NewRunnableFunction(
       "dom::URLMainThread::CreateObjectURL", [result = nsCString(aResult)] {
-        BlobURLProtocolHandler::RemoveDataEntry(result);
+        BlobURLProtocolHandler::RemoveDataEntries(nsTArray{result});
       });
 
   nsContentUtils::RunInStableState(revocation.forget());

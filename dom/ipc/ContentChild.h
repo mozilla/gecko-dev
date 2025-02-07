@@ -486,7 +486,8 @@ class ContentChild final : public PContentChild,
       const nsCString& aURI, const IPCBlob& aBlob, nsIPrincipal* aPrincipal,
       const nsCString& aPartitionKey);
 
-  mozilla::ipc::IPCResult RecvBlobURLUnregistration(const nsCString& aURI);
+  mozilla::ipc::IPCResult RecvBlobURLUnregistration(
+      const nsTArray<nsCString>& aURIs);
 
   mozilla::ipc::IPCResult RecvRequestMemoryReport(
       const uint32_t& generation, const bool& anonymize,

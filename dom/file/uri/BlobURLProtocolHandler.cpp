@@ -161,19 +161,17 @@ void BroadcastBlobURLRegistration(const nsACString& aURI,
       nsCString(aURI), ipcBlob, aPrincipal, aPartitionKey));
 }
 
-void BroadcastBlobURLUnregistration(const nsCString& aURI,
-                                    nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(NS_IsMainThread());
-
+void BroadcastBlobURLUnregistration(
+    const nsTArray<BroadcastBlobURLUnregistrationRequest>& aRequests) {
   if (XRE_IsParentProcess()) {
-    dom::ContentParent::BroadcastBlobURLUnregistration(aURI, aPrincipal);
+    dom::ContentParent::BroadcastBlobURLUnregistration(aRequests);
     return;
   }
 
   dom::ContentChild* cc = dom::ContentChild::GetSingleton();
   if (cc) {
     (void)NS_WARN_IF(
-        !cc->SendUnstoreAndBroadcastBlobURLUnregistration(aURI, aPrincipal));
+        !cc->SendUnstoreAndBroadcastBlobURLUnregistration(aRequests));
   }
 }
 
@@ -392,15 +390,19 @@ class ReleasingTimerHolder final : public Runnable,
  public:
   NS_DECL_ISUPPORTS_INHERITED
 
-  static void Create(const nsACString& aURI) {
+  static void Create(const nsTArray<nsCString>& aURIs) {
     MOZ_ASSERT(NS_IsMainThread());
 
-    RefPtr<ReleasingTimerHolder> holder = new ReleasingTimerHolder(aURI);
+    if (aURIs.IsEmpty()) {
+      return;
+    }
+
+    RefPtr<ReleasingTimerHolder> holder = new ReleasingTimerHolder(aURIs);
 
     // BlobURLProtocolHandler::RemoveDataEntry potentially happens late. We are
     // prepared to RevokeUri synchronously if we run after XPCOMWillShutdown,
     // but we need at least to be able to dispatch to the main thread here.
-    auto raii = MakeScopeExit([holder] { holder->CancelTimerAndRevokeURI(); });
+    auto raii = MakeScopeExit([holder] { holder->CancelTimerAndRevokeURIs(); });
 
     nsresult rv = SchedulerGroup::Dispatch(holder.forget());
     NS_ENSURE_SUCCESS_VOID(rv);
@@ -413,7 +415,7 @@ class ReleasingTimerHolder final : public Runnable,
   NS_IMETHOD
   Run() override {
     RefPtr<ReleasingTimerHolder> self = this;
-    auto raii = MakeScopeExit([self] { self->CancelTimerAndRevokeURI(); });
+    auto raii = MakeScopeExit([self] { self->CancelTimerAndRevokeURIs(); });
 
     nsresult rv = NS_NewTimerWithCallback(
         getter_AddRefs(mTimer), this, RELEASING_TIMER, nsITimer::TYPE_ONE_SHOT);
@@ -434,7 +436,7 @@ class ReleasingTimerHolder final : public Runnable,
 
   NS_IMETHOD
   Notify(nsITimer* aTimer) override {
-    RevokeURI();
+    RevokeURIs();
     return NS_OK;
   }
 
@@ -446,14 +448,15 @@ class ReleasingTimerHolder final : public Runnable,
 
   NS_IMETHOD
   GetName(nsAString& aName) override {
-    aName.AssignLiteral("ReleasingTimerHolder for blobURL: ");
-    aName.Append(NS_ConvertUTF8toUTF16(mURI));
+    aName.AssignLiteral("ReleasingTimerHolder for ");
+    aName.AppendInt(mURIs.Length());
+    aName.AppendLiteral(" BlobURLs");
     return NS_OK;
   }
 
   NS_IMETHOD
   BlockShutdown(nsIAsyncShutdownClient* aClient) override {
-    CancelTimerAndRevokeURI();
+    CancelTimerAndRevokeURIs();
     return NS_OK;
   }
 
@@ -461,44 +464,49 @@ class ReleasingTimerHolder final : public Runnable,
   GetState(nsIPropertyBag**) override { return NS_OK; }
 
  private:
-  explicit ReleasingTimerHolder(const nsACString& aURI)
-      : Runnable("ReleasingTimerHolder"), mURI(aURI) {}
+  explicit ReleasingTimerHolder(const nsTArray<nsCString>& aURIs)
+      : Runnable("ReleasingTimerHolder"), mURIs(aURIs) {}
 
   ~ReleasingTimerHolder() override = default;
 
-  void RevokeURI() {
+  void RevokeURIs() {
+    MOZ_ASSERT(NS_IsMainThread());
+
     // Remove the shutting down blocker
     nsCOMPtr<nsIAsyncShutdownClient> phase = GetShutdownPhase();
     if (phase) {
       phase->RemoveBlocker(this);
     }
 
-    MOZ_ASSERT(NS_IsMainThread(),
-               "without locking gDataTable is main-thread only");
-    mozilla::dom::DataInfo* info =
-        GetDataInfo(mURI, true /* We care about revoked dataInfo */);
-    if (!info) {
-      // Already gone!
-      return;
-    }
+    {
+      StaticMutexAutoLock lock(sMutex);
 
-    MOZ_ASSERT(info->mRevoked);
+      for (const nsCString& uri : mURIs) {
+        mozilla::dom::DataInfo* info =
+            GetDataInfo(uri, true /* We care about revoked dataInfo */);
+        if (!info) {
+          // Already gone!
+          return;
+        }
 
-    StaticMutexAutoLock lock(sMutex);
-    gDataTable->Remove(mURI);
-    if (gDataTable->Count() == 0) {
-      delete gDataTable;
-      gDataTable = nullptr;
+        MOZ_ASSERT(info->mRevoked);
+        gDataTable->Remove(uri);
+      }
+
+      if (gDataTable->Count() == 0) {
+        delete gDataTable;
+        gDataTable = nullptr;
+      }
     }
   }
 
-  void CancelTimerAndRevokeURI() {
+  void CancelTimerAndRevokeURIs() {
     if (mTimer) {
       mTimer->Cancel();
       mTimer = nullptr;
     }
 
-    RevokeURI();
+    RevokeURIs();
   }
 
   static nsCOMPtr<nsIAsyncShutdownClient> GetShutdownPhase() {
@@ -512,7 +520,7 @@ class ReleasingTimerHolder final : public Runnable,
     return phase;
   }
 
-  nsCString mURI;
+  CopyableTArray<nsCString> mURIs;
   nsCOMPtr<nsITimer> mTimer;
 };
 
@@ -625,31 +633,41 @@ bool BlobURLProtocolHandler::ForEachBlobURL(
 }
 
 /*static */
-void BlobURLProtocolHandler::RemoveDataEntry(const nsACString& aUri,
-                                             bool aBroadcastToOtherProcesses) {
+void BlobURLProtocolHandler::RemoveDataEntries(
+    const nsTArray<nsCString>& aURIs, bool aBroadcastToOtherProcesses) {
   MOZ_ASSERT(NS_IsMainThread(), "changing gDataTable is main-thread only");
   if (!gDataTable) {
     return;
   }
-  mozilla::dom::DataInfo* info = GetDataInfo(aUri);
-  if (!info) {
-    return;
-  }
 
-  {
-    StaticMutexAutoLock lock(sMutex);
-    info->mRevoked = true;
-  }
+  nsTArray<BroadcastBlobURLUnregistrationRequest> requests(aURIs.Length());
 
-  if (aBroadcastToOtherProcesses &&
-      info->mObjectType == mozilla::dom::DataInfo::eBlobImpl) {
-    BroadcastBlobURLUnregistration(nsCString(aUri), info->mPrincipal);
+  for (const nsCString& uri : aURIs) {
+    mozilla::dom::DataInfo* info = GetDataInfo(uri);
+    if (!info) {
+      continue;
+    }
+
+    {
+      StaticMutexAutoLock lock(sMutex);
+      info->mRevoked = true;
+    }
+
+    if (aBroadcastToOtherProcesses &&
+        info->mObjectType == mozilla::dom::DataInfo::eBlobImpl) {
+      requests.AppendElement(
+          BroadcastBlobURLUnregistrationRequest{uri, info->mPrincipal});
+    }
   }
 
   // The timer will take care of removing the entry for real after
-  // RELEASING_TIMER milliseconds. In the meantime, the mozilla::dom::DataInfo,
-  // marked as revoked, will not be exposed.
-  ReleasingTimerHolder::Create(aUri);
+  // RELEASING_TIMER milliseconds. In the meantime, the
+  // mozilla::dom::DataInfo, marked as revoked, will not be exposed.
+  ReleasingTimerHolder::Create(aURIs);
+
+  if (!requests.IsEmpty()) {
+    BroadcastBlobURLUnregistration(requests);
+  }
 }
 
 /*static */
@@ -676,7 +694,7 @@ bool BlobURLProtocolHandler::RemoveDataEntry(const nsACString& aUri,
     return false;
   }
 
-  RemoveDataEntry(aUri, true);
+  RemoveDataEntries(nsTArray{nsCString(aUri)}, true);
   return true;
 }
 
