@@ -69,3 +69,15 @@ fun SponsoredContent.getCurrentFlightImpressions(): List<Long> {
 fun SponsoredContent.hasFlightImpressionsLimitReached(): Boolean {
     return getCurrentFlightImpressions().size >= caps.flightCount
 }
+
+/**
+ * Records a new impression and returns the [SponsoredContent] with the updated impressions
+ * details. This only updates the in-memory data.
+ */
+fun SponsoredContent.recordNewImpression(): SponsoredContent {
+    return this.copy(
+        caps = caps.copy(
+            currentImpressions = caps.currentImpressions + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis()),
+        ),
+    )
+}

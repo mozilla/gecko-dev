@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.flowOf
 import mozilla.components.service.pocket.PocketStoriesService
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
+import mozilla.components.service.pocket.PocketStory.SponsoredContent
+import mozilla.components.service.pocket.PocketStory.SponsoredContentCallbacks
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
@@ -99,7 +101,22 @@ class PocketUpdatesMiddlewareTest {
             recommendedAt = 1L,
             impressions = 0,
         )
-        val stories = listOf(story, recommendation)
+        val sponsoredContent = SponsoredContent(
+            url = "https://firefox.com",
+            title = "Firefox",
+            callbacks = SponsoredContentCallbacks(
+                clickUrl = "https://firefox.com/click",
+                impressionUrl = "https://firefox.com/impression",
+            ),
+            imageUrl = "https://test.com/image1.jpg",
+            domain = "firefox.com",
+            excerpt = "Mozilla Firefox",
+            sponsor = "Mozilla",
+            blockKey = "1",
+            caps = mockk(relaxed = true),
+            priority = 3,
+        )
+        val stories = listOf(story, recommendation, sponsoredContent)
         val expectedStoryUpdate = story.copy(timesShown = story.timesShown.inc())
         val expectedRecommendationUpdate = recommendation.copy(impressions = recommendation.impressions.inc())
 
@@ -114,6 +131,7 @@ class PocketUpdatesMiddlewareTest {
         coVerify {
             pocketService.updateStoriesTimesShown(listOf(expectedStoryUpdate))
             pocketService.updateRecommendationsImpressions(listOf(expectedRecommendationUpdate))
+            pocketService.recordSponsoredContentImpressions(impressions = listOf(sponsoredContent.url))
         }
     }
 

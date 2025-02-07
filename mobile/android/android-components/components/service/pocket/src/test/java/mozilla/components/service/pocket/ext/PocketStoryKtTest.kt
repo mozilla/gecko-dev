@@ -179,4 +179,33 @@ class PocketStoryKtTest {
 
         assertTrue(sponsoredContent.hasFlightImpressionsLimitReached())
     }
+
+    @Test
+    fun `WHEN recording a new impression for a sponsored content THEN add a new impression entry to the current impressions`() {
+        val sponsoredContent = PocketTestResources.sponsoredContentEntity.toSponsoredContent(currentImpressions)
+
+        assertEquals(3, sponsoredContent.caps.currentImpressions.size)
+
+        val result = sponsoredContent.recordNewImpression()
+
+        assertSame(sponsoredContent.url, result.url)
+        assertSame(sponsoredContent.title, result.title)
+        assertSame(sponsoredContent.callbacks, result.callbacks)
+        assertSame(sponsoredContent.imageUrl, result.imageUrl)
+        assertSame(sponsoredContent.domain, result.domain)
+        assertSame(sponsoredContent.excerpt, result.excerpt)
+        assertSame(sponsoredContent.sponsor, result.sponsor)
+        assertSame(sponsoredContent.blockKey, result.blockKey)
+        assertEquals(sponsoredContent.priority, result.priority)
+        assertEquals(sponsoredContent.caps.flightCount, result.caps.flightCount)
+        assertEquals(sponsoredContent.caps.flightPeriod, result.caps.flightPeriod)
+
+        assertEquals(4, result.caps.currentImpressions.size)
+        assertEquals(currentImpressions, result.caps.currentImpressions.take(3))
+        // Check if a new impression has been added around the current time.
+        assertTrue(
+            LongRange(nowInSeconds - 5, nowInSeconds + 5)
+                .contains(result.caps.currentImpressions[3]),
+        )
+    }
 }
