@@ -335,7 +335,7 @@ function createTabGroupSubmenu(
     aDocument.l10n.setAttributes(element, "tab-context-unnamed-group");
   }
 
-  element.classList.add("menu-iconic", "tab-group-icon-closed");
+  element.classList.add("menu-iconic", "tab-group-icon");
   setTabGroupColorProperties(element, aTabGroup);
 
   let menuPopup = aDocument.createXULElement("menupopup");
