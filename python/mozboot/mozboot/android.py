@@ -20,7 +20,7 @@ from tqdm import tqdm
 # variable.
 from mozboot.bootstrap import MOZCONFIG_SUGGESTION_TEMPLATE
 
-NDK_VERSION = "r28"
+NDK_VERSION = "r27c"
 CMDLINE_TOOLS_VERSION_STRING = "17.0"
 CMDLINE_TOOLS_VERSION = "12700392"
 
