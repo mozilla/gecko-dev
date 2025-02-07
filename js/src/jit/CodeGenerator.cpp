@@ -5338,9 +5338,17 @@ void CodeGenerator::visitIntPtrToInt64(LIntPtrToInt64* lir) {
 
 void CodeGenerator::visitGuardValue(LGuardValue* lir) {
   ValueOperand input = ToValue(lir->input());
+  Register nanTemp = ToTempRegisterOrInvalid(lir->temp0());
   Value expected = lir->mir()->expected();
   Label bail;
-  masm.branchTestValue(Assembler::NotEqual, input, expected, &bail);
+
+  if (expected.isNaN()) {
+    masm.branchTestNaNValue(Assembler::NotEqual, input, nanTemp, &bail);
+  } else {
+    MOZ_ASSERT(nanTemp == InvalidReg);
+    masm.branchTestValue(Assembler::NotEqual, input, expected, &bail);
+  }
+
   bailoutFrom(&bail, lir->snapshot());
 }
 

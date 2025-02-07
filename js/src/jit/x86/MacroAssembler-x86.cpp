@@ -943,6 +943,7 @@ void MacroAssembler::branchValueIsNurseryCell(Condition cond,
 void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
                                      const Value& rhs, Label* label) {
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  MOZ_ASSERT(!rhs.isNaN());
   if (rhs.isGCThing()) {
     cmpPtr(lhs.payloadReg(), ImmGCPtr(rhs.toGCThing()));
   } else {
@@ -961,6 +962,36 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
     j(NotEqual, label);
 
     cmp32(lhs.typeReg(), Imm32(rhs.toNunboxTag()));
+    j(NotEqual, label);
+  }
+}
+
+void MacroAssembler::branchTestNaNValue(Condition cond, const ValueOperand& val,
+                                        Register temp, Label* label) {
+  MOZ_ASSERT(cond == Equal || cond == NotEqual);
+
+  // When testing for NaN, we want to ignore the sign bit.
+  const uint32_t SignBit = mozilla::FloatingPoint<double>::kSignBit >> 32;
+  movl(val.typeReg(), temp);
+  andl(Imm32(~SignBit), temp);
+
+  // Compare against a NaN with sign bit 0.
+  static_assert(JS::detail::CanonicalizedNaNSignBit == 0);
+  Value expected = DoubleValue(JS::GenericNaN());
+  cmpPtr(val.payloadReg(), ImmWord(expected.toNunboxPayload()));
+
+  if (cond == Equal) {
+    Label done;
+    j(NotEqual, &done);
+    {
+      cmp32(val.typeReg(), Imm32(expected.toNunboxTag()));
+      j(Equal, label);
+    }
+    bind(&done);
+  } else {
+    j(NotEqual, label);
+
+    cmp32(val.typeReg(), Imm32(expected.toNunboxTag()));
     j(NotEqual, label);
   }
 }

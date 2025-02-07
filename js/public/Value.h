@@ -813,6 +813,8 @@ class alignas(8) Value {
 
   bool isDouble() const { return detail::ValueIsDouble(asBits_); }
 
+  bool isNaN() const { return isDouble() && std::isnan(toDouble()); }
+
   bool isNumber() const {
 #if defined(JS_NUNBOX32)
     MOZ_ASSERT(toTag() != JSVAL_TAG_CLEAR);

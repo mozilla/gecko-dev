@@ -871,12 +871,22 @@ bool IonCacheIRCompiler::emitGuardSpecificValue(ValOperandId valId,
   ValueOperand val = allocator.useValueRegister(masm, valId);
   Value expected = valueStubField(expectedOffset);
 
+  Maybe<AutoScratchRegister> maybeScratch;
+  if (expected.isNaN()) {
+    maybeScratch.emplace(allocator, masm);
+  }
+
   FailurePath* failure;
   if (!addFailurePath(&failure)) {
     return false;
   }
 
-  masm.branchTestValue(Assembler::NotEqual, val, expected, failure->label());
+  if (expected.isNaN()) {
+    masm.branchTestNaNValue(Assembler::NotEqual, val, *maybeScratch,
+                            failure->label());
+  } else {
+    masm.branchTestValue(Assembler::NotEqual, val, expected, failure->label());
+  }
   return true;
 }
 

@@ -5876,7 +5876,9 @@ void LIRGenerator::visitNurseryObject(MNurseryObject* ins) {
 
 void LIRGenerator::visitGuardValue(MGuardValue* ins) {
   MOZ_ASSERT(ins->value()->type() == MIRType::Value);
-  auto* lir = new (alloc()) LGuardValue(useBox(ins->value()));
+  LDefinition nanTemp =
+      ins->expected().isNaN() ? temp() : LDefinition::BogusTemp();
+  auto* lir = new (alloc()) LGuardValue(useBox(ins->value()), nanTemp);
   assignSnapshot(lir, ins->bailoutKind());
   add(lir, ins);
   redefine(ins, ins->value());

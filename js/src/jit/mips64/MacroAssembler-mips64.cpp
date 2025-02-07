@@ -2248,6 +2248,11 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
   ma_b(lhs.valueReg(), scratch, label, cond);
 }
 
+void MacroAssembler::branchTestNaNValue(Condition cond, const ValueOperand& val,
+                                        Register temp, Label* label) {
+  MOZ_CRASH("Unimplemented");
+}
+
 // ========================================================================
 // Memory access primitives.
 template <typename T>

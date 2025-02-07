@@ -991,10 +991,27 @@ void MacroAssembler::branchValueIsNurseryCell(Condition cond,
 void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
                                      const Value& rhs, Label* label) {
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  MOZ_ASSERT(!rhs.isNaN());
   ScratchRegisterScope scratch(*this);
   MOZ_ASSERT(lhs.valueReg() != scratch);
   moveValue(rhs, ValueOperand(scratch));
   cmpPtr(lhs.valueReg(), scratch);
+  j(cond, label);
+}
+
+void MacroAssembler::branchTestNaNValue(Condition cond, const ValueOperand& val,
+                                        Register temp, Label* label) {
+  MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  ScratchRegisterScope scratch(*this);
+
+  // When testing for NaN, we want to ignore the sign bit.
+  movq(ImmWord(~mozilla::FloatingPoint<double>::kSignBit), scratch);
+  andq(val.valueReg(), scratch);
+
+  // Compare against a NaN with sign bit 0.
+  static_assert(JS::detail::CanonicalizedNaNSignBit == 0);
+  moveValue(DoubleValue(JS::GenericNaN()), ValueOperand(temp));
+  cmpPtr(scratch, temp);
   j(cond, label);
 }
 

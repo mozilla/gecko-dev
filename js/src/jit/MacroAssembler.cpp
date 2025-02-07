@@ -3510,7 +3510,7 @@ void MacroAssembler::dateTimeFromSecondsIntoYear(ValueOperand secondsIntoYear,
 #ifdef DEBUG
   Label okValue;
   branchTestInt32(Assembler::Equal, secondsIntoYear, &okValue);
-  branchTestValue(Assembler::Equal, secondsIntoYear, JS::NaNValue(), &okValue);
+  branchTestNaNValue(Assembler::Equal, secondsIntoYear, scratch1, &okValue);
   assumeUnreachable("secondsIntoYear is an int32 or NaN");
   bind(&okValue);
 #endif

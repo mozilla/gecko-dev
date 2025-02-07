@@ -2082,6 +2082,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   void branchTestValue(Condition cond, const ValueOperand& lhs,
                        const Value& rhs, Label* label) PER_ARCH;
+  void branchTestNaNValue(Condition cond, const ValueOperand& val,
+                          Register temp, Label* label) PER_ARCH;
 
   template <typename T>
   inline void branchTestValue(Condition cond, const T& lhs,
