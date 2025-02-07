@@ -7,6 +7,9 @@ skip-if = [
   "os == 'android'",
   "appname == 'thunderbird'",
 ]
+prefs = [
+  "app.normandy.run_interval_seconds=0", # This turns off the update interval for fetching recipes from Remote Settings
+]
 run-sequentially = "very high failure rate in parallel"
 
 ["test_ExperimentAPI.js"]

@@ -82,7 +82,6 @@ add_task(async function test_updateRecipes() {
   const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
     targeting: "false",
   });
-  sinon.stub(loader, "setTimer");
   sinon.spy(loader, "updateRecipes");
 
   sinon
@@ -117,7 +116,6 @@ add_task(async function test_updateRecipes_someMismatch() {
   const FAIL_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
     targeting: "false",
   });
-  sinon.stub(loader, "setTimer");
   sinon.spy(loader, "updateRecipes");
 
   sinon
@@ -244,7 +242,6 @@ add_task(async function test_optIn_debug_disabled() {
   info("Testing users cannot opt-in when nimbus.debug is false");
 
   const loader = ExperimentFakes.rsLoader();
-  sinon.stub(loader, "setTimer");
   sinon.stub(loader, "updateRecipes").resolves();
 
   const recipe = ExperimentFakes.recipe("foo");
@@ -277,7 +274,6 @@ add_task(async function test_optIn_studies_disabled() {
   const prefs = [UPLOAD_PREF, STUDIES_OPT_OUT_PREF];
 
   const loader = ExperimentFakes.rsLoader();
-  sinon.stub(loader, "setTimer");
   sinon.stub(loader, "updateRecipes").resolves();
 
   const recipe = ExperimentFakes.recipe("foo");
@@ -313,7 +309,6 @@ add_task(async function test_enrollment_changed_notification() {
   const PASS_FILTER_RECIPE = ExperimentFakes.recipe("foo", {
     targeting: "true",
   });
-  sinon.stub(loader, "setTimer");
   sinon.spy(loader, "updateRecipes");
   const enrollmentChanged = TestUtils.topicObserved(
     "nimbus:enrollments-updated"
