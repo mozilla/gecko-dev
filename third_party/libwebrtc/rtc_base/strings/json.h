@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "json/json.h"
+#include "json/json.h"  // IWYU pragma: export
 
 namespace rtc {
 

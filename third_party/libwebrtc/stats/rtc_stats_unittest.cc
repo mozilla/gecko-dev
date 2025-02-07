@@ -14,8 +14,14 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
+#include "api/stats/attribute.h"
+#include "api/units/timestamp.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/strings/json.h"
 #include "stats/test/rtc_test_stats.h"
@@ -42,7 +48,7 @@ double GetExpectedError(const double expected_value) {
 
 class RTCChildStats : public RTCStats {
  public:
-  WEBRTC_RTCSTATS_DECL();
+  WEBRTC_RTCSTATS_DECL(RTCChildStats);
 
   RTCChildStats(const std::string& id, Timestamp timestamp)
       : RTCStats(id, timestamp) {}
@@ -57,7 +63,7 @@ WEBRTC_RTCSTATS_IMPL(RTCChildStats,
 
 class RTCGrandChildStats : public RTCChildStats {
  public:
-  WEBRTC_RTCSTATS_DECL();
+  WEBRTC_RTCSTATS_DECL(RTCGrandChildStats);
 
   RTCGrandChildStats(const std::string& id, Timestamp timestamp)
       : RTCChildStats(id, timestamp) {}
