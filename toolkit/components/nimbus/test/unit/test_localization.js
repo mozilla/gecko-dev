@@ -870,10 +870,9 @@ add_task(async function test_updateRecipes() {
     localizations: LOCALIZATIONS,
   });
 
-  await loader.enable();
-
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
@@ -918,10 +917,9 @@ async function test_updateRecipes_missingLocale({
     featureValidationOptOut,
   });
 
-  await loader.enable();
-
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
@@ -1007,10 +1005,9 @@ add_task(async function test_updateRecipes_missingEntry() {
     },
   });
 
-  await loader.enable();
-
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   sandbox
     .stub(loader.remoteSettingsClients.experiments, "get")
@@ -1119,10 +1116,9 @@ add_task(async function test_updateRecipes_unenroll_missingEntry() {
     localizations: LOCALIZATIONS,
   });
 
-  await loader.enable();
-
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   await ExperimentFakes.enrollmentHelper(recipe, { source: "rs-loader" });
   Assert.ok(
@@ -1271,10 +1267,9 @@ add_task(async function test_updateRecipes_unenroll_missingLocale() {
     localizations: LOCALIZATIONS,
   });
 
-  await loader.enable();
-
   await manager.onStartup();
   await manager.store.ready();
+  await loader.enable();
 
   await ExperimentFakes.enrollmentHelper(recipe, { source: "rs-loader" });
   Assert.ok(
