@@ -93,6 +93,3 @@ $(addprefix install-,$(INSTALL_MANIFESTS)): install-%: $(addprefix $(TOPOBJDIR)/
 # that are not supported by data in moz.build.
 
 $(TOPOBJDIR)/build/.deps/application.ini.stub: $(TOPOBJDIR)/buildid.h $(TOPOBJDIR)/source-repo.h
-ifeq ($(and $(JS_STANDALONE),$(MOZ_BUILD_APP)),)
-$(TOPOBJDIR)/build/rust/mozbuild/.deps/buildconfig.rs.stub: $(TOPOBJDIR)/buildid.h
-endif

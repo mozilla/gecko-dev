@@ -36,11 +36,6 @@ source-repo.h: $(MDDEPDIR)/source-repo.h.stub
 buildid.h: $(MDDEPDIR)/buildid.h.stub
 # Add explicit dependencies that moz.build can't declare yet.
 build/$(MDDEPDIR)/application.ini.stub: source-repo.h buildid.h
-  # The mozbuild crate includes the buildid (via `variables.py:get_buildid()`),
-  # so it can only be generated after the buildid file is generated.
-ifeq ($(and $(JS_STANDALONE),$(MOZ_BUILD_APP)),)
-build/rust/mozbuild/$(MDDEPDIR)/buildconfig.rs.stub: buildid.h
-endif
 
 BUILD_BACKEND_FILES := $(addprefix backend.,$(addsuffix Backend,$(BUILD_BACKENDS)))
 

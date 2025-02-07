@@ -54,7 +54,8 @@ fn glean_data_dir(_cfg: &Config) -> ::std::path::PathBuf {
 
 fn client_info_metrics(cfg: &Config) -> ClientInfoMetrics {
     glean::ClientInfoMetrics {
-        app_build: mozbuild::config::MOZ_BUILDID.into(),
+        // We can't get the build id at compile time; see bug 1945648.
+        app_build: env!("CARGO_PKG_VERSION").into(),
         app_display_version: env!("CARGO_PKG_VERSION").into(),
         channel: None,
         locale: cfg.strings.as_ref().map(|s| s.locale()),
