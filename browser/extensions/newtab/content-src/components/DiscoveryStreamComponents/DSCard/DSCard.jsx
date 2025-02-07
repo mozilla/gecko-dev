@@ -250,6 +250,14 @@ export class _DSCard extends React.PureComponent {
       },
     ];
 
+    this.simpleCardImageSizes = [
+      {
+        mediaMatcher: "default",
+        width: 265,
+        height: 265,
+      },
+    ];
+
     this.largeCardImageSizes = [
       {
         mediaMatcher: "(min-width: 1122px)",
@@ -604,6 +612,7 @@ export class _DSCard extends React.PureComponent {
     const {
       isRecentSave,
       DiscoveryStream,
+      Prefs,
       saveToPocketCard,
       isListCard,
       isFakespot,
@@ -647,6 +656,12 @@ export class _DSCard extends React.PureComponent {
       readTime: displayReadTime,
     } = DiscoveryStream;
 
+    const layoutsVariantAEnabled = Prefs.values["newtabLayouts.variant-a"];
+    const layoutsVariantBEnabled = Prefs.values["newtabLayouts.variant-b"];
+    const sectionsEnabled = Prefs.values["discoverystream.sections.enabled"];
+    const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
+
+    const smartCrop = Prefs.values["images.smart"];
     const excerpt = !hideDescriptions ? this.props.excerpt : "";
 
     let timeToRead;
@@ -682,7 +697,13 @@ export class _DSCard extends React.PureComponent {
 
     let sizes = [];
     if (!isMediumRectangle) {
-      sizes = isListCard ? this.listCardImageSizes : this.dsImageSizes;
+      sizes = this.dsImageSizes;
+      if (sectionsEnabled || layoutsVariantAorB) {
+        sizes = this.simpleCardImageSizes;
+      }
+      if (isListCard) {
+        sizes = this.listCardImageSizes;
+      }
     }
 
     // TODO: Add logic to assign this.largeCardImageSizes
@@ -722,6 +743,7 @@ export class _DSCard extends React.PureComponent {
               title={this.props.title}
               isRecentSave={isRecentSave}
               alt_text={alt_text}
+              smartCrop={smartCrop}
             />
           </div>
           <ImpressionStats
@@ -853,6 +875,7 @@ _DSCard.defaultProps = {
 export const DSCard = connect(state => ({
   App: state.App,
   DiscoveryStream: state.DiscoveryStream,
+  Prefs: state.Prefs,
 }))(_DSCard);
 
 export const PlaceholderDSCard = () => <DSCard placeholder={true} />;

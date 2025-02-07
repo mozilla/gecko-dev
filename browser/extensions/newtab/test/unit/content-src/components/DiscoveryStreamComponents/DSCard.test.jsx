@@ -27,6 +27,7 @@ const DEFAULT_PROPS = {
     isForStartupCache: false,
   },
   DiscoveryStream: INITIAL_STATE.DiscoveryStream,
+  Prefs: INITIAL_STATE.Prefs,
   fetchTimestamp: new Date("March 20, 2024 10:30:44").getTime(),
   firstVisibleTimestamp: new Date("March 21, 2024 10:11:12").getTime(),
 };
@@ -148,6 +149,7 @@ describe("<DSCard>", () => {
         time_to_read={4}
         {...DEFAULT_PROPS}
         DiscoveryStream={discoveryStream}
+        Prefs={INITIAL_STATE.Prefs}
       />
     );
     wrapper.setState({ isSeen: true });
@@ -509,6 +511,7 @@ describe("<DSCard>", () => {
           isForStartupCache: true,
         },
         DiscoveryStream: INITIAL_STATE.DiscoveryStream,
+        Prefs: INITIAL_STATE.Prefs,
       };
       wrapper = mount(<DSCard {...props} />);
     });

@@ -318,6 +318,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "images.smart",
+    {
+      title: "Smart crop images on newtab",
+      value: false,
+    },
+  ],
+  [
     "pocketCta",
     {
       title: "Pocket cta and button for logged out users.",
