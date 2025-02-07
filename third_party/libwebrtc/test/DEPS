@@ -89,5 +89,8 @@ specific_include_rules = {
   ],
   "emulated_turn_server\.h": [
      "+p2p/base/turn_server.h",
-  ]
+  ],
+  "wait_until\.cc": [
+    "+absl/functional/overload.h",
+  ],
 }

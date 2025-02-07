@@ -13,11 +13,13 @@
 
 #include <string>
 
-#include "absl/base/nullability.h"
+#include "absl/types/variant.h"
 #include "api/rtc_error.h"
+#include "api/test/time_controller.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/fake_clock.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/clock.h"
 #include "test/gmock.h"
@@ -25,14 +27,24 @@
 
 namespace webrtc {
 
+using ClockVariant = absl::variant<absl::monostate,
+                                   SimulatedClock*,
+                                   rtc::FakeClock*,
+                                   rtc::ThreadProcessingFakeClock*,
+                                   TimeController*>;
+
+namespace wait_until_internal {
+Timestamp GetTimeFromClockVariant(const ClockVariant& clock);
+void AdvanceTimeOnClockVariant(ClockVariant& clock, TimeDelta delta);
+}  // namespace wait_until_internal
+
 struct WaitUntilSettings {
   // The maximum time to wait for the condition to be met.
   TimeDelta timeout = TimeDelta::Seconds(5);
   // The interval between polling the condition.
   TimeDelta polling_interval = TimeDelta::Millis(1);
   // The clock to use for timing.
-  absl::Nullable<SimulatedClock*> clock = nullptr;
-
+  ClockVariant clock = absl::monostate();
   // Name of the result to be used in the error message.
   std::string result_name = "result";
 };
@@ -50,35 +62,31 @@ struct WaitUntilSettings {
 //   RTCErrorOr<int> result = Waituntil([&] { return ++counter; }, Eq(3))
 //   EXPECT_THAT(result, IsOkAndHolds(3));
 template <typename Fn, typename Matcher>
-auto WaitUntil(const Fn& fn, Matcher matcher, WaitUntilSettings settings = {})
+[[nodiscard]] auto WaitUntil(const Fn& fn,
+                             Matcher matcher,
+                             WaitUntilSettings settings = {})
     -> RTCErrorOr<decltype(fn())> {
-  if (!settings.clock) {
+  if (absl::holds_alternative<absl::monostate>(settings.clock)) {
     RTC_CHECK(rtc::Thread::Current()) << "A current thread is required. An "
                                          "rtc::AutoThread can work for tests.";
   }
 
-  absl::Nonnull<Clock*> clock =
-      settings.clock ? settings.clock : Clock::GetRealTimeClock();
-
-  Timestamp start = clock->CurrentTime();
-
+  Timestamp start =
+      wait_until_internal::GetTimeFromClockVariant(settings.clock);
   do {
     auto result = fn();
-    if (testing::Value(result, matcher)) {
+    if (::testing::Value(result, matcher)) {
       return result;
     }
-    if (settings.clock) {
-      settings.clock->AdvanceTime(settings.polling_interval);
-    } else {
-      rtc::Thread::Current()->ProcessMessages(0);
-      rtc::Thread::Current()->SleepMs(settings.polling_interval.ms());
-    }
-  } while (clock->CurrentTime() < start + settings.timeout);
+    wait_until_internal::AdvanceTimeOnClockVariant(settings.clock,
+                                                   settings.polling_interval);
+  } while (wait_until_internal::GetTimeFromClockVariant(settings.clock) <
+           start + settings.timeout);
 
   // One more try after the last sleep. This failure will contain the error
   // message.
   auto result = fn();
-  testing::StringMatchResultListener listener;
+  ::testing::StringMatchResultListener listener;
   if (wait_until_internal::ExplainMatchResult(matcher, result, &listener,
                                               settings.result_name)) {
     return result;

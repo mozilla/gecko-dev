@@ -10,10 +10,15 @@
 
 #include "test/wait_until.h"
 
+#include <memory>
+
 #include "api/rtc_error.h"
+#include "api/test/create_time_controller.h"
 #include "api/test/rtc_error_matchers.h"
+#include "api/test/time_controller.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "rtc_base/fake_clock.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/clock.h"
 #include "test/gmock.h"
@@ -73,7 +78,7 @@ TEST(WaitUntilTest, ErrorContainsMatcherExplanation) {
 }
 
 TEST(WaitUntilTest, ReturnsWhenConditionIsMetWithSimulatedClock) {
-  SimulatedClock fake_clock = SimulatedClock(Timestamp::Millis(1337));
+  SimulatedClock fake_clock(Timestamp::Millis(1337));
 
   int counter = 0;
   RTCErrorOr<int> result =
@@ -81,6 +86,43 @@ TEST(WaitUntilTest, ReturnsWhenConditionIsMetWithSimulatedClock) {
   EXPECT_THAT(result, IsRtcOkAndHolds(3));
   // The fake clock should have advanced at least 2ms.
   EXPECT_THAT(fake_clock.CurrentTime(), Ge(Timestamp::Millis(1339)));
+}
+
+TEST(WaitUntilTest, ReturnsWhenConditionIsMetWithThreadProcessingFakeClock) {
+  rtc::ScopedFakeClock fake_clock;
+
+  int counter = 0;
+  RTCErrorOr<int> result =
+      WaitUntil([&] { return ++counter; }, Eq(3), {.clock = &fake_clock});
+  EXPECT_THAT(result, IsRtcOkAndHolds(3));
+  // The fake clock should have advanced at least 2ms.
+  EXPECT_THAT(Timestamp::Micros(fake_clock.TimeNanos() * 1000),
+              Ge(Timestamp::Millis(1339)));
+}
+
+TEST(WaitUntilTest, ReturnsWhenConditionIsMetWithFakeClock) {
+  rtc::FakeClock fake_clock;
+
+  int counter = 0;
+  RTCErrorOr<int> result =
+      WaitUntil([&] { return ++counter; }, Eq(3), {.clock = &fake_clock});
+  EXPECT_THAT(result, IsRtcOkAndHolds(3));
+  // The fake clock should have advanced at least 2ms.
+  EXPECT_THAT(Timestamp::Micros(fake_clock.TimeNanos() * 1000),
+              Ge(Timestamp::Millis(1339)));
+}
+
+TEST(WaitUntilTest, ReturnsWhenConditionIsMetWithSimulatedTimeController) {
+  std::unique_ptr<TimeController> time_controller =
+      CreateSimulatedTimeController();
+
+  int counter = 0;
+  RTCErrorOr<int> result = WaitUntil([&] { return ++counter; }, Eq(3),
+                                     {.clock = time_controller.get()});
+  EXPECT_THAT(result, IsRtcOkAndHolds(3));
+  // The fake clock should have advanced at least 2ms.
+  EXPECT_THAT(time_controller->GetClock()->CurrentTime(),
+              Ge(Timestamp::Millis(1339)));
 }
 
 }  // namespace

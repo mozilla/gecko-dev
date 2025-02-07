@@ -29,23 +29,23 @@ template <typename T, typename M>
 bool ExplainMatchResult(
     const M& matcher,
     const T& value,
-    absl::Nonnull<testing::StringMatchResultListener*> listener,
+    absl::Nonnull<::testing::StringMatchResultListener*> listener,
     absl::string_view value_name) {
   // SafeMatcherCast is required for matchers whose type does not match the
   // argument type.
-  testing::Matcher<const T&> safe_matcher =
-      testing::SafeMatcherCast<const T&>(matcher);
+  ::testing::Matcher<const T&> safe_matcher =
+      ::testing::SafeMatcherCast<const T&>(matcher);
 
   auto* ss = listener->stream();
   *ss << "Value of: " << value_name << "\n";
   *ss << "Expected: ";
   safe_matcher.DescribeTo(ss);
   *ss << "\nActual: ";
-  testing::StringMatchResultListener inner_listener;
-  if (testing::ExplainMatchResult(safe_matcher, value, &inner_listener)) {
+  ::testing::StringMatchResultListener inner_listener;
+  if (::testing::ExplainMatchResult(safe_matcher, value, &inner_listener)) {
     return true;
   }
-  *ss << testing::PrintToString(value);
+  *ss << ::testing::PrintToString(value);
   if (const std::string& inner_message = inner_listener.str();
       !inner_message.empty()) {
     *ss << ", " << inner_message;
