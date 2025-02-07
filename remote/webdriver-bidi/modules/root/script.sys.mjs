@@ -147,7 +147,7 @@ class ScriptModule extends RootBiDiModule {
     let userContexts = null;
     let navigables = null;
 
-    if (contextIds != null) {
+    if (contextIds !== null) {
       lazy.assert.array(
         contextIds,
         lazy.pprint`Expected "contexts" to be an array, got ${contextIds}`
@@ -157,20 +157,11 @@ class ScriptModule extends RootBiDiModule {
         lazy.pprint`Expected "contexts" array to have at least one item, got ${contextIds}`
       )(contextIds);
 
-      navigables = new Set();
       for (const contextId of contextIds) {
         lazy.assert.string(
           contextId,
           lazy.pprint`Expected elements of "contexts" to be a string, got ${contextId}`
         );
-        const context = this.#getBrowsingContext(contextId);
-
-        lazy.assert.topLevel(
-          context,
-          lazy.pprint`Browsing context with id ${contextId} is not top-level`
-        );
-
-        navigables.add(context.browserId);
       }
     } else if (userContextIds !== null) {
       lazy.assert.array(
@@ -182,23 +173,11 @@ class ScriptModule extends RootBiDiModule {
         lazy.pprint`Expected "userContexts" array to have at least one item, got ${userContextIds}`
       )(userContextIds);
 
-      userContexts = new Set();
       for (const userContextId of userContextIds) {
         lazy.assert.string(
           userContextId,
           lazy.pprint`Expected elements of "userContexts" to be a string, got ${userContextId}`
         );
-
-        const internalId =
-          lazy.UserContextManager.getInternalIdById(userContextId);
-
-        if (internalId === null) {
-          throw new lazy.error.NoSuchUserContextError(
-            `User context with id: ${userContextId} doesn't exist`
-          );
-        }
-
-        userContexts.add(internalId);
       }
     }
 
@@ -218,6 +197,7 @@ class ScriptModule extends RootBiDiModule {
       commandArguments,
       lazy.pprint`Expected "arguments" to be an array, got ${commandArguments}`
     );
+
     commandArguments.forEach(({ type, value }) => {
       lazy.assert.that(
         t => t === "channel",
@@ -225,6 +205,42 @@ class ScriptModule extends RootBiDiModule {
       )(type);
       this.#assertChannelArgument(value);
     });
+
+    if (contextIds !== null && userContextIds !== null) {
+      throw new lazy.error.InvalidArgumentError(
+        `Providing both "contexts" and "userContexts" arguments is not supported`
+      );
+    }
+
+    if (contextIds !== null) {
+      navigables = new Set();
+
+      for (const contextId of contextIds) {
+        const context = this.#getBrowsingContext(contextId);
+
+        lazy.assert.topLevel(
+          context,
+          lazy.pprint`Browsing context with id ${contextId} is not top-level`
+        );
+
+        navigables.add(context.browserId);
+      }
+    } else if (userContextIds !== null) {
+      userContexts = new Set();
+
+      for (const userContextId of userContextIds) {
+        const internalId =
+          lazy.UserContextManager.getInternalIdById(userContextId);
+
+        if (internalId === null) {
+          throw new lazy.error.NoSuchUserContextError(
+            `User context with id: ${userContextId} doesn't exist`
+          );
+        }
+
+        userContexts.add(internalId);
+      }
+    }
 
     const script = lazy.generateUUID();
     const preloadScript = {
