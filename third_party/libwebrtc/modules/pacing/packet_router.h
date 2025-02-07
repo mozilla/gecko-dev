@@ -55,6 +55,7 @@ class PacketRouter : public PacingController::PacketSender {
   void RegisterNotifyBweCallback(
       absl::AnyInvocable<void(const RtpPacketToSend& packet,
                               const PacedPacketInfo& pacing_info)> callback);
+  void EnableCongestionControlFeedbackAccordingToRfc8888();
 
   void AddSendRtpModule(RtpRtcpInterface* rtp_module, bool remb_candidate);
   void RemoveSendRtpModule(RtpRtcpInterface* rtp_module);
@@ -116,6 +117,8 @@ class PacketRouter : public PacingController::PacketSender {
       RTC_GUARDED_BY(thread_checker_);
 
   uint64_t transport_seq_ RTC_GUARDED_BY(thread_checker_);
+  bool use_cc_feedback_according_to_rfc8888_ RTC_GUARDED_BY(thread_checker_) =
+      false;
   absl::AnyInvocable<void(RtpPacketToSend& packet,
                           const PacedPacketInfo& pacing_info)>
       notify_bwe_callback_ RTC_GUARDED_BY(thread_checker_) = nullptr;

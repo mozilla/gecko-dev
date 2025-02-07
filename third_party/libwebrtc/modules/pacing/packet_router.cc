@@ -87,6 +87,11 @@ void PacketRouter::RegisterNotifyBweCallback(
   notify_bwe_callback_ = std::move(callback);
 }
 
+void PacketRouter::EnableCongestionControlFeedbackAccordingToRfc8888() {
+  RTC_DCHECK_RUN_ON(&thread_checker_);
+  use_cc_feedback_according_to_rfc8888_ = true;
+}
+
 void PacketRouter::AddSendRtpModuleToMap(RtpRtcpInterface* rtp_module,
                                          uint32_t ssrc) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
@@ -183,9 +188,19 @@ void PacketRouter::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
     RTC_LOG(LS_WARNING) << "Failed to send packet, Not sending media";
     return;
   }
-  // TODO(bugs.webrtc.org/15368): Even if the TransportSequenceNumber extension
-  // is not negotiated, we will need the transport sequence number for BWE.
-  if (packet->HasExtension<TransportSequenceNumber>()) {
+
+  // Transport sequence numbers are used if send side bandwidth estimation is
+  // used. Send side BWE relies on RTCP feedback either using format described
+  // in RFC 8888 or
+  // https://datatracker.ietf.org/doc/html/draft-holmer-rmcat-transport-wide-cc-extensions-01.
+  // If RFC 8888 feedback is used, a transport
+  // sequence number is created for all RTP packets, but not sent in the RTP
+  // packet. Otherwise, the transport sequence number is only created
+  // if the TransportSequenceNumber header extension is negotiated for the
+  // specific media type. Historically, webrtc only used TransportSequenceNumber
+  // on video packets.
+  if (use_cc_feedback_according_to_rfc8888_ ||
+      packet->HasExtension<TransportSequenceNumber>()) {
     packet->set_transport_sequence_number(transport_seq_++);
   }
   rtp_module->AssignSequenceNumber(*packet);

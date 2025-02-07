@@ -380,6 +380,63 @@ TEST_F(PacketRouterTest, AllocatesTransportSequenceNumbers) {
   packet_router.RemoveSendRtpModule(&rtp_1);
 }
 
+TEST_F(PacketRouterTest,
+       DoesNotAllocateTransportSequenceNumberWithoutExtension) {
+  const uint16_t kSsrc1 = 1234;
+
+  PacketRouter packet_router;
+  testing::MockFunction<void(const RtpPacketToSend& packet,
+                             const PacedPacketInfo& pacing_info)>
+      notify_bwe_callback;
+  NiceMock<MockRtpRtcpInterface> rtp_1;
+  packet_router.RegisterNotifyBweCallback(notify_bwe_callback.AsStdFunction());
+
+  EXPECT_CALL(rtp_1, SSRC()).WillRepeatedly(Return(kSsrc1));
+  EXPECT_CALL(rtp_1, CanSendPacket).WillRepeatedly(Return(true));
+
+  packet_router.AddSendRtpModule(&rtp_1, false);
+
+  auto packet = BuildRtpPacket(kSsrc1);
+  EXPECT_CALL(notify_bwe_callback, Call)
+      .WillOnce([](const RtpPacketToSend& packet,
+                   const PacedPacketInfo& /* pacing_info */) {
+        EXPECT_EQ(packet.transport_sequence_number(), std::nullopt);
+      });
+  packet_router.SendPacket(std::move(packet), PacedPacketInfo());
+
+  packet_router.OnBatchComplete();
+  packet_router.RemoveSendRtpModule(&rtp_1);
+}
+
+TEST_F(PacketRouterTest,
+       AllocateTransportSequenceNumberWithoutExtensionIfRfc8888Enabled) {
+  const uint16_t kSsrc1 = 1234;
+
+  PacketRouter packet_router;
+  testing::MockFunction<void(const RtpPacketToSend& packet,
+                             const PacedPacketInfo& pacing_info)>
+      notify_bwe_callback;
+  NiceMock<MockRtpRtcpInterface> rtp_1;
+  packet_router.RegisterNotifyBweCallback(notify_bwe_callback.AsStdFunction());
+
+  EXPECT_CALL(rtp_1, SSRC()).WillRepeatedly(Return(kSsrc1));
+  EXPECT_CALL(rtp_1, CanSendPacket).WillRepeatedly(Return(true));
+
+  packet_router.AddSendRtpModule(&rtp_1, false);
+  packet_router.EnableCongestionControlFeedbackAccordingToRfc8888();
+
+  auto packet = BuildRtpPacket(kSsrc1);
+  EXPECT_CALL(notify_bwe_callback, Call)
+      .WillOnce([](const RtpPacketToSend& packet,
+                   const PacedPacketInfo& /* pacing_info */) {
+        EXPECT_EQ(packet.transport_sequence_number(), 1);
+      });
+  packet_router.SendPacket(std::move(packet), PacedPacketInfo());
+
+  packet_router.OnBatchComplete();
+  packet_router.RemoveSendRtpModule(&rtp_1);
+}
+
 TEST_F(PacketRouterTest, SendTransportFeedback) {
   NiceMock<MockRtpRtcpInterface> rtp_1;
   NiceMock<MockRtpRtcpInterface> rtp_2;
