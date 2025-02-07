@@ -73,7 +73,6 @@ namespace webrtc {
 template <class T>
 class ABSL_NULLABILITY_COMPATIBLE scoped_refptr {
  public:
-  using absl_nullability_compatible = void;
   using element_type = T;
 
   scoped_refptr() : ptr_(nullptr) {}
