@@ -459,6 +459,11 @@ union ClipboardReadRequestOrError {
     nsresult;
 };
 
+struct BroadcastBlobURLUnregistrationRequest {
+    nsCString url;
+    nullable nsIPrincipal principal;
+};
+
 /**
  * The PContent protocol is a top-level protocol between the UI process
  * and a content process. There is exactly one PContentParent/PContentChild pair
@@ -857,7 +862,7 @@ child:
     async BlobURLRegistration(nsCString aURI, IPCBlob aBlob,
                               nullable nsIPrincipal aPrincipal, nsCString aPartitionKey);
 
-    async BlobURLUnregistration(nsCString aURI);
+    async BlobURLUnregistration(nsCString[] aURIs);
 
     async GMPsChanged(GMPCapabilityData[] capabilities);
 
@@ -1541,7 +1546,7 @@ parent:
      async StoreAndBroadcastBlobURLRegistration(nsCString url, IPCBlob blob,
                                                 nullable nsIPrincipal principal, nsCString aPartitionKey);
 
-     async UnstoreAndBroadcastBlobURLUnregistration(nsCString url, nullable nsIPrincipal principal);
+     async UnstoreAndBroadcastBlobURLUnregistration(BroadcastBlobURLUnregistrationRequest[] aRequests);
 
     /**
      * Messages for communicating child Glean data to the parent process

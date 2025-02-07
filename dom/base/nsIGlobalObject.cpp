@@ -106,11 +106,7 @@ class UnlinkHostObjectURIsRunnable final : public mozilla::Runnable {
 
   NS_IMETHOD Run() override {
     MOZ_ASSERT(NS_IsMainThread());
-
-    for (uint32_t index = 0; index < mURIs.Length(); ++index) {
-      BlobURLProtocolHandler::RemoveDataEntry(mURIs[index]);
-    }
-
+    BlobURLProtocolHandler::RemoveDataEntries(mURIs);
     return NS_OK;
   }
 
@@ -126,10 +122,7 @@ void nsIGlobalObject::UnlinkObjectsInGlobal() {
   if (!mHostObjectURIs.IsEmpty()) {
     // BlobURLProtocolHandler is main-thread only.
     if (NS_IsMainThread()) {
-      for (uint32_t index = 0; index < mHostObjectURIs.Length(); ++index) {
-        BlobURLProtocolHandler::RemoveDataEntry(mHostObjectURIs[index]);
-      }
-
+      BlobURLProtocolHandler::RemoveDataEntries(mHostObjectURIs);
       mHostObjectURIs.Clear();
     } else {
       RefPtr<UnlinkHostObjectURIsRunnable> runnable =
