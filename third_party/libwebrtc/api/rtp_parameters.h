@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "api/media_types.h"
 #include "api/priority.h"
@@ -395,6 +396,15 @@ struct RTC_EXPORT RtpExtension {
   std::string uri;
   int id = 0;
   bool encrypt = false;
+
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const RtpExtension& extension) {
+    if (extension.encrypt) {
+      absl::Format(&sink, "[%d %s (encrypted)]", extension.id, extension.uri);
+    } else {
+      absl::Format(&sink, "[%d %s]", extension.id, extension.uri);
+    }
+  }
 };
 
 struct RTC_EXPORT RtpFecParameters {

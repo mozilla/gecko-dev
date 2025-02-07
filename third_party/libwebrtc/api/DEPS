@@ -198,6 +198,10 @@ specific_include_rules = {
     "+modules/video_coding/include/video_codec_interface.h"
   ],
 
+  "rtp_parameters\.h": [
+    "+absl/strings/str_format.h",
+  ],
+
   "sequence_checker\.h": [
     "+rtc_base/synchronization/sequence_checker_internal.h",
     "+rtc_base/thread_annotations.h",
