@@ -25,6 +25,7 @@ import androidx.test.espresso.contrib.PickerActions
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
+import androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
@@ -1231,7 +1232,13 @@ class BrowserRobot {
         }
 
         fun goToHomescreen(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
-            clickPageObject(itemWithDescription("Home screen"))
+            Log.i(TAG, "goToHomescreen: Trying to click the go to home screen button.")
+            onView(
+                allOf(
+                    withContentDescription("Home screen"),
+                    isDescendantOfA(withId(R.id.toolbar)),
+                ),
+            ).click()
             Log.i(TAG, "goToHomescreen: Waiting for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
             mDevice.findObject(UiSelector().resourceId("$packageName:id/homeLayout"))
                 .waitForExists(waitingTime)
@@ -1244,8 +1251,7 @@ class BrowserRobot {
         fun goToHomescreenWithRedesignedToolbar(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
             itemWithResId("$packageName:id/new_tab_button").click()
             searchScreen {
-            }.dismissSearchBar {
-            }
+            }.dismissSearchBar {}
             Log.i(TAG, "goToHomescreenWithRedesignedToolbar: Waiting for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
             mDevice.findObject(UiSelector().resourceId("$packageName:id/homeLayout"))
                 .waitForExists(waitingTime)
