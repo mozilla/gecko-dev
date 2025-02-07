@@ -69,6 +69,7 @@ rtc_library("video_frame") {
     "..:video_track_source_constraints",
     "../../rtc_base:checks",
     "../../rtc_base:refcount",
+    "../../rtc_base:safe_conversions",
     "../../rtc_base:timeutils",
     "../../rtc_base/memory:aligned_malloc",
     "../../rtc_base/system:rtc_export",

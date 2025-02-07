@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <utility>
 
 #include "api/make_ref_counted.h"
@@ -21,6 +22,7 @@
 #include "api/video/video_rotation.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/memory/aligned_malloc.h"
+#include "rtc_base/numerics/safe_conversions.h"
 #include "third_party/libyuv/include/libyuv/convert.h"
 #include "third_party/libyuv/include/libyuv/planar_functions.h"
 #include "third_party/libyuv/include/libyuv/rotate.h"
@@ -33,8 +35,17 @@ namespace webrtc {
 
 namespace {
 
-int I420DataSize(int height, int stride_y, int stride_u, int stride_v) {
-  return stride_y * height + (stride_u + stride_v) * ((height + 1) / 2);
+// Do the size calculation using 64bit integers and check for int overflow.
+int I420DataSize(int64_t height,
+                 int64_t stride_y,
+                 int64_t stride_u,
+                 int64_t stride_v) {
+  RTC_DCHECK(height >= 0 && height <= std::numeric_limits<int>::max());
+  RTC_DCHECK(stride_y >= 0 && stride_y <= std::numeric_limits<int>::max());
+  RTC_DCHECK(stride_u >= 0 && stride_u <= std::numeric_limits<int>::max());
+  RTC_DCHECK(stride_v >= 0 && stride_v <= std::numeric_limits<int>::max());
+  return rtc::checked_cast<int>(stride_y * height +
+                                (stride_u + stride_v) * ((height + 1) / 2));
 }
 
 }  // namespace
