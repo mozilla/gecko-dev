@@ -9225,6 +9225,33 @@ TEST_F(WebRtcVideoChannelTest, SetMixedCodecSimulcastStreamConfig) {
   EXPECT_EQ(config.rtp.stream_configs[2].payload_type, vp9.id);
 }
 
+#if RTC_DCHECK_IS_ON && GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
+TEST_F(WebRtcVideoChannelTest,
+       SetMixedCodecSimulcastWithDifferentConfigSettingsSizes) {
+  webrtc::test::ScopedKeyValueConfig field_trials(
+      field_trials_, "WebRTC-MixedCodecSimulcast/Enabled/");
+  AddSendStream();
+
+  cricket::VideoSenderParameters parameters;
+  cricket::Codec vp8 = GetEngineCodec("VP8");
+  parameters.codecs.push_back(vp8);
+
+  // `codec_settings_list.size()` is 1 after this in the
+  EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
+
+  // It sets 2 sizes of config ssrc.
+  StreamParams sp = CreateSimStreamParams("cname", {123, 456});
+  std::vector<cricket::RidDescription> rid_descriptions2;
+  rid_descriptions2.emplace_back("f", cricket::RidDirection::kSend);
+  rid_descriptions2.emplace_back("h", cricket::RidDirection::kSend);
+  sp.set_rids(rid_descriptions2);
+
+  // `WebRtcVideoSendStream::SetCodec` test for different sizes
+  // between parameters_.config.rtp.ssrcs.size() and codec_settings_list.size().
+  EXPECT_DEATH(send_channel_->AddSendStream(sp), "");
+}
+#endif
+
 // Test that min and max bitrate values set via RtpParameters are correctly
 // propagated to the underlying encoder for a single stream.
 TEST_F(WebRtcVideoChannelTest, MinAndMaxBitratePropagatedToEncoder) {

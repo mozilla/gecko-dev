@@ -1990,31 +1990,42 @@ void WebRtcVideoSendChannel::WebRtcVideoSendStream::SetCodec(
 
   parameters_.codec_settings = codec_settings;
 
-  // Settings for mixed-codec simulcast
+  // Settings for mixed-codec simulcast.
   if (!codec_settings_list.empty()) {
-    RTC_DCHECK_EQ(parameters_.config.rtp.ssrcs.size(),
-                  codec_settings_list.size());
-    parameters_.config.rtp.stream_configs.resize(
-        parameters_.config.rtp.ssrcs.size());
-    for (size_t i = 0; i < codec_settings_list.size(); i++) {
-      auto& stream_config = parameters_.config.rtp.stream_configs[i];
-      const auto& cs = codec_settings_list[i];
-      stream_config.ssrc = parameters_.config.rtp.ssrcs[i];
-      if (i < parameters_.config.rtp.rids.size()) {
-        stream_config.rid = parameters_.config.rtp.rids[i];
+    if (parameters_.config.rtp.ssrcs.size() == codec_settings_list.size()) {
+      parameters_.config.rtp.stream_configs.resize(
+          parameters_.config.rtp.ssrcs.size());
+      for (size_t i = 0; i < codec_settings_list.size(); i++) {
+        auto& stream_config = parameters_.config.rtp.stream_configs[i];
+        const auto& cs = codec_settings_list[i];
+        stream_config.ssrc = parameters_.config.rtp.ssrcs[i];
+        if (i < parameters_.config.rtp.rids.size()) {
+          stream_config.rid = parameters_.config.rtp.rids[i];
+        }
+        stream_config.payload_name = cs.codec.name;
+        stream_config.payload_type = cs.codec.id;
+        stream_config.raw_payload =
+            cs.codec.packetization == kPacketizationParamRaw;
+        if (i < parameters_.config.rtp.rtx.ssrcs.size()) {
+          auto& rtx = stream_config.rtx.emplace(
+              decltype(stream_config.rtx)::value_type());
+          rtx.ssrc = parameters_.config.rtp.rtx.ssrcs[i];
+          rtx.payload_type = cs.rtx_payload_type;
+        }
       }
-      stream_config.payload_name = cs.codec.name;
-      stream_config.payload_type = cs.codec.id;
-      stream_config.raw_payload =
-          cs.codec.packetization == kPacketizationParamRaw;
-      if (i < parameters_.config.rtp.rtx.ssrcs.size()) {
-        auto& rtx = stream_config.rtx.emplace(
-            decltype(stream_config.rtx)::value_type());
-        rtx.ssrc = parameters_.config.rtp.rtx.ssrcs[i];
-        rtx.payload_type = cs.rtx_payload_type;
-      }
+    } else {
+      // TODO(crbug.com/378724147): We need to investigate when it
+      // has mismatched sizes.
+      RTC_DCHECK_EQ(parameters_.config.rtp.ssrcs.size(),
+                    codec_settings_list.size());
+
+      RTC_LOG(LS_ERROR) << "Mismatched sizes between codec_settings_list:"
+                        << codec_settings_list.size()
+                        << ", parameters_.config.rtp.ssrcs:"
+                        << parameters_.config.rtp.ssrcs.size();
     }
   }
+
   parameters_.codec_settings_list = codec_settings_list;
 
   // TODO(bugs.webrtc.org/8830): Avoid recreation, it should be enough to call
