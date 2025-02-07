@@ -600,16 +600,21 @@ deps = {
   'src/tools/luci-go': {
       'packages': [
         {
+          'package': 'infra/tools/luci/cas/${{platform}}',
+          'version': 'git_revision:dbbe363b4b1aa09520e53ccdd2d52cb661875e53',
+        },
+        {
           'package': 'infra/tools/luci/isolate/${{platform}}',
-          'version': 'git_revision:7dd39503276dfa4a920102ca77a2f409f2f67655',
+          'version': 'git_revision:dbbe363b4b1aa09520e53ccdd2d52cb661875e53',
         },
         {
           'package': 'infra/tools/luci/swarming/${{platform}}',
-          'version': 'git_revision:7dd39503276dfa4a920102ca77a2f409f2f67655',
-        },
+          'version': 'git_revision:dbbe363b4b1aa09520e53ccdd2d52cb661875e53',
+        }
       ],
       'dep_type': 'cipd',
   },
+
   'src/third_party/pipewire/linux-amd64': {
     'packages': [
       {
