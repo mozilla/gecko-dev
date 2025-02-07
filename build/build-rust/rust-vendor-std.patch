@@ -12,10 +12,10 @@ For firefox's purposes, these patches still work fine, and are necessary
 to make -Zbuild-std work in a vendored environment.
 
 diff --git a/src/bootstrap/src/core/build_steps/dist.rs b/src/bootstrap/src/core/build_steps/dist.rs
-index 58f86aa996d..ef8c1584011 100644
+index 012d64e5344..aedb53358ef 100644
 --- a/src/bootstrap/src/core/build_steps/dist.rs
 +++ b/src/bootstrap/src/core/build_steps/dist.rs
-@@ -941,6 +941,35 @@ fn run(self, builder: &Builder<'_>) -> GeneratedTarball {
+@@ -927,6 +927,31 @@ fn run(self, builder: &Builder<'_>) -> GeneratedTarball {
              builder.copy_link(&builder.src.join(file), &dst_src.join(file));
          }
  
@@ -40,11 +40,7 @@ index 58f86aa996d..ef8c1584011 100644
 +        cmd.env("RUSTC_BOOTSTRAP", "1");
 +        builder.info("Dist src");
 +        let _time = timeit(builder);
-+        builder.run(
-+            &mut cmd,
-+            crate::utils::exec::OutputMode::Print,
-+            crate::utils::exec::OutputMode::Print,
-+        );
++        builder.run(&mut cmd);
 +
 +        builder.remove(&temp_lock);
 +
@@ -52,10 +48,10 @@ index 58f86aa996d..ef8c1584011 100644
      }
  }
 diff --git a/src/bootstrap/src/lib.rs b/src/bootstrap/src/lib.rs
-index 453fb39327d..af579af9eca 100644
+index 5ed6b357e20..ad617948c4b 100644
 --- a/src/bootstrap/src/lib.rs
 +++ b/src/bootstrap/src/lib.rs
-@@ -1732,6 +1732,30 @@ fn read_stamp_file(&self, stamp: &Path) -> Vec<(PathBuf, DependencyType)> {
+@@ -1649,6 +1649,30 @@ fn read_stamp_file(&self, stamp: &Path) -> Vec<(PathBuf, DependencyType)> {
          paths
      }
  
@@ -69,7 +65,7 @@ index 453fb39327d..af579af9eca 100644
 +        if src == dst {
 +            return;
 +        }
-+        let _ = fs::remove_file(dst);
++        let _ = fs::remove_file(&dst);
 +        let metadata = t!(src.symlink_metadata());
 +        if let Err(e) = fs::copy(src, dst) {
 +            panic!("failed to copy `{}` to `{}`: {}", src.display(), dst.display(), e)
