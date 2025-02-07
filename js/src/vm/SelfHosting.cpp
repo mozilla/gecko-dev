@@ -1846,6 +1846,22 @@ static bool intrinsic_NewAsyncIteratorHelper(JSContext* cx, unsigned argc,
   return true;
 }
 
+#ifdef NIGHTLY_BUILD
+static bool intrinsic_NewIteratorRange(JSContext* cx, unsigned argc,
+                                       Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 0);
+
+  JSObject* obj = NewIteratorRange(cx);
+  if (!obj) {
+    return false;
+  }
+
+  args.rval().setObject(*obj);
+  return true;
+}
+#endif
+
 static JSObject* NewIteratorRecord(JSContext* cx, HandleObject iterator,
                                    HandleValue nextMethod) {
   gc::AllocKind allocKind = gc::GetGCObjectKind(3);
@@ -1958,6 +1974,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
           CallNonGenericSelfhostedMethod<Is<GeneratorObject>>, 2, 0),
     JS_FN("CallIteratorHelperMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<IteratorHelperObject>>, 2, 0),
+    JS_FN("CallIteratorRangeMethodIfWrapped",
+          CallNonGenericSelfhostedMethod<Is<IteratorRangeObject>>, 2, 0),
     JS_FN("CallMapIteratorMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<MapIteratorObject>>, 2, 0),
     JS_FN("CallMapMethodIfWrapped",
@@ -2035,6 +2053,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("GuardToIteratorHelper",
                     intrinsic_GuardToBuiltin<IteratorHelperObject>, 1, 0,
                     IntrinsicGuardToIteratorHelper),
+    JS_INLINABLE_FN("GuardToIteratorRange",
+                    intrinsic_GuardToBuiltin<IteratorRangeObject>, 1, 0,
+                    IntrinsicGuardToIteratorRange),
     JS_INLINABLE_FN("GuardToMapIterator",
                     intrinsic_GuardToBuiltin<MapIteratorObject>, 1, 0,
                     IntrinsicGuardToMapIterator),
@@ -2110,6 +2131,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
                     IntrinsicNewArrayIterator),
     JS_FN("NewAsyncIteratorHelper", intrinsic_NewAsyncIteratorHelper, 0, 0),
     JS_FN("NewIteratorHelper", intrinsic_NewIteratorHelper, 0, 0),
+#ifdef NIGHTLY_BUILD
+    JS_FN("NewIteratorRange", intrinsic_NewIteratorRange, 0, 0),
+#endif
     JS_INLINABLE_FN("NewRegExpStringIterator",
                     intrinsic_NewRegExpStringIterator, 0, 0,
                     IntrinsicNewRegExpStringIterator),

@@ -141,5 +141,38 @@ assertDeepEq(bigintResult4, []);
 const bigintResult5 = Array.from(Iterator.range(5n, 0n, -1n));
 assertDeepEq(bigintResult5, [5n, 4n, 3n, 2n, 1n]);
 
+
+// test invalid this
+const invalidValues = [
+    null,
+    undefined,
+    42,
+    'string',
+    true,
+    {},
+    Symbol('test'),
+    [],
+    new Date()
+];
+
+const iterator = Iterator.range(0, 10);
+
+invalidValues.forEach(value => {
+    assertThrowsInstanceOf(() => {
+        iterator.next.call(value);
+    }, TypeError, `Should throw TypeError for ${typeof value}`);
+});
+
+// this value is a valid iterator object from another compartment
+const g = newGlobal({ newCompartment: true });
+const localIterator = Iterator.range(0, 10);
+const otherIterator = g.eval("Iterator.range(0, 10)");
+
+const result = localIterator.next.call(otherIterator);
+
+assertEq(typeof result, 'object');
+assertEq(result.value, 0);
+assertEq(result.done, false);
+
 if (typeof reportCompare === 'function')
     reportCompare(0, 0);

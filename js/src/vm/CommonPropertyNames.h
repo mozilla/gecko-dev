@@ -442,6 +442,7 @@
   MACRO_(null, "null")                                                         \
   MACRO_(numberingSystem, "numberingSystem")                                   \
   MACRO_(numeric, "numeric")                                                   \
+  MACRO_(NumericRangeIterator, "NumericRangeIterator")                         \
   MACRO_(object_Arguments_, "[object Arguments]")                              \
   MACRO_(object_Array_, "[object Array]")                                      \
   MACRO_(object_BigInt_, "[object BigInt]")                                    \

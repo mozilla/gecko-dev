@@ -95,6 +95,8 @@ const JSClass* js::jit::InlinableNativeGuardToClass(InlinableNative native) {
       return &WrapForValidIteratorObject::class_;
     case InlinableNative::IntrinsicGuardToIteratorHelper:
       return &IteratorHelperObject::class_;
+    case InlinableNative::IntrinsicGuardToIteratorRange:
+      return &IteratorRangeObject::class_;
     case InlinableNative::IntrinsicGuardToAsyncIteratorHelper:
       return &AsyncIteratorHelperObject::class_;
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
@@ -223,6 +225,7 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::IntrinsicGuardToWrapForValidIterator:
     case InlinableNative::IntrinsicGuardToIteratorHelper:
     case InlinableNative::IntrinsicGuardToAsyncIteratorHelper:
+    case InlinableNative::IntrinsicGuardToIteratorRange:
     case InlinableNative::IntrinsicObjectHasPrototype:
     case InlinableNative::IntrinsicIsPackedArray:
     case InlinableNative::IntrinsicGuardToMapObject:
