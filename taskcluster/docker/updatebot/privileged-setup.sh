@@ -22,6 +22,7 @@ apt-get install -y --no-install-recommends \
     golang-go \
     gcc \
     libc6-dev \
+    meson \
     python3-minimal \
     python3-wheel \
     python3-pip \
