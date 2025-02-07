@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: https://codemirror.net/5/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -72,26 +72,24 @@
     }
   }
 
-  function lastMatchIn(string, regexp, endMargin) {
-    var match, from = 0
-    while (from <= string.length) {
-      regexp.lastIndex = from
+  function lastMatchIn(string, regexp) {
+    var cutOff = 0, match
+    for (;;) {
+      regexp.lastIndex = cutOff
       var newMatch = regexp.exec(string)
-      if (!newMatch) break
-      var end = newMatch.index + newMatch[0].length
-      if (end > string.length - endMargin) break
-      if (!match || end > match.index + match[0].length)
-        match = newMatch
-      from = newMatch.index + 1
+      if (!newMatch) return match
+      match = newMatch
+      cutOff = match.index + (match[0].length || 1)
+      if (cutOff == string.length) return match
     }
-    return match
   }
 
   function searchRegexpBackward(doc, regexp, start) {
     regexp = ensureFlags(regexp, "g")
     for (var line = start.line, ch = start.ch, first = doc.firstLine(); line >= first; line--, ch = -1) {
       var string = doc.getLine(line)
-      var match = lastMatchIn(string, regexp, ch < 0 ? 0 : string.length - ch)
+      if (ch > -1) string = string.slice(0, ch)
+      var match = lastMatchIn(string, regexp)
       if (match)
         return {from: Pos(line, match.index),
                 to: Pos(line, match.index + match[0].length),
@@ -100,17 +98,16 @@
   }
 
   function searchRegexpBackwardMultiline(doc, regexp, start) {
-    if (!maybeMultiline(regexp)) return searchRegexpBackward(doc, regexp, start)
     regexp = ensureFlags(regexp, "gm")
-    var string, chunkSize = 1, endMargin = doc.getLine(start.line).length - start.ch
+    var string, chunk = 1
     for (var line = start.line, first = doc.firstLine(); line >= first;) {
-      for (var i = 0; i < chunkSize && line >= first; i++) {
+      for (var i = 0; i < chunk; i++) {
         var curLine = doc.getLine(line--)
-        string = string == null ? curLine : curLine + "\n" + string
+        string = string == null ? curLine.slice(0, start.ch) : curLine + "\n" + string
       }
-      chunkSize *= 2
+      chunk *= 2
 
-      var match = lastMatchIn(string, regexp, endMargin)
+      var match = lastMatchIn(string, regexp)
       if (match) {
         var before = string.slice(0, match.index).split("\n"), inside = match[0].split("\n")
         var startLine = line + before.length, startCh = before[before.length - 1].length
@@ -202,7 +199,6 @@
 
   function SearchCursor(doc, query, pos, options) {
     this.atOccurrence = false
-    this.afterEmptyMatch = false
     this.doc = doc
     pos = pos ? doc.clipPos(pos) : Pos(0, 0)
     this.pos = {from: pos, to: pos}
@@ -238,29 +234,21 @@
     findPrevious: function() {return this.find(true)},
 
     find: function(reverse) {
-      var head = this.doc.clipPos(reverse ? this.pos.from : this.pos.to);
-      if (this.afterEmptyMatch && this.atOccurrence) {
-        // do not return the same 0 width match twice
-        head = Pos(head.line, head.ch)
+      var result = this.matches(reverse, this.doc.clipPos(reverse ? this.pos.from : this.pos.to))
+
+      // Implements weird auto-growing behavior on null-matches for
+      // backwards-compatiblity with the vim code (unfortunately)
+      while (result && CodeMirror.cmpPos(result.from, result.to) == 0) {
         if (reverse) {
-          head.ch--;
-          if (head.ch < 0) {
-            head.line--;
-            head.ch = (this.doc.getLine(head.line) || "").length;
-          }
+          if (result.from.ch) result.from = Pos(result.from.line, result.from.ch - 1)
+          else if (result.from.line == this.doc.firstLine()) result = null
+          else result = this.matches(reverse, this.doc.clipPos(Pos(result.from.line - 1)))
         } else {
-          head.ch++;
-          if (head.ch > (this.doc.getLine(head.line) || "").length) {
-            head.ch = 0;
-            head.line++;
-          }
-        }
-        if (CodeMirror.cmpPos(head, this.doc.clipPos(head)) != 0) {
-           return this.atOccurrence = false
+          if (result.to.ch < this.doc.getLine(result.to.line).length) result.to = Pos(result.to.line, result.to.ch + 1)
+          else if (result.to.line == this.doc.lastLine()) result = null
+          else result = this.matches(reverse, Pos(result.to.line + 1, 0))
         }
       }
-      var result = this.matches(reverse, head)
-      this.afterEmptyMatch = result && CodeMirror.cmpPos(result.from, result.to) == 0
 
       if (result) {
         this.pos = result

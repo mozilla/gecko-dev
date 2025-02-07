@@ -26,7 +26,7 @@ The generated bundle can be configurated in rollup.config.mjs.
 
 ## CodeMirror 5 Upgrade
 
-Currently used version is 5.65.18. To upgrade: download a new version of
+Currently used version is 5.58.1. To upgrade: download a new version of
 CodeMirror from the project's page [1] and replace all JavaScript and
 CSS files inside the codemirror directory [2].
 

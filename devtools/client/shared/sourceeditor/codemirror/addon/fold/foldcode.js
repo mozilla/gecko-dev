@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: https://codemirror.net/5/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -24,11 +24,9 @@
     function getRange(allowFolded) {
       var range = finder(cm, pos);
       if (!range || range.to.line - range.from.line < minSize) return null;
-      if (force === "fold") return range;
-
       var marks = cm.findMarksAt(range.from);
       for (var i = 0; i < marks.length; ++i) {
-        if (marks[i].__isFold) {
+        if (marks[i].__isFold && force !== "fold") {
           if (!allowFolded) return null;
           range.cleared = true;
           marks[i].clear();
@@ -44,7 +42,7 @@
     }
     if (!range || range.cleared || force === "unfold") return;
 
-    var myWidget = makeWidget(cm, options, range);
+    var myWidget = makeWidget(cm, options);
     CodeMirror.on(myWidget, "mousedown", function(e) {
       myRange.clear();
       CodeMirror.e_preventDefault(e);
@@ -60,13 +58,8 @@
     CodeMirror.signal(cm, "fold", cm, range.from, range.to);
   }
 
-  function makeWidget(cm, options, range) {
+  function makeWidget(cm, options) {
     var widget = getOption(cm, options, "widget");
-
-    if (typeof widget == "function") {
-      widget = widget(range.from, range.to);
-    }
-
     if (typeof widget == "string") {
       var text = document.createTextNode(widget);
       widget = document.createElement("span");
@@ -101,18 +94,18 @@
     cm.foldCode(cm.getCursor(), null, "fold");
   };
   CodeMirror.commands.unfold = function(cm) {
-    cm.foldCode(cm.getCursor(), { scanUp: false }, "unfold");
+    cm.foldCode(cm.getCursor(), null, "unfold");
   };
   CodeMirror.commands.foldAll = function(cm) {
     cm.operation(function() {
       for (var i = cm.firstLine(), e = cm.lastLine(); i <= e; i++)
-        cm.foldCode(CodeMirror.Pos(i, 0), { scanUp: false }, "fold");
+        cm.foldCode(CodeMirror.Pos(i, 0), null, "fold");
     });
   };
   CodeMirror.commands.unfoldAll = function(cm) {
     cm.operation(function() {
       for (var i = cm.firstLine(), e = cm.lastLine(); i <= e; i++)
-        cm.foldCode(CodeMirror.Pos(i, 0), { scanUp: false }, "unfold");
+        cm.foldCode(CodeMirror.Pos(i, 0), null, "unfold");
     });
   };
 
