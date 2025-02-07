@@ -1,144 +1,51 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Fri, 7 Feb 2025 15:20:57 -0600
-Subject: (tmp-cherry-pick) Revert "Disable Chromium bots on CQ." (ef35daf744)
+Date: Fri, 7 Feb 2025 15:22:45 -0600
+Subject: (tmp-cherry-pick) Revert "srtp: use SRTP_SRCTP_INDEX_LEN define from
+ libsrtp 2.6.0" (56395a63c2)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-This reverts commit b97cbbcde41772dc77b3af83847769428d9af6fa.
+This reverts commit 7738bc23ed7fee0d4856bdfe7b88985865829441.
 
-Reason for revert:
-fixed configure_siso by https://crrev.com/c/6088713
+Reason for revert: Some downstream projects are still using an older version of libsrtp
 
 Original change's description:
-> Disable Chromium bots on CQ.
+> srtp: use SRTP_SRCTP_INDEX_LEN define from libsrtp 2.6.0
 >
-> No-Try: True
-> Change-Id: I8d3a47b7228f553e4c2e1d654feb5926bea9b8c7
-> Bug: webrtc:383513652
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/371060
-> Commit-Queue: Jeremy Leconte <jleconte@webrtc.org>
-> Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#43536}
+> BUG=webrtc:42222036
+>
+> Change-Id: Ibf5c6b200501c114b9709b76685bb0ecd30bf9fb
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/359627
+> Commit-Queue: Philipp Hancke <phancke@meta.com>
+> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
+> Reviewed-by: Henrik Boström <hbos@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43538}
 
-Bug: webrtc:383513652
-Change-Id: I19eaeef44eac16de3fe0770462e9dd74b57a878a
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/371160
-Commit-Queue: Jeremy Leconte <jleconte@webrtc.org>
+Bug: webrtc:42222036
+Change-Id: Icdac768bd4ccb6f1f4ada68637c0b979aefc39f6
+No-Presubmit: true
+No-Tree-Checks: true
+No-Try: true
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/371240
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Reviewed-by: Jeremy Leconte <jleconte@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43543}
+Owners-Override: Jeremy Leconte <jleconte@webrtc.org>
+Commit-Queue: Jeremy Leconte <jleconte@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#43544}
 ---
- infra/config/commit-queue.cfg | 18 ++++++++++++++++++
- infra/config/config.star      | 12 ++++++------
- infra/config/project.cfg      |  2 +-
- 3 files changed, 25 insertions(+), 7 deletions(-)
+ pc/srtp_session.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/infra/config/commit-queue.cfg b/infra/config/commit-queue.cfg
-index 2709bb85da..6a3580a159 100644
---- a/infra/config/commit-queue.cfg
-+++ b/infra/config/commit-queue.cfg
-@@ -56,6 +56,9 @@ config_groups {
-       builders {
-         name: "webrtc/try/android_arm_rel"
-       }
-+      builders {
-+        name: "webrtc/try/android_chromium_compile"
-+      }
-       builders {
-         name: "webrtc/try/android_compile_arm64_rel"
-       }
-@@ -93,6 +96,9 @@ config_groups {
-       builders {
-         name: "webrtc/try/linux_asan"
-       }
-+      builders {
-+        name: "webrtc/try/linux_chromium_compile_dbg"
-+      }
-       builders {
-         name: "webrtc/try/linux_compile_arm64_dbg"
-       }
-@@ -144,6 +150,9 @@ config_groups {
-       builders {
-         name: "webrtc/try/mac_asan"
-       }
-+      builders {
-+        name: "webrtc/try/mac_chromium_compile"
-+      }
-       builders {
-         name: "webrtc/try/mac_compile_dbg"
-       }
-@@ -160,9 +169,18 @@ config_groups {
-         name: "webrtc/try/presubmit"
-         disable_reuse: true
-       }
-+      builders {
-+        name: "webrtc/try/webrtc_linux_chromium"
-+      }
-       builders {
-         name: "webrtc/try/win_asan"
-       }
-+      builders {
-+        name: "webrtc/try/win_chromium_compile"
-+      }
-+      builders {
-+        name: "webrtc/try/win_chromium_compile_dbg"
-+      }
-       builders {
-         name: "webrtc/try/win_compile_x64_clang_dbg"
-       }
-diff --git a/infra/config/config.star b/infra/config/config.star
-index 4e14cffd4b..f0127ebfdd 100755
---- a/infra/config/config.star
-+++ b/infra/config/config.star
-@@ -743,7 +743,7 @@ ci_builder("Android32 Builder x86", "Android|x86|rel")
- try_builder("android_compile_x86_rel")
- ci_builder("Android32 (more configs)", "Android|arm|more")
- try_builder("android_arm_more_configs")
--chromium_try_builder("android_chromium_compile", cq = None)
-+chromium_try_builder("android_chromium_compile")
- 
- ios_builder("iOS64 Debug", "iOS|arm64|dbg")
- ios_try_job("ios_compile_arm64_dbg")
-@@ -789,9 +789,9 @@ try_builder("linux_libfuzzer_rel", recipe = "libfuzzer")
- ci_builder("Linux (more configs)", "Linux|x64|more")
- try_builder("linux_more_configs")
- try_builder("linux_coverage")
--chromium_try_builder("webrtc_linux_chromium", cq = None)
-+chromium_try_builder("webrtc_linux_chromium")
- chromium_try_builder("linux_chromium_compile", cq = None)
--chromium_try_builder("linux_chromium_compile_dbg", cq = None)
-+chromium_try_builder("linux_chromium_compile_dbg")
- 
- ci_builder("Fuchsia Builder", ci_cat = None, perf_cat = "Fuchsia|x64|Builder|", prioritized = True)
- ci_builder("Fuchsia Release", "Fuchsia|x64|rel")
-@@ -813,7 +813,7 @@ try_builder("mac_asan")
- ci_builder("MacARM64 M1 Release", "Mac|arm64M1|rel", cpu = "arm64-64-Apple_M1")
- try_builder("mac_rel_m1")
- try_builder("mac_dbg_m1")
--chromium_try_builder("mac_chromium_compile", cq = None)
-+chromium_try_builder("mac_chromium_compile")
- 
- ci_builder("Win32 Debug (Clang)", "Win Clang|x86|dbg")
- try_builder("win_x86_clang_dbg", cq = None)
-@@ -835,8 +835,8 @@ ci_builder("Win (more configs)", "Win Clang|x86|more")
- try_builder("win_x86_more_configs")
- try_builder("win11_release", cq = None)
- try_builder("win11_debug", cq = None)
--chromium_try_builder("win_chromium_compile", cq = None)
--chromium_try_builder("win_chromium_compile_dbg", cq = None)
-+chromium_try_builder("win_chromium_compile")
-+chromium_try_builder("win_chromium_compile_dbg")
- 
- try_builder("iwyu_verifier", cq = None)
- 
-diff --git a/infra/config/project.cfg b/infra/config/project.cfg
-index ae821dd653..b3f6b9a43c 100644
---- a/infra/config/project.cfg
-+++ b/infra/config/project.cfg
-@@ -7,7 +7,7 @@
- name: "webrtc"
- access: "group:all"
- lucicfg {
--  version: "1.43.14"
-+  version: "1.43.13"
-   package_dir: "."
-   config_dir: "."
-   entry_point: "config.star"
+diff --git a/pc/srtp_session.cc b/pc/srtp_session.cc
+index 456c02c215..509c2c9124 100644
+--- a/pc/srtp_session.cc
++++ b/pc/srtp_session.cc
+@@ -249,7 +249,7 @@ bool SrtpSession::ProtectRtcp(void* p, int in_len, int max_len, int* out_len) {
+   // SRTP_MAX_TRAILER_LEN bytes of free space after the data. WebRTC
+   // never includes a MKI, therefore the amount of bytes added by the
+   // srtp_protect_rtp call is known in advance and depends on the cipher suite.
+-  int need_len = in_len + SRTP_SRCTP_INDEX_LEN + rtcp_auth_tag_len_;
++  int need_len = in_len + sizeof(uint32_t) + rtcp_auth_tag_len_;  // NOLINT
+   if (max_len < need_len) {
+     RTC_LOG(LS_WARNING) << "Failed to protect SRTCP packet: The buffer length "
+                         << max_len << " is less than the needed " << need_len;
