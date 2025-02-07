@@ -59,6 +59,27 @@ TEST(FilenameEvalParser, ResourceChrome)
     ASSERT_TRUE(ret.first == kResourceURI && ret.second.isSome() &&
                 ret.second.value() == str);
   }
+  {
+    constexpr auto str = "resource://foo/bar.js#foobar"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_EQ(ret.first, kResourceURI);
+    ASSERT_EQ(ret.second.value(), "resource://foo/bar.js"_ns);
+  }
+  {
+    constexpr auto str = "chrome://foo/bar.js?foo"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_EQ(ret.first, kChromeURI);
+    ASSERT_EQ(ret.second.value(), "chrome://foo/bar.js"_ns);
+  }
+  {
+    constexpr auto str = "chrome://foo/bar.js?foo#bar"_ns;
+    FilenameTypeAndDetails ret =
+        nsContentSecurityUtils::FilenameToFilenameType(str, false);
+    ASSERT_EQ(ret.first, kChromeURI);
+    ASSERT_EQ(ret.second.value(), "chrome://foo/bar.js"_ns);
+  }
 }
 
 TEST(FilenameEvalParser, BlobData)
