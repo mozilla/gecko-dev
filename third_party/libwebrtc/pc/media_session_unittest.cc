@@ -855,13 +855,13 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateVideoOffer) {
   const MediaContentDescription* acd = ac->media_description();
   const MediaContentDescription* vcd = vc->media_description();
   EXPECT_EQ(MEDIA_TYPE_AUDIO, acd->type());
-  EXPECT_EQ(f1_.audio_sendrecv_codecs(), acd->codecs());
+  EXPECT_EQ(f1_.audio_sendrecv_codecs().codecs(), acd->codecs());
   EXPECT_EQ(0U, acd->first_ssrc());             // no sender is attached
   EXPECT_EQ(kAutoBandwidth, acd->bandwidth());  // default bandwidth (auto)
   EXPECT_TRUE(acd->rtcp_mux());                 // rtcp-mux defaults on
   EXPECT_EQ(kMediaProtocolDtlsSavpf, acd->protocol());
   EXPECT_EQ(MEDIA_TYPE_VIDEO, vcd->type());
-  EXPECT_EQ(f1_.video_sendrecv_codecs(), vcd->codecs());
+  EXPECT_EQ(f1_.video_sendrecv_codecs().codecs(), vcd->codecs());
   EXPECT_EQ(0U, vcd->first_ssrc());             // no sender is attached
   EXPECT_EQ(kAutoBandwidth, vcd->bandwidth());  // default bandwidth (auto)
   EXPECT_TRUE(vcd->rtcp_mux());                 // rtcp-mux defaults on
@@ -2617,7 +2617,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateMultiStreamVideoOffer) {
   const MediaContentDescription* acd = ac->media_description();
   const MediaContentDescription* vcd = vc->media_description();
   EXPECT_EQ(MEDIA_TYPE_AUDIO, acd->type());
-  EXPECT_EQ(f1_.audio_sendrecv_codecs(), acd->codecs());
+  EXPECT_EQ(f1_.audio_sendrecv_codecs().codecs(), acd->codecs());
 
   const StreamParamsVec& audio_streams = acd->streams();
   ASSERT_EQ(2U, audio_streams.size());
@@ -2633,7 +2633,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestCreateMultiStreamVideoOffer) {
   EXPECT_TRUE(acd->rtcp_mux());                 // rtcp-mux defaults on
 
   EXPECT_EQ(MEDIA_TYPE_VIDEO, vcd->type());
-  EXPECT_EQ(f1_.video_sendrecv_codecs(), vcd->codecs());
+  EXPECT_EQ(f1_.video_sendrecv_codecs().codecs(), vcd->codecs());
 
   const StreamParamsVec& video_streams = vcd->streams();
   ASSERT_EQ(1U, video_streams.size());
@@ -3028,8 +3028,8 @@ TEST_F(MediaSessionDescriptionFactoryTest,
 // that is being recycled.
 TEST_F(MediaSessionDescriptionFactoryTest,
        ReOfferDoesNotReUseRecycledAudioCodecs) {
-  f1_.set_video_codecs({}, {});
-  f2_.set_video_codecs({}, {});
+  f1_.set_video_codecs(CodecList{}, CodecList{});
+  f2_.set_video_codecs(CodecList{}, CodecList{});
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_AUDIO, "a0",
@@ -3062,8 +3062,8 @@ TEST_F(MediaSessionDescriptionFactoryTest,
 // that is being recycled.
 TEST_F(MediaSessionDescriptionFactoryTest,
        ReOfferDoesNotReUseRecycledVideoCodecs) {
-  f1_.set_audio_codecs({}, {});
-  f2_.set_audio_codecs({}, {});
+  f1_.set_audio_codecs(CodecList{}, CodecList{});
+  f2_.set_audio_codecs(CodecList{}, CodecList{});
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "v0",
@@ -3089,8 +3089,8 @@ TEST_F(MediaSessionDescriptionFactoryTest,
 // section that is being recycled.
 TEST_F(MediaSessionDescriptionFactoryTest,
        ReAnswerDoesNotReUseRecycledAudioCodecs) {
-  f1_.set_video_codecs({}, {});
-  f2_.set_video_codecs({}, {});
+  f1_.set_video_codecs(CodecList{}, CodecList{});
+  f2_.set_video_codecs(CodecList{}, CodecList{});
 
   // Perform initial offer/answer in reverse (`f2_` as offerer) so that the
   // second offer/answer is forward (`f1_` as offerer).
@@ -3121,8 +3121,8 @@ TEST_F(MediaSessionDescriptionFactoryTest,
 // section that is being recycled.
 TEST_F(MediaSessionDescriptionFactoryTest,
        ReAnswerDoesNotReUseRecycledVideoCodecs) {
-  f1_.set_audio_codecs({}, {});
-  f2_.set_audio_codecs({}, {});
+  f1_.set_audio_codecs(CodecList{}, CodecList{});
+  f2_.set_audio_codecs(CodecList{}, CodecList{});
 
   // Perform initial offer/answer in reverse (`f2_` as offerer) so that the
   // second offer/answer is forward (`f1_` as offerer).
@@ -4677,27 +4677,27 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestSetAudioCodecs) {
 
   // Test proper merge
   sf.set_audio_codecs(send_codecs, recv_codecs);
-  EXPECT_EQ(send_codecs, sf.audio_send_codecs());
-  EXPECT_EQ(recv_codecs, sf.audio_recv_codecs());
-  EXPECT_EQ(sendrecv_codecs, sf.audio_sendrecv_codecs());
+  EXPECT_EQ(send_codecs, sf.audio_send_codecs().codecs());
+  EXPECT_EQ(recv_codecs, sf.audio_recv_codecs().codecs());
+  EXPECT_EQ(sendrecv_codecs, sf.audio_sendrecv_codecs().codecs());
 
   // Test empty send codecs list
   sf.set_audio_codecs(no_codecs, recv_codecs);
-  EXPECT_EQ(no_codecs, sf.audio_send_codecs());
-  EXPECT_EQ(recv_codecs, sf.audio_recv_codecs());
-  EXPECT_EQ(no_codecs, sf.audio_sendrecv_codecs());
+  EXPECT_EQ(no_codecs, sf.audio_send_codecs().codecs());
+  EXPECT_EQ(recv_codecs, sf.audio_recv_codecs().codecs());
+  EXPECT_EQ(no_codecs, sf.audio_sendrecv_codecs().codecs());
 
   // Test empty recv codecs list
   sf.set_audio_codecs(send_codecs, no_codecs);
-  EXPECT_EQ(send_codecs, sf.audio_send_codecs());
-  EXPECT_EQ(no_codecs, sf.audio_recv_codecs());
-  EXPECT_EQ(no_codecs, sf.audio_sendrecv_codecs());
+  EXPECT_EQ(send_codecs, sf.audio_send_codecs().codecs());
+  EXPECT_EQ(no_codecs, sf.audio_recv_codecs().codecs());
+  EXPECT_EQ(no_codecs, sf.audio_sendrecv_codecs().codecs());
 
   // Test all empty codec lists
   sf.set_audio_codecs(no_codecs, no_codecs);
-  EXPECT_EQ(no_codecs, sf.audio_send_codecs());
-  EXPECT_EQ(no_codecs, sf.audio_recv_codecs());
-  EXPECT_EQ(no_codecs, sf.audio_sendrecv_codecs());
+  EXPECT_EQ(no_codecs, sf.audio_send_codecs().codecs());
+  EXPECT_EQ(no_codecs, sf.audio_recv_codecs().codecs());
+  EXPECT_EQ(no_codecs, sf.audio_sendrecv_codecs().codecs());
 }
 
 // Compare the two vectors of codecs ignoring the payload type.
@@ -5029,7 +5029,7 @@ TEST_F(VideoCodecsOfferH265LevelIdTest, TestSendRecvSymmetrical) {
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(send_codecs, recv_codecs);
   sf_answerer_.set_video_codecs(recv_codecs, send_codecs);
-  EXPECT_EQ(sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(sendrecv_codecs, sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5076,7 +5076,7 @@ TEST_F(VideoCodecsOfferH265LevelIdTest, TestSendOnlySymmetrical) {
       MAKE_VECTOR(kVideoCodecsH265Level6);
   sf_offerer_.set_video_codecs(send_codecs, recv_codecs);
   sf_answerer_.set_video_codecs(recv_codecs, send_codecs);
-  EXPECT_EQ(sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(sendrecv_codecs, sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5120,7 +5120,7 @@ TEST_F(VideoCodecsOfferH265LevelIdTest, TestRecvOnlySymmetrical) {
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(send_codecs, recv_codecs);
   sf_answerer_.set_video_codecs(recv_codecs, send_codecs);
-  EXPECT_EQ(sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(sendrecv_codecs, sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5170,7 +5170,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5225,7 +5226,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level6);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5280,7 +5282,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level5);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5345,7 +5348,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level6);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5400,7 +5404,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5455,7 +5460,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5507,7 +5513,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level6);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5559,7 +5566,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level5);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5611,7 +5619,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level6);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5663,7 +5672,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5715,7 +5725,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5768,7 +5779,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level6);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5821,7 +5833,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level5);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5874,7 +5887,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level6);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5927,7 +5941,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",
@@ -5976,7 +5991,8 @@ TEST_F(VideoCodecsOfferH265LevelIdTest,
       MAKE_VECTOR(kVideoCodecsH265Level52);
   sf_offerer_.set_video_codecs(offerer_send_codecs, offerer_recv_codecs);
   sf_answerer_.set_video_codecs(answerer_send_codecs, answerer_recv_codecs);
-  EXPECT_EQ(offerer_sendrecv_codecs, sf_offerer_.video_sendrecv_codecs());
+  EXPECT_EQ(offerer_sendrecv_codecs,
+            sf_offerer_.video_sendrecv_codecs().codecs());
 
   MediaSessionOptions opts;
   AddMediaDescriptionOptions(MEDIA_TYPE_VIDEO, "video",

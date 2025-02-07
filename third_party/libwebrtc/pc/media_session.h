@@ -24,6 +24,7 @@
 #include "api/rtp_transceiver_direction.h"
 #include "call/payload_type.h"
 #include "media/base/codec.h"
+#include "media/base/codec_list.h"
 #include "media/base/rid_description.h"
 #include "media/base/stream_params.h"
 #include "p2p/base/ice_credentials_iterator.h"
@@ -151,14 +152,24 @@ class MediaSessionDescriptionFactory {
                                  const TransportDescriptionFactory* factory,
                                  webrtc::PayloadTypeSuggester* pt_suggester);
 
-  const Codecs& audio_sendrecv_codecs() const;
-  const Codecs& audio_send_codecs() const;
-  const Codecs& audio_recv_codecs() const;
-  void set_audio_codecs(const Codecs& send_codecs, const Codecs& recv_codecs);
-  const Codecs& video_sendrecv_codecs() const;
-  const Codecs& video_send_codecs() const;
-  const Codecs& video_recv_codecs() const;
-  void set_video_codecs(const Codecs& send_codecs, const Codecs& recv_codecs);
+  const CodecList& audio_sendrecv_codecs() const;
+  const CodecList& audio_send_codecs() const;
+  const CodecList& audio_recv_codecs() const;
+  void set_audio_codecs(const CodecList& send_codecs,
+                        const CodecList& recv_codecs);
+  void set_audio_codecs(const std::vector<Codec>& send_codecs,
+                        const std::vector<Codec>& recv_codecs) {
+    set_audio_codecs(CodecList(send_codecs), CodecList(recv_codecs));
+  }
+  const CodecList& video_sendrecv_codecs() const;
+  const CodecList& video_send_codecs() const;
+  const CodecList& video_recv_codecs() const;
+  void set_video_codecs(const CodecList& send_codecs,
+                        const CodecList& recv_codecs);
+  void set_video_codecs(const std::vector<Codec>& send_codecs,
+                        const std::vector<Codec>& recv_codecs) {
+    set_video_codecs(CodecList(send_codecs), CodecList(recv_codecs));
+  }
   RtpHeaderExtensions filtered_rtp_header_extensions(
       RtpHeaderExtensions extensions) const;
 
@@ -184,14 +195,14 @@ class MediaSessionDescriptionFactory {
     RtpHeaderExtensions video;
   };
 
-  const Codecs& GetAudioCodecsForOffer(
+  const CodecList& GetAudioCodecsForOffer(
       const webrtc::RtpTransceiverDirection& direction) const;
-  const Codecs& GetAudioCodecsForAnswer(
+  const CodecList& GetAudioCodecsForAnswer(
       const webrtc::RtpTransceiverDirection& offer,
       const webrtc::RtpTransceiverDirection& answer) const;
-  const Codecs& GetVideoCodecsForOffer(
+  const CodecList& GetVideoCodecsForOffer(
       const webrtc::RtpTransceiverDirection& direction) const;
-  const Codecs& GetVideoCodecsForAnswer(
+  const CodecList& GetVideoCodecsForAnswer(
       const webrtc::RtpTransceiverDirection& offer,
       const webrtc::RtpTransceiverDirection& answer) const;
   void GetCodecsForOffer(
@@ -303,18 +314,18 @@ class MediaSessionDescriptionFactory {
   }
 
   bool is_unified_plan_ = false;
-  Codecs audio_send_codecs_;
-  Codecs audio_recv_codecs_;
+  CodecList audio_send_codecs_;
+  CodecList audio_recv_codecs_;
   // Intersection of send and recv.
-  Codecs audio_sendrecv_codecs_;
+  CodecList audio_sendrecv_codecs_;
   // Union of send and recv.
-  Codecs all_audio_codecs_;
-  Codecs video_send_codecs_;
-  Codecs video_recv_codecs_;
+  CodecList all_audio_codecs_;
+  CodecList video_send_codecs_;
+  CodecList video_recv_codecs_;
   // Intersection of send and recv.
-  Codecs video_sendrecv_codecs_;
+  CodecList video_sendrecv_codecs_;
   // Union of send and recv.
-  Codecs all_video_codecs_;
+  CodecList all_video_codecs_;
   // This object may or may not be owned by this class.
   webrtc::AlwaysValidPointer<rtc::UniqueRandomIdGenerator> const
       ssrc_generator_;

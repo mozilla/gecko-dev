@@ -22,6 +22,7 @@ class CodecList {
  public:
   using iterator = std::vector<Codec>::iterator;
   using const_iterator = std::vector<Codec>::const_iterator;
+  using value_type = Codec;
 
   CodecList() {}
   explicit CodecList(const std::vector<Codec>& codecs) {
@@ -35,8 +36,13 @@ class CodecList {
   const_iterator end() const { return codecs_.end(); }
   const Codec& operator[](size_t i) const { return codecs_[i]; }
   Codec& operator[](size_t i) { return codecs_[i]; }
-  void push_back(const Codec& codec) { codecs_.push_back(codec); }
+  void push_back(const Codec& codec) {
+    codecs_.push_back(codec);
+    CheckConsistency();
+  }
   bool empty() const { return codecs_.empty(); }
+  void clear() { codecs_.clear(); }
+  size_t size() const { return codecs_.size(); }
   // Access to the whole codec list
   const std::vector<Codec>& codecs() const { return codecs_; }
   std::vector<Codec>& writable_codecs() { return codecs_; }
