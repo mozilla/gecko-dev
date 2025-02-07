@@ -272,7 +272,7 @@ void OpenSSLStreamAdapter::SetServerRole(SSLRole role) {
 
 SSLPeerCertificateDigestError OpenSSLStreamAdapter::SetPeerCertificateDigest(
     absl::string_view digest_alg,
-    rtc::ArrayView<uint8_t> digest_val) {
+    rtc::ArrayView<const uint8_t> digest_val) {
   RTC_DCHECK(!peer_certificate_verified_);
   RTC_DCHECK(!HasPeerCertificateDigest());
   size_t expected_len;

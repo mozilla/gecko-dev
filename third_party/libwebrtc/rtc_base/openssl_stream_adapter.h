@@ -80,7 +80,7 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   void SetServerRole(SSLRole role = SSL_SERVER) override;
   SSLPeerCertificateDigestError SetPeerCertificateDigest(
       absl::string_view digest_alg,
-      rtc::ArrayView<uint8_t> digest_val) override;
+      rtc::ArrayView<const uint8_t> digest_val) override;
 
   std::unique_ptr<SSLCertChain> GetPeerSSLCertChain() const override;
 

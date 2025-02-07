@@ -175,7 +175,7 @@ class SSLStreamAdapter : public StreamInterface {
   // Returns SSLPeerCertificateDigestError::NONE if successful.
   virtual SSLPeerCertificateDigestError SetPeerCertificateDigest(
       absl::string_view digest_alg,
-      rtc::ArrayView<uint8_t> digest_val) = 0;
+      rtc::ArrayView<const uint8_t> digest_val) = 0;
   [[deprecated(
       "Use SetPeerCertificateDigest with ArrayView instead")]] virtual bool
   SetPeerCertificateDigest(absl::string_view digest_alg,
