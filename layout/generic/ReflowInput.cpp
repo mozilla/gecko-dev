@@ -1552,8 +1552,8 @@ void ReflowInput::CalculateHypotheticalPosition(
     LogicalSize boxSize(wm, boxISize.valueOr(0), boxBSize);
 
     LogicalPoint origin(wm, aHypotheticalPos.mIStart, aHypotheticalPos.mBStart);
-    origin =
-        origin.ConvertTo(cbwm, wm, reflowSize - boxSize.GetPhysicalSize(wm));
+    origin = origin.ConvertRectOriginTo(cbwm, wm, boxSize.GetPhysicalSize(wm),
+                                        reflowSize);
 
     aHypotheticalPos.mIStart = origin.I(cbwm);
     aHypotheticalPos.mBStart = origin.B(cbwm);

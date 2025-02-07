@@ -751,6 +751,47 @@ class LogicalPoint {
                               aContainerSize);
   }
 
+  /**
+   * Considering 'this' LogicalPoint as the origin of some rect, as expressed
+   * in writing mode aFromMode: this method returns the origin of that same
+   * rect, as expressed in writing mode aToMode.
+   *
+   * The two points ('this' and the return value) may correspond to *different*
+   * physical corners of the rect.  Each point is using its own writing-mode
+   * to determine which corner is the origin.
+   *
+   * @param aToMode The writing mode to use for the return value.
+   * @param aFromMode The writing mode for 'this' LogicalPoint.
+   * @param aRectSize The physical size of the rectangle whose origin
+   *                  is being requested.
+   * @param aContainerSize The physical size of the container that defines the
+   *                       local coordinate space.  (Our points' coordinates are
+   *                       relative to the bounds of this container.)
+   */
+  LogicalPoint ConvertRectOriginTo(WritingMode aToMode, WritingMode aFromMode,
+                                   const nsSize& aRectSize,
+                                   const nsSize& aContainerSize) const {
+    CHECK_WRITING_MODE(aFromMode);
+    if (aFromMode == aToMode) {
+      return *this;
+    }
+
+    // Note: this might *look* like it's abusing ConvertTo(), since the last
+    // param to ConvertTo() is named as if it's just a container-size rather
+    // than the difference-in-sizes that we're passing here.  But this calling
+    // pattern is actually correct for what we're trying to do here.
+    //
+    // Conceptually, ConvertTo()'s aContainerSize param just represents how
+    // much extra space the container has *around* the converted thing in each
+    // physical axis. When we're just converting a LogicalPoint with zero
+    // thickness -- the way ConvertTo() expects to be called -- the extra space
+    // around it in its container is simply the container size. But here, we're
+    // converting the origin of a *rect*, and the rect has some
+    // potentially-nonzero-thickness; so here, the extra space is the
+    // container's size *minus* the rect's size.
+    return ConvertTo(aToMode, aFromMode, aContainerSize - aRectSize);
+  }
+
   bool operator==(const LogicalPoint& aOther) const {
     CHECK_WRITING_MODE(aOther.GetWritingMode());
     return mPoint == aOther.mPoint;

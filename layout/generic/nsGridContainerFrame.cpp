@@ -7871,8 +7871,13 @@ void nsGridContainerFrame::ReflowInFlowChild(
 
   ReflowChild(aChild, pc, childSize, childRI, childWM, LogicalPoint(childWM),
               dummyContainerSize, ReflowChildFlags::Default, aStatus);
-  LogicalPoint childPos = cb.Origin(wm).ConvertTo(
-      childWM, wm, aContainerSize - childSize.PhysicalSize());
+
+  // childPos here initially represents the position that the child would have
+  // (expressed as an istart,bstart corner *in its own writing-mode*) if it
+  // were placed at the cb origin:
+  LogicalPoint childPos = cb.Origin(wm).ConvertRectOriginTo(
+      childWM, wm, childSize.PhysicalSize(), aContainerSize);
+
   // Apply align/justify-self and reflow again if that affects the size.
   if (MOZ_LIKELY(isGridItem)) {
     LogicalSize size = childSize.Size(childWM);  // from the ReflowChild()
