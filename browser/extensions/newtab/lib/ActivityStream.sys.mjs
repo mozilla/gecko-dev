@@ -306,7 +306,7 @@ export const PREFS_CONFIG = new Map([
     "weather.temperatureUnits",
     {
       title: "Switch the temperature between Celsius and Fahrenheit",
-      getValue: args => (args.locale === "en-US" ? "f" : "c"),
+      getValue: ({ geo }) => (geo === "US" ? "f" : "c"),
     },
   ],
   [
