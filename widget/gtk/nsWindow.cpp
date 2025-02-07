@@ -3264,28 +3264,14 @@ void nsWindow::RecomputeBounds() {
     if (!IsTopLevelWidget() || mSizeMode == nsSizeMode_Fullscreen) {
       return LayoutDeviceIntMargin();
     }
-    auto systemMargin = mBounds - GetBounds(toplevel);
-    // TODO(emilio): Something like the bit below would technically be a bit
-    // more correct, but it turns out to be very non-trivial because mContainer
-    // gets sizes allocated at a different time.
-    // So, for now, do it by hand.
-    //   auto csdMargin =
-    //       LayoutDeviceIntRect(LayoutDeviceIntPoint(),
-    //       GetBounds(toplevel).Size())
-    //       - GetBounds(mGdkWindow);
-    LayoutDeviceIntMargin csdMargin = [&] {
-      if (!ToplevelUsesCSD()) {
-        return LayoutDeviceIntMargin();
-      }
-      GtkBorder decorationRect{0};
-      if (mSizeMode == nsSizeMode_Normal) {
-        decorationRect = GetTopLevelCSDDecorationSize();
-      }
-      if (!mDrawInTitlebar) {
-        decorationRect.top += moz_gtk_get_titlebar_preferred_height();
-      }
-      return GtkBorderToDevicePixels(decorationRect);
-    }();
+    const auto toplevelBounds = GetBounds(toplevel);
+    const auto systemMargin = mBounds - toplevelBounds;
+    LayoutDeviceIntMargin csdMargin;
+    if (mGdkWindow) {
+      csdMargin =
+          LayoutDeviceIntRect(LayoutDeviceIntPoint(), toplevelBounds.Size()) -
+          GetBounds(mGdkWindow);
+    }
     return systemMargin + csdMargin;
   }();
   mClientMargin.EnsureAtLeast(LayoutDeviceIntMargin());
@@ -4066,7 +4052,6 @@ gboolean nsWindow::OnConfigureEvent(GtkWidget* aWidget,
   }
 
   SchedulePendingBounds();
-  RecomputeBounds();
   return FALSE;
 }
 
@@ -4078,14 +4063,19 @@ void nsWindow::OnSizeAllocate(GtkAllocation* aAllocation) {
     return;
   }
   // Bounds will get updated on the main configure.
+  // Gecko permits running nested event loops during processing of events,
+  // GtkWindow callers of gtk_widget_size_allocate expect the signal handlers
+  // to return sometime in the near future.
+  // Also, this runs for both top level size_allocate and MozContainer size
+  // allocate, so even if the client bounds are the same, we need to recompute
+  // the bounds because the client margin might not.
+  SchedulePendingBounds();
+
   auto oldClientBounds = GetClientBounds();
   // Invalidate the new part of the window now for the pending paint to
   // minimize background flashes (GDK does not do this for external
   // renewClientSizes of toplevels.)
   LayoutDeviceIntRect newClientBounds = GdkRectToDevicePixels(*aAllocation);
-  if (oldClientBounds.Size() == newClientBounds.Size()) {
-    return;
-  }
   if (oldClientBounds.width < newClientBounds.width) {
     GdkRectangle rect = DevicePixelsToGdkRectRoundOut(LayoutDeviceIntRect(
         oldClientBounds.width, 0, newClientBounds.width - oldClientBounds.width,
@@ -4098,10 +4088,6 @@ void nsWindow::OnSizeAllocate(GtkAllocation* aAllocation) {
                             newClientBounds.height - oldClientBounds.height));
     gdk_window_invalidate_rect(mGdkWindow, &rect, FALSE);
   }
-  // Gecko permits running nested event loops during processing of events,
-  // GtkWindow callers of gtk_widget_size_allocate expect the signal
-  // handlers to return sometime in the near future.
-  SchedulePendingBounds();
 }
 
 void nsWindow::SchedulePendingBounds() {
