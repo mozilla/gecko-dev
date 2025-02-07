@@ -394,6 +394,7 @@ rtc_library("dtls_transport") {
   ]
   deps = [
     ":dtls_transport_internal",
+    ":dtls_utils",
     ":ice_transport_internal",
     ":packet_transport_internal",
     "../api:array_view",
@@ -777,6 +778,18 @@ rtc_library("stun_dictionary") {
   ]
 }
 
+rtc_library("dtls_utils") {
+  sources = [
+    "dtls/dtls_utils.cc",
+    "dtls/dtls_utils.h",
+  ]
+  deps = [
+    "../api:array_view",
+    "../rtc_base:byte_buffer",
+    "../rtc_base:checks",
+  ]
+}
+
 rtc_library("stun_port") {
   sources = [
     "base/stun_port.cc",
@@ -1114,6 +1127,7 @@ if (rtc_include_tests) {
       "base/turn_server_unittest.cc",
       "base/wrapping_active_ice_controller_unittest.cc",
       "client/basic_port_allocator_unittest.cc",
+      "dtls/dtls_utils_unittest.cc",
     ]
     deps = [
       ":active_ice_controller_factory_interface",
@@ -1124,6 +1138,7 @@ if (rtc_include_tests) {
       ":basic_port_allocator",
       ":connection",
       ":dtls_transport",
+      ":dtls_utils",
       ":fake_ice_transport",
       ":fake_port_allocator",
       ":ice_credentials_iterator",

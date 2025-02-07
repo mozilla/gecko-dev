@@ -32,6 +32,7 @@
 #include "p2p/base/dtls_transport_internal.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/packet_transport_internal.h"
+#include "p2p/dtls/dtls_utils.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
@@ -48,8 +49,6 @@
 namespace cricket {
 
 // We don't pull the RTP constants from rtputils.h, to avoid a layer violation.
-static const size_t kDtlsRecordHeaderLen = 13;
-static const size_t kMaxDtlsPacketLen = 2048;
 static const size_t kMinRtpPacketLen = 12;
 
 // Maximum number of pending packets in the queue. Packets are read immediately
@@ -64,17 +63,6 @@ static const size_t kMaxPendingPackets = 2;
 static const int kMinHandshakeTimeout = 50;
 static const int kMaxHandshakeTimeout = 3000;
 
-static bool IsDtlsPacket(rtc::ArrayView<const uint8_t> payload) {
-  const uint8_t* u = payload.data();
-  return (payload.size() >= kDtlsRecordHeaderLen && (u[0] > 19 && u[0] < 64));
-}
-static bool IsDtlsClientHelloPacket(rtc::ArrayView<const uint8_t> payload) {
-  if (!IsDtlsPacket(payload)) {
-    return false;
-  }
-  const uint8_t* u = payload.data();
-  return payload.size() > 17 && u[0] == 22 && u[13] == 1;
-}
 static bool IsRtpPacket(rtc::ArrayView<const uint8_t> payload) {
   const uint8_t* u = payload.data();
   return (payload.size() >= kMinRtpPacketLen && (u[0] & 0xC0) == 0x80);
