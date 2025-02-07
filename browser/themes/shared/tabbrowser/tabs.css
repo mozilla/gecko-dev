@@ -1379,8 +1379,12 @@
         --close-button-extra-background: var(--button-background-color-ghost-active);
       }
 
-      .tabbrowser-tab:not([pinned]):hover & {
+      .tabbrowser-tab:hover & {
         opacity: 1;
+      }
+
+      &[pinned] {
+        display: none;
       }
     }
   }
