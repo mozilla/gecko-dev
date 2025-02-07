@@ -8,6 +8,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
+  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
@@ -182,6 +183,10 @@ class TelemetryHandler {
   // Browser objects mapped to the info in _browserInfoByURL.
   #browserToItemMap = new WeakMap();
 
+  // An array of regular expressions that match urls that could be subframes
+  // on SERPs.
+  #subframeRegexps = [];
+
   // _browserSourceMap is a map of the latest search source for a particular
   // browser - one of the KNOWN_SEARCH_SOURCES in BrowserSearchTelemetry.
   _browserSourceMap = new WeakMap();
@@ -220,6 +225,7 @@ class TelemetryHandler {
       findBrowserItemForURL: (...args) => this._findBrowserItemForURL(...args),
       checkURLForSerpMatch: (...args) => this._checkURLForSerpMatch(...args),
       findItemForBrowser: (...args) => this.findItemForBrowser(...args),
+      urlIsKnownSERPSubframe: (...args) => this.urlIsKnownSERPSubframe(...args),
     });
   }
 
@@ -399,6 +405,7 @@ class TelemetryHandler {
    *   A raw array of provider information to set.
    */
   _setSearchProviderInfo(providerInfo) {
+    this.#subframeRegexps = [];
     this._searchProviderInfo = providerInfo.map(provider => {
       let newProvider = {
         ...provider,
@@ -426,6 +433,15 @@ class TelemetryHandler {
 
       newProvider.nonAdsLinkQueryParamNames =
         provider.nonAdsLinkQueryParamNames ?? [];
+
+      newProvider.subframes =
+        provider.subframes?.map(obj => {
+          let regexp = new RegExp(obj.regexp);
+          // Also add the Regexp to the list of urls to observe.
+          this.#subframeRegexps.push(regexp);
+          return { ...obj, regexp };
+        }) ?? [];
+
       return newProvider;
     });
     this._contentHandler._searchProviderInfo = this._searchProviderInfo;
@@ -875,6 +891,17 @@ class TelemetryHandler {
     this._unregisterWindow(win);
   }
 
+  urlIsKnownSERPSubframe(url) {
+    if (url) {
+      for (let regexp of this.#subframeRegexps) {
+        if (regexp.test(url)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   /**
    * Adds event listeners for the window and registers it with the content handler.
    *
@@ -1171,6 +1198,7 @@ class ContentHandler {
     this._findBrowserItemForURL = options.findBrowserItemForURL;
     this._checkURLForSerpMatch = options.checkURLForSerpMatch;
     this._findItemForBrowser = options.findItemForBrowser;
+    this._urlIsKnownSERPSubframe = options.urlIsKnownSERPSubframe;
   }
 
   /**
@@ -1256,8 +1284,16 @@ class ContentHandler {
 
       // The wrapper is consistent across redirects, so we can use it to track state.
       let originURL = wrappedChannel.originURI && wrappedChannel.originURI.spec;
-      let item = this._findBrowserItemForURL(originURL);
-      if (!originURL || !item) {
+      if (!originURL) {
+        return;
+      }
+
+      let eligibleSubframeUrl = this.#getSerpUrlFromPossibleSubframeUrl(
+        originURL,
+        wrappedChannel.browserElement
+      );
+      let item = this._findBrowserItemForURL(eligibleSubframeUrl || originURL);
+      if (!item) {
         return;
       }
 
@@ -1537,6 +1573,48 @@ class ContentHandler {
         "Maybe record user engagement."
       );
     }
+  }
+
+  /**
+   * Checks if the url associated with a request is actually coming from a
+   * subframe within a SERP. If so, try to find the best url associated with
+   * the frame.
+   *
+   * @param {string} originURL The url associated with the request.
+   * @param {object} browser The parent browser object.
+   * @returns {string?} The url associated with the subframe.
+   */
+  #getSerpUrlFromPossibleSubframeUrl(originURL, browser) {
+    if (!browser || !this._urlIsKnownSERPSubframe(originURL)) {
+      return null;
+    }
+
+    // The sponsored link could be opened in a new tab, in which case the
+    // browser URI may not match a SERP. Thus, try to find a tab that contains
+    // a URI matching a SERP.
+    if (browser.currentURI.spec == "about:blank") {
+      let tabBrowser = browser.getTabBrowser();
+      let tab = tabBrowser.getTabForBrowser(browser).openerTab;
+      if (tab) {
+        return tab.linkedBrowser.currentURI.spec;
+      }
+      // If no opener tab was found, we're likely looking at the first tab of
+      // a new window. As a last resort, check if the window below the newly
+      // opened window contains a tab with a matching SERP.
+      let windows = lazy.BrowserWindowTracker.orderedWindows;
+      let win = windows.at(1);
+      if (win) {
+        let url = win.gBrowser.selectedBrowser.originalURI?.spec;
+        if (url) {
+          return url;
+        }
+      }
+      // If we couldn't find a matching tab or window, then return null to
+      // indicate to the caller we weren't able to find an appropriate SERP.
+      return null;
+    }
+
+    return browser.currentURI.spec;
   }
 
   /**
