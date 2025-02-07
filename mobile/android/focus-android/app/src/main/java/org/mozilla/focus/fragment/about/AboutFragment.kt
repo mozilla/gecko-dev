@@ -48,6 +48,7 @@ import org.mozilla.geckoview.BuildConfig as GeckoViewBuildConfig
 class AboutFragment : BaseSettingsLikeFragment() {
 
     private lateinit var secretSettingsUnlocker: SecretSettingsUnlocker
+    private lateinit var binding: FragmentAboutBinding
 
     private val openLearnMore = {
         val tabId = requireContext().components.tabsUseCases.addTab(
@@ -70,7 +71,13 @@ class AboutFragment : BaseSettingsLikeFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        val binding = FragmentAboutBinding.inflate(inflater, container, false)
+        binding = FragmentAboutBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        secretSettingsUnlocker = SecretSettingsUnlocker(requireContext())
 
         val appName = requireContext().resources.getString(R.string.app_name)
         val aboutContent =
@@ -91,8 +98,6 @@ class AboutFragment : BaseSettingsLikeFragment() {
                 .replaceAfter("<br/>", "")
                 .replace("<br/>", "")
 
-        secretSettingsUnlocker = SecretSettingsUnlocker(requireContext())
-
         binding.aboutPageContent.setContent {
             AboutPageContent(
                 getAboutHeader(),
@@ -102,7 +107,15 @@ class AboutFragment : BaseSettingsLikeFragment() {
                 openLearnMore,
             )
         }
-        return binding.root
+        binding.aboutPageContent.setContent {
+            AboutPageContent(
+                aboutVersion = getAboutHeader(),
+                content = content,
+                learnMore = learnMore,
+                secretSettingsUnlocker = secretSettingsUnlocker,
+                openLearnMore = openLearnMore,
+            )
+        }
     }
 
     private fun getAboutHeader(): String {

@@ -53,21 +53,25 @@ class OnboardingSecondFragment : Fragment() {
             ),
         )
         return ComposeView(requireContext()).apply {
-            setContent {
-                FocusTheme {
-                    OnBoardingSecondScreenCompose(
-                        setAsDefaultBrowser = {
-                            Onboarding.defaultBrowserButton.record(NoExtras())
-                            onboardingInteractor.onMakeFocusDefaultBrowserButtonClicked(activityResultLauncher)
-                        },
-                        skipScreen = {
-                            Onboarding.skipButton.record(NoExtras())
-                            onboardingInteractor.onFinishOnBoarding()
-                        },
-                    )
-                }
-            }
             isTransitionGroup = true
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        (view as ComposeView).setContent {
+            FocusTheme {
+                OnBoardingSecondScreenCompose(
+                    setAsDefaultBrowser = {
+                        Onboarding.defaultBrowserButton.record(NoExtras())
+                        onboardingInteractor.onMakeFocusDefaultBrowserButtonClicked(activityResultLauncher)
+                    },
+                    skipScreen = {
+                        Onboarding.skipButton.record(NoExtras())
+                        onboardingInteractor.onFinishOnBoarding()
+                    },
+                )
+            }
         }
     }
 

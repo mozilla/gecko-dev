@@ -41,22 +41,25 @@ class BiometricAuthenticationFragment : Fragment(), AuthenticationDelegate {
     ): View {
         return ComposeView(requireContext()).apply {
             setBiometricPrompt(this)
-            setContent {
-                FocusTheme {
-                    val biometricErrorText by biometricErrorText
-                    BiometricPromptContent(biometricErrorText) {
-                        showBiometricPrompt(
-                            biometricPromptAuth.get(),
-                            getString(R.string.biometric_prompt_title),
-                            getString(R.string.biometric_prompt_subtitle),
-                        )
-                    }
-                }
-            }
             isTransitionGroup = true
         }
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        (view as ComposeView).setContent {
+            FocusTheme {
+                val biometricErrorText by biometricErrorText
+                BiometricPromptContent(biometricErrorText) {
+                    showBiometricPrompt(
+                        biometricPromptAuth.get(),
+                        getString(R.string.biometric_prompt_title),
+                        getString(R.string.biometric_prompt_subtitle),
+                    )
+                }
+            }
+        }
+    }
     override fun onResume() {
         super.onResume()
         hideToolbar()

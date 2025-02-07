@@ -210,17 +210,17 @@ class UrlInputFragment :
         savedInstanceState: Bundle?,
     ): View {
         _binding = FragmentUrlinputBinding.inflate(inflater, container, false)
-
-        binding.topSites.setContent {
-            FocusTheme {
-                TopSitesOverlay()
-            }
-        }
         return binding.root
     }
 
     @Suppress("LongMethod")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        binding.topSites.setContent {
+            FocusTheme {
+                TopSitesOverlay()
+            }
+        }
+
         childFragmentManager.beginTransaction()
             .replace(binding.searchViewContainer.id, SearchSuggestionsFragment.create())
             .commit()
