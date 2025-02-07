@@ -14,22 +14,26 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "call/rtp_demuxer.h"
 #include "media/base/fake_rtp.h"
-#include "p2p/base/dtls_transport_internal.h"
-#include "p2p/base/fake_dtls_transport.h"
 #include "p2p/base/fake_ice_transport.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/dtls/dtls_transport_internal.h"
+#include "p2p/dtls/fake_dtls_transport.h"
 #include "pc/rtp_transport.h"
+#include "pc/srtp_transport.h"
 #include "pc/test/rtp_transport_test_util.h"
 #include "rtc_base/async_packet_socket.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/byte_order.h"
 #include "rtc_base/containers/flat_set.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 

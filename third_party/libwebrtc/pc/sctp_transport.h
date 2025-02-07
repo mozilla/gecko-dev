@@ -11,17 +11,20 @@
 #ifndef PC_SCTP_TRANSPORT_H_
 #define PC_SCTP_TRANSPORT_H_
 
+#include <cstddef>
 #include <memory>
 
 #include "api/dtls_transport_interface.h"
+#include "api/priority.h"
+#include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/sctp_transport_interface.h"
 #include "api/sequence_checker.h"
 #include "api/transport/data_channel_transport_interface.h"
 #include "media/sctp/sctp_transport_internal.h"
-#include "p2p/base/dtls_transport_internal.h"
+#include "p2p/dtls/dtls_transport_internal.h"
 #include "pc/dtls_transport.h"
-#include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
 

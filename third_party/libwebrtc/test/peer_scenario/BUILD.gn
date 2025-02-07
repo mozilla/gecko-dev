@@ -64,6 +64,7 @@ if (rtc_include_tests) {
       "../../modules/audio_device:test_audio_device_module",
       "../../modules/rtp_rtcp:rtp_rtcp_format",
       "../../p2p:basic_port_allocator",
+      "../../p2p:dtls_transport_internal",
       "../../p2p:rtc_p2p",
       "../../p2p:transport_description",
       "../../pc:channel",

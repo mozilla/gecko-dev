@@ -10,18 +10,22 @@
 
 #include "pc/dtls_transport.h"
 
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
 
+#include "api/dtls_transport_interface.h"
 #include "api/make_ref_counted.h"
 #include "api/rtc_error.h"
-#include "p2p/base/fake_dtls_transport.h"
+#include "api/scoped_refptr.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/dtls/fake_dtls_transport.h"
 #include "rtc_base/fake_ssl_identity.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_identity.h"
+#include "rtc_base/thread.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 

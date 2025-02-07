@@ -8,20 +8,35 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <memory>
+#include <optional>
 
+#include "api/crypto/crypto_options.h"
+#include "api/dtls_transport_interface.h"
+#include "api/scoped_refptr.h"
 #include "call/rtp_demuxer.h"
 #include "media/base/fake_rtp.h"
-#include "p2p/base/dtls_transport.h"
 #include "p2p/base/fake_ice_transport.h"
+#include "p2p/base/transport_description.h"
+#include "p2p/dtls/dtls_transport.h"
+#include "p2p/dtls/dtls_transport_internal.h"
 #include "pc/dtls_srtp_transport.h"
 #include "pc/srtp_transport.h"
 #include "pc/test/rtp_transport_test_util.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/rtc_certificate.h"
+#include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_identity.h"
+#include "rtc_base/ssl_stream_adapter.h"
+#include "rtc_base/string_encode.h"
+#include "rtc_base/thread.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 

@@ -11,13 +11,14 @@
 #ifndef PC_TRANSPORT_STATS_H_
 #define PC_TRANSPORT_STATS_H_
 
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "api/dtls_transport_interface.h"
-#include "p2p/base/dtls_transport_internal.h"
 #include "p2p/base/ice_transport_internal.h"
-#include "p2p/base/port.h"
 #include "rtc_base/ssl_stream_adapter.h"
 
 namespace cricket {

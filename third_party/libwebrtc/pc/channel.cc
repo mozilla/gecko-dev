@@ -35,7 +35,7 @@
 #include "media/base/rtp_utils.h"
 #include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "p2p/base/dtls_transport_internal.h"
+#include "p2p/dtls/dtls_transport_internal.h"
 #include "pc/rtp_media_utils.h"
 #include "pc/rtp_transport_internal.h"
 #include "pc/session_description.h"

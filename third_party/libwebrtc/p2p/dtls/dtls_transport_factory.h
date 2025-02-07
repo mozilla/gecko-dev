@@ -8,14 +8,15 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef P2P_BASE_DTLS_TRANSPORT_FACTORY_H_
-#define P2P_BASE_DTLS_TRANSPORT_FACTORY_H_
+#ifndef P2P_DTLS_DTLS_TRANSPORT_FACTORY_H_
+#define P2P_DTLS_DTLS_TRANSPORT_FACTORY_H_
 
 #include <memory>
-#include <string>
 
-#include "p2p/base/dtls_transport_internal.h"
+#include "api/crypto/crypto_options.h"
 #include "p2p/base/ice_transport_internal.h"
+#include "p2p/dtls/dtls_transport_internal.h"
+#include "rtc_base/ssl_stream_adapter.h"
 
 namespace cricket {
 
@@ -37,4 +38,4 @@ class DtlsTransportFactory {
 
 }  // namespace cricket
 
-#endif  // P2P_BASE_DTLS_TRANSPORT_FACTORY_H_
+#endif  // P2P_DTLS_DTLS_TRANSPORT_FACTORY_H_

@@ -11,15 +11,15 @@
 #ifndef PC_DTLS_SRTP_TRANSPORT_H_
 #define PC_DTLS_SRTP_TRANSPORT_H_
 
+#include <cstdint>
 #include <functional>
 #include <optional>
-#include <string>
 #include <vector>
 
 #include "api/dtls_transport_interface.h"
-#include "api/rtc_error.h"
-#include "p2p/base/dtls_transport_internal.h"
+#include "api/field_trials_view.h"
 #include "p2p/base/packet_transport_internal.h"
+#include "p2p/dtls/dtls_transport_internal.h"
 #include "pc/srtp_transport.h"
 #include "rtc_base/buffer.h"
 
