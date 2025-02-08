@@ -112,6 +112,13 @@
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Tocje e ten fracadis lis frecis par passâ di une pagjine a chê altre te cronologjie di cheste schede.</string>
 
+    <!-- Address bar swipe "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_title">Scor la sbare dai struments par cambiâ schede</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+    <string name="address_bar_swipe_cfr_message">Scor viers çampe o drete par cambiâ. Scor a çampe su la ultime schede par vierzint une gnove.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Al covente l’acès ae fotocjamare. Va tes impostazions di Android, va te schede dai permès e tocje permet.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -234,8 +241,12 @@
     <string name="browser_menu_open_in_regular_tab">Vierç intune schede normâl</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Zonte a schermade principâl</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen">Zonte aplicazion ae schermade iniziâl</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Zonte a scherm. di inizi…</string>
+    <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+    <string name="browser_menu_add_app_to_homescreen_2">Zonte aplicazion ae schermade iniziâl…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
     <string name="browser_menu_add_to_homescreen_xiaomi">Al è pussibil che i dispositîfs Xiaomi a domandedin permès in plui par zontâ scurtis ae videade inziâl. Controle lis impostazions.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -310,6 +321,10 @@
     <string name="browser_menu_back_button_content_description">Torne al menù principâl</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
     <string name="browser_main_menu_handlebar_content_description">Siere il menù principâl</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+    <string name="browser_main_menu_content_description_help_button">Jutori</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+    <string name="browser_main_menu_content_description_settings_button">Impostazions</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
     <string name="browser_extensions_menu_handlebar_content_description">Siere il menù des estensions</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
@@ -318,6 +333,20 @@
     <string name="browser_tools_menu_handlebar_content_description">Siere il menù dai struments</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">Siere il menù pe personalizazion des schedis</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Viodude di leture, traduzion, %s, stampe, condivision, vierzi aplicazion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">Viodude di leture, traduzion, segnale probleme cul sît, stampe, condivision, vierzi aplicazion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">Viodude di leture, traduzion, stampe, condivision, vierzi app</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Viodude di leture, %s, stampe, condivision, vierzi aplicazion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Viodude di leture, segnale probleme cul sît, stampe, condivision, vierzi aplicazion</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_without_report_site">Viodude di leture, stampe, condivision, vierzi aplicazion</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Salve</string>
@@ -334,8 +363,12 @@
     <string name="browser_menu_turn_on_reader_view">Ative Viodude di leture</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
     <string name="browser_menu_turn_off_reader_view">Disative Viodude di leture</string>
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Sposte suntune schede no-privade</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Tradûs pagjine…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">Segnale probleme cul sît…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Voltade par %1$s</string>
@@ -406,6 +439,11 @@
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Motôr di ricercje: %s</string>
+
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: seletôr dal motôr di ricercje</string>
 
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
@@ -513,10 +551,63 @@
     <string name="onboarding_add_on_reviews_label">Recensions: %1$s</string>
     <!-- Content description for the add-on icon. -->
     <string name="onboarding_add_on_icon_content_description">Icone component adizionâl</string>
+    <!-- Content description for the an installed add-on icon. -->
+    <string name="onboarding_installed_add_on_icon_content_description">Icone dal component adizionâl instalât</string>
+    <!-- Content description for the an installing add-on icon. -->
+    <string name="onboarding_installing_add_on_icon_content_description">Daûr a instalâ la icone dal component adizionâl</string>
     <!-- Content description for the add add-on button. -->
     <string name="onboarding_add_on_add_button_content_description">Boton Zonte component adizionâl</string>
     <!-- Content description for the star rating group. -->
     <string name="onboarding_add_on_star_rating_content_description">Valutât %1$s su 5</string>
+
+    <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Judinus a miorâ Firefox</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title">Mande in automatic i rapuarts sui colàs</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description">Lis segnalazions sui colàs nus permetin di fâ une diagnosi e comedâ i problemis cul navigadôr. Lis segnalazions a puedin includi dâts personâi o sensibii. </string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Plui informazions su lis segnalazions dai colàs</string>
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Plui informazions</string>
+    <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_title">Mande a Mozilla dâts tecnics e di interazion</string>
+    <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+    <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">I dâts relatîfs al to dispositîf, ae sô configurazion hardware e su cemût che tu dopris Firefox a judin a miorâi lis funzionalitâts, lis prestazions e la stabilitât par ducj i utents dal mont.</string>
+    <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">I dâts relatîfs al to dispositîf, ae sô configurazion hardware e su cemût che tu dopris Firefox a judin a miorâi lis funzionalitâts, lis prestazions e la stabilitât par ducj.</string>
+
+    <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Plui informazions sui dâts di utilizazion</string>
+    <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Plui informazions</string>
+    <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_positive_button">Fat</string>
+    <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">Anule</string>
+    <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
+    <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Benvignûts su Firefox</string>
+    <!-- Terms of service sub header label. -->
+    <string name="onboarding_terms_of_service_sub_header" tools:ignore="UnusedResources" moz:removedIn="136">Navigazion svelte e sigure.</string>
+    <!-- Terms of service sub header label. -->
+    <string name="onboarding_terms_of_service_sub_header_2">Navigazion svelte e sigure</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label">Acete e continue</string>
+    <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
+    <string name="onboarding_term_of_service_line_one" moz:removedIn="136" tools:ignore="BrandUsage, UnusedResources">Continuant tu acetis lis %1$s di Firefox.</string>
+    <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
+    <string name="onboarding_term_of_service_line_one_2">Continuant, tu acetis lis %1$s.</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
+    <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">condizions di utilizazion dal servizi</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
+    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">condizions di utilizazion di Firefox</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+    <string name="onboarding_term_of_service_line_two_link_text">Informative su la riservatece</string>
+    <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
+    <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Par judâ a miorâ il navigadôr, Firefox al mande a Mozilla dâts diagnostics e di interazion. %1$s</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+    <string name="onboarding_term_of_service_line_three_link_text">Gjestìs</string>
+    <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Sielç la posizion de sbare dai struments</string>
+    <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Ten lis ricercjis sot man.</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1208,6 +1299,47 @@
     <string name="download_delete_item_1">Gjave</string>
 
 
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">Judinus a miorâ %1$s par ducj. I dipendents di Mozilla a doprin lis informazions inviadis par risolvi i problemis cui sîts web.</string>
+    <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
+    <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">Inserìs un URL valit</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">Ce no funzionial? (facoltatîf)</string>
+    <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken_2">Ce no funzionial?</string>
+    <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">Sielç un motîf</string>
+    <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason_error">Sielç un motîf</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">Descrîf il probleme (facoltatîf)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">Mande altris informazions</string>
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">Anule</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">Invie</string>
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">La segnalazion e je stade inviade</string>
+    <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+    <string name="webcompat_reporter_dismiss_success_snackbar_text">Siere</string>
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">Il sît al è lent o nol funzione</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">Imagjins o videos</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">Botons, colegaments e altris contignûts</string>
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">Acès o jessude</string>
+    <!-- Broken site reason text for ad blocker -->
+    <string name="webcompat_reporter_reason_ad_blocker">Bloc publicitâts</string>
+    <!-- Broken site reason text for something else -->
+    <string name="webcompat_reporter_reason_other">Alc altri</string>
+
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
     <string name="tab_crash_title_2">Nus displâs. %1$s nol rive a cjariâ chê pagjine.</string>
@@ -1854,6 +1986,8 @@
     <string name="about_privacy_notice">Informative su la riservatece</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">I tiei dirits</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Condizions di utilizazion</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Informazions su la licence</string>
     <!-- About page link text to open a screen with libraries that are used -->
@@ -2751,6 +2885,28 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">Anule</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Title text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_title">Sta atent su chest sît</string>
+    <!-- Description text for the protection panel banner when the site is not secure. -->
+    <string name="protection_panel_banner_not_secure_description">La tô conession no je sigure.</string>
+    <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+    <string name="protection_panel_banner_not_protected_title">Tu âs disativât lis protezions</string>
+    <!-- Description text for the protection panel banner when tracking protection is disabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_not_protected_description">%s al è fûr servizi. Ti conseìn di tornâ a ativâ lis protezions.</string>
+    <!-- Title text for the protection panel banner when tracking protection is enabled.
+        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
+    <string name="protection_panel_banner_protected_title">%s al è in vuaite</string>
+    <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+    <string name="protection_panel_banner_protected_description">Protezion ative. Se o cjatìn alc, tal fasarìn savê.</string>
+    <!-- Label text for the Enhanced Tracking Protection toggle. -->
+    <string name="protection_panel_etp_toggle_label">Protezion miorade da lis spiis</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description">Se alc nol va su chest sît, prove a disativâ lis protezions.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description">Lis protezions a son DISATIVADIS. Ti conseìn di tornâ a ativâlis.</string>
+
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
     <string name="debug_drawer_title">Struments di debug</string>
@@ -2864,6 +3020,12 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Elimine credenziâls cun non utent %s</string>
 
+    <!-- Debug drawer addresses -->
+    <!-- The title of the Addresses feature in the Debug Drawer. -->
+    <string name="debug_drawer_addresses_title">Direzions</string>
+    <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
+    <string name="debug_drawer_addresses_debug_locales_header">Lenghis di debug di ativâ</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Struments CFR</string>
@@ -2885,5 +3047,16 @@
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
     <string name="beta_feature">BETA</string>
+
+    <!-- Root certificate expiration warnings -->
+    <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
+    <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Inzorne daurman</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Inzorne il navigadôr Firefox</string>
+    <!-- Homepage card message about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Un certificât principâl al sta par scjadê e cualchi funzionalitât no funzionarà plui dai 14 di Març.</string>
+    <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Inzorne prime dai 14 di Març</string>
 
     </resources>

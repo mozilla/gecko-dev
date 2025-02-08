@@ -613,6 +613,12 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Za izboljšanje brskalnika Firefox Mozilli pošilja diagnostične podatke in podatke o uporabi. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Upravljaj</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Pomagajte Firefoxu rasti</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Kako uporabljamo te podatke</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Potrdi in začni z brskanjem</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Izberite postavitev orodne vrstice</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1056,10 +1062,14 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Tehnični podatki in podatki o interakcijah</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Pošiljaj tehnične podatke in podatke o interakcijah</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Več o tem</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Pošilja podatke o učinkovitosti, uporabi, strojni opremi in prilagoditvah organizaciji Mozilla, da lahko naredi %1$s boljši</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Podatki o vaši napravi, nastavitvi strojne opreme in uporabi nam pomagajo izboljševati zmogljivosti, delovanje in zanesljivost Firefoxa.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Podatki za trženje</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
@@ -1244,6 +1254,10 @@
     <string name="studies_active">Dejavna</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s lahko občasno namesti in izvaja raziskave.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Preizkusite funkcije in ideje, preden postanejo na voljo vsem.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Nameščaj in izvajaj raziskave</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Več o tem</string>
 

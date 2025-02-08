@@ -314,6 +314,8 @@
     <string name="browser_menu_tools">ເຄື່ອງມື</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">ກັບໄປທີ່ເມນູຫຼັກ</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">ປິດແຜ່ນເມນູຫຼັກ</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
     <string name="browser_main_menu_content_description_help_button">ຊ່ວຍເຫລືອ</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -327,6 +329,9 @@
     <string name="browser_tools_menu_handlebar_content_description">ປິດແຜ່ນເມນູເຄື່ອງມື</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
     <string name="browser_custom_tab_menu_handlebar_content_description">ປິດຊີດເມນູແຖບແບບກຳນົດເອງ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Reader View, Translate, %s, Print, Share, ເປີດແອັບ</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ບັນທຶກ</string>
@@ -714,6 +719,8 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">ກັບເຂົ້າໄປ</string>
+    <!-- Title for the customize home screen section with bookmarks. -->
+    <string name="customize_toggle_bookmarks">ບຸກມາກ</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">ຫາກໍ່ເຂົ້າໄປເບິງມື້ກີ້ນີ້</string>
@@ -756,6 +763,11 @@
     <string name="wallpapers_onboarding_dialog_body_text">ເລືອກຮູບວໍເປເປີທີ່ບົ່ງບອກຄວາມເປັນໂຕຕົນຂອງທ່ານ.</string>
     <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">ສຳຫຼວດຮູບພື້ນຫຼັງເພີ່ມເຕີມ</string>
+
+    <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
+    <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">ລອງຣີສະຕາດສ່ວນຂະຫຍາຍ</string>
+    <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
+    <string name="extension_process_crash_dialog_disable_extensions_button_text">ສືບຕໍ່ດ້ວຍການປິດການນຳໃຊ້ສ່ວນຂະຫຍາຍ</string>
 
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->

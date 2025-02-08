@@ -70,6 +70,12 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Platâ e mostrâ schedis dal navigadôr</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Acedi ae cronologjie di navigazion</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Discjariâ e eseguî modei di inteligjence artificiâl sul to dispositîf</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Permeti a scripts di tiercis bandis no verificâts di acedi ai tiei dâts</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">I scripts no verificâts a puedin compuartâ risis pe sigurece e la riservatece. Eseguìs scripts dome di estensions o origjins afidabilis.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Permeti ai struments dai disvilupadôrs di acedi ai tiei dâts tes schedis viertis</string>
     <!-- The version on of add-on. -->
