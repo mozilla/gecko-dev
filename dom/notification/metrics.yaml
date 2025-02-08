@@ -67,3 +67,19 @@ web_notification:
     notification_emails:
       - krosylight@mozilla.com
     expires: never
+  icon_url_encoding:
+    type: labeled_counter
+    description: >
+      The encoding of the notification icon URL
+    labels:
+      - utf8
+      - document_charset
+      - either_way
+      - neither_way
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1914203
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1914203
+    notification_emails:
+      - krosylight@mozilla.com
+    expires: 156
