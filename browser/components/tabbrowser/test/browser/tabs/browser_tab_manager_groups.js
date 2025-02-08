@@ -154,20 +154,11 @@ async function getContextMenu(triggerNode, contextMenuId) {
 
 /**
  * Tests that groups appear in the supplementary group menu
- * when they are saved (and closed,) or open in any window.
+ * when they are saved (and closed,) or open in another window.
  * Clicking an open group in this menu focuses it,
  * and clicking on a saved group restores it.
  */
 add_task(async function test_tabGroupsView() {
-  forgetSavedTabGroups();
-  let allTabsMenu = await openTabsMenu();
-  Assert.equal(
-    allTabsMenu.querySelectorAll("#allTabsMenu-groupsView toolbaritem").length,
-    0,
-    "tab groups section is empty initially"
-  );
-  await closeTabsMenu();
-
   const savedGroupId = "test-saved-group";
   let group1 = await createTestGroup({
     id: savedGroupId,
@@ -177,13 +168,12 @@ add_task(async function test_tabGroupsView() {
     label: "Test Open Group",
   });
 
-  allTabsMenu = await openTabsMenu();
+  let allTabsMenu = await openTabsMenu(window);
   Assert.equal(
     allTabsMenu.querySelectorAll("#allTabsMenu-groupsView toolbaritem").length,
-    2,
-    "tab groups section should list groups from the current window"
+    0,
+    "should not list tab groups that are in the same window"
   );
-  await closeTabsMenu();
 
   let newWindow = await BrowserTestUtils.openNewBrowserWindow();
   newWindow.gTabsPanel.init();
@@ -192,29 +182,30 @@ add_task(async function test_tabGroupsView() {
   Assert.equal(
     allTabsMenu.querySelectorAll("#allTabsMenu-groupsView toolbaritem").length,
     2,
-    "should list tab groups from any window"
+    "should list tab groups that are in another window"
   );
   Assert.equal(
-    allTabsMenu.querySelectorAll(
-      "#allTabsMenu-groupsView .all-tabs-group-action-button.tab-group-icon"
-    ).length,
+    allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-button")
+      .length,
     2,
-    "groups from any window should be shown as open"
+    "both groups should be shown as open"
   );
+
   await closeTabsMenu(newWindow);
 
   group1.save();
   await removeTabGroup(group1);
+
   Assert.ok(!gBrowser.getTabGroupById(savedGroupId), "Group 1 removed");
 
   allTabsMenu = await openTabsMenu(newWindow);
   Assert.equal(
     allTabsMenu.querySelectorAll("#allTabsMenu-groupsView toolbaritem").length,
     2,
-    "Saved groups should be shown in groups list"
+    "Both groups should be shown in groups list"
   );
   let savedGroupButton = allTabsMenu.querySelector(
-    "#allTabsMenu-groupsView .all-tabs-group-action-button.all-tabs-group-saved-group"
+    "#allTabsMenu-groupsView .all-tabs-button.all-tabs-group-saved-group"
   );
   Assert.equal(
     savedGroupButton.label,
@@ -243,6 +234,13 @@ add_task(async function test_tabGroupsView() {
   savedGroupButton.click();
   group1 = gBrowser.getTabGroupById(savedGroupId);
   Assert.ok(group1, "Group 1 has been restored");
+  allTabsMenu = await openTabsMenu();
+  Assert.ok(
+    !allTabsMenu.querySelector("#allTabsMenu-groupsView .all-tabs-button"),
+    "Groups list is now empty for this window"
+  );
+
+  await closeTabsMenu();
 
   gBrowser.removeTabGroup(group1);
   gBrowser.removeTabGroup(group2);
@@ -250,21 +248,25 @@ add_task(async function test_tabGroupsView() {
 });
 
 /**
- * Tests that the groups section initially shows at most 5 groups, or 4
+ * Tests that the groups view initially shows at most 6 closed groups, or 5
  * plus a "show more" button.
  */
 add_task(async function test_groupsViewShowMore() {
-  const groupId = "test-group";
+  const savedGroupId = "test-saved-group";
   let groups = [];
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 7; i++) {
     let group = await createTestGroup({
-      id: groupId + i,
-      label: "Test Group " + i,
+      id: savedGroupId + i,
+      label: "Test Saved Group " + i,
     });
     groups.push(group);
   }
 
-  let allTabsMenu = await openTabsMenu();
+  for (let i = 0; i < 5; i++) {
+    groups[i].save();
+    await removeTabGroup(groups[i]);
+  }
+  let allTabsMenu = await openTabsMenu(window);
   Assert.equal(
     allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
       .length,
@@ -275,43 +277,48 @@ add_task(async function test_groupsViewShowMore() {
     !allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore"),
     "Show more button should not be shown"
   );
+  await closeTabsMenu(window);
 
-  groups.push(
-    await createTestGroup({
-      id: groupId + 6,
-      label: "Test Group " + 6,
-    })
-  );
-  await closeTabsMenu();
-  allTabsMenu = await openTabsMenu();
+  groups[5].save();
+  await removeTabGroup(groups[5]);
+  allTabsMenu = await openTabsMenu(window);
   Assert.equal(
     allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
       .length,
-    4,
-    "4 groups should be shown in groups list"
+    6,
+    "6 groups should be shown in groups list"
+  );
+  Assert.ok(
+    !allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore"),
+    "Show more button should not be shown"
+  );
+  await closeTabsMenu(window);
+
+  groups[6].save();
+  await removeTabGroup(groups[6]);
+  allTabsMenu = await openTabsMenu(window);
+  Assert.equal(
+    allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
+      .length,
+    5,
+    "5 groups should be shown in groups list"
   );
   let showMore = allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore");
   Assert.ok(showMore, "Show more button should be shown");
-
-  let subView = document.getElementById("allTabsMenu-groupsSubView");
-  let subViewShown = BrowserTestUtils.waitForEvent(subView, "ViewShown");
   showMore.click();
-  await subViewShown;
-
   Assert.equal(
-    subView.querySelectorAll(".all-tabs-group-item").length,
-    6,
-    "6 groups should be shown in groups sub view"
+    allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
+      .length,
+    7,
+    "7 groups should be shown in groups list"
   );
   Assert.ok(
-    !subView.querySelector("#allTabsMenu-groupsViewShowMore"),
-    "Show more button should not be shown in sub view"
+    !allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore"),
+    "Show more button should not be shown"
   );
-  await closeTabsMenu();
+  await closeTabsMenu(window);
 
-  while (groups.length) {
-    await removeTabGroup(groups.pop());
-  }
+  forgetSavedTabGroups();
 });
 
 /**

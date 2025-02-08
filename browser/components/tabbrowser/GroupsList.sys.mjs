@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const MAX_INITIAL_ITEMS = 5;
+const MAX_INITIAL_ITEMS = 6;
 
 export class GroupsPanel {
-  constructor({ view, containerNode, showAll = false }) {
+  constructor({ view, containerNode }) {
     this.view = view;
-    this.#showAll = showAll;
+
     this.containerNode = containerNode;
     this.win = containerNode.ownerGlobal;
     this.doc = containerNode.ownerDocument;
@@ -19,6 +19,7 @@ export class GroupsPanel {
     switch (event.type) {
       case "ViewShowing":
         if (event.target == this.view) {
+          this.#showAll = false;
           this.panelMultiView = this.view.panelMultiView;
           this.#populate();
           this.#addObservers();
@@ -75,6 +76,11 @@ export class GroupsPanel {
       case "allTabsGroupView_restoreGroup":
         this.win.SessionStore.openSavedTabGroup(tabGroupId, this.win);
         break;
+
+      case "allTabsGroupView_showAll":
+        this.#showAll = true;
+        this.#populate();
+        break;
     }
   }
 
@@ -88,12 +94,16 @@ export class GroupsPanel {
     this.view.removeEventListener("command", this);
   }
 
-  #showAll;
+  #showAll = false;
   #populate() {
     let fragment = this.doc.createDocumentFragment();
 
-    let openGroups = this.win.gBrowser.getAllTabGroups();
-    openGroups.sort(
+    let otherWindowGroups = this.win.gBrowser
+      .getAllTabGroups()
+      .filter(group => {
+        return group.ownerGlobal !== this.win;
+      });
+    otherWindowGroups.sort(
       (group1, group2) => group2.lastSeenActive - group1.lastSeenActive
     );
 
@@ -101,7 +111,7 @@ export class GroupsPanel {
       (group1, group2) => group2.closedAt - group1.closedAt
     );
 
-    let totalItemCount = savedGroups.length + openGroups.length;
+    let totalItemCount = savedGroups.length + otherWindowGroups.length;
     if (totalItemCount) {
       let header = this.doc.createElement("h2");
       header.setAttribute("class", "subview-subheader");
@@ -111,9 +121,9 @@ export class GroupsPanel {
 
     let showAll = this.#showAll || totalItemCount <= MAX_INITIAL_ITEMS;
     let itemCount = 1; // Start with 1 to account for "show more" button
-    for (let groupData of openGroups) {
+    for (let groupData of otherWindowGroups) {
       if (itemCount >= MAX_INITIAL_ITEMS && !showAll) {
-        break;
+        continue;
       }
       itemCount++;
       let row = this.#createRow(groupData);
@@ -126,7 +136,7 @@ export class GroupsPanel {
 
     for (let groupData of savedGroups) {
       if (itemCount >= MAX_INITIAL_ITEMS && !showAll) {
-        break;
+        continue;
       }
       itemCount++;
       let row = this.#createRow(groupData, { isOpen: false });
@@ -141,8 +151,8 @@ export class GroupsPanel {
     if (!showAll) {
       let button = this.doc.createXULElement("toolbarbutton");
       button.setAttribute("id", "allTabsMenu-groupsViewShowMore");
-      button.setAttribute("class", "subviewbutton subviewbutton-nav");
-      button.setAttribute("closemenu", "none");
+      button.setAttribute("class", "subviewbutton");
+      button.dataset.command = "allTabsGroupView_showAll";
       button.setAttribute("flex", "1");
       this.doc.l10n.setAttributes(
         button,

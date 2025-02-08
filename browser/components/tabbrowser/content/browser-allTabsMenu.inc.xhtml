@@ -18,19 +18,20 @@
                      class="subviewbutton subviewbutton-nav"
                      closemenu="none"
                      data-l10n-id="all-tabs-menu-new-user-context"/>
-      <toolbarseparator id="allTabsMenu-groupsSeparator"/>
-      <vbox id="allTabsMenu-groupsView"/>
       <toolbarseparator id="allTabsMenu-hiddenTabsSeparator"/>
       <toolbarbutton id="allTabsMenu-hiddenTabsButton"
                      class="subviewbutton subviewbutton-nav"
                      closemenu="none"
                      data-l10n-id="all-tabs-menu-hidden-tabs"/>
-      <toolbarseparator id="allTabsMenu-tabsSeparator"/>
-      <html:h2 class="subview-subheader" data-l10n-id="all-tabs-menu-current-window-header"/>
-      <vbox id="allTabsMenu-dropIndicatorHolder">
-        <vbox id="allTabsMenu-dropIndicator" collapsed="true"/>
+      <toolbarseparator id="allTabsMenu-groupsSeparator"/>
+      <vbox class="panel-subview-body">
+        <vbox id="allTabsMenu-groupsView"/>
+        <toolbarseparator id="allTabsMenu-tabsSeparator"/>
+        <vbox id="allTabsMenu-dropIndicatorHolder">
+          <vbox id="allTabsMenu-dropIndicator" collapsed="true"/>
+        </vbox>
+        <vbox id="allTabsMenu-allTabsView-tabs"/>
       </vbox>
-      <vbox id="allTabsMenu-allTabsView-tabs" class="panel-subview-body"/>
     </vbox>
   </panelview>
 
@@ -45,9 +46,5 @@
                      data-l10n-id="user-context-manage-containers"
                      command="Browser:OpenAboutContainers"/>
     </vbox>
-  </panelview>
-
-  <panelview id="allTabsMenu-groupsSubView" class="PanelUI-subView">
-    <vbox id="allTabsMenu-groupsSubView-body" class="panel-subview-body"/>
   </panelview>
 </html:template>
