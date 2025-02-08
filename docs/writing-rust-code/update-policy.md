@@ -164,7 +164,7 @@ Here are the Rust versions for each Firefox version.
 | Firefox 135 | Rust 1.83.0 | 1.76.0 | 2024 November 28 | 2025 January 2 | 2025 February 4
 | Firefox 136 | Rust 1.84.0 | 1.76.0 | 2025 January 9 | 2025 January 30 | 2025 March 4
 | **Estimated** |
-| Firefox 137 | Rust 1.85.0 | 1.83.0 | 2025 February 20 | 2025 February 27 | 2025 April 1
+| Firefox 137 | Rust 1.85.0 | ? | 2025 February 20 | 2025 February 27 | 2025 April 1
 | Firefox 138 | Rust 1.85.0 | ? | 2025 February 20 | 2025 March 27 | 2025 April 29
 | Firefox 139 | Rust 1.86.0 | ? | 2025 April 3 | 2025 April 24 | 2025 May 27
 | Firefox 140 | Rust 1.87.0 | ? | 2025 May 15 | 2025 May 22 | 2025 June 24
