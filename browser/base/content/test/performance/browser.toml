@@ -118,4 +118,4 @@ skip-if = ["true"]  # Bug 1926118: Disabled until the test can be revisited to m
 ["browser_windowclose.js"]
 
 ["browser_windowopen.js"]
-skip-if = ["nightly_build"] # Bug 1936557
+skip-if = ["early_beta_or_earlier"] # Bug 1936557, Bug 1945167
