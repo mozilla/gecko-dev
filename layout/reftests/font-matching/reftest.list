@@ -119,7 +119,6 @@ random-if(!(cocoaWidget||winWidget)) == arial-arabic.html arial-arabic-ref.html
 skip-if(!cocoaWidget) != apple-symbols-1.html apple-symbols-1-notref.html
 
 # distinguish between italic and oblique
-== simple-oblique.html simple-oblique-ref.html
 == italic-oblique-1.html italic-oblique-ref.html
 == italic-oblique-2.html italic-oblique-ref.html
 == italic-oblique-3.html italic-oblique-ref.html
