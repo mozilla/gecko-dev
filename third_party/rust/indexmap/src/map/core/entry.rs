@@ -144,6 +144,10 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
         &self.raw.bucket().key
     }
 
+    pub(crate) fn key_mut(&mut self) -> &mut K {
+        &mut self.raw.bucket_mut().key
+    }
+
     /// Gets a reference to the entry's value in the map.
     pub fn get(&self) -> &V {
         &self.raw.bucket().value
@@ -278,6 +282,17 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for OccupiedEntry<'_, K, V> {
     }
 }
 
+impl<'a, K, V> From<IndexedEntry<'a, K, V>> for OccupiedEntry<'a, K, V> {
+    fn from(entry: IndexedEntry<'a, K, V>) -> Self {
+        Self {
+            raw: entry
+                .map
+                .index_raw_entry(entry.index)
+                .expect("index not found"),
+        }
+    }
+}
+
 /// A view into a vacant entry in an [`IndexMap`][crate::IndexMap].
 /// It is part of the [`Entry`] enum.
 pub struct VacantEntry<'a, K, V> {
@@ -295,6 +310,10 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
     /// Gets a reference to the key that was used to find the entry.
     pub fn key(&self) -> &K {
         &self.key
+    }
+
+    pub(crate) fn key_mut(&mut self) -> &mut K {
+        &mut self.key
     }
 
     /// Takes ownership of the key, leaving the entry vacant.
@@ -371,6 +390,10 @@ impl<'a, K, V> IndexedEntry<'a, K, V> {
     /// Gets a reference to the entry's key in the map.
     pub fn key(&self) -> &K {
         &self.map.entries[self.index].key
+    }
+
+    pub(crate) fn key_mut(&mut self) -> &mut K {
+        &mut self.map.entries[self.index].key
     }
 
     /// Gets a reference to the entry's value in the map.
@@ -477,5 +500,12 @@ impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for IndexedEntry<'_, K, V> {
             .field("key", self.key())
             .field("value", self.get())
             .finish()
+    }
+}
+
+impl<'a, K, V> From<OccupiedEntry<'a, K, V>> for IndexedEntry<'a, K, V> {
+    fn from(entry: OccupiedEntry<'a, K, V>) -> Self {
+        let (map, index) = entry.raw.into_inner();
+        Self { map, index }
     }
 }

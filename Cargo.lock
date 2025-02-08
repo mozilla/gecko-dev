@@ -2739,7 +2739,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "slab",
  "tokio",
  "tokio-util",
@@ -3155,14 +3155,14 @@ dependencies = [
 name = "indexmap"
 version = "1.999.999"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
 ]
 
 [[package]]
 name = "indexmap"
-version = "2.2.6"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26"
+checksum = "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.5",
@@ -3316,7 +3316,7 @@ version = "0.1.0"
 source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
 dependencies = [
  "bumpalo",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
 ]
 
 [[package]]
@@ -3326,7 +3326,7 @@ source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a64
 dependencies = [
  "bumpalo",
  "byteorder",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "jsparagus-ast",
  "jsparagus-scope",
  "jsparagus-stencil",
@@ -3364,7 +3364,7 @@ name = "jsparagus-scope"
 version = "0.1.0"
 source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "jsparagus-ast",
  "jsparagus-stencil",
 ]
@@ -4327,7 +4327,7 @@ dependencies = [
  "icu_locid",
  "icu_properties",
  "idna",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "itertools",
  "libc",
  "lmdb-rkv-sys",
@@ -4479,7 +4479,7 @@ dependencies = [
  "cfg_aliases",
  "codespan-reporting",
  "hexf-parse",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "log",
  "rustc-hash",
  "serde",
@@ -4573,7 +4573,7 @@ version = "0.11.0"
 source = "git+https://github.com/mozilla/neqo?tag=v0.11.0#c6d5502fb5b827473e7c5d7c4c380275cdb3d931"
 dependencies = [
  "enum-map",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "log",
  "neqo-common",
  "neqo-crypto",
@@ -5071,7 +5071,7 @@ name = "plist"
 version = "1.3.1"
 dependencies = [
  "base64 0.13.999",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "line-wrap",
  "serde",
  "time 0.3.36",
@@ -5798,7 +5798,7 @@ version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e17db7126d17feb94eb3fad46bf1a96b034e8aacbc2e775fe81505f8b0b2813"
 dependencies = [
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "itoa",
  "ryu",
  "serde",
@@ -5884,7 +5884,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27daf6ed3fc7ffd5ea3ce9f684fe351c47e50f2fdbb6236e2bad0b440dbe408"
 dependencies = [
  "data-encoding",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "rust_decimal",
 ]
 
@@ -6132,7 +6132,7 @@ dependencies = [
  "fxhash",
  "gecko-profiler",
  "icu_segmenter",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "itertools",
  "itoa",
  "lazy_static",
@@ -7142,7 +7142,7 @@ dependencies = [
  "anyhow",
  "arbitrary",
  "flagset",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "leb128",
  "wasm-encoder",
 ]
@@ -7154,7 +7154,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c771866898879073c53b565a6c7b49953795159836714ac56a5befb581227c5"
 dependencies = [
  "bitflags 2.7.0",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
 ]
 
 [[package]]
@@ -7344,7 +7344,7 @@ dependencies = [
  "bitflags 2.7.0",
  "cfg_aliases",
  "document-features",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "log",
  "naga",
  "once_cell",
@@ -7814,7 +7814,7 @@ dependencies = [
  "crossbeam-utils",
  "displaydoc",
  "flate2",
- "indexmap 2.2.6",
+ "indexmap 2.5.0",
  "memchr",
  "thiserror 1.999.999",
 ]

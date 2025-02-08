@@ -13,7 +13,12 @@
 edition = "2021"
 rust-version = "1.63"
 name = "indexmap"
-version = "2.2.6"
+version = "2.5.0"
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A hash table with consistent order and fast iteration."
 documentation = "https://docs.rs/indexmap/"
 readme = "README.md"
@@ -42,14 +47,41 @@ rustdoc-args = [
 ]
 
 [package.metadata.release]
-no-dev-version = true
+allow-branch = ["master"]
+sign-tag = true
 tag-name = "{{version}}"
 
 [profile.bench]
 debug = 2
 
 [lib]
+name = "indexmap"
+path = "src/lib.rs"
 bench = false
+
+[[test]]
+name = "equivalent_trait"
+path = "tests/equivalent_trait.rs"
+
+[[test]]
+name = "macros_full_path"
+path = "tests/macros_full_path.rs"
+
+[[test]]
+name = "quick"
+path = "tests/quick.rs"
+
+[[test]]
+name = "tests"
+path = "tests/tests.rs"
+
+[[bench]]
+name = "bench"
+path = "benches/bench.rs"
+
+[[bench]]
+name = "faststring"
+path = "benches/faststring.rs"
 
 [dependencies.arbitrary]
 version = "1.0"
@@ -96,7 +128,7 @@ version = "1.0"
 version = "0.2.1"
 
 [dev-dependencies.itertools]
-version = "0.12"
+version = "0.13"
 
 [dev-dependencies.lazy_static]
 version = "1.3"

@@ -156,6 +156,67 @@ impl<K, V> Default for IterMut<'_, K, V> {
     }
 }
 
+/// A mutable iterator over the entries of an [`IndexMap`].
+///
+/// This `struct` is created by the [`MutableKeys::iter_mut2`][super::MutableKeys::iter_mut2] method.
+/// See its documentation for more.
+pub struct IterMut2<'a, K, V> {
+    iter: slice::IterMut<'a, Bucket<K, V>>,
+}
+
+impl<'a, K, V> IterMut2<'a, K, V> {
+    pub(super) fn new(entries: &'a mut [Bucket<K, V>]) -> Self {
+        Self {
+            iter: entries.iter_mut(),
+        }
+    }
+
+    /// Returns a slice of the remaining entries in the iterator.
+    pub fn as_slice(&self) -> &Slice<K, V> {
+        Slice::from_slice(self.iter.as_slice())
+    }
+
+    /// Returns a mutable slice of the remaining entries in the iterator.
+    ///
+    /// To avoid creating `&mut` references that alias, this is forced to consume the iterator.
+    pub fn into_slice(self) -> &'a mut Slice<K, V> {
+        Slice::from_mut_slice(self.iter.into_slice())
+    }
+}
+
+impl<'a, K, V> Iterator for IterMut2<'a, K, V> {
+    type Item = (&'a mut K, &'a mut V);
+
+    iterator_methods!(Bucket::muts);
+}
+
+impl<K, V> DoubleEndedIterator for IterMut2<'_, K, V> {
+    double_ended_iterator_methods!(Bucket::muts);
+}
+
+impl<K, V> ExactSizeIterator for IterMut2<'_, K, V> {
+    fn len(&self) -> usize {
+        self.iter.len()
+    }
+}
+
+impl<K, V> FusedIterator for IterMut2<'_, K, V> {}
+
+impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for IterMut2<'_, K, V> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let iter = self.iter.as_slice().iter().map(Bucket::refs);
+        f.debug_list().entries(iter).finish()
+    }
+}
+
+impl<K, V> Default for IterMut2<'_, K, V> {
+    fn default() -> Self {
+        Self {
+            iter: [].iter_mut(),
+        }
+    }
+}
+
 /// An owning iterator over the entries of an [`IndexMap`].
 ///
 /// This `struct` is created by the [`IndexMap::into_iter`] method

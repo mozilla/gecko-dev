@@ -94,7 +94,7 @@
 //! `default-features = false` to your dependency specification.
 //!
 //! - Creating maps and sets using [`new`][IndexMap::new] and
-//! [`with_capacity`][IndexMap::with_capacity] is unavailable without `std`.
+//!   [`with_capacity`][IndexMap::with_capacity] is unavailable without `std`.
 //!   Use methods [`IndexMap::default`], [`with_hasher`][IndexMap::with_hasher],
 //!   [`with_capacity_and_hasher`][IndexMap::with_capacity_and_hasher] instead.
 //!   A no-std compatible hasher will be needed as well, for example

@@ -361,7 +361,7 @@ where
     ///
     /// This is equivalent to finding the position with
     /// [`binary_search`][Self::binary_search], and if needed calling
-    /// [`shift_insert`][Self::shift_insert] for a new value.
+    /// [`insert_before`][Self::insert_before] for a new value.
     ///
     /// If the sorted item is found in the set, it returns the index of that
     /// existing item and `false`, without any change. Otherwise, it inserts the
@@ -383,16 +383,106 @@ where
         (index, existing.is_none())
     }
 
-    /// Insert the value into the set at the given index.
+    /// Insert the value into the set before the value at the given index, or at the end.
     ///
-    /// If an equivalent item already exists in the set, it returns
-    /// `false` leaving the original value in the set, but moving it to
-    /// the new position in the set. Otherwise, it inserts the new
-    /// item at the given index and returns `true`.
+    /// If an equivalent item already exists in the set, it returns `false` leaving the
+    /// original value in the set, but moved to the new position. The returned index
+    /// will either be the given index or one less, depending on how the value moved.
+    /// (See [`shift_insert`](Self::shift_insert) for different behavior here.)
+    ///
+    /// Otherwise, it inserts the new value exactly at the given index and returns `true`.
     ///
     /// ***Panics*** if `index` is out of bounds.
+    /// Valid indices are `0..=set.len()` (inclusive).
     ///
     /// Computes in **O(n)** time (average).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use indexmap::IndexSet;
+    /// let mut set: IndexSet<char> = ('a'..='z').collect();
+    ///
+    /// // The new value '*' goes exactly at the given index.
+    /// assert_eq!(set.get_index_of(&'*'), None);
+    /// assert_eq!(set.insert_before(10, '*'), (10, true));
+    /// assert_eq!(set.get_index_of(&'*'), Some(10));
+    ///
+    /// // Moving the value 'a' up will shift others down, so this moves *before* 10 to index 9.
+    /// assert_eq!(set.insert_before(10, 'a'), (9, false));
+    /// assert_eq!(set.get_index_of(&'a'), Some(9));
+    /// assert_eq!(set.get_index_of(&'*'), Some(10));
+    ///
+    /// // Moving the value 'z' down will shift others up, so this moves to exactly 10.
+    /// assert_eq!(set.insert_before(10, 'z'), (10, false));
+    /// assert_eq!(set.get_index_of(&'z'), Some(10));
+    /// assert_eq!(set.get_index_of(&'*'), Some(11));
+    ///
+    /// // Moving or inserting before the endpoint is also valid.
+    /// assert_eq!(set.len(), 27);
+    /// assert_eq!(set.insert_before(set.len(), '*'), (26, false));
+    /// assert_eq!(set.get_index_of(&'*'), Some(26));
+    /// assert_eq!(set.insert_before(set.len(), '+'), (27, true));
+    /// assert_eq!(set.get_index_of(&'+'), Some(27));
+    /// assert_eq!(set.len(), 28);
+    /// ```
+    pub fn insert_before(&mut self, index: usize, value: T) -> (usize, bool) {
+        let (index, existing) = self.map.insert_before(index, value, ());
+        (index, existing.is_none())
+    }
+
+    /// Insert the value into the set at the given index.
+    ///
+    /// If an equivalent item already exists in the set, it returns `false` leaving
+    /// the original value in the set, but moved to the given index.
+    /// Note that existing values **cannot** be moved to `index == set.len()`!
+    /// (See [`insert_before`](Self::insert_before) for different behavior here.)
+    ///
+    /// Otherwise, it inserts the new value at the given index and returns `true`.
+    ///
+    /// ***Panics*** if `index` is out of bounds.
+    /// Valid indices are `0..set.len()` (exclusive) when moving an existing value, or
+    /// `0..=set.len()` (inclusive) when inserting a new value.
+    ///
+    /// Computes in **O(n)** time (average).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use indexmap::IndexSet;
+    /// let mut set: IndexSet<char> = ('a'..='z').collect();
+    ///
+    /// // The new value '*' goes exactly at the given index.
+    /// assert_eq!(set.get_index_of(&'*'), None);
+    /// assert_eq!(set.shift_insert(10, '*'), true);
+    /// assert_eq!(set.get_index_of(&'*'), Some(10));
+    ///
+    /// // Moving the value 'a' up to 10 will shift others down, including the '*' that was at 10.
+    /// assert_eq!(set.shift_insert(10, 'a'), false);
+    /// assert_eq!(set.get_index_of(&'a'), Some(10));
+    /// assert_eq!(set.get_index_of(&'*'), Some(9));
+    ///
+    /// // Moving the value 'z' down to 9 will shift others up, including the '*' that was at 9.
+    /// assert_eq!(set.shift_insert(9, 'z'), false);
+    /// assert_eq!(set.get_index_of(&'z'), Some(9));
+    /// assert_eq!(set.get_index_of(&'*'), Some(10));
+    ///
+    /// // Existing values can move to len-1 at most, but new values can insert at the endpoint.
+    /// assert_eq!(set.len(), 27);
+    /// assert_eq!(set.shift_insert(set.len() - 1, '*'), false);
+    /// assert_eq!(set.get_index_of(&'*'), Some(26));
+    /// assert_eq!(set.shift_insert(set.len(), '+'), true);
+    /// assert_eq!(set.get_index_of(&'+'), Some(27));
+    /// assert_eq!(set.len(), 28);
+    /// ```
+    ///
+    /// ```should_panic
+    /// use indexmap::IndexSet;
+    /// let mut set: IndexSet<char> = ('a'..='z').collect();
+    ///
+    /// // This is an invalid index for moving an existing value!
+    /// set.shift_insert(set.len(), 'a');
+    /// ```
     pub fn shift_insert(&mut self, index: usize, value: T) -> bool {
         self.map.shift_insert(index, value, ()).is_none()
     }
@@ -500,6 +590,36 @@ where
         I: IntoIterator<Item = T>,
     {
         Splice::new(self, range, replace_with.into_iter())
+    }
+
+    /// Moves all values from `other` into `self`, leaving `other` empty.
+    ///
+    /// This is equivalent to calling [`insert`][Self::insert] for each value
+    /// from `other` in order, which means that values that already exist
+    /// in `self` are unchanged in their current position.
+    ///
+    /// See also [`union`][Self::union] to iterate the combined values by
+    /// reference, without modifying `self` or `other`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use indexmap::IndexSet;
+    ///
+    /// let mut a = IndexSet::from([3, 2, 1]);
+    /// let mut b = IndexSet::from([3, 4, 5]);
+    /// let old_capacity = b.capacity();
+    ///
+    /// a.append(&mut b);
+    ///
+    /// assert_eq!(a.len(), 5);
+    /// assert_eq!(b.len(), 0);
+    /// assert_eq!(b.capacity(), old_capacity);
+    ///
+    /// assert!(a.iter().eq(&[3, 2, 1, 4, 5]));
+    /// ```
+    pub fn append<S2>(&mut self, other: &mut IndexSet<T, S2>) {
+        self.map.append(&mut other.map);
     }
 }
 
@@ -678,6 +798,7 @@ impl<T, S> IndexSet<T, S> {
     /// This preserves the order of the remaining elements.
     ///
     /// Computes in **O(1)** time (average).
+    #[doc(alias = "pop_last")] // like `BTreeSet`
     pub fn pop(&mut self) -> Option<T> {
         self.map.pop().map(|(x, ())| x)
     }
