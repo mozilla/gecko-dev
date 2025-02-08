@@ -1224,15 +1224,12 @@ constexpr double kStretchFactor = 1.0e8;
 constexpr double kStyleFactor = 1.0e4;
 constexpr double kWeightFactor = 1.0e0;
 
-// If the output range of this function is extended, check assertions &
-// usage at the callsites!
 // style distance ==> [0,900]
 static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
                                    mozilla::FontSlantStyle aTargetStyle,
                                    bool aItalicToObliqueFallback) {
   const mozilla::FontSlantStyle minStyle = aRange.Min();
-  const mozilla::FontSlantStyle maxStyle = aRange.Max();
-  if (aTargetStyle == minStyle || aTargetStyle == maxStyle) {
+  if (aTargetStyle == minStyle) {
     return 0.0;  // styles match exactly ==> 0
   }
 
@@ -1249,19 +1246,22 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
   const double kBadFallback = 400.0;
 
   if (aTargetStyle.IsNormal()) {
-    if (minStyle.IsItalic() || maxStyle.IsItalic()) {
-      // italic is the worst match (prefer any oblique; 0deg was requested)
-      return kBadFallback + kNegate + kReverse;
+    if (minStyle.IsItalic()) {
+      // italic is worse than any non-negative oblique;
+      // treat as a match in the wrong search direction
+      return kReverse;
     }
     const double minAngle = minStyle.ObliqueAngle();
     if (minAngle >= 0.0) {
       return minAngle;
     }
+    const mozilla::FontSlantStyle maxStyle = aRange.Max();
     const double maxAngle = maxStyle.ObliqueAngle();
     if (maxAngle >= 0.0) {
       // [min,max] range includes 0.0, so it's a perfect match
       return 0.0;
     }
+    // negative oblique is even worse than italic
     return kNegate - maxAngle;
   }
 
@@ -1269,6 +1269,11 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
 
   if (aTargetStyle.IsItalic()) {
     MOZ_ASSERT(!minStyle.IsItalic());  // we checked for equality above
+    const mozilla::FontSlantStyle maxStyle = aRange.Max();
+    if (maxStyle.IsItalic()) {
+      // Must be a font with an 'ital' axis, so consider this a match.
+      return 0.0;
+    }
     double targetAngle = kDefaultAngle;
     double fallbackBias = 0.0;
     if (!aItalicToObliqueFallback) {
@@ -1300,13 +1305,11 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
   // the value of the <angle>, which determines the preferred direction
   // of search
   const double targetAngle = aTargetStyle.ObliqueAngle();
-
-  // italic is a bad fallback if it was not requested
-  if (minStyle.IsItalic() || maxStyle.IsItalic()) {
-    return kBadFallback + kNegate + kReverse;
-  }
-
+  const mozilla::FontSlantStyle maxStyle = aRange.Max();
   if (targetAngle >= kDefaultAngle) {
+    if (minStyle.IsItalic() || maxStyle.IsItalic()) {
+      return kReverse + kNegate;
+    }
     const double minAngle = minStyle.ObliqueAngle();
     if (minAngle >= targetAngle) {
       return minAngle - targetAngle;
@@ -1322,6 +1325,9 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
   }
 
   if (targetAngle <= -kDefaultAngle) {
+    if (minStyle.IsItalic() || maxStyle.IsItalic()) {
+      return kReverse + kNegate;
+    }
     const double maxAngle = maxStyle.ObliqueAngle();
     if (maxAngle <= targetAngle) {
       return targetAngle - maxAngle;
@@ -1337,6 +1343,9 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
   }
 
   if (targetAngle >= 0.0) {
+    if (minStyle.IsItalic() || maxStyle.IsItalic()) {
+      return kReverse + kNegate - 1.0;
+    }
     const double minAngle = minStyle.ObliqueAngle();
     if (minAngle > targetAngle) {
       return kReverse + (minAngle - targetAngle);
@@ -1352,6 +1361,9 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
   }
 
   // last case: (targetAngle < 0.0 && targetAngle > kDefaultAngle)
+  if (minStyle.IsItalic() || maxStyle.IsItalic()) {
+    return kReverse + kNegate - 1.0;
+  }
   const double maxAngle = maxStyle.ObliqueAngle();
   if (maxAngle < targetAngle) {
     return kReverse + (targetAngle - maxAngle);
@@ -1366,8 +1378,6 @@ static inline double StyleDistance(const mozilla::SlantStyleRange& aRange,
   return kReverse + kNegate + (minAngle - targetAngle);
 }
 
-// If the output range of this function is extended, check assertions &
-// usage at the callsites!
 // stretch distance ==> [0,2000]
 static inline double StretchDistance(const mozilla::StretchRange& aRange,
                                      mozilla::FontStretch aTargetStretch) {
@@ -1407,8 +1417,6 @@ static inline double StretchDistance(const mozilla::StretchRange& aRange,
 // weights are farther away than lighter weights. If the target is 5 and the
 // font weight 995, the distance would be 1590 for the same reason.
 
-// If the output range of this function is extended, check assertions &
-// usage at the callsites!
 // weight distance ==> [0,1600]
 static inline double WeightDistance(const mozilla::WeightRange& aRange,
                                     mozilla::FontWeight aTargetWeight) {
