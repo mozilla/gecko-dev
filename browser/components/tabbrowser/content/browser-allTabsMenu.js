@@ -22,6 +22,7 @@ var gTabsPanel = {
     hiddenTabsButton: "allTabsMenu-hiddenTabsButton",
     hiddenTabsView: "allTabsMenu-hiddenTabsView",
     groupsView: "allTabsMenu-groupsView",
+    groupsSubView: "allTabsMenu-groupsSubView",
   },
   _initialized: false,
   _initializedElements: false,
@@ -69,6 +70,11 @@ var gTabsPanel = {
       view: this.allTabsView,
       containerNode: this.groupsView,
     });
+    this.showAllGroupsPanel = new GroupsPanel({
+      view: this.allTabsView,
+      containerNode: this.groupsSubView,
+      showAll: true,
+    });
 
     this.allTabsView.addEventListener("ViewShowing", () => {
       PanelUI._ensureShortcutsShown(this.allTabsView);
@@ -100,6 +106,12 @@ var gTabsPanel = {
         !PlacesUIUtils.shouldShowTabsFromOtherComputersMenuitem();
     });
 
+    this.allTabsView.addEventListener("ViewShown", () =>
+      this.allTabsView
+        .querySelector(".all-tabs-item[selected]")
+        ?.scrollIntoView({ block: "center" })
+    );
+
     this.allTabsView.addEventListener("command", event => {
       let { target } = event;
       let { PanelUI } = target.ownerGlobal;
@@ -118,6 +130,9 @@ var gTabsPanel = {
           break;
         case "allTabsMenu-syncedTabs":
           SidebarController.show("viewTabsSidebar");
+          break;
+        case "allTabsMenu-groupsViewShowMore":
+          PanelUI.showSubView(this.kElements.groupsSubView, target);
           break;
       }
     });

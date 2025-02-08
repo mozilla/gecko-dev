@@ -17,3 +17,5 @@ all-tabs-menu-close-all-duplicate-tabs =
 
 all-tabs-menu-synced-tabs =
   .label = Tabs from other devices
+
+all-tabs-menu-current-window-header = Current window
