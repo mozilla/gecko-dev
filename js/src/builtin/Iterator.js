@@ -1058,33 +1058,14 @@ function IteratorZipKeyed(predicate) {
 
 
 /**
- * CreateNumericRangeIterator (start, end, optionOrStep, type)
- * Step 18 
+ * Iterator.range (start, end, step, inclusiveEnd, zero, one)
  * 
  * https://tc39.es/proposal-iterator.range/#sec-create-numeric-range-iterator
  */
-function IteratorRangeNext() {
-  var obj = this;
-  // Step 18. Let closure be a new Abstract Closure with no parameters 
-  // that captures start, end, step, inclusiveEnd, zero, one and performs the following steps when called:
+function* IteratorRangeGenerator(start, end, step, inclusiveEnd, zero, one) {
+  //TODO: Handle setting prototype for generators returned from Iterator.range
 
-  if (!IsObject(obj) || (obj = GuardToIteratorRange(obj)) === null) {
-    return callFunction(
-      CallIteratorRangeMethodIfWrapped,
-      this,
-      "IteratorRangeNext"
-    );
-  }
-
-  // Retrieve values from reserved slots
-  var start = UnsafeGetReservedSlot(obj, ITERATOR_RANGE_SLOT_START);
-  var end = UnsafeGetReservedSlot(obj, ITERATOR_RANGE_SLOT_END);
-  var step = UnsafeGetReservedSlot(obj, ITERATOR_RANGE_SLOT_STEP);
-  var inclusiveEnd = UnsafeGetReservedSlot(obj, ITERATOR_RANGE_SLOT_INCLUSIVE_END);
-  var zero = UnsafeGetReservedSlot(obj, ITERATOR_RANGE_SLOT_ZERO);
-  var one = UnsafeGetReservedSlot(obj, ITERATOR_RANGE_SLOT_ONE);
-  var currentCount = UnsafeGetReservedSlot(obj, ITERATOR_RANGE_SLOT_CURRENT_COUNT);
-
+  // Step 18. Let closure be a new Abstract Closure with no parameters that captures start, end, step, inclusiveEnd, zero, one and performs the following steps when called:
   // Step 18.a: If end > start, let ifIncrease be true
   // Step 18.b: Else let ifIncrease be false
   var ifIncrease = end > start;
@@ -1093,78 +1074,76 @@ function IteratorRangeNext() {
   // Step 18.d: Else let ifStepIncrease be false
   var ifStepIncrease = step > zero;
 
-  // Step 18.e: If ifIncrease is not ifStepIncrease, return undeﬁned.
+  // Step 18.e: If ifIncrease is not ifStepIncrease, return undefined
   if (ifIncrease !== ifStepIncrease) {
-    return { value: undefined, done: true };
+    return undefined;
   }
 
   // Step 18.f: Let hitsEnd be false
   var hitsEnd = false;
 
-  // Step 18.g: Let currentCount be zero (already handled via slots)
+  // Step 18.g: Let currentCount be zero
+  var currentCount = zero;
 
-  // Step 18.i.i: Let currentYieldingValue be start + (step × currentCount)
-  var currentYieldingValue = start + (step * currentCount);
+  // Step 18.i: Iterate while hitsEnd is false
+  while (hitsEnd === false) {
+    // Step 18.i.i: Let currentYieldingValue be start + (step × currentCount)
+    var currentYieldingValue = start + (step * currentCount);
 
-  // Step 18.i.ii: If currentYieldingValue is equal to end, set hitsEnd to true
-  hitsEnd = currentYieldingValue === end && !inclusiveEnd;
+    // Step 18.i.ii: If currentYieldingValue is end, set hitsEnd to true
+    if (currentYieldingValue === end) {
+      hitsEnd = true;
+    }
 
+    // Step 18.i.iii: Set currentCount to currentCount + one
+    currentCount = currentCount + one;
 
-  // Step 18.i.iii: Set currentCount to currentCount + one
-  currentCount = currentCount + one;
-
-  // Step 18.i.iv: If ifIncrease is true, then
-  if (ifIncrease) {
-    // Step 18.i.iv.1: If inclusiveEnd is true, then 
-    if (inclusiveEnd) {
-      // Step 18.i.iv.1.a: If currentYieldingValue > end, return undefined.
-      if (currentYieldingValue > end) {
-        return { value: undefined, done: true };
-      }
-    } else {
-      // Step 18.i.iv.2: If currentYieldingValue >= end, return undefined
-      if (currentYieldingValue >= end) {
-        return { value: undefined, done: true };
+    // Step 18.i.iv: If ifIncrease is true, then
+    if (ifIncrease === true) {
+      // Step 18.i.iv.1: If inclusiveEnd is true, then
+      if (inclusiveEnd === true) {
+        // Step 18.i.iv.1.a: If currentYieldingValue > end, return undefined
+        if (currentYieldingValue > end) {
+          return undefined;
+        }
+      } else {
+        // Step 18.i.iv.2.a: If currentYieldingValue ≥ end, return undefined
+        if (currentYieldingValue >= end) {
+          return undefined;
+        }
       }
     }
-  } else {
     // Step 18.i.v: Else
-    // Step 18.i.v.1: If inclusiveEnd is true, then
-    if (inclusiveEnd) {
-      //Step 18.i.v.1.a.a. If end > currentYieldingValue, return undefined.
-      if (end > currentYieldingValue) {
-        return { value: undefined, done: true };
-      }
-    } else {
-      // Step 18.i.v.2: Else
-      if (end >= currentYieldingValue) {
-        // Step 18i.v.2.a: If end >= currentYieldingValue, return undefined
-        return { value: undefined, done: true };
+    else {
+      // Step 18.i.v.1: If inclusiveEnd is true, then
+      if (inclusiveEnd === true) {
+        // Step 18.i.v.1.a: If end > currentYieldingValue, return undefined
+        if (end > currentYieldingValue) {
+          return undefined;
+        }
+      } else {
+        // Step 18.i.v.2.a: If end ≥ currentYieldingValue, return undefined
+        if (end >= currentYieldingValue) {
+          return undefined;
+        }
       }
     }
+
+    // Step 18.i.vi: Yield currentYieldingValue
+    yield currentYieldingValue;
   }
 
-  // Step 18.i.vi: Yield currentYieldingValue
-  UnsafeSetReservedSlot(obj, ITERATOR_RANGE_SLOT_CURRENT_COUNT, currentCount);
-
-  // Step 18.j: Return undefined if the loop completes
-  if (hitsEnd) {
-    return { value: undefined, done: true };
-  }
-
-  // Return the current value
-  return { value: currentYieldingValue, done: false };
+  // Step 18.j: Return undefined
+  return undefined;
 }
 
 
-
 /**
- * CreateNumericRangeIterator (start, end, optionOrStep, type)
+ * Iterator.range ( start, end, optionOrStep, type )
  * 
- * https://tc39.es/proposal-iterator.range/#sec-create-numeric-range-iterator
+ * https://tc39.es/proposal-iterator.range/#sec-iterator.range
  */
 function CreateNumericRangeIterator(start, end, optionOrStep, isNumberRange) {
-
   // Step 1: If start is NaN, throw a RangeError exception.
   if (isNumberRange && Number_isNaN(start)) {
     ThrowRangeError(JSMSG_ITERATOR_RANGE_INVALID_START_RANGEERR);
@@ -1223,6 +1202,7 @@ function CreateNumericRangeIterator(start, end, optionOrStep, isNumberRange) {
     step = optionOrStep.step;
 
     // Step 8.b. Set inclusiveEnd to ToBoolean(? Get(optionOrStep, "inclusive")).
+    // eslint-disable-next-line no-unused-vars
     inclusiveEnd = ToBoolean(optionOrStep.inclusiveEnd);
   }
   // Step 9: Else if type is NUMBER-RANGE and optionOrStep is a Number, then
@@ -1273,17 +1253,7 @@ function CreateNumericRangeIterator(start, end, optionOrStep, isNumberRange) {
     ThrowRangeError(JSMSG_ITERATOR_RANGE_STEP_ZERO);
   }
   // Step 19: Return CreateIteratorFromClosure(closure, "%NumericRangeIteratorPrototype%", %NumericRangeIteratorPrototype%).
-
-  var obj = NewIteratorRange();
-  UnsafeSetReservedSlot(obj, ITERATOR_RANGE_SLOT_START, start);
-  UnsafeSetReservedSlot(obj, ITERATOR_RANGE_SLOT_END, end);
-  UnsafeSetReservedSlot(obj, ITERATOR_RANGE_SLOT_STEP, step);
-  UnsafeSetReservedSlot(obj, ITERATOR_RANGE_SLOT_INCLUSIVE_END, inclusiveEnd);
-  UnsafeSetReservedSlot(obj, ITERATOR_RANGE_SLOT_ZERO, zero);
-  UnsafeSetReservedSlot(obj, ITERATOR_RANGE_SLOT_ONE, one);
-  UnsafeSetReservedSlot(obj, ITERATOR_RANGE_SLOT_CURRENT_COUNT, zero);
-
-  return obj;
+  return IteratorRangeGenerator(start, end, step, inclusiveEnd, zero, one);
 }
 
 

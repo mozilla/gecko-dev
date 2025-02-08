@@ -143,9 +143,7 @@ class GlobalObjectData {
     AsyncIteratorHelperProto,
     SegmentsProto,
     SegmentIteratorProto,
-#ifdef NIGHTLY_BUILD
-    IteratorRangeProto,
-#endif
+
     Limit
   };
   using ProtoArray = mozilla::EnumeratedArray<ProtoKind, GCPtr<JSObject*>,
@@ -778,11 +776,6 @@ class GlobalObject : public NativeObject {
 
   static JSObject* getOrCreateRegExpStringIteratorPrototype(
       JSContext* cx, Handle<GlobalObject*> global);
-
-#ifdef NIGHTLY_BUILD
-  static JSObject* getOrCreateIteratorRangePrototype(
-      JSContext* cx, Handle<GlobalObject*> global);
-#endif
 
   void setGeneratorObjectPrototype(JSObject* obj) {
     setBuiltinProto(ProtoKind::GeneratorObjectProto, obj);

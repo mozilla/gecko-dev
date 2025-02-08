@@ -697,15 +697,6 @@ class RegExpStringIteratorObject : public NativeObject {
 RegExpStringIteratorObject* NewRegExpStringIteratorTemplate(JSContext* cx);
 RegExpStringIteratorObject* NewRegExpStringIterator(JSContext* cx);
 
-#ifdef NIGHTLY_BUILD
-class IteratorRangeObject : public NativeObject {
- public:
-  static const JSClass class_;
-};
-
-IteratorRangeObject* NewIteratorRange(JSContext* cx);
-#endif
-
 [[nodiscard]] bool EnumerateProperties(JSContext* cx, HandleObject obj,
                                        MutableHandleIdVector props);
 
