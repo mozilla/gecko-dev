@@ -54,9 +54,6 @@ inline gfx::IntSize ApplyPixelAspectRatio(double aPixelAspectRatio,
   if (MOZ_UNLIKELY(width > std::numeric_limits<int32_t>::max())) {
     return aImage;
   }
-  LOG("Adjust display size [%ux%u] -> [%ux%u] by applying PAR %f",
-      aImage.Width(), aImage.Height(), static_cast<uint32_t>(width),
-      aImage.Height(), aPixelAspectRatio);
   return gfx::IntSize(static_cast<int32_t>(width), aImage.Height());
 }
 
@@ -169,13 +166,8 @@ class H264ChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
       H264::EnsureSPSIsSane(spsdata);
       mCurrentConfig.mImage.width = spsdata.pic_width;
       mCurrentConfig.mImage.height = spsdata.pic_height;
-      // FFmpeg prioritize the display size from the container level over the
-      // SPS-defined SAR. We'd like follow the same way. Only use SPS-defined
-      // SAR when no pixel aspect ratio exists in the media info.
-      if (!mCurrentConfig.mPixelAspectRatio) {
-        mCurrentConfig.mDisplay.width = spsdata.display_width;
-        mCurrentConfig.mDisplay.height = spsdata.display_height;
-      }
+      mCurrentConfig.mDisplay.width = spsdata.display_width;
+      mCurrentConfig.mDisplay.height = spsdata.display_height;
       mCurrentConfig.mColorDepth = spsdata.ColorDepth();
       mCurrentConfig.mColorSpace = Some(spsdata.ColorSpace());
       // spsdata.colour_primaries has the same values as
@@ -317,18 +309,13 @@ class HEVCChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
         const auto sps = rv.unwrap();
         mCurrentConfig.mImage.width = sps.GetImageSize().Width();
         mCurrentConfig.mImage.height = sps.GetImageSize().Height();
-        // FFmpeg prioritize the display size from the container level over the
-        // SPS-defined SAR. We'd like follow the same way. Only use SPS-defined
-        // SAR when no pixel aspect ratio exists in the media info.
-        if (!mCurrentConfig.mPixelAspectRatio) {
-          if (const auto& vui = sps.vui_parameters;
-              vui && vui->HasValidAspectRatio()) {
-            mCurrentConfig.mDisplay = ApplyPixelAspectRatio(
-                vui->GetPixelAspectRatio(), mCurrentConfig.mImage);
-          } else {
-            mCurrentConfig.mDisplay.width = sps.GetDisplaySize().Width();
-            mCurrentConfig.mDisplay.height = sps.GetDisplaySize().Height();
-          }
+        if (const auto& vui = sps.vui_parameters;
+            vui && vui->HasValidAspectRatio()) {
+          mCurrentConfig.mDisplay = ApplyPixelAspectRatio(
+              vui->GetPixelAspectRatio(), mCurrentConfig.mImage);
+        } else {
+          mCurrentConfig.mDisplay.width = sps.GetDisplaySize().Width();
+          mCurrentConfig.mDisplay.height = sps.GetDisplaySize().Height();
         }
         mCurrentConfig.mColorDepth = sps.ColorDepth();
         mCurrentConfig.mColorSpace = Some(sps.ColorSpace());

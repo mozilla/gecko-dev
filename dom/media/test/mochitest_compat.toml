@@ -59,21 +59,6 @@ support-files = [
   "aspect_ratio_5_2_hevc.mp4^headers^",
   "av1.mp4",
   "av1.mp4^headers^",
-  # The following files are generated using these commands:
-  # 1. create by ffmpeg
-  #   ffmpeg -f lavfi -i testsrc=s=720x576:d=1 -c:v libx264 -t 1 -pix_fmt yuv420p -preset veryslow -tune zerolatency -bsf:v "h264_metadata=sample_aspect_ratio=0" -movflags +faststart -brand mp42 -y avc_pasp_64_45_no_sar_in_sps.mp4
-  #   ffmpeg -f lavfi -i testsrc=s=720x576:d=1 -c:v libx264 -t 1 -pix_fmt yuv420p -preset veryslow -tune zerolatency -bsf:v "h264_metadata=sample_aspect_ratio=2" -movflags +faststart -brand mp42 -y avc_pasp_64_45_sps_sar_2.mp4
-  #   ffmpeg -f lavfi -i testsrc=s=720x576:d=1 -c:v libx265 -t 1 -pix_fmt yuv420p -preset veryslow -tune zerolatency -bsf:v "hevc_metadata=sample_aspect_ratio=0" -movflags +faststart -brand mp42 -y hevc_pasp_64_45_no_sar_in_sps.mp4
-  #   ffmpeg -f lavfi -i testsrc=s=720x576:d=1 -c:v libx265 -t 1 -pix_fmt yuv420p -preset veryslow -tune zerolatency -bsf:v "hevc_metadata=sample_aspect_ratio=2" -movflags +faststart -brand mp42 -y hevc_pasp_64_45_sps_sar_2.mp4
-  # 2. manually modify pasp box's content in hex editor, set `h_spacing` to `0x40` and  `v_spacing` to `0x2D`
-  "avc_pasp_64_45_no_sar_in_sps.mp4",
-  "avc_pasp_64_45_no_sar_in_sps.mp4^headers^",
-  "avc_pasp_64_45_sps_sar_2.mp4",
-  "avc_pasp_64_45_sps_sar_2.mp4^headers^",
-  "hevc_pasp_64_45_no_sar_in_sps.mp4",
-  "hevc_pasp_64_45_no_sar_in_sps.mp4^headers^",
-  "hevc_pasp_64_45_sps_sar_2.mp4",
-  "hevc_pasp_64_45_sps_sar_2.mp4^headers^",
   "background_video.js",
   "badtags.ogg",
   "badtags.ogg^headers^",
@@ -883,17 +868,6 @@ scheme = "https"
 ["test_mozHasAudio.html"]
 
 ["test_mp3_with_multiple_ID3v2.html"]
-
-["test_mp4_pixel_aspect_ratio_avc.html"]
-skip-if = ["wmfme"] # media engine can't determine the correct size internally
-
-["test_mp4_pixel_aspect_ratio_hevc.html"]
-run-if = [
-  "os == 'win'",
-  "os == 'mac' && os_version != '10.15'" # Bug 1942396
-]
-skip-if = ["!mda_gpu", "wmfme"] # media engine can't determine the correct size internally
-scheme = "https"
 
 ["test_networkState.html"]
 
