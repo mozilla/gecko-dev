@@ -21,10 +21,10 @@ add_task(async function () {
   await shiftClickEnable(dbg);
 
   info("5. Add a condition to the first breakpoint");
-  await setConditionalBreakpoint(dbg, 0, "foo");
+  await setConditionalBreakpointFromColumnMarker(dbg, 0, "foo");
 
   info("6. Add a log to the first breakpoint");
-  await setLogPoint(dbg, 0, "bar");
+  await setLogPointFromColumnMarker(dbg, 0, "bar");
 
   info("7. Disable the first breakpoint");
   await disableBreakpoint(dbg, 0);
@@ -33,7 +33,7 @@ add_task(async function () {
   await removeFirstBreakpoint(dbg);
 
   info("9. Add a condition to the second breakpoint");
-  await setConditionalBreakpoint(dbg, 1, "foo2");
+  await setConditionalBreakpointFromColumnMarker(dbg, 1, "foo2");
 
   info("10. Test removing the breakpoints by clicking in the gutter");
   await clickGutter(dbg, 32);
@@ -79,7 +79,10 @@ async function shiftClickEnable(dbg) {
   assertClass(bpMarkers[0], "active");
 }
 
-async function setConditionalBreakpoint(dbg, index, condition) {
+async function setConditionalBreakpointFromColumnMarker(dbg, index, condition) {
+  // Wait a bit for CM6 to complete any updates so the conditional panel
+  // does not lose focus after it has been opened
+  await waitForDocumentLoadComplete(dbg);
   let bpMarkers = await waitForAllElements(dbg, "columnBreakpoints");
   rightClickEl(dbg, bpMarkers[index]);
   await waitForContextMenu(dbg);
@@ -91,7 +94,10 @@ async function setConditionalBreakpoint(dbg, index, condition) {
   assertClass(bpMarkers[index], "has-condition");
 }
 
-async function setLogPoint(dbg, index, expression) {
+async function setLogPointFromColumnMarker(dbg, index, expression) {
+  // Wait a bit for CM6 to complete any updates so the conditional panel
+  // does not lose focus after it has been opened
+  await waitForDocumentLoadComplete(dbg);
   let bpMarkers = await waitForAllElements(dbg, "columnBreakpoints");
   rightClickEl(dbg, bpMarkers[index]);
   await waitForContextMenu(dbg);

@@ -14,7 +14,6 @@ add_task(async function () {
   await scrollEditorIntoView(dbg, 55, 0);
 
   await setLogPoint(dbg, 55);
-  await waitForConditionalPanelFocus(dbg);
   ok(
     !!(await getConditionalPanelAtLine(dbg, 55)),
     "conditional panel panel is open on line 55"
@@ -25,15 +24,3 @@ add_task(async function () {
     "conditional panel location is line 55"
   );
 });
-
-async function setLogPoint(dbg, index) {
-  const el = await (isCm6Enabled
-    ? scrollAndGetEditorLineGutterElement(dbg, index)
-    : codeMirrorGutterElement(dbg, index));
-  rightClickEl(dbg, el);
-  await waitForContextMenu(dbg);
-  selectContextMenuItem(
-    dbg,
-    `${selectors.addLogItem},${selectors.editLogItem}`
-  );
-}
