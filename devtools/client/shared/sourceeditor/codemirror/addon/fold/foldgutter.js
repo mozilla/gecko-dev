@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: https://codemirror.net/5/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 (function(mod) {
   if (typeof exports == "object" && typeof module == "object") // CommonJS
@@ -21,7 +21,6 @@
       cm.off("fold", onFold);
       cm.off("unfold", onFold);
       cm.off("swapDoc", onChange);
-      cm.off("optionChange", optionChange);
     }
     if (val) {
       cm.state.foldGutter = new State(parseOptions(val));
@@ -32,7 +31,6 @@
       cm.on("fold", onFold);
       cm.on("unfold", onFold);
       cm.on("swapDoc", onChange);
-      cm.on("optionChange", optionChange);
     }
   });
 
@@ -73,35 +71,23 @@
   }
 
   function updateFoldInfo(cm, from, to) {
-    var opts = cm.state.foldGutter.options, cur = from - 1;
+    var opts = cm.state.foldGutter.options, cur = from;
     var minSize = cm.foldOption(opts, "minFoldSize");
     var func = cm.foldOption(opts, "rangeFinder");
-    // we can reuse the built-in indicator element if its className matches the new state
-    var clsFolded = typeof opts.indicatorFolded == "string" && classTest(opts.indicatorFolded);
-    var clsOpen = typeof opts.indicatorOpen == "string" && classTest(opts.indicatorOpen);
     cm.eachLine(from, to, function(line) {
-      ++cur;
       var mark = null;
-      var old = line.gutterMarkers;
-      if (old) old = old[opts.gutter];
       if (isFolded(cm, cur)) {
-        if (clsFolded && old && clsFolded.test(old.className)) return;
         mark = marker(opts.indicatorFolded);
       } else {
         var pos = Pos(cur, 0);
         var range = func && func(cm, pos);
-        if (range && range.to.line - range.from.line >= minSize) {
-          if (clsOpen && old && clsOpen.test(old.className)) return;
+        if (range && range.to.line - range.from.line >= minSize)
           mark = marker(opts.indicatorOpen);
-        }
       }
-      if (!mark && !old) return;
       cm.setGutterMarker(line, opts.gutter, mark);
+      ++cur;
     });
   }
-
-  // copied from CodeMirror/src/util/dom.js
-  function classTest(cls) { return new RegExp("(^|\\s)" + cls + "(?:$|\\s)\\s*") }
 
   function updateInViewport(cm) {
     var vp = cm.getViewport(), state = cm.state.foldGutter;
@@ -120,10 +106,6 @@
     var folded = isFolded(cm, line);
     if (folded) folded.clear();
     else cm.foldCode(Pos(line, 0), opts);
-  }
-
-  function optionChange(cm, option) {
-    if (option == "mode") onChange(cm)
   }
 
   function onChange(cm) {

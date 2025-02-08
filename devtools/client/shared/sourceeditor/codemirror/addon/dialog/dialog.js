@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: https://codemirror.net/5/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 // Open simple dialogs on top of an editor. Relies on dialog.css.
 
@@ -82,9 +82,7 @@
         if (e.keyCode == 13) callback(inp.value, e);
       });
 
-      if (options.closeOnBlur !== false) CodeMirror.on(dialog, "focusout", function (evt) {
-        if (evt.relatedTarget !== null) close();
-      });
+      if (options.closeOnBlur !== false) CodeMirror.on(inp, "blur", close);
     } else if (button = dialog.getElementsByTagName("button")[0]) {
       CodeMirror.on(button, "click", function() {
         close();
