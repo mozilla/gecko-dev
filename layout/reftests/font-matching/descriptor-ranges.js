@@ -62,15 +62,15 @@ testDescriptor("font-stretch", [
 ]);
 
 testDescriptor("font-style", [
-    { value: "normal",         testDescriptors: ["normal", "oblique 10deg 40deg", "oblique 20deg 30deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
+    { value: "normal",         testDescriptors: ["normal", "oblique 10deg 40deg", "oblique 20deg 30deg", "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
     { value: "italic",         testDescriptors: ["italic", "oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 5deg 10deg", "oblique 5deg", "normal", "oblique -60deg -30deg", "oblique -50deg -40deg" ] },
-    { value: "oblique 20deg",  testDescriptors: ["oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 10deg", "italic", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-    { value: "oblique 21deg",  testDescriptors: ["oblique 21deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 20deg", "oblique 10deg", "italic", "oblique 0deg",  "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-    { value: "oblique 10deg",  testDescriptors: ["oblique 10deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-    { value: "oblique 0deg",   testDescriptors: ["oblique 0deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic", "oblique -50deg -20deg", "oblique -40deg -30deg" ] },
-    { value: "oblique -10deg", testDescriptors: ["oblique -10deg", "oblique -5deg", "oblique -1deg 0deg", "oblique -20deg -15deg", "oblique -60deg -30deg", "oblique -50deg -40deg", "italic", "oblique 0deg 10deg", "oblique 40deg 50deg" ] },
-    { value: "oblique -20deg", testDescriptors: ["oblique -20deg", "oblique -60deg -40deg", "oblique -10deg", "italic", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg"] },
-    { value: "oblique -21deg", testDescriptors: ["oblique -21deg", "oblique -60deg -40deg", "oblique -10deg", "italic", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg"] },
+    { value: "oblique 20deg",  testDescriptors: ["oblique 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 10deg", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
+    { value: "oblique 21deg",  testDescriptors: ["oblique 21deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 20deg", "oblique 10deg", "oblique 0deg",  "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
+    { value: "oblique 10deg",  testDescriptors: ["oblique 10deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique 0deg", "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
+    { value: "oblique 0deg",   testDescriptors: ["oblique 0deg", "oblique 5deg", "oblique 15deg 20deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "oblique -50deg -20deg", "oblique -40deg -30deg", "italic" ] },
+    { value: "oblique -10deg", testDescriptors: ["oblique -10deg", "oblique -5deg", "oblique -1deg 0deg", "oblique -20deg -15deg", "oblique -60deg -30deg", "oblique -50deg -40deg", "oblique 0deg 10deg", "oblique 40deg 50deg", "italic" ] },
+    { value: "oblique -20deg", testDescriptors: ["oblique -20deg", "oblique -60deg -40deg", "oblique -10deg", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic"] },
+    { value: "oblique -21deg", testDescriptors: ["oblique -21deg", "oblique -60deg -40deg", "oblique -10deg", "oblique 0deg", "oblique 30deg 60deg", "oblique 40deg 50deg", "italic"] },
 ]);
 
 // Stuff the @font-face rules and test elements into the document.

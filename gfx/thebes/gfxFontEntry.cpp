@@ -1543,7 +1543,7 @@ static inline double WeightStyleStretchDistance(
   // Sanity-check that the distances are within the expected range
   // (update if implementation of the distance functions is changed).
   MOZ_ASSERT(stretchDist >= 0.0 && stretchDist <= 2000.0);
-  MOZ_ASSERT(styleDist >= 0.0 && styleDist <= 500.0);
+  MOZ_ASSERT(styleDist >= 0.0 && styleDist <= 900.0);
   MOZ_ASSERT(weightDist >= 0.0 && weightDist <= 1600.0);
 
   // weight/style/stretch priority: stretch >> style >> weight
