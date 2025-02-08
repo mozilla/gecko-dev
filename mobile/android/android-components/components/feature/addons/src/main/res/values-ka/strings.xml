@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">ხელოვნური ინტელექტის მოდელების მოწყობილობაზე ჩამოტვირთვა და გაშვება</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">დაუმოწმებელი გარეშე მხარის სკრიპტებისთვის თქვენს მონაცემებთან წვდომის ნებართვა</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">გადაუმოწმებელ სკრიპტებს შეუძლია საფრთხე შეუქმნას უსაფრთხოებასა და პირადულობას. სკრიპტების გაშვების ნება დართეთ მხოლოდ იმ გაფართოებებსა თუ წყაროებს, რომელთაც ენდობით.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">შემმუშავებლის ხელსაწყოებით თქვენს მონაცემებთან წვდომა გახსნილ ჩანართებში</string>
     <!-- The version on of add-on. -->

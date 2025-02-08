@@ -2072,6 +2072,8 @@
     <string name="about_privacy_notice">პირადულობის განაცხადი</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">გაეცანით თქვენს უფლებებს</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">გამოყენების პირობები</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">ლიცენზიის შესახებ</string>
     <!-- About page link text to open a screen with libraries that are used -->

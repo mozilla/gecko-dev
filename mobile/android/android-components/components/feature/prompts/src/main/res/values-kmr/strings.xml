@@ -48,6 +48,8 @@
     <string name="mozac_feature_prompts_allow">Destûrê bide</string>
     <!-- Text of a negative button in dialog requesting to open a new window. -->
     <string name="mozac_feature_prompts_deny">Red bike</string>
+    <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+    <string name="mozac_feature_prompts_popup_dialog_title">Destûrê didî vê malperê ku vebe?</string>
     <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
     <string name="mozac_feature_prompt_before_unload_dialog_title">Bi rastî jî?</string>
     <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->

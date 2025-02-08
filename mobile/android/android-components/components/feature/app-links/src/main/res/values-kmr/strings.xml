@@ -13,4 +13,6 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">Veke</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">Betal bike</string>
-    </resources>
+    <!-- The label of the checkbox that, depending of user's choice, can change the Open links in apps setting -->
+    <string name="mozac_feature_applinks_confirm_dialog_checkbox_label">Girêdanan timî di sepanan de veke</string>
+</resources>

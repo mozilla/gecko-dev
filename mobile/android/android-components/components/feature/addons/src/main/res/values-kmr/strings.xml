@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Modelên AI`ê bar bike ser cîhaza xwe  û bixebitîne</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Destûrê bide skrîptên partiya sêyemîn ên nepesendkirî ku xwe bigihînin daneyên te</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Skrîptên nepesendkirî dikarin xetereyên ewlehî û nepenîtiyê derxînin holê. Tenê skrîptên bi niçik yan ji çavkaniyên ku hûn pê bawer in bidin xebitandin.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Firehkirina amûrên pêşvebirinê ji bo xwegihandina daneyên di hilpekînên vekirî de</string>
     <!-- The version on of add-on. -->

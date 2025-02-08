@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Tải xuống và chạy các mô hình AI trên thiết bị của bạn</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Cho phép các tập lệnh của bên thứ ba chưa được xác minh truy cập vào dữ liệu của bạn</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Các tập lệnh chưa được xác minh có thể gây ra rủi ro về bảo mật và quyền riêng tư. Chỉ chạy tập lệnh từ tiện ích mở rộng hoặc nguồn mà bạn tin cậy.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Mở rộng công cụ dành cho nhà phát triển để truy cập dữ liệu của bạn trong các thẻ đang mở</string>
     <!-- The version on of add-on. -->
