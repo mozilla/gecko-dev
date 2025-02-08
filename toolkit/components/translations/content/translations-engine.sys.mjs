@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* eslint-env browser */
-
 /**
  * This file lives in the translation engine's process and is in charge of managing the
  * lifecycle of the translations engines. This process is a singleton Web Content
@@ -105,6 +103,8 @@ const CACHE_TIMEOUT_MS = 15_000;
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
   TranslationsUtils:
     "chrome://global/content/translations/TranslationsUtils.mjs",
 });
@@ -302,7 +302,7 @@ export class TranslationsEngine {
     this.#worker.terminate();
     this.#worker = null;
     if (this.#keepAliveTimeout) {
-      clearTimeout(this.#keepAliveTimeout);
+      lazy.clearTimeout(this.#keepAliveTimeout);
     }
     for (const [innerWindowId, data] of ports) {
       const { sourceLanguage, targetLanguage, port } = data;
@@ -325,11 +325,14 @@ export class TranslationsEngine {
   keepAlive() {
     if (this.#keepAliveTimeout) {
       // Clear any previous timeout.
-      clearTimeout(this.#keepAliveTimeout);
+      lazy.clearTimeout(this.#keepAliveTimeout);
     }
     // In automated tests, the engine is manually destroyed.
     if (!Cu.isInAutomation) {
-      this.#keepAliveTimeout = setTimeout(this.terminate, CACHE_TIMEOUT_MS);
+      this.#keepAliveTimeout = lazy.setTimeout(
+        this.terminate,
+        CACHE_TIMEOUT_MS
+      );
     }
   }
 
