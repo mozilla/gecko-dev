@@ -70,7 +70,7 @@ run-if = [
   "debug",
   "nightly_build", # Requires StartupRecorder.sys.mjs, which isn't shipped everywhere by default
 ]
-skip-if = ["nightly_build"] # Bug 1936557
+skip-if = ["early_beta_or_earlier"] # Bug 1936557, Bug 1945698
 
 ["browser_tabclose.js"]
 skip-if = [
