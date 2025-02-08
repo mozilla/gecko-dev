@@ -3,13 +3,6 @@
 
 "use strict";
 
-add_setup(async () => {
-  // turn off animations for this test
-  await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.animation.enabled", false]],
-  });
-});
-
 add_task(async function test_sidebar_extension_context_menu() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   await waitForBrowserWindowActive(win);
