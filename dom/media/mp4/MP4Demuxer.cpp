@@ -333,7 +333,11 @@ MP4TrackDemuxer::MP4TrackDemuxer(MediaResource* aResource,
     mType = kH264;
     RefPtr<MediaByteBuffer> extraData = videoInfo->mExtraData;
     SPSData spsdata;
-    if (H264::DecodeSPSFromExtraData(extraData, spsdata) &&
+    // FFmpeg prioritize the display size from the container level over the
+    // SPS-defined SAR. We'd like follow the same way. Only use SPS-defined SAR
+    // when no pixel aspect ratio exists in the media info.
+    if (!videoInfo->mPixelAspectRatio &&
+        H264::DecodeSPSFromExtraData(extraData, spsdata) &&
         spsdata.pic_width > 0 && spsdata.pic_height > 0 &&
         H264::EnsureSPSIsSane(spsdata)) {
       videoInfo->mImage.width = spsdata.pic_width;
@@ -347,13 +351,18 @@ MP4TrackDemuxer::MP4TrackDemuxer(MediaResource* aResource,
     mType = kAAC;
   } else if (videoInfo && MP4Decoder::IsHEVC(mInfo->mMimeType)) {
     mType = kHEVC;
-    if (auto rv = H265::DecodeSPSFromHVCCExtraData(videoInfo->mExtraData);
-        rv.isOk()) {
-      const auto sps = rv.unwrap();
-      videoInfo->mImage.width = sps.GetImageSize().Width();
-      videoInfo->mImage.height = sps.GetImageSize().Height();
-      videoInfo->mDisplay.width = sps.GetDisplaySize().Width();
-      videoInfo->mDisplay.height = sps.GetDisplaySize().Height();
+    // FFmpeg prioritize the display size from the container level over the
+    // SPS-defined SAR. We'd like follow the same way. Only use SPS-defined SAR
+    // when no pixel aspect ratio exists in the media info.
+    if (!videoInfo->mPixelAspectRatio) {
+      if (auto rv = H265::DecodeSPSFromHVCCExtraData(videoInfo->mExtraData);
+          rv.isOk()) {
+        const auto sps = rv.unwrap();
+        videoInfo->mImage.width = sps.GetImageSize().Width();
+        videoInfo->mImage.height = sps.GetImageSize().Height();
+        videoInfo->mDisplay.width = sps.GetDisplaySize().Width();
+        videoInfo->mDisplay.height = sps.GetDisplaySize().Height();
+      }
     }
   }
 }

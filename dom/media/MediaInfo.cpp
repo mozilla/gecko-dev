@@ -67,7 +67,8 @@ bool VideoInfo::operator==(const VideoInfo& rhs) const {
           *mCodecSpecificConfig == *rhs.mCodecSpecificConfig &&
           *mExtraData == *rhs.mExtraData && mRotation == rhs.mRotation &&
           mColorDepth == rhs.mColorDepth && mImageRect == rhs.mImageRect &&
-          mAlphaPresent == rhs.mAlphaPresent);
+          mAlphaPresent == rhs.mAlphaPresent &&
+          mPixelAspectRatio == rhs.mPixelAspectRatio);
 }
 
 nsCString VideoInfo::ToString() const {
@@ -143,6 +144,8 @@ nsCString VideoInfo::ToString() const {
   if (mFrameRate) {
     rv.AppendPrintf(", frame rate: %dHz", mFrameRate.value());
   }
+  rv.AppendPrintf(", pixel aspect ratio: %f",
+                  mPixelAspectRatio ? *mPixelAspectRatio : 0.0);
   return std::move(rv);
 }
 
