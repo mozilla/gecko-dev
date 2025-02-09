@@ -169,10 +169,10 @@ export class LoginForm extends MozLitElement {
 
         <form
           role="region"
-          aria-label=${heading}
+          aria-labelledby="moz-fieldset-id"
           @submit=${e => this.onSubmit(e)}
         >
-          <moz-fieldset data-l10n-id=${heading}>
+          <moz-fieldset id="moz-fieldset-id" data-l10n-id=${heading}>
             <div class="field-container">
               <login-origin-field
                 name="origin"
