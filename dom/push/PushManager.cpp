@@ -33,34 +33,6 @@
 
 namespace mozilla::dom {
 
-namespace {
-
-nsresult GetPermissionState(nsIPrincipal* aPrincipal, PermissionState& aState) {
-  nsCOMPtr<nsIPermissionManager> permManager =
-      mozilla::components::PermissionManager::Service();
-
-  if (!permManager) {
-    return NS_ERROR_FAILURE;
-  }
-  uint32_t permission = nsIPermissionManager::UNKNOWN_ACTION;
-  nsresult rv = permManager->TestExactPermissionFromPrincipal(
-      aPrincipal, "desktop-notification"_ns, &permission);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  if (permission == nsIPermissionManager::ALLOW_ACTION ||
-      Preferences::GetBool("dom.push.testing.ignorePermission", false)) {
-    aState = PermissionState::Granted;
-  } else if (permission == nsIPermissionManager::DENY_ACTION) {
-    aState = PermissionState::Denied;
-  } else {
-    aState = PermissionState::Prompt;
-  }
-
-  return NS_OK;
-}
-
 nsresult GetSubscriptionParams(nsIPushSubscription* aSubscription,
                                nsAString& aEndpoint,
                                nsTArray<uint8_t>& aRawP256dhKey,
@@ -86,6 +58,34 @@ nsresult GetSubscriptionParams(nsIPushSubscription* aSubscription,
   rv = aSubscription->GetKey(u"appServer"_ns, aAppServerKey);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
+  }
+
+  return NS_OK;
+}
+
+namespace {
+
+nsresult GetPermissionState(nsIPrincipal* aPrincipal, PermissionState& aState) {
+  nsCOMPtr<nsIPermissionManager> permManager =
+      mozilla::components::PermissionManager::Service();
+
+  if (!permManager) {
+    return NS_ERROR_FAILURE;
+  }
+  uint32_t permission = nsIPermissionManager::UNKNOWN_ACTION;
+  nsresult rv = permManager->TestExactPermissionFromPrincipal(
+      aPrincipal, "desktop-notification"_ns, &permission);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (permission == nsIPermissionManager::ALLOW_ACTION ||
+      Preferences::GetBool("dom.push.testing.ignorePermission", false)) {
+    aState = PermissionState::Granted;
+  } else if (permission == nsIPermissionManager::DENY_ACTION) {
+    aState = PermissionState::Denied;
+  } else {
+    aState = PermissionState::Prompt;
   }
 
   return NS_OK;

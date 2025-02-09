@@ -149,13 +149,17 @@ class PushMessageDispatcher final : public PushDispatcher {
 class PushSubscriptionChangeDispatcher final : public PushDispatcher {
  public:
   PushSubscriptionChangeDispatcher(const nsACString& aScope,
-                                   nsIPrincipal* aPrincipal);
+                                   nsIPrincipal* aPrincipal,
+                                   nsIPushSubscription* aOldSubscription);
   ~PushSubscriptionChangeDispatcher();
 
   nsresult NotifyObservers() override;
   nsresult NotifyWorkers() override;
   bool SendToParent(ContentChild* aParentActor) override;
   bool SendToChild(ContentParent* aContentActor) override;
+
+ private:
+  nsCOMPtr<nsIPushSubscription> mOldSubscription;
 };
 
 class PushSubscriptionModifiedDispatcher : public PushDispatcher {

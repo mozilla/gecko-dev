@@ -30,6 +30,7 @@
 #define NOTIFICATION_CLOSE_EVENT_NAME u"notificationclose"
 
 class nsIInterceptedChannel;
+class nsIPushSubscription;
 class nsIWorkerDebugger;
 
 namespace mozilla {
@@ -107,7 +108,8 @@ class ServiceWorkerPrivate final : public RemoteWorkerObserver {
                          const Maybe<nsTArray<uint8_t>>& aData,
                          RefPtr<ServiceWorkerRegistrationInfo> aRegistration);
 
-  nsresult SendPushSubscriptionChangeEvent();
+  nsresult SendPushSubscriptionChangeEvent(
+      const RefPtr<nsIPushSubscription>& aOldSubscription);
 
   nsresult SendNotificationEvent(const nsAString& aEventName,
                                  const nsAString& aID, const nsAString& aTitle,

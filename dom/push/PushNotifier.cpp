@@ -9,6 +9,7 @@
 #include "nsContentUtils.h"
 #include "nsCOMPtr.h"
 #include "nsICategoryManager.h"
+#include "nsIPushService.h"
 #include "nsIXULRuntime.h"
 #include "nsNetUtil.h"
 #include "nsXPCOM.h"
@@ -66,9 +67,11 @@ PushNotifier::NotifyPush(const nsACString& aScope, nsIPrincipal* aPrincipal,
 
 NS_IMETHODIMP
 PushNotifier::NotifySubscriptionChange(const nsACString& aScope,
-                                       nsIPrincipal* aPrincipal) {
+                                       nsIPrincipal* aPrincipal,
+                                       nsIPushSubscription* aOldSubscription) {
   NS_ENSURE_ARG(aPrincipal);
-  PushSubscriptionChangeDispatcher dispatcher(aScope, aPrincipal);
+  PushSubscriptionChangeDispatcher dispatcher(aScope, aPrincipal,
+                                              aOldSubscription);
   return Dispatch(dispatcher);
 }
 
@@ -311,8 +314,9 @@ bool PushMessageDispatcher::SendToChild(ContentParent* aContentActor) {
 }
 
 PushSubscriptionChangeDispatcher::PushSubscriptionChangeDispatcher(
-    const nsACString& aScope, nsIPrincipal* aPrincipal)
-    : PushDispatcher(aScope, aPrincipal) {}
+    const nsACString& aScope, nsIPrincipal* aPrincipal,
+    nsIPushSubscription* aOldSubscription)
+    : PushDispatcher(aScope, aPrincipal), mOldSubscription(aOldSubscription) {}
 
 PushSubscriptionChangeDispatcher::~PushSubscriptionChangeDispatcher() = default;
 
@@ -334,7 +338,8 @@ nsresult PushSubscriptionChangeDispatcher::NotifyWorkers() {
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
-  return swm->SendPushSubscriptionChangeEvent(originSuffix, mScope);
+  return swm->SendPushSubscriptionChangeEvent(originSuffix, mScope,
+                                              mOldSubscription);
 }
 
 bool PushSubscriptionChangeDispatcher::SendToParent(
