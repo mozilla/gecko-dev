@@ -374,15 +374,17 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "PromiseRejectionEvent",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "PushEvent" },
+  "PushEvent",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "PushManager" },
+  "PushManager",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "PushMessageData" },
+  "PushMessageData",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "PushSubscription" },
+  "PushSubscription",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "PushSubscriptionOptions" },
+  "PushSubscriptionChangeEvent",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "PushSubscriptionOptions",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "ReadableByteStreamController",
   // IMPORTANT: Do not change this list without review from a DOM peer!
