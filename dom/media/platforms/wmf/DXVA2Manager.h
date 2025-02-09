@@ -60,14 +60,6 @@ class DXVA2Manager {
     return E_FAIL;
   }
 
-  virtual HRESULT CopyToBGRATexture(ID3D11Texture2D* aInTexture,
-                                    uint32_t aArrayIndex,
-                                    ID3D11Texture2D** aOutTexture) {
-    // Not implemented!
-    MOZ_CRASH("CopyToBGRATexture not implemented on this manager.");
-    return E_FAIL;
-  }
-
   virtual HRESULT ConfigureForSize(IMFMediaType* aInputType,
                                    gfx::YUVColorSpace aColorSpace,
                                    gfx::ColorRange aColorRange,

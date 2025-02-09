@@ -352,9 +352,6 @@ class D3D11DXVA2Manager : public DXVA2Manager {
                                const gfx::IntRect& aRegion,
                                layers::Image** aOutImage) override;
 
-  HRESULT CopyToBGRATexture(ID3D11Texture2D* aInTexture, uint32_t aArrayIndex,
-                            ID3D11Texture2D** aOutTexture) override;
-
   HRESULT ConfigureForSize(IMFMediaType* aInputType,
                            gfx::YUVColorSpace aColorSpace,
                            gfx::ColorRange aColorRange,
@@ -902,123 +899,6 @@ void D3D11DXVA2Manager::ReleaseAllIMFSamples() {
 
 void D3D11DXVA2Manager::BeforeShutdownVideoMFTDecoder() {
   ReleaseAllIMFSamples();
-}
-
-HRESULT
-D3D11DXVA2Manager::CopyToBGRATexture(ID3D11Texture2D* aInTexture,
-                                     uint32_t aArrayIndex,
-                                     ID3D11Texture2D** aOutTexture) {
-  NS_ENSURE_TRUE(aInTexture, E_POINTER);
-  NS_ENSURE_TRUE(aOutTexture, E_POINTER);
-
-  HRESULT hr;
-  RefPtr<ID3D11Texture2D> texture, inTexture;
-
-  inTexture = aInTexture;
-
-  CD3D11_TEXTURE2D_DESC desc;
-  aInTexture->GetDesc(&desc);
-
-  if (!mInputType || desc.Width != mWidth || desc.Height != mHeight) {
-    RefPtr<IMFMediaType> inputType;
-    hr = wmf::MFCreateMediaType(getter_AddRefs(inputType));
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-    hr = inputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-    const GUID subType = [&]() {
-      switch (desc.Format) {
-        case DXGI_FORMAT_NV12:
-          return MFVideoFormat_NV12;
-        case DXGI_FORMAT_P010:
-          return MFVideoFormat_P010;
-        case DXGI_FORMAT_P016:
-          return MFVideoFormat_P016;
-        default:
-          MOZ_ASSERT_UNREACHABLE("Unexpected texture type");
-          return MFVideoFormat_NV12;
-      }
-    }();
-
-    hr = inputType->SetGUID(MF_MT_SUBTYPE, subType);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-    hr = inputType->SetUINT32(MF_MT_INTERLACE_MODE,
-                              MFVideoInterlace_Progressive);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-    hr = inputType->SetUINT32(MF_MT_ALL_SAMPLES_INDEPENDENT, TRUE);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-    hr = ConfigureForSize(inputType, mYUVColorSpace, mColorRange, mColorDepth,
-                          desc.Width, desc.Height);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-  }
-
-  RefPtr<IDXGIKeyedMutex> mutex;
-  inTexture->QueryInterface((IDXGIKeyedMutex**)getter_AddRefs(mutex));
-  // The rest of this function will not work if inTexture implements
-  // IDXGIKeyedMutex! In that case case we would have to copy to a
-  // non-mutex using texture.
-
-  if (mutex) {
-    RefPtr<ID3D11Texture2D> newTexture;
-
-    desc.MiscFlags = 0;
-    hr = mDevice->CreateTexture2D(&desc, nullptr, getter_AddRefs(newTexture));
-    NS_ENSURE_TRUE(SUCCEEDED(hr) && newTexture, E_FAIL);
-
-    hr = mutex->AcquireSync(0, 2000);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-    mContext->CopyResource(newTexture, inTexture);
-
-    mutex->ReleaseSync(0);
-    inTexture = newTexture;
-  }
-
-  desc = CD3D11_TEXTURE2D_DESC(
-      DXGI_FORMAT_B8G8R8A8_UNORM, desc.Width, desc.Height, 1, 1,
-      D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE);
-  desc.MiscFlags =
-      D3D11_RESOURCE_MISC_SHARED_NTHANDLE | D3D11_RESOURCE_MISC_SHARED;
-
-  hr = mDevice->CreateTexture2D(&desc, nullptr, getter_AddRefs(texture));
-  NS_ENSURE_TRUE(SUCCEEDED(hr) && texture, E_FAIL);
-
-  RefPtr<IMFSample> inputSample;
-  wmf::MFCreateSample(getter_AddRefs(inputSample));
-
-  // If these aren't set the decoder fails.
-  inputSample->SetSampleTime(10);
-  inputSample->SetSampleDuration(10000);
-
-  RefPtr<IMFMediaBuffer> inputBuffer;
-  hr = wmf::MFCreateDXGISurfaceBuffer(__uuidof(ID3D11Texture2D), inTexture,
-                                      aArrayIndex, FALSE,
-                                      getter_AddRefs(inputBuffer));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  inputSample->AddBuffer(inputBuffer);
-
-  hr = E_FAIL;
-  mozilla::mscom::EnsureMTA(
-      [&]() -> void { hr = mTransform->Input(inputSample); });
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  RefPtr<IMFSample> outputSample;
-  hr = CreateOutputSample(outputSample, texture);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = E_FAIL;
-  mozilla::mscom::EnsureMTA(
-      [&]() -> void { hr = mTransform->Output(&outputSample); });
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  texture.forget(aOutTexture);
-
-  return S_OK;
 }
 
 HRESULT
