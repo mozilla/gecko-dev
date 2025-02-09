@@ -391,13 +391,6 @@ gint moz_gtk_get_titlebar_button_spacing() {
   return sToolbarMetrics.inlineSpacing;
 }
 
-gint moz_gtk_get_titlebar_preferred_height() {
-  gint height = 0;
-  gtk_widget_get_preferred_height(GetWidget(MOZ_GTK_HEADER_BAR), nullptr,
-                                  &height);
-  return height;
-}
-
 static gint moz_gtk_window_decoration_paint(cairo_t* cr,
                                             const GdkRectangle* rect,
                                             GtkWidgetState* state,

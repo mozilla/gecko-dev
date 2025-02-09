@@ -427,8 +427,6 @@ const ToolbarButtonGTKMetrics* GetToolbarButtonMetrics(
 
 gint moz_gtk_get_titlebar_button_spacing();
 
-gint moz_gtk_get_titlebar_preferred_height();
-
 /**
  * Get toolbar button layout.
  * aButtonLayout:  [OUT] An array which will be filled by ButtonLayout
