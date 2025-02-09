@@ -1125,7 +1125,8 @@ ServiceWorkerManager::SendPushSubscriptionChangeEvent(
   if (!info) {
     return NS_ERROR_FAILURE;
   }
-  return info->WorkerPrivate()->SendPushSubscriptionChangeEvent(aOldSubscription);
+  return info->WorkerPrivate()->SendPushSubscriptionChangeEvent(
+      aOldSubscription);
 }
 
 nsresult ServiceWorkerManager::SendNotificationEvent(
