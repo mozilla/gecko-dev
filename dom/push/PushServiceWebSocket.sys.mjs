@@ -142,7 +142,7 @@ export var PushServiceWebSocket = {
   },
 
   observe(aSubject, aTopic, aData) {
-    if (aTopic == "nsPref:changed" && aData == "dom.push.userAgentID") {
+    if (aTopic == "nsPref:changed" && aData == "userAgentID") {
       this._onUAIDChanged();
     } else if (aTopic == "timer-callback") {
       this._onTimerFired(aSubject);
