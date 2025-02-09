@@ -356,6 +356,10 @@
     <string name="browser_menu_save_as_pdf"> Wekî PDF qeyd bike…</string>
     <!-- Browser menu label for turning ON reader view of the current visited page -->
     <string name="browser_menu_turn_on_reader_view">Xuyakirina Readerê veke</string>
+    <!-- Browser menu label for turning OFF reader view of the current visited page -->
+    <string name="browser_menu_turn_off_reader_view">Xuyakirina Readerê bigire</string>
+    <!-- Browser menu button that reopens a private tab as a regular tab -->
+    <string name="browser_menu_open_in_normal_tab">Biçe hilpekîna ne-taybet</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Rûpelê wergerîne…</string>
     <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -437,6 +441,11 @@
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Motora lêgerînê: %s</string>
 
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: hilbijêra motora lêgerînê</string>
+
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Tu bi xêr hatiyî înterneteke kesanetir</string>
@@ -468,6 +477,8 @@
     <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Bizane ka çima bi mîlyonan kes ji Firefoxê hez dikin</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Bi vebijarkên zêdetir di ewlehiyê de bigere</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_3">Geroka me ya ne ji bo qezenckirina pereyan rê li şirketan digire ku li ser webê bi dizî we bişopînin.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Kodên şopandinê? Otomatîk hatin astengkirin. Her 700`an bi kar bîne. Lê PDF? Readera me ya têdeyî rêveberiya PDF`an hêsan dike.</string>
     <!-- Text for the button to set firefox as default browser on the device -->

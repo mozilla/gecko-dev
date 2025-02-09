@@ -608,6 +608,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Để giúp cải thiện trình duyệt, Firefox gửi dữ liệu chẩn đoán và tương tác tới Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Quản lý</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Giúp chúng tôi phát triển Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Khi bạn chia sẻ cách bạn phát hiện ra Firefox và sử dụng nó, bạn sẽ giúp chúng tôi giới thiệu trình duyệt này với nhiều người hơn.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Chia sẻ dữ liệu tối thiểu với các đối tác công nghệ tiếp thị của Mozilla. Dữ liệu này không bao giờ được bán hoặc sử dụng để hiển thị quảng cáo cho bạn.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Cách chúng tôi sử dụng dữ liệu</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Xác nhận và bắt đầu duyệt web</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Chọn vị trí cho thanh công cụ</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1047,14 +1057,23 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Dữ liệu kỹ thuật và tương tác</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Gửi dữ liệu kỹ thuật và tương tác</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Tìm hiểu thêm</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Chia sẻ hiệu năng, cách sử dụng, phần cứng và dữ liệu tùy biến liên quan đến trình duyệt của bạn với Mozilla để giúp chúng tôi tạo ra %1$s tốt hơn</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Dữ liệu về thiết bị, cấu hình phần cứng và cách sử dụng của bạn giúp chúng tôi cải thiện các tính năng, hiệu suất và độ ổn định của Firefox.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dữ liệu tiếp thị</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Dữ liệu đo lường chiến dịch</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Chia sẻ thông tin về cách bạn khám phá Firefox với các đối tác tiếp thị của Mozilla. Điều này giúp chúng tôi phát triển Firefox và xây dựng một mạng Internet tốt hơn</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Chia sẻ cách bạn phát hiện ra Firefox và bạn sử dụng nó với các đối tác công nghệ tiếp thị của Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Tìm hiểu thêm về dữ liệu tiếp thị</string>
 
@@ -1231,6 +1250,10 @@
     <string name="studies_active">Hoạt động</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s có thể cài đặt và chạy các nghiên cứu theo thời gian.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Hãy thử các tính năng và ý tưởng trước khi chúng được phát hành cho mọi người.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Cài đặt và chạy nghiên cứu</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Tìm hiểu thêm</string>
 
@@ -2045,6 +2068,8 @@
     <string name="about_privacy_notice">Thông báo bảo mật</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Biết về quyền lợi của bạn</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Điều khoản sử dụng</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Thông tin giấy phép</string>
     <!-- About page link text to open a screen with libraries that are used -->

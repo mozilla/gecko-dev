@@ -598,16 +598,70 @@
     <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">condizions di utilizazion dal servizi</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
     <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">condizions di utilizazion di Firefox</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">La tô riservatece e sta sul cûr di Firefox. Lei altris informazions te nestre %1$s.</string>
+    <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+    <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">La tô riservatece e sta sul cûr a Firefox. Altris informazions te nestre %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text">Informative su la riservatece</string>
     <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$S is replaced by an active link, using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Par judâ a miorâ il navigadôr, Firefox al mande a Mozilla dâts diagnostics e di interazion. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Gjestìs</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Judinus a fâ cressi Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Cuant che tu nus contis cemût che tu âs discuviert Firefox e che tu lu dopris, tu nus judis a fâ cognossi il nestri navigadôr a plui personis.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Condivît dâts minimâi cui colaboradôrs tecnologjics pe promozion comerciâl di Mozilla. Chescj dâts no vegnin mai vendûts o doprâts par mostrâti publicitâts.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Cemût che o doprìn i dâts</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Conferme e scomence a navigâ</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Sielç la posizion de sbare dai struments</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Ten lis ricercjis sot man.</string>
+
+    <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_continue_button">Salve e continue</string>
+    <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Salte</string>
+    <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_top_option">Adalt</string>
+    <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_bottom_option">In bas</string>
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">Imagjin di intestazion grande de viodude di selezion de sbare dai struments che e mostre la ilustrazion di une sbare dai struments.</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
+    <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Imagjin de sbare dai struments cun posizion “%1$s”</string>
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Imagjin de sbare dai struments plaçade in bas</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Imagjin de sbare dai struments plaçade adalt</string>
+    <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">No cumò</string>
+
+    <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Sielç un teme</string>
+
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Cjale il web intune biele lûs.</string>
+    <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
+    <string name="onboarding_save_and_start_button">Salve e scomence a navigâ</string>
+    <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">Salte</string>
+    <!-- Onboarding theme selection card label for 'dark' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_dark_option">Scûr</string>
+    <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_light_option">Clâr</string>
+    <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_system_option">Automatic (sisteme)</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Imagjin di intestazion grande de viodude di selezion dal teme che e mostre struments ilustrâts par artiscj e costrutôrs.</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">Imagjin dal teme “%1$s”</string>
+    <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">No cumò</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1006,13 +1060,38 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">Plui informazions</string>
 
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_1">Dâts tecnics e di interazion</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Mande dâts tecnics e di interazion</string>
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Plui informazions</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Al condivît cun Mozilla informazions su prestazions, utilizazion, hardware e personalizazions dal navigadôr par judânus a miorâ %1$s</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">I dâts relatîfs al to dispositîf, ae sô configurazion hardware e ae utilizazion nus judin a miorâ lis funzionalitâts, lis prestazions e la stabilitât di Firefox.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Dâts di comercializazion</string>
 
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Dâts di misurazion des campagnis</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Condivît cui colaboradôrs di promozion comerciâl di Mozilla, lis informazions su cemût che tu âs discuviert Firefox. Chest nus judarà a fâ cressi Firefox e a costruî un internet miôr</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Condivît cui colaboradôrs tecnologjics pe promozion comerciâl di Mozilla cemût che tu âs scuviert Firefox e che tu lu dopris.</string>
+    <!-- Learn more link for marketing data preference -->
+    <string name="preferences_marketing_data_learn_more">Altris informazions sui dâts di marketing</string>
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Ping di utilizazion zornaliere</string>
+    <string name="preferences_daily_usage_ping_description">Chest al permet a Mozilla di stimâ il numar di utents atîfs.</string>
+    <string name="preferences_daily_usage_ping_learn_more">Plui informazions sul ping di utilizazion zornaliere</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_send_crashes_title">Mande in automatic i rapuarts sui colàs</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Mande in automatic lis segnalazions di colàs</string>
 
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_send_crashes_description">Chest nus jude a fâ diagnosis e risolvi problemis cul navigadôr. Lis segnalazions a puedin includi dâts personâi o sensibii.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Al condivît in automatic cun Mozilla i dâts sui colàs al sucessîf inviament</string>
 
     <!-- Title for studies preferences -->
@@ -1181,6 +1260,10 @@
     <string name="studies_active">Atîfs</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s al pues instalâ e puartâ indenant studis di cuant in cuant.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Prove lis funzionalitâts e lis ideis prime che a vegnin publicadis par ducj.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Instale e fâs studis</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Plui informazions</string>
     <!-- Dialog message shown after removing a study -->
@@ -1197,8 +1280,14 @@
     <string name="tab_header_label" moz:removedIn="135" tools:ignore="UnusedResources">Schedis viertis</string>
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Schedis privadis</string>
+    <!-- Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs -->
+    <string name="tabs_header_private_tabs_counter_title">Schedis privadis viertis: %1$s. Tocje par cambiâ schede.</string>
     <!-- Title for the list of tabs in the synced tabs -->
     <string name="tabs_header_synced_tabs_title" moz:removedIn="136" tools:ignore="UnusedResources">Schedis sincronizadis</string>
+    <!-- Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs -->
+    <string name="tabs_header_synced_tabs_counter_title">Schedis sincronizadis viertis: %1$s. Tocje par cambiâ schede.</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Zonte schede</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1299,6 +1388,9 @@
     <string name="download_delete_item_1">Gjave</string>
 
 
+    <!-- WebCompat Reporter -->
+    <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
+    <string name="webcompat_reporter_screen_title">Segnale problemis cul sît</string>
     <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
     <string name="webcompat_reporter_description">Judinus a miorâ %1$s par ducj. I dipendents di Mozilla a doprin lis informazions inviadis par risolvi i problemis cui sîts web.</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
@@ -3026,6 +3118,14 @@
     <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
     <string name="debug_drawer_addresses_debug_locales_header">Lenghis di debug di ativâ</string>
 
+    <!-- The title of the header for the section for managing addresses. -->
+    <string name="debug_drawer_addresses_management_header">Gjestìs direzions</string>
+    <!-- The title of the button in the debug drawer for adding a new address. -->
+    <string name="debug_drawer_add_new_address">Zonte une gnove direzion pe lenghe selezionade</string>
+
+    <!-- The title of the button for deleting in the debug drawer all addresses. -->
+    <string name="debug_drawer_delete_all_addresses">Elimine dutis lis direzions</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Struments CFR</string>
@@ -3055,8 +3155,35 @@
     <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
     <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Inzorne il navigadôr Firefox</string>
     <!-- Homepage card message about old Firefox version -->
-    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Un certificât principâl al sta par scjadê e cualchi funzionalitât no funzionarà plui dai 14 di Març.</string>
+    <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Un certificât lidrîs al sta par scjadê e cualchi funzionalitât no funzionarà plui dai 14 di Març.</string>
     <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
     <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Inzorne prime dai 14 di Març</string>
 
-    </resources>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Un certificât lidrîs al sta par scjadê e la tô version di Firefox e smetarà di funzionâ ben.</string>
+    <!-- Homepage card title about old Firefox version -->
+    <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Tu âs mancul di 7 dîs par inzornâ</string>
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">Cui 14 di Març i components adizionâi e altris funzionalitâts di Firefox a smetaran di funzionâ parcè che al sta scjadint un certificât lidrîs.</string>
+    <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Ultime ocasion par continuâ a doprâ Firefox</string>
+
+    <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Cui 14 di Març, la tô version di Firefox no funzionarà plui ben parcè che al sta scjadint un certificât lidrîs.</string>
+    <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+    <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Inzornament conseât</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">Cui 14 di Març, i components adizionâi e cualchi funzionalitât no funzionaran plui.</string>
+    <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+    <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Tu stâs doprant un version vecje di Firefox</string>
+    <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+    <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Inzorne prime dai 14 di Març par continuâ a doprâ i components adizionâi e altris funzionalitâts.</string>
+    <!-- Push notification message about old Firefox version -->
+    <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Cun doman cualchi funzionalitât no funzionarà plui.</string>
+
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Mostre test platât</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Nete test</string>
+</resources>

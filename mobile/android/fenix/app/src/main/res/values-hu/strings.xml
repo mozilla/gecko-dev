@@ -2090,6 +2090,8 @@
     <string name="about_privacy_notice">Adatvédelmi nyilatkozat</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Ismerje meg a jogait</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Felhasználási feltételek</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Licencinformációk</string>
     <!-- About page link text to open a screen with libraries that are used -->
