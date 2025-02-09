@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">AI ਮਾਡਲਾਂ ਨੂੰ ਆਪਣੇ ਡਿਵਾਈਸ ਉੱਤੇ ਡਾਊਨਲੋਡ ਕਰਕੇ ਚਲਾਓ</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">ਗ਼ੈਰ-ਤਸਦੀਕ ਕੀਤੀਆਂ ਸੁਤੰਤਰ ਧਿਰ ਦੀਆਂ ਸਕ੍ਰਿਪਟਾਂ ਨੂੰ ਆਪਣੇ ਡਾਟੇ ਲਈ ਪਹੁੰਚ ਦੀ ਮਨਜ਼ੂਰੀ ਦਿਓ</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">ਗ਼ੈਰ-ਤਸਦੀਕ ਕੀਤੀਆਂ ਸਕ੍ਰਿਪਟਾਂ ਸੁਰੱਖਿਆ ਅਤੇ ਪਰਦੇਦਾਰੀ ਖ਼ਤਰੇ ਹੁੰਦੀਆਂ ਹਨ। ਜਿਨ੍ਹਾਂ ਇਕਸਟੈਨਸ਼ਨਾਂ ਜਾਂ ਸਰੋਤਾਂ ਉੱਤੇ ਤੁਹਾਨੂੰ ਭਰੋਸਾ ਹੋਵੇ, ਉਹੀ ਸਕ੍ਰਿਪਟਾਂ ਨੂੰ ਚਲਾਓ।</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">ਟੈਬਾਂ ਖੋਲ੍ਹਣ ਵਿੱਚ ਤੁਹਾਡੇ ਡਾਟਾ ਲਈ ਡਿਵੈਲਪਰ ਟੂਲਾਂ ਦੀ ਪਹੁੰਚ</string>
     <!-- The version on of add-on. -->

@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">የ AI ሞዴሎችን በመሣሪያዎ ላይ ያውርዱ እና ያሂዱ</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">ያልተረጋገጡ የሶስተኛ ወገን ስክሪፕቶች የእርስዎን ውሂብ እንዲደርሱበት ይፍቀዱ</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">ያልተረጋገጡ ስክሪፕቶች የደህንነት እና የግላዊነት አደጋዎችን ሊያስከትሉ ይችላሉ። ስክሪፕቶችን ከቅጥያዎች ወይም ከምታምኗቸው ምንጮች ብቻ አሂድ።</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">በክፍት ትሮች ውስጥ ውሂብዎን ለመድረስ የገንቢ መሳሪያዎችን ዘርጋ</string>
     <!-- The version on of add-on. -->
