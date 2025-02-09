@@ -4,7 +4,6 @@
 
 import { clearTimeout, setTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-import { ChromePushSubscription } from "./ChromePushSubscription.sys.mjs";
 
 const lazy = {};
 
@@ -662,11 +661,7 @@ export var PushService = {
     if (!record) {
       return;
     }
-    lazy.gPushNotifier.notifySubscriptionChange(
-      record.scope,
-      record.principal,
-      new ChromePushSubscription(record.toSubscription())
-    );
+    lazy.gPushNotifier.notifySubscriptionChange(record.scope, record.principal);
   },
 
   /**

@@ -13,7 +13,6 @@
 %}
 
 interface nsIPrincipal;
-interface nsIPushSubscription;
 
 /**
  * Fires XPCOM observer notifications and service worker events for
@@ -44,8 +43,7 @@ interface nsIPushNotifier : nsISupports
    * `pushsubscriptionchange` event to the service worker registered for the
    * |scope|.
    */
-  void notifySubscriptionChange(in ACString scope, in nsIPrincipal principal,
-                                in nsIPushSubscription oldSubscription);
+  void notifySubscriptionChange(in ACString scope, in nsIPrincipal principal);
 
   /**
    * Fires a `push-subscription-modified` observer notification. Chrome code

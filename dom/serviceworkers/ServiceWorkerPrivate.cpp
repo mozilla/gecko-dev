@@ -38,7 +38,6 @@
 #include "mozilla/dom/FetchEventOpChild.h"
 #include "mozilla/dom/InternalHeaders.h"
 #include "mozilla/dom/InternalRequest.h"
-#include "mozilla/dom/PushManager.h"
 #include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/RemoteType.h"
 #include "mozilla/dom/RemoteWorkerControllerChild.h"
@@ -971,19 +970,12 @@ nsresult ServiceWorkerPrivate::SendPushEventInternal(
       });
 }
 
-nsresult ServiceWorkerPrivate::SendPushSubscriptionChangeEvent(
-    const RefPtr<nsIPushSubscription>& aOldSubscription) {
+nsresult ServiceWorkerPrivate::SendPushSubscriptionChangeEvent() {
   AssertIsOnMainThread();
 
-  ServiceWorkerPushSubscriptionChangeEventOpArgs args{};
-  PushSubscriptionData& oldSubscription = args.oldSubscription();
-  MOZ_TRY(GetSubscriptionParams(aOldSubscription, oldSubscription.endpoint(),
-                                oldSubscription.rawP256dhKey(),
-                                oldSubscription.authSecret(),
-                                oldSubscription.appServerKey()));
-
   return ExecServiceWorkerOp(
-      std::move(args), ServiceWorkerLifetimeExtension(FullLifetimeExtension{}),
+      ServiceWorkerPushSubscriptionChangeEventOpArgs(),
+      ServiceWorkerLifetimeExtension(FullLifetimeExtension{}),
       [](ServiceWorkerOpResult&& aResult) {
         MOZ_ASSERT(aResult.type() == ServiceWorkerOpResult::Tnsresult);
       });

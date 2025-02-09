@@ -11,7 +11,6 @@ EXTRA_COMPONENTS += [
 ]
 
 EXTRA_JS_MODULES += [
-    "ChromePushSubscription.sys.mjs",
     "Push.sys.mjs",
     "PushBroadcastService.sys.mjs",
     "PushComponents.sys.mjs",

@@ -37,7 +37,6 @@
 
 class nsIGlobalObject;
 class nsIPrincipal;
-class nsIPushSubscription;
 
 namespace mozilla {
 class ErrorResult;
@@ -49,12 +48,6 @@ class Promise;
 class PushManagerImpl;
 struct PushSubscriptionOptionsInit;
 class WorkerPrivate;
-
-nsresult GetSubscriptionParams(nsIPushSubscription* aSubscription,
-                               nsAString& aEndpoint,
-                               nsTArray<uint8_t>& aRawP256dhKey,
-                               nsTArray<uint8_t>& aAuthSecret,
-                               nsTArray<uint8_t>& aAppServerKey);
 
 class PushManager final : public nsISupports, public nsWrapperCache {
  public:

@@ -21,7 +21,6 @@
 #include "nsServiceManagerUtils.h"
 #include "nsDebug.h"
 #include "nsIPermissionManager.h"
-#include "nsIPushService.h"
 #include "nsXULAppAPI.h"
 
 #include "jsapi.h"
@@ -1114,8 +1113,7 @@ nsresult ServiceWorkerManager::SendPushEvent(
 
 NS_IMETHODIMP
 ServiceWorkerManager::SendPushSubscriptionChangeEvent(
-    const nsACString& aOriginAttributes, const nsACString& aScope,
-    nsIPushSubscription* aOldSubscription) {
+    const nsACString& aOriginAttributes, const nsACString& aScope) {
   OriginAttributes attrs;
   if (!attrs.PopulateFromSuffix(aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
@@ -1125,8 +1123,7 @@ ServiceWorkerManager::SendPushSubscriptionChangeEvent(
   if (!info) {
     return NS_ERROR_FAILURE;
   }
-  return info->WorkerPrivate()->SendPushSubscriptionChangeEvent(
-      aOldSubscription);
+  return info->WorkerPrivate()->SendPushSubscriptionChangeEvent();
 }
 
 nsresult ServiceWorkerManager::SendNotificationEvent(
