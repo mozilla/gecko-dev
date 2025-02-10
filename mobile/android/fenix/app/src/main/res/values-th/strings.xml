@@ -1071,8 +1071,13 @@
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">ข้อมูลเกี่ยวกับอุปกรณ์ของคุณ การกำหนดค่าฮาร์ดแวร์ และการใช้งานของคุณช่วยปรับปรุงคุณลักษณะ ประสิทธิภาพ และเสถียรภาพของ Firefox</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">ข้อมูลการตลาด</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">ข้อมูลการวัดผลแคมเปญ</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">แบ่งปันข้อมูลว่าคุณค้นพบ Firefox ได้อย่างไรกับพันธมิตรด้านการตลาดของ Mozilla การกระทำนี้ช่วยเราพัฒนา Firefox และสร้างอินเทอร์เน็ตที่ดีขึ้นได้</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">แบ่งปันว่าคุณค้นพบ Firefox ได้อย่างไร และคุณใช้มันอย่างไรกับพันธมิตรด้านเทคโนโลยีการตลาดของ Mozilla</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">เรียนรู้เพิ่มเติมเกี่ยวกับข้อมูลการตลาด</string>
 
@@ -2076,6 +2081,8 @@
     <string name="about_privacy_notice">ประกาศความเป็นส่วนตัว</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">รู้ถึงสิทธิของคุณ</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">เงื่อนไขการใช้งาน</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">ข้อมูลสัญญาอนุญาต</string>
     <!-- About page link text to open a screen with libraries that are used -->

@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Завантажуйте та запускайте моделі ШІ на своєму пристрої</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Дозволити неперевіреним стороннім скриптам отримувати доступ до ваших даних</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Неперевірені скрипти можуть становити загрозу безпеці та приватності. Запускайте скрипти лише з розширень або джерел, яким ви довіряєте.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Розширте інструменти розробника для доступу до своїх даних у відкритих вкладках</string>
     <!-- The version on of add-on. -->

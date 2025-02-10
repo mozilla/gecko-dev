@@ -621,6 +621,10 @@
     <string name="onboarding_term_of_service_line_three_link_text">Správa</string>
     <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Pomozte nám rozvíjet Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Když se podělíte o to, jak jste Firefox objevili a že ho používáte, pomůžete nám představit náš prohlížeč více lidem.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Sdílet minimální množství dat s partnery Mozilly v oblasti marketingových technologií. Tato data nejsou nikdy prodávána ani používána k zobrazování reklam.</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Jak data používáme</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -1070,12 +1074,17 @@
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Zjistit více</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Zaznamenává data o výkonu, hardwaru, používání a přizpůsobení prohlížeče %1$s. Data o prohlížeči jsou sdílena s organizací Mozilla z důvodu jeho vylepšení.</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Údaje o vašem zařízení, konfiguraci hardwaru a používání nám pomáhají zlepšovat funkce, výkon a stabilitu Firefoxu.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Marketingová data</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
     <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Údaje z měření kampaně</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Sdílejte informace o tom, jak jste Firefox objevili, s marketingovými partnery společnosti Mozilla. Pomáhá nám to rozvíjet Firefox a vytvářet lepší internet</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Podělte se o to, jak jste Firefox objevili a že ho používáte, s partnery Mozilly v oblasti marketingových technologií.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Další informace o marketingových datech</string>
 

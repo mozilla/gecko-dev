@@ -611,6 +611,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Щоб вдосконалити браузер, Firefox надсилає дані діагностики та взаємодії до Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Керувати</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Допоможіть розвитку Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Коли ви розповідаєте про те, як ви відкрили для себе Firefox і що користуєтесь ним, ви допомагаєте нам представити наш браузер більшій кількості людей.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Діліться мінімальною кількістю даних з партнерами Mozilla з маркетингових технологій. Ці дані ніколи не продаються та не використовуються для показу вам реклами.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Як ми використовуємо дані</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Підтвердити та почати перегляд</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Виберіть розташування панелі інструментів</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1057,14 +1067,23 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Технічні дані та дані взаємодії</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Надсилати технічні й аналітичні дані</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Докладніше</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description">Надсилати в Mozilla дані про використання, швидкодію, апаратне забезпечення та налаштування браузера, щоб допомогти вдосконалити %1$s</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Дані про ваш пристрій, конфігурацію обладнання та використання допомагають нам удосконалити функції, швидкодію і стабільність Firefox.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Маркетингові дані</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Дані вимірювання кампанії</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Поділіться інформацією про те, як ви відкрили для себе Firefox, із маркетинговими партнерами Mozilla. Це допомагає нам розвивати Firefox і створювати кращий Інтернет.</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Поділіться тим з партнерами Mozilla з маркетингових технологій, як ви відкрили для себе Firefox і що ви ним користуєтесь.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Докладніше про маркетингові дані</string>
 
@@ -1242,6 +1261,10 @@
     <string name="studies_active">Активні</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2">%1$s може час від часу встановлювати й виконувати дослідження.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3" tools:ignore="UnusedResources">Випробуйте нові функції та ідеї, перш ніж вони стануть доступними для всіх.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title" tools:ignore="UnusedResources">Встановлювати й запускати дослідження</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Докладніше</string>
 
@@ -2065,6 +2088,8 @@
     <string name="about_privacy_notice">Положення про приватність</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Знайте свої права</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Умови користування</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Інформація про ліцензію</string>
     <!-- About page link text to open a screen with libraries that are used -->
@@ -3166,4 +3191,9 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Завтра деякі функції перестануть працювати.</string>
 
-    </resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Показати прихований текст</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Очистити текст</string>
+</resources>
