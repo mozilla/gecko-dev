@@ -136,6 +136,11 @@ struct WebAuthnMakeCredentialResult {
   nsString? AuthenticatorAttachment;
 };
 
+union WebAuthnMakeCredentialResponse {
+  nsresult;
+  WebAuthnMakeCredentialResult;
+};
+
 struct WebAuthnGetAssertionInfo {
   nsString Origin;
   nsString RpId;
@@ -159,20 +164,22 @@ struct WebAuthnGetAssertionResult {
   nsString? AuthenticatorAttachment;
 };
 
+union WebAuthnGetAssertionResponse {
+  nsresult;
+  WebAuthnGetAssertionResult;
+};
+
 async protocol PWebAuthnTransaction {
   manager PWindowGlobal;
 
   parent:
-    async RequestRegister(uint64_t aTransactionId, WebAuthnMakeCredentialInfo aTransactionInfo);
-    async RequestSign(uint64_t aTransactionId, WebAuthnGetAssertionInfo aTransactionInfo);
+    async RequestRegister(WebAuthnMakeCredentialInfo aTransactionInfo) returns (WebAuthnMakeCredentialResponse response);
+    async RequestSign(WebAuthnGetAssertionInfo aTransactionInfo) returns (WebAuthnGetAssertionResponse response);
     async RequestIsUVPAA() returns (bool available);
-    [Tainted] async RequestCancel(uint64_t aTransactionId);
+    async RequestCancel();
 
   child:
     async __delete__();
-    async ConfirmRegister(uint64_t aTransactionId, WebAuthnMakeCredentialResult aResult);
-    async ConfirmSign(uint64_t aTransactionId, WebAuthnGetAssertionResult aResult);
-    async Abort(uint64_t aTransactionId, nsresult Error);
 };
 
 }

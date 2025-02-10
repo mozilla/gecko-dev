@@ -12,10 +12,10 @@
 
 namespace mozilla::dom {
 
-WebAuthnManagerBase::WebAuthnManagerBase(nsPIDOMWindowInner* aParent)
-    : mParent(aParent) {
+WebAuthnManagerBase::WebAuthnManagerBase(nsPIDOMWindowInner* aWindow)
+    : mWindow(aWindow) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aParent);
+  MOZ_ASSERT(aWindow);
 }
 
 WebAuthnManagerBase::~WebAuthnManagerBase() { MOZ_ASSERT(NS_IsMainThread()); }
@@ -24,7 +24,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebAuthnManagerBase)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION(WebAuthnManagerBase, mParent)
+NS_IMPL_CYCLE_COLLECTION(WebAuthnManagerBase, mWindow)
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(WebAuthnManagerBase)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(WebAuthnManagerBase)
@@ -36,11 +36,11 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(WebAuthnManagerBase)
 bool WebAuthnManagerBase::MaybeCreateBackgroundActor() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mChild) {
+  if (mActor) {
     return true;
   }
 
-  RefPtr<WebAuthnTransactionChild> child = new WebAuthnTransactionChild();
+  RefPtr<WebAuthnTransactionChild> actor = new WebAuthnTransactionChild();
 
   WindowGlobalChild* windowGlobalChild = mParent->GetWindowGlobalChild();
   if (!windowGlobalChild ||
@@ -48,15 +48,15 @@ bool WebAuthnManagerBase::MaybeCreateBackgroundActor() {
     return false;
   }
 
-  mChild = child;
-  mChild->SetManager(this);
+  mActor = actor;
+  mActor->SetManager(this);
 
   return true;
 }
 
 void WebAuthnManagerBase::ActorDestroyed() {
   MOZ_ASSERT(NS_IsMainThread());
-  mChild = nullptr;
+  mActor = nullptr;
 }
 
 }  // namespace mozilla::dom

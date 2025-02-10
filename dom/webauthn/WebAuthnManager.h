@@ -12,7 +12,9 @@
 #include "mozilla/RandomNum.h"
 #include "mozilla/dom/AbortSignal.h"
 #include "mozilla/dom/PWebAuthnTransaction.h"
+#include "mozilla/dom/PWebAuthnTransactionChild.h"
 #include "mozilla/dom/WebAuthnManagerBase.h"
+#include "mozilla/dom/WebAuthnTransactionChild.h"
 
 /*
  * Content process manager for the WebAuthn protocol. Created on calls to the
@@ -54,30 +56,22 @@ class WebAuthnTransaction {
  public:
   explicit WebAuthnTransaction(const RefPtr<Promise>& aPromise,
                                WebAuthnTransactionType aType)
-      : mPromise(aPromise), mId(NextId()), mType(aType) {
-    MOZ_ASSERT(mId > 0);
-  }
+      : mPromise(aPromise), mType(aType) {}
 
   // JS Promise representing the transaction status.
   RefPtr<Promise> mPromise;
 
-  // Unique transaction id.
-  uint64_t mId;
-
   WebAuthnTransactionType mType;
 
- private:
-  // Generates a probabilistically unique ID for the new transaction. IDs are 53
-  // bits, as they are used in javascript. We use a random value if possible,
-  // otherwise a counter.
-  static uint64_t NextId() {
-    static uint64_t counter = 0;
-    Maybe<uint64_t> rand = mozilla::RandomUint64();
-    uint64_t id =
-        rand.valueOr(++counter) & UINT64_C(0x1fffffffffffff);  // 2^53 - 1
-    // The transaction ID 0 is reserved.
-    return id ? id : 1;
-  }
+  // These holders are used to track the transaction once it has been dispatched
+  // to the parent process. Once ->Track()'d, they must either be disconnected
+  // (through a call to WebAuthnManager::CancelTransaction) or completed
+  // (through a response on the IPC channel) before this WebAuthnTransaction is
+  // destroyed.
+  MozPromiseRequestHolder<PWebAuthnTransactionChild::RequestRegisterPromise>
+      mRegisterHolder;
+  MozPromiseRequestHolder<PWebAuthnTransactionChild::RequestSignPromise>
+      mSignHolder;
 };
 
 class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
@@ -85,8 +79,8 @@ class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(WebAuthnManager, WebAuthnManagerBase)
 
-  explicit WebAuthnManager(nsPIDOMWindowInner* aParent)
-      : WebAuthnManagerBase(aParent) {}
+  explicit WebAuthnManager(nsPIDOMWindowInner* aWindow)
+      : WebAuthnManagerBase(aWindow) {}
 
   already_AddRefed<Promise> MakeCredential(
       const PublicKeyCredentialCreationOptions& aOptions,
@@ -102,30 +96,27 @@ class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
 
   already_AddRefed<Promise> IsUVPAA(GlobalObject& aGlobal, ErrorResult& aError);
 
-  // WebAuthnManagerBase
-
-  void FinishMakeCredential(
-      const uint64_t& aTransactionId,
-      const WebAuthnMakeCredentialResult& aResult) override;
-
-  void FinishGetAssertion(const uint64_t& aTransactionId,
-                          const WebAuthnGetAssertionResult& aResult) override;
-
-  void RequestAborted(const uint64_t& aTransactionId,
-                      const nsresult& aError) override;
-
   // AbortFollower
-
   void RunAbortAlgorithm() override;
 
  private:
   virtual ~WebAuthnManager();
 
+  void FinishMakeCredential(const WebAuthnMakeCredentialResult& aResult);
+
+  void FinishGetAssertion(const WebAuthnGetAssertionResult& aResult);
+
   // Send a Cancel message to the parent, reject the promise with the given
   // reason (an nsresult or JS::Handle<JS::Value>), and clear the transaction.
   template <typename T>
   void CancelTransaction(const T& aReason) {
-    CancelParent();
+    MOZ_ASSERT(mActor);
+    MOZ_ASSERT(mTransaction.isSome());
+
+    mTransaction.ref().mRegisterHolder.DisconnectIfExists();
+    mTransaction.ref().mSignHolder.DisconnectIfExists();
+
+    mActor->SendRequestCancel();
     RejectTransaction(aReason);
   }
 
@@ -136,12 +127,6 @@ class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
   // clear the transaction.
   template <typename T>
   void RejectTransaction(const T& aReason);
-
-  // Send a Cancel message to the parent.
-  void CancelParent();
-
-  // Clears all information we have about the current transaction.
-  void ClearTransaction();
 
   // The current transaction, if any.
   Maybe<WebAuthnTransaction> mTransaction;
