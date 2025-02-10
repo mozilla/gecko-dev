@@ -515,6 +515,17 @@ class RangeBoundaryBase {
     } else {
       mOffset = aOther.mOffset;
     }
+    // If the mutation will be observed but the other does not have proper
+    // mRef for its mOffset, we need to compute mRef like the constructor
+    // which takes aOffset.
+    if (mIsMutationObserved && !mRef && mParent && mOffset.isSome() &&
+        *mOffset) {
+      if (*mOffset == mParent->GetChildCount()) {
+        mRef = mParent->GetLastChild();
+      } else {
+        mRef = mParent->GetChildAt_Deprecated(*mOffset - 1);
+      }
+    }
     return *this;
   }
 
@@ -528,14 +539,19 @@ class RangeBoundaryBase {
   }
 
   template <typename A, typename B>
-  bool operator==(const RangeBoundaryBase<A, B>& aOther) const {
-    return mParent == aOther.mParent &&
-           (mIsMutationObserved && aOther.mIsMutationObserved && mRef
-                ? mRef == aOther.mRef
-                : Offset(OffsetFilter::kValidOrInvalidOffsets) ==
-                      aOther.Offset(
-                          RangeBoundaryBase<
-                              A, B>::OffsetFilter::kValidOrInvalidOffsets));
+  [[nodiscard]] bool operator==(const RangeBoundaryBase<A, B>& aOther) const {
+    if (!mParent && !aOther.mParent) {
+      return true;
+    }
+    if (mParent != aOther.mParent) {
+      return false;
+    }
+    if (RefIsFixed() && aOther.RefIsFixed()) {
+      return mRef == aOther.mRef;
+    }
+    return Offset(OffsetFilter::kValidOrInvalidOffsets) ==
+           aOther.Offset(
+               RangeBoundaryBase<A, B>::OffsetFilter::kValidOrInvalidOffsets);
   }
 
   template <typename A, typename B>
@@ -544,6 +560,17 @@ class RangeBoundaryBase {
   }
 
  private:
+  [[nodiscard]] bool RefIsFixed() const {
+    return mParent &&
+           (
+               // If mutation is observed, mRef is the base of mOffset unless
+               // it's not a container node like `Text` node.
+               (mIsMutationObserved && (mRef || mParent->IsContainerNode())) ||
+               // If offset is not set, we would compute mOffset from mRef.
+               // So, mRef is "fixed" for now.
+               mOffset.isNothing());
+  }
+
   ParentType mParent;
   mutable RefType mRef;
 
