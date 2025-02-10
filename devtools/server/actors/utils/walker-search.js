@@ -202,6 +202,66 @@ class WalkerSearch {
     }
   }
 
+  _attributeMatch(attributeValue, expectedAttributeValue, isExactMatch) {
+    if (expectedAttributeValue === undefined) {
+      return true;
+    }
+    if (isExactMatch) {
+      return attributeValue === expectedAttributeValue;
+    }
+    return attributeValue.startsWith(expectedAttributeValue);
+  }
+
+  _searchAttribute(query, options, results) {
+    if (
+      !options.types.includes("attributeName") ||
+      !options.types.includes("attributeValue")
+    ) {
+      return;
+    }
+    if (!query.includes("=") || query.trim() === "=") {
+      return;
+    }
+
+    let [attributeName, attributeValue] = query.split("=", 2);
+
+    // Remove leading and trailing quotes
+    const isExactMatch =
+      attributeValue.startsWith('"') && attributeValue.endsWith('"');
+    attributeValue = attributeValue?.replace(/(^")|("$)/gi, "");
+
+    if (attributeName === undefined || attributeName === "") {
+      for (const [str, entries] of this.index.data) {
+        if (!this._attributeMatch(str, attributeValue, isExactMatch)) {
+          continue;
+        }
+
+        for (const entry of entries) {
+          if (entry.type !== "attributeValue") {
+            continue;
+          }
+          this._addResult(entry.node, "attributeValue", results);
+        }
+      }
+    } else {
+      for (const entry of this.index.data.get(attributeName)) {
+        if (entry.type !== "attributeName") {
+          continue;
+        }
+        if (
+          !this._attributeMatch(
+            entry.node.attributes[attributeName].value,
+            attributeValue,
+            isExactMatch
+          )
+        ) {
+          continue;
+        }
+        this._addResult(entry.node, "attributeName", results);
+      }
+    }
+  }
+
   _searchSelectors(query, options, results) {
     // If the query is just one "word", no need to search because _searchIndex
     // will lead the same results since it has access to tagnames anyway
@@ -264,6 +324,9 @@ class WalkerSearch {
 
     // Search with querySelectorAll
     this._searchSelectors(query, options, results);
+
+    // Search for attributeName=attributeValue pairs
+    this._searchAttribute(query, options, results);
 
     // Search with XPath
     this._searchXPath(query, options, results);
