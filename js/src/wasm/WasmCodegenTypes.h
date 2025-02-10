@@ -27,6 +27,7 @@
 #include <stdint.h>
 
 #include "jit/IonTypes.h"
+#include "jit/PerfSpewer.h"
 #include "wasm/WasmBuiltins.h"
 #include "wasm/WasmCodegenConstants.h"
 #include "wasm/WasmConstants.h"
@@ -1527,6 +1528,22 @@ class CalleeDesc {
   }
   bool isFuncRef() const { return which_ == FuncRef; }
 };
+
+struct FuncIonPerfSpewer {
+  uint32_t funcIndex = 0;
+  jit::IonPerfSpewer spewer;
+
+  FuncIonPerfSpewer() = default;
+  FuncIonPerfSpewer(uint32_t funcIndex, jit::IonPerfSpewer&& spewer)
+      : funcIndex(funcIndex), spewer(std::move(spewer)) {}
+  FuncIonPerfSpewer(FuncIonPerfSpewer&) = delete;
+  FuncIonPerfSpewer(FuncIonPerfSpewer&&) = default;
+  FuncIonPerfSpewer& operator=(FuncIonPerfSpewer&) = delete;
+  FuncIonPerfSpewer& operator=(FuncIonPerfSpewer&&) = default;
+};
+
+using FuncIonPerfSpewerVector = Vector<FuncIonPerfSpewer, 8, SystemAllocPolicy>;
+using FuncIonPerfSpewerSpan = mozilla::Span<FuncIonPerfSpewer>;
 
 }  // namespace wasm
 }  // namespace js

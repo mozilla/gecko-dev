@@ -1409,11 +1409,14 @@ CoderResult CodeSharedCode(Coder<MODE_DECODE>& coder, wasm::SharedCode* item,
   MOZ_TRY((CodeUniquePtr<MODE_DECODE, LinkData, CodeLinkData>(
       coder, &sharedStubsLinkData)));
   MOZ_TRY(CodeCodeBlock(coder, &sharedStubs, *sharedStubsLinkData));
+  sharedStubs->sendToProfiler(codeMeta, nullptr, FuncIonPerfSpewerSpan());
+
   UniqueLinkData optimizedCodeLinkData;
   UniqueCodeBlock optimizedCode;
   MOZ_TRY((CodeUniquePtr<MODE_DECODE, LinkData, CodeLinkData>(
       coder, &optimizedCodeLinkData)));
   MOZ_TRY(CodeCodeBlock(coder, &optimizedCode, *optimizedCodeLinkData));
+  optimizedCode->sendToProfiler(codeMeta, nullptr, FuncIonPerfSpewerSpan());
 
   // Create and initialize the code
   MutableCode code =

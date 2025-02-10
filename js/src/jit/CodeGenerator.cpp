@@ -16491,7 +16491,8 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
                                  size_t trapExitLayoutNumWords,
                                  wasm::FuncOffsets* offsets,
                                  wasm::StackMaps* stackMaps,
-                                 wasm::Decoder* decoder) {
+                                 wasm::Decoder* decoder,
+                                 jit::IonPerfSpewer* spewer) {
   AutoCreatedBy acb(masm, "CodeGenerator::generateWasm");
 
   JitSpew(JitSpew_Codegen, "# Emitting wasm code");
@@ -16499,6 +16500,7 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
   size_t nInboundStackArgBytes = StackArgAreaSizeUnaligned(argTypes);
   inboundStackArgBytes_ = nInboundStackArgBytes;
 
+  perfSpewer_.recordOffset(masm, "Prologue");
   wasm::GenerateFunctionPrologue(masm, callIndirectId, mozilla::Nothing(),
                                  offsets);
 
@@ -16543,9 +16545,11 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
     return false;
   }
 
+  perfSpewer_.recordOffset(masm, "Epilogue");
   masm.bind(&returnLabel_);
   wasm::GenerateFunctionEpilogue(masm, frameSize(), offsets);
 
+  perfSpewer_.recordOffset(masm, "OOLCode");
   if (!generateOutOfLineCode()) {
     return false;
   }
@@ -16589,6 +16593,7 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
     }
   }
 
+  *spewer = std::move(perfSpewer_);
   return true;
 }
 
@@ -16958,7 +16963,7 @@ bool CodeGenerator::link(JSContext* cx) {
   }
   ionScript->setInvalidationEpilogueOffset(invalidate_.offset());
 
-  perfSpewer_.saveProfile(cx, script, code);
+  perfSpewer_.saveJSProfile(cx, script, code);
 
 #ifdef MOZ_VTUNE
   vtune::MarkScript(code, script, "ion");

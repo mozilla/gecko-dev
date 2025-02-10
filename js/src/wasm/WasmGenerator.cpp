@@ -433,6 +433,11 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
 #endif
   }
 
+  // Grab the perf spewers that were generated for these functions.
+  if (!funcIonSpewers_.appendAll(std::move(code.funcIonSpewers))) {
+    return false;
+  }
+
   // Before merging in new code, if calls in a prior code range might go out of
   // range, insert far jumps to extend the range.
 
@@ -946,6 +951,11 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
   // Check that metadata is consistent with the actual code we generated,
   // linked, and loaded.
   CheckCodeBlock(*codeBlock_);
+
+  // Send the code to the profiler using the collected perf spewers that have
+  // precise IR/source information.
+  codeBlock_->sendToProfiler(*codeMeta_, codeMetaForAsmJS_,
+                             FuncIonPerfSpewerSpan(funcIonSpewers_));
 
   // Free the macro assembler scope, and reset our masm pointer
   masm_ = nullptr;
@@ -1465,6 +1475,7 @@ void ModuleGenerator::warnf(const char* msg, ...) {
 size_t CompiledCode::sizeOfExcludingThis(
     mozilla::MallocSizeOf mallocSizeOf) const {
   return funcs.sizeOfExcludingThis(mallocSizeOf) +
+         funcIonSpewers.sizeOfExcludingThis(mallocSizeOf) +
          bytes.sizeOfExcludingThis(mallocSizeOf) +
          codeRanges.sizeOfExcludingThis(mallocSizeOf) +
          callSites.sizeOfExcludingThis(mallocSizeOf) +

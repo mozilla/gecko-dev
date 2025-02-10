@@ -193,96 +193,6 @@ void wasm::StaticallyUnlink(uint8_t* base, const LinkData& linkData) {
   }
 }
 
-static bool AppendToString(const char* str, UTF8Bytes* bytes) {
-  return bytes->append(str, strlen(str)) && bytes->append('\0');
-}
-
-static void SendCodeRangesToProfiler(
-    const uint8_t* segmentBase, const CodeMetadata& codeMeta,
-    const CodeMetadataForAsmJS* codeMetaForAsmJS,
-    const CodeRangeVector& codeRanges) {
-  bool enabled = false;
-  enabled |= PerfEnabled();
-#ifdef MOZ_VTUNE
-  enabled |= vtune::IsProfilingActive();
-#endif
-  if (!enabled) {
-    return;
-  }
-
-  for (const CodeRange& codeRange : codeRanges) {
-    if (!codeRange.hasFuncIndex()) {
-      continue;
-    }
-
-    uintptr_t start = uintptr_t(segmentBase + codeRange.begin());
-    uintptr_t size = codeRange.end() - codeRange.begin();
-
-    UTF8Bytes name;
-    bool ok;
-    if (codeMetaForAsmJS) {
-      ok = codeMetaForAsmJS->getFuncNameForAsmJS(codeRange.funcIndex(), &name);
-    } else {
-      ok = codeMeta.getFuncNameForWasm(NameContext::Standalone,
-                                       codeRange.funcIndex(), &name);
-    }
-    if (!ok) {
-      return;
-    }
-
-    // Avoid "unused" warnings
-    (void)start;
-    (void)size;
-
-    if (PerfEnabled()) {
-      const char* file = codeMeta.scriptedCaller().filename.get();
-      if (codeRange.isFunction()) {
-        if (!name.append('\0')) {
-          return;
-        }
-        CollectPerfSpewerWasmFunctionMap(
-            start, size, file,
-            codeMeta.funcBytecodeOffset(codeRange.funcIndex()), name.begin());
-      } else if (codeRange.isInterpEntry()) {
-        if (!AppendToString(" slow entry", &name)) {
-          return;
-        }
-        CollectPerfSpewerWasmMap(start, size, file, name.begin());
-      } else if (codeRange.isJitEntry()) {
-        if (!AppendToString(" fast entry", &name)) {
-          return;
-        }
-        CollectPerfSpewerWasmMap(start, size, file, name.begin());
-      } else if (codeRange.isImportInterpExit()) {
-        if (!AppendToString(" slow exit", &name)) {
-          return;
-        }
-        CollectPerfSpewerWasmMap(start, size, file, name.begin());
-      } else if (codeRange.isImportJitExit()) {
-        if (!AppendToString(" fast exit", &name)) {
-          return;
-        }
-        CollectPerfSpewerWasmMap(start, size, file, name.begin());
-      } else {
-        MOZ_CRASH("unhandled perf hasFuncIndex type");
-      }
-    }
-#ifdef MOZ_VTUNE
-    if (!vtune::IsProfilingActive()) {
-      continue;
-    }
-    if (!codeRange.isFunction()) {
-      continue;
-    }
-    if (!name.append('\0')) {
-      return;
-    }
-    vtune::MarkWasm(vtune::GenerateUniqueMethodID(), name.begin(), (void*)start,
-                    size);
-#endif
-  }
-}
-
 size_t CodeSegment::AllocationAlignment() {
   // If we are write-protecting code, all new code allocations must be rounded
   // to the system page size.
@@ -677,6 +587,8 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
     }
   }
 
+  stubCodeBlock->sendToProfiler(*codeMeta_, codeMetaForAsmJS_,
+                                FuncIonPerfSpewerSpan());
   return addCodeBlock(guard, std::move(stubCodeBlock), nullptr);
 }
 
@@ -1028,9 +940,6 @@ bool CodeBlock::initialize(const Code& code, size_t codeBlockIndex) {
   this->codeBlockIndex = codeBlockIndex;
   segment->setCode(code);
 
-  SendCodeRangesToProfiler(segment->base(), code.codeMeta(),
-                           code.codeMetaForAsmJS(), codeRanges);
-
   // In the case of tiering, RegisterCodeBlock() immediately makes this code
   // block live to access from other threads executing the containing
   // module. So only call once the CodeBlock is fully initialized.
@@ -1045,6 +954,109 @@ bool CodeBlock::initialize(const Code& code, size_t codeBlockIndex) {
 
   MOZ_ASSERT(initialized());
   return true;
+}
+
+static JS::UniqueChars DescribeCodeRangeForProfiler(
+    const wasm::CodeMetadata& codeMeta,
+    const CodeMetadataForAsmJS* codeMetaForAsmJS, const CodeRange& codeRange,
+    CodeBlockKind codeBlockKind) {
+  uint32_t funcIndex = codeRange.funcIndex();
+  UTF8Bytes name;
+  bool ok;
+  if (codeMetaForAsmJS) {
+    ok = codeMetaForAsmJS->getFuncNameForAsmJS(funcIndex, &name);
+  } else {
+    ok = codeMeta.getFuncNameForWasm(NameContext::Standalone, funcIndex, &name);
+  }
+  if (!ok) {
+    return nullptr;
+  }
+  if (!name.append('\0')) {
+    return nullptr;
+  }
+
+  const char* filename = codeMeta.scriptedCaller().filename.get();
+  const char* suffix = "";
+  if (codeRange.isFunction()) {
+    if (codeBlockKind == CodeBlockKind::BaselineTier) {
+      suffix = " (baseline)";
+    } else if (codeBlockKind == CodeBlockKind::OptimizedTier) {
+      suffix = " (optimized)";
+    }
+  } else if (codeRange.isInterpEntry()) {
+    suffix = " slow entry";
+  } else if (codeRange.isJitEntry()) {
+    suffix = " fast entry";
+  } else if (codeRange.isImportInterpExit()) {
+    suffix = " slow exit";
+  } else if (codeRange.isImportJitExit()) {
+    suffix = " fast exit";
+  }
+
+  return JS_smprintf("%s: Function %s%s", filename,
+                     name.begin(), suffix);
+}
+
+void CodeBlock::sendToProfiler(const CodeMetadata& codeMeta,
+                               const CodeMetadataForAsmJS* codeMetaForAsmJS,
+                               FuncIonPerfSpewerSpan ionSpewers) const {
+  bool enabled = false;
+  enabled |= PerfEnabled();
+#ifdef MOZ_VTUNE
+  enabled |= vtune::IsProfilingActive();
+#endif
+  if (!enabled) {
+    return;
+  }
+
+  bool hasIonSpewers = !ionSpewers.empty();
+
+  // Save the collected Ion perf spewers with their IR/source information.
+  for (FuncIonPerfSpewer& funcIonSpewer : ionSpewers) {
+    const CodeRange& codeRange = this->codeRange(funcIonSpewer.funcIndex);
+    UniqueChars desc = DescribeCodeRangeForProfiler(codeMeta, codeMetaForAsmJS,
+                                                    codeRange, kind);
+    if (!desc) {
+      return;
+    }
+    uintptr_t start = uintptr_t(segment->base() + codeRange.begin());
+    uintptr_t size = codeRange.end() - codeRange.begin();
+    funcIonSpewer.spewer.saveWasmProfile(start, size, desc);
+  }
+
+  // Save the rest of the code ranges.
+  for (const CodeRange& codeRange : codeRanges) {
+    if (!codeRange.hasFuncIndex()) {
+      continue;
+    }
+
+    // Skip Ion functions when we have Ion spewers, as they will have already
+    // handled the function.
+    if (hasIonSpewers && kind == CodeBlockKind::OptimizedTier &&
+        codeRange.isFunction()) {
+      continue;
+    }
+
+    UniqueChars desc = DescribeCodeRangeForProfiler(codeMeta, codeMetaForAsmJS,
+                                                    codeRange, kind);
+    if (!desc) {
+      return;
+    }
+
+    uintptr_t start = uintptr_t(segment->base() + codeRange.begin());
+    uintptr_t size = codeRange.end() - codeRange.begin();
+
+#ifdef MOZ_VTUNE
+    if (vtune::IsProfilingActive()) {
+      vtune::MarkWasm(vtune::GenerateUniqueMethodID(), desc.get(),
+                      (void*)start, size);
+    }
+#endif
+
+    if (PerfEnabled()) {
+      CollectPerfSpewerWasmMap(start, size, std::move(desc));
+    }
+  }
 }
 
 void CodeBlock::offsetMetadataBy(uint32_t delta) {

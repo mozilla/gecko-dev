@@ -128,7 +128,8 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                                   size_t trapExitLayoutNumWords,
                                   wasm::FuncOffsets* offsets,
                                   wasm::StackMaps* stackMaps,
-                                  wasm::Decoder* decoder);
+                                  wasm::Decoder* decoder,
+                                  jit::IonPerfSpewer* spewer);
 
   [[nodiscard]] bool link(JSContext* cx);
 

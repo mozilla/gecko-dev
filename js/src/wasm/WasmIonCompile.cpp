@@ -10596,10 +10596,11 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
           wasm::BytecodeOffset(func.lineOrBytecode));
       FuncOffsets offsets;
       ArgTypeVector args(codeMeta.getFuncType(func.index));
+      IonPerfSpewer spewer;
       if (!codegen.generateWasm(CallIndirectId::forFunc(codeMeta, func.index),
                                 prologueTrapSiteDesc, args, trapExitLayout,
                                 trapExitLayoutNumWords, &offsets,
-                                &code->stackMaps, &d)) {
+                                &code->stackMaps, &d, &spewer)) {
         return false;
       }
 
@@ -10609,6 +10610,12 @@ bool wasm::IonCompileFunctions(const CodeMetadata& codeMeta,
       // Record this function's code range
       if (!code->codeRanges.emplaceBack(func.index, offsets, hasUnwindInfo)) {
         return false;
+      }
+
+      if (PerfEnabled()) {
+        if (!code->funcIonSpewers.emplaceBack(func.index, std::move(spewer))) {
+          return false;
+        }
       }
     }
 
