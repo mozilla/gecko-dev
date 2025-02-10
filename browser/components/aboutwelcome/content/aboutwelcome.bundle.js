@@ -1307,7 +1307,8 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
         "addon-name": this.props.addonName,
         ...this.props.appAndSystemLocaleInfo?.displayNames
       }),
-      "aria-flowto": this.props.messageId?.includes("FEATURE_TOUR") ? "steps" : ""
+      "aria-flowto": this.props.messageId?.includes("FEATURE_TOUR") ? "steps" : "",
+      id: "mainContentSubheader"
     })) : null, content.action_buttons_above_content && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(ProtonScreenActionButtons, {
       content: content,
       addonName: this.props.addonName,

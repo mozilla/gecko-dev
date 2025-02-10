@@ -585,6 +585,7 @@ export class ProtonScreen extends React.PureComponent {
                             ? "steps"
                             : ""
                         }
+                        id="mainContentSubheader"
                       />
                     </Localized>
                   ) : null}
