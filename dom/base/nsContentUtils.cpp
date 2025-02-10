@@ -486,16 +486,32 @@ int32_t nsContentUtils::sInnerOrOuterWindowCount = 0;
 uint32_t nsContentUtils::sInnerOrOuterWindowSerialCounter = 0;
 
 template Maybe<int32_t> nsContentUtils::ComparePoints(
-    const RangeBoundary& aFirstBoundary, const RangeBoundary& aSecondBoundary);
+    const RangeBoundary& aFirstBoundary, const RangeBoundary& aSecondBoundary,
+    NodeIndexCache* aIndexCache);
 template Maybe<int32_t> nsContentUtils::ComparePoints(
     const RangeBoundary& aFirstBoundary,
-    const RawRangeBoundary& aSecondBoundary);
+    const RawRangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
 template Maybe<int32_t> nsContentUtils::ComparePoints(
     const RawRangeBoundary& aFirstBoundary,
-    const RangeBoundary& aSecondBoundary);
+    const RangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
 template Maybe<int32_t> nsContentUtils::ComparePoints(
     const RawRangeBoundary& aFirstBoundary,
-    const RawRangeBoundary& aSecondBoundary);
+    const RawRangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
+template Maybe<int32_t> nsContentUtils::ComparePoints(
+    const RangeBoundary& aFirstBoundary,
+    const ConstRawRangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
+template Maybe<int32_t> nsContentUtils::ComparePoints(
+    const ConstRawRangeBoundary& aFirstBoundary,
+    const RangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
+template Maybe<int32_t> nsContentUtils::ComparePoints(
+    const RawRangeBoundary& aFirstBoundary,
+    const ConstRawRangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
+template Maybe<int32_t> nsContentUtils::ComparePoints(
+    const ConstRawRangeBoundary& aFirstBoundary,
+    const RawRangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
+template Maybe<int32_t> nsContentUtils::ComparePoints(
+    const ConstRawRangeBoundary& aFirstBoundary,
+    const ConstRawRangeBoundary& aSecondBoundary, NodeIndexCache* aIndexCache);
 
 // Subset of
 // http://www.whatwg.org/specs/web-apps/current-work/#autofill-field-name
@@ -750,10 +766,10 @@ static auto* GetParentBrowserParent(const BrowserParent* aBrowserParent) {
              : nullptr;
 }
 
-template <typename Node, typename GetParentFunc>
+template <typename Node1, typename Node2, typename GetParentFunc>
 class MOZ_STACK_CLASS CommonAncestors final {
  public:
-  CommonAncestors(Node& aNode1, Node& aNode2, GetParentFunc aGetParentFunc)
+  CommonAncestors(Node1& aNode1, Node2& aNode2, GetParentFunc aGetParentFunc)
       : GetParent(aGetParentFunc) {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
     mAssertNoGC.emplace();
@@ -766,11 +782,11 @@ class MOZ_STACK_CLASS CommonAncestors final {
     size_t depth1 = mInclusiveAncestors1.Length();
     size_t depth2 = mInclusiveAncestors2.Length();
     const size_t shorterLength = std::min(depth1, depth2);
-    Node** const inclusiveAncestors1 = mInclusiveAncestors1.Elements();
-    Node** const inclusiveAncestors2 = mInclusiveAncestors2.Elements();
+    Node1** const inclusiveAncestors1 = mInclusiveAncestors1.Elements();
+    Node2** const inclusiveAncestors2 = mInclusiveAncestors2.Elements();
     for ([[maybe_unused]] const size_t unused : IntegerRange(shorterLength)) {
-      Node* const inclusiveAncestor1 = inclusiveAncestors1[--depth1];
-      Node* const inclusiveAncestor2 = inclusiveAncestors2[--depth2];
+      Node1* const inclusiveAncestor1 = inclusiveAncestors1[--depth1];
+      Node2* const inclusiveAncestor2 = inclusiveAncestors2[--depth2];
       if (inclusiveAncestor1 != inclusiveAncestor2) {
         MOZ_ASSERT_IF(mClosestCommonAncestor,
                       inclusiveAncestor1 == GetClosestCommonAncestorChild1());
@@ -794,13 +810,13 @@ class MOZ_STACK_CLASS CommonAncestors final {
   ~CommonAncestors() { MOZ_DIAGNOSTIC_ASSERT(!mMutationGuard.Mutated(0)); }
 #endif  // #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
 
-  [[nodiscard]] Node* GetClosestCommonAncestor() const {
+  [[nodiscard]] Node1* GetClosestCommonAncestor() const {
     return mClosestCommonAncestor;
   }
-  [[nodiscard]] Node* GetClosestCommonAncestorChild1() const {
+  [[nodiscard]] Node1* GetClosestCommonAncestorChild1() const {
     return GetClosestCommonAncestorChild(mInclusiveAncestors1);
   }
-  [[nodiscard]] Node* GetClosestCommonAncestorChild2() const {
+  [[nodiscard]] Node2* GetClosestCommonAncestorChild2() const {
     return GetClosestCommonAncestorChild(mInclusiveAncestors2);
   }
 
@@ -810,6 +826,7 @@ class MOZ_STACK_CLASS CommonAncestors final {
   }
 
  private:
+  template <typename Node>
   static void AppendInclusiveAncestors(Node* aNode,
                                        GetParentFunc aGetParentFunc,
                                        nsTArray<Node*>& aArrayOfParents) {
@@ -820,6 +837,7 @@ class MOZ_STACK_CLASS CommonAncestors final {
     }
   }
 
+  template <typename Node>
   Maybe<size_t> GetClosestCommonAncestorChildIndex(
       const nsTArray<Node*>& aInclusiveAncestors) const {
     if (!mClosestCommonAncestor ||
@@ -830,6 +848,7 @@ class MOZ_STACK_CLASS CommonAncestors final {
                 - mNumberOfCommonAncestors);  // before closest common ancestor
   }
 
+  template <typename Node>
   [[nodiscard]] Node* GetClosestCommonAncestorChild(
       const nsTArray<Node*>& aInclusiveAncestors) const {
     const Maybe<size_t> index =
@@ -845,6 +864,7 @@ class MOZ_STACK_CLASS CommonAncestors final {
     return child;
   }
 
+  template <typename Node>
   void WarnIfClosestCommonAncestorChildIsNotInChildList(
       const nsTArray<Node*>& aInclusiveAncestors) const {
 #ifdef DEBUG
@@ -877,8 +897,9 @@ class MOZ_STACK_CLASS CommonAncestors final {
 #endif
   }
 
-  AutoTArray<Node*, 30> mInclusiveAncestors1, mInclusiveAncestors2;
-  Node* mClosestCommonAncestor = nullptr;
+  AutoTArray<Node1*, 30> mInclusiveAncestors1;
+  AutoTArray<Node2*, 30> mInclusiveAncestors2;
+  Node1* mClosestCommonAncestor = nullptr;
   const GetParentFunc GetParent;
   uint32_t mNumberOfCommonAncestors = 0;
 
@@ -3522,7 +3543,8 @@ Element* nsContentUtils::GetTargetElement(Document* aDocument,
 template <typename PT1, typename RT1, typename PT2, typename RT2>
 Maybe<int32_t> nsContentUtils::ComparePoints(
     const RangeBoundaryBase<PT1, RT1>& aBoundary1,
-    const RangeBoundaryBase<PT2, RT2>& aBoundary2) {
+    const RangeBoundaryBase<PT2, RT2>& aBoundary2,
+    NodeIndexCache* aIndexCache /* = nullptr */) {
   if (!aBoundary1.IsSet() || !aBoundary2.IsSet()) {
     return Nothing{};
   }
@@ -3537,7 +3559,8 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
   if (aBoundary1.HasOffset() && aBoundary2.HasOffset()) {
     return ComparePoints(
         aBoundary1.Container(), *aBoundary1.Offset(kValidOrInvalidOffsets1),
-        aBoundary2.Container(), *aBoundary2.Offset(kValidOrInvalidOffsets2));
+        aBoundary2.Container(), *aBoundary2.Offset(kValidOrInvalidOffsets2),
+        aIndexCache);
   }
 
   // Otherwise, i.e., at least one RangeBoundaryBase stores the child node.
@@ -3553,7 +3576,7 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
     const nsIContent* const child1 = aBoundary1.GetChildAtOffset();
     const nsIContent* const child2 = aBoundary2.GetChildAtOffset();
     return CompareClosestCommonAncestorChildren(*aBoundary1.Container(), child1,
-                                                child2);
+                                                child2, aIndexCache);
   }
 
   // Otherwise, we need to compare the common ancestor children which is the
@@ -3579,7 +3602,7 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
   if (closestCommonAncestorChild1 && closestCommonAncestorChild2) {
     return CompareClosestCommonAncestorChildren(
         *commonAncestors.GetClosestCommonAncestor(),
-        closestCommonAncestorChild1, closestCommonAncestorChild2);
+        closestCommonAncestorChild1, closestCommonAncestorChild2, aIndexCache);
   }
 
   if (closestCommonAncestorChild2) {
@@ -3593,7 +3616,8 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
       return Some(1);
     }
     const Maybe<int32_t> comp = nsContentUtils::CompareChildNodes(
-        aBoundary1.GetChildAtOffset(), closestCommonAncestorChild2);
+        aBoundary1.GetChildAtOffset(), closestCommonAncestorChild2,
+        aIndexCache);
     if (NS_WARN_IF(comp.isNothing())) {
       NS_ASSERTION(
           comp.isSome(),
@@ -3630,7 +3654,7 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
     return Some(-1);
   }
   const Maybe<int32_t> comp = nsContentUtils::CompareChildNodes(
-      closestCommonAncestorChild1, aBoundary2.GetChildAtOffset());
+      closestCommonAncestorChild1, aBoundary2.GetChildAtOffset(), aIndexCache);
   if (NS_WARN_IF(comp.isNothing())) {
     NS_ASSERTION(comp.isSome(),
                  "nsContentUtils::CompareChildOffsetAndChildNode() must return "

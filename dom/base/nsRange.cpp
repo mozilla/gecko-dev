@@ -904,13 +904,10 @@ bool nsRange::IntersectsNode(nsINode& aNode, ErrorResult& aRv) {
   }
 
   const Maybe<int32_t> startOrder = nsContentUtils::ComparePoints(
-      mStart.Container(),
-      *mStart.Offset(RangeBoundary::OffsetFilter::kValidOffsets), parent,
-      *nodeIndex + 1u);
+      mStart, RawRangeBoundary(parent, aNode.AsContent(), *nodeIndex + 1u));
   if (startOrder && (*startOrder < 0)) {
     const Maybe<int32_t> endOrder = nsContentUtils::ComparePoints(
-        parent, *nodeIndex, mEnd.Container(),
-        *mEnd.Offset(RangeBoundary::OffsetFilter::kValidOffsets));
+        RawRangeBoundary(parent, aNode.GetPreviousSibling(), *nodeIndex), mEnd);
     return endOrder && (*endOrder < 0);
   }
 
@@ -2144,33 +2141,23 @@ int16_t nsRange::CompareBoundaryPoints(uint16_t aHow,
     return 0;
   }
 
-  nsINode *ourNode, *otherNode;
-  uint32_t ourOffset, otherOffset;
-
+  RawRangeBoundary ourBoundary, otherBoundary;
   switch (aHow) {
     case Range_Binding::START_TO_START:
-      ourNode = mStart.Container();
-      ourOffset = *mStart.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
-      otherNode = aOtherRange.GetStartContainer();
-      otherOffset = aOtherRange.StartOffset();
+      ourBoundary = mStart.AsRaw();
+      otherBoundary = aOtherRange.StartRef().AsRaw();
       break;
     case Range_Binding::START_TO_END:
-      ourNode = mEnd.Container();
-      ourOffset = *mEnd.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
-      otherNode = aOtherRange.GetStartContainer();
-      otherOffset = aOtherRange.StartOffset();
+      ourBoundary = mEnd.AsRaw();
+      otherBoundary = aOtherRange.StartRef().AsRaw();
       break;
     case Range_Binding::END_TO_START:
-      ourNode = mStart.Container();
-      ourOffset = *mStart.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
-      otherNode = aOtherRange.GetEndContainer();
-      otherOffset = aOtherRange.EndOffset();
+      ourBoundary = mStart.AsRaw();
+      otherBoundary = aOtherRange.EndRef().AsRaw();
       break;
     case Range_Binding::END_TO_END:
-      ourNode = mEnd.Container();
-      ourOffset = *mEnd.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
-      otherNode = aOtherRange.GetEndContainer();
-      otherOffset = aOtherRange.EndOffset();
+      ourBoundary = mEnd.AsRaw();
+      otherBoundary = aOtherRange.EndRef().AsRaw();
       break;
     default:
       // We were passed an illegal value
@@ -2184,11 +2171,11 @@ int16_t nsRange::CompareBoundaryPoints(uint16_t aHow,
   }
 
   const Maybe<int32_t> order =
-      nsContentUtils::ComparePoints(ourNode, ourOffset, otherNode, otherOffset);
+      nsContentUtils::ComparePoints(ourBoundary, otherBoundary);
 
-  // `this` and `aOtherRange` share the same root and (ourNode, ourOffset),
-  // (otherNode, otherOffset) correspond to some of their boundaries. Hence,
-  // (ourNode, ourOffset) and (otherNode, otherOffset) have to be comparable.
+  // `this` and `aOtherRange` share the same root and ourBoundary, otherBoundary
+  // correspond to some of their boundaries. Hence, ourBoundary and
+  // otherBoundary have to be comparable.
   return *order;
 }
 

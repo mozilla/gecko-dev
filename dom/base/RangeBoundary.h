@@ -41,9 +41,11 @@ class EditorDOMPointBase;
 template <typename ParentType, typename RefType>
 class RangeBoundaryBase;
 
-typedef RangeBoundaryBase<nsCOMPtr<nsINode>, nsCOMPtr<nsIContent>>
-    RangeBoundary;
-typedef RangeBoundaryBase<nsINode*, nsIContent*> RawRangeBoundary;
+using RangeBoundary =
+    RangeBoundaryBase<nsCOMPtr<nsINode>, nsCOMPtr<nsIContent>>;
+using RawRangeBoundary = RangeBoundaryBase<nsINode*, nsIContent*>;
+using ConstRawRangeBoundary =
+    RangeBoundaryBase<const nsINode*, const nsIContent*>;
 
 /**
  * There are two ways of ensuring that `mRef` points to the correct node.
@@ -69,9 +71,9 @@ typedef RangeBoundaryBase<nsINode*, nsIContent*> RawRangeBoundary;
  */
 enum class RangeBoundaryIsMutationObserved { No = 0, Yes = 1 };
 
-// This class has two specializations, one using reference counting
-// pointers and one using raw pointers. This helps us avoid unnecessary
-// AddRef/Release calls.
+// This class has two types of specializations, one using reference counting
+// pointers and one using raw pointers (both non-const and const versions). The
+// latter help us avoid unnecessary AddRef/Release calls.
 template <typename ParentType, typename RefType>
 class RangeBoundaryBase {
   template <typename T, typename U>
@@ -90,8 +92,26 @@ class RangeBoundaryBase {
 
   static const uint32_t kFallbackOffset = 0;
 
+  template <typename T, typename Enable = void>
+  struct GetNodeType;
+  template <typename T>
+  struct GetNodeType<T, std::enable_if_t<std::is_pointer_v<T>>> {
+    using type = std::remove_pointer_t<T>;
+  };
+  template <typename T>
+  struct GetNodeType<T, std::enable_if_t<!std::is_pointer_v<T>>> {
+    using type = typename T::element_type;
+  };
+
  public:
-  RangeBoundaryBase(nsINode* aContainer, nsIContent* aRef)
+  using RawParentType = typename GetNodeType<ParentType>::type;
+  static_assert(std::is_same_v<RawParentType, nsINode> ||
+                std::is_same_v<RawParentType, const nsINode>);
+  using RawRefType = typename GetNodeType<RefType>::type;
+  static_assert(std::is_same_v<RawRefType, nsIContent> ||
+                std::is_same_v<RawRefType, const nsIContent>);
+
+  RangeBoundaryBase(RawParentType* aContainer, RawRefType* aRef)
       : mParent(aContainer), mRef(aRef), mIsMutationObserved(true) {
     if (mRef) {
       NS_WARNING_ASSERTION(mRef->GetParentNode() == mParent,
@@ -101,7 +121,7 @@ class RangeBoundaryBase {
     }
   }
 
-  RangeBoundaryBase(nsINode* aContainer, uint32_t aOffset,
+  RangeBoundaryBase(RawParentType* aContainer, uint32_t aOffset,
                     RangeBoundaryIsMutationObserved aRangeIsMutationObserver =
                         RangeBoundaryIsMutationObserved::Yes)
       : mParent(aContainer),
@@ -122,11 +142,30 @@ class RangeBoundaryBase {
                          "Constructing RangeBoundary with invalid value");
   }
 
+  /**
+   * Special constructor to create RangeBoundaryBase which stores both mRef and
+   * mOffset.  This can make the instance provide both mRef and mOffset without
+   * computation, but the creator needs to guarantee that this is valid at least
+   * at construction.
+   */
+  RangeBoundaryBase(RawParentType* aContainer, RawRefType* aRef,
+                    uint32_t aOffset,
+                    RangeBoundaryIsMutationObserved aRangeIsMutationObserver =
+                        RangeBoundaryIsMutationObserved::Yes)
+      : mParent(const_cast<nsINode*>(aContainer)),
+        mRef(const_cast<nsIContent*>(aRef)),
+        mOffset(mozilla::Some(aOffset)),
+        mIsMutationObserved(bool(aRangeIsMutationObserver)) {
+    MOZ_ASSERT(IsSetAndValid());
+  }
+
   RangeBoundaryBase()
       : mParent(nullptr), mRef(nullptr), mIsMutationObserved(true) {}
 
-  // Needed for initializing RawRangeBoundary from an existing RangeBoundary.
-  template <typename PT, typename RT>
+  // Convert from RawRangeBoundary or RangeBoundary.
+  template <typename PT, typename RT,
+            typename = std::enable_if_t<!std::is_const_v<RawParentType> ||
+                                        std::is_const_v<PT>>>
   RangeBoundaryBase(const RangeBoundaryBase<PT, RT>& aOther,
                     RangeBoundaryIsMutationObserved aIsMutationObserved)
       : mParent(aOther.mParent),
@@ -145,7 +184,7 @@ class RangeBoundaryBase {
    * Code inside of this class should call this method exactly one time and
    * afterwards refer to `mRef` directly.
    */
-  nsIContent* Ref() const {
+  RawRefType* Ref() const {
     if (mIsMutationObserved) {
       return mRef;
     }
@@ -177,17 +216,21 @@ class RangeBoundaryBase {
     return mRef;
   }
 
-  nsINode* Container() const { return mParent; }
+  RawParentType* Container() const { return mParent; }
+
+  dom::Document* GetComposedDoc() const {
+    return mParent ? mParent->GetComposedDoc() : nullptr;
+  }
 
   /**
    * This method may return `nullptr` if `mIsMutationObserved` is false and
    * `mOffset` is out of bounds.
    */
-  nsIContent* GetChildAtOffset() const {
+  RawRefType* GetChildAtOffset() const {
     if (!mParent || !mParent->IsContainerNode()) {
       return nullptr;
     }
-    nsIContent* const ref = Ref();
+    RawRefType* const ref = Ref();
     if (!ref) {
       if (!mIsMutationObserved && *mOffset != 0) {
         // This means that this boundary is invalid.
@@ -209,11 +252,11 @@ class RangeBoundaryBase {
    * If this refers after the last child or the container cannot have children,
    * this returns nullptr with warning.
    */
-  nsIContent* GetNextSiblingOfChildAtOffset() const {
+  RawRefType* GetNextSiblingOfChildAtOffset() const {
     if (NS_WARN_IF(!mParent) || NS_WARN_IF(!mParent->IsContainerNode())) {
       return nullptr;
     }
-    nsIContent* const ref = Ref();
+    RawRefType* const ref = Ref();
     if (!ref) {
       if (!mIsMutationObserved && *mOffset != 0) {
         // This means that this boundary is invalid.
@@ -241,11 +284,11 @@ class RangeBoundaryBase {
    * at offset.  If this refers the first child or the container cannot have
    * children, this returns nullptr with warning.
    */
-  nsIContent* GetPreviousSiblingOfChildAtOffset() const {
+  RawRefType* GetPreviousSiblingOfChildAtOffset() const {
     if (NS_WARN_IF(!mParent) || NS_WARN_IF(!mParent->IsContainerNode())) {
       return nullptr;
     }
-    nsIContent* const ref = Ref();
+    RawRefType* const ref = Ref();
     if (NS_WARN_IF(!ref)) {
       // Already referring the start of the container.
       return nullptr;
@@ -392,6 +435,10 @@ class RangeBoundaryBase {
 
   bool IsSet() const { return mParent && (mRef || mOffset.isSome()); }
 
+  [[nodiscard]] bool IsSetAndInComposedDoc() const {
+    return IsSet() && mParent->IsInComposedDoc();
+  }
+
   bool IsSetAndValid() const {
     if (!IsSet()) {
       return false;
@@ -428,17 +475,25 @@ class RangeBoundaryBase {
 
   // Convenience methods for switching between the two types
   // of RangeBoundary.
-  RangeBoundaryBase<nsINode*, nsIContent*> AsRaw() const {
-    return RangeBoundaryBase<nsINode*, nsIContent*>(
+  template <typename PT = RawParentType,
+            typename = std::enable_if_t<!std::is_const_v<PT>>>
+  RawRangeBoundary AsRaw() const {
+    return RawRangeBoundary(
+        *this, RangeBoundaryIsMutationObserved(mIsMutationObserved));
+  }
+  ConstRawRangeBoundary AsConstRaw() const {
+    return ConstRawRangeBoundary(
         *this, RangeBoundaryIsMutationObserved(mIsMutationObserved));
   }
 
   template <typename A, typename B>
   RangeBoundaryBase& operator=(const RangeBoundaryBase<A, B>& aOther) = delete;
 
-  template <typename A, typename B>
+  template <
+      typename PT, typename RT, typename RPT = RawParentType,
+      typename = std::enable_if_t<!std::is_const_v<PT> || std::is_const_v<RPT>>>
   RangeBoundaryBase& CopyFrom(
-      const RangeBoundaryBase<A, B>& aOther,
+      const RangeBoundaryBase<PT, RT>& aOther,
       RangeBoundaryIsMutationObserved aIsMutationObserved) {
     // mParent and mRef can be strong pointers, so better to try to avoid any
     // extra AddRef/Release calls.
@@ -455,7 +510,7 @@ class RangeBoundaryBase {
       // XXX What should we do if aOther is not updated for mutations and
       // mOffset has already been invalid?
       mOffset = aOther.Offset(
-          RangeBoundaryBase<A, B>::OffsetFilter::kValidOrInvalidOffsets);
+          RangeBoundaryBase<PT, RT>::OffsetFilter::kValidOrInvalidOffsets);
       MOZ_DIAGNOSTIC_ASSERT(mOffset.isSome());
     } else {
       mOffset = aOther.mOffset;
@@ -463,7 +518,7 @@ class RangeBoundaryBase {
     return *this;
   }
 
-  bool Equals(const nsINode* aNode, uint32_t aOffset) const {
+  bool Equals(const RawParentType* aNode, uint32_t aOffset) const {
     if (mParent != aNode) {
       return false;
     }

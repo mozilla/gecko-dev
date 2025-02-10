@@ -136,14 +136,7 @@ ContentEventHandler::SimpleRangeBase<nsINode*,
 template <typename NodeType, typename RangeBoundaryType>
 void ContentEventHandler::SimpleRangeBase<
     NodeType, RangeBoundaryType>::AssertStartIsBeforeOrEqualToEnd() {
-  MOZ_ASSERT(
-      *nsContentUtils::ComparePoints(
-          mStart.Container(),
-          *mStart.Offset(
-              RangeBoundaryType::OffsetFilter::kValidOrInvalidOffsets),
-          mEnd.Container(),
-          *mEnd.Offset(
-              RangeBoundaryType::OffsetFilter::kValidOrInvalidOffsets)) <= 0);
+  MOZ_ASSERT(*nsContentUtils::ComparePoints(mStart, mEnd) <= 0);
 }
 
 template <typename NodeType, typename RangeBoundaryType>

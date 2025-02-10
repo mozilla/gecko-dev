@@ -816,39 +816,38 @@ bool HyperTextAccessible::SelectionBoundsAt(int32_t aSelectionNum,
 
   nsRange* range = ranges[aSelectionNum];
 
-  // Get start and end points.
-  nsINode* startNode = range->GetStartContainer();
-  nsINode* endNode = range->GetEndContainer();
-  uint32_t startOffset = range->StartOffset();
-  uint32_t endOffset = range->EndOffset();
-
   // Make sure start is before end, by swapping DOM points.  This occurs when
   // the user selects backwards in the text.
   const Maybe<int32_t> order =
-      nsContentUtils::ComparePoints(endNode, endOffset, startNode, startOffset);
+      nsContentUtils::ComparePoints(range->EndRef(), range->StartRef());
 
   if (!order) {
     MOZ_ASSERT_UNREACHABLE();
     return false;
   }
 
-  if (*order < 0) {
-    std::swap(startNode, endNode);
-    std::swap(startOffset, endOffset);
-  }
+  const RangeBoundary& precedingBoundary =
+      *order < 0 ? range->EndRef() : range->StartRef();
+  const RangeBoundary& followingBoundary =
+      *order < 0 ? range->StartRef() : range->EndRef();
 
-  if (!startNode->IsInclusiveDescendantOf(mContent)) {
+  if (!precedingBoundary.Container()->IsInclusiveDescendantOf(mContent)) {
     *aStartOffset = 0;
   } else {
-    *aStartOffset =
-        DOMPointToOffset(startNode, AssertedCast<int32_t>(startOffset));
+    *aStartOffset = DOMPointToOffset(
+        precedingBoundary.Container(),
+        AssertedCast<int32_t>(*precedingBoundary.Offset(
+            RangeBoundary::OffsetFilter::kValidOrInvalidOffsets)));
   }
 
-  if (!endNode->IsInclusiveDescendantOf(mContent)) {
+  if (!followingBoundary.Container()->IsInclusiveDescendantOf(mContent)) {
     *aEndOffset = CharacterCount();
   } else {
-    *aEndOffset =
-        DOMPointToOffset(endNode, AssertedCast<int32_t>(endOffset), true);
+    *aEndOffset = DOMPointToOffset(
+        followingBoundary.Container(),
+        AssertedCast<int32_t>(*followingBoundary.Offset(
+            RangeBoundary::OffsetFilter::kValidOrInvalidOffsets)),
+        true);
   }
   return true;
 }

@@ -702,7 +702,8 @@ class nsContentUtils {
   template <typename PT1, typename RT1, typename PT2, typename RT2>
   static mozilla::Maybe<int32_t> ComparePoints(
       const mozilla::RangeBoundaryBase<PT1, RT1>& aBoundary1,
-      const mozilla::RangeBoundaryBase<PT2, RT2>& aBoundary2);
+      const mozilla::RangeBoundaryBase<PT2, RT2>& aBoundary2,
+      NodeIndexCache* aIndexCache = nullptr);
 
   /**
    * DO NOT USE this method for comparing the points in new code.  this method

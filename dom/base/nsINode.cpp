@@ -342,12 +342,14 @@ class IsItemInRangeComparator {
 
   int operator()(const AbstractRange* const aRange) const {
     Maybe<int32_t> cmp = nsContentUtils::ComparePoints(
-        &mNode, mEndOffset, aRange->GetMayCrossShadowBoundaryStartContainer(),
-        aRange->MayCrossShadowBoundaryStartOffset(), mCache);
+        ConstRawRangeBoundary(&mNode, mEndOffset,
+                              RangeBoundaryIsMutationObserved::No),
+        aRange->MayCrossShadowBoundaryStartRef(), mCache);
     if (cmp.valueOr(1) == 1) {
       cmp = nsContentUtils::ComparePoints(
-          &mNode, mStartOffset, aRange->GetMayCrossShadowBoundaryEndContainer(),
-          aRange->MayCrossShadowBoundaryEndOffset(), mCache);
+          ConstRawRangeBoundary(&mNode, mStartOffset,
+                                RangeBoundaryIsMutationObserved::No),
+          aRange->MayCrossShadowBoundaryEndRef(), mCache);
       if (cmp.valueOr(1) == -1) {
         return 0;
       }
@@ -433,17 +435,20 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
         // if node end > start of middle+1, result = 1
         if (middle + 1 < high &&
             (middlePlus1 = selection->GetAbstractRangeAt(middle + 1)) &&
-            nsContentUtils::ComparePoints(this, aEndOffset,
-                                          middlePlus1->GetStartContainer(),
-                                          middlePlus1->StartOffset(), &cache)
+            nsContentUtils::ComparePoints(
+                ConstRawRangeBoundary(this, aEndOffset,
+                                      RangeBoundaryIsMutationObserved::No),
+                middlePlus1->StartRef(), &cache)
                     .valueOr(1) > 0) {
           result = 1;
           // if node start < end of middle - 1, result = -1
         } else if (middle >= 1 &&
                    (middleMinus1 = selection->GetAbstractRangeAt(middle - 1)) &&
                    nsContentUtils::ComparePoints(
-                       this, aStartOffset, middleMinus1->GetEndContainer(),
-                       middleMinus1->EndOffset(), &cache)
+                       ConstRawRangeBoundary(
+                           this, aStartOffset,
+                           RangeBoundaryIsMutationObserved::No),
+                       middleMinus1->EndRef(), &cache)
                            .valueOr(1) < 0) {
           result = -1;
         } else {

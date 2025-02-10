@@ -890,16 +890,17 @@ void Selection::SetAnchorFocusRange(size_t aIndex) {
   mAnchorFocusRange = anchorFocusRange->AsDynamicRange();
 }
 
-static int32_t CompareToRangeStart(const nsINode& aCompareNode,
-                                   uint32_t aCompareOffset,
-                                   const AbstractRange& aRange,
-                                   nsContentUtils::NodeIndexCache* aCache) {
+template <typename PT, typename RT>
+static int32_t CompareToRangeStart(
+    const RangeBoundaryBase<PT, RT>& aCompareBoundary,
+    const AbstractRange& aRange, nsContentUtils::NodeIndexCache* aCache) {
+  MOZ_ASSERT(aCompareBoundary.IsSet());
   MOZ_ASSERT(aRange.GetMayCrossShadowBoundaryStartContainer());
-  nsINode* start = aRange.GetMayCrossShadowBoundaryStartContainer();
   // If the nodes that we're comparing are not in the same document, assume that
   // aCompareNode will fall at the end of the ranges.
-  if (aCompareNode.GetComposedDoc() != start->GetComposedDoc() ||
-      !start->GetComposedDoc()) {
+  if (aCompareBoundary.GetComposedDoc() !=
+          aRange.MayCrossShadowBoundaryStartRef().GetComposedDoc() ||
+      !aRange.MayCrossShadowBoundaryStartRef().IsSetAndInComposedDoc()) {
     NS_WARNING(
         "`CompareToRangeStart` couldn't compare nodes, pretending some order.");
     return 1;
@@ -907,41 +908,44 @@ static int32_t CompareToRangeStart(const nsINode& aCompareNode,
 
   // The points are in the same subtree, hence there has to be an order.
   return *nsContentUtils::ComparePoints(
-      &aCompareNode, aCompareOffset, start,
-      aRange.MayCrossShadowBoundaryStartOffset(), aCache);
+      aCompareBoundary, aRange.MayCrossShadowBoundaryStartRef(), aCache);
 }
 
-static int32_t CompareToRangeStart(const nsINode& aCompareNode,
-                                   uint32_t aCompareOffset,
-                                   const AbstractRange& aRange) {
-  return CompareToRangeStart(aCompareNode, aCompareOffset, aRange, nullptr);
+template <typename PT, typename RT>
+static int32_t CompareToRangeStart(
+    const RangeBoundaryBase<PT, RT>& aCompareBoundary,
+    const AbstractRange& aRange) {
+  return CompareToRangeStart(aCompareBoundary, aRange, nullptr);
 }
 
-static int32_t CompareToRangeEnd(const nsINode& aCompareNode,
-                                 uint32_t aCompareOffset,
-                                 const AbstractRange& aRange) {
+template <typename PT, typename RT>
+static int32_t CompareToRangeEnd(
+    const RangeBoundaryBase<PT, RT>& aCompareBoundary,
+    const AbstractRange& aRange) {
+  MOZ_ASSERT(aCompareBoundary.IsSet());
   MOZ_ASSERT(aRange.IsPositioned());
-  nsINode* end = aRange.GetMayCrossShadowBoundaryEndContainer();
   // If the nodes that we're comparing are not in the same document or in the
   // same subtree, assume that aCompareNode will fall at the end of the ranges.
-  if (aCompareNode.GetComposedDoc() != end->GetComposedDoc() ||
-      !end->GetComposedDoc()) {
+  if (aCompareBoundary.GetComposedDoc() !=
+          aRange.MayCrossShadowBoundaryEndRef().GetComposedDoc() ||
+      !aRange.MayCrossShadowBoundaryEndRef().IsSetAndInComposedDoc()) {
     NS_WARNING(
         "`CompareToRangeEnd` couldn't compare nodes, pretending some order.");
     return 1;
   }
 
   // The points are in the same subtree, hence there has to be an order.
-  return *nsContentUtils::ComparePoints(
-      &aCompareNode, aCompareOffset, end,
-      aRange.MayCrossShadowBoundaryEndOffset());
+  return *nsContentUtils::ComparePoints(aCompareBoundary,
+                                        aRange.MayCrossShadowBoundaryEndRef());
 }
 
 // static
+template <typename PT, typename RT>
 size_t Selection::StyledRanges::FindInsertionPoint(
-    const nsTArray<StyledRange>* aElementArray, const nsINode& aPointNode,
-    uint32_t aPointOffset,
-    int32_t (*aComparator)(const nsINode&, uint32_t, const AbstractRange&)) {
+    const nsTArray<StyledRange>* aElementArray,
+    const RangeBoundaryBase<PT, RT>& aBoundary,
+    int32_t (*aComparator)(const RangeBoundaryBase<PT, RT>&,
+                           const AbstractRange&)) {
   int32_t beginSearch = 0;
   int32_t endSearch = aElementArray->Length();  // one beyond what to check
 
@@ -950,7 +954,7 @@ size_t Selection::StyledRanges::FindInsertionPoint(
     do {
       const AbstractRange* range = (*aElementArray)[center].mRange;
 
-      int32_t cmp{aComparator(aPointNode, aPointOffset, *range)};
+      int32_t cmp{aComparator(aBoundary, *range)};
 
       if (cmp < 0) {  // point < cur
         endSearch = center;
@@ -991,12 +995,10 @@ nsresult Selection::StyledRanges::SubtractRange(
   }
 
   // First we want to compare to the range start
-  int32_t cmp{CompareToRangeStart(*range->GetStartContainer(),
-                                  range->StartOffset(), aSubtract)};
+  int32_t cmp{CompareToRangeStart(range->StartRef(), aSubtract)};
 
   // Also, make a comparison to the range end
-  int32_t cmp2{CompareToRangeEnd(*range->GetEndContainer(), range->EndOffset(),
-                                 aSubtract)};
+  int32_t cmp2{CompareToRangeEnd(range->EndRef(), aSubtract)};
 
   // If the existing range left overlaps the new range (aSubtract) then
   // cmp < 0, and cmp2 < 0
@@ -1365,9 +1367,8 @@ nsresult Selection::StyledRanges::MaybeAddRangeAndTruncateOverlaps(
 
   // Insert the new element into our "leftovers" array
   // `aRange` is positioned, so it has to have a start container.
-  size_t insertionPoint{FindInsertionPoint(&temp, *aRange->GetStartContainer(),
-                                           aRange->StartOffset(),
-                                           CompareToRangeStart)};
+  size_t insertionPoint{
+      FindInsertionPoint(&temp, aRange->StartRef(), CompareToRangeStart)};
 
   temp.InsertElementAt(insertionPoint, StyledRange(aRange));
 
@@ -1591,22 +1592,17 @@ void Selection::StyledRanges::ReorderRangesIfNecessary() {
     // the cache, which is reused by the sort call).
     nsContentUtils::NodeIndexCache cache;
     bool rangeOrderHasChanged = false;
-    const nsINode* prevStartContainer = nullptr;
-    uint32_t prevStartOffset = 0;
+    RawRangeBoundary previousStartRef;
     for (const StyledRange& range : mRanges) {
-      const nsINode* startContainer = range.mRange->GetStartContainer();
-      uint32_t startOffset = range.mRange->StartOffset();
-      if (!prevStartContainer) {
-        prevStartContainer = startContainer;
-        prevStartOffset = startOffset;
+      if (!previousStartRef.IsSet()) {
+        previousStartRef = range.mRange->StartRef().AsRaw();
         continue;
       }
       // Calling ComparePoints here saves one call of
       // AbstractRange::StartOffset() per iteration (which is surprisingly
       // expensive).
       const Maybe<int32_t> compareResult = nsContentUtils::ComparePoints(
-          startContainer, startOffset, prevStartContainer, prevStartOffset,
-          &cache);
+          range.mRange->StartRef(), previousStartRef, &cache);
       // If the nodes are in different subtrees, the Maybe is empty.
       // Since CompareToRangeStart pretends ranges to be ordered, this aligns
       // to that behavior.
@@ -1614,13 +1610,11 @@ void Selection::StyledRanges::ReorderRangesIfNecessary() {
         rangeOrderHasChanged = true;
         break;
       }
-      prevStartContainer = startContainer;
-      prevStartOffset = startOffset;
+      previousStartRef = range.mRange->StartRef().AsRaw();
     }
     if (rangeOrderHasChanged) {
       mRanges.Sort([&cache](const StyledRange& a, const StyledRange& b) -> int {
-        return CompareToRangeStart(*a.mRange->GetStartContainer(),
-                                   a.mRange->StartOffset(), *b.mRange, &cache);
+        return CompareToRangeStart(a.mRange->StartRef(), *b.mRange, &cache);
       });
     }
     mDocumentGeneration = currentDocumentGeneration;
@@ -1654,8 +1648,11 @@ nsresult Selection::StyledRanges::GetIndicesForInterval(
 
   // Ranges that end before the given interval and begin after the given
   // interval can be discarded
-  size_t endsBeforeIndex{FindInsertionPoint(&mRanges, *aEndNode, aEndOffset,
-                                            &CompareToRangeStart)};
+  size_t endsBeforeIndex{FindInsertionPoint(
+      &mRanges,
+      ConstRawRangeBoundary(aEndNode, aEndOffset,
+                            RangeBoundaryIsMutationObserved::No),
+      &CompareToRangeStart)};
 
   if (endsBeforeIndex == 0) {
     const AbstractRange* endRange = mRanges[endsBeforeIndex].mRange;
@@ -1676,8 +1673,11 @@ nsresult Selection::StyledRanges::GetIndicesForInterval(
   }
   aEndIndex.emplace(endsBeforeIndex);
 
-  size_t beginsAfterIndex{FindInsertionPoint(&mRanges, *aBeginNode,
-                                             aBeginOffset, &CompareToRangeEnd)};
+  size_t beginsAfterIndex{FindInsertionPoint(
+      &mRanges,
+      ConstRawRangeBoundary(aBeginNode, aBeginOffset,
+                            RangeBoundaryIsMutationObserved::No),
+      &CompareToRangeEnd)};
 
   if (beginsAfterIndex == mRanges.Length()) {
     return NS_OK;  // optimization: all ranges are strictly before us

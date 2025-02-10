@@ -189,37 +189,27 @@ void FilteredContentIterator::Last() {
 // the traversal of the range in the specified mode.
 //
 static bool ContentIsInTraversalRange(nsIContent* aContent, bool aIsPreMode,
-                                      nsINode* aStartContainer,
-                                      int32_t aStartOffset,
-                                      nsINode* aEndContainer,
-                                      int32_t aEndOffset) {
-  NS_ENSURE_TRUE(aStartContainer && aEndContainer && aContent, false);
+                                      const RangeBoundary& aStartBoundary,
+                                      const RangeBoundary& aEndBoundary) {
+  NS_ENSURE_TRUE(aStartBoundary.IsSet() && aEndBoundary.IsSet() && aContent,
+                 false);
 
   nsIContent* parentContent = aContent->GetParent();
-  if (MOZ_UNLIKELY(NS_WARN_IF(!parentContent))) {
+  if (NS_WARN_IF(!parentContent) ||
+      NS_WARN_IF(parentContent->IsRootOfNativeAnonymousSubtree())) {
     return false;
   }
-  Maybe<uint32_t> offsetInParent = parentContent->ComputeIndexOf(aContent);
-  NS_WARNING_ASSERTION(
-      offsetInParent.isSome(),
-      "Content is not in the parent, is this called during a DOM mutation?");
-  if (MOZ_UNLIKELY(NS_WARN_IF(offsetInParent.isNothing()))) {
-    return false;
-  }
+  const RawRangeBoundary compPoint(
+      parentContent, aIsPreMode ? aContent->GetPreviousSibling() : aContent);
 
-  if (!aIsPreMode) {
-    MOZ_ASSERT(*offsetInParent != UINT32_MAX);
-    ++(*offsetInParent);
-  }
-
-  const Maybe<int32_t> startRes = nsContentUtils::ComparePoints(
-      aStartContainer, aStartOffset, parentContent, *offsetInParent);
-  if (MOZ_UNLIKELY(NS_WARN_IF(!startRes))) {
+  const Maybe<int32_t> startRes =
+      nsContentUtils::ComparePoints(aStartBoundary, compPoint);
+  if (NS_WARN_IF(!startRes)) {
     return false;
   }
-  const Maybe<int32_t> endRes = nsContentUtils::ComparePoints(
-      aEndContainer, aEndOffset, parentContent, *offsetInParent);
-  if (MOZ_UNLIKELY(NS_WARN_IF(!endRes))) {
+  const Maybe<int32_t> endRes =
+      nsContentUtils::ComparePoints(aEndBoundary, compPoint);
+  if (NS_WARN_IF(!endRes)) {
     return false;
   }
   return *startRes <= 0 && *endRes >= 0;
@@ -231,10 +221,8 @@ static bool ContentIsInTraversalRange(nsRange* aRange, nsIContent* aNextContent,
   // aNextContent!
   NS_ENSURE_TRUE(aNextContent && aRange, false);
 
-  return ContentIsInTraversalRange(
-      aNextContent, aIsPreMode, aRange->GetStartContainer(),
-      static_cast<int32_t>(aRange->StartOffset()), aRange->GetEndContainer(),
-      static_cast<int32_t>(aRange->EndOffset()));
+  return ContentIsInTraversalRange(aNextContent, aIsPreMode, aRange->StartRef(),
+                                   aRange->EndRef());
 }
 
 // Helper function to advance to the next or previous node

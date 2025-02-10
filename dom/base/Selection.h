@@ -981,19 +981,21 @@ class Selection final : public nsSupportsWeakReference,
 
     /**
      * Binary searches the given sorted array of ranges for the insertion point
-     * for the given node/offset. The given comparator is used, and the index
+     * for the given aBoundary. The given comparator is used, and the index
      * where the point should appear in the array is returned.
 
-     * If there is an item in the array equal to the input point (aPointNode,
-     * aPointOffset), we will return the index of this item.
+     * If there is an item in the array equal to aBoundary, we will return the
+     index of this item.
      *
      * @return the index where the point should appear in the array. In
      *         [0, `aElementArray->Length()`].
      */
+    template <typename PT, typename RT>
     static size_t FindInsertionPoint(
-        const nsTArray<StyledRange>* aElementArray, const nsINode& aPointNode,
-        uint32_t aPointOffset,
-        int32_t (*aComparator)(const nsINode&, uint32_t, const AbstractRange&));
+        const nsTArray<StyledRange>* aElementArray,
+        const RangeBoundaryBase<PT, RT>& aBoundary,
+        int32_t (*aComparator)(const RangeBoundaryBase<PT, RT>&,
+                               const AbstractRange&));
 
     /**
      * Works on the same principle as GetRangesForIntervalArray, however
