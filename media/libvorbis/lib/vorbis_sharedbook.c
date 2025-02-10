@@ -422,7 +422,7 @@ int vorbis_book_init_decode(codebook *c,const static_codebook *s){
         long lo=0,hi=0;
 
         for(i=0;i<tabn;i++){
-          ogg_uint32_t word=i<<(32-c->dec_firsttablen);
+          ogg_uint32_t word=((ogg_uint32_t)i<<(32-c->dec_firsttablen));
           if(c->dec_firsttable[bitreverse(word)]==0){
             while((lo+1)<n && c->codelist[lo+1]<=word)lo++;
             while(    hi<n && word>=(c->codelist[hi]&mask))hi++;
@@ -581,7 +581,7 @@ void run_test(static_codebook *b,float *comp){
       exit(1);
     }
   }
-  free(out);
+  _ogg_free(out);
 }
 
 int main(){
