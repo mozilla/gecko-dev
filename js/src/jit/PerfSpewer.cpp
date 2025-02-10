@@ -376,7 +376,7 @@ void InlineCachePerfSpewer::recordInstruction(MacroAssembler& masm,
   }
   AutoLockPerfSpewer lock;
 
-  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<uint32_t>(op))) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, static_cast<uint32_t>(op))) {
     opcodes_.clear();
     DisablePerfSpewer(lock);
   }
@@ -410,7 +410,7 @@ void IonPerfSpewer::recordInstruction(MacroAssembler& masm, LInstruction* ins) {
     opcodeStr = buf.release();
   }
 #endif
-  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<uint32_t>(op),
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, static_cast<uint32_t>(op),
                             opcodeStr, bytecodepc)) {
     opcodes_.clear();
     DisablePerfSpewer();
@@ -488,7 +488,7 @@ void WasmBaselinePerfSpewer::recordInstruction(MacroAssembler& masm,
     return;
   }
 
-  if (!opcodes_.emplaceBack(masm.currentOffset(), op.toPacked())) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, op.toPacked())) {
     opcodes_.clear();
     DisablePerfSpewer();
   }
@@ -548,7 +548,7 @@ void BaselinePerfSpewer::recordInstruction(MacroAssembler& masm, jsbytecode* pc,
   }
 #endif
 
-  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<uint32_t>(op),
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, static_cast<uint32_t>(op),
                             opcodeStr, pc)) {
     opcodes_.clear();
     DisablePerfSpewer();
@@ -659,7 +659,7 @@ void PerfSpewer::recordOffset(MacroAssembler& masm, const char* msg) {
   }
 
   UniqueChars offsetStr = DuplicateString(msg);
-  if (!opcodes_.emplaceBack(masm.currentOffset(), offsetStr)) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, offsetStr)) {
     opcodes_.clear();
     DisablePerfSpewer();
   }
@@ -957,7 +957,7 @@ void BaselineInterpreterPerfSpewer::recordOffset(MacroAssembler& masm,
     return;
   }
 
-  if (!opcodes_.emplaceBack(masm.currentOffset(), unsigned(op))) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, unsigned(op))) {
     opcodes_.clear();
     DisablePerfSpewer();
   }
@@ -970,7 +970,7 @@ void BaselineInterpreterPerfSpewer::recordOffset(MacroAssembler& masm,
   }
 
   UniqueChars desc = DuplicateString(name);
-  if (!opcodes_.emplaceBack(masm.currentOffset(), desc)) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, desc)) {
     opcodes_.clear();
     DisablePerfSpewer();
   }

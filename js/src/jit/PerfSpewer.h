@@ -81,6 +81,7 @@ class PerfSpewer {
     OpcodeEntry(OpcodeEntry& copy) = delete;
   };
   Vector<OpcodeEntry, 0, SystemAllocPolicy> opcodes_;
+  uint32_t startOffset_ = 0;
 
   virtual const char* CodeName(uint32_t op) = 0;
 
@@ -102,6 +103,7 @@ class PerfSpewer {
   PerfSpewer(PerfSpewer&&) = default;
   PerfSpewer& operator=(PerfSpewer&&) = default;
 
+  void markStartOffset(uint32_t offset) { startOffset_ = offset; }
   void recordOffset(MacroAssembler& masm, const char*);
 
   static void Init();

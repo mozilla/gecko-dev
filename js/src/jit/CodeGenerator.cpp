@@ -16500,6 +16500,7 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
   size_t nInboundStackArgBytes = StackArgAreaSizeUnaligned(argTypes);
   inboundStackArgBytes_ = nInboundStackArgBytes;
 
+  perfSpewer_.markStartOffset(masm.currentOffset());
   perfSpewer_.recordOffset(masm, "Prologue");
   wasm::GenerateFunctionPrologue(masm, callIndirectId, mozilla::Nothing(),
                                  offsets);

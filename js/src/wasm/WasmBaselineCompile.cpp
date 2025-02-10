@@ -498,6 +498,7 @@ bool BaseCompiler::beginFunction() {
     }
   }
 
+  perfSpewer_.markStartOffset(masm.currentOffset());
   perfSpewer_.recordOffset(masm, "Prologue");
   GenerateFunctionPrologue(
       masm, CallIndirectId::forFunc(codeMeta_, func_.index),
