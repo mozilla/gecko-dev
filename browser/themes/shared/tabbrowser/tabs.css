@@ -1568,7 +1568,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 
 #allTabsMenu-groupsView {
   &:empty,
-  &:empty + toolbarseparator {
+  &:empty + #allTabsMenu-groupsSeparator {
     display: none;
   }
 }

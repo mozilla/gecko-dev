@@ -56,7 +56,7 @@ var gTabsPanel = {
 
     this.hiddenAudioTabsPopup = new TabsPanel({
       view: this.allTabsView,
-      insertBefore: document.getElementById("allTabsMenu-tabsSeparator"),
+      insertBefore: document.getElementById("allTabsMenu-hiddenTabsSeparator"),
       filterFn: tab => tab.hidden && tab.soundPlaying,
     });
     this.allTabsPanel = new TabsPanel({
