@@ -717,7 +717,7 @@ nsIFrame* Event::GetPrimaryFrameOfEventTarget(const nsPresContext& aPresContext,
   // XXX Even after the event target content is moved to different document, we
   // may get its primary frame.  In this case, should we return nullptr here?
   nsIFrame* const frame = content->GetPrimaryFrame(FlushType::Layout);
-  if (MOZ_UNLIKELY(!frame)) {
+  if (MOZ_UNLIKELY(!frame || frame->PresContext() != &aPresContext)) {
     return nullptr;
   }
   // For compat, see https://github.com/w3c/csswg-drafts/issues/1508. In SVG
