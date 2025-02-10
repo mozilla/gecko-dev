@@ -16,7 +16,6 @@
     <ID>OutdatedDocumentation:LanguageStorage.kt$LanguageStorage$fun saveCurrentLanguageInSharePref(languageTag: String)</ID>
     <ID>OutdatedDocumentation:PrivateNotificationFeature.kt$PrivateNotificationFeature : LifecycleAwareFeature</ID>
     <ID>OutdatedDocumentation:SitePermissionOptionsFragmentCompose.kt$@Composable fun OptionsPermissionList( optionsListItems: List&lt;SitePermissionOptionListItem&gt;, state: MutableState&lt;Int&gt;, permissionLabel: String?, goToPhoneSettings: () -&gt; Unit, componentPermissionBlockedByAndroidVisibility: Boolean, )</ID>
-    <ID>UndocumentedPublicClass:AboutFragment.kt$AboutFragment : BaseSettingsLikeFragment</ID>
     <ID>UndocumentedPublicClass:AddToHomescreenDialogFragment.kt$AddToHomescreenDialogFragment$Companion</ID>
     <ID>UndocumentedPublicClass:AdvancedSettingsFragment.kt$AdvancedSettingsFragment : BaseSettingsFragmentOnSharedPreferenceChangeListener</ID>
     <ID>UndocumentedPublicClass:AdvancedSettingsFragment.kt$AdvancedSettingsFragment$Companion</ID>
@@ -97,7 +96,6 @@
     <ID>UndocumentedPublicClass:IntentProcessor.kt$IntentProcessor.Result$None : Result</ID>
     <ID>UndocumentedPublicClass:IntentProcessor.kt$IntentProcessor.Result$Tab : Result</ID>
     <ID>UndocumentedPublicClass:IntentReceiverActivity.kt$IntentReceiverActivity$Companion</ID>
-    <ID>UndocumentedPublicClass:LanguageFragment.kt$LanguageFragment : BaseComposeFragment</ID>
     <ID>UndocumentedPublicClass:LanguageMiddleware.kt$LanguageMiddleware : Middleware</ID>
     <ID>UndocumentedPublicClass:LanguageScreenStore.kt$LanguageScreenAction$InitLanguages : LanguageScreenAction</ID>
     <ID>UndocumentedPublicClass:LanguageScreenStore.kt$LanguageScreenAction$Select : LanguageScreenAction</ID>
@@ -246,7 +244,6 @@
     <ID>UndocumentedPublicClass:ViewUtils.kt$ViewUtils</ID>
     <ID>UndocumentedPublicClass:VisibilityLifeCycleCallback.kt$VisibilityLifeCycleCallback$Companion</ID>
     <ID>UndocumentedPublicClass:VoiceSearchActivity.kt$VoiceSearchActivity : BaseVoiceSearchActivity</ID>
-    <ID>UndocumentedPublicFunction:AboutFragment.kt$@Composable fun ColumnScope.LearnMoreLink( learnMore: String, openLearnMore: () -&gt; Job, )</ID>
     <ID>UndocumentedPublicFunction:AddToHomescreenDialogFragment.kt$AddToHomescreenDialogFragment.Companion$fun newInstance( url: String, title: String, blockingEnabled: Boolean, requestDesktop: Boolean, ): AddToHomescreenDialogFragment</ID>
     <ID>UndocumentedPublicFunction:AdvancedSettingsFragment.kt$AdvancedSettingsFragment.Companion$fun newInstance(): AdvancedSettingsFragment</ID>
     <ID>UndocumentedPublicFunction:AutocompleteDomainFormatter.kt$AutocompleteDomainFormatter$fun format(url: String): String</ID>

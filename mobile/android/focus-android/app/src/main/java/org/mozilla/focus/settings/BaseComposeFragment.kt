@@ -31,6 +31,8 @@ import androidx.fragment.app.Fragment
 import org.mozilla.focus.R
 import org.mozilla.focus.activity.MainActivity
 import org.mozilla.focus.ext.hideToolbar
+import org.mozilla.focus.ext.requireComponents
+import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.ui.theme.FocusTheme
 import org.mozilla.focus.ui.theme.focusColors
 
@@ -40,8 +42,7 @@ import org.mozilla.focus.ui.theme.focusColors
  * Useful for Fragments shown in otherwise fullscreen Activities such that they would be shown
  * beneath the status bar not below it.
  *
- * Classes extending this are expected to provide the [Composable] content and a basic behavior
- * for the toolbar: title and navigate up callback.
+ * Classes extending this are expected to provide the [Composable] content and toolbar title.
  */
 abstract class BaseComposeFragment : Fragment() {
     /**
@@ -58,7 +59,9 @@ abstract class BaseComposeFragment : Fragment() {
     /**
      * Callback for the up navigation button shown in toolbar.
      */
-    abstract fun onNavigateUp(): () -> Unit
+    open fun onNavigateUp(): () -> Unit = {
+        requireComponents.appStore.dispatch(AppAction.NavigateUp())
+    }
 
     /**
      * content of the screen in compose. That will be shown below Toolbar

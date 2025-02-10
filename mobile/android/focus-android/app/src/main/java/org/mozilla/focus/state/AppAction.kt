@@ -63,7 +63,7 @@ sealed class AppAction : Action {
 
     data class OpenSitePermissionOptionsScreen(val sitePermission: SitePermission) : AppAction()
 
-    data class NavigateUp(val tabId: String?) : AppAction()
+    data class NavigateUp(val tabId: String? = null) : AppAction()
 
     /**
      * Forces showing the first run screen.

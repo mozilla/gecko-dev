@@ -16,7 +16,6 @@ import org.mozilla.focus.ext.requireComponents
 import org.mozilla.focus.settings.BaseComposeFragment
 import org.mozilla.focus.settings.permissions.SitePermissionOption
 import org.mozilla.focus.state.AppAction
-import org.mozilla.focus.state.Screen
 
 class SitePermissionOptionsFragment : BaseComposeFragment() {
 
@@ -67,14 +66,6 @@ class SitePermissionOptionsFragment : BaseComposeFragment() {
 
     override val titleText: String
         get() = sitePermissionOptionsScreenStore.state.sitePermissionLabel
-
-    override fun onNavigateUp(): () -> Unit {
-        return {
-            requireComponents.appStore.dispatch(
-                AppAction.OpenSettings(Screen.Settings.Page.SitePermissions),
-            )
-        }
-    }
 
     @Composable
     override fun Content() {
