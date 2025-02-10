@@ -25,3 +25,5 @@ Contributing to GeckoView
 -  `Junit Test Framework <junit.html>`_: An overview of GeckoView's custom
    Junit code.
 -  `apilint <apilint.html>`_: GeckoView's linter for the API.
+-  `Translations: Toolkit to Fenix <translations-toolkit-to-fenix.html>`_: Creating
+   a new Android feature using existing JavaScript toolkit code

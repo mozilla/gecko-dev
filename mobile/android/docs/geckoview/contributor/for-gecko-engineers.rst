@@ -164,3 +164,8 @@ to run that will give further instructions. GeckoView API changes
 require two reviews from GeckoView team members; you can open it up to
 the team in general by adding ``#geckoview-reviewers`` as a reviewer on
 Phabricator.
+
+Recommended Reading
+~~~~~~~~~~~~~~~~~~~
+-  `Translations: Toolkit to Fenix <translations-toolkit-to-fenix.html>`_: Creating
+   a new Android feature using existing JavaScript toolkit code
