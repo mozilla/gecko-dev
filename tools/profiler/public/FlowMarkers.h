@@ -20,7 +20,6 @@ namespace mozilla {
 class FlowMarker : public BaseMarkerType<FlowMarker> {
  public:
   static constexpr const char* Name = "FlowMarker";
-  static constexpr const char* Description = "";
 
   using MS = MarkerSchema;
   static constexpr MS::PayloadField PayloadFields[] = {
@@ -43,7 +42,6 @@ class FlowMarker : public BaseMarkerType<FlowMarker> {
 class FlowStackMarker : public BaseMarkerType<FlowStackMarker> {
  public:
   static constexpr const char* Name = "FlowStackMarker";
-  static constexpr const char* Description = "";
 
   using MS = MarkerSchema;
   static constexpr MS::PayloadField PayloadFields[] = {
@@ -69,7 +67,6 @@ class TerminatingFlowStackMarker
     : public BaseMarkerType<TerminatingFlowStackMarker> {
  public:
   static constexpr const char* Name = "TerminatingFlowStackMarker";
-  static constexpr const char* Description = "";
 
   using MS = MarkerSchema;
   static constexpr MS::PayloadField PayloadFields[] = {
@@ -94,7 +91,6 @@ class TerminatingFlowStackMarker
 class FlowTextMarker : public BaseMarkerType<FlowTextMarker> {
  public:
   static constexpr const char* Name = "FlowTextMarker";
-  static constexpr const char* Description = "";
 
   using MS = MarkerSchema;
   static constexpr MS::PayloadField PayloadFields[] = {
@@ -122,7 +118,6 @@ class FlowTextMarker : public BaseMarkerType<FlowTextMarker> {
 class TerminatingFlowMarker : public BaseMarkerType<TerminatingFlowMarker> {
  public:
   static constexpr const char* Name = "TerminatingFlowMarker";
-  static constexpr const char* Description = "";
 
   using MS = MarkerSchema;
   static constexpr MS::PayloadField PayloadFields[] = {

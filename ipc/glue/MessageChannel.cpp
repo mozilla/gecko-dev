@@ -950,7 +950,6 @@ bool MessageChannel::ShouldDeferMessage(const Message& aMsg) {
 class IPCFlowMarker : public BaseMarkerType<IPCFlowMarker> {
  public:
   static constexpr const char* Name = "IPCFlowMarker";
-  static constexpr const char* Description = "";
 
   using MS = MarkerSchema;
   static constexpr MS::PayloadField PayloadFields[] = {

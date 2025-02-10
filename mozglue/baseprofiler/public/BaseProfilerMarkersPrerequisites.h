@@ -1032,6 +1032,8 @@ inline void StreamPayload<ProfilerString8View>(
 // class itself.
 template <typename T>
 struct BaseMarkerType {
+  static constexpr const char* Description = nullptr;
+
   static constexpr const char* AllLabels = nullptr;
   static constexpr const char* ChartLabel = nullptr;
   static constexpr const char* TableLabel = nullptr;
