@@ -262,4 +262,18 @@ class AppStoreReducerTest {
             appStore.state.snackbarState,
         )
     }
+
+    @Test
+    fun `WHEN site data cleared action is dispatched THEN snackbar state is updated`() {
+        val appStore = AppStore()
+
+        appStore.dispatch(
+            AppAction.SiteDataCleared,
+        ).joinBlocking()
+
+        assertEquals(
+            SnackbarState.SiteDataCleared,
+            appStore.state.snackbarState,
+        )
+    }
 }

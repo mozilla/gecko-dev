@@ -147,6 +147,11 @@ sealed class AppAction : Action {
     data object DeleteAndQuitStarted : AppAction()
 
     /**
+     * Action dispatched when the current site's data has been cleared.
+     */
+    data object SiteDataCleared : AppAction()
+
+    /**
      * Action dispatched when open in firefox action is selected from custom tab.
      */
     data object OpenInFirefoxStarted : AppAction()

@@ -102,4 +102,9 @@ sealed class SnackbarState {
      * Display a snackbar when the WebCompat report has been successfully submitted.
      */
     data object WebCompatReportSent : SnackbarState()
+
+    /**
+     * Display a snackbar when the current site's data has been deleted.
+     */
+    data object SiteDataCleared : SnackbarState()
 }

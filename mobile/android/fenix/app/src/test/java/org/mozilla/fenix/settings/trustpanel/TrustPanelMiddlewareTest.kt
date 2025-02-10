@@ -26,6 +26,8 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelMiddleware
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
@@ -40,6 +42,7 @@ class TrustPanelMiddlewareTest {
     val coroutinesTestRule = MainCoroutineRule()
     private val scope = coroutinesTestRule.scope
 
+    private lateinit var appStore: AppStore
     private lateinit var engine: Engine
     private lateinit var publicSuffixList: PublicSuffixList
     private lateinit var sessionUseCases: SessionUseCases
@@ -47,6 +50,7 @@ class TrustPanelMiddlewareTest {
 
     @Before
     fun setup() {
+        appStore = mock()
         engine = mock()
         publicSuffixList = mock()
         sessionUseCases = mock()
@@ -193,6 +197,7 @@ class TrustPanelMiddlewareTest {
                 Engine.BrowsingData.ALL_SITE_DATA,
             ),
         )
+        verify(appStore).dispatch(AppAction.SiteDataCleared)
     }
 
     private fun createStore(
@@ -202,6 +207,7 @@ class TrustPanelMiddlewareTest {
         initialState = trustPanelState,
         middleware = listOf(
             TrustPanelMiddleware(
+                appStore = appStore,
                 engine = engine,
                 publicSuffixList = publicSuffixList,
                 sessionUseCases = sessionUseCases,

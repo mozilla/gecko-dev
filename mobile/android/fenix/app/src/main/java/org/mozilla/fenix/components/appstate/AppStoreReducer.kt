@@ -177,6 +177,10 @@ internal object AppStoreReducer {
             state.copy(snackbarState = SnackbarState.DeletingBrowserDataInProgress)
         }
 
+        is AppAction.SiteDataCleared -> state.copy(
+            snackbarState = SnackbarState.SiteDataCleared,
+        )
+
         is AppAction.OpenInFirefoxStarted -> {
             state.copy(openInFirefoxRequested = true)
         }

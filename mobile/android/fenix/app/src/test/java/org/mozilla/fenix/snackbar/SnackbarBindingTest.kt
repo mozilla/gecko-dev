@@ -454,6 +454,19 @@ class SnackbarBindingTest {
         assertEquals(SnackbarState.None, appStore.state.snackbarState)
     }
 
+    fun `WHEN site data is cleared THEN display a snackbar`() {
+        val binding = buildSnackbarBinding()
+        binding.start()
+
+        appStore.dispatch(AppAction.SiteDataCleared)
+        waitForStoreToSettle()
+
+        verify(snackbarDelegate).show(
+            text = eq(R.string.clear_site_data_snackbar),
+        )
+        assertEquals(SnackbarState.None, appStore.state.snackbarState)
+    }
+
     private fun buildSnackbarBinding(
         context: Context = testContext,
         browserStore: BrowserStore = mock(),

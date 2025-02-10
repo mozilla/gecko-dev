@@ -16,6 +16,8 @@ import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.trackingprotection.TrackerBuckets
@@ -25,6 +27,7 @@ import org.mozilla.fenix.trackingprotection.TrackingProtectionCategory
  * [Middleware] implementation for handling [TrustPanelAction] and managing the [TrustPanelState] for the menu
  * dialog.
  *
+ * @param appStore The [AppStore] used to dispatch actions to display a snackbar.
  * @param engine The browser [Engine] used to clear site data.
  * @param publicSuffixList The [PublicSuffixList] used to obtain the base domain of the current site.
  * @param sessionUseCases [SessionUseCases] used to reload the page after toggling tracking protection.
@@ -35,6 +38,7 @@ import org.mozilla.fenix.trackingprotection.TrackingProtectionCategory
  */
 @Suppress("LongParameterList")
 class TrustPanelMiddleware(
+    private val appStore: AppStore,
     private val engine: Engine,
     private val publicSuffixList: PublicSuffixList,
     private val sessionUseCases: SessionUseCases,
@@ -113,6 +117,8 @@ class TrustPanelMiddleware(
                     Engine.BrowsingData.ALL_SITE_DATA,
                 ),
             )
+
+            appStore.dispatch(AppAction.SiteDataCleared)
         }
 
         onDismiss()

@@ -2889,6 +2889,8 @@
     <string name="clear_site_data_dialog_positive_button_text">Clear</string>
     <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
     <string name="clear_site_data_dialog_negative_button_text">Cancel</string>
+    <!-- Snackbar title shown when the site data has been cleared. -->
+    <string name="clear_site_data_snackbar">Cookies and site data removed</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->

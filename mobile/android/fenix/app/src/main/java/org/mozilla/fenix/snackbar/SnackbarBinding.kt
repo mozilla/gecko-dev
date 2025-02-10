@@ -213,6 +213,15 @@ class SnackbarBinding(
                         )
                     }
 
+                    SnackbarState.SiteDataCleared -> {
+                        snackbarDelegate.show(
+                            text = R.string.clear_site_data_snackbar,
+                            duration = Snackbar.LENGTH_LONG,
+                        )
+
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
                     SnackbarState.None -> Unit
                 }
             }
