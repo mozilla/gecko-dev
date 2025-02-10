@@ -5,9 +5,10 @@
 package org.mozilla.samples.sync
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.concept.sync.Device
 import mozilla.components.concept.sync.DeviceType
@@ -19,22 +20,8 @@ import org.mozilla.samples.sync.databinding.FragmentDeviceBinding
  * specified [OnDeviceListInteractionListener].
  */
 class DeviceRecyclerViewAdapter(
-    var mListenerDevice: OnDeviceListInteractionListener?,
-) : RecyclerView.Adapter<DeviceRecyclerViewAdapter.ViewHolder>() {
-
-    val devices = mutableListOf<Device>()
-
-    private val mOnClickListener: View.OnClickListener
-
-    init {
-        mOnClickListener = View.OnClickListener { v ->
-            val item = v.tag as Device
-            // Notify the active callbacks interface (the activity, if the fragment is attached to
-            // one) that an item has been selected.
-            mListenerDevice?.onDeviceInteraction(item)
-        }
-    }
-
+    var onDeviceClickedListener: OnDeviceListInteractionListener? = null,
+) : ListAdapter<Device, DeviceRecyclerViewAdapter.ViewHolder>(DeviceDiffCallback) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = FragmentDeviceBinding
             .inflate(LayoutInflater.from(parent.context), parent, false)
@@ -42,7 +29,7 @@ class DeviceRecyclerViewAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = devices[position]
+        val item = getItem(position)
         holder.nameView.text = item.displayName
         holder.typeView.text = when (item.deviceType) {
             DeviceType.DESKTOP -> "Desktop"
@@ -53,16 +40,21 @@ class DeviceRecyclerViewAdapter(
             DeviceType.UNKNOWN -> "Unknown"
         }
 
-        with(holder.itemView) {
-            tag = item
-            setOnClickListener(mOnClickListener)
+        holder.itemView.setOnClickListener {
+            onDeviceClickedListener?.onDeviceInteraction(item)
         }
     }
-
-    override fun getItemCount(): Int = devices.size
 
     inner class ViewHolder(binding: FragmentDeviceBinding) : RecyclerView.ViewHolder(binding.root) {
         val nameView: TextView = binding.deviceName
         val typeView: TextView = binding.deviceType
+    }
+
+    private object DeviceDiffCallback : DiffUtil.ItemCallback<Device>() {
+        override fun areItemsTheSame(oldItem: Device, newItem: Device) =
+            oldItem.id == newItem.id
+
+        override fun areContentsTheSame(oldItem: Device, newItem: Device) =
+            oldItem == newItem
     }
 }
