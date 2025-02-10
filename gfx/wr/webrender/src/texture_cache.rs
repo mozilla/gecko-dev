@@ -774,7 +774,7 @@ impl TextureCache {
         // Number of moved pixels after which we stop attempting to move more items for this frame.
         // The constant is up for adjustment, the main goal is to avoid causing frame spikes on
         // low end GPUs.
-        let area_threshold = 512*512; 
+        let area_threshold = 512*512;
 
         let mut changes = Vec::new();
         allocator_lists[idx].try_compaction(area_threshold, &mut changes);
@@ -1014,6 +1014,36 @@ impl TextureCache {
             uv_rect,
             user_data,
         }
+    }
+
+    pub fn try_get(&self, handle: &TextureCacheHandle) -> Option<CacheItem> {
+        let (texture_id, uv_rect, swizzle, uv_rect_handle, user_data) = self.try_get_cache_location(handle)?;
+        Some(CacheItem {
+            uv_rect_handle,
+            texture_id: TextureSource::TextureCache(
+                texture_id,
+                swizzle,
+            ),
+            uv_rect,
+            user_data,
+        })
+    }
+
+    pub fn try_get_cache_location(
+        &self,
+        handle: &TextureCacheHandle,
+    ) -> Option<(CacheTextureId, DeviceIntRect, Swizzle, GpuCacheHandle, [f32; 4])> {
+        let entry = self.get_entry_opt(handle)?;
+
+        debug_assert_eq!(entry.last_access, self.now);
+        let origin = entry.details.describe();
+        Some((
+            entry.texture_id,
+            DeviceIntRect::from_origin_and_size(origin, entry.size),
+            entry.swizzle,
+            entry.uv_rect_handle,
+            entry.user_data,
+        ))
     }
 
     /// A more detailed version of get(). This allows access to the actual

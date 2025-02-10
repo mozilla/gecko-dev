@@ -93,5 +93,5 @@ pub fn resolve_cached_render_task(
     let rt_cache_entry = resource_cache
         .get_cached_render_task(&handle);
 
-    resource_cache.get_texture_cache_item(&rt_cache_entry.handle)
+    resource_cache.get_texture_cache_item(&rt_cache_entry.handle).unwrap()
 }

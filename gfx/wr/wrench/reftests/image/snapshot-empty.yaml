@@ -1,0 +1,17 @@
+---
+root:
+  items:
+    -
+      bounds: [200, 200, 1000, 1000]
+      type: "stacking-context"
+      perspective: 256
+      items:
+        -
+          bounds: [0, 0, 100, 100]
+          type: "stacking-context"
+          snapshot:
+            name: "snap0"
+            area: [0, 0, 100, 100]
+          items:
+    - image: snapshot(snap0)
+      bounds: [10, 10, 200, 200]

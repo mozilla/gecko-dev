@@ -501,6 +501,21 @@ pub struct ResourceCache {
 
     /// A pool of render targets for use by the render task graph
     render_target_pool: Vec<RenderTarget>,
+
+    /// An empty (1x1 transparent) image used when a stacking context snapshot
+    /// is missing.
+    ///
+    /// For now it acts as a catch-all solution for cases where WebRender fails
+    /// to produce a texture cache item for a snapshotted tacking context.
+    /// These cases include:
+    /// - Empty stacking contexts.
+    /// - Stacking contexts that are more aggressively culled out than they
+    ///   should, for example when they are in a perspective transform that
+    ///   cannot be projected to screen space.
+    /// - Likely other cases we have not found yet.
+    /// Over time it would be better to handle each of these cases explicitly
+    /// and make it a hard error to fail to snapshot a stacking context.
+    fallback_handle: TextureCacheHandle,
 }
 
 impl ResourceCache {
@@ -538,6 +553,7 @@ impl ResourceCache {
             image_templates_memory: 0,
             font_templates_memory: 0,
             render_target_pool: Vec::new(),
+            fallback_handle: TextureCacheHandle::invalid(),
         }
     }
 
@@ -661,7 +677,7 @@ impl ResourceCache {
             self.texture_cache.shared_color_expected_format(),
             flags,
         );
- 
+
         // Allocate space in the texture cache, but don't supply
         // and CPU-side data to be uploaded.
         let user_data = [0.0; 4];
@@ -1342,7 +1358,19 @@ impl ResourceCache {
     pub fn get_cached_image(&self, request: ImageRequest) -> Result<CacheItem, ()> {
         debug_assert_eq!(self.state, State::QueryResources);
         let image_info = self.get_image_info(request)?;
-        Ok(self.get_texture_cache_item(&image_info.texture_cache_handle))
+
+        if let Ok(item) = self.get_texture_cache_item(&image_info.texture_cache_handle) {
+            // Common path.
+            return Ok(item);
+        }
+
+        if self.resources.image_templates
+            .get(request.key)
+            .map_or(false, |img| img.data.is_snapshot()) {
+            return self.get_texture_cache_item(&self.fallback_handle);
+        }
+
+        panic!("Requested image missing from the texture cache");
     }
 
     pub fn get_cached_render_task(
@@ -1364,8 +1392,12 @@ impl ResourceCache {
     }
 
     #[inline]
-    pub fn get_texture_cache_item(&self, handle: &TextureCacheHandle) -> CacheItem {
-        self.texture_cache.get(handle)
+    pub fn get_texture_cache_item(&self, handle: &TextureCacheHandle) -> Result<CacheItem, ()> {
+        if let Some(item) = self.texture_cache.try_get(handle) {
+            return Ok(item);
+        }
+
+        Err(())
     }
 
     pub fn get_image_properties(&self, image_key: ImageKey) -> Option<ImageProperties> {
@@ -1480,6 +1512,29 @@ impl ResourceCache {
 
     fn update_texture_cache(&mut self, gpu_cache: &mut GpuCache) {
         profile_scope!("update_texture_cache");
+
+        if self.fallback_handle == TextureCacheHandle::invalid() {
+            self.texture_cache.update(
+                &mut self.fallback_handle,
+                ImageDescriptor {
+                    size: size2(1, 1),
+                    stride: None,
+                    format: ImageFormat::BGRA8,
+                    flags: ImageDescriptorFlags::empty(),
+                    offset: 0,
+                },
+                TextureFilter::Linear,
+                Some(CachedImageData::Raw(Arc::new(vec![0, 0, 0, 0]))),
+                [0.0; 4],
+                DirtyRect::All,
+                gpu_cache,
+                None,
+                UvRectKind::Rect,
+                Eviction::Manual,
+                TargetShader::Default,
+            );
+        }
+
         for request in self.pending_image_requests.drain() {
             let image_template = self.resources.image_templates.get_mut(request.key).unwrap();
             debug_assert!(image_template.data.uses_texture_cache());

@@ -1,0 +1,33 @@
+---
+root:
+  items:
+    -
+      bounds: [200, 200, 1000, 1000]
+      type: "stacking-context"
+      perspective: 256
+      items:
+        -
+          bounds: [128, 128, 256, 256]
+          type: "stacking-context"
+          transform: rotate-x(-60) rotate-y(-120)
+          snapshot:
+            name: "snap0"
+            area: [0, 0, 100, 200]
+          items:
+            - type: clip
+              id: 101
+              complex:
+                - rect: [0, 0, 100, 200]
+                  radius: [32, 32]
+            - type: clip-chain
+              id: 201
+              clips: [101]
+            -
+              bounds: [0, 0, 100, 200]
+              type: rect
+              color: blue
+              clip-chain: 201
+    - image: snapshot(snap0)
+      bounds: [300, 0, 100, 200]
+
+
