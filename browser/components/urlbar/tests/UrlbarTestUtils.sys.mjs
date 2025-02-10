@@ -1396,6 +1396,25 @@ export var UrlbarTestUtils = {
       "popuphidden"
     );
   },
+
+  async selectMenuItem(menupopup, targetSelector) {
+    let target = menupopup.querySelector(targetSelector);
+    let selected;
+    for (let i = 0; i < menupopup.children.length; i++) {
+      this.EventUtils.synthesizeKey("KEY_ArrowDown", {}, menupopup.ownerGlobal);
+      await lazy.BrowserTestUtils.waitForCondition(() => {
+        let current = menupopup.querySelector("[_moz-menuactive]");
+        if (selected != current) {
+          selected = current;
+          return true;
+        }
+        return false;
+      });
+      if (selected == target) {
+        break;
+      }
+    }
+  },
 };
 
 UrlbarTestUtils.formHistory = {

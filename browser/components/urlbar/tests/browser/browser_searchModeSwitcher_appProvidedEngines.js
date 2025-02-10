@@ -26,7 +26,7 @@ add_task(async function test_search_mode_app_provided_engines() {
 
   info("Press on the example menu button and enter search mode");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=Example]").click();
+  popup.querySelector("menuitem[label=Example]").click();
 
   await popupHidden;
 
