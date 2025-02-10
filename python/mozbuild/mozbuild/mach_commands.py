@@ -3376,26 +3376,6 @@ def package_l10n(command_context, verbose=False, locales=[]):
         ensure_exit_code=True,
     )
 
-    if command_context.substs["MOZ_BUILD_APP"] == "mobile/android":
-        command_context.log(
-            logging.INFO,
-            "package-multi-locale",
-            {},
-            "Invoking `mach android assemble-app`",
-        )
-        command_context.run_process(
-            [
-                sys.executable,
-                mozpath.join(command_context.topsrcdir, "mach"),
-                "android",
-                "assemble-app",
-            ],
-            append_env=append_env,
-            pass_thru=True,
-            ensure_exit_code=True,
-            cwd=mozpath.join(command_context.topsrcdir),
-        )
-
     if command_context.substs["MOZ_BUILD_APP"] == "browser":
         command_context.log(
             logging.INFO, "package-multi-locale", {}, "Repackaging browser"

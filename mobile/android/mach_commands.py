@@ -48,23 +48,6 @@ def android(command_context):
 
 @SubCommand(
     "android",
-    "assemble-app",
-    """Assemble Firefox for Android.
-    See http://firefox-source-docs.mozilla.org/build/buildsystem/toolchains.html#firefox-for-android-with-gradle""",  # NOQA: E501
-)
-@CommandArgument("args", nargs=argparse.REMAINDER)
-def android_assemble_app(command_context, args):
-    ret = gradle(
-        command_context,
-        command_context.substs["GRADLE_ANDROID_APP_TASKS"] + ["-x", "lint"] + args,
-        verbose=True,
-    )
-
-    return ret
-
-
-@SubCommand(
-    "android",
     "generate-sdk-bindings",
     """Generate SDK bindings used when building GeckoView.""",
 )

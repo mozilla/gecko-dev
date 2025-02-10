@@ -22,16 +22,6 @@ with Files("focus-android/**"):
 with Files("android-components/**"):
     BUG_COMPONENT = ("Fenix", "General")
 
-# The recursive make backend treats the first output specially: it's passed as
-# an open FileAvoidWrite to the invoked script.  That doesn't work well with
-# the Gradle task that generates all of the outputs, so we add a dummy first
-# output.
-t = ("android_apks",)
-
-GENERATED_FILES += [t]
-GENERATED_FILES[t].force = True
-GENERATED_FILES[t].script = "/mobile/android/gradle.py:assemble_app"
-
 # The Android APKs are assembled in the `export` tier, which usually occurs
 # before the following files are generated. However, mechanisms in `recurse.mk`
 # are used to pull the generated files into the `pre-export` tier, so do not

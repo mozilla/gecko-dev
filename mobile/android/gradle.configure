@@ -193,19 +193,6 @@ set_config(
 )
 
 
-@depends(gradle_android_build_config)
-def gradle_android_app_tasks(build_config):
-    """Gradle tasks run by |mach android assemble-app|."""
-    return [
-        "geckoview:generateJNIWrappersForGenerated{geckoview.variant.name}".format(
-            geckoview=build_config.geckoview
-        ),
-    ]
-
-
-set_config("GRADLE_ANDROID_APP_TASKS", gradle_android_app_tasks)
-
-
 @dependable
 def gradle_android_generate_sdk_bindings_tasks():
     """Gradle tasks run by |mach android generate-sdk-bindings|."""
