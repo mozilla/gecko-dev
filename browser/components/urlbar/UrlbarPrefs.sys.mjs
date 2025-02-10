@@ -248,10 +248,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // contextual opt-in result.
   ["quicksuggest.contextualOptIn.lastDismissed", ""],
 
-  // Controls whether the Firefox Suggest contextual opt-in result appears at
-  // the top of results or at the bottom, after one-off buttons.
-  ["quicksuggest.contextualOptIn.topPosition", true],
-
   // Whether the user has opted in to data collection for quick suggest.
   ["quicksuggest.dataCollection.enabled", false],
 

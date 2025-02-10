@@ -88,7 +88,7 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
     return UrlbarUtils.PROVIDER_TYPE.HEURISTIC;
   }
 
-  _shouldDisplayContextualOptIn(queryContext = null) {
+  #shouldDisplayContextualOptIn(queryContext = null) {
     if (
       queryContext &&
       (queryContext.isPrivate ||
@@ -123,10 +123,7 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
   }
 
   isActive(queryContext) {
-    return (
-      this._shouldDisplayContextualOptIn(queryContext) &&
-      lazy.UrlbarPrefs.get("quicksuggest.contextualOptIn.topPosition")
-    );
+    return this.#shouldDisplayContextualOptIn(queryContext);
   }
 
   getPriority() {
@@ -256,12 +253,7 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
   }
 
   _recordGlean(interaction) {
-    Glean.urlbar.quickSuggestContextualOptIn.record({
-      interaction,
-      top_position: lazy.UrlbarPrefs.get(
-        "quicksuggest.contextualOptIn.topPosition"
-      ),
-    });
+    Glean.urlbar.quickSuggestContextualOptIn.record({ interaction });
   }
 }
 

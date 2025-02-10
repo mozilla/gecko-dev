@@ -529,10 +529,6 @@ pref("browser.urlbar.quicksuggest.dataCollection.enabled", false, sticky);
 // this implicitly disables shouldShowOnboardingDialog.
 pref("browser.urlbar.quicksuggest.contextualOptIn", false);
 
-// Controls whether the Firefox Suggest contextual opt-in result appears at
-// the top of results or at the bottom, after one-off buttons.
-pref("browser.urlbar.quicksuggest.contextualOptIn.topPosition", true);
-
 // Whether the quick suggest feature in the urlbar is enabled.
 pref("browser.urlbar.quicksuggest.enabled", false);
 

@@ -8,7 +8,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
-  UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
 
@@ -29,7 +28,6 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
     lazy.UrlbarPrefs.addObserver(this);
     // Override the SearchOneOffs.sys.mjs value for the Address Bar.
     this.disableOneOffsHorizontalKeyNavigation = true;
-    this.addEventListener("rebuild", this);
   }
 
   /**
@@ -85,127 +83,6 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
     this._on_popupshowing();
   }
 
-  #queryContext;
-  onQueryStarted(queryContext) {
-    this.#queryContext = queryContext;
-  }
-
-  onQueryFinished(queryContext) {
-    this.#buildQuickSuggestOptIn(queryContext);
-
-    if (
-      this.#quickSuggestOptInContainer &&
-      !this.#quickSuggestOptInContainer.hidden
-    ) {
-      this.#quickSuggestOptInProvider._recordGlean("impression");
-    }
-  }
-
-  #quickSuggestOptInContainer;
-  get #quickSuggestOptInProvider() {
-    return lazy.UrlbarProvidersManager.getProvider(
-      "UrlbarProviderQuickSuggestContextualOptIn"
-    );
-  }
-
-  #buildQuickSuggestOptIn(queryContext) {
-    let provider = this.#quickSuggestOptInProvider;
-    if (
-      !provider._shouldDisplayContextualOptIn(queryContext) ||
-      provider.isActive(queryContext)
-    ) {
-      if (this.#quickSuggestOptInContainer) {
-        this.#quickSuggestOptInContainer.hidden = true;
-      }
-      return;
-    }
-
-    if (this.#quickSuggestOptInContainer) {
-      this.#quickSuggestOptInContainer.hidden = false;
-      this.#udpateQuickSuggestOptInCopy();
-      return;
-    }
-
-    // The following is basically a copy of what UrlbarView generates for
-    // ProviderQuickSuggestContextualOptIn's view template. Gross but good
-    // enough for the experiment. Ultimately, if we decide to keep this UI at
-    // the bottom, and when we replace the one-off buttons footer with a better
-    // UI (e.g. search button), this can become a proper result again.
-    let parser = new DOMParser();
-    let doc = parser.parseFromString(
-      `
-<div xmlns="http://www.w3.org/1999/xhtml" class="urlbarView-quickSuggestContextualOptIn-one-off-container">
-  <div class="urlbarView-row" role="presentation" type="dynamic">
-    <span class="urlbarView-row-inner">
-      <span class="urlbarView-dynamic-quickSuggestContextualOptIn-no-wrap urlbarView-no-wrap">
-        <img class="urlbarView-dynamic-quickSuggestContextualOptIn-icon urlbarView-favicon" src="chrome://branding/content/icon32.png" />
-        <span class="urlbarView-dynamic-quickSuggestContextualOptIn-text-container">
-          <strong class="urlbarView-dynamic-quickSuggestContextualOptIn-title"></strong>
-          <span class="urlbarView-dynamic-quickSuggestContextualOptIn-description">
-            <a class="urlbarView-dynamic-quickSuggestContextualOptIn-learn_more" data-l10n-name="learn-more-link" selectable="" name="learn_more" id="urlbarView-footer-quickSuggestContextualOptIn-learn_more"></a>
-          </span>
-        </span>
-      </span>
-    </span>
-    <span primary="" name="allow" class="urlbarView-button urlbarView-button-0" role="button" data-l10n-id="urlbar-firefox-suggest-contextual-opt-in-allow" id="urlbarView-footer-quickSuggestContextualOptIn-allow"></span>
-    <span name="dismiss" class="urlbarView-button urlbarView-button-1" role="button" data-l10n-id="urlbar-firefox-suggest-contextual-opt-in-dismiss" id="urlbarView-footer-quickSuggestContextualOptIn-dismiss"></span>
-  </div>
-</div>
-      `,
-      "text/html"
-    );
-    this.#quickSuggestOptInContainer = this.document.importNode(
-      doc.body.firstElementChild,
-      true
-    );
-
-    // DOMParser normalizes attribute names to lowercase, so need to set this one after the fact.
-    this.#quickSuggestOptInContainer.firstElementChild.setAttribute(
-      "dynamicType",
-      "quickSuggestContextualOptIn"
-    );
-
-    this.container.appendChild(this.#quickSuggestOptInContainer);
-    this.#quickSuggestOptInContainer.addEventListener("keydown", this);
-    this.#udpateQuickSuggestOptInCopy();
-  }
-
-  #udpateQuickSuggestOptInCopy() {
-    this.document.l10n.setAttributes(
-      this.#quickSuggestOptInContainer.querySelector(
-        ".urlbarView-dynamic-quickSuggestContextualOptIn-title"
-      ),
-      "urlbar-firefox-suggest-contextual-opt-in-title-1"
-    );
-    this.document.l10n.setAttributes(
-      this.#quickSuggestOptInContainer.querySelector(
-        ".urlbarView-dynamic-quickSuggestContextualOptIn-description"
-      ),
-      "urlbar-firefox-suggest-contextual-opt-in-description-3"
-    );
-  }
-
-  #isQuickSuggestOptInElement(element) {
-    return (
-      this.#quickSuggestOptInContainer &&
-      element?.compareDocumentPosition(this.#quickSuggestOptInContainer) &
-        Node.DOCUMENT_POSITION_CONTAINS
-    );
-  }
-
-  #handleQuickSuggestOptInCommand(element) {
-    if (this.#isQuickSuggestOptInElement(element)) {
-      this.#quickSuggestOptInProvider._handleCommand(
-        element,
-        this.view.controller,
-        null,
-        this.#quickSuggestOptInContainer
-      );
-      return true;
-    }
-    return false;
-  }
-
   /**
    * Query listener method.  Delegates to the superclass.
    */
@@ -243,10 +120,6 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
       return;
     }
 
-    if (this.#isQuickSuggestOptInElement(button)) {
-      this.#quickSuggestOptInProvider.onBeforeSelection(null, button);
-    }
-
     super.selectedButton = button;
 
     let expectedSearchMode;
@@ -266,24 +139,6 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
 
   get selectedButton() {
     return super.selectedButton;
-  }
-
-  getSelectableButtons(aIncludeNonEngineButtons) {
-    const buttons = super.getSelectableButtons(aIncludeNonEngineButtons);
-
-    if (
-      aIncludeNonEngineButtons &&
-      this.#quickSuggestOptInContainer &&
-      !this.#quickSuggestOptInContainer.hidden
-    ) {
-      buttons.push(
-        ...this.#quickSuggestOptInContainer.querySelectorAll(
-          "[role=button], [selectable]"
-        )
-      );
-    }
-
-    return buttons;
   }
 
   /**
@@ -327,12 +182,6 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
     ) {
       this.input.controller.engagementEvent.discard();
       this.selectedButton.doCommand();
-      this.selectedButton = null;
-      return;
-    }
-
-    if (this.#handleQuickSuggestOptInCommand(this.selectedButton)) {
-      this.input.controller.engagementEvent.discard();
       this.selectedButton = null;
       return;
     }
@@ -513,10 +362,6 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
 
     let button = event.originalTarget;
 
-    if (this.#handleQuickSuggestOptInCommand(button)) {
-      return;
-    }
-
     if (!button.engine && !button.source) {
       return;
     }
@@ -538,11 +383,5 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
   _on_contextmenu(event) {
     // Prevent the context menu from appearing.
     event.preventDefault();
-  }
-
-  _on_rebuild() {
-    if (this.#queryContext) {
-      this.#buildQuickSuggestOptIn(this.#queryContext);
-    }
   }
 }
