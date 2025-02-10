@@ -18,6 +18,7 @@ import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -123,7 +124,11 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                     scope = coroutineScope,
                                 ),
                                 TrustPanelNavigationMiddleware(
+                                    navController = findNavController(),
                                     navHostController = navHostController,
+                                    privacySecurityPrefKey = requireContext().getString(
+                                        R.string.pref_key_privacy_security_category,
+                                    ),
                                     scope = coroutineScope,
                                 ),
                                 TrustPanelTelemetryMiddleware(),
@@ -182,6 +187,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 },
                                 onConnectionSecurityClick = {
                                     store.dispatch(TrustPanelAction.Navigate.ConnectionSecurityPanel)
+                                },
+                                onPrivacySecuritySettingsClick = {
+                                    store.dispatch(TrustPanelAction.Navigate.PrivacySecuritySettings)
                                 },
                             )
                         }

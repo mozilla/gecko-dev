@@ -71,5 +71,10 @@ sealed class TrustPanelAction : Action {
          * [Navigate] action dispatched when navigating to the connection security panel.
          */
         data object ConnectionSecurityPanel : Navigate()
+
+        /**
+         * [Navigate] action dispatched when navigating to the privacy and security settings.
+         */
+        data object PrivacySecuritySettings : Navigate()
     }
 }

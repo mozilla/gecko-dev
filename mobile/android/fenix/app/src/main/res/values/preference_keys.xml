@@ -239,6 +239,7 @@
     <string name="pref_key_addresses_save_and_autofill_addresses" translatable="false">pref_key_addresses_save_and_autofill_addresses</string>
 
     <!-- Privacy Settings -->
+    <string name="pref_key_privacy_security_category" translatable="false">pref_key_privacy_security_category</string>
     <string name="pref_key_open_links_in_a_private_tab" translatable="false">pref_key_open_links_in_a_private_tab</string>
     <string name="pref_key_open_links_in_external_app_old" translatable="false">pref_key_open_links_in_external_app</string>
     <string name="pref_key_open_links_in_apps" translatable="false">pref_key_open_links_in_apps</string>

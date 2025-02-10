@@ -2879,6 +2879,8 @@
     <string name="protection_panel_num_trackers_blocked">%d Trackers blocked</string>
     <!-- Text for when no trackers have been blocked. -->
     <string name="protection_panel_no_trackers_blocked">No trackers found</string>
+    <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+    <string name="protection_panel_privacy_and_security_settings">Privacy and security settings</string>
     <!-- Text for displaying the total number of trackers blocked in the trackers blocked panel.
         %d is a placeholder for the number of trackers blocked. -->
     <string name="trackers_blocked_panel_total_num_trackers_blocked">Trackers blocked: %d</string>

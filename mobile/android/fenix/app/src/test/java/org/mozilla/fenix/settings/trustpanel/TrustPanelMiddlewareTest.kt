@@ -6,6 +6,7 @@ package org.mozilla.fenix.settings.trustpanel
 
 import androidx.core.net.toUri
 import kotlinx.coroutines.Deferred
+import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory

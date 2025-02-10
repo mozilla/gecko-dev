@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
@@ -29,6 +30,8 @@ import org.mozilla.fenix.components.menu.compose.MenuGroup
 import org.mozilla.fenix.components.menu.compose.MenuItem
 import org.mozilla.fenix.components.menu.compose.MenuScaffold
 import org.mozilla.fenix.components.menu.compose.MenuTextItem
+import org.mozilla.fenix.compose.LinkText
+import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.SwitchWithLabel
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -36,7 +39,7 @@ internal const val PROTECTION_PANEL_ROUTE = "protection_panel"
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
 
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "LongMethod")
 @Composable
 internal fun ProtectionPanel(
     url: String,
@@ -49,6 +52,7 @@ internal fun ProtectionPanel(
     onTrackingProtectionToggleClick: () -> Unit,
     onClearSiteDataMenuClick: () -> Unit,
     onConnectionSecurityClick: () -> Unit,
+    onPrivacySecuritySettingsClick: () -> Unit,
 ) {
     MenuScaffold(
         header = {
@@ -105,6 +109,19 @@ internal fun ProtectionPanel(
                 onClick = onClearSiteDataMenuClick,
             )
         }
+
+        LinkText(
+            text = stringResource(id = R.string.protection_panel_privacy_and_security_settings),
+            linkTextStates = listOf(
+                LinkTextState(
+                    text = stringResource(id = R.string.protection_panel_privacy_and_security_settings),
+                    url = "",
+                    onClick = { onPrivacySecuritySettingsClick() },
+                ),
+            ),
+            linkTextColor = FirefoxTheme.colors.textAccent,
+            linkTextDecoration = TextDecoration.Underline,
+        )
     }
 }
 
@@ -197,6 +214,7 @@ private fun ProtectionPanelPreview() {
                 onTrackingProtectionToggleClick = {},
                 onClearSiteDataMenuClick = {},
                 onConnectionSecurityClick = {},
+                onPrivacySecuritySettingsClick = {},
             )
         }
     }

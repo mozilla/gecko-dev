@@ -41,6 +41,7 @@ class TrustPanelTelemetryMiddleware : Middleware<TrustPanelState, TrustPanelActi
             is TrustPanelAction.Navigate.ClearSiteDataDialog,
             TrustPanelAction.Navigate.TrackersPanel,
             TrustPanelAction.Navigate.ConnectionSecurityPanel,
+            TrustPanelAction.Navigate.PrivacySecuritySettings,
             -> Unit
         }
     }

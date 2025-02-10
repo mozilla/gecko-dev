@@ -4,12 +4,16 @@
 
 package org.mozilla.fenix.settings.trustpanel.middleware
 
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.settings.trustpanel.TrustPanelFragmentDirections
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
@@ -21,11 +25,15 @@ import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
  * [Middleware] implementation for handling navigating events based on [TrustPanelAction]s that are
  * dispatched to the [TrustPanelStore].
  *
+ * @param navController [NavController] used for navigation.
  * @param navHostController [NavHostController] used for Compose navigation.
+ * @param privacySecurityPrefKey Preference key used to scroll to the Privacy and security category within settings.
  * @param scope [CoroutineScope] used to launch coroutines.
  */
 class TrustPanelNavigationMiddleware(
+    private val navController: NavController,
     private val navHostController: NavHostController,
+    private val privacySecurityPrefKey: String,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main),
 ) : Middleware<TrustPanelState, TrustPanelAction> {
 
@@ -51,6 +59,13 @@ class TrustPanelNavigationMiddleware(
 
                 is TrustPanelAction.Navigate.ConnectionSecurityPanel -> navHostController.navigate(
                     route = CONNECTION_SECURITY_PANEL_ROUTE,
+                )
+
+                is TrustPanelAction.Navigate.PrivacySecuritySettings -> navController.nav(
+                    R.id.trustPanelFragment,
+                    TrustPanelFragmentDirections.actionGlobalSettingsFragment(
+                        preferenceToScrollTo = privacySecurityPrefKey,
+                    ),
                 )
 
                 else -> Unit
