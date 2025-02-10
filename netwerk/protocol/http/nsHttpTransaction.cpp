@@ -307,10 +307,7 @@ nsresult nsHttpTransaction::Init(
 
   if (mHasRequestBody) {
     // wrap the headers and request body in a multiplexed input stream.
-    nsCOMPtr<nsIMultiplexInputStream> multi;
-    rv = nsMultiplexInputStreamConstructor(NS_GET_IID(nsIMultiplexInputStream),
-                                           getter_AddRefs(multi));
-    if (NS_FAILED(rv)) return rv;
+    RefPtr<nsMultiplexInputStream> multi = new nsMultiplexInputStream();
 
     rv = multi->AppendStream(headers);
     if (NS_FAILED(rv)) return rv;
@@ -321,9 +318,8 @@ nsresult nsHttpTransaction::Init(
     // wrap the multiplexed input stream with a buffered input stream, so
     // that we write data in the largest chunks possible.  this is actually
     // necessary to workaround some common server bugs (see bug 137155).
-    nsCOMPtr<nsIInputStream> stream(do_QueryInterface(multi));
     rv = NS_NewBufferedInputStream(getter_AddRefs(mRequestStream),
-                                   stream.forget(),
+                                   multi.forget(),
                                    nsIOService::gDefaultSegmentSize);
     if (NS_FAILED(rv)) return rv;
   } else {

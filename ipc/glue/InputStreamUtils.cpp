@@ -170,10 +170,7 @@ already_AddRefed<nsIInputStream> InputStreamHelper::DeserializeInputStream(
     } break;
 
     case InputStreamParams::TMultiplexInputStreamParams: {
-      nsCOMPtr<nsIMultiplexInputStream> stream;
-      nsMultiplexInputStreamConstructor(NS_GET_IID(nsIMultiplexInputStream),
-                                        getter_AddRefs(stream));
-      serializable = do_QueryInterface(stream);
+      serializable = new nsMultiplexInputStream();
     } break;
 
     case InputStreamParams::TSlicedInputStreamParams:
