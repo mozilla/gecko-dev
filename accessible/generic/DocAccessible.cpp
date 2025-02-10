@@ -674,7 +674,9 @@ nsresult DocAccessible::RemoveEventListeners() {
     NS_RELEASE_THIS();  // Kung fu death grip
   }
 
-  SelectionMgr()->RemoveDocSelectionListener(mPresShell);
+  if (mPresShell) {
+    SelectionMgr()->RemoveDocSelectionListener(mPresShell);
+  }
   return NS_OK;
 }
 
