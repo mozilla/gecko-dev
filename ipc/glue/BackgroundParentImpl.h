@@ -269,11 +269,6 @@ class BackgroundParentImpl : public PBackgroundParent {
   already_AddRefed<PGamepadTestChannelParent> AllocPGamepadTestChannelParent()
       override;
 
-  PWebAuthnTransactionParent* AllocPWebAuthnTransactionParent() override;
-
-  bool DeallocPWebAuthnTransactionParent(
-      PWebAuthnTransactionParent* aActor) override;
-
   already_AddRefed<PHttpBackgroundChannelParent>
   AllocPHttpBackgroundChannelParent(const uint64_t& aChannelId) override;
 

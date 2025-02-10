@@ -8,15 +8,8 @@
 
 namespace mozilla::dom {
 
-WebAuthnTransactionChild::WebAuthnTransactionChild(
-    WebAuthnManagerBase* aManager)
-    : mManager(aManager) {
-  MOZ_ASSERT(aManager);
-
-  // Retain a reference so the task object isn't deleted without IPDL's
-  // knowledge. The reference will be released by
-  // mozilla::ipc::BackgroundChildImpl::DeallocPWebAuthnTransactionChild.
-  NS_ADDREF_THIS();
+void WebAuthnTransactionChild::SetManager(WebAuthnManagerBase* aManager) {
+  mManager = aManager;
 }
 
 mozilla::ipc::IPCResult WebAuthnTransactionChild::RecvConfirmRegister(
@@ -74,14 +67,6 @@ void WebAuthnTransactionChild::ActorDestroy(ActorDestroyReason why) {
   }
 }
 
-void WebAuthnTransactionChild::Disconnect() {
-  mManager = nullptr;
-
-  // The WebAuthnManager released us, but we're going to be held alive by the
-  // IPC layer. The parent will explicitly destroy us via Send__delete__(),
-  // after receiving the DestroyMe message.
-
-  SendDestroyMe();
-}
+void WebAuthnTransactionChild::Disconnect() { mManager = nullptr; }
 
 }  // namespace mozilla::dom

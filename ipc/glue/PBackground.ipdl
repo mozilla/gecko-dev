@@ -43,7 +43,6 @@ include protocol PServiceWorker;
 include protocol PServiceWorkerContainer;
 include protocol PServiceWorkerManager;
 include protocol PServiceWorkerRegistration;
-include protocol PWebAuthnTransaction;
 include protocol PUDPSocket;
 include protocol PVsync;
 include protocol PRemoteDecoderManager;
@@ -119,7 +118,6 @@ sync protocol PBackground
   manages PServiceWorkerContainer;
   manages PServiceWorkerManager;
   manages PServiceWorkerRegistration;
-  manages PWebAuthnTransaction;
   manages PUDPSocket;
   manages PVsync;
   manages PFetch;
@@ -245,8 +243,6 @@ parent:
   async PGamepadTestChannel();
 
   async PHttpBackgroundChannel(uint64_t channelId);
-
-  async PWebAuthnTransaction();
 
   async PSharedWorker(RemoteWorkerData data,
                       uint64_t windowID,

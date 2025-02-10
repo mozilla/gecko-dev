@@ -146,11 +146,6 @@ class BackgroundChildImpl : public PBackgroundChild {
 
   virtual bool DeallocPMessagePortChild(PMessagePortChild* aActor) override;
 
-  virtual PWebAuthnTransactionChild* AllocPWebAuthnTransactionChild() override;
-
-  virtual bool DeallocPWebAuthnTransactionChild(
-      PWebAuthnTransactionChild* aActor) override;
-
   already_AddRefed<PServiceWorkerChild> AllocPServiceWorkerChild(
       const IPCServiceWorkerDescriptor&);
 

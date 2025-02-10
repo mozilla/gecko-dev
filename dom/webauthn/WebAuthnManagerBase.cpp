@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/WebAuthnManagerBase.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
+#include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 
@@ -39,22 +40,16 @@ bool WebAuthnManagerBase::MaybeCreateBackgroundActor() {
     return true;
   }
 
-  ::mozilla::ipc::PBackgroundChild* actorChild =
-      ::mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
-  if (NS_WARN_IF(!actorChild)) {
+  RefPtr<WebAuthnTransactionChild> child = new WebAuthnTransactionChild();
+
+  WindowGlobalChild* windowGlobalChild = mParent->GetWindowGlobalChild();
+  if (!windowGlobalChild ||
+      !windowGlobalChild->SendPWebAuthnTransactionConstructor(child)) {
     return false;
   }
 
-  RefPtr<WebAuthnTransactionChild> mgr(new WebAuthnTransactionChild(this));
-  PWebAuthnTransactionChild* constructedMgr =
-      actorChild->SendPWebAuthnTransactionConstructor(mgr);
-
-  if (NS_WARN_IF(!constructedMgr)) {
-    return false;
-  }
-
-  MOZ_ASSERT(constructedMgr == mgr);
-  mChild = std::move(mgr);
+  mChild = child;
+  mChild->SetManager(this);
 
   return true;
 }

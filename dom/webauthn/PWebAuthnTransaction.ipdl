@@ -14,7 +14,7 @@
  * selecting a different tab.
  */
 
-include protocol PBackground;
+include protocol PWindowGlobal;
 
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
 
@@ -159,16 +159,14 @@ struct WebAuthnGetAssertionResult {
   nsString? AuthenticatorAttachment;
 };
 
-[ManualDealloc]
 async protocol PWebAuthnTransaction {
-  manager PBackground;
+  manager PWindowGlobal;
 
   parent:
     async RequestRegister(uint64_t aTransactionId, WebAuthnMakeCredentialInfo aTransactionInfo);
     async RequestSign(uint64_t aTransactionId, WebAuthnGetAssertionInfo aTransactionInfo);
     async RequestIsUVPAA() returns (bool available);
     [Tainted] async RequestCancel(uint64_t aTransactionId);
-    async DestroyMe();
 
   child:
     async __delete__();

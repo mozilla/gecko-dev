@@ -21,8 +21,9 @@ class WebAuthnRegisterPromiseHolder;
 class WebAuthnSignPromiseHolder;
 
 class WebAuthnTransactionParent final : public PWebAuthnTransactionParent {
+  NS_INLINE_DECL_REFCOUNTING(WebAuthnTransactionParent, override);
+
  public:
-  NS_INLINE_DECL_REFCOUNTING(WebAuthnTransactionParent);
   WebAuthnTransactionParent() = default;
 
   mozilla::ipc::IPCResult RecvRequestRegister(
