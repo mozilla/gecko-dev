@@ -18,12 +18,12 @@
 namespace mozilla {
 namespace net {
 
-#define NS_THIS_SIMPLEURI_IMPLEMENTATION_CID         \
-  { /* 0b9bb0c2-fee6-470b-b9b9-9fd9462b5e19 */       \
-    0x0b9bb0c2, 0xfee6, 0x470b, {                    \
-      0xb9, 0xb9, 0x9f, 0xd9, 0x46, 0x2b, 0x5e, 0x19 \
-    }                                                \
-  }
+#define NS_THIS_SIMPLEURI_IMPLEMENTATION_CID  \
+  {/* 0b9bb0c2-fee6-470b-b9b9-9fd9462b5e19 */ \
+   0x0b9bb0c2,                                \
+   0xfee6,                                    \
+   0x470b,                                    \
+   {0xb9, 0xb9, 0x9f, 0xd9, 0x46, 0x2b, 0x5e, 0x19}}
 
 class nsSimpleURI : public nsIURI, public nsISerializable, public nsISizeOf {
  protected:

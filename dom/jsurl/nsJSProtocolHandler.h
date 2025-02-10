@@ -14,26 +14,26 @@
 #include "nsSimpleURI.h"
 #include "nsINestedURI.h"
 
-#define NS_JSPROTOCOLHANDLER_CID                     \
-  { /* bfc310d2-38a0-11d3-8cd3-0060b0fc14a3 */       \
-    0xbfc310d2, 0x38a0, 0x11d3, {                    \
-      0x8c, 0xd3, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3 \
-    }                                                \
-  }
+#define NS_JSPROTOCOLHANDLER_CID              \
+  {/* bfc310d2-38a0-11d3-8cd3-0060b0fc14a3 */ \
+   0xbfc310d2,                                \
+   0x38a0,                                    \
+   0x11d3,                                    \
+   {0x8c, 0xd3, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3}}
 
-#define NS_JSURI_CID                                 \
-  { /* 58f089ee-512a-42d2-a935-d0c874128930 */       \
-    0x58f089ee, 0x512a, 0x42d2, {                    \
-      0xa9, 0x35, 0xd0, 0xc8, 0x74, 0x12, 0x89, 0x30 \
-    }                                                \
-  }
+#define NS_JSURI_CID                          \
+  {/* 58f089ee-512a-42d2-a935-d0c874128930 */ \
+   0x58f089ee,                                \
+   0x512a,                                    \
+   0x42d2,                                    \
+   {0xa9, 0x35, 0xd0, 0xc8, 0x74, 0x12, 0x89, 0x30}}
 
-#define NS_JSURIMUTATOR_CID                          \
-  { /* 574ce83e-fe9f-4095-b85c-7909abbf7c37 */       \
-    0x574ce83e, 0xfe9f, 0x4095, {                    \
-      0xb8, 0x5c, 0x79, 0x09, 0xab, 0xbf, 0x7c, 0x37 \
-    }                                                \
-  }
+#define NS_JSURIMUTATOR_CID                   \
+  {/* 574ce83e-fe9f-4095-b85c-7909abbf7c37 */ \
+   0x574ce83e,                                \
+   0xfe9f,                                    \
+   0x4095,                                    \
+   {0xb8, 0x5c, 0x79, 0x09, 0xab, 0xbf, 0x7c, 0x37}}
 
 #define NS_JSPROTOCOLHANDLER_CONTRACTID \
   NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "javascript"
