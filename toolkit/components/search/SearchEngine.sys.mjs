@@ -12,12 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   OpenSearchEngine: "resource://gre/modules/OpenSearchEngine.sys.mjs",
 });
 
-const BinaryInputStream = Components.Constructor(
-  "@mozilla.org/binaryinputstream;1",
-  "nsIBinaryInputStream",
-  "setInputStream"
-);
-
 ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
   return console.createInstance({
     prefix: "SearchEngine",
@@ -76,37 +70,6 @@ function limitURILength(str, len = 140) {
     return str.slice(0, len) + "...";
   }
   return str;
-}
-
-/**
- * Tries to rescale an icon to a given size.
- *
- * @param {Array} byteArray
- *   Byte array containing the icon payload.
- * @param {string} contentType
- *   Mime type of the payload.
- * @param {number} [size]
- *   Desired icon size.
- * @returns {Array}
- *   An array of two elements - an array of integers and a string for the content
- *   type.
- * @throws if the icon cannot be rescaled or the rescaled icon is too big.
- */
-function rescaleIcon(byteArray, contentType, size = 32) {
-  if (contentType == "image/svg+xml") {
-    throw new Error("Cannot rescale SVG image");
-  }
-
-  let imgTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
-  let arrayBuffer = new Int8Array(byteArray).buffer;
-  let container = imgTools.decodeImageFromArrayBuffer(arrayBuffer, contentType);
-  let stream = imgTools.encodeScaledImage(container, "image/png", size, size);
-  let streamSize = stream.available();
-  if (streamSize > lazy.SearchUtils.MAX_ICON_SIZE) {
-    throw new Error("Icon is too big");
-  }
-  let bis = new BinaryInputStream(stream);
-  return [bis.readByteArray(streamSize), "image/png"];
 }
 
 /**
@@ -629,7 +592,10 @@ export class SearchEngine {
             lazy.logConsole.debug(
               `Rescaling icon for search engine ${this.name}.`
             );
-            [byteArray, contentType] = rescaleIcon(byteArray, contentType);
+            [byteArray, contentType] = lazy.SearchUtils.rescaleIcon(
+              byteArray,
+              contentType
+            );
           } catch (ex) {
             lazy.logConsole.error(
               `Unable to rescale  icon for search engine ${this.name}:`,
