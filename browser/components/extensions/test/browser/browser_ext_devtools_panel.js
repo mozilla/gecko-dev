@@ -851,9 +851,10 @@ add_task(async function test_devtools_page_invalid_panel_urls() {
             });
 
             // Ask the privileged code to select the last created panel.
-            const done = valid_panels_length === 0;
-            browser.test.sendMessage("select-devtools-panel", done);
+            browser.test.sendMessage("select-devtools-panel");
             await oncePanelLoaded;
+            const done = valid_panels_length === 0;
+            browser.test.sendMessage("select-devtools-panel-loaded", done);
           } catch (err) {
             browser.test.fail(
               "Unexpected failure on creating a devtools panel with " +
@@ -900,13 +901,33 @@ add_task(async function test_devtools_page_invalid_panel_urls() {
 
   while (!done) {
     info("Waiting test extension request to select the last created panel");
-    done = await extension.awaitMessage("select-devtools-panel");
+    await extension.awaitMessage("select-devtools-panel");
 
     const toolboxAdditionalTools = toolbox.getAdditionalTools();
     const lastTool = toolboxAdditionalTools[toolboxAdditionalTools.length - 1];
 
-    gDevTools.showToolboxForTab(tab, { toolId: lastTool.id });
+    await gDevTools.showToolboxForTab(tab, { toolId: lastTool.id });
     info("Last created panel selected");
+
+    done = await extension.awaitMessage("select-devtools-panel-loaded");
+    let panelFrame = toolbox.doc.getElementById(
+      "toolbox-panel-iframe-" + lastTool.id
+    );
+    ok(
+      !toolbox.win.browsingContext.isUnderHiddenEmbedderElement,
+      "Toolbox shouldn't be hidden"
+    );
+    ok(
+      !panelFrame.browsingContext.isUnderHiddenEmbedderElement,
+      "Panel shouldn't be hidden"
+    );
+    let browser = panelFrame.contentDocument.getElementById(
+      "webext-panels-browser"
+    );
+    ok(
+      !browser.browsingContext.isUnderHiddenEmbedderElement,
+      "Nested browser shouldn't be hidden"
+    );
   }
 
   await extension.awaitMessage("test_invalid_devtools_panel_urls_done");

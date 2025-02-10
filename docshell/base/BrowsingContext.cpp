@@ -2744,8 +2744,9 @@ void BrowsingContext::DidSet(FieldIndex<IDX_ExplicitActive>,
       }
       return CallState::Continue;
     };
-    Canonical()->CallOnAllTopDescendants(manageTopDescendant,
-                                         /* aIncludeNestedBrowsers = */ false);
+    Canonical()->CallOnTopDescendants(
+        manageTopDescendant,
+        CanonicalBrowsingContext::TopDescendantKind::NonNested);
   }
 
   PreOrderWalk([&](BrowsingContext* aContext) {
@@ -3659,8 +3660,8 @@ void BrowsingContext::DidSet(FieldIndex<IDX_IsUnderHiddenEmbedderElement>,
   }
 
   // Propagate to children.
-  for (BrowsingContext* child : Children()) {
-    Element* embedderElement = child->GetEmbedderElement();
+  auto PropagateToChild = [&newValue](BrowsingContext* aChild) {
+    Element* embedderElement = aChild->GetEmbedderElement();
     if (!embedderElement) {
       // TODO: We shouldn't need to null check here since `child` and the
       // element returned by `child->GetEmbedderElement()` are in our
@@ -3668,7 +3669,7 @@ void BrowsingContext::DidSet(FieldIndex<IDX_IsUnderHiddenEmbedderElement>,
       // be, but that doesn't matter).  However, there are currently a very
       // small number of crashes due to `embedderElement` being null, somehow
       // - see bug 1551241.  For now we wallpaper the crash.
-      continue;
+      return CallState::Continue;
     }
 
     bool embedderFrameIsHidden = true;
@@ -3676,10 +3677,22 @@ void BrowsingContext::DidSet(FieldIndex<IDX_IsUnderHiddenEmbedderElement>,
       embedderFrameIsHidden = !embedderFrame->StyleVisibility()->IsVisible();
     }
 
-    bool hidden = IsUnderHiddenEmbedderElement() || embedderFrameIsHidden;
-    if (child->IsUnderHiddenEmbedderElement() != hidden) {
-      Unused << child->SetIsUnderHiddenEmbedderElement(hidden);
+    bool hidden = newValue || embedderFrameIsHidden;
+    if (aChild->IsUnderHiddenEmbedderElement() != hidden) {
+      Unused << aChild->SetIsUnderHiddenEmbedderElement(hidden);
     }
+
+    return CallState::Continue;
+  };
+
+  for (BrowsingContext* child : Children()) {
+    PropagateToChild(child);
+  }
+
+  if (XRE_IsParentProcess()) {
+    Canonical()->CallOnTopDescendants(
+        PropagateToChild,
+        CanonicalBrowsingContext::TopDescendantKind::ChildrenOnly);
   }
 }
 

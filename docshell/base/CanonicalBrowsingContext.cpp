@@ -934,42 +934,56 @@ RefPtr<PrintPromise> CanonicalBrowsingContext::PrintWithNoContentAnalysis(
 #endif
 }
 
-void CanonicalBrowsingContext::CallOnAllTopDescendants(
+void CanonicalBrowsingContext::CallOnTopDescendants(
     const FunctionRef<CallState(CanonicalBrowsingContext*)>& aCallback,
-    bool aIncludeNestedBrowsers) {
-  MOZ_ASSERT(IsTop(), "Should only call on top BC");
-  MOZ_ASSERT(
-      !aIncludeNestedBrowsers ||
-          (IsChrome() && !GetParentCrossChromeBoundary()),
-      "If aIncludeNestedBrowsers is set, should only call on top chrome BC");
+    TopDescendantKind aKind) {
+  // Calling with All on something other than a chrome root is unlikely to be
+  // what you want, so lacking a use-case for it, we assert against it for now.
+  MOZ_ASSERT_IF(aKind == TopDescendantKind::All,
+                IsChrome() && !GetParentCrossChromeBoundary());
+  // Similarly, calling with {NonNested,All} on a non-top bc is unlikely to be
+  // what you want.
+  MOZ_ASSERT_IF(aKind != TopDescendantKind::ChildrenOnly, IsTop());
 
   if (!IsInProcess()) {
     // We rely on top levels having to be embedded in the parent process, so
-    // we can only have top level descendants if embedded here..
+    // we can only have top level descendants if embedded here...
     return;
   }
+
+  const auto* ourTop = Top();
 
   AutoTArray<RefPtr<BrowsingContextGroup>, 32> groups;
   BrowsingContextGroup::GetAllGroups(groups);
   for (auto& browsingContextGroup : groups) {
-    for (auto& bc : browsingContextGroup->Toplevels()) {
-      if (bc == this) {
-        // Cannot be a descendent of myself so skip.
+    for (auto& topLevel : browsingContextGroup->Toplevels()) {
+      if (topLevel == ourTop) {
+        // A nested toplevel can't be a descendant of our same toplevel.
         continue;
       }
 
-      if (aIncludeNestedBrowsers) {
-        if (this != bc->Canonical()->TopCrossChromeBoundary()) {
-          continue;
+      // Walk up the CanonicalBrowsingContext tree, looking for a match.
+      const bool topLevelIsRelevant = [&] {
+        auto* current = topLevel->Canonical();
+        while (auto* parent = current->GetParentCrossChromeBoundary()) {
+          if (parent == this) {
+            return true;
+          }
+          // If we've reached aKind's stop condition, break out early.
+          if (aKind == TopDescendantKind::ChildrenOnly ||
+              (aKind == TopDescendantKind::NonNested && parent->IsTop())) {
+            return false;
+          }
+          current = parent;
         }
-      } else {
-        auto* parent = bc->Canonical()->GetParentCrossChromeBoundary();
-        if (!parent || this != parent->Top()) {
-          continue;
-        }
+        return false;
+      }();
+
+      if (!topLevelIsRelevant) {
+        continue;
       }
 
-      if (aCallback(bc->Canonical()) == CallState::Stop) {
+      if (aCallback(topLevel->Canonical()) == CallState::Stop) {
         return;
       }
     }

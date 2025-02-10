@@ -149,14 +149,23 @@ class CanonicalBrowsingContext final : public BrowsingContext {
       const MaybeDiscardedBrowsingContext& aClonedStaticBrowsingContext);
   MOZ_CAN_RUN_SCRIPT void ReleaseClonedPrint(
       const MaybeDiscardedBrowsingContext& aClonedStaticBrowsingContext);
-  // Call the given callback on all top-level descendant BrowsingContexts.
+
+  enum class TopDescendantKind {
+    // All top descendants are included, even those inside a nested top
+    // browser.
+    All,
+    // Top descendants that are either direct children or under a non-nested
+    // descendant are included, but not those nested inside a separate top.
+    NonNested,
+    // Only our direct children are included. This is usually slightly less
+    // efficient than the alternatives, but might be needed in some cases.
+    ChildrenOnly,
+  };
+  // Call the given callback on top-level descendant BrowsingContexts.
   // Return Callstate::Stop from the callback to stop calling further children.
-  //
-  // If aIncludeNestedBrowsers is true, then all top descendants are included,
-  // even those inside a nested top browser.
-  void CallOnAllTopDescendants(
+  void CallOnTopDescendants(
       const FunctionRef<CallState(CanonicalBrowsingContext*)>& aCallback,
-      bool aIncludeNestedBrowsers);
+      TopDescendantKind aKind);
 
   void SessionHistoryCommit(uint64_t aLoadId, const nsID& aChangeID,
                             uint32_t aLoadType, bool aPersist,

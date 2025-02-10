@@ -1469,12 +1469,12 @@ void nsFocusManager::ActivateOrDeactivate(nsPIDOMWindowOuter* aWindow,
     MOZ_ASSERT(bc == chromeTop);
 
     chromeTop->SetIsActiveBrowserWindow(aActive);
-    chromeTop->CallOnAllTopDescendants(
+    chromeTop->CallOnTopDescendants(
         [aActive](CanonicalBrowsingContext* aBrowsingContext) {
           aBrowsingContext->SetIsActiveBrowserWindow(aActive);
           return CallState::Continue;
         },
-        /* aIncludeNestedBrowsers = */ true);
+        CanonicalBrowsingContext::TopDescendantKind::All);
   }
 
   if (aWindow->GetExtantDoc()) {

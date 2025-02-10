@@ -17026,13 +17026,13 @@ void Document::UpdateRemoteFrameEffects(bool aIncludeInactive) {
   }
   if (XRE_IsParentProcess()) {
     if (auto* bc = GetBrowsingContext(); bc && bc->IsTop()) {
-      bc->Canonical()->CallOnAllTopDescendants(
+      bc->Canonical()->CallOnTopDescendants(
           [&](CanonicalBrowsingContext* aDescendant) {
             UpdateEffectsOnBrowsingContext(aDescendant, input,
                                            aIncludeInactive);
             return CallState::Continue;
           },
-          /* aIncludeNestedBrowsers = */ false);
+          CanonicalBrowsingContext::TopDescendantKind::NonNested);
     }
   }
   EnumerateSubDocuments([aIncludeInactive](Document& aDoc) {
