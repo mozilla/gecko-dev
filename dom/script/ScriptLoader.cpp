@@ -885,10 +885,8 @@ nsresult ScriptLoader::PrepareHttpRequestAndInitiatorType(
   nsresult rv = NS_OK;
 
   if (httpChannel) {
-    // HTTP content negotation has little value in this context.
-    nsAutoCString acceptTypes("*/*");
-    rv = httpChannel->SetRequestHeader("Accept"_ns, acceptTypes, false);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    // The 'Accept' HTTP header should be set in
+    // nsHttpHandler::AddStandardRequestHeaders.
 
     nsCOMPtr<nsIReferrerInfo> referrerInfo =
         new ReferrerInfo(aRequest->mReferrer, aRequest->ReferrerPolicy());

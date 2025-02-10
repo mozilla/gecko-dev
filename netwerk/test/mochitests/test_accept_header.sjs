@@ -52,6 +52,16 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (request.queryString == "json") {
+    response.setHeader("Content-Type", "application/json", false);
+    response.write('{"foo": true}');
+    setState(
+      "data",
+      JSON.stringify({ type: "json", accept: request.getHeader("Accept") })
+    );
+    return;
+  }
+
   if (request.queryString == "get") {
     response.setHeader("Content-Type", "application/json", false);
     response.write(getState("data"));

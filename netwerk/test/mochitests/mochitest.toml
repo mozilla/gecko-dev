@@ -59,7 +59,10 @@ support-files = [
   "test2.css",
   "test2.css^headers^",
 ]
-prefs = ["javascript.options.large_arraybuffers=true"]
+prefs = [
+  "javascript.options.large_arraybuffers=true",
+  "javascript.options.experimental.import_attributes=true",
+]
 
 ["test_1331680.html"]
 skip-if = ["xorigin"]
@@ -97,7 +100,7 @@ support-files = [
 ["test_1503201.html"]
 
 ["test_accept_header.html"]
-support-files = ["test_accept_header.sjs"]
+support-files = ["test_accept_header.sjs", "test_import_json_module.mjs"]
 
 ["test_anchor_query_encoding.html"]
 

@@ -59,11 +59,22 @@ function test_worker() {
   }
 }
 
+function test_json_modules() {
+  let script = document.createElement("script");
+  script.src = "test_import_json_module.mjs";
+  script.type = "module";
+  script.onload = () => {
+    test_last_request_and_continue("json", "application/json,*/*;q=0.5");
+  }
+  document.body.appendChild(script);
+}
+
 let tests = [
   test_iframe,
   test_image,
   test_style,
   test_worker,
+  test_json_modules,
 ];
 
 function next() {

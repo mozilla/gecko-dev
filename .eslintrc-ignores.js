@@ -302,4 +302,8 @@ module.exports = [
   // Test files for circular import in modules.
   "dom/base/test/jsmodules/import_circular.mjs",
   "dom/base/test/jsmodules/import_circular_1.mjs",
+
+  // Support for Import attributes is only available in ESLint v9.19
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=1944290
+  "netwerk/test/mochitests/test_import_json_module.mjs",
 ];
