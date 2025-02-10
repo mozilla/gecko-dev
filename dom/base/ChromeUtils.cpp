@@ -2156,7 +2156,11 @@ void ChromeUtils::RegisterWindowActor(const GlobalObject& aGlobal,
                                       const nsACString& aName,
                                       const WindowActorOptions& aOptions,
                                       ErrorResult& aRv) {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  if (!XRE_IsParentProcess()) {
+    aRv.ThrowNotAllowedError(
+        "registerWindowActor() may only be called in the parent process");
+    return;
+  }
 
   RefPtr<JSActorService> service = JSActorService::GetSingleton();
   service->RegisterWindowActor(aName, aOptions, aRv);
@@ -2164,8 +2168,13 @@ void ChromeUtils::RegisterWindowActor(const GlobalObject& aGlobal,
 
 /* static */
 void ChromeUtils::UnregisterWindowActor(const GlobalObject& aGlobal,
-                                        const nsACString& aName) {
-  MOZ_ASSERT(XRE_IsParentProcess());
+                                        const nsACString& aName,
+                                        ErrorResult& aRv) {
+  if (!XRE_IsParentProcess()) {
+    aRv.ThrowNotAllowedError(
+        "unregisterWindowActor() may only be called in the parent process");
+    return;
+  }
 
   RefPtr<JSActorService> service = JSActorService::GetSingleton();
   service->UnregisterWindowActor(aName);
@@ -2176,7 +2185,11 @@ void ChromeUtils::RegisterProcessActor(const GlobalObject& aGlobal,
                                        const nsACString& aName,
                                        const ProcessActorOptions& aOptions,
                                        ErrorResult& aRv) {
-  MOZ_ASSERT(XRE_IsParentProcess());
+  if (!XRE_IsParentProcess()) {
+    aRv.ThrowNotAllowedError(
+        "registerProcessActor() may only be called in the parent process");
+    return;
+  }
 
   RefPtr<JSActorService> service = JSActorService::GetSingleton();
   service->RegisterProcessActor(aName, aOptions, aRv);
@@ -2184,8 +2197,13 @@ void ChromeUtils::RegisterProcessActor(const GlobalObject& aGlobal,
 
 /* static */
 void ChromeUtils::UnregisterProcessActor(const GlobalObject& aGlobal,
-                                         const nsACString& aName) {
-  MOZ_ASSERT(XRE_IsParentProcess());
+                                         const nsACString& aName,
+                                         ErrorResult& aRv) {
+  if (!XRE_IsParentProcess()) {
+    aRv.ThrowNotAllowedError(
+        "unregisterProcessActor() may only be called in the parent process");
+    return;
+  }
 
   RefPtr<JSActorService> service = JSActorService::GetSingleton();
   service->UnregisterProcessActor(aName);

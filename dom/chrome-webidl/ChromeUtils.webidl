@@ -664,7 +664,7 @@ partial namespace ChromeUtils {
   [ChromeOnly, Throws]
   undefined registerWindowActor(UTF8String aName, optional WindowActorOptions aOptions = {});
 
-  [ChromeOnly]
+  [ChromeOnly, Throws]
   undefined unregisterWindowActor(UTF8String aName);
 
   /**
@@ -676,7 +676,7 @@ partial namespace ChromeUtils {
   [ChromeOnly, Throws]
   undefined registerProcessActor(UTF8String aName, optional ProcessActorOptions aOptions = {});
 
-  [ChromeOnly]
+  [ChromeOnly, Throws]
   undefined unregisterProcessActor(UTF8String aName);
 
   /**

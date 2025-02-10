@@ -282,7 +282,7 @@ class ChromeUtils {
                                   ErrorResult& aRv);
 
   static void UnregisterWindowActor(const GlobalObject& aGlobal,
-                                    const nsACString& aName);
+                                    const nsACString& aName, ErrorResult& aRv);
 
   static void RegisterProcessActor(const GlobalObject& aGlobal,
                                    const nsACString& aName,
@@ -290,7 +290,7 @@ class ChromeUtils {
                                    ErrorResult& aRv);
 
   static void UnregisterProcessActor(const GlobalObject& aGlobal,
-                                     const nsACString& aName);
+                                     const nsACString& aName, ErrorResult& aRv);
 
   static already_AddRefed<Promise> EnsureHeadlessContentProcess(
       const GlobalObject& aGlobal, const nsACString& aRemoteType,
