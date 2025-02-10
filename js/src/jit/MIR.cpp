@@ -122,11 +122,7 @@ static const char* OpcodeName(MDefinition::Opcode op) {
 }
 
 void MDefinition::PrintOpcodeName(GenericPrinter& out, Opcode op) {
-  const char* name = OpcodeName(op);
-  size_t len = strlen(name);
-  for (size_t i = 0; i < len; i++) {
-    out.printf("%c", unicode::ToLowerCase(name[i]));
-  }
+  out.printf("%s", OpcodeName(op));
 }
 
 uint32_t js::jit::GetMBasicBlockId(const MBasicBlock* block) {
@@ -383,7 +379,7 @@ const char* MDefinition::opName() const { return OpcodeName(op()); }
 
 void MDefinition::printName(GenericPrinter& out) const {
   PrintOpcodeName(out, op());
-  out.printf("%u", id());
+  out.printf("#%u", id());
 }
 #endif
 
@@ -806,11 +802,15 @@ AliasSet MNewTypedArrayDynamicLength::getAliasSet() const {
 #ifdef JS_JITSPEW
 void MDefinition::printOpcode(GenericPrinter& out) const {
   PrintOpcodeName(out, op());
+  if (numOperands() > 0) {
+    out.printf(" <- ");
+  }
   for (size_t j = 0, e = numOperands(); j < e; j++) {
-    out.printf(" ");
+    if (j > 0) {
+      out.printf(", ");
+    }
     if (getUseFor(j)->hasProducer()) {
       getOperand(j)->printName(out);
-      out.printf(":%s", StringFromMIRType(getOperand(j)->type()));
     } else {
       out.printf("(null)");
     }
@@ -1459,11 +1459,17 @@ bool MConstant::valueToBoolean(bool* res) const {
 #ifdef JS_JITSPEW
 void MControlInstruction::printOpcode(GenericPrinter& out) const {
   MDefinition::printOpcode(out);
+  if (numSuccessors() > 0) {
+    out.printf(" -> ");
+  }
   for (size_t j = 0; j < numSuccessors(); j++) {
+    if (j > 0) {
+      out.printf(", ");
+    }
     if (getSuccessor(j)) {
-      out.printf(" block%u", getSuccessor(j)->id());
+      out.printf("block %u", getSuccessor(j)->id());
     } else {
-      out.printf(" (null-to-be-patched)");
+      out.printf("(null-to-be-patched)");
     }
   }
 }

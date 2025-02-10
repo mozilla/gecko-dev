@@ -106,16 +106,19 @@ void JSONSpewer::spewMDef(MDefinition* def) {
     isTruncated = static_cast<MBinaryArithInstruction*>(def)->isTruncated();
   }
 
+  beginStringProperty("type");
   if (def->type() != MIRType::None && def->range()) {
-    beginStringProperty("type");
     def->range()->dump(out_);
-    out_.printf(" : %s%s", StringFromMIRType(def->type()),
-                (isTruncated ? " (t)" : ""));
-    endStringProperty();
-  } else {
-    formatProperty("type", "%s%s", StringFromMIRType(def->type()),
-                   (isTruncated ? " (t)" : ""));
+    out_.printf(": ");
   }
+  if (def->wasmRefType().isSome()) {
+    out_.printf("%s: ", wasm::ToString(def->wasmRefType(), wasmTypes_).get());
+  }
+  out_.printf("%s", StringFromMIRType(def->type()));
+  if (isTruncated) {
+    out_.printf(" (t)");
+  }
+  endStringProperty();
 
   if (def->isInstruction()) {
     if (MResumePoint* rp = def->toInstruction()->resumePoint()) {
