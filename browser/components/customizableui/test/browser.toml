@@ -272,10 +272,6 @@ https_first_disabled = true
 ["browser_history_after_appMenu.js"]
 
 ["browser_history_recently_closed.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && swgl", # Bug 1834559
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1834559
-]
 
 ["browser_history_recently_closed_middleclick.js"]
 https_first_disabled = true
