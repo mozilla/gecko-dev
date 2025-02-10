@@ -55,7 +55,7 @@ private const val MAPS = "maps."
  * have registered to open.
  * @param launchFromInterceptor If {true} then the interceptor will prompt and launch the link in
  * third-party apps if available.  Do not use this in conjunction with [AppLinksFeature]
- * @param showCheckbox if {true} then the checkbox will be visible on [SimpleRedirectDialogFragment]
+ * @param showCheckbox if {true} then the checkbox will be visible on normal tabs within [SimpleRedirectDialogFragment]
  * @param store [BrowserStore] containing the information about the currently open tabs.
  * @param shouldPrompt If {true} then we should prompt the user before redirect.
  * @param failedToLaunchAction Action to perform when failing to launch in third party app.
@@ -314,7 +314,7 @@ class AppLinksInterceptor(
         return SimpleRedirectDialogFragment.newInstance(
             dialogTitleText = dialogTitle,
             dialogMessageString = dialogMessage,
-            showCheckbox = showCheckbox,
+            showCheckbox = if (isPrivate) false else showCheckbox,
             maxSuccessiveDialogMillisLimit = MAX_SUCCESSIVE_DIALOG_MILLIS_LIMIT,
         )
     }
