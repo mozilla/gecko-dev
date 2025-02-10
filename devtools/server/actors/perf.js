@@ -84,9 +84,9 @@ exports.PerfActor = class PerfActor extends Actor {
 
   stopProfilerAndDiscardProfile() {
     if (!IS_SUPPORTED_PLATFORM) {
-      return;
+      return null;
     }
-    Services.profiler.StopProfiler();
+    return Services.profiler.StopProfiler();
   }
 
   /**
