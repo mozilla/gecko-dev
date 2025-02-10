@@ -12,8 +12,12 @@ import org.jetbrains.kotlin.psi.psiUtil.startsWithComment
 import org.jetbrains.uast.UComment
 import org.jetbrains.uast.UFile
 
+/**
+ * A helper class for the [LicenseDetector].
+ */
 class LicenseCommentChecker(private val context: JavaContext) : UElementHandler() {
 
+    @Suppress("UndocumentedPublicClass")
     companion object {
         val ValidLicenseForKotlinFiles = """
             |/* This Source Code Form is subject to the terms of the Mozilla Public
