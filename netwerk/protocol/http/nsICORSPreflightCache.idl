@@ -1,0 +1,30 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+#include "nsIURI.idl"
+#include "nsIPrincipal.idl"
+#include "nsICORSPreflightCacheEntry.idl"
+
+/**
+ * nsICORSPreflightCache
+ *
+ * Provides methods for iterating across the preflight cache entries
+ * for access and modification
+ *
+ */
+[builtinclass, scriptable, uuid(89781b3e-5cd5-4b63-a549-8d9ec3013505)]
+interface nsICORSPreflightCache: nsISupports
+{
+  /**
+   * Retrieves all cache entries that match the specified parameters.
+   */
+  Array<nsICORSPreflightCacheEntry> getEntries(in nsIPrincipal principal);
+
+  /**
+   * Clears a specified cache entry from the preflight cache.
+   */
+  void clearEntry(in nsICORSPreflightCacheEntry entry);
+};

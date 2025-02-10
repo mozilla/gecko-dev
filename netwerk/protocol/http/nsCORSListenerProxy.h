@@ -15,6 +15,7 @@
 #include "nsTArray.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIChannelEventSink.h"
+#include "nsICORSPreflightCache.h"
 #include "nsIThreadRetargetableStreamListener.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Atomics.h"
@@ -55,6 +56,8 @@ class nsCORSListenerProxy final : public nsIInterfaceRequestor,
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSICHANNELEVENTSINK
   NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
+
+  static already_AddRefed<nsICORSPreflightCache> GetCORSPreflightSingleton();
 
   static void Shutdown();
   static void ClearCache();
