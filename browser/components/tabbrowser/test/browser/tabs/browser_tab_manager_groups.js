@@ -275,6 +275,7 @@ add_task(async function test_groupsViewShowMore() {
     !allTabsMenu.querySelector("#allTabsMenu-groupsViewShowMore"),
     "Show more button should not be shown"
   );
+  await closeTabsMenu();
 
   groups.push(
     await createTestGroup({
@@ -282,7 +283,8 @@ add_task(async function test_groupsViewShowMore() {
       label: "Test Group " + 6,
     })
   );
-  await closeTabsMenu();
+  groups[0].select();
+  ok(groups[0].tabs[0].selected, "the first group's tab is selected");
   allTabsMenu = await openTabsMenu();
   Assert.equal(
     allTabsMenu.querySelectorAll("#allTabsMenu-groupsView .all-tabs-group-item")
@@ -297,9 +299,10 @@ add_task(async function test_groupsViewShowMore() {
   let subViewShown = BrowserTestUtils.waitForEvent(subView, "ViewShown");
   showMore.click();
   await subViewShown;
+  let subViewItems = subView.querySelectorAll(".all-tabs-group-item");
 
   Assert.equal(
-    subView.querySelectorAll(".all-tabs-group-item").length,
+    subViewItems.length,
     6,
     "6 groups should be shown in groups sub view"
   );
@@ -307,7 +310,11 @@ add_task(async function test_groupsViewShowMore() {
     !subView.querySelector("#allTabsMenu-groupsViewShowMore"),
     "Show more button should not be shown in sub view"
   );
-  await closeTabsMenu();
+  await EventUtils.synthesizeMouseAtCenter(subViewItems[1], {}, window);
+  ok(
+    groups[1].tabs[0].selected,
+    "group 1's tab is selected after clicking second item in groups sub view"
+  );
 
   while (groups.length) {
     await removeTabGroup(groups.pop());

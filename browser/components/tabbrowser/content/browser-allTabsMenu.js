@@ -71,7 +71,7 @@ var gTabsPanel = {
       containerNode: this.groupsView,
     });
     this.showAllGroupsPanel = new GroupsPanel({
-      view: this.allTabsView,
+      view: this.groupsSubView,
       containerNode: this.groupsSubView,
       showAll: true,
     });
