@@ -187,8 +187,6 @@ fail-if = ["a11y_checks"] # Bug 1849028
 
 ["browser_jsterm_editor_reverse_search_keyboard_navigation.js"]
 
-["browser_jsterm_editor_special_characters.js"]
-
 ["browser_jsterm_editor_toggle_keyboard_shortcut.js"]
 
 ["browser_jsterm_editor_toolbar.js"]

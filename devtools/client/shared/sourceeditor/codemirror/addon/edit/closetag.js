@@ -1,5 +1,5 @@
 // CodeMirror, copyright (c) by Marijn Haverbeke and others
-// Distributed under an MIT license: https://codemirror.net/5/LICENSE
+// Distributed under an MIT license: https://codemirror.net/LICENSE
 
 /**
  * Tag-closer extension for CodeMirror.
@@ -40,9 +40,9 @@
       cm.removeKeyMap("autoCloseTags");
     if (!val) return;
     var map = {name: "autoCloseTags"};
-    if (typeof val != "object" || val.whenClosing !== false)
+    if (typeof val != "object" || val.whenClosing)
       map["'/'"] = function(cm) { return autoCloseSlash(cm); };
-    if (typeof val != "object" || val.whenOpening !== false)
+    if (typeof val != "object" || val.whenOpening)
       map["'>'"] = function(cm) { return autoCloseGT(cm); };
     cm.addKeyMap(map);
   });
@@ -74,7 +74,7 @@
       if (!tagName ||
           tok.type == "string" && (tok.end != pos.ch || !/[\"\']/.test(tok.string.charAt(tok.string.length - 1)) || tok.string.length == 1) ||
           tok.type == "tag" && tagInfo.close ||
-          tok.string.indexOf("/") == (pos.ch - tok.start - 1) || // match something like <someTagName />
+          tok.string.indexOf("/") == (tok.string.length - 1) || // match something like <someTagName />
           dontCloseTags && indexOf(dontCloseTags, lowerTagName) > -1 ||
           closingTagExists(cm, inner.mode.xmlCurrentContext && inner.mode.xmlCurrentContext(state) || [], tagName, pos, true))
         return CodeMirror.Pass;
@@ -128,10 +128,9 @@
         replacement = head + "style";
       } else {
         var context = inner.mode.xmlCurrentContext && inner.mode.xmlCurrentContext(state)
-        var top = context.length ? context[context.length - 1] : ""
-        if (!context || (context.length && closingTagExists(cm, context, top, pos)))
+        if (!context || (context.length && closingTagExists(cm, context, context[context.length - 1], pos)))
           return CodeMirror.Pass;
-        replacement = head + top
+        replacement = head + context[context.length - 1]
       }
       if (cm.getLine(pos.line).charAt(tok.end) != ">") replacement += ">";
       replacements[i] = replacement;
