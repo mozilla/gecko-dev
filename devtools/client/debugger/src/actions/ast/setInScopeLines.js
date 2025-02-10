@@ -9,6 +9,7 @@ import {
 } from "../../selectors/index";
 
 import { getSourceLineCount } from "../../utils/source";
+import { features } from "../../utils/prefs";
 
 import { isFulfilled } from "../../utils/async-value";
 
@@ -59,8 +60,13 @@ async function getInScopeLines(location, sourceTextContent, { parserWorker }) {
   // out of scope lines.
   return sourceLines.filter(i => i != undefined);
 }
-
-export function setInScopeLines() {
+/**
+ * Get and store the in scope lines in the reducer
+ * @param {Object} editor - The editor provides an API to retrieve the in scope location
+ *                          details based on lezer in CM6.
+ * @returns
+ */
+export function setInScopeLines(editor) {
   return async thunkArgs => {
     const { getState, dispatch } = thunkArgs;
     const visibleFrame = getVisibleSelectedFrame(getState());
@@ -78,12 +84,16 @@ export function setInScopeLines() {
     if (
       hasInScopeLines(getState(), location) ||
       !sourceTextContent ||
-      !isFulfilled(sourceTextContent)
+      !isFulfilled(sourceTextContent) ||
+      !editor
     ) {
       return;
     }
 
-    const lines = await getInScopeLines(location, sourceTextContent, thunkArgs);
+    const lines =
+      features.codemirrorNext && editor
+        ? await editor.getInScopeLines(location)
+        : await getInScopeLines(location, sourceTextContent, thunkArgs);
 
     dispatch({
       type: "IN_SCOPE_LINES",
