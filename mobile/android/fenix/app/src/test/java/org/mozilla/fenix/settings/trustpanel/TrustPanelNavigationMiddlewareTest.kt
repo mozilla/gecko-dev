@@ -16,6 +16,7 @@ import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
 import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
+import org.mozilla.fenix.settings.trustpanel.ui.CONNECTION_SECURITY_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
 
 class TrustPanelNavigationMiddlewareTest {
@@ -41,6 +42,16 @@ class TrustPanelNavigationMiddlewareTest {
 
         verify {
             navHostController.navigate(route = TRACKERS_PANEL_ROUTE)
+        }
+    }
+
+    @Test
+    fun `WHEN navigate to connection security panel action is dispatched THEN navigate to connection security panel route`() = runTest {
+        val store = createStore()
+        store.dispatch(TrustPanelAction.Navigate.ConnectionSecurityPanel).join()
+
+        verify {
+            navHostController.navigate(route = CONNECTION_SECURITY_PANEL_ROUTE)
         }
     }
 

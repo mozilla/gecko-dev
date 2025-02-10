@@ -66,5 +66,10 @@ sealed class TrustPanelAction : Action {
          * [Navigate] action dispatched when navigating to the trackers panel.
          */
         data object TrackersPanel : Navigate()
+
+        /**
+         * [Navigate] action dispatched when navigating to the connection security panel.
+         */
+        data object ConnectionSecurityPanel : Navigate()
     }
 }

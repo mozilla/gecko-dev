@@ -43,7 +43,9 @@ import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
 import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
+import org.mozilla.fenix.settings.trustpanel.ui.CONNECTION_SECURITY_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.ClearSiteDataDialog
+import org.mozilla.fenix.settings.trustpanel.ui.ConnectionSecurityPanel
 import org.mozilla.fenix.settings.trustpanel.ui.PROTECTION_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.ProtectionPanel
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
@@ -141,6 +143,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     val bucketedTrackers by store.observeAsState(initialValue = TrackerBuckets()) { state ->
                         state.bucketedTrackers
                     }
+                    val sessionState by store.observeAsState(initialValue = null) { state ->
+                        state.sessionState
+                    }
 
                     observeTrackersChange(components.core.store) {
                         trackingProtectionUseCases.fetchTrackingLogs(
@@ -162,6 +167,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                             ProtectionPanel(
                                 url = args.url,
                                 title = args.title,
+                                icon = sessionState?.content?.icon,
                                 isSecured = args.isSecured,
                                 isTrackingProtectionEnabled = isTrackingProtectionEnabled,
                                 numberOfTrackersBlocked = numberOfTrackersBlocked,
@@ -174,6 +180,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 onClearSiteDataMenuClick = {
                                     store.dispatch(TrustPanelAction.RequestClearSiteDataDialog)
                                 },
+                                onConnectionSecurityClick = {
+                                    store.dispatch(TrustPanelAction.Navigate.ConnectionSecurityPanel)
+                                },
                             )
                         }
 
@@ -182,6 +191,17 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 title = args.title,
                                 numberOfTrackersBlocked = numberOfTrackersBlocked,
                                 bucketedTrackers = bucketedTrackers,
+                                onBackButtonClick = {
+                                    store.dispatch(TrustPanelAction.Navigate.Back)
+                                },
+                            )
+                        }
+
+                        composable(route = CONNECTION_SECURITY_PANEL_ROUTE) {
+                            ConnectionSecurityPanel(
+                                title = args.title,
+                                isSecured = args.isSecured,
+                                certificateName = args.certificateName,
                                 onBackButtonClick = {
                                     store.dispatch(TrustPanelAction.Navigate.Back)
                                 },

@@ -2850,6 +2850,10 @@
     <string name="download_language_file_dialog_negative_button_text">Cancel</string>
 
     <!-- Unified Trust Panel -->
+    <!-- Text for the protection panel header when the site is secure. -->
+    <string name="protection_panel_header_secure">Secure</string>
+    <!-- Text for the protection panel header when the site is not secure. -->
+    <string name="protection_panel_header_not_secure">Not secure</string>
     <!-- Title text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_title">Be careful on this site</string>
     <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -2891,6 +2895,13 @@
     <string name="clear_site_data_dialog_negative_button_text">Cancel</string>
     <!-- Snackbar title shown when the site data has been cleared. -->
     <string name="clear_site_data_snackbar">Cookies and site data removed</string>
+    <!-- Text for the connection security panel when the site is secure. -->
+    <string name="connection_security_panel_secure">Secure connection</string>
+    <!-- Text for the connection security panel when the site is not secure. -->
+    <string name="connection_security_panel_not_secure">Connection not secure</string>
+    <!-- Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket -->
+    <string name="connection_security_panel_verified_by">Verified by %s</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->

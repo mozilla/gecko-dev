@@ -4,23 +4,19 @@
 
 package org.mozilla.fenix.settings.trustpanel.ui
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -45,19 +41,23 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
 internal fun ProtectionPanel(
     url: String,
     title: String,
+    icon: Bitmap?,
     isSecured: Boolean,
     isTrackingProtectionEnabled: Boolean,
     numberOfTrackersBlocked: Int,
     onTrackerBlockedMenuClick: () -> Unit,
     onTrackingProtectionToggleClick: () -> Unit,
     onClearSiteDataMenuClick: () -> Unit,
+    onConnectionSecurityClick: () -> Unit,
 ) {
     MenuScaffold(
         header = {
             ProtectionPanelHeader(
                 url = url,
                 title = title,
+                icon = icon,
                 isSecured = isSecured,
+                onConnectionSecurityClick = onConnectionSecurityClick,
             )
         },
     ) {
@@ -104,73 +104,6 @@ internal fun ProtectionPanel(
                 label = stringResource(id = R.string.clear_site_data),
                 onClick = onClearSiteDataMenuClick,
             )
-        }
-    }
-}
-
-@Composable
-private fun ProtectionPanelHeader(
-    url: String,
-    title: String,
-    isSecured: Boolean,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 12.dp, end = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .weight(1f),
-        ) {
-            Text(
-                text = title,
-                color = FirefoxTheme.colors.textSecondary,
-                maxLines = 1,
-                style = FirefoxTheme.typography.headline7,
-            )
-
-            Text(
-                text = url,
-                color = FirefoxTheme.colors.textSecondary,
-                maxLines = 1,
-                style = FirefoxTheme.typography.caption,
-            )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Divider(modifier = Modifier.size(width = 2.dp, height = 32.dp))
-
-        Spacer(modifier = Modifier.width(4.dp))
-
-        IconButton(
-            onClick = {},
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.mozac_ic_lock_20),
-                    contentDescription = null,
-                    tint = FirefoxTheme.colors.iconSecondary,
-                )
-
-                Text(
-                    text = if (isSecured) { "Secured" } else { "" },
-                    color = FirefoxTheme.colors.textSecondary,
-                    maxLines = 1,
-                    style = FirefoxTheme.typography.caption,
-                )
-
-                Icon(
-                    painter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
-                    contentDescription = null,
-                    tint = FirefoxTheme.colors.iconSecondary,
-                )
-            }
         }
     }
 }
@@ -256,12 +189,14 @@ private fun ProtectionPanelPreview() {
             ProtectionPanel(
                 url = "https://www.mozilla.org",
                 title = "Mozilla",
+                icon = null,
                 isSecured = true,
                 isTrackingProtectionEnabled = true,
                 numberOfTrackersBlocked = 5,
                 onTrackerBlockedMenuClick = {},
                 onTrackingProtectionToggleClick = {},
                 onClearSiteDataMenuClick = {},
+                onConnectionSecurityClick = {},
             )
         }
     }
