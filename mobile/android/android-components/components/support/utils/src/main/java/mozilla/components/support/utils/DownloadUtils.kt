@@ -159,6 +159,12 @@ object DownloadUtils {
     private const val MAX_FILE_NAME_COPY_VERSION_LENGTH = 250
 
     /**
+     * The minimum allowable length for a truncated file name.
+     * This prevents cases where extremely long extensions or deep directory paths result in negative-length names.
+     */
+    private const val MIN_FILE_NAME_LENGTH = 5
+
+    /**
      * The HTTP response code for a successful request.
      */
     const val RESPONSE_CODE_SUCCESS = 200
@@ -252,12 +258,9 @@ object DownloadUtils {
      * @return A truncated base file name that fits within the maximum allowable length.
      */
     fun truncateFileName(baseFileName: String, fileExtension: String, directoryPath: String): String {
-        val maxBaseFileNameLength = MAX_FILE_NAME_COPY_VERSION_LENGTH - directoryPath.length - fileExtension.length
-        return if (baseFileName.length > maxBaseFileNameLength) {
-            baseFileName.take(maxBaseFileNameLength)
-        } else {
-            baseFileName
-        }
+        val maxBaseFileNameLength = (MAX_FILE_NAME_COPY_VERSION_LENGTH - directoryPath.length - fileExtension.length)
+            .coerceAtLeast(MIN_FILE_NAME_LENGTH)
+        return baseFileName.take(maxBaseFileNameLength)
     }
 
     /**

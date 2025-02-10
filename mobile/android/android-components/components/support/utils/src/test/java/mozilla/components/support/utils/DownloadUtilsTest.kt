@@ -413,6 +413,18 @@ class DownloadUtilsTest {
             "a".repeat(212),
             DownloadUtils.truncateFileName("a".repeat(300), ".txt", "/storage/emulated/0/MyCustomFolder"),
         )
+        assertEquals(
+            "foo",
+            DownloadUtils.truncateFileName("foo", "." + "a".repeat(300), directoryPath),
+        )
+        assertEquals(
+            "foo",
+            DownloadUtils.truncateFileName("foo", ".txt", "/storage/" + "a".repeat(300)),
+        )
+        assertEquals(
+            "a".repeat(5),
+            DownloadUtils.truncateFileName("a".repeat(300), ".txt", "/storage/" + "a".repeat(300)),
+        )
     }
 
     companion object {
