@@ -5,7 +5,7 @@
 import {
   actionCreators as ac,
   actionTypes as at,
-} from "resource://activity-stream/common/Actions.mjs";
+} from "resource://newtab/common/Actions.mjs";
 import { TippyTopProvider } from "resource:///modules/topsites/TippyTopProvider.sys.mjs";
 import { insertPinned } from "resource:///modules/topsites/TopSites.sys.mjs";
 import { TOP_SITES_MAX_SITES_PER_ROW } from "resource:///modules/topsites/constants.mjs";
@@ -28,11 +28,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
-  PersistentCache: "resource://activity-stream/lib/PersistentCache.sys.mjs",
+  PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   Sampling: "resource://gre/modules/components-utils/Sampling.sys.mjs",
-  Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
+  Screenshots: "resource://newtab/lib/Screenshots.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {

@@ -550,7 +550,7 @@ add_task(async function checkAllTheCSS() {
     if (imageHost == "browser") {
       for (let ref of references) {
         let refHost = ref.split("/")[2];
-        if (!["activity-stream", "browser"].includes(refHost)) {
+        if (!["newtab", "browser"].includes(refHost)) {
           ok(
             false,
             "browser file " + image + " referenced outside browser in " + ref

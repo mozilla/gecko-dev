@@ -4,11 +4,11 @@
 "use strict";
 
 const { AdsFeed } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/AdsFeed.sys.mjs"
+  "resource://newtab/lib/AdsFeed.sys.mjs"
 );
 
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://activity-stream/common/Actions.mjs"
+  "resource://newtab/common/Actions.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {

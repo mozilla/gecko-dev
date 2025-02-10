@@ -7,7 +7,7 @@ const { TopSites, insertPinned, DEFAULT_TOP_SITES } =
   ChromeUtils.importESModule("resource:///modules/topsites/TopSites.sys.mjs");
 
 const { actionTypes: at } = ChromeUtils.importESModule(
-  "resource://activity-stream/common/Actions.mjs"
+  "resource://newtab/common/Actions.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {
@@ -17,7 +17,6 @@ ChromeUtils.defineESModuleGetters(this, {
   sinon: "resource://testing-common/Sinon.sys.mjs",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-  Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
   SearchService: "resource://gre/modules/SearchService.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
   TOP_SITES_DEFAULT_ROWS: "resource:///modules/topsites/constants.mjs",
@@ -33,7 +32,6 @@ const FAKE_LINKS = new Array(2 * TOP_SITES_MAX_SITES_PER_ROW)
     frecency: FAKE_FRECENCY,
     url: `http://www.site${i}.com`,
   }));
-const FAKE_SCREENSHOT = "data123";
 
 function FakeTippyTopProvider() {}
 FakeTippyTopProvider.prototype = {
@@ -130,10 +128,6 @@ add_setup(async () => {
         })
       );
     });
-
-  sandbox.stub(Screenshots, "getScreenshotForURL").resolves(FAKE_SCREENSHOT);
-  sandbox.spy(Screenshots, "maybeCacheScreenshot");
-  sandbox.stub(Screenshots, "_shouldGetScreenshots").returns(true);
 
   registerCleanupFunction(() => {
     sandbox.restore();

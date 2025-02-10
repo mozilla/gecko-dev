@@ -33,7 +33,7 @@ export class PersonalityProvider {
     }
 
     this._personalityProviderWorker = new lazy.BasePromiseWorker(
-      "resource://activity-stream/lib/PersonalityProvider/PersonalityProvider.worker.mjs",
+      "resource://newtab/lib/PersonalityProvider/PersonalityProvider.worker.mjs",
       { type: "module" }
     );
 

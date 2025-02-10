@@ -28,7 +28,7 @@
 
     &::before {
       content: '';
-      background-image: url('chrome://activity-stream/content/data/content/assets/pocket-swoosh.svg');
+      background-image: url('chrome://newtab/content/data/content/assets/pocket-swoosh.svg');
       background-repeat: no-repeat;
       background-position: center;
       transform: rotate(var(--placeholderBackgroundRotation));

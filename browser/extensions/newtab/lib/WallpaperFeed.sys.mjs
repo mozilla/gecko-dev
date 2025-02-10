@@ -11,7 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 import {
   actionTypes as at,
   actionCreators as ac,
-} from "resource://activity-stream/common/Actions.mjs";
+} from "resource://newtab/common/Actions.mjs";
 
 const PREF_WALLPAPERS_ENABLED =
   "browser.newtabpage.activity-stream.newtabWallpapers.enabled";

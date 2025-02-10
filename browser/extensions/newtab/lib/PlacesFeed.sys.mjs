@@ -6,7 +6,7 @@ import {
   actionCreators as ac,
   actionTypes as at,
   actionUtils as au,
-} from "resource://activity-stream/common/Actions.mjs";
+} from "resource://newtab/common/Actions.mjs";
 
 // We use importESModule here instead of static import so that
 // the Karma test environment won't choke on this module. This

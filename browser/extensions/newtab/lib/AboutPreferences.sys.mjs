@@ -5,7 +5,7 @@
 import {
   actionTypes as at,
   actionCreators as ac,
-} from "resource://activity-stream/common/Actions.mjs";
+} from "resource://newtab/common/Actions.mjs";
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 export const PREFERENCES_LOADED_EVENT = "home-pane-loaded";
@@ -213,7 +213,7 @@ export class AboutPreferences {
       // Use full icon spec for certain protocols or fall back to packaged icon
       const iconUrl = !icon.search(/^(chrome|moz-extension|resource):/)
         ? icon
-        : `chrome://activity-stream/content/data/content/assets/glyph-${icon}-16.svg`;
+        : `chrome://newtab/content/data/content/assets/glyph-${icon}-16.svg`;
 
       // Add the main preference for turning on/off a section
       const sectionVbox = createAppend("vbox", contentsGroup);

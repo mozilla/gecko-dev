@@ -304,10 +304,7 @@ module.exports = function (config) {
         // statements in .mjs files to paths on the filesystem.
         new ResourceUriPlugin({
           resourcePathRegExes: [
-            [
-              new RegExp("^resource://activity-stream/"),
-              path.join(__dirname, "./"),
-            ],
+            [new RegExp("^resource://newtab/"), path.join(__dirname, "./")],
             [
               new RegExp("^resource:///modules/asrouter/"),
               path.join(__dirname, "../../components/asrouter/modules/"),

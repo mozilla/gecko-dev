@@ -22,10 +22,7 @@ module.exports = (env = {}) => ({
     // statements in .mjs files to paths on the filesystem.
     new ResourceUriPlugin({
       resourcePathRegExes: [
-        [
-          new RegExp("^resource://activity-stream/"),
-          path.join(__dirname, "./"),
-        ],
+        [new RegExp("^resource://newtab/"), path.join(__dirname, "./")],
         [
           new RegExp("^resource:///modules/topsites/"),
           path.join(__dirname, "../../components/topsites/"),

@@ -4,7 +4,7 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
 const { TopSitesFeed, ContileIntegration } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/TopSitesFeed.sys.mjs"
+  "resource://newtab/lib/TopSitesFeed.sys.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {
