@@ -1869,8 +1869,10 @@ def _run_android(
             # The app is waiting for jdb to attach and will not continue running
             # until we do so.
             def _jdb_ping(local_jdb_port):
+                java_bin_path = os.path.dirname(command_context.substs["JAVA"])
+                jdb_path = os.path.join(java_bin_path, "jdb")
                 jdb_process = subprocess.Popen(
-                    ["jdb", "-attach", "localhost:%d" % local_jdb_port],
+                    [jdb_path, "-attach", "localhost:%d" % local_jdb_port],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
