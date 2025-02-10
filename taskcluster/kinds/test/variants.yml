@@ -218,7 +218,7 @@ cm6:
 socketprocess:
     description: "{description} with socket process enabled"
     component: "Core::Networking"
-    expiration: "2025-03-01"
+    expiration: "2025-09-01"
     suffix: "spi"
     mozinfo: "socketprocess_e10s"
     when:
@@ -232,7 +232,7 @@ socketprocess:
 socketprocess_networking:
     description: "{description} with networking on socket process enabled"
     component: "Core::Networking"
-    expiration: "2025-03-01"
+    expiration: "2025-09-01"
     suffix: "spi-nw"
     mozinfo: "socketprocess_networking"
     when:
@@ -458,7 +458,7 @@ msix:
 http3:
     description: "{description} with http3 server"
     component: "Core::Networking"
-    expiration: "2025-03-01"
+    expiration: "2025-09-01"
     suffix: "http3"
     mozinfo: "http3"
     when:
@@ -477,7 +477,7 @@ http3:
 http2:
     description: "{description} with http2 server"
     component: "Core::Networking"
-    expiration: "2025-03-01"
+    expiration: "2025-09-01"
     suffix: "http2"
     mozinfo: "http2"
     when:
