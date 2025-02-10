@@ -705,31 +705,6 @@ class nsContentUtils {
       const mozilla::RangeBoundaryBase<PT2, RT2>& aBoundary2);
 
   /**
-   *  Utility routine to compare two "points", where a point is a
-   *  node/offset pair
-   *  Returns -1 if point1 < point2, 1, if point1 > point2,
-   *  0 if error or if point1 == point2.
-   *  NOTE! If the two nodes aren't in the same connected subtree,
-   *  the result is 1, and the optional aDisconnected parameter
-   *  is set to true.
-   *
-   *  Pass a cache object as aIndexCache if you expect to repeatedly
-   *  call this function.
-   * ComparePointsCache will store the last X (currently 100) node/index
-   * combinations in a stack-allocated array and does a lookup there
-   * before going into the expensive ComputeIndexOf() method.
-   */
-  static int32_t ComparePoints_Deprecated(
-      const nsINode* aParent1, uint32_t aOffset1, const nsINode* aParent2,
-      uint32_t aOffset2, bool* aDisconnected = nullptr,
-      NodeIndexCache* aIndexCache = nullptr);
-  template <typename PT1, typename RT1, typename PT2, typename RT2>
-  static int32_t ComparePoints_Deprecated(
-      const mozilla::RangeBoundaryBase<PT1, RT1>& aBoundary1,
-      const mozilla::RangeBoundaryBase<PT2, RT2>& aBoundary2,
-      bool* aDisconnected = nullptr);
-
-  /**
    * DO NOT USE this method for comparing the points in new code.  this method
    * emulates same result as `ComparePoints` before bug 1741148.
    * When the old `ComparePoints` was called with offset value over `INT32_MAX`
@@ -3609,9 +3584,8 @@ class nsContentUtils {
       NodeIndexCache* aIndexCache = nullptr);
 
   /**
-   * Helper method for ComparePoints_Deprecated().  This includes odd
-   * traditional behavior.  Therefore, do not use this method as a utility
-   * method.
+   * Helper method for ComparePoints().  This includes odd traditional behavior.
+   * Therefore, do not use this method as a utility method.
    */
   static mozilla::Maybe<int32_t> CompareClosestCommonAncestorChildren(
       const nsINode&, const nsINode*, const nsINode*, NodeIndexCache*);

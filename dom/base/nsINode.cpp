@@ -341,14 +341,14 @@ class IsItemInRangeComparator {
   }
 
   int operator()(const AbstractRange* const aRange) const {
-    int32_t cmp = nsContentUtils::ComparePoints_Deprecated(
+    Maybe<int32_t> cmp = nsContentUtils::ComparePoints(
         &mNode, mEndOffset, aRange->GetMayCrossShadowBoundaryStartContainer(),
-        aRange->MayCrossShadowBoundaryStartOffset(), nullptr, mCache);
-    if (cmp == 1) {
-      cmp = nsContentUtils::ComparePoints_Deprecated(
+        aRange->MayCrossShadowBoundaryStartOffset(), mCache);
+    if (cmp.valueOr(1) == 1) {
+      cmp = nsContentUtils::ComparePoints(
           &mNode, mStartOffset, aRange->GetMayCrossShadowBoundaryEndContainer(),
-          aRange->MayCrossShadowBoundaryEndOffset(), nullptr, mCache);
-      if (cmp == -1) {
+          aRange->MayCrossShadowBoundaryEndOffset(), mCache);
+      if (cmp.valueOr(1) == -1) {
         return 0;
       }
       return 1;
@@ -433,16 +433,18 @@ bool nsINode::IsSelected(const uint32_t aStartOffset, const uint32_t aEndOffset,
         // if node end > start of middle+1, result = 1
         if (middle + 1 < high &&
             (middlePlus1 = selection->GetAbstractRangeAt(middle + 1)) &&
-            nsContentUtils::ComparePoints_Deprecated(
-                this, aEndOffset, middlePlus1->GetStartContainer(),
-                middlePlus1->StartOffset(), nullptr, &cache) > 0) {
+            nsContentUtils::ComparePoints(this, aEndOffset,
+                                          middlePlus1->GetStartContainer(),
+                                          middlePlus1->StartOffset(), &cache)
+                    .valueOr(1) > 0) {
           result = 1;
           // if node start < end of middle - 1, result = -1
         } else if (middle >= 1 &&
                    (middleMinus1 = selection->GetAbstractRangeAt(middle - 1)) &&
-                   nsContentUtils::ComparePoints_Deprecated(
+                   nsContentUtils::ComparePoints(
                        this, aStartOffset, middleMinus1->GetEndContainer(),
-                       middleMinus1->EndOffset(), nullptr, &cache) < 0) {
+                       middleMinus1->EndOffset(), &cache)
+                           .valueOr(1) < 0) {
           result = -1;
         } else {
           break;
