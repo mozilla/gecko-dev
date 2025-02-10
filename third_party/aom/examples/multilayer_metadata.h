@@ -34,23 +34,19 @@ struct ColorProperties {
 enum AlphaUse {
   ALPHA_STRAIGHT = 0,
   ALPHA_PREMULTIPLIED = 1,
-  ALPHA_SEGMENTATION = 2,
-  ALPHA_UNSPECIFIED = 3,
+  ALPHA_UNSPECIFIED = 2,
+  // 3 is reserved.
 };
 
 struct AlphaInformation {
-  AlphaUse alpha_use_idc;   // [0, 7]
+  AlphaUse alpha_use_idc;   // [0, 3]
+  bool alpha_simple_flag;   // If true, all fields below are ignored.
   uint8_t alpha_bit_depth;  // [8, 15]
   uint8_t alpha_clip_idc;   // [0, 3]
   bool alpha_incr_flag;
   uint16_t alpha_transparent_value;  // [0, 1<<(alpha_bit_depth+1))
   uint16_t alpha_opaque_value;       // [0, 1<<(alpha_bit_depth+1))
-  // Relevant for ALPHA_STRAIGHT only.
   std::pair<ColorProperties, bool> alpha_color_description;
-  // Relevant for ALPHA_SEGMENTATION only.
-  // Must be either empty or have the same size as the number of values between
-  // alpha_transparent_value and alpha_opaque_value, inclusively.
-  std::vector<uint16_t> label_type_id;
 };
 
 struct DepthRepresentationElement {
@@ -66,10 +62,8 @@ struct DepthInformation {
   std::pair<DepthRepresentationElement, bool> d_min;
   std::pair<DepthRepresentationElement, bool> d_max;
   uint8_t depth_representation_type;  // [0, 15]
-  uint8_t disparity_ref_view_id;      // [0, 3]
-  uint8_t depth_nonlinear_precision;  // [8, 23]
-  // [0, 1<<depth_nonlinear_precision]
-  std::vector<uint32_t> depth_nonlinear_representation_model;
+  // Only relevant if d_min or d_max are present.
+  uint8_t disparity_ref_view_id;  // [0, 3]
 };
 
 enum MultilayerUseCase {
@@ -87,6 +81,7 @@ enum MultilayerUseCase {
   MULTILAYER_USE_CASE_444_GLOBAL_DEPTH = 11,
   MULTILAYER_USE_CASE_444 = 12,
   MULTILAYER_USE_CASE_420_444 = 13,
+  // 14 to 63 are reserved.
 };
 
 enum LayerType {
@@ -97,6 +92,7 @@ enum LayerType {
   MULTILAYER_LAYER_TYPE_TEXTURE_3 = 4,
   MULTILAYER_LAYER_TYPE_ALPHA = 5,
   MULTILAYER_LAYER_TYPE_DEPTH = 6,
+  // 7 to 31 are reserved.
 };
 
 enum MultilayerMetadataScope {
@@ -111,6 +107,7 @@ enum MultilayerViewType {
   VIEW_CENTER = 1,
   VIEW_LEFT = 2,
   VIEW_RIGHT = 3,
+  // 4 to 7 are reserved.
 };
 
 struct LayerMetadata {
@@ -130,8 +127,8 @@ struct LayerMetadata {
 };
 
 struct MultilayerMetadata {
-  MultilayerUseCase use_case;  // [0, 63]
-  std::vector<LayerMetadata> layers;
+  MultilayerUseCase use_case;         // [0, 63]
+  std::vector<LayerMetadata> layers;  // max size 4
 };
 
 // Parses a multilayer metadata file.

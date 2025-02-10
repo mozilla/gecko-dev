@@ -28,16 +28,10 @@ layers:
     luma_plane_only_flag: 1
     layer_metadata_scope: 2 # global
     alpha:
-      alpha_use_idc: 2 # segmentation
+      alpha_use_idc: 1 # premultiplied
       alpha_bit_depth: 8
       alpha_transparent_value: 0
       alpha_opaque_value: 4
-      label_type_id:
-        - 5
-        - 3
-        - 9
-        - 128
-        - 42
 
   - layer_type: 1 # texture
     luma_plane_only_flag: 0
@@ -61,16 +55,10 @@ layers:
   EXPECT_EQ(multilayer.layers[0].layer_type, 5);
   EXPECT_EQ(multilayer.layers[0].luma_plane_only_flag, 1);
   EXPECT_EQ(multilayer.layers[0].layer_metadata_scope, 2);
-  EXPECT_EQ(multilayer.layers[0].global_alpha_info.alpha_use_idc, 2);
+  EXPECT_EQ(multilayer.layers[0].global_alpha_info.alpha_use_idc, 1);
   EXPECT_EQ(multilayer.layers[0].global_alpha_info.alpha_bit_depth, 8);
   EXPECT_EQ(multilayer.layers[0].global_alpha_info.alpha_transparent_value, 0);
   EXPECT_EQ(multilayer.layers[0].global_alpha_info.alpha_opaque_value, 4);
-  ASSERT_EQ(multilayer.layers[0].global_alpha_info.label_type_id.size(), 5);
-  EXPECT_EQ(multilayer.layers[0].global_alpha_info.label_type_id[0], 5);
-  EXPECT_EQ(multilayer.layers[0].global_alpha_info.label_type_id[1], 3);
-  EXPECT_EQ(multilayer.layers[0].global_alpha_info.label_type_id[2], 9);
-  EXPECT_EQ(multilayer.layers[0].global_alpha_info.label_type_id[3], 128);
-  EXPECT_EQ(multilayer.layers[0].global_alpha_info.label_type_id[4], 42);
   EXPECT_EQ(multilayer.layers[1].layer_type, 1);
   EXPECT_EQ(multilayer.layers[1].luma_plane_only_flag, 0);
   EXPECT_EQ(multilayer.layers[1].layer_metadata_scope, 2);
@@ -96,12 +84,7 @@ layers:
     depth:
       z_near: 1.456
       z_far: 9.786
-      depth_representation_type: 3
-      depth_nonlinear_precision: 8
-      depth_nonlinear_representation_model:
-         - 12
-         - 23
-         - 5
+      depth_representation_type: 2
 
   - layer_type: 1 # texture
     luma_plane_only_flag: 0
@@ -133,21 +116,7 @@ layers:
                   multilayer.layers[0].global_depth_info.z_far.first),
               9.786, 0.00001);
   EXPECT_EQ(multilayer.layers[0].global_depth_info.depth_representation_type,
-            3);
-  EXPECT_EQ(multilayer.layers[0].global_depth_info.depth_nonlinear_precision,
-            8);
-  ASSERT_EQ(multilayer.layers[0]
-                .global_depth_info.depth_nonlinear_representation_model.size(),
-            3);
-  EXPECT_EQ(multilayer.layers[0]
-                .global_depth_info.depth_nonlinear_representation_model[0],
-            12);
-  EXPECT_EQ(multilayer.layers[0]
-                .global_depth_info.depth_nonlinear_representation_model[1],
-            23);
-  EXPECT_EQ(multilayer.layers[0]
-                .global_depth_info.depth_nonlinear_representation_model[2],
-            5);
+            2);
   EXPECT_EQ(multilayer.layers[1].layer_type, 1);
   EXPECT_EQ(multilayer.layers[1].luma_plane_only_flag, 0);
   EXPECT_EQ(multilayer.layers[1].layer_metadata_scope, 2);

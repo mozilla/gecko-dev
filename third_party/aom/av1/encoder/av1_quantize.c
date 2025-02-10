@@ -13,6 +13,7 @@
 
 #include "config/aom_dsp_rtcd.h"
 
+#include "aom/aomcx.h"
 #include "aom_dsp/quantize.h"
 #include "aom_mem/aom_mem.h"
 #include "aom_ports/bitops.h"
@@ -873,7 +874,7 @@ void av1_set_quantizer(AV1_COMMON *const cm, int min_qmlevel, int max_qmlevel,
   quant_params->y_dc_delta_q = 0;
 
   if (enable_chroma_deltaq) {
-    if (is_allintra && tuning == AOM_TUNE_SSIMULACRA2) {
+    if (is_allintra && tuning == AOM_TUNE_IQ) {
       int chroma_dc_delta_q = 0;
       int chroma_ac_delta_q = 0;
 
@@ -968,9 +969,9 @@ void av1_set_quantizer(AV1_COMMON *const cm, int min_qmlevel, int max_qmlevel,
   int (*get_chroma_qmlevel)(int, int, int);
 
   if (is_allintra) {
-    if (tuning == AOM_TUNE_SSIMULACRA2) {
-      // Use luma QM formula specifically tailored for tune SSIMULACRA 2
-      get_luma_qmlevel = aom_get_qmlevel_luma_ssimulacra2;
+    if (tuning == AOM_TUNE_IQ) {
+      // Use luma QM formula specifically tailored for tune IQ
+      get_luma_qmlevel = aom_get_qmlevel_luma_iq;
 
       if (cm->seq_params->subsampling_x == 0 &&
           cm->seq_params->subsampling_y == 0) {
@@ -978,7 +979,7 @@ void av1_set_quantizer(AV1_COMMON *const cm, int min_qmlevel, int max_qmlevel,
         // compared to 4:2:0 (2x on each dimension). This means the encoder
         // should use lower chroma QM levels that more closely match the scaling
         // of an equivalent 4:2:0 chroma QM.
-        get_chroma_qmlevel = aom_get_qmlevel_444_chroma_ssimulacra2;
+        get_chroma_qmlevel = aom_get_qmlevel_444_chroma_iq;
       } else {
         // For all other chroma subsampling modes, use the all intra QM formula
         get_chroma_qmlevel = aom_get_qmlevel_allintra;

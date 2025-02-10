@@ -109,7 +109,7 @@ TEST(EncodeAPI, InvalidControlId) {
   EXPECT_EQ(AOM_CODEC_OK, aom_codec_destroy(&enc));
 }
 
-TEST(EncodeAPI, TuneSsimulacra2NotAllIntra) {
+TEST(EncodeAPI, TuneIqNotAllIntra) {
   aom_codec_iface_t *iface = aom_codec_av1_cx();
   aom_codec_enc_cfg_t cfg;
   ASSERT_EQ(aom_codec_enc_config_default(iface, &cfg, AOM_USAGE_REALTIME),
@@ -118,7 +118,7 @@ TEST(EncodeAPI, TuneSsimulacra2NotAllIntra) {
   aom_codec_ctx_t enc;
   ASSERT_EQ(aom_codec_enc_init(&enc, iface, &cfg, 0), AOM_CODEC_OK);
 
-  ASSERT_EQ(aom_codec_control(&enc, AOME_SET_TUNING, AOM_TUNE_SSIMULACRA2),
+  ASSERT_EQ(aom_codec_control(&enc, AOME_SET_TUNING, AOM_TUNE_IQ),
             AOM_CODEC_INCAPABLE);
 
   ASSERT_EQ(aom_codec_destroy(&enc), AOM_CODEC_OK);
@@ -986,7 +986,7 @@ TEST(EncodeAPI, AllIntraAndUsePsnr) {
   ASSERT_EQ(aom_codec_destroy(&enc), AOM_CODEC_OK);
 }
 
-TEST(EncodeAPI, AllIntraAndTuneSsimulacra2) {
+TEST(EncodeAPI, AllIntraAndTuneIq) {
   aom_codec_iface_t *iface = aom_codec_av1_cx();
   aom_codec_enc_cfg_t cfg;
   ASSERT_EQ(aom_codec_enc_config_default(iface, &cfg, AOM_USAGE_ALL_INTRA),
@@ -995,7 +995,7 @@ TEST(EncodeAPI, AllIntraAndTuneSsimulacra2) {
   aom_codec_ctx_t enc;
   ASSERT_EQ(aom_codec_enc_init(&enc, iface, &cfg, 0), AOM_CODEC_OK);
 
-  ASSERT_EQ(aom_codec_control(&enc, AOME_SET_TUNING, AOM_TUNE_SSIMULACRA2),
+  ASSERT_EQ(aom_codec_control(&enc, AOME_SET_TUNING, AOM_TUNE_IQ),
             AOM_CODEC_OK);
 
   aom_image_t *image = CreateGrayImage(AOM_IMG_FMT_I420, cfg.g_w, cfg.g_h);

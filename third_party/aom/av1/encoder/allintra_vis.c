@@ -1105,7 +1105,7 @@ int av1_get_sbq_variance_boost(const AV1_COMP *cpi, const MACROBLOCK *x) {
   // Determine the SB's delta_q boost by computing an (unscaled) delta_q from
   // the base and target q values, then scale that delta_q according to the
   // frame's base qindex.
-  // The scaling coefficients were chosen empirically to maximize SSIMULACRA2
+  // The scaling coefficients were chosen empirically to maximize SSIMULACRA 2
   // scores, 10th percentile scores, and subjective quality. Boosts become
   // smaller (for a given variance) the lower the base qindex.
   int boost = (int)round((base_qindex + 544.0) * (base_qindex - target_qindex) /

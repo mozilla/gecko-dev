@@ -310,6 +310,9 @@ bool parse_multilayer_layer_alpha(std::ifstream &file, int min_indent,
     if (field_name == "alpha_use_idc") {
       RETURN_IF_FALSE(value.IntegerValueInRange(
           /*min=*/0, /*max=*/7, *line_idx, &alpha_info->alpha_use_idc));
+    } else if (field_name == "alpha_simple_flag") {
+      RETURN_IF_FALSE(value.IntegerValueInRange(
+          /*min=*/0, /*max=*/1, *line_idx, &alpha_info->alpha_simple_flag));
     } else if (field_name == "alpha_bit_depth") {
       RETURN_IF_FALSE(value.IntegerValueInRange(
           /*min=*/8, /*max=*/15, *line_idx, &alpha_info->alpha_bit_depth));
@@ -337,10 +340,6 @@ bool parse_multilayer_layer_alpha(std::ifstream &file, int min_indent,
       ColorProperties color;
       RETURN_IF_FALSE(parse_color_properties(file, indent, line_idx, &color));
       alpha_info->alpha_color_description = value_present(color);
-    } else if (field_name == "label_type_id") {
-      RETURN_IF_FALSE(
-          parse_integer_list<uint16_t>(file, /*min_indent=*/indent + 1,
-                                       line_idx, &alpha_info->label_type_id));
     } else {
       fprintf(stderr, "Error: Unknown field '%s' at line %d\n",
               field_name.c_str(), *line_idx);
@@ -365,26 +364,6 @@ bool parse_multilayer_layer_alpha(std::ifstream &file, int min_indent,
   if (alpha_info->alpha_opaque_value > alpha_max) {
     fprintf(stderr, "Error: alpha_opaque_value %d out of range [0, %d]\n",
             alpha_info->alpha_opaque_value, alpha_max);
-    return false;
-  }
-  if ((!alpha_info->label_type_id.empty()) &&
-      (alpha_info->alpha_use_idc != ALPHA_SEGMENTATION)) {
-    fprintf(stderr,
-            "Error: label_type_id can only be set if alpha_use_idc is %d\n",
-            ALPHA_SEGMENTATION);
-    return false;
-  }
-  const int alpha_range = (std::abs(alpha_info->alpha_opaque_value -
-                                    alpha_info->alpha_transparent_value) +
-                           1);
-  if (!alpha_info->label_type_id.empty() &&
-      static_cast<int>(alpha_info->label_type_id.size()) != alpha_range) {
-    fprintf(stderr,
-            "Error: if present, label_type_id size must be "
-            "equal to the range of alpha values between "
-            "alpha_transparent_value and alpha_opaque_value (expected "
-            "%d values, found %d values)\n",
-            alpha_range, static_cast<int>(alpha_info->label_type_id.size()));
     return false;
   }
   if (alpha_info->alpha_color_description.second &&
@@ -440,15 +419,6 @@ bool parse_multilayer_layer_depth(std::ifstream &file, int min_indent,
     } else if (field_name == "disparity_ref_view_id") {
       RETURN_IF_FALSE(value.IntegerValueInRange(
           /*min=*/0, /*max=*/3, *line_idx, &depth_info->disparity_ref_view_id));
-    } else if (field_name == "depth_nonlinear_precision") {
-      RETURN_IF_FALSE(
-          value.IntegerValueInRange(/*min=*/8, /*max=*/23, *line_idx,
-                                    &depth_info->depth_nonlinear_precision));
-    } else if (field_name == "depth_nonlinear_representation_model") {
-      RETURN_IF_FALSE(parse_integer_list<uint32_t>(
-          file,
-          /*min_indent=*/indent + 1, line_idx,
-          &depth_info->depth_nonlinear_representation_model));
     } else {
       fprintf(stderr, "Error: Unknown field '%s' at line %d\n",
               field_name.c_str(), *line_idx);
@@ -456,33 +426,6 @@ bool parse_multilayer_layer_depth(std::ifstream &file, int min_indent,
     }
   }
   if (syntax_error) return false;
-
-  // Validation.
-  if (depth_info->depth_representation_type == 3 &&
-      depth_info->depth_nonlinear_precision == 0) {
-    fprintf(stderr,
-            "Error: depth_nonlinear_precision must be specified (in range [8, "
-            "23]) when "
-            "depth_representation_type is 3\n");
-    return false;
-  }
-  if ((depth_info->depth_representation_type == 3) !=
-      (!depth_info->depth_nonlinear_representation_model.empty())) {
-    fprintf(stderr,
-            "Error: depth_nonlinear_representation_model must be set if and "
-            "only if depth_representation_type is 3\n");
-    return false;
-  }
-  const uint32_t depth_max = (1 << depth_info->depth_nonlinear_precision) - 1;
-  for (uint32_t v : depth_info->depth_nonlinear_representation_model) {
-    if (v > depth_max) {
-      fprintf(stderr,
-              "Error: depth_nonlinear_representation_model value %d out of "
-              "range [0, %d]\n",
-              v, depth_max);
-      return false;
-    }
-  }
 
   return true;
 }
@@ -940,25 +883,24 @@ void print_multilayer_metadata(const MultilayerMetadata &multilayer) {
     if (layer.layer_type == MULTILAYER_LAYER_TYPE_ALPHA) {
       printf("  alpha:\n");
       printf("    alpha_use_idc: %d\n", layer.global_alpha_info.alpha_use_idc);
-      printf("    alpha_bit_depth: %d\n",
-             layer.global_alpha_info.alpha_bit_depth);
-      printf("    alpha_clip_idc: %d\n",
-             layer.global_alpha_info.alpha_clip_idc);
-      printf("    alpha_incr_flag: %d\n",
-             layer.global_alpha_info.alpha_incr_flag);
-      printf("    alpha_transparent_value: %hu\n",
-             layer.global_alpha_info.alpha_transparent_value);
-      printf("    alpha_opaque_value: %hu\n",
-             layer.global_alpha_info.alpha_opaque_value);
-      printf("    alpha_color_description: %s\n",
-             format_color_properties(
-                 layer.global_alpha_info.alpha_color_description)
-                 .c_str());
-      printf("    label_type_id:");
-      for (uint16_t label_type_id : layer.global_alpha_info.label_type_id) {
-        printf(" %d", label_type_id);
+      printf("    alpha_simple_flag: %d\n",
+             layer.global_alpha_info.alpha_simple_flag);
+      if (!layer.global_alpha_info.alpha_simple_flag) {
+        printf("    alpha_bit_depth: %d\n",
+               layer.global_alpha_info.alpha_bit_depth);
+        printf("    alpha_clip_idc: %d\n",
+               layer.global_alpha_info.alpha_clip_idc);
+        printf("    alpha_incr_flag: %d\n",
+               layer.global_alpha_info.alpha_incr_flag);
+        printf("    alpha_transparent_value: %hu\n",
+               layer.global_alpha_info.alpha_transparent_value);
+        printf("    alpha_opaque_value: %hu\n",
+               layer.global_alpha_info.alpha_opaque_value);
+        printf("    alpha_color_description: %s\n",
+               format_color_properties(
+                   layer.global_alpha_info.alpha_color_description)
+                   .c_str());
       }
-      printf("\n");
     } else if (layer.layer_type == MULTILAYER_LAYER_TYPE_DEPTH) {
       printf("  depth:\n");
       printf("    z_near: %s\n",
@@ -977,13 +919,6 @@ void print_multilayer_metadata(const MultilayerMetadata &multilayer) {
              layer.global_depth_info.depth_representation_type);
       printf("    disparity_ref_view_id: %d\n",
              layer.global_depth_info.disparity_ref_view_id);
-      printf("    depth_nonlinear_precision: %d\n",
-             layer.global_depth_info.depth_nonlinear_precision);
-      printf("    depth_nonlinear_representation_model:");
-      for (uint32_t depth_nonlinear_representation_model :
-           layer.global_depth_info.depth_nonlinear_representation_model) {
-        printf(" %d", depth_nonlinear_representation_model);
-      }
       printf("\n");
     }
   }

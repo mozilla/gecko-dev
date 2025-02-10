@@ -32,6 +32,7 @@
 #include "av1/av1_iface_common.h"
 #include "av1/common/av1_common_int.h"
 #include "av1/common/enums.h"
+#include "av1/common/quant_common.h"
 #include "av1/common/scale.h"
 #include "av1/encoder/bitstream.h"
 #include "av1/encoder/enc_enums.h"
@@ -850,7 +851,7 @@ static aom_codec_err_t validate_config(aom_codec_alg_priv_t *ctx,
   }
 #endif
 
-  RANGE_CHECK(extra_cfg, tuning, AOM_TUNE_PSNR, AOM_TUNE_SSIMULACRA2);
+  RANGE_CHECK(extra_cfg, tuning, AOM_TUNE_PSNR, AOM_TUNE_IQ);
 
   RANGE_CHECK(extra_cfg, dist_metric, AOM_DIST_METRIC_PSNR,
               AOM_DIST_METRIC_QM_PSNR);
@@ -1786,22 +1787,22 @@ static aom_codec_err_t ctrl_set_arnr_strength(aom_codec_alg_priv_t *ctx,
 
 static aom_codec_err_t handle_tuning(aom_codec_alg_priv_t *ctx,
                                      struct av1_extracfg *extra_cfg) {
-  if (extra_cfg->tuning == AOM_TUNE_SSIMULACRA2) {
+  if (extra_cfg->tuning == AOM_TUNE_IQ) {
     if (ctx->cfg.g_usage != AOM_USAGE_ALL_INTRA) return AOM_CODEC_INCAPABLE;
     // Enable QMs as they've been found to be beneficial for images, when used
     // with alternative QM formulas:
     // - aom_get_qmlevel_allintra()
-    // - aom_get_qmlevel_luma_ssimulacra2()
-    // - aom_get_qmlevel_444_chroma_ssimulacra2()
+    // - aom_get_qmlevel_luma_iq()
+    // - aom_get_qmlevel_444_chroma_iq()
     extra_cfg->enable_qm = 1;
-    extra_cfg->qm_min = QM_FIRST_SSIMULACRA2;
-    extra_cfg->qm_max = QM_LAST_SSIMULACRA2;
+    extra_cfg->qm_min = QM_FIRST_IQ;
+    extra_cfg->qm_max = QM_LAST_IQ;
     // We can turn on loop filter sharpness, as frames do not have to serve as
     // references to others.
     extra_cfg->sharpness = 7;
     // Using the QM-PSNR metric was found to be beneficial for images (over the
     // default PSNR metric), as it correlates better with subjective image
-    // quality consistency and better SSIMULACRA2 scores.
+    // quality consistency and better SSIMULACRA 2 scores.
     extra_cfg->dist_metric = AOM_DIST_METRIC_QM_PSNR;
     // CDEF_ALL has been found to blur images at medium and high quality
     // qindexes, so let's use a version that adapts CDEF strength on frame
