@@ -134,7 +134,6 @@ windows11-32-24h2-shippable/opt:
     build-platform: win32-shippable/opt
     build-signing-label: build-signing-win32-shippable/opt
     test-sets:
-        - awsy
         - desktop-screenshot-capture
         - windows32-tests
 
@@ -142,7 +141,6 @@ windows11-32-24h2/opt:
     build-platform: win32/opt
     build-signing-label: build-signing-win32/opt
     test-sets:
-        - awsy
         - desktop-screenshot-capture
         - windows32-tests
 
@@ -260,7 +258,6 @@ windows11-64-2009-qr/opt:
             msix: repackage-signing-msix-win64/opt
             default: build-signing-win64/opt
     test-sets:
-        - awsy
         - webgpu
         - windows11-2009-tests
 
@@ -271,7 +268,6 @@ windows11-64-2009-shippable-qr/opt:
             msix: repackage-signing-shippable-l10n-msix-win64-shippable/opt
             default: build-signing-win64-shippable/opt
     test-sets:
-        - awsy
         - windows11-2009-tests
 
 windows11-64-2009-devedition-qr/opt:

@@ -42,22 +42,6 @@ Awsy tests
             * awsy-base: trunk
             * awsy-base-dmd: None
 
-      * test-windows11-32-24h2-shippable/opt
-            * awsy-base: None
-            * awsy-base-dmd: None
-
-      * test-windows11-32-24h2/opt
-            * awsy-base: None
-            * awsy-base-dmd: None
-
-      * test-windows11-64-2009-qr/opt
-            * awsy-base: None
-            * awsy-base-dmd: None
-
-      * test-windows11-64-2009-shippable-qr/opt
-            * awsy-base: trunk
-            * awsy-base-dmd: None
-
       * test-windows11-64-24h2-shippable/opt
             * awsy-base: trunk
             * awsy-base-dmd: None
@@ -95,22 +79,6 @@ Awsy tests
             * awsy-base-dmd: None
             * awsy-dmd: None
 
-      * test-windows11-32-24h2-shippable/opt
-            * awsy-base-dmd: None
-            * awsy-dmd: None
-
-      * test-windows11-32-24h2/opt
-            * awsy-base-dmd: None
-            * awsy-dmd: None
-
-      * test-windows11-64-2009-qr/opt
-            * awsy-base-dmd: None
-            * awsy-dmd: None
-
-      * test-windows11-64-2009-shippable-qr/opt
-            * awsy-base-dmd: None
-            * awsy-dmd: None
-
       * test-windows11-64-24h2-shippable/opt
             * awsy-base-dmd: None
             * awsy-dmd: None
@@ -140,14 +108,6 @@ Awsy tests
 
       * test-macosx1470-64-shippable/opt
 
-      * test-windows11-32-24h2-shippable/opt
-
-      * test-windows11-32-24h2/opt
-
-      * test-windows11-64-2009-qr/opt
-
-      * test-windows11-64-2009-shippable-qr/opt
-
       * test-windows11-64-24h2-shippable/opt
 
       * test-windows11-64-24h2/opt
@@ -175,18 +135,6 @@ Awsy tests
             * awsy-tp6: trunk
 
       * test-macosx1470-64-shippable/opt
-            * awsy-tp6: trunk
-
-      * test-windows11-32-24h2-shippable/opt
-            * awsy-tp6: None
-
-      * test-windows11-32-24h2/opt
-            * awsy-tp6: None
-
-      * test-windows11-64-2009-qr/opt
-            * awsy-tp6: None
-
-      * test-windows11-64-2009-shippable-qr/opt
             * awsy-tp6: trunk
 
       * test-windows11-64-24h2-shippable/opt
