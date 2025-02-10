@@ -22,18 +22,23 @@ add_setup(async function setup() {
 
 add_task(async () => {
   await testInstallEngine(_popup => {
-    EventUtils.synthesizeKey("KEY_ArrowDown");
+    EventUtils.synthesizeKey("KEY_Tab");
     EventUtils.synthesizeKey("KEY_Enter");
   });
 
   await testInstallEngine(popup => {
-    popup.querySelector("menuitem[label=engine1]").click();
+    popup.querySelector("toolbarbutton[label=engine1]").click();
   });
 });
 
 async function testInstallEngine(installFun) {
   info("Test installing opensearch engine");
   await loadUri(ENGINE_TEST_URL);
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
 
   let promiseEngineAdded = SearchTestUtils.promiseSearchNotification(
     SearchUtils.MODIFIED_TYPE.ADDED,
@@ -44,18 +49,13 @@ async function testInstallEngine(installFun) {
   await Promise.all([installFun(popup), promiseEngineAdded]);
   Assert.ok(true, "The engine was installed.");
 
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "",
-  });
-
   await UrlbarTestUtils.assertSearchMode(window, {
     engineName: "Foo",
     entry: "searchbutton",
   });
 
   await UrlbarTestUtils.exitSearchMode(window, {
-    backspace: true,
+    clickClose: true,
     waitForSearch: false,
   });
 
