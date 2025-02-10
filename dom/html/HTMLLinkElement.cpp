@@ -481,6 +481,27 @@ void HTMLLinkElement::
         return;
       }
 
+      // https://html.spec.whatwg.org/#translate-a-preload-destination
+      // If destination is not "fetch", "font", "image", "script", "style", or
+      // "track", then return null.
+      int16_t asValue = asAttr.GetEnumValue();
+      if (asValue != net::DESTINATION_FETCH &&
+          asValue != net::DESTINATION_FONT &&
+          asValue != net::DESTINATION_IMAGE &&
+          asValue != net::DESTINATION_SCRIPT &&
+          asValue != net::DESTINATION_STYLE &&
+          asValue != net::DESTINATION_TRACK) {
+        // TODO: Currently the spec doesn't define an event handler to be called
+        // , but this is under discussion.
+        // See: https://github.com/whatwg/html/issues/10940
+        //
+        // Post a "load" event here to match the legacy behavior.
+        RefPtr<AsyncEventDispatcher> asyncDispatcher = new AsyncEventDispatcher(
+            this, u"load"_ns, CanBubble::eNo, ChromeOnlyDispatch::eNo);
+        asyncDispatcher->PostDOMEvent();
+        return;
+      }
+
       StartPreload(policyType);
       return;
     }

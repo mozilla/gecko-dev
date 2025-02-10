@@ -3995,6 +3995,9 @@ bool CheckPreloadAttrs(const nsAttrValue& aAs, const nsAString& aType,
   if (policyType == nsIContentPolicy::TYPE_STYLESHEET) {
     return type.EqualsASCII("text/css");
   }
+  if (policyType == nsIContentPolicy::TYPE_JSON) {
+    return nsContentUtils::IsJsonMimeType(type);
+  }
   return false;
 }
 
