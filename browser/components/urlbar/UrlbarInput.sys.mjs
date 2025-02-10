@@ -81,7 +81,7 @@ let px = number => number.toFixed(2) + "px";
  */
 export class UrlbarInput {
   #allowBreakout = false;
-  #customizing = false;
+  #breakoutBlockerCount = 0;
 
   /**
    * @param {object} options
@@ -2435,6 +2435,22 @@ export class UrlbarInput {
     this._layoutBreakoutUpdateKey = {};
   }
 
+  incrementBreakoutBlockerCount() {
+    this.#breakoutBlockerCount++;
+    if (this.#breakoutBlockerCount == 1) {
+      this.#stopBreakout();
+    }
+  }
+
+  decrementBreakoutBlockerCount() {
+    if (this.#breakoutBlockerCount > 0) {
+      this.#breakoutBlockerCount--;
+    }
+    if (this.#breakoutBlockerCount === 0) {
+      this.#updateLayoutBreakout();
+    }
+  }
+
   async #updateLayoutBreakoutDimensions() {
     this.#stopBreakout();
 
@@ -2458,6 +2474,10 @@ export class UrlbarInput {
           "--urlbar-height",
           px(getBoundsWithoutFlushing(this.textbox).height)
         );
+
+        if (this.#breakoutBlockerCount) {
+          return;
+        }
 
         this.setAttribute("breakout", "true");
         this.textbox.parentNode.setAttribute("breakout", "true");
@@ -4748,9 +4768,8 @@ export class UrlbarInput {
   }
 
   _on_customizationstarting() {
-    this.#customizing = true;
+    this.incrementBreakoutBlockerCount();
     this.blur();
-    this.#stopBreakout();
 
     this.inputField.controllers.removeController(this._copyCutController);
     delete this._copyCutController;
@@ -4759,7 +4778,7 @@ export class UrlbarInput {
   // TODO(emilio, bug 1927942): Consider removing this listener and using
   // onCustomizeEnd.
   _on_aftercustomization() {
-    this.#customizing = false;
+    this.decrementBreakoutBlockerCount();
     this.#updateLayoutBreakout();
     this._initCopyCutController();
     this._initPasteAndGo();
@@ -4767,7 +4786,7 @@ export class UrlbarInput {
   }
 
   uiDensityChanged() {
-    if (this.#customizing) {
+    if (this.#breakoutBlockerCount) {
       return;
     }
     this.#updateLayoutBreakout();
