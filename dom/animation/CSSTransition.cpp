@@ -59,7 +59,7 @@ void CSSTransition::UpdateTiming(SeekFlag aSeekFlag,
 }
 
 void CSSTransition::QueueEvents(const StickyTimeDuration& aActiveTime) {
-  if (!mOwningElement.IsSet()) {
+  if (!mOwningElement.ShouldFireEvents()) {
     return;
   }
 

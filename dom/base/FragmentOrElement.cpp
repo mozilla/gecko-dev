@@ -860,12 +860,6 @@ void nsIContent::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
                      aVisitor.mDOMEvent,
                  "Mutation event dispatched in native anonymous content!?!");
 #endif
-    if (aVisitor.mEvent->mClass == eTransitionEventClass ||
-        aVisitor.mEvent->mClass == eAnimationEventClass) {
-      // Event should not propagate to non-anon content.
-      aVisitor.SetParentTarget(nullptr, false);
-      return;
-    }
     aVisitor.mEventTargetAtParent = parent;
   } else if (parent && aVisitor.mOriginalTargetIsInAnon) {
     nsIContent* content =

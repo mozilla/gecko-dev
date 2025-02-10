@@ -167,6 +167,13 @@ class OwningElementRef final {
 
   bool IsSet() const { return !!mTarget.mElement; }
 
+  bool ShouldFireEvents() const {
+    // NOTE(emilio): Pseudo-elements are represented with a non-native animation
+    // target, and a pseudo-element separately, so the check is also correct for
+    // them.
+    return IsSet() && !mTarget.mElement->IsInNativeAnonymousSubtree();
+  }
+
   void GetElement(dom::Element*& aElement,
                   PseudoStyleRequest& aPseudoRequest) const {
     aElement = mTarget.mElement;

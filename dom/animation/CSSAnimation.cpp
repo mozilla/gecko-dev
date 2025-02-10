@@ -170,7 +170,7 @@ void CSSAnimation::QueueEvents(const StickyTimeDuration& aActiveTime) {
   // for these animations to still fire events we should spec the concept
   // of the "original owning element" or "event target" and allow script
   // to set it when creating a CSSAnimation object.
-  if (!mOwningElement.IsSet()) {
+  if (!mOwningElement.ShouldFireEvents()) {
     return;
   }
 
