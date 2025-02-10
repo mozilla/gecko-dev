@@ -201,6 +201,7 @@ class TranslationsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2436642
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1947101")
     @Test
     fun verifyFirstTranslationBottomSheetTranslateFunctionalityTest() {
         val testPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
@@ -225,6 +226,7 @@ class TranslationsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2437112
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1947100")
     @Test
     fun verifyTheShowOriginalTranslationOptionTest() {
         val testPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
@@ -250,6 +252,7 @@ class TranslationsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2437111
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1946864")
     @Test
     fun changeTheTranslateToLanguageTest() {
         val testPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
