@@ -20,7 +20,6 @@ origin:
 vendoring:
   url: https://gitlab.xiph.org/xiph/vorbis
   source-hosting: gitlab
-  tracking: tag
 
   exclude:
     - "**"
