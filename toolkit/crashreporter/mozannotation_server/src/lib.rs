@@ -31,8 +31,9 @@ pub enum AnnotationData {
 #[repr(C)]
 #[derive(Debug)]
 pub struct CAnnotation {
-    id: u32,
-    data: AnnotationData,
+    #[allow(dead_code)] // This is implicitly stored to and used externally
+    pub id: u32,
+    pub data: AnnotationData,
 }
 
 pub type ProcessHandle = process_reader::ProcessHandle;
@@ -123,14 +124,14 @@ fn find_annotations(reader: &ProcessReader) -> Result<usize, AnnotationsRetrieva
 
         usize::checked_add(libxul_address, offset).ok_or(AnnotationsRetrievalError::InvalidAddress)
     }
-    #[cfg(any(target_os = "macos"))]
+    #[cfg(target_os = "macos")]
     {
         let libxul_address = reader.find_module("XUL")?;
         reader
             .find_section(libxul_address, ANNOTATION_SECTION)
             .map_err(AnnotationsRetrievalError::from)
     }
-    #[cfg(any(target_os = "windows"))]
+    #[cfg(target_os = "windows")]
     {
         let libxul_address = reader.find_module("xul.dll")?;
         reader
@@ -205,7 +206,9 @@ fn copy_nscstring(
         let data_address = reader.copy_object::<usize>(address)?;
         let mut vec = reader.copy_array::<u8>(data_address, length as _)?;
 
-        // Ensure that the string contains no nul characters.
+        // We can't assume the string is a valid C string, as it might have
+        // been corrupted during the crash. Ensure that it contains no nul
+        // characters.
         let nul_byte_pos = vec.iter().position(|&c| c == 0);
         if let Some(nul_byte_pos) = nul_byte_pos {
             vec.truncate(nul_byte_pos);
