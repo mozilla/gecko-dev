@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React, { useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useIntersectionObserver } from "../../../lib/hooks";
@@ -19,6 +19,9 @@ const PREF_TOPIC_SELECTION_POSITION =
  */
 function InlineTopicSelection() {
   const dispatch = useDispatch();
+  const focusedRef = useRef(null);
+  const focusRef = useRef(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
   const prefs = useSelector(state => state.Prefs.values);
   const following = prefs[PREF_FOLLOWED_SECTIONS]
     ? prefs[PREF_FOLLOWED_SECTIONS].split(", ")
@@ -50,6 +53,38 @@ function InlineTopicSelection() {
   }, [dispatch, prefs]);
 
   const ref = useIntersectionObserver(handleIntersection);
+
+  const onKeyDown = useCallback(e => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      // prevent the page from scrolling up/down while navigating.
+      e.preventDefault();
+    }
+
+    if (
+      focusedRef.current?.nextSibling?.querySelector("input") &&
+      e.key === "ArrowDown"
+    ) {
+      focusedRef.current.nextSibling.querySelector("input").tabIndex = 0;
+      focusedRef.current.nextSibling.querySelector("input").focus();
+    }
+    if (
+      focusedRef.current?.previousSibling?.querySelector("input") &&
+      e.key === "ArrowUp"
+    ) {
+      focusedRef.current.previousSibling.querySelector("input").tabIndex = 0;
+      focusedRef.current.previousSibling.querySelector("input").focus();
+    }
+  }, []);
+
+  function onWrapperFocus() {
+    focusRef.current?.addEventListener("keydown", onKeyDown);
+  }
+  function onWrapperBlur() {
+    focusRef.current?.removeEventListener("keydown", onKeyDown);
+  }
+  function onItemFocus(index) {
+    setFocusedIndex(index);
+  }
 
   // Updates user preferences as they follow or unfollow topics
   // by selecting them from the list
@@ -91,11 +126,16 @@ function InlineTopicSelection() {
         privacy. You'll have powerful control over what content you see and what
         you don't.
       </p>
-      <ul className="topic-list">
+      <ul
+        className="topic-list"
+        onFocus={onWrapperFocus}
+        onBlur={onWrapperBlur}
+        ref={focusRef}
+      >
         {topics.map((topic, index) => {
           const checked = following.includes(topic.id);
           return (
-            <li key={topic.id}>
+            <li key={topic.id} ref={index === focusedIndex ? focusedRef : null}>
               <label>
                 <input
                   type="checkbox"
@@ -104,7 +144,10 @@ function InlineTopicSelection() {
                   checked={checked}
                   aria-checked={checked}
                   onChange={e => handleChange(e, index)}
-                  tabIndex={-1}
+                  tabIndex={index === focusedIndex ? 0 : -1}
+                  onFocus={() => {
+                    onItemFocus(index);
+                  }}
                 />
                 <span className="topic-item-label">{topic.label}</span>
                 <div

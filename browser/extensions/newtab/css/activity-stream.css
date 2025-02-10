@@ -7973,6 +7973,7 @@ main section {
   padding: var(--space-small) var(--space-medium);
 }
 .inline-selection-wrapper .topic-list li > label input[type=checkbox] {
+  outline: none;
   appearance: none;
 }
 .inline-selection-wrapper .topic-list li > label .topic-item-icon {
