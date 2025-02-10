@@ -2439,21 +2439,26 @@
        *   that is overlapped by the other element. If the elements have
        *   different sizes, then this returns the larger overlap percentage.
        */
-      let greatestOverlap = (p1, s1, p2, s2) => {
+      function greatestOverlap(p1, s1, p2, s2) {
         let overlapSize;
-
         if (p1 < p2) {
+          // element 1 starts first
           overlapSize = p1 + s1 - p2;
         } else {
+          // element 2 starts first
           overlapSize = p2 + s2 - p1;
         }
 
-        let overlapPercent = Math.max(overlapSize / s1, overlapSize / s2);
-        if (overlapPercent < 0 || overlapPercent > 1) {
+        // No overlap if size is <= 0
+        if (overlapSize <= 0) {
           return 0;
         }
-        return overlapPercent;
-      };
+
+        // Calculate the overlap fraction from each element's perspective.
+        let overlapPercent = Math.max(overlapSize / s1, overlapSize / s2);
+
+        return Math.min(overlapPercent, 1);
+      }
 
       /**
        * "Lowest" edge position of the first moving tab:
