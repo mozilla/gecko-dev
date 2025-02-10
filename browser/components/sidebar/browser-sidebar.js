@@ -364,6 +364,7 @@ var SidebarController = {
     }
     if (this._mainResizeObserver) {
       this._mainResizeObserver.disconnect();
+      this._mainResizeObserverAdded = false;
     }
     this._mainResizeObserver = new ResizeObserver(([entry]) =>
       this._handleLauncherResize(entry)
