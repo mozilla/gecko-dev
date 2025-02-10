@@ -67,7 +67,8 @@ async function startProfiler() {
     sendAsyncMessage("started");
   });
 
-  return script.promiseOneMessage("started");
+  await script.promiseOneMessage("started");
+  script.destroy();
 }
 
 /**
@@ -82,7 +83,9 @@ async function stopProfiler() {
     sendAsyncMessage("done", profileData);
   });
 
-  return script.promiseOneMessage("done");
+  const profile = await script.promiseOneMessage("done");
+  script.destroy();
+  return profile;
 }
 
 /**
