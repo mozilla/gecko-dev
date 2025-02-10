@@ -14,7 +14,7 @@
 "use strict";
 
 const eligibleElementSelector =
-  "input:not([type]), input[type=text], input[type=textbox], input[type=email], input[type=tel], input[type=number], input[type=month], select, button";
+  "input:not([type]), input[type=text], input[type=textbox], input[type=email], input[type=tel], input[type=number], input[type=month], input[type=search], select, button";
 
 const skippedSamples = [
   // TOOD: Crash while running the following testcases. Since this is not caused by the fathom CC
