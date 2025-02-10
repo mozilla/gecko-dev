@@ -8,7 +8,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ActivityStream: "resource://activity-stream/lib/ActivityStream.sys.mjs",
+  ActivityStream: "resource://newtab/lib/ActivityStream.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
 });
 

@@ -33,7 +33,7 @@
     <link rel="localization" href="toolkit/global/mozMessageBar.ftl" />
     <link rel="stylesheet" href="chrome://global/skin/design-system/tokens-brand.css">
     <link rel="stylesheet" href="chrome://browser/content/contentSearchUI.css" />
-    <link rel="stylesheet" href="chrome://activity-stream/content/css/activity-stream.css" />
+    <link rel="stylesheet" href="chrome://newtab/content/css/activity-stream.css" />
   </head>
   <!-- Cached: {{ CACHE_TIME }} -->
   <body class="activity-stream">

@@ -119,10 +119,6 @@ module.exports = function (config) {
         new ResourceUriPlugin({
           resourcePathRegExes: [
             [
-              new RegExp("^resource://activity-stream/"),
-              path.join(__dirname, "../newtab/"),
-            ],
-            [
               new RegExp("^resource:///modules/asrouter/"),
               path.join(__dirname, "./modules/"),
             ],

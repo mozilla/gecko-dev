@@ -56,7 +56,7 @@ void DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(
       nsLiteralCString("chrome://devtools/content/shared/sourceeditor/"
                        "codemirror/codemirror.bundle.js"),
       nsLiteralCString(
-          "resource://activity-stream/data/content/activity-stream.bundle.js"),
+          "resource://newtab/data/content/activity-stream.bundle.js"),
       nsLiteralCString("resource://devtools/client/debugger/src/components/"
                        "Editor/Breakpoint.js"),
       nsLiteralCString("resource://devtools/client/debugger/src/components/"

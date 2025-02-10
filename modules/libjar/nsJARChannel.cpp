@@ -1008,7 +1008,7 @@ static void RecordZeroLengthEvent(bool aIsSync, const nsCString& aSpec,
 
     // See bug 1695560. "activity-stream-noscripts.html" with NS_ERROR_FAILURE
     // is filtered out.
-    if (fileName.EqualsLiteral("omni.ja!/chrome/browser/res/activity-stream/"
+    if (fileName.EqualsLiteral("omni.ja!/chrome/browser/res/newtab/"
                                "prerendered/activity-stream-noscripts.html") &&
         aStatus == NS_ERROR_FAILURE) {
       return;

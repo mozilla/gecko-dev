@@ -4,10 +4,10 @@
 "use strict";
 
 const { Store } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/Store.sys.mjs"
+  "resource://newtab/lib/Store.sys.mjs"
 );
 const { ActivityStreamMessageChannel } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/ActivityStreamMessageChannel.sys.mjs"
+  "resource://newtab/lib/ActivityStreamMessageChannel.sys.mjs"
 );
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"

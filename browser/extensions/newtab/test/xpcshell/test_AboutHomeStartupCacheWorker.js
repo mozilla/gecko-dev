@@ -22,7 +22,7 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 const { DiscoveryStreamFeed } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/DiscoveryStreamFeed.sys.mjs"
+  "resource://newtab/lib/DiscoveryStreamFeed.sys.mjs"
 );
 
 SearchTestUtils.init(this);
@@ -31,16 +31,15 @@ const { AboutNewTab } = ChromeUtils.importESModule(
   "resource:///modules/AboutNewTab.sys.mjs"
 );
 const { PREFS_CONFIG } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/ActivityStream.sys.mjs"
+  "resource://newtab/lib/ActivityStream.sys.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
 });
 
-const CACHE_WORKER_URL = "resource://activity-stream/lib/cache.worker.js";
-const NEWTAB_RENDER_URL =
-  "resource://activity-stream/data/content/newtab-render.js";
+const CACHE_WORKER_URL = "resource://newtab/lib/cache.worker.js";
+const NEWTAB_RENDER_URL = "resource://newtab/data/content/newtab-render.js";
 
 /**
  * In order to make this test less brittle, much of Activity Stream is

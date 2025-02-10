@@ -3,18 +3,18 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
-% resource activity-stream %res/activity-stream/ contentaccessible=yes
-% content activity-stream %content/activity-stream/ contentaccessible=yes
-  res/activity-stream/lib/ (./lib/*)
-  res/activity-stream/common/ (./common/*)
-* res/activity-stream/data/content/abouthomecache/page.html.template (./data/content/abouthomecache/page.html.template)
-* res/activity-stream/data/content/abouthomecache/script.js.template (./data/content/abouthomecache/script.js.template)
-  content/activity-stream/data/content/assets/  (./data/content/assets/*)
-  res/activity-stream/data/content/activity-stream.bundle.js (./data/content/activity-stream.bundle.js)
-  res/activity-stream/data/content/newtab-render.js (./data/content/newtab-render.js)
-  content/activity-stream/css/activity-stream.css (./css/activity-stream.css)
-  res/activity-stream/prerendered/activity-stream.html (./prerendered/activity-stream.html)
+% resource newtab %res/newtab/ contentaccessible=yes
+% content newtab %content/newtab/ contentaccessible=yes
+  res/newtab/lib/ (./lib/*)
+  res/newtab/common/ (./common/*)
+* res/newtab/data/content/abouthomecache/page.html.template (./data/content/abouthomecache/page.html.template)
+* res/newtab/data/content/abouthomecache/script.js.template (./data/content/abouthomecache/script.js.template)
+  content/newtab/data/content/assets/  (./data/content/assets/*)
+  res/newtab/data/content/activity-stream.bundle.js (./data/content/activity-stream.bundle.js)
+  res/newtab/data/content/newtab-render.js (./data/content/newtab-render.js)
+  content/newtab/css/activity-stream.css (./css/activity-stream.css)
+  res/newtab/prerendered/activity-stream.html (./prerendered/activity-stream.html)
 #ifndef RELEASE_OR_BETA
-  res/activity-stream/prerendered/activity-stream-debug.html (./prerendered/activity-stream-debug.html)
+  res/newtab/prerendered/activity-stream-debug.html (./prerendered/activity-stream-debug.html)
 #endif
-  res/activity-stream/prerendered/activity-stream-noscripts.html (./prerendered/activity-stream-noscripts.html)
+  res/newtab/prerendered/activity-stream-noscripts.html (./prerendered/activity-stream-noscripts.html)

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { actionTypes as at } from "resource://activity-stream/common/Actions.mjs";
+import { actionTypes as at } from "resource://newtab/common/Actions.mjs";
 
 import {
   TOP_SITES_DEFAULT_ROWS,
@@ -13,13 +13,13 @@ import { Dedupe } from "resource:///modules/Dedupe.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  DownloadsManager: "resource://activity-stream/lib/DownloadsManager.sys.mjs",
+  DownloadsManager: "resource://newtab/lib/DownloadsManager.sys.mjs",
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
   LinksCache: "resource:///modules/LinksCache.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
-  Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
-  SectionsManager: "resource://activity-stream/lib/SectionsManager.sys.mjs",
+  Screenshots: "resource://newtab/lib/Screenshots.sys.mjs",
+  SectionsManager: "resource://newtab/lib/SectionsManager.sys.mjs",
 });
 
 const HIGHLIGHTS_MAX_LENGTH = 16;

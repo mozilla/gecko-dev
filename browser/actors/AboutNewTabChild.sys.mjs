@@ -53,8 +53,8 @@ export class AboutNewTabChild extends RemotePageChild {
         "chrome://global/content/vendor/react-transition-group.js",
         "chrome://global/content/vendor/redux.js",
         "chrome://global/content/vendor/react-redux.js",
-        "resource://activity-stream/data/content/activity-stream.bundle.js",
-        "resource://activity-stream/data/content/newtab-render.js",
+        "resource://newtab/data/content/activity-stream.bundle.js",
+        "resource://newtab/data/content/newtab-render.js",
       ];
 
       for (let script of scripts) {

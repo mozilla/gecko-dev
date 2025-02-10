@@ -100,3 +100,11 @@ browser/defaults/settings/main/search-config-icons/6a83583a-f0ba-fd39-2fdb-fd2b6
 browser/defaults/settings/main/search-config-icons/f312610a-ebfb-a106-ea92-fd643c5d3636
 browser/defaults/settings/main/search-config-icons/47da97b5-600f-c450-fd15-a52bb2169c11
 browser/defaults/settings/main/search-config-icons/fed4f021-ff3e-942a-010e-afa43fda2136
+
+# Bug 1946262 - De-Duplicate by moving glyph svg icons in a shared location
+browser/chrome/browser/content/browser/asrouter/assets/glyph-mail-16.svg
+browser/chrome/browser/content/newtab/data/content/assets/glyph-mail-16.svg
+
+# Bug 1946597 - Move glyph-webextension-16.svg in browser/themes/shared/icons
+browser/chrome/browser/content/activity-stream/data/content/assets/glyph-webextension-16.svg
+browser/chrome/browser/content/newtab/data/content/assets/glyph-webextension-16.svg

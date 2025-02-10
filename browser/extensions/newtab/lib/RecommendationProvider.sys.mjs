@@ -4,15 +4,15 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  PersistentCache: "resource://activity-stream/lib/PersistentCache.sys.mjs",
+  PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
   PersonalityProvider:
-    "resource://activity-stream/lib/PersonalityProvider/PersonalityProvider.sys.mjs",
+    "resource://newtab/lib/PersonalityProvider/PersonalityProvider.sys.mjs",
 });
 
 import {
   actionTypes as at,
   actionCreators as ac,
-} from "resource://activity-stream/common/Actions.mjs";
+} from "resource://newtab/common/Actions.mjs";
 
 const CACHE_KEY = "personalization";
 const PREF_PERSONALIZATION_MODEL_KEYS =

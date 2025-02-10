@@ -5,8 +5,8 @@
 import {
   actionCreators as ac,
   actionTypes as at,
-} from "resource://activity-stream/common/Actions.mjs";
-import { Prefs } from "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs";
+} from "resource://newtab/common/Actions.mjs";
+import { Prefs } from "resource://newtab/lib/ActivityStreamPrefs.sys.mjs";
 
 // We use importESModule here instead of static import so that
 // the Karma test environment won't choke on this module. This

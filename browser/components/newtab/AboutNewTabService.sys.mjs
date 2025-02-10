@@ -48,7 +48,7 @@ const PREF_ABOUT_HOME_CACHE_TESTING =
 const ABOUT_WELCOME_URL =
   "chrome://browser/content/aboutwelcome/aboutwelcome.html";
 
-const CACHE_WORKER_URL = "resource://activity-stream/lib/cache.worker.js";
+const CACHE_WORKER_URL = "resource://newtab/lib/cache.worker.js";
 
 const IS_PRIVILEGED_PROCESS =
   Services.appinfo.remoteType === E10SUtils.PRIVILEGEDABOUT_REMOTE_TYPE;
@@ -422,11 +422,11 @@ class BaseAboutNewTabService {
    */
   get defaultURL() {
     // Generate the desired activity stream resource depending on state, e.g.,
-    // "resource://activity-stream/prerendered/activity-stream.html"
-    // "resource://activity-stream/prerendered/activity-stream-debug.html"
-    // "resource://activity-stream/prerendered/activity-stream-noscripts.html"
+    // "resource://newtab/prerendered/activity-stream.html"
+    // "resource://newtab/prerendered/activity-stream-debug.html"
+    // "resource://newtab/prerendered/activity-stream-noscripts.html"
     return [
-      "resource://activity-stream/prerendered/",
+      "resource://newtab/prerendered/",
       "activity-stream",
       // Debug version loads dev scripts but noscripts separately loads scripts
       this.activityStreamDebug && !this.privilegedAboutProcessEnabled

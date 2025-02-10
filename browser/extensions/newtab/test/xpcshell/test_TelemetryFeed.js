@@ -4,7 +4,7 @@
 "use strict";
 
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://activity-stream/common/Actions.mjs"
+  "resource://newtab/common/Actions.mjs"
 );
 
 const { updateAppInfo } = ChromeUtils.importESModule(
@@ -12,7 +12,7 @@ const { updateAppInfo } = ChromeUtils.importESModule(
 );
 
 const { TelemetryFeed, USER_PREFS_ENCODING } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/TelemetryFeed.sys.mjs"
+  "resource://newtab/lib/TelemetryFeed.sys.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {
@@ -25,7 +25,7 @@ ChromeUtils.defineESModuleGetters(this, {
   sinon: "resource://testing-common/Sinon.sys.mjs",
   TelemetryController: "resource://gre/modules/TelemetryController.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
-  UTEventReporting: "resource://activity-stream/lib/UTEventReporting.sys.mjs",
+  UTEventReporting: "resource://newtab/lib/UTEventReporting.sys.mjs",
 });
 
 const FAKE_UUID = "{foo-123-foo}";
