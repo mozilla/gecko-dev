@@ -46,7 +46,9 @@ class CollectionCreationView(
         saveButton = binding.saveButton,
     )
     private val collectionCreationTabListAdapter = CollectionCreationTabListAdapter(interactor)
-    private val collectionSaveListAdapter = SaveCollectionListAdapter(interactor)
+    private val collectionSaveListAdapter = SaveCollectionListAdapter {
+        interactor.selectCollection(it, selectedTabs.toList())
+    }
     private val selectTabsConstraints = ConstraintSet()
     private val selectCollectionConstraints = ConstraintSet()
     private val nameCollectionConstraints = ConstraintSet()
@@ -102,7 +104,7 @@ class CollectionCreationView(
             SaveCollectionStep.RenameCollection -> updateForRenameCollection(state)
         }
 
-        collectionSaveListAdapter.updateData(state.tabCollections, state.selectedTabs)
+        collectionSaveListAdapter.submitList(state.tabCollections)
     }
 
     private fun cacheState(state: CollectionCreationState) {

@@ -4,24 +4,27 @@
 
 package org.mozilla.fenix.collections
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.graphics.BlendModeColorFilterCompat.createBlendModeColorFilterCompat
 import androidx.core.graphics.BlendModeCompat.SRC_IN
-import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import mozilla.components.feature.tab.collections.TabCollection
-import org.mozilla.fenix.R
 import org.mozilla.fenix.components.description
 import org.mozilla.fenix.databinding.CollectionsListItemBinding
 import org.mozilla.fenix.ext.getIconColor
 import org.mozilla.fenix.utils.view.ViewHolder
 
+/**
+ * Adapter for a list of collections.
+ *
+ * @param onCollectionClickedListener Invoked when a collection is clicked.
+ */
 class SaveCollectionListAdapter(
-    private val interactor: CollectionCreationInteractor,
-) : RecyclerView.Adapter<CollectionViewHolder>() {
-
-    private var tabCollections = listOf<TabCollection>()
-    private var selectedTabs: Set<Tab> = setOf()
+    private val onCollectionClickedListener: (TabCollection) -> Unit,
+) : ListAdapter<TabCollection, CollectionViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CollectionViewHolder {
         val binding = CollectionsListItemBinding.inflate(
@@ -34,19 +37,20 @@ class SaveCollectionListAdapter(
     }
 
     override fun onBindViewHolder(holder: CollectionViewHolder, position: Int) {
-        val collection = tabCollections[position]
+        val collection = getItem(position)
         holder.bind(collection)
         holder.itemView.setOnClickListener {
-            interactor.selectCollection(collection, selectedTabs.toList())
+            onCollectionClickedListener(collection)
         }
     }
 
-    override fun getItemCount(): Int = tabCollections.size
+    private object DiffCallback : DiffUtil.ItemCallback<TabCollection>() {
+        override fun areItemsTheSame(oldItem: TabCollection, newItem: TabCollection) =
+            oldItem.id == newItem.id
 
-    fun updateData(tabCollections: List<TabCollection>, selectedTabs: Set<Tab>) {
-        this.tabCollections = tabCollections
-        this.selectedTabs = selectedTabs
-        notifyDataSetChanged()
+        @SuppressLint("DiffUtilEquals")
+        override fun areContentsTheSame(oldItem: TabCollection, newItem: TabCollection) =
+            oldItem.title == newItem.title && oldItem.tabs == newItem.tabs
     }
 }
 
@@ -57,9 +61,5 @@ class CollectionViewHolder(private val binding: CollectionsListItemBinding) : Vi
         binding.collectionDescription.text = collection.description(itemView.context)
         binding.collectionIcon.colorFilter =
             createBlendModeColorFilterCompat(collection.getIconColor(itemView.context), SRC_IN)
-    }
-
-    companion object {
-        const val LAYOUT_ID = R.layout.collections_list_item
     }
 }
