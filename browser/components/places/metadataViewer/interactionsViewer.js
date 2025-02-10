@@ -27,6 +27,28 @@ ChromeUtils.defineLazyGetter(lazy, "PlacesFrecencyRecalculator", () => {
 });
 
 /**
+ * Methods of sorting.
+ *
+ * @readonly
+ * @enum {SortingType}
+ */
+const SortingType = {
+  ASCENDING: "ASC",
+  DESCENDING: "DESC",
+};
+
+/**
+ * How to sort a table of values.
+ *
+ * @typedef SortSetting
+ *
+ * @property {string} column
+ *   Which column the table should be sorted by.
+ * @property {SortingType} order
+ *   How order the sorting.
+ */
+
+/**
  * Base class for the table display. Handles table layout and updates.
  */
 class TableViewer {
@@ -65,6 +87,15 @@ class TableViewer {
    * @type {number}
    */
   #timer;
+
+  /**
+   * How the table should be sorted. If not provided, the view will not allow
+   * sorting and default to the initial way the rows were pulled from the data
+   * source.
+   *
+   * @type {SortSetting}
+   */
+  sortSetting = null;
 
   /**
    * Starts the display of the table. Setting up the table display and doing
@@ -131,8 +162,10 @@ class TableViewer {
     // create and delete rows all the time.
     let tableBody = document.createDocumentFragment();
     let header = document.createDocumentFragment();
-    for (let details of this.columnMap.values()) {
+    for (let [key, details] of this.columnMap.entries()) {
       let columnDiv = document.createElement("div");
+      columnDiv.classList.add("column-title");
+      columnDiv.setAttribute("data-column-title", key);
       columnDiv.textContent = details.header;
       header.appendChild(columnDiv);
     }
@@ -193,6 +226,45 @@ class TableViewer {
       }
     }
     this.#lastFilledRows = numRows;
+
+    this.updateDisplayedSort();
+  }
+
+  updateDisplayedSort() {
+    if (this.sortable) {
+      let viewer = document.getElementById("tableViewer");
+      let element = viewer.querySelector(
+        `[data-column-title="${this.sortSetting.column}"]`
+      );
+      let symbolHolder = document.getElementById("column-title-sort-indicator");
+      if (!symbolHolder) {
+        symbolHolder = document.createElement("span");
+        symbolHolder.style.marginLeft = "5px";
+        // Let the column header receive the click.
+        symbolHolder.style.pointerEvents = "none";
+        symbolHolder.id = "column-title-sort-indicator";
+      }
+      element.appendChild(symbolHolder);
+      symbolHolder.textContent =
+        this.sortSetting.order == SortingType.DESCENDING
+          ? "\u2B07\uFE0F"
+          : "\u2B06\uFE0F";
+    }
+  }
+
+  changeSort(column) {
+    if (this.sortSetting.column == column) {
+      this.sortSetting.order =
+        this.sortSetting.order == SortingType.DESCENDING
+          ? SortingType.ASCENDING
+          : SortingType.DESCENDING;
+    } else {
+      this.sortSetting = { column, order: SortingType.DESCENDING };
+    }
+  }
+
+  get sortable() {
+    return !!this.sortSetting;
   }
 }
 
@@ -243,6 +315,8 @@ const metadataHandler = new (class extends TableViewer {
     ["referrer", { header: "Referrer", includeTitle: true }],
   ]);
 
+  sortSetting = { column: "updated_at", order: SortingType.DESCENDING };
+
   /**
    * A reference to the database connection.
    *
@@ -274,7 +348,7 @@ const metadataHandler = new (class extends TableViewer {
        FROM moz_places_metadata m
        JOIN moz_places h ON h.id = m.place_id
        LEFT JOIN moz_places h2 ON h2.id = m.referrer_place_id
-       ORDER BY updated_at DESC
+       ORDER BY ${this.sortSetting.column} ${this.sortSetting.order}
        LIMIT ${this.maxRows}`
     );
     this.displayData(rows);
@@ -389,7 +463,7 @@ const placesStatsHandler = new (class extends TableViewer {
  */
 const placesViewerHandler = new (class extends TableViewer {
   title = "Places Viewer";
-  cssGridTemplateColumns = "fit-content(100%) repeat(5, max-content);";
+  cssGridTemplateColumns = "fit-content(100%) repeat(6, min-content);";
   #db = null;
   #maxRows = 100;
 
@@ -399,6 +473,14 @@ const placesViewerHandler = new (class extends TableViewer {
   columnMap = new Map([
     ["url", { header: "URL" }],
     ["title", { header: "Title" }],
+    [
+      "last_visit_date",
+      {
+        header: "Last Visit Date",
+        modifier: lastVisitDate =>
+          new Date(lastVisitDate / 1000).toLocaleString(),
+      },
+    ],
     ["frecency", { header: "Frecency" }],
     [
       "recalc_frecency",
@@ -419,6 +501,8 @@ const placesViewerHandler = new (class extends TableViewer {
       },
     ],
   ]);
+
+  sortSetting = { column: "last_visit_date", order: SortingType.DESCENDING };
 
   async #getRows(query, columns = [...this.columnMap.keys()]) {
     if (!this.#db) {
@@ -443,12 +527,13 @@ const placesViewerHandler = new (class extends TableViewer {
         SELECT
           url,
           title,
+          last_visit_date,
           frecency,
           recalc_frecency,
           alt_frecency,
           recalc_alt_frecency
         FROM moz_places
-        ORDER BY last_visit_date DESC
+        ORDER BY ${this.sortSetting.column} ${this.sortSetting.order}
         LIMIT ${this.#maxRows}`
     );
     this.displayData(rows);
@@ -563,6 +648,13 @@ function setupListeners() {
       e.preventDefault();
       lazy.PlacesFrecencyRecalculator.recalculateAnyOutdatedFrecencies();
     });
+
+  document.getElementById("tableViewer").addEventListener("click", e => {
+    if (gCurrentHandler.sortable && e.target.dataset.columnTitle) {
+      gCurrentHandler.changeSort(e.target.dataset.columnTitle);
+      gCurrentHandler.updateDisplay();
+    }
+  });
 }
 
 checkPrefs();
