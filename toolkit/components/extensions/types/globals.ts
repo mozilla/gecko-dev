@@ -1,7 +1,7 @@
 
 // Exports for all modules redirected here by a catch-all rule in tsconfig.json.
 export var
-  AddonWrapper, AppConstants, GeckoViewConnection, GeckoViewWebExtension,
+  AddonWrapper, GeckoViewConnection, GeckoViewWebExtension,
   IndexedDB, JSONFile, Log, UrlbarUtils, WebExtensionDescriptorActor;
 
 /**
