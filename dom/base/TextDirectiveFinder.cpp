@@ -8,6 +8,7 @@
 #include "TextDirectiveUtil.h"
 #include "nsRange.h"
 #include "fragmentdirectives_ffi_generated.h"
+#include "mozilla/ResultVariant.h"
 
 namespace mozilla::dom {
 
@@ -84,6 +85,8 @@ nsTArray<RefPtr<nsRange>> TextDirectiveFinder::FindTextDirectivesInDocument() {
 
 RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
     const TextDirective& aTextDirective) {
+  // This method follows this spec algorithm and applies some changes:
+  // https://wicg.github.io/scroll-to-text-fragment/#find-a-range-from-a-text-directive
   TEXT_FRAGMENT_LOG("Find range for text directive '{}'.",
                     ToString(aTextDirective).c_str());
   // 1. Let searchRange be a range with start (document, 0) and end (document,
@@ -132,6 +135,12 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
 
       // 2.2.4. Let matchRange be a range whose start is prefixMatch’s end and
       // end is searchRange’s end.
+      // Note:
+      // The spec is very inefficient. The start text must _immediately_ follow
+      // after the end of the prefix. Therefore, it would be a huge waste to
+      // search until the end of the document. Since the following `start`
+      // attribute can't go across a block boundary, it is sufficient to do a
+      // search until the next block boundary.
       RefPtr<nsRange> matchRange = nsRange::Create(
           prefixMatch->GetEndContainer(), prefixMatch->EndOffset(),
           searchRange->GetEndContainer(), searchRange->EndOffset(), rv);
@@ -150,6 +159,12 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       // (matchRange’s start now points to the next non-whitespace text data
       // following a matched prefix.)
       MOZ_ASSERT(matchRange->GetStartContainer()->IsText());
+      // Set `matchRange`s end to the next block boundary.
+      auto nextBlockBoundary = TextDirectiveUtil::FindNextBlockBoundary(
+          matchRange->StartRef(), TextScanDirection::Right);
+      if (MOZ_LIKELY(nextBlockBoundary.isOk())) {
+        matchRange->SetEnd(nextBlockBoundary.unwrap().AsRaw(), IgnoreErrors());
+      }
 
       // 2.2.8. Let mustEndAtWordBoundary be true if parsedValues’s end is
       // non-null or parsedValues’s suffix is null, false otherwise.
@@ -161,15 +176,16 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       potentialMatch = TextDirectiveUtil::FindStringInRange(
           matchRange, aTextDirective.start, false, mustEndAtWordBoundary);
       // 2.2.10. If potentialMatch is null, return null.
+      // Note: Because the search range for start only goes to the next block
+      // boundary, this statement is wrong. If potentialMatch is null, the loop
+      // needs to be restarted.
       if (!potentialMatch) {
         TEXT_FRAGMENT_LOG(
-            "Did not find start '{}'. The text directive does not exist "
-            "in the document.",
+            "Did not find start '{}' in the sub range of the end of `prefix` "
+            "and the next block boundary. Restarting outer loop.",
             NS_ConvertUTF16toUTF8(aTextDirective.start));
-        return nullptr;
+        continue;
       }
-      TEXT_FRAGMENT_LOG("Did find start '{}'.",
-                        NS_ConvertUTF16toUTF8(aTextDirective.start));
       // 2.2.11. If potentialMatch’s start is not matchRange’s start, then
       // continue.
       // (In this case, we found a prefix but it was followed by something other
@@ -178,9 +194,11 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       if (potentialMatch->StartRef() != matchRange->StartRef()) {
         TEXT_FRAGMENT_LOG(
             "The prefix is not directly followed by the start element. "
-            "Discarding this attempt.");
+            "Restarting outer loop.");
         continue;
       }
+      TEXT_FRAGMENT_LOG("Did find start '{}'.",
+                        NS_ConvertUTF16toUTF8(aTextDirective.start));
     }
     // 2.3. Otherwise:
     else {
@@ -261,6 +279,8 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       }
       // 2.5.4. Let suffixRange be a range with start equal to potentialMatch’s
       // end and end equal to searchRange’s end.
+      // Note: Again, this is highly inefficient. It's perfectly fine to only
+      // search up to the next block boundary.
       RefPtr<nsRange> suffixRange = nsRange::Create(
           potentialMatch->GetEndContainer(), potentialMatch->EndOffset(),
           searchRange->GetEndContainer(), searchRange->EndOffset(), rv);
@@ -269,46 +289,67 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       }
       // 2.5.5. Advance suffixRange's start to the next non-whitespace position.
       TextDirectiveUtil::AdvanceStartToNextNonWhitespacePosition(*suffixRange);
+      auto nextBlockBoundary = TextDirectiveUtil::FindNextBlockBoundary(
+          suffixRange->StartRef(), TextScanDirection::Right);
+      if (MOZ_LIKELY(nextBlockBoundary.isOk())) {
+        suffixRange->SetEnd(nextBlockBoundary.unwrap().AsRaw(), IgnoreErrors());
+      }
 
       // 2.5.6. Let suffixMatch be result of running the find a string in range
       // steps with query parsedValue's suffix, searchRange suffixRange,
       // wordStartBounded false, and wordEndBounded true.
       RefPtr<nsRange> suffixMatch = TextDirectiveUtil::FindStringInRange(
           suffixRange, aTextDirective.suffix, false, true);
-
       // 2.5.7. If suffixMatch is null, return null.
       // (If the suffix doesn't appear in the remaining text of the document,
       // there's no possible way to make a match.)
-      if (!suffixMatch) {
-        TEXT_FRAGMENT_LOG(
-            "Did not find suffix '{}'. The text directive does not exist "
-            "in the document.",
-            NS_ConvertUTF16toUTF8(aTextDirective.suffix));
-        return nullptr;
-      }
       // 2.5.8. If suffixMatch's start is suffixRange's start, return
       // potentialMatch.
-      if (suffixMatch->GetStartContainer() ==
-              suffixRange->GetStartContainer() &&
-          suffixMatch->StartOffset() == suffixRange->StartOffset()) {
-        TEXT_FRAGMENT_LOG("Did find a match.");
-        return potentialMatch;
-      }
       // 2.5.9. If parsedValue's end item is null then break;
       // (If this is an exact match and the suffix doesn’t match, start
       // searching for the next range start by breaking out of this loop without
       // rangeEndSearchRange being collapsed. If we’re looking for a range
       // match, we’ll continue iterating this inner loop since the range start
       // will already be correct.)
-      if (aTextDirective.end.IsEmpty()) {
-        break;
-      }
       // 2.5.10. Set rangeEndSearchRange's start to potentialMatch's end.
       // (Otherwise, it is possible that we found the correct range start, but
       // not the correct range end. Continue the inner loop to keep searching
       // for another matching instance of rangeEnd.)
+      // Note: the steps above are not correct anymore because of restricting
+      // the suffix find to a sub range.
+      // Therefore, the code looks different, but _essentially_ does the same as
+      // what's described in the spec steps.
       rangeEndSearchRange->SetStart(potentialMatch->GetEndContainer(),
                                     potentialMatch->EndOffset());
+      if (!suffixMatch) {
+        if (aTextDirective.end.IsEmpty()) {
+          TEXT_FRAGMENT_LOG(
+              "Did not find suffix in the sub range of the end of `start` and "
+              "the next block boundary. Restarting outer loop.");
+          break;
+        }
+        TEXT_FRAGMENT_LOG(
+            "Did not find suffix in the sub range of the end of `end` and the "
+            "next block boundary. Discarding this `end` candidate and "
+            "continuing inner loop.");
+        continue;
+      }
+      if (suffixMatch->GetStartContainer() ==
+              suffixRange->GetStartContainer() &&
+          suffixMatch->StartOffset() == suffixRange->StartOffset()) {
+        TEXT_FRAGMENT_LOG("Did find a match.");
+        return potentialMatch;
+      }
+      if (aTextDirective.end.IsEmpty()) {
+        TEXT_FRAGMENT_LOG(
+            "Did find suffix in the sub range of end of `start` to the end of "
+            "the next block boundary, but not at the start. Restarting outer "
+            "loop.");
+        break;
+      }
+      TEXT_FRAGMENT_LOG(
+          "Did find `suffix` in the sub range of end of `end` to the end of "
+          "the current block, but not at the start. Restarting inner loop.");
     }
     // 2.6. If rangeEndSearchRange is collapsed then:
     if (rangeEndSearchRange->Collapsed()) {
