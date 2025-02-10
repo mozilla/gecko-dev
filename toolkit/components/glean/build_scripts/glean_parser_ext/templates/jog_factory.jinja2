@@ -45,9 +45,7 @@ use crate::private::{
     LabeledMetric,
     MetricId,
 {% for metric_type_name in metric_types.keys() if not metric_type_name.startswith('labeled_') %}
-    {% if metric_type_name != "object" %}{# TODO(bug 1883857): Add JOG support #}
     {{ metric_type_name|Camelize }}Metric,
-    {% endif %}
 {% endfor %}};
 use crate::private::traits::HistogramType;
 
@@ -81,6 +79,7 @@ pub(crate) mod __jog_metric_maps {
         Ping,
         LabeledMetric,
         NoExtraKeys,
+        RuntimeObject,
     {% for metric_type_name in metric_types.keys() %}
         {{ metric_type_name|Camelize }}Metric,
     {% endfor %}
@@ -107,8 +106,7 @@ pub(crate) mod __jog_metric_maps {
     pub static EVENT_MAP: Lazy<Arc<RwLock<HashMap<MetricId, EventMetric<NoExtraKeys>>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 {# Object metrics are special because they're ObjectMetric<K> #}
-    #[allow(dead_code)]
-    pub static OBJECT_MAP: Lazy<Arc<RwLock<HashMap<MetricId, ObjectMetric<()>>>>> =
+    pub static OBJECT_MAP: Lazy<Arc<RwLock<HashMap<MetricId, ObjectMetric<RuntimeObject>>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 }
 
@@ -149,9 +147,6 @@ map of argument name to argument type. I may regret this if I need it again. #}
     let metric32 = match metric_type {
 {% for metric_type_name, metric_type in metric_types.items() %}
         "{{ metric_type_name }}" => {
-            {% if metric_type_name == "object" %}{# TODO(bug 1883857): Add JOG support #}
-            return Err(Box::new(MetricTypeNotFoundError(metric_type.to_string())));
-            {% else %}
             let meta ={{" "}}
                 {%- if metric_type_name == "labeled_custom_distribution" -%}
                 LabeledMetricData::CustomDistribution {
@@ -196,7 +191,6 @@ map of argument name to argument type. I may regret this if I need it again. #}
                 "We should never insert a runtime metric with an already-used id."
             );
             metric32
-            {% endif %}
         }
 {% endfor %}
         _ => return Err(Box::new(MetricTypeNotFoundError(metric_type.to_string())))

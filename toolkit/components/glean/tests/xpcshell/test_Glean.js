@@ -479,12 +479,6 @@ add_task(async function test_fog_text_works_unusual_character() {
 });
 
 add_task(async function test_fog_object_works() {
-  if (!Glean.testOnly.balloons) {
-    // FIXME(bug 1883857): object metric type not available, e.g. in artifact builds.
-    // Skipping this test.
-    return;
-  }
-
   Assert.equal(
     undefined,
     Glean.testOnly.balloons.testGetValue(),
@@ -535,51 +529,60 @@ add_task(async function test_fog_object_works() {
     { colour: "orange" },
   ];
   Assert.deepEqual(expected, result);
-
-  // These values are coerced to null or removed.
-  balloons = [
-    { colour: "inf", diameter: Infinity },
-    { colour: "negative-inf", diameter: -1 / 0 },
-    { colour: "nan", diameter: NaN },
-    { colour: "undef", diameter: undefined },
-  ];
-  Glean.testOnly.balloons.set(balloons);
-  result = Glean.testOnly.balloons.testGetValue();
-  expected = [
-    { colour: "inf" },
-    { colour: "negative-inf" },
-    { colour: "nan" },
-    { colour: "undef" },
-  ];
-  Assert.deepEqual(expected, result);
-
-  // colour != color.
-  let invalid = [{ color: "orange" }, { color: "red", diameter: "small" }];
-  Glean.testOnly.balloons.set(invalid);
-  Assert.throws(
-    () => Glean.testOnly.balloons.testGetValue(),
-    /invalid_value/,
-    "Should throw because last object was invalid."
-  );
-
-  Services.fog.testResetFOG();
-  // set again to ensure it's stored
-  balloons = [
-    { colour: "red", diameter: 5 },
-    { colour: "blue", diameter: 7 },
-  ];
-  Glean.testOnly.balloons.set(balloons);
-  result = Glean.testOnly.balloons.testGetValue();
-  Assert.deepEqual(balloons, result);
-
-  invalid = [{ colour: "red", diameter: 5, extra: "field" }];
-  Glean.testOnly.balloons.set(invalid);
-  Assert.throws(
-    () => Glean.testOnly.balloons.testGetValue(),
-    /invalid_value/,
-    "Should throw because last object was invalid."
-  );
 });
+
+add_task(
+  // FIXME(bug 1947194): JOG object metrics don't do schema validation yet
+  {
+    skip_if: () =>
+      Services.prefs.getBoolPref("telemetry.fog.artifact_build", false),
+  },
+  async function test_fog_object_verifies_structure() {
+    // These values are coerced to null or removed.
+    let balloons = [
+      { colour: "inf", diameter: Infinity },
+      { colour: "negative-inf", diameter: -1 / 0 },
+      { colour: "nan", diameter: NaN },
+      { colour: "undef", diameter: undefined },
+    ];
+    Glean.testOnly.balloons.set(balloons);
+    let result = Glean.testOnly.balloons.testGetValue();
+    let expected = [
+      { colour: "inf" },
+      { colour: "negative-inf" },
+      { colour: "nan" },
+      { colour: "undef" },
+    ];
+    Assert.deepEqual(expected, result);
+
+    // colour != color.
+    let invalid = [{ color: "orange" }, { color: "red", diameter: "small" }];
+    Glean.testOnly.balloons.set(invalid);
+    Assert.throws(
+      () => Glean.testOnly.balloons.testGetValue(),
+      /invalid_value/,
+      "Should throw because last object was invalid."
+    );
+
+    Services.fog.testResetFOG();
+    // set again to ensure it's stored
+    balloons = [
+      { colour: "red", diameter: 5 },
+      { colour: "blue", diameter: 7 },
+    ];
+    Glean.testOnly.balloons.set(balloons);
+    result = Glean.testOnly.balloons.testGetValue();
+    Assert.deepEqual(balloons, result);
+
+    invalid = [{ colour: "red", diameter: 5, extra: "field" }];
+    Glean.testOnly.balloons.set(invalid);
+    Assert.throws(
+      () => Glean.testOnly.balloons.testGetValue(),
+      /invalid_value/,
+      "Should throw because last object was invalid."
+    );
+  }
+);
 
 add_task(async function test_fog_complex_object_works() {
   if (!Glean.testOnly.crashStack) {
@@ -631,20 +634,23 @@ add_task(async function test_fog_complex_object_works() {
   result = Glean.testOnly.crashStack.testGetValue();
   Assert.deepEqual(stack, result);
 
-  stack = {
-    status: "OK",
-    modules: [],
-  };
-  Glean.testOnly.crashStack.set(stack);
-  result = Glean.testOnly.crashStack.testGetValue();
-  Assert.deepEqual({ status: "OK" }, result);
+  // FIXME(bug 1947194): JOG object metrics don't do schema validation yet
+  if (!Services.prefs.getBoolPref("telemetry.fog.artifact_build", false)) {
+    stack = {
+      status: "OK",
+      modules: [],
+    };
+    Glean.testOnly.crashStack.set(stack);
+    result = Glean.testOnly.crashStack.testGetValue();
+    Assert.deepEqual({ status: "OK" }, result);
 
-  stack = {
-    status: "OK",
-  };
-  Glean.testOnly.crashStack.set(stack);
-  result = Glean.testOnly.crashStack.testGetValue();
-  Assert.deepEqual(stack, result);
+    stack = {
+      status: "OK",
+    };
+    Glean.testOnly.crashStack.set(stack);
+    result = Glean.testOnly.crashStack.testGetValue();
+    Assert.deepEqual(stack, result);
+  }
 });
 
 add_task(

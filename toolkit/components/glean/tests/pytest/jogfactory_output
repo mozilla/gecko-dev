@@ -30,6 +30,7 @@ use crate::private::{
     EventMetric,
     MemoryDistributionMetric,
     NumeratorMetric,
+    ObjectMetric,
     QuantityMetric,
     RateMetric,
     StringMetric,
@@ -88,6 +89,7 @@ pub(crate) mod __jog_metric_maps {
         Ping,
         LabeledMetric,
         NoExtraKeys,
+        RuntimeObject,
         BooleanMetric,
         CounterMetric,
         CustomDistributionMetric,
@@ -172,8 +174,7 @@ pub(crate) mod __jog_metric_maps {
 
     pub static EVENT_MAP: Lazy<Arc<RwLock<HashMap<MetricId, EventMetric<NoExtraKeys>>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
-    #[allow(dead_code)]
-    pub static OBJECT_MAP: Lazy<Arc<RwLock<HashMap<MetricId, ObjectMetric<()>>>>> =
+    pub static OBJECT_MAP: Lazy<Arc<RwLock<HashMap<MetricId, ObjectMetric<RuntimeObject>>>>> =
         Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 }
 
@@ -406,7 +407,21 @@ pub fn create_and_register_metric(
             metric32
         }
         "object" => {
-            return Err(Box::new(MetricTypeNotFoundError(metric_type.to_string())));
+            let meta = CommonMetricData {
+                name,
+                category,
+                send_in_pings,
+                lifetime,
+                disabled,
+                ..Default::default()
+            };
+            let metric = ObjectMetric::new(MetricId(metric_id), meta);
+            let metric32: u32 = (13 << 27) | metric_id;
+            assert!(
+                __jog_metric_maps::OBJECT_MAP.write()?.insert(MetricId(metric_id), metric).is_none(),
+                "We should never insert a runtime metric with an already-used id."
+            );
+            metric32
         }
         "quantity" => {
             let meta = CommonMetricData {

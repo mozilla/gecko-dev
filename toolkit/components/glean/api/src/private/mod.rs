@@ -54,7 +54,7 @@ pub use self::labeled_timing_distribution::LabeledTimingDistributionMetric;
 pub use self::memory_distribution::{LocalMemoryDistribution, MemoryDistributionMetric};
 pub use self::metric_getter::{MetricGetter, MetricId, SubMetricId};
 pub use self::numerator::NumeratorMetric;
-pub use self::object::ObjectMetric;
+pub use self::object::{ObjectMetric, RuntimeObject};
 pub use self::ping::Ping;
 pub use self::quantity::QuantityMetric as LabeledQuantityMetric;
 pub use self::quantity::QuantityMetric;

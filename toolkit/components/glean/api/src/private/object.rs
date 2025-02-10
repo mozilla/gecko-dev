@@ -46,6 +46,26 @@ impl gecko_profiler::ProfilerMarker for ObjectMetricMarker {
     }
 }
 
+/// A dynamic object at runtime.
+///
+/// Does not do any schema validation
+/// and just passes through the JSON string unmodified.
+#[derive(Clone)]
+pub struct RuntimeObject(serde_json::Value);
+
+impl ObjectSerialize for RuntimeObject {
+    fn from_str(obj: &str) -> Result<Self, glean::traits::ObjectError>
+    where
+        Self: Sized,
+    {
+        Ok(RuntimeObject(serde_json::Value::from_str(obj)?))
+    }
+
+    fn into_serialized_object(self) -> Result<serde_json::Value, glean::traits::ObjectError> {
+        Ok(self.0)
+    }
+}
+
 /// An object metric.
 pub enum ObjectMetric<K> {
     Parent {
