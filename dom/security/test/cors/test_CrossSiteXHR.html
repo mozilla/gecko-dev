@@ -45,6 +45,59 @@ function initTestCallback() {
   gen.next()
 }
 
+async function clearCORSPreflightCacheTest() {
+  // need to be on the parent process to access cors-preflight-cache service to:
+  // send the CORS preflight cache length to the content process (before clearing)
+  // clear the CORS preflight cache
+  // and send the cache length again (after clearing)
+  let script = SpecialPowers.loadChromeScript(function() {
+    addMessageListener("start", function(principal) {
+      try {
+        let preflightCache = Cc["@mozilla.org/network/cors-preflight-cache;1"]
+                                .getService(Ci.nsICORSPreflightCache);
+        let entries = preflightCache.getEntries(principal);
+        sendAsyncMessage("before", entries.length);
+
+        for (let entry of entries) {
+          preflightCache.clearEntry(entry);
+        }
+
+        let afterEntries = preflightCache.getEntries(principal);
+        sendAsyncMessage("after", afterEntries.length);
+      } catch (e) {
+        console.error("Failed to get or clear the CORS preflight cache", e);
+        sendAsyncMessage("before", -1);
+        sendAsyncMessage("after", -1);
+      }
+    });
+  });
+
+  // document.location.origin varies depending on --enable-xorigin-tests:
+  // .com or .org
+  // we pass the "opposite" url to the parent process (as principal)
+  let url = (document.location.origin == "https://example.org") ?
+      "https://example.com" : "https://example.org";
+  let oa = SpecialPowers.wrap(document).nodePrincipal.originAttributes;
+  let principal = SpecialPowers.Services.scriptSecurityManager
+      .createContentPrincipal(SpecialPowers.Services.io.newURI(url), oa);
+  script.sendAsyncMessage("start", principal);
+
+  // on the content process:
+  // assert on the expected CORS preflight cache sizes, before and after
+  await script.promiseOneMessage("before").then(val => {
+    // This check depends on the number of preflight cache items created
+    // by other tests in this file.
+    // For our purposes here, it is important only that the value is valid and
+    // indicating existing entries in the CORS preflight cache (positive values)
+    ok(val > 0, "CORS preflight cache size before clearing as expected");
+  });
+  await script.promiseOneMessage("after").then(val => {
+    is(val, 0, "CORS preflight cache empty after clearing");
+  });
+
+  SimpleTest.finish();
+}
+
 // eslint-disable-next-line complexity
 function* runTest() {
   var loader = document.getElementById('loader');
@@ -1537,10 +1590,10 @@ function* runTest() {
     }
   }
 
-
   SpecialPowers.clearUserPref("network.cookie.sameSite.laxByDefault");
   SpecialPowers.clearUserPref("browser.contentblocking.category");
-  SimpleTest.finish();
+
+  clearCORSPreflightCacheTest();
 }
 
 </script>
