@@ -415,6 +415,4 @@ add_task(async function test_keyboard_shortcut() {
     "false",
     "Glean event recorded that sidebar was collapsed/hidden with keyboard shortcut"
   );
-
-  Services.fog.testResetFOG();
 });

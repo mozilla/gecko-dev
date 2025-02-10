@@ -47,6 +47,12 @@ async function test_sidebar_hidden_on_popup() {
     "All View > Sidebar menu items are disabled on popup"
   );
 
+  // Try to show the sidebar launcher using the keyboard shortcut
+  popup.document.getElementById("toggleSidebarKb").doCommand();
+  // Give popup window a chance to display the sidebar (which it shouldn't).
+  await new Promise(resolve => ChromeUtils.idleDispatch(resolve));
+  ok(popupSidebar.hidden, "Sidebar is still hidden on popup window");
+
   // Bug 1925451 - Check that vertical tabs are visible in new window after opening popup
   await BrowserTestUtils.closeWindow(popup);
   const win2 = await BrowserTestUtils.openNewBrowserWindow();
