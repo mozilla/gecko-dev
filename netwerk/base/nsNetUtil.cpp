@@ -3930,7 +3930,7 @@ bool IsScriptLikeOrInvalid(const nsAString& aAs) {
       aAs.LowerCaseEqualsASCII("report") || aAs.LowerCaseEqualsASCII("style") ||
       aAs.LowerCaseEqualsASCII("track") || aAs.LowerCaseEqualsASCII("video") ||
       aAs.LowerCaseEqualsASCII("webidentity") ||
-      aAs.LowerCaseEqualsASCII("xslt"));
+      aAs.LowerCaseEqualsASCII("xslt") || aAs.LowerCaseEqualsASCII("json"));
 }
 
 bool CheckPreloadAttrs(const nsAttrValue& aAs, const nsAString& aType,
