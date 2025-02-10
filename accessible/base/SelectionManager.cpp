@@ -203,14 +203,20 @@ void SelectionManager::ProcessSelectionChanged(SelData* aSelData) {
 bool SelectionManager::SelectionRangeChanged(SelectionType aType,
                                              const dom::AbstractRange& aRange) {
   if (aType != SelectionType::eSpellCheck &&
-      aType != SelectionType::eTargetText) {
+      aType != SelectionType::eTargetText &&
+      aType != SelectionType::eHighlight) {
     // We don't need to handle range changes for this selection type.
     return false;
   }
   if (!GetAccService()) {
     return false;
   }
-  dom::Document* doc = aRange.GetStartContainer()->OwnerDoc();
+  nsINode* start = aRange.GetStartContainer();
+  if (!start) {
+    // This can happen when the document is being cleaned up.
+    return false;
+  }
+  dom::Document* doc = start->OwnerDoc();
   MOZ_ASSERT(doc);
   nsINode* node = aRange.GetClosestCommonInclusiveAncestor();
   HyperTextAccessible* acc = nsAccUtils::GetTextContainer(node);
