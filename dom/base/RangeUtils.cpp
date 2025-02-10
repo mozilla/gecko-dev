@@ -101,8 +101,8 @@ bool RangeUtils::IsValidPoints(
   // Instead, check one by one since it is easier to catch the error reason
   // with debugger.
 
-  if (ComputeRootNode(aStartBoundary.Container()) !=
-      ComputeRootNode(aEndBoundary.Container())) {
+  if (ComputeRootNode(aStartBoundary.GetContainer()) !=
+      ComputeRootNode(aEndBoundary.GetContainer())) {
     return false;
   }
 
@@ -208,7 +208,7 @@ nsresult RangeUtils::CompareNodeToRangeBoundaries(
 
   // is RANGE(start) <= NODE(start) ?
   Maybe<int32_t> order = nsContentUtils::ComparePoints_AllowNegativeOffsets(
-      aStartBoundary.Container(),
+      aStartBoundary.GetContainer(),
       *aStartBoundary.Offset(
           RangeBoundaryBase<SPT, SRT>::OffsetFilter::kValidOrInvalidOffsets),
       parent, nodeStart);
@@ -218,7 +218,7 @@ nsresult RangeUtils::CompareNodeToRangeBoundaries(
   *aNodeIsBeforeRange = *order > 0;
   // is RANGE(end) >= NODE(end) ?
   order = nsContentUtils::ComparePointsWithIndices(
-      aEndBoundary.Container(),
+      aEndBoundary.GetContainer(),
       *aEndBoundary.Offset(
           RangeBoundaryBase<EPT, ERT>::OffsetFilter::kValidOrInvalidOffsets),
       parent, nodeEnd);

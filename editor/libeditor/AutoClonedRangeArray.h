@@ -279,7 +279,7 @@ class MOZ_STACK_CLASS AutoClonedRangeArray {
                                                : mAnchorFocusRange->EndRef();
   }
   [[nodiscard]] nsINode* GetAnchorNode() const {
-    return AnchorRef().IsSet() ? AnchorRef().Container() : nullptr;
+    return AnchorRef().IsSet() ? AnchorRef().GetContainer() : nullptr;
   }
   [[nodiscard]] uint32_t GetAnchorOffset() const {
     return AnchorRef().IsSet()
@@ -301,7 +301,7 @@ class MOZ_STACK_CLASS AutoClonedRangeArray {
                                                : mAnchorFocusRange->StartRef();
   }
   [[nodiscard]] nsINode* GetFocusNode() const {
-    return FocusRef().IsSet() ? FocusRef().Container() : nullptr;
+    return FocusRef().IsSet() ? FocusRef().GetContainer() : nullptr;
   }
   [[nodiscard]] uint32_t FocusOffset() const {
     return FocusRef().IsSet()

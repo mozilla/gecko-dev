@@ -4445,7 +4445,7 @@ Result<RefPtr<Element>, nsresult> HTMLEditor::GetSelectedOrParentTableElement(
   }
 
   // If anchor selects a <td>, <table> or <tr>, return it.
-  if (anchorRef.Container()->HasChildNodes()) {
+  if (anchorRef.GetContainer()->HasChildNodes()) {
     nsIContent* selectedContent = anchorRef.GetChildAtOffset();
     if (selectedContent) {
       // XXX Why do we ignore <th> element in this case?
@@ -4466,14 +4466,14 @@ Result<RefPtr<Element>, nsresult> HTMLEditor::GetSelectedOrParentTableElement(
     }
   }
 
-  if (NS_WARN_IF(!anchorRef.Container()->IsContent())) {
+  if (NS_WARN_IF(!anchorRef.GetContainer()->IsContent())) {
     return RefPtr<Element>();
   }
 
   // Then, look for a cell element (either <td> or <th>) which contains
   // the anchor container.
   cellElement = GetInclusiveAncestorByTagNameInternal(
-      *nsGkAtoms::td, *anchorRef.Container()->AsContent());
+      *nsGkAtoms::td, *anchorRef.GetContainer()->AsContent());
   if (!cellElement) {
     return RefPtr<Element>();  // Not in table.
   }

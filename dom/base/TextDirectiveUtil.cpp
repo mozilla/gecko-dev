@@ -287,7 +287,7 @@ TextDirectiveUtil::RangeContentAsFoldCase(nsRange* aRange) {
 TextDirectiveUtil::MoveBoundaryToNextNonWhitespacePosition(
     const RangeBoundary& aRangeBoundary) {
   MOZ_ASSERT(aRangeBoundary.IsSetAndValid());
-  nsINode* node = aRangeBoundary.Container();
+  nsINode* node = aRangeBoundary.GetContainer();
   uint32_t offset =
       *aRangeBoundary.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
   while (node) {
@@ -320,7 +320,7 @@ TextDirectiveUtil::MoveBoundaryToNextNonWhitespacePosition(
 TextDirectiveUtil::MoveBoundaryToPreviousNonWhitespacePosition(
     const RangeBoundary& aRangeBoundary) {
   MOZ_ASSERT(aRangeBoundary.IsSetAndValid());
-  nsINode* node = aRangeBoundary.Container();
+  nsINode* node = aRangeBoundary.GetContainer();
   uint32_t offset =
       *aRangeBoundary.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
   // Decrement offset by one so that the actual previous character is used. This
@@ -455,8 +455,8 @@ TextDirectiveUtil::FindBlockBoundaryInRange(const nsRange& aRange,
         }
         return true;
       };
-  const nsINode* node1 = aRangeBoundary1.Container();
-  const nsINode* node2 = aRangeBoundary2.Container();
+  const nsINode* node1 = aRangeBoundary1.GetContainer();
+  const nsINode* node2 = aRangeBoundary2.GetContainer();
   size_t offset1 =
       *aRangeBoundary1.Offset(RangeBoundary::OffsetFilter::kValidOffsets);
   size_t offset2 =
@@ -491,7 +491,7 @@ TextDirectiveUtil::FindBlockBoundaryInRange(const nsRange& aRange,
     if (!node || !TextDirectiveUtil::NodeIsVisibleTextNode(*node)) {
       continue;
     }
-    if (node == firstBoundary->Container()) {
+    if (node == firstBoundary->GetContainer()) {
       auto firstOffset =
           *firstBoundary->Offset(RangeBoundary::OffsetFilter::kValidOffsets);
       if (firstOffset == node->Length()) {
@@ -505,7 +505,7 @@ TextDirectiveUtil::FindBlockBoundaryInRange(const nsRange& aRange,
         }
       }
     }
-    if (node == secondBoundary->Container()) {
+    if (node == secondBoundary->GetContainer()) {
       auto secondOffset =
           *secondBoundary->Offset(RangeBoundary::OffsetFilter::kValidOffsets);
       if (secondOffset == 0) {

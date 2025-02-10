@@ -101,7 +101,7 @@ static bool IsDOMWordSeparator(char16_t ch) {
 
 bool NodeOffset::operator==(
     const mozilla::RangeBoundary& aRangeBoundary) const {
-  if (aRangeBoundary.Container() != mNode) {
+  if (aRangeBoundary.GetContainer() != mNode) {
     return false;
   }
 

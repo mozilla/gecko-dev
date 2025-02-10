@@ -35,11 +35,11 @@ class CrossShadowBoundaryRange final : public StaticRange,
       const RangeBoundaryBase<EPT, ERT>& aEndBoundary, nsRange* aOwner);
 
   void NotifyNodeBecomesShadowHost(nsINode* aNode) {
-    if (aNode == mStart.Container()) {
+    if (aNode == mStart.GetContainer()) {
       mStart.NotifyParentBecomesShadowHost();
     }
 
-    if (aNode == mEnd.Container()) {
+    if (aNode == mEnd.GetContainer()) {
       mEnd.NotifyParentBecomesShadowHost();
     }
   }

@@ -59,11 +59,11 @@ SelectionMovementUtils::MoveRangeBoundaryToSomewhere(
   if (!aRangeBoundary.IsSetAndValid()) {
     return Err(NS_ERROR_FAILURE);
   }
-  if (!aRangeBoundary.Container()->IsContent()) {
+  if (!aRangeBoundary.GetContainer()->IsContent()) {
     return Err(NS_ERROR_FAILURE);
   }
   Result<PeekOffsetStruct, nsresult> result = PeekOffsetForCaretMove(
-      aRangeBoundary.Container()->AsContent(),
+      aRangeBoundary.GetContainer()->AsContent(),
       *aRangeBoundary.Offset(
           RangeBoundaryBase<ParentType,
                             RefType>::OffsetFilter::kValidOrInvalidOffsets),

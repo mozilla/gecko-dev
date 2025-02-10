@@ -68,8 +68,8 @@ class MOZ_STACK_CLASS ContentEventHandler {
 
     bool IsPositioned() const { return mStart.IsSet() && mEnd.IsSet(); }
     bool Collapsed() const { return mStart == mEnd && IsPositioned(); }
-    nsINode* GetStartContainer() const { return mStart.Container(); }
-    nsINode* GetEndContainer() const { return mEnd.Container(); }
+    nsINode* GetStartContainer() const { return mStart.GetContainer(); }
+    nsINode* GetEndContainer() const { return mEnd.GetContainer(); }
     uint32_t StartOffset() const {
       return *mStart.Offset(
           RangeBoundaryType::OffsetFilter::kValidOrInvalidOffsets);
@@ -303,10 +303,10 @@ class MOZ_STACK_CLASS ContentEventHandler {
     }
 
     bool IsBeforeOpenTag() const {
-      return IsSet() && Container()->IsElement() && !Ref() && !mAfterOpenTag;
+      return IsSet() && GetContainer()->IsElement() && !Ref() && !mAfterOpenTag;
     }
     bool IsImmediatelyAfterOpenTag() const {
-      return IsSet() && Container()->IsElement() && !Ref() && mAfterOpenTag;
+      return IsSet() && GetContainer()->IsElement() && !Ref() && mAfterOpenTag;
     }
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED

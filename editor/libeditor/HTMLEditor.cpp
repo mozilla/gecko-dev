@@ -3492,7 +3492,7 @@ already_AddRefed<Element> HTMLEditor::GetSelectedElement(const nsAtom* aTagName,
   }
 
   // Optimization for a single selected element
-  if (startRef.Container() == endRef.Container()) {
+  if (startRef.GetContainer() == endRef.GetContainer()) {
     nsIContent* startContent = startRef.GetChildAtOffset();
     nsIContent* endContent = endRef.GetChildAtOffset();
     if (startContent && endContent &&
@@ -3515,11 +3515,11 @@ already_AddRefed<Element> HTMLEditor::GetSelectedElement(const nsAtom* aTagName,
     }
   }
 
-  if (isLinkTag && startRef.Container()->IsContent() &&
-      endRef.Container()->IsContent()) {
+  if (isLinkTag && startRef.GetContainer()->IsContent() &&
+      endRef.GetContainer()->IsContent()) {
     // Link node must be the same for both ends of selection.
     Element* parentLinkOfStart = GetInclusiveAncestorByTagNameInternal(
-        *nsGkAtoms::href, *startRef.Container()->AsContent());
+        *nsGkAtoms::href, *startRef.GetContainer()->AsContent());
     if (parentLinkOfStart) {
       if (SelectionRef().IsCollapsed()) {
         // We have just a caret in the link.
@@ -3527,7 +3527,7 @@ already_AddRefed<Element> HTMLEditor::GetSelectedElement(const nsAtom* aTagName,
       }
       // Link node must be the same for both ends of selection.
       Element* parentLinkOfEnd = GetInclusiveAncestorByTagNameInternal(
-          *nsGkAtoms::href, *endRef.Container()->AsContent());
+          *nsGkAtoms::href, *endRef.GetContainer()->AsContent());
       if (parentLinkOfStart == parentLinkOfEnd) {
         return do_AddRef(parentLinkOfStart);
       }
@@ -7054,8 +7054,8 @@ Element* HTMLEditor::GetSelectionContainerElement() const {
       // when only one node is selected.  However, it simply returns start
       // node of Selection with additional cost.  So, we do not need to call
       // it anymore.
-      if (startRef.Container()->IsElement() &&
-          startRef.Container() == endRef.Container() &&
+      if (startRef.GetContainer()->IsElement() &&
+          startRef.GetContainer() == endRef.GetContainer() &&
           startRef.GetChildAtOffset() &&
           startRef.GetChildAtOffset()->GetNextSibling() ==
               endRef.GetChildAtOffset()) {

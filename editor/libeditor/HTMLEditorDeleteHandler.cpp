@@ -5046,7 +5046,7 @@ void HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
     if (lastVisibleThingBeforeRightChildBlock.GetContent()) {
       const nsIContent* commonAncestor = nsIContent::FromNode(
           nsContentUtils::GetClosestCommonInclusiveAncestor(
-              aRangeToDelete.StartRef().Container(),
+              aRangeToDelete.StartRef().GetContainer(),
               lastVisibleThingBeforeRightChildBlock.GetContent()));
       MOZ_ASSERT(commonAncestor);
       if (commonAncestor &&

@@ -342,9 +342,9 @@ const nsTHashSet<const nsINode*>& SelectionNodeCache::MaybeCollect(
       const RangeBoundary& endRef = range->MayCrossShadowBoundaryEndRef();
 
       const nsINode* startContainer =
-          startRef.IsStartOfContainer() ? nullptr : startRef.Container();
+          startRef.IsStartOfContainer() ? nullptr : startRef.GetContainer();
       const nsINode* endContainer =
-          endRef.IsEndOfContainer() ? nullptr : endRef.Container();
+          endRef.IsEndOfContainer() ? nullptr : endRef.GetContainer();
       UnsafePreContentIterator iter;
       nsresult rv = iter.Init(range);
       if (NS_FAILED(rv)) {
@@ -2689,7 +2689,7 @@ void Selection::CollapseInternal(InLimiter aInLimiter,
     return;
   }
 
-  if (aPoint.Container()->NodeType() == nsINode::DOCUMENT_TYPE_NODE) {
+  if (aPoint.GetContainer()->NodeType() == nsINode::DOCUMENT_TYPE_NODE) {
     aRv.ThrowInvalidNodeTypeError(kNoDocumentTypeNodeError);
     return;
   }
@@ -2703,7 +2703,7 @@ void Selection::CollapseInternal(InLimiter aInLimiter,
     return;
   }
 
-  if (!HasSameRootOrSameComposedDoc(*aPoint.Container())) {
+  if (!HasSameRootOrSameComposedDoc(*aPoint.GetContainer())) {
     // Return with no error
     return;
   }
@@ -2711,7 +2711,7 @@ void Selection::CollapseInternal(InLimiter aInLimiter,
   RefPtr<nsFrameSelection> frameSelection = mFrameSelection;
   frameSelection->InvalidateDesiredCaretPos();
   if (aInLimiter == InLimiter::eYes &&
-      !frameSelection->NodeIsInLimiters(aPoint.Container())) {
+      !frameSelection->NodeIsInLimiters(aPoint.GetContainer())) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -2719,7 +2719,7 @@ void Selection::CollapseInternal(InLimiter aInLimiter,
 
   RefPtr<nsPresContext> presContext = GetPresContext();
   if (!presContext ||
-      presContext->Document() != aPoint.Container()->OwnerDoc()) {
+      presContext->Document() != aPoint.GetContainer()->OwnerDoc()) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -2734,7 +2734,7 @@ void Selection::CollapseInternal(InLimiter aInLimiter,
   frameSelection->SetHint(ComputeCaretAssociationHint(
       frameSelection->GetHint(), frameSelection->GetCaretBidiLevel(), aPoint));
 
-  RefPtr<nsRange> range = nsRange::Create(aPoint.Container());
+  RefPtr<nsRange> range = nsRange::Create(aPoint.GetContainer());
   result = range->CollapseTo(aPoint);
   if (NS_FAILED(result)) {
     aRv.Throw(result);
@@ -2742,8 +2742,8 @@ void Selection::CollapseInternal(InLimiter aInLimiter,
   }
 
 #ifdef DEBUG_SELECTION
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aPoint.Container());
-  nsCOMPtr<Document> doc = do_QueryInterface(aPoint.Container());
+  nsCOMPtr<nsIContent> content = do_QueryInterface(aPoint.GetContainer());
+  nsCOMPtr<Document> doc = do_QueryInterface(aPoint.GetContainer());
   printf("Sel. Collapse to %p %s %d\n", container.get(),
          content ? nsAtomCString(content->NodeInfo()->NameAtom()).get()
                  : (doc ? "DOCUMENT" : "???"),
@@ -4165,8 +4165,8 @@ void Selection::SetBaseAndExtentInternal(InLimiter aInLimiter,
     return;
   }
 
-  if (!HasSameRootOrSameComposedDoc(*aAnchorRef.Container()) ||
-      !HasSameRootOrSameComposedDoc(*aFocusRef.Container())) {
+  if (!HasSameRootOrSameComposedDoc(*aAnchorRef.GetContainer()) ||
+      !HasSameRootOrSameComposedDoc(*aFocusRef.GetContainer())) {
     // Return with no error
     return;
   }
@@ -4251,12 +4251,12 @@ void Selection::SetStartAndEndInternal(InLimiter aInLimiter,
 
   if (aInLimiter == InLimiter::eYes) {
     if (!mFrameSelection ||
-        !mFrameSelection->NodeIsInLimiters(aStartRef.Container())) {
+        !mFrameSelection->NodeIsInLimiters(aStartRef.GetContainer())) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
     }
-    if (aStartRef.Container() != aEndRef.Container() &&
-        !mFrameSelection->NodeIsInLimiters(aEndRef.Container())) {
+    if (aStartRef.GetContainer() != aEndRef.GetContainer() &&
+        !mFrameSelection->NodeIsInLimiters(aEndRef.GetContainer())) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
     }

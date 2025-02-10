@@ -350,7 +350,7 @@ class Selection final : public nsSupportsWeakReference,
   // WebIDL methods
   nsINode* GetAnchorNode(CallerType aCallerType = CallerType::System) const {
     const RangeBoundary& anchor = AnchorRef();
-    nsINode* anchorNode = anchor.IsSet() ? anchor.Container() : nullptr;
+    nsINode* anchorNode = anchor.IsSet() ? anchor.GetContainer() : nullptr;
     if (!anchorNode || aCallerType == CallerType::System ||
         !anchorNode->ChromeOnlyAccess()) {
       return anchorNode;
@@ -361,7 +361,7 @@ class Selection final : public nsSupportsWeakReference,
   uint32_t AnchorOffset(CallerType aCallerType = CallerType::System) const {
     const RangeBoundary& anchor = AnchorRef();
     if (aCallerType != CallerType::System && anchor.IsSet() &&
-        anchor.Container()->ChromeOnlyAccess()) {
+        anchor.GetContainer()->ChromeOnlyAccess()) {
       return 0;
     }
     const Maybe<uint32_t> offset =
@@ -370,7 +370,7 @@ class Selection final : public nsSupportsWeakReference,
   }
   nsINode* GetFocusNode(CallerType aCallerType = CallerType::System) const {
     const RangeBoundary& focus = FocusRef();
-    nsINode* focusNode = focus.IsSet() ? focus.Container() : nullptr;
+    nsINode* focusNode = focus.IsSet() ? focus.GetContainer() : nullptr;
     if (!focusNode || aCallerType == CallerType::System ||
         !focusNode->ChromeOnlyAccess()) {
       return focusNode;
@@ -381,7 +381,7 @@ class Selection final : public nsSupportsWeakReference,
   uint32_t FocusOffset(CallerType aCallerType = CallerType::System) const {
     const RangeBoundary& focus = FocusRef();
     if (aCallerType != CallerType::System && focus.IsSet() &&
-        focus.Container()->ChromeOnlyAccess()) {
+        focus.GetContainer()->ChromeOnlyAccess()) {
       return 0;
     }
     const Maybe<uint32_t> offset =
@@ -391,7 +391,7 @@ class Selection final : public nsSupportsWeakReference,
 
   nsINode* GetMayCrossShadowBoundaryAnchorNode() const {
     const RangeBoundary& anchor = AnchorRef(AllowRangeCrossShadowBoundary::Yes);
-    return anchor.IsSet() ? anchor.Container() : nullptr;
+    return anchor.IsSet() ? anchor.GetContainer() : nullptr;
   }
 
   uint32_t MayCrossShadowBoundaryAnchorOffset() const {
@@ -403,7 +403,7 @@ class Selection final : public nsSupportsWeakReference,
 
   nsINode* GetMayCrossShadowBoundaryFocusNode() const {
     const RangeBoundary& focus = FocusRef(AllowRangeCrossShadowBoundary::Yes);
-    return focus.IsSet() ? focus.Container() : nullptr;
+    return focus.IsSet() ? focus.GetContainer() : nullptr;
   }
 
   uint32_t MayCrossShadowBoundaryFocusOffset() const {

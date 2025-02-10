@@ -194,11 +194,11 @@ class RangeBoundaryBase {
     // `mRef` may have become invalid due to some DOM mutation,
     // which is not monitored here. Therefore, we need to validate `mRef`
     // manually.
-    if (*mOffset > Container()->Length()) {
+    if (*mOffset > GetContainer()->Length()) {
       // offset > child count means that the range boundary has become invalid
       // due to a DOM mutation.
       mRef = nullptr;
-    } else if (*mOffset == Container()->Length()) {
+    } else if (*mOffset == GetContainer()->Length()) {
       mRef = mParent->GetLastChild();
     } else if (*mOffset) {
       // validate and update `mRef`.
@@ -216,7 +216,7 @@ class RangeBoundaryBase {
     return mRef;
   }
 
-  RawParentType* Container() const { return mParent; }
+  RawParentType* GetContainer() const { return mParent; }
 
   dom::Document* GetComposedDoc() const {
     return mParent ? mParent->GetComposedDoc() : nullptr;
@@ -319,7 +319,7 @@ class RangeBoundaryBase {
             DetermineOffsetFromReference();
           }
         }
-        return !mIsMutationObserved && *mOffset > Container()->Length()
+        return !mIsMutationObserved && *mOffset > GetContainer()->Length()
                    ? Nothing{}
                    : mOffset;
       }
@@ -349,10 +349,11 @@ class RangeBoundaryBase {
   friend std::ostream& operator<<(
       std::ostream& aStream,
       const RangeBoundaryBase<ParentType, RefType>& aRangeBoundary) {
-    aStream << "{ mParent=" << aRangeBoundary.Container();
-    if (aRangeBoundary.Container()) {
-      aStream << " (" << *aRangeBoundary.Container()
-              << ", Length()=" << aRangeBoundary.Container()->Length() << ")";
+    aStream << "{ mParent=" << aRangeBoundary.GetContainer();
+    if (aRangeBoundary.GetContainer()) {
+      aStream << " (" << *aRangeBoundary.GetContainer()
+              << ", Length()=" << aRangeBoundary.GetContainer()->Length()
+              << ")";
     }
     if (aRangeBoundary.mIsMutationObserved) {
       aStream << ", mRef=" << aRangeBoundary.mRef;
@@ -448,11 +449,12 @@ class RangeBoundaryBase {
       // XXX mRef refers previous sibling of pointing child.  Therefore, it
       //     seems odd that this becomes invalid due to its removal.  Should we
       //     change RangeBoundaryBase to refer child at offset directly?
-      return Ref()->GetParentNode() == Container() && !Ref()->IsBeingRemoved();
+      return Ref()->GetParentNode() == GetContainer() &&
+             !Ref()->IsBeingRemoved();
     }
 
     MOZ_ASSERT(mOffset.isSome());
-    return *mOffset <= Container()->Length();
+    return *mOffset <= GetContainer()->Length();
   }
 
   bool IsStartOfContainer() const {
@@ -465,12 +467,12 @@ class RangeBoundaryBase {
 
   bool IsEndOfContainer() const {
     // We're at the last point in the container if Ref is a pointer to the last
-    // child in Container(), or our Offset() is the same as the length of our
+    // child in GetContainer(), or our Offset() is the same as the length of our
     // container. If we don't have a Ref, then we should already have an offset,
     // so we can just directly fetch it.
     return mIsMutationObserved && Ref()
                ? !Ref()->GetNextSibling()
-               : mOffset.value() == Container()->Length();
+               : mOffset.value() == GetContainer()->Length();
   }
 
   // Convenience methods for switching between the two types

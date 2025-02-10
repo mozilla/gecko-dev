@@ -468,13 +468,13 @@ class nsRange final : public mozilla::dom::AbstractRange,
   nsINode* GetMayCrossShadowBoundaryStartContainer() const {
     return mCrossShadowBoundaryRange
                ? mCrossShadowBoundaryRange->GetStartContainer()
-               : mStart.Container();
+               : mStart.GetContainer();
   }
 
   nsINode* GetMayCrossShadowBoundaryEndContainer() const {
     return mCrossShadowBoundaryRange
                ? mCrossShadowBoundaryRange->GetEndContainer()
-               : mEnd.Container();
+               : mEnd.GetContainer();
   }
 
   uint32_t MayCrossShadowBoundaryStartOffset() const {

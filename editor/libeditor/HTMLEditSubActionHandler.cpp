@@ -6108,9 +6108,9 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleOutdentAtSelection(
     if (NS_WARN_IF(!atStartOfSelection.IsSet())) {
       return Err(NS_ERROR_FAILURE);
     }
-    if (atStartOfSelection.Container() ==
+    if (atStartOfSelection.GetContainer() ==
             unwrappedOutdentResult.GetLeftContent() ||
-        EditorUtils::IsDescendantOf(*atStartOfSelection.Container(),
+        EditorUtils::IsDescendantOf(*atStartOfSelection.GetContainer(),
                                     *unwrappedOutdentResult.GetLeftContent())) {
       // Selection is inside the left node - push it past it.
       EditorRawDOMPoint afterRememberedLeftBQ(
@@ -6138,10 +6138,10 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleOutdentAtSelection(
     if (NS_WARN_IF(!atStartOfSelection.IsSet())) {
       return Err(NS_ERROR_FAILURE);
     }
-    if (atStartOfSelection.Container() ==
+    if (atStartOfSelection.GetContainer() ==
             unwrappedOutdentResult.GetRightContent() ||
         EditorUtils::IsDescendantOf(
-            *atStartOfSelection.Container(),
+            *atStartOfSelection.GetContainer(),
             *unwrappedOutdentResult.GetRightContent())) {
       // Selection is inside the right element - push it before it.
       EditorRawDOMPoint atRememberedRightBQ(
@@ -10172,9 +10172,9 @@ nsresult HTMLEditor::ReapplyCachedStyles() {
   const RangeBoundary& atStartOfSelection =
       SelectionRef().GetRangeAt(0)->StartRef();
   const RefPtr<Element> startContainerElement =
-      atStartOfSelection.Container() &&
-              atStartOfSelection.Container()->IsContent()
-          ? atStartOfSelection.Container()->GetAsElementOrParentElement()
+      atStartOfSelection.GetContainer() &&
+              atStartOfSelection.GetContainer()->IsContent()
+          ? atStartOfSelection.GetContainer()->GetAsElementOrParentElement()
           : nullptr;
   if (NS_WARN_IF(!startContainerElement)) {
     return NS_OK;

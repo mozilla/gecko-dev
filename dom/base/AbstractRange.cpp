@@ -314,7 +314,7 @@ nsresult AbstractRange::SetStartAndEndInternal(
   }
 
   nsINode* newStartRoot =
-      RangeUtils::ComputeRootNode(aStartBoundary.Container());
+      RangeUtils::ComputeRootNode(aStartBoundary.GetContainer());
   if (!newStartRoot) {
     return NS_ERROR_DOM_INVALID_NODE_TYPE_ERR;
   }
@@ -322,7 +322,7 @@ nsresult AbstractRange::SetStartAndEndInternal(
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
 
-  if (aStartBoundary.Container() == aEndBoundary.Container()) {
+  if (aStartBoundary.GetContainer() == aEndBoundary.GetContainer()) {
     if (!aEndBoundary.IsSetAndValid()) {
       return NS_ERROR_DOM_INDEX_SIZE_ERR;
     }
@@ -340,7 +340,8 @@ nsresult AbstractRange::SetStartAndEndInternal(
     return NS_OK;
   }
 
-  nsINode* newEndRoot = RangeUtils::ComputeRootNode(aEndBoundary.Container());
+  nsINode* newEndRoot =
+      RangeUtils::ComputeRootNode(aEndBoundary.GetContainer());
   if (!newEndRoot) {
     return NS_ERROR_DOM_INVALID_NODE_TYPE_ERR;
   }
@@ -538,13 +539,13 @@ nsIContent* AbstractRange::GetMayCrossShadowBoundaryChildAtEndOffset() const {
 nsINode* AbstractRange::GetMayCrossShadowBoundaryStartContainer() const {
   return IsDynamicRange()
              ? AsDynamicRange()->GetMayCrossShadowBoundaryStartContainer()
-             : mStart.Container();
+             : mStart.GetContainer();
 }
 
 nsINode* AbstractRange::GetMayCrossShadowBoundaryEndContainer() const {
   return IsDynamicRange()
              ? AsDynamicRange()->GetMayCrossShadowBoundaryEndContainer()
-             : mEnd.Container();
+             : mEnd.GetContainer();
 }
 
 bool AbstractRange::MayCrossShadowBoundary() const {

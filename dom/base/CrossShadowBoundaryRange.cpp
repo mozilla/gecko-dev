@@ -90,12 +90,12 @@ already_AddRefed<CrossShadowBoundaryRange> CrossShadowBoundaryRange::Create(
     const RangeBoundaryBase<EPT, ERT>& aEndBoundary, nsRange* aOwner) {
   RefPtr<CrossShadowBoundaryRange> range;
   if (!sCachedRanges || sCachedRanges->IsEmpty()) {
-    range = new CrossShadowBoundaryRange(aStartBoundary.Container(), aOwner);
+    range = new CrossShadowBoundaryRange(aStartBoundary.GetContainer(), aOwner);
   } else {
     range = sCachedRanges->PopLastElement().forget();
   }
 
-  range->Init(aStartBoundary.Container());
+  range->Init(aStartBoundary.GetContainer());
   range->DoSetRange(aStartBoundary, aEndBoundary, nullptr, aOwner);
   return range.forget();
 }
@@ -109,8 +109,8 @@ void CrossShadowBoundaryRange::DoSetRange(
   // and aEndBoundary could have different roots.
   StaticRange::DoSetRange(aStartBoundary, aEndBoundary, nullptr);
 
-  nsINode* startRoot = RangeUtils::ComputeRootNode(mStart.Container());
-  nsINode* endRoot = RangeUtils::ComputeRootNode(mEnd.Container());
+  nsINode* startRoot = RangeUtils::ComputeRootNode(mStart.GetContainer());
+  nsINode* endRoot = RangeUtils::ComputeRootNode(mEnd.GetContainer());
 
   nsINode* previousCommonAncestor = mCommonAncestor;
   if (startRoot == endRoot) {
@@ -122,7 +122,7 @@ void CrossShadowBoundaryRange::DoSetRange(
   } else {
     mCommonAncestor =
         nsContentUtils::GetClosestCommonShadowIncludingInclusiveAncestor(
-            mStart.Container(), mEnd.Container());
+            mStart.GetContainer(), mEnd.GetContainer());
     MOZ_ASSERT_IF(mOwner, mOwner == aOwner);
     if (!mOwner) {
       mOwner = aOwner;
@@ -150,8 +150,8 @@ void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild,
 
   RefPtr<CrossShadowBoundaryRange> kungFuDeathGrip(this);
 
-  const nsINode* startContainer = mStart.Container();
-  const nsINode* endContainer = mEnd.Container();
+  const nsINode* startContainer = mStart.GetContainer();
+  const nsINode* endContainer = mEnd.GetContainer();
 
   if (startContainer == aChild || endContainer == aChild) {
     mOwner->ResetCrossShadowBoundaryRange();
@@ -165,8 +165,8 @@ void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild,
     }
   }
 
-  if (mStart.Container()->IsShadowIncludingInclusiveDescendantOf(aChild) ||
-      mEnd.Container()->IsShadowIncludingInclusiveDescendantOf(aChild)) {
+  if (mStart.GetContainer()->IsShadowIncludingInclusiveDescendantOf(aChild) ||
+      mEnd.GetContainer()->IsShadowIncludingInclusiveDescendantOf(aChild)) {
     mOwner->ResetCrossShadowBoundaryRange();
     return;
   }
@@ -221,7 +221,7 @@ void CrossShadowBoundaryRange::CharacterDataChanged(
        &aInfo](const RangeBoundary& aBoundary) -> Maybe<RawRangeBoundary> {
     // If the changed node contains our start boundary and the change starts
     // before the boundary we'll need to adjust the offset.
-    if (aContent == aBoundary.Container() &&
+    if (aContent == aBoundary.GetContainer() &&
         // aInfo.mChangeStart is the offset where the change starts, if it's
         // smaller than the offset of aBoundary, it means the characters
         // before the selected content is changed (i.e, removed), so the

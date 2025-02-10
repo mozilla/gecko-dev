@@ -831,20 +831,20 @@ bool HyperTextAccessible::SelectionBoundsAt(int32_t aSelectionNum,
   const RangeBoundary& followingBoundary =
       *order < 0 ? range->StartRef() : range->EndRef();
 
-  if (!precedingBoundary.Container()->IsInclusiveDescendantOf(mContent)) {
+  if (!precedingBoundary.GetContainer()->IsInclusiveDescendantOf(mContent)) {
     *aStartOffset = 0;
   } else {
     *aStartOffset = DOMPointToOffset(
-        precedingBoundary.Container(),
+        precedingBoundary.GetContainer(),
         AssertedCast<int32_t>(*precedingBoundary.Offset(
             RangeBoundary::OffsetFilter::kValidOrInvalidOffsets)));
   }
 
-  if (!followingBoundary.Container()->IsInclusiveDescendantOf(mContent)) {
+  if (!followingBoundary.GetContainer()->IsInclusiveDescendantOf(mContent)) {
     *aEndOffset = CharacterCount();
   } else {
     *aEndOffset = DOMPointToOffset(
-        followingBoundary.Container(),
+        followingBoundary.GetContainer(),
         AssertedCast<int32_t>(*followingBoundary.Offset(
             RangeBoundary::OffsetFilter::kValidOrInvalidOffsets)),
         true);

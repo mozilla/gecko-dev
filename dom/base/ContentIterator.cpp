@@ -99,18 +99,19 @@ static bool NodeIsInTraversalRange(nsINode* aNode, bool aIsPreMode,
 
   // If a leaf node contains an end point of the traversal range, it is
   // always in the traversal range.
-  if (aNode == aStart.Container() || aNode == aEnd.Container()) {
+  if (aNode == aStart.GetContainer() || aNode == aEnd.GetContainer()) {
     if (aNode->IsCharacterData()) {
       return true;  // text node or something
     }
     if (!aNode->HasChildren()) {
       MOZ_ASSERT(
-          aNode != aStart.Container() || aStart.IsStartOfContainer(),
-          "aStart.Container() doesn't have children and not a data node, "
+          aNode != aStart.GetContainer() || aStart.IsStartOfContainer(),
+          "aStart.GetContainer() doesn't have children and not a data node, "
           "aStart should be at the beginning of its container");
-      MOZ_ASSERT(aNode != aEnd.Container() || aEnd.IsStartOfContainer(),
-                 "aEnd.Container() doesn't have children and not a data node, "
-                 "aEnd should be at the beginning of its container");
+      MOZ_ASSERT(
+          aNode != aEnd.GetContainer() || aEnd.IsStartOfContainer(),
+          "aEnd.GetContainer() doesn't have children and not a data node, "
+          "aEnd should be at the beginning of its container");
       return true;
     }
   }
@@ -256,7 +257,7 @@ class MOZ_STACK_CLASS ContentIteratorBase<NodeType>::Initializer final {
       : mIterator{aIterator},
         mStart{aStart},
         mEnd{aEnd},
-        mStartIsCharacterData{mStart.Container()->IsCharacterData()} {
+        mStartIsCharacterData{mStart.GetContainer()->IsCharacterData()} {
     MOZ_ASSERT(mStart.IsSetAndValid());
     MOZ_ASSERT(mEnd.IsSetAndValid());
   }
@@ -312,15 +313,15 @@ bool ContentIteratorBase<NodeType>::Initializer::IsCollapsedNonCharacterRange()
 template <typename NodeType>
 bool ContentIteratorBase<NodeType>::Initializer::IsSingleNodeCharacterRange()
     const {
-  return mStartIsCharacterData && mStart.Container() == mEnd.Container();
+  return mStartIsCharacterData && mStart.GetContainer() == mEnd.GetContainer();
 }
 
 template <typename NodeType>
 nsresult ContentIteratorBase<NodeType>::Initializer::Run() {
   // get common content parent
   mIterator.mClosestCommonInclusiveAncestor =
-      nsContentUtils::GetClosestCommonInclusiveAncestor(mStart.Container(),
-                                                        mEnd.Container());
+      nsContentUtils::GetClosestCommonInclusiveAncestor(mStart.GetContainer(),
+                                                        mEnd.GetContainer());
   if (NS_WARN_IF(!mIterator.mClosestCommonInclusiveAncestor)) {
     return NS_ERROR_FAILURE;
   }
@@ -338,7 +339,7 @@ nsresult ContentIteratorBase<NodeType>::Initializer::Run() {
   }
 
   if (IsSingleNodeCharacterRange()) {
-    mIterator.mFirst = mStart.Container()->AsContent();
+    mIterator.mFirst = mStart.GetContainer()->AsContent();
     mIterator.mLast = mIterator.mFirst;
     mIterator.mCurNode = mIterator.mFirst;
 
@@ -370,7 +371,7 @@ nsINode* ContentIteratorBase<NodeType>::Initializer::DetermineFirstNode()
   nsIContent* cChild = nullptr;
 
   // Try to get the child at our starting point. This might return null if
-  // mStart is immediately after the last node in mStart.Container().
+  // mStart is immediately after the last node in mStart.GetContainer().
   if (!mStartIsCharacterData) {
     cChild = mStart.GetChildAtOffset();
   }
@@ -388,15 +389,15 @@ nsINode* ContentIteratorBase<NodeType>::Initializer::DetermineFirstNode()
       // is a non-container node (e.g. <br>), we don't skip the node in this
       // case in order to address bug 1215798.
       bool startIsContainer = true;
-      if (mStart.Container()->IsHTMLElement()) {
-        nsAtom* name = mStart.Container()->NodeInfo()->NameAtom();
+      if (mStart.GetContainer()->IsHTMLElement()) {
+        nsAtom* name = mStart.GetContainer()->NodeInfo()->NameAtom();
         startIsContainer =
             nsHTMLElement::IsContainer(nsHTMLTags::AtomTagToId(name));
       }
       if (!mStartIsCharacterData &&
           (startIsContainer || !mStart.IsStartOfContainer())) {
         nsINode* const result =
-            ContentIteratorBase::GetNextSibling(mStart.Container());
+            ContentIteratorBase::GetNextSibling(mStart.GetContainer());
         NS_WARNING_ASSERTION(result, "GetNextSibling returned null");
 
         // Does mFirst node really intersect the range?  The range could be
@@ -409,15 +410,15 @@ nsINode* ContentIteratorBase<NodeType>::Initializer::DetermineFirstNode()
 
         return result;
       }
-      return mStart.Container()->AsContent();
+      return mStart.GetContainer()->AsContent();
     }
 
     // post-order
-    if (NS_WARN_IF(!mStart.Container()->IsContent())) {
+    if (NS_WARN_IF(!mStart.GetContainer()->IsContent())) {
       // What else can we do?
       return nullptr;
     }
-    return mStart.Container()->AsContent();
+    return mStart.GetContainer()->AsContent();
   }
 
   if (mIterator.mOrder == Order::Pre) {
@@ -441,12 +442,12 @@ nsINode* ContentIteratorBase<NodeType>::Initializer::DetermineFirstNode()
 template <typename NodeType>
 Result<nsINode*, nsresult>
 ContentIteratorBase<NodeType>::Initializer::DetermineLastNode() const {
-  const bool endIsCharacterData = mEnd.Container()->IsCharacterData();
+  const bool endIsCharacterData = mEnd.GetContainer()->IsCharacterData();
 
-  if (endIsCharacterData || !mEnd.Container()->HasChildren() ||
+  if (endIsCharacterData || !mEnd.GetContainer()->HasChildren() ||
       mEnd.IsStartOfContainer()) {
     if (mIterator.mOrder == Order::Pre) {
-      if (NS_WARN_IF(!mEnd.Container()->IsContent())) {
+      if (NS_WARN_IF(!mEnd.GetContainer()->IsContent())) {
         // Not much else to do here...
         return nullptr;
       }
@@ -455,13 +456,13 @@ ContentIteratorBase<NodeType>::Initializer::DetermineLastNode() const {
       // the last element should be the previous node (i.e., shouldn't
       // include the end node in the range).
       bool endIsContainer = true;
-      if (mEnd.Container()->IsHTMLElement()) {
-        nsAtom* name = mEnd.Container()->NodeInfo()->NameAtom();
+      if (mEnd.GetContainer()->IsHTMLElement()) {
+        nsAtom* name = mEnd.GetContainer()->NodeInfo()->NameAtom();
         endIsContainer =
             nsHTMLElement::IsContainer(nsHTMLTags::AtomTagToId(name));
       }
       if (!endIsCharacterData && !endIsContainer && mEnd.IsStartOfContainer()) {
-        nsINode* const result = mIterator.PrevNode(mEnd.Container());
+        nsINode* const result = mIterator.PrevNode(mEnd.GetContainer());
         NS_WARNING_ASSERTION(result, "PrevNode returned null");
         if (result && result != mIterator.mFirst &&
             NS_WARN_IF(!NodeIsInTraversalRange(
@@ -473,7 +474,7 @@ ContentIteratorBase<NodeType>::Initializer::DetermineLastNode() const {
         return result;
       }
 
-      return mEnd.Container()->AsContent();
+      return mEnd.GetContainer()->AsContent();
     }
 
     // post-order
@@ -483,7 +484,7 @@ ContentIteratorBase<NodeType>::Initializer::DetermineLastNode() const {
 
     if (!endIsCharacterData) {
       nsINode* const result =
-          ContentIteratorBase::GetPrevSibling(mEnd.Container());
+          ContentIteratorBase::GetPrevSibling(mEnd.GetContainer());
       NS_WARNING_ASSERTION(result, "GetPrevSibling returned null");
 
       if (!NodeIsInTraversalRange(result, mIterator.mOrder == Order::Pre,
@@ -492,7 +493,7 @@ ContentIteratorBase<NodeType>::Initializer::DetermineLastNode() const {
       }
       return result;
     }
-    return mEnd.Container()->AsContent();
+    return mEnd.GetContainer()->AsContent();
   }
 
   nsIContent* cChild = mEnd.Ref();

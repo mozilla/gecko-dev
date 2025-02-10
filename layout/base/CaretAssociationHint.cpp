@@ -29,11 +29,11 @@ CaretAssociationHint ComputeCaretAssociationHint(
     const RangeBoundaryBase<PT, CT>& aCaretPoint) {
   MOZ_ASSERT(aCaretPoint.IsSetAndValid());
   if (aDefault != CaretAssociationHint::Before ||
-      !aCaretPoint.Container()->IsContent()) {
+      !aCaretPoint.GetContainer()->IsContent()) {
     return aDefault;
   }
   const nsCaret::CaretPosition pos{
-      aCaretPoint.Container(),
+      aCaretPoint.GetContainer(),
       static_cast<int32_t>(*aCaretPoint.Offset(
           RangeBoundaryBase<PT, CT>::OffsetFilter::kValidOffsets)),
       aDefault, aBidiLevel};
@@ -46,12 +46,12 @@ CaretAssociationHint ComputeCaretAssociationHint(
     // any children.  So, this doesn't cause computing offset with expensive
     // method, nsINode::ComputeIndexOf().
     const bool caretPointIsAtEndOfFrame =
-        aCaretPoint.Container() == f->GetContent() &&
+        aCaretPoint.GetContainer() == f->GetContent() &&
         f->GetContentEnd() ==
             static_cast<int32_t>(*aCaretPoint.Offset(
                 RangeBoundaryBase<PT, CT>::OffsetFilter::kValidOffsets));
     const bool caretPointIsImmediatelyAfterFrameContent =
-        aCaretPoint.Container() == f->GetContent()->GetParentNode() &&
+        aCaretPoint.GetContainer() == f->GetContent()->GetParentNode() &&
         f->GetContent() == aCaretPoint.GetPreviousSiblingOfChildAtOffset();
     if (caretPointIsAtEndOfFrame || caretPointIsImmediatelyAfterFrameContent) {
       return CaretAssociationHint::After;
