@@ -58,12 +58,6 @@ loader.lazyRequireGetter(
   "resource://devtools/client/shared/sourceeditor/wasm.js"
 );
 
-loader.lazyRequireGetter(
-  this,
-  "scopeUtils",
-  "resource://devtools/client/shared/sourceeditor/scope-utils.js"
-);
-
 const { OS } = Services.appinfo;
 
 // CM_BUNDLE and CM_IFRAME represent the HTML and JavaScript that is
@@ -161,15 +155,6 @@ class Editor extends EventEmitter {
     text: { name: "text" },
     vs: { name: "x-shader/x-vertex" },
     wasm: { name: "wasm" },
-  };
-
-  static #symbolTypes = {
-    functions: new Set([
-      "FunctionExpression",
-      "FunctionDeclaration",
-      "ArrowFunction",
-      "MethodDeclaration",
-    ]),
   };
 
   container = null;
@@ -2080,9 +2065,6 @@ class Editor extends EventEmitter {
   }
 
   getDoc() {
-    if (!this.config) {
-      return null;
-    }
     const cm = editors.get(this);
     if (this.config.cm6) {
       if (!this.#currentDocument) {
@@ -2240,84 +2222,6 @@ class Editor extends EventEmitter {
       }
       return 0;
     });
-  }
-
-  /**
-   * Get all the lines which are inscope when paused a the specified location.
-   *
-   * @param {Object} location
-   * @param {Array} in scope lines
-   */
-  async getInScopeLines(location) {
-    const cm = editors.get(this);
-    const {
-      codemirrorLanguage: { syntaxTree, forceParsing },
-    } = this.#CodeMirror6;
-
-    // Converts the CM6 position to a source line
-    function posToLine(view, pos) {
-      const line = view.state.doc.lineAt(pos);
-      return line.number;
-    }
-
-    const functionLocations = [];
-    // Force parsing the source up to the end of the current viewport,
-    // Also increasing the timeout threshold so we make sure
-    // all required content is parsed (this is mostly needed for larger sources).
-    await forceParsing(cm, cm.viewport.to, 10000);
-    await syntaxTree(cm.state).iterate({
-      enter: node => {
-        if (Editor.#symbolTypes.functions.has(node.name)) {
-          functionLocations.push({
-            name: node.name,
-            startLine: posToLine(cm, node.from),
-            endLine: posToLine(cm, node.to),
-          });
-        }
-      },
-    });
-
-    // Sort based on the start locations so the scopes
-    // are in the same order as in the source.
-    const sortedLocations = scopeUtils.sortByStart(functionLocations);
-
-    // Any function locations which are within the immediate function scope
-    // of the paused location.
-    const innerLocations = scopeUtils.getInnerLocations(
-      sortedLocations,
-      location
-    );
-
-    // Any outer locations which do not contain the immediate function
-    // of the paused location
-    const outerLocations = sortedLocations.filter(loc => {
-      if (innerLocations.includes(loc)) {
-        return false;
-      }
-      return !scopeUtils.containsPosition(loc, location);
-    });
-
-    const outOfScopeLines = scopeUtils.getOutOfScopeLines(
-      scopeUtils.removeOverlapLocations(outerLocations)
-    );
-
-    // This operation can be very costly for large files so we sacrifice a bit of readability
-    // for performance sake.
-    // We initialize an array with a fixed size and we'll directly assign value for lines
-    // that are not out of scope. This is much faster than having an empty array and pushing
-    // into it.
-    const sourceNumLines = cm.state.doc.lines;
-    const sourceLines = new Array(sourceNumLines);
-    for (let i = 0; i < sourceNumLines; i++) {
-      const line = i + 1;
-      if (outOfScopeLines.size == 0 || !outOfScopeLines.has(line)) {
-        sourceLines[i] = line;
-      }
-    }
-
-    // Finally we need to remove any undefined values, i.e. the ones that were matching
-    // out of scope lines.
-    return sourceLines.filter(i => i != undefined);
   }
 
   /**
@@ -3275,7 +3179,7 @@ class Editor extends EventEmitter {
    */
   #posToLineColumn(pos) {
     const cm = editors.get(this);
-    if (pos == null) {
+    if (!pos) {
       return {
         line: null,
         column: null,
@@ -3347,9 +3251,9 @@ class Editor extends EventEmitter {
    * @param {Number} line - The line in the source
    * @param {Number} column - The column in the source
    */
-  async scrollTo(line, column) {
+  scrollTo(line, column) {
     if (this.isDestroyed()) {
-      return null;
+      return;
     }
     const cm = editors.get(this);
     if (this.config.cm6) {
@@ -3360,9 +3264,9 @@ class Editor extends EventEmitter {
       if (!this.isPositionVisible(line, column)) {
         const offset = this.#positionToOffset(line, column);
         if (offset == null) {
-          return null;
+          return;
         }
-        return cm.dispatch({
+        cm.dispatch({
           effects: EditorView.scrollIntoView(offset, {
             x: "nearest",
             y: "center",
@@ -3374,7 +3278,7 @@ class Editor extends EventEmitter {
       // avoid the possibly slow computation of cursor location on large bundles.
       if (!line && !column) {
         cm.scrollTo(0, 0);
-        return null;
+        return;
       }
 
       const { top, left } = cm.charCoords({ line, ch: column }, "local");
@@ -3384,10 +3288,9 @@ class Editor extends EventEmitter {
         const centeredX = Math.max(left - scroller.offsetWidth / 2, 0);
         const centeredY = Math.max(top - scroller.offsetHeight / 2, 0);
 
-        return cm.scrollTo(centeredX, centeredY);
+        cm.scrollTo(centeredX, centeredY);
       }
     }
-    return null;
   }
 
   // Used only in tests

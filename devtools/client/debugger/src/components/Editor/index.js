@@ -120,9 +120,8 @@ class Editor extends PureComponent {
       breakableLines: PropTypes.object.isRequired,
       highlightedLineRange: PropTypes.object,
       isSourceOnIgnoreList: PropTypes.bool,
-      isOriginalSourceAndMapScopesEnabled: PropTypes.bool,
+      mapScopesEnabled: PropTypes.bool,
       shouldScrollToSelectedLocation: PropTypes.bool,
-      setInScopeLines: PropTypes.func,
     };
   }
 
@@ -167,7 +166,7 @@ class Editor extends PureComponent {
       }
     } else {
       // For codemirror 6
-      this.setTextContent(nextProps, editor);
+      this.setTextContent(nextProps, editor, prevEditor);
     }
   }
 
@@ -189,21 +188,7 @@ class Editor extends PureComponent {
     }
 
     if (shouldScroll) {
-      await this.scrollToLocation(nextProps, editor);
-    }
-    // Note: Its important to get the scope lines after
-    // the scrolling is complete to make sure codemirror
-    // has loaded the content for the current viewport.
-    //
-    // Also if scope mapping is on, the babel parser worker
-    // will be used instead (for scope mapping) as the preview data relies
-    // on it for original variable mapping.
-    if (
-      nextProps.isPaused &&
-      features.codemirrorNext &&
-      !nextProps.isOriginalSourceAndMapScopesEnabled
-    ) {
-      this.props.setInScopeLines(editor);
+      this.scrollToLocation(nextProps, editor);
     }
   }
 
@@ -742,7 +727,7 @@ class Editor extends PureComponent {
       const lineText = doc.getLine(line);
       column = Math.max(column, getIndentation(lineText));
     }
-    return editor.scrollTo(line, column);
+    editor.scrollTo(line, column);
   }
 
   async setText(props, editor) {
@@ -861,7 +846,7 @@ class Editor extends PureComponent {
       blackboxedRanges,
       isSourceOnIgnoreList,
       selectedSourceIsBlackBoxed,
-      isOriginalSourceAndMapScopesEnabled,
+      mapScopesEnabled,
       selectedSourceTextContent,
     } = this.props;
     const { editor } = this.state;
@@ -886,7 +871,7 @@ class Editor extends PureComponent {
         (isPaused || isTraceSelected) &&
           selectedSource.isOriginal &&
           !selectedSource.isPrettyPrinted &&
-          !isOriginalSourceAndMapScopesEnabled
+          !mapScopesEnabled
           ? null
           : React.createElement(Preview, {
               editor,
@@ -905,7 +890,7 @@ class Editor extends PureComponent {
           inlinePreviewEnabled &&
           (!selectedSource.isOriginal ||
             selectedSource.isPrettyPrinted ||
-            isOriginalSourceAndMapScopesEnabled)
+            mapScopesEnabled)
           ? React.createElement(InlinePreviews, {
               editor,
             })
@@ -938,7 +923,7 @@ class Editor extends PureComponent {
       (isPaused || isTraceSelected) &&
         selectedSource.isOriginal &&
         !selectedSource.isPrettyPrinted &&
-        !isOriginalSourceAndMapScopesEnabled
+        !mapScopesEnabled
         ? null
         : React.createElement(Preview, {
             editor,
@@ -972,7 +957,7 @@ class Editor extends PureComponent {
         inlinePreviewEnabled &&
         (!selectedSource.isOriginal ||
           (selectedSource.isOriginal && selectedSource.isPrettyPrinted) ||
-          isOriginalSourceAndMapScopesEnabled)
+          (selectedSource.isOriginal && mapScopesEnabled))
         ? React.createElement(InlinePreviews, {
             editor,
           })
@@ -1040,9 +1025,9 @@ const mapStateToProps = state => {
     blackboxedRanges: getBlackBoxRanges(state),
     breakableLines: getSelectedBreakableLines(state),
     highlightedLineRange: getHighlightedLineRangeForSelectedSource(state),
-    isOriginalSourceAndMapScopesEnabled: selectedSource?.isOriginal
+    mapScopesEnabled: selectedSource?.isOriginal
       ? isMapScopesEnabled(state)
-      : false,
+      : null,
     shouldScrollToSelectedLocation: getShouldScrollToSelectedLocation(state),
   };
 };
@@ -1062,7 +1047,6 @@ const mapDispatchToProps = dispatch => ({
       showEditorContextMenu: actions.showEditorContextMenu,
       showEditorGutterContextMenu: actions.showEditorGutterContextMenu,
       selectLocation: actions.selectLocation,
-      setInScopeLines: actions.setInScopeLines,
     },
     dispatch
   ),
