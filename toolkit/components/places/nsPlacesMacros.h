@@ -7,9 +7,16 @@
   _className* _className::_sInstance = nullptr;                             \
                                                                             \
   already_AddRefed<_className> _className::GetSingleton() {                 \
+    if (!XRE_IsParentProcess()) {                                           \
+      return nullptr;                                                          \
+    }                                                                       \
     if (_sInstance) {                                                       \
       RefPtr<_className> ret = _sInstance;                                  \
       return ret.forget();                                                  \
+    }                                                                       \
+    /* Only create on main-thread. */                                       \
+    if (!NS_IsMainThread()) {                                               \
+      return nullptr;                                                       \
     }                                                                       \
     _sInstance = new _className();                                          \
     RefPtr<_className> ret = _sInstance;                                    \

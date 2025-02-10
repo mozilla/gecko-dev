@@ -16,6 +16,12 @@
 #include "Shutdown.h"
 #include "nsCategoryCache.h"
 
+// Filename of the database.
+#define DATABASE_FILENAME u"places.sqlite"_ns
+// Filename of the icons database.
+#define DATABASE_FAVICONS_FILENAME u"favicons.sqlite"_ns
+#define DATABASE_FAVICONS_SCHEMANAME "favicons"_ns
+
 // Fired after Places inited.
 #define TOPIC_PLACES_INIT_COMPLETE "places-init-complete"
 // This topic is received when the profile is about to be lost.  Places does
@@ -203,6 +209,11 @@ class Database final : public nsIObserver, public nsSupportsWeakReference {
     return mTagsRootId;
   }
 
+  /**
+   * Initializes additional SQLite functions, defined in SQLFunctions.h
+   */
+  static nsresult InitFunctions(mozIStorageConnection*);
+
  protected:
   /**
    * Finalizes the cached statements and closes the database connection.
@@ -277,11 +288,6 @@ class Database final : public nsIObserver, public nsSupportsWeakReference {
    */
   nsresult EnsureBookmarkRoots(const int32_t startPosition,
                                bool shouldReparentRoots);
-
-  /**
-   * Initializes additionale SQLite functions, defined in SQLFunctions.h
-   */
-  nsresult InitFunctions();
 
   /**
    * Initializes temp entities, like triggers, tables, views...
