@@ -510,6 +510,8 @@ task("generateSDKBindings", type: JavaExec) {
     dependsOn project(':annotations').jar
 }
 
+preBuild.dependsOn(":verifyGleanVersion")
+
 apply plugin: 'org.mozilla.apilint'
 
 apiLint {
