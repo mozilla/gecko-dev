@@ -595,9 +595,9 @@
     <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
     <string name="onboarding_term_of_service_line_one_2">Continuant, tu acetis lis %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
-    <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">condizions di utilizazion dal servizi</string>
+    <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">cundizions di utilizazion dal servizi</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
-    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">condizions di utilizazion di Firefox</string>
+    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">cundizions di utilizazion di Firefox</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
     <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">La tô riservatece e sta sul cûr di Firefox. Lei altris informazions te nestre %1$s.</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
@@ -2079,7 +2079,7 @@
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">I tiei dirits</string>
     <!-- About page link text to open terms of use link -->
-    <string name="about_terms_of_use" tools:ignore="UnusedResources">Condizions di utilizazion</string>
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Cundizions di utilizazion</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Informazions su la licence</string>
     <!-- About page link text to open a screen with libraries that are used -->
