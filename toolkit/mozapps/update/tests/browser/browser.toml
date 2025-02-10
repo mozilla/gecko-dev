@@ -173,6 +173,9 @@ tags = "os_integration"
 
 ["browser_doorhanger_bc_multiUpdate.js"]
 tags = "os_integration"
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1909498
+]
 
 ["browser_doorhanger_bc_multiUpdate_promptWaitTime.js"]
 
