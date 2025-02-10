@@ -15,10 +15,7 @@ const { NonPrivateTabs } = ChromeUtils.importESModule(
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["sidebar.verticalTabs", false],
-      ["sidebar.visibility", "always-show"],
-    ],
+    set: [["sidebar.verticalTabs", false]],
   });
   Services.telemetry.clearScalars();
   SessionStoreTestUtils.init(this, window);

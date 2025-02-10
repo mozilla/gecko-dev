@@ -91,6 +91,15 @@ export class SidebarState {
   }
 
   /**
+   * Get the sidebar panel element.
+   *
+   * @returns {XULElement}
+   */
+  get #sidebarBoxEl() {
+    return this.#controller._box;
+  }
+
+  /**
    * Get the sidebar panel.
    *
    * @returns {XULElement}
@@ -222,9 +231,23 @@ export class SidebarState {
     return this.#props.launcherVisible;
   }
 
+  /**
+   * Update the launcher `visible` and `expanded` states to handle the
+   * following scenarios:
+   *
+   * - Toggling "Hide tabs and sidebar" from the customize panel.
+   * - Clicking sidebar button from the toolbar.
+   * - Removing sidebar button from the toolbar.
+   * - Force expand value
+   *
+   * @param {boolean} visible
+   * @param {boolean} onToolbarButtonClick
+   * @param {boolean} onToolbarButtonRemoval
+   * @param {boolean} forceExpandValue
+   */
   updateVisibility(
     visible,
-    openedByToolbarButton = false,
+    onToolbarButtonClick = false,
     onToolbarButtonRemoval = false,
     forceExpandValue = null
   ) {
@@ -241,17 +264,18 @@ export class SidebarState {
           }
           return;
         }
-        if (!openedByToolbarButton && !visible && this.panelOpen) {
-          // no-op to handle the case when a user changes the visibility setting via the
-          // customize panel, we don't want to close anything on them.
-          return;
-        }
         // we need this set to verticalTabsEnabled to ensure it has the correct state when toggling the sidebar button
         this.launcherExpanded = lazy.verticalTabsEnabled && visible;
-
         if (!visible && this.panelOpen) {
-          // Hiding the launcher should also close out any open panels and resets panelOpen
-          this.#controller.hide();
+          if (onToolbarButtonClick) {
+            // Hiding the launcher with the toolbar button should also close out any open panels and resets panelOpen
+            this.#controller.hide();
+          } else {
+            // Hide the launcher when the pref is set to hide-sidebar
+            this.launcherVisible = false;
+            this.#previousLauncherVisible = false;
+            return;
+          }
         }
         this.launcherVisible = visible;
         break;
@@ -274,6 +298,8 @@ export class SidebarState {
     this.#props.launcherVisible = visible;
     this.#launcherContainerEl.hidden = !visible;
     this.#updateTabbrowser(visible);
+    this.#sidebarBoxEl.style.paddingInlineStart =
+      this.panelOpen && !visible ? "var(--space-small)" : "unset";
   }
 
   get launcherExpanded() {
