@@ -292,7 +292,7 @@ class ParseError extends Error {
 function parseURL() {
   let options = new URL(document.location.href).searchParams;
 
-  if (!options) {
+  if (!options.size) {
     return;
   }
 

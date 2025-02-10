@@ -189,18 +189,14 @@ export class PageInfoChild extends JSWindowActorChild {
         !elem.hasAttribute("alt")
       );
     } else if (content.SVGImageElement.isInstance(elem)) {
-      try {
-        // Note: makeURLAbsolute will throw if either the baseURI is not a valid URI
-        //       or the URI formed from the baseURI and the URL is not a valid URI.
-        if (elem.href.baseVal) {
-          let href = Services.io.newURI(
-            elem.href.baseVal,
-            null,
-            Services.io.newURI(elem.baseURI)
-          ).spec;
+      // Note: makeURLAbsolute will throw if either the baseURI is not a valid URI
+      //       or the URI formed from the baseURI and the URL is not a valid URI.
+      if (elem.href.baseVal) {
+        let href = URL.parse(elem.href.baseVal, elem.baseURI)?.href;
+        if (href) {
           addMedia(href, "img", "", elem, false);
         }
-      } catch (e) {}
+      }
     } else if (content.HTMLVideoElement.isInstance(elem)) {
       addMedia(elem.currentSrc, "video", "", elem, false);
     } else if (content.HTMLAudioElement.isInstance(elem)) {

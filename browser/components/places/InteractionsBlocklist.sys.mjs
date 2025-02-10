@@ -179,15 +179,10 @@ class _InteractionsBlocklist {
 
     // First, find the URL's base host: the hostname without any subdomains or a
     // public suffix.
-    let url;
-    try {
-      url = new URL(urlToCheck);
-      if (!url) {
-        throw new Error();
-      }
-    } catch (ex) {
+    let url = URL.parse(urlToCheck);
+    if (!url) {
       lazy.logConsole.warn(
-        `Invalid URL passed to InteractionsBlocklist.isUrlBlocklisted: ${url}`
+        `Invalid URL passed to InteractionsBlocklist.isUrlBlocklisted: ${urlToCheck}`
       );
       return false;
     }

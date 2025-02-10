@@ -72,12 +72,9 @@ Bookmarks.prototype = {
             };
             folderMap.set(id, bmToInsert);
           } else {
-            try {
-              new URL(url);
-            } catch (ex) {
+            if (!URL.canParse(url)) {
               console.error(
-                `Ignoring ${url} when importing from 360se because of exception:`,
-                ex
+                `Ignoring ${url} when importing from 360se because it is not a valid URL.`
               );
               continue;
             }

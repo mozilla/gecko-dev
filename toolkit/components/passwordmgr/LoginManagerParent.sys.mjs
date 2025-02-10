@@ -532,13 +532,13 @@ export class LoginManagerParent extends JSWindowActorParent {
   async #getRecipesForHost(origin) {
     let recipes;
     if (origin) {
-      try {
-        const formHost = new URL(origin).host;
-        let recipeManager = await LoginManagerParent.recipeParentPromise;
-        recipes = recipeManager.getRecipesForHost(formHost);
-      } catch (ex) {
+      const formHost = URL.parse(origin)?.host;
+      if (!formHost) {
         // Some schemes e.g. chrome aren't supported by URL
+        return [];
       }
+      let recipeManager = await LoginManagerParent.recipeParentPromise;
+      recipes = recipeManager.getRecipesForHost(formHost);
     }
 
     return recipes ?? [];

@@ -255,14 +255,12 @@ export class ShoppingContainer extends MozLitElement {
   }
 
   getHostnameFromProductUrl() {
-    let hostname;
-    try {
-      hostname = new URL(this.productUrl)?.hostname;
+    let hostname = URL.parse(this.productUrl)?.hostname;
+    if (hostname) {
       return hostname;
-    } catch (e) {
-      console.warn(`Unknown product url ${this.productUrl}.`);
-      return null;
     }
+    console.warn(`Unknown product url ${this.productUrl}.`);
+    return null;
   }
 
   analysisDetailsTemplate() {

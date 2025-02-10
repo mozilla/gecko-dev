@@ -25,13 +25,11 @@ ChromeUtils.registerWindowActor("Screenshot", {
 });
 
 function loadContentWindow(browser, url) {
-  let uri;
-  try {
-    uri = Services.io.newURI(url);
-  } catch (e) {
-    let msg = `Invalid URL passed to loadContentWindow(): ${url}`;
-    console.error(msg);
-    return Promise.reject(new Error(msg));
+  let uri = URL.parse(url)?.URI;
+  if (!uri) {
+    let err = new Error(`Invalid URL passed to loadContentWindow(): ${url}`);
+    console.error(err);
+    return Promise.reject(err);
   }
 
   const principal = Services.scriptSecurityManager.getSystemPrincipal();

@@ -679,10 +679,8 @@ var gPrivacyPane = {
 
   async updateDoHStatus() {
     let trrURI = Services.dns.currentTrrURI;
-    let hostname = "";
-    try {
-      hostname = new URL(trrURI).hostname;
-    } catch (e) {
+    let hostname = URL.parse(trrURI)?.hostname;
+    if (!hostname) {
       hostname = await document.l10n.formatValue("preferences-doh-bad-url");
     }
 

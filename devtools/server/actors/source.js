@@ -40,18 +40,19 @@ const windowsDrive = /^([a-zA-Z]:)/;
 
 function resolveSourceURL(sourceURL, targetActor) {
   if (sourceURL) {
-    try {
-      let baseURL;
-      if (targetActor.window) {
-        baseURL = targetActor.window.location?.href;
-      }
-      // For worker, we don't have easy access to location,
-      // so pull extra information directly from the target actor.
-      if (targetActor.workerUrl) {
-        baseURL = targetActor.workerUrl;
-      }
-      return new URL(sourceURL, baseURL || undefined).href;
-    } catch (err) {}
+    let baseURL;
+    if (targetActor.window) {
+      baseURL = targetActor.window.location?.href;
+    }
+    // For worker, we don't have easy access to location,
+    // so pull extra information directly from the target actor.
+    if (targetActor.workerUrl) {
+      baseURL = targetActor.workerUrl;
+    }
+    const parsedURL = URL.parse(sourceURL, baseURL);
+    if (parsedURL) {
+      return parsedURL.href;
+    }
   }
 
   return null;

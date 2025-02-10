@@ -1234,10 +1234,8 @@ class DomainExtractor {
 
       let href = element.getAttribute("href");
 
-      let url;
-      try {
-        url = new URL(href, origin);
-      } catch (ex) {
+      let url = URL.parse(href, origin);
+      if (!url) {
         continue;
       }
 
@@ -1249,9 +1247,8 @@ class DomainExtractor {
       if (queryParam) {
         let paramValue = url.searchParams.get(queryParam);
         if (queryParamValueIsHref) {
-          try {
-            paramValue = new URL(paramValue).hostname;
-          } catch (e) {
+          paramValue = URL.parse(paramValue)?.hostname;
+          if (!paramValue) {
             continue;
           }
           paramValue = this.#processDomain(paramValue, providerName);
@@ -1346,9 +1343,8 @@ class DomainExtractor {
           textContent = "https://" + textContent;
         }
 
-        try {
-          domain = new URL(textContent).hostname;
-        } catch (e) {
+        domain = URL.parse(textContent)?.hostname;
+        if (!domain) {
           domain = fixup(textContent);
         }
       } else {

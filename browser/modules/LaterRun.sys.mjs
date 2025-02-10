@@ -164,11 +164,9 @@ export let LaterRun = {
     let rv = [];
     for (let [, pageData] of pageDataStore) {
       if (pageData.url) {
-        let uri = null;
-        try {
-          let urlString = Services.urlFormatter.formatURL(pageData.url.trim());
-          uri = Services.io.newURI(urlString);
-        } catch (ex) {
+        let urlString = Services.urlFormatter.formatURL(pageData.url.trim());
+        let uri = URL.parse(urlString)?.URI;
+        if (!uri) {
           console.error(
             "Invalid LaterRun page URL ",
             pageData.url,

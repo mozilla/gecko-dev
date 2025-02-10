@@ -1141,10 +1141,8 @@ var fetchAnnotatedPages = async function (db, annotations) {
   );
 
   for (let row of rows) {
-    let uri;
-    try {
-      uri = new URL(row.getResultByName("url"));
-    } catch (ex) {
+    let uri = URL.parse(row.getResultByName("url"));
+    if (!uri) {
       console.error("Invalid URL read from database in fetchAnnotatedPages");
       continue;
     }

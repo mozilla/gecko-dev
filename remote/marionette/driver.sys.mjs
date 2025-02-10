@@ -49,6 +49,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   TimedPromise: "chrome://remote/content/marionette/sync.sys.mjs",
   Timeouts: "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
+  truncate: "chrome://remote/content/shared/Format.sys.mjs",
   unregisterCommandsActor:
     "chrome://remote/content/marionette/actors/MarionetteCommandsParent.sys.mjs",
   waitForInitialNavigationCompleted:
@@ -1047,11 +1048,13 @@ GeckoDriver.prototype.navigateTo = async function (cmd) {
   );
   await this._handleUserPrompts();
 
-  let validURL;
-  try {
-    validURL = new URL(cmd.parameters.url);
-  } catch (e) {
-    throw new lazy.error.InvalidArgumentError(`Malformed URL: ${e.message}`);
+  let { url } = cmd.parameters;
+
+  let validURL = URL.parse(url);
+  if (!validURL) {
+    throw new lazy.error.InvalidArgumentError(
+      lazy.truncate`Expected "url" to be a valid URL, got ${url}`
+    );
   }
 
   // Switch to the top-level browsing context before navigating

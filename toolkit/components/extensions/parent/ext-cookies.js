@@ -20,9 +20,12 @@ const isIPv4 = host => {
   }
   return false;
 };
+
 const isIPv6 = host => host.includes(":");
+
 const addBracketIfIPv6 = host =>
   isIPv6(host) && !host.startsWith("[") ? `[${host}]` : host;
+
 const dropBracketIfIPv6 = host =>
   isIPv6(host) && host.startsWith("[") && host.endsWith("]")
     ? host.slice(1, -1)
@@ -47,13 +50,13 @@ function fromExtPartitionKey(extPartitionKey, cookieUrl) {
     try {
       // This is subtle! We define the ancestor bit in our code in a different
       // way than the extension API, but they are isomorphic.
-      //   If we have cookieUrl (which is guaranteed to be the case in get, set,
-      //   and remove) this will return the topLevelSite parsed partition key,
-      //   and include the foreign ancestor bit iff the details.url is
-      //   same-site and a truthy value was passed in the hasCrossSiteAncestor
-      //   property. If we don't have cookieUrl, we handle the difference in
-      //   ancestor bit definition by returning a OA pattern that matches both
-      //   values and filtering them later on in matches.
+      // If we have cookieUrl (which is guaranteed to be the case in get, set,
+      // and remove) this will return the topLevelSite parsed partition key,
+      // and include the foreign ancestor bit iff the details.url is
+      // same-site and a truthy value was passed in the hasCrossSiteAncestor
+      // property. If we don't have cookieUrl, we handle the difference in
+      // ancestor bit definition by returning a OA pattern that matches both
+      // values and filtering them later on in matches.
       if (cookieUrl == null) {
         let topLevelSiteURI = Services.io.newURI(topLevelSite);
         let topLevelSiteFilter = Services.eTLD.getSite(topLevelSiteURI);
@@ -399,11 +402,11 @@ const query = function* (detailsIn, props, context, allowPattern) {
   let host;
   let url;
   if ("url" in details) {
-    try {
-      url = new URL(details.url);
+    url = URL.parse(details.url);
+    if (url) {
       host = dropBracketIfIPv6(url.hostname);
-    } catch (ex) {
-      // This often happens for about: URLs
+    } else {
+      // The url could not be parsed successfully
       return;
     }
   } else if ("domain" in details) {

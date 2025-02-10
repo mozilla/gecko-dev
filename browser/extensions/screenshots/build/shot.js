@@ -13,6 +13,16 @@ this.shot = (function () {
     Object.prototype.toString.call(process) === "[object process]";
   const URL = (isNode && require("url").URL) || window.URL;
 
+  if (typeof URL.parse !== "function") {
+    URL.parse = function (url, base) {
+      try {
+        return new URL(url, base);
+      } catch (e) {
+        return null;
+      }
+    };
+  }
+
   /** Throws an error if the condition isn't true.  Any extra arguments after the condition
     are used as console.error() arguments. */
   function assert(condition, ...args) {
@@ -25,17 +35,14 @@ this.shot = (function () {
 
   /** True if `url` is a valid URL */
   function isUrl(url) {
-    try {
-      const parsed = new URL(url);
-
+    const parsed = URL.parse(url);
+    if (parsed) {
       if (parsed.protocol === "view-source:") {
-        return isUrl(url.substr("view-source:".length));
+        return isUrl(url.substr(12));
       }
-
       return true;
-    } catch (e) {
-      return false;
     }
+    return false;
   }
 
   function isValidClipImageUrl(url) {
@@ -59,7 +66,7 @@ this.shot = (function () {
 
   function assertOrigin(url) {
     assertUrl(url);
-    if (url.search(/^https?:/i) !== -1) {
+    if (/^https?:/i.test(url)) {
       let newUrl = new URL(url);
       if (newUrl.pathname != "/") {
         throw new Error("Bad origin, might include path");
@@ -71,16 +78,15 @@ this.shot = (function () {
     if (!url) {
       return null;
     }
-    if (url.search(/^https?:/i) === -1) {
+    if (!/^https?:/i.test(url)) {
       // Non-HTTP URLs don't have an origin
       return null;
     }
-    try {
-      let tryUrl = new URL(url);
+    let tryUrl = URL.parse(url);
+    if (tryUrl) {
       return tryUrl.origin;
-    } catch {
-      return null;
     }
+    return null;
   }
 
   /** Check if the given object has all of the required attributes, and no extra

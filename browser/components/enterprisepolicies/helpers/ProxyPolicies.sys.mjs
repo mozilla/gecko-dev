@@ -89,12 +89,10 @@ export var ProxyPolicies = {
     }
 
     function setProxyHostAndPort(type, address) {
-      let url;
-      try {
-        // Prepend https just so we can use the URL parser
-        // instead of parsing manually.
-        url = new URL(`https://${address}`);
-      } catch (e) {
+      // Prepend https just so we can use the URL parser
+      // instead of parsing manually.
+      let url = URL.parse(`https://${address}`);
+      if (!url) {
         lazy.log.error(`Invalid address for ${type} proxy: ${address}`);
         return;
       }
