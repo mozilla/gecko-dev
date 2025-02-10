@@ -37,8 +37,7 @@ class nsSimpleNestedURI : public nsSimpleURI, public nsINestedURI {
   virtual nsresult EqualsInternal(nsIURI* other,
                                   RefHandlingEnum refHandlingMode,
                                   bool* result) override;
-  virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode,
-                                  const nsACString& newRef) override;
+  virtual already_AddRefed<nsSimpleURI> StartClone() override;
   NS_IMETHOD Mutate(nsIURIMutator** _retval) override;
   NS_IMETHOD_(void) Serialize(ipc::URIParams& aParams) override;
 

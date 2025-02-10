@@ -68,8 +68,7 @@ class nsJSURI final : public mozilla::net::nsSimpleURI {
   NS_DECL_ISUPPORTS_INHERITED
 
   // nsIURI overrides
-  virtual mozilla::net::nsSimpleURI* StartClone(
-      RefHandlingEnum refHandlingMode, const nsACString& newRef) override;
+  virtual already_AddRefed<mozilla::net::nsSimpleURI> StartClone() override;
   NS_IMETHOD Mutate(nsIURIMutator** _retval) override;
   NS_IMETHOD_(void) Serialize(mozilla::ipc::URIParams& aParams) override;
 

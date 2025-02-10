@@ -83,35 +83,61 @@ class nsSimpleURI : public nsIURI, public nsISerializable, public nsISizeOf {
   // the passed-in other for QI to our CID.
   bool EqualsInternal(nsSimpleURI* otherUri, RefHandlingEnum refHandlingMode);
 
-  // Used by StartClone (and versions of StartClone in subclasses) to
-  // handle the ref in the right way for clones.
-  void SetRefOnClone(nsSimpleURI* url, RefHandlingEnum refHandlingMode,
-                     const nsACString& newRef);
-
-  // NOTE: This takes the refHandlingMode as an argument because
-  // nsSimpleNestedURI's specialized version needs to know how to clone
-  // its inner URI.
-  virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode,
-                                  const nsACString& newRef);
-
-  // Helper to share code between Clone methods.
-  virtual nsresult CloneInternal(RefHandlingEnum refHandlingMode,
-                                 const nsACString& newRef, nsIURI** result);
+  virtual already_AddRefed<nsSimpleURI> StartClone();
 
   void TrimTrailingCharactersFromPath();
-  nsresult EscapeAndSetPathQueryRef(const nsACString& aPath);
-  nsresult SetPathQueryRefInternal(const nsACString& aPath);
+
+  // Initialize `mQueryPos` and `mRefPos` from `mSpec`, and perform
+  // component-specific escapes. `mPathPos` should already be initialized.
+  nsresult SetPathQueryRefInternal();
 
   bool Deserialize(const mozilla::ipc::URIParams&);
 
-  nsCString mScheme;
-  nsCString mPath;  // NOTE: mPath does not include ref, as an optimization
-  nsCString mRef;   // so that URIs with different refs can share string data.
-  nsCString
-      mQuery;  // so that URLs with different querys can share string data.
-  bool mIsRefValid{false};  // To distinguish between empty-ref and no-ref.
-  // To distinguish between empty-query and no-query.
-  bool mIsQueryValid{false};
+  // computed index helpers
+  size_t SchemeStart() const { return 0; }
+  size_t SchemeEnd() const { return mPathSep; }
+  size_t SchemeLen() const { return SchemeEnd() - SchemeStart(); }
+
+  size_t PathStart() const { return mPathSep + 1; }
+  inline size_t PathEnd() const;
+  size_t PathLen() const { return PathEnd() - PathStart(); }
+
+  bool IsQueryValid() const { return mQuerySep != kNotFound; }
+  inline size_t QueryStart() const;
+  inline size_t QueryEnd() const;
+  size_t QueryLen() const { return QueryEnd() - QueryStart(); }
+
+  bool IsRefValid() const { return mRefSep != kNotFound; }
+  inline size_t RefStart() const;
+  inline size_t RefEnd() const;
+  size_t RefLen() const { return RefEnd() - RefStart(); }
+
+  // dependent substring getters
+  nsDependentCSubstring Scheme() {
+    return Substring(mSpec, SchemeStart(), SchemeLen());
+  }
+  nsDependentCSubstring Path() {
+    return Substring(mSpec, PathStart(), PathLen());
+  }
+  nsDependentCSubstring Query() {
+    return Substring(mSpec, QueryStart(), QueryLen());
+  }
+  nsDependentCSubstring Ref() { return Substring(mSpec, RefStart(), RefLen()); }
+  nsDependentCSubstring SpecIgnoringRef() {
+    return Substring(mSpec, 0, IsRefValid() ? mRefSep : -1);
+  }
+
+  // mSpec contains the normalized version of the URL spec (UTF-8 encoded).
+  nsCString mSpec;
+
+  // Index of the `:` character which indicates the start of the path.
+  int32_t mPathSep = kNotFound;
+  // Index of the `?` character which indicates the start of the query.
+  // Will be `kNotFound` if there is no query.
+  int32_t mQuerySep = kNotFound;
+  // Index of the `#` character which indicates the start of the ref.
+  // Will be `kNotFound` if there is no ref.
+  int32_t mRefSep = kNotFound;
 
  public:
   class Mutator final : public nsIURIMutator,
@@ -157,6 +183,43 @@ class nsSimpleURI : public nsIURI, public nsISerializable, public nsISizeOf {
 
   friend BaseURIMutator<nsSimpleURI>;
 };
+
+//-----------------------------------------------------------------------------
+// Computed index helpers
+//-----------------------------------------------------------------------------
+
+inline size_t nsSimpleURI::PathEnd() const {
+  if (IsQueryValid()) {
+    return mQuerySep;
+  }
+  if (IsRefValid()) {
+    return mRefSep;
+  }
+  return mSpec.Length();
+}
+
+inline size_t nsSimpleURI::QueryStart() const {
+  MOZ_DIAGNOSTIC_ASSERT(IsQueryValid());
+  return mQuerySep + 1;
+}
+
+inline size_t nsSimpleURI::QueryEnd() const {
+  MOZ_DIAGNOSTIC_ASSERT(IsQueryValid());
+  if (IsRefValid()) {
+    return mRefSep;
+  }
+  return mSpec.Length();
+}
+
+inline size_t nsSimpleURI::RefStart() const {
+  MOZ_DIAGNOSTIC_ASSERT(IsRefValid());
+  return mRefSep + 1;
+}
+
+inline size_t nsSimpleURI::RefEnd() const {
+  MOZ_DIAGNOSTIC_ASSERT(IsRefValid());
+  return mSpec.Length();
+}
 
 }  // namespace net
 }  // namespace mozilla

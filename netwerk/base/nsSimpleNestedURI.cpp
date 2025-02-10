@@ -163,7 +163,8 @@ nsresult nsSimpleNestedURI::EqualsInternal(
 
   if (other) {
     bool correctScheme;
-    nsresult rv = other->SchemeIs(mScheme.get(), &correctScheme);
+    nsresult rv =
+        other->SchemeIs(PromiseFlatCString(Scheme()).get(), &correctScheme);
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (correctScheme) {
@@ -184,28 +185,12 @@ nsresult nsSimpleNestedURI::EqualsInternal(
 }
 
 /* virtual */
-nsSimpleURI* nsSimpleNestedURI::StartClone(
-    nsSimpleURI::RefHandlingEnum refHandlingMode, const nsACString& newRef) {
+already_AddRefed<nsSimpleURI> nsSimpleNestedURI::StartClone() {
   NS_ENSURE_TRUE(mInnerURI, nullptr);
 
-  nsCOMPtr<nsIURI> innerClone;
-  nsresult rv = NS_OK;
-  if (refHandlingMode == eHonorRef) {
-    innerClone = mInnerURI;
-  } else if (refHandlingMode == eReplaceRef) {
-    rv = NS_GetURIWithNewRef(mInnerURI, newRef, getter_AddRefs(innerClone));
-  } else {
-    rv = NS_GetURIWithoutRef(mInnerURI, getter_AddRefs(innerClone));
-  }
+  RefPtr<nsSimpleNestedURI> url = new nsSimpleNestedURI(mInnerURI);
 
-  if (NS_FAILED(rv)) {
-    return nullptr;
-  }
-
-  nsSimpleNestedURI* url = new nsSimpleNestedURI(innerClone);
-  SetRefOnClone(url, refHandlingMode, newRef);
-
-  return url;
+  return url.forget();
 }
 
 // Queries this list of interfaces. If none match, it queries mURI.

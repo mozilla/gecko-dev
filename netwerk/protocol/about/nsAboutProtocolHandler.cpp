@@ -392,31 +392,12 @@ bool nsNestedAboutURI::Deserialize(const mozilla::ipc::URIParams& aParams) {
 }
 
 // nsSimpleURI
-/* virtual */ nsSimpleURI* nsNestedAboutURI::StartClone(
-    nsSimpleURI::RefHandlingEnum aRefHandlingMode, const nsACString& aNewRef) {
-  // Sadly, we can't make use of nsSimpleNestedURI::StartClone here.
-  // However, this function is expected to exactly match that function,
-  // aside from the "new ns***URI()" call.
+/* virtual */ already_AddRefed<nsSimpleURI> nsNestedAboutURI::StartClone() {
   NS_ENSURE_TRUE(mInnerURI, nullptr);
 
-  nsCOMPtr<nsIURI> innerClone;
-  nsresult rv = NS_OK;
-  if (aRefHandlingMode == eHonorRef) {
-    innerClone = mInnerURI;
-  } else if (aRefHandlingMode == eReplaceRef) {
-    rv = NS_GetURIWithNewRef(mInnerURI, aNewRef, getter_AddRefs(innerClone));
-  } else {
-    rv = NS_GetURIWithoutRef(mInnerURI, getter_AddRefs(innerClone));
-  }
+  RefPtr<nsNestedAboutURI> url = new nsNestedAboutURI(mInnerURI, mBaseURI);
 
-  if (NS_FAILED(rv)) {
-    return nullptr;
-  }
-
-  nsNestedAboutURI* url = new nsNestedAboutURI(innerClone, mBaseURI);
-  SetRefOnClone(url, aRefHandlingMode, aNewRef);
-
-  return url;
+  return url.forget();
 }
 
 // Queries this list of interfaces. If none match, it queries mURI.

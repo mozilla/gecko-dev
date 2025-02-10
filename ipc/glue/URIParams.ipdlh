@@ -12,10 +12,7 @@ namespace ipc {
 
 struct SimpleURIParams
 {
-  nsCString scheme;
-  nsCString path;
-  nsCString ref;
-  nsCString query;
+  nsCString spec;
 };
 
 struct DefaultURIParams
