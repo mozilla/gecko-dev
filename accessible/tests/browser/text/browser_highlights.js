@@ -347,3 +347,142 @@ ${snippet}
   },
   { chrome: true, topLevel: true }
 );
+
+/**
+ * Test overlapping custom highlights.
+ */
+addAccessibleTask(
+  `
+${snippet}
+<script>
+  const firstText = document.getElementById("first").firstChild;
+  // Make the word "The" both a highlight and a spelling error.
+  const range1 = new Range();
+  range1.setStart(firstText, 0);
+  range1.setEnd(firstText, 3);
+  const highlight1 = new Highlight(range1);
+  CSS.highlights.set("highlight1", highlight1);
+  const spelling = new Highlight(range1);
+  spelling.type = "spelling-error";
+  CSS.highlights.set("spelling", spelling);
+
+  // Highlight the word "first".
+  const range2 = new Range();
+  range2.setStart(firstText, 4);
+  range2.setEnd(firstText, 9);
+  highlight1.add(range2);
+  // Make "fir" a spelling error.
+  const range3 = new Range();
+  range3.setStart(firstText, 4);
+  range3.setEnd(firstText, 7);
+  spelling.add(range3);
+  // Make "rst" a spelling error.
+  const range4 = new Range();
+  range4.setStart(firstText, 6);
+  range4.setEnd(firstText, 9);
+  spelling.add(range4);
+
+  // Highlight the word "phrase".
+  const range5 = new Range();
+  range5.setStart(firstText, 10);
+  range5.setEnd(firstText, 16);
+  highlight1.add(range5);
+  // Make "ras" a spelling error.
+  const range6 = new Range();
+  range6.setStart(firstText, 12);
+  range6.setEnd(firstText, 15);
+  spelling.add(range6);
+
+  const secondText = document.querySelector("#second i").firstChild;
+  // Highlight the word "second".
+  const range7 = new Range();
+  range7.setStart(secondText, 0);
+  range7.setEnd(secondText, 6);
+  highlight1.add(range7);
+  // Make "sec" a spelling error.
+  const range8 = new Range();
+  range8.setStart(secondText, 0);
+  range8.setEnd(secondText, 3);
+  spelling.add(range8);
+  // Make "nd" a spelling error.
+  const range9 = new Range();
+  range9.setStart(secondText, 4);
+  range9.setEnd(secondText, 6);
+  spelling.add(range9);
+
+  const phrase2Text = document.querySelector("#second b").firstChild;
+  // Highlight the word "phrase".
+  const range10 = new Range();
+  range10.setStart(phrase2Text, 0);
+  range10.setEnd(phrase2Text, 6);
+  highlight1.add(range10);
+  // Highlight "ras" using a different Highlight.
+  const range11 = new Range();
+  range11.setStart(phrase2Text, 2);
+  range11.setEnd(phrase2Text, 5);
+  const highlight2 = new Highlight(range11);
+  CSS.highlights.set("highlight2", highlight2);
+</script>
+  `,
+  async function testCustomHighlightOverlapping(browser, docAcc) {
+    const first = findAccessibleChildByID(docAcc, "first");
+    ok(
+      textAttrRangesMatch(
+        first,
+        [
+          [0, 3], // "the"
+          [4, 6], // "fi"
+          [6, 7], // "r"
+          [7, 9], // "st"
+          [10, 12], // "ph"
+          [12, 15], // "ras"
+          [15, 16], // "e"
+        ],
+        highlightAttrs
+      ),
+      "first highlight ranges correct"
+    );
+    ok(
+      textAttrRangesMatch(
+        first,
+        [
+          [0, 3], // "the"
+          [4, 6], // "fi"
+          [6, 7], // "r"
+          [7, 9], // "st"
+          [12, 15], // "ras"
+        ],
+        spellingAttrs
+      ),
+      "first spelling ranges correct"
+    );
+    const second = findAccessibleChildByID(docAcc, "second");
+    ok(
+      textAttrRangesMatch(
+        second,
+        [
+          [4, 7], // "sec"
+          [7, 8], // "o"
+          [8, 10], // "nd"
+          [11, 13], // "ph"
+          [13, 16], // "ras"
+          [16, 17], // "e"
+        ],
+        highlightAttrs
+      ),
+      "second highlight ranges correct"
+    );
+    ok(
+      textAttrRangesMatch(
+        second,
+        [
+          [4, 7], // "sec"
+          [8, 10], // "nd"
+        ],
+        spellingAttrs
+      ),
+      "second spelling ranges correct"
+    );
+  },
+  { chrome: true, topLevel: true }
+);
