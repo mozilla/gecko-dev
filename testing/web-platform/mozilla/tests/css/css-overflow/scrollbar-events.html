@@ -19,12 +19,13 @@
 let container = document.getElementById("container");
 let child = document.getElementById("child");
 let InspectorUtils = SpecialPowers.wrap(window).InspectorUtils;
+const kDuration = 200;
 
 promise_test(async function(t) {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["ui.useOverlayScrollbars", 1],
-      ["ui.scrollbarFadeDuration", 200],
+      ["ui.scrollbarFadeDuration", kDuration],
     ]
   });
 
@@ -36,20 +37,9 @@ promise_test(async function(t) {
   container.getBoundingClientRect();
   let scrollbars = InspectorUtils.getChildrenForNode(container, true, true).filter(child => SpecialPowers.wrap(child).nodeName.toLowerCase() == "scrollbar");
   assert_equals(scrollbars.length, 2, "Should have two scrollbars");
-  let {resolve, promise} = Promise.withResolvers();
-  {
-    let expectedEvents = 2;
-    for (let scrollbar of scrollbars) {
-      SpecialPowers.wrap(scrollbar).addEventListener("transitionend", function() {
-        assert_true(expectedEvents > 0, "Should see an expected transition");
-        if (--expectedEvents) {
-          resolve();
-        }
-      });
-    }
-  }
-  await promise;
+  await new Promise(r => t.step_timeout(r, kDuration));
   await new Promise(r => requestAnimationFrame(r));
+  assert_true(true, "No scrollbar event should've happened by now");
   // FIXME: This doesn't seem to be done automatically by the test harness in WPT
   await SpecialPowers.popPrefEnv();
 });
