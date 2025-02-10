@@ -11,7 +11,6 @@ import mozilla.components.compose.base.theme.layout.AcornWindowSize
 
 private const val SMALL_WINDOW_WIDTH = 400
 private const val MEDIUM_WINDOW_WIDTH = 700
-private const val LARGE_WINDOW_WIDTH = 1000
 
 /**
  * A wrapper annotation for creating a preview that renders a preview for each
@@ -55,14 +54,12 @@ private const val LARGE_WINDOW_WIDTH = 1000
 )
 @Preview(
     name = "Large Window Light Landscape",
-    widthDp = LARGE_WINDOW_WIDTH,
-    device = Devices.AUTOMOTIVE_1024p,
+    device = Devices.PIXEL_TABLET,
     uiMode = Configuration.UI_MODE_NIGHT_NO,
 )
 @Preview(
     name = "Large Window Dark Landscape",
-    widthDp = LARGE_WINDOW_WIDTH,
-    device = Devices.AUTOMOTIVE_1024p,
+    device = Devices.PIXEL_TABLET,
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 annotation class FlexibleWindowLightDarkPreview
