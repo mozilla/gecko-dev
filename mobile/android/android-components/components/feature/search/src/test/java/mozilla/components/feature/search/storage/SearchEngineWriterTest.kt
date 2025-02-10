@@ -105,6 +105,27 @@ class SearchEngineWriterTest {
     }
 
     @Test
+    fun `GIVEN a search engine with a trending URL WHEN building the search engine XML THEN the trendingUrl is built correctly`() {
+        val writer = SearchEngineWriter()
+        val searchEngine = SearchEngine(
+            id = "id1",
+            name = "example",
+            icon = mock(),
+            type = SearchEngine.Type.CUSTOM,
+            trendingUrl = "https://www.example.com/search-suggestion?q=%s",
+        )
+
+        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument()
+        writer.buildSearchEngineXML(searchEngine, document)
+        val searchXML = document.xmlToString()
+        assertTrue(searchXML!!.contains(searchEngine.name))
+        assertTrue(searchXML.contains(IMAGE_URI_PREFIX))
+        assertFalse(searchXML.contains(URL_TYPE_SEARCH_HTML))
+        assertTrue(searchXML.contains(URL_TYPE_TRENDING_JSON))
+        assertTrue(searchXML.contains("https://www.example.com/search-suggestion?q={searchTerms}"))
+    }
+
+    @Test
     fun `buildSearchEngineXML successfully for search engines with XML escaped characters`() {
         val writer = SearchEngineWriter()
         val invalidSearchEngineNameAmp = SearchEngine(

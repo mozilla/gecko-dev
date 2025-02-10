@@ -98,6 +98,14 @@ internal class SearchEngineWriter {
             urlElement.setAttribute("template", templateSearchString)
             rootElement.appendChild(urlElement)
         }
+
+        searchEngine.trendingUrl?.let { url ->
+            val urlElement = xmlDocument.createElement("Url")
+            urlElement.setAttribute("type", URL_TYPE_TRENDING_JSON)
+            val templateSearchString = url.replace("%s", "{searchTerms}")
+            urlElement.setAttribute("template", templateSearchString)
+            rootElement.appendChild(urlElement)
+        }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)

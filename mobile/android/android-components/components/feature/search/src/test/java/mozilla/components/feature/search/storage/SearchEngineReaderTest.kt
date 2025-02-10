@@ -71,6 +71,24 @@ class SearchEngineReaderTest {
             assertEquals(id in GENERAL_SEARCH_ENGINE_IDS, readSearchEngine.isGeneral)
         }
     }
+
+    @Test
+    fun `GIVEN a search engine with a trending URL WHEN SearchEngineReader loads the search engine from a file THEN the trending URL is correctly parsed`() {
+        val searchEngine = SearchEngine(
+            id = "id1",
+            name = "example",
+            icon = mock(),
+            type = SearchEngine.Type.CUSTOM,
+            trendingUrl = "https://www.example.com/complete/search?client=firefox&channel=ftr&q={searchTerms}",
+        )
+        val readSearchEngine = saveAndLoadSearchEngine(searchEngine)
+
+        assertEquals(searchEngine.id, readSearchEngine.id)
+        assertEquals(searchEngine.name, readSearchEngine.name)
+        assertEquals(searchEngine.type, readSearchEngine.type)
+        assertEquals(searchEngine.trendingUrl, readSearchEngine.trendingUrl)
+    }
+
     private fun saveAndLoadSearchEngine(searchEngine: SearchEngine): SearchEngine {
         val storage = CustomSearchEngineStorage(testContext)
         val writer = SearchEngineWriter()

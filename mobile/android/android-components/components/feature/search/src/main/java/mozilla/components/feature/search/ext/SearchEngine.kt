@@ -26,6 +26,7 @@ fun createSearchEngine(
     icon: Bitmap,
     inputEncoding: String? = null,
     suggestUrl: String? = null,
+    trendingUrl: String? = null,
     isGeneral: Boolean = false,
 ): SearchEngine {
     require(url.contains(OS_SEARCH_ENGINE_TERMS_PARAM)) {
@@ -40,6 +41,7 @@ fun createSearchEngine(
         type = SearchEngine.Type.CUSTOM,
         resultUrls = listOf(url),
         suggestUrl = suggestUrl,
+        trendingUrl = trendingUrl,
         isGeneral = isGeneral,
     )
 }
@@ -54,6 +56,7 @@ fun createApplicationSearchEngine(
     inputEncoding: String? = null,
     icon: Bitmap,
     suggestUrl: String? = null,
+    trendingUrl: String? = null,
 ): SearchEngine {
     return SearchEngine(
         id = id ?: UUID.randomUUID().toString(),
@@ -63,6 +66,7 @@ fun createApplicationSearchEngine(
         type = SearchEngine.Type.APPLICATION,
         resultUrls = listOf(url),
         suggestUrl = suggestUrl,
+        trendingUrl = trendingUrl,
     )
 }
 
@@ -74,11 +78,26 @@ val SearchEngine.canProvideSearchSuggestions: Boolean
     get() = suggestUrl != null
 
 /**
+ * Whether this [SearchEngine] has a [SearchEngine.trendingUrl] set and can provide trending
+ * searches.
+ */
+val SearchEngine.canProvideTrendingSearches: Boolean
+    get() = trendingUrl != null
+
+/**
  * Creates an URL to retrieve search suggestions for the provided [query].
  */
 fun SearchEngine.buildSuggestionsURL(query: String): String? {
     val builder = SearchUrlBuilder(this)
     return builder.buildSuggestionUrl(query)
+}
+
+/**
+ * Creates an URL to retrieve trending searches with this search engine.
+ */
+fun SearchEngine.buildTrendingURL(): String? {
+    val builder = SearchUrlBuilder(this)
+    return builder.buildTrendingUrl()
 }
 
 /**

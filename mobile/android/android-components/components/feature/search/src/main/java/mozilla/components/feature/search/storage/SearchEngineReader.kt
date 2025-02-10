@@ -20,6 +20,7 @@ import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 
 internal const val URL_TYPE_SUGGEST_JSON = "application/x-suggestions+json"
+internal const val URL_TYPE_TRENDING_JSON = "application/x-trending+json"
 internal const val URL_TYPE_SEARCH_HTML = "text/html"
 internal const val URL_REL_MOBILE = "mobile"
 internal const val IMAGE_URI_PREFIX = "data:image/png;base64,"
@@ -56,6 +57,7 @@ internal class SearchEngineReader(
     ) {
         var resultsUrls: MutableList<String> = mutableListOf()
         var suggestUrl: String? = null
+        var trendingUrl: String? = null
         var name: String? = null
         var icon: Bitmap? = null
         var inputEncoding: String? = null
@@ -67,6 +69,7 @@ internal class SearchEngineReader(
             type = type,
             resultUrls = resultsUrls,
             suggestUrl = suggestUrl,
+            trendingUrl = trendingUrl,
             inputEncoding = inputEncoding,
             isGeneral = isGeneralSearchEngine(identifier, type),
         )
@@ -154,15 +157,17 @@ internal class SearchEngineReader(
             }
         }
 
-        if (type == URL_TYPE_SEARCH_HTML) {
-            // Prefer mobile URIs.
-            if (rel != null && rel == URL_REL_MOBILE) {
-                builder.resultsUrls.add(0, url)
-            } else {
-                builder.resultsUrls.add(url)
+        when (type) {
+            URL_TYPE_SEARCH_HTML -> {
+                // Prefer mobile URIs.
+                if (rel != null && rel == URL_REL_MOBILE) {
+                    builder.resultsUrls.add(0, url)
+                } else {
+                    builder.resultsUrls.add(url)
+                }
             }
-        } else if (type == URL_TYPE_SUGGEST_JSON) {
-            builder.suggestUrl = url
+            URL_TYPE_SUGGEST_JSON -> builder.suggestUrl = url
+            URL_TYPE_TRENDING_JSON -> builder.trendingUrl = url
         }
     }
 

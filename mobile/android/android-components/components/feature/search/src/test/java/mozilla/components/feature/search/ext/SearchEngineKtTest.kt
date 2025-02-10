@@ -77,6 +77,38 @@ class SearchEngineKtTest {
     }
 
     @Test
+    fun `GIVEN a search engine with a trending URL WHEN building a trending URL THEN return the trending URL`() {
+        val searchEngine = SearchEngine(
+            id = UUID.randomUUID().toString(),
+            name = "Google",
+            icon = mock(),
+            type = SearchEngine.Type.CUSTOM,
+            resultUrls = listOf(),
+            trendingUrl = "https://www.google.com/complete/search?client=firefox&channel=ftr&q={searchTerms}",
+        )
+
+        assertEquals(
+            "https://www.google.com/complete/search?client=firefox&channel=ftr&q=",
+            searchEngine.buildTrendingURL(),
+        )
+    }
+
+    @Test
+    fun `GIVEN a search engine without a trending URL WHEN building a trending URL THEN return null`() {
+        val searchEngine = SearchEngine(
+            id = UUID.randomUUID().toString(),
+            name = "Google",
+            icon = mock(),
+            type = SearchEngine.Type.CUSTOM,
+            resultUrls = listOf(),
+        )
+
+        assertNull(
+            searchEngine.buildTrendingURL(),
+        )
+    }
+
+    @Test
     fun `GIVEN ecosia search engine and a set of urls THEN search terms are determined when present`() {
         val searchEngine = createSearchEngine(
             name = "Ecosia",

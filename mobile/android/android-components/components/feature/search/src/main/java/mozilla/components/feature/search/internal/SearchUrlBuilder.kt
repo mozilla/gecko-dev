@@ -39,6 +39,11 @@ internal class SearchUrlBuilder(
         return buildUrl(template, searchTerms)
     }
 
+    fun buildTrendingUrl(): String? {
+        val template = searchEngine.trendingUrl ?: return null
+        return buildUrl(template, "")
+    }
+
     private fun buildUrl(template: String, searchTerms: String): String {
         val templateUri = Uri.decode(template)
         val inputEncoding = searchEngine.inputEncoding ?: "UTF-8"
