@@ -994,8 +994,7 @@ static JS::UniqueChars DescribeCodeRangeForProfiler(
     suffix = " fast exit";
   }
 
-  return JS_smprintf("%s: Function %s%s", filename,
-                     name.begin(), suffix);
+  return JS_smprintf("%s: Function %s%s", filename, name.begin(), suffix);
 }
 
 void CodeBlock::sendToProfiler(
@@ -1067,8 +1066,8 @@ void CodeBlock::sendToProfiler(
 
 #ifdef MOZ_VTUNE
     if (vtune::IsProfilingActive()) {
-      vtune::MarkWasm(vtune::GenerateUniqueMethodID(), desc.get(),
-                      (void*)start, size);
+      vtune::MarkWasm(vtune::GenerateUniqueMethodID(), desc.get(), (void*)start,
+                      size);
     }
 #endif
 

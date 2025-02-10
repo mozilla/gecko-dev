@@ -36,7 +36,6 @@ struct AutoLockPerfSpewer {
   ~AutoLockPerfSpewer();
 };
 
-
 bool PerfEnabled();
 
 class PerfSpewer {

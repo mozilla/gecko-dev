@@ -376,7 +376,8 @@ void InlineCachePerfSpewer::recordInstruction(MacroAssembler& masm,
   }
   AutoLockPerfSpewer lock;
 
-  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, static_cast<uint32_t>(op))) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_,
+                            static_cast<uint32_t>(op))) {
     opcodes_.clear();
     DisablePerfSpewer(lock);
   }
@@ -410,8 +411,8 @@ void IonPerfSpewer::recordInstruction(MacroAssembler& masm, LInstruction* ins) {
     opcodeStr = buf.release();
   }
 #endif
-  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, static_cast<uint32_t>(op),
-                            opcodeStr, bytecodepc)) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_,
+                            static_cast<uint32_t>(op), opcodeStr, bytecodepc)) {
     opcodes_.clear();
     DisablePerfSpewer();
   }
@@ -488,7 +489,8 @@ void WasmBaselinePerfSpewer::recordInstruction(MacroAssembler& masm,
     return;
   }
 
-  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, op.toPacked())) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_,
+                            op.toPacked())) {
     opcodes_.clear();
     DisablePerfSpewer();
   }
@@ -548,8 +550,8 @@ void BaselinePerfSpewer::recordInstruction(MacroAssembler& masm, jsbytecode* pc,
   }
 #endif
 
-  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, static_cast<uint32_t>(op),
-                            opcodeStr, pc)) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_,
+                            static_cast<uint32_t>(op), opcodeStr, pc)) {
     opcodes_.clear();
     DisablePerfSpewer();
   }
@@ -957,7 +959,8 @@ void BaselineInterpreterPerfSpewer::recordOffset(MacroAssembler& masm,
     return;
   }
 
-  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_, unsigned(op))) {
+  if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_,
+                            unsigned(op))) {
     opcodes_.clear();
     DisablePerfSpewer();
   }
