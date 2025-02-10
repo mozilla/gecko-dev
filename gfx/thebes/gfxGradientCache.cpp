@@ -150,8 +150,8 @@ class GradientCache final
   template <typename CreateFunc>
   static already_AddRefed<GradientStops> LookupOrInsert(
       const GradientCacheKey& aKey, CreateFunc aCreateFunc) {
-    uint32_t numberOfEntries;
     RefPtr<GradientStops> stops;
+    bool onMaxEntriesBreached = false;
     {
       LockedInstance lockedInstance(sInstanceMutex);
       if (!EnsureInstanceLocked(lockedInstance)) {
@@ -185,10 +185,14 @@ class GradientCache final
         return stops.forget();
       }
       lockedInstance->mHashEntries.InsertOrUpdate(aKey, std::move(data));
-      numberOfEntries = lockedInstance->mHashEntries.Count();
+      if (lockedInstance->mHashEntries.Count() > MAX_ENTRIES &&
+          !lockedInstance->mRemovingEntries) {
+        lockedInstance->mRemovingEntries = true;
+        onMaxEntriesBreached = true;
+      }
     }
 
-    if (numberOfEntries > MAX_ENTRIES) {
+    if (onMaxEntriesBreached) {
       // We have too many entries force the cache to age a generation.
       NS_DispatchToMainThread(
           NS_NewRunnableFunction("GradientCache::OnMaxEntriesBreached", [] {
@@ -196,8 +200,20 @@ class GradientCache final
             if (!lockedInstance) {
               return;
             }
-            lockedInstance->AgeOneGenerationLocked(lockedInstance);
+            if (lockedInstance->mHashEntries.Count() < MAX_ENTRIES) {
+              lockedInstance->mRemovingEntries = false;
+              return;
+            }
+            while (true) {
+              uint32_t remainingEntries = lockedInstance->mHashEntries.Count();
+              lockedInstance->AgeOneGenerationLocked(lockedInstance);
+              if (lockedInstance->mHashEntries.Count() >= remainingEntries) {
+                // Stop if there is no progress.
+                break;
+              }
+            }
             lockedInstance->NotifyHandlerEndLocked(lockedInstance);
+            lockedInstance->mRemovingEntries = false;
           }));
     }
 
@@ -253,6 +269,7 @@ class GradientCache final
    */
   nsClassHashtable<GradientCacheKey, GradientCacheData> mHashEntries;
   nsTArray<UniquePtr<GradientCacheData>> mRemovedGradientData;
+  bool mRemovingEntries = false;
 };
 
 MOZ_RUNINIT GradientCacheMutex GradientCache::sInstanceMutex("GradientCache");
