@@ -71,14 +71,25 @@ static bool ReshapeForShadowedProp(JSContext* cx, Handle<NativeObject*> obj,
     return true;
   }
 
+  bool useDictionaryTeleporting =
+      cx->zone()->shapeZone().useDictionaryModeTeleportation();
+
   RootedObject proto(cx, obj->staticPrototype());
   while (proto) {
     // Lookups will not be cached through non-native protos.
     if (!proto->is<NativeObject>()) {
       break;
     }
-
     if (proto->as<NativeObject>().contains(cx, id)) {
+      if (useDictionaryTeleporting) {
+        JS_LOG(teleporting, Debug,
+               "Shadowed Prop: Dictionary Reshape for Teleporting");
+
+        return JSObject::reshapeForTeleporting(cx, proto);
+      }
+
+      JS_LOG(teleporting, Info,
+             "Shadowed Prop: Invalidating Reshape for Teleporting");
       return JSObject::setInvalidatedTeleporting(cx, proto);
     }
 
@@ -188,8 +199,24 @@ static bool ReshapeForProtoMutation(JSContext* cx, HandleObject obj) {
 
   RootedObject pobj(cx, obj);
 
+  bool useDictionaryTeleporting =
+      cx->zone()->shapeZone().useDictionaryModeTeleportation();
+
   while (pobj && pobj->is<NativeObject>()) {
-    if (!pobj->hasInvalidatedTeleporting()) {
+    if (useDictionaryTeleporting) {
+      MOZ_ASSERT(!pobj->hasInvalidatedTeleporting(),
+                 "Once we start using invalidation shouldn't do any more "
+                 "dictionary mode teleportation");
+      JS_LOG(teleporting, Debug,
+             "Proto Mutation: Dictionary Reshape for Teleporting");
+
+      if (!JSObject::reshapeForTeleporting(cx, pobj)) {
+        return false;
+      }
+    } else if (!pobj->hasInvalidatedTeleporting()) {
+      JS_LOG(teleporting, Info,
+             "Proto Mutation: Invalidating Reshape for Teleporting");
+
       if (!JSObject::setInvalidatedTeleporting(cx, pobj)) {
         return false;
       }

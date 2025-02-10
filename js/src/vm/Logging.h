@@ -90,6 +90,7 @@ class LogModule {
   _(fuseInvalidation)     /* Invalidation triggered by a fuse  */            \
   _(thenable)             /* Thenable on standard proto*/                    \
   _(startup)              /* engine startup logging */                       \
+  _(teleporting)          /* Shape Teleporting */                            \
   JITSPEW_CHANNEL_LIST(_) /* A module for each JitSpew channel. */
 
 // Declare Log modules

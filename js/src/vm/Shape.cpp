@@ -106,12 +106,18 @@ bool js::NativeObject::toDictionaryMode(JSContext* cx,
   uint32_t span = obj->slotSpan();
 
   uint32_t mapLength = shape->propMapLength();
-  MOZ_ASSERT(mapLength > 0, "shouldn't convert empty object to dictionary");
 
   // Clone the shared property map to an unshared dictionary map.
-  RootedField<SharedPropMap*> map(roots, shape->propMap()->asShared());
-  RootedField<DictionaryPropMap*> dictMap(
-      roots, SharedPropMap::toDictionaryMap(cx, map, mapLength));
+  RootedField<DictionaryPropMap*> dictMap(roots);
+
+  if (mapLength > 0) {
+    RootedField<SharedPropMap*> map(roots, shape->propMap()->asShared());
+    dictMap = SharedPropMap::toDictionaryMap(cx, map, mapLength);
+  } else {
+    // Create an empty dictMap
+    dictMap = DictionaryPropMap::createEmpty(cx);
+  }
+
   if (!dictMap) {
     return false;
   }
@@ -123,12 +129,28 @@ bool js::NativeObject::toDictionaryMode(JSContext* cx,
   if (!shape) {
     return false;
   }
+
   obj->setShape(shape);
 
   MOZ_ASSERT(obj->inDictionaryMode());
   obj->setDictionaryModeSlotSpan(span);
 
   return true;
+}
+
+bool JSObject::reshapeForTeleporting(JSContext* cx, JS::HandleObject obj) {
+  MOZ_ASSERT(obj->isUsedAsPrototype());
+  MOZ_ASSERT(obj->hasStaticPrototype(),
+             "teleporting as a concept is only applicable to static "
+             "(not dynamically-computed) prototypes");
+  MOZ_ASSERT(obj->is<NativeObject>());
+
+  Handle<NativeObject*> nobj = obj.as<NativeObject>();
+  if (!nobj->inDictionaryMode()) {
+    return NativeObject::toDictionaryMode(cx, nobj);
+  }
+
+  return NativeObject::generateNewDictionaryShape(cx, nobj);
 }
 
 namespace js {

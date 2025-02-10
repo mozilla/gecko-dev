@@ -269,6 +269,9 @@ class JSObject
     return setFlag(cx, obj, js::ObjectFlag::InvalidatedTeleporting);
   }
 
+  [[nodiscard]] static bool reshapeForTeleporting(JSContext* cx,
+                                                  JS::HandleObject obj);
+
   /*
    * Whether there may be "interesting symbol" properties on this object. An
    * interesting symbol is a symbol for which symbol->isInterestingSymbol()

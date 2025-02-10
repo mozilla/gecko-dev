@@ -2,8 +2,32 @@
 // as prototype when either it's involved in prototype changes or it had a property
 // shadowed on another prototype object.
 
+let usingDictionary = getPrefValue("experimental.dictionary_teleporting");
+
+if (usingDictionary) {
+  // Use this to cause us to exceed the reshape limit to ensure we test the
+  // invalidation path.
+  function exceed_dictionary_limit() {
+    let o = Object.create(null);
+    o = Object.create(o);
+    o = Object.create(o);
+    let l = o;
+    o = Object.create(o);
+    let u = o;
+    o = Object.create(o);
+    o = Object.create(o);
+
+    print("Attempt")
+    for (let i = 0; i < 10_000; i++) {
+      Object.setPrototypeOf(u, null);
+      Object.setPrototypeOf(u, l);
+    }
+  }
+  exceed_dictionary_limit();
+}
+
 function changeProps(o) {
-  Object.assign(o, {x: 1, y: 2, z: 3});
+  Object.assign(o, { x: 1, y: 2, z: 3 });
   o.foo = 4;
   delete o.x;
 }
