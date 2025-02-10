@@ -3691,3 +3691,7 @@ const _internals = {
 
 /***/ })
 /******/ ])["PairingChannel"];
+
+// Keep the windowless browser alive, so that WebSocket doesn't become a
+// dead wrapper.
+FxAccountsPairingChannel._browser = browser;
