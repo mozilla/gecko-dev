@@ -177,7 +177,7 @@ const MESSAGES = () => {
         id: "defaultBrowserCheck",
       },
       targeting:
-        "(region in ['CA', 'US']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures",
+        "(region in ['CA', 'US']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures && !(sync || {}).mobileDevices",
       skip_in_tests:
         "not tested in automation and might pop up unexpectedly during review checker tests",
     },
@@ -275,7 +275,7 @@ const MESSAGES = () => {
         id: "defaultBrowserCheck",
       },
       targeting:
-        "(locale in ['de', 'en-CA', 'en-GB', 'en-US', 'fr']) && (region in ['DE', 'FR', 'GB']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures",
+        "(locale in ['de', 'en-CA', 'en-GB', 'en-US', 'fr']) && (region in ['DE', 'FR', 'GB']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures && !(sync || {}).mobileDevices",
       skip_in_tests:
         "not tested in automation and might pop up unexpectedly during review checker tests",
     },
