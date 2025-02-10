@@ -146,15 +146,3 @@ async function toggleSidebarPanel(win, commandID) {
 registerCleanupFunction(() => {
   Services.fog.testResetFOG();
 });
-
-/**
- * Wait for rendering and microtasks / macrotasks to finish.
- */
-async function flushTaskQueue({ requestAnimationFrame, setTimeout } = window) {
-  await new Promise(resolve => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(resolve);
-    });
-  });
-  await new Promise(r => setTimeout(r, 0));
-}
