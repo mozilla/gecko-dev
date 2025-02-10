@@ -1870,6 +1870,48 @@ addUiaTask(
 );
 
 /**
+ * Test char bounds with the TextRange pattern's GetBoundingRectangles method.
+ */
+addUiaTask(
+  `<div id="test">abc</div>`,
+  async function testTextRangeGetBoundingRectanglesChar(browser, docAcc) {
+    const testAcc = findAccessibleChildByID(docAcc, "test", [
+      nsIAccessibleText,
+    ]);
+    const charX = {};
+    const charY = {};
+    const charW = {};
+    const charH = {};
+    testAcc.getCharacterExtents(
+      0,
+      charX,
+      charY,
+      charW,
+      charH,
+      COORDTYPE_SCREEN_RELATIVE
+    );
+
+    await runPython(`
+      global doc, docText, testAcc, range
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      testAcc = findUiaByDomId(doc, "test")
+      range = docText.RangeFromChild(testAcc)
+      range.ExpandToEnclosingUnit(TextUnit_Character)
+    `);
+    is(await runPython(`range.GetText(-1)`), "a", "range text correct");
+
+    const uiaRect = await runPython(`range.GetBoundingRectangles()`);
+    is(uiaRect.length, 4, "GetBoundingRectangles returned one rectangle");
+    is(uiaRect[0], charX.value, "UIA char rect X matches core char rect X");
+    is(uiaRect[1], charY.value, "UIA char rect Y matches core char rect Y");
+    is(uiaRect[2], charW.value, "UIA char rect W matches core char rect W");
+    is(uiaRect[3], charH.value, "UIA char rect H matches core char rect H");
+  },
+  { uiaEnabled: true, uiaDisabled: true, chrome: true }
+);
+
+/**
  * Test the TextRange pattern's ScrollIntoView method.
  */
 addUiaTask(

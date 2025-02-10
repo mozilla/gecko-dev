@@ -2318,7 +2318,16 @@ bool TextLeafRange::WalkLineRects(LineRectCallback aCallback) const {
     // If currPoint is the end of the document, nextLineStartPoint will be equal
     // to currPoint and we would be in an endless loop.
     if (nextLineStartPoint == currPoint || mEnd <= lastPointInLine) {
-      lastPointInLine = mEnd;
+      // mEnd represents a position one past the character whose bounds
+      // represent the end of the range rectangle. Because mEnd is actually one
+      // character past the range's text content, using its bounds as the far
+      // end of the range's rectangle will cause the resulting bounds to extend
+      // one character into the next leaf. Therefore, as above, step back one
+      // character, provided there's room to do so without passing currPoint.
+      lastPointInLine =
+          currPoint < mEnd ? mEnd.FindBoundary(nsIAccessibleText::BOUNDARY_CHAR,
+                                               eDirPrevious)
+                           : mEnd;
       locatedFinalLine = true;
     }
 
