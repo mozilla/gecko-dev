@@ -1156,7 +1156,8 @@ enum ASDestination : uint8_t {
   DESTINATION_VIDEO,
   DESTINATION_WORKER,
   DESTINATION_XSLT,
-  DESTINATION_FETCH
+  DESTINATION_FETCH,
+  DESTINATION_JSON
 };
 
 void ParseAsValue(const nsAString& aValue, nsAttrValue& aResult);

@@ -3875,11 +3875,17 @@ bool IsFontMimeType(const nsAString& aType) {
 }
 
 static const nsAttrValue::EnumTable kAsAttributeTable[] = {
-    {"", DESTINATION_INVALID},      {"audio", DESTINATION_AUDIO},
-    {"font", DESTINATION_FONT},     {"image", DESTINATION_IMAGE},
-    {"script", DESTINATION_SCRIPT}, {"style", DESTINATION_STYLE},
-    {"track", DESTINATION_TRACK},   {"video", DESTINATION_VIDEO},
-    {"fetch", DESTINATION_FETCH},   {nullptr, 0}};
+    {"", DESTINATION_INVALID},
+    {"audio", DESTINATION_AUDIO},
+    {"font", DESTINATION_FONT},
+    {"image", DESTINATION_IMAGE},
+    {"script", DESTINATION_SCRIPT},
+    {"style", DESTINATION_STYLE},
+    {"track", DESTINATION_TRACK},
+    {"video", DESTINATION_VIDEO},
+    {"fetch", DESTINATION_FETCH},
+    {"json", DESTINATION_JSON},
+    {nullptr, 0}};
 
 void ParseAsValue(const nsAString& aValue, nsAttrValue& aResult) {
   DebugOnly<bool> success =
@@ -3911,6 +3917,8 @@ nsContentPolicyType AsValueToContentPolicy(const nsAttrValue& aValue) {
       return nsIContentPolicy::TYPE_STYLESHEET;
     case DESTINATION_FETCH:
       return nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD;
+    case DESTINATION_JSON:
+      return nsIContentPolicy::TYPE_JSON;
   }
   return nsIContentPolicy::TYPE_INVALID;
 }
