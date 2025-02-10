@@ -981,7 +981,6 @@ open class DummyEngineSession : EngineSession() {
         parent: EngineSession?,
         flags: LoadUrlFlags,
         additionalHeaders: Map<String, String>?,
-        originalInput: String?,
     ) {}
 
     override fun loadData(data: String, mimeType: String, encoding: String) {}
