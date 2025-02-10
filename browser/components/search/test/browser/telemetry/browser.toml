@@ -245,6 +245,13 @@ support-files = [
   "searchTelemetrySubframe.html",
 ]
 
+["browser_search_telemetry_subframe_click.js"]
+support-files = [
+  "searchTelemetryAd_with_sponsored_subframe_hidden.html",
+  "searchTelemetryAd_with_sponsored_subframe_visible.html",
+  "searchTelemetrySubframe.html",
+]
+
 ["browser_search_telemetry_visibility_helper_horizontal.js"]
 
 ["browser_search_telemetry_visibility_helper_vertical.js"]
