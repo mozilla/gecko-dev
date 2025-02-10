@@ -30,7 +30,6 @@ class DefaultBrowserMenu(
     private val context: Context,
     private val appStore: AppStore,
     private val store: BrowserStore,
-    private val isPinningSupported: Boolean,
     private val onItemTapped: (ToolbarMenu.Item) -> Unit = {},
 ) : ToolbarMenu {
 
@@ -150,7 +149,7 @@ class DefaultBrowserMenu(
 
         @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
         fun canAddToHomescreen(): Boolean =
-            selectedSession != null && isPinningSupported
+            selectedSession != null && appStore.state.isPinningSupported == true
 
         val addToHomescreen = BrowserMenuImageText(
             label = context.getString(R.string.menu_add_to_home_screen),

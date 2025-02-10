@@ -49,6 +49,7 @@ object AppReducer : Reducer<AppState, AppAction> {
             is AppAction.ShowOnboardingSecondScreen -> showOnBoardingSecondScreen(state)
             is AppAction.ShowSearchWidgetSnackBar -> showSearchWidgetSnackBarChanged(state, action)
             is AppAction.ShowCookieBannerCfrChange -> showCookieBannerCfrChanged(state, action)
+            is AppAction.UpdateIsPinningSupported -> updateIsPinningSupported(state, action)
         }
     }
 }
@@ -266,6 +267,13 @@ private fun openSitePermissionOptionsScreen(
     action: AppAction.OpenSitePermissionOptionsScreen,
 ): AppState {
     return state.copy(screen = Screen.SitePermissionOptionsScreen(sitePermission = action.sitePermission))
+}
+
+private fun updateIsPinningSupported(
+    state: AppState,
+    action: AppAction.UpdateIsPinningSupported,
+): AppState {
+    return state.copy(isPinningSupported = action.value)
 }
 
 @Suppress("ComplexMethod", "ReturnCount")

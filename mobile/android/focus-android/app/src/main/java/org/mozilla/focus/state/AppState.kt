@@ -22,7 +22,8 @@ import java.util.UUID
  * @property showStartBrowsingTabsCfr A flag which reflects the state of start browsing CFR
  * @property showSearchWidgetSnackbar A flag which reflects the state of search widget snackbar
  * @property showCookieBannerCfr A flag witch reflects the state of cookie banner CFR
- */
+ * @property isPinningSupported A nullable flag indicating whether pinning shortcuts to the home screen is supported.
+ **/
 data class AppState(
     val screen: Screen,
     val topSites: List<TopSite> = emptyList(),
@@ -33,6 +34,7 @@ data class AppState(
     val showTrackingProtectionCfrForTab: Map<String, Boolean> = emptyMap(),
     val showStartBrowsingTabsCfr: Boolean = false,
     val showCookieBannerCfr: Boolean = false,
+    val isPinningSupported: Boolean? = null,
 ) : State
 
 /**

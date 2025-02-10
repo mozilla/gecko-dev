@@ -20,7 +20,6 @@ import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
@@ -109,6 +108,7 @@ import org.mozilla.focus.session.ui.TabsPopup
 import org.mozilla.focus.settings.permissions.permissionoptions.SitePermissionOptionsStorage
 import org.mozilla.focus.settings.privacy.ConnectionDetailsPanel
 import org.mozilla.focus.settings.privacy.TrackingProtectionPanel
+import org.mozilla.focus.shortcut.HomeScreen
 import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.topsites.DefaultTopSitesStorage.Companion.TOP_SITES_MAX_LIMIT
 import org.mozilla.focus.topsites.DefaultTopSitesView
@@ -212,6 +212,8 @@ class BrowserFragment :
                     grandResults.toIntArray(),
                 )
             }
+
+        HomeScreen.checkIfPinningSupported(requireContext(), lifecycleScope)
     }
 
     /**
@@ -570,9 +572,6 @@ class BrowserFragment :
                 context = requireContext(),
                 appStore = requireComponents.appStore,
                 store = requireComponents.store,
-                isPinningSupported = ShortcutManagerCompat.isRequestPinShortcutSupported(
-                    requireContext(),
-                ),
                 onItemTapped = { controller.handleMenuInteraction(it) },
             )
             binding.browserToolbar.display.menuBuilder = browserMenu.menuBuilder

@@ -96,6 +96,7 @@ class Components(
             AppState(
                 screen = if (context.settings.isFirstRun) Screen.FirstRun else Screen.Home,
                 topSites = emptyList(),
+                isPinningSupported = null,
             ),
         )
     }
