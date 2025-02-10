@@ -9,11 +9,11 @@ const { assertUpdate, createSessionDataUpdate, getUpdates } =
   SessionDataUpdateHelpers;
 
 // Test session data update scenarios using the UserContext ContextDescriptor type.
-add_task(async function test_session_data_update_contexts() {
+add_task(async function test_session_data_update_user_contexts() {
   info("Open a new tab");
   const tab = await addTab(TEST_PAGE);
   const browsingContext = tab.linkedBrowser.browsingContext;
-  const root = createRootMessageHandler("session-data-update-contexts");
+  const root = createRootMessageHandler("session-data-update-user-contexts");
 
   info("Add three items: one globally, one in a context one in a user context");
   await root.updateSessionData([
@@ -67,7 +67,9 @@ add_task(async function test_session_data_update_with_two_user_contexts() {
   });
   const browsingContext2 = tab2.linkedBrowser.browsingContext;
 
-  const root = createRootMessageHandler("session-data-update-contexts");
+  const root = createRootMessageHandler(
+    "session-data-update-two-user-contexts"
+  );
 
   info("Add an item in the non-default user context");
   await root.updateSessionData([
@@ -92,6 +94,7 @@ add_task(async function test_session_data_update_with_two_user_contexts() {
   const tab3 = BrowserTestUtils.addTab(gBrowser, TEST_PAGE, {
     userContextId,
   });
+  await BrowserTestUtils.browserLoaded(tab3.linkedBrowser);
   const browsingContext3 = tab3.linkedBrowser.browsingContext;
 
   // Make sure that this browsing context also has the session data item
