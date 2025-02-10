@@ -2133,28 +2133,28 @@ addUiaTask(
     await runPython(`
       global subrange
       subrange = range.FindAttribute(UIA_FontWeightAttributeId, 400, False)
-      `);
+    `);
     is(await runPython(`subrange.GetText(-1)`), "a ", "range text correct");
 
     info("Finding first font-weight 700 text range");
     await runPython(`
       global subrange
       subrange = range.FindAttribute(UIA_FontWeightAttributeId, 700, False)
-      `);
+    `);
     is(await runPython(`subrange.GetText(-1)`), "bcd ef", "range text correct");
 
     info("Finding last font-weight 700 text range");
     await runPython(`
       global subrange
       subrange = range.FindAttribute(UIA_FontWeightAttributeId, 700, True)
-      `);
+    `);
     is(await runPython(`subrange.GetText(-1)`), "bcd ef", "range text correct");
 
     info("Finding last font-weight 400 text range");
     await runPython(`
       global subrange
       subrange = range.FindAttribute(UIA_FontWeightAttributeId, 400, True)
-      `);
+    `);
     is(await runPython(`subrange.GetText(-1)`), " ghi", "range text correct");
 
     // The IA2 -> UIA proxy gets things below this wrong.
@@ -2177,7 +2177,7 @@ addUiaTask(
     await runPython(`
       global subrange
       subrange = range.FindAttribute(UIA_FontWeightAttributeId, 700, False)
-      `);
+    `);
     is(await runPython(`subrange.GetText(-1)`), "cd ef", "range text correct");
 
     await runPython(`
@@ -2204,8 +2204,22 @@ addUiaTask(
     await runPython(`
       global subrange
       subrange = range.FindAttribute(UIA_FontWeightAttributeId, 700, True)
-      `);
+    `);
     is(await runPython(`subrange.GetText(-1)`), "bcd e", "range text correct");
+
+    info("Collapsing range at start");
+    await runPython(`
+      global subrange
+      subrange = range.Clone()
+      subrange.MoveEndpointByRange(TextPatternRangeEndpoint_End, subrange, TextPatternRangeEndpoint_Start)
+    `);
+    is(await runPython(`subrange.GetText(-1)`), "", "subrange text correct");
+    info("Finding last font-weight 400 text range on collapsed range");
+    await runPython(`
+      global subrange
+      subrange = subrange.FindAttribute(UIA_FontWeightAttributeId, 400, True)
+    `);
+    is(await runPython(`subrange.GetText(-1)`), "", "subrange text correct");
   },
   { uiaEnabled: true, uiaDisabled: true }
 );

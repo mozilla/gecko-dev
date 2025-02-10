@@ -416,6 +416,9 @@ UiaTextRange::FindAttribute(TEXTATTRIBUTEID aAttributeId, VARIANT aVal,
         return S_OK;
       }
       startPoint = endPoint;
+      // Advance only if startPoint != endPoint to avoid infinite loops if
+      // FindTextAttrsStart returns the TextLeafPoint unchanged. This covers
+      // cases like hitting the end of the document.
     } while ((endPoint = endPoint.FindTextAttrsStart(eDirNext)) &&
              endPoint <= range.End() && startPoint != endPoint);
     if (matchingRangeStart) {
@@ -446,8 +449,11 @@ UiaTextRange::FindAttribute(TEXTATTRIBUTEID aAttributeId, VARIANT aVal,
         return S_OK;
       }
       endPoint = startPoint;
+      // Advance only if startPoint != endPoint to avoid infinite loops if
+      // FindTextAttrsStart returns the TextLeafPoint unchanged. This covers
+      // cases like hitting the start of the document.
     } while ((startPoint = startPoint.FindTextAttrsStart(eDirPrevious)) &&
-             range.Start() <= startPoint);
+             range.Start() <= startPoint && startPoint != endPoint);
     if (matchingRangeEnd) {
       // We found an end point and reached the start of the range. The result is
       // [range.Start(), matchingRangeEnd).
