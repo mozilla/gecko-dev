@@ -13,3 +13,5 @@ includes = ["nsStringFwd.h"]
 
 [export.rename]
 "ThinVec" = "nsTArray"
+[export]
+exclude = ["nsCString"]
