@@ -76,6 +76,19 @@ interface nsIBinaryOutputStream : nsIOutputStream {
      * Write an opaque byte array to the stream.
      */
     void writeByteArray(in Array<uint8_t> aBytes);
+
+    %{C++
+    /**
+     * C++ helper to write a `const nsACString&` as an 8-bit pascal style string
+     * to the stream.
+     * 32-bit length field, followed by length 8-bit chars.
+     */
+    nsresult WriteCString(const nsACString& aString) {
+        nsresult rv = Write32(aString.Length());
+        if (NS_SUCCEEDED(rv)) rv = WriteBytes(aString);
+        return rv;
+    }
+    %}
 };
 
 %{C++
