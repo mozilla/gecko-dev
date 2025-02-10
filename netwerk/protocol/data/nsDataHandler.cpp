@@ -153,12 +153,11 @@ bool TrimSpacesAndBase64(nsACString& aMimeType) {
 
 }  // namespace
 
-nsresult nsDataHandler::ParsePathWithoutRef(const nsACString& aPath,
-                                            nsCString& aContentType,
-                                            nsCString* aContentCharset,
-                                            bool& aIsBase64,
-                                            nsDependentCSubstring* aDataBuffer,
-                                            RefPtr<CMimeType>* aMimeType) {
+static nsresult ParsePathWithoutRef(const nsACString& aPath,
+                                    nsCString& aContentType,
+                                    nsCString* aContentCharset, bool& aIsBase64,
+                                    nsDependentCSubstring* aDataBuffer,
+                                    RefPtr<CMimeType>* aMimeType) {
   static constexpr auto kCharset = "charset"_ns;
 
   // This implements https://fetch.spec.whatwg.org/#data-url-processor
@@ -232,35 +231,30 @@ static inline char ToLower(const char c) {
   return c;
 }
 
-nsresult nsDataHandler::ParseURI(const nsACString& spec, nsCString& contentType,
-                                 nsCString* contentCharset, bool& isBase64,
-                                 nsCString* dataBuffer) {
+nsresult nsDataHandler::ParseURI(const nsACString& aSpec,
+                                 nsCString& aContentType,
+                                 nsCString* aContentCharset, bool& aIsBase64,
+                                 nsDependentCSubstring* aDataBuffer,
+                                 RefPtr<CMimeType>* aMimeType) {
   static constexpr auto kDataScheme = "data:"_ns;
 
   // move past "data:"
   const char* pos = std::search(
-      spec.BeginReading(), spec.EndReading(), kDataScheme.BeginReading(),
+      aSpec.BeginReading(), aSpec.EndReading(), kDataScheme.BeginReading(),
       kDataScheme.EndReading(),
       [](const char a, const char b) { return ToLower(a) == ToLower(b); });
-  if (pos == spec.EndReading()) {
+  if (pos == aSpec.EndReading()) {
     return NS_ERROR_MALFORMED_URI;
   }
 
-  uint32_t scheme = pos - spec.BeginReading();
+  uint32_t scheme = pos - aSpec.BeginReading();
   scheme += kDataScheme.Length();
 
   // Find the start of the hash ref if present.
-  int32_t hash = spec.FindChar('#', scheme);
+  int32_t hash = aSpec.FindChar('#', scheme);
 
-  auto pathWithoutRef = Substring(spec, scheme, hash != kNotFound ? hash : -1);
-  nsDependentCSubstring dataRange;
-  nsresult rv = ParsePathWithoutRef(pathWithoutRef, contentType, contentCharset,
-                                    isBase64, &dataRange);
-  if (NS_SUCCEEDED(rv) && dataBuffer) {
-    if (!dataBuffer->Assign(dataRange, mozilla::fallible)) {
-      rv = NS_ERROR_OUT_OF_MEMORY;
-    }
-  }
-
-  return rv;
+  auto pathWithoutRef =
+      Substring(aSpec, scheme, hash != kNotFound ? hash - scheme : -1);
+  return ParsePathWithoutRef(pathWithoutRef, aContentType, aContentCharset,
+                             aIsBase64, aDataBuffer, aMimeType);
 }

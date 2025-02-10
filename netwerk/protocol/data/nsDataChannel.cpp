@@ -52,24 +52,24 @@ nsresult nsDataChannel::OpenContentStream(bool async, nsIInputStream** result,
 
   nsresult rv;
 
-  // In order to avoid potentially building up a new path including the
-  // ref portion of the URI, which we don't care about, we clone a version
-  // of the URI that does not have a ref and in most cases should share
-  // string buffers with the original URI.
-  nsCOMPtr<nsIURI> uri;
-  rv = NS_GetURIWithoutRef(URI(), getter_AddRefs(uri));
-  if (NS_FAILED(rv)) return rv;
+  // In general, a `data:` URI is stored as a `nsSimpleURI`, which holds a
+  // single mSpec string. This can be read most efficiently with `GetSpec`, as
+  // the underlying string buffer will be shared.
+  //
+  // NOTE: In the case where the `data:` URI is parsed with `DefaultURI`, this
+  // will be inefficient, as there is no way to share the string buffer with
+  // MozURL.
 
-  nsAutoCString path;
-  rv = uri->GetPathQueryRef(path);
+  nsAutoCString spec;
+  rv = URI()->GetSpec(spec);
   if (NS_FAILED(rv)) return rv;
 
   nsCString contentType, contentCharset;
   nsDependentCSubstring dataRange;
   RefPtr<CMimeType> fullMimeType;
   bool lBase64;
-  rv = nsDataHandler::ParsePathWithoutRef(path, contentType, &contentCharset,
-                                          lBase64, &dataRange, &fullMimeType);
+  rv = nsDataHandler::ParseURI(spec, contentType, &contentCharset, lBase64,
+                               &dataRange, &fullMimeType);
   if (NS_FAILED(rv)) return rv;
 
   // This will avoid a copy if nothing needs to be unescaped.
