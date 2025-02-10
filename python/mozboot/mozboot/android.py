@@ -75,14 +75,10 @@ MOBILE_ANDROID_MOZCONFIG_TEMPLATE = """
 # Build GeckoView/Firefox for Android:
 ac_add_options --enable-project=mobile/android
 
-# Targeting the following architecture.
-# For regular phones, no --target is needed.
-# For x86 emulators (and x86 devices, which are uncommon):
-# ac_add_options --target=i686
-# For newer phones or Apple silicon
+# If --target is not specified it will default to host architecture for fast
+# emulation (x86_64 or aarch64). For testing on physical phones you most likely
+# want to use an aarch64 (ARM64) target.
 # ac_add_options --target=aarch64
-# For x86_64 emulators (and x86_64 devices, which are even less common):
-# ac_add_options --target=x86_64
 
 {extra_lines}
 """

@@ -64,32 +64,22 @@ printed out a recommended ``mozconfig`` that looks something like this:
    # Build GeckoView/Firefox for Android:
    ac_add_options --enable-project=mobile/android
 
-   # Targeting the following architecture.
-   # For regular phones, no --target is needed.
-   # For x86 emulators (and x86 devices, which are uncommon):
-   # ac_add_options --target=i686
-   # For newer phones.
+   # If --target is not specified it will default to host architecture for fast
+   # emulation (x86_64 or aarch64). For testing on physical phones you most likely
+   # want to use an aarch64 (ARM64) target.
    # ac_add_options --target=aarch64
-   # For x86_64 emulators (and x86_64 devices, which are even less common):
-   # ac_add_options --target=x86_64
 
-As written, this defaults to building for a 32-bit ARM architecture,
-which is probably not what you want. If you intend to work on an actual
-device, you almost certainly want a 64-bit ARM build, as it is supported
-by virtually all modern ARM phones/tablets and is the only ARM build we
-ship on the Google Play Store. To go this route, uncomment the
-``ac_add_options --target=aarch64`` line in the ``mozconfig``. On the
-other hand, x86-64 emulated devices are widely used by the GeckoView
-team and are used extensively on ``try``; if you intend to use an
-emulator, uncomment the ``ac_add_options --target=x86_64`` line in the
-``mozconfig``. Don’t worry about installing an emulator at the moment,
-that will be covered shortly. It’s worth noting here that other
-``mozconfig`` options will generally work as you’d expect. Additionally,
-if you plan on debugging native code on Android, you should include the
-``mozconfig`` changes mentioned `in our native debugging guide <native-debugging.html>`_. Now, using
-that ``mozconfig`` with any modifications you’ve made, simply
-``./mach build``. If all goes well, you will have successfully built
-GeckoView.
+This will default to either x86_64 or aarch64 depending on your host
+platform to allow for fast emulation. For testing builds on real phones,
+you will want to uncomment the line specifying a target of aarch64.
+
+Don’t worry about installing an emulator at the moment, that will be covered
+shortly. It’s worth noting here that other ``mozconfig`` options will generally
+work as you’d expect. Additionally, if you plan on debugging native code on
+Android, you should include the ``mozconfig`` changes mentioned `in our native
+debugging guide <native-debugging.html>`_. Now, using that ``mozconfig`` with
+any modifications you’ve made, simply ``./mach build``. If all goes well, you
+will have successfully built GeckoView.
 
 Installing, Running, and Using in Fenix/AC
 ------------------------------------------
