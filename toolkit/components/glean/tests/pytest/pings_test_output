@@ -124,6 +124,12 @@ pub fn register_pings(application_id: Option<&str>) {
             let _ = &*ridealong_test;
         }
     }
+    extern "C" {
+        fn JOG_MaybeReload();
+    }
+    unsafe {
+      JOG_MaybeReload();
+    }
 }
 
 /// Map from pings to the pings scheduled along with them.

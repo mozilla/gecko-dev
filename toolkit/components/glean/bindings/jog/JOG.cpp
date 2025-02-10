@@ -41,11 +41,6 @@ bool JOG::HasCategory(const nsACString& aCategoryName) {
 
 static Maybe<bool> sFoundAndLoadedJogfile;
 
-void JOG::TestReset() {
-  MOZ_ASSERT(NS_IsMainThread());
-  sFoundAndLoadedJogfile = Nothing();
-}
-
 // static
 bool JOG::EnsureRuntimeMetricsRegistered(bool aForce) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -259,6 +254,16 @@ extern "C" NS_EXPORT void JOG_RegisterMetric(
                   ShutdownPhase::XPCOMWillShutdown);
   }
   gMetricNames->InsertOrUpdate(aMetricId, categoryCamel + "."_ns + nameCamel);
+}
+
+extern "C" void jog_test_clear_registered_metrics_and_pings();
+
+extern "C" NS_EXPORT void JOG_MaybeReload() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  jog_test_clear_registered_metrics_and_pings();
+  mozilla::glean::sFoundAndLoadedJogfile = mozilla::Nothing();
+  mozilla::glean::JOG::EnsureRuntimeMetricsRegistered();
 }
 
 extern "C" NS_EXPORT void JOG_RegisterPing(const nsACString& aPingName,

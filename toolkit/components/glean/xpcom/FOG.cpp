@@ -379,7 +379,6 @@ NS_IMETHODIMP
 FOG::TestResetFOG(const nsACString& aDataPathOverride,
                   const nsACString& aAppIdOverride) {
   MOZ_ASSERT(XRE_IsParentProcess());
-  glean::JOG::TestReset();
   return glean::impl::fog_test_reset(&aDataPathOverride, &aAppIdOverride);
 }
 

@@ -54,10 +54,25 @@ use crate::private::traits::HistogramType;
 pub(crate) static DYNAMIC_METRIC_BIT: u32 = {{runtime_metric_bit}};
 // 2**DYNAMIC_METRIC_BIT + 1 (+1 because we reserve the 0 metric id)
 static NEXT_METRIC_ID: AtomicU32 = AtomicU32::new({{2**runtime_metric_bit + 1}});
+// Needed for the reset.
+const FIRST_METRIC_ID: u32 = {{2**runtime_metric_bit + 1}};
 #[cfg(feature = "with_gecko")] // only used in submit_ping_by_id, which is gecko-only.
 pub(crate) static DYNAMIC_PING_BIT: u32 = {{runtime_ping_bit}};
 // 2**DYNAMIC_PING_BIT + 1 (+1 because we reserve the 0 ping id)
 static NEXT_PING_ID: AtomicU32 = AtomicU32::new({{2**runtime_ping_bit + 1}});
+// Needed for the reset.
+const FIRST_PING_ID: u32 = {{2**runtime_ping_bit + 1}};
+
+#[inline(always)]
+pub fn id_and_map_reset() {
+  NEXT_METRIC_ID.store(FIRST_METRIC_ID, Ordering::SeqCst);
+{% for metric_type_name, metric_type in metric_types.items() %}
+  __jog_metric_maps::{{metric_type_name.upper()}}_MAP.write().unwrap().clear();
+{% endfor %}
+
+  NEXT_PING_ID.store(FIRST_PING_ID, Ordering::SeqCst);
+  __jog_metric_maps::PING_MAP.write().unwrap().clear();
+}
 
 pub(crate) mod __jog_metric_maps {
     use crate::metrics::DynamicLabel;

@@ -53,6 +53,12 @@ pub fn register_pings(application_id: Option<&str>) {
             {% endfor %}
         }
     }
+    extern "C" {
+        fn JOG_MaybeReload();
+    }
+    unsafe {
+      JOG_MaybeReload();
+    }
 }
 
 /// Map from pings to the pings scheduled along with them.
