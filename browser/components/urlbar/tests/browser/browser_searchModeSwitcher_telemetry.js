@@ -111,9 +111,9 @@ async function testSearchEngine(label, telemetry, expected) {
 
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
   await BrowserTestUtils.waitForCondition(() =>
-    popup.querySelector(`menuitem[label=${label}]`)
+    popup.querySelector(`toolbarbutton[label=${label}]`)
   );
-  popup.querySelector(`menuitem[label=${label}]`).click();
+  popup.querySelector(`toolbarbutton[label=${label}]`).click();
   await popupHidden;
   Assert.equal(
     Glean.urlbarUnifiedsearchbutton.picked[telemetry].testGetValue(),

@@ -118,11 +118,21 @@ add_task(
 );
 
 async function focusOnURLbar(focus) {
-  gURLBar.focus();
-  gURLBar.blur();
-  await UrlbarTestUtils.promisePopupOpen(window, () => {
-    focus();
-  });
+  // We intentionally turn off this a11y check, because the following click is
+  // purposefully targeting a non-interactive element.
+  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
+  EventUtils.synthesizeMouseAtCenter(document.getElementById("browser"), {});
+  AccessibilityUtils.resetEnv();
+  await BrowserTestUtils.waitForCondition(() =>
+    document.activeElement.closest("#browser")
+  );
+
+  focus();
+
+  await BrowserTestUtils.waitForCondition(
+    () => document.activeElement.id == "urlbar-input" && gURLBar.view.isOpen,
+    "Wait for urlbar gets focus"
+  );
 }
 
 /**
@@ -199,25 +209,18 @@ async function test_navigate_switcher(navKey, navTimes, searchMode) {
 }
 
 // TODO: Don't let tests depend on the actual search config.
-let googleSearchMode = {
-  engineName: "Google",
-  entry: "searchbutton",
-  isGeneralPurposeEngine: true,
-  isPreview: false,
-  source: 3,
-};
 let amazonSearchMode = {
   engineName: "Amazon.com",
   entry: "searchbutton",
-  isGeneralPurposeEngine: true,
   isPreview: false,
+  isGeneralPurposeEngine: true,
 };
 let bingSearchMode = {
   engineName: "Bing",
-  entry: "searchbutton",
   isGeneralPurposeEngine: true,
-  isPreview: false,
   source: 3,
+  isPreview: false,
+  entry: "searchbutton",
 };
 
 add_task(async function test_keyboard_nav() {
@@ -229,9 +232,10 @@ add_task(async function test_keyboard_nav() {
   await test_dont_open_switcher("KEY_ArrowUp");
   await test_dont_open_switcher("x");
 
-  await test_navigate_switcher("KEY_ArrowDown", 1, googleSearchMode);
-  await test_navigate_switcher("KEY_ArrowDown", 2, amazonSearchMode);
-  await test_navigate_switcher("KEY_ArrowDown", 3, bingSearchMode);
+  await test_navigate_switcher("KEY_Tab", 1, amazonSearchMode);
+  await test_navigate_switcher("KEY_ArrowDown", 1, amazonSearchMode);
+  await test_navigate_switcher("KEY_Tab", 2, bingSearchMode);
+  await test_navigate_switcher("KEY_ArrowDown", 2, bingSearchMode);
 });
 
 add_task(async function test_focus_on_switcher_by_tab() {
