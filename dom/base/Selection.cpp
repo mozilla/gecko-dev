@@ -3082,14 +3082,17 @@ void Selection::Extend(nsINode& aContainer, uint32_t aOffset,
   const uint32_t endOffset = range->MayCrossShadowBoundaryEndOffset();
 
   bool shouldClearRange = false;
-  const Maybe<int32_t> anchorOldFocusOrder = nsContentUtils::ComparePoints(
-      anchorNode, anchorOffset, focusNode, focusOffset);
+  const Maybe<int32_t> anchorOldFocusOrder =
+      nsContentUtils::ComparePointsWithIndices(anchorNode, anchorOffset,
+                                               focusNode, focusOffset);
   shouldClearRange |= !anchorOldFocusOrder;
-  const Maybe<int32_t> oldFocusNewFocusOrder = nsContentUtils::ComparePoints(
-      focusNode, focusOffset, &aContainer, aOffset);
+  const Maybe<int32_t> oldFocusNewFocusOrder =
+      nsContentUtils::ComparePointsWithIndices(focusNode, focusOffset,
+                                               &aContainer, aOffset);
   shouldClearRange |= !oldFocusNewFocusOrder;
-  const Maybe<int32_t> anchorNewFocusOrder = nsContentUtils::ComparePoints(
-      anchorNode, anchorOffset, &aContainer, aOffset);
+  const Maybe<int32_t> anchorNewFocusOrder =
+      nsContentUtils::ComparePointsWithIndices(anchorNode, anchorOffset,
+                                               &aContainer, aOffset);
   shouldClearRange |= !anchorNewFocusOrder;
 
   // If the points are disconnected, the range will be collapsed below,

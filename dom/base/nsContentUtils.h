@@ -688,17 +688,28 @@ class nsContentUtils {
   /**
    *  Utility routine to compare two "points", where a point is a node/offset
    *  pair.
-   *  Pass a cache object as aParent1Cache if you expect to repeatedly
-   *  call this function with the same value as aParent1.
+   *  Pass a cache object as aIndexCache if you expect to repeatedly
+   *  call this function with the same value as aParent1 or aParent2.
    *
    *  @return -1 if point1 < point2,
    *          1 if point1 > point2,
    *          0 if point1 == point2.
    *          `Nothing` if the two nodes aren't in the same connected subtree.
    */
-  static mozilla::Maybe<int32_t> ComparePoints(
+  static mozilla::Maybe<int32_t> ComparePointsWithIndices(
       const nsINode* aParent1, uint32_t aOffset1, const nsINode* aParent2,
       uint32_t aOffset2, NodeIndexCache* aIndexCache = nullptr);
+
+  /**
+   *  Utility routine to compare two "points", where a point is a RangeBoundary.
+   *  Pass a cache object as aIndexCache if you expect to repeatedly call this
+   * function with the same value as aBoundary1 or aBoundary2.
+   *
+   *  @return -1 if point1 < point2,
+   *          1 if point1 > point2,
+   *          0 if point1 == point2.
+   *          `Nothing` if the two nodes aren't in the same connected subtree.
+   */
   template <typename PT1, typename RT1, typename PT2, typename RT2>
   static mozilla::Maybe<int32_t> ComparePoints(
       const mozilla::RangeBoundaryBase<PT1, RT1>& aBoundary1,
@@ -737,12 +748,19 @@ class nsContentUtils {
       }
       // Otherwise, aOffset1 nor aOffset2 is referred so that any value is fine
       // if negative.
-      return ComparePoints(
-          aParent1, aOffset1 < 0 ? UINT32_MAX : static_cast<uint32_t>(aOffset1),
+      return ComparePointsWithIndices(
+          aParent1,
+          // Avoid warnings.
+          aOffset1 < 0 ? aParent1->GetChildCount()
+                       : std::min(static_cast<uint32_t>(aOffset1),
+                                  aParent1->GetChildCount()),
           aParent2,
-          aOffset2 < 0 ? UINT32_MAX : static_cast<uint32_t>(aOffset2));
+          // Avoid warnings.
+          aOffset2 < 0 ? aParent2->GetChildCount()
+                       : std::min(static_cast<uint32_t>(aOffset2),
+                                  aParent2->GetChildCount()));
     }
-    return ComparePoints(aParent1, aOffset1, aParent2, aOffset2);
+    return ComparePointsWithIndices(aParent1, aOffset1, aParent2, aOffset2);
   }
 
   /**
@@ -3585,8 +3603,9 @@ class nsContentUtils {
       NodeIndexCache* aIndexCache = nullptr);
 
   /**
-   * Helper method for ComparePoints().  This includes odd traditional behavior.
-   * Therefore, do not use this method as a utility method.
+   * Helper method for ComparePoints() and ComparePointsWithIndices(). This
+   * includes odd traditional behavior. Therefore, do not use this method as a
+   * utility method.
    */
   static mozilla::Maybe<int32_t> CompareClosestCommonAncestorChildren(
       const nsINode&, const nsINode*, const nsINode*, NodeIndexCache*);

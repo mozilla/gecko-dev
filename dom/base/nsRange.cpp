@@ -1836,10 +1836,10 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
       // has a common ancestor with start and end, hence both have to be
       // comparable to it.
       if (doctype &&
-          *nsContentUtils::ComparePoints(startContainer, startOffset, doctype,
-                                         0) < 0 &&
-          *nsContentUtils::ComparePoints(doctype, 0, endContainer, endOffset) <
-              0) {
+          *nsContentUtils::ComparePointsWithIndices(startContainer, startOffset,
+                                                    doctype, 0) < 0 &&
+          *nsContentUtils::ComparePointsWithIndices(doctype, 0, endContainer,
+                                                    endOffset) < 0) {
         aRv.ThrowHierarchyRequestError("Start or end position isn't valid.");
         return;
       }

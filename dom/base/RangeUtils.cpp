@@ -217,7 +217,7 @@ nsresult RangeUtils::CompareNodeToRangeBoundaries(
   }
   *aNodeIsBeforeRange = *order > 0;
   // is RANGE(end) >= NODE(end) ?
-  order = nsContentUtils::ComparePoints(
+  order = nsContentUtils::ComparePointsWithIndices(
       aEndBoundary.Container(),
       *aEndBoundary.Offset(
           RangeBoundaryBase<EPT, ERT>::OffsetFilter::kValidOrInvalidOffsets),

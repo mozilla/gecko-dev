@@ -3388,11 +3388,9 @@ Maybe<int32_t> nsContentUtils::CompareChildNodeAndChildOffset(
 }
 
 /* static */
-Maybe<int32_t> nsContentUtils::ComparePoints(const nsINode* aParent1,
-                                             uint32_t aOffset1,
-                                             const nsINode* aParent2,
-                                             uint32_t aOffset2,
-                                             NodeIndexCache* aIndexCache) {
+Maybe<int32_t> nsContentUtils::ComparePointsWithIndices(
+    const nsINode* aParent1, uint32_t aOffset1, const nsINode* aParent2,
+    uint32_t aOffset2, NodeIndexCache* aIndexCache) {
   MOZ_ASSERT(aParent1);
   MOZ_ASSERT(aParent2);
 
@@ -3555,9 +3553,9 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
 
   // RangeBoundaryBase instances may be initialized only with a child node or an
   // offset in the container.  If both instances have computed offset, we can
-  // use the other ComparePoints() which works with offsets.
+  // use ComparePointsWithIndices() which works with offsets.
   if (aBoundary1.HasOffset() && aBoundary2.HasOffset()) {
-    return ComparePoints(
+    return ComparePointsWithIndices(
         aBoundary1.Container(), *aBoundary1.Offset(kValidOrInvalidOffsets1),
         aBoundary2.Container(), *aBoundary2.Offset(kValidOrInvalidOffsets2),
         aIndexCache);
@@ -3581,7 +3579,7 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
 
   // Otherwise, we need to compare the common ancestor children which is the
   // most distant different inclusive ancestors of the containers.  So, the
-  // following implementation is similar to the other ComparePoints(), but we
+  // following implementation is similar to ComparePointsWithIndices(), but we
   // don't have offset, so, we cannot use offset when we compare the boundaries
   // whose one is a descendant of the other.
   const CommonAncestors commonAncestors(*aBoundary1.Container(),
