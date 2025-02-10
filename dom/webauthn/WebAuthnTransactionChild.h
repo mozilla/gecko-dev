@@ -8,7 +8,6 @@
 #define mozilla_dom_WebAuthnTransactionChild_h
 
 #include "mozilla/dom/PWebAuthnTransactionChild.h"
-#include "mozilla/dom/WebAuthnManagerBase.h"
 
 /*
  * Child process IPC implementation for WebAuthn API. Receives results of
@@ -19,6 +18,8 @@
 
 namespace mozilla::dom {
 
+class WebAuthnManager;
+
 class WebAuthnTransactionChild final : public PWebAuthnTransactionChild {
  public:
   NS_INLINE_DECL_REFCOUNTING(WebAuthnTransactionChild, override);
@@ -27,13 +28,13 @@ class WebAuthnTransactionChild final : public PWebAuthnTransactionChild {
 
   void ActorDestroy(ActorDestroyReason why) override;
 
-  void SetManager(WebAuthnManagerBase* aMananger);
+  void SetManager(WebAuthnManager* aMananger);
 
  private:
   ~WebAuthnTransactionChild() = default;
 
   // Nulled by ~WebAuthnManager() when disconnecting.
-  WebAuthnManagerBase* mManager;
+  WebAuthnManager* mManager;
 };
 
 }  // namespace mozilla::dom

@@ -4,11 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/dom/WebAuthnManager.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 
 namespace mozilla::dom {
 
-void WebAuthnTransactionChild::SetManager(WebAuthnManagerBase* aManager) {
+void WebAuthnTransactionChild::SetManager(WebAuthnManager* aManager) {
   mManager = aManager;
 }
 
