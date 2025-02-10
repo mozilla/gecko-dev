@@ -9,15 +9,21 @@ use crate::CrashHelperClient;
 use crash_helper_common::{IPCConnector, Pid};
 
 impl CrashHelperClient {
-    pub(crate) fn new(program: *const c_char) -> Result<CrashHelperClient> {
-        let pid = CrashHelperClient::spawn_crash_helper(program)?;
+    pub(crate) fn new(
+        program: *const c_char,
+        user_app_data_dir: *const c_char,
+    ) -> Result<CrashHelperClient> {
+        let pid = CrashHelperClient::spawn_crash_helper(program, user_app_data_dir)?;
         let connector = IPCConnector::connect(process::id() as Pid)?;
 
         Ok(CrashHelperClient { connector, pid })
     }
 
     #[allow(unused_variables)]
-    fn spawn_crash_helper(program: *const c_char) -> Result<nix::libc::pid_t> {
+    fn spawn_crash_helper(
+        program: *const c_char,
+        user_app_data_dir: *const c_char,
+    ) -> Result<nix::libc::pid_t> {
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         {
             use nix::unistd::{execv, fork, getpid, ForkResult};
@@ -31,7 +37,8 @@ impl CrashHelperClient {
             match pid {
                 ForkResult::Child => {
                     let program = unsafe { CStr::from_ptr(program) };
-                    let _ = execv(program, &[program, &parent_pid_arg]);
+                    let user_app_data_dir = unsafe { CStr::from_ptr(user_app_data_dir) };
+                    let _ = execv(program, &[program, &parent_pid_arg, user_app_data_dir]);
 
                     // This point should be unreachable, but let's play it safe
                     unsafe { nix::libc::_exit(1) };
