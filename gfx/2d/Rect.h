@@ -41,7 +41,7 @@ struct MOZ_EMPTY_BASES IntMarginTyped
     static_assert(sizeof(IntMarginTyped) == sizeof(int32_t) * 4,
                   "Would be unfortunate otherwise!");
   }
-  IntMarginTyped(Coord aTop, Coord aRight, Coord aBottom, Coord aLeft)
+  constexpr IntMarginTyped(Coord aTop, Coord aRight, Coord aBottom, Coord aLeft)
       : Super(aTop, aRight, aBottom, aLeft) {}
 
   // XXX When all of the code is ported, the following functions to convert

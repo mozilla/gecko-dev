@@ -65,8 +65,8 @@ struct BaseMargin {
   Coord top, right, bottom, left;
 
   // Constructors
-  BaseMargin() : top(0), right(0), bottom(0), left(0) {}
-  BaseMargin(Coord aTop, Coord aRight, Coord aBottom, Coord aLeft)
+  constexpr BaseMargin() : top(0), right(0), bottom(0), left(0) {}
+  constexpr BaseMargin(Coord aTop, Coord aRight, Coord aBottom, Coord aLeft)
       : top(aTop), right(aRight), bottom(aBottom), left(aLeft) {}
 
   void SizeTo(Coord aTop, Coord aRight, Coord aBottom, Coord aLeft) {

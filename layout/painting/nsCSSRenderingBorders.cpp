@@ -3819,8 +3819,6 @@ nsCSSBorderImageRenderer::nsCSSBorderImageRenderer(
 
   // Compute the used values of 'border-image-slice' and 'border-image-width';
   // we do them together because the latter can depend on the former.
-  nsMargin slice;
-  nsMargin border;
   for (const auto s : mozilla::AllPhysicalSides()) {
     const auto& slice = aStyleBorder.mBorderImageSlice.offsets.Get(s);
     int32_t imgDimension =
