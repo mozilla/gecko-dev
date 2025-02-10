@@ -17,9 +17,9 @@
 
 namespace mozilla::dom {
 
-nsresult AssembleClientData(const nsACString& aOrigin,
-                            const nsTArray<uint8_t>& aChallenge,
+nsresult AssembleClientData(WindowGlobalParent* aManager,
                             const nsACString& aType,
+                            const nsTArray<uint8_t>& aChallenge,
                             /* out */ nsACString& aJsonOut) {
   nsAutoCString challengeBase64;
   nsresult rv =
@@ -28,6 +28,18 @@ nsresult AssembleClientData(const nsACString& aOrigin,
   if (NS_FAILED(rv)) {
     return NS_ERROR_FAILURE;
   }
+
+  nsIPrincipal* principal = aManager->DocumentPrincipal();
+  nsIPrincipal* topPrincipal =
+      aManager->TopWindowContext()->DocumentPrincipal();
+
+  nsCString origin;
+  rv = principal->GetWebExposedOriginSerialization(origin);
+  if (NS_FAILED(rv)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  bool crossOrigin = !principal->Equals(topPrincipal);
 
   // Serialize the collected client data using the algorithm from
   // https://www.w3.org/TR/webauthn-3/#clientdatajson-serialization.
@@ -41,8 +53,20 @@ nsresult AssembleClientData(const nsACString& aOrigin,
   // Steps 4 and 5
   w.StringProperty("challenge", challengeBase64);
   // Steps 6 and 7
-  w.StringProperty("origin", aOrigin);
-  // Steps 8 through 11 will be implemented in Bug 1901809.
+  w.StringProperty("origin", origin);
+  // Steps 8 - 10
+  w.BoolProperty("crossOrigin", crossOrigin);
+  // Step 11. The description of the algorithm says "If topOrigin is present",
+  // but the definition of topOrigin says that topOrigin "is set only if [...]
+  // crossOrigin is true." so we use the latter condition instead.
+  if (crossOrigin) {
+    nsCString topOrigin;
+    rv = topPrincipal->GetWebExposedOriginSerialization(topOrigin);
+    if (NS_FAILED(rv)) {
+      return NS_ERROR_FAILURE;
+    }
+    w.StringProperty("topOrigin", topOrigin);
+  }
   w.End();
 
   return NS_OK;
@@ -104,8 +128,8 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
   }
 
   nsCString clientDataJSON;
-  rv = AssembleClientData(origin, aTransactionInfo.Challenge(),
-                          "webauthn.create"_ns, clientDataJSON);
+  rv = AssembleClientData(manager, "webauthn.create"_ns,
+                          aTransactionInfo.Challenge(), clientDataJSON);
   if (NS_FAILED(rv)) {
     aResolver(NS_ERROR_FAILURE);
     return IPC_OK();
@@ -283,8 +307,8 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
   }
 
   nsCString clientDataJSON;
-  rv = AssembleClientData(origin, aTransactionInfo.Challenge(),
-                          "webauthn.get"_ns, clientDataJSON);
+  rv = AssembleClientData(manager, "webauthn.get"_ns,
+                          aTransactionInfo.Challenge(), clientDataJSON);
   if (NS_FAILED(rv)) {
     aResolver(NS_ERROR_FAILURE);
     return IPC_OK();
