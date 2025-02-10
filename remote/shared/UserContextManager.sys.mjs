@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ContextualIdentityListener:
     "chrome://remote/content/shared/listeners/ContextualIdentityListener.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
+  TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
 });
 
 const DEFAULT_CONTEXT_ID = "default";
@@ -149,6 +150,32 @@ export class UserContextManagerClass {
       }
     }
     return null;
+  }
+
+  /**
+   * Returns an array of tabs related
+   * to the provided internal user context id.
+   *
+   * @param {string} internalId
+   *     The internal user context id.
+   *
+   * @returns {Array<Tab>}
+   *     The array of tabs.
+   */
+  getTabsForUserContext(internalId) {
+    const tabs = [];
+
+    for (const tab of lazy.TabManager.tabs) {
+      if (
+        tab.hasAttribute("usercontextid") &&
+        (!internalId ||
+          parseInt(tab.getAttribute("usercontextid"), 10) == internalId)
+      ) {
+        tabs.push(tab);
+      }
+    }
+
+    return tabs;
   }
 
   /**

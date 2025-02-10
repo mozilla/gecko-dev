@@ -18,13 +18,17 @@ ChromeUtils.defineESModuleGetters(lazy, {
   RootMessageHandler:
     "chrome://remote/content/shared/messagehandler/RootMessageHandler.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
+  UserContextManager:
+    "chrome://remote/content/shared/UserContextManager.sys.mjs",
 });
 class SessionModule extends RootBiDiModule {
   #knownSubscriptionIds;
   #subscriptions;
 
   /**
-   * An object that holds information about the subscription.
+   * An object that holds information about the subscription,
+   * if the <var>topLevelTraversableIds</var> and the <var>userContextIds</var>
+   * are both empty, the subscription is considered global.
    *
    * @typedef Subscription
    *
@@ -33,8 +37,9 @@ class SessionModule extends RootBiDiModule {
    * @property {string} subscriptionId
    *     A unique subscription identifier.
    * @property {Set} topLevelTraversableIds
-   *     A set of top level traversable ids related to this subscription,
-   *     if the set is empty the subscription is considered global.
+   *     A set of top level traversable ids related to this subscription.
+   * @property {Set} userContextIds
+   *     A set of user context ids related to this subscription.
    */
 
   constructor(messageHandler) {
@@ -89,6 +94,9 @@ class SessionModule extends RootBiDiModule {
    * @param {Array<string>=} params.contexts
    *     Optional list of top-level browsing context ids
    *     to subscribe the events for.
+   * @param {Array<string>=} params.userContexts
+   *     Optional list of user context ids
+   *     to subscribe the events for.
    *
    * @returns {SubscribeResult}
    *     A unique subscription identifier.
@@ -96,7 +104,7 @@ class SessionModule extends RootBiDiModule {
    *     If <var>events</var> or <var>contexts</var> are not valid types.
    */
   async subscribe(params = {}) {
-    const { events, contexts: contextIds = null } = params;
+    const { events, contexts: contextIds = null, userContexts = null } = params;
 
     // Check input types until we run schema validation.
     this.#assertNonEmptyArrayWithStrings(events, "events");
@@ -105,14 +113,27 @@ class SessionModule extends RootBiDiModule {
       this.#assertNonEmptyArrayWithStrings(contextIds, "contexts");
     }
 
+    if (userContexts !== null) {
+      this.#assertNonEmptyArrayWithStrings(userContexts, "userContexts");
+    }
+
     const eventNames = new Set();
     events.forEach(name => {
       this.#obtainEvents(name).forEach(event => eventNames.add(event));
     });
 
+    const inputUserContextIds = new Set(userContexts);
     const inputContextIds = new Set(contextIds);
+
+    if (inputUserContextIds.size > 0 && inputContextIds.size > 0) {
+      throw new lazy.error.InvalidArgumentError(
+        `Providing both "userContexts" and "contexts" arguments is not supported`
+      );
+    }
+
     let subscriptionNavigables = new Set();
     const topLevelTraversableContextIds = new Set();
+    const userContextIds = new Set();
 
     if (inputContextIds.size !== 0) {
       const navigables = this.#getValidNavigablesByIds(inputContextIds);
@@ -122,6 +143,23 @@ class SessionModule extends RootBiDiModule {
         topLevelTraversableContextIds.add(
           lazy.TabManager.getIdForBrowsingContext(navigable)
         );
+      }
+    } else if (inputUserContextIds.size !== 0) {
+      for (const userContextId of inputUserContextIds) {
+        const internalId =
+          lazy.UserContextManager.getInternalIdById(userContextId);
+
+        if (internalId === null) {
+          throw new lazy.error.NoSuchUserContextError(
+            `User context with id: ${userContextId} doesn't exist`
+          );
+        }
+
+        lazy.UserContextManager.getTabsForUserContext(internalId).forEach(
+          item => subscriptionNavigables.add(item)
+        );
+
+        userContextIds.add(internalId);
       }
     } else {
       for (const tab of lazy.TabManager.tabs) {
@@ -133,6 +171,7 @@ class SessionModule extends RootBiDiModule {
       eventNames,
       subscriptionId: lazy.generateUUID(),
       topLevelTraversableIds: topLevelTraversableContextIds,
+      userContextIds,
     };
 
     const subscribeStepEvents = new Map();
@@ -157,7 +196,8 @@ class SessionModule extends RootBiDiModule {
     const listeners = this.#getListenersToSubscribe(
       eventNames,
       includeGlobal,
-      subscribeStepEvents
+      subscribeStepEvents,
+      userContextIds
     );
 
     // Subscribe to the relevant engine-internal events.
@@ -222,12 +262,20 @@ class SessionModule extends RootBiDiModule {
     });
   }
 
-  #createListener(enable, event, traversableId = null) {
+  #createListener(
+    enable,
+    { eventName, traversableId = null, userContextId = null }
+  ) {
     let contextDescriptor;
 
-    if (traversableId === null) {
+    if (traversableId === null && userContextId === null) {
       contextDescriptor = {
         type: lazy.ContextDescriptorType.All,
+      };
+    } else if (userContextId !== null) {
+      contextDescriptor = {
+        type: lazy.ContextDescriptorType.UserContext,
+        id: userContextId,
       };
     } else {
       const traversable = lazy.TabManager.getBrowsingContextById(traversableId);
@@ -243,19 +291,19 @@ class SessionModule extends RootBiDiModule {
     }
 
     return {
-      event,
+      event: eventName,
       contextDescriptor,
       callback: this.#onMessageHandlerEvent,
       enable,
     };
   }
 
-  #createListenerToSubscribe(event, traversableId) {
-    return this.#createListener(true, event, traversableId);
+  #createListenerToSubscribe(params) {
+    return this.#createListener(true, params);
   }
 
-  #createListenerToUnsubscribe(event, traversableId) {
-    return this.#createListener(false, event, traversableId);
+  #createListenerToUnsubscribe(params) {
+    return this.#createListener(false, params);
   }
 
   /**
@@ -272,12 +320,8 @@ class SessionModule extends RootBiDiModule {
   #getEnabledTopLevelTraversables(eventName) {
     let result = new Set();
 
-    for (const subscription of this.#subscriptions) {
-      const { eventNames, topLevelTraversableIds } = subscription;
-
-      if (!eventNames.has(eventName)) {
-        continue;
-      }
+    for (const subscription of this.#getSubscriptionsForEvent(eventName)) {
+      const { topLevelTraversableIds } = subscription;
 
       if (this.#isSubscriptionGlobal(subscription)) {
         for (const traversable of lazy.TabManager.tabs) {
@@ -293,7 +337,12 @@ class SessionModule extends RootBiDiModule {
     return result;
   }
 
-  #getListenersToSubscribe(eventNames, includeGlobal, subscribeStepEvents) {
+  #getListenersToSubscribe(
+    eventNames,
+    includeGlobal,
+    subscribeStepEvents,
+    userContextIds
+  ) {
     const listeners = [];
 
     for (const eventName of eventNames) {
@@ -304,26 +353,72 @@ class SessionModule extends RootBiDiModule {
         const alreadyEnabledTraversableIds =
           this.#obtainEventEnabledTraversableIds(eventName);
         for (const traversableId of alreadyEnabledTraversableIds) {
-          const listener = this.#createListenerToUnsubscribe(
-            eventName,
-            traversableId
+          listeners.push(
+            this.#createListenerToUnsubscribe({
+              eventName,
+              traversableId,
+            })
           );
-          if (listener !== null) {
-            listeners.push(listener);
-          }
         }
 
-        listeners.push(this.#createListenerToSubscribe(eventName));
-      } else {
-        for (const navigable of subscribeStepEvents.get(eventName)) {
+        // Also unsubscribe from already subscribed user contexts.
+        const alreadyEnabledUserContextIds =
+          this.#obtainEventEnabledUserContextIds(eventName);
+        for (const userContextId of alreadyEnabledUserContextIds) {
+          listeners.push(
+            this.#createListenerToUnsubscribe({
+              eventName,
+              userContextId,
+            })
+          );
+        }
+
+        listeners.push(this.#createListenerToSubscribe({ eventName }));
+      } else if (userContextIds.size !== 0) {
+        for (const userContextId of userContextIds) {
           // Do nothing if the event has already a global subscription.
-          if (!this.#hasGlobalEventSubscription(eventName, navigable)) {
-            const navigableId =
-              lazy.TabManager.getIdForBrowsingContext(navigable);
+          if (this.#hasGlobalEventSubscription(eventName)) {
+            continue;
+          }
+
+          // Since we're going to subscribe to all top-level
+          // traversable ids which belongs to the certain user context
+          // to not have duplicate subscriptions,
+          // we have to unsubscribe from already subscribed.
+          const alreadyEnabledTraversableIds =
+            this.#obtainEventEnabledTraversableIds(eventName, userContextId);
+          for (const traversableId of alreadyEnabledTraversableIds) {
             listeners.push(
-              this.#createListenerToSubscribe(eventName, navigableId)
+              this.#createListenerToUnsubscribe({
+                eventName,
+                traversableId,
+              })
             );
           }
+
+          listeners.push(
+            this.#createListenerToSubscribe({ eventName, userContextId })
+          );
+        }
+      } else {
+        for (const navigable of subscribeStepEvents.get(eventName)) {
+          // Do nothing if the event has already a global subscription
+          // or subscription to the associated user context.
+          if (
+            this.#hasGlobalEventSubscription(eventName) ||
+            this.#hasSubscriptionByAssociatedUserContext(eventName, navigable)
+          ) {
+            continue;
+          }
+
+          const traversableId =
+            lazy.TabManager.getIdForBrowsingContext(navigable);
+          listeners.push(
+            this.#createListenerToSubscribe({
+              eventName,
+              traversableId,
+            })
+          );
         }
       }
     }
@@ -332,20 +427,126 @@ class SessionModule extends RootBiDiModule {
   }
 
   #getListenersToUnsubscribe(subscription) {
-    const { eventNames, topLevelTraversableIds } = subscription;
+    const { eventNames, topLevelTraversableIds, userContextIds } = subscription;
     const listeners = [];
 
     for (const eventName of eventNames) {
-      if (this.#isSubscriptionGlobal(subscription)) {
-        listeners.push(this.#createListenerToUnsubscribe(eventName));
+      // Do nothing if there is a global subscription.
+      if (this.#hasGlobalEventSubscription(eventName)) {
         continue;
       }
 
-      for (const traversableId of topLevelTraversableIds) {
+      if (this.#isSubscriptionGlobal(subscription)) {
         listeners.push(
-          this.#createListenerToUnsubscribe(eventName, traversableId)
+          ...this.#getListenersToUnsubscribeFromGlobalSubscription(eventName)
+        );
+      } else if (userContextIds.size !== 0) {
+        for (const userContextId of userContextIds) {
+          listeners.push(
+            ...this.#getListenersToUnsubscribeFromUserContext(
+              eventName,
+              userContextId
+            )
+          );
+        }
+      } else {
+        for (const traversableId of topLevelTraversableIds) {
+          listeners.push(
+            this.#getListenersToUnsubscribeFromTraversable(
+              eventName,
+              traversableId
+            )
+          );
+        }
+      }
+    }
+
+    return listeners;
+  }
+
+  #getListenersToUnsubscribeFromGlobalSubscription(eventName) {
+    // Unsubscribe from the global subscription.
+    const listeners = [this.#createListenerToUnsubscribe({ eventName })];
+
+    // Subscribe again to user contexts which have a subscription and
+    // to traversables which have individual subscriptions,
+    // but are not associated with subscribed user contexts.
+    for (const item of this.#getSubscriptionsForEvent(eventName)) {
+      for (const userContextId of item.userContextIds) {
+        listeners.push(
+          this.#createListenerToSubscribe({
+            eventName,
+            userContextId,
+          })
         );
       }
+
+      for (const traversableId of item.topLevelTraversableIds) {
+        const traversable =
+          lazy.TabManager.getBrowsingContextById(traversableId);
+
+        // Do nothing if traversable doesn't exist anymore or
+        // there is already a subscription to the associated user context.
+        if (
+          traversable === null ||
+          this.#hasSubscriptionByAssociatedUserContext(eventName, traversable)
+        ) {
+          continue;
+        }
+
+        listeners.push(
+          this.#createListenerToSubscribe({
+            eventName,
+            traversableId,
+          })
+        );
+      }
+    }
+
+    return listeners;
+  }
+
+  #getListenersToUnsubscribeFromTraversable(eventName, traversableId) {
+    // Do nothing if traversable is already closed or still has another subscription.
+    const traversable = lazy.TabManager.getBrowsingContextById(traversableId);
+    if (
+      traversable === null ||
+      this.#hasSubscriptionByAssociatedUserContext(eventName, traversable) ||
+      this.#hasSubscriptionByTraversableId(eventName, traversableId)
+    ) {
+      return null;
+    }
+
+    return this.#createListenerToUnsubscribe({
+      eventName,
+      traversableId,
+    });
+  }
+
+  #getListenersToUnsubscribeFromUserContext(eventName, userContextId) {
+    // Do nothing if there is another subscription for this user context.
+    if (this.#hasSubscriptionByUserContextId(eventName, userContextId)) {
+      return [];
+    }
+
+    // Unsubscribe from the user context.
+    const listeners = [
+      this.#createListenerToUnsubscribe({ eventName, userContextId }),
+    ];
+
+    // Resubscribe to traversables which are associated with this user context and
+    // have individual subscriptions.
+    const alreadyEnabledTraversableIds = this.#obtainEventEnabledTraversableIds(
+      eventName,
+      userContextId
+    );
+    for (const traversableId of alreadyEnabledTraversableIds) {
+      listeners.push(
+        this.#createListenerToSubscribe({
+          eventName,
+          traversableId,
+        })
+      );
     }
 
     return listeners;
@@ -422,6 +623,12 @@ class SessionModule extends RootBiDiModule {
     return moduleClasses[0];
   }
 
+  #getSubscriptionsForEvent(eventName) {
+    return this.#subscriptions.filter(({ eventNames }) =>
+      eventNames.has(eventName)
+    );
+  }
+
   #getTopLevelTraversableContextIds(contextIds) {
     const topLevelTraversableContextIds = new Set();
     const inputContextIds = new Set(contextIds);
@@ -485,22 +692,52 @@ class SessionModule extends RootBiDiModule {
   }
 
   #hasGlobalEventSubscription(eventName) {
-    let hasSubscription = false;
-
-    for (const subscription of this.#subscriptions) {
-      const { eventNames } = subscription;
-
-      if (!eventNames.has(eventName)) {
-        continue;
-      }
-
+    for (const subscription of this.#getSubscriptionsForEvent(eventName)) {
       if (this.#isSubscriptionGlobal(subscription)) {
-        hasSubscription = true;
-        break;
+        return true;
       }
     }
 
-    return hasSubscription;
+    return false;
+  }
+
+  // Check if for a given event name and traversable there is
+  // a subscription for a user context associated with this traversable.
+  #hasSubscriptionByAssociatedUserContext(eventName, traversable) {
+    if (traversable === null) {
+      return false;
+    }
+
+    return this.#hasSubscriptionByUserContextId(
+      eventName,
+      traversable.originAttributes.userContextId
+    );
+  }
+
+  #hasSubscriptionByTraversableId(eventName, traversableId) {
+    for (const subscription of this.#getSubscriptionsForEvent(eventName)) {
+      const { topLevelTraversableIds } = subscription;
+
+      for (const topLevelTraversableId of topLevelTraversableIds) {
+        if (topLevelTraversableId === traversableId) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  #hasSubscriptionByUserContextId(eventName, userContextId) {
+    for (const subscription of this.#getSubscriptionsForEvent(eventName)) {
+      const { userContextIds } = subscription;
+
+      if (userContextIds.has(userContextId)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -515,7 +752,10 @@ class SessionModule extends RootBiDiModule {
    *     Return true if the subscription is global, false otherwise.
    */
   #isSubscriptionGlobal(subscription) {
-    return subscription.topLevelTraversableIds.size === 0;
+    return (
+      subscription.topLevelTraversableIds.size === 0 &&
+      subscription.userContextIds.size === 0
+    );
   }
 
   /**
@@ -523,24 +763,54 @@ class SessionModule extends RootBiDiModule {
    *
    * @param {string} eventName
    *     The name of the event.
+   * @param {string=} userContextId
+   *     The user context id.
    *
    * @returns {Set<string>}
    *     The set of traversable ids.
    */
-  #obtainEventEnabledTraversableIds(eventName) {
+  #obtainEventEnabledTraversableIds(eventName, userContextId = null) {
     let traversableIds = new Set();
 
-    for (const { eventNames, topLevelTraversableIds } of this.#subscriptions) {
-      if (!eventNames.has(eventName)) {
+    for (const { topLevelTraversableIds } of this.#getSubscriptionsForEvent(
+      eventName
+    )) {
+      if (topLevelTraversableIds.size === 0) {
         continue;
       }
 
-      if (topLevelTraversableIds.size > 0) {
+      if (userContextId === null) {
         traversableIds = traversableIds.union(topLevelTraversableIds);
+        continue;
+      }
+
+      for (const traversableId of topLevelTraversableIds) {
+        const traversable =
+          lazy.TabManager.getBrowsingContextById(traversableId);
+
+        if (traversable === null) {
+          continue;
+        }
+
+        if (traversable.originAttributes.userContextId === userContextId) {
+          traversableIds.add(traversableId);
+        }
       }
     }
 
     return traversableIds;
+  }
+
+  #obtainEventEnabledUserContextIds(eventName) {
+    let enabledUserContextIds = new Set();
+
+    for (const { userContextIds } of this.#getSubscriptionsForEvent(
+      eventName
+    )) {
+      enabledUserContextIds = enabledUserContextIds.union(userContextIds);
+    }
+
+    return enabledUserContextIds;
   }
 
   /**
@@ -628,7 +898,7 @@ class SessionModule extends RootBiDiModule {
             matchedEvents.add(eventName);
             subscriptionEventNames.delete(eventName);
 
-            listeners.push(this.#createListenerToUnsubscribe(eventName));
+            listeners.push(this.#createListenerToUnsubscribe({ eventName }));
           }
         }
 
@@ -639,6 +909,7 @@ class SessionModule extends RootBiDiModule {
             subscriptionId: subscription.subscriptionId,
             eventNames: new Set(subscriptionEventNames),
             topLevelTraversableIds: new Set(),
+            userContextIds: new Set(subscription.userContextIds),
           };
           newSubscriptions.push(clonedSubscription);
         }
@@ -672,10 +943,10 @@ class SessionModule extends RootBiDiModule {
             eventMap.get(eventName).delete(topLevelTraversableId);
 
             listeners.push(
-              this.#createListenerToUnsubscribe(
+              this.#createListenerToUnsubscribe({
                 eventName,
-                topLevelTraversableId
-              )
+                traversableId: topLevelTraversableId,
+              })
             );
           }
 
@@ -693,6 +964,7 @@ class SessionModule extends RootBiDiModule {
             subscriptionId: subscription.subscriptionId,
             eventNames: new Set([eventName]),
             topLevelTraversableIds: remainingTopLevelTraversableIds,
+            userContextIds: new Set(subscription.userContextIds),
           };
 
           newSubscriptions.push(partialSubscription);
@@ -704,7 +976,7 @@ class SessionModule extends RootBiDiModule {
 
           for (const traversableId of traversableIdsToUnsubscribe) {
             listeners.push(
-              this.#createListenerToUnsubscribe(eventName, traversableId)
+              this.#createListenerToUnsubscribe({ eventName, traversableId })
             );
           }
         }
@@ -747,6 +1019,7 @@ class SessionModule extends RootBiDiModule {
     }
 
     const listeners = [];
+    const subscriptionIdsToRemove = new Set();
     const subscriptionsToRemove = new Set();
 
     for (const subscription of this.#subscriptions) {
@@ -756,15 +1029,19 @@ class SessionModule extends RootBiDiModule {
         continue;
       }
 
-      subscriptionsToRemove.add(subscriptionId);
-      listeners.push(...this.#getListenersToUnsubscribe(subscription));
+      subscriptionIdsToRemove.add(subscriptionId);
+      subscriptionsToRemove.add(subscription);
     }
 
     this.#knownSubscriptionIds =
       this.#knownSubscriptionIds.difference(subscriptions);
     this.#subscriptions = this.#subscriptions.filter(
-      ({ subscriptionId }) => !subscriptionsToRemove.has(subscriptionId)
+      ({ subscriptionId }) => !subscriptionIdsToRemove.has(subscriptionId)
     );
+
+    for (const subscription of subscriptionsToRemove) {
+      listeners.push(...this.#getListenersToUnsubscribe(subscription));
+    }
 
     return listeners;
   }

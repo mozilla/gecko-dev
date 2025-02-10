@@ -87,6 +87,44 @@ add_task(async function test_add_remove_event_listener() {
   gBrowser.removeTab(tab);
 });
 
+add_task(async function test_add_remove_event_listener_for_user_context() {
+  const tab = await addTab("https://example.com/document-builder.sjs?html=tab");
+  const browsingContext = tab.linkedBrowser.browsingContext;
+  const contextDescriptor = {
+    type: ContextDescriptorType.UserContext,
+    id: browsingContext.originAttributes.userContextId,
+  };
+
+  const root = createRootMessageHandler("session-id-event");
+  const monitoringEvents = await setupEventMonitoring(root);
+  await emitTestEvent(root, browsingContext, monitoringEvents);
+  is(await isSubscribed(root, browsingContext), false);
+
+  info("Add an listener for eventemitter.testEvent");
+  const events = [];
+  const onEvent = (event, data) => events.push(data.text);
+  await root.eventsDispatcher.on(
+    "eventemitter.testEvent",
+    contextDescriptor,
+    onEvent
+  );
+  is(await isSubscribed(root, browsingContext), true);
+
+  await emitTestEvent(root, browsingContext, monitoringEvents);
+  is(events.length, 1);
+
+  info("Remove the listener for eventemitter.testEvent");
+  await root.eventsDispatcher.off(
+    "eventemitter.testEvent",
+    contextDescriptor,
+    onEvent
+  );
+  is(await isSubscribed(root, browsingContext), false);
+
+  root.destroy();
+  gBrowser.removeTab(tab);
+});
+
 add_task(async function test_has_listener() {
   const tab1 = await addTab("https://example.com/document-builder.sjs?html=1");
   const browsingContext1 = tab1.linkedBrowser.browsingContext;
