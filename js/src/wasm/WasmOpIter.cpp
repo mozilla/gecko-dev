@@ -806,6 +806,8 @@ OpKind wasm::Classify(OpBytes op) {
   MOZ_CRASH("unimplemented opcode");
 }
 
+#endif  // DEBUG
+
 const char* OpBytes::toString() const {
   switch (Op(b0)) {
     case Op::Unreachable:
@@ -1980,7 +1982,6 @@ const char* OpBytes::toString() const {
       return "unknown";
   }
 }
-#endif  // DEBUG
 
 bool UnsetLocalsState::init(const ValTypeVector& locals, size_t numParams) {
   MOZ_ASSERT(setLocalsStack_.empty());

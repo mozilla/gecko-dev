@@ -16,7 +16,13 @@
 class JSScript;
 enum class JSOp : uint8_t;
 
-namespace js::jit {
+namespace js {
+
+namespace wasm {
+struct OpBytes;
+}
+
+namespace jit {
 
 class JitCode;
 class CompilerFrameInfo;
@@ -37,20 +43,20 @@ class PerfSpewer {
  protected:
   struct OpcodeEntry {
     uint32_t offset = 0;
-    unsigned opcode = 0;
+    uint32_t opcode = 0;
     jsbytecode* bytecodepc = nullptr;
 
     // This string is used to replace the opcode, to define things like
     // Prologue/Epilogue, or to add operand info.
     JS::UniqueChars str;
 
-    explicit OpcodeEntry(uint32_t offset_, unsigned opcode_,
+    explicit OpcodeEntry(uint32_t offset_, uint32_t opcode_,
                          JS::UniqueChars& str_, jsbytecode* pc)
         : offset(offset_), opcode(opcode_), bytecodepc(pc) {
       str = std::move(str_);
     }
 
-    explicit OpcodeEntry(uint32_t offset_, unsigned opcode_,
+    explicit OpcodeEntry(uint32_t offset_, uint32_t opcode_,
                          JS::UniqueChars& str_)
         : offset(offset_), opcode(opcode_) {
       str = std::move(str_);
@@ -59,7 +65,7 @@ class PerfSpewer {
         : offset(offset_) {
       str = std::move(str_);
     }
-    explicit OpcodeEntry(uint32_t offset_, unsigned opcode_)
+    explicit OpcodeEntry(uint32_t offset_, uint32_t opcode_)
         : offset(offset_), opcode(opcode_) {}
 
     explicit OpcodeEntry(jsbytecode* pc) : bytecodepc(pc) {}
@@ -76,10 +82,7 @@ class PerfSpewer {
   };
   Vector<OpcodeEntry, 0, SystemAllocPolicy> opcodes_;
 
-  uint32_t lir_opcode_length = 0;
-  uint32_t js_opcode_length = 0;
-
-  virtual const char* CodeName(unsigned op) = 0;
+  virtual const char* CodeName(uint32_t op) = 0;
 
   virtual void saveJitCodeSourceInfo(JSScript* script, JitCode* code,
                                      AutoLockPerfSpewer& lock);
@@ -118,7 +121,7 @@ void CollectPerfSpewerWasmMap(uintptr_t base, uintptr_t size,
                               JS::UniqueChars&& desc);
 
 class IonPerfSpewer : public PerfSpewer {
-  const char* CodeName(unsigned op) override;
+  const char* CodeName(uint32_t op) override;
 
  public:
   IonPerfSpewer() = default;
@@ -131,8 +134,20 @@ class IonPerfSpewer : public PerfSpewer {
                        JS::UniqueChars& desc);
 };
 
+class WasmBaselinePerfSpewer : public PerfSpewer {
+  const char* CodeName(uint32_t op) override;
+
+ public:
+  WasmBaselinePerfSpewer() = default;
+  WasmBaselinePerfSpewer(WasmBaselinePerfSpewer&&) = default;
+  WasmBaselinePerfSpewer& operator=(WasmBaselinePerfSpewer&&) = default;
+
+  void recordInstruction(MacroAssembler& masm, const wasm::OpBytes& op);
+  void saveProfile(uintptr_t codeBase, size_t codeSize, JS::UniqueChars& desc);
+};
+
 class BaselineInterpreterPerfSpewer : public PerfSpewer {
-  const char* CodeName(unsigned op) override;
+  const char* CodeName(uint32_t op) override;
 
   // Do nothing, BaselineInterpreter has no source to reference.
   void saveJitCodeSourceInfo(JSScript* script, JitCode* code,
@@ -145,7 +160,7 @@ class BaselineInterpreterPerfSpewer : public PerfSpewer {
 };
 
 class BaselinePerfSpewer : public PerfSpewer {
-  const char* CodeName(unsigned op) override;
+  const char* CodeName(uint32_t op) override;
 
  public:
   void recordInstruction(MacroAssembler& masm, jsbytecode* pc,
@@ -154,7 +169,7 @@ class BaselinePerfSpewer : public PerfSpewer {
 };
 
 class InlineCachePerfSpewer : public PerfSpewer {
-  const char* CodeName(unsigned op) override;
+  const char* CodeName(uint32_t op) override;
 
  public:
   void recordInstruction(MacroAssembler& masm, const CacheOp& op);
@@ -198,6 +213,7 @@ class PerfSpewerRangeRecorder {
   void collectRangesForJitCode(JitCode* code);
 };
 
-}  // namespace js::jit
+}  // namespace jit
+}  // namespace js
 
 #endif /* jit_PerfSpewer_h */

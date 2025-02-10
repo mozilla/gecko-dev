@@ -376,7 +376,7 @@ void InlineCachePerfSpewer::recordInstruction(MacroAssembler& masm,
   }
   AutoLockPerfSpewer lock;
 
-  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<unsigned>(op))) {
+  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<uint32_t>(op))) {
     opcodes_.clear();
     DisablePerfSpewer(lock);
   }
@@ -410,7 +410,7 @@ void IonPerfSpewer::recordInstruction(MacroAssembler& masm, LInstruction* ins) {
     opcodeStr = buf.release();
   }
 #endif
-  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<unsigned>(op),
+  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<uint32_t>(op),
                             opcodeStr, bytecodepc)) {
     opcodes_.clear();
     DisablePerfSpewer();
@@ -482,6 +482,18 @@ static void PrintStackValue(JSContext* maybeCx, StackValue* stackVal,
 }
 #endif
 
+void WasmBaselinePerfSpewer::recordInstruction(MacroAssembler& masm,
+                                               const wasm::OpBytes& op) {
+  if (!PerfIREnabled() && !PerfSrcEnabled()) {
+    return;
+  }
+
+  if (!opcodes_.emplaceBack(masm.currentOffset(), op.toPacked())) {
+    opcodes_.clear();
+    DisablePerfSpewer();
+  }
+}
+
 void BaselinePerfSpewer::recordInstruction(MacroAssembler& masm, jsbytecode* pc,
                                            CompilerFrameInfo& frame) {
   if (!PerfIREnabled() && !PerfSrcEnabled()) {
@@ -536,25 +548,30 @@ void BaselinePerfSpewer::recordInstruction(MacroAssembler& masm, jsbytecode* pc,
   }
 #endif
 
-  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<unsigned>(op),
+  if (!opcodes_.emplaceBack(masm.currentOffset(), static_cast<uint32_t>(op),
                             opcodeStr, pc)) {
     opcodes_.clear();
     DisablePerfSpewer();
   }
 }
 
-const char* BaselinePerfSpewer::CodeName(unsigned op) {
+const char* BaselinePerfSpewer::CodeName(uint32_t op) {
   return js::CodeName(static_cast<JSOp>(op));
 }
 
-const char* BaselineInterpreterPerfSpewer::CodeName(unsigned op) {
+const char* BaselineInterpreterPerfSpewer::CodeName(uint32_t op) {
   return js::CodeName(static_cast<JSOp>(op));
 }
 
-const char* IonPerfSpewer::CodeName(unsigned op) {
+const char* IonPerfSpewer::CodeName(uint32_t op) {
   return js::jit::LIRCodeName(static_cast<LNode::Opcode>(op));
 }
-const char* InlineCachePerfSpewer::CodeName(unsigned op) {
+
+const char* WasmBaselinePerfSpewer::CodeName(uint32_t op) {
+  return wasm::OpBytes::fromPacked(op).toString();
+}
+
+const char* InlineCachePerfSpewer::CodeName(uint32_t op) {
   return js::jit::CacheIRCodeName(static_cast<CacheOp>(op));
 }
 
@@ -970,6 +987,14 @@ void IonPerfSpewer::saveJSProfile(JSContext* cx, JSScript* script,
 
 void IonPerfSpewer::saveWasmProfile(uintptr_t codeBase, size_t codeSize,
                                     UniqueChars& desc) {
+  if (!PerfEnabled()) {
+    return;
+  }
+  PerfSpewer::saveWasmProfile(codeBase, codeSize, desc);
+}
+
+void WasmBaselinePerfSpewer::saveProfile(uintptr_t codeBase, size_t codeSize,
+                                         UniqueChars& desc) {
   if (!PerfEnabled()) {
     return;
   }

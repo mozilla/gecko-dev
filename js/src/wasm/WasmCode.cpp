@@ -588,7 +588,8 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
   }
 
   stubCodeBlock->sendToProfiler(*codeMeta_, codeMetaForAsmJS_,
-                                FuncIonPerfSpewerSpan());
+                                FuncIonPerfSpewerSpan(),
+                                FuncBaselinePerfSpewerSpan());
   return addCodeBlock(guard, std::move(stubCodeBlock), nullptr);
 }
 
@@ -997,9 +998,10 @@ static JS::UniqueChars DescribeCodeRangeForProfiler(
                      name.begin(), suffix);
 }
 
-void CodeBlock::sendToProfiler(const CodeMetadata& codeMeta,
-                               const CodeMetadataForAsmJS* codeMetaForAsmJS,
-                               FuncIonPerfSpewerSpan ionSpewers) const {
+void CodeBlock::sendToProfiler(
+    const CodeMetadata& codeMeta, const CodeMetadataForAsmJS* codeMetaForAsmJS,
+    FuncIonPerfSpewerSpan ionSpewers,
+    FuncBaselinePerfSpewerSpan baselineSpewers) const {
   bool enabled = false;
   enabled |= PerfEnabled();
 #ifdef MOZ_VTUNE
@@ -1009,7 +1011,12 @@ void CodeBlock::sendToProfiler(const CodeMetadata& codeMeta,
     return;
   }
 
-  bool hasIonSpewers = !ionSpewers.empty();
+  // We only ever have ion or baseline spewers, and they correspond with our
+  // code block kind.
+  MOZ_ASSERT(ionSpewers.empty() || baselineSpewers.empty());
+  MOZ_ASSERT_IF(kind == CodeBlockKind::BaselineTier, ionSpewers.empty());
+  MOZ_ASSERT_IF(kind == CodeBlockKind::OptimizedTier, baselineSpewers.empty());
+  bool hasSpewers = !ionSpewers.empty() || !baselineSpewers.empty();
 
   // Save the collected Ion perf spewers with their IR/source information.
   for (FuncIonPerfSpewer& funcIonSpewer : ionSpewers) {
@@ -1024,16 +1031,28 @@ void CodeBlock::sendToProfiler(const CodeMetadata& codeMeta,
     funcIonSpewer.spewer.saveWasmProfile(start, size, desc);
   }
 
+  // Save the collected baseline perf spewers with their IR/source information.
+  for (FuncBaselinePerfSpewer& funcBaselineSpewer : baselineSpewers) {
+    const CodeRange& codeRange = this->codeRange(funcBaselineSpewer.funcIndex);
+    UniqueChars desc = DescribeCodeRangeForProfiler(codeMeta, codeMetaForAsmJS,
+                                                    codeRange, kind);
+    if (!desc) {
+      return;
+    }
+    uintptr_t start = uintptr_t(segment->base() + codeRange.begin());
+    uintptr_t size = codeRange.end() - codeRange.begin();
+    funcBaselineSpewer.spewer.saveProfile(start, size, desc);
+  }
+
   // Save the rest of the code ranges.
   for (const CodeRange& codeRange : codeRanges) {
     if (!codeRange.hasFuncIndex()) {
       continue;
     }
 
-    // Skip Ion functions when we have Ion spewers, as they will have already
-    // handled the function.
-    if (hasIonSpewers && kind == CodeBlockKind::OptimizedTier &&
-        codeRange.isFunction()) {
+    // Skip functions when they have corresponding spewers, as they will have
+    // already handled the function.
+    if (codeRange.isFunction() && hasSpewers) {
       continue;
     }
 

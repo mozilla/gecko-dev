@@ -22,6 +22,7 @@
 #ifndef wasm_wasm_baseline_object_h
 #define wasm_wasm_baseline_object_h
 
+#include "jit/PerfSpewer.h"
 #include "wasm/WasmBCDefs.h"
 #include "wasm/WasmBCFrame.h"
 #include "wasm/WasmBCRegDefs.h"
@@ -258,6 +259,9 @@ struct BaseCompiler final {
 
   // Machine code emitter.
   MacroAssembler& masm;
+
+  // Perf spewer for annotated JIT code while profiling.
+  WasmBaselinePerfSpewer perfSpewer_;
 
   ///////////////////////////////////////////////////////////////////////////
   //

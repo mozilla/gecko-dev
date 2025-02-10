@@ -1545,6 +1545,24 @@ struct FuncIonPerfSpewer {
 using FuncIonPerfSpewerVector = Vector<FuncIonPerfSpewer, 8, SystemAllocPolicy>;
 using FuncIonPerfSpewerSpan = mozilla::Span<FuncIonPerfSpewer>;
 
+struct FuncBaselinePerfSpewer {
+  uint32_t funcIndex = 0;
+  jit::WasmBaselinePerfSpewer spewer;
+
+  FuncBaselinePerfSpewer() = default;
+  FuncBaselinePerfSpewer(uint32_t funcIndex,
+                         jit::WasmBaselinePerfSpewer&& spewer)
+      : funcIndex(funcIndex), spewer(std::move(spewer)) {}
+  FuncBaselinePerfSpewer(FuncBaselinePerfSpewer&) = delete;
+  FuncBaselinePerfSpewer(FuncBaselinePerfSpewer&&) = default;
+  FuncBaselinePerfSpewer& operator=(FuncBaselinePerfSpewer&) = delete;
+  FuncBaselinePerfSpewer& operator=(FuncBaselinePerfSpewer&&) = default;
+};
+
+using FuncBaselinePerfSpewerVector =
+    Vector<FuncBaselinePerfSpewer, 8, SystemAllocPolicy>;
+using FuncBaselinePerfSpewerSpan = mozilla::Span<FuncBaselinePerfSpewer>;
+
 }  // namespace wasm
 }  // namespace js
 

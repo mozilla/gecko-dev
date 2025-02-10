@@ -434,7 +434,8 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
   }
 
   // Grab the perf spewers that were generated for these functions.
-  if (!funcIonSpewers_.appendAll(std::move(code.funcIonSpewers))) {
+  if (!funcIonSpewers_.appendAll(std::move(code.funcIonSpewers)) ||
+      !funcBaselineSpewers_.appendAll(std::move(code.funcBaselineSpewers))) {
     return false;
   }
 
@@ -955,7 +956,10 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
   // Send the code to the profiler using the collected perf spewers that have
   // precise IR/source information.
   codeBlock_->sendToProfiler(*codeMeta_, codeMetaForAsmJS_,
-                             FuncIonPerfSpewerSpan(funcIonSpewers_));
+                             FuncIonPerfSpewerSpan(funcIonSpewers_),
+                             FuncBaselinePerfSpewerSpan(funcBaselineSpewers_));
+  funcIonSpewers_.clear();
+  funcBaselineSpewers_.clear();
 
   // Free the macro assembler scope, and reset our masm pointer
   masm_ = nullptr;
@@ -1476,6 +1480,7 @@ size_t CompiledCode::sizeOfExcludingThis(
     mozilla::MallocSizeOf mallocSizeOf) const {
   return funcs.sizeOfExcludingThis(mallocSizeOf) +
          funcIonSpewers.sizeOfExcludingThis(mallocSizeOf) +
+         funcBaselineSpewers.sizeOfExcludingThis(mallocSizeOf) +
          bytes.sizeOfExcludingThis(mallocSizeOf) +
          codeRanges.sizeOfExcludingThis(mallocSizeOf) +
          callSites.sizeOfExcludingThis(mallocSizeOf) +
