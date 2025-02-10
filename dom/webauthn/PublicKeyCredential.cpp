@@ -15,7 +15,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PublicKeyCredential.h"
 #include "mozilla/dom/WebAuthenticationBinding.h"
-#include "mozilla/dom/WebAuthnManager.h"
+#include "mozilla/dom/WebAuthnHandler.h"
 #include "nsCycleCollectionParticipant.h"
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -121,9 +121,9 @@ PublicKeyCredential::IsUserVerifyingPlatformAuthenticatorAvailable(
     return nullptr;
   }
 
-  RefPtr<WebAuthnManager> manager =
-      window->Navigator()->Credentials()->GetWebAuthnManager();
-  return manager->IsUVPAA(aGlobal, aError);
+  RefPtr<WebAuthnHandler> handler =
+      window->Navigator()->Credentials()->GetWebAuthnHandler();
+  return handler->IsUVPAA(aGlobal, aError);
 }
 
 /* static */
