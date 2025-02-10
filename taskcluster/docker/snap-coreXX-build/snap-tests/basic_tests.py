@@ -85,6 +85,7 @@ class SnapTestsBase:
 
         self._update_channel = None
         self._version_major = None
+        self._snap_core_base = None
 
         self._is_debug_build = None
         if self.is_debug_build():
@@ -106,12 +107,16 @@ class SnapTestsBase:
         if self.is_esr_128():
             channel = "esr-128"
 
+        core_base = self.snap_core_base()
+        channel_and_core = "{}core{}".format(channel, core_base)
+        self._logger.info("Channel & Core: {}".format(channel_and_core))
+
         for m in object_methods:
             self._logger.test_start(m)
             expectations = (
                 self._expectations[m]
-                if not channel in self._expectations[m]
-                else self._expectations[m][channel]
+                if not channel_and_core in self._expectations[m]
+                else self._expectations[m][channel_and_core]
             )
             self._driver.switch_to.window(first_tab)
 
@@ -223,6 +228,16 @@ class SnapTestsBase:
             self._logger.info("Update channel: {}".format(self._update_channel))
             self._driver.set_context("content")
         return self._update_channel
+
+    def snap_core_base(self):
+        if self._snap_core_base is None:
+            self._driver.set_context("chrome")
+            self._snap_core_base = self._driver.execute_script(
+                "return Services.sysinfo.getProperty('distroVersion');"
+            )
+            self._logger.info("Snap Core: {}".format(self._snap_core_base))
+            self._driver.set_context("content")
+        return self._snap_core_base
 
     def version_major(self):
         if self._version_major is None:
@@ -341,6 +356,9 @@ class SnapTests(SnapTestsBase):
     def __init__(self, exp):
         self._dir = "basic_tests"
         super(SnapTests, self).__init__(exp)
+
+    def test_snap_core_base(self, exp):
+        assert self.snap_core_base() in ["22", "24"]
 
     def test_about_support(self, exp):
         self.open_tab("about:support")

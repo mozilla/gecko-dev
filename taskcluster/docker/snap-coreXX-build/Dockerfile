@@ -66,6 +66,8 @@ ENV SNAP_INSTANCE_NAME=snapcraft
 ENV SNAPCRAFT_BUILD_FOR=amd64
 ENV SNAPCRAFT_PLATFORM=amd64
 
+RUN snapcraft --version
+
 # Snapcraft pull will need to sudo apt-get update ...
 RUN echo "worker ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/worker && \
     chmod 0440 /etc/sudoers.d/worker

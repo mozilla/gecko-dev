@@ -1,4 +1,5 @@
 {
+    "test_snap_core_base": {},
     "test_about_support": {
         "version_box": "#RUNTIME_VERSION#",
         "distribution_id": "canonical-002"
