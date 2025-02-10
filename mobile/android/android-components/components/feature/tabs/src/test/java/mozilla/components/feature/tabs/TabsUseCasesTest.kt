@@ -159,7 +159,7 @@ class TabsUseCasesTest {
         store.waitUntilIdle()
         assertEquals(1, store.state.tabs.size)
         assertEquals("https://www.mozilla.org", store.state.tabs[0].content.url)
-        verify(engineSession, never()).loadUrl(anyString(), any(), any(), any())
+        verify(engineSession, never()).loadUrl(anyString(), any(), any(), any(), any())
     }
 
     @Test
