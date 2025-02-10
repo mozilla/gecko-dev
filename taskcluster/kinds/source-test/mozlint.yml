@@ -20,6 +20,7 @@ task-defaults:
               path: /builds/worker/mozlint.json
     run:
         using: mach
+        use-caches: [checkout, pip, uv]
     when:
         files-changed:
             # Other misc lint related files.
@@ -92,6 +93,7 @@ eslint:
     run:
         using: run-task
         cwd: '{checkout}'
+        use-caches: [checkout, pip, uv, npm]
         command: >
             cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-mozilla node_modules &&
@@ -135,6 +137,7 @@ eslint-build:
     run:
         using: run-task
         cwd: '{checkout}'
+        use-caches: [checkout, pip, uv, npm]
         command: >
             export MOZ_XPT_ARTIFACTS_DIR="$MOZ_FETCHES_DIR/$MOZ_XPT_ARTIFACTS_DIRNAME" &&
             find "$MOZ_XPT_ARTIFACTS_DIR" &&
