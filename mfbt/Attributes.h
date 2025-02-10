@@ -1055,6 +1055,8 @@
 #  define MOZ_CONSTINIT constinit
 #elif defined(__clang__)
 #  define MOZ_CONSTINIT [[clang::require_constant_initialization]]
+#elif MOZ_GCC_VERSION_AT_LEAST(10, 1, 0)
+#  define MOZ_CONSTINIT __constinit
 #else
 #  define MOZ_CONSTINIT
 #endif
