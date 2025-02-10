@@ -253,6 +253,11 @@ class RangeBoundaryBase {
     return ref;
   }
 
+  /**
+   * Return true if this has already computed/set offset.
+   */
+  [[nodiscard]] bool HasOffset() const { return mOffset.isSome(); }
+
   enum class OffsetFilter { kValidOffsets, kValidOrInvalidOffsets };
 
   /**
@@ -443,8 +448,18 @@ class RangeBoundaryBase {
     if (mRef != aOther.mRef) {
       mRef = aOther.mRef;
     }
-    mOffset = aOther.mOffset;
     mIsMutationObserved = bool(aIsMutationObserved);
+    if (!mIsMutationObserved && aOther.mOffset.isNothing()) {
+      // "Fix" the offset from mRef if and only if we won't be updated for
+      // further mutations and aOther has not computed the offset of its mRef.
+      // XXX What should we do if aOther is not updated for mutations and
+      // mOffset has already been invalid?
+      mOffset = aOther.Offset(
+          RangeBoundaryBase<A, B>::OffsetFilter::kValidOrInvalidOffsets);
+      MOZ_DIAGNOSTIC_ASSERT(mOffset.isSome());
+    } else {
+      mOffset = aOther.mOffset;
+    }
     return *this;
   }
 

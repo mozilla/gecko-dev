@@ -699,10 +699,10 @@ class nsContentUtils {
   static mozilla::Maybe<int32_t> ComparePoints(
       const nsINode* aParent1, uint32_t aOffset1, const nsINode* aParent2,
       uint32_t aOffset2, NodeIndexCache* aIndexCache = nullptr);
-  template <typename FPT, typename FRT, typename SPT, typename SRT>
+  template <typename PT1, typename RT1, typename PT2, typename RT2>
   static mozilla::Maybe<int32_t> ComparePoints(
-      const mozilla::RangeBoundaryBase<FPT, FRT>& aFirstBoundary,
-      const mozilla::RangeBoundaryBase<SPT, SRT>& aSecondBoundary);
+      const mozilla::RangeBoundaryBase<PT1, RT1>& aBoundary1,
+      const mozilla::RangeBoundaryBase<PT2, RT2>& aBoundary2);
 
   /**
    *  Utility routine to compare two "points", where a point is a
@@ -723,10 +723,10 @@ class nsContentUtils {
       const nsINode* aParent1, uint32_t aOffset1, const nsINode* aParent2,
       uint32_t aOffset2, bool* aDisconnected = nullptr,
       NodeIndexCache* aIndexCache = nullptr);
-  template <typename FPT, typename FRT, typename SPT, typename SRT>
+  template <typename PT1, typename RT1, typename PT2, typename RT2>
   static int32_t ComparePoints_Deprecated(
-      const mozilla::RangeBoundaryBase<FPT, FRT>& aFirstBoundary,
-      const mozilla::RangeBoundaryBase<SPT, SRT>& aSecondBoundary,
+      const mozilla::RangeBoundaryBase<PT1, RT1>& aBoundary1,
+      const mozilla::RangeBoundaryBase<PT2, RT2>& aBoundary2,
       bool* aDisconnected = nullptr);
 
   /**
@@ -3575,6 +3575,46 @@ class nsContentUtils {
   static nsINode* GetCommonAncestorHelper(nsINode* aNode1, nsINode* aNode2);
   static nsIContent* GetCommonFlattenedTreeAncestorHelper(
       nsIContent* aContent1, nsIContent* aContent2);
+
+  /**
+   * Return 0 if aChild1 is same as aChild2.
+   * Return -1 if aChild1 is a preceding sibling of aChild2.
+   * Return 1 if aChild1 is a following sibling of aChild2.
+   * If aChild1 and/or aChild2 is nullptr, it's treated as end of the parent
+   * node.
+   * Return Nothing if aChild1 is a root of the native anonymous subtree.
+   */
+  static mozilla::Maybe<int32_t> CompareChildNodes(
+      const nsINode* aChild1, const nsINode* aChild2,
+      NodeIndexCache* aIndexCache = nullptr);
+
+  /**
+   * Return 0 if aChild2 is at aOffset1.
+   * Return -1 if aChild2 is a following sibling of a child at aOffset1
+   * Return 1 if aChild2 is a preceding sibling of a child at aOffset1.
+   * Return Nothing if aChild2 is a root of the native anonymous subtree.
+   */
+  static mozilla::Maybe<int32_t> CompareChildOffsetAndChildNode(
+      uint32_t aOffset1, const nsINode& aChild2,
+      NodeIndexCache* aIndexCache = nullptr);
+
+  /**
+   * Return 0 if aChild1 is at aOffset2.
+   * Return -1 if aChild1 is a preceding sibling of a child at aOffset2.
+   * Return 1 if aChild1 is a following sibling of a child at aOffset2.
+   * Return Nothing if aChild1 is a root of the native anonymous subtree.
+   */
+  static mozilla::Maybe<int32_t> CompareChildNodeAndChildOffset(
+      const nsINode& aChild1, uint32_t aOffset2,
+      NodeIndexCache* aIndexCache = nullptr);
+
+  /**
+   * Helper method for ComparePoints_Deprecated().  This includes odd
+   * traditional behavior.  Therefore, do not use this method as a utility
+   * method.
+   */
+  static mozilla::Maybe<int32_t> CompareClosestCommonAncestorChildren(
+      const nsINode&, const nsINode*, const nsINode*, NodeIndexCache*);
 
   static nsIXPConnect* sXPConnect;
 

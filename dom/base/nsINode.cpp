@@ -1887,7 +1887,7 @@ Maybe<uint32_t> nsINode::ComputeIndexOf(const nsINode* aPossibleChild) const {
     return Some(GetChildCount() - 1);
   }
 
-  if (mChildCount >= CACHE_CHILD_LIMIT) {
+  if (MaybeCachesComputedIndex()) {
     const nsINode* child;
     Maybe<uint32_t> maybeChildIndex;
     GetChildAndIndexFromCache(this, &child, &maybeChildIndex);
@@ -1928,7 +1928,7 @@ Maybe<uint32_t> nsINode::ComputeIndexOf(const nsINode* aPossibleChild) const {
   while (current) {
     MOZ_ASSERT(current->GetParentNode() == this);
     if (current == aPossibleChild) {
-      if (mChildCount >= CACHE_CHILD_LIMIT) {
+      if (MaybeCachesComputedIndex()) {
         AddChildAndIndexToCache(this, current, index);
       }
       return Some(index);
@@ -1939,6 +1939,10 @@ Maybe<uint32_t> nsINode::ComputeIndexOf(const nsINode* aPossibleChild) const {
   }
 
   return Nothing();
+}
+
+bool nsINode::MaybeCachesComputedIndex() const {
+  return mChildCount >= CACHE_CHILD_LIMIT;
 }
 
 Maybe<uint32_t> nsINode::ComputeIndexInParentNode() const {
@@ -1955,6 +1959,11 @@ Maybe<uint32_t> nsINode::ComputeIndexInParentContent() const {
     return Nothing();
   }
   return parent->ComputeIndexOf(this);
+}
+
+bool nsINode::MaybeParentCachesComputedIndex() const {
+  nsINode* parent = GetParentNode();
+  return parent && parent->MaybeCachesComputedIndex();
 }
 
 static Maybe<uint32_t> DoComputeFlatTreeIndexOf(FlattenedChildIterator& aIter,
