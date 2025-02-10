@@ -57,6 +57,7 @@ EXPORTS.mozilla.ipc += [
     "ScopedPort.h",
     "SerializedStructuredCloneBuffer.h",
     "SharedMemory.h",
+    "SharedMemoryCursor.h",
     "SharedMemoryHandle.h",
     "SharedMemoryMapping.h",
     "Shmem.h",
@@ -216,6 +217,7 @@ SOURCES += [
     "BackgroundChildImpl.cpp",
     "BackgroundParentImpl.cpp",
     # TODO move to UNIFIED_SOURCES when old shared memory impl is removed
+    "SharedMemoryCursor.cpp",
     "SharedMemoryHandle.cpp",
     "SharedMemoryMapping.cpp",
 ]

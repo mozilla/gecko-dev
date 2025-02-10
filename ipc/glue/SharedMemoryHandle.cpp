@@ -99,8 +99,18 @@ Mapping Handle::Map(void* aFixedAddress) const {
   return Mapping(*this, aFixedAddress);
 }
 
+Mapping Handle::MapSubregion(uint64_t aOffset, size_t aSize,
+                             void* aFixedAddress) const {
+  return Mapping(*this, aOffset, aSize, aFixedAddress);
+}
+
 ReadOnlyMapping ReadOnlyHandle::Map(void* aFixedAddress) const {
   return ReadOnlyMapping(*this, aFixedAddress);
+}
+
+ReadOnlyMapping ReadOnlyHandle::MapSubregion(uint64_t aOffset, size_t aSize,
+                                             void* aFixedAddress) const {
+  return ReadOnlyMapping(*this, aOffset, aSize, aFixedAddress);
 }
 
 FreezableHandle::~FreezableHandle() {
@@ -122,6 +132,11 @@ ReadOnlyHandle FreezableHandle::Freeze() && {
 
 FreezableMapping FreezableHandle::Map(void* aFixedAddress) && {
   return FreezableMapping(std::move(*this), aFixedAddress);
+}
+
+FreezableMapping FreezableHandle::MapSubregion(uint64_t aOffset, size_t aSize,
+                                               void* aFixedAddress) && {
+  return FreezableMapping(std::move(*this), aOffset, aSize, aFixedAddress);
 }
 
 Handle Create(uint64_t aSize) {

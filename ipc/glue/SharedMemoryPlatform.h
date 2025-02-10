@@ -81,14 +81,16 @@ class Platform {
    * Map the given handle with the size ane fixed address.
    *
    * @param aHandle The handle to map.
+   * @param aOffset Offset into the shared memory region to map.
+   * @param aSize Size of the shared memory region to map.
    * @param aFixedAddress The address at which to map the memory, or nullptr to
    * map anywhere.
    * @param aReadOnly Whether the mapping should be read-only.
    *
    * @returns The location of the mapping.
    */
-  static Maybe<void*> Map(const HandleBase& aHandle, void* aFixedAddress,
-                          bool aReadOnly);
+  static Maybe<void*> Map(const HandleBase& aHandle, uint64_t aOffset,
+                          size_t aSize, void* aFixedAddress, bool aReadOnly);
 
   /**
    * Unmap previously mapped memory.
@@ -122,6 +124,13 @@ class Platform {
    * Return the page size of the system.
    */
   static size_t PageSize();
+
+  /**
+   * Return the allocation granularity of the system.
+   * This may be distinct from the page size, and controls the required
+   * alignment for fixed mapping addresses and shared memory offsets.
+   */
+  static size_t AllocationGranularity();
 };
 
 }  // namespace mozilla::ipc::shared_memory

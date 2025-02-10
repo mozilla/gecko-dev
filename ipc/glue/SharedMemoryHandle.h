@@ -107,6 +107,12 @@ struct Handle : HandleBase {
    * Map the shared memory region into memory.
    */
   struct Mapping Map(void* aFixedAddress = nullptr) const;
+
+  /**
+   * Map a subregion of the shared memory region into memory.
+   */
+  struct Mapping MapSubregion(uint64_t aOffset, size_t aSize,
+                              void* aFixedAddress = nullptr) const;
 };
 
 /**
@@ -128,6 +134,12 @@ struct ReadOnlyHandle : HandleBase {
    * Map the shared memory region into memory.
    */
   struct ReadOnlyMapping Map(void* aFixedAddress = nullptr) const;
+
+  /**
+   * Map a subregion of the shared memory region into memory.
+   */
+  struct ReadOnlyMapping MapSubregion(uint64_t aOffset, size_t aSize,
+                                      void* aFixedAddress = nullptr) const;
 };
 
 /**
@@ -161,6 +173,12 @@ struct FreezableHandle : HandleBase {
    * Map the shared memory region into memory.
    */
   struct FreezableMapping Map(void* aFixedAddress = nullptr) &&;
+
+  /**
+   * Map a subregion of the shared memory region into memory.
+   */
+  struct FreezableMapping MapSubregion(uint64_t aOffset, size_t aSize,
+                                       void* aFixedAddress = nullptr) &&;
 
   friend class Platform;
 #if !defined(XP_DARWIN) && !defined(XP_WIN) && !defined(ANDROID)
