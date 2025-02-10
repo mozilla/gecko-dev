@@ -171,24 +171,17 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
   }
 
   #udpateQuickSuggestOptInCopy() {
-    let alternativeCopy = lazy.UrlbarPrefs.get(
-      "quicksuggest.contextualOptIn.sayHello"
-    );
     this.document.l10n.setAttributes(
       this.#quickSuggestOptInContainer.querySelector(
         ".urlbarView-dynamic-quickSuggestContextualOptIn-title"
       ),
-      alternativeCopy
-        ? "urlbar-firefox-suggest-contextual-opt-in-title-2"
-        : "urlbar-firefox-suggest-contextual-opt-in-title-1"
+      "urlbar-firefox-suggest-contextual-opt-in-title-1"
     );
     this.document.l10n.setAttributes(
       this.#quickSuggestOptInContainer.querySelector(
         ".urlbarView-dynamic-quickSuggestContextualOptIn-description"
       ),
-      alternativeCopy
-        ? "urlbar-firefox-suggest-contextual-opt-in-description-2"
-        : "urlbar-firefox-suggest-contextual-opt-in-description-1"
+      "urlbar-firefox-suggest-contextual-opt-in-description-3"
     );
   }
 

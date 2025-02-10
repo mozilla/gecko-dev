@@ -141,9 +141,6 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
    * @returns {object} An object describing the view update.
    */
   getViewUpdate() {
-    let alternativeCopy = lazy.UrlbarPrefs.get(
-      "quicksuggest.contextualOptIn.sayHello"
-    );
     return {
       icon: {
         attributes: {
@@ -152,16 +149,12 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
       },
       title: {
         l10n: {
-          id: alternativeCopy
-            ? "urlbar-firefox-suggest-contextual-opt-in-title-2"
-            : "urlbar-firefox-suggest-contextual-opt-in-title-1",
+          id: "urlbar-firefox-suggest-contextual-opt-in-title-1",
         },
       },
       description: {
         l10n: {
-          id: alternativeCopy
-            ? "urlbar-firefox-suggest-contextual-opt-in-description-2"
-            : "urlbar-firefox-suggest-contextual-opt-in-description-1",
+          id: "urlbar-firefox-suggest-contextual-opt-in-description-3",
         },
       },
     };
@@ -268,7 +261,6 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
       top_position: lazy.UrlbarPrefs.get(
         "quicksuggest.contextualOptIn.topPosition"
       ),
-      say_hello: lazy.UrlbarPrefs.get("quicksuggest.contextualOptIn.sayHello"),
     });
   }
 }

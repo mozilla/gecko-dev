@@ -345,12 +345,6 @@ urlbar:
         branch: default
         pref: browser.urlbar.quicksuggest.contextualOptIn
       description: Whether the Firefox Suggest contextual opt-in result is enabled. If true, this implicitly disables shouldShowOnboardingDialog.
-    quickSuggestContextualOptInSayHello:
-      type: boolean
-      setPref:
-        branch: default
-        pref: browser.urlbar.quicksuggest.contextualOptIn.sayHello
-      description: Controls which variant of the copy is used for the Firefox Suggest contextual opt-in result.
     quickSuggestContextualOptInTopPosition:
       type: boolean
       setPref:
