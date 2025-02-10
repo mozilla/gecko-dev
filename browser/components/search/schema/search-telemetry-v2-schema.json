@@ -364,6 +364,14 @@
         }
       },
       "required": ["key", "value"]
+    },
+    "subframes": {
+      "title": "Subframes",
+      "description": "An array of methods for determining if a sponsored subframe exists.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/subframe"
+      }
     }
   },
   "definitions": {
@@ -475,6 +483,25 @@
       "title": "Skip Count",
       "description": "Whether to skip reporting of the count of these elements to ad_impressions. Defaults to false.",
       "type": "boolean"
+    },
+    "subframe": {
+      "title": "Subframe",
+      "description": "Ways to look for sponsored subframes",
+      "type": "object",
+      "properties": {
+        "inspectRegexpInParent": {
+          "type": "boolean",
+          "description": "Whether the regexp should be used to inspect network events in the parent process."
+        },
+        "inspectRegexpInSERP": {
+          "type": "boolean",
+          "description": "Whether the regexp should be used to inspect subframes in the content process."
+        },
+        "regexp": {
+          "type": "string",
+          "description": "A regular expression that matches subframes that hold sponsored content."
+        }
+      }
     }
   }
 }
