@@ -112,14 +112,41 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
     let lastDismissed = lazy.UrlbarPrefs.get(
       "quicksuggest.contextualOptIn.lastDismissed"
     );
-    if (lastDismissed) {
-      let fourteenDays = 14 * 24 * 60 * 60 * 1000;
-      if (new Date() - new Date(lastDismissed) < fourteenDays) {
+    if (!lastDismissed) {
+      return true;
+    }
+
+    let dismissedCount = lazy.UrlbarPrefs.get(
+      "quicksuggest.contextualOptIn.dismissedCount"
+    );
+
+    let reshowAfterPeriodDays;
+    switch (dismissedCount) {
+      case 1: {
+        reshowAfterPeriodDays = lazy.UrlbarPrefs.get(
+          "quicksuggest.contextualOptIn.firstReshowAfterPeriodDays"
+        );
+        break;
+      }
+      case 2: {
+        reshowAfterPeriodDays = lazy.UrlbarPrefs.get(
+          "quicksuggest.contextualOptIn.secondReshowAfterPeriodDays"
+        );
+        break;
+      }
+      case 3: {
+        reshowAfterPeriodDays = lazy.UrlbarPrefs.get(
+          "quicksuggest.contextualOptIn.thirdReshowAfterPeriodDays"
+        );
+        break;
+      }
+      default: {
         return false;
       }
     }
 
-    return true;
+    let time = reshowAfterPeriodDays * 24 * 60 * 60 * 1000;
+    return new Date() - new Date(lastDismissed) > time;
   }
 
   isActive(queryContext) {
@@ -196,6 +223,14 @@ class ProviderQuickSuggestContextualOptIn extends UrlbarProvider {
           "quicksuggest.contextualOptIn.lastDismissed",
           new Date().toISOString()
         );
+        let dismissedCount = lazy.UrlbarPrefs.get(
+          "quicksuggest.contextualOptIn.dismissedCount"
+        );
+        lazy.UrlbarPrefs.set(
+          "quicksuggest.contextualOptIn.dismissedCount",
+          dismissedCount + 1
+        );
+
         break;
       default:
         return;

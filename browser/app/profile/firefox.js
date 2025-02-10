@@ -529,6 +529,18 @@ pref("browser.urlbar.quicksuggest.dataCollection.enabled", false, sticky);
 // this implicitly disables shouldShowOnboardingDialog.
 pref("browser.urlbar.quicksuggest.contextualOptIn", false);
 
+// Number that the user dismissed the Firefox Suggest contextual opt-in result.
+pref("browser.urlbar.quicksuggest.contextualOptIn.dismissedCount", 0);
+
+// Period until reshow the Firefox Suggest contextual opt-in result when first dismissed.
+pref("browser.urlbar.quicksuggest.contextualOptIn.firstReshowAfterPeriodDays", 7);
+
+// Period until reshow the Firefox Suggest contextual opt-in result when second dismissed.
+pref("browser.urlbar.quicksuggest.contextualOptIn.secondReshowAfterPeriodDays", 14);
+
+// Period until reshow the Firefox Suggest contextual opt-in result when third dismissed.
+pref("browser.urlbar.quicksuggest.contextualOptIn.thirdReshowAfterPeriodDays", 60);
+
 // Whether the quick suggest feature in the urlbar is enabled.
 pref("browser.urlbar.quicksuggest.enabled", false);
 
