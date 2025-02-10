@@ -19,6 +19,7 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.enableDataSaverSystemSetting
 import org.mozilla.fenix.helpers.AppAndSystemHelper.enableOrDisableBackGestureNavigationOnDevice
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.setPortraitDisplayOrientation
 import org.mozilla.fenix.ui.robots.notificationShade
 
 /**
@@ -50,6 +51,8 @@ open class TestSetup {
 
         // Enable the back gesture from the edge of the screen on the device.
         enableOrDisableBackGestureNavigationOnDevice(backGestureNavigationEnabled = true)
+
+        setPortraitDisplayOrientation()
 
         runBlocking {
             // Check and clear the downloads folder, in case the tearDown method is not executed.

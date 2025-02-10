@@ -184,6 +184,24 @@ object TestHelper {
         Log.i(TAG, "waitForAppWindowToBeUpdated: Waited for $waitingTimeVeryShort ms for $packageName window to be updated")
     }
 
+    fun setPortraitDisplayOrientation() {
+        Log.i(TAG, "setPortraitDisplayOrientation: Trying to set device display orientation to portrait")
+        mDevice.setOrientationPortrait()
+        Log.i(TAG, "setPortraitDisplayOrientation: Display orientation was set to portrait")
+        Log.i(TAG, "setPortraitDisplayOrientation: Waiting for device to be idle")
+        mDevice.waitForIdle()
+        Log.i(TAG, "setPortraitDisplayOrientation: Waited for device to be idle")
+    }
+
+    fun setLandscapeDisplayOrientation() {
+        Log.i(TAG, "setLandscapeDisplayOrientation: Trying to set device display orientation to landscape")
+        mDevice.setOrientationLandscape()
+        Log.i(TAG, "setLandscapeDisplayOrientation: Display orientation was set to landscape")
+        Log.i(TAG, "setLandscapeDisplayOrientation: Waiting for device to be idle")
+        mDevice.waitForIdle()
+        Log.i(TAG, "setLandscapeDisplayOrientation: Waited for device to be idle")
+    }
+
     val snackbar: UiObject2?
         get() = mDevice.findObject(res(SNACKBAR_TEST_TAG))
 

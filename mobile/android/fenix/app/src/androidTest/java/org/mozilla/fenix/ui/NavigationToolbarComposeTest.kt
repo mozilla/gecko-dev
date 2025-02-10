@@ -34,6 +34,7 @@ import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.setLandscapeDisplayOrientation
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.clickPageObject
@@ -510,8 +511,7 @@ class NavigationToolbarComposeTest : TestSetup() {
             verifyOpenInBrowserComposeButtonExists()
             verifyMainMenuComposeButton()
 
-            mDevice.setOrientationLandscape()
-            mDevice.waitForIdle()
+            setLandscapeDisplayOrientation()
 
             navigationToolbar {
                 verifyAddressBarIsDisplayedSeparately(isSeparate = false, isAtTop = true)
