@@ -71,14 +71,10 @@ addAccessibleTask(
       1,
       "owned list is not relocated"
     );
-    // XXX: Bug 1912520 - Remap from aria-owns to aria-controls
-    todo_is(
-      box.getAttributeValue("AXARIAControls").length,
-      1,
-      "box controls list"
-    );
 
     await testComboBox(browser, accDoc);
+
+    is(box.getAttributeValue("AXARIAControls").length, 1, "box controls list");
   }
 );
 
