@@ -12,7 +12,7 @@ const TEST_URI = `
   body {
     user-select: none;
     object-view-box: inset(0% 19% -33% 57%);
-    // TODO: Re-enable it when we have another property with no MDN url nor spec url Bug 1840910
+    /*TODO: Re-enable it when we have another property with no MDN url nor spec url Bug 1840910*/
     /*overflow-clip-box: padding-box;*/
   }
 </style>
