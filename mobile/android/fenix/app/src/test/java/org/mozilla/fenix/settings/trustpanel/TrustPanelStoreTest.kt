@@ -5,6 +5,7 @@
 package org.mozilla.fenix.settings.trustpanel
 
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
@@ -20,5 +21,14 @@ class TrustPanelStoreTest {
         store.dispatch(TrustPanelAction.ToggleTrackingProtection).join()
 
         assertFalse(store.state.isTrackingProtectionEnabled)
+    }
+
+    @Test
+    fun `WHEN update number of trackers blocked action is dispatched THEN number of trackers blocked state is updated`() = runTest {
+        val store = TrustPanelStore(initialState = TrustPanelState())
+
+        store.dispatch(TrustPanelAction.UpdateNumberOfTrackersBlocked(1)).join()
+
+        assertEquals(store.state.numberOfTrackersBlocked, 1)
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.LightDarkPreview
@@ -25,12 +26,16 @@ import org.mozilla.fenix.components.menu.compose.MenuItem
 import org.mozilla.fenix.components.menu.compose.MenuScaffold
 import org.mozilla.fenix.components.menu.compose.header.SubmenuHeader
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.trackingprotection.TrackerBuckets
+import org.mozilla.fenix.trackingprotection.TrackingProtectionCategory
 
 internal const val TRACKERS_PANEL_ROUTE = "trackers_panel"
 
 @Composable
 internal fun TrackersBlockedPanel(
     title: String,
+    numberOfTrackersBlocked: Int,
+    bucketedTrackers: TrackerBuckets,
     onBackButtonClick: () -> Unit,
 ) {
     MenuScaffold(
@@ -49,7 +54,10 @@ internal fun TrackersBlockedPanel(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Trackers blocked: 5",
+                    text = stringResource(
+                        R.string.trackers_blocked_panel_total_num_trackers_blocked,
+                        numberOfTrackersBlocked,
+                    ),
                     modifier = Modifier.weight(1f),
                     color = FirefoxTheme.colors.textAccent,
                     style = FirefoxTheme.typography.headline8,
@@ -59,27 +67,21 @@ internal fun TrackersBlockedPanel(
             Spacer(modifier = Modifier.height(4.dp))
 
             MenuGroup {
-                MenuItem(
-                    label = "3 Cross-site tracking cookies",
-                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_cookies_24),
-                    onClick = {},
-                )
+                TrackingProtectionCategory.entries
+                    .filter { bucketedTrackers.get(it, true).isNotEmpty() }
+                    .forEachIndexed { index, trackingProtectionCategory ->
+                        if (index != 0) { Divider(color = FirefoxTheme.colors.borderSecondary) }
 
-                Divider(color = FirefoxTheme.colors.borderSecondary)
-
-                MenuItem(
-                    label = "1 Social media tracker",
-                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_social_tracker_24),
-                    onClick = {},
-                )
-
-                Divider(color = FirefoxTheme.colors.borderSecondary)
-
-                MenuItem(
-                    label = "1 Fingerprinters",
-                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_fingerprinter_24),
-                    onClick = {},
-                )
+                        MenuItem(
+                            label = stringResource(
+                                R.string.trackers_blocked_panel_categorical_num_trackers_blocked,
+                                stringResource(trackingProtectionCategory.title),
+                                bucketedTrackers.get(trackingProtectionCategory, true).size,
+                            ),
+                            beforeIconPainter = painterResource(id = trackingProtectionCategory.icon),
+                            onClick = {},
+                        )
+                    }
             }
         }
     }
@@ -95,6 +97,8 @@ private fun TrackersBlockedPanelPreview() {
         ) {
             TrackersBlockedPanel(
                 title = "Mozilla",
+                numberOfTrackersBlocked = 0,
+                bucketedTrackers = TrackerBuckets(),
                 onBackButtonClick = {},
             )
         }

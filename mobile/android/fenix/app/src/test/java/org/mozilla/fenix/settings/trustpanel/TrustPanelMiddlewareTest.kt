@@ -5,6 +5,8 @@
 package org.mozilla.fenix.settings.trustpanel
 
 import mozilla.components.browser.state.state.SessionState
+import mozilla.components.concept.engine.EngineSession.TrackingProtectionPolicy.TrackingCategory
+import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
@@ -12,16 +14,19 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import mozilla.components.support.test.whenever
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelMiddleware
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
+import org.mozilla.fenix.trackingprotection.TrackerBuckets
 
 @RunWith(FenixRobolectricTestRunner::class)
 class TrustPanelMiddlewareTest {
@@ -87,6 +92,25 @@ class TrustPanelMiddlewareTest {
 
         verify(removeExceptionUseCase).invoke(sessionId)
         verify(reloadUrlUseCase).invoke(sessionId)
+    }
+
+    @Test
+    fun `WHEN update trackers blocked action is dispatched THEN bucketed trackers state is updated`() = runTestOnMain {
+        val url = "https://www.mozilla.org"
+        val trackerLogList = listOf(
+            TrackerLog(url = url, blockedCategories = listOf(TrackingCategory.FINGERPRINTING)),
+        )
+        val bucketedTrackers = spy(TrackerBuckets())
+
+        val store = createStore(
+            trustPanelState = TrustPanelState(bucketedTrackers = bucketedTrackers),
+        )
+
+        store.dispatch(TrustPanelAction.UpdateTrackersBlocked(trackerLogList))
+        store.waitUntilIdle()
+
+        verify(bucketedTrackers).updateIfNeeded(trackerLogList)
+        assertEquals(store.state.numberOfTrackersBlocked, 1)
     }
 
     private fun createStore(

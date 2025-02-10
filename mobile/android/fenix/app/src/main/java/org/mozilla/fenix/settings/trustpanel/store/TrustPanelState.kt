@@ -6,14 +6,19 @@ package org.mozilla.fenix.settings.trustpanel.store
 
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.lib.state.State
+import org.mozilla.fenix.trackingprotection.TrackerBuckets
 
 /**
  * Value type that represents the state of the unified trust panel.
  *
  * @property isTrackingProtectionEnabled Flag indicating whether enhanced tracking protection is enabled.
+ * @property numberOfTrackersBlocked The numbers of trackers blocked by enhanced tracking protection.
+ * @property bucketedTrackers Mapping of trackers sorted into different tracking protection categories.
  * @property sessionState The [SessionState] of the current tab.
  */
 data class TrustPanelState(
     val isTrackingProtectionEnabled: Boolean = true,
+    val numberOfTrackersBlocked: Int = 0,
+    val bucketedTrackers: TrackerBuckets = TrackerBuckets(),
     val sessionState: SessionState? = null,
 ) : State

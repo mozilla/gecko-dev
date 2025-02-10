@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings.trustpanel.store
 
+import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.lib.state.Action
 
 /**
@@ -15,6 +16,20 @@ sealed class TrustPanelAction : Action {
      * [TrustPanelAction] dispatched when tracking protection is toggled.
      */
     data object ToggleTrackingProtection : TrustPanelAction()
+
+    /**
+     * [TrustPanelAction] dispatched when the number of blocked trackers is updated.
+     *
+     * @property newNumberOfTrackersBlocked Updated number of trackers that have been blocked
+     */
+    data class UpdateNumberOfTrackersBlocked(val newNumberOfTrackersBlocked: Int) : TrustPanelAction()
+
+    /**
+     * [TrustPanelAction] dispatched when the list of trackers is changed.
+     *
+     * @property trackerLogs The new list of blocked [TrackerLog]s.
+     */
+    data class UpdateTrackersBlocked(val trackerLogs: List<TrackerLog>) : TrustPanelAction()
 
     /**
      * [TrustPanelAction] dispatched when a navigation event occurs for a specific destination.

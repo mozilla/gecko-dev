@@ -7,12 +7,16 @@ package org.mozilla.fenix.settings.trustpanel.middleware
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.components.lib.state.Store
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
+import org.mozilla.fenix.trackingprotection.TrackerBuckets
+import org.mozilla.fenix.trackingprotection.TrackingProtectionCategory
 
 /**
  * [Middleware] implementation for handling [TrustPanelAction] and managing the [TrustPanelState] for the menu
@@ -35,9 +39,12 @@ class TrustPanelMiddleware(
         action: TrustPanelAction,
     ) {
         val currentState = context.state
+        val store = context.store
 
         when (action) {
             TrustPanelAction.ToggleTrackingProtection -> toggleTrackingProtection(currentState)
+            is TrustPanelAction.UpdateTrackersBlocked,
+            -> updateTrackersBlocked(currentState, action.trackerLogs, store)
 
             else -> Unit
         }
@@ -58,4 +65,18 @@ class TrustPanelMiddleware(
             sessionUseCases.reload.invoke(session.id)
         }
     }
+
+    private fun updateTrackersBlocked(
+        currentState: TrustPanelState,
+        newTrackersBlocked: List<TrackerLog>,
+        store: Store<TrustPanelState, TrustPanelAction>,
+    ) = scope.launch {
+        currentState.bucketedTrackers.updateIfNeeded(newTrackersBlocked)
+        store.dispatch(
+            TrustPanelAction.UpdateNumberOfTrackersBlocked(currentState.bucketedTrackers.numberOfTrackersBlocked()),
+        )
+    }
 }
+
+private fun TrackerBuckets.numberOfTrackersBlocked() = TrackingProtectionCategory.entries
+    .sumOf { trackingProtectionCategory -> this.get(trackingProtectionCategory, true).size }

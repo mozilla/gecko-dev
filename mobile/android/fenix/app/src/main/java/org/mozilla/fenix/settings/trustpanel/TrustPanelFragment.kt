@@ -21,9 +21,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.selector.findTabOrCustomTab
+import mozilla.components.browser.state.state.SessionState
+import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.observeAsState
+import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
+import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
@@ -39,6 +45,7 @@ import org.mozilla.fenix.settings.trustpanel.ui.ProtectionPanel
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.TrackersBlockedPanel
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.trackingprotection.TrackerBuckets
 
 /**
  * A bottom sheet dialog fragment displaying the unified trust panel.
@@ -70,6 +77,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
             }
         }
 
+    @Suppress("LongMethod")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -84,6 +92,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     handlebarContentDescription = "",
                 ) {
                     val components = components
+                    val trackingProtectionUseCases = components.useCases.trackingProtectionUseCases
 
                     val navHostController = rememberNavController()
                     val coroutineScope = rememberCoroutineScope()
@@ -96,7 +105,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                             middleware = listOf(
                                 TrustPanelMiddleware(
                                     sessionUseCases = components.useCases.sessionUseCases,
-                                    trackingProtectionUseCases = components.useCases.trackingProtectionUseCases,
+                                    trackingProtectionUseCases = trackingProtectionUseCases,
                                     scope = coroutineScope,
                                 ),
                                 TrustPanelNavigationMiddleware(
@@ -111,6 +120,24 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     val isTrackingProtectionEnabled by store.observeAsState(initialValue = false) { state ->
                         state.isTrackingProtectionEnabled
                     }
+                    val numberOfTrackersBlocked by store.observeAsState(initialValue = 0) { state ->
+                        state.numberOfTrackersBlocked
+                    }
+                    val bucketedTrackers by store.observeAsState(initialValue = TrackerBuckets()) { state ->
+                        state.bucketedTrackers
+                    }
+
+                    observeTrackersChange(components.core.store) {
+                        trackingProtectionUseCases.fetchTrackingLogs(
+                            tabId = args.sessionId,
+                            onSuccess = { trackerLogs ->
+                                store.dispatch(TrustPanelAction.UpdateTrackersBlocked(trackerLogs))
+                            },
+                            onError = {
+                                Logger.error("TrackingProtectionUseCases - fetchTrackingLogs onError", it)
+                            },
+                        )
+                    }
 
                     NavHost(
                         navController = navHostController,
@@ -122,6 +149,7 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 title = args.title,
                                 isSecured = args.isSecured,
                                 isTrackingProtectionEnabled = isTrackingProtectionEnabled,
+                                numberOfTrackersBlocked = numberOfTrackersBlocked,
                                 onTrackerBlockedMenuClick = {
                                     store.dispatch(TrustPanelAction.Navigate.TrackersPanel)
                                 },
@@ -135,6 +163,8 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                         composable(route = TRACKERS_PANEL_ROUTE) {
                             TrackersBlockedPanel(
                                 title = args.title,
+                                numberOfTrackersBlocked = numberOfTrackersBlocked,
+                                bucketedTrackers = bucketedTrackers,
                                 onBackButtonClick = {
                                     store.dispatch(TrustPanelAction.Navigate.Back)
                                 },
@@ -143,6 +173,14 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     }
                 }
             }
+        }
+    }
+
+    private fun observeTrackersChange(store: BrowserStore, onChange: (SessionState) -> Unit) {
+        consumeFlow(store) { flow ->
+            flow.mapNotNull { state -> state.findTabOrCustomTab(args.sessionId) }
+                .ifAnyChanged { tab -> arrayOf(tab.trackingProtection.blockedTrackers) }
+                .collect(onChange)
         }
     }
 }

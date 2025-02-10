@@ -40,12 +40,14 @@ internal const val PROTECTION_PANEL_ROUTE = "protection_panel"
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
 
+@Suppress("LongParameterList")
 @Composable
 internal fun ProtectionPanel(
     url: String,
     title: String,
     isSecured: Boolean,
     isTrackingProtectionEnabled: Boolean,
+    numberOfTrackersBlocked: Int,
     onTrackerBlockedMenuClick: () -> Unit,
     onTrackingProtectionToggleClick: () -> Unit,
     onClearSiteDataMenuClick: () -> Unit,
@@ -65,12 +67,22 @@ internal fun ProtectionPanel(
                 isTrackingProtectionEnabled = isTrackingProtectionEnabled,
             )
 
-            MenuItem(
-                label = "5 Trackers blocked",
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_shield_24),
-                onClick = onTrackerBlockedMenuClick,
-                afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
-            )
+            if (numberOfTrackersBlocked == 0) {
+                MenuItem(
+                    label = stringResource(id = R.string.protection_panel_no_trackers_blocked),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_shield_24),
+                )
+            } else {
+                MenuItem(
+                    label = stringResource(
+                        id = R.string.protection_panel_num_trackers_blocked,
+                        numberOfTrackersBlocked,
+                    ),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_shield_24),
+                    onClick = onTrackerBlockedMenuClick,
+                    afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
+                )
+            }
 
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
@@ -246,6 +258,7 @@ private fun ProtectionPanelPreview() {
                 title = "Mozilla",
                 isSecured = true,
                 isTrackingProtectionEnabled = true,
+                numberOfTrackersBlocked = 5,
                 onTrackerBlockedMenuClick = {},
                 onTrackingProtectionToggleClick = {},
                 onClearSiteDataMenuClick = {},
