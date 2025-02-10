@@ -93,10 +93,13 @@ nsTSubstring<T>::BulkWrite(size_type aCapacity, size_type aPrefixToPreserve,
 }
 
 template <typename T>
-auto nsTSubstring<T>::StartBulkWriteImpl(
-    size_type aCapacity, size_type aPrefixToPreserve, bool aAllowShrinking,
-    size_type aSuffixLength, size_type aOldSuffixStart,
-    size_type aNewSuffixStart) -> mozilla::Result<size_type, nsresult> {
+auto nsTSubstring<T>::StartBulkWriteImpl(size_type aCapacity,
+                                         size_type aPrefixToPreserve,
+                                         bool aAllowShrinking,
+                                         size_type aSuffixLength,
+                                         size_type aOldSuffixStart,
+                                         size_type aNewSuffixStart)
+    -> mozilla::Result<size_type, nsresult> {
   // Note! Capacity does not include room for the terminating null char.
 
   MOZ_ASSERT(aPrefixToPreserve <= aCapacity,
@@ -698,23 +701,36 @@ bool nsTSubstring<T>::Replace(index_type aCutStart, size_type aCutLength,
 template <typename T>
 void nsTSubstring<T>::Replace(index_type aCutStart, size_type aCutLength,
                               const substring_tuple_type& aTuple) {
+  if (!Replace(aCutStart, aCutLength, aTuple, mozilla::fallible)) {
+    AllocFailed(this->Length() - aCutLength + aTuple.Length());
+  }
+}
+
+template <typename T>
+bool nsTSubstring<T>::Replace(index_type aCutStart, size_type aCutLength,
+                              const substring_tuple_type& aTuple,
+                              const fallible_t& aFallible) {
   const auto [isDependentOnThis, tupleLength] =
       aTuple.IsDependentOnWithLength(this->mData, this->mData + this->mLength);
 
   if (isDependentOnThis) {
     nsTAutoString<T> temp;
     if (!temp.AssignNonDependent(aTuple, tupleLength, mozilla::fallible)) {
-      AllocFailed(tupleLength);
+      return false;
     }
-    Replace(aCutStart, aCutLength, temp);
-    return;
+    return Replace(aCutStart, aCutLength, temp, aFallible);
   }
 
   aCutStart = XPCOM_MIN(aCutStart, this->Length());
 
-  if (ReplacePrep(aCutStart, aCutLength, tupleLength) && tupleLength > 0) {
+  if (!ReplacePrep(aCutStart, aCutLength, tupleLength)) {
+    return false;
+  }
+
+  if (tupleLength > 0) {
     aTuple.WriteTo(this->mData + aCutStart, tupleLength);
   }
+  return true;
 }
 
 template <typename T>
