@@ -1443,6 +1443,7 @@ abstract class BaseBrowserFragment :
                         attrs = null,
                         engineViewParent = getSwipeRefreshLayout(),
                         topToolbarHeight = topToolbarHeight,
+                        bottomToolbarHeight = bottomToolbarHeight,
                     )
             } else {
                 val toolbarPosition = when (context.settings().toolbarPosition) {
