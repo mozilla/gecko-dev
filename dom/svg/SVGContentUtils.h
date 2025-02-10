@@ -185,12 +185,6 @@ class SVGContentUtils {
                                          const Matrix& aToNonScalingStrokeSpace,
                                          float aStrokeWidth, Rect* aBounds);
 
-  /**
-   * Check if this is one of the SVG elements that SVG 1.1 Full says
-   * establishes a viewport: svg, symbol, image or foreignObject.
-   */
-  static bool EstablishesViewport(const nsIContent* aContent);
-
   static dom::SVGViewportElement* GetNearestViewportElement(
       const nsIContent* aContent);
 
