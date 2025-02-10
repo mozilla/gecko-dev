@@ -556,6 +556,10 @@ static void WebRenderDebugPrefChangeCallback(const char* aPrefName, void*) {
   GFX_WEBRENDER_DEBUG(".restrict-blob-size", wr::DebugFlags::RESTRICT_BLOB_SIZE)
   GFX_WEBRENDER_DEBUG(".surface-promotion-logging",
                       wr::DebugFlags::SURFACE_PROMOTION_LOGGING)
+  GFX_WEBRENDER_DEBUG(".missing-snapshot-panic",
+                      wr::DebugFlags::MISSING_SNAPSHOT_PANIC)
+  GFX_WEBRENDER_DEBUG(".missing-snapshot-pink",
+                      wr::DebugFlags::MISSING_SNAPSHOT_PINK)
 #undef GFX_WEBRENDER_DEBUG
   gfx::gfxVars::SetWebRenderDebugFlags(flags._0);
 

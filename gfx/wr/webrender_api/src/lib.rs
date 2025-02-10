@@ -663,10 +663,10 @@ impl RenderReasons {
 /// Flags to enable/disable various builtin debugging tools.
 #[repr(C)]
 #[derive(Copy, PartialEq, Eq, Clone, PartialOrd, Ord, Hash, Default, Deserialize, MallocSizeOf, Serialize)]
-pub struct DebugFlags(u32);
+pub struct DebugFlags(u64);
 
 bitflags! {
-    impl DebugFlags: u32 {
+    impl DebugFlags: u64 {
         /// Display the frame profiler on screen.
         const PROFILER_DBG          = 1 << 0;
         /// Display intermediate render targets on screen.
@@ -725,9 +725,9 @@ bitflags! {
         /// If set, dump picture cache invalidation debug to console.
         const INVALIDATION_DBG = 1 << 23;
         /// Collect and dump profiler statistics to captures.
-        const PROFILER_CAPTURE = (1 as u32) << 25; // need "as u32" until we have cbindgen#556
+        const PROFILER_CAPTURE = 1 << 25;
         /// Invalidate picture tiles every frames (useful when inspecting GPU work in external tools).
-        const FORCE_PICTURE_INVALIDATION = (1 as u32) << 26;
+        const FORCE_PICTURE_INVALIDATION = 1 << 26;
         /// Display window visibility on screen.
         const WINDOW_VISIBILITY_DBG     = 1 << 27;
         /// Render large blobs with at a smaller size (incorrectly). This is a temporary workaround for
@@ -735,8 +735,12 @@ bitflags! {
         const RESTRICT_BLOB_SIZE        = 1 << 28;
         /// Enable surface promotion logging.
         const SURFACE_PROMOTION_LOGGING = 1 << 29;
-        /// Show picture caching debug overlay
-        const PICTURE_BORDERS       = 1 << 30;
+        /// Show picture caching debug overlay.
+        const PICTURE_BORDERS           = 1 << 30;
+        /// Panic when a attempting to display a missing stacking context snapshot.
+        const MISSING_SNAPSHOT_PANIC    = (1 as u64) << 31; // need "as u32" until we have cbindgen#556
+        /// Panic when a attempting to display a missing stacking context snapshot.
+        const MISSING_SNAPSHOT_PINK     = (1 as u64) << 32;
     }
 }
 

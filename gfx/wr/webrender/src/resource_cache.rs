@@ -516,6 +516,8 @@ pub struct ResourceCache {
     /// Over time it would be better to handle each of these cases explicitly
     /// and make it a hard error to fail to snapshot a stacking context.
     fallback_handle: TextureCacheHandle,
+    debug_fallback_panic: bool,
+    debug_fallback_pink: bool,
 }
 
 impl ResourceCache {
@@ -554,6 +556,8 @@ impl ResourceCache {
             font_templates_memory: 0,
             render_target_pool: Vec::new(),
             fallback_handle: TextureCacheHandle::invalid(),
+            debug_fallback_panic: false,
+            debug_fallback_pink: false,
         }
     }
 
@@ -1367,6 +1371,9 @@ impl ResourceCache {
         if self.resources.image_templates
             .get(request.key)
             .map_or(false, |img| img.data.is_snapshot()) {
+            if self.debug_fallback_panic {
+                panic!("Missing snapshot image");
+            }
             return self.get_texture_cache_item(&self.fallback_handle);
         }
 
@@ -1514,6 +1521,11 @@ impl ResourceCache {
         profile_scope!("update_texture_cache");
 
         if self.fallback_handle == TextureCacheHandle::invalid() {
+            let fallback_color = if self.debug_fallback_pink {
+                vec![255, 0, 255, 255]
+            } else {
+                vec![0, 0, 0, 0]
+            };
             self.texture_cache.update(
                 &mut self.fallback_handle,
                 ImageDescriptor {
@@ -1524,7 +1536,7 @@ impl ResourceCache {
                     offset: 0,
                 },
                 TextureFilter::Linear,
-                Some(CachedImageData::Raw(Arc::new(vec![0, 0, 0, 0]))),
+                Some(CachedImageData::Raw(Arc::new(fallback_color))),
                 [0.0; 4],
                 DirtyRect::All,
                 gpu_cache,
@@ -1808,6 +1820,13 @@ impl ResourceCache {
         GLYPH_FLASHING.store(flags.contains(DebugFlags::GLYPH_FLASHING), std::sync::atomic::Ordering::Relaxed);
         self.texture_cache.set_debug_flags(flags);
         self.picture_textures.set_debug_flags(flags);
+        self.debug_fallback_panic = flags.contains(DebugFlags::MISSING_SNAPSHOT_PANIC);
+        let fallback_pink = flags.contains(DebugFlags::MISSING_SNAPSHOT_PINK);
+
+        if fallback_pink != self.debug_fallback_pink && self.fallback_handle != TextureCacheHandle::invalid() {
+            self.texture_cache.evict_handle(&self.fallback_handle);
+        }
+        self.debug_fallback_pink = fallback_pink;
     }
 
     pub fn clear(&mut self, what: ClearCache) {
