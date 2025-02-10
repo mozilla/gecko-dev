@@ -15,6 +15,7 @@ import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelNavigationMidd
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
+import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
 
 class TrustPanelNavigationMiddlewareTest {
@@ -34,12 +35,22 @@ class TrustPanelNavigationMiddlewareTest {
     }
 
     @Test
-    fun `WHEN navigate to save action is dispatched THEN navigate to save submenu route`() = runTest {
+    fun `WHEN navigate to trackers panel action is dispatched THEN navigate to trackers panel route`() = runTest {
         val store = createStore()
         store.dispatch(TrustPanelAction.Navigate.TrackersPanel).join()
 
         verify {
             navHostController.navigate(route = TRACKERS_PANEL_ROUTE)
+        }
+    }
+
+    @Test
+    fun `WHEN navigate to clear site data dialog action is dispatched THEN navigate to clear site data dialog route`() = runTest {
+        val store = createStore()
+        store.dispatch(TrustPanelAction.Navigate.ClearSiteDataDialog).join()
+
+        verify {
+            navHostController.navigate(route = CLEAR_SITE_DATA_DIALOG_ROUTE)
         }
     }
 

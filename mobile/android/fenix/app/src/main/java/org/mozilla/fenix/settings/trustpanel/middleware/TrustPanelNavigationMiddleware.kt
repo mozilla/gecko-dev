@@ -13,6 +13,7 @@ import mozilla.components.lib.state.MiddlewareContext
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
+import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
 
 /**
@@ -39,7 +40,13 @@ class TrustPanelNavigationMiddleware(
             when (action) {
                 is TrustPanelAction.Navigate.Back -> navHostController.popBackStack()
 
-                is TrustPanelAction.Navigate.TrackersPanel -> navHostController.navigate(route = TRACKERS_PANEL_ROUTE)
+                is TrustPanelAction.Navigate.ClearSiteDataDialog -> navHostController.navigate(
+                    route = CLEAR_SITE_DATA_DIALOG_ROUTE,
+                )
+
+                is TrustPanelAction.Navigate.TrackersPanel -> navHostController.navigate(
+                    route = TRACKERS_PANEL_ROUTE,
+                )
 
                 else -> Unit
             }

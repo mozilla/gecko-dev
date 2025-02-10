@@ -31,4 +31,14 @@ class TrustPanelStoreTest {
 
         assertEquals(store.state.numberOfTrackersBlocked, 1)
     }
+
+    @Test
+    fun `WHEN update base domain action is dispatched THEN base domain state is updated`() = runTest {
+        val store = TrustPanelStore(initialState = TrustPanelState())
+        val baseDomain = "mozilla.org"
+
+        store.dispatch(TrustPanelAction.UpdateBaseDomain(baseDomain)).join()
+
+        assertEquals(store.state.baseDomain, baseDomain)
+    }
 }

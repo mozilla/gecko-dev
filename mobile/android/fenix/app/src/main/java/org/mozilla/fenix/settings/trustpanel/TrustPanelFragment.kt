@@ -21,7 +21,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.selector.findTabOrCustomTab
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
@@ -40,6 +42,8 @@ import org.mozilla.fenix.settings.trustpanel.middleware.TrustPanelTelemetryMiddl
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
+import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
+import org.mozilla.fenix.settings.trustpanel.ui.ClearSiteDataDialog
 import org.mozilla.fenix.settings.trustpanel.ui.PROTECTION_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.ProtectionPanel
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
@@ -104,8 +108,15 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                             ),
                             middleware = listOf(
                                 TrustPanelMiddleware(
+                                    engine = components.core.engine,
+                                    publicSuffixList = components.publicSuffixList,
                                     sessionUseCases = components.useCases.sessionUseCases,
                                     trackingProtectionUseCases = trackingProtectionUseCases,
+                                    onDismiss = {
+                                        withContext(Dispatchers.Main) {
+                                            this@TrustPanelFragment.dismiss()
+                                        }
+                                    },
                                     scope = coroutineScope,
                                 ),
                                 TrustPanelNavigationMiddleware(
@@ -117,6 +128,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                         )
                     }
 
+                    val baseDomain by store.observeAsState(initialValue = null) { state ->
+                        state.baseDomain
+                    }
                     val isTrackingProtectionEnabled by store.observeAsState(initialValue = false) { state ->
                         state.isTrackingProtectionEnabled
                     }
@@ -156,7 +170,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 onTrackingProtectionToggleClick = {
                                     store.dispatch(TrustPanelAction.ToggleTrackingProtection)
                                 },
-                                onClearSiteDataMenuClick = {},
+                                onClearSiteDataMenuClick = {
+                                    store.dispatch(TrustPanelAction.RequestClearSiteDataDialog)
+                                },
                             )
                         }
 
@@ -168,6 +184,16 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                                 onBackButtonClick = {
                                     store.dispatch(TrustPanelAction.Navigate.Back)
                                 },
+                            )
+                        }
+
+                        composable(route = CLEAR_SITE_DATA_DIALOG_ROUTE) {
+                            ClearSiteDataDialog(
+                                baseDomain = baseDomain ?: "",
+                                onClearSiteDataClick = {
+                                    store.dispatch(TrustPanelAction.ClearSiteData)
+                                },
+                                onCancelClick = { ::dismiss.invoke() },
                             )
                         }
                     }

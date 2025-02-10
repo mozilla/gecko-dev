@@ -32,9 +32,13 @@ class TrustPanelTelemetryMiddleware : Middleware<TrustPanelState, TrustPanelActi
                 TrackingProtection.exceptionAdded.record(NoExtras())
             }
 
+            is TrustPanelAction.ClearSiteData,
+            is TrustPanelAction.RequestClearSiteDataDialog,
+            is TrustPanelAction.UpdateBaseDomain,
             is TrustPanelAction.UpdateNumberOfTrackersBlocked,
             is TrustPanelAction.UpdateTrackersBlocked,
             TrustPanelAction.Navigate.Back,
+            is TrustPanelAction.Navigate.ClearSiteDataDialog,
             TrustPanelAction.Navigate.TrackersPanel,
             -> Unit
         }

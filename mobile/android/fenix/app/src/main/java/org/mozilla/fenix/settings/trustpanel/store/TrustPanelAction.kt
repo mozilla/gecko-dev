@@ -13,9 +13,26 @@ import mozilla.components.lib.state.Action
 sealed class TrustPanelAction : Action {
 
     /**
+     * [TrustPanelAction] dispatched when the current site's data is cleared.
+     */
+    data object ClearSiteData : TrustPanelAction()
+
+    /**
      * [TrustPanelAction] dispatched when tracking protection is toggled.
      */
     data object ToggleTrackingProtection : TrustPanelAction()
+
+    /**
+     * [TrustPanelAction] dispatched when the clear site data dialog is requested.
+     */
+    data object RequestClearSiteDataDialog : TrustPanelAction()
+
+    /**
+     * [TrustPanelAction] dispatched when the site's base domain is updated for the clear site data dialog.
+     *
+     * @property baseDomain The base domain of the current site.
+     */
+    data class UpdateBaseDomain(val baseDomain: String) : TrustPanelAction()
 
     /**
      * [TrustPanelAction] dispatched when the number of blocked trackers is updated.
@@ -39,6 +56,11 @@ sealed class TrustPanelAction : Action {
          * [Navigate] action dispatched when a back navigation event occurs.
          */
         data object Back : Navigate()
+
+        /**
+         * [Navigate] action dispatched when navigating to the clear site data dialog.
+         */
+        data object ClearSiteDataDialog : Navigate()
 
         /**
          * [Navigate] action dispatched when navigating to the trackers panel.
