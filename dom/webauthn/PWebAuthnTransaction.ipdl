@@ -112,10 +112,8 @@ struct CoseAlg {
 };
 
 struct WebAuthnMakeCredentialInfo {
-  nsString Origin;
   nsString RpId;
   uint8_t[] Challenge;
-  nsCString ClientDataJSON;
   uint32_t TimeoutMS;
   WebAuthnScopedCredential[] ExcludeList;
   WebAuthnMakeCredentialRpInfo Rp;
@@ -124,7 +122,6 @@ struct WebAuthnMakeCredentialInfo {
   WebAuthnExtension[] Extensions;
   WebAuthnAuthenticatorSelection AuthenticatorSelection;
   nsString attestationConveyancePreference;
-  uint64_t BrowsingContextId;
 };
 
 struct WebAuthnMakeCredentialResult {
@@ -142,16 +139,13 @@ union WebAuthnMakeCredentialResponse {
 };
 
 struct WebAuthnGetAssertionInfo {
-  nsString Origin;
   nsString RpId;
   uint8_t[] Challenge;
-  nsCString ClientDataJSON;
   uint32_t TimeoutMS;
   WebAuthnScopedCredential[] AllowList;
   WebAuthnExtension[] Extensions;
   nsString userVerificationRequirement;
   bool ConditionallyMediated;
-  uint64_t BrowsingContextId;
 };
 
 struct WebAuthnGetAssertionResult {

@@ -23,8 +23,6 @@
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 #include "mozilla/dom/WebAuthnUtil.h"
 #include "mozilla/dom/WindowGlobalChild.h"
-#include "mozilla/JSONStringWriteFuncs.h"
-#include "mozilla/JSONWriter.h"
 
 #ifdef XP_WIN
 #  include "WinWebAuthnService.h"
@@ -54,40 +52,6 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(WebAuthnHandler)
 /***********************************************************************
  * Utility Functions
  **********************************************************************/
-
-static nsresult AssembleClientData(
-    const nsAString& aOrigin, const CryptoBuffer& aChallenge,
-    const nsACString& aType,
-    const AuthenticationExtensionsClientInputs& aExtensions,
-    /* out */ nsACString& aJsonOut) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsAutoCString challengeBase64;
-  nsresult rv =
-      Base64URLEncode(aChallenge.Length(), aChallenge.Elements(),
-                      Base64URLEncodePaddingPolicy::Omit, challengeBase64);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // Serialize the collected client data using the algorithm from
-  // https://www.w3.org/TR/webauthn-3/#clientdatajson-serialization.
-  // Please update the definition of CollectedClientData in
-  // dom/webidl/WebAuthentication.webidl when changes are made here.
-  JSONStringRefWriteFunc f(aJsonOut);
-  JSONWriter w(f, JSONWriter::CollectionStyle::SingleLineStyle);
-  w.Start();
-  // Steps 2 and 3
-  w.StringProperty("type", aType);
-  // Steps 4 and 5
-  w.StringProperty("challenge", challengeBase64);
-  // Steps 6 and 7
-  w.StringProperty("origin", NS_ConvertUTF16toUTF8(aOrigin));
-  // Steps 8 through 11 will be implemented in Bug 1901809.
-  w.End();
-
-  return NS_OK;
-}
 
 static uint8_t SerializeTransports(
     const mozilla::dom::Sequence<nsString>& aTransports) {
@@ -340,22 +304,9 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
   // result of this processing clientExtensions.
   //
   // Currently no extensions are supported
-  //
-  // Use attestationChallenge, callerOrigin and rpId, along with the token
-  // binding key associated with callerOrigin (if any), to create a ClientData
-  // structure representing this request. Choose a hash algorithm for hashAlg
-  // and compute the clientDataJSON and clientDataHash.
 
   CryptoBuffer challenge;
   if (!challenge.Assign(aOptions.mChallenge)) {
-    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
-    return promise.forget();
-  }
-
-  nsAutoCString clientDataJSON;
-  nsresult srv = AssembleClientData(origin, challenge, "webauthn.create"_ns,
-                                    aOptions.mExtensions, clientDataJSON);
-  if (NS_WARN_IF(NS_FAILED(srv))) {
     promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
   }
@@ -478,12 +429,6 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
   WebAuthnMakeCredentialUserInfo userInfo(userId, aOptions.mUser.mName,
                                           aOptions.mUser.mDisplayName);
 
-  BrowsingContext* context = mWindow->GetBrowsingContext();
-  if (!context) {
-    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
-    return promise.forget();
-  }
-
   // Abort the request if aborted flag is already set.
   if (aSignal.WasPassed() && aSignal.Value().Aborted()) {
     AutoJSAPI jsapi;
@@ -499,9 +444,8 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
   }
 
   WebAuthnMakeCredentialInfo info(
-      origin, NS_ConvertUTF8toUTF16(rpId), challenge, clientDataJSON,
-      adjustedTimeout, excludeList, rpInfo, userInfo, coseAlgos, extensions,
-      authSelection, attestation, context->Top()->Id());
+      NS_ConvertUTF8toUTF16(rpId), challenge, adjustedTimeout, excludeList,
+      rpInfo, userInfo, coseAlgos, extensions, authSelection, attestation);
 
   // Set up the transaction state. Fallible operations should not be performed
   // below this line, as we must not leave the transaction state partially
@@ -599,20 +543,8 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     return promise.forget();
   }
 
-  // Use assertionChallenge, callerOrigin and rpId, along with the token binding
-  // key associated with callerOrigin (if any), to create a ClientData structure
-  // representing this request. Choose a hash algorithm for hashAlg and compute
-  // the clientDataJSON and clientDataHash.
   CryptoBuffer challenge;
   if (!challenge.Assign(aOptions.mChallenge)) {
-    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
-    return promise.forget();
-  }
-
-  nsAutoCString clientDataJSON;
-  rv = AssembleClientData(origin, challenge, "webauthn.get"_ns,
-                          aOptions.mExtensions, clientDataJSON);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
     promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
   }
@@ -738,12 +670,6 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
         WebAuthnExtensionPrf(eval, evalByCredentialMaybe, evalByCredential));
   }
 
-  BrowsingContext* context = mWindow->GetBrowsingContext();
-  if (!context) {
-    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
-    return promise.forget();
-  }
-
   // Abort the request if aborted flag is already set.
   if (aSignal.WasPassed() && aSignal.Value().Aborted()) {
     AutoJSAPI jsapi;
@@ -758,10 +684,9 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     return promise.forget();
   }
 
-  WebAuthnGetAssertionInfo info(origin, NS_ConvertUTF8toUTF16(rpId), challenge,
-                                clientDataJSON, adjustedTimeout, allowList,
-                                extensions, aOptions.mUserVerification,
-                                aConditionallyMediated, context->Top()->Id());
+  WebAuthnGetAssertionInfo info(
+      NS_ConvertUTF8toUTF16(rpId), challenge, adjustedTimeout, allowList,
+      extensions, aOptions.mUserVerification, aConditionallyMediated);
 
   // Set up the transaction state. Fallible operations should not be performed
   // below this line, as we must not leave the transaction state partially

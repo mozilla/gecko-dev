@@ -4,15 +4,49 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/dom/WebAuthnTransactionParent.h"
-#include "mozilla/ipc/PBackgroundParent.h"
-#include "mozilla/ipc/BackgroundParent.h"
+#include "mozilla/Base64.h"
+#include "mozilla/JSONStringWriteFuncs.h"
+#include "mozilla/JSONWriter.h"
 #include "mozilla/StaticPrefs_security.h"
+#include "mozilla/dom/PWindowGlobalParent.h"
+#include "mozilla/dom/WebAuthnTransactionParent.h"
+#include "mozilla/dom/WindowGlobalParent.h"
 
 #include "nsThreadUtils.h"
 #include "WebAuthnArgs.h"
 
 namespace mozilla::dom {
+
+nsresult AssembleClientData(const nsACString& aOrigin,
+                            const nsTArray<uint8_t>& aChallenge,
+                            const nsACString& aType,
+                            /* out */ nsACString& aJsonOut) {
+  nsAutoCString challengeBase64;
+  nsresult rv =
+      Base64URLEncode(aChallenge.Length(), aChallenge.Elements(),
+                      Base64URLEncodePaddingPolicy::Omit, challengeBase64);
+  if (NS_FAILED(rv)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // Serialize the collected client data using the algorithm from
+  // https://www.w3.org/TR/webauthn-3/#clientdatajson-serialization.
+  // Please update the definition of CollectedClientData in
+  // dom/webidl/WebAuthentication.webidl when changes are made here.
+  JSONStringRefWriteFunc f(aJsonOut);
+  JSONWriter w(f, JSONWriter::CollectionStyle::SingleLineStyle);
+  w.Start();
+  // Steps 2 and 3
+  w.StringProperty("type", aType);
+  // Steps 4 and 5
+  w.StringProperty("challenge", challengeBase64);
+  // Steps 6 and 7
+  w.StringProperty("origin", aOrigin);
+  // Steps 8 through 11 will be implemented in Bug 1901809.
+  w.End();
+
+  return NS_OK;
+}
 
 void WebAuthnTransactionParent::CompleteTransaction() {
   if (mTransactionId.isSome()) {
@@ -47,7 +81,8 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
   if (!mWebAuthnService) {
     mWebAuthnService = do_GetService("@mozilla.org/webauthn/service;1");
     if (!mWebAuthnService) {
-      return IPC_FAIL_NO_REASON(this);
+      aResolver(NS_ERROR_NOT_AVAILABLE);
+      return IPC_OK();
     }
   }
 
@@ -58,6 +93,24 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
   uint64_t aTransactionId = NextId();
   mTransactionId = Some(aTransactionId);
 
+  WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
+
+  nsCString origin;
+  nsresult rv =
+      manager->DocumentPrincipal()->GetWebExposedOriginSerialization(origin);
+  if (NS_FAILED(rv)) {
+    aResolver(NS_ERROR_FAILURE);
+    return IPC_OK();
+  }
+
+  nsCString clientDataJSON;
+  rv = AssembleClientData(origin, aTransactionInfo.Challenge(),
+                          "webauthn.create"_ns, clientDataJSON);
+  if (NS_FAILED(rv)) {
+    aResolver(NS_ERROR_FAILURE);
+    return IPC_OK();
+  }
+
   RefPtr<WebAuthnRegisterPromiseHolder> promiseHolder =
       new WebAuthnRegisterPromiseHolder(GetCurrentSerialEventTarget());
 
@@ -65,8 +118,7 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
   promise
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this},
-           inputClientData = aTransactionInfo.ClientDataJSON(),
+          [self = RefPtr{this}, inputClientData = clientDataJSON,
            resolver = std::move(aResolver)](
               const WebAuthnRegisterPromise::ResolveOrRejectValue& aValue) {
             self->CompleteTransaction();
@@ -189,11 +241,11 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
           })
       ->Track(mRegisterPromiseRequest);
 
-  uint64_t browsingContextId = aTransactionInfo.BrowsingContextId();
-  RefPtr<WebAuthnRegisterArgs> args(new WebAuthnRegisterArgs(aTransactionInfo));
-
-  nsresult rv = mWebAuthnService->MakeCredential(
-      aTransactionId, browsingContextId, args, promiseHolder);
+  uint64_t browsingContextId = manager->GetBrowsingContext()->Top()->Id();
+  auto args = MakeRefPtr<WebAuthnRegisterArgs>(origin, clientDataJSON,
+                                               aTransactionInfo);
+  rv = mWebAuthnService->MakeCredential(aTransactionId, browsingContextId, args,
+                                        promiseHolder);
   if (NS_FAILED(rv)) {
     promiseHolder->Reject(NS_ERROR_DOM_NOT_ALLOWED_ERR);
   }
@@ -209,15 +261,34 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
   if (!mWebAuthnService) {
     mWebAuthnService = do_GetService("@mozilla.org/webauthn/service;1");
     if (!mWebAuthnService) {
-      return IPC_FAIL_NO_REASON(this);
+      aResolver(NS_ERROR_NOT_AVAILABLE);
+      return IPC_OK();
     }
   }
 
   if (mTransactionId.isSome()) {
     DisconnectTransaction();
   }
-  uint64_t aTransactionId = NextId();
-  mTransactionId = Some(aTransactionId);
+  uint64_t transactionId = NextId();
+  mTransactionId = Some(transactionId);
+
+  WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
+
+  nsCString origin;
+  nsresult rv =
+      manager->DocumentPrincipal()->GetWebExposedOriginSerialization(origin);
+  if (NS_FAILED(rv)) {
+    aResolver(NS_ERROR_FAILURE);
+    return IPC_OK();
+  }
+
+  nsCString clientDataJSON;
+  rv = AssembleClientData(origin, aTransactionInfo.Challenge(),
+                          "webauthn.get"_ns, clientDataJSON);
+  if (NS_FAILED(rv)) {
+    aResolver(NS_ERROR_FAILURE);
+    return IPC_OK();
+  }
 
   RefPtr<WebAuthnSignPromiseHolder> promiseHolder =
       new WebAuthnSignPromiseHolder(GetCurrentSerialEventTarget());
@@ -226,8 +297,7 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
   promise
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this},
-           inputClientData = aTransactionInfo.ClientDataJSON(),
+          [self = RefPtr{this}, inputClientData = clientDataJSON,
            resolver = std::move(aResolver)](
               const WebAuthnSignPromise::ResolveOrRejectValue& aValue) {
             self->CompleteTransaction();
@@ -335,11 +405,11 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
           })
       ->Track(mSignPromiseRequest);
 
-  RefPtr<WebAuthnSignArgs> args(new WebAuthnSignArgs(aTransactionInfo));
-
-  nsresult rv = mWebAuthnService->GetAssertion(
-      aTransactionId, aTransactionInfo.BrowsingContextId(), args,
-      promiseHolder);
+  uint64_t browsingContextId = manager->GetBrowsingContext()->Top()->Id();
+  auto args =
+      MakeRefPtr<WebAuthnSignArgs>(origin, clientDataJSON, aTransactionInfo);
+  rv = mWebAuthnService->GetAssertion(transactionId, browsingContextId, args,
+                                      promiseHolder);
   if (NS_FAILED(rv)) {
     promiseHolder->Reject(NS_ERROR_DOM_NOT_ALLOWED_ERR);
   }
