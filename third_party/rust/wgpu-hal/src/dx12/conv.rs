@@ -1,10 +1,10 @@
 use windows::Win32::Graphics::{Direct3D, Direct3D12};
 
 pub fn map_buffer_usage_to_resource_flags(
-    usage: crate::BufferUses,
+    usage: wgt::BufferUses,
 ) -> Direct3D12::D3D12_RESOURCE_FLAGS {
     let mut flags = Direct3D12::D3D12_RESOURCE_FLAG_NONE;
-    if usage.contains(crate::BufferUses::STORAGE_READ_WRITE) {
+    if usage.contains(wgt::BufferUses::STORAGE_READ_WRITE) {
         flags |= Direct3D12::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
     flags
@@ -19,25 +19,25 @@ pub fn map_texture_dimension(dim: wgt::TextureDimension) -> Direct3D12::D3D12_RE
 }
 
 pub fn map_texture_usage_to_resource_flags(
-    usage: crate::TextureUses,
+    usage: wgt::TextureUses,
 ) -> Direct3D12::D3D12_RESOURCE_FLAGS {
     let mut flags = Direct3D12::D3D12_RESOURCE_FLAG_NONE;
 
-    if usage.contains(crate::TextureUses::COLOR_TARGET) {
+    if usage.contains(wgt::TextureUses::COLOR_TARGET) {
         flags |= Direct3D12::D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
     }
-    if usage.intersects(
-        crate::TextureUses::DEPTH_STENCIL_READ | crate::TextureUses::DEPTH_STENCIL_WRITE,
-    ) {
+    if usage
+        .intersects(wgt::TextureUses::DEPTH_STENCIL_READ | wgt::TextureUses::DEPTH_STENCIL_WRITE)
+    {
         flags |= Direct3D12::D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-        if !usage.contains(crate::TextureUses::RESOURCE) {
+        if !usage.contains(wgt::TextureUses::RESOURCE) {
             flags |= Direct3D12::D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
     }
     if usage.intersects(
-        crate::TextureUses::STORAGE_READ_ONLY
-            | crate::TextureUses::STORAGE_WRITE_ONLY
-            | crate::TextureUses::STORAGE_READ_WRITE,
+        wgt::TextureUses::STORAGE_READ_ONLY
+            | wgt::TextureUses::STORAGE_WRITE_ONLY
+            | wgt::TextureUses::STORAGE_READ_WRITE,
     ) {
         flags |= Direct3D12::D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
@@ -112,12 +112,12 @@ pub fn map_binding_type(ty: &wgt::BindingType) -> Direct3D12::D3D12_DESCRIPTOR_R
             ..
         }
         | Bt::StorageTexture { .. } => Direct3D12::D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
-        Bt::AccelerationStructure => todo!(),
+        Bt::AccelerationStructure => Direct3D12::D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
     }
 }
 
-pub fn map_buffer_usage_to_state(usage: crate::BufferUses) -> Direct3D12::D3D12_RESOURCE_STATES {
-    use crate::BufferUses as Bu;
+pub fn map_buffer_usage_to_state(usage: wgt::BufferUses) -> Direct3D12::D3D12_RESOURCE_STATES {
+    use wgt::BufferUses as Bu;
     let mut state = Direct3D12::D3D12_RESOURCE_STATE_COMMON;
 
     if usage.intersects(Bu::COPY_SRC) {
@@ -144,12 +144,12 @@ pub fn map_buffer_usage_to_state(usage: crate::BufferUses) -> Direct3D12::D3D12_
     state
 }
 
-pub fn map_texture_usage_to_state(usage: crate::TextureUses) -> Direct3D12::D3D12_RESOURCE_STATES {
-    use crate::TextureUses as Tu;
+pub fn map_texture_usage_to_state(usage: wgt::TextureUses) -> Direct3D12::D3D12_RESOURCE_STATES {
+    use wgt::TextureUses as Tu;
     let mut state = Direct3D12::D3D12_RESOURCE_STATE_COMMON;
     //Note: `RESOLVE_SOURCE` and `RESOLVE_DEST` are not used here
     //Note: `PRESENT` is the same as `COMMON`
-    if usage == crate::TextureUses::UNINITIALIZED {
+    if usage == wgt::TextureUses::UNINITIALIZED {
         return state;
     }
 
@@ -349,4 +349,52 @@ pub fn map_depth_stencil(ds: &wgt::DepthStencilState) -> Direct3D12::D3D12_DEPTH
         FrontFace: map_stencil_face(&ds.stencil.front),
         BackFace: map_stencil_face(&ds.stencil.back),
     }
+}
+
+pub(crate) fn map_acceleration_structure_build_flags(
+    flags: wgt::AccelerationStructureFlags,
+    mode: Option<crate::AccelerationStructureBuildMode>,
+) -> Direct3D12::D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS {
+    let mut d3d_flags = Default::default();
+    if flags.contains(wgt::AccelerationStructureFlags::ALLOW_COMPACTION) {
+        d3d_flags |=
+            Direct3D12::D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION;
+    }
+
+    if flags.contains(wgt::AccelerationStructureFlags::ALLOW_UPDATE) {
+        d3d_flags |= Direct3D12::D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
+    }
+
+    if flags.contains(wgt::AccelerationStructureFlags::LOW_MEMORY) {
+        d3d_flags |= Direct3D12::D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_MINIMIZE_MEMORY;
+    }
+
+    if flags.contains(wgt::AccelerationStructureFlags::PREFER_FAST_BUILD) {
+        d3d_flags |=
+            Direct3D12::D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
+    }
+
+    if flags.contains(wgt::AccelerationStructureFlags::PREFER_FAST_TRACE) {
+        d3d_flags |=
+            Direct3D12::D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+    }
+
+    if let Some(crate::AccelerationStructureBuildMode::Update) = mode {
+        d3d_flags |= Direct3D12::D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE
+    }
+
+    d3d_flags
+}
+
+pub(crate) fn map_acceleration_structure_geometry_flags(
+    flags: wgt::AccelerationStructureGeometryFlags,
+) -> Direct3D12::D3D12_RAYTRACING_GEOMETRY_FLAGS {
+    let mut d3d_flags = Default::default();
+    if flags.contains(wgt::AccelerationStructureGeometryFlags::OPAQUE) {
+        d3d_flags |= Direct3D12::D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+    }
+    if flags.contains(wgt::AccelerationStructureGeometryFlags::NO_DUPLICATE_ANY_HIT_INVOCATION) {
+        d3d_flags |= Direct3D12::D3D12_RAYTRACING_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION;
+    }
+    d3d_flags
 }

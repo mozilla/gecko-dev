@@ -17,10 +17,9 @@ use crate::{
     FastHashSet,
 };
 
-use wgt::{math::align_to, BufferUsages, Features};
+use wgt::{math::align_to, BufferUsages, BufferUses, Features};
 
 use super::CommandBufferMutable;
-use hal::BufferUses;
 use std::{
     cmp::max,
     num::NonZeroU64,
@@ -104,7 +103,7 @@ impl Global {
                                     transform_buffer: tg.transform_buffer,
                                     first_vertex: tg.first_vertex,
                                     vertex_stride: tg.vertex_stride,
-                                    index_buffer_offset: tg.index_buffer_offset,
+                                    first_index: tg.first_index,
                                     transform_buffer_offset: tg.transform_buffer_offset,
                                 })
                                 .collect(),
@@ -144,7 +143,7 @@ impl Global {
                         transform_buffer: tg.transform_buffer,
                         first_vertex: tg.first_vertex,
                         vertex_stride: tg.vertex_stride,
-                        index_buffer_offset: tg.index_buffer_offset,
+                        first_index: tg.first_index,
                         transform_buffer_offset: tg.transform_buffer_offset,
                     });
                     BlasGeometries::TriangleGeometries(Box::new(iter))
@@ -375,7 +374,7 @@ impl Global {
                                     transform_buffer: tg.transform_buffer,
                                     first_vertex: tg.first_vertex,
                                     vertex_stride: tg.vertex_stride,
-                                    index_buffer_offset: tg.index_buffer_offset,
+                                    first_index: tg.first_index,
                                     transform_buffer_offset: tg.transform_buffer_offset,
                                 })
                                 .collect(),
@@ -397,7 +396,7 @@ impl Global {
                         instance.map(|instance| TraceTlasInstance {
                             blas_id: instance.blas_id,
                             transform: *instance.transform,
-                            custom_index: instance.custom_index,
+                            custom_data: instance.custom_data,
                             mask: instance.mask,
                         })
                     })
@@ -428,7 +427,7 @@ impl Global {
                         transform_buffer: tg.transform_buffer,
                         first_vertex: tg.first_vertex,
                         vertex_stride: tg.vertex_stride,
-                        index_buffer_offset: tg.index_buffer_offset,
+                        first_index: tg.first_index,
                         transform_buffer_offset: tg.transform_buffer_offset,
                     });
                     BlasGeometries::TriangleGeometries(Box::new(iter))
@@ -445,7 +444,7 @@ impl Global {
                 instance.as_ref().map(|instance| TlasInstance {
                     blas_id: instance.blas_id,
                     transform: &instance.transform,
-                    custom_index: instance.custom_index,
+                    custom_data: instance.custom_data,
                     mask: instance.mask,
                 })
             });
@@ -513,7 +512,7 @@ impl Global {
 
             let mut instance_count = 0;
             for instance in package.instances.flatten() {
-                if instance.custom_index >= (1u32 << 24u32) {
+                if instance.custom_data >= (1u32 << 24u32) {
                     return Err(BuildAccelerationStructureError::TlasInvalidCustomIndex(
                         tlas.error_ident(),
                     ));
@@ -525,7 +524,7 @@ impl Global {
                 instance_buffer_staging_source.extend(device.raw().tlas_instance_to_bytes(
                     hal::TlasInstance {
                         transform: *instance.transform,
-                        custom_index: instance.custom_index,
+                        custom_data: instance.custom_data,
                         mask: instance.mask,
                         blas_address: blas.handle,
                     },
@@ -906,7 +905,7 @@ fn iter_blas<'a>(
                     );
                     let index_data = if let Some(index_id) = mesh.index_buffer {
                         let index_buffer = hub.buffers.get(index_id).get()?;
-                        if mesh.index_buffer_offset.is_none()
+                        if mesh.first_index.is_none()
                             || mesh.size.index_count.is_none()
                             || mesh.size.index_count.is_none()
                         {
@@ -1017,15 +1016,8 @@ fn iter_buffers<'a, 'b>(
             {
                 input_barriers.push(barrier);
             }
-            let index_stride = match mesh.size.index_format.unwrap() {
-                wgt::IndexFormat::Uint16 => 2,
-                wgt::IndexFormat::Uint32 => 4,
-            };
-            if mesh.index_buffer_offset.unwrap() % index_stride != 0 {
-                return Err(BuildAccelerationStructureError::UnalignedIndexBufferOffset(
-                    index_buffer.error_ident(),
-                ));
-            }
+            let index_stride = mesh.size.index_format.unwrap().byte_size() as u64;
+            let offset = mesh.first_index.unwrap() as u64 * index_stride;
             let index_buffer_size = mesh.size.index_count.unwrap() as u64 * index_stride;
 
             if mesh.size.index_count.unwrap() % 3 != 0 {
@@ -1034,23 +1026,18 @@ fn iter_buffers<'a, 'b>(
                     mesh.size.index_count.unwrap(),
                 ));
             }
-            if index_buffer.size
-                < mesh.size.index_count.unwrap() as u64 * index_stride
-                    + mesh.index_buffer_offset.unwrap()
-            {
+            if index_buffer.size < mesh.size.index_count.unwrap() as u64 * index_stride + offset {
                 return Err(BuildAccelerationStructureError::InsufficientBufferSize(
                     index_buffer.error_ident(),
                     index_buffer.size,
-                    mesh.size.index_count.unwrap() as u64 * index_stride
-                        + mesh.index_buffer_offset.unwrap(),
+                    mesh.size.index_count.unwrap() as u64 * index_stride + offset,
                 ));
             }
 
             cmd_buf_data.buffer_memory_init_actions.extend(
                 index_buffer.initialization_status.read().create_action(
                     index_buffer,
-                    mesh.index_buffer_offset.unwrap()
-                        ..(mesh.index_buffer_offset.unwrap() + index_buffer_size),
+                    offset..(offset + index_buffer_size),
                     MemoryInitKind::NeedsInitializedMemory,
                 ),
             );
@@ -1110,13 +1097,14 @@ fn iter_buffers<'a, 'b>(
             first_vertex: mesh.first_vertex,
             vertex_count: mesh.size.vertex_count,
             vertex_stride: mesh.vertex_stride,
-            indices: index_buffer.map(|index_buffer| hal::AccelerationStructureTriangleIndices::<
-                dyn hal::DynBuffer,
-            > {
-                format: mesh.size.index_format.unwrap(),
-                buffer: Some(index_buffer),
-                offset: mesh.index_buffer_offset.unwrap() as u32,
-                count: mesh.size.index_count.unwrap(),
+            indices: index_buffer.map(|index_buffer| {
+                let index_stride = mesh.size.index_format.unwrap().byte_size() as u32;
+                hal::AccelerationStructureTriangleIndices::<dyn hal::DynBuffer> {
+                    format: mesh.size.index_format.unwrap(),
+                    buffer: Some(index_buffer),
+                    offset: mesh.first_index.unwrap() * index_stride,
+                    count: mesh.size.index_count.unwrap(),
+                }
             }),
             transform: transform_buffer.map(|transform_buffer| {
                 hal::AccelerationStructureTriangleTransform {

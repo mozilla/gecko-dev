@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "wgpu-types"
-version = "23.0.0"
+version = "24.0.0"
 authors = ["gfx-rs developers"]
 build = false
 autolib = false
@@ -49,6 +49,9 @@ path = "src/lib.rs"
 version = "2.7"
 features = ["serde"]
 
+[dependencies.log]
+version = "0.4"
+
 [dependencies.serde]
 version = "1"
 features = [
@@ -64,7 +67,7 @@ features = ["derive"]
 default-features = false
 
 [dev-dependencies.serde_json]
-version = "1.0.134"
+version = "1.0.138"
 
 [features]
 counters = []

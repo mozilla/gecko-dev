@@ -1,5 +1,7 @@
+use std::borrow::Cow;
 use std::sync::Arc;
-use std::{borrow::Cow, collections::HashMap};
+
+use hashbrown::HashMap;
 
 use crate::{
     api_log, api_log_debug,
@@ -73,8 +75,7 @@ impl Instance {
                 let hal_desc = hal::InstanceDescriptor {
                     name: "wgpu",
                     flags: instance_desc.flags,
-                    dx12_shader_compiler: instance_desc.dx12_shader_compiler.clone(),
-                    gles_minor_version: instance_desc.gles_minor_version,
+                    backend_options: instance_desc.backend_options.clone(),
                 };
 
                 use hal::Instance as _;
@@ -616,11 +617,17 @@ impl Adapter {
         hal_device: hal::DynOpenDevice,
         desc: &DeviceDescriptor,
         instance_flags: wgt::InstanceFlags,
-        trace_path: Option<&std::path::Path>,
+        trace_dir_name: Option<&str>,
     ) -> Result<(Arc<Device>, Arc<Queue>), RequestDeviceError> {
         api_log!("Adapter::create_device");
 
-        let device = Device::new(hal_device.device, self, desc, trace_path, instance_flags)?;
+        let device = Device::new(
+            hal_device.device,
+            self,
+            desc,
+            trace_dir_name,
+            instance_flags,
+        )?;
         let device = Arc::new(device);
 
         let queue = Queue::new(device.clone(), hal_device.queue)?;
@@ -635,7 +642,7 @@ impl Adapter {
         self: &Arc<Self>,
         desc: &DeviceDescriptor,
         instance_flags: wgt::InstanceFlags,
-        trace_path: Option<&std::path::Path>,
+        trace_dir_name: Option<&str>,
     ) -> Result<(Arc<Device>, Arc<Queue>), RequestDeviceError> {
         // Verify all features were exposed by the adapter
         if !self.raw.features.contains(desc.required_features) {
@@ -682,7 +689,7 @@ impl Adapter {
         }
         .map_err(DeviceError::from_hal)?;
 
-        self.create_device_and_queue_from_hal(open, desc, instance_flags, trace_path)
+        self.create_device_and_queue_from_hal(open, desc, instance_flags, trace_dir_name)
     }
 }
 
@@ -923,7 +930,7 @@ impl Global {
         &self,
         adapter_id: AdapterId,
         desc: &DeviceDescriptor,
-        trace_path: Option<&std::path::Path>,
+        trace_dir_name: Option<&str>,
         device_id_in: Option<DeviceId>,
         queue_id_in: Option<QueueId>,
     ) -> Result<(DeviceId, QueueId), RequestDeviceError> {
@@ -935,7 +942,7 @@ impl Global {
 
         let adapter = self.hub.adapters.get(adapter_id);
         let (device, queue) =
-            adapter.create_device_and_queue(desc, self.instance.flags, trace_path)?;
+            adapter.create_device_and_queue(desc, self.instance.flags, trace_dir_name)?;
 
         let device_id = device_fid.assign(device);
         resource_log!("Created Device {:?}", device_id);
@@ -955,7 +962,7 @@ impl Global {
         adapter_id: AdapterId,
         hal_device: hal::DynOpenDevice,
         desc: &DeviceDescriptor,
-        trace_path: Option<&std::path::Path>,
+        trace_dir_name: Option<&str>,
         device_id_in: Option<DeviceId>,
         queue_id_in: Option<QueueId>,
     ) -> Result<(DeviceId, QueueId), RequestDeviceError> {
@@ -969,7 +976,7 @@ impl Global {
             hal_device,
             desc,
             self.instance.flags,
-            trace_path,
+            trace_dir_name,
         )?;
 
         let device_id = devices_fid.assign(device);
@@ -980,39 +987,4 @@ impl Global {
 
         Ok((device_id, queue_id))
     }
-}
-
-/// Generates a set of backends from a comma separated list of case-insensitive backend names.
-///
-/// Whitespace is stripped, so both 'gl, dx12' and 'gl,dx12' are valid.
-///
-/// Always returns WEBGPU on wasm over webgpu.
-///
-/// Names:
-/// - vulkan = "vulkan" or "vk"
-/// - dx12   = "dx12" or "d3d12"
-/// - metal  = "metal" or "mtl"
-/// - gles   = "opengl" or "gles" or "gl"
-/// - webgpu = "webgpu"
-pub fn parse_backends_from_comma_list(string: &str) -> Backends {
-    let mut backends = Backends::empty();
-    for backend in string.to_lowercase().split(',') {
-        backends |= match backend.trim() {
-            "vulkan" | "vk" => Backends::VULKAN,
-            "dx12" | "d3d12" => Backends::DX12,
-            "metal" | "mtl" => Backends::METAL,
-            "opengl" | "gles" | "gl" => Backends::GL,
-            "webgpu" => Backends::BROWSER_WEBGPU,
-            b => {
-                log::warn!("unknown backend string '{}'", b);
-                continue;
-            }
-        }
-    }
-
-    if backends.is_empty() {
-        log::warn!("no valid backend strings found!");
-    }
-
-    backends
 }

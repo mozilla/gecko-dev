@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "naga"
-version = "23.0.0"
+version = "24.0.0"
 authors = ["gfx-rs developers"]
 build = "build.rs"
 exclude = [
@@ -55,10 +55,12 @@ features = ["derive"]
 optional = true
 
 [dependencies.arrayvec]
-version = "0.7"
+version = "0.7.6"
+default-features = false
 
 [dependencies.bit-set]
 version = "0.8"
+default-features = false
 
 [dependencies.bitflags]
 version = "2.7"
@@ -66,12 +68,21 @@ version = "2.7"
 [dependencies.codespan-reporting]
 version = "0.11.0"
 
+[dependencies.hashbrown]
+version = "0.14.5"
+features = [
+    "ahash",
+    "inline-more",
+]
+default-features = false
+
 [dependencies.hexf-parse]
 version = "0.2.1"
 optional = true
 
 [dependencies.indexmap]
-version = "2"
+version = "2.5.0"
+default-features = false
 
 [dependencies.petgraph]
 version = "0.7"
@@ -83,6 +94,7 @@ optional = true
 
 [dependencies.rustc-hash]
 version = "1"
+default-features = false
 
 [dependencies.serde]
 version = "1.0.217"
@@ -97,14 +109,17 @@ version = "0.3"
 optional = true
 
 [dependencies.strum]
-version = "0.26.0"
+version = "0.26.3"
 features = ["derive"]
+optional = true
+default-features = false
 
 [dependencies.termcolor]
 version = "1.4.1"
 
 [dependencies.thiserror]
 version = "2"
+default-features = false
 
 [dependencies.unicode-xid]
 version = "0.2.6"
@@ -116,6 +131,15 @@ ron = "0.8.0"
 
 [dev-dependencies.env_logger]
 version = "0.11"
+
+[dev-dependencies.hashbrown]
+version = "0.14.5"
+features = [
+    "ahash",
+    "inline-more",
+    "serde",
+]
+default-features = false
 
 [dev-dependencies.hlsl-snapshots]
 path = "./hlsl-snapshots"
@@ -154,6 +178,7 @@ default = []
 deserialize = [
     "dep:serde",
     "bitflags/serde",
+    "hashbrown/serde",
     "indexmap/serde",
 ]
 dot-out = []
@@ -166,6 +191,7 @@ msl-out-if-target-apple = []
 serialize = [
     "dep:serde",
     "bitflags/serde",
+    "hashbrown/serde",
     "indexmap/serde",
 ]
 spv-in = [
@@ -175,7 +201,9 @@ spv-in = [
 spv-out = ["dep:spirv"]
 wgsl-in = [
     "dep:hexf-parse",
+    "dep:strum",
     "dep:unicode-xid",
+    "indexmap/std",
     "compact",
 ]
 wgsl-out = []

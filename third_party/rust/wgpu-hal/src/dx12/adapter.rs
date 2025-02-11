@@ -154,6 +154,11 @@ impl super::Adapter {
         }
         .unwrap();
 
+        if options.ResourceBindingTier.0 < Direct3D12::D3D12_RESOURCE_BINDING_TIER_2.0 {
+            // We require Tier 2 or higher for the ability to make samplers bindless in all cases.
+            return None;
+        }
+
         let _depth_bounds_test_supported = {
             let mut features2 = Direct3D12::D3D12_FEATURE_DATA_D3D12_OPTIONS2::default();
             unsafe {
@@ -193,6 +198,32 @@ impl super::Adapter {
                 )
             }
             .is_ok()
+        };
+
+        let mut max_sampler_descriptor_heap_size =
+            Direct3D12::D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+        {
+            let mut features19 = Direct3D12::D3D12_FEATURE_DATA_D3D12_OPTIONS19::default();
+            let res = unsafe {
+                device.CheckFeatureSupport(
+                    Direct3D12::D3D12_FEATURE_D3D12_OPTIONS19,
+                    <*mut _>::cast(&mut features19),
+                    size_of_val(&features19) as u32,
+                )
+            };
+
+            // Sometimes on Windows 11 23H2, the function returns success, even though the runtime
+            // does not know about `Options19`. This can cause this number to be 0 as the structure isn't written to.
+            // This value is nonsense and creating zero-sized sampler heaps can cause drivers to explode.
+            // As as we're guaranteed 2048 anyway, we make sure this value is not under 2048.
+            //
+            // https://github.com/gfx-rs/wgpu/issues/7053
+            let is_ok = res.is_ok();
+            let is_above_minimum = features19.MaxSamplerDescriptorHeapSize
+                > Direct3D12::D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+            if is_ok && is_above_minimum {
+                max_sampler_descriptor_heap_size = features19.MaxSamplerDescriptorHeapSize;
+            }
         };
 
         let shader_model = if dxc_container.is_none() {
@@ -244,7 +275,6 @@ impl super::Adapter {
                 _ => unreachable!(),
             }
         };
-
         let private_caps = super::PrivateCapabilities {
             instance_flags,
             heterogeneous_resource_heaps: options.ResourceHeapTier
@@ -261,6 +291,7 @@ impl super::Adapter {
             // See https://github.com/gfx-rs/wgpu/issues/3552
             suballocation_supported: !info.name.contains("Iris(R) Xe"),
             shader_model,
+            max_sampler_descriptor_heap_size,
         };
 
         // Theoretically vram limited, but in practice 2^20 is the limit
@@ -340,6 +371,7 @@ impl super::Adapter {
 
         features.set(
             wgt::Features::TEXTURE_BINDING_ARRAY
+                | wgt::Features::STORAGE_RESOURCE_BINDING_ARRAY
                 | wgt::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING
                 | wgt::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING,
             shader_model >= naga::back::hlsl::ShaderModel::V5_1,
@@ -390,10 +422,38 @@ impl super::Adapter {
         );
 
         features.set(
+            wgt::Features::TEXTURE_INT64_ATOMIC,
+            shader_model >= naga::back::hlsl::ShaderModel::V6_6
+                && hr.is_ok()
+                && features1.Int64ShaderOps.as_bool(),
+        );
+
+        features.set(
             wgt::Features::SUBGROUP,
             shader_model >= naga::back::hlsl::ShaderModel::V6_0
                 && hr.is_ok()
                 && features1.WaveOps.as_bool(),
+        );
+        let mut features5 = Direct3D12::D3D12_FEATURE_DATA_D3D12_OPTIONS5::default();
+        let has_features5 = unsafe {
+            device.CheckFeatureSupport(
+                Direct3D12::D3D12_FEATURE_D3D12_OPTIONS5,
+                <*mut _>::cast(&mut features5),
+                size_of_val(&features5) as u32,
+            )
+        }
+        .is_ok();
+
+        // Since all features for raytracing pipeline (geometry index) and ray queries both come
+        // from here, there is no point in adding an extra call here given that there will be no
+        // feature using EXPERIMENTAL_RAY_TRACING_ACCELERATION_STRUCTURE if all these are not met.
+        // Once ray tracing pipelines are supported they also will go here
+        features.set(
+            wgt::Features::EXPERIMENTAL_RAY_QUERY
+                | wgt::Features::EXPERIMENTAL_RAY_TRACING_ACCELERATION_STRUCTURE,
+            features5.RaytracingTier == Direct3D12::D3D12_RAYTRACING_TIER_1_1
+                && shader_model >= naga::back::hlsl::ShaderModel::V6_5
+                && has_features5,
         );
 
         let atomic_int64_on_typed_resource_supported = {
@@ -487,8 +547,10 @@ impl super::Adapter {
                     //   for the descriptor table
                     // - If a bind group has samplers it will consume a `DWORD`
                     //   for the descriptor table
-                    // - Each dynamic buffer will consume `2 DWORDs` for the
+                    // - Each dynamic uniform buffer will consume `2 DWORDs` for the
                     //   root descriptor
+                    // - Each dynamic storage buffer will consume `1 DWORD` for a
+                    //   root constant representing the dynamic offset
                     // - The special constants buffer count as constants
                     //
                     // Since we can't know beforehand all root signatures that
@@ -529,8 +591,9 @@ impl super::Adapter {
                     // Direct3D correctly bounds-checks all array accesses:
                     // https://microsoft.github.io/DirectX-Specs/d3d/archive/D3D11_3_FunctionalSpec.htm#18.6.8.2%20Device%20Memory%20Reads
                     uniform_bounds_check_alignment: wgt::BufferSize::new(1).unwrap(),
-                    raw_tlas_instance_size: 0,
-                    ray_tracing_scratch_buffer_alignment: 0,
+                    raw_tlas_instance_size: size_of::<Direct3D12::D3D12_RAYTRACING_INSTANCE_DESC>(),
+                    ray_tracing_scratch_buffer_alignment:
+                        Direct3D12::D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT,
                 },
                 downlevel,
             },
@@ -796,9 +859,9 @@ impl crate::Adapter for super::Adapter {
             // See https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgidevice1-setmaximumframelatency
             maximum_frame_latency: 1..=16,
             current_extent,
-            usage: crate::TextureUses::COLOR_TARGET
-                | crate::TextureUses::COPY_SRC
-                | crate::TextureUses::COPY_DST,
+            usage: wgt::TextureUses::COLOR_TARGET
+                | wgt::TextureUses::COPY_SRC
+                | wgt::TextureUses::COPY_DST,
             present_modes,
             composite_alpha_modes: vec![wgt::CompositeAlphaMode::Opaque],
         })

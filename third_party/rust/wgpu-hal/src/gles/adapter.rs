@@ -192,6 +192,7 @@ impl super::Adapter {
 
     pub(super) unsafe fn expose(
         context: super::AdapterContext,
+        backend_options: wgt::GlBackendOptions,
     ) -> Option<crate::ExposedAdapter<super::Api>> {
         let gl = context.lock();
         let extensions = gl.supported_extensions();
@@ -824,6 +825,7 @@ impl super::Adapter {
                     private_caps,
                     workarounds,
                     features,
+                    options: backend_options,
                     shading_language_version,
                     next_shader_id: Default::default(),
                     program_cache: Default::default(),
@@ -1083,6 +1085,7 @@ impl crate::Adapter for super::Adapter {
         let texture_float_linear = feature_fn(wgt::Features::FLOAT32_FILTERABLE, filterable);
 
         let image_atomic = feature_fn(wgt::Features::TEXTURE_ATOMIC, Tfc::STORAGE_ATOMIC);
+        let image_64_atomic = feature_fn(wgt::Features::TEXTURE_INT64_ATOMIC, Tfc::STORAGE_ATOMIC);
 
         match format {
             Tf::R8Unorm => filterable_renderable,
@@ -1115,6 +1118,7 @@ impl crate::Adapter for super::Adapter {
             Tf::Rgb10a2Uint => renderable,
             Tf::Rgb10a2Unorm => filterable_renderable,
             Tf::Rg11b10Ufloat => filterable | float_renderable,
+            Tf::R64Uint => image_64_atomic,
             Tf::Rg32Uint => renderable,
             Tf::Rg32Sint => renderable,
             Tf::Rg32Float => unfilterable | float_renderable | texture_float_linear,
@@ -1209,7 +1213,7 @@ impl crate::Adapter for super::Adapter {
                 composite_alpha_modes: vec![wgt::CompositeAlphaMode::Opaque], //TODO
                 maximum_frame_latency: 2..=2, //TODO, unused currently
                 current_extent: None,
-                usage: crate::TextureUses::COLOR_TARGET,
+                usage: wgt::TextureUses::COLOR_TARGET,
             })
         } else {
             None

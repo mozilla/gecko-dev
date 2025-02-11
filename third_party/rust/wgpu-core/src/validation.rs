@@ -1,6 +1,7 @@
 use crate::{device::bgl, resource::InvalidResourceError, FastHashMap, FastHashSet};
 use arrayvec::ArrayVec;
-use std::{collections::hash_map::Entry, fmt};
+use hashbrown::hash_map::Entry;
+use std::fmt;
 use thiserror::Error;
 use wgt::{BindGroupLayoutEntry, BindingType};
 
@@ -278,7 +279,7 @@ pub enum StageError {
     InvalidResource(#[from] InvalidResourceError),
 }
 
-fn map_storage_format_to_naga(format: wgt::TextureFormat) -> Option<naga::StorageFormat> {
+pub fn map_storage_format_to_naga(format: wgt::TextureFormat) -> Option<naga::StorageFormat> {
     use naga::StorageFormat as Sf;
     use wgt::TextureFormat as Tf;
 
@@ -312,6 +313,7 @@ fn map_storage_format_to_naga(format: wgt::TextureFormat) -> Option<naga::Storag
         Tf::Rgb10a2Unorm => Sf::Rgb10a2Unorm,
         Tf::Rg11b10Ufloat => Sf::Rg11b10Ufloat,
 
+        Tf::R64Uint => Sf::R64Uint,
         Tf::Rg32Uint => Sf::Rg32Uint,
         Tf::Rg32Sint => Sf::Rg32Sint,
         Tf::Rg32Float => Sf::Rg32Float,
@@ -334,7 +336,7 @@ fn map_storage_format_to_naga(format: wgt::TextureFormat) -> Option<naga::Storag
     })
 }
 
-fn map_storage_format_from_naga(format: naga::StorageFormat) -> wgt::TextureFormat {
+pub fn map_storage_format_from_naga(format: naga::StorageFormat) -> wgt::TextureFormat {
     use naga::StorageFormat as Sf;
     use wgt::TextureFormat as Tf;
 
@@ -368,6 +370,7 @@ fn map_storage_format_from_naga(format: naga::StorageFormat) -> wgt::TextureForm
         Sf::Rgb10a2Unorm => Tf::Rgb10a2Unorm,
         Sf::Rg11b10Ufloat => Tf::Rg11b10Ufloat,
 
+        Sf::R64Uint => Tf::R64Uint,
         Sf::Rg32Uint => Tf::Rg32Uint,
         Sf::Rg32Sint => Tf::Rg32Sint,
         Sf::Rg32Float => Tf::Rg32Float,
@@ -712,6 +715,7 @@ impl NumericType {
             Tf::Rg8Unorm | Tf::Rg8Snorm | Tf::Rg16Float | Tf::Rg32Float => {
                 (NumericDimension::Vector(Vs::Bi), Scalar::F32)
             }
+            Tf::R64Uint => (NumericDimension::Scalar, Scalar::U64),
             Tf::Rg8Uint | Tf::Rg16Uint | Tf::Rg32Uint => {
                 (NumericDimension::Vector(Vs::Bi), Scalar::U32)
             }
@@ -917,7 +921,7 @@ impl Interface {
         let mut resource_mapping = FastHashMap::default();
         for (var_handle, var) in module.global_variables.iter() {
             let bind = match var.binding {
-                Some(ref br) => br.clone(),
+                Some(br) => br,
                 _ => continue,
             };
             let naga_ty = &module.types[var.ty].inner;
@@ -1054,7 +1058,7 @@ impl Interface {
                     BindingLayoutSource::Provided(layouts) => {
                         // update the required binding size for this buffer
                         if let ResourceType::Buffer { size } = res.ty {
-                            match shader_binding_sizes.entry(res.bind.clone()) {
+                            match shader_binding_sizes.entry(res.bind) {
                                 Entry::Occupied(e) => {
                                     *e.into_mut() = size.max(*e.get());
                                 }
@@ -1114,7 +1118,7 @@ impl Interface {
                 }
             };
             if let Err(error) = result {
-                return Err(StageError::Binding(res.bind.clone(), error));
+                return Err(StageError::Binding(res.bind, error));
             }
         }
 
@@ -1155,8 +1159,8 @@ impl Interface {
 
                 if let Some(error) = error {
                     return Err(StageError::Filtering {
-                        texture: texture_bind.clone(),
-                        sampler: sampler_bind.clone(),
+                        texture: *texture_bind,
+                        sampler: *sampler_bind,
                         error,
                     });
                 }

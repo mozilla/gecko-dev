@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "wgpu-hal"
-version = "23.0.1"
+version = "24.0.0"
 authors = ["gfx-rs developers"]
 build = "build.rs"
 autolib = false
@@ -66,32 +66,48 @@ name = "ray-traced-triangle"
 path = "examples/ray-traced-triangle/main.rs"
 
 [dependencies.arrayvec]
-version = "0.7"
+version = "0.7.6"
+default-features = false
 
 [dependencies.bitflags]
 version = "2.7"
 
 [dependencies.bytemuck]
 version = "1.21"
+features = [
+    "derive",
+    "min_const_generics",
+]
 optional = true
 
 [dependencies.glow]
 version = "0.16"
 optional = true
 
+[dependencies.hashbrown]
+version = "0.14.5"
+features = [
+    "ahash",
+    "inline-more",
+]
+default-features = false
+
 [dependencies.log]
 version = "0.4"
 
 [dependencies.naga]
-version = "23.0.0"
+version = "24.0.0"
 path = "../naga"
 
 [dependencies.once_cell]
 version = "1.20.2"
+optional = true
+default-features = false
 
 [dependencies.ordered-float]
 version = ">=3,<=4.6"
 optional = true
+default-features = false
 
 [dependencies.parking_lot]
 version = "0.12.1"
@@ -102,17 +118,19 @@ default-features = false
 
 [dependencies.raw-window-handle]
 version = "0.6"
+default-features = false
 
 [dependencies.rustc-hash]
 version = "1"
+default-features = false
 
 [dependencies.thiserror]
 version = "2"
+default-features = false
 
-[dependencies.wgt]
-version = "23.0.0"
+[dependencies.wgpu-types]
+version = "24.0.0"
 path = "../wgpu-types"
-package = "wgpu-types"
 
 [dev-dependencies.cfg-if]
 version = "1"
@@ -124,7 +142,7 @@ version = "0.11"
 version = "0.29"
 
 [dev-dependencies.naga]
-version = "23.0.0"
+version = "24.0.0"
 path = "../naga"
 features = ["wgsl-in"]
 
@@ -142,6 +160,7 @@ dx12 = [
     "dep:libloading",
     "dep:range-alloc",
     "dep:windows-core",
+    "dep:ordered-float",
     "gpu-allocator/d3d12",
     "naga/hlsl-out-if-target-windows",
     "windows/Win32_Graphics_Direct3D_Fxc",
@@ -157,15 +176,17 @@ dx12 = [
     "windows/Win32_System_Threading",
     "windows/Win32_UI_WindowsAndMessaging",
 ]
-fragile-send-sync-non-atomic-wasm = ["wgt/fragile-send-sync-non-atomic-wasm"]
+fragile-send-sync-non-atomic-wasm = ["wgpu-types/fragile-send-sync-non-atomic-wasm"]
 gles = [
     "naga/glsl-out",
+    "once_cell/std",
     "dep:bytemuck",
     "dep:glow",
     "dep:glutin_wgl_sys",
     "dep:khronos-egl",
     "dep:libloading",
     "dep:ndk-sys",
+    "dep:once_cell",
     "windows/Win32_Graphics_OpenGL",
     "windows/Win32_Graphics_Gdi",
     "windows/Win32_System_LibraryLoader",
@@ -305,19 +326,19 @@ optional = true
 version = "0.1"
 
 [target.'cfg(target_vendor = "apple")'.dependencies.metal]
-version = "0.30.0"
-git = "https://github.com/gfx-rs/metal-rs.git"
-rev = "ef768ff9d7"
+version = "0.31.0"
 
 [target.'cfg(target_vendor = "apple")'.dependencies.objc]
 version = "0.2.5"
 
 [target."cfg(unix)".dependencies.libc]
 version = "0.2"
+default-features = false
 
 [target."cfg(windows)".dependencies.bit-set]
 version = "0.8"
 optional = true
+default-features = false
 
 [target."cfg(windows)".dependencies.glutin_wgl_sys]
 version = "0.6"

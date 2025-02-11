@@ -841,6 +841,9 @@ impl<W: Write> super::Writer<'_, W> {
                 &crate::PredeclaredType::AtomicCompareExchangeWeakResult { .. } => {}
             }
         }
+        if module.special_types.ray_desc.is_some() {
+            self.write_ray_desc_from_ray_desc_constructor_function(module)?;
+        }
 
         Ok(())
     }
@@ -852,16 +855,30 @@ impl<W: Write> super::Writer<'_, W> {
         expressions: &crate::Arena<crate::Expression>,
     ) -> BackendResult {
         for (handle, _) in expressions.iter() {
-            if let crate::Expression::Compose { ty, .. } = expressions[handle] {
-                match module.types[ty].inner {
-                    crate::TypeInner::Struct { .. } | crate::TypeInner::Array { .. } => {
-                        let constructor = WrappedConstructor { ty };
-                        if self.wrapped.constructors.insert(constructor) {
-                            self.write_wrapped_constructor_function(module, constructor)?;
+            match expressions[handle] {
+                crate::Expression::Compose { ty, .. } => {
+                    match module.types[ty].inner {
+                        crate::TypeInner::Struct { .. } | crate::TypeInner::Array { .. } => {
+                            let constructor = WrappedConstructor { ty };
+                            if self.wrapped.constructors.insert(constructor) {
+                                self.write_wrapped_constructor_function(module, constructor)?;
+                            }
                         }
+                        _ => {}
+                    };
+                }
+                crate::Expression::RayQueryGetIntersection { committed, .. } => {
+                    if committed {
+                        if !self.written_committed_intersection {
+                            self.write_committed_intersection_function(module)?;
+                            self.written_committed_intersection = true;
+                        }
+                    } else if !self.written_candidate_intersection {
+                        self.write_candidate_intersection_function(module)?;
+                        self.written_candidate_intersection = true;
                     }
-                    _ => {}
-                };
+                }
+                _ => {}
             }
         }
         Ok(())
@@ -1169,6 +1186,85 @@ impl<W: Write> super::Writer<'_, W> {
                 _ => {}
             };
         }
+
+        Ok(())
+    }
+
+    /// Writes out the sampler heap declarations if they haven't been written yet.
+    pub(super) fn write_sampler_heaps(&mut self) -> BackendResult {
+        if self.wrapped.sampler_heaps {
+            return Ok(());
+        }
+
+        writeln!(
+            self.out,
+            "SamplerState {}[2048]: register(s{}, space{});",
+            super::writer::SAMPLER_HEAP_VAR,
+            self.options.sampler_heap_target.standard_samplers.register,
+            self.options.sampler_heap_target.standard_samplers.space
+        )?;
+        writeln!(
+            self.out,
+            "SamplerComparisonState {}[2048]: register(s{}, space{});",
+            super::writer::COMPARISON_SAMPLER_HEAP_VAR,
+            self.options
+                .sampler_heap_target
+                .comparison_samplers
+                .register,
+            self.options.sampler_heap_target.comparison_samplers.space
+        )?;
+
+        self.wrapped.sampler_heaps = true;
+
+        Ok(())
+    }
+
+    /// Writes out the sampler index buffer declaration if it hasn't been written yet.
+    pub(super) fn write_wrapped_sampler_buffer(
+        &mut self,
+        key: super::SamplerIndexBufferKey,
+    ) -> BackendResult {
+        // The astute will notice that we do a double hash lookup, but we do this to avoid
+        // holding a mutable reference to `self` while trying to call `write_sampler_heaps`.
+        //
+        // We only pay this double lookup cost when we actually need to write out the sampler
+        // buffer, which should be not be common.
+
+        if self.wrapped.sampler_index_buffers.contains_key(&key) {
+            return Ok(());
+        };
+
+        self.write_sampler_heaps()?;
+
+        // Because the group number can be arbitrary, we use the namer to generate a unique name
+        // instead of adding it to the reserved name list.
+        let sampler_array_name = self
+            .namer
+            .call(&format!("nagaGroup{}SamplerIndexArray", key.group));
+
+        let bind_target = match self.options.sampler_buffer_binding_map.get(&key) {
+            Some(&bind_target) => bind_target,
+            None if self.options.fake_missing_bindings => super::BindTarget {
+                space: u8::MAX,
+                register: key.group,
+                binding_array_size: None,
+                dynamic_storage_buffer_offsets_index: None,
+                restrict_indexing: false,
+            },
+            None => {
+                unreachable!("Sampler buffer of group {key:?} not bound to a register");
+            }
+        };
+
+        writeln!(
+            self.out,
+            "StructuredBuffer<uint> {sampler_array_name} : register(t{}, space{});",
+            bind_target.register, bind_target.space
+        )?;
+
+        self.wrapped
+            .sampler_index_buffers
+            .insert(key, sampler_array_name);
 
         Ok(())
     }

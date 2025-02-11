@@ -48,6 +48,7 @@ pub fn map_texture_format_failable(
         Tf::Rgb10a2Uint => DXGI_FORMAT_R10G10B10A2_UINT,
         Tf::Rgb10a2Unorm => DXGI_FORMAT_R10G10B10A2_UNORM,
         Tf::Rg11b10Ufloat => DXGI_FORMAT_R11G11B10_FLOAT,
+        Tf::R64Uint => DXGI_FORMAT_R32G32_UINT, // R64 emulated by R32G32
         Tf::Rg32Uint => DXGI_FORMAT_R32G32_UINT,
         Tf::Rg32Sint => DXGI_FORMAT_R32G32_SINT,
         Tf::Rg32Float => DXGI_FORMAT_R32G32_FLOAT,
@@ -180,7 +181,7 @@ pub fn map_texture_format_for_copy(
 
 pub fn map_texture_format_for_resource(
     format: wgt::TextureFormat,
-    usage: crate::TextureUses,
+    usage: wgt::TextureUses,
     has_view_formats: bool,
     casting_fully_typed_format_supported: bool,
 ) -> Dxgi::Common::DXGI_FORMAT {
@@ -205,10 +206,10 @@ pub fn map_texture_format_for_resource(
     // We might view this resource as SRV/UAV but also as DSV
     } else if format.is_depth_stencil_format()
         && usage.intersects(
-            crate::TextureUses::RESOURCE
-                | crate::TextureUses::STORAGE_READ_ONLY
-                | crate::TextureUses::STORAGE_WRITE_ONLY
-                | crate::TextureUses::STORAGE_READ_WRITE,
+            wgt::TextureUses::RESOURCE
+                | wgt::TextureUses::STORAGE_READ_ONLY
+                | wgt::TextureUses::STORAGE_WRITE_ONLY
+                | wgt::TextureUses::STORAGE_READ_WRITE,
         )
     {
         match format {

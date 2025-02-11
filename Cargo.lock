@@ -2818,6 +2818,7 @@ checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
  "ahash",
  "allocator-api2",
+ "serde",
 ]
 
 [[package]]
@@ -3909,8 +3910,9 @@ dependencies = [
 
 [[package]]
 name = "metal"
-version = "0.30.0"
-source = "git+https://github.com/gfx-rs/metal-rs.git?rev=ef768ff9d7#ef768ff9d742ae6a0f4e83ddc8031264e7d460c4"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f569fb946490b5743ad69813cb19629130ce9374034abe31614a36402d18f99e"
 dependencies = [
  "bitflags 2.7.0",
  "block",
@@ -4517,14 +4519,15 @@ checksum = "a2983372caf4480544083767bf2d27defafe32af49ab4df3a0b7fc90793a3664"
 
 [[package]]
 name = "naga"
-version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=aa7bec65b90028e4db6ec8def8589b52097d92f9#aa7bec65b90028e4db6ec8def8589b52097d92f9"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=db896a86d0db0637149d7012bd865059f8783ec3#db896a86d0db0637149d7012bd865059f8783ec3"
 dependencies = [
  "arrayvec",
  "bit-set",
  "bitflags 2.7.0",
  "cfg_aliases",
  "codespan-reporting",
+ "hashbrown 0.14.5",
  "hexf-parse",
  "indexmap 2.5.0",
  "log",
@@ -7384,14 +7387,15 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=aa7bec65b90028e4db6ec8def8589b52097d92f9#aa7bec65b90028e4db6ec8def8589b52097d92f9"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=db896a86d0db0637149d7012bd865059f8783ec3#db896a86d0db0637149d7012bd865059f8783ec3"
 dependencies = [
  "arrayvec",
  "bit-vec",
  "bitflags 2.7.0",
  "cfg_aliases",
  "document-features",
+ "hashbrown 0.14.5",
  "indexmap 2.5.0",
  "log",
  "naga",
@@ -7409,8 +7413,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-hal"
-version = "23.0.1"
-source = "git+https://github.com/gfx-rs/wgpu?rev=aa7bec65b90028e4db6ec8def8589b52097d92f9#aa7bec65b90028e4db6ec8def8589b52097d92f9"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=db896a86d0db0637149d7012bd865059f8783ec3#db896a86d0db0637149d7012bd865059f8783ec3"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7423,6 +7427,7 @@ dependencies = [
  "gpu-alloc",
  "gpu-allocator",
  "gpu-descriptor",
+ "hashbrown 0.14.5",
  "js-sys",
  "khronos-egl",
  "libc",
@@ -7431,7 +7436,6 @@ dependencies = [
  "metal",
  "naga",
  "objc",
- "once_cell",
  "ordered-float",
  "parking_lot",
  "profiling",
@@ -7449,11 +7453,12 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "23.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=aa7bec65b90028e4db6ec8def8589b52097d92f9#aa7bec65b90028e4db6ec8def8589b52097d92f9"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=db896a86d0db0637149d7012bd865059f8783ec3#db896a86d0db0637149d7012bd865059f8783ec3"
 dependencies = [
  "bitflags 2.7.0",
  "js-sys",
+ "log",
  "serde",
  "web-sys",
 ]
