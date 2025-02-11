@@ -364,7 +364,7 @@ void CrashGenerationServer::HandleConnectedState() {
   assert(server_state_ == IPC_SERVER_STATE_CONNECTED);
 
   DWORD bytes_count = 0;
-  memset(&msg_, 0, sizeof(msg_));
+  msg_.reset();
   bool success = ReadFile(pipe_,
                           &msg_,
                           sizeof(msg_),

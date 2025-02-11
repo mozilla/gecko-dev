@@ -114,6 +114,19 @@ struct ProtocolMessage {
         server_alive_handle(NULL) {
   }
 
+  void reset() {
+    tag = MESSAGE_TAG_NONE;
+    id = 0;
+    dump_type = MiniDumpNormal;
+    thread_id = 0;
+    exception_pointers = NULL;
+    assert_info = NULL;
+    custom_client_info = {NULL, 0};
+    dump_request_handle = NULL;
+    dump_generated_handle = NULL;
+    server_alive_handle = NULL;
+  }
+
   // Creates an instance with the given parameters.
   ProtocolMessage(MessageTag arg_tag,
                   DWORD arg_id,
