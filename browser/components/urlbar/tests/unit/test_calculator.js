@@ -36,6 +36,8 @@ const FORMULAS = [
   ["2+3^3", 29],
   ["4^0.5+4^-0.5", 2.5],
   ["3+8*64/(1-3)^2^3", 5],
+  ["1/0", "undefined"],
+  ["5+2/0-3*8", "undefined"],
 ];
 
 add_task(function test() {

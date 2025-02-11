@@ -59,6 +59,7 @@ const VIEW_TEMPLATE = {
 
 // Minimum number of parts of the expression before we show a result.
 const MIN_EXPRESSION_LENGTH = 3;
+const UNDEFINED_VALUE = "undefined";
 
 /**
  * A provider that returns a suggested url to the user based on what
@@ -143,12 +144,19 @@ class ProviderCalculator extends UrlbarProvider {
           src: "chrome://global/skin/icons/edit-copy.svg",
         },
       },
-      input: {
-        l10n: {
-          id: "urlbar-result-action-calculator-result",
-          args: { result: result.payload.value },
-        },
-      },
+      input:
+        result.payload.value == UNDEFINED_VALUE
+          ? {
+              l10n: {
+                id: "urlbar-result-action-undefined-calculator-result",
+              },
+            }
+          : {
+              l10n: {
+                id: "urlbar-result-action-calculator-result",
+                args: { result: result.payload.value },
+              },
+            },
       action: {
         l10n: { id: "urlbar-result-action-copy-to-clipboard" },
       },
@@ -277,19 +285,22 @@ class BaseCalculator {
   evaluatePostfix(postfix) {
     let stack = [];
 
-    postfix.forEach(token => {
+    for (const token of postfix) {
       if (!this.isOperator(token)) {
         stack.push(token);
       } else {
         let op2 = stack.pop();
         let op1 = stack.pop();
         let result = this.evaluate[token](op1, op2);
+        if (token == "/" && op2 == 0) {
+          return UNDEFINED_VALUE;
+        }
         if (isNaN(result) || !isFinite(result)) {
           throw new Error("Value is " + result);
         }
         stack.push(result);
       }
-    });
+    }
     let finalResult = stack.pop();
     if (isNaN(finalResult) || !isFinite(finalResult)) {
       throw new Error("Value is " + finalResult);
