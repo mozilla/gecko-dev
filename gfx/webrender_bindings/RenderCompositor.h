@@ -163,6 +163,7 @@ class RenderCompositor {
   virtual void GetCompositorCapabilities(CompositorCapabilities* aCaps);
 
   virtual void GetWindowVisibility(WindowVisibility* aVisibility);
+  virtual void GetWindowProperties(WindowProperties* aProperties);
 
   // Interface for partial present
   virtual bool UsePartialPresent() { return false; }

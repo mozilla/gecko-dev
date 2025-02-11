@@ -160,6 +160,12 @@ void wr_compositor_get_window_visibility(void* aCompositor,
   compositor->GetWindowVisibility(aVisibility);
 }
 
+void wr_compositor_get_window_properties(void* aCompositor,
+                                         WindowProperties* aProperties) {
+  RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
+  compositor->GetWindowProperties(aProperties);
+}
+
 void wr_compositor_unbind(void* aCompositor) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
   compositor->Unbind();
@@ -274,6 +280,10 @@ void RenderCompositor::GetWindowVisibility(WindowVisibility* aVisibility) {
   }
   aVisibility->is_fully_occluded = widget->GetWindowIsFullyOccluded();
 #endif
+}
+
+void RenderCompositor::GetWindowProperties(WindowProperties* aProperties) {
+  aProperties->is_opaque = true;
 }
 
 gfx::DeviceResetReason RenderCompositor::IsContextLost(bool aForce) {

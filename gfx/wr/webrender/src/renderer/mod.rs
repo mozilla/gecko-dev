@@ -3454,6 +3454,14 @@ impl Renderer {
         let _gm = self.gpu_profiler.start_marker("framebuffer");
         let _timer = self.gpu_profiler.start_timer(GPU_TAG_COMPOSITE);
 
+        let window_is_opaque = match self.compositor_config.layer_compositor() {
+            Some(ref compositor) => {
+                let props = compositor.get_window_properties();
+                props.is_opaque
+            }
+            None => true,
+        };
+
         let mut input_layers: Vec<CompositorInputLayer> = Vec::new();
         let mut swapchain_layers = Vec::new();
         let cap = composite_state.tiles.len();
@@ -3501,7 +3509,7 @@ impl Renderer {
             match tile.kind {
                 TileKind::Opaque | TileKind::Alpha => {
                     // Store (index of tile, index of layer) so we can segment them below
-                    occlusion.add(&rect, is_opaque, idx); // (idx, input_layers.len() - 1));
+                    occlusion.add(&rect, is_opaque, idx);
                 }
                 TileKind::Clear => {
                     // Clear tiles are specific to how we render the window buttons on
@@ -3590,7 +3598,11 @@ impl Renderer {
             if let Some(new_layer_kind) = new_layer_kind {
                 let (offset, clip_rect, is_opaque) = match usage {
                     CompositorSurfaceUsage::Content => {
-                        (DeviceIntPoint::zero(), device_size.into(), input_layers.is_empty())
+                        (
+                            DeviceIntPoint::zero(),
+                            device_size.into(),
+                            input_layers.is_empty() && window_is_opaque,
+                        )
                     }
                     CompositorSurfaceUsage::External { .. } => {
                         let rect = composite_state.get_device_rect(

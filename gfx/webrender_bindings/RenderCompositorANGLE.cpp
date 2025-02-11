@@ -914,6 +914,10 @@ void RenderCompositorANGLE::GetCompositorCapabilities(
   aCaps->supports_external_compositor_surface_negative_scaling = false;
 }
 
+void RenderCompositorANGLE::GetWindowProperties(WindowProperties* aProperties) {
+  aProperties->is_opaque = !ShouldUseAlpha();
+}
+
 void RenderCompositorANGLE::EnableNativeCompositor(bool aEnable) {
   // XXX Re-enable native compositor is not handled yet.
   MOZ_RELEASE_ASSERT(!mDisablingNativeCompositor);

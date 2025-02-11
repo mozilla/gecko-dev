@@ -42,7 +42,7 @@ use webrender::{
     MappableCompositor, MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor,
     PipelineInfo, ProfilerHooks, RecordedFrameHandle, RenderBackendHooks, Renderer, RendererStats,
     SWGLCompositeSurfaceInfo, SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig,
-    UploadMethod, WebRenderOptions, WindowVisibility, ONE_TIME_USAGE_HINT, CompositorInputConfig, CompositorSurfaceUsage,
+    UploadMethod, WebRenderOptions, WindowVisibility, WindowProperties, ONE_TIME_USAGE_HINT, CompositorInputConfig, CompositorSurfaceUsage,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -1325,6 +1325,7 @@ extern "C" {
     fn wr_compositor_deinit(compositor: *mut c_void);
     fn wr_compositor_get_capabilities(compositor: *mut c_void, caps: *mut CompositorCapabilities);
     fn wr_compositor_get_window_visibility(compositor: *mut c_void, caps: *mut WindowVisibility);
+    fn wr_compositor_get_window_properties(compositor: *mut c_void, props: *mut WindowProperties);
     fn wr_compositor_bind_swapchain(compositor: *mut c_void, id: NativeSurfaceId);
     fn wr_compositor_present_swapchain(compositor: *mut c_void, id: NativeSurfaceId);
     fn wr_compositor_map_tile(
@@ -1694,6 +1695,14 @@ impl LayerCompositor for WrLayerCompositor {
         }
 
         self.surface_pool.append(&mut self.visual_tree);
+    }
+
+    fn get_window_properties(&self) -> WindowProperties {
+        unsafe {
+            let mut props: WindowProperties = Default::default();
+            wr_compositor_get_window_properties(self.compositor, &mut props);
+            props
+        }
     }
 }
 
