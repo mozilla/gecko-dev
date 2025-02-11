@@ -4197,12 +4197,8 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
   }
 
   if (!aLength) {
-    RefPtr<Document> document = GetDocument();
-    if (NS_WARN_IF(!document)) {
-      return Err(NS_ERROR_NOT_INITIALIZED);
-    }
     Result<InsertTextResult, nsresult> insertTextResult =
-        InsertTextWithTransaction(*document, aStringToInsert,
+        InsertTextWithTransaction(aStringToInsert,
                                   EditorDOMPoint(&aTextNode, aOffset),
                                   InsertTextTo::ExistingTextNodeIfAvailable);
     NS_WARNING_ASSERTION(insertTextResult.isOk(),
@@ -4285,20 +4281,20 @@ Result<InsertTextResult, nsresult> HTMLEditor::ReplaceTextWithTransaction(
 }
 
 Result<InsertTextResult, nsresult> HTMLEditor::InsertTextWithTransaction(
-    Document& aDocument, const nsAString& aStringToInsert,
-    const EditorDOMPoint& aPointToInsert, InsertTextTo aInsertTextTo) {
+    const nsAString& aStringToInsert, const EditorDOMPoint& aPointToInsert,
+    InsertTextTo aInsertTextTo) {
   if (NS_WARN_IF(!aPointToInsert.IsSet())) {
     return Err(NS_ERROR_INVALID_ARG);
   }
 
   // Do nothing if the node is read-only
-  if (MOZ_UNLIKELY(NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(
-          *aPointToInsert.GetContainer())))) {
+  if (NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(
+          *aPointToInsert.GetContainer()))) {
     return Err(NS_ERROR_FAILURE);
   }
 
-  return EditorBase::InsertTextWithTransaction(aDocument, aStringToInsert,
-                                               aPointToInsert, aInsertTextTo);
+  return EditorBase::InsertTextWithTransaction(aStringToInsert, aPointToInsert,
+                                               aInsertTextTo);
 }
 
 Result<EditorDOMPoint, nsresult> HTMLEditor::PrepareToInsertLineBreak(

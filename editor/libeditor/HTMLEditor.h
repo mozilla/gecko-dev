@@ -849,8 +849,7 @@ class HTMLEditor final : public EditorBase,
    * this returns error.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<InsertTextResult, nsresult>
-  InsertTextWithTransaction(Document& aDocument,
-                            const nsAString& aStringToInsert,
+  InsertTextWithTransaction(const nsAString& aStringToInsert,
                             const EditorDOMPoint& aPointToInsert,
                             InsertTextTo aInsertTextTo) final;
 

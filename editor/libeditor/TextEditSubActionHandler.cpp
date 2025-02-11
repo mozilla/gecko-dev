@@ -212,14 +212,9 @@ TextEditor::InsertLineFeedCharacterAtSelection() {
   MOZ_ASSERT(pointToInsert.IsSetAndValid());
   MOZ_ASSERT(!pointToInsert.IsContainerHTMLElement(nsGkAtoms::br));
 
-  RefPtr<Document> document = GetDocument();
-  if (NS_WARN_IF(!document)) {
-    return Err(NS_ERROR_NOT_INITIALIZED);
-  }
-
   // Insert a linefeed character.
   Result<InsertTextResult, nsresult> insertTextResult =
-      InsertTextWithTransaction(*document, u"\n"_ns, pointToInsert,
+      InsertTextWithTransaction(u"\n"_ns, pointToInsert,
                                 InsertTextTo::ExistingTextNodeIfAvailable);
   if (MOZ_UNLIKELY(insertTextResult.isErr())) {
     NS_WARNING("TextEditor::InsertTextWithTransaction(\"\\n\") failed");
@@ -445,11 +440,6 @@ Result<EditActionResult, nsresult> TextEditor::HandleInsertText(
   }
   MOZ_ASSERT(!atStartOfSelection.IsContainerHTMLElement(nsGkAtoms::br));
 
-  RefPtr<Document> document = GetDocument();
-  if (NS_WARN_IF(!document)) {
-    return Err(NS_ERROR_NOT_INITIALIZED);
-  }
-
   if (aEditSubAction == EditSubAction::eInsertTextComingFromIME) {
     EditorDOMPoint compositionStartPoint =
         GetFirstIMESelectionStartPoint<EditorDOMPoint>();
@@ -460,8 +450,7 @@ Result<EditActionResult, nsresult> TextEditor::HandleInsertText(
           "TextEditor::FindBetterInsertionPoint() failed, but ignored");
     }
     Result<InsertTextResult, nsresult> insertTextResult =
-        InsertTextWithTransaction(*document, insertionString,
-                                  compositionStartPoint,
+        InsertTextWithTransaction(insertionString, compositionStartPoint,
                                   InsertTextTo::ExistingTextNodeIfAvailable);
     if (MOZ_UNLIKELY(insertTextResult.isErr())) {
       NS_WARNING("EditorBase::InsertTextWithTransaction() failed");
@@ -482,8 +471,7 @@ Result<EditActionResult, nsresult> TextEditor::HandleInsertText(
     MOZ_ASSERT(aEditSubAction == EditSubAction::eInsertText);
 
     Result<InsertTextResult, nsresult> insertTextResult =
-        InsertTextWithTransaction(*document, insertionString,
-                                  atStartOfSelection,
+        InsertTextWithTransaction(insertionString, atStartOfSelection,
                                   InsertTextTo::ExistingTextNodeIfAvailable);
     if (MOZ_UNLIKELY(insertTextResult.isErr())) {
       NS_WARNING("EditorBase::InsertTextWithTransaction() failed");

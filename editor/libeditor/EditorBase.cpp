@@ -3238,8 +3238,8 @@ nsresult EditorBase::ScrollSelectionFocusIntoView() const {
 }
 
 Result<InsertTextResult, nsresult> EditorBase::InsertTextWithTransaction(
-    Document& aDocument, const nsAString& aStringToInsert,
-    const EditorDOMPoint& aPointToInsert, InsertTextTo aInsertTextTo) {
+    const nsAString& aStringToInsert, const EditorDOMPoint& aPointToInsert,
+    InsertTextTo aInsertTextTo) {
   MOZ_ASSERT_IF(IsTextEditor(),
                 aInsertTextTo == InsertTextTo::ExistingTextNodeIfAvailable);
 

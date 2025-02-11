@@ -1137,11 +1137,6 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
     }
   }
 
-  RefPtr<Document> document = GetDocument();
-  if (NS_WARN_IF(!document)) {
-    return Err(NS_ERROR_FAILURE);
-  }
-
   const bool isHandlingComposition =
       aEditSubAction == EditSubAction::eInsertTextComingFromIME;
   auto pointToInsert = isHandlingComposition
@@ -1196,7 +1191,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
       // but IME needs the InsertTextWithTransaction() call to still happen
       // since empty strings are meaningful there.
       Result<InsertTextResult, nsresult> insertEmptyTextResultOrError =
-          InsertTextWithTransaction(*document, aInsertionString, pointToInsert,
+          InsertTextWithTransaction(aInsertionString, pointToInsert,
                                     InsertTextTo::ExistingTextNodeIfAvailable);
       if (MOZ_UNLIKELY(insertEmptyTextResultOrError.isErr())) {
         NS_WARNING("HTMLEditor::InsertTextWithTransaction() failed");
@@ -1344,7 +1339,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
         MOZ_ASSERT(*lineBreakType == LineBreakType::Linefeed);
         Result<InsertTextResult, nsresult> insertTextResult =
             InsertTextWithTransaction(
-                *document, aInsertionString, currentPoint,
+                aInsertionString, currentPoint,
                 InsertTextTo::ExistingTextNodeIfAvailable);
         if (MOZ_UNLIKELY(insertTextResult.isErr())) {
           NS_WARNING("HTMLEditor::InsertTextWithTransaction() failed");
@@ -1378,7 +1373,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
                                                 lineStartOffset, lineLength);
             Result<InsertTextResult, nsresult> insertTextResult =
                 InsertTextWithTransaction(
-                    *document, lineText, currentPoint,
+                    lineText, currentPoint,
                     GetInsertTextTo(inclusiveNextLinefeedOffset,
                                     lineStartOffset));
             if (MOZ_UNLIKELY(insertTextResult.isErr())) {

@@ -1742,7 +1742,6 @@ class EditorBase : public nsIEditor,
    * If there is no text node, this creates new text node and put
    * aStringToInsert to it.
    *
-   * @param aDocument       The document of this editor.
    * @param aStringToInsert The string to insert.
    * @param aPointToInsert  The point to insert aStringToInsert.
    *                        Must be valid DOM point.
@@ -1756,8 +1755,7 @@ class EditorBase : public nsIEditor,
     AlwaysCreateNewTextNode
   };
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual Result<InsertTextResult, nsresult>
-  InsertTextWithTransaction(Document& aDocument,
-                            const nsAString& aStringToInsert,
+  InsertTextWithTransaction(const nsAString& aStringToInsert,
                             const EditorDOMPoint& aPointToInsert,
                             InsertTextTo aInsertTextTo);
 
