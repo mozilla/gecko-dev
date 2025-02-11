@@ -671,6 +671,18 @@
           "properties": {
             "type": {
               "type": "string",
+              "enum": ["DATAREPORTING_NOTIFY_DATA_POLICY_INTERACTED"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Notify Firefox that the notification policy was interacted with."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
               "enum": ["CREATE_NEW_SELECTABLE_PROFILE"]
             }
           },
