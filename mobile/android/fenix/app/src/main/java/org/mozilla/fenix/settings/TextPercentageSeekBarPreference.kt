@@ -31,10 +31,10 @@ import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityNodeInfo.RangeInfo
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.TextView
-import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.RangeInfoCompat.RANGE_TYPE_PERCENT
 import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
 import org.mozilla.fenix.R
@@ -371,16 +371,16 @@ class TextPercentageSeekBarPreference @JvmOverloads constructor(
                     val initialInfo = info.rangeInfo
                     info.rangeInfo = initialInfo?.let {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                            AccessibilityNodeInfo.RangeInfo(
-                                RANGE_TYPE_PERCENT,
+                            RangeInfo(
+                                RangeInfo.RANGE_TYPE_PERCENT,
                                 MIN_VALUE.toFloat(),
                                 SEEK_BAR_MAX.toFloat(),
                                 convertCurrentValue(it.current),
                             )
                         } else {
                             @Suppress("DEPRECATION")
-                            AccessibilityNodeInfo.RangeInfo.obtain(
-                                RANGE_TYPE_PERCENT,
+                            RangeInfo.obtain(
+                                RangeInfo.RANGE_TYPE_PERCENT,
                                 MIN_VALUE.toFloat(),
                                 SEEK_BAR_MAX.toFloat(),
                                 convertCurrentValue(it.current),
