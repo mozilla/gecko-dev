@@ -65,7 +65,7 @@ export const ContentTiles = props => {
       >
         {header?.title && (
           <button
-            className="tile-header"
+            className="tile-header secondary"
             onClick={() => toggleTile(index, tile)}
             aria-expanded={isExpanded}
             aria-controls={`tile-content-${index}`}
@@ -152,7 +152,7 @@ export const ContentTiles = props => {
     return (
       <React.Fragment>
         <button
-          className="content-tiles-header"
+          className="content-tiles-header secondary"
           onClick={toggleTiles}
           aria-expanded={tilesHeaderExpanded}
           aria-controls={`content-tiles-container`}

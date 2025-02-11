@@ -2039,7 +2039,7 @@ const ContentTiles = props => {
       className: `content-tile ${header ? "has-header" : ""}`,
       style: _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_9__.AboutWelcomeUtils.getValidStyle(tile.style, TILE_STYLES)
     }, header?.title && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-      className: "tile-header",
+      className: "tile-header secondary",
       onClick: () => toggleTile(index, tile),
       "aria-expanded": isExpanded,
       "aria-controls": `tile-content-${index}`,
@@ -2109,7 +2109,7 @@ const ContentTiles = props => {
   };
   if (content.tiles_header) {
     return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement((react__WEBPACK_IMPORTED_MODULE_0___default().Fragment), null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
-      className: "content-tiles-header",
+      className: "content-tiles-header secondary",
       onClick: toggleTiles,
       "aria-expanded": tilesHeaderExpanded,
       "aria-controls": `content-tiles-container`

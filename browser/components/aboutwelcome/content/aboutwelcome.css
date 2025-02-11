@@ -2863,17 +2863,23 @@ html {
 }
 .onboardingContainer #content-tiles-container button.tile-header,
 .onboardingContainer button.content-tiles-header {
-  border: 1px solid var(--in-content-border-color);
   width: 100%;
   margin: 0;
   padding: 12px 16px;
   display: flex;
   flex-direction: row;
   align-items: center;
+  border-width: 1px;
   border-radius: 0;
-  background-color: var(--in-content-page-background);
   cursor: pointer;
   outline-offset: -12px;
+}
+@media (prefers-contrast: no-preference) {
+  .onboardingContainer #content-tiles-container button.tile-header,
+  .onboardingContainer button.content-tiles-header {
+    background-color: var(--in-content-page-background);
+    border-color: var(--in-content-border-color);
+  }
 }
 .onboardingContainer #content-tiles-container button.tile-header .arrow-icon,
 .onboardingContainer button.content-tiles-header .arrow-icon {
