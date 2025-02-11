@@ -47,7 +47,11 @@ async function testOpenExpanderAndAddTextInFilter(inspector, view) {
   );
 
   is(rule.selectorText, "#testid", "Second rule is #testid.");
-  ok(ruleEditor.expander.getAttribute("open"), "Expander is open.");
+  is(
+    ruleEditor.expander.getAttribute("aria-expanded"),
+    "true",
+    "Expander is open."
+  );
   ok(
     ruleEditor.container.classList.contains("ruleview-highlight"),
     "margin text property is correctly highlighted."
@@ -101,7 +105,11 @@ async function testClearSearchFilter(inspector, view) {
   const ruleEditor = getRuleViewRuleEditor(view, 1).rule.textProps[0].editor;
   const computed = ruleEditor.computed;
 
-  ok(ruleEditor.expander.getAttribute("open"), "Expander is open.");
+  is(
+    ruleEditor.expander.getAttribute("aria-expanded"),
+    "true",
+    "Expander is open."
+  );
   ok(
     !computed.hasAttribute("filter-open"),
     "margin computed list does not contain filter-open class."

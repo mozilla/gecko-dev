@@ -44,6 +44,9 @@ loader.lazyRequireGetter(
 loader.lazyGetter(this, "PROPERTY_NAME_INPUT_LABEL", function () {
   return l10n("rule.propertyName.label");
 });
+loader.lazyGetter(this, "SHORTHAND_EXPANDER_TOOLTIP", function () {
+  return l10n("rule.shorthandExpander.tooltip");
+});
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -217,8 +220,10 @@ TextPropertyEditor.prototype = {
     appendText(this.nameContainer, ": ");
 
     // Click to expand the computed properties of the text property.
-    this.expander = createChild(this.container, "span", {
+    this.expander = createChild(this.container, "button", {
+      "aria-expanded": "false",
       class: "ruleview-expander theme-twisty",
+      title: SHORTHAND_EXPANDER_TOOLTIP,
     });
     this.expander.addEventListener("click", this._onExpandClicked, true);
 
@@ -944,7 +949,7 @@ TextPropertyEditor.prototype = {
         : "none";
 
     this._populatedComputed = false;
-    if (this.expander.hasAttribute("open")) {
+    if (this.expander.getAttribute("aria-expanded" === "true")) {
       this._populateComputed();
     }
   },
@@ -1097,17 +1102,17 @@ TextPropertyEditor.prototype = {
    * expanded by manually by the user.
    */
   _onExpandClicked(event) {
-    if (
+    const isOpened =
       this.computed.hasAttribute("filter-open") ||
-      this.computed.hasAttribute("user-open")
-    ) {
-      this.expander.removeAttribute("open");
+      this.computed.hasAttribute("user-open");
+
+    this.expander.setAttribute("aria-expanded", !isOpened);
+    if (isOpened) {
       this.computed.removeAttribute("filter-open");
       this.computed.removeAttribute("user-open");
       this.shorthandOverridden.hidden = false;
       this._populateShorthandOverridden();
     } else {
-      this.expander.setAttribute("open", "true");
       this.computed.setAttribute("user-open", "");
       this.shorthandOverridden.hidden = true;
       this._populateComputed();
@@ -1123,7 +1128,7 @@ TextPropertyEditor.prototype = {
    */
   expandForFilter() {
     if (!this.computed.hasAttribute("user-open")) {
-      this.expander.setAttribute("open", "true");
+      this.expander.setAttribute("aria-expanded", "true");
       this.computed.setAttribute("filter-open", "");
       this._populateComputed();
     }
@@ -1136,7 +1141,7 @@ TextPropertyEditor.prototype = {
     this.computed.removeAttribute("filter-open");
 
     if (!this.computed.hasAttribute("user-open")) {
-      this.expander.removeAttribute("open");
+      this.expander.setAttribute("aria-expanded", "false");
     }
   },
 

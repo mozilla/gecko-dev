@@ -44,7 +44,11 @@ async function testAddTextInFilter(inspector, view) {
   const computed = ruleEditor.computed;
 
   is(rule.selectorText, "#testid", "Second rule is #testid.");
-  ok(ruleEditor.expander.getAttribute("open"), "Expander is open.");
+  is(
+    ruleEditor.expander.getAttribute("aria-expanded"),
+    "true",
+    "Expander is open."
+  );
   ok(
     !ruleEditor.container.classList.contains("ruleview-highlight"),
     "margin text property is not highlighted."
@@ -92,7 +96,11 @@ async function testRemoveTextInFilter(inspector, view) {
   const computed = ruleEditor.computed;
 
   is(rule.selectorText, "#testid", "Second rule is #testid.");
-  ok(!ruleEditor.expander.getAttribute("open"), "Expander is closed.");
+  is(
+    ruleEditor.expander.getAttribute("aria-expanded"),
+    "false",
+    "Expander is closed."
+  );
   ok(
     ruleEditor.container.classList.contains("ruleview-highlight"),
     "margin text property is correctly highlighted."

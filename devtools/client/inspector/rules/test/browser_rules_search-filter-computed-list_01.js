@@ -117,8 +117,8 @@ function checkRules(view, data) {
 
   is(rule.selectorText, "#testid", "Second rule is #testid.");
   is(
-    !!textPropEditor.expander.getAttribute("open"),
-    data.isExpanderOpen,
+    textPropEditor.expander.getAttribute("aria-expanded"),
+    data.isExpanderOpen + "",
     "Got correct expander state."
   );
   is(
@@ -175,6 +175,10 @@ async function clearSearchAndCheckRules(view) {
     "No rules are higlighted"
   );
 
-  ok(!textPropEditor.expander.getAttribute("open"), "Expander is closed.");
+  is(
+    textPropEditor.expander.getAttribute("aria-expanded"),
+    "false",
+    "Expander is closed."
+  );
   ok(!computed.hasAttribute("filter-open"), "margin computed list is closed.");
 }

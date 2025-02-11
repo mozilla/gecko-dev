@@ -28,11 +28,19 @@ function testComputedList(inspector, view) {
   const propEditor = prop.editor;
   const expander = propEditor.expander;
 
-  ok(!expander.hasAttribute("open"), "margin computed list is closed");
+  is(
+    expander.getAttribute("aria-expanded"),
+    "false",
+    "margin computed list is closed"
+  );
 
   info("Opening the computed list of margin property");
   expander.click();
-  ok(expander.hasAttribute("open"), "margin computed list is open");
+  is(
+    expander.getAttribute("aria-expanded"),
+    "true",
+    "margin computed list is open"
+  );
 
   const computed = propEditor.prop.computed;
   const computedDom = propEditor.computed;
@@ -76,11 +84,19 @@ function testComputedList(inspector, view) {
 
   info("Closing the computed list of margin property");
   expander.click();
-  ok(!expander.hasAttribute("open"), "margin computed list is closed");
+  is(
+    expander.getAttribute("aria-expanded"),
+    "false",
+    "margin computed list is closed"
+  );
 
   info("Opening the computed list of margin property");
   expander.click();
-  ok(expander.hasAttribute("open"), "margin computed list is open");
+  is(
+    expander.getAttribute("aria-expanded"),
+    "true",
+    "margin computed list is open"
+  );
   is(computed.length, propNames.length, "Still 4 computed values");
   is(computedDom.children.length, propNames.length, "Still 4 nodes in the DOM");
 }

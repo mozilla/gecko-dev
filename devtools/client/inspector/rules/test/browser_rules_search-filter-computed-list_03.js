@@ -42,7 +42,11 @@ async function testAddTextInFilter(inspector, view) {
   const computed = ruleEditor.computed;
 
   is(rule.selectorText, ".testclass", "Second rule is .testclass.");
-  ok(ruleEditor.expander.getAttribute("open"), "Expander is open.");
+  is(
+    ruleEditor.expander.getAttribute("aria-expanded"),
+    "true",
+    "Expander is open."
+  );
   ok(
     !ruleEditor.container.classList.contains("ruleview-highlight"),
     "background property is not highlighted."

@@ -145,8 +145,8 @@ function checkRules(view, data) {
 
   is(rule.selectorText, "#testid", "Second rule is #testid.");
   is(
-    !!textPropEditor.expander.getAttribute("open"),
-    data.isExpanderOpen,
+    textPropEditor.expander.getAttribute("aria-expanded"),
+    data.isExpanderOpen + "",
     "Got correct expander state."
   );
   is(

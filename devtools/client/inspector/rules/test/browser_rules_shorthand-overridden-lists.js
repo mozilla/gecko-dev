@@ -34,7 +34,11 @@ function testComputedList(inspector, view) {
   const overriddenItems = propEditor.shorthandOverridden.children;
   const propNames = ["margin-right", "margin-left"];
 
-  ok(!expander.hasAttribute("open"), "margin computed list is closed.");
+  is(
+    expander.getAttribute("aria-expanded"),
+    "false",
+    "margin computed list is closed."
+  );
   ok(
     !propEditor.shorthandOverridden.hasAttribute("hidden"),
     "The shorthandOverridden list should be open."
@@ -58,7 +62,11 @@ function testComputedList(inspector, view) {
 
   info("Opening the computed list of margin property.");
   expander.click();
-  ok(expander.hasAttribute("open"), "margin computed list is open.");
+  is(
+    expander.getAttribute("aria-expanded"),
+    "true",
+    "margin computed list is open."
+  );
   ok(
     propEditor.shorthandOverridden.hasAttribute("hidden"),
     "The shorthandOverridden list should be hidden."
@@ -66,7 +74,11 @@ function testComputedList(inspector, view) {
 
   info("Closing the computed list of margin property.");
   expander.click();
-  ok(!expander.hasAttribute("open"), "margin computed list is closed.");
+  is(
+    expander.getAttribute("aria-expanded"),
+    "false",
+    "margin computed list is closed."
+  );
   ok(
     !propEditor.shorthandOverridden.hasAttribute("hidden"),
     "The shorthandOverridden list should be open."

@@ -561,9 +561,11 @@
 
 .ruleview-propertycontainer .ruleview-expander {
   margin-left: -6px;
+  border: none;
+  background-color: transparent;
 }
 
-.ruleview-propertycontainer .ruleview-expander:dir(rtl):not([open]) {
+.ruleview-propertycontainer .ruleview-expander:dir(rtl)[aria-expanded="false"] {
   /* for preventing .theme-twisty's wrong direction in rtl; Bug 1296648 */
   transform: rotate(-90deg);
 }
