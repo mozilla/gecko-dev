@@ -1649,6 +1649,13 @@ void ContentParent::AsyncSendShutDownMessage() {
   MOZ_LOG(ContentParent::GetLog(), LogLevel::Verbose,
           ("AsyncSendShutDownMessage %p", this));
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(IsDead());
+  if (mShutdownPending || !CanSend()) {
+    // Don't bother dispatching a runnable if shutdown is already pending or the
+    // channel has already been disconnected, as it won't do anything.
+    // We could be very late in shutdown and unable to dispatch.
+    return;
+  }
 
   // In the case of normal shutdown, send a shutdown message to child to
   // allow it to perform shutdown tasks.
