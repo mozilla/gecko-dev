@@ -712,6 +712,8 @@ describe("MultiStageAboutWelcomeProton module", () => {
           type: "migration-wizard",
         },
       },
+      setScreenMultiSelects: sinon.stub(),
+      setActiveMultiSelect: sinon.stub(),
     };
 
     it("should render migration wizard", async () => {

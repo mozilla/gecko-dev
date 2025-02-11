@@ -9,6 +9,8 @@ describe("ContentTiles component", () => {
   let sandbox;
   let wrapper;
   let handleAction;
+  let setActiveMultiSelect;
+
   const CHECKLIST_TILE = {
     type: "action_checklist",
     header: {
@@ -37,6 +39,7 @@ describe("ContentTiles component", () => {
       },
     ],
   };
+
   const MOBILE_TILE = {
     type: "mobile_downloads",
     header: {
@@ -52,6 +55,7 @@ describe("ContentTiles component", () => {
       },
     },
   };
+
   const TEST_CONTENT = {
     tiles: [CHECKLIST_TILE, MOBILE_TILE],
   };
@@ -59,8 +63,14 @@ describe("ContentTiles component", () => {
   beforeEach(() => {
     sandbox = sinon.createSandbox();
     handleAction = sandbox.stub();
+    setActiveMultiSelect = sandbox.stub();
     wrapper = shallow(
-      <ContentTiles content={TEST_CONTENT} handleAction={handleAction} />
+      <ContentTiles
+        content={TEST_CONTENT}
+        handleAction={handleAction}
+        activeMultiSelect={null}
+        setActiveMultiSelect={setActiveMultiSelect}
+      />
     );
   });
 
@@ -84,7 +94,9 @@ describe("ContentTiles component", () => {
   it("should toggle a tile and send telemetry when its header is clicked", () => {
     let telemetrySpy = sandbox.spy(AboutWelcomeUtils, "sendActionTelemetry");
     const [firstTile] = TEST_CONTENT.tiles;
-    const tileId = `${firstTile.type}${firstTile.id ? "_" : ""}${firstTile.id ?? ""}_header`;
+    const tileId = `${firstTile.type}${firstTile.id ? "_" : ""}${
+      firstTile.id ?? ""
+    }_header`;
     const firstTileButton = wrapper.find(".tile-header").at(0);
     firstTileButton.simulate("click");
     assert.equal(
@@ -118,7 +130,12 @@ describe("ContentTiles component", () => {
     };
 
     wrapper = mount(
-      <ContentTiles content={TEST_CONTENT_HEADER} handleAction={handleAction} />
+      <ContentTiles
+        content={TEST_CONTENT_HEADER}
+        handleAction={handleAction}
+        activeMultiSelect={null}
+        setActiveMultiSelect={setActiveMultiSelect}
+      />
     );
 
     let telemetrySpy = sandbox.spy(AboutWelcomeUtils, "sendActionTelemetry");
@@ -149,7 +166,12 @@ describe("ContentTiles component", () => {
 
   it("should apply configured styles to the header buttons", () => {
     const mountedWrapper = mount(
-      <ContentTiles content={TEST_CONTENT} handleAction={() => {}} />
+      <ContentTiles
+        content={TEST_CONTENT}
+        handleAction={() => {}}
+        activeMultiSelect={null}
+        setActiveMultiSelect={setActiveMultiSelect}
+      />
     );
 
     const firstTileHeader = mountedWrapper
@@ -264,5 +286,71 @@ describe("ContentTiles component", () => {
         },
       },
     ]);
+  });
+
+  it("should prefill activeMultiSelect for a MultiSelect tile based on default values", () => {
+    const MULTISELECT_TILE = {
+      type: "multiselect",
+      header: {
+        title: "Multiselect Header",
+        style: {
+          border: "1px solid #ddd",
+        },
+      },
+      data: [
+        { id: "option1", defaultValue: true },
+        { id: "option2", defaultValue: false },
+        { id: "option3", defaultValue: true },
+      ],
+    };
+
+    const contentWithMultiselect = { tiles: MULTISELECT_TILE };
+
+    wrapper = mount(
+      <ContentTiles
+        content={contentWithMultiselect}
+        activeMultiSelect={null}
+        setActiveMultiSelect={setActiveMultiSelect}
+        handleAction={handleAction}
+      />
+    );
+    wrapper.update();
+
+    sinon.assert.calledOnce(setActiveMultiSelect);
+    sinon.assert.calledWithExactly(setActiveMultiSelect, [
+      "option1",
+      "option3",
+    ]);
+  });
+
+  it("should not prefill activeMultiSelect if it is already set", () => {
+    const MULTISELECT_TILE = {
+      type: "multiselect",
+      header: {
+        title: "Multiselect Header",
+        style: {
+          border: "1px solid #ddd",
+        },
+      },
+      data: [
+        { id: "option1", defaultValue: true },
+        { id: "option2", defaultValue: false },
+        { id: "option3", defaultValue: true },
+      ],
+    };
+
+    const contentWithMultiselect = { tiles: [MULTISELECT_TILE] };
+
+    wrapper = mount(
+      <ContentTiles
+        content={contentWithMultiselect}
+        activeMultiSelect={["option2"]}
+        setActiveMultiSelect={setActiveMultiSelect}
+        handleAction={handleAction}
+      />
+    );
+    wrapper.update();
+
+    sinon.assert.notCalled(setActiveMultiSelect);
   });
 });
