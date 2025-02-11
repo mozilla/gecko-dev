@@ -15,7 +15,7 @@
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("sidebar.revamp") {
+  @media (-moz-bool-pref: "sidebar.revamp") {
     min-width: 200px;
     width: 340px;
     padding-block-end: var(--space-small);
@@ -40,7 +40,7 @@
   max-width: 75vw;
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media not -moz-pref("sidebar.revamp") {
+  @media not (-moz-bool-pref: "sidebar.revamp") {
     background-color: var(--sidebar-background-color);
     color: var(--sidebar-text-color);
     /* Note that with sidebar.revamp we apply the --sidebar-background-color to the
@@ -65,7 +65,7 @@
   flex: 1;
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("sidebar.revamp") {
+  @media (-moz-bool-pref: "sidebar.revamp") {
     border-radius: var(--border-radius-medium);
     box-shadow: var(--content-area-shadow);
     border: 0.5px solid var(--sidebar-border-color);
@@ -81,7 +81,7 @@
   z-index: var(--browser-area-z-index-sidebar-splitter);
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("sidebar.revamp") or (not (-moz-platform: linux)) {
+  @media (-moz-bool-pref: "sidebar.revamp") or (not (-moz-platform: linux)) {
     /* We don't let the splitter overlap the sidebar on Linux since the sidebar's
     scrollbar is too narrow on Linux. */
     appearance: none;
@@ -102,7 +102,7 @@
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("sidebar.revamp") {
+  @media (-moz-bool-pref: "sidebar.revamp") {
     --splitter-width: 4px;
     transition: background-color 0.5s ease-in-out;
     border-style: none;
@@ -116,7 +116,7 @@
     }
 
     /* stylelint-disable-next-line media-query-no-invalid */
-    @media not -moz-pref("sidebar.verticalTabs") {
+    @media not (-moz-bool-pref: "sidebar.verticalTabs") {
       &#sidebar-launcher-splitter {
         display: none;
       }

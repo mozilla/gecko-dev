@@ -52,7 +52,7 @@ body {
     min-height: 120px;
 
     /* stylelint-disable-next-line media-query-no-invalid */
-    @media -moz-pref("sidebar.verticalTabs") {
+    @media (-moz-bool-pref: "sidebar.verticalTabs") {
       min-width: 732px;
 
       @media (-moz-platform: macos) {
@@ -192,7 +192,7 @@ body {
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-platform: macos) and -moz-pref("browser.theme.native-theme") {
+  @media (-moz-platform: macos) and (-moz-bool-pref: "browser.theme.native-theme") {
     /* Don't make the toolbox vibrant when in full-screen. macOS fullscreen has a
      * native titlebar outside of the window (revealed on hover) anyways. */
     :root[customtitlebar]:not([lwtheme], [macOSNativeFullscreen]) & {
@@ -222,7 +222,7 @@ body {
   color: inherit;
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media not -moz-pref("sidebar.verticalTabs") {
+  @media not (-moz-bool-pref: "sidebar.verticalTabs") {
     &:not(.browser-titlebar) {
       background-color: var(--toolbar-bgcolor);
       color: var(--toolbar-color);
@@ -305,7 +305,7 @@ body {
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("sidebar.verticalTabs") {
+  @media (-moz-bool-pref: "sidebar.verticalTabs") {
     &[type="pre-tabs"], &[type="post-tabs"] {
       display: none;
     }
@@ -415,7 +415,7 @@ body {
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media not -moz-pref("sidebar.verticalTabs") {
+@media not (-moz-bool-pref: "sidebar.verticalTabs") {
   #vertical-spacer {
     display: none;
   }

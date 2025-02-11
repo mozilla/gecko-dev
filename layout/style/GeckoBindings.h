@@ -550,8 +550,7 @@ const nsTArray<mozilla::dom::Element*>* Gecko_Document_GetElementsWithId(
 const nsTArray<mozilla::dom::Element*>* Gecko_ShadowRoot_GetElementsWithId(
     const mozilla::dom::ShadowRoot*, nsAtom* aId);
 
-bool Gecko_EvalMozPrefFeature(nsAtom*,
-                              const mozilla::StyleComputedMozPrefFeatureValue*);
+bool Gecko_ComputeBoolPrefMediaQuery(nsAtom*);
 
 // Check whether font format/tech is supported.
 bool Gecko_IsFontFormatSupported(

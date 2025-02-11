@@ -9,7 +9,7 @@
 
 use super::{FeatureFlags, FeatureType, QueryFeatureExpression};
 use crate::custom_properties;
-use crate::values::{computed, AtomString};
+use crate::values::computed;
 use crate::{error_reporting::ContextualParseError, parser::ParserContext};
 use cssparser::{Parser, SourcePosition, Token};
 use selectors::kleene_value::KleeneValue;
@@ -63,8 +63,8 @@ impl StyleFeature {
         input: &mut Parser<'i, 't>,
         feature_type: FeatureType,
     ) -> Result<Self, ParseError<'i>> {
-        if !static_prefs::pref!("layout.css.style-queries.enabled")
-            || feature_type != FeatureType::Container
+        if !static_prefs::pref!("layout.css.style-queries.enabled") ||
+            feature_type != FeatureType::Container
         {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
@@ -107,84 +107,6 @@ impl StyleFeature {
     }
 }
 
-/// Simple values we support for -moz-pref(). We don't want to deal with calc() and other
-/// shenanigans for now.
-#[derive(
-    Clone,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum MozPrefFeatureValue<I> {
-    /// No pref value, implicitly bool.
-    #[css(skip)]
-    None,
-    /// An integer value, useful for int prefs.
-    Integer(I),
-    /// A string pref value.
-    String(crate::values::AtomString),
-}
-
-type SpecifiedMozPrefFeatureValue = MozPrefFeatureValue<crate::values::specified::Integer>;
-/// The computed -moz-pref() value.
-pub type ComputedMozPrefFeatureValue = MozPrefFeatureValue<crate::values::computed::Integer>;
-
-/// A custom -moz-pref(<name>, <value>) query feature.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
-pub struct MozPrefFeature {
-    name: crate::values::AtomString,
-    value: SpecifiedMozPrefFeatureValue,
-}
-
-impl MozPrefFeature {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-        feature_type: FeatureType,
-    ) -> Result<Self, ParseError<'i>> {
-        use crate::parser::Parse;
-        if !context.chrome_rules_enabled() || feature_type != FeatureType::Media {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-        let name = AtomString::parse(context, input)?;
-        let value = if input.try_parse(|i| i.expect_comma()).is_ok() {
-            SpecifiedMozPrefFeatureValue::parse(context, input)?
-        } else {
-            SpecifiedMozPrefFeatureValue::None
-        };
-        Ok(Self { name, value })
-    }
-
-    fn matches(&self, ctx: &computed::Context) -> KleeneValue {
-        use crate::values::computed::ToComputedValue;
-        let value = self.value.to_computed_value(ctx);
-        KleeneValue::from(unsafe {
-            crate::gecko_bindings::bindings::Gecko_EvalMozPrefFeature(self.name.as_ptr(), &value)
-        })
-    }
-}
-
-impl ToCss for MozPrefFeature {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        self.name.to_css(dest)?;
-        if !matches!(self.value, MozPrefFeatureValue::None) {
-            dest.write_str(", ")?;
-            self.value.to_css(dest)?;
-        }
-        Ok(())
-    }
-}
-
 /// Represents a condition.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum QueryCondition {
@@ -198,8 +120,6 @@ pub enum QueryCondition {
     InParens(Box<QueryCondition>),
     /// A <style> query.
     Style(StyleFeature),
-    /// A -moz-pref() query.
-    MozPref(MozPrefFeature),
     /// [ <function-token> <any-value>? ) ] | [ ( <any-value>? ) ]
     GeneralEnclosed(String),
 }
@@ -224,11 +144,6 @@ impl ToCss for QueryCondition {
             },
             QueryCondition::Style(ref c) => {
                 dest.write_str("style(")?;
-                c.to_css(dest)?;
-                dest.write_char(')')
-            },
-            QueryCondition::MozPref(ref c) => {
-                dest.write_str("-moz-pref(")?;
                 c.to_css(dest)?;
                 dest.write_char(')')
             },
@@ -269,8 +184,7 @@ impl QueryCondition {
     {
         visitor(self);
         match *self {
-            Self::Feature(..) | Self::GeneralEnclosed(..) | Self::Style(..) | Self::MozPref(..) => {
-            },
+            Self::Feature(..) | Self::GeneralEnclosed(..) | Self::Style(..) => {},
             Self::Not(ref cond) => cond.visit(visitor),
             Self::Operation(ref conds, _op) => {
                 for cond in conds.iter() {
@@ -416,24 +330,13 @@ impl QueryCondition {
                 }
             },
             Token::Function(ref name) => {
-                match_ignore_ascii_case! { name,
-                    "style" => {
-                        let feature = Self::try_parse_block(context, input, start, |input| {
-                            StyleFeature::parse(context, input, feature_type)
-                        });
-                        if let Some(feature) = feature {
-                            return Ok(Self::Style(feature));
-                        }
-                    },
-                    "-moz-pref" => {
-                        let feature = Self::try_parse_block(context, input, start, |input| {
-                            MozPrefFeature::parse(context, input, feature_type)
-                        });
-                        if let Some(feature) = feature {
-                            return Ok(Self::MozPref(feature));
-                        }
-                    },
-                    _ => {},
+                if name.eq_ignore_ascii_case("style") {
+                    let feature = Self::try_parse_block(context, input, start, |input| {
+                        StyleFeature::parse(context, input, feature_type)
+                    });
+                    if let Some(feature) = feature {
+                        return Ok(Self::Style(feature));
+                    }
                 }
             },
             ref t => return Err(start_location.new_unexpected_token_error(t.clone())),
@@ -454,7 +357,6 @@ impl QueryCondition {
             QueryCondition::InParens(ref c) => c.matches(context),
             QueryCondition::Not(ref c) => !c.matches(context),
             QueryCondition::Style(ref c) => c.matches(context),
-            QueryCondition::MozPref(ref c) => c.matches(context),
             QueryCondition::Operation(ref conditions, op) => {
                 debug_assert!(!conditions.is_empty(), "We never create an empty op");
                 match op {

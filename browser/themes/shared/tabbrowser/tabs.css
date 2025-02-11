@@ -109,7 +109,7 @@
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media -moz-pref("sidebar.verticalTabs") {
+@media (-moz-bool-pref: "sidebar.verticalTabs") {
   :root {
     --tab-min-height: max(32px, calc(var(--tab-label-line-height) * 1em));
     --tab-block-margin: 2px;
@@ -444,7 +444,7 @@
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("browser.tabs.fadeOutUnloadedTabs") {
+  @media (-moz-bool-pref: "browser.tabs.fadeOutUnloadedTabs") {
     &[pending] {
       opacity: 0.5;
       /* Fade the favicon out */
@@ -793,7 +793,7 @@
 /* Tab Groups */
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media not -moz-pref("sidebar.verticalTabs") {
+@media not (-moz-bool-pref: "sidebar.verticalTabs") {
   /*
    * .tab-group-line needs to span the drop shadows + space between tabs in the
    * same tab group so that the whole tab group appears to be underlined by an
@@ -845,7 +845,7 @@
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media -moz-pref("sidebar.verticalTabs") {
+@media (-moz-bool-pref: "sidebar.verticalTabs") {
   tab-group {
     flex-direction: column;
     position: relative;
@@ -883,7 +883,7 @@
   transition: var(--tab-dragover-transition);
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media not -moz-pref("sidebar.verticalTabs") {
+  @media not (-moz-bool-pref: "sidebar.verticalTabs") {
     position: relative;
 
     /*
@@ -1405,7 +1405,7 @@
       }
 
       /* stylelint-disable-next-line media-query-no-invalid */
-      @media -moz-pref("sidebar.expandOnHover") {
+      @media (-moz-bool-pref: "sidebar.expandOnHover") {
         /* Tab close button when the sidebar is collapsed should
         not be shown when expand on hover is enabled because once
         you hover over the launcher to use the button, the launcher

@@ -21,28 +21,6 @@ function expectUnkown(q) {
   expect(q, false);
 }
 
-function testMatches(q, shouldMatch = true) {
-  is(matchMedia(q).matches, shouldMatch, `${q} should match`);
-}
-
-async function testMozPref(q, prefName, value, otherValue) {
-  expectKnown(q);
-  await SpecialPowers.pushPrefEnv({
-    set:[[prefName, value]],
-  });
-  testMatches(q, true);
-  let mediaList = matchMedia(q);
-  let change = new Promise(r => {
-    mediaList.addEventListener("change", r, { once: true });
-  });
-  await SpecialPowers.pushPrefEnv({
-    set:[[prefName, otherValue]],
-  });
-  testMatches(q, false);
-  // Should change dynamically successfully.
-  await change;
-}
-
 // Test a toggle that should always match for `1` or `0`.
 function testToggle(toggle) {
   expectKnown(`(${toggle})`);
@@ -85,10 +63,5 @@ expectKnown("(forced-colors)");
 
 expectUnkown("(-moz-platform: )");
 
-(async function() {
-  await testMozPref('-moz-pref("foo.bar.bool")', "foo.bar.bool", true, false);
-  await testMozPref('-moz-pref("foo.bar.str", "foo")', "foo.bar.str", "foo", "bar");
-  await testMozPref('-moz-pref("foo.bar.int", 1)', "foo.bar.int", 1, 2);
-  SimpleTest.finish();
-}());
+SimpleTest.finish();
 </script>
