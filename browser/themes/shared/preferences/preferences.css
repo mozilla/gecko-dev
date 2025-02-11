@@ -1288,6 +1288,10 @@ richlistitem .text-link:hover {
   background-image: url("chrome://browser/skin/preferences/relay-logo.svg");
 }
 
+#solo-ai {
+  background-image: url("chrome://browser/skin/preferences/solo-ai-logo.svg")
+}
+
 /*
  * The :not clause is required because hiding an element with `display: flex` only
  * partially hides it.
