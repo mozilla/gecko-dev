@@ -18,13 +18,6 @@ const DEFAULT_PREFS = {
     "suggest.quicksuggest.nonsponsored": true,
     "suggest.quicksuggest.sponsored": true,
   },
-  online: {
-    "quicksuggest.enabled": true,
-    "quicksuggest.dataCollection.enabled": false,
-    "quicksuggest.shouldShowOnboardingDialog": true,
-    "suggest.quicksuggest.nonsponsored": false,
-    "suggest.quicksuggest.sponsored": false,
-  },
 };
 
 // Migration will use these values to migrate only up to version 1 instead of
@@ -148,115 +141,6 @@ add_task(async function () {
   });
 });
 
-// The following tasks test OFFLINE TO ONLINE
-
-// Migrating from:
-// * Offline (suggestions on by default)
-// * User did not override any defaults
-//
-// Scenario when migration occurs:
-// * Online
-//
-// Expected:
-// * Non-sponsored suggestions: off
-// * Sponsored suggestions: off
-// * Data collection: off
-add_task(async function () {
-  await doMigrateTest({
-    testOverrides: TEST_OVERRIDES,
-    scenario: "online",
-    expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.online,
-    },
-  });
-});
-
-// Migrating from:
-// * Offline (suggestions on by default)
-// * Main suggestions pref: user left on
-// * Sponsored suggestions: user turned off
-//
-// Scenario when migration occurs:
-// * Online
-//
-// Expected:
-// * Non-sponsored suggestions: off
-// * Sponsored suggestions: off
-// * Data collection: off
-add_task(async function () {
-  await doMigrateTest({
-    testOverrides: TEST_OVERRIDES,
-    initialUserBranch: {
-      "suggest.quicksuggest.sponsored": false,
-    },
-    scenario: "online",
-    expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.online,
-      userBranch: {
-        "suggest.quicksuggest.sponsored": false,
-      },
-    },
-  });
-});
-
-// Migrating from:
-// * Offline (suggestions on by default)
-// * Main suggestions pref: user turned off
-// * Sponsored suggestions: user left on (but ignored since main was off)
-//
-// Scenario when migration occurs:
-// * Online
-//
-// Expected:
-// * Non-sponsored suggestions: off
-// * Sponsored suggestions: off
-// * Data collection: off
-add_task(async function () {
-  await doMigrateTest({
-    testOverrides: TEST_OVERRIDES,
-    initialUserBranch: {
-      "suggest.quicksuggest": false,
-    },
-    scenario: "online",
-    expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.online,
-      userBranch: {
-        "suggest.quicksuggest.nonsponsored": false,
-      },
-    },
-  });
-});
-
-// Migrating from:
-// * Offline (suggestions on by default)
-// * Main suggestions pref: user turned off
-// * Sponsored suggestions: user turned off
-//
-// Scenario when migration occurs:
-// * Online
-//
-// Expected:
-// * Non-sponsored suggestions: off
-// * Sponsored suggestions: off
-// * Data collection: off
-add_task(async function () {
-  await doMigrateTest({
-    testOverrides: TEST_OVERRIDES,
-    initialUserBranch: {
-      "suggest.quicksuggest": false,
-      "suggest.quicksuggest.sponsored": false,
-    },
-    scenario: "online",
-    expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.online,
-      userBranch: {
-        "suggest.quicksuggest.nonsponsored": false,
-        "suggest.quicksuggest.sponsored": false,
-      },
-    },
-  });
-});
-
 // The following tasks test ONLINE TO OFFLINE
 
 // Migrating from:
@@ -355,7 +239,7 @@ add_task(async function () {
 // * Sponsored suggestions: user turned on
 //
 // Scenario when migration occurs:
-// * Online
+// * Offline
 //
 // Expected:
 // * Non-sponsored suggestions: remain on
@@ -374,116 +258,6 @@ add_task(async function () {
       userBranch: {
         "suggest.quicksuggest.nonsponsored": true,
         "suggest.quicksuggest.sponsored": true,
-      },
-    },
-  });
-});
-
-// The following tasks test ONLINE TO ONLINE
-
-// Migrating from:
-// * Online (suggestions off by default)
-// * User did not override any defaults
-//
-// Scenario when migration occurs:
-// * Online
-//
-// Expected:
-// * Non-sponsored suggestions: off
-// * Sponsored suggestions: off
-// * Data collection: off
-add_task(async function () {
-  await doMigrateTest({
-    testOverrides: TEST_OVERRIDES,
-    scenario: "online",
-    expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.online,
-    },
-  });
-});
-
-// Migrating from:
-// * Online (suggestions off by default)
-// * Main suggestions pref: user left off
-// * Sponsored suggestions: user turned on (but ignored since main was off)
-//
-// Scenario when migration occurs:
-// * Online
-//
-// Expected:
-// * Non-sponsored suggestions: remain off
-// * Sponsored suggestions: off
-// * Data collection: off
-add_task(async function () {
-  await doMigrateTest({
-    testOverrides: TEST_OVERRIDES,
-    initialUserBranch: {
-      "suggest.quicksuggest.sponsored": true,
-    },
-    scenario: "online",
-    expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.online,
-    },
-  });
-});
-
-// Migrating from:
-// * Online (suggestions off by default)
-// * Main suggestions pref: user turned on
-// * Sponsored suggestions: user left off
-//
-// Scenario when migration occurs:
-// * Online
-//
-// Expected:
-// * Non-sponsored suggestions: remain on
-// * Sponsored suggestions: remain off
-// * Data collection: ON (since user effectively opted in by turning on
-//   suggestions)
-add_task(async function () {
-  await doMigrateTest({
-    testOverrides: TEST_OVERRIDES,
-    initialUserBranch: {
-      "suggest.quicksuggest": true,
-    },
-    scenario: "online",
-    expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.online,
-      userBranch: {
-        "suggest.quicksuggest.nonsponsored": true,
-        "quicksuggest.dataCollection.enabled": true,
-      },
-    },
-  });
-});
-
-// Migrating from:
-// * Online (suggestions off by default)
-// * Main suggestions pref: user turned on
-// * Sponsored suggestions: user turned on
-//
-// Scenario when migration occurs:
-// * Online
-//
-// Expected:
-// * Non-sponsored suggestions: remain on
-// * Sponsored suggestions: remain on
-// * Data collection: ON (since user effectively opted in by turning on
-//   suggestions)
-add_task(async function () {
-  await doMigrateTest({
-    testOverrides: TEST_OVERRIDES,
-    initialUserBranch: {
-      "suggest.quicksuggest": true,
-      "suggest.quicksuggest.sponsored": true,
-    },
-    scenario: "online",
-    expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.online,
-      userBranch: {
-        "suggest.quicksuggest.nonsponsored": true,
-        "suggest.quicksuggest.sponsored": true,
-        "quicksuggest.dataCollection.enabled": true,
       },
     },
   });

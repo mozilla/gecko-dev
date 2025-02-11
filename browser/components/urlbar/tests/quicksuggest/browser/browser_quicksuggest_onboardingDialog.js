@@ -210,7 +210,7 @@ add_task(async function nimbus_override_wait_after_n_restarts() {
 
   await QuickSuggestTestUtils.withExperiment({
     valueOverrides: {
-      quickSuggestScenario: "online",
+      quickSuggestShouldShowOnboardingDialog: true,
       // Wait for 1 browser restart
       quickSuggestShowOnboardingDialogAfterNRestarts: 1,
     },
@@ -242,33 +242,6 @@ add_task(async function nimbus_override_wait_after_n_restarts() {
 
       info("Waiting for maybeShowPromise and pref change");
       await Promise.all([maybeShowPromise, prefPromise]);
-    },
-  });
-});
-
-add_task(async function nimbus_skip_onboarding_dialog() {
-  UrlbarPrefs.clear("quicksuggest.shouldShowOnboardingDialog");
-  UrlbarPrefs.clear("quicksuggest.showedOnboardingDialog");
-  UrlbarPrefs.clear("quicksuggest.seenRestarts", 0);
-
-  await QuickSuggestTestUtils.withExperiment({
-    valueOverrides: {
-      quickSuggestScenario: "online",
-      quickSuggestShouldShowOnboardingDialog: false,
-    },
-    callback: async () => {
-      // Simulate 3 restarts.
-      for (let i = 0; i < 3; i++) {
-        info(`Simulating restart ${i + 1}`);
-        await QuickSuggest.maybeShowOnboardingDialog();
-      }
-      Assert.ok(
-        !Services.prefs.getBoolPref(
-          "browser.urlbar.quicksuggest.showedOnboardingDialog",
-          false
-        ),
-        "The showed onboarding dialog pref should not be set"
-      );
     },
   });
 });
@@ -802,7 +775,7 @@ async function doLayoutTest(variation) {
 
   await QuickSuggestTestUtils.withExperiment({
     valueOverrides: {
-      quickSuggestScenario: "online",
+      quickSuggestShouldShowOnboardingDialog: true,
       quickSuggestOnboardingDialogVariation: variation.name,
     },
     callback: async () => {
@@ -1206,7 +1179,7 @@ async function doActionTest({
 
     await QuickSuggestTestUtils.withExperiment({
       valueOverrides: {
-        quickSuggestScenario: "online",
+        quickSuggestShouldShowOnboardingDialog: true,
         quickSuggestOnboardingDialogVariation: variation.name,
       },
       callback: async () => {

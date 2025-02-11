@@ -96,13 +96,6 @@ class _QuickSuggest {
         "suggest.quicksuggest.nonsponsored": true,
         "suggest.quicksuggest.sponsored": true,
       },
-      online: {
-        "quicksuggest.enabled": true,
-        "quicksuggest.dataCollection.enabled": false,
-        "quicksuggest.shouldShowOnboardingDialog": true,
-        "suggest.quicksuggest.nonsponsored": true,
-        "suggest.quicksuggest.sponsored": true,
-      },
     };
   }
 
@@ -561,11 +554,6 @@ class _QuickSuggest {
    *   suggestions are enabled by default. Data collection is not enabled by
    *   default, but the user can opt in in about:preferences. The onboarding
    *   dialog is not shown.
-   * online
-   *   This is the scenario for the "online" rollout. Firefox Suggest
-   *   suggestions are enabled by default. Data collection is not enabled by
-   *   default, and the user will be shown an onboarding dialog that prompts
-   *   them to opt in to it. The user can also opt in in about:preferences.
    *
    * @param {string} [testOverrides]
    *   This is intended for tests only. Pass to force the following:
@@ -693,6 +681,9 @@ class _QuickSuggest {
 
     // 2. Set default-branch values for the scenario
     let defaultPrefs = testOverrides?.defaultPrefs || this.DEFAULT_PREFS;
+    if (!defaultPrefs.hasOwnProperty(scenario)) {
+      throw new Error("No default preferences for scenario: " + scenario);
+    }
     let prefs = { ...defaultPrefs[scenario] };
 
     // 3. Set default-branch values for prefs that are both exposed in the UI
@@ -751,8 +742,8 @@ class _QuickSuggest {
       }
     }
     if (!this.DEFAULT_PREFS.hasOwnProperty(scenario)) {
-      scenario = "history";
       console.error(`Unrecognized Firefox Suggest scenario "${scenario}"`);
+      scenario = "history";
     }
     return scenario;
   }
@@ -804,16 +795,8 @@ class _QuickSuggest {
       return;
     }
 
-    let version = lastSeenVersion;
-
-    // When the current scenario is online and the last-seen prefs version is
-    // unversioned, specially handle migration up to version 2.
-    if (!version && scenario == "online" && 2 <= currentVersion) {
-      this._migrateFirefoxSuggestPrefsUnversionedTo2Online();
-      version = 2;
-    }
-
     // Migrate from the last-seen version up to the current version.
+    let version = lastSeenVersion;
     for (; version < currentVersion; version++) {
       let nextVersion = version + 1;
       let methodName = "_migrateFirefoxSuggestPrefsTo_" + nextVersion;
@@ -830,111 +813,6 @@ class _QuickSuggest {
 
     // Record the new last-seen migration version.
     lazy.UrlbarPrefs.set("quicksuggest.migrationVersion", version);
-  }
-
-  /**
-   * Migrates unversioned Firefox Suggest prefs to version 2 but only when the
-   * user's current scenario is online. This case requires special handling that
-   * isn't covered by the usual migration path from unversioned to 2.
-   */
-  _migrateFirefoxSuggestPrefsUnversionedTo2Online() {
-    // Copy `suggest.quicksuggest` to `suggest.quicksuggest.nonsponsored` and
-    // clear the first.
-    let mainPref = "browser.urlbar.suggest.quicksuggest";
-    let mainPrefHasUserValue = Services.prefs.prefHasUserValue(mainPref);
-    if (mainPrefHasUserValue) {
-      lazy.UrlbarPrefs.set(
-        "suggest.quicksuggest.nonsponsored",
-        Services.prefs.getBoolPref(mainPref)
-      );
-      Services.prefs.clearUserPref(mainPref);
-    }
-
-    if (!lazy.UrlbarPrefs.get("quicksuggest.showedOnboardingDialog")) {
-      // The user was enrolled in history or offline, or they were enrolled in
-      // online and weren't shown the modal yet.
-      //
-      // If they were in history, they should now see suggestions by default,
-      // and we don't need to worry about any current pref values since Firefox
-      // Suggest is new to them.
-      //
-      // If they were in offline, they saw suggestions by default, but if they
-      // disabled the main suggestions pref, then both non-sponsored and
-      // sponsored suggestions were disabled and we need to carry that forward.
-      //
-      // If they were in online and weren't shown the modal yet, suggestions
-      // were disabled by default. The modal is shown only on startup, so it's
-      // possible they used Firefox for quite a while after being enrolled in
-      // online with suggestions disabled the whole time. If they looked at the
-      // prefs UI, they would have seen both suggestion checkboxes unchecked.
-      // For these users, ideally we wouldn't suddenly enable suggestions, but
-      // unfortunately there's no simple way to distinguish them from history
-      // and offline users at this point based on the unversioned prefs. We
-      // could check whether the user is or was enrolled in the initial online
-      // experiment; if they were, then disable suggestions. However, that's a
-      // little risky because it assumes future online rollouts will be
-      // delivered by new experiments and not by increasing the original
-      // experiment's population. If that assumption does not hold, we would end
-      // up disabling suggestions for all users who are newly enrolled in online
-      // even if they were previously in history or offline. Further, based on
-      // telemetry data at the time of writing, only a small number of users in
-      // online have not yet seen the modal. Therefore we will enable
-      // suggestions for these users too.
-      //
-      // Note that if the user is in online and hasn't been shown the modal yet,
-      // we'll show it at some point during startup right after this. However,
-      // starting with the version-2 prefs, the modal now opts the user in to
-      // only data collection, not suggestions as it previously did.
-
-      if (
-        mainPrefHasUserValue &&
-        !lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored")
-      ) {
-        // The user was in offline and disabled the main suggestions pref, so
-        // sponsored suggestions were automatically disabled too. We know they
-        // disabled the main pref since it has a false user-branch value.
-        lazy.UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
-      }
-      return;
-    }
-
-    // At this point, the user was in online, they were shown the modal, and the
-    // current scenario is online. In the unversioned prefs for online, the
-    // suggestion prefs were false on the default branch, but in the version-2
-    // prefs, they're true on the default branch.
-
-    if (
-      mainPrefHasUserValue &&
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored")
-    ) {
-      // The main pref is true on the user branch. The user opted in either via
-      // the modal or by checking the checkbox in the prefs UI. In the latter
-      // case, they were shown some informational text about data collection
-      // under the checkbox. Either way, they've opted in to data collection.
-      lazy.UrlbarPrefs.set("quicksuggest.dataCollection.enabled", true);
-      if (
-        !Services.prefs.prefHasUserValue(
-          "browser.urlbar.suggest.quicksuggest.sponsored"
-        )
-      ) {
-        // The sponsored pref does not have a user value, so the default-branch
-        // false value was the effective value and the user did not see
-        // sponsored suggestions. We need to override the version-2 default-
-        // branch true value by setting the pref to false.
-        lazy.UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
-      }
-    } else {
-      // The main pref is not true on the user branch, so the user either did
-      // not opt in or they later disabled suggestions in the prefs UI. Set the
-      // suggestion prefs to false on the user branch to override the version-2
-      // default-branch true values. The data collection pref is false on the
-      // default branch, but since the user was shown the modal, set it on the
-      // user branch too, where it's sticky, to record the user's choice not to
-      // opt in.
-      lazy.UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
-      lazy.UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
-      lazy.UrlbarPrefs.set("quicksuggest.dataCollection.enabled", false);
-    }
   }
 
   _migrateFirefoxSuggestPrefsTo_1(scenario) {
@@ -960,24 +838,7 @@ class _QuickSuggest {
           // and we want to preserve the default-branch true value.
           lazy.UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
           break;
-        case "online":
-          // If the user-branch value is true, clear it so the default-branch
-          // false value becomes the effective value.
-          if (lazy.UrlbarPrefs.get("suggest.quicksuggest.sponsored")) {
-            lazy.UrlbarPrefs.clear("suggest.quicksuggest.sponsored");
-          }
-          break;
       }
-    }
-
-    // The data collection pref is new in this version. Enable it iff the
-    // scenario is online and the user opted in to suggestions. In offline, it
-    // should always start off false.
-    if (
-      scenario == "online" &&
-      lazy.UrlbarPrefs.get("suggest.quicksuggest.nonsponsored")
-    ) {
-      lazy.UrlbarPrefs.set("quicksuggest.dataCollection.enabled", true);
     }
   }
 

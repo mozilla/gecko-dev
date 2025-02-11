@@ -120,9 +120,9 @@ add_task(async function telemetryEnvironmentOnStartup() {
   // the inverse of what they are now.
   await QuickSuggest.updateFirefoxSuggestScenario({
     isStartup: true,
-    scenario: "online",
+    scenario: "testScenario",
     defaultPrefs: {
-      online: Object.fromEntries(
+      testScenario: Object.fromEntries(
         Object.entries(defaultValues).map(([p, value]) => [p, !value])
       ),
     },
@@ -151,10 +151,6 @@ add_task(async function telemetryEnvironmentOnStartup() {
 
   await QuickSuggest.updateFirefoxSuggestScenario({
     isStartup: true,
-    scenario: "online",
-    defaultPrefs: {
-      online: defaultValues,
-    },
   });
 
   await environmentInitPromise;

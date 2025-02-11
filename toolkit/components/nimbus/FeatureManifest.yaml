@@ -452,7 +452,6 @@ urlbar:
       enum:
         - history
         - offline
-        - online
     quickSuggestScoreMap:
       type: json
       description: >-
