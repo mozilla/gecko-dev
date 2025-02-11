@@ -9,9 +9,19 @@ use minidump_writer::minidump_writer::MinidumpWriter;
 use std::ffi::{CStr, CString};
 use std::mem::{self, MaybeUninit};
 use std::os::raw::c_char;
-use std::ptr::{copy_nonoverlapping, null_mut};
+use std::ptr::copy_nonoverlapping;
 
-// This function will be exposed to C++
+/// Write a minidump file for the process specified via `child`. Returns `true`
+/// if successful, otherwise returns `false` and causes the pointer at
+/// `error_msg` to point to a string describing the error.
+///
+/// Finally `child_blamed_thread` will be used to indicate which thread caused
+/// the crash.
+///
+/// # Safety
+///
+/// `dump_path` should be a valid pointer to a C string and `error_msg` should
+/// point to a pointer to a C string.
 #[no_mangle]
 pub unsafe extern "C" fn write_minidump_linux(
     dump_path: *const c_char,
@@ -37,7 +47,8 @@ pub unsafe extern "C" fn write_minidump_linux(
 
     let mut dump_file = match std::fs::OpenOptions::new()
         .create(true) // Create file if it doesn't exist
-        .write(true) // Truncate file
+        .truncate(true) // Truncate file
+        .write(true) // We need write access
         .open(path)
     {
         Ok(f) => f,
@@ -55,12 +66,10 @@ pub unsafe extern "C" fn write_minidump_linux(
     };
 
     match MinidumpWriter::new(child, child_blamed_thread).dump(&mut dump_file) {
-        Ok(_) => {
-            return true;
-        }
+        Ok(_) => true,
         Err(x) => {
             error_message_to_c(error_msg, format!("{:#}", anyhow::Error::new(x)));
-            return false;
+            false
         }
     }
 }
@@ -72,7 +81,18 @@ type fpregset_t = crash_context::fpregset_t;
 #[cfg(target_arch = "arm")]
 pub struct fpregset_t {}
 
-// This function will be exposed to C++
+/// Write a minidump file for the process specified via `child`. Returns `true`
+/// if successful, otherwise returns `false` and causes the pointer at
+/// `error_msg` to point to a string describing the error.
+///
+/// The crashing thread context is specified via `ucontext`, `float_state`
+/// where applicable and `siginfo` with the signal information. Finally
+/// `child_thread` will be used to indicate which thread caused the crash.
+///
+/// # Safety
+///
+/// `dump_path`, `ucontext`, `siginfo` should be valid pointers to the
+/// appropriate objects. `error_msg` should point to a pointer to a C string.
 #[no_mangle]
 pub unsafe extern "C" fn write_minidump_linux_with_context(
     dump_path: *const c_char,
@@ -116,7 +136,8 @@ pub unsafe extern "C" fn write_minidump_linux_with_context(
 
     let mut dump_file = match std::fs::OpenOptions::new()
         .create(true) // Create file if it doesn't exist
-        .write(true) // Truncate file
+        .truncate(true) // Truncate file if already exists
+        .write(true) // We need write access
         .open(path)
     {
         Ok(f) => f,
@@ -137,24 +158,27 @@ pub unsafe extern "C" fn write_minidump_linux_with_context(
         .set_crash_context(crash_context)
         .dump(&mut dump_file)
     {
-        Ok(_) => {
-            return true;
-        }
+        Ok(_) => true,
         Err(x) => {
             error_message_to_c(error_msg, format!("{:#}", anyhow::Error::new(x)));
-            return false;
+            false
         }
     }
 }
 
 fn error_message_to_c(c_string_pointer: *mut *mut c_char, error_message: String) {
-    if c_string_pointer != null_mut() {
+    if !c_string_pointer.is_null() {
         let c_error_message = CString::new(error_message).unwrap_or_default();
         unsafe { *c_string_pointer = c_error_message.into_raw() };
     }
 }
 
-// This function will be exposed to C++
+/// Frees an error message obtained via [`write_minidump_linux_with_context`]
+///
+/// # Safety
+///
+/// The pointer in `c_string` must have been obtained via a call to
+/// [`write_minidump_linux_with_context`].
 #[no_mangle]
 pub unsafe extern "C" fn free_minidump_error_msg(c_string: *mut c_char) {
     // Unused because we just need to drop it
