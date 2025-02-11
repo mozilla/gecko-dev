@@ -219,6 +219,7 @@ devtools.jar:
 
     # Debugger
     content/debugger/index.html (debugger/index.html)
+    content/debugger/index.js (debugger/index.js)
     content/debugger/images/arrow-down.svg (debugger/images/arrow-down.svg)
     content/debugger/images/arrow-up.svg (debugger/images/arrow-up.svg)
     content/debugger/images/arrow.svg (debugger/images/arrow.svg)
