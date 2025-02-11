@@ -45,6 +45,7 @@ tasks:
                                   - linux64
                                   - linux64-aarch64
                                   - linux64-devedition
+                                  - linux64-aarch64-devedition
                                   - win32
                                   - win32-devedition
                                   - win64
@@ -58,6 +59,7 @@ tasks:
                                   "linux64",
                                   "linux64-aarch64",
                                   "linux64-devedition",
+                                  "linux64-aarch64-devedition",
                                   "macosx64",
                                   "macosx64-devedition",
                                   "win32",
