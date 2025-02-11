@@ -237,8 +237,10 @@
           "@base": {
             "value": {
               "default": "transparent",
-              "prefersContrast": "{button.background.color.@base}",
-              "forcedColors": "{button.background.color.@base}"
+              "brand": {
+                "prefersContrast": "{button.background.color.@base}",
+                "forcedColors": "{button.background.color.@base}"
+              }
             }
           },
           "active": {
@@ -247,7 +249,9 @@
           "disabled": {
             "value": {
               "default": "{button.background.color.ghost.@base}",
-              "forcedColors": "{button.background.color.disabled}"
+              "brand": {
+                "forcedColors": "{button.background.color.disabled}"
+              }
             }
           },
           "hover": {

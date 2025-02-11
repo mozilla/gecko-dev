@@ -212,7 +212,6 @@
       --border-color-interactive: var(--text-color);
 
       /** Button **/
-      --button-background-color-ghost: var(--button-background-color);
       --button-border-color: var(--button-text-color);
 
       /** Icon **/
@@ -261,8 +260,6 @@
       --button-background-color-destructive-hover: var(--button-background-color-primary-hover);
       --button-background-color-destructive-active: var(--button-background-color-primary-active);
       --button-background-color-destructive-disabled: var(--button-background-color-primary-disabled);
-      --button-background-color-ghost: var(--button-background-color);
-      --button-background-color-ghost-disabled: var(--button-background-color-disabled);
       --button-background-color-primary-disabled: var(--button-text-color-disabled);
       --button-border-color: var(--border-color-interactive);
       --button-border-color-hover: var(--border-color-interactive-hover);

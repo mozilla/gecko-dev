@@ -127,7 +127,7 @@
   "button/background/color/ghost": {
     "light": "#00000000",
     "dark": "#00000000",
-    "forcedColors": "ButtonFace"
+    "forcedColors": "#00000000"
   },
   "button/background/color/ghost/active": {
     "light": "color-mix(in srgb, currentColor 21%, transparent)",
@@ -137,7 +137,7 @@
   "button/background/color/ghost/disabled": {
     "light": "#00000000",
     "dark": "#00000000",
-    "forcedColors": "ButtonFace"
+    "forcedColors": "#00000000"
   },
   "button/background/color/ghost/hover": {
     "light": "color-mix(in srgb, currentColor 14%, transparent)",

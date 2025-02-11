@@ -55,3 +55,28 @@
     --text-color: light-dark(var(--color-gray-100), var(--color-gray-05));
   }
 }
+
+/* Bug 1879900: Can't nest media queries inside of :host, :root selector
+   until Bug 1879349 lands */
+@layer tokens-prefers-contrast {
+  @media (prefers-contrast) {
+    :root,
+    :host(.anonymous-content-host) {
+      /** Button **/
+      --button-background-color-ghost: var(--button-background-color);
+    }
+  }
+}
+
+/* Bug 1879900: Can't nest media queries inside of :host, :root selector
+   until Bug 1879349 lands */
+@layer tokens-forced-colors {
+  @media (forced-colors) {
+    :root,
+    :host(.anonymous-content-host) {
+      /** Button **/
+      --button-background-color-ghost: var(--button-background-color);
+      --button-background-color-ghost-disabled: var(--button-background-color-disabled);
+    }
+  }
+}

@@ -171,8 +171,10 @@ export const storybookTables = {
     {
       value: {
         default: "transparent",
-        prefersContrast: "var(--button-background-color)",
-        forcedColors: "var(--button-background-color)",
+        brand: {
+          prefersContrast: "var(--button-background-color)",
+          forcedColors: "var(--button-background-color)",
+        },
       },
       name: "--button-background-color-ghost",
     },
@@ -183,7 +185,7 @@ export const storybookTables = {
     {
       value: {
         default: "var(--button-background-color-ghost)",
-        forcedColors: "var(--button-background-color-disabled)",
+        brand: { forcedColors: "var(--button-background-color-disabled)" },
       },
       name: "--button-background-color-ghost-disabled",
     },
@@ -930,14 +932,16 @@ export const variableLookupTable = {
   },
   "button-background-color-ghost": {
     default: "transparent",
-    prefersContrast: "var(--button-background-color)",
-    forcedColors: "var(--button-background-color)",
+    brand: {
+      prefersContrast: "var(--button-background-color)",
+      forcedColors: "var(--button-background-color)",
+    },
   },
   "button-background-color-ghost-active":
     "var(--button-background-color-active)",
   "button-background-color-ghost-disabled": {
     default: "var(--button-background-color-ghost)",
-    forcedColors: "var(--button-background-color-disabled)",
+    brand: { forcedColors: "var(--button-background-color-disabled)" },
   },
   "button-background-color-ghost-hover": "var(--button-background-color-hover)",
   "button-border": "var(--border-width) solid var(--button-border-color)",
