@@ -210,9 +210,6 @@ def check_networking(binary):
     networking_functions = set(
         [
             # socketpair is not concerning; it is restricted to AF_UNIX
-            "connect",
-            "accept",
-            "listen",
             "recv",
             "send",
             # We would be concerned by recvmsg and sendmsg; but we believe
@@ -238,6 +235,19 @@ def check_networking(binary):
             "endprotoent",
         ]
     )
+    # These are used by the crash monitor & crash monitor client to talk with
+    # the main process on Linux and macOS.
+    socket_functions = set(
+        [
+            "connect",
+            "accept",
+            "listen",
+        ]
+    )
+
+    if PLATFORM == "WINNT":
+        networking_functions |= socket_functions
+
     bad_occurences_names = set()
 
     try:
