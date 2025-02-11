@@ -283,13 +283,13 @@ bool positionIsCorrect(const char* str, void* base, void** chunkPool,
   }
   for (--i; i >= 0; --i) {
     if (str[i] == 'x') {
-      js::gc::UnmapPages((void*)(uintptr_t(base) + i * Chunk), Chunk);
+      unmapPages((void*)(uintptr_t(base) + i * Chunk), Chunk);
     }
   }
   // CHECK returns, so clean up on failure.
   if (result != desired) {
     while (--tempChunks >= 0) {
-      js::gc::UnmapPages(chunkPool[tempChunks], 2 * Chunk);
+      unmapPages(chunkPool[tempChunks], 2 * Chunk);
     }
   }
   return result == desired;

@@ -893,6 +893,16 @@ static MOZ_ALWAYS_INLINE bool EdgeNeedsSweepUnbarriered(JSObject** objp) {
   return EdgeNeedsSweepUnbarrieredSlow(objp);
 }
 
+/*
+ * Sample data about internally mapped memory. This includes all GC heap
+ * allocations (and excludes js_alloc allocations).
+ */
+struct ProfilerMemoryCounts {
+  size_t bytes = 0;
+  uint64_t operations = 0;
+};
+JS_PUBLIC_API ProfilerMemoryCounts GetProfilerMemoryCounts();
+
 }  // namespace gc
 }  // namespace js
 

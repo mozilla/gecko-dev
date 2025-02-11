@@ -57,7 +57,8 @@ bool ExtendBufferMapping(void* dataStart, size_t mappedSize,
 
 // Remove an existing mapping.  `dataStart` must be the pointer to the start of
 // the mapping, and `mappedSize` the size of that mapping.
-void UnmapBufferMemory(wasm::AddressType t, void* dataStart, size_t mappedSize);
+void UnmapBufferMemory(wasm::AddressType t, void* dataStart, size_t mappedSize,
+                       size_t committedSize);
 
 // Return the number of bytes currently reserved for WebAssembly memory
 uint64_t WasmReservedBytes();

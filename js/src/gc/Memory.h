@@ -7,14 +7,22 @@
 #ifndef gc_Memory_h
 #define gc_Memory_h
 
+#include "mozilla/Atomics.h"
+
 #include <stddef.h>
 
 namespace js {
 namespace gc {
 
+extern mozilla::Atomic<size_t, mozilla::Relaxed> gMappedMemorySizeBytes;
+extern mozilla::Atomic<uint64_t, mozilla::Relaxed> gMappedMemoryOperations;
+
 // Sanity check that our compiled configuration matches the currently
 // running instance and initialize any runtime data needed for allocation.
 void InitMemorySubsystem();
+
+// Assert that memory use as recorded RecordMemoryAlloc/Free balances.
+void CheckMemorySubsystemOnShutDown();
 
 // The page size as reported by the operating system.
 size_t SystemPageSize();
@@ -89,6 +97,10 @@ void* TestMapAlignedPagesLastDitch(size_t length, size_t alignment);
 void ProtectPages(void* region, size_t length);
 void MakePagesReadOnly(void* region, size_t length);
 void UnprotectPages(void* region, size_t length);
+
+// Track mapped memory so we can report it to the profiler.
+void RecordMemoryAlloc(size_t bytes);
+void RecordMemoryFree(size_t bytes);
 
 }  // namespace gc
 }  // namespace js

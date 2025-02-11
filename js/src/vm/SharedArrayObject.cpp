@@ -285,9 +285,11 @@ void SharedArrayRawBuffer::dropReference() {
     wasm::AddressType addressType = wasmBuf->wasmAddressType();
     uint8_t* basePointer = wasmBuf->basePointer();
     size_t mappedSizeWithHeader = wasmBuf->mappedSize() + gc::SystemPageSize();
+    size_t committedSize = wasmBuf->volatileByteLength() + gc::SystemPageSize();
     // Call the destructor to destroy the growLock_ Mutex.
     wasmBuf->~WasmSharedArrayRawBuffer();
-    UnmapBufferMemory(addressType, basePointer, mappedSizeWithHeader);
+    UnmapBufferMemory(addressType, basePointer, mappedSizeWithHeader,
+                      committedSize);
   } else {
     js_delete(this);
   }

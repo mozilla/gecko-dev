@@ -200,6 +200,8 @@ void* js::MapBufferMemory(wasm::AddressType t, size_t mappedSize,
     VirtualFree(data, 0, MEM_RELEASE);
     return nullptr;
   }
+
+  gc::RecordMemoryAlloc(initialCommittedSize);
 #elif defined(__wasi__)
   void* data = nullptr;
   if (int err = posix_memalign(&data, gc::SystemPageSize(), mappedSize)) {
@@ -222,6 +224,8 @@ void* js::MapBufferMemory(wasm::AddressType t, size_t mappedSize,
     munmap(data, mappedSize);
     return nullptr;
   }
+
+  gc::RecordMemoryAlloc(initialCommittedSize);
 #endif  // !XP_WIN && !__wasi__
 
 #if defined(MOZ_VALGRIND) && \
@@ -252,6 +256,8 @@ bool js::CommitBufferMemory(void* dataEnd, size_t delta) {
   }
 #endif  // XP_WIN
 
+  gc::RecordMemoryAlloc(delta);
+
 #if defined(MOZ_VALGRIND) && \
     defined(VALGRIND_DISABLE_ADDR_ERROR_REPORTING_IN_RANGE)
   VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE((unsigned char*)dataEnd, delta);
@@ -272,6 +278,7 @@ bool js::ExtendBufferMapping(void* dataPointer, size_t mappedSize,
   if (!VirtualAlloc(mappedEnd, delta, MEM_RESERVE, PAGE_NOACCESS)) {
     return false;
   }
+  gc::RecordMemoryAlloc(delta);
   return true;
 #elif defined(__wasi__)
   return false;
@@ -280,6 +287,8 @@ bool js::ExtendBufferMapping(void* dataPointer, size_t mappedSize,
   if (MAP_FAILED == mremap(dataPointer, mappedSize, newMappedSize, 0)) {
     return false;
   }
+  uint32_t delta = newMappedSize - mappedSize;
+  gc::RecordMemoryAlloc(delta);
   return true;
 #else
   // No mechanism for remapping on MacOS and other Unices. Luckily
@@ -288,15 +297,20 @@ bool js::ExtendBufferMapping(void* dataPointer, size_t mappedSize,
 #endif
 }
 
-void js::UnmapBufferMemory(wasm::AddressType t, void* base, size_t mappedSize) {
+void js::UnmapBufferMemory(wasm::AddressType t, void* base, size_t mappedSize,
+                           size_t committedSize) {
   MOZ_ASSERT(mappedSize % gc::SystemPageSize() == 0);
+  MOZ_ASSERT(committedSize % gc::SystemPageSize() == 0);
 
 #ifdef XP_WIN
   VirtualFree(base, 0, MEM_RELEASE);
+  gc::RecordMemoryFree(committedSize);
 #elif defined(__wasi__)
   free(base);
+  (void)committedSize;
 #else
   munmap(base, mappedSize);
+  gc::RecordMemoryFree(committedSize);
 #endif  // XP_WIN
 
 #if defined(MOZ_VALGRIND) && \
@@ -1212,12 +1226,13 @@ void WasmArrayRawBuffer::Release(void* mem) {
 
   MOZ_RELEASE_ASSERT(header->mappedSize() <= SIZE_MAX - gc::SystemPageSize());
   size_t mappedSizeWithHeader = header->mappedSize() + gc::SystemPageSize();
+  size_t committedSize = header->byteLength() + gc::SystemPageSize();
 
   static_assert(std::is_trivially_destructible_v<WasmArrayRawBuffer>,
                 "no need to call the destructor");
 
   UnmapBufferMemory(header->addressType(), header->basePointer(),
-                    mappedSizeWithHeader);
+                    mappedSizeWithHeader, committedSize);
 }
 
 WasmArrayRawBuffer* ArrayBufferObject::BufferContents::wasmBuffer() const {

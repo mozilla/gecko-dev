@@ -297,6 +297,10 @@ static void ShutdownImpl(JS::detail::FrontendOnly frontendOnly) {
 
   js::ShutDownMallocAllocator();
 
+  if (!JSRuntime::hasLiveRuntimes()) {
+    js::gc::CheckMemorySubsystemOnShutDown();
+  }
+
   libraryInitState = InitState::ShutDown;
 }
 

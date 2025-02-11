@@ -6,7 +6,6 @@
 
 #include "gc/Memory.h"
 
-#include "mozilla/Atomics.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/RandomNum.h"
 #include "mozilla/TaggedAnonymousMemory.h"
@@ -139,6 +138,10 @@ static size_t maxValidAddress = 0;
 static size_t hugeSplit = 0;
 #endif
 
+/* Running totals to report to the profiler. */
+mozilla::Atomic<size_t, mozilla::Relaxed> gMappedMemorySizeBytes;
+mozilla::Atomic<uint64_t, mozilla::Relaxed> gMappedMemoryOperations;
+
 size_t SystemPageSize() { return pageSize; }
 
 size_t SystemAddressBits() { return numAddressBits; }
@@ -202,7 +205,11 @@ static void* MapAlignedPagesRandom(size_t length, size_t alignment);
 #endif
 
 void* TestMapAlignedPagesLastDitch(size_t length, size_t alignment) {
-  return MapAlignedPagesLastDitch(length, alignment, StallAndRetry::No);
+  void* region = MapAlignedPagesLastDitch(length, alignment, StallAndRetry::No);
+  if (region) {
+    RecordMemoryAlloc(length);
+  }
+  return region;
 }
 
 bool DecommitEnabled() { return decommitEnabled; }
@@ -453,6 +460,12 @@ void InitMemorySubsystem() {
     }
 #endif
   }
+
+  MOZ_ASSERT(gMappedMemorySizeBytes == 0);
+}
+
+void CheckMemorySubsystemOnShutDown() {
+  MOZ_ASSERT(gMappedMemorySizeBytes == 0);
 }
 
 #ifdef JS_64BIT
@@ -496,6 +509,7 @@ void* MapAlignedPages(size_t length, size_t alignment,
     MOZ_RELEASE_ASSERT(!IsInvalidRegion(region, length));
     MOZ_ASSERT(OffsetFromAligned(region, alignment) == 0);
 
+    RecordMemoryAlloc(length);
     return region;
   }
 #  endif
@@ -504,6 +518,7 @@ void* MapAlignedPages(size_t length, size_t alignment,
   // either we OOMed (region is nullptr) or we're done.
   void* region = MapMemory(length);
   if (OffsetFromAligned(region, alignment) == 0) {
+    RecordMemoryAlloc(length);
     return region;
   }
 
@@ -513,6 +528,7 @@ void* MapAlignedPages(size_t length, size_t alignment,
   if (TryToAlignChunk(&region, &retainedRegion, length, alignment)) {
     MOZ_ASSERT(region && OffsetFromAligned(region, alignment) == 0);
     MOZ_ASSERT(!retainedRegion);
+    RecordMemoryAlloc(length);
     return region;
   }
 
@@ -540,6 +556,11 @@ void* MapAlignedPages(size_t length, size_t alignment,
 
   // At this point we should either have an aligned region or nullptr.
   MOZ_ASSERT(OffsetFromAligned(region, alignment) == 0);
+
+  if (region) {
+    RecordMemoryAlloc(length);
+  }
+
   return region;
 #endif  // !__wasi__
 }
@@ -834,6 +855,10 @@ void UnmapPages(void* region, size_t length) {
   MOZ_MAKE_MEM_UNDEFINED(region, length);
 
   UnmapInternal(region, length);
+
+#ifndef __wasi__
+  RecordMemoryFree(length);
+#endif
 }
 
 static void CheckDecommit(void* region, size_t length) {
@@ -992,9 +1017,14 @@ void* AllocateMappedContent(int fd, size_t offset, size_t length,
     map = static_cast<uint8_t*>(
         MapViewOfFileEx(hMap, FILE_MAP_COPY, offsetH, offsetL, alignedLength,
                         reinterpret_cast<void*>(region)));
+    if (map) {
+      break;
+    }
+
+    RecordMemoryFree(mappedLength);
 
     // Retry if another thread mapped the address we were trying to use.
-    if (map || GetLastError() != ERROR_INVALID_ADDRESS) {
+    if (GetLastError() != ERROR_INVALID_ADDRESS) {
       break;
     }
   }
@@ -1060,14 +1090,24 @@ void DeallocateMappedContent(void* region, size_t length) {
   // that might be offset from the mapping, as the beginning of a
   // mapping must be aligned with the allocation granularity.
   uintptr_t map = uintptr_t(region) - (uintptr_t(region) % allocGranularity);
+
+  size_t alignedLength = length + (uintptr_t(region) % allocGranularity);
+
+  size_t mappedLength = alignedLength;
+  if (alignedLength % pageSize != 0) {
+    mappedLength += pageSize - alignedLength % pageSize;
+  }
+
 #  ifdef XP_WIN
   MOZ_RELEASE_ASSERT(UnmapViewOfFile(reinterpret_cast<void*>(map)) != 0);
 #  else
-  size_t alignedLength = length + (uintptr_t(region) % allocGranularity);
   if (munmap(reinterpret_cast<void*>(map), alignedLength)) {
     MOZ_RELEASE_ASSERT(errno == ENOMEM);
   }
 #  endif
+
+  RecordMemoryFree(mappedLength);
+
 #endif  // __wasi__
 }
 
@@ -1095,6 +1135,27 @@ void MakePagesReadOnly(void* region, size_t length) {
 
 void UnprotectPages(void* region, size_t length) {
   ProtectMemory(region, length, PageAccess::ReadWrite);
+}
+
+void RecordMemoryAlloc(size_t bytes) {
+  MOZ_ASSERT(bytes);
+  MOZ_ASSERT((bytes % pageSize) == 0);
+
+  gMappedMemorySizeBytes += bytes;
+  gMappedMemoryOperations++;
+}
+
+void RecordMemoryFree(size_t bytes) {
+  MOZ_ASSERT(bytes);
+  MOZ_ASSERT((bytes % pageSize) == 0);
+  MOZ_ASSERT(bytes <= gMappedMemorySizeBytes);
+
+  gMappedMemorySizeBytes -= bytes;
+  gMappedMemoryOperations++;
+}
+
+JS_PUBLIC_API ProfilerMemoryCounts GetProfilerMemoryCounts() {
+  return {gc::gMappedMemorySizeBytes, gc::gMappedMemoryOperations};
 }
 
 }  // namespace js::gc

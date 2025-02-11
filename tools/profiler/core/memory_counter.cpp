@@ -22,15 +22,20 @@ class MemoryCounter : public BaseProfilerCount {
   }
 
   CountSample Sample() override {
-    jemalloc_stats_lite_t stats;
-
-    jemalloc_stats_lite(&stats);
-
     CountSample sample = {
-        .count = int64_t(stats.allocated_bytes),
-        .number = stats.num_operations,
+        .count = 0,
+        .number = 0,
         .isSampleNew = true,
     };
+
+    jemalloc_stats_lite_t mallocStats;
+    jemalloc_stats_lite(&mallocStats);
+    sample.count += int64_t(mallocStats.allocated_bytes);
+    sample.number += mallocStats.num_operations;
+
+    js::gc::ProfilerMemoryCounts jsStats = js::gc::GetProfilerMemoryCounts();
+    sample.count += int64_t(jsStats.bytes);
+    sample.number += jsStats.operations;
 
     return sample;
   }
