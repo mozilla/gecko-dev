@@ -285,10 +285,11 @@ static inline bool IsFixedPaddingSize(const LengthPercentage& aCoord) {
 static inline bool IsFixedMarginSize(const StyleMargin& aCoord) {
   return aCoord.ConvertsToLength();
 }
-static inline bool IsFixedOffset(const StyleInset& aInset) {
+static inline bool IsFixedOffset(
+    const nsStylePosition::AnchorResolvedInset& aInset) {
   // For anchor positioning functions, even if the computed value may be a
   // fixed length, it depends on the absolute containing block's size.
-  return aInset.ConvertsToLength();
+  return aInset->ConvertsToLength();
 }
 
 bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
@@ -330,6 +331,7 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
       return true;
     }
   }
+  const auto positionProperty = f->StyleDisplay()->mPosition;
   if (wm.IsVertical() ? aCBWidthChanged : aCBHeightChanged) {
     // See if f's block-size might have changed.
     // If margin-block-start/end, padding-block-start/end,
@@ -342,8 +344,11 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     // lengths?
     if ((pos->BSizeDependsOnContainer(wm) &&
          !(pos->BSize(wm).IsAuto() &&
-           pos->mOffset.Get(LogicalSide::BEnd, wm).MaybeAuto() &&
-           !pos->mOffset.Get(LogicalSide::BStart, wm).MaybeAuto())) ||
+           pos->GetAnchorResolvedInset(LogicalSide::BEnd, wm, positionProperty)
+               ->IsAuto() &&
+           !pos->GetAnchorResolvedInset(LogicalSide::BStart, wm,
+                                        positionProperty)
+                ->IsAuto())) ||
         pos->MinBSizeDependsOnContainer(wm) ||
         pos->MaxBSizeDependsOnContainer(wm) ||
         !IsFixedPaddingSize(padding->mPadding.GetBStart(wm)) ||
@@ -365,7 +370,8 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
   // sides (left and top) that we use to store coordinates, these tests
   // are easier to do using physical coordinates rather than logical.
   if (aCBWidthChanged) {
-    if (!IsFixedOffset(pos->mOffset.Get(eSideLeft))) {
+    if (!IsFixedOffset(
+            pos->GetAnchorResolvedInset(eSideLeft, positionProperty))) {
       return true;
     }
     // Note that even if 'left' is a length, our position can still
@@ -377,17 +383,18 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     // sure of.
     if ((wm.GetInlineDir() == WritingMode::InlineDir::RTL ||
          wm.GetBlockDir() == WritingMode::BlockDir::RL) &&
-        !pos->mOffset.Get(eSideRight).MaybeAuto()) {
+        !pos->GetAnchorResolvedInset(eSideRight, positionProperty)->IsAuto()) {
       return true;
     }
   }
   if (aCBHeightChanged) {
-    if (!IsFixedOffset(pos->mOffset.Get(eSideTop))) {
+    if (!IsFixedOffset(
+            pos->GetAnchorResolvedInset(eSideTop, positionProperty))) {
       return true;
     }
     // See comment above for width changes.
     if (wm.GetInlineDir() == WritingMode::InlineDir::BTT &&
-        !pos->mOffset.Get(eSideBottom).MaybeAuto()) {
+        !pos->GetAnchorResolvedInset(eSideBottom, positionProperty)->IsAuto()) {
       return true;
     }
   }
