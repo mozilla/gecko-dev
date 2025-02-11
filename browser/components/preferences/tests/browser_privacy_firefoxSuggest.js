@@ -19,10 +19,10 @@ requestLongerTimeout(10);
 // The following tasks check the initial visibility of the Firefox Suggest UI
 // and the visibility after installing a Nimbus experiment.
 
-add_task(async function history_suggestDisabled() {
+add_task(async function initiallyDisabled_disable() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["history"],
+    initialSuggestEnabled: false,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: false },
     },
@@ -32,10 +32,10 @@ add_task(async function history_suggestDisabled() {
   });
 });
 
-add_task(async function history_suggestEnabled() {
+add_task(async function initiallyDisabled_enable() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["history"],
+    initialSuggestEnabled: false,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: false },
     },
@@ -48,10 +48,10 @@ add_task(async function history_suggestEnabled() {
   });
 });
 
-add_task(async function history_suggestEnabled_hideSettingsUIDisabled() {
+add_task(async function initiallyDisabled_enable_hideSettingsUiFalse() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["history"],
+    initialSuggestEnabled: false,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: false },
     },
@@ -65,10 +65,10 @@ add_task(async function history_suggestEnabled_hideSettingsUIDisabled() {
   });
 });
 
-add_task(async function history_suggestEnabled_hideSettingsUIEnabled() {
+add_task(async function initiallyDisabled_enable_hideSettingsUiTrue() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["history"],
+    initialSuggestEnabled: false,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: false },
     },
@@ -79,10 +79,10 @@ add_task(async function history_suggestEnabled_hideSettingsUIEnabled() {
   });
 });
 
-add_task(async function offlineOnline_suggestDisabled() {
+add_task(async function initiallyEnabled_disable() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["offline", "online"],
+    initialSuggestEnabled: true,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: true },
     },
@@ -95,10 +95,10 @@ add_task(async function offlineOnline_suggestDisabled() {
   });
 });
 
-add_task(async function offlineOnline_suggestEnabled() {
+add_task(async function initiallyEnabled_enable() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["offline", "online"],
+    initialSuggestEnabled: true,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: true },
     },
@@ -108,10 +108,10 @@ add_task(async function offlineOnline_suggestEnabled() {
   });
 });
 
-add_task(async function offlineOnline_hideSettingsUIDisabled() {
+add_task(async function initiallyEnabled_hideSettingsUiFalse() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["offline", "online"],
+    initialSuggestEnabled: true,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: true },
     },
@@ -121,10 +121,10 @@ add_task(async function offlineOnline_hideSettingsUIDisabled() {
   });
 });
 
-add_task(async function offlineOnline_hideSettingsUIEnabled() {
+add_task(async function initiallyEnabled_hideSettingsUiTrue() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["offline", "online"],
+    initialSuggestEnabled: true,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: true },
     },
@@ -137,10 +137,10 @@ add_task(async function offlineOnline_hideSettingsUIEnabled() {
   });
 });
 
-add_task(async function offlineOnline_suggestEnabled_hideSettingsUIDisabled() {
+add_task(async function initiallyEnabled_enable_hideSettingsUiFalse() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["offline", "online"],
+    initialSuggestEnabled: true,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: true },
     },
@@ -151,10 +151,10 @@ add_task(async function offlineOnline_suggestEnabled_hideSettingsUIDisabled() {
   });
 });
 
-add_task(async function offlineOnline_suggestEnabled_hideSettingsUIEnabled() {
+add_task(async function initiallyEnabled_enable_hideSettingsUiTrue() {
   await doSuggestVisibilityTest({
     pane: "privacy",
-    initialScenarios: ["offline", "online"],
+    initialSuggestEnabled: true,
     initialExpected: {
       [CONTAINER_ID]: { isVisible: true },
     },

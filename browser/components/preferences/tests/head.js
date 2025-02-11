@@ -346,16 +346,16 @@ async function mockDefaultFxAInstance() {
 
 /**
  * Runs a test that checks the visibility of the Firefox Suggest preferences UI.
- * An initial Suggest scenario is set and visibility is checked. Then a Nimbus
- * experiment is installed and visibility is checked again. Finally the page is
- * reopened and visibility is checked again.
+ * An initial Suggest enabled status is set and visibility is checked. Then a
+ * Nimbus experiment is installed that enables or disables Suggest and
+ * visibility is checked again. Finally the page is reopened and visibility is
+ * checked again.
  *
- * @param {array} initialScenarios
- *   Array of Suggest scenario names. The test will be run once per scenario,
- *   with each test starting with a given scenario.
+ * @param {boolean} initialSuggestEnabled
+ *   Whether Suggest should be enabled initially.
  * @param {object} initialExpected
- *   The expected visibility after setting the initial scenario. It should be an
- *   object that can be passed to `assertSuggestVisibility()`.
+ *   The expected visibility after setting the initial enabled status. It should
+ *   be an object that can be passed to `assertSuggestVisibility()`.
  * @param {object} nimbusVariables
  *   An object mapping Nimbus variable names to values.
  * @param {object} newExpected
@@ -365,53 +365,52 @@ async function mockDefaultFxAInstance() {
  *   The pref pane to open.
  */
 async function doSuggestVisibilityTest({
-  initialScenarios,
+  initialSuggestEnabled,
   initialExpected,
   nimbusVariables,
   newExpected = initialExpected,
   pane = "search",
 }) {
-  for (let scenario of initialScenarios) {
-    info(
-      "Running Suggest visibility test: " +
-        JSON.stringify(
-          {
-            scenario,
-            initialExpected,
-            nimbusVariables,
-            newExpected,
-          },
-          null,
-          2
-        )
-    );
+  info(
+    "Running Suggest visibility test: " +
+      JSON.stringify(
+        {
+          initialSuggestEnabled,
+          initialExpected,
+          nimbusVariables,
+          newExpected,
+        },
+        null,
+        2
+      )
+  );
 
-    // Set the initial scenario.
-    await QuickSuggestTestUtils.setScenario(scenario);
+  // Set the initial enabled status.
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.quicksuggest.enabled", initialSuggestEnabled]],
+  });
 
-    // Open prefs and check the initial visibility.
-    await openPreferencesViaOpenPreferencesAPI(pane, { leaveOpen: true });
-    assertSuggestVisibility(initialExpected);
+  // Open prefs and check the initial visibility.
+  await openPreferencesViaOpenPreferencesAPI(pane, { leaveOpen: true });
+  assertSuggestVisibility(initialExpected);
 
-    // Install a Nimbus experiment.
-    await QuickSuggestTestUtils.withExperiment({
-      valueOverrides: nimbusVariables,
-      callback: async () => {
-        // Check visibility again.
-        assertSuggestVisibility(newExpected);
+  // Install a Nimbus experiment.
+  await QuickSuggestTestUtils.withExperiment({
+    valueOverrides: nimbusVariables,
+    callback: async () => {
+      // Check visibility again.
+      assertSuggestVisibility(newExpected);
 
-        // To make sure visibility is properly updated on load, close the tab,
-        // open the prefs again, and check visibility.
-        gBrowser.removeCurrentTab();
-        await openPreferencesViaOpenPreferencesAPI(pane, { leaveOpen: true });
-        assertSuggestVisibility(newExpected);
-      },
-    });
+      // To make sure visibility is properly updated on load, close the tab,
+      // open the prefs again, and check visibility.
+      gBrowser.removeCurrentTab();
+      await openPreferencesViaOpenPreferencesAPI(pane, { leaveOpen: true });
+      assertSuggestVisibility(newExpected);
+    },
+  });
 
-    gBrowser.removeCurrentTab();
-  }
-
-  await QuickSuggestTestUtils.setScenario(null);
+  gBrowser.removeCurrentTab();
+  await SpecialPowers.popPrefEnv();
 }
 
 /**
