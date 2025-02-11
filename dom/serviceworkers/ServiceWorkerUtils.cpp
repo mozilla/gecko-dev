@@ -87,25 +87,24 @@ bool ServiceWorkerRegistrationDataIsValid(
 
 class WorkerCheckMayLoadSyncRunnable final : public WorkerMainThreadRunnable {
  public:
-  WorkerCheckMayLoadSyncRunnable(std::function<void(ErrorResult&)>&& aCheckFunc)
+  WorkerCheckMayLoadSyncRunnable(std::function<void(ErrorResult&)>&& aCheckFunc,
+                                 ErrorResult& aRv)
       : WorkerMainThreadRunnable(GetCurrentThreadWorkerPrivate(),
                                  "WorkerCheckMayLoadSyncRunnable"_ns),
-        mCheckFunc(aCheckFunc) {}
+        mCheckFunc(aCheckFunc),
+        mRv(aRv) {}
 
   bool MainThreadRun() override {
-    ErrorResult localResult;
-    mCheckFunc(localResult);
-    mRv = CopyableErrorResult(std::move(localResult));
+    mCheckFunc(mRv);
     return true;
-  }
-
-  void PropagateErrorResult(ErrorResult& aOutRv) {
-    aOutRv = ErrorResult(std::move(mRv));
   }
 
  private:
   std::function<void(ErrorResult&)> mCheckFunc;
-  CopyableErrorResult mRv;
+  // This reference is safe because we are a synchronously dispatched runnable
+  // and while we expect the ErrorResult to be stack-allocated, our runnable
+  // holds that stack alive during the sync dispatch.
+  ErrorResult& mRv;
 };
 
 namespace {
@@ -155,12 +154,8 @@ void CheckMayLoadOnMainThread(ErrorResult& aRv,
   }
 
   RefPtr<WorkerCheckMayLoadSyncRunnable> runnable =
-      new WorkerCheckMayLoadSyncRunnable(std::move(aCheckFunc));
+      new WorkerCheckMayLoadSyncRunnable(std::move(aCheckFunc), aRv);
   runnable->Dispatch(GetCurrentThreadWorkerPrivate(), Canceling, aRv);
-  if (aRv.Failed()) {
-    return;
-  }
-  runnable->PropagateErrorResult(aRv);
 }
 
 }  // anonymous namespace
