@@ -89,14 +89,19 @@ function waitForState(dbg, predicate, msg = "") {
       return;
     }
 
-    const unsubscribe = dbg.store.subscribe(() => {
-      result = predicate(dbg.store.getState());
-      if (result) {
-        info(`Finished waiting for state change: ${msg}`);
-        unsubscribe();
-        resolve(result);
-      }
-    });
+    const unsubscribe = dbg.store.subscribe(
+      () => {
+        result = predicate(dbg.store.getState());
+        if (result) {
+          info(`Finished waiting for state change: ${msg}`);
+          unsubscribe();
+          resolve(result);
+        }
+      },
+      // The `visibilityHandlerStore` wrapper may prevent the test helper from being
+      // notified about store updates while the debugger is in background.
+      { ignoreVisibility: true }
+    );
   });
 }
 
