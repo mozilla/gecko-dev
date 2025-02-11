@@ -24,8 +24,20 @@ async function generateAltText(targetElementId) {
 /**
  * Called in the tab content
  */
-async function initModal() {
-  getModal().updateText("Initializing...");
+async function _displayMessage(message) {
+  getModal().updateText(message);
+}
+
+/**
+ * Calling _displayMessage in the tab content to display the message to the user.
+ */
+async function displayMessage(tab, message) {
+  await browser.scripting.executeScript({
+    target: {
+      tabId: tab.id,
+    },
+    func: _displayMessage.bind(null, message),
+  });
 }
 
 // Initialize the Map to track first run status per tab
@@ -73,6 +85,7 @@ async function onclick(info, tab) {
   };
 
   browser.trial.ml.onProgress.addListener(listener);
+
   try {
     if (isFirstRun(tab.id)) {
       // injecting content-script.js, which creates the AltTextModal instance.
@@ -81,18 +94,16 @@ async function onclick(info, tab) {
         files: ["./content-script.js"],
       });
 
-      // running generateAltText
-      await browser.scripting.executeScript({
-        target: {
-          tabId: tab.id,
-        },
-        func: initModal,
-      });
-
-      await browser.trial.ml.createEngine({
-        modelHub: "mozilla",
-        taskName: "image-to-text",
-      });
+      await displayMessage(tab, "Initializing...");
+      try {
+        await browser.trial.ml.createEngine({
+          modelHub: "mozilla",
+          taskName: "image-to-text",
+        });
+      } catch (err) {
+        await displayMessage(tab, `${err}`);
+        return;
+      }
     }
     // running generateAltText
     await browser.scripting.executeScript({
