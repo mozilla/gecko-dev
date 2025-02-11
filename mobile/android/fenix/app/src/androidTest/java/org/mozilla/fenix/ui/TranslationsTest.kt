@@ -117,6 +117,7 @@ class TranslationsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2443276
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1947435")
     @SmokeTest
     @Test
     fun verifyTheTranslationIsDisplayedAutomaticallyTest() {
@@ -161,6 +162,7 @@ class TranslationsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2437991
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1946938")
     @SmokeTest
     @Test
     fun verifyTheNeverTranslateOptionTest() {
@@ -286,6 +288,7 @@ class TranslationsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2437990
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1947433")
     @Test
     fun verifyTheAlwaysOfferToTranslateOptionTest() {
         val firstTestPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
