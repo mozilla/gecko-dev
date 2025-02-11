@@ -51,6 +51,14 @@ async function go() {
     // I'm leaving this (no-op) if-check in the test in case it's useful
     // for debugging/logging at some point, though.
   }
+
+  // Force a reflow to make sure the forceDesktopViewport flag is
+  // picked up.
+  document.documentElement.style.display = "none";
+  document.documentElement.getBoundingClientRect();
+  document.documentElement.style.display = "block";
+  document.documentElement.getBoundingClientRect();
+
   document.documentElement.classList.remove('reftest-wait');
 }
 
