@@ -8,9 +8,6 @@ const { AddonTestUtils } = ChromeUtils.importESModule(
 const { ExtensionPermissions } = ChromeUtils.importESModule(
   "resource://gre/modules/ExtensionPermissions.sys.mjs"
 );
-const { Management } = ChromeUtils.importESModule(
-  "resource://gre/modules/Extension.sys.mjs"
-);
 
 const lazy = {};
 ChromeUtils.defineLazyGetter(lazy, "l10n", function () {
@@ -143,7 +140,7 @@ function testInstallDialogIncognitoCheckbox(
   {
     toggleIncognito = false,
     incognitoChecked = false,
-    incognitoHidden = ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX,
+    incognitoHidden = false,
   } = {}
 ) {
   // If the incognito toggle is expected to be in the first install dialog
@@ -212,17 +209,9 @@ function testInstallDialogIncognitoCheckbox(
 function acceptAppMenuNotificationWhenShown(
   id,
   extensionId,
-  {
-    dismiss = false,
-    toggleIncognito = false,
-    incognitoChecked = false,
-    // Expect the private browsing checkbox to be hidden by default if disabled through prefs.
-    incognitoHidden = !ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX,
-    global = window,
-  } = {}
+  { dismiss = false, global = window } = {}
 ) {
   const { AppMenuNotifications, PanelUI, document } = global;
-  const { POSTINSTALL_PRIVATEBROWSING_CHECKBOX } = ExtensionsUI;
   return new Promise(resolve => {
     let permissionChangePromise = null;
     function appMenuPopupHidden() {
@@ -237,55 +226,6 @@ function acceptAppMenuNotificationWhenShown(
       PanelUI.panel.removeEventListener("popupshown", appMenuPopupShown);
       PanelUI.menuButton.click();
     }
-    function checkPostInstallIncognitoCheckbox() {
-      let checkbox = document.getElementById("addon-incognito-checkbox");
-
-      if (!POSTINSTALL_PRIVATEBROWSING_CHECKBOX) {
-        is(checkbox.hidden, true, "post install checkbox should be hidden");
-        // Make sure that when the helper is used with the postInstall privatebrowsing checkbox disabled
-        // we raise an explicit error if the options passed can never be matching the actual expected behaviors.
-        Assert.equal(
-          incognitoHidden,
-          true,
-          "acceptAppMenuNotificationWhenShown incognitoHidden should be true"
-        );
-        Assert.equal(
-          incognitoChecked,
-          false,
-          "acceptAppMenuNotificationWhenShown incognitoChecked should be false"
-        );
-        Assert.equal(
-          toggleIncognito,
-          false,
-          "acceptAppMenuNotificationWhenShown toggleIncognito should be false"
-        );
-        return;
-      }
-
-      is(checkbox.hidden, incognitoHidden, "checkbox visibility is correct");
-      is(checkbox.checked, incognitoChecked, "checkbox is marked as expected");
-
-      // If we're unchecking or checking the incognito property, this will
-      // trigger an update in ExtensionPermission, let's wait for it before
-      // returning from this promise.
-      if (toggleIncognito) {
-        permissionChangePromise = new Promise(resolve => {
-          const listener = (type, change) => {
-            if (extensionId == change.extensionId) {
-              // Let's make sure we received the right message
-              let { permissions } = incognitoChecked
-                ? change.removed
-                : change.added;
-              ok(permissions.includes("internal:privateBrowsingAllowed"));
-              resolve();
-            }
-          };
-          Management.once("change-permissions", listener);
-        });
-
-        checkbox.checked = !checkbox.checked;
-      }
-    }
     function popupshown() {
       let notification = AppMenuNotifications.activeNotification;
       if (!notification) {
@@ -296,8 +236,6 @@ function acceptAppMenuNotificationWhenShown(
       ok(PanelUI.isNotificationPanelOpen, "notification panel open");
 
       PanelUI.notificationPanel.removeEventListener("popupshown", popupshown);
-
-      checkPostInstallIncognitoCheckbox();
 
       if (dismiss) {
         // Dismiss the panel by clicking on the appMenu button.
@@ -561,8 +499,7 @@ var TESTS = [
 
     notificationPromise = acceptAppMenuNotificationWhenShown(
       "addon-installed",
-      "amosigned-xpi@tests.mozilla.org",
-      { incognitoHidden: !ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX }
+      "amosigned-xpi@tests.mozilla.org"
     );
 
     installDialog.button.click();
@@ -705,8 +642,7 @@ var TESTS = [
 
       let notificationPromise = acceptAppMenuNotificationWhenShown(
         "addon-installed",
-        "test@tests.mozilla.org",
-        { incognitoHidden: true }
+        "test@tests.mozilla.org"
       );
 
       const installDialog = await installDialogPromise;
@@ -839,9 +775,7 @@ var TESTS = [
     let notificationPromise = acceptAppMenuNotificationWhenShown(
       "addon-installed",
       "amosigned-xpi@tests.mozilla.org",
-      ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX
-        ? { dismiss: true, incognitoHidden: false, incognitoChecked: false }
-        : { dismiss: true, incognitoHidden: true }
+      { dismiss: true }
     );
     acceptInstallDialog(installDialog);
 
@@ -1161,26 +1095,15 @@ var TESTS = [
     await progressPromise;
     let installDialog = await dialogPromise;
 
-    testInstallDialogIncognitoCheckbox(
-      installDialog,
-      ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX
-        ? { incognitoHidden: true }
-        : {
-            incognitoHidden: false,
-            incognitoChecked: false,
-            toggleIncognito: true,
-          }
-    );
+    testInstallDialogIncognitoCheckbox(installDialog, {
+      incognitoHidden: false,
+      incognitoChecked: false,
+      toggleIncognito: true,
+    });
 
     let notificationPromise = acceptAppMenuNotificationWhenShown(
       "addon-installed",
-      "amosigned-xpi@tests.mozilla.org",
-      {
-        // If the incognito toggle from the post install dialog is enabled
-        // it should be toggled, otherwise we expect it to be hidden.
-        toggleIncognito: ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX,
-        incognitoHidden: !ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX,
-      }
+      "amosigned-xpi@tests.mozilla.org"
     );
     installDialog.button.click();
     await notificationPromise;
@@ -1424,25 +1347,15 @@ var TESTS = [
     await progressPromise;
     let installDialog = await dialogPromise;
 
-    testInstallDialogIncognitoCheckbox(
-      installDialog,
-      ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX
-        ? { incognitoHidden: true }
-        : {
-            incognitoHidden: false,
-            incognitoChecked: true,
-            toggleIncognito: true,
-          }
-    );
+    testInstallDialogIncognitoCheckbox(installDialog, {
+      incognitoHidden: false,
+      incognitoChecked: true,
+      toggleIncognito: true,
+    });
 
     let notificationPromise = acceptAppMenuNotificationWhenShown(
       "addon-installed",
-      "amosigned-xpi@tests.mozilla.org",
-      // If the incognito toggle from the post install dialog is enabled
-      // it should be toggled, otherwise we expect it to be hidden.
-      ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX
-        ? { incognitoChecked: true, toggleIncognito: true }
-        : { incognitoHidden: true }
+      "amosigned-xpi@tests.mozilla.org"
     );
     installDialog.button.click();
     await notificationPromise;
@@ -1453,15 +1366,6 @@ var TESTS = [
     let addon = await AddonManager.getAddonByID(
       "amosigned-xpi@tests.mozilla.org"
     );
-
-    if (ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX) {
-      // The panel is reloading the addon due to the permission change, we need some way
-      // to wait for the reload to finish. addon.startupPromise doesn't do it for
-      // us, so we'll just restart again.
-      await AddonTestUtils.promiseWebExtensionStartup(
-        "amosigned-xpi@tests.mozilla.org"
-      );
-    }
 
     // This addon should no longer have private browsing permission.
     let policy = WebExtensionPolicy.getByID(addon.id);
@@ -1532,23 +1436,16 @@ var TESTS = [
     let panel = win.PopupNotifications.panel;
     let installDialog = panel.childNodes[0];
 
-    testInstallDialogIncognitoCheckbox(
-      installDialog,
-      ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX
-        ? { incognitoHidden: true }
-        : {
-            incognitoHidden: false,
-            incognitoChecked: true,
-            toggleIncognito: true,
-          }
-    );
+    testInstallDialogIncognitoCheckbox(installDialog, {
+      incognitoHidden: false,
+      incognitoChecked: true,
+      toggleIncognito: true,
+    });
 
     let notificationPromise = acceptAppMenuNotificationWhenShown(
       "addon-installed",
       "amosigned-xpi@tests.mozilla.org",
-      ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX
-        ? { incognitoChecked: true, toggleIncognito: true, global: win }
-        : { incognitoHidden: true, global: win }
+      { global: win }
     );
     acceptInstallDialog(installDialog);
     await notificationPromise;
@@ -1559,14 +1456,6 @@ var TESTS = [
     let addon = await AddonManager.getAddonByID(
       "amosigned-xpi@tests.mozilla.org"
     );
-    if (ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX) {
-      // The panel is reloading the addon due to the permission change, we need some way
-      // to wait for the reload to finish. addon.startupPromise doesn't do it for
-      // us, so we'll just restart again.
-      await AddonTestUtils.promiseWebExtensionStartup(
-        "amosigned-xpi@tests.mozilla.org"
-      );
-    }
 
     // This addon should no longer have private browsing permission.
     let policy = WebExtensionPolicy.getByID(addon.id);
@@ -1707,7 +1596,9 @@ add_setup(async function () {
   });
 });
 
-const runTestCases = async () => {
+// Run all test cases with the private browsing checkbox available in the first
+// install dialog, before the addon has been already installed.
+add_task(async function testBasic() {
   for (let i = 0; i < TESTS.length; ++i) {
     if (gTestStart) {
       info("Test part took " + (Date.now() - gTestStart) + "ms");
@@ -1722,36 +1613,4 @@ const runTestCases = async () => {
     gTestStart = Date.now();
     await TESTS[i]();
   }
-};
-
-// Run all test cases with the private browsing checkbox available in the first
-// install dialog, before the addon has been already installed.
-add_task(async function testWithPostInstallIncognitoToggleFalse() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.ui.postInstallPrivateBrowsingCheckbox", false]],
-  });
-  // Sanity check.
-  is(
-    ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX,
-    false,
-    "Expect POSTINSTALL_PRIVATEBROWSING_CHECKBOX to be disabled"
-  );
-  await runTestCases();
-  await SpecialPowers.popPrefEnv();
-});
-
-// Run all test cases with the private browsing checkbox available in the post
-// install dialog, after the addon has been already installed.
-add_task(async function testWithPostInstallIncognitoToggleTrue() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.ui.postInstallPrivateBrowsingCheckbox", true]],
-  });
-  // Sanity check.
-  is(
-    ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX,
-    true,
-    "Expect POSTINSTALL_PRIVATEBROWSING_CHECKBOX to be enabled"
-  );
-  await runTestCases();
-  await SpecialPowers.popPrefEnv();
 });

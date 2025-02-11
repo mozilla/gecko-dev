@@ -35,13 +35,6 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", () =>
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "POSTINSTALL_PRIVATEBROWSING_CHECKBOX",
-  "extensions.ui.postInstallPrivateBrowsingCheckbox",
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "SHOW_FULL_DOMAINS_LIST",
   "extensions.ui.installDialogFullDomains",
   true
@@ -74,10 +67,6 @@ export var ExtensionsUI = {
 
   get SHOW_FULL_DOMAINS_LIST() {
     return lazy.SHOW_FULL_DOMAINS_LIST;
-  },
-
-  get POSTINSTALL_PRIVATEBROWSING_CHECKBOX() {
-    return lazy.POSTINSTALL_PRIVATEBROWSING_CHECKBOX;
   },
 
   async init() {
@@ -193,17 +182,6 @@ export var ExtensionsUI = {
         await addon.enable();
 
         this._updateNotifications();
-
-        // The user has just enabled a sideloaded extension, if the permission
-        // can be changed for the extension, show the post-install panel to
-        // give the user that opportunity.
-        if (
-          ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX &&
-          addon.permissions &
-            lazy.AddonManager.PERM_CAN_CHANGE_PRIVATEBROWSING_ACCESS
-        ) {
-          this.showInstallNotification(tabbrowser.selectedBrowser, addon);
-        }
       }
       this.emit("sideload-response");
     });
@@ -418,9 +396,7 @@ export var ExtensionsUI = {
   ) {
     let { browser, window } = getTabBrowser(target);
 
-    let showIncognitoCheckbox =
-      shouldShowIncognitoCheckbox && !lazy.POSTINSTALL_PRIVATEBROWSING_CHECKBOX;
-
+    let showIncognitoCheckbox = shouldShowIncognitoCheckbox;
     if (showIncognitoCheckbox) {
       showIncognitoCheckbox = !!(
         addon.permissions &
@@ -632,11 +608,6 @@ export var ExtensionsUI = {
       addonName: "<>",
     });
 
-    const hideIncognitoCheckbox = !lazy.POSTINSTALL_PRIVATEBROWSING_CHECKBOX;
-    const permissionName = "internal:privateBrowsingAllowed";
-    const { permissions } = await lazy.ExtensionPermissions.get(addon.id);
-    const hasIncognito = permissions.includes(permissionName);
-
     return new Promise(resolve => {
       let icon = addon.isWebExtension
         ? lazy.AddonManager.getPreferredIconURL(addon, 32, window) ||
@@ -688,66 +659,17 @@ export var ExtensionsUI = {
           options
         );
       } else {
-        // Show or hide private permission ui based on the pref.
-        function setCheckbox(win) {
-          let checkbox = win.document.getElementById(
-            "addon-incognito-checkbox"
-          );
-          checkbox.checked = hasIncognito;
-          checkbox.hidden =
-            hideIncognitoCheckbox ||
-            !(
-              addon.permissions &
-              lazy.AddonManager.PERM_CAN_CHANGE_PRIVATEBROWSING_ACCESS
-            );
-        }
-
-        async function actionResolve(win) {
-          let checkbox = win.document.getElementById(
-            "addon-incognito-checkbox"
-          );
-
-          if (hideIncognitoCheckbox || checkbox.checked == hasIncognito) {
-            resolve();
-            return;
-          }
-
-          let incognitoPermission = {
-            permissions: [permissionName],
-            origins: [],
-          };
-
-          // The checkbox has been changed at this point, otherwise we would
-          // have exited early above.
-          if (checkbox.checked) {
-            await lazy.ExtensionPermissions.add(addon.id, incognitoPermission);
-          } else if (hasIncognito) {
-            await lazy.ExtensionPermissions.remove(
-              addon.id,
-              incognitoPermission
-            );
-          }
-          // Reload the extension if it is already enabled.  This ensures any change
-          // on the private browsing permission is properly handled.
-          if (addon.isActive) {
-            await addon.reload();
-          }
-
-          resolve();
-        }
-
         let action = {
-          callback: actionResolve,
+          callback: resolve,
         };
 
         let options = {
           name: addon.name,
           message,
           popupIconURL: icon,
-          onRefresh: setCheckbox,
-          onDismissed: win => {
+          onDismissed: () => {
             lazy.AppMenuNotifications.removeNotification("addon-installed");
-            actionResolve(win);
+            resolve();
           },
         };
         lazy.AppMenuNotifications.showNotification(

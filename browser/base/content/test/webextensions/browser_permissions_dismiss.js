@@ -13,13 +13,9 @@ const expectedPermsCount = !ExtensionsUI.SHOW_FULL_DOMAINS_LIST ? 5 : 4;
 
 function assertPermissionsListCount({ grantedPermissionsCount }) {
   let permsUL = document.getElementById("addon-webext-perm-list");
-  // When the private browsing checkbox is expected to be shown in the post install
-  // dialog we expect only one entry for each of the expected granted permissions,
-  // otherwise we expect one more perms list entry for the private browsing checkbox
-  // in addition to the entries for the granted permissions.
-  const count = ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX
-    ? grantedPermissionsCount
-    : grantedPermissionsCount + 1;
+  // We expect one entry for each of the expected granted permissions and one
+  // for the private browsing checkbox.
+  const count = grantedPermissionsCount + 1;
   is(
     permsUL.childElementCount,
     count,

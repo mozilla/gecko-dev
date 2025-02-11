@@ -223,13 +223,7 @@ function isDefaultIcon(icon) {
  * @param {boolean} sideloaded
  *        Whether the notification is for a sideloaded extenion.
  */
-function checkNotification(
-  panel,
-  checkIcon,
-  permissions,
-  sideloaded,
-  expectIncognitoCheckboxHidden
-) {
+function checkNotification(panel, checkIcon, permissions, sideloaded) {
   let icon = panel.getAttribute("icon");
   let learnMoreLink = panel.querySelector(".popup-notification-learnmore-link");
   let ul = document.getElementById("addon-webext-perm-list");
@@ -260,63 +254,51 @@ function checkNotification(
   ok(description.startsWith(exp.at(0)), "Description is the expected one");
   ok(description.endsWith(exp.at(-1)), "Description is the expected one");
 
-  const expectIncognitoCheckbox =
-    !ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX &&
-    !expectIncognitoCheckboxHidden;
-
-  is(
-    learnMoreLink.hidden,
-    !permissions.length && !expectIncognitoCheckbox,
-    "Permissions learn more is hidden if there are no permissions"
+  const hasPBCheckbox = !!(
+    singleDataEl.querySelector("checkbox") || ul.querySelector("checkbox")
   );
 
-  if (!permissions.length) {
+  is(
+    BrowserTestUtils.isHidden(learnMoreLink),
+    !permissions.length && !hasPBCheckbox,
+    "Permissions learn more is hidden if there are no permissions and no private browsing checkbox"
+  );
+
+  if (!permissions.length && !hasPBCheckbox) {
     ok(ul.hidden, "Permissions list is hidden");
-    if (expectIncognitoCheckbox) {
-      ok(
-        !singleDataEl.hidden,
-        "Expect a single permission entry for the private browsing checkbox to not be hidden"
-      );
-      ok(
-        singleDataEl.querySelector("checkbox"),
-        "Expect a checkbox inside the single permission entry"
-      );
-      ok(
-        singleDataEl.textContent,
-        "Single entry text content should not empty"
-      );
-      is(ul.childElementCount, 0, "Permission list should have no entries");
-    } else {
-      ok(singleDataEl.hidden, "Single permission data entry is hidden");
-      ok(
-        !(ul.childElementCount || singleDataEl.textContent),
-        "Permission list and single permission element have no entries"
-      );
-    }
-  } else if (permissions.length === 1) {
-    if (expectIncognitoCheckbox) {
-      ok(singleDataEl.hidden, "Single permission data entry is hidden");
-      ok(!ul.hidden, "Permissions list to not be hidden");
-      is(ul.childElementCount, 2, "Expect 2 entries in the permissions list");
-      is(
-        ul.children[0].textContent,
-        formatExtValue(permissions[0]),
-        "First Permission entry is correct"
-      );
-      const lastEntry = ul.children[permissions.length];
-      ok(
-        lastEntry.classList.contains("webext-perm-privatebrowsing"),
-        "Expect last permissions list entry to be the private browsing checkbox"
-      );
-      ok(
-        lastEntry.querySelector("checkbox"),
-        "Expect a checkbox inside the last permissions list entry"
-      );
-    } else {
-      ok(ul.hidden, "Permissions list is hidden");
-      ok(!ul.childElementCount, "Permission list has no entries");
-      ok(singleDataEl.textContent, "Single permission data label has been set");
-    }
+    ok(singleDataEl.hidden, "Expect a single permission entry to be hidden");
+  } else if (!permissions.length) {
+    ok(ul.hidden, "Permissions list is hidden");
+    ok(
+      !singleDataEl.hidden,
+      "Expect a single permission entry for the private browsing checkbox to not be hidden"
+    );
+    ok(
+      singleDataEl.querySelector("checkbox"),
+      "Expect a checkbox inside the single permission entry"
+    );
+    ok(singleDataEl.textContent, "Single entry text content should not empty");
+    is(ul.childElementCount, 0, "Permission list should have no entries");
+  } else if (permissions.length === 1 && hasPBCheckbox) {
+    ok(!ul.hidden, "Permissions list to not be hidden");
+    is(ul.childElementCount, 2, "Expect 2 entries in the permissions list");
+    is(
+      ul.children[0].textContent,
+      formatExtValue(permissions[0]),
+      "First Permission entry is correct"
+    );
+    const lastEntry = ul.children[permissions.length];
+    ok(
+      lastEntry.classList.contains("webext-perm-privatebrowsing"),
+      "Expect last permissions list entry to be the private browsing checkbox"
+    );
+    ok(
+      lastEntry.querySelector("checkbox"),
+      "Expect a checkbox inside the last permissions list entry"
+    );
+  } else if (permissions.length === 1 && !hasPBCheckbox) {
+    ok(ul.hidden, "Permissions list to be hidden");
+    ok(!ul.childElementCount, "Permission list has no entries");
   } else {
     ok(singleDataEl.hidden, "Single permission data entry is hidden");
     ok(
@@ -337,15 +319,12 @@ function checkNotification(
         : ul.children[i].textContent;
       is(permDescriptionEl, expected, `Permission number ${i + 1} is correct`);
     }
-    if (expectIncognitoCheckbox) {
+
+    if (hasPBCheckbox) {
       const lastEntry = ul.children[permissions.length];
       ok(
         lastEntry.classList.contains("webext-perm-privatebrowsing"),
         "Expect last permissions list entry to be the private browsing checkbox"
-      );
-      ok(
-        lastEntry.querySelector("checkbox"),
-        "Expect a checkbox inside the last permissions list entry"
       );
     }
   }

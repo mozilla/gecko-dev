@@ -182,22 +182,17 @@ add_task(async function test_sideloaded_extension_permissions_prompt() {
 add_task(async function testInstallDialogShowsFullDomainsList() {
   await SpecialPowers.pushPrefEnv({
     set: [
-      // These are both expected to be the default, but we are setting
-      // them explicitly to make sure this test task is always running
+      // This expected to be the default, but we are setting
+      // it explicitly to make sure this test task is always running
       // with the prefs set with these values even if we would be
       // rolling back the pref value temporarily.
       ["extensions.ui.installDialogFullDomains", true],
-      ["extensions.ui.postInstallPrivateBrowsingCheckbox", false],
     ],
   });
   // Sanity check.
   ok(
     ExtensionsUI.SHOW_FULL_DOMAINS_LIST,
     "Expect SHOW_FULL_DOMAINS_LIST to be enabled"
-  );
-  ok(
-    !ExtensionsUI.POSTINSTALL_PRIVATEBROWSING_CHECKBOX,
-    "Expect POSTINSTALL_PRIVATEBROWSING_CHECKBOX to be disabled"
   );
 
   const createTestExtensionXPI = ({
