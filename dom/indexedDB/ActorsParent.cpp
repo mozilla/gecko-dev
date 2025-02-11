@@ -12205,9 +12205,12 @@ nsresult QuotaClient::UpgradeStorageFrom1_0To2_0(nsIFile* aDirectory) {
   AssertIsOnIOThread();
   MOZ_ASSERT(aDirectory);
 
-  QM_TRY_INSPECT((const auto& [subdirsToProcess, databaseFilenames]),
+  QM_TRY_INSPECT(const auto& databaseFilenamesInfo,
                  GetDatabaseFilenames(*aDirectory,
                                       /* aCanceled */ AtomicBool{false}));
+  // FIXME: use structural binding once we support c++20.
+  const auto& subdirsToProcess = databaseFilenamesInfo.subdirsToProcess;
+  const auto& databaseFilenames = databaseFilenamesInfo.databaseFilenames;
 
   QM_TRY(CollectEachInRange(
       subdirsToProcess,
