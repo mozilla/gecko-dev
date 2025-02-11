@@ -359,8 +359,7 @@ export async function getDirectoryHandleFromOPFS(
 ) {
   let currentNavigator = globalThis.navigator;
   if (!currentNavigator) {
-    currentNavigator =
-      Services.wm.getMostRecentWindow("navigator:browser").navigator;
+    currentNavigator = Services.wm.getMostRecentBrowserWindow().navigator;
   }
   let directoryHandle = await currentNavigator.storage.getDirectory();
 
