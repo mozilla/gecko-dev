@@ -32,7 +32,14 @@ public final class HardwareCodecCapabilityUtils {
   private static final String VP8_MIME_TYPE = "video/x-vnd.on2.vp8";
   // List of supported HW VP9 codecs.
   private static final String[] supportedVp9HwCodecPrefixes = {
-    "OMX.qcom.", "OMX.Exynos.", "c2.exynos"
+    "OMX.qcom.",
+    "OMX.Exynos.",
+    "c2.exynos",
+    "OMX.allwinner.",
+    "OMX.amlogic.",
+    "OMX.MTK.",
+    "OMX.Nvidia.",
+    "OMX.rk."
   };
   private static final String VP9_MIME_TYPE = "video/x-vnd.on2.vp9";
   // List of supported HW H.264 codecs.
@@ -47,7 +54,10 @@ public final class HardwareCodecCapabilityUtils {
     "OMX.k3.",
     "OMX.hisi.",
     "OMX.TI.",
-    "OMX.MTK."
+    "OMX.MTK.",
+    "OMX.allwinner.",
+    "OMX.amlogic.",
+    "OMX.rk."
   };
   private static final String H264_MIME_TYPE = "video/avc";
   private static final String HEVC_MIME_TYPE = "video/hevc";
