@@ -111,6 +111,7 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
 
     /// Resolve a [ColorComponent] into a float.  None is "none".
     pub fn resolve(&self, origin_color: Option<&AbsoluteColor>) -> Result<Option<ValueType>, ()> {
+        struct EmptyContext;
         Ok(match self {
             ColorComponent::None => None,
             ColorComponent::Value(value) => Some(value.clone()),
@@ -123,7 +124,7 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
             },
             ColorComponent::Calc(node) => {
                 let Ok(resolved_leaf) = node.resolve_map(
-                    |leaf| {
+                    |leaf, _| {
                         Ok(match leaf {
                             Leaf::ColorComponent(channel_keyword) => match origin_color {
                                 Some(origin_color) => {
@@ -136,7 +137,8 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                             l => l.clone(),
                         })
                     },
-                    |_| Err(()),
+                    |_, _| Ok(None),
+                    &mut EmptyContext,
                 ) else {
                     return Err(());
                 };
