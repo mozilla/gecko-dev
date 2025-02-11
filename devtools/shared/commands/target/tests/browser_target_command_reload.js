@@ -101,6 +101,11 @@ add_task(async function () {
     }
   );
 
+  const targets = await targetCommand.getAllTargets(targetCommand.ALL_TYPES);
+  for(const targetFront of targets) {
+    is(targetFront.addonId, extension.id, `Target ${targetFront.actorID} has the right addonId attribute`);
+  }
+
   await targetCommand.reloadTopLevelTarget();
 
   info("Wait for next dom-loading DOCUMENT_EVENT");

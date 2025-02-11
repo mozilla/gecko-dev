@@ -106,6 +106,7 @@ class WebExtensionContentScriptTargetActor extends BaseTargetActor {
 
     return {
       actor: this.actorID,
+      addonId: this.addonId,
 
       // Use the related extension as content script title
       // as content scripts have no name, they are just a group of JS files

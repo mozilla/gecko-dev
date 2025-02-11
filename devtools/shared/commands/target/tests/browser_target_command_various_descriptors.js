@@ -213,6 +213,7 @@ async function testWebExtension() {
     "the web extension target is of frame type, because it inherits from WindowGlobalTargetActor"
   );
   is(targetFront.isTopLevel, true, "This is flagged as top level");
+  is(targetFront.addonId, extension.id, "The addonId attribute is correct");
 
   targetCommand.destroy();
 
