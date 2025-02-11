@@ -444,8 +444,7 @@ TEST(TestStandardURL, CoalescePath)
   auto testCoalescing = [](const char* input, const char* expected,
                            uint32_t lastSlash, uint32_t endOfBasename) {
     nsAutoCString buf(input);
-    auto resultCoalesceDirs =
-        net_CoalesceDirs(NET_COALESCE_NORMAL, buf.BeginWriting());
+    auto resultCoalesceDirs = net_CoalesceDirs(buf.BeginWriting());
 
     ASSERT_EQ(nsCString(buf.get()), nsCString(expected));
 
