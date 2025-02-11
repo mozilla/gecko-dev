@@ -52,21 +52,24 @@ export const autocompleteUXTreatments = {
     ],
   },
   "basic-info": {
-    image: "chrome://browser/content/asrouter/assets/glyph-mail-16.svg",
+    image:
+      "chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg",
     messageIds: [
       "firefox-relay-opt-in-title-a",
       "firefox-relay-opt-in-subtitle-a",
     ],
   },
   "with-domain": {
-    image: "chrome://browser/content/asrouter/assets/glyph-mail-16.svg",
+    image:
+      "chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg",
     messageIds: [
       "firefox-relay-opt-in-title-b",
       "firefox-relay-opt-in-subtitle-b",
     ],
   },
   "with-domain-and-value-prop": {
-    image: "chrome://browser/content/asrouter/assets/glyph-mail-16.svg",
+    image:
+      "chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg",
     messageIds: [
       "firefox-relay-opt-in-title-b",
       "firefox-relay-opt-in-subtitle-b",

@@ -4,15 +4,15 @@
 "use strict";
 
 const { actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
+  "resource://activity-stream/common/Actions.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
-  Screenshots: "resource://newtab/lib/Screenshots.sys.mjs",
-  SectionsManager: "resource://newtab/lib/SectionsManager.sys.mjs",
+  Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
+  SectionsManager: "resource://activity-stream/lib/SectionsManager.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
 });
 
@@ -22,7 +22,9 @@ const {
   BOOKMARKS_RESTORE_SUCCESS_EVENT,
   BOOKMARKS_RESTORE_FAILED_EVENT,
   SECTION_ID,
-} = ChromeUtils.importESModule("resource://newtab/lib/HighlightsFeed.sys.mjs");
+} = ChromeUtils.importESModule(
+  "resource://activity-stream/lib/HighlightsFeed.sys.mjs"
+);
 
 const FAKE_LINKS = new Array(20)
   .fill(null)

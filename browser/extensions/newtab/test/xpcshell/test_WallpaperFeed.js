@@ -4,11 +4,11 @@
 "use strict";
 
 const { WallpaperFeed } = ChromeUtils.importESModule(
-  "resource://newtab/lib/WallpaperFeed.sys.mjs"
+  "resource://activity-stream/lib/WallpaperFeed.sys.mjs"
 );
 
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
+  "resource://activity-stream/common/Actions.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {

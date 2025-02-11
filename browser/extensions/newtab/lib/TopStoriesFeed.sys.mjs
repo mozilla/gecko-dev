@@ -5,10 +5,10 @@
 import {
   actionTypes as at,
   actionCreators as ac,
-} from "resource://newtab/common/Actions.mjs";
-import { Prefs } from "resource://newtab/lib/ActivityStreamPrefs.sys.mjs";
-import { SectionsManager } from "resource://newtab/lib/SectionsManager.sys.mjs";
-import { PersistentCache } from "resource://newtab/lib/PersistentCache.sys.mjs";
+} from "resource://activity-stream/common/Actions.mjs";
+import { Prefs } from "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs";
+import { SectionsManager } from "resource://activity-stream/lib/SectionsManager.sys.mjs";
+import { PersistentCache } from "resource://activity-stream/lib/PersistentCache.sys.mjs";
 
 const lazy = {};
 

@@ -160,13 +160,13 @@ input {
 }
 .icon.icon-modal-delete {
   flex-shrink: 0;
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-modal-delete-20.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-modal-delete-20.svg");
   background-size: 32px;
   height: 32px;
   width: 32px;
 }
 .icon.icon-mail {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-mail-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg");
 }
 .icon.icon-dismiss {
   background-image: url("chrome://global/skin/icons/close.svg");
@@ -175,7 +175,7 @@ input {
   background-image: url("chrome://global/skin/icons/info.svg");
 }
 .icon.icon-info-critical {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-info-critical-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-info-critical-16.svg");
 }
 .icon.icon-info-warning {
   background-image: url("chrome://global/skin/icons/warning.svg");
@@ -186,7 +186,7 @@ input {
   background-image: url("chrome://global/skin/icons/help.svg");
 }
 .icon.icon-new-window {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-newWindow-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-newWindow-16.svg");
 }
 .icon.icon-new-window:dir(rtl) {
   transform: scaleX(-1);
@@ -198,13 +198,13 @@ input {
   background-image: url("chrome://global/skin/icons/settings.svg");
 }
 .icon.icon-pin {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-pin-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-pin-16.svg");
 }
 .icon.icon-pin:dir(rtl) {
   transform: scaleX(-1);
 }
 .icon.icon-unpin {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-unpin-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-unpin-16.svg");
 }
 .icon.icon-unpin:dir(rtl) {
   transform: scaleX(-1);
@@ -220,10 +220,10 @@ input {
   fill: #FFF;
 }
 .icon.icon-pocket-delete {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-pocket-delete-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-pocket-delete-16.svg");
 }
 .icon.icon-pocket-archive {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-pocket-archive-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-pocket-archive-16.svg");
 }
 .icon.icon-history-item {
   background-image: url("chrome://browser/skin/history.svg");
@@ -263,10 +263,10 @@ input {
   background-image: url("chrome://global/skin/icons/edit-copy.svg");
 }
 .icon.icon-open-file {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-open-file-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-open-file-16.svg");
 }
 .icon.icon-webextension {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-webextension-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-webextension-16.svg");
 }
 .icon.icon-weather {
   background-image: url("chrome://browser/skin/weather/sunny.svg");
@@ -299,13 +299,13 @@ input {
   background-image: url("chrome://global/skin/icons/plus.svg");
 }
 .icon.icon-add-circle-fill {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-add-circle-fill-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-add-circle-fill-16.svg");
 }
 .icon.icon-minimize {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-minimize-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-minimize-16.svg");
 }
 .icon.icon-maximize {
-  background-image: url("chrome://newtab/content/data/content/assets/glyph-maximize-16.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/glyph-maximize-16.svg");
 }
 .icon.icon-arrow {
   background-image: url("chrome://global/skin/icons/arrow-right-12.svg");
@@ -2562,40 +2562,40 @@ main section {
   border-radius: 8px;
 }
 .wallpaper-input.dark-landscape {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/dark-landscape.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/dark-landscape.avif");
 }
 .wallpaper-input.dark-color {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/dark-color.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/dark-color.avif");
 }
 .wallpaper-input.dark-mountain {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/dark-mountain.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/dark-mountain.avif");
 }
 .wallpaper-input.dark-panda {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/dark-panda.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/dark-panda.avif");
 }
 .wallpaper-input.dark-sky {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/dark-sky.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/dark-sky.avif");
 }
 .wallpaper-input.dark-beach {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/dark-beach.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/dark-beach.avif");
 }
 .wallpaper-input.light-beach {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/light-beach.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/light-beach.avif");
 }
 .wallpaper-input.light-color {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/light-color.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/light-color.avif");
 }
 .wallpaper-input.light-landscape {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/light-landscape.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/light-landscape.avif");
 }
 .wallpaper-input.light-mountain {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/light-mountain.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/light-mountain.avif");
 }
 .wallpaper-input.light-panda {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/light-panda.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/light-panda.avif");
 }
 .wallpaper-input.light-sky {
-  background-image: url("chrome://newtab/content/data/content/assets/wallpapers/light-sky.avif");
+  background-image: url("chrome://activity-stream/content/data/content/assets/wallpapers/light-sky.avif");
 }
 .wallpaper-input.theme-solid-color-picker.active, .wallpaper-input:checked {
   outline-color: var(--color-accent-primary-active);
@@ -4439,7 +4439,7 @@ main section {
   }
 }
 .ds-onboarding-container .ds-onboarding-graphic {
-  background-image: image-set(url("chrome://newtab/content/data/content/assets/pocket-onboarding.avif"), url("chrome://newtab/content/data/content/assets/pocket-onboarding@2x.avif") 2x);
+  background-image: image-set(url("chrome://activity-stream/content/data/content/assets/pocket-onboarding.avif"), url("chrome://activity-stream/content/data/content/assets/pocket-onboarding@2x.avif") 2x);
   border-radius: 8px;
   background-size: contain;
   background-repeat: no-repeat;
@@ -5787,7 +5787,7 @@ main section {
   background-size: cover;
 }
 .ds-navigation.ds-navigation-new-topics .ds-navigation-family .firefox-logo {
-  background-image: url("chrome://newtab/content/data/content/assets/firefox.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/firefox.svg");
 }
 .ds-navigation.ds-navigation-new-topics .ds-navigation-family .pocket-logo {
   background-image: url("chrome://global/skin/icons/pocket.svg");
@@ -6472,7 +6472,7 @@ main section {
   margin-inline-end: 6px;
 }
 .story-footer .status-message .story-badge-icon.icon-bookmark-removed {
-  background-image: url("chrome://newtab/content/data/content/assets/icon-removed-bookmark.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/icon-removed-bookmark.svg");
 }
 .story-footer .status-message .story-context-label {
   color: var(--newtab-text-secondary-color);
@@ -6545,7 +6545,7 @@ main section {
 }
 .ds-image .placeholder-image::before {
   content: "";
-  background-image: url("chrome://newtab/content/data/content/assets/pocket-swoosh.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/pocket-swoosh.svg");
   background-repeat: no-repeat;
   background-position: center;
   transform: rotate(var(--placeholderBackgroundRotation));
@@ -6701,7 +6701,7 @@ main section {
   top: 50%;
   left: 50%;
   margin: -10px 0 0 -10px;
-  mask-image: url("chrome://newtab/content/data/content/assets/spinner.svg");
+  mask-image: url("chrome://activity-stream/content/data/content/assets/spinner.svg");
   mask-size: 20px;
   background: var(--newtab-text-secondary-color);
 }
@@ -7198,7 +7198,7 @@ main section {
   float: inline-end;
 }
 .sponsored-content-highlight .sponsored-message-icon {
-  background-image: url("chrome://newtab/content/data/content/assets/sponsor-message-icon.svg");
+  background-image: url("chrome://activity-stream/content/data/content/assets/sponsor-message-icon.svg");
   background-size: 18px;
   height: 18px;
   width: 18px;

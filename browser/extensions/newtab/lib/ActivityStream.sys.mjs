@@ -16,28 +16,29 @@ const { AppConstants } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AboutPreferences: "resource://newtab/lib/AboutPreferences.sys.mjs",
-  AdsFeed: "resource://newtab/lib/AdsFeed.sys.mjs",
-  DEFAULT_SITES: "resource://newtab/lib/DefaultSites.sys.mjs",
-  DefaultPrefs: "resource://newtab/lib/ActivityStreamPrefs.sys.mjs",
-  DiscoveryStreamFeed: "resource://newtab/lib/DiscoveryStreamFeed.sys.mjs",
-  FaviconFeed: "resource://newtab/lib/FaviconFeed.sys.mjs",
-  HighlightsFeed: "resource://newtab/lib/HighlightsFeed.sys.mjs",
-  NewTabInit: "resource://newtab/lib/NewTabInit.sys.mjs",
+  AboutPreferences: "resource://activity-stream/lib/AboutPreferences.sys.mjs",
+  AdsFeed: "resource://activity-stream/lib/AdsFeed.sys.mjs",
+  DEFAULT_SITES: "resource://activity-stream/lib/DefaultSites.sys.mjs",
+  DefaultPrefs: "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs",
+  DiscoveryStreamFeed:
+    "resource://activity-stream/lib/DiscoveryStreamFeed.sys.mjs",
+  FaviconFeed: "resource://activity-stream/lib/FaviconFeed.sys.mjs",
+  HighlightsFeed: "resource://activity-stream/lib/HighlightsFeed.sys.mjs",
+  NewTabInit: "resource://activity-stream/lib/NewTabInit.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  PrefsFeed: "resource://newtab/lib/PrefsFeed.sys.mjs",
-  PlacesFeed: "resource://newtab/lib/PlacesFeed.sys.mjs",
+  PrefsFeed: "resource://activity-stream/lib/PrefsFeed.sys.mjs",
+  PlacesFeed: "resource://activity-stream/lib/PlacesFeed.sys.mjs",
   RecommendationProvider:
-    "resource://newtab/lib/RecommendationProvider.sys.mjs",
+    "resource://activity-stream/lib/RecommendationProvider.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
-  SectionsFeed: "resource://newtab/lib/SectionsManager.sys.mjs",
-  Store: "resource://newtab/lib/Store.sys.mjs",
-  SystemTickFeed: "resource://newtab/lib/SystemTickFeed.sys.mjs",
-  TelemetryFeed: "resource://newtab/lib/TelemetryFeed.sys.mjs",
-  TopSitesFeed: "resource://newtab/lib/TopSitesFeed.sys.mjs",
-  TopStoriesFeed: "resource://newtab/lib/TopStoriesFeed.sys.mjs",
-  WallpaperFeed: "resource://newtab/lib/WallpaperFeed.sys.mjs",
-  WeatherFeed: "resource://newtab/lib/WeatherFeed.sys.mjs",
+  SectionsFeed: "resource://activity-stream/lib/SectionsManager.sys.mjs",
+  Store: "resource://activity-stream/lib/Store.sys.mjs",
+  SystemTickFeed: "resource://activity-stream/lib/SystemTickFeed.sys.mjs",
+  TelemetryFeed: "resource://activity-stream/lib/TelemetryFeed.sys.mjs",
+  TopSitesFeed: "resource://activity-stream/lib/TopSitesFeed.sys.mjs",
+  TopStoriesFeed: "resource://activity-stream/lib/TopStoriesFeed.sys.mjs",
+  WallpaperFeed: "resource://activity-stream/lib/WallpaperFeed.sys.mjs",
+  WeatherFeed: "resource://activity-stream/lib/WeatherFeed.sys.mjs",
 });
 
 // NB: Eagerly load modules that will be loaded/constructed/initialized in the
@@ -45,7 +46,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 import {
   actionCreators as ac,
   actionTypes as at,
-} from "resource://newtab/common/Actions.mjs";
+} from "resource://activity-stream/common/Actions.mjs";
 
 const REGION_WEATHER_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-weather-config";

@@ -7,7 +7,7 @@ const lazy = {
 };
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
+  PersistentCache: "resource://activity-stream/lib/PersistentCache.sys.mjs",
 });
 
 // `contextId` is a unique identifier used by Contextual Services
@@ -24,7 +24,7 @@ ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
 import {
   actionTypes as at,
   actionCreators as ac,
-} from "resource://newtab/common/Actions.mjs";
+} from "resource://activity-stream/common/Actions.mjs";
 
 // Prefs for AdsFeeds to run
 const PREF_UNIFIED_ADS_ADSFEED_ENABLED = "unifiedAds.adsFeed.enabled";

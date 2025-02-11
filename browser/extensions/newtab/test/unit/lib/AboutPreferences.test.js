@@ -237,7 +237,7 @@ describe("AboutPreferences Feed", () => {
         assert.calledWith(
           node.setAttribute,
           "src",
-          "chrome://newtab/content/data/content/assets/glyph-webextension-16.svg"
+          "chrome://activity-stream/content/data/content/assets/glyph-webextension-16.svg"
         );
       });
       it("should use desired glyph icon", () => {
@@ -248,7 +248,7 @@ describe("AboutPreferences Feed", () => {
         assert.calledWith(
           node.setAttribute,
           "src",
-          "chrome://newtab/content/data/content/assets/glyph-mail-16.svg"
+          "chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg"
         );
       });
       it("should use specified chrome icon", () => {

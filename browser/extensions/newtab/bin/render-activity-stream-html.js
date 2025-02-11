@@ -15,7 +15,7 @@ const DEFAULT_OPTIONS = {
   // go up one level.
   addonPath: "..",
   // depends on the registration in browser/extensions/newtab/jar.mn
-  baseUrl: "resource://newtab/",
+  baseUrl: "resource://activity-stream/",
   baseVendorUrl: "chrome://global/content/",
 };
 
@@ -89,7 +89,7 @@ function templateHTML(options) {
     />
     <link
       rel="stylesheet"
-      href="chrome://newtab/content/css/activity-stream.css"
+      href="chrome://activity-stream/content/css/activity-stream.css"
     />
   </head>
   <body class="activity-stream">

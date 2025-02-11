@@ -15,7 +15,7 @@ const { EventEmitter } = ChromeUtils.importESModule(
 import {
   actionCreators as ac,
   actionTypes as at,
-} from "resource://newtab/common/Actions.mjs";
+} from "resource://activity-stream/common/Actions.mjs";
 
 const lazy = {};
 

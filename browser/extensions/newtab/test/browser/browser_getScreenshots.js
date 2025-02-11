@@ -9,7 +9,7 @@ const TEST_URL =
 const XHTMLNS = "http://www.w3.org/1999/xhtml";
 
 const { Screenshots } = ChromeUtils.importESModule(
-  "resource://newtab/lib/Screenshots.sys.mjs"
+  "resource://activity-stream/lib/Screenshots.sys.mjs"
 );
 
 function get_pixels(stringOrObject, width, height) {

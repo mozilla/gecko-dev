@@ -68,7 +68,7 @@
 
   @each $wallpaper in $wallpapers {
     &.#{$wallpaper} {
-      background-image: url('chrome://newtab/content/data/content/assets/wallpapers/#{$wallpaper}.avif')
+      background-image: url('chrome://activity-stream/content/data/content/assets/wallpapers/#{$wallpaper}.avif')
     }
   }
 

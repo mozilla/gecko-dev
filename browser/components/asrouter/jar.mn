@@ -3,8 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
-% resource activity-stream %res/activity-stream/ contentaccessible=yes
-% content activity-stream %content/activity-stream/ contentaccessible=yes
   content/activity-stream/data/content/assets/glyph-webextension-16.svg  (content/assets/glyph-webextension-16.svg)
   content/browser/asrouter/asrouter-admin.html                           (content/asrouter-admin.html)
   content/browser/asrouter/asrouter-admin.bundle.js                      (content/asrouter-admin.bundle.js)
@@ -20,7 +18,6 @@ browser.jar:
   content/browser/asrouter/assets/fox-with-locked-box.svg                (content/assets/fox-with-locked-box.svg)
   content/browser/asrouter/assets/fox-with-mobile.svg                    (content/assets/fox-with-mobile.svg)
   content/browser/asrouter/assets/glyph-cfr-feature-16.svg               (content/assets/glyph-cfr-feature-16.svg)
-  content/browser/asrouter/assets/glyph-mail-16.svg                      (content/assets/glyph-mail-16.svg)
   content/browser/asrouter/assets/smiling-fox-icon.svg                   (content/assets/smiling-fox-icon.svg)
   content/browser/asrouter/assets/tabgroups/hort-animated-dark.svg       (content/assets/tabgroups/hort-animated-dark.svg)
   content/browser/asrouter/assets/tabgroups/hort-animated-light.svg      (content/assets/tabgroups/hort-animated-light.svg)

@@ -1,7 +1,7 @@
 "use strict";
 
 const { WeatherFeed } = ChromeUtils.importESModule(
-  "resource://newtab/lib/WeatherFeed.sys.mjs"
+  "resource://activity-stream/lib/WeatherFeed.sys.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {

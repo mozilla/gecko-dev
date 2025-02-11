@@ -52,14 +52,14 @@
 
   &.icon-modal-delete {
     flex-shrink: 0;
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-modal-delete-20.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-modal-delete-20.svg');
     background-size: $larger-icon-size;
     height: $larger-icon-size;
     width: $larger-icon-size;
   }
 
   &.icon-mail {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-mail-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg');
   }
 
   &.icon-dismiss {
@@ -71,7 +71,7 @@
   }
 
   &.icon-info-critical {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-info-critical-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-info-critical-16.svg');
   }
 
   &.icon-info-warning {
@@ -87,7 +87,7 @@
   &.icon-new-window {
     @include flip-icon;
 
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-newWindow-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-newWindow-16.svg');
   }
 
   &.icon-new-window-private {
@@ -101,13 +101,13 @@
   &.icon-pin {
     @include flip-icon;
 
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-pin-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-pin-16.svg');
   }
 
   &.icon-unpin {
     @include flip-icon;
 
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-unpin-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-unpin-16.svg');
   }
 
   &.icon-edit {
@@ -124,11 +124,11 @@
   }
 
   &.icon-pocket-delete {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-pocket-delete-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-pocket-delete-16.svg');
   }
 
   &.icon-pocket-archive {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-pocket-archive-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-pocket-archive-16.svg');
   }
 
   &.icon-history-item {
@@ -178,11 +178,11 @@
   }
 
   &.icon-open-file {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-open-file-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-open-file-16.svg');
   }
 
   &.icon-webextension {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-webextension-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-webextension-16.svg');
   }
 
   &.icon-weather {
@@ -224,15 +224,15 @@
   }
 
   &.icon-add-circle-fill {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-add-circle-fill-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-add-circle-fill-16.svg');
   }
 
   &.icon-minimize {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-minimize-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-minimize-16.svg');
   }
 
   &.icon-maximize {
-    background-image: url('chrome://newtab/content/data/content/assets/glyph-maximize-16.svg');
+    background-image: url('chrome://activity-stream/content/data/content/assets/glyph-maximize-16.svg');
   }
 
   &.icon-arrow {

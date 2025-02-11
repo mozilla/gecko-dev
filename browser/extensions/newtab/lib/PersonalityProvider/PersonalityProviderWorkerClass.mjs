@@ -5,10 +5,10 @@
 import {
   tokenize,
   toksToTfIdfVector,
-} from "resource://newtab/lib/PersonalityProvider/Tokenize.mjs";
-import { NaiveBayesTextTagger } from "resource://newtab/lib/PersonalityProvider/NaiveBayesTextTagger.mjs";
-import { NmfTextTagger } from "resource://newtab/lib/PersonalityProvider/NmfTextTagger.mjs";
-import { RecipeExecutor } from "resource://newtab/lib/PersonalityProvider/RecipeExecutor.mjs";
+} from "resource://activity-stream/lib/PersonalityProvider/Tokenize.mjs";
+import { NaiveBayesTextTagger } from "resource://activity-stream/lib/PersonalityProvider/NaiveBayesTextTagger.mjs";
+import { NmfTextTagger } from "resource://activity-stream/lib/PersonalityProvider/NmfTextTagger.mjs";
+import { RecipeExecutor } from "resource://activity-stream/lib/PersonalityProvider/RecipeExecutor.mjs";
 
 // A helper function to create a hash out of a file.
 async function _getFileHash(filepath) {

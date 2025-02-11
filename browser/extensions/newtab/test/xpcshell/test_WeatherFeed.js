@@ -4,11 +4,11 @@
 "use strict";
 
 const { WeatherFeed } = ChromeUtils.importESModule(
-  "resource://newtab/lib/WeatherFeed.sys.mjs"
+  "resource://activity-stream/lib/WeatherFeed.sys.mjs"
 );
 
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
+  "resource://activity-stream/common/Actions.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {

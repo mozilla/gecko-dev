@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { ActivityStreamMessageChannel } from "resource://newtab/lib/ActivityStreamMessageChannel.sys.mjs";
-import { Prefs } from "resource://newtab/lib/ActivityStreamPrefs.sys.mjs";
-import { reducers } from "resource://newtab/common/Reducers.sys.mjs";
+import { ActivityStreamMessageChannel } from "resource://activity-stream/lib/ActivityStreamMessageChannel.sys.mjs";
+import { Prefs } from "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs";
+import { reducers } from "resource://activity-stream/common/Reducers.sys.mjs";
 import { redux } from "chrome://global/content/vendor/Redux.sys.mjs";
 
 /**

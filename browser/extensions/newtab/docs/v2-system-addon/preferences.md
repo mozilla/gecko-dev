@@ -50,7 +50,7 @@ To read/set/observe Activity Stream preferences, construct a `Prefs` instance fo
 ```js
 // Import Prefs
 const { Prefs } = ChromeUtils.importESModule(
-  "resource://newtab/lib/ActivityStreamPrefs.sys.mjs"
+  "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs"
 );
 
 // Create an instance

@@ -16,9 +16,9 @@ const { XPCOMUtils } = ChromeUtils.importESModule(
 import {
   actionTypes as at,
   actionUtils as au,
-} from "resource://newtab/common/Actions.mjs";
-import { Prefs } from "resource://newtab/lib/ActivityStreamPrefs.sys.mjs";
-import { classifySite } from "resource://newtab/lib/SiteClassifier.sys.mjs";
+} from "resource://activity-stream/common/Actions.mjs";
+import { Prefs } from "resource://activity-stream/lib/ActivityStreamPrefs.sys.mjs";
+import { classifySite } from "resource://activity-stream/lib/SiteClassifier.sys.mjs";
 
 const lazy = {};
 
@@ -30,7 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   HomePage: "resource:///modules/HomePage.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
-  UTEventReporting: "resource://newtab/lib/UTEventReporting.sys.mjs",
+  UTEventReporting: "resource://activity-stream/lib/UTEventReporting.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
 });
 

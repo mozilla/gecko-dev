@@ -4,7 +4,7 @@
 "use strict";
 
 const { actionTypes: at, actionCreators: ac } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
+  "resource://activity-stream/common/Actions.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {
@@ -14,7 +14,7 @@ ChromeUtils.defineESModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PartnerLinkAttribution: "resource:///modules/PartnerLinkAttribution.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
-  PlacesFeed: "resource://newtab/lib/PlacesFeed.sys.mjs",
+  PlacesFeed: "resource://activity-stream/lib/PlacesFeed.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchService: "resource://gre/modules/SearchService.sys.mjs",

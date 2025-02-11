@@ -4,10 +4,12 @@
 "use strict";
 
 const { TopSitesFeed, ContileIntegration, DEFAULT_TOP_SITES } =
-  ChromeUtils.importESModule("resource://newtab/lib/TopSitesFeed.sys.mjs");
+  ChromeUtils.importESModule(
+    "resource://activity-stream/lib/TopSitesFeed.sys.mjs"
+  );
 
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
-  "resource://newtab/common/Actions.mjs"
+  "resource://activity-stream/common/Actions.mjs"
 );
 
 ChromeUtils.defineESModuleGetters(this, {
@@ -16,7 +18,7 @@ ChromeUtils.defineESModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
-  Screenshots: "resource://newtab/lib/Screenshots.sys.mjs",
+  Screenshots: "resource://activity-stream/lib/Screenshots.sys.mjs",
   Sampling: "resource://gre/modules/components-utils/Sampling.sys.mjs",
   SearchService: "resource://gre/modules/SearchService.sys.mjs",
   TOP_SITES_DEFAULT_ROWS: "resource:///modules/topsites/constants.mjs",

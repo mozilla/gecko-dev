@@ -7,13 +7,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
-  PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
+  PersistentCache: "resource://activity-stream/lib/PersistentCache.sys.mjs",
 });
 
 import {
   actionTypes as at,
   actionCreators as ac,
-} from "resource://newtab/common/Actions.mjs";
+} from "resource://activity-stream/common/Actions.mjs";
 
 const CACHE_KEY = "weather_feed";
 const WEATHER_UPDATE_TIME = 10 * 60 * 1000; // 10 minutes
