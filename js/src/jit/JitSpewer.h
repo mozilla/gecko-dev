@@ -17,7 +17,6 @@
 #include "jit/JSONSpewer.h"
 #include "js/Printer.h"
 #include "js/TypeDecls.h"
-#include "wasm/WasmTypeDef.h"
 
 enum JSValueType : uint8_t;
 
@@ -149,8 +148,7 @@ class GraphSpewer {
   JSONSpewer jsonSpewer_;
 
  public:
-  explicit GraphSpewer(TempAllocator* alloc,
-                       const wasm::TypeContext* wasmTypes = nullptr);
+  explicit GraphSpewer(TempAllocator* alloc);
 
   bool isSpewing() const { return graph_; }
   void init(MIRGraph* graph, JSScript* function);
@@ -235,8 +233,7 @@ void EnableIonDebugAsyncLogging();
 
 class GraphSpewer {
  public:
-  explicit GraphSpewer(TempAllocator* alloc,
-                       const wasm::TypeContext* wasmTypes = nullptr) {}
+  explicit GraphSpewer(TempAllocator* alloc) {}
 
   bool isSpewing() { return false; }
   void init(MIRGraph* graph, JSScript* function) {}

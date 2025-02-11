@@ -41,8 +41,7 @@ class MIRGenerator final {
   MIRGenerator(CompileRealm* realm, const JitCompileOptions& options,
                TempAllocator* alloc, MIRGraph* graph,
                const CompileInfo* outerInfo,
-               const OptimizationInfo* optimizationInfo,
-               const wasm::TypeContext* wasmTypes = nullptr);
+               const OptimizationInfo* optimizationInfo);
 
   void initMinWasmMemory0Length(uint64_t init) { minWasmMemory0Length_ = init; }
 

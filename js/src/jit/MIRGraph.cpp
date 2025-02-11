@@ -21,8 +21,7 @@ MIRGenerator::MIRGenerator(CompileRealm* realm,
                            const JitCompileOptions& options,
                            TempAllocator* alloc, MIRGraph* graph,
                            const CompileInfo* info,
-                           const OptimizationInfo* optimizationInfo,
-                           const wasm::TypeContext* wasmTypes)
+                           const OptimizationInfo* optimizationInfo)
     : realm(realm),
       runtime(realm ? realm->runtime() : nullptr),
       outerInfo_(info),
@@ -42,7 +41,7 @@ MIRGenerator::MIRGenerator(CompileRealm* realm,
                                    : false),
       minWasmMemory0Length_(0),
       options(options),
-      gs_(alloc, wasmTypes) {}
+      gs_(alloc) {}
 
 bool MIRGenerator::licmEnabled() const {
   return optimizationInfo().licmEnabled() && !disableLICM_ &&

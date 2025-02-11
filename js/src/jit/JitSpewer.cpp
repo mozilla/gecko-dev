@@ -210,11 +210,10 @@ IonSpewer::~IonSpewer() {
   release();
 }
 
-GraphSpewer::GraphSpewer(TempAllocator* alloc,
-                         const wasm::TypeContext* wasmTypes)
+GraphSpewer::GraphSpewer(TempAllocator* alloc)
     : graph_(nullptr),
       jsonPrinter_(alloc->lifoAlloc()),
-      jsonSpewer_(jsonPrinter_, wasmTypes) {}
+      jsonSpewer_(jsonPrinter_) {}
 
 void GraphSpewer::init(MIRGraph* graph, JSScript* function) {
   MOZ_ASSERT(!isSpewing());
