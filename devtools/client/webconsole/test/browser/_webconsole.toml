@@ -188,6 +188,7 @@ support-files = [
 ]
 prefs = [
   "javascript.options.experimental.explicit_resource_management=true", # This pref has to be set before the process starts
+  "javascript.options.experimental.temporal=true", # This pref has to be set before the process starts
 ]
 
 ["browser_webconsole_allow_mixedcontent_securityerrors.js"]
@@ -757,6 +758,9 @@ skip-if = [
 ["browser_webconsole_stubs_page_error.js"]
 
 ["browser_webconsole_stubs_platform_messages.js"]
+
+["browser_webconsole_temporal.js"]
+skip-if = ["!nightly_build"] # Bug 1912511
 
 ["browser_webconsole_telemetry_execute_js.js"]
 
