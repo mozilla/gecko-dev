@@ -5,6 +5,13 @@
 /* import-globals-from http2_test_common.js */
 /* import-globals-from head_servers.js */
 
+// We don't normally allow localhost channels to be proxied, but this
+// is easier than updating all the certs and/or domains.
+Services.prefs.setBoolPref("network.proxy.allow_hijacking_localhost", true);
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("network.proxy.allow_hijacking_localhost");
+});
+
 var concurrent_channels = [];
 
 var loadGroup;

@@ -10,6 +10,13 @@
 /* import-globals-from head_servers.js */
 /* import-globals-from head_websocket.js */
 
+// We don't normally allow localhost channels to be proxied, but this
+// is easier than updating all the certs and/or domains.
+Services.prefs.setBoolPref("network.proxy.allow_hijacking_localhost", true);
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("network.proxy.allow_hijacking_localhost");
+});
+
 var CC = Components.Constructor;
 const ServerSocket = CC(
   "@mozilla.org/network/server-socket;1",

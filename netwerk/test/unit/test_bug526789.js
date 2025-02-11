@@ -3,6 +3,13 @@
 
 "use strict";
 
+// We don't normally allow localhost channels to be proxied, but this
+// is easier than updating all the certs and/or domains.
+Services.prefs.setBoolPref("network.proxy.allow_hijacking_localhost", true);
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("network.proxy.allow_hijacking_localhost");
+});
+
 add_task(async () => {
   var cm = Services.cookies;
   var expiry = (Date.now() + 1000) * 1000;

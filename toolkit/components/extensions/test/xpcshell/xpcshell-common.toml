@@ -440,6 +440,8 @@ skip-if = ["appname == 'thunderbird'"]
 ["test_ext_proxy_authorization_via_proxyinfo.js"]
 skip-if = ["true"] # Bug 1622433 needs h2 proxy implementation
 
+["test_ext_proxy_bypass_localhost.js"]
+
 ["test_ext_proxy_config.js"]
 skip-if = ["appname == 'thunderbird'"]
 

@@ -2,6 +2,13 @@
 
 /* globals TCPServerSocket */
 
+// We don't normally allow localhost channels to be proxied, but this
+// is easier than updating all the certs.
+Services.prefs.setBoolPref("network.proxy.allow_hijacking_localhost", true);
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("network.proxy.allow_hijacking_localhost");
+});
+
 const CC = Components.Constructor;
 
 const BinaryInputStream = CC(

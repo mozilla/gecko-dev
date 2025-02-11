@@ -13,6 +13,10 @@ add_setup(() => {
 
   // Allow navigation to URLs with embedded credentials, without prompt.
   Services.prefs.setBoolPref("network.auth.confirmAuth.enabled", false);
+
+  // We don't normally allow localhost channels to be proxied, but this
+  // is easier than updating all the certs and/or domains.
+  Services.prefs.setBoolPref("network.proxy.allow_hijacking_localhost", true);
 });
 
 const server = createHttpServer({

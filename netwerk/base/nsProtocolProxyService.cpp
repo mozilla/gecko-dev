@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "SimpleChannel.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoRestore.h"
@@ -115,6 +116,34 @@ nsProtocolProxyService::FilterLink::~FilterLink() {
 }
 
 //-----------------------------------------------------------------------------
+
+// Calls onProxyAvailable after making sure we don't pass a nsIProxyInfo
+// for loopback URLs or URLs that should not use a proxy.
+// static
+void nsProtocolProxyService::CallOnProxyAvailableCallback(
+    nsProtocolProxyService* aService, nsIProtocolProxyCallback* aCallback,
+    nsICancelable* aRequest, nsIChannel* aChannel, nsIProxyInfo* aProxyInfo,
+    nsresult aStatus) {
+  nsresult rv;
+  nsCOMPtr<nsIURI> channelURI;
+  if (aChannel) {
+    aChannel->GetURI(getter_AddRefs(channelURI));
+  }
+
+  // This check makes sure that we don't accidentally proxy loopback URLs if
+  // one of the proxy filters allows it.
+  if (aProxyInfo && channelURI) {
+    nsProtocolInfo info;
+    rv = aService->GetProtocolInfo(channelURI, &info);
+
+    if (NS_SUCCEEDED(rv) &&
+        !aService->CanUseProxy(channelURI, info.defaultPort)) {
+      aProxyInfo = nullptr;
+    }
+  }
+
+  aCallback->OnProxyAvailable(aRequest, aChannel, aProxyInfo, aStatus);
+}
 
 // The nsPACManCallback portion of this implementation should be run
 // on the main thread - so call nsPACMan::AsyncGetProxyForURI() with
@@ -339,8 +368,8 @@ class nsAsyncResolveRequest final : public nsIRunnable,
       pacAvailable = false;
     }
 
-    // Generate proxy info from the PAC string if appropriate
     if (NS_SUCCEEDED(mStatus) && !mProxyInfo && !mPACString.IsEmpty()) {
+      // Generate proxy info from the PAC string if appropriate
       mPPS->ProcessPACString(mPACString, mResolveFlags,
                              getter_AddRefs(mProxyInfo));
       nsCOMPtr<nsIURI> proxyURI;
@@ -368,8 +397,9 @@ class nsAsyncResolveRequest final : public nsIRunnable,
         }
 
         self->EnsureResolveFlagsMatch();
-        self->mCallback->OnProxyAvailable(self, self->mChannel,
-                                          self->mProxyInfo, self->mStatus);
+        nsProtocolProxyService::CallOnProxyAvailableCallback(
+            self->mPPS, self->mCallback, self, self->mChannel, self->mProxyInfo,
+            self->mStatus);
 
         return NS_OK;
       };
@@ -399,7 +429,8 @@ class nsAsyncResolveRequest final : public nsIRunnable,
       }
 
       if (NS_FAILED(rv)) {
-        mCallback->OnProxyAvailable(this, mChannel, nullptr, rv);
+        nsProtocolProxyService::CallOnProxyAvailableCallback(
+            mPPS, mCallback, this, mChannel, nullptr, rv);
       }
 
       // do not call onproxyavailable() in SUCCESS case - the newRequest will
@@ -409,7 +440,8 @@ class nsAsyncResolveRequest final : public nsIRunnable,
            static_cast<uint32_t>(mStatus)));
       if (NS_SUCCEEDED(mStatus)) mPPS->MaybeDisableDNSPrefetch(mProxyInfo);
       EnsureResolveFlagsMatch();
-      mCallback->OnProxyAvailable(this, mChannel, mProxyInfo, mStatus);
+      nsProtocolProxyService::CallOnProxyAvailableCallback(
+          mPPS, mCallback, this, mChannel, mProxyInfo, mStatus);
     }
 
     // We are on the main thread now and don't need these any more so

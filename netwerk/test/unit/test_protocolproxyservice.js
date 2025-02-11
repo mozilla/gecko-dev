@@ -912,7 +912,7 @@ function run_failed_script_test() {
 }
 
 var directFilter;
-const TEST_URI = "http://127.0.0.1:7247/";
+const TEST_URI = "http://doesnt-exist.example:7247/";
 
 function failed_script_callback(pi) {
   // we should go direct

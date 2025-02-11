@@ -4,6 +4,13 @@
 
 Services.prefs.setBoolPref("extensions.manifestV3.enabled", true);
 
+// We don't normally allow localhost channels to be proxied, but this
+// is easier than updating all the certs and/or domains.
+Services.prefs.setBoolPref("network.proxy.allow_hijacking_localhost", true);
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("network.proxy.allow_hijacking_localhost");
+});
+
 const server = createHttpServer({
   // We need the 127.0.0.1 proxy because the sec-fetch headers are not sent to
   // "127.0.0.1:<any port other than 80 or 443>".
