@@ -16,8 +16,8 @@ const { NonPrivateTabs } = ChromeUtils.importESModule(
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["sidebar.animation.enabled", false],
       ["sidebar.verticalTabs", false],
-      ["sidebar.visibility", "always-show"],
     ],
   });
   Services.telemetry.clearScalars();
@@ -191,6 +191,9 @@ add_task(async function test_toggle_vertical_tabs() {
   );
 
   info("Pin a tab using the context menu.");
+  // Use setTimeout to avoid Bug 1478596 intermittent
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(r => setTimeout(r, 100));
   await openAndWaitForContextMenu(contextMenu, gBrowser.selectedTab, () => {
     document.getElementById("context_pinTab").click();
   });
