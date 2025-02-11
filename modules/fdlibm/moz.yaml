@@ -31,8 +31,6 @@ vendoring:
   individual-files-default-upstream: 'lib/msun/src/'
   individual-files-default-destination: '{vendor_dir}/'
   individual-files-list:
-    - math_private.h
-    - math.h
     - e_acos.c
     - e_acosf.c
     - e_acosh.c
@@ -45,10 +43,10 @@ vendoring:
     - e_expf.c
     - e_hypot.c
     - e_hypotf.c
+    - e_log.c
     - e_log10.c
     - e_log10f.c
     - e_log2.c
-    - e_log.c
     - e_logf.c
     - e_pow.c
     - e_powf.c
@@ -67,6 +65,8 @@ vendoring:
     - k_sinf.c
     - k_tan.c
     - k_tanf.c
+    - math.h
+    - math_private.h
     - s_asinh.c
     - s_atan.c
     - s_atanf.c
@@ -76,9 +76,9 @@ vendoring:
     - s_copysign.c
     - s_cos.c
     - s_cosf.c
-    - s_expm1.c
     - s_exp2.c
     - s_exp2f.c
+    - s_expm1.c
     - s_fabs.c
     - s_fabsf.c
     - s_floor.c

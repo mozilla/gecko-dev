@@ -378,6 +378,19 @@ def _schema_1_additional(filename, manifest, require_license_file=True):
                 raise ValueError(
                     "individual-files-default-destination must be used with individual-files-list"
                 )
+            misplaced = []
+            previous = None
+            for current in manifest["vendoring"]["individual-files-list"]:
+                if previous is not None and not (previous.lower() <= current.lower()):
+                    misplaced.append(current)
+                else:
+                    previous = current
+            if len(misplaced) > 0:
+                raise ValueError(
+                    "individual-files-list must be sorted, the following files are misplaced: {}".format(
+                        ", ".join(misplaced)
+                    )
+                )
 
     if "updatebot" in manifest:
         # If there are Updatebot tasks, then certain fields must be present and

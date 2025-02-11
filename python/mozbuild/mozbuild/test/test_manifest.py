@@ -964,7 +964,7 @@ bugzilla:
                             "flavor": "individual-files",
                             "individual-files-default-destination": "bar",
                             "individual-files-default-upstream": "foo",
-                            "individual-files-list": ["foo", "bar"],
+                            "individual-files-list": ["bar", "foo"],
                             "update-actions": [
                                 {"action": "move-file", "from": "foo", "to": "bar"}
                             ],
@@ -989,8 +989,8 @@ vendoring:
   individual-files-default-upstream: foo
   individual-files-default-destination: bar
   individual-files-list:
-    - foo
     - bar
+    - foo
   update-actions:
     - action: move-file
       from: foo
@@ -1086,8 +1086,8 @@ vendoring:
   flavor: individual-files
   indidivudal-files-default-destination: foo
   individual-files-list:
-    - foo
     - bar
+    - foo
   update-actions:
     - action: move-file
       from: foo
