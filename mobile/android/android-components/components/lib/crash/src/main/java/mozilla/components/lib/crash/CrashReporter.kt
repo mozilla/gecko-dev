@@ -4,8 +4,6 @@
 
 package mozilla.components.lib.crash
 
-import android.app.ActivityOptions
-import android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -331,9 +329,6 @@ class CrashReporter internal constructor(
             val onFinished = null
             val handler = null
             val requiredPermission = null
-            val activityOptions = ActivityOptions.makeBasic()
-            activityOptions.pendingIntentBackgroundActivityStartMode =
-                MODE_BACKGROUND_ACTIVITY_START_ALLOWED
 
             nonFatalCrashIntent?.send(
                 context,
@@ -342,7 +337,6 @@ class CrashReporter internal constructor(
                 onFinished,
                 handler,
                 requiredPermission,
-                activityOptions.toBundle(),
             )
         } else {
             nonFatalCrashIntent?.send(context, 0, additionalIntent)

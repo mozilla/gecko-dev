@@ -790,7 +790,7 @@ class CrashReporterTest {
         )
         reporter.onCrash(context, nativeCrash)
 
-        verify(pendingIntent).send(eq(context), eq(0), any(), eq(null), eq(null), eq(null), any())
+        verify(pendingIntent).send(eq(context), eq(0), any(), eq(null), eq(null), eq(null))
 
         val receivedIntent = shadowOf(context).nextStartedActivity
 
