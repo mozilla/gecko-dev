@@ -43,8 +43,12 @@ def findAndCopyIncludes(dirPath: str, baseDir: str, includeDir: str) -> "list[st
         # find the shell.js
         shellFile = os.path.join(baseDir, relPath, "shell.js")
 
-        # if the file exists and is not empty, include in includes
-        if os.path.exists(shellFile) and os.path.getsize(shellFile) > 0:
+        # if the file isn't excluded, exists, and is not empty, include in includes
+        if (
+            not any(relPath == f"non262/{path}" for path in UNSUPPORTED_PATHS)
+            and os.path.exists(shellFile)
+            and os.path.getsize(shellFile) > 0
+        ):
             with open(shellFile, "rb") as f:
                 testSource = f.read()
 
@@ -129,10 +133,15 @@ UNSUPPORTED_FEATURES = [
 
 UNSUPPORTED_PATHS = [
     "Intl",
+    "Temporal/Intl",
     "ReadableStream",
     "reflect-parse",
     "extensions/empty.txt",
     "extensions/file-mapped-arraybuffers.txt",
+    "module/bug1693261-async.mjs",
+    "module/bug1693261-c1.mjs",
+    "module/bug1693261-c2.mjs",
+    "module/bug1693261-x.mjs",
 ]
 
 
