@@ -26,8 +26,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=607529
     /** Test for Bug 607529 **/
     var doneOneLoad = false;
     var done = false;
-    var bc = new BroadcastChannel("bug607529");
-    var bc_1 = new BroadcastChannel("bug607529_1");
+    var bc = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug607529");
+    var bc_1 = SpecialPowers.wrap(BroadcastChannel).unpartitionedTestingChannel("bug607529_1");
     bc.onmessage = (msgEvent) => {
       var msg = msgEvent.data;
       isnot(msg, "notcached", "Should never end up not being cached");
@@ -92,25 +92,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=607529
     });
   }
 
-  if (isXOrigin) {
-    // Bug 1746646: Make mochitests work with TCP enabled (cookieBehavior = 5)
-    // Acquire storage access permission here so that the BroadcastChannel used to
-    // communicate with the opened windows works in xorigin tests. Otherwise,
-    // the iframe containing this page is isolated from first-party storage access,
-    // which isolates BroadcastChannel communication.
-    SpecialPowers.wrap(document).notifyUserGestureActivation();
-    SpecialPowers.pushPrefEnv({
-      set: [["privacy.partition.always_partition_third_party_non_cookie_storage", false]],
-    }).then(() => {
-      SpecialPowers.addPermission("storageAccessAPI", true, window.location.href).then(() => {
-        SpecialPowers.wrap(document).requestStorageAccess().then(() => {
-          executeTest();
-        });
-      });
-    });
-  } else {
-    executeTest();
-  }
+
+  executeTest();
 
 
 </script>
