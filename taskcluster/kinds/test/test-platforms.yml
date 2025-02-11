@@ -235,12 +235,6 @@ windows10-64-2009-shippable-qr/opt:
 
 # win11-64 2009
 # a few tests remain in win11-2009-tests set
-windows11-64-2009-ccov-qr/opt:
-    build-platform: win64-ccov/opt
-    build-signing-label: build-signing-win64-ccov/opt
-    test-sets:
-        - windows11-2009-tests
-
 windows11-64-2009-qr/debug:
     build-platform: win64/debug
     build-signing-label:
@@ -249,7 +243,6 @@ windows11-64-2009-qr/debug:
             default: build-signing-win64/debug
     test-sets:
         - webgpu
-        - windows11-2009-tests
 
 windows11-64-2009-qr/opt:
     build-platform: win64/opt
@@ -259,27 +252,6 @@ windows11-64-2009-qr/opt:
             default: build-signing-win64/opt
     test-sets:
         - webgpu
-        - windows11-2009-tests
-
-windows11-64-2009-shippable-qr/opt:
-    build-platform: win64-shippable/opt
-    build-signing-label:
-        by-variant:
-            msix: repackage-signing-shippable-l10n-msix-win64-shippable/opt
-            default: build-signing-win64-shippable/opt
-    test-sets:
-        - windows11-2009-tests
-
-windows11-64-2009-devedition-qr/opt:
-    build-platform: win64-devedition/opt
-    build-signing-label: build-signing-win64-devedition/opt
-    test-sets:
-        - windows11-2009-tests
-
-windows11-64-2009-asan-qr/opt:
-    build-platform: win64-asan/opt
-    test-sets:
-        - windows11-2009-tests
 
 
 # win64 24h2 (no -qr)

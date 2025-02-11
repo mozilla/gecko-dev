@@ -279,10 +279,6 @@ windows11-64-2009-ccov-tests:
     - web-platform-tests-webcodecs
     - web-platform-tests-eme
 
-# we only have an issue with 2 newly added telemetry tests
-windows11-2009-tests:
-    - telemetry-tests-client
-
 windows11-24h2-tests:
     - cppunittest
     - crashtest
@@ -308,6 +304,7 @@ windows11-24h2-tests:
     - mochitest-webgl2-core
     - mochitest-webgl2-ext
     - reftest
+    - telemetry-tests-client
     - test-verify
     - test-verify-gpu
     - test-verify-wpt
