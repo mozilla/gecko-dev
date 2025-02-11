@@ -666,14 +666,11 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
 
   const nsStylePosition* pos = aFrame->StylePosition();
 
-  const auto positionProperty = aFrame->StyleDisplay()->mPosition;
   if ((pos->ISizeDependsOnContainer(aWM) && !pos->ISize(aWM).IsAuto()) ||
       pos->MaxISizeDependsOnContainer(aWM) ||
       pos->MinISizeDependsOnContainer(aWM) ||
-      pos->GetAnchorResolvedInset(LogicalSide::IStart, aWM, positionProperty)
-          ->HasPercent() ||
-      pos->GetAnchorResolvedInset(LogicalSide::IEnd, aWM, positionProperty)
-          ->HasPercent()) {
+      pos->mOffset.Get(LogicalSide::IStart, aWM).MaybePercentageAware() ||
+      pos->mOffset.Get(LogicalSide::IEnd, aWM).MaybePercentageAware()) {
     return true;
   }
 

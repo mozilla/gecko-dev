@@ -16,6 +16,7 @@ use selectors::matching::{ElementSelectorFlags, MatchingForInvalidation, Selecto
 use selectors::{Element, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow};
 use smallvec::SmallVec;
+use style::values::generics::length::AnchorResolutionResult;
 use std::collections::BTreeSet;
 use std::fmt::Write;
 use std::iter;
@@ -151,13 +152,11 @@ use style::values::computed::font::{
     FamilyName, FontFamily, FontFamilyList, FontStretch, FontStyle, FontWeight, GenericFontFamily,
 };
 use style::values::computed::length::AnchorSizeFunction;
-use style::values::computed::length_percentage::CalcAnchorFunctionResolutionInfo;
 use style::values::computed::position::AnchorFunction;
 use style::values::computed::{self, Context, PositionProperty, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
 use style::values::generics::color::ColorMixFlags;
 use style::values::generics::easing::BeforeFlag;
-use style::values::generics::length::AnchorResolutionResult;
 use style::values::resolved;
 use style::values::specified::gecko::IntersectionObserverRootMargin;
 use style::values::specified::source_size_list::SourceSizeList;
@@ -8360,38 +8359,7 @@ pub extern "C" fn Servo_ResolveCalcLengthPercentage(
     calc: &computed::length_percentage::CalcLengthPercentage,
     basis: f32,
 ) -> f32 {
-    calc.resolve(computed::Length::new(basis), None)
-        .unwrap()
-        .result
-        .px()
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
-    calc: &computed::length_percentage::CalcLengthPercentage,
-    basis: f32,
-    side: PhysicalSide,
-    position_property: PositionProperty,
-    result: &mut f32,
-    percentage_used: &mut bool,
-) -> bool {
-    let resolved = calc.resolve(
-        computed::Length::new(basis),
-        Some(CalcAnchorFunctionResolutionInfo {
-            side,
-            position_property,
-        }),
-    );
-
-    let resolved = match resolved {
-        None => return false,
-        Some(v) => v,
-    };
-
-    *result = resolved.result.px();
-    *percentage_used = resolved.percentage_used;
-
-    true
+    calc.resolve(computed::Length::new(basis)).px()
 }
 
 #[no_mangle]
@@ -9811,4 +9779,30 @@ pub extern "C" fn Servo_ResolveAnchorSizeFunction(
     out: &mut AnchorPositioningFunctionResolution,
 ) {
     *out = AnchorPositioningFunctionResolution::new(func.resolve(prop));
+}
+
+/// Result of resolving a math function node potentially containing
+/// anchor positioning function.
+#[repr(u8)]
+pub enum CalcAnchorPositioningFunctionResolution {
+    /// Anchor positioning function is used, but at least one of them
+    /// did not resolve to a valid reference - Property using this
+    /// expression is now invalid at computed time.
+    Invalid,
+    /// Anchor positioning function is used, and all of them resolved
+    /// to valid references, or specified a fallback.
+    Valid(computed::LengthPercentage),
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ResolveAnchorPositioningFunctionInCalc(
+    calc: &computed::length_percentage::CalcLengthPercentage,
+    side: PhysicalSide,
+    prop: PositionProperty,
+    out: &mut CalcAnchorPositioningFunctionResolution,
+) {
+    *out = match calc.resolve_anchor_functions(side, prop) {
+        Ok(l) => CalcAnchorPositioningFunctionResolution::Valid(l.into()),
+        Err(_) => CalcAnchorPositioningFunctionResolution::Invalid,
+    };
 }
