@@ -62,6 +62,16 @@ HandleBase::~HandleBase() {
   mSize = 0;
 }
 
+HandleBase& HandleBase::operator=(HandleBase&& aOther) {
+  MOZ_ASSERT(AllocationReporter::allocated >= mSize,
+             "Can't destroy more than allocated");
+  AllocationReporter::allocated -= mSize;
+
+  mHandle = std::move(aOther.mHandle);
+  mSize = std::exchange(aOther.mSize, 0);
+  return *this;
+}
+
 HandleBase HandleBase::Clone() const {
   HandleBase hb;
   hb.mHandle = Platform::CloneHandle(mHandle);
@@ -75,6 +85,9 @@ HandleBase HandleBase::Clone() const {
 }
 
 void HandleBase::ToMessageWriter(IPC::MessageWriter* aWriter) && {
+  MOZ_ASSERT(AllocationReporter::allocated >= mSize,
+             "Can't destroy more than allocated");
+  AllocationReporter::allocated -= mSize;
   WriteParam(aWriter, std::move(mHandle));
   WriteParam(aWriter, std::exchange(mSize, 0));
 }
