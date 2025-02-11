@@ -7244,6 +7244,13 @@ var gDialogBox = {
     window.focus();
 
     try {
+      // Prevent URL bar from showing on top of modal
+      gURLBar.incrementBreakoutBlockerCount();
+    } catch (ex) {
+      console.error(ex);
+    }
+
+    try {
       await this._open(uri, args);
     } catch (ex) {
       console.error(ex);
@@ -7266,6 +7273,8 @@ var gDialogBox = {
       this._updateMenuAndCommandState(true /* to enable */);
       this._dialog = null;
       UpdatePopupNotificationsVisibility();
+      // Restores URL bar breakout if needed
+      gURLBar.decrementBreakoutBlockerCount();
     }
     if (this._queued.length) {
       setTimeout(() => this._openNextDialog(), 0);
