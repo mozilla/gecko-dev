@@ -71,3 +71,24 @@ add_task(async function test_ignoreUnimportantTabGroups() {
   await BrowserTestUtils.closeWindow(win);
   forgetClosedWindows();
 });
+
+add_task(async function test_refuseToSaveGroupsInPrivateWindows() {
+  const privateWin = await BrowserTestUtils.openNewBrowserWindow({
+    private: true,
+  });
+
+  let tab = BrowserTestUtils.addTab(privateWin.gBrowser, "about:newtab");
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  await TabStateFlusher.flush(tab.linkedBrowser);
+  let group = privateWin.gBrowser.addTabGroup([tab]);
+
+  Assert.throws(
+    () => {
+      ss.addSavedTabGroup(group);
+    },
+    /Refusing to save tab group/,
+    "addSavedTabGroup throws exception when trying to save a tab group from a private window"
+  );
+  await BrowserTestUtils.closeWindow(privateWin);
+  forgetClosedWindows();
+});

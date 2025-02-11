@@ -7812,6 +7812,10 @@ var SessionStoreInternal = {
    * @param {MozTabbrowserTabGroup} tabGroup
    */
   addSavedTabGroup(tabGroup) {
+    if (PrivateBrowsingUtils.isWindowPrivate(tabGroup.ownerGlobal)) {
+      throw new Error("Refusing to save tab group from private window");
+    }
+
     let tabGroupState = lazy.TabGroupState.savedInOpenWindow(
       tabGroup,
       tabGroup.ownerGlobal.__SSi

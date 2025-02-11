@@ -40,96 +40,96 @@
         norolluponanchor="true">
 
       <html:div class="panel-header">
-        <html:h1 
-          id="tab-group-editor-title-create" 
-          class="tab-group-create-mode-only" 
+        <html:h1
+          id="tab-group-editor-title-create"
+          class="tab-group-create-mode-only"
           data-l10n-id="tab-group-editor-title-create">
         </html:h1>
-        <html:h1 
-          id="tab-group-editor-title-edit" 
-          class="tab-group-edit-mode-only" 
+        <html:h1
+          id="tab-group-editor-title-edit"
+          class="tab-group-edit-mode-only"
           data-l10n-id="tab-group-editor-title-edit">
         </html:h1>
       </html:div>
 
       <toolbarseparator />
 
-      <html:div 
-        class="panel-body 
+      <html:div
+        class="panel-body
         tab-group-editor-name">
-        <html:label 
-          for="tab-group-name" 
+        <html:label
+          for="tab-group-name"
           data-l10n-id="tab-group-editor-name-label">
         </html:label>
-        <html:input 
-          id="tab-group-name" 
-          type="text" 
-          name="tab-group-name" 
-          value="" 
-          data-l10n-id="tab-group-editor-name-field" 
+        <html:input
+          id="tab-group-name"
+          type="text"
+          name="tab-group-name"
+          value=""
+          data-l10n-id="tab-group-editor-name-field"
         />
       </html:div>
 
-      <html:div 
-        class="panel-body tab-group-editor-swatches" 
-        role="radiogroup" 
+      <html:div
+        class="panel-body tab-group-editor-swatches"
+        role="radiogroup"
         data-l10n-id="tab-group-editor-color-selector"
       />
 
-      <html:moz-button-group 
+      <html:moz-button-group
         class="panel-body tab-group-create-actions tab-group-create-mode-only">
-        <html:moz-button 
-          id="tab-group-editor-button-cancel" 
+        <html:moz-button
+          id="tab-group-editor-button-cancel"
           data-l10n-id="tab-group-editor-cancel">
         </html:moz-button>
-        <html:moz-button 
-          type="primary" 
-          id="tab-group-editor-button-create" 
+        <html:moz-button
+          type="primary"
+          id="tab-group-editor-button-create"
           data-l10n-id="tab-group-editor-done">
         </html:moz-button>
       </html:moz-button-group>
-      
+
       <toolbarseparator class="tab-group-edit-mode-only" />
-      
-      <html:div 
+
+      <html:div
         class="panel-body tab-group-edit-actions tab-group-edit-mode-only">
-        <toolbarbutton 
-          tabindex="0" 
-          id="tabGroupEditor_addNewTabInGroup" 
-          class="subviewbutton" 
+        <toolbarbutton
+          tabindex="0"
+          id="tabGroupEditor_addNewTabInGroup"
+          class="subviewbutton"
           data-l10n-id="tab-group-editor-action-new-tab">
         </toolbarbutton>
-        <toolbarbutton 
-          tabindex="0" 
-          id="tabGroupEditor_moveGroupToNewWindow" 
-          class="subviewbutton" 
+        <toolbarbutton
+          tabindex="0"
+          id="tabGroupEditor_moveGroupToNewWindow"
+          class="subviewbutton"
           data-l10n-id="tab-group-editor-action-new-window">
         </toolbarbutton>
-        <toolbarbutton 
-          tabindex="0" 
-          id="tabGroupEditor_saveAndCloseGroup" 
-          class="subviewbutton" 
+        <toolbarbutton
+          tabindex="0"
+          id="tabGroupEditor_saveAndCloseGroup"
+          class="subviewbutton"
           data-l10n-id="tab-group-editor-action-save">
         </toolbarbutton>
-        <toolbarbutton 
-          tabindex="0" 
-          id="tabGroupEditor_ungroupTabs" 
-          class="subviewbutton" 
+        <toolbarbutton
+          tabindex="0"
+          id="tabGroupEditor_ungroupTabs"
+          class="subviewbutton"
           data-l10n-id="tab-group-editor-action-ungroup">
         </toolbarbutton>
       </html:div>
-      
+
       <toolbarseparator class="tab-group-edit-mode-only" />
 
       <html:div class="tab-group-edit-mode-only panel-body tab-group-delete">
-        <toolbarbutton 
-          tabindex="0" 
-          id="tabGroupEditor_deleteGroup" 
-          class="subviewbutton" 
+        <toolbarbutton
+          tabindex="0"
+          id="tabGroupEditor_deleteGroup"
+          class="subviewbutton"
           data-l10n-id="tab-group-editor-action-delete">
         </toolbarbutton>
       </html:div>
-      
+
     </panel>
        `;
 
@@ -371,17 +371,26 @@
       });
       document.getElementById("tabGroupEditor_moveGroupToNewWindow").disabled =
         gBrowser.openTabs.length == this.activeGroup?.tabs.length;
-      this.#maybeDisableSaveButton();
+      this.#maybeDisableOrHideSaveButton();
     }
 
-    #maybeDisableSaveButton() {
+    #maybeDisableOrHideSaveButton() {
+      const saveAndCloseGroup = document.getElementById(
+        "tabGroupEditor_saveAndCloseGroup"
+      );
+      if (PrivateBrowsingUtils.isWindowPrivate(this.ownerGlobal)) {
+        saveAndCloseGroup.hidden = true;
+        return;
+      }
+
       let flushes = [];
       this.activeGroup.tabs.forEach(tab => {
         flushes.push(TabStateFlusher.flush(tab.linkedBrowser));
       });
       Promise.allSettled(flushes).then(() => {
-        document.getElementById("tabGroupEditor_saveAndCloseGroup").disabled =
-          !SessionStore.shouldSaveTabGroup(this.activeGroup);
+        saveAndCloseGroup.disabled = !SessionStore.shouldSaveTabGroup(
+          this.activeGroup
+        );
       });
     }
 
