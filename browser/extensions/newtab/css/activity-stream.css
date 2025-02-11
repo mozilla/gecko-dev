@@ -922,6 +922,7 @@ main section {
 }
 .top-site-outer:is(:hover) .context-menu-button {
   opacity: 1;
+  transition: opacity 200ms;
 }
 .lightWallpaper .top-site-outer:not(:hover, :active, .active) {
   color-scheme: light;
@@ -947,7 +948,6 @@ main section {
   opacity: 0;
   position: absolute;
   top: -20px;
-  transition: opacity 200ms;
 }
 .lightWallpaper .top-site-outer .context-menu-button {
   color-scheme: light;

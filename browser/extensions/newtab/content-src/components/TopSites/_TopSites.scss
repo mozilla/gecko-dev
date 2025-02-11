@@ -185,6 +185,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   &:is(:hover) {
     .context-menu-button {
       opacity: 1;
+      transition: opacity 200ms;
     }
   }
 
@@ -217,7 +218,6 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     opacity: 0;
     position: absolute;
     top: -20px;
-    transition: opacity 200ms;
 
     // Contrast fix for users who have wallpapers set
     @include wallpaper-contrast-fix;
