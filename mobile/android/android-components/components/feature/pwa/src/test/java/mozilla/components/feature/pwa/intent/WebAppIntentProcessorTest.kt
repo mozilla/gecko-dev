@@ -147,6 +147,6 @@ class WebAppIntentProcessorTest {
         intent.putUrlOverride(urlOverride)
 
         assertTrue(processor.process(intent))
-        verify(loadUrlUseCase).invoke(eq(urlOverride), any(), any(), any())
+        verify(loadUrlUseCase).invoke(eq(urlOverride), any(), any(), any(), any())
     }
 }

@@ -143,6 +143,7 @@ class ToolbarInteractorTest {
                 url: String,
                 flags: EngineSession.LoadUrlFlags,
                 additionalHeaders: Map<String, String>?,
+                originalInput: String?,
             ) {
                 useCaseInvokedWithUrl = url
             }

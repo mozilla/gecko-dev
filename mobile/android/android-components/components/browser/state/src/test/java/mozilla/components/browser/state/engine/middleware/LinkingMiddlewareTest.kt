@@ -161,7 +161,7 @@ class LinkingMiddlewareTest {
 
         dispatcher.scheduler.advanceUntilIdle()
 
-        verify(engineSession, never()).loadUrl(anyString(), any(), any(), any())
+        verify(engineSession, never()).loadUrl(anyString(), any(), any(), any(), any())
     }
 
     @Test
