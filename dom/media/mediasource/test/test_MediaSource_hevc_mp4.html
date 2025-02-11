@@ -24,7 +24,8 @@ runWithMSE(async (ms, el) => {
   catch (err) {
     is(err.name, "NotSupportedError", "Should only receive NotSupportedError");
     ok(SpecialPowers.Services.appinfo.OS != "WINNT" &&
-       SpecialPowers.Services.appinfo.OS != "Darwin",
+       SpecialPowers.Services.appinfo.OS != "Darwin" &&
+       SpecialPowers.Services.appinfo.OS != "Android",
       "HEVC is not supported on current platform");
     SimpleTest.finish();
     return;

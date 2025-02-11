@@ -822,7 +822,8 @@ skip-if = [
 ["test_hevc_playback.html"]
 run-if = [
   "os == 'win'",
-  "os == 'mac' && os_version != '10.15'" # Bug 1942396
+  "os == 'mac' && os_version != '10.15'", # Bug 1942396
+  "os == 'android'",
 ]
 skip-if = ["!mda_gpu"]
 scheme = "https"
@@ -830,7 +831,8 @@ scheme = "https"
 ["test_hevc_support.html"]
 run-if = [
   "os == 'win'",
-  "os == 'mac' && os_version != '10.15'" # Bug 1942396
+  "os == 'mac' && os_version != '10.15'", # Bug 1942396
+  "os == 'android'",
 ]
 skip-if = ["!mda_gpu"]
 scheme = "https"
