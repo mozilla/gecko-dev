@@ -71,10 +71,11 @@ class Graph(GraphWidget):
         print(self.type, '{', file=f)
 
         # Use the pass name as the graph title (at the top).
+        legend = '<font color="blue">movable</font>, <u>guard</u>, <font color="red">in worklist</font>, <font color="gray50">recovered on bailout</font>'
         print('labelloc = t;', file=f)
         print('labelfontsize = 30;', file=f)
-        print('label = "%s -  %s";' % (self.func['name'], self.name), file=f)
-        
+        print('label = <<b>%s - %s</b><br/>%s<br/>&nbsp;>;' % (self.func['name'], self.name, legend), file=f)
+
         # Output graph properties.
         for p in self.props:
             print('  ' + str(p) + '=' + str(self.props[p]), file=f)
@@ -148,7 +149,8 @@ def getInstructionRow(inst):
     instLabel = '<td align="right" port="i%s">%s</td>' % (instId, instId)
 
     # Middle column: instruction name.
-    instName = html.escape(inst['opcode'])
+    instName = inst['opcode'].replace('->', '→').replace('<-', '←')
+    instName = html.escape(instName)
     if 'attributes' in inst:
         if 'RecoveredOnBailout' in inst['attributes']:
             instName = '<font color="gray50">%s</font>' % instName
@@ -163,20 +165,29 @@ def getInstructionRow(inst):
     # Right column: instruction MIRType.
     instType = ''
     if 'type' in inst and inst['type'] != "None":
-        instType = '<td align="left">%s</td>' % html.escape(inst['type'])
+        instType = '<td align="right">%s</td>' % html.escape(inst['type'])
 
     return '<tr>%s%s%s</tr>' % (instLabel, instName, instType)
 
 # block obj -> HTML-formatted string
 def getBlockLabel(b):
-    s =  '<<table border="0" cellborder="0" cellpadding="1">'
+    s = '<<table border="0" cellborder="0" cellpadding="1">'
 
     if 'blockUseCount' in b:
-        blockUseCount = "(Count: %s)" % str(b['blockUseCount'])
+        blockUseCount = " (Count: %s)" % str(b['blockUseCount'])
     else:
         blockUseCount = ""
 
-    blockTitle = '<font color="white">Block %s %s</font>' % (str(b['number']), blockUseCount)
+    blockAttr = ""
+    if 'attributes' in b:
+        if 'backedge' in b['attributes']:
+            blockAttr = ' <font color="lightpink">(backedge)</font>'
+        if 'loopheader' in b['attributes']:
+            blockAttr = ' <font color="lightgreen">(loop header)</font>'
+        if 'splitedge' in b['attributes']:
+            blockAttr = " (split edge)"
+
+    blockTitle = '<font color="white">Block %s%s%s</font>' % (str(b['number']), blockUseCount, blockAttr)
     blockTitle = '<td align="center" bgcolor="black" colspan="3">%s</td>' % blockTitle
     s += '<tr>%s</tr>' % blockTitle
     
@@ -217,9 +228,9 @@ def buildGraphForIR(name, func, ir, mir):
         node.addprops({'shape':'box', 'label':getBlockLabel(bactive)})
         
         if 'backedge' in b['attributes']:
-            node.addprops({'color':'red'})
+            node.addprops({'color':'crimson'})
         if 'loopheader' in b['attributes']:
-            node.addprops({'color':'green'})
+            node.addprops({'color':'limegreen'})
         if 'splitedge' in b['attributes']:
             node.addprops({'style':'dashed'})
 

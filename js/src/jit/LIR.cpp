@@ -655,7 +655,7 @@ void LNode::dump(GenericPrinter& out) {
       out.printf(" s=(");
       for (size_t i = 0; i < numSuccessors; i++) {
         MBasicBlock* succ = GetSuccessor(ins, i);
-        out.printf("block%u", succ->id());
+        out.printf("block %u", succ->id());
         if (i != numSuccessors - 1) {
           out.printf(", ");
         }
