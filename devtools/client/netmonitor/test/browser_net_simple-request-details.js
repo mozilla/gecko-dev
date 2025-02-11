@@ -143,10 +143,10 @@ add_task(async function () {
 
     const headersTable = tabpanel.querySelector(".accordion");
     const responseScope = headersTable.querySelectorAll(
-      "tr[id^='/Response Headers']"
+      "tr[id^='/responseHeaders']"
     );
     const requestScope = headersTable.querySelectorAll(
-      "tr[id^='/Request Headers']"
+      "tr[id^='/requestHeaders']"
     );
 
     const headerLabels = headersTable.querySelectorAll(

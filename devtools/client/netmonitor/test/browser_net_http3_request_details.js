@@ -80,7 +80,7 @@ add_task(async function () {
 
   const headersTable = tabpanel.querySelector(".accordion");
   const responseHeaders = headersTable.querySelectorAll(
-    "tr[id^='/Response Headers']"
+    "tr[id^='/responseHeaders']"
   );
 
   const expectedHeaders = [
@@ -121,8 +121,8 @@ add_task(async function () {
   info("Assert the content of the raw headers");
 
   // Click the 'Raw headers' toggle to show original headers source.
-  document.querySelector("#raw-request-checkbox").click();
-  document.querySelector("#raw-response-checkbox").click();
+  document.querySelector("#raw-requestHeaders-checkbox").click();
+  document.querySelector("#raw-responseHeaders-checkbox").click();
 
   let rawHeadersElements;
   await waitUntil(() => {

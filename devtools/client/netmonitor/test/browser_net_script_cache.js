@@ -65,7 +65,7 @@ add_task(async function () {
     await wait;
 
     const responseScope = document.querySelectorAll(
-      "#headers-panel .accordion tr[id^='/Response Headers']"
+      "#headers-panel .accordion tr[id^='/responseHeaders']"
     );
 
     const responseHeaders = [

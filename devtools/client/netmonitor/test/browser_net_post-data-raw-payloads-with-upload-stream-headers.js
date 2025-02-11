@@ -131,7 +131,10 @@ add_task(async function () {
       tabpanel,
       ".accordion-item:last-child .accordion-content .raw-headers-container"
     );
-    tabpanel.querySelector("#raw-upload-checkbox").click();
+
+    tabpanel
+      .querySelector("#raw-requestHeadersFromUploadStream-checkbox")
+      .click();
     await wait;
 
     const rawTextArea = tabpanel.querySelector(
