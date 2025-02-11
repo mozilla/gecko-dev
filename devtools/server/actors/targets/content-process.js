@@ -165,6 +165,8 @@ class ContentProcessTargetActor extends BaseTargetActor {
 
     return {
       actor: this.actorID,
+      targetType: this.targetType,
+
       isXpcShellTarget: this.isXpcShellTarget,
       processID: Services.appinfo.processID,
       remoteType: Services.appinfo.remoteType,

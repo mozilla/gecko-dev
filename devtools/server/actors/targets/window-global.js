@@ -679,6 +679,8 @@ class WindowGlobalTargetActor extends BaseTargetActor {
 
     const response = {
       actor: this.actorID,
+      targetType: this.targetType,
+
       browsingContextID,
       processID: Services.appinfo.processID,
       // True for targets created by JSWindowActors, see constructor JSDoc.

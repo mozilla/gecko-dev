@@ -69,6 +69,8 @@ class WorkerDescriptorActor extends Actor {
       threadActor: this._threadActor,
       tracerActor: this._tracerActor,
 
+      targetType: this._targetType,
+
       id: this._dbg.id,
       url: this._dbg.url,
       origin: this._dbg.principal.origin,
@@ -124,6 +126,8 @@ class WorkerDescriptorActor extends Actor {
         consoleActor: this._consoleActor,
         threadActor: this._threadActor,
         tracerActor: this._tracerActor,
+
+        targetType: this._targetType,
       };
     }
 
@@ -141,6 +145,8 @@ class WorkerDescriptorActor extends Actor {
       this._threadActor = workerTargetForm.threadActor;
       this._tracerActor = workerTargetForm.tracerActor;
 
+      this._targetType = workerTargetForm.targetType;
+
       this._transport = transport;
 
       return {
@@ -149,6 +155,8 @@ class WorkerDescriptorActor extends Actor {
         consoleActor: this._consoleActor,
         threadActor: this._threadActor,
         tracerActor: this._tracerActor,
+
+        targetType: this._targetType,
 
         url: this._dbg.url,
       };

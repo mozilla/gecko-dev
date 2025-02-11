@@ -709,6 +709,14 @@ class TargetCommand extends EventEmitter {
   }
 
   getTargetType(target) {
+    const { targetType } = target.targetForm;
+    if (targetType) {
+      return targetType;
+    }
+
+    // @backward-compat { version 137 } This can be removed as target.targetForm.targetType
+    // will always be defined. We can then remove TargetCommand.getTargetType and TargetMixin.setTargetType
+    // and instead have a getter like this `TargetMixin.targetType() this.targetForm.targetType`.
     const { typeName } = target;
     if (typeName == "windowGlobalTarget") {
       return TargetCommand.TYPES.FRAME;

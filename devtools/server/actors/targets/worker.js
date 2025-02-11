@@ -105,6 +105,7 @@ class WorkerTargetActor extends BaseTargetActor {
   form() {
     return {
       actor: this.actorID,
+      targetType: this.targetType,
 
       consoleActor: this._consoleActor?.actorID,
       threadActor: this.threadActor?.actorID,
