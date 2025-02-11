@@ -677,6 +677,18 @@
           "required": ["type"],
           "additionalProperties": false,
           "description": "Creates a new user profile using SelectableProfileService and launches it in a new instance"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["SUBMIT_ONBOARDING_OPT_OUT_PING"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Submit an `onboarding-opt-out` Glean ping.  Should only be used during preonboarding."
         }
       ]
     }

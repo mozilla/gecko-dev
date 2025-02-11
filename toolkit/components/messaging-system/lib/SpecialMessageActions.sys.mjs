@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
+  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
   PlacesTransactions: "resource://gre/modules/PlacesTransactions.sys.mjs",
@@ -471,6 +472,35 @@ export const SpecialMessageActions = {
     await lazy.SelectableProfileService.createNewProfile();
   },
 
+  // For mocking during tests.
+  get _experimentManager() {
+    return lazy.ExperimentManager;
+  },
+
+  async submitOnboardingOptOutPing() {
+    // `onboarding-opt-out` pings can always be sent.
+    GleanPings.onboardingOptOut.setEnabled(true);
+
+    // The `onboarding-opt-out` ping does not include any info sections, and
+    // therefore needs to capture experiments and rollouts independently.  This
+    // data layout agrees with the `nimbus-targeting-context` ping for ease of
+    // analysis.
+    let ctx = this._experimentManager.createTargetingContext();
+
+    Glean.onboardingOptOut.activeExperiments.set(await ctx.activeExperiments);
+    Glean.onboardingOptOut.activeRollouts.set(await ctx.activeRollouts);
+    Glean.onboardingOptOut.enrollmentsMap.set(
+      Object.entries(await ctx.enrollmentsMap).map(
+        ([experimentSlug, branchSlug]) => ({
+          experimentSlug,
+          branchSlug,
+        })
+      )
+    );
+
+    GleanPings.onboardingOptOut.submit("set_upload_enabled");
+  },
+
   /**
    * Processes "Special Message Actions", which are definitions of behaviors such as opening tabs
    * installing add-ons, or focusing the awesome bar that are allowed to can be triggered from
@@ -694,6 +724,9 @@ export const SpecialMessageActions = {
         break;
       case "CREATE_NEW_SELECTABLE_PROFILE":
         this.createAndOpenProfile();
+        break;
+      case "SUBMIT_ONBOARDING_OPT_OUT_PING":
+        this.submitOnboardingOptOutPing();
         break;
     }
     return undefined;
