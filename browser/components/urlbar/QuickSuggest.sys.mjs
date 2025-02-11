@@ -85,14 +85,12 @@ class _QuickSuggest {
       history: {
         "quicksuggest.enabled": false,
         "quicksuggest.dataCollection.enabled": false,
-        "quicksuggest.shouldShowOnboardingDialog": false,
         "suggest.quicksuggest.nonsponsored": false,
         "suggest.quicksuggest.sponsored": false,
       },
       offline: {
         "quicksuggest.enabled": true,
         "quicksuggest.dataCollection.enabled": false,
-        "quicksuggest.shouldShowOnboardingDialog": false,
         "suggest.quicksuggest.nonsponsored": true,
         "suggest.quicksuggest.sponsored": true,
       },

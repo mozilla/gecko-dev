@@ -19,13 +19,6 @@ const PREFS = [
     expectedOtherValue: false,
   },
   {
-    name: "browser.urlbar.quicksuggest.shouldShowOnboardingDialog",
-    get: "getBoolPref",
-    set: "setBoolPref",
-    expectedOfflineValue: false,
-    expectedOtherValue: false,
-  },
-  {
     name: "browser.urlbar.suggest.quicksuggest.nonsponsored",
     get: "getBoolPref",
     set: "setBoolPref",

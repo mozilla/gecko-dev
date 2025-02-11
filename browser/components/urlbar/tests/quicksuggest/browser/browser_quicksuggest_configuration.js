@@ -79,14 +79,12 @@ add_task(async function test_scenario_offline() {
       "quicksuggest.scenario": "offline",
       "quicksuggest.enabled": true,
       "quicksuggest.dataCollection.enabled": false,
-      "quicksuggest.shouldShowOnboardingDialog": false,
       "suggest.quicksuggest.nonsponsored": true,
       "suggest.quicksuggest.sponsored": true,
 
       // Nimbus variables
       quickSuggestScenario: "offline",
       quickSuggestEnabled: true,
-      quickSuggestShouldShowOnboardingDialog: false,
     },
     defaults: [
       {
@@ -95,10 +93,6 @@ add_task(async function test_scenario_offline() {
       },
       {
         name: "browser.urlbar.quicksuggest.dataCollection.enabled",
-        value: false,
-      },
-      {
-        name: "browser.urlbar.quicksuggest.shouldShowOnboardingDialog",
         value: false,
       },
       {
@@ -180,7 +174,6 @@ function assertDefaultScenarioPrefs() {
       "quicksuggest.scenario": "offline",
       "quicksuggest.enabled": true,
       "quicksuggest.dataCollection.enabled": false,
-      "quicksuggest.shouldShowOnboardingDialog": false,
       "suggest.quicksuggest.nonsponsored": true,
       "suggest.quicksuggest.sponsored": true,
 
@@ -194,10 +187,6 @@ function assertDefaultScenarioPrefs() {
       },
       {
         name: "browser.urlbar.quicksuggest.dataCollection.enabled",
-        value: false,
-      },
-      {
-        name: "browser.urlbar.quicksuggest.shouldShowOnboardingDialog",
         value: false,
       },
       {
@@ -216,7 +205,6 @@ function clearOnboardingPrefs() {
   UrlbarPrefs.clear("suggest.quicksuggest.nonsponsored");
   UrlbarPrefs.clear("suggest.quicksuggest.sponsored");
   UrlbarPrefs.clear("quicksuggest.dataCollection.enabled");
-  UrlbarPrefs.clear("quicksuggest.shouldShowOnboardingDialog");
   UrlbarPrefs.clear("quicksuggest.showedOnboardingDialog");
   UrlbarPrefs.clear("quicksuggest.seenRestarts");
 }
