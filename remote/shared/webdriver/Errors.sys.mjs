@@ -475,12 +475,6 @@ class JavaScriptError extends WebDriverError {
   constructor(obj, data = {}) {
     super(obj, data);
     this.status = "javascript error";
-
-    if (error.isError(obj)) {
-      this.lineNumber = obj.lineNumber;
-      this.columnNumber = obj.columnNumber;
-      this.stack = `@${obj.fileName}:${obj.lineNumber}:${obj.columnNumber}\n`;
-    }
   }
 }
 
