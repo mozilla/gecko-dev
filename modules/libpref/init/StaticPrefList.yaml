@@ -16441,16 +16441,11 @@
   mirror: always
 
 # The CRLite filter channel to which the user is subscribed.
-# - "all" => bloom-filter cascades that contain all revocations. Stash based delta updates.
-# - "experimental" => clubcards that contain all revocations. Stash based delta updates.
-# - "experimental+deltas" => clubcards that contain all revocations. Clubcard based delta updates.
+# - "default" => clubcards that contain all revocations
+# - "compat" => clubcards that contain priority revocations
 - name: security.pki.crlite_channel
   type: String
-#ifdef NIGHTLY_BUILD
-  value: "experimental+deltas"
-#else
-  value: "all"
-#endif
+  value: "default"
   mirror: never
 
 # The number of SCTs that must be "covered" by a CRLite filter before
