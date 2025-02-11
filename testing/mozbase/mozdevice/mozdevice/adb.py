@@ -2559,7 +2559,7 @@ class ADBDevice(ADBCommand):
             tmpf = tempfile.NamedTemporaryFile(mode="w", delete=False)
             tmpf.write("\n".join(commands))
             tmpf.close()
-            script = f"/sdcard/{os.path.basename(tmpf.name)}"
+            script = posixpath.join("/data/local/tmp", os.path.basename(tmpf.name))
             self.push(tmpf.name, script)
             self.shell_output(
                 f"sh {script}", enable_run_as=enable_run_as, timeout=timeout
