@@ -71,9 +71,12 @@ module.exports = {
     "import/named": "error",
     "import/export": "error",
 
-    // Incompatible with jest-in-case cases. See related GitHub issue
+    // Adds compatibility with jest-in-case cases. See related GitHub issue
     // https://github.com/jest-community/eslint-plugin-jest/issues/534
-    "jest/no-standalone-expect": "off",
+    "jest/no-standalone-expect": [
+      "error",
+      { additionalTestBlockFunctions: ["cases"] },
+    ],
 
     // Disallow flow control that escapes from "finally".
     "no-unsafe-finally": "error",
@@ -328,7 +331,7 @@ module.exports = {
   settings: {
     jest: {
       // Keep in sync with "jest" version from debugger's package.json
-      version: 27,
+      version: 29,
     },
   },
 };
