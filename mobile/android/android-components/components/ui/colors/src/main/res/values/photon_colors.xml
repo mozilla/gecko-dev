@@ -131,6 +131,7 @@
 	<color name="photonInk05">#ff393473</color>
 	<color name="photonInk10">#ff342f6d</color>
 	<color name="photonInk20">#ff312a64</color>
+	<color name="photonInk20A20">#33312a64</color>
 	<color name="photonInk20A48">#7A312a64</color>
 	<color name="photonInk20A50">#80312A64</color>
 	<color name="photonInk30">#ff2e255d</color>
@@ -186,6 +187,7 @@
 	<color name="photonDarkGrey80">#ff1c1b22</color>
 	<color name="photonDarkGrey90">#ff15141a</color>
 	<color name="photonDarkGrey90A40">#6615141a</color>
+	<color name="photonDarkGrey90A50">#8015141a</color>
 	<color name="photonDarkGrey90A60">#9915141a</color>
 	<color name="photonDarkGrey90A95">#f215141a</color>
 	<color name="photonDarkGrey90A96">#f515141a</color>
