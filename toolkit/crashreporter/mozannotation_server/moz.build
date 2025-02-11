@@ -4,16 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-RustLibrary("crash_helper_server")
-
 if CONFIG["COMPILE_ENVIRONMENT"]:
     # This tells mach to run cbindgen and that this header-file should be created
     CbindgenHeader(
-        "crash_helper_ffi_generated.h",
-        inputs=["/toolkit/crashreporter/crash_helper_server"],
+        "mozannotation_server_ffi_generated.h",
+        inputs=["/toolkit/crashreporter/mozannotation_server"],
     )
 
-    # This tells mach to copy that generated file to obj/dist/mozilla
-    EXPORTS.mozilla += [
-        "!crash_helper_ffi_generated.h",
+    # This tells mach to copy that generated file to obj/dist/include/mozilla/toolkit/crashreporter
+    EXPORTS.mozilla.toolkit.crashreporter += [
+        "!mozannotation_server_ffi_generated.h",
     ]
