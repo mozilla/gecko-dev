@@ -141,6 +141,13 @@ export var TelemetryReportingPolicy = {
   },
 
   /**
+   * Test only method, used to check if the policy should notify in tests.
+   */
+  testShouldNotify() {
+    return TelemetryReportingPolicyImpl._shouldNotify();
+  },
+
+  /**
    * Test only method, used to check if user is notified of the policy in tests.
    */
   testIsUserNotified() {
@@ -163,7 +170,7 @@ export var TelemetryReportingPolicy = {
   },
 };
 
-export var TelemetryReportingPolicyImpl = {
+var TelemetryReportingPolicyImpl = {
   _logger: null,
   // Keep track of the notification status if user wasn't notified already.
   _notificationInProgress: false,
@@ -415,6 +422,14 @@ export var TelemetryReportingPolicyImpl = {
    * Determine whether the user should be notified.
    */
   _shouldNotify() {
+    let res = lazy.NimbusFeatures.preonboarding.getAllVariables();
+    if (res.disableFirstRunPolicyTab) {
+      this._log.trace(
+        "_shouldNotify - Policy disabled by Nimbus configuration."
+      );
+      return false;
+    }
+
     if (!this.dataSubmissionEnabled) {
       this._log.trace(
         "_shouldNotify - Data submission disabled by the policy."
@@ -481,7 +496,7 @@ export var TelemetryReportingPolicyImpl = {
   /**
    * Try to open the privacy policy in a background tab instead of showing the infobar.
    */
-  async _openFirstRunPage() {
+  _openFirstRunPage() {
     if (!this._shouldNotify()) {
       return false;
     }
@@ -548,8 +563,8 @@ export var TelemetryReportingPolicyImpl = {
     win.addEventListener("unload", removeListeners);
     win.gBrowser.addTabsProgressListener(progressListener);
 
-    let res = await lazy.NimbusFeatures.preonboarding.getAllVariables();
-    if (!res?.disableFirstRunPolicyTab) {
+    let res = lazy.NimbusFeatures.preonboarding.getAllVariables();
+    if (!res.disableFirstRunPolicyTab) {
       tab = win.gBrowser.addTab(firstRunPolicyURL, {
         inBackground: true,
         triggeringPrincipal:
@@ -560,7 +575,7 @@ export var TelemetryReportingPolicyImpl = {
     return false;
   },
 
-  async observe(aSubject, aTopic) {
+  observe(aSubject, aTopic) {
     if (aTopic != "sessionstore-windows-restored") {
       return;
     }
@@ -569,7 +584,7 @@ export var TelemetryReportingPolicyImpl = {
       // We're performing the first run, flip firstRun preference for subsequent runs.
       Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, false);
       try {
-        if (await this._openFirstRunPage()) {
+        if (this._openFirstRunPage()) {
           return;
         }
       } catch (e) {
