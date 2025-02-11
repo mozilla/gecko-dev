@@ -85,7 +85,21 @@ exports.analyzeInputString = function (str, timeout = 2500) {
     let resetLastStatement = false;
     const isWhitespaceChar = c.trim() === "";
     switch (state) {
+      case STATE_SLASH:
+        if (c == "/") {
+          state = STATE_INLINE_COMMENT;
+          break;
+        } else if (c == "*") {
+          state = STATE_MULTILINE_COMMENT;
+          break;
+        } else {
+          lastStatement = "";
+          state = STATE_NORMAL;
+        }
+      // fall through
+
       // Normal JS state.
+      // eslint-disable-next-line no-fallthrough
       case STATE_NORMAL:
         if (lastStatement.endsWith("?.") && /\d/.test(c)) {
           // If the current char is a number, the engine will consider we're not
@@ -203,16 +217,6 @@ exports.analyzeInputString = function (str, timeout = 2500) {
             err: "unterminated string literal",
           };
         } else if (c == "'") {
-          state = STATE_NORMAL;
-        }
-        break;
-      case STATE_SLASH:
-        if (c == "/") {
-          state = STATE_INLINE_COMMENT;
-        } else if (c == "*") {
-          state = STATE_MULTILINE_COMMENT;
-        } else {
-          lastStatement = "";
           state = STATE_NORMAL;
         }
         break;

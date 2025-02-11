@@ -584,6 +584,9 @@ function runChecks(dbgObject, environment, sandbox) {
   results = propertyProvider(`1/t`);
   test_has_result(results, "testObject");
 
+  results = propertyProvider(`1/(t`);
+  test_has_result(results, "testObject");
+
   results = propertyProvider(`/* t`);
   Assert.ok(results === null, "Does not complete in multiline comment");
 
