@@ -413,7 +413,6 @@ renaming_overrides_prefixing = true
   inline CSSCoord ResolveToCSSPixels(CSSCoord aBasis) const;
   template<typename Rounder>
   inline nscoord Resolve(nscoord aBasis, Rounder) const;
-  inline nscoord ResolveWithAnchor(nscoord aBasis, mozilla::StylePhysicalSide aSide, mozilla::StylePositionProperty aProp) const;
 """
 
 "GenericCalcNode" = """
@@ -480,7 +479,6 @@ renaming_overrides_prefixing = true
   inline nscoord Resolve(nscoord aPercentageBasis, Rounder) const;
   template<typename T> inline nscoord Resolve(T aPercentageGetter) const;
   inline nscoord Resolve(nscoord aPercentageBasis) const;
-  inline nscoord ResolveWithAnchor(nscoord aPercentageBasis, mozilla::StylePhysicalSide aSide, mozilla::StylePositionProperty aProp) const;
 """
 
 "GenericLengthPercentageOrAuto" = """
@@ -1176,6 +1174,8 @@ renaming_overrides_prefixing = true
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
   inline float ToPercentage() const;
+  inline bool MaybeAuto() const;
+  inline bool MaybePercentageAware() const;
 """
 
 "GenericMargin" = """

@@ -6906,17 +6906,17 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
   const auto iStartOffsetIsAuto =
       stylePos
           ->GetAnchorResolvedInset(LogicalSide::IStart, aWM, positionProperty)
-          ->IsAuto();
+          .IsAuto();
   const auto iEndOffsetIsAuto =
       stylePos->GetAnchorResolvedInset(LogicalSide::IEnd, aWM, positionProperty)
-          ->IsAuto();
+          .IsAuto();
   const auto bStartOffsetIsAuto =
       stylePos
           ->GetAnchorResolvedInset(LogicalSide::BStart, aWM, positionProperty)
-          ->IsAuto();
+          .IsAuto();
   const auto bEndOffsetIsAuto =
       stylePos->GetAnchorResolvedInset(LogicalSide::BEnd, aWM, positionProperty)
-          ->IsAuto();
+          .IsAuto();
   const auto boxSizingAdjust = stylePos->mBoxSizing == StyleBoxSizing::Border
                                    ? aBorderPadding
                                    : LogicalSize(aWM);

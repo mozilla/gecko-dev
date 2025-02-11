@@ -731,21 +731,6 @@ nscoord StyleCalcLengthPercentage::Resolve(nscoord aBasis,
   return aRounder(result * AppUnitsPerCSSPixel());
 }
 
-nscoord StyleCalcLengthPercentage::ResolveWithAnchor(
-    nscoord aBasis, mozilla::StylePhysicalSide aSide,
-    mozilla::StylePositionProperty aProp) const {
-  float value{};
-  bool unused{};
-  bool result = Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
-      this, CSSPixel::FromAppUnits(aBasis), aSide, aProp, &value, &unused);
-  if (!result) {
-    MOZ_ASSERT_UNREACHABLE(
-        "Was expecting initial anchor resolution to determine validity");
-    return 0;
-  }
-  return detail::DefaultPercentLengthToAppUnits(value * AppUnitsPerCSSPixel());
-}
-
 template <>
 void StyleCalcNode::ScaleLengthsBy(float);
 
@@ -801,23 +786,6 @@ nscoord LengthPercentage::Resolve(nscoord aPercentageBasis,
   return Resolve([aPercentageBasis] { return aPercentageBasis; }, aRounder);
 }
 
-nscoord LengthPercentage::ResolveWithAnchor(
-    nscoord aPercentageBasis, mozilla::StylePhysicalSide aSide,
-    mozilla::StylePositionProperty aProp) const {
-  if (ConvertsToLength()) {
-    return ToLength();
-  }
-  if (IsPercentage()) {
-    const auto percent = AsPercentage()._0;
-    if (percent == 0.0f) {
-      return 0;
-    }
-    return detail::DefaultPercentLengthToAppUnits(
-        static_cast<float>(aPercentageBasis) * percent);
-  }
-  return AsCalc().ResolveWithAnchor(aPercentageBasis, aSide, aProp);
-}
-
 void LengthPercentage::ScaleLengthsBy(float aScale) {
   if (IsLength()) {
     AsLength().ScaleBy(aScale);
@@ -866,6 +834,16 @@ IMPL_LENGTHPERCENTAGE_FORWARDS(StyleMargin)
 template <>
 inline bool StyleInset::IsAnchorPositioningFunction() const {
   return IsAnchorFunction() || IsAnchorSizeFunction();
+}
+
+template <>
+inline bool StyleInset::MaybeAuto() const {
+  return IsAuto() || IsAnchorPositioningFunction();
+}
+
+template <>
+inline bool StyleInset::MaybePercentageAware() const {
+  return HasPercent() || IsAnchorPositioningFunction();
 }
 
 #undef IMPL_LENGTHPERCENTAGE_FORWARDS
@@ -1287,23 +1265,6 @@ inline gfx::Point StyleCoordinatePair<LengthPercentage>::ToGfxPoint(
   MOZ_ASSERT(aBasis);
   return gfx::Point(x.ResolveToCSSPixels(aBasis->Width()),
                     y.ResolveToCSSPixels(aBasis->Height()));
-}
-
-inline StylePhysicalSide ToStylePhysicalSide(Side aSide) {
-  // TODO(dhsin): Should look into merging these two values...
-  static_assert(static_cast<uint8_t>(Side::eSideTop) ==
-                    static_cast<uint8_t>(StylePhysicalSide::Top),
-                "Top side doesn't match");
-  static_assert(static_cast<uint8_t>(Side::eSideBottom) ==
-                    static_cast<uint8_t>(StylePhysicalSide::Bottom),
-                "Bottom side doesn't match");
-  static_assert(static_cast<uint8_t>(Side::eSideLeft) ==
-                    static_cast<uint8_t>(StylePhysicalSide::Left),
-                "Left side doesn't match");
-  static_assert(static_cast<uint8_t>(Side::eSideRight) ==
-                    static_cast<uint8_t>(StylePhysicalSide::Right),
-                "Right side doesn't match");
-  return static_cast<StylePhysicalSide>(static_cast<uint8_t>(aSide));
 }
 
 }  // namespace mozilla

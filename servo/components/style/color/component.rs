@@ -91,7 +91,9 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                 } else {
                     ValueType::units()
                 });
-                let mut node = GenericCalcNode::parse(context, input, function, allow)?;
+                let node = GenericCalcNode::parse(context, input, function, allow)?;
+                debug_assert!(!node.has_anchor_function, "Anchor function used for color?");
+                let mut node = node.node;
 
                 // TODO(tlouw): We only have to simplify the node when we have to store it, but we
                 //              only know if we have to store it much later when the whole color
@@ -109,7 +111,6 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
 
     /// Resolve a [ColorComponent] into a float.  None is "none".
     pub fn resolve(&self, origin_color: Option<&AbsoluteColor>) -> Result<Option<ValueType>, ()> {
-        struct EmptyContext;
         Ok(match self {
             ColorComponent::None => None,
             ColorComponent::Value(value) => Some(value.clone()),
@@ -122,7 +123,7 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
             },
             ColorComponent::Calc(node) => {
                 let Ok(resolved_leaf) = node.resolve_map(
-                    |leaf, _| {
+                    |leaf| {
                         Ok(match leaf {
                             Leaf::ColorComponent(channel_keyword) => match origin_color {
                                 Some(origin_color) => {
@@ -135,8 +136,7 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                             l => l.clone(),
                         })
                     },
-                    |_, _| Ok(None),
-                    &mut EmptyContext,
+                    |_| Err(()),
                 ) else {
                     return Err(());
                 };
