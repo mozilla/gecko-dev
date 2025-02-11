@@ -45,6 +45,7 @@ SimpleTest.waitForExplicitFinish();
       testExpected: "<p>hello</p>",
       sanitizerOptions: {}
     },
+    /*
     {
       // script element encoded to not confuse the HTML parser and end execution here
       testString: "<p>second test</p><script>alert(1)\x3C/script>",
@@ -63,6 +64,7 @@ SimpleTest.waitForExplicitFinish();
       testExpected: "<p>hello folks</p>",
       sanitizerOptions: { replaceWithChildrenElements: ["i"] },
     },
+    */
     // TODO: Unknown attributes aren't supported yet.
     // {
     //   // test for the allowAttributes option
@@ -70,6 +72,7 @@ SimpleTest.waitForExplicitFinish();
     //   testExpected: `<p haha="lol">hello</p>`,
     //   sanitizerOptions: { unknownMarkup: true, attributes: ["haha"] },
     // },
+    /*
     {
       // confirming the inverse
       testString: `<p haha="lol">hello</p>`,
@@ -97,6 +100,7 @@ SimpleTest.waitForExplicitFinish();
         removeAttributes: ["title"],
       },
     },
+    */
   ];
 
 

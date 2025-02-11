@@ -10,7 +10,6 @@
 #include "mozilla/dom/SanitizerBinding.h"
 #include "nsContentUtils.h"
 #include "nsGenericHTMLElement.h"
-#include "nsTreeSanitizer.h"
 #include "Sanitizer.h"
 
 namespace mozilla::dom {
@@ -34,14 +33,7 @@ JSObject* Sanitizer::WrapObject(JSContext* aCx,
 already_AddRefed<Sanitizer> Sanitizer::New(nsIGlobalObject* aGlobal,
                                            const SanitizerConfig& aOptions,
                                            ErrorResult& aRv) {
-  nsTreeSanitizer treeSanitizer(nsIParserUtils::SanitizerAllowStyle);
-  treeSanitizer.WithWebSanitizerOptions(aGlobal, aOptions, aRv);
-  if (aRv.Failed()) {
-    return nullptr;
-  }
-
-  RefPtr<Sanitizer> sanitizer =
-      new Sanitizer(aGlobal, std::move(treeSanitizer));
+  RefPtr<Sanitizer> sanitizer = new Sanitizer(aGlobal);
   return sanitizer.forget();
 }
 
@@ -125,7 +117,8 @@ already_AddRefed<DocumentFragment> Sanitizer::Sanitize(
     return nullptr;
   }
 
-  mTreeSanitizer.Sanitize(fragment);
+  // TODO: Sanitize
+
   return fragment.forget();
 }
 
@@ -138,7 +131,7 @@ RefPtr<DocumentFragment> Sanitizer::SanitizeFragment(
   }
   // FIXME(freddyb)
   // (how) can we assert that the supplied doc is indeed inert?
-  mTreeSanitizer.Sanitize(aFragment);
+  // TODO: Sanitize
   return aFragment.forget();
 }
 
