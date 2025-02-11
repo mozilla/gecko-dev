@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.tooling.lint
+package org.mozilla.fenix.lintrules.perf
 
 import com.android.resources.ResourceFolderType
 import com.android.tools.lint.detector.api.Category
@@ -81,8 +81,8 @@ private val FRAMEWORK_ISSUE_EXPLANATION = """`ConstraintLayout`'s main performan
     .joinToStringRemovingManualWrapping() +
     "\n$FRAMEWORK_ELEMENTS_BULLETED_LIST\n\n"
 
-private const val CUSTOM_VIEW_ISSUE_DESCRIPTION = "Caution regarding custom views extending `ConstraintLayout`"
-private const val CUSTOM_VIEW_ISSUE_MESSAGE = "Custom views extending `ConstraintLayout` are less " +
+private val CUSTOM_VIEW_ISSUE_DESCRIPTION = "Caution regarding custom views extending `ConstraintLayout`"
+private val CUSTOM_VIEW_ISSUE_MESSAGE = "Custom views extending `ConstraintLayout` are less " +
     "efficient because they cannot share other `ConstraintLayout` defined in file."
 private val CUSTOM_VIEW_ISSUE_EXPLANATION = """`ConstraintLayout` is slow to inflate so we
     should aim to have as few as possible. However, the performance team doesn't have a good generic
@@ -149,7 +149,6 @@ private val CUSTOM_VIEW_ISSUE = Issue.create(
  */
 class ConstraintLayoutPerfDetector : ResourceXmlDetector() {
 
-    @Suppress("UndocumentedPublicClass")
     companion object {
         val ISSUES = listOf(
             FRAMEWORK_ISSUE,

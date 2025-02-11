@@ -15,9 +15,6 @@ import com.android.tools.lint.detector.api.Issue
 class LintIssueRegistry : IssueRegistry() {
     override val api: Int = com.android.tools.lint.detector.api.CURRENT_API
     override val issues: List<Issue> = listOf(
-        ButtonStyleXmlDetector.ISSUE_XML_STYLE,
-        LicenseDetector.ISSUE_MISSING_LICENSE,
-        LicenseDetector.ISSUE_INVALID_LICENSE_FORMAT,
         LintLogChecks.ISSUE_LOG_USAGE,
         AndroidSrcXmlDetector.ISSUE_XML_SRC_USAGE,
         TextViewAndroidSrcXmlDetector.ISSUE_XML_SRC_USAGE,
@@ -30,7 +27,7 @@ class LintIssueRegistry : IssueRegistry() {
         StringLintXmlDetector.ISSUE_STRAIGHT_QUOTE_USAGE,
         StringLintXmlDetector.ISSUE_STRAIGHT_DOUBLE_QUOTE_USAGE,
         StringLintXmlDetector.ISSUE_BRAND_USAGE,
-    ) + ConstraintLayoutPerfDetector.ISSUES + ContextCompatDetector.ISSUES
+    )
     override val vendor: Vendor = Vendor(
         vendorName = "Mozilla",
         identifier = "mozilla-android-components",

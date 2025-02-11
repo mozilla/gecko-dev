@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.tooling.lint
+package org.mozilla.fenix.lintrules
 
 import com.android.tools.lint.client.api.UElementHandler
 import com.android.tools.lint.detector.api.JavaContext
@@ -12,12 +12,8 @@ import org.jetbrains.kotlin.psi.psiUtil.startsWithComment
 import org.jetbrains.uast.UComment
 import org.jetbrains.uast.UFile
 
-/**
- * A helper class for the [LicenseDetector].
- */
 class LicenseCommentChecker(private val context: JavaContext) : UElementHandler() {
 
-    @Suppress("UndocumentedPublicClass")
     companion object {
         val ValidLicenseForKotlinFiles = """
             |/* This Source Code Form is subject to the terms of the Mozilla Public

@@ -2,26 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.tooling.lint
+package org.mozilla.fenix.lintrules
 
 import com.android.tools.lint.client.api.UElementHandler
-import com.android.tools.lint.detector.api.Category
-import com.android.tools.lint.detector.api.Detector
-import com.android.tools.lint.detector.api.Implementation
-import com.android.tools.lint.detector.api.Issue
-import com.android.tools.lint.detector.api.JavaContext
-import com.android.tools.lint.detector.api.Scope
-import com.android.tools.lint.detector.api.Severity
-import com.android.tools.lint.detector.api.SourceCodeScanner
+import com.android.tools.lint.detector.api.*
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UFile
 
-/**
- * A lint check for missing MPL licenses at the top of source code files.
- */
 class LicenseDetector : Detector(), SourceCodeScanner {
 
-    @Suppress("UndocumentedPublicClass")
     companion object {
 
         private val Implementation = Implementation(
@@ -33,7 +22,7 @@ class LicenseDetector : Detector(), SourceCodeScanner {
             id = "MissingLicense",
             briefDescription = "File doesn't start with the license comment",
             explanation = "Every file must start with the license comment:\n" +
-                    LicenseCommentChecker.ValidLicenseForKotlinFiles,
+                LicenseCommentChecker.ValidLicenseForKotlinFiles,
             category = Category.CORRECTNESS,
             severity = Severity.WARNING,
             implementation = Implementation,

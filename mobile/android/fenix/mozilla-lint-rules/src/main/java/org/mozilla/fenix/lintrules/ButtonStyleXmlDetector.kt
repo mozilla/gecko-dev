@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package mozilla.components.tooling.lint
+package org.mozilla.fenix.lintrules
 
 import com.android.SdkConstants
 import com.android.SdkConstants.ATTR_STYLE
@@ -20,8 +20,6 @@ import org.w3c.dom.Element
  * A custom lint check that prohibits not using the style attribute on buttons
  */
 class ButtonStyleXmlDetector : ResourceXmlDetector() {
-
-    @Suppress("UndocumentedPublicClass")
     companion object {
         const val ERROR_MESSAGE =
             "All buttons must have a style, try using NeutralButton or similar."
