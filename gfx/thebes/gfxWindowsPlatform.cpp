@@ -1116,8 +1116,12 @@ void gfxWindowsPlatform::GetCommonFallbackFonts(
     aFontList.AppendElement("Cambria Math");
   }
 
-  // Arial Unicode MS has lots of glyphs for obscure characters; try it as a
-  // last resort.
+  // Segoe UI handles some punctuation/symbols that are missing from many text
+  // fonts.
+  aFontList.AppendElement("Segoe UI");
+
+  // Arial Unicode MS also has lots of glyphs for obscure characters; try it as
+  // a last resort, if available.
   aFontList.AppendElement("Arial Unicode MS");
 
   // If we didn't begin with the color-emoji fonts, include them here
