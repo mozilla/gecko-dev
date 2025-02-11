@@ -1027,6 +1027,26 @@ export const PREFS_CONFIG = new Map([
       },
     },
   ],
+  [
+    "caretBlinkCount",
+    {
+      title:
+        "The amount of times the caret blinks. This pref copies the value from the system settings",
+      getValue: () => {
+        return Services.appinfo.caretBlinkCount;
+      },
+    },
+  ],
+  [
+    "caretBlinkTime",
+    {
+      title:
+        "Rate at which the caret blinks. This pref copies the value from the system settings",
+      getValue: () => {
+        return Services.appinfo.caretBlinkTime;
+      },
+    },
+  ],
 ]);
 
 // Array of each feed's FEEDS_CONFIG factory and values to add to PREFS_CONFIG

@@ -67,6 +67,25 @@ export class _Search extends React.PureComponent {
     }
   }
 
+  componentDidMount() {
+    const caret = this.fakeCaret;
+    const { caretBlinkCount, caretBlinkTime } = this.props.Prefs.values;
+
+    if (caret) {
+      // If caret blink count isn't defined, use the default infinite behavior for animation
+      caret.style.setProperty(
+        "--caret-blink-count",
+        caretBlinkCount > -1 ? caretBlinkCount : "infinite"
+      );
+
+      // Apply custom blink rate if set, else fallback to default (567ms on/off --> 1134ms total)
+      caret.style.setProperty(
+        "--caret-blink-time",
+        caretBlinkTime > 0 ? `${caretBlinkTime * 2}ms` : `${1134}ms`
+      );
+    }
+  }
+
   componentWillUnmount() {
     delete window.gContentSearchController;
   }
@@ -168,7 +187,12 @@ export class _Search extends React.PureComponent {
                 onPaste={this.onSearchHandoffPaste}
                 ref={this.onInputMountHandoff}
               />
-              <div className="fake-caret" />
+              <div
+                className="fake-caret"
+                ref={el => {
+                  this.fakeCaret = el;
+                }}
+              />
             </button>
           </div>
         )}

@@ -1858,7 +1858,13 @@ main section {
   overflow: hidden;
 }
 .search-handoff-button .fake-caret {
-  animation: caret-animation 1.3s steps(5, start) infinite;
+  /* To replicate the default caret blink rate of 567ms (https://searchfox.org/mozilla-central/source/widget/cocoa/nsLookAndFeel.mm#397):
+   - Multiply the blink time by 2 to cover both the visible and hidden states.
+   - Use steps(2, start) to divide the animation into 2 phases:
+     1. First 567ms (Step 1) → Caret is visible
+     2. Next 567ms (Step 2) → Caret is hidden
+  This gives a sharp ON/OFF effect instead of a smooth transition. */
+  animation: caret-animation var(--caret-blink-time, 1134ms) steps(2, start) var(--caret-blink-count, infinite);
   background: var(--newtab-text-primary-color);
   display: none;
   inset-inline-start: 47px;
