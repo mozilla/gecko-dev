@@ -1941,11 +1941,11 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
     return PixelsToCSSValue(0.0f);
   }
 
-  // TODO(dshin, bug 1947482): Anchor resolution only cares about the axis it's being resolved in,
-  // so we should be able to use `PhysicalAxis` and not worry about keeping track of `side`.
+  // TODO(dshin, bug 1947482): Anchor resolution only cares about the axis it's
+  // being resolved in, so we should be able to use `PhysicalAxis` and not worry
+  // about keeping track of `side`.
   nscoord result = lp.ResolveWithAnchor(
-      percentageBase, ToStylePhysicalSide(side),
-      positionProperty);
+      percentageBase, ToStylePhysicalSide(side), positionProperty);
   return AppUnitsToCSSValue(sign * result);
 }
 
