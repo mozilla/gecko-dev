@@ -36,7 +36,7 @@ class SandboxBrokerTest : public ::testing::Test {
   static const int MAY_CREATE = SandboxBroker::MAY_CREATE;
   static const auto AddAlways = SandboxBroker::Policy::AddAlways;
 
-  UniquePtr<SandboxBroker> mServer;
+  RefPtr<SandboxBroker> mServer;
   UniquePtr<SandboxBrokerClient> mClient;
 
   UniquePtr<const SandboxBroker::Policy> GetPolicy() const;
@@ -676,9 +676,11 @@ TEST(SandboxBrokerMisc, LeakCheck)
     policy->AddPath(SandboxBroker::MAY_READ, "/dev/null",
                     SandboxBroker::Policy::AddAlways);
     ipc::FileDescriptor fd;
-    auto broker = SandboxBroker::Create(std::move(policy), pid, fd);
-    ASSERT_TRUE(broker);
+    RefPtr<SandboxBroker> broker =
+        SandboxBroker::Create(std::move(policy), pid, fd);
+    ASSERT_TRUE(broker != nullptr);
     ASSERT_TRUE(fd.IsValid());
+    broker->Terminate();
   }
 
   if (changedLimit) {
