@@ -984,14 +984,14 @@ void MacroAssembler::branchTestNaNValue(Condition cond, const ValueOperand& val,
     Label done;
     j(NotEqual, &done);
     {
-      cmp32(val.typeReg(), Imm32(expected.toNunboxTag()));
+      cmp32(temp, Imm32(expected.toNunboxTag()));
       j(Equal, label);
     }
     bind(&done);
   } else {
     j(NotEqual, label);
 
-    cmp32(val.typeReg(), Imm32(expected.toNunboxTag()));
+    cmp32(temp, Imm32(expected.toNunboxTag()));
     j(NotEqual, label);
   }
 }
