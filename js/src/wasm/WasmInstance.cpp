@@ -4063,6 +4063,10 @@ void wasm::MarkPendingExceptionAsTrap(JSContext* cx) {
     return;
   }
 
+  if (cx->isThrowingOutOfMemory()) {
+    return;
+  }
+
   MOZ_RELEASE_ASSERT(exn.isObject() && exn.toObject().is<ErrorObject>());
   exn.toObject().as<ErrorObject>().setFromWasmTrap();
 }
