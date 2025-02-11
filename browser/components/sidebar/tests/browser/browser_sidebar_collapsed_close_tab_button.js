@@ -12,6 +12,7 @@ add_setup(async () => {
     "always-show",
     "Sanity check the visibilty pref when verticalTabs are enabled"
   );
+  await flushTaskQueue();
 });
 registerCleanupFunction(async () => {
   await SpecialPowers.popPrefEnv();
@@ -37,9 +38,8 @@ add_task(async function test_toggle_collapse_close_button() {
   let selectedTab = gBrowser.selectedTab.querySelector(".tab-close-button");
   let computedStyle = window.getComputedStyle(selectedTab);
 
-  is(
-    computedStyle.opacity,
-    "0",
+  await TestUtils.waitForCondition(
+    () => computedStyle.opacity == "0",
     "The selected tab is not showing the close button."
   );
 
@@ -99,6 +99,7 @@ add_task(async function test_toggle_collapse_close_button() {
     {}
   );
   AccessibilityUtils.resetEnv();
+  await flushTaskQueue();
   is(gBrowser.tabs.length, 1, "Tabstrip now has one tab");
 
   // Expand the sidebar and make sure the collased close button no longer shows

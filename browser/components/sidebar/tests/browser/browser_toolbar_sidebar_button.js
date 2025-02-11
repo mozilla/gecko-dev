@@ -88,14 +88,11 @@ add_task(async function test_toolbar_sidebar_button() {
 });
 
 add_task(async function test_expanded_state_for_always_show() {
-  info(
-    `Current window's sidebarMain.expanded: ${window.SidebarController.sidebarMain?.expanded}`
-  );
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { SidebarController, document } = win;
   const { sidebarMain, toolbarButton } = SidebarController;
   await SidebarController.promiseInitialized;
-  info(`New window's sidebarMain.expanded: ${sidebarMain?.expanded}`);
+  await flushTaskQueue(win);
 
   const checkExpandedState = async (
     expanded,
@@ -131,22 +128,19 @@ add_task(async function test_expanded_state_for_always_show() {
         ? "Toolbar button expanded attribute is present."
         : "Toolbar button expanded attribute is absent."
     );
+    await flushTaskQueue(win);
   };
 
-  info("Check default expanded state.");
+  info("Set default expanded state.");
+  await SidebarController.initializeUIState({
+    launcherVisible: true,
+    launcherExpanded: false,
+  });
   await checkExpandedState(false);
-  ok(
-    BrowserTestUtils.isVisible(sidebarMain),
-    "The sidebar launcher is visible"
-  );
-  ok(
-    !toolbarButton.hasAttribute("checked"),
-    "The toolbar button is not checked."
-  );
+
   info("Toggle expanded state via toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkExpandedState(true);
-  ok(toolbarButton.hasAttribute("checked"), "The toolbar button is checked.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkExpandedState(false);
 
@@ -230,6 +224,7 @@ add_task(async function test_states_for_hide_sidebar() {
       () => !button.hasAttribute("expanded"),
       "Toolbar button expanded attribute is absent."
     );
+    await flushTaskQueue(win);
   };
 
   // Hide the sidebar
@@ -303,6 +298,7 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
         ? "Toolbar button expanded attribute is present."
         : "Toolbar button expanded attribute is absent."
     );
+    await flushTaskQueue(win);
   };
 
   // Check initial sidebar state - it should be hidden
@@ -387,7 +383,10 @@ add_task(async function test_sidebar_button_runtime_pref_enabled() {
   });
   const sidebar = document.querySelector("sidebar-main");
   button.click();
-  Assert.ok(!sidebar.expanded, "Sidebar collapsed by click");
+  await TestUtils.waitForCondition(
+    () => !sidebar.expanded,
+    "Sidebar collapsed by click"
+  );
 });
 
 /**

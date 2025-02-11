@@ -45,6 +45,7 @@ add_task(async function test_customize_sidebar_actions() {
       .getComputedStyle(sidebarBox)
       .getPropertyValue("max-width")}.`
   );
+  await flushTaskQueue();
   const newMaxWidth = parseInt(
     window.getComputedStyle(sidebarBox).getPropertyValue("max-width")
   );

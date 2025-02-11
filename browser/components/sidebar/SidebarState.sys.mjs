@@ -336,18 +336,17 @@ export class SidebarState {
 
   set launcherWidth(width) {
     this.#props.launcherWidth = width;
-    if (
-      !this.#controllerGlobal.document.documentElement.hasAttribute(
-        "inDOMFullscreen"
-      )
-    ) {
-      this.#panelEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
-      // Expand the launcher when it gets wide enough.
-      if (lazy.verticalTabsEnabled) {
-        this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
-      } else {
-        this.launcherExpanded = false;
-      }
+    const { document, requestAnimationFrame } = this.#controllerGlobal;
+    if (!document.documentElement.hasAttribute("inDOMFullscreen")) {
+      requestAnimationFrame(() => {
+        this.#panelEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
+        // Expand the launcher when it gets wide enough.
+        if (lazy.verticalTabsEnabled) {
+          this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
+        } else {
+          this.launcherExpanded = false;
+        }
+      });
     }
   }
 
