@@ -61,13 +61,13 @@ add_task(async function telemetryEnvironmentOnStartup() {
   // prefs.
   await TelemetryEnvironment.testCleanRestart().onInitialized();
 
-  // Get the prefs that UrlbarPrefs sets when the Suggest scenario is updated on
+  // Get the prefs that are set when the Suggest scenario is updated on
   // startup. They're the union of the prefs exposed in the UI and the prefs
   // that are set on the default branch per scenario.
   let prefs = [
     ...new Set([
-      ...Object.values(UrlbarPrefs.FIREFOX_SUGGEST_UI_PREFS_BY_VARIABLE),
-      ...Object.values(UrlbarPrefs.FIREFOX_SUGGEST_DEFAULT_PREFS)
+      ...Object.values(QuickSuggest.UI_PREFS_BY_VARIABLE),
+      ...Object.values(QuickSuggest.DEFAULT_PREFS)
         .map(valuesByPrefName => Object.keys(valuesByPrefName))
         .flat(),
     ]),
@@ -118,7 +118,7 @@ add_task(async function telemetryEnvironmentOnStartup() {
 
   // Update the scenario and force the startup prefs to take on values that are
   // the inverse of what they are now.
-  await UrlbarPrefs.updateFirefoxSuggestScenario({
+  await QuickSuggest.updateFirefoxSuggestScenario({
     isStartup: true,
     scenario: "online",
     defaultPrefs: {
@@ -149,7 +149,7 @@ add_task(async function telemetryEnvironmentOnStartup() {
   environmentInitPromise =
     TelemetryEnvironment.testCleanRestart().onInitialized();
 
-  await UrlbarPrefs.updateFirefoxSuggestScenario({
+  await QuickSuggest.updateFirefoxSuggestScenario({
     isStartup: true,
     scenario: "online",
     defaultPrefs: {

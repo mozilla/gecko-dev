@@ -951,7 +951,7 @@ class _QuickSuggestTestUtils {
     // If we try to set the scenario before a previous update has finished,
     // `updateFirefoxSuggestScenario` will bail, so wait.
     await this.waitForScenarioUpdated();
-    await lazy.UrlbarPrefs.updateFirefoxSuggestScenario({ scenario });
+    await lazy.QuickSuggest.updateFirefoxSuggestScenario({ scenario });
   }
 
   /**
@@ -959,8 +959,8 @@ class _QuickSuggestTestUtils {
    */
   async waitForScenarioUpdated() {
     await lazy.TestUtils.waitForCondition(
-      () => !lazy.UrlbarPrefs.updatingFirefoxSuggestScenario,
-      "Waiting for updatingFirefoxSuggestScenario to be false"
+      () => !lazy.QuickSuggest._updatingFirefoxSuggestScenario,
+      "Waiting for _updatingFirefoxSuggestScenario to be false"
     );
   }
 

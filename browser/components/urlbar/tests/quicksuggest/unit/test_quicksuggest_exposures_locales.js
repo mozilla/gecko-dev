@@ -8,10 +8,6 @@
 
 "use strict";
 
-ChromeUtils.defineESModuleGetters(this, {
-  ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
-});
-
 const REMOTE_SETTINGS_RECORDS = [
   {
     type: "exposure-suggestions",
@@ -37,13 +33,6 @@ const REMOTE_SETTINGS_RECORDS = [
 ];
 
 add_setup(async function () {
-  // This test calls `UrlbarPrefs.updateFirefoxSuggestScenario()`, which relies
-  // on `ExperimentManager` startup, which doesn't happen by default in xpcshell
-  // tests, so trigger that now.
-  info("Awaiting ExperimentManager.onStartup");
-  await ExperimentManager.onStartup();
-  info("Done awaiting ExperimentManager.onStartup");
-
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: REMOTE_SETTINGS_RECORDS,
   });
@@ -171,7 +160,7 @@ async function doLocaleTest({
         // Update the Suggest scenario, which will set default-branch values for
         // Suggest prefs appropriate to the locale.
         info("Updating Suggest scenario");
-        await UrlbarPrefs.updateFirefoxSuggestScenario();
+        await QuickSuggest.updateFirefoxSuggestScenario();
         info("Done updating Suggest scenario");
 
         // Sanity-check prefs. At this point, the value of `quickSuggestEnabled`
@@ -219,7 +208,7 @@ async function doLocaleTest({
 
   // Reset Suggest prefs to their defaults by updating the scenario now that the
   // app is back to its default locale.
-  await UrlbarPrefs.updateFirefoxSuggestScenario();
+  await QuickSuggest.updateFirefoxSuggestScenario();
 }
 
 function assertSuggestPrefs(expectedEnabled) {
