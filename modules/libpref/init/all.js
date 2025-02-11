@@ -3590,11 +3590,8 @@ pref("webextensions.tests", false);
 // 16MB default non-parseable upload limit for requestBody.raw.bytes
 pref("webextensions.webRequest.requestBodyMaxRawBytes", 16777216);
 
-#ifdef NIGHTLY_BUILD
-  pref("webextensions.storage.session.enforceQuota", true);
-#else
-  pref("webextensions.storage.session.enforceQuota", false);
-#endif
+// Enforce a 10MB quota in the storage.session extension API.
+pref("webextensions.storage.session.enforceQuota", true);
 
 // Should we use the old kinto-based implementation of storage.sync? To be removed in bug 1637465.
 pref("webextensions.storage.sync.kinto", false);

@@ -260,17 +260,6 @@ async function test_storage_session_quota({ quotaEnforced }) {
 
       browser.test.sendMessage("done", { error, data });
     },
-    files: {
-      "extpage.html": `<!DOCTYPE html><script src="extpage.js"></script>`,
-      "extpage.js"() {
-        this.runWarningTest = async () => {
-          const MB = 1_000_000;
-          await browser.storage.session.set({
-            key: "x".repeat(30 * MB),
-          });
-        };
-      },
-    },
   });
 
   await extension.startup();
@@ -297,73 +286,18 @@ async function test_storage_session_quota({ quotaEnforced }) {
     }
   }
 
-  if (!quotaEnforced) {
-    info(
-      "Verify QuotaExceededError warning is logged when quota is not enforced"
-    );
-    const extPage = await ExtensionTestUtils.loadContentPage(
-      extension.extension.baseURI.resolve("extpage.html")
-    );
-    const message = await extPage.spawn(
-      [/QuotaExceededError/],
-      async expectMessageRegexp => {
-        const currInnerWindowID = this.content.windowGlobalChild?.innerWindowId;
-        const promiseConsoleMessage = new Promise(resolve => {
-          const consoleListener = {
-            QueryInterface: ChromeUtils.generateQI(["nsIConsoleListener"]),
-            observe: message => {
-              if (
-                message instanceof Ci.nsIScriptError &&
-                message.innerWindowID === currInnerWindowID &&
-                expectMessageRegexp.test(message.message)
-              ) {
-                resolve({
-                  message: message.message,
-                  category: message.category,
-                  flags: message.flags,
-                  sourceName: message.sourceName,
-                  hasLineNumber: message.lineNumber > 0,
-                });
-                Services.console.unregisterListener(consoleListener);
-              }
-            },
-          };
-          Services.console.registerListener(consoleListener);
-        });
-        // We expect the storage.session.set to not be throwing, but just
-        // logging a warning.
-        await this.content.wrappedJSObject.runWarningTest();
-        return promiseConsoleMessage;
-      }
-    );
-
-    Assert.deepEqual(
-      {
-        sourceName: message.sourceName,
-        category: message.category,
-        flags: message.flags,
-        hasLineNumber: message.hasLineNumber,
-      },
-      {
-        sourceName: extension.extension.baseURI.resolve("extpage.js"),
-        category: "content javascript",
-        flags: Ci.nsIScriptError.warningFlag,
-        hasLineNumber: true,
-      },
-      "Got the expected warning logged to the console service"
-    );
-
-    await extPage.close();
-  }
-
   await extension.unload();
 }
+
+add_task(async function test_storage_session_quota_enforced_by_default() {
+  await test_storage_session_quota({ quotaEnforced: true });
+});
 
 add_task(
   {
     pref_set: [["webextensions.storage.session.enforceQuota", false]],
   },
-  async function test_storage_session_quota_no_pref() {
+  async function test_storage_session_quota_pref_false() {
     await test_storage_session_quota({ quotaEnforced: false });
   }
 );
@@ -372,7 +306,7 @@ add_task(
   {
     pref_set: [["webextensions.storage.session.enforceQuota", true]],
   },
-  async function test_storage_session_quota_nightly() {
+  async function test_storage_session_quota_pref_true() {
     await test_storage_session_quota({ quotaEnforced: true });
   }
 );

@@ -325,20 +325,8 @@ this.storage = class extends ExtensionAPIPersistent {
           get(items) {
             return extensionStorageSession.get(extension, items);
           },
-          set(items, { callerLocation } = {}) {
-            const { warningError } =
-              extensionStorageSession.set(extension, items) ?? {};
-            if (warningError) {
-              context.logConsoleScriptError({
-                message: warningError.message,
-                fileName: callerLocation?.source,
-                lineNumber: callerLocation?.line,
-                columnNumber: callerLocation?.column,
-                flags: Ci.nsIScriptError.warningFlag,
-                innerWindowID:
-                  context.browsingContext.currentWindowContext.innerWindowId,
-              });
-            }
+          set(items) {
+            extensionStorageSession.set(extension, items);
           },
           remove(keys) {
             extensionStorageSession.remove(extension, keys);
