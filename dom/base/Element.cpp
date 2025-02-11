@@ -2101,16 +2101,18 @@ void Element::GetElementsWithGrid(nsTArray<RefPtr<Element>>& aElements) {
                 elem->GetPrimaryFrame())) {
           aElements.AppendElement(elem);
         }
+      }
 
-        // This element has a frame, so allow the traversal to go through
-        // the children.
+      // Only allow the traversal to go through the children if the element
+      // does have a display.
+      if (elem->HasServoData()) {
         cur = cur->GetNextNode(this);
         continue;
       }
     }
 
-    // Either this isn't an element, or it has no frame. Continue with the
-    // traversal but ignore all the children.
+    // Either this isn't an element, or it has `display: none`.
+    // Continue with the traversal but ignore all the children.
     cur = cur->GetNextNonChildNode(this);
   }
 }

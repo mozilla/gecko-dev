@@ -17,6 +17,10 @@
 .gi {
   display: inline-grid;
 }
+
+#a_display_contents_element {
+  display: contents;
+}
 </style>
 
 <script>
@@ -70,8 +74,9 @@ function runTests() {
     {id: "i", message: "fieldset as a grid container"},
     {id: "k1", message: "grid container containing a grid container"},
     {id: "k2", message: "grid container inside a grid container"},
+    {id: "l", message: "grid container inside a display: contents element"},
   ];
-  is(elementsFromRoot.length, 10, "Found expected number of elements within document root.");
+  is(elementsFromRoot.length, 11, "Found expected number of elements within document root.");
   testTargetsAreInElements(targetsFromRoot, elementsFromRoot);
 
 
@@ -83,6 +88,14 @@ function runTests() {
   ];
   is(elementsFromNonRoot.length, 1, "Found expected number of elements from non-root element.");
   testTargetsAreInElements(targetsFromNonRoot, elementsFromNonRoot);
+
+  // Part 3: Look for all the grid elements starting from a non-root, display contents element.
+  const elementsFromNonRootDisplayContent = document.getElementById("a_display_contents_element").getElementsWithGrid();
+  const targetsFromDisplayContentsRoot = [
+    {id: "l", message: "grid container inside a display: contents element"},
+  ];
+  is(elementsFromNonRootDisplayContent.length, 1, "Found expected number of elements from non-root element.");
+  testTargetsAreInElements(targetsFromDisplayContentsRoot, elementsFromNonRootDisplayContent);
 
   SimpleTest.finish();
 }
@@ -116,6 +129,10 @@ function runTests() {
 <div id="a_display_none_element" style="display:none"><div id="j" class="g"></div></div>
 
 <div id="k1" class="g"><div id="k2" class="g"></div></div>
+
+<div id="a_display_contents_element">
+  <div id="l" class="g"></div>
+</div>
 
 </body>
 </html>
