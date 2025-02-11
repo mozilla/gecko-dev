@@ -3,8 +3,7 @@
 
 /*---
 includes: [compareArray.js, deepEqual.js, include.js]
-flags:
-- noStrict
+flags: [noStrict]
 description: |
   pending
 esid: pending

@@ -542,9 +542,9 @@ def insertMeta(source: bytes, frontmatter: "dict[str, Any]") -> bytes:
                 .strip()
                 .replace(b"|-\n", b"")
             )
-        elif key == "includes":
+        elif key in ["flags", "includes", "features"]:
             lines.append(
-                b"includes: "
+                b"%s: " % key.encode("ascii")
                 + yaml.dump(
                     value, encoding="utf8", default_flow_style=True, width=math.inf
                 ).strip()

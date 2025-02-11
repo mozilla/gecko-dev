@@ -6,8 +6,7 @@ info: |
   Information
 
   foo bar  baz
-flags:
-- noStrict
+flags: [noStrict]
 description: |
   pending
 esid: pending

@@ -9,10 +9,8 @@ description: |
 negative:
   phase: early
   type: SyntaxError
-flags:
-- module
-features:
-- Temporal
+flags: [module]
+features: [Temporal]
 info: |
   foo bar  baz
 ---*/

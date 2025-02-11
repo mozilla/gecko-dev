@@ -2,10 +2,8 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-features:
-- IsHTMLDDA
-flags:
-- noStrict
+features: [IsHTMLDDA]
+flags: [noStrict]
 description: |
   pending
 esid: pending

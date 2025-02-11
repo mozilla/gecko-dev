@@ -8,8 +8,7 @@ description: |
 negative:
   phase: runtime
   type: SyntaxError
-flags:
-- noStrict
+flags: [noStrict]
 ---*/
 eval(`
     function f() {

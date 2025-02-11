@@ -2,8 +2,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-flags:
-- onlyStrict
+flags: [onlyStrict]
 description: |
   pending
 esid: pending

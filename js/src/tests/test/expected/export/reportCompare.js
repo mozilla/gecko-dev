@@ -4,8 +4,7 @@
 /*---
 description: |
   assert.sameValue
-flags:
-- noStrict
+flags: [noStrict]
 esid: pending
 ---*/
 
