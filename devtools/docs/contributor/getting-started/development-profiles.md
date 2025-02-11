@@ -1,6 +1,6 @@
 # Setting up a development profile
 
-You can have various [Firefox profiles](https://developer.mozilla.org/en-US/Firefox/Multiple_profiles) (think of something like "user accounts"), each one with different settings, addons, appearance, etc.
+You can have various [Firefox profiles](https://support.mozilla.org/en-US/kb/profile-manager-create-remove-switch-firefox-profiles) (think of something like "user accounts"), each one with different settings, addons, appearance, etc.
 
 This page will guide you through configuring a new profile to enable development features such as additional logging, dumping of network packets, remote debugging, etc. which will help when working in DevTools.
 

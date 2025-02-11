@@ -2,7 +2,7 @@
 
 The console panel uses currently two different frameworks for tests:
 
-- Mochitest - [Mochitest](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Mochitest) is an automated testing framework built on top of the MochiKit JavaScript libraries. It's just one of the automated regression testing frameworks used by Mozilla.
+- Mochitest - [Mochitest](https://firefox-source-docs.mozilla.org/testing/browser-chrome/) is an automated testing framework built on top of the MochiKit JavaScript libraries. It's just one of the automated regression testing frameworks used by Mozilla.
 
 Mochitests are located in `devtools/client/webconsole/test/browser/` and can be run with the following command:
 

@@ -6,7 +6,7 @@ If a remote debugging change impacts the server (file located in `devtools/serve
 
 ## Setup your environment and build
 
-This will be a short documentation focused on the typical patches you may write for about:debugging. For a more complete documentation, you can refer to https://mozilla.github.io/geckoview/ and https://developer.mozilla.org/en-US/docs/Mozilla/Developer_guide/Build_Instructions/Simple_Firefox_for_Android_build.
+This will be a short documentation focused on the typical patches you may write for about:debugging. For a more complete documentation, you can refer to https://mozilla.github.io/geckoview/ and https://firefox-source-docs.mozilla.org/mobile/android/.
 
 The whole setup needs to download several gigabytes of dependencies so try to have a fast internet connection to follow those steps.
 

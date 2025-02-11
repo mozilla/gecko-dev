@@ -17,7 +17,7 @@ And also, it is even better if you can replay via a test script. Test script tha
 
 The very first thing to do is to record a profile while reproducing the scenario.
 
-Here's the Firefox documentation for [how to install the profiler and record a profile](https://developer.mozilla.org/docs/Mozilla/Performance/Reporting_a_Performance_Problem) and also [how to interpret the profiles](https://developer.mozilla.org/docs/Mozilla/Performance/Profiling_with_the_Built-in_Profiler#Understanding_Profiles)
+Here's the Firefox documentation for [how to install the profiler and record a profile](https://firefox-source-docs.mozilla.org/performance/reporting_a_performance_problem.html) and also [how to interpret the profiles](https://profiler.firefox.com/docs/#/./guide-profiler-fundamentals)
 
 There are some peculiarities about DevTools architecture that are worth knowing about when looking at a profile:
 
