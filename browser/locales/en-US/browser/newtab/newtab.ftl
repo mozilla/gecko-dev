@@ -122,7 +122,7 @@ newtab-menu-about-fakespot = About { -fakespot-brand-name }
 newtab-menu-section-block = Block
 # "Follow", "unfollow", and "following" are social media terms that refer to subscribing to or unsubscribing from a section of stories.
 # e.g. Following the travel section of stories.
-newtab-menu-section-unfollow = Unfollow Topic
+newtab-menu-section-unfollow = Unfollow topic
 
 ## Message displayed in a modal window to explain privacy and provide context for sponsored content.
 
@@ -457,17 +457,20 @@ newtab-section-unblock-button = Unblock
 
 ## Confirmation modal for blocking a section
 
-newtab-section-confirm-block-section-p1 = Are you sure you want to block this section?
-newtab-section-confirm-block-section-p2 = Blocked section will no longer appear in your feed.
-newtab-section-block-section-button = Block this section
+newtab-section-confirm-block-topic-p1 = Are you sure you want to block this topic?
+newtab-section-confirm-block-topic-p2 = Blocked topics will no longer appear in your feed.
+
+# Variables:
+#   $topic (string) - Name of topic that user is blocking
+newtab-section-block-topic-button = Block { $topic }
 newtab-section-cancel-button = Not now
 
 ## Panel in the Customize menu section to manage followed and blocked topics
 
 newtab-section-mangage-topics-title = Topics
-newtab-section-mangage-topics-button =
-    .label = Followed and blocked topics
-newtab-section-mangage-topics-followed-topics-subtitle = Followed Topics
+newtab-section-manage-topics-button-v2 =
+    .label = Manage topics
+newtab-section-mangage-topics-followed-topics = Followed
 newtab-section-mangage-topics-followed-topics-empty-state = You have not followed any topics yet.
-newtab-section-mangage-topics-blocked-topics-subtitle = Blocked Topics
+newtab-section-mangage-topics-blocked-topics = Blocked
 newtab-section-mangage-topics-blocked-topics-empty-state = You have not blocked any topics yet.

@@ -275,7 +275,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
     <div>
       <moz-box-button
         onClick={togglePanel}
-        data-l10n-id="newtab-section-mangage-topics-button"
+        data-l10n-id="newtab-section-manage-topics-button-v2"
       ></moz-box-button>
       <CSSTransition
         in={showPanel}
@@ -287,7 +287,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
           <button className="arrow-button" onClick={togglePanel}>
             <h1 data-l10n-id="newtab-section-mangage-topics-title"></h1>
           </button>
-          <h3 data-l10n-id="newtab-section-mangage-topics-followed-topics-subtitle"></h3>
+          <h3 data-l10n-id="newtab-section-mangage-topics-followed-topics"></h3>
           {followedSectionsData.length ? (
             <ul className="topic-list">{followedSectionsList}</ul>
           ) : (
@@ -296,7 +296,7 @@ function SectionsMgmtPanel({ exitEventFired }) {
               data-l10n-id="newtab-section-mangage-topics-followed-topics-empty-state"
             ></span>
           )}
-          <h3 data-l10n-id="newtab-section-mangage-topics-blocked-topics-subtitle"></h3>
+          <h3 data-l10n-id="newtab-section-mangage-topics-blocked-topics"></h3>
           {blockedSectionsData.length ? (
             <ul className="topic-list">{blockedSectionsList}</ul>
           ) : (

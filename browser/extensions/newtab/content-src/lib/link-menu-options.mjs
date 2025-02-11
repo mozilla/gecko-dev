@@ -425,7 +425,7 @@ export const LinkMenuOptions = {
       type: at.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: ({ blockedSections, sectionKey, sectionPosition }) => ({
+  SectionBlock: ({ blockedSections, sectionKey, sectionPosition, title }) => ({
     id: "newtab-menu-section-block",
     icon: "delete",
     action: {
@@ -460,10 +460,11 @@ export const LinkMenuOptions = {
         // Pass Fluent strings to ConfirmDialog component for the copy
         // of the prompt to block sections.
         body_string_id: [
-          "newtab-section-confirm-block-section-p1",
-          "newtab-section-confirm-block-section-p2",
+          "newtab-section-confirm-block-topic-p1",
+          "newtab-section-confirm-block-topic-p2",
         ],
-        confirm_button_string_id: "newtab-section-block-section-button",
+        confirm_button_string_id: "newtab-section-block-topic-button",
+        confirm_button_string_args: { topic: title },
         cancel_button_string_id: "newtab-section-cancel-button",
       },
     },

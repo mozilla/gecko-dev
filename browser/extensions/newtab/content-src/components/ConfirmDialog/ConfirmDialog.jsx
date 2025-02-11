@@ -92,6 +92,9 @@ export class _ConfirmDialog extends React.PureComponent {
               className="done"
               onClick={this._handleConfirmBtn}
               data-l10n-id={this.props.data.confirm_button_string_id}
+              data-l10n-args={JSON.stringify(
+                this.props.data.confirm_button_string_args
+              )}
             />
           </section>
         </div>

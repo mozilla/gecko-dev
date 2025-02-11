@@ -1228,7 +1228,8 @@ class _ConfirmDialog extends (external_React_default()).PureComponent {
     }), /*#__PURE__*/external_React_default().createElement("button", {
       className: "done",
       onClick: this._handleConfirmBtn,
-      "data-l10n-id": this.props.data.confirm_button_string_id
+      "data-l10n-id": this.props.data.confirm_button_string_id,
+      "data-l10n-args": JSON.stringify(this.props.data.confirm_button_string_args)
     }))));
   }
 }
@@ -2044,7 +2045,7 @@ const LinkMenuOptions = {
       type: actionTypes.OPEN_ABOUT_FAKESPOT,
     }),
   }),
-  SectionBlock: ({ blockedSections, sectionKey, sectionPosition }) => ({
+  SectionBlock: ({ blockedSections, sectionKey, sectionPosition, title }) => ({
     id: "newtab-menu-section-block",
     icon: "delete",
     action: {
@@ -2079,10 +2080,11 @@ const LinkMenuOptions = {
         // Pass Fluent strings to ConfirmDialog component for the copy
         // of the prompt to block sections.
         body_string_id: [
-          "newtab-section-confirm-block-section-p1",
-          "newtab-section-confirm-block-section-p2",
+          "newtab-section-confirm-block-topic-p1",
+          "newtab-section-confirm-block-topic-p2",
         ],
-        confirm_button_string_id: "newtab-section-block-section-button",
+        confirm_button_string_id: "newtab-section-block-topic-button",
+        confirm_button_string_args: { topic: title },
         cancel_button_string_id: "newtab-section-cancel-button",
       },
     },
@@ -10037,7 +10039,8 @@ function SectionContextMenu({
       followedSections,
       blockedSections,
       sectionKey,
-      sectionPosition
+      sectionPosition,
+      title
     }
   }));
 }
@@ -11054,7 +11057,7 @@ function SectionsMgmtPanel({
   });
   return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("moz-box-button", {
     onClick: togglePanel,
-    "data-l10n-id": "newtab-section-mangage-topics-button"
+    "data-l10n-id": "newtab-section-manage-topics-button-v2"
   }), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
     in: showPanel,
     timeout: 300,
@@ -11068,14 +11071,14 @@ function SectionsMgmtPanel({
   }, /*#__PURE__*/external_React_default().createElement("h1", {
     "data-l10n-id": "newtab-section-mangage-topics-title"
   })), /*#__PURE__*/external_React_default().createElement("h3", {
-    "data-l10n-id": "newtab-section-mangage-topics-followed-topics-subtitle"
+    "data-l10n-id": "newtab-section-mangage-topics-followed-topics"
   }), followedSectionsData.length ? /*#__PURE__*/external_React_default().createElement("ul", {
     className: "topic-list"
   }, followedSectionsList) : /*#__PURE__*/external_React_default().createElement("span", {
     className: "topic-list-empty-state",
     "data-l10n-id": "newtab-section-mangage-topics-followed-topics-empty-state"
   }), /*#__PURE__*/external_React_default().createElement("h3", {
-    "data-l10n-id": "newtab-section-mangage-topics-blocked-topics-subtitle"
+    "data-l10n-id": "newtab-section-mangage-topics-blocked-topics"
   }), blockedSectionsData.length ? /*#__PURE__*/external_React_default().createElement("ul", {
     className: "topic-list"
   }, blockedSectionsList) : /*#__PURE__*/external_React_default().createElement("span", {

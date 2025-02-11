@@ -62,6 +62,7 @@ export function SectionContextMenu({
             blockedSections,
             sectionKey,
             sectionPosition,
+            title,
           }}
         />
       )}
