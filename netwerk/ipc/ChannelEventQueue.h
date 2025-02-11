@@ -17,6 +17,7 @@
 #include "mozilla/RecursiveMutex.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
+#include "mozilla/FlowMarkers.h"
 
 class nsISupports;
 
@@ -232,6 +233,8 @@ inline void ChannelEventQueue::RunOrEnqueue(ChannelEvent* aCallback,
     // c. an event is currently flushed/executed from the queue
     // d. queue is non-empty (pending events on remote thread targets)
     if (enqueue) {
+      PROFILER_MARKER("ChannelEventQueue::Enqueue", NETWORK, {}, FlowMarker,
+                      Flow::FromPointer(event.get()));
       mEventQueue.AppendElement(std::move(event));
       return;
     }
@@ -255,6 +258,10 @@ inline void ChannelEventQueue::RunOrEnqueue(ChannelEvent* aCallback,
       // call CompleteResume to flush the queue. All the events are run
       // synchronously in their respective target threads.
       SuspendInternal();
+
+      PROFILER_MARKER("ChannelEventQueue::Enqueue", NETWORK, {}, FlowMarker,
+                      Flow::FromPointer(event.get()));
+
       mEventQueue.AppendElement(std::move(event));
       ResumeInternal();
       return;
@@ -262,6 +269,8 @@ inline void ChannelEventQueue::RunOrEnqueue(ChannelEvent* aCallback,
   }
 
   MOZ_RELEASE_ASSERT(!aAssertionWhenNotQueued);
+  AUTO_PROFILER_TERMINATING_FLOW_MARKER("ChannelEvent", OTHER,
+                                        Flow::FromPointer(event.get()));
   // execute the event synchronously if we are not queuing it and
   // the target thread is the current thread
   event->Run();
