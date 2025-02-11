@@ -11,7 +11,7 @@ let { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
 
-const TOTAL_PROMO_CARDS_COUNT = 4;
+const TOTAL_PROMO_CARDS_COUNT = 5;
 
 async function clearPolicies() {
   // Ensure no active policies are set
@@ -390,5 +390,32 @@ add_task(async function test_aboutpreferences_clickBtnRelay() {
 
   await tabOpened;
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function show_solo_more_from_mozilla() {
+  await clearPolicies();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.preferences.moreFromMozilla", true],
+      ["browser.preferences.moreFromMozilla.template", "simple"],
+    ],
+  });
+  await openPreferencesViaOpenPreferencesAPI("paneMoreFromMozilla", {
+    leaveOpen: true,
+  });
+
+  let doc = gBrowser.contentDocument;
+  let tab = gBrowser.selectedTab;
+
+  const soloCard = doc.getElementById("solo-ai");
+  let soloBtn = doc.getElementById("simple-soloAI");
+
+  Assert.ok(BrowserTestUtils.isVisible(soloCard), "Solo card is shown");
+  Assert.ok(
+    BrowserTestUtils.isVisible(soloBtn),
+    "Solo button rendered on page"
+  );
+
   BrowserTestUtils.removeTab(tab);
 });
