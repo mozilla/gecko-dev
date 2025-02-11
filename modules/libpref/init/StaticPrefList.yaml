@@ -9654,7 +9654,7 @@
 # Is support for CSS hyphenate-limit-chars enabled?
 - name: layout.css.hyphenate-limit-chars.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Is support for CSS initial-letter property enabled?
