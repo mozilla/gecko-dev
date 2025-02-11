@@ -29,6 +29,7 @@ ALLOWED_ISEARLYSTARTUP_FEATURE_IDS = {
     "bounceTrackingProtection",
     "newtab",
     "pocketNewtab",
+    "preonboarding",
     "testFeature",
     "upgradeDialog",
 }

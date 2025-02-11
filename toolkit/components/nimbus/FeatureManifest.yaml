@@ -684,6 +684,8 @@ preonboarding:
   owner: omc@mozilla.com
   # Exposure is recorded by the spotlight feature used to show the modal
   hasExposure: false
+  # Needed at `sessionstore-windows-restored`.
+  isEarlyStartup: true
   variables:
     enabled:
       type: boolean
