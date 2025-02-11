@@ -141,8 +141,16 @@ class SearchConfigTest {
     // when updating the requested/available locales.
     for (let region of regions) {
       for (let locale of locales) {
-        const engines = await this._getEngines(region, locale);
-        this._assertEngineRules([engines[0]], region, locale, "default");
+        const { engines, appDefaultEngineId } = await this._getEngines(
+          region,
+          locale
+        );
+        this._assertEngineRules(
+          engines.filter(e => e.id == appDefaultEngineId),
+          region,
+          locale,
+          "default"
+        );
         const isPresent = this._assertAvailableEngines(region, locale, engines);
         if (isPresent) {
           this._assertEngineDetails(region, locale, engines);
@@ -158,7 +166,10 @@ class SearchConfigTest {
       channel: SearchUtils.MODIFIED_APP_CHANNEL,
     });
 
-    return SearchTestUtils.searchConfigToEngines(configs.engines);
+    return {
+      engines: await SearchTestUtils.searchConfigToEngines(configs.engines),
+      appDefaultEngineId: configs.appDefaultEngineId,
+    };
   }
 
   /**

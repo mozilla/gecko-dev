@@ -588,6 +588,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  SearchUtils,
+  "rustSelectorFeatureGate",
+  BROWSER_SEARCH_PREF + "rustSelector.featureGate",
+  false
+);
+
 // Can't use defineLazyPreferenceGetter because we want the value
 // from the default branch
 ChromeUtils.defineLazyGetter(SearchUtils, "distroID", () => {

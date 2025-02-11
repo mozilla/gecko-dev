@@ -41,34 +41,9 @@ const CONFIG = [
 
 const engineSelector = new SearchEngineSelector();
 
-/**
- * This function asserts if the actual engines returned equals the expected
- * engines.
- *
- * @param {object} config
- *   A fake search config containing engines.
- * @param {object} userEnv
- *   A fake user's environment including locale and region, experiment, etc.
- * @param {Array} expectedEngines
- *   The array of expected engines to be returned from the fake config.
- * @param {string} message
- *   The assertion message.
- */
-async function assertActualEnginesEqualsExpected(
-  config,
-  userEnv,
-  expectedEngines,
-  message
-) {
-  engineSelector._configuration = null;
-  SearchTestUtils.setRemoteSettingsConfig(config);
-  let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
-
-  Assert.deepEqual(engines, expectedEngines, message);
-}
-
 add_task(async function test_no_subvariants_match() {
-  await assertActualEnginesEqualsExpected(
+  await assertSelectorEnginesEqualsExpected(
+    engineSelector,
     CONFIG,
     {
       locale: "fi",
@@ -86,7 +61,8 @@ add_task(async function test_no_subvariants_match() {
 });
 
 add_task(async function test_matching_subvariant_with_properties() {
-  await assertActualEnginesEqualsExpected(
+  await assertSelectorEnginesEqualsExpected(
+    engineSelector,
     CONFIG,
     {
       locale: "en-GB",
@@ -104,7 +80,8 @@ add_task(async function test_matching_subvariant_with_properties() {
 });
 
 add_task(async function test_matching_variant_and_subvariant_with_properties() {
-  await assertActualEnginesEqualsExpected(
+  await assertSelectorEnginesEqualsExpected(
+    engineSelector,
     CONFIG,
     {
       locale: "en-CA",
@@ -122,7 +99,8 @@ add_task(async function test_matching_variant_and_subvariant_with_properties() {
 });
 
 add_task(async function test_matching_two_subvariant_with_properties() {
-  await assertActualEnginesEqualsExpected(
+  await assertSelectorEnginesEqualsExpected(
+    engineSelector,
     CONFIG,
     {
       locale: "fr",

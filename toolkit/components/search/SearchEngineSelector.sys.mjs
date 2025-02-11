@@ -2,10 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**
+ * @typedef {import("../uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs").SearchEngineSelector} RustSearchEngineSelector
+ * We use "Rust" above to avoid conflict with the class name for the JavaScript wrapper.
+ * @typedef {import("../uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs").SearchApplicationName} SearchApplicationName
+ * @typedef {import("../uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs").SearchUpdateChannel} SearchUpdateChannel
+ */
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  SearchDeviceType: "resource://gre/modules/RustSearch.sys.mjs",
+  SearchEngineSelector: "resource://gre/modules/RustSearch.sys.mjs",
+  SearchUserEnvironment: "resource://gre/modules/RustSearch.sys.mjs",
+  SearchApplicationName: "resource://gre/modules/RustSearch.sys.mjs",
+  SearchUpdateChannel: "resource://gre/modules/RustSearch.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
 });
 
@@ -98,6 +110,12 @@ export class SearchEngineSelector {
         this._onConfigurationOverridesUpdated
       );
       this._listenerAdded = true;
+    }
+
+    if (lazy.SearchUtils.rustSelectorFeatureGate) {
+      this.#selector.setSearchConfig(
+        JSON.stringify({ data: this._configuration })
+      );
     }
 
     return this._configuration;
@@ -217,6 +235,13 @@ export class SearchEngineSelector {
    */
   _onConfigurationUpdated({ data: { current } }) {
     this._configuration = current;
+
+    if (lazy.SearchUtils.rustSelectorFeatureGate) {
+      this.#selector.setSearchConfig(
+        JSON.stringify({ data: this._configuration })
+      );
+    }
+
     lazy.logConsole.debug("Search configuration updated remotely");
     if (this._changeListener) {
       this._changeListener();
@@ -297,107 +322,208 @@ export class SearchEngineSelector {
       `fetchEngineConfiguration ${locale}:${region}:${channel}:${distroID}:${experiment}:${appName}:${version}`
     );
 
-    appName = appName.toLowerCase();
-    version = version.toLowerCase();
-    locale = locale.toLowerCase();
-    region = region.toLowerCase();
+    if (!lazy.SearchUtils.rustSelectorFeatureGate) {
+      // Legacy JavaScript based engine selection.
+      appName = appName.toLowerCase();
+      version = version.toLowerCase();
+      locale = locale.toLowerCase();
+      region = region.toLowerCase();
 
-    let engines = [];
-    let defaultsConfig;
-    let engineOrders;
-    let userEnv = {
-      appName,
-      version,
-      locale,
-      region,
-      channel,
-      distroID,
-      experiment,
-    };
+      let engines = [];
+      let defaultsConfig;
+      let engineOrders;
+      let userEnv = {
+        appName,
+        version,
+        locale,
+        region,
+        channel,
+        distroID,
+        experiment,
+      };
 
-    for (let config of this._configuration) {
-      if (config.recordType == "defaultEngines") {
-        defaultsConfig = config;
+      for (let config of this._configuration) {
+        if (config.recordType == "defaultEngines") {
+          defaultsConfig = config;
+        }
+
+        if (config.recordType == "engineOrders") {
+          engineOrders = config;
+        }
+
+        if (config.recordType !== "engine") {
+          continue;
+        }
+
+        let variant = config.variants?.findLast(v =>
+          this.#matchesUserEnvironment(v, userEnv)
+        );
+
+        if (!variant) {
+          continue;
+        }
+
+        let subVariant = variant.subVariants?.findLast(sv =>
+          this.#matchesUserEnvironment(sv, userEnv)
+        );
+
+        let engine = structuredClone(config.base);
+        engine.identifier = config.identifier;
+        engine = this.#deepCopyObject(engine, variant);
+
+        if (subVariant) {
+          engine = this.#deepCopyObject(engine, subVariant);
+        }
+
+        for (let override of this._configurationOverrides) {
+          if (override.identifier == engine.identifier) {
+            engine = this.#deepCopyObject(engine, override);
+          }
+        }
+
+        engines.push(engine);
       }
 
-      if (config.recordType == "engineOrders") {
-        engineOrders = config;
-      }
-
-      if (config.recordType !== "engine") {
-        continue;
-      }
-
-      let variant = config.variants?.findLast(v =>
-        this.#matchesUserEnvironment(v, userEnv)
+      let { defaultEngine, privateDefault } = this.#defaultEngines(
+        engines,
+        defaultsConfig,
+        userEnv
       );
 
-      if (!variant) {
-        continue;
-      }
+      for (const orderData of engineOrders.orders) {
+        let environment = orderData.environment;
 
-      let subVariant = variant.subVariants?.findLast(sv =>
-        this.#matchesUserEnvironment(sv, userEnv)
-      );
-
-      let engine = structuredClone(config.base);
-      engine.identifier = config.identifier;
-      engine = this.#deepCopyObject(engine, variant);
-
-      if (subVariant) {
-        engine = this.#deepCopyObject(engine, subVariant);
-      }
-
-      for (let override of this._configurationOverrides) {
-        if (override.identifier == engine.identifier) {
-          engine = this.#deepCopyObject(engine, override);
+        if (this.#matchesUserEnvironment({ environment }, userEnv)) {
+          this.#setEngineOrders(engines, orderData.order);
         }
       }
 
-      engines.push(engine);
+      if (!defaultEngine) {
+        if (engines.length) {
+          lazy.logConsole.error(
+            "Could not find a matching default engine, using the first one in the list"
+          );
+          defaultEngine = engines[0];
+        } else {
+          throw new Error(
+            "Could not find any engines in the filtered configuration"
+          );
+        }
+      }
+
+      engines.sort(this._sort.bind(this, defaultEngine, privateDefault));
+
+      let result = { engines, appDefaultEngineId: defaultEngine.identifier };
+
+      if (privateDefault) {
+        result.appPrivateDefaultEngineId = privateDefault.identifier;
+      }
+
+      if (lazy.SearchUtils.loggingEnabled) {
+        lazy.logConsole.debug(
+          "fetchEngineConfiguration: " + result.engines.map(e => e.identifier)
+        );
+      }
+      return result;
     }
 
-    let { defaultEngine, privateDefault } = this.#defaultEngines(
-      engines,
-      defaultsConfig,
-      userEnv
+    // Rust based engine selector.
+    let refinedSearchConfig = this.#selector.filterEngineConfiguration(
+      new lazy.SearchUserEnvironment({
+        locale,
+        region,
+        updateChannel: this.#convertUpdateChannel(channel),
+        distributionId: distroID ?? "",
+        experiment: experiment ?? "",
+        appName: this.#convertApplicationName(appName),
+        version,
+        deviceType: lazy.SearchDeviceType.NONE,
+      })
     );
 
-    for (const orderData of engineOrders.orders) {
-      let environment = orderData.environment;
+    refinedSearchConfig.engines = refinedSearchConfig.engines.filter(
+      e => !e.optional
+    );
 
-      if (this.#matchesUserEnvironment({ environment }, userEnv)) {
-        this.#setEngineOrders(engines, orderData.order);
-      }
-    }
-
-    if (!defaultEngine) {
-      if (engines.length) {
+    if (
+      !refinedSearchConfig.appDefaultEngineId ||
+      !refinedSearchConfig.engines.find(
+        e => e.identifier == refinedSearchConfig.appDefaultEngineId
+      )
+    ) {
+      if (refinedSearchConfig.engines.length) {
         lazy.logConsole.error(
           "Could not find a matching default engine, using the first one in the list"
         );
-        defaultEngine = engines[0];
+        refinedSearchConfig.appDefaultEngineId =
+          refinedSearchConfig.engines[0].identifier;
       } else {
         throw new Error(
           "Could not find any engines in the filtered configuration"
         );
       }
     }
-
-    engines.sort(this._sort.bind(this, defaultEngine, privateDefault));
-
-    let result = { engines, appDefaultEngineId: defaultEngine.identifier };
-
-    if (privateDefault) {
-      result.appPrivateDefaultEngineId = privateDefault.identifier;
-    }
-
     if (lazy.SearchUtils.loggingEnabled) {
       lazy.logConsole.debug(
-        "fetchEngineConfiguration: " + result.engines.map(e => e.identifier)
+        "fetchEngineConfiguration: " +
+          refinedSearchConfig.engines.map(e => e.identifier)
       );
     }
-    return result;
+
+    return refinedSearchConfig;
+  }
+
+  /**
+   * @type {RustSearchEngineSelector?}
+   */
+  #cachedSelector = null;
+
+  /**
+   * Returns the Rust based selector.
+   *
+   * @returns {RustSearchEngineSelector}
+   */
+  get #selector() {
+    if (!this.#cachedSelector) {
+      this.#cachedSelector = lazy.SearchEngineSelector.init();
+    }
+    return this.#cachedSelector;
+  }
+
+  /**
+   * Converts the update channel from a string into a type the search engine
+   * selector can understand.
+   *
+   * @param {string} channel
+   *   The channel name to convert.
+   * @returns {SearchUpdateChannel}
+   */
+  #convertUpdateChannel(channel) {
+    let uppercaseChannel = channel.toUpperCase();
+
+    if (uppercaseChannel in lazy.SearchUpdateChannel) {
+      return lazy.SearchUpdateChannel[uppercaseChannel];
+    }
+
+    return lazy.SearchUpdateChannel.DEFAULT;
+  }
+
+  /**
+   * Converts the application name from a string into a type the search engine
+   * selector can understand.
+   *
+   * @param {string} appName
+   *   The application name to convert.
+   * @returns {SearchApplicationName}
+   */
+  #convertApplicationName(appName) {
+    let uppercaseAppName = appName.toUpperCase().replace("-", "_");
+
+    if (uppercaseAppName in lazy.SearchApplicationName) {
+      return lazy.SearchApplicationName[uppercaseAppName];
+    }
+
+    return lazy.SearchApplicationName.FIREFOX;
   }
 
   _sort(defaultEngine, defaultPrivateEngine, a, b) {

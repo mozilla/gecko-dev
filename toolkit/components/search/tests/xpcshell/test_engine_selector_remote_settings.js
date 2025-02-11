@@ -8,7 +8,7 @@
 
 "use strict";
 
-const TEST_CONFIG = [
+let TEST_CONFIG = [
   {
     recordType: "defaultEngines",
     globalDefault: "lycos",
@@ -31,13 +31,6 @@ for (let engineName of ["lycos", "altavista", "aol", "excite"]) {
         },
       },
     },
-    variants: [
-      {
-        environment: {
-          allRegionsAndLocales: "true",
-        },
-      },
-    ],
     identifier: engineName,
     recordType: "engine",
   });
@@ -48,6 +41,8 @@ let getStub;
 add_setup(async function () {
   const searchConfigSettings = await RemoteSettings(SearchUtils.SETTINGS_KEY);
   getStub = sinon.stub(searchConfigSettings, "get");
+
+  TEST_CONFIG = SearchTestUtils.expandPartialConfig(TEST_CONFIG);
 
   // We expect this error from remove settings as we're invalidating the
   // signature.
@@ -151,12 +146,11 @@ add_task(async function test_selector_config_update() {
 
   Assert.ok(listenerSpy.notCalled, "Should not have called the listener yet");
 
-  const NEW_DATA = [
+  const NEW_DATA = SearchTestUtils.expandPartialConfig([
     {
       recordType: "engine",
       identifier: "askjeeves",
       base: { name: "askjeeves" },
-      variants: [{ environment: { allRegionsAndLocales: "true" } }],
     },
     {
       recordType: "defaultEngines",
@@ -167,7 +161,7 @@ add_task(async function test_selector_config_update() {
       orders: [],
       recordType: "engineOrders",
     },
-  ];
+  ]);
 
   getStub.resetHistory();
   getStub.onFirstCall().returns(NEW_DATA);

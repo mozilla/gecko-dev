@@ -685,6 +685,7 @@ add_task(async function test_engine_selector_match_applications() {
       locale: "en-CA",
       region: "CA",
       channel: "esr",
+      appName: "firefox-android",
     },
     ["engine-channel"],
     "Should match engine for esr channel."

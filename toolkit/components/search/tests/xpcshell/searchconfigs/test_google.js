@@ -101,7 +101,10 @@ add_task(async function test_searchConfig_google_with_pref_param() {
 
   for (const testData of TEST_DATA) {
     info(`Checking region ${testData.region}, locale ${testData.locale}`);
-    const engines = await test._getEngines(testData.region, testData.locale);
+    const { engines } = await test._getEngines(
+      testData.region,
+      testData.locale
+    );
 
     Assert.ok(
       engines[0].identifier.startsWith("google"),
@@ -152,7 +155,10 @@ add_task(async function test_searchConfig_google_with_nimbus() {
 
   for (const testData of TEST_DATA) {
     info(`Checking region ${testData.region}, locale ${testData.locale}`);
-    const engines = await test._getEngines(testData.region, testData.locale);
+    const { engines } = await test._getEngines(
+      testData.region,
+      testData.locale
+    );
 
     Assert.ok(
       engines[0].identifier.startsWith("google"),
@@ -200,7 +206,10 @@ add_task(async function test_searchConfig_google_enterprise() {
 
   for (const testData of TEST_DATA) {
     info(`Checking region ${testData.region}, locale ${testData.locale}`);
-    const engines = await test._getEngines(testData.region, testData.locale);
+    const { engines } = await test._getEngines(
+      testData.region,
+      testData.locale
+    );
     Assert.ok(
       engines[0].identifier.startsWith("google"),
       "Should have the correct engine"

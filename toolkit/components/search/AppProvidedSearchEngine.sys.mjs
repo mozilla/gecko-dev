@@ -20,6 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
+  SearchEngineClassification: "resource://gre/modules/RustSearch.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
 });
 
@@ -607,8 +608,10 @@ export class AppProvidedSearchEngine extends SearchEngine {
   #init(engineConfig) {
     this._orderHint = engineConfig.orderHint;
     this._telemetryId = engineConfig.identifier;
-    this.#isGeneralPurposeSearchEngine =
-      engineConfig.classification == "general";
+    this.#isGeneralPurposeSearchEngine = lazy.SearchUtils
+      .rustSelectorFeatureGate
+      ? engineConfig.classification == lazy.SearchEngineClassification.GENERAL
+      : engineConfig.classification == "general";
 
     if (engineConfig.charset) {
       this._queryCharset = engineConfig.charset;
@@ -627,7 +630,9 @@ export class AppProvidedSearchEngine extends SearchEngine {
       engineConfig.aliases?.map(alias => `@${alias}`) ?? [];
 
     for (const [type, urlData] of Object.entries(engineConfig.urls)) {
-      this.#setUrl(type, urlData, engineConfig.partnerCode);
+      if (urlData) {
+        this.#setUrl(type, urlData, engineConfig.partnerCode);
+      }
     }
   }
 
@@ -663,7 +668,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
 
       for (const param of urlData.params) {
         switch (true) {
-          case "value" in param:
+          case param.value != undefined:
             if (!isEnterprise || !enterpriseParams.includes(param.name)) {
               engineURL.addParam(
                 param.name,
@@ -671,14 +676,14 @@ export class AppProvidedSearchEngine extends SearchEngine {
               );
             }
             break;
-          case "experimentConfig" in param:
+          case param.experimentConfig != undefined:
             if (!isEnterprise || !enterpriseParams.includes(param.name)) {
               engineURL.addQueryParameter(
                 new QueryPreferenceParameter(param.name, param.experimentConfig)
               );
             }
             break;
-          case "enterpriseValue" in param:
+          case param.enterpriseValue != undefined:
             if (isEnterprise) {
               engineURL.addParam(
                 param.name,
@@ -692,7 +697,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
       }
     }
 
-    if ("searchTermParamName" in urlData) {
+    if (urlData.searchTermParamName) {
       // The search term parameter is always added last, which will add it to the
       // end of the URL. This is because in the past we have seen users trying to
       // modify their searches by altering the end of the URL.
