@@ -70,9 +70,12 @@ export var Policy = {
  * it should call `onUserNotifyFailed`.
  *
  * @param {Object} aLog The log object used to log the error in case of failures.
+ * @param {function} aResolve Promise-like callback function, invoked with
+ *                            `true` (complete) or `false` (error).
  */
-function NotifyPolicyRequest(aLog) {
+function NotifyPolicyRequest(aLog, aResolve) {
   this._log = aLog;
+  this._resolve = aResolve;
 }
 
 NotifyPolicyRequest.prototype = Object.freeze({
@@ -80,7 +83,7 @@ NotifyPolicyRequest.prototype = Object.freeze({
    * Called when the user is notified of the policy.
    */
   onUserNotifyComplete() {
-    return TelemetryReportingPolicyImpl._userNotified();
+    this._resolve(true);
   },
 
   /**
@@ -91,6 +94,7 @@ NotifyPolicyRequest.prototype = Object.freeze({
    */
   onUserNotifyFailed(error) {
     this._log.error("onUserNotifyFailed - " + error);
+    this._resolve(false);
   },
 });
 
@@ -168,6 +172,10 @@ export var TelemetryReportingPolicy = {
     TelemetryReportingPolicyImpl._isFirstRun = undefined;
     TelemetryReportingPolicyImpl.isFirstRun();
   },
+
+  async ensureUserIsNotified() {
+    return TelemetryReportingPolicyImpl.ensureUserIsNotified();
+  },
 };
 
 var TelemetryReportingPolicyImpl = {
@@ -179,6 +187,8 @@ var TelemetryReportingPolicyImpl = {
   // Keep track of the first session state, as the related preference
   // is flipped right after the browser starts.
   _isFirstRun: undefined,
+  // Ensure notification flow is idempotent.
+  _ensureUserIsNotifiedPromise: undefined,
 
   get _log() {
     if (!this._logger) {
@@ -340,6 +350,7 @@ var TelemetryReportingPolicyImpl = {
   reset() {
     this.shutdown();
     this._isFirstRun = undefined;
+    this._ensureUserIsNotifiedPromise = undefined;
     return this.setup();
   },
 
@@ -460,15 +471,20 @@ var TelemetryReportingPolicyImpl = {
 
   /**
    * Show the data choices infobar if needed.
+   *
+   * @param {function} resolve invoked with `true` if user was notified, `false`
+   * if user was not notified.
    */
-  _showInfobar() {
+  _showInfobar(resolve) {
     if (!this._shouldNotify()) {
+      this._log.trace("_showInfobar - User already notified, nothing to do.");
+      resolve(false);
       return;
     }
 
     this._log.trace("_showInfobar - User not notified, notifying now.");
     this._notificationInProgress = true;
-    let request = new NotifyPolicyRequest(this._log);
+    let request = new NotifyPolicyRequest(this._log, resolve);
     Observers.notify("datareporting:notify-data-policy:request", request);
   },
 
@@ -495,8 +511,12 @@ var TelemetryReportingPolicyImpl = {
 
   /**
    * Try to open the privacy policy in a background tab instead of showing the infobar.
+   *
+   * @return {Promise<boolean>} Resolves to `true` if the user was notified via
+   *                            background tab, `false` if we should fallback to
+   *                            an infobar.
    */
-  _openFirstRunPage() {
+  async _openFirstRunPage() {
     if (!this._shouldNotify()) {
       return false;
     }
@@ -522,69 +542,110 @@ var TelemetryReportingPolicyImpl = {
       return false;
     }
 
-    // We'll consider the user notified once the privacy policy has been loaded
-    // in a background tab even if that tab hasn't been selected.
-    let tab;
-    let progressListener = {};
-    progressListener.onStateChange = (
-      aBrowser,
-      aWebProgress,
-      aRequest,
-      aStateFlags
-    ) => {
-      if (
-        aWebProgress.isTopLevel &&
-        tab &&
-        tab.linkedBrowser == aBrowser &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK
-      ) {
-        let uri = aBrowser.documentURI;
+    return new Promise(resolve => {
+      // We'll consider the user notified once the privacy policy has been loaded
+      // in a background tab even if that tab hasn't been selected.
+      let tab;
+      let progressListener = {};
+      progressListener.onStateChange = (
+        aBrowser,
+        aWebProgress,
+        aRequest,
+        aStateFlags
+      ) => {
         if (
-          uri &&
-          !/^about:(blank|neterror|certerror|blocked)/.test(uri.spec)
+          aWebProgress.isTopLevel &&
+          tab &&
+          tab.linkedBrowser == aBrowser &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK
         ) {
-          this._userNotified();
-        } else {
-          this._log.info(
-            "Failed to load first-run page. Falling back to infobar."
-          );
-          this._showInfobar();
+          removeListeners();
+
+          let uri = aBrowser.documentURI;
+          if (
+            uri &&
+            !/^about:(blank|neterror|certerror|blocked)/.test(uri.spec)
+          ) {
+            resolve(true);
+          } else {
+            this._log.info("Failed to load first-run page.");
+            resolve(false);
+          }
         }
-        removeListeners();
-      }
-    };
+      };
 
-    let removeListeners = () => {
-      win.removeEventListener("unload", removeListeners);
-      win.gBrowser.removeTabsProgressListener(progressListener);
-    };
+      let removeListeners = () => {
+        win.removeEventListener("unload", removeListeners);
+        win.gBrowser.removeTabsProgressListener(progressListener);
+      };
 
-    win.addEventListener("unload", removeListeners);
-    win.gBrowser.addTabsProgressListener(progressListener);
+      win.addEventListener("unload", removeListeners);
+      win.gBrowser.addTabsProgressListener(progressListener);
 
-    let res = lazy.NimbusFeatures.preonboarding.getAllVariables();
-    if (!res.disableFirstRunPolicyTab) {
       tab = win.gBrowser.addTab(firstRunPolicyURL, {
         inBackground: true,
         triggeringPrincipal:
           Services.scriptSecurityManager.getSystemPrincipal(),
       });
-      return true;
-    }
-    return false;
+    });
   },
 
   observe(aSubject, aTopic) {
-    if (aTopic != "sessionstore-windows-restored") {
-      return;
+    if (aTopic == "sessionstore-windows-restored") {
+      this._delayedSetup();
     }
+  },
 
+  /**
+   * Handle initialization/configuration that happens at
+   * `sessionstore-windows-restored` time.
+   */
+  _delayedSetup() {
     if (this.isFirstRun()) {
       // We're performing the first run, flip firstRun preference for subsequent runs.
       Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, false);
+    }
+
+    if (!this._shouldNotify()) {
+      this._log.trace(
+        `observe: user has already been notified, no further action required`
+      );
+      return;
+    }
+
+    this.ensureUserIsNotified().then(() => {
+      this._log.debug("_delayedSetup: marking user notified");
+      this._userNotified();
+    });
+  },
+
+  async _waitForUserIsNotified() {
+    if (!this._shouldNotify()) {
+      this._log.trace(
+        `_waitForUserIsNotified: user has already been notified, no further action required`
+      );
+      return;
+    }
+
+    await this._notifyUserViaTabOrInfobar();
+  },
+
+  /**
+   * Notify user of privacy policy via background tab or (possibly after falling
+   * back) via infobar.  The user is considered notified after the background
+   * tab is loaded without error, or after the user has been shown (but not
+   * necessarily interacted with) an infobar.
+   *
+   * @return {Promise<void>} Resolves after user is notified.
+   */
+  async _notifyUserViaTabOrInfobar() {
+    if (this.isFirstRun()) {
       try {
-        if (this._openFirstRunPage()) {
+        if (await this._openFirstRunPage()) {
+          this._log.trace(
+            `_notifyUserViaTabOrInfobar: user notified via browser tab`
+          );
           return;
         }
       } catch (e) {
@@ -597,10 +658,34 @@ var TelemetryReportingPolicyImpl = {
       ? NOTIFICATION_DELAY_FIRST_RUN_MSEC
       : NOTIFICATION_DELAY_NEXT_RUNS_MSEC;
 
-    this._startupNotificationTimerId = Policy.setShowInfobarTimeout(
-      // Calling |canUpload| eventually shows the infobar, if needed.
-      () => this._showInfobar(),
-      delay
+    this._log.trace(
+      `_notifyUserViaTabOrInfobar: notifying user via infobar after ${delay} milliseconds`
     );
+
+    let p = new Promise(resolve => {
+      this._startupNotificationTimerId = Policy.setShowInfobarTimeout(
+        // Calling |canUpload| eventually shows the infobar, if needed.
+        () => this._showInfobar(resolve),
+        delay
+      );
+    });
+    await p;
+  },
+
+  /**
+   * If the preonboarding feature does not require interaction, resolve
+   * immediately.  If the preonboarding feature does require interaction and the
+   * required interaction has been completed, resolve immediately.  Otherwise,
+   * wait until the required interaction is completed.
+   *
+   * @return Promise<void>
+   * @throws {Error} when called before `sessionstore-windows-restored` notification.
+   */
+  async ensureUserIsNotified() {
+    if (!this._ensureUserIsNotifiedPromise) {
+      this._ensureUserIsNotifiedPromise = this._waitForUserIsNotified();
+    }
+
+    return this._ensureUserIsNotifiedPromise;
   },
 };
