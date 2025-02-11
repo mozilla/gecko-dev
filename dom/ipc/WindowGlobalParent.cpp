@@ -26,7 +26,6 @@
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/MediaController.h"
-#include "mozilla/dom/WebAuthnTransactionParent.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/ChromeUtils.h"
 #include "mozilla/dom/UseCounterMetrics.h"
@@ -1791,11 +1790,6 @@ IPCResult WindowGlobalParent::RecvRecordUserActivationForBTP() {
                        "Failed to record BTP user activation.");
 
   return IPC_OK();
-}
-
-already_AddRefed<PWebAuthnTransactionParent>
-WindowGlobalParent::AllocPWebAuthnTransactionParent() {
-  return MakeAndAddRef<WebAuthnTransactionParent>();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(WindowGlobalParent)

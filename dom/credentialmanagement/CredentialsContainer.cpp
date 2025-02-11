@@ -14,7 +14,7 @@
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_security.h"
-#include "mozilla/dom/WebAuthnHandler.h"
+#include "mozilla/dom/WebAuthnManager.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/WindowContext.h"
 #include "nsContentUtils.h"
@@ -24,8 +24,7 @@
 
 namespace mozilla::dom {
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CredentialsContainer, mParent,
-                                      mWebAuthnHandler)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CredentialsContainer, mParent, mManager)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(CredentialsContainer)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(CredentialsContainer)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CredentialsContainer)
@@ -134,19 +133,19 @@ CredentialsContainer::CredentialsContainer(nsPIDOMWindowInner* aParent)
 
 CredentialsContainer::~CredentialsContainer() = default;
 
-void CredentialsContainer::EnsureWebAuthnHandler() {
+void CredentialsContainer::EnsureWebAuthnManager() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!mWebAuthnHandler) {
-    mWebAuthnHandler = new WebAuthnHandler(mParent);
+  if (!mManager) {
+    mManager = new WebAuthnManager(mParent);
   }
 }
 
-already_AddRefed<WebAuthnHandler> CredentialsContainer::GetWebAuthnHandler() {
+already_AddRefed<WebAuthnManager> CredentialsContainer::GetWebAuthnManager() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  EnsureWebAuthnHandler();
-  RefPtr<WebAuthnHandler> ref = mWebAuthnHandler;
+  EnsureWebAuthnManager();
+  RefPtr<WebAuthnManager> ref = mManager;
   return ref.forget();
 }
 
@@ -192,10 +191,9 @@ already_AddRefed<Promise> CredentialsContainer::Get(
       return promise.forget();
     }
 
-    EnsureWebAuthnHandler();
-    return mWebAuthnHandler->GetAssertion(aOptions.mPublicKey.Value(),
-                                          conditionallyMediated,
-                                          aOptions.mSignal, aRv);
+    EnsureWebAuthnManager();
+    return mManager->GetAssertion(aOptions.mPublicKey.Value(),
+                                  conditionallyMediated, aOptions.mSignal, aRv);
   }
 
   if (aOptions.mIdentity.WasPassed() &&
@@ -267,9 +265,9 @@ already_AddRefed<Promise> CredentialsContainer::Create(
       return CreateAndRejectWithNotAllowed(mParent, aRv);
     }
 
-    EnsureWebAuthnHandler();
-    return mWebAuthnHandler->MakeCredential(aOptions.mPublicKey.Value(),
-                                            aOptions.mSignal, aRv);
+    EnsureWebAuthnManager();
+    return mManager->MakeCredential(aOptions.mPublicKey.Value(),
+                                    aOptions.mSignal, aRv);
   }
 
   if (aOptions.mIdentity.WasPassed() &&
@@ -306,8 +304,8 @@ already_AddRefed<Promise> CredentialsContainer::Store(
       return CreateAndRejectWithNotAllowed(mParent, aRv);
     }
 
-    EnsureWebAuthnHandler();
-    return mWebAuthnHandler->Store(aCredential, aRv);
+    EnsureWebAuthnManager();
+    return mManager->Store(aCredential, aRv);
   }
 
   if (type.EqualsLiteral("identity") &&

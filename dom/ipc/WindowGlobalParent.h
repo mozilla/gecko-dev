@@ -341,9 +341,6 @@ class WindowGlobalParent final : public WindowContext,
 
   mozilla::ipc::IPCResult RecvRecordUserActivationForBTP();
 
-  already_AddRefed<dom::PWebAuthnTransactionParent>
-  AllocPWebAuthnTransactionParent();
-
  private:
   WindowGlobalParent(CanonicalBrowsingContext* aBrowsingContext,
                      uint64_t aInnerWindowId, uint64_t aOuterWindowId,

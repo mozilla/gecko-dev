@@ -4,28 +4,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_WebAuthnHandler_h
-#define mozilla_dom_WebAuthnHandler_h
+#ifndef mozilla_dom_WebAuthnManager_h
+#define mozilla_dom_WebAuthnManager_h
 
 #include "mozilla/Maybe.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/RandomNum.h"
 #include "mozilla/dom/AbortSignal.h"
-#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PWebAuthnTransaction.h"
-#include "mozilla/dom/PWebAuthnTransactionChild.h"
-#include "mozilla/dom/WebAuthnTransactionChild.h"
+#include "mozilla/dom/WebAuthnManagerBase.h"
 
 /*
- * Content process handler for the WebAuthn protocol. Created on calls to the
- * WebAuthentication DOM object, this is responsible for establishing IPC
- * channels for WebAuthn transactions as well as keeping track of JS Promise
- * objects representing transactions in flight.
+ * Content process manager for the WebAuthn protocol. Created on calls to the
+ * WebAuthentication DOM object, this manager handles establishing IPC channels
+ * for WebAuthn transactions, as well as keeping track of JS Promise objects
+ * representing transactions in flight.
  *
  * The WebAuthn spec (https://www.w3.org/TR/webauthn/) allows for two different
  * types of transactions: registration and signing. When either of these is
  * requested via the DOM API, the following steps are executed in the
- * WebAuthnHandler:
+ * WebAuthnManager:
  *
  * - Validation of the request. Return a failed promise to js if request does
  *   not have correct parameters.
@@ -34,21 +32,21 @@
  *   another transaction is already running in this content process, cancel it.
  *   Return a pending promise to js.
  *
- * - Send transaction information to parent process.
+ * - Send transaction information to parent process (by running the Start*
+ *   functions of WebAuthnManager). Assuming another transaction is currently in
+ *   flight in another content process, parent will handle canceling it.
  *
  * - On return of successful transaction information from parent process, turn
  *   information into DOM object format required by spec, and resolve promise
- *   (by running the Finish* functions of WebAuthnHandler). On cancellation
- *   request from parent, reject promise with corresponding error code.
+ *   (by running the Finish* functions of WebAuthnManager). On cancellation
+ *   request from parent, reject promise with corresponding error code. Either
+ *   outcome will also close the IPC channel.
  *
  */
 
 namespace mozilla::dom {
 
 class Credential;
-class PublicKeyCredential;
-struct PublicKeyCredentialCreationOptions;
-struct PublicKeyCredentialRequestOptions;
 
 enum class WebAuthnTransactionType { Create, Get };
 
@@ -56,33 +54,39 @@ class WebAuthnTransaction {
  public:
   explicit WebAuthnTransaction(const RefPtr<Promise>& aPromise,
                                WebAuthnTransactionType aType)
-      : mPromise(aPromise), mType(aType) {}
+      : mPromise(aPromise), mId(NextId()), mType(aType) {
+    MOZ_ASSERT(mId > 0);
+  }
 
   // JS Promise representing the transaction status.
   RefPtr<Promise> mPromise;
 
+  // Unique transaction id.
+  uint64_t mId;
+
   WebAuthnTransactionType mType;
 
-  // These holders are used to track the transaction once it has been dispatched
-  // to the parent process. Once ->Track()'d, they must either be disconnected
-  // (through a call to WebAuthnHandler::CancelTransaction) or completed
-  // (through a response on the IPC channel) before this WebAuthnTransaction is
-  // destroyed.
-  MozPromiseRequestHolder<PWebAuthnTransactionChild::RequestRegisterPromise>
-      mRegisterHolder;
-  MozPromiseRequestHolder<PWebAuthnTransactionChild::RequestSignPromise>
-      mSignHolder;
+ private:
+  // Generates a probabilistically unique ID for the new transaction. IDs are 53
+  // bits, as they are used in javascript. We use a random value if possible,
+  // otherwise a counter.
+  static uint64_t NextId() {
+    static uint64_t counter = 0;
+    Maybe<uint64_t> rand = mozilla::RandomUint64();
+    uint64_t id =
+        rand.valueOr(++counter) & UINT64_C(0x1fffffffffffff);  // 2^53 - 1
+    // The transaction ID 0 is reserved.
+    return id ? id : 1;
+  }
 };
 
-class WebAuthnHandler final : public AbortFollower {
+class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
  public:
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(WebAuthnHandler)
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(WebAuthnManager, WebAuthnManagerBase)
 
-  explicit WebAuthnHandler(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {
-    MOZ_ASSERT(NS_IsMainThread());
-    MOZ_ASSERT(aWindow);
-  }
+  explicit WebAuthnManager(nsPIDOMWindowInner* aParent)
+      : WebAuthnManagerBase(aParent) {}
 
   already_AddRefed<Promise> MakeCredential(
       const PublicKeyCredentialCreationOptions& aOptions,
@@ -98,31 +102,30 @@ class WebAuthnHandler final : public AbortFollower {
 
   already_AddRefed<Promise> IsUVPAA(GlobalObject& aGlobal, ErrorResult& aError);
 
-  void ActorDestroyed();
+  // WebAuthnManagerBase
+
+  void FinishMakeCredential(
+      const uint64_t& aTransactionId,
+      const WebAuthnMakeCredentialResult& aResult) override;
+
+  void FinishGetAssertion(const uint64_t& aTransactionId,
+                          const WebAuthnGetAssertionResult& aResult) override;
+
+  void RequestAborted(const uint64_t& aTransactionId,
+                      const nsresult& aError) override;
 
   // AbortFollower
+
   void RunAbortAlgorithm() override;
 
  private:
-  virtual ~WebAuthnHandler();
-
-  bool MaybeCreateActor();
-
-  void FinishMakeCredential(const WebAuthnMakeCredentialResult& aResult);
-
-  void FinishGetAssertion(const WebAuthnGetAssertionResult& aResult);
+  virtual ~WebAuthnManager();
 
   // Send a Cancel message to the parent, reject the promise with the given
   // reason (an nsresult or JS::Handle<JS::Value>), and clear the transaction.
   template <typename T>
   void CancelTransaction(const T& aReason) {
-    MOZ_ASSERT(mActor);
-    MOZ_ASSERT(mTransaction.isSome());
-
-    mTransaction.ref().mRegisterHolder.DisconnectIfExists();
-    mTransaction.ref().mSignHolder.DisconnectIfExists();
-
-    mActor->SendRequestCancel();
+    CancelParent();
     RejectTransaction(aReason);
   }
 
@@ -134,11 +137,11 @@ class WebAuthnHandler final : public AbortFollower {
   template <typename T>
   void RejectTransaction(const T& aReason);
 
-  // The parent window.
-  nsCOMPtr<nsPIDOMWindowInner> mWindow;
+  // Send a Cancel message to the parent.
+  void CancelParent();
 
-  // IPC Channel to the parent process.
-  RefPtr<WebAuthnTransactionChild> mActor;
+  // Clears all information we have about the current transaction.
+  void ClearTransaction();
 
   // The current transaction, if any.
   Maybe<WebAuthnTransaction> mTransaction;
@@ -156,4 +159,4 @@ inline void ImplCycleCollectionUnlink(WebAuthnTransaction& aTransaction) {
 
 }  // namespace mozilla::dom
 
-#endif  // mozilla_dom_WebAuthnHandler_h
+#endif  // mozilla_dom_WebAuthnManager_h

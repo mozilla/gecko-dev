@@ -14,7 +14,7 @@
  * selecting a different tab.
  */
 
-include protocol PWindowGlobal;
+include protocol PBackground;
 
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
 
@@ -112,8 +112,10 @@ struct CoseAlg {
 };
 
 struct WebAuthnMakeCredentialInfo {
+  nsString Origin;
   nsString RpId;
   uint8_t[] Challenge;
+  nsCString ClientDataJSON;
   uint32_t TimeoutMS;
   WebAuthnScopedCredential[] ExcludeList;
   WebAuthnMakeCredentialRpInfo Rp;
@@ -122,6 +124,7 @@ struct WebAuthnMakeCredentialInfo {
   WebAuthnExtension[] Extensions;
   WebAuthnAuthenticatorSelection AuthenticatorSelection;
   nsString attestationConveyancePreference;
+  uint64_t BrowsingContextId;
 };
 
 struct WebAuthnMakeCredentialResult {
@@ -133,19 +136,17 @@ struct WebAuthnMakeCredentialResult {
   nsString? AuthenticatorAttachment;
 };
 
-union WebAuthnMakeCredentialResponse {
-  nsresult;
-  WebAuthnMakeCredentialResult;
-};
-
 struct WebAuthnGetAssertionInfo {
+  nsString Origin;
   nsString RpId;
   uint8_t[] Challenge;
+  nsCString ClientDataJSON;
   uint32_t TimeoutMS;
   WebAuthnScopedCredential[] AllowList;
   WebAuthnExtension[] Extensions;
   nsString userVerificationRequirement;
   bool ConditionallyMediated;
+  uint64_t BrowsingContextId;
 };
 
 struct WebAuthnGetAssertionResult {
@@ -158,22 +159,22 @@ struct WebAuthnGetAssertionResult {
   nsString? AuthenticatorAttachment;
 };
 
-union WebAuthnGetAssertionResponse {
-  nsresult;
-  WebAuthnGetAssertionResult;
-};
-
+[ManualDealloc]
 async protocol PWebAuthnTransaction {
-  manager PWindowGlobal;
+  manager PBackground;
 
   parent:
-    async RequestRegister(WebAuthnMakeCredentialInfo aTransactionInfo) returns (WebAuthnMakeCredentialResponse response);
-    async RequestSign(WebAuthnGetAssertionInfo aTransactionInfo) returns (WebAuthnGetAssertionResponse response);
+    async RequestRegister(uint64_t aTransactionId, WebAuthnMakeCredentialInfo aTransactionInfo);
+    async RequestSign(uint64_t aTransactionId, WebAuthnGetAssertionInfo aTransactionInfo);
     async RequestIsUVPAA() returns (bool available);
-    async RequestCancel();
+    [Tainted] async RequestCancel(uint64_t aTransactionId);
+    async DestroyMe();
 
   child:
     async __delete__();
+    async ConfirmRegister(uint64_t aTransactionId, WebAuthnMakeCredentialResult aResult);
+    async ConfirmSign(uint64_t aTransactionId, WebAuthnGetAssertionResult aResult);
+    async Abort(uint64_t aTransactionId, nsresult Error);
 };
 
 }

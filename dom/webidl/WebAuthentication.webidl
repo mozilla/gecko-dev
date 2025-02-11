@@ -225,14 +225,12 @@ typedef record<DOMString, DOMString> AuthenticationExtensionsAuthenticatorInputs
 // CollectedClientData is only consumed by the relying party, and because
 // [GenerateToJSON] does not produce the correct serialization algorithm, the
 // definition below is commented out. Please keep this definition in sync with
-// in AssembleClientData in dom/webauthn/WebAuthnTransactionParent.cpp.
+// in AssembleClientData in dom/webauthn/WebAuthnManager.cpp.
 //
 // dictionary CollectedClientData {
 //     required DOMString           type;
 //     required DOMString           challenge;
 //     required DOMString           origin;
-//     boolean                      crossOrigin;
-//     DOMString                    topOrigin;
 // };
 
 dictionary PublicKeyCredentialDescriptor {

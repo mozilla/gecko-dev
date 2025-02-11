@@ -406,7 +406,7 @@ WinWebAuthnService::MakeCredential(uint64_t aTransactionId,
           winRequireResidentKey = FALSE;
           winPreferResidentKey = FALSE;
         } else {
-          // WebAuthnHandler::MakeCredential is supposed to assign one of the
+          // WebAuthnManager::MakeCredential is supposed to assign one of the
           // above values, so this shouldn't happen.
           MOZ_ASSERT_UNREACHABLE();
           aPromise->Reject(NS_ERROR_DOM_UNKNOWN_ERR);

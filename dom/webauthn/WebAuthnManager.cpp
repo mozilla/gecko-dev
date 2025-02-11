@@ -18,11 +18,16 @@
 #include "mozilla/dom/AuthenticatorAssertionResponse.h"
 #include "mozilla/dom/AuthenticatorAttestationResponse.h"
 #include "mozilla/dom/PublicKeyCredential.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PWebAuthnTransaction.h"
-#include "mozilla/dom/WebAuthnHandler.h"
+#include "mozilla/dom/PWebAuthnTransactionChild.h"
+#include "mozilla/dom/WebAuthnManager.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 #include "mozilla/dom/WebAuthnUtil.h"
-#include "mozilla/dom/WindowGlobalChild.h"
+#include "mozilla/ipc/BackgroundChild.h"
+#include "mozilla/ipc/PBackgroundChild.h"
+#include "mozilla/JSONStringWriteFuncs.h"
+#include "mozilla/JSONWriter.h"
 
 #ifdef XP_WIN
 #  include "WinWebAuthnService.h"
@@ -37,21 +42,62 @@ namespace mozilla::dom {
  **********************************************************************/
 
 namespace {
-static mozilla::LazyLogModule gWebAuthnHandlerLog("webauthnhandler");
+static mozilla::LazyLogModule gWebAuthnManagerLog("webauthnmanager");
 }
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebAuthnHandler)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
+NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(WebAuthnManager,
+                                               WebAuthnManagerBase)
 
-NS_IMPL_CYCLE_COLLECTION(WebAuthnHandler, mWindow, mTransaction)
+NS_IMPL_CYCLE_COLLECTION_CLASS(WebAuthnManager)
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF(WebAuthnHandler)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(WebAuthnHandler)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(WebAuthnManager,
+                                                WebAuthnManagerBase)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTransaction)
+  tmp->mTransaction.reset();
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(WebAuthnManager,
+                                                  WebAuthnManagerBase)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTransaction)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 /***********************************************************************
  * Utility Functions
  **********************************************************************/
+
+static nsresult AssembleClientData(
+    const nsAString& aOrigin, const CryptoBuffer& aChallenge,
+    const nsACString& aType,
+    const AuthenticationExtensionsClientInputs& aExtensions,
+    /* out */ nsACString& aJsonOut) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsAutoCString challengeBase64;
+  nsresult rv =
+      Base64URLEncode(aChallenge.Length(), aChallenge.Elements(),
+                      Base64URLEncodePaddingPolicy::Omit, challengeBase64);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  // Serialize the collected client data using the algorithm from
+  // https://www.w3.org/TR/webauthn-3/#clientdatajson-serialization.
+  // Please update the definition of CollectedClientData in
+  // dom/webidl/WebAuthentication.webidl when changes are made here.
+  JSONStringRefWriteFunc f(aJsonOut);
+  JSONWriter w(f, JSONWriter::CollectionStyle::SingleLineStyle);
+  w.Start();
+  // Steps 2 and 3
+  w.StringProperty("type", aType);
+  // Steps 4 and 5
+  w.StringProperty("challenge", challengeBase64);
+  // Steps 6 and 7
+  w.StringProperty("origin", NS_ConvertUTF16toUTF8(aOrigin));
+  // Steps 8 through 11 will be implemented in Bug 1901809.
+  w.End();
+
+  return NS_OK;
+}
 
 static uint8_t SerializeTransports(
     const mozilla::dom::Sequence<nsString>& aTransports) {
@@ -99,7 +145,7 @@ nsresult GetOrigin(nsPIDOMWindowInner* aParent,
     // 4.1.1.3 If callerOrigin is an opaque origin, reject promise with a
     // DOMException whose name is "NotAllowedError", and terminate this
     // algorithm
-    MOZ_LOG(gWebAuthnHandlerLog, LogLevel::Debug,
+    MOZ_LOG(gWebAuthnManagerLog, LogLevel::Debug,
             ("Rejecting due to opaque origin"));
     return NS_ERROR_DOM_NOT_ALLOWED_ERR;
   }
@@ -164,47 +210,40 @@ nsresult RelaxSameOrigin(nsPIDOMWindowInner* aParent,
 }
 
 /***********************************************************************
- * WebAuthnHandler Implementation
+ * WebAuthnManager Implementation
  **********************************************************************/
 
-WebAuthnHandler::~WebAuthnHandler() {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mTransaction.isNothing());
-  MOZ_ASSERT(!mActor);
+void WebAuthnManager::ClearTransaction() {
+  mTransaction.reset();
+  Unfollow();
 }
 
-bool WebAuthnHandler::MaybeCreateActor() {
+void WebAuthnManager::CancelParent() {
+  if (!NS_WARN_IF(!mChild || mTransaction.isNothing())) {
+    mChild->SendRequestCancel(mTransaction.ref().mId);
+  }
+}
+
+WebAuthnManager::~WebAuthnManager() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mActor) {
-    return true;
+  if (mTransaction.isSome()) {
+    ClearTransaction();
   }
 
-  RefPtr<WebAuthnTransactionChild> actor = new WebAuthnTransactionChild();
-
-  WindowGlobalChild* windowGlobalChild = mWindow->GetWindowGlobalChild();
-  if (!windowGlobalChild ||
-      !windowGlobalChild->SendPWebAuthnTransactionConstructor(actor)) {
-    return false;
+  if (mChild) {
+    RefPtr<WebAuthnTransactionChild> c;
+    mChild.swap(c);
+    c->Disconnect();
   }
-
-  mActor = actor;
-  mActor->SetHandler(this);
-
-  return true;
 }
 
-void WebAuthnHandler::ActorDestroyed() {
-  MOZ_ASSERT(NS_IsMainThread());
-  mActor = nullptr;
-}
-
-already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
+already_AddRefed<Promise> WebAuthnManager::MakeCredential(
     const PublicKeyCredentialCreationOptions& aOptions,
     const Optional<OwningNonNull<AbortSignal>>& aSignal, ErrorResult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mWindow);
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mParent);
 
   RefPtr<Promise> promise = Promise::Create(global, aError);
   if (aError.Failed()) {
@@ -218,7 +257,7 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
 
   nsString origin;
   nsCString rpId;
-  nsresult rv = GetOrigin(mWindow, origin, rpId);
+  nsresult rv = GetOrigin(mParent, origin, rpId);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     promise->MaybeReject(rv);
     return promise.forget();
@@ -255,7 +294,7 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
     // Otherwise, reject promise with a DOMException whose name is
     // "SecurityError", and terminate this algorithm.
 
-    if (NS_FAILED(RelaxSameOrigin(mWindow, aOptions.mRp.mId.Value(), rpId))) {
+    if (NS_FAILED(RelaxSameOrigin(mParent, aOptions.mRp.mId.Value(), rpId))) {
       promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
       return promise.forget();
     }
@@ -304,9 +343,22 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
   // result of this processing clientExtensions.
   //
   // Currently no extensions are supported
+  //
+  // Use attestationChallenge, callerOrigin and rpId, along with the token
+  // binding key associated with callerOrigin (if any), to create a ClientData
+  // structure representing this request. Choose a hash algorithm for hashAlg
+  // and compute the clientDataJSON and clientDataHash.
 
   CryptoBuffer challenge;
   if (!challenge.Assign(aOptions.mChallenge)) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+    return promise.forget();
+  }
+
+  nsAutoCString clientDataJSON;
+  nsresult srv = AssembleClientData(origin, challenge, "webauthn.create"_ns,
+                                    aOptions.mExtensions, clientDataJSON);
+  if (NS_WARN_IF(NS_FAILED(srv))) {
     promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
   }
@@ -323,7 +375,7 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
     excludeList.AppendElement(c);
   }
 
-  if (!MaybeCreateActor()) {
+  if (!MaybeCreateBackgroundActor()) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
     return promise.forget();
   }
@@ -429,6 +481,12 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
   WebAuthnMakeCredentialUserInfo userInfo(userId, aOptions.mUser.mName,
                                           aOptions.mUser.mDisplayName);
 
+  BrowsingContext* context = mParent->GetBrowsingContext();
+  if (!context) {
+    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
+    return promise.forget();
+  }
+
   // Abort the request if aborted flag is already set.
   if (aSignal.WasPassed() && aSignal.Value().Aborted()) {
     AutoJSAPI jsapi;
@@ -444,8 +502,9 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
   }
 
   WebAuthnMakeCredentialInfo info(
-      NS_ConvertUTF8toUTF16(rpId), challenge, adjustedTimeout, excludeList,
-      rpInfo, userInfo, coseAlgos, extensions, authSelection, attestation);
+      origin, NS_ConvertUTF8toUTF16(rpId), challenge, clientDataJSON,
+      adjustedTimeout, excludeList, rpInfo, userInfo, coseAlgos, extensions,
+      authSelection, attestation, context->Top()->Id());
 
   // Set up the transaction state. Fallible operations should not be performed
   // below this line, as we must not leave the transaction state partially
@@ -461,37 +520,20 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
   MOZ_ASSERT(mTransaction.isNothing());
   mTransaction =
       Some(WebAuthnTransaction(promise, WebAuthnTransactionType::Create));
-  mActor->SendRequestRegister(info)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this}](
-              const PWebAuthnTransactionChild::RequestRegisterPromise::
-                  ResolveOrRejectValue& aValue) {
-            self->mTransaction.ref().mRegisterHolder.Complete();
-            if (aValue.IsResolve() && aValue.ResolveValue().type() ==
-                                          WebAuthnMakeCredentialResponse::Type::
-                                              TWebAuthnMakeCredentialResult) {
-              self->FinishMakeCredential(aValue.ResolveValue());
-            } else if (aValue.IsResolve()) {
-              self->RejectTransaction(aValue.ResolveValue());
-            } else {
-              self->RejectTransaction(NS_ERROR_DOM_NOT_ALLOWED_ERR);
-            }
-          })
-      ->Track(mTransaction.ref().mRegisterHolder);
+  mChild->SendRequestRegister(mTransaction.ref().mId, info);
 
   return promise.forget();
 }
 
 const size_t MAX_ALLOWED_CREDENTIALS = 20;
 
-already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
+already_AddRefed<Promise> WebAuthnManager::GetAssertion(
     const PublicKeyCredentialRequestOptions& aOptions,
     const bool aConditionallyMediated,
     const Optional<OwningNonNull<AbortSignal>>& aSignal, ErrorResult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mWindow);
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mParent);
 
   RefPtr<Promise> promise = Promise::Create(global, aError);
   if (aError.Failed()) {
@@ -505,7 +547,7 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
 
   nsString origin;
   nsCString rpId;
-  nsresult rv = GetOrigin(mWindow, origin, rpId);
+  nsresult rv = GetOrigin(mParent, origin, rpId);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     promise->MaybeReject(rv);
     return promise.forget();
@@ -531,7 +573,7 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     // Otherwise, reject promise with a DOMException whose name is
     // "SecurityError", and terminate this algorithm.
 
-    if (NS_FAILED(RelaxSameOrigin(mWindow, aOptions.mRpId.Value(), rpId))) {
+    if (NS_FAILED(RelaxSameOrigin(mParent, aOptions.mRpId.Value(), rpId))) {
       promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
       return promise.forget();
     }
@@ -543,8 +585,20 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     return promise.forget();
   }
 
+  // Use assertionChallenge, callerOrigin and rpId, along with the token binding
+  // key associated with callerOrigin (if any), to create a ClientData structure
+  // representing this request. Choose a hash algorithm for hashAlg and compute
+  // the clientDataJSON and clientDataHash.
   CryptoBuffer challenge;
   if (!challenge.Assign(aOptions.mChallenge)) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+    return promise.forget();
+  }
+
+  nsAutoCString clientDataJSON;
+  rv = AssembleClientData(origin, challenge, "webauthn.get"_ns,
+                          aOptions.mExtensions, clientDataJSON);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
     promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
   }
@@ -568,7 +622,7 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     return promise.forget();
   }
 
-  if (!MaybeCreateActor()) {
+  if (!MaybeCreateBackgroundActor()) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
     return promise.forget();
   }
@@ -597,7 +651,7 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     nsString appId(aOptions.mExtensions.mAppid.Value());
 
     // Check that the appId value is allowed.
-    if (!EvaluateAppID(mWindow, origin, appId)) {
+    if (!EvaluateAppID(mParent, origin, appId)) {
       promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
       return promise.forget();
     }
@@ -670,6 +724,12 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
         WebAuthnExtensionPrf(eval, evalByCredentialMaybe, evalByCredential));
   }
 
+  BrowsingContext* context = mParent->GetBrowsingContext();
+  if (!context) {
+    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
+    return promise.forget();
+  }
+
   // Abort the request if aborted flag is already set.
   if (aSignal.WasPassed() && aSignal.Value().Aborted()) {
     AutoJSAPI jsapi;
@@ -684,9 +744,10 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     return promise.forget();
   }
 
-  WebAuthnGetAssertionInfo info(
-      NS_ConvertUTF8toUTF16(rpId), challenge, adjustedTimeout, allowList,
-      extensions, aOptions.mUserVerification, aConditionallyMediated);
+  WebAuthnGetAssertionInfo info(origin, NS_ConvertUTF8toUTF16(rpId), challenge,
+                                clientDataJSON, adjustedTimeout, allowList,
+                                extensions, aOptions.mUserVerification,
+                                aConditionallyMediated, context->Top()->Id());
 
   // Set up the transaction state. Fallible operations should not be performed
   // below this line, as we must not leave the transaction state partially
@@ -702,33 +763,16 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
   MOZ_ASSERT(mTransaction.isNothing());
   mTransaction =
       Some(WebAuthnTransaction(promise, WebAuthnTransactionType::Get));
-  mActor->SendRequestSign(info)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr{this}](
-              const PWebAuthnTransactionChild::RequestSignPromise::
-                  ResolveOrRejectValue& aValue) {
-            self->mTransaction.ref().mSignHolder.Complete();
-            if (aValue.IsResolve() && aValue.ResolveValue().type() ==
-                                          WebAuthnGetAssertionResponse::Type::
-                                              TWebAuthnGetAssertionResult) {
-              self->FinishGetAssertion(aValue.ResolveValue());
-            } else if (aValue.IsResolve()) {
-              self->RejectTransaction(aValue.ResolveValue());
-            } else {
-              self->RejectTransaction(NS_ERROR_DOM_NOT_ALLOWED_ERR);
-            }
-          })
-      ->Track(mTransaction.ref().mSignHolder);
+  mChild->SendRequestSign(mTransaction.ref().mId, info);
 
   return promise.forget();
 }
 
-already_AddRefed<Promise> WebAuthnHandler::Store(const Credential& aCredential,
+already_AddRefed<Promise> WebAuthnManager::Store(const Credential& aCredential,
                                                  ErrorResult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mWindow);
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mParent);
 
   RefPtr<Promise> promise = Promise::Create(global, aError);
   if (aError.Failed()) {
@@ -744,7 +788,7 @@ already_AddRefed<Promise> WebAuthnHandler::Store(const Credential& aCredential,
   return promise.forget();
 }
 
-already_AddRefed<Promise> WebAuthnHandler::IsUVPAA(GlobalObject& aGlobal,
+already_AddRefed<Promise> WebAuthnManager::IsUVPAA(GlobalObject& aGlobal,
                                                    ErrorResult& aError) {
   RefPtr<Promise> promise =
       Promise::Create(xpc::CurrentNativeGlobal(aGlobal.Context()), aError);
@@ -752,12 +796,12 @@ already_AddRefed<Promise> WebAuthnHandler::IsUVPAA(GlobalObject& aGlobal,
     return nullptr;
   }
 
-  if (!MaybeCreateActor()) {
+  if (!MaybeCreateBackgroundActor()) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
     return promise.forget();
   }
 
-  mActor->SendRequestIsUVPAA()->Then(
+  mChild->SendRequestIsUVPAA()->Then(
       GetCurrentSerialEventTarget(), __func__,
       [promise](const PWebAuthnTransactionChild::RequestIsUVPAAPromise::
                     ResolveOrRejectValue& aValue) {
@@ -770,10 +814,15 @@ already_AddRefed<Promise> WebAuthnHandler::IsUVPAA(GlobalObject& aGlobal,
   return promise.forget();
 }
 
-void WebAuthnHandler::FinishMakeCredential(
+void WebAuthnManager::FinishMakeCredential(
+    const uint64_t& aTransactionId,
     const WebAuthnMakeCredentialResult& aResult) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mTransaction.isSome());
+
+  // Check for a valid transaction.
+  if (mTransaction.isNothing() || mTransaction.ref().mId != aTransactionId) {
+    return;
+  }
 
   nsAutoCString keyHandleBase64Url;
   nsresult rv = Base64URLEncode(
@@ -788,12 +837,12 @@ void WebAuthnHandler::FinishMakeCredential(
   // values returned from the authenticator as well as the clientDataJSON
   // computed earlier.
   RefPtr<AuthenticatorAttestationResponse> attestation =
-      new AuthenticatorAttestationResponse(mWindow);
+      new AuthenticatorAttestationResponse(mParent);
   attestation->SetClientDataJSON(aResult.ClientDataJSON());
   attestation->SetAttestationObject(aResult.AttestationObject());
   attestation->SetTransports(aResult.Transports());
 
-  RefPtr<PublicKeyCredential> credential = new PublicKeyCredential(mWindow);
+  RefPtr<PublicKeyCredential> credential = new PublicKeyCredential(mParent);
   credential->SetId(NS_ConvertASCIItoUTF16(keyHandleBase64Url));
   credential->SetType(u"public-key"_ns);
   credential->SetRawId(aResult.KeyHandle());
@@ -849,10 +898,14 @@ void WebAuthnHandler::FinishMakeCredential(
   ResolveTransaction(credential);
 }
 
-void WebAuthnHandler::FinishGetAssertion(
-    const WebAuthnGetAssertionResult& aResult) {
+void WebAuthnManager::FinishGetAssertion(
+    const uint64_t& aTransactionId, const WebAuthnGetAssertionResult& aResult) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mTransaction.isSome());
+
+  // Check for a valid transaction.
+  if (mTransaction.isNothing() || mTransaction.ref().mId != aTransactionId) {
+    return;
+  }
 
   nsAutoCString keyHandleBase64Url;
   nsresult rv = Base64URLEncode(
@@ -867,13 +920,13 @@ void WebAuthnHandler::FinishGetAssertion(
   // with the values returned from the authenticator as well as the
   // clientDataJSON computed earlier.
   RefPtr<AuthenticatorAssertionResponse> assertion =
-      new AuthenticatorAssertionResponse(mWindow);
+      new AuthenticatorAssertionResponse(mParent);
   assertion->SetClientDataJSON(aResult.ClientDataJSON());
   assertion->SetAuthenticatorData(aResult.AuthenticatorData());
   assertion->SetSignature(aResult.Signature());
   assertion->SetUserHandle(aResult.UserHandle());  // may be empty
 
-  RefPtr<PublicKeyCredential> credential = new PublicKeyCredential(mWindow);
+  RefPtr<PublicKeyCredential> credential = new PublicKeyCredential(mParent);
   credential->SetId(NS_ConvertASCIItoUTF16(keyHandleBase64Url));
   credential->SetType(u"public-key"_ns);
   credential->SetRawId(aResult.KeyHandle());
@@ -924,12 +977,21 @@ void WebAuthnHandler::FinishGetAssertion(
   ResolveTransaction(credential);
 }
 
-void WebAuthnHandler::RunAbortAlgorithm() {
+void WebAuthnManager::RequestAborted(const uint64_t& aTransactionId,
+                                     const nsresult& aError) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mTransaction.isSome() && mTransaction.ref().mId == aTransactionId) {
+    RejectTransaction(aError);
+  }
+}
+
+void WebAuthnManager::RunAbortAlgorithm() {
   if (NS_WARN_IF(mTransaction.isNothing())) {
     return;
   }
 
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mWindow);
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mParent);
 
   AutoJSAPI jsapi;
   if (!jsapi.Init(global)) {
@@ -942,9 +1004,12 @@ void WebAuthnHandler::RunAbortAlgorithm() {
   CancelTransaction(reason);
 }
 
-void WebAuthnHandler::ResolveTransaction(
+void WebAuthnManager::ResolveTransaction(
     const RefPtr<PublicKeyCredential>& aCredential) {
-  MOZ_ASSERT(mTransaction.isSome());
+  if (NS_WARN_IF(mTransaction.isNothing())) {
+    ClearTransaction();
+    return;
+  }
 
   switch (mTransaction.ref().mType) {
     case WebAuthnTransactionType::Create:
@@ -956,13 +1021,15 @@ void WebAuthnHandler::ResolveTransaction(
   }
 
   mTransaction.ref().mPromise->MaybeResolve(aCredential);
-  mTransaction.reset();
-  Unfollow();
+  ClearTransaction();
 }
 
 template <typename T>
-void WebAuthnHandler::RejectTransaction(const T& aReason) {
-  MOZ_ASSERT(mTransaction.isSome());
+void WebAuthnManager::RejectTransaction(const T& aReason) {
+  if (NS_WARN_IF(mTransaction.isNothing())) {
+    ClearTransaction();
+    return;
+  }
 
   switch (mTransaction.ref().mType) {
     case WebAuthnTransactionType::Create:
@@ -974,8 +1041,7 @@ void WebAuthnHandler::RejectTransaction(const T& aReason) {
   }
 
   mTransaction.ref().mPromise->MaybeReject(aReason);
-  mTransaction.reset();
-  Unfollow();
+  ClearTransaction();
 }
 
 }  // namespace mozilla::dom

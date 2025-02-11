@@ -8,32 +8,51 @@
 #define mozilla_dom_WebAuthnTransactionChild_h
 
 #include "mozilla/dom/PWebAuthnTransactionChild.h"
+#include "mozilla/dom/WebAuthnManagerBase.h"
 
 /*
  * Child process IPC implementation for WebAuthn API. Receives results of
  * WebAuthn transactions from the parent process, and sends them to the
- * WebAuthnHandler either cancel the transaction, or be formatted and relayed to
+ * WebAuthnManager either cancel the transaction, or be formatted and relayed to
  * content.
  */
 
 namespace mozilla::dom {
 
-class WebAuthnHandler;
-
 class WebAuthnTransactionChild final : public PWebAuthnTransactionChild {
  public:
-  NS_INLINE_DECL_REFCOUNTING(WebAuthnTransactionChild, override);
+  NS_INLINE_DECL_REFCOUNTING(WebAuthnTransactionChild);
+  explicit WebAuthnTransactionChild(WebAuthnManagerBase* aManager);
 
-  WebAuthnTransactionChild() = default;
+  // MOZ_CAN_RUN_SCRIPT_BOUNDARY until we can do MOZ_CAN_RUN_SCRIPT in
+  // IPDL-generated things.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  mozilla::ipc::IPCResult RecvConfirmRegister(
+      const uint64_t& aTransactionId,
+      const WebAuthnMakeCredentialResult& aResult);
+
+  // MOZ_CAN_RUN_SCRIPT_BOUNDARY until we can do MOZ_CAN_RUN_SCRIPT in
+  // IPDL-generated things.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  mozilla::ipc::IPCResult RecvConfirmSign(
+      const uint64_t& aTransactionId,
+      const WebAuthnGetAssertionResult& aResult);
+
+  // MOZ_CAN_RUN_SCRIPT_BOUNDARY until we can do MOZ_CAN_RUN_SCRIPT in
+  // IPDL-generated things.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  mozilla::ipc::IPCResult RecvAbort(const uint64_t& aTransactionId,
+                                    const nsresult& aError);
 
   void ActorDestroy(ActorDestroyReason why) override;
 
-  void SetHandler(WebAuthnHandler* aMananger);
+  void Disconnect();
 
  private:
   ~WebAuthnTransactionChild() = default;
 
-  WebAuthnHandler* mHandler;
+  // Nulled by ~WebAuthnManager() when disconnecting.
+  WebAuthnManagerBase* mManager;
 };
 
 }  // namespace mozilla::dom
