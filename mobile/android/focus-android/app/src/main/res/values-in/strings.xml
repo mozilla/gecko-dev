@@ -351,6 +351,11 @@
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla berusaha untuk mengumpulkan hanya apa yang kami perlu untuk sediakan dan meningkatkan %1$s untuk setiap orang.</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preference_daily_usage_ping_title">Ping penggunaan harian</string>
+    <string name="preference_daily_usage_ping_description">Ini membantu Mozilla untuk memperkirakan pengguna aktif.</string>
+    <string name="preference_daily_usage_ping_learn_more">Pelajari lebih lanjut</string>
+
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Kebijakan Privasi</string>
 
@@ -359,6 +364,9 @@
 
     <!-- Link to Focus licensing information from other libraries that we use. -->
     <string name="preference_libraries_we_use">Pustaka yang kami gunakan</string>
+
+    <!-- Link to Focus Crash reports list. -->
+    <string name="preference_crashes">Laporan Mogok</string>
 
     <!-- Open Source Licenses page title. The first parameter is the app name -->
     <string name="open_source_licenses_title">%s | Pustaka OSS</string>

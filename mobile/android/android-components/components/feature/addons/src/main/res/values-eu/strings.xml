@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Deskargatu eta exekutatu AA modeloak zure gailuan</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Baimendu egiaztatu gabeko hirugarrenen scriptei zure datuetarako sarbidea</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Egiaztatu gabeko scriptek segurtasun eta pribatutasun arriskuak eragin litzakete. Soilik exekutatu hedapenetako edo fidagarritzat dituzun iturburuetako scriptak.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Garatzaile-tresnak hedatu eta irekitako fitxetako zure datuak atzitzea</string>
     <!-- The version on of add-on. -->

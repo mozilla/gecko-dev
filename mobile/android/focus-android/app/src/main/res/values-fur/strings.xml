@@ -463,7 +463,7 @@
     <string name="content_description_stop">Ferme di cjamâ il sît web</string>
 
     <!-- Content description (not visible, for screen readers etc.): Custom Tab exit button - closes the custom tab and returns to the previous app. -->
-    <string name="content_description_customtab_exit">Torne ae aplicazion precedente</string>
+    <string name="content_description_customtab_exit">Torne ae aplicazion di prime</string>
 
     <!-- Content description (not visible, for screen readers etc.): This is the description for the ImageView in the menu that displays
          the number of trackers blocked for the current session -->

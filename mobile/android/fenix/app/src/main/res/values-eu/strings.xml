@@ -2083,6 +2083,8 @@
     <string name="about_privacy_notice">Pribatutasun-oharra</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Ezagutu zure eskubideak</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Erabilera-baldintzak</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Lizentziaren informazioa</string>
     <!-- About page link text to open a screen with libraries that are used -->
