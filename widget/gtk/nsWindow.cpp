@@ -3254,7 +3254,7 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
 
   auto GetBounds = [&](GdkWindow* aWin) {
     GdkRectangle b{0};
-    if (IsTopLevelWidget() && GdkIsX11Display()) {
+    if (IsTopLevelWidget() && GdkIsX11Display() && aWin == toplevel) {
       // We want the up-to-date size from the X server, not the last configure
       // event size, to avoid spurious resizes on e.g. sizemode changes.
       gdk_window_get_geometry(aWin, nullptr, nullptr, &b.width, &b.height);
