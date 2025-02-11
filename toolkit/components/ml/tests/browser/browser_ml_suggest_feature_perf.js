@@ -17,7 +17,7 @@ const perfMetadata = {
         },
         {
           name: "memory",
-          unit: "MB",
+          unit: "MiB",
           shouldAlert: true,
         },
       ],

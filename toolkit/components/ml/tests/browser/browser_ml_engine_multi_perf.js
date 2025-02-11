@@ -94,7 +94,7 @@ const perfMetadata = {
         },
         {
           name: "memory",
-          unit: "MB",
+          unit: "MiB",
           shouldAlert: true,
         },
       ],
@@ -109,7 +109,7 @@ const perfMetadata = {
 for (let metric of METRICS) {
   perfMetadata.options.default.perfherder_metrics.push({
     name: metric,
-    unit: metric.includes("latency") ? "ms" : "MB",
+    unit: metric.includes("latency") ? "ms" : "MiB",
     shouldAlert: true,
   });
 }

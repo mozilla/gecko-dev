@@ -17,7 +17,7 @@ const perfMetadata = {
         },
         {
           name: "memory",
-          unit: "MB",
+          unit: "MiB",
           shouldAlert: true,
         },
       ],
@@ -57,10 +57,16 @@ add_task(async function test_ml_smart_tab_topic() {
     options: requestInfo.runOptions,
   };
 
-  await perfTest("smart-tab-topic", options, request, ITERATIONS, true);
+  await perfTest({
+    name: "smart-tab-topic",
+    options,
+    request,
+    iterations: ITERATIONS,
+    addColdStart: true,
+  });
 });
 
-add_task(async function test_ml_smart_tab_embedding() {
+async function testEmbedding(trackPeakMemory = false) {
   const options = new PipelineOptions({
     taskName: "feature-extraction",
     modelId: "Mozilla/smart-tab-embedding",
@@ -70,12 +76,30 @@ add_task(async function test_ml_smart_tab_embedding() {
     timeoutMS: 2 * 60 * 1000,
   });
 
-  const requestInfo = {
-    inputArgs: [
+  var input;
+
+  if (trackPeakMemory) {
+    input = [
       "Vintage Cameras and Their Impact The First Personal Computers Discussing the Evolution of Smartphones 80s Tech Recollections",
       "Personal Computers Discussing the Evolution of Smartphones 80s Tech Recollections Vintage Cameras and Their Impact",
       "The Evolution of Smartphones 80s Tech Recollections Vintage Cameras and Their Impact on tech.",
-    ],
+      "Vintage Cameras and Their Impact The First Personal Computers Discussing the Evolution of Smartphones 80s Tech Recollections",
+      "Personal Computers Discussing the Evolution of Smartphones 80s Tech Recollections Vintage Cameras and Their Impact",
+      "The Evolution of Smartphones 80s Tech Recollections Vintage Cameras and Their Impact on tech.",
+      "Vintage Cameras and Their Impact The First Personal Computers Discussing the Evolution of Smartphones 80s Tech Recollections",
+      "Personal Computers Discussing the Evolution of Smartphones 80s Tech Recollections Vintage Cameras and Their Impact",
+      "The Evolution of Smartphones 80s Tech Recollections Vintage Cameras and Their Impact on tech.",
+    ];
+  } else {
+    input = [
+      "Vintage Cameras and Their Impact The First Personal Computers Discussing the Evolution of Smartphones 80s Tech Recollections",
+      "Personal Computers Discussing the Evolution of Smartphones 80s Tech Recollections Vintage Cameras and Their Impact",
+      "The Evolution of Smartphones 80s Tech Recollections Vintage Cameras and Their Impact on tech.",
+    ];
+  }
+
+  const requestInfo = {
+    inputArgs: input,
     runOptions: {
       pooling: "mean",
       normalize: true,
@@ -87,5 +111,21 @@ add_task(async function test_ml_smart_tab_embedding() {
     options: requestInfo.runOptions,
   };
 
-  await perfTest("smart-tab-embedding", options, request, ITERATIONS, true);
+  await perfTest({
+    name: "smart-tab-embedding",
+    options,
+    request,
+    iterations: ITERATIONS,
+    addColdStart: true,
+    trackPeakMemory,
+    peakMemoryInterval: 10,
+  });
+}
+
+add_task(async function test_ml_smart_tab_embedding() {
+  await testEmbedding(false);
+});
+
+add_task(async function test_ml_smart_tab_embedding_peak_mem() {
+  await testEmbedding(true);
 });

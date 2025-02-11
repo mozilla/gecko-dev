@@ -21,7 +21,7 @@ const perfMetadata = {
           shouldAlert: true,
         },
         { name: "AUTOFILL-model-run-latency", unit: "ms", shouldAlert: true },
-        { name: "AUTOFILL-total-memory-usage", unit: "MB", shouldAlert: true },
+        { name: "AUTOFILL-total-memory-usage", unit: "MiB", shouldAlert: true },
       ],
       verbose: true,
       manifest: "perftest.toml",
@@ -56,5 +56,5 @@ add_task(async function test_ml_generic_pipeline() {
     options: { pooling: "mean", normalize: true },
   };
 
-  await perfTest("autofill", options, request);
+  await perfTest({ name: "autofill", options, request });
 });

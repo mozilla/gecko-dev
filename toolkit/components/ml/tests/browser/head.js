@@ -16,6 +16,10 @@ const { ModelHub, TestIndexedDBCache } = ChromeUtils.importESModule(
   "chrome://global/content/ml/ModelHub.sys.mjs"
 );
 
+const { getInferenceProcessInfo } = ChromeUtils.importESModule(
+  "chrome://global/content/ml/Utils.sys.mjs"
+);
+
 const IndexedDBCache = TestIndexedDBCache;
 
 const {
@@ -184,7 +188,7 @@ async function createRemoteClient({
 /*
  * Perftest related
  */
-const MB_TO_BYTES = 1024 * 1024;
+const ONE_MIB = 1024 * 1024;
 const INIT_START = "initializationStart";
 const INIT_END = "initializationEnd";
 const RUN_START = "runStart";
@@ -196,6 +200,7 @@ const INITIALIZATION_LATENCY = "initialization-latency";
 const MODEL_RUN_LATENCY = "model-run-latency";
 const TOTAL_MEMORY_USAGE = "total-memory-usage";
 const COLD_START_PREFIX = "cold-start-";
+const PEAK_MEMORY_USAGE = "peak-memory-usage";
 const ITERATIONS = 10;
 const WHEN = "when";
 const MEMORY = "memory";
@@ -288,7 +293,7 @@ function fetchMetrics(metrics, isFirstRun) {
   };
 }
 
-async function initializeEngine(pipelineOptions) {
+async function initializeEngine(pipelineOptions, prefs = null) {
   const modelDirectory = normalizePathForOS(
     `${Services.env.get("MOZ_FETCHES_DIR")}/onnx-models`
   );
@@ -302,8 +307,13 @@ async function initializeEngine(pipelineOptions) {
   }
 
   info(`ModelHubRootUrl: ${modelHubRootUrl}`);
+  var browserPrefs = [["browser.ml.modelHubRootUrl", modelHubRootUrl]];
+  if (prefs) {
+    browserPrefs = browserPrefs.concat(prefs);
+  }
+
   const { cleanup } = await perfSetup({
-    prefs: [["browser.ml.modelHubRootUrl", modelHubRootUrl]],
+    prefs: browserPrefs,
   });
   info("Get the engine process");
   const mlEngineParent = await EngineProcess.getMLEngineParent();
@@ -331,16 +341,18 @@ async function perfSetup({ disabled = false, prefs = [] } = {}) {
     autoDownloadFromRemoteSettings: false,
   });
 
+  var finalPrefs = [
+    // Enabled by default.
+    ["browser.ml.enable", !disabled],
+    ["browser.ml.logLevel", "Error"],
+    ["browser.ml.modelCacheTimeout", 1000],
+    ["browser.ml.checkForMemory", false],
+    ["javascript.options.wasm_lazy_tiering", true],
+    ...prefs,
+  ];
+
   await SpecialPowers.pushPrefEnv({
-    set: [
-      // Enabled by default.
-      ["browser.ml.enable", !disabled],
-      ["browser.ml.logLevel", "Error"],
-      ["browser.ml.modelCacheTimeout", 1000],
-      ["browser.ml.checkForMemory", false],
-      ["javascript.options.wasm_lazy_tiering", true],
-      ...prefs,
-    ],
+    set: finalPrefs,
   });
 
   const artifactDirectory = normalizePathForOS(
@@ -407,51 +419,27 @@ async function perfSetup({ disabled = false, prefs = [] } = {}) {
 }
 
 /**
- * Returns the total memory usage in MiB for the inference process
+ * Returns the current total physical memory usage in MiB for the inference process
  */
 async function getTotalMemoryUsage() {
-  let mgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(
-    Ci.nsIMemoryReporterManager
-  );
-
-  let total = 0;
-
-  const handleReport = (
-    aProcess,
-    aPath,
-    _aKind,
-    _aUnits,
-    aAmount,
-    _aDescription
-  ) => {
-    if (aProcess.startsWith("inference")) {
-      if (aPath.startsWith("explicit")) {
-        total += aAmount;
-      }
-    }
-  };
-
-  await new Promise(r =>
-    mgr.getReportsExtended(
-      handleReport,
-      null,
-      r,
-      null,
-      /* anonymized = */ false,
-      /* minimizeMemoryUsage = */ true,
-      null
-    )
-  );
-
-  return Math.round(total / 1024 / 1024);
+  const procInfo = await getInferenceProcessInfo();
+  return Math.round(procInfo.memory / ONE_MIB);
 }
 
 /**
  * Runs an inference given the options and arguments
  *
  */
-async function runInference(pipelineOptions, request, isFirstRun = false) {
-  const { cleanup, engine } = await initializeEngine(pipelineOptions);
+async function runInference({
+  pipelineOptions,
+  request,
+  isFirstRun = false,
+  browserPrefs = null,
+}) {
+  const { cleanup, engine } = await initializeEngine(
+    pipelineOptions,
+    browserPrefs
+  );
   let metrics = {};
   try {
     const res = await engine.run(request);
@@ -466,32 +454,83 @@ async function runInference(pipelineOptions, request, isFirstRun = false) {
 }
 
 /**
+ * Can be used to track peak memory
+ *
+ */
+class PeakMemoryTracker {
+  constructor(interval = 500) {
+    this._memory = 0;
+    this._intervalId = null;
+    this._interval = interval;
+  }
+
+  async collectPeakMemory() {
+    const procInfo = await getInferenceProcessInfo();
+    if (procInfo.memory && procInfo.memory > this._memory) {
+      this._memory = procInfo.memory;
+    }
+  }
+
+  start() {
+    if (this._intervalId !== null) {
+      return;
+    } // Prevent multiple intervals
+    this._intervalId = setInterval(() => {
+      this.collectPeakMemory().catch(console.error);
+    }, this._interval);
+  }
+
+  stop() {
+    if (this._intervalId !== null) {
+      clearInterval(this._intervalId);
+      this._intervalId = null;
+    }
+
+    try {
+      return Math.round(this._memory / ONE_MIB);
+    } finally {
+      this._memory = 0;
+    }
+  }
+}
+/**
  * Runs a performance test for the given name, options, and arguments and
  * reports the results for perfherder.
  */
-async function perfTest(
+async function perfTest({
   name,
   options,
   request,
   iterations = ITERATIONS,
-  addColdStart = false
-) {
+  addColdStart = false,
+  trackPeakMemory = false,
+  peakMemoryInterval = 500,
+  extraPrefs = null,
+}) {
   name = name.toUpperCase();
 
-  let METRICS = [
-    `${name}-${PIPELINE_READY_LATENCY}`,
-    `${name}-${INITIALIZATION_LATENCY}`,
-    `${name}-${MODEL_RUN_LATENCY}`,
-    `${name}-${TOTAL_MEMORY_USAGE}`,
-    ...(addColdStart
-      ? [
-          `${name}-${COLD_START_PREFIX}${PIPELINE_READY_LATENCY}`,
-          `${name}-${COLD_START_PREFIX}${INITIALIZATION_LATENCY}`,
-          `${name}-${COLD_START_PREFIX}${MODEL_RUN_LATENCY}`,
-          `${name}-${COLD_START_PREFIX}${TOTAL_MEMORY_USAGE}`,
-        ]
-      : []),
-  ];
+  let METRICS;
+
+  // When tracking peak memory we only do this because we're
+  // stressing the system with 500ms callbacks so other netrics are impacted
+  if (trackPeakMemory) {
+    METRICS = [`${name}-${PEAK_MEMORY_USAGE}`];
+  } else {
+    METRICS = [
+      `${name}-${PIPELINE_READY_LATENCY}`,
+      `${name}-${INITIALIZATION_LATENCY}`,
+      `${name}-${MODEL_RUN_LATENCY}`,
+      `${name}-${TOTAL_MEMORY_USAGE}`,
+      ...(addColdStart
+        ? [
+            `${name}-${COLD_START_PREFIX}${PIPELINE_READY_LATENCY}`,
+            `${name}-${COLD_START_PREFIX}${INITIALIZATION_LATENCY}`,
+            `${name}-${COLD_START_PREFIX}${MODEL_RUN_LATENCY}`,
+            `${name}-${COLD_START_PREFIX}${TOTAL_MEMORY_USAGE}`,
+          ]
+        : []),
+    ];
+  }
 
   const journal = {};
   for (let metric of METRICS) {
@@ -499,19 +538,30 @@ async function perfTest(
   }
 
   const pipelineOptions = new PipelineOptions(options);
+  var tracker;
+
   let nIterations = addColdStart ? iterations + 1 : iterations;
   for (let i = 0; i < nIterations; i++) {
+    if (trackPeakMemory) {
+      tracker = new PeakMemoryTracker(peakMemoryInterval);
+      tracker.start();
+    }
     const shouldAddColdStart = addColdStart && i === 0;
-    let metrics = await runInference(
+    let metrics = await runInference({
       pipelineOptions,
       request,
-      shouldAddColdStart
-    );
-    for (let [metricName, metricVal] of Object.entries(metrics)) {
-      if (metricVal === null || metricVal === undefined || metricVal < 0) {
-        metricVal = 0;
+      isFirstRun: shouldAddColdStart,
+      browserPrefs: extraPrefs,
+    });
+    if (trackPeakMemory) {
+      journal[`${name}-${PEAK_MEMORY_USAGE}`].push(tracker.stop());
+    } else {
+      for (let [metricName, metricVal] of Object.entries(metrics)) {
+        if (metricVal === null || metricVal === undefined || metricVal < 0) {
+          metricVal = 0;
+        }
+        journal[`${name}-${metricName}`].push(metricVal);
       }
-      journal[`${name}-${metricName}`].push(metricVal);
     }
   }
   Assert.ok(true);
