@@ -115,9 +115,7 @@ void SandboxBroker::Terminate() {
   mFileDesc = -1;
 }
 
-SandboxBroker::~SandboxBroker() {
-  Terminate();
-}
+SandboxBroker::~SandboxBroker() { Terminate(); }
 
 SandboxBroker::Policy::Policy() = default;
 SandboxBroker::Policy::~Policy() = default;
