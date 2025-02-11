@@ -370,10 +370,21 @@ function parseDeclarationsInternal(
       !currentBlocks.length
     ) {
       // Assume we're encountering a nested rule.
-      isInNested = true;
-      nestingLevel = 1;
 
-      continue;
+      if (inComment) {
+        // If we're in a comment, we still want to retrieve all the "top" level declarations,
+        // e.g. for `/* color: red; & > span { color: blue; } color: yellow; */`, we do want
+        // to get the red and yellow declarations.
+        isInNested = true;
+        nestingLevel = 1;
+        continue;
+      }
+
+      // If we're not in a comment, once we encounter a nested rule, we can stop;
+      // even if there are declarations after the nested rules, they will be retrieved in
+      // a different (CSSNestedDeclaration) rule.
+      declarations.pop();
+      break;
     } else if (isInNested) {
       if (token.tokenType == "CurlyBracketBlock") {
         nestingLevel++;
