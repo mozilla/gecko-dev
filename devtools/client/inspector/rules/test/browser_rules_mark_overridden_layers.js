@@ -21,6 +21,10 @@ const HTML = `
         color: lime !important;
         color: forestgreen;
       }
+
+      h4 {
+        color: red !important;
+      }
     }
     @layer B {
       h1 {
@@ -65,6 +69,7 @@ const HTML = `
   <h1>Hello</h1>
   <h2>world</h2>
   <h3>!</h3>
+  <h4 style="color: blue !important">style attr</h4>
 `;
 
 add_task(async function () {
@@ -154,6 +159,22 @@ add_task(async function () {
   ok(
     isPropertyOverridden(view, 3, { color: "red" }),
     "important color value in first rule of layer-less rule is overridden"
+  );
+
+  info("Check (!important) color properties on element style and layer");
+  await selectNode("h4", inspector);
+  is(
+    await getComputedStyleProperty("h4", null, "color"),
+    "rgb(0, 0, 255)",
+    "The h4 element has a blue color, as important value in element rule wins"
+  );
+  ok(
+    !isPropertyOverridden(view, 0, { color: "blue" }),
+    "important color value in element rule is not overridden"
+  );
+  ok(
+    isPropertyOverridden(view, 1, { color: "red" }),
+    "important color value in layer is overridden"
   );
 });
 

@@ -504,11 +504,13 @@ class ElementStyle {
       computedProp.priority === "important" &&
       (earlierProp.priority !== "important" ||
         // Even if the earlier property was important, if the current rule is in a layer
-        // it will take precedence, unless the earlier property rule was in the same layer.
+        // it will take precedence, unless the earlier property rule was in the same layer,
+        // or if the earlier declaration is in the style attribute (https://www.w3.org/TR/css-cascade-5/#style-attr).
         (computedProp.textProp.rule?.isInLayer() &&
           computedProp.textProp.rule.isInDifferentLayer(
             earlierProp.textProp.rule
-          ))) &&
+          ) &&
+          earlierProp.textProp.rule.domRule.type !== ELEMENT_STYLE)) &&
       // For !important only consider rules applying to the same parent node.
       computedProp.textProp.rule.inherited ==
         earlierProp.textProp.rule.inherited
