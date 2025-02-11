@@ -3014,14 +3014,6 @@ Toolbox.prototype = {
       Services.prefs.setCharPref(this._prefs.LAST_TOOL, id);
     }
 
-    // Bug 1947023 workaround hidden web extension panels.
-    // This will make the tool visible *before* it is done loading
-    // and may cause flashes on opening
-    if (id.startsWith("webext-devtools-panel-")) {
-      const toolboxPanels = this.doc.querySelectorAll(".toolbox-panel");
-      this.selectSingleNode(toolboxPanels, "toolbox-panel-" + id);
-    }
-
     return this.loadTool(id, options).then(panel => {
       // Only select the panel once it is loaded to prevent showing it
       // while it is bootstrapping and prevent blinks
