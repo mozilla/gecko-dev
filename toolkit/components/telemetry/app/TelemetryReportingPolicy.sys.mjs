@@ -11,6 +11,7 @@ import { TelemetryUtils } from "resource://gre/modules/TelemetryUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   TelemetrySend: "resource://gre/modules/TelemetrySend.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
@@ -53,6 +54,9 @@ export var Policy = {
       "sessionstore-windows-restored",
       null
     );
+  },
+  showModal: async data => {
+    return TelemetryReportingPolicyImpl._showModal(data);
   },
 };
 
@@ -189,6 +193,9 @@ var TelemetryReportingPolicyImpl = {
   _isFirstRun: undefined,
   // Ensure notification flow is idempotent.
   _ensureUserIsNotifiedPromise: undefined,
+  // Nimbus `preonboarding` feature variables.  Set in response to
+  // `sessionstore-window-restored`; immutable there-after.
+  _nimbusVariables: null,
 
   get _log() {
     if (!this._logger) {
@@ -433,14 +440,6 @@ var TelemetryReportingPolicyImpl = {
    * Determine whether the user should be notified.
    */
   _shouldNotify() {
-    let res = lazy.NimbusFeatures.preonboarding.getAllVariables();
-    if (res.disableFirstRunPolicyTab) {
-      this._log.trace(
-        "_shouldNotify - Policy disabled by Nimbus configuration."
-      );
-      return false;
-    }
-
     if (!this.dataSubmissionEnabled) {
       this._log.trace(
         "_shouldNotify - Data submission disabled by the policy."
@@ -602,6 +601,15 @@ var TelemetryReportingPolicyImpl = {
    * `sessionstore-windows-restored` time.
    */
   _delayedSetup() {
+    // We're ready to make decisions about how to notify the user.  We only read
+    // the Nimbus features once, so that Nimbus features changing doesn't yield
+    // inconsistent results.  We also configure the datareporting policy Gecko
+    // preferences based on the Nimbus `preonboarding` feature variables.  This
+    // makes sense because we don't have support for re-notifying a user
+    // _during_ the Firefox process lifetime; right now, we only notify the user
+    // at Firefox startup.
+    this._configureFromNimbus();
+
     if (this.isFirstRun()) {
       // We're performing the first run, flip firstRun preference for subsequent runs.
       Services.prefs.setBoolPref(TelemetryUtils.Preferences.FirstRun, false);
@@ -626,6 +634,16 @@ var TelemetryReportingPolicyImpl = {
         `_waitForUserIsNotified: user has already been notified, no further action required`
       );
       return;
+    }
+
+    if (this._nimbusVariables.enabled && this._nimbusVariables.screens) {
+      if (await this._notifyUserViaMessagingSystem()) {
+        this._log.trace(
+          `_waitForUserIsNotified: user notified via Messaging System`
+        );
+        return;
+      }
+      `_waitForUserIsNotified: user not notified via Messaging System, falling back to legacy notification`;
     }
 
     await this._notifyUserViaTabOrInfobar();
@@ -687,5 +705,110 @@ var TelemetryReportingPolicyImpl = {
     }
 
     return this._ensureUserIsNotifiedPromise;
+  },
+
+  /**
+   * Capture Nimbus configuration: record feature variables for future use and
+   * set Gecko preferences based on values.
+   */
+  _configureFromNimbus() {
+    this._nimbusVariables = lazy.NimbusFeatures.preonboarding.getAllVariables();
+
+    if (this._nimbusVariables.enabled) {
+      if ("currentPolicyVersion" in this._nimbusVariables) {
+        this._log.trace(
+          `_configureFromNimbus: setting currentPolicyVersion from Nimbus feature (${this._nimbusVariables.currentPolicyVersion})`
+        );
+        Services.prefs.setIntPref(
+          TelemetryUtils.Preferences.CurrentPolicyVersion,
+          this._nimbusVariables.currentPolicyVersion
+        );
+      }
+      if ("minimumPolicyVersion" in this._nimbusVariables) {
+        this._log.trace(
+          `_configureFromNimbus: setting minimumPolicyVersion from Nimbus feature (${this._nimbusVariables.minimumPolicyVersion})`
+        );
+        Services.prefs.setIntPref(
+          TelemetryUtils.Preferences.MinimumPolicyVersion,
+          this._nimbusVariables.minimumPolicyVersion
+        );
+      }
+      if ("firstRunURL" in this._nimbusVariables) {
+        this._log.trace(
+          `_configureFromNimbus: setting firstRunURL from Nimbus feature ('${this._nimbusVariables.firstRunURL}')`
+        );
+        Services.prefs.setCharPref(
+          TelemetryUtils.Preferences.FirstRunURL,
+          this._nimbusVariables.firstRunURL
+        );
+      }
+    } else {
+      this._log.trace(
+        `_configureFromNimbus: Nimbus feature disabled, not setting preferences`
+      );
+    }
+  },
+
+  async _showModal(data) {
+    const { BrowserWindowTracker } = ChromeUtils.importESModule(
+      "resource:///modules/BrowserWindowTracker.sys.mjs"
+    );
+    const { SpecialMessageActions } = ChromeUtils.importESModule(
+      "resource://messaging-system/lib/SpecialMessageActions.sys.mjs"
+    );
+
+    let win = BrowserWindowTracker.getTopWindow();
+
+    const config = {
+      type: "SHOW_SPOTLIGHT",
+      data: {
+        content: {
+          template: "multistage",
+          id: data?.id || "PRE_ONBOARDING_MODAL",
+          backdrop: data?.backdrop,
+          screens: data.screens,
+          UTMTerm: data?.UTMTerm,
+          disableEscClose: data?.requireAction,
+          // displayed as a window modal by default
+        },
+      },
+    };
+
+    SpecialMessageActions.handleAction(config, win);
+    this._notificationInProgress = true;
+
+    return true;
+  },
+
+  /**
+   * Notify the user via the Firefox Messaging System (e.g., a modal dialog) and
+   * wait for user interaction.
+   *
+   * User interaction is signaled by the
+   * `datareporting:notify-data-policy:interacted` observer notification.
+   *
+   * @return {Promise<boolean>} `true` if user was notified, `false` to fallback
+   * to legacy tab/infobar notification.
+   */
+  async _notifyUserViaMessagingSystem() {
+    let p = lazy.BrowserUtils.promiseObserved(
+      "datareporting:notify-data-policy:interacted"
+    );
+
+    if (!(await Policy.showModal(this._nimbusVariables))) {
+      this._log.trace(
+        "_notifyUserViaModal: notification was not displayed, falling back to legacy notification"
+      );
+      return false;
+    }
+
+    this._log.trace(
+      "_notifyUserViaModal: modal displayed, waiting for user interaction"
+    );
+    await p;
+
+    this._log.trace("_notifyUserViaModal: user interacted with modal");
+
+    return true;
   },
 };
