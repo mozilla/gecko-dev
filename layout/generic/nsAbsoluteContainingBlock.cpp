@@ -932,20 +932,20 @@ void nsAbsoluteContainingBlock::ReflowAbsoluteFrame(
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::IStart, outerWM,
                                      positionProperty)
-            .IsAuto() ||
+            ->IsAuto() ||
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::IEnd, outerWM,
                                      positionProperty)
-            .IsAuto();
+            ->IsAuto();
     const bool bInsetAuto =
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::BStart, outerWM,
                                      positionProperty)
-            .IsAuto() ||
+            ->IsAuto() ||
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::BEnd, outerWM,
                                      positionProperty)
-            .IsAuto();
+            ->IsAuto();
     const LogicalSize logicalCBSizeOuterWM(outerWM, aContainingBlock.Size());
     const LogicalSize kidMarginBox{
         outerWM, margin.IStartEnd(outerWM) + kidSize.ISize(outerWM),

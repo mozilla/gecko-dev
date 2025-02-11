@@ -866,8 +866,8 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
       LogicalSide::IStart, aWM, positionProperty);
   const auto& inlineEnd = position->GetAnchorResolvedInset(
       LogicalSide::IEnd, aWM, positionProperty);
-  bool inlineStartIsAuto = inlineStart.IsAuto();
-  bool inlineEndIsAuto = inlineEnd.IsAuto();
+  bool inlineStartIsAuto = inlineStart->IsAuto();
+  bool inlineEndIsAuto = inlineEnd->IsAuto();
 
   // If neither 'inlineStart' nor 'inlineEnd' is auto, then we're
   // over-constrained and we ignore one of them
@@ -882,10 +882,10 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
     } else {
       // 'inlineEnd' isn't being treated as 'auto' so compute its value
       offsets.IEnd(aWM) =
-          inlineEnd.IsAuto()
+          inlineEnd->IsAuto()
               ? 0
               : nsLayoutUtils::ComputeCBDependentValue(
-                    aCBSize.ISize(aWM), inlineEnd.AsLengthPercentage());
+                    aCBSize.ISize(aWM), inlineEnd->AsLengthPercentage());
 
       // Computed value for 'inlineStart' is minus the value of 'inlineEnd'
       offsets.IStart(aWM) = -offsets.IEnd(aWM);
@@ -896,7 +896,7 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
 
     // 'InlineStart' isn't 'auto' so compute its value
     offsets.IStart(aWM) = nsLayoutUtils::ComputeCBDependentValue(
-        aCBSize.ISize(aWM), inlineStart.AsLengthPercentage());
+        aCBSize.ISize(aWM), inlineStart->AsLengthPercentage());
 
     // Computed value for 'inlineEnd' is minus the value of 'inlineStart'
     offsets.IEnd(aWM) = -offsets.IStart(aWM);
@@ -910,16 +910,16 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
       LogicalSide::BStart, aWM, positionProperty);
   const auto& blockEnd = position->GetAnchorResolvedInset(
       LogicalSide::BEnd, aWM, positionProperty);
-  bool blockStartIsAuto = blockStart.IsAuto();
-  bool blockEndIsAuto = blockEnd.IsAuto();
+  bool blockStartIsAuto = blockStart->IsAuto();
+  bool blockEndIsAuto = blockEnd->IsAuto();
 
   // Check for percentage based values and a containing block block-size
   // that depends on the content block-size. Treat them like 'auto'
   if (NS_UNCONSTRAINEDSIZE == aCBSize.BSize(aWM)) {
-    if (blockStart.HasPercent()) {
+    if (blockStart->HasPercent()) {
       blockStartIsAuto = true;
     }
-    if (blockEnd.HasPercent()) {
+    if (blockEnd->HasPercent()) {
       blockEndIsAuto = true;
     }
   }
@@ -936,10 +936,10 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
     } else {
       // 'blockEnd' isn't being treated as 'auto' so compute its value
       offsets.BEnd(aWM) =
-          blockEnd.IsAuto()
+          blockEnd->IsAuto()
               ? 0
               : nsLayoutUtils::ComputeCBDependentValue(
-                    aCBSize.BSize(aWM), blockEnd.AsLengthPercentage());
+                    aCBSize.BSize(aWM), blockEnd->AsLengthPercentage());
 
       // Computed value for 'blockStart' is minus the value of 'blockEnd'
       offsets.BStart(aWM) = -offsets.BEnd(aWM);
@@ -950,7 +950,7 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
 
     // 'blockStart' isn't 'auto' so compute its value
     offsets.BStart(aWM) = nsLayoutUtils::ComputeCBDependentValue(
-        aCBSize.BSize(aWM), blockStart.AsLengthPercentage());
+        aCBSize.BSize(aWM), blockStart->AsLengthPercentage());
 
     // Computed value for 'blockEnd' is minus the value of 'blockStart'
     offsets.BEnd(aWM) = -offsets.BStart(aWM);
@@ -1586,10 +1586,10 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
       LogicalSide::BStart, cbwm, StylePositionProperty::Absolute);
   const auto& bEndOffset = mStylePosition->GetAnchorResolvedInset(
       LogicalSide::BEnd, cbwm, StylePositionProperty::Absolute);
-  bool iStartIsAuto = iStartOffset.IsAuto();
-  bool iEndIsAuto = iEndOffset.IsAuto();
-  bool bStartIsAuto = bStartOffset.IsAuto();
-  bool bEndIsAuto = bEndOffset.IsAuto();
+  bool iStartIsAuto = iStartOffset->IsAuto();
+  bool iEndIsAuto = iEndOffset->IsAuto();
+  bool bStartIsAuto = bStartOffset->IsAuto();
+  bool bEndIsAuto = bEndOffset->IsAuto();
 
   // If both 'inline-start' and 'inline-end' are 'auto' or both 'block-start'
   // and 'block-end' are 'auto', then compute the hypothetical box position
