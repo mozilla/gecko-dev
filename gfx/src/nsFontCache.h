@@ -52,11 +52,12 @@ class nsFontCache final : public nsIObserver {
   static constexpr int32_t kMaxCacheEntries = 128;
 
   // Number of cache misses before we assume that a font fingerprinting attempt
-  // is being made.
-  static constexpr int32_t kFingerprintingCacheMissThreshold = 20;
+  // is being made. Usually fingerprinters will lookup the same font-family
+  // three times, as "sans-serif", "serif" and "monospace".
+  static constexpr int32_t kFingerprintingCacheMissThreshold = 3 * 20;
   // We assume that fingerprinters will lookup a large number of fonts in a
   // short amount of time.
-  static constexpr PRTime kFingerprintingLastNSec =
+  static constexpr PRTime kFingerprintingTimeout =
       PRTime(PR_USEC_PER_SEC) * 3;  // 3 seconds
 
   static_assert(kFingerprintingCacheMissThreshold < kMaxCacheEntries);
@@ -92,9 +93,8 @@ class nsFontCache final : public nsIObserver {
     RefPtr<nsFontCache> mCache;
   };
 
-  void DetectFontFingerprinting(const nsFont& aFont);
-
-  nsTHashMap<nsStringHashKey, PRTime> mMissedFontFamilyNames;
+  PRTime mLastCacheMiss = 0;
+  uint64_t mCacheMisses = 0;
   bool mReportedProbableFingerprinting = false;
 };
 

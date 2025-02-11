@@ -87,7 +87,21 @@ already_AddRefed<nsFontMetrics> nsFontCache::GetMetricsFor(
     }
   }
 
-  DetectFontFingerprinting(aFont);
+  if (!mReportedProbableFingerprinting) {
+    // We try to detect font fingerprinting attempts by recognizing a large
+    // number of cache misses in a short amount of time, which indicates the
+    // usage of an unreasonable amount of different fonts by the web page.
+    PRTime now = PR_Now();
+    if (now - mLastCacheMiss > kFingerprintingTimeout) {
+      mCacheMisses = 0;
+    }
+    mCacheMisses++;
+    mLastCacheMiss = now;
+    if (NS_IsMainThread() && mCacheMisses > kFingerprintingCacheMissThreshold) {
+      mContext->Document()->RecordFontFingerprinting();
+      mReportedProbableFingerprinting = true;
+    }
+  }
 
   // It's not in the cache. Get font metrics and then cache them.
   // If the cache has reached its size limit, drop the older half of the
@@ -110,50 +124,6 @@ already_AddRefed<nsFontMetrics> nsFontCache::GetMetricsFor(
   // is cheaper than insert
   mFontMetrics.AppendElement(do_AddRef(fm).take());
   return fm.forget();
-}
-
-void nsFontCache::DetectFontFingerprinting(const nsFont& aFont) {
-  // We try to detect font fingerprinting attempts by recognizing a large
-  // number of cache misses in a short amount of time, which indicates the
-  // usage of an unreasonable amount of different fonts by the web page.
-
-  if (mReportedProbableFingerprinting || aFont.family.families.list.IsEmpty()) {
-    return;
-  }
-
-  PRTime now = PR_Now();
-  nsAutoString key;
-  for (const auto& family : aFont.family.families.list.AsSpan()) {
-    if (family.IsGeneric()) {
-      continue;
-    }
-    key.Append(family.AsFamilyName().name.AsAtom()->GetUTF16String());
-  }
-  if (key.IsEmpty()) {
-    return;
-  }
-
-  mMissedFontFamilyNames.InsertOrUpdate(key, now);
-  // Don't bother checking for fingerprinting attempts if we haven't seen
-  // enough cache misses yet.
-  if (mMissedFontFamilyNames.Count() <= kFingerprintingCacheMissThreshold) {
-    return;
-  }
-  uint16_t fontsMissedRecently = 0;
-
-  for (auto iter = mMissedFontFamilyNames.Iter(); !iter.Done(); iter.Next()) {
-    if (now - kFingerprintingLastNSec <= iter.Data()) {
-      if (++fontsMissedRecently > kFingerprintingCacheMissThreshold) {
-        mContext->Document()->RecordFontFingerprinting();
-        mReportedProbableFingerprinting = true;
-        mMissedFontFamilyNames.Clear();
-        break;
-      }
-    } else {
-      // Remove the old entries from missed cache list.
-      iter.Remove();
-    }
-  }
 }
 
 void nsFontCache::UpdateUserFonts(gfxUserFontSet* aUserFontSet) {
@@ -188,7 +158,6 @@ void nsFontCache::Compact() {
       NS_ADDREF(oldfm);
     }
   }
-  mMissedFontFamilyNames.Clear();
 }
 
 // Flush the aFlushCount oldest entries, or all if (aFlushCount < 0)
@@ -206,4 +175,7 @@ void nsFontCache::Flush(int32_t aFlushCount) {
     NS_RELEASE(fm);
   }
   mFontMetrics.RemoveElementsAt(0, n);
+
+  mLastCacheMiss = 0;
+  mCacheMisses = 0;
 }
