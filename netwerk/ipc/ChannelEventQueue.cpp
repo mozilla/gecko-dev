@@ -12,7 +12,6 @@
 #include "nsIChannel.h"
 #include "mozilla/dom/Document.h"
 #include "nsThreadUtils.h"
-#include "mozilla/FlowMarkers.h"
 
 namespace mozilla {
 namespace net {
@@ -80,8 +79,6 @@ void ChannelEventQueue::FlushQueue() {
     }
     {
       MutexAutoUnlock unlock(mMutex);
-      AUTO_PROFILER_TERMINATING_FLOW_MARKER("ChannelEvent", NETWORK,
-                                            Flow::FromPointer(event.get()));
       event->Run();
     }
   }  // end of while(true)
