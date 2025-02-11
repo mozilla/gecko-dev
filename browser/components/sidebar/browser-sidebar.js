@@ -2008,13 +2008,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
       if (SidebarController._state) {
         const isVerticalTabs = SidebarController.sidebarVerticalTabsEnabled;
         SidebarController._state.revampVisibility = newValue;
-        if (
-          SidebarController._animationEnabled &&
-          !window.gReduceMotion &&
-          newValue !== "expand-on-hover"
-        ) {
-          SidebarController._animateSidebarMain();
-        }
         SidebarController._state.updateVisibility(
           (newValue != "hide-sidebar" && isVerticalTabs) || !isVerticalTabs,
           false,

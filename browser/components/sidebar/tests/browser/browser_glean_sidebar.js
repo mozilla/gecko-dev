@@ -16,11 +16,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 add_setup(async () => {
-  // turn off animations for this test
-  await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.animation.enabled", false]],
-  });
-
   SidebarController.init();
   await TestUtils.waitForTick();
 });

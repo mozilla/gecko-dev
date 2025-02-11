@@ -30,7 +30,7 @@ add_task(async function test_toggle_collapse_close_button() {
 
   let newTabButton = document.getElementById("tabs-newtab-button");
   info("Open a new tab using the new tab button.");
-  newTabButton.click();
+  EventUtils.synthesizeMouseAtCenter(newTabButton, {});
   is(gBrowser.tabs.length, 2, "Tabstrip now has two tabs");
 
   let firstTab = gBrowser.visibleTabs[0];
@@ -49,8 +49,9 @@ add_task(async function test_toggle_collapse_close_button() {
   await TestUtils.waitForTick();
 
   computedStyle = window.getComputedStyle(selectedTab);
-  await TestUtils.waitForCondition(
-    () => computedStyle.opacity == "1",
+  is(
+    computedStyle.opacity,
+    "1",
     "The selected tab is showing the close button on hover."
   );
 
@@ -85,15 +86,18 @@ add_task(async function test_toggle_collapse_close_button() {
   computedStyle = window.getComputedStyle(
     firstTab.querySelector(".tab-close-button")
   );
-  await TestUtils.waitForCondition(
-    () => computedStyle.opacity == "1",
+  is(
+    computedStyle.opacity,
+    "1",
     "The inactive tab is showing the close button on hover."
   );
-
   // The tab can be closed via the keyboard shortcut, this button is not focusable
   AccessibilityUtils.setEnv({ focusableRule: false });
   // Close the active tab
-  firstTab.querySelector(".tab-close-button").click();
+  EventUtils.synthesizeMouseAtCenter(
+    firstTab.querySelector(".tab-close-button"),
+    {}
+  );
   AccessibilityUtils.resetEnv();
   is(gBrowser.tabs.length, 1, "Tabstrip now has one tab");
 
