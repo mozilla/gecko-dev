@@ -446,6 +446,25 @@ function fetchRequestHeadersAndCookies(channel) {
 }
 
 /**
+ * Parse the early hint raw headers string to an
+ * array of name/value object header pairs
+ *
+ * @param {String} rawHeaders
+ * @returns {Array}
+ */
+function parseEarlyHintsResponseHeaders(rawHeaders) {
+  const headers = rawHeaders.split("\r\n");
+  // Remove the line with the HTTP version and the status
+  headers.shift();
+  return headers
+    .map(header => {
+      const [name, value] = header.split(":");
+      return { name, value };
+    })
+    .filter(header => header.name.length);
+}
+
+/**
  * For a given channel, fetch the response's headers and cookies.
  *
  * @param {nsIChannel} channel
@@ -691,6 +710,7 @@ function getCharset(channel) {
 export const NetworkUtils = {
   causeTypeToString,
   fetchRequestHeadersAndCookies,
+  parseEarlyHintsResponseHeaders,
   fetchResponseHeadersAndCookies,
   getCauseDetails,
   getChannelBrowsingContextID,

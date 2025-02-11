@@ -64,6 +64,7 @@ const SUPPORTED_HEADERS = [
   "If-Unmodified-Since",
   "Keep-Alive",
   "Last-Modified",
+  "Link",
   "Location",
   "Origin",
   "Pragma",

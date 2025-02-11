@@ -8,7 +8,7 @@
  * of early hint notifications by the request.
  */
 
-add_task(async function testEarlyHintStatusCode() {
+add_task(async function testEarlyHintStatusCodeAndHeaders() {
   const { tab, monitor } = await initNetMonitor(STATUS_CODES_URL, {
     requestCount: 1,
   });
@@ -58,6 +58,52 @@ add_task(async function testEarlyHintStatusCode() {
     103,
     "The status summary code is correct."
   );
+
+  info("Wait for all the Headers sections to render");
+  await waitUntil(
+    () =>
+      document.querySelectorAll("#headers-panel .panel-container .accordion li")
+        .length == 3
+  );
+
+  info("Check that the early hint response headers are visible");
+  const firstHeaderPanel = document.querySelector(
+    "#headers-panel .panel-container .accordion li"
+  );
+
+  is(
+    firstHeaderPanel.querySelector(".accordion-header-label").innerText,
+    "Early Hints Response Headers (117 B)",
+    "The early hints response headers are visible and is the first panel displayed from the top"
+  );
+
+  const expectedHeaders = [
+    {
+      label: "Link",
+      value:
+        " <early-hint-pixel.sjs?5ecccd01-dd3f-4bbd-bd3e-0491d7dd78a1>; rel=preload; as=image",
+    },
+  ];
+
+  const labels = firstHeaderPanel.querySelectorAll(
+    ".accordion-content tr .treeLabelCell .treeLabel"
+  );
+  const values = firstHeaderPanel.querySelectorAll(
+    ".accordion-content tr .treeValueCell .objectBox"
+  );
+
+  for (let i = 0; i < labels.length; i++) {
+    is(
+      labels[i].textContent,
+      expectedHeaders[i].label,
+      "The early hint header name was incorrect."
+    );
+    is(
+      values[i].textContent,
+      expectedHeaders[i].value,
+      "The early hint header value was incorrect."
+    );
+  }
 
   await teardown(monitor);
 });

@@ -185,6 +185,10 @@ const networkEventSpec = generateActorSpec({
       request: {},
       response: RetVal("json"),
     },
+    getEarlyHintsResponseHeaders: {
+      request: {},
+      response: RetVal("json"),
+    },
     getResponseHeaders: {
       request: {},
       response: RetVal("json"),

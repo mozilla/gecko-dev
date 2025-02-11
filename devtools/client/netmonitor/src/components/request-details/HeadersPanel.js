@@ -126,6 +126,26 @@ const HEADERS_DNS = L10N.getStr("netmonitor.headers.dns");
 
 // Order is as displayed
 const HEADERS_CONFIG = {
+  earlyHintsResponseHeaders: {
+    // Key for fetching the data from the backend
+    fetchKey: "earlyHintsResponseHeaders",
+    title: L10N.getStr("earlyHintsResponseHeaders"),
+    // Gets the content to be displayed when switched to the raw headers view
+    rawHeaderValue: ({ headerData }) => {
+      const preHeaderText = headerData.rawHeaders.split("\r\n")[0];
+      return writeHeaderText(headerData.headers, preHeaderText).trim();
+    },
+    // Gets the full display text to be displayed in the header title bar(before the raw toggle button)
+    displayTitle: ({ headerData }) => {
+      const title = HEADERS_CONFIG.earlyHintsResponseHeaders.title;
+      if (headerData.headersSize) {
+        return `${title} (${getFormattedSize(headerData.headersSize, 3)})`;
+      }
+      const rawHeaderValue =
+        HEADERS_CONFIG.earlyHintsResponseHeaders.rawHeaderValue({ headerData });
+      return `${title} (${getFormattedSize(rawHeaderValue.length, 3)})`;
+    },
+  },
   responseHeaders: {
     // Key for fetching the data from the backend
     fetchKey: "responseHeaders",

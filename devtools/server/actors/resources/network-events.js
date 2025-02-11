@@ -362,6 +362,9 @@ class NetworkEventWatcher {
 
         resourceUpdates.responseHeadersAvailable = true;
         resourceUpdates.responseCookiesAvailable = true;
+        if (resourceUpdates.earlyHintsStatus.length) {
+          resourceUpdates.earlyHintsResponseHeadersAvailable = true;
+        }
         break;
       case "responseContent":
         resourceUpdates.contentSize = updateResource.contentSize;

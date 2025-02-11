@@ -143,6 +143,7 @@ class FirefoxDataProvider {
       responseContent,
       responseCookies,
       responseHeaders,
+      earlyHintsResponseHeaders,
       requestCookies,
       requestHeaders,
       requestPostData,
@@ -154,6 +155,7 @@ class FirefoxDataProvider {
       responseContentObj,
       requestHeadersObj,
       responseHeadersObj,
+      earlyHintsResponseHeadersObj,
       postDataObj,
       requestCookiesObj,
       responseCookiesObj,
@@ -162,6 +164,7 @@ class FirefoxDataProvider {
       this.fetchResponseContent(responseContent),
       this.fetchRequestHeaders(requestHeaders),
       this.fetchResponseHeaders(responseHeaders),
+      this.fetchEarlyHintResponseHeaders(earlyHintsResponseHeaders),
       this.fetchPostData(requestPostData),
       this.fetchRequestCookies(requestCookies),
       this.fetchResponseCookies(responseCookies),
@@ -174,6 +177,7 @@ class FirefoxDataProvider {
       responseContentObj,
       requestHeadersObj,
       responseHeadersObj,
+      earlyHintsResponseHeadersObj,
       postDataObj,
       requestCookiesObj,
       responseCookiesObj,
@@ -215,6 +219,20 @@ class FirefoxDataProvider {
       const headers = await fetchHeaders(responseHeaders, this.getLongString);
       if (headers) {
         payload.responseHeaders = headers;
+      }
+    }
+    return payload;
+  }
+
+  async fetchEarlyHintResponseHeaders(earlyHintsResponseHeaders) {
+    const payload = {};
+    if (earlyHintsResponseHeaders?.headers?.length) {
+      const headers = await fetchHeaders(
+        earlyHintsResponseHeaders,
+        this.getLongString
+      );
+      if (headers) {
+        payload.earlyHintsResponseHeaders = headers;
       }
     }
     return payload;
@@ -660,6 +678,22 @@ class FirefoxDataProvider {
     });
     this.emitForTests(TEST_EVENTS.RECEIVED_REQUEST_HEADERS, response);
     return payload.requestHeaders;
+  }
+
+  /**
+   * Handles additional information received for a "responseHeaders" packet.
+   *
+   * @param {object} response the message received from the server.
+   */
+  async onEarlyHintsResponseHeaders(response) {
+    const payload = await this.updateRequest(response.from, {
+      earlyHintsResponseHeaders: response,
+    });
+    this.emitForTests(
+      TEST_EVENTS.RECEIVED_EARLY_HINTS_RESPONSE_HEADERS,
+      response
+    );
+    return payload.earlyHintsResponseHeaders;
   }
 
   /**

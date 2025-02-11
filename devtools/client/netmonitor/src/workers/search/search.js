@@ -23,6 +23,16 @@ function searchInResource(resource, query, modifiers) {
     );
   }
 
+  if (resource.earlyHintsResponseHeaders) {
+    results.push(
+      findMatches(resource, query, modifiers, {
+        key: "earlyHintsResponseHeaders.headers",
+        type: "earlyHintsResponseHeaders",
+        panel: "headers",
+      })
+    );
+  }
+
   if (resource.responseHeaders) {
     results.push(
       findMatches(resource, query, modifiers, {

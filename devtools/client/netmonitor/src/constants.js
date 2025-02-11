@@ -159,6 +159,10 @@ const TEST_EVENTS = {
   // When request headers finish receiving.
   RECEIVED_REQUEST_HEADERS: "NetMonitor:NetworkEventUpdated:RequestHeaders",
 
+  // When early hints response headers finish receiving.
+  RECEIVED_EARLY_HINTS_RESPONSE_HEADERS:
+    "NetMonitor:NetworkEventUpdated:EarlyHintsResponseHeaders",
+
   // When response headers finish receiving.
   RECEIVED_RESPONSE_HEADERS: "NetMonitor:NetworkEventUpdated:ResponseHeaders",
 
@@ -208,6 +212,8 @@ const UPDATE_PROPS = [
   "totalTime",
   "eventTimings",
   "eventTimingsAvailable",
+  "earlyHintsResponseHeaders",
+  "earlyHintsResponseHeadersAvailable",
   "headersSize",
   "customQueryValue",
   "requestHeaders",

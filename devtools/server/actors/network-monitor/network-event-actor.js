@@ -96,6 +96,11 @@ class NetworkEventActor extends Actor {
       content: {},
     };
 
+    this._earlyHintsResponse = {
+      headers: [],
+      rawHeaders: "",
+    };
+
     if (isDataChannel(channel) || isFileChannel(channel)) {
       this._innerWindowId = null;
       this._isNavigationRequest = false;
@@ -339,6 +344,24 @@ class NetworkEventActor extends Actor {
   }
 
   /**
+   * The "getEarlyHintsResponseHeaders" packet type handler.
+   *
+   * @return object
+   *         The response packet - network early hint response headers.
+   */
+  getEarlyHintsResponseHeaders() {
+    const { rawHeaders, headers } = this._earlyHintsResponse;
+    return {
+      headers: headers.map(header => ({
+        name: header.name,
+        value: this._createLongStringActor(header.value),
+      })),
+      headersSize: rawHeaders.length,
+      rawHeaders: this._createLongStringActor(rawHeaders),
+    };
+  }
+
+  /**
    * The "getResponseHeaders" packet type handler.
    *
    * @return object
@@ -516,6 +539,15 @@ class NetworkEventActor extends Actor {
 
     // Handle the rest of the response start metadata.
     this._response.headersSize = rawHeaders ? rawHeaders.length : 0;
+
+    // Early Hint Response Headers
+    if (earlyHintsResponseRawHeaders) {
+      this._earlyHintsResponse.headers =
+        lazy.NetworkUtils.parseEarlyHintsResponseHeaders(
+          earlyHintsResponseRawHeaders
+        );
+      this._earlyHintsResponse.rawHeaders = earlyHintsResponseRawHeaders;
+    }
 
     // Discard the response body for known response statuses.
     if (lazy.NetworkUtils.isRedirectedChannel(channel)) {
