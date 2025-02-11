@@ -183,7 +183,9 @@ mapping:
         only_for_platforms:
             - linux-shippable
             - linux64-shippable
+            - linux64-aarch64-shippable
             - linux64-devedition
+            - linux64-aarch64-devedition
             - macosx64-shippable
             - win32-shippable
             - win64-shippable
@@ -202,7 +204,9 @@ mapping:
         only_for_platforms:
             - linux-shippable
             - linux64-shippable
+            - linux64-aarch64-shippable
             - linux-devedition
+            - linux64-aarch64-devedition
             - linux64-devedition
         pretty_name: ${locale}.deb
         checksums_path: ${path_platform}/deb-l10n/${locale}.deb
@@ -253,8 +257,10 @@ mapping:
         only_for_platforms:
             - linux-shippable
             - linux64-shippable
+            - linux64-aarch64-shippable
             - linux-devedition
             - linux64-devedition
+            - linux64-aarch64-devedition
         pretty_name: firefox-${version}.tar.xz
         checksums_path: ${path_platform}/${locale}/firefox-${version}.tar.xz
         expiry: "1 year"
@@ -267,8 +273,10 @@ mapping:
         only_for_platforms:
             - linux-shippable
             - linux64-shippable
+            - linux64-aarch64-shippable
             - linux-devedition
             - linux64-devedition
+            - linux64-aarch64-devedition
         pretty_name: firefox-${version}.tar.xz.asc
         checksums_path: ${path_platform}/${locale}/firefox-${version}.tar.xz.asc
         expiry: "1 year"
@@ -394,8 +402,10 @@ mapping:
         only_for_platforms:
             - linux-shippable
             - linux64-shippable
+            - linux64-aarch64-shippable
             - linux-devedition
             - linux64-devedition
+            - linux64-aarch64-devedition
         pretty_name: firefox-${version}.deb
         checksums_path: ${path_platform}/${locale}/firefox-${version}.deb
         from:
