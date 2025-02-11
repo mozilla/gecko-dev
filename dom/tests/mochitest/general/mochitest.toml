@@ -190,7 +190,7 @@ skip-if = [
 ["test_resizeby.html"]
 skip-if = [
   "os == 'android'", # Window sizes cannot be controled on android; Windows
-  "display == 'wayland'" # Decorations arrive async and mess up the resize intermittently on automation.
+  "display == 'wayland'", # Decorations arrive async and mess up the resize intermittently on automation.
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",# Bug 1604152
 ]
 
