@@ -65,9 +65,8 @@ void EventQueueInternal<ItemsPerPage>::PutEvent(
     }
     mDispatchTimes.Push(aDelay ? TimeStamp::Now() - *aDelay : TimeStamp::Now());
   }
-  profiler_add_marker("EventQueueInternal::PutEvent",
-                      baseprofiler::category::OTHER, MarkerTiming::InstantNow(),
-                      FlowMarker{}, Flow::FromPointer(event.get()));
+  PROFILER_MARKER("EventQueueInternal::PutEvent", OTHER, {},
+                  FlowMarker, Flow::FromPointer(event.get()));
 
   mQueue.Push(std::move(event));
 }

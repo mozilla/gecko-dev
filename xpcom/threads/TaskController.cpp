@@ -527,9 +527,8 @@ void TaskController::AddTask(already_AddRefed<Task>&& aTask) {
 #endif
 
   LogTask::LogDispatch(task);
-  profiler_add_marker("TaskController::AddTask", baseprofiler::category::OTHER,
-                      MarkerTiming::InstantNow(), FlowMarker{},
-                      Flow::FromPointer(task.get()));
+  PROFILER_MARKER("TaskController::AddTask", OTHER, {}, FlowMarker,
+                  Flow::FromPointer(task.get()));
 
   std::pair<std::set<RefPtr<Task>, Task::PriorityCompare>::iterator, bool>
       insertion;

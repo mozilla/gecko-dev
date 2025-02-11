@@ -13,15 +13,14 @@
 #include "nsString.h"
 #include "ETWTools.h"
 
-namespace mozilla {
-
+namespace geckoprofiler::markers {
 // These are convenience marker types for ad-hoc instrumentation.
 // It's better to not use them and use a meaningful name for the flow.
-class FlowMarker : public BaseMarkerType<FlowMarker> {
+class FlowMarker : public mozilla::BaseMarkerType<FlowMarker> {
  public:
   static constexpr const char* Name = "FlowMarker";
 
-  using MS = MarkerSchema;
+  using MS = mozilla::MarkerSchema;
   static constexpr MS::PayloadField PayloadFields[] = {
       {"flow", MS::InputType::Uint64, "Flow", MS::Format::Flow,
        MS::PayloadFlags::Searchable}};
@@ -38,7 +37,8 @@ class FlowMarker : public BaseMarkerType<FlowMarker> {
     aWriter.FlowProperty("flow", aFlow);
   }
 };
-
+}
+namespace mozilla {
 class FlowStackMarker : public BaseMarkerType<FlowStackMarker> {
  public:
   static constexpr const char* Name = "FlowStackMarker";
