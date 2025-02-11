@@ -23,8 +23,17 @@
     }
   }
 
+  function createScripts(count) {
+    // We are using eval + sourceURL in order to prevent doing any HTTP request
+    // and speed up the test runtime.
+    for(let i = 0; i < count; i++) {
+      eval("function evalScript() {} //# sourceURL=eval/eval-script-" + i +".js");
+    }
+  }
+
   peformLogs(2000);
   performRequests(600);
+  createScripts(2000);
 </script>
 </body>
 </html>

@@ -31,15 +31,18 @@ function waitForState(dbg, predicate, msg) {
       return resolve();
     }
 
-    const unsubscribe = dbg.store.subscribe(() => {
-      if (predicate(dbg.store.getState())) {
-        if (msg) {
-          dump(`Finished waiting for state change: ${msg}\n`);
+    const unsubscribe = dbg.store.subscribe(
+      () => {
+        if (predicate(dbg.store.getState())) {
+          if (msg) {
+            dump(`Finished waiting for state change: ${msg}\n`);
+          }
+          unsubscribe();
+          resolve();
         }
-        unsubscribe();
-        resolve();
-      }
-    });
+      },
+      { ignoreVisibility: true }
+    );
     return false;
   });
 }
@@ -135,6 +138,7 @@ function waitForSources(dbg, expectedSources) {
   }
   return waitForState(dbg, countSources, "count sources");
 }
+exports.waitForSources = waitForSources;
 
 function waitForSource(dbg, sourceURL) {
   const { selectors } = dbg;
