@@ -38,6 +38,14 @@ function is()
 
 async function runTests()
 {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+        ["general.smoothScroll", false],
+        ["toolkit.scrollbox.verticalScrollDistance", 20],
+        ["toolkit.scrollbox.horizontalScrollDistance", 20],
+    ],
+  });
+
   var iframe = document.getElementById("iframe");
   var anchor = iframe.contentDocument.getElementById("anchor");
   var div = iframe.contentDocument.getElementById("div");

@@ -53,7 +53,8 @@ async function test() {
 }
 
 SimpleTest.waitForExplicitFinish();
-waitUntilApzStable()
+pushPrefs([["general.smoothScroll", false]])
+  .then(waitUntilApzStable)
   .then(test)
   .then(SimpleTest.finish, SimpleTest.finishWithFailure);
 

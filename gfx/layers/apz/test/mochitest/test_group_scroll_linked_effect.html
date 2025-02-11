@@ -15,7 +15,11 @@ var prefs = [
 
 var subtests = [
   {"file": "helper_scroll_linked_effect_by_wheel.html", prefs},
-  {"file": "helper_scroll_linked_effect_detector.html", prefs}
+  {"file": "helper_scroll_linked_effect_detector.html",
+   "prefs": [
+     ...prefs,
+     [ "general.smoothScroll", false ],
+  ]}
 ];
 
 if (isApzEnabled()) {
