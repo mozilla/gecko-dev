@@ -566,8 +566,6 @@
     <string name="onboarding_preferences_dialog_crash_reporting_title">Enviar automaticament los rapòrts de plantatge</string>
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description"> Los rapòrts de plantatge nos permeton de diagnosticar e de corregir de problèmas amb lo navegador. Los rapòrts pòdon conténer de donadas personalas o sensiblas. </string>
-    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Ne saber mai suls rapòrts de plantatge</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Enviar de donadas tecnicas e d’interraccion a Mozilla</string>
     <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
@@ -1046,11 +1044,11 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ne saber mai</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Parteja d’informacions sus las performàncias, lo material, l’utilizacion e las personalizacions a Mozilla per nos ajudar a melhorar %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Parteja d’informacions sus las performàncias, lo material, l’utilizacion e las personalizacions a Mozilla per nos ajudar a melhorar %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Donadas marketing</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Donadas marketing</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Partetjar las informacions sus lo biais qu’avètz descobèrt Firefox amb los partenaris de marketing de Mozilla. Aquò nos ajuda a desvolopar Firefox e a crear un melhor Internet.</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Partetjar las informacions sus lo biais qu’avètz descobèrt Firefox amb los partenaris de marketing de Mozilla. Aquò nos ajuda a desvolopar Firefox e a crear un melhor Internet.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Ne saber mai tocant las donadas de marketing</string>
 
@@ -1061,6 +1059,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">Aquò nos permet de diagnosticar e de corregir de problèmas amb lo navegador. Los rapòrts pòdon conténer de donadas personalas o sensiblas. </string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Partejar automaticament al lançament las donadas de plantatge amb Mozilla se se produsisson de plantatges.</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Ne saber mai suls rapòrts de plantatge</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Estudis</string>
@@ -1226,7 +1227,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Actiu</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s pòt installar e lançar d’estudis de temps en temps.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s pòt installar e lançar d’estudis de temps en temps.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Ne saber mai</string>
 

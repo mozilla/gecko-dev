@@ -374,9 +374,9 @@
     <string name="exceptions_empty_message_learn_more_link">Află mai multe</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Partajează cu Mozilla date privind performanța, utilizarea, hardware-ul și personalizările browserului tău pentru a ne ajuta să îmbunătățim %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Partajează cu Mozilla date privind performanța, utilizarea, hardware-ul și personalizările browserului tău pentru a ne ajuta să îmbunătățim %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Date de marketing</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Date de marketing</string>
 
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">Intră în cont pentru reconectare</string>

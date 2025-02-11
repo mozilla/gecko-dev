@@ -479,9 +479,9 @@
     <string name="exceptions_empty_message_learn_more_link">Batafsil maʼlumot</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Samaradorlik, foydalanish statistikasi va moslash maʼlumotlarini Mozillaga ulashish orqali siz %1$s brauzerini yaxshilashda yordam berasiz</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Samaradorlik, foydalanish statistikasi va moslash maʼlumotlarini Mozillaga ulashish orqali siz %1$s brauzerini yaxshilashda yordam berasiz</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Marketing maʼlumotlari</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketing maʼlumotlari</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Tadqiqotlar</string>
@@ -624,7 +624,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Faol</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s vaqti-vaqti bilan tadqiqotlarni oʻrnatishi va ishga tushirishi mumkin.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s vaqti-vaqti bilan tadqiqotlarni oʻrnatishi va ishga tushirishi mumkin.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Batafsil maʼlumot</string>
 

@@ -566,7 +566,6 @@
     <string name="onboarding_preferences_dialog_crash_reporting_description">דיווחי קריסה מאפשרים לנו לאבחן ולתקן בעיות בדפדפן. דיווחים עשויים לכלול נתונים אישיים או רגישים.</string>
 
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">מידע נוסף על דיווחי קריסה</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">מידע נוסף</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">שליחת נתונים טכניים ונתוני אינטראקציה ל־Mozilla</string>
@@ -1064,19 +1063,19 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">מידע נוסף</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">שיתוף נתונים של ביצועים, חומרה, שימוש והתאמות אישיות על הדפדפן שלך עם Mozilla כדי לסייע לנו בשיפור %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">שיתוף נתונים של ביצועים, חומרה, שימוש והתאמות אישיות על הדפדפן שלך עם Mozilla כדי לסייע לנו בשיפור %1$s</string>
 
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">נתונים על המכשיר שלך, תצורת החומרה ואופן השימוש בדפדפן מסייעים לנו לשפר את היכולות, הביצועים והיציבות של Firefox.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">נתוני שיווק</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">נתוני שיווק</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">נתוני מדידת מסע פרסום</string>
+    <string name="preferences_marketing_data_2">נתוני מדידת מסע פרסום</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">שיתוף מידע על האופן שבו גילית את Firefox עם שותפי השיווק של Mozilla. זה עוזר לנו להצמיח את Firefox ולבנות אינטרנט טוב יותר</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">שיתוף מידע על האופן שבו גילית את Firefox עם שותפי השיווק של Mozilla. זה עוזר לנו להצמיח את Firefox ולבנות אינטרנט טוב יותר</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">שתפו כיצד גיליתם את Firefox וכי אתם משתמשים בו, עם שותפי הטכנולוגיה השיווקית של Mozilla.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">שתפו כיצד גיליתם את Firefox וכי אתם משתמשים בו, עם שותפי הטכנולוגיה השיווקית של Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">מידע נוסף על נתוני שיווק</string>
 
@@ -1091,6 +1090,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">זה מסייע לנו לאבחן ולתקן בעיות בדפדפן. דיווחים עשויים לכלול נתונים אישיים או רגישים.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">משתף נתוני קריסה באופן אוטומטי בעת ההפעלה עם Mozilla לאחר קריסות</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">מידע נוסף על דיווחי קריסה</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">מחקרים</string>
@@ -1254,11 +1256,11 @@
     <string name="studies_active">פעיל</string>
 
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">‏%1$s עשוי להתקין ולהריץ מחקרים מדי פעם בפעם.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">‏%1$s עשוי להתקין ולהריץ מחקרים מדי פעם בפעם.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">נסו תכונות ורעיונות לפני שהם משוחררים לכולם.</string>
+    <string name="studies_description_3">נסו תכונות ורעיונות לפני שהם משוחררים לכולם.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">התקנה והרצת מחקרים</string>
+    <string name="studies_title">התקנה והרצת מחקרים</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">מידע נוסף</string>
 

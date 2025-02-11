@@ -454,9 +454,9 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ఇంకా తెలుసుకోండి</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">%1$s‌ను మెరుగుపరచడంలో తోడ్పడటానికి మీ విహారిణి గురించిన పనితనం, వాడుక, హార్డ్‌వేరు, అభిమతీకరణల డేటాను మొజిల్లాతో పంచుకుంటుంది</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s‌ను మెరుగుపరచడంలో తోడ్పడటానికి మీ విహారిణి గురించిన పనితనం, వాడుక, హార్డ్‌వేరు, అభిమతీకరణల డేటాను మొజిల్లాతో పంచుకుంటుంది</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">మార్కెటింగ్ డేటా</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">మార్కెటింగ్ డేటా</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">అధ్యయనాలు</string>

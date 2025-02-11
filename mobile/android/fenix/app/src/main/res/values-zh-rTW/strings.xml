@@ -575,7 +575,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">錯誤報告可幫助我們找出瀏覽器的問題並進行修正。報告內容可能會包含私人或敏感資料。</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">了解有關錯誤報告的更多資訊</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">更多資訊</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">傳送技術與互動資料給 Mozilla</string>
@@ -1077,18 +1076,18 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">更多資訊</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">分享您瀏覽器的效能、使用方式、硬體設備、與自訂功能的資料給 Mozilla 以幫助我們讓 %1$s 變得更好</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">分享您瀏覽器的效能、使用方式、硬體設備、與自訂功能的資料給 Mozilla 以幫助我們讓 %1$s 變得更好</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">關於您的裝置、硬體設定，以及您的使用方式，可幫助我們為所有使用者改進 Firefox 功能、效能與穩定度。</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">行銷資料</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">行銷資料</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">活動測量資料</string>
+    <string name="preferences_marketing_data_2">活動測量資料</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">與 Mozilla 的行銷夥伴分享您如何發現 Firefox 的相關資訊。這能夠幫助我們拓展 Firefox 使用率，打造更好的網際網路環境。</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">與 Mozilla 的行銷夥伴分享您如何發現 Firefox 的相關資訊。這能夠幫助我們拓展 Firefox 使用率，打造更好的網際網路環境。</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">與 Mozilla 的行銷技術夥伴分享您如何發現 Firefox 以及是如何使用。</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">與 Mozilla 的行銷技術夥伴分享您如何發現 Firefox 以及是如何使用。</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">了解行銷資料的更多資訊</string>
 
@@ -1103,6 +1102,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">此資料可幫助我們找出瀏覽器的問題並進行修正。報告內容可能會包含私人或敏感資料。</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">發生錯誤後，於下次啟動時自動將錯誤報告回報給 Mozilla</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">了解有關錯誤報告的更多資訊</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">使用者研究</string>
@@ -1265,11 +1267,11 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">進行中</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s 會不定時安裝並執行使用者研究。</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s 會不定時安裝並執行使用者研究。</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">在功能推出給所有人之前，搶先試用新功能與點子。</string>
+    <string name="studies_description_3">在功能推出給所有人之前，搶先試用新功能與點子。</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">安裝並進行使用者研究</string>
+    <string name="studies_title">安裝並進行使用者研究</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">了解更多</string>
 

@@ -871,9 +871,9 @@
     <string name="exceptions_empty_message_learn_more_link">Еиҳаны аилкаара</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Убраузер аусура, ахархәара, ахархәага, архиарақәа ирызку адыррақәа Mozilla ацхыраарала %1$s еиҳагьы еиӷьны аҟаҵараҿы иҳацхраарц азы</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Убраузер аусура, ахархәара, ахархәага, архиарақәа ирызку адыррақәа Mozilla ацхыраарала %1$s еиҳагьы еиӷьны аҟаҵараҿы иҳацхраарц азы</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Амаркетингтә дыррақәа</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Амаркетингтә дыррақәа</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Аиԥҟьара аҳасабырбақәа автоматикала идәықәҵатәуп</string>
 
@@ -1035,7 +1035,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Активла</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s аамҭа-аамҭала аҭҵаара мҩаԥнагар ауеит.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s аамҭа-аамҭала аҭҵаара мҩаԥнагар ауеит.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Еиҳаны аилкаара</string>
     <!-- Dialog message shown after removing a study -->

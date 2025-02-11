@@ -920,9 +920,9 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Сазнајте више</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Делите податке о перформансама, употреби, хардверу и прилагођавањима вашег прегледача с Mozilla-ом како бисте нам помогли у побољшавању апликације %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Делите податке о перформансама, употреби, хардверу и прилагођавањима вашег прегледача с Mozilla-ом како бисте нам помогли у побољшавању апликације %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Маркетиншки подаци</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Маркетиншки подаци</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Аутоматски шаљите извештаје о паду</string>
 
@@ -1091,7 +1091,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Активно</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s може повремено да инсталира и покрене истраживања.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s може повремено да инсталира и покрене истраживања.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Сазнајте више</string>
 

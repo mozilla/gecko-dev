@@ -307,9 +307,9 @@
     <string name="exceptions_empty_message_learn_more_link">زیاتر بزانە</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">چوستی وێبگەڕ، بەکارهێنانی و زانیاری خوازراوی وێبگەڕەکەت بڵاوەپێدەکات لەگەڵ مۆزیلا بۆ ئەوەی یارمەتیمان بدات %1$s باشتر بکەین</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">چوستی وێبگەڕ، بەکارهێنانی و زانیاری خوازراوی وێبگەڕەکەت بڵاوەپێدەکات لەگەڵ مۆزیلا بۆ ئەوەی یارمەتیمان بدات %1$s باشتر بکەین</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">زانیاری بازاڕیکردن</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">زانیاری بازاڕیکردن</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">توێژینەوە</string>

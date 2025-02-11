@@ -513,7 +513,6 @@
     <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_title">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">ຮຽນຮູ້ເພີ່ມຕື່ມ</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button">ສຳເລັດ</string>
@@ -527,6 +526,8 @@
     <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">ເງື່ອນໄຂການໃຫ້ບໍລິການ</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text">ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">ພວກເຮົາໃຊ້ຂໍ້ມູນແນວໃດ</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">ເທິງ</string>
 
@@ -536,6 +537,8 @@
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">ເລືອກຮູບແບບສີສັນ</string>
 
+    <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">ເບິ່ງເວັບໃນແສງສະຫວ່າງທີ່ດີທີ່ສຸດ.</string>
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">ບັນທຶກ ແລະ ເລີ່ມໃຊ້ browser</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
@@ -840,9 +843,14 @@
     <string name="exceptions_empty_message_learn_more_link">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">ແບ່ງປັນຂໍ້ມູນປະສິດທິພາບ, ການໃຊ້ງານ, ຮາດແວ ແລະ ການປັບແຕ່ງໃນບຣາວເຊີຂອງທ່ານກັບ Mozilla ເພື່ອຊ່ວຍພວກເຮົາສ້າງ %1$s ໃຫ້ດີຂື້ນກ່ວາເກົ່າ</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">ແບ່ງປັນຂໍ້ມູນປະສິດທິພາບ, ການໃຊ້ງານ, ຮາດແວ ແລະ ການປັບແຕ່ງໃນບຣາວເຊີຂອງທ່ານກັບ Mozilla ເພື່ອຊ່ວຍພວກເຮົາສ້າງ %1$s ໃຫ້ດີຂື້ນກ່ວາເກົ່າ</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">ຂໍ້ມູນດ້ານການຕະຫຼາດ</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ຂໍ້ມູນດ້ານການຕະຫຼາດ</string>
+
+    <string name="preferences_daily_usage_ping_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການໃຊ້ ping ປະຈໍາວັນ</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">ການສຶກສາ</string>
@@ -1004,7 +1012,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">​ເປີດໃຊ້ງານ</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s ອາດຈະຕິດຕັ້ງ ແລະດໍາເນີນການສຶກສາເປັນບາງໂອກາດ.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s ອາດຈະຕິດຕັ້ງ ແລະດໍາເນີນການສຶກສາເປັນບາງໂອກາດ.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
     <!-- Dialog message shown after removing a study -->

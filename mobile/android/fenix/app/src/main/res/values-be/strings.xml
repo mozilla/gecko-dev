@@ -856,9 +856,9 @@
     <string name="exceptions_empty_message_learn_more_link">Даведацца больш</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Дзяліцца звесткамі пра прадукцыйнасць, выкарыстанне, апаратнае забеспячэнне і налады вашага браўзера з Mozilla, каб дапамагчы ўдасканаліць %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Дзяліцца звесткамі пра прадукцыйнасць, выкарыстанне, апаратнае забеспячэнне і налады вашага браўзера з Mozilla, каб дапамагчы ўдасканаліць %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Маркетынгавыя дадзеныя</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Маркетынгавыя дадзеныя</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Даследаванні</string>
@@ -1018,7 +1018,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Актыўнае</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s можа ўсталёўваць і выконваць даследаванні час ад часу.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s можа ўсталёўваць і выконваць даследаванні час ад часу.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Даведацца больш</string>
     <!-- Dialog message shown after removing a study -->

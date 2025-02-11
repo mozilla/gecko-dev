@@ -287,9 +287,9 @@
     <string name="exceptions_empty_message_learn_more_link">மேலும் அறிய</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">%1$s உலாவியைச் சிறந்ததாக்க உங்களுடைய உலாவிப் பற்றிய செயல்திறன், பயனளவு, வன்பொருள் மற்றும் தனிப்பயனாக்க தரவுகளை மொசில்லாவுடன் பகிர்கிறது</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s உலாவியைச் சிறந்ததாக்க உங்களுடைய உலாவிப் பற்றிய செயல்திறன், பயனளவு, வன்பொருள் மற்றும் தனிப்பயனாக்க தரவுகளை மொசில்லாவுடன் பகிர்கிறது</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">சந்தைப்படுத்தல் தரவு</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">சந்தைப்படுத்தல் தரவு</string>
 
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">மறுஇணைக்க புகுபதியுங்கள்</string>

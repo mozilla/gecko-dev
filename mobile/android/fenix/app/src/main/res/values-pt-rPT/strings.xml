@@ -571,7 +571,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">Os relatórios de falhas permitem-nos diagnosticar e corrigir problemas com o navegador. Os relatórios podem incluir dados pessoais ou sensíveis.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Saber mais sobre os relatórios de falhas</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Saber mais</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Enviar dados técnicos e de interação para a Mozilla</string>
@@ -1066,19 +1065,19 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Saber mais</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Partilha dados de desempenho, utilização, hardware e personalização sobre o seu navegador com a Mozilla para nos ajudar a tornar o %1$s melhor</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Partilha dados de desempenho, utilização, hardware e personalização sobre o seu navegador com a Mozilla para nos ajudar a tornar o %1$s melhor</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Os dados sobre o seu dispositivo, configuração de hardware e utilização ajudam-nos a melhorar as funcionalidades, desempenho e estabilidade do Firefox.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Dados de marketing</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Dados de marketing</string>
 
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Dados de medição da campanha</string>
+    <string name="preferences_marketing_data_2">Dados de medição da campanha</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Partilhe informações sobre como descobriu o Firefox com os parceiros de marketing da Mozilla. Isto ajuda o Firefox a crescer e a construir uma Internet melhor</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Partilhe informações sobre como descobriu o Firefox com os parceiros de marketing da Mozilla. Isto ajuda o Firefox a crescer e a construir uma Internet melhor</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Partilhe como descobriu o Firefox e que o utiliza com os parceiros de tecnologia de marketing da Mozilla.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Partilhe como descobriu o Firefox e que o utiliza com os parceiros de tecnologia de marketing da Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Saber mais sobres as informações de marketing</string>
 
@@ -1093,6 +1092,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">Isto ajuda-nos a diagnosticar e a corrigir problemas com o navegador. Os relatórios podem incluir dados pessoais ou sensíveis.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Após ocorrerem falhas, partilha automaticamente dados sobre as mesmas com a Mozilla ao iniciar</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Saber mais sobre os relatórios de falhas</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Estudos</string>
@@ -1257,11 +1259,11 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Ativo</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">O %1$s pode instalar e executar estudos esporadicamente.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">O %1$s pode instalar e executar estudos esporadicamente.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">Experimente funcionalidades e ideias antes de serem disponibilizadas para todos.</string>
+    <string name="studies_description_3">Experimente funcionalidades e ideias antes de serem disponibilizadas para todos.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">Instalar e executar estudos</string>
+    <string name="studies_title">Instalar e executar estudos</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Saber mais</string>
     <!-- Dialog message shown after removing a study -->

@@ -560,7 +560,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">Rapports da collaps ans permettan da diagnostitgar e reparar problems dal navigatur. Rapports pon cuntegnair datas persunalas u sensiblas.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Ulteriuras infurmaziuns davart rapports da collaps</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Ulteriuras infurmaziuns</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Trametter datas tecnicas e d’interacziun a Mozilla</string>
@@ -1054,18 +1053,18 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Ulteriuras infurmaziuns</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Cundivida datas davart prestaziun, utilisaziun, hardware e persunalisaziun da tes navigatur cun Mozilla per gidar a meglierar %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Cundivida datas davart prestaziun, utilisaziun, hardware e persunalisaziun da tes navigatur cun Mozilla per gidar a meglierar %1$s</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Datas davart tes apparat, la configuraziun da la hardware e l’utilisaziun, ans gidan a meglierar funcziuns, la prestaziun e la stabilitad da Firefox.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Datas da marketing</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Datas da marketing</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Datas statisticas da campagnas</string>
+    <string name="preferences_marketing_data_2">Datas statisticas da campagnas</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Fa a savair ils partenaris da marketing da Mozilla co ti has scuvert Firefox. Quai ans gida a sviluppar Firefox e crear in meglier internet</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Fa a savair ils partenaris da marketing da Mozilla co ti has scuvert Firefox. Quai ans gida a sviluppar Firefox e crear in meglier internet</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Fa a savair noss partenaris da tecnologia da marketing da Mozilla co ti has scuvert Firefox e che ti dovras il program.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Fa a savair noss partenaris da tecnologia da marketing da Mozilla co ti has scuvert Firefox e che ti dovras il program.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Ulteriuras infurmaziuns davart datas da marketing</string>
 
@@ -1080,6 +1079,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">Quai ans gida da diagnostitgar e curreger problems dal navigatur. Rapports pon cuntegnair datas persunalas u sensiblas.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Cundivida automaticamain datas da collaps cun Mozilla durant aviar en cas ch’i ha dà in collaps</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Ulteriuras infurmaziuns davart rapports da collaps</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studis</string>
@@ -1241,11 +1243,11 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Activs</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s po installar ed exequir studis da temp en temp.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s po installar ed exequir studis da temp en temp.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">Emprova novas funcziuns ed ideas avant ch’ellas stettian a disposiziun a mintgin.</string>
+    <string name="studies_description_3">Emprova novas funcziuns ed ideas avant ch’ellas stettian a disposiziun a mintgin.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">Installar ed exequir studis</string>
+    <string name="studies_title">Installar ed exequir studis</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Ulteriuras infurmaziuns</string>
     <!-- Dialog message shown after removing a study -->

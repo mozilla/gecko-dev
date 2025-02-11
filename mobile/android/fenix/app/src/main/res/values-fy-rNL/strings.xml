@@ -573,7 +573,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">Mei ûngelokrapporten kinne wy problemen mei de browser analysearje en oplosse. Rapporten kinne persoanlike of gefoelige gegevens befetsje.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Mear ynfo oer ûngelokrapporten</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Mear ynfo</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Technyske en ynteraksjegegevens nei Mozilla ferstjoere</string>
@@ -1067,18 +1066,18 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Mear ynfo</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Dielt gegevens oer prestaasjes, gebrûk, hardware en oanpassingen fan jo browser mei Mozilla om %1$s te helpen ferbetterjen</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Dielt gegevens oer prestaasjes, gebrûk, hardware en oanpassingen fan jo browser mei Mozilla om %1$s te helpen ferbetterjen</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Gegevens oer jo apparaat, hardwarekonfiguraasje en gebrûk helpt ús de funksjes, prestaasjes en stabiliteit fan Firefox te ferbetterjen.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Marketinggegevens</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketinggegevens</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Mjitgegevens fan kampanje</string>
+    <string name="preferences_marketing_data_2">Mjitgegevens fan kampanje</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Diel ynformaasje oer hoe’t jo Firefox ûntdutsen hawwe mei de marketingpartners fan Mozilla. Dit helpt ús Firefox groeie te litten en in better ynternet te bouwen</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Diel ynformaasje oer hoe’t jo Firefox ûntdutsen hawwe mei de marketingpartners fan Mozilla. Dit helpt ús Firefox groeie te litten en in better ynternet te bouwen</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Diel mei Mozilla\'s marketingtechnologypartners hoe’t jo Firefox ûntdutsen hawwe en dat jo it brûke.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Diel mei Mozilla\'s marketingtechnologypartners hoe’t jo Firefox ûntdutsen hawwe en dat jo it brûke.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Mear ynfo oer marketinggegevens</string>
 
@@ -1093,6 +1092,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">Dit helpt ús problemen mei de browser analysearjen en op te lossen. Rapporten kinne persoanlike of gefoelige gegevens befetsje.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Dielt by opstarten ûngelok gegevens automatysk mei Mozilla neidat ûngelokken plakfûn hawwe</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Mear ynfo oer ûngelokrapporten</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Undersiken</string>
@@ -1254,11 +1256,11 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Aktyf</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s kin sa no en dan ûndersiken ynstallearje en útfiere.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s kin sa no en dan ûndersiken ynstallearje en útfiere.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">Probearje funksjes en ideeën eardat se foar elkenien beskikber binne.</string>
+    <string name="studies_description_3">Probearje funksjes en ideeën eardat se foar elkenien beskikber binne.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">Undersiken ynstallearje en útfiere</string>
+    <string name="studies_title">Undersiken ynstallearje en útfiere</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Mear ynfo</string>
     <!-- Dialog message shown after removing a study -->

@@ -476,6 +476,7 @@
 
     <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_title">බිඳවැටුම් වාර්තා ස්වයංක්‍රීයව යවන්න</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">තව දැනගන්න</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button">අහවරයි</string>
@@ -895,9 +896,9 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">තව දැනගන්න</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">%1$s දියුණු කිරීම සඳහා ඔබගේ අතිරික්සුවෙහි කාර්ය සාධනය, භාවිතය, දෘඩාංග හා රුචිකරණය පිළිබඳ දත්ත මොසිල්ලා සමඟ බෙදා ගැනෙයි</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s දියුණු කිරීම සඳහා ඔබගේ අතිරික්සුවෙහි කාර්ය සාධනය, භාවිතය, දෘඩාංග හා රුචිකරණය පිළිබඳ දත්ත මොසිල්ලා සමඟ බෙදා ගැනෙයි</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">අලෙවිකරණ දත්ත</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">අලෙවිකරණ දත්ත</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">අධ්‍යන</string>
@@ -1062,7 +1063,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">සක්‍රිය</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s කලින් කලට අධ්‍යන ස්ථාපනය කර ධාවනය කරයි.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s කලින් කලට අධ්‍යන ස්ථාපනය කර ධාවනය කරයි.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">තව දැනගන්න</string>
     <!-- Dialog message shown after removing a study -->

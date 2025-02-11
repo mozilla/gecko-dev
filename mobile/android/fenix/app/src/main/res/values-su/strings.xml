@@ -854,9 +854,9 @@
     <string name="exceptions_empty_message_learn_more_link">Lenyepan</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Bagikeun kinerja, pamakéan, data hadwér jeung kustomisasi ngeunaan pamaluruh anjeun ka Mozilla pikeun mantuan sangkan %1$s leuwih hadé</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Bagikeun kinerja, pamakéan, data hadwér jeung kustomisasi ngeunaan pamaluruh anjeun ka Mozilla pikeun mantuan sangkan %1$s leuwih hadé</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Data pamasaran</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Data pamasaran</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Kirimkeun laporan kagagalan kalawan otomatis</string>
 
@@ -1026,7 +1026,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Aktip</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s bisa masang jeung ngajalankeun studi iraha baé.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s bisa masang jeung ngajalankeun studi iraha baé.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Lenyepan</string>
     <!-- Dialog message shown after removing a study -->

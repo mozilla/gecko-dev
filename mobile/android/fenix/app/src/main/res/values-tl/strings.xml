@@ -429,9 +429,9 @@
     <string name="exceptions_empty_message_learn_more_link">Alamin</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Ibinabahagi sa Mozilla ang datos patungkol sa performance, paggamit, hardware at customization sa browser mo para mapaganda lalo ang %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Ibinabahagi sa Mozilla ang datos patungkol sa performance, paggamit, hardware at customization sa browser mo para mapaganda lalo ang %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Marketing data</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketing data</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Mga pag-aaral</string>
@@ -570,7 +570,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Aktibo</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">Paminsan-minsan, maaaring mag-install at magpatakbo ang %1$s ng mga pag-aaral.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">Paminsan-minsan, maaaring mag-install at magpatakbo ang %1$s ng mga pag-aaral.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Matuto ng higit pa</string>
     <!-- Dialog message shown after removing a study -->

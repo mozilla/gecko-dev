@@ -437,9 +437,9 @@
     <string name="exceptions_empty_message_learn_more_link">Kọ́ si</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Pín àwọn iṣẹ́ ṣíṣe, lílò, hádíwiẹ̀ àti dátà ìsọdi tẹni nípa bíráwúsà rẹ pẹ̀lú Mozilla láti ṣe ìrànlọ́wọ́ fún wa láti jẹ́ kí ó %1$s dára</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Pín àwọn iṣẹ́ ṣíṣe, lílò, hádíwiẹ̀ àti dátà ìsọdi tẹni nípa bíráwúsà rẹ pẹ̀lú Mozilla láti ṣe ìrànlọ́wọ́ fún wa láti jẹ́ kí ó %1$s dára</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Pípolówó dátà</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Pípolówó dátà</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Àwọn àyẹ̀wò</string>
@@ -577,7 +577,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Tí ó ń ṣiṣẹ́</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s lè fi sórí ẹ̀rọ kí o sì ṣe àwọn àyẹ̀wò láti ìgbàdégbà.  </string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s lè fi sórí ẹ̀rọ kí o sì ṣe àwọn àyẹ̀wò láti ìgbàdégbà.  </string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Kọ́ si</string>
     <!-- Dialog message shown after removing a study -->

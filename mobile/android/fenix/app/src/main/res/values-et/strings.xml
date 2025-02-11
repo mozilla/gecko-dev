@@ -523,9 +523,9 @@
     <string name="exceptions_empty_message_learn_more_link">Rohkem teavet</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Jagab sinu brauseri sooritusvõimsuse, kasutamise, kohandamiste ja riistvara andmeid Mozillaga, et aidata meil %1$s paremaks teha.</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Jagab sinu brauseri sooritusvõimsuse, kasutamise, kohandamiste ja riistvara andmeid Mozillaga, et aidata meil %1$s paremaks teha.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Turundusandmed</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Turundusandmed</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Uuringud</string>
@@ -658,7 +658,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Praegu toimuvad</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s võib aegajalt paigaldada ja käivitada uuringuid.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s võib aegajalt paigaldada ja käivitada uuringuid.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Rohkem teavet</string>
     <!-- Dialog message shown after removing a study -->

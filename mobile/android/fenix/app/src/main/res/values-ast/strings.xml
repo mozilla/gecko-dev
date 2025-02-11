@@ -460,9 +460,9 @@
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Datos téunicos y d\'interaición</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Comparte\'l rindimientu, l\'usu, el hardaware y los datos personalizaos del restolador con Mozilla p\'ayudanos a ameyorar %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Comparte\'l rindimientu, l\'usu, el hardaware y los datos personalizaos del restolador con Mozilla p\'ayudanos a ameyorar %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Datos de marketing</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Datos de marketing</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Estudios</string>

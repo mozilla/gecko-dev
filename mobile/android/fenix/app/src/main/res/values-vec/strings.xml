@@ -206,9 +206,9 @@
     <string name="exceptions_empty_message_learn_more_link">Ulteriori informasion</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Condividi co Mozilla informasion reƚative a prestasion, utilixo, hardware e personalixasion de’l browser par contribuire al mijoramento de %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Condividi co Mozilla informasion reƚative a prestasion, utilixo, hardware e personalixasion de’l browser par contribuire al mijoramento de %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Dati de marketing</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Dati de marketing</string>
 
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">Va rento par riconeterte</string>
