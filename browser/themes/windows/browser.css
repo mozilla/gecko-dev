@@ -34,7 +34,7 @@
     }
 
     /* stylelint-disable-next-line media-query-no-invalid */
-    @media (-moz-windows-mica) or (-moz-bool-pref: "browser.theme.windows.accent-color-in-tabs.enabled") {
+    @media (-moz-windows-mica) or -moz-pref("browser.theme.windows.accent-color-in-tabs.enabled") {
       &:not([lwtheme]) #TabsToolbar {
         /* These colors match the Linux/HCM default button colors. We need to
          * override these on the tabs toolbar because the accent color is
@@ -286,7 +286,7 @@
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.urlbar.experimental.expandTextOnFocus") {
+@media -moz-pref("browser.urlbar.experimental.expandTextOnFocus") {
   #urlbar[breakout-extend] {
     font-size: 1.25em;
   }

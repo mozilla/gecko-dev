@@ -1572,34 +1572,44 @@ const nsTArray<Element*>* Gecko_ShadowRoot_GetElementsWithId(
   return aShadowRoot->GetAllElementsForId(aId);
 }
 
-bool Gecko_ComputeBoolPrefMediaQuery(nsAtom* aPref) {
+bool Gecko_EvalMozPrefFeature(nsAtom* aPref,
+                              const StyleComputedMozPrefFeatureValue* aValue) {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aValue);
   // This map leaks until shutdown, but that's fine, all the values are
   // controlled by us so it's not expected to be big.
-  static StaticAutoPtr<nsTHashMap<RefPtr<nsAtom>, bool>> sRegisteredPrefs;
+  static StaticAutoPtr<nsTHashSet<RefPtr<nsAtom>>> sRegisteredPrefs;
   if (!sRegisteredPrefs) {
     if (PastShutdownPhase(ShutdownPhase::XPCOMShutdownFinal)) {
       // Styling doesn't really matter much at this point, don't bother.
       return false;
     }
-    sRegisteredPrefs = new nsTHashMap<RefPtr<nsAtom>, bool>();
+    sRegisteredPrefs = new nsTHashSet<RefPtr<nsAtom>>();
     ClearOnShutdown(&sRegisteredPrefs);
   }
-  return sRegisteredPrefs->LookupOrInsertWith(aPref, [&] {
-    nsAutoAtomCString prefName(aPref);
+  nsAutoAtomCString prefName(aPref);
+  if (!sRegisteredPrefs->EnsureInserted(aPref)) {
     Preferences::RegisterCallback(
         [](const char* aPrefName, void*) {
-          if (sRegisteredPrefs) {
-            RefPtr<nsAtom> name = NS_Atomize(nsDependentCString(aPrefName));
-            sRegisteredPrefs->InsertOrUpdate(name,
-                                             Preferences::GetBool(aPrefName));
-          }
           LookAndFeel::NotifyChangedAllWindows(
               widget::ThemeChangeKind::MediaQueriesOnly);
         },
         prefName);
-    return Preferences::GetBool(prefName.get());
-  });
+  }
+  switch (aValue->tag) {
+    case StyleComputedMozPrefFeatureValue::Tag::None:
+      return Preferences::GetBool(prefName.get(), false);
+    case StyleComputedMozPrefFeatureValue::Tag::String: {
+      nsAutoString value;
+      Preferences::GetString(prefName.get(), value);
+      return aValue->AsString().AsAtom()->Equals(value);
+    }
+    case StyleComputedMozPrefFeatureValue::Tag::Integer: {
+      return aValue->AsInteger() == Preferences::GetInt(prefName.get());
+    }
+  }
+  MOZ_ASSERT_UNREACHABLE("Broken value?");
+  return false;
 }
 
 bool Gecko_IsFontFormatSupported(StyleFontFaceSourceFormatKeyword aFormat) {

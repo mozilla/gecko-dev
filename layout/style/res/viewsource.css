@@ -19,7 +19,7 @@
   margin: 0;
   padding: 8px;
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "view_source.wrap_long_lines") {
+  @media -moz-pref("view_source.wrap_long_lines") {
     white-space: pre-wrap;
     word-wrap: break-word;
   }
@@ -50,7 +50,7 @@ span[id]::before {
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "view_source.syntax_highlight") {
+@media -moz-pref("view_source.syntax_highlight") {
   .start-tag,
   .end-tag {
     color: light-dark(purple, #f55e5e);

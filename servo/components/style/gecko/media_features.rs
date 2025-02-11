@@ -11,10 +11,8 @@ use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatur
 use crate::queries::values::Orientation;
 use crate::values::computed::{CSSPixelLength, Context, Ratio, Resolution};
 use crate::values::specified::color::ForcedColors;
-use crate::values::AtomString;
 use app_units::Au;
 use euclid::default::Size2D;
-use selectors::kleene_value::KleeneValue;
 
 fn device_size(device: &Device) -> Size2D<Au> {
     let mut width = 0;
@@ -617,13 +615,6 @@ fn eval_moz_overlay_scrollbars(context: &Context) -> bool {
     unsafe { bindings::Gecko_MediaFeatures_UseOverlayScrollbars(context.device().document()) }
 }
 
-fn eval_moz_bool_pref(_: &Context, pref: Option<&AtomString>) -> KleeneValue {
-    let Some(pref) = pref else {
-        return KleeneValue::False;
-    };
-    KleeneValue::from(unsafe { bindings::Gecko_ComputeBoolPrefMediaQuery(pref.as_ptr()) })
-}
-
 fn get_lnf_int(int_id: i32) -> i32 {
     unsafe { bindings::Gecko_GetLookAndFeelInt(int_id) }
 }
@@ -671,7 +662,7 @@ macro_rules! lnf_int_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [QueryFeatureDescription; 61] = [
+pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -934,12 +925,6 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 61] = [
         atom!("-moz-overlay-scrollbars"),
         AllowsRanges::No,
         Evaluator::BoolInteger(eval_moz_overlay_scrollbars),
-        FeatureFlags::CHROME_AND_UA_ONLY,
-    ),
-    feature!(
-        atom!("-moz-bool-pref"),
-        AllowsRanges::No,
-        Evaluator::String(eval_moz_bool_pref),
         FeatureFlags::CHROME_AND_UA_ONLY,
     ),
     lnf_int_feature!(

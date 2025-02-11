@@ -9,7 +9,7 @@
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.theme.native-theme") {
+@media -moz-pref("browser.theme.native-theme") {
   @media not (prefers-contrast) {
     :root:not([lwtheme]) {
       @media (prefers-color-scheme: light) {
@@ -125,7 +125,7 @@
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.urlbar.experimental.expandTextOnFocus") {
+@media -moz-pref("browser.urlbar.experimental.expandTextOnFocus") {
   #urlbar[breakout-extend] {
     font-size: 1.36em;
   }
