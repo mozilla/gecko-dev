@@ -1125,13 +1125,18 @@ Result<Ok, LaunchError> BaseProcessLauncher::DoSetup() {
 #if defined(MOZ_WIDGET_COCOA) || defined(XP_WIN)
     geckoargs::sCrashReporter.Put(CrashReporter::GetChildNotificationPipe(),
                                   mChildArgs);
-#elif defined(XP_UNIX)
+#elif defined(XP_UNIX) && !defined(XP_IOS)
     UniqueFileHandle childCrashFd = CrashReporter::GetChildNotificationPipe();
     if (!childCrashFd) {
       return Err(LaunchError("DuplicateFileHandle failed"));
     }
     geckoargs::sCrashReporter.Put(std::move(childCrashFd), mChildArgs);
-#endif
+
+    CrashReporter::ProcessId pid = CrashReporter::GetCrashHelperPid();
+    if (pid != base::kInvalidProcessId) {
+      geckoargs::sCrashHelperPid.Put(pid, mChildArgs);
+    }
+#endif  // XP_UNIX && !XP_IOS
   }
 
   return Ok();
