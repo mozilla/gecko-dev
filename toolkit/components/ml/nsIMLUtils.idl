@@ -29,9 +29,14 @@ interface nsIMLUtils : nsISupports {
       in unsigned long long aMinMemoryRequirement
   );
 
-
   /**
-  * Returns the number of physical cores.
-  */
-  octet getNumPhysicalCores();
+   * Computes the optimal concurrency level for ML workloads on the CPU.
+   *
+   * See the implementation for details.
+   *
+   * Returns:
+   * - An integer representing the recommended concurrency level.
+   */
+  octet getOptimalCPUConcurrency();
+
 };

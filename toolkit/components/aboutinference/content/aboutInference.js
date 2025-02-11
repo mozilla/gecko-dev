@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   HttpInference: "chrome://global/content/ml/HttpInference.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
   getInferenceProcessInfo: "chrome://global/content/ml/Utils.sys.mjs",
+  getOptimalCPUConcurrency: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 const { ExecutionPriority, EngineProcess, PipelineOptions } =
@@ -64,10 +65,14 @@ const TASKS = [
 ];
 
 const DTYPE = ["fp32", "fp16", "q8", "int8", "uint8", "q4", "bnb4", "q4f16"];
-const NUM_THREADS = Array.from(
-  { length: navigator.hardwareConcurrency || 4 },
-  (_, i) => i + 1
-);
+
+function getNumThreadsArray() {
+  return Array.from(
+    { length: lazy.getOptimalCPUConcurrency() },
+    (_, i) => i + 1
+  );
+}
+
 let engineParent = null;
 
 /**
@@ -814,7 +819,7 @@ window.onload = async function () {
 
   fillSelect("dtype", DTYPE);
   fillSelect("taskName", TASKS);
-  fillSelect("numThreads", NUM_THREADS);
+  fillSelect("numThreads", getNumThreadsArray());
   fillSelect("predefined", PREDEFINED);
 
   document.getElementById("predefined").value = "summary";

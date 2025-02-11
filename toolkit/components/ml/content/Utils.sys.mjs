@@ -606,3 +606,13 @@ export class URLChecker {
     return { allowed: false, rejectionType: RejectionType.DISALLOWED };
   }
 }
+
+/**
+ * Returns the optimal CPU concurrency for ML
+ *
+ * @returns {number} The number of threads we should be using
+ */
+export function getOptimalCPUConcurrency() {
+  let mlUtils = Cc["@mozilla.org/ml-utils;1"].createInstance(Ci.nsIMLUtils);
+  return mlUtils.getOptimalCPUConcurrency();
+}
