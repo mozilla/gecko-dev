@@ -51,6 +51,8 @@ const THEMED_TABLES = [
   "color",
   "outline",
   "icon-color",
+  "icon-fill",
+  "icon-stroke",
   "link",
 ];
 
@@ -211,7 +213,9 @@ class TokensTable extends LitElement {
     "font-size": this.fontTemplate,
     "font-weight": this.fontTemplate,
     "icon-color": this.iconTemplate,
+    "icon-fill": this.iconTemplate,
     "icon-size": this.iconTemplate,
+    "icon-stroke": this.iconTemplate,
     link: this.linkTemplate,
     margin: this.spaceAndSizeTemplate,
     "min-height": this.spaceAndSizeTemplate,

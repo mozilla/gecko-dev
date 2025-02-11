@@ -406,6 +406,10 @@ export const storybookTables = {
     { value: "normal", name: "--font-weight" },
     { value: 600, name: "--font-weight-bold" },
   ],
+  "icon-fill": [{ value: "currentColor", name: "--button-icon-fill" }],
+  "icon-stroke": [
+    { value: "var(--button-icon-fill)", name: "--button-icon-stroke" },
+  ],
   "min-height": [
     { value: "var(--size-item-large)", name: "--button-min-height" },
     { value: "var(--size-item-medium)", name: "--button-min-height-small" },
@@ -727,8 +731,6 @@ export const storybookTables = {
       },
       name: "--icon-color-critical",
     },
-    { value: "currentColor", name: "--button-icon-fill" },
-    { value: "var(--button-icon-fill)", name: "--button-icon-stroke" },
   ],
   "icon-size": [
     { value: "var(--size-item-small)", name: "--icon-size-default" },
