@@ -121,19 +121,19 @@ buildconfig.projects.each { project ->
 }
 
 gradle.projectsLoaded { ->
-    def versionPath = '/mobile/android/version.txt'
-    def configPath = '/mobile/android/android-components/.config.yml'
+    def versionPath = './mobile/android/version.txt'
+    def configPath = './mobile/android/android-components/.config.yml'
 
     if (rootDir.toString().endsWith("android-components") ||
-            rootDir.toString().endsWith("focus-android") ||
-            rootDir.toString().endsWith("fenix")
+        rootDir.toString().endsWith("focus-android") ||
+        rootDir.toString().endsWith("fenix")
     ) {
         versionPath = '../version.txt'
         configPath = '../android-components/.config.yml'
     }
 
-    def componentsVersion = new File(rootDir, versionPath).text.stripTrailing()
-    def configData = yaml.load(new File(rootDir, configPath).newInputStream())
+    def componentsVersion = gradle.rootProject.file(versionPath).text.stripTrailing()
+    def configData = yaml.load(gradle.rootProject.file(configPath).newInputStream())
     String version = componentsVersion
 
     if (gradle.rootProject.hasProperty("nightlyVersion")) {

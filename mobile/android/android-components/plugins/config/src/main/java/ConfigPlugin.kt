@@ -54,8 +54,7 @@ object Config {
             versionPath = "./mobile/android/version.txt"
         }
 
-        return File(versionPath).useLines { it.firstOrNull() ?: "" }
-
+        return project.rootProject.file(versionPath).useLines { it.firstOrNull() ?: "" }
     }
 
     @JvmStatic
