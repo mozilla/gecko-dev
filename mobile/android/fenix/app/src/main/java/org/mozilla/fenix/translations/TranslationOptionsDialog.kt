@@ -212,7 +212,7 @@ fun getTranslationOptionsList(): List<TranslationSwitchItem> {
                 type = TranslationPageSettingsOption.AlwaysTranslateLanguage(),
                 textLabel = stringResource(
                     id = R.string.translation_option_bottom_sheet_always_translate_in_language,
-                    formatArgs = arrayOf(Locale("es").displayName),
+                    formatArgs = arrayOf(Locale.Builder().setLanguage("es").build().displayName),
                 ),
                 isChecked = false,
                 isEnabled = true,
@@ -224,7 +224,7 @@ fun getTranslationOptionsList(): List<TranslationSwitchItem> {
                 type = TranslationPageSettingsOption.NeverTranslateLanguage(),
                 textLabel = stringResource(
                     id = R.string.translation_option_bottom_sheet_never_translate_in_language,
-                    formatArgs = arrayOf(Locale("es").displayName),
+                    formatArgs = arrayOf(Locale.Builder().setLanguage("es").build().displayName),
                 ),
                 isChecked = true,
                 isEnabled = true,

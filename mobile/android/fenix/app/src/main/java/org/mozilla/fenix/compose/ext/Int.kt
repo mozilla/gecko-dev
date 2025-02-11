@@ -6,10 +6,12 @@ package org.mozilla.fenix.compose.ext
 
 import androidx.compose.ui.text.intl.Locale
 import java.text.NumberFormat
-import java.util.Locale as JavaLocale
+import java.util.Locale.Builder
 
 /**
  * Returns a localized string representation of the value.
  */
 fun Int.toLocaleString(): String =
-    NumberFormat.getNumberInstance(JavaLocale(Locale.current.language)).format(this)
+    NumberFormat.getNumberInstance(
+        Builder().setLanguage(Locale.current.language).build(),
+    ).format(this)

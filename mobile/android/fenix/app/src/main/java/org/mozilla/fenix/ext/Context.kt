@@ -78,7 +78,7 @@ fun Context.getStringWithArgSafe(@StringRes resId: Int, formatArg: String): Stri
                 " not properly formatted in: " + LocaleManager.getSelectedLocale(this).language,
         )
         val config = resources.configuration
-        config.setLocale(Locale("en"))
+        config.setLocale(Locale.Builder().setLanguage("en").build())
         val localizedContext: Context = this.createConfigurationContext(config)
         return format(localizedContext.getString(resId), formatArg)
     }
