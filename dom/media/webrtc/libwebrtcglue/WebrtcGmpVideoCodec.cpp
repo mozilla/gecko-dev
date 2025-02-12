@@ -112,6 +112,11 @@ int32_t WebrtcGmpVideoEncoder::InitEncode(
     return WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED;
   }
 
+  if (aCodecSettings->simulcastStream[0].numberOfTemporalLayers > 1 &&
+      !HaveGMPFor("encode-video"_ns, {"moz-h264-temporal-svc"_ns})) {
+    return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
+  }
+
   GMPVideoCodec codecParams{};
   codecParams.mGMPApiVersion = kGMPVersion36;
   codecParams.mLogLevel = GetGMPLibraryLogLevel();
