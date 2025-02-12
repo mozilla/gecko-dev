@@ -958,6 +958,21 @@
       }
     ]
   },
+  "1842767": {
+    "label": "passport.bilibili.com",
+    "bugs": {
+      "1842767": {
+        "issue": "desktop-layout-not-mobile",
+        "matches": ["*://*.passport.bilibili.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1813177": {
     "label": "rbi.org",
     "bugs": {
