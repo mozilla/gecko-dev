@@ -7,6 +7,9 @@
 const { MockRegistrar } = ChromeUtils.importESModule(
   "resource://testing-common/MockRegistrar.sys.mjs"
 );
+const { ChromePushSubscription } = ChromeUtils.importESModule(
+  "resource://gre/modules/ChromePushSubscription.sys.mjs"
+);
 
 let pushService = Cc["@mozilla.org/push/Service;1"].getService(
   Ci.nsIPushService
@@ -54,7 +57,21 @@ add_test(function test_service_instantiation() {
   equal(handlerService.observed[0].data, scope);
 
   // and a subscription change.
-  pushNotifier.notifySubscriptionChange(scope, principal);
+  pushNotifier.notifySubscriptionChange(
+    scope,
+    principal,
+    new ChromePushSubscription({
+      endpoint: "xpcshell",
+      lastPush: 0,
+      pushCount: 0,
+      p256dhKey: [],
+      p256dhPrivateKey: [],
+      authenticationSecret: [],
+      appServerKey: [],
+      quota: 0,
+      systemRecord: true,
+    })
+  );
   equal(handlerService.observed.length, 2);
   equal(handlerService.observed[1].topic, pushService.subscriptionChangeTopic);
   equal(handlerService.observed[1].subject, principal);

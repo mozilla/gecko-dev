@@ -12,6 +12,8 @@
 #include "js/Exception.h"  // JS::ExceptionStack, JS::StealPendingExceptionStack
 #include "jsapi.h"
 
+#include "mozilla/dom/PushSubscriptionChangeEvent.h"
+#include "mozilla/dom/PushSubscriptionChangeEventBinding.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
 #include "nsDebug.h"
@@ -830,12 +832,28 @@ class PushSubscriptionChangeEventOp final : public ExtendableEventOp {
 
     RefPtr<EventTarget> target = aWorkerPrivate->GlobalScope();
 
-    ExtendableEventInit init;
+    ServiceWorkerPushSubscriptionChangeEventOpArgs& args =
+        mArgs.get_ServiceWorkerPushSubscriptionChangeEventOpArgs();
+
+    PushSubscriptionChangeEventInit init;
     init.mBubbles = false;
     init.mCancelable = false;
 
-    RefPtr<ExtendableEvent> event = ExtendableEvent::Constructor(
-        target, u"pushsubscriptionchange"_ns, init);
+    if (args.oldSubscription()) {
+      PushSubscriptionData oldSubscriptionData =
+          args.oldSubscription().extract();
+      RefPtr<PushSubscription> oldSubscription = new PushSubscription(
+          target->GetParentObject(), oldSubscriptionData.endpoint(), u""_ns,
+          Nullable<EpochTimeStamp>(),
+          std::move(oldSubscriptionData.rawP256dhKey()),
+          std::move(oldSubscriptionData.authSecret()),
+          std::move(oldSubscriptionData.appServerKey()));
+      init.mOldSubscription = oldSubscription.forget();
+    }
+
+    RefPtr<PushSubscriptionChangeEvent> event =
+        PushSubscriptionChangeEvent::Constructor(
+            target, u"pushsubscriptionchange"_ns, init);
     event->SetTrusted(true);
 
     nsresult rv = DispatchExtendableEventOnWorkerScope(

@@ -12,6 +12,7 @@ interface mozIDOMWindowProxy;
 interface nsIArray;
 interface nsIInterceptedChannel;
 interface nsIPrincipal;
+interface nsIPushSubscription;
 interface nsIRunnable;
 interface nsIURI;
 %{C++
@@ -320,7 +321,8 @@ interface nsIServiceWorkerManager : nsISupports
                                      in ACString aScope,
                                      [optional] in Array<uint8_t> aDataBytes);
   void sendPushSubscriptionChangeEvent(in ACString aOriginAttributes,
-                                       in ACString scope);
+                                       in ACString scope,
+                                       [optional] in nsIPushSubscription aOldSubscription);
 
   void addListener(in nsIServiceWorkerManagerListener aListener);
 
