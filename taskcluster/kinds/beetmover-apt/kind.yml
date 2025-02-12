@@ -19,6 +19,7 @@ only-for-build-platforms:
     - linux64-aarch64-shippable/opt
     - linux-devedition/opt
     - linux64-devedition/opt
+    - linux64-aarch64-devedition/opt
 
 tasks:
     beetmover-apt:

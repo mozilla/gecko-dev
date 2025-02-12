@@ -24,6 +24,7 @@ only-for-build-platforms:
     - linux64-asan-reporter-shippable/opt
     - linux-devedition/opt
     - linux64-devedition/opt
+    - linux64-aarch64-devedition/opt
     - macosx64-devedition/opt
     - win32-devedition/opt
     - win64-devedition/opt
