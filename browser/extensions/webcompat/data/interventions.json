@@ -1290,6 +1290,10 @@
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.eternalslots.com/*"]
       },
+      "1902453": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.palaceofchance.com/*"]
+      },
       "1944317": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.captainjackcasino.com/*"]
