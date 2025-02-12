@@ -234,11 +234,6 @@ static bool DispatchOffThreadBaselineCompile(JSContext* cx,
     ReportOutOfMemory(cx);
     return false;
   }
-  TempAllocator* temp = alloc->new_<TempAllocator>(alloc.get());
-  if (!temp) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
   BaselineSnapshot* snapshotCopy = alloc->new_<BaselineSnapshot>(snapshot);
   if (!snapshotCopy) {
     ReportOutOfMemory(cx);
@@ -247,7 +242,7 @@ static bool DispatchOffThreadBaselineCompile(JSContext* cx,
 
   CompileRealm* realm = CompileRealm::get(cx->realm());
   BaselineCompileTask* task =
-      alloc->new_<BaselineCompileTask>(realm, temp, snapshotCopy);
+      alloc->new_<BaselineCompileTask>(realm, alloc.get(), snapshotCopy);
   if (!task) {
     ReportOutOfMemory(cx);
     return false;

@@ -51,7 +51,7 @@ class BaselineSnapshot {
 
 class BaselineCompileTask final : public HelperThreadTask {
  public:
-  BaselineCompileTask(CompileRealm* realm, TempAllocator* alloc,
+  BaselineCompileTask(CompileRealm* realm, LifoAlloc* alloc,
                       BaselineSnapshot* snapshot)
       : realm_(realm), alloc_(alloc), snapshot_(snapshot) {}
 
@@ -76,7 +76,7 @@ class BaselineCompileTask final : public HelperThreadTask {
 
  private:
   CompileRealm* realm_;
-  TempAllocator* alloc_;
+  LifoAlloc* alloc_;
   BaselineSnapshot* snapshot_;
 
   mozilla::Maybe<OffThreadMacroAssembler> masm_;

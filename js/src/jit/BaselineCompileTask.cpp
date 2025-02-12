@@ -53,8 +53,14 @@ void BaselineCompileTask::runTask() {
   jit::JitContext jctx(realm_->runtime());
   AutoEnterBaselineBackend enter;
 
-  masm_.emplace(*alloc_, realm_);
-  compiler_.emplace(*alloc_, realm_->runtime(), masm_.ref(), snapshot_);
+  TempAllocator* temp = alloc_->new_<TempAllocator>(alloc_);
+  if (!temp) {
+    failed_ = true;
+    return;
+  }
+
+  masm_.emplace(*temp, realm_);
+  compiler_.emplace(*temp, realm_->runtime(), masm_.ref(), snapshot_);
 
   if (!compiler_->init()) {
     failed_ = true;
@@ -78,7 +84,7 @@ void BaselineCompileTask::FinishOffThreadTask(BaselineCompileTask* task) {
 
   // The task is allocated into its LifoAlloc, so destroying that will
   // destroy the task and all other data accumulated during compilation.
-  js_delete(task->alloc_->lifoAlloc());
+  js_delete(task->alloc_);
 }
 
 void BaselineCompileTask::finishOnMainThread(JSContext* cx) {
