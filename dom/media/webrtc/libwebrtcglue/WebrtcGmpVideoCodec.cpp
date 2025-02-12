@@ -18,6 +18,7 @@
 #include "api/video/video_frame_type.h"
 #include "common_video/include/video_frame_buffer.h"
 #include "media/base/media_constants.h"
+#include "modules/video_coding/include/video_codec_interface.h"
 
 namespace mozilla {
 
@@ -135,17 +136,9 @@ int32_t WebrtcGmpVideoEncoder::InitEncode(
   codecParams.mWidth = aCodecSettings->width;
   codecParams.mHeight = aCodecSettings->height;
 
-  mCodecSpecificInfo.codecType = webrtc::kVideoCodecH264;
-  mCodecSpecificInfo.codecSpecific = {};
-  mCodecSpecificInfo.codecSpecific.H264.packetization_mode =
-      mFormatParams.count(cricket::kH264FmtpPacketizationMode) == 1 &&
-              mFormatParams.at(cricket::kH264FmtpPacketizationMode) == "1"
-          ? webrtc::H264PacketizationMode::NonInterleaved
-          : webrtc::H264PacketizationMode::SingleNalUnit;
-
   uint32_t maxPayloadSize = aSettings.max_payload_size;
-  if (mCodecSpecificInfo.codecSpecific.H264.packetization_mode ==
-      webrtc::H264PacketizationMode::NonInterleaved) {
+  if (mFormatParams.count(cricket::kH264FmtpPacketizationMode) == 1 &&
+      mFormatParams.at(cricket::kH264FmtpPacketizationMode) == "1") {
     maxPayloadSize = 0;  // No limit, use FUAs
   }
 
@@ -537,19 +530,26 @@ void WebrtcGmpVideoEncoder::Encoded(
   unit.capture_time_ms_ = capture_time.ms();
   unit._encodedWidth = aEncodedFrame->EncodedWidth();
   unit._encodedHeight = aEncodedFrame->EncodedHeight();
-  if (int idx = aEncodedFrame->GetTemporalLayerId(); idx >= 0) {
-    unit.SetTemporalIndex(idx);
+
+  webrtc::CodecSpecificInfo info;
+  info.codecType = webrtc::kVideoCodecH264;
+  info.codecSpecific = {};
+  info.codecSpecific.H264.packetization_mode =
+      mFormatParams.count(cricket::kH264FmtpPacketizationMode) == 1 &&
+              mFormatParams.at(cricket::kH264FmtpPacketizationMode) == "1"
+          ? webrtc::H264PacketizationMode::NonInterleaved
+          : webrtc::H264PacketizationMode::SingleNalUnit;
+
+  if (mCodecParams.mTemporalLayerNum > 1) {
+    int temporalIdx = std::max(0, aEncodedFrame->GetTemporalLayerId());
+    unit.SetTemporalIndex(temporalIdx);
   }
 
   // Parse QP.
   mH264BitstreamParser.ParseBitstream(unit);
   unit.qp_ = mH264BitstreamParser.GetLastSliceQp().value_or(-1);
 
-  // TODO: Currently the OpenH264 codec does not preserve any codec
-  //       specific info passed into it and just returns default values.
-  //       If this changes in the future, it would be nice to get rid of
-  //       mCodecSpecificInfo.
-  mCallback->OnEncodedImage(unit, &mCodecSpecificInfo);
+  mCallback->OnEncodedImage(unit, &info);
 }
 
 // Decoder.

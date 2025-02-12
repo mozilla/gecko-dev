@@ -45,8 +45,8 @@
 #include "PerformanceRecorder.h"
 #include "VideoConduit.h"
 #include "api/video/video_frame_type.h"
-#include "modules/video_coding/include/video_codec_interface.h"
 #include "common_video/h264/h264_bitstream_parser.h"
+#include "modules/video_coding/include/video_error_codes.h"
 
 #include "gmp-video-host.h"
 #include "GMPVideoDecoderProxy.h"
@@ -253,7 +253,6 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   GMPVideoCodec mCodecParams{};
   uint32_t mMaxPayloadSize;
   const webrtc::CodecParameterMap mFormatParams;
-  webrtc::CodecSpecificInfo mCodecSpecificInfo;
   webrtc::H264BitstreamParser mH264BitstreamParser;
   Mutex mCallbackMutex;
   webrtc::EncodedImageCallback* mCallback MOZ_GUARDED_BY(mCallbackMutex);
