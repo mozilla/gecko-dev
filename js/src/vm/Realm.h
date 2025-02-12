@@ -816,6 +816,7 @@ class JS::Realm : public JS::shadow::Realm {
   static constexpr size_t offsetOfBaselineCompileQueue() {
     return offsetof(Realm, baselineCompileQueue_);
   }
+  void removeFromCompileQueue(JSScript* script);
 
   js::DebugEnvironments* debugEnvs() { return debugEnvs_.get(); }
   js::UniquePtr<js::DebugEnvironments>& debugEnvsRef() { return debugEnvs_; }

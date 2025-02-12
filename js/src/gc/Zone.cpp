@@ -438,6 +438,7 @@ void Zone::forceDiscardJitCode(JS::GCContext* gcx,
                 !gcx->runtime()->profilingScripts) {
               script->destroyScriptCounts();
             }
+            script->realm()->removeFromCompileQueue(script);
             return;  // Continue script loop.
           }
         }

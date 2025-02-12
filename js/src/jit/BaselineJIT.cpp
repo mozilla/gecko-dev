@@ -697,6 +697,18 @@ void BaselineCompileQueue::trace(JSTracer* trc) {
   }
 }
 
+void BaselineCompileQueue::remove(JSScript* script) {
+  assertInvariants();
+  for (uint32_t i = 0; i < numQueued_; i++) {
+    if (queue_[i] == script) {
+      std::swap(queue_[i], queue_[numQueued_ - 1]);
+      pop();
+      break;
+    }
+  }
+  assertInvariants();
+}
+
 BaselineScript* BaselineScript::New(JSContext* cx,
                                     uint32_t warmUpCheckPrologueOffset,
                                     uint32_t profilerEnterToggleOffset,

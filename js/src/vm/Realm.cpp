@@ -371,6 +371,10 @@ void Realm::purgeForOfPicChain() {
   }
 }
 
+void Realm::removeFromCompileQueue(JSScript* script) {
+  baselineCompileQueue_.remove(script);
+}
+
 // Check to see if this individual realm is recording allocations. Debuggers or
 // runtimes can try and record allocations, so this method can check to see if
 // any initialization is needed.

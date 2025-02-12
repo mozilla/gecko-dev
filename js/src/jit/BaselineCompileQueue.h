@@ -62,6 +62,7 @@ class BaselineCompileQueue {
 #endif
   }
   void trace(JSTracer* trc);
+  void remove(JSScript* script);
 };
 
 }  // namespace jit
