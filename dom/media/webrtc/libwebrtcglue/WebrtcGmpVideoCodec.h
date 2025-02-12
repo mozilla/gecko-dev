@@ -288,7 +288,7 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   Maybe<uint64_t> mCachedPluginId;
   const std::string mPCHandle;
 
-  static constexpr size_t kMaxImagesInFlight = 5;
+  static constexpr size_t kMaxImagesInFlight = 1;
   // Map rtp time -> input image data
   AutoTArray<detail::InputImageData, kMaxImagesInFlight> mInputImageMap;
 
