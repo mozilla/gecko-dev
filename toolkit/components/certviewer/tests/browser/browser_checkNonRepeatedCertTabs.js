@@ -121,8 +121,14 @@ add_task(async function testPreferencesCert() {
 
       let loaded = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
       for (let i = 0; i < 2; i++) {
+        let clickActionComplete = TestUtils.topicObserved(
+          "viewCertHelper-done"
+        );
         viewButton.click();
-        await loaded;
+        if (i == 0) {
+          await loaded;
+        }
+        await clickActionComplete;
       }
       checkCertTabs();
     }
