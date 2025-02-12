@@ -72,7 +72,7 @@ var gTabsPanel = {
     });
     this.showAllGroupsPanel = new GroupsPanel({
       view: this.groupsSubView,
-      containerNode: this.groupsSubView,
+      containerNode: document.getElementById("allTabsMenu-groupsSubView-body"),
       showAll: true,
     });
 
