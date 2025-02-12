@@ -19,7 +19,7 @@
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media not (-moz-bool-pref: "sidebar.revamp") {
+  @media not -moz-pref("sidebar.revamp") {
     display: none;
   }
 }

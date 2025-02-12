@@ -11,7 +11,7 @@ use crate::parser::{Parse, ParserContext};
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::values::computed::{self, Ratio, ToComputedValue};
 use crate::values::specified::{Integer, Length, Number, Resolution};
-use crate::values::{AtomString, CSSFloat};
+use crate::values::CSSFloat;
 use crate::{Atom, Zero};
 use cssparser::{Parser, Token};
 use selectors::kleene_value::KleeneValue;
@@ -639,10 +639,6 @@ impl QueryFeatureExpression {
                     .map(|v| *expect!(Enumerated, v));
                 return evaluator(context, computed);
             },
-            Evaluator::String(evaluator) => {
-                let string = self.kind.non_ranged_value().map(|v| expect!(String, v));
-                return evaluator(context, string);
-            },
             Evaluator::BoolInteger(eval) => {
                 let computed = self
                     .kind
@@ -681,8 +677,6 @@ pub enum QueryExpressionValue {
     /// An enumerated value, defined by the variant keyword table in the
     /// feature's `mData` member.
     Enumerated(KeywordDiscriminant),
-    /// An arbitrary ident value.
-    String(AtomString),
 }
 
 impl QueryExpressionValue {
@@ -701,7 +695,6 @@ impl QueryExpressionValue {
                 Evaluator::Enumerated { serializer, .. } => dest.write_str(&*serializer(value)),
                 _ => unreachable!(),
             },
-            QueryExpressionValue::String(ref s) => s.to_css(dest),
         }
     }
 
@@ -738,9 +731,6 @@ impl QueryExpressionValue {
             },
             Evaluator::Resolution(..) => {
                 QueryExpressionValue::Resolution(Resolution::parse(context, input)?)
-            },
-            Evaluator::String(..) => {
-                QueryExpressionValue::String(input.expect_string()?.as_ref().into())
             },
             Evaluator::Enumerated { parser, .. } => {
                 QueryExpressionValue::Enumerated(parser(context, input)?)

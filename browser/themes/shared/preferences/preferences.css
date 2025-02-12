@@ -257,7 +257,7 @@ radio {
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media not (-moz-bool-pref: "browser.migrate.preferences-entrypoint.enabled") {
+@media not -moz-pref("browser.migrate.preferences-entrypoint.enabled") {
   #dataMigrationGroup {
     display: none;
   }

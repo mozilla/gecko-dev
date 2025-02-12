@@ -29,7 +29,7 @@
 /* When rich suggestions are enabled the urlbar identity icon is given extra padding to
  * align the results and urlbar text */
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.urlbar.richSuggestions.featureGate") {
+@media -moz-pref("browser.urlbar.richSuggestions.featureGate") {
   #identity-box[pageproxystate="invalid"] > .identity-box-button {
     padding-inline: calc(6px + var(--urlbar-icon-padding));
   }
@@ -1146,8 +1146,8 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   }
 
   /* stylelint-disable media-query-no-invalid */
-  @media (not (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate")) and
-         (not (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride")) {
+  @media (not -moz-pref("browser.urlbar.searchModeSwitcher.featureGate")) and
+         (not -moz-pref("browser.urlbar.scotchBonnet.enableOverride")) {
     display: none;
   }
   /* stylelint-enable media-query-no-invalid */
@@ -1172,7 +1172,7 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   display: none;
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+  @media -moz-pref("browser.urlbar.searchModeSwitcher.featureGate") or -moz-pref("browser.urlbar.scotchBonnet.enableOverride") {
     #urlbar[searchmode] & {
       display: inline-flex;
     }
@@ -1232,13 +1232,13 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+@media -moz-pref("browser.urlbar.searchModeSwitcher.featureGate") or -moz-pref("browser.urlbar.scotchBonnet.enableOverride") {
   #urlbar[searchmode] > .urlbar-input-container > #urlbar-search-mode-indicator {
     display: none;
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media not (-moz-bool-pref: "browser.urlbar.unifiedSearchButton.always") {
+  @media not -moz-pref("browser.urlbar.unifiedSearchButton.always") {
     #urlbar-searchmode-switcher {
       background-color: var(--urlbar-box-bgcolor);
       #urlbar:not([unifiedsearchbutton-available]) > .urlbar-input-container > & {

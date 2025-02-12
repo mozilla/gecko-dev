@@ -190,7 +190,7 @@
 
 #sidebar-button {
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media not (-moz-bool-pref: "sidebar.revamp") {
+  @media not -moz-pref("sidebar.revamp") {
     list-style-image: url("chrome://browser/skin/sidebars-right.svg");
 
     &:-moz-locale-dir(ltr):not([positionend]),
@@ -200,11 +200,11 @@
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "sidebar.revamp") {
+  @media -moz-pref("sidebar.revamp") {
     list-style-image: url("chrome://browser/skin/sidebar-collapsed-right.svg");
 
     /* stylelint-disable-next-line media-query-no-invalid */
-    @media (-moz-bool-pref: "sidebar.verticalTabs") {
+    @media -moz-pref("sidebar.verticalTabs") {
       &:hover {
         list-style-image: url("chrome://browser/skin/sidebar-expanded-right.svg");
       }
@@ -223,7 +223,7 @@
       list-style-image: url("chrome://browser/skin/sidebar-collapsed.svg");
 
       /* stylelint-disable-next-line media-query-no-invalid */
-      @media (-moz-bool-pref: "sidebar.verticalTabs") {
+      @media -moz-pref("sidebar.verticalTabs") {
         &:hover {
           list-style-image: url("chrome://browser/skin/sidebar-expanded.svg");
         }

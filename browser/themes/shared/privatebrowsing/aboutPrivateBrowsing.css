@@ -89,7 +89,7 @@ p {
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.privatebrowsing.felt-privacy-v1") {
+@media -moz-pref("browser.privatebrowsing.felt-privacy-v1") {
   .search-inner-wrapper {
     height: 52px;
     padding: 0;
@@ -251,7 +251,7 @@ p {
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.privatebrowsing.felt-privacy-v1") {
+@media -moz-pref("browser.privatebrowsing.felt-privacy-v1") {
   .search-handoff-button,
   .search-handoff-button:hover:not(.focused),
   .search-handoff-button:active,
@@ -384,7 +384,7 @@ p {
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.privatebrowsing.felt-privacy-v1") {
+@media -moz-pref("browser.privatebrowsing.felt-privacy-v1") {
   .info-border {
     border-radius: 8px;
     margin-top: 64px;
@@ -605,7 +605,7 @@ p {
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.privatebrowsing.felt-privacy-v1") {
+@media -moz-pref("browser.privatebrowsing.felt-privacy-v1") {
   .promo.below-search.promo-visible {
     margin-block: 0 25px;
 

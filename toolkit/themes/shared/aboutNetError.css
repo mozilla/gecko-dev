@@ -156,7 +156,7 @@ button:disabled {
 
 /* Felt Privacy v1 LARGER SCREEN! */
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "security.certerrors.felt-privacy-v1") {
+@media -moz-pref("security.certerrors.felt-privacy-v1") {
   .felt-privacy-body {
     justify-content: start;
   }

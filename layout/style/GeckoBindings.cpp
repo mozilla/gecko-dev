@@ -1572,34 +1572,79 @@ const nsTArray<Element*>* Gecko_ShadowRoot_GetElementsWithId(
   return aShadowRoot->GetAllElementsForId(aId);
 }
 
-bool Gecko_ComputeBoolPrefMediaQuery(nsAtom* aPref) {
+static StyleComputedMozPrefFeatureValue GetPrefValue(const nsCString& aPref) {
+  using Value = StyleComputedMozPrefFeatureValue;
+  switch (Preferences::GetType(aPref.get())) {
+    case nsIPrefBranch::PREF_STRING: {
+      nsAutoString value;
+      Preferences::GetString(aPref.get(), value);
+      return Value::String(StyleAtomString{NS_Atomize(value)});
+    }
+    case nsIPrefBranch::PREF_INT:
+      return Value::Integer(Preferences::GetInt(aPref.get(), 0));
+    case nsIPrefBranch::PREF_BOOL: {
+      auto value = Preferences::GetBool(aPref.get(), false)
+                       ? StyleBoolValue::True
+                       : StyleBoolValue::False;
+      return Value::Boolean(value);
+    }
+    case nsIPrefBranch::PREF_INVALID:
+    default:
+      break;
+  }
+
+  return StyleComputedMozPrefFeatureValue::None();
+}
+
+bool Gecko_EvalMozPrefFeature(nsAtom* aPref,
+                              const StyleComputedMozPrefFeatureValue* aValue) {
   MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aValue);
+  using Value = StyleComputedMozPrefFeatureValue;
+  using PrefMap = nsTHashMap<RefPtr<nsAtom>, Value>;
   // This map leaks until shutdown, but that's fine, all the values are
   // controlled by us so it's not expected to be big.
-  static StaticAutoPtr<nsTHashMap<RefPtr<nsAtom>, bool>> sRegisteredPrefs;
+  static StaticAutoPtr<PrefMap> sRegisteredPrefs;
   if (!sRegisteredPrefs) {
     if (PastShutdownPhase(ShutdownPhase::XPCOMShutdownFinal)) {
       // Styling doesn't really matter much at this point, don't bother.
       return false;
     }
-    sRegisteredPrefs = new nsTHashMap<RefPtr<nsAtom>, bool>();
+    sRegisteredPrefs = new PrefMap();
     ClearOnShutdown(&sRegisteredPrefs);
   }
-  return sRegisteredPrefs->LookupOrInsertWith(aPref, [&] {
+
+  const auto& value = sRegisteredPrefs->LookupOrInsertWith(aPref, [&] {
     nsAutoAtomCString prefName(aPref);
     Preferences::RegisterCallback(
         [](const char* aPrefName, void*) {
+          nsDependentCString name(aPrefName);
           if (sRegisteredPrefs) {
-            RefPtr<nsAtom> name = NS_Atomize(nsDependentCString(aPrefName));
-            sRegisteredPrefs->InsertOrUpdate(name,
-                                             Preferences::GetBool(aPrefName));
+            RefPtr<nsAtom> nameAtom = NS_Atomize(name);
+            sRegisteredPrefs->InsertOrUpdate(nameAtom, GetPrefValue(name));
           }
           LookAndFeel::NotifyChangedAllWindows(
               widget::ThemeChangeKind::MediaQueriesOnly);
         },
         prefName);
-    return Preferences::GetBool(prefName.get());
+    return GetPrefValue(prefName);
   });
+  if (aValue->IsNone()) {
+    // For a non-specified query, we return true if the pref is not false, zero,
+    // empty or invalid
+    switch (value.tag) {
+      case Value::Tag::None:
+        return false;
+      case Value::Tag::Boolean:
+        return value.AsBoolean() == StyleBoolValue::True;
+      case Value::Tag::Integer:
+        return value.AsInteger() != 0;
+      case Value::Tag::String:
+        return !value.AsString().AsAtom()->IsEmpty();
+    }
+    return false;
+  }
+  return value == *aValue;
 }
 
 bool Gecko_IsFontFormatSupported(StyleFontFaceSourceFormatKeyword aFormat) {

@@ -112,6 +112,7 @@ include = [
   "FontVariantEastAsian",
   "FontVariantLigatures",
   "FontVariantNumeric",
+  "ComputedMozPrefFeatureValue",
   "ComputedFontStretchRange",
   "ComputedFontStyleDescriptor",
   "ComputedFontWeightRange",

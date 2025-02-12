@@ -41,7 +41,7 @@
   --chrome-content-separator-color: light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3));
 
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media not (-moz-bool-pref: "sidebar.revamp") {
+  @media not -moz-pref("sidebar.revamp") {
     &:not([lwtheme]) {
       --chrome-content-separator-color: ThreeDShadow;
     }
@@ -77,7 +77,7 @@
  * transparencies in order to look more native.
  */
 /* stylelint-disable-next-line media-query-no-invalid */
-@media not ((prefers-contrast) or (-moz-bool-pref: "browser.theme.native-theme")) {
+@media not ((prefers-contrast) or -moz-pref("browser.theme.native-theme")) {
   :root:not([lwtheme]) {
     --color-accent-primary: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
     --button-text-color-primary: light-dark(rgb(251, 251, 254), rgb(43, 42, 51));
@@ -107,7 +107,7 @@
     --tabs-navbar-separator-style: none;
 
     /* stylelint-disable-next-line media-query-no-invalid */
-    @media not ((-moz-windows-mica) or ((-moz-windows-accent-color-in-titlebar) and (-moz-bool-pref: "browser.theme.windows.accent-color-in-tabs.enabled"))) {
+    @media not ((-moz-windows-mica) or ((-moz-windows-accent-color-in-titlebar) and -moz-pref("browser.theme.windows.accent-color-in-tabs.enabled"))) {
       --toolbox-bgcolor: light-dark(rgb(240, 240, 244), rgb(28, 27, 34));
       --toolbox-textcolor: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
       --toolbox-bgcolor-inactive: var(--toolbox-bgcolor);
@@ -143,7 +143,7 @@
     }
 
     /* stylelint-disable-next-line media-query-no-invalid */
-    @media not (-moz-bool-pref: "sidebar.revamp") {
+    @media not -moz-pref("sidebar.revamp") {
       --chrome-content-separator-color: light-dark(rgb(204, 204, 204), hsl(240, 5%, 5%));
     }
 
