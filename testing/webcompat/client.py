@@ -718,6 +718,21 @@ class Client:
     async def disable_window_alert(self):
         return await self.make_preload_script("window.alert = () => {}")
 
+    async def set_prompt_responses(self, responses, timeout=10):
+        if type(responses) is not list:
+            responses = [responses]
+        if not hasattr(self, "prompts_preload_script"):
+            self.prompts_preload_script = await self.make_preload_script(
+                f"""
+                    const responses = {responses};
+                    window.wrappedJSObject.prompt = function() {{
+                        return responses.shift();
+                    }}
+                """,
+                "prompt_detector",
+            )
+        return self.prompts_preload_script
+
     async def await_alert(self, texts, timeout=10):
         if type(texts) is not list:
             texts = [texts]

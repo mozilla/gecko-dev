@@ -2464,6 +2464,21 @@
       }
     ]
   },
+  "1902506": {
+    "label": "mp3cut.net",
+    "bugs": {
+      "1909448": {
+        "issue": "blocked-content",
+        "matches": ["*://mp3cut.net/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1909448": {
     "label": "fire.honeywell.com",
     "bugs": {
