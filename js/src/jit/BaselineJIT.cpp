@@ -19,6 +19,7 @@
 #include "jit/AutoWritableJitCode.h"
 #include "jit/BaselineCodeGen.h"
 #include "jit/BaselineCompileTask.h"
+#include "jit/BaselineDebugModeOSR.h"
 #include "jit/BaselineIC.h"
 #include "jit/CalleeToken.h"
 #include "jit/Ion.h"
@@ -942,6 +943,36 @@ uint8_t* BaselineScript::OSREntryForFrame(BaselineFrame* frame) {
   BaselineScript* baselineScript = script->baselineScript();
   jsbytecode* pc = frame->interpreterPC();
   size_t pcOffset = script->pcToOffset(pc);
+
+  if (MOZ_UNLIKELY(frame->isDebuggee() &&
+                   !baselineScript->hasDebugInstrumentation())) {
+    // This check is needed in the following corner case. Consider a function h,
+    //
+    //   function h(x) {
+    //      if (!x)
+    //        return;
+    //      h(false);
+    //      for (var i = 0; i < N; i++)
+    //         /* do stuff */
+    //   }
+    //
+    // Suppose h is not yet compiled in baseline and is executing in the
+    // baseline interpreter. Let this interpreter frame be f_older. The debugger
+    // marks f_older as isDebuggee. At the point of the recursive call h(false),
+    // h is compiled in baseline without debug instrumentation, pushing a
+    // baseline frame f_newer. The debugger never flags f_newer as isDebuggee,
+    // and never recompiles h. When the recursive call returns and execution
+    // proceeds to the loop, the baseline interpreter attempts to OSR into
+    // baseline. Since h is already compiled in baseline, execution jumps
+    // directly into baseline code. This is incorrect as h's baseline script
+    // does not have debug instrumentation.
+    JSContext* cx = TlsContext.get();
+    if (!RecompileBaselineScriptForDebugMode(cx, script, DebugAPI::Observing)) {
+      cx->recoverFromOutOfMemory();
+      return nullptr;
+    }
+    baselineScript = script->baselineScript();
+  }
 
   if (JSOp(*pc) == JSOp::LoopHead) {
     MOZ_ASSERT(pc > script->code(),

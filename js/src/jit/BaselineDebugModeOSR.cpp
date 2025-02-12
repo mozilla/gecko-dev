@@ -402,7 +402,7 @@ static void SkipInterpreterFrameEntries(
   *start = entryIndex;
 }
 
-static bool RecompileBaselineScriptForDebugMode(
+bool js::jit::RecompileBaselineScriptForDebugMode(
     JSContext* cx, JSScript* script, DebugAPI::IsObserving observing) {
   // If a script is on the stack multiple times, it may have already
   // been recompiled.

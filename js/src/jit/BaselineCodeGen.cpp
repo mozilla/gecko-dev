@@ -1703,6 +1703,13 @@ bool BaselineInterpreterCodeGen::emitWarmUpCounterIncrement() {
     masm.loadBaselineFramePtr(FramePointer, R0.scratchReg());
     masm.passABIArg(R0.scratchReg());
     masm.callWithABI<Fn, BaselineScript::OSREntryForFrame>();
+
+    // If we are a debuggee frame, and our baseline script was compiled
+    // without debug instrumentation, and recompilation failed, we may
+    // not have an OSR entry available.
+    masm.branchTestPtr(Assembler::Zero, ReturnReg, ReturnReg, &done);
+
+    // Otherwise: OSR!
     masm.jump(ReturnReg);
 
     masm.bind(&notCompiled);
