@@ -531,6 +531,13 @@ WinWebAuthnService::MakeCredential(uint64_t aTransactionId,
         Unused << aArgs->GetTimeoutMS(&timeout_u32);
         DWORD timeout = timeout_u32;
 
+        bool privateBrowsing;
+        Unused << aArgs->GetPrivateBrowsing(&privateBrowsing);
+        BOOL winPrivateBrowsing = FALSE;
+        if (privateBrowsing) {
+          winPrivateBrowsing = TRUE;
+        }
+
         // MakeCredentialOptions
         WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS
         WebAuthNCredentialOptions = {
@@ -548,7 +555,7 @@ WinWebAuthnService::MakeCredential(uint64_t aTransactionId,
             WEBAUTHN_ENTERPRISE_ATTESTATION_NONE,
             WEBAUTHN_LARGE_BLOB_SUPPORT_NONE,
             winPreferResidentKey,  // PreferResidentKey
-            FALSE,                 // BrowserInPrivateMode
+            winPrivateBrowsing,    // BrowserInPrivateMode
             winEnablePrf,          // EnablePrf
             NULL,                  // LinkedDevice
             0,                     // size of JsonExt
@@ -879,6 +886,13 @@ void WinWebAuthnService::DoGetAssertion(
         Unused << aArgs->GetTimeoutMS(&timeout_u32);
         DWORD timeout = timeout_u32;
 
+        bool privateBrowsing;
+        Unused << aArgs->GetPrivateBrowsing(&privateBrowsing);
+        BOOL winPrivateBrowsing = FALSE;
+        if (privateBrowsing) {
+          winPrivateBrowsing = TRUE;
+        }
+
         WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS WebAuthNAssertionOptions =
             {
                 WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS_VERSION_7,
@@ -893,14 +907,14 @@ void WinWebAuthnService::DoGetAssertion(
                 &aCancellationId,  // CancellationId
                 pAllowCredentialList,
                 WEBAUTHN_CRED_LARGE_BLOB_OPERATION_NONE,
-                0,           // Size of CredLargeBlob
-                NULL,        // CredLargeBlob
-                pPrfInputs,  // HmacSecretSaltValues
-                FALSE,       // BrowserInPrivateMode
-                NULL,        // LinkedDevice
-                FALSE,       // AutoFill
-                0,           // Size of JsonExt
-                NULL,        // JsonExt
+                0,                   // Size of CredLargeBlob
+                NULL,                // CredLargeBlob
+                pPrfInputs,          // HmacSecretSaltValues
+                winPrivateBrowsing,  // BrowserInPrivateMode
+                NULL,                // LinkedDevice
+                FALSE,               // AutoFill
+                0,                   // Size of JsonExt
+                NULL,                // JsonExt
             };
 
         PWEBAUTHN_ASSERTION pWebAuthNAssertion = nullptr;

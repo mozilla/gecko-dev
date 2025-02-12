@@ -118,10 +118,10 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
   mTransactionId = Some(aTransactionId);
 
   WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
+  nsIPrincipal* principal = manager->DocumentPrincipal();
 
   nsCString origin;
-  nsresult rv =
-      manager->DocumentPrincipal()->GetWebExposedOriginSerialization(origin);
+  nsresult rv = principal->GetWebExposedOriginSerialization(origin);
   if (NS_FAILED(rv)) {
     aResolver(NS_ERROR_FAILURE);
     return IPC_OK();
@@ -266,8 +266,9 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
       ->Track(mRegisterPromiseRequest);
 
   uint64_t browsingContextId = manager->GetBrowsingContext()->Top()->Id();
-  auto args = MakeRefPtr<WebAuthnRegisterArgs>(origin, clientDataJSON,
-                                               aTransactionInfo);
+  bool privateBrowsing = principal->GetIsInPrivateBrowsing();
+  auto args = MakeRefPtr<WebAuthnRegisterArgs>(
+      origin, clientDataJSON, privateBrowsing, aTransactionInfo);
   rv = mWebAuthnService->MakeCredential(aTransactionId, browsingContextId, args,
                                         promiseHolder);
   if (NS_FAILED(rv)) {
@@ -297,10 +298,10 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
   mTransactionId = Some(transactionId);
 
   WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
+  nsIPrincipal* principal = manager->DocumentPrincipal();
 
   nsCString origin;
-  nsresult rv =
-      manager->DocumentPrincipal()->GetWebExposedOriginSerialization(origin);
+  nsresult rv = principal->GetWebExposedOriginSerialization(origin);
   if (NS_FAILED(rv)) {
     aResolver(NS_ERROR_FAILURE);
     return IPC_OK();
@@ -430,8 +431,9 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
       ->Track(mSignPromiseRequest);
 
   uint64_t browsingContextId = manager->GetBrowsingContext()->Top()->Id();
-  auto args =
-      MakeRefPtr<WebAuthnSignArgs>(origin, clientDataJSON, aTransactionInfo);
+  bool privateBrowsing = principal->GetIsInPrivateBrowsing();
+  auto args = MakeRefPtr<WebAuthnSignArgs>(origin, clientDataJSON,
+                                           privateBrowsing, aTransactionInfo);
   rv = mWebAuthnService->GetAssertion(transactionId, browsingContextId, args,
                                       promiseHolder);
   if (NS_FAILED(rv)) {

@@ -20,9 +20,11 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
 
   explicit WebAuthnRegisterArgs(const nsCString& aOrigin,
                                 const nsCString& aClientDataJSON,
+                                const bool aPrivateBrowsing,
                                 const WebAuthnMakeCredentialInfo& aInfo)
       : mOrigin(aOrigin),
         mClientDataJSON(aClientDataJSON),
+        mPrivateBrowsing(aPrivateBrowsing),
         mInfo(aInfo),
         mCredProps(false),
         mHmacCreateSecret(false),
@@ -57,6 +59,7 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
 
   const nsCString mOrigin;
   const nsCString mClientDataJSON;
+  const bool mPrivateBrowsing;
   const WebAuthnMakeCredentialInfo mInfo;
 
   // Flags to indicate whether an extension is being requested.
@@ -73,9 +76,11 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
 
   explicit WebAuthnSignArgs(const nsCString& aOrigin,
                             const nsCString& aClientDataJSON,
+                            const bool aPrivateBrowsing,
                             const WebAuthnGetAssertionInfo& aInfo)
       : mOrigin(aOrigin),
         mClientDataJSON(aClientDataJSON),
+        mPrivateBrowsing(aPrivateBrowsing),
         mInfo(aInfo),
         mPrf(false) {
     for (const WebAuthnExtension& ext : mInfo.Extensions()) {
@@ -104,7 +109,9 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
 
   const nsCString mOrigin;
   const nsCString mClientDataJSON;
+  const bool mPrivateBrowsing;
   const WebAuthnGetAssertionInfo mInfo;
+
   Maybe<nsString> mAppId;
   bool mPrf;
 };

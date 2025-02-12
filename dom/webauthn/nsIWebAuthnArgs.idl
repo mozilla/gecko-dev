@@ -61,6 +61,8 @@ interface nsIWebAuthnRegisterArgs : nsISupports {
     // We might overwrite the provided value with "none" if the user declines the
     // consent popup.
     [must_use] readonly attribute AString attestationConveyancePreference;
+
+    readonly attribute boolean privateBrowsing;
 };
 
 [uuid(2e621cf4-a277-11ed-ae00-bf41a54ef553)]
@@ -105,4 +107,6 @@ interface nsIWebAuthnSignArgs : nsISupports {
     readonly attribute unsigned long timeoutMS;
 
     readonly attribute boolean conditionallyMediated;
+
+    readonly attribute boolean privateBrowsing;
 };
