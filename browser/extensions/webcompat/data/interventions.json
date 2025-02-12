@@ -2514,6 +2514,21 @@
       }
     ]
   },
+  "1906630": {
+    "label": "watch.foxtel.com.au",
+    "bugs": {
+      "1906630": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://watch.foxtel.com.au/app/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1909448": {
     "label": "fire.honeywell.com",
     "bugs": {
