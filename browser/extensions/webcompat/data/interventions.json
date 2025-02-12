@@ -1298,6 +1298,10 @@
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.palaceofchance.com/*"]
       },
+      "1902493": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.ozwincasino.com/*"]
+      },
       "1944317": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.captainjackcasino.com/*"]
