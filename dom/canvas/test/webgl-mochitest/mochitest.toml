@@ -42,6 +42,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["ensure-exts/test_EXT_texture_compression_rgtc.html"]
@@ -63,6 +64,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["ensure-exts/test_WEBGL_color_buffer_float.html"]
@@ -72,6 +74,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
   "os == 'win' && os_version == '11.26100' && processor == 'x86'",
@@ -83,6 +86,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
   "os == 'win' && os_version == '11.26100' && processor == 'x86'",
@@ -96,6 +100,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
   "os == 'win' && os_version == '11.26100' && processor == 'x86'",
@@ -110,6 +115,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
   "win10_2009",
   "win11_2009",
   "os == 'win' && os_version == '11.26100' && processor == 'x86'",
@@ -175,6 +181,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["test_hidden_alpha.html"]
@@ -196,6 +203,7 @@ skip-if = [
   "win10_2009", # Unofficial DXGL support regressed by bug 1632249
   "win11_2009", # Unofficial DXGL support regressed by bug 1632249
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["test_privileged_exts.html"]

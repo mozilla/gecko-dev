@@ -183,6 +183,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 # Assertion failure: [GFX1]: void mozilla::gl::GLContext::fFramebufferTexture2D(GLenum, GLenum, GLenum, GLuint, GLint): Generated unexpected GL_INVALID_VALUE error
 skip-if = ["os == 'linux' && debug"]
@@ -504,6 +505,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]  # macosx1014 due to 1563418
 
 ["generated/test_2_conformance2__textures__misc__tex-unpack-params-with-flip-y-and-premultiply-alpha.html"]
@@ -923,6 +925,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ########################################################################
@@ -959,6 +962,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ########################################################################
@@ -1032,6 +1036,7 @@ skip-if = ["debug"]
 skip-if = [
   "os == 'android'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["generated/test_conformance__glsl__samplers__glsl-function-texture2dproj.html"]
@@ -1483,6 +1488,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt",
 ]
 
 ["generated/test_2_conformance2__renderbuffers__multisampled-depth-renderbuffer-initialization.html"]
@@ -1498,6 +1504,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["generated/test_2_conformance2__reading__format-r11f-g11f-b10f.html"]
@@ -1508,6 +1515,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["generated/test_2_conformance2__textures__canvas_sub_rectangle__tex-3d-r11f_g11f_b10f-rgb-float.html"]
@@ -1911,6 +1919,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
   "win11_2009",
   "os == 'win' && os_version == '11.26100' && processor == 'x86'",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
@@ -2065,6 +2074,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ] # [unexpected fragment shader compile status] (expected: true) Declaring both gl_FragColor and gl_FragData invariant should succeed.
 
 ########################################################################
@@ -2082,6 +2092,7 @@ skip-if = ["os == 'win'"]
 skip-if = [
   "os == 'win'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["generated/test_conformance__uniforms__uniform-values-per-program.html"]
@@ -2123,6 +2134,7 @@ skip-if = ["os == 'win'"]
 skip-if = [
   "os == 'win'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["generated/test_2_conformance2__query__occlusion-query.html"]
@@ -2220,6 +2232,7 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
   "os == 'linux'",
 ]
 
