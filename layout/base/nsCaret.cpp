@@ -601,6 +601,11 @@ nsCaret::NotifySelectionChanged(Document*, Selection* aDomSel, int16_t aReason,
 }
 
 void nsCaret::ResetBlinking() {
+  // How many milliseconds we allow the timer to get off-sync when resetting
+  // blinking too often. 50 is not likely to be user observable in practice,
+  // it's ~4 animation frames at 60fps.
+  static const auto kBlinkTimerSlack = TimeDuration::FromMilliseconds(50);
+
   mIsBlinkOn = true;
 
   if (mReadOnly || !IsVisible()) {
@@ -608,17 +613,28 @@ void nsCaret::ResetBlinking() {
     return;
   }
 
-  const auto blinkTime = LookAndFeel::CaretBlinkTime();
-  if (blinkTime <= 0) {
+  const int32_t oldBlinkTime = mBlinkTime;
+  mBlinkTime = LookAndFeel::CaretBlinkTime();
+  if (mBlinkTime <= 0) {
     StopBlinking();
     return;
   }
 
   mBlinkCount = LookAndFeel::CaretBlinkCount();
+
+  const auto now = TimeStamp::NowLoRes();
+  const bool mustResetTimer = mBlinkTime != oldBlinkTime ||
+                              mLastBlinkTimerReset.IsNull() ||
+                              (now - mLastBlinkTimerReset) > kBlinkTimerSlack;
+  if (!mustResetTimer) {
+    return;
+  }
+
   if (!mBlinkTimer) {
     mBlinkTimer = NS_NewTimer();
   }
-  mBlinkTimer->InitWithNamedFuncCallback(CaretBlinkCallback, this, blinkTime,
+  mLastBlinkTimerReset = now;
+  mBlinkTimer->InitWithNamedFuncCallback(CaretBlinkCallback, this, mBlinkTime,
                                          nsITimer::TYPE_REPEATING_SLACK,
                                          "CaretBlinkCallback");
 }
@@ -626,6 +642,7 @@ void nsCaret::ResetBlinking() {
 void nsCaret::StopBlinking() {
   if (mBlinkTimer) {
     mBlinkTimer->Cancel();
+    mLastBlinkTimerReset = TimeStamp();
   }
 }
 
@@ -696,6 +713,7 @@ void nsCaret::CaretBlinkCallback(nsITimer* aTimer, void* aClosure) {
   if (!theCaret) {
     return;
   }
+  theCaret->mLastBlinkTimerReset = TimeStamp();
   theCaret->mIsBlinkOn = !theCaret->mIsBlinkOn;
   theCaret->SchedulePaint();
 

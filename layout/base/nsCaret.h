@@ -202,6 +202,11 @@ class nsCaret final : public nsISelectionListener {
   mozilla::WeakPtr<mozilla::dom::Selection> mDomSelectionWeak;
 
   nsCOMPtr<nsITimer> mBlinkTimer;
+  // Last time we reset the blink timer. We give it some slack to avoid
+  // resetting it too often. This gets cleared when CaretBlinkCallback fires,
+  // because the point of this variable is just to avoid resetting too many
+  // times in a single blink cycle.
+  mozilla::TimeStamp mLastBlinkTimerReset;
 
   CaretPosition mCaretPosition;
 
@@ -214,6 +219,11 @@ class nsCaret final : public nsISelectionListener {
    * blinking.
    */
   int32_t mBlinkCount = -1;
+  /**
+   * Current blink time (the value that LookAndFeel::CaretBlinkTime() gave us
+   * when we most recently reset our blinking).
+   */
+  int32_t mBlinkTime = -1;
   /**
    * mHideCount is not 0, it means that somebody doesn't want the caret
    * to be visible.  See AddForceHide() and RemoveForceHide().
