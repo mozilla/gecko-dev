@@ -4643,11 +4643,16 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
   WritingMode wm = aReflowInput.GetWritingMode();
   const nsStylePosition* stylePos = StylePosition();
   const auto& bsize = stylePos->BSize(wm);
+  const auto positionProperty = StyleDisplay()->mPosition;
   if (bsize.HasPercent() ||
       (StyleDisplay()->IsAbsolutelyPositionedStyle() &&
        (bsize.IsAuto() || !bsize.IsLengthPercentage()) &&
-       !stylePos->mOffset.Get(LogicalSide::BStart, wm).MaybeAuto() &&
-       !stylePos->mOffset.Get(LogicalSide::BEnd, wm).MaybeAuto())) {
+       !stylePos
+            ->GetAnchorResolvedInset(LogicalSide::BStart, wm, positionProperty)
+            ->IsAuto() &&
+       !stylePos
+            ->GetAnchorResolvedInset(LogicalSide::BEnd, wm, positionProperty)
+            ->IsAuto())) {
     AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
   }
 
