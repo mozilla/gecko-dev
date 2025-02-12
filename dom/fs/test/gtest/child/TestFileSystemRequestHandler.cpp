@@ -20,6 +20,7 @@
 #include "mozilla/dom/StorageManager.h"
 #include "mozilla/ipc/FileDescriptorUtils.h"
 #include "mozilla/ipc/IPCCore.h"
+#include "mozilla/net/CookieJarSettings.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIFile.h"
 
@@ -33,6 +34,12 @@ namespace mozilla::dom::fs::test {
 class TestFileSystemRequestHandler : public ::testing::Test {
  protected:
   void SetUp() override {
+    mMockGlobal = GetMockGlobal();
+    mGlobal = mMockGlobal;
+
+    mCookieJarSettings = mozilla::net::CookieJarSettings::Create(
+        mozilla::net::CookieJarSettings::CreateMode::eRegular,
+        /* Should resist fingerprinting */ true);
     mListener = MakeAndAddRef<ExpectResolveCalled>();
 
     mChild = FileSystemChildMetadata("parent"_ns, u"ChildName"_ns);
@@ -92,7 +99,17 @@ class TestFileSystemRequestHandler : public ::testing::Test {
     ASSERT_TRUE(mManager->IsShutdown());
   }
 
-  nsIGlobalObject* mGlobal = GetGlobal();
+  void AllowStorageAccess() {
+    EXPECT_CALL(*mMockGlobal, GetCookieJarSettings())
+        .WillOnce(::testing::Return(&*mCookieJarSettings));
+
+    EXPECT_CALL(*mMockGlobal, GetStorageAccess())
+        .WillOnce(::testing::Return(mozilla::StorageAccess::eAllow));
+  }
+
+  MockGlobalObject* mMockGlobal;
+  nsCOMPtr<nsIGlobalObject> mGlobal;
+
   RefPtr<ExpectResolveCalled> mListener;
 
   FileSystemChildMetadata mChild;
@@ -100,9 +117,12 @@ class TestFileSystemRequestHandler : public ::testing::Test {
   nsString mName;
   RefPtr<TestFileSystemManagerChild> mFileSystemManagerChild;
   RefPtr<FileSystemManager> mManager;
+  RefPtr<nsICookieJarSettings> mCookieJarSettings;
 };
 
 TEST_F(TestFileSystemRequestHandler, isGetRootHandleSuccessful) {
+  AllowStorageAccess();
+
   auto fakeResponse = [](auto&& aResolve, auto&& /* aReject */) {
     EntryId expected = "expected"_ns;
     FileSystemGetHandleResponse response(expected);
@@ -132,6 +152,8 @@ TEST_F(TestFileSystemRequestHandler, isGetRootHandleBlockedAfterShutdown) {
 }
 
 TEST_F(TestFileSystemRequestHandler, isGetDirectoryHandleSuccessful) {
+  AllowStorageAccess();
+
   auto fakeResponse = [](const auto& /* aRequest */, auto&& aResolve,
                          auto&& /* aReject */) {
     EntryId expected = "expected"_ns;
@@ -164,6 +186,8 @@ TEST_F(TestFileSystemRequestHandler, isGetDirectoryHandleBlockedAfterShutdown) {
 }
 
 TEST_F(TestFileSystemRequestHandler, isGetFileHandleSuccessful) {
+  AllowStorageAccess();
+
   auto fakeResponse = [](const auto& /* aRequest */, auto&& aResolve,
                          auto&& /* aReject */) {
     EntryId expected = "expected"_ns;
@@ -195,6 +219,8 @@ TEST_F(TestFileSystemRequestHandler, isGetFileHandleBlockedAfterShutdown) {
 }
 
 TEST_F(TestFileSystemRequestHandler, isGetFileSuccessful) {
+  AllowStorageAccess();
+
   auto fakeResponse = [](const auto& /* aRequest */, auto&& aResolve,
                          auto&& /* aReject */) {
     // We have to create a temporary file
@@ -276,6 +302,8 @@ TEST_F(TestFileSystemRequestHandler, isGetWritableBlockedAfterShutdown) {
 }
 
 TEST_F(TestFileSystemRequestHandler, isGetEntriesSuccessful) {
+  AllowStorageAccess();
+
   auto fakeResponse = [](const auto& /* aRequest */, auto&& aResolve,
                          auto&& /* aReject */) {
     nsTArray<FileSystemEntryMetadata> files;
@@ -320,6 +348,8 @@ TEST_F(TestFileSystemRequestHandler, isGetEntriesBlockedAfterShutdown) {
 }
 
 TEST_F(TestFileSystemRequestHandler, isRemoveEntrySuccessful) {
+  AllowStorageAccess();
+
   auto fakeResponse = [](const auto& /* aRequest */, auto&& aResolve,
                          auto&& /* aReject */) {
     FileSystemRemoveEntryResponse response(mozilla::void_t{});

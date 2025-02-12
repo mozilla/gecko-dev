@@ -34,6 +34,8 @@
 #include "nsISupportsImpl.h"
 #include "nsITimer.h"
 
+class MockGlobalObject;
+
 namespace mozilla::dom::fs {
 
 inline std::ostream& operator<<(std::ostream& aOut,
@@ -44,6 +46,8 @@ inline std::ostream& operator<<(std::ostream& aOut,
 namespace test {
 
 nsIGlobalObject* GetGlobal();
+
+MockGlobalObject* GetMockGlobal();
 
 nsresult GetAsString(const RefPtr<Promise>& aPromise, nsAString& aString);
 
@@ -336,5 +340,65 @@ MOCK_PROMISE_LISTENER(
 
 MOCK_PROMISE_LISTENER(ExpectResolveCalled, mozilla::dom::fs::test::MockExpectMe,
                       mozilla::dom::fs::test::FailOnCall);
+
+#define MOCKGLOBALOBJECT_IID                  \
+  {/* c0a93d91-9c15-49e1-abed-890b3679ac6e */ \
+   0xc0a93d91,                                \
+   0x9c15,                                    \
+   0x49e1,                                    \
+   {0xab, 0xed, 0x89, 0x0b, 0x36, 0x79, 0xac, 0x6e}}
+
+class MockGlobalObject : public nsIGlobalObject, public nsWrapperCache {
+ public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(MockGlobalObject)
+
+  NS_DECLARE_STATIC_IID_ACCESSOR(MOCKGLOBALOBJECT_IID)
+
+  explicit MockGlobalObject(nsCOMPtr<nsIGlobalObject>&& aGlobal)
+      : mGlobal(std::move(aGlobal)) {}
+
+  JSObject* GetGlobalJSObject() override {
+    return mGlobal->GetGlobalJSObject();
+  }
+
+  JSObject* GetGlobalJSObjectPreserveColor() const override {
+    return mGlobal->GetGlobalJSObjectPreserveColor();
+  }
+
+  MOCK_METHOD(JSObject*, WrapObject,
+              (JSContext * aCx, JS::Handle<JSObject*> aGivenProto), (override));
+
+  MOCK_METHOD(nsICookieJarSettings*, GetCookieJarSettings, (), (override));
+
+  MOCK_METHOD(nsIPrincipal*, PrincipalOrNull, (), (const));
+
+  MOCK_METHOD(mozilla::StorageAccess, GetStorageAccess, (), (override));
+
+  JS::loader::ModuleLoaderBase* GetModuleLoader(JSContext* aCx) override {
+    return mGlobal->GetModuleLoader(aCx);
+  }
+
+  bool ShouldResistFingerprinting(RFPTarget aTarget) const override {
+    return mGlobal->ShouldResistFingerprinting(std::move(aTarget));
+  }
+
+  nsISerialEventTarget* SerialEventTarget() const override {
+    return mGlobal->SerialEventTarget();
+  }
+
+  nsresult Dispatch(already_AddRefed<nsIRunnable>&& aRunnable) const override {
+    return mGlobal->Dispatch(std::move(aRunnable));
+  }
+
+  mozilla::OriginTrials Trials() const override { return mGlobal->Trials(); }
+
+ protected:
+  ~MockGlobalObject() = default;
+
+  nsCOMPtr<nsIGlobalObject> mGlobal;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(MockGlobalObject, MOCKGLOBALOBJECT_IID)
 
 #endif  // DOM_FS_TEST_GTEST_FILESYSTEMMOCKS_H_

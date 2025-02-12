@@ -101,8 +101,8 @@ void FileSystemManager::BeginRequest(
 
   nsICookieJarSettings* cookieJarSettings = mGlobal->GetCookieJarSettings();
   nsIPrincipal* unpartitionedPrincipal = mGlobal->PrincipalOrNull();
-  if (NS_WARN_IF(!cookieJarSettings || !unpartitionedPrincipal ||
-                 unpartitionedPrincipal->GetIsInPrivateBrowsing())) {
+  if (NS_WARN_IF(!cookieJarSettings) || NS_WARN_IF(!unpartitionedPrincipal) ||
+      NS_WARN_IF(unpartitionedPrincipal->GetIsInPrivateBrowsing())) {
     // ePartition values can be returned for Private Browsing Mode
     // for third-party iframes, so we also need to check the private browsing
     // in that case which means we need to check the principal.
@@ -117,10 +117,7 @@ void FileSystemManager::BeginRequest(
   const bool allowed = access == StorageAccess::eAllow ||
                        StoragePartitioningEnabled(access, cookieJarSettings);
   if (NS_WARN_IF(!allowed)) {
-    const nsresult err = StorageAccess::ePrivateBrowsing == access
-                             ? NS_ERROR_DOM_NOT_SUPPORTED_ERR
-                             : NS_ERROR_DOM_SECURITY_ERR;
-    aFailure(err);
+    aFailure(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
 
