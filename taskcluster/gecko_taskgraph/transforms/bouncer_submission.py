@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 FTP_PLATFORMS_PER_BOUNCER_PLATFORM = {
     "linux": "linux-i686",
     "linux64": "linux-x86_64",
+    "linux64-aarch64": "linux-aarch64",
     "osx": "mac",
     "win": "win32",
     "win64": "win64",
@@ -56,6 +57,7 @@ CONFIG_PER_BOUNCER_PRODUCT = {
         "file_names": {
             "linux": "{product}-{version}.tar.xz",
             "linux64": "{product}-{version}.tar.xz",
+            "linux64-aarch64": "{product}-{version}.tar.xz",
             "osx": "{pretty_product}%20{version}.dmg",
             "win": "{pretty_product}%20Setup%20{version}.exe",
             "win64": "{pretty_product}%20Setup%20{version}.exe",
