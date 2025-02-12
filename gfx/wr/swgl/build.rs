@@ -116,7 +116,7 @@ fn translate_shader(
     let mut build = cc::Build::new();
     build.no_default_flags(true);
     if let Ok(tool) = build.try_get_compiler() {
-        if is_like_msvc(&tool) {
+        if tool.is_like_msvc() {
             build.flag("/EP");
             if tool.path().to_str().is_some_and(|p| p.contains("clang")) {
                 build.flag("/clang:-undef");
@@ -185,7 +185,7 @@ fn main() {
     build.cpp(true);
 
     if let Ok(tool) = build.try_get_compiler() {
-        if is_like_msvc(&tool) {
+        if tool.is_like_msvc() {
             build
                 .flag("/std:c++17")
                 .flag("/EHs-")
@@ -212,7 +212,7 @@ fn main() {
         // instructions makes things easier on the processor and in places where it matters we can
         // probably explicitly use reciprocal instructions and avoid the refinement step.
         // Also, allow checks for non-finite values which fast-math may disable.
-        if is_like_msvc(&tool) {
+        if tool.is_like_msvc() {
             build
                 .flag("/fp:fast")
                 .flag("-Xclang")
@@ -250,22 +250,5 @@ impl Drop for EnvVarGuard {
         } else {
             std::env::remove_var(key);
         }
-    }
-}
-
-fn is_like_msvc(tool: &cc::Tool) -> bool {
-    tool.is_like_msvc() || {
-        // `mozilla-central` does this funky thing where it replaces `clang-cl.exe` with
-        // `clang.exe --driver-mode=cl`, which isn't considered by `Tool::is_like_msvc`, _but_
-        // it forces the CLI to adhere to a `cl`-like interface and reject naively `clang`-like
-        // arguments.
-        //
-        // See also `config/static-checking-config.mk`:
-        // <https://searchfox.org/mozilla-central/rev/dd8b64a6198ff599a5eb2ca096845ebd6997457f/config/static-checking-config.mk>
-        let starts_with_driver_mode_cl = |arg: &std::ffi::OsStr| {
-            arg.to_str()
-                .is_some_and(|a| a.starts_with("--driver-mode=cl"))
-        };
-        tool.is_like_clang() && tool.to_command().get_args().any(starts_with_driver_mode_cl)
     }
 }
