@@ -90,6 +90,23 @@ static int GmpFrameTypeToWebrtcFrameType(GMPVideoFrameType aIn,
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
+static webrtc::ScalabilityMode GmpCodecParamsToScalabilityMode(
+    const GMPVideoCodec& aParams) {
+  switch (aParams.mTemporalLayerNum) {
+    case 1:
+      return webrtc::ScalabilityMode::kL1T1;
+    case 2:
+      return webrtc::ScalabilityMode::kL1T2;
+    case 3:
+      return webrtc::ScalabilityMode::kL1T3;
+    default:
+      NS_WARNING(nsPrintfCString("Expected 1-3 temporal layers but got %d.\n",
+                                 aParams.mTemporalLayerNum)
+                     .get());
+      MOZ_CRASH("Unexpected number of temporal layers");
+  }
+}
+
 int32_t WebrtcGmpVideoEncoder::InitEncode(
     const webrtc::VideoCodec* aCodecSettings,
     const webrtc::VideoEncoder::Settings& aSettings) {
@@ -561,10 +578,15 @@ void WebrtcGmpVideoEncoder::Encoded(
               mFormatParams.at(cricket::kH264FmtpPacketizationMode) == "1"
           ? webrtc::H264PacketizationMode::NonInterleaved
           : webrtc::H264PacketizationMode::SingleNalUnit;
+  info.codecSpecific.H264.temporal_idx = webrtc::kNoTemporalIdx;
+  info.codecSpecific.H264.idr_frame =
+      ft == webrtc::VideoFrameType::kVideoFrameKey;
 
   if (mCodecParams.mTemporalLayerNum > 1) {
     int temporalIdx = std::max(0, aEncodedFrame->GetTemporalLayerId());
     unit.SetTemporalIndex(temporalIdx);
+    info.codecSpecific.H264.temporal_idx = temporalIdx;
+    info.scalability_mode = GmpCodecParamsToScalabilityMode(mCodecParams);
   }
 
   // Parse QP.
