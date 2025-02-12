@@ -275,6 +275,27 @@ export class ContextMenuChild extends JSWindowActorChild {
           imageName: null,
         });
       }
+
+      case "ContextMenu:GetTextDirective": {
+        return this.contentWindow?.getSelection().rangeCount
+          ? this.contentWindow?.document?.fragmentDirective
+              .createTextDirective(
+                this.contentWindow.getSelection().getRangeAt(0)
+              )
+              .then(textDirective => {
+                if (textDirective != null) {
+                  textDirective =
+                    (this.contentWindow.location.hash.length ? "" : "#") +
+                    `:~:${textDirective}`;
+                  return `${this.contentWindow.location}${textDirective}`;
+                }
+                return null;
+              })
+          : null;
+      }
+      case "ContextMenu:RemoveAllTextFragments": {
+        this.contentWindow?.document?.fragmentDirective.removeAllTextDirectives();
+      }
     }
 
     return undefined;
@@ -856,6 +877,9 @@ export class ContextMenuChild extends JSWindowActorChild {
     context.onTextInput = false;
     context.onVideo = false;
     context.inPDFEditor = false;
+    context.hasTextFragments =
+      !!this.contentWindow?.document?.fragmentDirective.getTextDirectiveRanges()
+        .length;
 
     // Remember the node and its owner document that was clicked
     // This may be modifed before sending to nsContextMenu
