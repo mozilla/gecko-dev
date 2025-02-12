@@ -730,6 +730,7 @@ skip-if = [
   "os == 'win' && os_version == '10.2009'", # Bug 1453375
   "os == 'android'", # Bug 1694645
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",  # Bug 1909908
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",  # Bug 1909908
 ]
 
 ["test_mediarecorder_record_4ch_audiocontext.html"]

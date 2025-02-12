@@ -28,12 +28,16 @@ support-files = [
 skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",  # Bug 1909908
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",  # Bug 1909908
 ]
 tags = "bleedover"
 
 ["browser_glean_first_frame_loaded_time.js"]
 tags = "os_integration"
-skip-if = ["os == 'mac' && os_version == '14.70' && processor == 'x86_64'"]  # Bug 1909908
+skip-if = [
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",  # Bug 1909908
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",  # Bug 1909908
+]
 
 ["browser_glean_media_error.js"]
 
