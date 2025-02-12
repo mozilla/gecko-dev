@@ -14,7 +14,7 @@ import { addTab, closeTab } from "../tabs";
 import { loadSourceText } from "./loadSourceText";
 import { setBreakableLines } from "./breakableLines";
 
-import { prefs, features } from "../../utils/prefs";
+import { prefs } from "../../utils/prefs";
 import { isMinified } from "../../utils/source";
 import { createLocation } from "../../utils/location";
 import {
@@ -39,7 +39,6 @@ import {
   getSourceByActorId,
   getSelectedFrame,
   getCurrentThread,
-  isMapScopesEnabled,
 } from "../../selectors/index";
 
 // This is only used by jest tests (and within this module)
@@ -233,7 +232,6 @@ export function selectLocation(
   location,
   { keepContext = true, highlight = true, scroll = true } = {}
 ) {
-  // eslint-disable-next-line complexity
   return async thunkArgs => {
     const { dispatch, getState, client } = thunkArgs;
 
@@ -334,13 +332,7 @@ export function selectLocation(
     if (
       selectedFrame &&
       (selectedFrame.location.source.id == location.source.id ||
-        selectedFrame.generatedLocation.source.id == location.source.id) &&
-      // Note: The Babel parser worker is only used for in scope lines when CM5
-      // is enabled or when its paused in an original source with scope mapping enabled
-      // as the tooltip preview data relies on it for original variable mapping,
-      (!features.codemirrorNext ||
-        (selectedFrame.location.source.isOriginal &&
-          isMapScopesEnabled(getState())))
+        selectedFrame.generatedLocation.source.id == location.source.id)
     ) {
       // This is done from selectLocation and not from paused and selectFrame actions
       // because we may select either original or generated location while being paused
