@@ -1969,15 +1969,20 @@ html {
 
   #content-tiles-container button.tile-header,
   button.content-tiles-header {
-    border: 1px solid var(--in-content-border-color);
     width: 100%;
     margin: 0;
     padding: 12px 16px;
     display: flex;
     flex-direction: row;
     align-items: center;
+    border-width: 1px;
     border-radius: 0;
-    background-color: var(--in-content-page-background);
+
+    @media (prefers-contrast: no-preference) {
+      background-color: var(--in-content-page-background);
+      border-color: var(--in-content-border-color);
+    }
+
     cursor: pointer;
     // ensures focus ring is fully visible
     outline-offset: -12px;
