@@ -775,7 +775,7 @@ def main():
     with open(args.config, "r") as fh:
         config = json.load(fh)
 
-    topsrcdir = Path(__file__).parent.parent.parent.parent.resolve()
+    topsrcdir = Path(__file__).parent.parent.resolve()
 
     vars_set = []
     for is_debug in (True, False):
