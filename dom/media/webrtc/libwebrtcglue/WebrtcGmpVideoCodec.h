@@ -240,7 +240,8 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
     const uint32_t mHeight;
   };
 
-  int32_t SetRates_g(uint32_t aNewBitRateKbps, Maybe<double> aFrameRate);
+  int32_t SetRates_g(uint32_t aOldBitRateKbps, uint32_t aNewBitRateKbps,
+                     Maybe<double> aFrameRate);
 
   nsCOMPtr<mozIGeckoMediaPluginService> mMPS;
   nsCOMPtr<nsIThread> mGMPThread;
@@ -252,6 +253,7 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   GMPVideoHost* mHost;
   GMPVideoCodec mCodecParams{};
   uint32_t mMaxPayloadSize;
+  bool mNeedKeyframe;
   const webrtc::CodecParameterMap mFormatParams;
   webrtc::H264BitstreamParser mH264BitstreamParser;
   Mutex mCallbackMutex;

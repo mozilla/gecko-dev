@@ -34,6 +34,7 @@ WebrtcGmpVideoEncoder::WebrtcGmpVideoEncoder(
       mConfiguredBitrateKbps(0),
       mHost(nullptr),
       mMaxPayloadSize(0),
+      mNeedKeyframe(true),
       mFormatParams(aFormat.parameters),
       mCallbackMutex("WebrtcGmpVideoEncoder encoded callback mutex"),
       mCallback(nullptr),
@@ -319,6 +320,7 @@ void WebrtcGmpVideoEncoder::Encode_g(
                   mCodecParams.mWidth, mCodecParams.mHeight,
                   aInputImage.width(), aInputImage.height());
 
+    mNeedKeyframe = true;
     RegetEncoderForResolutionChange(aInputImage.width(), aInputImage.height());
     if (!mGMP) {
       // We needed to go async to re-get the encoder. Bail.
@@ -362,18 +364,23 @@ void WebrtcGmpVideoEncoder::Encode_g(
                                    sizeof(GMPCodecSpecificInfo));
 
   nsTArray<GMPVideoFrameType> gmp_frame_types;
-  for (auto it = aFrameTypes.begin(); it != aFrameTypes.end(); ++it) {
+  for (const auto& frameType : aFrameTypes) {
     GMPVideoFrameType ft;
 
-    int32_t ret = WebrtcFrameTypeToGmpFrameType(*it, &ft);
-    if (ret != WEBRTC_VIDEO_CODEC_OK) {
-      GMP_LOG_DEBUG(
-          "GMP Encode: failed to map webrtc frame type to gmp frame type");
-      return;
+    if (mNeedKeyframe) {
+      ft = kGMPKeyFrame;
+    } else {
+      int32_t ret = WebrtcFrameTypeToGmpFrameType(frameType, &ft);
+      if (ret != WEBRTC_VIDEO_CODEC_OK) {
+        GMP_LOG_DEBUG(
+            "GMP Encode: failed to map webrtc frame type to gmp frame type");
+        return;
+      }
     }
 
     gmp_frame_types.AppendElement(ft);
   }
+  mNeedKeyframe = false;
 
   MOZ_RELEASE_ASSERT(mInputImageMap.IsEmpty() ||
                      mInputImageMap.LastElement().rtp_timestamp <
@@ -413,10 +420,11 @@ int32_t WebrtcGmpVideoEncoder::SetRates(
   MOZ_ASSERT(mGMPThread);
   MOZ_ASSERT(!aParameters.bitrate.IsSpatialLayerUsed(1),
              "No simulcast support for H264");
+  auto old = mConfiguredBitrateKbps;
   mConfiguredBitrateKbps = aParameters.bitrate.GetSpatialLayerSum(0) / 1000;
   MOZ_ALWAYS_SUCCEEDS(
-      mGMPThread->Dispatch(NewRunnableMethod<uint32_t, Maybe<double>>(
-          __func__, this, &WebrtcGmpVideoEncoder::SetRates_g,
+      mGMPThread->Dispatch(NewRunnableMethod<uint32_t, uint32_t, Maybe<double>>(
+          __func__, this, &WebrtcGmpVideoEncoder::SetRates_g, old,
           mConfiguredBitrateKbps,
           aParameters.framerate_fps > 0.0 ? Some(aParameters.framerate_fps)
                                           : Nothing())));
@@ -435,12 +443,15 @@ WebrtcVideoEncoder::EncoderInfo WebrtcGmpVideoEncoder::GetEncoderInfo() const {
   return info;
 }
 
-int32_t WebrtcGmpVideoEncoder::SetRates_g(uint32_t aNewBitRateKbps,
+int32_t WebrtcGmpVideoEncoder::SetRates_g(uint32_t aOldBitRateKbps,
+                                          uint32_t aNewBitRateKbps,
                                           Maybe<double> aFrameRate) {
   if (!mGMP) {
     // destroyed via Terminate()
     return WEBRTC_VIDEO_CODEC_ERROR;
   }
+
+  mNeedKeyframe |= (aOldBitRateKbps == 0 && aNewBitRateKbps != 0);
 
   GMPErr err = mGMP->SetRates(
       aNewBitRateKbps, aFrameRate
