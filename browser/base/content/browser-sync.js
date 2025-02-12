@@ -1200,6 +1200,18 @@ var gSync = {
       document,
       "PanelUI-signedin-panel"
     );
+    const emptyProfilesButton = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-empty-profiles-button"
+    );
+    const profilesButton = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-profiles-button"
+    );
+    const profilesSeparator = PanelMultiView.getViewNode(
+      document,
+      "PanelUI-fxa-menu-profiles-separator"
+    );
 
     // Reset UI elements to default state
     cadButtonEl.setAttribute("disabled", true);
@@ -1238,6 +1250,18 @@ var gSync = {
             headerDescription = ctaCopy.headerDescription;
           }
         }
+
+        // Reposition profiles elements
+        emptyProfilesButton.remove();
+        profilesButton.remove();
+        profilesSeparator.remove();
+
+        profilesSeparator.hidden = true;
+
+        signedInContainer.after(profilesSeparator);
+        signedInContainer.after(profilesButton);
+        signedInContainer.after(emptyProfilesButton);
+
         break;
 
       case UIState.STATUS_LOGIN_FAILED:
@@ -1272,6 +1296,18 @@ var gSync = {
           let fxaButton = document.getElementById("fxa-toolbar-menu-button");
           fxaButton?.setAttribute("badge-status", "sync-disabled");
         }
+
+        // Reposition profiles elements
+        emptyProfilesButton.remove();
+        profilesButton.remove();
+        profilesSeparator.remove();
+
+        profilesSeparator.hidden = false;
+
+        fxaMenuAccountButtonEl.after(profilesSeparator);
+        fxaMenuAccountButtonEl.after(profilesButton);
+        fxaMenuAccountButtonEl.after(emptyProfilesButton);
+
         break;
 
       default:

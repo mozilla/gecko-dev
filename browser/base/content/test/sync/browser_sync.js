@@ -3,6 +3,11 @@
 
 "use strict";
 
+Services.scriptloader.loadSubScript(
+  "chrome://mochitests/content/browser/browser/components/profiles/tests/browser/head.js",
+  this
+);
+
 const { FX_RELAY_OAUTH_CLIENT_ID } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccountsCommon.sys.mjs"
 );
@@ -158,6 +163,14 @@ add_task(async function setupForPanelTests() {
 add_task(async function test_ui_state_signedin() {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, "https://example.com/");
 
+  // Setup profiles db
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.profiles.enabled", true]],
+  });
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
+
   const relativeDateAnchor = new Date();
   let state = {
     status: UIState.STATUS_SIGNED_IN,
@@ -203,6 +216,12 @@ add_task(async function test_ui_state_signedin() {
     disabledItems: [],
     hiddenItems: ["PanelUI-fxa-menu-setup-sync-button"],
   });
+
+  await checkProfilesButtons(
+    document.getElementById("fxa-manage-account-button"),
+    true
+  );
+
   checkFxAAvatar("signedin");
   gSync.relativeTimeFormat = origRelativeTimeFormat;
   await closeFxaPanel();
@@ -330,6 +349,14 @@ add_task(async function test_ui_state_panel_open_after_syncing() {
 add_task(async function test_ui_state_unconfigured() {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, "https://example.com/");
 
+  // Setup profiles db
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.profiles.enabled", true]],
+  });
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
+
   let state = {
     status: UIState.STATUS_NOT_CONFIGURED,
   };
@@ -352,6 +379,15 @@ add_task(async function test_ui_state_unconfigured() {
     hideFxAText: false,
   });
   await closeTabAndMainPanel();
+
+  await openFxaPanel();
+
+  await checkProfilesButtons(
+    document.getElementById("PanelUI-signedin-panel"),
+    false
+  );
+
+  await closeFxaPanel();
 });
 
 add_task(async function test_ui_state_signed_in() {
@@ -1025,6 +1061,40 @@ async function checkFxaToolbarButtonPanel({
     const el = document.getElementById(id);
     is(el.getAttribute("hidden"), "true", id + " is hidden");
   }
+}
+
+async function checkProfilesButtons(
+  previousElementSibling,
+  separatorVisible = false
+) {
+  const profilesButton = document.getElementById(
+    "PanelUI-fxa-menu-profiles-button"
+  );
+  const emptyProfilesButton = document.getElementById(
+    "PanelUI-fxa-menu-empty-profiles-button"
+  );
+  const profilesSeparator = document.getElementById(
+    "PanelUI-fxa-menu-profiles-separator"
+  );
+
+  ok(
+    (profilesButton.hidden || emptyProfilesButton.hidden) &&
+      !(profilesButton.hidden && emptyProfilesButton.hidden),
+    "Only one of the profiles button is visible"
+  );
+
+  is(
+    !profilesSeparator.hidden,
+    separatorVisible,
+    "The profile separator is visible"
+  );
+
+  is(
+    previousElementSibling,
+    emptyProfilesButton.previousElementSibling,
+    "The profiles button is displayed after " +
+      emptyProfilesButton.previousElementSibling.id
+  );
 }
 
 async function checkFxABadged() {
