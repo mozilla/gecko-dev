@@ -100,6 +100,14 @@ var gTabsPanel = {
         !PlacesUIUtils.shouldShowTabsFromOtherComputersMenuitem();
     });
 
+    this.allTabsView.addEventListener("ViewShown", () => {
+      if (!gBrowser._tabGroupsEnabled) {
+        this.allTabsView
+          .querySelector(".all-tabs-item[selected]")
+          ?.scrollIntoView({ block: "center" });
+      }
+    });
+
     this.allTabsView.addEventListener("command", event => {
       let { target } = event;
       let { PanelUI } = target.ownerGlobal;
