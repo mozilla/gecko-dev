@@ -16,7 +16,6 @@ from shutil import which
 
 import mozpack.path as mozpath
 import six
-
 from mozbuild.bootstrap import bootstrap_toolchain
 from mozbuild.dirutils import mkdir
 from mozbuild.frontend.sandbox import alphabetical_sorted
