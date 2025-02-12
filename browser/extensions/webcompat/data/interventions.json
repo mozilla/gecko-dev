@@ -1286,6 +1286,10 @@
   "1830739": {
     "label": "Casino sites",
     "bugs": {
+      "1902452": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.eternalslots.com/*"]
+      },
       "1944317": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.captainjackcasino.com/*"]
