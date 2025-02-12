@@ -99,6 +99,21 @@
       let lastButton = document.getElementById("last");
       is(document.activeElement, lastButton, "Focus moves from the MozBoxButton.");
     });
+
+    add_task(async function testMozBoxButtonDisabled() {
+      let button = await renderTemplate();
+      is(button.disabled, false, "MozBoxButton is enabled by default.");
+      is(button.buttonEl.disabled, false, "Inner button element is enabled.");
+
+      button.disabled = true;
+      await button.updateComplete;
+
+      is(
+        button.buttonEl.disabled,
+        true,
+        "Inner button element gets disabled when MozBoxButton is disabled."
+      );
+    });
   </script>
 </head>
 <body>

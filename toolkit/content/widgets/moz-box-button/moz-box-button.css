@@ -29,6 +29,12 @@ button {
     background-color: var(--button-background-color-ghost-active);
     color: var(--button-text-color-ghost-active);
   }
+
+  &:disabled {
+    background-color: var(--button-background-color-ghost-disabled);
+    color: var(--button-text-color-ghost-disabled);
+    opacity: var(--button-opacity-disabled);
+  }
 }
 
 .nav-icon {

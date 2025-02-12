@@ -16,6 +16,7 @@ const NAVIGATION_TYPE_ICONS = {
  * @tagname moz-box-button
  * @property {string} label - Label for the button.
  * @property {string} type - Type of box button, either "subpage" or "external".
+ * @property {boolean} disabled - Whether or not the button is disabled.
  */
 export default class MozBoxButton extends MozLitElement {
   static shadowRootOptions = {
@@ -26,6 +27,7 @@ export default class MozBoxButton extends MozLitElement {
   static properties = {
     label: { type: String, fluent: true },
     type: { type: String },
+    disabled: { type: Boolean },
   };
 
   static queries = {
@@ -36,6 +38,7 @@ export default class MozBoxButton extends MozLitElement {
   constructor() {
     super();
     this.type = "subpage";
+    this.disabled = false;
   }
 
   click() {
@@ -48,7 +51,7 @@ export default class MozBoxButton extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/elements/moz-box-button.css"
       />
-      <button>
+      <button ?disabled=${this.disabled}>
         ${this.label}
         <img
           class="nav-icon"

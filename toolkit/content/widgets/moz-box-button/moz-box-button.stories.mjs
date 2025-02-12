@@ -17,13 +17,23 @@ moz-box-button-label =
   },
 };
 
-const Template = ({ l10nId }) => html`
+const Template = ({ l10nId, disabled }) => html`
   <div style="width: 300px">
-    <moz-box-button data-l10n-id=${l10nId}></moz-box-button>
+    <moz-box-button
+      data-l10n-id=${l10nId}
+      ?disabled=${disabled}
+    ></moz-box-button>
   </div>
 `;
 
 export const Default = Template.bind({});
 Default.args = {
   l10nId: "moz-box-button-label",
+  disabled: false,
+};
+
+export const Disabled = Template.bind({});
+Disabled.args = {
+  ...Default.args,
+  disabled: true,
 };
