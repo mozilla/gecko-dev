@@ -2011,8 +2011,7 @@ linux64-aarch64-shippable/opt:
         script: "mozharness/scripts/fx_desktop_build.py"
         secrets: true
         tooltool-downloads: public
-    run-on-projects: ['mozilla-central']
-    run-on-releases: ['nightly']
+    run-on-projects: ['release']
     fetches:
         toolchain:
             - linux64-clang
