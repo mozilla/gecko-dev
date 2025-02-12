@@ -1,0 +1,15 @@
+<html>
+<head>
+  <script>
+    const getDirectoryAndPost = () => {
+      navigator.storage.getDirectory().then(() => {
+        window.parent.postMessage("ok", document.referrer);
+      }).catch(e => {
+        window.parent.postMessage(e.message, document.referrer);
+      });
+    };
+  </script>
+</head>
+<body onload="getDirectoryAndPost()">
+</body>
+</html>

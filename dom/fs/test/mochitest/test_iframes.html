@@ -1,0 +1,26 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+  <script type="text/javascript">
+    function startTesting() {
+      SimpleTest.waitForExplicitFinish();
+      const checkTestResult = ev => {
+        is(ev.data, "ok", "Is BucketFS available?");
+        SimpleTest.finish();
+      };
+      window.addEventListener("message", checkTestResult);
+      const testUrl =
+          "https://example.org/tests/dom/fs/test/mochitest/bucketFS_getDirectory.html";
+      document.getElementById("getMe").src = testUrl;
+    }
+  </script>
+</head>
+<body onload="startTesting();">
+  <iframe id="getMe"></iframe>
+</body>
+</html>

@@ -11,6 +11,7 @@ TEST_DIRS += [
 ]
 
 MOCHITEST_MANIFESTS += [
+    "mochitest/mochitest-private.toml",
     "mochitest/mochitest.toml",
     "mochitest/worker/mochitest.toml",
 ]

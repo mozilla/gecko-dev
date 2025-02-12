@@ -1,0 +1,20 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+[DEFAULT]
+dupe-manifest = true
+skip-if = ["xorigin"]
+prefs = [
+  "browser.privatebrowsing.autostart=true",
+  "extensions.blocklist.enabled=false",
+]
+
+support-files = [
+  "head.js",
+  "bucketFS_getDirectory.html",
+]
+
+["test_iframes.html"]
+scheme = "https"
+fail-if = ["true"]  # Until PBM support

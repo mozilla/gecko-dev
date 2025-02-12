@@ -4,8 +4,12 @@
 
 [DEFAULT]
 tags = "inc-origin-init"
+dupe-manifest = true
 skip-if = ["xorigin"]
-support-files = ["head.js"]
+support-files = [
+  "head.js",
+  "bucketFS_getDirectory.html",
+]
 
 # Skip all tests if xorigin since we'll fail GetStorage() with ePartitionForeignOrDeny
 
@@ -34,3 +38,7 @@ scheme = "https"
 
 ["test_writableFileStream_worker.html"]
 scheme = "https"
+
+["test_iframes.html"]
+scheme = "https"
+skip-if = ["true"] # Enabled by D234897
