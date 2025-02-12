@@ -683,7 +683,6 @@ class RelayOffered {
           // Relay does not show up as an OAuth client
           if (await this.notifyServerTermsAcceptedAsync(browser)) {
             feature.markAsEnabled();
-            Glean.relayIntegration.enabledOptInPanel.record({ value: flowId });
             fillUsername(await generateUsernameAsync(browser, origin));
           }
         };
@@ -789,9 +788,10 @@ class RelayOffered {
         // Capture the flowId here since async operations might take some time to resolve
         // and by then gFlowId might have another value
         const flowId = gFlowId;
+        Glean.relayIntegration.enabledOptInPanel.record({ value: flowId });
+
         if (await this.notifyServerTermsAcceptedAsync(browser)) {
           feature.markAsEnabled();
-          Glean.relayIntegration.enabledOptInPanel.record({ value: flowId });
           fillUsername(await generateUsernameAsync(browser, origin));
         }
       },
