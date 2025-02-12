@@ -213,7 +213,7 @@ class FetchService final : public nsIObserver {
     SafeRefPtr<InternalResponse> mResponse;
     RefPtr<FetchServicePromises> mPromises;
     FetchArgsType mArgsType;
-    Atomic<bool, Relaxed> mActorDying{false};
+    Atomic<bool> mActorDying{false};
   };
 
   ~FetchService();
