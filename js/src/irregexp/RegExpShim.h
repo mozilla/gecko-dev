@@ -207,7 +207,8 @@ inline constexpr bool IsInRange(T value, U lower_limit, U higher_limit) {
 }
 
 #define LAZY_INSTANCE_INITIALIZER \
-  {}
+  {                               \
+  }
 
 template <typename T>
 class LazyInstanceImpl {
@@ -938,6 +939,9 @@ using DirectHandle = Handle<T>;
 
 template <typename T>
 using IndirectHandle = Handle<T>;
+
+template <typename T>
+using MaybeDirectHandle = MaybeHandle<T>;
 
 // RAII Guard classes
 
