@@ -150,6 +150,7 @@ namespace jit {
   _(DelPropOperationNonStrict, js::DelPropOperation<false>)                    \
   _(DelPropOperationStrict, js::DelPropOperation<true>)                        \
   _(DeleteNameOperation, js::DeleteNameOperation)                              \
+  _(DispatchOffThreadBaselineBatch, js::jit::DispatchOffThreadBaselineBatch)   \
   _(DoBinaryArithFallback, js::jit::DoBinaryArithFallback, 2)                  \
   _(DoBindNameFallback, js::jit::DoBindNameFallback)                           \
   _(DoCallFallback, js::jit::DoCallFallback)                                   \

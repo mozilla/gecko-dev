@@ -5183,6 +5183,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <typename ValueType>
   void storeLocalAllocSite(ValueType value, Register scratch);
 
+  void loadBaselineCompileQueue(Register dest);
+
   void loadJitActivation(Register dest);
 
   void guardSpecificAtom(Register str, JSAtom* atom, Register scratch,

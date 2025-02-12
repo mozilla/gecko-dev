@@ -3688,6 +3688,12 @@ void MacroAssembler::loadJitActivation(Register dest) {
   loadPtr(Address(dest, offsetof(JSContext, activation_)), dest);
 }
 
+void MacroAssembler::loadBaselineCompileQueue(Register dest) {
+  loadPtr(AbsoluteAddress(ContextRealmPtr(runtime())), dest);
+  computeEffectiveAddress(Address(dest, Realm::offsetOfBaselineCompileQueue()),
+                          dest);
+}
+
 void MacroAssembler::guardSpecificAtom(Register str, JSAtom* atom,
                                        Register scratch,
                                        const LiveRegisterSet& volatileRegs,

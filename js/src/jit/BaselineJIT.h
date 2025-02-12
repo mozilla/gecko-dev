@@ -331,6 +331,8 @@ class alignas(uintptr_t) BaselineScript final
 
   uint8_t* nativeCodeForOSREntry(uint32_t pcOffset);
 
+  static uint8_t* OSREntryForFrame(BaselineFrame* frame);
+
   void copyRetAddrEntries(const RetAddrEntry* entries);
   void copyOSREntries(const OSREntry* entries);
   void copyDebugTrapEntries(const DebugTrapEntry* entries);
@@ -460,6 +462,8 @@ enum class BaselineOption : uint8_t {
 };
 
 using BaselineOptions = EnumFlags<BaselineOption>;
+
+bool DispatchOffThreadBaselineBatch(JSContext* cx);
 
 MethodStatus BaselineCompile(JSContext* cx, JSScript* script,
                              BaselineOptions options);

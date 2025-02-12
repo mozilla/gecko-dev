@@ -267,6 +267,89 @@ static bool DispatchOffThreadBaselineCompile(JSContext* cx,
   return true;
 }
 
+bool jit::DispatchOffThreadBaselineBatch(JSContext* cx) {
+  BaselineCompileQueue& queue = cx->realm()->baselineCompileQueue();
+  MOZ_ASSERT(queue.numQueued() > 0);
+
+  auto alloc = cx->make_unique<LifoAlloc>(TempAllocator::PreferredLifoChunkSize,
+                                          js::BackgroundMallocArena);
+  if (!alloc) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  gc::AutoSuppressGC suppressGC(cx);
+
+  BaselineSnapshotList snapshots;
+  auto clearSnapshotList = mozilla::MakeScopeExit([&]() { snapshots.clear(); });
+
+  GlobalLexicalEnvironmentObject* globalLexical =
+      &cx->global()->lexicalEnvironment();
+  JSObject* globalThis = globalLexical->thisObject();
+
+  Rooted<JSScript*> script(cx);
+  while (!queue.isEmpty()) {
+    script = queue.pop();
+    script->jitScript()->clearIsBaselineQueued(script);
+
+    MOZ_ASSERT(cx->realm() == script->realm());
+
+    if (!OffThreadBaselineCompilationAvailable(cx, script)) {
+      BaselineOptions options({BaselineOption::ForceMainThreadCompilation});
+      MethodStatus status = BaselineCompile(cx, script, options);
+      if (status != Method_Compiled) {
+        return false;
+      }
+      continue;
+    }
+
+    bool compileDebugInstrumentation = false;
+    if (!BaselineCompiler::PrepareToCompile(cx, script,
+                                            compileDebugInstrumentation)) {
+      return false;
+    }
+
+    uint32_t baseWarmUpThreshold =
+        OptimizationInfo::baseWarmUpThresholdForScript(cx, script);
+    bool isIonCompileable = IsIonEnabled(cx) && CanIonCompileScript(cx, script);
+
+    MOZ_ASSERT(!script->isDebuggee());
+
+    auto* offThreadSnapshot = alloc->new_<OffThreadBaselineSnapshot>(
+        script, globalLexical, globalThis, baseWarmUpThreshold,
+        isIonCompileable, compileDebugInstrumentation);
+    if (!offThreadSnapshot) {
+      ReportOutOfMemory(cx);
+      return false;
+    }
+    snapshots.insertFront(offThreadSnapshot);
+  }
+
+  if (snapshots.isEmpty()) {
+    return true;
+  }
+
+  CompileRealm* realm = CompileRealm::get(cx->realm());
+  BaselineCompileTask* task = alloc->new_<BaselineCompileTask>(
+      realm, alloc.get(), std::move(snapshots));
+  if (!task) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  task->markScriptsAsCompiling();
+  clearSnapshotList.release();
+
+  AutoLockHelperThreadState lock;
+  if (!StartOffThreadBaselineCompile(task, lock)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  (void)alloc.release();
+
+  return true;
+}
+
 MethodStatus jit::BaselineCompile(JSContext* cx, JSScript* script,
                                   BaselineOptions options) {
   cx->check(script);
@@ -836,6 +919,28 @@ void BaselineScript::computeResumeNativeOffsets(
   mozilla::Span<uint8_t*> nativeOffsets = resumeEntryList();
   std::transform(pcOffsets.begin(), pcOffsets.end(), nativeOffsets.begin(),
                  computeNative);
+}
+
+uint8_t* BaselineScript::OSREntryForFrame(BaselineFrame* frame) {
+  AutoUnsafeCallWithABI unsafe;
+  MOZ_ASSERT(frame->runningInInterpreter());
+
+  uint8_t* entry = nullptr;
+  JSScript* script = frame->script();
+  BaselineScript* baselineScript = script->baselineScript();
+  jsbytecode* pc = frame->interpreterPC();
+  size_t pcOffset = script->pcToOffset(pc);
+
+  if (JSOp(*pc) == JSOp::LoopHead) {
+    MOZ_ASSERT(pc > script->code(),
+               "Prologue vs OSR cases must not be ambiguous");
+    entry = baselineScript->nativeCodeForOSREntry(pcOffset);
+  } else {
+    entry = baselineScript->warmUpCheckPrologueAddr();
+  }
+
+  frame->prepareForBaselineInterpreterToJitOSR();
+  return entry;
 }
 
 void BaselineScript::copyRetAddrEntries(const RetAddrEntry* entries) {

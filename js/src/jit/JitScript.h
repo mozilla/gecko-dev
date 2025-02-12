@@ -505,6 +505,10 @@ class alignas(uintptr_t) JitScript final
   bool isBaselineQueued() const {
     return baselineScript_ == BaselineQueuedScriptPtr;
   }
+  void clearIsBaselineQueued(JSScript* script) {
+    MOZ_ASSERT(isBaselineQueued());
+    setBaselineScriptImpl(script, nullptr);
+  }
   bool isBaselineCompiling() const {
     return baselineScript_ == BaselineCompilingScriptPtr;
   }

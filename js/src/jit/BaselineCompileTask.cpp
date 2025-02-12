@@ -49,6 +49,13 @@ class MOZ_RAII AutoEnterBaselineBackend {
 #endif
 };
 
+void BaselineCompileTask::markScriptsAsCompiling() {
+  for (auto* snapshot : snapshots_) {
+    JSScript* script = snapshot->script();
+    script->jitScript()->setIsBaselineCompiling(script);
+  }
+}
+
 bool OffThreadBaselineSnapshot::compileOffThread(TempAllocator& temp,
                                                  CompileRealm* realm) {
   masm_.emplace(temp, realm);
