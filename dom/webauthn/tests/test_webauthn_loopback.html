@@ -61,7 +61,7 @@ add_task(async function() {
     let clientDataJSON = buffer2string(aCredInfo.response.clientDataJSON);
     let clientData = JSON.parse(clientDataJSON);
     let challengeB64 = bytesToBase64UrlSafe(gCredentialChallenge);
-    let expectedClientDataJSON = '{"type":"webauthn.create","challenge":"'+challengeB64+'","origin":"'+window.location.origin+'"}';
+    let expectedClientDataJSON = '{"type":"webauthn.create","challenge":"'+challengeB64+'","origin":"'+window.location.origin+'","crossOrigin":false}';
     is(clientData.challenge, challengeB64, "Challenge is correct");
     is(clientData.origin, window.location.origin, "Origin is correct");
     is(clientData.type, "webauthn.create", "Type is correct");
