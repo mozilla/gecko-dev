@@ -674,7 +674,7 @@
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="preferences_about">%1$s നെ കുറിച്ച്</string>
     <!-- Preference for settings related to changing the default browser -->
-    <string name="preferences_set_as_default_browser">സ്വതേയുള്ള അന്വേഷിയന്ത്രം ആക്കുക</string>
+    <string name="preferences_set_as_default_browser">തനതായ അന്വേഷിയന്ത്രം ആക്കുക</string>
     <!-- Preference category for advanced settings -->
     <string name="preferences_category_advanced">സങ്കീര്‍ണ്ണമായവ</string>
     <!-- Preference category for privacy and security settings -->

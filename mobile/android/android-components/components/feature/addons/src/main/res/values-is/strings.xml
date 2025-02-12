@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Skoða vafraflipa</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Geyma óendanlega mikið af notanda gögnum</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Geyma óendanlega mikið af notanda gögnum</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Skoða vafranotkun á meðan vafrað er</string>
     <!-- Description for bookmarks permission. -->

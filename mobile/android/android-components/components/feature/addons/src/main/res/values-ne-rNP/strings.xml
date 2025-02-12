@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ब्राउजर ट्याबहरू पहुँच गर्नुहोस्</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">ग्राहक-साइड डाटाको असीमित रकम भण्डार गर्नुहोस्</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ग्राहक-साइड डाटाको असीमित रकम भण्डार गर्नुहोस्</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">नेभिगेसनको बखत ब्राउजर गतिविधि पहुँच गर्नुहोस्</string>
     <!-- Description for bookmarks permission. -->

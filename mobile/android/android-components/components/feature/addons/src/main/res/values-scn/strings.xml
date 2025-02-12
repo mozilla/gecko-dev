@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Accèdiri ê schedi dû navicaturi</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Sarbari na quantità senza lìmiti di dati nnô dispusitivu</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Sarbari na quantità senza lìmiti di dati nnô dispusitivu</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Accèdiri a l\'attività dû navicatri mentri chi l\'usi</string>
     <!-- Description for bookmarks permission. -->

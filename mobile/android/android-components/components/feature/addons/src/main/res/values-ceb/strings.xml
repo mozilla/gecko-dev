@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">i-Access ang mga browser tab</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Pagtipig ug unlimited nga client-side data</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Pagtipig ug unlimited nga client-side data</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">i-Access and kalihokan sa browser samtang nag-navigate</string>
     <!-- Description for bookmarks permission. -->

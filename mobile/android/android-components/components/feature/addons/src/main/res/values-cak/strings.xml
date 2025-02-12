@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Tok pa ri taq ruwi\' okik\'amaya\'l</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Tiyak mek\'isel kajilab\'al taq tzij richin ri qawinaq</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Tiyak mek\'isel kajilab\'al taq tzij richin ri qawinaq</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Nok pa ri rusamaj okik\'amaya\'l toq okinäq pa k\'amaya\'l</string>
     <!-- Description for bookmarks permission. -->

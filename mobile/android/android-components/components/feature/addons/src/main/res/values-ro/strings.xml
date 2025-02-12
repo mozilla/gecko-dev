@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Să acceseze filele browserului</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Să stocheze un volum nelimitat de date pe partea de client</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Să stocheze un volum nelimitat de date pe partea de client</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Să acceseze activitatea browserului în timpul navigării</string>
     <!-- Description for bookmarks permission. -->

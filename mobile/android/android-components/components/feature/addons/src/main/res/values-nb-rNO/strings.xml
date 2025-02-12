@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Få tilgang til faner</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Lagre ubegrenset mengde klientsidedata</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Lagre ubegrenset mengde klientsidedata</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Tilgang til nettleseraktivitet under navigasjon</string>
     <!-- Description for bookmarks permission. -->

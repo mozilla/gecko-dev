@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Käytä selaimen välilehtiä</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Tallenna rajoittamaton määrä tietoja selaimeen</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Tallenna rajoittamaton määrä tietoja selaimeen</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Tarkkaile selaimen toimintaa siirryttäessä sivulta toiselle</string>
     <!-- Description for bookmarks permission. -->

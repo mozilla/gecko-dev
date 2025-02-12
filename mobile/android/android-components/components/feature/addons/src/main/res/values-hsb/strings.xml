@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Mějće přistup k rajtarkam wobhladowaka</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Njewobmjezowanu ličbu klientowych datow składować</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Njewobmjezowanu ličbu klientowych datow składować</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Mějće přistup k aktiwiće wobhladowaka za nawigaciju</string>
     <!-- Description for bookmarks permission. -->

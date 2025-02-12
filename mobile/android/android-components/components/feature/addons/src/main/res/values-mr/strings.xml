@@ -14,7 +14,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ब्राउझरचे टॅब पहा</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">क्लायंट कडे अमर्यादित माहिती ठेवा</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">क्लायंट कडे अमर्यादित माहिती ठेवा</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">संचारण सुरु असताना ब्राउझर कार्य पहा</string>
     <!-- Description for bookmarks permission. -->

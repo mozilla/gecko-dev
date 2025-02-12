@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">גישה ללשוניות</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">אחסון נתונים בלתי מוגבלים של צד לקוח</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">אחסון נתונים בלתי מוגבלים של צד לקוח</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">גישה לפעילות הדפדפן במהלך הניווט</string>
     <!-- Description for bookmarks permission. -->

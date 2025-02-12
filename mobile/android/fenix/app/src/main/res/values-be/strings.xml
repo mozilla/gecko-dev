@@ -183,10 +183,18 @@
     <string name="browser_menu_stop">Спыніць</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Пашырэнні</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Зрабіце %s сваім</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Даведацца больш</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Кіраваць пашырэннямі</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Рэкамендаваныя пашырэнні</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Дадаць %1$s</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Адкрыйце для сябе іншыя пашырэнні</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -245,6 +253,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Уладкаваць рэжым чытання</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Уладкаваць рэжым чытання</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Дадаць</string>
 
@@ -292,6 +302,8 @@
     <string name="browser_menu_turn_off_reader_view">Выключыць рэжым чытання</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">Перакласці старонку…</string>
+    <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+    <string name="browser_menu_webcompat_reporter">Паведаміць пра пашкоджаны сайт…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          The first parameter is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Перакладзена на %1$s</string>
@@ -438,8 +450,17 @@
     <string name="onboarding_add_on_start_browsing_button_2">Пачаць агляданне</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
     <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
     <string name="onboarding_add_on_reviews_label">Водгукі: %1$s</string>
+    <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_title">Аўтаматычна адпраўляць справаздачы аб збоях</string>
+    <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_description">Справаздачы аб збоях дазваляюць нам дыягнаставаць і выпраўляць праблемы з браўзерам. Справаздачы могуць уключаць асабістыя або канфідэнцыяльныя звесткі.</string>
+    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Падрабязней</string>
+    <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Падрабязней</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button">Гатова</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
@@ -859,6 +880,9 @@
     <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Дзяліцца звесткамі пра прадукцыйнасць, выкарыстанне, апаратнае забеспячэнне і налады вашага браўзера з Mozilla, каб дапамагчы ўдасканаліць %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Маркетынгавыя дадзеныя</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Падрабязней пра справаздачы аб збоях</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Даследаванні</string>

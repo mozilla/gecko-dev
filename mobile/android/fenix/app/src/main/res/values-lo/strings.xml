@@ -332,6 +332,10 @@
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
          The first parameter is the label of the report site issue (for example: Report Site issue) -->
     <string name="browser_menu_tools_description_with_translate_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Reader View, Translate, %s, Print, Share, ເປີດແອັບ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_translate_with_report_site_2">ມຸມມອງຜູ້ອ່ານ, ແປພາສາ, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate_without_report_site">ມຸມມອງຜູ້ອ່ານ, ແປ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ບັນທຶກ</string>
@@ -494,6 +498,8 @@
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">ຄວາມເປັນສ່ວນຕົວ Badger</string>
+    <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">ຄົ້ນຫາໂດຍຮູບພາບ</string>
     <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
     <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
@@ -520,6 +526,8 @@
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">ຍົກເລີກ</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
     <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">ຍິນດີຕ້ອນຮັບສູ່ Firefox</string>
+    <!-- Terms of service onboarding page continue button label. -->
+    <string name="onboarding_term_of_service_agree_and_continue_button_label">ເຫັນດີ ແລະ ສືບຕໍ່</string>
     <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
     <string name="onboarding_term_of_service_line_one_2">ໂດຍການດຳເນີນການຕໍ່, ທ່ານເຫັນດີນຳ %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
@@ -531,6 +539,7 @@
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_top_option">ເທິງ</string>
 
+    <string name="onboarding_customize_toolbar_placement_top_content_description">ຮູບພາບຂອງແຖບເຄື່ອງມືເທິງ</string>
     <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
 

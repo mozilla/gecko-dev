@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Pasiekti naršyklės korteles</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Saugoti neribotą kiekį kliento pusės duomenų</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Saugoti neribotą kiekį kliento pusės duomenų</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Pasiekti naršyklės veiklą navigacijos metu</string>
     <!-- Description for bookmarks permission. -->

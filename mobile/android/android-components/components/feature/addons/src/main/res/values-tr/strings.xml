@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Tarayıcı sekmelerine erişme</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">İstemci tarafında sınırsız miktarda veri depolama</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">İstemci tarafında sınırsız miktarda veri depolama</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Gezinti sırasında tarayıcı etkinliğine erişme</string>
     <!-- Description for bookmarks permission. -->

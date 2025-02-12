@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Acedi aes schedis dal navigadôr</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Archiviâ cuantitâts ilimitadis di dâts sul to dispositîf</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Archiviâ cuantitâts ilimitadis di dâts sul to dispositîf</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Acedi ae ativitât dal navigadôr dulinvie la navigazion</string>
     <!-- Description for bookmarks permission. -->

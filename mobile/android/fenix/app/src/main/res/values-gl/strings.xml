@@ -639,9 +639,9 @@
     <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Agora non</string>
 
     <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Seleccione un tema</string>
+    <string name="onboarding_customize_theme_title" tools:ignore="UnusedResources">Selecciona un tema</string>
     <!-- Onboarding sub header for theme selection card, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Vexa a web coa mellor luz.</string>
+    <string name="onboarding_customize_theme_description" tools:ignore="UnusedResources">Mira a web do mellor xeito.</string>
     <!-- Onboarding label for 'Save and start browsing' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_start_button">Garda e comeza a navegar</string>
     <!-- Onboarding theme selection card label for 'skip' button, used by Nimbus experiments. -->
@@ -651,7 +651,7 @@
     <!-- Onboarding theme selection card label for 'light' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_light_option">Claro</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
-    <string name="onboarding_customize_theme_system_option">Sistema automático</string>
+    <string name="onboarding_customize_theme_system_option">Automático do sistema</string>
     <!-- Onboarding theme selection card content description for the main image. -->
     <string name="onboarding_customize_theme_main_image_content_description">Imaxe de cabeceira grande da vista de selección de temas que amosa ferramentas ilustradas para artistas e constructores.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->

@@ -7,7 +7,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Teacht ar chluaisíní an bhrabhsálaí</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Stóráil an oiread sonraí agus is maith leat ar thaobh an chliaint</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Stóráil an oiread sonraí agus is maith leat ar thaobh an chliaint</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Teacht ar ghníomhaíocht an bhrabhsálaí le linn nascleanúna</string>
     <!-- Description for bookmarks permission. -->
