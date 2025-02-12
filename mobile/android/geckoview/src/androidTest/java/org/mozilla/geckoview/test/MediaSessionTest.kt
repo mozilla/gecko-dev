@@ -8,7 +8,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
 import org.junit.After
-import org.junit.Assume.assumeThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -78,9 +77,6 @@ class MediaSessionTest : BaseSessionTest() {
 
     @Test
     fun domMetadataPlayback() {
-        // TODO: needs bug 1700243
-        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
-
         val onActivatedCalled = arrayOf(GeckoResult<Void>())
         val onMetadataCalled = arrayOf(
             GeckoResult<Void>(),
@@ -380,9 +376,6 @@ class MediaSessionTest : BaseSessionTest() {
 
     @Test
     fun defaultMetadataPlayback() {
-        // TODO: needs bug 1700243
-        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
-
         val onActivatedCalled = arrayOf(GeckoResult<Void>())
         val onPlayCalled = arrayOf(
             GeckoResult<Void>(),
@@ -477,9 +470,6 @@ class MediaSessionTest : BaseSessionTest() {
 
     @Test
     fun domMultiSessions() {
-        // TODO: needs bug 1700243
-        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
-
         val onActivatedCalled = arrayOf(
             arrayOf(GeckoResult<Void>()),
             arrayOf(GeckoResult<Void>()),
@@ -822,9 +812,6 @@ class MediaSessionTest : BaseSessionTest() {
 
     @Test
     fun fullscreenVideoElementMetadata() {
-        // TODO: bug 1810736
-        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
-
         sessionRule.setPrefsUntilTestEnd(
             mapOf(
                 "media.autoplay.default" to 0,
@@ -988,9 +975,6 @@ class MediaSessionTest : BaseSessionTest() {
 
     @Test
     fun fullscreenVideoWithActivated() {
-        // TODO: bug 1810736
-        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
-
         sessionRule.setPrefsUntilTestEnd(
             mapOf(
                 "media.autoplay.default" to 0,
@@ -1031,9 +1015,6 @@ class MediaSessionTest : BaseSessionTest() {
 
     @Test
     fun switchingProcess() {
-        // TODO: bug 1810736
-        assumeThat(sessionRule.env.isIsolatedProcess, equalTo(false))
-
         sessionRule.setPrefsUntilTestEnd(
             mapOf(
                 "media.autoplay.default" to 0,
