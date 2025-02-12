@@ -1198,7 +1198,16 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 
     const char* val = getenv("MOZ_CRASHREPORTER");
     if (val && *val && !CrashReporter::IsDummy()) {
-      rv = CrashReporter::SetExceptionHandler(greDir, true);
+      nsCOMPtr<nsIFile> greBinDir;
+      bool persistent = false;
+      rv = dirprovider.GetFile(NS_GRE_BIN_DIR, &persistent,
+                               getter_AddRefs(greBinDir));
+      if (NS_FAILED(rv)) {
+        printf("Could not get the GreBinD directory\n");
+        return 1;
+      }
+
+      rv = CrashReporter::SetExceptionHandler(greBinDir, true);
       if (NS_FAILED(rv)) {
         printf("CrashReporter::SetExceptionHandler failed!\n");
         return 1;
