@@ -1,0 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * www.buzzfeed.com - thanksgiving-foods-showdown-quiz card game is broken
+ * Bug #1931538 - https://bugzilla.mozilla.org/show_bug.cgi?id=1931538
+ *
+ * The cards have an interop issue where Chrome ignores pointer-events on the
+ * back-faces of the cards, but other browsers do not. This CSS fixes it.
+ */
+[class*="isFlipped"] [class*="cardFace"][class*="cardBack"] {
+  pointer-events: none;
+}

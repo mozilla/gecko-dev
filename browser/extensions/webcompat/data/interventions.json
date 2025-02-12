@@ -2656,6 +2656,25 @@
       }
     ]
   },
+  "1931538": {
+    "label": "buzzfeed.com",
+    "bugs": {
+      "1931538": {
+        "issue": "broken-interactive-elements",
+        "matches": [
+          "*://www.buzzfeed.com/trendyelephant793/thanksgiving-foods-showdown-quiz*"
+        ]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1931538-buzzfeed.com-card-game-fix.css"]
+        }
+      }
+    ]
+  },
   "1933811": {
     "label": "indices.circana.com",
     "bugs": {
