@@ -500,11 +500,10 @@ function initPage() {
   // The TRR errors may present options that direct users to settings only available on Firefox Desktop
   if (RPMIsFirefox()) {
     if (isTRROnlyFailure) {
-      document.body.className = "certerror"; // Shows warning icon
-      pageTitleId = "dns-not-found-trr-only-title2";
+      pageTitleId = "neterror-dns-not-found-title";
       document.l10n.setAttributes(docTitle, pageTitleId);
       if (bodyTitle) {
-        bodyTitleId = "dns-not-found-trr-only-title2";
+        bodyTitleId = "dnsNotFound-title";
         document.l10n.setAttributes(bodyTitle, bodyTitleId);
       }
 
