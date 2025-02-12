@@ -788,19 +788,7 @@ function centerOf(element) {
 function hitTest(point) {
   var utils = getHitTestConfig().utils;
   dump("Hit-testing point (" + point.x + ", " + point.y + ")\n");
-  utils.sendMouseEvent(
-    "MozMouseHittest",
-    point.x,
-    point.y,
-    0,
-    0,
-    0,
-    true,
-    0,
-    0,
-    true,
-    true
-  );
+  utils.sendMozMouseHitTestEvent(point.x, point.y);
   var data = utils.getCompositorAPZTestData();
   ok(
     data.hitResults.length >= 1,
