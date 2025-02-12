@@ -615,9 +615,18 @@ dependencies = [
  "goblin 0.8.2",
  "libc",
  "log",
+ "scroll",
+ "thiserror 2.0.9",
+]
+
+[[package]]
+name = "buildid_reader_ffi"
+version = "0.1.0"
+dependencies = [
+ "buildid_reader",
+ "log",
  "nserror",
  "nsstring",
- "scroll",
 ]
 
 [[package]]
@@ -2451,7 +2460,7 @@ dependencies = [
  "binary_http",
  "bitsdownload",
  "bookmark_sync",
- "buildid_reader",
+ "buildid_reader_ffi",
  "cascade_bloom_filter",
  "cert_storage",
  "chardetng_c",
