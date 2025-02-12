@@ -165,6 +165,10 @@ struct GCPolicy<JS::Heap<T>> {
   static bool traceWeak(JSTracer* trc, JS::Heap<T>* thingp) {
     return !*thingp || js::gc::TraceWeakEdge(trc, thingp);
   }
+  static bool needsSweep(JSTracer* trc, const JS::Heap<T>* thingp) {
+    T* thing = const_cast<T*>(thingp->unsafeAddress());
+    return thing && js::gc::EdgeNeedsSweepUnbarrieredSlow(thing);
+  }
 };
 
 // GCPolicy<UniquePtr<T>> forwards the contained pointer to GCPolicy<T>.
