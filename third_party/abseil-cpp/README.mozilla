@@ -78,7 +78,7 @@ hg status -nu | xargs hg add
 
 
 # to regenerate moz.build files
-./mach python python/mozbuild/mozbuild/gn_processor.py \
+./mach python build/gn_processor.py \
   dom/media/webrtc/third_party_build/gn-configs/abseil.json
 hg status -nd | xargs hg rm
 hg status -nu | xargs hg add

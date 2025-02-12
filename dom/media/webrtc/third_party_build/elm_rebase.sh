@@ -273,7 +273,7 @@ for commit in $COMMITS; do
   echo "MODIFIED_BUILD_RELATED_FILE_CNT: $MODIFIED_BUILD_RELATED_FILE_CNT"
   if [ "x$MODIFIED_BUILD_RELATED_FILE_CNT" != "x0" ]; then
     echo "Regenerate build files"
-    ./mach python python/mozbuild/mozbuild/gn_processor.py \
+    ./mach python build/gn_processor.py \
         dom/media/webrtc/third_party_build/gn-configs/webrtc.json || \
     ( echo "$GENERATION_ERROR" ; exit 1 )
 

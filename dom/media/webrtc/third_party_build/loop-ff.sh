@@ -183,7 +183,7 @@ remain for this commit:
     --state-path $STATE_DIR \\
     --target-branch-head $MOZ_TARGET_UPSTREAM_BRANCH_HEAD
   # generate moz.build files (may not be necessary)
-  ./mach python python/mozbuild/mozbuild/gn_processor.py \\
+  ./mach python build/gn_processor.py \\
       $SCRIPT_DIR/gn-configs/webrtc.json
   # commit the updated moz.build files with the appropriate commit msg
   bash $SCRIPT_DIR/commit-build-file-changes.sh
@@ -222,7 +222,7 @@ BUILD.gn files are required.  Commit those changes following the instructions
 in https://wiki.mozilla.org/Media/WebRTC/libwebrtc_Update_Process#Operational_notes
 Then complete these steps:
   # generate moz.build files (may not be necessary)
-  ./mach python python/mozbuild/mozbuild/gn_processor.py \\
+  ./mach python build/gn_processor.py \\
       $SCRIPT_DIR/gn-configs/webrtc.json
   # commit the updated moz.build files with the appropriate commit msg
   bash $SCRIPT_DIR/commit-build-file-changes.sh
@@ -236,7 +236,7 @@ echo_log "Modified .gn, **/BUILD.gn, or **/*.gni files: $MODIFIED_BUILD_RELATED_
 MOZ_BUILD_CHANGE_CNT=0
 if [ "x$MODIFIED_BUILD_RELATED_FILE_CNT" != "x0" ]; then
   echo_log "Regenerate build files"
-  ./mach python python/mozbuild/mozbuild/gn_processor.py \
+  ./mach python build/gn_processor.py \
       $SCRIPT_DIR/gn-configs/webrtc.json 2>&1| tee -a $LOOP_OUTPUT_LOG
 
   MOZ_BUILD_CHANGE_CNT=`hg status third_party/libwebrtc \
