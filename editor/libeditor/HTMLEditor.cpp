@@ -7747,7 +7747,7 @@ nsresult HTMLEditor::OnModifyDocument(const DocumentModifiedEvent& aRunner) {
   // could destroy the editor
   nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
 
-  {
+  if (!StaticPrefs::editor_white_space_normalization_blink_compatible()) {
     // When this is called, there is no toplevel edit sub-action. Then,
     // InsertNodeWithTransaction() or ReplaceTextWithTransaction() will set it.
     // Then, OnEndHandlingTopLevelEditSubActionInternal() will call
@@ -7881,7 +7881,8 @@ void HTMLEditor::DocumentModifiedEvent::MaybeAppendNewInvisibleWhiteSpace(
   // the candidate white-space which becomes invisible.
   // FIXME: This does not work well if a padding `<br>` is removed with its
   // parent.
-  if (!aContentWillBeRemoved || !aContentWillBeRemoved->IsInComposedDoc() ||
+  if (StaticPrefs::editor_white_space_normalization_blink_compatible() ||
+      !aContentWillBeRemoved || !aContentWillBeRemoved->IsInComposedDoc() ||
       !HTMLEditUtils::IsSimplyEditableNode(*aContentWillBeRemoved) ||
       !aContentWillBeRemoved->IsHTMLElement(nsGkAtoms::br)) {
     return;
