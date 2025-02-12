@@ -111,6 +111,8 @@ export const RecipeStatus = Object.freeze({
 });
 
 export class _RemoteSettingsExperimentLoader {
+  static LOCK_ID = "remote-settings-experiment-loader:update";
+
   constructor() {
     // Has the timer been set?
     this._enabled = false;
@@ -198,24 +200,40 @@ export class _RemoteSettingsExperimentLoader {
   /**
    * Get all recipes from remote settings and update enrollments.
    *
-   * @param {string} trigger - What caused the update to occur?
+   * If the RemoteSettingsExperimentLoader is already updating or disabled, this
+   * function will not trigger an update.
+   *
+   * The actual update implementation is behind a WebLock. You can request the
+   * lock `RemoteSettingsExperimentLoader.LOCK_ID` in order to pause updates.
+   *
+   * @param {string} trigger
+   *                 The name of the event that triggered the update.
    * @param {object} options
-   * @param {boolean}   options.forceSync - Force Remote Settings to sync recipe
-   *                                     collection before updating recipes.
+   *                 Additional options. See `#updateImpl` docs for available
+   *                 options.
    */
-  async updateRecipes(trigger, { forceSync = false } = {}) {
+  async updateRecipes(trigger, options) {
     if (this._updating || !this._enabled) {
       return;
     }
 
     this._updating = true;
-    this.manager.optInRecipes = [];
+    await locks.request(this.LOCK_ID, () => this.#updateImpl(trigger, options));
+    this._updating = false;
+  }
 
-    // If recipes have been updated once, replace the promise with a new one
-    // such that we reset the resolved state of it from the previous .updateRecipes call.
-    if (this._hasUpdatedOnce) {
-      this._updatingDeferred = Promise.withResolvers();
-    }
+  /**
+   * Get all recipes from Remote Settings and update enrollments.
+   *
+   * @param {string} trigger
+   *                 The name of the event that triggered the update.
+   * @param {object} options
+   * @param {boolean} options.forceSync
+   *                  Force a Remote Settings client to sync records before
+   *                  updating. Otherwise locally cached records will be used.
+   */
+  async #updateImpl(trigger, { forceSync = false } = {}) {
+    this.manager.optInRecipes = [];
 
     // The targeting context metrics do not work in artifact builds.
     // See-also: https://bugzilla.mozilla.org/show_bug.cgi?id=1936317
@@ -301,7 +319,6 @@ export class _RemoteSettingsExperimentLoader {
 
     Services.obs.notifyObservers(null, "nimbus:enrollments-updated");
 
-    this._updating = false;
     this._hasUpdatedOnce = true;
     this._updatingDeferred.resolve();
 
