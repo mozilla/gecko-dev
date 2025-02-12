@@ -100,12 +100,5 @@ checkbox {
 @media (-moz-platform: linux) {
   checkbox:where([native]) {
     margin: 2px 4px;
-
-    &:focus-visible > .checkbox-label-box {
-      outline: var(--focus-outline);
-    }
-    &:focus-visible > .checkbox-check {
-      outline: none;
-    }
   }
 }
