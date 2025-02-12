@@ -851,6 +851,9 @@ bool ReflowInput::IsInFragmentedContext() const {
 LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
                                                   nsIFrame* aFrame,
                                                   const LogicalSize& aCBSize) {
+  // In relative positioning, anchor functions are always invalid;
+  // anchor-resolved insets should no longer contain any reference to anchor
+  // functions.
   LogicalMargin offsets(aWM);
   const nsStylePosition* position = aFrame->StylePosition();
   const auto positionProperty = aFrame->StyleDisplay()->mPosition;
@@ -1668,13 +1671,19 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     offsets.IStart(cbwm) = 0;
   } else {
     offsets.IStart(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.ISize(cbwm), iStartOffset.AsLengthPercentage());
+        cbSize.ISize(cbwm),
+        ToStylePhysicalSide(
+            cbwm.PhysicalSide(LogicalSide::IStart)),
+        StylePositionProperty::Absolute, iStartOffset);
   }
   if (iEndIsAuto) {
     offsets.IEnd(cbwm) = 0;
   } else {
     offsets.IEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.ISize(cbwm), iEndOffset.AsLengthPercentage());
+        cbSize.ISize(cbwm),
+        ToStylePhysicalSide(
+            cbwm.PhysicalSide(LogicalSide::IEnd)),
+        StylePositionProperty::Absolute, iEndOffset);
   }
 
   if (iStartIsAuto && iEndIsAuto) {
@@ -1691,13 +1700,19 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
     offsets.BStart(cbwm) = 0;
   } else {
     offsets.BStart(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.BSize(cbwm), bStartOffset.AsLengthPercentage());
+        cbSize.BSize(cbwm),
+        ToStylePhysicalSide(
+            cbwm.PhysicalSide(LogicalSide::BStart)),
+        StylePositionProperty::Absolute, bStartOffset);
   }
   if (bEndIsAuto) {
     offsets.BEnd(cbwm) = 0;
   } else {
     offsets.BEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
-        cbSize.BSize(cbwm), bEndOffset.AsLengthPercentage());
+        cbSize.BSize(cbwm),
+        ToStylePhysicalSide(
+            cbwm.PhysicalSide(LogicalSide::BEnd)),
+        StylePositionProperty::Absolute, bEndOffset);
   }
 
   if (bStartIsAuto && bEndIsAuto) {

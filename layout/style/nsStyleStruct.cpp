@@ -1363,21 +1363,6 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
 nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
     Side aSide, StylePositionProperty aPosition) const {
   const auto& inset = mOffset.Get(aSide);
-  const auto side = [&](Side aSide) {
-    switch (aSide) {
-      case eSideTop:
-        return StylePhysicalSide::Top;
-      case eSideBottom:
-        return StylePhysicalSide::Bottom;
-      case eSideLeft:
-        return StylePhysicalSide::Left;
-      case eSideRight:
-        return StylePhysicalSide::Right;
-      default:
-        MOZ_ASSERT_UNREACHABLE("Unhandled side?");
-        return StylePhysicalSide::Top;
-    }
-  };
   switch (inset.tag) {
     case StyleInset::Tag::Auto:
       return AnchorResolvedInset{AnchorResolvedInset::V{InsetAuto{}}};
@@ -1385,25 +1370,31 @@ nsStylePosition::AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
       const auto& lp = inset.AsLengthPercentage();
       if (lp.IsCalc()) {
         const auto& c = lp.AsCalc();
-        if (!c.has_anchor_function) {
-          return AnchorResolvedInset{
-              AnchorResolvedInset::V{LengthPercentageReference{lp}}};
-        }
-        auto resolved = StyleCalcAnchorPositioningFunctionResolution::Invalid();
-        Servo_ResolveAnchorPositioningFunctionInCalc(&c, side(aSide), aPosition,
-                                                     &resolved);
-        if (resolved.IsInvalid()) {
+        float result{};
+        bool percentageUsed{};
+        if (!Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
+                &c, 0.0, ToStylePhysicalSide(aSide), aPosition, &result,
+                &percentageUsed)) {
           return AnchorResolvedInset{AnchorResolvedInset::V{InsetAuto{}}};
         }
-        return AnchorResolvedInset{AnchorResolvedInset::V{resolved.AsValid()}};
+        if (percentageUsed) {
+          // We just resolved to a wrong value, will need to re-resolve - keep
+          // the original data. This ensures that `HasPercent()` calls to it
+          // makes sense as well.
+          return AnchorResolvedInset{AnchorResolvedInset::V{std::cref(lp)}};
+        }
+        // Guaranteed to not contain any percentage value.
+        return AnchorResolvedInset{
+            AnchorResolvedInset::V{StyleLengthPercentage::FromPixels(result)}};
       }
       return AnchorResolvedInset{
           AnchorResolvedInset::V{LengthPercentageReference{lp}}};
     }
     case StyleInset::Tag::AnchorFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
-      Servo_ResolveAnchorFunction(&*inset.AsAnchorFunction(), side(aSide),
-                                  aPosition, &resolved);
+      Servo_ResolveAnchorFunction(&*inset.AsAnchorFunction(),
+                                  ToStylePhysicalSide(aSide), aPosition,
+                                  &resolved);
       if (resolved.IsInvalid()) {
         return AnchorResolvedInset{AnchorResolvedInset::V{InsetAuto{}}};
       }
