@@ -250,11 +250,19 @@ export class _DSCard extends React.PureComponent {
       },
     ];
 
-    this.simpleCardImageSizes = [
+    this.largeCardImageSizes = [
       {
         mediaMatcher: "default",
         width: 265,
         height: 265,
+      },
+    ];
+
+    this.mediumCardImageSizes = [
+      {
+        mediaMatcher: "default",
+        width: 296,
+        height: 148,
       },
     ];
 
@@ -698,8 +706,10 @@ export class _DSCard extends React.PureComponent {
     let sizes = [];
     if (!isMediumRectangle) {
       sizes = this.dsImageSizes;
-      if (sectionsEnabled || layoutsVariantAorB) {
-        sizes = this.simpleCardImageSizes;
+      if (sectionsEnabled) {
+        sizes = this.largeCardImageSizes;
+      } else if (layoutsVariantAorB) {
+        sizes = this.mediumCardImageSizes;
       }
       if (isListCard) {
         sizes = this.listCardImageSizes;
