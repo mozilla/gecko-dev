@@ -7,7 +7,7 @@ Support for running mach python-test tasks (via run-task)
 
 
 from taskgraph.util.schema import Schema
-from voluptuous import Optional, Required
+from voluptuous import Any, Optional, Required
 
 from gecko_taskgraph.transforms.job import configure_taskdesc_for_run, run_job_using
 
@@ -20,6 +20,8 @@ python_test_schema = Schema(
         Required("subsuite"): str,
         # Base work directory used to set up the task.
         Optional("workdir"): str,
+        # Use the specified caches.
+        Optional("use-caches"): Any(bool, [str]),
     }
 )
 
