@@ -77,8 +77,7 @@ interface nsIURIClassifier : nsISupports
   void asyncClassifyLocalWithFeatures(in nsIURI aURI,
                                       in Array<nsIUrlClassifierFeature> aFeatures,
                                       in nsIUrlClassifierFeature_listType aListType,
-                                      in nsIUrlClassifierFeatureCallback aCallback,
-                                      [optional] in boolean aIdlePriority);
+                                      in nsIUrlClassifierFeatureCallback aCallback);
 
   /**
    * Returns a feature named aFeatureName.

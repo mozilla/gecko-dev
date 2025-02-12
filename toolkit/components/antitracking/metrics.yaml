@@ -143,8 +143,7 @@ contentblocking:
       due to the heuristic 'Redirect', 'RedirectTracker' = the storage access
       was granted due to the heuristic 'RedirectTracker'.) Note, StorageGranted
       is used as a baseline measurement, which should be the sum of all other
-      measurements. We also duplicate all data reported into a corresponding
-      *_CT label where the grant is given to a known classified tracker.
+      measurements.
 
       This metric was generated to correspond to the Legacy Telemetry
       categorical histogram STORAGE_ACCESS_GRANTED_COUNT.
@@ -156,19 +155,10 @@ contentblocking:
       - Redirect
       - RedirectTracker
       - Navigation
-      - StorageGranted_CT
-      - StorageAccessAPI_CT
-      - OpenerAfterUI_CT
-      - Opener_CT
-      - Redirect_CT
-      - RedirectTracker_CT
-      - Navigation_CT
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1668199
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1940904
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1668199
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1940904
     notification_emails:
       - privacy-team@mozilla.org
     expires: never

@@ -396,13 +396,6 @@ void FinishAntiTrackingRedirectHeuristic(nsIChannel* aNewChannel,
                    eRedirecttracker)
       .Add();
 
-  RefPtr<nsIURI> oldURI = oldPrincipal->GetURI();
-  StorageAccessGrantTelemetryClassification::MaybeReportTracker(
-      static_cast<uint16_t>(
-          glean::contentblocking::StorageAccessGrantedCountLabel::
-              eRedirecttrackerCt),
-      oldURI);
-
   // We don't care about this promise because the operation is actually sync.
   RefPtr<StorageAccessAPIHelper::ParentAccessGrantPromise> promise =
       StorageAccessAPIHelper::SaveAccessForOriginOnParentProcess(
