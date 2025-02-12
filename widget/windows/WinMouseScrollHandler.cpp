@@ -82,6 +82,9 @@ class MouseScrollHandler::SynthesizingEvent {
                       WPARAM aWParam, LPARAM aLParam,
                       const BYTE (&aKeyStates)[256]);
 
+  void NotifyMessageReceived(nsWindow* aExpectedWindow, UINT msg, WPARAM wParam,
+                             LPARAM lParam);
+
   void NotifyMessageHandlingFinished();
 
   const POINTS& GetCursorPoint() const { return mCursorPoint; }
@@ -224,6 +227,13 @@ bool MouseScrollHandler::ProcessMouseMessage(UINT msg, WPARAM wParam,
   // Find the appropriate nsWindow to handle this message. (This is not
   // necessarily the window to which the message was sent!)
   nsWindow* const destWindow = FindTargetWindow(msg, wParam, lParam);
+
+  // Emit a warning if the received message is unexpected, given the
+  // synthesis-state.
+  if (auto* synth = GetActiveSynthEvent()) {
+    synth->NotifyMessageReceived(destWindow, msg, wParam, lParam);
+  }
+
   if (!destWindow) {
     // Not over our window; return without consuming. (This will not recurse.)
     aResult.mConsumed = false;
@@ -1571,6 +1581,35 @@ nsresult MouseScrollHandler::SynthesizingEvent::Synthesize(
   ::SendMessage(aWnd, aMessage, aWParam, aLParam);
 
   return NS_OK;
+}
+
+void MouseScrollHandler::SynthesizingEvent::NotifyMessageReceived(
+    nsWindow* aWindow, UINT msg, WPARAM wParam, LPARAM lParam) {
+  MOZ_ASSERT(mStatus != NOT_SYNTHESIZING);
+
+  // check that the received message is as expected
+  HWND handle = aWindow ? aWindow->GetWindowHandle() : nullptr;
+  nsWindow* widget [[maybe_unused]] = WinUtils::GetNSWindowPtr(mWnd);
+
+  if (mStatus == SENDING_MESSAGE && aWindow == widget && mWnd == handle &&
+      mMessage == msg && mWParam == wParam && mLParam == lParam) {
+    // all is well; do nothing
+    return;
+  }
+
+  MOZ_LOG(
+      gMouseScrollLog, LogLevel::Info,
+      ("MouseScrollHandler::SynthesizingEvent::NotifyMessageReceived(): "
+       "handle=0x%p, mWnd=0x%p, widget=%p, aWindow=%p, "
+       "aMessage=0x%04X, aWParam=0x%08zX, aLParam=0x%08" PRIXLPTR
+       ", mStatus=%s",
+       handle, mWnd, widget, aWindow, msg, wParam, lParam, GetStatusName()));
+
+  // Reset our state.
+  //
+  // TODO(rkraesig): Is this actually helpful for people debugging issues around
+  // synthetic events?
+  Finish();
 }
 
 void MouseScrollHandler::SynthesizingEvent::NotifyMessageHandlingFinished() {
