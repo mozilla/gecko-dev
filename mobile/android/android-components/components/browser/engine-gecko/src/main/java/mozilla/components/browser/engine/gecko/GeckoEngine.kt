@@ -1341,17 +1341,13 @@ class GeckoEngine(
             get() = runtime.settings.globalPrivacyControl
             set(value) { runtime.settings.setGlobalPrivacyControl(value) }
 
-        override var fingerprintingProtection: Boolean?
+        override var fingerprintingProtection: Boolean
             get() = runtime.settings.fingerprintingProtection
-            set(value) {
-                value?.let { runtime.settings.setFingerprintingProtection(it) }
-            }
+            set(value) { runtime.settings.setFingerprintingProtection(value) }
 
-        override var fingerprintingProtectionPrivateBrowsing: Boolean?
+        override var fingerprintingProtectionPrivateBrowsing: Boolean
             get() = runtime.settings.fingerprintingProtectionPrivateBrowsing
-            set(value) {
-                value?.let { runtime.settings.setFingerprintingProtectionPrivateBrowsing(it) }
-            }
+            set(value) { runtime.settings.setFingerprintingProtectionPrivateBrowsing(value) }
 
         override var fingerprintingProtectionOverrides: String?
             get() = runtime.settings.fingerprintingProtectionOverrides
