@@ -629,7 +629,6 @@ class RegExpParserImpl final {
   ZoneMap<RegExpCapture*, ZoneList<int>*, RegExpCaptureNameLess>*
       named_captures_;
   ZoneList<RegExpBackReference*>* named_back_references_;
-  ZoneList<CharacterRange>* temp_ranges_;
   const CharT* const input_;
   const int input_length_;
   base::uc32 current_;
@@ -1734,7 +1733,7 @@ RegExpCapture* RegExpParserImpl<CharT>::GetCapture(int index) {
   // zero-based.
   const int known_captures =
       is_scanned_for_captures_ ? capture_count_ : captures_started_;
-  DCHECK(index <= known_captures);
+  SBXCHECK(index >= 1 && index <= known_captures);
   if (captures_ == nullptr) {
     captures_ =
         zone()->template New<ZoneList<RegExpCapture*>>(known_captures, zone());
