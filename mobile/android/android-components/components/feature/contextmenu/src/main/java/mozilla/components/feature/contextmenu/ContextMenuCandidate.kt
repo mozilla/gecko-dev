@@ -15,7 +15,7 @@ import androidx.annotation.VisibleForTesting
 import com.google.android.material.snackbar.Snackbar
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.content.DownloadState
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.feature.app.links.AppLinksUseCases
 import mozilla.components.feature.contextmenu.ContextMenuCandidate.Companion.MAX_TITLE_LENGTH
@@ -394,7 +394,7 @@ data class ContextMenuCandidate(
             action = { tab, hitResult ->
                 contextMenuUseCases.injectCopyFromInternet(
                     tab.id,
-                    ShareInternetResourceState(
+                    ShareResourceState.InternetResource(
                         url = hitResult.src,
                         private = tab.content.private,
                         referrerUrl = tab.content.url,
@@ -535,7 +535,7 @@ data class ContextMenuCandidate(
             action = { tab, hitResult ->
                 contextMenuUseCases.injectShareFromInternet(
                     tab.id,
-                    ShareInternetResourceState(
+                    ShareResourceState.InternetResource(
                         url = hitResult.src,
                         private = tab.content.private,
                         referrerUrl = tab.content.url,

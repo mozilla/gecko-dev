@@ -28,7 +28,7 @@ import mozilla.components.browser.state.state.UndoHistoryState
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.FindResultState
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.browser.state.state.extension.WebExtensionPromptRequest
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.browser.state.state.recover.TabState
@@ -1716,16 +1716,16 @@ sealed class DownloadAction : BrowserAction() {
 }
 
 /**
- * [BrowserAction] implementations related to updating the session state of internet resources to be shared.
+ * [BrowserAction] implementations related to updating the session state of internet or local resources to be shared.
  */
-sealed class ShareInternetResourceAction : BrowserAction() {
+sealed class ShareResourceAction : BrowserAction() {
     /**
-     * Starts the sharing process of an Internet resource.
+     * Starts the sharing process of an Internet or local resource.
      */
     data class AddShareAction(
         val tabId: String,
-        val internetResource: ShareInternetResourceState,
-    ) : ShareInternetResourceAction()
+        val resource: ShareResourceState,
+    ) : ShareResourceAction()
 
     /**
      * Previous share request is considered completed.
@@ -1734,7 +1734,7 @@ sealed class ShareInternetResourceAction : BrowserAction() {
      */
     data class ConsumeShareAction(
         val tabId: String,
-    ) : ShareInternetResourceAction()
+    ) : ShareResourceAction()
 }
 
 /**
@@ -1746,7 +1746,7 @@ sealed class CopyInternetResourceAction : BrowserAction() {
      */
     data class AddCopyAction(
         val tabId: String,
-        val internetResource: ShareInternetResourceState,
+        val internetResource: ShareResourceState.InternetResource,
     ) : CopyInternetResourceAction()
 
     /**

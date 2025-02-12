@@ -109,12 +109,11 @@ class ContextTest {
     }
 
     @Test
-    @Config(shadows = [ShadowFileProvider::class])
     fun `shareMedia invokes startActivity`() {
         val context = spy(testContext)
         val argCaptor = argumentCaptor<Intent>()
 
-        val result = context.shareMedia("filePath", "*/*", "subject", "message")
+        val result = context.shareMedia("fakeUri".toUri(), "*/*", "subject", "message")
 
         verify(context).startActivity(argCaptor.capture())
         assertTrue(result)
@@ -131,7 +130,7 @@ class ContextTest {
         assertEquals(ACTION_SEND, shareIntent.action)
 
         @Suppress("DEPRECATION")
-        assertEquals(ShadowFileProvider.FAKE_URI_RESULT, shareIntent.extras!![EXTRA_STREAM])
+        assertEquals("fakeUri".toUri(), shareIntent.extras!![EXTRA_STREAM])
         assertEquals("subject", shareIntent.extras!!.getString(EXTRA_SUBJECT))
         assertEquals("message", shareIntent.extras!!.getString(EXTRA_TEXT))
         assertTrue(shareIntent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
@@ -140,7 +139,6 @@ class ContextTest {
 
     @Suppress("UNREACHABLE_CODE")
     @Test
-    @Config(shadows = [ShadowFileProvider::class])
     fun `shareMedia returns false if the chooser could not be shown`() {
         val context = spy(
             object : FakeContext() {
@@ -150,34 +148,34 @@ class ContextTest {
         )
         doReturn(testContext.resources).`when`(context).resources
 
-        val result = context.shareMedia("filePath", "*/*", "subject", "message")
+        val result = context.shareMedia("fakeUri".toUri(), "*/*", "subject", "message")
 
         assertFalse(result)
     }
 
     @Test
-    @Config(shadows = [ShadowFileProvider::class], sdk = [Build.VERSION_CODES.Q])
+    @Config(sdk = [Build.VERSION_CODES.Q])
     fun `shareMedia will show a thumbnail starting with Android 10`() {
         val context = spy(testContext)
         val argCaptor = argumentCaptor<Intent>()
 
-        val result = context.shareMedia("filePath", "*/*", "subject", "message")
+        val result = context.shareMedia("fakeUri".toUri(), "*/*", "subject", "message")
 
         verify(context).startActivity(argCaptor.capture())
         assertTrue(result)
         // verify all the properties we set for the share Intent
         val chooserIntent = argCaptor.value
         assertEquals(1, chooserIntent.clipData!!.itemCount)
-        assertEquals(ShadowFileProvider.FAKE_URI_RESULT, chooserIntent.clipData!!.getItemAt(0).uri)
+        assertEquals("fakeUri".toUri(), chooserIntent.clipData!!.getItemAt(0).uri)
     }
 
     @Test
-    @Config(shadows = [ShadowFileProvider::class], sdk = [Build.VERSION_CODES.LOLLIPOP, Build.VERSION_CODES.P])
+    @Config(sdk = [Build.VERSION_CODES.LOLLIPOP, Build.VERSION_CODES.P])
     fun `shareMedia will not show a thumbnail prior to Android 10`() {
         val context = spy(testContext)
         val argCaptor = argumentCaptor<Intent>()
 
-        val result = context.shareMedia("filePath", "*/*", "subject", "message")
+        val result = context.shareMedia("fakeUri".toUri(), "*/*", "subject", "message")
 
         verify(context).startActivity(argCaptor.capture())
         assertTrue(result)

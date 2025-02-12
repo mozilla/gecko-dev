@@ -12,7 +12,7 @@ import mozilla.components.browser.state.action.CopyInternetResourceAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_TYPE
@@ -104,7 +104,7 @@ class CopyDownloadFeatureTest {
         val copyFeature =
             spy(CopyDownloadFeature(context, store, "123", mock(), mock(), dispatcher))
         doNothing().`when`(copyFeature).startCopy(any())
-        val download = ShareInternetResourceState(url = "testDownload")
+        val download = ShareResourceState.InternetResource(url = "testDownload")
         val action = CopyInternetResourceAction.AddCopyAction("123", download)
         copyFeature.start()
 
@@ -146,7 +146,7 @@ class CopyDownloadFeatureTest {
                     dispatcher,
                 ),
             )
-        val shareState = ShareInternetResourceState(url = "testUrl", contentType = "contentType")
+        val shareState = ShareResourceState.InternetResource(url = "testUrl", contentType = "contentType")
         val downloadedFile = File("filePath")
         doReturn(downloadedFile).`when`(copyFeature).download(any())
         copyFeature.scope = scope
@@ -165,7 +165,7 @@ class CopyDownloadFeatureTest {
         val responseFromShareState = mock<Response>()
         doReturn(Response.Body(inputStream)).`when`(responseFromShareState).body
         val shareState =
-            ShareInternetResourceState("randomUrl.jpg", response = responseFromShareState)
+            ShareResourceState.InternetResource("randomUrl.jpg", response = responseFromShareState)
         doReturn(Response.SUCCESS).`when`(responseFromShareState).status
         doReturn(MutableHeaders()).`when`(responseFromShareState).headers
 
@@ -185,7 +185,7 @@ class CopyDownloadFeatureTest {
         val responseFromShareState = mock<Response>()
         doReturn(Response.Body(inputStream)).`when`(responseFromShareState).body
         val shareState =
-            ShareInternetResourceState("randomUrl.jpg", response = responseFromShareState)
+            ShareResourceState.InternetResource("randomUrl.jpg", response = responseFromShareState)
         doReturn(500).`when`(responseFromShareState).status
 
         copyFeature.download(shareState)
@@ -199,7 +199,7 @@ class CopyDownloadFeatureTest {
             .`when`(client).fetch(any())
         val copyFeature =
             CopyDownloadFeature(context, mock(), null, mock(), client, dispatcher)
-        val shareState = ShareInternetResourceState("randomUrl")
+        val shareState = ShareResourceState.InternetResource("randomUrl")
 
         val result = copyFeature.download(shareState)
 
@@ -225,7 +225,7 @@ class CopyDownloadFeatureTest {
             .`when`(client).fetch(requestCaptor.capture())
         val copyFeature =
             CopyDownloadFeature(context, mock(), null, mock(), client, dispatcher)
-        val shareState = ShareInternetResourceState("randomUrl.png", private = false)
+        val shareState = ShareResourceState.InternetResource("randomUrl.png", private = false)
 
         copyFeature.download(shareState)
 
@@ -248,7 +248,7 @@ class CopyDownloadFeatureTest {
             .`when`(client).fetch(requestCaptor.capture())
         val copyFeature =
             CopyDownloadFeature(context, mock(), null, mock(), client, dispatcher)
-        val shareState = ShareInternetResourceState("randomUrl.png", private = true)
+        val shareState = ShareResourceState.InternetResource("randomUrl.png", private = true)
 
         copyFeature.download(shareState)
 

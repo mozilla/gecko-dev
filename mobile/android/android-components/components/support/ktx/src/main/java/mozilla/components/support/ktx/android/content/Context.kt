@@ -41,6 +41,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.checkSelfPermission
 import androidx.core.content.FileProvider
 import androidx.core.content.getSystemService
+import androidx.core.net.toUri
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.R
@@ -142,9 +143,42 @@ fun Context.shareMedia(
     contentType: String?,
     subject: String? = null,
     message: String? = null,
-): Boolean {
-    val contentUri = getContentUriForFile(filePath)
+): Boolean = shareMedia(getContentUriForFile(filePath), contentType, subject, message)
 
+/**
+ * Shares a local PDF via [ACTION_SEND] intent.
+ *
+ * @param filePath Path of the PDF file.
+ * @param contentType Content type (MIME type) to indicate the media type of the resource.
+ * @param subject of the intent [EXTRA_SUBJECT]
+ * @param message of the intent [EXTRA_TEXT]
+ *
+ * @return true it is able to share false otherwise.
+ */
+fun Context.shareLocalPdf(
+    filePath: String,
+    contentType: String?,
+    subject: String? = null,
+    message: String? = null,
+): Boolean = shareMedia(filePath.toUri(), contentType, subject, message)
+
+/**
+ * Shares content via [ACTION_SEND] intent.
+ *
+ * @param contentUri URI of the file to share.
+ * @param contentType Content type (MIME type) to indicate the media type of the resource.
+ * @param subject of the intent [EXTRA_SUBJECT]
+ * @param message of the intent [EXTRA_TEXT]
+ *
+ * @return true it is able to share false otherwise.
+ */
+@VisibleForTesting
+internal fun Context.shareMedia(
+    contentUri: Uri,
+    contentType: String?,
+    subject: String? = null,
+    message: String? = null,
+): Boolean {
     val intent = Intent().apply {
         action = ACTION_SEND
         type = contentType ?: contentResolver.getType(contentUri)

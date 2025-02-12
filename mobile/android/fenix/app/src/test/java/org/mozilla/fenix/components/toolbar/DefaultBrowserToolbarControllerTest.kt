@@ -13,14 +13,18 @@ import io.mockk.impl.annotations.MockK
 import io.mockk.impl.annotations.RelaxedMockK
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.verify
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.ContentAction
+import mozilla.components.browser.state.action.ShareResourceAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
@@ -46,6 +50,7 @@ import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.BrowserFragmentDirections
@@ -56,6 +61,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.directionsEq
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.HomeFragment
@@ -491,9 +497,65 @@ class DefaultBrowserToolbarControllerTest {
         }
     }
 
+    @Test
+    fun `GIVEN that the tab is a local PDF WHEN share button is clicked THEN start the shareResource process`() {
+        val store = spyk(
+            BrowserStore(
+                initialState = BrowserState(
+                    tabs = listOf(
+                        createTab("content://pdf.pdf", id = "1"),
+                    ),
+                    selectedTabId = "1",
+                ),
+                middleware = listOf(captureMiddleware),
+            ),
+        )
+
+        val controller = createController(store = store)
+        controller.onShareActionClicked()
+
+        verify {
+            store.dispatch(
+                ShareResourceAction.AddShareAction(
+                    tabId = "1",
+                    ShareResourceState.LocalResource("content://pdf.pdf"),
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN that the tab is an internet resource WHEN share button is clicked THEN navigate to ShareFragment`() {
+        val store = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(
+                    createTab("https://mozilla.com", id = "1"),
+                ),
+                selectedTabId = "1",
+            ),
+            middleware = listOf(captureMiddleware),
+        )
+
+        val controller = createController(store = store)
+        controller.onShareActionClicked()
+
+        verify {
+            navController.navigate(
+                directionsEq(
+                    NavGraphDirections.actionGlobalShareFragment(
+                        sessionId = "1",
+                        data = arrayOf(ShareData(url = "https://mozilla.com", title = "")),
+                        showPage = true,
+                    ),
+                ),
+            )
+        }
+    }
+
     private fun createController(
         activity: HomeActivity = this.activity,
         customTabSessionId: String? = null,
+        store: BrowserStore = this.store,
     ) = DefaultBrowserToolbarController(
         store = store,
         appStore = appStore,

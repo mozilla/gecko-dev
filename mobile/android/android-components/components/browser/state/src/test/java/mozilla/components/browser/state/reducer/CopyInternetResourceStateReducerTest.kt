@@ -8,7 +8,7 @@ import mozilla.components.browser.state.action.CopyInternetResourceAction
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.concept.fetch.Response
 import mozilla.components.support.test.mock
 import org.junit.Assert.assertEquals
@@ -25,7 +25,7 @@ class CopyInternetResourceStateReducerTest {
         val response: Response = mock()
         val action = CopyInternetResourceAction.AddCopyAction(
             "tabId",
-            ShareInternetResourceState("internetResourceUrl", "type", true, response),
+            ShareResourceState.InternetResource("internetResourceUrl", "type", true, response),
         )
 
         assertNull(state.tabs[0].content.copy)
@@ -42,7 +42,7 @@ class CopyInternetResourceStateReducerTest {
     @Test
     fun `reduce - ConsumeCopyAction should remove the CopyInternetResourceState ContentState`() {
         val reducer = CopyInternetResourceStateReducer
-        val shareState: ShareInternetResourceState = mock()
+        val shareState: ShareResourceState.InternetResource = mock()
         val state = BrowserState(
             tabs = listOf(
                 TabSessionState("tabId", ContentState("contentStateUrl", copy = shareState)),

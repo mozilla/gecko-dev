@@ -18,7 +18,7 @@ import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.EngineState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
@@ -1255,7 +1255,7 @@ class ContextMenuCandidateTest {
         val shareUsecase: ContextMenuUseCases.InjectShareInternetResourceUseCase = mock()
         doReturn(shareUsecase).`when`(usecases).injectShareFromInternet
         val shareImage = ContextMenuCandidate.createShareImageCandidate(context, usecases)
-        val shareStateCaptor = argumentCaptor<ShareInternetResourceState>()
+        val shareStateCaptor = argumentCaptor<ShareResourceState.InternetResource>()
         // showFor
 
         assertTrue(
@@ -1330,7 +1330,7 @@ class ContextMenuCandidateTest {
         val copyUseCase: ContextMenuUseCases.InjectCopyInternetResourceUseCase = mock()
         doReturn(copyUseCase).`when`(useCases).injectCopyFromInternet
         val copyImage = ContextMenuCandidate.createCopyImageCandidate(context, useCases)
-        val shareStateCaptor = argumentCaptor<ShareInternetResourceState>()
+        val shareStateCaptor = argumentCaptor<ShareResourceState.InternetResource>()
 
         // showFor
 

@@ -14,7 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Headers
 import mozilla.components.concept.fetch.Headers.Names.CONTENT_TYPE
@@ -77,7 +77,7 @@ abstract class TemporaryDownloadFeature(
 
     @WorkerThread
     @VisibleForTesting
-    internal fun download(internetResource: ShareInternetResourceState): File {
+    internal fun download(internetResource: ShareResourceState.InternetResource): File {
         val request = Request(
             internetResource.url.sanitizeURL(),
             private = internetResource.private,

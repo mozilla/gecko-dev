@@ -14,9 +14,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.CopyInternetResourceAction
-import mozilla.components.browser.state.action.ShareInternetResourceAction
+import mozilla.components.browser.state.action.ShareResourceAction
 import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.fetch.Client
 import mozilla.components.lib.state.ext.flowScoped
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
 /**
  * [LifecycleAwareFeature] implementation for copying online resources.
  *
- * This will intercept only [ShareInternetResourceAction] [BrowserAction]s.
+ * This will intercept only [ShareResourceAction] [BrowserAction]s.
  *
  * Following which it will transparently
  *  - download internet resources while respecting the private mode related to cookies handling
@@ -81,7 +81,7 @@ class CopyDownloadFeature(
     }
 
     @VisibleForTesting
-    internal fun startCopy(internetResource: ShareInternetResourceState) {
+    internal fun startCopy(internetResource: ShareResourceState.InternetResource) {
         val coroutineExceptionHandler = coroutineExceptionHandler("Copy")
 
         scope?.launch(coroutineExceptionHandler) {

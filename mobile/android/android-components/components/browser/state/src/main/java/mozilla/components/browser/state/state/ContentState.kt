@@ -9,7 +9,7 @@ import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.state.content.FindResultState
 import mozilla.components.browser.state.state.content.HistoryState
 import mozilla.components.browser.state.state.content.PermissionHighlightsState
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.concept.engine.HitResult
 import mozilla.components.concept.engine.manifest.WebAppManifest
 import mozilla.components.concept.engine.media.RecordingDevice
@@ -78,8 +78,8 @@ data class ContentState(
     val securityInfo: SecurityInfoState = SecurityInfoState(),
     val icon: Bitmap? = null,
     val download: DownloadState? = null,
-    val share: ShareInternetResourceState? = null,
-    val copy: ShareInternetResourceState? = null,
+    val share: ShareResourceState? = null,
+    val copy: ShareResourceState.InternetResource? = null,
     val hitResult: HitResult? = null,
     val promptRequests: List<PromptRequest> = emptyList(),
     val findResults: List<FindResultState> = emptyList(),

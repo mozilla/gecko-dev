@@ -12,6 +12,7 @@ import mozilla.components.browser.errorpages.ErrorPages
 import mozilla.components.browser.errorpages.ErrorType
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.RequestInterceptor
+import mozilla.components.support.utils.ext.isContentUrl
 import org.mozilla.fenix.GleanMetrics.ErrorPage
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isOnline
@@ -64,7 +65,7 @@ class AppRequestInterceptor(
         ErrorPage.visitedError.record(ErrorPage.VisitedErrorExtra(improvedErrorType.name))
 
         // Record additional telemetry for content URI not found
-        if (uri?.startsWith("content://") == true && improvedErrorType == ErrorType.ERROR_FILE_NOT_FOUND) {
+        if (uri?.isContentUrl() == true && improvedErrorType == ErrorType.ERROR_FILE_NOT_FOUND) {
             ErrorPage.visitedError.record(ErrorPage.VisitedErrorExtra(errorType = "ERROR_CONTENT_URI_NOT_FOUND"))
         }
 

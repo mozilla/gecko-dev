@@ -48,7 +48,7 @@ import mozilla.components.feature.contextmenu.ContextMenuFeature
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
-import mozilla.components.feature.downloads.temporary.ShareDownloadFeature
+import mozilla.components.feature.downloads.temporary.ShareResourceFeature
 import mozilla.components.feature.media.fullscreen.MediaSessionFullscreenFeature
 import mozilla.components.feature.prompts.PromptFeature
 import mozilla.components.feature.prompts.file.AndroidPhotoPicker
@@ -137,7 +137,7 @@ class BrowserFragment :
     private val promptFeature = ViewBoundFeatureWrapper<PromptFeature>()
     private val contextMenuFeature = ViewBoundFeatureWrapper<ContextMenuFeature>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
-    private val shareDownloadFeature = ViewBoundFeatureWrapper<ShareDownloadFeature>()
+    private val shareResourceFeature = ViewBoundFeatureWrapper<ShareResourceFeature>()
     private val windowFeature = ViewBoundFeatureWrapper<WindowFeature>()
     private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
     private val topSitesFeature = ViewBoundFeatureWrapper<TopSitesFeature>()
@@ -408,8 +408,8 @@ class BrowserFragment :
             view,
         )
 
-        shareDownloadFeature.set(
-            ShareDownloadFeature(
+        shareResourceFeature.set(
+            ShareResourceFeature(
                 context = requireContext().applicationContext,
                 httpClient = components.client,
                 store = components.store,

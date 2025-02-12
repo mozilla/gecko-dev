@@ -13,13 +13,14 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import mozilla.components.browser.state.action.BrowserAction
-import mozilla.components.browser.state.action.ShareInternetResourceAction
+import mozilla.components.browser.state.action.ShareResourceAction
 import mozilla.components.browser.state.selector.findTabOrCustomTabOrSelectedTab
-import mozilla.components.browser.state.state.content.ShareInternetResourceState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.fetch.Client
 import mozilla.components.lib.state.ext.flowScoped
 import mozilla.components.support.base.feature.LifecycleAwareFeature
+import mozilla.components.support.ktx.android.content.shareLocalPdf
 import mozilla.components.support.ktx.android.content.shareMedia
 
 /**
@@ -28,18 +29,22 @@ import mozilla.components.support.ktx.android.content.shareMedia
 private const val OPERATION_TIMEOUT_MS: Long = 1000L
 
 /**
- * [LifecycleAwareFeature] implementation for sharing online resources.
+ * [LifecycleAwareFeature] implementation for sharing online and local resources.
  *
- * This will intercept only [ShareInternetResourceAction] [BrowserAction]s.
+ * This will intercept only [ShareResourceAction] [BrowserAction]s.
  *
- * Following which it will transparently
+ * This [ShareResourceFeature] can handle two different cases:
+ * 1) In the case of an online resource, it will transparently
  *  - download internet resources while respecting the private mode related to cookies handling
  *  - temporarily cache the downloaded resources
- *  - automatically open the platform app chooser to share the cached files with other installed Android apps.
- *
+ *  - automatically open the platform app chooser to share the cached files with other installed Android apps
  * with a 1 second timeout to ensure a smooth UX.
  *
- * To finish the process in this small timeframe the feature is recommended to be used only for images.
+ * To finish the process in this small timeframe the feature is recommended to be used only for images,
+ * PDFs, or other small files.
+ *
+ * 2) In the case of a local resource (currently, specifically PDFs):
+ *  - automatically open the platform app chooser to share the local file with other installed Android apps.
  *
  *  @property context Android context used for various platform interactions
  *  @property store a reference to the application's [BrowserStore]
@@ -48,7 +53,7 @@ private const val OPERATION_TIMEOUT_MS: Long = 1000L
  *  @param cleanupCacheCoroutineDispatcher Coroutine dispatcher used for the cleanup of old
  *  cached files. Defaults to IO.
  */
-class ShareDownloadFeature(
+class ShareResourceFeature(
     private val context: Context,
     private val store: BrowserStore,
     private val tabId: String?,
@@ -66,32 +71,44 @@ class ShareDownloadFeature(
                         startSharing(shareState)
 
                         // This is a fire and forget action, not something that we want lingering the tab state.
-                        store.dispatch(ShareInternetResourceAction.ConsumeShareAction(state.id))
+                        store.dispatch(ShareResourceAction.ConsumeShareAction(state.id))
                     }
                 }
         }
     }
 
     @VisibleForTesting
-    internal fun startSharing(internetResource: ShareInternetResourceState) {
+    internal fun startSharing(internetResource: ShareResourceState) {
         val coroutineExceptionHandler = coroutineExceptionHandler("Share")
 
         scope?.launch(coroutineExceptionHandler) {
-            withTimeout(OPERATION_TIMEOUT_MS) {
-                val download = download(internetResource)
-                share(
-                    contentType = internetResource.contentType,
-                    filePath = download.canonicalPath,
-                )
+            when (internetResource) {
+                is ShareResourceState.InternetResource -> {
+                    withTimeout(OPERATION_TIMEOUT_MS) {
+                        val download = download(internetResource)
+                        shareInternetResource(
+                            contentType = internetResource.contentType,
+                            filePath = download.canonicalPath,
+                        )
+                    }
+                }
+                is ShareResourceState.LocalResource ->
+                    shareLocalPdf(internetResource.url, internetResource.contentType)
             }
         }
     }
 
     @VisibleForTesting
-    internal fun share(
+    internal fun shareInternetResource(
         filePath: String,
         contentType: String?,
         subject: String? = null,
         message: String? = null,
     ) = context.shareMedia(filePath, contentType, subject, message)
+
+    @VisibleForTesting
+    internal fun shareLocalPdf(
+        filePath: String,
+        contentType: String?,
+    ) = context.shareLocalPdf(filePath, contentType)
 }

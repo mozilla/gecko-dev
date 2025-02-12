@@ -118,4 +118,11 @@ class DefaultBrowserToolbarInteractorTest {
 
         verify { browserToolbarController.handleMenuButtonClicked(accessPoint) }
     }
+
+    @Test
+    fun onShareButtonClicked() {
+        interactor.onShareActionClicked()
+
+        verify { browserToolbarController.onShareActionClicked() }
+    }
 }

@@ -92,7 +92,7 @@ import mozilla.components.feature.contextmenu.ContextMenuFeature
 import mozilla.components.feature.downloads.DownloadsFeature
 import mozilla.components.feature.downloads.manager.FetchDownloadManager
 import mozilla.components.feature.downloads.temporary.CopyDownloadFeature
-import mozilla.components.feature.downloads.temporary.ShareDownloadFeature
+import mozilla.components.feature.downloads.temporary.ShareResourceFeature
 import mozilla.components.feature.intent.ext.EXTRA_SESSION_ID
 import mozilla.components.feature.media.fullscreen.MediaSessionFullscreenFeature
 import mozilla.components.feature.privatemode.feature.SecureWindowFeature
@@ -295,7 +295,7 @@ abstract class BaseBrowserFragment :
     private val sessionFeature = ViewBoundFeatureWrapper<SessionFeature>()
     private val contextMenuFeature = ViewBoundFeatureWrapper<ContextMenuFeature>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
-    private val shareDownloadsFeature = ViewBoundFeatureWrapper<ShareDownloadFeature>()
+    private val shareResourceFeature = ViewBoundFeatureWrapper<ShareResourceFeature>()
     private val copyDownloadsFeature = ViewBoundFeatureWrapper<CopyDownloadFeature>()
     private val promptsFeature = ViewBoundFeatureWrapper<PromptFeature>()
     private lateinit var autofillBarsIntegration: AutofillBarsIntegration
@@ -745,7 +745,7 @@ abstract class BaseBrowserFragment :
             view = view,
         )
 
-        val shareDownloadFeature = ShareDownloadFeature(
+        val shareResourceFeature = ShareResourceFeature(
             context = context.applicationContext,
             httpClient = context.components.core.client,
             store = store,
@@ -876,8 +876,8 @@ abstract class BaseBrowserFragment :
             context,
         )
 
-        shareDownloadsFeature.set(
-            shareDownloadFeature,
+        this.shareResourceFeature.set(
+            shareResourceFeature,
             owner = this,
             view = view,
         )

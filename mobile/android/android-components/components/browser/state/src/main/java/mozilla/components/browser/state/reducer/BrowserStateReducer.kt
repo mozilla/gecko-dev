@@ -27,7 +27,7 @@ import mozilla.components.browser.state.action.ReaderAction
 import mozilla.components.browser.state.action.RecentlyClosedAction
 import mozilla.components.browser.state.action.RestoreCompleteAction
 import mozilla.components.browser.state.action.SearchAction
-import mozilla.components.browser.state.action.ShareInternetResourceAction
+import mozilla.components.browser.state.action.ShareResourceAction
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.action.TabGroupAction
 import mozilla.components.browser.state.action.TabListAction
@@ -74,7 +74,7 @@ internal object BrowserStateReducer {
             is CrashAction -> CrashReducer.reduce(state, action)
             is LastAccessAction -> LastAccessReducer.reduce(state, action)
             is UndoAction -> UndoReducer.reduce(state, action)
-            is ShareInternetResourceAction -> ShareInternetResourceStateReducer.reduce(state, action)
+            is ShareResourceAction -> ShareResourceStateReducer.reduce(state, action)
             is CopyInternetResourceAction -> CopyInternetResourceStateReducer.reduce(state, action)
             is LocaleAction -> LocaleStateReducer.reduce(state, action)
             is HistoryMetadataAction -> HistoryMetadataReducer.reduce(state, action)
