@@ -259,10 +259,6 @@
       "1728450": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.directv.com/*"]
-      },
-      "1827706": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://*.directv.com.ec/*"]
       }
     },
     "interventions": [
