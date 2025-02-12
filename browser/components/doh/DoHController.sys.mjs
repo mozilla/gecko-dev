@@ -106,10 +106,6 @@ const ROLLOUT_URI_PREF = "doh-rollout.uri";
 const TRR_SELECT_DRY_RUN_RESULT_PREF =
   "doh-rollout.trr-selection.dry-run-result";
 
-const NATIVE_FALLBACK_WARNING_PREF = "network.trr.display_fallback_warning";
-const NATIVE_FALLBACK_WARNING_HEURISTIC_LIST_PREF =
-  "network.trr.fallback_warning_heuristic_list";
-
 const kLinkStatusChangedTopic = "network:link-status-changed";
 const kConnectivityTopic = "network:captive-portal-connectivity-changed";
 const kPrefChangedTopic = "nsPref:changed";
@@ -145,8 +141,6 @@ export const DoHController = {
     Services.obs.addObserver(this, lazy.DoHConfigController.kConfigUpdateTopic);
     lazy.Preferences.observe(NETWORK_TRR_MODE_PREF, this);
     lazy.Preferences.observe(NETWORK_TRR_URI_PREF, this);
-    lazy.Preferences.observe(NATIVE_FALLBACK_WARNING_PREF, this);
-    lazy.Preferences.observe(NATIVE_FALLBACK_WARNING_HEURISTIC_LIST_PREF, this);
 
     if (lazy.DoHConfigController.currentConfig.enabled) {
       // At init time set these heuristics to false if we may run heuristics
@@ -406,34 +400,6 @@ export const DoHController = {
       Glean.networking.dohHeuristicsResult.set(
         lazy.Heuristics.Telemetry.fromResults(results)
       );
-
-      let fallbackHeuristicTripped = undefined;
-      if (lazy.Preferences.get(NATIVE_FALLBACK_WARNING_PREF, false)) {
-        let heuristics = lazy.Preferences.get(
-          NATIVE_FALLBACK_WARNING_HEURISTIC_LIST_PREF,
-          ""
-        ).split(",");
-        for (let [heuristicName, result] of Object.entries(results)) {
-          if (result !== lazy.Heuristics.DISABLE_DOH) {
-            continue;
-          }
-          if (heuristics.includes(heuristicName)) {
-            fallbackHeuristicTripped = heuristicName;
-            break;
-          }
-        }
-      }
-
-      // If none of the fallback heuristics failed, the detection result will be TRR_OK
-      // Otherwise it will be the skip reason for the failed heuristic.
-      let heuristicSkipReason = Ci.nsITRRSkipReason.TRR_OK;
-      if (fallbackHeuristicTripped != undefined) {
-        heuristicSkipReason = lazy.Heuristics.heuristicNameToSkipReason(
-          fallbackHeuristicTripped
-        );
-      }
-      this.setHeuristicResult(heuristicSkipReason);
-
       await this.setState("disabled");
     } else {
       Glean.networking.dohHeuristicsResult.set(lazy.Heuristics.Telemetry.pass);
@@ -667,14 +633,6 @@ export const DoHController = {
       case NETWORK_TRR_MODE_PREF:
         lazy.Preferences.set(DISABLED_PREF, true);
         await this.disableHeuristics("manuallyDisabled");
-        break;
-      case NATIVE_FALLBACK_WARNING_PREF:
-      case NATIVE_FALLBACK_WARNING_HEURISTIC_LIST_PREF:
-        if (this._heuristicsAreEnabled) {
-          await this.runHeuristics("native-fallback-warning-pref-changed");
-        } else {
-          this.setHeuristicResult(Ci.nsITRRSkipReason.TRR_UNSET);
-        }
         break;
     }
   },

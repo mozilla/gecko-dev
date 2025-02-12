@@ -1114,16 +1114,6 @@ void nsHostResolver::ComputeEffectiveTRRMode(nsHostRecord* aRec) {
 
   if ((requestMode == nsIRequest::TRR_DEFAULT_MODE &&
        resolverMode == nsIDNSService::MODE_NATIVEONLY)) {
-    if (StaticPrefs::network_trr_display_fallback_warning()) {
-      TRRSkippedReason heuristicResult =
-          TRRService::Get()->GetHeuristicDetectionResult();
-      if (heuristicResult != TRRSkippedReason::TRR_UNSET &&
-          heuristicResult != TRRSkippedReason::TRR_OK) {
-        aRec->RecordReason(heuristicResult);
-        aRec->mEffectiveTRRMode = nsIRequest::TRR_DISABLED_MODE;
-        return;
-      }
-    }
     aRec->RecordReason(TRRSkippedReason::TRR_MODE_NOT_ENABLED);
     aRec->mEffectiveTRRMode = nsIRequest::TRR_DISABLED_MODE;
     return;
@@ -1217,38 +1207,6 @@ nsresult nsHostResolver::NameLookup(nsHostRecord* rec,
     RefPtr<AddrHostRecord> addrRec = do_QueryObject(rec);
     MOZ_ASSERT_IF(addrRec, addrRec->mResolverType == DNSResolverType::Native);
 #endif
-
-    // We did not lookup via TRR - don't fallback to native if the
-    // network.trr.display_fallback_warning pref is set and either
-    // 1. we are in TRR first mode and confirmation failed
-    // 2. the record has trr_disabled and a heuristic skip reason
-    if (StaticPrefs::network_trr_display_fallback_warning() &&
-        rec->mEffectiveTRRMode != nsIRequest::TRR_ONLY_MODE) {
-      if ((rec->mEffectiveTRRMode == nsIRequest::TRR_FIRST_MODE &&
-           rec->mTRRSkippedReason == TRRSkippedReason::TRR_NOT_CONFIRMED) ||
-          (rec->mEffectiveTRRMode == nsIRequest::TRR_DISABLED_MODE &&
-           rec->mTRRSkippedReason >=
-               nsITRRSkipReason::TRR_HEURISTIC_TRIPPED_GOOGLE_SAFESEARCH &&
-           rec->mTRRSkippedReason <=
-               nsITRRSkipReason::TRR_HEURISTIC_TRIPPED_NRPT)) {
-        LOG((
-            "NameLookup: ResolveHostComplete with status NS_ERROR_UNKNOWN_HOST "
-            "for: %s effectiveTRRmode: "
-            "%d SkippedReason: %d",
-            rec->host.get(),
-            static_cast<nsIRequest::TRRMode>(rec->mEffectiveTRRMode),
-            static_cast<int32_t>(rec->mTRRSkippedReason)));
-
-        mozilla::LinkedList<RefPtr<nsResolveHostCallback>> cbs =
-            std::move(rec->mCallbacks);
-        for (nsResolveHostCallback* c = cbs.getFirst(); c;
-             c = c->removeAndGetNext()) {
-          c->OnResolveHostComplete(this, rec, NS_ERROR_UNKNOWN_HOST);
-        }
-
-        return NS_OK;
-      }
-    }
 
     rv = NativeLookup(rec, aLock);
   }

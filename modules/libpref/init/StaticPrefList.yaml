@@ -14223,18 +14223,6 @@
   value: "https://firefox-source-docs.mozilla.org/networking/dns/trr-skip-reasons.html#"
   mirror: never
 
-# If true, display a warning before fallback to native
-- name: network.trr.display_fallback_warning
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
-# Heuristics in this list will trigger the fallback to native warning
-- name: network.trr.fallback_warning_heuristic_list
-  type: String
-  value: "canary"
-  mirror: never
-
 # Use Oblivious HTTP when making TRR requests.
 - name: network.trr.use_ohttp
   type: RelaxedAtomicBool
