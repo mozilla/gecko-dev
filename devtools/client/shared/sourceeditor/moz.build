@@ -13,6 +13,7 @@ DevToolsModules(
     "css-autocompleter.js",
     "editor-commands-controller.js",
     "editor.js",
+    "scope-utils.js",
     "wasm.js",
 )
 
