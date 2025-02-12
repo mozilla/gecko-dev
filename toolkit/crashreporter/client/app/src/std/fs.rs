@@ -360,15 +360,14 @@ impl File {
         MockFS.get(|files| {
             let name = path.file_name().expect("invalid path");
             files.parent_dir(path, move |d| {
-                if !d.contains_key(name) {
-                    d.insert(
-                        name.to_owned(),
-                        MockFSItem {
-                            content: MockFSContent::File(Ok(Default::default())),
-                            modified: super::time::SystemTime::now().0,
-                        },
-                    );
-                }
+                d.remove(name);
+                d.insert(
+                    name.to_owned(),
+                    MockFSItem {
+                        content: MockFSContent::File(Ok(Default::default())),
+                        modified: super::time::SystemTime::now().0,
+                    },
+                );
             })
         })?;
         Self::open(path)
