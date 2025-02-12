@@ -2772,6 +2772,21 @@
       }
     ]
   },
+  "1935968": {
+    "label": "cfspart-idp.impots.gouv.fr",
+    "bugs": {
+      "1935968": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://cfspart-idp.impots.gouv.fr/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
   "1941530": {
     "label": "climate.rutgers.edu",
     "bugs": {
