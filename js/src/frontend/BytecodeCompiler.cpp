@@ -16,9 +16,6 @@
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/CompilationStencil.h"  // ExtensibleCompilationStencil, ExtraBindingInfoVector, CompilationInput, CompilationGCOutput
 #include "frontend/EitherParser.h"
-#ifdef JS_ENABLE_SMOOSH
-#  include "frontend/Frontend2.h"  // Smoosh
-#endif
 #include "frontend/FrontendContext.h"  // AutoReportFrontendContext
 #include "frontend/ModuleSharedContext.h"
 #include "frontend/ParserAtom.h"     // ParserAtomsTable, TaggedParserAtomIndex
@@ -202,48 +199,6 @@ class MOZ_STACK_CLASS ScriptCompiler : public SourceAwareCompiler<Unit> {
   [[nodiscard]] bool popupateExtraBindingsFields(GlobalSharedContext* globalsc);
 };
 
-#ifdef JS_ENABLE_SMOOSH
-[[nodiscard]] static bool TrySmoosh(
-    JSContext* cx, FrontendContext* fc, CompilationInput& input,
-    JS::SourceText<mozilla::Utf8Unit>& srcBuf,
-    UniquePtr<ExtensibleCompilationStencil>& stencilOut) {
-  MOZ_ASSERT(!stencilOut);
-
-  if (!cx->options().trySmoosh()) {
-    return true;
-  }
-
-  JSRuntime* rt = cx->runtime();
-  if (!Smoosh::tryCompileGlobalScriptToExtensibleStencil(cx, fc, input, srcBuf,
-                                                         stencilOut)) {
-    return false;
-  }
-
-  if (cx->options().trackNotImplemented()) {
-    if (stencilOut) {
-      rt->parserWatcherFile.put("1");
-    } else {
-      rt->parserWatcherFile.put("0");
-    }
-  }
-
-  if (!stencilOut) {
-    fprintf(stderr, "Falling back!\n");
-    return true;
-  }
-
-  return stencilOut->source->assignSource(fc, input.options, srcBuf);
-}
-
-[[nodiscard]] static bool TrySmoosh(
-    JSContext* cx, FrontendContext* fc, CompilationInput& input,
-    JS::SourceText<char16_t>& srcBuf,
-    UniquePtr<ExtensibleCompilationStencil>& stencilOut) {
-  MOZ_ASSERT(!stencilOut);
-  return true;
-}
-#endif  // JS_ENABLE_SMOOSH
-
 static already_AddRefed<JS::Stencil> CreateInitialStencilAndDelazifications(
     FrontendContext* fc, CompilationStencil* initial) {
   RefPtr stencils =
@@ -353,20 +308,6 @@ template <typename Unit>
     CompilationStencil** initialStencilOut,
     InitialStencilAndDelazifications** stencilsOut,
     CompilationGCOutput* gcOutput) {
-#ifdef JS_ENABLE_SMOOSH
-  if (maybeCx) {
-    UniquePtr<ExtensibleCompilationStencil> extensibleStencil;
-    if (!TrySmoosh(maybeCx, fc, input, srcBuf, extensibleStencil)) {
-      return false;
-    }
-    if (extensibleStencil) {
-      return ConvertGlobalScriptStencilMaybeInstantiate(
-          maybeCx, fc, input, std::move(*extensibleStencil), initialStencilOut,
-          stencilsOut, gcOutput);
-    }
-  }
-#endif  // JS_ENABLE_SMOOSH
-
   if (input.options.selfHostingMode) {
     if (!input.initForSelfHostingGlobal(fc)) {
       return false;

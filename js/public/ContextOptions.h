@@ -34,10 +34,6 @@ class JS_PUBLIC_API ContextOptions {
         asyncStackCaptureDebuggeeOnly_(false),
         throwOnDebuggeeWouldRun_(true),
         dumpStackOnDebuggeeWouldRun_(false),
-#ifdef JS_ENABLE_SMOOSH
-        trackNotImplemented_(false),
-        trySmoosh_(false),
-#endif
         fuzzing_(false) {
   }
   // clang-format on
@@ -165,24 +161,6 @@ class JS_PUBLIC_API ContextOptions {
     return *this;
   }
 
-#ifdef JS_ENABLE_SMOOSH
-  // Track Number of Not Implemented Calls by writing to a file
-  bool trackNotImplemented() const { return trackNotImplemented_; }
-  ContextOptions& setTrackNotImplemented(bool flag) {
-    trackNotImplemented_ = flag;
-    return *this;
-  }
-
-  // Try compiling SmooshMonkey frontend first, and fallback to C++
-  // implementation when it fails.
-  bool trySmoosh() const { return trySmoosh_; }
-  ContextOptions& setTrySmoosh(bool flag) {
-    trySmoosh_ = flag;
-    return *this;
-  }
-
-#endif  // JS_ENABLE_SMOOSH
-
   bool fuzzing() const { return fuzzing_; }
   // Defined out-of-line because it depends on a compile-time option
   ContextOptions& setFuzzing(bool flag);
@@ -215,10 +193,6 @@ class JS_PUBLIC_API ContextOptions {
   bool asyncStackCaptureDebuggeeOnly_ : 1;
   bool throwOnDebuggeeWouldRun_ : 1;
   bool dumpStackOnDebuggeeWouldRun_ : 1;
-#ifdef JS_ENABLE_SMOOSH
-  bool trackNotImplemented_ : 1;
-  bool trySmoosh_ : 1;
-#endif
   bool fuzzing_ : 1;
 
   // Compile options.

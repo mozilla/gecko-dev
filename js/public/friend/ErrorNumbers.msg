@@ -422,10 +422,6 @@ MSG_DEF(JSMSG_CANT_CONVERT_TO_WIDE,    0, JSEXN_ERR, "can't convert to wide stri
 MSG_DEF(JSMSG_CANT_CONVERT_WIDE_TO_UTF8, 0, JSEXN_ERR, "can't convert wide string to UTF-8")
 MSG_DEF(JSMSG_CANT_CONVERT_UTF8_TO_WIDE, 0, JSEXN_ERR, "can't convert UTF-8 to wide string")
 
-// SmooshMonkey
-MSG_DEF(JSMSG_SMOOSH_COMPILE_ERROR,    1, JSEXN_SYNTAXERR, "{0}")
-MSG_DEF(JSMSG_SMOOSH_UNIMPLEMENTED,    1, JSEXN_INTERNALERR, "{0}")
-
 // asm.js
 MSG_DEF(JSMSG_USE_ASM_TYPE_FAIL,       1, JSEXN_TYPEERR, "asm.js type error: {0}")
 MSG_DEF(JSMSG_USE_ASM_LINK_FAIL,       1, JSEXN_TYPEERR, "asm.js link error: {0}")
