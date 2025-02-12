@@ -13,13 +13,7 @@ class FocusDependenciesPlugin : Plugin<Settings> {
 }
 
 object FocusVersions {
-    object Adjust {
-        const val adjust = "4.38.2"
-        const val install_referrer = "2.2"
-    }
 }
 
 object FocusDependencies {
-    const val adjust = "com.adjust.sdk:adjust-android:${FocusVersions.Adjust.adjust}"
-    const val install_referrer = "com.android.installreferrer:installreferrer:${FocusVersions.Adjust.install_referrer}"
 }

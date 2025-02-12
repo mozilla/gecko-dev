@@ -7,7 +7,6 @@ Specific documentation on a few topics is available at:
 .. toctree::
    :maxdepth: 1
 
-   Adjust Usage <Adjust-Usage.md>
    Architecture Decisions <Architecture-Decisions.md>
    Battery Debugging <Battery-Debugging.md>
    Content blocking <Content-blocking.md>

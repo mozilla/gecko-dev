@@ -9,16 +9,6 @@
          merged manifests, so we need to ignore the warning here. (See #380) -->
     <application
         tools:ignore="AllowBackup">
-
-        <receiver
-            android:name="com.adjust.sdk.AdjustReferrerReceiver"
-            android:exported="true"
-            tools:ignore="ExportedReceiver">
-            <intent-filter>
-                <action android:name="com.android.vending.INSTALL_REFERRER" />
-            </intent-filter>
-        </receiver>
-
     </application>
 
 </manifest>
