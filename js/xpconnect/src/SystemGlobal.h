@@ -19,6 +19,7 @@
 
 #include "js/HeapAPI.h"
 
+class nsICookieJarSettings;
 class XPCWrappedNative;
 
 // The shared system global (used by ChromeUtils.importESModule), and also
@@ -58,6 +59,11 @@ class SystemGlobal final : public nsIGlobalObject,
     return mModuleLoader;
   }
 
+  nsICookieJarSettings* GetCookieJarSettings() override {
+    MOZ_ASSERT(NS_IsMainThread());
+    return mCookieJarSettings;
+  }
+
   mozilla::StorageAccess GetStorageAccess() final {
     MOZ_ASSERT(NS_IsMainThread());
     return mozilla::StorageAccess::eAllow;
@@ -95,6 +101,7 @@ class SystemGlobal final : public nsIGlobalObject,
 
   const nsID mAgentClusterId;
   nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsICookieJarSettings> mCookieJarSettings;
   XPCWrappedNative* mWrapper;
 
   RefPtr<JS::loader::ModuleLoaderBase> mModuleLoader;

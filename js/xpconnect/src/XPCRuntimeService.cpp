@@ -15,6 +15,7 @@
 #include "mozilla/dom/IndexedDatabaseManager.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
+#include "mozilla/net/CookieJarSettings.h"
 
 using namespace mozilla::dom;
 
@@ -24,7 +25,8 @@ NS_IMPL_ISUPPORTS(SystemGlobal, nsIXPCScriptable, nsIGlobalObject, nsIClassInfo,
 SystemGlobal::SystemGlobal()
     : mAgentClusterId(nsID::GenerateUUID()),
       mPrincipal(nsContentUtils::GetSystemPrincipal()),
-      mWrapper(nullptr){}
+      mCookieJarSettings(mozilla::net::CookieJarSettings::Create(mPrincipal)),
+      mWrapper(nullptr) {}
 // XXX(nika): It appears we don't have support for mayresolve hooks in
 // nsIXPCScriptable, and I don't really want to add it because I'd rather just
 // kill nsIXPCScriptable alltogether, so we don't use it here.
@@ -42,8 +44,7 @@ SystemGlobal::SystemGlobal()
    XPC_SCRIPTABLE_DONT_REFLECT_INTERFACE_NAMES)
 #include "xpc_map_end.h" /* This will #undef the above */
 
-          JSObject
-          * SystemGlobal::GetGlobalJSObject() {
+JSObject* SystemGlobal::GetGlobalJSObject() {
   if (mWrapper) {
     return mWrapper->GetFlatJSObject();
   }

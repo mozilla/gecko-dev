@@ -72,16 +72,20 @@ class SandboxPrivate final : public nsIGlobalObject,
     return GetWrapperPreserveColor();
   }
 
+  nsICookieJarSettings* GetCookieJarSettings() override {
+    MOZ_ASSERT(NS_IsMainThread());
+    return mCookieJarSettings;
+  }
+
   mozilla::StorageAccess GetStorageAccess() final {
     MOZ_ASSERT(NS_IsMainThread());
     if (mozilla::StaticPrefs::dom_serviceWorkers_testing_enabled()) {
       // XXX: This is a hack to workaround bug 1732159 and is not intended
       return mozilla::StorageAccess::eAllow;
     }
-    nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
-        mozilla::net::CookieJarSettings::Create(mPrincipal);
+
     return mozilla::StorageAllowedForServiceWorker(mPrincipal,
-                                                   cookieJarSettings);
+                                                   mCookieJarSettings);
   }
 
   void ForgetGlobalObject(JSObject* obj) { ClearWrapper(obj); }
@@ -118,11 +122,16 @@ class SandboxPrivate final : public nsIGlobalObject,
   bool IsXPCSandbox() override { return true; }
 
  private:
-  explicit SandboxPrivate(nsIPrincipal* principal) : mPrincipal(principal) {}
+  explicit SandboxPrivate(nsIPrincipal* principal)
+      : mPrincipal(principal),
+        mCookieJarSettings(
+            mozilla::net::CookieJarSettings::Create(mPrincipal)) {}
 
   virtual ~SandboxPrivate() = default;
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
+
+  nsCOMPtr<nsICookieJarSettings> mCookieJarSettings;
 
   RefPtr<JS::loader::ModuleLoaderBase> mModuleLoader;
 };
