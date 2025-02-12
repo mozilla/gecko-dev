@@ -2035,6 +2035,30 @@ const ContentTiles = props => {
   if (!tiles) {
     return null;
   }
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    // Run once when ContentTiles mounts to prefill activeMultiSelect
+    if (!props.activeMultiSelect) {
+      const newActiveMultiSelect = [];
+      const tilesArray = Array.isArray(tiles) ? tiles : [tiles];
+      tilesArray.forEach(tile => {
+        if (tile.type !== "multiselect" || !tile.data) {
+          return;
+        }
+        tile.data.forEach(({
+          id,
+          defaultValue
+        }) => {
+          if (defaultValue && id) {
+            newActiveMultiSelect.push(id);
+          }
+        });
+      });
+      props.setActiveMultiSelect(newActiveMultiSelect);
+    }
+  }, [tiles]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleTile = (index, tile) => {
     const tileId = `${tile.type}${tile.id ? "_" : ""}${tile.id ?? ""}_header`;
     setExpandedTileIndex(prevIndex => prevIndex === index ? null : index);

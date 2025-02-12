@@ -138,7 +138,7 @@ const MESSAGES = () => [
                   {
                     id: "checkbox-test-1",
                     type: "checkbox",
-                    defaultValue: false,
+                    defaultValue: true,
                     label: {
                       raw: "Test option 1",
                     },
