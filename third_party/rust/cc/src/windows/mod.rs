@@ -6,6 +6,8 @@ pub mod find_tools;
 
 #[cfg(windows)]
 pub(crate) mod windows_sys;
+#[cfg(windows)]
+mod windows_targets;
 
 #[cfg(windows)]
 mod registry;

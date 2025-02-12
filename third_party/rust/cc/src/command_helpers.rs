@@ -1,6 +1,7 @@
 //! Miscellaneous helpers for running commands
 
 use std::{
+    borrow::Cow,
     collections::hash_map,
     ffi::OsString,
     fmt::Display,
@@ -22,15 +23,32 @@ pub(crate) struct CargoOutput {
     pub(crate) metadata: bool,
     pub(crate) warnings: bool,
     pub(crate) debug: bool,
+    pub(crate) output: OutputKind,
     checked_dbg_var: Arc<AtomicBool>,
+}
+
+/// Different strategies for handling compiler output (to stdout)
+#[derive(Clone, Debug)]
+pub(crate) enum OutputKind {
+    /// Forward the output to this process' stdout ([`Stdio::inherit()`])
+    Forward,
+    /// Discard the output ([`Stdio::null()`])
+    Discard,
+    /// Capture the result (`[Stdio::piped()`])
+    Capture,
 }
 
 impl CargoOutput {
     pub(crate) fn new() -> Self {
+        #[allow(clippy::disallowed_methods)]
         Self {
             metadata: true,
             warnings: true,
-            debug: std::env::var_os("CC_ENABLE_DEBUG_OUTPUT").is_some(),
+            output: OutputKind::Forward,
+            debug: match std::env::var_os("CC_ENABLE_DEBUG_OUTPUT") {
+                Some(v) => v != "0" && v != "false" && v != "",
+                None => false,
+            },
             checked_dbg_var: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -64,6 +82,14 @@ impl CargoOutput {
             Stdio::null()
         }
     }
+
+    fn stdio_for_output(&self) -> Stdio {
+        match self.output {
+            OutputKind::Capture => Stdio::piped(),
+            OutputKind::Forward => Stdio::inherit(),
+            OutputKind::Discard => Stdio::null(),
+        }
+    }
 }
 
 pub(crate) struct StderrForwarder {
@@ -72,6 +98,8 @@ pub(crate) struct StderrForwarder {
     is_non_blocking: bool,
     #[cfg(feature = "parallel")]
     bytes_available_failed: bool,
+    /// number of bytes buffered in inner
+    bytes_buffered: usize,
 }
 
 const MIN_BUFFER_CAPACITY: usize = 100;
@@ -83,6 +111,7 @@ impl StderrForwarder {
                 .stderr
                 .take()
                 .map(|stderr| (stderr, Vec::with_capacity(MIN_BUFFER_CAPACITY))),
+            bytes_buffered: 0,
             #[cfg(feature = "parallel")]
             is_non_blocking: false,
             #[cfg(feature = "parallel")]
@@ -90,12 +119,9 @@ impl StderrForwarder {
         }
     }
 
-    #[allow(clippy::uninit_vec)]
     fn forward_available(&mut self) -> bool {
         if let Some((stderr, buffer)) = self.inner.as_mut() {
             loop {
-                let old_data_end = buffer.len();
-
                 // For non-blocking we check to see if there is data available, so we should try to
                 // read at least that much. For blocking, always read at least the minimum amount.
                 #[cfg(not(feature = "parallel"))]
@@ -104,7 +130,7 @@ impl StderrForwarder {
                 let to_reserve = if self.is_non_blocking && !self.bytes_available_failed {
                     match crate::parallel::stderr::bytes_available(stderr) {
                         #[cfg(windows)]
-                        Ok(0) => return false,
+                        Ok(0) => break false,
                         #[cfg(unix)]
                         Ok(0) => {
                             // On Unix, depending on the implementation, we may sometimes get 0 in a
@@ -120,7 +146,7 @@ impl StderrForwarder {
                                 write_warning(&buffer[..]);
                             }
                             self.inner = None;
-                            return true;
+                            break true;
                         }
                         #[cfg(unix)]
                         Err(_) => {
@@ -130,48 +156,54 @@ impl StderrForwarder {
                             self.bytes_available_failed = true;
                             MIN_BUFFER_CAPACITY
                         }
+                        #[cfg(target_family = "wasm")]
+                        Err(_) => panic!("bytes_available should always succeed on wasm"),
                         Ok(bytes_available) => MIN_BUFFER_CAPACITY.max(bytes_available),
                     }
                 } else {
                     MIN_BUFFER_CAPACITY
                 };
-                buffer.reserve(to_reserve);
-
-                // SAFETY: 1) the length is set to the capacity, so we are never using memory beyond
-                // the underlying buffer and 2) we always call `truncate` below to set the len back
-                // to the initialized data.
-                unsafe {
-                    buffer.set_len(buffer.capacity());
+                if self.bytes_buffered + to_reserve > buffer.len() {
+                    buffer.resize(self.bytes_buffered + to_reserve, 0);
                 }
-                match stderr.read(&mut buffer[old_data_end..]) {
+
+                match stderr.read(&mut buffer[self.bytes_buffered..]) {
                     Err(err) if err.kind() == std::io::ErrorKind::WouldBlock => {
                         // No data currently, yield back.
-                        buffer.truncate(old_data_end);
-                        return false;
+                        break false;
                     }
                     Err(err) if err.kind() == std::io::ErrorKind::Interrupted => {
                         // Interrupted, try again.
-                        buffer.truncate(old_data_end);
+                        continue;
                     }
-                    Ok(0) | Err(_) => {
-                        // End of stream: flush remaining data and bail.
-                        if old_data_end > 0 {
-                            write_warning(&buffer[..old_data_end]);
-                        }
-                        self.inner = None;
-                        return true;
-                    }
-                    Ok(bytes_read) => {
-                        buffer.truncate(old_data_end + bytes_read);
+                    Ok(bytes_read) if bytes_read != 0 => {
+                        self.bytes_buffered += bytes_read;
                         let mut consumed = 0;
-                        for line in buffer.split_inclusive(|&b| b == b'\n') {
+                        for line in buffer[..self.bytes_buffered].split_inclusive(|&b| b == b'\n') {
                             // Only forward complete lines, leave the rest in the buffer.
                             if let Some((b'\n', line)) = line.split_last() {
                                 consumed += line.len() + 1;
                                 write_warning(line);
                             }
                         }
-                        buffer.drain(..consumed);
+                        if consumed > 0 && consumed < self.bytes_buffered {
+                            // Remove the consumed bytes from buffer
+                            buffer.copy_within(consumed.., 0);
+                        }
+                        self.bytes_buffered -= consumed;
+                    }
+                    res => {
+                        // End of stream: flush remaining data and bail.
+                        if self.bytes_buffered > 0 {
+                            write_warning(&buffer[..self.bytes_buffered]);
+                        }
+                        if let Err(err) = res {
+                            write_warning(
+                                format!("Failed to read from child stderr: {err}").as_bytes(),
+                            );
+                        }
+                        self.inner.take();
+                        break true;
                     }
                 }
             }
@@ -215,7 +247,7 @@ fn write_warning(line: &[u8]) {
 
 fn wait_on_child(
     cmd: &Command,
-    program: &str,
+    program: &Path,
     child: &mut Child,
     cargo_output: &CargoOutput,
 ) -> Result<(), Error> {
@@ -227,8 +259,10 @@ fn wait_on_child(
             return Err(Error::new(
                 ErrorKind::ToolExecError,
                 format!(
-                    "Failed to wait on spawned child process, command {:?} with args {:?}: {}.",
-                    cmd, program, e
+                    "Failed to wait on spawned child process, command {:?} with args {}: {}.",
+                    cmd,
+                    program.display(),
+                    e
                 ),
             ));
         }
@@ -242,8 +276,10 @@ fn wait_on_child(
         Err(Error::new(
             ErrorKind::ToolExecError,
             format!(
-                "Command {:?} with args {:?} did not execute successfully (status code {}).",
-                cmd, program, status
+                "Command {:?} with args {} did not execute successfully (status code {}).",
+                cmd,
+                program.display(),
+                status
             ),
         ))
     }
@@ -276,7 +312,24 @@ pub(crate) fn objects_from_files(files: &[Arc<Path>], dst: &Path) -> Result<Vec<
         // Hash the dirname. This should prevent conflicts if we have multiple
         // object files with the same filename in different subfolders.
         let mut hasher = hash_map::DefaultHasher::new();
-        hasher.write(dirname.to_string().as_bytes());
+
+        // Make the dirname relative (if possible) to avoid full system paths influencing the sha
+        // and making the output system-dependent
+        //
+        // NOTE: Here we allow using std::env::var (instead of Build::getenv) because
+        // CARGO_* variables always trigger a rebuild when changed
+        #[allow(clippy::disallowed_methods)]
+        let dirname = if let Some(root) = std::env::var_os("CARGO_MANIFEST_DIR") {
+            let root = root.to_string_lossy();
+            Cow::Borrowed(dirname.strip_prefix(&*root).unwrap_or(&dirname))
+        } else {
+            dirname
+        };
+
+        hasher.write(dirname.as_bytes());
+        if let Some(extension) = file.extension() {
+            hasher.write(extension.to_string_lossy().as_bytes());
+        }
         let obj = dst
             .join(format!("{:016x}-{}", hasher.finish(), basename))
             .with_extension("o");
@@ -299,21 +352,26 @@ pub(crate) fn objects_from_files(files: &[Arc<Path>], dst: &Path) -> Result<Vec<
 
 pub(crate) fn run(
     cmd: &mut Command,
-    program: &str,
+    program: impl AsRef<Path>,
     cargo_output: &CargoOutput,
 ) -> Result<(), Error> {
+    let program = program.as_ref();
+
     let mut child = spawn(cmd, program, cargo_output)?;
     wait_on_child(cmd, program, &mut child, cargo_output)
 }
 
 pub(crate) fn run_output(
     cmd: &mut Command,
-    program: &str,
+    program: impl AsRef<Path>,
     cargo_output: &CargoOutput,
 ) -> Result<Vec<u8>, Error> {
-    cmd.stdout(Stdio::piped());
+    let program = program.as_ref();
 
-    let mut child = spawn(cmd, program, cargo_output)?;
+    // We specifically need the output to be captured, so override default
+    let mut captured_cargo_output = cargo_output.clone();
+    captured_cargo_output.output = OutputKind::Capture;
+    let mut child = spawn(cmd, program, &captured_cargo_output)?;
 
     let mut stdout = vec![];
     child
@@ -323,6 +381,7 @@ pub(crate) fn run_output(
         .read_to_end(&mut stdout)
         .unwrap();
 
+    // Don't care about this output, use the normal settings
     wait_on_child(cmd, program, &mut child, cargo_output)?;
 
     Ok(stdout)
@@ -330,7 +389,7 @@ pub(crate) fn run_output(
 
 pub(crate) fn spawn(
     cmd: &mut Command,
-    program: &str,
+    program: &Path,
     cargo_output: &CargoOutput,
 ) -> Result<Child, Error> {
     struct ResetStderr<'cmd>(&'cmd mut Command);
@@ -346,42 +405,55 @@ pub(crate) fn spawn(
     cargo_output.print_debug(&format_args!("running: {:?}", cmd));
 
     let cmd = ResetStderr(cmd);
-    let child = cmd.0.stderr(cargo_output.stdio_for_warnings()).spawn();
+    let child = cmd
+        .0
+        .stderr(cargo_output.stdio_for_warnings())
+        .stdout(cargo_output.stdio_for_output())
+        .spawn();
     match child {
         Ok(child) => Ok(child),
         Err(ref e) if e.kind() == io::ErrorKind::NotFound => {
             let extra = if cfg!(windows) {
-                " (see https://github.com/rust-lang/cc-rs#compile-time-requirements \
+                " (see https://docs.rs/cc/latest/cc/#compile-time-requirements \
 for help)"
             } else {
                 ""
             };
             Err(Error::new(
                 ErrorKind::ToolNotFound,
-                format!("Failed to find tool. Is `{}` installed?{}", program, extra),
+                format!(
+                    "Failed to find tool. Is `{}` installed?{}",
+                    program.display(),
+                    extra
+                ),
             ))
         }
         Err(e) => Err(Error::new(
             ErrorKind::ToolExecError,
             format!(
-                "Command {:?} with args {:?} failed to start: {:?}",
-                cmd.0, program, e
+                "Command {:?} with args {} failed to start: {:?}",
+                cmd.0,
+                program.display(),
+                e
             ),
         )),
     }
 }
 
-pub(crate) fn command_add_output_file(
-    cmd: &mut Command,
-    dst: &Path,
-    cuda: bool,
-    msvc: bool,
-    clang: bool,
-    gnu: bool,
-    is_asm: bool,
-    is_arm: bool,
-) {
-    if msvc && !clang && !gnu && !cuda && !(is_asm && is_arm) {
+pub(crate) struct CmdAddOutputFileArgs {
+    pub(crate) cuda: bool,
+    pub(crate) is_assembler_msvc: bool,
+    pub(crate) msvc: bool,
+    pub(crate) clang: bool,
+    pub(crate) gnu: bool,
+    pub(crate) is_asm: bool,
+    pub(crate) is_arm: bool,
+}
+
+pub(crate) fn command_add_output_file(cmd: &mut Command, dst: &Path, args: CmdAddOutputFileArgs) {
+    if args.is_assembler_msvc
+        || !(!args.msvc || args.clang || args.gnu || args.cuda || (args.is_asm && args.is_arm))
+    {
         let mut s = OsString::from("-Fo");
         s.push(dst);
         cmd.arg(s);
@@ -393,7 +465,7 @@ pub(crate) fn command_add_output_file(
 #[cfg(feature = "parallel")]
 pub(crate) fn try_wait_on_child(
     cmd: &Command,
-    program: &str,
+    program: &Path,
     child: &mut Child,
     stdout: &mut dyn io::Write,
     stderr_forwarder: &mut StderrForwarder,
@@ -412,8 +484,10 @@ pub(crate) fn try_wait_on_child(
                 Err(Error::new(
                     ErrorKind::ToolExecError,
                     format!(
-                        "Command {:?} with args {:?} did not execute successfully (status code {}).",
-                            cmd, program, status
+                        "Command {:?} with args {} did not execute successfully (status code {}).",
+                        cmd,
+                        program.display(),
+                        status
                     ),
                 ))
             }
@@ -424,8 +498,10 @@ pub(crate) fn try_wait_on_child(
             Err(Error::new(
                 ErrorKind::ToolExecError,
                 format!(
-                    "Failed to wait on spawned child process, command {:?} with args {:?}: {}.",
-                    cmd, program, e
+                    "Failed to wait on spawned child process, command {:?} with args {}: {}.",
+                    cmd,
+                    program.display(),
+                    e
                 ),
             ))
         }
