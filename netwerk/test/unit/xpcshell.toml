@@ -688,6 +688,7 @@ skip-if = [
   "socketprocess_networking",
   "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1866067
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1866067
 ]
 run-sequentially = "node server exceptions dont replay well"
 
@@ -1009,6 +1010,7 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_protocolproxyservice.js"]
 skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # bug 1707738
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # bug 1707738
   "tsan && socketprocess_networking", # Bug 1808235
 ]
 

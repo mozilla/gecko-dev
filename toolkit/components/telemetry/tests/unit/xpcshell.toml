@@ -45,6 +45,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713329
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1707747
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929422
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1707747
 ]
 
 ["test_PingAPI.js"]
@@ -159,6 +160,7 @@ skip-if = [
   "win11_2009 && bits == 32 && !debug", #  Bug 1781452
   "os == 'linux' && !debug", #  Bug 1781452
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929422
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1707747
 ]
 
 ["test_UtilityScalars.js"]
