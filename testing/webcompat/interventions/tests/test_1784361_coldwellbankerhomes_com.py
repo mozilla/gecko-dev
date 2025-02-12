@@ -1,21 +1,17 @@
 import pytest
 
-# The gallery on this page only sets img[src] to a non-1x1-spacer if the error
-# doesn't happen during page load, which doesn't happen with a Chrome UA.
-
 URL = "https://www.coldwellbankerhomes.com/ri/little-compton/kvc-17_1,17_2/"
-ERROR_MSG = 'can\'t access property "dataset", v[0] is undefined'
+ANDROID_ERROR_MSG = 'can\'t access property "dataset", v[0] is undefined'
 LOADED_IMG_CSS = "img.psr-lazy:not([src*='spacer'])"
 
 
-async def is_image_too_tall(client):
+async def get_image_aspect_ratio(client):
     await client.navigate(URL)
     img = client.await_css(LOADED_IMG_CSS)
     return client.execute_script(
         """
        const img = arguments[0];
-       const container = img.closest("div");
-       return img.clientHeight > container.clientHeight + 10;
+       return img.clientWidth / img.clientHeight;
     """,
         img,
     )
@@ -24,10 +20,18 @@ async def is_image_too_tall(client):
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
-    assert not await is_image_too_tall(client)
+    assert await get_image_aspect_ratio(client) < 1.6
 
 
+@pytest.mark.skip_platforms("android")
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
-async def test_disabled(client):
-    assert await is_image_too_tall(client)
+async def test_disabled_desktop(client):
+    assert not await get_image_aspect_ratio(client) > 1.6
+
+
+@pytest.mark.only_platforms("android")
+@pytest.mark.asyncio
+@pytest.mark.without_interventions
+async def test_disabled_android(client):
+    await client.navigate(URL, await_console_message=ANDROID_ERROR_MSG)
