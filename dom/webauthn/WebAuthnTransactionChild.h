@@ -21,8 +21,9 @@ namespace mozilla::dom {
 
 class WebAuthnTransactionChild final : public PWebAuthnTransactionChild {
  public:
-  NS_INLINE_DECL_REFCOUNTING(WebAuthnTransactionChild);
-  explicit WebAuthnTransactionChild(WebAuthnManagerBase* aManager);
+  NS_INLINE_DECL_REFCOUNTING(WebAuthnTransactionChild, override);
+
+  WebAuthnTransactionChild() = default;
 
   // MOZ_CAN_RUN_SCRIPT_BOUNDARY until we can do MOZ_CAN_RUN_SCRIPT in
   // IPDL-generated things.
@@ -47,6 +48,8 @@ class WebAuthnTransactionChild final : public PWebAuthnTransactionChild {
   void ActorDestroy(ActorDestroyReason why) override;
 
   void Disconnect();
+
+  void SetManager(WebAuthnManagerBase* aMananger);
 
  private:
   ~WebAuthnTransactionChild() = default;

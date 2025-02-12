@@ -39,7 +39,6 @@
 #include "mozilla/ipc/PBackgroundTestChild.h"
 #include "mozilla/net/PUDPSocketChild.h"
 #include "mozilla/dom/network/UDPSocketChild.h"
-#include "mozilla/dom/WebAuthnTransactionChild.h"
 #include "mozilla/dom/MIDIPortChild.h"
 #include "mozilla/dom/MIDIManagerChild.h"
 #include "nsID.h"
@@ -75,8 +74,6 @@ using mozilla::dom::PServiceWorkerRegistrationChild;
 using mozilla::dom::StorageDBChild;
 using mozilla::dom::cache::PCacheChild;
 using mozilla::dom::cache::PCacheStreamControlChild;
-
-using mozilla::dom::WebAuthnTransactionChild;
 
 using mozilla::dom::PMIDIManagerChild;
 using mozilla::dom::PMIDIPortChild;
@@ -405,20 +402,6 @@ bool BackgroundChildImpl::DeallocPMessagePortChild(PMessagePortChild* aActor) {
   RefPtr<dom::MessagePortChild> child =
       dont_AddRef(static_cast<dom::MessagePortChild*>(aActor));
   MOZ_ASSERT(child);
-  return true;
-}
-
-dom::PWebAuthnTransactionChild*
-BackgroundChildImpl::AllocPWebAuthnTransactionChild() {
-  MOZ_CRASH("PWebAuthnTransaction actor should be manually constructed!");
-  return nullptr;
-}
-
-bool BackgroundChildImpl::DeallocPWebAuthnTransactionChild(
-    PWebAuthnTransactionChild* aActor) {
-  MOZ_ASSERT(aActor);
-  RefPtr<dom::WebAuthnTransactionChild> child =
-      dont_AddRef(static_cast<dom::WebAuthnTransactionChild*>(aActor));
   return true;
 }
 

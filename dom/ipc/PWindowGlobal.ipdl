@@ -14,6 +14,7 @@ include "mozilla/ipc/URIUtils.h";
 include protocol PBrowser;
 include protocol PInProcess;
 include protocol PBrowserBridge;
+include protocol PWebAuthnTransaction;
 
 include DOMTypes;
 include ClientIPCTypes;
@@ -65,6 +66,7 @@ struct IPCWebShareData
 async protocol PWindowGlobal
 {
   manager PBrowser or PInProcess;
+  manages PWebAuthnTransaction;
 
 child:
   async __delete__();
@@ -230,6 +232,8 @@ parent:
 
   // User activation notifications for BounceTrackingProtection.
   async RecordUserActivationForBTP();
+
+  async PWebAuthnTransaction();
 
 child:
   async NotifyPermissionChange(nsCString type, uint32_t permission);

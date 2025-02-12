@@ -42,8 +42,6 @@ void WebAuthnTransactionParent::DisconnectTransaction() {
 mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
     const uint64_t& aTransactionId,
     const WebAuthnMakeCredentialInfo& aTransactionInfo) {
-  ::mozilla::ipc::AssertIsOnBackgroundThread();
-
   if (!mWebAuthnService) {
     mWebAuthnService = do_GetService("@mozilla.org/webauthn/service;1");
     if (!mWebAuthnService) {
@@ -217,8 +215,6 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
 mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
     const uint64_t& aTransactionId,
     const WebAuthnGetAssertionInfo& aTransactionInfo) {
-  ::mozilla::ipc::AssertIsOnBackgroundThread();
-
   if (!mWebAuthnService) {
     mWebAuthnService = do_GetService("@mozilla.org/webauthn/service;1");
     if (!mWebAuthnService) {
@@ -372,8 +368,6 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
 
 mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestCancel(
     const Tainted<uint64_t>& aTransactionId) {
-  ::mozilla::ipc::AssertIsOnBackgroundThread();
-
   if (mTransactionId.isNothing() ||
       !MOZ_IS_VALID(aTransactionId, mTransactionId.ref() == aTransactionId)) {
     return IPC_OK();
@@ -461,27 +455,7 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestIsUVPAA(
 #endif
 }
 
-mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvDestroyMe() {
-  ::mozilla::ipc::AssertIsOnBackgroundThread();
-
-  // The child was disconnected from the WebAuthnManager instance and will send
-  // no further messages. It is kept alive until we delete it explicitly.
-
-  // The child should have cancelled any active transaction. This means
-  // we expect no more messages to the child. We'll crash otherwise.
-
-  // The IPC roundtrip is complete. No more messages, hopefully.
-  IProtocol* mgr = Manager();
-  if (!Send__delete__(this)) {
-    return IPC_FAIL_NO_REASON(mgr);
-  }
-
-  return IPC_OK();
-}
-
 void WebAuthnTransactionParent::ActorDestroy(ActorDestroyReason aWhy) {
-  ::mozilla::ipc::AssertIsOnBackgroundThread();
-
   // Called either by Send__delete__() in RecvDestroyMe() above, or when
   // the channel disconnects. Ensure the token manager forgets about us.
 

@@ -48,7 +48,6 @@
 #include "mozilla/dom/StorageActivityService.h"
 #include "mozilla/dom/StorageIPC.h"
 #include "mozilla/dom/TemporaryIPCBlobParent.h"
-#include "mozilla/dom/WebAuthnTransactionParent.h"
 #include "mozilla/dom/WebTransportParent.h"
 #include "mozilla/dom/cache/ActorUtils.h"
 #include "mozilla/dom/indexedDB/ActorsParent.h"
@@ -89,7 +88,6 @@ using mozilla::dom::PServiceWorkerParent;
 using mozilla::dom::PServiceWorkerRegistrationParent;
 using mozilla::dom::ServiceWorkerParent;
 using mozilla::dom::UDPSocketParent;
-using mozilla::dom::WebAuthnTransactionParent;
 using mozilla::dom::cache::PCacheParent;
 using mozilla::dom::cache::PCacheStorageParent;
 using mozilla::dom::cache::PCacheStreamControlParent;
@@ -1064,18 +1062,6 @@ BackgroundParentImpl::AllocPGamepadEventChannelParent() {
 already_AddRefed<dom::PGamepadTestChannelParent>
 BackgroundParentImpl::AllocPGamepadTestChannelParent() {
   return dom::GamepadTestChannelParent::Create();
-}
-
-dom::PWebAuthnTransactionParent*
-BackgroundParentImpl::AllocPWebAuthnTransactionParent() {
-  return new dom::WebAuthnTransactionParent();
-}
-
-bool BackgroundParentImpl::DeallocPWebAuthnTransactionParent(
-    dom::PWebAuthnTransactionParent* aActor) {
-  MOZ_ASSERT(aActor);
-  delete aActor;
-  return true;
 }
 
 already_AddRefed<net::PHttpBackgroundChannelParent>
