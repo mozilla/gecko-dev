@@ -238,6 +238,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
     "toLocaleDateString", "toLocaleTimeString", "toDateString", "toTimeString",
     "toISOString", "toJSON", "toSource", "toString", "valueOf", "constructor",
     "toGMTString", Symbol.toPrimitive];
+  if (isNightlyBuild) {
+    gPrototypeProperties.Date.push("toTemporalInstant");
+  }
   gConstructorProperties.Date = constructorProps(["UTC", "parse", "now"]);
   gPrototypeProperties.Object =
     ["constructor", "toSource", "toString", "toLocaleString", "valueOf",
@@ -400,17 +403,28 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
       let local = lookupCallable(localProto);
       is(method.length, local.length, "Function.length identical");
       if (!method.length && !dontCall.includes(name)) {
-        is(method.call(xray) + "", local.call(xray) + "",
-           "Xray and local method results stringify identically");
-
+        try {
+          is(method.call(xray) + "", local.call(xray) + "",
+             "Xray and local method results stringify identically");
+        } catch (e) {
+          let expected = new RegExp(e.toString());
+          checkThrows(function() { method.call(xray) + ""; }, expected, "Xray and local methods both throw when stringified");
+          checkThrows(function() { local.call(xray) + ""; }, expected, "Xray and local methods both throw when stringified");
+        }
         // If invoking this method returns something non-Xrayable (opaque), the
         // stringification is going to return [object Object].
         // This happens for set[@@iterator] and other Iterator objects.
         let callable = lookupCallable(xray.wrappedJSObject);
         if (!Cu.isOpaqueWrapper(method.call(xray)) && callable) {
-          is(method.call(xray) + "",
-             callable.call(xray.wrappedJSObject) + "",
-             "Xray and waived method results stringify identically");
+          try {
+            is(method.call(xray) + "",
+               callable.call(xray.wrappedJSObject) + "",
+               "Xray and waived method results stringify identically");
+          } catch (e) {
+            let expected = new RegExp(e.toString());
+            checkThrows(function() { method.call(xray) + ""; }, expected, "Xray and local methods both throw when stringified");
+            checkThrows(function() { callable.call(xray.wrappedJSObject) + ""; }, expected, "Xray and local methods both throw when stringified");
+          }
         }
       }
     }
