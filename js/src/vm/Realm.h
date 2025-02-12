@@ -19,6 +19,7 @@
 #include "builtin/Array.h"
 #include "ds/IdValuePair.h"
 #include "gc/Barrier.h"
+#include "jit/BaselineCompileQueue.h"
 #include "js/GCVariant.h"
 #include "js/RealmOptions.h"
 #include "js/TelemetryTimers.h"
@@ -37,6 +38,10 @@ namespace js {
 namespace coverage {
 class LCovRealm;
 }  // namespace coverage
+
+namespace jit {
+class BaselineCompileQueue;
+}  // namespace jit
 
 class AutoRestoreRealmDebugMode;
 class Debugger;
@@ -321,6 +326,9 @@ class JS::Realm : public JS::shadow::Realm {
   mozilla::non_crypto::XorShift128PlusRNG randomKeyGenerator_;
 
   JSPrincipals* principals_ = nullptr;
+
+
+  js::jit::BaselineCompileQueue baselineCompileQueue_;
 
   // Bookkeeping information for debug scope objects.
   js::UniquePtr<js::DebugEnvironments> debugEnvs_;
@@ -801,6 +809,13 @@ class JS::Realm : public JS::shadow::Realm {
   }
 
   mozilla::HashCodeScrambler randomHashCodeScrambler();
+
+  js::jit::BaselineCompileQueue& baselineCompileQueue() {
+    return baselineCompileQueue_;
+  }
+  static constexpr size_t offsetOfBaselineCompileQueue() {
+    return offsetof(Realm, baselineCompileQueue_);
+  }
 
   js::DebugEnvironments* debugEnvs() { return debugEnvs_.get(); }
   js::UniquePtr<js::DebugEnvironments>& debugEnvsRef() { return debugEnvs_; }

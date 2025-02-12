@@ -607,6 +607,13 @@ bool jit::BaselineCompileFromBaselineInterpreter(JSContext* cx,
   MOZ_CRASH("Unexpected status");
 }
 
+void BaselineCompileQueue::trace(JSTracer* trc) {
+  assertInvariants();
+  for (uint32_t i = 0; i < numQueued_; i++) {
+    TraceEdge(trc, &queue_[i], "baseline_compile_queue");
+  }
+}
+
 BaselineScript* BaselineScript::New(JSContext* cx,
                                     uint32_t warmUpCheckPrologueOffset,
                                     uint32_t profilerEnterToggleOffset,

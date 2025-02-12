@@ -293,6 +293,7 @@ void Realm::traceRoots(JSTracer* trc,
   }
 
   objects_.trace(trc);
+  baselineCompileQueue_.trace(trc);
 }
 
 void ObjectRealm::finishRoots() {
