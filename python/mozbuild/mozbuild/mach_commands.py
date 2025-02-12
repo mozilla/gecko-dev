@@ -1635,7 +1635,7 @@ def _run_android(
     if debug and use_existing_process:
         no_install = True
 
-    # `verify_android_device` respects `DEVICE_SERIAL` if it is set and sets it otherwise.
+    # `verify_android_device` respects `ANDROID_SERIAL` if it is set and sets it otherwise.
     verify_android_device(
         command_context,
         app=metadata.package_name,
@@ -1643,7 +1643,7 @@ def _run_android(
         debugger=debug,
         install=InstallIntent.NO if no_install else InstallIntent.YES,
     )
-    device_serial = os.environ.get("DEVICE_SERIAL")
+    device_serial = os.environ.get("ANDROID_SERIAL")
     if not device_serial:
         print("No ADB devices connected.")
         return 1
