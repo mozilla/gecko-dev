@@ -3298,87 +3298,6 @@ name = "js-sys"
 version = "0.3.100"
 
 [[package]]
-name = "jsparagus"
-version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
-dependencies = [
- "jsparagus-ast",
- "jsparagus-emitter",
- "jsparagus-generated-parser",
- "jsparagus-json-log",
- "jsparagus-parser",
- "jsparagus-scope",
- "jsparagus-stencil",
-]
-
-[[package]]
-name = "jsparagus-ast"
-version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
-dependencies = [
- "bumpalo",
- "indexmap 2.5.0",
-]
-
-[[package]]
-name = "jsparagus-emitter"
-version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
-dependencies = [
- "bumpalo",
- "byteorder",
- "indexmap 2.5.0",
- "jsparagus-ast",
- "jsparagus-scope",
- "jsparagus-stencil",
-]
-
-[[package]]
-name = "jsparagus-generated-parser"
-version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
-dependencies = [
- "bumpalo",
- "jsparagus-ast",
- "static_assertions",
-]
-
-[[package]]
-name = "jsparagus-json-log"
-version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
-
-[[package]]
-name = "jsparagus-parser"
-version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
-dependencies = [
- "arrayvec",
- "bumpalo",
- "jsparagus-ast",
- "jsparagus-generated-parser",
- "jsparagus-json-log",
-]
-
-[[package]]
-name = "jsparagus-scope"
-version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
-dependencies = [
- "indexmap 2.5.0",
- "jsparagus-ast",
- "jsparagus-stencil",
-]
-
-[[package]]
-name = "jsparagus-stencil"
-version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=61f399c53a641ebd3077c1f39f054f6d396a633c#61f399c53a641ebd3077c1f39f054f6d396a633c"
-dependencies = [
- "jsparagus-ast",
-]
-
-[[package]]
 name = "jsrust"
 version = "0.1.0"
 dependencies = [
@@ -3397,7 +3316,6 @@ dependencies = [
  "gluesmith",
  "icu_capi",
  "mozglue-static",
- "smoosh",
  "unicode-bidi-ffi",
 ]
 
@@ -5982,16 +5900,6 @@ name = "smawk"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7c388c1b5e93756d0c740965c41e8822f866621d41acbdf6336a6a168f8840c"
-
-[[package]]
-name = "smoosh"
-version = "0.1.0"
-dependencies = [
- "bumpalo",
- "env_logger",
- "jsparagus",
- "log",
-]
 
 [[package]]
 name = "socket2"

@@ -11,7 +11,6 @@ clippy:
         - gfx/wr/peek-poke/peek-poke-derive/
         - gfx/wr/webrender_build/
         - gfx/wr/wr_malloc_size_of/
-        - js/src/frontend/smoosh/
         - js/src/rust/shared/
         - modules/libpref/init/static_prefs/
         - mozglue/static/rust/

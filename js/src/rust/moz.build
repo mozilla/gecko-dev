@@ -12,9 +12,6 @@ if CONFIG["MOZ_RUST_SIMD"]:
 if CONFIG["FUZZING_INTERFACES"]:
     features += ["gluesmith"]
 
-if CONFIG["JS_ENABLE_SMOOSH"]:
-    features += ["smoosh"]
-
 if CONFIG["MOZ_MEMORY"]:
     features += ["moz_memory"]
 

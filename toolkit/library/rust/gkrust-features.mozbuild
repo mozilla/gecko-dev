@@ -42,9 +42,6 @@ if CONFIG["MOZ_MEMORY"]:
 if CONFIG["MOZ_PLACES"]:
     gkrust_features += ["moz_places"]
 
-if CONFIG["JS_ENABLE_SMOOSH"]:
-    gkrust_features += ["smoosh"]
-
 if CONFIG["MOZ_GECKO_PROFILER"]:
     gkrust_features += ["gecko_profiler"]
 
