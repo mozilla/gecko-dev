@@ -38,6 +38,7 @@ WebrtcGmpVideoEncoder::WebrtcGmpVideoEncoder(
       mHost(nullptr),
       mMaxPayloadSize(0),
       mNeedKeyframe(true),
+      mSyncLayerCap(webrtc::kMaxTemporalStreams),
       mFormatParams(aFormat.parameters),
       mCallbackMutex("WebrtcGmpVideoEncoder encoded callback mutex"),
       mCallback(nullptr),
@@ -186,6 +187,7 @@ void WebrtcGmpVideoEncoder::InitEncode_g(const GMPVideoCodec& aCodecParams,
       new InitDoneCallback(this, aCodecParams));
   mInitting = true;
   mMaxPayloadSize = aMaxPayloadSize;
+  mSyncLayerCap = aCodecParams.mTemporalLayerNum;
   mSvcController = webrtc::CreateScalabilityStructure(
       GmpCodecParamsToScalabilityMode(aCodecParams));
   if (!mSvcController) {
@@ -623,6 +625,7 @@ void WebrtcGmpVideoEncoder::Encoded(
           ? webrtc::H264PacketizationMode::NonInterleaved
           : webrtc::H264PacketizationMode::SingleNalUnit;
   info.codecSpecific.H264.temporal_idx = webrtc::kNoTemporalIdx;
+  info.codecSpecific.H264.base_layer_sync = false;
   info.codecSpecific.H264.idr_frame =
       ft == webrtc::VideoFrameType::kVideoFrameKey;
   info.generic_frame_info = mSvcController->OnEncodeDone(data->frame_config);
@@ -636,6 +639,24 @@ void WebrtcGmpVideoEncoder::Encoded(
     unit.SetTemporalIndex(temporalIdx);
     info.codecSpecific.H264.temporal_idx = temporalIdx;
     info.scalability_mode = GmpCodecParamsToScalabilityMode(mCodecParams);
+
+    if (temporalIdx == 0) {
+      // Base layer. Reset the sync layer tracking.
+      mSyncLayerCap = mCodecParams.mTemporalLayerNum;
+    } else {
+      // Decrease the sync layer tracking. base_layer_sync per upstream code
+      // shall be true iff the layer in question only depends on layer 0, i.e.
+      // the base layer. Note in L1T3 the frame dependencies (and cap) are:
+      //       | Temporal | Dependency |       |
+      // Frame | Layer    | Frame      | Sync? |  Cap
+      // ===============================================
+      //     0 |        0 |          0 | False | _ -> 3
+      //     1 |        2 |          0 | True  | 3 -> 2
+      //     2 |        1 |          0 | True  | 2 -> 1
+      //     3 |        2 |          1 | False | 1 -> 2
+      info.codecSpecific.H264.base_layer_sync = temporalIdx < mSyncLayerCap;
+      mSyncLayerCap = temporalIdx;
+    }
   }
 
   // Parse QP.

@@ -280,6 +280,7 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   GMPVideoCodec mCodecParams{};
   uint32_t mMaxPayloadSize;
   bool mNeedKeyframe;
+  int mSyncLayerCap;
   const webrtc::CodecParameterMap mFormatParams;
   webrtc::H264BitstreamParser mH264BitstreamParser;
   std::unique_ptr<webrtc::ScalableVideoController> mSvcController;
