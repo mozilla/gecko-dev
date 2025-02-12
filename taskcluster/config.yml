@@ -913,6 +913,11 @@ workers:
             implementation: generic-worker
             os: windows
             worker-type: '{alias}'
+        win11-64-24h2(-hw|-hw-ref):
+            provisioner: 'releng-hardware'
+            implementation: generic-worker
+            os: windows
+            worker-type: '{alias}'
         win11-64-24h2(|-gpu|-source|-large):
             provisioner: 'gecko-t'
             implementation: generic-worker

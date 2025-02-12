@@ -463,8 +463,9 @@ browsertime-benchmark:
                             windows.*-32.*: []
                             # Bug 1909894, windows 10 + sp3 temporarily
                             windows10-64.*shippable.*: [mozilla-central]
-                            windows11-64-2009-hw-ref-shippable/opt: [mozilla-central]
+                            windows11-64-.*-hw-ref-shippable/opt: [mozilla-central]
                             windows11-64-shippable-qr/opt: [trunk]
+                            windows11-64-24h2-shippable/opt: [trunk]
                             (linux|macosx1470|macosx1400).*shippable.*: [trunk]
                             .*nightlyasrelease.*: [autoland, mozilla-central]
                             default: []
