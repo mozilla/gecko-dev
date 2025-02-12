@@ -1131,7 +1131,7 @@
     "interventions": [
       {
         "platforms": ["all"],
-        "ua_string": ["Chrome_with_FxQuantum", "add_Firefox_as_Gecko"]
+        "ua_string": ["Chrome"]
       }
     ]
   },
