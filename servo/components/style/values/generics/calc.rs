@@ -912,41 +912,61 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
 
     /// Resolve this node into a value.
     pub fn resolve(&self) -> Result<L, ()> {
-        self.resolve_map(|l| Ok(l.clone()), |_| Err(()))
+        struct EmptyContext;
+        self.resolve_map(
+            |l, _| Ok(l.clone()),
+            |_, _| Ok(None),
+            &mut EmptyContext,
+        )
     }
 
     /// Resolve this node into a value, given a function that maps the leaf values.
-    pub fn resolve_map<F, NF>(&self, mut leaf_to_output_fn: F, mut node_mapping_fn: NF) -> Result<L, ()>
+    pub fn resolve_map<F, NF, C>(
+        &self,
+        mut leaf_to_output_fn: F,
+        mut node_mapping_fn: NF,
+        context: &mut C,
+    ) -> Result<L, ()>
     where
-        F: FnMut(&L) -> Result<L, ()>,
-        NF: FnMut(&CalcNode<L>) -> Result<CalcNode<L>, ()>,
+        F: FnMut(&L, &mut C) -> Result<L, ()>,
+        NF: FnMut(&CalcNode<L>, &mut C) -> Result<Option<CalcNode<L>>, ()>,
     {
-        self.resolve_internal(&mut leaf_to_output_fn, &mut node_mapping_fn)
+        self.resolve_internal(&mut leaf_to_output_fn, &mut node_mapping_fn, context)
     }
 
-    fn resolve_internal<F, NF>(&self, leaf_to_output_fn: &mut F, node_mapping_fn: &mut NF) -> Result<L, ()>
+    fn resolve_internal<F, NF, C>(
+        &self,
+        leaf_to_output_fn: &mut F,
+        node_mapping_fn: &mut NF,
+        context: &mut C,
+    ) -> Result<L, ()>
     where
-        F: FnMut(&L) -> Result<L, ()>,
-        NF: FnMut(&CalcNode<L>) -> Result<CalcNode<L>, ()>,
+        F: FnMut(&L, &mut C) -> Result<L, ()>,
+        NF: FnMut(&CalcNode<L>, &mut C) -> Result<Option<CalcNode<L>>, ()>,
     {
-        let node = node_mapping_fn(self).ok();
-        match node.as_ref().unwrap_or(self) {
-            Self::Leaf(l) => leaf_to_output_fn(l),
+        let result = node_mapping_fn(self, context)?;
+        let node = result.as_ref().unwrap_or(self);
+        match node {
+            Self::Leaf(l) => leaf_to_output_fn(l, context),
             Self::Negate(child) => {
-                let mut result = child.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut result =
+                    child.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
                 result.map(|v| v.neg())?;
                 Ok(result)
             },
             Self::Invert(child) => {
-                let mut result = child.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut result =
+                    child.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
                 result.map(|v| 1.0 / v)?;
                 Ok(result)
             },
             Self::Sum(children) => {
-                let mut result = children[0].resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut result =
+                    children[0].resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                 for child in children.iter().skip(1) {
-                    let right = child.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                    let right =
+                        child.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
                     // try_op will make sure we only sum leaves with the same type.
                     result = result.try_op(&right, |left, right| left + right)?;
                 }
@@ -954,10 +974,12 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 Ok(result)
             },
             Self::Product(children) => {
-                let mut result = children[0].resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut result =
+                    children[0].resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                 for child in children.iter().skip(1) {
-                    let right = child.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                    let right =
+                        child.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
                     // Mutliply only allowed when either side is a number.
                     match result.as_number() {
                         Some(left) => {
@@ -983,14 +1005,16 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 Ok(result)
             },
             Self::MinMax(children, op) => {
-                let mut result = children[0].resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut result =
+                    children[0].resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                 if result.is_nan()? {
                     return Ok(result);
                 }
 
                 for child in children.iter().skip(1) {
-                    let candidate = child.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                    let candidate =
+                        child.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                     // Leaf types must match for each child.
                     if !result.is_same_unit_as(&candidate) {
@@ -1015,9 +1039,10 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 Ok(result)
             },
             Self::Clamp { min, center, max } => {
-                let min = min.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
-                let center = center.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
-                let max = max.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let min = min.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
+                let center =
+                    center.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
+                let max = max.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                 if !min.is_same_unit_as(&center) || !max.is_same_unit_as(&center) {
                     return Err(());
@@ -1050,8 +1075,9 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 value,
                 step,
             } => {
-                let mut value = value.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
-                let step = step.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut value =
+                    value.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
+                let step = step.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                 if !value.is_same_unit_as(&step) {
                     return Err(());
@@ -1136,8 +1162,10 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 divisor,
                 op,
             } => {
-                let mut dividend = dividend.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
-                let divisor = divisor.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut dividend =
+                    dividend.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
+                let divisor =
+                    divisor.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                 if !dividend.is_same_unit_as(&divisor) {
                     return Err(());
@@ -1150,11 +1178,13 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 Ok(dividend)
             },
             Self::Hypot(children) => {
-                let mut result = children[0].resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut result =
+                    children[0].resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
                 result.map(|v| v.powi(2))?;
 
                 for child in children.iter().skip(1) {
-                    let child_value = child.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                    let child_value =
+                        child.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                     if !result.is_same_unit_as(&child_value) {
                         return Err(());
@@ -1170,14 +1200,14 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 Ok(result)
             },
             Self::Abs(ref c) => {
-                let mut result = c.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let mut result = c.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
 
                 result.map(|v| v.abs())?;
 
                 Ok(result)
             },
             Self::Sign(ref c) => {
-                let result = c.resolve_internal(leaf_to_output_fn, node_mapping_fn)?;
+                let result = c.resolve_internal(leaf_to_output_fn, node_mapping_fn, context)?;
                 Ok(L::sign_from(&result)?)
             },
             Self::Anchor(_) | Self::AnchorSize(_) => Err(()),
