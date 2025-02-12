@@ -49,6 +49,18 @@ class MOZ_RAII AutoEnterBaselineBackend {
 #endif
 };
 
+bool OffThreadBaselineSnapshot::compileOffThread(TempAllocator& temp,
+                                                 CompileRealm* realm) {
+  masm_.emplace(temp, realm);
+  compiler_.emplace(temp, realm->runtime(), masm_.ref(), this);
+
+  if (!compiler_->init()) {
+    return false;
+  }
+  MethodStatus status = compiler_->compileOffThread();
+  return status != Method_Error;
+}
+
 void BaselineCompileTask::runTask() {
   jit::JitContext jctx(realm_->runtime());
   AutoEnterBaselineBackend enter;
@@ -59,28 +71,24 @@ void BaselineCompileTask::runTask() {
     return;
   }
 
-  masm_.emplace(*temp, realm_);
-  compiler_.emplace(*temp, realm_->runtime(), masm_.ref(), snapshot_);
-
-  if (!compiler_->init()) {
-    failed_ = true;
-    return;
-  }
-  MethodStatus status = compiler_->compileOffThread();
-  if (status == Method_Error) {
-    failed_ = true;
+  for (auto* snapshot : snapshots_) {
+    if (!snapshot->compileOffThread(*temp, realm_)) {
+      failed_ = true;
+      return;
+    }
   }
 }
 
 /* static */
 void BaselineCompileTask::FinishOffThreadTask(BaselineCompileTask* task) {
-  JSScript* script = task->script();
-  if (script->isBaselineCompilingOffThread()) {
-    script->jitScript()->clearIsBaselineCompiling(script);
+  for (auto* snapshot : task->snapshots_) {
+    JSScript* script = snapshot->script();
+    if (script->isBaselineCompilingOffThread()) {
+      script->jitScript()->clearIsBaselineCompiling(script);
+    }
+    snapshot->compiler_.reset();
+    snapshot->masm_.reset();
   }
-
-  task->compiler_.reset();
-  task->masm_.reset();
 
   // The task is allocated into its LifoAlloc, so destroying that will
   // destroy the task and all other data accumulated during compilation.
@@ -88,8 +96,11 @@ void BaselineCompileTask::FinishOffThreadTask(BaselineCompileTask* task) {
 }
 
 void BaselineCompileTask::finishOnMainThread(JSContext* cx) {
-  if (!compiler_->finishCompile(cx)) {
-    cx->recoverFromOutOfMemory();
+  AutoRealm ar(cx, firstScript());
+  for (auto* snapshot : snapshots_) {
+    if (!snapshot->compiler_->finishCompile(cx)) {
+      cx->recoverFromOutOfMemory();
+    }
   }
 }
 
@@ -115,7 +126,6 @@ void js::AttachFinishedBaselineCompilations(JSContext* cx,
       {
         if (!task->failed()) {
           AutoUnlockHelperThreadState unlock(lock);
-          AutoRealm ar(cx, task->script());
           task->finishOnMainThread(cx);
         }
         BaselineCompileTask::FinishOffThreadTask(task);
@@ -137,5 +147,7 @@ void BaselineCompileTask::trace(JSTracer* trc) {
   if (!realm_->runtime()->runtimeMatches(trc->runtime())) {
     return;
   }
-  snapshot_->trace(trc);
+  for (auto* snapshot : snapshots_) {
+    snapshot->trace(trc);
+  }
 }

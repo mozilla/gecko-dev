@@ -9,6 +9,7 @@
 #include "mozilla/BinarySearch.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/ScopeExit.h"
 
 #include <algorithm>
 
@@ -234,22 +235,26 @@ static bool DispatchOffThreadBaselineCompile(JSContext* cx,
     ReportOutOfMemory(cx);
     return false;
   }
-  BaselineSnapshot* snapshotCopy = alloc->new_<BaselineSnapshot>(snapshot);
+  auto* snapshotCopy = alloc->new_<OffThreadBaselineSnapshot>(snapshot);
   if (!snapshotCopy) {
     ReportOutOfMemory(cx);
     return false;
   }
 
+  BaselineSnapshotList snapshots;
+  snapshots.insertFront(snapshotCopy);
   CompileRealm* realm = CompileRealm::get(cx->realm());
-  BaselineCompileTask* task =
-      alloc->new_<BaselineCompileTask>(realm, alloc.get(), snapshotCopy);
+  BaselineCompileTask* task = alloc->new_<BaselineCompileTask>(
+      realm, alloc.get(), std::move(snapshots));
   if (!task) {
+    snapshots.clear();
     ReportOutOfMemory(cx);
     return false;
   }
 
   AutoLockHelperThreadState lock;
   if (!StartOffThreadBaselineCompile(task, lock)) {
+    ReportOutOfMemory(cx);
     return false;
   }
 

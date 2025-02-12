@@ -7,6 +7,7 @@
 #ifndef jit_BaselineCompileTask_h
 #define jit_BaselineCompileTask_h
 
+#include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
 
 #include "jit/BaselineCodeGen.h"
@@ -45,42 +46,83 @@ class BaselineSnapshot {
   bool compileDebugInstrumentation() const {
     return compileDebugInstrumentation_;
   }
-
   void trace(JSTracer* trc);
 };
+
+class OffThreadBaselineSnapshot
+    : public BaselineSnapshot,
+      public mozilla::LinkedListElement<OffThreadBaselineSnapshot> {
+ public:
+  OffThreadBaselineSnapshot(JSScript* script,
+                            GlobalLexicalEnvironmentObject* globalLexical,
+                            JSObject* globalThis, uint32_t baseWarmUpThreshold,
+                            bool isIonCompileable,
+                            bool compileDebugInstrumentation)
+      : BaselineSnapshot(script, globalLexical, globalThis, baseWarmUpThreshold,
+                         isIonCompileable, compileDebugInstrumentation) {}
+  explicit OffThreadBaselineSnapshot(BaselineSnapshot other)
+      : BaselineSnapshot(other) {}
+
+  bool compileOffThread(TempAllocator& temp, CompileRealm* realm);
+
+ private:
+  mozilla::Maybe<OffThreadMacroAssembler> masm_;
+  mozilla::Maybe<BaselineCompiler> compiler_;
+
+  friend class BaselineCompileTask;
+};
+
+using BaselineSnapshotList = mozilla::LinkedList<OffThreadBaselineSnapshot>;
 
 class BaselineCompileTask final : public HelperThreadTask {
  public:
   BaselineCompileTask(CompileRealm* realm, LifoAlloc* alloc,
-                      BaselineSnapshot* snapshot)
-      : realm_(realm), alloc_(alloc), snapshot_(snapshot) {}
+                      BaselineSnapshotList&& snapshots)
+      : realm_(realm), alloc_(alloc), snapshots_(std::move(snapshots)) {
+#ifdef DEBUG
+    for (auto* snapshot : snapshots_) {
+      MOZ_ASSERT(CompileRealm::get(snapshot->script()->realm()) == realm);
+    }
+#endif
+  }
 
   ThreadType threadType() override { return THREAD_TYPE_BASELINE; }
   void runTask();
   void runHelperThreadTask(AutoLockHelperThreadState& locked) override;
 
+  void markScriptsAsCompiling();
+
   void finishOnMainThread(JSContext* cx);
 
   JSRuntime* runtimeFromAnyThread() const {
-    return snapshot_->script()->runtimeFromAnyThread();
+    return firstScript()->runtimeFromAnyThread();
+  }
+  Zone* zoneFromAnyThread() const { return firstScript()->zoneFromAnyThread(); }
+  bool scriptMatches(JSScript* script) {
+    for (auto* snapshot : snapshots_) {
+      if (snapshot->script() == script) {
+        return true;
+      }
+    }
+    return false;
   }
 
   const char* getName() override { return "BaselineCompileTask"; }
-
-  JSScript* script() { return snapshot_->script(); }
-  bool failed() const { return failed_; }
 
   void trace(JSTracer* trc);
 
   static void FinishOffThreadTask(BaselineCompileTask* task);
 
+  bool failed() const { return failed_; }
+
  private:
+  // All scripts are in the same realm, so we can use an arbitrary script
+  // to access the realm/zone/runtime.
+  JSScript* firstScript() const { return snapshots_.getFirst()->script(); }
+
   CompileRealm* realm_;
   LifoAlloc* alloc_;
-  BaselineSnapshot* snapshot_;
-
-  mozilla::Maybe<OffThreadMacroAssembler> masm_;
-  mozilla::Maybe<BaselineCompiler> compiler_;
+  BaselineSnapshotList snapshots_;
 
   bool failed_ = false;
 };
