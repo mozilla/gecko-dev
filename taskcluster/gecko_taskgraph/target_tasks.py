@@ -763,6 +763,12 @@ def target_tasks_custom_car_perf_testing(full_task_graph, parameters, graph_conf
                 # Bug 1898514: avoid tp6m or non-essential tp6 jobs in cron on non-a55 platform
                 if "tp6m" in try_name and "a55" not in platform:
                     return False
+                # Bug 1945165 Disable ebay-kleinanzeigen on cstm-car-m because of permafail
+                if (
+                    "ebay-kleinanzeigen" in try_name
+                    and "ebay-kleinanzeigen-search" not in try_name
+                ):
+                    return False
                 return True
         return False
 
