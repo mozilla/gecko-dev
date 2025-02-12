@@ -2789,6 +2789,23 @@
       }
     ]
   },
+  "1942292": {
+    "label": "beterbed.nl",
+    "bugs": {
+      "1942292": {
+        "issue": "extra-scrollbars",
+        "matches": ["*://www.beterbed.nl/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1942292-beterbed.nl-scrollbar-fix.css"]
+        }
+      }
+    ]
+  },
   "1943993": {
     "label": "arenti.net",
     "bugs": {
