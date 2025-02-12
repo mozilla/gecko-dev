@@ -463,3 +463,5 @@ desktop-to-mobile-subtitle = Scan the QR code to download { -brand-product-name 
 
 dismiss-button-label = Dismiss
 sync-to-mobile-button-label = Sync to mobile
+desktop-to-mobile-qr-code-alt =
+  .aria-label = QR code to download { -brand-product-name } for mobile

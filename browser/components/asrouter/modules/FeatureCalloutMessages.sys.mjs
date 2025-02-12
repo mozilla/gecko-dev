@@ -132,6 +132,9 @@ const MESSAGES = () => {
                 marginInline: "32px",
                 imageURL:
                   "chrome://browser/content/asrouter/assets/desktop-to-mobile-non-eu-QR.svg",
+                alt: {
+                  string_id: "desktop-to-mobile-qr-code-alt",
+                },
               },
               additional_button: {
                 action: {
@@ -230,6 +233,9 @@ const MESSAGES = () => {
                 marginInline: "32px",
                 imageURL:
                   "chrome://browser/content/asrouter/assets/desktop-to-mobile-eu-QR.svg",
+                alt: {
+                  string_id: "desktop-to-mobile-qr-code-alt",
+                },
               },
               additional_button: {
                 action: {
