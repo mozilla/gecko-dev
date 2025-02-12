@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<style>
+.ib {
+  /* inline-block so we can test several of these side-by-side */
+  display: inline-block;
+  margin: 10px;
+}
+.test {
+  font-size: 100px;
+  outline: 5px solid blue;
+}
+</style>
+<div class="ib">
+  <span class="test"></span>
+</div>
+<div class="ib">
+  <span><span class="test"></span></span>
+</div>
+<div class="ib">
+  <span><span><span class="test"></span></span></span>
+</div>
