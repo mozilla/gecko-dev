@@ -30,10 +30,7 @@ use crate::gecko_bindings::structs::GeckoFontMetrics;
 use crate::logical_geometry::PhysicalSide;
 use crate::values::animated::{Animate, Context as AnimatedContext, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::calc::{
-    AnchorPositioningResolver, CalcUnits, GenericCalcAnchorFunction, GenericCalcAnchorSizeFunction,
-    PositivePercentageBasis,
-};
+use crate::values::generics::calc::{CalcUnits, PositivePercentageBasis};
 use crate::values::generics::length::AnchorResolutionResult;
 use crate::values::generics::{calc, NonNegative};
 use crate::values::resolved::{Context as ResolvedContext, ToResolvedValue};
@@ -231,12 +228,6 @@ enum Serializable {
     Percentage(Percentage),
 }
 
-impl From<CalcLengthPercentage> for LengthPercentage {
-    fn from(value: CalcLengthPercentage) -> Self {
-        Self::new_calc(value.node, value.clamping_mode, value.has_anchor_function)
-    }
-}
-
 impl LengthPercentage {
     /// 1px length value for SVG defaults
     #[inline]
@@ -250,14 +241,11 @@ impl LengthPercentage {
         Self::new_percent(Percentage::zero())
     }
 
-    fn to_calc_node(&self) -> (CalcNode, bool) {
+    fn to_calc_node(&self) -> CalcNode {
         match self.unpack() {
-            Unpacked::Length(l) => (CalcNode::Leaf(CalcLengthPercentageLeaf::Length(l)), false),
-            Unpacked::Percentage(p) => (
-                CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(p)),
-                false,
-            ),
-            Unpacked::Calc(p) => (p.node.clone(), p.has_anchor_function),
+            Unpacked::Length(l) => CalcNode::Leaf(CalcLengthPercentageLeaf::Length(l)),
+            Unpacked::Percentage(p) => CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(p)),
+            Unpacked::Calc(p) => p.node.clone(),
         }
     }
 
@@ -267,9 +255,10 @@ impl LengthPercentage {
             Unpacked::Percentage(p) => Self::new_percent(p),
             Unpacked::Calc(lp) => Self::new_calc_unchecked(Box::new(CalcLengthPercentage {
                 clamping_mode: lp.clamping_mode,
-                has_anchor_function: lp.has_anchor_function,
                 node: lp.node.map_leaves(|leaf| match *leaf {
-                    CalcLengthPercentageLeaf::Length(ref l) => CalcLengthPercentageLeaf::Length(map_fn(*l)),
+                    CalcLengthPercentageLeaf::Length(ref l) => {
+                        CalcLengthPercentageLeaf::Length(map_fn(*l))
+                    },
                     ref l => l.clone(),
                 }),
             })),
@@ -307,7 +296,7 @@ impl LengthPercentage {
     pub fn hundred_percent_minus(v: Self, clamping_mode: AllowedNumericType) -> Self {
         // TODO: This could in theory take ownership of the calc node in `v` if
         // possible instead of cloning.
-        let (mut node, has_anchor_function) = v.to_calc_node();
+        let mut node = v.to_calc_node();
         node.negate();
 
         let new_node = CalcNode::Sum(
@@ -318,7 +307,7 @@ impl LengthPercentage {
             .into(),
         );
 
-        Self::new_calc(new_node, clamping_mode, has_anchor_function)
+        Self::new_calc(new_node, clamping_mode)
     }
 
     /// Given a list of `LengthPercentage` values, construct the value representing
@@ -328,38 +317,18 @@ impl LengthPercentage {
             Percentage::hundred(),
         ))];
 
-        let mut has_anchor_function = false;
         for lp in list.iter() {
-            let (mut node, node_has_anchor_function) = lp.to_calc_node();
-            has_anchor_function |= node_has_anchor_function;
+            let mut node = lp.to_calc_node();
             node.negate();
             new_list.push(node)
         }
 
-        Self::new_calc(
-            CalcNode::Sum(new_list.into()),
-            clamping_mode,
-            has_anchor_function,
-        )
-    }
-
-    /// Construct a new `calc()` value from `CalcLengthPercentage`.
-    #[inline]
-    pub fn new_calc_from(calc_length_percentage: CalcLengthPercentage) -> Self {
-        Self::new_calc(
-            calc_length_percentage.node,
-            calc_length_percentage.clamping_mode,
-            calc_length_percentage.has_anchor_function,
-        )
+        Self::new_calc(CalcNode::Sum(new_list.into()), clamping_mode)
     }
 
     /// Constructs a `calc()` value.
     #[inline]
-    pub fn new_calc(
-        mut node: CalcNode,
-        clamping_mode: AllowedNumericType,
-        has_anchor_function: bool,
-    ) -> Self {
+    pub fn new_calc(mut node: CalcNode, clamping_mode: AllowedNumericType) -> Self {
         node.simplify_and_sort();
 
         match node {
@@ -383,7 +352,6 @@ impl LengthPercentage {
             _ => Self::new_calc_unchecked(Box::new(CalcLengthPercentage {
                 clamping_mode,
                 node,
-                has_anchor_function,
             })),
         }
     }
@@ -918,11 +886,6 @@ impl calc::CalcNodeLeaf for CalcLengthPercentageLeaf {
     }
 }
 
-/// Computed `anchor()` function in math functions.
-pub type CalcAnchorFunction = GenericCalcAnchorFunction<CalcLengthPercentageLeaf>;
-/// Computed `anchor-size()` function in math functions.
-pub type CalcAnchorSizeFunction = GenericCalcAnchorSizeFunction<CalcLengthPercentageLeaf>;
-
 /// The computed version of a calc() node for `<length-percentage>` values.
 pub type CalcNode = calc::GenericCalcNode<CalcLengthPercentageLeaf>;
 
@@ -935,10 +898,6 @@ pub struct CalcLengthPercentage {
     #[animation(constant)]
     #[css(skip)]
     clamping_mode: AllowedNumericType,
-    /// See documentation for field of the same name in `specified::CalcLengthPercentage`.
-    #[animation(constant)]
-    #[css(skip)]
-    has_anchor_function: bool,
     node: CalcNode,
 }
 
@@ -1109,56 +1068,6 @@ impl CalcLengthPercentage {
             },
         }
     }
-
-    /// Resolves anchor positioning functions. This is separate from percentage length resolution, as
-    /// it's valid to ask "Is a given inset auto?" without having to resolve the full length value.
-    /// Note(dshin): When interleaving is implemented, and if the anchor function resolves to a percentage
-    /// fallback value, percentage values probably be left as-is, for animation.
-    #[inline]
-    pub fn resolve_anchor_functions(
-        &self,
-        side: PhysicalSide,
-        prop: PositionProperty,
-    ) -> Result<Self, ()> {
-        let result = self.node.resolve_anchor(side, prop, &Resolver)?;
-        Ok(Self {
-            clamping_mode: self.clamping_mode,
-            // TODO(dshin): When the interleaving is implemented, we need to mark anchor-resolved
-            // values somehow so that we know this value need to be animated when the anchor element or
-            // the absolute containing block is changed.
-            has_anchor_function: false,
-            node: result,
-        })
-    }
-}
-
-struct Resolver;
-
-impl AnchorPositioningResolver<CalcLengthPercentageLeaf> for Resolver {
-    fn resolve_anchor(
-        &self,
-        f: &CalcAnchorFunction,
-        side: PhysicalSide,
-        position: PositionProperty,
-    ) -> Result<CalcNode, ()> {
-        match f.resolve(side, position) {
-            AnchorResolutionResult::Resolved(v) => Ok(*v),
-            AnchorResolutionResult::Fallback(v) => Ok(*v.clone()),
-            AnchorResolutionResult::Invalid => Err(()),
-        }
-    }
-
-    fn resolve_anchor_size(
-        &self,
-        f: &CalcAnchorSizeFunction,
-        position: PositionProperty,
-    ) -> Result<CalcNode, ()> {
-        match f.resolve(position) {
-            AnchorResolutionResult::Resolved(v) => Ok(*v),
-            AnchorResolutionResult::Fallback(v) => Ok(*v.clone()),
-            AnchorResolutionResult::Invalid => Err(()),
-        }
-    }
 }
 
 // NOTE(emilio): We don't compare `clamping_mode` since we want to preserve the
@@ -1210,7 +1119,7 @@ impl specified::CalcLengthPercentage {
             },
         });
 
-        LengthPercentage::new_calc(node, self.clamping_mode, self.has_anchor_function)
+        LengthPercentage::new_calc(node, self.clamping_mode)
     }
 
     /// Compute font-size or line-height taking into account text-zoom if necessary.
@@ -1289,7 +1198,6 @@ impl specified::CalcLengthPercentage {
                 CalcLengthPercentageLeaf::Percentage(ref p) => Leaf::Percentage(p.0),
                 CalcLengthPercentageLeaf::Number(n) => Leaf::Number(*n),
             }),
-            has_anchor_function: computed.has_anchor_function,
         }
     }
 }
@@ -1320,15 +1228,12 @@ impl Animate for LengthPercentage {
                 }
 
                 let (l, r) = procedure.weights();
-                let (one, one_has_anchor_function) = self.to_calc_node();
-                let (other, other_has_anchor_function) = other.to_calc_node();
-                let one = product_with(one, l as f32);
-                let other = product_with(other, r as f32);
+                let one = product_with(self.to_calc_node(), l as f32);
+                let other = product_with(other.to_calc_node(), r as f32);
 
                 Self::new_calc(
                     CalcNode::Sum(vec![one, other].into()),
                     AllowedNumericType::All,
-                    one_has_anchor_function || other_has_anchor_function,
                 )
             },
         })

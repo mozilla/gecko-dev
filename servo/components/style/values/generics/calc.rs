@@ -6,8 +6,6 @@
 //!
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
-use crate::logical_geometry::PhysicalSide;
-use crate::values::generics::box_::PositionProperty;
 use crate::values::generics::length::GenericAnchorSizeFunction;
 use crate::values::generics::position::{AnchorSide, GenericAnchorFunction};
 use num_traits::Zero;
@@ -440,24 +438,6 @@ enum ArgumentLevel {
     ArgumentRoot,
     /// Any other values serialized in the tree.
     Nested,
-}
-
-/// Trait for resolving anchor positioning functions in math functions.
-pub trait AnchorPositioningResolver<L: CalcNodeLeaf> {
-    /// Resolve `anchor()` function to a value.
-    fn resolve_anchor(
-        &self,
-        f: &GenericCalcAnchorFunction<L>,
-        side: PhysicalSide,
-        position: PositionProperty,
-    ) -> Result<GenericCalcNode<L>, ()>;
-
-    /// Resolve `anchor-size()` function to a value.
-    fn resolve_anchor_size(
-        &self,
-        f: &GenericCalcAnchorSizeFunction<L>,
-        position: PositionProperty,
-    ) -> Result<GenericCalcNode<L>, ()>;
 }
 
 impl<L: CalcNodeLeaf> CalcNode<L> {
@@ -1212,135 +1192,6 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             },
             Self::Anchor(_) | Self::AnchorSize(_) => Err(()),
         }
-    }
-
-    /// Resolve anchor functions, returning the reduced node as a result of it.
-    /// This returns a cloned node, so callers should ideally keep track of
-    /// the node's usage of anchor functions and skip calling this.
-    /// Returns `Err(())` if the anchor function used resolves to an invalid
-    /// anchor and there is no fallback available.
-    pub fn resolve_anchor<R>(
-        &self,
-        side: PhysicalSide,
-        position_property: PositionProperty,
-        anchor_function_resolver: &R,
-    ) -> Result<Self, ()>
-    where
-        R: AnchorPositioningResolver<L>,
-    {
-        fn resolve_anchor_internal<L: CalcNodeLeaf, R>(
-            node: &mut CalcNode<L>,
-            side: PhysicalSide,
-            position_property: PositionProperty,
-            anchor_positioning_resolver: &R,
-        ) -> Result<(), ()>
-        where
-            R: AnchorPositioningResolver<L>,
-        {
-            match node {
-                CalcNode::Leaf(_) => Ok(()),
-                CalcNode::Negate(child) |
-                CalcNode::Invert(child) |
-                CalcNode::Abs(child) |
-                CalcNode::Sign(child) => resolve_anchor_internal(
-                    child,
-                    side,
-                    position_property,
-                    anchor_positioning_resolver,
-                ),
-                CalcNode::Sum(children) |
-                CalcNode::Product(children) |
-                CalcNode::MinMax(children, _) |
-                CalcNode::Hypot(children) => {
-                    for child in children.iter_mut() {
-                        resolve_anchor_internal(
-                            child,
-                            side,
-                            position_property,
-                            anchor_positioning_resolver,
-                        )?;
-                    }
-                    Ok(())
-                },
-                CalcNode::Clamp { min, center, max } => {
-                    resolve_anchor_internal(
-                        min,
-                        side,
-                        position_property,
-                        anchor_positioning_resolver,
-                    )?;
-                    resolve_anchor_internal(
-                        center,
-                        side,
-                        position_property,
-                        anchor_positioning_resolver,
-                    )?;
-                    resolve_anchor_internal(
-                        max,
-                        side,
-                        position_property,
-                        anchor_positioning_resolver,
-                    )
-                },
-                CalcNode::Round {
-                    value,
-                    step,
-                    ..
-                } => {
-                    resolve_anchor_internal(
-                        value,
-                        side,
-                        position_property,
-                        anchor_positioning_resolver,
-                    )?;
-                    resolve_anchor_internal(
-                        step,
-                        side,
-                        position_property,
-                        anchor_positioning_resolver,
-                    )
-                },
-                CalcNode::ModRem {
-                    dividend,
-                    divisor,
-                    op: _,
-                } => {
-                    resolve_anchor_internal(
-                        dividend,
-                        side,
-                        position_property,
-                        anchor_positioning_resolver,
-                    )?;
-                    resolve_anchor_internal(
-                        divisor,
-                        side,
-                        position_property,
-                        anchor_positioning_resolver,
-                    )
-                },
-                CalcNode::Anchor(f) => {
-                    *node =
-                        anchor_positioning_resolver.resolve_anchor(f, side, position_property)?;
-                    Ok(())
-                },
-                CalcNode::AnchorSize(f) => {
-                    *node =
-                        anchor_positioning_resolver.resolve_anchor_size(f, position_property)?;
-                    Ok(())
-                },
-            }
-        }
-
-        // TODO(dshin, Bug 1924225): When interleaving for anchor positioning happens, we can
-        // mutate the node in place.
-        let mut cloned = self.clone();
-        resolve_anchor_internal(
-            &mut cloned,
-            side,
-            position_property,
-            anchor_function_resolver,
-        )?;
-        Ok(cloned)
     }
 
     fn is_negative_leaf(&self) -> Result<bool, ()> {
