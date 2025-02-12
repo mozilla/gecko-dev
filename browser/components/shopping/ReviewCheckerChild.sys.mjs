@@ -479,7 +479,7 @@ export class ReviewCheckerChild extends RemotePageChild {
       if (isAnalysisInProgress) {
         // Do not clear data however if an analysis was requested via a call-to-action.
         if (!isPolledRequest) {
-          this.updateAnalysisStatus({ analysisStatus });
+          this.updateAnalysisStatus({ analysisStatus }, productUrl);
         }
 
         analysisStatus = await this.waitForAnalysisCompleted(
@@ -488,7 +488,7 @@ export class ReviewCheckerChild extends RemotePageChild {
         );
       }
 
-      this.updateAnalysisStatus({ analysisStatus });
+      this.updateAnalysisStatus({ analysisStatus }, productUrl);
 
       let hasAnalysisCompleted =
         ShoppingProduct.hasAnalysisCompleted(analysisStatus);
@@ -622,8 +622,9 @@ export class ReviewCheckerChild extends RemotePageChild {
    *
    * @param {object?} options
    * @param {string} options.analysisStatus
+   * @param {string} productUrl the url of the analyzed product
    */
-  updateAnalysisStatus({ analysisStatus } = {}) {
+  updateAnalysisStatus({ analysisStatus } = {}, productUrl) {
     let data;
     // Use the analysis status instead of re-requesting unnecessarily,
     // or throw if the status from the last analysis was an error.
@@ -646,7 +647,10 @@ export class ReviewCheckerChild extends RemotePageChild {
 
     let isAnalysisInProgress =
       ShoppingProduct.isAnalysisInProgress(analysisStatus);
-    if (!data && !isAnalysisInProgress) {
+    if (
+      (!data && !isAnalysisInProgress) ||
+      this.#currentURI.spec !== productUrl
+    ) {
       return;
     }
 

@@ -7,6 +7,10 @@
 
 const CONTENT_PAGE = "https://example.com";
 
+ChromeUtils.defineESModuleGetters(this, {
+  ContentTaskUtils: "resource://testing-common/ContentTaskUtils.sys.mjs",
+});
+
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -426,27 +430,6 @@ add_task(async function test_sidebar_navigation() {
   });
 });
 
-add_task(async function test_no_reliability_available() {
-  Services.fog.testResetFOG();
-  await Services.fog.testFlushAllChildren();
-  await BrowserTestUtils.withNewTab(NEEDS_ANALYSIS_TEST_URL, async () => {
-    await SidebarController.show("viewReviewCheckerSidebar");
-    info("Waiting for sidebar to update.");
-    await reviewCheckerSidebarUpdated(NEEDS_ANALYSIS_TEST_URL);
-  });
-
-  await Services.fog.testFlushAllChildren();
-  var sawPageEvents =
-    Glean.shopping.surfaceNoReviewReliabilityAvailable.testGetValue();
-
-  Assert.equal(sawPageEvents.length, 1);
-  Assert.equal(sawPageEvents[0].category, "shopping");
-  Assert.equal(
-    sawPageEvents[0].name,
-    "surface_no_review_reliability_available"
-  );
-});
-
 add_task(async function test_close_sidebar_after_opt_out() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.shopping.experience2023.optedIn", 1]],
@@ -487,3 +470,118 @@ add_task(async function test_close_sidebar_after_opt_out() {
 
   await SpecialPowers.popPrefEnv();
 });
+
+/**
+ * Tests that the shopping-message-bar component does not appear when switching to another page
+ * with an analysis in progress
+ */
+add_task(
+  async function test_inprogress_message_does_not_appear_on_navigation() {
+    await BrowserTestUtils.withNewTab(
+      NEEDS_ANALYSIS_TEST_URL,
+      async browser => {
+        await SidebarController.show("viewReviewCheckerSidebar");
+        info("Waiting for sidebar to update.");
+        await reviewCheckerSidebarUpdated(NEEDS_ANALYSIS_TEST_URL);
+
+        await withReviewCheckerSidebar(async () => {
+          let shoppingContainer = await ContentTaskUtils.waitForCondition(
+            () =>
+              content.document.querySelector("shopping-container")
+                ?.wrappedJSObject,
+            "Review Checker is loaded."
+          );
+
+          /**
+           * Let's ensure the inprogress message-bar is visible so that we can reliability test its
+           * visibility later in the test
+           */
+          let messageBarVisiblePromise = ContentTaskUtils.waitForCondition(
+            () => {
+              return (
+                !!shoppingContainer.shoppingMessageBarEl &&
+                ContentTaskUtils.isVisible(
+                  shoppingContainer.shoppingMessageBarEl
+                )
+              );
+            },
+            "Waiting for shopping-message-bar to be visible"
+          );
+
+          info("Pressing analysis button");
+          let analysisButton =
+            shoppingContainer.unanalyzedProductEl.analysisButtonEl;
+          analysisButton.click();
+
+          await messageBarVisiblePromise;
+        });
+
+        // Load a new page
+        let loadedPromise = BrowserTestUtils.browserLoaded(
+          browser,
+          false,
+          "https://example.com/1"
+        );
+
+        BrowserTestUtils.startLoadingURIString(
+          browser,
+          "https://example.com/1"
+        );
+        info("Loading non-product page");
+        await loadedPromise;
+        await reviewCheckerSidebarUpdated("https://example.com/1");
+
+        await withReviewCheckerSidebar(
+          async args => {
+            const [NEEDS_ANALYSIS_TEST_URL] = args;
+
+            let actor =
+              content.windowGlobalChild.getExistingActor("ReviewChecker");
+            Assert.ok(actor, "Got ReviewCheckerChild actor");
+
+            info(
+              "Calling updateAnalysisStatus to pretend it resolved late from the previous URL after loading a new one"
+            );
+            await actor.updateAnalysisStatus(
+              { status: "pending" },
+              NEEDS_ANALYSIS_TEST_URL
+            );
+
+            let shoppingContainer = await ContentTaskUtils.waitForCondition(
+              () =>
+                content.document.querySelector("shopping-container")
+                  ?.wrappedJSObject,
+              "Review Checker is loaded."
+            );
+
+            // Now, let's ensure the inprogress message-bar is never visible in Review Checker.
+            let messageBarVisiblePromise = ContentTaskUtils.waitForCondition(
+              () => {
+                return (
+                  !!shoppingContainer.shoppingMessageBarEl &&
+                  ContentTaskUtils.isVisible(
+                    shoppingContainer.shoppingMessageBarEl
+                  )
+                );
+              },
+              "Waiting for shopping-message-bar to be visible"
+            );
+
+            // ContentTaskUtils.waitForCondition error message will include "timed out" since it couldn't find the shopping-message-bar.
+            await Assert.rejects(
+              messageBarVisiblePromise,
+              /timed out/,
+              "shopping-message-bar for in-progress analysis should never be visible"
+            );
+
+            Assert.ok(
+              !shoppingContainer.shoppingMessageBarEl,
+              "The shopping message bar element does not exist on non-PDP"
+            );
+          },
+          [NEEDS_ANALYSIS_TEST_URL]
+        );
+      }
+    );
+  }
+);

@@ -21,6 +21,8 @@ add_setup(async function setup() {
   registerCleanupFunction(async () => {
     SidebarController.hide();
   });
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
 });
 
 add_task(async function test_no_reliability_available() {
