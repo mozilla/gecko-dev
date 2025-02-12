@@ -72,12 +72,6 @@
     }
   }
 
-  &.theme-solid-color-picker.active,
-  &:checked {
-    outline-color: var(--color-accent-primary-active);
-    padding: 2px;
-  }
-
   &:focus-visible {
     outline-color: var(--newtab-primary-action-background);
   }

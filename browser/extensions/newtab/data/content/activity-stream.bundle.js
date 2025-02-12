@@ -11219,6 +11219,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     this.getRGBColors = this.getRGBColors.bind(this);
     this.prefersHighContrastQuery = null;
     this.prefersDarkQuery = null;
+    this.categoryRef = []; // store references for wallpaper category list
+    this.wallpaperRef = []; // store reference for wallpaper selection list
     this.state = {
       activeCategory: null,
       activeCategoryFluentID: null,
@@ -11251,6 +11253,69 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       selected_wallpaper: id,
       had_previous_wallpaper: !!this.props.activeWallpaper
     });
+  }
+
+  // function implementing arrow navigation for wallpaper category selection
+  handleCategoryKeyDown(event, category) {
+    const getIndex = this.categoryRef.findIndex(cat => cat.id === category);
+    if (getIndex === -1) {
+      return; // prevents errors if wallpaper index isn't found when navigating with arrow keys
+    }
+    const isRTL = document.dir === "rtl"; // returns true is page language is right-to-left
+    let eventKey = event.key;
+    if (eventKey === "ArrowRight" || eventKey === "ArrowLeft") {
+      if (isRTL) {
+        eventKey = eventKey === "ArrowRight" ? "ArrowLeft" : "ArrowRight";
+      }
+    }
+    let nextIndex = getIndex;
+    if (eventKey === "ArrowRight") {
+      nextIndex = getIndex + 1 < this.categoryRef.length ? getIndex + 1 : getIndex;
+    } else if (eventKey === "ArrowLeft") {
+      nextIndex = getIndex - 1 >= 0 ? getIndex - 1 : getIndex;
+    }
+    this.categoryRef[nextIndex].focus();
+  }
+
+  // function implementing arrow navigation for wallpaper selection
+  handleWallpaperKeyDown(event, title) {
+    if (event.key === "Tab") {
+      if (event.shiftKey) {
+        event.preventDefault();
+        this.backToMenuButton?.focus();
+      } else {
+        event.preventDefault(); // prevent tabbing within wallpaper selection. We should only be using the Tab key to tab between groups
+      }
+      return;
+    }
+    const isRTL = document.dir === "rtl"; // returns true if page language is right-to-left
+    let eventKey = event.key;
+    if (eventKey === "ArrowRight" || eventKey === "ArrowLeft") {
+      if (isRTL) {
+        eventKey = eventKey === "ArrowRight" ? "ArrowLeft" : "ArrowRight";
+      }
+    }
+    const getIndex = this.wallpaperRef.findIndex(wallpaper => wallpaper.id === title);
+    if (getIndex === -1) {
+      return; // prevents errors if wallpaper index isn't found when navigating with arrow keys
+    }
+
+    // the set layout of columns per row for the wallpaper selection
+    const columnCount = 3;
+    let nextIndex = getIndex;
+    if (eventKey === "ArrowRight") {
+      nextIndex = getIndex + 1 < this.wallpaperRef.length ? getIndex + 1 : getIndex;
+    } else if (eventKey === "ArrowLeft") {
+      nextIndex = getIndex - 1 >= 0 ? getIndex - 1 : getIndex;
+    } else if (eventKey === "ArrowDown") {
+      nextIndex = getIndex + columnCount < this.wallpaperRef.length ? getIndex + columnCount : getIndex;
+    } else if (eventKey === "ArrowUp") {
+      nextIndex = getIndex - columnCount >= 0 ? getIndex - columnCount : getIndex;
+    }
+    this.wallpaperRef[nextIndex].tabIndex = 0;
+    this.wallpaperRef[getIndex].tabIndex = -1;
+    this.wallpaperRef[nextIndex].focus();
+    this.wallpaperRef[nextIndex].click();
   }
   handleReset() {
     this.props.setPref("newtabWallpapers.wallpaper-light", "");
@@ -11286,6 +11351,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     this.setState({
       activeCategory: null
     });
+    this.categoryRef[0]?.focus();
   }
 
   // Record user interaction when changing wallpaper and reseting wallpaper to default
@@ -11362,7 +11428,7 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       // If nothing selected, default to Zilla Green
       ,
       value: wallpaperCustomSolidColorHex || "#00d230",
-      className: `wallpaper-input theme-solid-color-picker 
+      className: `wallpaper-input theme-solid-color-picker
               ${this.state.activeId === "solid-color-picker" ? "active" : ""}`
     }), /*#__PURE__*/external_React_default().createElement("label", {
       htmlFor: "solid-color-picker",
@@ -11378,9 +11444,12 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       className: "wallpapers-reset",
       onClick: this.handleReset,
       "data-l10n-id": "newtab-wallpaper-reset"
-    })), /*#__PURE__*/external_React_default().createElement("fieldset", {
+    })), /*#__PURE__*/external_React_default().createElement("div", {
+      role: "grid",
+      "aria-label": "Wallpaper category selection. Use arrow keys to navigate."
+    }, /*#__PURE__*/external_React_default().createElement("fieldset", {
       className: "category-list"
-    }, categories.map(category => {
+    }, categories.map((category, index) => {
       const filteredList = wallpaperList.filter(wallpaper => wallpaper.category === category);
       const activeWallpaperObj = activeWallpaper && filteredList.find(wp => wp.title === activeWallpaper);
       const thumbnail = activeWallpaperObj || filteredList[0];
@@ -11404,16 +11473,23 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
       return /*#__PURE__*/external_React_default().createElement("div", {
         key: category
       }, /*#__PURE__*/external_React_default().createElement("input", {
+        ref: el => {
+          if (el) {
+            this.categoryRef[index] = el;
+          }
+        },
         id: category,
         style: style,
         type: "radio",
         onClick: this.handleCategory,
-        className: "wallpaper-input"
+        onKeyDown: e => this.handleCategoryKeyDown(e, category),
+        className: "wallpaper-input",
+        tabIndex: index === 0 ? 0 : -1
       }), /*#__PURE__*/external_React_default().createElement("label", {
         htmlFor: category,
         "data-l10n-id": fluent_id
       }, fluent_id));
-    })), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
+    }))), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
       in: !!activeCategory,
       timeout: 300,
       classNames: "wallpaper-list",
@@ -11423,14 +11499,20 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("button", {
       className: "arrow-button",
       "data-l10n-id": activeCategoryFluentID,
-      onClick: this.handleBack
-    }), /*#__PURE__*/external_React_default().createElement("fieldset", null, filteredWallpapers.map(({
+      onClick: this.handleBack,
+      ref: el => {
+        this.backToMenuButton = el;
+      }
+    }), /*#__PURE__*/external_React_default().createElement("div", {
+      role: "grid",
+      "aria-label": "Wallpaper selection. Use arrow keys to navigate."
+    }, /*#__PURE__*/external_React_default().createElement("fieldset", null, filteredWallpapers.map(({
       title,
       theme,
       fluent_id,
       solid_color,
       wallpaperUrl
-    }) => {
+    }, index) => {
       let style = {};
       if (wallpaperUrl) {
         style.backgroundImage = `url(${wallpaperUrl})`;
@@ -11438,7 +11520,13 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
         style.backgroundColor = solid_color || "";
       }
       return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("input", {
+        ref: el => {
+          if (el) {
+            this.wallpaperRef[index] = el;
+          }
+        },
         onChange: this.handleChange,
+        onKeyDown: e => this.handleWallpaperKeyDown(e, title),
         style: style,
         type: "radio",
         name: `wallpaper-${title}`,
@@ -11448,12 +11536,14 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
         "aria-checked": title === activeWallpaper,
         className: `wallpaper-input theme-${theme} ${this.state.activeId === title ? "active" : ""}`,
         onClick: () => this.setActiveId(title) //
+        ,
+        tabIndex: index === 0 ? 0 : -1 //the first wallpaper in the array will have a tabindex of 0 so we can tab into it. The rest will have a tabindex of -1
       }), /*#__PURE__*/external_React_default().createElement("label", {
         htmlFor: title,
         className: "sr-only",
         "data-l10n-id": fluent_id
       }, fluent_id));
-    }), colorPickerInput))));
+    }), colorPickerInput)))));
   }
 }
 const WallpaperCategories = (0,external_ReactRedux_namespaceObject.connect)(state => {

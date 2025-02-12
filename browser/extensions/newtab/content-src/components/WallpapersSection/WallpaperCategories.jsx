@@ -18,6 +18,8 @@ export class _WallpaperCategories extends React.PureComponent {
     this.getRGBColors = this.getRGBColors.bind(this);
     this.prefersHighContrastQuery = null;
     this.prefersDarkQuery = null;
+    this.categoryRef = []; // store references for wallpaper category list
+    this.wallpaperRef = []; // store reference for wallpaper selection list
     this.state = {
       activeCategory: null,
       activeCategoryFluentID: null,
@@ -54,6 +56,89 @@ export class _WallpaperCategories extends React.PureComponent {
       had_previous_wallpaper: !!this.props.activeWallpaper,
     });
   }
+
+  // function implementing arrow navigation for wallpaper category selection
+  handleCategoryKeyDown(event, category) {
+    const getIndex = this.categoryRef.findIndex(cat => cat.id === category);
+    if (getIndex === -1) {
+      return; // prevents errors if wallpaper index isn't found when navigating with arrow keys
+    }
+
+    const isRTL = document.dir === "rtl"; // returns true is page language is right-to-left
+    let eventKey = event.key;
+
+    if (eventKey === "ArrowRight" || eventKey === "ArrowLeft") {
+      if (isRTL) {
+        eventKey = eventKey === "ArrowRight" ? "ArrowLeft" : "ArrowRight";
+      }
+    }
+
+    let nextIndex = getIndex;
+
+    if (eventKey === "ArrowRight") {
+      nextIndex =
+        getIndex + 1 < this.categoryRef.length ? getIndex + 1 : getIndex;
+    } else if (eventKey === "ArrowLeft") {
+      nextIndex = getIndex - 1 >= 0 ? getIndex - 1 : getIndex;
+    }
+
+    this.categoryRef[nextIndex].focus();
+  }
+
+  // function implementing arrow navigation for wallpaper selection
+  handleWallpaperKeyDown(event, title) {
+    if (event.key === "Tab") {
+      if (event.shiftKey) {
+        event.preventDefault();
+        this.backToMenuButton?.focus();
+      } else {
+        event.preventDefault(); // prevent tabbing within wallpaper selection. We should only be using the Tab key to tab between groups
+      }
+      return;
+    }
+
+    const isRTL = document.dir === "rtl"; // returns true if page language is right-to-left
+    let eventKey = event.key;
+
+    if (eventKey === "ArrowRight" || eventKey === "ArrowLeft") {
+      if (isRTL) {
+        eventKey = eventKey === "ArrowRight" ? "ArrowLeft" : "ArrowRight";
+      }
+    }
+
+    const getIndex = this.wallpaperRef.findIndex(
+      wallpaper => wallpaper.id === title
+    );
+
+    if (getIndex === -1) {
+      return; // prevents errors if wallpaper index isn't found when navigating with arrow keys
+    }
+
+    // the set layout of columns per row for the wallpaper selection
+    const columnCount = 3;
+    let nextIndex = getIndex;
+
+    if (eventKey === "ArrowRight") {
+      nextIndex =
+        getIndex + 1 < this.wallpaperRef.length ? getIndex + 1 : getIndex;
+    } else if (eventKey === "ArrowLeft") {
+      nextIndex = getIndex - 1 >= 0 ? getIndex - 1 : getIndex;
+    } else if (eventKey === "ArrowDown") {
+      nextIndex =
+        getIndex + columnCount < this.wallpaperRef.length
+          ? getIndex + columnCount
+          : getIndex;
+    } else if (eventKey === "ArrowUp") {
+      nextIndex =
+        getIndex - columnCount >= 0 ? getIndex - columnCount : getIndex;
+    }
+
+    this.wallpaperRef[nextIndex].tabIndex = 0;
+    this.wallpaperRef[getIndex].tabIndex = -1;
+    this.wallpaperRef[nextIndex].focus();
+    this.wallpaperRef[nextIndex].click();
+  }
+
   handleReset() {
     this.props.setPref("newtabWallpapers.wallpaper-light", "");
     this.props.setPref("newtabWallpapers.wallpaper-dark", "");
@@ -67,6 +152,7 @@ export class _WallpaperCategories extends React.PureComponent {
 
   handleCategory = event => {
     this.setState({ activeCategory: event.target.id });
+
     this.handleUserEvent(at.WALLPAPER_CATEGORY_CLICK, event.target.id);
 
     let fluent_id;
@@ -86,6 +172,7 @@ export class _WallpaperCategories extends React.PureComponent {
 
   handleBack() {
     this.setState({ activeCategory: null });
+    this.categoryRef[0]?.focus();
   }
 
   // Record user interaction when changing wallpaper and reseting wallpaper to default
@@ -157,7 +244,7 @@ export class _WallpaperCategories extends React.PureComponent {
             aria-current={this.state.activeId === "solid-color-picker"}
             // If nothing selected, default to Zilla Green
             value={wallpaperCustomSolidColorHex || "#00d230"}
-            className={`wallpaper-input theme-solid-color-picker 
+            className={`wallpaper-input theme-solid-color-picker
               ${this.state.activeId === "solid-color-picker" ? "active" : ""}`}
           />
           <label
@@ -183,51 +270,60 @@ export class _WallpaperCategories extends React.PureComponent {
             data-l10n-id="newtab-wallpaper-reset"
           />
         </div>
-        <fieldset className="category-list">
-          {categories.map(category => {
-            const filteredList = wallpaperList.filter(
-              wallpaper => wallpaper.category === category
-            );
-            const activeWallpaperObj =
-              activeWallpaper &&
-              filteredList.find(wp => wp.title === activeWallpaper);
-            const thumbnail = activeWallpaperObj || filteredList[0];
-
-            let fluent_id;
-            switch (category) {
-              case "photographs":
-                fluent_id = "newtab-wallpaper-category-title-photographs";
-                break;
-              case "abstracts":
-                fluent_id = "newtab-wallpaper-category-title-abstract";
-                break;
-              case "solid-colors":
-                fluent_id = "newtab-wallpaper-category-title-colors";
-            }
-
-            let style = {};
-            if (thumbnail?.wallpaperUrl) {
-              style.backgroundImage = `url(${thumbnail.wallpaperUrl})`;
-            } else {
-              style.backgroundColor = thumbnail?.solid_color || "";
-            }
-
-            return (
-              <div key={category}>
-                <input
-                  id={category}
-                  style={style}
-                  type="radio"
-                  onClick={this.handleCategory}
-                  className="wallpaper-input"
-                />
-                <label htmlFor={category} data-l10n-id={fluent_id}>
-                  {fluent_id}
-                </label>
-              </div>
-            );
-          })}
-        </fieldset>
+        <div
+          role="grid"
+          aria-label="Wallpaper category selection. Use arrow keys to navigate."
+        >
+          <fieldset className="category-list">
+            {categories.map((category, index) => {
+              const filteredList = wallpaperList.filter(
+                wallpaper => wallpaper.category === category
+              );
+              const activeWallpaperObj =
+                activeWallpaper &&
+                filteredList.find(wp => wp.title === activeWallpaper);
+              const thumbnail = activeWallpaperObj || filteredList[0];
+              let fluent_id;
+              switch (category) {
+                case "photographs":
+                  fluent_id = "newtab-wallpaper-category-title-photographs";
+                  break;
+                case "abstracts":
+                  fluent_id = "newtab-wallpaper-category-title-abstract";
+                  break;
+                case "solid-colors":
+                  fluent_id = "newtab-wallpaper-category-title-colors";
+              }
+              let style = {};
+              if (thumbnail?.wallpaperUrl) {
+                style.backgroundImage = `url(${thumbnail.wallpaperUrl})`;
+              } else {
+                style.backgroundColor = thumbnail?.solid_color || "";
+              }
+              return (
+                <div key={category}>
+                  <input
+                    ref={el => {
+                      if (el) {
+                        this.categoryRef[index] = el;
+                      }
+                    }}
+                    id={category}
+                    style={style}
+                    type="radio"
+                    onClick={this.handleCategory}
+                    onKeyDown={e => this.handleCategoryKeyDown(e, category)}
+                    className="wallpaper-input"
+                    tabIndex={index === 0 ? 0 : -1}
+                  />
+                  <label htmlFor={category} data-l10n-id={fluent_id}>
+                    {fluent_id}
+                  </label>
+                </div>
+              );
+            })}
+          </fieldset>
+        </div>
 
         <CSSTransition
           in={!!activeCategory}
@@ -240,44 +336,61 @@ export class _WallpaperCategories extends React.PureComponent {
               className="arrow-button"
               data-l10n-id={activeCategoryFluentID}
               onClick={this.handleBack}
+              ref={el => {
+                this.backToMenuButton = el;
+              }}
             />
-            <fieldset>
-              {filteredWallpapers.map(
-                ({ title, theme, fluent_id, solid_color, wallpaperUrl }) => {
-                  let style = {};
-
-                  if (wallpaperUrl) {
-                    style.backgroundImage = `url(${wallpaperUrl})`;
-                  } else {
-                    style.backgroundColor = solid_color || "";
+            <div
+              role="grid"
+              aria-label="Wallpaper selection. Use arrow keys to navigate."
+            >
+              <fieldset>
+                {filteredWallpapers.map(
+                  (
+                    { title, theme, fluent_id, solid_color, wallpaperUrl },
+                    index
+                  ) => {
+                    let style = {};
+                    if (wallpaperUrl) {
+                      style.backgroundImage = `url(${wallpaperUrl})`;
+                    } else {
+                      style.backgroundColor = solid_color || "";
+                    }
+                    return (
+                      <>
+                        <input
+                          ref={el => {
+                            if (el) {
+                              this.wallpaperRef[index] = el;
+                            }
+                          }}
+                          onChange={this.handleChange}
+                          onKeyDown={e => this.handleWallpaperKeyDown(e, title)}
+                          style={style}
+                          type="radio"
+                          name={`wallpaper-${title}`}
+                          id={title}
+                          value={title}
+                          checked={title === activeWallpaper}
+                          aria-checked={title === activeWallpaper}
+                          className={`wallpaper-input theme-${theme} ${this.state.activeId === title ? "active" : ""}`}
+                          onClick={() => this.setActiveId(title)} //
+                          tabIndex={index === 0 ? 0 : -1} //the first wallpaper in the array will have a tabindex of 0 so we can tab into it. The rest will have a tabindex of -1
+                        />
+                        <label
+                          htmlFor={title}
+                          className="sr-only"
+                          data-l10n-id={fluent_id}
+                        >
+                          {fluent_id}
+                        </label>
+                      </>
+                    );
                   }
-                  return (
-                    <>
-                      <input
-                        onChange={this.handleChange}
-                        style={style}
-                        type="radio"
-                        name={`wallpaper-${title}`}
-                        id={title}
-                        value={title}
-                        checked={title === activeWallpaper}
-                        aria-checked={title === activeWallpaper}
-                        className={`wallpaper-input theme-${theme} ${this.state.activeId === title ? "active" : ""}`}
-                        onClick={() => this.setActiveId(title)} //
-                      />
-                      <label
-                        htmlFor={title}
-                        className="sr-only"
-                        data-l10n-id={fluent_id}
-                      >
-                        {fluent_id}
-                      </label>
-                    </>
-                  );
-                }
-              )}
-              {colorPickerInput}
-            </fieldset>
+                )}
+                {colorPickerInput}
+              </fieldset>
+            </div>
           </section>
         </CSSTransition>
       </div>
