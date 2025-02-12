@@ -8,6 +8,7 @@ name = "crashreporter"
 
 [dependencies]
 anyhow = "1.0"
+buildid_reader = { path = "../../../library/buildid_reader" }
 cfg-if = "1.0"
 env_logger = { version = "0.10", default-features = false }
 flate2 = "1"
@@ -66,6 +67,7 @@ features = [
 mock = []
 
 [build-dependencies]
+bindgen = { version = "0.69", default-features = false, features = ["runtime"] }
 embed-manifest = "1.4"
 mozbuild = "0.1"
 phf_codegen = "0.11"

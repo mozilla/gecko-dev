@@ -4,7 +4,7 @@
 
 //! Glean telemetry integration.
 
-use crate::config::Config;
+use crate::config::{buildid, Config};
 use glean::{ClientInfoMetrics, Configuration, ConfigurationBuilder};
 
 const APP_ID: &str = if cfg!(mock) {
@@ -12,6 +12,7 @@ const APP_ID: &str = if cfg!(mock) {
 } else {
     "firefox.crashreporter"
 };
+const APP_DISPLAY_VERSION: &str = env!("CARGO_PKG_VERSION");
 const TELEMETRY_SERVER: &str = if cfg!(mock) {
     "https://incoming.glean.example.com"
 } else {
@@ -54,9 +55,8 @@ fn glean_data_dir(_cfg: &Config) -> ::std::path::PathBuf {
 
 fn client_info_metrics(cfg: &Config) -> ClientInfoMetrics {
     glean::ClientInfoMetrics {
-        // We can't get the build id at compile time; see bug 1945648.
-        app_build: env!("CARGO_PKG_VERSION").into(),
-        app_display_version: env!("CARGO_PKG_VERSION").into(),
+        app_build: buildid().unwrap_or(APP_DISPLAY_VERSION).into(),
+        app_display_version: APP_DISPLAY_VERSION.into(),
         channel: None,
         locale: cfg.strings.as_ref().map(|s| s.locale()),
     }
