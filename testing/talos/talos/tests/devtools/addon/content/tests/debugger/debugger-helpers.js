@@ -140,6 +140,12 @@ function waitForSources(dbg, expectedSources) {
 }
 exports.waitForSources = waitForSources;
 
+function waitForInlinePreviews(dbg) {
+  return waitForState(dbg, () =>
+    dbg.selectors.getInlinePreviews(dbg.store.getState())
+  );
+}
+
 function waitForSource(dbg, sourceURL) {
   const { selectors } = dbg;
   function hasSource(state) {
@@ -163,7 +169,9 @@ async function waitForPaused(
   dbg,
   pauseOptions = { shouldWaitForLoadedScopes: true }
 ) {
-  const promises = [];
+  // When the inline previews are ready there is some gurantee that
+  // Codemirror has completed its work
+  const promises = [waitForInlinePreviews(dbg)];
 
   // If original variable mapping is disabled the scopes for
   // original sources are not loaded by default so lets not
@@ -172,7 +180,13 @@ async function waitForPaused(
     promises.push(waitForLoadedScopes(dbg));
   }
   const {
-    selectors: { getSelectedScope, getIsPaused, getCurrentThread },
+    selectors: {
+      getSelectedScope,
+      getIsPaused,
+      getCurrentThread,
+      isMapScopesEnabled,
+      getSelectedLocation,
+    },
   } = dbg;
   const onStateChange = waitForState(dbg, state => {
     const thread = getCurrentThread(state);
@@ -181,7 +195,17 @@ async function waitForPaused(
   promises.push(onStateChange);
 
   await Promise.all(promises);
-  await waitForSymbols(dbg);
+
+  const state = dbg.store.getState();
+  const selectedSource = getSelectedLocation(state);
+  // Lezer is used when in CM6 and original scope mapping is off, so there will
+  // be no symbols from the babel parser
+  if (
+    !pauseOptions.isCm6Enabled ||
+    (selectedSource.isOriginal && isMapScopesEnabled(state))
+  ) {
+    await waitForSymbols(dbg);
+  }
 }
 exports.waitForPaused = waitForPaused;
 
@@ -352,7 +376,13 @@ async function removeBreakpoints(dbg) {
 }
 exports.removeBreakpoints = removeBreakpoints;
 
-async function pauseDebugger(dbg, tab, testFunction, { line, file }) {
+async function pauseDebugger(
+  dbg,
+  tab,
+  testFunction,
+  { line, file },
+  isCm6Enabled
+) {
   const { getSelectedLocation, isMapScopesEnabled } = dbg.selectors;
 
   const state = dbg.store.getState();
@@ -366,6 +396,7 @@ async function pauseDebugger(dbg, tab, testFunction, { line, file }) {
 
   const onPaused = waitForPaused(dbg, {
     shouldWaitForLoadedScopes: !shouldEnableOriginalScopes,
+    isCm6Enabled,
   });
   await evalInFrame(tab, testFunction);
 
@@ -384,11 +415,11 @@ async function resume(dbg) {
 }
 exports.resume = resume;
 
-async function step(dbg, stepType) {
+async function step(dbg, stepType, isCm6Enabled) {
   const resumed = waitForResumed(dbg);
   dbg.actions[stepType]();
   await resumed;
-  return waitForPaused(dbg);
+  return waitForPaused(dbg, { isCm6Enabled });
 }
 exports.step = step;
 

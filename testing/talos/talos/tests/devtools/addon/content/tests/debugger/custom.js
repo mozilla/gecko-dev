@@ -69,8 +69,8 @@ module.exports = async function () {
   await reloadDebuggerAndLog("custom", toolbox, EXPECTED);
 
   // these tests are only run on custom.jsdebugger
-  await pauseDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION);
-  await stepDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION);
+  await pauseDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION, isCm6Enabled);
+  await stepDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION, isCm6Enabled);
 
   await testProjectSearch(dbg, tab);
   await testPreview(dbg, tab, EXPECTED_FUNCTION, isCm6Enabled);
@@ -82,12 +82,12 @@ module.exports = async function () {
   await testTeardown();
 };
 
-async function pauseDebuggerAndLog(dbg, tab, testFunction) {
+async function pauseDebuggerAndLog(dbg, tab, testFunction, isCm6Enabled) {
   const pauseLocation = { line: 22, file: "App.js" };
 
   dump("Pausing debugger\n");
   let test = runTest("custom.jsdebugger.pause.DAMP");
-  await pauseDebugger(dbg, tab, testFunction, pauseLocation);
+  await pauseDebugger(dbg, tab, testFunction, pauseLocation, isCm6Enabled);
   test.done();
 
   await removeBreakpoints(dbg);
@@ -95,7 +95,7 @@ async function pauseDebuggerAndLog(dbg, tab, testFunction) {
   await garbageCollect();
 }
 
-async function stepDebuggerAndLog(dbg, tab, testFunction) {
+async function stepDebuggerAndLog(dbg, tab, testFunction, isCm6Enabled) {
   /*
    * See testing/talos/talos/tests/devtools/addon/content/pages/custom/debugger/app/src for the details
    * about the pages used for these tests.
@@ -132,10 +132,16 @@ async function stepDebuggerAndLog(dbg, tab, testFunction) {
   ];
 
   for (const stepTest of stepTests) {
-    await pauseDebugger(dbg, tab, testFunction, stepTest.location);
+    await pauseDebugger(
+      dbg,
+      tab,
+      testFunction,
+      stepTest.location,
+      isCm6Enabled
+    );
     const test = runTest(`custom.jsdebugger.${stepTest.key}.DAMP`);
     for (let i = 0; i < stepTest.stepCount; i++) {
-      await step(dbg, stepTest.stepType);
+      await step(dbg, stepTest.stepType, isCm6Enabled);
     }
     test.done();
     await removeBreakpoints(dbg);
@@ -207,7 +213,7 @@ async function testPreview(dbg, tab, testFunction, isCm6Enabled) {
   const pauseLocation = { line: 22, file: "App.js" };
 
   let test = runTest("custom.jsdebugger.preview.DAMP");
-  await pauseDebugger(dbg, tab, testFunction, pauseLocation);
+  await pauseDebugger(dbg, tab, testFunction, pauseLocation, isCm6Enabled);
   await hoverOnToken(dbg, "window.hitBreakpoint", "window", isCm6Enabled);
   test.done();
 
@@ -272,7 +278,7 @@ async function testPrettyPrint(dbg, toolbox, isCm6Enabled) {
 
   await addBreakpoint(dbg, 776, formattedFileUrl);
 
-  const onPaused = waitForPaused(dbg);
+  const onPaused = waitForPaused(dbg, { isCm6Enabled });
   const reloadAndPauseInPrettyPrintedFileTest = runTest(
     "custom.jsdebugger.pretty-print.reload-and-pause.DAMP"
   );
