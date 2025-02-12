@@ -543,6 +543,17 @@ void WebrtcGmpVideoEncoder::Encoded(
   unit._encodedHeight = aEncodedFrame->EncodedHeight();
 
   webrtc::CodecSpecificInfo info;
+  static_assert(
+      sizeof(info.codecSpecific.H264) == 8,
+      "webrtc::CodecSpecificInfoH264 has changed. We must handle the changes.");
+  static_assert(
+      sizeof(info) - sizeof(info.codecSpecific) -
+              sizeof(info.generic_frame_info) -
+              sizeof(info.template_structure) -
+              sizeof(info.frame_instrumentation_data) ==
+          24,
+      "webrtc::CodecSpecificInfo's generic bits have changed. We must handle "
+      "the changes.");
   info.codecType = webrtc::kVideoCodecH264;
   info.codecSpecific = {};
   info.codecSpecific.H264.packetization_mode =
