@@ -479,7 +479,7 @@ export class _ExperimentManager {
 
     // RemoteSettingsExperimentLoader could be in a middle of updating recipes
     // so let's wait for the update to finish and this promise to resolve.
-    await lazy.RemoteSettingsExperimentLoader.updatingRecipes();
+    await lazy.RemoteSettingsExperimentLoader.finishedUpdating();
 
     // At this point in the execution of this function,
     // RemoteSettingsExperimentLoader should've finished updating recipes at least once.
@@ -510,7 +510,7 @@ export class _ExperimentManager {
 
     // RemoteSettingsExperimentLoader could be in a middle of updating recipes
     // so let's wait for the update to finish and this promise to resolve.
-    await lazy.RemoteSettingsExperimentLoader.updatingRecipes();
+    await lazy.RemoteSettingsExperimentLoader.finishedUpdating();
 
     return this.optInRecipes.find(recipe => recipe.slug === slug);
   }

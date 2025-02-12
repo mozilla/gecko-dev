@@ -528,10 +528,10 @@ export class _RemoteSettingsExperimentLoader {
   }
 
   /**
-   * Returns a promise to the caller waiting for the recipes to be updated,
-   * which is resolved in the .updateRecipe function.
+   * Resolves when the RemoteSettingsExperimentLoader has updated at least once
+   * and is not in the middle of an update.
    */
-  updatingRecipes() {
+  finishedUpdating() {
     return this._updatingDeferred.promise;
   }
 }

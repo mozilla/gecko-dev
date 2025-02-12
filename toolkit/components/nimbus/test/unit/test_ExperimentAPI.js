@@ -619,7 +619,7 @@ add_task(async function test_getActiveBranch_noActivationEvent() {
 add_task(async function test_getFirefoxLabsOptInRecipes() {
   const sandbox = sinon.createSandbox();
   const manager = ExperimentFakes.manager();
-  sandbox.stub(RemoteSettingsExperimentLoader, "updatingRecipes").resolves();
+  sandbox.stub(RemoteSettingsExperimentLoader, "finishedUpdating").resolves();
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   const actualRecipes = [
@@ -661,7 +661,7 @@ add_task(async function test_enrollInFirefoxLabsOptInRecipe() {
   const sandbox = sinon.createSandbox();
   const manager = ExperimentFakes.manager();
   const managerEnrollStub = sandbox.stub(manager, "enroll").resolves(true);
-  sandbox.stub(RemoteSettingsExperimentLoader, "updatingRecipes").resolves();
+  sandbox.stub(RemoteSettingsExperimentLoader, "finishedUpdating").resolves();
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
   const optInRecipes = [

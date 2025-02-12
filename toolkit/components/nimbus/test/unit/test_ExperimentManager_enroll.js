@@ -1191,7 +1191,7 @@ add_task(async function test_getSingleOptInRecipe() {
 
   manager.optInRecipes = optInRecipes;
 
-  sandbox.stub(RemoteSettingsExperimentLoader, "updatingRecipes").resolves();
+  sandbox.stub(RemoteSettingsExperimentLoader, "finishedUpdating").resolves();
 
   Assert.equal(
     await manager.getSingleOptInRecipe(optInRecipes[0].slug),
@@ -1270,7 +1270,7 @@ add_task(async function test_getAllOptInRecipes() {
     }),
   ];
 
-  sandbox.stub(RemoteSettingsExperimentLoader, "updatingRecipes").resolves();
+  sandbox.stub(RemoteSettingsExperimentLoader, "finishedUpdating").resolves();
 
   // Happy path, opt in recipes meet targeting and bucketing criteria.
   manager.optInRecipes = optInRecipesWithTargetMatchingAndBucketing;
