@@ -1377,6 +1377,9 @@ class GeneratedFile(ContextDerived):
             ]
         else:
             self.required_during_compile = required_during_compile
+        if self.required_during_compile and self.required_before_compile:
+            self.required_before_compile += self.required_during_compile
+            self.required_during_compile = []
 
 
 class ChromeManifestEntry(ContextDerived):

@@ -452,8 +452,9 @@ def emit_code(fd, pref_list_filename):
     # creating the output directory directly if it doesn't already exist.
     ensureParentDir(fd.name)
     init_dirname = os.path.dirname(fd.name)
+    dirname = os.path.dirname(init_dirname)
 
-    with FileAvoidWrite("StaticPrefsAll.h") as fd:
+    with FileAvoidWrite(os.path.join(dirname, "StaticPrefsAll.h")) as fd:
         fd.write(code["static_prefs_all_h"])
 
     for group, text in sorted(code["static_pref_list_group_h"].items()):
@@ -463,11 +464,11 @@ def emit_code(fd, pref_list_filename):
 
     for group, text in sorted(code["static_prefs_group_h"].items()):
         filename = "StaticPrefs_{}.h".format(group)
-        with FileAvoidWrite(filename) as fd:
+        with FileAvoidWrite(os.path.join(dirname, filename)) as fd:
             fd.write(text)
 
     with FileAvoidWrite(os.path.join(init_dirname, "StaticPrefsCGetters.cpp")) as fd:
         fd.write(code["static_prefs_c_getters_cpp"])
 
-    with FileAvoidWrite("static_prefs.rs") as fd:
+    with FileAvoidWrite(os.path.join(dirname, "static_prefs.rs")) as fd:
         fd.write(code["static_prefs_rs"])
