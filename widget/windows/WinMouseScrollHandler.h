@@ -45,20 +45,9 @@ class MouseScrollHandler {
       uint32_t aNativeMessage, int32_t aDelta, uint32_t aModifierFlags,
       uint32_t aAdditionalFlags);
 
-  /**
-   * IsWaitingInternalMessage() returns true if MouseScrollHandler posted
-   * an internal message for a native mouse wheel message and has not
-   * received it. Otherwise, false.
-   */
-  static bool IsWaitingInternalMessage() {
-    return sInstance && sInstance->mIsWaitingInternalMessage;
-  }
-
  private:
   MouseScrollHandler();
   ~MouseScrollHandler();
-
-  bool mIsWaitingInternalMessage;
 
   static void MaybeLogKeyState();
 
@@ -89,23 +78,6 @@ class MouseScrollHandler {
   static POINTS GetCurrentMessagePos();
 
   /**
-   * ProcessNativeMouseWheelMessage() processes WM_MOUSEWHEEL and
-   * WM_MOUSEHWHEEL.  Additionally, processes WM_VSCROLL and WM_HSCROLL if they
-   * should be processed as mouse wheel message.
-   * This method posts MOZ_WM_MOUSEVWHEEL, MOZ_WM_MOUSEHWHEEL,
-   * MOZ_WM_VSCROLL or MOZ_WM_HSCROLL if we need to dispatch mouse scroll
-   * events.  That avoids deadlock with plugin process.
-   *
-   * @param aWidget     A window which receives the message.
-   * @param aMessage    WM_MOUSEWHEEL, WM_MOUSEHWHEEL, WM_VSCROLL or
-   *                    WM_HSCROLL.
-   * @param aWParam     The wParam value of the message.
-   * @param aLParam     The lParam value of the message.
-   */
-  void ProcessNativeMouseWheelMessage(nsWindow* aWidget, UINT aMessage,
-                                      WPARAM aWParam, LPARAM aLParam);
-
-  /**
    * ProcessMessageDirectly() processes WM_MOUSEWHEEL, WM_MOUSEHWHEEL,
    * WM_VSCROLL, and WM_HSCROLL without posting a MOZ_WM_* message.
    *
@@ -115,21 +87,6 @@ class MouseScrollHandler {
    */
   bool ProcessMessageDirectly(UINT msg, WPARAM wParam, LPARAM lParam,
                               MSGResult& aResult);
-
-  /**
-   * ProcessNativeScrollMessage() processes WM_VSCROLL and WM_HSCROLL.
-   * This method just call ProcessMouseWheelMessage() if the message should be
-   * processed as mouse wheel message.  Otherwise, dispatches a content
-   * command event.
-   *
-   * @param aWidget     A window which receives the message.
-   * @param aMessage    WM_VSCROLL or WM_HSCROLL.
-   * @param aWParam     The wParam value of the message.
-   * @param aLParam     The lParam value of the message.
-   * @return            TRUE if the message is processed.  Otherwise, FALSE.
-   */
-  bool ProcessNativeScrollMessage(nsWindow* aWidget, UINT aMessage,
-                                  WPARAM aWParam, LPARAM aLParam);
 
   /**
    * HandleMouseWheelMessage() processes MOZ_WM_MOUSEVWHEEL and
