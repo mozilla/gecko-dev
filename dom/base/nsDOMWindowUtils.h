@@ -77,8 +77,7 @@ class nsDOMWindowUtils final : public nsIDOMWindowUtils,
   // Add this offset to any event offset we're given to make it relative to the
   // widget returned by GetWidget.
   nsIWidget* GetWidget(nsPoint* aOffset = nullptr);
-  nsIWidget* GetWidgetForElement(mozilla::dom::Element* aElement,
-                                 nsPoint* aOffset = nullptr);
+  nsIWidget* GetWidgetForElement(mozilla::dom::Element* aElement);
 
   nsIDocShell* GetDocShell();
   mozilla::PresShell* GetPresShell();

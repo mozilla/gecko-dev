@@ -3010,9 +3010,8 @@ class nsContentUtils {
    */
   MOZ_CAN_RUN_SCRIPT
   static nsresult SendMouseEvent(
-      mozilla::PresShell* aPresShell, nsIWidget* aWidget,
-      const nsAString& aType, mozilla::LayoutDeviceIntPoint& aRefPoint,
-      int32_t aButton, int32_t aButtons, int32_t aClickCount,
+      mozilla::PresShell* aPresShell, const nsAString& aType, float aX,
+      float aY, int32_t aButton, int32_t aButtons, int32_t aClickCount,
       int32_t aModifiers, bool aIgnoreRootScrollFrame, float aPressure,
       unsigned short aInputSourceArg, uint32_t aIdentifier, bool aToWindow,
       bool* aPreventDefault, bool aIsDOMEventSynthesized,

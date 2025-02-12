@@ -785,11 +785,23 @@ function centerOf(element) {
 // The returned object has two fields:
 //   hitInfo: a combination of APZHitResultFlags
 //   scrollId: the view-id of the scroll frame that was hit
-function hitTest(point, popupElement = null) {
+function hitTest(point) {
   var utils = getHitTestConfig().utils;
   dump("Hit-testing point (" + point.x + ", " + point.y + ")\n");
-  utils.sendMozMouseHitTestEvent(point.x, point.y, popupElement);
-  var data = utils.getCompositorAPZTestData(popupElement);
+  utils.sendMouseEvent(
+    "MozMouseHittest",
+    point.x,
+    point.y,
+    0,
+    0,
+    0,
+    true,
+    0,
+    0,
+    true,
+    true
+  );
+  var data = utils.getCompositorAPZTestData();
   ok(
     data.hitResults.length >= 1,
     "Expected at least one hit result in the APZTestData"
