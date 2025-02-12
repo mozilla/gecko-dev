@@ -4827,7 +4827,7 @@ main section {
   padding-inline: 0;
 }
 .ds-section-wrapper .ds-section {
-  padding-block-end: var(--space-xxlarge);
+  padding-block-end: var(--space-medium);
 }
 .ds-section-wrapper .ds-section:last-child {
   padding-block-end: 0;
@@ -5880,6 +5880,9 @@ main section {
 }
 
 /* stylelint-disable max-nesting-depth */
+.outer-wrapper .ds-top-sites .collapsible-section {
+  margin-bottom: var(--space-large);
+}
 .outer-wrapper .ds-top-sites .top-sites .top-site-outer .top-site-inner > a:is(.active, :focus) .tile {
   border: 0;
   outline: var(--focus-outline);
