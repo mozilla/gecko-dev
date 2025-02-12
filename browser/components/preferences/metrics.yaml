@@ -122,30 +122,6 @@ security.doh.settings:
         type: string
     telemetry_mirror: SecurityDohSettings_ProviderChoice_Value
 
-  warn_checkbox_checkbox:
-    type: event
-    description: >
-      User clicked the Warn if a third party actively prevents secure DNS
-      checkbox in about:preferences#privacy. Value is true or false,
-      reflecting if box is checked or unchecked.
-      This event was generated to correspond to the Legacy Telemetry event
-      security.doh.settings.warn_checkbox#checkbox.
-    bugs:
-      - https://bugzil.la/1829905
-    data_reviews:
-      - https://bugzil.la/1829905
-    notification_emails:
-      - vgosu@mozilla.com
-      - necko@mozilla.com
-    expires: never
-    extra_keys:
-      value:
-        description: >
-          The `value` of the event. Mirrors to the Legacy Telemetry
-          event's `value` parameter.
-        type: string
-    telemetry_mirror: SecurityDohSettings_WarnCheckbox_Checkbox
-
 intl.ui.browser_language:
   manage_main:
     type: event

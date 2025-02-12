@@ -1627,10 +1627,6 @@ preferences-doh-setting-off =
   .accesskey = O
 preferences-doh-off-desc = Use your default DNS resolver
 
-preferences-doh-checkbox-warn =
-    .label = Warn if a third party actively prevents secure DNS
-    .accesskey = W
-
 preferences-doh-select-resolver = Choose provider:
 
 preferences-doh-manage-exceptions =

@@ -268,8 +268,6 @@ Preferences.addAll([
   { id: "network.trr.uri", type: "string" },
   { id: "network.trr.default_provider_uri", type: "string" },
   { id: "network.trr.custom_uri", type: "string" },
-  { id: "network.trr_ui.show_fallback_warning_option", type: "bool" },
-  { id: "network.trr.display_fallback_warning", type: "bool" },
   { id: "doh-rollout.disable-heuristics", type: "bool" },
 ]);
 
@@ -872,15 +870,6 @@ var gPrivacyPane = {
     setEventListener("dohStrictRadio", "command", modeButtonPressed);
     setEventListener("dohOffRadio", "command", modeButtonPressed);
 
-    function warnCheckboxClicked(e) {
-      Glean.securityDohSettings.warnCheckboxCheckbox.record({
-        value: e.target.checked,
-      });
-    }
-
-    setEventListener("dohWarnCheckbox1", "command", warnCheckboxClicked);
-    setEventListener("dohWarnCheckbox2", "command", warnCheckboxClicked);
-
     this.populateDoHResolverList("dohEnabled");
     this.populateDoHResolverList("dohStrict");
 
@@ -906,11 +895,6 @@ var gPrivacyPane = {
       Services.obs.removeObserver(this, "network:trr-confirmation");
     };
     window.addEventListener("unload", unload, { once: true });
-
-    if (Preferences.get("network.trr_ui.show_fallback_warning_option").value) {
-      document.getElementById("dohWarningBox1").hidden = false;
-      document.getElementById("dohWarningBox2").hidden = false;
-    }
 
     let uriPref = Services.prefs.getStringPref("network.trr.uri");
     // If the value isn't one of the providers, we need to update the
