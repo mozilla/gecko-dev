@@ -1314,13 +1314,11 @@ static int dred_find_payload(const unsigned char *data, opus_int32 len, const un
       return ret;
    nb_frames = ret;
    frame_size = opus_packet_get_samples_per_frame(data, 48000);
-   opus_extension_iterator_init(&iter, padding, padding_len);
+   opus_extension_iterator_init(&iter, padding, padding_len, nb_frames);
    for (;;) {
       ret = opus_extension_iterator_find(&iter, &ext, DRED_EXTENSION_ID);
       if (ret <= 0)
          return ret;
-      if (ext.frame >= nb_frames)
-         break;
       /* DRED position in the packet, in units of 2.5 ms like for the signaled DRED offset. */
       *dred_frame_offset = ext.frame*frame_size/120;
 #ifdef DRED_EXPERIMENTAL_VERSION
