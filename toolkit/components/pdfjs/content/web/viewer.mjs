@@ -9803,7 +9803,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.98";
+    const viewerVersion = "5.0.112";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -14412,8 +14412,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.98";
-const pdfjsBuild = "16155fd80";
+const pdfjsVersion = "5.0.112";
+const pdfjsBuild = "72339dc56";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

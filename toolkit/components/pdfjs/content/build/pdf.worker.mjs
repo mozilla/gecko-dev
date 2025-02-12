@@ -511,9 +511,15 @@ class FeatureTest {
     return shadow(this, "isImageDecoderSupported", typeof ImageDecoder !== "undefined");
   }
   static get platform() {
+    const {
+      platform,
+      userAgent
+    } = navigator;
     return shadow(this, "platform", {
-      isMac: navigator.platform.includes("Mac"),
-      isWindows: navigator.platform.includes("Win"),
+      isAndroid: userAgent.includes("Android"),
+      isLinux: platform.includes("Linux"),
+      isMac: platform.includes("Mac"),
+      isWindows: platform.includes("Win"),
       isFirefox: true
     });
   }
@@ -4587,7 +4593,8 @@ class JpxImage {
         if (this.#wasmUrl !== null) {
           this.#buffer = await fetchBinaryData(`${this.#wasmUrl}${filename}`);
         } else {
-          this.#buffer = await this.#handler.sendWithPromise("FetchWasm", {
+          this.#buffer = await this.#handler.sendWithPromise("FetchBinaryData", {
+            type: "wasmFactory",
             filename
           });
         }
@@ -30571,13 +30578,13 @@ class PartialEvaluator {
     }
     let data;
     if (this.options.cMapUrl !== null) {
-      const cMapData = await fetchBinaryData(`${this.options.cMapUrl}${name}.bcmap`);
       data = {
-        cMapData,
+        cMapData: await fetchBinaryData(`${this.options.cMapUrl}${name}.bcmap`),
         isCompressed: true
       };
     } else {
-      data = await this.handler.sendWithPromise("FetchBuiltInCMap", {
+      data = await this.handler.sendWithPromise("FetchBinaryData", {
+        type: "cMapReaderFactory",
         name
       });
     }
@@ -30599,7 +30606,8 @@ class PartialEvaluator {
       if (this.options.standardFontDataUrl !== null) {
         data = await fetchBinaryData(`${this.options.standardFontDataUrl}${filename}`);
       } else {
-        data = await this.handler.sendWithPromise("FetchStandardFontData", {
+        data = await this.handler.sendWithPromise("FetchBinaryData", {
+          type: "standardFontDataFactory",
           filename
         });
       }
@@ -51387,7 +51395,7 @@ class InkAnnotation extends MarkupAnnotation {
     const bs = new Dict(xref);
     ink.set("BS", bs);
     bs.set("W", thickness);
-    ink.set("C", Array.from(color, c => c / 255));
+    ink.set("C", getPdfColorArray(color));
     ink.set("CA", opacity);
     const n = new Dict(xref);
     ink.set("AP", n);
@@ -51550,7 +51558,7 @@ class HighlightAnnotation extends MarkupAnnotation {
     highlight.set("Border", [0, 0, 0]);
     highlight.set("Rotate", rotation);
     highlight.set("QuadPoints", quadPoints);
-    highlight.set("C", Array.from(color, c => c / 255));
+    highlight.set("C", getPdfColorArray(color));
     highlight.set("CA", opacity);
     if (user) {
       highlight.set("T", stringToAsciiOrUTF16BE(user));
@@ -56490,7 +56498,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.0.98";
+    const workerVersion = "5.0.112";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57022,8 +57030,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.0.98";
-const pdfjsBuild = "16155fd80";
+const pdfjsVersion = "5.0.112";
+const pdfjsBuild = "72339dc56";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

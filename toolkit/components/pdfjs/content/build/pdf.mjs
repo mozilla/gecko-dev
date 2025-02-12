@@ -557,9 +557,15 @@ class util_FeatureTest {
     return shadow(this, "isImageDecoderSupported", typeof ImageDecoder !== "undefined");
   }
   static get platform() {
+    const {
+      platform,
+      userAgent
+    } = navigator;
     return shadow(this, "platform", {
-      isMac: navigator.platform.includes("Mac"),
-      isWindows: navigator.platform.includes("Win"),
+      isAndroid: userAgent.includes("Android"),
+      isLinux: platform.includes("Linux"),
+      isMac: platform.includes("Mac"),
+      isWindows: platform.includes("Win"),
       isFirefox: true
     });
   }
@@ -9695,7 +9701,6 @@ class PDFDataTransportStreamRangeReader {
 
 const MAX_TEXT_DIVS_TO_RENDER = 100000;
 const DEFAULT_FONT_SIZE = 30;
-const DEFAULT_FONT_ASCENT = 0.8;
 class TextLayer {
   #capability = Promise.withResolvers();
   #container = null;
@@ -9873,7 +9878,7 @@ class TextLayer {
     let fontFamily = this.#fontInspectorEnabled && style.fontSubstitution || style.fontFamily;
     fontFamily = TextLayer.fontFamilyMap.get(fontFamily) || fontFamily;
     const fontHeight = Math.hypot(tx[2], tx[3]);
-    const fontAscent = fontHeight * TextLayer.#getAscent(fontFamily, this.#lang);
+    const fontAscent = fontHeight * TextLayer.#getAscent(fontFamily, style, this.#lang);
     let left, top;
     if (angle === 0) {
       left = tx[4];
@@ -10019,7 +10024,7 @@ class TextLayer {
     this.#minFontSize = div.getBoundingClientRect().height;
     div.remove();
   }
-  static #getAscent(fontFamily, lang) {
+  static #getAscent(fontFamily, style, lang) {
     const cachedAscent = this.#ascentCache.get(fontFamily);
     if (cachedAscent) {
       return cachedAscent;
@@ -10028,37 +10033,20 @@ class TextLayer {
     ctx.canvas.width = ctx.canvas.height = DEFAULT_FONT_SIZE;
     this.#ensureCtxFont(ctx, DEFAULT_FONT_SIZE, fontFamily);
     const metrics = ctx.measureText("");
-    let ascent = metrics.fontBoundingBoxAscent;
-    let descent = Math.abs(metrics.fontBoundingBoxDescent);
-    if (ascent) {
-      const ratio = ascent / (ascent + descent);
-      this.#ascentCache.set(fontFamily, ratio);
-      ctx.canvas.width = ctx.canvas.height = 0;
-      return ratio;
-    }
-    ctx.strokeStyle = "red";
-    ctx.clearRect(0, 0, DEFAULT_FONT_SIZE, DEFAULT_FONT_SIZE);
-    ctx.strokeText("g", 0, 0);
-    let pixels = ctx.getImageData(0, 0, DEFAULT_FONT_SIZE, DEFAULT_FONT_SIZE).data;
-    descent = 0;
-    for (let i = pixels.length - 1 - 3; i >= 0; i -= 4) {
-      if (pixels[i] > 0) {
-        descent = Math.ceil(i / 4 / DEFAULT_FONT_SIZE);
-        break;
-      }
-    }
-    ctx.clearRect(0, 0, DEFAULT_FONT_SIZE, DEFAULT_FONT_SIZE);
-    ctx.strokeText("A", 0, DEFAULT_FONT_SIZE);
-    pixels = ctx.getImageData(0, 0, DEFAULT_FONT_SIZE, DEFAULT_FONT_SIZE).data;
-    ascent = 0;
-    for (let i = 0, ii = pixels.length; i < ii; i += 4) {
-      if (pixels[i] > 0) {
-        ascent = DEFAULT_FONT_SIZE - Math.floor(i / 4 / DEFAULT_FONT_SIZE);
-        break;
-      }
-    }
+    const ascent = metrics.fontBoundingBoxAscent;
+    const descent = Math.abs(metrics.fontBoundingBoxDescent);
     ctx.canvas.width = ctx.canvas.height = 0;
-    const ratio = ascent ? ascent / (ascent + descent) : DEFAULT_FONT_ASCENT;
+    let ratio = 0.8;
+    if (ascent) {
+      ratio = ascent / (ascent + descent);
+    } else {
+      warn("Enable the `dom.textMetrics.fontBoundingBox.enabled` preference " + "in `about:config` to improve TextLayer rendering.");
+      if (style.ascent) {
+        ratio = style.ascent;
+      } else if (style.descent) {
+        ratio = 1 + style.descent;
+      }
+    }
     this.#ascentCache.set(fontFamily, ratio);
     return ratio;
   }
@@ -10198,7 +10186,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.0.98",
+    apiVersion: "5.0.112",
     data,
     password,
     disableAutoFetch,
@@ -11441,14 +11429,8 @@ class WorkerTransport {
         total: data.total
       });
     });
-    messageHandler.on("FetchBuiltInCMap", async data => {
-      throw new Error("Not implemented: FetchBuiltInCMap");
-    });
-    messageHandler.on("FetchStandardFontData", async data => {
-      throw new Error("Not implemented: FetchStandardFontData");
-    });
-    messageHandler.on("FetchWasm", async data => {
-      throw new Error("Not implemented: FetchWasm");
+    messageHandler.on("FetchBinaryData", async data => {
+      throw new Error("Not implemented: FetchBinaryData");
     });
   }
   getData() {
@@ -11840,8 +11822,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.0.98";
-const build = "16155fd80";
+const version = "5.0.112";
+const build = "72339dc56";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -20861,8 +20843,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.0.98";
-const pdfjsBuild = "16155fd80";
+const pdfjsVersion = "5.0.112";
+const pdfjsBuild = "72339dc56";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationBorderStyleType = __webpack_exports__.AnnotationBorderStyleType;
