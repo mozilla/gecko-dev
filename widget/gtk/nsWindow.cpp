@@ -2124,6 +2124,7 @@ void nsWindow::WaylandPopupSetDirectPosition() {
       topLeft.y, size.width, size.height);
 
   mPopupPosition = {topLeft.x, topLeft.y};
+  mBounds.MoveTo(mLastMoveRequest);
 
   if (mIsDragPopup) {
     gtk_window_move(GTK_WINDOW(mShell), topLeft.x, topLeft.y);
@@ -2278,6 +2279,7 @@ void nsWindow::NativeMoveResizeWaylandPopup(bool aMove, bool aResize) {
   LOG("  popup position changed from [%d, %d] to [%d, %d]\n", mPopupPosition.x,
       mPopupPosition.y, topLeft.x, topLeft.y);
   mPopupPosition = {topLeft.x, topLeft.y};
+  mBounds.MoveTo(mLastMoveRequest);
 
   UpdateWaylandPopupHierarchy();
 }
