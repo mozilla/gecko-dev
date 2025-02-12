@@ -36,8 +36,6 @@ class MouseScrollHandler {
   static bool ProcessMessage(nsWindow* aWidget, UINT msg, WPARAM wParam,
                              LPARAM lParam, MSGResult& aResult);
 
-  static bool SkipScrollWheelHack();
-
   /**
    * See nsIWidget::SynthesizeNativeMouseScrollEvent() for the detail about
    * this method.
