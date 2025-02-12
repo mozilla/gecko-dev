@@ -1331,23 +1331,6 @@
       }
     ]
   },
-  "1830761": {
-    "label": "91mobiles.com",
-    "bugs": {
-      "1890794": {
-        "issue": "broken-layout",
-        "matches": ["*://*.91mobiles.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1830761-91mobiles.com-content-height.css"]
-        }
-      }
-    ]
-  },
   "1830796": {
     "label": "copyleaks.com",
     "bugs": {

@@ -57,7 +57,6 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1784199-entrata-platform-unsupported.css",
     "injections/css/bug1819678-nppes.cms.hhs.gov-unsupported-banner.css",
     "injections/css/bug1830752-afisha.ru-slider-pointer-events.css",
-    "injections/css/bug1830761-91mobiles.com-content-height.css",
     "injections/css/bug1830796-copyleaks.com-hide-unsupported.css",
     "injections/css/bug1830813-page.onstove.com-hide-unsupported.css",
     "injections/css/bug1836103-autostar-novoross.ru-make-map-taller.css",
