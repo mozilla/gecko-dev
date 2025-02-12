@@ -2242,6 +2242,7 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
 void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
                                      const Value& rhs, Label* label) {
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  MOZ_ASSERT(!rhs.isNaN());
   ScratchRegisterScope scratch(*this);
   MOZ_ASSERT(lhs.valueReg() != scratch);
   moveValue(rhs, ValueOperand(scratch));
@@ -2250,7 +2251,24 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
 
 void MacroAssembler::branchTestNaNValue(Condition cond, const ValueOperand& val,
                                         Register temp, Label* label) {
-  MOZ_CRASH("Unimplemented");
+  MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  ScratchRegisterScope scratch(asMasm());
+  MOZ_ASSERT(val.valueReg() != scratch);
+
+  // When testing for NaN, we want to ignore the sign bit.
+  if (hasR2()) {
+    // Clear the sign bit by extracting the lower 63 bits.
+    ma_dext(temp, val.valueReg(), Imm32(0), Imm32(63));
+  } else {
+    // Clear the sign bit by shifting left and then right.
+    ma_dsll(temp, val.valueReg(), Imm32(1));
+    ma_dsrl(temp, temp, Imm32(1));
+  }
+
+  // Compare against a NaN with sign bit 0.
+  static_assert(JS::detail::CanonicalizedNaNSignBit == 0);
+  moveValue(DoubleValue(JS::GenericNaN()), ValueOperand(scratch));
+  ma_b(temp, scratch, label, cond);
 }
 
 // ========================================================================
