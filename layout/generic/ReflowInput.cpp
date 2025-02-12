@@ -1676,8 +1676,7 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   } else {
     offsets.IStart(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
         cbSize.ISize(cbwm),
-        ToStylePhysicalSide(
-            cbwm.PhysicalSide(LogicalSide::IStart)),
+        ToStylePhysicalSide(cbwm.PhysicalSide(LogicalSide::IStart)),
         StylePositionProperty::Absolute, iStartOffset);
   }
   if (iEndIsAuto) {
@@ -1685,8 +1684,7 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   } else {
     offsets.IEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
         cbSize.ISize(cbwm),
-        ToStylePhysicalSide(
-            cbwm.PhysicalSide(LogicalSide::IEnd)),
+        ToStylePhysicalSide(cbwm.PhysicalSide(LogicalSide::IEnd)),
         StylePositionProperty::Absolute, iEndOffset);
   }
 
@@ -1705,8 +1703,7 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   } else {
     offsets.BStart(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
         cbSize.BSize(cbwm),
-        ToStylePhysicalSide(
-            cbwm.PhysicalSide(LogicalSide::BStart)),
+        ToStylePhysicalSide(cbwm.PhysicalSide(LogicalSide::BStart)),
         StylePositionProperty::Absolute, bStartOffset);
   }
   if (bEndIsAuto) {
@@ -1714,8 +1711,7 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   } else {
     offsets.BEnd(cbwm) = nsLayoutUtils::ComputeCBDependentValue(
         cbSize.BSize(cbwm),
-        ToStylePhysicalSide(
-            cbwm.PhysicalSide(LogicalSide::BEnd)),
+        ToStylePhysicalSide(cbwm.PhysicalSide(LogicalSide::BEnd)),
         StylePositionProperty::Absolute, bEndOffset);
   }
 

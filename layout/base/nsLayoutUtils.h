@@ -1547,10 +1547,10 @@ class nsLayoutUtils {
     return ComputeCBDependentValue(aPercentBasis, aCoord.AsLengthPercentage());
   }
 
-  static nscoord ComputeCBDependentValue(
-      nscoord aPercentBasis, mozilla::StylePhysicalSide aSide,
-      mozilla::StylePositionProperty aProp,
-      const AnchorResolvedInset& aInset) {
+  static nscoord ComputeCBDependentValue(nscoord aPercentBasis,
+                                         mozilla::StylePhysicalSide aSide,
+                                         mozilla::StylePositionProperty aProp,
+                                         const AnchorResolvedInset& aInset) {
     if (aInset->IsAuto()) {
       // Callers are assumed to have handled other cases already.
       return 0;
