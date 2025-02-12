@@ -771,7 +771,7 @@ template <class T>
 class GCStructPtr : public BarrieredBase<T> {
  public:
   // This is sometimes used to hold tagged pointers.
-  static constexpr uintptr_t MaxTaggedPointer = 0x3;
+  static constexpr uintptr_t MaxTaggedPointer = 0x5;
 
   GCStructPtr() : BarrieredBase<T>(JS::SafelyInitialized<T>::create()) {}
 

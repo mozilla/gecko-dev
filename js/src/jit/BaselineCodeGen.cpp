@@ -9,6 +9,7 @@
 #include "mozilla/Casting.h"
 
 #include "gc/GC.h"
+#include "jit/BaselineCompileQueue.h"
 #include "jit/BaselineCompileTask.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
@@ -1548,8 +1549,8 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
 
   // Do nothing if Ion is already compiling this script off-thread or if Ion has
   // been disabled for this script.
-  masm.branchTestPtr(Assembler::NonZero, scriptReg,
-                     Imm32(CompilingOrDisabledBit), &done);
+  masm.branchTestPtr(Assembler::NonZero, scriptReg, Imm32(SpecialScriptBit),
+                     &done);
 
   // Try to compile and/or finish a compilation.
   if (JSOp(*pc) == JSOp::LoopHead) {
@@ -1667,7 +1668,7 @@ bool BaselineInterpreterCodeGen::emitWarmUpCounterIncrement() {
 
   masm.branchTestPtr(Assembler::NonZero,
                      Address(scriptReg, JitScript::offsetOfBaselineScript()),
-                     Imm32(CompilingOrDisabledBit), &done);
+                     Imm32(SpecialScriptBit), &done);
   {
     prepareVMCall();
 
@@ -5918,7 +5919,7 @@ bool BaselineCodeGen<Handler>::emitEnterGeneratorCode(Register script,
                                                       Register scratch) {
   // Resume in either the BaselineScript (if present) or Baseline Interpreter.
 
-  static_assert(CompilingScript == 0x3,
+  static_assert(CompilingScript == 0x5,
                 "Comparison below requires specific sentinel encoding");
 
   // Initialize the icScript slot in the baseline frame.
