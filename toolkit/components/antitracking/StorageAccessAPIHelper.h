@@ -232,7 +232,7 @@ class StorageAccessGrantTelemetryClassification
   GetClassifierFeaturesForTrackers();
 
   uint16_t mType;
-  StorageAccessGrantTelemetryClassification(uint16_t aType);
+  explicit StorageAccessGrantTelemetryClassification(uint16_t aType);
   virtual ~StorageAccessGrantTelemetryClassification() = default;
 
  public:
