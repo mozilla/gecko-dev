@@ -606,6 +606,9 @@ void WebrtcGmpVideoEncoder::Encoded(
   unit._encodedHeight = aEncodedFrame->EncodedHeight();
 
   webrtc::CodecSpecificInfo info;
+#ifdef __LP64__
+  // Only do these checks on some common builds to avoid build issues on more
+  // exotic flavors.
   static_assert(
       sizeof(info.codecSpecific.H264) == 8,
       "webrtc::CodecSpecificInfoH264 has changed. We must handle the changes.");
@@ -617,6 +620,7 @@ void WebrtcGmpVideoEncoder::Encoded(
           24,
       "webrtc::CodecSpecificInfo's generic bits have changed. We must handle "
       "the changes.");
+#endif
   info.codecType = webrtc::kVideoCodecH264;
   info.codecSpecific = {};
   info.codecSpecific.H264.packetization_mode =
