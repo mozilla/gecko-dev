@@ -505,7 +505,7 @@ void WebrtcGmpVideoEncoder::Encoded(
     GMPVideoEncodedFrame* aEncodedFrame,
     const nsTArray<uint8_t>& aCodecSpecificInfo) {
   MOZ_ASSERT(mGMPThread->IsOnCurrentThread());
-  webrtc::Timestamp capture_time = webrtc::Timestamp::Micros(0);
+  Maybe<InputImageData> data;
   auto rtp_comparator = [](const InputImageData& aA,
                            const InputImageData& aB) -> int32_t {
     const auto& a = aA.rtp_timestamp;
@@ -520,8 +520,7 @@ void WebrtcGmpVideoEncoder::Encoded(
   if (nextIdx != 0 && mInputImageMap.ElementAt(nextIdx - 1).rtp_timestamp ==
                           aEncodedFrame->TimeStamp()) {
     --numFramesDropped;
-    capture_time = webrtc::Timestamp::Micros(
-        mInputImageMap.ElementAt(nextIdx - 1).timestamp_us);
+    data = Some(mInputImageMap.ElementAt(nextIdx - 1));
   }
   mInputImageMap.RemoveElementsAt(0, numToRemove);
 
@@ -533,6 +532,12 @@ void WebrtcGmpVideoEncoder::Encoded(
   for (size_t i = 0; i < numFramesDropped; ++i) {
     mCallback->OnDroppedFrame(
         webrtc::EncodedImageCallback::DropReason::kDroppedByEncoder);
+  }
+
+  if (data.isNothing()) {
+    MOZ_ASSERT_UNREACHABLE(
+        "Unexpectedly didn't find an input image for this encoded frame");
+    return;
   }
 
   webrtc::VideoFrameType ft;
@@ -555,7 +560,7 @@ void WebrtcGmpVideoEncoder::Encoded(
       aEncodedFrame->Buffer(), aEncodedFrame->Size()));
   unit._frameType = ft;
   unit.SetRtpTimestamp(timestamp);
-  unit.capture_time_ms_ = capture_time.ms();
+  unit.capture_time_ms_ = webrtc::Timestamp::Micros(data->timestamp_us).ms();
   unit._encodedWidth = aEncodedFrame->EncodedWidth();
   unit._encodedHeight = aEncodedFrame->EncodedHeight();
 
