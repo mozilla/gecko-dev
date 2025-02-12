@@ -110,8 +110,6 @@ dnsNotFound-title = Hmm. We’re having trouble finding that site.
 
 dns-not-found-trr-only-title2 =
   Possible security risk looking up this domain
-dns-not-found-native-fallback-title2 =
-  Possible security risk looking up this domain
 
 fileNotFound-title = File not found
 fileAccessDenied-title = Access to the file was denied

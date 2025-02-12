@@ -26,7 +26,6 @@ export class NetErrorChild extends RemotePageChild {
       "RPMGetHttpResponseHeader",
       "RPMIsTRROnlyFailure",
       "RPMIsFirefox",
-      "RPMIsNativeFallbackFailure",
       "RPMOpenPreferences",
       "RPMGetTRRSkipReason",
       "RPMGetTRRDomain",
@@ -182,40 +181,6 @@ export class NetErrorChild extends RemotePageChild {
       Ci.nsIHttpChannelInternal
     );
     return channel?.trrSkipReason ?? Ci.nsITRRSkipReason.TRR_UNSET;
-  }
-
-  RPMIsNativeFallbackFailure() {
-    if (!this.contentWindow?.navigator.onLine) {
-      return false;
-    }
-
-    let skipReason = this._getTRRSkipReason();
-
-    if (
-      Services.dns.currentTrrMode === Ci.nsIDNSService.MODE_TRRFIRST &&
-      skipReason === Ci.nsITRRSkipReason.TRR_NOT_CONFIRMED
-    ) {
-      return true;
-    }
-
-    const warningReasons = new Set([
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_GOOGLE_SAFESEARCH,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_YOUTUBE_SAFESEARCH,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_ZSCALER_CANARY,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_CANARY,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_MODIFIED_ROOTS,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_PARENTAL_CONTROLS,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_THIRD_PARTY_ROOTS,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_ENTERPRISE_POLICY,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_VPN,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_PROXY,
-      Ci.nsITRRSkipReason.TRR_HEURISTIC_TRIPPED_NRPT,
-    ]);
-
-    return (
-      Services.dns.currentTrrMode === Ci.nsIDNSService.MODE_NATIVEONLY &&
-      warningReasons.has(skipReason)
-    );
   }
 
   RPMGetTRRSkipReason() {

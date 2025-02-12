@@ -27,8 +27,6 @@ neterror-try-again-button = Try Again
 neterror-add-exception-button = Always continue for this site
 neterror-settings-button = Change DNS settings
 neterror-view-certificate-link = View Certificate
-neterror-trr-continue-this-time = Continue this time
-neterror-disable-native-feedback-warning = Always continue
 
 ##
 
@@ -72,14 +70,6 @@ neterror-dns-not-found-trr-server-problem = There was a problem with { $trrDomai
 neterror-dns-not-found-bad-trr-url = Invalid URL.
 neterror-dns-not-found-system-sleep = System is in sleep mode.
 neterror-dns-not-found-trr-unknown-problem = Unexpected problem.
-
-## Native fallback specific messages
-## Variables:
-##   $trrDomain (String) - Hostname of the DNS over HTTPS server that is currently in use.
-
-neterror-dns-not-found-native-fallback-reason2 = { -brand-short-name } can’t protect your request for this site’s address through our secure DNS provider. Here’s why:
-neterror-dns-not-found-native-fallback-heuristic = DNS over HTTPS has been disabled on your network.
-neterror-dns-not-found-native-fallback-not-confirmed2 = { -brand-short-name } wasn’t able to connect to { $trrDomain }.
 
 ##
 

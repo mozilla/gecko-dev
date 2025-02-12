@@ -443,12 +443,6 @@ function initPage() {
 
   const isTRROnlyFailure = gErrorCode == "dnsNotFound" && RPMIsTRROnlyFailure();
 
-  let isNativeFallbackWarning = false;
-  if (RPMGetBoolPref("network.trr.display_fallback_warning")) {
-    isNativeFallbackWarning =
-      gErrorCode == "dnsNotFound" && RPMIsNativeFallbackFailure();
-  }
-
   const docTitle = document.querySelector("title");
   const shortDesc = document.getElementById("errorShortDesc");
 
@@ -627,9 +621,6 @@ function initPage() {
       div.hidden = false;
 
       return;
-    } else if (isNativeFallbackWarning) {
-      showNativeFallbackWarning();
-      return;
     }
   }
 
@@ -650,81 +641,6 @@ function initPage() {
   setNetErrorMessageFromCode();
 }
 
-function showNativeFallbackWarning() {
-  const docTitle = document.querySelector("title");
-  const bodyTitle = document.querySelector(".title-text");
-  const shortDesc = document.getElementById("errorShortDesc");
-
-  let pageTitleId = "neterror-page-title";
-  let bodyTitleId = gErrorCode + "-title";
-
-  document.body.className = "certerror"; // Shows warning icon
-  pageTitleId = "dns-not-found-native-fallback-title2";
-  document.l10n.setAttributes(docTitle, pageTitleId);
-
-  bodyTitleId = "dns-not-found-native-fallback-title2";
-  document.l10n.setAttributes(bodyTitle, bodyTitleId);
-
-  shortDesc.textContent = "";
-  let nativeFallbackIgnoreButton = document.getElementById(
-    "nativeFallbackIgnoreButton"
-  );
-  nativeFallbackIgnoreButton.addEventListener("click", () => {
-    RPMSetPref("network.trr.display_fallback_warning", false);
-    retryThis(nativeFallbackIgnoreButton);
-  });
-
-  let continueThisTimeButton = document.getElementById(
-    "nativeFallbackContinueThisTimeButton"
-  );
-  continueThisTimeButton.addEventListener("click", () => {
-    RPMSetTRRDisabledLoadFlags();
-    document.location.reload();
-  });
-  continueThisTimeButton.hidden = false;
-
-  nativeFallbackIgnoreButton.hidden = false;
-  let message = document.getElementById("nativeFallbackMessage");
-  document.l10n.setAttributes(
-    message,
-    "neterror-dns-not-found-native-fallback-reason2",
-    {
-      hostname: HOST_NAME,
-    }
-  );
-  let skipReason = RPMGetTRRSkipReason();
-  let descriptionTag = "neterror-dns-not-found-trr-unknown-problem";
-  let args = { trrDomain: RPMGetTRRDomain() };
-
-  if (skipReason.includes("HEURISTIC_TRIPPED")) {
-    descriptionTag = "neterror-dns-not-found-native-fallback-heuristic";
-  } else if (skipReason == "TRR_NOT_CONFIRMED") {
-    descriptionTag = "neterror-dns-not-found-native-fallback-not-confirmed2";
-  }
-
-  let description = document.getElementById("nativeFallbackDescription");
-  document.l10n.setAttributes(description, descriptionTag, args);
-
-  let learnMoreContainer = document.getElementById(
-    "nativeFallbackLearnMoreContainer"
-  );
-  learnMoreContainer.hidden = false;
-
-  let learnMoreLink = document.getElementById("nativeFallbackLearnMoreLink");
-  learnMoreLink.href =
-    RPMGetFormatURLPref("network.trr_ui.skip_reason_learn_more_url") +
-    skipReason.toLowerCase().replaceAll("_", "-");
-
-  let div = document.getElementById("nativeFallbackContainer");
-  div.hidden = false;
-
-  recordTRREventTelemetry(
-    "NativeFallbackWarning",
-    RPMGetIntPref("network.trr.mode"),
-    args.trrDomain,
-    skipReason
-  );
-}
 /**
  * Builds HTML elements from `parts` and appends them to `parentElement`.
  *

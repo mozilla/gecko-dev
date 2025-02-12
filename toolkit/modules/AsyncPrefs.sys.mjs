@@ -42,8 +42,6 @@ const kAllowedPrefs = new Set([
   "reader.custom_colors.selection-highlight",
 
   "security.tls.version.enable-deprecated",
-
-  "network.trr.display_fallback_warning",
 ]);
 
 const kPrefTypeMap = new Map([

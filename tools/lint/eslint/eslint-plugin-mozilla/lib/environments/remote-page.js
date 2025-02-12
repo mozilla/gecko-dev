@@ -22,7 +22,6 @@ module.exports = {
     RPMGetFormatURLPref: false,
     RPMIsTRROnlyFailure: false,
     RPMIsFirefox: false,
-    RPMIsNativeFallbackFailure: false,
     RPMIsWindowPrivate: false,
     RPMSendAsyncMessage: false,
     RPMSendQuery: false,
