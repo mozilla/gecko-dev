@@ -293,6 +293,7 @@ bool BytecodeEmitter::checkStrictOrSloppy(JSOp op) const {
 
 bool BytecodeEmitter::emit1(JSOp op) {
   MOZ_ASSERT(checkStrictOrSloppy(op));
+  MOZ_ASSERT(GetOpLength(op) == 1);
 
   BytecodeOffset offset;
   if (!emitCheck(op, 1, &offset)) {
@@ -307,6 +308,7 @@ bool BytecodeEmitter::emit1(JSOp op) {
 
 bool BytecodeEmitter::emit2(JSOp op, uint8_t op1) {
   MOZ_ASSERT(checkStrictOrSloppy(op));
+  MOZ_ASSERT(GetOpLength(op) == 2);
 
   BytecodeOffset offset;
   if (!emitCheck(op, 2, &offset)) {
@@ -322,6 +324,7 @@ bool BytecodeEmitter::emit2(JSOp op, uint8_t op1) {
 
 bool BytecodeEmitter::emit3(JSOp op, jsbytecode op1, jsbytecode op2) {
   MOZ_ASSERT(checkStrictOrSloppy(op));
+  MOZ_ASSERT(GetOpLength(op) == 3);
 
   /* These should filter through emitVarOp. */
   MOZ_ASSERT(!IsArgOp(op));
