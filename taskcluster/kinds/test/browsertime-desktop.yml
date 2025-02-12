@@ -44,6 +44,10 @@ task-defaults:
                     - raptor/linux_config.py
         extra-options:
             - --conditioned-profile=settled
+    use-caches:
+        by-test-platform:
+            windows.*: ["checkout"]
+            default: ["checkout", "pip", "uv"]
     fetches:
         toolchain:
             by-app:

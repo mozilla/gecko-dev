@@ -21,6 +21,10 @@ task-defaults:
                 default:
                     - talos/linux_config.py
     test-manifest-loader: null  # don't load tests in the taskgraph
+    use-caches:
+        by-test-platform:
+            windows.*: ["checkout"]
+            default: ["checkout", "pip", "uv"]
 
 talos-bcv:
     description: Talos basic compositor video
