@@ -3833,7 +3833,7 @@ bool PresShell::ScrollFrameIntoView(
     const auto positionProperty = aFrame->StyleDisplay()->mPosition;
     for (auto side : AllPhysicalSides()) {
       if (stylePosition->GetAnchorResolvedInset(side, positionProperty)
-              .IsAuto()) {
+              ->IsAuto()) {
         continue;
       }
       // See if this axis is stuck.

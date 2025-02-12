@@ -68,11 +68,11 @@ static nscoord ComputeStickySideOffset(Side aSide,
   // Guaranteed to resolve any use of anchor function as invalid.
   const auto& side =
       aPosition.GetAnchorResolvedInset(aSide, StylePositionProperty::Sticky);
-  if (side.IsAuto()) {
+  if (side->IsAuto()) {
     return NS_AUTOOFFSET;
   }
   return nsLayoutUtils::ComputeCBDependentValue(aPercentBasis,
-                                                side.AsLengthPercentage());
+                                                side->AsLengthPercentage());
 }
 
 // static
