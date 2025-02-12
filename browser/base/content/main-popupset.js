@@ -119,8 +119,12 @@ document.addEventListener(
         case "open-tab-group-context-menu_moveToThisWindow":
           {
             let { tabGroupId } = event.target.parentElement.triggerNode.dataset;
-            let tabGroup = gBrowser.getTabGroupById(tabGroupId);
-            gBrowser.adoptTabGroup(tabGroup, gBrowser.tabs.length);
+            let otherTabGroup = gBrowser.getTabGroupById(tabGroupId);
+            let adoptedTabGroup = gBrowser.adoptTabGroup(
+              otherTabGroup,
+              gBrowser.tabs.length
+            );
+            adoptedTabGroup.select();
           }
           break;
         case "open-tab-group-context-menu_delete":

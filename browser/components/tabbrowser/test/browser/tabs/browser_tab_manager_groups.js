@@ -460,9 +460,14 @@ add_task(async function test_tabGroupsViewContextMenu_openGroups() {
     "tab group should have moved from the second window"
   );
   Assert.equal(
-    window.gBrowser.tabGroups.length,
+    gBrowser.tabGroups.length,
     1,
     "tab group should have moved to the starting window"
+  );
+  Assert.equal(
+    gBrowser.selectedTab,
+    gBrowser.tabGroups[0].tabs[0],
+    "tab group's first tab should be selected"
   );
 
   Assert.equal(

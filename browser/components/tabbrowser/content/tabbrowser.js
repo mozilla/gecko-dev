@@ -2995,9 +2995,14 @@
       );
     }
 
+    /**
+     * @param {MozTabbrowserTabGroup} group
+     * @param {number} index
+     * @returns {MozTabbrowserTabGroup}
+     */
     adoptTabGroup(group, index) {
       if (group.ownerDocument == document) {
-        return;
+        return group;
       }
 
       let newTabs = [];
@@ -3005,7 +3010,7 @@
         newTabs.push(this.adoptTab(tab, index));
       }
 
-      this.addTabGroup(newTabs, {
+      return this.addTabGroup(newTabs, {
         id: group.id,
         label: group.label,
         color: group.color,
