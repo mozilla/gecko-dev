@@ -45,11 +45,21 @@ class TP6BenchSupport(BasePythonSupport):
                     continue
                 test_url = parsed_test["test_url"]
                 test_urls.append(test_url)
-                playback_pageset_manifests.append(
-                    transform_subtest(
-                        parsed_test["playback_pageset_manifest"], parsed_test["name"]
+                # Only use the backup manifest if it is set.
+                if parsed_test.get("playback_pageset_manifest_backup"):
+                    playback_pageset_manifests.append(
+                        transform_subtest(
+                            parsed_test["playback_pageset_manifest_backup"],
+                            parsed_test["name"],
+                        )
                     )
-                )
+                else:
+                    playback_pageset_manifests.append(
+                        transform_subtest(
+                            parsed_test["playback_pageset_manifest"],
+                            parsed_test["name"],
+                        )
+                    )
                 self._test_pages[test_url] = parsed_test
 
         if len(playback_pageset_manifests) == 0:

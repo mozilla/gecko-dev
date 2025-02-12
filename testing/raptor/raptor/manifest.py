@@ -6,10 +6,10 @@ import os
 import pathlib
 import re
 
+from cmdline import DESKTOP_APPS, GECKO_PROFILER_APPS, TRACE_APPS
 from constants.raptor_tests_constants import YOUTUBE_PLAYBACK_MEASURE
 from logger.logger import RaptorLogger
 from manifestparser import TestManifest
-from perftest import GECKO_PROFILER_APPS, TRACE_APPS
 from six.moves.urllib.parse import parse_qs, unquote, urlencode, urlsplit, urlunsplit
 from support_class_utils import import_support_class
 from utils import (
@@ -57,6 +57,19 @@ def get_browser_test_list(browser_app, run_local):
     )
 
 
+def validate_app_playback_settings(test_details):
+    # For Linux desktop playback tests, we need to augment the playback_settings
+    # to ensure that the right recording archive is used. Since Android tests
+    # are run on a Linux host, we should ensure that Android tests are not
+    # affected.
+
+    # This is temporary until Linux machines are upgraded (Bug 1926419)
+    apps = [app.strip() for app in test_details["apps"].split(",")]
+    return any(app in apps for app in DESKTOP_APPS) and test_details.get(
+        "playback_pageset_manifest_backup"
+    )
+
+
 def validate_test_toml(test_details):
     # validate all required test details were found in the test TOML
     valid_settings = True
@@ -84,7 +97,11 @@ def validate_test_toml(test_details):
 
     # if playback is specified, we need more playback settings
     if test_details.get("playback") is not None:
-        for setting in playback_settings:
+        # Ensure correct values used for android playback
+        pbs = playback_settings
+        if validate_app_playback_settings(test_details):
+            pbs += ["playback_pageset_manifest_backup"]
+        for setting in pbs:
             if test_details.get(setting) is None:
                 valid_settings = False
                 LOG.error(
@@ -400,10 +417,25 @@ def get_raptor_test_list(args, oskey):
         # If using playback, the playback recording info may need to be transformed.
         # This transformation needs to happen before the test name is changed
         # below (for cold tests for instance)
-        if next_test.get("playback") is not None:
-            next_test["playback_pageset_manifest"] = transform_subtest(
-                next_test["playback_pageset_manifest"], next_test["name"]
-            )
+
+        # Bug 1926419 avoid using mitm11 manifest on linux desktop tests.
+        if oskey == "linux" and args.app in DESKTOP_APPS:
+            if next_test.get("playback") is not None:
+                # Only use the backup manifest if it is set.
+                if next_test.get("playback_pageset_manifest_backup"):
+                    next_test["playback_pageset_manifest_backup"] = transform_subtest(
+                        next_test["playback_pageset_manifest_backup"], next_test["name"]
+                    )
+                else:
+                    next_test["playback_pageset_manifest"] = transform_subtest(
+                        next_test["playback_pageset_manifest"], next_test["name"]
+                    )
+
+        else:
+            if next_test.get("playback") is not None:
+                next_test["playback_pageset_manifest"] = transform_subtest(
+                    next_test["playback_pageset_manifest"], next_test["name"]
+                )
 
         # Check if either --gecko-profiler or --extra-profiler-run is enabled.
         if args.gecko_profile or (
