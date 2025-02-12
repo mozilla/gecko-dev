@@ -149,6 +149,7 @@ def filter_release_tasks(task, parameters):
     if platform in (
         "linux",
         "linux64",
+        "linux64-aarch64",
         "macosx64",
         "win32",
         "win64",
