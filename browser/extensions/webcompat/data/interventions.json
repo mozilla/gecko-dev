@@ -2690,6 +2690,21 @@
       }
     ]
   },
+  "1934189": {
+    "label": "fdj.fr",
+    "bugs": {
+      "1934189": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.fdj.fr/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1934567": {
     "label": "port8.fi",
     "bugs": {
