@@ -284,7 +284,12 @@ def mozharness_on_generic_worker(config, job, taskdesc):
     mh_command = []
     if job["worker"]["os"] == "windows":
         system_python_dir = "c:/mozilla-build/python3/"
-        gecko_path = "%GECKO_PATH%"
+        # Bug 1945939 - We can't rely on $GECKO_PATH here because these tasks
+        # don't get run through a shell. On Windows %GECKO_PATH% can also not
+        # be used because `run-task` interpolates it with the working directory
+        # at the start of the task, but it doesn't have permission to update
+        # the value in the registry. So hardcode it for now.
+        gecko_path = "build/src"
     else:
         system_python_dir = ""
         gecko_path = "$GECKO_PATH"
