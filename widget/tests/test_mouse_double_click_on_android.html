@@ -94,6 +94,13 @@ add_task(async function test_fire_dblclick() {
 });
 
 add_task(async function test_fire_no_dblclick() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["widget.double-click.min", 500],
+      ["widget.double-click.timeout", 1000],
+    ],
+  });
+
   await SimpleTest.promiseFocus();
   await resetMouseState();
 
