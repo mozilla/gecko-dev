@@ -387,13 +387,9 @@ class _QuickSuggest {
    *   The name of the variable.
    */
   async onNimbusChanged(variable) {
-    if (
-      variable == "quickSuggestScenario" ||
-      this.UI_PREFS_BY_VARIABLE.hasOwnProperty(variable)
-    ) {
-      // If a change occurred to the Firefox Suggest scenario variable or any
-      // variables that correspond to prefs exposed in the UI, we need to update
-      // the scenario.
+    if (this.UI_PREFS_BY_VARIABLE.hasOwnProperty(variable)) {
+      // If a change occurred to any variables that correspond to prefs exposed
+      // in the UI, we need to update the scenario.
       await this.updateFirefoxSuggestScenario();
     } else {
       // If the current default-branch value of any pref is incorrect for the
@@ -615,11 +611,7 @@ class _QuickSuggest {
     //
     // The scenario-update process is described next.
     //
-    // 1. Pick a scenario. If the user is in a Nimbus rollout, then Nimbus will
-    //    define it. Otherwise the user may be in a "hardcoded" rollout
-    //    depending on their region and locale. If the user is not in any
-    //    rollouts, then the scenario is "history", which means no Firefox
-    //    Suggest suggestions should appear.
+    // 1. Pick a scenario, which depends on the user's region and locale.
     //
     // 2. Set prefs on the default branch appropriate for the scenario. We use
     //    the default branch and not the user branch because conceptually each
@@ -720,24 +712,15 @@ class _QuickSuggest {
    *   The scenario the user should be enrolled in.
    */
   _getIntendedFirefoxSuggestScenario() {
-    // If the user is in a Nimbus rollout, then Nimbus will define the scenario.
-    // Otherwise the user may be in a "hardcoded" rollout depending on their
-    // region and locale. If the user is not in any rollouts, then the scenario
-    // is "history", which means no Firefox Suggest suggestions will appear.
-    let scenario = lazy.NimbusFeatures.urlbar.getVariable(
-      "quickSuggestScenario"
-    );
-    if (!scenario) {
-      if (
-        lazy.Region.home == "US" &&
-        Services.locale.appLocaleAsBCP47.substring(0, 2) == "en"
-      ) {
-        // offline rollout for en locales in the US region
-        scenario = "offline";
-      } else {
-        // no rollout
-        scenario = "history";
-      }
+    // The scenario depends on the user's region and locale. If Suggest should
+    // be disabled, then the scenario is "history".
+    let scenario = "history";
+    if (
+      lazy.Region.home == "US" &&
+      Services.locale.appLocaleAsBCP47.substring(0, 2) == "en"
+    ) {
+      // offline rollout for en locales in the US region
+      scenario = "offline";
     }
     if (!this.DEFAULT_PREFS.hasOwnProperty(scenario)) {
       console.error(`Unrecognized Firefox Suggest scenario "${scenario}"`);

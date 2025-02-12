@@ -445,13 +445,6 @@ urlbar:
         - default
         - interest
         - random
-    quickSuggestScenario:
-      # IMPORTANT: This should not have a fallbackPref. See UrlbarPrefs.sys.mjs.
-      type: string
-      description: The Firefox Suggest scenario in which the user is enrolled
-      enum:
-        - history
-        - offline
     quickSuggestScoreMap:
       type: json
       description: >-
