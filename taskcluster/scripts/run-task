@@ -684,7 +684,14 @@ def vcs_checkout_from_args(args, project):
 
 
 def main(args):
-    task_workdir = os.environ["TASK_WORKDIR"] = os.getcwd()
+    task_workdir = os.getcwd()
+
+    # Task definitions generally expect to use forward slashes, so normalize to
+    # avoid paths with mixed separators.
+    if os.sep != "/":
+        task_workdir = task_workdir.replace(os.sep, "/")
+
+    os.environ["TASK_WORKDIR"] = task_workdir
     print_line(b'setup', b'run-task started in %s\n' % task_workdir.encode('utf-8'))
     running_as_root = IS_POSIX and os.getuid() == 0
 
@@ -916,7 +923,7 @@ def main(args):
             # that happen to contain brackets for some other reason.
             pattern = f"{{{subname}}}"
             if pattern in v:
-                os.environ[k] = os.path.normpath(v.replace(pattern, subval))
+                os.environ[k] = v.replace(pattern, subval)
                 print_line(
                     b"setup",
                     b"%s is %s\n" % (k.encode("utf-8"), os.environ[k].encode("utf-8")),
