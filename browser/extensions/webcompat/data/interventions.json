@@ -1899,9 +1899,7 @@
     "interventions": [
       {
         "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1875540-allstate.com-hide-unsupported-message.css"]
-        }
+        "ua_string": ["add_Chrome"]
       }
     ]
   },
