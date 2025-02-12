@@ -1,0 +1,75 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="timeout" content="long" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="testHelpers.js"></script>
+    <iframe id="write-frame-window"></iframe>
+    <iframe id="write-frame-worker"></iframe>
+    <iframe id="read-frame-window"></iframe>
+    <iframe id="read-frame-worker"></iframe>
+    <script>
+      const messageHub = createMotherListener();
+
+      async function runTests() {
+        const params = new URL(window.location.href).searchParams;
+        const api = params.get("api");
+        assert_true(!!api);
+        console.log("Tested API " + api);
+
+        const testIdWindow = "SameOriginIFramesWith" + api;
+        const testIdWorker = "Worker" + testIdWindow;
+
+        const writeWindows = new Map();
+
+        const writeFrameWindow = document.getElementById("write-frame-window");
+        writeWindows.set(testIdWindow, writeFrameWindow.contentWindow);
+
+        const writeFrameWorker = document.getElementById("write-frame-worker");
+        writeWindows.set(testIdWorker, writeFrameWorker.contentWindow);
+
+        const readWindows = new Map();
+
+        messageHub.registerReadWindow(testIdWindow);
+        const readFrameWindow = document.getElementById("read-frame-window");
+        readFrameWindow.src =
+          "https://{{hosts[alt][www2]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-read-and-notify.https.html?id=" +
+          testIdWindow;
+        readWindows.set(testIdWindow, readFrameWindow.contentWindow);
+
+        messageHub.registerReadWindow(testIdWorker);
+        const readFrameWorker = document.getElementById("read-frame-worker");
+        readFrameWorker.src =
+          "https://{{hosts[alt][www2]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-read-and-notify-worker.https.html?id=" +
+          testIdWorker;
+        readWindows.set(testIdWorker, readFrameWorker.contentWindow);
+
+        const setup = { readWindows, writeWindows };
+
+        await messageHub.getReadWindow(testIdWindow);
+        async_test(t => {
+          messageHub.registerWindow(t, testIdWindow, api, "allow", setup);
+
+          writeFrameWindow.src =
+            "https://{{hosts[alt][www2]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-write-and-notify.https.html?id=" +
+            testIdWindow;
+        }, "Access allowed for two iframes with the same origin " + api);
+
+        await messageHub.getReadWindow(testIdWorker);
+        async_test(t => {
+          messageHub.registerWorker(t, testIdWorker, api, "allow", setup);
+
+          writeFrameWorker.src =
+            "https://{{hosts[alt][www2]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-write-and-notify.https.html?id=" +
+            testIdWorker;
+        }, "Worker access allowed from two iframes with the same origin " + api);
+      }
+    </script>
+  </head>
+  <body onload="runTests();"></body>
+</html>

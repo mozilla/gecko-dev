@@ -1,0 +1,74 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="timeout" content="long" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="testHelpers.js"></script>
+    <script>
+      const messageHub = createMotherListener();
+
+      async function runTests() {
+        const params = new URL(window.location.href).searchParams;
+        const api = params.get("api");
+        assert_true(!!api);
+        console.log("Tested API " + api);
+
+        const testIdWindow = "DifferentOriginWindowsWith" + api;
+        const testIdWorker = "Worker" + testIdWindow;
+
+        const writeWindows = new Map();
+
+        const readWindowURL =
+          "https://{{hosts[alt][www1]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-read-and-notify-wrapper.https.sub.html";
+
+        const readWindows = new Map();
+
+        messageHub.registerReadWindow(testIdWindow);
+        readWindows.set(
+          testIdWindow,
+          window.open(readWindowURL + "?id=" + testIdWindow)
+        );
+
+        messageHub.registerReadWindow(testIdWorker);
+        readWindows.set(
+          testIdWorker,
+          window.open(readWindowURL + "?id=" + testIdWorker)
+        );
+
+        const setup = { readWindows, writeWindows };
+
+        await messageHub.getReadWindow(testIdWindow);
+        async_test(t => {
+          messageHub.registerWindow(t, testIdWindow, api, "deny", setup);
+
+          writeWindows.set(
+            testIdWindow,
+            window.open(
+              "https://{{hosts[][www1]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-write-and-notify-wrapper.https.sub.html?id=" +
+                testIdWindow
+            )
+          );
+        }, "Access not allowed for two iframes with the same origin on windows with different origins " + api);
+
+        await messageHub.getReadWindow(testIdWorker);
+        async_test(t => {
+          messageHub.registerWorker(t, testIdWorker, api, "deny", setup);
+
+          writeWindows.set(
+            testIdWorker,
+            window.open(
+              "https://{{hosts[][www1]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-write-and-notify-wrapper.https.sub.html?id=" +
+                testIdWorker
+            )
+          );
+        }, "Reading from worker not allowed for two iframes with the same origin on windows with different origins " + api);
+      }
+    </script>
+  </head>
+  <body onload="runTests();"></body>
+</html>

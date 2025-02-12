@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Reader script for window</title>
+    <script
+      src="test-read-and-notify.js"
+      type="application/javascript"
+    ></script>
+  </head>
+  <body style="background-color: rgb(255, 200, 0)">
+    <script>
+      const params = new URL(window.location.href).searchParams;
+      const id = params.get("id");
+      console.log("Read window frame id " + id);
+      window.parent.postMessage(
+        { id, message: "read loaded" },
+        document.referrer
+      );
+    </script>
+  </body>
+</html>

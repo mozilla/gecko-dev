@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <script
+      src="test-write-and-notify.js"
+      type="application/javascript"
+    ></script>
+  </head>
+  <title>Creating database</title>
+  <body style="background-color: rgb(251, 255, 0)">
+    <script>
+      const params = new URL(window.location.href).searchParams;
+      const id = params.get("id");
+      console.log("Write window frame id " + id);
+      window.parent.postMessage(
+        { id, message: "write loaded" },
+        document.referrer
+      );
+    </script>
+  </body>
+</html>

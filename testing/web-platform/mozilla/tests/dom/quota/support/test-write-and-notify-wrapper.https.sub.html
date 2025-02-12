@@ -1,0 +1,83 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="timeout" content="long" />
+    <iframe id="write-frame"></iframe>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      const params = new URL(window.location.href).searchParams;
+      const id = params.get("id");
+      var testId;
+      var testAPI;
+      async_test(t => {
+        const writeFrame = document.getElementById("write-frame");
+
+        window.addEventListener("message", e => {
+          console.log(
+            "Write wrapper window received " + JSON.stringify(e.data)
+          );
+          try {
+            if (!testId) {
+              assert_true(!!e.data.message); // First message contain the database name.
+              assert_equals(id, e.data.message);
+              testId = e.data.message;
+              assert_true(!!e.data.type); // First message also contain the tested API name.
+              testAPI = e.data.type;
+              writeFrame.src =
+                "https://{{hosts[alt][www1]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-write-and-notify.https.html?id=" +
+                id;
+              return;
+            }
+
+            assert_true(!!e.data.id, e.data.message);
+            if (e.data.id !== id) {
+              console.log(
+                "id " +
+                  id +
+                  " ignoring message for id " +
+                  e.data.id +
+                  " origin " +
+                  e.origin
+              );
+              return;
+            }
+
+            if (e.data.message === "write loaded") {
+              writeFrame.contentWindow.postMessage(
+                { id, message: id, type: testAPI },
+                "*"
+              );
+            } else {
+              assert_equals(e.data.message, "write done");
+              assert_true(!!e.data.expected); // We should get a nonzero number.
+              console.log(
+                "Write wrapper window sends up " + JSON.stringify(e.data)
+              );
+              parent.opener.postMessage(e.data, document.referrer);
+              t.done();
+            }
+          } catch (err) {
+            parent.opener.postMessage(
+              { id, message: err.message },
+              document.referrer
+            );
+            t.unreached_func(err.message);
+            t.done();
+          }
+        });
+
+        parent.opener.postMessage(
+          { id, message: "write loaded" },
+          document.referrer
+        );
+      }, "Write wrapper");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <script>
+      const worker = new Worker("test-write-and-notify.js");
+      worker.addEventListener("message", e => {
+        console.log("Worker listener received " + JSON.stringify(e.data));
+        window.parent.postMessage(e.data, document.referrer);
+      });
+      window.addEventListener("message", e => {
+        console.log("Window listener received " + JSON.stringify(e.data));
+        worker.postMessage(e.data);
+      });
+    </script>
+  </head>
+  <title>Executing the test script</title>
+  <body style="background-color: rgb(217, 255, 0)">
+    <script>
+      const params = new URL(window.location.href).searchParams;
+      const id = params.get("id");
+      console.log("Worker write frame id " + id);
+      window.parent.postMessage(
+        { id, message: "write loaded" },
+        document.referrer
+      );
+    </script>
+  </body>
+</html>

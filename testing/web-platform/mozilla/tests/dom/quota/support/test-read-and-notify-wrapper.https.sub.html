@@ -1,0 +1,70 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="timeout" content="long" />
+    <iframe
+      id="read-frame-window"
+      src="https://{{hosts[alt][www1]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-read-and-notify.https.html"
+    ></iframe>
+    <iframe
+      id="read-frame-worker"
+      src="https://{{hosts[alt][www1]}}:{{ports[https][0]}}/_mozilla/dom/quota/support/test-read-and-notify-worker.https.html"
+    ></iframe>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      const params = new URL(window.location.href).searchParams;
+      const id = params.get("id");
+
+      async_test(t => {
+        let testId;
+        let outcome;
+
+        window.addEventListener(
+          "message",
+          t.step_func(e => {
+            try {
+              console.log("Read wrapper received " + JSON.stringify(e.data));
+              assert_true(!!e.data.message);
+              if (e.data.message == "read loaded") {
+                return;
+              }
+              if (!testId) {
+                testId = e.data.message;
+                assert_true(!!e.data.outcome);
+                outcome = e.data.outcome;
+                assert_true(!!e.data.expected);
+                assert_true(!!e.data.frame);
+                assert_true(!!e.data.type);
+                const frameId = e.data.frame;
+
+                // Send test data to window or worker iframe
+                const readFrame = document.getElementById(frameId);
+                readFrame.contentWindow.postMessage(e.data, "*");
+              } else {
+                assert_equals(e.data.message, outcome);
+                console.log("Read wrapper sends up " + JSON.stringify(e.data));
+                parent.opener.postMessage(e.data, document.referrer);
+                t.done();
+              }
+            } catch (err) {
+              console.log("Error in read wrapper " + JSON.stringify(err));
+              parent.opener.postMessage(e.data, document.referrer);
+              throw err;
+            }
+          })
+        );
+
+        parent.opener.postMessage(
+          { id, message: "read loaded" },
+          document.referrer
+        );
+      }, "Read wrapper");
+    </script>
+  </head>
+  <body></body>
+</html>

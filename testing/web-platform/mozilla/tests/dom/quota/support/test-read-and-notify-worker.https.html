@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Reader script for workers</title>
+    <script>
+      const worker = new Worker("test-read-and-notify.js");
+      worker.addEventListener("message", e => {
+        console.log("Worker listener received " + JSON.stringify(e.data));
+        window.parent.postMessage(e.data, document.referrer);
+      });
+      window.addEventListener("message", e => {
+        console.log("Window listener received " + JSON.stringify(e.data));
+        worker.postMessage(e.data);
+      });
+    </script>
+  </head>
+  <body style="background-color: darkorange">
+    <script>
+      const params = new URL(window.location.href).searchParams;
+      const id = params.get("id");
+      console.log("Worker read frame id " + id);
+      window.parent.postMessage(
+        { id, message: "read loaded" },
+        document.referrer
+      );
+    </script>
+  </body>
+</html>
