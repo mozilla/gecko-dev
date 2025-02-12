@@ -1074,14 +1074,22 @@ items from that key's value."
                 val = sum(val["counts"].values())
             return val
 
+        def hit_rate(hits, total):
+            if hits == total:
+                return 100
+            rate = hits * 100 / total
+            # If the rate is not quite 100%, avoid values that will round to 100%.
+            if rate > 99.99:
+                return 99.99
+            return rate
+
         total = get_stat("requests_executed")
         hits = get_stat("cache_hits")
-        if total > 0:
-            hits /= float(total)
+        errors = get_stat("cache_errors")
 
         yield {
-            "name": "sccache hit rate",
-            "value": hits,
+            "name": "sccache percent hit",
+            "value": hit_rate(hits, total),
             "subtests": [],
             "alertThreshold": 50.0,
             "lowerIsBetter": False,
@@ -1090,9 +1098,39 @@ items from that key's value."
             "shouldAlert": False,
         }
 
+        if isinstance(stats["stats"]["cache_hits"]["counts"], dict):
+            for lang, value in stats["stats"]["cache_hits"]["counts"].items():
+                yield {
+                    "name": f"sccache percent hit {lang}",
+                    "value": hit_rate(
+                        value,
+                        (value + stats["stats"]["cache_misses"]["counts"].get(lang, 0)),
+                    ),
+                    "subtests": [],
+                    "alertThreshold": 50.0,
+                    "lowerIsBetter": False,
+                    # We want to always collect metrics.
+                    # But disable automatic alerting on it
+                    "shouldAlert": False,
+                }
+
+        yield {
+            "name": "sccache cache_read_errors",
+            "value": stats["stats"]["cache_read_errors"],
+            "alertThreshold": 50.0,
+            "subtests": [],
+        }
+
         yield {
             "name": "sccache cache_write_errors",
             "value": stats["stats"]["cache_write_errors"],
+            "alertThreshold": 50.0,
+            "subtests": [],
+        }
+
+        yield {
+            "name": "sccache cache_errors",
+            "value": errors,
             "alertThreshold": 50.0,
             "subtests": [],
         }
