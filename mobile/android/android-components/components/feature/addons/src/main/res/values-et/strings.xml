@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ligipääs kaartidele</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">piiramatu hulga andmete kliendi poolel salvestamine</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">piiramatu hulga andmete kliendi poolel salvestamine</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">ligipääs brauseri tegevusele veebilehitsemise vältel</string>
     <!-- Description for bookmarks permission. -->

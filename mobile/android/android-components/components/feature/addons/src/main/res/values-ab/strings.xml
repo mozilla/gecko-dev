@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Абраузер абларҭақәа рахь анеира</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Аклиент аганахьала ԥкра змам адыррақәа рыҵәахра</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Аклиент аганахьала ԥкра змам адыррақәа рыҵәахра</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Анавигациа аан абраузер аусура анеира</string>
     <!-- Description for bookmarks permission. -->

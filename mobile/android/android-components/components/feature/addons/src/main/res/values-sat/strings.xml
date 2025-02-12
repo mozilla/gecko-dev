@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ᱵᱽᱨᱟᱣᱩᱡᱚᱨ ᱴᱮᱵᱽ ᱟᱹᱛᱩᱨ ᱢᱮ</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ᱟᱸᱱᱞᱭᱴᱮᱰ ᱠᱞᱟᱭᱮᱸᱴ ᱰᱟᱴᱟ ᱫᱚᱦᱚᱭ ᱢᱮ  </string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">ᱟᱸᱱᱞᱭᱴᱮᱰ ᱠᱞᱟᱭᱮᱸᱴ ᱰᱟᱴᱟ ᱫᱚᱦᱚᱭ ᱢᱮ  </string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">ᱵᱽᱨᱟᱣᱩᱡᱟᱹᱨ ᱨᱮᱭᱟᱜ ᱠᱟᱹᱢᱤ ᱟᱹᱛᱩᱨ ᱢᱮ ᱯᱟᱱᱛᱮ ᱜᱷᱚᱰᱤ</string>
     <!-- Description for bookmarks permission. -->

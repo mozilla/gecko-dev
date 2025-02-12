@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ബ്രൌസര്‍ ടാബുകള്‍ പരിശോധിക്കുക</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">പരിധിയില്ലാതെ ഉപഭോക്തൃ-വശ ദത്ത സൂക്ഷിക്കുക</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">പരിധിയില്ലാതെ ഉപഭോക്തൃ-വശ ദത്ത സൂക്ഷിക്കുക</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">നാവിഗേഷൻ ചെയ്യുമ്പോൾ ബ്രൗസർ പ്രവർത്തനം ആക്സസ്സുചെയ്യുക</string>
     <!-- Description for bookmarks permission. -->

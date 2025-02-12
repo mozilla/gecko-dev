@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Ní àǹfàní sí àwọn abala bíráwúsà</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Tọ́ju iye àìlópin dátà ti apá kan àwọn alábárà</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Tọ́ju iye àìlópin dátà ti apá kan àwọn alábárà</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Ní àǹfàní sí iṣẹ́ tó ń lọ lóri bíráwúsà lákòókò ìwákiri</string>
     <!-- Description for bookmarks permission. -->

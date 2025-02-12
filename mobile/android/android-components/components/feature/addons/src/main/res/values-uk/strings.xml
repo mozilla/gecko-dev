@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Доступ до вкладок браузера</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Зберігання необмеженої кількості даних на стороні клієнта</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Зберігання необмеженої кількості даних на стороні клієнта</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Доступ до активності браузера під час навігації</string>
     <!-- Description for bookmarks permission. -->

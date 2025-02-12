@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">cothrom fhaighinn air tabaichean a’ bhrabhsair</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">dàta gun chrìoch a stòradh air taobh a’ chliant</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">dàta gun chrìoch a stòradh air taobh a’ chliant</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">cothrom fhaighinn air gnìomhachd a’ bhrabhsair rè seòladaireachd</string>
     <!-- Description for bookmarks permission. -->

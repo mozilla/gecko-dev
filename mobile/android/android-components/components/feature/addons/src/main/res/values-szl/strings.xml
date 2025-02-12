@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Dostymp do kart przeglōndarki</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Chrōniynie bezlimitowyj wielości danych po strōnie klijynta</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Chrōniynie bezlimitowyj wielości danych po strōnie klijynta</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Dostymp do aktywności przeglōndarki przi nawigacyji</string>
     <!-- Description for bookmarks permission. -->

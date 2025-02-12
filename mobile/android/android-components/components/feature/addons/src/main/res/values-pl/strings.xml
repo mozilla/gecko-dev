@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Dostęp do kart przeglądarki</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Przechowywanie nieograniczonej ilości danych na urządzeniu</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Przechowywanie nieograniczonej ilości danych na urządzeniu</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Dostęp do aktywności przeglądarki podczas nawigacji</string>
     <!-- Description for bookmarks permission. -->

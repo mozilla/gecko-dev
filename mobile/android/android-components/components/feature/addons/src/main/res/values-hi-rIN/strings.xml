@@ -9,7 +9,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ब्राउज़र टैब को एक्सेस करें</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ग्राहक-पक्ष डेटा की असीमित राशि को स्टोर करें</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">ग्राहक-पक्ष डेटा की असीमित राशि को स्टोर करें</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">नेवीगेशन के दौरान ब्राउज़र गतिविधि एक्सेस करें</string>
     <!-- Description for bookmarks permission. -->

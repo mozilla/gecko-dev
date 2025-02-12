@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Accéder aux onglets du navigateur</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Stocker une quantité illimitée de données côté client</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Stocker une quantité illimitée de données côté client</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Accéder à l’activité du navigateur pendant la navigation</string>
     <!-- Description for bookmarks permission. -->

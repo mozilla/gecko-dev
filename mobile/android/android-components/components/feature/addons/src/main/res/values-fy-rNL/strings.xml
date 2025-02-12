@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Browserljepblêden benaderje</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Gegevens oan clientside ûnbeheind bewarje</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Gegevens oan clientside ûnbeheind bewarje</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Browseraktiviteit wylst navigearjen benaderje</string>
     <!-- Description for bookmarks permission. -->

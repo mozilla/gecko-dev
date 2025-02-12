@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Xwe bigihîne hilpekînên gerokê</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ji daxwazkarê daneyên bêsînor tomar bike</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">ji daxwazkarê daneyên bêsînor tomar bike</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Di dema gerînê de xwe bigihîne çalakiya gerokê</string>
     <!-- Description for bookmarks permission. -->

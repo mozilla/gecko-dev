@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">브라우저 탭에 접근</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">무제한의 클라이언트 데이터 저장</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">무제한의 클라이언트 데이터 저장</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">탐색중에 브라우저 활동에 접근</string>
     <!-- Description for bookmarks permission. -->

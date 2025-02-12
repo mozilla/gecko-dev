@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Приступите језичцима прегледача</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Складиштите неограничену количину клијентских података</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Складиштите неограничену количину клијентских података</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Приступите радњама прегледача приликом навигације</string>
     <!-- Description for bookmarks permission. -->

@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">存取浏览器标签页</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">存储无限多的客户端数据</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">存储无限多的客户端数据</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">获知浏览器导航时的行为状态</string>
     <!-- Description for bookmarks permission. -->

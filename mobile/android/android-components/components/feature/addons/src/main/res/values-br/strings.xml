@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Haeziñ ivinelloù ar merdeer</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Kadaviñ ur c’hementad anvevennek a roadennoù arval</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Kadaviñ ur c’hementad anvevennek a roadennoù arval</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Haeziñ oberiantiz ar merdeer e-pad ar merdeiñ</string>
     <!-- Description for bookmarks permission. -->

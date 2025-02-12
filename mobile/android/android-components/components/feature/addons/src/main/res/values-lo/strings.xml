@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ເຂົ້າເຖິງແທັບຂອງບຣາວເຊີ</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ເກັບຂໍ້ມູນຂອງເບື້ອງລູກຄ່າຍໄວ້ໂດຍບໍ່ຈຳກັດຈຳນວນ</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">ເກັບຂໍ້ມູນຂອງເບື້ອງລູກຄ່າຍໄວ້ໂດຍບໍ່ຈຳກັດຈຳນວນ</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">ເຂົ້າເຖິງກິດຈະກຳຂອງບຣາວເຊີໃນລະຫວ່າງການນຳທາງ</string>
     <!-- Description for bookmarks permission. -->

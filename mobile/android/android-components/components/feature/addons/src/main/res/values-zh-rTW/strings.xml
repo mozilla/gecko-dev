@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">存取瀏覽器分頁</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">在客戶端儲存無限量資料</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">在客戶端儲存無限量資料</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">在上網時了解瀏覽器行為狀態</string>
     <!-- Description for bookmarks permission. -->

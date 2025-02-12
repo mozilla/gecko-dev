@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ბრაუზერის ჩანართებთან წვდომა</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">განუსაზღვრელი მოცულობის მონაცემების შენახვა დისკზე</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">განუსაზღვრელი მოცულობის მონაცემების შენახვა დისკზე</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">გვერდების მონახულებისას ბრაუზერის მოქმედებებთან წვდომა</string>
     <!-- Description for bookmarks permission. -->

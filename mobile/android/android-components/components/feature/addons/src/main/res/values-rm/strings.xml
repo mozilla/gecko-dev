@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Acceder als tabs dal navigatur</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Memorisar ina quantitad da datas betg limitada sin il computer</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Memorisar ina quantitad da datas betg limitada sin il computer</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Acceder a l\'activitad dal navigatur durant la navigaziun</string>
     <!-- Description for bookmarks permission. -->

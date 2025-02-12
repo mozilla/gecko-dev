@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">உலாவியின் கீற்றுகளை அணுகுக</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">கிளையண்ட் தரவை வரம்பற்றுச் சேமி</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">கிளையண்ட் தரவை வரம்பற்றுச் சேமி</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">வழிச்செலுத்தலின்போது உலாவியின் செயல்பாட்டை அணுகவும்</string>
     <!-- Description for bookmarks permission. -->

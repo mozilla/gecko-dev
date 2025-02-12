@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">موروچو تاغلارینا ال چاتما</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ایستمجی طرفینده سینیرسیز میقداردا دیتا ساخلایین</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">ایستمجی طرفینده سینیرسیز میقداردا دیتا ساخلایین</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">گزینمه زامانی موروچو فعالیتینه ال چاتما</string>
     <!-- Description for bookmarks permission. -->
