@@ -19,7 +19,7 @@
 #include "mozilla/dom/AuthenticatorAttestationResponse.h"
 #include "mozilla/dom/PublicKeyCredential.h"
 #include "mozilla/dom/PWebAuthnTransaction.h"
-#include "mozilla/dom/WebAuthnManager.h"
+#include "mozilla/dom/WebAuthnHandler.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 #include "mozilla/dom/WebAuthnUtil.h"
 #include "mozilla/dom/WindowGlobalChild.h"
@@ -39,17 +39,17 @@ namespace mozilla::dom {
  **********************************************************************/
 
 namespace {
-static mozilla::LazyLogModule gWebAuthnManagerLog("webauthnmanager");
+static mozilla::LazyLogModule gWebAuthnHandlerLog("webauthnhandler");
 }
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebAuthnManager)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebAuthnHandler)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION(WebAuthnManager, mWindow, mTransaction)
+NS_IMPL_CYCLE_COLLECTION(WebAuthnHandler, mWindow, mTransaction)
 
-NS_IMPL_CYCLE_COLLECTING_ADDREF(WebAuthnManager)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(WebAuthnManager)
+NS_IMPL_CYCLE_COLLECTING_ADDREF(WebAuthnHandler)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(WebAuthnHandler)
 
 /***********************************************************************
  * Utility Functions
@@ -135,7 +135,7 @@ nsresult GetOrigin(nsPIDOMWindowInner* aParent,
     // 4.1.1.3 If callerOrigin is an opaque origin, reject promise with a
     // DOMException whose name is "NotAllowedError", and terminate this
     // algorithm
-    MOZ_LOG(gWebAuthnManagerLog, LogLevel::Debug,
+    MOZ_LOG(gWebAuthnHandlerLog, LogLevel::Debug,
             ("Rejecting due to opaque origin"));
     return NS_ERROR_DOM_NOT_ALLOWED_ERR;
   }
@@ -200,10 +200,10 @@ nsresult RelaxSameOrigin(nsPIDOMWindowInner* aParent,
 }
 
 /***********************************************************************
- * WebAuthnManager Implementation
+ * WebAuthnHandler Implementation
  **********************************************************************/
 
-WebAuthnManager::~WebAuthnManager() {
+WebAuthnHandler::~WebAuthnHandler() {
   MOZ_ASSERT(NS_IsMainThread());
   if (mActor) {
     if (mTransaction.isSome()) {
@@ -213,7 +213,7 @@ WebAuthnManager::~WebAuthnManager() {
   }
 }
 
-bool WebAuthnManager::MaybeCreateActor() {
+bool WebAuthnHandler::MaybeCreateActor() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mActor) {
@@ -229,17 +229,17 @@ bool WebAuthnManager::MaybeCreateActor() {
   }
 
   mActor = actor;
-  mActor->SetManager(this);
+  mActor->SetHandler(this);
 
   return true;
 }
 
-void WebAuthnManager::ActorDestroyed() {
+void WebAuthnHandler::ActorDestroyed() {
   MOZ_ASSERT(NS_IsMainThread());
   mActor = nullptr;
 }
 
-already_AddRefed<Promise> WebAuthnManager::MakeCredential(
+already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
     const PublicKeyCredentialCreationOptions& aOptions,
     const Optional<OwningNonNull<AbortSignal>>& aSignal, ErrorResult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -545,7 +545,7 @@ already_AddRefed<Promise> WebAuthnManager::MakeCredential(
 
 const size_t MAX_ALLOWED_CREDENTIALS = 20;
 
-already_AddRefed<Promise> WebAuthnManager::GetAssertion(
+already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     const PublicKeyCredentialRequestOptions& aOptions,
     const bool aConditionallyMediated,
     const Optional<OwningNonNull<AbortSignal>>& aSignal, ErrorResult& aError) {
@@ -803,7 +803,7 @@ already_AddRefed<Promise> WebAuthnManager::GetAssertion(
   return promise.forget();
 }
 
-already_AddRefed<Promise> WebAuthnManager::Store(const Credential& aCredential,
+already_AddRefed<Promise> WebAuthnHandler::Store(const Credential& aCredential,
                                                  ErrorResult& aError) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -823,7 +823,7 @@ already_AddRefed<Promise> WebAuthnManager::Store(const Credential& aCredential,
   return promise.forget();
 }
 
-already_AddRefed<Promise> WebAuthnManager::IsUVPAA(GlobalObject& aGlobal,
+already_AddRefed<Promise> WebAuthnHandler::IsUVPAA(GlobalObject& aGlobal,
                                                    ErrorResult& aError) {
   RefPtr<Promise> promise =
       Promise::Create(xpc::CurrentNativeGlobal(aGlobal.Context()), aError);
@@ -849,7 +849,7 @@ already_AddRefed<Promise> WebAuthnManager::IsUVPAA(GlobalObject& aGlobal,
   return promise.forget();
 }
 
-void WebAuthnManager::FinishMakeCredential(
+void WebAuthnHandler::FinishMakeCredential(
     const WebAuthnMakeCredentialResult& aResult) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mTransaction.isSome());
@@ -928,7 +928,7 @@ void WebAuthnManager::FinishMakeCredential(
   ResolveTransaction(credential);
 }
 
-void WebAuthnManager::FinishGetAssertion(
+void WebAuthnHandler::FinishGetAssertion(
     const WebAuthnGetAssertionResult& aResult) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mTransaction.isSome());
@@ -1003,7 +1003,7 @@ void WebAuthnManager::FinishGetAssertion(
   ResolveTransaction(credential);
 }
 
-void WebAuthnManager::RunAbortAlgorithm() {
+void WebAuthnHandler::RunAbortAlgorithm() {
   if (NS_WARN_IF(mTransaction.isNothing())) {
     return;
   }
@@ -1021,7 +1021,7 @@ void WebAuthnManager::RunAbortAlgorithm() {
   CancelTransaction(reason);
 }
 
-void WebAuthnManager::ResolveTransaction(
+void WebAuthnHandler::ResolveTransaction(
     const RefPtr<PublicKeyCredential>& aCredential) {
   MOZ_ASSERT(mTransaction.isSome());
 
@@ -1040,7 +1040,7 @@ void WebAuthnManager::ResolveTransaction(
 }
 
 template <typename T>
-void WebAuthnManager::RejectTransaction(const T& aReason) {
+void WebAuthnHandler::RejectTransaction(const T& aReason) {
   MOZ_ASSERT(mTransaction.isSome());
 
   switch (mTransaction.ref().mType) {

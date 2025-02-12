@@ -12,13 +12,13 @@
 /*
  * Child process IPC implementation for WebAuthn API. Receives results of
  * WebAuthn transactions from the parent process, and sends them to the
- * WebAuthnManager either cancel the transaction, or be formatted and relayed to
+ * WebAuthnHandler either cancel the transaction, or be formatted and relayed to
  * content.
  */
 
 namespace mozilla::dom {
 
-class WebAuthnManager;
+class WebAuthnHandler;
 
 class WebAuthnTransactionChild final : public PWebAuthnTransactionChild {
  public:
@@ -28,13 +28,12 @@ class WebAuthnTransactionChild final : public PWebAuthnTransactionChild {
 
   void ActorDestroy(ActorDestroyReason why) override;
 
-  void SetManager(WebAuthnManager* aMananger);
+  void SetHandler(WebAuthnHandler* aMananger);
 
  private:
   ~WebAuthnTransactionChild() = default;
 
-  // Nulled by ~WebAuthnManager() when disconnecting.
-  WebAuthnManager* mManager;
+  WebAuthnHandler* mHandler;
 };
 
 }  // namespace mozilla::dom

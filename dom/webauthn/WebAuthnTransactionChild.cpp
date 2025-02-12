@@ -4,21 +4,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/dom/WebAuthnManager.h"
+#include "mozilla/dom/WebAuthnHandler.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 
 namespace mozilla::dom {
 
-void WebAuthnTransactionChild::SetManager(WebAuthnManager* aManager) {
-  mManager = aManager;
+void WebAuthnTransactionChild::SetHandler(WebAuthnHandler* aHandler) {
+  mHandler = aHandler;
 }
 
 void WebAuthnTransactionChild::ActorDestroy(ActorDestroyReason why) {
   // Called by either a __delete__ message from the parent, or when the
   // channel disconnects. Clear out the child actor reference to be sure.
-  if (mManager) {
-    mManager->ActorDestroyed();
-    mManager = nullptr;
+  if (mHandler) {
+    mHandler->ActorDestroyed();
+    mHandler = nullptr;
   }
 }
 

@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_WebAuthnManager_h
-#define mozilla_dom_WebAuthnManager_h
+#ifndef mozilla_dom_WebAuthnHandler_h
+#define mozilla_dom_WebAuthnHandler_h
 
 #include "mozilla/Maybe.h"
 #include "mozilla/MozPromise.h"
@@ -17,15 +17,15 @@
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 
 /*
- * Content process manager for the WebAuthn protocol. Created on calls to the
- * WebAuthentication DOM object, this manager handles establishing IPC channels
- * for WebAuthn transactions, as well as keeping track of JS Promise objects
- * representing transactions in flight.
+ * Content process handler for the WebAuthn protocol. Created on calls to the
+ * WebAuthentication DOM object, this is responsible for establishing IPC
+ * channels for WebAuthn transactions as well as keeping track of JS Promise
+ * objects representing transactions in flight.
  *
  * The WebAuthn spec (https://www.w3.org/TR/webauthn/) allows for two different
  * types of transactions: registration and signing. When either of these is
  * requested via the DOM API, the following steps are executed in the
- * WebAuthnManager:
+ * WebAuthnHandler:
  *
  * - Validation of the request. Return a failed promise to js if request does
  *   not have correct parameters.
@@ -34,15 +34,12 @@
  *   another transaction is already running in this content process, cancel it.
  *   Return a pending promise to js.
  *
- * - Send transaction information to parent process (by running the Start*
- *   functions of WebAuthnManager). Assuming another transaction is currently in
- *   flight in another content process, parent will handle canceling it.
+ * - Send transaction information to parent process.
  *
  * - On return of successful transaction information from parent process, turn
  *   information into DOM object format required by spec, and resolve promise
- *   (by running the Finish* functions of WebAuthnManager). On cancellation
- *   request from parent, reject promise with corresponding error code. Either
- *   outcome will also close the IPC channel.
+ *   (by running the Finish* functions of WebAuthnHandler). On cancellation
+ *   request from parent, reject promise with corresponding error code.
  *
  */
 
@@ -68,7 +65,7 @@ class WebAuthnTransaction {
 
   // These holders are used to track the transaction once it has been dispatched
   // to the parent process. Once ->Track()'d, they must either be disconnected
-  // (through a call to WebAuthnManager::CancelTransaction) or completed
+  // (through a call to WebAuthnHandler::CancelTransaction) or completed
   // (through a response on the IPC channel) before this WebAuthnTransaction is
   // destroyed.
   MozPromiseRequestHolder<PWebAuthnTransactionChild::RequestRegisterPromise>
@@ -77,12 +74,12 @@ class WebAuthnTransaction {
       mSignHolder;
 };
 
-class WebAuthnManager final : public AbortFollower {
+class WebAuthnHandler final : public AbortFollower {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(WebAuthnManager)
+  NS_DECL_CYCLE_COLLECTION_CLASS(WebAuthnHandler)
 
-  explicit WebAuthnManager(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {
+  explicit WebAuthnHandler(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aWindow);
   }
@@ -107,7 +104,7 @@ class WebAuthnManager final : public AbortFollower {
   void RunAbortAlgorithm() override;
 
  private:
-  virtual ~WebAuthnManager();
+  virtual ~WebAuthnHandler();
 
   bool MaybeCreateActor();
 
@@ -159,4 +156,4 @@ inline void ImplCycleCollectionUnlink(WebAuthnTransaction& aTransaction) {
 
 }  // namespace mozilla::dom
 
-#endif  // mozilla_dom_WebAuthnManager_h
+#endif  // mozilla_dom_WebAuthnHandler_h

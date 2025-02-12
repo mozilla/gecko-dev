@@ -7,10 +7,6 @@
 #ifndef mozilla_dom_WebAuthnUtil_h
 #define mozilla_dom_WebAuthnUtil_h
 
-/*
- * Utility functions used by both WebAuthnManager and U2FTokenManager.
- */
-
 #include "mozilla/dom/WebAuthenticationBinding.h"
 #include "ipc/IPCMessageUtils.h"
 
