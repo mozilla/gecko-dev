@@ -71,7 +71,7 @@ class MappingBase {
    */
   MappingBase();
   MOZ_IMPLICIT MappingBase(std::nullptr_t) {}
-  ~MappingBase() { Unmap(); }
+  ~MappingBase();
 
   /**
    * Mappings are movable (but not copyable).
@@ -80,15 +80,13 @@ class MappingBase {
       : mMemory(std::exchange(aOther.mMemory, nullptr)),
         mSize(std::exchange(aOther.mSize, 0)) {}
 
-  MappingBase& operator=(MappingBase&& aOther);
-
-  MappingBase(const MappingBase&) = delete;
-  MappingBase& operator=(const MappingBase&) = delete;
+  MappingBase& operator=(MappingBase&& aOther) {
+    mMemory = std::exchange(aOther.mMemory, nullptr);
+    mSize = std::exchange(aOther.mSize, 0);
+    return *this;
+  }
 
   bool Map(const HandleBase& aHandle, void* aFixedAddress, bool aReadOnly);
-  bool MapSubregion(const HandleBase& aHandle, uint64_t aOffset, size_t aSize,
-                    void* aFixedAddress, bool aReadOnly);
-  void Unmap();
 
   template <typename Derived>
   Derived ConvertTo() && {
@@ -120,8 +118,6 @@ struct Mapping : MappingBase {
   MOZ_IMPLICIT Mapping(std::nullptr_t) {}
 
   explicit Mapping(const Handle& aHandle, void* aFixedAddress = nullptr);
-  Mapping(const Handle& aHandle, uint64_t aOffset, size_t aSize,
-          void* aFixedAddress = nullptr);
 
   using MappingBase::release;
 };
@@ -138,8 +134,6 @@ struct ReadOnlyMapping : MappingBase {
 
   explicit ReadOnlyMapping(const ReadOnlyHandle& aHandle,
                            void* aFixedAddress = nullptr);
-  ReadOnlyMapping(const ReadOnlyHandle& aHandle, uint64_t aOffset, size_t aSize,
-                  void* aFixedAddress = nullptr);
 };
 
 /**
@@ -160,8 +154,6 @@ struct FreezableMapping : MappingBase {
    */
   explicit FreezableMapping(FreezableHandle&& aHandle,
                             void* aFixedAddress = nullptr);
-  FreezableMapping(FreezableHandle&& aHandle, uint64_t aOffset, size_t aSize,
-                   void* aFixedAddress = nullptr);
 
   /**
    * Freeze the shared memory region.
@@ -218,14 +210,6 @@ void* FindFreeAddressSpace(size_t aSize);
  * Get the system page size.
  */
 size_t SystemPageSize();
-
-/**
- * Get the system allocation granularity.
- *
- * This may be distinct from the page size, and controls the required
- * alignment for fixed mapping addresses and shared memory offsets.
- */
-size_t SystemAllocationGranularity();
 
 /**
  * Return a size which is page-aligned and can fit at least `minimum` bytes.

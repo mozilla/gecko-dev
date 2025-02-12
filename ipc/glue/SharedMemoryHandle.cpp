@@ -62,16 +62,6 @@ HandleBase::~HandleBase() {
   mSize = 0;
 }
 
-HandleBase& HandleBase::operator=(HandleBase&& aOther) {
-  MOZ_ASSERT(AllocationReporter::allocated >= mSize,
-             "Can't destroy more than allocated");
-  AllocationReporter::allocated -= mSize;
-
-  mHandle = std::move(aOther.mHandle);
-  mSize = std::exchange(aOther.mSize, 0);
-  return *this;
-}
-
 HandleBase HandleBase::Clone() const {
   HandleBase hb;
   hb.mHandle = Platform::CloneHandle(mHandle);
@@ -85,9 +75,6 @@ HandleBase HandleBase::Clone() const {
 }
 
 void HandleBase::ToMessageWriter(IPC::MessageWriter* aWriter) && {
-  MOZ_ASSERT(AllocationReporter::allocated >= mSize,
-             "Can't destroy more than allocated");
-  AllocationReporter::allocated -= mSize;
   WriteParam(aWriter, std::move(mHandle));
   WriteParam(aWriter, std::exchange(mSize, 0));
 }
@@ -112,18 +99,8 @@ Mapping Handle::Map(void* aFixedAddress) const {
   return Mapping(*this, aFixedAddress);
 }
 
-Mapping Handle::MapSubregion(uint64_t aOffset, size_t aSize,
-                             void* aFixedAddress) const {
-  return Mapping(*this, aOffset, aSize, aFixedAddress);
-}
-
 ReadOnlyMapping ReadOnlyHandle::Map(void* aFixedAddress) const {
   return ReadOnlyMapping(*this, aFixedAddress);
-}
-
-ReadOnlyMapping ReadOnlyHandle::MapSubregion(uint64_t aOffset, size_t aSize,
-                                             void* aFixedAddress) const {
-  return ReadOnlyMapping(*this, aOffset, aSize, aFixedAddress);
 }
 
 FreezableHandle::~FreezableHandle() {
@@ -145,11 +122,6 @@ ReadOnlyHandle FreezableHandle::Freeze() && {
 
 FreezableMapping FreezableHandle::Map(void* aFixedAddress) && {
   return FreezableMapping(std::move(*this), aFixedAddress);
-}
-
-FreezableMapping FreezableHandle::MapSubregion(uint64_t aOffset, size_t aSize,
-                                               void* aFixedAddress) && {
-  return FreezableMapping(std::move(*this), aOffset, aSize, aFixedAddress);
 }
 
 Handle Create(uint64_t aSize) {

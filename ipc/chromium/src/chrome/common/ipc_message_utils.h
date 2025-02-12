@@ -33,9 +33,6 @@ class IProtocol;
 template <typename P>
 struct IPDLParamTraits;
 class SharedMemory;
-namespace shared_memory {
-class Cursor;
-}
 
 // Implemented in ProtocolUtils.cpp
 MOZ_NEVER_INLINE void PickleFatalError(const char* aMsg, IProtocol* aActor);
@@ -531,7 +528,8 @@ class MOZ_STACK_CLASS MessageBufferWriter {
 
  private:
   MessageWriter* writer_;
-  mozilla::UniquePtr<mozilla::ipc::shared_memory::Cursor> shmem_cursor_;
+  RefPtr<mozilla::ipc::SharedMemory> shmem_;
+  char* buffer_ = nullptr;
   uint32_t remaining_ = 0;
 };
 
@@ -562,7 +560,8 @@ class MOZ_STACK_CLASS MessageBufferReader {
 
  private:
   MessageReader* reader_;
-  mozilla::UniquePtr<mozilla::ipc::shared_memory::Cursor> shmem_cursor_;
+  RefPtr<mozilla::ipc::SharedMemory> shmem_;
+  const char* buffer_ = nullptr;
   uint32_t remaining_ = 0;
 };
 
