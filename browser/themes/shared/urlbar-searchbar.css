@@ -1222,13 +1222,23 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   margin-top: -13px;
 }
 
-#searchmode-switcher-popup-description {
-  margin: var(--space-small);
-  margin-bottom: var(--space-xsmall);
+#searchmode-switcher-popup {
+  --panel-padding: 4px 0;
+
+  > menuitem {
+    margin-inline: 4px;
+  }
 }
 
-#searchmode-switcher-popup-search-settings-icon {
-  list-style-image: url("chrome://global/skin/icons/settings.svg");
+#searchmode-switcher-popup-description {
+  margin-inline: 4px;
+  padding: var(--arrowpanel-menuitem-padding);
+}
+
+#searchmode-switcher-popup-search-settings-button,
+.searchmode-switcher-local {
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */

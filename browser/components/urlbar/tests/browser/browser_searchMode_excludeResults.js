@@ -221,7 +221,7 @@ async function enterSearchMode(engineName) {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   await UrlbarTestUtils.openSearchModeSwitcher(window);
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector(`toolbarbutton[label=${engineName}]`).click();
+  popup.querySelector(`menuitem[label=${engineName}]`).click();
   await popupHidden;
   await UrlbarTestUtils.promiseSearchComplete(window);
 }

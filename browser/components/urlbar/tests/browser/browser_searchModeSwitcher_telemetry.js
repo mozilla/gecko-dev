@@ -108,19 +108,21 @@ async function testSearchEngine(label, telemetry, expected) {
     `Test search engine for ${JSON.stringify({ label, telemetry, expected })}`
   );
   let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+  await BrowserTestUtils.waitForCondition(() =>
+    popup.querySelector(`menuitem[label=${label}]`)
+  );
 
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  await BrowserTestUtils.waitForCondition(() =>
-    popup.querySelector(`toolbarbutton[label=${label}]`)
-  );
-  popup.querySelector(`toolbarbutton[label=${label}]`).click();
+  popup.querySelector(`menuitem[label=${label}]`).click();
   await popupHidden;
+
   Assert.equal(
     Glean.urlbarUnifiedsearchbutton.picked[telemetry].testGetValue(),
     expected
   );
 
   document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.assertSearchMode(window, null);
 }
 
 async function loadUri(uri) {

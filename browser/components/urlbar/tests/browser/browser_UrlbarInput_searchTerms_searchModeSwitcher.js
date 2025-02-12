@@ -57,7 +57,7 @@ add_task(async function select_default_engine_and_search() {
 
   info("Press on the Example menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=Example]").click();
+  popup.querySelector("menuitem[label=Example]").click();
   await popupHidden;
 
   info("Search with the default engine.");
@@ -86,7 +86,7 @@ add_task(async function select_default_engine_and_modify_search_and_blur() {
 
   info("Press on the default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=Example]").click();
+  popup.querySelector("menuitem[label=Example]").click();
   await popupHidden;
 
   // Bug 1909301: When the search term doesn't change, blurring the address bar
@@ -116,7 +116,7 @@ add_task(async function select_non_default_engine_and_search() {
 
   info("Press on the non default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=MochiSearch]").click();
+  popup.querySelector("menuitem[label=MochiSearch]").click();
   await popupHidden;
 
   info("Search with the non default engine.");
@@ -143,7 +143,7 @@ add_task(async function select_non_default_engine_and_modify_search_and_blur() {
 
   info("Press on the non default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=MochiSearch]").click();
+  popup.querySelector("menuitem[label=MochiSearch]").click();
   await popupHidden;
 
   EventUtils.synthesizeKey("s");
@@ -178,7 +178,7 @@ add_task(async function select_non_default_engine_and_blur() {
 
   info("Press on the non default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=MochiSearch]").click();
+  popup.querySelector("menuitem[label=MochiSearch]").click();
   await popupHidden;
 
   gURLBar.blur();
@@ -217,7 +217,7 @@ add_task(async function select_non_default_engine_and_blur_and_switch_tab() {
 
   info("Press on the non default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=MochiSearch]").click();
+  popup.querySelector("menuitem[label=MochiSearch]").click();
   await popupHidden;
 
   gURLBar.blur();

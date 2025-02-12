@@ -689,8 +689,11 @@ urlbar-searchmode-actions =
 urlbar-searchmode-exit-button =
     .tooltiptext = Close
 
+# Label shown on the top of Searchmode Switcher popup. After this label, the
+# available search engines will be listed.
 urlbar-searchmode-popup-description = This time search with:
-urlbar-searchmode-popup-search-settings = Search Settings
+urlbar-searchmode-popup-search-settings-menuitem =
+    .label = Search Settings
 
 # Label prompting user to search with a particular search engine.
 #  $engine (String): the name of a search engine that searches a specific site

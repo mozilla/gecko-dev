@@ -688,7 +688,7 @@ add_task(async function test_unified_search_button() {
 
   info("Press on the search engine we added for test and enter search mode");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton").click();
+  popup.querySelector("menuitem:not([disabled])").click();
   await popupHidden;
   await UrlbarTestUtils.assertSearchMode(window, {
     engineName,
