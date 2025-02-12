@@ -1140,9 +1140,7 @@ static bool BaselineCompileTaskMatches(const CompilationSelector& selector,
     jit::BaselineCompileTask* task_;
 
     bool operator()(JSScript* script) { return task_->scriptMatches(script); }
-    bool operator()(Zone* zone) {
-      return zone == task_->zoneFromAnyThread();
-    }
+    bool operator()(Zone* zone) { return zone == task_->zoneFromAnyThread(); }
     bool operator()(JSRuntime* runtime) {
       return runtime == task_->runtimeFromAnyThread();
     }

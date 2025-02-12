@@ -327,7 +327,6 @@ class JS::Realm : public JS::shadow::Realm {
 
   JSPrincipals* principals_ = nullptr;
 
-
   js::jit::BaselineCompileQueue baselineCompileQueue_;
 
   // Bookkeeping information for debug scope objects.
