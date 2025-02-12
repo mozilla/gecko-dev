@@ -1,0 +1,16 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * www.linkedin.com - a dark overlay appears which cannot be dismissed.
+ * Bug #1944727 - https://bugzilla.mozilla.org/show_bug.cgi?id=1944727
+ *
+ * Once a day or so, LinkedIn is displaying a promotional banner to
+ * encourage mobile users to switch to their app. This banner relies
+ * on the non-standard CSS -webkit-fill-available, and so breaks on
+ * Firefox (presumably until bug 1872755 is fixed). This CSS fixes it.
+ */
+.promo.fixed.h-\[-webkit-fill-available\].top-0.w-\[100vw\] {
+  height: 100%;
+}
