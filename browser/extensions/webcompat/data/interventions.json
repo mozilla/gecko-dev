@@ -958,6 +958,21 @@
       }
     ]
   },
+  "1813177": {
+    "label": "rbi.org",
+    "bugs": {
+      "1813177": {
+        "issue": "broken-redirect",
+        "matches": ["*://m.rbi.org.in/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
   "1815733": {
     "label": "Office 365 Outlook locations",
     "bugs": {
