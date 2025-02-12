@@ -1046,11 +1046,6 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
                                                CallOrNewEmitter& cone,
                                                OptionalEmitter& oe);
 
-#ifdef ENABLE_RECORD_TUPLE
-  [[nodiscard]] bool emitRecordLiteral(ListNode* record);
-  [[nodiscard]] bool emitTupleLiteral(ListNode* tuple);
-#endif
-
   [[nodiscard]] bool emitExportDefault(BinaryNode* exportNode);
 
   [[nodiscard]] bool emitReturnRval() { return emit1(JSOp::RetRval); }

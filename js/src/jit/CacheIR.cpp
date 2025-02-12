@@ -2743,9 +2743,6 @@ AttachDecision GetPropIRGenerator::tryAttachPrimitive(ValOperandId valId,
     case ValueType::Undefined:
     case ValueType::Magic:
       return AttachDecision::NoAction;
-#ifdef ENABLE_RECORD_TUPLE
-    case ValueType::ExtendedPrimitive:
-#endif
     case ValueType::Object:
     case ValueType::PrivateGCThing:
       MOZ_CRASH("unexpected type");
@@ -10239,9 +10236,6 @@ AttachDecision InlinableNativeIRGenerator::tryAttachObjectIs() {
         break;
       }
 
-#ifdef ENABLE_RECORD_TUPLE
-      case ValueType::ExtendedPrimitive:
-#endif
       case JS::ValueType::Double:
       case JS::ValueType::Magic:
       case JS::ValueType::PrivateGCThing:
@@ -10523,9 +10517,6 @@ AttachDecision InlinableNativeIRGenerator::tryAttachSetHas() {
         break;
       }
 
-#  ifdef ENABLE_RECORD_TUPLE
-      case ValueType::ExtendedPrimitive:
-#  endif
       case ValueType::Magic:
       case ValueType::PrivateGCThing:
         MOZ_CRASH("Unexpected type");
@@ -10698,9 +10689,6 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapHas() {
         break;
       }
 
-#  ifdef ENABLE_RECORD_TUPLE
-      case ValueType::ExtendedPrimitive:
-#  endif
       case ValueType::Magic:
       case ValueType::PrivateGCThing:
         MOZ_CRASH("Unexpected type");
@@ -10784,9 +10772,6 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapGet() {
         break;
       }
 
-#  ifdef ENABLE_RECORD_TUPLE
-      case ValueType::ExtendedPrimitive:
-#  endif
       case ValueType::Magic:
       case ValueType::PrivateGCThing:
         MOZ_CRASH("Unexpected type");

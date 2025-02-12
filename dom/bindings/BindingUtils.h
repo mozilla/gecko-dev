@@ -324,9 +324,6 @@ struct MutableValueHandleWrapper {
 
   void operator=(JSObject* aObject) {
     MOZ_ASSERT(aObject);
-#ifdef ENABLE_RECORD_TUPLE
-    MOZ_ASSERT(!js::gc::MaybeForwardedIsExtendedPrimitive(*aObject));
-#endif
     mHandle.setObject(*aObject);
   }
 
@@ -1113,11 +1110,6 @@ struct CheckWrapperCacheCast<T, true> {
 #endif
 
 inline bool TryToOuterize(JS::MutableHandle<JS::Value> rval) {
-#ifdef ENABLE_RECORD_TUPLE
-  if (rval.isExtendedPrimitive()) {
-    return true;
-  }
-#endif
   MOZ_ASSERT(rval.isObject());
   if (js::IsWindow(&rval.toObject())) {
     JSObject* obj = js::ToWindowProxyIfWindow(&rval.toObject());
@@ -1154,10 +1146,10 @@ bool MaybeWrapStringValue(JSContext* cx, JS::MutableHandle<JS::Value> rval) {
 // needed.  This will work correctly, but possibly slowly, on all objects.
 MOZ_ALWAYS_INLINE
 bool MaybeWrapObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval) {
-  MOZ_ASSERT(rval.hasObjectPayload());
+  MOZ_ASSERT(rval.isObject());
 
   // Cross-compartment always requires wrapping.
-  JSObject* obj = &rval.getObjectPayload();
+  JSObject* obj = &rval.toObject();
   if (JS::GetCompartment(obj) != js::GetContextCompartment(cx)) {
     return JS_WrapValue(cx, rval);
   }
@@ -1229,7 +1221,7 @@ MOZ_ALWAYS_INLINE bool MaybeWrapValue(JSContext* cx,
     if (rval.isString()) {
       return MaybeWrapStringValue(cx, rval);
     }
-    if (rval.hasObjectPayload()) {
+    if (rval.isObject()) {
       return MaybeWrapObjectValue(cx, rval);
     }
     // This could be optimized by checking the zone first, similar to
@@ -1351,9 +1343,6 @@ MOZ_ALWAYS_INLINE bool DoGetOrCreateDOMReflector(
   }
 #endif
 
-#ifdef ENABLE_RECORD_TUPLE
-  MOZ_ASSERT(!js::gc::MaybeForwardedIsExtendedPrimitive(*obj));
-#endif
   rval.set(JS::ObjectValue(*obj));
 
   if (JS::GetCompartment(obj) == js::GetContextCompartment(cx)) {
@@ -1405,12 +1394,6 @@ MOZ_ALWAYS_INLINE bool GetOrCreateDOMReflectorNoWrap(
 // Helper for different overloadings of WrapNewBindingNonWrapperCachedObject()
 inline bool FinishWrapping(JSContext* cx, JS::Handle<JSObject*> obj,
                            JS::MutableHandle<JS::Value> rval) {
-#ifdef ENABLE_RECORD_TUPLE
-  // If calling an (object) value's WrapObject() method returned a record/tuple,
-  // then something is very wrong.
-  MOZ_ASSERT(!js::gc::MaybeForwardedIsExtendedPrimitive(*obj));
-#endif
-
   // We can end up here in all sorts of compartments, per comments in
   // WrapNewBindingNonWrapperCachedObject(). Make sure to JS_WrapValue!
   rval.set(JS::ObjectValue(*obj));

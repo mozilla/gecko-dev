@@ -48,10 +48,6 @@
 #include "vm/ToSource.h"  // js::ValueToSource
 #include "vm/TypedArrayObject.h"
 #include "vm/WrapperObject.h"
-#ifdef ENABLE_RECORD_TUPLE
-#  include "vm/TupleType.h"
-#endif
-
 #include "builtin/Sorting-inl.h"
 #include "vm/ArgumentsObject-inl.h"
 #include "vm/ArrayObject-inl.h"
@@ -4422,8 +4418,7 @@ static bool SearchElementDense(JSContext* cx, HandleValue val, Iter iterator,
     return iterator(cx, cmp, rval);
   }
 
-  MOZ_ASSERT(val.isBigInt() ||
-             IF_RECORD_TUPLE(val.isExtendedPrimitive(), false));
+  MOZ_ASSERT(val.isBigInt());
 
   // Generic implementation for the remaining types.
   RootedValue elementRoot(cx);

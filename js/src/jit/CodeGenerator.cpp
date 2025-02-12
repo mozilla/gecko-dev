@@ -18361,10 +18361,6 @@ void CodeGenerator::emitTypeOfIsObject(MTypeOfIs* mir, Register obj,
     case JSTYPE_BOOLEAN:
     case JSTYPE_SYMBOL:
     case JSTYPE_BIGINT:
-#ifdef ENABLE_RECORD_TUPLE
-    case JSTYPE_RECORD:
-    case JSTYPE_TUPLE:
-#endif
     case JSTYPE_LIMIT:
       MOZ_CRASH("Primitive type");
   }
@@ -18423,10 +18419,6 @@ void CodeGenerator::visitTypeOfIsNonPrimitiveV(LTypeOfIsNonPrimitiveV* lir) {
     case JSTYPE_BOOLEAN:
     case JSTYPE_SYMBOL:
     case JSTYPE_BIGINT:
-#ifdef ENABLE_RECORD_TUPLE
-    case JSTYPE_RECORD:
-    case JSTYPE_TUPLE:
-#endif
     case JSTYPE_LIMIT:
       MOZ_CRASH("Primitive type");
   }
@@ -18480,10 +18472,6 @@ void CodeGenerator::visitTypeOfIsPrimitive(LTypeOfIsPrimitive* lir) {
     case JSTYPE_UNDEFINED:
     case JSTYPE_OBJECT:
     case JSTYPE_FUNCTION:
-#ifdef ENABLE_RECORD_TUPLE
-    case JSTYPE_RECORD:
-    case JSTYPE_TUPLE:
-#endif
     case JSTYPE_LIMIT:
       MOZ_CRASH("Non-primitive type");
   }

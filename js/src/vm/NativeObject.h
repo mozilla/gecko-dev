@@ -38,12 +38,6 @@ namespace gc {
 class TenuringTracer;
 }  // namespace gc
 
-#ifdef ENABLE_RECORD_TUPLE
-// Defined in vm/RecordTupleShared.{h,cpp}. We cannot include that file
-// because it causes circular dependencies.
-extern bool IsExtendedPrimitiveWrapper(const JSObject& obj);
-#endif
-
 /*
  * To really poison a set of values, using 'magic' or 'undefined' isn't good
  * enough since often these will just be ignored by buggy code (see bug 629974)
@@ -205,13 +199,6 @@ class ObjectElements {
     // non-writable length; never present for non-arrays.
     NONWRITABLE_ARRAY_LENGTH = 0x2,
 
-#ifdef ENABLE_RECORD_TUPLE
-    // Records, Tuples and Boxes must be atomized before being hashed. We store
-    // the "is atomized" flag here for tuples, and in fixed slots for records
-    // and boxes.
-    TUPLE_IS_ATOMIZED = 0x4,
-#endif
-
     // For TypedArrays only: this TypedArray's storage is mapping shared
     // memory.  This is a static property of the TypedArray, set when it
     // is created and never changed.
@@ -260,9 +247,6 @@ class ObjectElements {
   friend class ArrayObject;
   friend class NativeObject;
   friend class gc::TenuringTracer;
-#ifdef ENABLE_RECORD_TUPLE
-  friend class TupleType;
-#endif
 
   friend bool js::SetIntegrityLevel(JSContext* cx, HandleObject obj,
                                     IntegrityLevel level);
@@ -296,12 +280,6 @@ class ObjectElements {
     MOZ_ASSERT(numShiftedElements() == 0);
     flags |= NONWRITABLE_ARRAY_LENGTH;
   }
-
-#ifdef ENABLE_RECORD_TUPLE
-  void setTupleIsAtomized() { flags |= TUPLE_IS_ATOMIZED; }
-
-  bool tupleIsAtomized() const { return flags & TUPLE_IS_ATOMIZED; }
-#endif
 
   void addShiftedElements(uint32_t count) {
     MOZ_ASSERT(count < capacity);
@@ -948,14 +926,7 @@ class NativeObject : public JSObject {
   // Native objects are never proxies. Call isExtensible instead.
   bool nonProxyIsExtensible() const = delete;
 
-  bool isExtensible() const {
-#ifdef ENABLE_RECORD_TUPLE
-    if (IsExtendedPrimitiveWrapper(*this)) {
-      return false;
-    }
-#endif
-    return !hasFlag(ObjectFlag::NotExtensible);
-  }
+  bool isExtensible() const { return !hasFlag(ObjectFlag::NotExtensible); }
 
   /*
    * Whether there may be indexed properties on this object, excluding any in

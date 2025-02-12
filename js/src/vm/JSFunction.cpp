@@ -62,11 +62,6 @@
 #include "wasm/AsmJS.h"
 #include "wasm/WasmCode.h"
 #include "wasm/WasmInstance.h"
-#ifdef ENABLE_RECORD_TUPLE
-#  include "vm/RecordType.h"
-#  include "vm/TupleType.h"
-#endif
-
 #include "vm/Interpreter-inl.h"
 #include "vm/JSScript-inl.h"
 
@@ -2128,11 +2123,6 @@ void js::ReportIncompatibleMethod(JSContext* cx, const CallArgs& args,
                  !thisv.toObject().staticPrototype() ||
                  thisv.toObject().staticPrototype()->getClass() != clasp);
       break;
-#  ifdef ENABLE_RECORD_TUPLE
-    case ValueType::ExtendedPrimitive:
-      MOZ_CRASH("ExtendedPrimitive is not supported yet");
-      break;
-#  endif
     case ValueType::String:
       MOZ_ASSERT(clasp != &StringObject::class_);
       break;

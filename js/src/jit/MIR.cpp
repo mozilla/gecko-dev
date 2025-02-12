@@ -1509,10 +1509,6 @@ void MTypeOfIs::printOpcode(GenericPrinter& out) const {
     case JSTYPE_BIGINT:
       name = "bigint";
       break;
-#  ifdef ENABLE_RECORD_TUPLE
-    case JSTYPE_RECORD:
-    case JSTYPE_TUPLE:
-#  endif
     case JSTYPE_LIMIT:
       MOZ_CRASH("Unexpected type");
   }

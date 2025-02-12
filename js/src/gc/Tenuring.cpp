@@ -32,10 +32,6 @@
 #include "vm/JSObject-inl.h"
 #include "vm/PlainObject-inl.h"
 #include "vm/StringType-inl.h"
-#ifdef ENABLE_RECORD_TUPLE
-#  include "vm/TupleType.h"
-#endif
-
 using namespace js;
 using namespace js::gc;
 
@@ -243,14 +239,6 @@ void TenuringTracer::traverse(JS::Value* thingp) {
     *thingp = JS::ObjectValue(*obj);
     return;
   }
-#ifdef ENABLE_RECORD_TUPLE
-  if (value.isExtendedPrimitive()) {
-    JSObject* obj = promoteObject(&value.toExtendedPrimitive());
-    MOZ_ASSERT(obj != &value.toExtendedPrimitive());
-    *thingp = JS::ExtendedPrimitiveValue(*obj);
-    return;
-  }
-#endif
   if (value.isString()) {
     JSString* str = promoteString(value.toString());
     MOZ_ASSERT(str != value.toString());

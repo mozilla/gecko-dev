@@ -332,12 +332,7 @@ bool NativeObject::addProperty(JSContext* cx, Handle<NativeObject*> obj,
   MOZ_ASSERT(!obj->containsPure(id));
   MOZ_ASSERT_IF(!id.isPrivateName(),
                 obj->isExtensible() ||
-                    (id.isInt() && obj->containsDenseElement(id.toInt())) ||
-                    // R&T wrappers are non-extensible, but we still want to be
-                    // able to lazily resolve their properties. We can
-                    // special-case them to allow doing so.
-                    IF_RECORD_TUPLE(IsExtendedPrimitiveWrapper(*obj), false));
-
+                    (id.isInt() && obj->containsDenseElement(id.toInt())));
   if (!Watchtower::watchPropertyAdd(cx, obj, id)) {
     return false;
   }

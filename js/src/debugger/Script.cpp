@@ -1697,15 +1697,6 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::GetRval:
     case JSOp::ThrowMsg:
     case JSOp::ForceInterpreter:
-#ifdef ENABLE_RECORD_TUPLE
-    case JSOp::InitRecord:
-    case JSOp::AddRecordProperty:
-    case JSOp::AddRecordSpread:
-    case JSOp::FinishRecord:
-    case JSOp::InitTuple:
-    case JSOp::AddTupleElement:
-    case JSOp::FinishTuple:
-#endif
       return false;
 
     case JSOp::InitAliasedLexical: {

@@ -27,9 +27,6 @@
 #include "proxy/DeadObjectProxy.h"
 #include "proxy/DOMProxy.h"
 #include "vm/JSContext.h"
-#ifdef ENABLE_RECORD_TUPLE
-#  include "vm/RecordTupleShared.h"
-#endif
 #include "vm/WrapperObject.h"
 
 #include "gc/Marking-inl.h"
@@ -345,36 +342,12 @@ bool Compartment::getOrCreateWrapper(JSContext* cx, HandleObject existing,
   return true;
 }
 
-#ifdef ENABLE_RECORD_TUPLE
-bool Compartment::wrapExtendedPrimitive(JSContext* cx,
-                                        MutableHandleObject obj) {
-  MOZ_ASSERT(IsExtendedPrimitive(*obj));
-  MOZ_ASSERT(cx->compartment() == this);
-
-  if (obj->compartment() == this) {
-    return true;
-  }
-
-  JSObject* copy = CopyExtendedPrimitive(cx, obj);
-  if (!copy) {
-    return false;
-  }
-
-  obj.set(copy);
-  return true;
-}
-#endif
-
 bool Compartment::wrap(JSContext* cx, MutableHandleObject obj) {
   MOZ_ASSERT(cx->compartment() == this);
 
   if (!obj) {
     return true;
   }
-
-#ifdef ENABLE_RECORD_TUPLE
-  MOZ_ASSERT(!IsExtendedPrimitive(*obj));
-#endif
 
   AutoDisableProxyCheck adpc;
 

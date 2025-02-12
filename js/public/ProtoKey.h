@@ -164,9 +164,7 @@
   REAL_IF_TEMPORAL(PlainYearMonth, OCLASP(temporal::PlainYearMonth))        \
   REAL_IF_TEMPORAL(PlainTime, OCLASP(temporal::PlainTime))                  \
   REAL_IF_TEMPORAL(TemporalNow, OCLASP(temporal::TemporalNow))              \
-  REAL_IF_TEMPORAL(ZonedDateTime, OCLASP(temporal::ZonedDateTime))          \
-  IF_RECORD_TUPLE(REAL(Record, (&RecordType::class_)))                      \
-  IF_RECORD_TUPLE(REAL(Tuple, (&TupleType::class_)))
+  REAL_IF_TEMPORAL(ZonedDateTime, OCLASP(temporal::ZonedDateTime))
 
 #define JS_FOR_PROTOTYPES(REAL, IMAGINARY)                                     \
   JS_FOR_PROTOTYPES_(                                                          \

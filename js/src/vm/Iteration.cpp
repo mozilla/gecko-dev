@@ -38,12 +38,6 @@
 #include "vm/Shape.h"
 #include "vm/StringType.h"
 #include "vm/TypedArrayObject.h"
-
-#ifdef ENABLE_RECORD_TUPLE
-#  include "builtin/RecordObject.h"
-#  include "builtin/TupleObject.h"
-#endif
-
 #include "vm/NativeObject-inl.h"
 #include "vm/PlainObject-inl.h"  // js::PlainObject::createWithTemplate
 
@@ -340,43 +334,6 @@ bool PropertyEnumerator::enumerateNativeProperties(JSContext* cx) {
         }
       }
     }
-#ifdef ENABLE_RECORD_TUPLE
-    else {
-      Rooted<RecordType*> rec(cx);
-      if (RecordObject::maybeUnbox(pobj, &rec)) {
-        Rooted<ArrayObject*> keys(cx, rec->keys());
-
-        for (size_t i = 0; i < keys->length(); i++) {
-          JSAtom* key = &keys->getDenseElement(i).toString()->asAtom();
-          PropertyKey id = AtomToId(key);
-          if (!enumerate<CheckForDuplicates>(cx, id,
-                                             /* enumerable = */ true)) {
-            return false;
-          }
-        }
-
-        return true;
-      } else {
-        mozilla::Maybe<TupleType&> tup = TupleObject::maybeUnbox(pobj);
-        if (tup) {
-          uint32_t len = tup->length();
-
-          for (size_t i = 0; i < len; i++) {
-            // We expect tuple indices not to get so large that `i` won't
-            // fit into an `int32_t`.
-            MOZ_ASSERT(PropertyKey::fitsInInt(i));
-            PropertyKey id = PropertyKey::Int(i);
-            if (!enumerate<CheckForDuplicates>(cx, id,
-                                               /* enumerable = */ true)) {
-              return false;
-            }
-          }
-
-          return true;
-        }
-      }
-    }
-#endif
 
     // The code below enumerates shape properties (including sparse elements) so
     // if we can ignore those we're done.

@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "builtin/MapObject.h"
+#include "builtin/MapObject-inl.h"
 
 #include "jsapi.h"
 
@@ -24,12 +24,6 @@
 #include "vm/SelfHosting.h"
 #include "vm/SymbolType.h"
 
-#ifdef ENABLE_RECORD_TUPLE
-#  include "vm/RecordType.h"
-#  include "vm/TupleType.h"
-#endif
-
-#include "builtin/MapObject-inl.h"
 #include "builtin/OrderedHashTableObject-inl.h"
 #include "gc/GCContext-inl.h"
 #include "gc/Marking-inl.h"
@@ -65,29 +59,13 @@ bool HashableValue::setValue(JSContext* cx, const Value& v) {
     value = StringValue(str);
   } else if (v.isDouble()) {
     value = NormalizeDoubleValue(v.toDouble());
-#ifdef ENABLE_RECORD_TUPLE
-  } else if (v.isExtendedPrimitive()) {
-    JSObject& obj = v.toExtendedPrimitive();
-    if (obj.is<RecordType>()) {
-      if (!obj.as<RecordType>().ensureAtomized(cx)) {
-        return false;
-      }
-    } else {
-      MOZ_ASSERT(obj.is<TupleType>());
-      if (!obj.as<TupleType>().ensureAtomized(cx)) {
-        return false;
-      }
-    }
-    value = v;
-#endif
   } else {
     value = v;
   }
 
   MOZ_ASSERT(value.isUndefined() || value.isNull() || value.isBoolean() ||
              value.isNumber() || value.isString() || value.isSymbol() ||
-             value.isObject() || value.isBigInt() ||
-             IF_RECORD_TUPLE(value.isExtendedPrimitive(), false));
+             value.isObject() || value.isBigInt());
   return true;
 }
 
@@ -111,21 +89,6 @@ static HashNumber HashValue(const Value& v,
   if (v.isBigInt()) {
     return MaybeForwarded(v.toBigInt())->hash();
   }
-#ifdef ENABLE_RECORD_TUPLE
-  if (v.isExtendedPrimitive()) {
-    JSObject* obj = MaybeForwarded(&v.toExtendedPrimitive());
-    auto hasher = [&hcs](const Value& v) {
-      return HashValue(
-          v.isDouble() ? NormalizeDoubleValue(v.toDouble()).get() : v, hcs);
-    };
-
-    if (obj->is<RecordType>()) {
-      return obj->as<RecordType>().hash(hasher);
-    }
-    MOZ_ASSERT(obj->is<TupleType>());
-    return obj->as<TupleType>().hash(hasher);
-  }
-#endif
   if (v.isObject()) {
     return hcs.scramble(v.asRawBits());
   }
@@ -138,14 +101,6 @@ HashNumber HashableValue::hash(const mozilla::HashCodeScrambler& hcs) const {
   return HashValue(value, hcs);
 }
 
-#ifdef ENABLE_RECORD_TUPLE
-inline bool SameExtendedPrimitiveType(const PreBarriered<Value>& a,
-                                      const PreBarriered<Value>& b) {
-  return a.toExtendedPrimitive().getClass() ==
-         b.toExtendedPrimitive().getClass();
-}
-#endif
-
 bool HashableValue::equals(const HashableValue& other) const {
   // Two HashableValues are equal if they have equal bits.
   bool b = (value.asRawBits() == other.value.asRawBits());
@@ -156,12 +111,6 @@ bool HashableValue::equals(const HashableValue& other) const {
       // mathematical value.
       b = BigInt::equal(value.toBigInt(), other.value.toBigInt());
     }
-#ifdef ENABLE_RECORD_TUPLE
-    else if (value.isExtendedPrimitive() &&
-             SameExtendedPrimitiveType(value, other.value)) {
-      b = js::SameValueZeroLinear(value, other.value);
-    }
-#endif
   }
 
 #ifdef DEBUG
@@ -556,7 +505,7 @@ template <typename ObjectT>
                                                   const Value& keyValue) {
   MOZ_ASSERT(!IsInsideNursery(obj));
 
-  if (MOZ_LIKELY(!keyValue.hasObjectPayload() && !keyValue.isBigInt())) {
+  if (MOZ_LIKELY(!keyValue.isObject() && !keyValue.isBigInt())) {
     MOZ_ASSERT_IF(keyValue.isGCThing(), !IsInsideNursery(keyValue.toGCThing()));
     return true;
   }

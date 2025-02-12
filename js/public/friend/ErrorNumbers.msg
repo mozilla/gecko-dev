@@ -858,15 +858,6 @@ MSG_DEF(JSMSG_NEGATIVE_LIMIT,                            0, JSEXN_RANGEERR, "Ite
 // Set
 MSG_DEF(JSMSG_SET_NEGATIVE_SIZE,                         0, JSEXN_RANGEERR, "Set size must be non-negative")
 
-// Record and Tuple
-MSG_DEF(JSMSG_RECORD_TUPLE_NO_OBJECT,                    0, JSEXN_TYPEERR, "Record and Tuple can only contain primitive values")
-MSG_DEF(JSMSG_RECORD_NO_PROTO,                           0, JSEXN_SYNTAXERR, "__proto__ is not a valid literal key in records")
-MSG_DEF(JSMSG_RECORD_NO_SYMBOL_KEY,                      0, JSEXN_TYPEERR, "Symbols cannot be used as record keys")
-MSG_DEF(JSMSG_BAD_TUPLE_INDEX,        0, JSEXN_RANGEERR, "index out of range for tuple")
-MSG_DEF(JSMSG_BAD_TUPLE_OBJECT, 0, JSEXN_TYPEERR, "value of TupleObject must be a Tuple")
-MSG_DEF(JSMSG_RECORD_TUPLE_TO_NUMBER,        0, JSEXN_TYPEERR, "can't convert Record or Tuple to number")
-
-
 // Shadow Realms
 MSG_DEF(JSMSG_NOT_SHADOW_REALM,                    0, JSEXN_TYPEERR, "Object is not a ShadowRealm")
 MSG_DEF(JSMSG_SHADOW_REALM_EVALUATE_NOT_STRING,    0, JSEXN_TYPEERR, "a ShadowRealm can only evaluate a string")

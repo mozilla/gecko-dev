@@ -32,12 +32,6 @@
 #include "vm/Realm-inl.h"
 #include "vm/Shape-inl.h"
 
-#ifdef ENABLE_RECORD_TUPLE
-// Defined in vm/RecordTupleShared.{h,cpp}. We cannot include that file
-// because it causes circular dependencies.
-extern bool js::IsExtendedPrimitive(const JSObject& obj);
-#endif
-
 namespace js {
 
 constexpr ObjectSlots::ObjectSlots(uint32_t capacity,
@@ -721,9 +715,6 @@ static MOZ_ALWAYS_INLINE bool NativeLookupOwnPropertyInline(
   // violate this guidance are the ModuleEnvironmentObject.
   MOZ_ASSERT_IF(obj->getOpsLookupProperty(),
                 obj->template is<ModuleEnvironmentObject>());
-#ifdef ENABLE_RECORD_TUPLE
-  MOZ_ASSERT(!js::IsExtendedPrimitive(*obj));
-#endif
 
   // Check for a native dense element.
   if (id.isInt()) {

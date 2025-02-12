@@ -26,9 +26,6 @@
 #include "jsnum.h"
 
 #include "builtin/Boolean.h"
-#ifdef ENABLE_RECORD_TUPLE
-#  include "builtin/RecordObject.h"
-#endif
 #include "gc/AllocKind.h"
 #include "gc/MaybeRooted.h"
 #include "gc/Nursery.h"
@@ -48,10 +45,6 @@
 
 #include "gc/Marking-inl.h"
 #include "vm/GeckoProfiler-inl.h"
-#ifdef ENABLE_RECORD_TUPLE
-#  include "vm/RecordType.h"
-#  include "vm/TupleType.h"
-#endif
 
 using namespace js;
 
@@ -3169,22 +3162,7 @@ JSString* js::ToStringSlow(
     }
     RootedBigInt i(cx, v.toBigInt());
     str = BigInt::toString<CanGC>(cx, i, 10);
-  }
-#ifdef ENABLE_RECORD_TUPLE
-  else if (v.isExtendedPrimitive()) {
-    if (!allowGC) {
-      return nullptr;
-    }
-    if (IsTuple(v)) {
-      Rooted<TupleType*> tup(cx, &TupleType::thisTupleValue(v));
-      return TupleToSource(cx, tup);
-    }
-    Rooted<RecordType*> rec(cx);
-    MOZ_ALWAYS_TRUE(RecordObject::maybeUnbox(&v.getObjectPayload(), &rec));
-    return RecordToSource(cx, rec);
-  }
-#endif
-  else {
+  } else {
     MOZ_ASSERT(v.isUndefined());
     str = cx->names().undefined;
   }

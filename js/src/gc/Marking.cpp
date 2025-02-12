@@ -1602,8 +1602,8 @@ scan_value_range:
 
     if (v.isString()) {
       markAndTraverseEdge<opts>(obj, v.toString());
-    } else if (v.hasObjectPayload()) {
-      JSObject* obj2 = &v.getObjectPayload();
+    } else if (v.isObject()) {
+      JSObject* obj2 = &v.toObject();
 #ifdef DEBUG
       if (!obj2) {
         fprintf(stderr,
