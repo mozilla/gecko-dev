@@ -8,6 +8,7 @@
 #define jit_BaselineCompileQueue_h
 
 #include "gc/Barrier.h"
+#include "jit/JitOptions.h"
 
 class JSScript;
 
@@ -16,11 +17,11 @@ namespace jit {
 
 class BaselineCompileQueue {
  public:
-  static constexpr uint32_t Capacity = 8;
+  static constexpr uint32_t MaxCapacity = 64;
 
  private:
   uint32_t numQueued_ = 0;
-  HeapPtr<JSScript*> queue_[Capacity];
+  HeapPtr<JSScript*> queue_[MaxCapacity];
 
  public:
   uint32_t numQueued() const { return numQueued_; }
@@ -50,11 +51,12 @@ class BaselineCompileQueue {
     // The queue always contains |numQueued| JSScript* pointers,
     // followed by |Capacity - numQueued| null pointers.
 #ifdef DEBUG
-    MOZ_ASSERT(numQueued_ <= Capacity);
+    MOZ_ASSERT(numQueued_ <= JitOptions.baselineQueueCapacity);
+    MOZ_ASSERT(JitOptions.baselineQueueCapacity <= MaxCapacity);
     for (uint32_t i = 0; i < numQueued_; i++) {
       MOZ_ASSERT(queue_[i]);
     }
-    for (uint32_t i = numQueued_; i < Capacity; i++) {
+    for (uint32_t i = numQueued_; i < MaxCapacity; i++) {
       MOZ_ASSERT(!queue_[i]);
     }
 #endif

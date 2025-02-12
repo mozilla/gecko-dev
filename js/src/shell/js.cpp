@@ -106,6 +106,7 @@
 #ifdef JS_SIMULATOR_RISCV64
 #  include "jit/riscv64/Simulator-riscv64.h"
 #endif
+#include "jit/BaselineCompileQueue.h"
 #include "jit/CacheIRHealth.h"
 #include "jit/InlinableNatives.h"
 #include "jit/Ion.h"
@@ -12561,6 +12562,9 @@ bool InitOptionParser(OptionParser& op) {
       !op.addStringOption(
           '\0', "baseline-offthread-compile", "on/off",
           "Compile baseline scripts offthread (default: off)") ||
+      !op.addStringOption(
+          '\0', "baseline-batching", "on/off",
+          "Batch baseline scripts before dispatching (default: off)") ||
       !op.addStringOption('\0', "ion-offthread-compile", "on/off",
                           "Compile Ion scripts offthread (default: on)") ||
       !op.addStringOption('\0', "ion-parallel-compile", "on/off",
@@ -12592,6 +12596,11 @@ bool InitOptionParser(OptionParser& op) {
           '\0', "baseline-warmup-threshold", "COUNT",
           "Wait for COUNT calls or iterations before baseline-compiling "
           "(default: 10)",
+          -1) ||
+      !op.addIntOption(
+          '\0', "baseline-queue-capacity", "CAPACITY",
+          "Wait for at most CAPACITY scripts to be added to baseline compile"
+          "queue before dispatching (default: 8)",
           -1) ||
       !op.addBoolOption('\0', "blinterp",
                         "Enable Baseline Interpreter (default)") ||
@@ -13655,6 +13664,26 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
   }
   cx->runtime()->setOffthreadBaselineCompilationEnabled(
       offthreadBaselineCompilation);
+
+  if (const char* str = op.getStringOption("baseline-batching")) {
+    if (strcmp(str, "on") == 0) {
+      jit::JitOptions.baselineBatching = true;
+    } else if (strcmp(str, "off") == 0) {
+      jit::JitOptions.baselineBatching = false;
+    } else {
+      return OptionFailure("baseline-batching", str);
+    }
+  }
+
+  int32_t queueCapacity = op.getIntOption("baseline-queue-capacity");
+  if (queueCapacity == 0) {
+    fprintf(stderr, "baseline-queue-capacity must be positive\n");
+    return false;
+  }
+  if (queueCapacity > 0) {
+    jit::JitOptions.baselineQueueCapacity = std::min(
+        uint32_t(queueCapacity), js::jit::BaselineCompileQueue::MaxCapacity);
+  }
 
   offthreadIonCompilation = true;
   if (const char* str = op.getStringOption("ion-offthread-compile")) {

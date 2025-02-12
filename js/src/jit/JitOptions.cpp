@@ -165,6 +165,9 @@ DefaultJitOptions::DefaultJitOptions() {
   // Whether the RegExp JIT is enabled.
   SET_DEFAULT(nativeRegExp, true);
 
+  // Whether offthread baseline compilation should be batched.
+  SET_DEFAULT(baselineBatching, false);
+
   // Whether Warp should use ICs instead of transpiling Baseline CacheIR.
   SET_DEFAULT(forceInlineCaches, false);
 
@@ -212,6 +215,10 @@ DefaultJitOptions::DefaultJitOptions() {
   // are compiled with the baseline compiler.
   // Duplicated in all.js - ensure both match.
   SET_DEFAULT(baselineJitWarmUpThreshold, 100);
+
+  // How many scripts can be queued up for offthread baseline compilation
+  // before they are dispatched.
+  SET_DEFAULT(baselineQueueCapacity, 8);
 
   // Disable eager baseline jit hints
   SET_DEFAULT(disableJitHints, false);
