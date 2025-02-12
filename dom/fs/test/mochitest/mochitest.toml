@@ -41,4 +41,3 @@ scheme = "https"
 
 ["test_iframes.html"]
 scheme = "https"
-skip-if = ["true"] # Enabled by D234897
