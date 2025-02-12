@@ -55,8 +55,9 @@ function triggerFrameReconstruction() {
 
 function assertHasScrollbars(elem) {
   var rect = getMeasureRect();
-  info(`screen.width: ${screen.width}, screen.height: ${screen.height}`);
-  info(`rect.width: ${rect.width}, rect.height: ${rect.height}`);
+  info(`screen size: ${screen.width}x${screen.height}`);
+  info(`window inner size: ${window.innerWidth}x${window.innerHeight}`);
+  info(`rect size: ${rect.width}x${rect.height.height}`);
   ok(rect.width <= screen.width - gVerticalScrollbarWidth,
      `Should have width less than or equal to ${screen.width - gVerticalScrollbarWidth} indicating vertical scrollbar when ${elem} is in fullscreen`);
   ok(rect.height <= screen.height - gHorizontalScrollbarWidth,
@@ -65,8 +66,9 @@ function assertHasScrollbars(elem) {
 
 function assertHasNoScrollbars(elem) {
   var rect = getMeasureRect();
-  info(`screen.width: ${screen.width}, screen.height: ${screen.height}`);
-  info(`rect.width: ${rect.width}, rect.height: ${rect.height}`);
+  info(`screen size: ${screen.width}x${screen.height}`);
+  info(`window inner size: ${window.innerWidth}x${window.innerHeight}`);
+  info(`rect size: ${rect.width}x${rect.height.height}`);
   is(rect.width, screen.width,
      `Should not have vertical scrollbar when ${elem} is in fullscreen`);
   is(rect.height, screen.height,
