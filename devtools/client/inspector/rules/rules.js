@@ -716,6 +716,9 @@ CssRuleView.prototype = {
     const element = elementStyle.element;
     const pseudoClasses = element.pseudoClassLocks;
 
+    // Clear the search input so the new rule is visible
+    this._onClearSearch();
+
     this._focusNextUserAddedRule = true;
     this.pageStyle.addNewRule(element, pseudoClasses);
   },

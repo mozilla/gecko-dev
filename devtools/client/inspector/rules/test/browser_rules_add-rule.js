@@ -21,6 +21,7 @@ const TEST_URI = `
   <svg viewBox="0 0 10 10">
     <circle cx="5" cy="5" r="5" fill="blue"></circle>
   </svg>
+  <footer>Footer</footer>
 `;
 
 const TEST_DATA = [
@@ -43,4 +44,18 @@ add_task(async function () {
     await selectNode(node, inspector);
     await addNewRuleAndDismissEditor(inspector, view, expected, 1);
   }
+
+  info(`Check that clicking the "Add Rule" button clears the filter`);
+  await selectNode("footer", inspector);
+  is(
+    view.element.children.length,
+    1,
+    "footer only has 1 rule before clicking on the button."
+  );
+  await setSearchFilter(view, "thereisnomatch");
+  const onRuleViewFiltered = view.inspector.once("ruleview-filtered");
+  await addNewRuleAndDismissEditor(inspector, view, "footer", 1);
+  await onRuleViewFiltered;
+  is(view.searchField.value, "", "Search filter was cleared.");
+  is(view.element.children.length, 2, "A new rule was added");
 });
