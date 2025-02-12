@@ -2099,11 +2099,11 @@ static bool CanMergeTypesInBundle(LDefinition::Type a, LDefinition::Type b) {
 }
 
 // Helper for ::tryMergeReusedRegister
-bool BacktrackingAllocator::tryMergeBundles(LiveBundle* bundle0,
+void BacktrackingAllocator::tryMergeBundles(LiveBundle* bundle0,
                                             LiveBundle* bundle1) {
   // See if bundle0 and bundle1 can be merged together.
   if (bundle0 == bundle1) {
-    return true;
+    return;
   }
 
   // Get a representative virtual register from each bundle.
@@ -2113,30 +2113,41 @@ bool BacktrackingAllocator::tryMergeBundles(LiveBundle* bundle0,
   MOZ_ASSERT(CanMergeTypesInBundle(reg0.type(), reg1.type()));
   MOZ_ASSERT(reg0.isCompatible(reg1));
 
-  // Registers which might spill to the frame's |this| slot can only be
-  // grouped with other such registers. The frame's |this| slot must always
-  // hold the |this| value, as required by JitFrame tracing and by the Ion
-  // constructor calling convention.
-  if (IsThisSlotDefinition(reg0.def()) || IsThisSlotDefinition(reg1.def())) {
-    if (*reg0.def()->output() != *reg1.def()->output()) {
-      return true;
-    }
-  }
-
-  // Registers which might spill to the frame's argument slots can only be
-  // grouped with other such registers if the frame might access those
-  // arguments through a lazy arguments object or rest parameter.
-  if (IsArgumentSlotDefinition(reg0.def()) ||
-      IsArgumentSlotDefinition(reg1.def())) {
-#ifdef JS_PUNBOX64
-    bool canSpillToArgSlots =
-        !graph.mir().entryBlock()->info().mayReadFrameArgsDirectly();
-#else
-    bool canSpillToArgSlots = false;
-#endif
-    if (!canSpillToArgSlots) {
+  if (!compilingWasm()) {
+    // Registers which might spill to the frame's |this| slot can only be
+    // grouped with other such registers. The frame's |this| slot must always
+    // hold the |this| value, as required by JitFrame tracing and by the Ion
+    // constructor calling convention.
+    if (IsThisSlotDefinition(reg0.def()) || IsThisSlotDefinition(reg1.def())) {
       if (*reg0.def()->output() != *reg1.def()->output()) {
-        return true;
+        return;
+      }
+    }
+
+    // Registers which might spill to the frame's argument slots can only be
+    // grouped with other such registers in the following cases:
+    //
+    // * If the frame might access those arguments through a lazy arguments
+    //   object or rest parameter.
+    //
+    // * On 32-bit platforms, to prevent creating garbage Values in the formal
+    //   argument slots when spilling just the type or payload of a different
+    //   Value. GC tracing of ArraySortData relies on the argument slots holding
+    //   valid JS values. See bug 1911858.
+    if (IsArgumentSlotDefinition(reg0.def()) ||
+        IsArgumentSlotDefinition(reg1.def())) {
+#ifdef JS_PUNBOX64
+      MOZ_ASSERT(reg0.type() == LDefinition::Type::BOX);
+      MOZ_ASSERT(reg1.type() == LDefinition::Type::BOX);
+      bool canSpillToArgSlots =
+          !graph.mir().entryBlock()->info().mayReadFrameArgsDirectly();
+#else
+      bool canSpillToArgSlots = false;
+#endif
+      if (!canSpillToArgSlots) {
+        if (*reg0.def()->output() != *reg1.def()->output()) {
+          return;
+        }
       }
     }
   }
@@ -2149,7 +2160,7 @@ bool BacktrackingAllocator::tryMergeBundles(LiveBundle* bundle0,
   // policy LDefinition::STACK.  This aliasing between allocations makes it
   // unsound to merge anything with a LDefinition::STACK policy.
   if (HasStackPolicy(reg0.def()) || HasStackPolicy(reg1.def())) {
-    return true;
+    return;
   }
 
   // Limit the number of times we compare ranges if there are many ranges in
@@ -2162,7 +2173,7 @@ bool BacktrackingAllocator::tryMergeBundles(LiveBundle* bundle0,
   size_t count = 0;
   while (iter0 && iter1) {
     if (++count >= MAX_RANGES) {
-      return true;
+      return;
     }
 
     LiveRange* range0 = *iter0;
@@ -2173,7 +2184,7 @@ bool BacktrackingAllocator::tryMergeBundles(LiveBundle* bundle0,
     } else if (range1->from() >= range0->to()) {
       iter0++;
     } else {
-      return true;
+      return;
     }
   }
 
@@ -2190,8 +2201,6 @@ bool BacktrackingAllocator::tryMergeBundles(LiveBundle* bundle0,
       prevRange = range;
     }
   }
-
-  return true;
 }
 
 // Helper for ::mergeAndQueueRegisters
@@ -2238,7 +2247,8 @@ bool BacktrackingAllocator::tryMergeReusedRegister(VirtualRegister& def,
     // The input is not live after the instruction, either in a safepoint
     // for the instruction or in subsequent code. The input and output
     // can thus be in the same group.
-    return tryMergeBundles(def.firstBundle(), input.firstBundle());
+    tryMergeBundles(def.firstBundle(), input.firstBundle());
+    return true;
   }
 
   // Avoid merging in very large live ranges as merging has non-linear
@@ -2350,7 +2360,8 @@ bool BacktrackingAllocator::tryMergeReusedRegister(VirtualRegister& def,
   }
   secondBundle->addRangeAtEnd(postRange);
 
-  return tryMergeBundles(def.firstBundle(), input.firstBundle());
+  tryMergeBundles(def.firstBundle(), input.firstBundle());
+  return true;
 }
 
 bool BacktrackingAllocator::mergeAndQueueRegisters() {
@@ -2387,10 +2398,8 @@ bool BacktrackingAllocator::mergeAndQueueRegisters() {
             VirtualRegister& originalVreg = vregs[original];
             if (*originalVreg.def()->output() == *iter->getDef(i)->output()) {
               MOZ_ASSERT(originalVreg.ins()->isParameter());
-              if (!tryMergeBundles(originalVreg.firstBundle(),
-                                   paramVreg.firstBundle())) {
-                return false;
-              }
+              tryMergeBundles(originalVreg.firstBundle(),
+                              paramVreg.firstBundle());
               found = true;
               break;
             }
@@ -2427,10 +2436,7 @@ bool BacktrackingAllocator::mergeAndQueueRegisters() {
       VirtualRegister& outputVreg = vreg(phi->getDef(0));
       for (size_t k = 0, kend = phi->numOperands(); k < kend; k++) {
         VirtualRegister& inputVreg = vreg(phi->getOperand(k)->toUse());
-        if (!tryMergeBundles(inputVreg.firstBundle(),
-                             outputVreg.firstBundle())) {
-          return false;
-        }
+        tryMergeBundles(inputVreg.firstBundle(), outputVreg.firstBundle());
       }
     }
   }

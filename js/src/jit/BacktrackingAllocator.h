@@ -829,7 +829,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
                                                         CodePosition to);
 
   // Merging and queueing of LiveRange groups
-  [[nodiscard]] bool tryMergeBundles(LiveBundle* bundle0, LiveBundle* bundle1);
+  void tryMergeBundles(LiveBundle* bundle0, LiveBundle* bundle1);
   void allocateStackDefinition(VirtualRegister& reg);
   [[nodiscard]] bool tryMergeReusedRegister(VirtualRegister& def,
                                             VirtualRegister& input);
