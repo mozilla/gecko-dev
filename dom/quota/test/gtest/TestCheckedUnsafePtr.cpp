@@ -56,7 +56,9 @@ class CheckedUnsafePtrTest : public ::testing::Test {
 };
 
 TEST_F(CheckedUnsafePtrTest, PointeeWithNoCheckedUnsafePtrs) {
-  { DerivedPointee pointee{mPassedCheck}; }
+  {
+    DerivedPointee pointee{mPassedCheck};
+  }
   ASSERT_TRUE(mPassedCheck);
 }
 
@@ -86,6 +88,23 @@ TYPED_TEST_P(TypedCheckedUnsafePtrTest, CheckedUnsafePtrCopyAssigned) {
   {
     DerivedPointee pointee{this->mPassedCheck};
     CheckedUnsafePtr<TypeParam> ptr1 = &pointee;
+    CheckedUnsafePtr<TypeParam> ptr2;
+    ptr2 = ptr1;
+  }
+  ASSERT_TRUE(this->mPassedCheck);
+}
+
+TYPED_TEST_P(TypedCheckedUnsafePtrTest, CheckedUnsafePtrNullptrAssigned) {
+  {
+    CheckedUnsafePtr<TypeParam> ptr = nullptr;
+  }
+  ASSERT_TRUE(this->mPassedCheck);
+}
+
+TYPED_TEST_P(TypedCheckedUnsafePtrTest,
+             CheckedUnsafePtrNullCheckedUnsafePtrAssigned) {
+  {
+    CheckedUnsafePtr<TypeParam> ptr1(nullptr);
     CheckedUnsafePtr<TypeParam> ptr2;
     ptr2 = ptr1;
   }
@@ -136,6 +155,8 @@ REGISTER_TYPED_TEST_SUITE_P(TypedCheckedUnsafePtrTest,
                             PointeeWithOneCheckedUnsafePtr,
                             CheckedUnsafePtrCopyConstructed,
                             CheckedUnsafePtrCopyAssigned,
+                            CheckedUnsafePtrNullptrAssigned,
+                            CheckedUnsafePtrNullCheckedUnsafePtrAssigned,
                             PointeeWithOneDanglingCheckedUnsafePtr,
                             PointeeWithOneCopiedDanglingCheckedUnsafePtr,
                             PointeeWithOneCopyAssignedDanglingCheckedUnsafePtr);

@@ -289,11 +289,17 @@ class CheckedUnsafePtrBase<T, CheckingSupport::Enabled>
   CheckedUnsafePtrBase& operator=(const CheckedUnsafePtrBase& aOther) {
     if (StaticPrefs::dom_checkedUnsafePtr_dumpStacks_enabled()) {
       mLastAssignmentStack.Truncate();
-      MozStackWalk(CheckedUnsafePtrStackCallback, CallerPC(), 0,
-                   &mLastAssignmentStack);
+      if (aOther.get()) {
+        MozStackWalk(CheckedUnsafePtrStackCallback, CallerPC(), 0,
+                     &mLastAssignmentStack);
+      }
     }
     if (&aOther != this) {
-      Replace(aOther.Downcast());
+      if (aOther.get()) {
+        Replace(aOther.Downcast());
+      } else {
+        Reset();
+      }
     }
     return Downcast();
   }
