@@ -11,9 +11,9 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/RandomNum.h"
 #include "mozilla/dom/AbortSignal.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PWebAuthnTransaction.h"
 #include "mozilla/dom/PWebAuthnTransactionChild.h"
-#include "mozilla/dom/WebAuthnManagerBase.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 
 /*
@@ -49,6 +49,9 @@
 namespace mozilla::dom {
 
 class Credential;
+class PublicKeyCredential;
+struct PublicKeyCredentialCreationOptions;
+struct PublicKeyCredentialRequestOptions;
 
 enum class WebAuthnTransactionType { Create, Get };
 
@@ -74,13 +77,15 @@ class WebAuthnTransaction {
       mSignHolder;
 };
 
-class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
+class WebAuthnManager final : public AbortFollower {
  public:
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(WebAuthnManager, WebAuthnManagerBase)
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(WebAuthnManager)
 
-  explicit WebAuthnManager(nsPIDOMWindowInner* aWindow)
-      : WebAuthnManagerBase(aWindow) {}
+  explicit WebAuthnManager(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {
+    MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(aWindow);
+  }
 
   already_AddRefed<Promise> MakeCredential(
       const PublicKeyCredentialCreationOptions& aOptions,
@@ -96,11 +101,15 @@ class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
 
   already_AddRefed<Promise> IsUVPAA(GlobalObject& aGlobal, ErrorResult& aError);
 
+  void ActorDestroyed();
+
   // AbortFollower
   void RunAbortAlgorithm() override;
 
  private:
   virtual ~WebAuthnManager();
+
+  bool MaybeCreateActor();
 
   void FinishMakeCredential(const WebAuthnMakeCredentialResult& aResult);
 
@@ -127,6 +136,12 @@ class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
   // clear the transaction.
   template <typename T>
   void RejectTransaction(const T& aReason);
+
+  // The parent window.
+  nsCOMPtr<nsPIDOMWindowInner> mWindow;
+
+  // IPC Channel to the parent process.
+  RefPtr<WebAuthnTransactionChild> mActor;
 
   // The current transaction, if any.
   Maybe<WebAuthnTransaction> mTransaction;

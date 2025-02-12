@@ -18,13 +18,11 @@
 #include "mozilla/dom/AuthenticatorAssertionResponse.h"
 #include "mozilla/dom/AuthenticatorAttestationResponse.h"
 #include "mozilla/dom/PublicKeyCredential.h"
-#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PWebAuthnTransaction.h"
 #include "mozilla/dom/WebAuthnManager.h"
 #include "mozilla/dom/WebAuthnTransactionChild.h"
 #include "mozilla/dom/WebAuthnUtil.h"
-#include "mozilla/ipc/BackgroundChild.h"
-#include "mozilla/ipc/PBackgroundChild.h"
+#include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/JSONStringWriteFuncs.h"
 #include "mozilla/JSONWriter.h"
 
@@ -44,21 +42,14 @@ namespace {
 static mozilla::LazyLogModule gWebAuthnManagerLog("webauthnmanager");
 }
 
-NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(WebAuthnManager,
-                                               WebAuthnManagerBase)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebAuthnManager)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+NS_INTERFACE_MAP_END
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(WebAuthnManager)
+NS_IMPL_CYCLE_COLLECTION(WebAuthnManager, mWindow, mTransaction)
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(WebAuthnManager,
-                                                WebAuthnManagerBase)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTransaction)
-  tmp->mTransaction.reset();
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END
-
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(WebAuthnManager,
-                                                  WebAuthnManagerBase)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTransaction)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+NS_IMPL_CYCLE_COLLECTING_ADDREF(WebAuthnManager)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(WebAuthnManager)
 
 /***********************************************************************
  * Utility Functions
@@ -222,6 +213,32 @@ WebAuthnManager::~WebAuthnManager() {
   }
 }
 
+bool WebAuthnManager::MaybeCreateActor() {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mActor) {
+    return true;
+  }
+
+  RefPtr<WebAuthnTransactionChild> actor = new WebAuthnTransactionChild();
+
+  WindowGlobalChild* windowGlobalChild = mWindow->GetWindowGlobalChild();
+  if (!windowGlobalChild ||
+      !windowGlobalChild->SendPWebAuthnTransactionConstructor(actor)) {
+    return false;
+  }
+
+  mActor = actor;
+  mActor->SetManager(this);
+
+  return true;
+}
+
+void WebAuthnManager::ActorDestroyed() {
+  MOZ_ASSERT(NS_IsMainThread());
+  mActor = nullptr;
+}
+
 already_AddRefed<Promise> WebAuthnManager::MakeCredential(
     const PublicKeyCredentialCreationOptions& aOptions,
     const Optional<OwningNonNull<AbortSignal>>& aSignal, ErrorResult& aError) {
@@ -359,7 +376,7 @@ already_AddRefed<Promise> WebAuthnManager::MakeCredential(
     excludeList.AppendElement(c);
   }
 
-  if (!MaybeCreateBackgroundActor()) {
+  if (!MaybeCreateActor()) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
     return promise.forget();
   }
@@ -623,7 +640,7 @@ already_AddRefed<Promise> WebAuthnManager::GetAssertion(
     return promise.forget();
   }
 
-  if (!MaybeCreateBackgroundActor()) {
+  if (!MaybeCreateActor()) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
     return promise.forget();
   }
@@ -814,7 +831,7 @@ already_AddRefed<Promise> WebAuthnManager::IsUVPAA(GlobalObject& aGlobal,
     return nullptr;
   }
 
-  if (!MaybeCreateBackgroundActor()) {
+  if (!MaybeCreateActor()) {
     promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
     return promise.forget();
   }
