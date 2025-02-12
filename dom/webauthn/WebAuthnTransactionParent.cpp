@@ -40,8 +40,8 @@ void WebAuthnTransactionParent::DisconnectTransaction() {
 }
 
 mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
-    const uint64_t& aTransactionId,
-    const WebAuthnMakeCredentialInfo& aTransactionInfo) {
+    const WebAuthnMakeCredentialInfo& aTransactionInfo,
+    RequestRegisterResolver&& aResolver) {
   if (!mWebAuthnService) {
     mWebAuthnService = do_GetService("@mozilla.org/webauthn/service;1");
     if (!mWebAuthnService) {
@@ -52,65 +52,66 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
   // If there's an ongoing transaction, abort it.
   if (mTransactionId.isSome()) {
     DisconnectTransaction();
-    Unused << SendAbort(mTransactionId.ref(), NS_ERROR_DOM_ABORT_ERR);
   }
+  uint64_t aTransactionId = NextId();
   mTransactionId = Some(aTransactionId);
 
   RefPtr<WebAuthnRegisterPromiseHolder> promiseHolder =
       new WebAuthnRegisterPromiseHolder(GetCurrentSerialEventTarget());
 
-  PWebAuthnTransactionParent* parent = this;
   RefPtr<WebAuthnRegisterPromise> promise = promiseHolder->Ensure();
   promise
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [this, parent, aTransactionId,
-           inputClientData = aTransactionInfo.ClientDataJSON()](
-              const WebAuthnRegisterPromise::ResolveValueType& aValue) {
-            CompleteTransaction();
+          [self = RefPtr{this},
+           inputClientData = aTransactionInfo.ClientDataJSON(),
+           resolver = std::move(aResolver)](
+              const WebAuthnRegisterPromise::ResolveOrRejectValue& aValue) {
+            self->CompleteTransaction();
+
+            if (aValue.IsReject()) {
+              resolver(aValue.RejectValue());
+              return;
+            }
+
+            auto rejectWithNotAllowed = MakeScopeExit(
+                [&]() { resolver(NS_ERROR_DOM_NOT_ALLOWED_ERR); });
+
+            RefPtr<nsIWebAuthnRegisterResult> registerResult =
+                aValue.ResolveValue();
 
             nsCString clientData;
-            nsresult rv = aValue->GetClientDataJSON(clientData);
+            nsresult rv = registerResult->GetClientDataJSON(clientData);
             if (rv == NS_ERROR_NOT_AVAILABLE) {
               clientData = inputClientData;
             } else if (NS_FAILED(rv)) {
-              Unused << parent->SendAbort(aTransactionId,
-                                          NS_ERROR_DOM_NOT_ALLOWED_ERR);
               return;
             }
 
             nsTArray<uint8_t> attObj;
-            rv = aValue->GetAttestationObject(attObj);
+            rv = registerResult->GetAttestationObject(attObj);
             if (NS_WARN_IF(NS_FAILED(rv))) {
-              Unused << parent->SendAbort(aTransactionId,
-                                          NS_ERROR_DOM_NOT_ALLOWED_ERR);
               return;
             }
 
             nsTArray<uint8_t> credentialId;
-            rv = aValue->GetCredentialId(credentialId);
+            rv = registerResult->GetCredentialId(credentialId);
             if (NS_WARN_IF(NS_FAILED(rv))) {
-              Unused << parent->SendAbort(aTransactionId,
-                                          NS_ERROR_DOM_NOT_ALLOWED_ERR);
               return;
             }
 
             nsTArray<nsString> transports;
-            rv = aValue->GetTransports(transports);
+            rv = registerResult->GetTransports(transports);
             if (NS_WARN_IF(NS_FAILED(rv))) {
-              Unused << parent->SendAbort(aTransactionId,
-                                          NS_ERROR_DOM_NOT_ALLOWED_ERR);
               return;
             }
 
             Maybe<nsString> authenticatorAttachment;
             nsString maybeAuthenticatorAttachment;
-            rv = aValue->GetAuthenticatorAttachment(
+            rv = registerResult->GetAuthenticatorAttachment(
                 maybeAuthenticatorAttachment);
             if (rv != NS_ERROR_NOT_AVAILABLE) {
               if (NS_WARN_IF(NS_FAILED(rv))) {
-                Unused << parent->SendAbort(aTransactionId,
-                                            NS_ERROR_DOM_NOT_ALLOWED_ERR);
                 return;
               }
               authenticatorAttachment = Some(maybeAuthenticatorAttachment);
@@ -118,11 +119,9 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
 
             nsTArray<WebAuthnExtensionResult> extensions;
             bool credPropsRk;
-            rv = aValue->GetCredPropsRk(&credPropsRk);
+            rv = registerResult->GetCredPropsRk(&credPropsRk);
             if (rv != NS_ERROR_NOT_AVAILABLE) {
               if (NS_WARN_IF(NS_FAILED(rv))) {
-                Unused << parent->SendAbort(aTransactionId,
-                                            NS_ERROR_DOM_NOT_ALLOWED_ERR);
                 return;
               }
               extensions.AppendElement(
@@ -130,11 +129,9 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
             }
 
             bool hmacCreateSecret;
-            rv = aValue->GetHmacCreateSecret(&hmacCreateSecret);
+            rv = registerResult->GetHmacCreateSecret(&hmacCreateSecret);
             if (rv != NS_ERROR_NOT_AVAILABLE) {
               if (NS_WARN_IF(NS_FAILED(rv))) {
-                Unused << parent->SendAbort(aTransactionId,
-                                            NS_ERROR_DOM_NOT_ALLOWED_ERR);
                 return;
               }
               extensions.AppendElement(
@@ -146,32 +143,26 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
               Maybe<WebAuthnExtensionPrfValues> prfResults = Nothing();
 
               bool prfEnabled;
-              rv = aValue->GetPrfEnabled(&prfEnabled);
+              rv = registerResult->GetPrfEnabled(&prfEnabled);
               if (rv != NS_ERROR_NOT_AVAILABLE) {
                 if (NS_WARN_IF(NS_FAILED(rv))) {
-                  Unused << parent->SendAbort(aTransactionId,
-                                              NS_ERROR_DOM_NOT_ALLOWED_ERR);
                   return;
                 }
                 prfEnabledMaybe = Some(prfEnabled);
               }
 
               nsTArray<uint8_t> prfResultsFirst;
-              rv = aValue->GetPrfResultsFirst(prfResultsFirst);
+              rv = registerResult->GetPrfResultsFirst(prfResultsFirst);
               if (rv != NS_ERROR_NOT_AVAILABLE) {
                 if (NS_WARN_IF(NS_FAILED(rv))) {
-                  Unused << parent->SendAbort(aTransactionId,
-                                              NS_ERROR_DOM_NOT_ALLOWED_ERR);
                   return;
                 }
 
                 bool prfResultsSecondMaybe = false;
                 nsTArray<uint8_t> prfResultsSecond;
-                rv = aValue->GetPrfResultsSecond(prfResultsSecond);
+                rv = registerResult->GetPrfResultsSecond(prfResultsSecond);
                 if (rv != NS_ERROR_NOT_AVAILABLE) {
                   if (NS_WARN_IF(NS_FAILED(rv))) {
-                    Unused << parent->SendAbort(aTransactionId,
-                                                NS_ERROR_DOM_NOT_ALLOWED_ERR);
                     return;
                   }
                   prfResultsSecondMaybe = true;
@@ -191,12 +182,8 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
                 clientData, attObj, credentialId, transports, extensions,
                 authenticatorAttachment);
 
-            Unused << parent->SendConfirmRegister(aTransactionId, result);
-          },
-          [this, parent, aTransactionId](
-              const WebAuthnRegisterPromise::RejectValueType aValue) {
-            CompleteTransaction();
-            Unused << parent->SendAbort(aTransactionId, aValue);
+            rejectWithNotAllowed.release();
+            resolver(result);
           })
       ->Track(mRegisterPromiseRequest);
 
@@ -213,8 +200,8 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
 }
 
 mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
-    const uint64_t& aTransactionId,
-    const WebAuthnGetAssertionInfo& aTransactionInfo) {
+    const WebAuthnGetAssertionInfo& aTransactionInfo,
+    RequestSignResolver&& aResolver) {
   if (!mWebAuthnService) {
     mWebAuthnService = do_GetService("@mozilla.org/webauthn/service;1");
     if (!mWebAuthnService) {
@@ -224,68 +211,68 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
 
   if (mTransactionId.isSome()) {
     DisconnectTransaction();
-    Unused << SendAbort(mTransactionId.ref(), NS_ERROR_DOM_ABORT_ERR);
   }
+  uint64_t aTransactionId = NextId();
   mTransactionId = Some(aTransactionId);
 
   RefPtr<WebAuthnSignPromiseHolder> promiseHolder =
       new WebAuthnSignPromiseHolder(GetCurrentSerialEventTarget());
 
-  PWebAuthnTransactionParent* parent = this;
   RefPtr<WebAuthnSignPromise> promise = promiseHolder->Ensure();
   promise
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [this, parent, aTransactionId,
-           inputClientData = aTransactionInfo.ClientDataJSON()](
-              const WebAuthnSignPromise::ResolveValueType& aValue) {
-            CompleteTransaction();
+          [self = RefPtr{this},
+           inputClientData = aTransactionInfo.ClientDataJSON(),
+           resolver = std::move(aResolver)](
+              const WebAuthnSignPromise::ResolveOrRejectValue& aValue) {
+            self->CompleteTransaction();
+
+            if (aValue.IsReject()) {
+              resolver(aValue.RejectValue());
+              return;
+            }
+
+            auto rejectWithNotAllowed = MakeScopeExit(
+                [&]() { resolver(NS_ERROR_DOM_NOT_ALLOWED_ERR); });
+
+            RefPtr<nsIWebAuthnSignResult> signResult = aValue.ResolveValue();
 
             nsCString clientData;
-            nsresult rv = aValue->GetClientDataJSON(clientData);
+            nsresult rv = signResult->GetClientDataJSON(clientData);
             if (rv == NS_ERROR_NOT_AVAILABLE) {
               clientData = inputClientData;
             } else if (NS_FAILED(rv)) {
-              Unused << parent->SendAbort(aTransactionId,
-                                          NS_ERROR_DOM_NOT_ALLOWED_ERR);
               return;
             }
 
             nsTArray<uint8_t> credentialId;
-            rv = aValue->GetCredentialId(credentialId);
+            rv = signResult->GetCredentialId(credentialId);
             if (NS_WARN_IF(NS_FAILED(rv))) {
-              Unused << parent->SendAbort(aTransactionId,
-                                          NS_ERROR_DOM_NOT_ALLOWED_ERR);
               return;
             }
 
             nsTArray<uint8_t> signature;
-            rv = aValue->GetSignature(signature);
+            rv = signResult->GetSignature(signature);
             if (NS_WARN_IF(NS_FAILED(rv))) {
-              Unused << parent->SendAbort(aTransactionId,
-                                          NS_ERROR_DOM_NOT_ALLOWED_ERR);
               return;
             }
 
             nsTArray<uint8_t> authenticatorData;
-            rv = aValue->GetAuthenticatorData(authenticatorData);
+            rv = signResult->GetAuthenticatorData(authenticatorData);
             if (NS_WARN_IF(NS_FAILED(rv))) {
-              Unused << parent->SendAbort(aTransactionId,
-                                          NS_ERROR_DOM_NOT_ALLOWED_ERR);
               return;
             }
 
             nsTArray<uint8_t> userHandle;
-            Unused << aValue->GetUserHandle(userHandle);  // optional
+            Unused << signResult->GetUserHandle(userHandle);  // optional
 
             Maybe<nsString> authenticatorAttachment;
             nsString maybeAuthenticatorAttachment;
-            rv = aValue->GetAuthenticatorAttachment(
+            rv = signResult->GetAuthenticatorAttachment(
                 maybeAuthenticatorAttachment);
             if (rv != NS_ERROR_NOT_AVAILABLE) {
               if (NS_WARN_IF(NS_FAILED(rv))) {
-                Unused << parent->SendAbort(aTransactionId,
-                                            NS_ERROR_DOM_NOT_ALLOWED_ERR);
                 return;
               }
               authenticatorAttachment = Some(maybeAuthenticatorAttachment);
@@ -293,11 +280,9 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
 
             nsTArray<WebAuthnExtensionResult> extensions;
             bool usedAppId;
-            rv = aValue->GetUsedAppId(&usedAppId);
+            rv = signResult->GetUsedAppId(&usedAppId);
             if (rv != NS_ERROR_NOT_AVAILABLE) {
               if (NS_FAILED(rv)) {
-                Unused << parent->SendAbort(aTransactionId,
-                                            NS_ERROR_DOM_NOT_ALLOWED_ERR);
                 return;
               }
               extensions.AppendElement(WebAuthnExtensionResultAppId(usedAppId));
@@ -306,24 +291,20 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
             {
               Maybe<WebAuthnExtensionPrfValues> prfResults;
               bool prfMaybe = false;
-              rv = aValue->GetPrfMaybe(&prfMaybe);
+              rv = signResult->GetPrfMaybe(&prfMaybe);
               if (rv == NS_OK && prfMaybe) {
                 nsTArray<uint8_t> prfResultsFirst;
-                rv = aValue->GetPrfResultsFirst(prfResultsFirst);
+                rv = signResult->GetPrfResultsFirst(prfResultsFirst);
                 if (rv != NS_ERROR_NOT_AVAILABLE) {
                   if (NS_WARN_IF(NS_FAILED(rv))) {
-                    Unused << parent->SendAbort(aTransactionId,
-                                                NS_ERROR_DOM_NOT_ALLOWED_ERR);
                     return;
                   }
 
                   bool prfResultsSecondMaybe = false;
                   nsTArray<uint8_t> prfResultsSecond;
-                  rv = aValue->GetPrfResultsSecond(prfResultsSecond);
+                  rv = signResult->GetPrfResultsSecond(prfResultsSecond);
                   if (rv != NS_ERROR_NOT_AVAILABLE) {
                     if (NS_WARN_IF(NS_FAILED(rv))) {
-                      Unused << parent->SendAbort(aTransactionId,
-                                                  NS_ERROR_DOM_NOT_ALLOWED_ERR);
                       return;
                     }
                     prfResultsSecondMaybe = true;
@@ -345,12 +326,8 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
                 clientData, credentialId, signature, authenticatorData,
                 extensions, userHandle, authenticatorAttachment);
 
-            Unused << parent->SendConfirmSign(aTransactionId, result);
-          },
-          [this, parent,
-           aTransactionId](const WebAuthnSignPromise::RejectValueType aValue) {
-            CompleteTransaction();
-            Unused << parent->SendAbort(aTransactionId, aValue);
+            rejectWithNotAllowed.release();
+            resolver(result);
           })
       ->Track(mSignPromiseRequest);
 
@@ -366,10 +343,8 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestCancel(
-    const Tainted<uint64_t>& aTransactionId) {
-  if (mTransactionId.isNothing() ||
-      !MOZ_IS_VALID(aTransactionId, mTransactionId.ref() == aTransactionId)) {
+mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestCancel() {
+  if (mTransactionId.isNothing()) {
     return IPC_OK();
   }
 

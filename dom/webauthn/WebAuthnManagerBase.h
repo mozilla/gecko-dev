@@ -28,21 +28,7 @@ class WebAuthnManagerBase : public nsISupports {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(WebAuthnManagerBase)
 
-  explicit WebAuthnManagerBase(nsPIDOMWindowInner* aParent);
-
-  MOZ_CAN_RUN_SCRIPT
-  virtual void FinishMakeCredential(
-      const uint64_t& aTransactionId,
-      const WebAuthnMakeCredentialResult& aResult) = 0;
-
-  MOZ_CAN_RUN_SCRIPT
-  virtual void FinishGetAssertion(
-      const uint64_t& aTransactionId,
-      const WebAuthnGetAssertionResult& aResult) = 0;
-
-  MOZ_CAN_RUN_SCRIPT
-  virtual void RequestAborted(const uint64_t& aTransactionId,
-                              const nsresult& aError) = 0;
+  explicit WebAuthnManagerBase(nsPIDOMWindowInner* aWindow);
 
   void ActorDestroyed();
 
@@ -52,10 +38,10 @@ class WebAuthnManagerBase : public nsISupports {
   bool MaybeCreateBackgroundActor();
 
   // The parent window.
-  nsCOMPtr<nsPIDOMWindowInner> mParent;
+  nsCOMPtr<nsPIDOMWindowInner> mWindow;
 
   // IPC Channel to the parent process.
-  RefPtr<WebAuthnTransactionChild> mChild;
+  RefPtr<WebAuthnTransactionChild> mActor;
 };
 
 }  // namespace mozilla::dom
