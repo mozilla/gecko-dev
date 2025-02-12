@@ -36,6 +36,7 @@
 #include <string>
 
 #include "nsThreadUtils.h"
+#include "nsTArray.h"
 #include "mozilla/EventTargetCapability.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/glean/DomMediaWebrtcMetrics.h"
@@ -47,12 +48,37 @@
 #include "api/video/video_frame_type.h"
 #include "common_video/h264/h264_bitstream_parser.h"
 #include "modules/video_coding/include/video_error_codes.h"
+#include "modules/video_coding/svc/scalable_video_controller.h"
 
 #include "gmp-video-host.h"
 #include "GMPVideoDecoderProxy.h"
 #include "GMPVideoEncoderProxy.h"
 
 #include "jsapi/PeerConnectionImpl.h"
+
+namespace mozilla::detail {
+struct InputImageData {
+  uint64_t rtp_timestamp = 0;
+  int64_t timestamp_us = 0;
+  webrtc::ScalableVideoController::LayerFrameConfig frame_config;
+};
+}  // namespace mozilla::detail
+
+// webrtc::CodecSpecificInfo has members that are not always memmovable, which
+// is required by nsTArray/AutoTArray by default. Use move constructors where
+// necessary.
+template <>
+struct nsTArray_RelocationStrategy<mozilla::detail::InputImageData> {
+  using IID = mozilla::detail::InputImageData;
+  // This logic follows MemMoveAnnotation.h.
+  using Type =
+      std::conditional_t<(std::is_trivially_move_constructible_v<IID> ||
+                          (!std::is_move_constructible_v<IID> &&
+                           std::is_trivially_copy_constructible_v<IID>)) &&
+                             std::is_trivially_destructible_v<IID>,
+                         nsTArray_RelocateUsingMemutils,
+                         nsTArray_RelocateUsingMoveConstructor<IID>>;
+};
 
 namespace mozilla {
 
@@ -256,18 +282,15 @@ class WebrtcGmpVideoEncoder final : public GMPVideoEncoderCallbackProxy,
   bool mNeedKeyframe;
   const webrtc::CodecParameterMap mFormatParams;
   webrtc::H264BitstreamParser mH264BitstreamParser;
+  std::unique_ptr<webrtc::ScalableVideoController> mSvcController;
   Mutex mCallbackMutex;
   webrtc::EncodedImageCallback* mCallback MOZ_GUARDED_BY(mCallbackMutex);
   Maybe<uint64_t> mCachedPluginId;
   const std::string mPCHandle;
 
-  struct InputImageData {
-    uint64_t rtp_timestamp;
-    int64_t timestamp_us;
-  };
   static constexpr size_t kMaxImagesInFlight = 5;
   // Map rtp time -> input image data
-  AutoTArray<InputImageData, kMaxImagesInFlight> mInputImageMap;
+  AutoTArray<detail::InputImageData, kMaxImagesInFlight> mInputImageMap;
 
   MediaEventProducer<uint64_t> mInitPluginEvent;
   MediaEventProducer<uint64_t> mReleasePluginEvent;

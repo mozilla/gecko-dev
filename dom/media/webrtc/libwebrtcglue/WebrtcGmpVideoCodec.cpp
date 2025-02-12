@@ -19,8 +19,11 @@
 #include "common_video/include/video_frame_buffer.h"
 #include "media/base/media_constants.h"
 #include "modules/video_coding/include/video_codec_interface.h"
+#include "modules/video_coding/svc/create_scalability_structure.h"
 
 namespace mozilla {
+
+using detail::InputImageData;
 
 // QP scaling thresholds.
 static const int kLowH264QpThreshold = 24;
@@ -183,6 +186,17 @@ void WebrtcGmpVideoEncoder::InitEncode_g(const GMPVideoCodec& aCodecParams,
       new InitDoneCallback(this, aCodecParams));
   mInitting = true;
   mMaxPayloadSize = aMaxPayloadSize;
+  mSvcController = webrtc::CreateScalabilityStructure(
+      GmpCodecParamsToScalabilityMode(aCodecParams));
+  if (!mSvcController) {
+    GMP_LOG_DEBUG(
+        "GMP Encode: CreateScalabilityStructure for %d temporal layers failed",
+        aCodecParams.mTemporalLayerNum);
+    Close_g();
+    NotifyGmpInitDone(mPCHandle, WEBRTC_VIDEO_CODEC_ERROR,
+                      "GMP Encode: CreateScalabilityStructure failed");
+    return;
+  }
   nsresult rv =
       mMPS->GetGMPVideoEncoder(nullptr, &tags, ""_ns, std::move(callback));
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -399,11 +413,15 @@ void WebrtcGmpVideoEncoder::Encode_g(
   }
   mNeedKeyframe = false;
 
+  auto frameConfigs =
+      mSvcController->NextFrameConfig(gmp_frame_types[0] == kGMPKeyFrame);
+  MOZ_ASSERT(frameConfigs.size() == 1);
+
   MOZ_RELEASE_ASSERT(mInputImageMap.IsEmpty() ||
                      mInputImageMap.LastElement().rtp_timestamp <
                          frame->Timestamp());
-  mInputImageMap.AppendElement(
-      InputImageData{frame->Timestamp(), aInputImage.timestamp_us()});
+  mInputImageMap.AppendElement(InputImageData{
+      frame->Timestamp(), aInputImage.timestamp_us(), frameConfigs[0]});
 
   GMP_LOG_DEBUG("GMP Encode: %" PRIu64, (frame->Timestamp()));
   err = mGMP->Encode(std::move(frame), codecSpecificInfo, gmp_frame_types);
@@ -524,6 +542,12 @@ void WebrtcGmpVideoEncoder::Encoded(
   }
   mInputImageMap.RemoveElementsAt(0, numToRemove);
 
+  MOZ_ASSERT((aEncodedFrame->FrameType() == kGMPKeyFrame) ==
+             data->frame_config.IsKeyframe());
+  MOZ_ASSERT_IF(
+      mCodecParams.mTemporalLayerNum > 1,
+      aEncodedFrame->GetTemporalLayerId() == data->frame_config.TemporalId());
+
   MutexAutoLock lock(mCallbackMutex);
   if (!mCallback) {
     return;
@@ -586,6 +610,11 @@ void WebrtcGmpVideoEncoder::Encoded(
   info.codecSpecific.H264.temporal_idx = webrtc::kNoTemporalIdx;
   info.codecSpecific.H264.idr_frame =
       ft == webrtc::VideoFrameType::kVideoFrameKey;
+  info.generic_frame_info = mSvcController->OnEncodeDone(data->frame_config);
+  if (info.codecSpecific.H264.idr_frame &&
+      info.generic_frame_info.has_value()) {
+    info.template_structure = mSvcController->DependencyStructure();
+  }
 
   if (mCodecParams.mTemporalLayerNum > 1) {
     int temporalIdx = std::max(0, aEncodedFrame->GetTemporalLayerId());
