@@ -785,9 +785,9 @@
     <string name="exceptions_empty_message_learn_more_link">اطّلع على المزيد</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">شارك بيانات المتصفح فيما يتعلق بالأداء و الاستخدام و العتاد و التخصيصات مع Mozilla لمساعدتنا في جعل %1$s أفضل</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">شارك بيانات المتصفح فيما يتعلق بالأداء و الاستخدام و العتاد و التخصيصات مع Mozilla لمساعدتنا في جعل %1$s أفضل</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">بيانات التسويق</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">بيانات التسويق</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">الدراسات</string>
@@ -943,7 +943,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">نشطة</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">قد يثبّت %1$s بعض الدراسات ويشغّلها من وقت لآخر.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">قد يثبّت %1$s بعض الدراسات ويشغّلها من وقت لآخر.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">اطّلع على المزيد</string>
     <!-- Dialog message shown after removing a study -->

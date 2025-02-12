@@ -199,9 +199,9 @@
     <string name="exceptions_empty_message_learn_more_link">Tuilleadh eolais</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Seolann sé faisnéis maidir le feidhmíocht, úsáid, crua-earraí, agus saincheapadh an bhrabhsálaí chuig Mozilla chun cabhrú linn feabhas a chur ar %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Seolann sé faisnéis maidir le feidhmíocht, úsáid, crua-earraí, agus saincheapadh an bhrabhsálaí chuig Mozilla chun cabhrú linn feabhas a chur ar %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Sonraí margaíochta</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Sonraí margaíochta</string>
 
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">Logáil isteach le hathcheangal</string>

@@ -566,7 +566,6 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">Ineqqisen n uɣelluy ttaǧǧan-aɣ ad nesnined syen ad nṣeggem uguren akked yiminig. Ineqqisen zemren ad d-skecmen isefka udmawanen neɣ imḥulfa.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Issin ugar ɣef yineqqisen yerrẓen</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Issin ugar</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Azen isefka itiknikanen d yimyigawen ɣer Mozilla</string>
@@ -1021,13 +1020,16 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Issin ugar</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Ad yebḍu isefka ɣef timellit, aseqdec, arrum d wudem n yiminig-ik  i Mozilla akken ad aɣ-d-yefk afus i usnerni n %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Ad yebḍu isefka ɣef timellit, aseqdec, arrum d wudem n yiminig-ik  i Mozilla akken ad aɣ-d-yefk afus i usnerni n %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Isefka n uzenzi</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Isefka n uzenzi</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Azen s wudem awurman ineqqisen n truẓi</string>
 
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Ibeṭṭu isefka yerrẓen s wudem awurman lawan n usenker akked Mozilla send taruẓi</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Issin ugar ɣef yineqqisen yerrẓen</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studies</string>
@@ -1195,7 +1197,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Rmed</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s yezmer ad isebded yerna ad iseddu leqraya seg wakud ɣer wayeḍ.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s yezmer ad isebded yerna ad iseddu leqraya seg wakud ɣer wayeḍ.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Issin ugar</string>
     <!-- Dialog message shown after removing a study -->

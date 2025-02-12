@@ -558,7 +558,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">گزارشات خرابی به ما کمک می‌کنند مشکلات مرورگر را تشخیص دهیم و حل کنیم. گزارشات ممکن است شامل داده‌های شخصی یا حساس باشند.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">بیشتر درباره گزارشات خرابی بدانید</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">بیشتر بدانید</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">ارسال داده‌های فنی و تعاملات به Mozilla</string>
@@ -1055,18 +1054,18 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">بیشتر بدانید</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">به اشتراک‌گذاری کارایی، کاربرد، سخت‌افزار و اطلاعات سفارشی‌سازی در مورد مرورگر شما با موزیلا به ما کمک می کند تا %1$s بهتری داشته باشیم</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">به اشتراک‌گذاری کارایی، کاربرد، سخت‌افزار و اطلاعات سفارشی‌سازی در مورد مرورگر شما با موزیلا به ما کمک می کند تا %1$s بهتری داشته باشیم</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">داده‌های مربوط به دستگاه، پیکربندی سخت‌افزار و استفاده شما به ما کمک می‌کند تا ویژگی‌ها، عملکرد و پایداری Firefox را بهبود دهیم.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">ارزیابی داده</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ارزیابی داده</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">داده‌های اندازه‌گیری کمپین</string>
+    <string name="preferences_marketing_data_2">داده‌های اندازه‌گیری کمپین</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">اطلاعاتی را درباره نحوه آشنایی شما با Firefox با همکاران بازاریابی Mozilla به هم‌رسانی بگذارید. این به ما کمک می‌کند تا Firefox را رشد دهیم و یک اینترنت بهتر بسازیم</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">اطلاعاتی را درباره نحوه آشنایی شما با Firefox با همکاران بازاریابی Mozilla به هم‌رسانی بگذارید. این به ما کمک می‌کند تا Firefox را رشد دهیم و یک اینترنت بهتر بسازیم</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">نحوه کشف Firefox و استفاده از آن را با شرکای فناوری بازاریابی Mozilla هم‌رسانی کنید.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">نحوه کشف Firefox و استفاده از آن را با شرکای فناوری بازاریابی Mozilla هم‌رسانی کنید.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">بیشتر درباره داده‌های بازاریابی بدانید</string>
 
@@ -1081,6 +1080,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">این به ما کمک می‌کند تا مشکلات مرورگر را تشخیص داده و رفع کنیم. گزارش‌ها ممکن است شامل داده‌های شخصی یا حساس باشند.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">به‌طور خودکار داده‌های خرابی را در زمان راه‌اندازی پس از وقوع خرابی‌ها با Mozilla به هم‌رسانی می‌گذارد</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">بیشتر درباره گزارشات خرابی بدانید</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">مطالعات</string>
@@ -1242,11 +1244,11 @@
     <string name="studies_active">فعال</string>
 
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s ممکن است گاهی تحقیقاتی را نصب و اجرا کند.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s ممکن است گاهی تحقیقاتی را نصب و اجرا کند.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">ویژگی‌ها و ایده‌ها را قبل از انتشار برای همه امتحان کنید.</string>
+    <string name="studies_description_3">ویژگی‌ها و ایده‌ها را قبل از انتشار برای همه امتحان کنید.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">نصب و اجرای مطالعات</string>
+    <string name="studies_title">نصب و اجرای مطالعات</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">بیشتر بدانید</string>
     <!-- Dialog message shown after removing a study -->

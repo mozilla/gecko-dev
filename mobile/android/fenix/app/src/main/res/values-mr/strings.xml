@@ -238,9 +238,9 @@
     <string name="exceptions_empty_message_learn_more_link">अधिक जाणा</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">आम्ही %1$s उत्तमोत्तम बनवण्यासाठी ब्राऊझरची कार्यक्षमता, वापर, हार्डवेअर आणि सानुकूलन माहिती Mozilla सोबत शेअर करते</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">आम्ही %1$s उत्तमोत्तम बनवण्यासाठी ब्राऊझरची कार्यक्षमता, वापर, हार्डवेअर आणि सानुकूलन माहिती Mozilla सोबत शेअर करते</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">विपणनाची माहिती</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">विपणनाची माहिती</string>
 
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">पुन्हा जोडण्यासाठी साइन इन करा</string>

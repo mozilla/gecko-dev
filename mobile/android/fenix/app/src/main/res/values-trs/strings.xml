@@ -567,9 +567,9 @@
     <string name="exceptions_empty_message_learn_more_link">Gāhuin chrūn doj</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Gānatà\' dàj \'iaj sunj, dàj arâj sunt, aga\' nīka nī doj nej sa nīkāj sa nana\'uî\'t gu\'nàj Mozilla da\' ga\'ue nāgi\'iaj sà\' si doj man %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Gānatà\' dàj \'iaj sunj, dàj arâj sunt, aga\' nīka nī doj nej sa nīkāj sa nana\'uî\'t gu\'nàj Mozilla da\' ga\'ue nāgi\'iaj sà\' si doj man %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Sa huā rayi\'î Marketin</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Sa huā rayi\'î Marketin</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Nej ēstûdio</string>
@@ -731,7 +731,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Ngà \'hiaj sunj</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s gā’hue gà’nïn nī gāyi’ìj gi’hia estudio.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s gā’hue gà’nïn nī gāyi’ìj gi’hia estudio.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Gāhuin chrūn doj</string>
     <!-- Dialog message shown after removing a study -->

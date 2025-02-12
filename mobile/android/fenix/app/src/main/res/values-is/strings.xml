@@ -569,7 +569,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">Hrunskýrslur gera okkur kleift að greina og laga vandamál með vafrann. Slíkar skýrslur geta innihaldið persónuleg eða viðkvæm gögn.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Frekari upplýsingar um hrunskýrslur</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Fræðast meira</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Senda tækni- og samskiptagögn til Mozilla</string>
@@ -1064,18 +1063,18 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Fræðast meira</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Deilir afköstum, notkun, vélbúnaðarupplýsingum og sérsniðum gögnum um vafrann þinn með Mozilla svo hægt sé að betrumbæta %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Deilir afköstum, notkun, vélbúnaðarupplýsingum og sérsniðum gögnum um vafrann þinn með Mozilla svo hægt sé að betrumbæta %1$s</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Gögn um tækið þitt, vélbúnaðarstillingar og hvernig þú notar Firefox, hjálpa til við að bæta eiginleika, afköst og stöðugleika fyrir alla notendur.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Markaðsgögn</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Markaðsgögn</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Mælingagögn herferðar</string>
+    <string name="preferences_marketing_data_2">Mælingagögn herferðar</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Deildu upplýsingum um hvernig þú uppgötvaðir Firefox með markaðsaðilum Mozilla. Þetta hjálpar okkur að láta Firefox vaxa og að byggja upp betra internet</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Deildu upplýsingum um hvernig þú uppgötvaðir Firefox með markaðsaðilum Mozilla. Þetta hjálpar okkur að láta Firefox vaxa og að byggja upp betra internet</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Deildu því hvernig þú uppgötvaðir Firefox og að þú notar hann með markaðstæknifélögum Mozilla.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Deildu því hvernig þú uppgötvaðir Firefox og að þú notar hann með markaðstæknifélögum Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Frekari upplýsingar um markaðsgögn</string>
 
@@ -1090,6 +1089,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">Þetta gerir okkur kleift að greina og laga vandamál með vafrann. Slíkar skýrslur geta innihaldið persónuleg eða viðkvæm gögn.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Deilir hrungögnum sjálfkrafa með Mozilla við ræsingu eftir hrun</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Frekari upplýsingar um hrunskýrslur</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Kannanir</string>
@@ -1252,11 +1254,11 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Virkt</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s kann að setja upp og keyra rannsóknir af og til.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s kann að setja upp og keyra rannsóknir af og til.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">Prófaðu eiginleika og hugmyndir áður en þær eru settar í dreifingu.</string>
+    <string name="studies_description_3">Prófaðu eiginleika og hugmyndir áður en þær eru settar í dreifingu.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">Settu upp og keyrðu rannsóknir</string>
+    <string name="studies_title">Settu upp og keyrðu rannsóknir</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Frekari upplýsingar</string>
     <!-- Dialog message shown after removing a study -->

@@ -356,9 +356,9 @@
     <string name="exceptions_empty_message_learn_more_link">مزید سیکھیں</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">%1$s کو بہتر بنانے میں ہماری مدد کرنے کے لیے آپ کے براؤزر کی کارکردگی، استعمال شدہ، ہارڈویئر اور تخصیص کاری کی کوائف کو Mozilla کے ساتھ بانٹتا ہے۔</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s کو بہتر بنانے میں ہماری مدد کرنے کے لیے آپ کے براؤزر کی کارکردگی، استعمال شدہ، ہارڈویئر اور تخصیص کاری کی کوائف کو Mozilla کے ساتھ بانٹتا ہے۔</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">مارکیٹنگ کا ڈیٹا</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">مارکیٹنگ کا ڈیٹا</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">مطالعہ</string>

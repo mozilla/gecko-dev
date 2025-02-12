@@ -813,9 +813,9 @@
     <string name="exceptions_empty_message_learn_more_link">Zêdetir bizane</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Performans, bikaranîn, reqalav û daneyên taybetkirinê yên têkildarî geroka te bi Mozillayê re parve dike, ji bo ku em karibin pê %1$s’ê baştir bikin</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Performans, bikaranîn, reqalav û daneyên taybetkirinê yên têkildarî geroka te bi Mozillayê re parve dike, ji bo ku em karibin pê %1$s’ê baştir bikin</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Daneyên bazarkirinê</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Daneyên bazarkirinê</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Lêkolîn</string>
@@ -976,7 +976,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Çalak</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s dikare carê lêkolînan bar bike û bide xebitandin.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s dikare carê lêkolînan bar bike û bide xebitandin.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Zêdetir bizane</string>
     <!-- Dialog message shown after removing a study -->

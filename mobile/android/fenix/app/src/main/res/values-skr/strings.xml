@@ -888,9 +888,9 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ٻیا سِکھو</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">%1$s کوں بہتر بݨاوݨ وچ ساݙی مدد کرݨ کیتے تہاݙے براؤزر دی کارکردگی، ورتاوا تے ہارڈویئر تے ڈیٹا کوں من پسند کاری کوں موزلّا نال شیئر کریندے </string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$s کوں بہتر بݨاوݨ وچ ساݙی مدد کرݨ کیتے تہاݙے براؤزر دی کارکردگی، ورتاوا تے ہارڈویئر تے ڈیٹا کوں من پسند کاری کوں موزلّا نال شیئر کریندے </string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">مارکیٹنگ ڈیٹا</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">مارکیٹنگ ڈیٹا</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">کریش رپورٹاں خودکار جمع کرواؤ</string>
 
@@ -1065,7 +1065,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">فعال</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s وقتاً فوقتاً مطالعہ انسٹال کرسڳدے تے چلا سڳدے۔</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s وقتاً فوقتاً مطالعہ انسٹال کرسڳدے تے چلا سڳدے۔</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">ٻیا سِکھو</string>
     <!-- Dialog message shown after removing a study -->

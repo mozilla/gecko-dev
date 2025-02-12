@@ -278,9 +278,9 @@
     <string name="exceptions_empty_message_learn_more_link">আরও জানুন</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">আমাদের %1$s আরও উন্নত করতে সহায়তা করতে Mozilla -র সাথে আপনার ব্রাউজার সম্পর্কিত কর্মক্ষমতা, ব্যবহার, হার্ডওয়্যার এবং কাস্টমাইজেশন তথ্য শেয়ার করুন</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">আমাদের %1$s আরও উন্নত করতে সহায়তা করতে Mozilla -র সাথে আপনার ব্রাউজার সম্পর্কিত কর্মক্ষমতা, ব্যবহার, হার্ডওয়্যার এবং কাস্টমাইজেশন তথ্য শেয়ার করুন</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">বিপণন তথ্য</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">বিপণন তথ্য</string>
 
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">পুনরায় সংযোগ করতে সাইন ইন করুন</string>

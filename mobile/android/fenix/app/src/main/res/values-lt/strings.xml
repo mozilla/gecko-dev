@@ -402,9 +402,9 @@
     <string name="exceptions_empty_message_learn_more_link">Sužinoti daugiau</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">„%1$s“ tobulinimo tikslais siunčia „Mozillai“ duomenis apie naršyklės našumą, naudojimą, tinkinimą ir aparatinę įrangą</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">„%1$s“ tobulinimo tikslais siunčia „Mozillai“ duomenis apie naršyklės našumą, naudojimą, tinkinimą ir aparatinę įrangą</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Rinkodaros duomenys</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Rinkodaros duomenys</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Tyrimai</string>

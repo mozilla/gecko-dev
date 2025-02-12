@@ -563,7 +563,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">يىمىرىلىش دوكلاتى توركۆرگۈگە دىياگنوز قۇيۇپ ۋە ئۇنى ئوڭشاشقا يول قويىدۇ. دوكلات شەخسىي ياكى سەزگۈر ئۇچۇرلارنى ئۆز ئىچىگە ئېلىشى مۇمكىن.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">يىمىرىلىش دوكلاتى ھەققىدىكى تەپسىلات</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">تەپسىلاتى</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Mozilla غا تېخنىكىلىق ۋە تەسىرلىشىش سانلىق مەلۇماتى يوللايدۇ</string>
@@ -1059,18 +1058,18 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">تەپسىلاتى</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">تور كۆرگۈ ئىشلىتىش جەريانىدىكى ئىش ئۈنۈمى، ئىشلىتىش ئۇسۇلى، قاتتىق دېتال ۋە خاسلاشتۇرۇلغان سانلىق مەلۇماتنى Mozilla بىلەن ھەمبەھىرلەپ، %1$s نى ياخشىلىشىمىزغا ياردەم بېرىڭ</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">تور كۆرگۈ ئىشلىتىش جەريانىدىكى ئىش ئۈنۈمى، ئىشلىتىش ئۇسۇلى، قاتتىق دېتال ۋە خاسلاشتۇرۇلغان سانلىق مەلۇماتنى Mozilla بىلەن ھەمبەھىرلەپ، %1$s نى ياخشىلىشىمىزغا ياردەم بېرىڭ</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">ئۈسكۈنە، قاتتىق دېتال سەپلىمىسى ۋە ئىشلىتىش ھەققىدىكى سانلىق مەلۇمات، Firefox نىڭ ئىقتىدارى، ئۈنۈمى ۋە مۇقىملىقىنى ياخشىلىشىمىزغا ياردەم بېرىدۇ.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">بازارچىلىق سانلىق مەلۇماتلىرى</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">بازارچىلىق سانلىق مەلۇماتلىرى</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">پائالىيەت ئۆلچەم سانلىق مەلۇماتى</string>
+    <string name="preferences_marketing_data_2">پائالىيەت ئۆلچەم سانلىق مەلۇماتى</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Mozilla نىڭ بازارچىلىق ھەمكارلاشقۇچىلىرى بىلەن Firefox نى قانداق بايقىغانلىقىڭىز توغرىسىدىكى ئۇچۇرلارنى ھەمبەھىرلەيدۇ. بۇ بىزنىڭ Firefox نى راۋاجلاندۇرۇشىمىزغا ۋە تېخىمۇ ياخشى ئىنتېرنېت قۇرۇشىمىزغا ياردەم بېرىدۇ</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Mozilla نىڭ بازارچىلىق ھەمكارلاشقۇچىلىرى بىلەن Firefox نى قانداق بايقىغانلىقىڭىز توغرىسىدىكى ئۇچۇرلارنى ھەمبەھىرلەيدۇ. بۇ بىزنىڭ Firefox نى راۋاجلاندۇرۇشىمىزغا ۋە تېخىمۇ ياخشى ئىنتېرنېت قۇرۇشىمىزغا ياردەم بېرىدۇ</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Firefox نى قانداق بايقىغانلىقىڭىز ۋە ئۇنى ئىشلىتىشنى Mozilla نىڭ بازارچىلىق تېخنىكا ھەمكارلاشقۇچىلىرى بىلەن ھەمبەھىرلەڭ.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Firefox نى قانداق بايقىغانلىقىڭىز ۋە ئۇنى ئىشلىتىشنى Mozilla نىڭ بازارچىلىق تېخنىكا ھەمكارلاشقۇچىلىرى بىلەن ھەمبەھىرلەڭ.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">بازارچىلىق سانلىق مەلۇماتى ھەققىدىكى تەپسىلات</string>
 
@@ -1085,6 +1084,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">بۇ توركۆرگۈگە دىياگنوز قويۇپ ۋە مەسىلىنى ئوڭشىشىمىزغا ياردەم بېرىدۇ. دوكلات شەخسىي ياكى سەزگۈر ئۇچۇرلارنى ئۆز ئىچىگە ئېلىشى مۇمكىن.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">يىمىرىلىش يۈز بەرگەندىن كېيىن قايتا قوزغالغاندا Mozilla بىلەن سانلىق مەلۇماتنى ئۆزلۈكىدىن ھەمبەھىرلەيدۇ</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">يىمىرىلىش دوكلاتى ھەققىدىكى تەپسىلات</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">تەتقىقات</string>
@@ -1251,11 +1253,11 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">ئاكتىپ</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s پات-پات تەتقىقاتلارنى ئورنىتىپ ئىجرا قىلالايدۇ.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s پات-پات تەتقىقاتلارنى ئورنىتىپ ئىجرا قىلالايدۇ.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">ھەممەيلەنگە تارقىتىلىشتىن ئىلگىرى يېڭى ئىقتىدار ۋە ئۇقۇملارنى ئالدىن ئىشلىتىدۇ.</string>
+    <string name="studies_description_3">ھەممەيلەنگە تارقىتىلىشتىن ئىلگىرى يېڭى ئىقتىدار ۋە ئۇقۇملارنى ئالدىن ئىشلىتىدۇ.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">ئورنىتىپ ۋە تەتقىقاتنى ئىجرا قىلىدۇ</string>
+    <string name="studies_title">ئورنىتىپ ۋە تەتقىقاتنى ئىجرا قىلىدۇ</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">تەپسىلاتى</string>
 

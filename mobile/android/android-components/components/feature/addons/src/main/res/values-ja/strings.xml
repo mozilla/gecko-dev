@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">ユーザーの端末で AI モデルのダウンロードと実行</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">未検証のサードパーティースクリプトにユーザーデータへのアクセスを許可</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">未検証のスクリプトはユーザーの安全とプライバシーに危険を及ぼす可能性があります。拡張機能や信頼できるソースからのスクリプト以外は実行しないでください。</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">開いているタブのユーザーデータへアクセスするため開発ツールを展開</string>
     <!-- The version on of add-on. -->

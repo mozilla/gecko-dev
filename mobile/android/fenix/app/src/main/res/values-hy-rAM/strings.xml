@@ -566,8 +566,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">Խափանումների զեկույցները մեզ թույլ են տալիս ախտորոշել և շտկել դիտարկիչի հետ կապված խնդիրները: Զեկույցները կարող են ներառել անձնական կամ զգայուն տվյալներ:</string>
 
-    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Իմանալ ավելին խափանումների զեկույցի մասին</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Ուղարկեք տեխնիկական և փոխազդեցության տվյալները Mozilla-ին</string>
     <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
@@ -1038,11 +1036,11 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Իմանալ ավելին</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Կիսվում է արագագործության, օգտագործման, սարքակազմի և ձեր դիտարկիչի կարգավորումներով Mozilla-ի հետ՝ %1$s-ը էլ ավելի լավը դարձնելու համար</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Կիսվում է արագագործության, օգտագործման, սարքակազմի և ձեր դիտարկիչի կարգավորումներով Mozilla-ի հետ՝ %1$s-ը էլ ավելի լավը դարձնելու համար</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Շուկայավարման տվյալներ</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Շուկայավարման տվյալներ</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Կիսվեք Mozilla-ի մարքեթինգային գործընկերների հետ այն մասին, թե ինչպես եք հայտնաբերել Firefox-ը: Սա օգնում է մեզ զարգացնել Firefox-ը և կառուցել ավելի լավ համացանց</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Կիսվեք Mozilla-ի մարքեթինգային գործընկերների հետ այն մասին, թե ինչպես եք հայտնաբերել Firefox-ը: Սա օգնում է մեզ զարգացնել Firefox-ը և կառուցել ավելի լավ համացանց</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Իմացեք ավելին շուկայավարման տվյալների մասին</string>
 
@@ -1053,6 +1051,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">Խափանումների զեկույցները մեզ օգնում են ախտորոշել և շտկել դիտարկիչի հետ կապված խնդիրները: Զեկույցները կարող են ներառել անձնական կամ զգայուն տվյալներ:</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Գործարկման ժամանակ Mozilla-ն ինքնաշխատ համօգտագործում է խափանումների տվյալները</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Իմանալ ավելին խափանումների զեկույցի մասին</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Ուսումնասիրություններ</string>
@@ -1215,7 +1216,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Գործուն</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s-ը կարող է ժամանակ առ ժամանակ տեղադրել և աշխատեցնել ուսումնասիրություններ:</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s-ը կարող է ժամանակ առ ժամանակ տեղադրել և աշխատեցնել ուսումնասիրություններ:</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Իմանալ ավելին</string>
 

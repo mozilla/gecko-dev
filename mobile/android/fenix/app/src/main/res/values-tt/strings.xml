@@ -811,7 +811,7 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Күбрәк белү</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Маркетинг мәгълүматлары</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Маркетинг мәгълүматлары</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Тикшеренүләр</string>

@@ -344,9 +344,9 @@
     <string name="exceptions_empty_message_learn_more_link">ပိုမိုလေ့လာရန်</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">သုံးဆွဲပုံ၊  စက်ပစ္စည်းအသေးစိတ် အချက်အလက် နှင့် ပြင်ဆင်ထားပုံများအား Mozilla နှင့် မျှဝေပြီး %1$s ကို ကောင်းအောင်လုပ်ရာတွင် ကူညီပါ</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">သုံးဆွဲပုံ၊  စက်ပစ္စည်းအသေးစိတ် အချက်အလက် နှင့် ပြင်ဆင်ထားပုံများအား Mozilla နှင့် မျှဝေပြီး %1$s ကို ကောင်းအောင်လုပ်ရာတွင် ကူညီပါ</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">စျေးကွက်ရှာဖွေရေးအချက်အလက်</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">စျေးကွက်ရှာဖွေရေးအချက်အလက်</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">လေ့လာရေး</string>

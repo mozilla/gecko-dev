@@ -513,8 +513,6 @@
     <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Hjelp oss med å gjere Firefox betre</string>
     <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_title">Send inn krasjrapportar automatisk</string>
-    <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Les meir om krasjrapportar</string>
     <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Les meir om bruksdata</string>
     <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Les meir</string>
@@ -964,9 +962,9 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Les meir</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Deler data om yting, bruksmønster, maskinvare og tilpassingar i nettlesaren din med Mozilla, for å hjelpe oss å gjere %1$s betre</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Deler data om yting, bruksmønster, maskinvare og tilpassingar i nettlesaren din med Mozilla, for å hjelpe oss å gjere %1$s betre</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Marknadsføringsdata</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marknadsføringsdata</string>
 
     <!-- Preference switch for daily usage ping data collection -->
     <string name="preferences_daily_usage_ping_title">Ping for dagleg bruk</string>
@@ -976,6 +974,9 @@
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Send inn krasjrapportar automatisk</string>
 
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Deler krasjdata automatisk ved oppstart av Mozilla, etter eit krasj</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Les meir om krasjrapportar</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">undersøking</string>
@@ -1142,9 +1143,9 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Aktiv</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s kan installere og køyre studiar frå tid til annan.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s kan installere og køyre studiar frå tid til annan.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">Installer og køyr studium</string>
+    <string name="studies_title">Installer og køyr studium</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Les meir</string>
     <!-- Dialog message shown after removing a study -->

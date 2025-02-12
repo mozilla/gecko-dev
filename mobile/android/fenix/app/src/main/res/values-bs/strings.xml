@@ -557,7 +557,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">Izvještaji o padu programa nam omogućavaju da dijagnosticiramo i popravimo probleme s pretraživačem. Izvještaji mogu uključivati lične ili osjetljive podatke.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Saznajte više o izvještajima o padu</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Saznajte više</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Pošaljite tehničke podatke i podatke o interakciji Mozilli</string>
@@ -598,6 +597,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Kako bi pomogao u poboljšanju pretraživača, Firefox šalje dijagnostičke podatke i podatke o interakciji Mozili. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Upravljaj</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Pomozite nam da razvijemo Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Kada podijelite kako ste otkrili Firefox i kako ga koristite, pomažete nam da naš pretraživač predstavimo većem broju ljudi.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Podijelite minimalne podatke s Mozilla-inim marketinškim tehnološkim partnerima. Ovi podaci se nikada ne prodaju niti koriste za prikazivanje oglasa.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Kako koristimo podatke</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Potvrdite i počnite pretraživati</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Odaberite položaj trake sa alatima</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1034,15 +1043,24 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Tehnički i interakcijski podaci</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Pošaljite tehničke podatke i podatke o interakciji</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Saznajte više</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Šalje podatke Mozilli o performansama, upotrebi, hardveru i prilagođenjima vašeg browsera kako bi nam pomogli da poboljšamo %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Šalje podatke Mozilli o performansama, upotrebi, hardveru i prilagođenjima vašeg browsera kako bi nam pomogli da poboljšamo %1$s</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Podaci o vašem uređaju, konfiguraciji hardvera i korištenju nam pomažu da poboljšamo Firefox karakteristike, performanse i stabilnost.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Marketinški podaci</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketinški podaci</string>
 
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2">Podaci mjerenja kampanje</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Podijelite informacije o tome kako ste otkrili Firefox s Mozilla-inim marketinškim partnerima. Ovo nam pomaže da razvijemo Firefox i izgradimo bolji internet</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Podijelite informacije o tome kako ste otkrili Firefox s Mozilla-inim marketinškim partnerima. Ovo nam pomaže da razvijemo Firefox i izgradimo bolji internet</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Podijelite kako ste otkrili Firefox i da ga koristite s Mozilla-inim marketinškim tehnološkim partnerima.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Saznajte više o marketinškim podacima</string>
 
@@ -1057,6 +1075,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">Ovo nam pomaže da dijagnosticiramo i riješimo probleme s preglednikom. Izvještaji mogu uključivati lične ili osjetljive podatke.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Automatski dijeli podatke o padu prilikom pokretanja s Mozilla-om nakon pada</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Saznajte više o izvještajima o padu</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studije</string>
@@ -1219,7 +1240,11 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Aktivno</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s može s vremena na vrijeme instalirati i pokrenuti studije.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s može s vremena na vrijeme instalirati i pokrenuti studije.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3">Isprobajte funkcije i ideje prije nego što budu puštene svima.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title">Instalirajte i pokrenite studije</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Saznajte više</string>
     <!-- Dialog message shown after removing a study -->
@@ -2033,6 +2058,8 @@
     <string name="about_privacy_notice">Pravila privatnosti</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Znajte vaša prava</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Uslovi korištenja</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Informacije o licenciranju</string>
     <!-- About page link text to open a screen with libraries that are used -->

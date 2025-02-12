@@ -866,9 +866,9 @@
     <string name="exceptions_empty_message_learn_more_link">Les mer</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Deler data om ytelse, bruksmønster, maskinvare og tilpasninger i din nettleser med Mozilla, for å hjelpe oss å gjøre %1$s bedre</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Deler data om ytelse, bruksmønster, maskinvare og tilpasninger i din nettleser med Mozilla, for å hjelpe oss å gjøre %1$s bedre</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Markedsføringsdata</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Markedsføringsdata</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Send inn krasjrapporter automatisk</string>
 
@@ -1035,7 +1035,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Aktiv</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s kan installere og kjøre studier fra tid til annen.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s kan installere og kjøre studier fra tid til annen.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Les mer</string>
     <!-- Dialog message shown after removing a study -->

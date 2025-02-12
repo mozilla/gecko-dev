@@ -567,7 +567,6 @@
     <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_description">Báo cáo sự cố cho phép chúng tôi chẩn đoán và khắc phục sự cố với trình duyệt. Báo cáo có thể bao gồm dữ liệu cá nhân hoặc nhạy cảm.</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Tìm hiểu thêm về báo cáo sự cố</string>
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Tìm hiểu thêm</string>
     <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_title">Gửi dữ liệu kỹ thuật và tương tác tới Mozilla</string>
@@ -1062,18 +1061,18 @@
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Tìm hiểu thêm</string>
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Chia sẻ hiệu năng, cách sử dụng, phần cứng và dữ liệu tùy biến liên quan đến trình duyệt của bạn với Mozilla để giúp chúng tôi tạo ra %1$s tốt hơn</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Chia sẻ hiệu năng, cách sử dụng, phần cứng và dữ liệu tùy biến liên quan đến trình duyệt của bạn với Mozilla để giúp chúng tôi tạo ra %1$s tốt hơn</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
     <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Dữ liệu về thiết bị, cấu hình phần cứng và cách sử dụng của bạn giúp chúng tôi cải thiện các tính năng, hiệu suất và độ ổn định của Firefox.</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Dữ liệu tiếp thị</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Dữ liệu tiếp thị</string>
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2" tools:ignore="UnusedResources">Dữ liệu đo lường chiến dịch</string>
+    <string name="preferences_marketing_data_2">Dữ liệu đo lường chiến dịch</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
-    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage">Chia sẻ thông tin về cách bạn khám phá Firefox với các đối tác tiếp thị của Mozilla. Điều này giúp chúng tôi phát triển Firefox và xây dựng một mạng Internet tốt hơn</string>
+    <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Chia sẻ thông tin về cách bạn khám phá Firefox với các đối tác tiếp thị của Mozilla. Điều này giúp chúng tôi phát triển Firefox và xây dựng một mạng Internet tốt hơn</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage, UnusedResources">Chia sẻ cách bạn phát hiện ra Firefox và bạn sử dụng nó với các đối tác công nghệ tiếp thị của Mozilla.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Chia sẻ cách bạn phát hiện ra Firefox và bạn sử dụng nó với các đối tác công nghệ tiếp thị của Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Tìm hiểu thêm về dữ liệu tiếp thị</string>
 
@@ -1088,6 +1087,9 @@
     <!-- Preference switch description for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_description">Điều này giúp chúng tôi chẩn đoán và khắc phục sự cố với trình duyệt. Báo cáo có thể bao gồm dữ liệu cá nhân hoặc nhạy cảm.</string>
     <string name="preferences_automatically_submit_crashes_description" moz:removedIn="136" tools:ignore="UnusedResources">Tự động chia sẻ dữ liệu sự cố khi khởi động với Mozilla sau khi xảy ra sự cố</string>
+
+    <!-- Learn more link for crash reporting preference -->
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Tìm hiểu thêm về báo cáo sự cố</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Nghiên cứu</string>
@@ -1249,11 +1251,11 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Hoạt động</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s có thể cài đặt và chạy các nghiên cứu theo thời gian.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s có thể cài đặt và chạy các nghiên cứu theo thời gian.</string>
     <!-- Description for studies -->
-    <string name="studies_description_3" tools:ignore="UnusedResources">Hãy thử các tính năng và ý tưởng trước khi chúng được phát hành cho mọi người.</string>
+    <string name="studies_description_3">Hãy thử các tính năng và ý tưởng trước khi chúng được phát hành cho mọi người.</string>
     <!-- Title of the Studies data preference -->
-    <string name="studies_title" tools:ignore="UnusedResources">Cài đặt và chạy nghiên cứu</string>
+    <string name="studies_title">Cài đặt và chạy nghiên cứu</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Tìm hiểu thêm</string>
 

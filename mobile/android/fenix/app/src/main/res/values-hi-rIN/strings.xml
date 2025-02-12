@@ -352,9 +352,9 @@
     <string name="exceptions_empty_message_learn_more_link">अधिक जानें</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Mozilla के साथ अपने ब्राउज़र के बारे में प्रदर्शन, उपयोग, हार्डवेयर और अनुकूलन डेटा साझा करना हमें %1$s को बेहतर बनाने में मदद करता है</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Mozilla के साथ अपने ब्राउज़र के बारे में प्रदर्शन, उपयोग, हार्डवेयर और अनुकूलन डेटा साझा करना हमें %1$s को बेहतर बनाने में मदद करता है</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">मार्केटिंग डेटा</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">मार्केटिंग डेटा</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">अध्ययन</string>

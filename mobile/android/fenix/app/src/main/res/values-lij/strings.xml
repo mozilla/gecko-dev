@@ -232,9 +232,9 @@
     <string name="exceptions_empty_message_learn_more_link">Atre informaçioin</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Condividdi con Mozilla informaçioin in sce prestaçioin, uzo, hardware e personalizaçioin do navegatô pe contribuî a-o megioamento de %1$s</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Condividdi con Mozilla informaçioin in sce prestaçioin, uzo, hardware e personalizaçioin do navegatô pe contribuî a-o megioamento de %1$s</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Dæti de marketing</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Dæti de marketing</string>
 
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">Acedi pe conetite torna</string>

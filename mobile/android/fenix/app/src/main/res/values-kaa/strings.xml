@@ -527,9 +527,9 @@
     <string name="exceptions_empty_message_learn_more_link">Tolıǵıraq úyreniw</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">%1$sdı jaqsılawǵa járdem beriw ushın brauzerińiz ónimdarlıǵı, qollanılıwı, úskene hám sazlawlar haqqındaǵı maǵlıwmatlardı Mozilla menen bólisiń</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">%1$sdı jaqsılawǵa járdem beriw ushın brauzerińiz ónimdarlıǵı, qollanılıwı, úskene hám sazlawlar haqqındaǵı maǵlıwmatlardı Mozilla menen bólisiń</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Marketing maǵlıwmatları</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Marketing maǵlıwmatları</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Izertlewler</string>
@@ -693,7 +693,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Aktiv</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">%1$s waqtı-waqtı menen izleniwlerdi ornatıwı hám júrgiziwi múmkin.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s waqtı-waqtı menen izleniwlerdi ornatıwı hám júrgiziwi múmkin.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Tolıǵıraq úyreniw</string>
     <!-- Dialog message shown after removing a study -->

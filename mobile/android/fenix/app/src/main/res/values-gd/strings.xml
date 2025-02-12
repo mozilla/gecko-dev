@@ -897,9 +897,9 @@
     <string name="exceptions_empty_message_learn_more_link">Barrachd fiosrachaidh</string>
 
     <!-- Preference description for usage and technical data collection -->
-    <string name="preferences_usage_data_description">Cuiridh seo dàta air dèanadas, cleachdadh, bathar-cruaidh agus gnàthachadh a’ bhrabhsair agad dha Mozilla ach an urrainn dhuinn %1$s a dhèanamh nas fheàrr fhathast</string>
+    <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Cuiridh seo dàta air dèanadas, cleachdadh, bathar-cruaidh agus gnàthachadh a’ bhrabhsair agad dha Mozilla ach an urrainn dhuinn %1$s a dhèanamh nas fheàrr fhathast</string>
     <!-- Preference switch for marketing data collection -->
-    <string name="preferences_marketing_data">Dàta margaideachd</string>
+    <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Dàta margaideachd</string>
 
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Cuir aithisgean tuislidh gu fèin-obrachail</string>
 
@@ -1064,7 +1064,7 @@
     <!-- Title of the active section on the studies list -->
     <string name="studies_active">Gnìomhach</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
-    <string name="studies_description_2">Faodaidh %1$s rannsachadh a stàladh is a ruith o àm gu àm.</string>
+    <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">Faodaidh %1$s rannsachadh a stàladh is a ruith o àm gu àm.</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Barrachd fiosrachaidh</string>
     <!-- Dialog message shown after removing a study -->
