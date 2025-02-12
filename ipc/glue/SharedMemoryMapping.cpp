@@ -54,12 +54,16 @@ static void RegisterMemoryReporter() {
 
 MappingBase::MappingBase() { RegisterMemoryReporter(); }
 
-MappingBase& MappingBase::operator=(MappingBase&& aOther) {
-  // Swap members with `aOther`, and unmap that mapping.
-  std::swap(aOther.mMemory, mMemory);
-  std::swap(aOther.mSize, mSize);
-  aOther.Unmap();
-  return *this;
+MappingBase::~MappingBase() {
+  if (IsValid()) {
+    Platform::Unmap(mMemory, mSize);
+
+    MOZ_ASSERT(MappingReporter::mapped >= mSize,
+               "Can't unmap more than mapped");
+    MappingReporter::mapped -= mSize;
+    mMemory = nullptr;
+    mSize = 0;
+  }
 }
 
 void* MappingBase::Data() const {
@@ -84,55 +88,22 @@ bool MappingBase::Map(const HandleBase& aHandle, void* aFixedAddress,
   // call will fail).
   CheckedInt<size_t> checkedSize(aHandle.Size());
   if (!checkedSize.isValid()) {
-    MOZ_LOG_FMT(gSharedMemoryLog, LogLevel::Error,
+    MOZ_LOG_FMT(gSharedMemoryLog, LogLevel::Warning,
                 "handle size to map exceeds address space size");
     return false;
   }
 
-  return MapSubregion(aHandle, /* aOffset */ 0, checkedSize.value(),
-                      aFixedAddress, aReadOnly);
-}
-
-bool MappingBase::MapSubregion(const HandleBase& aHandle, uint64_t aOffset,
-                               size_t aSize, void* aFixedAddress,
-                               bool aReadOnly) {
-  CheckedInt<uint64_t> endOffset(aOffset);
-  endOffset += aSize;
-  if (!endOffset.isValid() || endOffset.value() > aHandle.Size()) {
-    MOZ_LOG_FMT(gSharedMemoryLog, LogLevel::Error,
-                "cannot map region exceeding aHandle.Size()");
-    return false;
-  }
-
-  if (auto mem =
-          Platform::Map(aHandle, aOffset, aSize, aFixedAddress, aReadOnly)) {
+  if (auto mem = Platform::Map(aHandle, aFixedAddress, aReadOnly)) {
     mMemory = *mem;
-    mSize = aSize;
+    mSize = checkedSize.value();
     MappingReporter::mapped += mSize;
     return true;
   }
   return false;
 }
 
-void MappingBase::Unmap() {
-  if (IsValid()) {
-    Platform::Unmap(mMemory, mSize);
-
-    MOZ_ASSERT(MappingReporter::mapped >= mSize,
-               "Can't unmap more than mapped");
-    MappingReporter::mapped -= mSize;
-  }
-  mMemory = nullptr;
-  mSize = 0;
-}
-
 Mapping::Mapping(const Handle& aHandle, void* aFixedAddress) {
   Map(aHandle, aFixedAddress, false);
-}
-
-Mapping::Mapping(const Handle& aHandle, uint64_t aOffset, size_t aSize,
-                 void* aFixedAddress) {
-  MapSubregion(aHandle, aOffset, aSize, aFixedAddress, false);
 }
 
 ReadOnlyMapping::ReadOnlyMapping(const ReadOnlyHandle& aHandle,
@@ -140,22 +111,9 @@ ReadOnlyMapping::ReadOnlyMapping(const ReadOnlyHandle& aHandle,
   Map(aHandle, aFixedAddress, true);
 }
 
-ReadOnlyMapping::ReadOnlyMapping(const ReadOnlyHandle& aHandle,
-                                 uint64_t aOffset, size_t aSize,
-                                 void* aFixedAddress) {
-  MapSubregion(aHandle, aOffset, aSize, aFixedAddress, true);
-}
-
 FreezableMapping::FreezableMapping(FreezableHandle&& aHandle,
                                    void* aFixedAddress) {
   if (Map(aHandle, aFixedAddress, false)) {
-    mHandle = std::move(aHandle);
-  }
-}
-
-FreezableMapping::FreezableMapping(FreezableHandle&& aHandle, uint64_t aOffset,
-                                   size_t aSize, void* aFixedAddress) {
-  if (MapSubregion(aHandle, aOffset, aSize, aFixedAddress, false)) {
     mHandle = std::move(aHandle);
   }
 }
@@ -177,10 +135,6 @@ void* FindFreeAddressSpace(size_t aSize) {
 }
 
 size_t SystemPageSize() { return Platform::PageSize(); }
-
-size_t SystemAllocationGranularity() {
-  return Platform::AllocationGranularity();
-}
 
 size_t PageAlignedSize(size_t aMinimum) {
   const size_t pageSize = Platform::PageSize();
