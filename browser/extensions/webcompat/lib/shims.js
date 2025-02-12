@@ -272,10 +272,12 @@ class Shim {
     this.manager?.onShimStateChanged(this.id);
     if (!this.enabled) {
       await this._unregisterContentScripts();
-      return this._revokeRequestsInETP();
+      await this._revokeRequestsInETP();
+      return browser.testUtils.shimsInactive();
     }
     await this._registerContentScripts();
-    return this._allowRequestsInETP();
+    await this._allowRequestsInETP();
+    return browser.testUtils.shimsActive();
   }
 
   async _registerContentScripts() {
@@ -545,6 +547,8 @@ class Shim {
 
 class Shims {
   constructor(availableShims) {
+    browser.testUtils.shimsInactive();
+
     if (!browser.trackingProtection) {
       console.error("Required experimental add-on APIs for shims unavailable");
       return;

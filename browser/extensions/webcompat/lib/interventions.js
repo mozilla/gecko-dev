@@ -32,6 +32,7 @@ class Interventions {
   }
 
   bootup() {
+    browser.testUtils.interventionsInactive();
     browser.aboutConfigPrefs.onPrefChange.addListener(() => {
       this.checkInterventionPref();
     }, this.INTERVENTION_PREF);
@@ -94,6 +95,7 @@ class Interventions {
         interventionsChanged: false,
       });
 
+      browser.testUtils.interventionsInactive();
       done();
     });
 
@@ -150,6 +152,8 @@ class Interventions {
         this._availableInterventions
       ),
     });
+
+    await browser.testUtils.interventionsActive();
   }
 
   async enableIntervention(config) {
