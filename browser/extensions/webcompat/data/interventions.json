@@ -2499,6 +2499,21 @@
       }
     ]
   },
+  "1905607": {
+    "label": "10play.com.au",
+    "bugs": {
+      "1905607": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://10play.com.au/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
   "1909448": {
     "label": "fire.honeywell.com",
     "bugs": {
