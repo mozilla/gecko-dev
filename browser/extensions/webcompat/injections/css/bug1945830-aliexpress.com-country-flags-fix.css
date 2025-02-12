@@ -1,0 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * aliexpress.com - country flags are too small and overlap with other items.
+ * Bug #1945830 - https://bugzilla.mozilla.org/show_bug.cgi?id=1945830
+ *
+ * Country flags have an extra -moz-transform specified on top of using
+ * CSS Zooms, which causes the issues. This fix undoes that -moz-transform.
+ */
+[class*="country-flag-"] {
+  -moz-transform: none;
+}

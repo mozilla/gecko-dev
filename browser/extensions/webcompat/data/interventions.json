@@ -2704,5 +2704,22 @@
         }
       }
     ]
+  },
+  "1945830": {
+    "label": "aliexpress.com",
+    "bugs": {
+      "1945830": {
+        "issue": "broken-layout",
+        "matches": ["*://*.aliexpress.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "css": ["bug1945830-aliexpress.com-country-flags-fix.css"]
+        }
+      }
+    ]
   }
 }
