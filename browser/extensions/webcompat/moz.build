@@ -87,7 +87,6 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1457335-histography.io-ua-change.js",
     "injections/js/bug1472075-bankofamerica.com-ua-change.js",
     "injections/js/bug1579159-m.tailieu.vn-pdfjs-worker-disable.js",
-    "injections/js/bug1722955-frontgate.com-ua-override.js",
     "injections/js/bug1724868-news.yahoo.co.jp-ua-override.js",
     "injections/js/bug1739489-draftjs-beforeinput.js",
     "injections/js/bug1769762-tiktok.com-plugins-shim.js",

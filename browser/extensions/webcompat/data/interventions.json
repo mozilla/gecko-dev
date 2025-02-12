@@ -521,24 +521,6 @@
       }
     ]
   },
-  "1722955": {
-    "label": "frontgate.com",
-    "bugs": {
-      "1722955": {
-        "issue": "broken-layout",
-        "matches": ["*://*.frontgate.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["android"],
-        "content_scripts": {
-          "all_frames": true,
-          "js": ["lib/ua_helpers.js", "bug1722955-frontgate.com-ua-override.js"]
-        }
-      }
-    ]
-  },
   "1724868": {
     "label": "news.yahoo.co.jp",
     "bugs": {
@@ -1666,21 +1648,6 @@
         "content_scripts": {
           "css": ["bug1848849-theaa.com-printing-mode-fix.css"]
         }
-      }
-    ]
-  },
-  "1850455": {
-    "label": "frontgate.com",
-    "bugs": {
-      "1722955": {
-        "issue": "desktop-layout-not-mobile",
-        "matches": ["*://*.frontgate.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["android"],
-        "ua_string": ["add_Chrome"]
       }
     ]
   },
