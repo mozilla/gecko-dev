@@ -128,7 +128,6 @@ MODELINE_PATTERN = re.compile(rb"/(/|\*) -\*- .* -\*-( \*/)?[\r\n]+")
 UNSUPPORTED_FEATURES = [
     "async-iterator-helpers",
     "Iterator.range",
-    "record-tuple",
 ]
 
 UNSUPPORTED_PATHS = [
@@ -194,8 +193,6 @@ class ReftestEntry:
 
 
 def featureFromReftest(reftest: str) -> Optional[str]:
-    if reftest in ("Record", "Tuple"):
-        return "record-tuple"
     if reftest == "Iterator":
         return "iterator-helpers"
     if reftest == "AsyncIterator":

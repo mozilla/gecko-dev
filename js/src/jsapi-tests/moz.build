@@ -112,7 +112,6 @@ UNIFIED_SOURCES += [
     "testPromise.cpp",
     "testPropCache.cpp",
     "testPropertyKey.cpp",
-    "testRecordTupleToSource.cpp",
     "testRegExp.cpp",
     "testResolveRecursion.cpp",
     "testResult.cpp",
