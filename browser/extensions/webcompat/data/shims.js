@@ -692,6 +692,21 @@ const AVAILABLE_SHIMS = [
     onlyIfDFPIActive: true,
   },
   {
+    id: "MessengerLogin",
+    platform: "desktop",
+    name: "Messenger Login",
+    bug: "1934814",
+    needsShimHelpers: ["checkFacebookLoginStatus"],
+    contentScripts: [
+      {
+        js: "messengerLogin.js",
+        matches: ["*://www.messenger.com/*"],
+        runAt: "document_start",
+      },
+    ],
+    onlyIfDFPIActive: true,
+  },
+  {
     id: "MicrosoftLogin",
     platform: "desktop",
     name: "Microsoft Login",

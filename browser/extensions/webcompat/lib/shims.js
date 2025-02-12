@@ -939,7 +939,8 @@ class Shims {
       message !== "optIn" &&
       message !== "embedClicked" &&
       message !== "smartblockEmbedReplaced" &&
-      message !== "smartblockGetFluentString"
+      message !== "smartblockGetFluentString" &&
+      message !== "checkFacebookLoginStatus"
     ) {
       return undefined;
     }
@@ -994,6 +995,16 @@ class Shims {
         shimId,
         new URL(url).hostname
       );
+    } else if (message === "checkFacebookLoginStatus") {
+      // Verify that the user is logged in to Facebook by checking the c_user
+      // cookie.
+      let cookie = await browser.cookies.get({
+        url: "https://www.facebook.com",
+        name: "c_user",
+      });
+
+      // If the cookie is found, the user is logged in to Facebook.
+      return cookie != null;
     }
 
     return undefined;
