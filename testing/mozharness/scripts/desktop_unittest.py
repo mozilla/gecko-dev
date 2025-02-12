@@ -1326,6 +1326,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
             )
             ev.wait()
             process.stdin.write(b"p")
+            process.stdin.flush()
             process.wait()
 
         if suites:
