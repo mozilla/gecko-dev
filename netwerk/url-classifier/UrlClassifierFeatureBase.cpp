@@ -76,6 +76,10 @@ void UrlClassifierFeatureBase::InitializePreferences() {
     }
   }
 
+  if (!XRE_IsParentProcess()) {
+    return;
+  }
+
   nsCOMPtr<nsIUrlClassifierExceptionListService> exceptionListService =
       do_GetService("@mozilla.org/url-classifier/exception-list-service;1");
   if (NS_WARN_IF(!exceptionListService)) {
@@ -98,6 +102,10 @@ void UrlClassifierFeatureBase::ShutdownPreferences() {
     }
   }
 
+  if (!XRE_IsParentProcess()) {
+    return;
+  }
+
   nsCOMPtr<nsIUrlClassifierExceptionListService> exceptionListService =
       do_GetService("@mozilla.org/url-classifier/exception-list-service;1");
   if (exceptionListService) {
@@ -107,6 +115,9 @@ void UrlClassifierFeatureBase::ShutdownPreferences() {
 
 NS_IMETHODIMP
 UrlClassifierFeatureBase::OnExceptionListUpdate(const nsACString& aList) {
+  if (!XRE_IsParentProcess()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
   mExceptionHosts = aList;
   return NS_OK;
 }

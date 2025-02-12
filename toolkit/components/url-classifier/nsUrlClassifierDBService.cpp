@@ -2437,7 +2437,7 @@ NS_IMETHODIMP
 nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures(
     nsIURI* aURI, const nsTArray<RefPtr<nsIUrlClassifierFeature>>& aFeatures,
     nsIUrlClassifierFeature::listType aListType,
-    nsIUrlClassifierFeatureCallback* aCallback) {
+    nsIUrlClassifierFeatureCallback* aCallback, bool aIdlePriority) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (gShuttingDownThread) {
@@ -2528,7 +2528,7 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures(
 
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
       "nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures",
-      [worker, key, holder, callback, startTime]() -> void {
+      [worker, key, holder, callback, startTime, aIdlePriority]() -> void {
         holder->DoLocalLookup(key, worker);
 
         nsCOMPtr<nsIRunnable> cbRunnable = NS_NewRunnableFunction(
@@ -2546,10 +2546,18 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures(
                   const_cast<nsIUrlClassifierFeatureCallback*>(callback.get());
               cb->OnClassifyComplete(results);
             });
-
-        NS_DispatchToMainThread(cbRunnable);
+        if (aIdlePriority) {
+          NS_DispatchToMainThreadQueue(cbRunnable.forget(),
+                                       EventQueuePriority::Idle);
+        } else {
+          NS_DispatchToMainThread(cbRunnable);
+        }
       });
 
+  if (aIdlePriority) {
+    return NS_DispatchToThreadQueue(r.forget(), gDbBackgroundThread,
+                                    EventQueuePriority::Idle);
+  }
   return gDbBackgroundThread->Dispatch(r, NS_DISPATCH_NORMAL);
 }
 
