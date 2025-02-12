@@ -249,12 +249,13 @@ def mozharness_test_on_docker(config, job, taskdesc):
         )
         command.append("--download-symbols=" + download_symbols)
 
+    use_caches = test.get("use-caches", ["checkout", "pip", "uv"])
     job["run"] = {
         "workdir": run["workdir"],
         "tooltool-downloads": mozharness["tooltool-downloads"],
         "checkout": test["checkout"],
         "command": command,
-        "use-caches": ["checkout", "pip", "uv"],
+        "use-caches": use_caches,
         "using": "run-task",
     }
     configure_taskdesc_for_run(config, job, taskdesc, worker["implementation"])
@@ -485,11 +486,12 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
             }
         ]
 
+    use_caches = test.get("use-caches", ["checkout", "pip", "uv"])
     job["run"] = {
         "tooltool-downloads": mozharness["tooltool-downloads"],
         "checkout": test["checkout"],
         "command": mh_command,
-        "use-caches": ["checkout", "pip", "uv"],
+        "use-caches": use_caches,
         "using": "run-task",
     }
     if is_bitbar:
