@@ -35,6 +35,8 @@ const TEST_URI = `
           }
         }
       }
+
+      border-color: blanchedalmond;
     }
   </style>
   <h1>Hello <i class="foo">nested</i> <em id="bar">rules</em>!</h1>
@@ -56,6 +58,11 @@ add_task(async function () {
   await selectNode("body", inspector);
   checkRuleViewContent(view, [
     { selector: "element", ancestorRulesData: null, declarations: [] },
+    {
+      selector: "",
+      ancestorRulesData: [`body {`],
+      declarations: [{ name: "border-color", value: "blanchedalmond" }],
+    },
     {
       selector: ``,
       // prettier-ignore
