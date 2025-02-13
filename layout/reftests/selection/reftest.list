@@ -53,7 +53,7 @@ needs-focus == semitransparent-decoration-line.html semitransparent-decoration-l
 fuzzy-if(cocoaWidget,0-1,0-6) fuzzy-if(Android,0-188,0-39) needs-focus == writing-mode.html writing-mode-ref.html
 needs-focus fuzzy(0-5,0-1) == 1478604.html 1478604-ref.html # !webrender: Seems like an antialiasing+invalidation issue.
 
-needs-focus fuzzy(0-3,0-13) == disabled-1.html disabled-1-ref.html
+skip-if(Android&&emulator) needs-focus fuzzy(0-3,0-13) == disabled-1.html disabled-1-ref.html # Bug 1912571 for failures in Android emulator
 needs-focus != disabled-2.html disabled-2-notref.html
 
 == shadow-tree-order-1.html shadow-tree-order-1-ref.html
