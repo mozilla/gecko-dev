@@ -43,33 +43,49 @@ fn lerp(a: f32, b: f32, t: f32) -> f32 {
 }
 
 fn build_lut_matrix(lut: &lutType) -> Matrix {
-    let mut result: Matrix = Matrix { m: [[0.; 3]; 3] };
-    result.m[0][0] = s15Fixed16Number_to_float(lut.e00);
-    result.m[0][1] = s15Fixed16Number_to_float(lut.e01);
-    result.m[0][2] = s15Fixed16Number_to_float(lut.e02);
-    result.m[1][0] = s15Fixed16Number_to_float(lut.e10);
-    result.m[1][1] = s15Fixed16Number_to_float(lut.e11);
-    result.m[1][2] = s15Fixed16Number_to_float(lut.e12);
-    result.m[2][0] = s15Fixed16Number_to_float(lut.e20);
-    result.m[2][1] = s15Fixed16Number_to_float(lut.e21);
-    result.m[2][2] = s15Fixed16Number_to_float(lut.e22);
-    result
+    Matrix {
+        m: [
+            [
+                s15Fixed16Number_to_float(lut.e00),
+                s15Fixed16Number_to_float(lut.e01),
+                s15Fixed16Number_to_float(lut.e02),
+            ],
+            [
+                s15Fixed16Number_to_float(lut.e10),
+                s15Fixed16Number_to_float(lut.e11),
+                s15Fixed16Number_to_float(lut.e12),
+            ],
+            [
+                s15Fixed16Number_to_float(lut.e20),
+                s15Fixed16Number_to_float(lut.e21),
+                s15Fixed16Number_to_float(lut.e22),
+            ],
+        ],
+    }
 }
+
 fn build_mAB_matrix(lut: &lutmABType) -> Matrix {
-    let mut result: Matrix = Matrix { m: [[0.; 3]; 3] };
-
-    result.m[0][0] = s15Fixed16Number_to_float(lut.e00);
-    result.m[0][1] = s15Fixed16Number_to_float(lut.e01);
-    result.m[0][2] = s15Fixed16Number_to_float(lut.e02);
-    result.m[1][0] = s15Fixed16Number_to_float(lut.e10);
-    result.m[1][1] = s15Fixed16Number_to_float(lut.e11);
-    result.m[1][2] = s15Fixed16Number_to_float(lut.e12);
-    result.m[2][0] = s15Fixed16Number_to_float(lut.e20);
-    result.m[2][1] = s15Fixed16Number_to_float(lut.e21);
-    result.m[2][2] = s15Fixed16Number_to_float(lut.e22);
-
-    result
+    Matrix {
+        m: [
+            [
+                s15Fixed16Number_to_float(lut.e00),
+                s15Fixed16Number_to_float(lut.e01),
+                s15Fixed16Number_to_float(lut.e02),
+            ],
+            [
+                s15Fixed16Number_to_float(lut.e10),
+                s15Fixed16Number_to_float(lut.e11),
+                s15Fixed16Number_to_float(lut.e12),
+            ],
+            [
+                s15Fixed16Number_to_float(lut.e20),
+                s15Fixed16Number_to_float(lut.e21),
+                s15Fixed16Number_to_float(lut.e22),
+            ],
+        ],
+    }
 }
+
 //Based on lcms cmsLab2XYZ
 fn f(t: f32) -> f32 {
     if t <= 24. / 116. * (24. / 116.) * (24. / 116.) {
@@ -594,18 +610,15 @@ struct MatrixTransform {
 
 impl ModularTransform for MatrixTransform {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
-        let mut mat: Matrix = Matrix { m: [[0.; 3]; 3] };
         /* store the results in column major mode
          * this makes doing the multiplication with sse easier */
-        mat.m[0][0] = self.matrix.m[0][0];
-        mat.m[1][0] = self.matrix.m[0][1];
-        mat.m[2][0] = self.matrix.m[0][2];
-        mat.m[0][1] = self.matrix.m[1][0];
-        mat.m[1][1] = self.matrix.m[1][1];
-        mat.m[2][1] = self.matrix.m[1][2];
-        mat.m[0][2] = self.matrix.m[2][0];
-        mat.m[1][2] = self.matrix.m[2][1];
-        mat.m[2][2] = self.matrix.m[2][2];
+        let mat = Matrix {
+            m: [
+                [self.matrix.m[0][0], self.matrix.m[1][0], self.matrix.m[2][0]],
+                [self.matrix.m[0][1], self.matrix.m[1][1], self.matrix.m[2][1]],
+                [self.matrix.m[0][2], self.matrix.m[1][2], self.matrix.m[2][2]],
+            ],
+        };
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(3)) {
             let in_r: f32 = src[0];
             let in_g: f32 = src[1];

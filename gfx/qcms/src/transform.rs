@@ -235,54 +235,60 @@ fn build_RGB_to_XYZ_transfer_matrix(
     white: qcms_CIE_xyY,
     primrs: qcms_CIE_xyYTRIPLE,
 ) -> Option<Matrix> {
-    let mut primaries: Matrix = Matrix { m: [[0.; 3]; 3] };
-
-    let mut result: Matrix = Matrix { m: [[0.; 3]; 3] };
-    let mut white_point: Vector = Vector { v: [0.; 3] };
-
-    let xn: f64 = white.x;
-    let yn: f64 = white.y;
-    if yn == 0.0f64 {
+    let xn = white.x;
+    let yn = white.y;
+    if yn == 0.0 {
         return None;
     }
 
-    let xr: f64 = primrs.red.x;
-    let yr: f64 = primrs.red.y;
-    let xg: f64 = primrs.green.x;
-    let yg: f64 = primrs.green.y;
-    let xb: f64 = primrs.blue.x;
-    let yb: f64 = primrs.blue.y;
-    primaries.m[0][0] = xr as f32;
-    primaries.m[0][1] = xg as f32;
-    primaries.m[0][2] = xb as f32;
-    primaries.m[1][0] = yr as f32;
-    primaries.m[1][1] = yg as f32;
-    primaries.m[1][2] = yb as f32;
-    primaries.m[2][0] = (1f64 - xr - yr) as f32;
-    primaries.m[2][1] = (1f64 - xg - yg) as f32;
-    primaries.m[2][2] = (1f64 - xb - yb) as f32;
-    white_point.v[0] = (xn / yn) as f32;
-    white_point.v[1] = 1.;
-    white_point.v[2] = ((1.0f64 - xn - yn) / yn) as f32;
-    let primaries_invert: Matrix = primaries.invert()?;
+    let xr = primrs.red.x;
+    let yr = primrs.red.y;
+    let xg = primrs.green.x;
+    let yg = primrs.green.y;
+    let xb = primrs.blue.x;
+    let yb = primrs.blue.y;
+    let primaries = Matrix {
+        m: [
+            [xr as f32, xg as f32, xb as f32],
+            [yr as f32, yg as f32, yb as f32],
+            [
+                (1. - xr - yr) as f32,
+                (1. - xg - yg) as f32,
+                (1. - xb - yb) as f32,
+            ],
+        ],
+    };
+    let white_point = Vector {
+        v: [(xn / yn) as f32, 1., ((1. - xn - yn) / yn) as f32],
+    };
+    let primaries_invert = primaries.invert()?;
 
-    let coefs: Vector = primaries_invert.eval(white_point);
-    result.m[0][0] = (coefs.v[0] as f64 * xr) as f32;
-    result.m[0][1] = (coefs.v[1] as f64 * xg) as f32;
-    result.m[0][2] = (coefs.v[2] as f64 * xb) as f32;
-    result.m[1][0] = (coefs.v[0] as f64 * yr) as f32;
-    result.m[1][1] = (coefs.v[1] as f64 * yg) as f32;
-    result.m[1][2] = (coefs.v[2] as f64 * yb) as f32;
-    result.m[2][0] = (coefs.v[0] as f64 * (1.0f64 - xr - yr)) as f32;
-    result.m[2][1] = (coefs.v[1] as f64 * (1.0f64 - xg - yg)) as f32;
-    result.m[2][2] = (coefs.v[2] as f64 * (1.0f64 - xb - yb)) as f32;
-    Some(result)
+    let coefs = primaries_invert.eval(white_point);
+    Some(Matrix {
+        m: [
+            [
+                (coefs.v[0] as f64 * xr) as f32,
+                (coefs.v[1] as f64 * xg) as f32,
+                (coefs.v[2] as f64 * xb) as f32,
+            ],
+            [
+                (coefs.v[0] as f64 * yr) as f32,
+                (coefs.v[1] as f64 * yg) as f32,
+                (coefs.v[2] as f64 * yb) as f32,
+            ],
+            [
+                (coefs.v[0] as f64 * (1. - xr - yr)) as f32,
+                (coefs.v[1] as f64 * (1. - xg - yg)) as f32,
+                (coefs.v[2] as f64 * (1. - xb - yb)) as f32,
+            ],
+        ],
+    })
 }
 /* CIE Illuminant D50 */
 const D50_XYZ: CIE_XYZ = CIE_XYZ {
-    X: 0.9642f64,
-    Y: 1.0000f64,
-    Z: 0.8249f64,
+    X: 0.9642,
+    Y: 1.0000,
+    Z: 0.8249,
 };
 /* from lcms: xyY2XYZ()
  * corresponds to argyll: icmYxy2XYZ() */
@@ -304,31 +310,33 @@ fn compute_chromatic_adaption(
     dest_white_point: CIE_XYZ,
     chad: Matrix,
 ) -> Option<Matrix> {
-    let mut cone_source_XYZ: Vector = Vector { v: [0.; 3] };
+    let chad_inv = chad.invert()?;
 
-    let mut cone_dest_XYZ: Vector = Vector { v: [0.; 3] };
+    let mut cone_source_XYZ = Vector {
+        v: [
+            source_white_point.X as f32,
+            source_white_point.Y as f32,
+            source_white_point.Z as f32,
+        ],
+    };
+    let cone_source_rgb = chad.eval(cone_source_XYZ);
+    let mut cone_dest_XYZ = Vector {
+        v: [
+            dest_white_point.X as f32,
+            dest_white_point.Y as f32,
+            dest_white_point.Z as f32,
+        ],
+    };
+    let cone_dest_rgb = chad.eval(cone_dest_XYZ);
 
-    let mut cone: Matrix = Matrix { m: [[0.; 3]; 3] };
+    let mut cone = Matrix {
+        m: [
+            [cone_dest_rgb.v[0] / cone_source_rgb.v[0], 0., 0.],
+            [0., cone_dest_rgb.v[1] / cone_source_rgb.v[1], 0.],
+            [0., 0., cone_dest_rgb.v[2] / cone_source_rgb.v[2]],
+        ],
+    };
 
-    let chad_inv: Matrix = chad.invert()?;
-    cone_source_XYZ.v[0] = source_white_point.X as f32;
-    cone_source_XYZ.v[1] = source_white_point.Y as f32;
-    cone_source_XYZ.v[2] = source_white_point.Z as f32;
-    cone_dest_XYZ.v[0] = dest_white_point.X as f32;
-    cone_dest_XYZ.v[1] = dest_white_point.Y as f32;
-    cone_dest_XYZ.v[2] = dest_white_point.Z as f32;
-
-    let cone_source_rgb: Vector = chad.eval(cone_source_XYZ);
-    let cone_dest_rgb: Vector = chad.eval(cone_dest_XYZ);
-    cone.m[0][0] = cone_dest_rgb.v[0] / cone_source_rgb.v[0];
-    cone.m[0][1] = 0.;
-    cone.m[0][2] = 0.;
-    cone.m[1][0] = 0.;
-    cone.m[1][1] = cone_dest_rgb.v[1] / cone_source_rgb.v[1];
-    cone.m[1][2] = 0.;
-    cone.m[2][0] = 0.;
-    cone.m[2][1] = 0.;
-    cone.m[2][2] = cone_dest_rgb.v[2] / cone_source_rgb.v[2];
     // Normalize
     Some(Matrix::multiply(chad_inv, Matrix::multiply(cone, chad)))
 }
@@ -336,7 +344,7 @@ fn compute_chromatic_adaption(
 // Returns the final chrmatic adaptation from illuminant FromIll to Illuminant ToIll
 // Bradford is assumed
 fn adaption_matrix(source_illumination: CIE_XYZ, target_illumination: CIE_XYZ) -> Option<Matrix> {
-    let lam_rigg: Matrix = {
+    let lam_rigg = {
         Matrix {
             m: [
                 [0.8951, 0.2664, -0.1614],
@@ -354,7 +362,7 @@ fn adapt_matrix_to_D50(r: Option<Matrix>, source_white_pt: qcms_CIE_xyY) -> Opti
     }
 
     let Dn: CIE_XYZ = xyY2XYZ(source_white_pt);
-    let Bradford: Matrix = adaption_matrix(Dn, D50_XYZ)?;
+    let Bradford = adaption_matrix(Dn, D50_XYZ)?;
     Some(Matrix::multiply(Bradford, r?))
 }
 pub(crate) fn set_rgb_colorants(
@@ -1391,11 +1399,11 @@ pub fn transform_create(
 
         /* build combined colorant matrix */
 
-        let in_matrix: Matrix = build_colorant_matrix(input);
-        let mut out_matrix: Matrix = build_colorant_matrix(output);
+        let in_matrix = build_colorant_matrix(input);
+        let mut out_matrix = build_colorant_matrix(output);
         out_matrix = out_matrix.invert()?;
 
-        let result_0: Matrix = Matrix::multiply(out_matrix, in_matrix);
+        let result_0 = Matrix::multiply(out_matrix, in_matrix);
         /* check for NaN values in the matrix and bail if we find any */
         let mut i: u32 = 0;
         while i < 3 {
