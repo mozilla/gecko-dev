@@ -97,6 +97,7 @@ class SelectableProfileServiceClass {
   #observedPrefs = null;
   #badge = null;
   static #dirSvc = null;
+  #windowActivated = null;
 
   // The initial preferences that will be shared amongst profiles. Only used during database
   // creation, after that the set in the database is used.
@@ -346,6 +347,16 @@ class SelectableProfileServiceClass {
       );
     } catch {}
 
+    // On macOS when other applications request we open a url the most recent
+    // window becomes activated first. This would cause the default profile to
+    // change before we determine which profile to open the url in. By
+    // introducing a small delay we can process the urls before changing the
+    // default profile.
+    this.#windowActivated = new DeferredTask(
+      async () => this.setDefaultProfileForGroup(),
+      500
+    );
+
     // The 'activate' event listeners use #currentProfile, so this line has
     // to come after #currentProfile has been set.
     this.initWindowTracker();
@@ -507,7 +518,7 @@ class SelectableProfileServiceClass {
   async handleEvent(event) {
     switch (event.type) {
       case "activate": {
-        this.setDefaultProfileForGroup();
+        this.#windowActivated.arm();
         if ("nsIWinTaskbar" in Ci && this.#badge) {
           let iconController = TASKBAR_ICON_CONTROLLERS.get(event.target);
 
@@ -1480,7 +1491,48 @@ export class CommandLineHandler {
       if (win) {
         win.focus();
         cmdLine.preventDefault = true;
+        return;
       }
+    }
+
+    // On macOS requests to open URLs from other applications in an already running Firefox are
+    // passed directly to the running instance via the
+    // [MacApplicationDelegate::openURLs](https://searchfox.org/mozilla-central/rev/b0b003e992b199fd8e13999bd5d06d06c84a3fd2/toolkit/xre/MacApplicationDelegate.mm#323-326)
+    // API. This means it skips over the step in startup where we choose the correct profile to open
+    // the link in. Here we intercept such requests.
+    if (
+      cmdLine.state == Ci.nsICommandLine.STATE_REMOTE_EXPLICIT &&
+      Services.appinfo.OS === "Darwin"
+    ) {
+      // If we aren't enabled or initialized there can't be other profiles.
+      if (
+        !SelectableProfileService.isEnabled ||
+        !SelectableProfileService.initialized
+      ) {
+        return;
+      }
+
+      if (!cmdLine.length) {
+        return;
+      }
+
+      // Ideally here we would be able to find which profile we should load the link in, to do so we
+      // would need to load `profiles.ini` as we can't rely on the current in-memory state in
+      // `nsIToolkitProfileService`. But we have to handle the command line synchronously. So we
+      // just assume that the current profile may not be correct and re-launch Firefox with the
+      // command line and let the startup code figure out which profile to use. If necessary it will
+      // remote the command line back to this instance.
+
+      let args = ["-foreground"];
+      for (let i = 0; i < cmdLine.length; i++) {
+        args.push(cmdLine.getArgument(i));
+      }
+
+      cmdLine.removeArguments(0, cmdLine.length - 1);
+      cmdLine.preventDefault = true;
+
+      let process = SelectableProfileService.getExecutableProcess();
+      process.runw(false, args, args.length);
     }
   }
 }
