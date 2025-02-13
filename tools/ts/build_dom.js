@@ -74,16 +74,16 @@ function customize(all) {
 // Preprocess, convert, merge and customize webidl, emit and postprocess dts.
 async function emitDom(webidls, builtin = "builtin.webidl") {
   const { merge } = await import(
-    "TypeScript-DOM-lib-generator/lib/build/helpers.js"
+    "@typescript/dom-lib-generator/lib/build/helpers.js"
   );
   const { emitWebIdl } = await import(
-    "TypeScript-DOM-lib-generator/lib/build/emitter.js"
+    "@typescript/dom-lib-generator/lib/build/emitter.js"
   );
   const { convert } = await import(
-    "TypeScript-DOM-lib-generator/lib/build/widlprocess.js"
+    "@typescript/dom-lib-generator/lib/build/widlprocess.js"
   );
   const { getExposedTypes } = await import(
-    "TypeScript-DOM-lib-generator/lib/build/expose.js"
+    "@typescript/dom-lib-generator/lib/build/expose.js"
   );
 
   function mergePartial(partials, bases) {
@@ -118,9 +118,9 @@ async function emitDom(webidls, builtin = "builtin.webidl") {
   customize(all);
   let exposed = getExposedTypes(all, ["Window"], new Set());
   let dts = await Promise.all([
-    emitWebIdl(exposed, "Window", ""),
-    emitWebIdl(exposed, "Window", "sync"),
-    emitWebIdl(exposed, "Window", "async"),
+    emitWebIdl(exposed, "Window", "", {}),
+    emitWebIdl(exposed, "Window", "sync", {}),
+    emitWebIdl(exposed, "Window", "async", {}),
   ]);
   return postprocess(dts.join("\n"));
 }
