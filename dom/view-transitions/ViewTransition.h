@@ -9,6 +9,7 @@
 #include "nsWrapperCache.h"
 #include "nsAtomHashKeys.h"
 #include "nsClassHashtable.h"
+#include "nsRefPtrHashtable.h"
 
 class nsIGlobalObject;
 class nsITimer;
@@ -16,6 +17,7 @@ class nsITimer;
 namespace mozilla {
 
 class ErrorResult;
+struct StyleLockedDeclarationBlock;
 
 namespace gfx {
 class DataSourceSurface;
@@ -65,6 +67,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
 
   Element* GetRoot() const { return mViewTransitionRoot; }
   gfx::DataSourceSurface* GetOldSurface(nsAtom* aName) const;
+
+  const StyleLockedDeclarationBlock* GetDynamicRuleFor(const Element&) const;
 
   nsIGlobalObject* GetParentObject() const;
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;

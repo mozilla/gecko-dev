@@ -893,6 +893,14 @@ pub trait TElement:
     ) where
         V: Push<ApplicableDeclarationBlock>;
 
+    /// Generate the proper applicable declarations due to view transition dynamic rules, and
+    /// insert them into `rules`.
+    /// https://drafts.csswg.org/css-view-transitions-1/#document-dynamic-view-transition-style-sheet
+    fn synthesize_view_transition_dynamic_rules<V>(&self, _rules: &mut V)
+    where
+        V: Push<ApplicableDeclarationBlock>
+    {}
+
     /// Returns element's local name.
     fn local_name(&self) -> &<SelectorImpl as selectors::parser::SelectorImpl>::BorrowedLocalName;
 

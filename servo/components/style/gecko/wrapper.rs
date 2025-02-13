@@ -1683,6 +1683,22 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { bindings::Gecko_IsDocumentBody(self.0) }
     }
 
+    fn synthesize_view_transition_dynamic_rules<V>(&self, rules: &mut V)
+    where
+        V: Push<ApplicableDeclarationBlock>,
+    {
+        use crate::stylesheets::layer_rule::LayerOrder;
+        let declarations =
+            unsafe { bindings::Gecko_GetViewTransitionDynamicRule(self.0).as_ref() };
+        if let Some(decl) = declarations {
+            rules.push(ApplicableDeclarationBlock::from_declarations(
+                unsafe { Arc::from_raw_addrefed(decl) },
+                ServoCascadeLevel::UANormal,
+                LayerOrder::root(),
+            ));
+        }
+    }
+
     fn synthesize_presentational_hints_for_legacy_attributes<V>(
         &self,
         visited_handling: VisitedHandlingMode,

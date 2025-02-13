@@ -180,6 +180,9 @@ const mozilla::StyleLockedDeclarationBlock* Gecko_GetStyleAttrDeclarationBlock(
 
 void Gecko_UnsetDirtyStyleAttr(const mozilla::dom::Element* element);
 
+const mozilla::StyleLockedDeclarationBlock* Gecko_GetViewTransitionDynamicRule(
+    const mozilla::dom::Element* element);
+
 const mozilla::StyleLockedDeclarationBlock*
 Gecko_GetHTMLPresentationAttrDeclarationBlock(
     const mozilla::dom::Element* element);

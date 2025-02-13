@@ -25,6 +25,7 @@
 #include "nsLayoutUtils.h"
 #include "nsIContentInlines.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/dom/ViewTransition.h"
 #include "nsILoadContext.h"
 #include "nsIFrame.h"
 #include "nsINode.h"
@@ -405,6 +406,15 @@ void Gecko_UnsetDirtyStyleAttr(const Element* aElement) {
 const StyleLockedDeclarationBlock*
 Gecko_GetHTMLPresentationAttrDeclarationBlock(const Element* aElement) {
   return aElement->GetMappedAttributeStyle();
+}
+
+const StyleLockedDeclarationBlock* Gecko_GetViewTransitionDynamicRule(
+    const Element* aElement) {
+  const auto* vt = aElement->OwnerDoc()->GetActiveViewTransition();
+  if (!vt) {
+    return nullptr;
+  }
+  return vt->GetDynamicRuleFor(*aElement);
 }
 
 const StyleLockedDeclarationBlock* Gecko_GetExtraContentStyleDeclarations(

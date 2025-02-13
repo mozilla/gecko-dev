@@ -86,6 +86,9 @@ static RefPtr<gfx::DataSourceSurface> CaptureFallbackSnapshot(
 
 struct CapturedElementOldState {
   RefPtr<gfx::DataSourceSurface> mImage;
+  // Whether we tried to capture an image. Note we might fail to get a
+  // snapshot, so this might not be the same as !!mImage.
+  bool mTriedImage = false;
 
   // Encompasses width and height.
   nsSize mSize;
@@ -99,6 +102,7 @@ struct CapturedElementOldState {
   CapturedElementOldState(nsIFrame* aFrame,
                           const nsSize& aSnapshotContainingBlockSize)
       : mImage(CaptureFallbackSnapshot(aFrame)),
+        mTriedImage(true),
         mSize(aFrame->Style()->IsRootElementStyle()
                   ? aSnapshotContainingBlockSize
                   : aFrame->GetRect().Size()),
@@ -121,8 +125,15 @@ struct ViewTransition::CapturedElement {
   CapturedElement(nsIFrame* aFrame, const nsSize& aSnapshotContainingBlockSize)
       : mOldState(aFrame, aSnapshotContainingBlockSize) {}
 
-  // TODO: Style definitions as per:
-  // https://drafts.csswg.org/css-view-transitions/#captured-element-style-definitions
+  // https://drafts.csswg.org/css-view-transitions-1/#captured-element-style-definitions
+  // The group animation-name rule and group styles rule, merged into one.
+  RefPtr<StyleLockedDeclarationBlock> mGroupRule;
+  // The image pair isolation rule.
+  RefPtr<StyleLockedDeclarationBlock> mImagePairRule;
+  // The rules for ::view-transition-old(<name>).
+  RefPtr<StyleLockedDeclarationBlock> mOldRule;
+  // The rules for ::view-transition-new(<name>).
+  RefPtr<StyleLockedDeclarationBlock> mNewRule;
 };
 
 static inline void ImplCycleCollectionTraverse(
@@ -153,7 +164,7 @@ ViewTransition::ViewTransition(Document& aDoc,
 ViewTransition::~ViewTransition() { ClearTimeoutTimer(); }
 
 gfx::DataSourceSurface* ViewTransition::GetOldSurface(nsAtom* aName) const {
-  auto el = mNamedElements.Get(aName);
+  auto* el = mNamedElements.Get(aName);
   if (NS_WARN_IF(!el)) {
     return nullptr;
   }
@@ -339,6 +350,23 @@ static already_AddRefed<Element> MakePseudo(Document& aDoc,
   return el.forget();
 }
 
+static void SetProp(StyleLockedDeclarationBlock* aDecls, Document* aDoc,
+                    const nsACString& aProp, const nsACString& aValue) {
+  Servo_DeclarationBlock_SetProperty(
+      aDecls, &aProp, &aValue,
+      /* is_important = */ false, aDoc->DefaultStyleAttrURLData(),
+      StyleParsingMode::DEFAULT, eCompatibility_FullStandards,
+      aDoc->CSSLoader(), StyleCssRuleType::Style, {});
+}
+
+static StyleLockedDeclarationBlock* EnsureRule(
+    RefPtr<StyleLockedDeclarationBlock>& aRule) {
+  if (!aRule) {
+    aRule = Servo_DeclarationBlock_CreateEmpty().Consume();
+  }
+  return aRule.get();
+}
+
 // https://drafts.csswg.org/css-view-transitions-1/#setup-transition-pseudo-elements
 void ViewTransition::SetupTransitionPseudoElements() {
   MOZ_ASSERT(!mViewTransitionRoot);
@@ -370,7 +398,7 @@ void ViewTransition::SetupTransitionPseudoElements() {
     constexpr bool kNotify = false;
 
     nsAtom* transitionName = entry.GetKey();
-    const CapturedElement& capturedElement = *entry.GetData();
+    CapturedElement& capturedElement = *entry.GetData();
     // Let group be a new ::view-transition-group(), with its view transition
     // name set to transitionName.
     RefPtr<Element> group = MakePseudo(
@@ -384,7 +412,7 @@ void ViewTransition::SetupTransitionPseudoElements() {
     // Append imagePair to group.
     group->AppendChildTo(imagePair, kNotify, IgnoreErrors());
     // If capturedElement's old image is not null, then:
-    if (capturedElement.mOldState.mImage) {
+    if (capturedElement.mOldState.mTriedImage) {
       // Let old be a new ::view-transition-old(), with its view transition
       // name set to transitionName, displaying capturedElement's old image as
       // its replaced content.
@@ -392,6 +420,14 @@ void ViewTransition::SetupTransitionPseudoElements() {
           *mDocument, PseudoStyleType::viewTransitionOld, transitionName);
       // Append old to imagePair.
       imagePair->AppendChildTo(old, kNotify, IgnoreErrors());
+    } else {
+      // Moved around for simplicity. If capturedElement's old image is null,
+      // then: Assert: capturedElement's new element is not null.
+      MOZ_ASSERT(capturedElement.mNewElement);
+      // Set capturedElement's image animation name rule to a new ...
+      auto* rule = EnsureRule(capturedElement.mNewRule);
+      SetProp(rule, mDocument, "animation-name"_ns,
+              "-ua-view-transition-fade-in"_ns);
     }
     // If capturedElement's new element is not null, then:
     if (capturedElement.mNewElement) {
@@ -401,9 +437,41 @@ void ViewTransition::SetupTransitionPseudoElements() {
           *mDocument, PseudoStyleType::viewTransitionNew, transitionName);
       // Append new to imagePair.
       imagePair->AppendChildTo(new_, kNotify, IgnoreErrors());
+    } else {
+      // Moved around from the next step for simplicity.
+      // Assert: capturedElement's old image is not null.
+      // Set capturedElement's image animation name rule to a new CSSStyleRule
+      // representing the following CSS, and append it to document’s dynamic
+      // view transition style sheet:
+      MOZ_ASSERT(capturedElement.mOldState.mTriedImage);
+      auto* rule = EnsureRule(capturedElement.mOldRule);
+      SetProp(rule, mDocument, "animation-name"_ns,
+              "-ua-view-transition-fade-out"_ns);
     }
-    // TODO(emilio): Dynamic UA sheet shenanigans. Seems we could have a custom
-    // element class with a transition-specific
+    // If both of capturedElement's old image and new element are not null,
+    // then:
+    if (capturedElement.mOldState.mTriedImage && capturedElement.mNewElement) {
+      nsAutoCString dynamicAnimationName;
+      transitionName->ToUTF8String(dynamicAnimationName);
+      dynamicAnimationName.InsertLiteral("-ua-view-transition-group-anim-", 0);
+
+      // TODO(emilio): Group keyframes.
+      // Set capturedElement's group animation name rule to ...
+      SetProp(EnsureRule(capturedElement.mGroupRule), mDocument,
+              "animation-name"_ns, dynamicAnimationName);
+
+      // Set capturedElement's image pair isolation rule to ...
+      SetProp(EnsureRule(capturedElement.mImagePairRule), mDocument,
+              "isolation"_ns, "isolate"_ns);
+
+      // Set capturedElement's image animation name rule to ...
+      SetProp(
+          EnsureRule(capturedElement.mOldRule), mDocument, "animation-name"_ns,
+          "-ua-view-transition-fade-out, -ua-mix-blend-mode-plus-lighter"_ns);
+      SetProp(
+          EnsureRule(capturedElement.mNewRule), mDocument, "animation-name"_ns,
+          "-ua-view-transition-fade-in, -ua-mix-blend-mode-plus-lighter"_ns);
+    }
   }
   BindContext context(*docElement, BindContext::ForNativeAnonymous);
   if (NS_FAILED(mViewTransitionRoot->BindToTree(context, *docElement))) {
@@ -481,6 +549,31 @@ nsRect ViewTransition::SnapshotContainingBlockRect() const {
   // TODO(emilio): Ensure this is correct with Android's dynamic toolbar and
   // scrollbars.
   return pc ? pc->GetVisibleArea() : nsRect();
+}
+
+const StyleLockedDeclarationBlock* ViewTransition::GetDynamicRuleFor(
+    const Element& aElement) const {
+  if (!aElement.HasName()) {
+    return nullptr;
+  }
+  nsAtom* name = aElement.GetParsedAttr(nsGkAtoms::name)->GetAtomValue();
+  auto* capture = mNamedElements.Get(name);
+  if (!capture) {
+    return nullptr;
+  }
+
+  switch (aElement.GetPseudoElementType()) {
+    case PseudoStyleType::viewTransitionNew:
+      return capture->mNewRule.get();
+    case PseudoStyleType::viewTransitionOld:
+      return capture->mOldRule.get();
+    case PseudoStyleType::viewTransitionImagePair:
+      return capture->mImagePairRule.get();
+    case PseudoStyleType::viewTransitionGroup:
+      return capture->mGroupRule.get();
+    default:
+      return nullptr;
+  }
 }
 
 // FIXME(emilio): This should actually iterate in paint order.
@@ -663,13 +756,11 @@ void ViewTransition::HandleFrame() {
       finished->MaybeResolveWithUndefined();
     }
     return;
-  } else {
-    // If the view tranimation is still animating after HandleFrame(),
-    // we have to periodically perform operations to check if it is still
-    // animating in the following ticks.
-    mDocument->EnsureViewTransitionOperationsHappen();
   }
-
+  // If the view tranimation is still animating after HandleFrame(),
+  // we have to periodically perform operations to check if it is still
+  // animating in the following ticks.
+  mDocument->EnsureViewTransitionOperationsHappen();
   // TODO(emilio): Steps 5-6 (check CB size, update pseudo styles).
 }
 
