@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Kivu nuu pestañas ka̱a̱ nánuku</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Chuva´a yaku datos del lado del cliente</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Chuva´a yaku datos del lado del cliente</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Kivu nuu satiñu ka̱a̱ nánuku saa nánukunu</string>
     <!-- Description for bookmarks permission. -->

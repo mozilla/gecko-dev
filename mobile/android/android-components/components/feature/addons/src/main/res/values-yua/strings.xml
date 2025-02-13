@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Tsáabaltio\'ob áantaj le fichas navegador</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Almacenar jump\'éel cantidad ilimitada u datos ti\' le tséel le cliente</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Almacenar jump\'éel cantidad ilimitada u datos ti\' le tséel le cliente</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Tsáabaltio\'ob áantaj le actividad le navegador ka\' jo\'op\' u navega</string>
     <!-- Description for bookmarks permission. -->

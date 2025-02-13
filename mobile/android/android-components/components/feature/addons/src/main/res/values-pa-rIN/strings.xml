@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ਬਰਾਊਜ਼ਰ ਟੈਬਾਂ ਲਈ ਪਹੁੰਚ</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">ਬੇਅੰਤ ਕਲਾਈਂਟ ਪੱਖੀ ਡਾਟਾ ਨੂੰ ਸੰਭਾਲੋ</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ਬੇਅੰਤ ਕਲਾਈਂਟ ਪੱਖੀ ਡਾਟਾ ਨੂੰ ਸੰਭਾਲੋ</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">ਨੇਵੀਗੇਸ਼ਨ ਦੌਰਾਨ ਬਰਾਊਜ਼ਰ ਸਰਗਰਮੀ ਲਈ ਪਹੁੰਚ</string>
     <!-- Description for bookmarks permission. -->

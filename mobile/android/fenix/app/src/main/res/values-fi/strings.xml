@@ -619,6 +619,8 @@
     <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Kun kerrot kuinka löysit Firefoxin ja miten käytät sitä, autat meitä esittelemään selaimemme entistä useammalle ihmiselle.</string>
     <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
     <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Jaa mahdollisimman vähän tietoa Mozillan markkinointiteknologiakumppaneiden kanssa. Näitä tietoja ei koskaan myydä tai käytetä mainosten esittämiseen sinulle.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Kuinka käytämme tietoja</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Vahvista ja aloita selaaminen</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->

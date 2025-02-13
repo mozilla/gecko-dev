@@ -7,7 +7,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ವೀಕ್ಷಕದ ಹಾಳೆಗಳನ್ನು ಪ್ರವೇಶಿಸಿ</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">ಬಳಸುವವರ ಕಡೆ ದತ್ತಾಂಶವನ್ನು ಅಪರಿಮಿತ ಪ್ರಮಾಣದಲ್ಲಿ ಸಂಗ್ರಹಿಸಿ</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">ಬಳಸುವವರ ಕಡೆ ದತ್ತಾಂಶವನ್ನು ಅಪರಿಮಿತ ಪ್ರಮಾಣದಲ್ಲಿ ಸಂಗ್ರಹಿಸಿ</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">ಸಂಚಾರಿಸುವ ಸಮಯದಲ್ಲಿ ವೀಕ್ಷಕ ಚಟುವಟಿಕೆಯನ್ನು ಪ್ರವೇಶಿಸಿ</string>
     <!-- Description for bookmarks permission. -->

@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Πρόσβαση στις καρτέλες προγράμματος περιήγησης</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Αποθήκευση απεριόριστων δεδομένων στον πελάτη</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Αποθήκευση απεριόριστων δεδομένων στον πελάτη</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Πρόσβαση στη δραστηριότητα περιήγησης κατά την πλοήγηση</string>
     <!-- Description for bookmarks permission. -->

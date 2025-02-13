@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Браузер беттеріне қатынау</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Клиент жақтағы шектеусіз деректерді сақтау</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Клиент жақтағы шектеусіз деректерді сақтау</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Навигация кезіндегі браузер белсенділігіне қатынау</string>
     <!-- Description for bookmarks permission. -->

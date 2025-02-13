@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Aksés tab panyungsi</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Nyimpen data jumlah anu henteu terbatas ti sisi klién</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Nyimpen data jumlah anu henteu terbatas ti sisi klién</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Aksés kagiatan panyungsi salila navigasi</string>
     <!-- Description for bookmarks permission. -->

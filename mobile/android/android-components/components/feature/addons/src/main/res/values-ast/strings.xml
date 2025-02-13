@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Acceder a les llingüetes del restolador</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Atroxar una cantidá infinita de datos del llau del veceru</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Atroxar una cantidá infinita de datos del llau del veceru</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Acceder a la actividá del restolador demientres navegues</string>
     <!-- Description for bookmarks permission. -->

@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Të hyjë në skeda shfletuesi</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Të depozitojë sasi të pakufizuar të dhënash në anë klienti</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Të depozitojë sasi të pakufizuar të dhënash në anë klienti</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Të hyjë në veprimtarinë e shfletuesit gjatë lëvizjeve</string>
     <!-- Description for bookmarks permission. -->

@@ -619,6 +619,8 @@
     <string name="onboarding_term_of_service_line_three_link_text">Gérer</string>
     <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Aidez-nous à faire connaitre Firefox</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirmer et commencer la navigation</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Choisissez l’emplacement de la barre d’outils</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1064,12 +1066,16 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Données techniques et d’interaction</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Envoyer des données techniques et d’interaction</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">En savoir plus</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Partage les données de performance, d’utilisation, de matériel et de personnalisation de votre navigateur avec Mozilla pour nous aider à améliorer %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Données marketing</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2">Données de mesure des campagnes</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Partager les informations sur la façon dont vous avez découvert Firefox avec les partenaires marketing de Mozilla. Cela nous aide à développer Firefox et à créer un meilleur Internet</string>
     <!-- Learn more link for marketing data preference -->
@@ -1252,6 +1258,10 @@
     <string name="studies_active">Activées</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s peut installer et lancer des études de temps en temps.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3">Testez des fonctionnalités et des idées avant qu’elles ne soient disponibles pour tout le monde.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title">Installer et lancer des études</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">En savoir plus</string>
 
@@ -2098,6 +2108,8 @@
     <string name="about_privacy_notice">Politique de confidentialité</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Vos droits</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Conditions d’utilisation</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Informations de licence</string>
     <!-- About page link text to open a screen with libraries that are used -->
