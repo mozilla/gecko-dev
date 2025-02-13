@@ -10,16 +10,13 @@
 const kBaseUrl1 = "https://example.org/browser/dom/events/test/";
 const kBaseUrl2 = "https://example.com/browser/dom/events/test/";
 
-// Resolve fn for promise we resolve after mockCA.analyzeContentRequest runs.
-let resolveDropPromise;
-
 let testName;
 
 let mockCA = {
   isActive: true,
   mightBeActive: true,
   caShouldAllow: undefined,
-  numAnalyzeContentRequestCalls: undefined,
+  numAnalyzeContentRequestPrivateCalls: undefined,
   numGetURIForDropEvent: undefined,
 
   getURIForDropEvent(event) {
@@ -28,16 +25,52 @@ let mockCA = {
     return this.realCAService.getURIForDropEvent(event);
   },
 
-  async analyzeContentRequest(_aRequest, _aAutoAcknowledge) {
-    info(`[${testName}]| Called analyzeContentRequest`);
-    this.numAnalyzeContentRequestCalls += 1;
+  analyzeContentRequestPrivate(aRequest, _aAutoAcknowledge, aCallback) {
+    info(`[${testName}]| Called analyzeContentRequestPrivate`);
+    this.numAnalyzeContentRequestPrivateCalls += 1;
 
-    // We want analyzeContentRequest to return before dropPromise is resolved
-    // because dropPromise tells the test harness that it is time to check that
-    // the drop or dragleave event was received, and that is sent immediately
-    // after analyzeContentRequest returns (as part of a promise handler chain).
-    setTimeout(resolveDropPromise, 0);
-    return { shouldAllowContent: this.caShouldAllow };
+    is(
+      aRequest.analysisType,
+      Ci.nsIContentAnalysisRequest.eBulkDataEntry,
+      "request has correct analysisType"
+    );
+    is(
+      aRequest.reason,
+      Ci.nsIContentAnalysisRequest.eDragAndDrop,
+      "request has correct reason"
+    );
+    is(
+      aRequest.operationTypeForDisplay,
+      Ci.nsIContentAnalysisRequest.eDroppedText,
+      "request has correct operation type"
+    );
+    is(
+      aRequest.userActionRequestsCount,
+      1,
+      "request has correct userActionRequestsCount"
+    );
+    ok(
+      aRequest.userActionId.length,
+      "request userActionId should not be empty"
+    );
+
+    aCallback.contentResult(
+      this.realCAService.makeResponseForTest(
+        this.caShouldAllow
+          ? Ci.nsIContentAnalysisResponse.eAllow
+          : Ci.nsIContentAnalysisResponse.eBlock,
+        aRequest.requestToken
+      )
+    );
+  },
+
+  analyzeContentRequest(aRequest, aAutoAcknowledge) {
+    // This will call into our mock analyzeContentRequestPrivate
+    return this.realCAService.analyzeContentRequest(aRequest, aAutoAcknowledge);
+  },
+
+  showBlockedRequestDialog(aRequest) {
+    info(`got showBlockedRequestDialog for request ${aRequest.requestToken}`);
   },
 };
 
@@ -61,19 +94,16 @@ const TEST_MODES = Object.freeze({
   ALLOW: {
     caAllow: true,
     turnOffPref: false,
-    shouldDrag: true,
     shouldRunCA: true,
   },
   BLOCK: {
     caAllow: false,
     turnOffPref: false,
-    shouldDrag: false,
     shouldRunCA: true,
   },
   PREFOFF: {
-    caAllow: false,
+    caAllow: true,
     turnOffPref: true,
-    shouldDrag: true,
     shouldRunCA: false,
   },
 });
@@ -84,44 +114,28 @@ runTest = async function (
   targetBrowsingCxt,
   dndOptions = {}
 ) {
-  if (
-    sourceBrowsingCxt.top == targetBrowsingCxt.top &&
-    targetBrowsingCxt.currentWindowGlobal.documentPrincipal.subsumes(
-      sourceBrowsingCxt.currentWindowGlobal.documentPrincipal
-    )
-  ) {
-    // Content Analysis should not run.
-    info(testRootName);
-    testName = testRootName;
-    mockCA.numAnalyzeContentRequestCalls = 0;
-    mockCA.numGetURIForDropEvent = 0;
-    await runDnd(testRootName, sourceBrowsingCxt, targetBrowsingCxt, {
-      ...dndOptions,
-    });
-    is(
-      mockCA.numAnalyzeContentRequestCalls,
-      0,
-      `[${testName}]| AnalyzeContentRequest was not called`
-    );
-    is(
-      mockCA.numGetURIForDropEvent,
-      0,
-      `[${testName}]| GetURIForDropEvent was not called`
-    );
-    return;
-  }
+  mockCA.sourceBrowsingCxt = sourceBrowsingCxt;
+  mockCA.targetBrowsingCxt = targetBrowsingCxt;
 
   for (let testMode of [
     TEST_MODES.ALLOW,
     TEST_MODES.BLOCK,
     TEST_MODES.PREFOFF,
   ]) {
+    mockCA.caShouldAllow = testMode.caAllow;
+    mockCA.numAnalyzeContentRequestPrivateCalls = 0;
+    mockCA.numGetURIForDropEvent = 0;
+
+    let shouldRunCA;
     let description;
     if (testMode.shouldRunCA) {
+      shouldRunCA = true;
       description = testMode.caAllow ? "allow_drop" : "deny_drop";
-    } else {
-      description = "no_run_ca_because_of_pref";
+    } else if (testMode.turnOffPref) {
+      shouldRunCA = false;
+      description = "no_run_ca_because_of_dnd_interception_point_pref";
     }
+
     let name = `${testRootName}:${description}`;
     info(name);
     testName = name;
@@ -135,31 +149,51 @@ runTest = async function (
         ],
       });
     }
-    mockCA.caShouldAllow = testMode.caAllow;
-    mockCA.numAnalyzeContentRequestCalls = 0;
-    mockCA.numGetURIForDropEvent = 0;
-    let dropPromise = new Promise(res => {
-      if (testMode.shouldRunCA) {
-        resolveDropPromise = res;
-      } else {
-        // CA won't get called, just resolve the promise now
-        res();
+
+    let dropPromise = SpecialPowers.spawn(
+      targetBrowsingCxt,
+      [mockCA.caShouldAllow],
+      async shouldAllow => {
+        let resolver;
+        let promise = new Promise(res => {
+          resolver = res;
+        });
+        let shadowRoots = content.window.document.getConnectedShadowRoots();
+        let targetElt;
+        for (let shadowRoot of shadowRoots) {
+          targetElt = shadowRoot.getElementById("dropTarget");
+          if (targetElt) {
+            break;
+          }
+        }
+
+        ok(targetElt, "found dropTarget in shadow");
+        targetElt.addEventListener(
+          shouldAllow ? "drop" : "dragleave",
+          _ => {
+            resolver();
+          },
+          { once: true }
+        );
+        await promise;
+        info("dropPromise was alerted in content");
       }
-    });
+    );
+
     await runDnd(name, sourceBrowsingCxt, targetBrowsingCxt, {
       dropPromise,
-      expectDragLeave: !testMode.shouldDrag,
+      expectDragLeave: !mockCA.caShouldAllow,
       ...dndOptions,
     });
-    const expectedCaCalls = testMode.shouldRunCA ? 1 : 0;
+
     is(
-      mockCA.numAnalyzeContentRequestCalls,
-      expectedCaCalls,
-      `[${testName}]| Called AnalyzeContentRequest correct number of times`
+      mockCA.numAnalyzeContentRequestPrivateCalls,
+      shouldRunCA ? 1 : 0,
+      `[${testName}]| Called analyzeContentRequestPrivate correct number of times`
     );
     is(
       mockCA.numGetURIForDropEvent,
-      expectedCaCalls,
+      1,
       `[${testName}]| GetURIForDropEvent was called correct number of times`
     );
     if (testMode.turnOffPref) {
