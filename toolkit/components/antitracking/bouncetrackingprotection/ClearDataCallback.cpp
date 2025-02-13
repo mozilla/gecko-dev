@@ -150,7 +150,8 @@ void ClearDataCallback::RecordURLClassifierTelemetry() {
 
   MOZ_ASSERT(sUrlClassifierFeatures);
   rv = uriClassifier->AsyncClassifyLocalWithFeatures(
-      uri, *sUrlClassifierFeatures, nsIUrlClassifierFeature::blocklist, this);
+      uri, *sUrlClassifierFeatures, nsIUrlClassifierFeature::blocklist, this,
+      false);
   NS_ENSURE_SUCCESS_VOID(rv);
 }
 
