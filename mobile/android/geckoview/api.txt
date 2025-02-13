@@ -882,9 +882,9 @@ package org.mozilla.geckoview {
     method @NonNull public Bundle getExtras();
     method public boolean getFdlibmMathEnabled();
     method public boolean getFetchPriorityEnabled();
-    method public boolean getFingerprintingProtection();
+    method @Nullable public Boolean getFingerprintingProtection();
     method @NonNull public String getFingerprintingProtectionOverrides();
-    method public boolean getFingerprintingProtectionPrivateBrowsing();
+    method @Nullable public Boolean getFingerprintingProtectionPrivateBrowsing();
     method @Nullable public Boolean getFissionEnabled();
     method public boolean getFontInflationEnabled();
     method public float getFontSizeFactor();
