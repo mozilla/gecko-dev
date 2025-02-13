@@ -103,8 +103,12 @@ class RemoteWorkerServiceParent;
 class ThreadsafeContentParentHandle;
 struct CancelContentJSOptions;
 
-#define NS_CONTENTPARENT_IID \
-  {0xeeec9ebf, 0x8ecf, 0x4e38, {0x81, 0xda, 0xb7, 0x34, 0x13, 0x7e, 0xac, 0xf3}}
+#define NS_CONTENTPARENT_IID                         \
+  {                                                  \
+    0xeeec9ebf, 0x8ecf, 0x4e38, {                    \
+      0x81, 0xda, 0xb7, 0x34, 0x13, 0x7e, 0xac, 0xf3 \
+    }                                                \
+  }
 
 class ContentParent final : public PContentParent,
                             public nsIDOMProcessParent,
@@ -1157,9 +1161,9 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvNotifyPushSubscriptionModifiedObservers(
       const nsACString& aScope, nsIPrincipal* aPrincipal);
 
-  mozilla::ipc::IPCResult RecvGetFilesRequest(const nsID& aID,
-                                              const nsAString& aDirectoryPath,
-                                              const bool& aRecursiveFlag);
+  mozilla::ipc::IPCResult RecvGetFilesRequest(
+      const nsID& aID, nsTArray<nsString>&& aDirectoryPaths,
+      const bool& aRecursiveFlag);
 
   mozilla::ipc::IPCResult RecvDeleteGetFilesRequest(const nsID& aID);
 

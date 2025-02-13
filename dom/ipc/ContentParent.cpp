@@ -5931,7 +5931,7 @@ ContentParent::RecvUnstoreAndBroadcastBlobURLUnregistration(
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvGetFilesRequest(
-    const nsID& aID, const nsAString& aDirectoryPath,
+    const nsID& aID, nsTArray<nsString>&& aDirectoryPaths,
     const bool& aRecursiveFlag) {
   MOZ_ASSERT(!mGetFilesPendingRequests.GetWeak(aID));
 
@@ -5942,14 +5942,16 @@ mozilla::ipc::IPCResult ContentParent::RecvGetFilesRequest(
       return IPC_FAIL(this, "Failed to get FileSystemSecurity.");
     }
 
-    if (!fss->ContentProcessHasAccessTo(ChildID(), aDirectoryPath)) {
-      return IPC_FAIL(this, "ContentProcessHasAccessTo failed.");
+    for (const auto& directoryPath : aDirectoryPaths) {
+      if (!fss->ContentProcessHasAccessTo(ChildID(), directoryPath)) {
+        return IPC_FAIL(this, "ContentProcessHasAccessTo failed.");
+      }
     }
   }
 
   ErrorResult rv;
   RefPtr<GetFilesHelper> helper = GetFilesHelperParent::Create(
-      aID, aDirectoryPath, aRecursiveFlag, this, rv);
+      aID, std::move(aDirectoryPaths), aRecursiveFlag, this, rv);
 
   if (NS_WARN_IF(rv.Failed())) {
     if (!SendGetFilesResponse(aID,

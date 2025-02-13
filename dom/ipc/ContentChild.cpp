@@ -3225,13 +3225,13 @@ mozilla::ipc::IPCResult ContentChild::RecvBlobURLUnregistration(
   return IPC_OK();
 }
 
-void ContentChild::CreateGetFilesRequest(const nsAString& aDirectoryPath,
+void ContentChild::CreateGetFilesRequest(nsTArray<nsString>&& aDirectoryPaths,
                                          bool aRecursiveFlag, nsID& aUUID,
                                          GetFilesHelperChild* aChild) {
   MOZ_ASSERT(aChild);
   MOZ_ASSERT(!mGetFilesPendingRequests.Contains(aUUID));
 
-  Unused << SendGetFilesRequest(aUUID, aDirectoryPath, aRecursiveFlag);
+  Unused << SendGetFilesRequest(aUUID, aDirectoryPaths, aRecursiveFlag);
   mGetFilesPendingRequests.InsertOrUpdate(aUUID, RefPtr{aChild});
 }
 

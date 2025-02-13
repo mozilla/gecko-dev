@@ -80,8 +80,8 @@ class GetFilesHelper : public Runnable, public GetFilesHelperBase {
 
   virtual ~GetFilesHelper();
 
-  void SetDirectoryPath(const nsAString& aDirectoryPath) {
-    mDirectoryPath = aDirectoryPath;
+  void SetDirectoryPaths(nsTArray<nsString>&& aDirectoryPaths) {
+    mDirectoryPaths = std::move(aDirectoryPaths);
   }
 
   virtual bool IsCanceled() override {
@@ -105,7 +105,7 @@ class GetFilesHelper : public Runnable, public GetFilesHelperBase {
   void RunCallback(GetFilesCallback* aCallback);
 
   bool mListingCompleted;
-  nsString mDirectoryPath;
+  nsTArray<nsString> mDirectoryPaths;
 
   // Error code to propagate.
   nsresult mErrorResult;
@@ -144,8 +144,8 @@ class GetFilesHelperParent final : public GetFilesHelper {
 
  public:
   static already_AddRefed<GetFilesHelperParent> Create(
-      const nsID& aUUID, const nsAString& aDirectoryPath, bool aRecursiveFlag,
-      ContentParent* aContentParent, ErrorResult& aRv);
+      const nsID& aUUID, nsTArray<nsString>&& aDirectoryPaths,
+      bool aRecursiveFlag, ContentParent* aContentParent, ErrorResult& aRv);
 
  private:
   GetFilesHelperParent(const nsID& aUUID, ContentParent* aContentParent,

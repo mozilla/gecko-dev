@@ -74,7 +74,8 @@ already_AddRefed<GetFilesHelper> GetFilesHelper::Create(
     helper = new GetFilesHelperChild(aRecursiveFlag);
   }
 
-  nsAutoString directoryPath;
+  // Most callers will have at most one directory
+  AutoTArray<nsString, 1> directoryPaths;
 
   for (uint32_t i = 0; i < aFilesOrDirectory.Length(); ++i) {
     const OwningFileOrDirectory& data = aFilesOrDirectory[i];
@@ -87,15 +88,12 @@ already_AddRefed<GetFilesHelper> GetFilesHelper::Create(
     } else {
       MOZ_ASSERT(data.IsDirectory());
 
-      // We support the upload of only 1 top-level directory from our
-      // directory picker. This means that we cannot have more than 1
-      // Directory object in aFilesOrDirectory array.
-      MOZ_ASSERT(directoryPath.IsEmpty());
-
       RefPtr<Directory> directory = data.GetAsDirectory();
       MOZ_ASSERT(directory);
 
+      nsString directoryPath;
       aRv = directory->GetFullRealPath(directoryPath);
+      directoryPaths.AppendElement(std::move(directoryPath));
       if (NS_WARN_IF(aRv.Failed())) {
         return nullptr;
       }
@@ -103,13 +101,13 @@ already_AddRefed<GetFilesHelper> GetFilesHelper::Create(
   }
 
   // No directories to explore.
-  if (directoryPath.IsEmpty()) {
+  if (directoryPaths.IsEmpty()) {
     helper->mListingCompleted = true;
     return helper.forget();
   }
 
   MOZ_ASSERT(helper->mTargetBlobImplArray.IsEmpty());
-  helper->SetDirectoryPath(directoryPath);
+  helper->SetDirectoryPaths(std::move(directoryPaths));
 
   helper->Work(aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -185,7 +183,7 @@ void GetFilesHelper::Work(ErrorResult& aRv) {
 
 NS_IMETHODIMP
 GetFilesHelper::Run() {
-  MOZ_ASSERT(!mDirectoryPath.IsEmpty());
+  MOZ_ASSERT(!mDirectoryPaths.IsEmpty());
   MOZ_ASSERT(!mListingCompleted);
 
   // First step is to retrieve the list of file paths.
@@ -234,26 +232,31 @@ void GetFilesHelper::OperationCompleted() {
 
 void GetFilesHelper::RunIO() {
   MOZ_ASSERT(!NS_IsMainThread());
-  MOZ_ASSERT(!mDirectoryPath.IsEmpty());
+  MOZ_ASSERT(!mDirectoryPaths.IsEmpty());
   MOZ_ASSERT(!mListingCompleted);
 
-  nsCOMPtr<nsIFile> file;
-  mErrorResult = NS_NewLocalFile(mDirectoryPath, getter_AddRefs(file));
-  if (NS_WARN_IF(NS_FAILED(mErrorResult))) {
-    return;
+  for (const auto& directoryPath : mDirectoryPaths) {
+    nsCOMPtr<nsIFile> file;
+    mErrorResult = NS_NewLocalFile(directoryPath, getter_AddRefs(file));
+    if (NS_WARN_IF(NS_FAILED(mErrorResult))) {
+      return;
+    }
+
+    nsAutoString leafName;
+    mErrorResult = file->GetLeafName(leafName);
+    if (NS_WARN_IF(NS_FAILED(mErrorResult))) {
+      return;
+    }
+
+    nsAutoString domPath;
+    domPath.AssignLiteral(FILESYSTEM_DOM_PATH_SEPARATOR_LITERAL);
+    domPath.Append(leafName);
+
+    mErrorResult = ExploreDirectory(domPath, file);
+    if (NS_FAILED(mErrorResult)) {
+      break;
+    }
   }
-
-  nsAutoString leafName;
-  mErrorResult = file->GetLeafName(leafName);
-  if (NS_WARN_IF(NS_FAILED(mErrorResult))) {
-    return;
-  }
-
-  nsAutoString domPath;
-  domPath.AssignLiteral(FILESYSTEM_DOM_PATH_SEPARATOR_LITERAL);
-  domPath.Append(leafName);
-
-  mErrorResult = ExploreDirectory(domPath, file);
 }
 
 nsresult GetFilesHelperBase::ExploreDirectory(const nsAString& aDOMPath,
@@ -393,7 +396,8 @@ void GetFilesHelperChild::Work(ErrorResult& aRv) {
   }
 
   mPendingOperation = true;
-  cc->CreateGetFilesRequest(mDirectoryPath, mRecursiveFlag, mUUID, this);
+  cc->CreateGetFilesRequest(std::move(mDirectoryPaths), mRecursiveFlag, mUUID,
+                            this);
 }
 
 void GetFilesHelperChild::Cancel() {
@@ -483,13 +487,13 @@ GetFilesHelperParent::~GetFilesHelperParent() {
 
 /* static */
 already_AddRefed<GetFilesHelperParent> GetFilesHelperParent::Create(
-    const nsID& aUUID, const nsAString& aDirectoryPath, bool aRecursiveFlag,
-    ContentParent* aContentParent, ErrorResult& aRv) {
+    const nsID& aUUID, nsTArray<nsString>&& aDirectoryPaths,
+    bool aRecursiveFlag, ContentParent* aContentParent, ErrorResult& aRv) {
   MOZ_ASSERT(aContentParent);
 
   RefPtr<GetFilesHelperParent> helper =
       new GetFilesHelperParent(aUUID, aContentParent, aRecursiveFlag);
-  helper->SetDirectoryPath(aDirectoryPath);
+  helper->SetDirectoryPaths(std::move(aDirectoryPaths));
 
   helper->Work(aRv);
   if (NS_WARN_IF(aRv.Failed())) {

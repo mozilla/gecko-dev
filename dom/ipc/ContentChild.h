@@ -473,7 +473,7 @@ class ContentChild final : public PContentChild,
 
   // GetFiles for WebKit/Blink FileSystem API and Directory API must run on the
   // parent process.
-  void CreateGetFilesRequest(const nsAString& aDirectoryPath,
+  void CreateGetFilesRequest(nsTArray<nsString>&& aDirectoryPath,
                              bool aRecursiveFlag, nsID& aUUID,
                              GetFilesHelperChild* aChild);
 
