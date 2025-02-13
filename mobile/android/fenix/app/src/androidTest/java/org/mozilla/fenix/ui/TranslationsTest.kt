@@ -398,6 +398,7 @@ class TranslationsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2440963
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1947953")
     @Test
     fun downloadLanguageWhileDataSaverModeIsOnTest() {
         val firstTestPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
