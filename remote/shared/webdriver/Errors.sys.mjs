@@ -21,6 +21,7 @@ const ERRORS = new Set([
   "InvalidElementStateError",
   "InvalidSelectorError",
   "InvalidSessionIDError",
+  "InvalidWebExtensionError",
   "JavaScriptError",
   "MoveTargetOutOfBoundsError",
   "NoSuchAlertError",
@@ -463,6 +464,22 @@ class InvalidSessionIDError extends WebDriverError {
 }
 
 /**
+ * Tried to install an invalid web extension.
+ *
+ * @param {(string|Error)=} obj
+ *     Optional string describing error situation or Error instance
+ *     to propagate.
+ * @param {object=} data
+ *     Additional error data helpful in diagnosing the error.
+ */
+class InvalidWebExtensionError extends WebDriverError {
+  constructor(obj, data = {}) {
+    super(obj, data);
+    this.status = "invalid web extension";
+  }
+}
+
+/**
  * An error occurred whilst executing JavaScript supplied by the user.
  *
  * @param {(string|Error)=} obj
@@ -899,6 +916,7 @@ const STATUSES = new Map([
   ["invalid element state", InvalidElementStateError],
   ["invalid selector", InvalidSelectorError],
   ["invalid session id", InvalidSessionIDError],
+  ["invalid web extension", InvalidWebExtensionError],
   ["javascript error", JavaScriptError],
   ["move target out of bounds", MoveTargetOutOfBoundsError],
   ["no such alert", NoSuchAlertError],

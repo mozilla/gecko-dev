@@ -19,6 +19,7 @@ const errors = [
   error.InvalidElementStateError,
   error.InvalidSelectorError,
   error.InvalidSessionIDError,
+  error.InvalidWebExtensionError,
   error.JavaScriptError,
   error.MoveTargetOutOfBoundsError,
   error.NoSuchAlertError,
@@ -357,6 +358,14 @@ add_task(function test_InvalidSessionIDError() {
   equal("InvalidSessionIDError", err.name);
   equal("foo", err.message);
   equal("invalid session id", err.status);
+  ok(err instanceof error.WebDriverError);
+});
+
+add_task(function test_InvalidWebExtensionError() {
+  let err = new error.InvalidWebExtensionError("foo");
+  equal("InvalidWebExtensionError", err.name);
+  equal("foo", err.message);
+  equal("invalid web extension", err.status);
   ok(err instanceof error.WebDriverError);
 });
 

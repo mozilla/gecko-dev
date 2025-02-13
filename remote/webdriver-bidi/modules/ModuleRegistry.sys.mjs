@@ -25,6 +25,8 @@ ChromeUtils.defineESModuleGetters(modules.root, {
     "chrome://remote/content/webdriver-bidi/modules/root/session.sys.mjs",
   storage:
     "chrome://remote/content/webdriver-bidi/modules/root/storage.sys.mjs",
+  webExtension:
+    "chrome://remote/content/webdriver-bidi/modules/root/webExtension.sys.mjs",
 });
 
 // eslint-disable-next-line mozilla/lazy-getter-object-name
