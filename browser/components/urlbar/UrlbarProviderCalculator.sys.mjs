@@ -60,6 +60,8 @@ const VIEW_TEMPLATE = {
 // Minimum number of parts of the expression before we show a result.
 const MIN_EXPRESSION_LENGTH = 3;
 const UNDEFINED_VALUE = "undefined";
+const FULL_NUMBER_MAX_THRESHOLD = 5 * 10 ** 12;
+const FULL_NUMBER_MIN_THRESHOLD = 10 ** -5;
 
 /**
  * A provider that returns a suggested url to the user based on what
@@ -138,25 +140,32 @@ class ProviderCalculator extends UrlbarProvider {
   }
 
   getViewUpdate(result) {
+    let input;
+    const { value } = result.payload;
+
+    if (value == UNDEFINED_VALUE) {
+      input = {
+        l10n: { id: "urlbar-result-action-undefined-calculator-result" },
+      };
+    } else {
+      const l10nId = value.toString().includes("e")
+        ? "urlbar-result-action-calculator-result-scientific-notation"
+        : "urlbar-result-action-calculator-result-2";
+      input = {
+        l10n: {
+          id: l10nId,
+          args: { result: value },
+        },
+      };
+    }
+
     const viewUpdate = {
       icon: {
         attributes: {
           src: "chrome://global/skin/icons/edit-copy.svg",
         },
       },
-      input:
-        result.payload.value == UNDEFINED_VALUE
-          ? {
-              l10n: {
-                id: "urlbar-result-action-undefined-calculator-result",
-              },
-            }
-          : {
-              l10n: {
-                id: "urlbar-result-action-calculator-result",
-                args: { result: result.payload.value },
-              },
-            },
+      input,
       action: {
         l10n: { id: "urlbar-result-action-copy-to-clipboard" },
       },
@@ -282,6 +291,16 @@ class BaseCalculator {
     "^": (a, b) => a ** b,
   };
 
+  toScientificNotation(num) {
+    let res = new Intl.NumberFormat("en-US", {
+      style: "decimal",
+      notation: "scientific",
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 8,
+    }).format(num);
+    return res.toLowerCase();
+  }
+
   evaluatePostfix(postfix) {
     let stack = [];
 
@@ -304,6 +323,12 @@ class BaseCalculator {
     let finalResult = stack.pop();
     if (isNaN(finalResult) || !isFinite(finalResult)) {
       throw new Error("Value is " + finalResult);
+    }
+    if (
+      Math.abs(finalResult) >= FULL_NUMBER_MAX_THRESHOLD ||
+      (Math.abs(finalResult) <= FULL_NUMBER_MIN_THRESHOLD && finalResult != 0)
+    ) {
+      finalResult = this.toScientificNotation(finalResult);
     }
     return finalResult;
   }
