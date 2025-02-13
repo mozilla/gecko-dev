@@ -115,12 +115,14 @@ class VendorManifest(MozbuildObject):
         force,
         add_to_exports,
         patch_mode,
+        new_files_only,
     ):
         self.manifest = manifest
         self.yaml_file = yaml_file
         self._extract_directory = throwe
         self.logInfo = functools.partial(self.log, logging.INFO, "vendor")
         self.patch_mode = patch_mode
+        self.new_files_only = new_files_only
         if "vendor-directory" not in self.manifest["vendoring"]:
             self.manifest["vendoring"]["vendor-directory"] = os.path.dirname(
                 self.yaml_file
@@ -157,7 +159,11 @@ class VendorManifest(MozbuildObject):
         )
 
         # ==========================================================
-        if not force and self.manifest["origin"]["revision"] == new_revision:
+        if (
+            not force
+            and not new_files_only
+            and self.manifest["origin"]["revision"] == new_revision
+        ):
             # We're up to date, don't do anything
             self.logInfo({}, "Latest upstream matches in-tree.")
             return
@@ -165,6 +171,15 @@ class VendorManifest(MozbuildObject):
             # Only print the new revision to stdout
             print("%s %s" % (new_revision, timestamp))
             return
+
+        # ==========================================================
+        if new_files_only:
+            # Some steps don't make sense for new_files_only.
+            self.manifest["vendoring"].setdefault("skip-vendoring-steps", [])
+            self.manifest["vendoring"]["skip-vendoring-steps"] += [
+                "spurious-check",
+                "update-moz-yaml",
+            ]
 
         # ==========================================================
         if flavor == "regular":
@@ -212,6 +227,9 @@ class VendorManifest(MozbuildObject):
         # files and see if they changed...
 
         def download_file_revision(upstream_path, revision, destination):
+            if self.new_files_only and os.path.isfile(destination):
+                return
+
             url = self.source_host.upstream_path_to_file(revision, upstream_path)
             self.logInfo(
                 {"local_file": destination, "url": url},
@@ -254,7 +272,7 @@ class VendorManifest(MozbuildObject):
                 os.path.dirname(self.yaml_file),
                 self.manifest["vendoring"]["vendor-directory"],
             )
-        elif "patches" in self.manifest["vendoring"]:
+        elif "patches" in self.manifest["vendoring"] and not self.new_files_only:
             # Remind the user
             self.log(
                 logging.CRITICAL,

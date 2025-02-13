@@ -288,7 +288,6 @@ def _schema_1_additional(filename, manifest, require_license_file=True):
         and manifest["vendoring"].get("flavor", "regular") != "regular"
     ):
         for i in [
-            "skip-vendoring-steps",
             "keep",
             "exclude",
             "include",
@@ -299,6 +298,7 @@ def _schema_1_additional(filename, manifest, require_license_file=True):
 
         if manifest["vendoring"].get("flavor", "regular") == "rust":
             for i in [
+                "skip-vendoring-steps",
                 "update-actions",
             ]:
                 if i in manifest["vendoring"]:

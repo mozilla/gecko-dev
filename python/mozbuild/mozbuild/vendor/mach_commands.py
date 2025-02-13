@@ -52,6 +52,12 @@ from mozbuild.vendor.moz_yaml import MozYamlVerifyError, load_moz_yaml
     "'only' imports patches and skips library vendoring.",
     default="",
 )
+@CommandArgument(
+    "--new-files-only",
+    action="store_true",
+    help="Vendor files for the current revision that don't exist in the vendor directory.",
+    default=False,
+)
 @CommandArgument("library", nargs=1, help="The moz.yaml file of the library to vendor.")
 def vendor(
     command_context,
@@ -63,6 +69,7 @@ def vendor(
     force=False,
     verify=False,
     patch_mode=None,
+    new_files_only=False,
 ):
     """
     Vendor third-party dependencies into the source repository.
@@ -92,6 +99,16 @@ def vendor(
             "Cannot perform update actions if we don't have a 'vendoring' section in the moz.yaml"
         )
 
+    if new_files_only:
+        if manifest["vendoring"].get("flavor") != "individual-files":
+            print("--new-files-only can only be used with individual-files flavor")
+            sys.exit(1)
+
+        # New files only implies current revision, ignore modified and patch mode of none.
+        revision = manifest["origin"]["revision"]
+        ignore_modified = True
+        patch_mode = "none"
+
     patch_modes = "none", "only", "check"
     if patch_mode and patch_mode not in patch_modes:
         print(
@@ -115,7 +132,7 @@ def vendor(
 
     if not ignore_modified and not check_for_update:
         check_modified_files(command_context)
-    elif ignore_modified and not check_for_update:
+    elif ignore_modified and not check_for_update and not new_files_only:
         print(
             "Because you passed --ignore-modified we will not be "
             + "able to detect spurious upstream updates."
@@ -137,6 +154,7 @@ def vendor(
         force,
         add_to_exports,
         patch_mode,
+        new_files_only,
     )
 
     sys.exit(0)
