@@ -34,6 +34,7 @@ from collections import defaultdict
 from contextlib import closing
 from ctypes.util import find_library
 from datetime import datetime, timedelta
+from pathlib import Path
 from shutil import which
 from urllib.parse import quote_plus as encodeURIComponent
 from urllib.request import urlopen
@@ -2049,13 +2050,24 @@ toolbar#nav-bar {
         # If profiling options are enabled, turn on the gecko profiler by using the
         # profiler environmental variables.
         if options.profiler:
-            # The user wants to capture a profile, and automatically view it. The
-            # profile will be saved to a temporary folder, then deleted after
-            # opening in profiler.firefox.com.
-            self.profiler_tempdir = tempfile.mkdtemp()
-            browserEnv["MOZ_PROFILER_SHUTDOWN"] = os.path.join(
-                self.profiler_tempdir, "profile_mochitest.json"
-            )
+            if "MOZ_PROFILER_SHUTDOWN" not in os.environ:
+                # The user wants to capture a profile, and automatically view it. The
+                # profile will be saved to a temporary folder, then deleted after
+                # opening in profiler.firefox.com.
+                self.profiler_tempdir = tempfile.mkdtemp()
+                browserEnv["MOZ_PROFILER_SHUTDOWN"] = os.path.join(
+                    self.profiler_tempdir, "profile_mochitest.json"
+                )
+            else:
+                profile_path = Path(os.getenv("MOZ_PROFILER_SHUTDOWN"))
+                if profile_path.suffix == "":
+                    if not profile_path.exists():
+                        profile_path.mkdir(parents=True, exist_ok=True)
+                    profile_path = profile_path / "profile_mochitest.json"
+                elif not profile_path.parent.exists():
+                    profile_path.parent.mkdir(parents=True, exist_ok=True)
+                browserEnv["MOZ_PROFILER_SHUTDOWN"] = str(profile_path)
+
             browserEnv["MOZ_PROFILER_STARTUP"] = "1"
 
         if options.profilerSaveOnly:

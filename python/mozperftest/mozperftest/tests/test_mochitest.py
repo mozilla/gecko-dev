@@ -119,9 +119,17 @@ def test_mochitest_multi_metrics(multimetrics_output):
         assert results[0]["value"] == 10
 
 
+@pytest.mark.parametrize(
+    "fake_file_path",
+    [
+        "",
+        "/fake/path",
+        "/fake/path/file.json",
+    ],
+)
 @mock.patch("mozperftest.test.mochitest.ON_TRY", new=False)
 @mock.patch("mozperftest.utils.ON_TRY", new=False)
-def test_mochitest_profiling(*mocked):
+def test_mochitest_profiling(fake_file_path):
     mach_cmd, metadata, env = running_env(
         tests=[str(EXAMPLE_MOCHITEST_TEST)],
         gecko_profile=True,
@@ -131,9 +139,19 @@ def test_mochitest_profiling(*mocked):
     sys = env.layers[SYSTEM]
     mochitest = env.layers[TEST]
 
+    environ_patch = mock.patch.dict(
+        "mozperftest.test.mochitest.os.environ",
+        {"MOZ_PROFILER_SHUTDOWN": fake_file_path},
+    )
+    environ_patch.start()
+
     with mock.patch(
         "mozperftest.test.functionaltestrunner.FunctionalTestRunner.test"
-    ) as test_mock, mock.patch("mozperftest.test.mochitest.install_requirements_file"):
+    ) as test_mock, mock.patch(
+        "mozperftest.test.mochitest.install_requirements_file"
+    ), mock.patch(
+        "mozperftest.test.mochitest.Path"
+    ):
         test_mock.return_value = (0, mock.MagicMock())
         try:
             with pytest.raises(NoPerfMetricsError):
@@ -143,6 +161,8 @@ def test_mochitest_profiling(*mocked):
             shutil.rmtree(mach_cmd._mach_context.state_dir)
 
         assert "--profiler" in test_mock.call_args[0][2]
+
+    environ_patch.stop()
 
 
 @mock.patch("mozperftest.test.mochitest.ON_TRY", new=False)

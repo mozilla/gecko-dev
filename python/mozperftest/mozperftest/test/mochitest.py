@@ -147,6 +147,15 @@ class Mochitest(Layer):
 
                 output_dir_path = str(Path(self.get_arg("output")).resolve())
                 gecko_profile_args.append(f"--setenv=MOZ_UPLOAD_DIR={output_dir_path}")
+            else:
+                # Setup where the profile gets saved to so it doesn't get deleted
+                profile_path = os.getenv("MOZ_PROFILER_SHUTDOWN")
+                if not profile_path:
+                    profile_path = (
+                        Path(self.get_arg("output")) / "profile_mochitest.json"
+                    )
+                    os.environ["MOZ_PROFILER_SHUTDOWN"] = str(profile_path)
+                self.info(f"Profile will be saved to: {profile_path}")
 
         return gecko_profile_args
 
@@ -222,13 +231,22 @@ class Mochitest(Layer):
         results = []
         cycles = self.get_arg("cycles", 1)
         for cycle in range(1, cycles + 1):
-            if ON_TRY:
-                status, log_processor = self.remote_run(test, metadata)
-            else:
-                status, log_processor = FunctionalTestRunner.test(
-                    self.mach_cmd,
-                    [str(test)],
-                    self._get_mochitest_args() + ["--keep-open=False"],
+
+            metadata.run_hook(
+                "before_cycle", metadata, self.env, cycle, metadata.script
+            )
+            try:
+                if ON_TRY:
+                    status, log_processor = self.remote_run(test, metadata)
+                else:
+                    status, log_processor = FunctionalTestRunner.test(
+                        self.mach_cmd,
+                        [str(test)],
+                        self._get_mochitest_args() + ["--keep-open=False"],
+                    )
+            finally:
+                metadata.run_hook(
+                    "after_cycle", metadata, self.env, cycle, metadata.script
                 )
 
             if status is not None and status != 0:
