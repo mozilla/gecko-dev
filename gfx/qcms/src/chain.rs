@@ -102,15 +102,15 @@ fn f_1(t: f32) -> f32 {
     }
 }
 
+// lcms: D50 XYZ values
+const WHITE_POINT_X: f32 = 0.9642;
+const WHITE_POINT_Y: f32 = 1.0;
+const WHITE_POINT_Z: f32 = 0.8249;
+
 #[allow(clippy::upper_case_acronyms)]
 struct LABtoXYZ;
 impl ModularTransform for LABtoXYZ {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
-        // lcms: D50 XYZ values
-        let WhitePointX: f32 = 0.9642;
-        let WhitePointY: f32 = 1.0;
-        let WhitePointZ: f32 = 0.8249;
-
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(3)) {
             let device_L: f32 = src[0] * 100.0;
             let device_a: f32 = src[1] * 255.0 - 128.0;
@@ -118,9 +118,9 @@ impl ModularTransform for LABtoXYZ {
 
             let y: f32 = (device_L + 16.0) / 116.0;
 
-            let X = f_1(y + 0.002 * device_a) * WhitePointX;
-            let Y = f_1(y) * WhitePointY;
-            let Z = f_1(y - 0.005 * device_b) * WhitePointZ;
+            let X = f_1(y + 0.002 * device_a) * WHITE_POINT_X;
+            let Y = f_1(y) * WHITE_POINT_Y;
+            let Z = f_1(y - 0.005 * device_b) * WHITE_POINT_Z;
 
             dest[0] = (X as f64 / (1.0f64 + 32767.0f64 / 32768.0f64)) as f32;
             dest[1] = (Y as f64 / (1.0f64 + 32767.0f64 / 32768.0f64)) as f32;
@@ -134,17 +134,13 @@ struct XYZtoLAB;
 impl ModularTransform for XYZtoLAB {
     //Based on lcms cmsXYZ2Lab
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
-        // lcms: D50 XYZ values
-        let WhitePointX: f32 = 0.9642;
-        let WhitePointY: f32 = 1.0;
-        let WhitePointZ: f32 = 0.8249;
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(3)) {
             let device_x: f32 =
-                (src[0] as f64 * (1.0f64 + 32767.0f64 / 32768.0f64) / WhitePointX as f64) as f32;
+                (src[0] as f64 * (1.0f64 + 32767.0f64 / 32768.0f64) / WHITE_POINT_X as f64) as f32;
             let device_y: f32 =
-                (src[1] as f64 * (1.0f64 + 32767.0f64 / 32768.0f64) / WhitePointY as f64) as f32;
+                (src[1] as f64 * (1.0f64 + 32767.0f64 / 32768.0f64) / WHITE_POINT_Y as f64) as f32;
             let device_z: f32 =
-                (src[2] as f64 * (1.0f64 + 32767.0f64 / 32768.0f64) / WhitePointZ as f64) as f32;
+                (src[2] as f64 * (1.0f64 + 32767.0f64 / 32768.0f64) / WHITE_POINT_Z as f64) as f32;
 
             let fx = f(device_x);
             let fy = f(device_y);
