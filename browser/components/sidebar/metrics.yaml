@@ -646,3 +646,24 @@ sidebar.customize:
       checked:
         type: boolean
         description: Whether the box was checked.
+contextual_manager:
+  sidebar_toggle:
+    type: event
+    description: Client opens Contextual Manager.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946830
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - issozi@mozilla.com
+      - tthorne@mozilla.com
+      - passwords-dev@mozilla.org
+    send_in_pings:
+      - events
+    extra_keys:
+      opened:
+        type: boolean
+        description: Whether the sidebar is opening.

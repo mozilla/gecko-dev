@@ -182,6 +182,7 @@ var SidebarController = {
           menuId: "menu_megalistSidebar",
           menuL10nId: "menu-view-megalist-sidebar",
           revampL10nId: "sidebar-menu-megalist",
+          gleanEvent: Glean.contextualManager.sidebarToggle,
         }
       );
     } else {
