@@ -212,10 +212,13 @@ void SendRequestAndExpectResponse(
   // start accessing stack values that don't exist anymore)
   RefPtr timedOut = MakeRefPtr<media::Refcountable<BoolStruct>>();
   auto callback = MakeRefPtr<ContentAnalysisCallback>(
-      [&, timedOut](nsIContentAnalysisResponse* response) {
+      [&, timedOut](nsIContentAnalysisResult* result) {
         if (timedOut->mValue) {
           return;
         }
+        nsCOMPtr<nsIContentAnalysisResponse> response =
+            do_QueryInterface(result);
+        EXPECT_TRUE(response);
         if (expectedShouldAllow.isSome()) {
           bool shouldAllow = false;
           MOZ_ALWAYS_SUCCEEDS(response->GetShouldAllowContent(&shouldAllow));
@@ -241,9 +244,12 @@ void SendRequestAndExpectResponse(
         if (timedOut->mValue) {
           return;
         }
-        EXPECT_EQ(NS_OK, error);
+        const char* errorName = mozilla::GetStaticErrorName(error);
+        errorName = errorName ? errorName : "";
+        printf("Got error response code %s(%x)\n", errorName, error);
+        // Errors should not have errorCode NS_OK
+        EXPECT_NE(NS_OK, error);
         gotResponse = true;
-        // Make sure that we didn't somehow get passed NS_OK
         FAIL() << "Got error response";
       });
 
