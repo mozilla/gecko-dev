@@ -7,33 +7,63 @@
 #ifndef mozilla_dom_NavigationDestination_h___
 #define mozilla_dom_NavigationDestination_h___
 
-#include "mozilla/ErrorResult.h"
+#include "nsISupports.h"
+
+#include "nsStructuredCloneContainer.h"
 #include "nsWrapperCache.h"
 
+#include "mozilla/dom/BindingDeclarations.h"
+
 class nsIGlobalObject;
+class nsIURI;
+
+namespace mozilla {
+class ErrorResult;
+}
 
 namespace mozilla::dom {
 
+class NavigationHistoryEntry;
+
+// https://html.spec.whatwg.org/#the-navigationdestination-interface
 class NavigationDestination final : public nsISupports, public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(NavigationDestination)
 
-  void GetUrl(nsString& aRetVal) const {}
-  void GetKey(nsString& aRetVal) const {}
-  void GetId(nsString& aRetVal) const {}
-  int64_t Index() const { return {}; }
-  bool SameDocument() const { return {}; }
+  NavigationDestination(nsIGlobalObject* aGlobal, nsIURI* aURI,
+                        NavigationHistoryEntry* aEntry,
+                        nsStructuredCloneContainer* aState,
+                        bool aIsSameDocument);
 
-  void GetState(JSContext* cx, JS::MutableHandle<JS::Value> aRetVal,
-                ErrorResult& aRv) const {}
+  void GetUrl(nsString& aURL) const;
+  void GetKey(nsString& aKey) const;
+  void GetId(nsString& aId) const;
+  int64_t Index() const;
+  bool SameDocument() const;
+  void GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aRetVal,
+                ErrorResult& aRv) const;
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
-  nsIGlobalObject* GetParentObject() const { return {}; }
+  nsIGlobalObject* GetParentObject();
 
  private:
   ~NavigationDestination() = default;
+
+  nsCOMPtr<nsIGlobalObject> mGlobal;
+
+  // https://html.spec.whatwg.org/#concept-navigationdestination-url
+  nsCOMPtr<nsIURI> mURL;
+
+  // https://html.spec.whatwg.org/#concept-navigationdestination-entry
+  RefPtr<NavigationHistoryEntry> mEntry;
+
+  // https://html.spec.whatwg.org/#concept-navigationdestination-state
+  RefPtr<nsStructuredCloneContainer> mState;
+
+  // https://html.spec.whatwg.org/#concept-navigationdestination-samedocument
+  bool mIsSameDocument = false;
 };
 
 }  // namespace mozilla::dom
