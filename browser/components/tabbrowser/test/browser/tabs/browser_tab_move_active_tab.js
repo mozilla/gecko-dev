@@ -55,6 +55,46 @@ add_task(async function test_moveTabForward() {
   BrowserTestUtils.removeTab(tab3);
 });
 
+add_task(async function test_moveTabForward_relatedToCurrent() {
+  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  gBrowser.selectedTab = tab1;
+  let tab3 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    relatedToCurrent: true,
+  });
+
+  info("relatedToCurrent inserts new tab (tab3) after the selected one (tab1)");
+  assertTabIndexesMatch([
+    [tab1, 1],
+    [tab3, 2],
+    [tab2, 3],
+  ]);
+
+  info("moving tab1 past tab3");
+  gBrowser.moveTabForward();
+  assertTabIndexesMatch([
+    [tab3, 1],
+    [tab1, 2],
+    [tab2, 3],
+  ]);
+
+  let tab4 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    relatedToCurrent: true,
+  });
+  info("relatedToCurrent inserts new tab (tab4) after the selected one (tab1)");
+  assertTabIndexesMatch([
+    [tab3, 1],
+    [tab1, 2],
+    [tab4, 3],
+    [tab2, 4],
+  ]);
+
+  BrowserTestUtils.removeTab(tab1);
+  BrowserTestUtils.removeTab(tab2);
+  BrowserTestUtils.removeTab(tab3);
+  BrowserTestUtils.removeTab(tab4);
+});
+
 add_task(async function test_moveTabForwardPinnedTabs() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");

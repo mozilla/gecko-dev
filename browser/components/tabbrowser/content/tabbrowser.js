@@ -5683,8 +5683,6 @@
         return;
       }
 
-      this._lastRelatedTabMap = new WeakMap();
-
       this._handleTabMove(aTab, () => {
         let neighbor = this.tabs[aIndex];
         if (forceStandaloneTab && neighbor.group) {
@@ -5726,6 +5724,8 @@
       // Clear tabs cache after moving nodes because the order of tabs may have
       // changed.
       this.tabContainer._invalidateCachedTabs();
+
+      this._lastRelatedTabMap = new WeakMap();
 
       this._updateTabsAfterInsert();
 
