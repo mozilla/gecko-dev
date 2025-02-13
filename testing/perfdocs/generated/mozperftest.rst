@@ -392,7 +392,7 @@ browser_ml_autofill_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:AUTOFILL-pipeline-ready-latency,unit:ms,shouldAlert:True, name:AUTOFILL-initialization-latency,unit:ms,shouldAlert:True, name:AUTOFILL-model-run-latency,unit:ms,shouldAlert:True, name:AUTOFILL-total-memory-usage,unit:MiB,shouldAlert:True
+ --perfherder-metrics name:AUTOFILL-pipeline-ready-latency,unit:ms,shouldAlert:True, name:AUTOFILL-initialization-latency,unit:ms,shouldAlert:True, name:AUTOFILL-model-run-latency,unit:ms,shouldAlert:True, name:AUTOFILL-total-memory-usage,unit:MiB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -410,7 +410,7 @@ browser_ml_smart_tab_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -464,7 +464,7 @@ browser_ml_summarizer_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome
@@ -482,7 +482,7 @@ browser_ml_engine_perf.js
 ::
 
  --perfherder
- --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True
+ --perfherder-metrics name:latency,unit:ms,shouldAlert:True, name:memory,unit:MiB,shouldAlert:True, name:tokenSpeed,unit:tokens/s,shouldAlert:True,lowerIsBetter:False, name:charactersSpeed,unit:chars/s,shouldAlert:True,lowerIsBetter:False
  --verbose
  --manifest perftest.toml
  --manifest-flavor browser-chrome

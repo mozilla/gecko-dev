@@ -20,6 +20,7 @@ const { getInferenceProcessInfo } = ChromeUtils.importESModule(
   "chrome://global/content/ml/Utils.sys.mjs"
 );
 
+const MS_PER_SEC = 1000;
 const IndexedDBCache = TestIndexedDBCache;
 
 const {
@@ -204,6 +205,15 @@ const PEAK_MEMORY_USAGE = "peak-memory-usage";
 const ITERATIONS = 10;
 const WHEN = "when";
 const MEMORY = "memory";
+const E2E_INIT_LATENCY = "e2e-init-latency";
+const FIRST_TOKEN_LATENCY = "1st-token-latency";
+const DECODING_LATENCY = "decoding-latency";
+// Token speeds are apppropriate for comparing the speed of the same model.
+const DECODING_TOKEN_SPEED = "decoding-tokenSpeed";
+const PROMPT_TOKEN_SPEED = "prompt-tokenSpeed";
+// Characters speed is appropriate for comparing the speed of two different models.
+const DECODING_CHARACTERS_SPEED = "decoding-charactersSpeed";
+const PROMPT_CHARACTERS_SPEED = "prompt-charactersSpeed";
 
 const formatNumber = new Intl.NumberFormat("en-US", {
   maximumSignificantDigits: 4,
@@ -316,13 +326,19 @@ async function initializeEngine(pipelineOptions, prefs = null) {
     prefs: browserPrefs,
   });
   info("Get the engine process");
+  const startTime = performance.now();
   const mlEngineParent = await EngineProcess.getMLEngineParent();
+  const engine = await mlEngineParent.getEngine(
+    new PipelineOptions(pipelineOptions)
+  );
+  const e2eInitTime = performance.now() - startTime;
 
   info("Get Pipeline Options");
   info("Run the inference");
   return {
     cleanup,
-    engine: await mlEngineParent.getEngine(pipelineOptions),
+    engine,
+    e2eInitTime,
   };
 }
 
@@ -436,16 +452,88 @@ async function runInference({
   isFirstRun = false,
   browserPrefs = null,
 }) {
-  const { cleanup, engine } = await initializeEngine(
+  info(
+    `runInference is request null | ${request === null || request === undefined}`
+  );
+  const { cleanup, engine, e2eInitTime } = await initializeEngine(
     pipelineOptions,
     browserPrefs
   );
+
+  const streamerOptions = {
+    perTokens: true,
+    skipPrompt: pipelineOptions.taskName !== "text-generation",
+    returnTokens: true,
+    ...(request.streamerOptions || {}),
+  };
+  request = { ...request, streamerOptions };
+
   let metrics = {};
+  let timeToFirstToken;
+  let startTime;
+  let numGeneratedCharacters = 0;
+  let numGeneratedTokens = 0;
+  let numPromptCharacters = 0;
+  if (streamerOptions.skipPrompt && Array.isArray(request?.args)) {
+    numPromptCharacters += request.args
+      .flat()
+      .reduce((sum, item) => sum + (item?.length || 0), 0);
+  }
+  let numPromptTokens = 0;
+  const run = async () => {
+    let isFirstTokenReceived = false;
+    let result;
+    let currentTokenLen = 0;
+    let currentCharLen = 0;
+    startTime = performance.now();
+    const generator = engine.runWithGenerator(request);
+
+    do {
+      result = await generator.next();
+
+      currentTokenLen = result.value?.tokens?.flat()?.length || 0;
+      currentCharLen = result.value?.text?.length || 0;
+
+      if (result.value?.isPrompt) {
+        numPromptCharacters += currentCharLen;
+        numPromptTokens += currentTokenLen;
+      } else {
+        numGeneratedCharacters += currentCharLen;
+        numGeneratedTokens += currentTokenLen;
+        if (!isFirstTokenReceived) {
+          timeToFirstToken = performance.now() - startTime;
+          isFirstTokenReceived = true;
+          startTime = performance.now();
+        }
+      }
+    } while (!result.done);
+
+    return result.value;
+  };
+
   try {
-    const res = await engine.run(request);
+    const res = await run();
+    const decodingTime = performance.now() - startTime;
     metrics = fetchMetrics(res.metrics, isFirstRun);
     metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${TOTAL_MEMORY_USAGE}`] =
       await getTotalMemoryUsage();
+
+    metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${E2E_INIT_LATENCY}`] =
+      e2eInitTime;
+    metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${FIRST_TOKEN_LATENCY}`] =
+      timeToFirstToken;
+    metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${DECODING_LATENCY}`] =
+      decodingTime;
+    metrics[
+      `${isFirstRun ? COLD_START_PREFIX : ""}${DECODING_CHARACTERS_SPEED}`
+    ] = numGeneratedCharacters / (decodingTime / MS_PER_SEC);
+    metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${DECODING_TOKEN_SPEED}`] =
+      numGeneratedTokens / (decodingTime / MS_PER_SEC);
+    metrics[
+      `${isFirstRun ? COLD_START_PREFIX : ""}${PROMPT_CHARACTERS_SPEED}`
+    ] = numPromptCharacters / (timeToFirstToken / MS_PER_SEC);
+    metrics[`${isFirstRun ? COLD_START_PREFIX : ""}${PROMPT_TOKEN_SPEED}`] =
+      numPromptTokens / (timeToFirstToken / MS_PER_SEC);
   } finally {
     await EngineProcess.destroyMLEngine();
     await cleanup();
@@ -505,8 +593,9 @@ async function perfTest({
   addColdStart = false,
   trackPeakMemory = false,
   peakMemoryInterval = 500,
-  extraPrefs = null,
+  browserPrefs = null,
 }) {
+  info(`is request null | ${request === null || request === undefined}`);
   name = name.toUpperCase();
 
   let METRICS;
@@ -521,6 +610,13 @@ async function perfTest({
       `${name}-${INITIALIZATION_LATENCY}`,
       `${name}-${MODEL_RUN_LATENCY}`,
       `${name}-${TOTAL_MEMORY_USAGE}`,
+      `${name}-${E2E_INIT_LATENCY}`,
+      `${name}-${FIRST_TOKEN_LATENCY}`,
+      `${name}-${DECODING_LATENCY}`,
+      `${name}-${DECODING_CHARACTERS_SPEED}`,
+      `${name}-${DECODING_TOKEN_SPEED}`,
+      `${name}-${PROMPT_CHARACTERS_SPEED}`,
+      `${name}-${PROMPT_TOKEN_SPEED}`,
       ...(addColdStart
         ? [
             `${name}-${COLD_START_PREFIX}${PIPELINE_READY_LATENCY}`,
@@ -551,7 +647,7 @@ async function perfTest({
       pipelineOptions,
       request,
       isFirstRun: shouldAddColdStart,
-      browserPrefs: extraPrefs,
+      browserPrefs,
     });
     if (trackPeakMemory) {
       journal[`${name}-${PEAK_MEMORY_USAGE}`].push(tracker.stop());
@@ -559,6 +655,10 @@ async function perfTest({
       for (let [metricName, metricVal] of Object.entries(metrics)) {
         if (metricVal === null || metricVal === undefined || metricVal < 0) {
           metricVal = 0;
+        }
+        // Add the metric if it wasn't there
+        if (journal[`${name}-${metricName}`] === undefined) {
+          journal[`${name}-${metricName}`] = [];
         }
         journal[`${name}-${metricName}`].push(metricVal);
       }

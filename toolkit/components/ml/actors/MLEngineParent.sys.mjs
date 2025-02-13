@@ -1098,7 +1098,11 @@ class MLEngine {
 
       // If there was no timeout we can yield the chunk and move to the next
       if (!chunk.timeout) {
-        yield { text: chunk.metadata.text };
+        yield {
+          text: chunk.metadata.text,
+          tokens: chunk.metadata.tokens,
+          isPrompt: chunk.metadata.isPrompt,
+        };
         chunkPromise = responseChunkResolvers.getAndAdvanceChunkPromise();
       }
 

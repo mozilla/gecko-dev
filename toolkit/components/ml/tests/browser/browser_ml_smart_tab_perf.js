@@ -20,6 +20,18 @@ const perfMetadata = {
           unit: "MiB",
           shouldAlert: true,
         },
+        {
+          name: "tokenSpeed",
+          unit: "tokens/s",
+          shouldAlert: true,
+          lowerIsBetter: false,
+        },
+        {
+          name: "charactersSpeed",
+          unit: "chars/s",
+          shouldAlert: true,
+          lowerIsBetter: false,
+        },
       ],
       verbose: true,
       manifest: "perftest.toml",

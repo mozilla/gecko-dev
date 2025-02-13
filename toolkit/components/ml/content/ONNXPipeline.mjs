@@ -529,6 +529,12 @@ export class Pipeline {
    * When the pipeline is initialized with the generic pipeline function, the request contains
    * `args` and `options` fields. The `args` field is an array of values that are passed
    * to the generic pipeline function. The `options` field is an object that contains the options for the pipeline.
+   * The request may include a `streamerOptions` field to configure streaming behavior.
+   * `streamerOptions` is an object with the following properties:
+   *
+   * - `perTokens` (boolean): If `true`, streams data per token; otherwise, streams per word.
+   * - `skipPrompt` (boolean): If `false`, the first returned value will include the prompt.
+   * - `returnTokens` (boolean): If `true`, the response will include tokens.
    * @param {string} requestId - The identifier used to internally track this request.
    * @param {?function(ProgressAndStatusCallbackParams):void} inferenceProgressCallback A function to call to indicate inference progress.
    * @returns {Promise<object>} The result object from the pipeline execution.
@@ -547,24 +553,91 @@ export class Pipeline {
       id: request.id ?? requestId,
     };
 
+    const streamerOptions = {
+      perTokens: false,
+      skipPrompt: true,
+      returnTokens: false,
+      ...request.streamerOptions,
+    };
+
     let streamer = undefined;
+    let chunkTokens = [];
+    let chunkText = "";
+    let nextTokensArePrompt = !streamerOptions.skipPrompt;
+    let restoreTokenizer = false;
 
     if (tokenizer && inferenceProgressCallback) {
+      const flushPrompts = _tokens => {
+        streamer.token_cache = _tokens;
+        streamer.end();
+        streamer.tokenizer = {
+          decode: () => {
+            streamer.token_cache = [];
+            return "";
+          },
+        };
+        restoreTokenizer = true;
+        streamer.next_tokens_are_prompt = false;
+      };
       streamer = new transformers.TextStreamer(tokenizer, {
-        skip_prompt: true,
+        skip_prompt: streamerOptions.skipPrompt,
         decode_kwargs: {
           skip_special_tokens: true,
         },
-        callback_function: text =>
-          inferenceProgressCallback?.({
-            ...progressInfo,
-            metadata: {
-              text,
-              requestId,
-            },
-            type: lazy.Progress.ProgressType.INFERENCE,
-            statusText: lazy.Progress.ProgressStatusText.IN_PROGRESS,
-          }),
+        token_callback_function: tokens => {
+          if (restoreTokenizer) {
+            streamer.tokenizer = tokenizer;
+            restoreTokenizer = false;
+          }
+          if (streamerOptions.perTokens) {
+            if (nextTokensArePrompt) {
+              flushPrompts(tokens);
+            }
+
+            inferenceProgressCallback({
+              ...progressInfo,
+              metadata: {
+                text: chunkText,
+                tokens: streamerOptions.returnTokens ? tokens : null,
+                isPrompt: nextTokensArePrompt,
+                requestId,
+              },
+              type: lazy.Progress.ProgressType.INFERENCE,
+              statusText: lazy.Progress.ProgressStatusText.IN_PROGRESS,
+            });
+
+            // We have sent the text, now resetting it
+            chunkText = "";
+          } else {
+            // Append newly received tokens.
+            chunkTokens.push(tokens);
+
+            if (nextTokensArePrompt) {
+              flushPrompts(tokens);
+            }
+          }
+          nextTokensArePrompt = false;
+        },
+        // Per-word callback function
+        callback_function: text => {
+          if (streamerOptions.perTokens) {
+            chunkText = text;
+          } else {
+            inferenceProgressCallback({
+              ...progressInfo,
+              metadata: {
+                text,
+                tokens: streamerOptions.returnTokens ? chunkTokens : null,
+                requestId,
+                isPrompt: nextTokensArePrompt,
+              },
+              type: lazy.Progress.ProgressType.INFERENCE,
+              statusText: lazy.Progress.ProgressStatusText.IN_PROGRESS,
+            });
+            // reset the chunks.
+            chunkTokens = [];
+          }
+        },
       });
     }
 
