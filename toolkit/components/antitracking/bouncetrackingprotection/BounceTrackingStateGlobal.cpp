@@ -162,16 +162,26 @@ nsresult BounceTrackingStateGlobal::ClearByTimeRange(
   // ClearDataService.
   if (aEntryType.isNothing()) {
     for (auto iter = mRecentPurges.Iter(); !iter.Done(); iter.Next()) {
-      for (const auto& entry : iter.Data()) {
-        const PRTime& purgeTime = entry->PurgeTimeRefConst();
+      auto& purgeArray = iter.Data();
 
-        if (purgeTime >= aFrom &&
-            (aTo.isNothing() || purgeTime <= aTo.value())) {
+      // Use RemoveElementsBy to safely remove elements from nsTArray while
+      // iterating.
+      purgeArray.RemoveElementsBy([&](const auto& entry) {
+        const PRTime& purgeTime = entry->PurgeTimeRefConst();
+        bool shouldRemove =
+            purgeTime >= aFrom && (aTo.isNothing() || purgeTime <= aTo.value());
+
+        if (shouldRemove) {
           MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
                   ("%s: Remove purge log entry for site %s", __FUNCTION__,
                    PromiseFlatCString(iter.Key()).get()));
-          iter.Remove();
         }
+        return shouldRemove;
+      });
+
+      // If the array is now empty, remove the entire entry from mRecentPurges
+      if (purgeArray.IsEmpty()) {
+        iter.Remove();
       }
     }
   }
