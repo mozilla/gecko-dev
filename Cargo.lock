@@ -1102,7 +1102,9 @@ name = "crashreporter"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "bindgen 0.69.4",
  "block",
+ "buildid_reader",
  "bytes",
  "cfg-if",
  "cocoabind",

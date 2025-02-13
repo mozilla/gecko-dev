@@ -9,6 +9,7 @@ fn main() {
     crash_ping_annotations();
     set_mock_cfg();
     set_glean_metrics_file();
+    generate_buildid_section();
 }
 
 fn windows_manifest() {
@@ -112,4 +113,32 @@ fn set_glean_metrics_file() {
         "cargo:rustc-env=GLEAN_METRICS_FILE={}",
         glean_metrics_path.display()
     );
+}
+
+/// Generate the buildid section name (we read the buildid at runtime using buildid_reader).
+fn generate_buildid_section() {
+    use mozbuild::config::CC_BASE_FLAGS as CFLAGS;
+
+    let defines = if cfg!(target_os = "macos") {
+        "#define XP_DARWIN"
+    } else if cfg!(target_os = "windows") {
+        "#define XP_WIN"
+    } else {
+        ""
+    };
+
+    let bindings = bindgen::Builder::default()
+        .header_contents("defines.h", defines)
+        .header(format!(
+            "{}/toolkit/library/buildid_section.h",
+            mozbuild::TOPSRCDIR.display()
+        ))
+        .clang_args(CFLAGS)
+        .generate_cstr(true)
+        .generate()
+        .expect("unable to generate buildid_section.h");
+    let out_path = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
+    bindings
+        .write_to_file(out_path.join("buildid_section.rs"))
+        .expect("failed to write buildid section");
 }
