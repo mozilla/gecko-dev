@@ -1,20 +1,25 @@
-From: Mike Hommey <mh+mozilla@glandium.org>
-Date: Wed, 22 Jan 2025 05:36:40 +0900
-Subject: Bug 1942917 - Avoid trying to link getauxval as a hidden symbol.
+From 69187605305acf876a75c64a7665ffa725a306cb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Dan=20Hor=C3=A1k?= <dan@danny.cz>
+Date: Wed, 29 Jan 2025 10:22:58 +0000
+Subject: Bug 1944513 - avoid symbol visibility issues for getauxval()
 
 ---
- abseil-cpp/absl/random/internal/randen_detect.cc | 1 +
- 1 file changed, 1 insertion(+)
+ abseil-cpp/absl/random/internal/randen_detect.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/abseil-cpp/absl/random/internal/randen_detect.cc b/abseil-cpp/absl/random/internal/randen_detect.cc
-index bdeab877b98..518026d65c9 100644
+index bdeab877..e23cdb32 100644
 --- a/abseil-cpp/absl/random/internal/randen_detect.cc
 +++ b/abseil-cpp/absl/random/internal/randen_detect.cc
-@@ -63,6 +63,7 @@ static void __cpuid(int cpu_info[4], int info_type) {
+@@ -63,7 +63,7 @@ static void __cpuid(int cpu_info[4], int info_type) {
  // On linux, just use the c-library getauxval call.
  #if defined(ABSL_INTERNAL_USE_LINUX_GETAUXVAL)
  
-+__attribute__((visibility("default")))
- extern "C" unsigned long getauxval(unsigned long type);  // NOLINT(runtime/int)
+-extern "C" unsigned long getauxval(unsigned long type);  // NOLINT(runtime/int)
++#include <sys/auxv.h>
  
  static uint32_t GetAuxval(uint32_t hwcap_type) {
+   return static_cast<uint32_t>(getauxval(hwcap_type));
+-- 
+2.47.0
+
