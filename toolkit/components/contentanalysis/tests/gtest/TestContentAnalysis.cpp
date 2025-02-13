@@ -583,9 +583,9 @@ TEST_F(ContentAnalysisTest,
   MOZ_ALWAYS_SUCCEEDS(
       obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
 
-  nsresult rv =
-      SendRequestsCancelAndExpectResponse(mContentAnalysis, requests,
-                                      CancelMechanism::eCancelByRequestToken, false /* aExpectFailure */);
+  nsresult rv = SendRequestsCancelAndExpectResponse(
+      mContentAnalysis, requests, CancelMechanism::eCancelByRequestToken,
+      false /* aExpectFailure */);
   EXPECT_EQ(rv, NS_OK);
 
   auto rawRequests = rawRequestObserver->GetRequests();
@@ -620,9 +620,9 @@ TEST_F(ContentAnalysisTest,
   MOZ_ALWAYS_SUCCEEDS(
       obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
 
-  nsresult rv =
-      SendRequestsCancelAndExpectResponse(mContentAnalysis, requests,
-                                      CancelMechanism::eCancelByUserActionId, false /* aExpectFailure */);
+  nsresult rv = SendRequestsCancelAndExpectResponse(
+      mContentAnalysis, requests, CancelMechanism::eCancelByUserActionId,
+      false /* aExpectFailure */);
   EXPECT_EQ(rv, NS_OK);
 
   auto rawRequests = rawRequestObserver->GetRequests();
@@ -648,8 +648,8 @@ TEST_F(ContentAnalysisTest,
       nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
       nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow1),
       false, EmptyCString(), uri,
-      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr,
-      nullptr, nsCString(userActionId));
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr, nullptr,
+      nsCString(userActionId));
 
   // Use different text so the request doesn't match the cache
   nsString allow2(L"allowMeAgain");
@@ -657,17 +657,17 @@ TEST_F(ContentAnalysisTest,
       nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
       nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow2),
       false, EmptyCString(), uri,
-      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr,
-      nullptr, nsCString(userActionId));
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr, nullptr,
+      nsCString(userActionId));
   nsTArray<RefPtr<nsIContentAnalysisRequest>> requests{request1, request2};
   nsCOMPtr<nsIObserverService> obsServ =
       mozilla::services::GetObserverService();
   auto rawRequestObserver = MakeRefPtr<RawRequestObserver>();
   MOZ_ALWAYS_SUCCEEDS(
       obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
-  nsresult rv =
-      SendRequestsCancelAndExpectResponse(mContentAnalysis, requests,
-                                      CancelMechanism::eCancelByUserActionId, false /* aExpectFailure */);
+  nsresult rv = SendRequestsCancelAndExpectResponse(
+      mContentAnalysis, requests, CancelMechanism::eCancelByUserActionId,
+      false /* aExpectFailure */);
   EXPECT_EQ(rv, NS_OK);
 
   auto rawRequests = rawRequestObserver->GetRequests();
@@ -679,8 +679,7 @@ TEST_F(ContentAnalysisTest,
       obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
 }
 
-TEST_F(ContentAnalysisTest,
-       CheckGivenUserActionIdsMustMatch) {
+TEST_F(ContentAnalysisTest, CheckGivenUserActionIdsMustMatch) {
   nsCString userActionId1 = GenerateUUID();
   nsCString userActionId2 = GenerateUUID();
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
@@ -690,8 +689,8 @@ TEST_F(ContentAnalysisTest,
       nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
       nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow1),
       false, EmptyCString(), uri,
-      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr,
-      nullptr, nsCString(userActionId1));
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr, nullptr,
+      nsCString(userActionId1));
 
   // Use different text so the request doesn't match the cache
   nsString allow2(L"allowMeAgain");
@@ -699,12 +698,12 @@ TEST_F(ContentAnalysisTest,
       nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
       nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow2),
       false, EmptyCString(), uri,
-      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr,
-      nullptr, nsCString(userActionId2));
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr, nullptr,
+      nsCString(userActionId2));
   nsTArray<RefPtr<nsIContentAnalysisRequest>> requests{request1, request2};
 
-  nsresult rv =
-      SendRequestsCancelAndExpectResponse(mContentAnalysis, requests,
-                                      CancelMechanism::eCancelByUserActionId, true /* aExpectFailure */);
+  nsresult rv = SendRequestsCancelAndExpectResponse(
+      mContentAnalysis, requests, CancelMechanism::eCancelByUserActionId,
+      true /* aExpectFailure */);
   EXPECT_EQ(rv, NS_ERROR_INVALID_ARG);
 }

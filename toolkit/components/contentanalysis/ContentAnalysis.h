@@ -79,13 +79,13 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
   NS_DECL_ISUPPORTS
   NS_DECL_NSICONTENTANALYSISREQUEST
 
-  ContentAnalysisRequest(
-      AnalysisType aAnalysisType, Reason aReason, nsString aString,
-      bool aStringIsFilePath, nsCString aSha256Digest, nsCOMPtr<nsIURI> aUrl,
-      OperationType aOperationType,
-      dom::WindowGlobalParent* aWindowGlobalParent,
-      dom::WindowGlobalParent* aSourceWindowGlobal = nullptr,
-      nsCString&& aUserActionId = nsCString());
+  ContentAnalysisRequest(AnalysisType aAnalysisType, Reason aReason,
+                         nsString aString, bool aStringIsFilePath,
+                         nsCString aSha256Digest, nsCOMPtr<nsIURI> aUrl,
+                         OperationType aOperationType,
+                         dom::WindowGlobalParent* aWindowGlobalParent,
+                         dom::WindowGlobalParent* aSourceWindowGlobal = nullptr,
+                         nsCString&& aUserActionId = nsCString());
 
   ContentAnalysisRequest(AnalysisType aAnalysisType, Reason aReason,
                          nsITransferable* aTransferable,
@@ -169,12 +169,8 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
   friend class ::ContentAnalysisTest;
 };
 
-#define CONTENTANALYSIS_IID                          \
-  {                                                  \
-    0xa37bed74, 0x4b50, 0x443a, {                    \
-      0xbf, 0x58, 0xf4, 0xeb, 0xbd, 0x30, 0x67, 0xb4 \
-    }                                                \
-  }
+#define CONTENTANALYSIS_IID \
+  {0xa37bed74, 0x4b50, 0x443a, {0xbf, 0x58, 0xf4, 0xeb, 0xbd, 0x30, 0x67, 0xb4}}
 
 class ContentAnalysisResponse;
 class ContentAnalysis final : public nsIContentAnalysis,

@@ -1372,7 +1372,8 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
     LOGD(
         "ContentAnalysis::CancelWithError user action not found -- either was "
         "after last response or before first request was submitted | "
-        "userActionId: %s", aUserActionId.get());
+        "userActionId: %s",
+        aUserActionId.get());
     mUserActionMap.Remove(aUserActionId);
     return;
   }
@@ -1821,7 +1822,8 @@ static nsresult AddClipboardCARForCustomData(
     AddCARForText(std::move(text),
                   nsIContentAnalysisRequest::Reason::eClipboardPaste,
                   nsIContentAnalysisRequest::OperationType::eClipboard, aURI,
-                  aWindowGlobal, aSourceWindowGlobal, nsCString(aUserActionId), aRequests);
+                  aWindowGlobal, aSourceWindowGlobal, nsCString(aUserActionId),
+                  aRequests);
   }
   return NS_OK;
 }
@@ -1855,10 +1857,10 @@ static nsresult AddClipboardCARForText(
     }
   }
 
-  AddCARForText(std::move(text),
-                nsIContentAnalysisRequest::Reason::eClipboardPaste,
-                nsIContentAnalysisRequest::OperationType::eClipboard, aURI,
-                aWindowGlobal, aSourceWindowGlobal, std::move(aUserActionId), aRequests);
+  AddCARForText(
+      std::move(text), nsIContentAnalysisRequest::Reason::eClipboardPaste,
+      nsIContentAnalysisRequest::OperationType::eClipboard, aURI, aWindowGlobal,
+      aSourceWindowGlobal, std::move(aUserActionId), aRequests);
   return NS_OK;
 }
 
@@ -1877,7 +1879,8 @@ static nsresult AddClipboardCARForFile(
       NS_ENSURE_SUCCESS(file->GetPath(filePath), NS_ERROR_FAILURE);
       AddCARForFile(std::move(filePath),
                     nsIContentAnalysisRequest::Reason::eClipboardPaste, aURI,
-                    aWindowGlobal, aSourceWindowGlobal, std::move(aUserActionId), aRequests);
+                    aWindowGlobal, aSourceWindowGlobal,
+                    std::move(aUserActionId), aRequests);
     } else {
       MOZ_ASSERT_UNREACHABLE("clipboard data had kFileMime but no nsIFile!");
       return NS_ERROR_FAILURE;
@@ -1904,18 +1907,21 @@ static Result<bool, nsresult> AddRequestsFromTransferableIfAny(
   nsAutoCString userActionId;
   MOZ_ALWAYS_SUCCEEDS(aOriginalRequest->GetUserActionId(userActionId));
 
-  nsresult rv = AddClipboardCARForCustomData(aWindowGlobal, transferable, aUri,
-                                             aSourceWindowGlobal, nsCString(userActionId), aNewRequests);
+  nsresult rv = AddClipboardCARForCustomData(
+      aWindowGlobal, transferable, aUri, aSourceWindowGlobal,
+      nsCString(userActionId), aNewRequests);
   NS_ENSURE_SUCCESS(rv, Err(rv));
 
   for (const auto& textFormat : kTextFormatsToAnalyze) {
     rv = AddClipboardCARForText(aWindowGlobal, transferable, textFormat, aUri,
-                                aSourceWindowGlobal, nsCString(userActionId), aNewRequests);
+                                aSourceWindowGlobal, nsCString(userActionId),
+                                aNewRequests);
     NS_ENSURE_SUCCESS(rv, Err(rv));
   }
 
   rv = AddClipboardCARForFile(aWindowGlobal, transferable, aUri,
-                              aSourceWindowGlobal, std::move(userActionId), aNewRequests);
+                              aSourceWindowGlobal, std::move(userActionId),
+                              aNewRequests);
   NS_ENSURE_SUCCESS(rv, Err(rv));
   return true;
 }
@@ -1950,7 +1956,8 @@ static Result<bool, nsresult> AddRequestsFromDataTransferIfAny(
     AddCARForText(std::move(text),
                   nsIContentAnalysisRequest::Reason::eDragAndDrop,
                   nsIContentAnalysisRequest::OperationType::eDroppedText, aUri,
-                  aWindowGlobal, aSourceWindowGlobal, nsCString(userActionId), aNewRequests);
+                  aWindowGlobal, aSourceWindowGlobal, nsCString(userActionId),
+                  aNewRequests);
   }
 
   if (dataTransfer->HasFile()) {
@@ -1967,7 +1974,8 @@ static Result<bool, nsresult> AddRequestsFromDataTransferIfAny(
 
       AddCARForFile(std::move(filePath),
                     nsIContentAnalysisRequest::Reason::eDragAndDrop, aUri,
-                    aWindowGlobal, aSourceWindowGlobal, nsCString(userActionId), aNewRequests);
+                    aWindowGlobal, aSourceWindowGlobal, nsCString(userActionId),
+                    aNewRequests);
     }
   }
   return true;
@@ -2007,7 +2015,8 @@ MakeRequestForFileInFolder(dom::File* aFile,
 
   return MakeRefPtr<ContentAnalysisRequest>(
              analysisType, reason, pathString, true, EmptyCString(), url,
-             operationType, windowGlobal, sourceWindowGlobal, std::move(userActionId))
+             operationType, windowGlobal, sourceWindowGlobal,
+             std::move(userActionId))
       .forget()
       .downcast<nsIContentAnalysisRequest>();
 }
@@ -2529,7 +2538,8 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
       }
     }
   }
-  mUserActionMap.InsertOrUpdate(userActionId, UserActionData {aCallback, {}, aAutoAcknowledge});
+  mUserActionMap.InsertOrUpdate(
+      userActionId, UserActionData{aCallback, {}, aAutoAcknowledge});
 
   Result<RefPtr<RequestsPromise::AllPromiseType>,
          RefPtr<nsIContentAnalysisResult>>
@@ -2563,8 +2573,8 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
       requestListResult.unwrap();
   finalRequests->Then(
       GetMainThreadSerialEventTarget(), "issue ca requests",
-      [aAutoAcknowledge, safeCallback,
-       weakThis, userActionId](nsTArray<ContentAnalysisRequestArray>&& aRequests) {
+      [aAutoAcknowledge, safeCallback, weakThis,
+       userActionId](nsTArray<ContentAnalysisRequestArray>&& aRequests) {
         // We already have weakThis but we also get the nsIContentAnalysis
         // object from the service, since we do want the mock service (if
         // any) for the call to AnalyzeContentRequestPrivate.
@@ -2574,7 +2584,8 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
         if (!contentAnalysis || !weakThis) {
           LOGD(
               "ContentAnalysis::AnalyzeContentRequestsCallback received "
-              "response during shutdown | userActionId = %s", userActionId.get());
+              "response during shutdown | userActionId = %s",
+              userActionId.get());
           safeCallback->Error(NS_ERROR_NOT_AVAILABLE);
           return;
         }
