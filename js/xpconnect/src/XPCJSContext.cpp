@@ -790,8 +790,7 @@ void xpc::SetPrefableRealmOptions(JS::RealmOptions& options) {
 }
 
 void xpc::SetPrefableCompileOptions(JS::PrefableCompileOptions& options) {
-  options
-      .setSourcePragmas(StaticPrefs::javascript_options_source_pragmas())
+  options.setSourcePragmas(StaticPrefs::javascript_options_source_pragmas())
       .setImportAttributes(
           StaticPrefs::javascript_options_experimental_import_attributes())
       .setAsmJS(StaticPrefs::javascript_options_asmjs())
