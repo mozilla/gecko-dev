@@ -10,6 +10,13 @@ const {
   getUnicodeHostname,
 } = require("resource://devtools/client/shared/unicode-url.js");
 
+loader.lazyRequireGetter(
+  this,
+  "parseJsonLossless",
+  "resource://devtools/client/shared/components/reps/reps/rep-utils.js",
+  true
+);
+
 const {
   UPDATE_PROPS,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
@@ -657,7 +664,7 @@ function parseJSON(payloadUnclean) {
   let { payload, strippedChars, error } = removeXSSIString(payloadUnclean);
 
   try {
-    json = JSON.parse(payload);
+    json = parseJsonLossless(payload);
   } catch (err) {
     if (isBase64(payload)) {
       try {
