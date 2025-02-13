@@ -359,13 +359,10 @@ interface nsIContentAnalysis : nsISupports
    *        The URI of the page that requested the clipboard.
    * @param aSequenceNumber
    *        The native sequence number of the clipboard.
-   * @param aFlavors
-   *        The flavors requested for analysis. (note that some of these
-   *        may not be present in the actual clipboard data)
    * @param aAction
    *        The Content Analysis result from analyzing the clipboard data.
    */
-  void setCachedResponse(in nsIURI aURI, in int32_t aSequenceNumber, in Array<ACString> aFlavors,
+  void setCachedResponse(in nsIURI aURI, in int32_t aSequenceNumber,
     in nsIContentAnalysisResponse_Action aAction);
 
   /**
@@ -375,14 +372,11 @@ interface nsIContentAnalysis : nsISupports
    *        The URI of the page that requested the clipboard.
    * @param aSequenceNumber
    *        The native sequence number of the clipboard.
-   * @param aFlavors
-   *        The flavors requested for analysis. (note that some of these
-   *        may not be present in the actual clipboard data)
    * @param aAction
    *        The Content Analysis result from analyzing the clipboard data.
    * @param aIsValid
    *        Whether aAction is valid. (i.e. whether we have cached data)
    */
-  void getCachedResponse(in nsIURI aURI, in int32_t aSequenceNumber, in Array<ACString> aFlavors,
+  void getCachedResponse(in nsIURI aURI, in int32_t aSequenceNumber,
     out nsIContentAnalysisResponse_Action aAction, out boolean aIsValid);
 };

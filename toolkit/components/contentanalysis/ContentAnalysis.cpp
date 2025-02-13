@@ -1140,21 +1140,59 @@ ContentAnalysis::TestOnlySetCACmdLineArg(bool aVal) {
 #endif
 }
 
+Maybe<nsIContentAnalysisResponse::Action>
+ContentAnalysis::CachedClipboardResponse::GetCachedResponse(
+    nsIURI* aURI, int32_t aClipboardSequenceNumber) {
+  MOZ_ASSERT(NS_IsMainThread(),
+             "Expecting main thread access only to avoid synchronization");
+  if (Some(aClipboardSequenceNumber) != mClipboardSequenceNumber) {
+    LOGD("CachedClipboardResponse seqno does not match cached value");
+    return Nothing();
+  }
+  for (const auto& entry : mData) {
+    bool uriEquals = false;
+    // URI will not be set for some chrome contexts
+    if ((!aURI && !entry.first) ||
+        (aURI && NS_SUCCEEDED(aURI->Equals(entry.first, &uriEquals)) &&
+         uriEquals)) {
+      LOGD("CachedClipboardResponse match");
+      return Some(entry.second);
+    }
+  }
+  LOGD("CachedClipboardResponse did not match any cached URI");
+  return Nothing();
+}
+
+void ContentAnalysis::CachedClipboardResponse::SetCachedResponse(
+    const nsCOMPtr<nsIURI>& aURI, int32_t aClipboardSequenceNumber,
+    nsIContentAnalysisResponse::Action aAction) {
+  MOZ_ASSERT(NS_IsMainThread(),
+             "Expecting main thread access only to avoid synchronization");
+  if (mClipboardSequenceNumber != Some(aClipboardSequenceNumber)) {
+    LOGD("CachedClipboardResponse caching new clipboard seqno");
+    mData.Clear();
+    mClipboardSequenceNumber = Some(aClipboardSequenceNumber);
+  } else {
+    LOGD(
+        "CachedClipboardResponse caching new URI for existing cached clipboard "
+        "seqno");
+  }
+  mData.AppendElement(std::make_pair(aURI, aAction));
+}
+
 NS_IMETHODIMP ContentAnalysis::SetCachedResponse(
     nsIURI* aURI, int32_t aClipboardSequenceNumber,
-    const nsTArray<nsCString>& aFlavors,
     nsIContentAnalysisResponse::Action aAction) {
   mCachedClipboardResponse.SetCachedResponse(aURI, aClipboardSequenceNumber,
-                                             aFlavors, aAction);
+                                             aAction);
   return NS_OK;
 }
 
 NS_IMETHODIMP ContentAnalysis::GetCachedResponse(
     nsIURI* aURI, int32_t aClipboardSequenceNumber,
-    const nsTArray<nsCString>& aFlavors,
     nsIContentAnalysisResponse::Action* aAction, bool* aIsValid) {
   auto action = mCachedClipboardResponse.GetCachedResponse(
-      aURI, aClipboardSequenceNumber, aFlavors);
+      aURI, aClipboardSequenceNumber);
   *aIsValid = action.isSome();
   if (action.isSome()) {
     *aAction = *action;

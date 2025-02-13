@@ -329,61 +329,15 @@ class ContentAnalysis final : public nsIContentAnalysis {
    public:
     CachedClipboardResponse() = default;
     Maybe<nsIContentAnalysisResponse::Action> GetCachedResponse(
-        nsIURI* aURI, int32_t aClipboardSequenceNumber,
-        const nsTArray<nsCString>& aFlavors) {
-      MOZ_ASSERT(NS_IsMainThread(),
-                 "Expecting main thread access only to avoid synchronization");
-      if (Some(aClipboardSequenceNumber) != mClipboardSequenceNumber) {
-        return Nothing();
-      }
-      Maybe<nsIContentAnalysisResponse::Action> possibleAction;
-      for (const auto& entry : mData) {
-        bool uriEquals = false;
-        if (NS_SUCCEEDED(aURI->Equals(entry.first, &uriEquals)) && uriEquals) {
-          possibleAction = Some(entry.second);
-          break;
-        }
-      }
-      if (possibleAction.isNothing()) {
-        return Nothing();
-      }
-      // Make sure the flavors we have checked are a subset of the ones we
-      // checked before
-      for (const auto& flavor : aFlavors) {
-        if (!mFlavors.Contains(flavor)) {
-          // This only matters if it's a flavor that we check for content
-          // analysis
-          for (const char* knownType : kKnownClipboardTypes) {
-            if (flavor.EqualsASCII(knownType)) {
-              return Nothing();
-            }
-          }
-        }
-      }
-      return possibleAction;
-    }
+        nsIURI* aURI, int32_t aClipboardSequenceNumber);
     void SetCachedResponse(const nsCOMPtr<nsIURI>& aURI,
                            int32_t aClipboardSequenceNumber,
-                           const nsTArray<nsCString>& aFlavors,
-                           nsIContentAnalysisResponse::Action aAction) {
-      MOZ_ASSERT(NS_IsMainThread(),
-                 "Expecting main thread access only to avoid synchronization");
-      if (mClipboardSequenceNumber != Some(aClipboardSequenceNumber)) {
-        mData.Clear();
-        mClipboardSequenceNumber = Some(aClipboardSequenceNumber);
-      }
-      mFlavors.Clear();
-      for (const auto& flavor : aFlavors) {
-        mFlavors.Insert(flavor);
-      }
-      mData.AppendElement(std::make_pair(aURI, aAction));
-    }
+                           nsIContentAnalysisResponse::Action aAction);
 
    private:
     Maybe<int32_t> mClipboardSequenceNumber;
     nsTArray<std::pair<nsCOMPtr<nsIURI>, nsIContentAnalysisResponse::Action>>
         mData;
-    nsTHashSet<nsCString> mFlavors;
   };
   CachedClipboardResponse mCachedClipboardResponse;
 

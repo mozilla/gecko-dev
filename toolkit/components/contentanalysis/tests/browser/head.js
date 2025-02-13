@@ -273,26 +273,18 @@ function makeMockContentAnalysis() {
       return this.realCAService.getURIForBrowsingContext(aBrowsingContext);
     },
 
-    setCachedResponse(aURI, aClipboardSequenceNumber, aFlavors, aAction) {
+    setCachedResponse(aURI, aClipboardSequenceNumber, aAction) {
       return this.realCAService.setCachedResponse(
         aURI,
         aClipboardSequenceNumber,
-        aFlavors,
         aAction
       );
     },
 
-    getCachedResponse(
-      aURI,
-      aClipboardSequenceNumber,
-      aFlavors,
-      aAction,
-      aIsValid
-    ) {
+    getCachedResponse(aURI, aClipboardSequenceNumber, aAction, aIsValid) {
       return this.realCAService.getCachedResponse(
         aURI,
         aClipboardSequenceNumber,
-        aFlavors,
         aAction,
         aIsValid
       );
