@@ -1,0 +1,13 @@
+[package]
+name = "buildid_reader_ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+buildid_reader = { path = ".." }
+log = "0.4"
+nsstring = { path = "../../../../xpcom/rust/nsstring" }
+nserror = { path = "../../../../xpcom/rust/nserror" }

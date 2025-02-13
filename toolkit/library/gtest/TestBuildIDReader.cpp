@@ -133,7 +133,7 @@ TEST_F(BuildIDReader, ReadFromMissingLib) {
   ASSERT_FALSE(NS_SUCCEEDED(rv))
   << "No error reading from " << NS_ConvertUTF16toUTF8(MISSING_XUL_DLL).get()
   << ": " << std::hex << static_cast<uint32_t>(rv);
-  EXPECT_EQ(rv, NS_ERROR_INVALID_ARG);
+  EXPECT_EQ(rv, NS_ERROR_FILE_UNRECOGNIZED_PATH);
 }
 
 TEST_F(BuildIDReader, ReadFromRealLib) {

@@ -14,7 +14,7 @@ extern crate authrs_bridge;
 extern crate bitsdownload;
 #[cfg(feature = "moz_places")]
 extern crate bookmark_sync;
-extern crate buildid_reader;
+extern crate buildid_reader_ffi;
 extern crate cascade_bloom_filter;
 extern crate cert_storage;
 extern crate chardetng_c;
@@ -90,7 +90,8 @@ extern crate ipcclientcerts;
 #[cfg(any(
     target_os = "macos",
     target_os = "ios",
-    all(target_os = "windows", not(target_arch = "aarch64"))))]
+    all(target_os = "windows", not(target_arch = "aarch64"))
+))]
 extern crate osclientcerts;
 
 #[cfg(not(target_os = "android"))]
