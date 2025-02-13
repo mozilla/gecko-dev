@@ -11,6 +11,9 @@ const {
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.js");
 
+const {
+  getStr,
+} = require("resource://devtools/client/inspector/fonts/utils/l10n.js");
 const FontName = createFactory(
   require("resource://devtools/client/inspector/fonts/components/FontName.js")
 );
@@ -77,9 +80,10 @@ class Font extends PureComponent {
       leading,
       isFontFaceRuleExpanded
         ? body
-        : dom.span({
+        : dom.button({
             className: "font-truncated-string-expander",
             onClick: this.onFontFaceRuleToggle,
+            title: getStr("fontinspector.showFullText"),
           }),
       trailing
     );
@@ -88,15 +92,12 @@ class Font extends PureComponent {
   renderFontCSSCodeTwisty() {
     const { isFontFaceRuleExpanded } = this.state;
 
-    const attributes = {
+    return dom.button({
       className: "theme-twisty",
       onClick: this.onFontFaceRuleToggle,
-    };
-    if (isFontFaceRuleExpanded) {
-      attributes.open = "true";
-    }
-
-    return dom.span(attributes);
+      "aria-expanded": isFontFaceRuleExpanded,
+      title: getStr("fontinspector.showFullText"),
+    });
   }
 
   renderFontFamilyName(family) {

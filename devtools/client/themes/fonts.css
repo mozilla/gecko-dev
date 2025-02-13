@@ -188,7 +188,7 @@
 }
 
 /* Force arrow direction in LTR and RTL */
-.font-css-code .theme-twisty:not([open]) {
+.font-css-code .theme-twisty[aria-expanded="false"] {
   transform: rotate(-90deg) !important;
 }
 

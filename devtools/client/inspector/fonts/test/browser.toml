@@ -33,7 +33,6 @@ support-files = [
 ["browser_fontinspector_editor-values.js"]
 
 ["browser_fontinspector_expand-css-code.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_fontinspector_font-type-telemetry.js"]
 
