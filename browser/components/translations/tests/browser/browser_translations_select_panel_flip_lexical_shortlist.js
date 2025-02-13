@@ -29,7 +29,7 @@ add_task(
       onOpenPanel: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 
-    await waitForTranslationsPrefChanged(() => {
+    await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         true
@@ -42,7 +42,7 @@ add_task(
       onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 
-    await waitForTranslationsPrefChanged(() => {
+    await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         false
@@ -87,7 +87,7 @@ add_task(
       onOpenPanel: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 
-    await waitForTranslationsPrefChanged(() => {
+    await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         false
@@ -100,7 +100,7 @@ add_task(
       onChangeLanguage: SelectTranslationsTestUtils.assertPanelViewTranslated,
     });
 
-    await waitForTranslationsPrefChanged(() => {
+    await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         true

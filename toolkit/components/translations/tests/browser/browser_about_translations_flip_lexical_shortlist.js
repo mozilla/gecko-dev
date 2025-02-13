@@ -75,7 +75,7 @@ add_task(async function test_about_translations_flip_lexical_shortlist_pref() {
   });
 
   info('Flipping "browser.translations.useLexicalShortlist" to true.');
-  await waitForTranslationsPrefChanged(() => {
+  await waitForTranslationModelRecordsChanged(() => {
     Services.prefs.setBoolPref(
       "browser.translations.useLexicalShortlist",
       true
@@ -120,7 +120,7 @@ add_task(async function test_about_translations_flip_lexical_shortlist_pref() {
   });
 
   info('Flipping "browser.translations.useLexicalShortlist" to false.');
-  await waitForTranslationsPrefChanged(() => {
+  await waitForTranslationModelRecordsChanged(() => {
     Services.prefs.setBoolPref(
       "browser.translations.useLexicalShortlist",
       false

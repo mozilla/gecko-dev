@@ -1848,21 +1848,21 @@ async function testWithAndWithoutLexicalShortlist(callback) {
 }
 
 /**
- * Waits for the "translations:pref-changed" observer event to occur.
+ * Waits for the "translations:model-records-changed" observer event to occur.
  *
  * @param {Function} [callback]
  *   - An optional function to execute before waiting for the "translations:pref-changed" observer event.
  * @returns {Promise<void>}
- *   - A promise that resolves when the "translations:pref-changed" event is observed.
+ *   - A promise that resolves when the "translations:model-records-changed" event is observed.
  */
-async function waitForTranslationsPrefChanged(callback) {
+async function waitForTranslationModelRecordsChanged(callback) {
   const { promise, resolve } = Promise.withResolvers();
 
   function onChange() {
-    Services.obs.removeObserver(onChange, "translations:pref-changed");
+    Services.obs.removeObserver(onChange, "translations:model-records-changed");
     resolve();
   }
-  Services.obs.addObserver(onChange, "translations:pref-changed");
+  Services.obs.addObserver(onChange, "translations:model-records-changed");
 
   if (callback) {
     await callback();

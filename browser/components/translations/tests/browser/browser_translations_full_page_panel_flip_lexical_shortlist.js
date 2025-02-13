@@ -34,7 +34,7 @@ add_task(
       runInPage,
     });
 
-    await waitForTranslationsPrefChanged(() => {
+    await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         true
@@ -58,7 +58,7 @@ add_task(
       runInPage,
     });
 
-    await waitForTranslationsPrefChanged(() => {
+    await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         false
@@ -117,7 +117,7 @@ add_task(
       runInPage,
     });
 
-    await waitForTranslationsPrefChanged(() => {
+    await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         false
@@ -141,7 +141,7 @@ add_task(
       runInPage,
     });
 
-    await waitForTranslationsPrefChanged(() => {
+    await waitForTranslationModelRecordsChanged(() => {
       Services.prefs.setBoolPref(
         "browser.translations.useLexicalShortlist",
         true
