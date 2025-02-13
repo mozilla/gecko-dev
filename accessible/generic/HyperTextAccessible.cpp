@@ -635,69 +635,6 @@ int32_t HyperTextAccessible::CaretOffset() const {
   return DOMPointToOffset(focusNode, focusOffset);
 }
 
-int32_t HyperTextAccessible::CaretLineNumber() {
-  // Provide the line number for the caret, relative to the
-  // currently focused node. Use a 1-based index
-  RefPtr<nsFrameSelection> frameSelection = FrameSelection();
-  if (!frameSelection) return -1;
-
-  dom::Selection& domSel = frameSelection->NormalSelection();
-
-  nsINode* caretNode = domSel.GetFocusNode();
-  if (!caretNode || !caretNode->IsContent()) return -1;
-
-  nsIContent* caretContent = caretNode->AsContent();
-  if (!nsCoreUtils::IsAncestorOf(GetNode(), caretContent)) return -1;
-
-  uint32_t caretOffset = domSel.FocusOffset();
-  CaretAssociationHint hint = frameSelection->GetHint();
-  nsIFrame* caretFrame = SelectionMovementUtils::GetFrameForNodeOffset(
-      caretContent, caretOffset, hint);
-  NS_ENSURE_TRUE(caretFrame, -1);
-
-  AutoAssertNoDomMutations guard;  // The nsILineIterators below will break if
-                                   // the DOM is modified while they're in use!
-  int32_t lineNumber = 1;
-  nsILineIterator* lineIterForCaret = nullptr;
-  nsIContent* hyperTextContent = IsContent() ? mContent.get() : nullptr;
-  while (caretFrame) {
-    if (hyperTextContent == caretFrame->GetContent()) {
-      return lineNumber;  // Must be in a single line hyper text, there is no
-                          // line iterator
-    }
-    nsContainerFrame* parentFrame = caretFrame->GetParent();
-    if (!parentFrame) break;
-
-    // Add lines for the sibling frames before the caret
-    nsIFrame* sibling = parentFrame->PrincipalChildList().FirstChild();
-    while (sibling && sibling != caretFrame) {
-      nsILineIterator* lineIterForSibling = sibling->GetLineIterator();
-      if (lineIterForSibling) {
-        // For the frames before that grab all the lines
-        int32_t addLines = lineIterForSibling->GetNumLines();
-        lineNumber += addLines;
-      }
-      sibling = sibling->GetNextSibling();
-    }
-
-    // Get the line number relative to the container with lines
-    if (!lineIterForCaret) {  // Add the caret line just once
-      lineIterForCaret = parentFrame->GetLineIterator();
-      if (lineIterForCaret) {
-        // Ancestor of caret
-        int32_t addLines = lineIterForCaret->FindLineContaining(caretFrame);
-        lineNumber += addLines;
-      }
-    }
-
-    caretFrame = parentFrame;
-  }
-
-  MOZ_ASSERT_UNREACHABLE(
-      "DOM ancestry had this hypertext but frame ancestry didn't");
-  return lineNumber;
-}
-
 LayoutDeviceIntRect HyperTextAccessible::GetCaretRect(nsIWidget** aWidget) {
   *aWidget = nullptr;
 
