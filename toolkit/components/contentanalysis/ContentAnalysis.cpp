@@ -2435,14 +2435,6 @@ ContentAnalysis::GetFinalRequestList(
 }
 
 NS_IMETHODIMP
-ContentAnalysis::AnalyzeContentRequest(nsIContentAnalysisRequest* aRequest,
-                                       bool aAutoAcknowledge, JSContext* aCx,
-                                       mozilla::dom::Promise** aPromise) {
-  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{aRequest};
-  return AnalyzeContentRequests(requests, aAutoAcknowledge, aCx, aPromise);
-}
-
-NS_IMETHODIMP
 ContentAnalysis::AnalyzeContentRequests(
     const nsTArray<RefPtr<nsIContentAnalysisRequest>>& aRequests,
     bool aAutoAcknowledge, JSContext* aCx, mozilla::dom::Promise** aPromise) {
@@ -2453,14 +2445,6 @@ ContentAnalysis::AnalyzeContentRequests(
       new ContentAnalysisCallback(promise);
   promise.forget(aPromise);
   return AnalyzeContentRequestsCallback(aRequests, aAutoAcknowledge, callback);
-}
-
-NS_IMETHODIMP
-ContentAnalysis::AnalyzeContentRequestCallback(
-    nsIContentAnalysisRequest* aRequest, bool aAutoAcknowledge,
-    nsIContentAnalysisCallback* aCallback) {
-  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{aRequest};
-  return AnalyzeContentRequestsCallback(requests, aAutoAcknowledge, aCallback);
 }
 
 NS_IMETHODIMP
@@ -2883,9 +2867,10 @@ ContentAnalysis::PrintToPDFToDetermineIfPrintAllowed(
                   // Should not be called if content analysis is not active
                   MOZ_ASSERT(isActive);
                   Unused << NS_WARN_IF(NS_FAILED(rv));
-                  rv = contentAnalysis->AnalyzeContentRequestCallback(
-                      contentAnalysisRequest, /* aAutoAcknowledge */ true,
-                      callback);
+                  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{
+                      contentAnalysisRequest};
+                  rv = contentAnalysis->AnalyzeContentRequestsCallback(
+                      requests, /* aAutoAcknowledge */ true, callback);
                   if (NS_WARN_IF(NS_FAILED(rv))) {
                     promise->Reject(
                         PrintAllowedError(rv, cachedStaticBrowsingContext),
@@ -2975,8 +2960,10 @@ static nsresult CheckClipboard(
   }
 
   respondOnFailure.release();
-  return contentAnalysis->AnalyzeContentRequestCallback(
-      request, true /* autoAcknowledge */, wrapperCallback);
+
+  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request};
+  return contentAnalysis->AnalyzeContentRequestsCallback(
+      requests, true /* autoAcknowledge */, wrapperCallback);
 }
 
 // This method must stay in sync with ContentAnalysis::kKnownClipboardTypes. All

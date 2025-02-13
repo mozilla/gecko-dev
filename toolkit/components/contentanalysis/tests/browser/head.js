@@ -166,33 +166,32 @@ function makeMockContentAnalysis() {
         autoAcknowledge
       );
     },
-    analyzeContentRequest(request, autoAcknowledge) {
-      return this.realCAService.analyzeContentRequest(request, autoAcknowledge);
-    },
     analyzeContentRequestsCallback(requests, autoAcknowledge, callback) {
-      this.realCAService.analyzeContentRequestsCallback(
-        requests,
-        autoAcknowledge,
-        callback
-      );
-    },
-    analyzeContentRequestCallback(request, autoAcknowledge, callback) {
       if (this.errorValue) {
+        if (requests.length != 1) {
+          // Sanity testing the test.  Exception-expecting tests don't send
+          // multiple requests.  Don't clutter the log unless we fail.
+          is(
+            requests.length,
+            1,
+            "Test framework doesn't support throwing an exception from a multipart request"
+          );
+        }
         // If we throw in analyzeContentRequestPrivate then this function is
         // a lower stack frame and generates an additional test failure that
         // we can't tell it to expect.
         // The test framework expects the user action and request token to
         // be set anyway.  The values don't matter.
         // We are also required to call the callback.
-        request.userActionId = "user-action-for-error";
-        request.userActionRequestsCount = 1;
-        request.requestToken = "request-token-for-error";
-        this.calls.push(request);
+        requests[0].userActionId = "user-action-for-error";
+        requests[0].userActionRequestsCount = 1;
+        requests[0].requestToken = "request-token-for-error";
+        this.calls.push(requests[0]);
         callback.error(this.errorValue);
         throw this.errorValue;
       }
-      this.realCAService.analyzeContentRequestCallback(
-        request,
+      this.realCAService.analyzeContentRequestsCallback(
+        requests,
         autoAcknowledge,
         callback
       );

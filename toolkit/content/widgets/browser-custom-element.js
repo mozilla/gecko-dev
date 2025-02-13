@@ -192,7 +192,7 @@
               // until the content analysis results are given.
               dragSession.sendStoreDropTargetAndDelayEndDragSession(event);
 
-              contentAnalysis.analyzeContentRequest(request, true).then(
+              contentAnalysis.analyzeContentRequests([request], true).then(
                 caResult => {
                   dragSession.sendDispatchToDropTargetAndResumeEndDragSession(
                     caResult.shouldAllowContent

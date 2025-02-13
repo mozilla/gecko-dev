@@ -325,8 +325,9 @@ void SendRequestAndExpectResponse(
         FAIL() << "Got error response";
       });
 
-  MOZ_ALWAYS_SUCCEEDS(
-      contentAnalysis->AnalyzeContentRequestCallback(request, false, callback));
+  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request.get()};
+  MOZ_ALWAYS_SUCCEEDS(contentAnalysis->AnalyzeContentRequestsCallback(
+      requests, false, callback));
   RefPtr<CancelableRunnable> timer =
       NS_NewCancelableRunnableFunction("Content Analysis timeout", [&] {
         if (!gotResponse.load()) {

@@ -9,9 +9,6 @@
 
 const kBaseUrl = "https://example.org/browser/dom/events/test/";
 
-// Resolve fn for promise we resolve after mockCA.analyzeContentRequest runs.
-let resolveDropPromise;
-
 let testName;
 
 let mockCA = {
@@ -64,17 +61,14 @@ let mockCA = {
         aRequest.requestToken
       )
     );
-
-    // We want analyzeContentRequest to respond before dropPromise is resolved
-    // because dropPromise tells the test harness that it is time to check that
-    // the drop or dragleave event was received, and that is sent immediately
-    // after analyzeContentRequest returns (as part of a promise handler chain).
-    setTimeout(resolveDropPromise, 0);
   },
 
-  analyzeContentRequest(aRequest, aAutoAcknowledge) {
+  analyzeContentRequests(aRequests, aAutoAcknowledge) {
     // This will call into our mock analyzeContentRequestPrivate
-    return this.realCAService.analyzeContentRequest(aRequest, aAutoAcknowledge);
+    return this.realCAService.analyzeContentRequests(
+      aRequests,
+      aAutoAcknowledge
+    );
   },
 
   showBlockedRequestDialog(aRequest) {

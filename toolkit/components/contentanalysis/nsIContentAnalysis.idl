@@ -311,18 +311,6 @@ interface nsIContentAnalysis : nsISupports
                                  in boolean aAutoAcknowledge);
 
   /**
-   * A helper that calls analyzeContentRequests with a single request.
-   *
-   * @param aCar
-   *        The request to analyze.
-   * @param aAutoAcknowledge
-   *        See analyzeContentRequests.
-   */
-  [implicit_jscontext]
-  Promise analyzeContentRequest(in nsIContentAnalysisRequest aCar,
-                                in boolean aAutoAcknowledge);
-
-  /**
    * Same functionality as AnalyzeContentRequests(), but more convenient to call
    * from C++ since it takes a callback instead of returning a Promise.
    *
@@ -339,20 +327,6 @@ interface nsIContentAnalysis : nsISupports
   void analyzeContentRequestsCallback(in Array<nsIContentAnalysisRequest> aCars,
                                       in boolean aAutoAcknowledge,
                                       in nsIContentAnalysisCallback callback);
-
-  /**
-   * A helper that calls analyzeContentRequestsCallback with a single request.
-   *
-   * @param aCar
-   *        The request to analyze.
-   * @param aAutoAcknowledge
-   *        See analyzeContentRequestsCallback.
-   * @param callback
-   *        Callback to be called when the agent sends a response message (or when there is an error).
-   */
-  void analyzeContentRequestCallback(in nsIContentAnalysisRequest aCar,
-                                     in boolean aAutoAcknowledge,
-                                     in nsIContentAnalysisCallback callback);
 
   /**
    * Internal helper for 'analyzeContentRequest*' methods.  This is abstracted
