@@ -11,38 +11,48 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "browser.ml.chat.shortcuts.longPress"
 );
 
-// Additional events to listen with others to create the actor in BrowserGlue
-const EVENTS = ["mousedown", "mouseup", "pagehide"];
+// Events to register after shortcuts are shown
+const HIDE_EVENTS = ["pagehide", "resize", "scroll"];
 
 /**
  * JSWindowActor to detect content page events to send GenAI related data.
  */
 export class GenAIChild extends JSWindowActorChild {
   mouseUpTimeout = null;
-  downTime = Date.now();
   downSelection = null;
+  downTimeStamp = 0;
   debounceDelay = 200;
+  pendingHide = false;
 
-  actorCreated() {
+  registerHideEvents() {
     this.document.addEventListener("selectionchange", this);
-    // Use capture as some pages might stop the events
-    EVENTS.forEach(ev => this.contentWindow.addEventListener(ev, this, true));
+    HIDE_EVENTS.forEach(ev =>
+      this.contentWindow.addEventListener(ev, this, true)
+    );
+    this.pendingHide = true;
   }
 
-  didDestroy() {
+  removeHideEvents() {
     this.document.removeEventListener("selectionchange", this);
-    EVENTS.forEach(ev =>
+    HIDE_EVENTS.forEach(ev =>
       this.contentWindow?.removeEventListener(ev, this, true)
     );
+    this.pendingHide = false;
   }
 
   handleEvent(event) {
-    const sendHide = () =>
-      this.sendAsyncMessage("GenAI:HideShortcuts", event.type);
+    const sendHide = () => {
+      // Only remove events and send message if shortcuts are actually visible
+      if (this.pendingHide) {
+        this.sendAsyncMessage("GenAI:HideShortcuts", event.type);
+        this.removeHideEvents();
+      }
+    };
+
     switch (event.type) {
       case "mousedown":
         this.downSelection = this.getSelectionInfo().selection;
-        this.downTime = Date.now();
+        this.downTimeStamp = event.timeStamp;
         sendHide();
         break;
       case "mouseup": {
@@ -66,7 +76,7 @@ export class GenAIChild extends JSWindowActorChild {
 
         this.mouseUpTimeout = this.contentWindow.setTimeout(() => {
           const selectionInfo = this.getSelectionInfo();
-          const delay = Date.now() - this.downTime;
+          const delay = event.timeStamp - this.downTimeStamp;
 
           // Only send a message if there's a new selection or a long press
           if (
@@ -80,6 +90,7 @@ export class GenAIChild extends JSWindowActorChild {
               screenXDevPx: screenX * this.contentWindow.devicePixelRatio,
               screenYDevPx: screenY * this.contentWindow.devicePixelRatio,
             });
+            this.registerHideEvents();
           }
 
           // Clear the timeout reference after execution

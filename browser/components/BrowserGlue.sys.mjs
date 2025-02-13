@@ -602,10 +602,8 @@ let JSWINDOWACTORS = {
     child: {
       esModuleURI: "resource:///actors/GenAIChild.sys.mjs",
       events: {
-        DOMContentLoaded: {},
-        mousemove: {},
-        resize: {},
-        scroll: {},
+        mousedown: {},
+        mouseup: {},
       },
     },
     allFrames: true,

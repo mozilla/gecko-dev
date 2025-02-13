@@ -240,9 +240,7 @@ add_task(async function test_input_selection() {
   Assert.ok(!GenAI.ignoredInputs.has("input"), "Not ignoring input for test");
 
   const sandbox = sinon.createSandbox();
-  const stub = sandbox
-    .stub(GenAI, "handleShortcutsMessage")
-    .withArgs("GenAI:ShowShortcuts");
+  const stub = sandbox.stub(GenAI, "handleShortcutsMessage");
 
   await BrowserTestUtils.withNewTab(
     `data:text/html,<input value="input"/>`,
@@ -261,6 +259,11 @@ add_task(async function test_input_selection() {
       await TestUtils.waitForCondition(() => stub.callCount !== 0);
 
       Assert.equal(stub.callCount, 1, "Show shortcuts once");
+      Assert.notEqual(
+        stub.firstCall.args[0],
+        "GenAI:HideShortcuts",
+        "No unnecessary hides"
+      );
       Assert.equal(
         stub.firstCall.args[1].selection,
         "inp",
