@@ -162,19 +162,19 @@ mod gtest {
 
         let Rec709Primaries = qcms_CIE_xyYTRIPLE {
             red: qcms_CIE_xyY {
-                x: 0.6400f64,
-                y: 0.3300f64,
-                Y: 1.0f64,
+                x: 0.6400,
+                y: 0.3300,
+                Y: 1.0,
             },
             green: qcms_CIE_xyY {
-                x: 0.3000f64,
-                y: 0.6000f64,
-                Y: 1.0f64,
+                x: 0.3000,
+                y: 0.6000,
+                Y: 1.0,
             },
             blue: qcms_CIE_xyY {
-                x: 0.1500f64,
-                y: 0.0600f64,
-                Y: 1.0f64,
+                x: 0.1500,
+                y: 0.0600,
+                Y: 1.0,
             },
         };
         let D65 = qcms_white_point_sRGB();

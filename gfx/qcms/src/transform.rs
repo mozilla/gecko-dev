@@ -358,7 +358,7 @@ fn adaption_matrix(source_illumination: CIE_XYZ, target_illumination: CIE_XYZ) -
 }
 /* from lcms: cmsAdaptMatrixToD50 */
 fn adapt_matrix_to_D50(r: Option<Matrix>, source_white_pt: qcms_CIE_xyY) -> Option<Matrix> {
-    if source_white_pt.y == 0.0f64 {
+    if source_white_pt.y == 0.0 {
         return None;
     }
 
@@ -962,7 +962,7 @@ unsafe fn tetra(
 
 #[inline]
 fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    a * (1.0 - t) + b * t
+    a * (1. - t) + b * t
 }
 
 // lerp between two tetrahedral interpolations
