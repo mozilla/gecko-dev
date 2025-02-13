@@ -1112,12 +1112,15 @@ void gfxWindowsPlatform::GetCommonFallbackFonts(
       (b >= 0x20 && b <= 0x2b) || b == 0x2e ||  // BMP symbols/punctuation/etc
       GetGenCategory(aCh) == nsUGenCategory::kSymbol ||
       GetGenCategory(aCh) == nsUGenCategory::kPunctuation) {
+    // Segoe UI handles some punctuation/symbols that are missing from many text
+    // fonts.
+    aFontList.AppendElement("Segoe UI");
     aFontList.AppendElement("Segoe UI Symbol");
     aFontList.AppendElement("Cambria Math");
   }
 
-  // Arial Unicode MS has lots of glyphs for obscure characters; try it as a
-  // last resort.
+  // Arial Unicode MS also has lots of glyphs for obscure characters; try it as
+  // a last resort, if available.
   aFontList.AppendElement("Arial Unicode MS");
 
   // If we didn't begin with the color-emoji fonts, include them here
