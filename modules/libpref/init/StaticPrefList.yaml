@@ -8456,12 +8456,6 @@
     mirror: always
     set_spidermonkey_pref: startup
 
-  # Experimental support for Import Assertions in JavaScript.
--   name: javascript.options.experimental.import_attributes
-    type: bool
-    value: false
-    mirror: always
-
   # Experimental support for Error.isError in JavaScript.
 -   name: javascript.options.experimental.error_iserror
     type: bool
@@ -8547,6 +8541,12 @@
 - name: javascript.options.experimental.dictionary_teleporting
   type: bool
   value: true
+  mirror: always
+  set_spidermonkey_pref: always
+
+- name: javascript.options.experimental.import_attributes
+  type: bool
+  value: false
   mirror: always
   set_spidermonkey_pref: always
 
