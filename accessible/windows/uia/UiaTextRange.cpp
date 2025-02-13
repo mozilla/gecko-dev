@@ -1307,15 +1307,20 @@ struct AttributeTraits<UIA_IsReadOnlyAttributeId> {
     if (!aPoint.mAcc) {
       return {};
     }
-    // Check the parent of the leaf, since the leaf itself will never be
-    // editable, but the parent may. Check for both text fields and hypertexts,
-    // since we might have something like <input> or a contenteditable <span>.
     Accessible* acc = aPoint.mAcc;
-    Accessible* parent = acc->Parent();
-    if (parent && parent->IsHyperText()) {
-      acc = parent;
-    } else {
-      return Some(true);
+    // If the TextLeafPoint we're dealing with is itself a hypertext, don't
+    // bother checking its parent since this is the Accessible we care about.
+    if (!acc->IsHyperText()) {
+      // Check the parent of the leaf, since the leaf itself will never be
+      // editable, but the parent may. Check for both text fields and
+      // hypertexts, since we might have something like <input> or a
+      // contenteditable <span>.
+      Accessible* parent = acc->Parent();
+      if (parent && parent->IsHyperText()) {
+        acc = parent;
+      } else {
+        return Some(true);
+      }
     }
     const uint64_t state = acc->State();
     if (state & states::READONLY) {

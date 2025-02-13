@@ -538,6 +538,7 @@ addUiaTask(
 <div id="superscript-container">a <sup>bcd</sup> ef</div>
 <div id="not-hidden-container">a bcd ef</div>
 <div id="readonly-container">a <span contenteditable="true">bcd</span> ef</div>
+<input id="text-input"/>
 <div id="spelling-error-container">a <span aria-invalid="spelling">bcd</span> ef</div>
 <div id="grammar-error-container">a <span aria-invalid="grammar">bcd</span> ef</div>
 <div id="data-validation-error-container">a <span aria-invalid="true">bcd</span> ef</div>
@@ -790,6 +791,19 @@ addUiaTask(
       await runPython(`range.GetAttributeValue(UIA_IsReadOnlyAttributeId)`),
       false,
       "IsReadOnly correct"
+    );
+
+    // Verify that text inputs are not read-only by default.
+    await runPython(`
+      global range
+      textInputAcc = findUiaByDomId(doc, "text-input")
+      range = docText.RangeFromChild(textInputAcc)
+    `);
+    info("checking IsReadOnly");
+    is(
+      await runPython(`range.GetAttributeValue(UIA_IsReadOnlyAttributeId)`),
+      false,
+      "IsReadOnly correct for text input"
     );
 
     // ================== UIA_AnnotationTypesAttributeId - AnnotationType_SpellingError ==================
