@@ -19,3 +19,8 @@ all-tabs-menu-synced-tabs =
   .label = Tabs from other devices
 
 all-tabs-menu-current-window-header = Current window
+
+# "Show all" is for showing all open groups as well as saved groups. Initially,
+# we only show up to five of these groups.
+all-tabs-menu-tab-groups-show-all =
+  .label = Show all
