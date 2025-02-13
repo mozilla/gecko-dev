@@ -155,7 +155,7 @@ mozilla::ipc::IPCResult URLClassifierLocalParent::StartClassify(
   // Doesn't matter if we pass blocklist, entitylist or any other list.
   // IPCFeature returns always the same values.
   rv = uriClassifier->AsyncClassifyLocalWithFeatures(
-      aURI, features, nsIUrlClassifierFeature::blocklist, this, false);
+      aURI, features, nsIUrlClassifierFeature::blocklist, this);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     OnClassifyComplete(nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>());
     return IPC_OK();
