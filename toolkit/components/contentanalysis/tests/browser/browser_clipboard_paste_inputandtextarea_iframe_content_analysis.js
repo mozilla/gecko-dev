@@ -101,7 +101,9 @@ async function testPasteWithElementId(
   assertContentAnalysisRequest(
     mockCA.calls[0],
     CLIPBOARD_TEXT_STRING,
-    sameOrigin
+    sameOrigin,
+    mockCA.calls[0].userActionId,
+    1
   );
   mockCA.clearCalls();
   let value = await getElementValue(browser, elementId);
@@ -112,7 +114,13 @@ async function testPasteWithElementId(
   );
 }
 
-function assertContentAnalysisRequest(request, expectedText, sameOrigin) {
+function assertContentAnalysisRequest(
+  request,
+  expectedText,
+  sameOrigin,
+  expectedUserActionId,
+  expectedRequestsCount
+) {
   // If the outer page is same-origin to the iframe, the outer page URL should be passed to Content Analysis.
   // Otherwise the inner page URL should be passed.
   is(
@@ -137,6 +145,17 @@ function assertContentAnalysisRequest(request, expectedText, sameOrigin) {
   );
   is(request.filePath, "", "request filePath should match");
   is(request.textContent, expectedText, "request textContent should match");
+  is(
+    request.userActionRequestsCount,
+    expectedRequestsCount,
+    "request userActionRequestsCount should match"
+  );
+  is(
+    request.userActionId,
+    expectedUserActionId,
+    "request userActionId should match"
+  );
+  ok(request.userActionId.length, "request userActionId should not be empty");
   is(request.printDataHandle, 0, "request printDataHandle should not be 0");
   is(request.printDataSize, 0, "request printDataSize should not be 0");
   ok(!!request.requestToken.length, "request requestToken should not be empty");

@@ -148,10 +148,17 @@ async function testClipboardWithContentAnalysis(allowPaste) {
   // Check that the number of calls matches the number of
   // kKnownClipboardTypes on the clipboard.
   is(mockCA.calls.length, 2, "Correct number of calls to Content Analysis");
-  assertContentAnalysisRequest(mockCA.calls[0], "t Bold");
+  assertContentAnalysisRequest(
+    mockCA.calls[0],
+    "t Bold",
+    mockCA.calls[0].userActionId,
+    2
+  );
   assertContentAnalysisRequest(
     mockCA.calls[1],
-    htmlPrefix + "t <b>Bold</b>" + htmlPostfix
+    htmlPrefix + "t <b>Bold</b>" + htmlPostfix,
+    mockCA.calls[0].userActionId,
+    2
   );
   mockCA.clearCalls();
 
@@ -251,10 +258,17 @@ async function testClipboardWithContentAnalysis(allowPaste) {
   await pastePromise;
   // 2 calls because there are two formats on the clipboard
   is(mockCA.calls.length, 2, "Correct number of calls to Content Analysis");
-  assertContentAnalysisRequest(mockCA.calls[0], "Some text");
+  assertContentAnalysisRequest(
+    mockCA.calls[0],
+    "Some text",
+    mockCA.calls[0].userActionId,
+    2
+  );
   assertContentAnalysisRequest(
     mockCA.calls[1],
-    htmlPrefix + "<i>Italic</i> " + htmlPostfix
+    htmlPrefix + "<i>Italic</i> " + htmlPostfix,
+    mockCA.calls[0].userActionId,
+    2
   );
   mockCA.clearCalls();
 
@@ -325,7 +339,9 @@ async function testClipboardWithContentAnalysis(allowPaste) {
     mockCA.calls[0],
     htmlPrefix +
       '<img id="img" tabindex="1" src="http://example.org/browser/browser/base/content/test/general/moz.png">' +
-      htmlPostfix
+      htmlPostfix,
+    mockCA.calls[0].userActionId,
+    1
   );
   mockCA.clearCalls();
 
@@ -346,7 +362,12 @@ async function testClipboardWithContentAnalysis(allowPaste) {
   gBrowser.removeCurrentTab();
 }
 
-function assertContentAnalysisRequest(request, expectedText) {
+function assertContentAnalysisRequest(
+  request,
+  expectedText,
+  expectedUserActionId,
+  expectedRequestsCount
+) {
   // This page is loaded via a data: URL which has a null principal,
   // so the URL will reflect this.
   ok(
@@ -372,6 +393,17 @@ function assertContentAnalysisRequest(request, expectedText) {
   if (expectedText !== null) {
     is(request.textContent, expectedText, "request textContent should match");
   }
+  is(
+    request.userActionRequestsCount,
+    expectedRequestsCount,
+    "request userActionRequestsCount should match"
+  );
+  is(
+    request.userActionId,
+    expectedUserActionId,
+    "request userActionId should match"
+  );
+  ok(request.userActionId.length, "request userActionId should not be empty");
   is(request.printDataHandle, 0, "request printDataHandle should not be 0");
   is(request.printDataSize, 0, "request printDataSize should not be 0");
   ok(!!request.requestToken.length, "request requestToken should not be empty");

@@ -76,14 +76,26 @@ async function testClipboardReadAsync(testMode) {
       testMode.shouldRunCA ? 2 : 0,
       "Correct number of calls to Content Analysis for read()"
     );
-    if (testMode.shouldRunCA) {
+    if (testMode.shouldRunCA && !testMode.caError) {
       // On Windows, widget adds extra data into HTML clipboard.
       let expectedHtml = navigator.platform.includes("Win")
         ? `<html><body>\n<!--StartFragment-->${CLIPBOARD_HTML_STRING}<!--EndFragment-->\n</body>\n</html>`
         : CLIPBOARD_HTML_STRING;
 
-      assertContentAnalysisRequest(mockCA.calls[0], expectedHtml);
-      assertContentAnalysisRequest(mockCA.calls[1], CLIPBOARD_TEXT_STRING);
+      // Once bug 1938618 is fixed these should have the same userActionId and the
+      // expectedRequestsCount should be 2.
+      assertContentAnalysisRequest(
+        mockCA.calls[0],
+        expectedHtml,
+        mockCA.calls[0].userActionId,
+        1
+      );
+      assertContentAnalysisRequest(
+        mockCA.calls[1],
+        CLIPBOARD_TEXT_STRING,
+        mockCA.calls[1].userActionId,
+        1
+      );
     }
     mockCA.clearCalls();
   }
@@ -102,8 +114,13 @@ async function testClipboardReadAsync(testMode) {
       testMode.shouldRunCA ? 1 : 0,
       "Correct number of calls to Content Analysis for read()"
     );
-    if (testMode.shouldRunCA) {
-      assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING);
+    if (testMode.shouldRunCA && !testMode.caError) {
+      assertContentAnalysisRequest(
+        mockCA.calls[0],
+        CLIPBOARD_TEXT_STRING,
+        mockCA.calls[0].userActionId,
+        1
+      );
     }
     mockCA.clearCalls();
   }
@@ -142,8 +159,18 @@ function setDataAndStartTest(
   );
 }
 
-function assertContentAnalysisRequest(request, expectedText) {
-  is(request.url.spec, PAGE_URL, "request has correct URL");
+function assertContentAnalysisRequest(
+  request,
+  expectedText,
+  expectedUserActionId,
+  expectedRequestsCount
+) {
+  is(
+    (request.url && request.url.spec) ||
+      request.windowGlobalParent.documentPrincipal.URI.spec,
+    PAGE_URL,
+    "request has correct URL"
+  );
   is(
     request.analysisType,
     Ci.nsIContentAnalysisRequest.eBulkDataEntry,
@@ -161,6 +188,17 @@ function assertContentAnalysisRequest(request, expectedText) {
   );
   is(request.filePath, "", "request filePath should match");
   is(request.textContent, expectedText, "request textContent should match");
+  is(
+    request.userActionRequestsCount,
+    expectedRequestsCount,
+    "request userActionRequestsCount should match"
+  );
+  is(
+    request.userActionId,
+    expectedUserActionId,
+    "request userActionId should match"
+  );
+  ok(request.userActionId.length, "request userActionId should not be empty");
   is(request.printDataHandle, 0, "request printDataHandle should not be 0");
   is(request.printDataSize, 0, "request printDataSize should not be 0");
   ok(!!request.requestToken.length, "request requestToken should not be empty");

@@ -99,7 +99,12 @@ async function testPasteWithElementId(elementId, browser, shouldAllow) {
   is(result, undefined, "Got unexpected result from page");
 
   is(mockCA.calls.length, 1, "Correct number of calls to Content Analysis");
-  assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING_ORIGINAL);
+  assertContentAnalysisRequest(
+    mockCA.calls[0],
+    CLIPBOARD_TEXT_STRING_ORIGINAL,
+    mockCA.calls[0].userActionId,
+    1
+  );
   mockCA.clearCalls();
   let value = await getElementValue(browser, elementId);
   // Since the clipboard was set externally during the content analysis call,
@@ -117,7 +122,12 @@ async function testPasteWithElementId(elementId, browser, shouldAllow) {
   mockCA.waitForEvent = true;
 }
 
-function assertContentAnalysisRequest(request, expectedText) {
+function assertContentAnalysisRequest(
+  request,
+  expectedText,
+  expectedUserActionId,
+  expectedRequestsCount
+) {
   is(request.url.spec, PAGE_URL, "request has correct URL");
   is(
     request.analysisType,
@@ -136,6 +146,17 @@ function assertContentAnalysisRequest(request, expectedText) {
   );
   is(request.filePath, "", "request filePath should match");
   is(request.textContent, expectedText, "request textContent should match");
+  is(
+    request.userActionRequestsCount,
+    expectedRequestsCount,
+    "request userActionRequestsCount should match"
+  );
+  is(
+    request.userActionId,
+    expectedUserActionId,
+    "request userActionId should match"
+  );
+  ok(request.userActionId.length, "request userActionId should not be empty");
   is(request.printDataHandle, 0, "request printDataHandle should not be 0");
   is(request.printDataSize, 0, "request printDataSize should not be 0");
   ok(!!request.requestToken.length, "request requestToken should not be empty");

@@ -128,11 +128,23 @@ async function testPasteWithElementId(
     bypassForSameTab ? 1 : 2,
     "Correct number of calls to Content Analysis"
   );
-  assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING_ORIGINAL);
+  // Note that, because the page is changing the clipboard, we don't expect these to
+  // be grouped with the same user_action_id.
+  assertContentAnalysisRequest(
+    mockCA.calls[0],
+    CLIPBOARD_TEXT_STRING_ORIGINAL,
+    mockCA.calls[0].userActionId,
+    1
+  );
   // Note that if bypassForSameTab is true we don't expect to check CLIPBOARD_TEXT_STRING_NEW
   // since it was set from the webpage.
   if (!bypassForSameTab) {
-    assertContentAnalysisRequest(mockCA.calls[1], CLIPBOARD_TEXT_STRING_NEW);
+    assertContentAnalysisRequest(
+      mockCA.calls[1],
+      CLIPBOARD_TEXT_STRING_NEW,
+      mockCA.calls[1].userActionId,
+      1
+    );
   }
   mockCA.clearCalls();
   let value = await getElementValue(browser, elementId);
@@ -147,7 +159,12 @@ async function testPasteWithElementId(
   );
 }
 
-function assertContentAnalysisRequest(request, expectedText) {
+function assertContentAnalysisRequest(
+  request,
+  expectedText,
+  expectedUserActionId,
+  expectedRequestsCount
+) {
   is(request.url.spec, PAGE_URL, "request has correct URL");
   is(
     request.analysisType,
@@ -166,6 +183,17 @@ function assertContentAnalysisRequest(request, expectedText) {
   );
   is(request.filePath, "", "request filePath should match");
   is(request.textContent, expectedText, "request textContent should match");
+  is(
+    request.userActionRequestsCount,
+    expectedRequestsCount,
+    "request userActionRequestsCount should match"
+  );
+  is(
+    request.userActionId,
+    expectedUserActionId,
+    "request userActionId should match"
+  );
+  ok(request.userActionId.length, "request userActionId should not be empty");
   is(request.printDataHandle, 0, "request printDataHandle should not be 0");
   is(request.printDataSize, 0, "request printDataSize should not be 0");
   ok(!!request.requestToken.length, "request requestToken should not be empty");

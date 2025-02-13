@@ -88,6 +88,12 @@ function assertContentAnalysisRequest(request) {
   is(request.filePath, "", "request filePath should be empty");
   isnot(request.printDataHandle, 0, "request printDataHandle should not be 0");
   isnot(request.printDataSize, 0, "request printDataSize should not be 0");
+  is(
+    request.userActionRequestsCount,
+    1,
+    "request userActionRequestsCount should match"
+  );
+  ok(!!request.userActionId.length, "request userActionId should not be empty");
   ok(!!request.requestToken.length, "request requestToken should not be empty");
 }
 
