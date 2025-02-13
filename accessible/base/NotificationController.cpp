@@ -18,6 +18,7 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/ipc/ProcessChild.h"
+#include "mozilla/PerfStats.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "nsAccessibilityService.h"
@@ -368,6 +369,12 @@ void NotificationController::DropMutationEvent(AccTreeMutationEvent* aEvent) {
 }
 
 void NotificationController::CoalesceMutationEvents() {
+  AUTO_PROFILER_MARKER_TEXT("NotificationController::CoalesceMutationEvents",
+                            A11Y, {}, ""_ns);
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_CoalesceMutationEvents>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
+
   AccTreeMutationEvent* event = mFirstMutationEvent;
   while (event) {
     AccTreeMutationEvent* nextEvent = event->NextEvent();

@@ -72,7 +72,8 @@
   MACRO(A11Y_ShowEvent)                           \
   MACRO(A11Y_RecvCache)                           \
   MACRO(A11Y_ProcessShowEvent)                    \
-  MACRO(A11Y_CoalesceEvents)
+  MACRO(A11Y_CoalesceEvents)                      \
+  MACRO(A11Y_CoalesceMutationEvents)
 
 namespace mozilla {
 
