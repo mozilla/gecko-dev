@@ -24,6 +24,7 @@ import mozilla.components.feature.awesomebar.provider.SearchEngineSuggestionProv
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SearchTermSuggestionsProvider
 import mozilla.components.feature.awesomebar.provider.SessionSuggestionProvider
+import mozilla.components.feature.awesomebar.provider.TrendingSearchProvider
 import mozilla.components.feature.fxsuggest.FxSuggestSuggestionProvider
 import mozilla.components.feature.syncedtabs.SyncedTabsStorageSuggestionProvider
 import mozilla.components.support.ktx.android.content.getColorFromAttr
@@ -1445,6 +1446,19 @@ class AwesomeBarViewTest {
         assertFalse(filter.shouldIncludeUri(Uri.parse("http://subdomain.test.com")))
 
         assertFalse(filter.shouldIncludeUrl("http://mobile.test.com"))
+    }
+
+    @Test
+    fun `GIVEN trending searches are enabled WHEN configuring providers THEN add the trending search provider`() {
+        every { activity.settings() } returns mockk(relaxed = true) {
+            every { enableTrendingSearches } returns true
+        }
+        val state = getSearchProviderState(
+            searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
+        )
+        val result = awesomeBarView.getProvidersToAdd(state)
+
+        assertEquals(1, result.filterIsInstance<TrendingSearchProvider>().size)
     }
 }
 

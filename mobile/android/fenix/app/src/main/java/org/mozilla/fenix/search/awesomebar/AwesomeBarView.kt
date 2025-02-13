@@ -26,6 +26,7 @@ import mozilla.components.feature.awesomebar.provider.SearchEngineSuggestionProv
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SearchTermSuggestionsProvider
 import mozilla.components.feature.awesomebar.provider.SessionSuggestionProvider
+import mozilla.components.feature.awesomebar.provider.TrendingSearchProvider
 import mozilla.components.feature.fxsuggest.FxSuggestSuggestionProvider
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.session.SessionUseCases
@@ -64,6 +65,7 @@ class AwesomeBarView(
     private val defaultCombinedHistoryProvider: CombinedHistorySuggestionProvider
     private val shortcutsEnginePickerProvider: ShortcutsSuggestionProvider
     private val defaultSearchSuggestionProvider: SearchSuggestionProvider
+    private val defaultTrendingSearchProvider: TrendingSearchProvider
     private val defaultSearchActionProvider: SearchActionProvider
     private val searchEngineSuggestionProvider: SearchEngineSuggestionProvider
     private val searchSuggestionProviderMap: MutableMap<SearchEngine, List<AwesomeBar.SuggestionProvider>>
@@ -168,6 +170,21 @@ class AwesomeBarView(
                     BrowsingMode.Private -> true
                 },
                 suggestionsHeader = getSearchEngineSuggestionsHeader(),
+            )
+
+        defaultTrendingSearchProvider =
+            TrendingSearchProvider(
+                store = components.core.store,
+                fetchClient = components.core.client,
+                privateMode = when (activity.browsingModeManager.mode) {
+                    BrowsingMode.Normal -> false
+                    BrowsingMode.Private -> true
+                },
+                searchUseCase = searchUseCase,
+                limit = 4,
+                engine = engineForSpeculativeConnects,
+                icon = searchBitmap,
+                suggestionsHeader = activity.getString(R.string.trending_searches_header),
             )
 
         defaultSearchActionProvider =
@@ -366,6 +383,10 @@ class AwesomeBarView(
         }
 
         providersToAdd.add(searchEngineSuggestionProvider)
+
+        if (activity.settings().enableTrendingSearches) {
+            providersToAdd.add(defaultTrendingSearchProvider)
+        }
 
         return providersToAdd
     }

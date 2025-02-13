@@ -476,8 +476,13 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         }
 
         observeClipboardState()
-        observeAwesomeBarState()
         observeSuggestionProvidersState()
+
+        if (view.context.settings().enableTrendingSearches && store.state.query.isNotEmpty()) {
+            binding.awesomeBar.isVisible = true
+        } else {
+            observeAwesomeBarState()
+        }
 
         consumeFrom(store) {
             updateSearchSuggestionsHintVisibility(it)
