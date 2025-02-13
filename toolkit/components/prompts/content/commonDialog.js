@@ -179,20 +179,22 @@ function commonDialogOnLoad() {
         const selectionDirection =
           endIndex < startIndex ? "backward" : "forward";
         try {
-          const response = await lazy.gContentAnalysis.analyzeContentRequest(
-            {
-              requestToken: Services.uuid.generateUUID().toString(),
-              resources: [],
-              analysisType: Ci.nsIContentAnalysisRequest.eBulkDataEntry,
-              reason: Ci.nsIContentAnalysisRequest.eClipboardPaste,
-              operationTypeForDisplay: Ci.nsIContentAnalysisRequest.eClipboard,
-              url: lazy.gContentAnalysis.getURIForBrowsingContext(
-                args.owningBrowsingContext
-              ),
-              textContent: data,
-              windowGlobalParent:
-                args.owningBrowsingContext.currentWindowContext,
-            },
+          const response = await lazy.gContentAnalysis.analyzeContentRequests(
+            [
+              {
+                analysisType: Ci.nsIContentAnalysisRequest.eBulkDataEntry,
+                reason: Ci.nsIContentAnalysisRequest.eClipboardPaste,
+                resources: [],
+                operationTypeForDisplay:
+                  Ci.nsIContentAnalysisRequest.eClipboard,
+                url: lazy.gContentAnalysis.getURIForBrowsingContext(
+                  args.owningBrowsingContext
+                ),
+                textContent: data,
+                windowGlobalParent:
+                  args.owningBrowsingContext.currentWindowContext,
+              },
+            ],
             true
           );
           if (response.shouldAllowContent) {

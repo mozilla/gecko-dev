@@ -30,24 +30,11 @@
     Services.io.newURI("about:blank")
   );
 
-  XPCOMUtils.defineLazyServiceGetter(
-    lazy,
-    "contentAnalysis",
-    "@mozilla.org/contentanalysis;1",
-    Ci.nsIContentAnalysis
-  );
-
   let lazyPrefs = {};
   XPCOMUtils.defineLazyPreferenceGetter(
     lazyPrefs,
     "unloadTimeoutMs",
     "dom.beforeunload_timeout_ms"
-  );
-  XPCOMUtils.defineLazyPreferenceGetter(
-    lazyPrefs,
-    "_contentAnalysisDragDropEnabled",
-    "browser.contentanalysis.interception_point.drag_and_drop.enabled",
-    true
   );
 
   Object.defineProperty(lazy, "ProcessHangMonitor", {
@@ -173,10 +160,10 @@
       this.addEventListener(
         "drop",
         event => {
-          if (
-            lazy.contentAnalysis.isActive &&
-            lazyPrefs._contentAnalysisDragDropEnabled
-          ) {
+          const contentAnalysis = Cc[
+            "@mozilla.org/contentanalysis;1"
+          ].getService(Ci.nsIContentAnalysis);
+          if (contentAnalysis.isActive) {
             let dragService = Cc[
               "@mozilla.org/widget/dragservice;1"
             ].getService(Ci.nsIDragService);
@@ -185,102 +172,30 @@
               return;
             }
 
-            // Don't check items from drags that take place inside of a single
-            // frame, or in a same-origin iframe hierarchy.  Drag sessions with an
-            // external source have no sourceWindowContext and must be checked.
-            let sourceWC = dragSession.sourceWindowContext;
-            let targetWC = this.browsingContext?.currentWindowContext;
-            if (!targetWC) {
-              return;
-            }
-            if (
-              sourceWC &&
-              sourceWC.browsingContext.top == targetWC.browsingContext.top &&
-              targetWC.documentPrincipal?.subsumes(sourceWC.documentPrincipal)
-            ) {
-              return;
-            }
-
-            // Create a request for each text and file item in the DataTransfer
             try {
+              // Submit a content analysis request for the DataTransfer and
+              // stop dispatching this drop event.  Reissue the drop if all
+              // requests are permitted, otherwise issue a dragexit.
+              let request = {
+                analysisType: Ci.nsIContentAnalysisRequest.eBulkDataEntry,
+                dataTransfer: event.dataTransfer,
+                operationTypeForDisplay:
+                  Ci.nsIContentAnalysisRequest.eDroppedText,
+                reason: Ci.nsIContentAnalysisRequest.eDragAndDrop,
+                resources: [],
+                sourceWindowGlobal: dragSession.sourceWindowContext,
+                uri: contentAnalysis.getURIForDropEvent(event),
+                windowGlobalParent: this.browsingContext.currentWindowContext,
+              };
+
               // Tell browser to record the event target and to delay EndDragSession
               // until the content analysis results are given.
               dragSession.sendStoreDropTargetAndDelayEndDragSession(event);
 
-              // Submit a content analysis request for each checkable entry in the
-              // DataTransfer and stop dispatching this drop event.  Reissue the
-              // drop if all requests are permitted.
-              let caPromises = [];
-              let items = event.dataTransfer.items;
-              for (let elt of items) {
-                const kTextMimeTypes = [
-                  "text/plain",
-                  "text/html",
-                  "application/x-moz-nativehtml",
-                ];
-
-                let requestFields;
-                if (
-                  elt.kind === "string" &&
-                  kTextMimeTypes.includes(elt.type)
-                ) {
-                  let str = event.dataTransfer.getData(elt.type);
-                  if (!str) {
-                    continue;
-                  }
-                  requestFields = {
-                    analysisType: Ci.nsIContentAnalysisRequest.eBulkDataEntry,
-                    operationTypeForDisplay:
-                      Ci.nsIContentAnalysisRequest.eDroppedText,
-                    textContent: str,
-                  };
-                } else if (elt.kind === "file") {
-                  let file = elt.getAsFile();
-                  requestFields = {
-                    analysisType: Ci.nsIContentAnalysisRequest.eFileAttached,
-                    operationTypeForDisplay:
-                      Ci.nsIContentAnalysisRequest.eCustomDisplayString,
-                    operationDisplayString: file.name,
-                    filePath: file.mozFullPath,
-                  };
-                } else {
-                  // Unrecognized data type -- don't send to content analysis
-                  continue;
-                }
-
-                caPromises.push(
-                  lazy.contentAnalysis.analyzeContentRequest(
-                    {
-                      reason: Ci.nsIContentAnalysisRequest.eDragAndDrop,
-                      requestToken: Services.uuid.generateUUID().toString(),
-                      resources: [],
-                      url: lazy.contentAnalysis.getURIForDropEvent(event),
-                      windowGlobalParent:
-                        this.browsingContext.currentWindowContext,
-                      ...requestFields,
-                    },
-                    true /* autoAcknowledge */
-                  )
-                );
-              }
-
-              if (!caPromises.length) {
-                // Nothing was analyzable.
-                dragSession.sendDispatchToDropTargetAndResumeEndDragSession(
-                  true
-                );
-                return;
-              }
-
-              // Only permit the drop if all requests were approved.  Issue dragexit
-              // instead of drop if CA rejected the content or there was an error.
-              Promise.all(caPromises).then(
-                caResults => {
-                  let allApproved = caResults.reduce((prev, current) => {
-                    return prev && current.shouldAllowContent;
-                  }, true);
+              contentAnalysis.analyzeContentRequest(request, true).then(
+                caResult => {
                   dragSession.sendDispatchToDropTargetAndResumeEndDragSession(
-                    allApproved
+                    caResult.shouldAllowContent
                   );
                 },
                 () => {
@@ -293,7 +208,9 @@
               // Do not allow this drop to continue dispatch.
               event.preventDefault();
               event.stopPropagation();
-            } catch {
+            } catch (e) {
+              console.error(`content analysis dnd error: ${e}`);
+
               // On internal error, deny any drop.  CA has its own behavior to
               // handle internal errors, like a lost connection to the agent, but
               // we are more strict when facing errors here.

@@ -119,16 +119,14 @@ static RefPtr<ClipboardResultPromise> GetClipboardImpl(
   auto resultPromise = MakeRefPtr<ClipboardResultPromise::Private>(__func__);
 
   auto contentAnalysisCallback =
-      mozilla::MakeRefPtr<mozilla::contentanalysis::ContentAnalysis::
-                              SafeContentAnalysisResultCallback>(
+      mozilla::MakeRefPtr<mozilla::contentanalysis::ContentAnalysisCallback>(
           [transferable, resultPromise,
            cpHandle = RefPtr{aRequestingContentParent}](
-              RefPtr<nsIContentAnalysisResult>&& aResult) {
+              nsIContentAnalysisResult* aResult) {
             // Needed to call cpHandle->GetContentParent()
             AssertIsOnMainThread();
 
-            bool shouldAllow = aResult->GetShouldAllowContent();
-            if (!shouldAllow) {
+            if (!aResult->GetShouldAllowContent()) {
               resultPromise->Reject(NS_ERROR_CONTENT_BLOCKED, __func__);
               return;
             }

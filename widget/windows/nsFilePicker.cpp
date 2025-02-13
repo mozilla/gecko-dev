@@ -455,26 +455,8 @@ static auto AsyncExecute(Fn1 local, Fn2 remote, Args const&... args) ->
       });
 }
 
-// Asynchronously invokes `aPredicate` on each member of `aItems`.
-// Yields `false` (and stops immediately) if any invocation of
-// `predicate` yielded `false`; otherwise yields `true`.
-template <typename T>
-static RefPtr<mozilla::MozPromise<bool, nsresult, true>> AsyncAll(
-    nsTArray<T> aItems,
-    std::function<
-        RefPtr<mozilla::MozPromise<bool, nsresult, true>>(const T& item)>
-        aPredicate) {
-  auto promise =
-      mozilla::MakeRefPtr<mozilla::MozPromise<bool, nsresult, true>::Private>(
-          __func__);
-  auto iterator = mozilla::MakeRefPtr<details::AsyncAllIterator<T>>(
-      std::move(aItems), aPredicate, promise);
-  iterator->StartIterating();
-  return promise;
-}
 }  // namespace fd_async
 
-using fd_async::AsyncAll;
 using fd_async::AsyncExecute;
 
 }  // namespace mozilla::detail
@@ -713,14 +695,6 @@ nsFilePicker::CheckContentAnalysisService() {
                                                                    __func__);
   }
 
-  nsCOMPtr<nsIURI> uri =
-      mozilla::contentanalysis::ContentAnalysis::GetURIForBrowsingContext(
-          mBrowsingContext->Canonical());
-  if (!uri) {
-    return nsFilePicker::ContentAnalysisResponse::CreateAndReject(
-        NS_ERROR_FAILURE, __func__);
-  }
-
   // Entries may be files or folders.  Folder contents will be recursively
   // checked.
   nsTArray<mozilla::PathString> filePaths;
@@ -737,47 +711,41 @@ nsFilePicker::CheckContentAnalysisService() {
     std::transform(mFiles.begin(), mFiles.end(), MakeBackInserter(filePaths),
                    [](auto* entry) { return entry->NativePath(); });
   }
+  MOZ_ASSERT(!filePaths.IsEmpty());
 
-  auto processOneItem = [self = RefPtr{this},
-                         contentAnalysis = std::move(contentAnalysis),
-                         uri =
-                             std::move(uri)](const mozilla::PathString& aItem) {
-    nsCString emptyDigestString;
-    auto* windowGlobal =
-        self->mBrowsingContext->Canonical()->GetCurrentWindowGlobal();
-    nsCOMPtr<nsIContentAnalysisRequest> contentAnalysisRequest(
-        new mozilla::contentanalysis::ContentAnalysisRequest(
-            nsIContentAnalysisRequest::AnalysisType::eFileAttached,
-            nsIContentAnalysisRequest::Reason::eFilePickerDialog, aItem, true,
-            std::move(emptyDigestString), uri,
-            nsIContentAnalysisRequest::OperationType::eCustomDisplayString,
-            windowGlobal));
+  auto promise =
+      mozilla::MakeRefPtr<nsFilePicker::ContentAnalysisResponse::Private>(
+          __func__);
+  auto contentAnalysisCallback =
+      mozilla::MakeRefPtr<mozilla::contentanalysis::ContentAnalysisCallback>(
+          [promise](nsIContentAnalysisResult* aResult) {
+            promise->Resolve(aResult->GetShouldAllowContent(), __func__);
+          });
 
-    auto promise =
-        mozilla::MakeRefPtr<nsFilePicker::ContentAnalysisResponse::Private>(
-            __func__);
-    auto contentAnalysisCallback =
-        mozilla::MakeRefPtr<mozilla::contentanalysis::ContentAnalysisCallback>(
-            [promise](nsIContentAnalysisResponse* aResponse) {
-              bool shouldAllow = false;
-              mozilla::DebugOnly<nsresult> rv =
-                  aResponse->GetShouldAllowContent(&shouldAllow);
-              MOZ_ASSERT(NS_SUCCEEDED(rv));
-              promise->Resolve(shouldAllow, __func__);
-            },
-            [promise](nsresult aError) { promise->Reject(aError, __func__); });
+  auto* windowGlobal = mBrowsingContext->Canonical()->GetCurrentWindowGlobal();
+  NS_ENSURE_TRUE(
+      windowGlobal,
+      nsFilePicker::ContentAnalysisResponse::CreateAndReject(rv, __func__));
 
-    nsresult rv = contentAnalysis->AnalyzeContentRequestCallback(
-        contentAnalysisRequest, /* aAutoAcknowledge */ true,
-        contentAnalysisCallback);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      promise->Reject(rv, __func__);
-    }
-    return promise;
-  };
+  nsTArray<RefPtr<nsIContentAnalysisRequest>> requests(filePaths.Length());
+  for (auto& path : filePaths) {
+#ifdef XP_WIN
+    nsString pathString(std::move(path));
+#else
+    nsString pathString = NS_ConvertUTF8toUTF16(path);
+#endif
 
-  return mozilla::detail::AsyncAll<mozilla::PathString>(std::move(filePaths),
-                                                        processOneItem);
+    requests.AppendElement(new mozilla::contentanalysis::ContentAnalysisRequest(
+        nsIContentAnalysisRequest::AnalysisType::eFileAttached,
+        nsIContentAnalysisRequest::Reason::eFilePickerDialog, pathString,
+        true /* aStringIsFilePath */, EmptyCString(), nullptr,
+        nsIContentAnalysisRequest::OperationType::eCustomDisplayString,
+        windowGlobal));
+  }
+
+  contentAnalysis->AnalyzeContentRequestsCallback(
+      requests, true /* aAutoAcknowledge */, contentAnalysisCallback);
+  return promise;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

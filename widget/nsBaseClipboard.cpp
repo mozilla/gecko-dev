@@ -1017,11 +1017,9 @@ NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetData(
   MOZ_ASSERT(mClipboard);
 
   auto contentAnalysisCallback =
-      mozilla::MakeRefPtr<mozilla::contentanalysis::ContentAnalysis::
-                              SafeContentAnalysisResultCallback>(
+      mozilla::MakeRefPtr<mozilla::contentanalysis::ContentAnalysisCallback>(
           [transferable = nsCOMPtr{aTransferable},
-           callback = nsCOMPtr{aCallback}](
-              RefPtr<nsIContentAnalysisResult>&& aResult) {
+           callback = nsCOMPtr{aCallback}](nsIContentAnalysisResult* aResult) {
             if (aResult->GetShouldAllowContent()) {
               callback->OnComplete(NS_OK);
             } else {
