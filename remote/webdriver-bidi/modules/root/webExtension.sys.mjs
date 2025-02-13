@@ -135,6 +135,33 @@ class WebExtensionModule extends RootBiDiModule {
       extension: extensionId,
     };
   }
+
+  /**
+   * Uninstalls a WebExtension.
+   *
+   * @see https://w3c.github.io/webdriver-bidi/#command-webExtension-uninstall
+   *
+   * @param {object=} options
+   * @param {Extension} options.extension
+   *    The id of the WebExtension to be uninstalled.
+   *
+   * @throws {InvalidArgumentError}
+   *     Raised if an argument is of an invalid type or value.
+   * @throws {NoSuchWebExtensionError}
+   *     Raised if the WebExtension with provided id could not be found.
+   * @throws {UnknownError}
+   *     Raised if the WebExtension cannot be uninstalled.
+   */
+  async uninstall(options = {}) {
+    const { extension: addonId } = options;
+
+    lazy.assert.string(
+      addonId,
+      lazy.pprint`Expected "extension" to be a string, got ${addonId}`
+    );
+
+    await lazy.Addon.uninstall(addonId);
+  }
 }
 
 export const webExtension = WebExtensionModule;
