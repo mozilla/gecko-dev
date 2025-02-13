@@ -627,6 +627,7 @@ class RelayOffered {
         // Capture the flowId here since async operations might take some time to resolve
         // and by then gFlowId might have another value
         const flowId = gFlowId;
+        Glean.relayIntegration.enabledOptInPanel.record({ value: flowId });
 
         // Capture the selected tab panel ID so we can come back to it after the
         // user finishes FXA sign-in
