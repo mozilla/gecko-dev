@@ -23,6 +23,13 @@
 #  define INLINABLE_NATIVE_FUZZILLI_LIST(_)
 #endif
 
+#ifdef NIGHTLY_BUILD
+#  define INLINABLE_NATIVE_ITERATOR_RANGE_LIST(_) \
+    _(IntrinsicGuardToIteratorRange)
+#else
+#  define INLINABLE_NATIVE_ITERATOR_RANGE_LIST(_)
+#endif
+
 #define INLINABLE_NATIVE_LIST(_)                   \
   _(Array)                                         \
   _(ArrayIsArray)                                  \
@@ -223,7 +230,6 @@
   _(IntrinsicGuardToWrapForValidIterator)          \
   _(IntrinsicGuardToIteratorHelper)                \
   _(IntrinsicGuardToAsyncIteratorHelper)           \
-                                                   \
   _(IntrinsicGuardToMapObject)                     \
   _(IntrinsicGetNextMapEntryForIterator)           \
                                                    \
@@ -258,7 +264,8 @@
   _(IntrinsicThisTimeValue)                        \
                                                    \
   INLINABLE_EXPLICIT_RESOURCE_MANAGEMENENT_LIST(_) \
-  INLINABLE_NATIVE_FUZZILLI_LIST(_)
+  INLINABLE_NATIVE_FUZZILLI_LIST(_)                \
+  INLINABLE_NATIVE_ITERATOR_RANGE_LIST(_)
 
 struct JSClass;
 class JSJitInfo;

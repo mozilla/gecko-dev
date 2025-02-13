@@ -12427,6 +12427,9 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
     case InlinableNative::IntrinsicGuardToRegExpStringIterator:
     case InlinableNative::IntrinsicGuardToWrapForValidIterator:
     case InlinableNative::IntrinsicGuardToIteratorHelper:
+#ifdef NIGHTLY_BUILD
+    case InlinableNative::IntrinsicGuardToIteratorRange:
+#endif
     case InlinableNative::IntrinsicGuardToAsyncIteratorHelper:
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     case InlinableNative::IntrinsicGuardToAsyncDisposableStack:
