@@ -1855,6 +1855,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
     if (!SidebarController.inPopup && !SidebarController.uninitializing) {
       SidebarController.recordVisibilitySetting(newValue);
       SidebarController._state.revampVisibility = newValue;
+      if (SidebarController._animationEnabled && !window.gReduceMotion) {
+        SidebarController._animateSidebarMain();
+      }
       SidebarController._state.updateVisibility(
         (newValue != "hide-sidebar" &&
           SidebarController.sidebarVerticalTabsEnabled) ||

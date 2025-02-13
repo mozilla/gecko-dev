@@ -234,7 +234,10 @@ add_task(async function test_opening_container_tab_context() {
 
 add_task(async function test_vertical_tabs_right_click_new_tab_button() {
   await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.verticalTabs", true]],
+    set: [
+      ["sidebar.animation.enabled", false],
+      ["sidebar.verticalTabs", true],
+    ],
   });
   const sidebar = window.document.querySelector("sidebar-main");
   await TestUtils.waitForCondition(
