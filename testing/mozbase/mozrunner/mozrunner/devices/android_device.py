@@ -395,11 +395,11 @@ def verify_android_device(
             emulator.wait_for_start()
             device_verified = True
 
-    if device_verified and "ANDROID_SERIAL" not in os.environ:
+    if device_verified and "DEVICE_SERIAL" not in os.environ:
         devices = adbhost.devices(timeout=SHORT_TIMEOUT)
         for d in devices:
             if d["state"] == "device":
-                os.environ["ANDROID_SERIAL"] = d["device_serial"]
+                os.environ["DEVICE_SERIAL"] = d["device_serial"]
                 break
 
     metadata = metadata_for_app(app, aab)
@@ -486,7 +486,7 @@ def verify_android_device(
         # Optionally check the network: If on a device that does not look like
         # an emulator, verify that the device IP address can be obtained
         # and check that this host can ping the device.
-        serial = device_serial or os.environ.get("ANDROID_SERIAL")
+        serial = device_serial or os.environ.get("DEVICE_SERIAL")
         if not serial or ("emulator" not in serial):
             device = _get_device(build_obj.substs, serial)
             device.run_as_package = metadata.package_name

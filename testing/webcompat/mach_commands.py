@@ -239,7 +239,7 @@ class InterventionTest(MozbuildObject):
                 command_context, app=app, network=True, install=InstallIntent.YES
             )
 
-            kwargs["device_serial"] = os.environ.get("ANDROID_SERIAL")
+            kwargs["device_serial"] = os.environ.get("DEVICE_SERIAL")
 
         # GVE does not have the webcompat addon by default. Add it.
         if app == GVE:

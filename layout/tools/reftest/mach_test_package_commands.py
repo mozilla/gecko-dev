@@ -72,7 +72,7 @@ def run_reftest_android(context, args):
         args.adb_path = config["exes"]["adb"] % {
             "abs_work_dir": context.mozharness_workdir
         }
-        args.deviceSerial = os.environ.get("ANDROID_SERIAL", "emulator-5554")
+        args.deviceSerial = os.environ.get("DEVICE_SERIAL", "emulator-5554")
 
     logger.info("mach calling remotereftest with args: " + str(args))
 
