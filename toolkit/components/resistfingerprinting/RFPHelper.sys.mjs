@@ -17,16 +17,17 @@ const kPrefLetterboxingTesting =
   "privacy.resistFingerprinting.letterboxing.testing";
 const kTopicDOMWindowOpened = "domwindowopened";
 
-var logConsole;
-function log(msg) {
-  if (!logConsole) {
-    logConsole = console.createInstance({
-      prefix: "RFPHelper",
-      maxLogLevelPref: "privacy.resistFingerprinting.jsmloglevel",
-    });
-  }
+const lazy = {};
 
-  logConsole.log(msg);
+ChromeUtils.defineLazyGetter(lazy, "logConsole", () =>
+  console.createInstance({
+    prefix: "RFPHelper",
+    maxLogLevelPref: "privacy.resistFingerprinting.jsmloglevel",
+  })
+);
+
+function log(...args) {
+  lazy.logConsole.log(...args);
 }
 
 class _RFPHelper {
@@ -395,8 +396,8 @@ class _RFPHelper {
    * content viewport.
    */
   async _roundContentView(aBrowser) {
-    let logId = Math.random();
-    log("_roundContentView[" + logId + "]");
+    let logPrefix = `_roundContentView[${Math.random()}]`;
+    log(logPrefix);
     let win = aBrowser.ownerGlobal;
     let browserContainer = aBrowser
       .getTabBrowser()
@@ -430,30 +431,12 @@ class _RFPHelper {
       });
 
     log(
-      "_roundContentView[" +
-        logId +
-        "] contentWidth=" +
-        contentWidth +
-        " contentHeight=" +
-        contentHeight +
-        " containerWidth=" +
-        containerWidth +
-        " containerHeight=" +
-        containerHeight +
-        " "
+      `${logPrefix} contentWidth=${contentWidth} contentHeight=${contentHeight} containerWidth=${containerWidth} containerHeight=${containerHeight}.`
     );
 
     let calcMargins = (aWidth, aHeight) => {
       let result;
-      log(
-        "_roundContentView[" +
-          logId +
-          "] calcMargins(" +
-          aWidth +
-          ", " +
-          aHeight +
-          ")"
-      );
+      log(`${logPrefix} calcMargins(${aWidth}, ${aHeight})`);
       // If the set is empty, we will round the content with the default
       // stepping size.
       if (!this._letterboxingDimensions.length) {
@@ -462,16 +445,7 @@ class _RFPHelper {
           height: this.steppedRange(aHeight),
         };
         log(
-          "_roundContentView[" +
-            logId +
-            "] calcMargins(" +
-            aWidth +
-            ", " +
-            aHeight +
-            ") = " +
-            result.width +
-            " x " +
-            result.height
+          `${logPrefix} calcMargins(${aWidth}, ${aHeight}) = ${result.width} x ${result.height}`
         );
         return result;
       }
@@ -512,16 +486,7 @@ class _RFPHelper {
       }
 
       log(
-        "_roundContentView[" +
-          logId +
-          "] calcMargins(" +
-          aWidth +
-          ", " +
-          aHeight +
-          ") = " +
-          result.width +
-          " x " +
-          result.height
+        `${logPrefix} calcMargins(${aWidth}, ${aHeight}) = ${result.width} x ${result.height}`
       );
       return result;
     };
@@ -533,12 +498,10 @@ class _RFPHelper {
 
     // If the size of the content is already quantized, we do nothing.
     if (aBrowser.style.margin == `${margins.height}px ${margins.width}px`) {
-      log("_roundContentView[" + logId + "] is_rounded == true");
+      log(`${logPrefix} is_rounded == true`);
       if (this._isLetterboxingTesting) {
         log(
-          "_roundContentView[" +
-            logId +
-            "] is_rounded == true test:letterboxing:update-margin-finish"
+          `${logPrefix} is_rounded == true test:letterboxing:update-margin-finish`
         );
         Services.obs.notifyObservers(
           null,
@@ -550,12 +513,7 @@ class _RFPHelper {
 
     win.requestAnimationFrame(() => {
       log(
-        "_roundContentView[" +
-          logId +
-          "] setting margins to " +
-          margins.width +
-          " x " +
-          margins.height
+        `${logPrefix} setting margins to ${margins.width} x ${margins.height}`
       );
       // One cannot (easily) control the color of a margin unfortunately.
       // An initial attempt to use a border instead of a margin resulted

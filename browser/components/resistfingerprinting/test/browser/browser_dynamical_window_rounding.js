@@ -115,40 +115,25 @@ async function test_dynamical_window_rounding(aWindow, aURL, aCheckFunc) {
   };
 
   for (let { width, height } of TEST_CASES) {
-    let caseString = "Case " + width + "x" + height + ": ";
+    let caseString = `Case ${width}x${height}:`;
     // Create a promise for waiting for the margin update.
     let promiseRounding = waitForLetterboxing();
 
     let { containerWidth, containerHeight } = getContainerSize(tab);
 
     info(
-      caseString +
-        "Resize the window and wait until resize event happened (currently " +
-        containerWidth +
-        "x" +
-        containerHeight +
-        ")"
+      `${caseString} Resize the window and wait until resize event happened (currently ${containerWidth}x${containerHeight})`
     );
     await new Promise(resolve => {
       ({ containerWidth, containerHeight } = getContainerSize(tab));
       info(
-        caseString +
-          "Resizing (currently " +
-          containerWidth +
-          "x" +
-          containerHeight +
-          ")"
+        `${caseString} Resizing (currently ${containerWidth}x${containerHeight})`
       );
 
       aWindow.onresize = () => {
         ({ containerWidth, containerHeight } = getContainerSize(tab));
         info(
-          caseString +
-            "Resized (currently " +
-            containerWidth +
-            "x" +
-            containerHeight +
-            ")"
+          `${caseString} Resized (currently ${containerWidth}x${containerHeight})`
         );
         if (getPlatform() == "linux" && containerWidth != width) {
           /*
@@ -171,7 +156,7 @@ async function test_dynamical_window_rounding(aWindow, aURL, aCheckFunc) {
            * The logging statements in this test, and RFPHelper.sys.mjs, help narrow down and
            * illustrate the issue.
            */
-          info(caseString + "We hit the weird resize bug. Resize it again.");
+          info(`${caseString} We hit the weird resize bug. Resize it again.`);
           aWindow.resizeTo(width, height);
         } else {
           resolve();
@@ -182,16 +167,11 @@ async function test_dynamical_window_rounding(aWindow, aURL, aCheckFunc) {
 
     ({ containerWidth, containerHeight } = getContainerSize(tab));
     info(
-      caseString +
-        "Waiting until margin has been updated on browser element. (currently " +
-        containerWidth +
-        "x" +
-        containerHeight +
-        ")"
+      `${caseString} Waiting until sizes have been updated on browser element (currently ${containerWidth}x${containerHeight}).`
     );
     await promiseRounding;
 
-    info(caseString + "Get innerWidth/Height from the content.");
+    info(`${caseString} Get innerWidth/Height from the content.`);
     await BrowserTestUtils.waitForCondition(async () => {
       let { contentWidth, contentHeight } = await SpecialPowers.spawn(
         tab.linkedBrowser,
@@ -204,7 +184,7 @@ async function test_dynamical_window_rounding(aWindow, aURL, aCheckFunc) {
         }
       );
 
-      info(caseString + "Check the result.");
+      info(`${caseString} Check the result.`);
       return aCheckFunc(
         contentWidth,
         contentHeight,
