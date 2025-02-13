@@ -1034,9 +1034,15 @@ WhiteSpaceVisibilityKeeper::InsertLineBreak(
 }
 
 // static
-Result<InsertTextResult, nsresult> WhiteSpaceVisibilityKeeper::ReplaceText(
+Result<InsertTextResult, nsresult>
+WhiteSpaceVisibilityKeeper::InsertTextOrInsertOrUpdateCompositionString(
     HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
-    const EditorDOMRange& aRangeToBeReplaced, InsertTextTo aInsertTextTo) {
+    const EditorDOMRange& aRangeToBeReplaced, InsertTextTo aInsertTextTo,
+    TextIsCompositionString aTextIsCompositionString) {
+  MOZ_ASSERT(aRangeToBeReplaced.StartRef().IsInContentNode());
+  MOZ_ASSERT_IF(aTextIsCompositionString == TextIsCompositionString::No,
+                aRangeToBeReplaced.Collapsed());
+
   // MOOSE: for now, we always assume non-PRE formatting.  Fix this later.
   // meanwhile, the pre case is handled in HandleInsertText() in
   // HTMLEditSubActionHandler.cpp

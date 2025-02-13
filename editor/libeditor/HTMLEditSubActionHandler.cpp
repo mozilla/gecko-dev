@@ -1234,15 +1234,14 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
       return EditActionResult::HandledResult();
     }
 
-    auto compositionEndPoint = GetLastIMESelectionEndPoint<EditorDOMPoint>();
-    if (!compositionEndPoint.IsSet()) {
-      compositionEndPoint = pointToInsert;
-    }
+    const auto compositionEndPoint =
+        GetLastIMESelectionEndPoint<EditorDOMPoint>();
     Result<InsertTextResult, nsresult> replaceTextResult =
-        WhiteSpaceVisibilityKeeper::ReplaceText(
+        WhiteSpaceVisibilityKeeper::InsertOrUpdateCompositionString(
             *this, aInsertionString,
-            EditorDOMRange(pointToInsert, compositionEndPoint),
-            InsertTextTo::ExistingTextNodeIfAvailable);
+            compositionEndPoint.IsSet()
+                ? EditorDOMRange(pointToInsert, compositionEndPoint)
+                : EditorDOMRange(pointToInsert));
     if (MOZ_UNLIKELY(replaceTextResult.isErr())) {
       NS_WARNING("WhiteSpaceVisibilityKeeper::ReplaceText() failed");
       return replaceTextResult.propagateErr();

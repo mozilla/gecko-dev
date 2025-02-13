@@ -240,26 +240,34 @@ class WhiteSpaceVisibilityKeeper final {
   InsertText(HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
              const EditorDOMPointType& aPointToInsert,
              InsertTextTo aInsertTextTo) {
-    return WhiteSpaceVisibilityKeeper::ReplaceText(
-        aHTMLEditor, aStringToInsert, EditorDOMRange(aPointToInsert),
-        aInsertTextTo);
+    return WhiteSpaceVisibilityKeeper::
+        InsertTextOrInsertOrUpdateCompositionString(
+            aHTMLEditor, aStringToInsert, EditorDOMRange(aPointToInsert),
+            aInsertTextTo, TextIsCompositionString::No);
   }
 
   /**
-   * Replace aRangeToReplace with aStringToInsert and makes any needed
-   * adjustments to white-spaces around both start of the range and end of the
-   * range.
+   * Insert aCompositionString to the start boundary of aCompositionStringRange
+   * or update existing composition string with aCompositionString.
+   * If inserting composition string, this may normalize white-spaces around
+   * there.  However, if updating composition string, this will skip it to
+   * avoid CompositionTransaction work.
    *
-   * @param aStringToInsert     The string to insert.
-   * @param aRangeToBeReplaced  The range to be replaced.
-   * @param aInsertTextTo       Whether forcibly creates a new `Text` node in
-   *                            specific condition or use existing `Text` if
-   *                            available.
+   * @param aCompositionString  The new composition string.
+   * @param aCompositionStringRange
+   *                            If there is old composition string, this should
+   *                            cover all of it.  Otherwise, this should be
+   *                            collapsed and indicate the insertion point.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<InsertTextResult, nsresult>
-  ReplaceText(HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
-              const EditorDOMRange& aRangeToBeReplaced,
-              InsertTextTo aInsertTextTo);
+  InsertOrUpdateCompositionString(
+      HTMLEditor& aHTMLEditor, const nsAString& aCompositionString,
+      const EditorDOMRange& aCompositionStringRange) {
+    return InsertTextOrInsertOrUpdateCompositionString(
+        aHTMLEditor, aCompositionString, aCompositionStringRange,
+        HTMLEditor::InsertTextTo::ExistingTextNodeIfAvailable,
+        TextIsCompositionString::Yes);
+  }
 
   /**
    * Delete previous white-space of aPoint.  This automatically keeps visibility
@@ -335,6 +343,30 @@ class WhiteSpaceVisibilityKeeper final {
   ReplaceTextAndRemoveEmptyTextNodes(
       HTMLEditor& aHTMLEditor, const EditorDOMRangeInTexts& aRangeToReplace,
       const nsAString& aReplaceString);
+
+  enum class TextIsCompositionString : bool { No, Yes };
+
+  /**
+   * Insert aStringToInsert to aRangeToBeReplaced.StartRef() with normalizing
+   * white-spaces around there.
+   *
+   * @param aStringToInsert     The string to insert.
+   * @param aRangeToBeReplaced  If you insert non-composing text, this MUST be
+   *                            collapsed to the insertion point.
+   *                            If you update composition string, this may be
+   *                            not collapsed.  The range is required to
+   *                            normalizing the new composition string.
+   *                            Therefore, this should match the range of the
+   *                            latest composition string.
+   * @param aInsertTextTo       Whether forcibly creates a new `Text` node in
+   *                            specific condition or use existing `Text` if
+   *                            available.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static Result<InsertTextResult, nsresult>
+  InsertTextOrInsertOrUpdateCompositionString(
+      HTMLEditor& aHTMLEditor, const nsAString& aStringToInsert,
+      const EditorDOMRange& aRangeToBeReplaced, InsertTextTo aInsertTextTo,
+      TextIsCompositionString aTextIsCompositionString);
 };
 
 }  // namespace mozilla
