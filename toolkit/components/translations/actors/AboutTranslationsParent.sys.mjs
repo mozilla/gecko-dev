@@ -27,28 +27,27 @@ export class AboutTranslationsParent extends JSWindowActorParent {
 
   actorCreated() {
     this.#boundObserve = this.#observe.bind(this);
-    Services.obs.addObserver(this.#boundObserve, "translations:pref-changed");
+    Services.obs.addObserver(
+      this.#boundObserve,
+      "translations:model-records-changed"
+    );
   }
 
   didDestroy() {
     if (this.#boundObserve) {
       Services.obs.removeObserver(
         this.#boundObserve,
-        "translations:pref-changed"
+        "translations:model-records-changed"
       );
       this.#boundObserve = null;
     }
     this.#isDestroyed = true;
   }
 
-  #observe(subject, topic, data) {
+  #observe(subject, topic) {
     switch (topic) {
-      case "translations:pref-changed": {
-        switch (data) {
-          case "browser.translations.useLexicalShortlist": {
-            this.sendAsyncMessage("AboutTranslations:RebuildTranslator");
-          }
-        }
+      case "translations:model-records-changed": {
+        this.sendAsyncMessage("AboutTranslations:RebuildTranslator");
       }
     }
   }

@@ -6,7 +6,7 @@
 /**
  * Test that flipping the useLexicalShortlist pref creates a new translator.
  */
-add_task(async function test_about_translations_language_swap() {
+add_task(async function test_about_translations_flip_lexical_shortlist_pref() {
   const { runInPage, cleanup, resolveDownloads } = await openAboutTranslations({
     languagePairs: [{ fromLang: "en", toLang: "fr" }],
     prefs: [["browser.translations.useLexicalShortlist", false]],

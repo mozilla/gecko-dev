@@ -1136,15 +1136,13 @@ export class TranslationsParent extends JSWindowActorParent {
       case TOPIC_TRANSLATIONS_PREF_CHANGED: {
         switch (data) {
           case USE_LEXICAL_SHORTLIST_PREF: {
-            TranslationsParent.#invalidateTranslationModelRecords();
-
             // This is an extreme edge case where someone would flip the useLexicalShortlist
             // pref during an active translation. Most people will not be flipping this pref
             // at all, much less during a translation. But if it does happen, we should destroy
             // the current engine to be rebuilt with the new configuration.
-            lazy.EngineProcess.destroyTranslationsEngine().catch(error =>
-              lazy.console.error(error)
-            );
+            lazy.EngineProcess.destroyTranslationsEngine()
+              .catch(error => lazy.console.error(error))
+              .finally(TranslationsParent.#invalidateTranslationModelRecords);
 
             break;
           }
@@ -1465,6 +1463,7 @@ export class TranslationsParent extends JSWindowActorParent {
    */
   static #invalidateTranslationModelRecords() {
     TranslationsParent.#translationModelRecords = null;
+    Services.obs.notifyObservers(null, "translations:model-records-changed");
   }
 
   /**
