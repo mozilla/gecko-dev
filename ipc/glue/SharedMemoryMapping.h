@@ -71,7 +71,7 @@ class MappingBase {
    */
   MappingBase();
   MOZ_IMPLICIT MappingBase(std::nullptr_t) {}
-  ~MappingBase();
+  ~MappingBase() { Unmap(); }
 
   /**
    * Mappings are movable (but not copyable).
@@ -80,15 +80,15 @@ class MappingBase {
       : mMemory(std::exchange(aOther.mMemory, nullptr)),
         mSize(std::exchange(aOther.mSize, 0)) {}
 
-  MappingBase& operator=(MappingBase&& aOther) {
-    mMemory = std::exchange(aOther.mMemory, nullptr);
-    mSize = std::exchange(aOther.mSize, 0);
-    return *this;
-  }
+  MappingBase& operator=(MappingBase&& aOther);
+
+  MappingBase(const MappingBase&) = delete;
+  MappingBase& operator=(const MappingBase&) = delete;
 
   bool Map(const HandleBase& aHandle, void* aFixedAddress, bool aReadOnly);
   bool MapSubregion(const HandleBase& aHandle, uint64_t aOffset, size_t aSize,
                     void* aFixedAddress, bool aReadOnly);
+  void Unmap();
 
   template <typename Derived>
   Derived ConvertTo() && {
