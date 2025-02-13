@@ -147,7 +147,7 @@ impl Arg {
     }
 }
 
-impl<'a> From<&'a OsString> for Arg {
+impl From<&OsString> for Arg {
     fn from(arg_str: &OsString) -> Arg {
         if let (Some(name), _) = parse_arg_name_value(arg_str) {
             Arg::new(&name)

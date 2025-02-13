@@ -244,12 +244,9 @@ mod tests {
         let json = json!({"addon": "aGVsbG8=", "temporary": true});
         let data = serde_json::from_value::<AddonInstallParameters>(json).unwrap();
 
-        match data {
-            AddonInstallParameters::AddonBase64(data) => {
-                assert_eq!(data.temporary, Some(true));
-                assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
-            }
-            _ => (),
+        if let AddonInstallParameters::AddonBase64(data) = data {
+            assert_eq!(data.temporary, Some(true));
+            assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
         }
     }
 
@@ -258,12 +255,9 @@ mod tests {
         let json = json!({"addon": "aGVsbG8=", "allowPrivateBrowsing": true});
         let data = serde_json::from_value::<AddonInstallParameters>(json).unwrap();
 
-        match data {
-            AddonInstallParameters::AddonBase64(data) => {
-                assert_eq!(data.allow_private_browsing, Some(true));
-                assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
-            }
-            _ => (),
+        if let AddonInstallParameters::AddonBase64(data) = data {
+            assert_eq!(data.allow_private_browsing, Some(true));
+            assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
         }
     }
 
@@ -272,12 +266,9 @@ mod tests {
         let json = json!({"addon": "aGVsbG8="});
         let data = serde_json::from_value::<AddonInstallParameters>(json).unwrap();
 
-        match data {
-            AddonInstallParameters::AddonBase64(data) => {
-                assert_eq!(data.temporary, None);
-                assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
-            }
-            _ => (),
+        if let AddonInstallParameters::AddonBase64(data) = data {
+            assert_eq!(data.temporary, None);
+            assert_eq!(String::from_utf8(data.addon).unwrap(), "hello");
         }
     }
 

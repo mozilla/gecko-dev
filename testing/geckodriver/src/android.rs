@@ -524,7 +524,7 @@ mod test {
         let test_root = match handler.process.device.storage {
             AndroidStorage::App => {
                 let mut buf = UnixPathBuf::from("/data/data");
-                buf.push(&package);
+                buf.push(package);
                 buf.push("test_root");
                 buf
             }
@@ -538,7 +538,7 @@ mod test {
 
                 let mut buf = UnixPathBuf::from(response.trim_end_matches('\n'));
                 buf.push("Android/data/");
-                buf.push(&package);
+                buf.push(package);
                 buf.push("files/test_root");
                 buf
             }

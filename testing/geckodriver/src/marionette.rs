@@ -1891,7 +1891,7 @@ mod tests {
         let mut dmp_file_present = false;
         let mut extra_file_present = false;
 
-        for result_entry in std::fs::read_dir(&minidumps_path).unwrap() {
+        for result_entry in std::fs::read_dir(minidumps_path).unwrap() {
             let entry = result_entry.unwrap();
 
             let path: PathBuf = entry.path();
@@ -1909,8 +1909,8 @@ mod tests {
             }
         }
 
-        assert_eq!(dmp_file_present, true);
-        assert_eq!(extra_file_present, true);
+        assert!(dmp_file_present);
+        assert!(extra_file_present);
     }
 
     fn create_file(folder: &Path, filename: &str) {
@@ -1922,7 +1922,7 @@ mod tests {
         let folder = create_minidump_folder(profile_path);
 
         let mut file_extensions = [".dmp", ".extra"];
-        for (_, file_extension) in file_extensions.iter_mut().enumerate() {
+        for file_extension in file_extensions.iter_mut() {
             let mut filename_with_extension: String = filename.to_owned();
             filename_with_extension.push_str(file_extension);
 
@@ -1946,7 +1946,7 @@ mod tests {
 
         let filename = "test";
 
-        create_minidump_files(&profile_path, filename);
+        create_minidump_files(profile_path, filename);
 
         let tmp_dir_minidumps = TempDir::new().unwrap();
         let minidumps_path = tmp_dir_minidumps.path();
@@ -1965,10 +1965,10 @@ mod tests {
         let profile_path = tmp_dir_profile.path();
 
         let filename_1 = "test_1";
-        create_minidump_files(&profile_path, filename_1);
+        create_minidump_files(profile_path, filename_1);
 
         let filename_2 = "test_2";
-        create_minidump_files(&profile_path, filename_2);
+        create_minidump_files(profile_path, filename_2);
 
         let tmp_dir_minidumps = TempDir::new().unwrap();
         let minidumps_path = tmp_dir_minidumps.path();
@@ -1987,7 +1987,7 @@ mod tests {
         let tmp_dir_profile = TempDir::new().unwrap();
         let profile_path = tmp_dir_profile.path();
 
-        create_minidump_folder(&profile_path);
+        create_minidump_folder(profile_path);
 
         assert!(copy_minidumps_files(profile_path, Path::new("/non-existent")).is_ok());
 
@@ -2009,7 +2009,7 @@ mod tests {
         let tmp_dir_profile = TempDir::new().unwrap();
         let profile_path = tmp_dir_profile.path();
 
-        let minidumps_folder = create_minidump_folder(&profile_path);
+        let minidumps_folder = create_minidump_folder(profile_path);
 
         // Create a folder.
         let test_folder_binding = profile_path.join("test");
