@@ -108,7 +108,6 @@ async function doMigrateTest({
   // Set initial prefs. `initialDefaultBranch` are firefox.js values, i.e.,
   // defaults immediately after startup and before any scenario update and
   // migration happens.
-  UrlbarPrefs._updatingFirefoxSuggestScenario = true;
   UrlbarPrefs.clear("quicksuggest.migrationVersion");
   let initialDefaultBranch = {
     "suggest.quicksuggest.nonsponsored": false,
@@ -128,7 +127,6 @@ async function doMigrateTest({
       }
     }
   }
-  UrlbarPrefs._updatingFirefoxSuggestScenario = false;
 
   // Update the scenario and check prefs twice. The first time the migration
   // should happen, and the second time the migration should not happen and
@@ -136,11 +134,10 @@ async function doMigrateTest({
   for (let i = 0; i < 2; i++) {
     info(`Calling updateFirefoxSuggestScenario, i=${i}`);
 
-    // Do the scenario update and set `isStartup` to simulate startup.
+    // Update the scenario.
     await QuickSuggest.updateFirefoxSuggestScenario({
       ...testOverrides,
       scenario,
-      isStartup: true,
     });
 
     // Check expected pref values. Store expected effective values as we go so
@@ -215,7 +212,6 @@ async function doMigrateTest({
   }
 
   // Clean up.
-  UrlbarPrefs._updatingFirefoxSuggestScenario = true;
   UrlbarPrefs.clear("quicksuggest.migrationVersion");
   let userBranchNames = [
     ...Object.keys(initialUserBranch),
@@ -224,7 +220,6 @@ async function doMigrateTest({
   for (let name of userBranchNames) {
     userBranch.clearUserPref(name);
   }
-  UrlbarPrefs._updatingFirefoxSuggestScenario = false;
 }
 
 /**

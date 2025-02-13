@@ -386,24 +386,13 @@ class _QuickSuggest {
    * @param {string} variable
    *   The name of the variable.
    */
-  async onNimbusChanged(variable) {
+  onNimbusChanged(variable) {
+    // If a change occurred to a variable that corresponds to a pref exposed in
+    // the UI, sync the variable to the pref on the default branch.
     if (this.UI_PREFS_BY_VARIABLE.hasOwnProperty(variable)) {
-      // If a change occurred to any variables that correspond to prefs exposed
-      // in the UI, we need to update the scenario.
-      await this.updateFirefoxSuggestScenario();
-    } else {
-      // If the current default-branch value of any pref is incorrect for the
-      // intended scenario, we need to update the scenario.
-      let scenario = this._getIntendedFirefoxSuggestScenario();
-      let intendedDefaultPrefs = this.DEFAULT_PREFS[scenario];
-      let defaults = Services.prefs.getDefaultBranch("browser.urlbar.");
-      for (let [name, value] of Object.entries(intendedDefaultPrefs)) {
-        // We assume all prefs are boolean right now.
-        if (defaults.getBoolPref(name) != value) {
-          await this.updateFirefoxSuggestScenario();
-          break;
-        }
-      }
+      this.#syncUiVariablesToPrefs({
+        [variable]: this.UI_PREFS_BY_VARIABLE[variable],
+      });
     }
 
     // Update features.
@@ -551,21 +540,9 @@ class _QuickSuggest {
    *
    * @param {string} [testOverrides]
    *   This is intended for tests only. Pass to force the following:
-   *   `{ scenario, migrationVersion, defaultPrefs, isStartup }`
+   *   `{ scenario, migrationVersion, defaultPrefs }`
    */
   async updateFirefoxSuggestScenario(testOverrides = null) {
-    // Make sure we don't re-enter this method while updating prefs. Updates to
-    // prefs that are fallbacks for Nimbus variables trigger the pref observer
-    // in Nimbus, which triggers our Nimbus `onUpdate` callback, which calls
-    // this method again.
-    if (this._updatingFirefoxSuggestScenario) {
-      return;
-    }
-
-    let isStartup =
-      !this._updateFirefoxSuggestScenarioCalled || !!testOverrides?.isStartup;
-    this._updateFirefoxSuggestScenarioCalled = true;
-
     try {
       this._updatingFirefoxSuggestScenario = true;
 
@@ -587,13 +564,13 @@ class _QuickSuggest {
         await lazy.TelemetryEnvironment.onInitialized();
       }
 
-      this._updateFirefoxSuggestScenarioHelper(isStartup, testOverrides);
+      this._updateFirefoxSuggestScenarioHelper(testOverrides);
     } finally {
       this._updatingFirefoxSuggestScenario = false;
     }
   }
 
-  _updateFirefoxSuggestScenarioHelper(isStartup, testOverrides) {
+  _updateFirefoxSuggestScenarioHelper(testOverrides) {
     // Updating the scenario is tricky and it's important to preserve the user's
     // choices, so we describe the process in detail below. tl;dr:
     //
@@ -603,11 +580,6 @@ class _QuickSuggest {
     // * Prefs that are both exposed in the UI and configurable via Nimbus don't
     //   need to be specified as a `fallbackPref` in the feature manifest.
     //   Access these prefs directly instead of through their Nimbus variables.
-    // * If you are modifying this method, keep in mind that setting a pref
-    //   that's a `fallbackPref` for a Nimbus variable will trigger the pref
-    //   observer inside Nimbus and call all `NimbusFeatures.urlbar.onUpdate`
-    //   callbacks. Inside this class we guard against that by using
-    //   `_updatingFirefoxSuggestScenario`.
     //
     // The scenario-update process is described next.
     //
@@ -674,29 +646,21 @@ class _QuickSuggest {
     if (!defaultPrefs.hasOwnProperty(scenario)) {
       throw new Error("No default preferences for scenario: " + scenario);
     }
-    let prefs = { ...defaultPrefs[scenario] };
-
-    // 3. Set default-branch values for prefs that are both exposed in the UI
-    // and configurable via Nimbus
-    for (let [variable, prefName] of Object.entries(
-      this.UI_PREFS_BY_VARIABLE
-    )) {
-      let value = lazy.NimbusFeatures.urlbar.getVariable(variable);
-      if (typeof value == "boolean") {
-        prefs[prefName] = value;
-      }
-    }
+    this.#defaultPrefsForCurrentScenario = { ...defaultPrefs[scenario] };
 
     let defaults = Services.prefs.getDefaultBranch("browser.urlbar.");
-    for (let [name, value] of Object.entries(prefs)) {
-      // We assume all prefs are boolean right now.
+    for (let [name, value] of Object.entries(
+      this.#defaultPrefsForCurrentScenario
+    )) {
       defaults.setBoolPref(name, value);
     }
 
+    // 3. Set default-branch values for prefs that are both exposed in the UI
+    // and configurable via Nimbus
+    this.#syncUiVariablesToPrefs(this.UI_PREFS_BY_VARIABLE);
+
     // 4. Migrate prefs across app versions
-    if (isStartup) {
-      this._ensureFirefoxSuggestPrefsMigrated(scenario, testOverrides);
-    }
+    this._ensureFirefoxSuggestPrefsMigrated(scenario, testOverrides);
 
     // Set the scenario pref only after migrating so that migrations can tell
     // what the last-seen scenario was. Set it on the user branch so that its
@@ -727,6 +691,25 @@ class _QuickSuggest {
       scenario = "history";
     }
     return scenario;
+  }
+
+  /**
+   * Sets default-branch values for prefs that are both exposed in the UI and
+   * configurable via Nimbus.
+   *
+   * @param {object} uiPrefsByVariable
+   *   A plain JS object that maps Nimbus variable names to their corresponding
+   *   prefs. This should always be `UI_PREFS_BY_VARIABLE` or a subset of it.
+   */
+  #syncUiVariablesToPrefs(uiPrefsByVariable) {
+    let defaults = Services.prefs.getDefaultBranch("browser.urlbar.");
+    for (let [variable, pref] of Object.entries(uiPrefsByVariable)) {
+      let value = lazy.NimbusFeatures.urlbar.getVariable(variable);
+      if (value === undefined) {
+        value = this.#defaultPrefsForCurrentScenario[pref];
+      }
+      defaults.setBoolPref(pref, value);
+    }
   }
 
   /**
@@ -866,9 +849,13 @@ class _QuickSuggest {
   // Maps from preference names to the `Set` of feature instances they enable.
   #featuresByEnablingPrefs = new Map();
 
-  // This is set to true when we update the Firefox Suggest scenario to prevent
-  // re-entry due to pref observers. Some tests access this directly.
+  // Updating the scenario is async, and this is true while that's happening.
+  // `QuickSuggestTestUtils` accesses this.
   _updatingFirefoxSuggestScenario = false;
+
+  // A plain JS object that maps pref names relative to `browser.urlbar.` to
+  // their intended defaults for the current scenario.
+  #defaultPrefsForCurrentScenario;
 }
 
 export const QuickSuggest = new _QuickSuggest();

@@ -488,7 +488,6 @@ async function checkEnrollments(options) {
     let { initialPrefsToSet, valueOverrides, expectedPrefs } = enrollments[i];
 
     // Set initial prefs.
-    QuickSuggest._updatingFirefoxSuggestScenario = true;
     let { defaultBranch: initialDefaultBranch, userBranch: initialUserBranch } =
       initialPrefsToSet;
     initialDefaultBranch = initialDefaultBranch || {};
@@ -506,7 +505,6 @@ async function checkEnrollments(options) {
         branch.setBoolPref(name, value);
       }
     }
-    QuickSuggest._updatingFirefoxSuggestScenario = false;
 
     let {
       defaultBranch: expectedDefaultBranch,
@@ -586,11 +584,9 @@ async function checkEnrollments(options) {
     }
 
     // Clean up.
-    QuickSuggest._updatingFirefoxSuggestScenario = true;
     for (let name of Object.keys(expectedUserBranch)) {
       UrlbarPrefs.clear(name);
     }
-    QuickSuggest._updatingFirefoxSuggestScenario = false;
   }
 }
 

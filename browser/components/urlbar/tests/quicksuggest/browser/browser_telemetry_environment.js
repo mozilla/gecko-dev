@@ -119,7 +119,6 @@ add_task(async function telemetryEnvironmentOnStartup() {
   // Update the scenario and force the startup prefs to take on values that are
   // the inverse of what they are now.
   await QuickSuggest.updateFirefoxSuggestScenario({
-    isStartup: true,
     scenario: "testScenario",
     defaultPrefs: {
       testScenario: Object.fromEntries(
@@ -149,9 +148,7 @@ add_task(async function telemetryEnvironmentOnStartup() {
   environmentInitPromise =
     TelemetryEnvironment.testCleanRestart().onInitialized();
 
-  await QuickSuggest.updateFirefoxSuggestScenario({
-    isStartup: true,
-  });
+  await QuickSuggest.updateFirefoxSuggestScenario();
 
   await environmentInitPromise;
 

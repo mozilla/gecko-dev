@@ -227,7 +227,6 @@ class _QuickSuggestTestUtils {
       "ensureQuickSuggestInit",
       "Calling QuickSuggest.init() and setting prefs"
     );
-    await this.waitForScenarioUpdated();
     await lazy.QuickSuggest.init();
     prefs.push(["quicksuggest.enabled", true]);
     for (let [name, value] of prefs) {
@@ -948,20 +947,12 @@ class _QuickSuggestTestUtils {
    *   Pass falsey to reset the scenario to the default.
    */
   async setScenario(scenario) {
-    // If we try to set the scenario before a previous update has finished,
-    // `updateFirefoxSuggestScenario` will bail, so wait.
-    await this.waitForScenarioUpdated();
-    await lazy.QuickSuggest.updateFirefoxSuggestScenario({ scenario });
-  }
-
-  /**
-   * Waits for any prior scenario update to finish.
-   */
-  async waitForScenarioUpdated() {
+    // Wait for any ongoing scenario update to finish.
     await lazy.TestUtils.waitForCondition(
       () => !lazy.QuickSuggest._updatingFirefoxSuggestScenario,
       "Waiting for _updatingFirefoxSuggestScenario to be false"
     );
+    await lazy.QuickSuggest.updateFirefoxSuggestScenario({ scenario });
   }
 
   /**
@@ -1225,13 +1216,6 @@ class _QuickSuggestTestUtils {
     this.#log("enrollExperiment", "Awaiting ExperimentAPI.ready");
     await lazy.ExperimentAPI.ready();
 
-    // Wait for any prior scenario updates to finish. If updates are ongoing,
-    // UrlbarPrefs will ignore the Nimbus update when the experiment is
-    // installed. This shouldn't be a problem in practice because in reality
-    // scenario updates are triggered only on app startup and Nimbus
-    // enrollments, but tests can trigger lots of updates back to back.
-    await this.waitForScenarioUpdated();
-
     let doExperimentCleanup =
       await lazy.ExperimentFakes.enrollWithFeatureConfig({
         enabled: true,
@@ -1239,24 +1223,9 @@ class _QuickSuggestTestUtils {
         value: valueOverrides,
       });
 
-    // Wait for the pref updates triggered by the experiment enrollment.
-    this.#log(
-      "enrollExperiment",
-      "Awaiting update after enrolling in experiment"
-    );
-    await this.waitForScenarioUpdated();
-
     return async () => {
       this.#log("enrollExperiment.cleanup", "Awaiting experiment cleanup");
       doExperimentCleanup();
-
-      // The same pref updates will be triggered by unenrollment, so wait for
-      // them again.
-      this.#log(
-        "enrollExperiment.cleanup",
-        "Awaiting update after unenrolling in experiment"
-      );
-      await this.waitForScenarioUpdated();
     };
   }
 
