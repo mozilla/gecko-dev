@@ -46,11 +46,17 @@ async function testClipboardPaste(testMode) {
   let prompt = await PromptTestUtils.waitForPrompt(browser, {
     modalType: Services.prompt.MODAL_TYPE_CONTENT,
   });
-  // Paste text into prompt() in content
-  let pastePromise = new Promise(resolve => {
+
+  // Resolves when the contents are updated.  We cannot reliably detect that
+  // the input element rejected the paste due to CA (there is no adjacent
+  // event) but we can detect when it has been permitted, and the test is currently
+  // written to give the element time to update before checking that content
+  // was blocked.
+  let selectionChangePromise = new Promise(resolve => {
     prompt.ui.loginTextbox.addEventListener(
-      "paste",
+      "selectionchange",
       () => {
+        ok(true, "got selectionchange");
         // Since mockCA uses setTimeout before invoking the callback,
         // do it here too
         setTimeout(() => {
@@ -60,12 +66,21 @@ async function testClipboardPaste(testMode) {
       { once: true }
     );
   });
+
   // Paste text into prompt()
   setClipboardData(CLIPBOARD_TEXT_STRING);
   prompt.ui.loginTextbox.focus();
   await EventUtils.synthesizeKey("v", { accelKey: true });
 
-  await pastePromise;
+  // If the contents should update, wait for that.  If not, just wait for a
+  // cycle.
+  if (testMode.shouldPaste) {
+    await selectionChangePromise;
+  } else {
+    await new Promise(res => {
+      setTimeout(res, 0);
+    });
+  }
 
   // Close the prompt
   await PromptTestUtils.handlePrompt(prompt);
