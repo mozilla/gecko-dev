@@ -598,7 +598,12 @@ bool CanvasTranslator::HasPendingEvent() {
 bool CanvasTranslator::ReadPendingEvent(EventType& aEventType) {
   ReadElementConstrained(mCurrentMemReader, aEventType,
                          EventType::DRAWTARGETCREATION, LAST_CANVAS_EVENT_TYPE);
-  return mCurrentMemReader.good();
+  if (!mCurrentMemReader.good()) {
+    mHeader->readerState = State::Failed;
+    return false;
+  }
+
+  return true;
 }
 
 bool CanvasTranslator::ReadNextEvent(EventType& aEventType) {
@@ -686,7 +691,6 @@ bool CanvasTranslator::TranslateRecording() {
               gfxCriticalNote << "Failed to read event type: "
                               << recordedEvent->GetType();
             }
-            mHeader->readerState = State::Failed;
             return false;
           }
 
@@ -695,6 +699,7 @@ bool CanvasTranslator::TranslateRecording() {
 
     // Check the stream is good here or we will log the issue twice.
     if (!mCurrentMemReader.good()) {
+      mHeader->readerState = State::Failed;
       return false;
     }
 
@@ -706,7 +711,11 @@ bool CanvasTranslator::TranslateRecording() {
       } else {
         gfxCriticalNote << "Failed to play canvas event type: " << eventType;
       }
-      mHeader->readerState = State::Failed;
+
+      if (!mCurrentMemReader.good()) {
+        mHeader->readerState = State::Failed;
+        return false;
+      }
     }
 
     mHeader->processedCount++;
