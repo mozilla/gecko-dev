@@ -1,0 +1,16 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/*
+ * This rule will be updated dynamically by RFPHelper.sys.mjs, so both the
+ * selector and the stylesheet URL should be kept in sync there
+ * (LETTERBOX_CSS_SELECTOR and LETTERBOX_CSS_URL, respectively).
+ */
+.letterboxing .browserStack > browser:not(.exclude-letterboxing) {
+  margin: 0; /* to be dynamically set by RFHelper.sys.mjs */
+}
+
+browser.exclude-letterboxing {
+  margin: 0 !important;
+}

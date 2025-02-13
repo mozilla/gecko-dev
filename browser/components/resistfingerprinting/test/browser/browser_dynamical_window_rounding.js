@@ -93,6 +93,18 @@ function checkForDefaultSetting(
   );
 }
 
+async function test_letterboxing_css_rule() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    window.gBrowser,
+    DEFAULT_URL
+  );
+  ok(
+    RFPHelper.getLetterboxingDefaultRule(tab.linkedBrowser),
+    "We can find the letterboxing CSS rules to dynamically update."
+  );
+  BrowserTestUtils.removeTab(tab);
+}
+
 async function test_dynamical_window_rounding(aWindow, aURL, aCheckFunc) {
   // We need to wait for the updating the margins for the newly opened tab, or
   // it will affect the following tests.
@@ -388,6 +400,8 @@ add_task(async function do_tests() {
   // Store the original window size before testing.
   let originalOuterWidth = window.outerWidth;
   let originalOuterHeight = window.outerHeight;
+
+  await test_letterboxing_css_rule();
 
   info("Run test for the default window rounding.");
   await test_dynamical_window_rounding(

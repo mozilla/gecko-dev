@@ -3,6 +3,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 toolkit.jar:
+  content/global/resistfingerprinting/letterboxing.css (content/letterboxing.css)
   content/global/usercharacteristics/gl-matrix.js (content/gl-matrix.js)
   content/global/usercharacteristics/ssdeep.js (content/ssdeep.js)
   content/global/usercharacteristics/usercharacteristics.css (content/usercharacteristics.css)
