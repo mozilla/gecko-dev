@@ -110,7 +110,7 @@
     get markup() {
       return `
         <html:link rel="stylesheet" href="chrome://global/skin/global.css"/>
-        <html:style>${this.styles}</html:style>
+        <html:link rel="stylesheet" href="chrome://global/content/elements/menupopup.css"/>
         <arrowscrollbox class="menupopup-arrowscrollbox"
                         part="arrowscrollbox content"
                         exportparts="scrollbox: arrowscrollbox-scrollbox"
@@ -119,21 +119,6 @@
                         smoothscroll="false">
           <html:slot></html:slot>
         </arrowscrollbox>
-      `;
-    }
-
-    get styles() {
-      return `
-        :host(.in-menulist) arrowscrollbox::part(scrollbutton-up),
-        :host(.in-menulist) arrowscrollbox::part(scrollbutton-down) {
-          display: none;
-        }
-        :host(.in-menulist) arrowscrollbox::part(scrollbox) {
-          overflow: auto;
-          overscroll-behavior: none;
-          margin: 0;
-          padding: 0;
-        }
       `;
     }
 
