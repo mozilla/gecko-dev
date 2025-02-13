@@ -41,9 +41,9 @@ export const json = {};
  *     The cloned object.
  */
 function cloneObject(value, seen, cloneAlgorithm) {
-  // Only proceed with cloning an object if it hasn't been seen yet.
   if (seen.has(value)) {
-    throw new lazy.error.JavaScriptError("Cyclic object value");
+    // Only proceed with cloning an object if it hasn't been seen yet.
+    throw new lazy.error.JavaScriptError(`Cyclic object value: ${value}`);
   }
   seen.add(value);
 
