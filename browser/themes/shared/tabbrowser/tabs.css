@@ -1405,7 +1405,7 @@
       }
 
       /* stylelint-disable-next-line media-query-no-invalid */
-      @media -moz-pref("sidebar.expandOnHover") {
+      @media -moz-pref("sidebar.visibility", "expand-on-hover") {
         /* Tab close button when the sidebar is collapsed should
         not be shown when expand on hover is enabled because once
         you hover over the launcher to use the button, the launcher
