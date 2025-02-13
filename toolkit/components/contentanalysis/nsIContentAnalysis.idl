@@ -227,7 +227,7 @@ interface nsIContentAnalysisRequest : nsISupports
   readonly attribute WindowGlobalParent windowGlobalParent;
 
   // The user_action_id of this request. By default, this is equal to
-  // the requestToken.  For internal use only.
+  // the requestToken.  Will be set by ContentAnalysis if not assigned.
   attribute ACString userActionId;
 
   // The number of requests associated with this user_action_id. By default,
@@ -298,6 +298,10 @@ interface nsIContentAnalysis : nsISupports
    * The resulting Promise resolves to a nsIContentAnalysisResult,
    * which may take some time to get from the analysis server.  It will
    * be rejected, with an string error description, if any error occurs.
+   *
+   * Requests may assign a user action ID if desired.  If that is done
+   * then all requests must have the same ID or the function will return
+   * an error.
    *
    * @param aCars
    *        The requests to analyze.

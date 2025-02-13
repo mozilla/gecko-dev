@@ -372,11 +372,12 @@ ContentAnalysisRequest::ContentAnalysisRequest(
     AnalysisType aAnalysisType, Reason aReason, nsString aString,
     bool aStringIsFilePath, nsCString aSha256Digest, nsCOMPtr<nsIURI> aUrl,
     OperationType aOperationType, dom::WindowGlobalParent* aWindowGlobalParent,
-    dom::WindowGlobalParent* aSourceWindowGlobal)
+    dom::WindowGlobalParent* aSourceWindowGlobal, nsCString&& aUserActionId)
     : mAnalysisType(aAnalysisType),
       mReason(aReason),
       mUrl(std::move(aUrl)),
       mSha256Digest(std::move(aSha256Digest)),
+      mUserActionId(std::move(aUserActionId)),
       mOperationTypeForDisplay(aOperationType),
       mWindowGlobalParent(aWindowGlobalParent),
       mSourceWindowGlobal(aSourceWindowGlobal) {
@@ -1346,7 +1347,7 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
 
   // We clear the tokens array since we cancel all of them.
   nsTHashSet<nsCString> tokens;
-  RefPtr<MultipartRequestCallback> callback;
+  RefPtr<nsIContentAnalysisCallback> callback;
   if (auto maybeUserActionData = mUserActionMap.Lookup(aUserActionId)) {
     tokens = std::move(maybeUserActionData->mRequestTokens);
     callback = maybeUserActionData->mCallback;
@@ -1359,11 +1360,20 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
   }
 
   if (tokens.IsEmpty()) {
-    // This Cancel was for the last request in the user action.  We don't have
-    // any other tokens to cancel and we have nothing to tell the agent to
+    // There are two cases where this happens.
+    // (1) This Cancel was for the last request in the user action.  We don't
+    // have any other tokens to cancel and we have nothing to tell the agent to
     // cancel.  Note that this case is only possible if this cancel call is
     // due to a negative verdict from the agent, and that handler will remove
     // our userActionId from mUserActionMap, so there is nothing left to do.
+    // (2) We canceled before the final request list was formed.  We still
+    // need to call the callback -- we do this when the final request list
+    // is complete.
+    LOGD(
+        "ContentAnalysis::CancelWithError user action not found -- either was "
+        "after last response or before first request was submitted | "
+        "userActionId: %s", aUserActionId.get());
+    mUserActionMap.Remove(aUserActionId);
     return;
   }
 
@@ -1448,6 +1458,8 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
   if (action == nsIContentAnalysisResponse::Action::eWarn) {
     return;
   }
+
+  mUserActionMap.Remove(aUserActionId);
 
   mCaClientPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
@@ -1694,7 +1706,7 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
   nsCString token;
   MOZ_ALWAYS_SUCCEEDS(aResponse->GetRequestToken(token));
 
-  RefPtr<MultipartRequestCallback> callback;
+  RefPtr<nsIContentAnalysisCallback> callback;
   bool autoAcknowledge;
   if (auto maybeUserActionData = mUserActionMap.Lookup(aUserActionId)) {
     callback = maybeUserActionData->mCallback;
@@ -1743,6 +1755,7 @@ static void AddCARForText(
     nsIContentAnalysisRequest::OperationType aOperationType, nsIURI* aURI,
     mozilla::dom::WindowGlobalParent* aWindowGlobal,
     mozilla::dom::WindowGlobalParent* aSourceWindowGlobal,
+    nsCString&& aUserActionId,
     nsTArray<RefPtr<nsIContentAnalysisRequest>>* aRequests) {
   if (text.IsEmpty()) {
     // Content Analysis doesn't expect to analyze an empty string.
@@ -1754,7 +1767,7 @@ static void AddCARForText(
   auto contentAnalysisRequest = MakeRefPtr<ContentAnalysisRequest>(
       nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry, aReason,
       std::move(text), false, EmptyCString(), aURI, aOperationType,
-      aWindowGlobal, aSourceWindowGlobal);
+      aWindowGlobal, aSourceWindowGlobal, std::move(aUserActionId));
   aRequests->AppendElement(contentAnalysisRequest);
 }
 
@@ -1762,6 +1775,7 @@ void AddCARForFile(nsString&& filePath,
                    nsIContentAnalysisRequest::Reason aReason, nsIURI* aURI,
                    mozilla::dom::WindowGlobalParent* aWindowGlobal,
                    mozilla::dom::WindowGlobalParent* aSourceWindowGlobal,
+                   nsCString&& aUserActionId,
                    nsTArray<RefPtr<nsIContentAnalysisRequest>>* aRequests) {
   if (filePath.IsEmpty()) {
     return;
@@ -1774,13 +1788,14 @@ void AddCARForFile(nsString&& filePath,
       nsIContentAnalysisRequest::AnalysisType::eFileAttached, aReason,
       std::move(filePath), true, EmptyCString(), aURI,
       nsIContentAnalysisRequest::OperationType::eCustomDisplayString,
-      aWindowGlobal, aSourceWindowGlobal);
+      aWindowGlobal, aSourceWindowGlobal, std::move(aUserActionId));
   aRequests->AppendElement(contentAnalysisRequest);
 }
 
 static nsresult AddClipboardCARForCustomData(
     mozilla::dom::WindowGlobalParent* aWindowGlobal, nsITransferable* aTrans,
     nsIURI* aURI, mozilla::dom::WindowGlobalParent* aSourceWindowGlobal,
+    nsCString&& aUserActionId,
     nsTArray<RefPtr<nsIContentAnalysisRequest>>* aRequests) {
   nsCOMPtr<nsISupports> transferData;
   if (NS_FAILED(aTrans->GetTransferData(kCustomTypesMime,
@@ -1806,7 +1821,7 @@ static nsresult AddClipboardCARForCustomData(
     AddCARForText(std::move(text),
                   nsIContentAnalysisRequest::Reason::eClipboardPaste,
                   nsIContentAnalysisRequest::OperationType::eClipboard, aURI,
-                  aWindowGlobal, aSourceWindowGlobal, aRequests);
+                  aWindowGlobal, aSourceWindowGlobal, nsCString(aUserActionId), aRequests);
   }
   return NS_OK;
 }
@@ -1815,6 +1830,7 @@ static nsresult AddClipboardCARForText(
     mozilla::dom::WindowGlobalParent* aWindowGlobal,
     nsITransferable* aTextTrans, const char* aFlavor, nsIURI* aURI,
     mozilla::dom::WindowGlobalParent* aSourceWindowGlobal,
+    nsCString&& aUserActionId,
     nsTArray<RefPtr<nsIContentAnalysisRequest>>* aRequests) {
   nsCOMPtr<nsISupports> transferData;
   if (NS_FAILED(
@@ -1842,7 +1858,7 @@ static nsresult AddClipboardCARForText(
   AddCARForText(std::move(text),
                 nsIContentAnalysisRequest::Reason::eClipboardPaste,
                 nsIContentAnalysisRequest::OperationType::eClipboard, aURI,
-                aWindowGlobal, aSourceWindowGlobal, aRequests);
+                aWindowGlobal, aSourceWindowGlobal, std::move(aUserActionId), aRequests);
   return NS_OK;
 }
 
@@ -1850,6 +1866,7 @@ static nsresult AddClipboardCARForFile(
     mozilla::dom::WindowGlobalParent* aWindowGlobal,
     nsITransferable* aFileTrans, nsIURI* aURI,
     mozilla::dom::WindowGlobalParent* aSourceWindowGlobal,
+    nsCString&& aUserActionId,
     nsTArray<RefPtr<nsIContentAnalysisRequest>>* aRequests) {
   nsCOMPtr<nsISupports> transferData;
   nsresult rv =
@@ -1860,7 +1877,7 @@ static nsresult AddClipboardCARForFile(
       NS_ENSURE_SUCCESS(file->GetPath(filePath), NS_ERROR_FAILURE);
       AddCARForFile(std::move(filePath),
                     nsIContentAnalysisRequest::Reason::eClipboardPaste, aURI,
-                    aWindowGlobal, aSourceWindowGlobal, aRequests);
+                    aWindowGlobal, aSourceWindowGlobal, std::move(aUserActionId), aRequests);
     } else {
       MOZ_ASSERT_UNREACHABLE("clipboard data had kFileMime but no nsIFile!");
       return NS_ERROR_FAILURE;
@@ -1884,18 +1901,21 @@ static Result<bool, nsresult> AddRequestsFromTransferableIfAny(
     return false;
   }
 
+  nsAutoCString userActionId;
+  MOZ_ALWAYS_SUCCEEDS(aOriginalRequest->GetUserActionId(userActionId));
+
   nsresult rv = AddClipboardCARForCustomData(aWindowGlobal, transferable, aUri,
-                                             aSourceWindowGlobal, aNewRequests);
+                                             aSourceWindowGlobal, nsCString(userActionId), aNewRequests);
   NS_ENSURE_SUCCESS(rv, Err(rv));
 
   for (const auto& textFormat : kTextFormatsToAnalyze) {
     rv = AddClipboardCARForText(aWindowGlobal, transferable, textFormat, aUri,
-                                aSourceWindowGlobal, aNewRequests);
+                                aSourceWindowGlobal, nsCString(userActionId), aNewRequests);
     NS_ENSURE_SUCCESS(rv, Err(rv));
   }
 
   rv = AddClipboardCARForFile(aWindowGlobal, transferable, aUri,
-                              aSourceWindowGlobal, aNewRequests);
+                              aSourceWindowGlobal, std::move(userActionId), aNewRequests);
   NS_ENSURE_SUCCESS(rv, Err(rv));
   return true;
 }
@@ -1915,6 +1935,9 @@ static Result<bool, nsresult> AddRequestsFromDataTransferIfAny(
     return false;
   }
 
+  nsAutoCString userActionId;
+  MOZ_ALWAYS_SUCCEEDS(aOriginalRequest->GetUserActionId(userActionId));
+
   auto& principal = *nsContentUtils::GetSystemPrincipal();
   for (const auto& textFormat : kTextFormatsToAnalyze) {
     nsAutoString text;
@@ -1927,7 +1950,7 @@ static Result<bool, nsresult> AddRequestsFromDataTransferIfAny(
     AddCARForText(std::move(text),
                   nsIContentAnalysisRequest::Reason::eDragAndDrop,
                   nsIContentAnalysisRequest::OperationType::eDroppedText, aUri,
-                  aWindowGlobal, aSourceWindowGlobal, aNewRequests);
+                  aWindowGlobal, aSourceWindowGlobal, nsCString(userActionId), aNewRequests);
   }
 
   if (dataTransfer->HasFile()) {
@@ -1944,7 +1967,7 @@ static Result<bool, nsresult> AddRequestsFromDataTransferIfAny(
 
       AddCARForFile(std::move(filePath),
                     nsIContentAnalysisRequest::Reason::eDragAndDrop, aUri,
-                    aWindowGlobal, aSourceWindowGlobal, aNewRequests);
+                    aWindowGlobal, aSourceWindowGlobal, nsCString(userActionId), aNewRequests);
     }
   }
   return true;
@@ -1972,6 +1995,9 @@ MakeRequestForFileInFolder(dom::File* aFile,
   rv =
       aFolderRequest->GetSourceWindowGlobal(getter_AddRefs(sourceWindowGlobal));
   NS_ENSURE_SUCCESS(rv, Err(rv));
+  nsCString userActionId;
+  rv = aFolderRequest->GetUserActionId(userActionId);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
 
   nsAutoString pathString;
   mozilla::ErrorResult error;
@@ -1981,7 +2007,7 @@ MakeRequestForFileInFolder(dom::File* aFile,
 
   return MakeRefPtr<ContentAnalysisRequest>(
              analysisType, reason, pathString, true, EmptyCString(), url,
-             operationType, windowGlobal, sourceWindowGlobal)
+             operationType, windowGlobal, sourceWindowGlobal, std::move(userActionId))
       .forget()
       .downcast<nsIContentAnalysisRequest>();
 }
@@ -2014,10 +2040,26 @@ void ContentAnalysis::MultipartRequestCallback::Initialize(
       mNumCARequestsRemaining += requests.Length();
     }
 
-    mUserActionId = GenerateUUID();
     for (const auto& requests : aRequests) {
       for (const auto& request : requests) {
-        MOZ_ALWAYS_SUCCEEDS(request->SetUserActionId(mUserActionId));
+        // Pull the user action ID from the first entry we find.  They will
+        // all have the same ID.  If that ID isn't in the user action map
+        // then we were canceled while we were building the request list.
+        // In that case, we haven't called the callback, so do that here.
+        if (mUserActionId.IsEmpty()) {
+          MOZ_ALWAYS_SUCCEEDS(request->GetUserActionId(mUserActionId));
+          MOZ_ASSERT(!mUserActionId.IsEmpty());
+          if (!mWeakContentAnalysis->mUserActionMap.Contains(mUserActionId)) {
+            LOGD(
+                "ContentAnalysis::MultipartRequestCallback created after "
+                "request was canceled.  Calling callback.");
+            RefPtr result = MakeRefPtr<ContentAnalysisActionResult>(
+                nsIContentAnalysisResponse::Action::eCanceled);
+            mCallback->ContentResult(result);
+
+            return;
+          }
+        }
         MOZ_ALWAYS_SUCCEEDS(
             request->SetUserActionRequestsCount(mNumCARequestsRemaining));
         nsCString requestToken;
@@ -2048,8 +2090,11 @@ void ContentAnalysis::MultipartRequestCallback::Initialize(
 
   MOZ_ASSERT(!mUserActionId.IsEmpty());
   MOZ_ASSERT(!requestTokens.IsEmpty());
+
+  // Update our entry in the user action map with the request tokens.
   auto uaData =
       UserActionData{this, std::move(requestTokens), aAutoAcknowledge};
+  MOZ_ASSERT(mWeakContentAnalysis->mUserActionMap.Lookup(mUserActionId));
   mWeakContentAnalysis->mUserActionMap.InsertOrUpdate(mUserActionId,
                                                       std::move(uaData));
 }
@@ -2133,7 +2178,6 @@ void ContentAnalysis::MultipartRequestCallback::CancelRequests() {
   // from our user action, which is fine.
   if (mWeakContentAnalysis) {
     mWeakContentAnalysis->CancelRequestsByUserAction(mUserActionId);
-    RemoveFromUserActionMap();
   }
 }
 
@@ -2460,6 +2504,33 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
   // callback is not called exactly once.
   auto safeCallback = MakeRefPtr<ContentAnalysisCallback>(aCallback);
 
+  // If any member of aRequests has a different user action ID than another,
+  // throw an error.  If the user action IDs are empty, generate one and set
+  // it for the requests.
+  nsAutoCString userActionId;
+  bool isSettingId = false;
+  if (!aRequests.IsEmpty()) {
+    MOZ_ALWAYS_SUCCEEDS(aRequests[0]->GetUserActionId(userActionId));
+    if (userActionId.IsEmpty()) {
+      userActionId = GenerateUUID();
+      isSettingId = true;
+    }
+  }
+
+  for (const auto& request : aRequests) {
+    if (isSettingId) {
+      MOZ_ALWAYS_SUCCEEDS(request->SetUserActionId(userActionId));
+    } else {
+      nsAutoCString givenUserActionId;
+      MOZ_ALWAYS_SUCCEEDS(request->GetUserActionId(givenUserActionId));
+      if (givenUserActionId != userActionId) {
+        safeCallback->Error(NS_ERROR_INVALID_ARG);
+        return NS_ERROR_INVALID_ARG;
+      }
+    }
+  }
+  mUserActionMap.InsertOrUpdate(userActionId, UserActionData {aCallback, {}, aAutoAcknowledge});
+
   Result<RefPtr<RequestsPromise::AllPromiseType>,
          RefPtr<nsIContentAnalysisResult>>
       requestListResult = GetFinalRequestList(aRequests);
@@ -2480,6 +2551,7 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
       }
     }
     safeCallback->ContentResult(result);
+    mUserActionMap.Remove(userActionId);
     return NS_OK;
   }
 
@@ -2492,7 +2564,7 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
   finalRequests->Then(
       GetMainThreadSerialEventTarget(), "issue ca requests",
       [aAutoAcknowledge, safeCallback,
-       weakThis](nsTArray<ContentAnalysisRequestArray>&& aRequests) {
+       weakThis, userActionId](nsTArray<ContentAnalysisRequestArray>&& aRequests) {
         // We already have weakThis but we also get the nsIContentAnalysis
         // object from the service, since we do want the mock service (if
         // any) for the call to AnalyzeContentRequestPrivate.
@@ -2502,7 +2574,7 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
         if (!contentAnalysis || !weakThis) {
           LOGD(
               "ContentAnalysis::AnalyzeContentRequestsCallback received "
-              "response during shutdown.");
+              "response during shutdown | userActionId = %s", userActionId.get());
           safeCallback->Error(NS_ERROR_NOT_AVAILABLE);
           return;
         }
@@ -2517,12 +2589,15 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
           }
         }
       },
-      [safeCallback](nsresult rv) {
+      [safeCallback, weakThis, userActionId](nsresult rv) {
         LOGD(
             "ContentAnalysis::AnalyzeContentRequestsCallback received error "
-            "response: %s",
-            SafeGetStaticErrorName(rv));
+            "response: %s | userActionId = %s",
+            SafeGetStaticErrorName(rv), userActionId.get());
         safeCallback->Error(rv);
+        if (weakThis) {
+          weakThis->mUserActionMap.Remove(userActionId);
+        }
       });
   return NS_OK;
 }

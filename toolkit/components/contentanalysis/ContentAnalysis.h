@@ -84,7 +84,8 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
       bool aStringIsFilePath, nsCString aSha256Digest, nsCOMPtr<nsIURI> aUrl,
       OperationType aOperationType,
       dom::WindowGlobalParent* aWindowGlobalParent,
-      dom::WindowGlobalParent* aSourceWindowGlobal = nullptr);
+      dom::WindowGlobalParent* aSourceWindowGlobal = nullptr,
+      nsCString&& aUserActionId = nsCString());
 
   ContentAnalysisRequest(AnalysisType aAnalysisType, Reason aReason,
                          nsITransferable* aTransferable,
@@ -351,7 +352,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   nsresult mLastResult = NS_OK;
 
   struct UserActionData final {
-    RefPtr<MultipartRequestCallback> mCallback;
+    RefPtr<nsIContentAnalysisCallback> mCallback;
     nsTHashSet<nsCString> mRequestTokens;
     bool mAutoAcknowledge;
   };
