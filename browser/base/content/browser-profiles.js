@@ -211,6 +211,8 @@ var gProfiles = {
     newProfile.id = "menu_newProfile";
     newProfile.setAttribute("command", "Profiles:CreateProfile");
     newProfile.setAttribute("data-l10n-id", "menu-profiles-new-profile");
+    newProfile.style.listStyleImage =
+      "url(chrome://global/skin/icons/plus.svg)";
     menuPopup.appendChild(newProfile);
 
     let separator = document.createXULElement("menuseparator");
