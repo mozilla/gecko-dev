@@ -242,6 +242,10 @@ bool SessionHistoryInfo::IsSubFrame() const {
   return mSharedState.Get()->mIsFrameNavigation;
 }
 
+nsStructuredCloneContainer* SessionHistoryInfo::GetNavigationState() const {
+  return mSharedState.Get()->mNavigationState.get();
+}
+
 void SessionHistoryInfo::SetSaveLayoutStateFlag(bool aSaveLayoutStateFlag) {
   MOZ_ASSERT(XRE_IsParentProcess());
   static_cast<SHEntrySharedParentState*>(mSharedState.Get())->mSaveLayoutState =
@@ -1557,6 +1561,8 @@ void IPDLParamTraits<dom::SessionHistoryInfo>::Write(
   WriteIPDLParam(aWriter, aActor, stateData);
   WriteIPDLParam(aWriter, aActor, aParam.mSrcdocData);
   WriteIPDLParam(aWriter, aActor, aParam.mBaseURI);
+  WriteIPDLParam(aWriter, aActor, aParam.mNavigationKey);
+  WriteIPDLParam(aWriter, aActor, aParam.mNavigationId);
   WriteIPDLParam(aWriter, aActor, aParam.mLoadReplace);
   WriteIPDLParam(aWriter, aActor, aParam.mURIWasModified);
   WriteIPDLParam(aWriter, aActor, aParam.mScrollRestorationIsManual);
@@ -1599,6 +1605,8 @@ bool IPDLParamTraits<dom::SessionHistoryInfo>::Read(
       !ReadIPDLParam(aReader, aActor, &stateData) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mSrcdocData) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mBaseURI) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mNavigationKey) ||
+      !ReadIPDLParam(aReader, aActor, &aResult->mNavigationId) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mLoadReplace) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mURIWasModified) ||
       !ReadIPDLParam(aReader, aActor, &aResult->mScrollRestorationIsManual) ||

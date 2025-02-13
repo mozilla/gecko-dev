@@ -161,6 +161,12 @@ class SessionHistoryInfo {
 
   bool GetPersist() const { return mPersist; }
 
+  nsID& NavigationKey() { return mNavigationKey; }
+  const nsID& NavigationKey() const { return mNavigationKey; }
+  const nsID& NavigationId() const { return mNavigationId; }
+
+  nsStructuredCloneContainer* GetNavigationState() const;
+
  private:
   friend class SessionHistoryEntry;
   friend struct mozilla::ipc::IPDLParamTraits<SessionHistoryInfo>;
@@ -181,6 +187,10 @@ class SessionHistoryInfo {
   RefPtr<nsStructuredCloneContainer> mStateData;
   Maybe<nsString> mSrcdocData;
   nsCOMPtr<nsIURI> mBaseURI;
+
+  // Fields needed for NavigationHistoryEntry.
+  nsID mNavigationKey = nsID::GenerateUUID();
+  nsID mNavigationId = nsID::GenerateUUID();
 
   bool mLoadReplace = false;
   bool mURIWasModified = false;
@@ -353,12 +363,8 @@ class HistoryEntryCounterForBrowsingContext {
 // SessionHistoryEntry is used to store session history data in the parent
 // process. It holds a SessionHistoryInfo, some state shared amongst multiple
 // SessionHistoryEntries, a parent and children.
-#define NS_SESSIONHISTORYENTRY_IID                   \
-  {                                                  \
-    0x5b66a244, 0x8cec, 0x4caa, {                    \
-      0xaa, 0x0a, 0x78, 0x92, 0xfd, 0x17, 0xa6, 0x67 \
-    }                                                \
-  }
+#define NS_SESSIONHISTORYENTRY_IID \
+  {0x5b66a244, 0x8cec, 0x4caa, {0xaa, 0x0a, 0x78, 0x92, 0xfd, 0x17, 0xa6, 0x67}}
 
 class SessionHistoryEntry : public nsISHEntry, public nsSupportsWeakReference {
  public:

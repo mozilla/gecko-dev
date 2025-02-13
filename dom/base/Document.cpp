@@ -175,6 +175,7 @@
 #include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/FontFaceSet.h"
 #include "mozilla/dom/FragmentDirective.h"
+#include "mozilla/dom/NavigationBinding.h"
 #include "mozilla/dom/fragmentdirectives_ffi_generated.h"
 #include "mozilla/dom/FromParser.h"
 #include "mozilla/dom/HighlightRegistry.h"
@@ -10148,9 +10149,9 @@ Document* Document::Open(const Optional<nsAString>& /* unused */,
       return nullptr;
     }
     nsCOMPtr<nsIStructuredCloneContainer> stateContainer(mStateObjectContainer);
-    rv = shell->UpdateURLAndHistory(this, newURI, stateContainer, u""_ns,
-                                    /* aReplace = */ true, currentURI,
-                                    equalURIs);
+    rv = shell->UpdateURLAndHistory(this, newURI, stateContainer,
+                                    NavigationHistoryBehavior::Replace,
+                                    currentURI, equalURIs);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       aError.Throw(rv);
       return nullptr;

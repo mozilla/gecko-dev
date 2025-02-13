@@ -48,6 +48,7 @@ namespace dom {
 class ClientInfo;
 class ClientSource;
 class EventTarget;
+enum class NavigationHistoryBehavior : uint8_t;
 class SessionHistoryInfo;
 struct LoadingSessionHistoryInfo;
 struct Wireframe;
@@ -1111,8 +1112,7 @@ class nsDocShell final : public nsDocLoader,
    * URI.
    * @param aNewURI the new URI.
    * @param aData The serialized state data.  May be null.
-   * @param aTitle The new title.  May be empty.
-   * @param aReplace whether this should replace the exising SHEntry.
+   * @param aHistoryHandling how to handle updating the history entries.
    *
    * Arguments we need internally because deriving them from the
    * others is a bit complicated:
@@ -1120,11 +1120,14 @@ class nsDocShell final : public nsDocLoader,
    * @param aCurrentURI the current URI we're working with.  Might be null.
    * @param aEqualURIs whether the two URIs involved are equal.
    */
-  nsresult UpdateURLAndHistory(mozilla::dom::Document* aDocument,
-                               nsIURI* aNewURI,
-                               nsIStructuredCloneContainer* aData,
-                               const nsAString& aTitle, bool aReplace,
-                               nsIURI* aCurrentURI, bool aEqualURIs);
+  nsresult UpdateURLAndHistory(
+      mozilla::dom::Document* aDocument, nsIURI* aNewURI,
+      nsIStructuredCloneContainer* aData,
+      mozilla::dom::NavigationHistoryBehavior aHistoryHandling,
+      nsIURI* aCurrentURI, bool aEqualURIs);
+
+  bool IsSameDocumentAsActiveEntry(
+      const mozilla::dom::SessionHistoryInfo& aSHInfo);
 
  private:
   void SetCurrentURIInternal(nsIURI* aURI);

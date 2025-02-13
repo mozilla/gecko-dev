@@ -18,6 +18,7 @@
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/dom/Navigation.h"
 #include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/dom/PBackgroundSessionStorageCache.h"
 #include "mozilla/dom/PWindowGlobalParent.h"
@@ -669,6 +670,26 @@ CanonicalBrowsingContext::ReplaceLoadingSessionHistoryEntryForLoad(
     }
   }
   return nullptr;
+}
+
+mozilla::Span<const SessionHistoryInfo>
+CanonicalBrowsingContext::GetContiguousSessionHistoryInfos(
+    SessionHistoryInfo& aInfo) {
+  MOZ_ASSERT(Navigation::IsAPIEnabled());
+
+  nsISHistory* history = GetSessionHistory();
+  if (!history) {
+    return {};
+  }
+
+  mActiveContiguousEntries.ClearAndRetainStorage();
+  nsSHistory::WalkContiguousEntriesInOrder(mActiveEntry, [&](auto* aEntry) {
+    if (nsCOMPtr<SessionHistoryEntry> entry = do_QueryObject(aEntry)) {
+      mActiveContiguousEntries.AppendElement(entry->Info());
+    }
+  });
+
+  return mActiveContiguousEntries;
 }
 
 using PrintPromise = CanonicalBrowsingContext::PrintPromise;

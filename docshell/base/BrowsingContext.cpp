@@ -35,6 +35,7 @@
 #include "mozilla/dom/Location.h"
 #include "mozilla/dom/LocationBinding.h"
 #include "mozilla/dom/MediaDevices.h"
+#include "mozilla/dom/Navigation.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/SessionStoreChild.h"
@@ -88,6 +89,7 @@
 #include "GVAutoplayRequestStatusIPC.h"
 
 extern mozilla::LazyLogModule gAutoplayPermissionLog;
+extern mozilla::LazyLogModule gNavigationLog;
 extern mozilla::LazyLogModule gTimeoutDeferralLog;
 
 #define AUTOPLAY_LOG(msg, ...) \
@@ -3921,6 +3923,25 @@ void BrowsingContext::LocationCreated(dom::Location* aLocation) {
 void BrowsingContext::ClearCachedValuesOfLocations() {
   for (dom::Location* loc = mLocations.getFirst(); loc; loc = loc->getNext()) {
     loc->ClearCachedValues();
+  }
+}
+
+void BrowsingContext::GetContiguousHistoryEntries(
+    SessionHistoryInfo& aActiveEntry, Navigation* aNavigation) {
+  if (!aNavigation) {
+    return;
+  }
+  if (XRE_IsContentProcess()) {
+    MOZ_ASSERT(ContentChild::GetSingleton());
+    ContentChild::GetSingleton()->SendGetContiguousSessionHistoryInfos(
+        this, aActiveEntry,
+        [aActiveEntry, navigation = RefPtr(aNavigation)](auto aInfos) mutable {
+          navigation->InitializeHistoryEntries(aInfos, &aActiveEntry);
+        },
+        [](auto aReason) { MOZ_ASSERT(false, "How did this happen?"); });
+  } else {
+    auto infos = Canonical()->GetContiguousSessionHistoryInfos(aActiveEntry);
+    aNavigation->InitializeHistoryEntries(infos, &aActiveEntry);
   }
 }
 

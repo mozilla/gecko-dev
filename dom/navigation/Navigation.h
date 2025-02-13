@@ -8,6 +8,7 @@
 #define mozilla_dom_Navigation_h___
 
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/dom/NavigationBinding.h"
 
 namespace mozilla::dom {
 
@@ -20,21 +21,33 @@ struct NavigationUpdateCurrentEntryOptions;
 struct NavigationReloadOptions;
 struct NavigationResult;
 
+class SessionHistoryInfo;
+
 class Navigation final : public DOMEventTargetHelper {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Navigation, DOMEventTargetHelper)
 
-  void Entries(nsTArray<RefPtr<NavigationHistoryEntry>>& aResult) {}
-  already_AddRefed<NavigationHistoryEntry> GetCurrentEntry() { return {}; }
+  explicit Navigation(nsPIDOMWindowInner* aWindow);
+
+  // Navigation.webidl
+  void Entries(nsTArray<RefPtr<NavigationHistoryEntry>>& aResult) const;
+  already_AddRefed<NavigationHistoryEntry> GetCurrentEntry() const;
+  MOZ_CAN_RUN_SCRIPT
   void UpdateCurrentEntry(JSContext* aCx,
                           const NavigationUpdateCurrentEntryOptions& aOptions,
-                          ErrorResult& aRv) {}
+                          ErrorResult& aRv);
   already_AddRefed<NavigationTransition> GetTransition() { return {}; }
   already_AddRefed<NavigationActivation> GetActivation() { return {}; }
 
-  bool CanGoBack() { return {}; }
-  bool CanGoForward() { return {}; }
+  bool CanGoBack() {
+    return !HasEntriesAndEventsDisabled() && mCurrentEntryIndex &&
+           *mCurrentEntryIndex != 0;
+  }
+  bool CanGoForward() {
+    return !HasEntriesAndEventsDisabled() && mCurrentEntryIndex &&
+           *mCurrentEntryIndex != mEntries.Length() - 1;
+  }
 
   void Navigate(JSContext* aCx, const nsAString& aUrl,
                 const NavigationNavigateOptions& aOptions,
@@ -55,15 +68,45 @@ class Navigation final : public DOMEventTargetHelper {
   IMPL_EVENT_HANDLER(navigateerror);
   IMPL_EVENT_HANDLER(currententrychange);
 
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#initialize-the-navigation-api-entries-for-a-new-document
+  void InitializeHistoryEntries(
+      mozilla::Span<const SessionHistoryInfo> aNewSHInfos,
+      const SessionHistoryInfo* aInitialSHInfo);
+
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#update-the-navigation-api-entries-for-reactivation
+  MOZ_CAN_RUN_SCRIPT
+  void UpdateForReactivation(SessionHistoryInfo* aReactivatedEntry);
+
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#update-the-navigation-api-entries-for-a-same-document-navigation
+  void UpdateEntriesForSameDocumentNavigation(
+      SessionHistoryInfo* aDestinationSHE, NavigationType aNavigationType);
+
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // The Navigation API is only enabled if both SessionHistoryInParent and
   // the dom.navigation.webidl.enabled pref are set.
-  static bool IsAPIEnabled(JSContext* /* unused */, JSObject* /* unused */);
+  static bool IsAPIEnabled(JSContext* /* unused */ = nullptr,
+                           JSObject* /* unused */ = nullptr);
 
  private:
   ~Navigation() = default;
+
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#has-entries-and-events-disabled
+  bool HasEntriesAndEventsDisabled() const;
+
+  void ScheduleEventsFromNavigation(
+      NavigationType aType,
+      const RefPtr<NavigationHistoryEntry>& aPreviousEntry,
+      nsTArray<RefPtr<NavigationHistoryEntry>>&& aDisposedEntries);
+
+  void LogHistory() const;
+
+  nsCOMPtr<nsPIDOMWindowInner> mWindow;
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-entry-list
+  nsTArray<RefPtr<NavigationHistoryEntry>> mEntries;
+  // https://html.spec.whatwg.org/multipage/nav-history-apis.html#navigation-current-entry
+  Maybe<uint64_t> mCurrentEntryIndex;
 };
 
 }  // namespace mozilla::dom

@@ -14,6 +14,7 @@
 #include "nsIWeakReferenceUtils.h"
 #include "nsRect.h"
 #include "nsString.h"
+#include "nsStructuredCloneContainer.h"
 #include "nsStubMutationObserver.h"
 
 #include "mozilla/Attributes.h"
@@ -63,7 +64,8 @@ struct SHEntrySharedState {
         mPrincipalToInherit(aPrincipalToInherit),
         mPartitionedPrincipalToInherit(aPartitionedPrincipalToInherit),
         mCsp(aCsp),
-        mContentType(aContentType) {}
+        mContentType(aContentType),
+        mNavigationState(MakeRefPtr<nsStructuredCloneContainer>()) {}
 
   // These members aren't copied by SHEntrySharedParentState::CopyFrom() because
   // they're specific to a particular content viewer.
@@ -82,6 +84,8 @@ struct SHEntrySharedState {
   uint32_t mCacheKey = 0;
   bool mIsFrameNavigation = false;
   bool mSaveLayoutState = true;
+
+  RefPtr<nsStructuredCloneContainer> mNavigationState;
 
  protected:
   static uint64_t GenerateId();

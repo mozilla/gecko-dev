@@ -9,7 +9,11 @@
 
 #include "mozilla/DOMEventTargetHelper.h"
 
+class nsStructuredCloneContainer;
+
 namespace mozilla::dom {
+
+class SessionHistoryInfo;
 
 class NavigationHistoryEntry final : public DOMEventTargetHelper {
  public:
@@ -17,22 +21,38 @@ class NavigationHistoryEntry final : public DOMEventTargetHelper {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(NavigationHistoryEntry,
                                            DOMEventTargetHelper)
 
-  void GetUrl(nsAString& aResult) const {}
-  void GetKey(nsAString& aResult) const {}
-  void GetId(nsAString& aResult) const {}
-  int64_t Index() const { return {}; }
-  bool SameDocument() const { return {}; }
+  NavigationHistoryEntry(nsPIDOMWindowInner* aWindow,
+                         const SessionHistoryInfo* aSHInfo, int64_t aIndex);
+
+  void GetUrl(nsAString& aResult) const;
+  void GetKey(nsAString& aResult) const;
+  void GetId(nsAString& aResult) const;
+  int64_t Index() const;
+  bool SameDocument() const;
 
   void GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
-                ErrorResult& aRv) {}
+                ErrorResult& aRv) const;
+  void SetState(nsStructuredCloneContainer* aState);
 
   IMPL_EVENT_HANDLER(dispose);
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
+  bool IsSameEntry(const SessionHistoryInfo* aSHInfo) const;
+
+  bool SharesDocumentWith(const SessionHistoryInfo& aSHInfo) const;
+
+  const nsID& Key() const;
+
  private:
-  ~NavigationHistoryEntry() = default;
+  ~NavigationHistoryEntry();
+
+  Document* GetCurrentDocument() const;
+
+  nsCOMPtr<nsPIDOMWindowInner> mWindow;
+  UniquePtr<SessionHistoryInfo> mSHInfo;
+  int64_t mIndex;
 };
 
 }  // namespace mozilla::dom

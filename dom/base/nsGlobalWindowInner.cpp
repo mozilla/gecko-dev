@@ -1170,6 +1170,8 @@ void nsGlobalWindowInner::FreeInnerObjects() {
 
   mHistory = nullptr;
 
+  mNavigation = nullptr;
+
   if (mNavigator) {
     mNavigator->OnNavigation();
     mNavigator->Invalidate();
@@ -1390,6 +1392,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
     NS_IMPL_CYCLE_COLLECTION_DESCRIBE(nsGlobalWindowInner, tmp->mRefCnt.get())
   }
 
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNavigation)
+
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mNavigator)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPerformance)
@@ -1495,6 +1499,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
     // global after this point.
     JS::SetRealmNonLive(js::GetNonCCWObjectRealm(wrapper));
   }
+
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mNavigation)
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mNavigator)
 
@@ -2412,6 +2418,14 @@ WindowProxyHolder nsGlobalWindowInner::Window() {
   return WindowProxyHolder(GetBrowsingContext());
 }
 
+Navigation* nsPIDOMWindowInner::Navigation() {
+  if (!mNavigation && Navigation::IsAPIEnabled()) {
+    mNavigation = new mozilla::dom::Navigation(this);
+  }
+
+  return mNavigation;
+}
+
 Navigator* nsPIDOMWindowInner::Navigator() {
   if (!mNavigator) {
     mNavigator = new mozilla::dom::Navigator(this);
@@ -2443,14 +2457,6 @@ nsHistory* nsGlobalWindowInner::GetHistory(ErrorResult& aError) {
     mHistory = new nsHistory(this);
   }
   return mHistory;
-}
-
-Navigation* nsGlobalWindowInner::Navigation() {
-  if (!mNavigation && Navigation::IsAPIEnabled(nullptr, nullptr)) {
-    mNavigation = new mozilla::dom::Navigation();
-  }
-
-  return mNavigation;
 }
 
 CustomElementRegistry* nsGlobalWindowInner::CustomElements() {
@@ -6663,6 +6669,10 @@ void nsGlobalWindowInner::AddSizeOfIncludingThis(
     }
   }
 
+  if (mNavigation) {
+    aWindowSizes.mDOMSizes.mDOMOtherSize +=
+        aWindowSizes.mState.mMallocSizeOf(mNavigation.get());
+  }
   if (mNavigator) {
     aWindowSizes.mDOMSizes.mDOMOtherSize +=
         mNavigator->SizeOfIncludingThis(aWindowSizes.mState.mMallocSizeOf);

@@ -135,6 +135,9 @@ class nsSHistory : public mozilla::LinkedListElement<nsSHistory>,
   // works for the root entries. It will do nothing for non-root entries.
   static void WalkContiguousEntries(
       nsISHEntry* aEntry, const std::function<void(nsISHEntry*)>& aCallback);
+  // Same as above, but calls aCallback on the entries in their history order.
+  static void WalkContiguousEntriesInOrder(
+      nsISHEntry* aEntry, const std::function<void(nsISHEntry*)>& aCallback);
 
   nsTArray<nsCOMPtr<nsISHEntry>>& Entries() { return mEntries; }
 

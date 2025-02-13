@@ -58,6 +58,7 @@ class Element;
 class Location;
 class MediaDevices;
 class MediaKeys;
+class Navigation;
 class Navigator;
 class Performance;
 class Selection;
@@ -590,6 +591,7 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
 
   uint32_t GetMarkedCCGeneration() { return mMarkedCCGeneration; }
 
+  mozilla::dom::Navigation* Navigation();
   mozilla::dom::Navigator* Navigator();
   mozilla::dom::MediaDevices* GetExtantMediaDevices() const;
   virtual mozilla::dom::Location* Location() = 0;
@@ -660,6 +662,8 @@ class nsPIDOMWindowInner : public mozIDOMWindow {
 
   RefPtr<mozilla::dom::Performance> mPerformance;
   mozilla::UniquePtr<mozilla::dom::TimeoutManager> mTimeoutManager;
+
+  RefPtr<mozilla::dom::Navigation> mNavigation;
 
   RefPtr<mozilla::dom::Navigator> mNavigator;
 

@@ -109,6 +109,7 @@ void SHEntrySharedParentState::CopyFrom(SHEntrySharedParentState* aEntry) {
   mDynamicallyCreated = aEntry->mDynamicallyCreated;
   mCacheKey = aEntry->mCacheKey;
   mLastTouched = aEntry->mLastTouched;
+  mNavigationState = aEntry->mNavigationState;
 }
 
 void dom::SHEntrySharedParentState::NotifyListenersDocumentViewerEvicted() {

@@ -1061,6 +1061,10 @@ parent:
     async GetLoadingSessionHistoryInfoFromParent(MaybeDiscardedBrowsingContext aContext)
         returns (LoadingSessionHistoryInfo? aLoadingInfo);
 
+    async GetContiguousSessionHistoryInfos(MaybeDiscardedBrowsingContext aContext,
+                                           SessionHistoryInfo aInfo)
+        returns (SessionHistoryInfo[] infos);
+
     async RemoveFromBFCache(MaybeDiscardedBrowsingContext aContext);
 
     async InitBackground(Endpoint<PBackgroundStarterParent> aEndpoint);

@@ -99,6 +99,7 @@ LazyLogModule gSHistoryLog("nsSHistory");
 #define LOG(format) MOZ_LOG(gSHistoryLog, mozilla::LogLevel::Debug, format)
 
 extern mozilla::LazyLogModule gPageCacheLog;
+extern mozilla::LazyLogModule gNavigationLog;
 extern mozilla::LazyLogModule gSHIPBFCacheLog;
 
 // This macro makes it easier to print a log message which includes a URI's
@@ -613,6 +614,63 @@ void nsSHistory::WalkContiguousEntries(
 
       aCallback(entry);
     }
+  }
+}
+
+// static
+void nsSHistory::WalkContiguousEntriesInOrder(
+    nsISHEntry* aEntry, const std::function<void(nsISHEntry*)>& aCallback) {
+  MOZ_ASSERT(aEntry);
+
+  nsCOMPtr<nsISHistory> shistory = aEntry->GetShistory();
+  if (!shistory) {
+    return;
+  }
+
+  int32_t index = shistory->GetIndexOfEntry(aEntry);
+  int32_t count = shistory->GetCount();
+
+  nsCOMPtr<nsIURI> targetURI = aEntry->GetURI();
+
+  // Walk backward to find the entries that have the same origin as the
+  // input entry.
+  int32_t lowerBound = index;
+  for (int32_t i = index - 1; i >= 0; i--) {
+    RefPtr<nsISHEntry> entry;
+    shistory->GetEntryAtIndex(i, getter_AddRefs(entry));
+    if (!entry) {
+      continue;
+    }
+    nsCOMPtr<nsIURI> uri = entry->GetURI();
+    if (NS_FAILED(nsContentUtils::GetSecurityManager()->CheckSameOriginURI(
+            targetURI, uri, false, false))) {
+      break;
+    }
+    lowerBound = i;
+  }
+  for (int32_t i = lowerBound; i < index; i++) {
+    RefPtr<nsISHEntry> entry;
+    shistory->GetEntryAtIndex(i, getter_AddRefs(entry));
+    MOZ_ASSERT(entry);
+    aCallback(entry);
+  }
+
+  // Then, call the callback on the input entry.
+  aCallback(aEntry);
+
+  // Then, Walk forward.
+  for (int32_t i = index + 1; i < count; i++) {
+    RefPtr<nsISHEntry> entry;
+    shistory->GetEntryAtIndex(i, getter_AddRefs(entry));
+    if (!entry) {
+      continue;
+    }
+    nsCOMPtr<nsIURI> uri = entry->GetURI();
+    if (NS_FAILED(nsContentUtils::GetSecurityManager()->CheckSameOriginURI(
+            targetURI, uri, false, false))) {
+      break;
+    }
+    aCallback(entry);
   }
 }
 

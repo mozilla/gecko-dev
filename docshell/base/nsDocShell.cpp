@@ -68,6 +68,9 @@
 #include "mozilla/dom/FragmentDirective.h"
 #include "mozilla/dom/HTMLAnchorElement.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
+#include "mozilla/dom/Navigation.h"
+#include "mozilla/dom/NavigationBinding.h"
+#include "mozilla/dom/NavigationHistoryEntry.h"
 #include "mozilla/dom/PerformanceNavigation.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
 #include "mozilla/dom/PopupBlocker.h"
@@ -280,6 +283,7 @@ static mozilla::LazyLogModule gDocShellAndDOMWindowLeakLogging(
 #endif
 static mozilla::LazyLogModule gDocShellLeakLog("nsDocShellLeak");
 extern mozilla::LazyLogModule gPageCacheLog;
+extern mozilla::LazyLogModule gNavigationLog;
 mozilla::LazyLogModule gSHLog("SessionHistory");
 extern mozilla::LazyLogModule gSHIPBFCacheLog;
 
@@ -9059,6 +9063,21 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
   // destroy the docshell, nulling out mScriptGlobal. Hold a stack
   // reference to avoid null derefs. See bug 914521.
   if (win) {
+    if (RefPtr navigation = win->Navigation()) {
+      MOZ_LOG(gNavigationLog, LogLevel::Debug,
+              ("nsDocShell %p triggering a navigation event from "
+               "HandleSameDocumentNavigation",
+               this));
+      // Corresponds to step 6.4.2 from the Updating the document algorithm:
+      // https://html.spec.whatwg.org/multipage/browsing-the-web.html#updating-the-document
+      navigation->UpdateEntriesForSameDocumentNavigation(
+          mActiveEntry.get(),
+          LOAD_TYPE_HAS_FLAGS(mLoadType, LOAD_FLAGS_REPLACE_HISTORY)
+              ? NavigationType::Replace
+          : aLoadState->LoadIsFromSessionHistory() ? NavigationType::Traverse
+                                                   : NavigationType::Push);
+    }
+
     // Fire a hashchange event URIs differ, and only in their hashes.
     // If the fragment contains a directive, compare hasRef.
     bool doHashchange = aState.mSameExceptHashes &&
@@ -11323,19 +11342,23 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
   }  // end of same-origin check
 
   // Step 8: call "URL and history update steps"
-  rv = UpdateURLAndHistory(document, newURI, scContainer, aTitle, aReplace,
+  rv = UpdateURLAndHistory(document, newURI, scContainer,
+                           aReplace ? NavigationHistoryBehavior::Replace
+                                    : NavigationHistoryBehavior::Push,
                            currentURI, equalURIs);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
 
-nsresult nsDocShell::UpdateURLAndHistory(Document* aDocument, nsIURI* aNewURI,
-                                         nsIStructuredCloneContainer* aData,
-                                         const nsAString& aTitle, bool aReplace,
-                                         nsIURI* aCurrentURI, bool aEqualURIs) {
+nsresult nsDocShell::UpdateURLAndHistory(
+    Document* aDocument, nsIURI* aNewURI, nsIStructuredCloneContainer* aData,
+    NavigationHistoryBehavior aHistoryHandling, nsIURI* aCurrentURI,
+    bool aEqualURIs) {
   // Implements
   // https://html.spec.whatwg.org/multipage/history.html#url-and-history-update-steps
+  MOZ_ASSERT(aHistoryHandling != NavigationHistoryBehavior::Auto);
+  bool isReplace = aHistoryHandling == NavigationHistoryBehavior::Replace;
 
   // If we have a pending title change, handle it before creating a new entry.
   aDocument->DoNotifyPossibleTitleChange();
@@ -11344,7 +11367,7 @@ nsresult nsDocShell::UpdateURLAndHistory(Document* aDocument, nsIURI* aNewURI,
   // history. This will erase all SHEntries after the new entry and make this
   // entry the current one.  This operation may modify mOSHE, which we need
   // later, so we keep a reference here.
-  NS_ENSURE_TRUE(mOSHE || mActiveEntry || aReplace, NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(mOSHE || mActiveEntry || isReplace, NS_ERROR_FAILURE);
   nsCOMPtr<nsISHEntry> oldOSHE = mOSHE;
 
   // If this push/replaceState changed the document's current URI and the new
@@ -11367,7 +11390,7 @@ nsresult nsDocShell::UpdateURLAndHistory(Document* aDocument, nsIURI* aNewURI,
   mLoadType = LOAD_PUSHSTATE;
 
   nsCOMPtr<nsISHEntry> newSHEntry;
-  if (!aReplace) {
+  if (!isReplace) {
     // Step 2.
 
     // Step 2.2, "Remove any tasks queued by the history traversal task
@@ -11520,7 +11543,7 @@ nsresult nsDocShell::UpdateURLAndHistory(Document* aDocument, nsIURI* aNewURI,
     RefPtr<ChildSHistory> rootSH = GetRootSessionHistory();
     if (rootSH) {
       rootSH->LegacySHistory()->EvictDocumentViewersOrReplaceEntry(newSHEntry,
-                                                                   aReplace);
+                                                                   isReplace);
     }
   }
 
@@ -11559,6 +11582,19 @@ nsresult nsDocShell::UpdateURLAndHistory(Document* aDocument, nsIURI* aNewURI,
     FireDummyOnLocationChange();
   }
   aDocument->SetStateObject(aData);
+
+  if (RefPtr navigation = aDocument->GetInnerWindow()->Navigation()) {
+    MOZ_LOG(gNavigationLog, LogLevel::Debug,
+            ("nsDocShell %p triggering a navigation event for a same-document "
+             "navigation from UpdateURLAndHistory -> isReplace: %s",
+             this, isReplace ? "true" : "false"));
+    // Step 11: Update the navigation API entries for a same-document
+    // navigation given document's relevant global object's navigation API,
+    // newEntry, and historyHandling.
+    navigation->UpdateEntriesForSameDocumentNavigation(
+        mActiveEntry.get(),
+        isReplace ? NavigationType::Replace : NavigationType::Push);
+  }
 
   return NS_OK;
 }
@@ -13659,6 +13695,16 @@ void nsDocShell::MoveLoadingToActiveEntry(bool aPersist, bool aExpired,
           *loadingEntry, loadType, aPreviousURI, previousActiveEntry.get(),
           aPersist, false, aExpired, aCacheKey);
     }
+
+    // Only update navigation if the new entry will be persisted (i.e., is not
+    // an about: page).
+    if (aPersist && GetWindow() && GetWindow()->GetCurrentInnerWindow()) {
+      if (RefPtr navigation =
+              GetWindow()->GetCurrentInnerWindow()->Navigation()) {
+        mBrowsingContext->GetContiguousHistoryEntries(*mActiveEntry,
+                                                      navigation);
+      }
+    }
   }
 }
 
@@ -13801,4 +13847,9 @@ void nsDocShell::MaybeDisconnectChildListenersOnPageHide() {
     }
     mChannelToDisconnectOnPageHide = 0;
   }
+}
+
+bool nsDocShell::IsSameDocumentAsActiveEntry(
+    const mozilla::dom::SessionHistoryInfo& aSHInfo) {
+  return mActiveEntry ? mActiveEntry->SharesDocumentWith(aSHInfo) : false;
 }

@@ -308,6 +308,9 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
 
   void DetachFromDocShell(bool aIsBeingDiscarded);
 
+  // aState is only non-null if we are restoring from the bfcache.
+  // aForceReuseInnerWindow is only true if we are being triggered via XSLT.
+  // aActor is only non-null if the new document is about:blank.
   virtual nsresult SetNewDocument(
       Document* aDocument, nsISupports* aState, bool aForceReuseInnerWindow,
       mozilla::dom::WindowGlobalChild* aActor = nullptr) override;
