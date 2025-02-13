@@ -27,7 +27,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebar.verticalTabs",
   false,
   (pref, oldVal, newVal) => {
-    SidebarManager.handleVerticalTabsPrefChange(newVal);
+    SidebarManager.handleVerticalTabsPrefChange(newVal, true);
   }
 );
 
@@ -78,17 +78,26 @@ export const SidebarManager = {
       );
     });
 
-    this.handleVerticalTabsPrefChange(lazy.verticalTabsEnabled);
+    // if there's no user visibility pref, we may need to update it to the default value for the tab orientation
+    const shouldResetVisibility = !Services.prefs.prefHasUserValue(
+      VISIBILITY_SETTING_PREF
+    );
+    this.handleVerticalTabsPrefChange(
+      lazy.verticalTabsEnabled,
+      shouldResetVisibility
+    );
   },
 
   /**
    * Adjust for a change to the verticalTabs pref.
    */
-  handleVerticalTabsPrefChange(isEnabled) {
-    if (isEnabled) {
-      Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "always-show");
-    } else {
+  handleVerticalTabsPrefChange(isEnabled, resetVisibility = true) {
+    if (!isEnabled) {
+      // horizontal tabs can only have visibility of "hide-sidebar"
       Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "hide-sidebar");
+    } else if (resetVisibility) {
+      // only reset visibility pref when switching to vertical tabs and explictly indicated
+      Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, "always-show");
     }
   },
 

@@ -129,6 +129,9 @@ export class SidebarState {
     }
 
     // Explicitly trigger effects to ensure that the UI is kept up to date.
+    if (lazy.verticalTabsEnabled) {
+      this.#props.launcherExpanded = true;
+    }
     this.launcherExpanded = this.#props.launcherExpanded;
   }
 
