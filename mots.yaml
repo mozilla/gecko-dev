@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-01-09T20:22:30.898610+00:00'
+updated_at: '2025-02-13T12:36:24.387040+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3449,6 +3449,7 @@ modules:
       - name: Bookmarks & History
         description: The bookmarks and history services (Places).
         includes:
+          - browser/components/pagedata/**/*
           - browser/components/places/**/*
           - toolkit/components/places/**/*
         meta:
@@ -3457,6 +3458,7 @@ modules:
           peers_emeritus:
             - Asaf Romano
             - David Dahl
+            - Lina Butler
             - Shawn Wilsher
           components:
             - Firefox::Bookmarks & History
@@ -3467,7 +3469,6 @@ modules:
         peers:
           - *adw
           - *daisuke
-          - *lina
           - *standard8
         machine_name: bookmarks_history
 
@@ -4527,5 +4528,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 2cd3ccb08a7682dd9b4ee6a705944097e8f20737
-  export: 3d1f2939a885652782b6368b36caee74274cf26a
+  config: 86fe6cfd0ba2cfe84e27b62def925fdcca197fa7
+  export: 28d5dd8d8d2e39041ef159a0938336477643a7a8
