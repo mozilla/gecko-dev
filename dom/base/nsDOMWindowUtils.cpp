@@ -753,10 +753,15 @@ nsDOMWindowUtils::SendMouseEventCommon(
     bool aToWindow, bool* aPreventDefault, bool aIsDOMEventSynthesized,
     bool aIsWidgetEventSynthesized, int32_t aButtons) {
   RefPtr<PresShell> presShell = GetPresShell();
+  nsPoint offset;
+  nsCOMPtr<nsIWidget> widget = GetWidget(&offset);
+  LayoutDeviceIntPoint refPoint = nsContentUtils::ToWidgetPoint(
+      CSSPoint(aX, aY), offset, presShell->GetPresContext());
   return nsContentUtils::SendMouseEvent(
-      presShell, aType, aX, aY, aButton, aButtons, aClickCount, aModifiers,
-      aIgnoreRootScrollFrame, aPressure, aInputSourceArg, aPointerId, aToWindow,
-      aPreventDefault, aIsDOMEventSynthesized, aIsWidgetEventSynthesized);
+      presShell, widget, aType, refPoint, aButton, aButtons, aClickCount,
+      aModifiers, aIgnoreRootScrollFrame, aPressure, aInputSourceArg,
+      aPointerId, aToWindow, aPreventDefault, aIsDOMEventSynthesized,
+      aIsWidgetEventSynthesized);
 }
 
 NS_IMETHODIMP
@@ -1382,9 +1387,10 @@ nsIWidget* nsDOMWindowUtils::GetWidget(nsPoint* aOffset) {
   return nullptr;
 }
 
-nsIWidget* nsDOMWindowUtils::GetWidgetForElement(Element* aElement) {
+nsIWidget* nsDOMWindowUtils::GetWidgetForElement(Element* aElement,
+                                                 nsPoint* aOffset) {
   if (!aElement) {
-    return GetWidget();
+    return GetWidget(aOffset);
   }
   if (Document* doc = aElement->GetUncomposedDoc()) {
     if (PresShell* presShell = doc->GetPresShell()) {
@@ -1393,7 +1399,12 @@ nsIWidget* nsDOMWindowUtils::GetWidgetForElement(Element* aElement) {
         frame = presShell->GetRootFrame();
       }
       if (frame) {
-        return frame->GetNearestWidget();
+        nsPoint offset;
+        nsIWidget* widget = frame->GetNearestWidget(offset);
+        if (aOffset) {
+          *aOffset = offset;
+        }
+        return widget;
       }
     }
   }
@@ -4961,12 +4972,19 @@ nsDOMWindowUtils::GetDragSession(nsIDragSession** aSession) {
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::SendMozMouseHitTestEvent(float aX, float aY) {
-  return SendMouseEventCommon(
-      u"MozMouseHittest"_ns, aX, aY, 0 /* aButton */, 0 /* aClickCount */,
+nsDOMWindowUtils::SendMozMouseHitTestEvent(float aX, float aY,
+                                           Element* aElement) {
+  RefPtr<PresShell> presShell = GetPresShell();
+  nsPoint offset;
+  RefPtr<nsIWidget> widget = GetWidgetForElement(aElement, &offset);
+  LayoutDeviceIntPoint refPoint = nsContentUtils::ToWidgetPoint(
+      CSSPoint(aX, aY), offset, presShell->GetPresContext());
+
+  return nsContentUtils::SendMouseEvent(
+      presShell, widget, u"MozMouseHittest"_ns, refPoint, 0 /* aButton */,
+      MOUSE_BUTTONS_NOT_SPECIFIED /* aButtons */, 0 /* aClickCount */,
       0 /* aModifiers */, true /* aIgnoreRootScrollFrame */, 0 /* aPressure */,
       0 /* aInputSourceArg */, DEFAULT_MOUSE_POINTER_ID /* aIdentifier */,
       false /* aToWindow */, nullptr /* aPreventDefault */,
-      true /* aIsDOMEventSynthesized */, true /* aIsWidgetEventSynthesized */,
-      MOUSE_BUTTONS_NOT_SPECIFIED /* aButtons */);
+      true /* aIsDOMEventSynthesized */, true /* aIsWidgetEventSynthesized */);
 }
