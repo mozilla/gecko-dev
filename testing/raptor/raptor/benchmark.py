@@ -84,6 +84,8 @@ class Benchmark(object):
 
             def end_headers(self):
                 self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+                self.send_header("Cross-Origin-Embedder-Policy", "require-corp")
                 SimpleHTTPRequestHandler.end_headers(self)
 
         return ThreadingHTTPServer((self.host, int(self.port)), CustomHandler)
