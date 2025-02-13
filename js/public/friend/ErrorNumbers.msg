@@ -391,7 +391,7 @@ MSG_DEF(JSMSG_BAD_LINE_NUMBER,         0, JSEXN_RANGEERR, "line number out of ra
 MSG_DEF(JSMSG_BAD_NEWTARGET,           0, JSEXN_SYNTAXERR, "new.target only allowed within functions")
 MSG_DEF(JSMSG_BAD_NEW_OPTIONAL,        0, JSEXN_SYNTAXERR, "new keyword cannot be used with an optional chain")
 MSG_DEF(JSMSG_BAD_OPTIONAL_TEMPLATE,   0, JSEXN_SYNTAXERR, "tagged template cannot be used with optional chain")
-MSG_DEF(JSMSG_IMPORT_ASSERTIONS_NOT_SUPPORTED, 0, JSEXN_SYNTAXERR, "import assertions are not currently supported")
+MSG_DEF(JSMSG_IMPORT_ATTRIBUTES_NOT_SUPPORTED, 0, JSEXN_SYNTAXERR, "import attributes are not currently supported")
 MSG_DEF(JSMSG_ILLEGAL_PRIVATE_FIELD,   0, JSEXN_SYNTAXERR, "private fields aren't valid in this context")
 MSG_DEF(JSMSG_ILLEGAL_PRIVATE_NAME,    0, JSEXN_SYNTAXERR, "private names aren't valid in this context")
 MSG_DEF(JSMSG_INVALID_PRIVATE_NAME_PRECEDENCE,    0, JSEXN_SYNTAXERR, "invalid use of private name due to operator precedence")

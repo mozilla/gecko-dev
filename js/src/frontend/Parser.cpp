@@ -5007,7 +5007,7 @@ bool GeneralParser<ParseHandler, Unit>::withClause(ListNodeType attributesSet) {
              anyChars.isCurrentTokenType(TokenKind::With));
 
   if (!options().importAttributes()) {
-    error(JSMSG_IMPORT_ASSERTIONS_NOT_SUPPORTED);
+    error(JSMSG_IMPORT_ATTRIBUTES_NOT_SUPPORTED);
     return false;
   }
 
