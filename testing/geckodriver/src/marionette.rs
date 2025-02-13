@@ -34,6 +34,8 @@ use mozdevice::AndroidStorageInput;
 use serde::de::{self, Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
 use serde_json::{Map, Value};
+use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::io::prelude::*;
@@ -1202,6 +1204,7 @@ struct MarionetteError {
     #[serde(rename = "error")]
     code: String,
     message: String,
+    data: Option<BTreeMap<String, Value>>,
     stacktrace: Option<String>,
 }
 
@@ -1210,11 +1213,12 @@ impl From<MarionetteError> for WebDriverError {
         let status = ErrorStatus::from(error.code);
         let message = error.message;
 
-        if let Some(stack) = error.stacktrace {
-            WebDriverError::new_with_stack(status, message, stack)
-        } else {
-            WebDriverError::new(status, message)
-        }
+        // Convert `str` to `Cow<'static, str>`
+        let data = error
+            .data
+            .map(|map| map.into_iter().map(|(k, v)| (Cow::Owned(k), v)).collect());
+
+        WebDriverError::new_with_data(status, message, data, error.stacktrace)
     }
 }
 

@@ -6,7 +6,9 @@ use base64::DecodeError;
 use http::StatusCode;
 use serde::de::{Deserialize, Deserializer};
 use serde::ser::{Serialize, Serializer};
+use serde_json::Value;
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::error;
 use std::io;
 use thiserror::Error;
@@ -296,6 +298,8 @@ pub struct WebDriverError {
     pub message: Cow<'static, str>,
     #[serde(rename = "stacktrace")]
     pub stack: Cow<'static, str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data: Option<BTreeMap<Cow<'static, str>, Value>>,
     #[serde(skip)]
     pub delete_session: bool,
 }
@@ -323,19 +327,26 @@ impl WebDriverError {
         WebDriverError {
             error,
             message: message.into(),
+            data: None,
             stack: "".into(),
             delete_session: false,
         }
     }
 
-    pub fn new_with_stack<S>(error: ErrorStatus, message: S, stack: S) -> WebDriverError
+    pub fn new_with_data<S>(
+        error: ErrorStatus,
+        message: S,
+        data: Option<BTreeMap<Cow<'static, str>, Value>>,
+        stacktrace: Option<S>,
+    ) -> WebDriverError
     where
         S: Into<Cow<'static, str>>,
     {
         WebDriverError {
             error,
             message: message.into(),
-            stack: stack.into(),
+            data,
+            stack: stacktrace.map_or_else(|| "".into(), Into::into),
             delete_session: false,
         }
     }
@@ -381,16 +392,38 @@ mod tests {
     use crate::test::assert_ser;
 
     #[test]
-    fn test_json_webdriver_error() {
+    fn test_error_status_serialization() {
+        assert_ser(&ErrorStatus::UnknownError, json!("unknown error"));
+    }
+
+    #[test]
+    fn test_webdriver_error_json() {
+        let data: Option<BTreeMap<Cow<'static, str>, Value>> = Some(
+            [
+                (Cow::Borrowed("foo"), Value::from(42)),
+                (Cow::Borrowed("bar"), Value::from(vec![true])),
+            ]
+            .into_iter()
+            .collect(),
+        );
+
         let json = json!({"value": {
             "error": "unknown error",
-            "message": "foo bar",
+            "message": "serialized error",
             "stacktrace": "foo\nbar",
+            "data": {
+                "foo": 42,
+                "bar": [
+                    true
+                ]
+            }
         }});
+
         let error = WebDriverError {
             error: ErrorStatus::UnknownError,
-            message: "foo bar".into(),
+            message: "serialized error".into(),
             stack: "foo\nbar".into(),
+            data,
             delete_session: true,
         };
 
@@ -398,7 +431,95 @@ mod tests {
     }
 
     #[test]
-    fn test_json_error_status() {
-        assert_ser(&ErrorStatus::UnknownError, json!("unknown error"));
+    fn test_webdriver_error_new() {
+        let json = json!({"value": {
+            "error": "unknown error",
+            "message": "error with default stack",
+            "stacktrace": "",
+        }});
+
+        let error = WebDriverError::new::<Cow<'static, str>>(
+            ErrorStatus::UnknownError,
+            "error with default stack".into(),
+        );
+        assert_ser(&error, json);
+    }
+
+    #[test]
+    fn test_webdriver_error_new_with_data_serialization() {
+        let mut data_map = BTreeMap::new();
+        data_map.insert("foo".into(), json!(42));
+        data_map.insert("bar".into(), json!(vec!(true)));
+
+        let error = WebDriverError::new_with_data(
+            ErrorStatus::UnknownError,
+            "serialization test",
+            Some(data_map.clone()),
+            Some("foo\nbar"),
+        );
+
+        let serialized = serde_json::to_string(&error).unwrap();
+        let expected_json = json!({"value": {
+            "error": "unknown error",
+            "message": "serialization test",
+            "stacktrace": "foo\nbar",
+            "data": {
+                "foo": 42,
+                "bar": [true]
+            }
+        }});
+
+        assert_eq!(
+            serde_json::from_str::<Value>(&serialized).unwrap(),
+            expected_json
+        );
+    }
+
+    #[test]
+    fn test_webdriver_error_new_with_data_no_data_no_stacktrace() {
+        let error = WebDriverError::new_with_data(
+            ErrorStatus::UnknownError,
+            "error with no data and stack",
+            None,
+            None,
+        );
+
+        assert_eq!(error.error, ErrorStatus::UnknownError);
+        assert_eq!(error.message, "error with no data and stack");
+        assert_eq!(error.stack, "");
+        assert_eq!(error.data, None);
+    }
+
+    #[test]
+    fn test_webdriver_error_new_with_data_no_stacktrace() {
+        let mut data_map = BTreeMap::new();
+        data_map.insert("foo".into(), json!(42));
+
+        let error = WebDriverError::new_with_data(
+            ErrorStatus::UnknownError,
+            "error with no stack",
+            Some(data_map.clone()),
+            None,
+        );
+
+        assert_eq!(error.error, ErrorStatus::UnknownError);
+        assert_eq!(error.message, "error with no stack");
+        assert_eq!(error.stack, "");
+        assert_eq!(error.data, Some(data_map));
+    }
+
+    #[test]
+    fn test_webdriver_error_new_with_data_no_data() {
+        let error = WebDriverError::new_with_data(
+            ErrorStatus::UnknownError,
+            "error with no data",
+            None,
+            Some("foo\nbar"),
+        );
+
+        assert_eq!(error.error, ErrorStatus::UnknownError);
+        assert_eq!(error.message, "error with no data");
+        assert_eq!(error.stack, "foo\nbar");
+        assert_eq!(error.data, None);
     }
 }

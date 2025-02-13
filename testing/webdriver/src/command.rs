@@ -453,10 +453,11 @@ impl<U: WebDriverExtensionRoute> WebDriverMessage<U> {
                     } else {
                         let msg = format!("Failed to decode request as JSON: {}", body);
                         let stack = format!("Syntax error at :{}:{}", e.line(), e.column());
-                        Err(WebDriverError::new_with_stack(
+                        Err(WebDriverError::new_with_data(
                             ErrorStatus::InvalidArgument,
                             msg,
-                            stack,
+                            None,
+                            Some(stack),
                         ))
                     }
                 }
