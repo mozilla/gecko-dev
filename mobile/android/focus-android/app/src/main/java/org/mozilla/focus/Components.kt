@@ -69,6 +69,7 @@ import org.mozilla.focus.ext.settings
 import org.mozilla.focus.media.MediaSessionService
 import org.mozilla.focus.search.SearchFilterMiddleware
 import org.mozilla.focus.search.SearchMigration
+import org.mozilla.focus.state.AppReducer
 import org.mozilla.focus.state.AppState
 import org.mozilla.focus.state.AppStore
 import org.mozilla.focus.state.Screen
@@ -93,11 +94,12 @@ class Components(
 ) {
     val appStore: AppStore by lazy {
         AppStore(
-            AppState(
+            initialState = AppState(
                 screen = if (context.settings.isFirstRun) Screen.FirstRun else Screen.Home,
                 topSites = emptyList(),
                 isPinningSupported = null,
             ),
+            reducer = AppReducer,
         )
     }
 
