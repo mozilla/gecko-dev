@@ -837,6 +837,27 @@ export class SearchSettings {
             continue;
           }
 
+          // MAX_ICON_SIZE is not enforced in some cases. In those cases, we
+          // rescale the icon to 32x32.
+          if (byteArray.length > lazy.SearchUtils.MAX_ICON_SIZE) {
+            try {
+              [byteArray, contentType] = lazy.SearchUtils.rescaleIcon(
+                byteArray,
+                contentType
+              );
+              let byteString = String.fromCharCode(...byteArray);
+              let url = "data:" + contentType + ";base64," + btoa(byteString);
+
+              engine._iconMapObj ||= {};
+              engine._iconMapObj[32] = url;
+            } catch {
+              lazy.logConsole.warn(
+                `_iconURL migration: failed to resize icon of search engine ${engine._name}.`
+              );
+            }
+            continue;
+          }
+
           let byteString = String.fromCharCode(...byteArray);
           let size = lazy.SearchUtils.decodeSize(byteString, contentType);
           if (!size) {
