@@ -408,6 +408,10 @@ already_AddRefed<gfx::DataSourceSurface> CanvasTranslator::WaitForSurface(
   }
   ReferencePtr idRef(aId);
   if (!HasSourceSurface(idRef)) {
+    if (!HasPendingEvent()) {
+      return nullptr;
+    }
+
     // If the surface doesn't exist yet, that may be because the events
     // that produce it still need to be processed. Flush out any events
     // currently in the queue, that by now should have been placed in
@@ -587,12 +591,7 @@ void CanvasTranslator::CheckAndSignalWriter() {
 }
 
 bool CanvasTranslator::HasPendingEvent() {
-  int64_t limit = mHeader->eventCount;
-  if (mFlushCheckpoint) {
-    // Limit event processing to not exceed the checkpoint.
-    limit = std::min(limit, mFlushCheckpoint);
-  }
-  return mHeader->processedCount < limit;
+  return mHeader->processedCount < mHeader->eventCount;
 }
 
 bool CanvasTranslator::ReadPendingEvent(EventType& aEventType) {
@@ -607,17 +606,7 @@ bool CanvasTranslator::ReadPendingEvent(EventType& aEventType) {
 }
 
 bool CanvasTranslator::ReadNextEvent(EventType& aEventType) {
-  if (mHeader->readerState == State::Paused) {
-    Flush();
-    return false;
-  }
-
-  if (mFlushCheckpoint) {
-    // If trying to advance to a checkpoint, then don't wait for any new events
-    // to be queued. The checkpoint should exist within only events that are
-    // already pending.
-    return HasPendingEvent() && ReadPendingEvent(aEventType);
-  }
+  MOZ_DIAGNOSTIC_ASSERT(mHeader->readerState == State::Processing);
 
   uint32_t spinCount = mMaxSpinCount;
   do {
@@ -664,6 +653,11 @@ bool CanvasTranslator::ReadNextEvent(EventType& aEventType) {
 
 bool CanvasTranslator::TranslateRecording() {
   MOZ_ASSERT(IsInTaskQueue());
+  MOZ_DIAGNOSTIC_ASSERT_IF(mFlushCheckpoint, HasPendingEvent());
+
+  if (mHeader->readerState == State::Failed) {
+    return false;
+  }
 
   if (mSharedContext && EnsureSharedContextWebgl()) {
     mSharedContext->EnterTlsScope();
@@ -720,23 +714,30 @@ bool CanvasTranslator::TranslateRecording() {
 
     mHeader->processedCount++;
 
-    if (UsePendingCanvasTranslatorEvents() &&
-        mHeader->readerState != State::Paused && !mFlushCheckpoint) {
-      const auto maxDurationMs = 100;
-      const auto now = TimeStamp::Now();
-      const auto waitDurationMs =
-          static_cast<uint32_t>((now - start).ToMilliseconds());
-      if (waitDurationMs > maxDurationMs) {
+    if (mHeader->readerState == State::Paused) {
+      // We're waiting for an IPDL message return false, because we will resume
+      // translation after it is received.
+      Flush();
+      return false;
+    }
+
+    if (mFlushCheckpoint) {
+      // If we processed past the checkpoint return true to ensure translation
+      // after the checkpoint resumes later.
+      if (mHeader->processedCount >= mFlushCheckpoint) {
         return true;
       }
+    } else {
+      if (UsePendingCanvasTranslatorEvents()) {
+        const auto maxDurationMs = 100;
+        const auto now = TimeStamp::Now();
+        const auto waitDurationMs =
+            static_cast<uint32_t>((now - start).ToMilliseconds());
+        if (waitDurationMs > maxDurationMs) {
+          return true;
+        }
+      }
     }
-  }
-
-  // If there is a checkpoint, and we processed past the checkpoint, then return
-  // true here to ensure translation resumes later from after the checkpoint.
-  if (mFlushCheckpoint && mHeader->readerState != State::Paused &&
-      mHeader->processedCount >= mFlushCheckpoint) {
-    return true;
   }
 
   return false;
