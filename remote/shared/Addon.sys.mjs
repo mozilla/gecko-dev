@@ -178,22 +178,26 @@ export class Addon {
    *
    * @throws {UnknownError}
    *     If there is a problem uninstalling the addon.
+   * @throws {NoSuchWebExtensionError}
+   *     Raised if the WebExtension with provided id could not be found.
    */
   static async uninstall(id) {
     let candidate = await lazy.AddonManager.getAddonByID(id);
     if (candidate === null) {
       // `AddonManager.getAddonByID` never rejects but instead
       // returns `null` if the requested addon cannot be found.
-      throw new lazy.error.UnknownError(`Addon ${id} is not installed`);
+      throw new lazy.error.NoSuchWebExtensionError(
+        `Add-on with ID "${id}" is not installed.`
+      );
     }
 
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       let listener = {
         onOperationCancelled: addon => {
           if (addon.id === candidate.id) {
             lazy.AddonManager.removeAddonListener(listener);
             throw new lazy.error.UnknownError(
-              `Uninstall of ${candidate.id} has been canceled`
+              `Uninstall of Add-on with ID "${candidate.id}" was canceled.`
             );
           }
         },
@@ -207,7 +211,14 @@ export class Addon {
       };
 
       lazy.AddonManager.addAddonListener(listener);
-      candidate.uninstall();
+      candidate.uninstall().catch(e => {
+        lazy.AddonManager.removeAddonListener(listener);
+        reject(
+          new lazy.error.UnknownError(
+            `Failed to uninstall Add-on with ID "${id}": ${e.message}`
+          )
+        );
+      });
     });
   }
 }

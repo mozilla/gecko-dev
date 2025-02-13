@@ -472,6 +472,14 @@ add_task(function test_NoSuchUserContextError() {
   ok(err instanceof error.WebDriverError);
 });
 
+add_task(function test_NoSuchWebExtensionError() {
+  let err = new error.NoSuchWebExtensionError("foo");
+  equal("NoSuchWebExtensionError", err.name);
+  equal("foo", err.message);
+  equal("no such web extension", err.status);
+  ok(err instanceof error.WebDriverError);
+});
+
 add_task(function test_NoSuchWindowError() {
   let err = new error.NoSuchWindowError("foo");
   equal("NoSuchWindowError", err.name);
