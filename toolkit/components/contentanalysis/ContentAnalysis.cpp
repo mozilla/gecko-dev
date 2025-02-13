@@ -541,8 +541,6 @@ static bool IsRequestReadyForAgent(nsIContentAnalysisRequest* aRequest) {
 static nsresult ConvertToProtobuf(
     nsIContentAnalysisRequest* aIn,
     content_analysis::sdk::ContentAnalysisRequest* aOut) {
-  uint32_t timeout = StaticPrefs::browser_contentanalysis_agent_timeout();
-  aOut->set_expires_at(time(nullptr) + timeout);
   MOZ_ASSERT(IsRequestReadyForAgent(aIn));
 
   nsIContentAnalysisRequest::AnalysisType analysisType;
@@ -572,6 +570,12 @@ static nsresult ConvertToProtobuf(
   rv = aIn->GetUserActionRequestsCount(&userActionRequestsCount);
   NS_ENSURE_SUCCESS(rv, rv);
   aOut->set_user_action_requests_count(userActionRequestsCount);
+
+  int32_t timeout = StaticPrefs::browser_contentanalysis_agent_timeout();
+  // Non-positive timeout values indicate testing, and the test agent does not
+  // care about this value.
+  timeout = std::max(timeout, 1);
+  aOut->set_expires_at(time(nullptr) + timeout * userActionRequestsCount);
 
   const std::string tag = "dlp";  // TODO:
   *aOut->add_tags() = tag;

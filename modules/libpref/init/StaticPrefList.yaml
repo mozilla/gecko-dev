@@ -1261,9 +1261,10 @@
   mirror: always
 
 # Time (secs) after which content analysis operations are considered timed-out
+# A non-positive value indicates a timeout of 25ms, which is used for testing.
 - name: browser.contentanalysis.agent_timeout
-  type: uint32_t
-  value: 30
+  type: int32_t
+  value: 300
   mirror: always
 
 # Should Firefox show a notification or dialog when content analysis blocks
