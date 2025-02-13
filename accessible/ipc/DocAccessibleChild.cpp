@@ -9,6 +9,8 @@
 #include "mozilla/a11y/CacheConstants.h"
 #include "mozilla/a11y/FocusManager.h"
 #include "mozilla/ipc/ProcessChild.h"
+#include "mozilla/PerfStats.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "nsAccessibilityService.h"
 
 #include "LocalAccessible-inl.h"
@@ -126,6 +128,11 @@ void DocAccessibleChild::InsertIntoIpcTree(LocalAccessible* aChild,
 }
 
 void DocAccessibleChild::ShowEvent(AccShowEvent* aShowEvent) {
+  AUTO_PROFILER_MARKER_TEXT("DocAccessibleChild::ShowEvent", A11Y, {}, ""_ns);
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_ShowEvent>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
+
   LocalAccessible* child = aShowEvent->GetAccessible();
   InsertIntoIpcTree(child, /* aSuppressShowEvent */ false);
 }

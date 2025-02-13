@@ -68,7 +68,8 @@
   MACRO(A11Y_ContentRemovedNode)                  \
   MACRO(A11Y_ContentRemovedAcc)                   \
   MACRO(A11Y_PruneOrInsertSubtree)                \
-  MACRO(A11Y_ShutdownChildrenInSubtree)
+  MACRO(A11Y_ShutdownChildrenInSubtree)           \
+  MACRO(A11Y_ShowEvent)
 
 namespace mozilla {
 
