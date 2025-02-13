@@ -29,7 +29,7 @@ buildscript {
     }
 
     // Variables in plugins {} aren't directly supported. Hack around it by setting an
-    // intermediate variable which can pull from FocusDependenciesPlugin.kt and be used later.
+    // intermediate variable which can pull from DependenciesPlugin.kt and be used later.
     ext {
         detekt_plugin = Versions.detekt
         python_envs_plugin = Versions.python_envs_plugin

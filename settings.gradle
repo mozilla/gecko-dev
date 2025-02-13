@@ -24,7 +24,6 @@ pluginManagement {
     includeBuild("${rootProject.projectDir.absolutePath}/mobile/android/android-components/plugins/publicsuffixlist")
     includeBuild("${rootProject.projectDir.absolutePath}/mobile/android/fenix/plugins/apksize")
     includeBuild("${rootProject.projectDir.absolutePath}/mobile/android/fenix/plugins/fenixdependencies")
-    includeBuild("${rootProject.projectDir.absolutePath}/mobile/android/focus-android/plugins/focusdependencies")
 }
 
 plugins {
@@ -32,7 +31,6 @@ plugins {
     id 'mozac.DependenciesPlugin'
     id 'ApkSizePlugin'
     id 'FenixDependenciesPlugin'
-    id 'FocusDependenciesPlugin'
 }
 
 // You might think topsrcdir is '.', but that's not true when the Gradle build
