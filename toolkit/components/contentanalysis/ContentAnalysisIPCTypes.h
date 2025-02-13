@@ -12,6 +12,7 @@
 #include "js/PropertyAndElement.h"
 #include "mozilla/Variant.h"
 #include "nsIContentAnalysis.h"
+#include "mozilla/RefPtr.h"
 
 namespace mozilla {
 namespace contentanalysis {
@@ -27,88 +28,34 @@ enum class NoContentAnalysisResult : uint8_t {
   LAST_VALUE
 };
 
-class ContentAnalysisResult : public nsIContentAnalysisResult {
+class ContentAnalysisActionResult : public nsIContentAnalysisResult {
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSICONTENTANALYSISRESULT
- public:
-  static RefPtr<ContentAnalysisResult> FromAction(
-      nsIContentAnalysisResponse::Action aAction) {
-    auto result =
-        RefPtr<ContentAnalysisResult>(new ContentAnalysisResult(aAction));
-    return result;
-  }
-
-  static RefPtr<ContentAnalysisResult> FromNoResult(
-      NoContentAnalysisResult aResult) {
-    auto result =
-        RefPtr<ContentAnalysisResult>(new ContentAnalysisResult(aResult));
-    return result;
-  }
-
-  static RefPtr<ContentAnalysisResult> FromJSONResponse(
-      const JS::Handle<JS::Value>& aValue, JSContext* aCx) {
-    if (aValue.isObject()) {
-      auto* obj = aValue.toObjectOrNull();
-      JS::Handle<JSObject*> handle =
-          JS::Handle<JSObject*>::fromMarkedLocation(&obj);
-      JS::Rooted<JS::Value> actionValue(aCx);
-      if (JS_GetProperty(aCx, handle, "action", &actionValue)) {
-        if (actionValue.isNumber()) {
-          double actionNumber = actionValue.toNumber();
-          return FromAction(
-              static_cast<nsIContentAnalysisResponse::Action>(actionNumber));
-        }
-      }
-    }
-    return FromNoResult(
-        NoContentAnalysisResult::DENY_DUE_TO_INVALID_JSON_RESPONSE);
-  }
-
-  static RefPtr<ContentAnalysisResult> FromJSONContentAnalysisResponse(
-      const JS::Handle<JS::Value>& aValue, JSContext* aCx) {
-    if (aValue.isObject()) {
-      auto* obj = aValue.toObjectOrNull();
-      JS::Handle<JSObject*> handle =
-          JS::Handle<JSObject*>::fromMarkedLocation(&obj);
-      JS::Rooted<JS::Value> shouldAllowValue(aCx);
-      if (JS_GetProperty(aCx, handle, "shouldAllowContent",
-                         &shouldAllowValue)) {
-        if (shouldAllowValue.isTrue()) {
-          return FromAction(nsIContentAnalysisResponse::Action::eAllow);
-        } else if (shouldAllowValue.isFalse()) {
-          return FromAction(nsIContentAnalysisResponse::Action::eBlock);
-        } else {
-          return FromNoResult(NoContentAnalysisResult::DENY_DUE_TO_OTHER_ERROR);
-        }
-      }
-    }
-    return FromNoResult(
-        NoContentAnalysisResult::DENY_DUE_TO_INVALID_JSON_RESPONSE);
-  }
-
-  static RefPtr<ContentAnalysisResult> FromContentAnalysisResponse(
-      nsIContentAnalysisResponse* aResponse) {
-    bool shouldAllowContent = false;
-    DebugOnly<nsresult> rv =
-        aResponse->GetShouldAllowContent(&shouldAllowContent);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-    if (shouldAllowContent) {
-      return FromAction(nsIContentAnalysisResponse::Action::eAllow);
-    } else {
-      return FromAction(nsIContentAnalysisResponse::Action::eBlock);
-    }
-  }
 
  private:
-  explicit ContentAnalysisResult(nsIContentAnalysisResponse::Action aAction)
+  // Use MakeRefPtr as factory.
+  template <typename T, typename... Args>
+  friend RefPtr<T> mozilla::MakeRefPtr(Args&&...);
+  explicit ContentAnalysisActionResult(
+      nsIContentAnalysisResponse::Action aAction)
       : mValue(aAction) {}
-  explicit ContentAnalysisResult(NoContentAnalysisResult aResult)
+  virtual ~ContentAnalysisActionResult() = default;
+  nsIContentAnalysisResponse::Action mValue;
+};
+
+class ContentAnalysisNoResult : public nsIContentAnalysisResult {
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSICONTENTANALYSISRESULT
+
+ private:
+  // Use MakeRefPtr as factory.
+  template <typename T, typename... Args>
+  friend RefPtr<T> mozilla::MakeRefPtr(Args&&...);
+  explicit ContentAnalysisNoResult(NoContentAnalysisResult aResult)
       : mValue(aResult) {}
-  virtual ~ContentAnalysisResult() = default;
-  Variant<nsIContentAnalysisResponse::Action, NoContentAnalysisResult> mValue;
-  friend struct IPC::ParamTraits<ContentAnalysisResult>;
-  friend struct IPC::ParamTraits<ContentAnalysisResult*>;
-  friend struct IPC::ParamTraits<RefPtr<ContentAnalysisResult>>;
+
+  virtual ~ContentAnalysisNoResult() = default;
+  NoContentAnalysisResult mValue;
 };
 
 }  // namespace contentanalysis
@@ -129,48 +76,6 @@ struct ParamTraits<nsIContentAnalysisResponse::Action>
           nsIContentAnalysisResponse::Action,
           nsIContentAnalysisResponse::Action::eUnspecified,
           nsIContentAnalysisResponse::Action::eCanceled> {};
-
-template <>
-struct ParamTraits<mozilla::contentanalysis::ContentAnalysisResult> {
-  typedef mozilla::contentanalysis::ContentAnalysisResult paramType;
-
-  static void Write(MessageWriter* aWriter, const paramType& aParam) {
-    WriteParam(aWriter, aParam.mValue);
-  }
-
-  static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadParam(aReader, &(aResult->mValue));
-  }
-};
-
-template <>
-struct ParamTraits<mozilla::contentanalysis::ContentAnalysisResult*> {
-  typedef mozilla::contentanalysis::ContentAnalysisResult paramType;
-
-  static void Write(MessageWriter* aWriter, const paramType* aParam) {
-    if (!aParam) {
-      WriteParam(aWriter, true);
-      return;
-    }
-    WriteParam(aWriter, false);
-    WriteParam(aWriter, aParam->mValue);
-  }
-
-  static bool Read(MessageReader* aReader, RefPtr<paramType>* aResult) {
-    bool isNull = false;
-    if (!ReadParam(aReader, &isNull)) {
-      return false;
-    }
-    if (isNull) {
-      *aResult = nullptr;
-      return true;
-    }
-    *aResult = mozilla::contentanalysis::ContentAnalysisResult::FromNoResult(
-        mozilla::contentanalysis::NoContentAnalysisResult::
-            DENY_DUE_TO_OTHER_ERROR);
-    return ReadParam(aReader, &((*aResult)->mValue));
-  }
-};
 
 }  // namespace IPC
 
