@@ -152,17 +152,6 @@ impl Child {
         self.ref_wait_with_output().unwrap()
     }
 
-    pub fn wait(&mut self) -> std::io::Result<ExitStatus> {
-        self.ref_wait_with_output().unwrap().map(|o| o.status)
-    }
-
-    // This function doesn't actually do anything with the mock Child.
-    // It would be more accurate to affect the ExitStatus of the Child, but that requires a more
-    // complete model of `MockCommand`.
-    pub fn kill(&mut self) -> std::io::Result<()> {
-        Ok(())
-    }
-
     fn ref_wait_with_output(&mut self) -> Option<std::io::Result<Output>> {
         drop(self.stdin.take());
         if let Some(stdin) = self.stdin_data.take() {

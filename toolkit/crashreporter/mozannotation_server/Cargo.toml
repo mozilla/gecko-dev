@@ -10,7 +10,8 @@ license = "MPL-2.0"
 [dependencies]
 mozannotation_client = { path = "../mozannotation_client/" }
 process_reader = { path = "../process_reader/" }
-thiserror = "2"
+thin-vec = { version = "0.2.7", features = ["gecko-ffi"] }
+thiserror = "1.0.38"
 
 [target."cfg(any(target_os = \"linux\", target_os = \"android\"))".dependencies]
-memoffset = "0.9"
+memoffset = "0.8"

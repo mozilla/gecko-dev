@@ -165,6 +165,9 @@ nsresult UnregisterAppMemory(void* ptr);
 // Include heap regions of the crash context.
 void SetIncludeContextHeap(bool aValue);
 
+void GetAnnotation(ProcessId childPid, Annotation annotation,
+                   nsACString& outStr);
+
 // Functions for working with minidumps and .extras
 typedef mozilla::EnumeratedArray<Annotation, nsCString,
                                  size_t(Annotation::Count)>
@@ -196,6 +199,18 @@ nsresult AppendObjCExceptionInfoToAppNotes(void* inException);
 #endif
 nsresult GetSubmitReports(bool* aSubmitReport);
 nsresult SetSubmitReports(bool aSubmitReport);
+
+#ifdef XP_WIN
+// This data is stored in the parent process, there is one copy for each child
+// process. The mChildPid and mMinidumpFile fields are filled by the WER runtime
+// exception module when the associated child process crashes.
+struct WindowsErrorReportingData {
+  // PID of the child process that crashed.
+  DWORD mChildPid;
+  // Filename of the generated minidump; this is not a 0-terminated string
+  char mMinidumpFile[40];
+};
+#endif  // XP_WIN
 
 // Out-of-process crash reporter API.
 
@@ -257,7 +272,7 @@ bool CreateMinidumpsAndPair(ProcessHandle aTargetPid,
                             AnnotationTable& aTargetAnnotations,
                             nsIFile** aTargetDumpOut);
 
-#if defined(XP_WIN) || defined(XP_MACOSX) || defined(XP_IOS)
+#if defined(XP_WIN) || defined(XP_MACOSX)
 using CrashPipeType = const char*;
 #else
 using CrashPipeType = mozilla::UniqueFileHandle;
@@ -266,18 +281,8 @@ using CrashPipeType = mozilla::UniqueFileHandle;
 // Parent-side API for children
 CrashPipeType GetChildNotificationPipe();
 
-#if defined(XP_LINUX)
-
-// Return the pid of the crash helper process. This only works in Linux, not
-// Android where the crash helper is an Android service and is not under the
-// main process' control.
-MOZ_EXPORT ProcessId GetCrashHelperPid();
-
-#endif  // XP_LINUX
-
 // Child-side API
-MOZ_EXPORT bool SetRemoteExceptionHandler(CrashPipeType aCrashPipe,
-                                          ProcessId aCrashHelperPid = 0);
+bool SetRemoteExceptionHandler(CrashPipeType aCrashPipe);
 bool UnsetRemoteExceptionHandler(bool wasSet = true);
 
 }  // namespace CrashReporter

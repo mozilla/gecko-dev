@@ -352,16 +352,8 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   if (!CrashReporter::IsDummy()) {
     auto crashReporterArg = geckoargs::sCrashReporter.Get(aArgc, aArgv);
     if (crashReporterArg) {
-      CrashReporter::ProcessId crashHelperPid = base::kInvalidProcessId;
-#if defined(XP_LINUX)
-      auto crashHelperPidArg = geckoargs::sCrashHelperPid.Get(aArgc, aArgv);
-      MOZ_ASSERT(crashHelperPidArg);
-      crashHelperPid =
-          static_cast<CrashReporter::ProcessId>(*crashHelperPidArg);
-#endif
-
       exceptionHandlerIsSet = CrashReporter::SetRemoteExceptionHandler(
-          std::move(*crashReporterArg), crashHelperPid);
+          std::move(*crashReporterArg));
       MOZ_ASSERT(exceptionHandlerIsSet,
                  "Should have been able to set remote exception handler");
 

@@ -24,14 +24,11 @@ crashreporter-comment-prompt = Add a comment (comments are publicly visible)
 
 crashreporter-report-info = This report also contains technical information about the state of the application when it crashed.
 
-crashreporter-checkbox-test-hardware = Check for hardware and configuration problems on my device.
+crashreporter-send-report = Tell { -vendor-short-name } about this crash so they can fix it.
 
-crashreporter-checkbox-send-report = Tell { -vendor-short-name } about this crash so they can fix it.
-
-crashreporter-checkbox-include-url = Include the address of the page I was on.
+crashreporter-include-url = Include the address of the page I was on.
 
 crashreporter-submit-status = Your crash report will be submitted before you quit or restart.
-crashreporter-submit-waiting-hardware-tests = Checking for hardware and configuration problems…
 crashreporter-submit-in-progress = Submitting your report…
 crashreporter-submit-success = Report submitted successfully!
 crashreporter-submit-failure = There was a problem submitting your report.
