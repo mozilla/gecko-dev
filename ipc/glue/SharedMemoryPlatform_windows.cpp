@@ -197,12 +197,14 @@ bool Platform::Freeze(FreezableHandle& aHandle) {
   return true;
 }
 
-Maybe<void*> Platform::Map(const HandleBase& aHandle, void* aFixedAddress,
-                           bool aReadOnly) {
+Maybe<void*> Platform::Map(const HandleBase& aHandle, uint64_t aOffset,
+                           size_t aSize, void* aFixedAddress, bool aReadOnly) {
+  DWORD fileOffsetHigh = (aOffset >> 32) & 0xffffffff;
+  DWORD fileOffsetLow = aOffset & 0xffffffff;
   void* mem = ::MapViewOfFileEx(
       aHandle.mHandle.get(),
-      aReadOnly ? FILE_MAP_READ : FILE_MAP_READ | FILE_MAP_WRITE, 0, 0,
-      aHandle.Size(), aFixedAddress);
+      aReadOnly ? FILE_MAP_READ : FILE_MAP_READ | FILE_MAP_WRITE,
+      fileOffsetHigh, fileOffsetLow, aSize, aFixedAddress);
   if (mem) {
     MOZ_ASSERT(!aFixedAddress || mem == aFixedAddress,
                "MapViewOfFileEx returned an expected address");
@@ -240,6 +242,12 @@ size_t Platform::PageSize() {
   SYSTEM_INFO si;
   ::GetSystemInfo(&si);
   return si.dwPageSize;
+}
+
+size_t Platform::AllocationGranularity() {
+  SYSTEM_INFO si;
+  ::GetSystemInfo(&si);
+  return si.dwAllocationGranularity;
 }
 
 bool Platform::IsSafeToMap(const PlatformHandle& aHandle) {

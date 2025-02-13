@@ -8,6 +8,7 @@
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryCursor.h"
 
 #ifdef XP_LINUX
 #  include <errno.h>
@@ -359,5 +360,78 @@ TEST_F(IPCSharedMemoryLinuxTest, MemfdNoExec) {
   EXPECT_EQ(sb.st_mode & S_IXUSR, mode_t(expectExec ? S_IXUSR : 0));
 }
 #endif
+
+TEST(IPCSharedMemory, CursorWriteRead)
+{
+  // Select a chunk size which is at least as big as the allocation granularity,
+  // as smaller sizes will not be able to map.
+  const size_t chunkSize = ipc::shared_memory::SystemAllocationGranularity();
+  ASSERT_TRUE(IsPowerOfTwo(chunkSize));
+
+  const uint64_t fullSize = chunkSize * 20;
+  auto handle = ipc::shared_memory::Create(fullSize);
+  ASSERT_TRUE(handle.IsValid());
+  ASSERT_EQ(handle.Size(), fullSize);
+
+  // Map the entire region.
+  auto mapping = handle.Map();
+  ASSERT_TRUE(mapping.IsValid());
+  ASSERT_EQ(mapping.Size(), fullSize);
+
+  // Use a cursor to write some data.
+  ipc::shared_memory::Cursor cursor(std::move(handle));
+  ASSERT_EQ(cursor.Offset(), 0u);
+  ASSERT_EQ(cursor.Size(), fullSize);
+
+  // Set the chunk size to ensure we use multiple mappings for this data region.
+  cursor.SetChunkSize(chunkSize);
+
+  // Two basic blocks of data which are used for writeReadTest.
+  const char data[] = "Hello, World!";
+  const char data2[] = "AnotherString";
+  auto writeReadTest = [&]() {
+    uint64_t initialOffset = cursor.Offset();
+
+    // Clear out the buffer to a known state so that any checks will fail if
+    // they're depending on previous writes.
+    memset(mapping.Data(), 0xe5, mapping.Size());
+
+    // Write "Hello, World" at the offset, and ensure it is reflected in the
+    // full mapping.
+    ASSERT_TRUE(cursor.Write(data, std::size(data)));
+    ASSERT_EQ(cursor.Offset(), initialOffset + std::size(data));
+    ASSERT_STREQ(static_cast<char*>(mapping.Data()) + initialOffset, data);
+
+    // Write some data in the full mapping at the same offset, and enure it can
+    // be read.
+    memcpy(static_cast<char*>(mapping.Data()) + initialOffset, data2,
+           std::size(data2));
+    cursor.Seek(initialOffset);
+    ASSERT_EQ(cursor.Offset(), initialOffset);
+    char buffer[std::size(data2)];
+    ASSERT_TRUE(cursor.Read(buffer, std::size(buffer)));
+    ASSERT_EQ(cursor.Offset(), initialOffset + std::size(buffer));
+    ASSERT_STREQ(buffer, data2);
+  };
+
+  writeReadTest();
+
+  // Run the writeReadTest at various offsets within the buffer, including at
+  // every chunk boundary, and in the middle of each chunk.
+  for (size_t offset = chunkSize - 3; offset < fullSize - 3;
+       offset += chunkSize / 2) {
+    cursor.Seek(offset);
+    writeReadTest();
+  }
+
+  // Do a writeReadTest at the very end of the allocated region to ensure that
+  // edge case is handled.
+  cursor.Seek(mapping.Size() - std::max(std::size(data), std::size(data2)));
+  writeReadTest();
+
+  // Ensure that writes past the end fail safely.
+  cursor.Seek(mapping.Size() - 3);
+  ASSERT_FALSE(cursor.Write(data, std::size(data)));
+}
 
 }  // namespace mozilla

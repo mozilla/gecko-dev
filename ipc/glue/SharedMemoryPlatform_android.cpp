@@ -78,13 +78,13 @@ bool Platform::Freeze(FreezableHandle& aHandle) {
   return true;
 }
 
-Maybe<void*> Platform::Map(const HandleBase& aHandle, void* aFixedAddress,
-                           bool aReadOnly) {
+Maybe<void*> Platform::Map(const HandleBase& aHandle, uint64_t aOffset,
+                           size_t aSize, void* aFixedAddress, bool aReadOnly) {
   // Don't use MAP_FIXED when a fixed_address was specified, since that can
   // replace pages that are alread mapped at that address.
-  void* mem = mmap(aFixedAddress, aHandle.Size(),
-                   PROT_READ | (aReadOnly ? 0 : PROT_WRITE), MAP_SHARED,
-                   aHandle.mHandle.get(), 0);
+  void* mem =
+      mmap(aFixedAddress, aSize, PROT_READ | (aReadOnly ? 0 : PROT_WRITE),
+           MAP_SHARED, aHandle.mHandle.get(), aOffset);
 
   if (mem == MAP_FAILED) {
     MOZ_LOG_FMT(gSharedMemoryLog, LogLevel::Warning, "call to mmap failed: {}",
@@ -93,7 +93,7 @@ Maybe<void*> Platform::Map(const HandleBase& aHandle, void* aFixedAddress,
   }
 
   if (aFixedAddress && mem != aFixedAddress) {
-    DebugOnly<bool> munmap_succeeded = munmap(mem, aHandle.Size()) == 0;
+    DebugOnly<bool> munmap_succeeded = munmap(mem, aSize) == 0;
     MOZ_ASSERT(munmap_succeeded, "call to munmap failed");
     return Nothing();
   }
@@ -122,6 +122,8 @@ void* Platform::FindFreeAddressSpace(size_t aSize) {
 }
 
 size_t Platform::PageSize() { return sysconf(_SC_PAGESIZE); }
+
+size_t Platform::AllocationGranularity() { return PageSize(); }
 
 bool Platform::IsSafeToMap(const PlatformHandle&) { return true; }
 

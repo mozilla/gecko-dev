@@ -5,7 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "chrome/common/ipc_message_utils.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryCursor.h"
 
 namespace IPC {
 
@@ -16,20 +16,14 @@ MessageBufferWriter::MessageBufferWriter(MessageWriter* writer,
   // kMessageBufferShmemThreshold to avoid bloating the size of messages with
   // small buffers.
   if (full_len > kMessageBufferShmemThreshold) {
-    shmem_ = new mozilla::ipc::SharedMemory();
-    bool shmem_ok = shmem_->Create(full_len) && shmem_->Map(full_len);
+    auto handle = mozilla::ipc::shared_memory::Create(full_len);
+    bool shmem_ok = handle.IsValid();
     writer->WriteBool(shmem_ok);
     if (shmem_ok) {
-      if (!shmem_->WriteHandle(writer)) {
-        writer->FatalError("SharedMemory::WriteHandle failed");
-        return;
-      }
-      buffer_ = reinterpret_cast<char*>(shmem_->Memory());
+      shmem_cursor_ = mozilla::MakeUnique<mozilla::ipc::shared_memory::Cursor>(
+          std::move(handle));
+      MOZ_ASSERT(shmem_cursor_->IsValid());
     } else {
-      // Creating or mapping the shared memory region failed, perhaps due to FD
-      // exhaustion or address space fragmentation. Fall back to trying to send
-      // data inline.
-      shmem_ = nullptr;
       writer->NoteLargeBufferShmemFailure(full_len);
     }
   }
@@ -39,6 +33,13 @@ MessageBufferWriter::MessageBufferWriter(MessageWriter* writer,
 MessageBufferWriter::~MessageBufferWriter() {
   if (remaining_ != 0) {
     writer_->FatalError("didn't fully write message buffer");
+  }
+
+  // We couldn't write out the shared memory region until now, as the cursor
+  // needs to hold on to the handle to potentially re-map sub-regions while
+  // writing.
+  if (shmem_cursor_) {
+    IPC::WriteParam(writer_, shmem_cursor_->TakeHandle());
   }
 }
 
@@ -51,12 +52,10 @@ bool MessageBufferWriter::WriteBytes(const void* data, uint32_t len) {
     return false;
   }
   remaining_ -= len;
-  // If we're serializing using a shared memory region, `buffer_` will be
-  // initialized to point into that region.
-  if (buffer_) {
-    memcpy(buffer_, data, len);
-    buffer_ += len;
-    return true;
+  // If we're serializing using a shared memory region, `shmem_cursor_` will be
+  // initialized.
+  if (shmem_cursor_) {
+    return shmem_cursor_->Write(data, len);
   }
   return writer_->WriteBytes(data, len);
 }
@@ -74,16 +73,22 @@ MessageBufferReader::MessageBufferReader(MessageReader* reader,
       return;
     }
     if (shmem_ok) {
-      shmem_ = new mozilla::ipc::SharedMemory();
-      if (!shmem_->ReadHandle(reader)) {
-        reader->FatalError("SharedMemory::ReadHandle failed!");
+      mozilla::ipc::shared_memory::Handle handle;
+      if (!IPC::ReadParam(reader, &handle)) {
+        reader->FatalError("failed to read shared memory handle");
         return;
       }
-      if (!shmem_->Map(full_len)) {
-        reader->FatalError("SharedMemory::Map failed");
+      if (!handle.IsValid()) {
+        reader->FatalError("invalid shared memory handle");
         return;
       }
-      buffer_ = reinterpret_cast<const char*>(shmem_->Memory());
+      if (handle.Size() < full_len) {
+        reader->FatalError("too small shared memory handle");
+        return;
+      }
+      shmem_cursor_ = mozilla::MakeUnique<mozilla::ipc::shared_memory::Cursor>(
+          std::move(handle));
+      MOZ_ASSERT(shmem_cursor_->IsValid());
     }
   }
   remaining_ = full_len;
@@ -104,12 +109,10 @@ bool MessageBufferReader::ReadBytesInto(void* data, uint32_t len) {
     return false;
   }
   remaining_ -= len;
-  // If we're serializing using a shared memory region, `buffer_` will be
-  // initialized to point into that region.
-  if (buffer_) {
-    memcpy(data, buffer_, len);
-    buffer_ += len;
-    return true;
+  // If we're serializing using a shared memory region, `shmem_cursor_` will be
+  // initialized.
+  if (shmem_cursor_) {
+    return shmem_cursor_->Read(data, len);
   }
   return reader_->ReadBytesInto(data, len);
 }

@@ -91,7 +91,8 @@ PlatformHandle Platform::CloneHandle(const PlatformHandle& aHandle) {
   return mozilla::RetainMachSendRight(aHandle.get());
 }
 
-static Maybe<void*> MapMemory(size_t aSize, void* aFixedAddress,
+static Maybe<void*> MapMemory(uint64_t aOffset, size_t aSize,
+                              void* aFixedAddress,
                               const mozilla::UniqueMachSendRight& aPort,
                               bool aReadOnly) {
   kern_return_t kr;
@@ -104,7 +105,7 @@ static Maybe<void*> MapMemory(size_t aSize, void* aFixedAddress,
 
   kr = mach_vm_map(mach_task_self(), &address, round_page(aSize), 0,
                    aFixedAddress ? VM_FLAGS_FIXED : VM_FLAGS_ANYWHERE,
-                   aPort.get(), 0, false, vmProtection, vmProtection,
+                   aPort.get(), aOffset, false, vmProtection, vmProtection,
                    VM_INHERIT_NONE);
   if (kr != KERN_SUCCESS) {
     if (!aFixedAddress) {
@@ -137,7 +138,7 @@ bool Platform::Freeze(FreezableHandle& aHandle) {
   mozilla::UniqueMachSendRight port;
 
   // Temporarily map memory (as readonly) to get an address.
-  auto memory = MapMemory(memoryObjectSize, nullptr, aHandle.mHandle, true);
+  auto memory = MapMemory(0, memoryObjectSize, nullptr, aHandle.mHandle, true);
   if (!memory) {
     return false;
   }
@@ -168,9 +169,9 @@ bool Platform::Freeze(FreezableHandle& aHandle) {
   return true;
 }
 
-Maybe<void*> Platform::Map(const HandleBase& aHandle, void* aFixedAddress,
-                           bool aReadOnly) {
-  return MapMemory(aHandle.Size(), aFixedAddress, aHandle.mHandle, aReadOnly);
+Maybe<void*> Platform::Map(const HandleBase& aHandle, uint64_t aOffset,
+                           size_t aSize, void* aFixedAddress, bool aReadOnly) {
+  return MapMemory(aOffset, aSize, aFixedAddress, aHandle.mHandle, aReadOnly);
 }
 
 void Platform::Unmap(void* aMemory, size_t aSize) {
@@ -219,6 +220,8 @@ size_t Platform::PageSize() {
   return sysconf(_SC_PAGESIZE);
 #endif
 }
+
+size_t Platform::AllocationGranularity() { return PageSize(); }
 
 bool Platform::IsSafeToMap(const PlatformHandle&) { return true; }
 
