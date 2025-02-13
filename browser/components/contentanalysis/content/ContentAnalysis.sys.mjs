@@ -334,40 +334,43 @@ export const ContentAnalysis = {
         }
         break;
       case "dlp-response": {
-        const request = aSubj.QueryInterface(Ci.nsIContentAnalysisResponse);
+        const response = aSubj.QueryInterface(Ci.nsIContentAnalysisResponse);
         // Cancels timer or slow message UI,
         // if present, and possibly presents the CA verdict.
-        if (!request) {
-          throw new Error("Got dlp-response message but no request was passed");
+        if (!response) {
+          throw new Error(
+            "Got dlp-response message but no response object was passed"
+          );
         }
 
         let windowAndResourceNameOrOperationType =
-          this.requestTokenToRequestInfo.get(request.requestToken);
+          this.requestTokenToRequestInfo.get(response.requestToken);
         if (!windowAndResourceNameOrOperationType) {
-          // Perhaps this was cancelled just before the response came in from the
-          // DLP agent.
+          // We may get multiple responses, for example, if we are blocked or
+          // canceled after receiving our verdict because we were part of a
+          // multipart transaction.  Just ignore that.
           console.warn(
-            `Got dlp-response message with unknown token ${request.requestToken}`
+            `Got dlp-response message with unknown token ${response.requestToken} | action: ${response.action}`
           );
           return;
         }
-        this.requestTokenToRequestInfo.delete(request.requestToken);
+        this.requestTokenToRequestInfo.delete(response.requestToken);
         let dlpBusyView =
           this.dlpBusyViewsByTopBrowsingContext.getAndRemoveEntry(
             windowAndResourceNameOrOperationType.browsingContext,
-            request.requestToken
+            response.requestToken
           );
         this._disconnectFromView(dlpBusyView);
         const responseResult =
-          request?.action ?? Ci.nsIContentAnalysisResponse.eUnspecified;
+          response?.action ?? Ci.nsIContentAnalysisResponse.eUnspecified;
         // Don't show dialog if this is a cached response
-        if (!request?.isCachedResponse) {
+        if (!response?.isCachedResponse) {
           await this._showCAResult(
             windowAndResourceNameOrOperationType.resourceNameOrOperationType,
             windowAndResourceNameOrOperationType.browsingContext,
-            request.requestToken,
+            response.requestToken,
             responseResult,
-            request.cancelError
+            response.cancelError
           );
         }
         break;
