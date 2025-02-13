@@ -2250,6 +2250,12 @@ dohPrefs:
       setPref:
         branch: default
         pref: "doh-rollout.uri"
+    dohProviderList:
+      description: An override of the rollout provider-list json
+      type: string
+      setPref:
+        branch: default
+        pref: "doh-rollout.provider-list"
     nativeHTTPSRecords:
       description: Whether we can perform native DNS HTTPS lookups
       type: boolean
