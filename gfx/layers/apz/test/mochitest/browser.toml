@@ -47,12 +47,6 @@ skip-if = [
   "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
 ]
 
-["browser_test_popup_menu_in_position_fixed.js"]
-support-files = ["helper_popup_menu_in_parent_process-1.html"]
-skip-if = [
-  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
-]
-
 ["browser_test_popup_menu_in_parent_process.js"]
 support-files = [
   "helper_popup_menu_in_parent_process-1.html",

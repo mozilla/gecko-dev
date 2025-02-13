@@ -3336,7 +3336,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
 
   bool useFixedPosition =
       disp->mPosition == StylePositionProperty::Fixed &&
-      aBuilder->IsPaintingToWindow() && !IsMenuPopupFrame() &&
+      aBuilder->IsPaintingToWindow() &&
       (DisplayPortUtils::IsFixedPosFrameInDisplayPort(this) ||
        BuilderHasScrolledClip(aBuilder));
 
