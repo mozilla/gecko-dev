@@ -87,6 +87,7 @@ login-form {
   flex-direction: column;
 
   > img {
+    max-width: 232px;
     align-self: center;
   }
 }
