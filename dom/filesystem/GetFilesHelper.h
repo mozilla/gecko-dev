@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_GetFilesHelper_h
 #define mozilla_dom_GetFilesHelper_h
 
+#include "mozilla/MozPromise.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "nsCycleCollectionTraversalCallback.h"
@@ -61,6 +62,7 @@ class GetFilesHelperBase {
 // helper class to do it just once.
 class GetFilesHelper : public Runnable, public GetFilesHelperBase {
   friend class GetFilesHelperParent;
+  class ReleaseRunnable;
 
  public:
   static already_AddRefed<GetFilesHelper> Create(
@@ -70,6 +72,10 @@ class GetFilesHelper : public Runnable, public GetFilesHelperBase {
   void AddPromise(Promise* aPromise);
 
   void AddCallback(GetFilesCallback* aCallback);
+
+  using MozPromiseType =
+      MozPromise<nsTArray<RefPtr<File>>, nsresult, true>::Private;
+  void AddMozPromise(MozPromiseType* aPromise, nsIGlobalObject* aGlobal);
 
   // CC methods
   void Unlink();
@@ -102,6 +108,13 @@ class GetFilesHelper : public Runnable, public GetFilesHelperBase {
 
   void ResolveOrRejectPromise(Promise* aPromise);
 
+  struct MozPromiseAndGlobal {
+    RefPtr<MozPromiseType> mMozPromise;
+    RefPtr<nsIGlobalObject> mGlobal;
+  };
+
+  void ResolveOrRejectMozPromise(MozPromiseAndGlobal aPromise);
+
   void RunCallback(GetFilesCallback* aCallback);
 
   bool mListingCompleted;
@@ -111,6 +124,7 @@ class GetFilesHelper : public Runnable, public GetFilesHelperBase {
   nsresult mErrorResult;
 
   nsTArray<RefPtr<Promise>> mPromises;
+  nsTArray<MozPromiseAndGlobal> mMozPromises;
   nsTArray<RefPtr<GetFilesCallback>> mCallbacks;
 
   Mutex mMutex MOZ_UNANNOTATED;
