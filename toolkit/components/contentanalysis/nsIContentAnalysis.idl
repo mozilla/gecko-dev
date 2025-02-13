@@ -5,8 +5,10 @@
 
 #include "nsISupports.idl"
 
+interface nsITransferable;
 interface nsIURI;
 webidl BrowsingContext;
+webidl DataTransfer;
 webidl DragEvent;
 webidl WindowGlobalParent;
 
@@ -38,8 +40,14 @@ interface nsIContentAnalysisAcknowledgement : nsISupports
   readonly attribute nsIContentAnalysisAcknowledgement_FinalAction finalAction;
 };
 
-[scriptable, uuid(89088c61-15f6-4ace-a880-a1b5ea47ca66)]
-interface nsIContentAnalysisResponse : nsISupports
+[scriptable, builtinclass, uuid(9679545f-4256-4c90-9654-90292c355d25)]
+interface nsIContentAnalysisResult : nsISupports
+{
+  [infallible] readonly attribute boolean shouldAllowContent;
+};
+
+[scriptable, builtinclass, uuid(89088c61-15f6-4ace-a880-a1b5ea47ca66)]
+interface nsIContentAnalysisResponse : nsIContentAnalysisResult
 {
   // These values must stay synchronized with ContentAnalysisResponse
   // in analysis.proto!
@@ -63,11 +71,11 @@ interface nsIContentAnalysisResponse : nsISupports
     eShutdown = 5
   };
 
-  readonly attribute nsIContentAnalysisResponse_Action action;
-  readonly attribute boolean shouldAllowContent;
+  [infallible] readonly attribute nsIContentAnalysisResponse_Action action;
+
   // If action is eCanceled, this is the error explaining why the request was canceled,
   // or eUserInitiated if the user canceled it.
-  readonly attribute nsIContentAnalysisResponse_CancelError cancelError;
+  [infallible] readonly attribute nsIContentAnalysisResponse_CancelError cancelError;
 
   // Identifier for the corresponding nsIContentAnalysisRequest
   readonly attribute ACString requestToken;
@@ -75,7 +83,7 @@ interface nsIContentAnalysisResponse : nsISupports
   // Whether this is a cached result that wasn't actually sent to the DLP agent.
   // This indicates that the request was a duplicate of a previously sent one,
   // so any dialogs (for block/warn) should not be shown.
-  readonly attribute boolean isCachedResponse;
+  [infallible] readonly attribute boolean isCachedResponse;
 
   /**
    * Acknowledge receipt of an analysis response.
@@ -113,10 +121,10 @@ interface nsIClientDownloadResource : nsISupports
 };
 
 /**
- * A nsIContentAnalysisRequest represents a request that the browser
- * consult any required content analysis resources (like external data-loss
- * prevention applications) to determine if the attempted operation should
- * be permitted to complete.
+ * A nsIContentAnalysisRequest represents a request (or multiple requests)
+ * that the browser consult any required content analysis resources (like
+ * external data-loss prevention applications) to determine if the attempted
+ * operation should be permitted to complete.
  */
 [scriptable, uuid(c11a6636-da2a-4afc-bdd1-0bcae2310e6d)]
 interface nsIContentAnalysisRequest : nsISupports
@@ -167,10 +175,26 @@ interface nsIContentAnalysisRequest : nsISupports
   readonly attribute nsIContentAnalysisRequest_OperationType operationTypeForDisplay;
   readonly attribute AString operationDisplayString;
 
-  // Text content to analyze.  Only one of textContent or filePath is defined.
+  // ContentAnalysis will analyze the contents of this DataTransfer.  May
+  // contain multiple items that require analysis, or none.
+  // Only one of dataTransfer, transferable, textContent or filePath may be
+  // defined.
+  readonly attribute DataTransfer dataTransfer;
+
+  // ContentAnalysis will analyze the contents of this nsITransferable.  May
+  // contain multiple items that require analysis, or none.
+  // Only one of dataTransfer, transferable, textContent or filePath may be
+  // defined.
+  readonly attribute nsITransferable transferable;
+
+  // Text content to analyze.
+  // Only one of dataTransfer, transferable, textContent or filePath may be
+  // defined.
   readonly attribute AString textContent;
 
-  // Name of file to analyze.  Only one of textContent or filePath is defined.
+  // Name of file to analyze.
+  // Only one of dataTransfer, transferable, textContent or filePath may be
+  // defined.
   readonly attribute AString filePath;
 
   // HANDLE to the printed data in PDF format.
@@ -196,31 +220,29 @@ interface nsIContentAnalysisRequest : nsISupports
   // Email address of user.
   readonly attribute AString email;
 
-  // Unique identifier for this request
-  readonly attribute ACString requestToken;
+  // Unique identifier for this request.  For internal use only.
+  attribute ACString requestToken;
 
   // The window associated with this request
   readonly attribute WindowGlobalParent windowGlobalParent;
 
   // The user_action_id of this request. By default, this is equal to
-  // the requestToken.
+  // the requestToken.  For internal use only.
   attribute ACString userActionId;
 
   // The number of requests associated with this user_action_id. By default,
-  // this is 1.
+  // this is 1.  For internal use only.
   attribute int64_t userActionRequestsCount;
+
+  // The WindowGlobalParent that was the source of the data in the request, or
+  // null if unknown.
+  readonly attribute WindowGlobalParent sourceWindowGlobal;
 };
 
-[scriptable, builtinclass, uuid(9679545f-4256-4c90-9654-90292c355d25)]
-interface nsIContentAnalysisResult : nsISupports
-{
-  [infallible] readonly attribute boolean shouldAllowContent;
-};
-
-[scriptable, uuid(cb09fc88-118c-411b-aa89-2e1bc5e3eba6)]
+[scriptable, builtinclass, uuid(cb09fc88-118c-411b-aa89-2e1bc5e3eba6)]
 interface nsIContentAnalysisCallback : nsISupports
 {
-  void contentResult(in nsIContentAnalysisResponse aResult);
+  void contentResult(in nsIContentAnalysisResult aResult);
 
   void error(in nsresult aResult);
 };
@@ -273,26 +295,39 @@ interface nsIContentAnalysis : nsISupports
    * Consultation with the content analysis tool follows the conventional
    * request, response, acknowledgement protocol.
    *
-   * The resulting Promise resolves to a nsIContentAnalysisResponse,
+   * The resulting Promise resolves to a nsIContentAnalysisResult,
    * which may take some time to get from the analysis server.  It will
    * be rejected, with an string error description, if any error occurs.
    *
-   * @param aCar
-   *        The request to analyze.
+   * @param aCars
+   *        The requests to analyze.
    * @param aAutoAcknowledge
    *        Whether to send an acknowledge message to the agent after the agent sends a response.
    *        Passing false means that the caller is responsible for
    *        calling nsIContentAnalysisResponse::acknowledge() if the Promise is resolved.
    */
   [implicit_jscontext]
-  Promise analyzeContentRequest(in nsIContentAnalysisRequest aCar, in boolean aAutoAcknowledge);
+  Promise analyzeContentRequests(in Array<nsIContentAnalysisRequest> aCars,
+                                 in boolean aAutoAcknowledge);
 
   /**
-   * Same functionality as AnalyzeContentRequest(), but more convenient to call
-   * from C++ since it takes a callback instead of returning a Promise.
+   * A helper that calls analyzeContentRequests with a single request.
    *
    * @param aCar
    *        The request to analyze.
+   * @param aAutoAcknowledge
+   *        See analyzeContentRequests.
+   */
+  [implicit_jscontext]
+  Promise analyzeContentRequest(in nsIContentAnalysisRequest aCar,
+                                in boolean aAutoAcknowledge);
+
+  /**
+   * Same functionality as AnalyzeContentRequests(), but more convenient to call
+   * from C++ since it takes a callback instead of returning a Promise.
+   *
+   * @param aCars
+   *        The requests to analyze.
    * @param aAutoAcknowledge
    *        Whether to send an acknowledge message to the agent after the agent sends a response.
    *        Passing false means that the caller is responsible for
@@ -301,20 +336,61 @@ interface nsIContentAnalysis : nsISupports
    * @param callback
    *        Callbacks to be called when the agent sends a response message (or when there is an error).
    */
-  void analyzeContentRequestCallback(in nsIContentAnalysisRequest aCar, in boolean aAutoAcknowledge, in nsIContentAnalysisCallback callback);
+  void analyzeContentRequestsCallback(in Array<nsIContentAnalysisRequest> aCars,
+                                      in boolean aAutoAcknowledge,
+                                      in nsIContentAnalysisCallback callback);
+
+  /**
+   * A helper that calls analyzeContentRequestsCallback with a single request.
+   *
+   * @param aCar
+   *        The request to analyze.
+   * @param aAutoAcknowledge
+   *        See analyzeContentRequestsCallback.
+   * @param callback
+   *        Callback to be called when the agent sends a response message (or when there is an error).
+   */
+  void analyzeContentRequestCallback(in nsIContentAnalysisRequest aCar,
+                                     in boolean aAutoAcknowledge,
+                                     in nsIContentAnalysisCallback callback);
+
+  /**
+   * Internal helper for 'analyzeContentRequest*' methods.  This is abstracted
+   * so that it can be mocked in tests.  Do not call this.
+   *
+   * @param aRequest
+   *        The request to analyze.
+   * @param aAutoAcknowledge
+   *        See analyzeContentRequestsCallback.
+   * @param aCallback
+   *        Callback to be called when the agent sends a response message (or
+   *        when there is an error).
+   */
+  void analyzeContentRequestPrivate(
+    in nsIContentAnalysisRequest aRequest, in boolean aAutoAcknowledge,
+    in nsIContentAnalysisCallback aCallback);
 
   /**
    * Cancels the request that is in progress. This may not actually cancel the request
    * with the analysis server, but it means that Gecko will immediately act like the request
    * was denied.
    *
+   * @param aUserActionId
+   *        The user action ID for the request to cancel.
+   */
+  void cancelRequestsByUserAction(in ACString aUserActionId);
+
+  /**
+   * Cancels the request that is in progress.  This will also cancel any other
+   * request that has the same user_action_id.
+   *
+   * This is deprecated and will be removed.  Use cancelRequestsByUserAction
+   * instead.
+   *
    * @param aRequestToken
    *        The token for the request to cancel.
-   * @param aNotifyObservers
-   *        Whether to notify observers with a dlp-response event. Generally this should be
-   *        false if the observer is the one doing the cancelling, and true if not.
    */
-  void cancelContentAnalysisRequest(in ACString aRequestToken, in boolean aNotifyObservers);
+  void cancelRequestsByRequestToken(in ACString aRequestToken);
 
   /**
    * Indicates that the user has responded to a WARN dialog. aAllowContent represents
@@ -324,8 +400,11 @@ interface nsIContentAnalysis : nsISupports
 
   /**
    * Cancels all outstanding DLP requests. Used on shutdown.
+   *
+   * @param aForbidFutureRequests
+   *        Block CA from ever sending future requests to agent.
    */
-  void cancelAllRequests();
+  void cancelAllRequests([optional] in boolean aForbidFutureRequests);
 
   /**
    * Test-only function that pretends that "-allow-content-analysis" was
@@ -379,4 +458,25 @@ interface nsIContentAnalysis : nsISupports
    */
   void getCachedResponse(in nsIURI aURI, in int32_t aSequenceNumber,
     out nsIContentAnalysisResponse_Action aAction, out boolean aIsValid);
+
+  /**
+   * Show a dialog to indicate to the user that the given request was blocked.
+   * This is only used when the request is blocked without needing to consult
+   * the agent.
+   *
+   * This is abstracted so that it can be mocked in tests.  Do not call this.
+   *
+   * @param aRequest  The blocked request
+   */
+  void showBlockedRequestDialog(in nsIContentAnalysisRequest aRequest);
+
+  /**
+   * Make an nsIContentAnalysisResponse object.  For use in tests only.
+   *
+   * @param aAction     The response action
+   * @param aToken      The request token
+   */
+  nsIContentAnalysisResponse makeResponseForTest(
+      in nsIContentAnalysisResponse_Action aAction,
+      in ACString aToken);
 };

@@ -273,7 +273,7 @@ export const ContentAnalysis = {
           // DLP requests, but the "DLP busy" or "DLP blocked" dialog can block the
           // main thread, thus preventing the "quit-application" from being sent,
           // which causes a shutdownhang. (bug 1899703)
-          lazy.gContentAnalysis.cancelAllRequests();
+          lazy.gContentAnalysis.cancelAllRequests(true);
         }
         break;
       }
@@ -653,10 +653,7 @@ export const ContentAnalysis = {
         // This is also be called if the tab/window is closed while a request is in progress,
         // in which case we need to cancel the request.
         if (this.requestTokenToRequestInfo.delete(aRequestToken)) {
-          lazy.gContentAnalysis.cancelContentAnalysisRequest(
-            aRequestToken,
-            false
-          );
+          lazy.gContentAnalysis.cancelRequestsByRequestToken(aRequestToken);
           let dlpBusyView =
             this.dlpBusyViewsByTopBrowsingContext.getAndRemoveEntry(
               aBrowsingContext,
