@@ -13,7 +13,6 @@ config = {
             "platforms": [
                 "linux",
                 "linux64",
-                "linux64-aarch64",
                 "osx",
                 "win",
                 "win64",
@@ -47,7 +46,6 @@ config = {
             "platforms": [
                 "linux",
                 "linux64",
-                "linux64-aarch64",
                 "osx",
                 "win",
                 "win64",
@@ -135,7 +133,6 @@ config = {
             "platforms": [
                 "linux",
                 "linux64",
-                "linux64-aarch64",
                 "osx",
                 "win",
                 "win64",
@@ -166,7 +163,6 @@ config = {
             "platforms": [
                 "linux",
                 "linux64",
-                "linux64-aarch64",
                 "osx",
                 "win",
                 "win64",
