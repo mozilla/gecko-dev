@@ -12,8 +12,6 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   PageActions: "resource:///modules/PageActions.sys.mjs",
-  TranslationsTelemetry:
-    "chrome://browser/content/translations/TranslationsTelemetry.sys.mjs",
   TranslationsUtils:
     "chrome://global/content/translations/TranslationsUtils.mjs",
   TranslationsPanelShared:
