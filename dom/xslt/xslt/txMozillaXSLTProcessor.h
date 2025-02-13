@@ -149,7 +149,7 @@ class txMozillaXSLTProcessor final : public nsIDocumentTransformer,
   nsCOMPtr<nsISupports> mOwner;
 
   RefPtr<txStylesheet> mStylesheet;
-  RefPtr<mozilla::dom::Document> mStylesheetDocument;
+  mozilla::dom::Document* mStylesheetDocument;  // weak
   nsCOMPtr<nsIContent> mEmbeddedStylesheetRoot;
 
   nsCOMPtr<nsINode> mSource;
