@@ -64,7 +64,11 @@
   MACRO(MajorGC)                                  \
   MACRO(NonIdleMajorGC)                           \
   MACRO(A11Y_DoInitialUpdate)                     \
-  MACRO(A11Y_ProcessQueuedCacheUpdate)
+  MACRO(A11Y_ProcessQueuedCacheUpdate)            \
+  MACRO(A11Y_ContentRemovedNode)                  \
+  MACRO(A11Y_ContentRemovedAcc)                   \
+  MACRO(A11Y_PruneOrInsertSubtree)                \
+  MACRO(A11Y_ShutdownChildrenInSubtree)
 
 namespace mozilla {
 

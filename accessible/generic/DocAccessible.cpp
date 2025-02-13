@@ -1364,6 +1364,12 @@ void DocAccessible::ProcessPendingUpdates() {
 }
 
 bool DocAccessible::PruneOrInsertSubtree(nsIContent* aRoot) {
+  AUTO_PROFILER_MARKER_TEXT("DocAccessible::PruneOrInsertSubtree", A11Y, {},
+                            ""_ns);
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_PruneOrInsertSubtree>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
+
   bool insert = false;
 
   // In the case that we are, or are in, a shadow host, we need to assure
@@ -2382,6 +2388,12 @@ void DocAccessible::FireEventsOnInsertion(LocalAccessible* aContainer) {
 }
 
 void DocAccessible::ContentRemoved(LocalAccessible* aChild) {
+  AUTO_PROFILER_MARKER_TEXT("DocAccessible::ContentRemovedAcc", A11Y, {},
+                            ""_ns);
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_ContentRemovedAcc>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
+
   MOZ_DIAGNOSTIC_ASSERT(aChild != this, "Should never be called for the doc");
   LocalAccessible* parent = aChild->LocalParent();
   MOZ_DIAGNOSTIC_ASSERT(parent, "Unattached accessible from tree");
@@ -2421,6 +2433,12 @@ void DocAccessible::ContentRemoved(LocalAccessible* aChild) {
 }
 
 void DocAccessible::ContentRemoved(nsIContent* aContentNode) {
+  AUTO_PROFILER_MARKER_TEXT("DocAccessible::ContentRemovedNode", A11Y, {},
+                            ""_ns);
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_ContentRemovedNode>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
+
   if (!mRemovedNodes.EnsureInserted(aContentNode)) {
     return;
   }
@@ -2911,6 +2929,13 @@ void DocAccessible::UncacheChildrenInSubtree(LocalAccessible* aRoot) {
 }
 
 void DocAccessible::ShutdownChildrenInSubtree(LocalAccessible* aAccessible) {
+  AUTO_PROFILER_MARKER_TEXT("DocAccessible::ShutdownChildrenInSubtree", A11Y,
+                            {}, ""_ns);
+  PerfStats::AutoMetricRecording<
+      PerfStats::Metric::A11Y_ShutdownChildrenInSubtree>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
+
   MOZ_ASSERT(!nsAccessibilityService::IsShutdown());
   // Traverse through children and shutdown them before this accessible. When
   // child gets shutdown then it removes itself from children array of its
