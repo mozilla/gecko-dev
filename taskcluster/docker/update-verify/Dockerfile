@@ -22,10 +22,8 @@ RUN bash /tmp/system-setup.sh
 RUN chown -R worker:worker /builds/worker/bin && chmod 755 /builds/worker/bin/*
 ENV PATH $PATH:/builds/worker/bin
 
-# Set variable normally configured at login, by the shells parent process, these
-# are taken from GNU su manual
-ENV           LANG          en_US.UTF-8
-ENV           LC_ALL        en_US.UTF-8
+ENV           LANG          C.UTF-8
+ENV           LC_ALL        C.UTF-8
 
 # Set a default command useful for debugging
 CMD ["/bin/bash", "--login"]

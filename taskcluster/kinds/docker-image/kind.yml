@@ -254,7 +254,7 @@ tasks:
         symbol: I(pg)
     update-verify:
         symbol: I(uv)
-        parent: ubuntu2004-base
+        parent: debian12-base
     diffoscope:
         symbol: I(diff)
         parent: debian12-base

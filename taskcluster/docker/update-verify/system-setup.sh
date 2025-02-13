@@ -18,11 +18,6 @@ apt_packages+=('sudo')
 apt-get update
 apt-get install "${apt_packages[@]}"
 
-# Without this we get spurious "LC_ALL: cannot change locale (en_US.UTF-8)" errors,
-# and python scripts raise UnicodeEncodeError when trying to print unicode characters.
-locale-gen en_US.UTF-8
-dpkg-reconfigure locales
-
 su -c 'git config --global user.email "worker@mozilla.test"' worker
 su -c 'git config --global user.name "worker"' worker
 
