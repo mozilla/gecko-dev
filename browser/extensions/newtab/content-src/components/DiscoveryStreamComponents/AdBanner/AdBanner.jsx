@@ -113,6 +113,9 @@ export const AdBanner = ({
                 recommended_at: spoc.recommended_at,
                 received_rank: spoc.received_rank,
                 format: spoc.format,
+                ...(spoc.shim?.impression
+                  ? { shim: spoc.shim.impression }
+                  : {}),
               },
             ]}
             dispatch={dispatch}
