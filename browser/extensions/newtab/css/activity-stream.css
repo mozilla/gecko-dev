@@ -1421,13 +1421,15 @@ main section {
   border: 1px dotted var(--newtab-primary-action-background);
 }
 
-.top-sites-list .top-site-outer .top-site-button {
+.top-sites-list .top-site-outer .top-site-button,
+.fields-and-preview .top-site-outer .top-site-button {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
-.top-sites-list .top-site-outer .title .title-label {
+.top-sites-list .top-site-outer .title .title-label,
+.fields-and-preview .top-site-outer .title .title-label {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1437,10 +1439,13 @@ main section {
   width: 100px;
   padding: 0 var(--space-xsmall);
 }
-.top-sites-list .top-site-outer .title.sponsored .title-label {
+.top-sites-list .top-site-outer .title.sponsored .title-label,
+.fields-and-preview .top-site-outer .title.sponsored .title-label {
   min-height: 1lh;
 }
-.top-sites-list .top-site-outer:hover .title:not(.sponsored) .title-label, .top-sites-list .top-site-outer:focus-within .title:not(.sponsored) .title-label {
+.top-sites-list .top-site-outer:hover .title:not(.sponsored) .title-label, .top-sites-list .top-site-outer:focus-within .title:not(.sponsored) .title-label,
+.fields-and-preview .top-site-outer:hover .title:not(.sponsored) .title-label,
+.fields-and-preview .top-site-outer:focus-within .title:not(.sponsored) .title-label {
   -webkit-line-clamp: 2;
   white-space: wrap;
   word-break: break-word;

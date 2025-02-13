@@ -821,7 +821,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   }
 }
 
-.top-sites-list {
+.top-sites-list,
+.fields-and-preview {
   .top-site-outer {
     .top-site-button {
       display: flex;
