@@ -48,8 +48,17 @@ pref(layout.dynamic-toolbar-max-height,100) == device-height-with-dynamic-toolba
 # reduce the fallback viewport width to 600px from the default 980px.
 pref(browser.viewport.desktopWidth,600) == no-viewport-wide-device.html no-viewport-wide-device-ref.html
 
-# The next two tests (desktop-mode.html and desktop-mode-cleanup.html) must run
-# consecutively; do not insert anything between them. (As the naming suggests,
-# the latter test just does some cleanup work on behalf of the former test.)
+# --- Desktop mode tests---
+# Tests in this section run in pairs, of a test followed by desktop-mode-cleanup.html.
+# (As the naming suggests, the latter test just does some cleanup work on behalf of
+# the former test.)
+
 == desktop-mode.html desktop-mode-ref.html
 == desktop-mode-cleanup.html about:blank
+
+# Similar to no-viewport-wide-device.html, reduce the fallback viewport width
+# to test a scenario where a device has a wider screen width than the fallback width.
+pref(browser.viewport.desktopWidth,600) == desktop-mode-wide-device.html desktop-mode-wide-device-ref.html
+== desktop-mode-cleanup.html about:blank
+
+# --- End of desktop mode tests---

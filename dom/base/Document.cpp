@@ -10861,6 +10861,9 @@ nsViewportInfo Document::GetViewportInfo(const ScreenIntSize& aDisplaySize) {
   if (bc && bc->ForceDesktopViewport() && !IsAboutPage()) {
     CSSCoord viewportWidth =
         StaticPrefs::browser_viewport_desktopWidth() / fullZoom;
+    // Do not use a desktop viewport size less wide than the display.
+    CSSCoord displayWidth = (aDisplaySize / defaultScale).width;
+    viewportWidth = nsViewportInfo::Max(displayWidth, viewportWidth);
     CSSToScreenScale scaleToFit(aDisplaySize.width / viewportWidth);
     float aspectRatio = (float)aDisplaySize.height / aDisplaySize.width;
     CSSSize viewportSize(viewportWidth, viewportWidth * aspectRatio);

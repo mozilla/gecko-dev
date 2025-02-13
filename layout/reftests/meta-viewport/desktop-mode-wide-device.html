@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta name="viewport" content="initial-scale=1,width=device-width,minimum-scale=1">
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  scrollbar-width: none;
+}
+div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /*
+   * The failure mode this test is intended to catch is if the initial
+   * containing block width is incorrectly chosen to be 600px (from the
+   * browser.viewport.desktopWidth=600 in reftest.list), so that the
+   * width of this element becomes 300px, not matching the 400px in the
+   * reference page.
+   */
+  width: 50%;
+  height: 100px;
+  background: green;
+}
+</style>
+<div></div>
+<script>
+async function go() {
+  let win = SpecialPowers.wrap(window);
+  let origVal = await SpecialPowers.spawnChrome([win.browsingContext.id],
+                                                id => {
+    // We enable 'forceDesktopViewport' (which is otherwise off-by-default)
+    // and we test our rendering under that condition.  It's important that we
+    // are followed by reftest "desktop-mode-cleanup.html" which will revert
+    // this change for us, so that forceDesktopViewport doesn't remain on for
+    // subsequent tests.
+    let ctx = BrowsingContext.get(id);
+    let origVal = ctx.forceDesktopViewport;
+    ctx.forceDesktopViewport = true;
+    return origVal;
+  });
+
+  if (origVal) {
+    // UNEXPECTED: if we get here, then forceDesktopViewport was somehow
+    // true already (when it should be at its default 'false')! Either we've
+    // got the wrong assumption about the default value, or some earlier test
+    // enabled it and forgot to clean up after themselves.
+    //
+    // NOTE: We could signal a test-failure in this circumstance,
+    // by e.g. setting the background to red...
+    //   document.body.style.background = "red";
+    // ...but that also makes this test trivially fail in 'test-verify' runs
+    // per bug 1915025 comment 17 through 19, so let's not do that for now.
+    // So for now, we handle this unexpected condition silently/gracefully.
+    // I'm leaving this (no-op) if-check in the test in case it's useful
+    // for debugging/logging at some point, though.
+  }
+
+  // Force a reflow to make sure the forceDesktopViewport flag is
+  // picked up.
+  document.documentElement.style.display = "none";
+  document.documentElement.getBoundingClientRect();
+  document.documentElement.style.display = "block";
+  document.documentElement.getBoundingClientRect();
+
+  document.documentElement.classList.remove('reftest-wait');
+}
+
+go();
+</script>
