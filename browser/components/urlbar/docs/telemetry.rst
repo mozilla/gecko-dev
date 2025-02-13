@@ -78,11 +78,20 @@ Scalars
 urlbar.abandonment
 ~~~~~~~~~~~~~~~~~~
 
+  NOTE: This telemetry is no longer collected. See changelog below.
+
   A uint recording the number of abandoned engagements in the urlbar. An
   abandonment occurs when the user begins using the urlbar but stops before
   completing the engagement. This can happen when the user clicks outside the
   urlbar to focus a different part of the window. It can also happen when the
   user switches to another window while the urlbar is focused.
+
+  Changelog
+    Firefox 134
+      Legacy ``urlbar.abandonment`` telemetry mirrored to Glean. (See bug 1927093)
+    Firefox 137
+      Legacy ``urlbar.abandonment`` telemetry and Glean ``urlbar.abandonment_count`` telemetry
+      removed completely. (See bug 1932711)
 
 urlbar.autofill_deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -94,10 +103,19 @@ urlbar.autofill_deletion
 urlbar.engagement
 ~~~~~~~~~~~~~~~~~
 
+  NOTE: This telemetry is no longer collected. See changelog below.
+
   A uint recording the number of engagements the user completes in the urlbar.
   An engagement occurs when the user navigates to a page using the urlbar, for
   example by picking a result in the urlbar panel or typing a search term or URL
   in the urlbar and pressing the enter key.
+
+  Changelog
+    Firefox 134
+      Legacy ``urlbar.engagement`` telemetry mirrored to Glean. (See bug 1927093)
+    Firefox 137
+      Legacy ``urlbar.engagement`` telemetry and Glean ``urlbar.engagement_count`` telemetry
+      removed completely. (See bug 1932711)
 
 urlbar.impression.*
 ~~~~~~~~~~~~~~~~~~~

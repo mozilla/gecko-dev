@@ -1037,12 +1037,6 @@ class TelemetryEvent {
     }
 
     if (!skipLegacyTelemetry) {
-      if (method == "engagement") {
-        Glean.urlbar.engagementCount.add(1);
-      } else {
-        Glean.urlbar.abandonmentCount.add(1);
-      }
-
       let firstVisibleResult = this._controller.view?.visibleResults?.[0];
       if (
         method === "engagement" &&

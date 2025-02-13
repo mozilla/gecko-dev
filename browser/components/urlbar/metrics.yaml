@@ -669,28 +669,6 @@ urlbar:
     send_in_pings:
       - events
 
-  # The _count suffix is to disambiguate with the event of the same name.
-  abandonment_count:
-    type: counter
-    description: >
-      A uint recording the number of abandoned engagements in the urlbar.
-      An abandonment occurs when the user begins using the urlbar but
-      stops before completing the engagement. This can happen when the
-      user clicks outside the urlbar to focus a different part of the
-      window. It can also happen when the user switches to another window
-      while the urlbar is focused.
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar urlbar.abandonment.
-    bugs:
-      - https://bugzil.la/1752953
-    data_reviews:
-      - https://bugzil.la/1752953
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-      - adw@mozilla.com
-    expires: never
-    telemetry_mirror: URLBAR_ABANDONMENT
-
   autofill_deletion:
     type: counter
     description: >
@@ -707,27 +685,6 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
     telemetry_mirror: URLBAR_AUTOFILL_DELETION
-
-  # The _count suffix is to disambiguate with the event of the same name.
-  engagement_count:
-    type: counter
-    description: >
-      A uint recording the number of engagements the user completes in the
-      urlbar.  An engagement occurs when the user navigates to a page
-      using the urlbar, for example by picking a result in the urlbar
-      panel or typing a search term or URL in the urlbar and pressing the
-      enter key.
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar urlbar.engagement.
-    bugs:
-      - https://bugzil.la/1752953
-    data_reviews:
-      - https://bugzil.la/1752953
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-      - adw@mozilla.com
-    expires: never
-    telemetry_mirror: URLBAR_ENGAGEMENT
 
 # Replacement for PingCentre "quicksuggest-block|impression|click" pings.
 quick_suggest:
