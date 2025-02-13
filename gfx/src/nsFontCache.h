@@ -24,7 +24,8 @@ struct nsFont;
 
 class nsFontCache final : public nsIObserver {
  public:
-  nsFontCache() : mContext(nullptr) {}
+  nsFontCache()
+      : mContext(nullptr), mMissedFontFamilyNames("MissedFontFamilyNames") {}
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -52,12 +53,11 @@ class nsFontCache final : public nsIObserver {
   static constexpr int32_t kMaxCacheEntries = 128;
 
   // Number of cache misses before we assume that a font fingerprinting attempt
-  // is being made. Usually fingerprinters will lookup the same font-family
-  // three times, as "sans-serif", "serif" and "monospace".
-  static constexpr int32_t kFingerprintingCacheMissThreshold = 3 * 20;
+  // is being made.
+  static constexpr int32_t kFingerprintingCacheMissThreshold = 20;
   // We assume that fingerprinters will lookup a large number of fonts in a
   // short amount of time.
-  static constexpr PRTime kFingerprintingTimeout =
+  static constexpr PRTime kFingerprintingLastNSec =
       PRTime(PR_USEC_PER_SEC) * 3;  // 3 seconds
 
   static_assert(kFingerprintingCacheMissThreshold < kMaxCacheEntries);
@@ -93,8 +93,10 @@ class nsFontCache final : public nsIObserver {
     RefPtr<nsFontCache> mCache;
   };
 
-  PRTime mLastCacheMiss = 0;
-  uint64_t mCacheMisses = 0;
+  void DetectFontFingerprinting(const nsFont& aFont);
+
+  mozilla::DataMutex<nsTHashMap<nsStringHashKey, PRTime>>
+      mMissedFontFamilyNames;
   bool mReportedProbableFingerprinting = false;
 };
 
