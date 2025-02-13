@@ -45,10 +45,10 @@ export class MarionetteCommandsParent extends JSWindowActorParent {
     return this.sendQuery("MarionetteCommandsParent:_finalizeAction");
   }
 
-  getClientRects(element, _context) {
-    return this.executeScript("return arguments[0].getClientRects()", [
-      element,
-    ]);
+  getClientRects(webEl, _context) {
+    return this.sendQuery("MarionetteCommandsParent:_getClientRects", {
+      elem: webEl,
+    });
   }
 
   getInViewCentrePoint(rect, _context) {

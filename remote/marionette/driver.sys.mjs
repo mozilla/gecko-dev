@@ -209,10 +209,7 @@ class ActionsHelper {
    *     Promise that resolves to a list of DOMRect-like objects.
    */
   getClientRects(element, browsingContext) {
-    return this.#getActor(browsingContext).executeScript(
-      "return arguments[0].getClientRects()",
-      [element]
-    );
+    return this.#getActor(browsingContext).getClientRects(element);
   }
 
   /**

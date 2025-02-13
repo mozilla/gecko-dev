@@ -175,12 +175,19 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
     await lazy.AnimationFramePromise(this.contentWindow);
   }
 
+  #getClientRects(options, _context) {
+    const { elem } = options;
+
+    return elem.getClientRects();
+  }
+
   #getInViewCentrePoint(options) {
     const { rect } = options;
 
     return lazy.dom.getInViewCentrePoint(rect, this.contentWindow);
   }
 
+  // eslint-disable-next-line complexity
   async receiveMessage(msg) {
     if (!this.contentWindow) {
       throw new DOMException("Actor is no longer active", "InactiveActor");
@@ -205,6 +212,9 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
         case "MarionetteCommandsParent:_dispatchEvent":
           this.#dispatchEvent(data);
           waitForNextTick = true;
+          break;
+        case "MarionetteCommandsParent:_getClientRects":
+          result = this.#getClientRects(data);
           break;
         case "MarionetteCommandsParent:_getInViewCentrePoint":
           result = this.#getInViewCentrePoint(data);
