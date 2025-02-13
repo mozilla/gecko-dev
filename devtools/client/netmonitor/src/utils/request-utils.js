@@ -11,6 +11,10 @@ const {
 } = require("resource://devtools/client/shared/unicode-url.js");
 
 const {
+  parseJsonLossless,
+} = require("resource://devtools/client/shared/components/reps/reps/rep-utils.js");
+
+const {
   UPDATE_PROPS,
 } = require("resource://devtools/client/netmonitor/src/constants.js");
 
@@ -657,7 +661,7 @@ function parseJSON(payloadUnclean) {
   let { payload, strippedChars, error } = removeXSSIString(payloadUnclean);
 
   try {
-    json = JSON.parse(payload);
+    json = parseJsonLossless(payload);
   } catch (err) {
     if (isBase64(payload)) {
       try {

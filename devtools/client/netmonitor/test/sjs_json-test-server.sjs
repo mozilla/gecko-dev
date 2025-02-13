@@ -24,5 +24,14 @@ function handleRequest(request, response) {
     case "empty":
       response.write("{}");
       break;
+    case "numbers":
+      response.write(`{
+        "small": 12,
+        "negzero": -0,
+        "big": 1516340399466235648,
+        "precise": 3.141592653589793238462643383279,
+        "exp": 1e2
+      }`);
+      break;
   }
 }
