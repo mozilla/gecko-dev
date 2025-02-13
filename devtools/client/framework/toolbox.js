@@ -919,44 +919,14 @@ Toolbox.prototype = {
    */
   async open() {
     try {
-      // Kick off async loading the Fluent bundles.
-      const fluentL10n = new FluentL10n();
-      const fluentInitPromise = fluentL10n.init([
-        "devtools/client/toolbox.ftl",
-      ]);
-
       const isToolboxURL = this.win.location.href.startsWith(this._URL);
       if (isToolboxURL) {
         // Update the URL so that onceDOMReady watch for the right url.
         this._URL = this.win.location.href;
       }
 
-      // To avoid any possible artifact, wait for the document to be fully loaded
-      // before creating the Browser Loader based on toolbox window object.
-      await new Promise(resolve => {
-        DOMHelpers.onceDOMReady(
-          this.win,
-          () => {
-            resolve();
-          },
-          this._URL
-        );
-      });
-
-      // Setup the Toolbox Browser Loader, used to load React component modules
-      // which expect to be loaded with toolbox.xhtml document as global scope.
-      this.browserRequire = BrowserLoader({
-        window: this.win,
-        useOnlyShared: true,
-      }).require;
-
-      // Wait for fluent initialization before mounting React component,
-      // which depends on it.
-      await fluentInitPromise;
-
       // Mount toolbox React components and update all its state that can be updated synchronously.
-      // Do that early as it will be used to render any exception happening next.
-      this._mountReactComponent(fluentL10n.getBundles());
+      this.onReactLoaded = this._initializeReactComponent();
 
       // Bug 1709063: Use commands.resourceCommand instead of toolbox.resourceCommand
       this.resourceCommand = this.commands.resourceCommand;
@@ -1028,6 +998,8 @@ Toolbox.prototype = {
           onUpdated: this._onResourceUpdated,
         }
       );
+
+      await this.onReactLoaded;
 
       this.isReady = true;
 
@@ -1153,17 +1125,26 @@ Toolbox.prototype = {
         dump("Server stack:" + error.serverStack + "\n");
       }
 
-      // If the exception happens *after* the React component were initialized,
-      // try to display the exception to the user via AppErrorBoundary component
-      if (this._appBoundary) {
-        this._appBoundary.setState({
-          errorMsg: error.toString(),
-          errorStack: error.stack,
-          errorInfo: {
-            serverStack: error.serverStack,
-          },
-          toolbox: this,
-        });
+      try {
+        // React may not be fully loaded yet and still waiting for Fluent or toolbox.xhtml document load.
+        // Wait for it in order to have a functional AppErrorBoundary
+        await this.onReactLoaded;
+
+        // If React managed to load, try to display the exception to the user via AppErrorBoundary component.
+        // But ignore the exception if the React component itself thrown while rendering (errorInfo is defined)
+        if (this._appBoundary && !this._appBoundary.state.errorInfo) {
+          this._appBoundary.setState({
+            errorMsg: error.toString(),
+            errorStack: error.stack,
+            errorInfo: {
+              serverStack: error.serverStack,
+            },
+            toolbox: this,
+          });
+        }
+      } catch (e) {
+        // Ignore any further error related to AppErrorBoundary as it would prevent closing the toolbox.
+        // The exception was already logged to stdout.
       }
     }
   },
@@ -2014,12 +1995,37 @@ Toolbox.prototype = {
 
   /**
    * Initiate toolbox React components and all it's properties. Do the initial render.
-   *
-   * @param {Object} fluentBundles
-   *        A FluentBundle instance used to display any localized text in the React component.
    */
-  _mountReactComponent(fluentBundles) {
-    // Ensure the toolbar doesn't try to render until the tool is ready.
+  async _initializeReactComponent() {
+    // Kick off async loading the Fluent bundles.
+    const fluentL10n = new FluentL10n();
+    const fluentInitPromise = fluentL10n.init(["devtools/client/toolbox.ftl"]);
+
+    // To avoid any possible artifact, wait for the document to be fully loaded
+    // before creating the Browser Loader based on toolbox window object.
+    await new Promise(resolve => {
+      DOMHelpers.onceDOMReady(
+        this.win,
+        () => {
+          resolve();
+        },
+        this._URL
+      );
+    });
+
+    // Setup the Toolbox Browser Loader, used to load React component modules
+    // which expect to be loaded with toolbox.xhtml document as global scope.
+    this.browserRequire = BrowserLoader({
+      window: this.win,
+      useOnlyShared: true,
+    }).require;
+
+    // Wait for the bundles to be ready to use
+    await fluentInitPromise;
+    const fluentBundles = fluentL10n.getBundles();
+
+    // ToolboxController is wrapped into AppErrorBoundary in order to nicely
+    // show any exception that may happen in React updates/renders.
     const element = this.React.createElement(
       this.AppErrorBoundary,
       {
@@ -2048,7 +2054,7 @@ Toolbox.prototype = {
       })
     );
 
-    // Get the DOM element to mount the ToolboxController to.
+    // Get the DOM element to mount the React components to.
     this._componentMount = this.doc.getElementById("toolbox-toolbar-mount");
     this._appBoundary = this.ReactDOM.render(element, this._componentMount);
   },
