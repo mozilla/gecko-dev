@@ -8630,6 +8630,45 @@ nsresult PresShell::EventHandler::DispatchEvent(
     if (NS_FAILED(rv)) {
       return rv;
     }
+    // Let's retarget eMouseMove target if the preceding mouse boundary events
+    // caused removing the target from the tree and EventStateManager knows that
+    // the deepest connected mouseenter target which was an ancestor of the
+    // removed target.  This matches with Chrome Canary with enabling the
+    // new mouse/pointer boundary event feature.  However, they stop dispatching
+    // "pointermove" in the same case.  Therefore, for now, we should do this
+    // only for eMouseMove.
+    if (StaticPrefs::
+            dom_events_mouse_pointer_boundary_keep_enter_targets_after_over_target_removed() &&
+        eventContent && aEvent->mMessage == eMouseMove &&
+        (!eventContent->IsInComposedDoc() ||
+         eventContent->OwnerDoc() != mPresShell->GetDocument())) {
+      const OverOutElementsWrapper* const boundaryEventTargets =
+          aEventStateManager->GetExtantMouseBoundaryEventTarget();
+      const nsIContent* outEventTarget =
+          boundaryEventTargets ? boundaryEventTargets->GetOutEventTarget()
+                               : nullptr;
+      nsIContent* const deepestLeaveEventTarget =
+          boundaryEventTargets
+              ? boundaryEventTargets->GetDeepestLeaveEventTarget()
+              : nullptr;
+      // If the last "over" target (next "out" target) is there, it means that
+      // it was temporarily removed.  In such case, EventStateManager treats
+      // it as never disconnected.  Therefore, we need to do nothing here.
+      // Additionally, if there is no last deepest "enter" event target, we
+      // lost the target.  Therefore, we should keep the traditional behavior,
+      // to dispatch it on the Document node.
+      if (!outEventTarget && deepestLeaveEventTarget) {
+        nsIFrame* const frame =
+            deepestLeaveEventTarget->GetPrimaryFrame(FlushType::Layout);
+        if (MOZ_UNLIKELY(mPresShell->IsDestroying())) {
+          return NS_OK;
+        }
+        if (frame) {
+          mPresShell->mCurrentEventTarget.mFrame = frame;
+          mPresShell->mCurrentEventTarget.mContent = deepestLeaveEventTarget;
+        }
+      }
+    }
   }
 
   // 2. Give event to the DOM for third party and JS use.

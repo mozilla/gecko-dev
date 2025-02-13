@@ -5639,10 +5639,10 @@ void EventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent) {
 }
 
 OverOutElementsWrapper* EventStateManager::GetWrapperByEventID(
-    WidgetMouseEvent* aEvent) {
-  WidgetPointerEvent* pointer = aEvent->AsPointerEvent();
+    WidgetMouseEvent* aMouseEvent) {
+  MOZ_ASSERT(aMouseEvent);
+  WidgetPointerEvent* pointer = aMouseEvent->AsPointerEvent();
   if (!pointer) {
-    MOZ_ASSERT(aEvent->AsMouseEvent() != nullptr);
     if (!mMouseEnterLeaveHelper) {
       mMouseEnterLeaveHelper = new OverOutElementsWrapper(
           OverOutElementsWrapper::BoundaryEventType::Mouse);
