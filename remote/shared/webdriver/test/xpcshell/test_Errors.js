@@ -19,7 +19,6 @@ const errors = [
   error.InvalidElementStateError,
   error.InvalidSelectorError,
   error.InvalidSessionIDError,
-  error.InvalidWebExtensionError,
   error.JavaScriptError,
   error.MoveTargetOutOfBoundsError,
   error.NoSuchAlertError,
@@ -361,14 +360,6 @@ add_task(function test_InvalidSessionIDError() {
   ok(err instanceof error.WebDriverError);
 });
 
-add_task(function test_InvalidWebExtensionError() {
-  let err = new error.InvalidWebExtensionError("foo");
-  equal("InvalidWebExtensionError", err.name);
-  equal("foo", err.message);
-  equal("invalid web extension", err.status);
-  ok(err instanceof error.WebDriverError);
-});
-
 add_task(function test_JavaScriptError() {
   let err = new error.JavaScriptError("foo");
   equal("JavaScriptError", err.name);
@@ -469,14 +460,6 @@ add_task(function test_NoSuchUserContextError() {
   equal("NoSuchUserContextError", err.name);
   equal("foo", err.message);
   equal("no such user context", err.status);
-  ok(err instanceof error.WebDriverError);
-});
-
-add_task(function test_NoSuchWebExtensionError() {
-  let err = new error.NoSuchWebExtensionError("foo");
-  equal("NoSuchWebExtensionError", err.name);
-  equal("foo", err.message);
-  equal("no such web extension", err.status);
   ok(err instanceof error.WebDriverError);
 });
 
