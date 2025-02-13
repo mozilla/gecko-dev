@@ -5,6 +5,9 @@
 
 #include "EventQueue.h"
 
+#include "mozilla/PerfStats.h"
+#include "mozilla/ProfilerMarkers.h"
+
 #include "LocalAccessible-inl.h"
 #include "nsEventShell.h"
 #include "DocAccessibleChild.h"
@@ -161,6 +164,11 @@ bool EventQueue::PushNameOrDescriptionChange(AccEvent* aOrigEvent) {
 // EventQueue: private
 
 void EventQueue::CoalesceEvents() {
+  AUTO_PROFILER_MARKER_TEXT("EventQueue::CoalesceEvents", A11Y, {}, ""_ns);
+  PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_CoalesceEvents>
+      autoRecording;
+  // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.
+
   NS_ASSERTION(mEvents.Length(), "There should be at least one pending event!");
   uint32_t tail = mEvents.Length() - 1;
   AccEvent* tailEvent = mEvents[tail];

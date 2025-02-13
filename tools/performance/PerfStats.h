@@ -71,7 +71,8 @@
   MACRO(A11Y_ShutdownChildrenInSubtree)           \
   MACRO(A11Y_ShowEvent)                           \
   MACRO(A11Y_RecvCache)                           \
-  MACRO(A11Y_ProcessShowEvent)
+  MACRO(A11Y_ProcessShowEvent)                    \
+  MACRO(A11Y_CoalesceEvents)
 
 namespace mozilla {
 
