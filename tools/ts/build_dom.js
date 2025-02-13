@@ -40,7 +40,6 @@ function preprocess(webidl) {
     .replaceAll(/^#.+/gm, "")
     .replaceAll(/\bUTF8String\b/gm, "DOMString")
     .replaceAll(/^\s*legacycaller /gm, "getter ")
-    .replaceAll(/^\s*legacycaller/gm, "any legacycaller")
     .replaceAll(/^callback constructor /gm, "callback ")
     .replaceAll(/(interface \w+);/gm, "[LegacyNoInterfaceObject] $1 {};")
     .replaceAll(/(ElementCreationOptions) or (DOMString)/gm, "$2 or $1")
@@ -132,8 +131,8 @@ function postprocess(generated) {
   return text
     .replaceAll(/declare var isInstance: /g, "// @ts-ignore\n$&")
     .replace(/interface BeforeUnloadEvent /, "// @ts-ignore\n$&")
+    .replace(/interface HTMLScriptElement /, "// @ts-ignore\n$&")
     .replace(/interface SVGElement /, "// @ts-ignore\n$&")
-    .replace("function import(", "function import_(")
     .replace("interface IsInstance {\n}\n", "")
     .replace("type JSON = any;\n", "");
 }

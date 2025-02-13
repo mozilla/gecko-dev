@@ -11052,6 +11052,7 @@ declare var HTMLQuoteElement: {
     isInstance: IsInstance<HTMLQuoteElement>;
 };
 
+// @ts-ignore
 interface HTMLScriptElement extends HTMLElement {
     async: boolean;
     readonly blocking: DOMTokenList;
