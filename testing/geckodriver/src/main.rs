@@ -16,11 +16,11 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-extern crate serde_yaml;
 extern crate tempfile;
 extern crate url;
 extern crate uuid;
 extern crate webdriver;
+extern crate yaml_rust;
 extern crate zip;
 
 #[macro_use]

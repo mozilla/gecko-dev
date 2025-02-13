@@ -633,13 +633,6 @@ user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
-[[publisher.serde_yaml]]
-version = "0.8.26"
-when = "2022-07-16"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
-
 [[publisher.smallvec]]
 version = "1.13.1"
 when = "2024-01-19"
