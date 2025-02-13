@@ -201,6 +201,14 @@ interface nsIContentAnalysisRequest : nsISupports
 
   // The window associated with this request
   readonly attribute WindowGlobalParent windowGlobalParent;
+
+  // The user_action_id of this request. By default, this is equal to
+  // the requestToken.
+  attribute ACString userActionId;
+
+  // The number of requests associated with this user_action_id. By default,
+  // this is 1.
+  attribute int64_t userActionRequestsCount;
 };
 
 [scriptable, builtinclass, uuid(9679545f-4256-4c90-9654-90292c355d25)]

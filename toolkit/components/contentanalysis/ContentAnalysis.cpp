@@ -227,6 +227,32 @@ ContentAnalysisRequest::GetRequestToken(nsACString& aRequestToken) {
 }
 
 NS_IMETHODIMP
+ContentAnalysisRequest::GetUserActionId(nsACString& aUserActionId) {
+  aUserActionId = mUserActionId;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ContentAnalysisRequest::SetUserActionId(const nsACString& aUserActionId) {
+  mUserActionId = aUserActionId;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ContentAnalysisRequest::GetUserActionRequestsCount(
+    int64_t* aUserActionRequestsCount) {
+  NS_ENSURE_ARG_POINTER(aUserActionRequestsCount);
+  *aUserActionRequestsCount = mUserActionRequestsCount;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ContentAnalysisRequest::SetUserActionRequestsCount(
+    int64_t aUserActionRequestsCount) {
+  mUserActionRequestsCount = aUserActionRequestsCount;
+  return NS_OK;
+}
+NS_IMETHODIMP
 ContentAnalysisRequest::GetOperationTypeForDisplay(
     OperationType* aOperationType) {
   *aOperationType = mOperationTypeForDisplay;
@@ -315,6 +341,7 @@ ContentAnalysisRequest::ContentAnalysisRequest(
   }
 
   mRequestToken = GenerateRequestToken();
+  mUserActionId = mRequestToken;
 }
 
 ContentAnalysisRequest::ContentAnalysisRequest(
@@ -346,6 +373,7 @@ ContentAnalysisRequest::ContentAnalysisRequest(
              aReason == nsIContentAnalysisRequest::Reason::eSystemDialogPrint);
   mOperationTypeForDisplay = OperationType::eOperationPrint;
   mRequestToken = GenerateRequestToken();
+  mUserActionId = mRequestToken;
 }
 
 nsresult ContentAnalysisRequest::GetFileDigest(const nsAString& aFilePath,
@@ -402,7 +430,7 @@ static nsresult ConvertToProtobuf(
 }
 
 static nsresult ConvertToProtobuf(
-    nsIContentAnalysisRequest* aIn, int64_t aRequestCount,
+    nsIContentAnalysisRequest* aIn,
     content_analysis::sdk::ContentAnalysisRequest* aOut) {
   uint32_t timeout = StaticPrefs::browser_contentanalysis_agent_timeout();
   aOut->set_expires_at(time(nullptr) + timeout);
@@ -426,10 +454,14 @@ static nsresult ConvertToProtobuf(
   rv = aIn->GetRequestToken(requestToken);
   NS_ENSURE_SUCCESS(rv, rv);
   aOut->set_request_token(requestToken.get(), requestToken.Length());
-  // Use the request_token as the user_action_id so we can cancel
-  // it by request_token if needed.
-  aOut->set_user_action_id(requestToken.get(), requestToken.Length());
-  aOut->set_user_action_requests_count(aRequestCount);
+  nsCString userActionId;
+  rv = aIn->GetUserActionId(userActionId);
+  NS_ENSURE_SUCCESS(rv, rv);
+  aOut->set_user_action_id(userActionId.get(), userActionId.Length());
+  int64_t userActionRequestsCount;
+  rv = aIn->GetUserActionRequestsCount(&userActionRequestsCount);
+  NS_ENSURE_SUCCESS(rv, rv);
+  aOut->set_user_action_requests_count(userActionRequestsCount);
 
   const std::string tag = "dlp";  // TODO:
   *aOut->add_tags() = tag;
@@ -588,6 +620,9 @@ static void LogRequest(
   ADD_FIELD(aPbRequest, "Expires", expires_at);
   ADD_FIELD(aPbRequest, "Analysis Type", analysis_connector);
   ADD_FIELD(aPbRequest, "Request Token", request_token);
+  ADD_FIELD(aPbRequest, "User Action ID", user_action_id);
+  ADD_FIELD(aPbRequest, "User Action Requests Count",
+            user_action_requests_count);
   ADD_FIELD(aPbRequest, "File Path", file_path);
   ADD_FIELD(aPbRequest, "Text Content", text_content);
   // TODO: Tags
@@ -1237,7 +1272,6 @@ RefPtr<ContentAnalysis> ContentAnalysis::GetContentAnalysisFromService() {
 
 nsresult ContentAnalysis::RunAnalyzeRequestTask(
     const RefPtr<nsIContentAnalysisRequest>& aRequest, bool aAutoAcknowledge,
-    int64_t aRequestCount,
     const RefPtr<nsIContentAnalysisCallback>& aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1293,7 +1327,7 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
   }
 
   content_analysis::sdk::ContentAnalysisRequest pbRequest;
-  rv = ConvertToProtobuf(aRequest, aRequestCount, &pbRequest);
+  rv = ConvertToProtobuf(aRequest, &pbRequest);
   NS_ENSURE_SUCCESS(rv, rv);
 
   LOGD("Issuing ContentAnalysisRequest for token %s", requestToken.get());
@@ -1744,9 +1778,8 @@ nsresult ContentAnalysis::AnalyzeContentRequestCallbackPrivate(
 
   MOZ_ASSERT(NS_IsMainThread());
   // since we're on the main thread, don't need to synchronize this
-  int64_t requestCount = ++mRequestCount;
-  return RunAnalyzeRequestTask(aRequest, aAutoAcknowledge, requestCount,
-                               aCallback);
+  ++mRequestCount;
+  return RunAnalyzeRequestTask(aRequest, aAutoAcknowledge, aCallback);
 }
 
 NS_IMETHODIMP

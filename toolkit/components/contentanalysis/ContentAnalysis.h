@@ -127,6 +127,14 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
   // Unique identifier for this request
   nsCString mRequestToken;
 
+  // Unique identifier for this user action.
+  // For example, all requests that come from uploading multiple files
+  // or one clipboard operation should have the same value.
+  nsCString mUserActionId;
+
+  // The number of requests associated with this mUserActionId.
+  int64_t mUserActionRequestsCount = 1;
+
   // Type of text to display, see nsIContentAnalysisRequest for values
   OperationType mOperationTypeForDisplay;
 
@@ -148,8 +156,12 @@ class ContentAnalysisRequest final : public nsIContentAnalysisRequest {
   friend class ::ContentAnalysisTest;
 };
 
-#define CONTENTANALYSIS_IID \
-  {0xa37bed74, 0x4b50, 0x443a, {0xbf, 0x58, 0xf4, 0xeb, 0xbd, 0x30, 0x67, 0xb4}}
+#define CONTENTANALYSIS_IID                          \
+  {                                                  \
+    0xa37bed74, 0x4b50, 0x443a, {                    \
+      0xbf, 0x58, 0xf4, 0xeb, 0xbd, 0x30, 0x67, 0xb4 \
+    }                                                \
+  }
 
 class ContentAnalysisResponse;
 class ContentAnalysis final : public nsIContentAnalysis {
@@ -256,7 +268,6 @@ class ContentAnalysis final : public nsIContentAnalysis {
 
   nsresult RunAnalyzeRequestTask(
       const RefPtr<nsIContentAnalysisRequest>& aRequest, bool aAutoAcknowledge,
-      int64_t aRequestCount,
       const RefPtr<nsIContentAnalysisCallback>& aCallback);
   nsresult RunAcknowledgeTask(
       nsIContentAnalysisAcknowledgement* aAcknowledgement,
