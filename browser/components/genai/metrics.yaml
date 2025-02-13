@@ -126,6 +126,26 @@ genai.chatbot:
         type: quantity
         description: Selected text length.
 
+  contextmenu_remove:
+    type: event
+    description: >
+      Chatbot provider was removed from the context menu.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946099
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D237127
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Removed provider id.
+
   experiment_checkbox_click:
     type: event
     description: >
