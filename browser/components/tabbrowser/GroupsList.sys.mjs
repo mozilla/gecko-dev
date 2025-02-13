@@ -33,7 +33,9 @@ export class GroupsPanel {
         }
         break;
       case "unload":
-        this.#removeObservers();
+        if (this.panelMultiView) {
+          this.#removeObservers();
+        }
         break;
       case "command":
         this.#handleCommand(event);

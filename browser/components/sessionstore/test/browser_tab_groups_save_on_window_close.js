@@ -215,3 +215,24 @@ add_task(async function test_saveOpenTabGroupsOnWindowClose() {
   forgetClosedWindows();
   forgetSavedTabGroups();
 });
+
+/**
+ * A closing window should not save its tab group if the window was closed
+ * in response to moving that tab group
+ */
+add_task(async function test_dontSaveAfterAdoptingGroup() {
+  let win = await promiseNewWindowLoaded();
+  let state = ss.getCurrentState();
+  Assert.ok(!state.savedGroups.length, "savedGroups starts empty");
+
+  let tab1 = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
+  await BrowserTestUtils.browserLoaded(tab1.linkedBrowser);
+  await TabStateFlusher.flush(tab1.linkedBrowser);
+  let group1 = win.gBrowser.addTabGroup([tab1]);
+  await BrowserTestUtils.removeTab(win.gBrowser.tabs[0]);
+  let windowUnloaded = BrowserTestUtils.waitForEvent(win, "unload");
+  gBrowser.adoptTabGroup(group1);
+  await windowUnloaded;
+  state = ss.getCurrentState();
+  Assert.ok(!state.savedGroups.length, "savedGroups is still empty");
+});

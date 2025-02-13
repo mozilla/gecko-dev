@@ -66,6 +66,7 @@ class _TabGroupState {
       name: tabGroup.label,
       color: tabGroup.color,
       collapsed: tabGroup.collapsed,
+      saveOnWindowClose: tabGroup.saveOnWindowClose,
     };
   }
 

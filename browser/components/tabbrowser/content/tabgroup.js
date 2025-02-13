@@ -62,6 +62,7 @@
       this.#updateCollapsedAriaAttributes();
 
       this.createdDate = Date.now();
+      this.saveOnWindowClose = true;
 
       this.addEventListener("TabSelect", this);
 

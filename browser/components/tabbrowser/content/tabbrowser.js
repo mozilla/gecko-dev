@@ -3004,6 +3004,7 @@
       if (group.ownerDocument == document) {
         return group;
       }
+      group.saveOnWindowClose = false;
 
       let newTabs = [];
       for (let tab of group.tabs) {

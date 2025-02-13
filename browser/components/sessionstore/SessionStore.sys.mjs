@@ -2515,6 +2515,9 @@ var SessionStoreInternal = {
       )
     );
     for (let tabGroupState of closedWinData.groups) {
+      if (!tabGroupState.saveOnWindowClose) {
+        continue;
+      }
       newlySavedTabGroups.set(tabGroupState.id, tabGroupState);
     }
     for (let tIndex = 0; tIndex < closedWinData.tabs.length; tIndex++) {
