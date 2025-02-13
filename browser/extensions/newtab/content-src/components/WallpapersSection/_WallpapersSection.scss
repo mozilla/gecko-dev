@@ -1,10 +1,10 @@
 .category-list {
   border: none;
   display: grid;
-  gap: 16px;
+  gap: 48px 16px;
   grid-auto-rows: 86px;
   grid-template-columns: 1fr 1fr 1fr;
-  margin-bottom: 15px;
+  margin-block-end: 20px;
   padding: 0;
 
   label {
@@ -55,6 +55,26 @@
   outline: 2px solid transparent;
   padding: 0;
   width: 100%;
+
+  &.theme-custom-wallpaper {
+    border: 2px dashed var(--border-color-default, #CFCFD8);
+    box-shadow: none;
+    position: relative;
+
+    &::after {
+      content: '';
+      -moz-context-properties: fill;
+      fill: var(--icon-color);
+      background: url('chrome://global/skin/icons/plus-20.svg') center no-repeat;
+      width: calc(var(--icon-size-default) * 1.25 ); // Custom size: ~20px;
+      height: calc(var(--icon-size-default) * 1.25 ); // Custom size: ~20px;
+      display: block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
 
   &.theme-solid-color-picker {
     // Used input[type="color"] element

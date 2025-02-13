@@ -25,6 +25,9 @@ const PREF_WALLPAPERS_V2_ENABLED =
 const WALLPAPER_REMOTE_SETTINGS_COLLECTION = "newtab-wallpapers";
 const WALLPAPER_REMOTE_SETTINGS_COLLECTION_V2 = "newtab-wallpapers-v2";
 
+const PREF_WALLPAPERS_CUSTOM_WALLPAPER_ENABLED =
+  "browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled";
+
 export class WallpaperFeed {
   constructor() {
     this.loaded = false;
@@ -96,6 +99,10 @@ export class WallpaperFeed {
       return;
     }
 
+    const customWallpaperEnabled = Services.prefs.getBoolPref(
+      PREF_WALLPAPERS_CUSTOM_WALLPAPER_ENABLED
+    );
+
     const baseAttachmentURL = await lazy.Utils.baseAttachmentsURL();
 
     const wallpapers = [
@@ -116,6 +123,7 @@ export class WallpaperFeed {
       ...new Set(
         wallpapers.map(wallpaper => wallpaper.category).filter(Boolean)
       ),
+      ...(customWallpaperEnabled ? ["custom-wallpaper"] : []), // Conditionally add custom wallpaper input
     ];
 
     this.store.dispatch(
@@ -193,6 +201,7 @@ export class WallpaperFeed {
         break;
       case at.PREF_CHANGED:
         if (
+          action.data.name === "newtabWallpapers.customWallpaper.enabled" ||
           action.data.name === "newtabWallpapers.enabled" ||
           action.data.name === "newtabWallpapers.v2.enabled"
         ) {

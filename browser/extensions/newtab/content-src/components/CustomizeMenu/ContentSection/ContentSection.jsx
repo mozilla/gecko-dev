@@ -130,12 +130,15 @@ export class ContentSection extends React.PureComponent {
           </div>
         )}
         {wallpapersV2Enabled && (
-          <div className="wallpapers-section">
-            <WallpaperCategories
-              setPref={setPref}
-              activeWallpaper={activeWallpaper}
-            />
-          </div>
+          <>
+            <div className="wallpapers-section">
+              <WallpaperCategories
+                setPref={setPref}
+                activeWallpaper={activeWallpaper}
+              />
+            </div>
+            <span className="divider" role="separator"></span>
+          </>
         )}
         <div className="settings-toggles">
           <div id="shortcuts-section" className="section">

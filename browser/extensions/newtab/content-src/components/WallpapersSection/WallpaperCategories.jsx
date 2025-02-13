@@ -14,6 +14,7 @@ export class _WallpaperCategories extends React.PureComponent {
     this.handleChange = this.handleChange.bind(this);
     this.handleReset = this.handleReset.bind(this);
     this.handleCategory = this.handleCategory.bind(this);
+    this.handleUpload = this.handleUpload.bind(this);
     this.handleBack = this.handleBack.bind(this);
     this.getRGBColors = this.getRGBColors.bind(this);
     this.prefersHighContrastQuery = null;
@@ -157,11 +158,14 @@ export class _WallpaperCategories extends React.PureComponent {
 
     let fluent_id;
     switch (event.target.id) {
-      case "photographs":
-        fluent_id = "newtab-wallpaper-category-title-photographs";
-        break;
       case "abstracts":
         fluent_id = "newtab-wallpaper-category-title-abstract";
+        break;
+      case "celestial":
+        fluent_id = "newtab-wallpaper-category-title-celestial";
+        break;
+      case "photographs":
+        fluent_id = "newtab-wallpaper-category-title-photographs";
         break;
       case "solid-colors":
         fluent_id = "newtab-wallpaper-category-title-colors";
@@ -169,6 +173,12 @@ export class _WallpaperCategories extends React.PureComponent {
 
     this.setState({ activeCategoryFluentID: fluent_id });
   };
+
+  handleUpload() {
+    // TODO: Bug 1947645: Add custom image upload functionality
+    // TODO: Bug 1943663: Add telemetry
+    // TODO: Bug 1947813: Add image upload error states/UI
+  }
 
   handleBack() {
     this.setState({ activeCategory: null });
@@ -285,11 +295,17 @@ export class _WallpaperCategories extends React.PureComponent {
               const thumbnail = activeWallpaperObj || filteredList[0];
               let fluent_id;
               switch (category) {
-                case "photographs":
-                  fluent_id = "newtab-wallpaper-category-title-photographs";
-                  break;
                 case "abstracts":
                   fluent_id = "newtab-wallpaper-category-title-abstract";
+                  break;
+                case "celestial":
+                  fluent_id = "newtab-wallpaper-category-title-celestial";
+                  break;
+                case "custom-wallpaper":
+                  fluent_id = "newtab-wallpaper-upload-image";
+                  break;
+                case "photographs":
+                  fluent_id = "newtab-wallpaper-category-title-photographs";
                   break;
                 case "solid-colors":
                   fluent_id = "newtab-wallpaper-category-title-colors";
@@ -311,9 +327,18 @@ export class _WallpaperCategories extends React.PureComponent {
                     id={category}
                     style={style}
                     type="radio"
-                    onClick={this.handleCategory}
                     onKeyDown={e => this.handleCategoryKeyDown(e, category)}
-                    className="wallpaper-input"
+                    // Add overrides for custom wallpaper upload UI
+                    onClick={
+                      category !== "custom-wallpaper"
+                        ? this.handleCategory
+                        : this.handleUpload
+                    }
+                    className={
+                      category !== "custom-wallpaper"
+                        ? `wallpaper-input`
+                        : `wallpaper-input theme-custom-wallpaper`
+                    }
                     tabIndex={index === 0 ? 0 : -1}
                   />
                   <label htmlFor={category} data-l10n-id={fluent_id}>
