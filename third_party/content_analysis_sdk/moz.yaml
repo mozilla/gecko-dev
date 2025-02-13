@@ -22,6 +22,7 @@ vendoring:
     - demo/modes.h
   patches:
     - agent_improvements.patch
+    - add_delayms.patch
 
 updatebot:
     maintainer-phab: "#dlp-reviewers"

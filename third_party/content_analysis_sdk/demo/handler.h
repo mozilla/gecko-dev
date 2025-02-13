@@ -131,9 +131,9 @@ class Handler : public content_analysis::sdk::AgentEventHandler {
     unsigned long delay = delays_[nextDelayIndex % delays_.size()];
     if (delay > 0) {
       aout.stream() << "Delaying response to " << event->GetRequest().request_token()
-                    << " for " << delay << "s" << std::endl<< std::endl;
+                    << " for " << delay << "ms" << std::endl<< std::endl;
       aout.flush();
-      std::this_thread::sleep_for(std::chrono::seconds(delay));
+      std::this_thread::sleep_for(std::chrono::milliseconds(delay));
     }
 
     // Send the response back to Google Chrome.
@@ -485,7 +485,7 @@ class QueuingHandler : public Handler {
       aout.stream() << "Thread: " << std::this_thread::get_id()
                     << std::endl;
       aout.stream() << "Delaying request processing for "
-                    << handler->delays()[handler->nextDelayIndex() % handler->delays().size()] << "s" << std::endl << std::endl;
+                    << handler->delays()[handler->nextDelayIndex() % handler->delays().size()] << "ms" << std::endl << std::endl;
       aout.flush();
 
       handler->AnalyzeContent(aout, std::move(event));

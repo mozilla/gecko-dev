@@ -1,0 +1,96 @@
+From a8797622ec030dcfb8a51d2d473111bc872a4fa5 Mon Sep 17 00:00:00 2001
+From: David P <daparks@mozilla.com>
+Date: Mon, 3 Feb 2025 10:51:45 -0800
+Subject: [PATCH] Bug 1936020: Part 10 - Add --delaysMs to content analysis
+ demo agent r=#dlp-reviewers!
+
+Allows us to delay at a granularity finer than one second.
+
+diff --git a/demo/agent.cc b/demo/agent.cc
+index 3e168b0915a0c..4460a164722f5 100644
+--- a/demo/agent.cc
++++ b/demo/agent.cc
+@@ -25,7 +25,7 @@ constexpr char kPathSystem[] = "brcm_chrm_cas";
+ std::string path = kPathSystem;
+ bool use_queue = false;
+ bool user_specific = false;
+-std::vector<unsigned long> delays = {0};  // In seconds.
++std::vector<unsigned long> delays = {0};  // In milliseconds.
+ unsigned long num_threads = 8u;
+ std::string save_print_data_path = "";
+ RegexArray toBlock, toWarn, toReport;
+@@ -34,6 +34,7 @@ static std::string modeStr;
+ 
+ // Command line parameters.
+ constexpr const char* kArgDelaySpecific = "--delays=";
++constexpr const char* kArgDelayMsSpecific = "--delaysMs=";
+ constexpr const char* kArgPath = "--path=";
+ constexpr const char* kArgQueued = "--queued";
+ constexpr const char* kArgThreads = "--threads=";
+@@ -80,23 +81,22 @@ bool ParseCommandLine(int argc, char* argv[]) {
+       }
+       path = kPathUser;
+       user_specific = true;
+-    } else if (arg.find(kArgDelaySpecific) == 0) {
+-      std::string delaysStr = arg.substr(strlen(kArgDelaySpecific));
++    } else if ((arg.find(kArgDelaySpecific) == 0) ||
++               (arg.find(kArgDelayMsSpecific) == 0)) {
++      bool isSecs = (arg.find(kArgDelaySpecific) == 0);
++      std::string delaysStr = arg.substr(strlen(isSecs ? kArgDelaySpecific : kArgDelayMsSpecific));
++      unsigned long scale = isSecs ? 1000 : 1;
+       delays.clear();
+       size_t posStart = 0, posEnd;
+       unsigned long delay;
+       while ((posEnd = delaysStr.find(',', posStart)) != std::string::npos) {
+         delay = std::stoul(delaysStr.substr(posStart, posEnd - posStart));
+-        if (delay > 30) {
+-            delay = 30;
+-        }
++        delay = std::min(delay*scale, 30*1000ul);
+         delays.push_back(delay);
+         posStart = posEnd + 1;
+       }
+       delay = std::stoul(delaysStr.substr(posStart));
+-      if (delay > 30) {
+-          delay = 30;
+-      }
++      delay = std::min(delay*scale, 30*1000ul);
+       delays.push_back(delay);
+     } else if (arg.find(kArgPath) == 0) {
+       path = arg.substr(strlen(kArgPath));
+@@ -132,6 +132,7 @@ void PrintHelp() {
+     << "Data containing the string 'block' blocks the request data from being used." << std::endl
+     << std::endl << "Options:"  << std::endl
+     << kArgDelaySpecific << "<delay1,delay2,...> : Add delays to request processing in seconds. Delays are limited to 30 seconds and are applied round-robin to requests. Default is 0." << std::endl
++    << kArgDelayMsSpecific << "<delay1,delay2,...> : Like --delays but takes durations in milliseconds." << std::endl
+     << kArgPath << " <path> : Used the specified path instead of default. Must come after --user." << std::endl
+     << kArgQueued << " : Queue requests for processing in a background thread" << std::endl
+     << kArgThreads << " : When queued, number of threads in the request processing thread pool" << std::endl
+diff --git a/demo/handler.h b/demo/handler.h
+index 88599963c51b0..c578d72012848 100644
+--- a/demo/handler.h
++++ b/demo/handler.h
+@@ -131,9 +131,9 @@ class Handler : public content_analysis::sdk::AgentEventHandler {
+     unsigned long delay = delays_[nextDelayIndex % delays_.size()];
+     if (delay > 0) {
+       aout.stream() << "Delaying response to " << event->GetRequest().request_token()
+-                    << " for " << delay << "s" << std::endl<< std::endl;
++                    << " for " << delay << "ms" << std::endl<< std::endl;
+       aout.flush();
+-      std::this_thread::sleep_for(std::chrono::seconds(delay));
++      std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+     }
+ 
+     // Send the response back to Google Chrome.
+@@ -485,7 +485,7 @@ class QueuingHandler : public Handler {
+       aout.stream() << "Thread: " << std::this_thread::get_id()
+                     << std::endl;
+       aout.stream() << "Delaying request processing for "
+-                    << handler->delays()[handler->nextDelayIndex() % handler->delays().size()] << "s" << std::endl << std::endl;
++                    << handler->delays()[handler->nextDelayIndex() % handler->delays().size()] << "ms" << std::endl << std::endl;
+       aout.flush();
+ 
+       handler->AnalyzeContent(aout, std::move(event));
+-- 
+2.37.1.windows.1
+

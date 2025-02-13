@@ -27,6 +27,7 @@ MozAgentInfo LaunchAgentNormal(const wchar_t* aToBlock,
   cmdLineArguments.Append(L" --user");
   cmdLineArguments.Append(L" --path=");
   cmdLineArguments.Append(pipeName);
+  cmdLineArguments.Append(L" --delaysMs=100");
   MozAgentInfo agentInfo;
   LaunchAgentWithCommandLineArguments(cmdLineArguments, pipeName, agentInfo);
   return agentInfo;
