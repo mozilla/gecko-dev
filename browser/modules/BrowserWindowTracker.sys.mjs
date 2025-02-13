@@ -388,14 +388,33 @@ export const BrowserWindowTracker = {
     return _trackedWindows.length;
   },
 
+  get orderedWindows() {
+    return this.getOrderedWindows();
+  },
+
   /**
    * Array of browser windows ordered by z-index, in reverse order.
    * This means that the top-most browser window will be the first item.
+   * @param {object} options
+   * @param {boolean}  [options.private]
+   *   If set, returns only windows with the specified privateness. i.e. `true`
+   *   will return only private windows. The default value, `null`, will return
+   *   all windows.
    */
-  get orderedWindows() {
-    // Clone the windows array immediately as it may change during iteration,
-    // we'd rather have an outdated order than skip/revisit windows.
-    return [..._trackedWindows];
+  getOrderedWindows({ private: isPrivate = undefined } = {}) {
+    // Clone the windows array immediately as it may change during iteration.
+    // We'd rather have an outdated order than skip/revisit windows.
+    const windows = [..._trackedWindows];
+    if (
+      typeof isPrivate !== "boolean" ||
+      (isPrivate && lazy.PrivateBrowsingUtils.permanentPrivateBrowsing)
+    ) {
+      return windows;
+    }
+
+    return windows.filter(
+      w => lazy.PrivateBrowsingUtils.isWindowPrivate(w) === isPrivate
+    );
   },
 
   getAllVisibleTabs() {

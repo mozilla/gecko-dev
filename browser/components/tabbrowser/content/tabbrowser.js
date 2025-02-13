@@ -3018,14 +3018,18 @@
     }
 
     getAllTabGroups() {
-      return BrowserWindowTracker.orderedWindows.reduce(
-        (acc, window) => acc.concat(window.gBrowser.tabGroups),
+      return BrowserWindowTracker.getOrderedWindows({
+        private: PrivateBrowsingUtils.isWindowPrivate(window),
+      }).reduce(
+        (acc, thisWindow) => acc.concat(thisWindow.gBrowser.tabGroups),
         []
       );
     }
 
     getTabGroupById(id) {
-      for (const win of BrowserWindowTracker.orderedWindows) {
+      for (const win of BrowserWindowTracker.getOrderedWindows({
+        private: PrivateBrowsingUtils.isWindowPrivate(window),
+      })) {
         for (const group of win.gBrowser.tabGroups) {
           if (group.id === id) {
             return group;
