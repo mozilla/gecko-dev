@@ -40,6 +40,12 @@ add_task(
         true
       );
     });
+
+    info(
+      "Awaiting new downloads since the active TranslationsEngine will be rebuilt."
+    );
+    await resolveDownloads(1);
+
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
@@ -64,6 +70,12 @@ add_task(
         false
       );
     });
+
+    info(
+      "Awaiting new downloads since the active TranslationsEngine will be rebuilt."
+    );
+    await resolveDownloads(1);
+
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
@@ -123,6 +135,12 @@ add_task(
         false
       );
     });
+
+    info(
+      "Awaiting new downloads since the active TranslationsEngine will be rebuilt."
+    );
+    await resolveDownloads(1);
+
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
@@ -147,6 +165,12 @@ add_task(
         true
       );
     });
+
+    info(
+      "Awaiting new downloads since the active TranslationsEngine will be rebuilt."
+    );
+    await resolveDownloads(1);
+
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewRevisit,
