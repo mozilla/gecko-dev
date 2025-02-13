@@ -61,6 +61,45 @@ async function waitForPasswordConceal(passwordLine) {
   return concealedPromise;
 }
 
+// Select the button within the <panel-item> element, as that is the target we want to click.
+// Triggering a click event directly on the <panel-item> would fail a11y tests because
+// <panel-item>  has a default role="presentation," which cannot be overridden.
+const getShadowBtn = (menu, selector) =>
+  menu.querySelector(selector).shadowRoot.querySelector("button");
+
+async function testImportFromBrowser(
+  passwordsSidebar,
+  isFromMenuDropdown = true
+) {
+  const wizardReadyPromise = waitForMigrationWizard();
+
+  info("Click on import browser button");
+  if (isFromMenuDropdown) {
+    const menu = passwordsSidebar.querySelector("panel-list");
+    const menuButton = passwordsSidebar.querySelector(
+      "#more-options-menubutton"
+    );
+    menuButton.click();
+    await BrowserTestUtils.waitForEvent(menu, "shown");
+    getShadowBtn(menu, "[action='import-from-browser']").click();
+  } else {
+    const importBrowserButton = passwordsSidebar.querySelector(
+      ".empty-state-import-from-browser"
+    );
+    importBrowserButton.click();
+  }
+
+  info("Confirm migration wizard opened");
+  const wizard = await wizardReadyPromise;
+  ok(wizard, "migration wizard opened");
+
+  let events = Glean.contextualManager.toolbarAction.testGetValue();
+  assertCPMGleanEvent(events[0], {
+    trigger: isFromMenuDropdown ? "toolbar" : "empty_state_card",
+    option_name: "import_browser",
+  });
+}
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -84,15 +123,10 @@ add_task(async function test_passwords_sidebar() {
   SidebarController.hide();
 });
 
-// Select the button within the <panel-item> element, as that is the target we want to click.
-// Triggering a click event directly on the <panel-item> would fail a11y tests because
-// <panel-item>  has a default role="presentation," which cannot be overridden.
-const getShadowBtn = (menu, selector) =>
-  menu.querySelector(selector).shadowRoot.querySelector("button");
-
 add_task(async function test_login_line_commands() {
   await addLocalOriginLogin();
   const passwordsSidebar = await openPasswordsSidebar();
+  await checkAllLoginsRendered(passwordsSidebar);
   const list = passwordsSidebar.querySelector(".passwords-list");
   const card = list.querySelector("password-card");
   const expectedPasswordCard = {
@@ -164,6 +198,9 @@ add_task(async function test_login_line_commands() {
 });
 
 add_task(async function test_passwords_menu_external_links() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   const passwordsSidebar = await openPasswordsSidebar();
   await waitForSnapshots();
   const menu = passwordsSidebar.querySelector("panel-list");
@@ -178,6 +215,13 @@ add_task(async function test_passwords_menu_external_links() {
   );
 
   getShadowBtn(menu, "[action='open-preferences']").click();
+
+  let events = Glean.contextualManager.toolbarAction.testGetValue();
+  assertCPMGleanEvent(events[0], {
+    trigger: "toolbar",
+    option_name: "preferences",
+  });
+
   await preferencesTabPromise;
   ok(true, "passwords settings in preferences opened.");
 
@@ -186,6 +230,11 @@ add_task(async function test_passwords_menu_external_links() {
   const helpTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, SUPPORT_URL);
 
   getShadowBtn(menu, "[action='open-help']").click();
+  events = Glean.contextualManager.toolbarAction.testGetValue();
+  assertCPMGleanEvent(events[1], {
+    trigger: "toolbar",
+    option_name: "help",
+  });
   const helpTab = await helpTabPromise;
   ok(true, "support link opened.");
 
@@ -211,18 +260,26 @@ async function waitForMigrationWizard() {
 }
 
 add_task(async function test_passwords_menu_import_from_browser() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   const passwordsSidebar = await openPasswordsSidebar();
   await waitForSnapshots();
-  const menu = passwordsSidebar.querySelector("panel-list");
-  const menuButton = passwordsSidebar.querySelector("#more-options-menubutton");
+  await testImportFromBrowser(passwordsSidebar);
 
-  menuButton.click();
-  await BrowserTestUtils.waitForEvent(menu, "shown");
+  BrowserTestUtils.addTab(gBrowser, "about:blank");
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  SidebarController.hide();
+});
 
-  const wizardReadyPromise = waitForMigrationWizard();
-  getShadowBtn(menu, "[action='import-from-browser']").click();
-  const wizard = await wizardReadyPromise;
-  ok(wizard, "migration wizard opened");
+add_task(async function test_passwords_menu_import_from_browser_empty_state() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
+  const passwordsSidebar = await openPasswordsSidebar();
+  await waitForSnapshots();
+  await testImportFromBrowser(passwordsSidebar, false);
+
   BrowserTestUtils.addTab(gBrowser, "about:blank");
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
   SidebarController.hide();

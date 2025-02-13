@@ -442,6 +442,7 @@ export class MegalistAlpha extends MozLitElement {
           <p data-l10n-id="passwords-no-passwords-get-started-message"></p>
           <div class="no-logins-card-buttons">
             <moz-button
+              class="empty-state-import-from-browser"
               data-l10n-id="passwords-command-import-from-browser"
               type="primary"
               @click=${() => {
@@ -450,6 +451,7 @@ export class MegalistAlpha extends MozLitElement {
               }}
             ></moz-button>
             <moz-button
+              class="empty-state-import-from-file"
               data-l10n-id="passwords-command-import"
               @click=${() => {
                 this.#sendCommand("Import");
@@ -457,6 +459,7 @@ export class MegalistAlpha extends MozLitElement {
               }}
             ></moz-button>
             <moz-button
+              class="empty-state-add-password"
               data-l10n-id="passwords-add-manually"
               @click=${() => this.#onAddButtonClick("empty_state_card")}
             ></moz-button>

@@ -13,9 +13,9 @@ add_setup(async function () {
   registerCleanupFunction(LoginTestUtils.clearData);
 });
 
-async function openLoginForm(megalist) {
+async function openLoginForm(megalist, selector = ".first-row > moz-button") {
   info("Opening login form.");
-  const addButton = megalist.querySelector(".first-row > moz-button");
+  const addButton = megalist.querySelector(selector);
   const loginFormPromise = BrowserTestUtils.waitForCondition(
     () => megalist.querySelector("login-form"),
     "Login form failed to load."
@@ -60,9 +60,18 @@ function waitForScroll(megalist) {
 }
 
 add_task(async function test_add_login_success() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   const megalist = await openPasswordsSidebar();
   await waitForSnapshots();
   await openLoginForm(megalist);
+  let events = Glean.contextualManager.toolbarAction.testGetValue();
+  Assert.equal(events.length, 1, "Recorded add password once.");
+  assertCPMGleanEvent(events[0], {
+    trigger: "toolbar",
+    option_name: "add_new",
+  });
   addLogin(megalist, TEST_LOGIN_1);
   await waitForNotification(megalist, "add-login-success");
   await checkAllLoginsRendered(megalist);
@@ -134,4 +143,29 @@ add_task(async function test_view_login_command() {
   await waitForScroll(megalist);
 
   LoginTestUtils.clearData();
+});
+
+add_task(async function test_passwords_add_password_empty_state() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
+  const megalist = await openPasswordsSidebar();
+  await checkEmptyState(".no-logins-card-content", megalist);
+  ok(true, "Empty state rendered.");
+
+  info("Add a password via empty state");
+  await openLoginForm(megalist, ".empty-state-add-password");
+  let events = Glean.contextualManager.toolbarAction.testGetValue();
+  assertCPMGleanEvent(events[0], {
+    trigger: "empty_state_card",
+    option_name: "add_new",
+  });
+  addLogin(megalist, TEST_LOGIN_1);
+  await waitForNotification(megalist, "add-login-success");
+  await checkAllLoginsRendered(megalist);
+
+  LoginTestUtils.clearData();
+
+  info("Closing the sidebar");
+  SidebarController.hide();
 });

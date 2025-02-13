@@ -36,10 +36,3 @@ add_task(async function test_passwords_empty_state() {
   info("Closing the sidebar");
   SidebarController.hide();
 });
-
-async function checkEmptyState(selector, megalist) {
-  return await BrowserTestUtils.waitForCondition(() => {
-    const emptyStateCard = megalist.querySelector(".empty-state-card");
-    return !!emptyStateCard?.querySelector(selector);
-  }, "Empty state card failed to render");
-}

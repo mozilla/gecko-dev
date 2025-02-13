@@ -52,6 +52,9 @@ async function checkSearchResults(expectedCount, megalist) {
 }
 
 add_task(async function test_filter_passwords() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   await addBreach();
   await addMockPasswords();
   info("Adding breached login");
@@ -73,12 +76,24 @@ add_task(async function test_filter_passwords() {
   await waitForAlertsButton(megalist);
   const alertsButton = megalist.querySelector("#alerts");
   alertsButton.click();
+
+  let events = Glean.contextualManager.toolbarAction.testGetValue();
+  assertCPMGleanEvent(events[0], {
+    trigger: "toolbar",
+    option_name: "list_state_alerts",
+  });
+
   await alertsRenderedPromise;
   ok(true, "Passwords list is showing only login alerts.");
 
   info("Toggle showing all logins");
   const allLoginsButton = megalist.querySelector("#allLogins");
   allLoginsButton.click();
+  events = Glean.contextualManager.toolbarAction.testGetValue();
+  assertCPMGleanEvent(events[1], {
+    trigger: "toolbar",
+    option_name: "list_state_all",
+  });
   await checkAllLoginsRendered(megalist);
 
   LoginTestUtils.clearData();
