@@ -287,6 +287,16 @@
                 hidden="true"
                 />
       <menuseparator id="passwordmgr-items-separator"/>
+      <menuitem id="context-copy-link-to-highlight"
+                data-l10n-id="text-action-copy-link-to-highlight"
+                />
+      <menuitem id="context-copy-clean-link-to-highlight"
+                data-l10n-id="text-action-copy-clean-link-to-highlight"
+                />
+      <menuitem id="context-remove-all-highlights"
+                data-l10n-id="text-action-remove-all-highlights"
+                />
+      <menuseparator id="context-sep-highlights"/>
       <menuitem id="context-undo"
                 data-l10n-id="text-action-undo"
                 command="cmd_undo"/>
