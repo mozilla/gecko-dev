@@ -5,12 +5,10 @@
 package org.mozilla.focus.state
 
 import mozilla.components.lib.state.Store
-import mozilla.components.lib.state.UiStore
 
 /**
  * A [Store] keeping track of the global app state.
  */
 class AppStore(
     initialState: AppState,
-    reducer: AppReducer,
-) : UiStore<AppState, AppAction>(initialState, reducer)
+) : Store<AppState, AppAction>(initialState, AppReducer)
