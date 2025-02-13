@@ -109,7 +109,11 @@ class ContentAnalysisTest : public testing::Test {
   // (FRIEND_TEST is another more verbose solution.)
   using UrlFilterResult = ContentAnalysis::UrlFilterResult;
   UrlFilterResult FilterByUrlLists(nsIContentAnalysisRequest* aReq) {
-    return mContentAnalysis->FilterByUrlLists(aReq);
+    // For testing, just pull the URI from the request.
+    nsCOMPtr<nsIURI> uri;
+    MOZ_ALWAYS_SUCCEEDS(aReq->GetUrl(getter_AddRefs(uri)));
+    MOZ_ASSERT(uri);
+    return mContentAnalysis->FilterByUrlLists(aReq, uri);
   }
 };
 MOZ_RUNINIT nsString ContentAnalysisTest::mPipeName;
