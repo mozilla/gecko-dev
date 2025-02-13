@@ -2894,7 +2894,7 @@ bool js::StringChars<CharT>::maybeRealloc(JSContext* cx, size_t oldLength,
     if (!chars) {
       return false;
     }
-    std::memcpy(chars.data(), inlineChars_, InlineLength);
+    std::memcpy(chars.data(), inlineChars_, InlineLength * sizeof(CharT));
 
     ownedChars_.set(std::move(chars));
     return true;
