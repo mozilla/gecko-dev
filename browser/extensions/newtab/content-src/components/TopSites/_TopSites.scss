@@ -407,17 +407,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     border-radius: var(--border-radius-large);
 
     &:hover {
-      background: var(--newtab-background-card);
-
       .context-menu-button {
-        // The normal position for the context menu button is outside of the container,
-        // and thus has the wallpaper-contrast-fix mixin.
-        // We need to revert that because we're moving it into the shortcut's container.
-        color-scheme: light;
-
-        @include dark-theme-only {
-          color-scheme: dark;
-        }
+        @include wallpaper-contrast-fix;
       }
 
       .tile {
@@ -473,6 +464,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         position: static;
         display: inline-block;
         color: var(--icon-color);
+        box-shadow: none;
       }
     }
 
@@ -482,6 +474,10 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       height: 24px;
       width: 24px;
       background-color: unset;
+
+      &:hover {
+        background-color: var(--newtab-button-hover-background);
+      }
     }
 
     .context-menu {
@@ -513,6 +509,33 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
     .top-sites {
       padding-block-start: 0;
+    }
+  }
+
+  .top-sites-list {
+    &:not(.dnd-active) {
+      .top-site-outer:is(.active, :focus, :hover) {
+        @include wallpaper-contrast-fix;
+
+        // Ideally this would just match button --button-background-color-hover.
+        // However, --button-background-color-hover uses currentColor.
+        // We cannot change the shortcut's color to match,
+        // so we just use --button-text-color-hover directly.
+        background: color-mix(in srgb, var(--button-text-color-hover) 14%, transparent);
+
+        .tile {
+          box-shadow: 0 2px 8px 0 var(--newtab-section-card-box-shadow-color);
+        }
+
+        .lightWallpaper &,
+        .darkWallpaper & {
+          background: color-mix(in srgb, var(--button-text-color-hover) 14%, transparent);
+
+          @media (prefers-contrast) {
+            background-color: var(--background-color-box);
+          }
+        }
+      }
     }
   }
 }

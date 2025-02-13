@@ -1100,13 +1100,10 @@ main section {
   margin-block-end: 0;
   border-radius: var(--border-radius-large);
 }
-.shortcuts-refresh .top-site-outer:hover {
-  background: var(--newtab-background-card);
-}
-.shortcuts-refresh .top-site-outer:hover .context-menu-button {
+.lightWallpaper .shortcuts-refresh .top-site-outer:hover .context-menu-button {
   color-scheme: light;
 }
-[lwt-newtab-brighttext] .shortcuts-refresh .top-site-outer:hover .context-menu-button {
+.darkWallpaper .shortcuts-refresh .top-site-outer:hover .context-menu-button {
   color-scheme: dark;
 }
 .shortcuts-refresh .top-site-outer:hover .tile {
@@ -1150,6 +1147,7 @@ main section {
   position: static;
   display: inline-block;
   color: var(--icon-color);
+  box-shadow: none;
 }
 .shortcuts-refresh .top-site-outer .context-menu-button {
   inset-inline-end: 0;
@@ -1157,6 +1155,9 @@ main section {
   height: 24px;
   width: 24px;
   background-color: unset;
+}
+.shortcuts-refresh .top-site-outer .context-menu-button:hover {
+  background-color: var(--newtab-button-hover-background);
 }
 .shortcuts-refresh .top-site-outer .context-menu {
   inset-block-start: 40px;
@@ -1177,6 +1178,26 @@ main section {
 }
 .shortcuts-refresh .discovery-stream.ds-layout.ds-layout-topsites .top-sites {
   padding-block-start: 0;
+}
+.shortcuts-refresh .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+  background: color-mix(in srgb, var(--button-text-color-hover) 14%, transparent);
+}
+.lightWallpaper .shortcuts-refresh .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+  color-scheme: light;
+}
+.darkWallpaper .shortcuts-refresh .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+  color-scheme: dark;
+}
+.shortcuts-refresh .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) .tile {
+  box-shadow: 0 2px 8px 0 var(--newtab-section-card-box-shadow-color);
+}
+.lightWallpaper .shortcuts-refresh .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover), .darkWallpaper .shortcuts-refresh .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+  background: color-mix(in srgb, var(--button-text-color-hover) 14%, transparent);
+}
+@media (prefers-contrast) {
+  .lightWallpaper .shortcuts-refresh .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover), .darkWallpaper .shortcuts-refresh .top-sites-list:not(.dnd-active) .top-site-outer:is(.active, :focus, :hover) {
+    background-color: var(--background-color-box);
+  }
 }
 
 .edit-topsites-wrapper .top-site-inner > .top-site-button > .tile {
