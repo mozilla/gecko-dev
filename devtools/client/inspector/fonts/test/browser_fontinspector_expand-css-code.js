@@ -14,7 +14,7 @@ add_task(async function () {
 
   await expandFontsAccordion(viewDoc);
   info("Checking that the css font-face rule is collapsed by default");
-  const fontEl = getAllFontsEls(viewDoc)[0];
+  const fontEl = getAllFontsEls(viewDoc)[1];
   const codeEl = fontEl.querySelector(".font-css-code");
   is(codeEl.textContent, "@font-face {}", "The font-face rule is collapsed");
 

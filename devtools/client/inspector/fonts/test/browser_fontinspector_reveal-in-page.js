@@ -63,6 +63,12 @@ async function testFontHighlighting(view, inspector) {
     "After filtering out unwanted fonts, we still have fonts to test"
   );
 
+  info("Expand the details element so all fonts are visible");
+  const showMoreEl = viewDoc.querySelector("summary:has(.label-open)");
+  if (showMoreEl) {
+    EventUtils.synthesizeMouseAtCenter(showMoreEl, {}, viewDoc.defaultView);
+  }
+
   for (let i = 0; i < fontEls.length; i++) {
     info(
       `Mousing over and out of font number ${i} ("${fontEls[i].textContent}") in the list`

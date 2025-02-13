@@ -377,6 +377,17 @@ class PageStyleActor extends Actor {
         format: font.format,
         localName: font.localName,
         metadata: font.metadata,
+        version: font.getNameString(InspectorFontFace.NAME_ID_VERSION),
+        description: font.getNameString(InspectorFontFace.NAME_ID_DESCRIPTION),
+        manufacturer: font.getNameString(
+          InspectorFontFace.NAME_ID_MANUFACTURER
+        ),
+        vendorUrl: font.getNameString(InspectorFontFace.NAME_ID_VENDOR_URL),
+        designer: font.getNameString(InspectorFontFace.NAME_ID_DESIGNER),
+        designerUrl: font.getNameString(InspectorFontFace.NAME_ID_DESIGNER_URL),
+        license: font.getNameString(InspectorFontFace.NAME_ID_LICENSE),
+        licenseUrl: font.getNameString(InspectorFontFace.NAME_ID_LICENSE_URL),
+        sampleText: font.getNameString(InspectorFontFace.NAME_ID_SAMPLE_TEXT),
       };
 
       // If this font comes from a @font-face rule

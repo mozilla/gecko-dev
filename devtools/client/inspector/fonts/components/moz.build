@@ -9,6 +9,7 @@ DevToolsModules(
     "FontAxis.js",
     "FontEditor.js",
     "FontList.js",
+    "FontMetadata.js",
     "FontName.js",
     "FontOrigin.js",
     "FontOverview.js",

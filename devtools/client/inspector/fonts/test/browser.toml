@@ -2,6 +2,7 @@
 tags = "devtools"
 subsuite = "devtools"
 support-files = [
+  "devtools-mono.otf",
   "doc_browser_fontinspector.html",
   "doc_browser_fontinspector_iframe.html",
   "test_iframe.html",

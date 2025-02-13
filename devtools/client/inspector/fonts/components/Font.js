@@ -20,6 +20,9 @@ const FontOrigin = createFactory(
 const FontPreview = createFactory(
   require("resource://devtools/client/inspector/fonts/components/FontPreview.js")
 );
+const FontMetadata = createFactory(
+  require("resource://devtools/client/inspector/fonts/components/FontMetadata.js")
+);
 
 const Types = require("resource://devtools/client/inspector/fonts/types.js");
 
@@ -75,7 +78,7 @@ class Font extends PureComponent {
       isFontFaceRuleExpanded
         ? body
         : dom.span({
-            className: "font-css-code-expander",
+            className: "font-truncated-string-expander",
             onClick: this.onFontFaceRuleToggle,
           }),
       trailing
@@ -120,7 +123,8 @@ class Font extends PureComponent {
       ),
       FontOrigin({ font }),
       FontPreview({ onPreviewClick, previewUrl }),
-      this.renderFontCSSCode(rule, ruleText)
+      this.renderFontCSSCode(rule, ruleText),
+      FontMetadata({ font })
     );
   }
 }

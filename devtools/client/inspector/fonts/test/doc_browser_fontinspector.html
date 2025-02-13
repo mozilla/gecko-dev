@@ -20,6 +20,10 @@
     font-weight: 800;
     src: url(ostrich-black.ttf);
   }
+  @font-face {
+    font-family: DevToolsMono;
+    src: url(devtools-mono.otf);
+  }
   body{
     /* Arial doesn't exist on Linux. Liberation Sans is the default sans-serif there. */
     font-family:Arial, "Liberation Sans";
@@ -50,6 +54,9 @@
     font-size: 36px;
     color: blue;
   }
+  footer {
+    font-family: DevToolsMono, Arial, "Liberation Sans";
+  }
 </style>
 
 <body>
@@ -64,4 +71,5 @@
   <div class="empty"></div>
   <div class="viewport-size">VIEWPORT SIZE</div>
   <input class="input-field" value="Input text value"/>
+  <footer>DevTools</footer>
 </body>

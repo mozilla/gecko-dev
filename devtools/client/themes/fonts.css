@@ -96,6 +96,8 @@
   display: inline-block;
   cursor: pointer;
   vertical-align: bottom;
+  background-color: transparent;
+  border: none;
 }
 
 #font-preview-input-container {
@@ -190,19 +192,25 @@
   transform: rotate(-90deg) !important;
 }
 
-.font-css-code-expander::before {
-  content: "\2026";
-  display: inline-block;
-  width: 12px;
-  height: 8px;
-  margin: 0 2px;
-  line-height: 3px;
-  color: var(--theme-icon-dimmed-color);
-  border-radius: 3px;
-  border-style: solid;
-  border-width: 1px;
-  text-align: center;
-  vertical-align: middle;
+.font-truncated-string-expander {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+
+  &::before {
+    content: "\2026";
+    display: inline-block;
+    width: 12px;
+    height: 8px;
+    margin: 0 2px;
+    line-height: 3px;
+    color: var(--theme-icon-dimmed-color);
+    border-radius: 3px;
+    border-style: solid;
+    border-width: 1px;
+    text-align: center;
+    vertical-align: middle;
+  }
 }
 
 .font-control {
@@ -487,4 +495,28 @@
 
 #font-container .accordion + .accordion {
   border-top: none;
+}
+
+.font dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 4px;
+  row-gap: 2px;
+  margin-block: 8px;
+  grid-column: 1 / -1;
+
+  dd {
+    margin-inline-start: 0;
+    word-break: initial;
+
+    /* Offset the expand button so the text of truncated strings still line up with the
+       other values in the grid */
+    .theme-twisty {
+      margin-inline-start: -14px;
+    }
+  }
+
+  & a, a:visited {
+    color: var(--theme-link-color);
+  }
 }

@@ -19,6 +19,10 @@ add_task(async function () {
 async function testBodyFonts(inspector, viewDoc) {
   const FONTS = [
     {
+      familyName: "DevToolsMono",
+      name: ["DevToolsMono Regular"],
+    },
+    {
       familyName: "bar",
       name: ["Ostrich Sans Medium", "Ostrich Sans Black"],
     },
@@ -36,7 +40,7 @@ async function testBodyFonts(inspector, viewDoc) {
   await selectNode("body", inspector);
 
   const groups = getUsedFontGroupsEls(viewDoc);
-  is(groups.length, 3, "Found 3 font families used on BODY");
+  is(groups.length, 4, "Found 4 font families used on BODY");
 
   for (let i = 0; i < FONTS.length; i++) {
     const groupEL = groups[i];
