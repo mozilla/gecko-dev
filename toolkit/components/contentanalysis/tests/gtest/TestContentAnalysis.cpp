@@ -100,9 +100,19 @@ class ContentAnalysisTest : public testing::Test {
         .forget();
   }
 
+  enum class CancelMechanism {
+    // Wait for the service to assign our request tokens, then cancel using
+    // that (deprecated)
+    eCancelByRequestToken,
+    // Wait for the service to assign our requests a user action ID, then cancel
+    // using that.
+    eCancelByUserActionId,
+  };
+
   void SendRequestsCancelAndExpectResponse(
       RefPtr<ContentAnalysis> contentAnalysis,
-      const nsTArray<RefPtr<nsIContentAnalysisRequest>>& requests);
+      const nsTArray<RefPtr<nsIContentAnalysisRequest>>& requests,
+      CancelMechanism aCancelMechanism);
   RefPtr<ContentAnalysis> mContentAnalysis;
   static nsString mPipeName;
   static MozAgentInfo mAgentInfo;
@@ -205,7 +215,8 @@ struct BoolStruct {
 
 void ContentAnalysisTest::SendRequestsCancelAndExpectResponse(
     RefPtr<ContentAnalysis> contentAnalysis,
-    const nsTArray<RefPtr<nsIContentAnalysisRequest>>& requests) {
+    const nsTArray<RefPtr<nsIContentAnalysisRequest>>& requests,
+    CancelMechanism aCancelMechanism) {
   bool gotResponse = false;
   // Make timedOut a RefPtr so if we get a response from content analysis
   // after this function has finished we can safely check that (and don't
@@ -258,12 +269,24 @@ void ContentAnalysisTest::SendRequestsCancelAndExpectResponse(
           // Internally, GetFinalRequests expands the request list
           // asynchronously.  We need to wait for that.
           // (In the case of this test, nothing actually needs to be expanded.)
-          nsCString requestToken;
-          MOZ_ALWAYS_SUCCEEDS(requests[0]->GetRequestToken(requestToken));
-          if (!requestToken.IsEmpty()) {
-            MOZ_ALWAYS_SUCCEEDS(
-                contentAnalysis->CancelRequestsByRequestToken(requestToken));
-            hasCanceledRequest = true;
+          if (aCancelMechanism == CancelMechanism::eCancelByRequestToken) {
+            nsAutoCString requestToken;
+            MOZ_ALWAYS_SUCCEEDS(requests[0]->GetRequestToken(requestToken));
+            if (!requestToken.IsEmpty()) {
+              MOZ_ALWAYS_SUCCEEDS(
+                  contentAnalysis->CancelRequestsByRequestToken(requestToken));
+              hasCanceledRequest = true;
+            }
+          } else {
+            MOZ_ASSERT(aCancelMechanism ==
+                       CancelMechanism::eCancelByUserActionId);
+            nsAutoCString userActionId;
+            MOZ_ALWAYS_SUCCEEDS(requests[0]->GetUserActionId(userActionId));
+            if (!userActionId.IsEmpty()) {
+              MOZ_ALWAYS_SUCCEEDS(
+                  contentAnalysis->CancelRequestsByUserAction(userActionId));
+              hasCanceledRequest = true;
+            }
           }
         }
         return gotResponse || timedOut->mValue;
@@ -531,7 +554,7 @@ TEST_F(ContentAnalysisTest, CheckTwoRequestsHaveDifferentUserActionId) {
 }
 
 TEST_F(ContentAnalysisTest,
-       CheckUserActionRequestsCanCancelAndHaveSameUserActionId) {
+       CheckRequestTokensCanCancelAndHaveSameUserActionId) {
   nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
   nsString allow1(L"allowMe");
   RefPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
@@ -554,7 +577,42 @@ TEST_F(ContentAnalysisTest,
   MOZ_ALWAYS_SUCCEEDS(
       obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
 
-  SendRequestsCancelAndExpectResponse(mContentAnalysis, requests);
+  SendRequestsCancelAndExpectResponse(mContentAnalysis, requests,
+                                      CancelMechanism::eCancelByRequestToken);
+
+  auto rawRequests = rawRequestObserver->GetRequests();
+  EXPECT_EQ(static_cast<size_t>(2), rawRequests.size());
+  EXPECT_EQ(rawRequests[0].user_action_id(), rawRequests[1].user_action_id());
+
+  MOZ_ALWAYS_SUCCEEDS(
+      obsServ->RemoveObserver(rawRequestObserver, "dlp-request-sent-raw"));
+}
+
+TEST_F(ContentAnalysisTest, CheckUserActionIdCanCancelAndHaveSameUserActionId) {
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow1(L"allowMe");
+  RefPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow1),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+
+  // Use different text so the request doesn't match the cache
+  nsString allow2(L"allowMeAgain");
+  RefPtr<nsIContentAnalysisRequest> request2 = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow2),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  nsTArray<RefPtr<nsIContentAnalysisRequest>> requests{request1, request2};
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  auto rawRequestObserver = MakeRefPtr<RawRequestObserver>();
+  MOZ_ALWAYS_SUCCEEDS(
+      obsServ->AddObserver(rawRequestObserver, "dlp-request-sent-raw", false));
+
+  SendRequestsCancelAndExpectResponse(mContentAnalysis, requests,
+                                      CancelMechanism::eCancelByUserActionId);
 
   auto rawRequests = rawRequestObserver->GetRequests();
   EXPECT_EQ(static_cast<size_t>(2), rawRequests.size());
