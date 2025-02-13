@@ -83,23 +83,6 @@ async function mockContentAnalysisService(mockCAServiceTemplate) {
   return mockCAService;
 }
 
-/**
- * Make an nsIContentAnalysisResponse.
- *
- * @param {number} action The action to take, from the
- *  nsIContentAnalysisResponse.Action enum.
- * @param {string} token The requestToken.
- * @returns {object} An object that conforms to nsIContentAnalysisResponse.
- */
-function makeContentAnalysisResponse(action, token) {
-  return {
-    action,
-    shouldAllowContent: action != Ci.nsIContentAnalysisResponse.eBlock,
-    requestToken: token,
-    acknowledge: _acknowledgement => {},
-  };
-}
-
 async function waitForFileToAlmostMatchSize(filePath, expectedSize) {
   // In Cocoa the CGContext adds a hash, plus there are other minor
   // non-user-visible differences, so we need to be a bit more sloppy there.
@@ -174,56 +157,85 @@ function makeMockContentAnalysis() {
     },
 
     // nsIContentAnalysis methods
-    async analyzeContentRequest(request, _autoAcknowledge) {
-      info(
-        "Mock ContentAnalysis service: analyzeContentRequest, this.shouldAllowRequest=" +
-          this.shouldAllowRequest +
-          ", this.errorValue=" +
-          this.errorValue
+
+    // Use the real counterparts of all public analyze* methods.
+    // They will in turn call our mock analyzeContentRequestPrivate.
+    analyzeContentRequests(requests, autoAcknowledge) {
+      return this.realCAService.analyzeContentRequests(
+        requests,
+        autoAcknowledge
       );
-      this.calls.push(request);
+    },
+    analyzeContentRequest(request, autoAcknowledge) {
+      return this.realCAService.analyzeContentRequest(request, autoAcknowledge);
+    },
+    analyzeContentRequestsCallback(requests, autoAcknowledge, callback) {
+      this.realCAService.analyzeContentRequestsCallback(
+        requests,
+        autoAcknowledge,
+        callback
+      );
+    },
+    analyzeContentRequestCallback(request, autoAcknowledge, callback) {
       if (this.errorValue) {
+        // If we throw in analyzeContentRequestPrivate then this function is
+        // a lower stack frame and generates an additional test failure that
+        // we can't tell it to expect.
+        // The test framework expects the user action and request token to
+        // be set anyway.  The values don't matter.
+        // We are also required to call the callback.
+        request.userActionId = "user-action-for-error";
+        request.userActionRequestsCount = 1;
+        request.requestToken = "request-token-for-error";
+        this.calls.push(request);
+        callback.error(this.errorValue);
         throw this.errorValue;
       }
-      // Use setTimeout to simulate an async activity
-      await new Promise(res => setTimeout(res, 0));
-      if (this.waitForEvent) {
-        let waitPromise = new Promise(res => {
-          this.eventTarget.addEventListener(
-            "returnContentAnalysisResponse",
-            () => {
-              res();
-            },
-            { once: true }
-          );
-        });
-        this.eventTarget.dispatchEvent(
-          new CustomEvent("inAnalyzeContentRequest")
-        );
-        await waitPromise;
-      }
-      return makeContentAnalysisResponse(
-        this.getAction(),
-        request.requestToken
+      this.realCAService.analyzeContentRequestCallback(
+        request,
+        autoAcknowledge,
+        callback
       );
     },
 
-    analyzeContentRequestCallback(request, autoAcknowledge, callback) {
+    analyzeContentRequestPrivate(request, _autoAcknowledge, callback) {
       info(
-        "Mock ContentAnalysis service: analyzeContentRequestCallback, this.shouldAllowRequest=" +
+        "Mock ContentAnalysis service: analyzeContentRequestPrivate, this.shouldAllowRequest=" +
           this.shouldAllowRequest +
-          ", this.errorValue=" +
-          this.errorValue +
           ", this.waitForEvent=" +
           this.waitForEvent
       );
-      this.calls.push(request);
+      info(
+        `  Request type: ${request.analysisType} ` +
+          `| reason: ${request.reason} ` +
+          `| operation: ${request.operationTypeForDisplay} ` +
+          `| operation string: '${request.operationDisplayString}'`
+      );
+      info(
+        `  Text content: '${request.textContent}' ` +
+          `| filePath: '${request.filePath}' ` +
+          `| printDataHandle: ${request.printDataHandle} ` +
+          `| printDataSize: ${request.printDataSize}`
+      );
+      info(
+        `  Printer name: '${request.printerName}' ` +
+          `| url: '${request.url ? request.url.spec : ""}' ` +
+          `| Request token: ${request.requestToken} ` +
+          `| user action ID: ${request.userActionId} ` +
+          `| user action count: ${request.userActionRequestsCount}`
+      );
       if (this.errorValue) {
-        throw this.errorValue;
+        // This is just sanity testing the test framework.  Only report if it
+        // fails.
+        ok(
+          !this.errorValue,
+          "can't throw an exception in mock analyzeContentRequestPrivate"
+        );
       }
 
-      // Use setTimeout to simulate an async activity (and because IOUtils.stat
-      // is async).
+      this.calls.push(request);
+
+      // Use setTimeout to simulate an async activity.
       setTimeout(async () => {
         if (this.waitForEvent) {
           let waitPromise = new Promise(res => {
@@ -240,23 +252,8 @@ function makeMockContentAnalysis() {
           );
           await waitPromise;
         }
-        let isDir = false;
-        try {
-          isDir = (await IOUtils.stat(request.filePath)).type == "directory";
-        } catch {}
-        if (isDir) {
-          // Folder requests are re-issued as file requests for each file in the
-          // folder. Allow the real CA service to do this.  New requests will be
-          // sent to the mock CA.
-          this.realCAService.analyzeContentRequestCallback(
-            request,
-            autoAcknowledge,
-            callback
-          );
-          return;
-        }
 
-        let response = makeContentAnalysisResponse(
+        let response = this.realCAService.makeResponseForTest(
           this.getAction(),
           request.requestToken
         );
@@ -288,6 +285,10 @@ function makeMockContentAnalysis() {
         aAction,
         aIsValid
       );
+    },
+
+    showBlockedRequestDialog(aRequest) {
+      info(`got showBlockedRequestDialog for request ${aRequest.requestToken}`);
     },
   };
 }
