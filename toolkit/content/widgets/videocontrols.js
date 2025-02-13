@@ -2793,7 +2793,7 @@ this.VideoControlsImplWidget = class {
 
   generateContent() {
     const parser = new this.window.DOMParser();
-    let parserDoc = parser.parseFromString(
+    let parserDoc = parser.parseFromSafeString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
         <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
         <link rel="stylesheet" href="chrome://global/skin/media/pipToggle.css" />
@@ -3074,7 +3074,7 @@ this.NoControlsMobileImplWidget = class {
 
   generateContent() {
     const parser = new this.window.DOMParser();
-    let parserDoc = parser.parseFromString(
+    let parserDoc = parser.parseFromSafeString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
         <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
         <div id="controlsContainer" class="controlsContainer" role="none" hidden="true">
@@ -3120,7 +3120,7 @@ this.NoControlsPictureInPictureImplWidget = class {
 
   generateContent() {
     const parser = new this.window.DOMParser();
-    let parserDoc = parser.parseFromString(
+    let parserDoc = parser.parseFromSafeString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
         <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
         <div id="controlsContainer" class="controlsContainer" role="none">
@@ -3298,7 +3298,7 @@ this.NoControlsDesktopImplWidget = class {
 
   generateContent() {
     const parser = new this.window.DOMParser();
-    let parserDoc = parser.parseFromString(
+    let parserDoc = parser.parseFromSafeString(
       `<div class="videocontrols" xmlns="http://www.w3.org/1999/xhtml" role="none">
         <link rel="stylesheet" href="chrome://global/skin/media/videocontrols.css" />
         <link rel="stylesheet" href="chrome://global/skin/media/pipToggle.css" />

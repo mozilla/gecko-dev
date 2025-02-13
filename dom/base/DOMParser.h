@@ -43,7 +43,7 @@ class DOMParser final : public nsISupports, public nsWrapperCache {
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Document> ParseFromString(
       const TrustedHTMLOrString& aStr, SupportedType aType, ErrorResult& aRv);
 
-  // ChromeOnly API
+  // Chrome and UI Widgets API
   already_AddRefed<Document> ParseFromSafeString(const nsAString& aStr,
                                                  SupportedType aType,
                                                  ErrorResult& aRv);
