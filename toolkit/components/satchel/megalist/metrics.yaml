@@ -1,0 +1,50 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Password Manager'
+
+contextual_manager:
+  toolbar_action:
+    type: event
+    description: >
+      Client interacts with any object within CM toolbar, or any action
+      associated with the toolbar is initiated from an "empty state".
+      Possible triggers include:
+        "empty_state_card": When there are no records stored and user is presented
+                            options for a user to take
+        "toolbar": When the user selects an option from the CPM toolbar
+      Possible option names include:
+        "add_new": Add a new record
+        "import_browser": Import records from another browser
+        "import_file": Import records from a file
+        "export": Export records to a file
+        "remove_all": Remove all records
+        "preferences": Takes user to about:preferences
+        "help": Takes user to a SUMO page
+        "list_state_all": Display all records
+        "list_state_alerts": Display only alerts
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    notification_emails:
+      - passwords-dev@mozilla.org
+      - issozi@mozilla.com
+      - tthorne@mozilla.com
+    expires: never
+    extra_keys:
+      trigger:
+        description: >
+          Which UI surface triggered the action
+        type: string
+      option_name:
+        description: >
+          The action selected from the toolbar
+        type: string

@@ -130,13 +130,20 @@ export class MegalistAlpha extends MozLitElement {
     )();
   }
 
-  #onAddButtonClick() {
+  #onAddButtonClick(trigger) {
     this.viewMode = VIEW_MODES.ADD;
+    this.#recordToolbarAction("add_new", trigger);
   }
 
   #onRadioButtonChange(e) {
     this.displayMode = e.target.value;
     this.#sendCommand("UpdateDisplayMode", { value: this.displayMode });
+
+    let gleanAction =
+      this.displayMode === DISPLAY_MODES.ALL
+        ? "list_state_all"
+        : "list_state_alerts";
+    this.#recordToolbarAction(gleanAction, "toolbar");
   }
 
   #onCancelLoginForm() {
@@ -165,6 +172,13 @@ export class MegalistAlpha extends MozLitElement {
     );
 
     panelList.toggle(e);
+  }
+
+  #recordToolbarAction(action, trigger = "") {
+    Glean.contextualManager.toolbarAction.record({
+      trigger,
+      option_name: action,
+    });
   }
 
   #messageToViewModel(messageName, data) {
@@ -430,15 +444,21 @@ export class MegalistAlpha extends MozLitElement {
             <moz-button
               data-l10n-id="passwords-command-import-from-browser"
               type="primary"
-              @click=${() => this.#sendCommand("ImportFromBrowser")}
+              @click=${() => {
+                this.#sendCommand("ImportFromBrowser");
+                this.#recordToolbarAction("import_browser", "empty_state_card");
+              }}
             ></moz-button>
             <moz-button
               data-l10n-id="passwords-command-import"
-              @click=${() => this.#sendCommand("Import")}
+              @click=${() => {
+                this.#sendCommand("Import");
+                this.#recordToolbarAction("import_file", "empty_state_card");
+              }}
             ></moz-button>
             <moz-button
               data-l10n-id="passwords-add-manually"
-              @click=${this.#onAddButtonClick}
+              @click=${() => this.#onAddButtonClick("empty_state_card")}
             ></moz-button>
           </div>
         </div>
@@ -546,7 +566,7 @@ export class MegalistAlpha extends MozLitElement {
       ${this.renderSearch()}
       <moz-button
         id="create-login-button"
-        @click=${this.#onAddButtonClick}
+        @click=${() => this.#onAddButtonClick("toolbar")}
         data-l10n-id="create-login-button"
         type="icon"
         iconSrc="chrome://global/skin/icons/plus.svg"
@@ -606,22 +626,34 @@ export class MegalistAlpha extends MozLitElement {
         <panel-item
           action="import-from-browser"
           data-l10n-id="passwords-command-import-from-browser"
-          @click=${() => this.#sendCommand("ImportFromBrowser")}
+          @click=${() => {
+            this.#sendCommand("ImportFromBrowser");
+            this.#recordToolbarAction("import_browser", "toolbar");
+          }}
         ></panel-item>
         <panel-item
           action="import-from-file"
           data-l10n-id="passwords-command-import"
-          @click=${() => this.#sendCommand("Import")}
+          @click=${() => {
+            this.#sendCommand("Import");
+            this.#recordToolbarAction("import_file", "toolbar");
+          }}
         ></panel-item>
         <panel-item
           action="export-logins"
           data-l10n-id="passwords-command-export"
-          @click=${() => this.#sendCommand("Export")}
+          @click=${() => {
+            this.#sendCommand("Export");
+            this.#recordToolbarAction("export", "toolbar");
+          }}
         ></panel-item>
         <panel-item
           action="remove-all-logins"
           data-l10n-id="passwords-command-remove-all"
-          @click=${() => this.#sendCommand("RemoveAll")}
+          @click=${() => {
+            this.#sendCommand("RemoveAll");
+            this.#recordToolbarAction("remove_all", "toolbar");
+          }}
           ?disabled=${!this.header.value.total}
         ></panel-item>
         <hr />
@@ -633,6 +665,7 @@ export class MegalistAlpha extends MozLitElement {
               command => command.id === "Settings"
             );
             this.#sendCommand("OpenLink", { value: command.url });
+            this.#recordToolbarAction("preferences", "toolbar");
           }}
         ></panel-item>
         <panel-item
@@ -643,6 +676,7 @@ export class MegalistAlpha extends MozLitElement {
               command => command.id === "Help"
             );
             this.#sendCommand("OpenLink", { value: command.url });
+            this.#recordToolbarAction("help", "toolbar");
           }}
         ></panel-item>
       </panel-list>

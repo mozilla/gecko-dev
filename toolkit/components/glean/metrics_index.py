@@ -132,6 +132,7 @@ firefox_desktop_metrics = [
     "toolkit/components/pictureinpicture/metrics.yaml",
     "toolkit/components/places/metrics.yaml",
     "toolkit/components/reportbrokensite/metrics.yaml",
+    "toolkit/components/satchel/megalist/metrics.yaml",
     "toolkit/components/search/metrics.yaml",
     "toolkit/components/shopping/metrics.yaml",
     "toolkit/components/telemetry/metrics.yaml",
