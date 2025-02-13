@@ -67,7 +67,7 @@ object Versions {
         const val core_splashscreen = "1.0.1"
         const val datastore="1.1.2"
         const val drawerlayout = "1.2.0"
-        const val fragment = "1.8.5"
+        const val fragment = "1.8.6"
         const val lifecycle = "2.8.7"
         const val localbroadcastmanager = "1.0.0"
         const val media = "1.7.0"
