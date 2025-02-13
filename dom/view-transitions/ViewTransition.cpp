@@ -245,6 +245,12 @@ void ViewTransition::CallUpdateCallback(ErrorResult& aRv) {
           // undefined.
           ucd->MaybeResolveWithUndefined();
         }
+        // Unlike other timings, this is not guaranteed to happen with clean
+        // layout, and Activate() needs to look at the frame tree to capture the
+        // new state, so we need to flush frames. Do it here so that we deal
+        // with other potential script execution skipping the transition or
+        // what not in a consistent way.
+        aVt->mDocument->FlushPendingNotifications(FlushType::Frames);
         if (aVt->mPhase == Phase::Done) {
           // "Skip a transition" step 8. We need to resolve "finished" after
           // update-callback-done.
