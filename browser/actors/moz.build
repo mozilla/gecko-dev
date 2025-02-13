@@ -75,8 +75,6 @@ FINAL_TARGET_FILES.actors += [
     "PromptParent.sys.mjs",
     "RefreshBlockerChild.sys.mjs",
     "RefreshBlockerParent.sys.mjs",
-    "RFPHelperChild.sys.mjs",
-    "RFPHelperParent.sys.mjs",
     "ScreenshotsComponentChild.sys.mjs",
     "SearchSERPTelemetryChild.sys.mjs",
     "SearchSERPTelemetryParent.sys.mjs",

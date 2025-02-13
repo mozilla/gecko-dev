@@ -15,7 +15,9 @@ const kPrefLetterboxingDimensions =
   "privacy.resistFingerprinting.letterboxing.dimensions";
 const kPrefLetterboxingTesting =
   "privacy.resistFingerprinting.letterboxing.testing";
+
 const kTopicDOMWindowOpened = "domwindowopened";
+const kTopicDOMWindowClosed = "domwindowclosed";
 
 const lazy = {};
 
@@ -31,6 +33,8 @@ function log(...args) {
 }
 
 class _RFPHelper {
+  _resizeObservers = new WeakMap();
+
   // ============================================================================
   // Shared Setup
   // ============================================================================
@@ -91,8 +95,11 @@ class _RFPHelper {
       case kTopicDOMWindowOpened:
         // We attach to the newly created window by adding tabsProgressListener
         // and event listener on it. We listen for new tabs being added or
-        // the change of the content principal and apply margins accordingly.
+        // the change of the content principal and round browser sizes accordingly.
         this._handleDOMWindowOpened(subject);
+        break;
+      case kTopicDOMWindowClosed:
+        this._handleDOMWindowClosed(subject);
         break;
       default:
         break;
@@ -102,8 +109,10 @@ class _RFPHelper {
   handleEvent(aMessage) {
     switch (aMessage.type) {
       case "TabOpen": {
-        let tab = aMessage.target;
-        this._addOrClearContentMargin(tab.linkedBrowser, /* isNewTab = */ true);
+        let browser = aMessage.target.linkedBrowser;
+        this._roundOrResetContentSize(browser, /* isNewTab = */ true);
+        let resizeObserver = this._resizeObservers.get(browser.ownerGlobal);
+        resizeObserver.observe(browser.parentElement);
         break;
       }
       default:
@@ -125,10 +134,6 @@ class _RFPHelper {
       default:
         break;
     }
-  }
-
-  contentSizeUpdated(win) {
-    this._updateMarginsForTabsInWindow(win);
   }
 
   // ============================================================================
@@ -155,7 +160,9 @@ class _RFPHelper {
   }
 
   _handleResistFingerprintingChanged() {
-    if (Services.prefs.getBoolPref(kPrefResistFingerprinting)) {
+    if (
+      (this.rfpEnabled = Services.prefs.getBoolPref(kPrefResistFingerprinting))
+    ) {
       this._addRFPObservers();
     } else {
       this._removeRFPObservers();
@@ -275,47 +282,20 @@ class _RFPHelper {
   // ============================================================================
   /**
    * We use the TabsProgressListener to catch the change of the content
-   * principal. We would clear the margins around the content viewport if
-   * it is the system principal.
+   * principal. We would reset browser size if it is the system principal.
    */
   onLocationChange(aBrowser) {
-    this._addOrClearContentMargin(aBrowser);
+    this._roundOrResetContentSize(aBrowser);
   }
 
   _handleLetterboxingPrefChanged() {
     if (Services.prefs.getBoolPref(kPrefLetterboxing, false)) {
       Services.ww.registerNotification(this);
-      this._registerLetterboxingActor();
       this._attachAllWindows();
     } else {
-      this._unregisterLetterboxingActor();
       this._detachAllWindows();
       Services.ww.unregisterNotification(this);
     }
-  }
-
-  _registerLetterboxingActor() {
-    /*
-     * It turns out that this triggers a warning that we're registering a Desktop-only actor
-     * in toolkit (which will also run on mobile.)  It just happens this actor only handles
-     * letterboxing, which isn't used on mobile, but we should resolve this.
-     */
-    ChromeUtils.registerWindowActor("RFPHelper", {
-      parent: {
-        esModuleURI: "resource:///actors/RFPHelperParent.sys.mjs",
-      },
-      child: {
-        esModuleURI: "resource:///actors/RFPHelperChild.sys.mjs",
-        events: {
-          resize: {},
-        },
-      },
-      allFrames: true,
-    });
-  }
-
-  _unregisterLetterboxingActor() {
-    ChromeUtils.unregisterWindowActor("RFPHelper");
   }
 
   // The function to parse the dimension set from the pref value. The pref value
@@ -341,14 +321,12 @@ class _RFPHelper {
     });
   }
 
-  getLetterboxingDefaultRule(aBrowser) {
-    let document = aBrowser.ownerDocument;
+  getLetterboxingDefaultRule(document) {
     // If not already cached on the document object, traverse the CSSOM and
     // find the rule applying the default letterboxing styles to browsers
     // preemptively in order to beat race conditions on tab/window creation
     return (document._letterboxingMarginsRule ||= (() => {
-      const LETTERBOX_CSS_SELECTOR =
-        ".letterboxing .browserStack > browser:not(.exclude-letterboxing)";
+      const LETTERBOX_CSS_SELECTOR = ".letterboxing";
       const LETTERBOX_CSS_URL =
         "chrome://global/content/resistfingerprinting/letterboxing.css";
       for (let ss of document.styleSheets) {
@@ -385,26 +363,26 @@ class _RFPHelper {
     );
   }
 
-  _addOrClearContentMargin(aBrowser, isNewTab = false) {
+  _roundOrResetContentSize(aBrowser, isNewTab = false) {
     // We won't do anything for lazy browsers.
-    if (!aBrowser.isConnected) {
+    if (!aBrowser?.isConnected) {
       return;
     }
     if (this._noLetterBoxingFor(aBrowser)) {
       // this tab doesn't need letterboxing
-      this._clearContentViewMargin(aBrowser);
+      this._resetContentSize(aBrowser);
     } else {
-      this._roundContentView(aBrowser, isNewTab);
+      this._roundContentSize(aBrowser, isNewTab);
     }
   }
 
   /**
-   * Given a width or height, returns the appropriate margin to apply.
+   * Given a width or height, rounds it with the proper stepping.
    */
-  steppedRange(aDimension, aIsWidth = false) {
+  steppedSize(aDimension, aIsWidth = false) {
     let stepping;
     if (aDimension <= 50) {
-      return 0;
+      return aDimension;
     } else if (aDimension <= 500) {
       stepping = 50;
     } else if (aDimension <= 1600) {
@@ -413,31 +391,31 @@ class _RFPHelper {
       stepping = 200;
     }
 
-    return (aDimension % stepping) / 2;
+    return aDimension - (aDimension % stepping);
   }
 
   /**
-   * The function will round the given browser by adding margins around the
-   * content viewport.
+   * The function will round the given browser size
    */
-  async _roundContentView(aBrowser, isNewTab = false) {
-    let logPrefix = `_roundContentView[${Math.random()}]`;
+  async _roundContentSize(aBrowser, isNewTab = false) {
+    let logPrefix = `_roundContentSize[${Math.random()}]`;
     log(logPrefix);
-    aBrowser.classList.remove("exclude-letterboxing");
     let win = aBrowser.ownerGlobal;
     let browserContainer = aBrowser
       .getTabBrowser()
       .getBrowserContainer(aBrowser);
     let browserParent = aBrowser.parentElement;
+    browserParent.classList.remove("exclude-letterboxing");
     let [
       [contentWidth, contentHeight],
       [parentWidth, parentHeight],
       [containerWidth, containerHeight],
     ] = await win.promiseDocumentFlushed(() =>
       // Read layout info only inside this callback and do not write, to avoid additional reflows
-      [aBrowser, browserParent, browserContainer]
-        .map(e => e.getBoundingClientRect())
-        .map(r => [r.width, r.height])
+      [aBrowser, browserParent, browserContainer].map(element => [
+        element.clientWidth,
+        element.clientHeight,
+      ])
     );
 
     log(
@@ -451,25 +429,31 @@ class _RFPHelper {
       return;
     }
 
-    const calcMargins = (aWidth, aHeight) => {
-      let result;
-      log(`${logPrefix} calcMargins(${aWidth}, ${aHeight})`);
+    let lastRoundedSize;
+
+    const roundDimensions = (aWidth, aHeight) => {
+      const r = (width, height) => {
+        lastRoundedSize = { width, height };
+        log(
+          `${logPrefix} roundDimensions(${aWidth}, ${aHeight}) = ${width} x ${height}`
+        );
+        return {
+          "--letterboxing-width": `var(--rdm-width, ${width}px)`,
+          "--letterboxing-height": `var(--rdm-height, ${height}px)`,
+        };
+      };
+
+      log(`${logPrefix} roundDimensions(${aWidth}, ${aHeight})`);
+
       // If the set is empty, we will round the content with the default
       // stepping size.
       if (!this._letterboxingDimensions.length) {
-        result = {
-          width: this.steppedRange(aWidth, true),
-          height: this.steppedRange(aHeight),
-        };
-        log(
-          `${logPrefix} calcMargins(${aWidth}, ${aHeight}) = ${result.width} x ${result.height}`
-        );
-        return result;
+        return r(this.steppedSize(aWidth, true), this.steppedSize(aHeight));
       }
 
       let matchingArea = aWidth * aHeight;
       let minWaste = Number.MAX_SAFE_INTEGER;
-      let targetDimensions = undefined;
+      let targetDimensions;
 
       // Find the desired dimensions which waste the least content area.
       for (let dim of this._letterboxingDimensions) {
@@ -489,62 +473,37 @@ class _RFPHelper {
 
       // If we cannot find any dimensions match to the real content window, this
       // means the content area is smaller the smallest size in the set. In this
-      // case, we won't apply any margins.
-      if (!targetDimensions) {
-        result = {
-          width: 0,
-          height: 0,
-        };
-      } else {
-        result = {
-          width: (aWidth - targetDimensions.width) / 2,
-          height: (aHeight - targetDimensions.height) / 2,
-        };
-      }
-
-      log(
-        `${logPrefix} calcMargins(${aWidth}, ${aHeight}) = ${result.width} x ${result.height}`
-      );
-      return result;
-    };
-
-    // Calculating the margins around the browser element in order to round the
-    // content viewport. We will use a 200x100 stepping if the dimension set
-    // is not given.
-
-    const buildMarginStyleString = (aWidth, aHeight) => {
-      const marginDims = calcMargins(aWidth, aHeight);
-
-      // snap browser element to top
-      const top = 0,
-        // and leave 'double' margin at the bottom
-        bottom = 2 * marginDims.height,
-        // identical margins left and right
-        left = marginDims.width,
-        right = marginDims.width;
-
-      return `${top}px ${right}px ${bottom}px ${left}px`;
+      // case, we won't round the size and default to the max.
+      return targetDimensions
+        ? r(targetDimensions.width, targetDimensions.height)
+        : r(aWidth, aHeight);
     };
 
     const isTesting = this._isLetterboxingTesting;
-    const marginChanges = Object.assign([], {
-      queueIfNeeded({ style }, margin) {
-        if (style.margin != margin) {
-          this.push(() => {
-            style.margin = margin;
-          });
+    const styleChanges = Object.assign([], {
+      queueIfNeeded({ style }, props) {
+        for (let [name, value] of Object.entries(props)) {
+          if (style[name] != value) {
+            this.push(() => {
+              style.setProperty(name, value);
+            });
+          }
         }
       },
       perform() {
         win.requestAnimationFrame(() => {
           for (let change of this) {
-            change();
+            try {
+              change();
+            } catch (e) {
+              lazy.logConsole.error(e);
+            }
           }
           if (isTesting) {
             win.promiseDocumentFlushed(() => {
               Services.obs.notifyObservers(
                 null,
-                "test:letterboxing:update-margin-finish"
+                "test:letterboxing:update-size-finish"
               );
             });
           }
@@ -552,63 +511,113 @@ class _RFPHelper {
       },
     });
 
-    marginChanges.queueIfNeeded(
-      this.getLetterboxingDefaultRule(aBrowser),
-      buildMarginStyleString(containerWidth, containerHeight)
+    const roundedDefault = roundDimensions(containerWidth, containerHeight);
+
+    styleChanges.queueIfNeeded(
+      this.getLetterboxingDefaultRule(aBrowser.ownerDocument),
+      roundedDefault
     );
 
-    const marginStyleString =
+    const roundedInline =
       !isNewTab && // new tabs cannot have extra UI components
       (containerHeight > parentHeight || containerWidth > parentWidth)
         ? // optional UI components such as the notification box, the find bar
           // or devtools are constraining this browser's size: recompute custom
-          buildMarginStyleString(parentWidth, parentHeight)
-        : ""; // otherwise we can keep the default letterboxing margins
-    marginChanges.queueIfNeeded(aBrowser, marginStyleString);
+          roundDimensions(parentWidth, parentHeight)
+        : {
+            "--letterboxing-width": "",
+            "--letterboxing-height": "",
+          }; // otherwise we can keep the default (rounded) size
+    styleChanges.queueIfNeeded(browserParent, roundedInline);
+
+    if (lastRoundedSize) {
+      // Check whether the letterboxing margin is less than the border radius,
+      // and if so flatten the borders.
+      let borderRadius = parseInt(
+        win
+          .getComputedStyle(browserContainer)
+          .getPropertyValue("--letterboxing-border-radius")
+      );
+      if (
+        borderRadius &&
+        parentWidth - lastRoundedSize.width < borderRadius &&
+        parentHeight - lastRoundedSize.height < borderRadius
+      ) {
+        borderRadius = 0;
+      } else {
+        borderRadius = "";
+      }
+      styleChanges.queueIfNeeded(browserParent, {
+        "--letterboxing-decorator-visibility":
+          borderRadius === 0 ? "hidden" : "",
+        "--letterboxing-border-radius": borderRadius,
+      });
+    }
 
     // If the size of the content is already quantized, we do nothing.
-    if (!marginChanges.length) {
+    if (!styleChanges.length) {
       log(`${logPrefix} is_rounded == true`);
       if (this._isLetterboxingTesting) {
         log(
-          `${logPrefix} is_rounded == true test:letterboxing:update-margin-finish`
+          `${logPrefix} is_rounded == true test:letterboxing:update-size-finish`
         );
         Services.obs.notifyObservers(
           null,
-          "test:letterboxing:update-margin-finish"
+          "test:letterboxing:update-size-finish"
         );
       }
       return;
     }
 
-    log(`${logPrefix} setting margins to ${marginStyleString}`);
-    // One cannot (easily) control the color of a margin unfortunately.
-    // An initial attempt to use a border instead of a margin resulted
-    // in offset event dispatching; so for now we use a colorless margin.
-    marginChanges.perform();
+    log(
+      `${logPrefix} setting size to ${JSON.stringify({
+        roundedDefault,
+        roundedInline,
+      })}`
+    );
+    // Here we round the browser's size through CSS.
+    // A "border" visual is created by using a CSS outline, which does't
+    // affect layout, while the background appearance is borrowed from the
+    // toolbar and set in the .letterboxing ancestor (see browser.css).
+    styleChanges.perform();
   }
 
-  _clearContentViewMargin(aBrowser) {
-    aBrowser.classList.add("exclude-letterboxing");
+  _resetContentSize(aBrowser) {
+    aBrowser.parentElement.classList.add("exclude-letterboxing");
   }
 
-  _updateMarginsForTabsInWindow(aWindow) {
+  _updateSizeForTabsInWindow(aWindow) {
     let tabBrowser = aWindow.gBrowser;
 
     tabBrowser.tabpanels?.classList.add("letterboxing");
 
     for (let tab of tabBrowser.tabs) {
       let browser = tab.linkedBrowser;
-      this._addOrClearContentMargin(browser);
+      this._roundOrResetContentSize(browser);
     }
+    // We need to add this class late because otherwise new windows get
+    // maximized.
+    aWindow.setTimeout(() => {
+      tabBrowser.tabpanels?.classList.add("letterboxing-ready");
+    });
   }
 
   _attachWindow(aWindow) {
     aWindow.gBrowser.addTabsProgressListener(this);
     aWindow.addEventListener("TabOpen", this);
-
+    let resizeObserver = new aWindow.ResizeObserver(entries => {
+      for (let { target } of entries) {
+        this._roundOrResetContentSize(target.querySelector("browser"));
+      }
+    });
+    // Observe resizing of each browser's parent (gets rid of RPC from content
+    // windows).
+    for (let bs of aWindow.document.querySelectorAll(".browserStack")) {
+      resizeObserver.observe(bs);
+    }
+    this._resizeObservers.set(aWindow, resizeObserver);
     // Rounding the content viewport.
-    this._updateMarginsForTabsInWindow(aWindow);
+    this._updateSizeForTabsInWindow(aWindow);
   }
 
   _attachAllWindows() {
@@ -626,17 +635,26 @@ class _RFPHelper {
   }
 
   _detachWindow(aWindow) {
+    let resizeObserver = this._resizeObservers.get(aWindow);
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      this._resizeObservers.delete(aWindow);
+    }
+
     let tabBrowser = aWindow.gBrowser;
+    if (!tabBrowser) {
+      return;
+    }
     tabBrowser.removeTabsProgressListener(this);
     aWindow.removeEventListener("TabOpen", this);
 
     // revert tabpanel's style to default
     tabBrowser.tabpanels?.classList.remove("letterboxing");
 
-    // and restore default margins on each browser element
+    // and restore default size on each browser element
     for (let tab of tabBrowser.tabs) {
       let browser = tab.linkedBrowser;
-      this._clearContentViewMargin(browser);
+      this._resetContentSize(browser);
     }
   }
 
@@ -669,9 +687,20 @@ class _RFPHelper {
           return;
         }
         self._attachWindow(win);
+        win.addEventListener(
+          "unload",
+          () => {
+            self._detachWindow(win);
+          },
+          { once: true }
+        );
       },
       { once: true }
     );
+  }
+
+  _handleDOMWindowClosed(win) {
+    this._detachWindow(win);
   }
 
   getTargets() {

@@ -6,7 +6,6 @@
 
 const kModalHighlightPref = "findbar.modalHighlight";
 
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import {
   initSound,
   playSound,
@@ -16,18 +15,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   GetClipboardSearchString: "resource://gre/modules/Finder.sys.mjs",
-  RFPHelper: "resource://gre/modules/RFPHelper.sys.mjs",
   Rect: "resource://gre/modules/Geometry.sys.mjs",
 });
-
-const kPrefLetterboxing = "privacy.resistFingerprinting.letterboxing";
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "isLetterboxingEnabled",
-  kPrefLetterboxing,
-  false
-);
 
 export function FinderParent(browser) {
   this._listeners = new Set();
@@ -578,20 +567,10 @@ FinderParent.prototype = {
   onFindbarClose() {
     this._lastFoundBrowsingContext = null;
     this.sendMessageToAllContexts("Finder:FindbarClose");
-
-    if (lazy.isLetterboxingEnabled) {
-      let window = this._browser.ownerGlobal;
-      lazy.RFPHelper.contentSizeUpdated(window);
-    }
   },
 
   onFindbarOpen() {
     this.sendMessageToAllContexts("Finder:FindbarOpen");
-
-    if (lazy.isLetterboxingEnabled) {
-      let window = this._browser.ownerGlobal;
-      lazy.RFPHelper.contentSizeUpdated(window);
-    }
   },
 
   onModalHighlightChange(aUseModalHighlight) {

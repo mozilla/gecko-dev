@@ -3,14 +3,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
- * This rule will be updated dynamically by RFPHelper.sys.mjs, so both the
- * selector and the stylesheet URL should be kept in sync there
- * (LETTERBOX_CSS_SELECTOR and LETTERBOX_CSS_URL, respectively).
+ * This selector and the stylesheet URL should be kept in sync in
+ * RFPHelper.sys.mjs (LETTERBOX_CSS_SELECTOR and LETTERBOX_CSS_URL,
+ * respectively), where --letterboxing-width & --letterboxing-height are
+ * actually set.
  */
-.letterboxing .browserStack > browser:not(.exclude-letterboxing) {
-  margin: 0; /* to be dynamically set by RFHelper.sys.mjs */
+.letterboxing {
+  --letterboxing-bgcolor: var(--tabpanel-background-color);
+
+  .browserContainer {
+    /*
+     * From Firefox 115 on, .browserContainer layout is flex / column,
+     * and without this trick the .browserStack's resize observer
+     * doesn't get notified on horizontal shrinking.
+     */
+    overflow: hidden;
+    background: var(--letterboxing-bgcolor);
+  }
+
+  .browserContainer:not(.responsive-mode) > .browserStack:not(.exclude-letterboxing) > browser {
+    width: var(--letterboxing-width) !important;
+    height: var(--letterboxing-height) !important;
+  }
 }
 
-browser.exclude-letterboxing {
-  margin: 0 !important;
+:root:not([inDOMFullscreen]) .letterboxing.letterboxing-ready .browserContainer:not(.responsive-mode)
+  > .browserStack:not(.exclude-letterboxing) {
+  place-content: start center;
 }
