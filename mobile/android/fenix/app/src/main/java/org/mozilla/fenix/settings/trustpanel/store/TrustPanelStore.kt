@@ -27,6 +27,9 @@ private fun reducer(state: TrustPanelState, action: TrustPanelAction): TrustPane
         is TrustPanelAction.UpdateTrackersBlocked,
         -> state
 
+        is TrustPanelAction.UpdateDetailedTrackerCategory -> state.copy(
+            detailedTrackerCategory = action.detailedTrackerCategory,
+        )
         is TrustPanelAction.UpdateBaseDomain -> state.copy(
             baseDomain = action.baseDomain,
         )

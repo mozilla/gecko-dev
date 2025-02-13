@@ -50,6 +50,8 @@ import org.mozilla.fenix.settings.trustpanel.ui.ConnectionSecurityPanel
 import org.mozilla.fenix.settings.trustpanel.ui.PROTECTION_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.ProtectionPanel
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
+import org.mozilla.fenix.settings.trustpanel.ui.TRACKER_CATEGORY_DETAILS_PANEL_ROUTE
+import org.mozilla.fenix.settings.trustpanel.ui.TrackerCategoryDetailsPanel
 import org.mozilla.fenix.settings.trustpanel.ui.TrackersBlockedPanel
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.trackingprotection.TrackerBuckets
@@ -148,6 +150,9 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                     val bucketedTrackers by store.observeAsState(initialValue = TrackerBuckets()) { state ->
                         state.bucketedTrackers
                     }
+                    val detailedTrackerCategory by store.observeAsState(initialValue = null) { state ->
+                        state.detailedTrackerCategory
+                    }
                     val sessionState by store.observeAsState(initialValue = null) { state ->
                         state.sessionState
                     }
@@ -198,6 +203,24 @@ class TrustPanelFragment : BottomSheetDialogFragment() {
                             TrackersBlockedPanel(
                                 title = args.title,
                                 numberOfTrackersBlocked = numberOfTrackersBlocked,
+                                bucketedTrackers = bucketedTrackers,
+                                onTrackerCategoryClick = { detailedTrackerCategory ->
+                                    store.dispatch(
+                                        TrustPanelAction.UpdateDetailedTrackerCategory(detailedTrackerCategory),
+                                    )
+                                    store.dispatch(TrustPanelAction.Navigate.TrackerCategoryDetailsPanel)
+                                },
+                                onBackButtonClick = {
+                                    store.dispatch(TrustPanelAction.Navigate.Back)
+                                },
+                            )
+                        }
+
+                        composable(route = TRACKER_CATEGORY_DETAILS_PANEL_ROUTE) {
+                            TrackerCategoryDetailsPanel(
+                                title = args.title,
+                                isTotalCookieProtectionEnabled = components.settings.enabledTotalCookieProtection,
+                                detailedTrackerCategory = detailedTrackerCategory,
                                 bucketedTrackers = bucketedTrackers,
                                 onBackButtonClick = {
                                     store.dispatch(TrustPanelAction.Navigate.Back)

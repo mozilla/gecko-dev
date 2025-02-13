@@ -21,6 +21,7 @@ import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
 import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.CONNECTION_SECURITY_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
+import org.mozilla.fenix.settings.trustpanel.ui.TRACKER_CATEGORY_DETAILS_PANEL_ROUTE
 
 class TrustPanelNavigationMiddlewareTest {
 
@@ -66,6 +67,16 @@ class TrustPanelNavigationMiddlewareTest {
 
         verify {
             navHostController.navigate(route = CLEAR_SITE_DATA_DIALOG_ROUTE)
+        }
+    }
+
+    @Test
+    fun `WHEN navigate to tracker category details panel action is dispatched THEN navigate to tracker category details panel route`() = runTest {
+        val store = createStore()
+        store.dispatch(TrustPanelAction.Navigate.TrackerCategoryDetailsPanel).join()
+
+        verify {
+            navHostController.navigate(route = TRACKER_CATEGORY_DETAILS_PANEL_ROUTE)
         }
     }
 

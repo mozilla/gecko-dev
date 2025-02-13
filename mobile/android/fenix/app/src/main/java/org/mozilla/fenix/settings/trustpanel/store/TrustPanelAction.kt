@@ -6,6 +6,7 @@ package org.mozilla.fenix.settings.trustpanel.store
 
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.lib.state.Action
+import org.mozilla.fenix.trackingprotection.TrackingProtectionCategory
 
 /**
  * Actions to dispatch through the [TrustPanelStore] to modify the [TrustPanelState].
@@ -33,6 +34,17 @@ sealed class TrustPanelAction : Action {
      * @property baseDomain The base domain of the current site.
      */
     data class UpdateBaseDomain(val baseDomain: String) : TrustPanelAction()
+
+    /**
+     * [TrustPanelAction] dispatched when the detailed tracker category is updated for the tracker
+     * category details panel.
+     *
+     * @property detailedTrackerCategory The [TrackingProtectionCategory] for which detailed information
+     * should be displayed.
+     */
+    data class UpdateDetailedTrackerCategory(
+        val detailedTrackerCategory: TrackingProtectionCategory,
+    ) : TrustPanelAction()
 
     /**
      * [TrustPanelAction] dispatched when the number of blocked trackers is updated.
@@ -66,6 +78,11 @@ sealed class TrustPanelAction : Action {
          * [Navigate] action dispatched when navigating to the trackers panel.
          */
         data object TrackersPanel : Navigate()
+
+        /**
+         * [Navigate] action dispatched when navigating to the tracker category details panel.
+         */
+        data object TrackerCategoryDetailsPanel : Navigate()
 
         /**
          * [Navigate] action dispatched when navigating to the connection security panel.

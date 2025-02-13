@@ -36,6 +36,7 @@ internal fun TrackersBlockedPanel(
     title: String,
     numberOfTrackersBlocked: Int,
     bucketedTrackers: TrackerBuckets,
+    onTrackerCategoryClick: (TrackingProtectionCategory) -> Unit,
     onBackButtonClick: () -> Unit,
 ) {
     MenuScaffold(
@@ -79,7 +80,7 @@ internal fun TrackersBlockedPanel(
                                 bucketedTrackers.get(trackingProtectionCategory, true).size,
                             ),
                             beforeIconPainter = painterResource(id = trackingProtectionCategory.icon),
-                            onClick = {},
+                            onClick = { onTrackerCategoryClick(trackingProtectionCategory) },
                         )
                     }
             }
@@ -99,6 +100,7 @@ private fun TrackersBlockedPanelPreview() {
                 title = "Mozilla",
                 numberOfTrackersBlocked = 0,
                 bucketedTrackers = TrackerBuckets(),
+                onTrackerCategoryClick = {},
                 onBackButtonClick = {},
             )
         }

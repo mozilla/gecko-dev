@@ -20,6 +20,7 @@ import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
 import org.mozilla.fenix.settings.trustpanel.ui.CLEAR_SITE_DATA_DIALOG_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.CONNECTION_SECURITY_PANEL_ROUTE
 import org.mozilla.fenix.settings.trustpanel.ui.TRACKERS_PANEL_ROUTE
+import org.mozilla.fenix.settings.trustpanel.ui.TRACKER_CATEGORY_DETAILS_PANEL_ROUTE
 
 /**
  * [Middleware] implementation for handling navigating events based on [TrustPanelAction]s that are
@@ -51,6 +52,10 @@ class TrustPanelNavigationMiddleware(
 
                 is TrustPanelAction.Navigate.ClearSiteDataDialog -> navHostController.navigate(
                     route = CLEAR_SITE_DATA_DIALOG_ROUTE,
+                )
+
+                is TrustPanelAction.Navigate.TrackerCategoryDetailsPanel -> navHostController.navigate(
+                    route = TRACKER_CATEGORY_DETAILS_PANEL_ROUTE,
                 )
 
                 is TrustPanelAction.Navigate.TrackersPanel -> navHostController.navigate(

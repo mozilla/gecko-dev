@@ -11,6 +11,7 @@ import org.junit.Test
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelAction
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelState
 import org.mozilla.fenix.settings.trustpanel.store.TrustPanelStore
+import org.mozilla.fenix.trackingprotection.TrackingProtectionCategory
 
 class TrustPanelStoreTest {
 
@@ -40,5 +41,15 @@ class TrustPanelStoreTest {
         store.dispatch(TrustPanelAction.UpdateBaseDomain(baseDomain)).join()
 
         assertEquals(store.state.baseDomain, baseDomain)
+    }
+
+    @Test
+    fun `WHEN update detailed tracker category action is dispatched THEN detailed tracker category state is updated`() = runTest {
+        val store = TrustPanelStore(initialState = TrustPanelState())
+        val trackerCategory = TrackingProtectionCategory.CRYPTOMINERS
+
+        store.dispatch(TrustPanelAction.UpdateDetailedTrackerCategory(trackerCategory)).join()
+
+        assertEquals(store.state.detailedTrackerCategory, trackerCategory)
     }
 }
