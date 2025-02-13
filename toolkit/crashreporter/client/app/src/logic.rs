@@ -7,7 +7,7 @@
 use crate::std::{
     cell::RefCell,
     path::PathBuf,
-    process::Command,
+    process::{Child, Command},
     sync::{
         atomic::{AtomicBool, Ordering::Relaxed},
         Arc, Mutex,
@@ -32,6 +32,15 @@ pub struct ReportCrash {
     settings_file: PathBuf,
     attempted_to_send: AtomicBool,
     ui: Option<AsyncTask<ReportCrashUIState>>,
+    memtest: RefCell<Memtest>,
+}
+
+/// The memtest child process
+struct Memtest {
+    feature_enabled: bool,
+    user_setting_enabled: bool,
+    child: Option<Child>,
+    extra_file: Option<PathBuf>,
 }
 
 impl ReportCrash {
@@ -47,6 +56,13 @@ impl ReportCrash {
             Err(_) => Default::default(),
             Ok(f) => Settings::from_reader(f)?,
         };
+        let memtest = Memtest {
+            feature_enabled: config.run_memtest,
+            user_setting_enabled: settings.test_hardware,
+            child: None,
+            extra_file: config.extra_file(),
+        };
+
         Ok(ReportCrash {
             config,
             extra,
@@ -54,6 +70,7 @@ impl ReportCrash {
             settings: settings.into(),
             attempted_to_send: Default::default(),
             ui: None,
+            memtest: memtest.into(),
         })
     }
 
@@ -70,6 +87,9 @@ impl ReportCrash {
         }
         self.sanitize_extra();
         self.check_eol_version()?;
+
+        self.memtest.borrow_mut().init();
+
         if !self.config.auto_submit {
             self.run_ui();
         } else {
@@ -426,11 +446,21 @@ impl ReportCrash {
                 // since the above loop will only exit when `logic_send` is dropped at the end of
                 // the scope.
                 self.ui = None;
+
+                // Save settings after UI is closed
+                self.save_settings();
             });
 
             barrier.wait();
             crash_ui.run()
         });
+    }
+
+    /// Update the user setting stored in memtest according to settings
+    pub fn update_memtest_setting(&self) {
+        self.memtest
+            .borrow_mut()
+            .update_user_setting(self.settings.borrow_mut().test_hardware);
     }
 }
 
@@ -470,7 +500,6 @@ impl ReportCrash {
 
     /// Restart the application and send the crash report.
     pub fn restart(&self) {
-        self.save_settings();
         // Get the program restarted before sending the report.
         self.restart_process();
         let result = self.try_send();
@@ -479,7 +508,6 @@ impl ReportCrash {
 
     /// Quit and send the crash report.
     pub fn quit(&self) {
-        self.save_settings();
         let result = self.try_send();
         self.close_window(result.is_some());
     }
@@ -523,12 +551,21 @@ impl ReportCrash {
             return None;
         };
 
+        // Add memtest output to extra data
+        let mut extra = self.current_extra_data();
+        if let Some(output) = self
+            .memtest
+            .borrow_mut()
+            .collect_output_for_submission(&self.ui)
+        {
+            extra["MemtestOutput"] = output.into();
+        }
+
         if let Some(ui) = &self.ui {
             ui.push(|r| *r.submit_state.borrow_mut() = SubmitState::InProgress);
         }
 
         // Send the report to the server.
-        let extra = self.current_extra_data();
         let memory_file = self.config.memory_file();
         let report = net::report::CrashReport {
             extra: &extra,
@@ -622,5 +659,163 @@ impl ReportCrash {
 
     fn ui(&self) -> &AsyncTask<ReportCrashUIState> {
         self.ui.as_ref().expect("UI remote queue missing")
+    }
+}
+
+impl Memtest {
+    /// Spawn the memtest process if memtest is enabled
+    fn init(&mut self) {
+        if self.should_run() {
+            self.spawn()
+                .unwrap_or_else(|e| log::warn!("failed to spawn memtest: {e:#}"));
+        }
+    }
+
+    /// Spawn the memtest process
+    fn spawn(&mut self) -> anyhow::Result<()> {
+        use {
+            crate::std::{env, process::Stdio, time::Duration},
+            memtest::MemtestRunnerArgs,
+        };
+        let memsize_mb = 1024;
+        let memtest_runner_args = MemtestRunnerArgs {
+            timeout: Duration::from_secs(3),
+            mem_lock_mode: memtest::MemLockMode::Resizable,
+            allow_working_set_resize: true,
+            allow_multithread: true,
+            allow_early_termination: true,
+        };
+
+        let curr_exe = env::current_exe().context("failed to get current exe path")?;
+        let child = Command::new(curr_exe)
+            .arg("--memtest")
+            .arg(memsize_mb.to_string())
+            .arg(
+                serde_json::to_string(&memtest_runner_args)
+                    .expect("memtest_runner_args conversion to json string should not fail"),
+            )
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .context("failed to spawn memtest process")?;
+
+        self.child = Some(child);
+        Ok(())
+    }
+
+    /// If memtest is allowed to run, change ui SubmitState and wait and return the memtest output,
+    /// otherwise kill memtest process if it exists and return None
+    fn collect_output_for_submission(
+        &mut self,
+        ui: &Option<AsyncTask<ReportCrashUIState>>,
+    ) -> Option<String> {
+        if self.should_run() {
+            if let Some(ui) = ui {
+                ui.push(|r| *r.submit_state.borrow_mut() = SubmitState::WaitingHardwareTests);
+            }
+
+            if self.child.is_none() {
+                self.spawn()
+                    .unwrap_or_else(|e| log::warn!("failed to spawn memtest: {e:#}"));
+            }
+
+            match self.wait_with_output() {
+                Ok(output) => return Some(output),
+                Err(e) => log::warn!("failed to wait memtest for submission {e:?}"),
+            }
+        } else if self.child.is_some() {
+            self.kill_and_wait()
+                .unwrap_or_else(|e| log::warn!("failed to kill memtest before submission {e:?}"));
+        }
+
+        None
+    }
+
+    /// Wait on memtest and return its output
+    fn wait_with_output(&mut self) -> anyhow::Result<String> {
+        let child = self
+            .child
+            .take()
+            .context("attempted to wait on non-existent memtest process")?;
+
+        let output = child
+            .wait_with_output()
+            .context("failed to wait on memtest process")?;
+        if output.status.success() {
+            String::from_utf8(output.stdout)
+                .context("failed to get valid string from memtest stdout")
+        } else {
+            String::from_utf8(output.stderr)
+                .context("failed to get valid string from memtest stderr")
+        }
+    }
+
+    /// Kill and wait on memtest
+    fn kill_and_wait(&mut self) -> anyhow::Result<()> {
+        let mut child = self
+            .child
+            .take()
+            .context("attempted to kill non-existent memtest process")?;
+
+        child.kill().context("failed to kill memtest process")?;
+        child
+            .wait()
+            .context("failed to wait memtest process after kill")?;
+        Ok(())
+    }
+
+    fn update_user_setting(&mut self, updated_setting: bool) {
+        self.user_setting_enabled = updated_setting;
+    }
+
+    /// Whether the memtest process is supposed to be run
+    fn should_run(&self) -> bool {
+        self.feature_enabled && self.user_setting_enabled
+    }
+
+    /// Wait or kill memtest process depending on user setting
+    fn shutdown(&mut self) -> anyhow::Result<()> {
+        if self.child.is_none() {
+            return Ok(());
+        }
+
+        if self.user_setting_enabled {
+            let memtest_output = self.wait_with_output().context("failed to wait memtest")?;
+            self.add_to_extra_file("MemtestOutput", &memtest_output)
+                .context("failed to add memtest output to extra file")
+        } else {
+            self.kill_and_wait().context("failed to kill memtest")
+        }
+    }
+
+    /// Add a key value pair to the extra file
+    fn add_to_extra_file(&self, key: &str, value: &str) -> anyhow::Result<()> {
+        use crate::std::{fs, io::Read};
+
+        let extra_file = self
+            .extra_file
+            .as_ref()
+            .context("extra file path does not exist")?;
+
+        let mut extra_file_content = String::new();
+        fs::File::open(extra_file)
+            .context("failed to open extra file")?
+            .read_to_string(&mut extra_file_content)
+            .context("failed to read extra file")?;
+
+        let mut extra: serde_json::Value = serde_json::from_str(&extra_file_content)
+            .context("failed to parse extra file content")?;
+        extra[key] = value.into();
+
+        let extra_file = fs::File::create(extra_file).context("failed to create new extra file")?;
+        serde_json::to_writer(extra_file, &extra).context("failed to write to extra file")?;
+        Ok(())
+    }
+}
+
+impl Drop for Memtest {
+    fn drop(&mut self) {
+        self.shutdown()
+            .unwrap_or_else(|e| log::warn!("failed to handle memtest before shutdown: {e:#}"));
     }
 }
