@@ -128,7 +128,7 @@ export class PasswordCard extends MozLitElement {
   }
 
   #recordInteractionType(type) {
-    Glean.contextualManager.interactionType.record({
+    Glean.contextualManager.recordsInteraction.record({
       interaction_type: type,
     });
   }

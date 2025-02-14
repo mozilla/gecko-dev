@@ -56,7 +56,7 @@ async function waitForPasswordConceal(passwordLine) {
     {
       attributeFilter: ["inputtype"],
     },
-    () => passwordLine.loginLine.getAttribute("inputtype") === "password"
+    () => passwordLine.getAttribute("inputtype") === "password"
   );
   return concealedPromise;
 }
@@ -124,6 +124,9 @@ add_task(async function test_passwords_sidebar() {
 });
 
 add_task(async function test_login_line_commands() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   await addLocalOriginLogin();
   const passwordsSidebar = await openPasswordsSidebar();
   await checkAllLoginsRendered(passwordsSidebar);
@@ -146,6 +149,10 @@ add_task(async function test_login_line_commands() {
       );
       info(`click on ${selector}`);
       loginLineInput.click();
+      let events = Glean.contextualManager.recordsInteraction.testGetValue();
+      assertCPMGleanEvent(events[0], {
+        interaction_type: "url_navigate",
+      });
       await browserLoadedPromise;
       ok(true, "origin url loaded");
     } else if (selector === "usernameLine") {
@@ -154,6 +161,11 @@ add_task(async function test_login_line_commands() {
         () => {
           info(`click on ${selector}`);
           loginLineInput.click();
+          let events =
+            Glean.contextualManager.recordsInteraction.testGetValue();
+          assertCPMGleanEvent(events[1], {
+            interaction_type: "copy_username",
+          });
         }
       );
     } else if (
@@ -168,6 +180,11 @@ add_task(async function test_login_line_commands() {
           () => {
             info(`click on ${selector}`);
             loginLineInput.click();
+            let events =
+              Glean.contextualManager.recordsInteraction.testGetValue();
+            assertCPMGleanEvent(events[2], {
+              interaction_type: "copy_password",
+            });
           }
         );
       });
@@ -182,12 +199,28 @@ add_task(async function test_login_line_commands() {
       );
       info("click on reveal button");
       revealBtn.click();
+
+      let events = Glean.contextualManager.recordsInteraction.testGetValue();
+      assertCPMGleanEvent(events[3], {
+        interaction_type: "view_password",
+      });
+
       await revealBtnPromise;
       is(
         loginLineInput.value,
         expectedPasswordCard[selector].value,
         "password revealed"
       );
+
+      info("click on button again to conceal the password");
+      revealBtn.click();
+      await waitForPasswordConceal(loginLine);
+      ok(true, "Password is hidden.");
+
+      events = Glean.contextualManager.recordsInteraction.testGetValue();
+      assertCPMGleanEvent(events[4], {
+        interaction_type: "hide_password",
+      });
     }
   }
 
@@ -313,7 +346,7 @@ add_task(async function test_passwords_visibility_when_view_shown() {
   megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
   passwordCard = megalist.querySelector("password-card");
-  await waitForPasswordConceal(passwordCard.passwordLine);
+  await waitForPasswordConceal(passwordCard.passwordLine.loginLine);
   ok(true, "Password is hidden.");
 
   info(
@@ -323,7 +356,7 @@ add_task(async function test_passwords_visibility_when_view_shown() {
   megalist = await openPasswordsSidebar();
   await checkAllLoginsRendered(megalist);
   passwordCard = megalist.querySelector("password-card");
-  await waitForPasswordConceal(passwordCard.passwordLine);
+  await waitForPasswordConceal(passwordCard.passwordLine.loginLine);
   ok(true, "Password is hidden.");
 
   SidebarController.hide();

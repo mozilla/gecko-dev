@@ -63,6 +63,10 @@ add_task(async function test_no_username_alert() {
     ok(true, "Cannot test OSAuth.");
     return;
   }
+
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   info("Adding a login with no username.");
   await Services.logins.addLoginAsync({ ...TEST_LOGIN_1, username: "" });
   const megalist = await openPasswordsSidebar();
@@ -77,6 +81,10 @@ add_task(async function test_no_username_alert() {
 
   info("Click on view alerts.");
   viewAlertsButton.click();
+  let events = Glean.contextualManager.recordsInteraction.testGetValue();
+  assertCPMGleanEvent(events[0], {
+    interaction_type: "view_alert",
+  });
   const notifMsgBar = await waitForNotification(
     megalist,
     "no-username-warning"
