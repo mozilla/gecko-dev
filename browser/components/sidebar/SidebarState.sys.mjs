@@ -244,13 +244,13 @@ export class SidebarState {
    * - Force expand value
    *
    * @param {boolean} visible
-   * @param {boolean} onToolbarButtonClick
+   * @param {boolean} onUserToggle
    * @param {boolean} onToolbarButtonRemoval
    * @param {boolean} forceExpandValue
    */
   updateVisibility(
     visible,
-    onToolbarButtonClick = false,
+    onUserToggle = false,
     onToolbarButtonRemoval = false,
     forceExpandValue = null
   ) {
@@ -270,8 +270,8 @@ export class SidebarState {
         // we need this set to verticalTabsEnabled to ensure it has the correct state when toggling the sidebar button
         this.launcherExpanded = lazy.verticalTabsEnabled && visible;
         if (!visible && this.panelOpen) {
-          if (onToolbarButtonClick) {
-            // Hiding the launcher with the toolbar button should also close out any open panels and resets panelOpen
+          if (onUserToggle) {
+            // Hiding the launcher with the toolbar button or context menu should also close out any open panels and resets panelOpen
             this.#controller.hide();
           } else {
             // Hide the launcher when the pref is set to hide-sidebar
