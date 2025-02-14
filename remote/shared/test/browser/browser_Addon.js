@@ -61,7 +61,7 @@ add_task(async function test_uninstall() {
 add_task(async function test_uninstall_failure() {
   await Assert.rejects(
     lazy.Addon.uninstall("test"),
-    /UnknownError: Addon test is not installed/,
+    /NoSuchWebExtensionError: Add-on with ID "test" is not installed/,
     "Expected error was returned"
   );
 });
