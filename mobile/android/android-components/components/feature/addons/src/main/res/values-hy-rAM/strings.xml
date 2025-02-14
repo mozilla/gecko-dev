@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Մատչել դիտարկիչի ներդիրները</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Պահել անսահմանափակ քանակությամբ սպասառուի տվյալներ</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Պահել անսահմանափակ քանակությամբ սպասառուի տվյալներ</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Մուտք գործել դիտարկիչի գործունեությունը նավիգացիայի ընթացքում</string>
     <!-- Description for bookmarks permission. -->
@@ -74,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Ներբեռնեք և գործարկեք AI մոդելները ձեր սարքում</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Թույլ տվեք չստուգված երրորդ կողմի սկրիպտներին մատչել ձեր տվյալները</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Չստուգված սկրիպտները կարող են անվտանգության և գաղտնիության վտանգներ առաջացնել: Աշխատեցրեք սկրիպտներ միայն ընդլայնումներից կամ աղբյուրներից, որոնց վստահում եք:</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Երկարաձգել մշակողի գործիքները՝ մատչելու համար ձեր տվյալները բաց ներդիրներում</string>
     <!-- The version on of add-on. -->

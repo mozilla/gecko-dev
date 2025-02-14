@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">เข้าถึงแท็บของเบราว์เซอร์</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">จัดเก็บข้อมูลฝั่งไคลเอ็นต์ไม่จำกัดจำนวน</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">จัดเก็บข้อมูลฝั่งไคลเอ็นต์ไม่จำกัดจำนวน</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">เข้าถึงกิจกรรมของเบราว์เซอร์ระหว่างการนำทาง</string>
     <!-- Description for bookmarks permission. -->

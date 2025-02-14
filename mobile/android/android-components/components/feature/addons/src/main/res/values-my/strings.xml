@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ဘယောက်ဆာတပ်ဗ်များအားသုံးမည်</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">သုံးစွဲသူအချက်အလက်များကိုအကန့်အသတ်မဲ့သိမ်းပါ။</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">သုံးစွဲသူအချက်အလက်များကိုအကန့်အသတ်မဲ့သိမ်းပါ။</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">လည်ပတ်နေစဉ် ဘရောင်ဇာဆောင်ရွက်မှုကို ကြည့်ရှုမည်</string>
     <!-- Description for bookmarks permission. -->

@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Asedere a ƚe schede de el browser</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Salvare dati so el dispoxitivo sensa limitasioni de spasio</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Salvare dati so el dispoxitivo sensa limitasioni de spasio</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Asedere a ƚa attività de el browser durante ƚa navigasion</string>
     <!-- Description for bookmarks permission. -->

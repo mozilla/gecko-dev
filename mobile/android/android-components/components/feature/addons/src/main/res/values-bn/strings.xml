@@ -25,7 +25,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">ব্রাউজারের ট্যাবগুলো ব্যবহার করুন</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">সীমাহীন পরিমাণের ক্লায়েন্ট-সাইডের তথ্য সঞ্চয় করুন</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">সীমাহীন পরিমাণের ক্লায়েন্ট-সাইডের তথ্য সঞ্চয় করুন</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">নেভিগেশনের সময়ে ব্রাউজিং কার্যকলাপে প্রবেশ করুন</string>
     <!-- Description for bookmarks permission. -->

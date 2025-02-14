@@ -3,11 +3,11 @@
     <!-- Description for privacy add-on permission. -->
     <string name="mozac_feature_addons_permissions_privacy_description">Хондан ва тағйир додани танзимоти махфият</string>
     <!-- Description for all_urls add-on permission. -->
-    <string name="mozac_feature_addons_permissions_all_urls_description">Дастрас кардани маълумоти шумо барои ҳамаи сомонаҳо</string>
+    <string name="mozac_feature_addons_permissions_all_urls_description">Пайдо кардани дастрасӣ ба маълумоти худ барои ҳамаи сомонаҳо</string>
     <!-- Description for giving an add-on access to users's data on one site. %1$s  will be replaced by the DNS host name for which a web extension is requesting access (e.g., www.mozilla.org). -->
     <string name="mozac_feature_addons_permissions_one_site_description">Дастрас кардани маълумоти шумо барои %1$s</string>
     <!-- Description for giving an add-on access to users's data in multiple sites in the domain %1$s. %1$s will be replaced by the DNS domain for which a web extension is requesting access (e.g., mozilla.org). -->
-    <string name="mozac_feature_addons_permissions_sites_in_domain_description">Дастрас кардани маълумоти шумо барои сомонаҳо дар домени %1$s</string>
+    <string name="mozac_feature_addons_permissions_sites_in_domain_description">Пайдо кардани дастрасӣ ба маълумоти худ барои сомонаҳо дар домени %1$s</string>
     <!-- When an add-on requires access to more than 4 sites, for example the add-on requires access for 5 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
      then we will show another collapsed entry saying "Access your data on 1 other site". This entry it's for the singular case, when the add-on is only accessing one extra site. -->
     <string name="mozac_feature_addons_permissions_one_extra_site_description" tools:ignore="PluralsCandidate">Дастрас кардани маълумоти шумо дар 1 сомонаи дигар</string>
@@ -22,12 +22,14 @@
      then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
      %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission. -->
     <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Дастрас кардани маълумоти шумо дар %1$d домени дигар</string>
+    <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+    <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Пайдо кардани дастрасӣ ба маълумоти худ барои сомонаҳо дар доменҳои %1$d</string>
     <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
     <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d аз %3$d</string>
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Дастрас кардани варақаҳои браузер</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Нигоҳ доштани миқдори номаҳдуди маълумоти муштариён</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Нигоҳ доштани миқдори номаҳдуди маълумоти муштариён</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Дастрас кардани фаъолияти браузер ҳангоми паймоиш</string>
     <!-- Description for bookmarks permission. -->
@@ -78,6 +80,10 @@
     <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Скриптҳои тасдиқнашуда метавонанд ба амният ва махфияти шумо ҳар гуна хатарҳоро ба вуҷуд оранд. Танҳо скриптҳоро аз васеъшавиҳо ё манбаъҳое, ки шумо ба он эътимод доред, иҷро кунед.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Васеъкунии абзорҳои барномасозӣ барои дастрас кардани маълумоти шумо дар варақаҳои кушодашуда</string>
+    <!-- Description for text button that expands the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_all_sites">Намоиш додани ҳамаи сомонаҳо</string>
+    <!-- Description for text button that hides the majority of the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_fewer_sites">Намоиш додани баъзе сомонаҳо</string>
     <!-- The version on of add-on. -->
     <string name="mozac_feature_addons_version">Силсила</string>
     <!-- The author of an add-on. -->

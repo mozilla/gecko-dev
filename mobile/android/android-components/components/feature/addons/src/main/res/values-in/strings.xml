@@ -27,7 +27,7 @@
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">Akses tab peramban</string>
     <!-- Description for unlimited_storage permission. -->
-    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Simpan data untuk sisi klien dalam jumlah tak terbatas</string>
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description" moz:removedIn="137" tools:ignore="UnusedResources">Simpan data untuk sisi klien dalam jumlah tak terbatas</string>
     <!-- Description for navigation permission. -->
     <string name="mozac_feature_addons_permissions_web_navigation_description">Mengakses aktivitas peramban selama navigasi</string>
     <!-- Description for bookmarks permission. -->
