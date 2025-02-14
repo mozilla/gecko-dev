@@ -172,6 +172,11 @@ trait ClosureHelper {
     fn invoke(&self, property_id: Option<NonCustomPropertyId>);
 }
 
+const NO_MUTATION_CLOSURE : DeclarationBlockMutationClosure = DeclarationBlockMutationClosure {
+    data: std::ptr::null_mut(),
+    function: None,
+};
+
 impl ClosureHelper for DeclarationBlockMutationClosure {
     #[inline]
     fn invoke(&self, property_id: Option<NonCustomPropertyId>) {
@@ -5599,7 +5604,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
     property: nsCSSPropertyID,
     value: f32,
     unit: structs::nsCSSUnit,
-) {
+) -> bool {
     use style::properties::PropertyDeclaration;
     use style::values::generics::length::{LengthPercentageOrAuto, Size};
     use style::values::generics::NonNegative;
@@ -5660,7 +5665,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
         _ => unreachable!("Unknown unit passed to SetLengthValue"),
     };
 
-    let prop = match_wrap_declared! { long,
+    let mut source_declarations = SourcePropertyDeclaration::with_one(match_wrap_declared! { long,
         Width => Size::LengthPercentage(NonNegative(LengthPercentage::Length(nocalc))),
         Height => Size::LengthPercentage(NonNegative(LengthPercentage::Length(nocalc))),
         X =>  LengthPercentage::Length(nocalc),
@@ -5671,10 +5676,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetLengthValue(
         Rx => LengthPercentageOrAuto::LengthPercentage(NonNegative(LengthPercentage::Length(nocalc))),
         Ry => LengthPercentageOrAuto::LengthPercentage(NonNegative(LengthPercentage::Length(nocalc))),
         FontSize => FontSize::Length(LengthPercentage::Length(nocalc)),
-    };
-    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
-    })
+    });
+    set_property_to_declarations(
+        Some(long.into()),
+        declarations,
+        &mut source_declarations,
+        NO_MUTATION_CLOSURE,
+        Importance::Normal,
+    )
 }
 
 #[no_mangle]
@@ -5682,7 +5691,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetTransform(
     declarations: &LockedDeclarationBlock,
     property: nsCSSPropertyID,
     ops: &nsTArray<computed::TransformOperation>,
-) {
+) -> bool {
     use style::values::generics::transform::GenericTransform;
     use style::properties::PropertyDeclaration;
     let long = get_longhand_from_id!(property);
@@ -5690,9 +5699,14 @@ pub extern "C" fn Servo_DeclarationBlock_SetTransform(
     let prop = match_wrap_declared! { long,
         Transform => v,
     };
-    write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
-        decls.push(prop, Importance::Normal);
-    })
+    let mut source_declarations = SourcePropertyDeclaration::with_one(prop);
+    set_property_to_declarations(
+        Some(long.into()),
+        declarations,
+        &mut source_declarations,
+        NO_MUTATION_CLOSURE,
+        Importance::Normal,
+    )
 }
 
 #[no_mangle]

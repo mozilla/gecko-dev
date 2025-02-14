@@ -350,13 +350,29 @@ static already_AddRefed<Element> MakePseudo(Document& aDoc,
   return el.forget();
 }
 
-static void SetProp(StyleLockedDeclarationBlock* aDecls, Document* aDoc,
-                    const nsACString& aProp, const nsACString& aValue) {
-  Servo_DeclarationBlock_SetProperty(
-      aDecls, &aProp, &aValue,
+static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document* aDoc,
+                    nsCSSPropertyID aProp, const nsACString& aValue) {
+  return Servo_DeclarationBlock_SetPropertyById(
+      aDecls, aProp, &aValue,
       /* is_important = */ false, aDoc->DefaultStyleAttrURLData(),
       StyleParsingMode::DEFAULT, eCompatibility_FullStandards,
       aDoc->CSSLoader(), StyleCssRuleType::Style, {});
+}
+
+static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document*,
+                    nsCSSPropertyID aProp, float aLength, nsCSSUnit aUnit) {
+  return Servo_DeclarationBlock_SetLengthValue(aDecls, aProp, aLength, aUnit);
+}
+
+static bool SetProp(StyleLockedDeclarationBlock* aDecls, Document*,
+                    nsCSSPropertyID aProp, const CSSToCSSMatrix4x4Flagged& aM) {
+  MOZ_ASSERT(aProp == eCSSProperty_transform);
+  AutoTArray<StyleTransformOperation, 1> ops;
+  ops.AppendElement(
+      StyleTransformOperation::Matrix3D(StyleGenericMatrix3D<StyleNumber>{
+          aM._11, aM._12, aM._13, aM._14, aM._21, aM._22, aM._23, aM._24,
+          aM._31, aM._32, aM._33, aM._34, aM._41, aM._42, aM._43, aM._44}));
+  return Servo_DeclarationBlock_SetTransform(aDecls, aProp, &ops);
 }
 
 static StyleLockedDeclarationBlock* EnsureRule(
@@ -426,7 +442,7 @@ void ViewTransition::SetupTransitionPseudoElements() {
       MOZ_ASSERT(capturedElement.mNewElement);
       // Set capturedElement's image animation name rule to a new ...
       auto* rule = EnsureRule(capturedElement.mNewRule);
-      SetProp(rule, mDocument, "animation-name"_ns,
+      SetProp(rule, mDocument, eCSSProperty_animation_name,
               "-ua-view-transition-fade-in"_ns);
     }
     // If capturedElement's new element is not null, then:
@@ -444,9 +460,21 @@ void ViewTransition::SetupTransitionPseudoElements() {
       // representing the following CSS, and append it to document’s dynamic
       // view transition style sheet:
       MOZ_ASSERT(capturedElement.mOldState.mTriedImage);
-      auto* rule = EnsureRule(capturedElement.mOldRule);
-      SetProp(rule, mDocument, "animation-name"_ns,
-              "-ua-view-transition-fade-out"_ns);
+      SetProp(EnsureRule(capturedElement.mOldRule), mDocument,
+              eCSSProperty_animation_name, "-ua-view-transition-fade-out"_ns);
+
+      // Moved around from "update pseudo-element styles" because it's a one
+      // time operation.
+      auto* rule = EnsureRule(capturedElement.mGroupRule);
+      auto oldRect = CSSPixel::FromAppUnits(capturedElement.mOldState.mSize);
+      SetProp(rule, mDocument, eCSSProperty_width, oldRect.width,
+              eCSSUnit_Pixel);
+      SetProp(rule, mDocument, eCSSProperty_height, oldRect.height,
+              eCSSUnit_Pixel);
+      SetProp(rule, mDocument, eCSSProperty_transform,
+              capturedElement.mOldState.mTransform);
+      // TODO: writing-mode, direction, text-orientation, mix-blend-mode,
+      // backdrop-filter, color-scheme.
     }
     // If both of capturedElement's old image and new element are not null,
     // then:
@@ -458,18 +486,20 @@ void ViewTransition::SetupTransitionPseudoElements() {
       // TODO(emilio): Group keyframes.
       // Set capturedElement's group animation name rule to ...
       SetProp(EnsureRule(capturedElement.mGroupRule), mDocument,
-              "animation-name"_ns, dynamicAnimationName);
+              eCSSProperty_animation_name, dynamicAnimationName);
 
       // Set capturedElement's image pair isolation rule to ...
       SetProp(EnsureRule(capturedElement.mImagePairRule), mDocument,
-              "isolation"_ns, "isolate"_ns);
+              eCSSProperty_isolation, "isolate"_ns);
 
       // Set capturedElement's image animation name rule to ...
       SetProp(
-          EnsureRule(capturedElement.mOldRule), mDocument, "animation-name"_ns,
+          EnsureRule(capturedElement.mOldRule), mDocument,
+          eCSSProperty_animation_name,
           "-ua-view-transition-fade-out, -ua-mix-blend-mode-plus-lighter"_ns);
       SetProp(
-          EnsureRule(capturedElement.mNewRule), mDocument, "animation-name"_ns,
+          EnsureRule(capturedElement.mNewRule), mDocument,
+          eCSSProperty_animation_name,
           "-ua-view-transition-fade-in, -ua-mix-blend-mode-plus-lighter"_ns);
     }
   }
@@ -482,6 +512,60 @@ void ViewTransition::SetupTransitionPseudoElements() {
   if (PresShell* ps = mDocument->GetPresShell()) {
     ps->ContentAppended(mViewTransitionRoot);
   }
+}
+
+// https://drafts.csswg.org/css-view-transitions-1/#style-transition-pseudo-elements-algorithm
+bool ViewTransition::UpdatePseudoElementStyles(bool aNeedsInvalidation) {
+  // 1. For each transitionName -> capturedElement of transition's "named
+  // elements".
+  for (auto& entry : mNamedElements) {
+    nsAtom* transitionName = entry.GetKey();
+    CapturedElement& capturedElement = *entry.GetData();
+    // If capturedElement's new element is null, then:
+    // We already did this in SetupTransitionPseudoElements().
+    if (!capturedElement.mNewElement) {
+      continue;
+    }
+    // Otherwise.
+    // Return failure if any of the following conditions is true:
+    //  * capturedElement's new element has a flat tree ancestor that skips its
+    //    contents.
+    //  * capturedElement's new element is not rendered.
+    //  * capturedElement has more than one box fragment.
+    nsIFrame* frame = capturedElement.mNewElement->GetPrimaryFrame();
+    if (!frame || frame->IsHiddenByContentVisibilityOnAnyAncestor() ||
+        frame->GetPrevContinuation() || frame->GetNextContinuation()) {
+      return false;
+    }
+    auto* rule = EnsureRule(capturedElement.mGroupRule);
+    // Let newRect be snapshot containing block if capturedElement is the
+    // document element, otherwise, capturedElement’s border box.
+    auto newRect = frame->Style()->IsRootElementStyle()
+                       ? SnapshotContainingBlockRect()
+                       : frame->GetRect();
+    auto size = CSSPixel::FromAppUnits(newRect);
+    // NOTE(emilio): Intentionally not short-circuiting. Int cast is needed to
+    // silence warning.
+    bool changed = int(SetProp(rule, mDocument, eCSSProperty_width, size.width,
+                               eCSSUnit_Pixel)) |
+                   SetProp(rule, mDocument, eCSSProperty_height, size.height,
+                           eCSSUnit_Pixel) |
+                   SetProp(rule, mDocument, eCSSProperty_transform,
+                           EffectiveTransform(frame));
+    // TODO: writing-mode, direction, text-orientation, mix-blend-mode,
+    // backdrop-filter, color-scheme.
+    if (changed && aNeedsInvalidation) {
+      auto* pseudo = FindPseudo(PseudoStyleRequest(
+          PseudoStyleType::viewTransitionGroup, transitionName));
+      MOZ_ASSERT(pseudo);
+      // TODO(emilio): Maybe we need something more than recascade? But I don't
+      // see how off-hand.
+      nsLayoutUtils::PostRestyleEvent(pseudo, RestyleHint::RECASCADE_SELF,
+                                      nsChangeHint(0));
+    }
+    // 5. TODO(emilio): Live capturing (probably nothing to do here)
+  }
+  return true;
 }
 
 // https://drafts.csswg.org/css-view-transitions-1/#activate-view-transition
@@ -513,7 +597,15 @@ void ViewTransition::Activate() {
   // Step 6: Setup transition pseudo-elements for transition.
   SetupTransitionPseudoElements();
 
-  // TODO(emilio): Step 7.
+  // Step 7: Update pseudo-element styles for transition.
+  // We don't need to invalidate the pseudo-element styles since we just
+  // generated them.
+  if (!UpdatePseudoElementStyles(/* aNeedsInvalidation = */ false)) {
+    // If failure is returned, then skip the view transition for transition
+    // with an "InvalidStateError" DOMException in transition's relevant Realm,
+    // and return.
+    return SkipTransition(SkipTransitionReason::PseudoUpdateFailure);
+  }
 
   // Step 8: Set transition's phase to "animating".
   mPhase = Phase::Animating;
@@ -549,6 +641,69 @@ nsRect ViewTransition::SnapshotContainingBlockRect() const {
   // TODO(emilio): Ensure this is correct with Android's dynamic toolbar and
   // scrollbars.
   return pc ? pc->GetVisibleArea() : nsRect();
+}
+
+Element* ViewTransition::FindPseudo(const PseudoStyleRequest& aRequest) const {
+  Element* root = GetRoot();
+  if (!root) {
+    return nullptr;
+  }
+
+  if (aRequest.mType == PseudoStyleType::viewTransition) {
+    return root;
+  }
+
+  // Linear search ::view-transition-group by |aRequest.mIdentifier|.
+  // Note: perhaps we can add a hashtable to improve the performance if it's
+  // common that there are a lot of view-transition-names.
+  Element* group = root->GetFirstElementChild();
+  for (; group; group = group->GetNextElementSibling()) {
+    MOZ_ASSERT(group->HasName(),
+               "The generated ::view-transition-group() should have a name");
+    nsAtom* name = group->GetParsedAttr(nsGkAtoms::name)->GetAtomValue();
+    if (name == aRequest.mIdentifier) {
+      break;
+    }
+  }
+
+  // No one specifies view-transition-name or we mismatch all names.
+  if (!group) {
+    return nullptr;
+  }
+
+  if (aRequest.mType == PseudoStyleType::viewTransitionGroup) {
+    return group;
+  }
+
+  Element* imagePair = group->GetFirstElementChild();
+  MOZ_ASSERT(imagePair, "::view-transition-image-pair() should exist always");
+  if (aRequest.mType == PseudoStyleType::viewTransitionImagePair) {
+    return imagePair;
+  }
+
+  Element* child = imagePair->GetFirstElementChild();
+  // Neither ::view-transition-old() nor ::view-transition-new() doesn't exist.
+  if (!child) {
+    return nullptr;
+  }
+
+  // Check if the first element matches our request.
+  const PseudoStyleType type = child->GetPseudoElementType();
+  if (type == aRequest.mType) {
+    return child;
+  }
+
+  // Since the second child is either ::view-transition-new() or nullptr, so we
+  // can reject viewTransitionOld request here.
+  if (aRequest.mType == PseudoStyleType::viewTransitionOld) {
+    return nullptr;
+  }
+
+  child = child->GetNextElementSibling();
+  MOZ_ASSERT(aRequest.mType == PseudoStyleType::viewTransitionNew);
+  MOZ_ASSERT(!child || !child->GetNextElementSibling(),
+             "No more psuedo elements in this subtree");
+  return child;
 }
 
 const StyleLockedDeclarationBlock* ViewTransition::GetDynamicRuleFor(
@@ -757,11 +912,20 @@ void ViewTransition::HandleFrame() {
     }
     return;
   }
-  // If the view tranimation is still animating after HandleFrame(),
-  // we have to periodically perform operations to check if it is still
-  // animating in the following ticks.
+  // TODO(emilio): Step 5 (check CB resize)
+
+  // Step 6: Update pseudo-element styles for transition.
+  if (!UpdatePseudoElementStyles(/* aNeedsInvalidation= */ true)) {
+    // If failure is returned, then skip the view transition for transition
+    // with an "InvalidStateError" DOMException in transition's relevant Realm,
+    // and return.
+    return SkipTransition(SkipTransitionReason::PseudoUpdateFailure);
+  }
+
+  // If the view transition is still animating after HandleFrame(), we have to
+  // periodically perform operations to check if it is still animating in the
+  // following ticks.
   mDocument->EnsureViewTransitionOperationsHappen();
-  // TODO(emilio): Steps 5-6 (check CB size, update pseudo styles).
 }
 
 static bool CheckForActiveAnimationsForEachPseudo(
@@ -977,6 +1141,10 @@ void ViewTransition::SkipTransition(
       case SkipTransitionReason::Resize:
         readyPromise->MaybeRejectWithInvalidStateError(
             "Skipped view transition due to viewport resize");
+        break;
+      case SkipTransitionReason::PseudoUpdateFailure:
+        readyPromise->MaybeRejectWithInvalidStateError(
+            "Skipped view transition due to hidden new element");
         break;
       case SkipTransitionReason::UpdateCallbackRejected:
         readyPromise->MaybeReject(aUpdateCallbackRejectReason);
