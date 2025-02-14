@@ -116,6 +116,13 @@ def update(ctx):
     print("[WARNING] Your source tree was updated, you should commit the changes.")
 
 
+@SubCommand("ts", "glean", description="Build Glean bindings.")
+@CommandArgument("path", help="Path to a (dir with) metrics.yaml.")
+def glean(ctx, path):
+    maybe_setup(ctx)
+    return node(ctx, "build_glean", ctx.topsrcdir, path, "tools/@types")
+
+
 def node(ctx, script, *args):
     maybe_setup(ctx)
     path = mozpath.join(mozpath.dirname(__file__), script)

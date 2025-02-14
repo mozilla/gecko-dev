@@ -1,31 +1,10 @@
 /**
  * NOTE: Do not modify this file by hand.
  * Content was generated from source metrics.yaml files.
+ * If you're updating some of the sources, see README for instructions.
  */
 
 interface GleanImpl {
-
-  // toolkit/mozapps/extensions/metrics.yaml
-
-  addonsManager: {
-    install: GleanEvent;
-    update: GleanEvent;
-    installStats: GleanEvent;
-    manage: GleanEvent;
-    report: GleanEvent;
-    reportSuspiciousSite: GleanEvent;
-  }
-
-  blocklist: {
-    lastModifiedRsAddonsMblf: GleanDatetime;
-    mlbfSource: GleanString;
-    mlbfGenerationTime: GleanDatetime;
-    mlbfStashTimeOldest: GleanDatetime;
-    mlbfStashTimeNewest: GleanDatetime;
-    addonBlockChange: GleanEvent;
-  }
-
-  // toolkit/components/extensions/metrics.yaml
 
   extensions: {
     useRemotePref: GleanBoolean;
@@ -50,12 +29,7 @@ interface GleanImpl {
   extensionsData: {
     migrateResult: GleanEvent;
     storageLocalError: GleanEvent;
-  }
-
-  extensionsQuarantinedDomains: {
-    listsize: GleanQuantity;
-    listhash: GleanString;
-    remotehash: GleanString;
+    syncUsageQuotas: GleanEvent;
   }
 
   extensionsCounters: {
@@ -70,10 +44,7 @@ interface GleanImpl {
     eventPageRunningTime: GleanCustomDistribution;
     extensionStartup: GleanTimingDistribution;
     pageActionPopupOpen: GleanTimingDistribution;
-    storageLocalGetJson: GleanTimingDistribution;
-    storageLocalSetJson: GleanTimingDistribution;
     storageLocalGetIdb: GleanTimingDistribution;
     storageLocalSetIdb: GleanTimingDistribution;
   }
-
 }
