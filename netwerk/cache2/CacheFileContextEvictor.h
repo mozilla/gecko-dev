@@ -22,6 +22,7 @@ struct CacheFileContextEvictorEntry {
   nsCOMPtr<nsILoadContextInfo> mInfo;
   bool mPinned = false;
   nsString mOrigin;       // it can be empty
+  nsString mBaseDomain;   // it can be empty
   PRTime mTimeStamp = 0;  // in milliseconds
   RefPtr<CacheIndexIterator> mIterator;
 };
@@ -43,7 +44,7 @@ class CacheFileContextEvictor {
   uint32_t ContextsCount();
   // Start evicting given context and an origin, if not empty.
   nsresult AddContext(nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-                      const nsAString& aOrigin);
+                      const nsAString& aOrigin, const nsAString& aBaseDomain);
   // CacheFileIOManager calls this method when CacheIndex's state changes. We
   // check whether the index is up to date and start or stop evicting according
   // to index's state.
