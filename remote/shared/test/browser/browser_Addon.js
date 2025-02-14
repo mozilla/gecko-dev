@@ -46,7 +46,7 @@ add_task(async function test_installWithBase64() {
 add_task(async function test_installWithBase64_failure() {
   await Assert.rejects(
     lazy.Addon.installWithBase64("", true, false),
-    /InvalidWebExtensionError: Could not install Add-on: Component returned failure code/,
+    /UnknownError: Could not install add-on: Component returned failure code/,
     "Expected error was returned"
   );
 });
@@ -61,7 +61,7 @@ add_task(async function test_uninstall() {
 add_task(async function test_uninstall_failure() {
   await Assert.rejects(
     lazy.Addon.uninstall("test"),
-    /NoSuchWebExtensionError: Add-on with ID "test" is not installed/,
+    /UnknownError: Addon test is not installed/,
     "Expected error was returned"
   );
 });

@@ -9,4 +9,3 @@ from .permissions import Permissions
 from .script import Script
 from .session import Session
 from .storage import Storage
-from .web_extension import WebExtension

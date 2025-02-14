@@ -21,7 +21,6 @@ const ERRORS = new Set([
   "InvalidElementStateError",
   "InvalidSelectorError",
   "InvalidSessionIDError",
-  "InvalidWebExtensionError",
   "JavaScriptError",
   "MoveTargetOutOfBoundsError",
   "NoSuchAlertError",
@@ -35,7 +34,6 @@ const ERRORS = new Set([
   "NoSuchScriptError",
   "NoSuchShadowRootError",
   "NoSuchUserContextError",
-  "NoSuchWebExtensionError",
   "NoSuchWindowError",
   "ScriptTimeoutError",
   "SessionNotCreatedError",
@@ -465,22 +463,6 @@ class InvalidSessionIDError extends WebDriverError {
 }
 
 /**
- * Tried to install an invalid web extension.
- *
- * @param {(string|Error)=} obj
- *     Optional string describing error situation or Error instance
- *     to propagate.
- * @param {object=} data
- *     Additional error data helpful in diagnosing the error.
- */
-class InvalidWebExtensionError extends WebDriverError {
-  constructor(obj, data = {}) {
-    super(obj, data);
-    this.status = "invalid web extension";
-  }
-}
-
-/**
  * An error occurred whilst executing JavaScript supplied by the user.
  *
  * @param {(string|Error)=} obj
@@ -710,22 +692,6 @@ class NoSuchUserContextError extends WebDriverError {
 }
 
 /**
- * A command tried to reference an unknown web extension.
- *
- * @param {(string|Error)=} obj
- *     Optional string describing error situation or Error instance
- *     to propagate.
- * @param {object=} data
- *     Additional error data helpful in diagnosing the error.
- */
-class NoSuchWebExtensionError extends WebDriverError {
-  constructor(obj, data = {}) {
-    super(obj, data);
-    this.status = "no such web extension";
-  }
-}
-
-/**
  * A command to switch to a window could not be satisfied because
  * the window could not be found.
  *
@@ -933,7 +899,6 @@ const STATUSES = new Map([
   ["invalid element state", InvalidElementStateError],
   ["invalid selector", InvalidSelectorError],
   ["invalid session id", InvalidSessionIDError],
-  ["invalid web extension", InvalidWebExtensionError],
   ["javascript error", JavaScriptError],
   ["move target out of bounds", MoveTargetOutOfBoundsError],
   ["no such alert", NoSuchAlertError],
@@ -947,7 +912,6 @@ const STATUSES = new Map([
   ["no such script", NoSuchScriptError],
   ["no such shadow root", NoSuchShadowRootError],
   ["no such user context", NoSuchUserContextError],
-  ["no such web extension", NoSuchWebExtensionError],
   ["no such window", NoSuchWindowError],
   ["script timeout", ScriptTimeoutError],
   ["session not created", SessionNotCreatedError],
