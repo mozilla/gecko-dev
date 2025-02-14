@@ -6109,9 +6109,12 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteTextAndTextNodesWithTransaction(
                                                &pointToPutCaret);
         nsresult rv = DeleteEmptyContentNodeWithTransaction(
             MOZ_KnownLive(*aEndPoint.template ContainerAs<Text>()));
-        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                             "DeleteEmptyContentNodeWithTransaction() failed");
-        return Err(rv);
+        if (NS_FAILED(rv)) {
+          NS_WARNING("DeleteEmptyContentNodeWithTransaction() failed");
+          return Err(rv);
+        }
+        trackPointToPutCaret.FlushAndStopTracking();
+        return CaretPoint(std::move(pointToPutCaret));
       }
       AutoTrackDOMPoint trackPointToPutCaret(RangeUpdaterRef(),
                                              &pointToPutCaret);
@@ -6125,7 +6128,7 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteTextAndTextNodesWithTransaction(
       trackPointToPutCaret.FlushAndStopTracking();
       caretPointOrError.unwrap().MoveCaretPointTo(
           pointToPutCaret, {SuggestCaret::OnlyIfHasSuggestion});
-      return CaretPoint(pointToPutCaret);
+      return CaretPoint(std::move(pointToPutCaret));
     }
 
     nsresult rv =
@@ -6136,7 +6139,7 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteTextAndTextNodesWithTransaction(
     }
   }
 
-  return CaretPoint(pointToPutCaret);
+  return CaretPoint(std::move(pointToPutCaret));
 }
 
 Result<EditorDOMPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
