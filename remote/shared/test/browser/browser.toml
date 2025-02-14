@@ -21,3 +21,7 @@ support-files = [
 ["browser_UserContextManager.js"]
 
 ["browser_WindowManager.js"]
+skip-if = [
+  "display == 'wayland'",  # Bug 1923833: Window restoring doesn't work after the window was minimized on Wayland
+  "os == 'win' && debug",  # Bug 1946389: Window state initializes in maximized state instead of normal state on Windows
+]

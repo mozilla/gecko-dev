@@ -14,14 +14,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   capture: "chrome://remote/content/shared/Capture.sys.mjs",
   Context: "chrome://remote/content/marionette/browser.sys.mjs",
   cookie: "chrome://remote/content/marionette/cookie.sys.mjs",
-  DebounceCallback: "chrome://remote/content/marionette/sync.sys.mjs",
   disableEventsActor:
     "chrome://remote/content/marionette/actors/MarionetteEventsParent.sys.mjs",
   dom: "chrome://remote/content/shared/DOM.sys.mjs",
   enableEventsActor:
     "chrome://remote/content/marionette/actors/MarionetteEventsParent.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
-  EventPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   getMarionetteCommandsActorProxy:
     "chrome://remote/content/marionette/actors/MarionetteCommandsParent.sys.mjs",
   l10n: "chrome://remote/content/marionette/l10n.sys.mjs",
@@ -47,7 +45,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   RemoteAgent: "chrome://remote/content/components/RemoteAgent.sys.mjs",
   ShadowRoot: "chrome://remote/content/marionette/web-reference.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
-  TimedPromise: "chrome://remote/content/marionette/sync.sys.mjs",
   Timeouts: "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
   unregisterCommandsActor:
@@ -86,10 +83,6 @@ ChromeUtils.defineLazyGetter(
       lazy.dom.Strategy.XPath,
     ])
 );
-
-// Timeout used to abort fullscreen, maximize, and minimize
-// commands if no window manager is present.
-const TIMEOUT_NO_WINDOW_MANAGER = 5000;
 
 // Observer topic to wait for until the browser window is ready.
 const TOPIC_BROWSER_READY = "browser-delayed-startup-finished";
@@ -1366,99 +1359,16 @@ GeckoDriver.prototype.setWindowRect = async function (cmd) {
   const win = this.getCurrentWindow();
   switch (lazy.WindowState.from(win.windowState)) {
     case lazy.WindowState.Fullscreen:
-      await exitFullscreen(win);
+      await lazy.windowManager.setFullscreen(win, false);
       break;
 
     case lazy.WindowState.Maximized:
     case lazy.WindowState.Minimized:
-      await restoreWindow(win);
+      await lazy.windowManager.restoreWindow(win);
       break;
   }
 
-  // The way we set up both resize and window pos event listeners means that if
-  // we find a matching position on e.g. resize, then resolve, then a geometry
-  // change comes in, then the window pos listener runs, we might try to
-  // incorrectly reset the position without this check.
-  let foundMatch = false;
-
-  // We retry on each iteration because on Linux, when combined with some
-  // sizemode changes (e.g. unmaximizing), the size request might get lost
-  // and we might get resized to the restored size / position.
-  function geometryMatches(retry = false) {
-    lazy.logger.trace(
-      `Checking window geometry ${win.outerWidth}x${win.outerHeight} @ (${win.screenX}, ${win.screenY})`
-    );
-    if (foundMatch) {
-      lazy.logger.trace(`Already found a previous match for this request`);
-      return true;
-    }
-    let sizeMatches = true;
-    let posMatches = true;
-    if (
-      width !== null &&
-      height !== null &&
-      (win.outerWidth !== width || win.outerHeight !== height)
-    ) {
-      sizeMatches = false;
-      if (retry) {
-        win.resizeTo(width, height);
-      }
-    }
-    // Wayland doesn't support getting the window position.
-    if (
-      !lazy.AppInfo.isWayland &&
-      x !== null &&
-      y !== null &&
-      (win.screenX !== x || win.screenY !== y)
-    ) {
-      posMatches = false;
-      if (retry) {
-        win.moveTo(x, y);
-      }
-    }
-    if (sizeMatches && posMatches) {
-      lazy.logger.trace(`Requested window geometry matches`);
-      foundMatch = true;
-      return true;
-    }
-    return false;
-  }
-
-  if (!geometryMatches()) {
-    // There might be more than one resize or MozUpdateWindowPos event due
-    // to previous geometry changes, such as from restoreWindow(), so
-    // wait longer if window geometry does not match.
-    const options = {
-      checkFn() {
-        return geometryMatches(/* retry = */ true);
-      },
-      timeout: 500,
-    };
-    const promises = [];
-    if (width !== null && height !== null) {
-      promises.push(new lazy.EventPromise(win, "resize", options));
-      win.resizeTo(width, height);
-    }
-    // Wayland doesn't support setting the window position.
-    if (!lazy.AppInfo.isWayland && x !== null && y !== null) {
-      promises.push(
-        new lazy.EventPromise(win.windowRoot, "MozUpdateWindowPos", options)
-      );
-      win.moveTo(x, y);
-    }
-    try {
-      await Promise.race(promises);
-    } catch (e) {
-      if (e instanceof lazy.error.TimeoutError) {
-        // The operating system might not honor the move or resize, in which
-        // case assume that geometry will have been adjusted "as close as
-        // possible" to that requested.  There may be no event received if the
-        // geometry is already as close as possible.
-      } else {
-        throw e;
-      }
-    }
-  }
+  await lazy.windowManager.adjustWindowGeometry(win, x, y, width, height);
 
   return this.curBrowser.rect;
 };
@@ -2944,28 +2854,15 @@ GeckoDriver.prototype.minimizeWindow = async function () {
   const win = this.getCurrentWindow();
   switch (lazy.WindowState.from(win.windowState)) {
     case lazy.WindowState.Fullscreen:
-      await exitFullscreen(win);
+      await lazy.windowManager.setFullscreen(win, false);
       break;
 
     case lazy.WindowState.Maximized:
-      await restoreWindow(win);
+      await lazy.windowManager.restoreWindow(win);
       break;
   }
 
-  if (lazy.WindowState.from(win.windowState) != lazy.WindowState.Minimized) {
-    let cb;
-    // Use a timed promise to abort if no window manager is present
-    await new lazy.TimedPromise(
-      resolve => {
-        cb = new lazy.DebounceCallback(resolve);
-        win.addEventListener("sizemodechange", cb);
-        win.minimize();
-      },
-      { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
-    );
-    win.removeEventListener("sizemodechange", cb);
-    await new lazy.AnimationFramePromise(win);
-  }
+  await lazy.windowManager.minimizeWindow(win);
 
   return this.curBrowser.rect;
 };
@@ -2996,28 +2893,15 @@ GeckoDriver.prototype.maximizeWindow = async function () {
   const win = this.getCurrentWindow();
   switch (lazy.WindowState.from(win.windowState)) {
     case lazy.WindowState.Fullscreen:
-      await exitFullscreen(win);
+      await lazy.windowManager.setFullscreen(win, false);
       break;
 
     case lazy.WindowState.Minimized:
-      await restoreWindow(win);
+      await lazy.windowManager.restoreWindow(win);
       break;
   }
 
-  if (lazy.WindowState.from(win.windowState) != lazy.WindowState.Maximized) {
-    let cb;
-    // Use a timed promise to abort if no window manager is present
-    await new lazy.TimedPromise(
-      resolve => {
-        cb = new lazy.DebounceCallback(resolve);
-        win.addEventListener("sizemodechange", cb);
-        win.maximize();
-      },
-      { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
-    );
-    win.removeEventListener("sizemodechange", cb);
-    await new lazy.AnimationFramePromise(win);
-  }
+  await lazy.windowManager.maximizeWindow(win);
 
   return this.curBrowser.rect;
 };
@@ -3049,24 +2933,11 @@ GeckoDriver.prototype.fullscreenWindow = async function () {
   switch (lazy.WindowState.from(win.windowState)) {
     case lazy.WindowState.Maximized:
     case lazy.WindowState.Minimized:
-      await restoreWindow(win);
+      await lazy.windowManager.restoreWindow(win);
       break;
   }
 
-  if (lazy.WindowState.from(win.windowState) != lazy.WindowState.Fullscreen) {
-    let cb;
-    // Use a timed promise to abort if no window manager is present
-    await new lazy.TimedPromise(
-      resolve => {
-        cb = new lazy.DebounceCallback(resolve);
-        win.addEventListener("sizemodechange", cb);
-        win.fullScreen = true;
-      },
-      { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
-    );
-    win.removeEventListener("sizemodechange", cb);
-  }
-  await new lazy.AnimationFramePromise(win);
+  await lazy.windowManager.setFullscreen(win, true);
 
   return this.curBrowser.rect;
 };
@@ -3990,36 +3861,3 @@ GeckoDriver.prototype.commands = {
   "WebAuthn:RemoveAllCredentials": GeckoDriver.prototype.removeAllCredentials,
   "WebAuthn:SetUserVerified": GeckoDriver.prototype.setUserVerified,
 };
-
-async function exitFullscreen(win) {
-  let cb;
-  // Use a timed promise to abort if no window manager is present
-  await new lazy.TimedPromise(
-    resolve => {
-      cb = new lazy.DebounceCallback(resolve);
-      win.addEventListener("sizemodechange", cb);
-      win.fullScreen = false;
-    },
-    { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
-  );
-  win.removeEventListener("sizemodechange", cb);
-  await new lazy.AnimationFramePromise(win);
-}
-
-async function restoreWindow(win) {
-  let cb;
-  if (lazy.WindowState.from(win.windowState) == lazy.WindowState.Normal) {
-    return;
-  }
-  // Use a timed promise to abort if no window manager is present
-  await new lazy.TimedPromise(
-    resolve => {
-      cb = new lazy.DebounceCallback(resolve);
-      win.addEventListener("sizemodechange", cb);
-      win.restore();
-    },
-    { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
-  );
-  win.removeEventListener("sizemodechange", cb);
-  await new lazy.AnimationFramePromise(win);
-}

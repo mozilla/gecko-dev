@@ -7,16 +7,25 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   URILoadingHelper: "resource:///modules/URILoadingHelper.sys.mjs",
 
+  AnimationFramePromise: "chrome://remote/content/shared/Sync.sys.mjs",
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
+  DebounceCallback: "chrome://remote/content/marionette/sync.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   EventPromise: "chrome://remote/content/shared/Sync.sys.mjs",
   generateUUID: "chrome://remote/content/shared/UUID.sys.mjs",
+  Log: "chrome://remote/content/shared/Log.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   TimedPromise: "chrome://remote/content/marionette/sync.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
   waitForObserverTopic: "chrome://remote/content/marionette/sync.sys.mjs",
 });
+
+ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
+
+// Timeout used to abort fullscreen, maximize, and minimize
+// commands if no window manager is present.
+const TIMEOUT_NO_WINDOW_MANAGER = 5000;
 
 /**
  * Provides helpers to interact with Window objects.
@@ -168,6 +177,110 @@ class WindowManager {
   }
 
   /**
+   * Adjusts the window geometry.
+   *
+   *@param {window} win
+   *     The browser window to adjust.
+   * @param {number} x
+   *     The x-coordinate of the window.
+   * @param {number} y
+   *     The y-coordinate of the window.
+   * @param {number} width
+   *     The width of the window.
+   * @param {number} height
+   *     The height of the window.
+   *
+   * @returns {Promise}
+   *     A promise that resolves when the window geometry has been adjusted.
+   *
+   * @throws {TimeoutError}
+   *     Raised if the operating system fails to honor the requested move or resize.
+   */
+  async adjustWindowGeometry(win, x, y, width, height) {
+    // we find a matching position on e.g. resize, then resolve, then a geometry
+    // change comes in, then the window pos listener runs, we might try to
+    // incorrectly reset the position without this check.
+    let foundMatch = false;
+
+    // We retry on each iteration because on Linux, when combined with some
+    // sizemode changes (e.g. unmaximizing), the size request might get lost
+    // and we might get resized to the restored size / position.
+    function geometryMatches(retry = false) {
+      lazy.logger.trace(
+        `Checking window geometry ${win.outerWidth}x${win.outerHeight} @ (${win.screenX}, ${win.screenY})`
+      );
+      if (foundMatch) {
+        lazy.logger.trace(`Already found a previous match for this request`);
+        return true;
+      }
+      let sizeMatches = true;
+      let posMatches = true;
+      if (
+        width !== null &&
+        height !== null &&
+        (win.outerWidth !== width || win.outerHeight !== height)
+      ) {
+        sizeMatches = false;
+        if (retry) {
+          win.resizeTo(width, height);
+        }
+      }
+      // Wayland doesn't support getting the window position.
+      if (
+        !lazy.AppInfo.isWayland &&
+        x !== null &&
+        y !== null &&
+        (win.screenX !== x || win.screenY !== y)
+      ) {
+        posMatches = false;
+        if (retry) {
+          win.moveTo(x, y);
+        }
+      }
+      if (sizeMatches && posMatches) {
+        lazy.logger.trace(`Requested window geometry matches`);
+        foundMatch = true;
+        return true;
+      }
+      return false;
+    }
+
+    if (!geometryMatches()) {
+      // There might be more than one resize or MozUpdateWindowPos event due
+      // to previous geometry changes, such as from restoreWindow(), so
+      // wait longer if window geometry does not match.
+      const options = {
+        checkFn: geometryMatches(/* retry = */ true),
+        timeout: 500,
+      };
+      const promises = [];
+      if (width !== null && height !== null) {
+        promises.push(new lazy.EventPromise(win, "resize", options));
+        win.resizeTo(width, height);
+      }
+      // Wayland doesn't support setting the window position.
+      if (!lazy.AppInfo.isWayland && x !== null && y !== null) {
+        promises.push(
+          new lazy.EventPromise(win.windowRoot, "MozUpdateWindowPos", options)
+        );
+        win.moveTo(x, y);
+      }
+      try {
+        await Promise.race(promises);
+      } catch (e) {
+        if (e instanceof lazy.error.TimeoutError) {
+          // The operating system might not honor the move or resize, in which
+          // case assume that geometry will have been adjusted "as close as
+          // possible" to that requested.  There may be no event received if the
+          // geometry is already as close as possible.
+        } else {
+          throw e;
+        }
+      }
+    }
+  }
+
+  /**
    * Focus the specified window.
    *
    * @param {window} win
@@ -264,6 +377,70 @@ class WindowManager {
   }
 
   /**
+   * Minimize the specified window.
+   *
+   * @param {window} win
+   *     The window to minimize.
+   *
+   * @returns {Promise}
+   *     A promise resolved when the window is minimized, or times out if no window manager is present.
+   */
+  async minimizeWindow(win) {
+    if (WindowState.from(win.windowState) != WindowState.Minimized) {
+      await waitForWindowState(win, () => win.minimize());
+    }
+  }
+
+  /**
+   * Maximize the specified window.
+   *
+   * @param {window} win
+   *     The window to maximize.
+   *
+   * @returns {Promise}
+   *     A promise resolved when the window is maximized, or times out if no window manager is present.
+   */
+  async maximizeWindow(win) {
+    if (WindowState.from(win.windowState) != WindowState.Maximized) {
+      await waitForWindowState(win, () => win.maximize());
+    }
+  }
+
+  /**
+   * Restores the specified window to its normal state.
+   *
+   * @param {window} win
+   *     The window to restore.
+   *
+   * @returns {Promise}
+   *     A promise resolved when the window is restored, or times out if no window manager is present.
+   */
+  async restoreWindow(win) {
+    if (WindowState.from(win.windowState) !== WindowState.Normal) {
+      await waitForWindowState(win, () => win.restore());
+    }
+  }
+
+  /**
+   * Sets the fullscreen state of the specified window.
+   *
+   * @param {window} win
+   *     The target window.
+   * @param {boolean} enable
+   *     Whether to enter fullscreen (true) or exit fullscreen (false).
+   *
+   * @returns {Promise}
+   *     A promise resolved when the window enters or exits fullscreen mode.
+   */
+  async setFullscreen(win, enable) {
+    const isFullscreen =
+      WindowState.from(win.windowState) === WindowState.Fullscreen;
+    if (enable !== isFullscreen) {
+      await waitForWindowState(win, () => (win.fullScreen = enable));
+    }
+  }
+
+  /**
    * Wait until the initial application window has been opened and loaded.
    *
    * @returns {Promise<WindowProxy>}
@@ -344,3 +521,29 @@ export const WindowState = {
     }
   },
 };
+
+/**
+ * Waits for the window to reach a specific state after invoking a callback.
+ *
+ * @param {window} win
+ *     The target window.
+ * @param {Function} callback
+ *     The function to invoke to change the window state.
+ *
+ * @returns {Promise}
+ *     A promise resolved when the window reaches the target state, or times out if no window manager is present.
+ */
+async function waitForWindowState(win, callback) {
+  let cb;
+  // Use a timed promise to abort if no window manager is present
+  await new lazy.TimedPromise(
+    resolve => {
+      cb = new lazy.DebounceCallback(resolve);
+      win.addEventListener("sizemodechange", cb);
+      callback();
+    },
+    { throws: null, timeout: TIMEOUT_NO_WINDOW_MANAGER }
+  );
+  win.removeEventListener("sizemodechange", cb);
+  await new lazy.AnimationFramePromise(win);
+}
