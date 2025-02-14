@@ -144,7 +144,6 @@ export const ATTRIBUTE_TRANSFORMS = Object.freeze({
   isDefaultBrowser: typeAssertions.boolean,
   isFirstStartup: typeAssertions.boolean,
   isFxAEnabled: typeAssertions.boolean,
-  isFxASignedIn: typeAssertions.boolean,
   isMSIX: typeAssertions.boolean,
   locale: typeAssertions.string,
   memoryMB: typeAssertions.quantity,
@@ -189,8 +188,8 @@ export const ATTRIBUTE_TRANSFORMS = Object.freeze({
  */
 export function normalizeAttributeName(attr) {
   switch (attr) {
-    case "isFxAEnabled": // Would transform to `isFxAenabled`.
-    case "isFxASignedIn": // Would transform to `isFxAsignedIn`.
+    case "isFxAEnabled":
+      // Would transform to `isFxAenabled";
       return attr;
 
     case "defaultPDFHandler":
