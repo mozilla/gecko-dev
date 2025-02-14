@@ -3,7 +3,11 @@
 
 /// <reference path="../../../../../toolkit/components/translations/tests/browser/shared-head.js" />
 
-"use strict";
+// Load the shared-head file first.
+Services.scriptloader.loadSubScript(
+  "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/shared-head.js",
+  this
+);
 
 /**
  * @type {import("../../actors/MLEngineParent.sys.mjs")}

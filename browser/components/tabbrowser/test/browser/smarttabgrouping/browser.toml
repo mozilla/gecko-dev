@@ -1,0 +1,9 @@
+[DEFAULT]
+prefs = ["browser.ml.modelHubRootUrl='chrome://mochitests/content/browser/browser/components/tabbrowser/tests/smartabgrouping/data'"]
+support-files = [
+  "data/**/*.*",
+  "head.js",
+  "!/toolkit/components/ml/tests/browser/shared-head.js",
+  ]
+
+["browser_tab_grouping.js"]

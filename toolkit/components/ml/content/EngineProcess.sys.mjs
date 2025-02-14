@@ -92,6 +92,8 @@ const FEATURES = [
   "pdfjs-alt-text", // see toolkit/components/pdfjs/content/PdfjsParent.sys.mjs
   "suggest-intent-classification", // see browser/components/urlbar/private/MLSuggest.sys.mjs
   "suggest-NER", // see browser/components/urlbar/private/MLSuggest.sys.mjs
+  "smart-tab-embedding", // see browser/components/tabbrowser/SmartTabGrouping.sys.mjs,
+  "smart-tab-topic", // see browser/components/tabbrowser/SmartTabGrouping.sys.mjs
 ];
 
 /**

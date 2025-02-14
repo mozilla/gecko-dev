@@ -246,12 +246,12 @@ export function kmeansPlusPlus({
   randomFunc = randomFunc || randomGenerator;
   maxIterations = maxIterations || 300; // Default value for maxIterations if not provided
   const dimensions = data[0].length;
-  const centroids = initializeCentroidsSorted(
-    data,
+  const centroids = initializeCentroidsSorted({
+    X: data,
     k,
     randomFunc,
-    anchorIndices
-  );
+    anchorIndices,
+  });
   let resultClusters = [];
   const anchorSet = new Set(anchorIndices);
   const preassignedSet = new Set(preassignedIndices);
@@ -331,15 +331,15 @@ function randomGenerator() {
  * @param {object} params - An object containing the parameters for centroid initialization.
  * @param {number[][]} params.X - The dataset represented as an array of numerical vectors.
  * @param {number} params.k - The number of clusters (i.e., k).
- * @param {Function} params.randomState - A random generator function (e.g., Math.random).
+ * @param {Function} params.randomFunc - A random generator function (e.g., Math.random).
  * @param {number} params.numTrials - The number of trials for initialization.
  * @param {int[]} [params.anchorIndices=[]] - Indices of items that belong to an existing group.
  * @returns {number[][]} A list of `k` initialized cluster centers.
  */
-function initializeCentroidsSorted({
+export function initializeCentroidsSorted({
   X,
   k,
-  randomState,
+  randomFunc,
   numTrials,
   anchorIndices = [],
 }) {
@@ -359,7 +359,7 @@ function initializeCentroidsSorted({
     if (anchorIndices.length === 1) {
       centerId = anchorIndices[0];
     } else {
-      centerId = Math.floor(randomState() * nSamples);
+      centerId = Math.floor(randomFunc() * nSamples);
     }
     centers[0] = X[centerId].slice();
   } else {
@@ -377,16 +377,16 @@ function initializeCentroidsSorted({
     // Choose center candidates by sampling
     const randVals = Array(numTrials)
       .fill(0)
-      .map(() => randomState() * sumOfDistances);
+      .map(() => randomFunc() * sumOfDistances);
     const closestDistSqForSamples = closestDistSq.slice();
     if (anchorIndices.length > 1) {
       // Don't pick items from anchor cluster. We already have it
       zeroOutAnchorItems(closestDistSqForSamples);
     }
     const cumulativeProbs = stableCumsum(closestDistSqForSamples);
-    const candidateIds = randVals.map(randVal =>
-      searchSorted(cumulativeProbs, randVal)
-    );
+    const candidateIds = randVals
+      .map(randVal => searchSorted(cumulativeProbs, randVal))
+      .filter(candId => candId < nSamples); // TODO: Filter should not be needed if searchSorted works correctly
     // Compute distances to center candidates
     const distancesToCandidates = candidateIds.map(candidateId =>
       euclideanDistancesSquared(X[candidateId], X)

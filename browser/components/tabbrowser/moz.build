@@ -12,11 +12,13 @@ EXTRA_JS_MODULES += [
     "GroupsList.sys.mjs",
     "NewTabPagePreloading.sys.mjs",
     "OpenInTabsUtils.sys.mjs",
+    "SmartTabGrouping.sys.mjs",
     "TabsList.sys.mjs",
     "TabUnloader.sys.mjs",
 ]
 
 BROWSER_CHROME_MANIFESTS += [
+    "test/browser/smarttabgrouping/browser.toml",
     "test/browser/statuspanel/browser.toml",
     "test/browser/tabMediaIndicator/browser.toml",
     "test/browser/tabs/browser.toml",

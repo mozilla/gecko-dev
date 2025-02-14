@@ -1,5 +1,7 @@
 "use strict";
 
+/// <reference path="head.js" />
+
 const {
   silhouetteCoefficients,
   dotProduct,
@@ -14,20 +16,12 @@ const {
   vectorNormalize,
   cohenKappa2x2,
   computeRandScore,
+  initializeCentroidsSorted,
+  kmeansPlusPlus,
 } = ChromeUtils.importESModule(
   "chrome://global/content/ml/ClusterAlgos.sys.mjs"
 );
 
-function numberLooseEquals(a, b, decimalPoints = 2) {
-  return a.toFixed(decimalPoints) === b.toFixed(decimalPoints);
-}
-
-function vectorLooseEquals(a, b, decimalPoints = 2) {
-  return a.every(
-    (item, index) =>
-      item.toFixed(decimalPoints) === b[index].toFixed(decimalPoints)
-  );
-}
 add_task(function testEquals() {
   ok(numberLooseEquals(1, 1.001), "Loose equals number");
   ok(numberLooseEquals(1, 0.999), "Loose equals number");
@@ -203,6 +197,75 @@ add_task(async function testMeansDistance() {
   Assert.equal(d, (3 + 2 + 1 + 1) / 5.0, "Mean distance");
   Assert.equal(d2, (3 + 2 + 1 + 1) / 4.0, "Mean distance exclude self");
   Assert.equal(d3, 0, "Mean distance - zero");
+});
+
+add_task(async function testInitializeCentroidsSorted() {
+  const centroids = initializeCentroidsSorted({
+    X: [
+      [1, 0, 0],
+      [1, 0, 0],
+      [0, 1, 1],
+      [0, 1, 1],
+    ],
+    randomFunc: simpleNumberSequence(),
+    k: 2,
+  });
+  Assert.equal(centroids.length, 2);
+});
+
+add_task(async function testKMeansPlusPlusAllClusters() {
+  const results = kmeansPlusPlus({
+    data: [
+      [1, 0, 0],
+      [1, 0, 0],
+      [0, 1, 1],
+      [0, 1, 1],
+    ],
+    k: 2,
+    maxIterations: 2,
+    randomFunc: simpleNumberSequence(),
+  });
+  Assert.equal(results.length, 2);
+});
+
+add_task(async function testKMeansPlusPlusPinnedItem() {
+  const results = kmeansPlusPlus({
+    data: [
+      [1, 0, 0],
+      [1, 0, 0],
+      [0, 1, 1],
+      [0, 1, 1],
+    ],
+    k: 2,
+    maxIterations: 2,
+    randomFunc: simpleNumberSequence(),
+    anchorIndices: [0],
+  });
+  results[0].includes(0);
+  results[0].includes(1);
+  results[1].includes(2);
+  results[1].includes(3);
+  Assert.equal(results.length, 2);
+});
+
+add_task(async function testKMeansPlusPlusPinnedItems() {
+  const results = kmeansPlusPlus({
+    data: [
+      [1, 0, 0],
+      [1, 0, 0],
+      [0, 1, 1],
+      [0, 1, 1],
+    ],
+    k: 2,
+    maxIterations: 2,
+    randomFunc: simpleNumberSequence(),
+    anchorIndices: [0, 1],
+  });
+  results[0].includes(0);
+  results[0].includes(1);
+  results[1].includes(2);
+  results[1].includes(3);
+  Assert.equal(results.length, 2);
 });
 
 add_task(async function testSearchSorted() {
