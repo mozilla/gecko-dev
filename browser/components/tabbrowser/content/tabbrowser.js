@@ -5865,7 +5865,7 @@
               nextTab.group.after(selectedTab);
             } else {
               // Enter first position of tab group.
-              nextTab.group.prepend(selectedTab);
+              nextTab.group.insertBefore(selectedTab, nextTab);
             }
           } else if (selectedTab.group != nextTab.group) {
             // Standalone tab after tab group.
@@ -5874,6 +5874,10 @@
             nextTab.after(selectedTab);
           }
         });
+      } else if (selectedTab.group) {
+        // selectedTab is the last tab and is grouped.
+        // remove it from its group.
+        selectedTab.group.after(selectedTab);
       }
     }
 
@@ -5902,6 +5906,10 @@
             previousTab.before(selectedTab);
           }
         });
+      } else if (selectedTab.group) {
+        // selectedTab is the first tab and is grouped.
+        // remove it from its group.
+        selectedTab.group.before(selectedTab);
       }
     }
 
