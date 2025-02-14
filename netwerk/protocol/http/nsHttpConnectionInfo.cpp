@@ -81,8 +81,6 @@ void nsHttpConnectionInfo::Init(const nsACString& host, int32_t port,
                                 bool aWebTransport) {
   LOG(("Init nsHttpConnectionInfo @%p\n", this));
 
-  MOZ_RELEASE_ASSERT(!aWebTransport || aIsHttp3);
-
   mUsername = username;
   mProxyInfo = proxyInfo;
   mEndToEndSSL = e2eSSL;

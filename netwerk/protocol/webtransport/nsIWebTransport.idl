@@ -36,13 +36,19 @@ interface nsIWebTransport : nsISupports {
     INVALID_STATE_ERROR,
   };
 
+  cenum HTTPVersion: 8 {
+    h3 = 0,
+    h2 = 1,
+  };
+
   // When called, perform steps in "Initialization WebTransport over HTTP".
   void asyncConnect(in nsIURI aURI,
                     in boolean aDedicated,
                     in Array<nsIWebTransportHash> aServerCertHashes,
                     in nsIPrincipal aLoadingPrincipal,
                     in unsigned long aSecurityFlags,
-                    in WebTransportSessionEventListener aListener);
+                    in WebTransportSessionEventListener aListener,
+                    [optional] in nsIWebTransport_HTTPVersion aVersion);
 
   [noscript]
   void asyncConnectWithClient(in nsIURI aURI,
@@ -51,7 +57,8 @@ interface nsIWebTransport : nsISupports {
                     in nsIPrincipal aLoadingPrincipal,
                     in unsigned long aSecurityFlags,
                     in WebTransportSessionEventListener aListener,
-                    in const_MaybeClientInfoRef aClientInfo);
+                    in const_MaybeClientInfoRef aClientInfo,
+                    in nsIWebTransport_HTTPVersion aVersion);
 
   // Asynchronously get stats.
   void getStats();
@@ -128,6 +135,7 @@ interface WebTransportConnectionSettings : nsISupports {
   // WebTransport specific connection information
   readonly attribute boolean dedicated;
   void getServerCertificateHashes(out Array<nsIWebTransportHash> aServerCertHashes);
+  readonly attribute nsIWebTransport_HTTPVersion httpVersion;
 };
 
 // This interface is used as a callback when creating an outgoing
