@@ -95,6 +95,27 @@
   </hbox>
 </groupbox>
 
+<!-- Profiles -->
+<groupbox id="profilesGroup" data-category="paneGeneral" hidden="true">
+  <label><html:h2 data-l10n-id="preferences-profiles-header"/></label>
+
+  <hbox id="profiles" flex="1">
+    <description flex="1" class="description-deemphasized" control="manage-profiles">
+      <html:span data-l10n-id="preferences-manage-profiles-description"></html:span>
+      <html:a
+        is="moz-support-link"
+        id="profile-management-learn-more"
+        support-page="profile-management"
+        data-l10n-id="preferences-manage-profiles-learn-more"
+      />
+    </description>
+    <button id="manage-profiles"
+            is="highlightable-button"
+            class="accessory-button"
+            data-l10n-id="preferences-manage-profiles-button"/>
+  </hbox>
+</groupbox>
+
 <!-- Tab preferences -->
 <groupbox data-category="paneGeneral"
           hidden="true">
