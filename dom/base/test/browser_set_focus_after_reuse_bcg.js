@@ -70,7 +70,9 @@ async function test_set_focus_after_reuse_bcg() {
   // This reloading is quite important to reproduce this bug as it'll
   // sync some BFCache status to the parent process for site A, which
   // allows the BCG to reuse the already-subscribed process of site A.
-  await BrowserTestUtils.reloadTab(tab, true);
+  await BrowserTestUtils.reloadTab(tab, {
+    includeSubFrames: true,
+  });
 
   // TODO (sefeng): If we use tab.linkedBrowser.goForward() for
   // the navigation, it'll trigger bug 1917343.

@@ -1890,18 +1890,30 @@ export var BrowserTestUtils = {
    *
    * @param {tab} tab
    *        The tab that will be reloaded.
-   * @param {Boolean} [includeSubFrames = false]
+   * @param {Object} [options]
+   *        Options for the reload.
+   * @param {Boolean} options.includeSubFrames = false [optional]
    *        A boolean indicating if loads from subframes should be included
    *        when waiting for the frame to reload.
+   * @param {Boolean} options.bypassCache = false [optional]
+   *        A boolean indicating if loads should bypass the cache.
+   *        If bypassCache is true, this skips some steps that normally happen
+   *        when a user reloads a tab.
    * @returns {Promise}
    * @resolves When the tab finishes reloading.
    */
-  reloadTab(tab, includeSubFrames = false) {
+  reloadTab(tab, options = {}) {
     const finished = BrowserTestUtils.browserLoaded(
       tab.linkedBrowser,
-      includeSubFrames
+      !!options.includeSubFrames
     );
-    tab.ownerGlobal.gBrowser.reloadTab(tab);
+    if (options.bypassCache) {
+      tab.linkedBrowser.reloadWithFlags(
+        Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE
+      );
+    } else {
+      tab.ownerGlobal.gBrowser.reloadTab(tab);
+    }
     return finished;
   },
 

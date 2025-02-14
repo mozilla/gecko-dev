@@ -49,7 +49,9 @@ add_task(async function () {
   );
 
   info("Reload the page");
-  await BrowserTestUtils.reloadTab(tab, /* includeSubFrames */ true);
+  await BrowserTestUtils.reloadTab(tab, {
+    includeSubFrames: true,
+  });
 
   is(
     await getTopLevelDocumentUserAgentAtStartup(),
@@ -178,7 +180,9 @@ add_task(async function () {
     "The custom user agent is still set on the page after destroying the first commands instance. Bug 1705326 will fix that and make it equal to `initialUserAgent`"
   );
 
-  await BrowserTestUtils.reloadTab(tab, /* includeSubFrames */ true);
+  await BrowserTestUtils.reloadTab(tab, {
+    includeSubFrames: true,
+  });
   is(
     await getTopLevelUserAgent(),
     initialUserAgent,

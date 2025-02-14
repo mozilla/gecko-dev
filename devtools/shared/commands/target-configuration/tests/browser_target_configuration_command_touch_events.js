@@ -37,7 +37,9 @@ add_task(async function () {
   });
 
   info("Reload the page");
-  await BrowserTestUtils.reloadTab(tab, /* includeSubFrames */ true);
+  await BrowserTestUtils.reloadTab(tab, {
+    includeSubFrames: true,
+  });
 
   is(
     await topLevelDocumentMatchesCoarsePointerAtStartup(),
