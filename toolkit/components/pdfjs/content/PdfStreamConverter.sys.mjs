@@ -627,6 +627,19 @@ class ChromeActions {
       }
     }
   }
+
+  async handleSignature(data, sendResponse) {
+    const actor = getActor(this.domWindow);
+    if (!actor) {
+      sendResponse(null);
+      return;
+    }
+    const response = await actor.sendQuery(
+      "PDFJS:Parent:handleSignature",
+      data
+    );
+    sendResponse(response);
+  }
 }
 
 /**
