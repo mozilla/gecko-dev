@@ -1007,7 +1007,8 @@ void DocAccessible::ElementStateChanged(dom::Document* aDocument,
     return;
   }
 
-  if (aStateMask.HasState(dom::ElementState::READWRITE)) {
+  if (aStateMask.HasState(dom::ElementState::READWRITE) &&
+      !accessible->IsTextField()) {
     const bool isEditable =
         aElement->State().HasState(dom::ElementState::READWRITE);
     RefPtr<AccEvent> event =
