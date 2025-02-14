@@ -47,6 +47,7 @@ class AppLinksUseCasesTest {
     private val javascriptUrl = "javascript:'hello, world'"
     private val jarUrl = "jar:file://some/path/test.html"
     private val contentUrl = "content://media/external_primary/downloads/12345"
+    private val fidoPath = "fido:12345678"
     private val fileType = "audio/mpeg"
     private val layerUrl = "https://example.com"
     private val layerPackage = "com.example.app"
@@ -214,6 +215,15 @@ class AppLinksUseCasesTest {
         val subject = AppLinksUseCases(context, { true })
 
         val redirect = subject.interceptedAppLinkRedirect(contentUrl)
+        assertFalse(redirect.isRedirect())
+    }
+
+    @Test
+    fun `A fido url is not an app link`() {
+        val context = createContext(Triple(fidoPath, appPackage, ""))
+        val subject = AppLinksUseCases(context, { true })
+
+        val redirect = subject.interceptedAppLinkRedirect(fidoPath)
         assertFalse(redirect.isRedirect())
     }
 
