@@ -20,6 +20,7 @@
 #include "mozilla/DebuggerOnGCRunnable.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/ProfilerMarkers.h"
+#include "mozilla/ProfilerRunnable.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
@@ -493,6 +494,7 @@ void CycleCollectedJSContext::ProcessStableStateQueue() {
   // such you can't use iterators here.
   for (uint32_t i = 0; i < mStableStateEvents.Length(); ++i) {
     nsCOMPtr<nsIRunnable> event = std::move(mStableStateEvents[i]);
+    AUTO_PROFILE_FOLLOWING_RUNNABLE(event);
     event->Run();
   }
 
