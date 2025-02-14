@@ -648,7 +648,7 @@ symbol-scrapers:
     fetch:
         type: git
         repo: https://github.com/mozilla/symbol-scrapers
-        revision: dfbecef5cf0c1162bddc688c632fc083a84f3652
+        revision: 45361c9fae714be495c2912c41f441f013eb47ca
 
 xz-5.4.4:
     description: xz 5.4.4 source code
