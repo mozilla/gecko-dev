@@ -197,7 +197,7 @@
       sendKey('DOWN');
 
       const sel = document.getSelection();
-      is(sel.anchorNode, second, editor.className + ': Caret not at the right node in second block')
+      is(sel.anchorNode.textContent, "a", editor.className + ': Caret not at the correct text node in second block')
       is(sel.anchorOffset, 1, editor.className + ': Caret not at the expected offset')
     });
   });
