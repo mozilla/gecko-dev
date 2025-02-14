@@ -2019,9 +2019,11 @@ interface nsIDOMWindowUtils : nsISupports {
    * The event is sent to the corresponding APZCTreeManager and the manager
    * performs a hit testing in APZ. The hit testing result can be via obtained
    * by above getCompositorAPZTestData().
+   * |aElement| is an optional argument for popup window where APZ is enabled.
+   * |aElement| would be a popup element for popup
    */
   [can_run_script]
-  void sendMozMouseHitTestEvent(in float aX, in float aY);
+  void sendMozMouseHitTestEvent(in float aX, in float aY, [optional] in Element aElement);
 
   /**
    * Posts an RestyleHint::RESTYLE_SELF restyle event for the given element.

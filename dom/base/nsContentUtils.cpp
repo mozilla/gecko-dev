@@ -9146,16 +9146,13 @@ nsView* nsContentUtils::GetViewToDispatchEvent(nsPresContext* aPresContext,
 }
 
 nsresult nsContentUtils::SendMouseEvent(
-    mozilla::PresShell* aPresShell, const nsAString& aType, float aX, float aY,
-    int32_t aButton, int32_t aButtons, int32_t aClickCount, int32_t aModifiers,
-    bool aIgnoreRootScrollFrame, float aPressure,
-    unsigned short aInputSourceArg, uint32_t aIdentifier, bool aToWindow,
-    bool* aPreventDefault, bool aIsDOMEventSynthesized,
+    mozilla::PresShell* aPresShell, nsIWidget* aWidget, const nsAString& aType,
+    LayoutDeviceIntPoint& aRefPoint, int32_t aButton, int32_t aButtons,
+    int32_t aClickCount, int32_t aModifiers, bool aIgnoreRootScrollFrame,
+    float aPressure, unsigned short aInputSourceArg, uint32_t aIdentifier,
+    bool aToWindow, bool* aPreventDefault, bool aIsDOMEventSynthesized,
     bool aIsWidgetEventSynthesized) {
-  nsPoint offset;
-  nsCOMPtr<nsIWidget> widget = GetWidget(aPresShell, &offset);
-  if (!widget) return NS_ERROR_FAILURE;
-
+  MOZ_ASSERT(aWidget);
   EventMessage msg;
   Maybe<WidgetMouseEvent::ExitFrom> exitFrom;
   bool contextMenuKey = false;
@@ -9202,11 +9199,11 @@ nsresult nsContentUtils::SendMouseEvent(
       // synthesized event.
       return NS_ERROR_INVALID_ARG;
     }
-    pointerEvent.emplace(true, msg, widget,
+    pointerEvent.emplace(true, msg, aWidget,
                          contextMenuKey ? WidgetMouseEvent::eContextMenuKey
                                         : WidgetMouseEvent::eNormal);
   } else {
-    mouseEvent.emplace(true, msg, widget,
+    mouseEvent.emplace(true, msg, aWidget,
                        aIsWidgetEventSynthesized
                            ? WidgetMouseEvent::eSynthesized
                            : WidgetMouseEvent::eReal,
@@ -9231,8 +9228,7 @@ nsresult nsContentUtils::SendMouseEvent(
   nsPresContext* presContext = aPresShell->GetPresContext();
   if (!presContext) return NS_ERROR_FAILURE;
 
-  mouseOrPointerEvent.mRefPoint =
-      ToWidgetPoint(CSSPoint(aX, aY), offset, presContext);
+  mouseOrPointerEvent.mRefPoint = aRefPoint;
   mouseOrPointerEvent.mIgnoreRootScrollFrame = aIgnoreRootScrollFrame;
 
   nsEventStatus status = nsEventStatus_eIgnore;
@@ -9247,9 +9243,9 @@ nsresult nsContentUtils::SendMouseEvent(
                                   &status);
   }
   if (StaticPrefs::test_events_async_enabled()) {
-    status = widget->DispatchInputEvent(&mouseOrPointerEvent).mContentStatus;
+    status = aWidget->DispatchInputEvent(&mouseOrPointerEvent).mContentStatus;
   } else {
-    nsresult rv = widget->DispatchEvent(&mouseOrPointerEvent, status);
+    nsresult rv = aWidget->DispatchEvent(&mouseOrPointerEvent, status);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   if (aPreventDefault) {
