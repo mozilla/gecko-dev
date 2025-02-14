@@ -36,32 +36,27 @@ add_task(async function test_updateDefaultProfileOnWindowSwitch() {
   let w = await BrowserTestUtils.openNewBrowserWindow();
   await SimpleTest.promiseFocus(w);
 
-  let asyncFlushCalled = false;
-  gProfileService.asyncFlush = () => (asyncFlushCalled = true);
-
   // Focus the original window so we get an "activate" event and update the toolkitProfile rootDir
+  let asyncFlushResolver = Promise.withResolvers();
+  gProfileService.asyncFlush = () => asyncFlushResolver.resolve();
   await SimpleTest.promiseFocus(window);
+  await asyncFlushResolver.promise;
 
-  await BrowserTestUtils.waitForCondition(
-    () => asyncFlushCalled,
-    "Expected asyncFlush to be called"
-  );
-
+  asyncFlushResolver = Promise.withResolvers();
   await SimpleTest.promiseFocus(w);
+  await asyncFlushResolver.promise;
 
   gProfileService.asyncFlush = () => {
     throw new Error("Failed");
   };
-  let asyncFlushGroupProfileCalled = false;
+
+  let asyncFlushGroupProfileResolver = Promise.withResolvers();
   gProfileService.asyncFlushGroupProfile = () =>
-    (asyncFlushGroupProfileCalled = true);
+    asyncFlushGroupProfileResolver.resolve();
 
   await SimpleTest.promiseFocus(window);
 
-  await BrowserTestUtils.waitForCondition(
-    () => asyncFlushGroupProfileCalled,
-    "Expected asyncFlushGroupProfile to be called"
-  );
+  await asyncFlushGroupProfileResolver.promise;
 
   is(
     gProfileService.currentProfile.rootDir.path,
