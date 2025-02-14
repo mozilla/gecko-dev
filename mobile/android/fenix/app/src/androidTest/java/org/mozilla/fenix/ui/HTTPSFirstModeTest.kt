@@ -9,7 +9,6 @@ import androidx.core.net.toUri
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
-import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.ui.robots.navigationToolbar
 
 class HTTPSFirstModeTest {
@@ -23,7 +22,7 @@ class HTTPSFirstModeTest {
     fun httpsFirstModeImplicitSchemeTest() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser("example.com".toUri()) {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPageContent("Example Domain")
         }.openNavigationToolbar {
             verifyUrl("https://example.com/")
         }
@@ -33,7 +32,7 @@ class HTTPSFirstModeTest {
     fun httpsFirstModeExplicitSchemeTest() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser("http://example.com".toUri()) {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPageContent("Example Domain")
         }.openNavigationToolbar {
             verifyUrl("http://example.com/")
         }
@@ -41,7 +40,7 @@ class HTTPSFirstModeTest {
         // Exception should persist
         navigationToolbar {
         }.enterURLAndEnterToBrowser("example.com".toUri()) {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPageContent("Example Domain")
         }.openNavigationToolbar {
             verifyUrl("http://example.com/")
         }
