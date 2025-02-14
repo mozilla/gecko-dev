@@ -393,13 +393,13 @@ class AppLinksFeatureTest {
         val tab = createTab(webUrl, private = true)
 
         feature.loadUrlIfSchemeSupported(tab, intentUrl)
-        verify(mockLoadUrlUseCase, never()).invoke(anyString(), anyString(), any(), any())
+        verify(mockLoadUrlUseCase, never()).invoke(anyString(), anyString(), any(), any(), any())
 
         feature.loadUrlIfSchemeSupported(tab, webUrl)
-        verify(mockLoadUrlUseCase, times(1)).invoke(anyString(), anyString(), any(), any())
+        verify(mockLoadUrlUseCase, times(1)).invoke(anyString(), anyString(), any(), any(), any())
 
         feature.loadUrlIfSchemeSupported(tab, aboutUrl)
-        verify(mockLoadUrlUseCase, times(2)).invoke(anyString(), anyString(), any(), any())
+        verify(mockLoadUrlUseCase, times(2)).invoke(anyString(), anyString(), any(), any(), any())
     }
 
     @Test

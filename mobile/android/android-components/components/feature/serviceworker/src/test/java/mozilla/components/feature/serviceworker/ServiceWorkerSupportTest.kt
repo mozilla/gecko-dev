@@ -49,6 +49,7 @@ class ServiceWorkerSupportTest {
             isSearch = eq(false), // default
             searchEngineName = eq(null), // default
             additionalHeaders = eq(null), // default
+            originalInput = eq(null), // default
         )
     }
 }

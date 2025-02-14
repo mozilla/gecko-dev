@@ -179,6 +179,7 @@ class GeckoEngineSession(
         parent: EngineSession?,
         flags: LoadUrlFlags,
         additionalHeaders: Map<String, String>?,
+        originalInput: String?,
     ) {
         notifyObservers { onLoadUrl() }
 
@@ -195,6 +196,7 @@ class GeckoEngineSession(
         val loader = GeckoSession.Loader()
             .uri(url)
             .flags(flags.getGeckoFlags())
+            .originalInput(originalInput)
 
         if (additionalHeaders != null) {
             val headerFilter = if (flags.contains(ALLOW_ADDITIONAL_HEADERS)) {

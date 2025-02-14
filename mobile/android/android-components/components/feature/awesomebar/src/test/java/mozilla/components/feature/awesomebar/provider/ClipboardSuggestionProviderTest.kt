@@ -175,12 +175,12 @@ class ClipboardSuggestionProviderTest {
 
         val suggestion = suggestions.first()
 
-        verify(useCase, never())(any(), any(), any())
+        verify(useCase, never())(any(), any(), any(), any())
 
         assertNotNull(suggestion.onSuggestionClicked)
         suggestion.onSuggestionClicked!!.invoke()
 
-        verify(useCase)(eq("https://www.mozilla.org"), any(), any())
+        verify(useCase)(eq("https://www.mozilla.org"), any(), any(), any())
     }
 
     @Test
