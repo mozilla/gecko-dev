@@ -565,7 +565,8 @@ nsresult BounceTrackingProtectionStorage::InitInternal() {
       NS_DISPATCH_EVENT_MAY_BLOCK);
 }
 
-nsresult BounceTrackingProtectionStorage::CreateDatabaseConnection() {
+nsresult BounceTrackingProtectionStorage::CreateDatabaseConnection(
+    bool aShouldRetry) {
   MOZ_ASSERT(!NS_IsMainThread());
   NS_ENSURE_TRUE(mDatabaseFile, NS_ERROR_NULL_POINTER);
 
@@ -576,18 +577,31 @@ nsresult BounceTrackingProtectionStorage::CreateDatabaseConnection() {
   nsresult rv = storage->OpenDatabase(mDatabaseFile,
                                       mozIStorageService::CONNECTION_DEFAULT,
                                       getter_AddRefs(mDatabaseConnection));
-  if (rv == NS_ERROR_FILE_CORRUPTED) {
+  if (rv == NS_ERROR_FILE_CORRUPTED && aShouldRetry) {
+    MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
+            ("%s: Database file is corrupted, removing it and retrying",
+             __FUNCTION__));
+
     rv = mDatabaseFile->Remove(false);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = storage->OpenDatabase(mDatabaseFile,
-                               mozIStorageService::CONNECTION_DEFAULT,
-                               getter_AddRefs(mDatabaseConnection));
+    return CreateDatabaseConnection(false);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
   NS_ENSURE_TRUE(mDatabaseConnection, NS_ERROR_UNEXPECTED);
   bool ready = false;
   mDatabaseConnection->GetConnectionReady(&ready);
+  // If it fails once remove the db file and try again.
+  if (!ready && aShouldRetry) {
+    MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
+            ("%s: Database connection failed (not ready after open), removing "
+             "it and retrying",
+             __FUNCTION__));
+
+    rv = mDatabaseFile->Remove(false);
+    NS_ENSURE_SUCCESS(rv, rv);
+    return CreateDatabaseConnection(false);
+  }
   NS_ENSURE_TRUE(ready, NS_ERROR_UNEXPECTED);
 
   return EnsureTable();
