@@ -236,7 +236,7 @@ function assertCPMGleanEvent(actualEvent, expectedEvent) {
     Assert.equal(
       actualEvent.extra[key],
       expectedEvent[key],
-      `${actualEvent.extra[key]} is the recorded trigger.
+      `${actualEvent.extra[key]} is the recorded ${key}.
         Expected: '${expectedEvent[key]}'.`
     );
   }

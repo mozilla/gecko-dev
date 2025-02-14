@@ -19,6 +19,9 @@ add_task(async function test_delete_login_success() {
     return;
   }
 
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   await addMockPasswords();
   info("Three logins added in total.");
 
@@ -48,6 +51,13 @@ add_task(async function test_delete_login_success() {
   info("Delete one login.");
 
   await waitForNotification(megalist, "delete-login-success");
+  let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
+
+  Assert.equal(updateEvents.length, 1, "Recorded delete password once.");
+  assertCPMGleanEvent(updateEvents[0], {
+    change_type: "remove",
+  });
+
   await checkAllLoginsRendered(megalist);
 
   const numPasswords = megalist.querySelectorAll("password-card").length;

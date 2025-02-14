@@ -387,6 +387,12 @@ export class LoginDataSource extends DataSourceBase {
     });
   }
 
+  #recordLoginsUpdate(changeType) {
+    Glean.contextualManager.recordsUpdate.record({
+      change_type: changeType,
+    });
+  }
+
   async #importFromFile(title, buttonLabel, csvTitle, tsvTitle) {
     const { BrowserWindowTracker } = ChromeUtils.importESModule(
       "resource:///modules/BrowserWindowTracker.sys.mjs"
@@ -493,6 +499,7 @@ export class LoginDataSource extends DataSourceBase {
         l10nArgs: { total },
         viewMode: VIEW_MODES.LIST,
       });
+      this.#recordLoginsUpdate("remove_all");
     }
   }
 
@@ -637,6 +644,7 @@ export class LoginDataSource extends DataSourceBase {
         guid: newLogin.guid,
         viewMode: VIEW_MODES.LIST,
       });
+      this.#recordLoginsUpdate("add");
     } catch (error) {
       this.#handleLoginStorageErrors(origin, error);
     }
@@ -663,6 +671,7 @@ export class LoginDataSource extends DataSourceBase {
         id: "update-login-success",
         viewMode: VIEW_MODES.LIST,
       });
+      this.#recordLoginsUpdate("edit");
     } catch (error) {
       this.#handleLoginStorageErrors(modifiedLogin.origin, error);
     }
@@ -713,6 +722,7 @@ export class LoginDataSource extends DataSourceBase {
       l10nArgs: { total: 1 },
       viewMode: VIEW_MODES.LIST,
     });
+    this.#recordLoginsUpdate("remove");
   }
 
   /**
@@ -849,6 +859,13 @@ export class LoginDataSource extends DataSourceBase {
       message == "signon.management.page.breach-alerts.enabled" ||
       message == "signon.management.page.vulnerable-passwords.enabled"
     ) {
+      if (
+        topic == "passwordmgr-storage-changed" &&
+        message === "importLogins"
+      ) {
+        this.#recordLoginsUpdate("import");
+      }
+
       this.#reloadDataSource();
     }
   }

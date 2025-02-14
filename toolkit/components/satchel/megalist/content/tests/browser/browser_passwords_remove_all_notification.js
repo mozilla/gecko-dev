@@ -79,6 +79,9 @@ add_task(
       return;
     }
 
+    Services.fog.testResetFOG();
+    await Services.fog.testFlushAllChildren();
+
     const megalist = await openPasswordsSidebar();
     await addMockPasswords();
     await checkAllLoginsRendered(megalist);
@@ -120,6 +123,12 @@ add_task(
 
     await checkEmptyState(".no-logins-card-content", megalist);
     ok(true, "Empty state rendered after logins are removed.");
+
+    let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
+    Assert.equal(updateEvents.length, 1, "Recorded delete all passwords once.");
+    assertCPMGleanEvent(updateEvents[0], {
+      change_type: "remove_all",
+    });
 
     info("Closing the sidebar");
     SidebarController.hide();

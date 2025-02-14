@@ -154,6 +154,12 @@ add_task(async function test_import_empty_state() {
   const summary = mozMessageBar.messageL10nArgs;
   is(summary.added, 1, "Import added one item");
 
+  let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
+  Assert.equal(updateEvents.length, 1, "Recorded import passwords once.");
+  assertCPMGleanEvent(updateEvents[0], {
+    change_type: "import",
+  });
+
   info("Closing the sidebar");
   SidebarController.hide();
 });

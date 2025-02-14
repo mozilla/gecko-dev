@@ -65,6 +65,12 @@ add_task(async function test_update_login_success() {
     () => updatedPasswordCard.passwordLine.value === newPassword,
     "Password not updated."
   );
+
+  let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
+  Assert.equal(updateEvents.length, 1, "Recorded update password once.");
+  assertCPMGleanEvent(updateEvents[0], {
+    change_type: "edit",
+  });
   LoginTestUtils.clearData();
   SidebarController.hide();
 });
@@ -114,6 +120,9 @@ add_task(async function test_update_login_discard_changes() {
     ok(true, "Cannot test OSAuth.");
     return;
   }
+
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
 
   const login = TEST_LOGIN_1;
   await LoginTestUtils.addLogin(login);

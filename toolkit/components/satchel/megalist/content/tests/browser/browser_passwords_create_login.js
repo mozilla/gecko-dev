@@ -66,15 +66,23 @@ add_task(async function test_add_login_success() {
   const megalist = await openPasswordsSidebar();
   await waitForSnapshots();
   await openLoginForm(megalist);
-  let events = Glean.contextualManager.toolbarAction.testGetValue();
-  Assert.equal(events.length, 1, "Recorded add password once.");
-  assertCPMGleanEvent(events[0], {
+
+  let toolbarEvents = Glean.contextualManager.toolbarAction.testGetValue();
+  Assert.equal(toolbarEvents.length, 1, "Recorded add password once.");
+  assertCPMGleanEvent(toolbarEvents[0], {
     trigger: "toolbar",
     option_name: "add_new",
   });
+
   addLogin(megalist, TEST_LOGIN_1);
   await waitForNotification(megalist, "add-login-success");
   await checkAllLoginsRendered(megalist);
+
+  let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
+  Assert.equal(updateEvents.length, 1, "Recorded manual add password once.");
+  assertCPMGleanEvent(updateEvents[0], {
+    change_type: "add",
+  });
 
   LoginTestUtils.clearData();
 });

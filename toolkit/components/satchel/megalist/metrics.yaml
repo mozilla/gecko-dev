@@ -49,6 +49,33 @@ contextual_manager:
           The action selected from the toolbar
         type: string
 
+  records_update:
+    type: event
+    description: >
+      Client modifies, adds, or removes CM record. Captures changes committed to
+      a client's password management records.
+      Possible change types:
+        "add": Single record is created
+        "edit": Single record is edited
+        "remove": Single record is removed
+        "remove_all": All records are removed
+        "import": Records were changed by importing from another dataset
+                  (such as a file, browser)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    notification_emails:
+      - passwords-dev@mozilla.org
+      - issozi@mozilla.com
+      - tthorne@mozilla.com
+    expires: never
+    extra_keys:
+      change_type:
+        description: >
+          The type of change the client made to records
+        type: string
+
   records_interaction:
     type: event
     description: >
