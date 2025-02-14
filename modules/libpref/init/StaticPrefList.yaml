@@ -4435,7 +4435,7 @@
 
 - name: dom.workers.timeoutmanager
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: once
 
 - name: dom.workers.serialized-sab-access

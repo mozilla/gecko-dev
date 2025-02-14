@@ -5,7 +5,17 @@ const { setTimeout } = ChromeUtils.importESModule(
   "resource://gre/modules/Timer.sys.mjs"
 );
 
-const MAX_ROUND_TRIP_TIME_MS = AppConstants.DEBUG || AppConstants.ASAN ? 18 : 9;
+const { Preferences } = ChromeUtils.importESModule(
+  "resource://gre/modules/Preferences.sys.mjs"
+);
+
+let max_round_trip_time_ms = AppConstants.DEBUG || AppConstants.ASAN ? 18 : 9;
+if (Preferences.get("dom.workers.timeoutmanager") === true) {
+  max_round_trip_time_ms = 90;
+}
+
+const MAX_ROUND_TRIP_TIME_MS = max_round_trip_time_ms;
+
 const MAX_RETRIES = 5;
 
 let PYTHON;
