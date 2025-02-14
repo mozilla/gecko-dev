@@ -75,7 +75,7 @@ add_task(async function copiesToClipboard() {
     isTextSelected: true,
     runTests: async ({ copyLinkToHighlight }) => {
       await SimpleTest.promiseClipboardChange(
-        "https://www.example.com/?stripParam=1234#:~:text=eiusmod%20tempor%20incididunt",
+        "https://www.example.com/?stripParam=1234#:~:text=eiusmod%20tempor%20incididunt&text=labore",
         async () => {
           await BrowserTestUtils.waitForCondition(
             () =>
@@ -98,7 +98,7 @@ add_task(async function copiesToClipboard() {
     isTextSelected: true,
     runTests: async ({ copyCleanLinkToHighlight }) => {
       await SimpleTest.promiseClipboardChange(
-        "https://www.example.com/#:~:text=eiusmod%20tempor%20incididunt",
+        "https://www.example.com/#:~:text=eiusmod%20tempor%20incididunt&text=labore",
         async () => {
           await BrowserTestUtils.waitForCondition(
             () =>
@@ -160,6 +160,10 @@ async function testCopyLinkToHighlight({ isTextSelected, runTests }) {
             const range = content.document.createRange();
             range.selectNodeContents(span);
             selection.addRange(range);
+            const range2 = content.document.createRange();
+            range2.setStart(textEnd, 4);
+            range2.setEnd(textEnd, 10);
+            selection.addRange(range2);
           }
         }
       );

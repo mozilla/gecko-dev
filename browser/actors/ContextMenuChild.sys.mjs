@@ -277,21 +277,31 @@ export class ContextMenuChild extends JSWindowActorChild {
       }
 
       case "ContextMenu:GetTextDirective": {
-        return this.contentWindow?.getSelection().rangeCount
-          ? this.contentWindow?.document?.fragmentDirective
-              .createTextDirective(
-                this.contentWindow.getSelection().getRangeAt(0)
+        if (this.contentWindow?.getSelection().rangeCount) {
+          const textDirectives = [];
+          for (
+            let rangeIndex = 0;
+            rangeIndex < this.contentWindow.getSelection().rangeCount;
+            rangeIndex++
+          ) {
+            textDirectives.push(
+              this.contentWindow.document?.fragmentDirective.createTextDirective(
+                this.contentWindow.getSelection().getRangeAt(rangeIndex)
               )
-              .then(textDirective => {
-                if (textDirective != null) {
-                  textDirective =
-                    (this.contentWindow.location.hash.length ? "" : "#") +
-                    `:~:${textDirective}`;
-                  return `${this.contentWindow.location}${textDirective}`;
-                }
-                return null;
-              })
-          : null;
+            );
+          }
+          return Promise.all(textDirectives).then(directives => {
+            const validDirectives = directives.filter(d => d);
+            const textFragment = validDirectives.join("&");
+            if (textFragment) {
+              let url = URL.parse(this.contentWindow.location);
+              url.hash += `:~:${textFragment}`;
+              return url.href;
+            }
+            return null;
+          });
+        }
+        return null;
       }
       case "ContextMenu:RemoveAllTextFragments": {
         this.contentWindow?.document?.fragmentDirective.removeAllTextDirectives();
