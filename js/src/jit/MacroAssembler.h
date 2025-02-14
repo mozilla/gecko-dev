@@ -97,7 +97,7 @@
 //   }
 //   ////}}} check_macroassembler_style
 
-#define ALL_ARCH mips32, mips64, arm, arm64, x86, x64, loong64, riscv64, wasm32
+#define ALL_ARCH mips64, arm, arm64, x86, x64, loong64, riscv64, wasm32
 #define ALL_SHARED_ARCH \
   arm, arm64, loong64, riscv64, x86_shared, mips_shared, wasm32
 
@@ -142,7 +142,6 @@
 #define DEFINED_ON_x86_shared
 #define DEFINED_ON_arm
 #define DEFINED_ON_arm64
-#define DEFINED_ON_mips32
 #define DEFINED_ON_mips64
 #define DEFINED_ON_mips_shared
 #define DEFINED_ON_loong64
@@ -519,12 +518,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   // The size of the area used by PushRegsInMask.
   static size_t PushRegsInMaskSizeInBytes(LiveRegisterSet set)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   void PushRegsInMask(LiveRegisterSet set)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
   void PushRegsInMask(LiveGeneralRegisterSet set);
 
   // Like PushRegsInMask, but instead of pushing the registers, store them to
@@ -535,14 +532,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // must point to either the lowest address in the save area, or some address
   // below that.
   void storeRegsInMask(LiveRegisterSet set, Address dest, Register scratch)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   void PopRegsInMask(LiveRegisterSet set);
   void PopRegsInMask(LiveGeneralRegisterSet set);
   void PopRegsInMaskIgnore(LiveRegisterSet set, LiveRegisterSet ignore)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   // ===============================================================
   // Stack manipulation functions -- single registers/values.
@@ -1194,7 +1189,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(x64, mips64, loong64, riscv64);
   inline void mul64(Imm64 imm, const Register64& dest) PER_ARCH;
   inline void mul64(Imm64 imm, const Register64& dest, const Register temp)
-      DEFINED_ON(x86, x64, arm, mips32, mips64, loong64, riscv64);
+      DEFINED_ON(x86, x64, arm, mips64, loong64, riscv64);
   inline void mul64(const Register64& src, const Register64& dest,
                     const Register temp) PER_ARCH;
   inline void mul64(const Register64& src1, const Register64& src2,
@@ -1507,8 +1502,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   template <typename T1, typename T2>
   inline void cmp32Set(Condition cond, T1 lhs, T2 rhs, Register dest)
-      DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
-                 wasm32);
+      DEFINED_ON(x86_shared, arm, arm64, mips64, loong64, riscv64, wasm32);
 
   inline void cmp64Set(Condition cond, Register64 lhs, Register64 rhs,
                        Register dest) PER_ARCH;
@@ -1932,8 +1926,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branchTestInt32(Condition cond, Register tag,
                               Label* label) PER_SHARED_ARCH;
   inline void branchTestDouble(Condition cond, Register tag, Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
   inline void branchTestNumber(Condition cond, Register tag,
                                Label* label) PER_SHARED_ARCH;
   inline void branchTestBoolean(Condition cond, Register tag,
@@ -1965,8 +1958,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                   Label* label) PER_SHARED_ARCH;
   inline void branchTestUndefined(Condition cond, const ValueOperand& value,
                                   Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestInt32(Condition cond, const Address& address,
                               Label* label) PER_SHARED_ARCH;
@@ -1974,8 +1966,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                               Label* label) PER_SHARED_ARCH;
   inline void branchTestInt32(Condition cond, const ValueOperand& value,
                               Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestDouble(Condition cond, const Address& address,
                                Label* label) PER_SHARED_ARCH;
@@ -1983,13 +1974,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                Label* label) PER_SHARED_ARCH;
   inline void branchTestDouble(Condition cond, const ValueOperand& value,
                                Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestNumber(Condition cond, const ValueOperand& value,
                                Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestBoolean(Condition cond, const Address& address,
                                 Label* label) PER_SHARED_ARCH;
@@ -1997,8 +1986,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                 Label* label) PER_SHARED_ARCH;
   inline void branchTestBoolean(Condition cond, const ValueOperand& value,
                                 Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestString(Condition cond, const Address& address,
                                Label* label) PER_SHARED_ARCH;
@@ -2006,8 +1994,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                Label* label) PER_SHARED_ARCH;
   inline void branchTestString(Condition cond, const ValueOperand& value,
                                Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestSymbol(Condition cond, const Address& address,
                                Label* label) PER_SHARED_ARCH;
@@ -2015,8 +2002,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                Label* label) PER_SHARED_ARCH;
   inline void branchTestSymbol(Condition cond, const ValueOperand& value,
                                Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestBigInt(Condition cond, const Address& address,
                                Label* label) PER_SHARED_ARCH;
@@ -2024,8 +2010,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                Label* label) PER_SHARED_ARCH;
   inline void branchTestBigInt(Condition cond, const ValueOperand& value,
                                Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestNull(Condition cond, const Address& address,
                              Label* label) PER_SHARED_ARCH;
@@ -2033,8 +2018,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                              Label* label) PER_SHARED_ARCH;
   inline void branchTestNull(Condition cond, const ValueOperand& value,
                              Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   // Clobbers the ScratchReg on x64.
   inline void branchTestObject(Condition cond, const Address& address,
@@ -2043,8 +2027,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                Label* label) PER_SHARED_ARCH;
   inline void branchTestObject(Condition cond, const ValueOperand& value,
                                Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestGCThing(Condition cond, const Address& address,
                                 Label* label) PER_SHARED_ARCH;
@@ -2055,8 +2038,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void branchTestPrimitive(Condition cond, const ValueOperand& value,
                                   Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestMagic(Condition cond, const Address& address,
                               Label* label) PER_SHARED_ARCH;
@@ -2064,8 +2046,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                               Label* label) PER_SHARED_ARCH;
   inline void branchTestMagic(Condition cond, const ValueOperand& value,
                               Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   inline void branchTestMagic(Condition cond, const Address& valaddr,
                               JSWhyMagic why, Label* label) PER_ARCH;
@@ -2086,20 +2067,17 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // The type of the value should match the type of the method.
   inline void branchTestInt32Truthy(bool truthy, const ValueOperand& value,
                                     Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, x86_shared,
-                 wasm32);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, x86_shared, wasm32);
   inline void branchTestDoubleTruthy(bool truthy, FloatRegister reg,
                                      Label* label) PER_SHARED_ARCH;
   inline void branchTestBooleanTruthy(bool truthy, const ValueOperand& value,
                                       Label* label) PER_ARCH;
   inline void branchTestStringTruthy(bool truthy, const ValueOperand& value,
                                      Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
   inline void branchTestBigIntTruthy(bool truthy, const ValueOperand& value,
                                      Label* label)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, wasm32,
-                 x86_shared);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, wasm32, x86_shared);
 
   // Create an unconditional branch to the address given as argument.
   inline void branchToComputedAddress(const BaseIndex& address) PER_ARCH;
@@ -2307,12 +2285,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Memory access primitives.
   inline FaultingCodeOffset storeUncanonicalizedDouble(FloatRegister src,
                                                        const Address& dest)
-      DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
-                 wasm32);
+      DEFINED_ON(x86_shared, arm, arm64, mips64, loong64, riscv64, wasm32);
   inline FaultingCodeOffset storeUncanonicalizedDouble(FloatRegister src,
                                                        const BaseIndex& dest)
-      DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
-                 wasm32);
+      DEFINED_ON(x86_shared, arm, arm64, mips64, loong64, riscv64, wasm32);
   inline FaultingCodeOffset storeUncanonicalizedDouble(FloatRegister src,
                                                        const Operand& dest)
       DEFINED_ON(x86_shared);
@@ -2327,12 +2303,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline FaultingCodeOffset storeUncanonicalizedFloat32(FloatRegister src,
                                                         const Address& dest)
-      DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
-                 wasm32);
+      DEFINED_ON(x86_shared, arm, arm64, mips64, loong64, riscv64, wasm32);
   inline FaultingCodeOffset storeUncanonicalizedFloat32(FloatRegister src,
                                                         const BaseIndex& dest)
-      DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
-                 wasm32);
+      DEFINED_ON(x86_shared, arm, arm64, mips64, loong64, riscv64, wasm32);
   inline FaultingCodeOffset storeUncanonicalizedFloat32(FloatRegister src,
                                                         const Operand& dest)
       DEFINED_ON(x86_shared);
@@ -3818,13 +3792,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   void wasmBoundsCheck32(Condition cond, Register index,
                          Register boundsCheckLimit, Label* ok)
-      DEFINED_ON(arm, arm64, mips32, mips64, x86_shared, loong64, riscv64,
-                 wasm32);
+      DEFINED_ON(arm, arm64, mips64, x86_shared, loong64, riscv64, wasm32);
 
   void wasmBoundsCheck32(Condition cond, Register index,
                          Address boundsCheckLimit, Label* ok)
-      DEFINED_ON(arm, arm64, mips32, mips64, x86_shared, loong64, riscv64,
-                 wasm32);
+      DEFINED_ON(arm, arm64, mips64, x86_shared, loong64, riscv64, wasm32);
 
   void wasmBoundsCheck64(Condition cond, Register64 index,
                          Register64 boundsCheckLimit, Label* ok)
@@ -3855,13 +3827,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
       DEFINED_ON(arm, loong64, riscv64, mips_shared);
   void wasmLoadI64(const wasm::MemoryAccessDesc& access, Register memoryBase,
                    Register ptr, Register ptrScratch, Register64 output)
-      DEFINED_ON(arm, mips32, mips64, loong64, riscv64);
+      DEFINED_ON(arm, mips64, loong64, riscv64);
   void wasmStore(const wasm::MemoryAccessDesc& access, AnyRegister value,
                  Register memoryBase, Register ptr, Register ptrScratch)
       DEFINED_ON(arm, loong64, riscv64, mips_shared);
   void wasmStoreI64(const wasm::MemoryAccessDesc& access, Register64 value,
                     Register memoryBase, Register ptr, Register ptrScratch)
-      DEFINED_ON(arm, mips32, mips64, loong64, riscv64);
+      DEFINED_ON(arm, mips64, loong64, riscv64);
 
   // These accept general memoryBase + ptr + offset (in `access`); the offset is
   // always smaller than the guard region.  They will insert an additional add
@@ -3880,38 +3852,36 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // `ptr` will always be updated.
   void wasmUnalignedLoad(const wasm::MemoryAccessDesc& access,
                          Register memoryBase, Register ptr, Register ptrScratch,
-                         Register output, Register tmp)
-      DEFINED_ON(mips32, mips64);
+                         Register output, Register tmp) DEFINED_ON(mips64);
 
   // MIPS: `ptr` will always be updated.
   void wasmUnalignedLoadFP(const wasm::MemoryAccessDesc& access,
                            Register memoryBase, Register ptr,
                            Register ptrScratch, FloatRegister output,
-                           Register tmp1) DEFINED_ON(mips32, mips64);
+                           Register tmp1) DEFINED_ON(mips64);
 
   // `ptr` will always be updated.
   void wasmUnalignedLoadI64(const wasm::MemoryAccessDesc& access,
                             Register memoryBase, Register ptr,
                             Register ptrScratch, Register64 output,
-                            Register tmp) DEFINED_ON(mips32, mips64);
+                            Register tmp) DEFINED_ON(mips64);
 
   // MIPS: `ptr` will always be updated.
   void wasmUnalignedStore(const wasm::MemoryAccessDesc& access, Register value,
                           Register memoryBase, Register ptr,
-                          Register ptrScratch, Register tmp)
-      DEFINED_ON(mips32, mips64);
+                          Register ptrScratch, Register tmp) DEFINED_ON(mips64);
 
   // `ptr` will always be updated.
   void wasmUnalignedStoreFP(const wasm::MemoryAccessDesc& access,
                             FloatRegister floatValue, Register memoryBase,
                             Register ptr, Register ptrScratch, Register tmp)
-      DEFINED_ON(mips32, mips64);
+      DEFINED_ON(mips64);
 
   // `ptr` will always be updated.
   void wasmUnalignedStoreI64(const wasm::MemoryAccessDesc& access,
                              Register64 value, Register memoryBase,
                              Register ptr, Register ptrScratch, Register tmp)
-      DEFINED_ON(mips32, mips64);
+      DEFINED_ON(mips64);
 
   // wasm specific methods, used in both the wasm baseline compiler and ion.
 
@@ -4625,15 +4595,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
   //
   // x86: `temp` must be ecx:ebx; `output` must be edx:eax.
   // ARM: `temp` should be invalid; `output` must be (even,odd) pair.
-  // MIPS32: `temp` should be invalid.
 
   void wasmAtomicLoad64(const wasm::MemoryAccessDesc& access,
                         const Address& mem, Register64 temp, Register64 output)
-      DEFINED_ON(arm, mips32, x86, wasm32);
+      DEFINED_ON(arm, x86, wasm32);
 
   void wasmAtomicLoad64(const wasm::MemoryAccessDesc& access,
                         const BaseIndex& mem, Register64 temp,
-                        Register64 output) DEFINED_ON(arm, mips32, x86, wasm32);
+                        Register64 output) DEFINED_ON(arm, x86, wasm32);
 
   // x86: `expected` must be the same as `output`, and must be edx:eax.
   // x86: `replacement` must be ecx:ebx.
@@ -4671,17 +4640,16 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // ARM: Registers must be distinct; `temp` and `output` must be (even,odd)
   // pairs.
   // MIPS: Registers must be distinct.
-  // MIPS32: `temp` should be invalid.
 
   void wasmAtomicFetchOp64(const wasm::MemoryAccessDesc& access, AtomicOp op,
                            Register64 value, const Address& mem,
                            Register64 temp, Register64 output)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, x64);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, x64);
 
   void wasmAtomicFetchOp64(const wasm::MemoryAccessDesc& access, AtomicOp op,
                            Register64 value, const BaseIndex& mem,
                            Register64 temp, Register64 output)
-      DEFINED_ON(arm, arm64, mips32, mips64, loong64, riscv64, x64);
+      DEFINED_ON(arm, arm64, mips64, loong64, riscv64, x64);
 
   void wasmAtomicFetchOp64(const wasm::MemoryAccessDesc& access, AtomicOp op,
                            const Address& value, const Address& mem,
@@ -5913,7 +5881,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void addStackPtrTo(T t);
 
   void subFromStackPtr(Imm32 imm32)
-      DEFINED_ON(mips32, mips64, loong64, riscv64, wasm32, arm, x86, x64);
+      DEFINED_ON(mips64, loong64, riscv64, wasm32, arm, x86, x64);
   void subFromStackPtr(Register reg);
 
   template <typename T>
