@@ -43,6 +43,7 @@ const kInterceptionPoints = [
   "file_upload",
   "print",
 ];
+const kInterceptionPointsPlainTextOnly = ["clipboard", "drag_and_drop"];
 
 const ca = Cc["@mozilla.org/contentanalysis;1"].getService(
   Ci.nsIContentAnalysis
@@ -92,6 +93,15 @@ add_task(async function test_ca_active() {
       `${interceptionPoint} enabled by default`
     );
   }
+  for (let interceptionPoint of kInterceptionPointsPlainTextOnly) {
+    is(
+      Services.prefs.getBoolPref(
+        `browser.contentanalysis.interception_point.${interceptionPoint}.plain_text_only`
+      ),
+      true,
+      `${interceptionPoint} plain_text_only on by default`
+    );
+  }
 
   Services.prefs.setBoolPref(getIndividualPrefName("Enabled"), false);
   PoliciesPrefTracker.stop();
@@ -124,7 +134,15 @@ add_task(async function test_ca_enterprise_config() {
       `${interceptionPoint} enabled should be locked`
     );
   }
-
+  for (let interceptionPointPlainText of kInterceptionPointsPlainTextOnly) {
+    is(
+      Services.prefs.prefIsLocked(
+        `browser.contentanalysis.interception_point.${interceptionPointPlainText}.plain_text_only`
+      ),
+      true,
+      `${interceptionPointPlainText} plain_text_only should be locked`
+    );
+  }
   PoliciesPrefTracker.stop();
 });
 
@@ -151,9 +169,11 @@ add_task(async function test_ca_enterprise_config() {
         InterceptionPoints: {
           Clipboard: {
             Enabled: false,
+            PlainTextOnly: false,
           },
           DragAndDrop: {
             Enabled: false,
+            PlainTextOnly: false,
           },
           FileUpload: {
             Enabled: false,
@@ -225,6 +245,15 @@ add_task(async function test_ca_enterprise_config() {
       `${interceptionPoint} interception point match`
     );
   }
+  for (let interceptionPoint of kInterceptionPointsPlainTextOnly) {
+    is(
+      Services.prefs.getBoolPref(
+        `browser.contentanalysis.interception_point.${interceptionPoint}.plain_text_only`
+      ),
+      false,
+      `${interceptionPoint} interception point plain_text_only match`
+    );
+  }
 
   PoliciesPrefTracker.stop();
 });
@@ -242,6 +271,12 @@ add_task(async function test_cleanup() {
   for (let interceptionPoint of kInterceptionPoints) {
     Services.prefs.setBoolPref(
       `browser.contentanalysis.interception_point.${interceptionPoint}.enabled`,
+      true
+    );
+  }
+  for (let interceptionPoint of kInterceptionPointsPlainTextOnly) {
+    Services.prefs.setBoolPref(
+      `browser.contentanalysis.interception_point.${interceptionPoint}.plain_text_only`,
       true
     );
   }

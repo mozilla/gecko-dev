@@ -609,6 +609,34 @@ export var Policies = {
           );
         }
       }
+      let plainTextOnlyPrefs = [
+        ["Clipboard", "clipboard"],
+        ["DragAndDrop", "drag_and_drop"],
+      ];
+      if ("InterceptionPoints" in param) {
+        for (let pref of plainTextOnlyPrefs) {
+          // Need to set and lock this value even if the enterprise
+          // policy isn't set so users can't change it
+          let value = true;
+          if ("InterceptionPoints" in param) {
+            if (pref[0] in param.InterceptionPoints) {
+              if ("PlainTextOnly" in param.InterceptionPoints[pref[0]]) {
+                value = !!param.InterceptionPoints[pref[0]].PlainTextOnly;
+              }
+            }
+          }
+          setAndLockPref(
+            `browser.contentanalysis.interception_point.${pref[1]}.plain_text_only`,
+            value
+          );
+        }
+      } else {
+        for (let pref of plainTextOnlyPrefs) {
+          Services.prefs.lockPref(
+            `browser.contentanalysis.interception_point.${pref[1]}.plain_text_only`
+          );
+        }
+      }
       if ("Enabled" in param) {
         let enabled = !!param.Enabled;
         setAndLockPref("browser.contentanalysis.enabled", enabled);

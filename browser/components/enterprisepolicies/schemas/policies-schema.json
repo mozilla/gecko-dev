@@ -279,6 +279,9 @@
               "properties": {
                 "Enabled": {
                   "type": "boolean"
+                },
+                "PlainTextOnly": {
+                  "type": "boolean"
                 }
               }
             },
@@ -286,6 +289,9 @@
               "type": "object",
               "properties": {
                 "Enabled": {
+                  "type": "boolean"
+                },
+                "PlainTextOnly": {
                   "type": "boolean"
                 }
               }
