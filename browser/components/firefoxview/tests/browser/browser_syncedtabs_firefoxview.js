@@ -106,6 +106,24 @@ add_task(async function test_signed_in() {
       "Add device message is shown"
     );
 
+    let connectAdditionalDevicesLink = emptyState.shadowRoot.querySelector("a");
+    let expectedUrl = connectAdditionalDevicesLink.href;
+    let tabOpened = BrowserTestUtils.waitForDocLoadAndStopIt(
+      expectedUrl,
+      gBrowser,
+      channel => {
+        is(channel.originalURI.spec, expectedUrl, "URL matched");
+        return true;
+      }
+    );
+    EventUtils.synthesizeMouseAtCenter(
+      connectAdditionalDevicesLink,
+      {},
+      browser.contentWindow
+    );
+    await tabOpened;
+
+    await openFirefoxViewTab(window);
     // Test telemetry for adding a device.
     await clearAllParentTelemetryEvents();
     EventUtils.synthesizeMouseAtCenter(
@@ -127,7 +145,10 @@ add_task(async function test_signed_in() {
       { category: "firefoxview_next" },
       { clear: true, process: "parent" }
     );
-    await BrowserTestUtils.removeTab(browser.ownerGlobal.gBrowser.selectedTab);
+    // clean up extra tabs
+    while (gBrowser.tabs.length > 1) {
+      await BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+    }
   });
   await tearDown(sandbox);
 });

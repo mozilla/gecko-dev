@@ -248,3 +248,51 @@ add_task(async function test_close_remote_tab_context_menu() {
   SidebarController.hide();
   sandbox.restore();
 });
+
+add_task(async function test_connect_additional_devices() {
+  const sandbox = sinon.createSandbox();
+  sandbox.stub(lazy.SyncedTabsErrorHandler, "getErrorType").returns(null);
+  sandbox.stub(lazy.TabsSetupFlowManager, "uiStateIndex").value(2);
+  sandbox.stub(lazy.SyncedTabs, "getTabClients").resolves([
+    {
+      id: 1,
+      name: "This Device",
+      isCurrentDevice: true,
+      type: "desktop",
+      tabs: [],
+    },
+  ]);
+
+  await SidebarController.show("viewTabsSidebar");
+  const { contentDocument } = SidebarController.browser;
+  const component = contentDocument.querySelector("sidebar-syncedtabs");
+  Assert.ok(component, "Synced tabs panel is shown.");
+  let emptyState = component.shadowRoot.querySelector("fxview-empty-state");
+  ok(
+    emptyState.getAttribute("headerlabel").includes("syncedtabs-adddevice"),
+    "Add device message is shown"
+  );
+  let connectAdditionalDevicesLink = emptyState.shadowRoot.querySelector("a");
+  let expectedUrl = connectAdditionalDevicesLink.href;
+  let tabOpened = BrowserTestUtils.waitForDocLoadAndStopIt(
+    expectedUrl,
+    gBrowser,
+    channel => {
+      is(channel.originalURI.spec, expectedUrl, "URL matched");
+      return true;
+    }
+  );
+  EventUtils.synthesizeMouseAtCenter(
+    connectAdditionalDevicesLink,
+    {},
+    // eslint-disable-next-line mozilla/use-ownerGlobal
+    connectAdditionalDevicesLink.ownerDocument.defaultView
+  );
+  await tabOpened;
+
+  // clean up extra tabs
+  while (gBrowser.tabs.length > 1) {
+    await BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+  }
+  sandbox.restore();
+});
