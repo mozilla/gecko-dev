@@ -441,6 +441,8 @@ skip-if = ["true"]
 
 ["test_cache2-32-clear-origin.js"]
 
+["test_cache2-33-clear-base-domain.js"]
+
 ["test_cache2_clear_with_usercontext_oa.js"]
 run-sequentially = "httpd server"
 
@@ -905,6 +907,8 @@ skip-if = [
 
 ["test_multipart_byteranges.js"]
 
+["test_multipart_contentdisp.js"]
+
 ["test_multipart_set_cookie.js"]
 
 ["test_multipart_streamconv-byte-by-byte.js"]
@@ -1368,5 +1372,3 @@ skip-if = [
 ]
 
 ["test_xmlhttprequest.js"]
-
-["test_multipart_contentdisp.js"]
