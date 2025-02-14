@@ -1587,4 +1587,26 @@ class TextInputDelegateTest : BaseSessionTest() {
         finishComposingText(ic)
         assertText("commit foobaz1", ic, "foobaz1")
     }
+
+    @Test
+    fun noHandleVolumeKeys() {
+        setupContent("")
+        mainSession.textInput.onCreateInputConnection(EditorInfo())
+
+        val keys = listOf(KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_MUTE)
+        for (keyCode in keys) {
+            val time = SystemClock.uptimeMillis()
+            val keyEvent = KeyEvent(time, time, KeyEvent.ACTION_DOWN, keyCode, 0)
+            assertThat(
+                "We don't handle volume key on onKeyDown",
+                mainSession.textInput.onKeyDown(keyCode, keyEvent),
+                equalTo(false),
+            )
+            assertThat(
+                "We don't handle volume key on onKeyUp",
+                mainSession.textInput.onKeyUp(keyCode, KeyEvent.changeAction(keyEvent, KeyEvent.ACTION_UP)),
+                equalTo(false),
+            )
+        }
+    }
 }
