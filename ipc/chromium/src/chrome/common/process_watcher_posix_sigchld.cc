@@ -156,7 +156,20 @@ already_AddRefed<nsITimer> DelayedKill(pid_t aPid) {
       getter_AddRefs(timer),
       [aPid](nsITimer*) {
         if (kill(aPid, SIGKILL) != 0) {
-          CHROMIUM_LOG(ERROR) << "failed to send SIGKILL to process " << aPid;
+          const int err = errno;
+      // Bug 1944669: suppress logging if it's a forkserver child
+      // process that already exited.  (Before bug 1658072 we
+      // would kill(pid, 0) first, but that doesn't change
+      // anything.)  This can be removed with bug 1752638.
+#ifdef MOZ_ENABLE_FORKSERVER
+          const bool forkServed = mozilla::ipc::ForkServiceChild::WasUsed();
+#else
+          constexpr bool forkServed = false;
+#endif
+          if (err != ESRCH || !forkServed) {
+            CHROMIUM_LOG(ERROR) << "failed to send SIGKILL to process " << aPid
+                                << strerror(err);
+          }
         }
       },
       kMaxWaitMs, nsITimer::TYPE_ONE_SHOT, "ProcessWatcher::DelayedKill",
