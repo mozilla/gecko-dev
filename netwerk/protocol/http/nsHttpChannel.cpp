@@ -65,6 +65,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/PerfStats.h"
 #include "mozilla/ProfilerLabels.h"
+#include "mozilla/FlowMarkers.h"
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_privacy.h"
@@ -352,6 +353,8 @@ nsHttpChannel::nsHttpChannel() : HttpAsyncAborter<nsHttpChannel>(this) {
 }
 
 nsHttpChannel::~nsHttpChannel() {
+  PROFILER_MARKER("~nsHttpChannel", NETWORK, {}, TerminatingFlowMarker,
+                  Flow::FromPointer(this));
   LOG(("Destroying nsHttpChannel [this=%p, nsIChannel=%p]\n", this,
        static_cast<nsIChannel*>(this)));
 
@@ -1189,6 +1192,8 @@ nsresult nsHttpChannel::ConnectOnTailUnblock() {
   nsresult rv;
 
   LOG(("nsHttpChannel::ConnectOnTailUnblock [this=%p]\n", this));
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::ConnectOnTailUnblock", NETWORK,
+                            Flow::FromPointer(this));
 
   // Consider opening a TCP connection right away.
   SpeculativeConnect();
@@ -1247,6 +1252,8 @@ nsresult nsHttpChannel::ConnectOnTailUnblock() {
 nsresult nsHttpChannel::ContinueConnect() {
   // If we need to start a CORS preflight, do it now!
   // Note that it is important to do this before the early returns below.
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::ContinueConnect", NETWORK,
+                            Flow::FromPointer(this));
   if (!LoadIsCorsPreflightDone() && LoadRequireCORSPreflight()) {
     MOZ_ASSERT(!mPreflightChannel);
     nsresult rv = nsCORSListenerProxy::StartCORSPreflight(
@@ -4362,6 +4369,8 @@ NS_IMETHODIMP
 nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, uint32_t* aResult) {
   nsresult rv = NS_OK;
 
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::OnCacheEntryCheck", NETWORK,
+                            Flow::FromPointer(this));
   LOG(("nsHttpChannel::OnCacheEntryCheck enter [channel=%p entry=%p]", this,
        entry));
 
@@ -4759,6 +4768,8 @@ nsHttpChannel::OnCacheEntryAvailable(nsICacheEntry* entry, bool aNew,
 
   nsresult rv;
 
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::OnCacheEntryAvailable", NETWORK,
+                            Flow::FromPointer(this));
   LOG(
       ("nsHttpChannel::OnCacheEntryAvailable [this=%p entry=%p "
        "new=%d status=%" PRIx32 "] for %s",
@@ -6500,6 +6511,8 @@ NS_IMETHODIMP
 nsHttpChannel::Resume() {
   NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
 
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::Resume", NETWORK,
+                            Flow::FromPointer(this));
   LOG(("nsHttpChannel::ResumeInternal [this=%p]\n", this));
   LogCallingScriptLocation(this);
 
@@ -6621,6 +6634,8 @@ nsHttpChannel::GetSecurityInfo(nsITransportSecurityInfo** securityInfo) {
 // any error.
 NS_IMETHODIMP
 nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::AsyncOpen", NETWORK,
+                            Flow::FromPointer(this));
   nsCOMPtr<nsIStreamListener> listener = aListener;
   nsresult rv =
       nsContentSecurityManager::doContentSecurityCheck(this, listener);
@@ -6755,6 +6770,8 @@ void nsHttpChannel::AsyncOpenFinal(TimeStamp aTimeStamp) {
   // We save this timestamp from outside of the if block in case we enable the
   // profiler after AsyncOpen().
   mLastStatusReported = TimeStamp::Now();
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::AsyncOpenFinal", NETWORK,
+                            Flow::FromPointer(this));
   if (profiler_thread_is_being_profiled_for_markers()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
@@ -6842,6 +6859,8 @@ void nsHttpChannel::MaybeResolveProxyAndBeginConnect() {
 }
 
 nsresult nsHttpChannel::AsyncOpenOnTailUnblock() {
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::AsyncOpenOnTailUnblock", NETWORK,
+                            Flow::FromPointer(this));
   return AsyncOpen(mListener);
 }
 
@@ -7822,6 +7841,8 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
   MOZ_ASSERT(LoadRequestObserversCalled());
 
   AUTO_PROFILER_LABEL("nsHttpChannel::OnStartRequest", NETWORK);
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::OnStartRequest", NETWORK,
+                            Flow::FromPointer(this));
 
   if (!(mCanceled || NS_FAILED(mStatus)) &&
       !WRONG_RACING_RESPONSE_SOURCE(request)) {
@@ -8402,6 +8423,8 @@ NS_IMETHODIMP
 nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
   MOZ_ASSERT(!mAsyncOpenTime.IsNull());
   AUTO_PROFILER_LABEL("nsHttpChannel::OnStopRequest", NETWORK);
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::OnStopRequest", NETWORK,
+                            Flow::FromPointer(this));
 
   LOG(("nsHttpChannel::OnStopRequest [this=%p request=%p status=%" PRIx32 "]\n",
        this, request, static_cast<uint32_t>(status)));
@@ -8704,6 +8727,8 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
        "[this=%p aStatus=%" PRIx32 ", aIsFromNet=%d]\n",
        this, static_cast<uint32_t>(aStatus), aIsFromNet));
 
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::ContinueOnStopRequest", NETWORK,
+                            Flow::FromPointer(this));
   // HTTP_CHANNEL_DISPOSITION TELEMETRY
   ChannelDisposition chanDisposition = kHttpCanceled;
   // HTTP_CHANNEL_DISPOSITION_UPGRADE TELEMETRY
@@ -9074,6 +9099,8 @@ nsHttpChannel::OnDataAvailable(nsIRequest* request, nsIInputStream* input,
                                uint64_t offset, uint32_t count) {
   nsresult rv;
   AUTO_PROFILER_LABEL("nsHttpChannel::OnDataAvailable", NETWORK);
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::OnDataAvailable", NETWORK,
+                            Flow::FromPointer(this));
 
   LOG(("nsHttpChannel::OnDataAvailable [this=%p request=%p offset=%" PRIu64
        " count=%" PRIu32 "]\n",
@@ -10844,7 +10871,8 @@ NS_IMETHODIMP
 nsHttpChannel::OnTailUnblock(nsresult rv) {
   LOG(("nsHttpChannel::OnTailUnblock this=%p rv=%" PRIx32 " rc=%p", this,
        static_cast<uint32_t>(rv), mRequestContext.get()));
-
+  AUTO_PROFILER_FLOW_MARKER("nsHttpChannel::OnTailUnblock", NETWORK,
+                            Flow::FromPointer(this));
   MOZ_RELEASE_ASSERT(mOnTailUnblock);
 
   if (NS_FAILED(mStatus)) {
