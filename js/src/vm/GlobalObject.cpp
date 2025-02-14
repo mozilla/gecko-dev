@@ -169,6 +169,8 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_AsyncFunction:
     case JSProto_GeneratorFunction:
     case JSProto_AsyncGeneratorFunction:
+    case JSProto_WeakRef:
+    case JSProto_FinalizationRegistry:
       return false;
 
     case JSProto_WebAssembly:
@@ -229,10 +231,6 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_Atomics:
     case JSProto_SharedArrayBuffer:
       return !cx->realm()->creationOptions().getSharedMemoryAndAtomicsEnabled();
-
-    case JSProto_WeakRef:
-    case JSProto_FinalizationRegistry:
-      return JS::GetWeakRefsEnabled() == JS::WeakRefSpecifier::Disabled;
 
     case JSProto_AsyncIterator:
       return !IsAsyncIteratorHelpersEnabled();
