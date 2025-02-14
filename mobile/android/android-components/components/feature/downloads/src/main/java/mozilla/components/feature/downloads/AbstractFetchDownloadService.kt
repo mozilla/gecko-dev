@@ -935,33 +935,32 @@ abstract class AbstractFetchDownloadService : Service() {
             return download
         }
 
+        val file = File(fileName)
         val path = Environment.getExternalStoragePublicDirectory(download.destinationDirectory)
-        var potentialFile = File(path, fileName)
-        val fileExtension = potentialFile.extension.let { extension ->
-            if (extension.isNotEmpty()) ".$extension" else ""
-        }
-
-        val fileBaseName = DownloadUtils.truncateFileName(
-            baseFileName = potentialFile.nameWithoutExtension,
-            fileExtension = fileExtension,
-            directoryPath = path.absolutePath,
+        val (baseFileName, fileExtension) = DownloadUtils.truncateFileName(
+            baseFileName = file.nameWithoutExtension,
+            fileExtension = file.extension,
+            path = path.absolutePath,
         )
-        potentialFile = File(path, "$fileBaseName$fileExtension")
 
+        var potentialFile = File(
+            path,
+            DownloadUtils.createFileName(
+                fileName = baseFileName,
+                fileExtension = fileExtension,
+            ),
+        )
         var copyVersionNumber = 1
-
         while (potentialFile.exists() || fileNameExistsInCurrentDownloads(
                 potentialFile.name,
                 download,
                 downloadJobs,
             )
         ) {
-            potentialFile = File(path, "$fileBaseName(${copyVersionNumber++})$fileExtension")
+            potentialFile = File(path, DownloadUtils.createFileName(baseFileName, copyVersionNumber++, fileExtension))
         }
 
-        return download.copy(
-            fileName = potentialFile.name,
-        )
+        return download.copy(fileName = potentialFile.name)
     }
 
     private fun fileNameExistsInCurrentDownloads(

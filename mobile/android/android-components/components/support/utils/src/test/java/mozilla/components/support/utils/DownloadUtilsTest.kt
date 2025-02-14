@@ -396,35 +396,65 @@ class DownloadUtilsTest {
 
     @Test
     fun truncateFileNameTest() {
-        val directoryPath = "/storage/emulated/0/Download"
+        val path = "/storage/emulated/0/Download"
+        val customPath = "/storage/emulated/0/MyCustomFolder"
+        // Construct long file names with a specific number of characters
+        val longBaseName = "a".repeat(300)
 
-        assertEquals("foo", DownloadUtils.truncateFileName("foo", ".txt", directoryPath))
-        assertEquals("foo", DownloadUtils.truncateFileName("foo", "", directoryPath))
-        assertEquals("foo.txt", DownloadUtils.truncateFileName("foo.txt", ".txt", directoryPath))
+        // Standard cases
+        assertEquals(Pair("foo", ".txt"), DownloadUtils.truncateFileName("foo", ".txt", path))
+        assertEquals(Pair("foo", ""), DownloadUtils.truncateFileName("foo", "", path))
+        assertEquals(Pair("foo.txt", "txt"), DownloadUtils.truncateFileName("foo.txt", "txt", path))
         assertEquals(
-            "a".repeat(218),
-            DownloadUtils.truncateFileName("a".repeat(300), ".txt", directoryPath),
+            Pair("a".repeat(30), "b".repeat(30)),
+            DownloadUtils.truncateFileName("a".repeat(30), "b".repeat(30), customPath),
+        )
+
+        // When the base filename is too long
+        assertEquals(
+            Pair("a".repeat(218), "txt"),
+            DownloadUtils.truncateFileName(longBaseName, "txt", path),
         )
         assertEquals(
-            "a".repeat(222),
-            DownloadUtils.truncateFileName("a".repeat(300), "", directoryPath),
+            Pair("a".repeat(222), ""),
+            DownloadUtils.truncateFileName(longBaseName, "", path),
         )
         assertEquals(
-            "a".repeat(212),
-            DownloadUtils.truncateFileName("a".repeat(300), ".txt", "/storage/emulated/0/MyCustomFolder"),
+            Pair("a".repeat(212), "txt"),
+            DownloadUtils.truncateFileName(longBaseName, "txt", customPath),
+        )
+
+        // Multi dot name cases
+        // Keep the full filename if it is not too long
+        assertEquals(
+            Pair("multi.dot.filename", "superlongextension"),
+            DownloadUtils.truncateFileName("multi.dot.filename", "superlongextension", path),
+        )
+        // When a full multi-dot file name length is too long and the extension is too long, only keep what is before the first dot
+        assertEquals(
+            Pair("a".repeat(100), ""),
+            DownloadUtils.truncateFileName("${"a".repeat(100)}.${"b".repeat(100)}", "c".repeat(100), customPath),
+        )
+
+        // When the extension is too long and the base file name exceeds total characters allowed,
+        // remove the extension and truncate the base file name
+        assertEquals(
+            Pair("a".repeat(222), ""),
+            DownloadUtils.truncateFileName(longBaseName, "b".repeat(50), path),
         )
         assertEquals(
-            "foo",
-            DownloadUtils.truncateFileName("foo", "." + "a".repeat(300), directoryPath),
+            Pair("a".repeat(216), ""),
+            DownloadUtils.truncateFileName(longBaseName, "b".repeat(50), customPath),
         )
-        assertEquals(
-            "foo",
-            DownloadUtils.truncateFileName("foo", ".txt", "/storage/" + "a".repeat(300)),
-        )
-        assertEquals(
-            "a".repeat(5),
-            DownloadUtils.truncateFileName("a".repeat(300), ".txt", "/storage/" + "a".repeat(300)),
-        )
+    }
+
+    @Test
+    fun `WHEN calling createFileName with any set of parameters THEN it constructs the fileName correctly`() {
+        assertEquals("a", DownloadUtils.createFileName("a"))
+        assertEquals("a.c", DownloadUtils.createFileName("a", null, "c"))
+        assertEquals("a(1).c", DownloadUtils.createFileName("a", 1, "c"))
+        assertEquals("a(1)", DownloadUtils.createFileName("a", 1))
+        assertEquals("a(1)", DownloadUtils.createFileName("a", 1, ""))
     }
 
     companion object {
