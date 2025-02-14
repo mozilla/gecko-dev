@@ -336,6 +336,11 @@
     <string name="browser_menu_tools_description_with_translate_with_report_site_2">ມຸມມອງຜູ້ອ່ານ, ແປພາສາ, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate_without_report_site">ມຸມມອງຜູ້ອ່ານ, ແປ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu
+         The first parameter is the label of the report site issue (for example: Report Site issue) -->
+    <string name="browser_menu_tools_description_with_report_site" moz:removedIn="135" tools:ignore="UnusedResources">Reader View, %s, Print, Share, ເປີດແອັບ</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available-->
+    <string name="browser_menu_tools_description_with_report_site_2">Reader View, ລາຍງານເວັບໄຊທີ່ມີບັນຫາ, ພິມ, ແບ່ງປັນ, ເປີດແອັບ</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ບັນທຶກ</string>
@@ -611,6 +616,8 @@
     <string name="preferences_category_advanced">ຂັ້ນສູງ</string>
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">ຄວາມເປັນສ່ວນຕົວ ແລະ ຄວາມປອດໄພ</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">ການຕັ້ງຄ່າເວັບໄຊທ໌</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">ການທ່ອງເວັບແບບສ່ວນຕົວ</string>
     <!-- Preference for opening links in a private tab-->
@@ -624,6 +631,8 @@
     <!-- Preference for enabling "HTTPS-Only" mode -->
     <string name="preferences_https_only_title">ໂໝດ HTTPS ເທົ່ານັ້ນ</string>
 
+    <!-- Label for cookie banner section in quick settings panel. -->
+    <string name="cookie_banner_blocker">ໂຕປິດກັ້ນ Cookie banner</string>
     <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_off_for_site">ປິດສໍາລັບເວັບໄຊທ໌ນີ້</string>
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
@@ -861,6 +870,9 @@
     <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">ຂໍ້ມູນດ້ານການຕະຫຼາດ</string>
 
     <string name="preferences_daily_usage_ping_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການໃຊ້ ping ປະຈໍາວັນ</string>
+
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_send_crashes_title">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
 
     <!-- Learn more link for crash reporting preference -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
@@ -1145,6 +1157,13 @@
     <!-- Text for the button to remove a single download item -->
     <string name="download_delete_item_1">ລຶບ</string>
 
+
+    <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
+    <string name="webcompat_reporter_cancel">ຍົກເລີກ</string>
+    <!-- The button text for the send button to submit the provided form data. -->
+    <string name="webcompat_reporter_send">ສົ່ງ</string>
+    <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+    <string name="webcompat_reporter_dismiss_success_snackbar_text">ປິດ</string>
 
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
