@@ -787,6 +787,12 @@ var gSync = {
     if (ctaCopyVariant) {
       NimbusFeatures.fxaAvatarMenuItem.recordExposureEvent();
     }
+
+    // We want to record exposure if the user has sync disabled and has
+    // clicked to open the FxA panel
+    if (this.isSignedIn && !UIState.get().syncEnabled) {
+      NimbusFeatures.syncSetupFlow.recordExposureEvent();
+    }
   },
 
   onFxAPanelViewHiding(panelview) {
