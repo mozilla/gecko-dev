@@ -6,26 +6,19 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
- * Element used for selecting a theme on the about:editprofile page
+ * Element used for displaying a theme on the about:editprofile and about:newprofile pages.
+ * profiles-group-item wraps this element to behave as a radio element.
  */
 export class ProfilesThemeCard extends MozLitElement {
   static properties = {
     theme: { type: Object },
-    selected: { type: Boolean, reflect: true },
+    value: { type: String },
   };
 
   static queries = {
     backgroundImg: "img",
     imgHolder: ".img-holder",
   };
-
-  handleKeydown(event) {
-    if (event.code === "Enter" || event.code === "Space") {
-      this.dispatchEvent(
-        new CustomEvent("click", { bubbles: true, composed: true })
-      );
-    }
-  }
 
   updated() {
     super.updated();
@@ -46,14 +39,7 @@ export class ProfilesThemeCard extends MozLitElement {
         rel="stylesheet"
         href="chrome://browser/content/profiles/profiles-theme-card.css"
       />
-      <moz-card
-        class="theme-card"
-        tabindex="0"
-        role="radio"
-        aria-labelledby="${this.theme.dataL10nId}"
-        aria-checked=${this.selected ? "true" : "false"}
-        @keydown=${this.handleKeydown}
-      >
+      <moz-card class="theme-card">
         <div class="theme-content">
           <div class="img-holder">
             <img

@@ -3,6 +3,11 @@
 
 "use strict";
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
+});
+
 const NEW_PROFILE_NAME = "This is a new profile name";
 
 add_setup(async () => {
@@ -77,7 +82,7 @@ add_task(async function test_new_profile_beforeunload() {
         Assert.equal(nameInput.value, "", "Profile name is empty to start");
 
         let deleteButton = newProfileCard.deleteButton;
-        deleteButton.click();
+        EventUtils.synthesizeMouseAtCenter(deleteButton, {}, content);
       });
 
       await TestUtils.waitForCondition(() => deleteCurrentProfileCalled);
@@ -195,18 +200,21 @@ add_task(async function test_new_profile_avatar() {
 
         await newProfileCard.updateComplete;
 
+        // Fill in the input so we don't hit the beforeunload warning
+        newProfileCard.nameInput.value = "test";
+
         let avatars = newProfileCard.avatars;
         let newAvatar = Array.from(avatars).find(
           avatar => avatar.value === expected
         );
         Assert.ok(
-          !newAvatar.selected,
+          !newAvatar.checked,
           "The new avatar should not initially be selected"
         );
-        newAvatar.click();
+        EventUtils.synthesizeMouseAtCenter(newAvatar, {}, content);
 
         await ContentTaskUtils.waitForCondition(
-          () => newAvatar.selected,
+          () => newAvatar.checked,
           "Waiting for new avatar to be selected"
         );
 
@@ -245,11 +253,18 @@ add_task(async function test_new_profile_theme() {
   // Set the profile to the built-in light theme to avoid theme randomization
   // by the new profile card and make the built-in dark theme card available
   // to be clicked.
-  profile.theme = {
+  SelectableProfileService.currentProfile.theme = {
     themeId: "firefox-compact-light@mozilla.org",
     themeFg: "rgb(21,20,26)",
     themeBg: "#f9f9fb",
   };
+  await SelectableProfileService.updateProfile(
+    SelectableProfileService.currentProfile
+  );
+  let lightTheme = await lazy.AddonManager.getAddonByID(
+    "firefox-compact-light@mozilla.org"
+  );
+  await lightTheme.enable();
 
   let expectedThemeId = "firefox-compact-dark@mozilla.org";
 
@@ -276,17 +291,20 @@ add_task(async function test_new_profile_theme() {
 
         await newProfileCard.updateComplete;
 
+        // Fill in the input so we don't hit the beforeunload warning
+        newProfileCard.nameInput.value = "test";
+
         let darkThemeCard = newProfileCard.themeCards[5];
 
         Assert.ok(
-          !darkThemeCard.selected,
+          !darkThemeCard.checked,
           "Dark theme chip should not be selected"
         );
-        darkThemeCard.click();
+        EventUtils.synthesizeMouseAtCenter(darkThemeCard, {}, content);
 
         await newProfileCard.updateComplete;
         await ContentTaskUtils.waitForCondition(
-          () => darkThemeCard.selected,
+          () => darkThemeCard.checked,
           "Waiting for the new theme chip to be selected"
         );
 
@@ -309,21 +327,22 @@ add_task(async function test_new_profile_theme() {
       );
 
       await assertGlean("profiles", "new", "theme", expectedThemeId);
-
-      curProfile.theme = {
-        themeId: "firefox-compact-light@mozilla.org",
-        themeFg: "rgb(21,20,26)",
-        themeBg: "#f9f9fb",
-      };
-      await SelectableProfileService.updateProfile(curProfile);
-      let profilesParent =
-        browser.browsingContext.currentWindowGlobal.getActor("Profiles");
-      await profilesParent.enableTheme("firefox-compact-light@mozilla.org", {
-        method: "url",
-        source: "about:newprofile",
-      });
     }
   );
+
+  // Restore the light theme for later tests.
+  SelectableProfileService.currentProfile.theme = {
+    themeId: "firefox-compact-light@mozilla.org",
+    themeFg: "rgb(21,20,26)",
+    themeBg: "#f9f9fb",
+  };
+  await SelectableProfileService.updateProfile(
+    SelectableProfileService.currentProfile
+  );
+  lightTheme = await lazy.AddonManager.getAddonByID(
+    "firefox-compact-light@mozilla.org"
+  );
+  await lightTheme.enable();
 });
 
 add_task(async function test_new_profile_explore_more_themes() {
@@ -357,10 +376,17 @@ add_task(async function test_new_profile_explore_more_themes() {
 
         await newProfileCard.updateComplete;
 
+        // Fill in the input so we don't hit the beforeunload warning
+        newProfileCard.nameInput.value = "test";
+
         // To simplify the test, deactivate the link before clicking.
         newProfileCard.moreThemesLink.href = "#";
         newProfileCard.moreThemesLink.target = "";
-        newProfileCard.moreThemesLink.click();
+        EventUtils.synthesizeMouseAtCenter(
+          newProfileCard.moreThemesLink,
+          {},
+          content
+        );
 
         // Wait a turn for the event to propagate.
         await new Promise(resolve => content.setTimeout(resolve, 0));
@@ -423,7 +449,11 @@ add_task(async function test_new_profile_displayed_closed_telemetry() {
         });
 
         // Click the done editing button to trigger closed event.
-        newProfileCard.doneButton.click();
+        EventUtils.synthesizeMouseAtCenter(
+          newProfileCard.doneButton,
+          {},
+          content
+        );
       });
 
       await assertGlean("profiles", "new", "closed");

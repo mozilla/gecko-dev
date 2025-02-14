@@ -6,12 +6,12 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
- * Element used for selecting an avatar
+ * Element used for displaying an avatar on the about:editprofile and about:newprofile pages.
+ * profiles-group-item wraps this element to behave as a radio element.
  */
 export class Avatar extends MozLitElement {
   static properties = {
     value: { type: String },
-    selected: { type: Boolean, reflect: true },
   };
 
   get imageL10nId() {
@@ -38,19 +38,13 @@ export class Avatar extends MozLitElement {
         rel="stylesheet"
         href="chrome://browser/content/profiles/avatar.css"
       />
-      <button
-        type="button"
-        class="avatar"
-        role="radio"
-        aria-checked=${this.selected ? "true" : "false"}
-        aria-labelledby="avatar-img"
-      >
+      <div class="avatar" aria-labelledby="avatar-img">
         <img
           id="avatar-img"
           data-l10n-id=${this.imageL10nId}
           src="chrome://browser/content/profiles/assets/48_${this.value}.svg"
         />
-      </button>`;
+      </div>`;
   }
 }
 

@@ -60,6 +60,8 @@ import "chrome://global/content/elements/moz-button-group.mjs";
 import "chrome://browser/content/profiles/avatar.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/profiles/profiles-theme-card.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/profiles/profiles-group.mjs";
 
 const SAVE_NAME_TIMEOUT = 2000;
 const SAVED_MESSAGE_TIMEOUT = 5000;
@@ -82,13 +84,21 @@ export class EditProfileCard extends MozLitElement {
     deleteButton: "#delete-button",
     doneButton: "#done-button",
     moreThemesLink: "#more-themes",
-    avatars: { all: "profiles-avatar" },
     headerAvatar: "#header-avatar",
-    themeCards: { all: "profiles-theme-card" },
+    avatarsPicker: "#avatars",
+    themesPicker: "#themes",
   };
 
   updateNameDebouncer = null;
   clearSavedMessageTimer = null;
+
+  get avatars() {
+    return this.avatarsPicker.radioButtons;
+  }
+
+  get themeCards() {
+    return this.themesPicker.radioButtons;
+  }
 
   constructor() {
     super();
@@ -157,6 +167,25 @@ export class EditProfileCard extends MozLitElement {
     favicon.href = `chrome://browser/content/profiles/assets/16_${this.profile.avatar}.svg`;
   }
 
+  getAvatarL10nId(value) {
+    switch (value) {
+      case "book":
+        return "book-avatar";
+      case "briefcase":
+        return "briefcase-avatar";
+      case "flower":
+        return "flower-avatar";
+      case "heart":
+        return "heart-avatar";
+      case "shopping":
+        return "shopping-avatar";
+      case "star":
+        return "star-avatar";
+    }
+
+    return "";
+  }
+
   handleEvent(event) {
     switch (event.type) {
       case "beforeunload": {
@@ -204,12 +233,6 @@ export class EditProfileCard extends MozLitElement {
     if (newThemeId === this.profile.themeId) {
       return;
     }
-
-    this.getUpdateComplete().then(() => {
-      for (let t of this.themeCards) {
-        t.selected = t.theme.id === newThemeId;
-      }
-    });
 
     let theme = await RPMSendQuery("Profiles:UpdateProfileTheme", newThemeId);
     this.profile.themeId = theme.themeId;
@@ -322,100 +345,52 @@ export class EditProfileCard extends MozLitElement {
       return null;
     }
 
-    return this.themes.map(
-      t =>
-        html`<profiles-theme-card
-          @click=${this.handleThemeClick}
-          @keydown=${this.handleThemeKeydown}
-          .theme=${t}
-          ?selected=${t.isActive}
-          aria-checked=${t.isActive}
-        ></profiles-theme-card>`
-    );
+    return html`<profiles-group
+      id="themes"
+      value=${this.profile.themeId}
+      data-l10n-id="edit-profile-page-theme-header-2"
+      name="theme"
+      id="themes"
+      @click=${this.handleThemeClick}
+    >
+      ${this.themes.map(
+        t =>
+          html`<profiles-group-item l10nId="${t.dataL10nId}" value=${t.id}>
+            <profiles-theme-card
+              .theme=${t}
+              value=${t.id}
+            ></profiles-theme-card>
+          </profiles-group-item>`
+      )}
+    </profiles-group>`;
   }
 
-  handleThemeClick(event) {
-    this.updateTheme(event.target.theme.id);
-  }
-
-  /*
-   * Handles radiogroup arrow key behavior for the theme picker.
-   *
-   * The Enter or Space keys are handled by handleThemeClick.
-   */
-  handleThemeKeydown(event) {
-    let currentTheme = event.target;
-
-    // Wrap around the ends of the list.
-    let nextTheme = currentTheme.nextElementSibling || this.themeCards[0];
-    let previousTheme =
-      currentTheme.previousElementSibling ||
-      this.themeCards[this.themeCards.length - 1];
-
-    // Focus the <moz-card> within the target element.
-    let nextCard = nextTheme.shadowRoot.querySelector("moz-card");
-    let previousCard = previousTheme.shadowRoot.querySelector("moz-card");
-
-    if (event.code == "ArrowUp" || event.code == "ArrowLeft") {
-      event.preventDefault();
-      previousCard.focus();
-    } else if (event.code == "ArrowDown" || event.code == "ArrowRight") {
-      event.preventDefault();
-      nextCard.focus();
-    }
+  handleThemeClick() {
+    this.updateTheme(this.themesPicker.value);
   }
 
   avatarsTemplate() {
     let avatars = ["book", "briefcase", "flower", "heart", "shopping", "star"];
 
-    return avatars.map(
-      avatar =>
-        html`<profiles-avatar
-          @click=${this.handleAvatarClick}
-          @keydown=${this.handleAvatarKeyDown}
-          value=${avatar}
-          ?selected=${avatar === this.profile.avatar}
-        ></profiles-avatar>`
-    );
+    return html`<profiles-group
+      value=${this.profile.avatar}
+      data-l10n-id="edit-profile-page-avatar-header-2"
+      name="avatar"
+      id="avatars"
+      @click=${this.handleAvatarClick}
+      >${avatars.map(
+        avatar =>
+          html`<profiles-group-item
+            l10nId=${this.getAvatarL10nId(avatar)}
+            value=${avatar}
+            ><profiles-avatar value=${avatar}></profiles-avatar
+          ></profiles-group-item>`
+      )}</profiles-group
+    >`;
   }
 
-  handleAvatarClick(event) {
-    for (let a of this.avatars) {
-      a.selected = false;
-    }
-
-    let selectedAvatar = event.target;
-    selectedAvatar.selected = true;
-
-    this.updateAvatar(selectedAvatar.value);
-  }
-
-  /*
-   * Implements radiogroup arrow key behavior for the avatar picker.
-   *
-   * The Enter or Space keys are handled by handleAvatarClick.
-   */
-  handleAvatarKeyDown(event) {
-    let currentAvatar = event.target;
-
-    // Wrap around the ends of the list.
-    let nextAvatar = currentAvatar.nextElementSibling || this.avatars[0];
-    let previousAvatar =
-      currentAvatar.previousElementSibling ||
-      this.avatars[this.avatars.length - 1];
-
-    // To correctly style the button to match tab focus, we have to focus the
-    // button inside each profiles-avatar component's shadow DOM.
-    let nextButton = nextAvatar.shadowRoot.querySelector("button");
-    let previousButton = previousAvatar.shadowRoot.querySelector("button");
-
-    if (event.code == "ArrowUp" || event.code == "ArrowLeft") {
-      event.preventDefault();
-      previousButton.focus();
-    } else if (event.code == "ArrowDown" || event.code == "ArrowRight") {
-      event.preventDefault();
-      nextButton.focus();
-    }
+  handleAvatarClick() {
+    this.updateAvatar(this.avatarsPicker.value);
   }
 
   onDeleteClick() {
@@ -483,14 +458,8 @@ export class EditProfileCard extends MozLitElement {
           />
           <div id="profile-content">
             ${this.headerTemplate()}${this.profilesNameTemplate()}
+            ${this.themesTemplate()}
 
-            <h3
-              data-l10n-id="edit-profile-page-theme-header"
-              id="theme-header"
-            ></h3>
-            <div id="themes" role="radiogroup" aria-labelledby="theme-header">
-              ${this.themesTemplate()}
-            </div>
             <a
               id="more-themes"
               href="https://addons.mozilla.org/firefox/themes/"
@@ -499,13 +468,7 @@ export class EditProfileCard extends MozLitElement {
               data-l10n-id="edit-profile-page-explore-themes"
             ></a>
 
-            <h3
-              data-l10n-id="edit-profile-page-avatar-header"
-              id="avatar-header"
-            ></h3>
-            <div id="avatars" role="radiogroup" aria-labelledby="avatar-header">
-              ${this.avatarsTemplate()}
-            </div>
+            ${this.avatarsTemplate()}
 
             <moz-button-group>${this.buttonsTemplate()}</moz-button-group>
           </div>

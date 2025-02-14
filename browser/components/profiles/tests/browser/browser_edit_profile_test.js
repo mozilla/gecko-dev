@@ -3,6 +3,11 @@
 
 "use strict";
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
+});
+
 const NEW_PROFILE_NAME = "This is a new profile name";
 
 const setup = async () => {
@@ -60,7 +65,7 @@ add_task(async function test_edit_profile_delete() {
         nameInput.dispatchEvent(new content.Event("input"));
 
         let deleteButton = editProfileCard.deleteButton;
-        deleteButton.click();
+        EventUtils.synthesizeMouseAtCenter(deleteButton, {}, content);
       });
 
       await deletePageLoaded;
@@ -181,13 +186,13 @@ add_task(async function test_edit_profile_avatar() {
         let avatars = editProfileCard.avatars;
         let newAvatar = avatars[0];
         Assert.ok(
-          !newAvatar.selected,
+          !newAvatar.checked,
           "The new avatar should not initially be selected"
         );
-        newAvatar.click();
+        EventUtils.synthesizeMouseAtCenter(newAvatar, {}, content);
 
         await ContentTaskUtils.waitForCondition(
-          () => newAvatar.selected,
+          () => newAvatar.checked,
           "Waiting for new avatar to be selected"
         );
 
@@ -223,6 +228,14 @@ add_task(async function test_edit_profile_theme() {
   }
   let profile = await setup();
 
+  // Set the profile to the built-in light theme to avoid theme randomization
+  // by the new profile card and make the built-in dark theme card available
+  // to be clicked.
+  let lightTheme = await lazy.AddonManager.getAddonByID(
+    "firefox-compact-light@mozilla.org"
+  );
+  await lightTheme.enable();
+
   let expectedThemeId = "firefox-compact-dark@mozilla.org";
 
   is(
@@ -249,10 +262,10 @@ add_task(async function test_edit_profile_theme() {
         await editProfileCard.updateComplete;
 
         let darkThemeCard = editProfileCard.themeCards[5];
-        darkThemeCard.click();
+        EventUtils.synthesizeMouseAtCenter(darkThemeCard, {}, content);
 
         await ContentTaskUtils.waitForCondition(
-          () => darkThemeCard.selected,
+          () => darkThemeCard.checked,
           "Waiting for the new theme chip to be selected"
         );
 
@@ -275,22 +288,14 @@ add_task(async function test_edit_profile_theme() {
       );
 
       await assertGlean("profiles", "existing", "theme", expectedThemeId);
-
-      // Restore the light theme for later tests.
-      curProfile.theme = {
-        themeId: "firefox-compact-light@mozilla.org",
-        themeFg: "rgb(21,20,26)",
-        themeBg: "#f9f9fb",
-      };
-      await SelectableProfileService.updateProfile(curProfile);
-      let profilesParent =
-        browser.browsingContext.currentWindowGlobal.getActor("Profiles");
-      await profilesParent.enableTheme("firefox-compact-light@mozilla.org", {
-        method: "url",
-        source: "about:editprofile",
-      });
     }
   );
+
+  // Restore the light theme for later tests.
+  lightTheme = await lazy.AddonManager.getAddonByID(
+    "firefox-compact-light@mozilla.org"
+  );
+  await lightTheme.enable();
 });
 
 add_task(async function test_edit_profile_explore_more_themes() {
@@ -327,7 +332,11 @@ add_task(async function test_edit_profile_explore_more_themes() {
         // To simplify the test, deactivate the link before clicking.
         editProfileCard.moreThemesLink.href = "#";
         editProfileCard.moreThemesLink.target = "";
-        editProfileCard.moreThemesLink.click();
+        EventUtils.synthesizeMouseAtCenter(
+          editProfileCard.moreThemesLink,
+          {},
+          content
+        );
 
         // Wait a turn for the event to propagate.
         await new Promise(resolve => content.setTimeout(resolve, 0));
@@ -381,7 +390,11 @@ add_task(async function test_edit_profile_displayed_closed_telemetry() {
         await editProfileCard.updateComplete;
 
         // Click the done editing button to trigger closed event.
-        editProfileCard.doneButton.click();
+        EventUtils.synthesizeMouseAtCenter(
+          editProfileCard.doneButton,
+          {},
+          content
+        );
       });
 
       await assertGlean("profiles", "existing", "closed");
@@ -421,10 +434,10 @@ add_task(async function test_avatar_picker_arrow_key_support() {
         let avatars = editProfileCard.avatars;
 
         // Select and focus the book avatar to get started.
-        avatars[0].click();
-        avatars[0].shadowRoot.querySelector("button").focus();
+        EventUtils.synthesizeMouseAtCenter(avatars[0], {}, content);
+        avatars[0].focus();
         let selectedAvatar = editProfileCard.shadowRoot.querySelector(
-          "profiles-avatar[selected]"
+          "#avatars > profiles-group-item[checked]"
         );
         Assert.equal("book", selectedAvatar.value, "Book avatar was selected");
         Assert.equal(
@@ -442,7 +455,7 @@ add_task(async function test_avatar_picker_arrow_key_support() {
           nextAvatar,
           "The next avatar has focus"
         );
-        Assert.ok(!nextAvatar.selected, "The next avatar is not selected");
+        Assert.ok(!nextAvatar.checked, "The next avatar is not selected");
 
         // Now, use the up arrow key to move focus back.
         EventUtils.synthesizeKey("KEY_ArrowUp", {}, content);
@@ -460,13 +473,101 @@ add_task(async function test_avatar_picker_arrow_key_support() {
           nextAvatar,
           "The next avatar has focus"
         );
-        Assert.ok(!nextAvatar.selected, "The next avatar is not selected");
+        Assert.ok(!nextAvatar.checked, "The next avatar is not selected");
 
         EventUtils.synthesizeKey("KEY_ArrowLeft", {}, content);
         Assert.equal(
           editProfileCard.shadowRoot.activeElement,
           selectedAvatar,
           "The selected avatar has focus"
+        );
+      });
+    }
+  );
+});
+
+add_task(async function test_theme_picker_arrow_key_support() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+
+  await initGroupDatabase();
+  let profile = SelectableProfileService.currentProfile;
+  Assert.ok(profile, "Should have a profile now");
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:editprofile",
+    },
+    async browser => {
+      await SpecialPowers.spawn(browser, [], async () => {
+        const EventUtils = ContentTaskUtils.getEventUtils(content);
+
+        let editProfileCard =
+          content.document.querySelector("edit-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => editProfileCard.initialized,
+          "Waiting for edit-profile-card to be initialized"
+        );
+        await editProfileCard.updateComplete;
+        let themeCards = editProfileCard.themeCards;
+
+        // Select and focus the light theme to get started.
+        EventUtils.synthesizeMouseAtCenter(themeCards[0], {}, content);
+        themeCards[0].focus();
+        let selectedTheme = editProfileCard.shadowRoot.querySelector(
+          "#themes > profiles-group-item[checked]"
+        );
+        Assert.equal(
+          "firefox-compact-light@mozilla.org",
+          selectedTheme.value,
+          "Light theme was selected"
+        );
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          selectedTheme,
+          "The selected theme has focus"
+        );
+
+        // Simulate a down arrow key and the focus should move, making the
+        // next element focused, but not selected.
+        let nextTheme = selectedTheme.nextElementSibling;
+        EventUtils.synthesizeKey("KEY_ArrowDown", {}, content);
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          nextTheme,
+          "The next theme has focus"
+        );
+        Assert.ok(!nextTheme.checked, "The next theme is not selected");
+
+        // Now, use the up arrow key to move focus back.
+        EventUtils.synthesizeKey("KEY_ArrowUp", {}, content);
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          selectedTheme,
+          "The selected theme has focus"
+        );
+
+        // Same thing, this time using the right and left arrows:
+
+        EventUtils.synthesizeKey("KEY_ArrowRight", {}, content);
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          nextTheme,
+          "The next theme has focus"
+        );
+        Assert.ok(!nextTheme.checked, "The next theme is not selected");
+
+        EventUtils.synthesizeKey("KEY_ArrowLeft", {}, content);
+        Assert.equal(
+          editProfileCard.shadowRoot.activeElement,
+          selectedTheme,
+          "The selected theme has focus"
         );
       });
     }

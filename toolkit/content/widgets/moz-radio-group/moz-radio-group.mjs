@@ -270,6 +270,10 @@ export class MozRadio extends MozBaseInputElement {
     inputTabIndex: { type: Number, state: true },
   };
 
+  get controller() {
+    return this.#controller;
+  }
+
   constructor() {
     super();
     this.checked = false;

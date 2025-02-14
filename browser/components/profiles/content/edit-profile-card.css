@@ -66,9 +66,8 @@
   color: var(--icon-color-success);
 }
 
-#themes,
-#avatars {
-  display: flex;
+#avatars::part(inputs),
+#themes::part(inputs) {
+  flex-direction: row;
   flex-wrap: wrap;
-  gap: var(--space-xlarge);
 }

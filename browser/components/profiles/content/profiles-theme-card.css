@@ -6,6 +6,9 @@
   --theme-card-border-radius: 10px;
   --preview-image-border-radius: 9px;
   --theme-card-border-width: 2px;
+
+  box-sizing: border-box;
+  border-radius: var(--theme-card-border-radius);
 }
 
 moz-card {
@@ -15,20 +18,11 @@ moz-card {
 .theme-card {
   width: 120px;
   border-radius: var(--theme-card-border-radius);
-  border-color: var(--border-color-interactive);
+  border: none;
   box-shadow: none;
 
   &:hover {
     background-color: var(--button-background-color-hover);
-  }
-
-  &:focus-visible {
-    outline: var(--focus-outline);
-    outline-offset: var(--focus-outline-offset);
-  }
-
-  :host([selected]) & {
-    border-color: var(--focus-outline-color);
   }
 
   @media (forced-colors) {
@@ -40,7 +34,7 @@ moz-card {
       }
     }
 
-    :host([selected]) & {
+    :host([checked]) & {
       background-color: SelectedItem;
       border-color: SelectedItemText;
       color: SelectedItemText;
