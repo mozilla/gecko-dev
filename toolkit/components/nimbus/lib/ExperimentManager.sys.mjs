@@ -12,6 +12,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ClientEnvironment: "resource://normandy/lib/ClientEnvironment.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentStore: "resource://nimbus/lib/ExperimentStore.sys.mjs",
   FirstStartup: "resource://gre/modules/FirstStartup.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -479,7 +480,7 @@ export class _ExperimentManager {
 
     // RemoteSettingsExperimentLoader could be in a middle of updating recipes
     // so let's wait for the update to finish and this promise to resolve.
-    await lazy.RemoteSettingsExperimentLoader.finishedUpdating();
+    await lazy.ExperimentAPI._rsLoader.finishedUpdating();
 
     // RemoteSettingsExperimentLoader should have finished updating at least
     // once. Prevent concurrent updates while we filter through the list of
@@ -515,7 +516,7 @@ export class _ExperimentManager {
 
     // RemoteSettingsExperimentLoader could be in a middle of updating recipes
     // so let's wait for the update to finish and this promise to resolve.
-    await lazy.RemoteSettingsExperimentLoader.finishedUpdating();
+    await lazy.ExperimentAPI._rsLoader.finishedUpdating();
 
     // We don't need to hold the RSEL lock here because we are not doing any async work.
     return this.optInRecipes.find(recipe => recipe.slug === slug);

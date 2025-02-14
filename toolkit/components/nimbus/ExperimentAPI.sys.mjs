@@ -102,12 +102,9 @@ export const ExperimentAPI = {
       }
 
       try {
-        await lazy.RemoteSettingsExperimentLoader.enable();
+        await this._rsLoader.enable();
       } catch (e) {
-        lazy.log.error(
-          "Failed to initialize RemoteSettingsExperimentLoader:",
-          e
-        );
+        lazy.log.error("Failed to enable RemoteSettingsExperimentLoader:", e);
       }
     }
   },
@@ -741,6 +738,10 @@ ChromeUtils.defineLazyGetter(ExperimentAPI, "_manager", function () {
 Object.defineProperty(ExperimentAPI, "_store", {
   configurable: true,
   get: () => ExperimentAPI._manager.store,
+});
+
+ChromeUtils.defineLazyGetter(ExperimentAPI, "_rsLoader", function () {
+  return lazy.RemoteSettingsExperimentLoader;
 });
 
 ChromeUtils.defineLazyGetter(
