@@ -6,6 +6,8 @@
 
 // Tracking of sent packets and detecting their loss.
 
+#![allow(clippy::module_name_repetitions)]
+
 use std::{
     cmp::{max, min},
     time::{Duration, Instant},
@@ -74,7 +76,7 @@ impl RttEstimate {
     }
 
     pub fn set_initial(&mut self, rtt: Duration) {
-        qtrace!("initial RTT={:?}", rtt);
+        qtrace!("initial RTT={rtt:?}");
         if rtt >= GRANULARITY {
             // Ignore if the value is too small.
             self.init(rtt);

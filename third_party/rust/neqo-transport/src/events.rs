@@ -254,7 +254,7 @@ impl EventProvider for ConnectionEvents {
 
 #[cfg(test)]
 mod tests {
-    use neqo_common::event::Provider;
+    use neqo_common::event::Provider as _;
 
     use crate::{CloseReason, ConnectionEvent, ConnectionEvents, Error, State, StreamId};
 

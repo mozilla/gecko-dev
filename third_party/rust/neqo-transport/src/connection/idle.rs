@@ -39,9 +39,6 @@ impl IdleTimeout {
             keep_alive_outstanding: false,
         }
     }
-}
-
-impl IdleTimeout {
     pub fn set_peer_timeout(&mut self, peer_timeout: Duration) {
         self.timeout = min(self.timeout, peer_timeout);
     }

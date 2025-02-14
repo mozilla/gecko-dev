@@ -4,9 +4,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{cell::RefCell, mem, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
-use neqo_common::event::Provider;
+use neqo_common::event::Provider as _;
 use test_fixture::now;
 
 use super::{
@@ -208,7 +208,7 @@ fn critical() {
     let now = now();
 
     // Rather than connect, send stream data in 0.5-RTT.
-    // That allows this to test that critical streams pre-empt most frame types.
+    // That allows this to test that critical streams preempt most frame types.
     let dgram = client.process_output(now).dgram();
     let dgram = server.process(dgram, now).dgram();
     client.process_input(dgram.unwrap(), now);
@@ -243,7 +243,7 @@ fn critical() {
 
     // Critical beats everything but HANDSHAKE_DONE.
     let stats_before = server.stats().frame_tx;
-    mem::drop(fill_cwnd(&mut server, id, now));
+    drop(fill_cwnd(&mut server, id, now));
     let stats_after = server.stats().frame_tx;
     assert_eq!(stats_after.crypto, stats_before.crypto);
     assert_eq!(stats_after.streams_blocked, 0);
@@ -259,7 +259,7 @@ fn important() {
     let now = now();
 
     // Rather than connect, send stream data in 0.5-RTT.
-    // That allows this to test that important streams pre-empt most frame types.
+    // That allows this to test that important streams preempt most frame types.
     let dgram = client.process_output(now).dgram();
     let dgram = server.process(dgram, now).dgram();
     client.process_input(dgram.unwrap(), now);
@@ -295,7 +295,7 @@ fn important() {
 
     // Important beats everything but flow control.
     let stats_before = server.stats().frame_tx;
-    mem::drop(fill_cwnd(&mut server, id, now));
+    drop(fill_cwnd(&mut server, id, now));
     let stats_after = server.stats().frame_tx;
     assert_eq!(stats_after.crypto, stats_before.crypto);
     assert_eq!(stats_after.streams_blocked, 1);
@@ -312,7 +312,7 @@ fn high_normal() {
     let now = now();
 
     // Rather than connect, send stream data in 0.5-RTT.
-    // That allows this to test that important streams pre-empt most frame types.
+    // That allows this to test that important streams preempt most frame types.
     let dgram = client.process_output(now).dgram();
     let dgram = server.process(dgram, now).dgram();
     client.process_input(dgram.unwrap(), now);
@@ -350,7 +350,7 @@ fn high_normal() {
     // but they beat CRYPTO/NEW_TOKEN.
     let stats_before = server.stats().frame_tx;
     server.send_ticket(now, &[]).unwrap();
-    mem::drop(fill_cwnd(&mut server, id, now));
+    drop(fill_cwnd(&mut server, id, now));
     let stats_after = server.stats().frame_tx;
     assert_eq!(stats_after.crypto, stats_before.crypto);
     assert_eq!(stats_after.streams_blocked, 1);
@@ -387,7 +387,7 @@ fn low() {
     // The resulting CRYPTO frame beats out the stream data.
     let stats_before = server.stats().frame_tx;
     server.send_ticket(now, &vec![0; server.plpmtu()]).unwrap();
-    mem::drop(server.process_output(now));
+    drop(server.process_output(now));
     let stats_after = server.stats().frame_tx;
     assert_eq!(stats_after.crypto, stats_before.crypto + 1);
     assert_eq!(stats_after.stream, stats_before.stream);
@@ -396,7 +396,7 @@ fn low() {
     // it is very hard to ensure that the STREAM frame won't also fit.
     // However, we can ensure that the next packet doesn't consist of just STREAM.
     let stats_before = server.stats().frame_tx;
-    mem::drop(server.process_output(now));
+    drop(server.process_output(now));
     let stats_after = server.stats().frame_tx;
     assert_eq!(stats_after.crypto, stats_before.crypto + 1);
     assert_eq!(stats_after.new_token, 1);

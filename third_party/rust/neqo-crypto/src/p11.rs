@@ -11,7 +11,6 @@
 
 use std::{
     cell::RefCell,
-    mem,
     ops::{Deref, DerefMut},
     os::raw::c_uint,
     ptr::null_mut,
@@ -265,7 +264,7 @@ impl Item {
         SECItem {
             type_: SECItemType::siBuffer,
             data: data.cast_mut().cast(),
-            len: c_uint::try_from(mem::size_of::<T>()).unwrap(),
+            len: c_uint::try_from(std::mem::size_of::<T>()).unwrap(),
         }
     }
 

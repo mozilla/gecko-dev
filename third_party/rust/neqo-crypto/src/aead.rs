@@ -17,7 +17,7 @@ use crate::{
     experimental_api,
     p11::{PK11SymKey, SymKey},
     scoped_ptr,
-    ssl::{self, PRUint16, PRUint64, PRUint8, SSLAeadContext},
+    ssl::{PRUint16, PRUint64, PRUint8, SSLAeadContext},
 };
 
 experimental_api!(SSL_MakeAead(
@@ -80,7 +80,7 @@ impl RealAead {
         prefix: &str,
     ) -> Res<Self> {
         let p = prefix.as_bytes();
-        let mut ctx: *mut ssl::SSLAeadContext = null_mut();
+        let mut ctx: *mut SSLAeadContext = null_mut();
         SSL_MakeAead(
             version,
             cipher,

@@ -16,7 +16,7 @@ use crate::{
     connection::Http3State,
     features::extended_connect::{ExtendedConnectEvents, ExtendedConnectType, SessionCloseReason},
     settings::HSettingType,
-    CloseType, Http3StreamInfo, HttpRecvStreamEvents, RecvStreamEvents, SendStreamEvents,
+    CloseType, Http3StreamInfo, HttpRecvStreamEvents, PushId, RecvStreamEvents, SendStreamEvents,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -68,24 +68,24 @@ pub enum Http3ClientEvent {
     },
     /// A new push promise.
     PushPromise {
-        push_id: u64,
+        push_id: PushId,
         request_stream_id: StreamId,
         headers: Vec<Header>,
     },
     /// A push response headers are ready.
     PushHeaderReady {
-        push_id: u64,
+        push_id: PushId,
         headers: Vec<Header>,
         interim: bool,
         fin: bool,
     },
     /// New bytes are available on a push stream for reading.
-    PushDataReadable { push_id: u64 },
+    PushDataReadable { push_id: PushId },
     /// A push has been canceled.
-    PushCanceled { push_id: u64 },
+    PushCanceled { push_id: PushId },
     /// A push stream was been reset due to a `HttpGeneralProtocol` error.
     /// Most common case are malformed response headers.
-    PushReset { push_id: u64, error: AppError },
+    PushReset { push_id: PushId, error: AppError },
     /// New stream can be created
     RequestsCreatable,
     /// Cert authentication needed
@@ -196,7 +196,7 @@ impl ExtendedConnectEvents for Http3ClientEvents {
                 headers,
             }));
         } else {
-            unreachable!("There is only ExtendedConnectType::WebTransport.");
+            unreachable!("There is only ExtendedConnectType::WebTransport");
         }
     }
 
@@ -216,7 +216,7 @@ impl ExtendedConnectEvents for Http3ClientEvents {
                 },
             ));
         } else {
-            unreachable!("There are no other types.");
+            unreachable!("There are no other types");
         }
     }
 
@@ -240,7 +240,7 @@ impl ExtendedConnectEvents for Http3ClientEvents {
 }
 
 impl Http3ClientEvents {
-    pub fn push_promise(&self, push_id: u64, request_stream_id: StreamId, headers: Vec<Header>) {
+    pub fn push_promise(&self, push_id: PushId, request_stream_id: StreamId, headers: Vec<Header>) {
         self.insert(Http3ClientEvent::PushPromise {
             push_id,
             request_stream_id,
@@ -248,12 +248,12 @@ impl Http3ClientEvents {
         });
     }
 
-    pub fn push_canceled(&self, push_id: u64) {
+    pub fn push_canceled(&self, push_id: PushId) {
         self.remove_events_for_push_id(push_id);
         self.insert(Http3ClientEvent::PushCanceled { push_id });
     }
 
-    pub fn push_reset(&self, push_id: u64, error: AppError) {
+    pub fn push_reset(&self, push_id: PushId, error: AppError) {
         self.remove_events_for_push_id(push_id);
         self.insert(Http3ClientEvent::PushReset { push_id, error });
     }
@@ -336,7 +336,7 @@ impl Http3ClientEvents {
         });
     }
 
-    pub fn has_push(&self, push_id: u64) -> bool {
+    pub fn has_push(&self, push_id: PushId) -> bool {
         for iter in &*self.events.borrow() {
             if matches!(iter, Http3ClientEvent::PushPromise{push_id:x, ..} if *x == push_id) {
                 return true;
@@ -345,7 +345,7 @@ impl Http3ClientEvents {
         false
     }
 
-    pub fn remove_events_for_push_id(&self, push_id: u64) {
+    pub fn remove_events_for_push_id(&self, push_id: PushId) {
         self.remove(|evt| {
             matches!(evt,
                 Http3ClientEvent::PushPromise{ push_id: x, .. }

@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use neqo_common::{event::Provider, Encoder};
+use neqo_common::{event::Provider as _, Encoder};
 use neqo_crypto::AuthenticationStatus;
 use neqo_transport::{CloseReason, Connection, StreamType};
 use test_fixture::{default_server_h3, now};
@@ -88,7 +88,7 @@ fn zero_rtt(
     // exchange token
     let out = server.process_output(now());
     // We do not have a token so we need to wait for a resumption token timer to trigger.
-    std::mem::drop(client.process(out.dgram(), now() + Duration::from_millis(250)));
+    drop(client.process(out.dgram(), now() + Duration::from_millis(250)));
     assert_eq!(client.state(), Http3State::Connected);
     let token = client
         .events()
@@ -105,7 +105,7 @@ fn zero_rtt(
     let mut server = default_http3_server(Http3Parameters::default().webtransport(server_resumed));
     client
         .enable_resumption(now(), &token)
-        .expect("Set resumption token.");
+        .expect("Set resumption token");
     assert_eq!(client.state(), Http3State::ZeroRtt);
 
     exchange_packets(&mut client, &mut server);

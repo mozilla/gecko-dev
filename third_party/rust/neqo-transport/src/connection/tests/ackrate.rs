@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{mem, time::Duration};
+use std::time::Duration;
 
 use test_fixture::{assertions, DEFAULT_ADDR_V4};
 
@@ -94,7 +94,7 @@ fn ack_rate_persistent_congestion() {
     let stream = client.stream_create(StreamType::UniDi).unwrap();
     let (dgrams, mut now) = fill_cwnd(&mut client, stream, now);
     now += RTT / 2;
-    mem::drop(ack_bytes(&mut server, stream, dgrams, now));
+    drop(ack_bytes(&mut server, stream, dgrams, now));
 
     let now = induce_persistent_congestion(&mut client, &mut server, stream, now);
 

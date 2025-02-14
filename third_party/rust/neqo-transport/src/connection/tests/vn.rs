@@ -4,9 +4,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{mem, time::Duration};
+use std::time::Duration;
 
-use neqo_common::{event::Provider, Decoder, Encoder};
+use neqo_common::{event::Provider as _, Decoder, Encoder};
 use test_fixture::{assertions, datagram, now};
 
 use super::{
@@ -27,11 +27,11 @@ const INITIAL_PTO: Duration = Duration::from_millis(300);
 fn unknown_version() {
     let mut client = default_client();
     // Start the handshake.
-    mem::drop(client.process_output(now()).dgram());
+    drop(client.process_output(now()).dgram());
 
     let mut unknown_version_packet = vec![0x80, 0x1a, 0x1a, 0x1a, 0x1a];
     unknown_version_packet.resize(MIN_INITIAL_PACKET_SIZE, 0x0);
-    mem::drop(client.process(Some(datagram(unknown_version_packet)), now()));
+    drop(client.process(Some(datagram(unknown_version_packet)), now()));
     assert_eq!(1, client.stats().dropped_rx);
 }
 
@@ -251,7 +251,7 @@ fn compatible_upgrade_large_initial() {
     assert_eq!(server.version(), Version::Version2);
     // Only handshake padding is "dropped".
     assert_eq!(client.stats().dropped_rx, 1);
-    assert_eq!(server.stats().dropped_rx, 1);
+    assert!(matches!(server.stats().dropped_rx, 1 | 2));
 }
 
 /// A server that supports versions 1 and 2 might prefer version 1 and that's OK.

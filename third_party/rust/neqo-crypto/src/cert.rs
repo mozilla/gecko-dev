@@ -46,7 +46,7 @@ fn stapled_ocsp_responses(fd: *mut PRFileDesc) -> Option<Vec<Vec<u8>>> {
         Some(ocsp_ptr) => {
             let mut ocsp_helper: Vec<Vec<u8>> = Vec::new();
             let Ok(len) = isize::try_from(unsafe { ocsp_ptr.as_ref().len }) else {
-                qerror!([format!("{fd:p}")], "Received illegal OSCP length");
+                qerror!("[{fd:p}] Received illegal OSCP length");
                 return None;
             };
             for idx in 0..len {
@@ -72,23 +72,6 @@ fn signed_cert_timestamp(fd: *mut PRFileDesc) -> Option<Vec<u8>> {
     })
 }
 
-impl CertificateInfo {
-    pub(crate) fn new(fd: *mut PRFileDesc) -> Option<Self> {
-        peer_certificate_chain(fd).map(|certs| Self {
-            certs,
-            stapled_ocsp_responses: stapled_ocsp_responses(fd),
-            signed_cert_timestamp: signed_cert_timestamp(fd),
-        })
-    }
-}
-
-impl CertificateInfo {
-    #[must_use]
-    pub fn iter(&self) -> ItemArrayIterator<'_> {
-        self.certs.into_iter()
-    }
-}
-
 impl<'a> IntoIterator for &'a CertificateInfo {
     type IntoIter = ItemArrayIterator<'a>;
     type Item = &'a [u8];
@@ -98,6 +81,19 @@ impl<'a> IntoIterator for &'a CertificateInfo {
 }
 
 impl CertificateInfo {
+    pub(crate) fn new(fd: *mut PRFileDesc) -> Option<Self> {
+        peer_certificate_chain(fd).map(|certs| Self {
+            certs,
+            stapled_ocsp_responses: stapled_ocsp_responses(fd),
+            signed_cert_timestamp: signed_cert_timestamp(fd),
+        })
+    }
+
+    #[must_use]
+    pub fn iter(&self) -> ItemArrayIterator<'_> {
+        self.certs.into_iter()
+    }
+
     #[must_use]
     pub const fn stapled_ocsp_responses(&self) -> &Option<Vec<Vec<u8>>> {
         &self.stapled_ocsp_responses

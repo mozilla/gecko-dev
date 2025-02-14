@@ -80,7 +80,7 @@ impl PeriodSet {
 #[cfg(target_os = "macos")]
 #[allow(non_camel_case_types)]
 mod mac {
-    use std::{mem::size_of, ptr::addr_of_mut};
+    use std::ptr::addr_of_mut;
 
     // These are manually extracted from the many bindings generated
     // by bindgen when provided with the simple header:
@@ -126,7 +126,7 @@ mod mac {
     const THREAD_TIME_CONSTRAINT_POLICY: thread_policy_flavor_t = 2;
     #[allow(clippy::cast_possible_truncation)]
     const THREAD_TIME_CONSTRAINT_POLICY_COUNT: mach_msg_type_number_t =
-        (size_of::<thread_time_constraint_policy>() / size_of::<integer_t>())
+        (std::mem::size_of::<thread_time_constraint_policy>() / std::mem::size_of::<integer_t>())
             as mach_msg_type_number_t;
 
     // These function definitions are taken from a comment in <thread_policy.h>.
@@ -370,14 +370,9 @@ impl Drop for Time {
     }
 }
 
-// Only run these tests in CI on platforms other than MacOS and Windows, where the timer
-// inaccuracies are too high to pass the tests.
-#[cfg(all(
-    test,
-    not(all(any(target_os = "macos", target_os = "windows"), feature = "ci")),
-    // Sanitizers are too slow to uphold timing assumptions.
-    not(neqo_sanitize),
-))]
+// Only run these tests in CI on Linux, where the timer accuracies are OK enough to pass the tests,
+// but only when not running sanitizers.
+#[cfg(all(test, target_os = "linux", not(neqo_sanitize)))]
 mod test {
     use std::{
         thread::{sleep, spawn},

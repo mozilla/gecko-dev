@@ -4,10 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{
-    mem,
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use neqo_common::qdebug;
 use neqo_crypto::AuthenticationStatus;
@@ -346,7 +343,7 @@ fn pto_handshake_frames() {
     let pkt = client.process(pkt.dgram(), now);
 
     now += Duration::from_millis(10);
-    mem::drop(server.process(pkt.dgram(), now));
+    drop(server.process(pkt.dgram(), now));
 
     now += Duration::from_millis(10);
     client.authenticated(AuthenticationStatus::Ok, now);
@@ -443,7 +440,7 @@ fn loss_recovery_crash() {
     let now = now();
 
     // The server sends something, but we will drop this.
-    mem::drop(send_something(&mut server, now));
+    drop(send_something(&mut server, now));
 
     // Then send something again, but let it through.
     let ack = send_and_receive(&mut server, &mut client, now);
@@ -459,7 +456,7 @@ fn loss_recovery_crash() {
     assert!(dgram.is_some());
 
     // This crashes.
-    mem::drop(send_something(&mut server, now + AT_LEAST_PTO));
+    drop(send_something(&mut server, now + AT_LEAST_PTO));
 }
 
 // If we receive packets after the PTO timer has fired, we won't clear
@@ -474,7 +471,7 @@ fn ack_after_pto() {
     let mut now = now();
 
     // The client sends and is forced into a PTO.
-    mem::drop(send_something(&mut client, now));
+    drop(send_something(&mut client, now));
 
     // Jump forward to the PTO and drain the PTO packets.
     now += AT_LEAST_PTO;
@@ -490,7 +487,7 @@ fn ack_after_pto() {
     // delivery is just the thing.
     // Note: The server can't ACK anything here, but none of what
     // the client has sent so far has been transferred.
-    mem::drop(send_something(&mut server, now));
+    drop(send_something(&mut server, now));
     let dgram = send_something(&mut server, now);
 
     // The client is now after a PTO, but if it receives something
@@ -646,7 +643,7 @@ fn trickle(sender: &mut Connection, receiver: &mut Connection, mut count: usize,
     let id = sender.stream_create(StreamType::UniDi).unwrap();
     let mut maybe_ack = None;
     while count > 0 {
-        qdebug!("trickle: remaining={}", count);
+        qdebug!("trickle: remaining={count}");
         assert_eq!(sender.stream_send(id, &[9]).unwrap(), 1);
         let dgram = sender.process(maybe_ack, now).dgram();
 

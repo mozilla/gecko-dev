@@ -3399,6 +3399,16 @@ criteria = "safe-to-deploy"
 version = "0.1.2"
 notes = "Developed by Mozilla staff."
 
+[[audits.mtu]]
+who = "Max Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+version = "0.2.5"
+
+[[audits.mtu]]
+who = "Max Leonard Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+delta = "0.2.5 -> 0.2.6"
+
 [[audits.naga]]
 who = "Dzmitry Malyshau <kvark@fastmail.com>"
 criteria = "safe-to-deploy"
@@ -4048,6 +4058,11 @@ delta = "0.5.6 -> 0.5.8"
 who = "Max Inden <mail@max-inden.de>"
 criteria = "safe-to-deploy"
 delta = "0.5.8 -> 0.5.9"
+
+[[audits.quinn-udp]]
+who = "Max Leonard Inden <mail@max-inden.de>"
+criteria = "safe-to-deploy"
+delta = "0.5.9 -> 0.5.10"
 
 [[audits.quote]]
 who = "Nika Layzell <nika@thelayzells.com>"

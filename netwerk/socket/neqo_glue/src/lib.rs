@@ -42,7 +42,7 @@ use winapi::shared::ws2def::{AF_INET, AF_INET6};
 use xpcom::{interfaces::nsISocketProvider, AtomicRefcnt, RefCounted, RefPtr};
 
 std::thread_local! {
-    static RECV_BUF: RefCell<Vec<u8>> = RefCell::new(vec![0; neqo_udp::RECV_BUF_SIZE]);
+    static RECV_BUF: RefCell<neqo_udp::RecvBuf> = RefCell::new(neqo_udp::RecvBuf::new());
 }
 
 #[repr(C)]
@@ -203,10 +203,6 @@ impl NeqoHttp3Conn {
         let remote: SocketAddr = netaddr_to_socket_addr(remote_addr)?;
 
         let quic_version = match alpn_conv {
-            "h3-32" => Version::Draft32,
-            "h3-31" => Version::Draft31,
-            "h3-30" => Version::Draft30,
-            "h3-29" => Version::Draft29,
             "h3" => Version::Version1,
             _ => return Err(NS_ERROR_INVALID_ARG),
         };
@@ -232,7 +228,8 @@ impl NeqoHttp3Conn {
             .cc_algorithm(cc_algorithm)
             .max_data(max_data)
             .max_stream_data(StreamType::BiDi, false, max_stream_data)
-            .grease(static_prefs::pref!("security.tls.grease_http3_enable"));
+            .grease(static_prefs::pref!("security.tls.grease_http3_enable"))
+            .sni_slicing(static_prefs::pref!("network.http.http3.sni-slicing"));
 
         // Set a short timeout when fuzzing.
         #[cfg(feature = "fuzzing")]
@@ -339,6 +336,7 @@ impl NeqoHttp3Conn {
     fn record_stats_in_glean(&self) {
         use firefox_on_glean::metrics::networking as glean;
         use neqo_common::IpTosEcn;
+        use neqo_transport::ecn;
 
         // Metric values must be recorded as integers. Glean does not support
         // floating point distributions. In order to represent values <1, they
@@ -395,12 +393,32 @@ impl NeqoHttp3Conn {
                 glean::http_3_ecn_ce_ect0_ratio_received
                     .accumulate_single_sample_signed(ratio as i64);
             }
-            glean::http_3_ecn_path_capability
-                .get(&"capable")
-                .add(stats.ecn_paths_capable as i32);
-            glean::http_3_ecn_path_capability
-                .get(&"not-capable")
-                .add(stats.ecn_paths_not_capable as i32);
+            for (outcome, value) in stats.ecn_path_validation.into_iter() {
+                match outcome {
+                    ecn::ValidationOutcome::Capable => {
+                        glean::http_3_ecn_path_capability
+                            .get(&"capable")
+                            .add(value as i32);
+                    }
+                    ecn::ValidationOutcome::NotCapable(ecn::ValidationError::BlackHole) => {
+                        glean::http_3_ecn_path_capability
+                            .get(&"black-hole")
+                            .add(value as i32);
+                    }
+                    ecn::ValidationOutcome::NotCapable(ecn::ValidationError::Bleaching) => {
+                        glean::http_3_ecn_path_capability
+                            .get(&"bleaching")
+                            .add(value as i32);
+                    }
+                    ecn::ValidationOutcome::NotCapable(
+                        ecn::ValidationError::ReceivedUnsentECT1,
+                    ) => {
+                        glean::http_3_ecn_path_capability
+                            .get(&"received-unsent-ect-1")
+                            .add(value as i32);
+                    }
+                }
+            }
         }
 
         // Ignore connections into the void.
@@ -593,18 +611,15 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
                     };
                 }
             };
-            if dgrams.len() == 0 {
-                break;
-            }
 
             // Attach metric instrumentation to `dgrams` iterator.
             let mut sum = 0;
-            conn.datagram_segments_received
-                .accumulate(dgrams.len() as u64);
+            let mut segment_count = 0;
             let datagram_segment_size_received = &mut conn.datagram_segment_size_received;
             let dgrams = dgrams.map(|d| {
                 datagram_segment_size_received.accumulate(d.len() as u64);
                 sum += d.len();
+                segment_count += 1;
                 d
             });
 
@@ -620,6 +635,7 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
             conn.conn.process_multiple_input(dgrams, Instant::now());
 
             conn.datagram_size_received.accumulate(sum as u64);
+            conn.datagram_segments_received.accumulate(segment_count);
             bytes_read += sum;
         }
 
@@ -1463,7 +1479,7 @@ pub extern "C" fn neqo_http3conn_event(
                     return res;
                 }
                 Http3Event::PushPromise {
-                    push_id,
+                    push_id: push_id.into(),
                     request_stream_id: request_stream_id.as_u64(),
                 }
             }
@@ -1480,16 +1496,22 @@ pub extern "C" fn neqo_http3conn_event(
                     if res != NS_OK {
                         return res;
                     }
-                    Http3Event::PushHeaderReady { push_id, fin }
+                    Http3Event::PushHeaderReady {
+                        push_id: push_id.into(),
+                        fin,
+                    }
                 }
             }
-            Http3ClientEvent::PushDataReadable { push_id } => {
-                Http3Event::PushDataReadable { push_id }
-            }
-            Http3ClientEvent::PushCanceled { push_id } => Http3Event::PushCanceled { push_id },
-            Http3ClientEvent::PushReset { push_id, error } => {
-                Http3Event::PushReset { push_id, error }
-            }
+            Http3ClientEvent::PushDataReadable { push_id } => Http3Event::PushDataReadable {
+                push_id: push_id.into(),
+            },
+            Http3ClientEvent::PushCanceled { push_id } => Http3Event::PushCanceled {
+                push_id: push_id.into(),
+            },
+            Http3ClientEvent::PushReset { push_id, error } => Http3Event::PushReset {
+                push_id: push_id.into(),
+                error,
+            },
             Http3ClientEvent::RequestsCreatable => Http3Event::RequestsCreatable,
             Http3ClientEvent::AuthenticationNeeded => Http3Event::AuthenticationNeeded,
             Http3ClientEvent::ZeroRttRejected => Http3Event::ZeroRttRejected,

@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{mem, time::Duration};
+use std::time::Duration;
 
 use neqo_common::{qdebug, qinfo, Datagram, IpTosEcn};
 
@@ -19,8 +19,7 @@ use crate::{
     recovery::{ACK_ONLY_SIZE_LIMIT, PACKET_THRESHOLD},
     sender::PACING_BURST_SIZE,
     stream_id::StreamType,
-    tracking::DEFAULT_ACK_PACKET_TOLERANCE,
-    ConnectionParameters,
+    CongestionControlAlgorithm, ConnectionParameters,
 };
 
 #[test]
@@ -211,12 +210,11 @@ fn single_packet_on_recovery() {
     assert!(dgram.is_some());
 }
 
-#[test]
 /// Verify that CC moves out of recovery period when packet sent after start
 /// of recovery period is acked.
-fn cc_cong_avoidance_recovery_period_to_cong_avoidance() {
-    let mut client = default_client();
-    let mut server = default_server();
+fn cc_cong_avoidance_recovery_period_to_cong_avoidance(cc_algorithm: CongestionControlAlgorithm) {
+    let mut client = new_client(ConnectionParameters::default().cc_algorithm(cc_algorithm));
+    let mut server = new_server(ConnectionParameters::default().cc_algorithm(cc_algorithm));
     let now = connect_rtt_idle(&mut client, &mut server, DEFAULT_RTT);
 
     // Create stream 0
@@ -233,60 +231,45 @@ fn cc_cong_avoidance_recovery_period_to_cong_avoidance() {
     now += DEFAULT_RTT / 2;
     let s_ack = ack_bytes(&mut server, stream_id, c_tx_dgrams, now);
 
+    let cwnd_before_loss = cwnd(&client);
+
     // Client: Process ack
     now += DEFAULT_RTT / 2;
     client.process_input(s_ack, now);
 
+    let cwnd_after_loss = cwnd(&client);
+
     // Should be in CARP now.
     now += DEFAULT_RTT / 2;
+    assert!(cwnd_before_loss > cwnd_after_loss);
     qinfo!("moving to congestion avoidance {}", cwnd(&client));
 
-    // Now make sure that we increase congestion window according to the
-    // accurate byte counting version of congestion avoidance.
-    // Check over several increases to be sure.
-    let mut expected_cwnd = cwnd(&client);
-    // Fill cwnd.
-    let (mut c_tx_dgrams, next_now) = fill_cwnd(&mut client, stream_id, now);
-    now = next_now;
-    for i in 0..5 {
-        qinfo!("iteration {}", i);
+    for i in 0..6 {
+        qinfo!("iteration {i}");
 
-        let c_tx_size: usize = c_tx_dgrams.iter().map(Datagram::len).sum();
+        let (c_tx_dgrams, next_now) = fill_cwnd(&mut client, stream_id, now);
         qinfo!(
             "client sending {} bytes into cwnd of {}",
-            c_tx_size,
+            c_tx_dgrams.iter().map(Datagram::len).sum::<usize>(),
             cwnd(&client)
         );
-        assert_eq!(c_tx_size, expected_cwnd);
-
-        // As acks arrive we will continue filling cwnd and save all packets
-        // from this cycle will be stored in next_c_tx_dgrams.
-        let mut next_c_tx_dgrams: Vec<Datagram> = Vec::new();
-
-        // Until we process all the packets, the congestion window remains the same.
-        // Note that we need the client to process ACK frames in stages, so split the
-        // datagrams into two, ensuring that we allow for an ACK for each batch.
-        let most = c_tx_dgrams.len() - usize::try_from(DEFAULT_ACK_PACKET_TOLERANCE).unwrap() - 1;
-        let s_ack = ack_bytes(&mut server, stream_id, c_tx_dgrams.drain(..most), now);
-        assert_eq!(cwnd(&client), expected_cwnd);
-        client.process_input(s_ack, now);
-        // make sure to fill cwnd again.
-        let (mut new_pkts, next_now) = fill_cwnd(&mut client, stream_id, now);
         now = next_now;
-        next_c_tx_dgrams.append(&mut new_pkts);
 
         let s_ack = ack_bytes(&mut server, stream_id, c_tx_dgrams, now);
-        assert_eq!(cwnd(&client), expected_cwnd);
         client.process_input(s_ack, now);
-        // make sure to fill cwnd again.
-        let (mut new_pkts, next_now) = fill_cwnd(&mut client, stream_id, now);
-        now = next_now;
-        next_c_tx_dgrams.append(&mut new_pkts);
-
-        expected_cwnd += client.plpmtu();
-        assert_eq!(cwnd(&client), expected_cwnd);
-        c_tx_dgrams = next_c_tx_dgrams;
     }
+
+    assert!(cwnd_before_loss < cwnd(&client));
+}
+
+#[test]
+fn cc_cong_avoidance_recovery_period_to_cong_avoidance_new_reno() {
+    cc_cong_avoidance_recovery_period_to_cong_avoidance(CongestionControlAlgorithm::NewReno);
+}
+
+#[test]
+fn cc_cong_avoidance_recovery_period_to_cong_avoidance_cubic() {
+    cc_cong_avoidance_recovery_period_to_cong_avoidance(CongestionControlAlgorithm::Cubic);
 }
 
 #[test]
@@ -304,7 +287,7 @@ fn cc_slow_start_to_persistent_congestion_no_acks() {
 
     // Server: Receive and generate ack
     now += DEFAULT_RTT / 2;
-    mem::drop(ack_bytes(&mut server, stream, c_tx_dgrams, now));
+    drop(ack_bytes(&mut server, stream, c_tx_dgrams, now));
 
     // ACK lost.
     induce_persistent_congestion(&mut client, &mut server, stream, now);
@@ -355,7 +338,7 @@ fn cc_persistent_congestion_to_slow_start() {
 
     // Server: Receive and generate ack
     now += Duration::from_millis(10);
-    mem::drop(ack_bytes(&mut server, stream, c_tx_dgrams, now));
+    drop(ack_bytes(&mut server, stream, c_tx_dgrams, now));
 
     // ACK lost.
 
@@ -398,7 +381,7 @@ fn ack_are_not_cc() {
 
     // The server hasn't received any of these packets yet, the server
     // won't ACK, but if it sends an ack-eliciting packet instead.
-    qdebug!([server], "Sending ack-eliciting");
+    qdebug!("[{server}] Sending ack-eliciting");
     let other_stream = server.stream_create(StreamType::BiDi).unwrap();
     assert_eq!(other_stream, 1);
     server.stream_send(other_stream, b"dropped").unwrap();
@@ -412,10 +395,10 @@ fn ack_are_not_cc() {
     assert!(ack_eliciting_packet.is_some());
 
     // The client can ack the server packet even if cc windows is full.
-    qdebug!([client], "Process ack-eliciting");
+    qdebug!("[{client}] Process ack-eliciting");
     let ack_pkt = client.process(ack_eliciting_packet, now).dgram();
     assert!(ack_pkt.is_some());
-    qdebug!([server], "Handle ACK");
+    qdebug!("[{server}] Handle ACK");
     let prev_ack_count = server.stats().frame_rx.ack;
     server.process_input(ack_pkt.unwrap(), now);
     assert_eq!(server.stats().frame_rx.ack, prev_ack_count + 1);

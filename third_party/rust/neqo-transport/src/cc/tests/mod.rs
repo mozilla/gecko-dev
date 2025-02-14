@@ -4,5 +4,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    time::Duration,
+};
+
 mod cubic;
 mod new_reno;
+
+pub const IP_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
+pub const MTU: Option<usize> = Some(1_500);
+pub const RTT: Duration = Duration::from_millis(100);

@@ -6,7 +6,7 @@
 
 use std::{borrow::Cow, cell::RefCell, collections::HashMap, fmt::Display, rc::Rc, time::Instant};
 
-use neqo_common::{event::Provider, hex, qdebug, qerror, qinfo, qwarn, Datagram};
+use neqo_common::{event::Provider as _, hex, qdebug, qerror, qinfo, qwarn, Datagram};
 use neqo_crypto::{generate_ech_keys, random, AllowZeroRtt, AntiReplay};
 use neqo_http3::Error;
 use neqo_transport::{
@@ -82,17 +82,17 @@ impl HttpServer {
         let url_dbg = String::from_utf8(partial.clone())
             .unwrap_or_else(|_| format!("<invalid UTF-8: {}>", hex(&partial)));
         if partial.len() < 4096 {
-            qdebug!("Saving partial URL: {}", url_dbg);
+            qdebug!("Saving partial URL: {url_dbg}");
             self.read_state.insert(stream_id, partial);
         } else {
-            qdebug!("Giving up on partial URL {}", url_dbg);
+            qdebug!("Giving up on partial URL {url_dbg}");
             conn.borrow_mut().stream_stop_sending(stream_id, 0).unwrap();
         }
     }
 
     fn stream_readable(&mut self, stream_id: StreamId, conn: &ConnectionRef) {
         if !stream_id.is_client_initiated() || !stream_id.is_bidi() {
-            qdebug!("Stream {} not client-initiated bidi, ignoring", stream_id);
+            qdebug!("Stream {stream_id} not client-initiated bidi, ignoring");
             return;
         }
         let (sz, fin) = conn

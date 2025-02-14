@@ -37,8 +37,7 @@ impl FrameDecoder<Self> for WebTransportFrame {
                 if frame_len > WT_FRAME_CLOSE_MAX_MESSAGE_SIZE + 4 {
                     return Err(Error::HttpMessageError);
                 }
-                let error =
-                    u32::try_from(dec.decode_uint(4).ok_or(Error::HttpMessageError)?).unwrap();
+                let error = dec.decode_uint().ok_or(Error::HttpMessageError)?;
                 let Ok(message) = String::from_utf8(dec.decode_remainder().to_vec()) else {
                     return Err(Error::HttpMessageError);
                 };

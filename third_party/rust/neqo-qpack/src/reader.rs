@@ -156,7 +156,7 @@ pub struct IntReader {
 }
 
 impl IntReader {
-    /// `IntReader` is created by suppling the first byte anf prefix length.
+    /// `IntReader` is created by supplying the first byte and prefix length.
     /// A varint may take only one byte, In that case already the first by has set state to done.
     ///
     /// # Panics
@@ -164,7 +164,7 @@ impl IntReader {
     /// When `prefix_len` is 8 or larger.
     #[must_use]
     pub fn new(first_byte: u8, prefix_len: u8) -> Self {
-        debug_assert!(prefix_len < 8, "prefix cannot larger than 7.");
+        debug_assert!(prefix_len < 8, "prefix cannot larger than 7");
         let mask = if prefix_len == 0 {
             0xff
         } else {
@@ -251,7 +251,7 @@ pub struct LiteralReader {
 
 impl LiteralReader {
     /// Creates `LiteralReader` with the first byte. This constructor is always used
-    /// when a litreral has a prefix.
+    /// when a literal has a prefix.
     /// For literals without a prefix please use the default constructor.
     ///
     /// # Panics
@@ -315,7 +315,7 @@ impl LiteralReader {
                     break Err(Error::NeedMoreData);
                 }
                 LiteralReaderState::Done => {
-                    panic!("Should not call read() in this state.");
+                    panic!("Should not call read() in this state");
                 }
             }
         }
@@ -379,7 +379,7 @@ mod tests {
     use test_receiver::TestReceiver;
 
     use super::{
-        parse_utf8, str, test_receiver, Error, IntReader, LiteralReader, ReadByte,
+        parse_utf8, str, test_receiver, Error, IntReader, LiteralReader, ReadByte as _,
         ReceiverBufferWrapper, Res,
     };
 

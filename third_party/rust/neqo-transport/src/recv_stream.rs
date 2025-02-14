@@ -7,6 +7,8 @@
 // Building a stream of ordered bytes to give the application from a series of
 // incoming STREAM frames.
 
+#![allow(clippy::module_name_repetitions)]
+
 use std::{
     cell::RefCell,
     cmp::max,
@@ -70,15 +72,13 @@ impl RecvStreams {
     pub fn keep_alive(&mut self, id: StreamId, k: bool) -> Res<()> {
         let self_ka = &mut self.keep_alive;
         let s = self.streams.get_mut(&id).ok_or(Error::InvalidStreamId)?;
-        s.keep_alive = if k {
-            Some(self_ka.upgrade().unwrap_or_else(|| {
+        s.keep_alive = k.then(|| {
+            self_ka.upgrade().unwrap_or_else(|| {
                 let r = Rc::new(());
                 *self_ka = Rc::downgrade(&r);
                 r
-            }))
-        } else {
-            None
-        };
+            })
+        });
         Ok(())
     }
 
@@ -132,7 +132,7 @@ impl RxStreamOrderer {
     /// Only when `u64` values cannot be converted to `usize`, which only
     /// happens on 32-bit machines that hold far too much data at the same time.
     pub fn inbound_frame(&mut self, mut new_start: u64, mut new_data: &[u8]) {
-        qtrace!("Inbound data offset={} len={}", new_start, new_data.len());
+        qtrace!("Inbound data offset={new_start} len={}", new_data.len());
 
         // Get entry before where new entry would go, so we can see if we already
         // have the new bytes.
@@ -165,12 +165,7 @@ impl RxStreamOrderer {
                 // Add a range containing only new data
                 // (In-order frames will take this path, with no overlap)
                 let overlap = prev_end.saturating_sub(new_start);
-                qtrace!(
-                    "New frame {}-{} received, overlap: {}",
-                    new_start,
-                    new_end,
-                    overlap
-                );
+                qtrace!("New frame {new_start}-{new_end} received, overlap: {overlap}");
                 new_start += overlap;
                 new_data = &new_data[usize::try_from(overlap).unwrap()..];
                 // If it is small enough, extend the previous buffer.
@@ -182,15 +177,11 @@ impl RxStreamOrderer {
                 //   NNNN
                 // NNNN
                 // Do nothing
-                qtrace!(
-                    "Dropping frame with already-received range {}-{}",
-                    new_start,
-                    new_end
-                );
+                qtrace!("Dropping frame with already-received range {new_start}-{new_end}");
                 return;
             }
         } else {
-            qtrace!("New frame {}-{} received", new_start, new_end);
+            qtrace!("New frame {new_start}-{new_end} received");
             false
         };
 
@@ -228,21 +219,14 @@ impl RxStreamOrderer {
                     break;
                 } else if next_end >= new_end {
                     qtrace!(
-                        "New frame {}-{} overlaps with next frame by {}, truncating",
-                        new_start,
-                        new_end,
-                        overlap
+                        "New frame {new_start}-{new_end} overlaps with next frame by {overlap}, truncating"
                     );
                     let truncate_to = new_data.len() - usize::try_from(overlap).unwrap();
                     to_add = &new_data[..truncate_to];
                     break;
                 }
                 qtrace!(
-                    "New frame {}-{} spans entire next frame {}-{}, replacing",
-                    new_start,
-                    new_end,
-                    next_start,
-                    next_end
+                    "New frame {new_start}-{new_end} spans entire next frame {next_start}-{next_end}, replacing"
                 );
                 to_remove.push(next_start);
                 // Continue, since we may have more overlaps
@@ -570,7 +554,7 @@ impl RecvStream {
 
         match new_state {
             // Receiving all data, or receiving or requesting RESET_STREAM
-            // is cause to stop keep-alives.
+            // is cause to stop keepalives.
             RecvStreamState::DataRecvd { .. }
             | RecvStreamState::AbortReading { .. }
             | RecvStreamState::ResetRecvd { .. } => {
@@ -752,7 +736,6 @@ impl RecvStream {
         Ok(())
     }
 
-    /// If we should tell the sender they have more credit, return an offset
     fn flow_control_retire_data(
         new_read: u64,
         fc: &mut ReceiverFlowControl<StreamId>,
@@ -1016,7 +999,7 @@ mod tests {
 
     fn recv_ranges(ranges: &[Range<u64>], available: usize) {
         const ZEROES: &[u8] = &[0; 100];
-        qtrace!("recv_ranges {:?}", ranges);
+        qtrace!("recv_ranges {ranges:?}");
 
         let mut s = RxStreamOrderer::default();
         for r in ranges {
@@ -1028,7 +1011,7 @@ mod tests {
         let mut total_recvd = 0;
         loop {
             let recvd = s.read(&mut buf[..]);
-            qtrace!("recv_ranges read {}", recvd);
+            qtrace!("recv_ranges read {recvd}");
             total_recvd += recvd;
             if recvd == 0 {
                 assert_eq!(total_recvd, available);
@@ -1170,7 +1153,7 @@ mod tests {
 
         // Add a chunk
         s.inbound_frame(0, &[0; 150]);
-        assert_eq!(s.data_ranges.get(&0).unwrap().len(), 150);
+        assert_eq!(s.data_ranges[&0].len(), 150);
         // Read, providing only enough space for the first 100.
         let mut buf = [0; 100];
         let count = s.read(&mut buf[..]);
@@ -1181,7 +1164,7 @@ mod tests {
         // This shouldn't truncate the first frame, as we're already
         // Reading from it.
         s.inbound_frame(120, &[0; 60]);
-        assert_eq!(s.data_ranges.get(&0).unwrap().len(), 180);
+        assert_eq!(s.data_ranges[&0].len(), 180);
         // Read second part of first frame and all of the second frame
         let count = s.read(&mut buf[..]);
         assert_eq!(count, 80);
@@ -1839,7 +1822,7 @@ mod tests {
         assert_eq!(s.read(&mut buf).unwrap(), (1, false));
         check_fc(&fc.borrow(), SW / 4 + 1, SW / 4 + 1);
         check_fc(s.fc().unwrap(), SW / 4 + 1, SW / 4 + 1);
-        // Data are retired and the sttream fc will send an update.
+        // Data are retired and the stream fc will send an update.
         assert!(!fc.borrow().frame_needed());
         assert!(s.fc().unwrap().frame_needed());
 

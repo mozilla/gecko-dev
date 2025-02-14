@@ -24,7 +24,7 @@ pub trait FrameDecoder<T> {
 
     /// # Errors
     ///
-    /// Returns `HttpFrameUnexpected` if frames is not alowed, i.e. is a `H3_RESERVED_FRAME_TYPES`.
+    /// Returns `HttpFrameUnexpected` if frames is not allowed, i.e. is a `H3_RESERVED_FRAME_TYPES`.
     fn frame_type_allowed(_frame_type: HFrameType) -> Res<()> {
         Ok(())
     }
@@ -154,7 +154,7 @@ impl FrameReader {
         }
     }
 
-    /// returns true if quic stream was closed.
+    /// Returns true if QUIC stream was closed.
     ///
     /// # Errors
     ///
@@ -173,7 +173,7 @@ impl FrameReader {
             {
                 (0, f) => (None, false, f),
                 (amount, f) => {
-                    qtrace!("FrameReader::receive: reading {} byte, fin={}", amount, f);
+                    qtrace!("FrameReader::receive: reading {amount} byte, fin={f}");
                     (self.consume::<T>(Decoder::from(&buf[..amount]))?, true, f)
                 }
             };
@@ -203,16 +203,15 @@ impl FrameReader {
         match &mut self.state {
             FrameReaderState::GetType { decoder } => {
                 if let Some(v) = decoder.consume(&mut input) {
-                    qtrace!("FrameReader::receive: read frame type {}", v);
+                    qtrace!("FrameReader::receive: read frame type {v}");
                     self.frame_type_decoded::<T>(HFrameType(v))?;
                 }
             }
             FrameReaderState::GetLength { decoder } => {
                 if let Some(len) = decoder.consume(&mut input) {
                     qtrace!(
-                        "FrameReader::receive: frame type {:?} length {}",
-                        self.frame_type,
-                        len
+                        "FrameReader::receive: frame type {:?} length {len}",
+                        self.frame_type
                     );
                     return self.frame_length_decoded::<T>(len);
                 }
@@ -235,9 +234,6 @@ impl FrameReader {
         }
         Ok(None)
     }
-}
-
-impl FrameReader {
     fn frame_type_decoded<T: FrameDecoder<T>>(&mut self, frame_type: HFrameType) -> Res<()> {
         T::frame_type_allowed(frame_type)?;
         self.frame_type = frame_type;

@@ -199,6 +199,7 @@ features = [
 version = "0.58"
 optional = true
 features = [
+    "Win32_Foundation",
     "Win32_Graphics",
     "Win32_Graphics_Direct3D",
     "Win32_Graphics_Direct3D12",
@@ -207,6 +208,9 @@ features = [
     "Win32_Graphics_DirectComposition",
     "Win32_Graphics_Dxgi",
     "Win32_Graphics_Dxgi_Common",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
     "Win32_Security",
     "Win32_System",
     "Win32_System_Diagnostics",

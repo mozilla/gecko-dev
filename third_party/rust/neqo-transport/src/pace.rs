@@ -76,7 +76,7 @@ impl Pacer {
     /// the current time is).
     pub fn next(&self, rtt: Duration, cwnd: usize) -> Instant {
         if self.c >= self.p {
-            qtrace!([self], "next {cwnd}/{rtt:?} no wait = {:?}", self.t);
+            qtrace!("[{self}] next {cwnd}/{rtt:?} no wait = {:?}", self.t);
             return self.t;
         }
 
@@ -89,12 +89,12 @@ impl Pacer {
 
         // If the increment is below the timer granularity, send immediately.
         if w < GRANULARITY {
-            qtrace!([self], "next {cwnd}/{rtt:?} below granularity ({w:?})",);
+            qtrace!("[{self}] next {cwnd}/{rtt:?} below granularity ({w:?})",);
             return self.t;
         }
 
         let nxt = self.t + w;
-        qtrace!([self], "next {cwnd}/{rtt:?} wait {w:?} = {nxt:?}");
+        qtrace!("[{self}] next {cwnd}/{rtt:?} wait {w:?} = {nxt:?}");
         nxt
     }
 
@@ -108,7 +108,7 @@ impl Pacer {
             return;
         }
 
-        qtrace!([self], "spend {} over {}, {:?}", count, cwnd, rtt);
+        qtrace!("[{self}] spend {count} over {cwnd}, {rtt:?}");
         // Increase the capacity by:
         //    `(now - self.t) * PACER_SPEEDUP * cwnd / rtt`
         // That is, the elapsed fraction of the RTT times rate that data is added.
@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(
             p.next(SHORT_RTT, CWND),
             n,
-            "Expect packet to be sent immediately, instead of being paced below timer granularity."
+            "Expect packet to be sent immediately, instead of being paced below timer granularity"
         );
     }
 }

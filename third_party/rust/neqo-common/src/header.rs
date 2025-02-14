@@ -46,3 +46,29 @@ impl Header {
         &self.value
     }
 }
+
+impl<T: AsRef<str>, U: AsRef<str>> PartialEq<(T, U)> for Header {
+    fn eq(&self, other: &(T, U)) -> bool {
+        self.name == other.0.as_ref() && self.value == other.1.as_ref()
+    }
+}
+
+pub trait HeadersExt<'h> {
+    fn contains_header<T: AsRef<str>, U: AsRef<str>>(self, name: T, value: U) -> bool;
+    fn find_header<T: AsRef<str> + 'h>(self, name: T) -> Option<&'h Header>;
+}
+
+impl<'h, H> HeadersExt<'h> for H
+where
+    H: IntoIterator<Item = &'h Header> + 'h,
+{
+    fn contains_header<T: AsRef<str>, U: AsRef<str>>(self, name: T, value: U) -> bool {
+        let (name, value) = (name.as_ref(), value.as_ref());
+        self.into_iter().any(|h| h == &(name, value))
+    }
+
+    fn find_header<T: AsRef<str> + 'h>(self, name: T) -> Option<&'h Header> {
+        let name = name.as_ref();
+        self.into_iter().find(|h| h.name == name)
+    }
+}
