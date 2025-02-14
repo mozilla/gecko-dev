@@ -1248,9 +1248,6 @@ export var UrlbarTestUtils = {
   /**
    * Enrolls in a mock Nimbus feature.
    *
-   * If you call QuickSuggest.updateFirefoxSuggestScenario() from an xpcshell
-   * test, you must call this first to intialize the Nimbus urlbar feature.
-   *
    * @param {object} value
    *   Define any desired Nimbus variables in this object.
    * @param {string} [feature]

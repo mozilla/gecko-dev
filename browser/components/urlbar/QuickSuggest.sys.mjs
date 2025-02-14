@@ -101,7 +101,7 @@ class _QuickSuggest {
    * Prefs that are exposed in the UI and whose default-branch values are
    * configurable via Nimbus variables. This getter returns an object that maps
    * from variable names to pref names relative to `browser.urlbar`. See point 3
-   * in the comment inside `_updateFirefoxSuggestScenarioHelper()` for more.
+   * in the comment inside `#initScenario()` for more.
    *
    * @returns {object}
    */
@@ -215,15 +215,32 @@ class _QuickSuggest {
 
   /**
    * Initializes Suggest. It's safe to call more than once.
+   *
+   * @param {object} testOverrides
+   *   This is intended for tests only. See `#initScenario()`.
    */
-  async init() {
+  async init(testOverrides = null) {
     if (this.#initStarted) {
       await this.initPromise;
       return;
     }
     this.#initStarted = true;
 
-    await this.updateFirefoxSuggestScenario();
+    // Wait for dependencies to finish before initializing the scenario.
+    //
+    // (1) The intended Suggest scenario depends on the user's region.
+    await lazy.Region.init();
+
+    // (2) The default-branch values of Suggest prefs that are both exposed in
+    // the UI and configurable by Nimbus depend on Nimbus.
+    await lazy.NimbusFeatures.urlbar.ready();
+
+    // (3) `TelemetryEnvironment` records the values of some Suggest prefs.
+    if (!this._testSkipTelemetryEnvironmentInit) {
+      await lazy.TelemetryEnvironment.onInitialized();
+    }
+
+    this.#initScenario(testOverrides);
 
     // Create an instance of each feature and keep it in `#featuresByName`.
     for (let [name, uri] of Object.entries(FEATURES)) {
@@ -538,39 +555,11 @@ class _QuickSuggest {
    *   default, but the user can opt in in about:preferences. The onboarding
    *   dialog is not shown.
    *
-   * @param {string} [testOverrides]
+   * @param {object} testOverrides
    *   This is intended for tests only. Pass to force the following:
    *   `{ scenario, migrationVersion, defaultPrefs }`
    */
-  async updateFirefoxSuggestScenario(testOverrides = null) {
-    try {
-      this._updatingFirefoxSuggestScenario = true;
-
-      // This is called early in startup by BrowserGlue, so make sure the user's
-      // region and our Nimbus variables are initialized since the scenario may
-      // depend on them. Also note that pref migrations may depend on the
-      // scenario, and since each migration is performed only once, at startup,
-      // prefs can end up wrong if their migrations use the wrong scenario.
-      await lazy.Region.init();
-      await lazy.NimbusFeatures.urlbar.ready();
-
-      // This also races TelemetryEnvironment's initialization, so wait for it
-      // to finish. TelemetryEnvironment is important because it records the
-      // values of a number of Suggest preferences. If we didn't wait, we could
-      // end up updating prefs after TelemetryEnvironment does its initial pref
-      // cache but before it adds its observer to be notified of pref changes.
-      // It would end up recording the wrong values on startup in that case.
-      if (!this._testSkipTelemetryEnvironmentInit) {
-        await lazy.TelemetryEnvironment.onInitialized();
-      }
-
-      this._updateFirefoxSuggestScenarioHelper(testOverrides);
-    } finally {
-      this._updatingFirefoxSuggestScenario = false;
-    }
-  }
-
-  _updateFirefoxSuggestScenarioHelper(testOverrides) {
+  #initScenario(testOverrides = null) {
     // Updating the scenario is tricky and it's important to preserve the user's
     // choices, so we describe the process in detail below. tl;dr:
     //
@@ -831,6 +820,15 @@ class _QuickSuggest {
     }
   }
 
+  async _test_reinit(testOverrides = null) {
+    if (this.#initStarted) {
+      await this.initPromise;
+      this.#initStarted = false;
+      this.#initResolvers = Promise.withResolvers();
+    }
+    await this.init(testOverrides);
+  }
+
   #initStarted = false;
   #initResolvers = Promise.withResolvers();
 
@@ -848,10 +846,6 @@ class _QuickSuggest {
 
   // Maps from preference names to the `Set` of feature instances they enable.
   #featuresByEnablingPrefs = new Map();
-
-  // Updating the scenario is async, and this is true while that's happening.
-  // `QuickSuggestTestUtils` accesses this.
-  _updatingFirefoxSuggestScenario = false;
 
   // A plain JS object that maps pref names relative to `browser.urlbar.` to
   // their intended defaults for the current scenario.

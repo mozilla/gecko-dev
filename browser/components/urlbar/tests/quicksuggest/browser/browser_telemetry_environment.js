@@ -55,7 +55,7 @@ function doToggleTest(pref) {
 // and the initial update of the Suggest scenario. After startup is done,
 // telemetry environment should record the correct values for startup prefs.
 add_task(async function telemetryEnvironmentOnStartup() {
-  await QuickSuggestTestUtils.setScenario(null);
+  await QuickSuggest._test_reinit();
 
   // Restart telemetry environment so we know it's watching its default set of
   // prefs.
@@ -110,15 +110,15 @@ add_task(async function telemetryEnvironmentOnStartup() {
   );
 
   // Now simulate startup. Restart telemetry environment but don't wait for it
-  // to finish before calling `updateFirefoxSuggestScenario()`. This simulates
-  // startup where telemetry environment's initialization races the intial
-  // update of the Suggest scenario.
+  // to finish before reinitializing Suggest. This simulates startup where
+  // telemetry environment's initialization races the intial update of the
+  // Suggest scenario.
   let environmentInitPromise =
     TelemetryEnvironment.testCleanRestart().onInitialized();
 
-  // Update the scenario and force the startup prefs to take on values that are
-  // the inverse of what they are now.
-  await QuickSuggest.updateFirefoxSuggestScenario({
+  // Reinit and force the startup prefs to take on values that are the inverse
+  // of what they are now.
+  await QuickSuggest._test_reinit({
     scenario: "testScenario",
     defaultPrefs: {
       testScenario: Object.fromEntries(
@@ -128,7 +128,7 @@ add_task(async function telemetryEnvironmentOnStartup() {
   });
 
   // At this point telemetry environment should be done initializing since
-  // `updateFirefoxSuggestScenario()` waits for it, but await our promise now.
+  // Suggest initialization waits for it, but await our promise now.
   await environmentInitPromise;
 
   // TelemetryEnvironment should have cached the new values.
@@ -148,7 +148,7 @@ add_task(async function telemetryEnvironmentOnStartup() {
   environmentInitPromise =
     TelemetryEnvironment.testCleanRestart().onInitialized();
 
-  await QuickSuggest.updateFirefoxSuggestScenario();
+  await QuickSuggest._test_reinit();
 
   await environmentInitPromise;
 

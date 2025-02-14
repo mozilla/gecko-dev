@@ -128,14 +128,14 @@ async function doMigrateTest({
     }
   }
 
-  // Update the scenario and check prefs twice. The first time the migration
+  // Reinitialize Suggest and check prefs twice. The first time the migration
   // should happen, and the second time the migration should not happen and
   // all the prefs should stay the same.
   for (let i = 0; i < 2; i++) {
-    info(`Calling updateFirefoxSuggestScenario, i=${i}`);
+    info(`Reinitializing Suggest, i=${i}`);
 
-    // Update the scenario.
-    await QuickSuggest.updateFirefoxSuggestScenario({
+    // Reinitialize Suggest.
+    await QuickSuggest._test_reinit({
       ...testOverrides,
       scenario,
     });

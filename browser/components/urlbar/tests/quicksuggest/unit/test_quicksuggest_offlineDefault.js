@@ -2,20 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Tests `QuickSuggest.updateFirefoxSuggestScenario` in isolation under the
-// assumption that the offline scenario should be enabled by default for US en.
+// Tests that the default scenario is "offline" for "en" locales in the U.S. and
+// "history" everywhere else.
 
 "use strict";
 
-// All the prefs that `updateFirefoxSuggestScenario` sets along with the
-// expected default-branch values when offline is enabled and when it's not
-// enabled.
+// All the prefs that are set when the Suggest scenario is initialized along
+// with the expected offline and non-offline (history) default-branch values.
 const PREFS = [
   {
     name: "browser.urlbar.quicksuggest.enabled",
     get: "getBoolPref",
     set: "setBoolPref",
     expectedOfflineValue: true,
+    expectedOtherValue: false,
+  },
+  {
+    name: "browser.urlbar.quicksuggest.dataCollection.enabled",
+    get: "getBoolPref",
+    set: "setBoolPref",
+    expectedOfflineValue: false,
     expectedOtherValue: false,
   },
   {
@@ -55,9 +61,8 @@ add_task(async function test() {
 });
 
 /**
- * Sets the app's locale and region, calls
- * `QuickSuggest.updateFirefoxSuggestScenario`, and asserts that the pref values
- * are correct.
+ * Sets the app's locale and region, reinitializes Suggest, and asserts that the
+ * pref values are correct.
  *
  * @param {object} options
  *   Options object.
@@ -83,7 +88,7 @@ async function doTest({ locale, home, expectedOfflineDefault }) {
     homeRegion: home,
     locales: [locale],
     callback: async () => {
-      await QuickSuggest.updateFirefoxSuggestScenario();
+      await QuickSuggest._test_reinit();
       for (let {
         name,
         get,

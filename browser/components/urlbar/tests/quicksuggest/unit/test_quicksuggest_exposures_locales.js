@@ -157,11 +157,11 @@ async function doLocaleTest({
       homeRegion,
       locales: [locale],
       callback: async () => {
-        // Update the Suggest scenario, which will set default-branch values for
+        // Reinitialize Suggest, which will set default-branch values for
         // Suggest prefs appropriate to the locale.
-        info("Updating Suggest scenario");
-        await QuickSuggest.updateFirefoxSuggestScenario();
-        info("Done updating Suggest scenario");
+        info("Reinitializing Suggest");
+        await QuickSuggest._test_reinit();
+        info("Done reinitializing Suggest");
 
         // Sanity-check prefs. At this point, the value of `quickSuggestEnabled`
         // will be the value of its fallback pref, `quicksuggest.enabled`.
@@ -206,9 +206,9 @@ async function doLocaleTest({
     });
   }
 
-  // Reset Suggest prefs to their defaults by updating the scenario now that the
-  // app is back to its default locale.
-  await QuickSuggest.updateFirefoxSuggestScenario();
+  // Reinitialize Suggest so prefs go back to their defaults now that the app is
+  // back to its default locale.
+  await QuickSuggest._test_reinit();
 }
 
 function assertSuggestPrefs(expectedEnabled) {

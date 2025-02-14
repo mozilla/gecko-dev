@@ -941,21 +941,6 @@ class _QuickSuggestTestUtils {
   }
 
   /**
-   * Sets the Firefox Suggest scenario and waits for prefs to be updated.
-   *
-   * @param {string} scenario
-   *   Pass falsey to reset the scenario to the default.
-   */
-  async setScenario(scenario) {
-    // Wait for any ongoing scenario update to finish.
-    await lazy.TestUtils.waitForCondition(
-      () => !lazy.QuickSuggest._updatingFirefoxSuggestScenario,
-      "Waiting for _updatingFirefoxSuggestScenario to be false"
-    );
-    await lazy.QuickSuggest.updateFirefoxSuggestScenario({ scenario });
-  }
-
-  /**
    * Asserts a result is a quick suggest result.
    *
    * @param {object} [options]

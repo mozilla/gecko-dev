@@ -324,9 +324,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   ["quicksuggest.rustIngestIntervalSeconds", 60 * 60 * 24],
 
   // The Firefox Suggest scenario in which the user is enrolled. This is set
-  // when the scenario is updated (see `updateFirefoxSuggestScenario`) and is
-  // not a pref the user should set. Once initialized, its value is one of:
-  // "history", "offline", "online"
+  // when the scenario is updated (see `QuickSuggest`) and is not a pref the
+  // user should set. Once initialized, its value is one of: "history",
+  // "offline", "online"
   ["quicksuggest.scenario", ""],
 
   // Count the restarts before showing the onboarding dialog.
