@@ -1798,13 +1798,8 @@ pref("browser.partnerlink.campaign.topsites", "amzn_2020_a1");
 pref("browser.newtab.preload", true);
 
 // Mozilla Ad Routing Service (MARS) unified ads service
-#ifdef NIGHTLY_BUILD
 pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", true);
 pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", true);
-#else
-pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", false);
-pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", false);
-#endif
 pref("browser.newtabpage.activity-stream.unifiedAds.endpoint", "https://ads.mozilla.org/");
 pref("browser.newtabpage.activity-stream.unifiedAds.adsFeed.enabled", false);
 pref("browser.newtabpage.activity-stream.unifiedAds.adsFeed.tiles.enabled", false);
