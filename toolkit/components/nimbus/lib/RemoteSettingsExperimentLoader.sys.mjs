@@ -198,6 +198,20 @@ export class _RemoteSettingsExperimentLoader {
   }
 
   /**
+   * Run a function while holding the update lock.
+   *
+   * This will prevent recipe updates from starting until after the callback finishes.
+   *
+   * @param {Function} fn The callback to call
+   * @param {object} options Options to pass to the WebLocks request API.
+   *
+   * @returns {any} The return value of fn.
+   */
+  async withUpdateLock(fn, options) {
+    return await locks.request(this.LOCK_ID, options, fn);
+  }
+
+  /**
    * Get all recipes from remote settings and update enrollments.
    *
    * If the RemoteSettingsExperimentLoader is already updating or disabled, this
@@ -218,7 +232,7 @@ export class _RemoteSettingsExperimentLoader {
     }
 
     this._updating = true;
-    await locks.request(this.LOCK_ID, () => this.#updateImpl(trigger, options));
+    await this.withUpdateLock(() => this.#updateImpl(trigger, options));
     this._updating = false;
   }
 

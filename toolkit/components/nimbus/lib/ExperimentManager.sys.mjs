@@ -18,8 +18,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NormandyUtils: "resource://normandy/lib/NormandyUtils.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
-  RemoteSettingsExperimentLoader:
-    "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   EnrollmentsContext:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   Sampling: "resource://gre/modules/components-utils/Sampling.sys.mjs",
@@ -485,23 +483,20 @@ export class _ExperimentManager {
     // RemoteSettingsExperimentLoader should have finished updating at least
     // once. Prevent concurrent updates while we filter through the list of
     // available opt-in recipes.
-    return locks.request(
-      lazy.RemoteSettingsExperimentLoader.LOCK_ID,
-      async () => {
-        const filtered = [];
+    return lazy.ExperimentAPI._rsLoader.withUpdateLock(async () => {
+      const filtered = [];
 
-        for (const recipe of this.optInRecipes) {
-          if (
-            (await enrollmentsCtx.checkTargeting(recipe)) &&
-            (await this.isInBucketAllocation(recipe.bucketConfig))
-          ) {
-            filtered.push(recipe);
-          }
+      for (const recipe of this.optInRecipes) {
+        if (
+          (await enrollmentsCtx.checkTargeting(recipe)) &&
+          (await this.isInBucketAllocation(recipe.bucketConfig))
+        ) {
+          filtered.push(recipe);
         }
-
-        return filtered;
       }
-    );
+
+      return filtered;
+    });
   }
 
   /**
