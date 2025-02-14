@@ -11,6 +11,8 @@ const kBaseUrl = "https://example.org/browser/dom/events/test/";
 
 let testName;
 
+requestLongerTimeout(2);
+
 let mockCA = {
   isActive: true,
   mightBeActive: true,
@@ -93,27 +95,40 @@ Services.scriptloader.loadSubScript(
 );
 
 const TEST_MODES = Object.freeze({
-  ALLOW: {
+  ALLOW_PLAINTEXTONLY: {
     caAllow: true,
     turnOffPref: false,
+    plainTextOnly: true,
+    bypassForSameTab: false,
+    // Since plain text only is being analyzed and the drag/drop tests don't
+    // drag anything with a text/plain MIME type, we do not expect to run CA.
+    shouldRunCA: false,
+  },
+  ALLOW_CHECKALLFORMATS: {
+    caAllow: true,
+    turnOffPref: false,
+    plainTextOnly: false,
     bypassForSameTab: false,
     shouldRunCA: true,
   },
   BLOCK: {
     caAllow: false,
     turnOffPref: false,
+    plainTextOnly: false,
     bypassForSameTab: false,
     shouldRunCA: true,
   },
   PREFOFF: {
     caAllow: true,
     turnOffPref: true,
+    plainTextOnly: false,
     bypassForSameTab: false,
     shouldRunCA: false,
   },
   BYPASS_SAME_TAB: {
     caAllow: true,
     turnOffPref: false,
+    plainTextOnly: false,
     bypassForSameTab: true,
     shouldRunCA: false,
   },
@@ -129,7 +144,8 @@ runTest = async function (
   mockCA.targetBrowsingCxt = targetBrowsingCxt;
 
   for (let testMode of [
-    TEST_MODES.ALLOW,
+    TEST_MODES.ALLOW_PLAINTEXTONLY,
+    TEST_MODES.ALLOW_CHECKALLFORMATS,
     TEST_MODES.BLOCK,
     TEST_MODES.PREFOFF,
     TEST_MODES.BYPASS_SAME_TAB,
@@ -144,28 +160,21 @@ runTest = async function (
     mockCA.numAnalyzeContentRequestPrivateCalls = 0;
     mockCA.numGetURIForDropEvent = 0;
 
-    let shouldRunCA;
+    let shouldRunCA = testMode.shouldRunCA;
     let description;
-    if (testMode.shouldRunCA) {
-      shouldRunCA = true;
-      description = testMode.caAllow ? "allow_drop" : "deny_drop";
-    } else if (testMode.turnOffPref) {
-      shouldRunCA = false;
-      description = "no_run_ca_because_of_dnd_interception_point_pref";
-    } else {
-      if (!testMode.bypassForSameTab) {
-        // Sanity testing the test -- don't log anything unless we fail.
-        ok(
-          testMode.bypassForSameTab,
-          "Expected testMode to be handled already"
-        );
-      }
+    if (testMode.bypassForSameTab) {
       shouldRunCA = !isSameTab;
       mockCA.caShouldAllow = isSameTab;
       description = `${isSameTab ? "no_run" : "diff_tab_deny"}_ca_with_same_tab_pref`;
       await SpecialPowers.pushPrefEnv({
         set: [["browser.contentanalysis.bypass_for_same_tab_operations", true]],
       });
+    } else if (testMode.turnOffPref) {
+      description = "no_run_ca_because_of_dnd_interception_point_pref";
+    } else {
+      description =
+        (testMode.caAllow ? "allow_drop" : "deny_drop") +
+        (testMode.plainTextOnly ? "_plain_text_only" : "");
     }
 
     let name = `${testRootName}:${description}`;
@@ -181,6 +190,14 @@ runTest = async function (
         ],
       });
     }
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "browser.contentanalysis.interception_point.drag_and_drop.plain_text_only",
+          testMode.plainTextOnly,
+        ],
+      ],
+    });
 
     let dropPromise = SpecialPowers.spawn(
       targetBrowsingCxt,
@@ -222,5 +239,6 @@ runTest = async function (
     if (testMode.turnOffPref || testMode.bypassForSameTab) {
       await SpecialPowers.popPrefEnv();
     }
+    await SpecialPowers.popPrefEnv();
   }
 };

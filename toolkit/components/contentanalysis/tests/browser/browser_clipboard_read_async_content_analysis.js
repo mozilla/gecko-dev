@@ -19,27 +19,45 @@ const PAGE_URL =
 const CLIPBOARD_TEXT_STRING = "Some plain text";
 const CLIPBOARD_HTML_STRING = "<b>Some HTML</b>";
 const TEST_MODES = Object.freeze({
-  ALLOW: {
+  ALLOW_PLAINTEXTONLY: {
     caAllow: true,
     caError: false,
+    plainTextOnly: true,
     shouldPaste: true,
     shouldRunCA: true,
   },
-  BLOCK: {
+  ALLOW_CHECKALLFORMATS: {
+    caAllow: true,
+    caError: false,
+    plainTextOnly: false,
+    shouldPaste: true,
+    shouldRunCA: true,
+  },
+  BLOCK_PLAINTEXTONLY: {
     caAllow: false,
     caError: false,
+    plainTextOnly: true,
+    shouldPaste: false,
+    shouldRunCA: true,
+  },
+  BLOCK_CHECKALLFORMATS: {
+    caAllow: false,
+    caError: false,
+    plainTextOnly: false,
     shouldPaste: false,
     shouldRunCA: true,
   },
   ERROR: {
     caAllow: false,
     caError: true,
+    plainTextOnly: false,
     shouldPaste: false,
     shouldRunCA: true,
   },
   PREFOFF: {
     caAllow: false,
     caError: false,
+    plainTextOnly: false,
     shouldPaste: true,
     shouldRunCA: false,
   },
@@ -66,34 +84,42 @@ async function testClipboardReadAsync(testMode) {
     let result = await setDataAndStartTest(
       browser,
       testMode.shouldPaste,
+      testMode.plainTextOnly,
       "read",
       testMode.caError
     );
     is(result, true, "Got unexpected result from page for read()");
 
+    let expectedCACalls = 0;
+    if (testMode.shouldRunCA) {
+      expectedCACalls = testMode.plainTextOnly ? 1 : 2;
+    }
     is(
       mockCA.calls.length,
-      testMode.shouldRunCA ? 2 : 0,
+      expectedCACalls,
       "Correct number of calls to Content Analysis for read()"
     );
     if (testMode.shouldRunCA && !testMode.caError) {
-      // On Windows, widget adds extra data into HTML clipboard.
-      let expectedHtml = navigator.platform.includes("Win")
-        ? `<html><body>\n<!--StartFragment-->${CLIPBOARD_HTML_STRING}<!--EndFragment-->\n</body>\n</html>`
-        : CLIPBOARD_HTML_STRING;
+      if (!testMode.plainTextOnly) {
+        // On Windows, widget adds extra data into HTML clipboard.
+        let expectedHtml = navigator.platform.includes("Win")
+          ? `<html><body>\n<!--StartFragment-->${CLIPBOARD_HTML_STRING}<!--EndFragment-->\n</body>\n</html>`
+          : CLIPBOARD_HTML_STRING;
 
-      // Once bug 1938618 is fixed these should have the same userActionId and the
-      // expectedRequestsCount should be 2.
+        // Once bug 1938618 is fixed these should have the same userActionId and the
+        // expectedRequestsCount should be 2.
+        assertContentAnalysisRequest(
+          mockCA.calls[0],
+          expectedHtml,
+          mockCA.calls[0].userActionId,
+          1
+        );
+      }
+      let entry = mockCA.calls[testMode.plainTextOnly ? 0 : 1];
       assertContentAnalysisRequest(
-        mockCA.calls[0],
-        expectedHtml,
-        mockCA.calls[0].userActionId,
-        1
-      );
-      assertContentAnalysisRequest(
-        mockCA.calls[1],
+        entry,
         CLIPBOARD_TEXT_STRING,
-        mockCA.calls[1].userActionId,
+        entry.userActionId,
         1
       );
     }
@@ -104,6 +130,7 @@ async function testClipboardReadAsync(testMode) {
     let result = await setDataAndStartTest(
       browser,
       testMode.shouldPaste,
+      testMode.plainTextOnly,
       "readText",
       testMode.caError
     );
@@ -131,13 +158,14 @@ async function testClipboardReadAsync(testMode) {
 function setDataAndStartTest(
   browser,
   allowPaste,
+  plainTextOnly,
   testType,
   shouldError = false
 ) {
   return SpecialPowers.spawn(
     browser,
-    [allowPaste, testType, shouldError],
-    (allowPaste, testType, shouldError) => {
+    [allowPaste, plainTextOnly, testType, shouldError],
+    (allowPaste, plainTextOnly, testType, shouldError) => {
       return new Promise(resolve => {
         content.document.addEventListener(
           "testresult",
@@ -147,6 +175,8 @@ function setDataAndStartTest(
           { once: true }
         );
         content.document.getElementById("pasteAllowed").checked = allowPaste;
+        content.document.getElementById("plainTextOnly").checked =
+          plainTextOnly;
         content.document.getElementById("contentAnalysisReturnsError").checked =
           shouldError;
         content.document.dispatchEvent(
@@ -230,13 +260,65 @@ function setClipboardData() {
   Services.clipboard.setData(trans, null, Ci.nsIClipboard.kGlobalClipboard);
 }
 
-add_task(async function testClipboardReadAsyncWithContentAnalysisAllow() {
-  await testClipboardReadAsync(TEST_MODES.ALLOW);
-});
+add_task(
+  async function testClipboardReadAsyncWithContentAnalysisAllowPlainTextOnly() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "browser.contentanalysis.interception_point.clipboard.plain_text_only",
+          true,
+        ],
+      ],
+    });
+    await testClipboardReadAsync(TEST_MODES.ALLOW_PLAINTEXTONLY);
+    await SpecialPowers.popPrefEnv();
+  }
+);
 
-add_task(async function testClipboardReadAsyncWithContentAnalysisBlock() {
-  await testClipboardReadAsync(TEST_MODES.BLOCK);
-});
+add_task(
+  async function testClipboardReadAsyncWithContentAnalysisAllowCheckAllFormats() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "browser.contentanalysis.interception_point.clipboard.plain_text_only",
+          false,
+        ],
+      ],
+    });
+    await testClipboardReadAsync(TEST_MODES.ALLOW_CHECKALLFORMATS);
+    await SpecialPowers.popPrefEnv();
+  }
+);
+
+add_task(
+  async function testClipboardReadAsyncWithContentAnalysisBlockPlainTextOnly() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "browser.contentanalysis.interception_point.clipboard.plain_text_only",
+          true,
+        ],
+      ],
+    });
+    await testClipboardReadAsync(TEST_MODES.BLOCK_PLAINTEXTONLY);
+    await SpecialPowers.popPrefEnv();
+  }
+);
+
+add_task(
+  async function testClipboardReadAsyncWithContentAnalysisBlockCheckAllFormats() {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "browser.contentanalysis.interception_point.clipboard.plain_text_only",
+          false,
+        ],
+      ],
+    });
+    await testClipboardReadAsync(TEST_MODES.BLOCK_CHECKALLFORMATS);
+    await SpecialPowers.popPrefEnv();
+  }
+);
 
 add_task(
   async function testClipboardReadAsyncWithContentAnalysisBlockButPrefOff() {

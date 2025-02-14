@@ -1289,10 +1289,30 @@
   value: true
   mirror: always
 
+# Should Firefox only analyze plain text contents of the clipboard?
+# If this is false, all formats on the clipboard will be analyzed.
+# Note that regardless of this setting, files on the clipboard
+# will be analyzed.
+- name: browser.contentanalysis.interception_point.clipboard.plain_text_only
+  type: bool
+  value: true
+  mirror: always
+
 # Should Firefox use content analysis for drag and drop operations?
 # Note that this has no effect unless browser.contentanalysis.enabled
 # is true.
 - name: browser.contentanalysis.interception_point.drag_and_drop.enabled
+  type: bool
+  value: true
+  mirror: always
+
+# Should Firefox only analyze plain text contents for drag and drop
+# operations?
+# If this is false, all formats that are part of the drag and drop
+# operation will be analyzed.
+# Note that regardless of this setting, files that are dragged and dropped
+# will be analyzed.
+- name: browser.contentanalysis.interception_point.drag_and_drop.plain_text_only
   type: bool
   value: true
   mirror: always

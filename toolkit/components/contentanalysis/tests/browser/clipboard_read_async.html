@@ -17,12 +17,13 @@ function isNotAllowedException(ex) {
 
 async function checkReadHelper(readResult, gotNotAllowedException, isReadTextTest) {
   // Set by injected JS in the test
-  let filePasteAllowed = document.getElementById("pasteAllowed").checked;
+  let pasteAllowed = document.getElementById("pasteAllowed").checked;
+  let plainTextOnly = document.getElementById("plainTextOnly").checked;
   let contentAnalysisReturnsError = document.getElementById("contentAnalysisReturnsError").checked;
-  filePasteAllowed = filePasteAllowed && !contentAnalysisReturnsError;
-  is(gotNotAllowedException, !filePasteAllowed && isReadTextTest, "Should get exception from readText() if not allowed");
+  pasteAllowed = pasteAllowed && !contentAnalysisReturnsError;
+  is(gotNotAllowedException, !pasteAllowed && isReadTextTest, "Should get exception from readText() if not allowed");
   if (isReadTextTest) {
-    is(readResult, filePasteAllowed ? "Some plain text" : null,  "Should get expected text from clipboard.readText()");
+    is(readResult, pasteAllowed ? "Some plain text" : null,  "Should get expected text from clipboard.readText()");
   }
   else {
     is(readResult.length, 1, "check number of ClipboardItems in response");
@@ -37,13 +38,16 @@ async function checkReadHelper(readResult, gotNotAllowedException, isReadTextTes
       } catch (ex) {
         gotNotAllowedException = isNotAllowedException(ex);
       }
-      is(gotNotAllowedException, !filePasteAllowed, "should get exception from reading text data when blocked");
-      if (filePasteAllowed) {
+      is(gotNotAllowedException, !pasteAllowed, "should get exception from reading text data when blocked");
+      if (pasteAllowed) {
         is(text, "Some plain text", "check text/plain data");
       }
     }
 
     {
+      // I think this will change when bug 1938618 is fixed - then the HTML should be blocked
+      // even if we're in plainTextOnly mode
+      let htmlPasteAllowed = pasteAllowed || plainTextOnly;
       let html = null;
       let gotNotAllowedException = false;
       try {
@@ -52,8 +56,8 @@ async function checkReadHelper(readResult, gotNotAllowedException, isReadTextTes
       } catch (ex) {
         gotNotAllowedException = isNotAllowedException(ex);
       }
-      is(gotNotAllowedException, !filePasteAllowed, "should get exception from reading html data when blocked");
-      if (filePasteAllowed) {
+      is(gotNotAllowedException, !htmlPasteAllowed, "should get exception from reading html data when blocked");
+      if (htmlPasteAllowed) {
         const CLIPBOARD_HTML_STRING = "<b>Some HTML</b>";
         let expectedHtml = navigator.platform.includes("Win")
           ? `<html><body>\n<!--StartFragment-->${CLIPBOARD_HTML_STRING}<!--EndFragment-->\n</body>\n</html>`
@@ -90,6 +94,7 @@ document.addEventListener("teststart", async e => {
 </script>
 
 <label for="pasteAllowed">Paste allowed?</label><input id="pasteAllowed" type="checkbox">
+<label for="plainTextOnly">Plain text only?</label><input id="plainTextOnly" type="checkbox">
 <label for="contentAnalysisReturnsError">Content Analysis returns error?</label><input id="contentAnalysisReturnsError" type="checkbox">
 </body>
 </html>

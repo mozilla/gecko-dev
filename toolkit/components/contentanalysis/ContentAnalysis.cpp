@@ -75,6 +75,7 @@ const char* kClientSignature = "browser.contentanalysis.client_signature";
 const char* kAllowUrlPref = "browser.contentanalysis.allow_url_regex_list";
 const char* kDenyUrlPref = "browser.contentanalysis.deny_url_regex_list";
 
+// kTextMime must be the first entry.
 auto kTextFormatsToAnalyze = {kTextMime, kHTMLMime};
 
 const char* SafeGetStaticErrorName(nsresult aRv) {
@@ -1799,6 +1800,11 @@ static nsresult AddClipboardCARForCustomData(
     nsCString&& aUserActionId,
     nsTArray<RefPtr<nsIContentAnalysisRequest>>* aRequests) {
   nsCOMPtr<nsISupports> transferData;
+  if (StaticPrefs::
+          browser_contentanalysis_interception_point_clipboard_plain_text_only()) {
+    return NS_OK;
+  }
+
   if (NS_FAILED(aTrans->GetTransferData(kCustomTypesMime,
                                         getter_AddRefs(transferData)))) {
     return NS_OK;  // nothing to check and not an error
@@ -1917,6 +1923,11 @@ static Result<bool, nsresult> AddRequestsFromTransferableIfAny(
                                 aSourceWindowGlobal, nsCString(userActionId),
                                 aNewRequests);
     NS_ENSURE_SUCCESS(rv, Err(rv));
+    if (StaticPrefs::
+            browser_contentanalysis_interception_point_clipboard_plain_text_only()) {
+      // kTextMime is the first entry in kTextFormatsToAnalyze
+      break;
+    }
   }
 
   rv = AddClipboardCARForFile(aWindowGlobal, transferable, aUri,
@@ -1958,6 +1969,11 @@ static Result<bool, nsresult> AddRequestsFromDataTransferIfAny(
                   nsIContentAnalysisRequest::OperationType::eDroppedText, aUri,
                   aWindowGlobal, aSourceWindowGlobal, nsCString(userActionId),
                   aNewRequests);
+    if (StaticPrefs::
+            browser_contentanalysis_interception_point_drag_and_drop_plain_text_only()) {
+      // kTextMime is the first entry in kTextFormatsToAnalyze
+      break;
+    }
   }
 
   if (dataTransfer->HasFile()) {
