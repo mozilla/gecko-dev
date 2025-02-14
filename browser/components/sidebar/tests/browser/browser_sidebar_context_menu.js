@@ -157,59 +157,6 @@ add_task(async function test_sidebar_extension_context_menu() {
   await BrowserTestUtils.closeWindow(win);
 });
 
-add_task(async function test_toggle_vertical_tabs_from_a_tab() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.verticalTabs", false]],
-  });
-  Assert.equal(
-    Services.prefs.getStringPref("sidebar.visibility"),
-    "hide-sidebar",
-    "Sanity check the visibilty pref is updated when verticalTabs are disabled"
-  );
-
-  info("Enable vertical tabs from a tab.");
-  const tabContextMenu = document.getElementById("tabContextMenu");
-  const toggleMenuItem = document.getElementById("context_toggleVerticalTabs");
-  await openAndWaitForContextMenu(tabContextMenu, gBrowser.selectedTab, () => {
-    Assert.deepEqual(
-      document.l10n.getAttributes(toggleMenuItem),
-      { id: "tab-context-enable-vertical-tabs", args: null },
-      "Context menu item indicates that it enables vertical tabs."
-    );
-    toggleMenuItem.click();
-  });
-  await TestUtils.waitForCondition(
-    () => gBrowser.tabContainer.verticalMode,
-    "Vertical tabs are enabled."
-  );
-  Assert.equal(
-    Services.prefs.getStringPref("sidebar.visibility"),
-    "always-show",
-    "Sanity check the visibilty pref is updated when verticalTabs are enabled"
-  );
-
-  info("Disable vertical tabs from a tab.");
-  await openAndWaitForContextMenu(tabContextMenu, gBrowser.selectedTab, () => {
-    Assert.deepEqual(
-      document.l10n.getAttributes(toggleMenuItem),
-      { id: "tab-context-disable-vertical-tabs", args: null },
-      "Context menu item indicates that it disables vertical tabs."
-    );
-    toggleMenuItem.click();
-  });
-  await TestUtils.waitForCondition(
-    () => !gBrowser.tabContainer.verticalMode,
-    "Vertical tabs are disabled."
-  );
-  Assert.equal(
-    Services.prefs.getStringPref("sidebar.visibility"),
-    "hide-sidebar",
-    "Sanity check the visibilty pref is updated when verticalTabs are disabled"
-  );
-
-  await SpecialPowers.popPrefEnv();
-});
-
 add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", false]],

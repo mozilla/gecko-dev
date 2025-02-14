@@ -91,10 +91,6 @@ tab-context-close-duplicate-tabs =
 tab-context-share-url =
     .label = Share
     .accesskey = h
-tab-context-enable-vertical-tabs =
-    .label = Turn on Vertical Tabs
-tab-context-disable-vertical-tabs =
-    .label = Turn off Vertical Tabs
 
 ## Variables:
 ##  $tabCount (Number): the number of tabs that are affected by the action.
