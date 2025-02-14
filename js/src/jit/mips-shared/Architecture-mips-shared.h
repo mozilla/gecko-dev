@@ -310,9 +310,7 @@ inline bool hasR2() { return mips_private::hasR2; }
 // MIPS doesn't have double registers that can NOT be treated as float32.
 inline bool hasUnaliasedDouble() { return false; }
 
-// MIPS64 doesn't support it and on MIPS32 we don't allocate odd single fp
-// registers thus not exposing multi aliasing to the jit.
-// See comments in Arhitecture-mips32.h.
+// MIPS64 doesn't support it.
 inline bool hasMultiAlias() { return false; }
 
 }  // namespace jit

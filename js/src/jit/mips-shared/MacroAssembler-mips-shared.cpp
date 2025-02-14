@@ -470,11 +470,7 @@ FaultingCodeOffset MacroAssemblerMIPSShared::ma_load(
 
       MOZ_ASSERT(SecondScratchReg != src.base);
       index = SecondScratchReg;
-#ifdef JS_CODEGEN_MIPS64
       asMasm().ma_dsll(index, src.index, Imm32(shift));
-#else
-      asMasm().ma_sll(index, src.index, Imm32(shift));
-#endif
     }
 
     fco = FaultingCodeOffset(currentOffset());
@@ -537,19 +533,15 @@ void MacroAssemblerMIPSShared::ma_load_unaligned(Register dest,
       MOZ_ASSERT(dest != base);
       as_lwl(dest, base, hiOffset);
       as_lwr(dest, base, lowOffset);
-#ifdef JS_CODEGEN_MIPS64
       if (extension == ZeroExtend) {
         as_dext(dest, dest, 0, 32);
       }
-#endif
       break;
-#ifdef JS_CODEGEN_MIPS64
     case SizeDouble:
       MOZ_ASSERT(dest != base);
       as_ldl(dest, base, hiOffset);
       as_ldr(dest, base, lowOffset);
       break;
-#endif
     default:
       MOZ_CRASH("Invalid argument for ma_load_unaligned");
   }
@@ -592,19 +584,15 @@ void MacroAssemblerMIPSShared::ma_load_unaligned(Register dest,
       MOZ_ASSERT(dest != base);
       as_lwl(dest, base, hiOffset);
       as_lwr(dest, base, lowOffset);
-#ifdef JS_CODEGEN_MIPS64
       if (extension == ZeroExtend) {
         as_dext(dest, dest, 0, 32);
       }
-#endif
       break;
-#ifdef JS_CODEGEN_MIPS64
     case SizeDouble:
       MOZ_ASSERT(dest != base);
       as_ldl(dest, base, hiOffset);
       as_ldr(dest, base, lowOffset);
       break;
-#endif
     default:
       MOZ_CRASH("Invalid argument for ma_load_unaligned");
   }
@@ -649,18 +637,14 @@ void MacroAssemblerMIPSShared::ma_load_unaligned(
     case SizeWord:
       load = as_lwl(dest, base, hiOffset);
       as_lwr(dest, base, lowOffset);
-#ifdef JS_CODEGEN_MIPS64
       if (extension == ZeroExtend) {
         as_dext(dest, dest, 0, 32);
       }
-#endif
       break;
-#ifdef JS_CODEGEN_MIPS64
     case SizeDouble:
       load = as_ldl(dest, base, hiOffset);
       as_ldr(dest, base, lowOffset);
       break;
-#endif
     default:
       MOZ_CRASH("Invalid argument for ma_load");
   }
@@ -681,11 +665,7 @@ FaultingCodeOffset MacroAssemblerMIPSShared::ma_store(
 
       MOZ_ASSERT(SecondScratchReg != dest.base);
       index = SecondScratchReg;
-#ifdef JS_CODEGEN_MIPS64
       asMasm().ma_dsll(index, dest.index, Imm32(shift));
-#else
-      asMasm().ma_sll(index, dest.index, Imm32(shift));
-#endif
     }
 
     fco = FaultingCodeOffset(currentOffset());
@@ -732,11 +712,7 @@ void MacroAssemblerMIPSShared::ma_store(Imm32 imm, const BaseIndex& dest,
 
       MOZ_ASSERT(SecondScratchReg != dest.base);
       index = SecondScratchReg;
-#ifdef JS_CODEGEN_MIPS64
       asMasm().ma_dsll(index, dest.index, Imm32(shift));
-#else
-      asMasm().ma_sll(index, dest.index, Imm32(shift));
-#endif
     }
 
     switch (size) {
@@ -804,12 +780,10 @@ void MacroAssemblerMIPSShared::ma_store_unaligned(Register data,
       as_swl(data, base, hiOffset);
       as_swr(data, base, lowOffset);
       break;
-#ifdef JS_CODEGEN_MIPS64
     case SizeDouble:
       as_sdl(data, base, hiOffset);
       as_sdr(data, base, lowOffset);
       break;
-#endif
     default:
       MOZ_CRASH("Invalid argument for ma_store_unaligned");
   }
@@ -845,12 +819,10 @@ void MacroAssemblerMIPSShared::ma_store_unaligned(Register data,
       as_swl(data, base, hiOffset);
       as_swr(data, base, lowOffset);
       break;
-#ifdef JS_CODEGEN_MIPS64
     case SizeDouble:
       as_sdl(data, base, hiOffset);
       as_sdr(data, base, lowOffset);
       break;
-#endif
     default:
       MOZ_CRASH("Invalid argument for ma_store_unaligned");
   }
@@ -892,12 +864,10 @@ void MacroAssemblerMIPSShared::ma_store_unaligned(
       store = as_swl(data, base, hiOffset);
       as_swr(data, base, lowOffset);
       break;
-#ifdef JS_CODEGEN_MIPS64
     case SizeDouble:
       store = as_sdl(data, base, hiOffset);
       as_sdr(data, base, lowOffset);
       break;
-#endif
     default:
       MOZ_CRASH("Invalid argument for ma_store");
   }
@@ -1382,11 +1352,7 @@ FaultingCodeOffset MacroAssemblerMIPSShared::ma_sd(FloatRegister ft,
 
       MOZ_ASSERT(SecondScratchReg != address.base);
       index = SecondScratchReg;
-#ifdef JS_CODEGEN_MIPS64
       asMasm().ma_dsll(index, address.index, Imm32(shift));
-#else
-      asMasm().ma_sll(index, address.index, Imm32(shift));
-#endif
     }
 
     FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
@@ -1408,11 +1374,7 @@ FaultingCodeOffset MacroAssemblerMIPSShared::ma_ss(FloatRegister ft,
 
       MOZ_ASSERT(SecondScratchReg != address.base);
       index = SecondScratchReg;
-#ifdef JS_CODEGEN_MIPS64
       asMasm().ma_dsll(index, address.index, Imm32(shift));
-#else
-      asMasm().ma_sll(index, address.index, Imm32(shift));
-#endif
     }
 
     FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
@@ -1752,46 +1714,30 @@ void MacroAssembler::call(JitCode* c) {
 }
 
 CodeOffset MacroAssembler::nopPatchableToCall() {
-  // MIPS32   //MIPS64
-  as_nop();  // lui      // lui
-  as_nop();  // ori      // ori
-  as_nop();  // jalr     // drotr32
+  as_nop();  // lui
   as_nop();  // ori
-#ifdef JS_CODEGEN_MIPS64
+  as_nop();  // drotr32
+  as_nop();  // ori
   as_nop();  // jalr
   as_nop();
-#endif
   return CodeOffset(currentOffset());
 }
 
 void MacroAssembler::patchNopToCall(uint8_t* call, uint8_t* target) {
-#ifdef JS_CODEGEN_MIPS64
   Instruction* inst = (Instruction*)call - 6 /* six nops */;
   Assembler::WriteLoad64Instructions(inst, ScratchRegister, (uint64_t)target);
   inst[4] = InstReg(op_special, ScratchRegister, zero, ra, ff_jalr);
-#else
-  Instruction* inst = (Instruction*)call - 4 /* four nops */;
-  Assembler::WriteLuiOriInstructions(inst, &inst[1], ScratchRegister,
-                                     (uint32_t)target);
-  inst[2] = InstReg(op_special, ScratchRegister, zero, ra, ff_jalr);
-#endif
 }
 
 void MacroAssembler::patchCallToNop(uint8_t* call) {
-#ifdef JS_CODEGEN_MIPS64
   Instruction* inst = (Instruction*)call - 6 /* six nops */;
-#else
-  Instruction* inst = (Instruction*)call - 4 /* four nops */;
-#endif
 
   inst[0].makeNop();
   inst[1].makeNop();
   inst[2].makeNop();
   inst[3].makeNop();
-#ifdef JS_CODEGEN_MIPS64
   inst[4].makeNop();
   inst[5].makeNop();
-#endif
 }
 
 CodeOffset MacroAssembler::move32WithPatch(Register dest) {
