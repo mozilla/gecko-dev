@@ -139,7 +139,7 @@
   grid-column: span 2;
 
   &.ds-card.sections-card-ui {
-    @media (min-width: $break-point-layout-variant ) and (max-width: $break-point-widest ),
+    @media ($break-point-layout-variant <= width < $break-point-widest ),
       (min-width: $break-point-sections-variant ) {
       align-content: flex-start;
 

@@ -5077,7 +5077,7 @@ main section {
     grid-column: span 2;
   }
 }
-@media (min-width: 610px) and (min-width: 724px) and (max-width: 1122px), (min-width: 610px) and (min-width: 1390px) {
+@media (min-width: 610px) and (724px <= width < 1122px), (min-width: 610px) and (min-width: 1390px) {
   .ds-section-grid.ds-card-grid .col-1-large.ds-card.sections-card-ui {
     align-content: flex-start;
   }
@@ -5255,7 +5255,7 @@ main section {
     grid-column: span 2;
   }
 }
-@media (min-width: 724px) and (min-width: 724px) and (max-width: 1122px), (min-width: 724px) and (min-width: 1390px) {
+@media (min-width: 724px) and (724px <= width < 1122px), (min-width: 724px) and (min-width: 1390px) {
   .ds-section-grid.ds-card-grid .col-2-large.ds-card.sections-card-ui {
     align-content: flex-start;
   }
@@ -5434,7 +5434,7 @@ main section {
     grid-column: span 2;
   }
 }
-@media (min-width: 1122px) and (min-width: 724px) and (max-width: 1122px), (min-width: 1122px) and (min-width: 1390px) {
+@media (min-width: 1122px) and (724px <= width < 1122px), (min-width: 1122px) and (min-width: 1390px) {
   .ds-section-grid.ds-card-grid .col-3-large.ds-card.sections-card-ui {
     align-content: flex-start;
   }
@@ -5612,7 +5612,7 @@ main section {
     grid-column: span 2;
   }
 }
-@media (min-width: 1390px) and (min-width: 724px) and (max-width: 1122px), (min-width: 1390px) and (min-width: 1390px) {
+@media (min-width: 1390px) and (724px <= width < 1122px), (min-width: 1390px) and (min-width: 1390px) {
   .ds-section-grid.ds-card-grid .col-4-large.ds-card.sections-card-ui {
     align-content: flex-start;
   }
