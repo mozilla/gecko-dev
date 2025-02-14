@@ -8,19 +8,9 @@
 
 #include "nsMIMEInfoImpl.h"
 #include "nsIMutableArray.h"
-#include "mozilla/java/GeckoAppShellWrappers.h"
 
 class nsMIMEInfoAndroid final : public nsIMIMEInfo {
  public:
-  [[nodiscard]] static bool GetMimeInfoForMimeType(
-      const nsACString& aMimeType, nsMIMEInfoAndroid** aMimeInfo);
-  [[nodiscard]] static bool GetMimeInfoForFileExt(
-      const nsACString& aFileExt, nsMIMEInfoAndroid** aMimeInfo);
-
-  [[nodiscard]] static nsresult GetMimeInfoForURL(const nsACString& aURL,
-                                                  bool* found,
-                                                  nsIHandlerInfo** info);
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMIMEINFO
   NS_DECL_NSIHANDLERINFO

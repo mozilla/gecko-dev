@@ -20,6 +20,9 @@ skip-if = [
 ["test_getFromTypeAndExtension.js"]
 skip-if = ["os == 'android'"]
 
+["test_getMIMEInfo_android.js"]
+run-if = ["os == 'android'"]
+
 ["test_getMIMEInfo_pdf.js"]
 
 ["test_getMIMEInfo_unknown_mime_type.js"]
