@@ -329,35 +329,28 @@ VisitCallback.prototype = {
       return false;
     }
 
-    Assert.ok(
-      !!this.entries,
-      "Ensure that the fact that we found cache entries matches expectations."
-    );
+    Assert.ok(!!this.entries);
 
     var index = this.entries.findIndex(findCacheIndex);
-    Assert.ok(index > -1, "Cache entry should exist");
+    Assert.ok(index > -1);
 
     this.entries.splice(index, 1);
   },
   onCacheEntryVisitCompleted() {
     LOG_C2(this, "onCacheEntryVisitCompleted");
     if (this.entries) {
-      Assert.equal(
-        this.entries.length,
-        0,
-        "Visited all expected cache entries."
-      );
+      Assert.equal(this.entries.length, 0);
     }
     this.notify();
   },
   notify() {
-    Assert.ok(!!this.goon, "goon should not be null");
+    Assert.ok(!!this.goon);
     var goon = this.goon;
     this.goon = null;
     executeSoon(goon);
   },
   selfCheck() {
-    Assert.ok(!this.entries || !this.entries.length, "entries should be empty");
+    Assert.ok(!this.entries || !this.entries.length);
   },
 };
 

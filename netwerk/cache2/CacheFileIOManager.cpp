@@ -3363,7 +3363,7 @@ nsresult CacheFileIOManager::EvictByContextInternal(
     mContextEvictor->Init(mCacheDirectory);
   }
 
-  mContextEvictor->AddContext(aLoadContextInfo, aPinned, aOrigin, aBaseDomain);
+  mContextEvictor->AddContext(aLoadContextInfo, aPinned, aOrigin);
 
   return NS_OK;
 }

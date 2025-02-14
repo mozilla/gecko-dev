@@ -21,9 +21,7 @@ class CacheIndexIterator;
 struct CacheFileContextEvictorEntry {
   nsCOMPtr<nsILoadContextInfo> mInfo;
   bool mPinned = false;
-  // Only one of mOrigin or mBaseDomain can be set at a time
-  nsString mOrigin;       // Optional - for origin-based eviction
-  nsString mBaseDomain;   // Optional - for domain-based eviction
+  nsString mOrigin;       // it can be empty
   PRTime mTimeStamp = 0;  // in milliseconds
   RefPtr<CacheIndexIterator> mIterator;
 };
@@ -45,7 +43,7 @@ class CacheFileContextEvictor {
   uint32_t ContextsCount();
   // Start evicting given context and an origin, if not empty.
   nsresult AddContext(nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-                      const nsAString& aOrigin, const nsAString& aBaseDomain);
+                      const nsAString& aOrigin);
   // CacheFileIOManager calls this method when CacheIndex's state changes. We
   // check whether the index is up to date and start or stop evicting according
   // to index's state.
@@ -64,19 +62,16 @@ class CacheFileContextEvictor {
   // after a shutdown or crash. When the context file is found after startup, we
   // restore mTimeStamp from the last modified time of the file.
   nsresult PersistEvictionInfoToDisk(nsILoadContextInfo* aLoadContextInfo,
-                                     bool aPinned, const nsAString& aOrigin,
-                                     const nsAString& aBaseDomain);
+                                     bool aPinned, const nsAString& aOrigin);
   // Once we are done with eviction for the given context, the eviction info is
   // removed from the disk.
   nsresult RemoveEvictInfoFromDisk(nsILoadContextInfo* aLoadContextInfo,
-                                   bool aPinned, const nsAString& aOrigin,
-                                   const nsAString& aBaseDomain);
+                                   bool aPinned, const nsAString& aOrigin);
   // Tries to load all contexts from the disk. This method is called just once
   // after startup.
   nsresult LoadEvictInfoFromDisk();
   nsresult GetContextFile(nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-                          const nsAString& aOrigin,
-                          const nsAString& aBaseDomain, nsIFile** _retval);
+                          const nsAString& aOrigin, nsIFile** _retval);
 
   void CreateIterators();
   void CloseIterators();

@@ -10,8 +10,6 @@
 #include "CacheIndexIterator.h"
 #include "CacheFileUtils.h"
 #include "CacheObserver.h"
-#include "mozilla/Components.h"
-#include "nsIEffectiveTLDService.h"
 #include "nsIFile.h"
 #include "LoadContextInfo.h"
 #include "nsThreadUtils.h"
@@ -86,14 +84,11 @@ uint32_t CacheFileContextEvictor::ContextsCount() {
 
 nsresult CacheFileContextEvictor::AddContext(
     nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-    const nsAString& aOrigin, const nsAString& aBaseDomain) {
+    const nsAString& aOrigin) {
   LOG(
       ("CacheFileContextEvictor::AddContext() [this=%p, loadContextInfo=%p, "
        "pinned=%d]",
        this, aLoadContextInfo, aPinned));
-
-  MOZ_ASSERT(aOrigin.IsEmpty() || aBaseDomain.IsEmpty(),
-             "Cannot specify both origin and base domain");
 
   nsresult rv;
 
@@ -104,8 +99,7 @@ nsresult CacheFileContextEvictor::AddContext(
     for (uint32_t i = 0; i < mEntries.Length(); ++i) {
       if (mEntries[i]->mInfo && mEntries[i]->mInfo->Equals(aLoadContextInfo) &&
           mEntries[i]->mPinned == aPinned &&
-          (mEntries[i]->mOrigin.Equals(aOrigin) ||
-           mEntries[i]->mBaseDomain.Equals(aBaseDomain))) {
+          mEntries[i]->mOrigin.Equals(aOrigin)) {
         entry = mEntries[i].get();
         break;
       }
@@ -118,7 +112,7 @@ nsresult CacheFileContextEvictor::AddContext(
       --i;
       if (mEntries[i]->mInfo && mEntries[i]->mPinned == aPinned) {
         RemoveEvictInfoFromDisk(mEntries[i]->mInfo, mEntries[i]->mPinned,
-                                mEntries[i]->mOrigin, mEntries[i]->mBaseDomain);
+                                mEntries[i]->mOrigin);
         mEntries.RemoveElementAt(i);
       }
     }
@@ -129,13 +123,12 @@ nsresult CacheFileContextEvictor::AddContext(
     entry->mInfo = aLoadContextInfo;
     entry->mPinned = aPinned;
     entry->mOrigin = aOrigin;
-    entry->mBaseDomain = aBaseDomain;
     mEntries.AppendElement(WrapUnique(entry));
   }
 
   entry->mTimeStamp = PR_Now() / PR_USEC_PER_MSEC;
 
-  PersistEvictionInfoToDisk(aLoadContextInfo, aPinned, aOrigin, aBaseDomain);
+  PersistEvictionInfoToDisk(aLoadContextInfo, aPinned, aOrigin);
 
   if (mIndexIsUpToDate) {
     // Already existing context could be added again, in this case the iterator
@@ -259,7 +252,7 @@ void CacheFileContextEvictor::WasEvicted(const nsACString& aKey, nsIFile* aFile,
 
 nsresult CacheFileContextEvictor::PersistEvictionInfoToDisk(
     nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-    const nsAString& aOrigin, const nsAString& aBaseDomain) {
+    const nsAString& aOrigin) {
   LOG(
       ("CacheFileContextEvictor::PersistEvictionInfoToDisk() [this=%p, "
        "loadContextInfo=%p]",
@@ -270,8 +263,7 @@ nsresult CacheFileContextEvictor::PersistEvictionInfoToDisk(
   MOZ_ASSERT(CacheFileIOManager::IsOnIOThread());
 
   nsCOMPtr<nsIFile> file;
-  rv = GetContextFile(aLoadContextInfo, aPinned, aOrigin, aBaseDomain,
-                      getter_AddRefs(file));
+  rv = GetContextFile(aLoadContextInfo, aPinned, aOrigin, getter_AddRefs(file));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -301,7 +293,7 @@ nsresult CacheFileContextEvictor::PersistEvictionInfoToDisk(
 
 nsresult CacheFileContextEvictor::RemoveEvictInfoFromDisk(
     nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-    const nsAString& aOrigin, const nsAString& aBaseDomain) {
+    const nsAString& aOrigin) {
   LOG(
       ("CacheFileContextEvictor::RemoveEvictInfoFromDisk() [this=%p, "
        "loadContextInfo=%p]",
@@ -312,8 +304,7 @@ nsresult CacheFileContextEvictor::RemoveEvictInfoFromDisk(
   MOZ_ASSERT(CacheFileIOManager::IsOnIOThread());
 
   nsCOMPtr<nsIFile> file;
-  rv = GetContextFile(aLoadContextInfo, aPinned, aOrigin, aBaseDomain,
-                      getter_AddRefs(file));
+  rv = GetContextFile(aLoadContextInfo, aPinned, aOrigin, getter_AddRefs(file));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -402,23 +393,16 @@ nsresult CacheFileContextEvictor::LoadEvictInfoFromDisk() {
       decoded = Substring(decoded, 1);
     }
 
+    // Let's see if we have an origin.
     nsAutoCString origin;
-    nsAutoCString baseDomain;
     if (decoded.Contains('\t')) {
       auto split = decoded.Split('\t');
       MOZ_ASSERT(decoded.CountChar('\t') == 1);
 
       auto splitIt = split.begin();
-      nsAutoCString value(*splitIt);
+      origin = *splitIt;
       ++splitIt;
       decoded = *splitIt;
-
-      // Check if this is a base domain entry (prefixed with 's:')
-      if (StringBeginsWith(value, "s:"_ns)) {
-        baseDomain = nsAutoCString(Substring(value, 2));
-      } else {
-        origin = value;
-      }
     }
 
     nsCOMPtr<nsILoadContextInfo> info;
@@ -442,13 +426,12 @@ nsresult CacheFileContextEvictor::LoadEvictInfoFromDisk() {
       continue;
     }
 
-    auto entry = MakeUnique<CacheFileContextEvictorEntry>();
+    CacheFileContextEvictorEntry* entry = new CacheFileContextEvictorEntry();
     entry->mInfo = info;
     entry->mPinned = pinned;
     CopyUTF8toUTF16(origin, entry->mOrigin);
-    CopyUTF8toUTF16(baseDomain, entry->mBaseDomain);
     entry->mTimeStamp = lastModifiedTime;
-    mEntries.AppendElement(std::move(entry));
+    mEntries.AppendElement(entry);
   }
 
   return NS_OK;
@@ -456,9 +439,7 @@ nsresult CacheFileContextEvictor::LoadEvictInfoFromDisk() {
 
 nsresult CacheFileContextEvictor::GetContextFile(
     nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-    const nsAString& aOrigin, const nsAString& aBaseDomain, nsIFile** _retval) {
-  MOZ_ASSERT(aOrigin.IsEmpty() || aBaseDomain.IsEmpty(),
-             "Cannot specify both origin and base domain");
+    const nsAString& aOrigin, nsIFile** _retval) {
   nsresult rv;
 
   nsAutoCString keyPrefix;
@@ -472,14 +453,9 @@ nsresult CacheFileContextEvictor::GetContextFile(
   } else {
     keyPrefix.Append('*');
   }
-
   if (!aOrigin.IsEmpty()) {
     keyPrefix.Append('\t');
     keyPrefix.Append(NS_ConvertUTF16toUTF8(aOrigin));
-  } else if (!aBaseDomain.IsEmpty()) {
-    keyPrefix.Append('\t');
-    keyPrefix.AppendLiteral("s:");  // Prefix to identify base domain entries
-    keyPrefix.Append(NS_ConvertUTF16toUTF8(aBaseDomain));
   }
 
   nsAutoCString leafName;
@@ -590,10 +566,6 @@ void CacheFileContextEvictor::EvictEntries() {
     return;
   }
 
-  nsCOMPtr<nsIEffectiveTLDService> tldService =
-      mozilla::components::EffectiveTLD::Service();
-  MOZ_ASSERT(tldService);
-
   while (true) {
     if (CacheObserver::ShuttingDown()) {
       LOG(
@@ -632,7 +604,7 @@ void CacheFileContextEvictor::EvictEntries() {
            "iterator. [iterator=%p, info=%p]",
            mEntries[0]->mIterator.get(), mEntries[0]->mInfo.get()));
       RemoveEvictInfoFromDisk(mEntries[0]->mInfo, mEntries[0]->mPinned,
-                              mEntries[0]->mOrigin, mEntries[0]->mBaseDomain);
+                              mEntries[0]->mOrigin);
       mEntries.RemoveElementAt(0);
       continue;
     }
@@ -684,10 +656,7 @@ void CacheFileContextEvictor::EvictEntries() {
       continue;
     }
 
-    // Check whether we must filter by either base domain or by origin.
-    if (!mEntries[0]->mBaseDomain.IsEmpty() ||
-        !mEntries[0]->mOrigin.IsEmpty()) {
-      // Get and read metadata for the entry
+    if (!mEntries[0]->mOrigin.IsEmpty()) {
       nsCOMPtr<nsIFile> file;
       CacheFileIOManager::gInstance->GetFile(&hash, getter_AddRefs(file));
 
@@ -707,87 +676,30 @@ void CacheFileContextEvictor::EvictEntries() {
         continue;
       }
 
-      // Create URI from spec
       nsCOMPtr<nsIURI> uri;
       rv = NS_NewURI(getter_AddRefs(uri), uriSpec);
       if (NS_FAILED(rv)) {
         LOG(
             ("CacheFileContextEvictor::EvictEntries() - Skipping entry since "
-             "NS_NewURI failed"));
+             "NS_NewURI failed to parse the uriSpec"));
         continue;
       }
 
-      if (!mEntries[0]->mBaseDomain.IsEmpty()) {
-        if (!tldService) {
-          LOG(
-              ("CacheFileContextEvictor::EvictEntries() - Failed to get TLD "
-               "service, skipping entry"));
-          continue;
-        }
-
-        // 1. Check base domain match of the uri
-        nsAutoCString host;
-        rv = uri->GetHost(host);
-        if (NS_FAILED(rv) || host.IsEmpty()) {
-          LOG(
-              ("CacheFileContextEvictor::EvictEntries() - Failed to get host, "
-               "skipping entry"));
-          continue;
-        }
-
-        nsAutoCString baseDomainUTF8 =
-            NS_ConvertUTF16toUTF8(mEntries[0]->mBaseDomain);
-        bool hasRootDomain = false;
-        rv = tldService->HasRootDomain(host, baseDomainUTF8, &hasRootDomain);
-        if (NS_FAILED(rv)) {
-          LOG(
-              ("CacheFileContextEvictor::EvictEntries() - Failed to check root "
-               "domain, skipping entry"));
-          continue;
-        }
-
-        if (!hasRootDomain) {
-          MOZ_ASSERT(info && info->OriginAttributesPtr());
-
-          // 2. If the entry's URI does not match, also check the partitionKey
-          //    to also clear cache entries partitioned under base domain.
-          dom::PartitionKeyPatternDictionary partitionKeyPattern;
-          partitionKeyPattern.mBaseDomain.Construct(mEntries[0]->mBaseDomain);
-          OriginAttributesPattern originAttributesPattern;
-          originAttributesPattern.mPartitionKeyPattern.Construct(
-              partitionKeyPattern);
-
-          if (!originAttributesPattern.Matches(*info->OriginAttributesPtr())) {
-            LOG(
-                ("CacheFileContextEvictor::EvictEntries() - Skipping entry "
-                 "since "
-                 "base domain does not match"));
-            continue;
-          }
-        }
-
+      nsAutoString urlOrigin;
+      rv = nsContentUtils::GetWebExposedOriginSerialization(uri, urlOrigin);
+      if (NS_FAILED(rv)) {
         LOG(
-            ("CacheFileContextEvictor::EvictEntries() - Entry matches base "
-             "domain [spec=%s, baseDomain=%s]",
-             uriSpec.get(), baseDomainUTF8.get()));
-      } else {
-        // Check origin match
-        nsAutoString urlOrigin;
-        rv = nsContentUtils::GetWebExposedOriginSerialization(uri, urlOrigin);
-        if (NS_FAILED(rv)) {
-          LOG(
-              ("CacheFileContextEvictor::EvictEntries() - Skipping entry since "
-               "We failed to extract an origin"));
-          continue;
-        }
+            ("CacheFileContextEvictor::EvictEntries() - Skipping entry since "
+             "We failed to extract an origin"));
+        continue;
+      }
 
-        if (!urlOrigin.Equals(mEntries[0]->mOrigin)) {
-          LOG(
-              ("CacheFileContextEvictor::EvictEntries() - Skipping entry since "
-               "origin "
-               "doesn't match"));
-          continue;
-        }
+      if (!urlOrigin.Equals(mEntries[0]->mOrigin)) {
+        LOG(
+            ("CacheFileContextEvictor::EvictEntries() - Skipping entry since "
+             "origin "
+             "doesn't match"));
+        continue;
       }
     }
 
