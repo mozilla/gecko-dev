@@ -765,7 +765,7 @@ add_task(async function test_enrollInFirefoxLabsOptInRecipe() {
     "Should not call the enroll function when no recipe is returned"
   );
 
-  manager.unenroll(optInRecipes[0].slug);
+  ExperimentAPI.unenrollFromFirefoxLabsOptIn(optInRecipes[0].slug);
   await assertEmptyStore(manager.store);
 
   sandbox.restore();
@@ -813,7 +813,7 @@ add_task(async function test_reenroll_firefoxLabsOptIn() {
 
   Assert.ok(manager.store.get(SLUG)?.active, `Active enrollment for ${SLUG}`);
 
-  manager.unenroll(SLUG);
+  ExperimentAPI.unenrollFromFirefoxLabsOptIn(SLUG);
   Assert.ok(
     manager.store.get(SLUG)?.active === false,
     `Inactive enrollment for ${SLUG}`
@@ -823,4 +823,94 @@ add_task(async function test_reenroll_firefoxLabsOptIn() {
   Assert.ok(manager.store.get(SLUG)?.active, `Active enrollment for ${SLUG}`);
 
   sandbox.restore();
+});
+
+/**
+ * #enrollInFirefoxLabsOptInRecipe
+ */
+add_task(async function test_unenrollFromFirefoxLabsOptIn() {
+  const sandbox = sinon.createSandbox();
+
+  const loader = ExperimentFakes.rsLoader();
+  const manager = loader.manager;
+
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(ExperimentAPI, "_rsLoader").get(() => loader);
+  sandbox.stub(loader.remoteSettingsClients.experiments, "get").resolves([
+    ExperimentFakes.recipe("rollout", {
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+      isRollout: true,
+      branches: [
+        {
+          slug: "control",
+          ratio: 1,
+          features: [
+            {
+              featureId: "nimbus-qa-1",
+              value: {},
+            },
+          ],
+        },
+      ],
+    }),
+    ExperimentFakes.recipe("opt-in", {
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+      isRollout: true,
+      branches: [
+        {
+          slug: "control",
+          ratio: 1,
+          features: [
+            {
+              featureId: "nimbus-qa-2",
+              value: {},
+            },
+          ],
+        },
+      ],
+      isFirefoxLabsOptIn: true,
+      firefoxLabsTitle: "title",
+      firefoxLabsDescription: "description",
+      firefoxLabsDescriptionLinks: null,
+      firefoxLabsGroup: "group",
+      requiresRestart: false,
+    }),
+  ]);
+
+  await ExperimentAPI.init();
+  await ExperimentAPI.ready();
+
+  Assert.ok(manager.store.get("rollout")?.active, "Enrolled in rollout");
+  Assert.ok(
+    typeof manager.store.get("opt-in") === "undefined",
+    "Did not enroll in rollout"
+  );
+
+  await ExperimentAPI.enrollInFirefoxLabsOptInRecipe("opt-in", "control");
+
+  Assert.ok(manager.store.get("opt-in")?.active, "Enrolled in opt-in");
+
+  // Should not throw.
+  ExperimentAPI.unenrollFromFirefoxLabsOptIn("bogus");
+
+  // Should not throw.
+  ExperimentAPI.unenrollFromFirefoxLabsOptIn("rollout");
+  Assert.ok(
+    manager.store.get("rollout").active,
+    "Enrolled in rollout after attempting to unenroll with incorrect API"
+  );
+
+  ExperimentAPI.unenrollFromFirefoxLabsOptIn("opt-in");
+  Assert.ok(!manager.store.get("opt-in").active, "Unenrolled from opt-in");
+
+  // Should not throw.
+  ExperimentAPI.unenrollFromFirefoxLabsOptIn("opt-in");
+
+  ExperimentAPI._resetForTests();
 });
