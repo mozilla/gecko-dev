@@ -18,6 +18,7 @@ class GleanUsageReporting : GleanUsageReportingApi {
 
     override fun setEnabled(enabled: Boolean) {
         Pings.usageReporting.setEnabled(enabled)
+        Pings.usageDeletionRequest.setEnabled(true)
     }
 
     override fun setDuration(durationMillis: Long) {
