@@ -226,6 +226,9 @@ class nsAHttpTransaction : public nsSupportsWeakReference {
                                       const nsACString& aCname) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
+  virtual bool IsForWebTransport() { return false; }
+  virtual bool IsResettingForTunnelConn() { return false; }
+  virtual void SetResettingForTunnelConn(bool aValue) {}
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpTransaction, NS_AHTTPTRANSACTION_IID)

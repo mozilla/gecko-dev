@@ -194,7 +194,7 @@ class nsHttpConnection final : public HttpConnectionBase,
 
   nsresult CreateTunnelStream(nsAHttpTransaction* httpTransaction,
                               nsHttpConnection** aHttpConnection,
-                              bool aIsWebSocket = false);
+                              bool aIsExtendedCONNECT = false);
 
   bool RequestDone() { return mRequestDone; }
 
@@ -217,7 +217,8 @@ class nsHttpConnection final : public HttpConnectionBase,
   void HandleWebSocketResponse(nsHttpRequestHead* requestHead,
                                nsHttpResponseHead* responseHead,
                                uint16_t responseStatus);
-  void ResetTransaction(RefPtr<nsAHttpTransaction>&& trans);
+  void ResetTransaction(RefPtr<nsAHttpTransaction>&& trans,
+                        bool aForH2Proxy = false);
 
   // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
   enum TCPKeepaliveConfig {
@@ -324,7 +325,7 @@ class nsHttpConnection final : public HttpConnectionBase,
   SpdyVersion mUsingSpdyVersion{SpdyVersion::NONE};
 
   RefPtr<ASpdySession> mSpdySession;
-  RefPtr<ASpdySession> mWebSocketHttp2Session;
+  RefPtr<ASpdySession> mExtendedCONNECTHttp2Session;
   int32_t mPriority{nsISupportsPriority::PRIORITY_NORMAL};
   bool mReportedSpdy{false};
 
