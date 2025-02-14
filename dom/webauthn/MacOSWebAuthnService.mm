@@ -427,7 +427,7 @@ nsTArray<uint8_t> NSDataToArray(NSData* data) {
   } else if (error.domain == ASAuthorizationErrorDomain) {
     switch (error.code) {
       case ASAuthorizationErrorCanceled:
-        rv = NS_ERROR_DOM_ABORT_ERR;
+        rv = NS_ERROR_DOM_NOT_ALLOWED_ERR;
         break;
       case ASAuthorizationErrorFailed:
         // The message is right, but it's not about indexeddb.
