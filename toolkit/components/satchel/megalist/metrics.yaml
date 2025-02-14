@@ -48,3 +48,30 @@ contextual_manager:
         description: >
           The action selected from the toolbar
         type: string
+
+  records_interaction:
+    type: event
+    description: >
+      Client interacts with existing CM tile
+      Possible interaction types include:
+        "url_navigate": When the origin field is clicked
+        "copy_username": When the username field is clicked
+        "copy_password": When the password field is clicked
+        "view_password": When the reveal password button is clicked
+        "hide_password": When the hide password button is clicked
+        "edit": When the edit button is clicked
+        "view_alert": When the "View alert" button is clicked
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    notification_emails:
+      - passwords-dev@mozilla.org
+      - issozi@mozilla.com
+      - tthorne@mozilla.com
+    expires: never
+    extra_keys:
+      interaction_type:
+        description: >
+          The type of user interaction with the CM record tile
+        type: string
