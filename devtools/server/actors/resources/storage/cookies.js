@@ -573,22 +573,10 @@ class CookiesStorageActor extends BaseStorageActor {
         "";
     }
 
-    const trimmedHost = trimHttpHttpsPort(host);
-
-    function hostMatches(cookieHost, matchHost) {
-      if (cookieHost == null) {
-        return matchHost == null;
-      }
-      if (cookieHost.startsWith(".")) {
-        return ("." + matchHost).endsWith(cookieHost);
-      }
-      return cookieHost == trimmedHost;
-    }
-
     const cookies = this.getCookiesFromHost(host);
     for (const cookie of cookies) {
       if (
-        hostMatches(cookie.host, host) &&
+        this.isCookieAtHost(cookie, host) &&
         (!opts.name || cookie.name === opts.name) &&
         (!opts.domain || cookie.host === opts.domain) &&
         (!opts.path || cookie.path === opts.path) &&
