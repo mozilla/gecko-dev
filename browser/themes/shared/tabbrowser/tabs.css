@@ -128,9 +128,9 @@
     min-height: var(--tabstrip-min-height);
 
     --tab-min-width: 76px;
-    :root[uidensity="touch"] & {
+    :root[uidensity="touch"] & .tabbrowser-tab {
       /* Touch mode needs additional space for the close button. */
-      --tab-min-width: 86px;
+      min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 86px);
     }
 
     &[positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
@@ -197,7 +197,7 @@
   &:not([pinned]) {
     flex: 100 100;
     max-width: 225px;
-    min-width: var(--tab-min-width);
+    min-width: var(--tab-min-width-pref, var(--tab-min-width));
     transition: min-width 100ms ease-out,
                 max-width 100ms ease-out;
   }
@@ -235,7 +235,7 @@
     --tab-icon-end-margin: 2px;
 
     #tabbrowser-tabs[orient=horizontal] &:not([pinned]) {
-      --tab-min-width: 100px;
+      min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 100px);
     }
   }
 }

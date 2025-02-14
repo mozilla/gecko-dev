@@ -1676,15 +1676,10 @@
     }
 
     #updateTabMinWidth(val) {
-      const minWidthVariable = "--tab-min-width";
-      if (this.verticalMode) {
-        this.style.removeProperty(minWidthVariable);
-      } else {
-        this.style.setProperty(
-          minWidthVariable,
-          (val ?? this._tabMinWidthPref) + "px"
-        );
-      }
+      this.style.setProperty(
+        "--tab-min-width-pref",
+        (val ?? this._tabMinWidthPref) + "px"
+      );
     }
 
     #updateTabMinHeight() {
