@@ -53,9 +53,8 @@ async function installAddon(file, temporary, allowPrivateBrowsing) {
       }
     }
   } catch (e) {
-    throw new lazy.error.UnknownError(
-      `Could not install add-on: ${e.message}`,
-      e
+    throw new lazy.error.InvalidWebExtensionError(
+      `Could not install Add-on: ${e.message}`
     );
   }
 
