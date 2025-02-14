@@ -339,6 +339,7 @@ class OnboardingFragment : Fragment() {
             requireComponents.core.client,
         )
         if (!settings.isTelemetryEnabled) {
+            Pings.onboardingOptOut.setEnabled(true)
             Pings.onboardingOptOut.submit()
         }
 
