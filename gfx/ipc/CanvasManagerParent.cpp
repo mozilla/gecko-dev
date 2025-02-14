@@ -221,13 +221,15 @@ mozilla::ipc::IPCResult CanvasManagerParent::RecvGetSnapshot(
       if (aCommandEncoderId.isNothing()) {
         return IPC_FAIL(this, "invalid CommandEncoderId");
       }
+      uint32_t stride = 0;
       mozilla::ipc::IPCResult rv = webgpu->GetFrontBufferSnapshot(
-          this, *aOwnerId, *aCommandEncoderId, buffer.shmem, size);
+          this, *aOwnerId, *aCommandEncoderId, buffer.shmem, size, stride);
       if (!rv) {
         return rv;
       }
       buffer.surfSize.x = static_cast<uint32_t>(size.width);
       buffer.surfSize.y = static_cast<uint32_t>(size.height);
+      buffer.byteStride = stride;
     } break;
     default:
       return IPC_FAIL(this, "unsupported protocol");

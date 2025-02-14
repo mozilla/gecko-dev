@@ -894,6 +894,7 @@ struct GetUniformData final {
 
 struct FrontBufferSnapshotIpc final {
   uvec2 surfSize = {};
+  size_t byteStride = 0;
   Maybe<mozilla::ipc::Shmem> shmem = {};
 };
 

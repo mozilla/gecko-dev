@@ -147,6 +147,7 @@ IPCResult WebGLParent::GetFrontBufferSnapshot(
     if (maybeSize) {
       const auto& surfSize = *maybeSize;
       const auto byteSize = 4 * surfSize.x * surfSize.y;
+      const auto byteStride = 4 * surfSize.x;
 
       auto shmem = webgl::RaiiShmem::Alloc(aProtocol, byteSize);
       if (!shmem) {
@@ -154,7 +155,7 @@ IPCResult WebGLParent::GetFrontBufferSnapshot(
         return false;
       }
       const auto range = shmem.ByteRange();
-      *ret = {surfSize, Some(shmem.Extract())};
+      *ret = {surfSize, byteStride, Some(shmem.Extract())};
 
       if (!mHost->FrontBufferSnapshotInto(Some(range))) {
         gfxCriticalNote << "WebGLParent::RecvGetFrontBufferSnapshot: "

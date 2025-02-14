@@ -135,8 +135,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   ipc::IPCResult GetFrontBufferSnapshot(
       IProtocol* aProtocol, const layers::RemoteTextureOwnerId& aOwnerId,
-      const RawId& aCommandEncoderId, Maybe<Shmem>& aShmem,
-      gfx::IntSize& aSize);
+      const RawId& aCommandEncoderId, Maybe<Shmem>& aShmem, gfx::IntSize& aSize,
+      uint32_t& aByteStride);
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 

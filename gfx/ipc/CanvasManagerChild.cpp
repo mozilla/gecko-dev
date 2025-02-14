@@ -255,7 +255,7 @@ already_AddRefed<DataSourceSurface> CanvasManagerChild::GetSnapshot(
   }
 
   IntSize size(res.surfSize.x, res.surfSize.y);
-  CheckedInt32 stride = CheckedInt32(size.width) * sizeof(uint32_t);
+  CheckedInt32 stride = CheckedInt32(res.byteStride);
   if (!stride.isValid()) {
     return nullptr;
   }

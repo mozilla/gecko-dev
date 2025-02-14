@@ -1247,7 +1247,8 @@ static void ReadbackSnapshotCallback(uint8_t* userdata,
 
 ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
     IProtocol* aProtocol, const layers::RemoteTextureOwnerId& aOwnerId,
-    const RawId& aCommandEncoderId, Maybe<Shmem>& aShmem, gfx::IntSize& aSize) {
+    const RawId& aCommandEncoderId, Maybe<Shmem>& aShmem, gfx::IntSize& aSize,
+    uint32_t& aByteStride) {
   const auto& lookup = mPresentationDataMap.find(aOwnerId);
   if (lookup == mPresentationDataMap.end()) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
@@ -1259,6 +1260,7 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
   aSize = data->mDesc.size();
   uint32_t stride = layers::ImageDataSerializer::ComputeRGBStride(
       data->mDesc.format(), aSize.width);
+  aByteStride = stride;
   uint32_t len = data->mDesc.size().height * stride;
   Shmem shmem;
   if (!AllocShmem(len, &shmem)) {
