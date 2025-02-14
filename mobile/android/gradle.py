@@ -24,43 +24,29 @@ def gradle_lock(topobjdir, max_wait_seconds=600):
         yield
 
 
-def android(verb, *args):
+def main(dummy_output_file, *args):
     env = dict(os.environ)
-    should_print_status = env.get("MACH") and not env.get("NO_BUILDSTATUS_MESSAGES")
-    if should_print_status:
-        print("BUILDSTATUS " + str(time.time()) + " START_GradleAcquireLock " + verb)
     import buildconfig
 
-    with gradle_lock(buildconfig.topobjdir):
-        if should_print_status:
-            print("BUILDSTATUS " + str(time.time()) + " END_GradleAcquireLock " + verb)
+    cmd = [
+        sys.executable,
+        mozpath.join(buildconfig.topsrcdir, "mach"),
+        "android",
+        "export",
+    ]
+    cmd.extend(args)
+    # Confusingly, `MACH` is set only within `mach build`.
+    if env.get("MACH"):
+        env["GRADLE_INVOKED_WITHIN_MACH_BUILD"] = "1"
+    if env.get("LD_LIBRARY_PATH"):
+        del env["LD_LIBRARY_PATH"]
 
-        cmd = [
-            sys.executable,
-            mozpath.join(buildconfig.topsrcdir, "mach"),
-            "android",
-            verb,
-        ]
-        cmd.extend(args)
-        # Confusingly, `MACH` is set only within `mach build`.
-        if env.get("MACH"):
-            env["GRADLE_INVOKED_WITHIN_MACH_BUILD"] = "1"
-        if env.get("LD_LIBRARY_PATH"):
-            del env["LD_LIBRARY_PATH"]
+    should_print_status = env.get("MACH") and not env.get("NO_BUILDSTATUS_MESSAGES")
+    if should_print_status:
+        print("BUILDSTATUS " + str(time.time()) + " START_Gradle export")
 
-        if should_print_status:
-            print("BUILDSTATUS " + str(time.time()) + " START_Gradle " + verb)
-
-        subprocess.check_call(cmd, env=env)
+    subprocess.check_call(cmd, env=env)
 
     if should_print_status:
-        print("BUILDSTATUS " + str(time.time()) + " END_Gradle " + verb)
+        print("BUILDSTATUS " + str(time.time()) + " END_Gradle export")
     return 0
-
-
-def generate_sdk_bindings(dummy_output_file, *args):
-    return android("generate-sdk-bindings", *args)
-
-
-def generate_generated_jni_wrappers(dummy_output_file, *args):
-    return android("generate-generated-jni-wrappers", *args)

@@ -48,8 +48,8 @@ def android(command_context):
 
 @SubCommand(
     "android",
-    "generate-sdk-bindings",
-    """Generate SDK bindings used when building GeckoView.""",
+    "export",
+    """Generate SDK bindings and GeckoView JNI wrappers used when building GeckoView.""",
 )
 @CommandArgument(
     "inputs",
@@ -57,7 +57,7 @@ def android(command_context):
     help="config files, like [/path/to/ClassName-classes.txt]+",
 )
 @CommandArgument("args", nargs=argparse.REMAINDER)
-def android_generate_sdk_bindings(command_context, inputs, args):
+def export(command_context, inputs, args):
     import itertools
 
     def stem(input):
@@ -69,25 +69,9 @@ def android_generate_sdk_bindings(command_context, inputs, args):
 
     ret = gradle(
         command_context,
-        command_context.substs["GRADLE_ANDROID_GENERATE_SDK_BINDINGS_TASKS"]
-        + [bindings_args]
-        + args,
-        verbose=True,
-    )
-
-    return ret
-
-
-@SubCommand(
-    "android",
-    "generate-generated-jni-wrappers",
-    """Generate GeckoView JNI wrappers used when building GeckoView.""",
-)
-@CommandArgument("args", nargs=argparse.REMAINDER)
-def android_generate_generated_jni_wrappers(command_context, args):
-    ret = gradle(
-        command_context,
         command_context.substs["GRADLE_ANDROID_GENERATE_GENERATED_JNI_WRAPPERS_TASKS"]
+        + command_context.substs["GRADLE_ANDROID_GENERATE_SDK_BINDINGS_TASKS"]
+        + [bindings_args]
         + args,
         verbose=True,
     )

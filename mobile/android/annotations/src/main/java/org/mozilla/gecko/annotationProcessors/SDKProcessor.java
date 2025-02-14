@@ -540,6 +540,8 @@ public class SDKProcessor {
       StringBuilder aHeaderFile,
       StringBuilder aImplementationFile) {
     FileOutputStream implStream = null;
+    File f = new File(aOutputDir);
+    f.mkdirs(); // Shouldn't throw.  If it fails, we'll error out just below.
     try {
       implStream = new FileOutputStream(new File(aOutputDir, aPrefix + ".cpp"));
       implStream.write(aImplementationFile.toString().getBytes());
