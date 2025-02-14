@@ -1449,7 +1449,7 @@ bool SMRegExpMacroAssembler::GrowBacktrackStack(RegExpStack* regexp_stack) {
 bool SMRegExpMacroAssembler::CanReadUnaligned() const {
 #if defined(JS_CODEGEN_ARM)
   return !js::jit::ARMFlags::HasAlignmentFault();
-#elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
+#elif defined(JS_CODEGEN_MIPS64)
   return false;
 #else
   return true;

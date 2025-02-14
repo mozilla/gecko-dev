@@ -1221,7 +1221,7 @@ static void TraceIonICCallFrame(JSTracer* trc, const JSJitFrameIter& frame) {
   }
 }
 
-#if defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_MIPS32)
+#if defined(JS_CODEGEN_ARM64)
 uint8_t* alignDoubleSpill(uint8_t* pointer) {
   uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
   address &= ~(uintptr_t(ABIStackAlignment) - 1);
@@ -1229,35 +1229,11 @@ uint8_t* alignDoubleSpill(uint8_t* pointer) {
 }
 #endif
 
-#ifdef JS_CODEGEN_MIPS32
-static void TraceJitExitFrameCopiedArguments(JSTracer* trc,
-                                             const VMFunctionData* f,
-                                             ExitFooterFrame* footer) {
-  uint8_t* doubleArgs = footer->alignedForABI();
-  if (f->outParam == Type_Handle) {
-    doubleArgs -= sizeof(Value);
-  }
-  doubleArgs -= f->doubleByRefArgs() * sizeof(double);
-
-  for (uint32_t explicitArg = 0; explicitArg < f->explicitArgs; explicitArg++) {
-    if (f->argProperties(explicitArg) == VMFunctionData::DoubleByRef) {
-      // Arguments with double size can only have RootValue type.
-      if (f->argRootType(explicitArg) == VMFunctionData::RootValue) {
-        TraceRoot(trc, reinterpret_cast<Value*>(doubleArgs), "ion-vm-args");
-      } else {
-        MOZ_ASSERT(f->argRootType(explicitArg) == VMFunctionData::RootNone);
-      }
-      doubleArgs += sizeof(double);
-    }
-  }
-}
-#else
 static void TraceJitExitFrameCopiedArguments(JSTracer* trc,
                                              const VMFunctionData* f,
                                              ExitFooterFrame* footer) {
   // This is NO-OP on other platforms.
 }
-#endif
 
 static void TraceJitExitFrame(JSTracer* trc, const JSJitFrameIter& frame) {
   ExitFooterFrame* footer = frame.exitFrame()->footer();

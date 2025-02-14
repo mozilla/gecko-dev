@@ -7,13 +7,8 @@
 #ifndef jit_mips_shared_MacroAssembler_mips_shared_h
 #define jit_mips_shared_MacroAssembler_mips_shared_h
 
-#if defined(JS_CODEGEN_MIPS32)
-#  include "jit/mips32/Assembler-mips32.h"
-#elif defined(JS_CODEGEN_MIPS64)
-#  include "jit/mips64/Assembler-mips64.h"
-#endif
-
 #include "jit/AtomicOp.h"
+#include "jit/mips64/Assembler-mips64.h"
 
 namespace js {
 namespace jit {

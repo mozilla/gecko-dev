@@ -1,6 +1,6 @@
 if (getBuildConfiguration("debug") &&
     (getBuildConfiguration("arm-simulator") || getBuildConfiguration("arm64-simulator") ||
-     getBuildConfiguration("mips32-simulator") || getBuildConfiguration("mips64-simulator")))
+     getBuildConfiguration("mips64-simulator")))
 {
     // Will timeout, so just quit early.
     quit(0);

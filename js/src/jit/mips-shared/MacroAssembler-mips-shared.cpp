@@ -1973,10 +1973,6 @@ void MacroAssemblerMIPSShared::outOfLineWasmTruncateToInt64Check(
   bool isSaturating = flags & TRUNC_SATURATING;
 
   if (isSaturating) {
-#if defined(JS_CODEGEN_MIPS32)
-    // Saturating callouts don't use ool path.
-    return;
-#else
     Register output = output_.reg;
 
     if (fromType == MIRType::Double) {
@@ -2022,7 +2018,6 @@ void MacroAssemblerMIPSShared::outOfLineWasmTruncateToInt64Check(
     MOZ_ASSERT(rejoin->bound());
     asMasm().jump(rejoin);
     return;
-#endif
   }
 
   Label inputIsNaN;
@@ -2033,24 +2028,6 @@ void MacroAssemblerMIPSShared::outOfLineWasmTruncateToInt64Check(
   } else if (fromType == MIRType::Float32) {
     asMasm().branchFloat(Assembler::DoubleUnordered, input, input, &inputIsNaN);
   }
-
-#if defined(JS_CODEGEN_MIPS32)
-
-  // Only possible valid input that produces INT64_MIN result.
-  double validInput =
-      isUnsigned ? double(uint64_t(INT64_MIN)) : double(int64_t(INT64_MIN));
-
-  if (fromType == MIRType::Double) {
-    asMasm().loadConstantDouble(validInput, ScratchDoubleReg);
-    asMasm().branchDouble(Assembler::DoubleEqual, input, ScratchDoubleReg,
-                          rejoin);
-  } else {
-    asMasm().loadConstantFloat32(float(validInput), ScratchFloat32Reg);
-    asMasm().branchFloat(Assembler::DoubleEqual, input, ScratchDoubleReg,
-                         rejoin);
-  }
-
-#endif
 
   asMasm().wasmTrap(wasm::Trap::IntegerOverflow, trapSiteDesc);
   asMasm().bind(&inputIsNaN);

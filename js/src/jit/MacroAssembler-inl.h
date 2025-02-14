@@ -35,8 +35,6 @@
 #  include "jit/arm/MacroAssembler-arm-inl.h"
 #elif defined(JS_CODEGEN_ARM64)
 #  include "jit/arm64/MacroAssembler-arm64-inl.h"
-#elif defined(JS_CODEGEN_MIPS32)
-#  include "jit/mips32/MacroAssembler-mips32-inl.h"
 #elif defined(JS_CODEGEN_MIPS64)
 #  include "jit/mips64/MacroAssembler-mips64-inl.h"
 #elif defined(JS_CODEGEN_LOONG64)

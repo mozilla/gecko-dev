@@ -26,10 +26,6 @@
 #  error "This file only for gcc-compatible compilers"
 #endif
 
-#if defined(JS_SIMULATOR_MIPS32) && !defined(__i386__)
-#  error "The MIPS32 simulator atomics assume x86"
-#endif
-
 namespace js {
 namespace jit {
 

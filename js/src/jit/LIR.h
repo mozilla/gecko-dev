@@ -578,7 +578,7 @@ class LDefinition {
     return !isFloatReg() && !r.isFloat();
   }
   bool isCompatibleDef(const LDefinition& other) const {
-#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_MIPS32)
+#if defined(JS_CODEGEN_ARM)
     if (isFloatReg() && other.isFloatReg()) {
       return type() == other.type();
     }
@@ -2050,13 +2050,9 @@ AnyRegister LAllocation::toRegister() const {
 #  include "jit/loong64/LIR-loong64.h"
 #elif defined(JS_CODEGEN_RISCV64)
 #  include "jit/riscv64/LIR-riscv64.h"
-#elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
-#  if defined(JS_CODEGEN_MIPS32)
-#    include "jit/mips32/LIR-mips32.h"
-#  elif defined(JS_CODEGEN_MIPS64)
-#    include "jit/mips64/LIR-mips64.h"
-#  endif
+#elif defined(JS_CODEGEN_MIPS64)
 #  include "jit/mips-shared/LIR-mips-shared.h"
+#  include "jit/mips64/LIR-mips64.h"
 #elif defined(JS_CODEGEN_WASM32)
 #  include "jit/wasm32/LIR-wasm32.h"
 #elif defined(JS_CODEGEN_NONE)

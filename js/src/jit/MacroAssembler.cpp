@@ -4775,14 +4775,6 @@ void MacroAssembler::setupABICallHelper() {
   // On ARM, we need to know what ABI we are using.
   abiArgs_.setUseHardFp(ARMFlags::UseHardFpABI());
 #endif
-
-#if defined(JS_CODEGEN_MIPS32)
-  // On MIPS, the system ABI use general registers pairs to encode double
-  // arguments, after one or 2 integer-like arguments. Unfortunately, the
-  // Lowering phase is not capable to express it at the moment. So we enforce
-  // the system ABI here.
-  abiArgs_.enforceO32ABI();
-#endif
 }
 
 void MacroAssembler::setupNativeABICall() {
@@ -7845,8 +7837,6 @@ void MacroAssembler::emitPreBarrierFastPath(JSRuntime* rt, MIRType type,
   ma_lsl(temp3, temp1, temp1);
 #elif JS_CODEGEN_ARM64
   Lsl(ARMRegister(temp1, 64), ARMRegister(temp1, 64), ARMRegister(temp3, 64));
-#elif JS_CODEGEN_MIPS32
-  ma_sll(temp1, temp1, temp3);
 #elif JS_CODEGEN_MIPS64
   ma_dsll(temp1, temp1, temp3);
 #elif JS_CODEGEN_LOONG64

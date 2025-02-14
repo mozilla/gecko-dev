@@ -78,28 +78,6 @@ void LIRGeneratorMIPSShared::lowerForMulInt64(LMulI64* ins, MMul* mir,
   bool cannotAliasRhs = false;
   bool reuseInput = true;
 
-#ifdef JS_CODEGEN_MIPS32
-  needsTemp = true;
-  cannotAliasRhs = true;
-  // See the documentation on willHaveDifferentLIRNodes; that test does not
-  // allow additional constraints.
-  MOZ_CRASH(
-      "cannotAliasRhs cannot be used the way it is used in the guard below");
-  if (rhs->isConstant()) {
-    int64_t constant = rhs->toConstant()->toInt64();
-    int32_t shift = mozilla::FloorLog2(constant);
-    // See special cases in CodeGeneratorMIPSShared::visitMulI64
-    if (constant >= -1 && constant <= 2) {
-      needsTemp = false;
-    }
-    if (int64_t(1) << shift == constant) {
-      needsTemp = false;
-    }
-    if (mozilla::IsPowerOfTwo(static_cast<uint32_t>(constant + 1)) ||
-        mozilla::IsPowerOfTwo(static_cast<uint32_t>(constant - 1)))
-      reuseInput = false;
-  }
-#endif
   ins->setLhs(useInt64RegisterAtStart(lhs));
   ins->setRhs((willHaveDifferentLIRNodes(lhs, rhs) || cannotAliasRhs)
                   ? useInt64OrConstant(rhs)
@@ -124,18 +102,9 @@ void LIRGeneratorMIPSShared::lowerForShiftInt64(LInstr* ins, MDefinition* mir,
     ins->setRhs(useRegisterOrConstant(rhs));
     defineInt64ReuseInput(ins, mir, LShiftI64::LhsIndex);
   } else {
-#ifdef JS_CODEGEN_MIPS32
-    if (!rhs->isConstant()) {
-      ins->setTemp0(temp());
-    }
-    ins->setInput(useInt64Register(lhs));
-    ins->setCount(useRegisterOrConstant(rhs));
-    defineInt64(ins, mir);
-#else
     ins->setInput(useInt64RegisterAtStart(lhs));
     ins->setCount(useRegisterOrConstant(rhs));
     defineInt64ReuseInput(ins, mir, LRotateI64::InputIndex);
-#endif
   }
 }
 
@@ -403,26 +372,7 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
       ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
                            : LGeneralReg(HeapReg);
 
-  LAllocation ptr;
-#ifdef JS_CODEGEN_MIPS32
-  if (ins->type() == MIRType::Int64) {
-    ptr = useRegister(base);
-  } else {
-    ptr = useRegisterAtStart(base);
-  }
-#else
-  ptr = useRegisterAtStart(base);
-#endif
-
-#ifdef JS_CODEGEN_MIPS32
-  if (ins->access().type() == Scalar::Int64 && ins->access().isAtomic()) {
-    MOZ_ASSERT(!IsUnaligned(ins->access()));
-
-    auto* lir = new (alloc()) LWasmAtomicLoadI64(ptr);
-    defineInt64(lir, ins);
-    return;
-  }
-#endif
+  LAllocation ptr = useRegisterAtStart(base);
 
   LDefinition ptrCopy = LDefinition::BogusTemp();
   if (ins->access().offset32()) {
@@ -462,17 +412,6 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   LAllocation memoryBase =
       ins->hasMemoryBase() ? LAllocation(useRegisterAtStart(ins->memoryBase()))
                            : LGeneralReg(HeapReg);
-
-#ifdef JS_CODEGEN_MIPS32
-  if (ins->access().type() == Scalar::Int64 && ins->access().isAtomic()) {
-    MOZ_ASSERT(!IsUnaligned(ins->access()));
-
-    auto* lir = new (alloc())
-        LWasmAtomicStoreI64(useRegister(base), useInt64Register(value), temp());
-    add(lir, ins);
-    return;
-  }
-#endif
 
   LAllocation baseAlloc = useRegisterAtStart(base);
 

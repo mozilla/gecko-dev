@@ -23,8 +23,6 @@
 #  include "jit/arm/MacroAssembler-arm.h"
 #elif defined(JS_CODEGEN_ARM64)
 #  include "jit/arm64/MacroAssembler-arm64.h"
-#elif defined(JS_CODEGEN_MIPS32)
-#  include "jit/mips32/MacroAssembler-mips32.h"
 #elif defined(JS_CODEGEN_MIPS64)
 #  include "jit/mips64/MacroAssembler-mips64.h"
 #elif defined(JS_CODEGEN_LOONG64)
@@ -169,11 +167,6 @@
 #elif defined(JS_CODEGEN_ARM64)
 #  undef DEFINED_ON_arm64
 #  define DEFINED_ON_arm64 define
-#elif defined(JS_CODEGEN_MIPS32)
-#  undef DEFINED_ON_mips32
-#  define DEFINED_ON_mips32 define
-#  undef DEFINED_ON_mips_shared
-#  define DEFINED_ON_mips_shared define
 #elif defined(JS_CODEGEN_MIPS64)
 #  undef DEFINED_ON_mips64
 #  define DEFINED_ON_mips64 define

@@ -1223,7 +1223,7 @@ class AssemblerMIPSShared : public AssemblerShared {
  public:
   static bool SupportsFloatingPoint() {
 #if (defined(__mips_hard_float) && !defined(__mips_single_float)) || \
-    defined(JS_SIMULATOR_MIPS32) || defined(JS_SIMULATOR_MIPS64)
+    defined(JS_SIMULATOR_MIPS64)
     return true;
 #else
     return false;
@@ -1482,12 +1482,6 @@ inline bool IsUnaligned(const wasm::MemoryAccessDesc& access) {
   if (!access.align()) {
     return false;
   }
-
-#ifdef JS_CODEGEN_MIPS32
-  if (access.type() == Scalar::Int64 && access.align() >= 4) {
-    return false;
-  }
-#endif
 
   return access.align() < access.byteSize();
 }

@@ -883,9 +883,9 @@ struct AssemblerBufferWithConstantPools
       return allocEntry(1, 0, (uint8_t*)&value, nullptr, nullptr);
     }
 
-#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) ||     \
-    defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64) || \
-    defined(JS_CODEGEN_LOONG64) || defined(JS_CODEGEN_RISCV64)
+#if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) ||      \
+    defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
+    defined(JS_CODEGEN_RISCV64)
     return this->putU32Aligned(value);
 #else
     return this->AssemblerBuffer<SliceSize, Inst>::putInt(value);

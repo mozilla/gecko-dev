@@ -8843,7 +8843,7 @@
   set_spidermonkey_pref: startup
 #endif
 
-#if !defined(JS_CODEGEN_MIPS32) && !defined(JS_CODEGEN_MIPS64) && !defined(JS_CODEGEN_LOONG64)
+#if !defined(JS_CODEGEN_MIPS64) && !defined(JS_CODEGEN_LOONG64)
   # Spectre security vulnerability mitigations for the JS JITs.
   #
   # NOTE: The MIPS and LoongArch backends do not support these mitigations (and generally

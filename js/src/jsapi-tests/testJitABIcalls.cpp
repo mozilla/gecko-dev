@@ -655,9 +655,6 @@ class JitABICall final : public JSAPIRuntimeTest, public DefineCheckArgs<Sig> {
 #elif defined(JS_CODEGEN_ARM64)
     Register base = r8;
     regs.take(base);
-#elif defined(JS_CODEGEN_MIPS32)
-    Register base = t1;
-    regs.take(base);
 #elif defined(JS_CODEGEN_MIPS64)
     Register base = t1;
     regs.take(base);
