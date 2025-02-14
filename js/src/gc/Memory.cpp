@@ -514,9 +514,13 @@ void* MapAlignedPages(size_t length, size_t alignment,
   }
 #  endif
 
-  // Try to allocate the region. If the returned address is aligned,
-  // either we OOMed (region is nullptr) or we're done.
+  // Try to allocate the region.
   void* region = MapMemory(length);
+  if (!region) {
+    return nullptr;
+  }
+
+  // If the returned address is aligned, we're done.
   if (OffsetFromAligned(region, alignment) == 0) {
     RecordMemoryAlloc(length);
     return region;
@@ -552,15 +556,15 @@ void* MapAlignedPages(size_t length, size_t alignment,
     // If there wasn't enough contiguous address space left for that,
     // try to find an alignable region using the last ditch allocator.
     region = MapAlignedPagesLastDitch(length, alignment, stallAndRetry);
+    if (!region) {
+      return nullptr;
+    }
   }
 
-  // At this point we should either have an aligned region or nullptr.
+  // At this point we should have an aligned region.
   MOZ_ASSERT(OffsetFromAligned(region, alignment) == 0);
 
-  if (region) {
-    RecordMemoryAlloc(length);
-  }
-
+  RecordMemoryAlloc(length);
   return region;
 #endif  // !__wasi__
 }
