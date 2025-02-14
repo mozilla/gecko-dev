@@ -22,6 +22,8 @@ ChromeUtils.defineLazyGetter(lazy, "logger", function () {
   return lazy.PlacesUtils.getLogger({ prefix: "FrecencyRecalculator" });
 });
 
+const MILLIS_PER_DAY = 86400000;
+
 // Decay rate applied daily to frecency scores.
 // A scaling factor of .975 results in an half-life of 28 days.
 const FRECENCY_DECAYRATE = "0.975";
@@ -147,6 +149,7 @@ export class PlacesFrecencyRecalculator {
     this.wrappedJSObject = this;
     // This can be used by tests to await for the decay process.
     this.pendingFrecencyDecayPromise = Promise.resolve();
+    this.pendingOriginsDecayPromise = Promise.resolve();
 
     Services.obs.addObserver(this, "idle-daily", true);
     Services.obs.addObserver(this, "frecency-recalculation-needed", true);
@@ -432,6 +435,60 @@ export class PlacesFrecencyRecalculator {
     }
   }
 
+  /**
+   * Mark frecency of origins that were not visited for some time to be
+   * recalculated, otherwise they'd be stuck at the last calculated value.
+   */
+  async requestRecalcOfNotRecentlyVisitedOrigins() {
+    // Recalculate every 7 days, as this is not urgent.
+    const now = Date.now();
+    const key = "origins_frecency_last_decay_timestamp";
+    let lastRecalcTime = await lazy.PlacesUtils.metadata.get(key, now);
+    if (lastRecalcTime > now - 7 * MILLIS_PER_DAY) {
+      lazy.logger.trace("Skipping as not enough time passed");
+      return;
+    }
+    await lazy.PlacesUtils.metadata.set(key, now);
+
+    // To limit amount of work, only recalculate origins over the threshold.
+    let threshold = await lazy.PlacesUtils.metadata.get(
+      "origin_frecency_threshold",
+      0
+    );
+    // This guessed threshold limit is just a fail-safe to avoid recalculating
+    // the same value over and over if history gets disabled and the threshold
+    // keeps getting smaller and smaller. At a certain point origin won't have
+    // recent visits, and its frecency will be set to 1.
+    if (threshold < 100) {
+      lazy.logger.trace("Skipping as threshold too low");
+      return;
+    }
+
+    lazy.logger.trace("Recalculate origins not recently visited");
+    let db = await lazy.PlacesUtils.promiseUnsafeWritableDBConnection();
+    await db.execute(
+      `
+      UPDATE moz_origins
+      SET recalc_frecency = 1, recalc_alt_frecency = 1
+      WHERE id IN (
+        SELECT id
+        FROM moz_origins
+        WHERE frecency >= :threshold
+        AND recalc_frecency = 0
+        AND NOT EXISTS (
+          SELECT 1 FROM moz_places
+	        WHERE origin_id = moz_origins.id
+	          AND (
+              foreign_count > 0 OR
+              last_visit_date > strftime('%s', 'now', '-' || :cutoff || ' days') * 1000000
+            )
+        )
+      )
+    `,
+      { threshold, cutoff: lazy.originsFrecencyCutOffDays }
+    );
+  }
+
   observe(subject, topic) {
     lazy.logger.trace(`Got ${topic} topic`);
     if (this.#finalized) {
@@ -445,6 +502,13 @@ export class PlacesFrecencyRecalculator {
         lazy.logger.trace("Frecency recalculation on idle");
         lazy.PlacesUtils.history.shouldStartFrecencyRecalculation = true;
         this.maybeStartFrecencyRecalculation();
+        // Recalc frecency of origins that were not visited for
+        // some time, as otherwise they'd be stuck at the last calculated
+        // value, influencing threshold.
+        // TODO (Bug 1943104): we should replace frecency with an exponential
+        // self-decaying value, so we don't need to recalculate these.
+        this.pendingOriginsDecayPromise =
+          this.requestRecalcOfNotRecentlyVisitedOrigins();
         return;
       case "frecency-recalculation-needed":
         lazy.logger.trace("Frecency recalculation requested");
