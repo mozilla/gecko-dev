@@ -194,16 +194,11 @@ nsresult nsHttpConnection::TryTakeSubTransactions(
   return rv;
 }
 
-void nsHttpConnection::ResetTransaction(RefPtr<nsAHttpTransaction>&& trans,
-                                        bool aForH2Proxy) {
+void nsHttpConnection::ResetTransaction(RefPtr<nsAHttpTransaction>&& trans) {
   MOZ_ASSERT(trans);
   mSpdySession->SetConnection(trans->Connection());
   trans->SetConnection(nullptr);
   trans->DoNotRemoveAltSvc();
-  if (!aForH2Proxy) {
-    // Only do this when this is for websocket or webtransport over HTTP/2.
-    trans->SetResettingForTunnelConn(true);
-  }
   trans->Close(NS_ERROR_NET_RESET);
 }
 
@@ -212,14 +207,12 @@ nsresult nsHttpConnection::MoveTransactionsToSpdy(
   if (NS_FAILED(status)) {  // includes NS_ERROR_NOT_IMPLEMENTED
     MOZ_ASSERT(list.IsEmpty(), "sub transaction list not empty");
 
-    // If this transaction is used to drive websocket or webtransport, we reset
-    // it to put it in the pending queue. Once we know if the server supports
-    // websocket or not, the pending queue will be processed.
+    // If this transaction is used to drive websocket, we reset it to put it in
+    // the pending queue. Once we know if the server supports websocket or not,
+    // the pending queue will be processed.
     nsHttpTransaction* trans = mTransaction->QueryHttpTransaction();
-    if (trans && (trans->IsWebsocketUpgrade() || trans->IsForWebTransport())) {
-      LOG(
-          ("nsHttpConnection resetting transaction for websocket or "
-           "webtransport upgrade"));
+    if (trans && trans->IsWebsocketUpgrade()) {
+      LOG(("nsHttpConnection resetting transaction for websocket upgrade"));
       // websocket upgrade needs NonSticky for transaction reset
       mTransaction->MakeNonSticky();
       ResetTransaction(std::move(mTransaction));
@@ -255,11 +248,8 @@ nsresult nsHttpConnection::MoveTransactionsToSpdy(
     for (int32_t index = 0; index < count; ++index) {
       RefPtr<nsAHttpTransaction> transaction = list[index];
       nsHttpTransaction* trans = transaction->QueryHttpTransaction();
-      if (trans &&
-          (trans->IsWebsocketUpgrade() || trans->IsForWebTransport())) {
-        LOG(
-            ("nsHttpConnection resetting a transaction for websocket or "
-             "webtransport upgrade"));
+      if (trans && trans->IsWebsocketUpgrade()) {
+        LOG(("nsHttpConnection resetting a transaction for websocket upgrade"));
         // websocket upgrade needs NonSticky for transaction reset
         transaction->MakeNonSticky();
         ResetTransaction(std::move(transaction));
@@ -389,7 +379,7 @@ void nsHttpConnection::StartSpdy(nsITLSSocketControl* sslControl,
         // note that using NonSticky here won't work because it breaks
         // netwerk/test/unit/test_websocket_server.js - h1 ws with h2 proxy
         mTransaction->MakeRestartable();
-        ResetTransaction(std::move(mTransaction), true);
+        ResetTransaction(std::move(mTransaction));
         mTransaction = nullptr;
       } else {
         for (auto trans : list) {
@@ -669,22 +659,22 @@ nsresult nsHttpConnection::AddTransaction(nsAHttpTransaction* httpTransaction,
 
 nsresult nsHttpConnection::CreateTunnelStream(
     nsAHttpTransaction* httpTransaction, nsHttpConnection** aHttpConnection,
-    bool aIsExtendedCONNECT) {
+    bool aIsWebSocket) {
   if (!mSpdySession) {
     return NS_ERROR_UNEXPECTED;
   }
 
   RefPtr<nsHttpConnection> conn = mSpdySession->CreateTunnelStream(
-      httpTransaction, mCallbacks, mRtt, aIsExtendedCONNECT);
+      httpTransaction, mCallbacks, mRtt, aIsWebSocket);
   // We need to store the refrence of the Http2Session in the tunneled
   // connection, so when nsHttpConnection::DontReuse is called the Http2Session
   // can't be reused.
-  if (aIsExtendedCONNECT) {
+  if (aIsWebSocket) {
     LOG(
         ("nsHttpConnection::CreateTunnelStream %p Set h2 session %p to "
          "tunneled conn %p",
          this, mSpdySession.get(), conn.get()));
-    conn->mExtendedCONNECTHttp2Session = mSpdySession;
+    conn->mWebSocketHttp2Session = mSpdySession;
   }
   conn.forget(aHttpConnection);
   return NS_OK;
@@ -704,7 +694,7 @@ void nsHttpConnection::Close(nsresult reason, bool aIsShutdown) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   mTlsHandshaker->NotifyClose();
   mContinueHandshakeDone = nullptr;
-  mExtendedCONNECTHttp2Session = nullptr;
+  mWebSocketHttp2Session = nullptr;
   // Ensure TCP keepalive timer is stopped.
   if (mTCPKeepaliveTransitionTimer) {
     mTCPKeepaliveTransitionTimer->Cancel();
@@ -786,10 +776,10 @@ void nsHttpConnection::DontReuse() {
   MarkAsDontReuse();
   if (mSpdySession) {
     mSpdySession->DontReuse();
-  } else if (mExtendedCONNECTHttp2Session) {
-    LOG(("nsHttpConnection::DontReuse %p mExtendedCONNECTHttp2Session=%p\n",
-         this, mExtendedCONNECTHttp2Session.get()));
-    mExtendedCONNECTHttp2Session->DontReuse();
+  } else if (mWebSocketHttp2Session) {
+    LOG(("nsHttpConnection::DontReuse %p mWebSocketHttp2Session=%p\n", this,
+         mWebSocketHttp2Session.get()));
+    mWebSocketHttp2Session->DontReuse();
   }
 }
 
@@ -1731,8 +1721,7 @@ nsresult nsHttpConnection::OnSocketWritable() {
       if ((mState != HttpConnectionState::SETTING_UP_TUNNEL) && !mSpdySession) {
         nsHttpTransaction* trans = mTransaction->QueryHttpTransaction();
         // needed for websocket over h2 (direct)
-        if (!trans ||
-            (!trans->IsWebsocketUpgrade() && !trans->IsForWebTransport())) {
+        if (!trans || !trans->IsWebsocketUpgrade()) {
           mRequestDone = true;
         }
       }
@@ -2328,17 +2317,17 @@ bool nsHttpConnection::NoClientCertAuth() const {
   return !tlsSocketControl->GetClientCertSent();
 }
 
-ExtendedCONNECTSupport nsHttpConnection::GetExtendedCONNECTSupport() {
-  LOG3(("nsHttpConnection::GetExtendedCONNECTSupport"));
+WebSocketSupport nsHttpConnection::GetWebSocketSupport() {
+  LOG3(("nsHttpConnection::GetWebSocketSupport"));
   if (!UsingSpdy()) {
-    return ExtendedCONNECTSupport::SUPPORTED;
+    return WebSocketSupport::SUPPORTED;
   }
-  LOG3(("nsHttpConnection::ExtendedCONNECTSupport checking spdy session"));
+  LOG3(("nsHttpConnection::GetWebSocketSupport checking spdy session"));
   if (mSpdySession) {
-    return mSpdySession->GetExtendedCONNECTSupport();
+    return mSpdySession->GetWebSocketSupport();
   }
 
-  return ExtendedCONNECTSupport::NO_SUPPORT;
+  return WebSocketSupport::NO_SUPPORT;
 }
 
 bool nsHttpConnection::IsProxyConnectInProgress() {

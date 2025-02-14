@@ -2271,8 +2271,6 @@ bool nsHttpTransaction::HandleWebTransportResponse(uint16_t aStatus) {
     return false;
   }
 
-  // TODO: Add support for Http2WebTransportSession here.
-
   RefPtr<Http3WebTransportSession> wtSession =
       mConnection->GetWebTransportSession(this);
   if (!wtSession) {

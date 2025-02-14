@@ -48,7 +48,7 @@ class ConnectionEntry {
   nsresult CloseIdleConnection(nsHttpConnection* conn);
   void CloseIdleConnections();
   void CloseIdleConnections(uint32_t maxToClose);
-  void CloseExtendedCONNECTConnections();
+  void CloseH2WebsocketConnections();
   void ClosePendingConnections();
   nsresult RemoveIdleConnection(nsHttpConnection* conn);
   bool IsInIdleConnections(HttpConnectionBase* conn);
@@ -68,9 +68,9 @@ class ConnectionEntry {
   void CloseActiveConnections();
   void CloseAllActiveConnsWithNullTransactcion(nsresult aCloseCode);
 
-  bool IsInExtendedCONNECTConns(HttpConnectionBase* conn);
-  void InsertIntoExtendedCONNECTConns(HttpConnectionBase* conn);
-  void RemoveExtendedCONNECTConns(HttpConnectionBase* conn);
+  bool IsInH2WebsocketConns(HttpConnectionBase* conn);
+  void InsertIntoH2WebsocketConns(HttpConnectionBase* conn);
+  void RemoveH2WebsocketConns(HttpConnectionBase* conn);
 
   HttpConnectionBase* GetH2orH3ActiveConn();
   // Make an active spdy connection DontReuse.
@@ -224,9 +224,8 @@ class ConnectionEntry {
   // serve any new transactions and will remain here until its current
   // transaction is complete.
   nsTArray<RefPtr<HttpConnectionBase>> mPendingConns;
-  // Tunneled connections used for extended CONNECT that needs to be cleaned up
-  // on shutdown
-  nsTArray<RefPtr<HttpConnectionBase>> mExtendedCONNECTConns;
+  // "fake" http2 websocket connections that needs to be cleaned up on shutdown
+  nsTArray<RefPtr<HttpConnectionBase>> mH2WebsocketConns;
 
   nsTArray<RefPtr<DnsAndConnectSocket>>
       mDnsAndConnectSockets;  // dns resolution and half open connections

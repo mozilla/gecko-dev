@@ -68,11 +68,10 @@ nsresult WebTransportSessionProxy::AsyncConnect(
     nsIURI* aURI, bool aDedicated,
     const nsTArray<RefPtr<nsIWebTransportHash>>& aServerCertHashes,
     nsIPrincipal* aPrincipal, uint32_t aSecurityFlags,
-    WebTransportSessionEventListener* aListener,
-    nsIWebTransport::HTTPVersion aVersion) {
+    WebTransportSessionEventListener* aListener) {
   return AsyncConnectWithClient(aURI, aDedicated, std::move(aServerCertHashes),
                                 aPrincipal, aSecurityFlags, aListener,
-                                Maybe<dom::ClientInfo>(), aVersion);
+                                Maybe<dom::ClientInfo>());
 }
 
 nsresult WebTransportSessionProxy::AsyncConnectWithClient(
@@ -80,13 +79,9 @@ nsresult WebTransportSessionProxy::AsyncConnectWithClient(
     const nsTArray<RefPtr<nsIWebTransportHash>>& aServerCertHashes,
     nsIPrincipal* aPrincipal, uint32_t aSecurityFlags,
     WebTransportSessionEventListener* aListener,
-    const Maybe<dom::ClientInfo>& aClientInfo,
-    nsIWebTransport::HTTPVersion aVersion) {
+    const Maybe<dom::ClientInfo>& aClientInfo) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (aVersion == nsIWebTransport::HTTPVersion::h2) {
-    mHTTPVersion = nsIWebTransport::HTTPVersion::h2;
-  }
   LOG(("WebTransportSessionProxy::AsyncConnect"));
   {
     MutexAutoLock lock(mMutex);
@@ -254,12 +249,6 @@ NS_IMETHODIMP WebTransportSessionProxy::GetServerCertificateHashes(
     nsTArray<RefPtr<nsIWebTransportHash>>& aServerCertHashes) {
   aServerCertHashes.Clear();
   aServerCertHashes.AppendElements(mServerCertHashes);
-  return NS_OK;
-}
-
-NS_IMETHODIMP WebTransportSessionProxy::GetHttpVersion(
-    nsIWebTransport::HTTPVersion* aVersion) {
-  *aVersion = mHTTPVersion;
   return NS_OK;
 }
 

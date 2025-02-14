@@ -6966,17 +6966,6 @@ nsresult nsHttpChannel::BeginConnect() {
       nsCOMPtr<WebTransportConnectionSettings> wtconSettings =
           do_QueryInterface(mWebTransportSessionEventListener, &rv);
       NS_ENSURE_SUCCESS(rv, rv);
-      nsIWebTransport::HTTPVersion httpVersion;
-      Unused << wtconSettings->GetHttpVersion(&httpVersion);
-      if (httpVersion == nsIWebTransport::HTTPVersion::h2) {
-        connInfo =
-            new nsHttpConnectionInfo(host, port, "h2"_ns, mUsername, proxyInfo,
-                                     originAttributes, isHttps, false, true);
-      } else {
-        connInfo =
-            new nsHttpConnectionInfo(host, port, "h3"_ns, mUsername, proxyInfo,
-                                     originAttributes, isHttps, true, true);
-      }
       wtconSettings->GetDedicated(&dedicated);
       if (dedicated) {
         connInfo->SetWebTransportId(

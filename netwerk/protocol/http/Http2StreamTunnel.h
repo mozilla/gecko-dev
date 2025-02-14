@@ -17,8 +17,12 @@ class OutputStreamTunnel;
 class InputStreamTunnel;
 
 // c881f764-a183-45cb-9dec-d9872b2f47b2
-#define NS_HTTP2STREAMTUNNEL_IID \
-  {0xc881f764, 0xa183, 0x45cb, {0x9d, 0xec, 0xd9, 0x87, 0x2b, 0x2f, 0x47, 0xb2}}
+#define NS_HTTP2STREAMTUNNEL_IID                     \
+  {                                                  \
+    0xc881f764, 0xa183, 0x45cb, {                    \
+      0x9d, 0xec, 0xd9, 0x87, 0x2b, 0x2f, 0x47, 0xb2 \
+    }                                                \
+  }
 
 class Http2StreamTunnel : public Http2StreamBase,
                           public nsISocketTransport,
@@ -35,7 +39,7 @@ class Http2StreamTunnel : public Http2StreamBase,
 
   already_AddRefed<nsHttpConnection> CreateHttpConnection(
       nsAHttpTransaction* httpTransaction, nsIInterfaceRequestor* aCallbacks,
-      PRIntervalTime aRtt, bool aIsExtendedCONNECT);
+      PRIntervalTime aRtt, bool aIsWebSocket);
 
   nsHttpConnectionInfo* ConnectionInfo() override { return mConnectionInfo; }
 
@@ -75,8 +79,12 @@ class Http2StreamTunnel : public Http2StreamBase,
 };
 
 // f9d10060-f5d4-443e-ba59-f84ea975c5f0
-#define NS_OUTPUTSTREAMTUNNEL_IID \
-  {0xf9d10060, 0xf5d4, 0x443e, {0xba, 0x59, 0xf8, 0x4e, 0xa9, 0x75, 0xc5, 0xf0}}
+#define NS_OUTPUTSTREAMTUNNEL_IID                    \
+  {                                                  \
+    0xf9d10060, 0xf5d4, 0x443e, {                    \
+      0xba, 0x59, 0xf8, 0x4e, 0xa9, 0x75, 0xc5, 0xf0 \
+    }                                                \
+  }
 
 class OutputStreamTunnel : public nsIAsyncOutputStream {
  public:
