@@ -13,6 +13,7 @@ const defaultTools = {
   viewTabsSidebar: "syncedtabs",
   viewHistorySidebar: "history",
   viewBookmarksSidebar: "bookmarks",
+  viewCPMSidebar: "passwords",
 };
 
 var SidebarController = {
@@ -172,27 +173,26 @@ var SidebarController = {
       );
     }
 
-    if (!this.sidebarRevampEnabled) {
-      this.registerPrefSidebar(
-        "browser.contextual-password-manager.enabled",
-        "viewMegalistSidebar",
-        {
-          elementId: "sidebar-switcher-megalist",
-          url: "chrome://global/content/megalist/megalist.html",
-          menuId: "menu_megalistSidebar",
-          menuL10nId: "menu-view-megalist-sidebar",
-          revampL10nId: "sidebar-menu-megalist",
-          gleanEvent: Glean.contextualManager.sidebarToggle,
-        }
-      );
-    } else {
-      this._sidebars.set("viewCustomizeSidebar", {
-        url: "chrome://browser/content/sidebar/sidebar-customize.html",
-        revampL10nId: "sidebar-menu-customize-label",
-        iconUrl: "chrome://global/skin/icons/settings.svg",
-        gleanEvent: Glean.sidebarCustomize.panelToggle,
-      });
-    }
+    this.registerPrefSidebar(
+      "browser.contextual-password-manager.enabled",
+      "viewCPMSidebar",
+      {
+        elementId: "sidebar-switcher-megalist",
+        url: "chrome://global/content/megalist/megalist.html",
+        menuId: "menu_megalistSidebar",
+        menuL10nId: "menu-view-contextual-password-manager",
+        revampL10nId: "sidebar-menu-contextual-password-manager-label",
+        iconUrl: "chrome://browser/skin/login.svg",
+        gleanEvent: Glean.contextualManager.sidebarToggle,
+      }
+    );
+
+    this._sidebars.set("viewCustomizeSidebar", {
+      url: "chrome://browser/content/sidebar/sidebar-customize.html",
+      revampL10nId: "sidebar-menu-customize-label",
+      iconUrl: "chrome://global/skin/icons/settings.svg",
+      gleanEvent: Glean.sidebarCustomize.panelToggle,
+    });
 
     return this._sidebars;
   },

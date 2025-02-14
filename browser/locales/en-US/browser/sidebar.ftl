@@ -8,6 +8,9 @@ menu-view-genai-chat =
 menu-view-review-checker =
   .label = Review Checker
 
+menu-view-contextual-password-manager =
+  .label = Passwords
+
 sidebar-options-menu-button =
   .title = Open menu
 
@@ -103,6 +106,8 @@ sidebar-menu-customize-label =
   .label = Customize sidebar
 sidebar-menu-review-checker-label =
   .label = Review Checker
+sidebar-menu-contextual-password-manager-label =
+  .label = Passwords
 
 ## Tooltips for sidebar menu items.
 
@@ -149,6 +154,8 @@ sidebar-menu-syncedtabs-header =
   .heading = Tabs from other devices
 sidebar-menu-bookmarks-header =
   .heading = Bookmarks
+sidebar-menu-cpm-header =
+  .heading = Passwords
 
 ## Titles for sidebar menu panels.
 

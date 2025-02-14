@@ -121,7 +121,7 @@ add_task(async function test_filter_passwords_after_sidebar_closed() {
   info("Hide sidebar.");
   SidebarController.hide();
   info("Show sidebar.");
-  await SidebarController.show("viewMegalistSidebar");
+  await SidebarController.show("viewCPMSidebar");
   await checkAllLoginsRendered(megalist);
   info("All saved logins are displayed.");
 

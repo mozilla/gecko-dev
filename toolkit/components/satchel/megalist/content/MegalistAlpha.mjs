@@ -19,9 +19,10 @@ import "chrome://global/content/elements/moz-button.mjs";
 import "chrome://global/content/megalist/components/password-card/password-card.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/megalist/components/login-form/login-form.mjs";
-
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/megalist/components/notification-message-bar/notification-message-bar.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/sidebar/sidebar-panel-header.mjs";
 
 const DISPLAY_MODES = {
   ALERTS: "DisplayAlerts",
@@ -735,6 +736,11 @@ export class MegalistAlpha extends MozLitElement {
         href="chrome://global/content/megalist/megalist.css"
       />
       <div class="container">
+        <sidebar-panel-header
+          data-l10n-id="sidebar-menu-cpm-header"
+          data-l10n-attrs="heading"
+          view="viewCPMSidebar"
+        ></sidebar-panel-header>
         ${this.renderFirstRow()} ${this.renderSecondRow()}
         ${this.renderNotification()} ${this.renderLastRow()}
       </div>

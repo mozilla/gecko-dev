@@ -241,7 +241,7 @@ add_task(async function test_contextual_manager_toggle() {
     ],
   });
   const gleanEvent = Glean.contextualManager.sidebarToggle;
-  await testSidebarToggle("viewMegalistSidebar", gleanEvent);
+  await testSidebarToggle("viewCPMSidebar", gleanEvent);
   await SpecialPowers.popPrefEnv();
 });
 
