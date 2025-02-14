@@ -250,39 +250,11 @@ export class _DSCard extends React.PureComponent {
       },
     ];
 
-    this.largeCardImageSizes = [
-      {
-        mediaMatcher: "default",
-        width: 265,
-        height: 265,
-      },
-    ];
-
-    this.mediumCardImageSizes = [
+    this.standardCardImageSizes = [
       {
         mediaMatcher: "default",
         width: 296,
         height: 148,
-      },
-    ];
-
-    this.largeCardImageSizes = [
-      {
-        mediaMatcher: "(min-width: 1122px)",
-        width: 220,
-        height: 220,
-      },
-
-      {
-        mediaMatcher: "(min-width: 866px)",
-        width: 218,
-        height: 109,
-      },
-
-      {
-        mediaMatcher: "(max-width: 610px)",
-        width: 202,
-        height: 101,
       },
     ];
 
@@ -298,6 +270,37 @@ export class _DSCard extends React.PureComponent {
         height: 50,
       },
     ];
+
+    this.sectionsCardImagesSizes = {
+      small: {
+        width: 100,
+        height: 120,
+      },
+      medium: {
+        width: 300,
+        height: 150,
+      },
+      large: {
+        width: 265,
+        height: 265,
+      },
+    };
+
+    this.sectionsColumnMediaMatcher = {
+      1: "default",
+      2: "(min-width: 724px)",
+      3: "(min-width: 1122px)",
+      4: "(min-width: 1390px)",
+    };
+  }
+
+  getSectionImageSize(column, size) {
+    const cardImageSize = {
+      mediaMatcher: this.sectionsColumnMediaMatcher[column],
+      width: this.sectionsCardImagesSizes[size].width,
+      height: this.sectionsCardImagesSizes[size].height,
+    };
+    return cardImageSize;
   }
 
   doesLinkTopicMatchSelectedTopic() {
@@ -698,6 +701,7 @@ export class _DSCard extends React.PureComponent {
       mayHaveSectionsCards ? `sections-card-ui` : ``,
       this.props.sectionsClassNames,
     ].join(" ");
+    const sectionsCardsImageSizes = this.props.sectionsCardImageSizes;
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     const isMediumRectangle = format === "rectangle";
@@ -707,16 +711,19 @@ export class _DSCard extends React.PureComponent {
     if (!isMediumRectangle) {
       sizes = this.dsImageSizes;
       if (sectionsEnabled) {
-        sizes = this.largeCardImageSizes;
+        sizes = [
+          this.getSectionImageSize("4", sectionsCardsImageSizes["4"]),
+          this.getSectionImageSize("3", sectionsCardsImageSizes["3"]),
+          this.getSectionImageSize("2", sectionsCardsImageSizes["2"]),
+          this.getSectionImageSize("1", sectionsCardsImageSizes["1"]),
+        ];
       } else if (layoutsVariantAorB) {
-        sizes = this.mediumCardImageSizes;
+        sizes = this.standardCardImageSizes;
       }
       if (isListCard) {
         sizes = this.listCardImageSizes;
       }
     }
-
-    // TODO: Add logic to assign this.largeCardImageSizes
 
     return (
       <article

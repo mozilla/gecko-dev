@@ -3264,28 +3264,10 @@ class _DSCard extends (external_React_default()).PureComponent {
       width: 202,
       height: 101
     }];
-    this.largeCardImageSizes = [{
-      mediaMatcher: "default",
-      width: 265,
-      height: 265
-    }];
-    this.mediumCardImageSizes = [{
+    this.standardCardImageSizes = [{
       mediaMatcher: "default",
       width: 296,
       height: 148
-    }];
-    this.largeCardImageSizes = [{
-      mediaMatcher: "(min-width: 1122px)",
-      width: 220,
-      height: 220
-    }, {
-      mediaMatcher: "(min-width: 866px)",
-      width: 218,
-      height: 109
-    }, {
-      mediaMatcher: "(max-width: 610px)",
-      width: 202,
-      height: 101
     }];
     this.listCardImageSizes = [{
       mediaMatcher: "(min-width: 1122px)",
@@ -3296,6 +3278,34 @@ class _DSCard extends (external_React_default()).PureComponent {
       width: 50,
       height: 50
     }];
+    this.sectionsCardImagesSizes = {
+      small: {
+        width: 100,
+        height: 120
+      },
+      medium: {
+        width: 300,
+        height: 150
+      },
+      large: {
+        width: 265,
+        height: 265
+      }
+    };
+    this.sectionsColumnMediaMatcher = {
+      1: "default",
+      2: "(min-width: 724px)",
+      3: "(min-width: 1122px)",
+      4: "(min-width: 1390px)"
+    };
+  }
+  getSectionImageSize(column, size) {
+    const cardImageSize = {
+      mediaMatcher: this.sectionsColumnMediaMatcher[column],
+      width: this.sectionsCardImagesSizes[size].width,
+      height: this.sectionsCardImagesSizes[size].height
+    };
+    return cardImageSize;
   }
   doesLinkTopicMatchSelectedTopic() {
     // Edge case for clicking on a card when topic selections have not be set
@@ -3632,6 +3642,7 @@ class _DSCard extends (external_React_default()).PureComponent {
     const listCardClassName = isListCard ? `list-feed-card` : ``;
     const fakespotClassName = isFakespot ? `fakespot` : ``;
     const sectionsCardsClassName = [mayHaveSectionsCards ? `sections-card-ui` : ``, this.props.sectionsClassNames].join(" ");
+    const sectionsCardsImageSizes = this.props.sectionsCardImageSizes;
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     const isMediumRectangle = format === "rectangle";
@@ -3640,17 +3651,14 @@ class _DSCard extends (external_React_default()).PureComponent {
     if (!isMediumRectangle) {
       sizes = this.dsImageSizes;
       if (sectionsEnabled) {
-        sizes = this.largeCardImageSizes;
+        sizes = [this.getSectionImageSize("4", sectionsCardsImageSizes["4"]), this.getSectionImageSize("3", sectionsCardsImageSizes["3"]), this.getSectionImageSize("2", sectionsCardsImageSizes["2"]), this.getSectionImageSize("1", sectionsCardsImageSizes["1"])];
       } else if (layoutsVariantAorB) {
-        sizes = this.mediumCardImageSizes;
+        sizes = this.standardCardImageSizes;
       }
       if (isListCard) {
         sizes = this.listCardImageSizes;
       }
     }
-
-    // TODO: Add logic to assign this.largeCardImageSizes
-
     return /*#__PURE__*/external_React_default().createElement("article", {
       className: `ds-card ${listCardClassName} ${fakespotClassName} ${sectionsCardsClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
       ref: this.setContextMenuButtonHostRef,
@@ -10239,13 +10247,15 @@ const PREF_TOPIC_SELECTION_ENABLED = "discoverystream.sections.topicSelection.en
 const CardSections_PREF_TOPIC_SELECTION_POSITION = "discoverystream.sections.topicSelection.position";
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
-    classNames: []
+    classNames: [],
+    imageSizes: {}
   };
   responsiveLayouts.forEach(layout => {
     layout.tiles.forEach((tile, tileIndex) => {
       if (tile.position === index) {
         layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
         layoutData.classNames.push(`col-${layout.columnCount}-position-${tileIndex}`);
+        layoutData.imageSizes[layout.columnCount] = tile.size;
 
         // The API tells us whether the tile should show the excerpt or not.
         // Apply extra styles accordingly.
@@ -10413,7 +10423,8 @@ function CardSection({
     className: "ds-section-grid ds-card-grid"
   }, section.data.slice(0, maxTile).map((rec, index) => {
     const {
-      classNames
+      classNames,
+      imageSizes
     } = getLayoutData(responsiveLayouts, index);
     if (!rec || rec.placeholder) {
       return /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
@@ -10464,6 +10475,7 @@ function CardSection({
       ctaButtonVariant: ctaButtonVariant,
       spocMessageVariant: spocMessageVariant,
       sectionsClassNames: classNames.join(" "),
+      sectionsCardImageSizes: imageSizes,
       section: sectionKey,
       sectionPosition: sectionPosition,
       sectionFollowed: following

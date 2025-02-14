@@ -31,6 +31,7 @@ const PREF_TOPIC_SELECTION_POSITION =
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: [],
+    imageSizes: {},
   };
 
   responsiveLayouts.forEach(layout => {
@@ -40,6 +41,7 @@ function getLayoutData(responsiveLayouts, index) {
         layoutData.classNames.push(
           `col-${layout.columnCount}-position-${tileIndex}`
         );
+        layoutData.imageSizes[layout.columnCount] = tile.size;
 
         // The API tells us whether the tile should show the excerpt or not.
         // Apply extra styles accordingly.
@@ -241,7 +243,10 @@ function CardSection({
       </div>
       <div className="ds-section-grid ds-card-grid">
         {section.data.slice(0, maxTile).map((rec, index) => {
-          const { classNames } = getLayoutData(responsiveLayouts, index);
+          const { classNames, imageSizes } = getLayoutData(
+            responsiveLayouts,
+            index
+          );
 
           if (!rec || rec.placeholder) {
             return <PlaceholderDSCard key={`dscard-${index}`} />;
@@ -292,6 +297,7 @@ function CardSection({
               ctaButtonVariant={ctaButtonVariant}
               spocMessageVariant={spocMessageVariant}
               sectionsClassNames={classNames.join(" ")}
+              sectionsCardImageSizes={imageSizes}
               section={sectionKey}
               sectionPosition={sectionPosition}
               sectionFollowed={following}
