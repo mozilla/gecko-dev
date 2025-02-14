@@ -5,9 +5,11 @@
 package org.mozilla.fenix.ui.robots
 
 import android.util.Log
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -17,25 +19,48 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiSelector
 import org.mozilla.fenix.R
+import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.MatcherHelper.assertItemIsChecked
 import org.mozilla.fenix.helpers.MatcherHelper.assertItemIsEnabledAndVisible
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
+import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
 
 class TranslationsRobot(private val composeTestRule: ComposeTestRule) {
 
     @OptIn(ExperimentalTestApi::class)
-    fun verifyTranslationSheetIsDisplayed(isDisplayed: Boolean) {
+    fun verifyTranslationSheetIsDisplayed(isDisplayed: Boolean, isRedesignedToolbarEnabled: Boolean = false) {
         Log.i(TAG, "verifyTranslationSheetIsDisplayed: Trying to verify the Translations sheet is displayed $isDisplayed.")
         if (isDisplayed) {
-            composeTestRule.waitUntilAtLeastOneExists(hasText("Translate to"), waitingTime)
-            composeTestRule.onNodeWithText("Translate to").assertIsDisplayed()
+            for (i in 1..RETRY_COUNT) {
+                Log.i(TAG, "verifyTranslationSheetIsDisplayed: Started try #$i")
+                try {
+                    composeTestRule.waitUntilAtLeastOneExists(hasText("Translate to"), waitingTime)
+                    composeTestRule.onNodeWithText("Translate to").assertIsDisplayed()
+                } catch (e: ComposeTimeoutException) {
+                    Log.i(TAG, "verifyTranslationSheetIsDisplayed: AssertionError caught, executing fallback methods")
+                    if (i == RETRY_COUNT) {
+                        throw e
+                    } else {
+                        if (isRedesignedToolbarEnabled) {
+                            browserScreen {
+                                refreshPageFromRedesignedToolbar()
+                            }
+                        } else {
+                            navigationToolbar {
+                            }.openThreeDotMenu {
+                            }.refreshPage {
+                            }
+                        }
+                    }
+                }
+            }
         } else {
             composeTestRule.onNodeWithText("Translate to").assertIsNotDisplayed()
         }
@@ -46,6 +71,7 @@ class TranslationsRobot(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "closeTranslationsSheet: Trying to close the Translations sheet.")
         itemWithResId("$packageName:id/touch_outside").click()
         Log.i(TAG, "closeTranslationsSheet: Closed the Translations sheet.")
+        waitUntilSnackbarGone()
     }
 
     fun clickTranslationsOptionsButton() {
@@ -216,14 +242,59 @@ class TranslationsRobot(private val composeTestRule: ComposeTestRule) {
     }
 
     class Transition(private val composeTestRule: ComposeTestRule) {
-        fun clickTranslateButton(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+        @OptIn(ExperimentalTestApi::class)
+        fun clickTranslateButton(pageWasNotPreviouslyTranslated: Boolean = true, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             Log.i(TAG, "clickTranslateButton: Trying to click the Translate button from the Translations sheet.")
             composeTestRule.onNodeWithText("Translate").performClick()
             Log.i(TAG, "clickTranslateButton: Clicked the Translate button.")
-            if (!itemWithDescription("Close Translations sheet").waitUntilGone(waitingTime)) {
-                Log.i(TAG, "clickTranslateButton: Translate sheet is still displayed. Trying to close it.")
-                TranslationsRobot(composeTestRule).closeTranslationsSheet()
-                Log.i(TAG, "clickTranslateButton: Closed the Translations sheet.")
+            if (pageWasNotPreviouslyTranslated) {
+                Log.i(TAG, "clickTranslateButton: Waiting for $waitingTime until the \"Translating in progress\" exists.")
+                composeTestRule.waitUntilAtLeastOneExists(
+                    hasContentDescription(getStringResource(R.string.translations_bottom_sheet_translating_in_progress_content_description)),
+                    waitingTime,
+                )
+                Log.i(TAG, "clickTranslateButton: Waited for $waitingTime until the \"Translating in progress\" exists.")
+                for (i in 1..RETRY_COUNT) {
+                    Log.i(TAG, "clickTranslateButton: Started try #$i")
+                    try {
+                        Log.i(TAG, "clickTranslateButton: Waiting for $waitingTimeLong until the \"Translating in progress\" to not exists.")
+                        composeTestRule.waitUntilDoesNotExist(
+                            hasContentDescription(getStringResource(R.string.translations_bottom_sheet_translating_in_progress_content_description)),
+                            waitingTimeLong,
+                        )
+                        Log.i(TAG, "clickTranslateButton: Waited for $waitingTimeLong until the \"Translating in progress\" to not exists.")
+                    } catch (e: ComposeTimeoutException) {
+                        Log.i(TAG, "clickTranslateButton: ComposeTimeoutException caught, executing fallback methods")
+                        if (i == RETRY_COUNT) {
+                            throw e
+                        } else {
+                            Log.i(TAG, "clickTranslateButton: Translate sheet is still displayed. Trying to close it.")
+                            TranslationsRobot(composeTestRule).closeTranslationsSheet()
+                            Log.i(TAG, "clickTranslateButton: Closed the Translations sheet.")
+                        }
+                    }
+                }
+            } else {
+                for (i in 1..RETRY_COUNT) {
+                    Log.i(TAG, "clickTranslateButton: Started try #$i")
+                    try {
+                        Log.i(TAG, "clickTranslateButton: Waiting for $waitingTimeLong until the \"Translating in progress\" to not exists.")
+                        composeTestRule.waitUntilDoesNotExist(
+                            hasContentDescription(getStringResource(R.string.translation_option_bottom_sheet_close_content_description)),
+                            waitingTimeLong,
+                        )
+                        Log.i(TAG, "clickTranslateButton: Waited for $waitingTimeLong until the \"Translating in progress\" to not exists.")
+                    } catch (e: ComposeTimeoutException) {
+                        Log.i(TAG, "clickTranslateButton: ComposeTimeoutException caught, executing fallback methods")
+                        if (i == RETRY_COUNT) {
+                            throw e
+                        } else {
+                            Log.i(TAG, "clickTranslateButton: Translate sheet is still displayed. Trying to close it.")
+                            TranslationsRobot(composeTestRule).closeTranslationsSheet()
+                            Log.i(TAG, "clickTranslateButton: Closed the Translations sheet.")
+                        }
+                    }
+                }
             }
 
             BrowserRobot().interact()

@@ -9,7 +9,6 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
@@ -607,14 +606,13 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860799
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1946769")
     @SmokeTest
     @Test
     fun verifyTheTranslatePageButtonsStatesTest() {
-        val testPage = TestAssetHelper.getForeignWebPageAsset(mockWebServer)
+        val testPage = TestAssetHelper.getFirstForeignWebPageAsset(mockWebServer)
 
         navigationToolbar {
-        }.enterURLAndEnterToBrowser(testPage.url) {
+        }.enterURL(testPage.url) {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()

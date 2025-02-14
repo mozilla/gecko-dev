@@ -169,10 +169,18 @@ object TestAssetHelper {
         return TestAsset(url, "", title)
     }
 
-    fun getForeignWebPageAsset(server: MockWebServer): TestAsset {
-        val url = server.url("pages/foreignWebPage.html").toString().toUri()!!
-        val title = "Page_de_test_FR"
+    fun getFirstForeignWebPageAsset(server: MockWebServer): TestAsset {
+        val url = server.url("pages/firstForeignWebPage.html").toString().toUri()!!
+        val title = "Page_de_test_FR_1"
         val content = "Article du jour"
+
+        return TestAsset(url, content, title)
+    }
+
+    fun getSecondForeignWebPageAsset(server: MockWebServer): TestAsset {
+        val url = server.url("pages/secondForeignWebPage.html").toString().toUri()!!
+        val title = "Page_de_test_FR_2"
+        val content = "Mot du jour"
 
         return TestAsset(url, content, title)
     }

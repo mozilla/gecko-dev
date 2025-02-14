@@ -537,15 +537,13 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         }
 
         fun clickTranslateButton(interact: TranslationsRobot.() -> Unit): TranslationsRobot.Transition {
-            Log.i(
-                TAG,
-                "clickTranslateButton: Trying to click the Translate button from the new main menu design.",
-            )
+            Log.i(TAG, "clickTranslateButton: Trying to click the Translate button from the new main menu design.")
             composeTestRule.translatePageButton().performClick()
-            Log.i(
-                TAG,
-                "clickTranslateButton: Clicked the Translate button from the new main menu design.",
-            )
+            Log.i(TAG, "clickTranslateButton: Clicked the Translate button from the new main menu design.")
+            Log.i(TAG, "clickTranslateButton: Waiting for compose test rule to be idle")
+            composeTestRule.waitForIdle()
+            Log.i(TAG, "clickTranslateButton: Waited for compose test rule to be idle")
+
             TranslationsRobot(composeTestRule).interact()
             return TranslationsRobot.Transition(composeTestRule)
         }
