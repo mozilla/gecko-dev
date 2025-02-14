@@ -300,9 +300,6 @@ def check_style():
             if "MacroAssembler" not in filename:
                 continue
 
-            if os.path.split(dirpath)[1] == "mips32":
-                continue
-
             filepath = os.path.join(dirpath, filename).replace("\\", "/")
 
             if filepath.endswith("MacroAssembler.h"):

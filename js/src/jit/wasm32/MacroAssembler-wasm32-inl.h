@@ -1104,6 +1104,17 @@ void MacroAssembler::cmp32Move32(Condition cond, Register lhs,
   MOZ_CRASH();
 }
 
+void MacroAssembler::cmp32Load32(Condition cond, Register lhs, Register rhs,
+                                 const Address& src, Register dest) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::cmp32Load32(Condition cond, Register lhs,
+                                 const Address& rhs, const Address& src,
+                                 Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::branchTestUndefined(Condition cond,
                                          const ValueOperand& value,
                                          Label* label) {
