@@ -8450,17 +8450,6 @@ var TabContextMenu = {
         : "close-tabs-to-the-end"
     );
 
-    // Update context menu item for "Turn (on/off) Vertical Tabs".
-    const toggleVerticalTabsItem = document.getElementById(
-      "context_toggleVerticalTabs"
-    );
-    document.l10n.setAttributes(
-      toggleVerticalTabsItem,
-      gBrowser.tabContainer?.verticalMode
-        ? "tab-context-disable-vertical-tabs"
-        : "tab-context-enable-vertical-tabs"
-    );
-
     // Disable "Close Tabs to the Left/Right" if there are no tabs
     // preceding/following it.
     let noTabsToStart = !gBrowser._getTabsToTheStartFrom(this.contextTab)
