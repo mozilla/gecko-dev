@@ -89,8 +89,6 @@ skip-if = ["verify"]
 
 ["browser_pdfjs_secondary_toolbar_telemetry.js"]
 
-["browser_pdfjs_signature_storage.js"]
-
 ["browser_pdfjs_stamp_telemetry.js"]
 support-files = ["moz.png"]
 
