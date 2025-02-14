@@ -8,15 +8,10 @@
 
 // Expected version 2 default-branch prefs
 const DEFAULT_PREFS = {
-  history: {
-    "quicksuggest.enabled": false,
-  },
-  offline: {
-    "quicksuggest.enabled": true,
-    "quicksuggest.dataCollection.enabled": false,
-    "suggest.quicksuggest.nonsponsored": true,
-    "suggest.quicksuggest.sponsored": true,
-  },
+  "quicksuggest.enabled": true,
+  "quicksuggest.dataCollection.enabled": false,
+  "suggest.quicksuggest.nonsponsored": true,
+  "suggest.quicksuggest.sponsored": true,
 };
 
 // Migration will use these values to migrate only up to version 1 instead of
@@ -30,16 +25,13 @@ add_setup(async () => {
   await UrlbarTestUtils.initNimbusFeature();
 });
 
-// The following tasks test OFFLINE UNVERSIONED to OFFLINE
+// The following tasks test OFFLINE UNVERSIONED to version 2
 
 // Migrating from:
 // * Unversioned prefs
 // * Offline
 // * Main suggestions pref: user left on
 // * Sponsored suggestions: user left on
-//
-// Scenario when migration occurs:
-// * Offline
 //
 // Expected:
 // * Non-sponsored suggestions: on
@@ -48,9 +40,8 @@ add_setup(async () => {
 add_task(async function () {
   await doMigrateTest({
     testOverrides: TEST_OVERRIDES,
-    scenario: "offline",
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
     },
   });
 });
@@ -61,9 +52,6 @@ add_task(async function () {
 // * Main suggestions pref: user turned off
 // * Sponsored suggestions: user left on (but ignored since main was off)
 //
-// Scenario when migration occurs:
-// * Offline
-//
 // Expected:
 // * Non-sponsored suggestions: off
 // * Sponsored suggestions: off
@@ -74,9 +62,8 @@ add_task(async function () {
     initialUserBranch: {
       "suggest.quicksuggest": false,
     },
-    scenario: "offline",
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.nonsponsored": false,
         "suggest.quicksuggest.sponsored": false,
@@ -91,9 +78,6 @@ add_task(async function () {
 // * Main suggestions pref: user left on
 // * Sponsored suggestions: user turned off
 //
-// Scenario when migration occurs:
-// * Offline
-//
 // Expected:
 // * Non-sponsored suggestions: on
 // * Sponsored suggestions: off
@@ -104,9 +88,8 @@ add_task(async function () {
     initialUserBranch: {
       "suggest.quicksuggest.sponsored": false,
     },
-    scenario: "offline",
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.sponsored": false,
       },
@@ -120,9 +103,6 @@ add_task(async function () {
 // * Main suggestions pref: user turned off
 // * Sponsored suggestions: user turned off
 //
-// Scenario when migration occurs:
-// * Offline
-//
 // Expected:
 // * Non-sponsored suggestions: off
 // * Sponsored suggestions: off
@@ -134,9 +114,8 @@ add_task(async function () {
       "suggest.quicksuggest": false,
       "suggest.quicksuggest.sponsored": false,
     },
-    scenario: "offline",
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.nonsponsored": false,
         "suggest.quicksuggest.sponsored": false,
@@ -145,7 +124,7 @@ add_task(async function () {
   });
 });
 
-// The following tasks test OFFLINE VERSION 1 to OFFLINE
+// The following tasks test OFFLINE VERSION 1 to version 2
 
 // Migrating from:
 // * Version 1 prefs
@@ -153,9 +132,6 @@ add_task(async function () {
 // * Non-sponsored suggestions: user left on
 // * Sponsored suggestions: user left on
 // * Data collection: user left off
-//
-// Scenario when migration occurs:
-// * Offline
 //
 // Expected:
 // * Non-sponsored suggestions: on
@@ -168,9 +144,8 @@ add_task(async function () {
       "quicksuggest.migrationVersion": 1,
       "quicksuggest.scenario": "offline",
     },
-    scenario: "offline",
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
     },
   });
 });
@@ -181,9 +156,6 @@ add_task(async function () {
 // * Non-sponsored suggestions: user left on
 // * Sponsored suggestions: user left on
 // * Data collection: user turned on
-//
-// Scenario when migration occurs:
-// * Offline
 //
 // Expected:
 // * Non-sponsored suggestions: on
@@ -197,9 +169,8 @@ add_task(async function () {
       "quicksuggest.scenario": "offline",
       "quicksuggest.dataCollection.enabled": true,
     },
-    scenario: "offline",
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "quicksuggest.dataCollection.enabled": true,
       },
@@ -214,9 +185,6 @@ add_task(async function () {
 // * Sponsored suggestions: user turned off
 // * Data collection: user left off
 //
-// Scenario when migration occurs:
-// * Offline
-//
 // Expected:
 // * Non-sponsored suggestions: on
 // * Sponsored suggestions: off
@@ -229,9 +197,8 @@ add_task(async function () {
       "quicksuggest.scenario": "offline",
       "suggest.quicksuggest.sponsored": false,
     },
-    scenario: "offline",
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.sponsored": false,
       },
@@ -246,9 +213,6 @@ add_task(async function () {
 // * Sponsored suggestions: user turned off
 // * Data collection: user left off
 //
-// Scenario when migration occurs:
-// * Offline
-//
 // Expected:
 // * Non-sponsored suggestions: off
 // * Sponsored suggestions: off
@@ -262,9 +226,8 @@ add_task(async function () {
       "suggest.quicksuggest.nonsponsored": false,
       "suggest.quicksuggest.sponsored": false,
     },
-    scenario: "offline",
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.nonsponsored": false,
         "suggest.quicksuggest.sponsored": false,

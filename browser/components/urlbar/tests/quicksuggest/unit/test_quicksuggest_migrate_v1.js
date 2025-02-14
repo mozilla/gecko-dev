@@ -8,16 +8,11 @@
 
 // Expected version 1 default-branch prefs
 const DEFAULT_PREFS = {
-  history: {
-    "quicksuggest.enabled": false,
-  },
-  offline: {
-    "quicksuggest.enabled": true,
-    "quicksuggest.dataCollection.enabled": false,
-    "quicksuggest.shouldShowOnboardingDialog": false,
-    "suggest.quicksuggest.nonsponsored": true,
-    "suggest.quicksuggest.sponsored": true,
-  },
+  "quicksuggest.enabled": true,
+  "quicksuggest.dataCollection.enabled": false,
+  "quicksuggest.shouldShowOnboardingDialog": false,
+  "suggest.quicksuggest.nonsponsored": true,
+  "suggest.quicksuggest.sponsored": true,
 };
 
 // Migration will use these values to migrate only up to version 1 instead of
@@ -31,14 +26,14 @@ add_setup(async () => {
   await UrlbarTestUtils.initNimbusFeature();
 });
 
-// The following tasks test OFFLINE TO OFFLINE
+// The following tasks test OFFLINE to version 1 when SUGGEST IS ENABLED
 
 // Migrating from:
-// * Offline (suggestions on by default)
+// * Offline (Suggest enabled by default)
 // * User did not override any defaults
 //
-// Scenario when migration occurs:
-// * Offline
+// Suggest enabled when migration occurs:
+// * Yes
 //
 // Expected:
 // * Non-sponsored suggestions: remain on
@@ -47,20 +42,20 @@ add_setup(async () => {
 add_task(async function () {
   await doMigrateTest({
     testOverrides: TEST_OVERRIDES,
-    scenario: "offline",
+    shouldEnable: true,
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
     },
   });
 });
 
 // Migrating from:
-// * Offline (suggestions on by default)
+// * Offline (Suggest enabled by default)
 // * Main suggestions pref: user left on
 // * Sponsored suggestions: user turned off
 //
-// Scenario when migration occurs:
-// * Offline
+// Suggest enabled when migration occurs:
+// * Yes
 //
 // Expected:
 // * Non-sponsored suggestions: on
@@ -72,9 +67,9 @@ add_task(async function () {
     initialUserBranch: {
       "suggest.quicksuggest.sponsored": false,
     },
-    scenario: "offline",
+    shouldEnable: true,
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.sponsored": false,
       },
@@ -83,12 +78,12 @@ add_task(async function () {
 });
 
 // Migrating from:
-// * Offline (suggestions on by default)
+// * Offline (Suggest enabled by default)
 // * Main suggestions pref: user turned off
 // * Sponsored suggestions: user left on (but ignored since main was off)
 //
-// Scenario when migration occurs:
-// * Offline
+// Suggest enabled when migration occurs:
+// * Yes
 //
 // Expected:
 // * Non-sponsored suggestions: off
@@ -100,9 +95,9 @@ add_task(async function () {
     initialUserBranch: {
       "suggest.quicksuggest": false,
     },
-    scenario: "offline",
+    shouldEnable: true,
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.nonsponsored": false,
         "suggest.quicksuggest.sponsored": false,
@@ -112,12 +107,12 @@ add_task(async function () {
 });
 
 // Migrating from:
-// * Offline (suggestions on by default)
+// * Offline (Suggest enabled by default)
 // * Main suggestions pref: user turned off
 // * Sponsored suggestions: user turned off
 //
-// Scenario when migration occurs:
-// * Offline
+// Suggest enabled when migration occurs:
+// * Yes
 //
 // Expected:
 // * Non-sponsored suggestions: off
@@ -130,9 +125,9 @@ add_task(async function () {
       "suggest.quicksuggest": false,
       "suggest.quicksuggest.sponsored": false,
     },
-    scenario: "offline",
+    shouldEnable: true,
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.nonsponsored": false,
         "suggest.quicksuggest.sponsored": false,
@@ -141,14 +136,14 @@ add_task(async function () {
   });
 });
 
-// The following tasks test ONLINE TO OFFLINE
+// The following tasks test ONLINE to version 1 when SUGGEST IS ENABLED
 
 // Migrating from:
-// * Online (suggestions off by default)
+// * Online (Suggest enabled but suggestions off by default)
 // * User did not override any defaults
 //
-// Scenario when migration occurs:
-// * Offline
+// Suggest enabled when migration occurs:
+// * Yes
 //
 // Expected:
 // * Non-sponsored suggestions: on (since main pref had default value)
@@ -157,20 +152,20 @@ add_task(async function () {
 add_task(async function () {
   await doMigrateTest({
     testOverrides: TEST_OVERRIDES,
-    scenario: "offline",
+    shouldEnable: true,
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
     },
   });
 });
 
 // Migrating from:
-// * Online (suggestions off by default)
+// * Online (Suggest enabled but suggestions off by default)
 // * Main suggestions pref: user left off
 // * Sponsored suggestions: user turned on (but ignored since main was off)
 //
-// Scenario when migration occurs:
-// * Offline
+// Suggest enabled when migration occurs:
+// * Yes
 //
 // Expected:
 // * Non-sponsored suggestions: off
@@ -186,18 +181,15 @@ add_task(async function () {
 // history, then we'd know to turn sponsored -- and non-sponsored -- on, since
 // the scenario at the time of migration is offline, where suggestions should be
 // enabled by default.
-//
-// This is the reason we now record `quicksuggest.scenario` on the user branch
-// and not the default branch as we previously did.
 add_task(async function () {
   await doMigrateTest({
     testOverrides: TEST_OVERRIDES,
     initialUserBranch: {
       "suggest.quicksuggest.sponsored": true,
     },
-    scenario: "offline",
+    shouldEnable: true,
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.sponsored": true,
       },
@@ -206,26 +198,26 @@ add_task(async function () {
 });
 
 // Migrating from:
-// * Online (suggestions off by default)
+// * Online (Suggest enabled but suggestions off by default)
 // * Main suggestions pref: user turned on
 // * Sponsored suggestions: user left off
 //
-// Scenario when migration occurs:
-// * Offline
+// Suggest enabled when migration occurs:
+// * Yes
 //
 // Expected:
 // * Non-sponsored suggestions: remain on
 // * Sponsored suggestions: remain off
-// * Data collection: off (since scenario is offline)
+// * Data collection: off
 add_task(async function () {
   await doMigrateTest({
     testOverrides: TEST_OVERRIDES,
     initialUserBranch: {
       "suggest.quicksuggest": true,
     },
-    scenario: "offline",
+    shouldEnable: true,
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.nonsponsored": true,
       },
@@ -234,17 +226,17 @@ add_task(async function () {
 });
 
 // Migrating from:
-// * Online (suggestions off by default)
+// * Online (Suggest enabled but suggestions off by default)
 // * Main suggestions pref: user turned on
 // * Sponsored suggestions: user turned on
 //
-// Scenario when migration occurs:
-// * Offline
+// Suggest enabled when migration occurs:
+// * Yes
 //
 // Expected:
 // * Non-sponsored suggestions: remain on
 // * Sponsored suggestions: remain on
-// * Data collection: off (since scenario is offline)
+// * Data collection: off
 add_task(async function () {
   await doMigrateTest({
     testOverrides: TEST_OVERRIDES,
@@ -252,9 +244,9 @@ add_task(async function () {
       "suggest.quicksuggest": true,
       "suggest.quicksuggest.sponsored": true,
     },
-    scenario: "offline",
+    shouldEnable: true,
     expectedPrefs: {
-      defaultBranch: DEFAULT_PREFS.offline,
+      defaultBranch: DEFAULT_PREFS,
       userBranch: {
         "suggest.quicksuggest.nonsponsored": true,
         "suggest.quicksuggest.sponsored": true,

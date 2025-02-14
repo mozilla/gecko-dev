@@ -2,41 +2,43 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Tests that the default scenario is "offline" for "en" locales in the U.S. and
-// "history" everywhere else.
+// Tests that Suggest is enabled by default for "en" locales in the U.S. and
+// disabled by default everywhere else. (When Suggest is enabled by default,
+// "offline" suggestions are enabled but Merino is not, hence "offline"
+// default.)
 
 "use strict";
 
-// All the prefs that are set when the Suggest scenario is initialized along
-// with the expected offline and non-offline (history) default-branch values.
+// All the prefs that are set when Suggest is initialized along with the
+// expected default-branch values.
 const PREFS = [
   {
     name: "browser.urlbar.quicksuggest.enabled",
     get: "getBoolPref",
     set: "setBoolPref",
-    expectedOfflineValue: true,
-    expectedOtherValue: false,
+    expectedWhenSuggestEnabled: true,
+    expectedWhenSuggestDisabled: false,
   },
   {
     name: "browser.urlbar.quicksuggest.dataCollection.enabled",
     get: "getBoolPref",
     set: "setBoolPref",
-    expectedOfflineValue: false,
-    expectedOtherValue: false,
+    expectedWhenSuggestEnabled: false,
+    expectedWhenSuggestDisabled: false,
   },
   {
     name: "browser.urlbar.suggest.quicksuggest.nonsponsored",
     get: "getBoolPref",
     set: "setBoolPref",
-    expectedOfflineValue: true,
-    expectedOtherValue: false,
+    expectedWhenSuggestEnabled: true,
+    expectedWhenSuggestDisabled: false,
   },
   {
     name: "browser.urlbar.suggest.quicksuggest.sponsored",
     get: "getBoolPref",
     set: "setBoolPref",
-    expectedOfflineValue: true,
-    expectedOtherValue: false,
+    expectedWhenSuggestEnabled: true,
+    expectedWhenSuggestDisabled: false,
   },
 ];
 
@@ -46,17 +48,17 @@ add_setup(async () => {
 
 add_task(async function test() {
   let tests = [
-    { locale: "en-US", home: "US", expectedOfflineDefault: true },
-    { locale: "en-US", home: "CA", expectedOfflineDefault: false },
-    { locale: "en-CA", home: "US", expectedOfflineDefault: true },
-    { locale: "en-CA", home: "CA", expectedOfflineDefault: false },
-    { locale: "en-GB", home: "US", expectedOfflineDefault: true },
-    { locale: "en-GB", home: "GB", expectedOfflineDefault: false },
-    { locale: "de", home: "US", expectedOfflineDefault: false },
-    { locale: "de", home: "DE", expectedOfflineDefault: false },
+    { locale: "en-US", home: "US", expectSuggestToBeEnabled: true },
+    { locale: "en-US", home: "CA", expectSuggestToBeEnabled: false },
+    { locale: "en-CA", home: "US", expectSuggestToBeEnabled: true },
+    { locale: "en-CA", home: "CA", expectSuggestToBeEnabled: false },
+    { locale: "en-GB", home: "US", expectSuggestToBeEnabled: true },
+    { locale: "en-GB", home: "GB", expectSuggestToBeEnabled: false },
+    { locale: "de", home: "US", expectSuggestToBeEnabled: false },
+    { locale: "de", home: "DE", expectSuggestToBeEnabled: false },
   ];
-  for (let { locale, home, expectedOfflineDefault } of tests) {
-    await doTest({ locale, home, expectedOfflineDefault });
+  for (let { locale, home, expectSuggestToBeEnabled } of tests) {
+    await doTest({ locale, home, expectSuggestToBeEnabled });
   }
 });
 
@@ -70,11 +72,11 @@ add_task(async function test() {
  *   The locale to simulate.
  * @param {string} options.home
  *   The "home" region to simulate.
- * @param {boolean} options.expectedOfflineDefault
- *   The expected value of whether offline should be enabled by default given
- *   the locale and region.
+ * @param {boolean} options.expectSuggestToBeEnabled
+ *   Whether Suggest is expected to be enabled by default for the given locale
+ *   and region.
  */
-async function doTest({ locale, home, expectedOfflineDefault }) {
+async function doTest({ locale, home, expectSuggestToBeEnabled }) {
   // Setup: Clear any user values and save original default-branch values.
   for (let pref of PREFS) {
     Services.prefs.clearUserPref(pref.name);
@@ -92,12 +94,12 @@ async function doTest({ locale, home, expectedOfflineDefault }) {
       for (let {
         name,
         get,
-        expectedOfflineValue,
-        expectedOtherValue,
+        expectedWhenSuggestEnabled,
+        expectedWhenSuggestDisabled,
       } of PREFS) {
-        let expectedValue = expectedOfflineDefault
-          ? expectedOfflineValue
-          : expectedOtherValue;
+        let expectedValue = expectSuggestToBeEnabled
+          ? expectedWhenSuggestEnabled
+          : expectedWhenSuggestDisabled;
 
         // Check the default-branch value.
         Assert.strictEqual(

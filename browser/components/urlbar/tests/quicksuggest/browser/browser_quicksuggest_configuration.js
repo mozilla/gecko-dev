@@ -72,7 +72,7 @@ add_task(async function test_merino() {
   });
 });
 
-// The following tasks test individual Nimbus variables without scenarios
+// The following tasks test Nimbus enrollments
 
 // Initial state:
 // * Suggestions on by default and user left them on
@@ -569,12 +569,17 @@ async function checkEnrollments(options) {
     // Check expected effective values after unenrollment. The expected
     // effective value for a pref at this point is the value on the user branch,
     // or if there's not a user value, the original value on the default branch
-    // before enrollment. This assumes the default values reflect the offline
-    // scenario (the case for the U.S. region).
-    let effectivePrefs = Object.assign({}, QuickSuggest.DEFAULT_PREFS.offline);
+    // before enrollment. (This assumes Suggest is enabled by default during
+    // tests.)
+    let effectivePrefs = { ...QuickSuggest.DEFAULT_PREFS };
     for (let [name, value] of Object.entries(expectedUserBranch)) {
       effectivePrefs[name] = value;
     }
+    Assert.greater(
+      Object.entries(effectivePrefs).length,
+      0,
+      "Sanity check: effectivePrefs should not be empty"
+    );
     for (let [name, value] of Object.entries(effectivePrefs)) {
       Assert.equal(
         UrlbarPrefs.get(name),
