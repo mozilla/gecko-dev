@@ -560,13 +560,24 @@ export class _ExperimentManager {
   /**
    * Start a new experiment by enrolling the users
    *
-   * @param {RecipeArgs} recipe
+   * @param {object} recipe
+   *                 The recipe to enroll in.
    * @param {string} source
+   *                 The source of the experiment (e.g., "rs-loader" for recipes
+   *                 from Remote Settings).
    * @param {object} options
-   * @param {boolean} options.reenroll - Allow re-enrollment. Only allowed for rollouts.
-   * @returns {Promise<Enrollment>} The experiment object stored in the data store
-   * @rejects {Error}
-   * @memberof _ExperimentManager
+   * @param {boolean} options.reenroll
+   *                  Allow re-enrollment. Only supported for rollouts.
+   * @param {string} options.optInRecipeBranchSlug
+   *                 If enrolling in a Firefox Labs opt-in experiment, this
+   *                 option is required and will dictate which branch to enroll
+   *                 in.
+   *
+   * @returns {Promise<Enrollment>}
+   *          The experiment object stored in the data store.
+   *
+   * @throws {Error} If a recipe already exists in the store with the same slug
+   *                 as `recipe` and re-enrollment is prevented.
    */
   async enroll(
     recipe,
@@ -579,7 +590,8 @@ export class _ExperimentManager {
 
     if (
       enrollment &&
-      (enrollment.active || !enrollment.isRollout || !reenroll)
+      (enrollment.active ||
+        (!isFirefoxLabsOptIn && (!enrollment.isRollout || !reenroll)))
     ) {
       this.sendFailureTelemetry("enrollFailed", slug, "name-conflict");
       throw new Error(`An experiment with the slug "${slug}" already exists.`);

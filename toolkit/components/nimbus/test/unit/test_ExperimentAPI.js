@@ -101,6 +101,9 @@ add_task(async function test_getExperimentMetaData() {
 
   Assert.ok(exposureStub.notCalled, "Not called for this method");
 
+  manager.unenroll(expected.slug);
+  assertEmptyStore(manager.store);
+
   sandbox.restore();
 });
 
@@ -131,6 +134,9 @@ add_task(async function test_getRolloutMetaData() {
   );
 
   Assert.ok(exposureStub.notCalled, "Not called for this method");
+
+  manager.unenroll(expected.slug);
+  await assertEmptyStore(manager.store);
 
   sandbox.restore();
 });
@@ -440,6 +446,10 @@ add_task(async function test_addEnrollment_eventEmit_add() {
 
   store.off("update:foo", slugStub);
   store.off("featureUpdate:purple", featureStub);
+
+  manager.unenroll(experiment.slug);
+  await assertEmptyStore(store);
+
   sandbox.restore();
 });
 
@@ -481,6 +491,9 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
 
   store.off("update:foo", slugStub);
   store._offFeatureUpdate("featureUpdate:purple", featureStub);
+
+  manager.unenroll(experiment.slug);
+  await assertEmptyStore(store);
 });
 
 add_task(async function test_updateExperiment_eventEmit_off() {
@@ -514,6 +527,9 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   Assert.equal(slugStub.callCount, 1, "Called only once before `off`");
   Assert.equal(featureStub.callCount, 1, "Called only once before `off`");
 
+  manager.unenroll(experiment.slug);
+  await assertEmptyStore(store);
+
   sandbox.restore();
 });
 
@@ -539,6 +555,9 @@ add_task(async function test_getActiveBranch() {
     experiment.branch,
     "Should return feature of active experiment"
   );
+
+  manager.unenroll(experiment.slug);
+  await assertEmptyStore(store);
 
   sandbox.restore();
 });
@@ -586,6 +605,10 @@ add_task(async function test_getActiveBranch_storeFailure() {
   }
 
   Assert.equal(stub.callCount, 0, "Not called if store somehow fails");
+
+  manager.unenroll(experiment.slug);
+  await assertEmptyStore(store);
+
   sandbox.restore();
 });
 
@@ -610,6 +633,10 @@ add_task(async function test_getActiveBranch_noActivationEvent() {
   ExperimentAPI.getActiveBranch({ featureId: "green" });
 
   Assert.equal(stub.callCount, 0, "Not called: sendExposureEvent is false");
+
+  manager.unenroll(experiment.slug);
+  await assertEmptyStore(store);
+
   sandbox.restore();
 });
 
@@ -652,6 +679,8 @@ add_task(async function test_getFirefoxLabsOptInRecipes() {
   );
 
   sandbox.restore();
+
+  await assertEmptyStore(manager.store);
 });
 
 /**
@@ -660,11 +689,13 @@ add_task(async function test_getFirefoxLabsOptInRecipes() {
 add_task(async function test_enrollInFirefoxLabsOptInRecipe() {
   const sandbox = sinon.createSandbox();
   const manager = ExperimentFakes.manager();
-  const managerEnrollStub = sandbox.stub(manager, "enroll").resolves(true);
+  const enrollSpy = sandbox.spy(manager, "enroll");
   sandbox.stub(RemoteSettingsExperimentLoader, "finishedUpdating").resolves();
   sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
 
-  const optInRecipes = [
+  await manager.onStartup();
+
+  const optInRecipes = (manager.optInRecipes = [
     ExperimentFakes.recipe("opt-in-one", {
       targeting: "true",
       isFirefoxLabsOptIn: true,
@@ -675,6 +706,11 @@ add_task(async function test_enrollInFirefoxLabsOptInRecipe() {
           features: [{ featureId: "pink", value: {} }],
         },
       ],
+      firefoxLabsTitle: "placeholder",
+      firefoxLabsDescription: "placeholder",
+      firefoxLabsDescriptionLinks: null,
+      firefoxLabsGroup: "placeholder",
+      requiresRestart: false,
     }),
     ExperimentFakes.recipe("opt-in-two", {
       targeting: "true",
@@ -686,10 +722,13 @@ add_task(async function test_enrollInFirefoxLabsOptInRecipe() {
           features: [{ featureId: "pink", value: {} }],
         },
       ],
+      firefoxLabsTitle: "placeholder",
+      firefoxLabsDescription: "placeholder",
+      firefoxLabsDescriptionLinks: null,
+      firefoxLabsGroup: "placeholder",
+      requiresRestart: false,
     }),
-  ];
-
-  manager.optInRecipes = optInRecipes;
+  ]);
 
   await Assert.rejects(
     ExperimentAPI.enrollInFirefoxLabsOptInRecipe(),
@@ -704,16 +743,16 @@ add_task(async function test_enrollInFirefoxLabsOptInRecipe() {
   );
 
   await ExperimentAPI.enrollInFirefoxLabsOptInRecipe(
-    "opt-in-one",
-    "branch-slug-one"
+    optInRecipes[0].slug,
+    optInRecipes[0].branches[0].slug
   );
   Assert.ok(
-    managerEnrollStub.calledOnceWith(optInRecipes[0], "rs-loader", {
+    enrollSpy.calledOnceWith(optInRecipes[0], "rs-loader", {
       optInRecipeBranchSlug: "branch-slug-one",
     })
   );
 
-  managerEnrollStub.reset();
+  enrollSpy.resetHistory();
 
   // The ExperimentAPI._manager.getSingleOptInRecipe(slug) made inside this call
   // should not return a recipe, hence the below enroll call won't be executed.
@@ -721,11 +760,67 @@ add_task(async function test_enrollInFirefoxLabsOptInRecipe() {
     "slug-non-existent",
     "branch-slug-one"
   );
-  Assert.equal(
-    managerEnrollStub.callCount,
-    0,
+  Assert.ok(
+    enrollSpy.notCalled,
     "Should not call the enroll function when no recipe is returned"
   );
+
+  manager.unenroll(optInRecipes[0].slug);
+  await assertEmptyStore(manager.store);
+
+  sandbox.restore();
+});
+
+add_task(async function test_reenroll_firefoxLabsOptIn() {
+  const SLUG = "opt-in";
+  const manager = ExperimentFakes.manager();
+
+  const sandbox = sinon.createSandbox();
+
+  manager.optInRecipes = [
+    ExperimentFakes.recipe(SLUG, {
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+      branches: [
+        {
+          ...ExperimentFakes.recipe.branches[0],
+          slug: "control",
+        },
+      ],
+      isFirefoxLabsOptIn: true,
+      firefoxLabsTitle: "placeholder",
+      firefoxLabsDescription: "placeholder",
+      firefoxLabsDescriptionLinks: null,
+      firefoxLabsGroup: "placeholder",
+      requiresRestart: false,
+    }),
+  ];
+
+  sandbox.stub(ExperimentAPI, "_manager").get(() => manager);
+  sandbox.stub(RemoteSettingsExperimentLoader, "finishedUpdating").resolves();
+
+  await manager.onStartup();
+  await ExperimentAPI.ready();
+
+  Assert.ok(
+    typeof manager.store.get(SLUG) === "undefined",
+    `No enrollment for ${SLUG}`
+  );
+
+  await ExperimentAPI.enrollInFirefoxLabsOptInRecipe(SLUG, "control");
+
+  Assert.ok(manager.store.get(SLUG)?.active, `Active enrollment for ${SLUG}`);
+
+  manager.unenroll(SLUG);
+  Assert.ok(
+    manager.store.get(SLUG)?.active === false,
+    `Inactive enrollment for ${SLUG}`
+  );
+
+  await ExperimentAPI.enrollInFirefoxLabsOptInRecipe(SLUG, "control");
+  Assert.ok(manager.store.get(SLUG)?.active, `Active enrollment for ${SLUG}`);
 
   sandbox.restore();
 });
