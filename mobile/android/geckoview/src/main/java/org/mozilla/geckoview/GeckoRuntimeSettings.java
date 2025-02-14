@@ -700,6 +700,10 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new Pref<Boolean>("network.cookie.cookieBehavior.optInPartitioning.pbmode", false);
   /* package */ final Pref<Integer> mCertificateTransparencyMode =
       new Pref<Integer>("security.pki.certificate_transparency.mode", 0);
+  /* package */ final Pref<Boolean> mPostQuantumKeyExchangeTLSEnabled =
+      new Pref<Boolean>("security.tls.enable_kyber", false);
+  /* package */ final Pref<Boolean> mPostQuantumKeyExchangeHttp3Enabled =
+      new Pref<Boolean>("network.http.http3.enable_kyber", false);
 
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
@@ -2014,6 +2018,27 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public @Nullable Boolean getDisableShip() {
     return mDisableShip.get();
+  }
+
+  /**
+   * Set the preferences that control the use of post-quantum key exchange mechanisms
+   *
+   * @param enable Whether to enable or disable the preferences.
+   * @return This GeckoRuntimeSettings instance
+   */
+  public @NonNull GeckoRuntimeSettings setPostQuantumKeyExchangeEnabled(final boolean enable) {
+    mPostQuantumKeyExchangeTLSEnabled.commit(enable);
+    mPostQuantumKeyExchangeHttp3Enabled.commit(enable);
+    return this;
+  }
+
+  /**
+   * Get whether post-quantum key exchange mechanisms are enabled.
+   *
+   * @return Whether post-quantum key exchange mechanisms are enabled.
+   */
+  public @NonNull boolean getPostQuantumKeyExchangeEnabled() {
+    return mPostQuantumKeyExchangeTLSEnabled.get() && mPostQuantumKeyExchangeHttp3Enabled.get();
   }
 
   // For internal use only

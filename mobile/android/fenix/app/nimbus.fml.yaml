@@ -626,6 +626,15 @@ features:
         type: Int
         default: 0
 
+  pqcrypto:
+    description: Control the use of post-quantum key exchange mechanisms in TLS and HTTP/3.
+    variables:
+      postQuantumKeyExchangeEnabled:
+        description: >
+          Toggles the security.tls.enable_kyber and network.http.http3.enable_kyber preferences.
+        type: Boolean
+        default: false
+
   javascript:
     description: Enables Javascript Engine (Spidermonkey) features
     variables:

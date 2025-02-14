@@ -176,6 +176,7 @@ class Core(
             fetchPriorityEnabled = FxNimbus.features.networking.value().fetchPriorityEnabled,
             parallelMarkingEnabled = FxNimbus.features.javascript.value().parallelMarkingEnabled,
             certificateTransparencyMode = FxNimbus.features.pki.value().certificateTransparencyMode,
+            postQuantumKeyExchangeEnabled = FxNimbus.features.pqcrypto.value().postQuantumKeyExchangeEnabled,
         )
 
         // Apply fingerprinting protection overrides if the feature is enabled in Nimbus

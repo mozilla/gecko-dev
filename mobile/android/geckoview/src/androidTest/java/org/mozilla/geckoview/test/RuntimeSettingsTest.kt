@@ -772,4 +772,39 @@ class RuntimeSettingsTest : BaseSessionTest() {
             equalTo(true),
         )
     }
+
+    @Test
+    fun postQuantumKeyExchangeEnabled() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        assertThat(
+            "Post-quantum key exchange should be disabled",
+            geckoRuntimeSettings.postQuantumKeyExchangeEnabled,
+            equalTo(false),
+        )
+
+        geckoRuntimeSettings.setPostQuantumKeyExchangeEnabled(true)
+
+        assertThat(
+            "Post-quantum key exchange should be enabled",
+            geckoRuntimeSettings.postQuantumKeyExchangeEnabled,
+            equalTo(true),
+        )
+
+        val tlsPreference =
+            (sessionRule.getPrefs("security.tls.enable_kyber").get(0)) as Boolean
+        assertThat(
+            "The security.tls.enable_kyber preference should be set to true",
+            tlsPreference,
+            equalTo(true),
+        )
+
+        val http3Preference =
+            (sessionRule.getPrefs("network.http.http3.enable_kyber").get(0)) as Boolean
+        assertThat(
+            "The network.http.http3.enable_kyber preference should be set to true",
+            http3Preference,
+            equalTo(true),
+        )
+    }
 }

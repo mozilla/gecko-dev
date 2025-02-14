@@ -314,6 +314,12 @@ abstract class Settings {
      * Setting to control how Certificate Transparency information is processed.
      */
     open var certificateTransparencyMode: Int by UnsupportedSetting()
+
+    /**
+     * Setting to control whether post-quantum key exchange mechanisms are used
+     * in TLS and HTTP/3.
+     */
+    open var postQuantumKeyExchangeEnabled: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -377,6 +383,7 @@ data class DefaultSettings(
     override var cookieBehaviorOptInPartitioning: Boolean = false,
     override var cookieBehaviorOptInPartitioningPBM: Boolean = false,
     override var certificateTransparencyMode: Int = 0,
+    override var postQuantumKeyExchangeEnabled: Boolean = false,
 ) : Settings() {
     override val desktopModeEnabled: Boolean
         get() = getDesktopMode()

@@ -18,6 +18,7 @@ exclude: true
 - Added support for controlling `network.trr.default_provider_uri` via [`GeckoRuntimeSettings.setDefaultRecursiveResolverUri`][137.3] and [`GeckoRuntimeSettings.getDefaultRecursiveResolverUri`][137.4]
 - Added [`GeckoSession.Loader.originalInput`][137.5] option, which allows passing through the original user address bar input
 - [`GeckoRuntimeSettings.getFingerprintingProtection`][137.6] and [`GeckoRuntimeSettings.getFingerprintingProtectionPrivateBrowsing`][137.7] are now `@Nullable` to indicates that their values are controlled by the engine.
+- Added support for controlling `security.tls.enable_kyber` and `network.http.http3.enable_kyber` via [`GeckoRuntimeSettings.setPostQuantumKeyExchangeEnabled`][137.8]
 
 [137.1]: {{javadoc_uri}}/GeckoSession.html#requestAnalysisStatus(String)
 [137.2]: {{javadoc_uri}}/GeckoSession.html#pollForAnalysisCompleted(String)
@@ -26,6 +27,7 @@ exclude: true
 [137.5]: {{javadoc_uri}}/GeckoSession.Loader.html#originalInput(java.lang.String)
 [137.6]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getFingerprintingProtection
 [137.7]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getFingerprintingProtectionPrivateBrowsing
+[137.8]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setPostQuantumKeyExchangeEnabled
 
 ## v136
 - Added support for controlling `security.pki.certificate_transparency.mode` via [`GeckoRuntimeSettings.setCertificateTransparencyMode`][136.1]
@@ -1675,4 +1677,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: de132eb0ee242bc8f1f7f84838d07e1f80a5b5c1
+[api-version]: 5457ccf9a76bbdba450eede7c0f8084747965685

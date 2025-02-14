@@ -1392,6 +1392,10 @@ class GeckoEngine(
         override var certificateTransparencyMode: Int
             get() = runtime.settings.certificateTransparencyMode
             set(value) { runtime.settings.setCertificateTransparencyMode(value) }
+
+        override var postQuantumKeyExchangeEnabled: Boolean
+            get() = runtime.settings.postQuantumKeyExchangeEnabled
+            set(value) { runtime.settings.setPostQuantumKeyExchangeEnabled(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1429,6 +1433,7 @@ class GeckoEngine(
             this.cookieBehaviorOptInPartitioning = it.cookieBehaviorOptInPartitioning
             this.cookieBehaviorOptInPartitioningPBM = it.cookieBehaviorOptInPartitioningPBM
             this.certificateTransparencyMode = it.certificateTransparencyMode
+            this.postQuantumKeyExchangeEnabled = it.postQuantumKeyExchangeEnabled
         }
     }
 
