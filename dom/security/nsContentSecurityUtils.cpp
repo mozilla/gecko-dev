@@ -1837,6 +1837,7 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       // Test files
       "chrome://mochikit/"_ns,
       "chrome://mochitests/"_ns,
+      "chrome://pageloader/content/pageloader.xhtml"_ns,
       "chrome://reftest/"_ns,
       "chrome://remote/content/marionette/"_ns,
   };
