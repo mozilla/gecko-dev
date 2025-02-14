@@ -99,6 +99,7 @@
       this.tabContainer = document.getElementById("tabbrowser-tabs");
       this.tabGroupMenu = document.getElementById("tab-group-editor");
       this.tabbox = document.getElementById("tabbrowser-tabbox");
+      this.tabGroupNameField = document.getElementById("tab-group-name");
       this.tabpanels = document.getElementById("tabbrowser-tabpanels");
       this.verticalPinnedTabsContainer = document.getElementById(
         "vertical-pinned-tabs-container"
@@ -2947,6 +2948,13 @@
         group.remove();
         return null;
       }
+
+      gBrowser.getGroupTitleForTabs(tabs).then(newLabel => {
+        group.label = newLabel;
+        if (this.tabGroupMenu.panel.state !== "closed") {
+          this.tabGroupNameField.value = newLabel;
+        }
+      });
 
       group.dispatchEvent(
         new CustomEvent("TabGroupCreate", {
