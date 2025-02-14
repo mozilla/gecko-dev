@@ -149,6 +149,12 @@ support-files = [
   "counter_server.sjs",
 ]
 
+["browser_scriptCache_evict_with_non_cacheable.js"]
+support-files = [
+  "cacheable_non_cacheable_server.sjs",
+  "page_evict_with_non_cacheable.html",
+]
+
 ["browser_scriptCache_load_events.js"]
 skip-if = ["!nightly_build"]
 support-files = [

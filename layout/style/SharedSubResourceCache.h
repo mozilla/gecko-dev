@@ -217,6 +217,9 @@ class SharedSubResourceCache {
   // Inserts a value into the cache.
   void Insert(LoadingValue&);
 
+  // Evict the specific cache.
+  void Evict(const Key&);
+
   // Puts a load into the "pending" set.
   void DeferLoad(const Key&, LoadingValue&);
 
@@ -471,6 +474,11 @@ void SharedSubResourceCache<Traits, Derived>::Insert(LoadingValue& aValue) {
 #endif
 
   mComplete.InsertOrUpdate(key, CompleteSubResource(aValue));
+}
+
+template <typename Traits, typename Derived>
+void SharedSubResourceCache<Traits, Derived>::Evict(const Key& aKey) {
+  (void)mComplete.Remove(aKey);
 }
 
 template <typename Traits, typename Derived>
