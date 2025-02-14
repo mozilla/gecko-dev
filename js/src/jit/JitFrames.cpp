@@ -1229,12 +1229,6 @@ uint8_t* alignDoubleSpill(uint8_t* pointer) {
 }
 #endif
 
-static void TraceJitExitFrameCopiedArguments(JSTracer* trc,
-                                             const VMFunctionData* f,
-                                             ExitFooterFrame* footer) {
-  // This is NO-OP on other platforms.
-}
-
 static void TraceJitExitFrame(JSTracer* trc, const JSJitFrameIter& frame) {
   ExitFooterFrame* footer = frame.exitFrame()->footer();
 
@@ -1384,8 +1378,6 @@ static void TraceJitExitFrame(JSTracer* trc, const JSJitFrameIter& frame) {
         break;
     }
   }
-
-  TraceJitExitFrameCopiedArguments(trc, &f, footer);
 }
 
 static void TraceBaselineInterpreterEntryFrame(JSTracer* trc,

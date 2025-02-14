@@ -380,14 +380,10 @@ class ExitFooterFrame {
     return static_cast<VMFunctionId>(data_ - size_t(ExitFrameType::VMFunction));
   }
 
-  uint8_t* alignedForABI() {
-    return reinterpret_cast<uint8_t*>(this);
-  }
-
   // This should only be called for function()->outParam == Type_Handle
   template <typename T>
   T* outParam() {
-    uint8_t* address = alignedForABI();
+    uint8_t* address = reinterpret_cast<uint8_t*>(this);
     return reinterpret_cast<T*>(address - sizeof(T));
   }
 };
