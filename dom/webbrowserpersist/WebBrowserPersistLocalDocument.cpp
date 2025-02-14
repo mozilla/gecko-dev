@@ -715,7 +715,7 @@ nsresult PersistNodeFixup::FixupAttribute(nsINode* aNode,
     attr->GetValue(uri);
     rv = FixupURI(uri);
     if (NS_SUCCEEDED(rv)) {
-      attr->SetValue(uri, IgnoreErrors());
+      attr->SetValueInternal(uri, IgnoreErrors());
     }
   }
 
@@ -766,7 +766,7 @@ nsresult PersistNodeFixup::FixupAnchor(nsINode* aNode) {
       nsAutoCString uriSpec;
       rv = newURI->GetSpec(uriSpec);
       NS_ENSURE_SUCCESS(rv, rv);
-      attr->SetValue(NS_ConvertUTF8toUTF16(uriSpec), IgnoreErrors());
+      attr->SetValueInternal(NS_ConvertUTF8toUTF16(uriSpec), IgnoreErrors());
     }
   }
 

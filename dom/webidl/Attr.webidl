@@ -16,6 +16,15 @@ interface Attr : Node {
            [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, SetterThrows]
            attribute DOMString value;
 
+  // Rename binary names of nodeValue and textContent from the Node interface.
+  [CEReactions, SetterThrows, Pure,
+   BinaryName="nodeValueWithTrustedTypeCheck"]
+           attribute DOMString? nodeValue;
+  [CEReactions, SetterThrows, GetterCanOOM,
+   SetterNeedsSubjectPrincipal=NonSystem, Pure,
+   BinaryName="textContentWithTrustedTypeCheck"]
+           attribute DOMString? textContent;
+
   [Constant]
   readonly attribute DOMString name;
   [Constant]

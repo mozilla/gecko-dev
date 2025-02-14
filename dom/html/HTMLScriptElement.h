@@ -88,16 +88,13 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
       const TrustedScriptOrNullIsEmptyString& aValue, ErrorResult& aError);
 
   // @param aTextContent will always be of type `String`.
-  MOZ_CAN_RUN_SCRIPT void GetTextContent(
+  MOZ_CAN_RUN_SCRIPT void GetTrustedScriptOrStringTextContent(
       Nullable<OwningTrustedScriptOrString>& aTextContent,
       mozilla::OOMReporter& aError);
 
-  MOZ_CAN_RUN_SCRIPT void SetTextContent(
+  MOZ_CAN_RUN_SCRIPT void SetTrustedScriptOrStringTextContent(
       const Nullable<TrustedScriptOrString>& aTextContent,
       nsIPrincipal* aSubjectPrincipal, mozilla::ErrorResult& aError);
-  MOZ_CAN_RUN_SCRIPT void SetTextContent(
-      const Nullable<TrustedScriptOrString>& aTextContent,
-      mozilla::ErrorResult& aError);
 
   void GetCharset(nsAString& aCharset) {
     GetHTMLAttr(nsGkAtoms::charset, aCharset);

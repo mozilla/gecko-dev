@@ -1429,13 +1429,14 @@ class Element : public FragmentOrElement {
   already_AddRefed<Promise> RequestFullscreen(CallerType, ErrorResult&);
   void RequestPointerLock(CallerType aCallerType);
   Attr* GetAttributeNode(const nsAString& aName);
-  already_AddRefed<Attr> SetAttributeNode(Attr& aNewAttr, ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Attr> SetAttributeNode(
+      Attr& aNewAttr, ErrorResult& aError);
   already_AddRefed<Attr> RemoveAttributeNode(Attr& aOldAttr,
                                              ErrorResult& aError);
   Attr* GetAttributeNodeNS(const nsAString& aNamespaceURI,
                            const nsAString& aLocalName);
-  already_AddRefed<Attr> SetAttributeNodeNS(Attr& aNewAttr,
-                                            ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Attr> SetAttributeNodeNS(
+      Attr& aNewAttr, ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<DOMRectList> GetClientRects();
   MOZ_CAN_RUN_SCRIPT already_AddRefed<DOMRect> GetBoundingClientRect();

@@ -1922,7 +1922,7 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
               if (NS_WARN_IF(aRv.Failed())) {
                 return;
               }
-              clone->SetNodeValue(cutValue, aRv);
+              clone->SetNodeValueInternal(cutValue, aRv);
               if (NS_WARN_IF(aRv.Failed())) {
                 return;
               }
@@ -1957,7 +1957,7 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
               if (NS_WARN_IF(aRv.Failed())) {
                 return;
               }
-              clone->SetNodeValue(cutValue, aRv);
+              clone->SetNodeValueInternal(cutValue, aRv);
               if (NS_WARN_IF(aRv.Failed())) {
                 return;
               }
@@ -1989,7 +1989,7 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
           if (NS_WARN_IF(aRv.Failed())) {
             return;
           }
-          clone->SetNodeValue(cutValue, aRv);
+          clone->SetNodeValueInternal(cutValue, aRv);
           if (NS_WARN_IF(aRv.Failed())) {
             return;
           }

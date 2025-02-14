@@ -1604,7 +1604,8 @@ Attr* Element::GetAttributeNode(const nsAString& aName) {
 
 already_AddRefed<Attr> Element::SetAttributeNode(Attr& aNewAttr,
                                                  ErrorResult& aError) {
-  return Attributes()->SetNamedItemNS(aNewAttr, aError);
+  RefPtr<nsDOMAttributeMap> attrMap = Attributes();
+  return attrMap->SetNamedItemNS(aNewAttr, aError);
 }
 
 already_AddRefed<Attr> Element::RemoveAttributeNode(Attr& aAttribute,
@@ -1795,7 +1796,8 @@ Attr* Element::GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
 
 already_AddRefed<Attr> Element::SetAttributeNodeNS(Attr& aNewAttr,
                                                    ErrorResult& aError) {
-  return Attributes()->SetNamedItemNS(aNewAttr, aError);
+  RefPtr<nsDOMAttributeMap> attrMap = Attributes();
+  return attrMap->SetNamedItemNS(aNewAttr, aError);
 }
 
 already_AddRefed<nsIHTMLCollection> Element::GetElementsByTagNameNS(

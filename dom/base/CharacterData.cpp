@@ -120,7 +120,7 @@ void CharacterData::SetTextContentInternal(const nsAString& aTextContent,
                                            ErrorResult& aError) {
   // Batch possible DOMSubtreeModified events.
   mozAutoSubtreeModified subtree(OwnerDoc(), nullptr);
-  return SetNodeValue(aTextContent, aError);
+  return SetNodeValueInternal(aTextContent, aError);
 }
 
 void CharacterData::GetData(nsAString& aData) const {

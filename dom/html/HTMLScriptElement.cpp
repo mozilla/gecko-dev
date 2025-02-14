@@ -205,14 +205,14 @@ void HTMLScriptElement::SetInnerText(
   nsGenericHTMLElement::SetInnerText(*compliantString);
 }
 
-void HTMLScriptElement::GetTextContent(
+void HTMLScriptElement::GetTrustedScriptOrStringTextContent(
     Nullable<OwningTrustedScriptOrString>& aTextContent,
     mozilla::OOMReporter& aError) {
   FragmentOrElement::GetTextContentInternal(
       aTextContent.SetValue().SetAsString(), aError);
 }
 
-void HTMLScriptElement::SetTextContent(
+void HTMLScriptElement::SetTrustedScriptOrStringTextContent(
     const Nullable<TrustedScriptOrString>& aTextContent,
     nsIPrincipal* aSubjectPrincipal, mozilla::ErrorResult& aError) {
   constexpr nsLiteralString sink = u"HTMLScriptElement textContent"_ns;
@@ -220,7 +220,7 @@ void HTMLScriptElement::SetTextContent(
   if (aTextContent.IsNull()) {
     Nullable<TrustedScriptOrString> emptyString;
     emptyString.SetValue().SetStringLiteral(u"");
-    SetTextContent(emptyString, aSubjectPrincipal, aError);
+    SetTrustedScriptOrStringTextContent(emptyString, aSubjectPrincipal, aError);
     return;
   }
   const nsAString* compliantString =
@@ -231,12 +231,6 @@ void HTMLScriptElement::SetTextContent(
     return;
   }
   SetTextContentInternal(*compliantString, aSubjectPrincipal, aError);
-}
-
-void HTMLScriptElement::SetTextContent(
-    const Nullable<TrustedScriptOrString>& aTextContent,
-    mozilla::ErrorResult& aError) {
-  SetTextContent(aTextContent, nullptr, aError);
 }
 
 void HTMLScriptElement::GetSrc(OwningTrustedScriptURLOrString& aSrc) {

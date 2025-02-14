@@ -56,5 +56,5 @@ partial interface HTMLScriptElement {
 partial interface HTMLScriptElement {
   [CEReactions, Throws] attribute (TrustedScript or [LegacyNullToEmptyString] DOMString) innerText;
   [CEReactions, SetterThrows, GetterCanOOM,
-   SetterNeedsSubjectPrincipal=NonSystem] attribute (TrustedScript or DOMString)? textContent;
+   SetterNeedsSubjectPrincipal=NonSystem, BinaryName="trustedScriptOrStringTextContent"] attribute (TrustedScript or DOMString)? textContent;
 };
