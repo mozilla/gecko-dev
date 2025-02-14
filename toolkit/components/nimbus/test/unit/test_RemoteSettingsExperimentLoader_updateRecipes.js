@@ -2122,7 +2122,7 @@ add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
 
 add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
   info(
-    "testing opt-in rollouts do-not re-enroll automatically if bucketing changes"
+    "testing opt-in rollouts do not re-enroll automatically if bucketing changes"
   );
 
   const recipe = ExperimentFakes.recipe("opt-in", {
@@ -2167,12 +2167,11 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
 
   recipe.bucketConfig.count = 0;
   await loader.updateRecipes();
-  Assert.ok(!manager.store.get("opt-in")?.active, "Opt-in unenrolled");
+  Assert.ok(!manager.store.get("opt-in").active, "Opt-in unenrolled");
 
   recipe.bucketConfig.count = 1000;
   await loader.updateRecipes();
-  Assert.ok(manager.store.get("opt-in")?.active, "Opt-in re-enrolled");
+  Assert.ok(!manager.store.get("opt-in").active, "Opt-in not re-enrolled");
 
-  manager.unenroll("opt-in");
   await assertEmptyStore(manager.store);
 });

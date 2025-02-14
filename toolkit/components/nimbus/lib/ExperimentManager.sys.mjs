@@ -816,15 +816,11 @@ export class _ExperimentManager {
         return false;
       } else if (
         !enrollment.active &&
-        enrollment.unenrollReason !== "individual-opt-out"
+        enrollment.unenrollReason !== "individual-opt-out" &&
+        !enrollment.isFirefoxLabsOptIn
       ) {
         lazy.log.debug(`Re-enrolling in rollout "${recipe.slug}`);
-        const options = { reenroll: true };
-        if (recipe.isFirefoxLabsOptIn) {
-          // Opt-In rollouts only have a single branch.
-          options.optInRecipeBranchSlug = recipe.branches[0].slug;
-        }
-        return !!(await this.enroll(recipe, source, options));
+        return !!(await this.enroll(recipe, source, { reenroll: true }));
       }
     }
 
