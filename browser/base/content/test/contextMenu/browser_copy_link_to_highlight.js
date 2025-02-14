@@ -30,7 +30,24 @@ add_setup(async function () {
 // Menu items should not be visible if no text is selected
 add_task(async function notVisibleIfNoSelection() {
   await testCopyLinkToHighlight({
-    isTextSelected: false,
+    testPage: loremIpsumTestPage(false),
+    runTests: async ({ copyLinkToHighlight, copyCleanLinkToHighlight }) => {
+      Assert.ok(
+        !BrowserTestUtils.isVisible(copyLinkToHighlight),
+        "Copy Link to Highlight Menu item is not visible"
+      );
+      Assert.ok(
+        !BrowserTestUtils.isVisible(copyCleanLinkToHighlight),
+        "Copy Clean Link to Highlight Menu item is not visible"
+      );
+    },
+  });
+});
+
+// Menu items should not be visible if selection is in a contenteditable.
+add_task(async function notVisibleInEditable() {
+  await testCopyLinkToHighlight({
+    testPage: editableTestPage(),
     runTests: async ({ copyLinkToHighlight, copyCleanLinkToHighlight }) => {
       Assert.ok(
         !BrowserTestUtils.isVisible(copyLinkToHighlight),
@@ -47,7 +64,7 @@ add_task(async function notVisibleIfNoSelection() {
 // Menu items should be visible and not disabled if text is selected
 add_task(async function isVisibleIfSelection() {
   await testCopyLinkToHighlight({
-    isTextSelected: true,
+    testPage: loremIpsumTestPage(true),
     runTests: async ({ copyLinkToHighlight, copyCleanLinkToHighlight }) => {
       // tests for visibility
       Assert.ok(
@@ -72,7 +89,7 @@ add_task(async function isVisibleIfSelection() {
 // Clicking "Copy Link to Highlight" copies the URL with text fragment to the clipboard
 add_task(async function copiesToClipboard() {
   await testCopyLinkToHighlight({
-    isTextSelected: true,
+    testPage: loremIpsumTestPage(true),
     runTests: async ({ copyLinkToHighlight }) => {
       await SimpleTest.promiseClipboardChange(
         "https://www.example.com/?stripParam=1234#:~:text=eiusmod%20tempor%20incididunt&text=labore",
@@ -95,7 +112,7 @@ add_task(async function copiesToClipboard() {
 // Clicking "Copy Clean Link to Highlight" copies the URL with text fragment and without tracking query params to the clipboard
 add_task(async function copiesToClipboard() {
   await testCopyLinkToHighlight({
-    isTextSelected: true,
+    testPage: loremIpsumTestPage(true),
     runTests: async ({ copyCleanLinkToHighlight }) => {
       await SimpleTest.promiseClipboardChange(
         "https://www.example.com/#:~:text=eiusmod%20tempor%20incididunt&text=labore",
@@ -116,57 +133,90 @@ add_task(async function copiesToClipboard() {
 });
 
 /**
- * Opens a new tab with lorem ipsum text, optionally selects some of the text,
+ * Creates a document which contains a contenteditable element with some content.
+ * Additionally selects the editable content.
+ *
+ * @returns Returns an async function which creates the content.
+ */
+function editableTestPage() {
+  return async function (browser) {
+    await SpecialPowers.spawn(browser, [], async function () {
+      const editable = content.document.createElement("div");
+      editable.contentEditable = true;
+      editable.textContent = "This is editable";
+      const range = content.document.createRange();
+      range.selectNodeContents(editable);
+      content.getSelection().addRange(range);
+    });
+  };
+}
+
+/**
+ * Provides an async function that creates a document with some text nodes,
+ * and (if `isTextSelected == true`) also creates some selection ranges.
+ *
+ * @param {boolean} isTextSelected If true, two ranges are created in the
+ *                                 document and added to the selection.
+ * @returns Async function which creates the content.
+ */
+function loremIpsumTestPage(isTextSelected) {
+  return async function (browser) {
+    await SpecialPowers.spawn(
+      browser,
+      [isTextSelected],
+      async function (selectText) {
+        const textBegin = content.document.createTextNode(
+          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do "
+        );
+        const textMiddle = content.document.createTextNode(
+          "eiusmod tempor incididunt"
+        );
+        const textEnd = content.document.createTextNode(
+          " ut labore et dolore magna aliqua. Est nulla nostrud velit dolore aliquip ipsum do sint cillum excepteur adipisicing ipsum irure. Sit sunt reprehenderit laboris labore magna exercitation amet fugiat nisi ad laborum veniam nisi. Est ex proident anim eiusmod veniam ipsum officia in ipsum deserunt voluptate. Enim anim cillum elit tempor consequat esse exercitation."
+        );
+
+        const paragraph = content.document.createElement("p");
+        const span = content.document.createElement("span");
+        span.appendChild(textMiddle);
+        span.id = "span";
+
+        paragraph.appendChild(textBegin);
+        paragraph.appendChild(span);
+        paragraph.appendChild(textEnd);
+
+        paragraph.id = "text";
+        content.document.body.prepend(paragraph);
+
+        if (selectText) {
+          const selection = content.getSelection();
+          const range = content.document.createRange();
+          range.selectNodeContents(span);
+          selection.addRange(range);
+          const range2 = content.document.createRange();
+          range2.setStart(textEnd, 4);
+          range2.setEnd(textEnd, 10);
+          selection.addRange(range2);
+        }
+      }
+    );
+  };
+}
+
+/**
+ * Opens a new tab with `testPage` as content,
  * opens the context menu and checks if "Copy Link to Highlight" items are
  * visible, enabled, and functioning as expected.
  *
- * @param {boolean} isTextSelected - Whether or not any text on the page is selected
+ * @param {Function} testPage - Content of the test page to load.
  * @param {Function} runTests - Async callback function for running assertions,
  * receives references to both menu items
  */
-async function testCopyLinkToHighlight({ isTextSelected, runTests }) {
+async function testCopyLinkToHighlight({ testPage, runTests }) {
   await BrowserTestUtils.withNewTab(
     "www.example.com?stripParam=1234",
     async function (browser) {
       // Add some text to the page, optionally select some of it
-      await SpecialPowers.spawn(
-        browser,
-        [isTextSelected],
-        async function (selectText) {
-          const textBegin = content.document.createTextNode(
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do "
-          );
-          const textMiddle = content.document.createTextNode(
-            "eiusmod tempor incididunt"
-          );
-          const textEnd = content.document.createTextNode(
-            " ut labore et dolore magna aliqua. Est nulla nostrud velit dolore aliquip ipsum do sint cillum excepteur adipisicing ipsum irure. Sit sunt reprehenderit laboris labore magna exercitation amet fugiat nisi ad laborum veniam nisi. Est ex proident anim eiusmod veniam ipsum officia in ipsum deserunt voluptate. Enim anim cillum elit tempor consequat esse exercitation."
-          );
-
-          const paragraph = content.document.createElement("p");
-          const span = content.document.createElement("span");
-          span.appendChild(textMiddle);
-          span.id = "span";
-
-          paragraph.appendChild(textBegin);
-          paragraph.appendChild(span);
-          paragraph.appendChild(textEnd);
-
-          paragraph.id = "text";
-          content.document.body.prepend(paragraph);
-
-          if (selectText) {
-            const selection = content.getSelection();
-            const range = content.document.createRange();
-            range.selectNodeContents(span);
-            selection.addRange(range);
-            const range2 = content.document.createRange();
-            range2.setStart(textEnd, 4);
-            range2.setEnd(textEnd, 10);
-            selection.addRange(range2);
-          }
-        }
-      );
+      await testPage(browser);
 
       let contextMenu = document.getElementById("contentAreaContextMenu");
       // Open the context menu

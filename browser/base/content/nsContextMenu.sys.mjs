@@ -437,7 +437,7 @@ export class nsContextMenu {
         false
       ) &&
       lazy.STRIP_ON_SHARE_ENABLED &&
-      !(this.inPDFViewer || this.inFrame) &&
+      !(this.inPDFViewer || this.inFrame || this.onEditable) &&
       this.isContentSelected;
     this.showItem("context-copy-link-to-highlight", shouldShow);
     this.showItem("context-copy-clean-link-to-highlight", shouldShow);
