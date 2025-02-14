@@ -2015,6 +2015,15 @@ interface nsIDOMWindowUtils : nsISupports {
   [implicit_jscontext] jsval getCompositorAPZTestData([optional] in Element aElement);
 
   /**
+   * Send a MozMouseHittest event hit on the given (x, y) on this window.
+   * The event is sent to the corresponding APZCTreeManager and the manager
+   * performs a hit testing in APZ. The hit testing result can be via obtained
+   * by above getCompositorAPZTestData().
+   */
+  [can_run_script]
+  void sendMozMouseHitTestEvent(in float aX, in float aY);
+
+  /**
    * Posts an RestyleHint::RESTYLE_SELF restyle event for the given element.
    */
   void postRestyleSelfEvent(in Element aElement);
