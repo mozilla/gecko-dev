@@ -23,6 +23,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   createEngine: "chrome://global/content/ml/EngineProcess.sys.mjs",
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  IndexedDB: "resource://gre/modules/IndexedDB.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
   MultiProgressAggregator: "chrome://global/content/ml/Utils.sys.mjs",
   Progress: "chrome://global/content/ml/Utils.sys.mjs",
@@ -35,6 +36,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const IMAGE_TO_TEXT_TASK = "moz-image-to-text";
 const ML_ENGINE_ID = "pdfjs";
 const ML_ENGINE_MAX_TIMEOUT = 60000;
+const PDFJS_DB_NAME = "pdfjs";
+const PDFJS_DB_VERSION = 1;
+const PDFJS_STORE_NAME = "signatures";
+const PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC = "pdfjs:storedSignaturesChanged";
 
 var Svc = {};
 XPCOMUtils.defineLazyServiceGetter(
@@ -60,6 +65,8 @@ let gFindTypes = [
 ];
 
 export class PdfjsParent extends JSWindowActorParent {
+  #signatureStorageChangedObserver = null;
+
   #mutablePreferences = new Set([
     "enableGuessAltText",
     "enableAltTextModelDownload",
@@ -103,6 +110,8 @@ export class PdfjsParent extends JSWindowActorParent {
         return this._mlDelete(aMsg);
       case "PDFJS:Parent:updatedPreference":
         return this._updatedPreference(aMsg);
+      case "PDFJS:Parent:handleSignature":
+        return this._handleSignature(aMsg);
     }
     return undefined;
   }
@@ -113,6 +122,113 @@ export class PdfjsParent extends JSWindowActorParent {
 
   get browser() {
     return this.browsingContext.top.embedderElement;
+  }
+
+  async #openDatabase() {
+    return lazy.IndexedDB.open(PDFJS_DB_NAME, PDFJS_DB_VERSION, db => {
+      db.createObjectStore(PDFJS_STORE_NAME, {
+        keyPath: "uuid",
+      });
+    });
+  }
+
+  async _handleSignature({ data }) {
+    switch (data.action) {
+      case "create":
+        return this.#createSignature(data);
+      case "get":
+        return this.#getSignatures(data);
+      case "delete":
+        return this.#deleteSignature(data);
+      default:
+        return null;
+    }
+  }
+
+  async #getSignatures() {
+    if (!this.#signatureStorageChangedObserver) {
+      const self = this;
+      this.#signatureStorageChangedObserver = Services.obs.addObserver(
+        {
+          observe(aSubject, aTopic) {
+            if (
+              aTopic === PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC &&
+              // No need to send an event to the viewer which triggered the
+              // change because it already knows about it.
+              (aSubject !== self || Cu.isInAutomation)
+            ) {
+              // The child will dispatch an event in the pdf.js window.
+              // This way the viewer is able to update the UI (add/remove some
+              // signatures).
+              self.sendAsyncMessage("PDFJS:Child:handleEvent", {
+                type: "storedSignaturesChanged",
+                detail: null,
+              });
+            }
+          },
+          QueryInterface: ChromeUtils.generateQI([Ci.nsISupportsWeakReference]),
+        },
+        PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC,
+        true
+      );
+    }
+
+    let db;
+    try {
+      db = await this.#openDatabase();
+      const store = await db.objectStore(PDFJS_STORE_NAME, "readonly");
+      const signatures = await store.getAll();
+
+      return signatures.sort((a, b) => a.timestamp - b.timestamp);
+    } catch (e) {
+      console.error("PDF.js", e);
+      return null;
+    } finally {
+      await db?.close();
+    }
+  }
+
+  async #createSignature({ description, signatureData }) {
+    let db;
+    try {
+      db = await this.#openDatabase();
+      const store = await db.objectStore(PDFJS_STORE_NAME, "readwrite");
+      const uuid = Services.uuid.generateUUID().toString().replace(/[{}]/g, "");
+
+      await store.put({
+        uuid,
+        description,
+        signatureData,
+        timestamp: Date.now(),
+      });
+
+      Services.obs.notifyObservers(this, PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC);
+
+      return uuid;
+    } catch (e) {
+      console.error("PDF.js", e);
+      return null;
+    } finally {
+      await db?.close();
+    }
+  }
+
+  async #deleteSignature({ uuid }) {
+    let db;
+    try {
+      db = await this.#openDatabase();
+      const store = await db.objectStore(PDFJS_STORE_NAME, "readwrite");
+      await store.delete(uuid);
+
+      Services.obs.notifyObservers(this, PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC);
+
+      return true;
+    } catch (e) {
+      console.error("PDF.js", e);
+      return false;
+    } finally {
+      await db?.close();
+    }
   }
 
   _updatedPreference() {
