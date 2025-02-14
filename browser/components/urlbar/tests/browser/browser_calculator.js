@@ -3,8 +3,34 @@
 
 "use strict";
 
-const FORMULA = "8 * 8";
-const RESULT = "64";
+const lazy = {};
+
+ChromeUtils.defineLazyGetter(lazy, "l10n", () => {
+  return new Localization(["browser/browser.ftl"], true);
+});
+
+const TESTS = [
+  {
+    formula: "8 * 8",
+    result: "64",
+    l10nId: "urlbar-result-action-calculator-result-2",
+  },
+  {
+    formula: "10^6",
+    result: "1000000",
+    l10nId: "urlbar-result-action-calculator-result-2",
+  },
+  {
+    formula: "5/0",
+    result: "undefined",
+    l10nId: "urlbar-result-action-undefined-calculator-result",
+  },
+  {
+    formula: "3/30^12",
+    result: "5.64502927e-18",
+    l10nId: "urlbar-result-action-calculator-result-scientific-notation",
+  },
+];
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
@@ -13,21 +39,33 @@ add_setup(async function () {
 });
 
 add_task(async function test_calculator() {
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: FORMULA,
-  });
+  for (let test of TESTS) {
+    const { formula, result, l10nId } = test;
 
-  let result = (await UrlbarTestUtils.waitForAutocompleteResultAt(window, 1))
-    .result;
-  Assert.equal(result.type, UrlbarUtils.RESULT_TYPE.DYNAMIC);
-  Assert.equal(result.payload.input, FORMULA);
-  Assert.equal(result.payload.value, RESULT);
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: formula,
+    });
 
-  EventUtils.synthesizeKey("KEY_ArrowDown");
+    let res = (await UrlbarTestUtils.waitForAutocompleteResultAt(window, 1))
+      .result;
+    Assert.equal(res.type, UrlbarUtils.RESULT_TYPE.DYNAMIC);
+    Assert.equal(res.payload.input, formula);
+    Assert.equal(res.payload.value, result);
 
-  // Ensure the RESULT get written to the clipboard when selected.
-  await SimpleTest.promiseClipboardChange(RESULT, () => {
-    EventUtils.synthesizeKey("KEY_Enter");
-  });
+    EventUtils.synthesizeKey("KEY_ArrowDown");
+
+    let localizedResult = await lazy.l10n.formatValue(l10nId, {
+      result: res.payload.value,
+    });
+
+    if (localizedResult.startsWith("=")) {
+      localizedResult = localizedResult.slice(1).trim();
+    }
+
+    // Ensure the localized result which is displayed is what gets copied to clipboard.
+    await SimpleTest.promiseClipboardChange(localizedResult, () => {
+      EventUtils.synthesizeKey("KEY_Enter");
+    });
+  }
 });

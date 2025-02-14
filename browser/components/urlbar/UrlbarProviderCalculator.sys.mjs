@@ -17,6 +17,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarView: "resource:///modules/UrlbarView.sys.mjs",
 });
 
+ChromeUtils.defineLazyGetter(lazy, "l10n", () => {
+  return new Localization(["browser/browser.ftl"], true);
+});
+
 XPCOMUtils.defineLazyServiceGetter(
   lazy,
   "ClipboardHelper",
@@ -176,7 +180,17 @@ class ProviderCalculator extends UrlbarProvider {
 
   onEngagement(queryContext, controller, details) {
     let { result } = details;
-    lazy.ClipboardHelper.copyString(result.payload.value);
+    const resultL10n = this.getViewUpdate(result).input.l10n;
+    const res = resultL10n.args || {};
+
+    let localizedResult = lazy.l10n.formatValueSync(resultL10n.id, res);
+
+    // Remove "= " from the start of the string.
+    if (localizedResult.startsWith("=")) {
+      localizedResult = localizedResult.slice(1).trim();
+    }
+
+    lazy.ClipboardHelper.copyString(localizedResult);
   }
 }
 
