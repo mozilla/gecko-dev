@@ -4111,3 +4111,10 @@ pref("privacy.query_stripping.strip_on_share.canDisable", true);
 // Captcha Detection
 pref("captchadetection.loglevel", "Warn");
 pref("captchadetection.actor.enabled", true);
+
+// Enable adding a signature in the PDF viewer.
+#ifdef EARLY_BETA_OR_EARLIER
+  pref("pdfjs.enableSignatureEditor", true);
+#else
+  pref("pdfjs.enableSignatureEditor", false);
+#endif
