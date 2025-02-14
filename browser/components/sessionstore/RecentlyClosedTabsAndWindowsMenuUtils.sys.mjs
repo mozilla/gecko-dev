@@ -402,7 +402,7 @@ function createTabGroupSubpanel(
     "subviewbutton",
     "subviewbutton-iconic",
     "subviewbutton-nav",
-    "tab-group-icon-closed"
+    "tab-group-icon"
   );
   element.setAttribute("closemenu", "none");
   setTabGroupColorProperties(element, aTabGroup);
