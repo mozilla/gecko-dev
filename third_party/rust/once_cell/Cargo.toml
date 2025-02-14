@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.60"
 name = "once_cell"
-version = "1.20.2"
+version = "1.20.3"
 authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 build = false
 exclude = [
@@ -22,6 +22,7 @@ exclude = [
     "/Cargo.lock.msrv",
     "rustfmt.toml",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

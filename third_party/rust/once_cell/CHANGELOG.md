@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Outline initialization in `race`: [#273](https://github.com/matklad/once_cell/pull/273).
+
 ## 1.20.2
 
 - Remove `portable_atomic` from Cargo.lock if it is not, in fact, used: [#267](https://github.com/matklad/once_cell/pull/267)

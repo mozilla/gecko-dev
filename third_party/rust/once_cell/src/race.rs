@@ -93,19 +93,21 @@ impl OnceNonZeroUsize {
         F: FnOnce() -> Result<NonZeroUsize, E>,
     {
         let val = self.inner.load(Ordering::Acquire);
-        let res = match NonZeroUsize::new(val) {
-            Some(it) => it,
-            None => {
-                let mut val = f()?.get();
-                let exchange =
-                    self.inner.compare_exchange(0, val, Ordering::AcqRel, Ordering::Acquire);
-                if let Err(old) = exchange {
-                    val = old;
-                }
-                unsafe { NonZeroUsize::new_unchecked(val) }
-            }
-        };
-        Ok(res)
+        match NonZeroUsize::new(val) {
+            Some(it) => Ok(it),
+            None => self.init(f),
+        }
+    }
+
+    #[cold]
+    #[inline(never)]
+    fn init<E>(&self, f: impl FnOnce() -> Result<NonZeroUsize, E>) -> Result<NonZeroUsize, E> {
+        let mut val = f()?.get();
+        let exchange = self.inner.compare_exchange(0, val, Ordering::AcqRel, Ordering::Acquire);
+        if let Err(old) = exchange {
+            val = old;
+        }
+        Ok(unsafe { NonZeroUsize::new_unchecked(val) })
     }
 }
 
