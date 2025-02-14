@@ -1,25 +1,9 @@
 import pytest
-from support.addons import (
-    get_base64_for_addon_file,
-    get_ids_for_installed_addons,
-)
+from support.addons import get_ids_for_installed_addons
 from tests.support.asserts import assert_error, assert_success
+from tests.support.helpers import get_base64_for_addon_file
 
-
-def install_addon(session, addon, temp=False):
-    return session.transport.send(
-        "POST",
-        f"/session/{session.session_id}/moz/addon/install",
-        {"addon": addon, "temporary": temp},
-    )
-
-
-def uninstall_addon(session, addon_id):
-    return session.transport.send(
-        "POST",
-        f"/session/{session.session_id}/moz/addon/uninstall",
-        {"id": addon_id},
-    )
+from . import install_addon, uninstall_addon
 
 
 def test_uninstall_nonexistent_addon(session):
@@ -29,10 +13,12 @@ def test_uninstall_nonexistent_addon(session):
 
 @pytest.mark.parametrize(
     "filename, temporary",
-    [("amosigned.xpi", True), ("webextension-unsigned.xpi", False)],
+    [("firefox/signed.xpi", True), ("firefox/unsigned.xpi", False)],
 )
 def test_uninstall_addon(session, filename, temporary):
-    response = install_addon(session, get_base64_for_addon_file(filename), temporary)
+    response = install_addon(
+        session, "addon", get_base64_for_addon_file(filename), temporary
+    )
     addon_id = assert_success(response)
 
     installed_addon_ids = get_ids_for_installed_addons(session)

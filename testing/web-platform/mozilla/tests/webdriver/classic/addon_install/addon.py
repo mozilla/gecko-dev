@@ -1,13 +1,13 @@
 import pytest
 from support.addons import (
-    get_base64_for_addon_file,
     get_ids_for_installed_addons,
     is_addon_private_browsing_allowed,
     is_addon_temporary_installed,
 )
 from tests.support.asserts import assert_error, assert_success
+from tests.support.helpers import get_base64_for_addon_file
 
-from . import install_addon, uninstall_addon
+from . import ADDON_ID, install_addon, uninstall_addon
 
 
 def test_install_invalid_addon(session):
@@ -22,7 +22,7 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
     use_pref("xpinstall.signatures.required", value)
 
     response = install_addon(
-        session, "addon", get_base64_for_addon_file("webextension-unsigned.xpi"), False
+        session, "addon", get_base64_for_addon_file("firefox/unsigned.xpi"), False
     )
 
     if value is True:
@@ -34,7 +34,7 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
 
         try:
             assert addon_id in installed_addon_ids
-            assert addon_id == "{d3e7c1f1-2e35-4a49-89fe-9f46eb8abf0a}"
+            assert addon_id == ADDON_ID
             assert is_addon_temporary_installed(session, addon_id) is False
         finally:
             # Clean up the addon.
@@ -43,7 +43,7 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
 
 def test_install_unsigned_addon_temporarily(session):
     response = install_addon(
-        session, "addon", get_base64_for_addon_file("webextension-unsigned.xpi"), True
+        session, "addon", get_base64_for_addon_file("firefox/unsigned.xpi"), True
     )
     addon_id = assert_success(response)
 
@@ -51,7 +51,7 @@ def test_install_unsigned_addon_temporarily(session):
 
     try:
         assert addon_id in installed_addon_ids
-        assert addon_id == "{d3e7c1f1-2e35-4a49-89fe-9f46eb8abf0a}"
+        assert addon_id == ADDON_ID
         assert is_addon_temporary_installed(session, addon_id) is True
     finally:
         # Clean up the addon.
@@ -61,7 +61,7 @@ def test_install_unsigned_addon_temporarily(session):
 @pytest.mark.parametrize("temporary", [True, False])
 def test_install_signed_addon(session, temporary):
     response = install_addon(
-        session, "addon", get_base64_for_addon_file("amosigned.xpi"), temporary
+        session, "addon", get_base64_for_addon_file("firefox/signed.xpi"), temporary
     )
     addon_id = assert_success(response)
 
@@ -69,7 +69,7 @@ def test_install_signed_addon(session, temporary):
 
     try:
         assert addon_id in installed_addon_ids
-        assert addon_id == "amosigned-xpi@tests.mozilla.org"
+        assert addon_id == ADDON_ID
         assert is_addon_temporary_installed(session, addon_id) is temporary
     finally:
         # Clean up the addon.
@@ -81,7 +81,7 @@ def test_install_addon_with_private_browsing(session, allow_private_browsing):
     response = install_addon(
         session,
         "addon",
-        get_base64_for_addon_file("amosigned.xpi"),
+        get_base64_for_addon_file("firefox/signed.xpi"),
         False,
         allow_private_browsing,
     )
@@ -91,7 +91,7 @@ def test_install_addon_with_private_browsing(session, allow_private_browsing):
 
     try:
         assert addon_id in installed_addon_ids
-        assert addon_id == "amosigned-xpi@tests.mozilla.org"
+        assert addon_id == ADDON_ID
         assert (
             is_addon_private_browsing_allowed(session, addon_id)
             is allow_private_browsing

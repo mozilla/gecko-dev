@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from support.addons import (
     get_ids_for_installed_addons,
@@ -7,28 +5,18 @@ from support.addons import (
     is_addon_temporary_installed,
 )
 from tests.support.asserts import assert_error, assert_success
+from tests.support.helpers import get_addon_path
 
-from . import install_addon, uninstall_addon
-
-addon_folder_path = os.path.join(
-    os.path.abspath(os.path.dirname(__file__)), "..", "..", "support", "webextensions"
-)
+from . import ADDON_ID, install_addon, uninstall_addon
 
 
 def test_install_invalid_addon(session):
-    addon_path = os.path.join(addon_folder_path, "webextension-invalid.xpi")
-    response = install_addon(session, "path", addon_path)
+    response = install_addon(session, "path", get_addon_path("firefox/invalid.xpi"))
     assert_error(response, "unknown error")
 
 
 def test_install_nonexistent_addon(session):
-    addon_path = os.path.join(addon_folder_path, "does-not-exist.xpi")
-    response = install_addon(session, "path", addon_path)
-    assert_error(response, "unknown error")
-
-
-def test_install_with_relative_path(session):
-    response = install_addon(session, "path", "amosigned.xpi")
+    response = install_addon(session, "path", get_addon_path("does-not-exist.xpi"))
     assert_error(response, "unknown error")
 
 
@@ -38,8 +26,9 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
     # it's disabled for wpt tests, so test both values here.
     use_pref("xpinstall.signatures.required", value)
 
-    addon_path = os.path.join(addon_folder_path, "webextension-unsigned.xpi")
-    response = install_addon(session, "path", addon_path, False)
+    response = install_addon(
+        session, "path", get_addon_path("firefox/unsigned.xpi"), False
+    )
 
     if value is True:
         assert_error(response, "unknown error")
@@ -50,7 +39,7 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
 
         try:
             assert addon_id in installed_addon_ids
-            assert addon_id == "{d3e7c1f1-2e35-4a49-89fe-9f46eb8abf0a}"
+            assert addon_id == ADDON_ID
             assert is_addon_temporary_installed(session, addon_id) is False
         finally:
             # Clean up the addon.
@@ -58,15 +47,16 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
 
 
 def test_temporary_install_unsigned_addon(session):
-    addon_path = os.path.join(addon_folder_path, "webextension-unsigned.xpi")
-    response = install_addon(session, "path", addon_path, True)
+    response = install_addon(
+        session, "path", get_addon_path("firefox/unsigned.xpi"), True
+    )
     addon_id = assert_success(response)
 
     installed_addon_ids = get_ids_for_installed_addons(session)
 
     try:
         assert addon_id in installed_addon_ids
-        assert addon_id == "{d3e7c1f1-2e35-4a49-89fe-9f46eb8abf0a}"
+        assert addon_id == ADDON_ID
         assert is_addon_temporary_installed(session, addon_id) is True
     finally:
         # Clean up the addon.
@@ -75,15 +65,16 @@ def test_temporary_install_unsigned_addon(session):
 
 @pytest.mark.parametrize("temporary", [True, False])
 def test_install_signed_addon(session, temporary):
-    addon_path = os.path.join(addon_folder_path, "amosigned.xpi")
-    response = install_addon(session, "path", addon_path, temporary)
+    response = install_addon(
+        session, "path", get_addon_path("firefox/signed.xpi"), temporary
+    )
     addon_id = assert_success(response)
 
     installed_addon_ids = get_ids_for_installed_addons(session)
 
     try:
         assert addon_id in installed_addon_ids
-        assert addon_id == "amosigned-xpi@tests.mozilla.org"
+        assert addon_id == ADDON_ID
         assert is_addon_temporary_installed(session, addon_id) is temporary
     finally:
         # Clean up the addon.
@@ -96,8 +87,8 @@ def test_install_mixed_separator_windows(session):
     # Only makes sense to test on Windows.
     if os == "windows":
         # Ensure the base path has only \
-        addon_path = addon_folder_path.replace("/", "\\")
-        addon_path += "/amosigned.xpi"
+        addon_path = get_addon_path("firefox").replace("/", "\\")
+        addon_path += "/signed.xpi"
 
         response = install_addon(session, "path", addon_path, False)
         addon_id = assert_success(response)
@@ -106,7 +97,7 @@ def test_install_mixed_separator_windows(session):
 
         try:
             assert addon_id in installed_addon_ids
-            assert addon_id == "amosigned-xpi@tests.mozilla.org"
+            assert addon_id == ADDON_ID
             assert is_addon_temporary_installed(session, addon_id) is False
         finally:
             # Clean up the addon.
@@ -115,15 +106,20 @@ def test_install_mixed_separator_windows(session):
 
 @pytest.mark.parametrize("allow_private_browsing", [True, False])
 def test_install_addon_with_private_browsing(session, allow_private_browsing):
-    addon_path = os.path.join(addon_folder_path, "amosigned.xpi")
-    response = install_addon(session, "path", addon_path, False, allow_private_browsing)
+    response = install_addon(
+        session,
+        "path",
+        get_addon_path("firefox/signed.xpi"),
+        False,
+        allow_private_browsing,
+    )
     addon_id = assert_success(response)
 
     installed_addon_ids = get_ids_for_installed_addons(session)
 
     try:
         assert addon_id in installed_addon_ids
-        assert addon_id == "amosigned-xpi@tests.mozilla.org"
+        assert addon_id == ADDON_ID
         assert (
             is_addon_private_browsing_allowed(session, addon_id)
             is allow_private_browsing

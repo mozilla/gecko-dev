@@ -1,17 +1,4 @@
-import base64
-import os
-
 from support.context import using_context
-
-
-def get_base64_for_addon_file(filename):
-    with open(
-        os.path.join(
-            os.path.abspath(os.path.dirname(__file__)), "webextensions", filename
-        ),
-        "rb",
-    ) as file:
-        return base64.b64encode(file.read()).decode("utf-8")
 
 
 def get_ids_for_installed_addons(session):
