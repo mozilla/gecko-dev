@@ -118,7 +118,7 @@ nsresult CacheFileContextEvictor::AddContext(
       --i;
       if (mEntries[i]->mInfo && mEntries[i]->mPinned == aPinned) {
         RemoveEvictInfoFromDisk(mEntries[i]->mInfo, mEntries[i]->mPinned,
-                                mEntries[i]->mOrigin);
+                                mEntries[i]->mOrigin, mEntries[i]->mBaseDomain);
         mEntries.RemoveElementAt(i);
       }
     }
@@ -135,7 +135,7 @@ nsresult CacheFileContextEvictor::AddContext(
 
   entry->mTimeStamp = PR_Now() / PR_USEC_PER_MSEC;
 
-  PersistEvictionInfoToDisk(aLoadContextInfo, aPinned, aOrigin);
+  PersistEvictionInfoToDisk(aLoadContextInfo, aPinned, aOrigin, aBaseDomain);
 
   if (mIndexIsUpToDate) {
     // Already existing context could be added again, in this case the iterator
@@ -259,7 +259,7 @@ void CacheFileContextEvictor::WasEvicted(const nsACString& aKey, nsIFile* aFile,
 
 nsresult CacheFileContextEvictor::PersistEvictionInfoToDisk(
     nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-    const nsAString& aOrigin) {
+    const nsAString& aOrigin, const nsAString& aBaseDomain) {
   LOG(
       ("CacheFileContextEvictor::PersistEvictionInfoToDisk() [this=%p, "
        "loadContextInfo=%p]",
@@ -270,7 +270,8 @@ nsresult CacheFileContextEvictor::PersistEvictionInfoToDisk(
   MOZ_ASSERT(CacheFileIOManager::IsOnIOThread());
 
   nsCOMPtr<nsIFile> file;
-  rv = GetContextFile(aLoadContextInfo, aPinned, aOrigin, getter_AddRefs(file));
+  rv = GetContextFile(aLoadContextInfo, aPinned, aOrigin, aBaseDomain,
+                      getter_AddRefs(file));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -300,7 +301,7 @@ nsresult CacheFileContextEvictor::PersistEvictionInfoToDisk(
 
 nsresult CacheFileContextEvictor::RemoveEvictInfoFromDisk(
     nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-    const nsAString& aOrigin) {
+    const nsAString& aOrigin, const nsAString& aBaseDomain) {
   LOG(
       ("CacheFileContextEvictor::RemoveEvictInfoFromDisk() [this=%p, "
        "loadContextInfo=%p]",
@@ -311,7 +312,8 @@ nsresult CacheFileContextEvictor::RemoveEvictInfoFromDisk(
   MOZ_ASSERT(CacheFileIOManager::IsOnIOThread());
 
   nsCOMPtr<nsIFile> file;
-  rv = GetContextFile(aLoadContextInfo, aPinned, aOrigin, getter_AddRefs(file));
+  rv = GetContextFile(aLoadContextInfo, aPinned, aOrigin, aBaseDomain,
+                      getter_AddRefs(file));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -400,16 +402,23 @@ nsresult CacheFileContextEvictor::LoadEvictInfoFromDisk() {
       decoded = Substring(decoded, 1);
     }
 
-    // Let's see if we have an origin.
     nsAutoCString origin;
+    nsAutoCString baseDomain;
     if (decoded.Contains('\t')) {
       auto split = decoded.Split('\t');
       MOZ_ASSERT(decoded.CountChar('\t') == 1);
 
       auto splitIt = split.begin();
-      origin = *splitIt;
+      nsAutoCString value(*splitIt);
       ++splitIt;
       decoded = *splitIt;
+
+      // Check if this is a base domain entry (prefixed with 's:')
+      if (StringBeginsWith(value, "s:"_ns)) {
+        baseDomain = nsAutoCString(Substring(value, 2));
+      } else {
+        origin = value;
+      }
     }
 
     nsCOMPtr<nsILoadContextInfo> info;
@@ -433,12 +442,13 @@ nsresult CacheFileContextEvictor::LoadEvictInfoFromDisk() {
       continue;
     }
 
-    CacheFileContextEvictorEntry* entry = new CacheFileContextEvictorEntry();
+    auto entry = MakeUnique<CacheFileContextEvictorEntry>();
     entry->mInfo = info;
     entry->mPinned = pinned;
     CopyUTF8toUTF16(origin, entry->mOrigin);
+    CopyUTF8toUTF16(baseDomain, entry->mBaseDomain);
     entry->mTimeStamp = lastModifiedTime;
-    mEntries.AppendElement(entry);
+    mEntries.AppendElement(std::move(entry));
   }
 
   return NS_OK;
@@ -446,7 +456,9 @@ nsresult CacheFileContextEvictor::LoadEvictInfoFromDisk() {
 
 nsresult CacheFileContextEvictor::GetContextFile(
     nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-    const nsAString& aOrigin, nsIFile** _retval) {
+    const nsAString& aOrigin, const nsAString& aBaseDomain, nsIFile** _retval) {
+  MOZ_ASSERT(aOrigin.IsEmpty() || aBaseDomain.IsEmpty(),
+             "Cannot specify both origin and base domain");
   nsresult rv;
 
   nsAutoCString keyPrefix;
@@ -460,9 +472,14 @@ nsresult CacheFileContextEvictor::GetContextFile(
   } else {
     keyPrefix.Append('*');
   }
+
   if (!aOrigin.IsEmpty()) {
     keyPrefix.Append('\t');
     keyPrefix.Append(NS_ConvertUTF16toUTF8(aOrigin));
+  } else if (!aBaseDomain.IsEmpty()) {
+    keyPrefix.Append('\t');
+    keyPrefix.AppendLiteral("s:");  // Prefix to identify base domain entries
+    keyPrefix.Append(NS_ConvertUTF16toUTF8(aBaseDomain));
   }
 
   nsAutoCString leafName;
@@ -615,7 +632,7 @@ void CacheFileContextEvictor::EvictEntries() {
            "iterator. [iterator=%p, info=%p]",
            mEntries[0]->mIterator.get(), mEntries[0]->mInfo.get()));
       RemoveEvictInfoFromDisk(mEntries[0]->mInfo, mEntries[0]->mPinned,
-                              mEntries[0]->mOrigin);
+                              mEntries[0]->mOrigin, mEntries[0]->mBaseDomain);
       mEntries.RemoveElementAt(0);
       continue;
     }

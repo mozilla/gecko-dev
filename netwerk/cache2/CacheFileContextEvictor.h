@@ -21,8 +21,9 @@ class CacheIndexIterator;
 struct CacheFileContextEvictorEntry {
   nsCOMPtr<nsILoadContextInfo> mInfo;
   bool mPinned = false;
-  nsString mOrigin;       // it can be empty
-  nsString mBaseDomain;   // it can be empty
+  // Only one of mOrigin or mBaseDomain can be set at a time
+  nsString mOrigin;       // Optional - for origin-based eviction
+  nsString mBaseDomain;   // Optional - for domain-based eviction
   PRTime mTimeStamp = 0;  // in milliseconds
   RefPtr<CacheIndexIterator> mIterator;
 };
@@ -63,16 +64,19 @@ class CacheFileContextEvictor {
   // after a shutdown or crash. When the context file is found after startup, we
   // restore mTimeStamp from the last modified time of the file.
   nsresult PersistEvictionInfoToDisk(nsILoadContextInfo* aLoadContextInfo,
-                                     bool aPinned, const nsAString& aOrigin);
+                                     bool aPinned, const nsAString& aOrigin,
+                                     const nsAString& aBaseDomain);
   // Once we are done with eviction for the given context, the eviction info is
   // removed from the disk.
   nsresult RemoveEvictInfoFromDisk(nsILoadContextInfo* aLoadContextInfo,
-                                   bool aPinned, const nsAString& aOrigin);
+                                   bool aPinned, const nsAString& aOrigin,
+                                   const nsAString& aBaseDomain);
   // Tries to load all contexts from the disk. This method is called just once
   // after startup.
   nsresult LoadEvictInfoFromDisk();
   nsresult GetContextFile(nsILoadContextInfo* aLoadContextInfo, bool aPinned,
-                          const nsAString& aOrigin, nsIFile** _retval);
+                          const nsAString& aOrigin,
+                          const nsAString& aBaseDomain, nsIFile** _retval);
 
   void CreateIterators();
   void CloseIterators();
