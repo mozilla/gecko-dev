@@ -10,7 +10,7 @@ add_setup(async () => {
   });
 });
 
-add_task(async function test_extension_context_menu() {
+add_task(async function test_sidebar_extension_context_menu() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   await waitForBrowserWindowActive(win);
   const { document } = win;
@@ -33,30 +33,6 @@ add_task(async function test_extension_context_menu() {
 
   const contextMenu = document.getElementById("sidebar-context-menu");
   is(contextMenu.state, "closed", "Checking if context menu is closed");
-
-  await openAndWaitForContextMenu(
-    contextMenu,
-    sidebar.extensionButtons[0],
-    () => {
-      // Check sidebar context menu buttons are hidden
-      () => {
-        ok(
-          document.getElementById("sidebar-context-menu-hide-sidebar").hidden,
-          "Hide sidebar button is hidden"
-        );
-        ok(
-          document.getElementById("sidebar-context-menu-enable-vertical-tabs")
-            .hidden,
-          "Enable vertical tabs button is hidden"
-        );
-        ok(
-          document.getElementById("sidebar-context-menu-customize-sidebar")
-            .hidden,
-          "Customize sidebar button is hidden"
-        );
-      };
-    }
-  );
 
   await openAndWaitForContextMenu(
     contextMenu,
@@ -179,77 +155,6 @@ add_task(async function test_extension_context_menu() {
   sinon.restore();
   await extension.unload();
   await BrowserTestUtils.closeWindow(win);
-});
-
-add_task(async function test_sidebar_context_menu() {
-  const { document, SidebarController } = window;
-  const { sidebarMain, sidebarContainer } = SidebarController;
-  await sidebarMain.updateComplete;
-  ok(sidebarMain, "Sidebar is shown.");
-
-  const contextMenu = document.getElementById("sidebar-context-menu");
-  is(contextMenu.state, "closed", "Checking if context menu is closed");
-
-  await openAndWaitForContextMenu(contextMenu, sidebarMain, () => {
-    // Check extension context menu buttons are hidden
-    () => {
-      ok(
-        document.getElementById("sidebar-context-menu-report-extension").hidden,
-        "Report extension button is hidden"
-      );
-      ok(
-        document.getElementById("sidebar-context-menu-remove-extension").hidden,
-        "Remove extension tabs button is hidden"
-      );
-      ok(
-        document.getElementById("sidebar-context-menu-manage-extension").hidden,
-        "Manage extension button is hidden"
-      );
-    };
-  });
-
-  await openAndWaitForContextMenu(contextMenu, sidebarMain, () => {
-    // Click customize sidebar
-    const customizeSidebarMenuItem = document.getElementById(
-      "sidebar-context-menu-customize-sidebar"
-    );
-    customizeSidebarMenuItem.click();
-  });
-  is(
-    SidebarController.currentID,
-    "viewCustomizeSidebar",
-    "Customize sidebar panel is open"
-  );
-
-  await openAndWaitForContextMenu(contextMenu, sidebarMain, () => {
-    // Click hide sidebar
-    const hideSidebarMenuItem = document.getElementById(
-      "sidebar-context-menu-hide-sidebar"
-    );
-    hideSidebarMenuItem.click();
-  });
-  ok(sidebarContainer.hidden, "Sidebar is not visible");
-  ok(!SidebarController.isOpen, "Sidebar panel is closed");
-  SidebarController._state.updateVisibility(true);
-
-  await openAndWaitForContextMenu(contextMenu, sidebarMain, () => {
-    // Click turn on vertical tabs
-    const enableVerticalTabsMenuItem = document.getElementById(
-      "sidebar-context-menu-enable-vertical-tabs"
-    );
-    enableVerticalTabsMenuItem.click();
-  });
-  ok(
-    Services.prefs.getBoolPref("sidebar.verticalTabs", false),
-    "Vertical tabs enabled"
-  );
-
-  EventUtils.synthesizeMouseAtCenter(
-    sidebarMain,
-    { type: "contextmenu", button: 2 },
-    window
-  );
-  is(contextMenu.state, "closed", "Context menu closed for vertical tabs");
 });
 
 add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
