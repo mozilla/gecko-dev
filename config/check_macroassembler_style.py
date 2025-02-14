@@ -26,7 +26,7 @@ import re
 import sys
 
 architecture_independent = set(["generic"])
-all_unsupported_architectures_names = set(["mips32", "mips64", "mips_shared"])
+all_unsupported_architectures_names = set(["mips64", "mips_shared"])
 all_architecture_names = set(
     ["x86", "x64", "arm", "arm64", "loong64", "riscv64", "wasm32"]
 )

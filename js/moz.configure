@@ -245,7 +245,6 @@ def jit_default(target, enable_portable_baseline_interp):
         "x86_64",
         "arm",
         "aarch64",
-        "mips32",
         "mips64",
         "loongarch64",
     ):
@@ -268,7 +267,7 @@ def report_deprecated(value):
 # =======================================================
 option(
     "--enable-simulator",
-    choices=("arm", "arm64", "mips32", "mips64", "loong64", "riscv64"),
+    choices=("arm", "arm64", "mips64", "loong64", "riscv64"),
     nargs=1,
     help="Enable a JIT code simulator for the specified architecture",
 )
@@ -281,7 +280,7 @@ def simulator(jit_enabled, simulator_enabled, target):
 
     sim_cpu = simulator_enabled[0]
 
-    if sim_cpu in ("arm", "mips32"):
+    if sim_cpu in ("arm"):
         if target.cpu != "x86":
             die("The %s simulator only works on x86." % sim_cpu)
 
@@ -295,14 +294,12 @@ def simulator(jit_enabled, simulator_enabled, target):
 set_config("JS_SIMULATOR", depends_if(simulator)(lambda x: True))
 set_config("JS_SIMULATOR_ARM", simulator.arm)
 set_config("JS_SIMULATOR_ARM64", simulator.arm64)
-set_config("JS_SIMULATOR_MIPS32", simulator.mips32)
 set_config("JS_SIMULATOR_MIPS64", simulator.mips64)
 set_config("JS_SIMULATOR_LOONG64", simulator.loong64)
 set_config("JS_SIMULATOR_RISCV64", simulator.riscv64)
 set_define("JS_SIMULATOR", depends_if(simulator)(lambda x: True))
 set_define("JS_SIMULATOR_ARM", simulator.arm)
 set_define("JS_SIMULATOR_ARM64", simulator.arm64)
-set_define("JS_SIMULATOR_MIPS32", simulator.mips32)
 set_define("JS_SIMULATOR_MIPS64", simulator.mips64)
 set_define("JS_SIMULATOR_LOONG64", simulator.loong64)
 set_define("JS_SIMULATOR_RISCV64", simulator.riscv64)
@@ -331,7 +328,6 @@ def jit_codegen(jit_enabled, simulator, target):
 set_config("JS_CODEGEN_NONE", jit_codegen.none)
 set_config("JS_CODEGEN_ARM", jit_codegen.arm)
 set_config("JS_CODEGEN_ARM64", jit_codegen.arm64)
-set_config("JS_CODEGEN_MIPS32", jit_codegen.mips32)
 set_config("JS_CODEGEN_MIPS64", jit_codegen.mips64)
 set_config("JS_CODEGEN_LOONG64", jit_codegen.loong64)
 set_config("JS_CODEGEN_RISCV64", jit_codegen.riscv64)
@@ -342,7 +338,6 @@ set_config("JS_CODEGEN_WASM32", jit_codegen.wasm32)
 set_define("JS_CODEGEN_NONE", jit_codegen.none)
 set_define("JS_CODEGEN_ARM", jit_codegen.arm)
 set_define("JS_CODEGEN_ARM64", jit_codegen.arm64)
-set_define("JS_CODEGEN_MIPS32", jit_codegen.mips32)
 set_define("JS_CODEGEN_MIPS64", jit_codegen.mips64)
 set_define("JS_CODEGEN_LOONG64", jit_codegen.loong64)
 set_define("JS_CODEGEN_RISCV64", jit_codegen.riscv64)
@@ -1000,12 +995,9 @@ set_define("ENABLE_WASM_MOZ_INTGEMM", wasm_moz_intgemm)
 # ===========================
 
 
-@depends("--enable-simulator", target)
-def default_wasm_memory64(simulator, target):
+@depends(target)
+def default_wasm_memory64(target):
     if target.cpu == "mips32":
-        return
-
-    if simulator and simulator[0] == "mips32":
         return
 
     return True
@@ -1018,16 +1010,13 @@ option(
 )
 
 
-@depends("--enable-wasm-memory64", "--enable-simulator", target)
-def wasm_memory64(value, simulator, target):
+@depends("--enable-wasm-memory64", target)
+def wasm_memory64(value, target):
     if not value:
         return
 
     if target.cpu == "mips32":
         die("Memory64 is incompatible with MIPS32 target")
-
-    if simulator and simulator[0] == "mips32":
-        die("Memory64 is incompatible with MIPS32 simulator")
 
     return True
 
