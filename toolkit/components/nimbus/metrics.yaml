@@ -25,9 +25,11 @@ nimbus_targeting_environment:
     bugs: &targeting_context_bugs
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1928107
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1937207
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898394
     data_reviews: &targeting_context_data_reviews
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1928107
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1937207
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898394
     notification_emails: &targeting_context_notification_emails
       - beth@mozilla.com
       - project-nimbus@mozilla.com
@@ -112,6 +114,7 @@ nimbus_targeting_environment:
       - "isDefaultHandler"
       - "isFirstStartup"
       - "isFxAEnabled"
+      - "isFxASignedIn"
       - "isMSIX"
       - "locale"
       - "memoryMB"
@@ -491,6 +494,17 @@ nimbus_targeting_context:
     notification_emails: *targeting_context_notification_emails
     send_in_pings: *targeting_context_pings
     description: Whether Firefox Accounts and Sync are enabled.
+    data_sensitivity:
+      - interaction
+    type: boolean
+
+  is_fx_a_signed_in:
+    bugs: *targeting_context_bugs
+    data_reviews: *targeting_context_data_reviews
+    expires: *targeting_context_expiry
+    notification_emails: *targeting_context_notification_emails
+    send_in_pings: *targeting_context_pings
+    description: Whether the user is logged in to Firefox Accounts.
     data_sensitivity:
       - interaction
     type: boolean
