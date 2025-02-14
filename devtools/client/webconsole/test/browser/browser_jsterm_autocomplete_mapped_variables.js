@@ -34,8 +34,12 @@ add_task(async function () {
   );
 
   await setInputValueForAutocompletion(hud, "temp");
+  const expectedLabels = ["temp", "temp2"];
+  if (AppConstants.NIGHTLY_BUILD) {
+    expectedLabels.push("Temporal");
+  }
   ok(
-    hasExactPopupLabels(popup, ["temp", "temp2"]),
+    hasExactPopupLabels(popup, expectedLabels),
     "Autocomplete popup displays original variable name when entering a complete variable name"
   );
 
