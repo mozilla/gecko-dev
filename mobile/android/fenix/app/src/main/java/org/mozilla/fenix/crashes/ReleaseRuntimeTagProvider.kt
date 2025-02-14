@@ -6,13 +6,13 @@ package org.mozilla.fenix.crashes
 
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.RuntimeTagProvider
-import org.mozilla.geckoview.BuildConfig.MOZ_APP_VERSION
+import org.mozilla.fenix.BuildConfig
 
 /**
  * Includes the current release version with the crash so that it can be persisted.
  */
 class ReleaseRuntimeTagProvider : RuntimeTagProvider {
     override fun invoke(): Map<String, String> {
-        return mapOf(CrashReporter.RELEASE_RUNTIME_TAG to MOZ_APP_VERSION)
+        return mapOf(CrashReporter.RELEASE_RUNTIME_TAG to BuildConfig.VERSION_NAME)
     }
 }
