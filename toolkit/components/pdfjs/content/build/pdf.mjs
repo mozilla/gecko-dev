@@ -47,7 +47,6 @@ var __webpack_exports__ = globalThis.pdfjsLib = {};
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
   AbortException: () => (/* reexport */ AbortException),
-  AnnotationBorderStyleType: () => (/* reexport */ AnnotationBorderStyleType),
   AnnotationEditorLayer: () => (/* reexport */ AnnotationEditorLayer),
   AnnotationEditorParamsType: () => (/* reexport */ AnnotationEditorParamsType),
   AnnotationEditorType: () => (/* reexport */ AnnotationEditorType),
@@ -72,6 +71,7 @@ __webpack_require__.d(__webpack_exports__, {
   PixelsPerInch: () => (/* reexport */ PixelsPerInch),
   RenderingCancelledException: () => (/* reexport */ RenderingCancelledException),
   ResponseException: () => (/* reexport */ ResponseException),
+  SignatureExtractor: () => (/* reexport */ SignatureExtractor),
   SupportedImageMimeTypes: () => (/* reexport */ SupportedImageMimeTypes),
   TextLayer: () => (/* reexport */ TextLayer),
   TouchManager: () => (/* reexport */ TouchManager),
@@ -84,6 +84,7 @@ __webpack_require__.d(__webpack_exports__, {
   getDocument: () => (/* reexport */ getDocument),
   getFilenameFromUrl: () => (/* reexport */ getFilenameFromUrl),
   getPdfFilenameFromUrl: () => (/* reexport */ getPdfFilenameFromUrl),
+  getUuid: () => (/* reexport */ getUuid),
   getXfaPageViewport: () => (/* reexport */ getXfaPageViewport),
   isDataScheme: () => (/* reexport */ isDataScheme),
   isPdfFile: () => (/* reexport */ isPdfFile),
@@ -930,11 +931,7 @@ class PageViewport {
     this.height = height;
   }
   get rawDims() {
-    const {
-      userUnit,
-      viewBox
-    } = this;
-    const dims = viewBox.map(x => x * userUnit);
+    const dims = this.viewBox;
     return shadow(this, "rawDims", {
       pageWidth: dims[2] - dims[0],
       pageHeight: dims[3] - dims[1],
@@ -1175,10 +1172,10 @@ function setLayerDimensions(div, viewport, mustFlip = false, mustRotate = true) 
       style
     } = div;
     const useRound = util_FeatureTest.isCSSRoundSupported;
-    const w = `var(--scale-factor) * ${pageWidth}px`,
-      h = `var(--scale-factor) * ${pageHeight}px`;
-    const widthStr = useRound ? `round(down, ${w}, var(--scale-round-x, 1px))` : `calc(${w})`,
-      heightStr = useRound ? `round(down, ${h}, var(--scale-round-y, 1px))` : `calc(${h})`;
+    const w = `var(--total-scale-factor) * ${pageWidth}px`,
+      h = `var(--total-scale-factor) * ${pageHeight}px`;
+    const widthStr = useRound ? `round(down, ${w}, var(--scale-round-x))` : `calc(${w})`,
+      heightStr = useRound ? `round(down, ${h}, var(--scale-round-y))` : `calc(${h})`;
     if (!mustFlip || viewport.rotation % 180 === 0) {
       style.width = widthStr;
       style.height = heightStr;
@@ -1214,6 +1211,7 @@ class EditorToolbar {
   #editor;
   #buttons = null;
   #altText = null;
+  #signatureDescriptionButton = null;
   static #l10nRemove = null;
   constructor(editor) {
     this.#editor = editor;
@@ -1320,6 +1318,16 @@ class EditorToolbar {
     const button = colorPicker.renderButton();
     this.#addListenersToElement(button);
     this.#buttons.prepend(button, this.#divider);
+  }
+  async addEditSignatureButton(signatureManager) {
+    const button = this.#signatureDescriptionButton = await signatureManager.renderEditButton(this.#editor);
+    this.#addListenersToElement(button);
+    this.#buttons.prepend(button, this.#divider);
+  }
+  updateEditSignatureButton(description) {
+    if (this.#signatureDescriptionButton) {
+      this.#signatureDescriptionButton.title = description;
+    }
   }
   remove() {
     this.#toolbar.remove();
@@ -2027,6 +2035,9 @@ class AnnotationEditorUIManager {
       editor
     });
   }
+  get signatureManager() {
+    return this.#signatureManager;
+  }
   switchToMode(mode, callback) {
     this._eventBus.on("annotationeditormodechanged", callback, {
       once: true,
@@ -2589,6 +2600,9 @@ class AnnotationEditorUIManager {
       this.#updateModeCapability.resolve();
       return;
     }
+    if (mode === AnnotationEditorType.SIGNATURE) {
+      await this.#signatureManager?.loadSignatures();
+    }
     this.setEditingState(true);
     await this.#enableAll();
     this.unselectAll();
@@ -2632,7 +2646,7 @@ class AnnotationEditorUIManager {
     }
     switch (type) {
       case AnnotationEditorParamsType.CREATE:
-        this.currentLayer.addNewEditor();
+        this.currentLayer.addNewEditor(value);
         return;
       case AnnotationEditorParamsType.HIGHLIGHT_DEFAULT_COLOR:
         this.#mainHighlightColorPicker?.updateColor(value);
@@ -9887,7 +9901,7 @@ class TextLayer {
       left = tx[4] + fontAscent * Math.sin(angle);
       top = tx[5] - fontAscent * Math.cos(angle);
     }
-    const scaleFactorStr = "calc(var(--scale-factor)*";
+    const scaleFactorStr = "calc(var(--total-scale-factor) *";
     const divStyle = textDiv.style;
     if (this.#container === this.#rootContainer) {
       divStyle.left = `${(100 * left / this.#pageWidth).toFixed(2)}%`;
@@ -10186,7 +10200,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.0.112",
+    apiVersion: "5.0.158",
     data,
     password,
     disableAutoFetch,
@@ -11822,8 +11836,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.0.112";
-const build = "72339dc56";
+const version = "5.0.158";
+const build = "144e5fe19";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -12336,10 +12350,10 @@ class AnnotationElement {
       const horizontalRadius = data.borderStyle.horizontalCornerRadius;
       const verticalRadius = data.borderStyle.verticalCornerRadius;
       if (horizontalRadius > 0 || verticalRadius > 0) {
-        const radius = `calc(${horizontalRadius}px * var(--scale-factor)) / calc(${verticalRadius}px * var(--scale-factor))`;
+        const radius = `calc(${horizontalRadius}px * var(--total-scale-factor)) / calc(${verticalRadius}px * var(--total-scale-factor))`;
         style.borderRadius = radius;
       } else if (this instanceof RadioButtonWidgetAnnotationElement) {
-        const radius = `calc(${width}px * var(--scale-factor)) / calc(${height}px * var(--scale-factor))`;
+        const radius = `calc(${width}px * var(--total-scale-factor)) / calc(${height}px * var(--total-scale-factor))`;
         style.borderRadius = radius;
       }
       switch (data.borderStyle.style) {
@@ -13047,7 +13061,7 @@ class WidgetAnnotationElement extends AnnotationElement {
       const height = Math.abs(this.data.rect[3] - this.data.rect[1] - BORDER_SIZE);
       computedFontSize = Math.min(fontSize, roundToOneDecimal(height / LINE_FACTOR));
     }
-    style.fontSize = `calc(${computedFontSize}px * var(--scale-factor))`;
+    style.fontSize = `calc(${computedFontSize}px * var(--total-scale-factor))`;
     style.color = Util.makeHexColor(fontColor[0], fontColor[1], fontColor[2]);
     if (this.data.textAlignment !== null) {
       style.textAlign = TEXT_ALIGNMENT[this.data.textAlignment];
@@ -13362,7 +13376,7 @@ class TextWidgetAnnotationElement extends WidgetAnnotationElement {
         const fieldWidth = this.data.rect[2] - this.data.rect[0];
         const combWidth = fieldWidth / maxLen;
         element.classList.add("comb");
-        element.style.letterSpacing = `calc(${combWidth}px * var(--scale-factor) - 1ch)`;
+        element.style.letterSpacing = `calc(${combWidth}px * var(--total-scale-factor) - 1ch)`;
       }
     } else {
       element = document.createElement("div");
@@ -13955,7 +13969,7 @@ class PopupElement {
     const lineAttributes = {
       style: {
         color: this.#fontColor,
-        fontSize: this.#fontSize ? `calc(${this.#fontSize}px * var(--scale-factor))` : ""
+        fontSize: this.#fontSize ? `calc(${this.#fontSize}px * var(--total-scale-factor))` : ""
       }
     };
     for (const line of text.split("\n")) {
@@ -14701,6 +14715,7 @@ class AnnotationLayer {
       parent: this
     };
     for (const data of annotations) {
+      data.borderStyle ||= AnnotationLayer._defaultBorderStyle;
       elementParams.data = data;
       const element = AnnotationElementFactory.create(elementParams);
       if (!element.isRenderable) {
@@ -14762,6 +14777,16 @@ class AnnotationLayer {
   }
   getEditableAnnotation(id) {
     return this.#editableAnnotations.get(id);
+  }
+  static get _defaultBorderStyle() {
+    return shadow(this, "_defaultBorderStyle", Object.freeze({
+      width: 1,
+      rawWidth: 1,
+      style: AnnotationBorderStyleType.SOLID,
+      dashArray: [3],
+      horizontalCornerRadius: 0,
+      verticalCornerRadius: 0
+    }));
   }
 }
 
@@ -14857,7 +14882,7 @@ class FreeTextEditor extends AnnotationEditor {
   }
   #updateFontSize(fontSize) {
     const setFontsize = size => {
-      this.editorDiv.style.fontSize = `calc(${size}px * var(--scale-factor))`;
+      this.editorDiv.style.fontSize = `calc(${size}px * var(--total-scale-factor))`;
       this.translate(0, -(size - this.#fontSize) * this.parentScale);
       this.#fontSize = size;
       this.#setEditorDimensions();
@@ -15117,7 +15142,7 @@ class FreeTextEditor extends AnnotationEditor {
     const {
       style
     } = this.editorDiv;
-    style.fontSize = `calc(${this.#fontSize}px * var(--scale-factor))`;
+    style.fontSize = `calc(${this.#fontSize}px * var(--total-scale-factor))`;
     style.color = this.#color;
     this.div.append(this.editorDiv);
     this.overlayDiv = document.createElement("div");
@@ -15361,7 +15386,7 @@ class FreeTextEditor extends AnnotationEditor {
     const {
       style
     } = content;
-    style.fontSize = `calc(${this.#fontSize}px * var(--scale-factor))`;
+    style.fontSize = `calc(${this.#fontSize}px * var(--total-scale-factor))`;
     style.color = this.#color;
     content.replaceChildren();
     for (const line of this.#content.split("\n")) {
@@ -17131,7 +17156,9 @@ class DrawingOptions {
       return;
     }
     for (const [name, value] of Object.entries(properties)) {
-      this.updateProperty(name, value);
+      if (!name.startsWith("_")) {
+        this.updateProperty(name, value);
+      }
     }
   }
   updateSVGProperty(name, value) {
@@ -18629,6 +18656,9 @@ class ContourDrawOutline extends InkDrawOutline {
 
 
 
+
+const BASE_HEADER_LENGTH = 8;
+const POINTS_PROPERTIES_NUMBER = 3;
 class SignatureExtractor {
   static #PARAMETERS = {
     maxDim: 512,
@@ -19064,14 +19094,15 @@ class SignatureExtractor {
     }
     const {
       curves,
-      thickness,
       width,
       height
     } = lines;
+    const thickness = lines.thickness ?? 0;
     const linesAndPoints = [];
     const ratio = Math.min(pageWidth / width, pageHeight / height);
     const xScale = ratio / pageWidth;
     const yScale = ratio / pageHeight;
+    const newCurves = [];
     for (const {
       points
     } of curves) {
@@ -19079,6 +19110,7 @@ class SignatureExtractor {
       if (!reducedPoints) {
         continue;
       }
+      newCurves.push(reducedPoints);
       const len = reducedPoints.length;
       const newPoints = new Float32Array(len);
       const line = new Float32Array(3 * (len === 2 ? 2 : len - 2));
@@ -19111,7 +19143,143 @@ class SignatureExtractor {
     }
     const outline = areContours ? new ContourDrawOutline() : new InkDrawOutline();
     outline.build(linesAndPoints, pageWidth, pageHeight, 1, rotation, areContours ? 0 : thickness, innerMargin);
-    return outline;
+    return {
+      outline,
+      newCurves,
+      areContours,
+      thickness,
+      width,
+      height
+    };
+  }
+  static async compressSignature({
+    outlines,
+    areContours,
+    thickness,
+    width,
+    height
+  }) {
+    let minDiff = Infinity;
+    let maxDiff = -Infinity;
+    let outlinesLength = 0;
+    for (const points of outlines) {
+      outlinesLength += points.length;
+      for (let i = 2, ii = points.length; i < ii; i++) {
+        const dx = points[i] - points[i - 2];
+        minDiff = Math.min(minDiff, dx);
+        maxDiff = Math.max(maxDiff, dx);
+      }
+    }
+    let bufferType;
+    if (minDiff >= -128 && maxDiff <= 127) {
+      bufferType = Int8Array;
+    } else if (minDiff >= -32768 && maxDiff <= 32767) {
+      bufferType = Int16Array;
+    } else {
+      bufferType = Int32Array;
+    }
+    const len = outlines.length;
+    const headerLength = BASE_HEADER_LENGTH + POINTS_PROPERTIES_NUMBER * len;
+    const header = new Uint32Array(headerLength);
+    let offset = 0;
+    header[offset++] = headerLength * Uint32Array.BYTES_PER_ELEMENT + (outlinesLength - 2 * len) * bufferType.BYTES_PER_ELEMENT;
+    header[offset++] = 0;
+    header[offset++] = width;
+    header[offset++] = height;
+    header[offset++] = areContours ? 0 : 1;
+    header[offset++] = Math.max(0, Math.floor(thickness ?? 0));
+    header[offset++] = len;
+    header[offset++] = bufferType.BYTES_PER_ELEMENT;
+    for (const points of outlines) {
+      header[offset++] = points.length - 2;
+      header[offset++] = points[0];
+      header[offset++] = points[1];
+    }
+    const cs = new CompressionStream("deflate-raw");
+    const writer = cs.writable.getWriter();
+    await writer.ready;
+    writer.write(header);
+    const BufferCtor = bufferType.prototype.constructor;
+    for (const points of outlines) {
+      const diffs = new BufferCtor(points.length - 2);
+      for (let i = 2, ii = points.length; i < ii; i++) {
+        diffs[i - 2] = points[i] - points[i - 2];
+      }
+      writer.write(diffs);
+    }
+    writer.close();
+    const buf = await new Response(cs.readable).arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    return toBase64Util(bytes);
+  }
+  static async decompressSignature(signatureData) {
+    try {
+      const bytes = fromBase64Util(signatureData);
+      const {
+        readable,
+        writable
+      } = new DecompressionStream("deflate-raw");
+      const writer = writable.getWriter();
+      await writer.ready;
+      writer.write(bytes).then(async () => {
+        await writer.ready;
+        await writer.close();
+      }).catch(() => {});
+      let data = null;
+      let offset = 0;
+      for await (const chunk of readable) {
+        data ||= new Uint8Array(new Uint32Array(chunk.buffer, 0, 4)[0]);
+        data.set(chunk, offset);
+        offset += chunk.length;
+      }
+      const header = new Uint32Array(data.buffer, 0, data.length >> 2);
+      const version = header[1];
+      if (version !== 0) {
+        throw new Error(`Invalid version: ${version}`);
+      }
+      const width = header[2];
+      const height = header[3];
+      const areContours = header[4] === 0;
+      const thickness = header[5];
+      const numberOfDrawings = header[6];
+      const bufferType = header[7];
+      const outlines = [];
+      const diffsOffset = (BASE_HEADER_LENGTH + POINTS_PROPERTIES_NUMBER * numberOfDrawings) * Uint32Array.BYTES_PER_ELEMENT;
+      let diffs;
+      switch (bufferType) {
+        case Int8Array.BYTES_PER_ELEMENT:
+          diffs = new Int8Array(data.buffer, diffsOffset);
+          break;
+        case Int16Array.BYTES_PER_ELEMENT:
+          diffs = new Int16Array(data.buffer, diffsOffset);
+          break;
+        case Int32Array.BYTES_PER_ELEMENT:
+          diffs = new Int32Array(data.buffer, diffsOffset);
+          break;
+      }
+      offset = 0;
+      for (let i = 0; i < numberOfDrawings; i++) {
+        const len = header[POINTS_PROPERTIES_NUMBER * i + BASE_HEADER_LENGTH];
+        const points = new Float32Array(len + 2);
+        outlines.push(points);
+        for (let j = 0; j < POINTS_PROPERTIES_NUMBER - 1; j++) {
+          points[j] = header[POINTS_PROPERTIES_NUMBER * i + BASE_HEADER_LENGTH + j + 1];
+        }
+        for (let j = 0; j < len; j++) {
+          points[j + 2] = points[j] + diffs[offset++];
+        }
+      }
+      return {
+        areContours,
+        thickness,
+        outlines,
+        width,
+        height
+      };
+    } catch (e) {
+      warn(`decompressSignature: ${e}`);
+      return null;
+    }
   }
 }
 
@@ -19122,11 +19290,12 @@ class SignatureExtractor {
 
 
 
+
 class SignatureOptions extends DrawingOptions {
   constructor() {
     super();
     super.updateProperties({
-      fill: "black",
+      fill: "CanvasText",
       "stroke-width": 0
     });
   }
@@ -19140,7 +19309,7 @@ class DrawnSignatureOptions extends InkDrawingOptions {
   constructor(viewerParameters) {
     super(viewerParameters);
     super.updateProperties({
-      stroke: "black",
+      stroke: "CanvasText",
       "stroke-width": 1
     });
   }
@@ -19152,6 +19321,9 @@ class DrawnSignatureOptions extends InkDrawingOptions {
 }
 class SignatureEditor extends DrawingEditor {
   #isExtracted = false;
+  #description = null;
+  #signatureData = null;
+  #signatureUUID = null;
   static _type = "signature";
   static _editorType = AnnotationEditorType.SIGNATURE;
   static _defaultDrawingOptions = null;
@@ -19162,6 +19334,8 @@ class SignatureEditor extends DrawingEditor {
       name: "signatureEditor"
     });
     this._willKeepAspectRatio = true;
+    this.#signatureData = params.signatureData || null;
+    this.#description = null;
   }
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
@@ -19196,17 +19370,108 @@ class SignatureEditor extends DrawingEditor {
       return this.div;
     }
     super.render();
-    this.div.hidden = true;
     this.div.setAttribute("role", "figure");
-    this._uiManager.getSignature(this);
+    if (this._drawId === null) {
+      if (this.#signatureData) {
+        const {
+          lines,
+          mustSmooth,
+          areContours,
+          description,
+          uuid,
+          heightInPage
+        } = this.#signatureData;
+        const {
+          rawDims: {
+            pageWidth,
+            pageHeight
+          },
+          rotation
+        } = this.parent.viewport;
+        const outline = SignatureExtractor.processDrawnLines({
+          lines,
+          pageWidth,
+          pageHeight,
+          rotation,
+          innerMargin: SignatureEditor._INNER_MARGIN,
+          mustSmooth,
+          areContours
+        });
+        this.addSignature(outline, heightInPage, description, uuid);
+      } else {
+        this.div.hidden = true;
+        this._uiManager.getSignature(this);
+      }
+    }
     return this.div;
   }
-  addSignature(outline, heightInPage) {
+  setUuid(uuid) {
+    this.#signatureUUID = uuid;
+    this.addEditToolbar();
+  }
+  getUuid() {
+    return this.#signatureUUID;
+  }
+  get description() {
+    return this.#description;
+  }
+  set description(description) {
+    this.#description = description;
+    super.addEditToolbar().then(toolbar => {
+      toolbar?.updateEditSignatureButton(description);
+    });
+  }
+  getSignaturePreview() {
+    const {
+      newCurves,
+      areContours,
+      thickness,
+      width,
+      height
+    } = this.#signatureData;
+    const maxDim = Math.max(width, height);
+    const outlineData = SignatureExtractor.processDrawnLines({
+      lines: {
+        curves: newCurves.map(points => ({
+          points
+        })),
+        thickness,
+        width,
+        height
+      },
+      pageWidth: maxDim,
+      pageHeight: maxDim,
+      rotation: 0,
+      innerMargin: 0,
+      mustSmooth: false,
+      areContours
+    });
+    return {
+      areContours,
+      outline: outlineData.outline
+    };
+  }
+  async addEditToolbar() {
+    const toolbar = await super.addEditToolbar();
+    if (!toolbar) {
+      return null;
+    }
+    if (this._uiManager.signatureManager && this.#description !== null) {
+      await toolbar.addEditSignatureButton(this._uiManager.signatureManager, this.#signatureUUID, this.#description);
+      toolbar.show();
+    }
+    return toolbar;
+  }
+  addSignature(data, heightInPage, description, uuid) {
     const {
       x: savedX,
       y: savedY
     } = this;
+    const {
+      outline
+    } = this.#signatureData = data;
     this.#isExtracted = outline instanceof ContourDrawOutline;
+    this.#description = description;
     let drawingOptions;
     if (this.#isExtracted) {
       drawingOptions = SignatureEditor.getDefaultDrawingOptions();
@@ -19234,6 +19499,7 @@ class SignatureEditor extends DrawingEditor {
     this.onScaleChanging();
     this.rotate();
     this._uiManager.addToAnnotationStorage(this);
+    this.setUuid(uuid);
     this.div.hidden = false;
   }
   getFromImage(bitmap) {
@@ -19273,6 +19539,74 @@ class SignatureEditor extends DrawingEditor {
       mustSmooth: false,
       areContours: false
     });
+  }
+  createDrawingOptions({
+    areContours,
+    thickness
+  }) {
+    if (areContours) {
+      this._drawingOptions = SignatureEditor.getDefaultDrawingOptions();
+    } else {
+      this._drawingOptions = SignatureEditor._defaultDrawnSignatureOptions.clone();
+      this._drawingOptions.updateProperties({
+        "stroke-width": thickness
+      });
+    }
+  }
+  serialize(isForCopying = false) {
+    if (this.isEmpty()) {
+      return null;
+    }
+    const {
+      lines,
+      points,
+      rect
+    } = this.serializeDraw(isForCopying);
+    const {
+      _drawingOptions: {
+        "stroke-width": thickness
+      }
+    } = this;
+    const serialized = {
+      annotationType: AnnotationEditorType.SIGNATURE,
+      isSignature: true,
+      areContours: this.#isExtracted,
+      color: [0, 0, 0],
+      thickness: this.#isExtracted ? 0 : thickness,
+      pageIndex: this.pageIndex,
+      rect,
+      rotation: this.rotation,
+      structTreeParentId: this._structTreeParentId
+    };
+    if (isForCopying) {
+      serialized.paths = {
+        lines,
+        points
+      };
+      serialized.uuid = this.#signatureUUID;
+    } else {
+      serialized.lines = lines;
+    }
+    if (this.#description) {
+      serialized.accessibilityData = {
+        type: "Figure",
+        alt: this.#description
+      };
+    }
+    return serialized;
+  }
+  static deserializeDraw(pageX, pageY, pageWidth, pageHeight, innerMargin, data) {
+    if (data.areContours) {
+      return ContourDrawOutline.deserialize(pageX, pageY, pageWidth, pageHeight, innerMargin, data);
+    }
+    return InkDrawOutline.deserialize(pageX, pageY, pageWidth, pageHeight, innerMargin, data);
+  }
+  static async deserialize(data, parent, uiManager) {
+    const editor = await super.deserialize(data, parent, uiManager);
+    editor.#isExtracted = data.areContours;
+    editor.description = data.accessibilityData?.alt || "";
+    editor.#signatureUUID = data.uuid;
+    return editor;
   }
 }
 
@@ -20422,8 +20756,8 @@ class AnnotationEditorLayer {
       offsetY
     };
   }
-  addNewEditor() {
-    this.createAndAddNewEditor(this.#getCenterPoint(), true);
+  addNewEditor(data = {}) {
+    this.createAndAddNewEditor(this.#getCenterPoint(), true, data);
   }
   setSelected(editor) {
     this.#uiManager.setSelected(editor);
@@ -20843,11 +21177,11 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.0.112";
-const pdfjsBuild = "72339dc56";
+
+const pdfjsVersion = "5.0.158";
+const pdfjsBuild = "144e5fe19";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
-var __webpack_exports__AnnotationBorderStyleType = __webpack_exports__.AnnotationBorderStyleType;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;
 var __webpack_exports__AnnotationEditorParamsType = __webpack_exports__.AnnotationEditorParamsType;
 var __webpack_exports__AnnotationEditorType = __webpack_exports__.AnnotationEditorType;
@@ -20872,6 +21206,7 @@ var __webpack_exports__PermissionFlag = __webpack_exports__.PermissionFlag;
 var __webpack_exports__PixelsPerInch = __webpack_exports__.PixelsPerInch;
 var __webpack_exports__RenderingCancelledException = __webpack_exports__.RenderingCancelledException;
 var __webpack_exports__ResponseException = __webpack_exports__.ResponseException;
+var __webpack_exports__SignatureExtractor = __webpack_exports__.SignatureExtractor;
 var __webpack_exports__SupportedImageMimeTypes = __webpack_exports__.SupportedImageMimeTypes;
 var __webpack_exports__TextLayer = __webpack_exports__.TextLayer;
 var __webpack_exports__TouchManager = __webpack_exports__.TouchManager;
@@ -20884,6 +21219,7 @@ var __webpack_exports__fetchData = __webpack_exports__.fetchData;
 var __webpack_exports__getDocument = __webpack_exports__.getDocument;
 var __webpack_exports__getFilenameFromUrl = __webpack_exports__.getFilenameFromUrl;
 var __webpack_exports__getPdfFilenameFromUrl = __webpack_exports__.getPdfFilenameFromUrl;
+var __webpack_exports__getUuid = __webpack_exports__.getUuid;
 var __webpack_exports__getXfaPageViewport = __webpack_exports__.getXfaPageViewport;
 var __webpack_exports__isDataScheme = __webpack_exports__.isDataScheme;
 var __webpack_exports__isPdfFile = __webpack_exports__.isPdfFile;
@@ -20893,4 +21229,4 @@ var __webpack_exports__setLayerDimensions = __webpack_exports__.setLayerDimensio
 var __webpack_exports__shadow = __webpack_exports__.shadow;
 var __webpack_exports__stopEvent = __webpack_exports__.stopEvent;
 var __webpack_exports__version = __webpack_exports__.version;
-export { __webpack_exports__AbortException as AbortException, __webpack_exports__AnnotationBorderStyleType as AnnotationBorderStyleType, __webpack_exports__AnnotationEditorLayer as AnnotationEditorLayer, __webpack_exports__AnnotationEditorParamsType as AnnotationEditorParamsType, __webpack_exports__AnnotationEditorType as AnnotationEditorType, __webpack_exports__AnnotationEditorUIManager as AnnotationEditorUIManager, __webpack_exports__AnnotationLayer as AnnotationLayer, __webpack_exports__AnnotationMode as AnnotationMode, __webpack_exports__AnnotationType as AnnotationType, __webpack_exports__ColorPicker as ColorPicker, __webpack_exports__DOMSVGFactory as DOMSVGFactory, __webpack_exports__DrawLayer as DrawLayer, __webpack_exports__FeatureTest as FeatureTest, __webpack_exports__GlobalWorkerOptions as GlobalWorkerOptions, __webpack_exports__ImageKind as ImageKind, __webpack_exports__InvalidPDFException as InvalidPDFException, __webpack_exports__OPS as OPS, __webpack_exports__OutputScale as OutputScale, __webpack_exports__PDFDataRangeTransport as PDFDataRangeTransport, __webpack_exports__PDFDateString as PDFDateString, __webpack_exports__PDFWorker as PDFWorker, __webpack_exports__PasswordResponses as PasswordResponses, __webpack_exports__PermissionFlag as PermissionFlag, __webpack_exports__PixelsPerInch as PixelsPerInch, __webpack_exports__RenderingCancelledException as RenderingCancelledException, __webpack_exports__ResponseException as ResponseException, __webpack_exports__SupportedImageMimeTypes as SupportedImageMimeTypes, __webpack_exports__TextLayer as TextLayer, __webpack_exports__TouchManager as TouchManager, __webpack_exports__Util as Util, __webpack_exports__VerbosityLevel as VerbosityLevel, __webpack_exports__XfaLayer as XfaLayer, __webpack_exports__build as build, __webpack_exports__createValidAbsoluteUrl as createValidAbsoluteUrl, __webpack_exports__fetchData as fetchData, __webpack_exports__getDocument as getDocument, __webpack_exports__getFilenameFromUrl as getFilenameFromUrl, __webpack_exports__getPdfFilenameFromUrl as getPdfFilenameFromUrl, __webpack_exports__getXfaPageViewport as getXfaPageViewport, __webpack_exports__isDataScheme as isDataScheme, __webpack_exports__isPdfFile as isPdfFile, __webpack_exports__noContextMenu as noContextMenu, __webpack_exports__normalizeUnicode as normalizeUnicode, __webpack_exports__setLayerDimensions as setLayerDimensions, __webpack_exports__shadow as shadow, __webpack_exports__stopEvent as stopEvent, __webpack_exports__version as version };
+export { __webpack_exports__AbortException as AbortException, __webpack_exports__AnnotationEditorLayer as AnnotationEditorLayer, __webpack_exports__AnnotationEditorParamsType as AnnotationEditorParamsType, __webpack_exports__AnnotationEditorType as AnnotationEditorType, __webpack_exports__AnnotationEditorUIManager as AnnotationEditorUIManager, __webpack_exports__AnnotationLayer as AnnotationLayer, __webpack_exports__AnnotationMode as AnnotationMode, __webpack_exports__AnnotationType as AnnotationType, __webpack_exports__ColorPicker as ColorPicker, __webpack_exports__DOMSVGFactory as DOMSVGFactory, __webpack_exports__DrawLayer as DrawLayer, __webpack_exports__FeatureTest as FeatureTest, __webpack_exports__GlobalWorkerOptions as GlobalWorkerOptions, __webpack_exports__ImageKind as ImageKind, __webpack_exports__InvalidPDFException as InvalidPDFException, __webpack_exports__OPS as OPS, __webpack_exports__OutputScale as OutputScale, __webpack_exports__PDFDataRangeTransport as PDFDataRangeTransport, __webpack_exports__PDFDateString as PDFDateString, __webpack_exports__PDFWorker as PDFWorker, __webpack_exports__PasswordResponses as PasswordResponses, __webpack_exports__PermissionFlag as PermissionFlag, __webpack_exports__PixelsPerInch as PixelsPerInch, __webpack_exports__RenderingCancelledException as RenderingCancelledException, __webpack_exports__ResponseException as ResponseException, __webpack_exports__SignatureExtractor as SignatureExtractor, __webpack_exports__SupportedImageMimeTypes as SupportedImageMimeTypes, __webpack_exports__TextLayer as TextLayer, __webpack_exports__TouchManager as TouchManager, __webpack_exports__Util as Util, __webpack_exports__VerbosityLevel as VerbosityLevel, __webpack_exports__XfaLayer as XfaLayer, __webpack_exports__build as build, __webpack_exports__createValidAbsoluteUrl as createValidAbsoluteUrl, __webpack_exports__fetchData as fetchData, __webpack_exports__getDocument as getDocument, __webpack_exports__getFilenameFromUrl as getFilenameFromUrl, __webpack_exports__getPdfFilenameFromUrl as getPdfFilenameFromUrl, __webpack_exports__getUuid as getUuid, __webpack_exports__getXfaPageViewport as getXfaPageViewport, __webpack_exports__isDataScheme as isDataScheme, __webpack_exports__isPdfFile as isPdfFile, __webpack_exports__noContextMenu as noContextMenu, __webpack_exports__normalizeUnicode as normalizeUnicode, __webpack_exports__setLayerDimensions as setLayerDimensions, __webpack_exports__shadow as shadow, __webpack_exports__stopEvent as stopEvent, __webpack_exports__version as version };

@@ -1228,7 +1228,6 @@ class SimpleLinkService extends PDFLinkService {
 ;// ./web/pdfjs.js
 const {
   AbortException,
-  AnnotationBorderStyleType,
   AnnotationEditorLayer,
   AnnotationEditorParamsType,
   AnnotationEditorType,
@@ -1246,6 +1245,7 @@ const {
   getDocument,
   getFilenameFromUrl,
   getPdfFilenameFromUrl,
+  getUuid,
   getXfaPageViewport,
   GlobalWorkerOptions,
   ImageKind,
@@ -1266,6 +1266,7 @@ const {
   ResponseException,
   setLayerDimensions,
   shadow,
+  SignatureExtractor,
   stopEvent,
   SupportedImageMimeTypes,
   TextLayer,
@@ -1435,6 +1436,9 @@ class BaseExternalServices {
   }
   createScripting() {
     throw new Error("Not implemented: createScripting");
+  }
+  createSignatureStorage() {
+    throw new Error("Not implemented: createSignatureStorage");
   }
   updateEditorStates(data) {
     throw new Error("Not implemented: updateEditorStates");
@@ -1992,6 +1996,81 @@ class MLManager {
     await promise;
   }
 }
+class SignatureStorage {
+  #eventBus = null;
+  #signatures = null;
+  #signal = null;
+  constructor(eventBus, signal) {
+    this.#eventBus = eventBus;
+    this.#signal = signal;
+  }
+  #handleSignature(data) {
+    return FirefoxCom.requestAsync("handleSignature", data);
+  }
+  async getAll() {
+    if (this.#signal) {
+      window.addEventListener("storedSignaturesChanged", () => {
+        this.#signatures = null;
+        this.#eventBus?.dispatch("storedsignatureschanged", {
+          source: this
+        });
+      }, {
+        signal: this.#signal
+      });
+      this.#signal = null;
+    }
+    if (!this.#signatures) {
+      this.#signatures = new Map();
+      const data = await this.#handleSignature({
+        action: "get"
+      });
+      if (data) {
+        for (const {
+          uuid,
+          description,
+          signatureData
+        } of data) {
+          this.#signatures.set(uuid, {
+            description,
+            signatureData
+          });
+        }
+      }
+    }
+    return this.#signatures;
+  }
+  async isFull() {
+    return (await this.getAll()).size === 5;
+  }
+  async create(data) {
+    if (await this.isFull()) {
+      return null;
+    }
+    const uuid = await this.#handleSignature({
+      action: "create",
+      ...data
+    });
+    if (!uuid) {
+      return null;
+    }
+    this.#signatures.set(uuid, data);
+    return uuid;
+  }
+  async delete(uuid) {
+    const signatures = await this.getAll();
+    if (!signatures.has(uuid)) {
+      return false;
+    }
+    if (await this.#handleSignature({
+      action: "delete",
+      uuid
+    })) {
+      signatures.delete(uuid);
+      return true;
+    }
+    return false;
+  }
+}
 class ExternalServices extends BaseExternalServices {
   updateFindControlState(data) {
     FirefoxCom.request("updateFindControlState", data);
@@ -2065,6 +2144,9 @@ class ExternalServices extends BaseExternalServices {
   }
   createScripting() {
     return FirefoxScripting;
+  }
+  createSignatureStorage(eventBus, signal) {
+    return new SignatureStorage(eventBus, signal);
   }
   dispatchGlobalEvent(event) {
     FirefoxCom.request("dispatchGlobalEvent", event);
@@ -2408,9 +2490,7 @@ class NewAltTextManager {
     this.#finish();
   }
   #finish() {
-    if (this.#overlayManager.active === this.#dialog) {
-      this.#overlayManager.close(this.#dialog);
-    }
+    this.#overlayManager.closeIfActive(this.#dialog);
   }
   #close() {
     const canvas = this.#imagePreview.firstChild;
@@ -2613,9 +2693,7 @@ class ImageAltTextSettings {
     });
   }
   #finish() {
-    if (this.#overlayManager.active === this.#dialog) {
-      this.#overlayManager.close(this.#dialog);
-    }
+    this.#overlayManager.closeIfActive(this.#dialog);
   }
 }
 
@@ -2815,9 +2893,7 @@ class AltTextManager {
     }
   }
   #finish() {
-    if (this.#overlayManager.active === this.#dialog) {
-      this.#overlayManager.close(this.#dialog);
-    }
+    this.#overlayManager.closeIfActive(this.#dialog);
   }
   #close() {
     this.#currentEditor._reportTelemetry(this.#telemetryData || {
@@ -3319,6 +3395,11 @@ class OverlayManager {
     dialog.close();
     this.#active = null;
   }
+  async closeIfActive(dialog) {
+    if (this.#active === dialog) {
+      await this.close(dialog);
+    }
+  }
 }
 
 ;// ./web/password_prompt.js
@@ -3361,9 +3442,7 @@ class PasswordPrompt {
     this.label.setAttribute("data-l10n-id", passwordIncorrect ? "pdfjs-password-invalid" : "pdfjs-password-label");
   }
   async close() {
-    if (this.overlayManager.active === this.dialog) {
-      this.overlayManager.close(this.dialog);
-    }
+    this.overlayManager.closeIfActive(this.dialog);
   }
   #verify() {
     const password = this.input.value;
@@ -7999,7 +8078,7 @@ class AnnotationLayerBuilder {
     return inferredLinks.filter(link => {
       let linkAreaRects;
       for (const annotation of this.#annotations) {
-        if (annotation.annotationType !== AnnotationType.LINK || annotation.url !== link.url) {
+        if (annotation.annotationType !== AnnotationType.LINK || !annotation.url) {
           continue;
         }
         const intersections = intersectAnnotations(annotation, link);
@@ -8083,14 +8162,7 @@ function createLinkAnnotation({
     annotationType: AnnotationType.LINK,
     rotation: 0,
     ...calculateLinkPosition(range, pdfPageView),
-    borderStyle: {
-      width: 1,
-      rawWidth: 1,
-      style: AnnotationBorderStyleType.SOLID,
-      dashArray: [3],
-      horizontalCornerRadius: 0,
-      verticalCornerRadius: 0
-    }
+    borderStyle: null
   };
 }
 class Autolinker {
@@ -8305,7 +8377,7 @@ class StructTreeLayerBuilder {
       pageX,
       pageY
     } = this.#rawDims;
-    const calc = "calc(var(--scale-factor)*";
+    const calc = "calc(var(--total-scale-factor) *";
     const {
       style
     } = img;
@@ -8941,6 +9013,7 @@ class PDFPageView {
   #renderError = null;
   #renderingState = RenderingStates.INITIAL;
   #textLayerMode = TextLayerMode.ENABLE;
+  #userUnit = 1;
   #useThumbnailCanvas = {
     directDrawing: true,
     initialOptionalContent: true,
@@ -9039,15 +9112,24 @@ class PDFPageView {
   }
   #setDimensions() {
     const {
+      div,
       viewport
     } = this;
+    if (viewport.userUnit !== this.#userUnit) {
+      if (viewport.userUnit !== 1) {
+        div.style.setProperty("--user-unit", viewport.userUnit);
+      } else {
+        div.style.removeProperty("--user-unit");
+      }
+      this.#userUnit = viewport.userUnit;
+    }
     if (this.pdfPage) {
       if (this.#previousRotation === viewport.rotation) {
         return;
       }
       this.#previousRotation = viewport.rotation;
     }
-    setLayerDimensions(this.div, viewport, true, false);
+    setLayerDimensions(div, viewport, true, false);
   }
   setPdfPage(pdfPage) {
     this.pdfPage = pdfPage;
@@ -9183,6 +9265,23 @@ class PDFPageView {
     }
     this._textHighlighter.setTextMapping(textDivs, items);
     this._textHighlighter.enable();
+  }
+  async #injectLinkAnnotations(textLayerPromise) {
+    let error = null;
+    try {
+      await textLayerPromise;
+      if (!this.annotationLayer) {
+        return;
+      }
+      await this.annotationLayer.injectLinkAnnotations({
+        inferredLinks: Autolinker.processLinks(this),
+        viewport: this.viewport,
+        structTreeLayer: this.structTreeLayer
+      });
+    } catch (ex) {
+      console.error("#injectLinkAnnotations:", ex);
+      error = ex;
+    }
   }
   #resetCanvas() {
     const {
@@ -9624,13 +9723,8 @@ class PDFPageView {
       const textLayerPromise = this.#renderTextLayer();
       if (this.annotationLayer) {
         await this.#renderAnnotationLayer();
-        if (this.#enableAutoLinking) {
-          await textLayerPromise;
-          this.annotationLayer.injectLinkAnnotations({
-            inferredLinks: Autolinker.processLinks(this),
-            viewport: this.viewport,
-            structTreeLayer: this.structTreeLayer
-          });
+        if (this.#enableAutoLinking && this.annotationLayer) {
+          await this.#injectLinkAnnotations(textLayerPromise);
         }
       }
       const {
@@ -9803,7 +9897,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.112";
+    const viewerVersion = "5.0.158";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -10224,9 +10318,7 @@ class PDFViewer {
             uiManager: this.#annotationEditorUIManager
           });
           if (mode !== AnnotationEditorType.NONE) {
-            if (mode === AnnotationEditorType.STAMP) {
-              this.#mlManager?.loadModel("altText");
-            }
+            this.#preloadEditingData(mode);
             this.#annotationEditorUIManager.updateMode(mode);
           }
         } else {
@@ -11220,6 +11312,16 @@ class PDFViewer {
       this.#switchAnnotationEditorModeTimeoutId = null;
     }
   }
+  #preloadEditingData(mode) {
+    switch (mode) {
+      case AnnotationEditorType.STAMP:
+        this.#mlManager?.loadModel("altText");
+        break;
+      case AnnotationEditorType.SIGNATURE:
+        this.#signatureManager?.loadSignatures();
+        break;
+    }
+  }
   get annotationEditorMode() {
     return this.#annotationEditorUIManager ? this.#annotationEditorMode : AnnotationEditorType.DISABLE;
   }
@@ -11240,9 +11342,7 @@ class PDFViewer {
     if (!this.pdfDocument) {
       return;
     }
-    if (mode === AnnotationEditorType.STAMP) {
-      this.#mlManager?.loadModel("altText");
-    }
+    this.#preloadEditingData(mode);
     const {
       eventBus,
       pdfDocument
@@ -11581,6 +11681,7 @@ class SecondaryToolbar {
 
 ;// ./web/signature_manager.js
 
+const DEFAULT_HEIGHT_IN_PAGE = 40;
 class SignatureManager {
   #addButton;
   #tabsToAltText = null;
@@ -11606,12 +11707,17 @@ class SignatureManager {
   #saveCheckbox;
   #saveContainer;
   #tabButtons;
+  #addSignatureToolbarButton;
+  #loadSignaturesPromise = null;
   #typeInput;
   #currentTab = null;
   #currentTabAC = null;
   #hasDescriptionChanged = false;
+  #eventBus;
   #l10n;
   #overlayManager;
+  #editDescriptionDialog;
+  #signatureStorage;
   #uiManager = null;
   static #l10nDescription = null;
   constructor({
@@ -11629,7 +11735,6 @@ class SignatureManager {
     imagePicker,
     imagePickerLink,
     description,
-    clearDescription,
     clearButton,
     cancelButton,
     addButton,
@@ -11637,11 +11742,11 @@ class SignatureManager {
     errorBar,
     saveCheckbox,
     saveContainer
-  }, overlayManager, l10n) {
+  }, editSignatureElements, addSignatureToolbarButton, overlayManager, l10n, signatureStorage, eventBus) {
     this.#addButton = addButton;
     this.#clearButton = clearButton;
-    this.#clearDescription = clearDescription;
-    this.#description = description;
+    this.#clearDescription = description.lastElementChild;
+    this.#description = description.firstElementChild;
     this.#dialog = dialog;
     this.#drawSVG = drawSVG;
     this.#drawPlaceholder = drawPlaceholder;
@@ -11654,8 +11759,12 @@ class SignatureManager {
     this.#overlayManager = overlayManager;
     this.#saveCheckbox = saveCheckbox;
     this.#saveContainer = saveContainer;
+    this.#addSignatureToolbarButton = addSignatureToolbarButton;
     this.#typeInput = typeInput;
     this.#l10n = l10n;
+    this.#signatureStorage = signatureStorage;
+    this.#eventBus = eventBus;
+    this.#editDescriptionDialog = new EditDescriptionDialog(editSignatureElements, overlayManager);
     SignatureManager.#l10nDescription ||= Object.freeze({
       signature: "pdfjs-editor-add-signature-description-default-when-drawing"
     });
@@ -11679,13 +11788,13 @@ class SignatureManager {
       passive: true
     });
     description.addEventListener("input", () => {
-      clearDescription.disabled = description.value === "";
+      this.#clearDescription.disabled = description.value === "";
     }, {
       passive: true
     });
-    clearDescription.addEventListener("click", () => {
+    this.#clearDescription.addEventListener("click", () => {
       this.#description.value = "";
-      clearDescription.disabled = true;
+      this.#clearDescription.disabled = true;
     }, {
       passive: true
     });
@@ -11696,6 +11805,7 @@ class SignatureManager {
     });
     this.#initTabButtons(typeButton, drawButton, imageButton, panels);
     imagePicker.accept = SupportedImageMimeTypes.join(",");
+    eventBus._on("storedsignatureschanged", this.#signaturesChanged.bind(this));
     overlayManager.register(dialog);
   }
   #initTabButtons(typeButton, drawButton, imageButton, panels) {
@@ -11861,7 +11971,7 @@ class SignatureManager {
         this.#drawCurves = {
           width: drawWidth,
           height: drawHeight,
-          thickness: this.#drawThickness.value,
+          thickness: parseInt(this.#drawThickness.value),
           curves: []
         };
         this.#disableButtons(true);
@@ -12032,7 +12142,9 @@ class SignatureManager {
       this.#dialog.classList.toggle("waiting", false);
       return;
     }
-    const outline = this.#extractedSignatureData = this.#currentEditor.getFromImage(data.bitmap);
+    const {
+      outline
+    } = this.#extractedSignatureData = this.#currentEditor.getFromImage(data.bitmap);
     if (!outline) {
       this.#dialog.classList.toggle("waiting", false);
       return;
@@ -12061,8 +12173,147 @@ class SignatureManager {
     } = this.#drawSVG.getBoundingClientRect();
     return this.#currentEditor.getDrawnSignature(this.#drawCurves, width, height);
   }
+  #addToolbarButton(signatureData, uuid, description) {
+    const {
+      curves,
+      areContours,
+      thickness,
+      width,
+      height
+    } = signatureData;
+    const maxDim = Math.max(width, height);
+    const outlineData = SignatureExtractor.processDrawnLines({
+      lines: {
+        curves,
+        thickness,
+        width,
+        height
+      },
+      pageWidth: maxDim,
+      pageHeight: maxDim,
+      rotation: 0,
+      innerMargin: 0,
+      mustSmooth: false,
+      areContours
+    });
+    if (!outlineData) {
+      return;
+    }
+    const {
+      outline
+    } = outlineData;
+    const svgFactory = new DOMSVGFactory();
+    const div = document.createElement("div");
+    const button = document.createElement("button");
+    button.addEventListener("click", () => {
+      this.#eventBus.dispatch("switchannotationeditorparams", {
+        source: this,
+        type: AnnotationEditorParamsType.CREATE,
+        value: {
+          signatureData: {
+            lines: {
+              curves,
+              thickness,
+              width,
+              height
+            },
+            mustSmooth: false,
+            areContours,
+            description,
+            uuid,
+            heightInPage: DEFAULT_HEIGHT_IN_PAGE
+          }
+        }
+      });
+    });
+    div.append(button);
+    div.classList.add("toolbarAddSignatureButtonContainer");
+    const svg = svgFactory.create(1, 1, true);
+    button.append(svg);
+    const span = document.createElement("span");
+    button.append(span);
+    button.classList.add("toolbarAddSignatureButton");
+    button.type = "button";
+    button.title = span.textContent = description;
+    button.tabIndex = 0;
+    const path = svgFactory.createElement("path");
+    svg.append(path);
+    svg.setAttribute("viewBox", outline.viewBox);
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    if (areContours) {
+      path.classList.add("contours");
+    }
+    path.setAttribute("d", outline.toSVGPath());
+    const deleteButton = document.createElement("button");
+    div.append(deleteButton);
+    deleteButton.classList.add("toolbarButton", "deleteButton");
+    deleteButton.setAttribute("data-l10n-id", "pdfjs-editor-delete-signature-button");
+    deleteButton.type = "button";
+    deleteButton.tabIndex = 0;
+    deleteButton.addEventListener("click", async () => {
+      if (await this.#signatureStorage.delete(uuid)) {
+        div.remove();
+      }
+    });
+    const deleteSpan = document.createElement("span");
+    deleteButton.append(deleteSpan);
+    deleteSpan.setAttribute("data-l10n-id", "pdfjs-editor-delete-signature-button-label");
+    this.#addSignatureToolbarButton.before(div);
+  }
+  async #signaturesChanged() {
+    const parent = this.#addSignatureToolbarButton.parentElement;
+    while (parent.firstElementChild !== this.#addSignatureToolbarButton) {
+      parent.firstElementChild.remove();
+    }
+    this.#loadSignaturesPromise = null;
+    await this.loadSignatures(true);
+  }
   getSignature(params) {
     return this.open(params);
+  }
+  async loadSignatures(reload = false) {
+    if (!this.#addSignatureToolbarButton || !reload && this.#addSignatureToolbarButton.previousElementSibling || !this.#signatureStorage) {
+      return;
+    }
+    if (!this.#loadSignaturesPromise) {
+      this.#loadSignaturesPromise = this.#signatureStorage.getAll().then(async signatures => [signatures, await Promise.all(Array.from(signatures.values(), ({
+        signatureData
+      }) => SignatureExtractor.decompressSignature(signatureData)))]);
+      if (!reload) {
+        return;
+      }
+    }
+    const [signatures, signaturesData] = await this.#loadSignaturesPromise;
+    this.#loadSignaturesPromise = null;
+    let i = 0;
+    for (const [uuid, {
+      description
+    }] of signatures) {
+      const data = signaturesData[i++];
+      if (!data) {
+        continue;
+      }
+      data.curves = data.outlines.map(points => ({
+        points
+      }));
+      delete data.outlines;
+      this.#addToolbarButton(data, uuid, description);
+    }
+  }
+  async renderEditButton(editor) {
+    const button = document.createElement("button");
+    button.classList.add("altText", "editDescription");
+    button.tabIndex = 0;
+    button.title = editor.description;
+    const span = document.createElement("span");
+    button.append(span);
+    span.setAttribute("data-l10n-id", "pdfjs-editor-add-signature-edit-button-label");
+    button.addEventListener("click", () => {
+      this.#editDescriptionDialog.open(editor);
+    }, {
+      passive: true
+    });
+    return button;
   }
   async open({
     uiManager,
@@ -12072,6 +12323,9 @@ class SignatureManager {
     this.#uiManager = uiManager;
     this.#currentEditor = editor;
     this.#uiManager.removeEditListeners();
+    const isStorageFull = await this.#signatureStorage.isFull();
+    this.#saveContainer.classList.toggle("fullStorage", isStorageFull);
+    this.#saveCheckbox.checked = !isStorageFull;
     await this.#overlayManager.open(this.#dialog);
     const tabType = this.#tabButtons.get("type");
     tabType.focus();
@@ -12081,9 +12335,7 @@ class SignatureManager {
     this.#finish();
   }
   #finish() {
-    if (this.#overlayManager.active === this.#dialog) {
-      this.#overlayManager.close(this.#dialog);
-    }
+    this.#overlayManager.closeIfActive(this.#dialog);
   }
   #close() {
     if (this.#currentEditor._drawId === null) {
@@ -12102,7 +12354,7 @@ class SignatureManager {
     this.#currentTab = null;
     this.#tabsToAltText = null;
   }
-  #add() {
+  async #add() {
     let data;
     switch (this.#currentTab) {
       case "type":
@@ -12115,13 +12367,130 @@ class SignatureManager {
         data = this.#extractedSignatureData;
         break;
     }
-    this.#currentEditor.addSignature(data, 40);
-    if (this.#saveCheckbox.checked) {}
+    let uuid = null;
+    if (this.#saveCheckbox.checked) {
+      const description = this.#description.value;
+      const {
+        newCurves,
+        areContours,
+        thickness,
+        width,
+        height
+      } = data;
+      const signatureData = await SignatureExtractor.compressSignature({
+        outlines: newCurves,
+        areContours,
+        thickness,
+        width,
+        height
+      });
+      uuid = await this.#signatureStorage.create({
+        description,
+        signatureData
+      });
+      if (uuid) {
+        this.#addToolbarButton({
+          curves: newCurves.map(points => ({
+            points
+          })),
+          areContours,
+          thickness,
+          width,
+          height
+        }, uuid, description);
+      } else {
+        console.warn("SignatureManager.add: cannot save the signature.");
+      }
+    }
+    this.#currentEditor.addSignature(data, DEFAULT_HEIGHT_IN_PAGE, this.#description.value, uuid);
     this.#finish();
   }
   destroy() {
     this.#uiManager = null;
     this.#finish();
+  }
+}
+class EditDescriptionDialog {
+  #currentEditor;
+  #previousDescription;
+  #description;
+  #dialog;
+  #overlayManager;
+  #signatureSVG;
+  #uiManager;
+  constructor({
+    dialog,
+    description,
+    cancelButton,
+    updateButton,
+    editSignatureView
+  }, overlayManager) {
+    const descriptionInput = this.#description = description.firstElementChild;
+    this.#signatureSVG = editSignatureView;
+    this.#dialog = dialog;
+    this.#overlayManager = overlayManager;
+    dialog.addEventListener("close", this.#close.bind(this));
+    dialog.addEventListener("contextmenu", e => {
+      if (e.target !== this.#description) {
+        e.preventDefault();
+      }
+    });
+    cancelButton.addEventListener("click", this.#finish.bind(this));
+    updateButton.addEventListener("click", this.#update.bind(this));
+    const clearDescription = description.lastElementChild;
+    clearDescription.addEventListener("click", () => {
+      descriptionInput.value = "";
+      clearDescription.disabled = true;
+    });
+    descriptionInput.addEventListener("input", () => {
+      const {
+        value
+      } = descriptionInput;
+      clearDescription.disabled = value === "";
+      updateButton.disabled = value === this.#previousDescription;
+      editSignatureView.setAttribute("aria-label", value);
+    }, {
+      passive: true
+    });
+    overlayManager.register(dialog);
+  }
+  async open(editor) {
+    this.#uiManager = editor._uiManager;
+    this.#currentEditor = editor;
+    this.#previousDescription = this.#description.value = editor.description;
+    this.#description.dispatchEvent(new Event("input"));
+    this.#uiManager.removeEditListeners();
+    const {
+      areContours,
+      outline
+    } = editor.getSignaturePreview();
+    const svgFactory = new DOMSVGFactory();
+    const path = svgFactory.createElement("path");
+    this.#signatureSVG.append(path);
+    this.#signatureSVG.setAttribute("viewBox", outline.viewBox);
+    path.setAttribute("d", outline.toSVGPath());
+    if (areContours) {
+      path.classList.add("contours");
+    }
+    await this.#overlayManager.open(this.#dialog);
+  }
+  async #update() {
+    const description = this.#description.value;
+    if (this.#previousDescription === description) {
+      this.#finish();
+      return;
+    }
+    this.#currentEditor.description = description;
+    this.#finish();
+  }
+  #finish() {
+    this.#overlayManager.closeIfActive(this.#dialog);
+  }
+  #close() {
+    this.#uiManager?.addEditListeners();
+    this.#uiManager = null;
+    this.#currentEditor = null;
+    this.#signatureSVG.firstElementChild.remove();
   }
 }
 
@@ -12754,7 +13123,7 @@ const PDFViewerApplication = {
     if (appConfig.editorUndoBar) {
       this.editorUndoBar = new EditorUndoBar(appConfig.editorUndoBar, eventBus);
     }
-    const signatureManager = appConfig.addSignatureDialog ? new SignatureManager(appConfig.addSignatureDialog, this.overlayManager, this.l10n) : null;
+    const signatureManager = AppOptions.get("enableSignatureEditor") && appConfig.addSignatureDialog ? new SignatureManager(appConfig.addSignatureDialog, appConfig.editSignatureDialog, appConfig.annotationEditorParams?.editorSignatureAddSignature || null, this.overlayManager, l10n, externalServices.createSignatureStorage(eventBus, this._globalAbortController.signal), eventBus) : null;
     const enableHWA = AppOptions.get("enableHWA");
     const pdfViewer = new PDFViewer({
       container,
@@ -14412,8 +14781,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.112";
-const pdfjsBuild = "72339dc56";
+const pdfjsVersion = "5.0.158";
+const pdfjsBuild = "144e5fe19";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
@@ -14580,7 +14949,6 @@ function getViewerConfiguration() {
       imagePicker: document.getElementById("addSignatureFilePicker"),
       imagePickerLink: document.getElementById("addSignatureImageBrowse"),
       description: document.getElementById("addSignatureDescription"),
-      clearDescription: document.getElementById("addSignatureDescriptionClearButton"),
       clearButton: document.getElementById("clearSignatureButton"),
       saveContainer: document.getElementById("addSignatureSaveContainer"),
       saveCheckbox: document.getElementById("addSignatureSaveCheckbox"),
@@ -14588,6 +14956,13 @@ function getViewerConfiguration() {
       errorCloseButton: document.getElementById("addSignatureErrorCloseButton"),
       cancelButton: document.getElementById("addSignatureCancelButton"),
       addButton: document.getElementById("addSignatureAddButton")
+    },
+    editSignatureDialog: {
+      dialog: document.getElementById("editSignatureDescriptionDialog"),
+      description: document.getElementById("editSignatureDescription"),
+      editSignatureView: document.getElementById("editSignatureView"),
+      cancelButton: document.getElementById("editSignatureCancelButton"),
+      updateButton: document.getElementById("editSignatureUpdateButton")
     },
     annotationEditorParams: {
       editorFreeTextFontSize: document.getElementById("editorFreeTextFontSize"),

@@ -1228,7 +1228,6 @@ class SimpleLinkService extends PDFLinkService {
 ;// ./web/pdfjs.js
 const {
   AbortException,
-  AnnotationBorderStyleType,
   AnnotationEditorLayer,
   AnnotationEditorParamsType,
   AnnotationEditorType,
@@ -1246,6 +1245,7 @@ const {
   getDocument,
   getFilenameFromUrl,
   getPdfFilenameFromUrl,
+  getUuid,
   getXfaPageViewport,
   GlobalWorkerOptions,
   ImageKind,
@@ -1266,6 +1266,7 @@ const {
   ResponseException,
   setLayerDimensions,
   shadow,
+  SignatureExtractor,
   stopEvent,
   SupportedImageMimeTypes,
   TextLayer,
@@ -1435,6 +1436,9 @@ class BaseExternalServices {
   }
   createScripting() {
     throw new Error("Not implemented: createScripting");
+  }
+  createSignatureStorage() {
+    throw new Error("Not implemented: createSignatureStorage");
   }
   updateEditorStates(data) {
     throw new Error("Not implemented: updateEditorStates");
@@ -2027,6 +2031,81 @@ class MLManager {
     await promise;
   }
 }
+class SignatureStorage {
+  #eventBus = null;
+  #signatures = null;
+  #signal = null;
+  constructor(eventBus, signal) {
+    this.#eventBus = eventBus;
+    this.#signal = signal;
+  }
+  #handleSignature(data) {
+    return FirefoxCom.requestAsync("handleSignature", data);
+  }
+  async getAll() {
+    if (this.#signal) {
+      window.addEventListener("storedSignaturesChanged", () => {
+        this.#signatures = null;
+        this.#eventBus?.dispatch("storedsignatureschanged", {
+          source: this
+        });
+      }, {
+        signal: this.#signal
+      });
+      this.#signal = null;
+    }
+    if (!this.#signatures) {
+      this.#signatures = new Map();
+      const data = await this.#handleSignature({
+        action: "get"
+      });
+      if (data) {
+        for (const {
+          uuid,
+          description,
+          signatureData
+        } of data) {
+          this.#signatures.set(uuid, {
+            description,
+            signatureData
+          });
+        }
+      }
+    }
+    return this.#signatures;
+  }
+  async isFull() {
+    return (await this.getAll()).size === 5;
+  }
+  async create(data) {
+    if (await this.isFull()) {
+      return null;
+    }
+    const uuid = await this.#handleSignature({
+      action: "create",
+      ...data
+    });
+    if (!uuid) {
+      return null;
+    }
+    this.#signatures.set(uuid, data);
+    return uuid;
+  }
+  async delete(uuid) {
+    const signatures = await this.getAll();
+    if (!signatures.has(uuid)) {
+      return false;
+    }
+    if (await this.#handleSignature({
+      action: "delete",
+      uuid
+    })) {
+      signatures.delete(uuid);
+      return true;
+    }
+    return false;
+  }
+}
 class ExternalServices extends BaseExternalServices {
   updateFindControlState(data) {
     FirefoxCom.request("updateFindControlState", data);
@@ -2100,6 +2179,9 @@ class ExternalServices extends BaseExternalServices {
   }
   createScripting() {
     return FirefoxScripting;
+  }
+  createSignatureStorage(eventBus, signal) {
+    return new SignatureStorage(eventBus, signal);
   }
   dispatchGlobalEvent(event) {
     FirefoxCom.request("dispatchGlobalEvent", event);
@@ -2466,6 +2548,11 @@ class OverlayManager {
     dialog.close();
     this.#active = null;
   }
+  async closeIfActive(dialog) {
+    if (this.#active === dialog) {
+      await this.close(dialog);
+    }
+  }
 }
 
 ;// ./web/password_prompt.js
@@ -2508,9 +2595,7 @@ class PasswordPrompt {
     this.label.setAttribute("data-l10n-id", passwordIncorrect ? "pdfjs-password-invalid" : "pdfjs-password-label");
   }
   async close() {
-    if (this.overlayManager.active === this.dialog) {
-      this.overlayManager.close(this.dialog);
-    }
+    this.overlayManager.closeIfActive(this.dialog);
   }
   #verify() {
     const password = this.input.value;
@@ -4829,7 +4914,7 @@ class AnnotationLayerBuilder {
     return inferredLinks.filter(link => {
       let linkAreaRects;
       for (const annotation of this.#annotations) {
-        if (annotation.annotationType !== AnnotationType.LINK || annotation.url !== link.url) {
+        if (annotation.annotationType !== AnnotationType.LINK || !annotation.url) {
           continue;
         }
         const intersections = intersectAnnotations(annotation, link);
@@ -4913,14 +4998,7 @@ function createLinkAnnotation({
     annotationType: AnnotationType.LINK,
     rotation: 0,
     ...calculateLinkPosition(range, pdfPageView),
-    borderStyle: {
-      width: 1,
-      rawWidth: 1,
-      style: AnnotationBorderStyleType.SOLID,
-      dashArray: [3],
-      horizontalCornerRadius: 0,
-      verticalCornerRadius: 0
-    }
+    borderStyle: null
   };
 }
 class Autolinker {
@@ -5135,7 +5213,7 @@ class StructTreeLayerBuilder {
       pageX,
       pageY
     } = this.#rawDims;
-    const calc = "calc(var(--scale-factor)*";
+    const calc = "calc(var(--total-scale-factor) *";
     const {
       style
     } = img;
@@ -5771,6 +5849,7 @@ class PDFPageView {
   #renderError = null;
   #renderingState = RenderingStates.INITIAL;
   #textLayerMode = TextLayerMode.ENABLE;
+  #userUnit = 1;
   #useThumbnailCanvas = {
     directDrawing: true,
     initialOptionalContent: true,
@@ -5869,15 +5948,24 @@ class PDFPageView {
   }
   #setDimensions() {
     const {
+      div,
       viewport
     } = this;
+    if (viewport.userUnit !== this.#userUnit) {
+      if (viewport.userUnit !== 1) {
+        div.style.setProperty("--user-unit", viewport.userUnit);
+      } else {
+        div.style.removeProperty("--user-unit");
+      }
+      this.#userUnit = viewport.userUnit;
+    }
     if (this.pdfPage) {
       if (this.#previousRotation === viewport.rotation) {
         return;
       }
       this.#previousRotation = viewport.rotation;
     }
-    setLayerDimensions(this.div, viewport, true, false);
+    setLayerDimensions(div, viewport, true, false);
   }
   setPdfPage(pdfPage) {
     this.pdfPage = pdfPage;
@@ -6013,6 +6101,23 @@ class PDFPageView {
     }
     this._textHighlighter.setTextMapping(textDivs, items);
     this._textHighlighter.enable();
+  }
+  async #injectLinkAnnotations(textLayerPromise) {
+    let error = null;
+    try {
+      await textLayerPromise;
+      if (!this.annotationLayer) {
+        return;
+      }
+      await this.annotationLayer.injectLinkAnnotations({
+        inferredLinks: Autolinker.processLinks(this),
+        viewport: this.viewport,
+        structTreeLayer: this.structTreeLayer
+      });
+    } catch (ex) {
+      console.error("#injectLinkAnnotations:", ex);
+      error = ex;
+    }
   }
   #resetCanvas() {
     const {
@@ -6454,13 +6559,8 @@ class PDFPageView {
       const textLayerPromise = this.#renderTextLayer();
       if (this.annotationLayer) {
         await this.#renderAnnotationLayer();
-        if (this.#enableAutoLinking) {
-          await textLayerPromise;
-          this.annotationLayer.injectLinkAnnotations({
-            inferredLinks: Autolinker.processLinks(this),
-            viewport: this.viewport,
-            structTreeLayer: this.structTreeLayer
-          });
+        if (this.#enableAutoLinking && this.annotationLayer) {
+          await this.#injectLinkAnnotations(textLayerPromise);
         }
       }
       const {
@@ -6633,7 +6733,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.112";
+    const viewerVersion = "5.0.158";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -7054,9 +7154,7 @@ class PDFViewer {
             uiManager: this.#annotationEditorUIManager
           });
           if (mode !== AnnotationEditorType.NONE) {
-            if (mode === AnnotationEditorType.STAMP) {
-              this.#mlManager?.loadModel("altText");
-            }
+            this.#preloadEditingData(mode);
             this.#annotationEditorUIManager.updateMode(mode);
           }
         } else {
@@ -8020,6 +8118,16 @@ class PDFViewer {
       this.#switchAnnotationEditorModeTimeoutId = null;
     }
   }
+  #preloadEditingData(mode) {
+    switch (mode) {
+      case AnnotationEditorType.STAMP:
+        this.#mlManager?.loadModel("altText");
+        break;
+      case AnnotationEditorType.SIGNATURE:
+        this.#signatureManager?.loadSignatures();
+        break;
+    }
+  }
   get annotationEditorMode() {
     return this.#annotationEditorUIManager ? this.#annotationEditorMode : AnnotationEditorType.DISABLE;
   }
@@ -8040,9 +8148,7 @@ class PDFViewer {
     if (!this.pdfDocument) {
       return;
     }
-    if (mode === AnnotationEditorType.STAMP) {
-      this.#mlManager?.loadModel("altText");
-    }
+    this.#preloadEditingData(mode);
     const {
       eventBus,
       pdfDocument
@@ -8487,7 +8593,7 @@ const PDFViewerApplication = {
     if (appConfig.editorUndoBar) {
       this.editorUndoBar = new EditorUndoBar(appConfig.editorUndoBar, eventBus);
     }
-    const signatureManager = appConfig.addSignatureDialog ? new SignatureManager(appConfig.addSignatureDialog, this.overlayManager, this.l10n) : null;
+    const signatureManager = AppOptions.get("enableSignatureEditor") && appConfig.addSignatureDialog ? new SignatureManager(appConfig.addSignatureDialog, appConfig.editSignatureDialog, appConfig.annotationEditorParams?.editorSignatureAddSignature || null, this.overlayManager, l10n, externalServices.createSignatureStorage(eventBus, this._globalAbortController.signal), eventBus) : null;
     const enableHWA = AppOptions.get("enableHWA");
     const pdfViewer = new PDFViewer({
       container,
@@ -10113,8 +10219,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.112";
-const pdfjsBuild = "72339dc56";
+const pdfjsVersion = "5.0.158";
+const pdfjsBuild = "144e5fe19";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
