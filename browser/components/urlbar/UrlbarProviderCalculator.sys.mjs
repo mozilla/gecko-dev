@@ -504,8 +504,14 @@ Calculator.addNumberSystem({
       // Contains both a period and a comma and the comma came first
       // so strip the comma (ie 1,999.5).
       num = num.replace(/,/g, "");
+    } else if (firstComma != -1 && num.includes(",", firstComma + 1)) {
+      // Contains multiple commas and no periods, strip commas
+      num = num.replace(/,/g, "");
+    } else if (firstPeriod != -1 && num.includes(".", firstPeriod + 1)) {
+      // Contains multiple periods and no commas, strip periods
+      num = num.replace(/\./g, "");
     } else if (firstComma != -1) {
-      // Has commas but no periods so treat comma as decimal seperator
+      // Has a single comma and no periods, treat comma as decimal seperator
       num = num.replace(/,/g, ".");
     }
     return num;
