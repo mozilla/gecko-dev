@@ -12,9 +12,10 @@ use {
     serde_json,
 };
 
-// runtimeobject is not automatically linked correctly
+// runtimeobject and propsys are not automatically linked correctly
 #[cfg(windows)]
 #[link(name = "runtimeobject")]
+#[link(name = "propsys")]
 extern "C" {}
 
 /// Usage: crashreporter --memtest <memsize_mb> <json formatted memtest_runner_args>
