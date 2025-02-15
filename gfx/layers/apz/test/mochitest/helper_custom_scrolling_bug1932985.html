@@ -53,7 +53,10 @@
     let destinationPromise = new Promise(resolve => {
       window.addEventListener("scroll", () => {
         info(`Scrolled to ${window.scrollY}`);
-        if (window.scrollY >= finalDestination) {
+        // Use fuzzy comparison with epsilon=1 to account for rounding
+        // of scrollBy() delta to the nearest pixel. This should be fixed
+        // by bug 1674687.
+        if (window.scrollY >= (finalDestination - 1)) {
           ok(true, "Scroll destination reached");
           resolve();
         }
