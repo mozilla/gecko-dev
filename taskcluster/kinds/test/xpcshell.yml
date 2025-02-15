@@ -142,14 +142,10 @@ xpcshell:
                     default: default
     mozharness:
         extra-options:
-            by-variant:
-                inc-origin-init:
-                    - "--tag=inc-origin-init"
-                default:
-                    by-test-platform:
-                        windows1.*:
-                            - --threads=2
-                        default: []
+            by-test-platform:
+                windows1.*:
+                    - --threads=2
+                default: []
     fetches:
         toolchain:
             by-test-platform:

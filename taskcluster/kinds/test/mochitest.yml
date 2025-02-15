@@ -162,14 +162,10 @@ mochitest-plain:
     mozharness:
         mochitest-flavor: plain
         extra-options:
-            by-variant:
-                inc-origin-init:
-                    - --tag=inc-origin-init
-                default:
-                    by-test-platform:
-                        android-em.*:
-                            - --test-suite=mochitest-plain
-                        default: []
+            by-test-platform:
+                android-em.*:
+                    - --test-suite=mochitest-plain
+                default: []
         chunked:
             by-test-platform:
                 android-em.*: false
