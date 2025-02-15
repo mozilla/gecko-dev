@@ -4901,7 +4901,6 @@ dependencies = [
  "quote",
  "syn",
  "synstructure",
- "unicode-xid",
 ]
 
 [[package]]
