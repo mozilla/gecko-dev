@@ -723,7 +723,29 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     if test_paths:
                         base_cmd.extend(test_paths)
                     if c["test_tags"]:
-                        base_cmd.extend(["--tag={}".format(t) for t in c["test_tags"]])
+                        # Exclude suites that don't support --tag to prevent
+                        # errors caused by passing unknown argument.
+                        # Note there's a similar list in chunking.py in
+                        # DefaultLoader's get_manifest method. The lists should
+                        # be kept in sync.
+                        if suite_category not in [
+                            "gtest",
+                            "cppunittest",
+                            "jittest",
+                            "crashtest",
+                            "crashtest-qr",
+                            "jsreftest",
+                            "reftest",
+                            "reftest-qr",
+                        ]:
+                            base_cmd.extend(
+                                ["--tag={}".format(t) for t in c["test_tags"]]
+                            )
+                        else:
+                            self.warning(
+                                "--tag does not currently work with the "
+                                "'{suite_category}' suite."
+                            )
                 elif c.get("total_chunks") and c.get("this_chunk"):
                     base_cmd.extend(
                         [

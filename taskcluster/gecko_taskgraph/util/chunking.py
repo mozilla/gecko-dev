@@ -281,7 +281,22 @@ class DefaultLoader(BaseManifestLoader):
         manifests = {chunk_by_runtime.get_manifest(t) for t in tests}
 
         filters = []
-        if json.loads(mozinfo["tag"]):
+        # Exclude suites that don't support --tag to prevent manifests from
+        # being optimized out, which would result in no jobs being triggered.
+        # No need to check suites like gtest, as all suites in compiled.yml
+        # have test-manifest-loader set to null, meaning this function is never
+        # called.
+        # Note there's a similar list in desktop_unittest.py in
+        # DesktopUnittest's _query_abs_base_cmd method. The lists should be
+        # kept in sync.
+        assert suite not in ["gtest", "cppunittest", "jittest"]
+        if suite not in [
+            "crashtest",
+            "crashtest-qr",
+            "jsreftest",
+            "reftest",
+            "reftest-qr",
+        ] and json.loads(mozinfo["tag"]):
             filters.extend([tags([x]) for x in json.loads(mozinfo["tag"])])
 
         # Compute  the active tests.
