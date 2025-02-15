@@ -379,7 +379,7 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
       bool canSeeRange = IsRangeVisible(returnRange, aIsFirstVisiblePreferred,
                                         false, &usesIndependentSelection);
 
-      mStartPointRange = returnRange->CloneRange();
+      RefPtr newBoundaryRange = returnRange->CloneRange();
 
       // If we can't see the range, we still might be able to scroll
       // it into view if usesIndependentSelection is true. If both are
@@ -389,7 +389,13 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
           (mStartLinksOnlyPref && aIsLinksOnly && !isStartingLink)) {
         // We want to jump over this range, so collapse to the start if we're
         // finding backwards and vice versa.
-        mStartPointRange->Collapse(findPrev);
+        if (findPrev) {
+          mEndPointRange = newBoundaryRange;
+          mEndPointRange->Collapse(true);
+        } else {
+          mStartPointRange = newBoundaryRange;
+          mStartPointRange->Collapse(false);
+        }
         continue;
       }
 
@@ -574,24 +580,9 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
     }
 
     if (continueLoop) {
-      if (NS_FAILED(GetSearchContainers(
-              currentContainer, nullptr, aIsFirstVisiblePreferred, findPrev,
-              getter_AddRefs(presShell), getter_AddRefs(presContext)))) {
-        continue;
-      }
-
-      if (findPrev) {
-        // Reverse mode: swap start and end points, so that we start
-        // at end of document and go to beginning
-        RefPtr<nsRange> tempRange = mStartPointRange->CloneRange();
-        if (!mEndPointRange) {
-          mEndPointRange = nsRange::Create(presShell->GetDocument());
-        }
-
-        mStartPointRange = mEndPointRange;
-        mEndPointRange = tempRange;
-      }
-
+      Unused << GetSearchContainers(
+          currentContainer, nullptr, aIsFirstVisiblePreferred, findPrev,
+          getter_AddRefs(presShell), getter_AddRefs(presContext));
       continue;
     }
 
@@ -699,30 +690,21 @@ nsresult nsTypeAheadFind::GetSearchContainers(
   }
 
   if (!currentSelectionRange) {
-    mStartPointRange = mSearchRange->CloneRange();
     // We want to search in the visible selection range. That means that the
     // start point needs to be the end if we're looking backwards, or vice
     // versa.
-    mStartPointRange->Collapse(!aFindPrev);
+    mStartPointRange = mSearchRange->CloneRange();
+    mStartPointRange->Collapse(true);
+    mEndPointRange = mSearchRange->CloneRange();
+    mEndPointRange->Collapse(false);
   } else {
-    uint32_t startOffset;
-    nsCOMPtr<nsINode> startNode;
     if (aFindPrev) {
-      startNode = currentSelectionRange->GetStartContainer();
-      startOffset = currentSelectionRange->StartOffset();
+      Unused << mEndPointRange->SetStartAndEnd(
+          currentSelectionRange->StartRef(), currentSelectionRange->StartRef());
     } else {
-      startNode = currentSelectionRange->GetEndContainer();
-      startOffset = currentSelectionRange->EndOffset();
+      Unused << mStartPointRange->SetStartAndEnd(
+          currentSelectionRange->EndRef(), currentSelectionRange->EndRef());
     }
-
-    if (!startNode) {
-      startNode = rootContent;
-    }
-
-    // We need to set the start point this way, other methods haven't worked
-    mStartPointRange->SelectNode(*startNode, IgnoreErrors());
-    mStartPointRange->SetStart(*startNode, startOffset, IgnoreErrors());
-    mStartPointRange->Collapse(true);  // collapse to start
   }
 
   presShell.forget(aPresShell);

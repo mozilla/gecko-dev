@@ -40,9 +40,10 @@ async function runTests() {
                         .getService(SpecialPowers.Ci.nsIFind);
 
   var display = window.document.getElementById("display");
+  var testNode = window.document.getElementById("test");
   var searchRange = window.document.createRange();
   searchRange.setStart(display, 0);
-  searchRange.setEnd(display, display.childNodes.length);
+  searchRange.setEnd(testNode, testNode.childNodes.length);
   var startPt = searchRange;
   var endPt = searchRange;
 
@@ -145,23 +146,26 @@ async function runTests() {
   ok(retRange, "\"" + searchValue + "\" not found");
 
   // Set new start point (to end of last search).
-  startPt = retRange.endContainer.ownerDocument.createRange();
-  startPt.setStart(retRange.endContainer, retRange.endOffset);
-  startPt.setEnd(retRange.endContainer, retRange.endOffset);
+  let newStartPt = retRange.endContainer.ownerDocument.createRange();
+  newStartPt.setStart(retRange.endContainer, retRange.endOffset);
+  newStartPt.setEnd(retRange.endContainer, retRange.endOffset);
 
   searchValue = "t";
-  retRange = rf.Find(searchValue, searchRange, startPt, endPt);
+  retRange = rf.Find(searchValue, searchRange, newStartPt, endPt);
   ok(retRange, "\"" + searchValue + "\" not found (forward)");
 
   searchValue = "the";
-  retRange = rf.Find(searchValue, searchRange, startPt, endPt);
+  retRange = rf.Find(searchValue, searchRange, newStartPt, endPt);
   ok(!retRange, "\"" + searchValue + "\" found (forward)");
 
   rf.findBackwards = true;
 
   // searchValue = "the";
-  retRange = rf.Find(searchValue, searchRange, startPt, endPt);
-  ok(retRange, "\"" + searchValue + "\" not found (backward)");
+  retRange = rf.Find(searchValue, searchRange, newStartPt, endPt);
+  ok(!retRange, "\"" + searchValue + "\" found in second sub range (backward)");
+
+  retRange = rf.Find(searchValue, searchRange, startPt, newStartPt);
+  ok(retRange, "\"" + searchValue + "\" not found in first sub range (backward)");
 
   // Curly quotes and straight quotes should match.
 

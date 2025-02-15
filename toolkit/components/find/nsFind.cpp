@@ -254,7 +254,7 @@ static bool ForceBreakBetweenText(const Text& aPrevious, const Text& aNext) {
 }
 
 struct nsFind::State final {
-  State(bool aFindBackward, nsIContent& aRoot, const nsRange& aStartPoint)
+  State(bool aFindBackward, nsIContent& aRoot, const RangeBoundary& aStartPoint)
       : mFindBackward(aFindBackward),
         mInitialized(false),
         mFoundBreak(false),
@@ -347,7 +347,7 @@ struct nsFind::State final {
   TreeIterator<StyleChildrenIterator> mIterator;
 
   // These are only needed for the first GetNextNode() call.
-  const nsRange& mStartPoint;
+  const RangeBoundary& mStartPoint;
 };
 
 void nsFind::State::Advance(Initializing aInitializing, bool aAlreadyMatching) {
@@ -377,12 +377,10 @@ void nsFind::State::Initialize() {
   mInitialized = true;
   mIterOffset = mFindBackward ? -1 : 0;
 
-  nsINode* container = mFindBackward ? mStartPoint.GetStartContainer()
-                                     : mStartPoint.GetEndContainer();
+  nsINode* container = mStartPoint.GetContainer();
 
   // Set up ourselves at the first node we want to start searching at.
-  nsIContent* beginning = mFindBackward ? mStartPoint.GetChildAtStartOffset()
-                                        : mStartPoint.GetChildAtEndOffset();
+  nsIContent* beginning = mStartPoint.GetChildAtOffset();
   if (beginning) {
     mIterator.Seek(*beginning);
     // If the start point is pointing to a node, when looking backwards we'd
@@ -414,8 +412,8 @@ void nsFind::State::Initialize() {
     return;
   }
 
-  mIterOffset =
-      mFindBackward ? mStartPoint.StartOffset() : mStartPoint.EndOffset();
+  mIterOffset = int(
+      *mStartPoint.Offset(RangeBoundary::OffsetFilter::kValidOrInvalidOffsets));
 }
 
 class MOZ_STACK_CLASS nsFind::StateRestorer final {
@@ -602,14 +600,45 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
   NS_ENSURE_ARG(aEndPoint);
   NS_ENSURE_ARG_POINTER(aRangeRet);
 
-  Document* document =
-      aStartPoint->GetRoot() ? aStartPoint->GetRoot()->OwnerDoc() : nullptr;
-  NS_ENSURE_ARG(document);
+  *aRangeRet = nullptr;
+
+  if (RefPtr findResult = FindFromRangeBoundaries(
+          aPatText, aStartPoint->StartRef(), aEndPoint->EndRef())) {
+    findResult.forget(aRangeRet);
+  }
+  return NS_OK;
+}
+already_AddRefed<nsRange> nsFind::FindFromRangeBoundaries(
+    const nsAString& aPatText, const mozilla::RangeBoundary& aStartPoint,
+    const mozilla::RangeBoundary& aEndPoint) {
+  MOZ_ASSERT(aStartPoint.IsSetAndValid());
+  MOZ_ASSERT(aEndPoint.IsSetAndValid());
+  // set up node index cache. If there is no cache given from the outside
+  // (for repeated calls to `Find()`), set up a local one.
+  nsContentUtils::NodeIndexCache localCache;
+  AutoRestore<nsContentUtils::NodeIndexCache*> restoreCache(mNodeIndexCache);
+  if (!mNodeIndexCache) {
+    mNodeIndexCache = &localCache;
+  }
+#if MOZ_DIAGNOSTIC_ASSERT_ENABLED
+  auto cmp =
+      nsContentUtils::ComparePoints(aStartPoint, aEndPoint, mNodeIndexCache);
+  MOZ_DIAGNOSTIC_ASSERT(cmp, "Start and end points in different trees?");
+  MOZ_DIAGNOSTIC_ASSERT(*cmp != 1, "Start point must not be after end point");
+#endif
+  if (MOZ_UNLIKELY(aStartPoint == aEndPoint)) {
+    return nullptr;
+  }
+
+  const Document* document = aStartPoint.GetContainer()->GetComposedDoc();
+  if (!document) {
+    return nullptr;
+  }
 
   Element* root = document->GetRootElement();
-  NS_ENSURE_ARG(root);
-
-  *aRangeRet = 0;
+  if (!root) {
+    return nullptr;
+  }
 
   nsAutoString patAutoStr(aPatText);
   if (!mCaseSensitive) {
@@ -624,11 +653,11 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
   patAutoStr.StripChars(kShy);
 
   const char16_t* patStr = patAutoStr.get();
-  int32_t patLen = patAutoStr.Length() - 1;
+  const int32_t patLen = int(patAutoStr.Length()) - 1;
 
   // If this function is called with an empty string, we should early exit.
   if (patLen < 0) {
-    return NS_OK;
+    return nullptr;
   }
 
   const int32_t patternStart = mFindBackward ? patLen : 0;
@@ -640,7 +669,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
   int32_t findex = 0;
 
   // Direction to move pindex and ptr*
-  int incr = mFindBackward ? -1 : 1;
+  const int incr = mFindBackward ? -1 : 1;
 
   const nsTextFragment* frag = nullptr;
   int32_t fragLen = 0;
@@ -659,14 +688,13 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
   char32_t matchAnchorChar = 0;
 
   // Get the end point, so we know when to end searches:
-  nsINode* endNode = aEndPoint->GetEndContainer();
-  uint32_t endOffset = aEndPoint->EndOffset();
+  const RangeBoundary& endPoint = mFindBackward ? aStartPoint : aEndPoint;
 
   char32_t c = 0;
   char32_t patc = 0;
   char32_t prevCharInMatch = 0;
 
-  State state(mFindBackward, *root, *aStartPoint);
+  State state(mFindBackward, *root, mFindBackward ? aEndPoint : aStartPoint);
   Text* current = nullptr;
 
   auto EndPartialMatch = [&]() -> bool {
@@ -715,7 +743,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
         if (EndPartialMatch()) {
           continue;
         }
-        return NS_OK;
+        return nullptr;
       }
 
       // We have a new text content. See if we need to force a break due to
@@ -731,7 +759,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
       }
 
       frag = &current->TextFragment();
-      fragLen = frag->GetLength();
+      fragLen = int32_t(frag->GetLength());
 
       // Set our starting point in this node. If we're going back to the anchor
       // node, which means that we just ended a partial match, use the saved
@@ -793,11 +821,13 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
 
     // Have we gone past the endpoint yet? If we have, and we're not in the
     // middle of a match, return.
-    if (state.GetCurrentNode() == endNode &&
-        ((mFindBackward && findex < static_cast<int32_t>(endOffset)) ||
-         (!mFindBackward && findex > static_cast<int32_t>(endOffset)))) {
-      DEBUG_FIND_PRINTF("Reached the end and not in the middle of a match\n");
-      return NS_OK;
+    if (auto cmp = nsContentUtils::ComparePoints(
+            RawRangeBoundary(state.GetCurrentNode(), findex), endPoint,
+            mNodeIndexCache)) {
+      if ((mFindBackward && *cmp < 0) || (!mFindBackward && *cmp > 0)) {
+        DEBUG_FIND_PRINTF("Reached the end and not in the middle of a match\n");
+        return nullptr;
+      }
     }
 
     // Save the previous character for word boundary detection
@@ -970,8 +1000,7 @@ nsFind::Find(const nsAString& aPatText, nsRange* aSearchRange,
             range->SetEnd(*endParent, matchEndOffset, rv);
           }
           if (!rv.Failed()) {
-            range.forget(aRangeRet);
-            return NS_OK;
+            return range.forget();
           }
         }
 

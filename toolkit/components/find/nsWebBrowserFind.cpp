@@ -371,51 +371,20 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsPIDOMWindowOuter* aWindow,
       SelectionScrollMode::SyncFlush);
 }
 
-// Adapted from TextServicesDocument::GetDocumentContentRootNode
-nsresult nsWebBrowserFind::GetRootNode(Document* aDoc, Element** aNode) {
-  NS_ENSURE_ARG_POINTER(aDoc);
-  NS_ENSURE_ARG_POINTER(aNode);
-  *aNode = 0;
-
-  if (aDoc->IsHTMLOrXHTML()) {
-    Element* body = aDoc->GetBody();
-    NS_ENSURE_ARG_POINTER(body);
-    NS_ADDREF(*aNode = body);
-    return NS_OK;
-  }
-
-  // For non-HTML documents, the content root node will be the doc element.
-  Element* root = aDoc->GetDocumentElement();
-  NS_ENSURE_ARG_POINTER(root);
-  NS_ADDREF(*aNode = root);
-  return NS_OK;
-}
-
 nsresult nsWebBrowserFind::SetRangeAroundDocument(nsRange* aSearchRange,
                                                   nsRange* aStartPt,
                                                   nsRange* aEndPt,
                                                   Document* aDoc) {
-  RefPtr<Element> bodyContent;
-  nsresult rv = GetRootNode(aDoc, getter_AddRefs(bodyContent));
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_ARG_POINTER(bodyContent);
+  NS_ENSURE_ARG_POINTER(aDoc);
+  uint32_t childCount = aDoc->GetChildCount();
 
-  uint32_t childCount = bodyContent->GetChildCount();
+  aSearchRange->SetStart(*aDoc, 0, IgnoreErrors());
+  aSearchRange->SetEnd(*aDoc, childCount, IgnoreErrors());
 
-  aSearchRange->SetStart(*bodyContent, 0, IgnoreErrors());
-  aSearchRange->SetEnd(*bodyContent, childCount, IgnoreErrors());
-
-  if (mFindBackwards) {
-    aStartPt->SetStart(*bodyContent, childCount, IgnoreErrors());
-    aStartPt->SetEnd(*bodyContent, childCount, IgnoreErrors());
-    aEndPt->SetStart(*bodyContent, 0, IgnoreErrors());
-    aEndPt->SetEnd(*bodyContent, 0, IgnoreErrors());
-  } else {
-    aStartPt->SetStart(*bodyContent, 0, IgnoreErrors());
-    aStartPt->SetEnd(*bodyContent, 0, IgnoreErrors());
-    aEndPt->SetStart(*bodyContent, childCount, IgnoreErrors());
-    aEndPt->SetEnd(*bodyContent, childCount, IgnoreErrors());
-  }
+  aStartPt->SetStart(*aDoc, 0, IgnoreErrors());
+  aStartPt->SetEnd(*aDoc, 0, IgnoreErrors());
+  aEndPt->SetStart(*aDoc, childCount, IgnoreErrors());
+  aEndPt->SetEnd(*aDoc, childCount, IgnoreErrors());
 
   return NS_OK;
 }
@@ -435,13 +404,9 @@ nsresult nsWebBrowserFind::GetSearchLimits(nsRange* aSearchRange,
     return SetRangeAroundDocument(aSearchRange, aStartPt, aEndPt, aDoc);
   }
 
-  // Need bodyContent, for the start/end of the document
-  RefPtr<Element> bodyContent;
-  nsresult rv = GetRootNode(aDoc, getter_AddRefs(bodyContent));
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_ARG_POINTER(bodyContent);
+  NS_ENSURE_ARG_POINTER(aDoc);
 
-  uint32_t childCount = bodyContent->GetChildCount();
+  uint32_t childCount = aDoc->GetChildCount();
 
   // There are four possible range endpoints we might use:
   // DocumentStart, SelectionStart, SelectionEnd, DocumentEnd.
@@ -470,11 +435,11 @@ nsresult nsWebBrowserFind::GetSearchLimits(nsRange* aSearchRange,
     offset = range->EndOffset();
 
     aSearchRange->SetStart(*node, offset, IgnoreErrors());
-    aSearchRange->SetEnd(*bodyContent, childCount, IgnoreErrors());
+    aSearchRange->SetEnd(*aDoc, childCount, IgnoreErrors());
     aStartPt->SetStart(*node, offset, IgnoreErrors());
     aStartPt->SetEnd(*node, offset, IgnoreErrors());
-    aEndPt->SetStart(*bodyContent, childCount, IgnoreErrors());
-    aEndPt->SetEnd(*bodyContent, childCount, IgnoreErrors());
+    aEndPt->SetStart(*aDoc, childCount, IgnoreErrors());
+    aEndPt->SetEnd(*aDoc, childCount, IgnoreErrors());
   }
   // Backward, not wrapping: DocStart to SelStart
   else if (mFindBackwards && !aWrap) {
@@ -488,12 +453,12 @@ nsresult nsWebBrowserFind::GetSearchLimits(nsRange* aSearchRange,
     }
     offset = range->StartOffset();
 
-    aSearchRange->SetStart(*bodyContent, 0, IgnoreErrors());
-    aSearchRange->SetEnd(*bodyContent, childCount, IgnoreErrors());
-    aStartPt->SetStart(*node, offset, IgnoreErrors());
-    aStartPt->SetEnd(*node, offset, IgnoreErrors());
-    aEndPt->SetStart(*bodyContent, 0, IgnoreErrors());
-    aEndPt->SetEnd(*bodyContent, 0, IgnoreErrors());
+    aSearchRange->SetStart(*aDoc, 0, IgnoreErrors());
+    aSearchRange->SetEnd(*aDoc, childCount, IgnoreErrors());
+    aStartPt->SetStart(*aDoc, 0, IgnoreErrors());
+    aStartPt->SetEnd(*aDoc, 0, IgnoreErrors());
+    aEndPt->SetStart(*node, offset, IgnoreErrors());
+    aEndPt->SetEnd(*node, offset, IgnoreErrors());
   }
   // Forward, wrapping: DocStart to SelEnd
   else if (!mFindBackwards && aWrap) {
@@ -507,10 +472,10 @@ nsresult nsWebBrowserFind::GetSearchLimits(nsRange* aSearchRange,
     }
     offset = range->EndOffset();
 
-    aSearchRange->SetStart(*bodyContent, 0, IgnoreErrors());
-    aSearchRange->SetEnd(*bodyContent, childCount, IgnoreErrors());
-    aStartPt->SetStart(*bodyContent, 0, IgnoreErrors());
-    aStartPt->SetEnd(*bodyContent, 0, IgnoreErrors());
+    aSearchRange->SetStart(*aDoc, 0, IgnoreErrors());
+    aSearchRange->SetEnd(*aDoc, childCount, IgnoreErrors());
+    aStartPt->SetStart(*aDoc, 0, IgnoreErrors());
+    aStartPt->SetEnd(*aDoc, 0, IgnoreErrors());
     aEndPt->SetStart(*node, offset, IgnoreErrors());
     aEndPt->SetEnd(*node, offset, IgnoreErrors());
   }
@@ -526,12 +491,12 @@ nsresult nsWebBrowserFind::GetSearchLimits(nsRange* aSearchRange,
     }
     offset = range->StartOffset();
 
-    aSearchRange->SetStart(*bodyContent, 0, IgnoreErrors());
-    aSearchRange->SetEnd(*bodyContent, childCount, IgnoreErrors());
-    aStartPt->SetStart(*bodyContent, childCount, IgnoreErrors());
-    aStartPt->SetEnd(*bodyContent, childCount, IgnoreErrors());
-    aEndPt->SetStart(*node, offset, IgnoreErrors());
-    aEndPt->SetEnd(*node, offset, IgnoreErrors());
+    aSearchRange->SetStart(*aDoc, 0, IgnoreErrors());
+    aSearchRange->SetEnd(*aDoc, childCount, IgnoreErrors());
+    aStartPt->SetStart(*node, offset, IgnoreErrors());
+    aStartPt->SetEnd(*node, offset, IgnoreErrors());
+    aEndPt->SetStart(*aDoc, childCount, IgnoreErrors());
+    aEndPt->SetEnd(*aDoc, childCount, IgnoreErrors());
   }
   return NS_OK;
 }
