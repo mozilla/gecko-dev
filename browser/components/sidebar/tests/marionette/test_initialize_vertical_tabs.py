@@ -216,3 +216,50 @@ class TestInitializeVerticalTabs(MarionetteTestCase):
             "panic-button",
             msg="The customization was preserved after restarting in horizontal tabs mode",
         )
+
+    def test_preserve_visibility_pref_after_restart(self):
+        fixture_prefs = {
+            "sidebar.revamp": True,
+            "sidebar.verticalTabs": True,
+            "sidebar.visibility": "hide-sidebar",
+        }
+        self.restart_with_prefs(
+            {
+                **fixture_prefs,
+                customization_pref: None,
+                snapshot_pref: None,
+            }
+        )
+
+        pref_value = self.marionette.execute_script(
+            """
+            return Services.prefs.getStringPref("sidebar.visibility", null);
+        """
+        )
+        self.assertEqual(pref_value, "hide-sidebar")
+
+        # Restart with no user visibility pref. We should get the default for vertical tabs
+        # which is always-show
+        fixture_prefs["sidebar.visibility"] = None
+        self.restart_with_prefs(fixture_prefs)
+
+        pref_value = self.marionette.execute_script(
+            """
+            return Services.prefs.getStringPref("sidebar.visibility", null);
+        """
+        )
+        self.assertEqual(pref_value, "always-show")
+
+        # Restart with vertical tabs disabled. We should get the default for horizontal tabs
+        # which is hide-sidebar
+
+        fixture_prefs["sidebar.visibility"] = None
+        fixture_prefs["sidebar.verticalTabs"] = False
+        self.restart_with_prefs(fixture_prefs)
+
+        pref_value = self.marionette.execute_script(
+            """
+            return Services.prefs.getStringPref("sidebar.visibility", null);
+        """
+        )
+        self.assertEqual(pref_value, "hide-sidebar")

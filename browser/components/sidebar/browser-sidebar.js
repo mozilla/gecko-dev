@@ -1854,9 +1854,27 @@ XPCOMUtils.defineLazyPreferenceGetter(
   (_aPreference, _previousValue, newValue) => {
     if (!SidebarController.inPopup && !SidebarController.uninitializing) {
       SidebarController.recordVisibilitySetting(newValue);
-      SidebarController._state.revampVisibility = newValue;
-      if (SidebarController._animationEnabled && !window.gReduceMotion) {
-        SidebarController._animateSidebarMain();
+      if (SidebarController._state) {
+        // we need to use the pref rather than SidebarController's getter here
+        // as the getter might not have the new value yet
+        const isVerticalTabs = Services.prefs.getBoolPref(
+          "sidebar.verticalTabs"
+        );
+        SidebarController._state.revampVisibility = newValue;
+        if (
+          SidebarController._animationEnabled &&
+          !window.gReduceMotion &&
+          newValue !== "expand-on-hover"
+        ) {
+          SidebarController._animateSidebarMain();
+        }
+        const forceExpand = isVerticalTabs && newValue === "always-show";
+        SidebarController._state.updateVisibility(
+          (newValue != "hide-sidebar" && isVerticalTabs) || !isVerticalTabs,
+          false,
+          false,
+          forceExpand
+        );
       }
       SidebarController._state.updateVisibility(
         (newValue != "hide-sidebar" &&
