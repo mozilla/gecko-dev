@@ -260,9 +260,9 @@
     "forcedColors": "GrayText"
   },
   "button/text/color/ghost": {
-    "light": "#15141aff",
-    "dark": "#fbfbfeff",
-    "forcedColors": "ButtonText"
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "inherit"
   },
   "button/text/color/ghost/active": {
     "light": "#15141aff",
@@ -270,9 +270,9 @@
     "forcedColors": "SelectedItem"
   },
   "button/text/color/ghost/disabled": {
-    "light": "#15141aff",
-    "dark": "#fbfbfeff",
-    "forcedColors": "GrayText"
+    "light": "#00000000",
+    "dark": "#00000000",
+    "forcedColors": "inherit"
   },
   "button/text/color/ghost/hover": {
     "light": "#15141aff",

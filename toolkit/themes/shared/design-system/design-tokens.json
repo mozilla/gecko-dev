@@ -479,7 +479,11 @@
         "ghost": {
           "@base": {
             "value": {
-              "default": "{button.text.color.@base}"
+              "default": "inherit",
+              "brand": {
+                "prefersContrast": "{button.text.color.@base}",
+                "forcedColors": "{button.text.color.@base}"
+              }
             }
           },
           "active": {
@@ -489,7 +493,11 @@
           },
           "disabled": {
             "value": {
-              "default": "{button.text.color.disabled}"
+              "default": "inherit",
+              "brand": {
+                "prefersContrast": "{button.text.color.disabled}",
+                "forcedColors": "{button.text.color.disabled}"
+              }
             }
           },
           "hover": {
