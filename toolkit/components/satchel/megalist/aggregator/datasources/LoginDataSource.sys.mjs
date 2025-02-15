@@ -374,7 +374,6 @@ export class LoginDataSource extends DataSourceBase {
       // Sort by origin, then by username, then by GUID
       this.#displayMode = DISPLAY_MODES.ALL;
       Services.obs.addObserver(this, "passwordmgr-storage-changed");
-      Services.obs.addObserver(this, "passwordmgr-crypto-login");
       Services.prefs.addObserver("signon.rememberSignons", this);
       Services.prefs.addObserver(
         "signon.management.page.breach-alerts.enabled",
@@ -856,7 +855,6 @@ export class LoginDataSource extends DataSourceBase {
   observe(_subj, topic, message) {
     if (
       topic == "passwordmgr-storage-changed" ||
-      topic == "passwordmgr-crypto-login" ||
       message == "signon.rememberSignons" ||
       message == "signon.management.page.breach-alerts.enabled" ||
       message == "signon.management.page.vulnerable-passwords.enabled"
