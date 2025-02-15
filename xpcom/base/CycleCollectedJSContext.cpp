@@ -18,6 +18,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/DebuggerOnGCRunnable.h"
+#include "mozilla/FlowMarkers.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/ProfilerRunnable.h"
@@ -623,7 +624,10 @@ uint32_t CycleCollectedJSContext::RecursionDepth() const {
 void CycleCollectedJSContext::RunInStableState(
     already_AddRefed<nsIRunnable>&& aRunnable) {
   MOZ_ASSERT(mJSContext);
-  mStableStateEvents.AppendElement(std::move(aRunnable));
+  nsCOMPtr<nsIRunnable> runnable = std::move(aRunnable);
+  PROFILER_MARKER("CycleCollectedJSContext::RunInStableState", OTHER, {},
+                  FlowMarker, Flow::FromPointer(runnable.get()));
+  mStableStateEvents.AppendElement(std::move(runnable));
 }
 
 void CycleCollectedJSContext::AddPendingIDBTransaction(
