@@ -1185,6 +1185,8 @@ NS_IMETHODIMP nsNSSCertificateDB::AsPKCS7Blob(
 
 NS_IMETHODIMP
 nsNSSCertificateDB::GetCerts(nsTArray<RefPtr<nsIX509Cert>>& _retval) {
+  AutoSearchingForClientAuthCertificates _;
+
   nsresult rv = BlockUntilLoadableCertsLoaded();
   if (NS_FAILED(rv)) {
     return rv;
