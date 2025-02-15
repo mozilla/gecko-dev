@@ -1318,13 +1318,8 @@ void nsHostResolver::PrepareRecordExpirationAddrRecord(
   unsigned int lifetime = StaticPrefs::network_dnsCacheExpiration();
   unsigned int grace = StaticPrefs::network_dnsCacheExpirationGracePeriod();
 
-  unsigned int ttl = StaticPrefs::network_dnsCacheExpiration();
-  if (StaticPrefs::network_dns_get_ttl() || rec->addr_info->IsTRR()) {
-    if (rec->addr_info && rec->addr_info->TTL() != AddrInfo::NO_TTL_DATA) {
-      ttl = rec->addr_info->TTL();
-    }
-    lifetime = ttl;
-    grace = 0;
+  if (rec->addr_info && rec->addr_info->TTL() != AddrInfo::NO_TTL_DATA) {
+    lifetime = rec->addr_info->TTL();
   }
 
   rec->SetExpiration(TimeStamp::NowLoRes(), lifetime, grace);
