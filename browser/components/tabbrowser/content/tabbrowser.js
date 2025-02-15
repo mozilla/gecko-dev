@@ -99,6 +99,7 @@
       this.tabContainer = document.getElementById("tabbrowser-tabs");
       this.tabGroupMenu = document.getElementById("tab-group-editor");
       this.tabbox = document.getElementById("tabbrowser-tabbox");
+      this.tabGroupNameField = document.getElementById("tab-group-name");
       this.tabpanels = document.getElementById("tabbrowser-tabpanels");
       this.verticalPinnedTabsContainer = document.getElementById(
         "vertical-pinned-tabs-container"
@@ -164,6 +165,11 @@
         "_notificationEnableDelay",
         "security.notification_enable_delay",
         500
+      );
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "_smartTabGroupsEnabled",
+        "browser.tabs.groups.smart.enabled"
       );
 
       if (AppConstants.MOZ_CRASHREPORTER) {
@@ -2946,6 +2952,15 @@
       if (!group.tabs.length) {
         group.remove();
         return null;
+      }
+
+      if (this._smartTabGroupsEnabled) {
+        gBrowser.getGroupTitleForTabs(tabs).then(newLabel => {
+          group.label = newLabel;
+          if (this.tabGroupMenu.panel.state !== "closed") {
+            this.tabGroupNameField.value = newLabel;
+          }
+        });
       }
 
       group.dispatchEvent(
