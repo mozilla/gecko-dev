@@ -433,6 +433,7 @@ add_task(async function test_vertical_tabs_expanded() {
       ["sidebar.verticalTabs", true],
     ],
   });
+  await SidebarController.initializeUIState({ launcherExpanded: true });
 
   info("Disable revamped sidebar.");
   Services.prefs.setBoolPref("sidebar.revamp", false);
@@ -447,14 +448,13 @@ add_task(async function test_vertical_tabs_expanded() {
     () => BrowserTestUtils.isVisible(document.getElementById("sidebar-main")),
     "Sidebar launcher is shown."
   );
-  // We expect the launcher to be expanded by default when enabling vertical tabs
   const expandedStateValues = [
     SidebarController.getUIState().launcherExpanded,
     SidebarController.sidebarMain.expanded,
     gBrowser.tabContainer.hasAttribute("expanded"),
   ];
   for (const val of expandedStateValues) {
-    is(val, true, "Launcher is expanded.");
+    is(val, false, "Launcher is collapsed.");
   }
 
   await SpecialPowers.popPrefEnv();

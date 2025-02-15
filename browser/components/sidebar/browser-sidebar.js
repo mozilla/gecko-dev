@@ -1846,7 +1846,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }
   }
 );
-
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarRevampVisibility",
@@ -1855,19 +1854,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
   (_aPreference, _previousValue, newValue) => {
     if (!SidebarController.inPopup && !SidebarController.uninitializing) {
       SidebarController.recordVisibilitySetting(newValue);
-      if (SidebarController._state) {
-        // we need to use the pref rather than SidebarController's getter here
-        // as the getter might not have the new value yet
-        const isVerticalTabs = Services.prefs.getBoolPref(
-          "sidebar.verticalTabs"
-        );
-        SidebarController._state.revampVisibility = newValue;
-        if (SidebarController._animationEnabled && !window.gReduceMotion) {
-          SidebarController._animateSidebarMain();
-        }
-        SidebarController._state.updateVisibility(
-          (newValue != "hide-sidebar" && isVerticalTabs) || !isVerticalTabs
-        );
+      SidebarController._state.revampVisibility = newValue;
+      if (SidebarController._animationEnabled && !window.gReduceMotion) {
+        SidebarController._animateSidebarMain();
       }
       SidebarController._state.updateVisibility(
         (newValue != "hide-sidebar" &&
@@ -1878,7 +1867,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }
   }
 );
-
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarVerticalTabsEnabled",

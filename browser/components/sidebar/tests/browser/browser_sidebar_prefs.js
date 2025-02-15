@@ -169,11 +169,6 @@ add_task(async function test_flip_revamp_pref() {
   ok(BrowserTestUtils.isVisible(verticalTabs), "Vertical tabs slot is visible");
 
   ok(sidebar, "Revamped sidebar is shown initially.");
-  Assert.equal(
-    Services.prefs.getStringPref("sidebar.visibility"),
-    "always-show",
-    "Sanity check the visibilty pref when verticalTabs are enabled"
-  );
 
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", false]] });
 
