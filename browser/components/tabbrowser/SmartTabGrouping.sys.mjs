@@ -252,7 +252,7 @@ export class SmartTabGroupingManager {
    * This function will terminate a grouping or label generation in progress
    * It is currently not implemented.
    */
-  terminateProcess() {
+  terminateProcesses() {
     // TODO - teminate AI processes, This method will be
     // called when tab grouping panel is closed.
   }
@@ -382,11 +382,13 @@ export class SmartTabGroupingManager {
     ) {
       this.embeddingEngine = await this._createMLEngine(this.config.embedding);
     }
-    const request = {
-      args: [inputData.inputArgs],
-      options: inputData.runOptions,
-    };
-    return await this.embeddingEngine.run(request);
+    const result = [];
+    for (let runArg of inputData.inputArgs) {
+      const request = { args: [[runArg]], options: inputData.runOptions };
+      let embeddingsPerTab = await this.embeddingEngine.run(request);
+      result.push(Object.values(embeddingsPerTab.ort_tensor.cpuData));
+    }
+    return result;
   }
 
   /**
