@@ -490,6 +490,7 @@ mochitest-chrome:
         - socketprocess_networking+1proc
         - webrender-sw+1proc
         - 1proc+os-integration
+        - inc-origin-init
     run-on-projects:
         by-variant:
             1proc+os-integration: []  # this variant only runs as a cron task
@@ -508,9 +509,16 @@ mochitest-chrome:
                 by-test-platform:
                     .*wayland.*: []
                     default: built-projects
+            inc-origin-init:
+                by-test-platform:
+                    .*asan.*: []
+                    .*ccov.*: []
+                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
+                    default: []
     chunks:
         by-variant:
             os-integration: dynamic
+            inc-origin-init: dynamic
             default:
                 by-test-platform:
                     .*tsan.*/opt: 6
