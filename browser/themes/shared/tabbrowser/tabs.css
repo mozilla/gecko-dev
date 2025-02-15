@@ -1787,7 +1787,7 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 .tab-group-suggestions-loading-block {
   animation: tab-group-loading-block-animation 3s infinite;
   outline-color: var(--tab-group-suggestions-loading-animation-color-1);
-  border-color: var(--tab-group-suggestions-loading-animation-color-2); 
+  border-color: var(--tab-group-suggestions-loading-animation-color-2);
   background: linear-gradient(100deg,
       color-mix(in srgb, var(--tab-group-suggestions-loading-animation-color-2), transparent 60%) 30%,
         var(--tab-group-suggestions-loading-animation-color-1) 50%,
