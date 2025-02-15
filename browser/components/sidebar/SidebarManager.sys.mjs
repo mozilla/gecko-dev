@@ -20,6 +20,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "sidebarBackupState",
   BACKUP_STATE_PREF
 );
+
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "verticalTabsEnabled",

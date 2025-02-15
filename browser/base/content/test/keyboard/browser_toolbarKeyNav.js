@@ -148,6 +148,11 @@ add_setup(async function () {
   // The page actions button is not normally visible, so we must
   // unhide it.
   BrowserPageActions.mainButtonNode.style.visibility = "visible";
+
+  // Make sure the sidebar launcher is visible (when sidebar.revamp is true);
+  // previous tests might have hidden it.
+  await SidebarController.initializeUIState({ launcherVisible: true });
+
   registerCleanupFunction(() => {
     BrowserPageActions.mainButtonNode.style.removeProperty("visibility");
   });

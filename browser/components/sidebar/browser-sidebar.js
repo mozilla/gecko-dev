@@ -1846,6 +1846,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }
   }
 );
+
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarRevampVisibility",
@@ -1861,19 +1862,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
           "sidebar.verticalTabs"
         );
         SidebarController._state.revampVisibility = newValue;
-        if (
-          SidebarController._animationEnabled &&
-          !window.gReduceMotion &&
-          newValue !== "expand-on-hover"
-        ) {
+        if (SidebarController._animationEnabled && !window.gReduceMotion) {
           SidebarController._animateSidebarMain();
         }
-        const forceExpand = isVerticalTabs && newValue === "always-show";
         SidebarController._state.updateVisibility(
-          (newValue != "hide-sidebar" && isVerticalTabs) || !isVerticalTabs,
-          false,
-          false,
-          forceExpand
+          (newValue != "hide-sidebar" && isVerticalTabs) || !isVerticalTabs
         );
       }
       SidebarController._state.updateVisibility(
@@ -1885,6 +1878,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }
   }
 );
+
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarVerticalTabsEnabled",
