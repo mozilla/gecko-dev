@@ -509,3 +509,80 @@ add_task(async function testRecentlyClosedTabGroupsSingleTab() {
     BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
   }
 });
+
+add_task(async function testHistoryMenusWorkWithOldPreTabGroupsState() {
+  info(
+    "Ensure that a session file created before the release of tab groups does not prevent closed tabs in closed windows from opening"
+  );
+  // Fixes bug1947503
+
+  // We need to make sure the history is cleared before starting the test
+  await Sanitizer.sanitize(["history"]);
+  await resetClosedTabsAndWindows();
+  const ORIG_STATE = SessionStore.getBrowserState();
+
+  const closedTabUrls = [
+    "about:robots",
+    "https://example.com/",
+    "https://example.org/",
+  ];
+
+  function _makeTabState(url) {
+    return {
+      entries: [{ url, triggeringPrincipal_base64 }],
+    };
+  }
+
+  function _makeClosedTabState(
+    url,
+    { groupId, closedInTabGroup = false } = {}
+  ) {
+    return {
+      title: url,
+      closedInTabGroupId: closedInTabGroup ? groupId : null,
+      state: {
+        entries: [
+          {
+            url,
+            triggeringPrincipal_base64,
+          },
+        ],
+        groupId,
+      },
+    };
+  }
+
+  await SessionStoreTestUtils.promiseBrowserState({
+    windows: [
+      {
+        tabs: [_makeTabState("about:mozilla")],
+        _closedTabs: [],
+        // No closedGroups element
+      },
+    ],
+    _closedWindows: [
+      {
+        tabs: [_makeTabState("about:mozilla")],
+        _closedTabs: closedTabUrls.map(_makeClosedTabState),
+        // No closedGroups element
+      },
+    ],
+  });
+
+  is(gBrowser.visibleTabs.length, 1, "We start with one tab open");
+  // Open the "Recently closed tabs" panel.
+  let closeTabsPanel = await openRecentlyClosedTabsMenu();
+
+  // Click the first toolbar button in the panel.
+  let toolbarButton = closeTabsPanel.querySelector(
+    ".panel-subview-body toolbarbutton"
+  );
+  let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, null, true);
+  EventUtils.sendMouseEvent({ type: "click" }, toolbarButton, window);
+  let reopenedTab = await newTabPromise;
+
+  is(gBrowser.tabs.length, 2, "Closed tab was restored");
+
+  await SessionStoreTestUtils.closeTab(reopenedTab);
+  await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
+});

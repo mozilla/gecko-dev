@@ -4043,14 +4043,14 @@ var SessionStoreInternal = {
     if (sourceOptions.closedTabsFromAllWindows) {
       for (let win of this.getWindows({ private: sourceOptions.private })) {
         closedTabGroups.push(
-          ...this._getClonedDataForWindow(win, w => w.closedGroups)
+          ...this._getClonedDataForWindow(win, w => w.closedGroups ?? [])
         );
       }
-    } else {
+    } else if (sourceOptions.sourceWindow.closedGroups) {
       closedTabGroups.push(
         ...this._getClonedDataForWindow(
           sourceOptions.sourceWindow,
-          w => w.closedGroups
+          w => w.closedGroups ?? []
         )
       );
     }
@@ -4513,7 +4513,7 @@ var SessionStoreInternal = {
     // tab groups. This should have the effect of "moving" the saved tab groups
     // into the window that's about to be restored.
     this._trimSavedTabGroupMetadataInClosedWindow(state.windows[0]);
-    for (let tabGroup of state.windows[0].groups) {
+    for (let tabGroup of state.windows[0].groups ?? []) {
       if (this.getSavedTabGroup(tabGroup.id)) {
         this.forgetSavedTabGroup(tabGroup.id);
       }
@@ -7930,6 +7930,9 @@ var SessionStoreInternal = {
    * @param {WindowStateData} winData
    */
   _cleanupOrphanedClosedGroups(winData) {
+    if (!winData.closedGroups) {
+      return;
+    }
     for (let index = winData.closedGroups.length - 1; index >= 0; index--) {
       if (winData.closedGroups[index].tabs.length === 0) {
         winData.closedGroups.splice(index, 1);
