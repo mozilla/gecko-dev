@@ -621,6 +621,8 @@
     <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Aidez-nous à faire connaitre Firefox</string>
     <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Quand vous partagez comment vous avez découvert Firefox et que vous l’utilisez, vous nous aidez à faire connaître notre navigateur à plus de monde.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Partagez un minimum de données avec les partenaires en technologies marketing de Mozilla. Ces données ne sont jamais ni vendues ni utilisées pour vous montrer des publicités.</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Notre utilisation des données</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -1084,6 +1086,9 @@
     <string name="preferences_marketing_data_2">Données de mesure des campagnes</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Partager les informations sur la façon dont vous avez découvert Firefox avec les partenaires marketing de Mozilla. Cela nous aide à développer Firefox et à créer un meilleur Internet</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Racontez votre découverte de Firefox et expliquez que vous l’utilisez avec les partenaires en technologies marketing de Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">En savoir plus sur les données marketing</string>
 
