@@ -1220,8 +1220,9 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::ExtractHVCCExtraData(
   const auto nalLenSize = hvcc.unwrap().NALUSize();
   BufferReader reader(aSample->Data(), sampleSize);
 
+  nsTHashMap<uint8_t, nsTArray<H265NALU>> nalusMap;
+
   nsTArray<Maybe<H265SPS>> spsRefTable;
-  nsTArray<H265NALU> spsNALUs;
   // If we encounter SPS with the same id but different content, we will stop
   // attempting to detect duplicates.
   bool checkDuplicate = true;
@@ -1284,20 +1285,28 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::ExtractHVCCExtraData(
         checkDuplicate = false;
       } else {
         spsRefTable[spsId] = Some(sps);
-        spsNALUs.AppendElement(nalu);
+        nalusMap.LookupOrInsert(nalu.mNalUnitType).AppendElement(nalu);
         if (!firstSPS) {
           firstSPS = spsRefTable[spsId].ptr();
         }
       }
+    } else if (nalu.IsVPS() || nalu.IsPPS()) {
+      nalusMap.LookupOrInsert(nalu.mNalUnitType).AppendElement(nalu);
     }
   }
 
-  LOGV("Found %zu SPS NALU", spsNALUs.Length());
-  if (!spsNALUs.IsEmpty()) {
-    MOZ_ASSERT(firstSPS);
+  auto spsEntry = nalusMap.Lookup(H265NALU::SPS_NUT);
+  auto vpsEntry = nalusMap.Lookup(H265NALU::VPS_NUT);
+  auto ppsEntry = nalusMap.Lookup(H265NALU::PPS_NUT);
+
+  LOGV("Found %zu SPS NALU, %zu VPS NALU, %zu PPS NALU",
+       spsEntry ? spsEntry.Data().Length() : 0,
+       vpsEntry ? vpsEntry.Data().Length() : 0,
+       ppsEntry ? ppsEntry.Data().Length() : 0);
+  if (firstSPS) {
     BitWriter writer(extradata);
 
-    // ISO/IEC 14496-15, HEVCDecoderConfigurationRecord. But we only append SPS.
+    // ISO/IEC 14496-15, HEVCDecoderConfigurationRecord.
     writer.WriteBits(1, 8);  // version
     const auto& profile = firstSPS->profile_tier_level;
     writer.WriteBits(profile.general_profile_space, 2);
@@ -1326,18 +1335,19 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::ExtractHVCCExtraData(
     // avgFrameRate + constantFrameRate + numTemporalLayers + temporalIdNested
     writer.WriteBits(0, 22);
     writer.WriteBits(nalLenSize - 1, 2);  // lengthSizeMinusOne
-    writer.WriteU8(1);                    // numOfArrays, only SPS
-    for (auto j = 0; j < 1; j++) {
-      writer.WriteBits(0, 2);                   // array_completeness + reserved
-      writer.WriteBits(H265NALU::SPS_NUT, 6);   // NAL_unit_type
-      writer.WriteBits(spsNALUs.Length(), 16);  // numNalus
-      for (auto i = 0; i < spsNALUs.Length(); i++) {
-        writer.WriteBits(spsNALUs[i].mNALU.Length(),
-                         16);  // nalUnitLength
+    writer.WriteU8(static_cast<uint8_t>(nalusMap.Count()));  // numOfArrays
+
+    for (const auto& entry : nalusMap) {
+      const uint8_t naluType = entry.GetKey();
+      const auto& naluArray = entry.GetData();
+      writer.WriteBits(0, 2);         // array_completeness + reserved
+      writer.WriteBits(naluType, 6);  // NAL_unit_type
+      writer.WriteBits(naluArray.Length(), 16);  // numNalus
+      for (const auto& nalu : naluArray) {
+        writer.WriteBits(nalu.mNALU.Length(), 16);  // nalUnitLength
         MOZ_ASSERT(writer.BitCount() % 8 == 0);
-        extradata->AppendElements(spsNALUs[i].mNALU.Elements(),
-                                  spsNALUs[i].mNALU.Length());
-        writer.AdvanceBytes(spsNALUs[i].mNALU.Length());
+        extradata->AppendElements(nalu.mNALU.Elements(), nalu.mNALU.Length());
+        writer.AdvanceBytes(nalu.mNALU.Length());
       }
     }
   }
