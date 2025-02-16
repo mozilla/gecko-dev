@@ -7273,7 +7273,7 @@ LRESULT CALLBACK nsWindow::MozSpecialMsgFilter(int code, WPARAM wParam,
 LRESULT CALLBACK nsWindow::MozSpecialMouseProc(int code, WPARAM wParam,
                                                LPARAM lParam) {
   if (sProcessHook) {
-    switch (WinUtils::GetNativeMessage(wParam)) {
+    switch (wParam) {
       case WM_LBUTTONDOWN:
       case WM_RBUTTONDOWN:
       case WM_MBUTTONDOWN:
@@ -7538,8 +7538,7 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
   // advance the refresh driver enough for the animation to finish.
   auto allowAnimations = nsIRollupListener::AllowAnimations::Yes;
   nsWindow* popupWindow = static_cast<nsWindow*>(popup.get());
-  UINT nativeMessage = WinUtils::GetNativeMessage(aMessage);
-  switch (nativeMessage) {
+  switch (aMessage) {
     case WM_TOUCH:
       if (!IsTouchSupportEnabled(aWnd)) {
         // If APZ is disabled, don't allow touch inputs to dismiss popups. The
@@ -7557,7 +7556,7 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
     case WM_NCLBUTTONDOWN:
     case WM_NCRBUTTONDOWN:
     case WM_NCMBUTTONDOWN:
-      if (nativeMessage != WM_TOUCH && IsTouchSupportEnabled(aWnd) &&
+      if (aMessage != WM_TOUCH && IsTouchSupportEnabled(aWnd) &&
           MOUSE_INPUT_SOURCE() == MouseEvent_Binding::MOZ_SOURCE_TOUCH) {
         // If any of these mouse events are really compatibility events that
         // Windows is sending for touch inputs, then don't allow them to dismiss
@@ -7576,7 +7575,7 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
       return false;
     case WM_POINTERDOWN: {
       WinPointerEvents pointerEvents;
-      if (!pointerEvents.ShouldRollupOnPointerEvent(nativeMessage, aWParam)) {
+      if (!pointerEvents.ShouldRollupOnPointerEvent(aMessage, aWParam)) {
         return false;
       }
       POINT pt;
@@ -7700,10 +7699,10 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
       allowAnimations,
   };
 
-  if (nativeMessage == WM_TOUCH || nativeMessage == WM_LBUTTONDOWN ||
-      nativeMessage == WM_POINTERDOWN) {
+  if (aMessage == WM_TOUCH || aMessage == WM_LBUTTONDOWN ||
+      aMessage == WM_POINTERDOWN) {
     LayoutDeviceIntPoint pos;
-    if (nativeMessage == WM_TOUCH) {
+    if (aMessage == WM_TOUCH) {
       pos.x = touchPoint->x;
       pos.y = touchPoint->y;
     } else {
@@ -7711,7 +7710,7 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
       pt.x = GET_X_LPARAM(aLParam);
       pt.y = GET_Y_LPARAM(aLParam);
       // POINTERDOWN is already in screen coords.
-      if (nativeMessage == WM_LBUTTONDOWN) {
+      if (aMessage == WM_LBUTTONDOWN) {
         ::ClientToScreen(aWnd, &pt);
       }
       pos = LayoutDeviceIntPoint(pt.x, pt.y);
@@ -7731,7 +7730,7 @@ bool nsWindow::DealWithPopups(HWND aWnd, UINT aMessage, WPARAM aWParam,
   sRollupMsgWnd = nullptr;
 
   // If we are NOT supposed to be consuming events, let it go through
-  if (consumeRollupEvent && nativeMessage != WM_RBUTTONDOWN) {
+  if (consumeRollupEvent && aMessage != WM_RBUTTONDOWN) {
     *aResult = MA_ACTIVATE;
     return true;
   }

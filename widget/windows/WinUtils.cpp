@@ -633,22 +633,6 @@ HWND WinUtils::FindOurWindowAtPoint(const POINT& aPointInScreen) {
 }
 
 /* static */
-UINT WinUtils::GetNativeMessage(UINT aInternalMessage) {
-  switch (aInternalMessage) {
-    case MOZ_WM_MOUSEVWHEEL:
-      return WM_MOUSEWHEEL;
-    case MOZ_WM_MOUSEHWHEEL:
-      return WM_MOUSEHWHEEL;
-    case MOZ_WM_VSCROLL:
-      return WM_VSCROLL;
-    case MOZ_WM_HSCROLL:
-      return WM_HSCROLL;
-    default:
-      return aInternalMessage;
-  }
-}
-
-/* static */
 uint16_t WinUtils::GetMouseInputSource() {
   int32_t inputSource = dom::MouseEvent_Binding::MOZ_SOURCE_MOUSE;
   LPARAM lParamExtraInfo = ::GetMessageExtraInfo();
