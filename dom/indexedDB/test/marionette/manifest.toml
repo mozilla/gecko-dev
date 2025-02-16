@@ -1,3 +1,4 @@
 [DEFAULT]
+tags = "inc-origin-init"
 
 ["test_IDB_encryption_PBM.py"]

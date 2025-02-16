@@ -63,6 +63,7 @@ marionette:
     variants:
         - webrender-sw
         - headless
+        - inc-origin-init
     run-on-projects:
         by-variant:
             headless:
@@ -73,6 +74,12 @@ marionette:
                 by-test-platform:
                     .*wayland.*: []
                     .*/debug: built-projects
+                    default: []
+            inc-origin-init:
+                by-test-platform:
+                    .*asan.*: []
+                    .*ccov.*: []
+                    (linux.*64|macosx.*64|windows1.*-64.*)(-shippable)?(-qr)?/(opt|debug): built-projects
                     default: []
             default:
                 by-test-platform:
@@ -91,7 +98,10 @@ marionette:
             default: 2700
     instance-size: default
     chunks:
-        by-test-platform:
-            .*asan.*: 2
-            .*tsan.*: 2
-            default: 1
+        by-variant:
+            inc-origin-init: dynamic
+            default:
+                by-test-platform:
+                    .*asan.*: 2
+                    .*tsan.*: 2
+                    default: 1

@@ -69,6 +69,7 @@ treeherder:
         'M-ioi': 'Mochitests tagged with inc-origin-init'
         'M-ioi-cf': 'Mochitests tagged with inc-origin-init for confirm failure'
         'Mn': 'Marionette tests'
+        'Mn-ioi': 'Marionette tests tagged with inc-origin-init'
         'MSI': 'Repack installers into MSIs'
         'MSIs': 'Signing of Repacked installers of MSIs'
         'MSIX': 'Repack into MSIX package'

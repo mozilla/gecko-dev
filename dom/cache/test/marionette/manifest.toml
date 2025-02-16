@@ -1,4 +1,5 @@
 [DEFAULT]
+tags = "inc-origin-init"
 
 ["test_cacheapi_encryption_PBM.py"]
 

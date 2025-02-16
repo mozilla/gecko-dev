@@ -2183,5 +2183,10 @@
     "widget/headless/tests/xpcshell.ini": 2.65,
     "widget/tests/unit/xpcshell.ini": 3.51,
     "xpcom/tests/unit/xpcshell.ini": 51.6
+  },
+  "marionette": {
+    "dom/cache/test/marionette/manifest.toml": 44.74,
+    "dom/indexedDB/test/marionette/manifest.toml": 1.83,
+    "dom/quota/test/marionette/manifest.toml": 36.12
   }
 }

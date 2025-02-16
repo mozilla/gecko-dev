@@ -1573,5 +1573,10 @@
     "uriloader/exthandler/tests/unit/xpcshell.ini": 5.05,
     "widget/tests/unit/xpcshell.ini": 0.54,
     "xpcom/tests/unit/xpcshell.ini": 22.47
+  },
+  "marionette": {
+    "dom/cache/test/marionette/manifest.toml": 44.74,
+    "dom/indexedDB/test/marionette/manifest.toml": 1.83,
+    "dom/quota/test/marionette/manifest.toml": 36.12
   }
 }
