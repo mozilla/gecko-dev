@@ -15,6 +15,13 @@ add_task(async function test_js_signature_storage() {
       );
 
       await SpecialPowers.spawn(browser, [], async () => {
+        function getStoredSignaturesChangedPromise() {
+          const { promise, resolve } = Promise.withResolvers();
+          content.addEventListener("storedSignaturesChanged", resolve, {
+            once: true,
+          });
+          return promise;
+        }
         const HANDLE_SIGNATURE = "PDFJS:Parent:handleSignature";
 
         const actor = content.windowGlobalChild.getActor("Pdfjs");
@@ -23,11 +30,13 @@ add_task(async function test_js_signature_storage() {
         });
         is(all.length, 0, "No signature should be present");
 
+        let promise = getStoredSignaturesChangedPromise();
         const uuid = await actor.sendQuery(HANDLE_SIGNATURE, {
           action: "create",
           description: "test",
           signatureData: "1234",
         });
+        await promise;
 
         all = await actor.sendQuery(HANDLE_SIGNATURE, {
           action: "get",
@@ -37,10 +46,12 @@ add_task(async function test_js_signature_storage() {
         is(all[0].description, "test", "Must have the correct description");
         is(all[0].signatureData, "1234", "Must have the correct signatureData");
 
+        promise = getStoredSignaturesChangedPromise();
         await actor.sendQuery(HANDLE_SIGNATURE, {
           action: "delete",
           uuid,
         });
+        await promise;
 
         all = await actor.sendQuery(HANDLE_SIGNATURE, {
           action: "get",

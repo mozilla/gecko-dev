@@ -84,6 +84,13 @@ export class PdfjsParent extends JSWindowActorParent {
 
   didDestroy() {
     this._removeEventListener();
+    if (this.#signatureStorageChangedObserver) {
+      Services.obs.removeObserver(
+        this.#signatureStorageChangedObserver,
+        PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC
+      );
+      this.#signatureStorageChangedObserver = null;
+    }
   }
 
   receiveMessage(aMsg) {
@@ -148,29 +155,27 @@ export class PdfjsParent extends JSWindowActorParent {
   async #getSignatures() {
     if (!this.#signatureStorageChangedObserver) {
       const self = this;
-      this.#signatureStorageChangedObserver = Services.obs.addObserver(
-        {
-          observe(aSubject, aTopic) {
-            if (
-              aTopic === PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC &&
-              // No need to send an event to the viewer which triggered the
-              // change because it already knows about it.
-              aSubject !== self &&
-              !Cu.isInAutomation
-            ) {
-              // The child will dispatch an event in the pdf.js window.
-              // This way the viewer is able to update the UI (add/remove some
-              // signatures).
-              self.sendAsyncMessage("PDFJS:Child:handleEvent", {
-                type: "storedSignaturesChanged",
-                detail: null,
-              });
-            }
-          },
-          QueryInterface: ChromeUtils.generateQI([Ci.nsISupportsWeakReference]),
+      this.#signatureStorageChangedObserver = {
+        observe(aSubject, aTopic) {
+          if (
+            aTopic === PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC &&
+            // No need to send an event to the viewer which triggered the
+            // change because it already knows about it.
+            (aSubject !== self || Cu.isInAutomation)
+          ) {
+            // The child will dispatch an event in the pdf.js window.
+            // This way the viewer is able to update the UI (add/remove some
+            // signatures).
+            self.sendAsyncMessage("PDFJS:Child:handleEvent", {
+              type: "storedSignaturesChanged",
+              detail: null,
+            });
+          }
         },
-        PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC,
-        true
+      };
+      Services.obs.addObserver(
+        this.#signatureStorageChangedObserver,
+        PDFJS_SIGNATURE_STORAGE_CHANGED_TOPIC
       );
     }
 
