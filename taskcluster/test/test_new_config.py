@@ -52,6 +52,7 @@ PARAMS_NEW_CONFIG.update(
                     "spi-nw" not in t.label
                     and "a11y-checks" not in t.label
                     and "vt" not in t.label
+                    and "ioi" not in t.label
                 )
             ),
             32,
@@ -82,6 +83,7 @@ def test_tasks_new_config_false(full_task_graph, filter_tasks, func, min_expecte
                     "spi-nw" not in t.label
                     and "a11y-checks" not in t.label
                     and "vt" not in t.label
+                    and "ioi" not in t.label
                 )
             ),
             32,

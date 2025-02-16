@@ -90,6 +90,7 @@ def test_query_paths_variants(run_mach, capfd, variant):
         expected = ["test-linux1804-64-qr/debug-mochitest-browser-chrome%s-*" % variant]
     else:
         expected = [
+            "test-linux1804-64-qr/debug-mochitest-browser-chrome-ioi",
             "test-linux1804-64-qr/debug-mochitest-browser-chrome-spi-nw-*",
             "test-linux1804-64-qr/debug-mochitest-browser-chrome-swr-*",
             "test-linux1804-64-qr/debug-mochitest-browser-chrome-vt",

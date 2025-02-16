@@ -1,4 +1,5 @@
 [DEFAULT]
+tags = "inc-origin-init"
 skip-if = ["buildapp != 'browser'"]
 support-files = [
   "head.js",
