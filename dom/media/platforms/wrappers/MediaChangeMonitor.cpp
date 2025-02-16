@@ -236,18 +236,22 @@ class HEVCChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
             : nullptr;
     // Sample doesn't contain any SPS and we already have SPS, do nothing.
     auto curConfig = HVCCConfig::Parse(mCurrentConfig.mExtraData);
+    LOG("current config: %s",
+        curConfig.isOk() ? curConfig.inspect().ToString().get() : "invalid");
     if ((!extraData || extraData->IsEmpty()) && curConfig.unwrap().HasSPS()) {
       return NS_OK;
     }
 
-    auto newConfig = HVCCConfig::Parse(extraData);
+    auto rv = HVCCConfig::Parse(extraData);
     // Ignore a corrupted extradata.
-    if (newConfig.isErr()) {
+    if (rv.isErr()) {
       LOG("Ignore corrupted extradata");
       return NS_OK;
     }
+    const HVCCConfig newConfig = rv.unwrap();
+    LOG("new config: %s", newConfig.ToString().get());
 
-    if (!newConfig.unwrap().HasSPS() && !curConfig.unwrap().HasSPS()) {
+    if (!newConfig.HasSPS() && !curConfig.unwrap().HasSPS()) {
       // We don't have inband data and the original config didn't contain a SPS.
       // We can't decode this content.
       LOG("No sps found, waiting for initialization");
@@ -255,6 +259,7 @@ class HEVCChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
     }
 
     if (H265::CompareExtraData(extraData, mCurrentConfig.mExtraData)) {
+      LOG("No config changed");
       return NS_OK;
     }
     UpdateConfigFromExtraData(extraData);
