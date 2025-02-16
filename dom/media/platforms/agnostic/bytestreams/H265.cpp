@@ -1337,9 +1337,14 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::ExtractHVCCExtraData(
     writer.WriteBits(nalLenSize - 1, 2);  // lengthSizeMinusOne
     writer.WriteU8(static_cast<uint8_t>(nalusMap.Count()));  // numOfArrays
 
-    for (const auto& entry : nalusMap) {
-      const uint8_t naluType = entry.GetKey();
-      const auto& naluArray = entry.GetData();
+    // Append NALUs sorted by key value for easier extradata verification in
+    // tests
+    auto keys = ToTArray<nsTArray<uint8_t>>(nalusMap.Keys());
+    keys.Sort();
+
+    for (const uint8_t& naluType : keys) {
+      auto entry = nalusMap.Lookup(naluType);
+      const auto& naluArray = entry.Data();
       writer.WriteBits(0, 2);         // array_completeness + reserved
       writer.WriteBits(naluType, 6);  // NAL_unit_type
       writer.WriteBits(naluArray.Length(), 16);  // numNalus
