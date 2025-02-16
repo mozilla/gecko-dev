@@ -12,6 +12,7 @@
 #include "mozilla/Result.h"
 #include "mozilla/Span.h"
 #include "mozilla/gfx/Point.h"
+#include "nsStringFwd.h"
 #include "nsTArray.h"
 
 namespace mozilla {
@@ -291,6 +292,7 @@ struct HVCCConfig final {
   uint8_t NALUSize() const { return lengthSizeMinusOne + 1; }
   uint32_t NumSPS() const;
   bool HasSPS() const;
+  nsCString ToString() const;
 
   // Returns the first available NALU of the specified type, or nothing if no
   // such NALU is found.

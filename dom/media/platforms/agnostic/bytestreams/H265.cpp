@@ -20,6 +20,7 @@
 #include "mozilla/PodOperations.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Span.h"
+#include "nsFmtString.h"
 
 mozilla::LazyLogModule gH265("H265");
 
@@ -197,6 +198,27 @@ bool HVCCConfig::HasSPS() const {
     }
   }
   return hasSPS;
+}
+
+nsCString HVCCConfig::ToString() const {
+  return nsFmtCString(
+      FMT_STRING(
+          "HVCCConfig - version={}, profile_space={}, tier={}, "
+          "profile_idc={}, profile_compatibility_flags={:#08x}, "
+          "constraint_indicator_flags={:#016x}, level_idc={}, "
+          "min_spatial_segmentation_idc={}, parallelismType={}, "
+          "chroma_format_idc={}, bit_depth_luma_minus8={}, "
+          "bit_depth_chroma_minus8={}, avgFrameRate={}, constantFrameRate={}, "
+          "numTemporalLayers={}, temporalIdNested={}, lengthSizeMinusOne={}, "
+          "nalus={}, buffer={}(bytes), NaluSize={}, NumSPS={}"),
+      configurationVersion, general_profile_space, general_tier_flag,
+      general_profile_idc, general_profile_compatibility_flags,
+      general_constraint_indicator_flags, general_level_idc,
+      min_spatial_segmentation_idc, parallelismType, chroma_format_idc,
+      bit_depth_luma_minus8, bit_depth_chroma_minus8, avgFrameRate,
+      constantFrameRate, numTemporalLayers, temporalIdNested,
+      lengthSizeMinusOne, mNALUs.Length(),
+      mByteBuffer ? mByteBuffer->Length() : 0, NALUSize(), NumSPS());
 }
 
 Maybe<H265NALU> HVCCConfig::GetFirstAvaiableNALU(
