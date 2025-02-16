@@ -16,10 +16,11 @@ task-defaults:
                 default:
                     - marionette/prod_config.py
                     - remove_executables.py
-    tier:
-        by-variant:
-            headless: 2
-            default: default
+    virtualization: virtual
+
+marionette-unittest:
+    description: "Marionette unittest run"
+    treeherder-symbol: Mn(unit)
     variants:
         - webrender-sw
         - headless
@@ -38,11 +39,10 @@ task-defaults:
                 by-test-platform:
                     .*(wayland).*: []
                     default: built-projects
-    virtualization: virtual
-
-marionette-unittest:
-    description: "Marionette unittest run"
-    treeherder-symbol: Mn(unit)
+    tier:
+        by-variant:
+            headless: 2
+            default: default
     max-run-time:
         by-test-platform:
             .*asan.*: 3600
@@ -60,6 +60,28 @@ marionette-unittest:
 marionette:
     description: "Marionette integration run"
     treeherder-symbol: Mn()
+    variants:
+        - webrender-sw
+        - headless
+    run-on-projects:
+        by-variant:
+            headless:
+                by-test-platform:
+                    (linux.*64)(-shippable)?-qr/opt: built-projects
+                    default: []
+            webrender-sw:
+                by-test-platform:
+                    .*wayland.*: []
+                    .*/debug: built-projects
+                    default: []
+            default:
+                by-test-platform:
+                    .*(wayland).*: []
+                    default: built-projects
+    tier:
+        by-variant:
+            headless: 2
+            default: default
     max-run-time:
         by-test-platform:
             .*asan.*: 3600
