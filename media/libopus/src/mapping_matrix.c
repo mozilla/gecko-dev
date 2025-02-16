@@ -86,7 +86,7 @@ void mapping_matrix_multiply_channel_in_float(
     const MappingMatrix *matrix,
     const float *input,
     int input_rows,
-    opus_val16 *output,
+    opus_res *output,
     int output_row,
     int output_rows,
     int frame_size)
@@ -108,17 +108,13 @@ void mapping_matrix_multiply_channel_in_float(
         matrix_data[MATRIX_INDEX(matrix->rows, output_row, col)] *
         input[MATRIX_INDEX(input_rows, col, i)];
     }
-#if defined(FIXED_POINT)
-    output[output_rows * i] = FLOAT2INT16((1/32768.f)*tmp);
-#else
-    output[output_rows * i] = (1/32768.f)*tmp;
-#endif
+    output[output_rows * i] = FLOAT2RES((1/32768.f)*tmp);
   }
 }
 
 void mapping_matrix_multiply_channel_out_float(
     const MappingMatrix *matrix,
-    const opus_val16 *input,
+    const opus_res *input,
     int input_row,
     int input_rows,
     float *output,
@@ -137,11 +133,7 @@ void mapping_matrix_multiply_channel_out_float(
 
   for (i = 0; i < frame_size; i++)
   {
-#if defined(FIXED_POINT)
-    input_sample = (1/32768.f)*input[input_rows * i];
-#else
-    input_sample = input[input_rows * i];
-#endif
+    input_sample = RES2FLOAT(input[input_rows * i]);
     for (row = 0; row < output_rows; row++)
     {
       float tmp =
@@ -157,7 +149,7 @@ void mapping_matrix_multiply_channel_in_short(
     const MappingMatrix *matrix,
     const opus_int16 *input,
     int input_rows,
-    opus_val16 *output,
+    opus_res *output,
     int output_row,
     int output_rows,
     int frame_size)
@@ -186,7 +178,7 @@ void mapping_matrix_multiply_channel_in_short(
 #endif
     }
 #if defined(FIXED_POINT)
-    output[output_rows * i] = (opus_int16)((tmp + 64) >> 7);
+    output[output_rows * i] = INT16TORES((tmp + 64) >> 7);
 #else
     output[output_rows * i] = (1/(32768.f*32768.f))*tmp;
 #endif
@@ -195,7 +187,7 @@ void mapping_matrix_multiply_channel_in_short(
 
 void mapping_matrix_multiply_channel_out_short(
     const MappingMatrix *matrix,
-    const opus_val16 *input,
+    const opus_res *input,
     int input_row,
     int input_rows,
     opus_int16 *output,
@@ -213,11 +205,7 @@ void mapping_matrix_multiply_channel_out_short(
 
   for (i = 0; i < frame_size; i++)
   {
-#if defined(FIXED_POINT)
-    input_sample = (opus_int32)input[input_rows * i];
-#else
-    input_sample = (opus_int32)FLOAT2INT16(input[input_rows * i]);
-#endif
+    input_sample = RES2INT16(input[input_rows * i]);
     for (row = 0; row < output_rows; row++)
     {
       opus_int32 tmp =
@@ -227,6 +215,72 @@ void mapping_matrix_multiply_channel_out_short(
     }
   }
 }
+
+void mapping_matrix_multiply_channel_in_int24(
+    const MappingMatrix *matrix,
+    const opus_int32 *input,
+    int input_rows,
+    opus_res *output,
+    int output_row,
+    int output_rows,
+    int frame_size)
+{
+  /* Matrix data is ordered col-wise. */
+  opus_int16* matrix_data;
+  int i, col;
+
+  celt_assert(input_rows <= matrix->cols && output_rows <= matrix->rows);
+
+  matrix_data = mapping_matrix_get_data(matrix);
+
+  for (i = 0; i < frame_size; i++)
+  {
+    opus_val64 tmp = 0;
+    for (col = 0; col < input_rows; col++)
+    {
+      tmp +=
+        matrix_data[MATRIX_INDEX(matrix->rows, output_row, col)] *
+        (opus_val64)input[MATRIX_INDEX(input_rows, col, i)];
+    }
+#if defined(FIXED_POINT)
+    output[output_rows * i] = INT24TORES((tmp + 16384) >> 15);
+#else
+    output[output_rows * i] = INT24TORES((1/(32768.f))*tmp);
+#endif
+  }
+}
+
+void mapping_matrix_multiply_channel_out_int24(
+    const MappingMatrix *matrix,
+    const opus_res *input,
+    int input_row,
+    int input_rows,
+    opus_int32 *output,
+    int output_rows,
+    int frame_size)
+{
+  /* Matrix data is ordered col-wise. */
+  opus_int16* matrix_data;
+  int i, row;
+  opus_int32 input_sample;
+
+  celt_assert(input_rows <= matrix->cols && output_rows <= matrix->rows);
+
+  matrix_data = mapping_matrix_get_data(matrix);
+
+  for (i = 0; i < frame_size; i++)
+  {
+    input_sample = RES2INT24(input[input_rows * i]);
+    for (row = 0; row < output_rows; row++)
+    {
+      opus_int64 tmp =
+        (opus_int64)matrix_data[MATRIX_INDEX(matrix->rows, row, input_row)] *
+        input_sample;
+      output[MATRIX_INDEX(output_rows, row, i)] += (tmp + 16384) >> 15;
+    }
+  }
+}
+
 
 const MappingMatrix mapping_matrix_foa_mixing = { 6, 6, 0 };
 const opus_int16 mapping_matrix_foa_mixing_data[36] = {

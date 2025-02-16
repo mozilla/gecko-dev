@@ -125,7 +125,7 @@ int get_right_channel(const ChannelLayout *layout, int stream_id, int prev);
 int get_mono_channel(const ChannelLayout *layout, int stream_id, int prev);
 
 typedef void (*opus_copy_channel_in_func)(
-  opus_val16 *dst,
+  opus_res *dst,
   int dst_stride,
   const void *src,
   int src_stride,
@@ -138,7 +138,7 @@ typedef void (*opus_copy_channel_out_func)(
   void *dst,
   int dst_stride,
   int dst_channel,
-  const opus_val16 *src,
+  const opus_res *src,
   int src_stride,
   int frame_size,
   void *user_data
@@ -174,19 +174,20 @@ typedef void (*opus_copy_channel_out_func)(
 typedef void (*downmix_func)(const void *, opus_val32 *, int, int, int, int, int);
 void downmix_float(const void *_x, opus_val32 *sub, int subframe, int offset, int c1, int c2, int C);
 void downmix_int(const void *_x, opus_val32 *sub, int subframe, int offset, int c1, int c2, int C);
-int is_digital_silence(const opus_val16* pcm, int frame_size, int channels, int lsb_depth);
+void downmix_int24(const void *_x, opus_val32 *sub, int subframe, int offset, int c1, int c2, int C);
+int is_digital_silence(const opus_res* pcm, int frame_size, int channels, int lsb_depth);
 
 int encode_size(int size, unsigned char *data);
 
 opus_int32 frame_size_select(opus_int32 frame_size, int variable_duration, opus_int32 Fs);
 
-opus_int32 opus_encode_native(OpusEncoder *st, const opus_val16 *pcm, int frame_size,
+opus_int32 opus_encode_native(OpusEncoder *st, const opus_res *pcm, int frame_size,
       unsigned char *data, opus_int32 out_data_bytes, int lsb_depth,
       const void *analysis_pcm, opus_int32 analysis_size, int c1, int c2,
       int analysis_channels, downmix_func downmix, int float_api);
 
 int opus_decode_native(OpusDecoder *st, const unsigned char *data, opus_int32 len,
-      opus_val16 *pcm, int frame_size, int decode_fec, int self_delimited,
+      opus_res *pcm, int frame_size, int decode_fec, int self_delimited,
       opus_int32 *packet_offset, int soft_clip, const OpusDRED *dred, opus_int32 dred_offset);
 
 /* Make sure everything is properly aligned. */

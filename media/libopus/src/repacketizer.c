@@ -158,10 +158,10 @@ opus_int32 opus_repacketizer_out_range_impl(OpusRepacketizer *rp, int begin, int
    /* incorporate any extensions from the repacketizer padding */
    for (i=begin;i<end;i++)
    {
-      int j;
+      int j, ret;
       opus_int32 frame_ext_count;
       frame_ext_count = total_ext_count - ext_count;
-      int ret = opus_packet_extensions_parse(rp->paddings[i], rp->padding_len[i],
+      ret = opus_packet_extensions_parse(rp->paddings[i], rp->padding_len[i],
          &all_extensions[ext_count], &frame_ext_count, rp->padding_nb_frames[i]);
       if (ret<0)
       {

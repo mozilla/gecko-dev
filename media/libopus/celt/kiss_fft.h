@@ -50,7 +50,13 @@ extern "C" {
 #include "arch.h"
 
 #  define kiss_fft_scalar opus_int32
-#  define kiss_twiddle_scalar opus_int16
+#  ifdef ENABLE_QEXT
+#   define COEF_SHIFT 32
+#  else
+#   define COEF_SHIFT 16
+#  endif
+
+#  define kiss_twiddle_scalar celt_coef
 
 /* Some 32-bit CPUs would load/store a kiss_twiddle_cpx with a single memory
  * access, and could benefit from additional alignment.
@@ -58,6 +64,7 @@ extern "C" {
 #  define KISS_TWIDDLE_CPX_ALIGNMENT (sizeof(opus_int32))
 
 #else
+
 # ifndef kiss_fft_scalar
 /*  default is float */
 #   define kiss_fft_scalar float
@@ -95,7 +102,7 @@ typedef struct arch_fft_state{
 
 typedef struct kiss_fft_state{
     int nfft;
-    opus_val16 scale;
+    celt_coef scale;
 #ifdef FIXED_POINT
     int scale_shift;
 #endif

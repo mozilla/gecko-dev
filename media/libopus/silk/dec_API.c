@@ -135,7 +135,7 @@ opus_int silk_Decode(                                   /* O    Returns error co
     opus_int                        lostFlag,           /* I    0: no loss, 1 loss, 2 decode fec                */
     opus_int                        newPacketFlag,      /* I    Indicates first decoder call for this packet    */
     ec_dec                          *psRangeDec,        /* I/O  Compressor data structure                       */
-    opus_int16                      *samplesOut,        /* O    Decoded output speech vector                    */
+    opus_res                        *samplesOut,        /* O    Decoded output speech vector                    */
     opus_int32                      *nSamplesOut,       /* O    Number of samples decoded                       */
 #ifdef ENABLE_DEEP_PLC
     LPCNetPLCState                  *lpcnet,
@@ -147,7 +147,6 @@ opus_int silk_Decode(                                   /* O    Returns error co
     opus_int32 nSamplesOutDec, LBRR_symbol;
     opus_int16 *samplesOut1_tmp[ 2 ];
     VARDECL( opus_int16, samplesOut1_tmp_storage1 );
-    VARDECL( opus_int16, samplesOut1_tmp_storage2 );
     VARDECL( opus_int16, samplesOut2_tmp );
     opus_int32 MS_pred_Q13[ 2 ] = { 0 };
     opus_int16 *resample_out_ptr;
@@ -155,7 +154,6 @@ opus_int silk_Decode(                                   /* O    Returns error co
     silk_decoder_state *channel_state = psDec->channel_state;
     opus_int has_side;
     opus_int stereo_to_mono;
-    int delay_stack_alloc;
     SAVE_STACK;
 
     celt_assert( decControl->nChannelsInternal == 1 || decControl->nChannelsInternal == 2 );
@@ -312,19 +310,10 @@ opus_int silk_Decode(                                   /* O    Returns error co
     /* Check if the temp buffer fits into the output PCM buffer. If it fits,
        we can delay allocating the temp buffer until after the SILK peak stack
        usage. We need to use a < and not a <= because of the two extra samples. */
-    delay_stack_alloc = decControl->internalSampleRate*decControl->nChannelsInternal
-          < decControl->API_sampleRate*decControl->nChannelsAPI;
-    ALLOC( samplesOut1_tmp_storage1, delay_stack_alloc ? ALLOC_NONE
-           : decControl->nChannelsInternal*(channel_state[ 0 ].frame_length + 2 ),
+    ALLOC( samplesOut1_tmp_storage1, decControl->nChannelsInternal*(channel_state[ 0 ].frame_length + 2 ),
            opus_int16 );
-    if ( delay_stack_alloc )
-    {
-       samplesOut1_tmp[ 0 ] = samplesOut;
-       samplesOut1_tmp[ 1 ] = samplesOut + channel_state[ 0 ].frame_length + 2;
-    } else {
-       samplesOut1_tmp[ 0 ] = samplesOut1_tmp_storage1;
-       samplesOut1_tmp[ 1 ] = samplesOut1_tmp_storage1 + channel_state[ 0 ].frame_length + 2;
-    }
+    samplesOut1_tmp[ 0 ] = samplesOut1_tmp_storage1;
+    samplesOut1_tmp[ 1 ] = samplesOut1_tmp_storage1 + channel_state[ 0 ].frame_length + 2;
 
     if( lostFlag == FLAG_DECODE_NORMAL ) {
         has_side = !decode_only_middle;
@@ -384,23 +373,9 @@ opus_int silk_Decode(                                   /* O    Returns error co
     *nSamplesOut = silk_DIV32( nSamplesOutDec * decControl->API_sampleRate, silk_SMULBB( channel_state[ 0 ].fs_kHz, 1000 ) );
 
     /* Set up pointers to temp buffers */
-    ALLOC( samplesOut2_tmp,
-           decControl->nChannelsAPI == 2 ? *nSamplesOut : ALLOC_NONE, opus_int16 );
-    if( decControl->nChannelsAPI == 2 ) {
-        resample_out_ptr = samplesOut2_tmp;
-    } else {
-        resample_out_ptr = samplesOut;
-    }
+    ALLOC( samplesOut2_tmp, *nSamplesOut, opus_int16 );
+    resample_out_ptr = samplesOut2_tmp;
 
-    ALLOC( samplesOut1_tmp_storage2, delay_stack_alloc
-           ? decControl->nChannelsInternal*(channel_state[ 0 ].frame_length + 2 )
-           : ALLOC_NONE,
-           opus_int16 );
-    if ( delay_stack_alloc ) {
-       OPUS_COPY(samplesOut1_tmp_storage2, samplesOut, decControl->nChannelsInternal*(channel_state[ 0 ].frame_length + 2));
-       samplesOut1_tmp[ 0 ] = samplesOut1_tmp_storage2;
-       samplesOut1_tmp[ 1 ] = samplesOut1_tmp_storage2 + channel_state[ 0 ].frame_length + 2;
-    }
     for( n = 0; n < silk_min( decControl->nChannelsAPI, decControl->nChannelsInternal ); n++ ) {
 
         /* Resample decoded signal to API_sampleRate */
@@ -409,7 +384,11 @@ opus_int silk_Decode(                                   /* O    Returns error co
         /* Interleave if stereo output and stereo stream */
         if( decControl->nChannelsAPI == 2 ) {
             for( i = 0; i < *nSamplesOut; i++ ) {
-                samplesOut[ n + 2 * i ] = resample_out_ptr[ i ];
+                samplesOut[ n + 2 * i ] = INT16TORES(resample_out_ptr[ i ]);
+            }
+        } else {
+            for( i = 0; i < *nSamplesOut; i++ ) {
+                samplesOut[ i ] = INT16TORES(resample_out_ptr[ i ]);
             }
         }
     }
@@ -422,7 +401,7 @@ opus_int silk_Decode(                                   /* O    Returns error co
             ret += silk_resampler( &channel_state[ 1 ].resampler_state, resample_out_ptr, &samplesOut1_tmp[ 0 ][ 1 ], nSamplesOutDec );
 
             for( i = 0; i < *nSamplesOut; i++ ) {
-                samplesOut[ 1 + 2 * i ] = resample_out_ptr[ i ];
+                samplesOut[ 1 + 2 * i ] = INT16TORES(resample_out_ptr[ i ]);
             }
         } else {
             for( i = 0; i < *nSamplesOut; i++ ) {

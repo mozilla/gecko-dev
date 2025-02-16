@@ -268,6 +268,42 @@ OPUS_EXPORT OPUS_WARN_UNUSED_RESULT opus_int32 opus_encode(
     opus_int32 max_data_bytes
 ) OPUS_ARG_NONNULL(1) OPUS_ARG_NONNULL(2) OPUS_ARG_NONNULL(4);
 
+/** Encodes an Opus frame.
+  * @param [in] st <tt>OpusEncoder*</tt>: Encoder state
+  * @param [in] pcm <tt>opus_int32*</tt>: Input signal (interleaved if 2 channels) representing (or slightly exceeding) 24-bit values. length is frame_size*channels*sizeof(opus_int32)
+  * @param [in] frame_size <tt>int</tt>: Number of samples per channel in the
+  *                                      input signal.
+  *                                      This must be an Opus frame size for
+  *                                      the encoder's sampling rate.
+  *                                      For example, at 48 kHz the permitted
+  *                                      values are 120, 240, 480, 960, 1920,
+  *                                      and 2880.
+  *                                      Passing in a duration of less than
+  *                                      10 ms (480 samples at 48 kHz) will
+  *                                      prevent the encoder from using the LPC
+  *                                      or hybrid modes.
+  * @param [out] data <tt>unsigned char*</tt>: Output payload.
+  *                                            This must contain storage for at
+  *                                            least \a max_data_bytes.
+  * @param [in] max_data_bytes <tt>opus_int32</tt>: Size of the allocated
+  *                                                 memory for the output
+  *                                                 payload. This may be
+  *                                                 used to impose an upper limit on
+  *                                                 the instant bitrate, but should
+  *                                                 not be used as the only bitrate
+  *                                                 control. Use #OPUS_SET_BITRATE to
+  *                                                 control the bitrate.
+  * @returns The length of the encoded packet (in bytes) on success or a
+  *          negative error code (see @ref opus_errorcodes) on failure.
+  */
+OPUS_EXPORT OPUS_WARN_UNUSED_RESULT opus_int32 opus_encode24(
+    OpusEncoder *st,
+    const opus_int32 *pcm,
+    int frame_size,
+    unsigned char *data,
+    opus_int32 max_data_bytes
+) OPUS_ARG_NONNULL(1) OPUS_ARG_NONNULL(2) OPUS_ARG_NONNULL(4);
+
 /** Encodes an Opus frame from floating point input.
   * @param [in] st <tt>OpusEncoder*</tt>: Encoder state
   * @param [in] pcm <tt>float*</tt>: Input in float format (interleaved if 2 channels), with a normal range of +/-1.0.
@@ -483,6 +519,31 @@ OPUS_EXPORT OPUS_WARN_UNUSED_RESULT int opus_decode(
     int decode_fec
 ) OPUS_ARG_NONNULL(1) OPUS_ARG_NONNULL(4);
 
+/** Decode an Opus packet.
+  * @param [in] st <tt>OpusDecoder*</tt>: Decoder state
+  * @param [in] data <tt>char*</tt>: Input payload. Use a NULL pointer to indicate packet loss
+  * @param [in] len <tt>opus_int32</tt>: Number of bytes in payload*
+  * @param [out] pcm <tt>opus_int32*</tt>: Output signal (interleaved if 2 channels) representing (or slightly exceeding) 24-bit values. length
+  *  is frame_size*channels*sizeof(opus_int32)
+  * @param [in] frame_size Number of samples per channel of available space in \a pcm.
+  *  If this is less than the maximum packet duration (120ms; 5760 for 48kHz), this function will
+  *  not be capable of decoding some packets. In the case of PLC (data==NULL) or FEC (decode_fec=1),
+  *  then frame_size needs to be exactly the duration of audio that is missing, otherwise the
+  *  decoder will not be in the optimal state to decode the next incoming packet. For the PLC and
+  *  FEC cases, frame_size <b>must</b> be a multiple of 2.5 ms.
+  * @param [in] decode_fec <tt>int</tt>: Flag (0 or 1) to request that any in-band forward error correction data be
+  *  decoded. If no such data is available, the frame is decoded as if it were lost.
+  * @returns Number of decoded samples or @ref opus_errorcodes
+  */
+OPUS_EXPORT OPUS_WARN_UNUSED_RESULT int opus_decode24(
+    OpusDecoder *st,
+    const unsigned char *data,
+    opus_int32 len,
+    opus_int32 *pcm,
+    int frame_size,
+    int decode_fec
+) OPUS_ARG_NONNULL(1) OPUS_ARG_NONNULL(4);
+
 /** Decode an Opus packet with floating point output.
   * @param [in] st <tt>OpusDecoder*</tt>: Decoder state
   * @param [in] data <tt>char*</tt>: Input payload. Use a NULL pointer to indicate packet loss
@@ -596,7 +657,7 @@ OPUS_EXPORT int opus_dred_parse(OpusDREDDecoder *dred_dec, OpusDRED *dred, const
   */
 OPUS_EXPORT int opus_dred_process(OpusDREDDecoder *dred_dec, const OpusDRED *src, OpusDRED *dst);
 
-/** Decode audio from an Opus DRED packet with floating point output.
+/** Decode audio from an Opus DRED packet with 16-bit output.
   * @param [in] st <tt>OpusDecoder*</tt>: Decoder state
   * @param [in] dred <tt>OpusDRED*</tt>: DRED state
   * @param [in] dred_offset <tt>opus_int32</tt>: position of the redundancy to decode (in samples before the beginning of the real audio data in the packet).
@@ -607,6 +668,18 @@ OPUS_EXPORT int opus_dred_process(OpusDREDDecoder *dred_dec, const OpusDRED *src
   * @returns Number of decoded samples or @ref opus_errorcodes
   */
 OPUS_EXPORT int opus_decoder_dred_decode(OpusDecoder *st, const OpusDRED *dred, opus_int32 dred_offset, opus_int16 *pcm, opus_int32 frame_size);
+
+/** Decode audio from an Opus DRED packet with 24-bit output.
+  * @param [in] st <tt>OpusDecoder*</tt>: Decoder state
+  * @param [in] dred <tt>OpusDRED*</tt>: DRED state
+  * @param [in] dred_offset <tt>opus_int32</tt>: position of the redundancy to decode (in samples before the beginning of the real audio data in the packet).
+  * @param [out] pcm <tt>opus_int32*</tt>: Output signal (interleaved if 2 channels). length
+  *  is frame_size*channels*sizeof(opus_int16)
+  * @param [in] frame_size Number of samples per channel to decode in \a pcm.
+  *  frame_size <b>must</b> be a multiple of 2.5 ms.
+  * @returns Number of decoded samples or @ref opus_errorcodes
+  */
+OPUS_EXPORT int opus_decoder_dred_decode24(OpusDecoder *st, const OpusDRED *dred, opus_int32 dred_offset, opus_int32 *pcm, opus_int32 frame_size);
 
 /** Decode audio from an Opus DRED packet with floating point output.
   * @param [in] st <tt>OpusDecoder*</tt>: Decoder state
