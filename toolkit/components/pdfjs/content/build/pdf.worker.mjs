@@ -9455,7 +9455,7 @@ class Parser {
             warn("findDefaultInlineStreamEnd - `lexer.knownCommands` is undefined.");
             continue;
           }
-          const tmpLexer = new Lexer(new Stream(followingBytes.slice()), knownCommands);
+          const tmpLexer = new Lexer(new Stream(stream.peekBytes(5 * n)), knownCommands);
           tmpLexer._hexStringWarn = () => {};
           let numArgs = 0;
           while (true) {
@@ -23672,6 +23672,7 @@ function adjustMapping(charCodeToGlyphId, hasGlyph, newGlyphZeroId, toUnicode) {
   let nextAvailableFontCharCode = privateUseOffetStart;
   let privateUseOffetEnd = PRIVATE_USE_AREAS[privateUseAreaIndex][1];
   const isInPrivateArea = code => PRIVATE_USE_AREAS[0][0] <= code && code <= PRIVATE_USE_AREAS[0][1] || PRIVATE_USE_AREAS[1][0] <= code && code <= PRIVATE_USE_AREAS[1][1];
+  let LIGATURE_TO_UNICODE = null;
   for (const originalCharCode in charCodeToGlyphId) {
     let glyphId = charCodeToGlyphId[originalCharCode];
     if (!hasGlyph(glyphId)) {
@@ -23692,7 +23693,20 @@ function adjustMapping(charCodeToGlyphId, hasGlyph, newGlyphZeroId, toUnicode) {
     }
     let unicode = toUnicode.get(originalCharCode);
     if (typeof unicode === "string") {
-      unicode = unicode.codePointAt(0);
+      if (unicode.length === 1) {
+        unicode = unicode.codePointAt(0);
+      } else {
+        if (!LIGATURE_TO_UNICODE) {
+          LIGATURE_TO_UNICODE = new Map();
+          for (let i = 0xfb00; i <= 0xfb4f; i++) {
+            const normalized = String.fromCharCode(i).normalize("NFKD");
+            if (normalized.length > 1) {
+              LIGATURE_TO_UNICODE.set(normalized, i);
+            }
+          }
+        }
+        unicode = LIGATURE_TO_UNICODE.get(unicode) || unicode.codePointAt(0);
+      }
     }
     if (unicode && !isInPrivateArea(unicode) && !usedGlyphIds.has(glyphId)) {
       toUnicodeExtraMap.set(unicode, glyphId);
@@ -53072,12 +53086,10 @@ class CipherTransformFactory {
     return userPassword;
   }
   #buildObjectKey(num, gen, encryptionKey, isAes = false) {
-    const key = new Uint8Array(encryptionKey.length + 9);
     const n = encryptionKey.length;
-    let i;
-    for (i = 0; i < n; ++i) {
-      key[i] = encryptionKey[i];
-    }
+    const key = new Uint8Array(n + 9);
+    key.set(encryptionKey);
+    let i = n;
     key[i++] = num & 0xff;
     key[i++] = num >> 8 & 0xff;
     key[i++] = num >> 16 & 0xff;
@@ -53090,7 +53102,7 @@ class CipherTransformFactory {
       key[i++] = 0x54;
     }
     const hash = calculateMD5(key, 0, i);
-    return hash.subarray(0, Math.min(encryptionKey.length + 5, 16));
+    return hash.subarray(0, Math.min(n + 5, 16));
   }
   #buildCipherConstructor(cf, name, num, gen, key) {
     if (!(name instanceof Name)) {
@@ -56539,7 +56551,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.0.158";
+    const workerVersion = "5.0.164";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57071,8 +57083,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.0.158";
-const pdfjsBuild = "144e5fe19";
+const pdfjsVersion = "5.0.164";
+const pdfjsBuild = "3f15e0c46";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };
