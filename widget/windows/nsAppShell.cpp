@@ -746,20 +746,6 @@ bool nsAppShell::ProcessNextNativeEvent(bool mayWait) {
   do {
     MSG msg;
 
-    // For avoiding deadlock between our process and plugin process by
-    // mouse wheel messages, we're handling actually when we receive one of
-    // following internal messages which is posted by native mouse wheel
-    // message handler. Any other events, especially native modifier key
-    // events, should not be handled between native message and posted
-    // internal message because it may make different modifier key state or
-    // mouse cursor position between them.
-    if (mozilla::widget::MouseScrollHandler::IsWaitingInternalMessage()) {
-      gotMessage = WinUtils::PeekMessage(&msg, nullptr, MOZ_WM_MOUSEWHEEL_FIRST,
-                                         MOZ_WM_MOUSEWHEEL_LAST, PM_REMOVE);
-      NS_ASSERTION(gotMessage,
-                   "waiting internal wheel message, but it has not come");
-    }
-
     if (!gotMessage) {
       gotMessage = WinUtils::PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE);
     }
