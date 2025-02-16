@@ -8,10 +8,10 @@
 #include <stdint.h>
 
 #include "mozilla/CheckedInt.h"
-#include "mozilla/gfx/Point.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
 #include "mozilla/Span.h"
+#include "mozilla/gfx/Point.h"
 #include "nsTArray.h"
 
 namespace mozilla {
