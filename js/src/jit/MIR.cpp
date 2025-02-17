@@ -3802,38 +3802,6 @@ bool MUrsh::fallible() const {
   return !range() || !range()->hasInt32Bounds();
 }
 
-MIRType MCompare::inputType() {
-  switch (compareType_) {
-    case Compare_Undefined:
-      return MIRType::Undefined;
-    case Compare_Null:
-      return MIRType::Null;
-    case Compare_UInt32:
-    case Compare_Int32:
-      return MIRType::Int32;
-    case Compare_IntPtr:
-    case Compare_UIntPtr:
-      return MIRType::IntPtr;
-    case Compare_Double:
-      return MIRType::Double;
-    case Compare_Float32:
-      return MIRType::Float32;
-    case Compare_String:
-      return MIRType::String;
-    case Compare_Symbol:
-      return MIRType::Symbol;
-    case Compare_Object:
-      return MIRType::Object;
-    case Compare_BigInt:
-    case Compare_BigInt_Int32:
-    case Compare_BigInt_Double:
-    case Compare_BigInt_String:
-      return MIRType::BigInt;
-    default:
-      MOZ_CRASH("No known conversion");
-  }
-}
-
 static inline bool MustBeUInt32(MDefinition* def, MDefinition** pwrapped) {
   if (def->isUrsh()) {
     *pwrapped = def->toUrsh()->lhs();
@@ -4848,11 +4816,13 @@ bool MCompare::tryFold(bool* result) {
   if (compareType_ == Compare_Null || compareType_ == Compare_Undefined) {
     // The LHS is the value we want to test against null or undefined.
     if (IsStrictEqualityOp(op)) {
-      if (lhs()->type() == inputType()) {
+      MIRType expectedType =
+          compareType_ == Compare_Null ? MIRType::Null : MIRType::Undefined;
+      if (lhs()->type() == expectedType) {
         *result = (op == JSOp::StrictEq);
         return true;
       }
-      if (!lhs()->mightBeType(inputType())) {
+      if (lhs()->type() != MIRType::Value) {
         *result = (op == JSOp::StrictNe);
         return true;
       }
@@ -4862,9 +4832,7 @@ bool MCompare::tryFold(bool* result) {
         *result = (op == JSOp::Eq);
         return true;
       }
-      if (!lhs()->mightBeType(MIRType::Null) &&
-          !lhs()->mightBeType(MIRType::Undefined) &&
-          !lhs()->mightBeType(MIRType::Object)) {
+      if (lhs()->type() != MIRType::Object && lhs()->type() != MIRType::Value) {
         *result = (op == JSOp::Ne);
         return true;
       }

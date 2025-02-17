@@ -2829,7 +2829,6 @@ class MCompare : public MBinaryInstruction, public ComparePolicy::Data {
   bool isNumericComparison() const {
     return isInt32Comparison() || isDoubleComparison() || isFloat32Comparison();
   }
-  MIRType inputType();
 
   JSOp jsop() const { return jsop_; }
   bool operandsAreNeverNaN() const { return operandsAreNeverNaN_; }
