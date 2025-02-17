@@ -46,6 +46,9 @@
 #include "builtin/RegExp.h"
 #include "builtin/SelfHostingDefines.h"
 #include "builtin/String.h"
+#ifdef JS_HAS_TEMPORAL_API
+#  include "builtin/temporal/Duration.h"
+#endif
 #include "builtin/WeakMapObject.h"
 #include "frontend/BytecodeCompiler.h"    // CompileGlobalScriptToStencil
 #include "frontend/CompilationStencil.h"  // js::frontend::CompilationStencil
@@ -1899,6 +1902,92 @@ static bool intrinsic_newList(JSContext* cx, unsigned argc, js::Value* vp) {
   return true;
 }
 
+#ifdef JS_HAS_TEMPORAL_API
+static bool intrinsic_ToTemporalDuration(JSContext* cx, unsigned argc,
+                                         js::Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+
+  using namespace temporal;
+
+  // Return |null| if Temporal is disabled.
+  if (!JS::Prefs::experimental_temporal()) {
+    args.rval().setNull();
+    return true;
+  }
+
+  Duration duration;
+  if (!ToTemporalDuration(cx, args.get(0), &duration)) {
+    return false;
+  }
+
+  // Normalize -0 to +0 by adding zero.
+  duration.years += +0.0;
+  duration.months += +0.0;
+  duration.weeks += +0.0;
+  duration.days += +0.0;
+  duration.hours += +0.0;
+  duration.minutes += +0.0;
+  duration.seconds += +0.0;
+  duration.milliseconds += +0.0;
+  duration.microseconds += +0.0;
+  duration.nanoseconds += +0.0;
+
+  // Create a new plain object to ensure there are no observable calls to
+  // `Temporal.Duration.prototype` getters.
+
+  Rooted<IdValueVector> properties(cx, cx);
+  if (!properties.emplaceBack(NameToId(cx->names().years),
+                              NumberValue(duration.years))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().months),
+                              NumberValue(duration.months))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().weeks),
+                              NumberValue(duration.weeks))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().days),
+                              NumberValue(duration.days))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().hours),
+                              NumberValue(duration.hours))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().minutes),
+                              NumberValue(duration.minutes))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().seconds),
+                              NumberValue(duration.seconds))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().milliseconds),
+                              NumberValue(duration.milliseconds))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().microseconds),
+                              NumberValue(duration.microseconds))) {
+    return false;
+  }
+  if (!properties.emplaceBack(NameToId(cx->names().nanoseconds),
+                              NumberValue(duration.nanoseconds))) {
+    return false;
+  }
+
+  auto* result = NewPlainObjectWithUniqueNames(cx, properties);
+  if (!result) {
+    return false;
+  }
+
+  args.rval().setObject(*result);
+  return true;
+}
+#endif
+
 static const JSFunctionSpec intrinsic_functions[] = {
     // Intrinsic helper functions
     JS_INLINABLE_FN("ArrayBufferByteLength",
@@ -2166,6 +2255,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("ToObject", intrinsic_ToObject, 1, 0, IntrinsicToObject),
     JS_FN("ToPropertyKey", intrinsic_ToPropertyKey, 1, 0),
     JS_FN("ToSource", intrinsic_ToSource, 1, 0),
+#ifdef JS_HAS_TEMPORAL_API
+    JS_FN("ToTemporalDuration", intrinsic_ToTemporalDuration, 1, 0),
+#endif
     JS_FN("TypedArrayBitwiseSlice", intrinsic_TypedArrayBitwiseSlice, 4, 0),
     JS_FN("TypedArrayBuffer", intrinsic_TypedArrayBuffer, 1, 0),
     JS_INLINABLE_FN("TypedArrayByteOffset", intrinsic_TypedArrayByteOffset, 1,
