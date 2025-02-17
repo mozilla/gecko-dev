@@ -222,6 +222,16 @@ class TestExecuteContent(MarionetteTestCase):
         )
         self.assertIn("b is not defined", str(cm.exception))
 
+    def test_syntaxerror_stack(self):
+        with self.assertRaises(errors.JavascriptException) as cm:
+            self.marionette.execute_script("notAFunc() {")
+
+        # by default execute_script pass the name of the python file
+        self.assertIn(
+            os.path.relpath(__file__.replace(".pyc", ".py")), cm.exception.stacktrace
+        )
+        self.assertIn("SyntaxError: unexpected token: '{'", str(cm.exception))
+
     def test_permission(self):
         for sandbox in ["default", None]:
             with self.assertRaises(errors.JavascriptException):
@@ -566,4 +576,7 @@ class TestExecuteChrome(WindowManagerMixin, TestExecuteContent):
         pass
 
     def test_return_value_on_alert(self):
+        pass
+
+    def test_syntaxerror_stack(self):
         pass

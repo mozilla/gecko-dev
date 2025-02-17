@@ -382,6 +382,8 @@ add_task(function test_JavaScriptError() {
   let inheritedErr = new error.JavaScriptError(superErr);
   equal("RangeError: foo", inheritedErr.message);
   equal(superErr.stack, inheritedErr.stack);
+  equal(superErr.lineNumber, inheritedErr.lineNumber);
+  equal(superErr.columnNumber, inheritedErr.columnNumber);
 });
 
 add_task(function test_MoveTargetOutOfBoundsError() {

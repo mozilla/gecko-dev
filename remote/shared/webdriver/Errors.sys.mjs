@@ -204,7 +204,14 @@ class WebDriverError extends RemoteError {
 
     // Error's ctor does not preserve x' stack
     if (error.isError(obj)) {
-      this.stack = obj.stack;
+      this.lineNumber = obj.lineNumber;
+      this.columnNumber = obj.columnNumber;
+      if (!obj.stack) {
+        // Provides a stacktrace if it was missing on the original Error object
+        this.stack = `@${obj.fileName}:${obj.lineNumber}:${obj.columnNumber}\n`;
+      } else {
+        this.stack = obj.stack;
+      }
     }
 
     if (error.isWebDriverError(obj)) {
