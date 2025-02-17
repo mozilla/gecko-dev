@@ -36,7 +36,7 @@ function check_cert_err(cert_name, expected_error) {
     certdb,
     cert,
     expected_error,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 }
 

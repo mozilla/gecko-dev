@@ -197,23 +197,16 @@ export async function exportToFile(parent, document, cert) {
 
 const PRErrorCodeSuccess = 0;
 
-// Certificate usages we care about in the certificate viewer.
-const certificateUsageSSLClient = 0x0001;
-const certificateUsageSSLServer = 0x0002;
-const certificateUsageSSLCA = 0x0008;
-const certificateUsageEmailSigner = 0x0010;
-const certificateUsageEmailRecipient = 0x0020;
-
 // A map from the name of a certificate usage to the value of the usage.
 // Useful for printing debugging information and for enumerating all supported
 // usages.
-const certificateUsages = {
-  certificateUsageSSLClient,
-  certificateUsageSSLServer,
-  certificateUsageSSLCA,
-  certificateUsageEmailSigner,
-  certificateUsageEmailRecipient,
-};
+const verifyUsages = new Map([
+  ["verifyUsageTLSClient", Ci.nsIX509CertDB.verifyUsageTLSClient],
+  ["verifyUsageTLSServer", Ci.nsIX509CertDB.verifyUsageTLSServer],
+  ["verifyUsageTLSServerCA", Ci.nsIX509CertDB.verifyUsageTLSServerCA],
+  ["verifyUsageEmailSigner", Ci.nsIX509CertDB.verifyUsageEmailSigner],
+  ["verifyUsageEmailRecipient", Ci.nsIX509CertDB.verifyUsageEmailRecipient],
+]);
 
 /**
  * Returns a promise that will resolve with a results array consisting of what
@@ -224,16 +217,16 @@ const certificateUsages = {
  * @returns {Promise}
  *        A promise that will resolve with the results of the verifications.
  */
-function asyncDetermineUsages(cert) {
+export function asyncDetermineUsages(cert) {
   let promises = [];
   let now = Date.now() / 1000;
   let certdb = Cc["@mozilla.org/security/x509certdb;1"].getService(
     Ci.nsIX509CertDB
   );
-  Object.keys(certificateUsages).forEach(usageString => {
+  verifyUsages.keys().forEach(usageString => {
     promises.push(
       new Promise(resolve => {
-        let usage = certificateUsages[usageString];
+        let usage = verifyUsages.get(usageString);
         certdb.asyncVerifyCertAtTime(
           cert,
           usage,
@@ -266,13 +259,13 @@ function asyncDetermineUsages(cert) {
  * @returns {Array} An array of `nsIX509Cert` representing the verified
  *          certificate chain for the given usage, or null if there is none.
  */
-function getBestChain(results) {
+export function getBestChain(results) {
   let usages = [
-    certificateUsageSSLServer,
-    certificateUsageSSLClient,
-    certificateUsageEmailSigner,
-    certificateUsageEmailRecipient,
-    certificateUsageSSLCA,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
+    Ci.nsIX509CertDB.verifyUsageTLSClient,
+    Ci.nsIX509CertDB.verifyUsageEmailSigner,
+    Ci.nsIX509CertDB.verifyUsageEmailRecipient,
+    Ci.nsIX509CertDB.verifyUsageTLSServerCA,
   ];
   for (let usage of usages) {
     let chain = getChainForUsage(results, usage);
@@ -290,14 +283,14 @@ function getBestChain(results) {
  * @param {Array} results
  *        An array of results from `asyncDetermineUsages`. See `displayUsages`.
  * @param {number} usage
- *        A numerical value corresponding to a usage. See `certificateUsages`.
+ *        A usage, see `nsIX509CertDB::VerifyUsage`.
  * @returns {Array} An array of `nsIX509Cert` representing the verified
  *          certificate chain for the given usage, or null if there is none.
  */
 function getChainForUsage(results, usage) {
   for (let result of results) {
     if (
-      certificateUsages[result.usageString] == usage &&
+      verifyUsages.get(result.usageString) == usage &&
       result.errorCode == PRErrorCodeSuccess
     ) {
       return result.chain;

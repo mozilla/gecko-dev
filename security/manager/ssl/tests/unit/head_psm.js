@@ -116,23 +116,16 @@ const MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY =
 const MOZILLA_PKIX_ERROR_ISSUER_NO_LONGER_TRUSTED =
   MOZILLA_PKIX_ERROR_BASE + 17;
 
-// Supported Certificate Usages
-const certificateUsageSSLClient = 0x0001;
-const certificateUsageSSLServer = 0x0002;
-const certificateUsageSSLCA = 0x0008;
-const certificateUsageEmailSigner = 0x0010;
-const certificateUsageEmailRecipient = 0x0020;
-
 // A map from the name of a certificate usage to the value of the usage.
 // Useful for printing debugging information and for enumerating all supported
 // usages.
-const allCertificateUsages = {
-  certificateUsageSSLClient,
-  certificateUsageSSLServer,
-  certificateUsageSSLCA,
-  certificateUsageEmailSigner,
-  certificateUsageEmailRecipient,
-};
+const verifyUsages = new Map([
+  ["verifyUsageTLSClient", Ci.nsIX509CertDB.verifyUsageTLSClient],
+  ["verifyUsageTLSServer", Ci.nsIX509CertDB.verifyUsageTLSServer],
+  ["verifyUsageTLSServerCA", Ci.nsIX509CertDB.verifyUsageTLSServerCA],
+  ["verifyUsageEmailSigner", Ci.nsIX509CertDB.verifyUsageEmailSigner],
+  ["verifyUsageEmailRecipient", Ci.nsIX509CertDB.verifyUsageEmailRecipient],
+]);
 
 const NO_FLAGS = 0;
 
@@ -1020,9 +1013,9 @@ class CertVerificationResult {
 function asyncTestCertificateUsages(certdb, cert, expectedUsages) {
   let now = new Date().getTime() / 1000;
   let promises = [];
-  Object.keys(allCertificateUsages).forEach(usageString => {
+  verifyUsages.keys().forEach(usageString => {
     let promise = new Promise(resolve => {
-      let usage = allCertificateUsages[usageString];
+      let usage = verifyUsages.get(usageString);
       let successExpected = expectedUsages.includes(usage);
       let result = new CertVerificationResult(
         cert.commonName,

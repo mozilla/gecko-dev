@@ -30,7 +30,7 @@ async function do_testcase(certname, checkCommonName) {
     certdb,
     cert,
     SSL_ERROR_BAD_CERT_DOMAIN,
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     undefined,
     "www.bank1.com"
   );
@@ -38,7 +38,7 @@ async function do_testcase(certname, checkCommonName) {
     certdb,
     cert,
     SSL_ERROR_BAD_CERT_DOMAIN,
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     undefined,
     "www.bad-guy.com"
   );

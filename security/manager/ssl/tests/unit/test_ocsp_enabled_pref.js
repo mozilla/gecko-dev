@@ -46,7 +46,7 @@ async function testOff() {
   await checkEVStatus(
     gCertDB,
     certFromFile("test-oid-path-ee"),
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     false
   );
   await stopOCSPResponder(ocspResponder);
@@ -58,7 +58,7 @@ async function testOff() {
     gCertDB,
     certFromFile("non-ev-root-path-ee"),
     PRErrorCodeSuccess,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
   await stopOCSPResponder(ocspResponder);
 }
@@ -75,7 +75,7 @@ async function testOn() {
   await checkEVStatus(
     gCertDB,
     certFromFile("test-oid-path-ee"),
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     gEVExpected
   );
   await stopOCSPResponder(ocspResponder);
@@ -88,7 +88,7 @@ async function testOn() {
     gCertDB,
     certFromFile("non-ev-root-path-ee"),
     PRErrorCodeSuccess,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
   await stopOCSPResponder(ocspResponder);
 }
@@ -107,7 +107,7 @@ async function testEVOnly() {
   await checkEVStatus(
     gCertDB,
     certFromFile("test-oid-path-ee"),
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     gEVExpected
   );
   await stopOCSPResponder(ocspResponder);
@@ -119,7 +119,7 @@ async function testEVOnly() {
     gCertDB,
     certFromFile("non-ev-root-path-ee"),
     PRErrorCodeSuccess,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
   await stopOCSPResponder(ocspResponder);
 }

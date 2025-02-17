@@ -32,7 +32,7 @@ add_task(async function () {
     certDB,
     ee,
     PRErrorCodeSuccess,
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     threeWeeksFromNowInSeconds,
     false,
     "test.example.com"

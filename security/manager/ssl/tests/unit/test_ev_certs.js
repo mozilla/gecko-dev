@@ -105,7 +105,7 @@ function asyncTestEV(
     );
     certdb.asyncVerifyCertAtTime(
       cert,
-      certificateUsageSSLServer,
+      Ci.nsIX509CertDB.verifyUsageTLSServer,
       0,
       "ev-test.example.com",
       now,
@@ -170,7 +170,7 @@ function verifyWithFlags_LOCAL_ONLY_and_MUST_BE_EV(testcase, expectSuccess) {
       Ci.nsIX509CertDB.FLAG_LOCAL_ONLY | Ci.nsIX509CertDB.FLAG_MUST_BE_EV;
     certdb.asyncVerifyCertAtTime(
       cert,
-      certificateUsageSSLServer,
+      Ci.nsIX509CertDB.verifyUsageTLSServer,
       flags,
       "ev-test.example.com",
       now,

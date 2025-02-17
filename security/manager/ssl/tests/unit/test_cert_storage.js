@@ -106,7 +106,7 @@ function verify_cert(file, expectedError) {
     certDB,
     ee,
     expectedError,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 }
 
@@ -117,19 +117,19 @@ async function verify_non_tls_usage_succeeds(file) {
     certDB,
     ee,
     PRErrorCodeSuccess,
-    certificateUsageSSLClient
+    Ci.nsIX509CertDB.verifyUsageTLSClient
   );
   await checkCertErrorGeneric(
     certDB,
     ee,
     PRErrorCodeSuccess,
-    certificateUsageEmailSigner
+    Ci.nsIX509CertDB.verifyUsageEmailSigner
   );
   await checkCertErrorGeneric(
     certDB,
     ee,
     PRErrorCodeSuccess,
-    certificateUsageEmailRecipient
+    Ci.nsIX509CertDB.verifyUsageEmailRecipient
   );
 }
 

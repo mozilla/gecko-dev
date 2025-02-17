@@ -29,13 +29,16 @@ function test_cert_for_usages(certChainNicks, expected_usages) {
 
 add_task(async function () {
   let ee_usages = [
-    certificateUsageSSLClient,
-    certificateUsageSSLServer,
-    certificateUsageEmailSigner,
-    certificateUsageEmailRecipient,
+    Ci.nsIX509CertDB.verifyUsageTLSClient,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
+    Ci.nsIX509CertDB.verifyUsageEmailSigner,
+    Ci.nsIX509CertDB.verifyUsageEmailRecipient,
   ];
-  let ca_usages = [certificateUsageSSLCA];
-  let eku_usages = [certificateUsageSSLClient, certificateUsageSSLServer];
+  let ca_usages = [Ci.nsIX509CertDB.verifyUsageTLSServerCA];
+  let eku_usages = [
+    Ci.nsIX509CertDB.verifyUsageTLSClient,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
+  ];
 
   // Load the ca into mem
   let ca_name = "ca";

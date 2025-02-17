@@ -71,7 +71,7 @@ add_task(async function test_crlite_corrupted() {
     certdb,
     revokedCert,
     PRErrorCodeSuccess,
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     new Date("2020-10-20T00:00:00Z").getTime() / 1000,
     undefined,
     "us-datarecovery.com",

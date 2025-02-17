@@ -28,7 +28,7 @@ function checkEndEntity(cert, expectedResult) {
     certdb,
     cert,
     expectedResult,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 }
 
@@ -39,7 +39,7 @@ function checkCertOn25August2016(cert, expectedResult) {
     certdb,
     cert,
     expectedResult,
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     VALIDATION_TIME
   );
 }

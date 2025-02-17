@@ -464,7 +464,7 @@ Result CertVerifier::VerifyCertificateTransparencyPolicyInner(
 }
 
 Result CertVerifier::VerifyCert(
-    const nsTArray<uint8_t>& certBytes, SECCertificateUsage usage, Time time,
+    const nsTArray<uint8_t>& certBytes, VerifyUsage usage, Time time,
     void* pinArg, const char* hostname,
     /*out*/ nsTArray<nsTArray<uint8_t>>& builtChain,
     /*optional*/ const Flags flags,
@@ -482,8 +482,8 @@ Result CertVerifier::VerifyCert(
     /*optional out*/ IssuerSources* issuerSources) {
   MOZ_LOG(gCertVerifierLog, LogLevel::Debug, ("Top of VerifyCert\n"));
 
-  MOZ_ASSERT(usage == certificateUsageSSLServer || !(flags & FLAG_MUST_BE_EV));
-  MOZ_ASSERT(usage == certificateUsageSSLServer || !keySizeStatus);
+  MOZ_ASSERT(usage == VerifyUsage::TLSServer || !(flags & FLAG_MUST_BE_EV));
+  MOZ_ASSERT(usage == VerifyUsage::TLSServer || !keySizeStatus);
 
   if (NS_FAILED(BlockUntilLoadableCertsLoaded())) {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
@@ -496,20 +496,20 @@ Result CertVerifier::VerifyCert(
     *evStatus = EVStatus::NotEV;
   }
   if (ocspStaplingStatus) {
-    if (usage != certificateUsageSSLServer) {
+    if (usage != VerifyUsage::TLSServer) {
       return Result::FATAL_ERROR_INVALID_ARGS;
     }
     *ocspStaplingStatus = OCSP_STAPLING_NEVER_CHECKED;
   }
 
   if (keySizeStatus) {
-    if (usage != certificateUsageSSLServer) {
+    if (usage != VerifyUsage::TLSServer) {
       return Result::FATAL_ERROR_INVALID_ARGS;
     }
     *keySizeStatus = KeySizeStatus::NeverChecked;
   }
 
-  if (usage != certificateUsageSSLServer && (flags & FLAG_MUST_BE_EV)) {
+  if (usage != VerifyUsage::TLSServer && (flags & FLAG_MUST_BE_EV)) {
     return Result::FATAL_ERROR_INVALID_ARGS;
   }
 
@@ -561,7 +561,7 @@ Result CertVerifier::VerifyCert(
   }
 
   switch (usage) {
-    case certificateUsageSSLClient: {
+    case VerifyUsage::TLSClient: {
       // XXX: We don't really have a trust bit for SSL client authentication so
       // just use trustEmail as it is the closest alternative.
       NSSCertDBTrustDomain trustDomain(
@@ -583,7 +583,7 @@ Result CertVerifier::VerifyCert(
       break;
     }
 
-    case certificateUsageSSLServer: {
+    case VerifyUsage::TLSServer: {
       // TODO: When verifying a certificate in an SSL handshake, we should
       // restrict the acceptable key usage based on the key exchange method
       // chosen by the server.
@@ -716,9 +716,25 @@ Result CertVerifier::VerifyCert(
       break;
     }
 
-    case certificateUsageSSLCA: {
+    case VerifyUsage::EmailCA:
+    case VerifyUsage::TLSClientCA:
+    case VerifyUsage::TLSServerCA: {
+      KeyPurposeId purpose;
+      SECTrustType trustType;
+
+      if (usage == VerifyUsage::EmailCA || usage == VerifyUsage::TLSClientCA) {
+        purpose = KeyPurposeId::id_kp_clientAuth;
+        trustType = trustEmail;
+      } else if (usage == VerifyUsage::TLSServerCA) {
+        purpose = KeyPurposeId::id_kp_serverAuth;
+        trustType = trustSSL;
+      } else {
+        MOZ_ASSERT_UNREACHABLE("coding error");
+        return Result::FATAL_ERROR_LIBRARY_FAILURE;
+      }
+
       NSSCertDBTrustDomain trustDomain(
-          trustSSL, defaultOCSPFetching, mOCSPCache, mSignatureCache.get(),
+          trustType, defaultOCSPFetching, mOCSPCache, mSignatureCache.get(),
           mTrustCache.get(), pinArg, mOCSPTimeoutSoft, mOCSPTimeoutHard,
           mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
           ValidityCheckingMode::CheckingOff, mNetscapeStepUpPolicy, mCRLiteMode,
@@ -726,7 +742,7 @@ Result CertVerifier::VerifyCert(
           mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
           nullptr);
       rv = BuildCertChain(trustDomain, certDER, time, EndEntityOrCA::MustBeCA,
-                          KeyUsage::keyCertSign, KeyPurposeId::id_kp_serverAuth,
+                          KeyUsage::keyCertSign, purpose,
                           CertPolicyId::anyPolicy, stapledOCSPResponse);
       if (madeOCSPRequests) {
         *madeOCSPRequests |=
@@ -735,7 +751,7 @@ Result CertVerifier::VerifyCert(
       break;
     }
 
-    case certificateUsageEmailSigner: {
+    case VerifyUsage::EmailSigner: {
       NSSCertDBTrustDomain trustDomain(
           trustEmail, defaultOCSPFetching, mOCSPCache, mSignatureCache.get(),
           mTrustCache.get(), pinArg, mOCSPTimeoutSoft, mOCSPTimeoutHard,
@@ -761,7 +777,7 @@ Result CertVerifier::VerifyCert(
       break;
     }
 
-    case certificateUsageEmailRecipient: {
+    case VerifyUsage::EmailRecipient: {
       // TODO: The higher level S/MIME processing should pass in which key
       // usage it is trying to verify for, and base its algorithm choices
       // based on the result of the verification(s).
@@ -880,7 +896,7 @@ Result CertVerifier::VerifySSLServerCert(
   }
   bool isBuiltChainRootBuiltInRootLocal;
   rv = VerifyCert(
-      peerCertBytes, certificateUsageSSLServer, time, pinarg,
+      peerCertBytes, VerifyUsage::TLSServer, time, pinarg,
       PromiseFlatCString(hostname).get(), builtChain, flags, extraCertificates,
       stapledOCSPResponse, sctsFromTLS, originAttributes, evStatus,
       ocspStaplingStatus, keySizeStatus, pinningTelemetryInfo, ctInfo,

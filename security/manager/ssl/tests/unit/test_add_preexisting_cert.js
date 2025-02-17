@@ -29,7 +29,7 @@ add_task(async function () {
     certDB,
     ee,
     PRErrorCodeSuccess,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
   // Change the already existing intermediate certificate's trust using
   // addCertFromBase64().
@@ -41,6 +41,6 @@ add_task(async function () {
     certDB,
     ee,
     SEC_ERROR_UNTRUSTED_ISSUER,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 });

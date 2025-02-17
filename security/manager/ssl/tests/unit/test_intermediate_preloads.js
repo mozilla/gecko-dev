@@ -157,7 +157,7 @@ add_task(async function test_preload_empty() {
     certDB,
     ee_cert,
     SEC_ERROR_UNKNOWN_ISSUER,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 });
 
@@ -210,7 +210,7 @@ add_task(async function test_preload_invalid_hash() {
     certDB,
     ee_cert,
     SEC_ERROR_UNKNOWN_ISSUER,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 });
 
@@ -245,7 +245,7 @@ add_task(async function test_preload_invalid_length() {
     certDB,
     ee_cert,
     SEC_ERROR_UNKNOWN_ISSUER,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 });
 
@@ -275,13 +275,13 @@ add_task(async function test_preload_basic() {
     certDB,
     ee_cert,
     SEC_ERROR_UNKNOWN_ISSUER,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
   await checkCertErrorGeneric(
     certDB,
     ee_cert_2,
     SEC_ERROR_UNKNOWN_ISSUER,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 
   let intermediateBytes = readFile(
@@ -323,7 +323,7 @@ add_task(async function test_preload_basic() {
     certDB,
     ee_cert,
     PRErrorCodeSuccess,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 
   let localDB = await IntermediatePreloadsClient.client.db;
@@ -345,7 +345,7 @@ add_task(async function test_preload_basic() {
     certDB,
     ee_cert_2,
     SEC_ERROR_UNKNOWN_ISSUER,
-    certificateUsageSSLServer
+    Ci.nsIX509CertDB.verifyUsageTLSServer
   );
 });
 

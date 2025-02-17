@@ -89,7 +89,7 @@ add_task(async function () {
     certDB,
     allowlistedCert,
     PRErrorCodeSuccess,
-    certificateUsageSSLServer,
+    Ci.nsIX509CertDB.verifyUsageTLSServer,
     VALIDATION_TIME
   );
 });
