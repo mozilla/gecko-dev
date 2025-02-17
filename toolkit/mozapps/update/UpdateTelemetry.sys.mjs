@@ -158,20 +158,21 @@ export var AUSTLMY = {
   },
 
   // The state code and if present the status error code were read on startup.
-  STARTUP: "STARTUP",
+  STARTUP: "Startup",
   // The state code and status error code if present were read after staging.
-  STAGE: "STAGE",
+  STAGE: "Stage",
 
   // Patch type Complete
-  PATCH_COMPLETE: "COMPLETE",
+  PATCH_COMPLETE: "Complete",
   // Patch type partial
-  PATCH_PARTIAL: "PARTIAL",
+  PATCH_PARTIAL: "Partial",
   // Patch type unknown
-  PATCH_UNKNOWN: "UNKNOWN",
+  PATCH_UNKNOWN: "Unknown",
 
   /**
-   * Values for the UPDATE_DOWNLOAD_CODE_COMPLETE, UPDATE_DOWNLOAD_CODE_PARTIAL,
-   * and UPDATE_DOWNLOAD_CODE_UNKNOWN Telemetry histograms.
+   * Values for the Glean.update.downloadCodeComplete,
+   * Glean.update.downloadCodePartial and
+   * Glean.update.downloadCodeUnknown metrics.
    */
   DWNLD_SUCCESS: 0,
   DWNLD_RETRY_OFFLINE: 1,
@@ -195,13 +196,12 @@ export var AUSTLMY = {
    * Submit a telemetry ping for the update download result code.
    *
    * @param  aIsComplete
-   *         If true the histogram is for a patch type complete, if false the
-   *         histogram is for a patch type partial, and when undefined the
-   *         histogram is for an unknown patch type. This is used to determine
-   *         the histogram ID out of the following histogram IDs:
-   *         UPDATE_DOWNLOAD_CODE_COMPLETE
-   *         UPDATE_DOWNLOAD_CODE_PARTIAL
-   *         UPDATE_DOWNLOAD_CODE_UNKNOWN
+   *         If true the patch type is complete, if false the patch type is
+   *         partial, and when undefined the patch type is unknown.
+   *         This is used to determine the metric ID out of the following:
+   *         Glean.update.downloadCodeComplete
+   *         Glean.update.downloadCodePartial
+   *         Glean.update.downloadCodeUnknown
    * @param  aCode
    *         An integer value as defined by the values that start with DWNLD_ in
    *         the above section.
@@ -214,9 +214,8 @@ export var AUSTLMY = {
       patchType = this.PATCH_PARTIAL;
     }
     try {
-      let id = "UPDATE_DOWNLOAD_CODE_" + patchType;
-      // enumerated type histogram
-      Services.telemetry.getHistogramById(id).add(aCode);
+      // custom_distribution metric
+      Glean.update["downloadCode" + patchType].accumulateSingleSample(aCode);
     } catch (e) {
       console.error(e);
     }
@@ -230,22 +229,21 @@ export var AUSTLMY = {
    * Submit a telemetry ping for the update status state code.
    *
    * @param  aSuffix
-   *         The histogram id suffix for histogram IDs:
-   *         UPDATE_STATE_CODE_COMPLETE_STARTUP
-   *         UPDATE_STATE_CODE_PARTIAL_STARTUP
-   *         UPDATE_STATE_CODE_UNKNOWN_STARTUP
-   *         UPDATE_STATE_CODE_COMPLETE_STAGE
-   *         UPDATE_STATE_CODE_PARTIAL_STAGE
-   *         UPDATE_STATE_CODE_UNKNOWN_STAGE
+   *         The glean name suffix for glean metric IDs:
+   *         Glean.update.stateCodeCompleteStartup
+   *         Glean.update.stateCodePartialStartup
+   *         Glean.update.stateCodeUnknownStartup
+   *         Glean.update.stateCodeCompleteStage
+   *         Glean.update.stateCodePartialStage
+   *         Glean.update.stateCodeUnknownStage
    * @param  aCode
    *         An integer value as defined by the values that start with STATE_ in
    *         the above section for the update state from the update.status file.
    */
   pingStateCode: function UT_pingStateCode(aSuffix, aCode) {
     try {
-      let id = "UPDATE_STATE_CODE_" + aSuffix;
-      // enumerated type histogram
-      Services.telemetry.getHistogramById(id).add(aCode);
+      // custom_distribution metric
+      Glean.update["stateCode" + aSuffix].accumulateSingleSample(aCode);
     } catch (e) {
       console.error(e);
     }
@@ -256,21 +254,20 @@ export var AUSTLMY = {
    * submit a success value which can be determined from the state code.
    *
    * @param  aSuffix
-   *         The histogram id suffix for histogram IDs:
-   *         UPDATE_STATUS_ERROR_CODE_COMPLETE_STARTUP
-   *         UPDATE_STATUS_ERROR_CODE_PARTIAL_STARTUP
-   *         UPDATE_STATUS_ERROR_CODE_UNKNOWN_STARTUP
-   *         UPDATE_STATUS_ERROR_CODE_COMPLETE_STAGE
-   *         UPDATE_STATUS_ERROR_CODE_PARTIAL_STAGE
-   *         UPDATE_STATUS_ERROR_CODE_UNKNOWN_STAGE
+   *         The glean name suffix for glean metric IDs:
+   *         Glean.update.statusErrorCodeCompleteStartup
+   *         Glean.update.statusErrorCodePartialStartup
+   *         Glean.update.statusErrorCodeUnknownStartup
+   *         Glean.update.statusErrorCodeCompleteStage
+   *         Glean.update.statusErrorCodePartialStage
+   *         Glean.update.statusErrorCodeUnknownStage
    * @param  aCode
    *         An integer value for the error code from the update.status file.
    */
   pingStatusErrorCode: function UT_pingStatusErrorCode(aSuffix, aCode) {
     try {
-      let id = "UPDATE_STATUS_ERROR_CODE_" + aSuffix;
-      // enumerated type histogram
-      Services.telemetry.getHistogramById(id).add(aCode);
+      // custom_distribution metric
+      Glean.update["statusErrorCode" + aSuffix].accumulateSingleSample(aCode);
     } catch (e) {
       console.error(e);
     }
@@ -278,15 +275,14 @@ export var AUSTLMY = {
 
   /**
    * Records a failed BITS update download using Telemetry.
-   * In addition to the BITS Result histogram, this also sends an
-   * update.bitshresult scalar value.
+   * In addition to the BITS Result custom_distribution metric, this also sends
+   * data to an update.bitshresult labeled_counter value.
    *
    * @param aIsComplete
-   *        If true the histogram is for a patch type complete, if false the
-   *        histogram is for a patch type partial. This will determine the
-   *        histogram id out of the following histogram ids:
-   *        UPDATE_BITS_RESULT_COMPLETE
-   *        UPDATE_BITS_RESULT_PARTIAL
+   *        If true the patch type is complete, if false the patch type is
+   *        partial. This will determine the metric id out of the following:
+   *        Glean.update.bitsResultComplete
+   *        Glean.update.bitsResultPartial
    *        This value is also used to determine the key for the keyed scalar
    *        update.bitshresult (key is either "COMPLETE" or "PARTIAL")
    * @param aError
@@ -329,7 +325,7 @@ export var AUSTLMY = {
         scalarKey = this.PATCH_PARTIAL;
       }
       try {
-        Glean.update.bitshresult[scalarKey].set(aError.code);
+        Glean.update.bitshresult[scalarKey.toUpperCase()].set(aError.code);
       } catch (e) {
         console.error(e);
       }
@@ -340,11 +336,10 @@ export var AUSTLMY = {
    * Records a successful BITS update download using Telemetry.
    *
    * @param aIsComplete
-   *        If true the histogram is for a patch type complete, if false the
-   *        histogram is for a patch type partial. This will determine the
-   *        histogram id out of the following histogram ids:
-   *        UPDATE_BITS_RESULT_COMPLETE
-   *        UPDATE_BITS_RESULT_PARTIAL
+   *        If true the patch type is complete, if false the patch type is
+   *        partial. This will determine the metric id out of the following:
+   *        Glean.update.bitsResultComplete
+   *        Glean.update.bitsResultPartial
    */
   pingBitsSuccess: function UT_pingBitsSuccess(aIsComplete) {
     if (AppConstants.platform != "win") {
@@ -363,11 +358,10 @@ export var AUSTLMY = {
    * BITS update download.
    *
    * @param aIsComplete
-   *        If true the histogram is for a patch type complete, if false the
-   *        histogram is for a patch type partial. This will determine the
-   *        histogram id out of the following histogram ids:
-   *        UPDATE_BITS_RESULT_COMPLETE
-   *        UPDATE_BITS_RESULT_PARTIAL
+   *        If true the patch type is complete, if false the patch type is
+   *        partial. This will determine the metric id out of the following:
+   *        Glean.update.bitsResultComplete
+   *        Glean.update.bitsResultPartial
    * @param aResultType
    *        The result code. This will be one of the ERROR_TYPE_* values defined
    *        in the nsIBits interface.
@@ -380,8 +374,9 @@ export var AUSTLMY = {
       patchType = this.PATCH_PARTIAL;
     }
     try {
-      let id = "UPDATE_BITS_RESULT_" + patchType;
-      Services.telemetry.getHistogramById(id).add(aResultType);
+      Glean.update["bitsResult" + patchType].accumulateSingleSample(
+        aResultType
+      );
     } catch (e) {
       console.error(e);
     }

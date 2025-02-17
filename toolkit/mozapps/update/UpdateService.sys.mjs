@@ -1671,7 +1671,7 @@ function pingStateAndStatusCodes(aUpdate, aStartup, aStatus) {
     }
   }
 
-  let suffix = patchType + "_" + (aStartup ? AUSTLMY.STARTUP : AUSTLMY.STAGE);
+  let suffix = patchType + (aStartup ? AUSTLMY.STARTUP : AUSTLMY.STAGE);
   let stateCode = 0;
   let parts = aStatus.split(":");
   if (parts.length) {

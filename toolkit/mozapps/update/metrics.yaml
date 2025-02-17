@@ -950,3 +950,377 @@ update:
       - bytesized@mozilla.com
     expires: never
     telemetry_mirror: h#UPDATE_CAN_USE_BITS_SUBSEQUENT
+
+  download_code_complete:
+    type: custom_distribution
+    description: >
+      Update: complete patch type download result code
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_DOWNLOAD_CODE_COMPLETE.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_DOWNLOAD_CODE_COMPLETE
+
+  download_code_partial:
+    type: custom_distribution
+    description: >
+      Update: partial patch type download result code
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_DOWNLOAD_CODE_PARTIAL.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_DOWNLOAD_CODE_PARTIAL
+
+  download_code_unknown:
+    type: custom_distribution
+    description: >
+      Update: unknown patch type download result code
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_DOWNLOAD_CODE_UNKNOWN.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_DOWNLOAD_CODE_UNKNOWN
+
+  state_code_complete_startup:
+    type: custom_distribution
+    description: >
+      Update: the state of a complete update from update.status on startup
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATE_CODE_COMPLETE_STARTUP.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATE_CODE_COMPLETE_STARTUP
+
+  state_code_partial_startup:
+    type: custom_distribution
+    description: >
+      Update: the state of a partial patch update from update.status on startup
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATE_CODE_PARTIAL_STARTUP.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATE_CODE_PARTIAL_STARTUP
+
+  state_code_unknown_startup:
+    type: custom_distribution
+    description: >
+      Update: the state of an unknown patch update from update.status on startup
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATE_CODE_UNKNOWN_STARTUP.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATE_CODE_UNKNOWN_STARTUP
+
+  state_code_complete_stage:
+    type: custom_distribution
+    description: >
+      Update: the state of a complete patch update from update.status after
+      staging
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATE_CODE_COMPLETE_STAGE.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATE_CODE_COMPLETE_STAGE
+
+  state_code_partial_stage:
+    type: custom_distribution
+    description: >
+      Update: the state of a partial patch update from update.status after
+      staging
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATE_CODE_PARTIAL_STAGE.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATE_CODE_PARTIAL_STAGE
+
+  state_code_unknown_stage:
+    type: custom_distribution
+    description: >
+      Update: the state of an unknown patch update from update.status after
+      staging
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATE_CODE_UNKNOWN_STAGE.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATE_CODE_UNKNOWN_STAGE
+
+  status_error_code_complete_startup:
+    type: custom_distribution
+    description: >
+      Update: the status error code for a failed complete patch update from
+      update.status on startup
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATUS_ERROR_CODE_COMPLETE_STARTUP.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATUS_ERROR_CODE_COMPLETE_STARTUP
+
+  status_error_code_partial_startup:
+    type: custom_distribution
+    description: >
+      Update: the status error code for a failed partial patch update from
+      update.status on startup
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATUS_ERROR_CODE_PARTIAL_STARTUP.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATUS_ERROR_CODE_PARTIAL_STARTUP
+
+  status_error_code_unknown_startup:
+    type: custom_distribution
+    description: >
+      Update: the status error code for a failed unknown patch update from
+      update.status on startup
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATUS_ERROR_CODE_UNKNOWN_STARTUP.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATUS_ERROR_CODE_UNKNOWN_STARTUP
+
+  status_error_code_complete_stage:
+    type: custom_distribution
+    description: >
+      Update: the status error code for a failed complete patch update from
+      update.status after staging
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATUS_ERROR_CODE_COMPLETE_STAGE.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATUS_ERROR_CODE_COMPLETE_STAGE
+
+  status_error_code_partial_stage:
+    type: custom_distribution
+    description: >
+      Update: the status error code for a failed partial patch update from
+      update.status after staging
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATUS_ERROR_CODE_PARTIAL_STAGE.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATUS_ERROR_CODE_PARTIAL_STAGE
+
+  status_error_code_unknown_stage:
+    type: custom_distribution
+    description: >
+      Update: the status error code for a failed unknown patch update from
+      update.status after staging
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_STATUS_ERROR_CODE_UNKNOWN_STAGE.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_STATUS_ERROR_CODE_UNKNOWN_STAGE
+
+  bits_result_complete:
+    type: custom_distribution
+    description: >
+      Update: Result code from downloading a complete update via BITS
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_BITS_RESULT_COMPLETE.
+    range_min: 0
+    range_max: 99
+    bucket_count: 100
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_BITS_RESULT_COMPLETE
+
+  bits_result_partial:
+    type: custom_distribution
+    description: >
+      Update: Result code from downloading a partial update via BITS
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_BITS_RESULT_PARTIAL.
+    range_min: 0
+    range_max: 99
+    bucket_count: 100
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_BITS_RESULT_PARTIAL
