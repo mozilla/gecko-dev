@@ -37,7 +37,7 @@ class PropertiesViewContextMenu {
    * @param {Object} selection object representing the current selection
    * @param {Object} data object containing information
    * @param {Object} data.member member of the right-clicked row
-   * @param {Object} data.object the whole tree data
+   * @param {Object} data.object the whole tree data (can be optional)
    */
   open(event = {}, selection, { member, object }) {
     const menuItems = [
@@ -51,6 +51,7 @@ class PropertiesViewContextMenu {
         id: "properties-view-context-menu-copyall",
         label: L10N.getStr("netmonitor.context.copyAll"),
         accesskey: L10N.getStr("netmonitor.context.copyAll.accesskey"),
+        visible: !!object,
         click: () => this.copyAll(object, selection),
       },
     ];

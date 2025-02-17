@@ -383,20 +383,10 @@ class RequestListContentComponent extends Component {
         openRequestBlockingAndAddUrl,
         openRequestBlockingAndDisableUrls,
         removeBlockedUrl,
-        openRequestInTab: this.openRequestInTab,
       });
     }
 
-    const filteredBlockedUrls = blockedUrls
-      .map(({ enabled, url }) => (enabled ? url : null))
-      .filter(Boolean);
-
-    this.contextMenu.open(
-      evt,
-      clickedRequest,
-      displayedRequests,
-      filteredBlockedUrls
-    );
+    this.contextMenu.open(evt, clickedRequest, displayedRequests, blockedUrls);
   }
 
   render() {

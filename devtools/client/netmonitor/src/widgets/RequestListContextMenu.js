@@ -66,6 +66,12 @@ loader.lazyRequireGetter(
   "resource://devtools/client/netmonitor/src/selectors/index.js",
   true
 );
+loader.lazyRequireGetter(
+  this,
+  "openRequestInTab",
+  "resource://devtools/client/netmonitor/src/utils/firefox/open-request-in-tab.js",
+  true
+);
 
 const { OS } = Services.appinfo;
 
@@ -296,7 +302,6 @@ class RequestListContextMenu {
       sendCustomRequest,
       sendHTTPCustomRequest,
       openStatistics,
-      openRequestInTab,
       openRequestBlockingAndAddUrl,
       openRequestBlockingAndDisableUrls,
       removeBlockedUrl,
@@ -453,7 +458,8 @@ class RequestListContextMenu {
         label: L10N.getStr("netmonitor.context.newTab"),
         accesskey: L10N.getStr("netmonitor.context.newTab.accesskey"),
         visible: !!clickedRequest,
-        click: () => openRequestInTab(id, url, requestHeaders, requestPostData),
+        click: () =>
+          this.openRequestInTab(id, url, requestHeaders, requestPostData),
       },
       {
         id: "request-list-context-open-in-debugger",
@@ -501,8 +507,31 @@ class RequestListContextMenu {
     ];
   }
 
-  open(event, clickedRequest, requests, blockedUrls) {
-    const menu = this.createMenu(clickedRequest, requests, blockedUrls);
+  /**
+   * Opens selected item in a new tab.
+   */
+  async openRequestInTab(id, url, requestHeaders, requestPostData) {
+    requestHeaders =
+      requestHeaders ||
+      (await this.props.connector.requestData(id, "requestHeaders"));
+
+    requestPostData =
+      requestPostData ||
+      (await this.props.connector.requestData(id, "requestPostData"));
+
+    openRequestInTab(url, requestHeaders, requestPostData);
+  }
+
+  open(event, clickedRequest, displayedRequests, blockedUrls) {
+    const enabledBlockedUrls = blockedUrls
+      .map(({ enabled, url }) => (enabled ? url : null))
+      .filter(Boolean);
+
+    const menu = this.createMenu(
+      clickedRequest,
+      displayedRequests,
+      enabledBlockedUrls
+    );
 
     showMenu(menu, {
       screenX: event.screenX,
