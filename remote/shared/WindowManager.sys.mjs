@@ -250,7 +250,9 @@ class WindowManager {
       // to previous geometry changes, such as from restoreWindow(), so
       // wait longer if window geometry does not match.
       const options = {
-        checkFn: geometryMatches(/* retry = */ true),
+        checkFn() {
+          return geometryMatches(/* retry = */ true);
+        },
         timeout: 500,
       };
       const promises = [];
