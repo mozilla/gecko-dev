@@ -218,20 +218,20 @@ export var UpdateListener = {
   },
 
   showUpdateNotification(type, mainAction, mainActionDismiss, options = {}) {
-    const addTelemetry = id => {
+    const addTelemetry = metric => {
       // No telemetry for the "downloading" state.
       if (type !== "downloading") {
         // Histogram category labels can't have dashes in them.
         let telemetryType = type.replaceAll("-", "");
-        Services.telemetry.getHistogramById(id).add(telemetryType);
+        metric[telemetryType].add();
       }
     };
     let action = {
       callback(win, fromDoorhanger) {
         if (fromDoorhanger) {
-          addTelemetry("UPDATE_NOTIFICATION_MAIN_ACTION_DOORHANGER");
+          addTelemetry(Glean.update.notificationMainActionDoorhanger);
         } else {
-          addTelemetry("UPDATE_NOTIFICATION_MAIN_ACTION_MENU");
+          addTelemetry(Glean.update.notificationMainActionMenu);
         }
         mainAction(win);
       },
@@ -240,7 +240,7 @@ export var UpdateListener = {
 
     let secondaryAction = {
       callback() {
-        addTelemetry("UPDATE_NOTIFICATION_DISMISSED");
+        addTelemetry(Glean.update.notificationDismissed);
       },
       dismiss: true,
     };
@@ -251,9 +251,9 @@ export var UpdateListener = {
       options
     );
     if (options.dismissed) {
-      addTelemetry("UPDATE_NOTIFICATION_BADGE_SHOWN");
+      addTelemetry(Glean.update.notificationBadgeShown);
     } else {
-      addTelemetry("UPDATE_NOTIFICATION_SHOWN");
+      addTelemetry(Glean.update.notificationShown);
     }
   },
 

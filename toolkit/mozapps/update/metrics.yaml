@@ -1324,3 +1324,143 @@ update:
       - bytesized@mozilla.com
     expires: never
     telemetry_mirror: UPDATE_BITS_RESULT_PARTIAL
+
+  notification_shown:
+    type: labeled_counter
+    description: >
+      Update: the application update doorhanger type that was displayed.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram UPDATE_NOTIFICATION_SHOWN.
+    labels:
+      - restart
+      - available
+      - manual
+      - unsupported
+      - otherinstance
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOTIFICATION_SHOWN
+
+  notification_badge_shown:
+    type: labeled_counter
+    description: >
+      Update: the application update badge type that was displayed.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram UPDATE_NOTIFICATION_BADGE_SHOWN.
+    labels:
+      - restart
+      - available
+      - manual
+      - unsupported
+      - otherinstance
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1365204
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1365204
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOTIFICATION_BADGE_SHOWN
+
+  notification_dismissed:
+    type: labeled_counter
+    description: >
+      Update: the dismiss action was executed for this application update
+      doorhanger type.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram UPDATE_NOTIFICATION_DISMISSED.
+    labels:
+      - restart
+      - available
+      - manual
+      - unsupported
+      - otherinstance
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOTIFICATION_DISMISSED
+
+  notification_main_action_doorhanger:
+    type: labeled_counter
+    description: >
+      Update: the main update action was initiated for this application update
+      doorhanger type.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram UPDATE_NOTIFICATION_MAIN_ACTION_DOORHANGER.
+    labels:
+      - restart
+      - available
+      - manual
+      - unsupported
+      - otherinstance
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOTIFICATION_MAIN_ACTION_DOORHANGER
+
+  notification_main_action_menu:
+    type: labeled_counter
+    description: >
+      Update: the update action was initiated from the PanelUI application
+      update menu item.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram UPDATE_NOTIFICATION_MAIN_ACTION_MENU.
+    labels:
+      - restart
+      - available
+      - manual
+      - unsupported
+      - otherinstance
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=893505
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1521427
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1553982
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOTIFICATION_MAIN_ACTION_MENU
