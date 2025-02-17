@@ -193,6 +193,7 @@ class WebTransportSessionProxy final
   nsCOMPtr<nsIEventTarget> mTarget MOZ_GUARDED_BY(mMutex);
   nsTArray<RefPtr<nsIWebTransportHash>> mServerCertHashes;
   bool mDedicatedConnection;  // for WebTranport
+  nsIWebTransport::HTTPVersion mHTTPVersion = nsIWebTransport::HTTPVersion::h3;
 };
 
 }  // namespace mozilla::net

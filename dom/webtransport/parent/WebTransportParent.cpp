@@ -105,7 +105,7 @@ void WebTransportParent::Create(
         LOG(("WebTransport %p AsyncConnect", self.get()));
         if (NS_FAILED(self->mWebTransport->AsyncConnectWithClient(
                 uri, dedicated, std::move(nsServerCertHashes), principal, flags,
-                self, clientInfo))) {
+                self, clientInfo, nsIWebTransport::HTTPVersion::h3))) {
           LOG(("AsyncConnect failure; we should get OnSessionClosed"));
         }
       });
