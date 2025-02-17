@@ -51,7 +51,7 @@ class PocketUpdatesMiddlewareTest {
         val story2 = story1.copy("title2", "url2")
         val story3 = story1.copy("title3", "url3")
         val pocketService: PocketStoriesService = mockk(relaxed = true)
-        val pocketMiddleware = PocketUpdatesMiddleware(pocketService, mockk(), this)
+        val pocketMiddleware = PocketUpdatesMiddleware(lazy { pocketService }, mockk(), this)
         val appstore = AppStore(
             AppState(
                 recommendationState = ContentRecommendationsState(

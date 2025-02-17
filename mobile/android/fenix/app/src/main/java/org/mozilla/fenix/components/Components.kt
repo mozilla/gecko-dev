@@ -85,16 +85,16 @@ class Components(private val context: Context) {
     val useCases by lazyMonitored {
         UseCases(
             context,
-            core.engine,
-            core.store,
-            core.webAppShortcutManager,
-            core.topSitesStorage,
-            core.bookmarksStorage,
-            core.historyStorage,
-            backgroundServices.syncedTabsCommands,
-            appStore,
-            core.client,
-            strictMode,
+            lazyMonitored { core.engine },
+            lazyMonitored { core.store },
+            lazyMonitored { core.webAppShortcutManager },
+            lazyMonitored { core.topSitesStorage },
+            lazyMonitored { core.bookmarksStorage },
+            lazyMonitored { core.historyStorage },
+            lazyMonitored { backgroundServices.syncedTabsCommands },
+            lazyMonitored { appStore },
+            lazyMonitored { core.client },
+            lazyMonitored { strictMode },
         )
     }
 
@@ -222,7 +222,7 @@ class Components(private val context: Context) {
             middlewares = listOf(
                 BlocklistMiddleware(blocklistHandler),
                 PocketUpdatesMiddleware(
-                    core.pocketStoriesService,
+                    lazyMonitored { core.pocketStoriesService },
                     context.pocketStoriesSelectedCategoriesDataStore,
                 ),
                 MessagingMiddleware(

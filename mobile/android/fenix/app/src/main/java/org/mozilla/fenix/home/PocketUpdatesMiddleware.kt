@@ -38,7 +38,7 @@ import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
  * @param coroutineScope [CoroutineScope] used for long running operations like disk IO.
  */
 class PocketUpdatesMiddleware(
-    private val pocketStoriesService: PocketStoriesService,
+    private val pocketStoriesService: Lazy<PocketStoriesService>,
     private val selectedPocketCategoriesDataStore: DataStore<SelectedPocketStoriesCategories>,
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : Middleware<AppState, AppAction> {
@@ -72,7 +72,7 @@ class PocketUpdatesMiddleware(
             is ContentRecommendationsAction.PocketStoriesShown -> {
                 persistStoriesImpressions(
                     coroutineScope = coroutineScope,
-                    pocketStoriesService = pocketStoriesService,
+                    pocketStoriesService = pocketStoriesService.value,
                     updatedStories = action.impressions.map { it.story },
                 )
             }
