@@ -38,12 +38,8 @@ class nsHttpConnection;
 enum Http2StreamBaseType { Normal, WebSocket, Tunnel, ServerPush };
 
 // b23b147c-c4f8-4d6e-841a-09f29a010de7
-#define NS_HTTP2SESSION_IID                          \
-  {                                                  \
-    0xb23b147c, 0xc4f8, 0x4d6e, {                    \
-      0x84, 0x1a, 0x09, 0xf2, 0x9a, 0x01, 0x0d, 0xe7 \
-    }                                                \
-  }
+#define NS_HTTP2SESSION_IID \
+  {0xb23b147c, 0xc4f8, 0x4d6e, {0x84, 0x1a, 0x09, 0xf2, 0x9a, 0x01, 0x0d, 0xe7}}
 
 class Http2Session final : public ASpdySession,
                            public nsAHttpConnection,
@@ -158,7 +154,7 @@ class Http2Session final : public ASpdySession,
     SETTINGS_TYPE_MAX_FRAME_SIZE = 5,
     // 6 is SETTINGS_TYPE_MAX_HEADER_LIST - advisory, we ignore it
     // 7 is unassigned
-    // if sender implements extended CONNECT for websockets
+    // if sender implements extended CONNECT
     SETTINGS_TYPE_ENABLE_CONNECT_PROTOCOL = 8,
     // see rfc9218. used to disable HTTP/2 priority signals
     SETTINGS_NO_RFC7540_PRIORITIES = 9,
@@ -300,7 +296,7 @@ class Http2Session final : public ASpdySession,
   void SendPriorityUpdateFrame(uint32_t streamID, uint8_t urgency,
                                bool incremental);
 
-  WebSocketSupport GetWebSocketSupport() override;
+  ExtendedCONNECTSupport GetExtendedCONNECTSupport() override;
 
   already_AddRefed<nsHttpConnection> CreateTunnelStream(
       nsAHttpTransaction* aHttpTransaction, nsIInterfaceRequestor* aCallbacks,
@@ -618,16 +614,15 @@ class Http2Session final : public ASpdySession,
  private:
   uint32_t mTrrStreams;
 
-  // websockets
-  bool mEnableWebsockets;      // Whether we allow websockets, based on a pref
-  bool mPeerAllowsWebsockets;  // Whether our peer allows websockets, based on
-                               // SETTINGS
-  bool mProcessedWaitingWebsockets;  // True once we've received at least one
-                                     // SETTINGS
+  // Whether we allow websockets, based on a pref
+  bool mEnableWebsockets = false;
+  // Whether our peer allows extended CONNECT, based on SETTINGS
+  bool mPeerAllowsExtendedCONNECT = false;
+
   // Setting this to true means there is a transaction waiting for the result of
-  // WebSocket support. We'll need to process the pending queue once we've
-  // received the settings.
-  bool mHasTransactionWaitingForWebsockets = false;
+  // extended CONNECT support. We'll need to process the pending queue once
+  // we've received the settings.
+  bool mHasTransactionWaitingForExtendedCONNECT = false;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Http2Session, NS_HTTP2SESSION_IID);

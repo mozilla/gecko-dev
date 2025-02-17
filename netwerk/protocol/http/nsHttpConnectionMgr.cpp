@@ -1429,39 +1429,47 @@ nsresult nsHttpConnectionMgr::TryDispatchTransaction(
       (!nsHttpHandler::IsHttp3Enabled() || (caps & NS_HTTP_DISALLOW_HTTP3)));
   if (conn) {
     LOG(("TryingDispatchTransaction: an active h2 connection exists"));
-    WebSocketSupport wsSupp = conn->GetWebSocketSupport();
+    ExtendedCONNECTSupport extendedConnect = conn->GetExtendedCONNECTSupport();
     if (trans->IsWebsocketUpgrade()) {
-      LOG(("TryingDispatchTransaction: this is a websocket upgrade"));
-      if (wsSupp == WebSocketSupport::NO_SUPPORT) {
-        LOG((
-            "TryingDispatchTransaction: no support for websockets over Http2"));
-        // This is a websocket transaction and we already have a h2 connection
-        // that do not support websockets, we should disable h2 for this
-        // transaction.
-        trans->DisableSpdy();
-        caps &= NS_HTTP_DISALLOW_SPDY;
-        trans->MakeSticky();
-      } else if (wsSupp == WebSocketSupport::SUPPORTED) {
-        RefPtr<nsHttpConnection> connTCP = do_QueryObject(conn);
-        LOG(("TryingDispatchTransaction: websockets over Http2"));
+      RefPtr<nsHttpConnection> connTCP = do_QueryObject(conn);
+      if (connTCP) {
+        LOG(("TryingDispatchTransaction: extended CONNECT"));
+        if (extendedConnect == ExtendedCONNECTSupport::NO_SUPPORT) {
+          LOG((
+              "TryingDispatchTransaction: no support for extended CONNECT over "
+              "Http2"));
+          // This is a transaction wants to do extended CONNECT and we already
+          // have a h2 connection that do not support it, we should disable h2
+          // for this transaction.
+          trans->DisableSpdy();
+          caps &= NS_HTTP_DISALLOW_SPDY;
+          trans->MakeSticky();
+        } else if (extendedConnect == ExtendedCONNECTSupport::SUPPORTED) {
+          LOG(("TryingDispatchTransaction: extended CONNECT supported"));
 
-        // No limit for number of websockets, dispatch transaction to the tunnel
-        RefPtr<nsHttpConnection> connToTunnel;
-        connTCP->CreateTunnelStream(trans, getter_AddRefs(connToTunnel), true);
-        ent->InsertIntoH2WebsocketConns(connToTunnel);
-        trans->SetConnection(nullptr);
-        connToTunnel->SetInSpdyTunnel();  // tells conn it is already in tunnel
-        trans->SetIsHttp2Websocket(true);
-        nsresult rv = DispatchTransaction(ent, trans, connToTunnel);
-        // need to undo NonSticky bypass for transaction reset to continue
-        // for correct websocket upgrade handling
-        trans->MakeSticky();
-        return rv;
-      } else {
-        // if we aren't sure that websockets are supported yet or we are
-        // already at the connection limit then we queue the transaction
-        LOG(("TryingDispatchTransaction: unsure if websockets over Http2"));
-        return NS_ERROR_NOT_AVAILABLE;
+          // No limit for number of websockets, dispatch transaction to the
+          // tunnel
+          RefPtr<nsHttpConnection> connToTunnel;
+          connTCP->CreateTunnelStream(trans, getter_AddRefs(connToTunnel),
+                                      true);
+          ent->InsertIntoH2WebsocketConns(connToTunnel);
+          trans->SetConnection(nullptr);
+          connToTunnel
+              ->SetInSpdyTunnel();  // tells conn it is already in tunnel
+          trans->SetIsHttp2Websocket(true);
+          nsresult rv = DispatchTransaction(ent, trans, connToTunnel);
+          // need to undo NonSticky bypass for transaction reset to continue
+          // for correct websocket upgrade handling
+          trans->MakeSticky();
+          return rv;
+        } else {
+          // if we aren't sure that extended CONNECT is supported yet or we are
+          // already at the connection limit then we queue the transaction
+          LOG(
+              ("TryingDispatchTransaction: unsure if extended CONNECT "
+               "supported"));
+          return NS_ERROR_NOT_AVAILABLE;
+        }
       }
     } else {
       if ((caps & NS_HTTP_ALLOW_KEEPALIVE) ||

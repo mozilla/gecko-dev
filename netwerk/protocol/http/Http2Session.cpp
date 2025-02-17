@@ -168,10 +168,7 @@ Http2Session::Http2Session(nsISocketTransport* aSocketTransport,
       mCntActivated(0),
       mTlsHandshakeFinished(false),
       mPeerFailedHandshake(false),
-      mTrrStreams(0),
-      mEnableWebsockets(false),
-      mPeerAllowsWebsockets(false),
-      mProcessedWaitingWebsockets(false) {
+      mTrrStreams(0) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
   static uint64_t sSerial;
@@ -1284,7 +1281,8 @@ Http2StreamTunnel* Http2Session::CreateTunnelStreamFromConnInfo(
 
   if (isWebSocket) {
     LOG(("Http2Session creating Http2StreamWebSocket"));
-    MOZ_ASSERT(session->GetWebSocketSupport() == WebSocketSupport::SUPPORTED);
+    MOZ_ASSERT(session->GetExtendedCONNECTSupport() ==
+               ExtendedCONNECTSupport::SUPPORTED);
     return new Http2StreamWebSocket(
         session, nsISupportsPriority::PRIORITY_NORMAL, bcId, info);
   }
@@ -1820,16 +1818,16 @@ nsresult Http2Session::RecvSettings(Http2Session* self) {
       case SETTINGS_TYPE_ENABLE_CONNECT_PROTOCOL: {
         if (value == 1) {
           LOG3(("Enabling extended CONNECT"));
-          self->mPeerAllowsWebsockets = true;
+          self->mPeerAllowsExtendedCONNECT = true;
         } else if (value > 1) {
           LOG3(("Peer sent invalid value for ENABLE_CONNECT_PROTOCOL %d",
                 value));
           return self->SessionError(PROTOCOL_ERROR);
-        } else if (self->mPeerAllowsWebsockets) {
+        } else if (self->mPeerAllowsExtendedCONNECT) {
           LOG3(("Peer tried to re-disable extended CONNECT"));
           return self->SessionError(PROTOCOL_ERROR);
         }
-        self->mHasTransactionWaitingForWebsockets = true;
+        self->mHasTransactionWaitingForExtendedCONNECT = true;
       } break;
 
       default:
@@ -1846,17 +1844,13 @@ nsresult Http2Session::RecvSettings(Http2Session* self) {
     self->mGoAwayOnPush = true;
   }
 
-  if (!self->mProcessedWaitingWebsockets) {
-    self->mProcessedWaitingWebsockets = true;
-  }
-
-  if (self->mHasTransactionWaitingForWebsockets) {
+  if (self->mHasTransactionWaitingForExtendedCONNECT) {
     // trigger a queued websockets transaction -- enabled or not
-    LOG3(("Http2Sesssion::RecvSettings triggering queued websocket"));
+    LOG3(("Http2Sesssion::RecvSettings triggering queued transactions"));
     RefPtr<nsHttpConnectionInfo> ci;
     self->GetConnectionInfo(getter_AddRefs(ci));
     gHttpHandler->ConnMgr()->ProcessPendingQ(ci);
-    self->mHasTransactionWaitingForWebsockets = false;
+    self->mHasTransactionWaitingForExtendedCONNECT = false;
   }
 
   return NS_OK;
@@ -3879,7 +3873,6 @@ void Http2Session::Close(nsresult aReason) {
   mStreamIDHash.Clear();
   mStreamTransactionHash.Clear();
   mTunnelStreams.Clear();
-  mProcessedWaitingWebsockets = true;
 
   uint32_t goAwayReason;
   if (mGoAwayReason != NO_HTTP_ERROR) {
@@ -4604,25 +4597,26 @@ void Http2Session::SetCleanShutdown(bool aCleanShutdown) {
   mCleanShutdown = aCleanShutdown;
 }
 
-WebSocketSupport Http2Session::GetWebSocketSupport() {
-  LOG3(("Http2Session::GetWebSocketSupport %p enable=%d allow=%d processed=%d",
-        this, mEnableWebsockets, mPeerAllowsWebsockets,
-        mProcessedWaitingWebsockets));
+ExtendedCONNECTSupport Http2Session::GetExtendedCONNECTSupport() {
+  LOG3(
+      ("Http2Session::GetExtendedCONNECTSupport %p enable=%d peer allow=%d "
+       "receved setting=%d",
+       this, mEnableWebsockets, mPeerAllowsExtendedCONNECT, mReceivedSettings));
 
-  if (!mEnableWebsockets) {
-    return WebSocketSupport::NO_SUPPORT;
+  if (!mEnableWebsockets || mClosed) {
+    return ExtendedCONNECTSupport::NO_SUPPORT;
   }
 
-  if (mPeerAllowsWebsockets) {
-    return WebSocketSupport::SUPPORTED;
+  if (mPeerAllowsExtendedCONNECT) {
+    return ExtendedCONNECTSupport::SUPPORTED;
   }
 
-  if (!mProcessedWaitingWebsockets) {
-    mHasTransactionWaitingForWebsockets = true;
-    return WebSocketSupport::UNSURE;
+  if (!mReceivedSettings) {
+    mHasTransactionWaitingForExtendedCONNECT = true;
+    return ExtendedCONNECTSupport::UNSURE;
   }
 
-  return WebSocketSupport::NO_SUPPORT;
+  return ExtendedCONNECTSupport::NO_SUPPORT;
 }
 
 PRIntervalTime Http2Session::LastWriteTime() {

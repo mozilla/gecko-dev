@@ -2317,17 +2317,17 @@ bool nsHttpConnection::NoClientCertAuth() const {
   return !tlsSocketControl->GetClientCertSent();
 }
 
-WebSocketSupport nsHttpConnection::GetWebSocketSupport() {
-  LOG3(("nsHttpConnection::GetWebSocketSupport"));
+ExtendedCONNECTSupport nsHttpConnection::GetExtendedCONNECTSupport() {
+  LOG3(("nsHttpConnection::GetExtendedCONNECTSupport"));
   if (!UsingSpdy()) {
-    return WebSocketSupport::SUPPORTED;
+    return ExtendedCONNECTSupport::SUPPORTED;
   }
-  LOG3(("nsHttpConnection::GetWebSocketSupport checking spdy session"));
+  LOG3(("nsHttpConnection::ExtendedCONNECTSupport checking spdy session"));
   if (mSpdySession) {
-    return mSpdySession->GetWebSocketSupport();
+    return mSpdySession->GetExtendedCONNECTSupport();
   }
 
-  return WebSocketSupport::NO_SUPPORT;
+  return ExtendedCONNECTSupport::NO_SUPPORT;
 }
 
 bool nsHttpConnection::IsProxyConnectInProgress() {
