@@ -1351,3 +1351,159 @@ timestamps:
     expires: never
     unit: ms
     telemetry_mirror: TIMESTAMPS_ABOUT_HOME_TOPSITES_FIRST_PAINT
+
+browser.sanitizer:
+  total:
+    type: timing_distribution
+    description: >
+      Sanitize: Total time it takes to sanitize (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_TOTAL.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_TOTAL
+
+  cache:
+    type: timing_distribution
+    description: >
+      Sanitize: Time it takes to sanitize the cache (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_CACHE.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_CACHE
+
+  cookies:
+    type: timing_distribution
+    description: >
+      Sanitize: Time it takes to sanitize firefox cookies (ms). A subset of
+      FX_SANITIZE_COOKIES.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_COOKIES_2.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_COOKIES_2
+
+  history:
+    type: timing_distribution
+    description: >
+      Sanitize: Time it takes to sanitize history (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_HISTORY.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_HISTORY
+
+  formdata:
+    type: timing_distribution
+    description: >
+      Sanitize: Time it takes to sanitize stored form data (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_FORMDATA.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_FORMDATA
+
+  downloads:
+    type: timing_distribution
+    description: >
+      Sanitize: Time it takes to sanitize recent downloads (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_DOWNLOADS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_DOWNLOADS
+
+  sessions:
+    type: timing_distribution
+    description: >
+      Sanitize: Time it takes to sanitize saved sessions (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_SESSIONS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_SESSIONS
+
+  sitesettings:
+    type: timing_distribution
+    description: >
+      Sanitize: Time it takes to sanitize site-specific settings (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_SITESETTINGS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_SITESETTINGS
+
+  openwindows:
+    type: timing_distribution
+    description: >
+      Sanitize: Time it takes to sanitize the open windows list (ms). On
+      Android, this is the time it takes to close all open tabs (ms).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SANITIZE_OPENWINDOWS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SANITIZE_OPENWINDOWS

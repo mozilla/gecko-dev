@@ -499,17 +499,15 @@ export var Sanitizer = {
   items: {
     cache: {
       async clear(range) {
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_CACHE", refObj);
+        let timerId = Glean.browserSanitizer.cache.start();
         await clearData(range, Ci.nsIClearDataService.CLEAR_ALL_CACHES);
-        TelemetryStopwatch.finish("FX_SANITIZE_CACHE", refObj);
+        Glean.browserSanitizer.cache.stopAndAccumulate(timerId);
       },
     },
 
     cookies: {
       async clear(range, { progress }, clearHonoringExceptions) {
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_COOKIES_2", refObj);
+        let timerId = Glean.browserSanitizer.cookies.start();
         // This is true if called by sanitizeOnShutdown.
         // On shutdown we clear by principal to be able to honor the users exceptions
         if (clearHonoringExceptions) {
@@ -535,7 +533,7 @@ export var Sanitizer = {
           );
         }
         await clearData(range, Ci.nsIClearDataService.CLEAR_MEDIA_DEVICES);
-        TelemetryStopwatch.finish("FX_SANITIZE_COOKIES_2", refObj);
+        Glean.browserSanitizer.cookies.stopAndAccumulate(timerId);
       },
     },
 
@@ -575,8 +573,7 @@ export var Sanitizer = {
         }
         progress.step = "getAllPrincipals";
         let principals = await gPrincipalsCollector.getAllPrincipals(progress);
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_HISTORY", refObj);
+        let timerId = Glean.browserSanitizer.history.start();
         progress.step = "clearing browsing history";
         await clearData(
           range,
@@ -598,15 +595,14 @@ export var Sanitizer = {
             resolve
           );
         });
-        TelemetryStopwatch.finish("FX_SANITIZE_HISTORY", refObj);
+        Glean.browserSanitizer.history.stopAndAccumulate(timerId);
       },
     },
 
     formdata: {
       async clear(range) {
         let seenException;
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_FORMDATA", refObj);
+        let timerId = Glean.browserSanitizer.formdata.start();
         try {
           // Clear undo history of all search bars.
           for (let currentWindow of Services.wm.getEnumerator(
@@ -654,7 +650,7 @@ export var Sanitizer = {
           seenException = ex;
         }
 
-        TelemetryStopwatch.finish("FX_SANITIZE_FORMDATA", refObj);
+        Glean.browserSanitizer.formdata.stopAndAccumulate(timerId);
         if (seenException) {
           throw seenException;
         }
@@ -663,30 +659,27 @@ export var Sanitizer = {
 
     downloads: {
       async clear(range) {
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_DOWNLOADS", refObj);
+        let timerId = Glean.browserSanitizer.downloads.start();
         await clearData(range, Ci.nsIClearDataService.CLEAR_DOWNLOADS);
-        TelemetryStopwatch.finish("FX_SANITIZE_DOWNLOADS", refObj);
+        Glean.browserSanitizer.downloads.stopAndAccumulate(timerId);
       },
     },
 
     sessions: {
       async clear(range) {
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_SESSIONS", refObj);
+        let timerId = Glean.browserSanitizer.sessions.start();
         await clearData(
           range,
           Ci.nsIClearDataService.CLEAR_AUTH_TOKENS |
             Ci.nsIClearDataService.CLEAR_AUTH_CACHE
         );
-        TelemetryStopwatch.finish("FX_SANITIZE_SESSIONS", refObj);
+        Glean.browserSanitizer.sessions.stopAndAccumulate(timerId);
       },
     },
 
     siteSettings: {
       async clear(range) {
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_SITESETTINGS", refObj);
+        let timerId = Glean.browserSanitizer.sitesettings.start();
         await clearData(
           range,
           Ci.nsIClearDataService.CLEAR_SITE_PERMISSIONS |
@@ -698,7 +691,7 @@ export var Sanitizer = {
             Ci.nsIClearDataService.CLEAR_COOKIE_BANNER_EXCEPTION |
             Ci.nsIClearDataService.CLEAR_FINGERPRINTING_PROTECTION_STATE
         );
-        TelemetryStopwatch.finish("FX_SANITIZE_SITESETTINGS", refObj);
+        Glean.browserSanitizer.sitesettings.stopAndAccumulate(timerId);
       },
     },
 
@@ -754,8 +747,7 @@ export var Sanitizer = {
 
         // If/once we get here, we should actually be able to close all windows.
 
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_OPENWINDOWS", refObj);
+        let timerId = Glean.browserSanitizer.openwindows.start();
 
         // First create a new window. We do this first so that on non-mac, we don't
         // accidentally close the app by closing all the windows.
@@ -811,7 +803,7 @@ export var Sanitizer = {
             newWindowOpened = true;
             // If we're the last thing to happen, invoke callback.
             if (numWindowsClosing == 0) {
-              TelemetryStopwatch.finish("FX_SANITIZE_OPENWINDOWS", refObj);
+              Glean.browserSanitizer.openwindows.stopAndAccumulate(timerId);
               resolve();
             }
           };
@@ -826,7 +818,7 @@ export var Sanitizer = {
               );
               // If we're the last thing to happen, invoke callback.
               if (newWindowOpened) {
-                TelemetryStopwatch.finish("FX_SANITIZE_OPENWINDOWS", refObj);
+                Glean.browserSanitizer.openwindows.stopAndAccumulate(timerId);
                 resolve();
               }
             }
@@ -857,8 +849,7 @@ export var Sanitizer = {
       async clear(range, { progress }) {
         progress.step = "getAllPrincipals";
         let principals = await gPrincipalsCollector.getAllPrincipals(progress);
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_HISTORY", refObj);
+        let timerId = Glean.browserSanitizer.history.start();
         progress.step = "clearing browsing history";
         await clearData(
           range,
@@ -880,20 +871,18 @@ export var Sanitizer = {
             resolve
           );
         });
-        TelemetryStopwatch.finish("FX_SANITIZE_HISTORY", refObj);
+        Glean.browserSanitizer.history.stopAndAccumulate(timerId);
 
         // clear Downloads
-        refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_DOWNLOADS", refObj);
+        timerId = Glean.browserSanitizer.downloads.start();
         await clearData(range, Ci.nsIClearDataService.CLEAR_DOWNLOADS);
-        TelemetryStopwatch.finish("FX_SANITIZE_DOWNLOADS", refObj);
+        Glean.browserSanitizer.downloads.stopAndAccumulate(timerId);
       },
     },
 
     cookiesAndStorage: {
       async clear(range, { progress }, clearHonoringExceptions) {
-        let refObj = {};
-        TelemetryStopwatch.start("FX_SANITIZE_COOKIES_2", refObj);
+        let timerId = Glean.browserSanitizer.cookies.start();
         // This is true if called by sanitizeOnShutdown.
         // On shutdown we clear by principal to be able to honor the users exceptions
         if (clearHonoringExceptions) {
@@ -913,7 +902,7 @@ export var Sanitizer = {
           );
         }
         await clearData(range, Ci.nsIClearDataService.CLEAR_MEDIA_DEVICES);
-        TelemetryStopwatch.finish("FX_SANITIZE_COOKIES_2", refObj);
+        Glean.browserSanitizer.cookies.stopAndAccumulate(timerId);
       },
     },
   },
@@ -974,8 +963,7 @@ async function sanitizeInternal(items, aItemsToClear, options) {
   // we catch and store them, but continue to sanitize as much as possible.
   // Callers should check returned errors and give user feedback
   // about items that could not be sanitized
-  let refObj = {};
-  TelemetryStopwatch.start("FX_SANITIZE_TOTAL", refObj);
+  let timerId = Glean.browserSanitizer.total.start();
 
   let annotateError = (name, ex) => {
     progress[name] = "failed";
@@ -1016,7 +1004,7 @@ async function sanitizeInternal(items, aItemsToClear, options) {
   await Promise.all(handles.map(h => h.promise));
 
   log("All sanitizations are complete");
-  TelemetryStopwatch.finish("FX_SANITIZE_TOTAL", refObj);
+  Glean.browserSanitizer.total.stopAndAccumulate(timerId);
   if (!progress.isShutdown) {
     removePendingSanitization(uid);
   }
