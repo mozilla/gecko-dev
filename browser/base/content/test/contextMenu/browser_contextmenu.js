@@ -72,7 +72,6 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.search.separatePrivateDefault.ui.enabled", true],
-      ["extensions.screenshots.disabled", false],
       ["privacy.query_stripping.strip_on_share.canDisable", false],
     ],
   });
