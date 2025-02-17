@@ -13,4 +13,6 @@
     <string name="mozac_feature_applinks_confirm_dialog_confirm">Digeriñ</string>
     <!-- Cancels the prompt -->
     <string name="mozac_feature_applinks_confirm_dialog_deny">Nullañ</string>
-    </resources>
+    <!-- The label of the checkbox that, depending of user's choice, can change the Open links in apps setting -->
+    <string name="mozac_feature_applinks_confirm_dialog_checkbox_label">Bepred digeriñ ereoù e arloadoù</string>
+</resources>

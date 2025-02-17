@@ -22,6 +22,8 @@
      then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
      %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission. -->
     <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Haeziñ ho roadennoù war %1$d a zomanioù all</string>
+    <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+    <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Haeziñ ho roadennoù evit lec’hiennoù en domanioù %1$d</string>
     <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
     <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d diwar %3$d</string>
     <!-- Description for tabs add-on permission. -->
@@ -70,8 +72,18 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Diskouez ha kuzhat ivinelloù ar merdeer</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Lenn ar roll istor merdeiñ</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Pellgargañ hag erounit patromoù NA war ho trevnad</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Aotren skriptoù tredeoù da haeziñ ho roadennoù</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Skriptoù n\'int ket gwiriekaet a c\'hall sevel kudennoù diogelroez ha buhez prevez. Erounit skriptoù askouezhioù pe mammennoù ho peuz fiziañs eno.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Digeriñ an ostilhoù diorren evit haeziñ ho roadennoù en ivinelloù digor</string>
+    <!-- Description for text button that expands the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_all_sites">Diskouez an holl lec\'hiennoù</string>
+    <!-- Description for text button that hides the majority of the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_fewer_sites">Diskouez nebeutoc\'h a lec\'hiennoù</string>
     <!-- The version on of add-on. -->
     <string name="mozac_feature_addons_version">Handelv</string>
     <!-- The author of an add-on. -->
