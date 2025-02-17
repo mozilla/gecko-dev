@@ -647,7 +647,7 @@ networking:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1873551
     notification_emails:
       - smayya@mozilla.com
-    expires: 138
+    expires: 146
     labels:
       - total_keepalive_limit
       - per_origin_limit
@@ -663,7 +663,7 @@ networking:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1873551
     notification_emails:
       - smayya@mozilla.com
-    expires: 138
+    expires: 146
     labels:
       - worker
       - main
