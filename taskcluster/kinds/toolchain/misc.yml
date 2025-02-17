@@ -296,7 +296,7 @@ linux64-custom-car:
         symbol: TL(custom-car)
     worker:
         docker-image: {in-tree: custom-car-linux}
-        max-run-time: 18000
+        max-run-time: 25000
     use-python: default
     run-on-projects: []
     run:
