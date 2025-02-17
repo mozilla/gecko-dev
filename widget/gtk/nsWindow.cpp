@@ -8851,7 +8851,8 @@ void nsWindow::SetCustomTitlebar(bool aState) {
     g_object_set_data(G_OBJECT(GetToplevelGdkWindow()), "nsWindow", this);
 
     if (AreBoundsSane()) {
-      GdkRectangle size = DevicePixelsToGdkSizeRoundUp(mBounds.Size());
+      GdkRectangle size =
+          DevicePixelsToGdkSizeRoundUp(GetClientBounds().Size());
       LOG("    resize to %d x %d\n", size.width, size.height);
       gtk_window_resize(GTK_WINDOW(mShell), size.width, size.height);
     }
