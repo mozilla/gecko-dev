@@ -9,7 +9,7 @@ Accessing the inspector
 
 When you are inspecting a web app that utilizes a web socket connection, the web socket requests are listed in the list of requests in the Network Monitor along with all other requests.
 
-.. image:: wsi-filiter.png
+.. image:: wsi-filter.png
   :alt: WS filter in the network inspector
 
 You can use the WS button to filter the list for just web socket connections. Only requests with the `101 status code <https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/101>`_ (WebSocket Protocol Handshake) are visible, which indicates that the server is switching to a web socket connection.
