@@ -17,6 +17,9 @@
 
 #include "builtin/intl/CommonFunctions.h"
 #include "builtin/intl/FormatBuffer.h"
+#ifdef JS_HAS_TEMPORAL_API
+#  include "builtin/temporal/Duration.h"
+#endif
 #include "gc/AllocKind.h"
 #include "gc/GCContext.h"
 #include "js/CallArgs.h"
@@ -28,6 +31,7 @@
 #include "vm/GlobalObject.h"
 #include "vm/JSContext.h"
 #include "vm/PlainObject.h"
+#include "vm/SelfHosting.h"
 #include "vm/WellKnownAtom.h"
 
 #include "vm/JSObject-inl.h"
@@ -156,3 +160,31 @@ bool js::intl_GetTimeSeparator(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setString(str);
   return true;
 }
+
+#ifdef JS_HAS_TEMPORAL_API
+bool js::TemporalDurationToLocaleString(JSContext* cx,
+                                        const JS::CallArgs& args) {
+  MOZ_ASSERT(args.thisv().isObject());
+  MOZ_ASSERT(args.thisv().toObject().is<temporal::DurationObject>());
+
+  Rooted<DurationFormatObject*> durationFormat(
+      cx, NewBuiltinClassInstance<DurationFormatObject>(cx));
+  if (!durationFormat) {
+    return false;
+  }
+
+  if (!intl::InitializeObject(cx, durationFormat,
+                              cx->names().InitializeDurationFormat, args.get(0),
+                              args.get(1))) {
+    return false;
+  }
+
+  Rooted<Value> thisv(cx, ObjectValue(*durationFormat));
+
+  FixedInvokeArgs<1> invokeArgs(cx);
+  invokeArgs[0].set(args.thisv());
+
+  return CallSelfHostedFunction(cx, cx->names().Intl_DurationFormat_format,
+                                thisv, invokeArgs, args.rval());
+}
+#endif

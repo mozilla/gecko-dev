@@ -324,6 +324,7 @@
   MACRO_(integer, "integer")                                                   \
   MACRO_(interface, "interface")                                               \
   MACRO_(InterpretGeneratorResume, "InterpretGeneratorResume")                 \
+  MACRO_(Intl_DurationFormat_format, "Intl_DurationFormat_format")             \
   MACRO_(Invalid_Date_, "Invalid Date")                                        \
   MACRO_(isBreakpoint, "isBreakpoint")                                         \
   IF_EXPLICIT_RESOURCE_MANAGEMENT_OR_DECORATORS(                               \
