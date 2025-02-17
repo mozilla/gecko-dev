@@ -16,7 +16,6 @@ exclude: true
 ## v137
 - ⚠️ [`GeckoSession.requestAnalysis`][118.4], [`GeckoSession.requestCreateAnalysis`][122.2], [`GeckoSession.requestAnalysisStatus`][137.1], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.pollForAnalysisCompleted`][137.2], [`GeckoSession.sendClickAttributionEvent`][121.4], [`GeckoSession.sendImpressionAttributionEvent`][121.5], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.requestRecommendations`][118.5], [`GeckoSession.reportBackInStock`][122.1], `AnalysisStatusResponse`, [`ReviewAnalysis`][120.2] and [`Recommendation`][120.3] are deprecated, and it will be deleted in version 139 see https://bugzilla.mozilla.org/show_bug.cgi?id=1941470.
 - Added support for controlling `network.trr.default_provider_uri` via [`GeckoRuntimeSettings.setDefaultRecursiveResolverUri`][137.3] and [`GeckoRuntimeSettings.getDefaultRecursiveResolverUri`][137.4]
-- Added [`GeckoSession.Loader.originalInput`][137.5] option, which allows passing through the original user address bar input
 - [`GeckoRuntimeSettings.getFingerprintingProtection`][137.6] and [`GeckoRuntimeSettings.getFingerprintingProtectionPrivateBrowsing`][137.7] are now `@Nullable` to indicates that their values are controlled by the engine.
 - Added support for controlling `security.tls.enable_kyber` and `network.http.http3.enable_kyber` via [`GeckoRuntimeSettings.setPostQuantumKeyExchangeEnabled`][137.8]
 
@@ -24,7 +23,6 @@ exclude: true
 [137.2]: {{javadoc_uri}}/GeckoSession.html#pollForAnalysisCompleted(String)
 [137.3]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setDefaultRecursiveResolverUri
 [137.4]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getDefaultRecursiveResolverUri
-[137.5]: {{javadoc_uri}}/GeckoSession.Loader.html#originalInput(java.lang.String)
 [137.6]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getFingerprintingProtection
 [137.7]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getFingerprintingProtectionPrivateBrowsing
 [137.8]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setPostQuantumKeyExchangeEnabled
@@ -33,11 +31,13 @@ exclude: true
 - Added support for controlling `security.pki.certificate_transparency.mode` via [`GeckoRuntimeSettings.setCertificateTransparencyMode`][136.1]
 - Added [`GeckoSession.CompositorScrollDelegate`][136.2] interface, which allows reacting to scroll position changes as soon as they are composited
 - Added support for controlling `network.trr.excluded-domains` via [`GeckoRuntimeSettings.setTrustedRecursiveResolverExcludedDomains`][136.3] and [`GeckoRuntimeSettings.getTrustedRecursiveResolverExcludedDomains`][136.4]
+- Added [`GeckoSession.Loader.originalInput`][136.5] option, which allows passing through the original user address bar input
 
 [136.1]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setCertificateTransparencyMode
 [136.2]: {{javadoc_uri}}/GeckoSession.html#CompositorScrollDelegate
 [136.3]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setTrustedRecursiveResolverExcludedDomains
 [136.4]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getTrustedRecursiveResolverExcludedDomains
+[136.5]: {{javadoc_uri}}/GeckoSession.Loader.html#originalInput(java.lang.String)
 
 ## v134
 - ⚠️ [`WebExtensionController.PromptDelegate.onInstallPrompt`][133.5] is removed see https://bugzilla.mozilla.org/show_bug.cgi?id=1919374 for more details.
