@@ -1,10 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?><!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+
 <TextView android:id="@+id/show_hide_permissions"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:textColor="@color/photonViolet70"
+    android:textColor="@color/mozac_feature_addons_text_color_accent"
     android:textSize="14sp"
-    android:textStyle="bold"
     tools:text="@string/mozac_feature_addons_permissions_show_all_sites"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
