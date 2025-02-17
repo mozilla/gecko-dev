@@ -752,7 +752,29 @@ let JSWINDOWACTORS = {
     },
     matches: ["about:editprofile", "about:deleteprofile", "about:newprofile"],
     remoteTypes: ["privilegedabout"],
-    enablePreference: "browser.profiles.enabled",
+    onAddActor(register, unregister) {
+      let registered = false;
+
+      const maybeRegister = () => {
+        let isEnabled = lazy.SelectableProfileService.isEnabled;
+
+        if (isEnabled && !registered) {
+          register();
+        } else if (!isEnabled && registered) {
+          unregister();
+        }
+
+        registered = isEnabled;
+      };
+
+      // Defer all this logic until a little later in startup
+      Services.obs.addObserver(() => {
+        // Update when the pref changes
+        lazy.SelectableProfileService.on("enableChanged", maybeRegister);
+
+        maybeRegister();
+      }, "final-ui-startup");
+    },
   },
 
   Prompt: {

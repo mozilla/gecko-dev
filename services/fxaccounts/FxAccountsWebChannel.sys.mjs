@@ -92,12 +92,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "browserProfilesEnabled",
-  "browser.profiles.enabled",
-  false
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "allowSyncMerge",
   "browser.profiles.sync.allow-danger-merge",
   false
@@ -293,7 +287,7 @@ FxAccountsWebChannel.prototype = {
         {
           let response = { command, messageId: message.messageId };
           // If browser profiles are not enabled, then we use the old merge sync dialog
-          if (!lazy.browserProfilesEnabled) {
+          if (!lazy.SelectableProfileService.isEnabled) {
             response.data = { ok: this._helpers.shouldAllowRelink(data.email) };
             this._channel.send(response, sendingContext);
             break;
@@ -1224,7 +1218,7 @@ FxAccountsWebChannelHelpers.prototype = {
   ) {
     let variant;
 
-    if (!lazy.browserProfilesEnabled) {
+    if (!lazy.SelectableProfileService.isEnabled) {
       // Old merge dialog
       variant = "old-merge";
     } else if (isAccountLoggedIntoAnotherProfile) {
