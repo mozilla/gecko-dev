@@ -1524,9 +1524,12 @@ class PointerMoveAction extends PointerAction {
    * @param {string} id
    *     Id of {@link InputSource}.
    * @param {object} options
-   * @param {number} options.button
-   *     Button being pressed. For devices without buttons (e.g. touch),
-   *     this should be 0.
+   * @param {number} options.origin
+   *     {@link Origin} of target coordinates.
+   * @param {number} options.x
+   *     X value of scroll coordinates.
+   * @param {number} options.y
+   *     Y value of scroll coordinates.
    * @param {number=} options.width
    *     Width of pointer in pixels.
    * @param {number=} options.height
@@ -1668,13 +1671,13 @@ class PointerMoveAction extends PointerAction {
 
     const originObject = await Origin.fromJSON(origin, options);
 
-    lazy.assert.integer(
+    lazy.assert.number(
       x,
-      lazy.pprint`Expected "x" to be an integer, got ${x}`
+      lazy.pprint`Expected "x" to be a finite number, got ${x}`
     );
-    lazy.assert.integer(
+    lazy.assert.number(
       y,
-      lazy.pprint`Expected "y" to be an integer, got ${y}`
+      lazy.pprint`Expected "y" to be a finite number, got ${y}`
     );
 
     const props = PointerAction.validateCommon(actionItem);

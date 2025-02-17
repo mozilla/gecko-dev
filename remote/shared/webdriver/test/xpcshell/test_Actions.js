@@ -155,7 +155,7 @@ add_task(async function test_validateActionDurationAndCoordinates() {
     actionItem[name] = "a";
     await checkFromJSONErrors(
       [actionItem],
-      /Expected ".*" to be an integer/,
+      /Expected "." to be a finite number/,
       `${name}: "a", subtype: pointerMove`
     );
   }
