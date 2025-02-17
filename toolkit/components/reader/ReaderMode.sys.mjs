@@ -284,9 +284,9 @@ export var ReaderMode = {
       xhr.onload = () => {
         if (xhr.status !== 200) {
           reject("Reader mode XHR failed with status: " + xhr.status);
-          Services.telemetry
-            .getHistogramById("READER_MODE_DOWNLOAD_RESULT")
-            .add(DOWNLOAD_ERROR_XHR);
+          Glean.readermode.downloadResult.accumulateSingleSample(
+            DOWNLOAD_ERROR_XHR
+          );
           return;
         }
 
@@ -294,9 +294,9 @@ export var ReaderMode = {
           xhr.responseType === "text" ? xhr.responseText : xhr.responseXML;
         if (!doc) {
           reject("Reader mode XHR didn't return a document");
-          Services.telemetry
-            .getHistogramById("READER_MODE_DOWNLOAD_RESULT")
-            .add(DOWNLOAD_ERROR_NO_DOC);
+          Glean.readermode.downloadResult.accumulateSingleSample(
+            DOWNLOAD_ERROR_NO_DOC
+          );
           return;
         }
 
@@ -323,9 +323,9 @@ export var ReaderMode = {
         }
 
         // We treat redirects as download successes here:
-        Services.telemetry
-          .getHistogramById("READER_MODE_DOWNLOAD_RESULT")
-          .add(DOWNLOAD_SUCCESS);
+        Glean.readermode.downloadResult.accumulateSingleSample(
+          DOWNLOAD_SUCCESS
+        );
 
         let result = { doc };
         if (responseURL != givenURL) {
@@ -363,9 +363,9 @@ export var ReaderMode = {
             numTags +
             " elements found"
         );
-        Services.telemetry
-          .getHistogramById("READER_MODE_PARSE_RESULT")
-          .add(PARSE_ERROR_TOO_MANY_ELEMENTS);
+        Glean.readermode.parseResult.accumulateSingleSample(
+          PARSE_ERROR_TOO_MANY_ELEMENTS
+        );
         return null;
       }
     }
@@ -419,16 +419,14 @@ export var ReaderMode = {
       ]);
     } catch (e) {
       console.error("Error in ReaderWorker: ", e);
-      Services.telemetry
-        .getHistogramById("READER_MODE_PARSE_RESULT")
-        .add(PARSE_ERROR_WORKER);
+      Glean.readermode.parseResult.accumulateSingleSample(PARSE_ERROR_WORKER);
     }
 
     if (!article) {
       this.log("Worker did not return an article");
-      Services.telemetry
-        .getHistogramById("READER_MODE_PARSE_RESULT")
-        .add(PARSE_ERROR_NO_ARTICLE);
+      Glean.readermode.parseResult.accumulateSingleSample(
+        PARSE_ERROR_NO_ARTICLE
+      );
       return null;
     }
 
@@ -451,9 +449,7 @@ export var ReaderMode = {
 
     this._assignReadTime(article);
 
-    Services.telemetry
-      .getHistogramById("READER_MODE_PARSE_RESULT")
-      .add(PARSE_SUCCESS);
+    Glean.readermode.parseResult.accumulateSingleSample(PARSE_SUCCESS);
     return article;
   },
 

@@ -73,3 +73,48 @@ readermode:
           The type of button clicked.
         type: string
     telemetry_mirror: Readermode_Button_Click
+
+  parse_result:
+    type: custom_distribution
+    description: >
+      The result of trying to parse a document to show in reader view
+      (0=Success, 1=Error too many elements, 2=Error in worker, 3=Error no
+      article)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram READER_MODE_PARSE_RESULT.
+    range_min: 0
+    range_max: 5
+    bucket_count: 6
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - firefox-dev@mozilla.org
+      - gijs@mozilla.com
+    expires: never
+    telemetry_mirror: READER_MODE_PARSE_RESULT
+
+  download_result:
+    type: custom_distribution
+    description: >
+      The result of trying to download a document to show in reader view
+      (0=Success, 1=Error XHR, 2=Error no document)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram READER_MODE_DOWNLOAD_RESULT.
+    range_min: 0
+    range_max: 5
+    bucket_count: 6
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - firefox-dev@mozilla.org
+      - gijs@mozilla.com
+    expires: never
+    telemetry_mirror: READER_MODE_DOWNLOAD_RESULT
