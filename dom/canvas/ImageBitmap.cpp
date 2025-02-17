@@ -1009,7 +1009,7 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateFromOffscreenCanvas(
   RefPtr<SourceSurface> surface = res.GetSourceSurface();
 
   if (NS_WARN_IF(!surface)) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+    aRv.ThrowUnknownError("Failed to create ImageBitmap from OffscreenCanvas");
     return nullptr;
   }
 
