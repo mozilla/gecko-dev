@@ -836,8 +836,8 @@
     display: contents;
 
     &[collapsed] > .tabbrowser-tab {
-      min-width: 0;
-      max-width: 0;
+      min-width: 0 !important;
+      max-width: 0 !important;
       padding: 0;
       overflow-clip-margin: 0;
     }
