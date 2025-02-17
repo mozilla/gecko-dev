@@ -59,13 +59,13 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
  * happens. An object for each policy should be defined, containing
  * callback functions that will be called by the engine.
  *
- * See the _callbacks object in EnterprisePoliciesParent.sys.mjs for the list of
+ * See the _callbacks object in EnterprisePolicies.js for the list of
  * possible callbacks and an explanation of each.
  *
  * Each callback will be called with two parameters:
  * - manager
  *   This is the EnterprisePoliciesManager singleton object from
- *   EnterprisePoliciesParent.sys.mjs
+ *   EnterprisePolicies.js
  *
  * - param
  *   The parameter defined for this policy in policies-schema.json.
@@ -363,18 +363,9 @@ export var Policies = {
   },
 
   BlockAboutProfiles: {
-    onBeforeAddons(manager, param) {
-      if (param) {
-        manager.disallowFeature("profileManagement");
-      }
-    },
     onBeforeUIStartup(manager, param) {
       if (param) {
         blockAboutPage(manager, "about:profiles");
-        blockAboutPage(manager, "about:profilemanager");
-        blockAboutPage(manager, "about:editprofile");
-        blockAboutPage(manager, "about:deleteprofile");
-        blockAboutPage(manager, "about:newprofile");
       }
     },
   },
