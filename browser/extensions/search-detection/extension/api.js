@@ -100,8 +100,7 @@ this.addonsSearchDetection = class extends ExtensionAPI {
         },
 
         // `getPublicSuffix()` returns the public suffix/Effective TLD Service
-        // of the given URL.
-        // See: https://developer.mozilla.org/en-US/docs/Mozilla/Tech/XPCOM/Reference/Interface/nsIEffectiveTLDService
+        // of the given URL. See: `nsIEffectiveTLDService` interface in tree.
         async getPublicSuffix(url) {
           try {
             return Services.eTLD.getBaseDomain(Services.io.newURI(url));
