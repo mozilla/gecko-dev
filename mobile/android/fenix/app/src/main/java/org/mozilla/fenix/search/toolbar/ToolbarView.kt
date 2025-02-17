@@ -132,8 +132,7 @@ class ToolbarView(
                     }
                 },
             )
-
-            if (context.isTabStripEnabled()) {
+            if (context.isTabStripEnabled() && fromHomeFragment) {
                 (layoutParams as ViewGroup.MarginLayoutParams).updateMargins(
                     top = context.resources.getDimensionPixelSize(R.dimen.tab_strip_height),
                 )
