@@ -637,6 +637,8 @@
     <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_bottom_option">Alhaalla</string>
 
+    <!-- Onboarding toolbar selection card content description for the main image. -->
+    <string name="onboarding_customize_toolbar_main_image_content_description">Työkalupalkin valintanäkymän suuri otsikkokuva, jossa näkyy kuvitettu työkalupalkki.</string>
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
     <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">%1$s olevan työkalupalkin kuva</string>
 
@@ -660,6 +662,8 @@
     <string name="onboarding_customize_theme_light_option">Vaalea</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_system_option">Järjestelmän teema</string>
+    <!-- Onboarding theme selection card content description for the main image. -->
+    <string name="onboarding_customize_theme_main_image_content_description">Suuri otsikkokuva teemavalintanäkymästä, jossa näkyy kuvitetut taiteilija- ja rakentajatyökalut.</string>
     <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
     <string name="onboarding_customize_theme_content_description">%1$sn teeman kuva</string>
 
@@ -1263,6 +1267,8 @@
     <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s saattaa asentaa ja suorittaa tutkimuksia silloin tällöin.</string>
     <!-- Description for studies -->
     <string name="studies_description_3">Kokeile ominaisuuksia ja ideoita, ennen kuin ne julkaistaan kaikille.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title">Asenna ja suorita tutkimuksia</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Lue lisää</string>
 
@@ -2714,6 +2720,8 @@
     <string name="review_quality_check_no_analysis_link" moz:removedIn="136" tools:ignore="UnusedResources">Tarkista arvostelun laatu</string>
     <!-- Headline for review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_title" moz:removedIn="136" tools:ignore="UnusedResources">Kokeile luotettavaa tuotearvosteluopastamme</string>
+    <!-- Description for review quality check contextual onboarding card. The first and last two parameters are for retailer names (e.g. Amazon, Walmart). The second parameter is for the name of the application (e.g. Firefox). -->
+    <string name="review_quality_check_contextual_onboarding_description" moz:removedIn="136" tools:ignore="UnusedResources">Katso, kuinka luotettavia palvelun %1$s tuotearvostelut ovat, ennen kuin ostat. Arvostelujen tarkistin, kokeellinen ominaisuus %2$slta, on sisäänrakennettu suoraan selaimeen. Se toimii myös selaimilla %3$s ja %4$s.</string>
     <!-- Description for review quality check contextual onboarding card. The first parameters is for retailer name (e.g. Amazon). The second parameter is for the name of the application (e.g. Firefox). -->
     <string name="review_quality_check_contextual_onboarding_description_one_vendor" moz:removedIn="136" tools:ignore="UnusedResources">Katso, kuinka luotettavia tuotearvostelut ovat palvelussa %1$s, ennen kuin ostat. Arvostelujen tarkistin, %2$sin kokeellinen ominaisuus, on sisäänrakennettu suoraan selaimeen.</string>
     <!-- Paragraph presenting review quality check feature. First parameter is the Fakespot product name. Second parameter is for clickable text defined in review_quality_check_contextual_onboarding_learn_more_link. In the phrase "Fakespot by Mozilla", "by" can be localized. Does not need to stay by. -->
@@ -3163,6 +3171,10 @@
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_back_button_short">Vedä ylhäältä ja paina takaisin poistuaksesi</string>
 
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
+
     <!-- Root certificate expiration warnings -->
     <!-- These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !-->
     <!-- Homepage card button to open Google Play Store. "Update" is a verb. -->
@@ -3197,4 +3209,6 @@
     <!-- TextField Design System Component -->
     <!-- The default content description for the eye trailing icon button in TextField -->
     <string name="text_field_eye_trailing_icon_default_content_description">Näytä piilotettu teksti</string>
-    </resources>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Tyhjennä teksti</string>
+</resources>

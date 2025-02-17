@@ -611,6 +611,14 @@
     <string name="onboarding_term_of_service_line_three_link_text">Басқару</string>
     <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Firefox-ты дамытуға көмектесіңіз</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Firefox-ты өзіңіз үшін қалай ашқаныңызды және оны пайдалану жолыңызды бөліссеңіз, браузерімізді көбірек адамдарға таныстыруға көмектесесіз.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Mozilla маркетингтік технологиялар серіктестерімен ең аз деректерді бөлісіңіз. Бұл деректер ешқашан сатылмайды немесе сізге жарнама көрсету үшін пайдаланылмайды.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Біз деректерді қалай қолданамыз</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Растау және шолуды бастау</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Құралдар панелінің орналасуын таңдау</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1049,14 +1057,23 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Техникалық және өзара әрекеттесу деректері</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Техникалық және өзара әрекеттесу деректерін жіберу</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Көбірек білу</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Өнімділік, қолдану, құрылғылар және баптаулар мәліметін Mozilla-ға жіберіп, бізге %1$s жақсартуға көмектеседі</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Құрылғыңыз, жабдық конфигурациясы және пайдалану туралы деректер бізге Firefox мүмкіндіктерін, өнімділігін мен тұрақтылығын жақсартуға көмектеседі.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Маркетингтік мәліметтер</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2">Науқанды өлшеу деректері</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Firefox-ты өзіңіз үшін қалай ашқаныңыз туралы ақпаратты Mozilla маркетинг серіктестерімен бөлісіңіз. Бұл бізге Firefox-ты дамытуға және жақсырақ интернет құруға көмектеседі</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Firefox-ты өзіңіз үшін қалай ашқаныңызды және оны қалай пайдаланатыныңызды Mozilla маркетингтік технологиялар серіктестерімен бөлісіңіз.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Маркетинг деректері туралы көбірек білу</string>
 
@@ -1237,6 +1254,10 @@
     <string name="studies_active">Белсенді</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s кейде зерттеулерді орнатып, орындай алады.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3">Мүмкіндіктер мен идеяларды барлығына шығарар алдында қолданып көріңіз.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title">Зерттеулерді орнату және жөнелту</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Көбірек білу</string>
 
@@ -2060,6 +2081,8 @@
     <string name="about_privacy_notice">Жекелік ескертуі</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Құқықтарыңыз жөнінде біліңіз</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Қолдану шарттары</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Лицензиялық ақпарат</string>
     <!-- About page link text to open a screen with libraries that are used -->
