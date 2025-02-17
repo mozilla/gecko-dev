@@ -72,9 +72,9 @@ float DOMSVGPoint::X() {
   return InternalItem().mX;
 }
 
-void DOMSVGPoint::SetX(float aX, ErrorResult& rv) {
+void DOMSVGPoint::SetX(float aX, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -97,9 +97,9 @@ float DOMSVGPoint::Y() {
   return InternalItem().mY;
 }
 
-void DOMSVGPoint::SetY(float aY, ErrorResult& rv) {
+void DOMSVGPoint::SetY(float aY, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
   auto& val = InternalItem();

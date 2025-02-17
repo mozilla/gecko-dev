@@ -115,9 +115,9 @@ SVGNumberList& DOMSVGNumberList::InternalList() const {
                                             : alist->mBaseVal;
 }
 
-void DOMSVGNumberList::Clear(ErrorResult& error) {
+void DOMSVGNumberList::Clear(ErrorResult& aRv) {
   if (IsAnimValList()) {
-    error.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -135,10 +135,10 @@ void DOMSVGNumberList::Clear(ErrorResult& error) {
   }
 }
 
-already_AddRefed<DOMSVGNumber> DOMSVGNumberList::Initialize(
-    DOMSVGNumber& aItem, ErrorResult& error) {
+already_AddRefed<DOMSVGNumber> DOMSVGNumberList::Initialize(DOMSVGNumber& aItem,
+                                                            ErrorResult& aRv) {
   if (IsAnimValList()) {
-    error.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return nullptr;
   }
 
@@ -151,23 +151,23 @@ already_AddRefed<DOMSVGNumber> DOMSVGNumberList::Initialize(
   // happening we have to do the clone here, if necessary.
   RefPtr<DOMSVGNumber> domItem = aItem.HasOwner() ? aItem.Clone() : &aItem;
 
-  Clear(error);
-  MOZ_ASSERT(!error.Failed());
-  return InsertItemBefore(*domItem, 0, error);
+  Clear(aRv);
+  MOZ_ASSERT(!aRv.Failed());
+  return InsertItemBefore(*domItem, 0, aRv);
 }
 
 already_AddRefed<DOMSVGNumber> DOMSVGNumberList::GetItem(uint32_t index,
-                                                         ErrorResult& error) {
+                                                         ErrorResult& aRv) {
   bool found;
-  RefPtr<DOMSVGNumber> item = IndexedGetter(index, found, error);
+  RefPtr<DOMSVGNumber> item = IndexedGetter(index, found, aRv);
   if (!found) {
-    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+    aRv.ThrowIndexSizeError("Index out of range");
   }
   return item.forget();
 }
 
 already_AddRefed<DOMSVGNumber> DOMSVGNumberList::IndexedGetter(
-    uint32_t index, bool& found, ErrorResult& error) {
+    uint32_t index, bool& found, ErrorResult& aRv) {
   if (IsAnimValList()) {
     Element()->FlushAnimations();
   }
@@ -179,15 +179,15 @@ already_AddRefed<DOMSVGNumber> DOMSVGNumberList::IndexedGetter(
 }
 
 already_AddRefed<DOMSVGNumber> DOMSVGNumberList::InsertItemBefore(
-    DOMSVGNumber& aItem, uint32_t index, ErrorResult& error) {
+    DOMSVGNumber& aItem, uint32_t index, ErrorResult& aRv) {
   if (IsAnimValList()) {
-    error.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return nullptr;
   }
 
   index = std::min(index, LengthNoFlush());
   if (index >= DOMSVGNumber::MaxListIndex()) {
-    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+    aRv.ThrowIndexSizeError("Index out of range");
     return nullptr;
   }
 
@@ -197,13 +197,13 @@ already_AddRefed<DOMSVGNumber> DOMSVGNumberList::InsertItemBefore(
   // Ensure we have enough memory so we can avoid complex error handling below:
   if (!mItems.SetCapacity(mItems.Length() + 1, fallible) ||
       !InternalList().SetCapacity(InternalList().Length() + 1)) {
-    error.Throw(NS_ERROR_OUT_OF_MEMORY);
+    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
   }
   if (AnimListMirrorsBaseList()) {
     if (!mAList->mAnimVal->mItems.SetCapacity(
             mAList->mAnimVal->mItems.Length() + 1, fallible)) {
-      error.Throw(NS_ERROR_OUT_OF_MEMORY);
+      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return nullptr;
     }
   }
@@ -226,14 +226,14 @@ already_AddRefed<DOMSVGNumber> DOMSVGNumberList::InsertItemBefore(
 }
 
 already_AddRefed<DOMSVGNumber> DOMSVGNumberList::ReplaceItem(
-    DOMSVGNumber& aItem, uint32_t index, ErrorResult& error) {
+    DOMSVGNumber& aItem, uint32_t index, ErrorResult& aRv) {
   if (IsAnimValList()) {
-    error.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return nullptr;
   }
 
   if (index >= LengthNoFlush()) {
-    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+    aRv.ThrowIndexSizeError("Index out of range");
     return nullptr;
   }
 
@@ -257,15 +257,15 @@ already_AddRefed<DOMSVGNumber> DOMSVGNumberList::ReplaceItem(
   return domItem.forget();
 }
 
-already_AddRefed<DOMSVGNumber> DOMSVGNumberList::RemoveItem(
-    uint32_t index, ErrorResult& error) {
+already_AddRefed<DOMSVGNumber> DOMSVGNumberList::RemoveItem(uint32_t index,
+                                                            ErrorResult& aRv) {
   if (IsAnimValList()) {
-    error.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return nullptr;
   }
 
   if (index >= LengthNoFlush()) {
-    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+    aRv.ThrowIndexSizeError("Index out of range");
     return nullptr;
   }
 

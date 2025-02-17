@@ -186,7 +186,7 @@ float DOMSVGLength::GetValue(ErrorResult& aRv) {
 
 void DOMSVGLength::SetValue(float aUserUnitValue, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -246,7 +246,7 @@ float DOMSVGLength::ValueInSpecifiedUnits() {
 
 void DOMSVGLength::SetValueInSpecifiedUnits(float aValue, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -270,7 +270,7 @@ void DOMSVGLength::SetValueInSpecifiedUnits(float aValue, ErrorResult& aRv) {
 
 void DOMSVGLength::SetValueAsString(const nsAString& aValue, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -282,7 +282,8 @@ void DOMSVGLength::SetValueAsString(const nsAString& aValue, ErrorResult& aRv) {
 
   SVGLength value;
   if (!value.SetValueFromString(aValue)) {
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    NS_ConvertUTF16toUTF8 value(aValue);
+    aRv.ThrowSyntaxError("Cannot parse "_ns + value);
     return;
   }
   if (HasOwner()) {
@@ -322,7 +323,7 @@ void DOMSVGLength::GetValueAsString(nsAString& aValue) {
 void DOMSVGLength::NewValueSpecifiedUnits(uint16_t aUnit, float aValue,
                                           ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -333,7 +334,7 @@ void DOMSVGLength::NewValueSpecifiedUnits(uint16_t aUnit, float aValue,
   }
 
   if (!SVGLength::IsValidUnitType(aUnit)) {
-    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    aRv.ThrowNotSupportedError("Unknown unit type");
     return;
   }
   if (HasOwner()) {
@@ -351,7 +352,7 @@ void DOMSVGLength::NewValueSpecifiedUnits(uint16_t aUnit, float aValue,
 
 void DOMSVGLength::ConvertToSpecifiedUnits(uint16_t aUnit, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -361,7 +362,7 @@ void DOMSVGLength::ConvertToSpecifiedUnits(uint16_t aUnit, ErrorResult& aRv) {
   }
 
   if (!SVGLength::IsValidUnitType(aUnit)) {
-    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    aRv.ThrowNotSupportedError("Unknown unit type");
     return;
   }
 

@@ -96,9 +96,9 @@ class DOMSVGPreserveAspectRatio final : public nsWrapperCache {
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint16_t Align();
-  void SetAlign(uint16_t aAlign, ErrorResult& rv);
+  void SetAlign(uint16_t aAlign, ErrorResult& aRv);
   uint16_t MeetOrSlice();
-  void SetMeetOrSlice(uint16_t aMeetOrSlice, ErrorResult& rv);
+  void SetMeetOrSlice(uint16_t aMeetOrSlice, ErrorResult& aRv);
 
  protected:
   ~DOMSVGPreserveAspectRatio();

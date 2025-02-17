@@ -116,12 +116,12 @@ uint16_t DOMSVGPreserveAspectRatio::Align() {
   return mVal->GetAnimValue().GetAlign();
 }
 
-void DOMSVGPreserveAspectRatio::SetAlign(uint16_t aAlign, ErrorResult& rv) {
+void DOMSVGPreserveAspectRatio::SetAlign(uint16_t aAlign, ErrorResult& aRv) {
   if (!mIsBaseValue) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
-  rv = mVal->SetBaseAlign(aAlign, mSVGElement);
+  aRv = mVal->SetBaseAlign(aAlign, mSVGElement);
 }
 
 uint16_t DOMSVGPreserveAspectRatio::MeetOrSlice() {
@@ -134,12 +134,12 @@ uint16_t DOMSVGPreserveAspectRatio::MeetOrSlice() {
 }
 
 void DOMSVGPreserveAspectRatio::SetMeetOrSlice(uint16_t aMeetOrSlice,
-                                               ErrorResult& rv) {
+                                               ErrorResult& aRv) {
   if (!mIsBaseValue) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
-  rv = mVal->SetBaseMeetOrSlice(aMeetOrSlice, mSVGElement);
+  aRv = mVal->SetBaseMeetOrSlice(aMeetOrSlice, mSVGElement);
 }
 
 }  // namespace mozilla

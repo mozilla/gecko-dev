@@ -81,7 +81,7 @@ float DOMSVGNumber::Value() {
 
 void DOMSVGNumber::SetValue(float aValue, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 

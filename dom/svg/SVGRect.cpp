@@ -86,7 +86,7 @@ float SVGRect::Height() {
 void SVGRect::SetX(float aX, ErrorResult& aRv) {
   switch (mType) {
     case RectType::AnimValue:
-      aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+      aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
       return;
     case RectType::BaseValue: {
       SVGViewBox rect = mVal->GetBaseValue();
@@ -102,7 +102,7 @@ void SVGRect::SetX(float aX, ErrorResult& aRv) {
 void SVGRect::SetY(float aY, ErrorResult& aRv) {
   switch (mType) {
     case RectType::AnimValue:
-      aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+      aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
       return;
     case RectType::BaseValue: {
       SVGViewBox rect = mVal->GetBaseValue();
@@ -118,7 +118,7 @@ void SVGRect::SetY(float aY, ErrorResult& aRv) {
 void SVGRect::SetWidth(float aWidth, ErrorResult& aRv) {
   switch (mType) {
     case RectType::AnimValue:
-      aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+      aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
       return;
     case RectType::BaseValue: {
       SVGViewBox rect = mVal->GetBaseValue();
@@ -134,7 +134,7 @@ void SVGRect::SetWidth(float aWidth, ErrorResult& aRv) {
 void SVGRect::SetHeight(float aHeight, ErrorResult& aRv) {
   switch (mType) {
     case RectType::AnimValue:
-      aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+      aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
       return;
     case RectType::BaseValue: {
       SVGViewBox rect = mVal->GetBaseValue();

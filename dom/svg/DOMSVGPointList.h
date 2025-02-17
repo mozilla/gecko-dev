@@ -16,12 +16,8 @@
 #include "mozilla/RefPtr.h"
 
 // {61812ad1-c078-4cd1-87e6-bc1c1b8d7284}
-#define MOZILLA_DOMSVGPOINTLIST_IID                  \
-  {                                                  \
-    0x61812ad1, 0xc078, 0x4cd1, {                    \
-      0x87, 0xe6, 0xbc, 0x1c, 0x1b, 0x8d, 0x72, 0x84 \
-    }                                                \
-  }
+#define MOZILLA_DOMSVGPOINTLIST_IID \
+  {0x61812ad1, 0xc078, 0x4cd1, {0x87, 0xe6, 0xbc, 0x1c, 0x1b, 0x8d, 0x72, 0x84}}
 
 namespace mozilla {
 
@@ -185,23 +181,21 @@ class DOMSVGPointList final : public nsISupports, public nsWrapperCache {
     }
     return LengthNoFlush();
   }
-  void Clear(ErrorResult& aError);
+  void Clear(ErrorResult& aRv);
   already_AddRefed<DOMSVGPoint> Initialize(DOMSVGPoint& aNewItem,
-                                           ErrorResult& aError);
+                                           ErrorResult& aRv);
   already_AddRefed<DOMSVGPoint> GetItem(uint32_t index, ErrorResult& error);
   already_AddRefed<DOMSVGPoint> IndexedGetter(uint32_t index, bool& found,
                                               ErrorResult& error);
   already_AddRefed<DOMSVGPoint> InsertItemBefore(DOMSVGPoint& aNewItem,
                                                  uint32_t aIndex,
-                                                 ErrorResult& aError);
+                                                 ErrorResult& aRv);
   already_AddRefed<DOMSVGPoint> ReplaceItem(DOMSVGPoint& aNewItem,
-                                            uint32_t aIndex,
-                                            ErrorResult& aError);
-  already_AddRefed<DOMSVGPoint> RemoveItem(uint32_t aIndex,
-                                           ErrorResult& aError);
+                                            uint32_t aIndex, ErrorResult& aRv);
+  already_AddRefed<DOMSVGPoint> RemoveItem(uint32_t aIndex, ErrorResult& aRv);
   already_AddRefed<DOMSVGPoint> AppendItem(DOMSVGPoint& aNewItem,
-                                           ErrorResult& aError) {
-    return InsertItemBefore(aNewItem, LengthNoFlush(), aError);
+                                           ErrorResult& aRv) {
+    return InsertItemBefore(aNewItem, LengthNoFlush(), aRv);
   }
   uint32_t Length() const { return NumberOfItems(); }
 

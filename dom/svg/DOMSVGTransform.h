@@ -51,7 +51,7 @@ class DOMSVGTransform final : public nsWrapperCache {
    */
   DOMSVGTransform();
   explicit DOMSVGTransform(const gfxMatrix& aMatrix);
-  DOMSVGTransform(const DOMMatrix2DInit& aMatrix, ErrorResult& rv);
+  DOMSVGTransform(const DOMMatrix2DInit& aMatrix, ErrorResult& aRv);
 
   /**
    * Ctor for creating an unowned copy. Used with Clone().
@@ -118,12 +118,12 @@ class DOMSVGTransform final : public nsWrapperCache {
   uint16_t Type() const;
   dom::SVGMatrix* GetMatrix();
   float Angle() const;
-  void SetMatrix(const DOMMatrix2DInit& matrix, ErrorResult& rv);
-  void SetTranslate(float tx, float ty, ErrorResult& rv);
-  void SetScale(float sx, float sy, ErrorResult& rv);
-  void SetRotate(float angle, float cx, float cy, ErrorResult& rv);
-  void SetSkewX(float angle, ErrorResult& rv);
-  void SetSkewY(float angle, ErrorResult& rv);
+  void SetMatrix(const DOMMatrix2DInit& matrix, ErrorResult& aRv);
+  void SetTranslate(float tx, float ty, ErrorResult& aRv);
+  void SetScale(float sx, float sy, ErrorResult& aRv);
+  void SetRotate(float angle, float cx, float cy, ErrorResult& aRv);
+  void SetSkewX(float angle, ErrorResult& aRv);
+  void SetSkewY(float angle, ErrorResult& aRv);
 
  protected:
   ~DOMSVGTransform();

@@ -95,12 +95,12 @@ DOMSVGTransform::DOMSVGTransform(const gfxMatrix& aMatrix)
       mTransform(new SVGTransform(aMatrix)) {}
 
 DOMSVGTransform::DOMSVGTransform(const DOMMatrix2DInit& aMatrix,
-                                 ErrorResult& rv)
+                                 ErrorResult& aRv)
     : mList(nullptr),
       mListIndex(0),
       mIsAnimValItem(false),
       mTransform(new SVGTransform()) {
-  SetMatrix(aMatrix, rv);
+  SetMatrix(aMatrix, aRv);
 }
 
 DOMSVGTransform::DOMSVGTransform(const SVGTransform& aTransform)
@@ -139,7 +139,7 @@ float DOMSVGTransform::Angle() const { return Transform().Angle(); }
 void DOMSVGTransform::SetMatrix(const DOMMatrix2DInit& aMatrix,
                                 ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    aRv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
   RefPtr<DOMMatrixReadOnly> matrix =
@@ -155,9 +155,9 @@ void DOMSVGTransform::SetMatrix(const DOMMatrix2DInit& aMatrix,
   SetMatrix(*matrix2D);
 }
 
-void DOMSVGTransform::SetTranslate(float tx, float ty, ErrorResult& rv) {
+void DOMSVGTransform::SetTranslate(float tx, float ty, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -170,9 +170,9 @@ void DOMSVGTransform::SetTranslate(float tx, float ty, ErrorResult& rv) {
   Transform().SetTranslate(tx, ty);
 }
 
-void DOMSVGTransform::SetScale(float sx, float sy, ErrorResult& rv) {
+void DOMSVGTransform::SetScale(float sx, float sy, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -185,9 +185,9 @@ void DOMSVGTransform::SetScale(float sx, float sy, ErrorResult& rv) {
 }
 
 void DOMSVGTransform::SetRotate(float angle, float cx, float cy,
-                                ErrorResult& rv) {
+                                ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -203,9 +203,9 @@ void DOMSVGTransform::SetRotate(float angle, float cx, float cy,
   Transform().SetRotate(angle, cx, cy);
 }
 
-void DOMSVGTransform::SetSkewX(float angle, ErrorResult& rv) {
+void DOMSVGTransform::SetSkewX(float angle, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -215,7 +215,7 @@ void DOMSVGTransform::SetSkewX(float angle, ErrorResult& rv) {
   }
 
   if (!std::isfinite(tan(angle * kRadPerDegree))) {
-    rv.ThrowRangeError<MSG_INVALID_TRANSFORM_ANGLE_ERROR>();
+    aRv.ThrowRangeError<MSG_INVALID_TRANSFORM_ANGLE_ERROR>();
     return;
   }
 
@@ -224,9 +224,9 @@ void DOMSVGTransform::SetSkewX(float angle, ErrorResult& rv) {
   MOZ_ASSERT(NS_SUCCEEDED(result), "SetSkewX unexpectedly failed");
 }
 
-void DOMSVGTransform::SetSkewY(float angle, ErrorResult& rv) {
+void DOMSVGTransform::SetSkewY(float angle, ErrorResult& aRv) {
   if (mIsAnimValItem) {
-    rv.Throw(NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR);
+    aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
 
@@ -236,7 +236,7 @@ void DOMSVGTransform::SetSkewY(float angle, ErrorResult& rv) {
   }
 
   if (!std::isfinite(tan(angle * kRadPerDegree))) {
-    rv.ThrowRangeError<MSG_INVALID_TRANSFORM_ANGLE_ERROR>();
+    aRv.ThrowRangeError<MSG_INVALID_TRANSFORM_ANGLE_ERROR>();
     return;
   }
 

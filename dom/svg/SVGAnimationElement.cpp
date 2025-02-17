@@ -89,12 +89,12 @@ SVGElement* SVGAnimationElement::GetTargetElement() {
   return SVGElement::FromNodeOrNull(GetTargetElementContent());
 }
 
-float SVGAnimationElement::GetStartTime(ErrorResult& rv) {
+float SVGAnimationElement::GetStartTime(ErrorResult& aRv) {
   FlushAnimations();
 
   SMILTimeValue startTime = mTimedElement.GetStartTime();
   if (!startTime.IsDefinite()) {
-    rv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    aRv.ThrowInvalidStateError("Indefinite start time");
     return 0.f;
   }
 
@@ -112,12 +112,12 @@ float SVGAnimationElement::GetCurrentTimeAsFloat() {
   return 0.0f;
 }
 
-float SVGAnimationElement::GetSimpleDuration(ErrorResult& rv) {
+float SVGAnimationElement::GetSimpleDuration(ErrorResult& aRv) {
   // Not necessary to call FlushAnimations() for this
 
   SMILTimeValue simpleDur = mTimedElement.GetSimpleDuration();
   if (!simpleDur.IsDefinite()) {
-    rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    aRv.ThrowNotSupportedError("Duration is indefinite");
     return 0.f;
   }
 
@@ -347,14 +347,14 @@ SMILTimeContainer* SVGAnimationElement::GetTimeContainer() {
   return nullptr;
 }
 
-void SVGAnimationElement::BeginElementAt(float offset, ErrorResult& rv) {
+void SVGAnimationElement::BeginElementAt(float offset, ErrorResult& aRv) {
   // Make sure the timegraph is up-to-date
   FlushAnimations();
 
   // This will fail if we're not attached to a time container (SVG document
   // fragment).
-  rv = mTimedElement.BeginElementAt(offset);
-  if (rv.Failed()) return;
+  aRv = mTimedElement.BeginElementAt(offset);
+  if (aRv.Failed()) return;
 
   AnimationNeedsResample();
   // Force synchronous sample so that events resulting from this call arrive in
@@ -362,12 +362,12 @@ void SVGAnimationElement::BeginElementAt(float offset, ErrorResult& rv) {
   FlushAnimations();
 }
 
-void SVGAnimationElement::EndElementAt(float offset, ErrorResult& rv) {
+void SVGAnimationElement::EndElementAt(float offset, ErrorResult& aRv) {
   // Make sure the timegraph is up-to-date
   FlushAnimations();
 
-  rv = mTimedElement.EndElementAt(offset);
-  if (rv.Failed()) return;
+  aRv = mTimedElement.EndElementAt(offset);
+  if (aRv.Failed()) return;
 
   AnimationNeedsResample();
   // Force synchronous sample
