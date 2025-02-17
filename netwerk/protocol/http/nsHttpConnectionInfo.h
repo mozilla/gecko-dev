@@ -273,8 +273,9 @@ class nsHttpConnectionInfo final : public ARefBase {
   void SetHasIPHintAddress(bool aHasIPHint) { mHasIPHintAddress = aHasIPHint; }
   bool HasIPHintAddress() const { return mHasIPHintAddress; }
 
-  void SetEchConfig(const nsACString& aEchConfig) { mEchConfig = aEchConfig; }
+  void SetEchConfig(const nsACString& aEchConfig);
   const nsCString& GetEchConfig() const { return mEchConfig; }
+  bool HasEchConfig() const { return !mEchConfig.IsEmpty(); }
 
  private:
   void Init(const nsACString& host, int32_t port, const nsACString& npnToken,

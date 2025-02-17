@@ -202,8 +202,6 @@ class ConnectionEntry {
 
   bool RemoveTransFromPendingQ(nsHttpTransaction* aTrans);
 
-  void MaybeUpdateEchConfig(nsHttpConnectionInfo* aConnInfo);
-
   bool AllowToRetryDifferentIPFamilyForHttp3(nsresult aError);
   void SetRetryDifferentIPFamilyForHttp3(uint16_t aIPFamily);
 
