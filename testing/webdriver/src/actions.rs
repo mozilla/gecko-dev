@@ -206,8 +206,8 @@ pub struct PointerMoveAction {
     pub duration: Option<u64>,
     #[serde(default)]
     pub origin: PointerOrigin,
-    pub x: i64,
-    pub y: i64,
+    pub x: f64,
+    pub y: f64,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -576,7 +576,7 @@ mod test {
             },
             "actions": [
                 {"type": "pointerDown", "button": 0},
-                {"type": "pointerMove", "origin": "pointer", "x": 10, "y": 20},
+                {"type": "pointerMove", "origin": "pointer", "x": 10.5, "y": 20.5},
                 {"type": "pointerUp", "button": 0},
             ]
         });
@@ -594,8 +594,8 @@ mod test {
                     PointerActionItem::Pointer(PointerAction::Move(PointerMoveAction {
                         origin: PointerOrigin::Pointer,
                         duration: None,
-                        x: 10,
-                        y: 20,
+                        x: 10.5,
+                        y: 20.5,
                         ..Default::default()
                     })),
                     PointerActionItem::Pointer(PointerAction::Up(PointerUpAction {
@@ -1027,14 +1027,14 @@ mod test {
             "type": "pointerMove",
             "duration": 100,
             "origin": "viewport",
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         let pointer_move = PointerAction::Move(PointerMoveAction {
             duration: Some(100),
             origin: PointerOrigin::Viewport,
-            x: 5,
-            y: 10,
+            x: 5.5,
+            y: 10.5,
             ..Default::default()
         });
 
@@ -1046,8 +1046,8 @@ mod test {
         let json = json!({
             "duration": 100,
             "origin": "viewport",
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         assert!(serde_json::from_value::<PointerAction>(json).is_err());
     }
@@ -1058,8 +1058,8 @@ mod test {
             "type": "pointerUp",
             "duration": 100,
             "origin": "viewport",
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         assert!(serde_json::from_value::<PointerAction>(json).is_err());
     }
@@ -1069,14 +1069,14 @@ mod test {
         let json = json!({
             "type": "pointerMove",
             "origin": "viewport",
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         let pointer_move = PointerAction::Move(PointerMoveAction {
             duration: None,
             origin: PointerOrigin::Viewport,
-            x: 5,
-            y: 10,
+            x: 5.5,
+            y: 10.5,
             ..Default::default()
         });
 
@@ -1089,8 +1089,8 @@ mod test {
             "type": "pointerMove",
             "duration": null,
             "origin": "viewport",
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         assert!(serde_json::from_value::<PointerAction>(json).is_err());
     }
@@ -1101,8 +1101,8 @@ mod test {
             "type": "pointerMove",
             "duration": "invalid",
             "origin": "viewport",
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         assert!(serde_json::from_value::<PointerAction>(json).is_err());
     }
@@ -1113,8 +1113,8 @@ mod test {
             "type": "pointerMove",
             "duration": -30,
             "origin": "viewport",
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         assert!(serde_json::from_value::<PointerAction>(json).is_err());
     }
@@ -1124,14 +1124,14 @@ mod test {
         let json = json!({
             "type": "pointerMove",
             "duration": 100,
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         let pointer_move = PointerAction::Move(PointerMoveAction {
             duration: Some(100),
             origin: PointerOrigin::Viewport,
-            x: 5,
-            y: 10,
+            x: 5.5,
+            y: 10.5,
             ..Default::default()
         });
 
@@ -1144,14 +1144,14 @@ mod test {
             "type": "pointerMove",
             "duration": 100,
             "origin": {ELEMENT_KEY: "elem"},
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         let pointer_move = PointerAction::Move(PointerMoveAction {
             duration: Some(100),
             origin: PointerOrigin::Element(WebElement("elem".into())),
-            x: 5,
-            y: 10,
+            x: 5.5,
+            y: 10.5,
             ..Default::default()
         });
 
@@ -1164,14 +1164,14 @@ mod test {
             "type": "pointerMove",
             "duration": 100,
             "origin": {ELEMENT_KEY: "elem"},
-            "x": 5,
-            "y": 10,
+            "x": 5.5,
+            "y": 10.5,
         });
         let pointer_move = PointerAction::Move(PointerMoveAction {
             duration: Some(100),
             origin: PointerOrigin::Element(WebElement("elem".into())),
-            x: 5,
-            y: 10,
+            x: 5.5,
+            y: 10.5,
             ..Default::default()
         });
 
