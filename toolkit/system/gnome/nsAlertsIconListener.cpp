@@ -260,8 +260,9 @@ nsresult nsAlertsIconListener::Close() {
     mIconRequest = nullptr;
   }
 
+  NotifyFinished();
+
   if (!mNotification) {
-    NotifyFinished();
     return NS_OK;
   }
 
@@ -377,7 +378,7 @@ nsresult nsAlertsIconListener::InitAlertAsync(nsIAlertNotification* aAlert,
 }
 
 void nsAlertsIconListener::NotifyFinished() {
-  if (mAlertListener) {
-    mAlertListener->Observe(nullptr, "alertfinished", mAlertCookie.get());
+  if (nsCOMPtr<nsIObserver> alertListener = mAlertListener.forget()) {
+    alertListener->Observe(nullptr, "alertfinished", mAlertCookie.get());
   }
 }
