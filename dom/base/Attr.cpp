@@ -187,8 +187,7 @@ bool Attr::Specified() const { return true; }
 
 Element* Attr::GetOwnerElement() { return GetElement(); }
 
-void Attr::SetNodeValueWithTrustedTypeCheck(const nsAString& aNodeValue,
-                                            ErrorResult& aError) {
+void Attr::SetNodeValue(const nsAString& aNodeValue, ErrorResult& aError) {
   SetValue(aNodeValue, nullptr, aError);
 }
 
@@ -217,9 +216,9 @@ nsIURI* Attr::GetBaseURI(bool aTryUseXHRDocBaseURI) const {
                 : OwnerDoc()->GetBaseURI(aTryUseXHRDocBaseURI);
 }
 
-void Attr::SetTextContentWithTrustedTypeCheck(const nsAString& aTextContent,
-                                              nsIPrincipal* aSubjectPrincipal,
-                                              ErrorResult& aError) {
+void Attr::SetTextContent(const nsAString& aTextContent,
+                          nsIPrincipal* aSubjectPrincipal,
+                          ErrorResult& aError) {
   SetValue(aTextContent, aSubjectPrincipal, aError);
 }
 

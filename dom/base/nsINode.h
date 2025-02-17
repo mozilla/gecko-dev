@@ -1802,9 +1802,9 @@ class nsINode : public mozilla::dom::EventTarget {
   void GetTextContent(nsAString& aTextContent, mozilla::OOMReporter& aError) {
     GetTextContentInternal(aTextContent, aError);
   }
-  void SetTextContent(const nsAString& aTextContent,
-                      nsIPrincipal* aSubjectPrincipal,
-                      mozilla::ErrorResult& aError) {
+  MOZ_CAN_RUN_SCRIPT virtual void SetTextContent(
+      const nsAString& aTextContent, nsIPrincipal* aSubjectPrincipal,
+      mozilla::ErrorResult& aError) {
     SetTextContentInternal(aTextContent, aSubjectPrincipal, aError);
   }
   void SetTextContent(const nsAString& aTextContent,
@@ -2299,7 +2299,8 @@ class nsINode : public mozilla::dom::EventTarget {
       nsINode& aOther, mozilla::Maybe<uint32_t>* aThisIndex = nullptr,
       mozilla::Maybe<uint32_t>* aOtherIndex = nullptr) const;
   void GetNodeValue(nsAString& aNodeValue) { GetNodeValueInternal(aNodeValue); }
-  void SetNodeValue(const nsAString& aNodeValue, mozilla::ErrorResult& aError) {
+  MOZ_CAN_RUN_SCRIPT virtual void SetNodeValue(const nsAString& aNodeValue,
+                                               mozilla::ErrorResult& aError) {
     SetNodeValueInternal(aNodeValue, aError);
   }
   virtual void GetNodeValueInternal(nsAString& aNodeValue);

@@ -42,23 +42,16 @@ class Attr final : public nsINode {
   NS_IMPL_FROMNODE_HELPER(Attr, IsAttr())
 
   // nsINode interface
-  void GetTextContentWithTrustedTypeCheck(nsAString& aTextContent,
-                                          mozilla::OOMReporter& aError) {
-    GetTextContentInternal(aTextContent, aError);
-  }
-  MOZ_CAN_RUN_SCRIPT void SetTextContentWithTrustedTypeCheck(
-      const nsAString& aTextContent, nsIPrincipal* aSubjectPrincipal,
-      mozilla::ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT void SetTextContent(const nsAString& aTextContent,
+                                         nsIPrincipal* aSubjectPrincipal,
+                                         mozilla::ErrorResult& aError) override;
   virtual void GetTextContentInternal(nsAString& aTextContent,
                                       OOMReporter& aError) override;
   virtual void SetTextContentInternal(const nsAString& aTextContent,
                                       nsIPrincipal* aSubjectPrincipal,
                                       ErrorResult& aError) override;
-  void GetNodeValueWithTrustedTypeCheck(nsAString& aNodeValue) {
-    GetNodeValueInternal(aNodeValue);
-  }
-  MOZ_CAN_RUN_SCRIPT void SetNodeValueWithTrustedTypeCheck(
-      const nsAString& aNodeValue, mozilla::ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT void SetNodeValue(const nsAString& aNodeValue,
+                                       mozilla::ErrorResult& aError) override;
   virtual void GetNodeValueInternal(nsAString& aNodeValue) override;
   virtual void SetNodeValueInternal(const nsAString& aNodeValue,
                                     ErrorResult& aError) override;
