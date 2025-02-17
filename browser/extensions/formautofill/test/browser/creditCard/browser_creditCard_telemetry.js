@@ -1040,11 +1040,6 @@ add_task(async function test_clear_creditCard_autofill() {
 
   expected_parent = [
     ccFormArgsv2("cleared", { field_name: "cc-number" }),
-    ccFormArgsv2("filled_modified", { field_name: "cc-name" }),
-    ccFormArgsv2("filled_modified", { field_name: "cc-number" }),
-    ccFormArgsv2("filled_modified", { field_name: "cc-exp-month" }),
-    ccFormArgsv2("filled_modified", { field_name: "cc-exp-year" }),
-    ccFormArgsv2("filled_modified", { field_name: "cc-type" }),
     // popup is shown again because when the field is cleared and is focused,
     // we automatically triggers the popup.
     ccFormArgsv2("popup_shown", { field_name: "cc-number" }),
@@ -1053,10 +1048,6 @@ add_task(async function test_clear_creditCard_autofill() {
   await assertTelemetry(undefined, expected_parent);
 
   await assertGleanTelemetry([
-    {
-      event_name: "formFilledModified",
-      event_count: 5,
-    },
     {
       event_name: "formCleared",
       expected_extra: {

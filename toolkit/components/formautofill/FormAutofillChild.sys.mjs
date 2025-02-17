@@ -461,9 +461,8 @@ export class FormAutofillChild extends JSWindowActorChild {
         return result;
       }
       case "FormAutofill:ClearFilledFields": {
-        const { ids, focusedId } = message.data;
-        const handler = this.#getHandlerByElementId(ids[0]);
-        handler?.clearFilledFields(focusedId, ids);
+        const { focusedId, ids } = message.data;
+        this.clearFields(focusedId, ids);
         break;
       }
       case "FormAutofill:PreviewFields": {
@@ -590,6 +589,19 @@ export class FormAutofillChild extends JSWindowActorChild {
         fieldDetail.elementId
       );
     }
+  }
+
+  clearFields(focusedId, elementIds) {
+    const handler = this.#getHandlerByElementId(elementIds[0]);
+    handler?.clearFilledFields(focusedId, elementIds);
+
+    // Explicitly calling showPopupIfEmpty here, because FormAutofillChild is ignoring
+    // all focus events during the autofilling/clearing process.
+    const focusedElement =
+      lazy.FormAutofillUtils.getElementByIdentifier(focusedId);
+    const fieldName =
+      handler.getFieldDetailByElement(focusedElement)?.fieldName ?? "";
+    this.showPopupIfEmpty(focusedElement, fieldName);
   }
 
   async fillFields(focusedId, elementIds, profile) {

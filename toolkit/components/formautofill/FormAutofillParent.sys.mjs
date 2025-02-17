@@ -1180,6 +1180,13 @@ export class FormAutofillParent extends JSWindowActorParent {
 
     section.onCleared(elementId);
 
+    section.fieldDetails.forEach(field => {
+      if (!this.filledResult.has(field.elementId)) {
+        return;
+      }
+      this.filledResult.get(field.elementId).filledState = FIELD_STATES.NORMAL;
+    });
+
     const msg = "FormAutofill:ClearFilledFields";
     await this.#triggerAutofillActionInChildren(msg, elementId, section);
 
