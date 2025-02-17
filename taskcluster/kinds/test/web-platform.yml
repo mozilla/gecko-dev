@@ -509,6 +509,7 @@ web-platform-tests-wdspec:
         by-test-platform:
             .*-ccov.*/.*: 6
             .*-tsan.*/.*: 8
+            .*/debug: 6
             default: 5
     mozharness:
         extra-options:
