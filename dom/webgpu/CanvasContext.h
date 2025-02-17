@@ -63,7 +63,7 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
       gfxAlphaType* aOutAlphaType) override;
 
   void SetOpaqueValueFromOpaqueAttr(bool aOpaqueAttrValue) override {}
-  bool GetIsOpaque() override { return true; }
+  bool GetIsOpaque() override;
 
   void ResetBitmap() override { Unconfigure(); }
 
