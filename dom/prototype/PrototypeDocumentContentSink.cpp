@@ -1043,9 +1043,10 @@ nsresult PrototypeDocumentContentSink::CreateElementFromPrototype(
     const bool isRoot = !aParent;
     // If it's a XUL element, it'll be lightweight until somebody
     // monkeys with it.
-    rv = nsXULElement::CreateFromPrototype(aPrototype, doc, true, isRoot,
-                                           getter_AddRefs(result));
-    if (NS_FAILED(rv)) return rv;
+    result = nsXULElement::CreateFromPrototype(aPrototype, doc, isRoot);
+    if (!result) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
   } else {
     // If it's not a XUL element, it's gonna be heavyweight no matter
     // what. So we need to copy everything out of the prototype

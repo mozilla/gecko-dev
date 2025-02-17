@@ -347,10 +347,8 @@ class nsXULElement : public nsStyledElement {
   using Element::Blur;
   using Element::Focus;
 
-  static nsresult CreateFromPrototype(nsXULPrototypeElement* aPrototype,
-                                      Document* aDocument, bool aIsScriptable,
-                                      bool aIsRoot,
-                                      mozilla::dom::Element** aResult);
+  static already_AddRefed<mozilla::dom::Element> CreateFromPrototype(
+      nsXULPrototypeElement* aPrototype, Document* aDocument, bool aIsRoot);
 
   // This is the constructor for nsXULElements.
   static nsXULElement* Construct(
@@ -551,10 +549,6 @@ class nsXULElement : public nsStyledElement {
                                    const nsAString* aIs);
   friend void NS_TrustedNewXULElement(mozilla::dom::Element** aResult,
                                       mozilla::dom::NodeInfo* aNodeInfo);
-
-  static already_AddRefed<nsXULElement> CreateFromPrototype(
-      nsXULPrototypeElement* aPrototype, mozilla::dom::NodeInfo* aNodeInfo,
-      bool aIsScriptable, bool aIsRoot);
 
   JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
 
