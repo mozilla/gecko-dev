@@ -93,6 +93,7 @@ class ProviderContextualSearch extends ActionsProvider {
 
     if (type == INSTALLED_ENGINE) {
       result.engine = engine.name;
+      result.dataset = { providesSearchMode: true };
     }
 
     return new ActionsResult(result);
