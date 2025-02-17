@@ -1779,6 +1779,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         }
     }
 
+    /**
+     * Indicates if the marketing onboarding card should be shown to the user.
+     */
+    var shouldShowMarketingOnboarding by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_should_show_marketing_onboarding),
+        default = true,
+    )
+
     val feltPrivateBrowsingEnabled by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_should_enable_felt_privacy),
         featureFlag = true,
