@@ -47,18 +47,21 @@ web-platform-tests:
                     android-em-7.0-x86_64-qr/debug-isolated-process: 3
                     default: default
     chunks:
-        by-test-platform:
-            android.*/debug: 32
-            android.*: 24
-            linux.*64-tsan-qr/opt: 32
-            linux.*64-asan(-qr)?/opt: 22
-            linux.*64-ccov.*/opt: 20
-            linux.*/debug: 16
-            macosx.*/debug: 18
-            windows.*32.*/opt: 12
-            windows.*/debug: 16
-            windows.*-ccov.*/opt: 14
-            default: 10
+        by-variant:
+            privatebrowsing: dynamic
+            default:
+                by-test-platform:
+                    android.*/debug: 32
+                    android.*: 24
+                    linux.*64-tsan-qr/opt: 32
+                    linux.*64-asan(-qr)?/opt: 22
+                    linux.*64-ccov.*/opt: 20
+                    linux.*/debug: 16
+                    macosx.*/debug: 18
+                    windows.*32.*/opt: 12
+                    windows.*/debug: 16
+                    windows.*-ccov.*/opt: 14
+                    default: 10
     max-run-time:
         by-test-platform:
             .*-ccov.*/.*: 10800
@@ -71,6 +74,7 @@ web-platform-tests:
         - no-fission
         - geckoview-no-fission-ship
         - async-event-dispatching
+        - privatebrowsing
     run-on-projects:
         by-variant:
             geckoview-no-fission-ship:
@@ -89,6 +93,12 @@ web-platform-tests:
                 by-test-platform:
                     .*/debug: []
                     default: []
+            privatebrowsing:
+                by-test-platform:
+                    android.*: []
+                    macos.*: []
+                    .*-(wayland).*/.*: []
+                    default: built-projects
             default:
                 by-test-platform:
                     android.*: []
@@ -146,30 +156,6 @@ web-platform-tests-backlog:
             - --exclude-tag=webgpu
             - --exclude-tag=webcodecs
             - --exclude-tag=eme
-
-web-platform-tests-privatebrowsing:
-    description: "Web platform privatebrowsing test run"
-    suite: web-platform-tests
-    treeherder-symbol: W(pb)
-    virtualization: virtual
-    tier: default
-    chunks: 1
-    max-run-time: 1800
-    variants: []  # We don't need sw or nofis testing.
-    run-on-projects:
-        by-test-platform:
-            android.*: []
-            macos.*: []
-            .*-(wayland).*/.*: []
-            default: built-projects
-    mozharness:
-        chunked: true
-        extra-options:
-            - --test-type=testharness
-            - --default-exclude
-            - --setpref=browser.privatebrowsing.autostart=true
-            - --setpref=dom.cache.privateBrowsing.enabled=true
-            - --tag=privatebrowsing
 
 web-platform-tests-webcodecs:
     description: "Web platform webcodecs test run"

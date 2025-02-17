@@ -25,7 +25,6 @@ webgpu:
 web-platform-tests:
     - web-platform-tests
     - web-platform-tests-crashtest
-    - web-platform-tests-privatebrowsing
     - web-platform-tests-print-reftest
     - web-platform-tests-reftest
     - web-platform-tests-wdspec
@@ -257,7 +256,6 @@ windows32-tests:
     - xpcshell
     - web-platform-tests
     - web-platform-tests-crashtest
-    - web-platform-tests-privatebrowsing
 
 windows10-2009-tests:
     - cppunittest
@@ -433,7 +431,6 @@ macosx1470-64-tests:
     - web-platform-tests-crashtest
     - web-platform-tests-eme
     - web-platform-tests-print-reftest
-    - web-platform-tests-privatebrowsing
     - web-platform-tests-reftest
     - web-platform-tests-wdspec
     - web-platform-tests-webcodecs

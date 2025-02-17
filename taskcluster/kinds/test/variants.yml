@@ -569,3 +569,18 @@ inc-origin-init:
                 MOZHARNESS_TEST_TAG:
                     - "inc-origin-init"
                 MOZ_ENABLE_INC_ORIGIN_INIT: "1"
+
+privatebrowsing:
+    description: "{description} limited to tests identified as being applicable to also run in private browsing mode"
+    component: "Core::Storage: Quota Manager"
+    expiration: "never"
+    suffix: "pb"
+    mozinfo: "privateBrowsing"
+    merge:
+        worker:
+            env:
+                MOZHARNESS_TEST_TAG:
+                    - "privatebrowsing"
+        mozharness:
+            extra-options:
+                - "--setpref=browser.privatebrowsing.autostart=true"

@@ -72,7 +72,6 @@ ADD_TEST_SUPPORTED_SUITES = [
     "mochitest-chrome",
     "mochitest-plain",
     "mochitest-browser-chrome",
-    "web-platform-tests-privatebrowsing",
     "web-platform-tests-testharness",
     "web-platform-tests-reftest",
     "xpcshell",
@@ -81,7 +80,6 @@ ADD_TEST_SUPPORTED_DOCS = ["js", "html", "xhtml", "xul"]
 
 SUITE_SYNONYMS = {
     "wpt": "web-platform-tests-testharness",
-    "wpt-privatebrowsing": "web-platform-tests-privatebrowsing",
     "wpt-testharness": "web-platform-tests-testharness",
     "wpt-reftest": "web-platform-tests-reftest",
 }
