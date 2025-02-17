@@ -7978,12 +7978,13 @@ bool nsWindow::DispatchTouchEventFromWMPointer(
   touchInput.mTouches.AppendElement(touchData);
   touchInput.mButton = aButton;
   touchInput.mButtons = aPointerInfo.mButtons;
+  touchInput.mInputSource = MouseEvent_Binding::MOZ_SOURCE_PEN;
 
   // POINTER_INFO.dwKeyStates can't be used as it only supports Shift and Ctrl
   ModifierKeyState modifierKeyState;
   touchInput.modifiers = modifierKeyState.GetModifiers();
 
-  DispatchTouchInput(touchInput, MouseEvent_Binding::MOZ_SOURCE_PEN);
+  DispatchTouchInput(touchInput);
   return true;
 }
 

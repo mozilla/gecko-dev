@@ -96,7 +96,8 @@ MultiTouchInput::MultiTouchInput(const WidgetTouchEvent& aTouchEvent)
                 aTouchEvent.mModifiers),
       mHandledByAPZ(aTouchEvent.mFlags.mHandledByAPZ),
       mButton(aTouchEvent.mButton),
-      mButtons(aTouchEvent.mButtons) {
+      mButtons(aTouchEvent.mButtons),
+      mInputSource(aTouchEvent.mInputSource) {
   MOZ_ASSERT(NS_IsMainThread(),
              "Can only copy from WidgetTouchEvent on main thread");
 
@@ -154,13 +155,12 @@ void MultiTouchInput::Translate(const ScreenPoint& aTranslation) {
   }
 }
 
-WidgetTouchEvent MultiTouchInput::ToWidgetEvent(nsIWidget* aWidget,
-                                                uint16_t aInputSource) const {
+WidgetTouchEvent MultiTouchInput::ToWidgetEvent(nsIWidget* aWidget) const {
   MOZ_ASSERT(NS_IsMainThread(),
              "Can only convert To WidgetTouchEvent on main thread");
-  MOZ_ASSERT(aInputSource ==
+  MOZ_ASSERT(mInputSource ==
                  mozilla::dom::MouseEvent_Binding::MOZ_SOURCE_TOUCH ||
-             aInputSource == mozilla::dom::MouseEvent_Binding::MOZ_SOURCE_PEN);
+             mInputSource == mozilla::dom::MouseEvent_Binding::MOZ_SOURCE_PEN);
 
   EventMessage touchEventMessage = eVoidEvent;
   switch (mType) {
@@ -192,7 +192,7 @@ WidgetTouchEvent MultiTouchInput::ToWidgetEvent(nsIWidget* aWidget,
   event.mFlags.mHandledByAPZ = mHandledByAPZ;
   event.mFocusSequenceNumber = mFocusSequenceNumber;
   event.mLayersId = mLayersId;
-  event.mInputSource = aInputSource;
+  event.mInputSource = mInputSource;
   event.mButton = mButton;
   event.mButtons = mButtons;
 

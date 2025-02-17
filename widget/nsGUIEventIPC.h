@@ -1099,6 +1099,7 @@ struct ParamTraits<mozilla::MultiTouchInput> {
     WriteParam(aWriter, aParam.mScreenOffset);
     WriteParam(aWriter, aParam.mButton);
     WriteParam(aWriter, aParam.mButtons);
+    WriteParam(aWriter, aParam.mInputSource);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -1108,7 +1109,8 @@ struct ParamTraits<mozilla::MultiTouchInput> {
            ReadParam(aReader, &aResult->mHandledByAPZ) &&
            ReadParam(aReader, &aResult->mScreenOffset) &&
            ReadParam(aReader, &aResult->mButton) &&
-           ReadParam(aReader, &aResult->mButtons);
+           ReadParam(aReader, &aResult->mButtons) &&
+           ReadParam(aReader, &aResult->mInputSource);
   }
 };
 

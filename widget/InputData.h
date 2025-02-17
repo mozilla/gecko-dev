@@ -229,10 +229,7 @@ class MultiTouchInput : public InputData {
 
   void Translate(const ScreenPoint& aTranslation);
 
-  WidgetTouchEvent ToWidgetEvent(
-      nsIWidget* aWidget,
-      uint16_t aInputSource =
-          /* MouseEvent_Binding::MOZ_SOURCE_TOUCH = */ 5) const;
+  WidgetTouchEvent ToWidgetEvent(nsIWidget* aWidget) const;
 
   // Return the index into mTouches of the SingleTouchData with the given
   // identifier, or -1 if there is no such SingleTouchData.
@@ -252,6 +249,7 @@ class MultiTouchInput : public InputData {
   // WidgetMouseEventBase, except mButton defaults to -1 to follow PointerEvent.
   int16_t mButton = eNotPressed;
   int16_t mButtons = 0;
+  uint16_t mInputSource = /* MouseEvent_Binding::MOZ_SOURCE_TOUCH = */ 5;
 };
 
 class MouseInput : public InputData {

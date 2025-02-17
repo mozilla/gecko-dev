@@ -621,10 +621,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
    * be called from the main thread, and if APZ is enabled, that must also be
    * the APZ controller thread.
    */
-  void DispatchTouchInput(
-      mozilla::MultiTouchInput& aInput,
-      uint16_t aInputSource =
-          mozilla::dom::MouseEvent_Binding::MOZ_SOURCE_TOUCH);
+  void DispatchTouchInput(mozilla::MultiTouchInput& aInput);
 
   /**
    * Dispatch the given PanGestureInput through APZ to Gecko (if APZ is enabled)
