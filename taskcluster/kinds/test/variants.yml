@@ -411,7 +411,7 @@ media-gpu:
 no-gpu-process:
     description: "{description} without a dedicated GPU process"
     component: "Core::Graphics"
-    expiration: "2025-03-01"
+    expiration: "2026-01-15"
     suffix: "nogpu"
     mozinfo: "nogpu"
     when:
