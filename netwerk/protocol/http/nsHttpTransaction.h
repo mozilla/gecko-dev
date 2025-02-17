@@ -194,7 +194,11 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   void GetHashKeyOfConnectionEntry(nsACString& aResult);
 
-  bool IsForWebTransport() { return mIsForWebTransport; }
+  bool IsForWebTransport() override { return mIsForWebTransport; }
+  bool IsResettingForTunnelConn() override { return mIsResettingForTunnelConn; }
+  void SetResettingForTunnelConn(bool aValue) override {
+    mIsResettingForTunnelConn = aValue;
+  }
 
   nsAutoCString GetUrl() { return mUrl; }
 
@@ -587,6 +591,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   bool mSupportsHTTP3 = false;
   Atomic<bool, Relaxed> mIsForWebTransport{false};
+  bool mIsResettingForTunnelConn = false;
 
   bool mEarlyDataWasAvailable = false;
   bool ShouldRestartOn0RttError(nsresult reason);

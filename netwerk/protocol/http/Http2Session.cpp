@@ -25,6 +25,7 @@
 #include "Http2Stream.h"
 #include "Http2StreamBase.h"
 #include "Http2StreamTunnel.h"
+#include "Http2WebTransportSession.h"
 #include "LoadContextInfo.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/glean/NetwerkMetrics.h"
@@ -612,13 +613,16 @@ void Http2Session::CreateStream(nsAHttpTransaction* aHttpTransaction,
 
 already_AddRefed<nsHttpConnection> Http2Session::CreateTunnelStream(
     nsAHttpTransaction* aHttpTransaction, nsIInterfaceRequestor* aCallbacks,
-    PRIntervalTime aRtt, bool aIsWebSocket) {
+    PRIntervalTime aRtt, bool aIsExtendedCONNECT) {
   RefPtr<Http2StreamTunnel> refStream = CreateTunnelStreamFromConnInfo(
       this, mCurrentBrowserId, aHttpTransaction->ConnectionInfo(),
-      aIsWebSocket);
+      aIsExtendedCONNECT ? aHttpTransaction->IsForWebTransport()
+                               ? ExtendedCONNECTType::WebTransport
+                               : ExtendedCONNECTType::WebSocket
+                         : ExtendedCONNECTType::Proxy);
 
   RefPtr<nsHttpConnection> newConn = refStream->CreateHttpConnection(
-      aHttpTransaction, aCallbacks, aRtt, aIsWebSocket);
+      aHttpTransaction, aCallbacks, aRtt, aIsExtendedCONNECT);
 
   mTunnelStreams.AppendElement(std::move(refStream));
   return newConn.forget();
@@ -1275,11 +1279,18 @@ bool Http2Session::VerifyStream(Http2StreamBase* aStream,
 // static
 Http2StreamTunnel* Http2Session::CreateTunnelStreamFromConnInfo(
     Http2Session* session, uint64_t bcId, nsHttpConnectionInfo* info,
-    bool isWebSocket) {
+    ExtendedCONNECTType aType) {
   MOZ_ASSERT(info);
   MOZ_ASSERT(session);
 
-  if (isWebSocket) {
+  if (aType == ExtendedCONNECTType::WebTransport) {
+    MOZ_ASSERT(session->GetExtendedCONNECTSupport() ==
+               ExtendedCONNECTSupport::SUPPORTED);
+    return new Http2WebTransportSession(
+        session, nsISupportsPriority::PRIORITY_NORMAL, bcId, info);
+  }
+
+  if (aType == ExtendedCONNECTType::WebSocket) {
     LOG(("Http2Session creating Http2StreamWebSocket"));
     MOZ_ASSERT(session->GetExtendedCONNECTSupport() ==
                ExtendedCONNECTSupport::SUPPORTED);
@@ -1288,6 +1299,7 @@ Http2StreamTunnel* Http2Session::CreateTunnelStreamFromConnInfo(
   }
 
   MOZ_ASSERT(info->UsingHttpProxy() && info->UsingConnect());
+  MOZ_ASSERT(aType == ExtendedCONNECTType::Proxy);
   LOG(("Http2Session creating Http2StreamTunnel"));
   return new Http2StreamTunnel(session, nsISupportsPriority::PRIORITY_NORMAL,
                                bcId, info);
