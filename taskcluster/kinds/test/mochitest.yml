@@ -909,6 +909,10 @@ mochitest-media:
                     android-em-7.0-x86_64-qr/debug-isolated-process: 3
                     android-hw.*: 1
                     default: default
+    use-caches:
+        by-test-platform:
+            .*hw-ref.*: [checkout]
+            default: [checkout, pip, uv]
 
 mochitest-valgrind:
     description: "Mochitest plain Valgrind run"
