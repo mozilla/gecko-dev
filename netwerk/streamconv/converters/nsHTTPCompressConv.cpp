@@ -29,6 +29,7 @@
 #include "state.h"
 #include "brotli/decode.h"
 
+#define ZSTD_STATIC_LINKING_ONLY 1
 #include "zstd/zstd.h"
 
 namespace mozilla {
@@ -55,11 +56,29 @@ class BrotliWrapper {
   uint64_t mSourceOffset{0};
 };
 
+#ifdef ZSTD_INFALLIBLE
+// zstd can grab large blocks; use an infallible alloctor
+static void* zstd_malloc(void*, size_t size) { return moz_xmalloc(size); }
+
+static void zstd_free(void*, void* address) { free(address); }
+
+ZSTD_customMem const zstd_allocators = {zstd_malloc, zstd_free, nullptr};
+#endif
+
 class ZstdWrapper {
  public:
   ZstdWrapper() {
-    mDStream = ZSTD_createDStream();
-    MOZ_RELEASE_ASSERT(mDStream);  // we'll crash anyways if it fails
+#ifdef ZSTD_INFALLIBLE
+    mDStream = ZSTD_createDStream_advanced(zstd_allocators);  // infallible
+#else
+    mDStream = ZSTD_createDStream();  // fallible
+    if (!mDStream) {
+      MOZ_RELEASE_ASSERT(ZSTD_defaultCMem.customAlloc == NULL &&
+                         ZSTD_defaultCMem.customFree == NULL &&
+                         ZSTD_defaultCMem.opaque == NULL);
+      return;
+    }
+#endif
     ZSTD_DCtx_setParameter(mDStream, ZSTD_d_windowLogMax, 23 /*8*1024*1024*/);
   }
   ~ZstdWrapper() {
@@ -689,6 +708,9 @@ nsHTTPCompressConv::OnDataAvailable(nsIRequest* request, nsIInputStream* iStr,
     case HTTP_COMPRESS_ZSTD: {
       if (!mZstd) {
         mZstd = MakeUnique<ZstdWrapper>();
+        if (!mZstd->mDStream) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
       }
 
       mZstd->mRequest = request;
