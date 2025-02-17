@@ -260,8 +260,8 @@ class nsWindow final : public nsBaseWidget {
 
   // event callbacks
   gboolean OnExposeEvent(cairo_t* cr);
-  gboolean OnConfigureEvent(GtkWidget* aWidget, GdkEventConfigure* aEvent);
-  void OnSizeAllocate(GtkWidget* aWidget, GtkAllocation* aAllocation);
+  gboolean OnShellConfigureEvent(GdkEventConfigure* aEvent);
+  void OnContainerSizeAllocate(GtkAllocation* aAllocation);
   void OnMap();
   void OnUnmap();
   void OnDeleteEvent();

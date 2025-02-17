@@ -205,7 +205,8 @@ static GdkCursor* get_gtk_cursor(nsCursor aCursor);
 
 /* callbacks from widgets */
 static gboolean expose_event_cb(GtkWidget* widget, cairo_t* cr);
-static gboolean configure_event_cb(GtkWidget* widget, GdkEventConfigure* event);
+static gboolean shell_configure_event_cb(GtkWidget* widget,
+                                         GdkEventConfigure* event);
 static void size_allocate_cb(GtkWidget* widget, GtkAllocation* allocation);
 static void toplevel_window_size_allocate_cb(GtkWidget* widget,
                                              GtkAllocation* allocation);
@@ -1059,14 +1060,14 @@ void nsWindow::ResizeInt(const Maybe<LayoutDeviceIntPoint>& aMove,
   // 2. Managed window that has not not yet received a size-allocate event:
   //    Resize() Callers expect initial sizes to be applied synchronously.
   //    If the size request is not honored, then we'll correct in
-  //    OnSizeAllocate().
+  //    OnContainerSizeAllocate().
   //
   // When a managed window has already received a size-allocate, we cannot
   // assume we'll always get a notification if our request does not get
   // honored: "If the configure request has not changed, we don't ever resend
   // it, because it could mean fighting the user or window manager."
   // https://gitlab.gnome.org/GNOME/gtk/-/blob/3.24.31/gtk/gtkwindow.c#L9782
-  // So we don't update mBounds until OnSizeAllocate() when we know the
+  // So we don't update mBounds until OnContainerSizeAllocate() when we know the
   // request is granted.
   bool isOrWillBeVisible = mHasReceivedSizeAllocate || mNeedsShow || mIsShown;
   if (!isOrWillBeVisible ||
@@ -2231,7 +2232,7 @@ void nsWindow::NativeMoveResizeWaylandPopup(bool aMove, bool aResize) {
   if (mWaitingForMoveToRectCallback) {
     LOG("  waiting for move to rect, scheduling");
     // mBounds position must not be overwritten before it is applied.
-    // OnConfigureEvent() will not set mBounds to an old position for
+    // OnShellConfigureEvent() will not set mBounds to an old position for
     // GTK_WINDOW_POPUP.
     MOZ_ASSERT(gtk_window_get_window_type(GTK_WINDOW(mShell)) ==
                GTK_WINDOW_POPUP);
@@ -4057,8 +4058,7 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
   return TRUE;
 }
 
-gboolean nsWindow::OnConfigureEvent(GtkWidget* aWidget,
-                                    GdkEventConfigure* aEvent) {
+gboolean nsWindow::OnShellConfigureEvent(GdkEventConfigure* aEvent) {
   // These events are only received on toplevel windows.
   //
   // GDK ensures that the coordinates are the client window top-left wrt the
@@ -4078,10 +4078,10 @@ gboolean nsWindow::OnConfigureEvent(GtkWidget* aWidget,
 
 #ifdef MOZ_LOGGING
   int scale = mGdkWindow ? gdk_window_get_scale_factor(mGdkWindow) : -1;
-  LOG("configure event [%d] %d,%d -> %d x %d direct mGdkWindow scale %d "
+  LOG("configure event %d,%d -> %d x %d direct mGdkWindow scale %d "
       "(scaled size %d x %d)\n",
-      aEvent->window == mGdkWindow, aEvent->x, aEvent->y, aEvent->width,
-      aEvent->height, scale, aEvent->width * scale, aEvent->height * scale);
+      aEvent->x, aEvent->y, aEvent->width, aEvent->height, scale,
+      aEvent->width * scale, aEvent->height * scale);
 #endif
 
   if (mPendingConfigures > 0) {
@@ -4099,18 +4099,20 @@ gboolean nsWindow::OnConfigureEvent(GtkWidget* aWidget,
 
   // FIXME(emilio): This sync bounds computation should ideally not be needed
   // but it causes timeouts on automation. See bug 1946184 comment 14.
-  RecomputeBounds(MayChangeCsdMargin(aEvent->window == mGdkWindow));
+  RecomputeBounds(MayChangeCsdMargin::No);
   return FALSE;
 }
 
-void nsWindow::OnSizeAllocate(GtkWidget* aWidget, GtkAllocation* aAllocation) {
-  LOG("nsWindow::OnSizeAllocate [%d] %d,%d -> %d x %d\n",
-      aWidget == GTK_WIDGET(mContainer), aAllocation->x, aAllocation->y,
-      aAllocation->width, aAllocation->height);
+void nsWindow::OnContainerSizeAllocate(GtkAllocation* aAllocation) {
+  LOG("nsWindow::OnContainerSizeAllocate %d,%d -> %d x %d\n", aAllocation->x,
+      aAllocation->y, aAllocation->width, aAllocation->height);
   mHasReceivedSizeAllocate = true;
   if (!mGdkWindow) {
     return;
   }
+
+  auto oldClientBounds = GetClientBounds();
+
   // Bounds will get updated on the main configure.
   // Gecko permits running nested event loops during processing of events,
   // GtkWindow callers of gtk_widget_size_allocate expect the signal handlers
@@ -4118,13 +4120,16 @@ void nsWindow::OnSizeAllocate(GtkWidget* aWidget, GtkAllocation* aAllocation) {
   // Also, this runs for both top level size_allocate and MozContainer size
   // allocate, so even if the client bounds are the same, we need to recompute
   // the bounds because the client margin might not.
-  SchedulePendingBounds(MayChangeCsdMargin(aWidget == GTK_WIDGET(mContainer)));
+  SchedulePendingBounds(MayChangeCsdMargin::Yes);
 
-  auto oldClientBounds = GetClientBounds();
   // Invalidate the new part of the window now for the pending paint to
   // minimize background flashes (GDK does not do this for external
   // renewClientSizes of toplevels.)
   LayoutDeviceIntRect newClientBounds = GdkRectToDevicePixels(*aAllocation);
+  if (oldClientBounds.Size() == newClientBounds.Size()) {
+    return;
+  }
+
   if (oldClientBounds.width < newClientBounds.width) {
     GdkRectangle rect = DevicePixelsToGdkRectRoundOut(LayoutDeviceIntRect(
         oldClientBounds.width, 0, newClientBounds.width - oldClientBounds.width,
@@ -6247,8 +6252,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   g_object_set_data(G_OBJECT(mShell), "nsWindow", this);
 
   // attach listeners for events
-  g_signal_connect(mShell, "configure_event", G_CALLBACK(configure_event_cb),
-                   nullptr);
+  g_signal_connect(mShell, "configure_event",
+                   G_CALLBACK(shell_configure_event_cb), nullptr);
   g_signal_connect(mShell, "delete_event", G_CALLBACK(delete_event_cb),
                    nullptr);
   g_signal_connect(mShell, "window_state_event",
@@ -7870,14 +7875,14 @@ gboolean expose_event_cb(GtkWidget* widget, cairo_t* cr) {
   return FALSE;
 }
 
-static gboolean configure_event_cb(GtkWidget* widget,
-                                   GdkEventConfigure* event) {
+static gboolean shell_configure_event_cb(GtkWidget* widget,
+                                         GdkEventConfigure* event) {
   RefPtr<nsWindow> window = get_window_for_gtk_widget(widget);
   if (!window) {
     return FALSE;
   }
 
-  return window->OnConfigureEvent(widget, event);
+  return window->OnShellConfigureEvent(event);
 }
 
 static void size_allocate_cb(GtkWidget* widget, GtkAllocation* allocation) {
@@ -7885,8 +7890,7 @@ static void size_allocate_cb(GtkWidget* widget, GtkAllocation* allocation) {
   if (!window) {
     return;
   }
-
-  window->OnSizeAllocate(widget, allocation);
+  window->OnContainerSizeAllocate(allocation);
 }
 
 static void toplevel_window_size_allocate_cb(GtkWidget* widget,
