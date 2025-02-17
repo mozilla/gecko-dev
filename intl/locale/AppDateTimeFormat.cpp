@@ -73,6 +73,7 @@ nsresult AppDateTimeFormat::Format(const DateTimeFormat::ComponentsBag& aBag,
 
   aStringOut.Truncate();
 
+  nsAutoCString str;
   nsAutoString timeZoneID;
   BuildTimeZoneString(aExplodedTime->tm_params, timeZoneID);
 
@@ -81,8 +82,7 @@ nsresult AppDateTimeFormat::Format(const DateTimeFormat::ComponentsBag& aBag,
   auto dateTimePatternGenerator = genResult.unwrap();
 
   auto result = DateTimeFormat::TryCreateFromComponents(
-      *sLocale, aBag, dateTimePatternGenerator.get(),
-      Some(Span<const char16_t>(timeZoneID.Data(), timeZoneID.Length())));
+      *sLocale, aBag, dateTimePatternGenerator.get(), Some(timeZoneID));
   NS_ENSURE_TRUE(result.isOk(), NS_ERROR_FAILURE);
   auto dateTimeFormat = result.unwrap();
 
