@@ -739,10 +739,11 @@ function getCanStageUpdates(transient = true) {
  *           NoBits_Pref
  *           NoBits_Proxy
  *           NoBits_OtherUser
- *         These strings are directly compatible with the categories for
- *         UPDATE_CAN_USE_BITS_EXTERNAL and UPDATE_CAN_USE_BITS_NOTIFY telemetry
- *         probes. If this function is made to return other values, they should
+ *         These strings are directly compatible with the categories for the
+ *         Glean.update.canUseBitsExternal and Glean.update.canUseBitsNotify glean
+ *         metrics. If this function is made to return other values, they should
  *         also be added to the labels lists for those probes in Histograms.json
+ *         and metrics.yaml.
  */
 function getCanUseBits(transient = true) {
   if (AppConstants.platform != "win") {
@@ -3320,7 +3321,7 @@ export class UpdateService {
     return this._checkForBackgroundUpdates(false);
   }
 
-  // The suffix used for background update check telemetry histogram ID's.
+  // The suffix used for background update check glean metric names.
   get _pingSuffix() {
     if (lazy.UM.internal.readyUpdate) {
       // Once an update has been downloaded, all later updates will be reported
@@ -3365,109 +3366,101 @@ export class UpdateService {
 
     this._isNotify = isNotify;
 
-    // Histogram IDs:
-    // UPDATE_PING_COUNT_EXTERNAL
-    // UPDATE_PING_COUNT_NOTIFY
-    // UPDATE_PING_COUNT_SUBSEQUENT
-    AUSTLMY.pingGeneric("UPDATE_PING_COUNT_" + this._pingSuffix, true, false);
+    // Glean metric names:
+    // Glean.update.pingCountExternal
+    // Glean.update.pingCountNotify
+    // Glean.update.pingCountSubsequent
+    Glean.update["pingCount" + this._pingSuffix].add();
 
-    // Histogram IDs:
-    // UPDATE_UNABLE_TO_APPLY_EXTERNAL
-    // UPDATE_UNABLE_TO_APPLY_NOTIFY
-    // UPDATE_UNABLE_TO_APPLY_SUBSEQUENT
-    AUSTLMY.pingGeneric(
-      "UPDATE_UNABLE_TO_APPLY_" + this._pingSuffix,
-      getCanApplyUpdates(),
-      true
-    );
-    // Histogram IDs:
-    // UPDATE_CANNOT_STAGE_EXTERNAL
-    // UPDATE_CANNOT_STAGE_NOTIFY
-    // UPDATE_CANNOT_STAGE_SUBSEQUENT
-    AUSTLMY.pingGeneric(
-      "UPDATE_CANNOT_STAGE_" + this._pingSuffix,
-      getCanStageUpdates(),
-      true
-    );
-    if (AppConstants.platform == "win") {
-      // Histogram IDs:
-      // UPDATE_CAN_USE_BITS_EXTERNAL
-      // UPDATE_CAN_USE_BITS_NOTIFY
-      // UPDATE_CAN_USE_BITS_SUBSEQUENT
-      AUSTLMY.pingGeneric(
-        "UPDATE_CAN_USE_BITS_" + this._pingSuffix,
-        getCanUseBits()
-      );
+    // Glean metric names:
+    // Glean.update.unableToApplyExternal
+    // Glean.update.unableToApplyNotify
+    // Glean.update.unableToApplySubsequent
+    if (!getCanApplyUpdates()) {
+      Glean.update["unableToApply" + this._pingSuffix].add();
     }
-    // Histogram IDs:
-    // UPDATE_INVALID_LASTUPDATETIME_EXTERNAL
-    // UPDATE_INVALID_LASTUPDATETIME_NOTIFY
-    // UPDATE_INVALID_LASTUPDATETIME_SUBSEQUENT
-    // UPDATE_LAST_NOTIFY_INTERVAL_DAYS_EXTERNAL
-    // UPDATE_LAST_NOTIFY_INTERVAL_DAYS_NOTIFY
-    // UPDATE_LAST_NOTIFY_INTERVAL_DAYS_SUBSEQUENT
+
+    // Glean metric names:
+    // Glean.update.cannotStageExternal
+    // Glean.update.cannotStageNotify
+    // Glean.update.cannotStageSubsequent
+    if (!getCanApplyUpdates()) {
+      Glean.update["cannotStage" + this._pingSuffix].add();
+    }
+    if (AppConstants.platform == "win") {
+      // labeled counter metric names:
+      // Glean.update.canUseBitsExternal
+      // Glean.update.canUseBitsNotify
+      // Glean.update.canUseBitsSubsequent
+      Glean.update["canUseBits" + this._pingSuffix][getCanUseBits()].add();
+    }
+    // Glean metric names:
+    // Glean.update.invalidLastupdatetimeExternal
+    // Glean.update.invalidLastupdatetimeNotify
+    // Glean.update.invalidLastupdatetimeSubsequent
+    // Glean.update.lastNotifyIntervalDaysExternal
+    // Glean.update.lastNotifyIntervalDaysNotify
+    // Glean.update.lastNotifyIntervalDaysSubsequent
     AUSTLMY.pingLastUpdateTime(this._pingSuffix);
-    // Histogram IDs:
-    // UPDATE_NOT_PREF_UPDATE_AUTO_EXTERNAL
-    // UPDATE_NOT_PREF_UPDATE_AUTO_NOTIFY
-    // UPDATE_NOT_PREF_UPDATE_AUTO_SUBSEQUENT
+    // Glean metric names:
+    // Glean.update.notPrefUpdateAutoExternal
+    // Glean.update.notPrefUpdateAutoNotify
+    // Glean.update.notPrefUpdateAutoSubsequent
     lazy.UpdateUtils.getAppUpdateAutoEnabled().then(enabled => {
-      AUSTLMY.pingGeneric(
-        "UPDATE_NOT_PREF_UPDATE_AUTO_" + this._pingSuffix,
-        enabled,
-        true
-      );
+      if (!enabled) {
+        Glean.update["notPrefUpdateAuto" + this._pingSuffix].add();
+      }
     });
-    // Histogram IDs:
-    // UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_EXTERNAL
-    // UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_NOTIFY
-    // UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_SUBSEQUENT
+    // Glean metric names:
+    // Glean.update.notPrefUpdateStagingEnabledExternal
+    // Glean.update.notPrefUpdateStagingEnabledNotify
+    // Glean.update.notPrefUpdateStagingEnabledSubsequent
     AUSTLMY.pingBoolPref(
-      "UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_" + this._pingSuffix,
+      Glean.update["notPrefUpdateStagingEnabled" + this._pingSuffix],
       PREF_APP_UPDATE_STAGING_ENABLED,
       true,
       true
     );
     if (AppConstants.platform == "win" || AppConstants.platform == "macosx") {
-      // Histogram IDs:
-      // UPDATE_PREF_UPDATE_CANCELATIONS_EXTERNAL
-      // UPDATE_PREF_UPDATE_CANCELATIONS_NOTIFY
-      // UPDATE_PREF_UPDATE_CANCELATIONS_SUBSEQUENT
+      // Glean metric names:
+      // Glean.update.prefUpdateCancelationsExternal
+      // Glean.update.prefUpdateCancelationsNotify
+      // Glean.update.prefUpdateCancelationsSubsequent
       AUSTLMY.pingIntPref(
-        "UPDATE_PREF_UPDATE_CANCELATIONS_" + this._pingSuffix,
+        Glean.update["prefUpdateCancelations" + this._pingSuffix],
         PREF_APP_UPDATE_CANCELATIONS,
         0,
         0
       );
     }
     if (AppConstants.MOZ_MAINTENANCE_SERVICE) {
-      // Histogram IDs:
-      // UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_EXTERNAL
-      // UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_NOTIFY
-      // UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_SUBSEQUENT
+      // Glean metric names:
+      // Glean.update.notPrefUpdateServiceEnabledExternal
+      // Glean.update.notPrefUpdateServiceEnabledNotify
+      // Glean.update.notPrefUpdateServiceEnabledSubsequent
       AUSTLMY.pingBoolPref(
-        "UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_" + this._pingSuffix,
+        Glean.update["notPrefUpdateServiceEnabled" + this._pingSuffix],
         PREF_APP_UPDATE_SERVICE_ENABLED,
         true
       );
-      // Histogram IDs:
-      // UPDATE_PREF_SERVICE_ERRORS_EXTERNAL
-      // UPDATE_PREF_SERVICE_ERRORS_NOTIFY
-      // UPDATE_PREF_SERVICE_ERRORS_SUBSEQUENT
+      // Glean metric names:
+      // Glean.update.prefServiceErrorsExternal
+      // Glean.update.prefServiceErrorsNotify
+      // Glean.update.prefServiceErrorsSubsequent
       AUSTLMY.pingIntPref(
-        "UPDATE_PREF_SERVICE_ERRORS_" + this._pingSuffix,
+        Glean.update["prefServiceErrors" + this._pingSuffix],
         PREF_APP_UPDATE_SERVICE_ERRORS,
         0,
         0
       );
       if (AppConstants.platform == "win") {
-        // Histogram IDs:
-        // UPDATE_SERVICE_INSTALLED_EXTERNAL
-        // UPDATE_SERVICE_INSTALLED_NOTIFY
-        // UPDATE_SERVICE_INSTALLED_SUBSEQUENT
-        // UPDATE_SERVICE_MANUALLY_UNINSTALLED_EXTERNAL
-        // UPDATE_SERVICE_MANUALLY_UNINSTALLED_NOTIFY
-        // UPDATE_SERVICE_MANUALLY_UNINSTALLED_SUBSEQUENT
+        // Glean metric names:
+        // Glean.update.serviceInstalledExternal
+        // Glean.update.serviceInstalledNotify
+        // Glean.update.serviceInstalledSubsequent
+        // Glean.update.serviceManuallyUninstalledExternal
+        // Glean.update.serviceManuallyUninstalledNotify
+        // Glean.update.serviceManuallyUninstalledSubsequent
         AUSTLMY.pingServiceInstallStatus(
           this._pingSuffix,
           isServiceInstalled()

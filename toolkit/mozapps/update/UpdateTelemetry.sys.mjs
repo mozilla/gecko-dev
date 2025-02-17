@@ -12,8 +12,8 @@ import {
 export var AUSTLMY = {
   // Telemetry for the application update background update check occurs when
   // the background update timer fires after the update interval which is
-  // determined by the app.update.interval preference and its telemetry
-  // histogram IDs have the suffix '_NOTIFY'.
+  // determined by the app.update.interval preference and its glean metric IDs
+  // have the suffix 'Notify'.
   // Telemetry for the externally initiated background update check occurs when
   // a call is made to |checkForBackgroundUpdates| which is typically initiated
   // by an application when it has determined that the application should have
@@ -23,19 +23,19 @@ export var AUSTLMY = {
 
   // The update check was performed by the call to checkForBackgroundUpdates in
   // nsUpdateService.js.
-  EXTERNAL: "EXTERNAL",
+  EXTERNAL: "External",
   // The update check was performed by the call to notify in nsUpdateService.js.
-  NOTIFY: "NOTIFY",
+  NOTIFY: "Notify",
   // The update check was performed after an update is already ready. There is
   // currently no way for a user to initiate an update check when there is a
   // ready update (the UI just prompts you to install the ready update). So
   // subsequent update checks are necessarily "notify" update checks, not
   // "external" ones.
-  SUBSEQUENT: "SUBSEQUENT",
+  SUBSEQUENT: "Subsequent",
 
   /**
-   * Values for the UPDATE_CHECK_CODE_NOTIFY and UPDATE_CHECK_CODE_EXTERNAL
-   * Telemetry histograms.
+   * Values for the Glean.update.checkCodeNotify and
+   * Glean.update.checkCodeExternal custom_distribution metrics.
    */
   // No update found (no notification)
   CHK_NO_UPDATE_FOUND: 0,
@@ -102,19 +102,19 @@ export var AUSTLMY = {
 
   /**
    * Submit a telemetry ping for the update check result code or a telemetry
-   * ping for a count type histogram count when no update was found. The no
+   * ping for a counter metric when no update was found. The no
    * update found ping is separate since it is the typical result, is less
    * interesting than the other result codes, and it is easier to analyze the
    * other codes without including it.
    *
    * @param  aSuffix
-   *         The histogram id suffix for histogram IDs:
-   *         UPDATE_CHECK_CODE_EXTERNAL
-   *         UPDATE_CHECK_CODE_NOTIFY
-   *         UPDATE_CHECK_CODE_SUBSEQUENT
-   *         UPDATE_CHECK_NO_UPDATE_EXTERNAL
-   *         UPDATE_CHECK_NO_UPDATE_NOTIFY
-   *         UPDATE_CHECK_NO_UPDATE_SUBSEQUENT
+   *         The metric name suffix for metric names:
+   *         Glean.update.checkCodeExternal
+   *         Glean.update.checkCodeNotify
+   *         Glean.update.checkCodeSubsequent
+   *         Glean.update.checkNoUpdateExternal
+   *         Glean.update.checkNoUpdateNotify
+   *         Glean.update.checkNoUpdateSubsequent
    * @param  aCode
    *         An integer value as defined by the values that start with CHK_ in
    *         the above section.
@@ -122,13 +122,11 @@ export var AUSTLMY = {
   pingCheckCode: function UT_pingCheckCode(aSuffix, aCode) {
     try {
       if (aCode == this.CHK_NO_UPDATE_FOUND) {
-        let id = "UPDATE_CHECK_NO_UPDATE_" + aSuffix;
-        // count type histogram
-        Services.telemetry.getHistogramById(id).add();
+        // counter metric
+        Glean.update["checkNoUpdate" + aSuffix].add();
       } else {
-        let id = "UPDATE_CHECK_CODE_" + aSuffix;
-        // enumerated type histogram
-        Services.telemetry.getHistogramById(id).add(aCode);
+        // custom distribution metric
+        Glean.update["checkCode" + aSuffix].accumulateSingleSample(aCode);
       }
     } catch (e) {
       console.error(e);
@@ -137,23 +135,23 @@ export var AUSTLMY = {
 
   /**
    * Submit a telemetry ping for a failed update check's unhandled error code
-   * when the pingCheckCode is CHK_GENERAL_ERROR_SILENT. The histogram is a
-   * keyed count type with key names that are prefixed with 'AUS_CHECK_EX_ERR_'.
+   * when the pingCheckCode is CHK_GENERAL_ERROR_SILENT. The metric is a labeled
+   * counter with label names that are prefixed with 'AUS_CHECK_EX_ERR_'.
    *
    * @param  aSuffix
-   *         The histogram id suffix for histogram IDs:
-   *         UPDATE_CHECK_EXTENDED_ERROR_EXTERNAL
-   *         UPDATE_CHECK_EXTENDED_ERROR_NOTIFY
-   *         UPDATE_CHECK_EXTENDED_ERROR_SUBSEQUENT
+   *         The metric name suffix for metric names:
+   *         Glean.update.checkExtendedErrorExternal
+   *         Glean.update.checkExtendedErrorNotify
+   *         Glean.update.checkExtendedErrorSubsequent
    * @param  aCode
    *         The extended error value return by a failed update check.
    */
   pingCheckExError: function UT_pingCheckExError(aSuffix, aCode) {
     try {
-      let id = "UPDATE_CHECK_EXTENDED_ERROR_" + aSuffix;
-      let val = "AUS_CHECK_EX_ERR_" + aCode;
-      // keyed count type histogram
-      Services.telemetry.getKeyedHistogramById(id).add(val);
+      // labeled counter metric
+      Glean.update["checkExtendedError" + aSuffix][
+        "AUS_CHECK_EX_ERR_" + aCode
+      ].add();
     } catch (e) {
       console.error(e);
     }
@@ -394,13 +392,13 @@ export var AUSTLMY = {
    * update check or a boolean if the last notification is in the future.
    *
    * @param  aSuffix
-   *         The histogram id suffix for histogram IDs:
-   *         UPDATE_INVALID_LASTUPDATETIME_EXTERNAL
-   *         UPDATE_INVALID_LASTUPDATETIME_NOTIFY
-   *         UPDATE_INVALID_LASTUPDATETIME_SUBSEQUENT
-   *         UPDATE_LAST_NOTIFY_INTERVAL_DAYS_EXTERNAL
-   *         UPDATE_LAST_NOTIFY_INTERVAL_DAYS_NOTIFY
-   *         UPDATE_LAST_NOTIFY_INTERVAL_DAYS_SUBSEQUENT
+   *         The metric id suffix for metric names:
+   *         Glean.update.invalidLastupdatetimeExternal
+   *         Glean.update.invalidLastupdatetimeNotify
+   *         Glean.update.invalidLastupdatetimeSubsequent
+   *         Glean.update.lastNotifyIntervalDaysExternal
+   *         Glean.update.lastNotifyIntervalDaysNotify
+   *         Glean.update.lastNotifyIntervalDaysSubsequent
    */
   pingLastUpdateTime: function UT_pingLastUpdateTime(aSuffix) {
     const PREF_APP_UPDATE_LASTUPDATETIME =
@@ -413,9 +411,8 @@ export var AUSTLMY = {
         let currentTimeSeconds = Math.round(Date.now() / 1000);
         if (lastUpdateTimeSeconds > currentTimeSeconds) {
           try {
-            let id = "UPDATE_INVALID_LASTUPDATETIME_" + aSuffix;
-            // count type histogram
-            Services.telemetry.getHistogramById(id).add();
+            // counter metric
+            Glean.update["invalidLastupdatetime" + aSuffix].add();
           } catch (e) {
             console.error(e);
           }
@@ -423,9 +420,10 @@ export var AUSTLMY = {
           let intervalDays =
             (currentTimeSeconds - lastUpdateTimeSeconds) / (60 * 60 * 24);
           try {
-            let id = "UPDATE_LAST_NOTIFY_INTERVAL_DAYS_" + aSuffix;
-            // exponential type histogram
-            Services.telemetry.getHistogramById(id).add(intervalDays);
+            // timing_distribution metric with day as the unit
+            Glean.update[
+              "lastNotifyIntervalDays" + aSuffix
+            ].accumulateSingleSample(intervalDays);
           } catch (e) {
             console.error(e);
           }
@@ -435,19 +433,18 @@ export var AUSTLMY = {
   },
 
   /**
-   * Submit a telemetry ping for a boolean type histogram that indicates if the
-   * service is installed and a telemetry ping for a boolean type histogram that
-   * indicates if the service was at some point installed and is now
-   * uninstalled.
+   * Submit a telemetry ping for a boolean value that indicates if the
+   * service is installed and a counter that indicates if the service was
+   * at some point installed and is now uninstalled.
    *
    * @param  aSuffix
-   *         The histogram id suffix for histogram IDs:
-   *         UPDATE_SERVICE_INSTALLED_EXTERNAL
-   *         UPDATE_SERVICE_INSTALLED_NOTIFY
-   *         UPDATE_SERVICE_INSTALLED_SUBSEQUENT
-   *         UPDATE_SERVICE_MANUALLY_UNINSTALLED_EXTERNAL
-   *         UPDATE_SERVICE_MANUALLY_UNINSTALLED_NOTIFY
-   *         UPDATE_SERVICE_MANUALLY_UNINSTALLED_SUBSEQUENT
+   *         The metric name suffix for metric names:
+   *         Glean.update.serviceInstalledExternal
+   *         Glean.update.serviceInstalledNotify
+   *         Glean.update.serviceInstalledSubsequent
+   *         Glean.update.serviceManuallyUninstalledExternal
+   *         Glean.update.serviceManuallyUninstalledNotify
+   *         Glean.update.serviceManuallyUninstalledSubsequent
    * @param  aInstalled
    *         Whether the service is installed.
    */
@@ -460,9 +457,8 @@ export var AUSTLMY = {
     }
 
     try {
-      let id = "UPDATE_SERVICE_INSTALLED_" + aSuffix;
-      // boolean type histogram
-      Services.telemetry.getHistogramById(id).add(aInstalled);
+      // labeled_counter metric with "false" and "true" labels
+      Glean.update["serviceInstalled" + aSuffix][aInstalled].add();
     } catch (e) {
       console.error(e);
     }
@@ -486,10 +482,9 @@ export var AUSTLMY = {
     }
 
     try {
-      let id = "UPDATE_SERVICE_MANUALLY_UNINSTALLED_" + aSuffix;
       if (!aInstalled && attempted) {
-        // count type histogram
-        Services.telemetry.getHistogramById(id).add();
+        // counter metric
+        Glean.update["serviceManuallyUninstalled" + aSuffix].add();
       }
     } catch (e) {
       console.error(e);
@@ -497,13 +492,13 @@ export var AUSTLMY = {
   },
 
   /**
-   * Submit a telemetry ping for a count type histogram when the expected value
+   * Submit a telemetry ping for a counter glean metric when the expected value
    * does not equal the boolean value of a pref or if the pref isn't present
    * when the expected value does not equal default value. This lessens the
    * amount of data submitted to telemetry.
    *
-   * @param  aID
-   *         The histogram ID to report to.
+   * @param  aMetric
+   *         The glean metric to report to.
    * @param  aPref
    *         The preference to check.
    * @param  aDefault
@@ -512,15 +507,15 @@ export var AUSTLMY = {
    *         If specified and the value is the same as the value that will be
    *         added the value won't be added to telemetry.
    */
-  pingBoolPref: function UT_pingBoolPref(aID, aPref, aDefault, aExpected) {
+  pingBoolPref: function UT_pingBoolPref(aMetric, aPref, aDefault, aExpected) {
     try {
       let val = aDefault;
       if (Services.prefs.getPrefType(aPref) != Ci.nsIPrefBranch.PREF_INVALID) {
         val = Services.prefs.getBoolPref(aPref);
       }
       if (val != aExpected) {
-        // count type histogram
-        Services.telemetry.getHistogramById(aID).add();
+        // counter metric
+        aMetric.add();
       }
     } catch (e) {
       console.error(e);
@@ -528,13 +523,13 @@ export var AUSTLMY = {
   },
 
   /**
-   * Submit a telemetry ping for a histogram with the integer value of a
+   * Submit a telemetry ping for a glean metric with the integer value of a
    * preference when it is not the expected value or the default value when it
    * is not the expected value. This lessens the amount of data submitted to
    * telemetry.
    *
-   * @param  aID
-   *         The histogram ID to report to.
+   * @param  aMetric
+   *         The glean metric to report to.
    * @param  aPref
    *         The preference to check.
    * @param  aDefault
@@ -543,44 +538,15 @@ export var AUSTLMY = {
    *         If specified and the value is the same as the value that will be
    *         added the value won't be added to telemetry.
    */
-  pingIntPref: function UT_pingIntPref(aID, aPref, aDefault, aExpected) {
+  pingIntPref: function UT_pingIntPref(aMetric, aPref, aDefault, aExpected) {
     try {
       let val = aDefault;
       if (Services.prefs.getPrefType(aPref) != Ci.nsIPrefBranch.PREF_INVALID) {
         val = Services.prefs.getIntPref(aPref);
       }
       if (aExpected === undefined || val != aExpected) {
-        // enumerated or exponential type histogram
-        Services.telemetry.getHistogramById(aID).add(val);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  },
-
-  /**
-   * Submit a telemetry ping for all histogram types that take a single
-   * parameter to the telemetry add function and the count type histogram when
-   * the aExpected parameter is specified. If the aExpected parameter is
-   * specified and it equals the value specified by the aValue
-   * parameter the telemetry submission will be skipped.
-   *
-   * @param  aID
-   *         The histogram ID to report to.
-   * @param  aValue
-   *         The value to add when aExpected is not defined or the value to
-   *         check if it is equal to when aExpected is defined.
-   * @param  aExpected (optional)
-   *         If specified and the value is the same as the value specified by
-   *         aValue parameter the submission will be skipped.
-   */
-  pingGeneric: function UT_pingGeneric(aID, aValue, aExpected) {
-    try {
-      if (aExpected === undefined) {
-        Services.telemetry.getHistogramById(aID).add(aValue);
-      } else if (aValue != aExpected) {
-        // count type histogram
-        Services.telemetry.getHistogramById(aID).add();
+        // custom_distribution metric
+        aMetric.accumulateSingleSample(val);
       }
     } catch (e) {
       console.error(e);

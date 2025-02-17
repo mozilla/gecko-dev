@@ -1,0 +1,952 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Application Update'
+
+update:
+  check_no_update_external:
+    type: counter
+    description: >
+      Update: count of no updates were found for a background update check
+      (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CHECK_NO_UPDATE_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CHECK_NO_UPDATE_EXTERNAL
+
+  check_no_update_notify:
+    type: counter
+    description: >
+      Update: count of no updates were found for a background update check
+      (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CHECK_NO_UPDATE_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CHECK_NO_UPDATE_NOTIFY
+
+  check_no_update_subsequent:
+    type: counter
+    description: >
+      Update: count of no updates were found for a background update check
+      (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CHECK_NO_UPDATE_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CHECK_NO_UPDATE_SUBSEQUENT
+
+  check_code_external:
+    type: custom_distribution
+    description: >
+      Update: background update check result code except for no updates found
+      (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_CHECK_CODE_EXTERNAL.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_CHECK_CODE_EXTERNAL
+
+  check_code_notify:
+    type: custom_distribution
+    description: >
+      Update: background update check result code except for no updates found
+      (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_CHECK_CODE_NOTIFY.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_CHECK_CODE_NOTIFY
+
+  check_code_subsequent:
+    type: custom_distribution
+    description: >
+      Update: background update check result code except for no updates found
+      (after we already have an update ready). Possible codes are enumerated by
+      constants starting with CHK_ in
+      toolkit/mozapps/update/UpdateTelemetry.sys.mjs
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_CHECK_CODE_SUBSEQUENT.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_CHECK_CODE_SUBSEQUENT
+
+  check_extended_error_external:
+    type: labeled_counter
+    description: >
+      Update: keyed count (key names are prefixed with AUS_CHECK_EX_ERR_) of
+      background update check extended error code (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CHECK_EXTENDED_ERROR_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CHECK_EXTENDED_ERROR_EXTERNAL
+
+  check_extended_error_notify:
+    type: labeled_counter
+    description: >
+      Update: keyed count (key names are prefixed with AUS_CHECK_EX_ERR_) of
+      background update check extended error code (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CHECK_EXTENDED_ERROR_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CHECK_EXTENDED_ERROR_NOTIFY
+
+  check_extended_error_subsequent:
+    type: labeled_counter
+    description: >
+      Update: keyed count (key names are prefixed with AUS_CHECK_EX_ERR_) of
+      background update check extended error code (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CHECK_EXTENDED_ERROR_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CHECK_EXTENDED_ERROR_SUBSEQUENT
+
+  invalid_lastupdatetime_external:
+    type: counter
+    description: >
+      Update: count of systems that have a last update time greater than the
+      current time (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_INVALID_LASTUPDATETIME_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_INVALID_LASTUPDATETIME_EXTERNAL
+
+  invalid_lastupdatetime_notify:
+    type: counter
+    description: >
+      Update: count of systems that have a last update time greater than the
+      current time (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_INVALID_LASTUPDATETIME_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_INVALID_LASTUPDATETIME_NOTIFY
+
+  invalid_lastupdatetime_subsequent:
+    type: counter
+    description: >
+      Update: count of systems that have a last update time greater than the
+      current time (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_INVALID_LASTUPDATETIME_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_INVALID_LASTUPDATETIME_SUBSEQUENT
+
+  last_notify_interval_days_external:
+    type: timing_distribution
+    description: >
+      Update: interval in days since the last background update check
+      (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram UPDATE_LAST_NOTIFY_INTERVAL_DAYS_EXTERNAL.
+    time_unit: day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_LAST_NOTIFY_INTERVAL_DAYS_EXTERNAL
+
+  last_notify_interval_days_notify:
+    type: timing_distribution
+    description: >
+      Update: interval in days since the last background update check (timer
+      initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram UPDATE_LAST_NOTIFY_INTERVAL_DAYS_NOTIFY.
+    time_unit: day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_LAST_NOTIFY_INTERVAL_DAYS_NOTIFY
+
+  last_notify_interval_days_subsequent:
+    type: timing_distribution
+    description: >
+      Update: interval in days since the last background update check (after we
+      already have an update ready)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram UPDATE_LAST_NOTIFY_INTERVAL_DAYS_SUBSEQUENT.
+    time_unit: day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_LAST_NOTIFY_INTERVAL_DAYS_SUBSEQUENT
+
+  ping_count_external:
+    type: counter
+    description: >
+      Update: count of systems for this ping for comparison with other pings
+      (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_PING_COUNT_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1151267
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1151267
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_PING_COUNT_EXTERNAL
+
+  ping_count_notify:
+    type: counter
+    description: >
+      Update: count of systems for this ping for comparison with other pings
+      (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_PING_COUNT_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1151267
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1151267
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_PING_COUNT_NOTIFY
+
+  ping_count_subsequent:
+    type: counter
+    description: >
+      Update: count of systems for this ping for comparison with other pings
+      (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_PING_COUNT_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_PING_COUNT_SUBSEQUENT
+
+  service_installed_external:
+    type: labeled_counter
+    description: >
+      Update: whether the service is installed (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram UPDATE_SERVICE_INSTALLED_EXTERNAL.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_SERVICE_INSTALLED_EXTERNAL
+
+  service_installed_notify:
+    type: labeled_counter
+    description: >
+      Update: whether the service is installed (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram UPDATE_SERVICE_INSTALLED_NOTIFY.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_SERVICE_INSTALLED_NOTIFY
+
+  service_installed_subsequent:
+    type: labeled_counter
+    description: >
+      Update: whether the service is installed (after we already have an update
+      ready)
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram UPDATE_SERVICE_INSTALLED_SUBSEQUENT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_SERVICE_INSTALLED_SUBSEQUENT
+
+  service_manually_uninstalled_external:
+    type: counter
+    description: >
+      Update: count of systems that manually uninstalled the service (externally
+      initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_SERVICE_MANUALLY_UNINSTALLED_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_SERVICE_MANUALLY_UNINSTALLED_EXTERNAL
+
+  service_manually_uninstalled_notify:
+    type: counter
+    description: >
+      Update: count of systems that manually uninstalled the service (timer
+      initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_SERVICE_MANUALLY_UNINSTALLED_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_SERVICE_MANUALLY_UNINSTALLED_NOTIFY
+
+  service_manually_uninstalled_subsequent:
+    type: counter
+    description: >
+      Update: count of systems that manually uninstalled the service (timer
+      initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_SERVICE_MANUALLY_UNINSTALLED_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_SERVICE_MANUALLY_UNINSTALLED_SUBSEQUENT
+
+  unable_to_apply_external:
+    type: counter
+    description: >
+      Update: count of systems that cannot apply updates (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_UNABLE_TO_APPLY_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1151267
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1151267
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_UNABLE_TO_APPLY_EXTERNAL
+
+  unable_to_apply_notify:
+    type: counter
+    description: >
+      Update: count of systems that cannot apply updates (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_UNABLE_TO_APPLY_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1151267
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1151267
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_UNABLE_TO_APPLY_NOTIFY
+
+  unable_to_apply_subsequent:
+    type: counter
+    description: >
+      Update: count of systems that cannot apply updates (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_UNABLE_TO_APPLY_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_UNABLE_TO_APPLY_SUBSEQUENT
+
+  cannot_stage_external:
+    type: counter
+    description: >
+      Update: count of systems that cannot stage updates (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CANNOT_STAGE_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CANNOT_STAGE_EXTERNAL
+
+  cannot_stage_notify:
+    type: counter
+    description: >
+      Update: count of systems that cannot stage updates (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CANNOT_STAGE_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CANNOT_STAGE_NOTIFY
+
+  cannot_stage_subsequent:
+    type: counter
+    description: >
+      Update: count of systems that cannot stage updates (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_CANNOT_STAGE_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CANNOT_STAGE_SUBSEQUENT
+
+  pref_update_cancelations_external:
+    type: custom_distribution
+    description: >
+      Update: number of sequential update elevation request cancelations greater
+      than 0 (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_PREF_UPDATE_CANCELATIONS_EXTERNAL.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_PREF_UPDATE_CANCELATIONS_EXTERNAL
+
+  pref_update_cancelations_notify:
+    type: custom_distribution
+    description: >
+      Update: number of sequential update elevation request cancelations greater
+      than 0 (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_PREF_UPDATE_CANCELATIONS_NOTIFY.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_PREF_UPDATE_CANCELATIONS_NOTIFY
+
+  pref_update_cancelations_subsequent:
+    type: custom_distribution
+    description: >
+      Update: number of sequential update elevation request cancelations greater
+      than 0 (after we already have an update ready)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_PREF_UPDATE_CANCELATIONS_SUBSEQUENT.
+    range_min: 0
+    range_max: 100
+    bucket_count: 101
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_PREF_UPDATE_CANCELATIONS_SUBSEQUENT
+
+  pref_service_errors_external:
+    type: custom_distribution
+    description: >
+      Update: number of sequential update service errors greater than 0
+      (externally initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_PREF_SERVICE_ERRORS_EXTERNAL.
+    range_min: 0
+    range_max: 30
+    bucket_count: 31
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_PREF_SERVICE_ERRORS_EXTERNAL
+
+  pref_service_errors_notify:
+    type: custom_distribution
+    description: >
+      Update: number of sequential update service errors greater than 0 (timer
+      initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_PREF_SERVICE_ERRORS_NOTIFY.
+    range_min: 0
+    range_max: 30
+    bucket_count: 31
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_PREF_SERVICE_ERRORS_NOTIFY
+
+  pref_service_errors_subsequent:
+    type: custom_distribution
+    description: >
+      Update: number of sequential update service errors greater than 0 (after
+      we already have an update ready)
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram UPDATE_PREF_SERVICE_ERRORS_SUBSEQUENT.
+    range_min: 0
+    range_max: 30
+    bucket_count: 31
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_PREF_SERVICE_ERRORS_SUBSEQUENT
+
+  not_pref_update_auto_external:
+    type: counter
+    description: >
+      Update: count of when getAppUpdateAutoEnabled from UpdateUtils.sys.mjs
+      does not return the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_AUTO_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_AUTO_EXTERNAL
+
+  not_pref_update_auto_notify:
+    type: counter
+    description: >
+      Update: count of when getAppUpdateAutoEnabled from UpdateUtils.sys.mjs
+      does not return the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_AUTO_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_AUTO_NOTIFY
+
+  not_pref_update_auto_subsequent:
+    type: counter
+    description: >
+      Update: count of when getAppUpdateAutoEnabled from UpdateUtils.sys.mjs
+      does not return the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_AUTO_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_AUTO_SUBSEQUENT
+
+  not_pref_update_staging_enabled_external:
+    type: counter
+    description: >
+      Update: count of when the app.update.staging.enabled boolean preference is
+      not the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_EXTERNAL
+
+  not_pref_update_staging_enabled_notify:
+    type: counter
+    description: >
+      Update: count of when the app.update.staging.enabled boolean preference is
+      not the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_NOTIFY
+
+  not_pref_update_staging_enabled_subsequent:
+    type: counter
+    description: >
+      Update: count of when the app.update.staging.enabled boolean preference is
+      not the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_STAGING_ENABLED_SUBSEQUENT
+
+  not_pref_update_service_enabled_external:
+    type: counter
+    description: >
+      Update: count of when the app.update.service.enabled boolean preference is
+      not the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_EXTERNAL.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_EXTERNAL
+
+  not_pref_update_service_enabled_notify:
+    type: counter
+    description: >
+      Update: count of when the app.update.service.enabled boolean preference is
+      not the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_NOTIFY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1137447
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_NOTIFY
+
+  not_pref_update_service_enabled_subsequent:
+    type: counter
+    description: >
+      Update: count of when the app.update.service.enabled boolean preference is
+      not the default value of true (true values are not submitted)
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_SUBSEQUENT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_NOT_PREF_UPDATE_SERVICE_ENABLED_SUBSEQUENT
+
+  can_use_bits_external:
+    type: labeled_counter
+    description: >
+      Update: Whether BITS could be used to download updates (externally
+      initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram UPDATE_CAN_USE_BITS_EXTERNAL.
+    labels:
+      - CanUseBits
+      - NoBits_NotWindows
+      - NoBits_FeatureOff
+      - NoBits_Pref
+      - NoBits_Proxy
+      - NoBits_OtherUser
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CAN_USE_BITS_EXTERNAL
+
+  can_use_bits_notify:
+    type: labeled_counter
+    description: >
+      Update: Whether BITS could be used to download updates (timer initiated)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram UPDATE_CAN_USE_BITS_NOTIFY.
+    labels:
+      - CanUseBits
+      - NoBits_NotWindows
+      - NoBits_FeatureOff
+      - NoBits_Pref
+      - NoBits_Proxy
+      - NoBits_OtherUser
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CAN_USE_BITS_NOTIFY
+
+  can_use_bits_subsequent:
+    type: labeled_counter
+    description: >
+      Update: Whether BITS could be used to download updates (after we already
+      have an update ready)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram UPDATE_CAN_USE_BITS_SUBSEQUENT.
+    labels:
+      - CanUseBits
+      - NoBits_NotWindows
+      - NoBits_FeatureOff
+      - NoBits_Pref
+      - NoBits_Proxy
+      - NoBits_OtherUser
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1343669
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1540193
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1520321
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: h#UPDATE_CAN_USE_BITS_SUBSEQUENT
