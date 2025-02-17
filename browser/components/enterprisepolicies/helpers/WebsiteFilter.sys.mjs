@@ -109,7 +109,7 @@ export let WebsiteFilter = {
     let contentType = loadInfo.externalContentPolicyType;
     let url = contentLocation.spec.toLowerCase();
     if (contentLocation.scheme == "view-source") {
-      url = contentLocation.pathQueryRef.toLowerCase();
+      url = contentLocation.pathQueryRef;
     } else if (url.startsWith("about:reader?url=")) {
       url = decodeURIComponent(url.substr(17));
     }
@@ -117,13 +117,8 @@ export let WebsiteFilter = {
       contentType == Ci.nsIContentPolicy.TYPE_DOCUMENT ||
       contentType == Ci.nsIContentPolicy.TYPE_SUBDOCUMENT
     ) {
-      if (this._blockPatterns.matches(url)) {
-        if (
-          !this._exceptionsPatterns ||
-          !this._exceptionsPatterns.matches(url)
-        ) {
-          return Ci.nsIContentPolicy.REJECT_POLICY;
-        }
+      if (!this.isAllowed(url)) {
+        return Ci.nsIContentPolicy.REJECT_POLICY;
       }
     }
     return Ci.nsIContentPolicy.ACCEPT;
@@ -147,13 +142,8 @@ export let WebsiteFilter = {
       if (!url) {
         url = URL.parse(location, channel.URI.spec);
       }
-      if (url && this._blockPatterns.matches(url.href.toLowerCase())) {
-        if (
-          !this._exceptionsPatterns ||
-          !this._exceptionsPatterns.matches(url.href.toLowerCase())
-        ) {
-          channel.cancel(Cr.NS_ERROR_BLOCKED_BY_POLICY);
-        }
+      if (url && !this.isAllowed(url.href)) {
+        channel.cancel(Cr.NS_ERROR_BLOCKED_BY_POLICY);
       }
     } catch (e) {}
   },
