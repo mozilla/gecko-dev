@@ -267,7 +267,7 @@ void DMABufDevice::SetModifiersToGfxVars() {
 void DMABufDevice::GetModifiersFromGfxVars() {
   mFormatRGBX =
       new DRMFormat(GBM_FORMAT_XRGB8888, gfxVars::DMABufModifiersXRGB());
-  mFormatRGBX =
+  mFormatRGBA =
       new DRMFormat(GBM_FORMAT_ARGB8888, gfxVars::DMABufModifiersARGB());
 }
 
