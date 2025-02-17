@@ -372,15 +372,6 @@ add_task(async function test_suggestions_after_no_search_mode() {
 });
 
 add_task(async function open_engine_page_directly() {
-  let searchExtension = await SearchTestUtils.installSearchExtension(
-    {
-      name: "MozSearch",
-      search_url: "https://example.com/",
-      favicon_url: "https://example.com/favicon.ico",
-    },
-    { setAsDefault: true, skipUnload: true }
-  );
-
   const TEST_DATA = [
     {
       action: "click",
@@ -409,6 +400,15 @@ add_task(async function open_engine_page_directly() {
 
     info("Open a window");
     let newWin = await BrowserTestUtils.openNewBrowserWindow();
+
+    let searchExtension = await SearchTestUtils.installSearchExtension(
+      {
+        name: "MozSearch",
+        search_url: "https://example.com/",
+        favicon_url: "https://example.com/favicon.ico",
+      },
+      { setAsDefault: true, skipUnload: true }
+    );
 
     info(`Open the result popup with [${input}]`);
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -448,9 +448,9 @@ add_task(async function open_engine_page_directly() {
 
     // Cleanup.
     await PlacesUtils.history.clear();
+    await searchExtension.unload();
     await BrowserTestUtils.closeWindow(newWin);
   }
-  await searchExtension.unload();
 });
 
 add_task(async function test_enter_searchmode_by_key_if_single_result() {
