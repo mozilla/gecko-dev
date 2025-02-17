@@ -43,7 +43,7 @@ The UI is divided into four main pieces:
 .. image:: network_monitor_closeup.png
   :class: border
 
-- The :doc:`performance analysis <peformance_analysis/index>` view is a separate screen:
+- The :doc:`performance analysis <performance_analysis/index>` view is a separate screen:
 
 .. image:: network_performance.png
   :class: border
@@ -51,9 +51,10 @@ The UI is divided into four main pieces:
 Working with the network monitor
 ********************************
 
-The following articles cover different aspects of using the network monitor:
+The following articles cover different aspects of using the network monitdor:
 
 - :doc:`Toolbar <toolbar/index>`
+- :doc:`Network overrides <network_overrides/index>`
 - :doc:`Network request list <request_list/index>`
 - :doc:`Network request details <request_details/index>`
 - :doc:`Network traffic recording <performance_analysis/index>`
