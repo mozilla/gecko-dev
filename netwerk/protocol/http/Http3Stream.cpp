@@ -14,7 +14,7 @@
 #include "nsISocketTransport.h"
 #include "nsSocketTransportService2.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
 #include "nsIOService.h"
 #include "nsHttpHandler.h"
 
@@ -390,9 +390,8 @@ nsresult Http3Stream::ReadSegments() {
       mTransaction->OnTransportStatus(nullptr, NS_NET_STATUS_WAITING_FOR, 0);
       mSession->CloseSendingSide(mStreamId);
       mSendState = SEND_DONE;
-      Telemetry::Accumulate(
-          Telemetry::HTTP3_SENDING_BLOCKED_BY_FLOW_CONTROL_PER_TRANS,
-          mSendingBlockedByFlowControlCount);
+      glean::http3::sending_blocked_by_flow_control_per_trans
+          .AccumulateSingleSample(mSendingBlockedByFlowControlCount);
 
 #ifdef DEBUG
       MOZ_ASSERT(mRequestBodyLenSent == mRequestBodyLenExpected);
