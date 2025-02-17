@@ -6,7 +6,6 @@ import { SelectableProfile } from "./SelectableProfile.sys.mjs";
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { DeferredTask } from "resource://gre/modules/DeferredTask.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-import { EventEmitter } from "resource://gre/modules/EventEmitter.sys.mjs";
 
 const lazy = {};
 
@@ -29,8 +28,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "PROFILES_ENABLED",
   "browser.profiles.enabled",
-  false,
-  () => SelectableProfileService.updateEnabledState()
+  false
 );
 
 const PROFILES_CRYPTO_SALT_LENGTH_BYTES = 16;
@@ -77,7 +75,7 @@ function loadImage(url) {
 /**
  * The service that manages selectable profiles
  */
-class SelectableProfileServiceClass extends EventEmitter {
+class SelectableProfileServiceClass {
   #profileService = null;
   #connection = null;
   #asyncShutdownBlocker = null;
@@ -100,7 +98,6 @@ class SelectableProfileServiceClass extends EventEmitter {
   #badge = null;
   static #dirSvc = null;
   #windowActivated = null;
-  #isEnabled = false;
 
   // The initial preferences that will be shared amongst profiles. Only used during database
   // creation, after that the set in the database is used.
@@ -112,8 +109,6 @@ class SelectableProfileServiceClass extends EventEmitter {
   ];
 
   constructor() {
-    super();
-
     this.themeObserver = this.themeObserver.bind(this);
     this.prefObserver = (subject, topic, prefName) =>
       this.flushSharedPrefToDatabase(prefName);
@@ -123,21 +118,9 @@ class SelectableProfileServiceClass extends EventEmitter {
 
     this.#asyncShutdownBlocker = () => this.uninit();
     this.#observedPrefs = new Set();
-
-    this.#isEnabled = this.#getEnabledState();
-
-    // We have to check the state again after the policy service may have disabled us.
-    Services.obs.addObserver(
-      () => this.updateEnabledState(),
-      "profile-after-change"
-    );
   }
 
-  #getEnabledState() {
-    if (!Services.policies.isAllowed("profileManagement")) {
-      return false;
-    }
-
+  get isEnabled() {
     // If a storeID has been assigned then profiles may have been created so force us on. Also
     // covers the case when the selector is shown at startup and we don't have preferences
     // available.
@@ -146,18 +129,6 @@ class SelectableProfileServiceClass extends EventEmitter {
     }
 
     return lazy.PROFILES_ENABLED && !!this.#groupToolkitProfile;
-  }
-
-  updateEnabledState() {
-    let newState = this.#getEnabledState();
-    if (newState != this.#isEnabled) {
-      this.#isEnabled = newState;
-      this.emit("enableChanged", newState);
-    }
-  }
-
-  get isEnabled() {
-    return this.#isEnabled;
   }
 
   /**
@@ -178,6 +149,13 @@ class SelectableProfileServiceClass extends EventEmitter {
         Ci.nsIToolkitProfileService
       );
     await this.init();
+
+    let enabled = lazy.PROFILES_ENABLED;
+    if (enabled) {
+      // Various parts of the UI listen to the pref to trigger updating so toggle it here.
+      Services.prefs.setBoolPref("browser.profiles.enabled", false);
+      Services.prefs.setBoolPref("browser.profiles.enabled", true);
+    }
   }
 
   overrideDirectoryService(dirSvc) {
@@ -299,8 +277,6 @@ class SelectableProfileServiceClass extends EventEmitter {
         ""
       );
     }
-
-    this.updateEnabledState();
 
     if (!this.isEnabled) {
       return;

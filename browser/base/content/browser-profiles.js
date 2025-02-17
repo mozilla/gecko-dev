@@ -11,6 +11,10 @@ var gProfiles = {
     this.handleCommand = this.handleCommand.bind(this);
     this.launchProfile = this.launchProfile.bind(this);
     this.manageProfiles = this.manageProfiles.bind(this);
+    this.onAppMenuViewHiding = this.onAppMenuViewHiding.bind(this);
+    this.onAppMenuViewShowing = this.onAppMenuViewShowing.bind(this);
+    this.onFxAMenuViewShowing = this.onFxAMenuViewShowing.bind(this);
+    this.onFxAMenuViewHiding = this.onFxAMenuViewHiding.bind(this);
     this.onPopupShowing = this.onPopupShowing.bind(this);
     this.toggleProfileMenus = this.toggleProfileMenus.bind(this);
     this.updateView = this.updateView.bind(this);
@@ -18,6 +22,22 @@ var gProfiles = {
     this.bundle = Services.strings.createBundle(
       "chrome://browser/locale/browser.properties"
     );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "PROFILES_ENABLED",
+      "browser.profiles.enabled",
+      false,
+      this.toggleProfileMenus,
+      () => SelectableProfileService?.isEnabled
+    );
+
+    this.toggleProfileMenus();
+  },
+
+  toggleProfileMenus() {
+    let profilesMenu = document.getElementById("profiles-menu");
+    profilesMenu.hidden = !this.PROFILES_ENABLED;
 
     this.emptyProfilesButton = PanelMultiView.getViewNode(
       document,
@@ -36,46 +56,65 @@ var gProfiles = {
       "PanelUI-fxa-menu-profiles-button"
     );
     this.subview = PanelMultiView.getViewNode(document, "PanelUI-profiles");
-    this.subview.addEventListener("command", this.handleCommand);
 
-    PanelUI.mainView.addEventListener("ViewShowing", () =>
-      this._onPanelShowing(this.profilesButton, this.emptyProfilesButton)
-    );
-
-    let fxaPanelView = PanelMultiView.getViewNode(document, "PanelUI-fxa");
-    fxaPanelView.addEventListener("ViewShowing", () =>
-      this._onPanelShowing(
-        this.fxaMenuProfilesButton,
-        this.fxaMenuEmptyProfilesButton
-      )
-    );
-
-    this.profilesButton.addEventListener("command", this.handleCommand);
-    this.emptyProfilesButton.addEventListener("command", this.handleCommand);
-
-    this.fxaMenuProfilesButton.addEventListener("command", this.handleCommand);
-    this.fxaMenuEmptyProfilesButton.addEventListener(
-      "command",
-      this.handleCommand
-    );
-
-    this.toggleProfileMenus(SelectableProfileService?.isEnabled);
-    SelectableProfileService?.on("enableChanged", (event, isEnabled) =>
-      this.toggleProfileMenus(isEnabled)
-    );
+    this.toggleAppMenuButton();
+    this.toggleFxAMenuButton();
   },
 
-  toggleProfileMenus(isEnabled) {
-    let profilesMenu = document.getElementById("profiles-menu");
-    profilesMenu.hidden = !isEnabled;
+  toggleAppMenuButton() {
+    if (!this.PROFILES_ENABLED) {
+      PanelUI.mainView.removeEventListener(
+        "ViewShowing",
+        this.onAppMenuViewShowing
+      );
+      PanelUI.mainView.removeEventListener(
+        "ViewHiding",
+        this.onAppMenuViewHiding
+      );
+    } else {
+      PanelUI.mainView.addEventListener(
+        "ViewShowing",
+        this.onAppMenuViewShowing
+      );
+      PanelUI.mainView.addEventListener("ViewHiding", this.onAppMenuViewHiding);
+    }
+  },
+
+  toggleFxAMenuButton() {
+    let fxaPanelView = PanelMultiView.getViewNode(document, "PanelUI-fxa");
+    if (!this.PROFILES_ENABLED) {
+      fxaPanelView.removeEventListener(
+        "ViewShowing",
+        this.onFxAMenuViewShowing
+      );
+      fxaPanelView.removeEventListener("ViewHiding", this.onFxAMenuViewHiding);
+      fxaPanelView.removeEventListener("command", this.handleCommand);
+    } else {
+      fxaPanelView.addEventListener("ViewShowing", this.onFxAMenuViewShowing);
+      fxaPanelView.addEventListener("ViewHiding", this.onFxAMenuViewHiding);
+      fxaPanelView.addEventListener("command", this.handleCommand);
+    }
+  },
+
+  onAppMenuViewShowing() {
+    this._onPanelShowing(this.profilesButton, this.emptyProfilesButton);
+  },
+
+  onFxAMenuViewShowing() {
+    this._onPanelShowing(
+      this.fxaMenuProfilesButton,
+      this.fxaMenuEmptyProfilesButton
+    );
   },
 
   async _onPanelShowing(profilesButton, emptyProfilesButton) {
-    if (!SelectableProfileService?.isEnabled) {
-      emptyProfilesButton.hidden = true;
+    if (!this.PROFILES_ENABLED) {
       profilesButton.hidden = true;
+      emptyProfilesButton.hidden = true;
       return;
     }
+    profilesButton.addEventListener("command", this.handleCommand);
+    this.subview.addEventListener("command", this.handleCommand);
 
     // If the feature is preffed on, but we haven't created profiles yet, the
     // service will not be initialized.
@@ -85,12 +124,12 @@ var gProfiles = {
     if (profiles.length < 2) {
       profilesButton.hidden = true;
       emptyProfilesButton.hidden = false;
+      emptyProfilesButton.addEventListener("command", this.handleCommand);
       return;
     }
-
     emptyProfilesButton.hidden = true;
     profilesButton.hidden = false;
-
+    profilesButton.addEventListener("command", this.handleCommand);
     let { themeBg, themeFg } = SelectableProfileService.currentProfile.theme;
     profilesButton.style.setProperty("--appmenu-profiles-theme-bg", themeBg);
     profilesButton.style.setProperty("--appmenu-profiles-theme-fg", themeFg);
@@ -103,6 +142,37 @@ var gProfiles = {
       "image",
       `chrome://browser/content/profiles/assets/16_${avatar}.svg`
     );
+  },
+
+  onAppMenuViewHiding() {
+    this.profilesButton.removeEventListener("command", this.handleCommand);
+    this.emptyProfilesButton.removeEventListener("command", this.handleCommand);
+
+    // If the user closes the app menu by opening the FxA menu, the FxA showing
+    // handler will run before this code runs. To avoid disconnecting the
+    // subview handlers in the FxA panel, bail out if the FxA panel is visible.
+    if (document.getElementById("PanelUI-fxa")?.getAttribute("visible")) {
+      return;
+    }
+    this.subview.removeEventListener("command", this.handleCommand);
+  },
+
+  onFxAMenuViewHiding() {
+    this.fxaMenuProfilesButton.removeEventListener(
+      "command",
+      this.handleCommand
+    );
+    this.fxaMenuEmptyProfilesButton.removeEventListener(
+      "command",
+      this.handleCommand
+    );
+
+    // If the app menu is already open, don't disconnect the subview listeners.
+    // (See related comment inside `onAppMenuViewHiding`.)
+    if (PanelUI.mainView.getAttribute("visible")) {
+      return;
+    }
+    this.subview.removeEventListener("command", this.handleCommand);
   },
 
   /**
