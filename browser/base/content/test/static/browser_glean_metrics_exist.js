@@ -76,6 +76,20 @@ function recursivelyCheckForGleanCalls(obj, parent = null) {
     return "";
   }
 
+  function getPrefix(object, child) {
+    if (
+      object.type == "MemberExpression" &&
+      object.computed &&
+      object.object === child &&
+      object.property.type == "BinaryExpression" &&
+      object.property.operator == "+" &&
+      object.property.left.type == "Literal"
+    ) {
+      return object.property.left.value;
+    }
+    return "";
+  }
+
   let cat = getMemberName(parent.obj, obj);
   if (cat) {
     if (Glean.hasOwnProperty(cat)) {
@@ -150,6 +164,23 @@ function recursivelyCheckForGleanCalls(obj, parent = null) {
           record(
             false,
             `${method} should exist`,
+            undefined,
+            `${obj.loc.source}:${obj.loc.start.line}`
+          );
+        }
+      }
+    } else {
+      let prefix = getPrefix(parent.parent.obj, parent.obj);
+      if (prefix) {
+        if (Object.keys(Glean[cat]).some(key => key.startsWith(prefix))) {
+          ok(
+            true,
+            `some metric names in Glean.${cat} have the prefix ${prefix}`
+          );
+        } else {
+          record(
+            false,
+            `some metric names in Glean.${cat} should start with ${prefix}`,
             undefined,
             `${obj.loc.source}:${obj.loc.start.line}`
           );
