@@ -30,7 +30,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAssets
-import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
@@ -96,7 +95,7 @@ class NavigationToolbarComposeTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.toUri()) {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPageContent("Login Form")
         }.openSiteSecuritySheet {
             verifyQuickActionSheet(defaultWebPage, true)
             openSecureConnectionSubMenu(true)
