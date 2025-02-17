@@ -50,6 +50,7 @@ This includes:
   - Transferred: The amount of data transferred for the request.
   - Referrer policy: The value of the `Referrer-policy header <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy>`_.
 
+- **HTTP Early hints response headers** (when the request includes early hints)
 - **HTTP Response headers**
 - **HTTP Request headers**
 
@@ -89,6 +90,16 @@ The following information is shown in both the collapsed and the expanded states
 - The **Referrer Policy**, which governs which referrer information, sent in the `Referer <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer>`_ header, should be included with requests. (See `Referrer-Policy <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy>`_ for a description of possible values)
 - **Blocking**: If the request is to a site that is associated with a known tracker, an icon and a message are shown; otherwise, this field is not shown.
 
+Early hints response headers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `Early hints <https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/103>`_ response headers section shows the headers provided by HTTP 103 informational response. For each line in the early hints response headers section, a question mark links to the documentation for that response header, if one is available.
+
+A **Raw** toggle button in the section heading controls whether the headers are shown with formatting, or as plain, unformatted text.
+
+.. image:: early-hint-response-headers.png
+  :alt: Screenshot showing the Early hints response headers section of the Header details pane
+  :class: border
 
 Response headers
 ~~~~~~~~~~~~~~~~
@@ -102,7 +113,7 @@ A **Raw** toggle button in the section heading controls whether the headers are 
 
 
 .. image:: response-headers-fx78.png
-  :alt: Screenshot showing the Request headers section of the Request details pane
+  :alt: Screenshot showing the Response headers section of the Headers details pane
   :class: border
 
 You can copy some or all of the response header in JSON format by using the context menu:
