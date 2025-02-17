@@ -274,6 +274,7 @@ class nsAsyncResolveRequest final : public nsIRunnable,
  public:
   nsresult ProcessLocally(nsProtocolInfo& info, nsIProxyInfo* pi,
                           bool isSyncOK) {
+    LOG(("nsAsyncResolveRequest::ProcessLocally"));
     SetResult(NS_OK, pi);
 
     auto consumeFiltersResult = [isSyncOK](nsAsyncResolveRequest* ctx,
@@ -850,6 +851,7 @@ nsresult nsProtocolProxyService::Init() {
 // ReloadNetworkPAC() checks if there's a non-networked PAC in use then avoids
 // to call ReloadPAC()
 nsresult nsProtocolProxyService::ReloadNetworkPAC() {
+  LOG(("nsProtocolProxyService::ReloadNetworkPAC"));
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (!prefs) {
     return NS_OK;
@@ -892,6 +894,7 @@ nsresult nsProtocolProxyService::ReloadNetworkPAC() {
 
 nsresult nsProtocolProxyService::AsyncConfigureWPADOrFromPAC(
     bool aForceReload, bool aResetPACThread, bool aSystemWPADAllowed) {
+  LOG(("nsProtocolProxyService::AsyncConfigureWPADOrFromPAC"));
   MOZ_ASSERT(NS_IsMainThread());
 
   bool mainThreadOnly;
@@ -916,6 +919,7 @@ nsresult nsProtocolProxyService::AsyncConfigureWPADOrFromPAC(
 nsresult nsProtocolProxyService::OnAsyncGetPACURIOrSystemWPADSetting(
     bool aForceReload, bool aResetPACThread, nsresult aResult,
     const nsACString& aUri, bool aSystemWPADSetting) {
+  LOG(("nsProtocolProxyService::OnAsyncGetPACURIOrSystemWPADSetting"));
   MOZ_ASSERT(NS_IsMainThread());
 
   if (aResetPACThread) {
@@ -1443,6 +1447,7 @@ bool nsProtocolProxyService::IsProxyDisabled(nsProxyInfo* pi) {
 
 nsresult nsProtocolProxyService::SetupPACThread(
     nsISerialEventTarget* mainThreadEventTarget) {
+  LOG(("nsProtocolProxyService::SetupPACThread"));
   if (mIsShutdown) {
     return NS_ERROR_FAILURE;
   }
@@ -1468,6 +1473,7 @@ nsresult nsProtocolProxyService::SetupPACThread(
 }
 
 nsresult nsProtocolProxyService::ResetPACThread() {
+  LOG(("nsProtocolProxyService::ResetPACThread"));
   if (!mPACMan) return NS_OK;
 
   mPACMan->Shutdown();
@@ -1526,6 +1532,7 @@ void nsProtocolProxyService::ProcessPACString(const nsCString& pacString,
 // nsIProtocolProxyService2
 NS_IMETHODIMP
 nsProtocolProxyService::ReloadPAC() {
+  LOG(("nsProtocolProxyService::ReloadPAC"));
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (!prefs) return NS_OK;
 
@@ -1551,52 +1558,11 @@ nsProtocolProxyService::ReloadPAC() {
   return NS_OK;
 }
 
-// When sync interface is removed this can go away too
-// The nsPACManCallback portion of this implementation should be run
-// off the main thread, because it uses a condvar for signaling and
-// the main thread is blocking on that condvar -
-//  so call nsPACMan::AsyncGetProxyForURI() with
-// a false mainThreadResponse parameter.
-class nsAsyncBridgeRequest final : public nsPACManCallback {
-  NS_DECL_THREADSAFE_ISUPPORTS
-
-  nsAsyncBridgeRequest()
-      : mMutex("nsDeprecatedCallback"),
-        mCondVar(mMutex, "nsDeprecatedCallback") {}
-
-  void OnQueryComplete(nsresult status, const nsACString& pacString,
-                       const nsACString& newPACURL) override {
-    MutexAutoLock lock(mMutex);
-    mCompleted = true;
-    mStatus = status;
-    mPACString = pacString;
-    mPACURL = newPACURL;
-    mCondVar.Notify();
-  }
-
-  void Lock() MOZ_CAPABILITY_ACQUIRE(mMutex) { mMutex.Lock(); }
-  void Unlock() MOZ_CAPABILITY_RELEASE(mMutex) { mMutex.Unlock(); }
-  void Wait() { mCondVar.Wait(TimeDuration::FromSeconds(3)); }
-
- private:
-  ~nsAsyncBridgeRequest() = default;
-
-  friend class nsProtocolProxyService;
-
-  Mutex mMutex;
-  CondVar mCondVar;
-
-  nsresult mStatus MOZ_GUARDED_BY(mMutex){NS_OK};
-  nsCString mPACString MOZ_GUARDED_BY(mMutex);
-  nsCString mPACURL MOZ_GUARDED_BY(mMutex);
-  bool mCompleted MOZ_GUARDED_BY(mMutex){false};
-};
-NS_IMPL_ISUPPORTS0(nsAsyncBridgeRequest)
-
 nsresult nsProtocolProxyService::AsyncResolveInternal(
     nsIChannel* channel, uint32_t flags, nsIProtocolProxyCallback* callback,
     nsICancelable** result, bool isSyncOK,
     nsISerialEventTarget* mainThreadEventTarget) {
+  LOG(("nsProtocolProxyService::AsyncResolveInternal"));
   NS_ENSURE_ARG_POINTER(channel);
   NS_ENSURE_ARG_POINTER(callback);
 
@@ -2152,6 +2118,7 @@ nsresult nsProtocolProxyService::Resolve_Internal(nsIChannel* channel,
                                                   uint32_t flags,
                                                   bool* usePACThread,
                                                   nsIProxyInfo** result) {
+  LOG(("nsProtocolProxyService::Resolve_Internal"));
   NS_ENSURE_ARG_POINTER(channel);
 
   *usePACThread = false;

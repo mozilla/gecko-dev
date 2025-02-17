@@ -435,6 +435,7 @@ void nsPACMan::Shutdown() {
 
 nsresult nsPACMan::DispatchToPAC(already_AddRefed<nsIRunnable> aEvent,
                                  bool aSync) {
+  LOG(("nsPACMan::DispatchToPAC"));
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
 
   nsCOMPtr<nsIRunnable> e(aEvent);
@@ -464,6 +465,7 @@ nsresult nsPACMan::DispatchToPAC(already_AddRefed<nsIRunnable> aEvent,
 nsresult nsPACMan::AsyncGetProxyForURI(nsIURI* uri, nsPACManCallback* callback,
                                        uint32_t flags,
                                        bool mainThreadResponse) {
+  LOG(("nsPACMan::AsyncGetProxyForURI"));
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   if (mShutdown) return NS_ERROR_NOT_AVAILABLE;
 
@@ -489,6 +491,7 @@ nsresult nsPACMan::AsyncGetProxyForURI(nsIURI* uri, nsPACManCallback* callback,
 
 nsresult nsPACMan::PostQuery(PendingPACQuery* query) {
   MOZ_ASSERT(!NS_IsMainThread(), "wrong thread");
+  LOG(("nsPACMan::PostQuery"));
 
   if (mShutdown) {
     query->Complete(NS_ERROR_NOT_AVAILABLE, ""_ns);
@@ -600,6 +603,7 @@ nsresult nsPACMan::GetPACFromDHCP(nsACString& aSpec) {
 }
 
 nsresult nsPACMan::ConfigureWPAD(nsACString& aSpec) {
+  LOG(("nsPACMan::ConfigureWPAD(%s)", nsCString(aSpec).get()));
   MOZ_ASSERT(!NS_IsMainThread(), "wrong thread");
 
   if (!IsProxyConfigValidForWPAD(mProxyConfigType, mAutoDetect)) {
@@ -634,6 +638,7 @@ void nsPACMan::AssignPACURISpec(const nsACString& aSpec) {
 void nsPACMan::StartLoading() {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   mLoadPending = false;
+  LOG(("nsPACMan::StartLoading"));
 
   {
     // CancelExistingLoad was called...
@@ -667,6 +672,7 @@ void nsPACMan::StartLoading() {
 
 void nsPACMan::ContinueLoadingAfterPACUriKnown() {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
+  LOG(("nsPACMan::ContinueLoadingAfterPACUriKnown"));
 
   nsCOMPtr<nsIStreamLoader> loader;
   {
@@ -806,6 +812,7 @@ void nsPACMan::ProcessPendingQ() {
 
 // returns true if progress was made by shortening the queue
 bool nsPACMan::ProcessPending() {
+  LOG(("nsPACMan::AsyncGetProxyForURI"));
   if (mPendingQ.isEmpty()) return false;
 
   // queue during normal load, but if we are retrying a failed load then
