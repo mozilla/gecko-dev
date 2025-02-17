@@ -1505,9 +1505,9 @@ function PartitionDurationFormatPattern(
 }
 
 /**
- * Intl.DurationFormat.prototype.format ( durationLike )
+ * Intl.DurationFormat.prototype.format ( duration )
  */
-function Intl_DurationFormat_format(durationLike) {
+function Intl_DurationFormat_format(duration) {
   // Step 1.
   var df = this;
 
@@ -1516,35 +1516,29 @@ function Intl_DurationFormat_format(durationLike) {
     return callFunction(
       intl_CallDurationFormatMethodIfWrapped,
       this,
-      durationLike,
+      duration,
       "Intl_DurationFormat_format"
     );
   }
 
   // Step 3.
-#ifdef JS_HAS_TEMPORAL_API
-  var duration = ToTemporalDuration(durationLike);
+  var record = ToDurationRecord(duration);
 
-  // Fallback if Temporal is disabled.
-  if (duration === null) {
-    duration = ToDurationRecord(durationLike);
-  }
-#else
-  var duration = ToDurationRecord(durationLike);
-#endif
+  // Ensure the DurationFormat internals are resolved.
+  getDurationFormatInternals(df);
 
   // Steps 4-7.
   return PartitionDurationFormatPattern(
     df,
-    duration,
+    record,
     /* formatToParts = */ false
   );
 }
 
 /**
- * Intl.DurationFormat.prototype.formatToParts ( durationLike )
+ * Intl.DurationFormat.prototype.formatToParts ( duration )
  */
-function Intl_DurationFormat_formatToParts(durationLike) {
+function Intl_DurationFormat_formatToParts(duration) {
   // Step 1.
   var df = this;
 
@@ -1553,25 +1547,19 @@ function Intl_DurationFormat_formatToParts(durationLike) {
     return callFunction(
       intl_CallDurationFormatMethodIfWrapped,
       this,
-      durationLike,
+      duration,
       "Intl_DurationFormat_formatToParts"
     );
   }
 
   // Step 3.
-#ifdef JS_HAS_TEMPORAL_API
-  var duration = ToTemporalDuration(durationLike);
+  var record = ToDurationRecord(duration);
 
-  // Fallback if Temporal is disabled.
-  if (duration === null) {
-    duration = ToDurationRecord(durationLike);
-  }
-#else
-  var duration = ToDurationRecord(durationLike);
-#endif
+  // Ensure the DurationFormat internals are resolved.
+  getDurationFormatInternals(df);
 
   // Steps 4-8.
-  return PartitionDurationFormatPattern(df, duration, /* formatToParts = */ true);
+  return PartitionDurationFormatPattern(df, record, /* formatToParts = */ true);
 }
 
 /**
