@@ -787,6 +787,14 @@ class NPZCSupport final
     input.mTouches.SetCapacity(endIndex - startIndex);
     input.mScreenOffset =
         ExternalIntPoint(int32_t(floorf(aScreenX)), int32_t(floorf(aScreenY)));
+    switch (eventData->ToolType()) {
+      case java::sdk::MotionEvent::TOOL_TYPE_STYLUS:
+        input.mInputSource = MouseEvent_Binding::MOZ_SOURCE_PEN;
+        break;
+      default:
+        input.mInputSource = MouseEvent_Binding::MOZ_SOURCE_TOUCH;
+        break;
+    }
 
     size_t historySize = eventData->HistorySize();
     nsTArray<int64_t> historicalTime(
@@ -2925,7 +2933,6 @@ void nsWindow::DispatchHitTest(const WidgetTouchEvent& aEvent) {
     WidgetMouseEvent hittest(true, eMouseHitTest, this,
                              WidgetMouseEvent::eReal);
     hittest.mRefPoint = aEvent.mTouches[0]->mRefPoint;
-    hittest.mInputSource = MouseEvent_Binding::MOZ_SOURCE_TOUCH;
     nsEventStatus status;
     DispatchEvent(&hittest, status);
   }

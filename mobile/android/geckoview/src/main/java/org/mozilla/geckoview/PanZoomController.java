@@ -203,6 +203,7 @@ public class PanZoomController {
     public final int actionIndex;
     public final long time;
     public final int metaState;
+    public final int toolType;
     public final int pointerId[];
     public final int historySize;
     public final long historicalTime[];
@@ -226,6 +227,7 @@ public class PanZoomController {
       actionIndex = event.getActionIndex();
       time = event.getEventTime();
       metaState = event.getMetaState();
+      toolType = event.getToolType(0);
       historySize = event.getHistorySize();
       historicalTime = new long[historySize];
       historicalX = new float[historySize * count];
