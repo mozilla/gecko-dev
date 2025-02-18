@@ -83,9 +83,9 @@ Sometimes it is easier to leave logs to help trace exactly which layer the bug i
 
   * May be viewed using ``about:debugging`` on Desktop to a connected device and then connecting to the content process.
 
-* **C++** - ``MOZ_LOG`` doesn't show up properly in logcat yet.
+* **C++** - ``MOZ_LOG``
 
-  * Add this line ``CreateOrGetModule("modulename")->SetLevel(LogLevel::Verbose);`` `to this section of code <https://searchfox.org/mozilla-central/rev/1f46481d6c16f27c989e72b898fd1fddce9f445f/xpcom/base/Logging.cpp#416>`_ for a temporary solution to see ``MOZ_LOG`` logging.
+  * Set the ``logging.config.modules`` preference. For example, ```--setpref="logging.config.clear_on_startup=false"`` or manually in ``about:config``.
 
 * **C++** - ``printf_stderr("Any String")`` or ``__android_log_write(ANDROID_LOG_INFO, "Any Tag", "Any string");`` or ``__android_log_print(ANDROID_LOG_INFO, "Any Tag", "Any string");``
 
@@ -184,66 +184,16 @@ Additionally, sometimes lints can be automatically detected and fixed on certain
 Updating the changelog and API documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If the patch that you want to submit changes the public API for
-GeckoView, you must ensure that the API documentation is kept up to
-date.
+GeckoView is a public API. We carefully document changes so that other
+users of the API can update accordingly.
 
-GeckoView follows a deprecation policy you can learn more in this
-`design doc <https://firefox-source-docs.mozilla.org/mobile/android/geckoview/design/breaking-changes.html>`_.
-To deprecate an API, add the deprecation flags with an identifier for a
-deprecation notice, so that all notices with the same identifier will
-be removed at the same time (see below for an example). The version is the major version of when
-we expect to remove the deprecated member attached to the annotation.
-The GeckoView team instituted a deprecation policy which requires each
-backward-incompatible change to keep the old code for 3 releases,
-allowing downstream consumers, like Fenix, time to migrate asynchronously
-to the new code without breaking the build.
+If the patch has made public API changes, then a new `api.txt` and `CHANGELOG.md` entry will be needed.
+Additionally, a hash is generated to track these changes. This hash, which is also
+sometimes referred to as an API key in this document, is added to the bottom of the changelog.
 
-::
+The following steps will go through the commands of checking for public API changes,
+generating a new updated `api.txt`, generating a new API hash, and recommendations for a `CHANGELOG.md` entry.
 
-    @Deprecated
-    @DeprecationSchedule(id = "<interface_or_class_of_method>-<method_name>", version = <Current Nightly + 3>)
-
-Since this is a public API, the changelog must also be updated. Please ensure that you
-follow the correct format for changelog entries. Under the heading for
-the next release version, add a new entry for the changes that you are
-making to the API, along with links to any relevant files, and bug
-number.
-
-The format should be as follows:
-
-::
-
-   - Summary of changes that should mention the method name, along with the respective class /
-     interface name, the major version and the index, and the bug ID, along with the
-     bugzilla link
-
-   [<major_version>.<index>]: {{javadoc_uri}}/<url_path>
-
-For now, just update the changelog with the summary of changes made to the API (the first line in the example).
-To determine the index, take the next index in the list of
-``[<major_version>.<index>]``. If no list is present, start with ``index = 1``.
-
-
-- **Example for Adding a Method**
-
-::
-
-   - Added [`GeckoRuntimeSettings.Builder#aboutConfigEnabled`][71.12] to control whether or
-     not `about:config` should be available.
-     ([bug 1540065]({{bugzilla}}1540065))
-
-   [71.12]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#aboutConfigEnabled(boolean)
-
-
-- **Example for Deprecating a Method**
-
-::
-
-   - ⚠️ Deprecated [`GeckoSession.ContentDelegate.onProductUrl`][128.5], will now be removed in v131.
-   ([bug 1898055]({{bugzilla}}1898055))
-
-   [128.5]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onProductUrl(org.mozilla.geckoview.GeckoSession)
 
 To check whether your patch has altered the API, run the following
 command:
@@ -254,47 +204,74 @@ command:
 
 The output of this command will inform you if any changes you have made
 break the existing API. The first run of the command will tell you if there are API changes.
-Review the changes and follow the instructions it provides, if there are changes and they are
-expected.
+It will also provide the next command.
+(A second run at the end of the `api.txt` generating process will state the API hash.)
+
+If a change is needed, the next command to preview the expected API changes will be:
 
 .. code:: bash
 
     ./mach gradle geckoview:apiLintDebug
 
-Running the above command should cause the build to fail and the output should contain an API key,
-which should be used to update the ``[api-version]`` field in the changelog. Next, run the command
-again:
+Running the above command should cause the build to fail and will explain what it detected.
+The next step will generate a new `api.txt` file, which is a running list of public functions.
+
+If the changes look as expected, then it is time to generate `api.txt` by running this command:
 
 .. code:: bash
 
-    ./mach gradle geckoview:apiLintDebug
+    ./mach gradlew geckoview:apiUpdateFileDebug
 
-The build should pass this time, and an api.txt file will be generated for the changes. Next, follow
-the next command to double check that the changes made do not break the existing API:
+The build should pass this time, and an updated `api.txt` file will be generated for the changes.
+
+Finally, follow the next command to get the API hash for the CHANGELOG:
 
 .. code:: bash
 
     ./mach lint --linter android-api-lint
 
-If an API is deprecated, file a follow-up bug or leave the bug open by
-adding the keyword `leave-open` to remove and clean up the deprecated
-API for the version it is to be removed on. Also, ensure that running the previous two commands
-has changed the javadoc of the deprecated method to indicate that the method has been scheduled
-for deprecation. If not, ensure to do this manually.
+In the `CHANGELOG` `file <https://searchfox.org/mozilla-central/source/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/doc-files/CHANGELOG.md>`_.
+at the bottom, swap `[api-version]` with the new hash provided by the linter and add an entry for what changed.
+
+The feature and methods should also be documented in the changelog similar to the example below.
+
+The format should be as follows:
+
+::
+
+   - Summary of changes that should mention the method name, along with the respective class /
+     interface name, the major version and the index, and the bug ID, along with the
+     bugzilla link.
+
+   [<major_version>.<index>]: {{javadoc_uri}}/<url_path>
+
+To determine the index, take the next index in the list of
+``[<major_version>.<index>]``. If no list is present, start with ``index = 1``.
+
+- **Example for Adding a Method Changelog Entry**
+
+::
+
+   # v71
+   - Added [`GeckoRuntimeSettings.Builder#aboutConfigEnabled`][71.12] to control whether or
+     not `about:config` should be available.
+     ([bug 1540065]({{bugzilla}}1540065))
+
+   [71.12]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#aboutConfigEnabled(boolean)
+
+On more complicated features, sometimes it isn't obvious what the URL signature is for the
+CHANGELOG. In that case, create the javadoc locally (instructions below) to confirm the URL paths.
+
+If patch changes are made during review, be sure to re-generate new signatures and API hashes. Generally,
+unstaging `api.txt` is the easiest way to accomplish this.
 
 A special situation is when a patch changing the API may need to be uplifted to an earlier
 branch of mozilla-central, for example, to the beta channel. To do this, follow the usual uplift
 steps and make a version of the patch for uplift that is graphed onto the new target branch and
-rerun the API linter commands.
-
-Next, we will create the JavaDoc locally:
+rerun the API linter commands and update the CHANGELOG to the release it will be graphed onto.
 
 Creating JavaDoc Locally
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. note::
-    Make sure that the API version is updated in the changelog and that the summary of changes
-    made to the API in the changelog are made correctly. Otherwise, this step won't work.
-
+~~~~~~~~~~~~~~~~~~~~~~~~
 GeckoView is a public API, so well maintained javadoc is an important practice. To create the
 javadoc locally, we use the following command:
 
@@ -343,11 +320,49 @@ In this example, navigate to the web docs via ``http://localhost:8000/org/mozill
 
 Then, look for the changed method in the list displayed on the webpage and click into it.
 
-In the changelog, under the list of summaries for the major version, there should be a list of
-URLs for the changed methods. Add a new entry for the next index (keeping the major version
-the same). Then, in the local web server, copy everything after ``.../org/mozilla/geckoview/``.
+For using this to identify URLs for the `CHANGELOG`, copy everything after ``.../org/mozilla/geckoview/``.
 Fill in the entry by doing ``{{javadoc_uri}}/<paste_the_copied_text>``. See the example above
 for reference.
+
+Deprecation Policy
+~~~~~~~~~~~~~~~~~~~
+GeckoView follows a deprecation policy you can learn more in this
+`design doc <https://firefox-source-docs.mozilla.org/mobile/android/geckoview/design/breaking-changes.html>`_.
+
+To deprecate an API, add the deprecation flags with an identifier for a
+deprecation notice, so that all notices with the same identifier will
+be removed at the same time (see below for an example). The version is the major version of when
+we expect to remove the deprecated member attached to the annotation.
+The GeckoView team instituted a deprecation policy which requires each
+backward-incompatible change to keep the old code for 3 releases,
+allowing downstream consumers, like Fenix, time to migrate asynchronously
+to the new code without breaking the build.
+
+::
+
+    @Deprecated
+    @DeprecationSchedule(id = "<interface_or_class_of_method>-<method_name>", version = <Current Nightly + 3>)
+
+Since this is a public API, the changelog must also be updated. Please ensure that you
+follow the correct format for changelog entries. Under the heading for
+the next release version, add a new entry for the changes that you are
+making to the API, along with links to any relevant files, and bug
+number.
+
+- **Example for Deprecating a Method Changelog**
+
+::
+
+   - ⚠️ Deprecated [`GeckoSession.ContentDelegate.onProductUrl`][128.5], will now be removed in v131.
+   ([bug 1898055]({{bugzilla}}1898055))
+
+   [128.5]: {{javadoc_uri}}/GeckoSession.ContentDelegate.html#onProductUrl(org.mozilla.geckoview.GeckoSession)
+
+If an API is deprecated, file a follow-up bug or leave the bug open by
+adding the keyword `leave-open` to remove and clean up the deprecated
+API for the version it is to be removed on. Also, ensure that running the API linter commands
+has changed the javadoc of the deprecated method to indicate that the method has been scheduled
+for deprecation. If not, ensure to do this manually.
 
 Submitting to the ``try`` server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

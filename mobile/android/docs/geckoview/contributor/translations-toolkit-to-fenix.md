@@ -54,7 +54,7 @@ Some key files or components for the translations feature include:
 * [TranslationsMiddleware.kt](https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/engine/middleware/TranslationsMiddleware.kt#1) \- Observes translations specific actions and reacts accordingly.
 * [TranslationsStateReducer.kt](https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/reducer/TranslationsStateReducer.kt#1) \- Observes translations specific actions and updates the data model state.
 * [TranslationsBrowserState.kt](https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/state/TranslationsBrowserState.kt) \- Global or whole browser data model for translations.(Generally runtime information.)
-[TranslationsState.kt](https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/state/TranslationsState.kt) \- Session specific data model for translations.
+* [TranslationsState.kt](https://searchfox.org/mozilla-central/rev/a965e3c683ecc035dee1de72bd33a8d91b1203ed/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/state/TranslationsState.kt) \- Session specific data model for translations.
 
 **Fenix:**
 
@@ -69,24 +69,24 @@ Some key files or components for the translations feature include:
 Abbreviated pseduo-call stack for what happens when Fenix's translation dialog is opened and translate is pressed:
 
 **Fenix:**
-* `TranslationsDialogFragment.kt` \- [`onCreateView`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogFragment.kt#100)
-* `TranslationsDialogFragment.kt` \- [`TranslationsOptionsDialogContent`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogFragment.kt#390)
-* `TranslationsDialogFragment.kt` \- [`private fun translate`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogFragment.kt#350)
-* `TranslationsDialogStore.kt` \- [`TranslationsDialogAction.TranslateAction`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogStore.kt#317,326)
-* `TranslationsDialogMiddleware.kt` \- [`TranslationsDialogAction.TranslateAction`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogMiddleware.kt#76)
+* [`TranslationsDialogFragment.kt - onCreateView`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogFragment.kt#100)
+* [`TranslationsDialogFragment.kt - TranslationsOptionsDialogContent`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogFragment.kt#390)
+* [`TranslationsDialogFragment.kt - private fun translate`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogFragment.kt#350)
+* [`TranslationsDialogStore.kt - TranslationsDialogAction.TranslateAction`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogStore.kt#317,326)
+* [`TranslationsDialogMiddleware.kt - TranslationsDialogAction.TranslateAction`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/fenix/app/src/main/java/org/mozilla/fenix/translations/TranslationsDialogMiddleware.kt#76)
 
 
 **Android Components:**
-* `EngineDelegateMiddleware.kt` \- [`TranslationsAction.TranslateAction`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/engine/middleware/EngineDelegateMiddleware.kt#49)
-* `EngineDelegateMiddleware.kt` \- [`private fun translate`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/engine/middleware/EngineDelegateMiddleware.kt#163)
-* `GeckoEngineSession.kt` \- [`override fun requestTranslate`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/android-components/components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngineSession.kt#979)
+* [`EngineDelegateMiddleware.kt - TranslationsAction.TranslateAction`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/engine/middleware/EngineDelegateMiddleware.kt#49)
+* [`EngineDelegateMiddleware.kt - private fun translate`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/android-components/components/browser/state/src/main/java/mozilla/components/browser/state/engine/middleware/EngineDelegateMiddleware.kt#163)
+* [`GeckoEngineSession.kt - override fun requestTranslate`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/android-components/components/browser/engine-gecko/src/main/java/mozilla/components/browser/engine/gecko/GeckoEngineSession.kt#979)
 
 **GeckoView:**
-* `TranslationsController.java` \- [`public @NonNull GeckoResult<Void> translate`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/TranslationsController.java#743)
-* `GeckoViewTranslations.sys.mjs` \- [`onEvent case "GeckoView:Translations:Translate"`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/shared/modules/geckoview/GeckoViewTranslations.sys.mjs#42)
+* [`TranslationsController.java - public @NonNull GeckoResult<Void> translate`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/TranslationsController.java#743)
+* [`GeckoViewTranslations.sys.mjs - onEvent case "GeckoView:Translations:Translate"`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/mobile/shared/modules/geckoview/GeckoViewTranslations.sys.mjs#42)
 
 **Toolkit:**
-* `TranslationsParent.sys.mjs` \- [`async translate(fromLanguage, toLanguage, reportAsAutoTranslate)`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/toolkit/components/translations/actors/TranslationsParent.sys.mjs#2561)
+* [`TranslationsParent.sys.mjs - async translate(fromLanguage, toLanguage, reportAsAutoTranslate)`](https://searchfox.org/mozilla-central/rev/044802a2108a5163bd5288ea18eb6a88234d45f0/toolkit/components/translations/actors/TranslationsParent.sys.mjs#2561)
 
 ## Identifying and preparing toolkit code
 
@@ -97,9 +97,9 @@ Abbreviated pseduo-call stack for what happens when Fenix's translation dialog i
 | [browser](https://searchfox.org/mozilla-central/source/browser) | Desktop | Desktop specific browser and chrome (view layer) code. | Similar to toolkit \+ `*.js`, `*.xhtml` |
 | [mobile](https://searchfox.org/mozilla-central/source/mobile) | Android and iOS | Area related to mobile platforms. | Varies based on directory |
 | [geckoview](https://searchfox.org/mozilla-central/source/mobile/android/geckoview) and [mobile/android](https://searchfox.org/mozilla-central/source/mobile/android) | Android | GeckoView code provides a Java API surface to interface with Gecko. Much of the top level mobile/android code is under the GeckoView purview.  | `GeckoView*.sys.mjs`, `GeckoView*Child.sys.mjs`, `GeckoView*Parent.sys.mjs`,`*Controller.java` |
-| [android-components](https://searchfox.org/mozilla-central/source/mobile/android/android-*s) | Android | Android *s code is a reusable Android library that aims to provide a toolbox of building blocks relevant to building a browser. Includes reusable UI and connections to GeckoView as a browser engine. | `*Middleware.kt`, `*StateReducer.kt`, `*State.kt` |
-| [fenix](https://searchfox.org/mozilla-central/source/mobile/android/fenix) | Android | Chrome (view layer) code connected to Android *s to form the [Firefox on Android](https://www.mozilla.org/en-US/firefox/browsers/mobile/android/) experience. | `*DialogBinding.kt` , `*DialogStore.kt`, `*Fragment.kt` |
-| [focus-android](https://searchfox.org/mozilla-central/source/mobile/android/focus-android) | Android | Chrome (view layer) code connected to Android *s to form the [Focus (aka Klar)](https://www.mozilla.org/en-US/firefox/browsers/mobile/focus/) experience.  | Same as Fenix |
+| [android-components](https://searchfox.org/mozilla-central/source/mobile/android/android-*s) | Android | Android's code is a reusable Android library that aims to provide a toolbox of building blocks relevant to building a browser. Includes reusable UI and connections to GeckoView as a browser engine. | `*Middleware.kt`, `*StateReducer.kt`, `*State.kt` |
+| [fenix](https://searchfox.org/mozilla-central/source/mobile/android/fenix) | Android | Chrome (view layer) code connected to Android's to form the [Firefox on Android](https://www.mozilla.org/en-US/firefox/browsers/mobile/android/) experience. | `*DialogBinding.kt` , `*DialogStore.kt`, `*Fragment.kt` |
+| [focus-android](https://searchfox.org/mozilla-central/source/mobile/android/focus-android) | Android | Chrome (view layer) code connected to Android's to form the [Focus (aka Klar)](https://www.mozilla.org/en-US/firefox/browsers/mobile/focus/) experience.  | Same as Fenix |
 
 (<sup>+</sup> Where `*` is the Component name.)
 
