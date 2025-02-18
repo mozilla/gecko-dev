@@ -1400,6 +1400,39 @@ win64-clang-trunk:
             - win64-compiler-rt-trunk
             - win64-aarch64-compiler-rt-trunk
 
+# dxc is actually a fork of LLVM
+win64-dxc:
+    description: "DirectX Shader Compiler (x86_64)"
+    treeherder:
+        symbol: TW64(dxc)
+    run:
+        script: build-dxc.sh
+        arguments:
+            - "x86_64"
+        toolchain-artifact: public/build/dxc.tar.zst
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - vs-toolchain
+        fetch:
+            - dxc-src
+
+win64-aarch64-dxc:
+    description: "DirectX Shader Compiler (aarch64)"
+    treeherder:
+        symbol: TWA64(dxc)
+    run:
+        script: build-dxc.sh
+        arguments:
+            - "aarch64"
+        toolchain-artifact: public/build/dxc.tar.zst
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - vs-toolchain
+        fetch:
+            - dxc-src
+
 win64-aarch64-clang-trunk-raw:
     description: "Clang-cl trunk toolchain build"
     attributes:

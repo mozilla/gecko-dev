@@ -757,3 +757,10 @@ uv:
         type: git
         repo: https://github.com/astral-sh/uv
         revision: 0652800cb018eb086fbbf220a1f73af7e320be54
+
+dxc-src:
+    description: Source code for mozilla's DXC fork
+    fetch:
+        type: git
+        repo: https://github.com/FirefoxGraphics/DirectXShaderCompiler
+        revision: c75bb05c0e040bc09ec012ccf9767b1ec622477f
