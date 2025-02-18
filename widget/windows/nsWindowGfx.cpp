@@ -175,12 +175,6 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
     listener->WillPaintWindow(this);
   }
 
-  const LayoutDeviceIntRect winRect = [&] {
-    RECT r;
-    ::GetWindowRect(mWnd, &r);
-    ::MapWindowPoints(nullptr, mWnd, (LPPOINT)&r, 2);
-    return WinUtils::ToIntRect(r);
-  }();
   // BeginPaint/EndPaint must be called to make Windows think that invalid
   // area is painted. Otherwise it will continue sending the same message
   // endlessly. Note that we need to call it after WillPaintWindow, which
@@ -190,26 +184,29 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
   // https://learn.microsoft.com/en-us/windows/win32/gdi/the-wm-paint-message
   HDC hDC = ::BeginPaint(mWnd, &ps);
   LayoutDeviceIntRegion region = GetRegionToPaint(ps, hDC);
-  LayoutDeviceIntRegion translucentRegion;
+  LayoutDeviceIntRegion regionToClear;
+  // Clear the translucent region if needed.
   if (mTransparencyMode == TransparencyMode::Transparent) {
-    translucentRegion = LayoutDeviceIntRegion{winRect};
-    translucentRegion.SubOut(mOpaqueRegion);
+    auto translucentRegion = GetTranslucentRegion();
     region.OrWith(translucentRegion);
-  }
-
-  if (mNeedsNCAreaClear ||
-      (didResize && mTransparencyMode == TransparencyMode::Transparent)) {
-    // We need to clear the non-client-area region, and the transparent parts
-    // of the window to black (once).
-    auto black = reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH));
-    nsAutoRegion regionToClear(ComputeNonClientHRGN());
-    if (!translucentRegion.IsEmpty()) {
-      nsAutoRegion translucent(WinUtils::RegionToHRGN(translucentRegion));
-      ::CombineRgn(regionToClear, regionToClear, translucent, RGN_OR);
+    // Clear the parts of the translucent region that aren't clear already.
+    regionToClear = translucentRegion;
+    if (!didResize && !mClearedRegion.IsEmpty()) {
+      // TODO(emilio): Would be nice to reuse some of the cleared region when
+      // resizing, but it's not trivial.
+      regionToClear.SubOut(mClearedRegion);
     }
-    ::FillRgn(hDC, regionToClear, black);
+    mClearedRegion = std::move(translucentRegion);
   }
-  mNeedsNCAreaClear = false;
+  if (mNeedsNCAreaClear) {
+    regionToClear.OrWith(ComputeNonClientRegion());
+    mNeedsNCAreaClear = false;
+  }
+  if (!regionToClear.IsEmpty()) {
+    auto black = reinterpret_cast<HBRUSH>(::GetStockObject(BLACK_BRUSH));
+    nsAutoRegion hRgnToClear(WinUtils::RegionToHRGN(regionToClear));
+    ::FillRgn(hDC, hRgnToClear, black);
+  }
 
   bool didPaint = false;
   auto endPaint = MakeScopeExit([&] {
