@@ -169,7 +169,8 @@ float DOMSVGLength::GetValue(ErrorResult& aRv) {
     float value = InternalItem().GetValueInPixels(lengthList->Element(),
                                                   lengthList->Axis());
     if (!std::isfinite(value)) {
-      aRv.Throw(NS_ERROR_FAILURE);
+      aRv.ThrowTypeError<MSG_NOT_FINITE>("value");
+      return 0.0f;
     }
     return value;
   }
@@ -215,11 +216,13 @@ void DOMSVGLength::SetValue(float aUserUnitValue, ErrorResult& aRv) {
         SVGElementMetrics(lengthList->Element()), lengthList->Axis());
     if (uuPerUnit > 0) {
       float newValue = aUserUnitValue / uuPerUnit;
-      if (std::isfinite(newValue)) {
-        AutoChangeLengthListNotifier notifier(this);
-        internalItem.SetValueAndUnit(newValue, internalItem.GetUnit());
+      if (!std::isfinite(newValue)) {
+        aRv.ThrowTypeError<MSG_NOT_FINITE>("value");
         return;
       }
+      AutoChangeLengthListNotifier notifier(this);
+      internalItem.SetValueAndUnit(newValue, internalItem.GetUnit());
+      return;
     }
   } else if (SVGLength::IsAbsoluteUnit(mUnit)) {
     mValue = aUserUnitValue * SVGLength::GetAbsUnitsPerAbsUnit(
@@ -327,16 +330,17 @@ void DOMSVGLength::NewValueSpecifiedUnits(uint16_t aUnit, float aValue,
     return;
   }
 
+  if (!SVGLength::IsValidUnitType(aUnit)) {
+    aRv.ThrowNotSupportedError("Unknown unit type");
+    return;
+  }
+
   if (nsCOMPtr<SVGElement> svg = do_QueryInterface(mOwner)) {
     svg->GetAnimatedLength(mAttrEnum)->NewValueSpecifiedUnits(aUnit, aValue,
                                                               svg);
     return;
   }
 
-  if (!SVGLength::IsValidUnitType(aUnit)) {
-    aRv.ThrowNotSupportedError("Unknown unit type");
-    return;
-  }
   if (HasOwner()) {
     SVGLength& internalItem = InternalItem();
     if (internalItem == SVGLength(aValue, aUnit)) {
@@ -356,13 +360,13 @@ void DOMSVGLength::ConvertToSpecifiedUnits(uint16_t aUnit, ErrorResult& aRv) {
     return;
   }
 
-  if (nsCOMPtr<SVGElement> svg = do_QueryInterface(mOwner)) {
-    svg->GetAnimatedLength(mAttrEnum)->ConvertToSpecifiedUnits(aUnit, svg);
+  if (!SVGLength::IsValidUnitType(aUnit)) {
+    aRv.ThrowNotSupportedError("Unknown unit type");
     return;
   }
 
-  if (!SVGLength::IsValidUnitType(aUnit)) {
-    aRv.ThrowNotSupportedError("Unknown unit type");
+  if (nsCOMPtr<SVGElement> svg = do_QueryInterface(mOwner)) {
+    svg->GetAnimatedLength(mAttrEnum)->ConvertToSpecifiedUnits(aUnit, svg, aRv);
     return;
   }
 
@@ -380,19 +384,17 @@ void DOMSVGLength::ConvertToSpecifiedUnits(uint16_t aUnit, ErrorResult& aRv) {
     }
     val = SVGLength(mValue, mUnit).GetValueInSpecifiedUnit(aUnit, nullptr, 0);
   }
-  if (std::isfinite(val)) {
-    if (HasOwner()) {
-      AutoChangeLengthListNotifier notifier(this);
-      InternalItem().SetValueAndUnit(val, aUnit);
-    } else {
-      mValue = val;
-      mUnit = aUnit;
-    }
+  if (!std::isfinite(val)) {
+    aRv.ThrowTypeError<MSG_NOT_FINITE>("value");
     return;
   }
-  // else [SVGWG issue] Can't convert unit
-  // ReportToConsole
-  aRv.Throw(NS_ERROR_FAILURE);
+  if (HasOwner()) {
+    AutoChangeLengthListNotifier notifier(this);
+    InternalItem().SetValueAndUnit(val, aUnit);
+  } else {
+    mValue = val;
+    mUnit = aUnit;
+  }
 }
 
 JSObject* DOMSVGLength::WrapObject(JSContext* aCx,

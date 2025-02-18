@@ -427,32 +427,29 @@ void SVGAnimatedLength::SetBaseValueInSpecifiedUnits(float aValue,
   }
 }
 
-nsresult SVGAnimatedLength::ConvertToSpecifiedUnits(uint16_t unitType,
-                                                    SVGElement* aSVGElement) {
-  if (!SVGLength::IsValidUnitType(unitType)) {
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-  }
+void SVGAnimatedLength::ConvertToSpecifiedUnits(uint16_t aUnitType,
+                                                SVGElement* aSVGElement,
+                                                ErrorResult& aRv) {
+  MOZ_ASSERT(SVGLength::IsValidUnitType(aUnitType), "Unexpected unit type");
 
-  if (mIsBaseSet && mBaseUnitType == uint8_t(unitType)) return NS_OK;
+  if (mIsBaseSet && mBaseUnitType == uint8_t(aUnitType)) return;
 
   float valueInSpecifiedUnits;
 
-  if (SVGLength::IsAbsoluteUnit(unitType) &&
+  if (SVGLength::IsAbsoluteUnit(aUnitType) &&
       SVGLength::IsAbsoluteUnit(mBaseUnitType)) {
     valueInSpecifiedUnits =
-        mBaseVal * SVGLength::GetAbsUnitsPerAbsUnit(unitType, mBaseUnitType);
+        mBaseVal * SVGLength::GetAbsUnitsPerAbsUnit(aUnitType, mBaseUnitType);
   } else {
-    float pixelsPerUnit = GetPixelsPerUnit(aSVGElement, unitType);
-    if (pixelsPerUnit == 0.0f) {
-      return NS_ERROR_ILLEGAL_VALUE;
-    }
+    float pixelsPerUnit = GetPixelsPerUnit(aSVGElement, aUnitType);
     float valueInPixels =
         mBaseVal * GetPixelsPerUnit(aSVGElement, mBaseUnitType);
     valueInSpecifiedUnits = valueInPixels / pixelsPerUnit;
   }
 
   if (!std::isfinite(valueInSpecifiedUnits)) {
-    return NS_ERROR_ILLEGAL_VALUE;
+    aRv.ThrowTypeError<MSG_NOT_FINITE>("value");
+    return;
   }
 
   // Even though we're not changing the visual effect this length will have
@@ -461,29 +458,23 @@ nsresult SVGAnimatedLength::ConvertToSpecifiedUnits(uint16_t unitType,
   // change.
   AutoChangeLengthNotifier notifier(this, aSVGElement);
 
-  mBaseUnitType = uint8_t(unitType);
+  mBaseUnitType = uint8_t(aUnitType);
   if (!mIsAnimated) {
     mAnimUnitType = mBaseUnitType;
   }
   // Setting aDoSetAttr to false here will ensure we don't call
   // Will/DidChangeAngle a second time (and dispatch duplicate notifications).
   SetBaseValueInSpecifiedUnits(valueInSpecifiedUnits, aSVGElement, false);
-
-  return NS_OK;
 }
 
-nsresult SVGAnimatedLength::NewValueSpecifiedUnits(uint16_t aUnitType,
-                                                   float aValueInSpecifiedUnits,
-                                                   SVGElement* aSVGElement) {
-  NS_ENSURE_FINITE(aValueInSpecifiedUnits, NS_ERROR_ILLEGAL_VALUE);
-
-  if (!SVGLength::IsValidUnitType(aUnitType)) {
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-  }
+void SVGAnimatedLength::NewValueSpecifiedUnits(uint16_t aUnitType,
+                                               float aValueInSpecifiedUnits,
+                                               SVGElement* aSVGElement) {
+  MOZ_ASSERT(SVGLength::IsValidUnitType(aUnitType), "Unexpected unit type");
 
   if (mIsBaseSet && mBaseVal == aValueInSpecifiedUnits &&
       mBaseUnitType == uint8_t(aUnitType)) {
-    return NS_OK;
+    return;
   }
 
   AutoChangeLengthNotifier notifier(this, aSVGElement);
@@ -495,7 +486,6 @@ nsresult SVGAnimatedLength::NewValueSpecifiedUnits(uint16_t aUnitType,
     mAnimVal = mBaseVal;
     mAnimUnitType = mBaseUnitType;
   }
-  return NS_OK;
 }
 
 already_AddRefed<DOMSVGLength> SVGAnimatedLength::ToDOMBaseVal(

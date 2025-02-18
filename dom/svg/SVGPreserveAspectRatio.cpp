@@ -55,18 +55,14 @@ nsresult SVGPreserveAspectRatio::FromString(const nsAString& aString,
   }
   const nsAString& token = tokenizer.nextToken();
 
-  nsresult rv;
   SVGPreserveAspectRatio val;
 
-  rv = val.SetAlign(GetAlignForString(token));
-
-  if (NS_FAILED(rv)) {
+  if (!val.SetAlign(GetAlignForString(token))) {
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
   if (tokenizer.hasMoreTokens()) {
-    rv = val.SetMeetOrSlice(GetMeetOrSliceForString(tokenizer.nextToken()));
-    if (NS_FAILED(rv)) {
+    if (!val.SetMeetOrSlice(GetMeetOrSliceForString(tokenizer.nextToken()))) {
       return NS_ERROR_DOM_SYNTAX_ERR;
     }
   } else {

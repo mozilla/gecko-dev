@@ -64,25 +64,24 @@ static bool GetValueFromString(const nsAString& aValueAsString, bool& aValue) {
   return false;
 }
 
-static nsresult GetValueFromAtom(const nsAtom* aValueAsAtom, bool* aValue) {
+static bool GetValueFromAtom(const nsAtom* aValueAsAtom, bool* aValue) {
   if (aValueAsAtom == nsGkAtoms::_true) {
     *aValue = true;
-    return NS_OK;
+    return true;
   }
   if (aValueAsAtom == nsGkAtoms::_false) {
     *aValue = false;
-    return NS_OK;
+    return true;
   }
-  return NS_ERROR_DOM_SYNTAX_ERR;
+  return false;
 }
 
 nsresult SVGAnimatedBoolean::SetBaseValueAtom(const nsAtom* aValue,
                                               SVGElement* aSVGElement) {
   bool val = false;
 
-  nsresult rv = GetValueFromAtom(aValue, &val);
-  if (NS_FAILED(rv)) {
-    return rv;
+  if (!GetValueFromAtom(aValue, &val)) {
+    return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
   // We don't need to call DidChange* here - we're only called by

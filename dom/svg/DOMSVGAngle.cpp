@@ -74,25 +74,34 @@ void DOMSVGAngle::SetValueInSpecifiedUnits(float aValue, ErrorResult& aRv) {
   }
 }
 
-void DOMSVGAngle::NewValueSpecifiedUnits(uint16_t unitType,
-                                         float valueInSpecifiedUnits,
+void DOMSVGAngle::NewValueSpecifiedUnits(uint16_t aUnitType,
+                                         float aValueInSpecifiedUnits,
                                          ErrorResult& aRv) {
   if (mType == AngleType::AnimValue) {
     aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
-  aRv = mVal->NewValueSpecifiedUnits(
-      unitType, valueInSpecifiedUnits,
+  if (!SVGAnimatedOrient::IsValidUnitType(aUnitType)) {
+    aRv.ThrowNotSupportedError("Unknown unit type");
+    return;
+  }
+  mVal->NewValueSpecifiedUnits(
+      aUnitType, aValueInSpecifiedUnits,
       mType == AngleType::BaseValue ? mSVGElement.get() : nullptr);
 }
 
-void DOMSVGAngle::ConvertToSpecifiedUnits(uint16_t unitType, ErrorResult& aRv) {
+void DOMSVGAngle::ConvertToSpecifiedUnits(uint16_t aUnitType,
+                                          ErrorResult& aRv) {
   if (mType == AngleType::AnimValue) {
     aRv.ThrowNoModificationAllowedError("Animated values cannot be set");
     return;
   }
-  aRv = mVal->ConvertToSpecifiedUnits(
-      unitType, mType == AngleType::BaseValue ? mSVGElement.get() : nullptr);
+  if (!SVGAnimatedOrient::IsValidUnitType(aUnitType)) {
+    aRv.ThrowNotSupportedError("Unknown unit type");
+    return;
+  }
+  mVal->ConvertToSpecifiedUnits(
+      aUnitType, mType == AngleType::BaseValue ? mSVGElement.get() : nullptr);
 }
 
 void DOMSVGAngle::SetValueAsString(const nsAString& aValue, ErrorResult& aRv) {

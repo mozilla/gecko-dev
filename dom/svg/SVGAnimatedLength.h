@@ -220,10 +220,10 @@ class SVGAnimatedLength {
                                     bool aDoSetAttr);
   void SetAnimValue(float aValue, uint16_t aUnitType, SVGElement* aSVGElement);
   void SetAnimValueInSpecifiedUnits(float aValue, SVGElement* aSVGElement);
-  nsresult NewValueSpecifiedUnits(uint16_t aUnitType,
-                                  float aValueInSpecifiedUnits,
-                                  SVGElement* aSVGElement);
-  nsresult ConvertToSpecifiedUnits(uint16_t aUnitType, SVGElement* aSVGElement);
+  void NewValueSpecifiedUnits(uint16_t aUnitType, float aValueInSpecifiedUnits,
+                              SVGElement* aSVGElement);
+  void ConvertToSpecifiedUnits(uint16_t aUnitType, SVGElement* aSVGElement,
+                               ErrorResult& aRv);
   already_AddRefed<DOMSVGLength> ToDOMBaseVal(SVGElement* aSVGElement);
   already_AddRefed<DOMSVGLength> ToDOMAnimVal(SVGElement* aSVGElement);
 

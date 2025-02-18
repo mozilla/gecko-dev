@@ -48,8 +48,9 @@ class DOMSVGAngle final : public nsWrapperCache {
   float ValueInSpecifiedUnits() const;
   void SetValueInSpecifiedUnits(float aValue, ErrorResult& aRv);
   void SetValueAsString(const nsAString& aValue, ErrorResult& aRv);
-  void NewValueSpecifiedUnits(uint16_t unitType, float value, ErrorResult& aRv);
-  void ConvertToSpecifiedUnits(uint16_t unitType, ErrorResult& aRv);
+  void NewValueSpecifiedUnits(uint16_t aUnitType, float aValue,
+                              ErrorResult& aRv);
+  void ConvertToSpecifiedUnits(uint16_t aUnitType, ErrorResult& aRv);
 
  protected:
   ~DOMSVGAngle();
