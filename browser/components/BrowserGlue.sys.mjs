@@ -19,6 +19,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   BackupService: "resource:///modules/backup/BackupService.sys.mjs",
+  Blocklist: "resource://gre/modules/Blocklist.sys.mjs",
   BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.sys.mjs",
   BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.sys.mjs",
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
@@ -29,6 +30,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CaptchaDetectionPingUtils:
     "resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs",
   CommonDialog: "resource://gre/modules/CommonDialog.sys.mjs",
+  ContentRelevancyManager:
+    "resource://gre/modules/ContentRelevancyManager.sys.mjs",
   ContextualIdentityService:
     "resource://gre/modules/ContextualIdentityService.sys.mjs",
   DAPTelemetrySender: "resource://gre/modules/DAPTelemetrySender.sys.mjs",
@@ -46,6 +49,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   // eslint-disable-next-line mozilla/valid-lazy
   FilePickerCrashed: "resource:///modules/FilePickerCrashed.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
+  GenAI: "resource:///modules/GenAI.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
   Integration: "resource://gre/modules/Integration.sys.mjs",
   Interactions: "resource:///modules/Interactions.sys.mjs",
@@ -74,6 +78,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  RFPHelper: "resource://gre/modules/RFPHelper.sys.mjs",
   RemoteSecuritySettings:
     "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -83,6 +88,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SandboxUtils: "resource://gre/modules/SandboxUtils.sys.mjs",
   SaveToPocket: "chrome://pocket/content/SaveToPocket.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
+  SearchSERPCategorization: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.sys.mjs",
   SelectableProfileService:
     "resource:///modules/profiles/SelectableProfileService.sys.mjs",
@@ -90,13 +96,17 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   ShellService: "resource:///modules/ShellService.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
+  ShoppingUtils: "resource:///modules/ShoppingUtils.sys.mjs",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
   TelemetryReportingPolicy:
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.sys.mjs",
+  TabUnloader: "resource:///modules/TabUnloader.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
+  UrlbarSearchTermsPersistence:
+    "resource:///modules/UrlbarSearchTermsPersistence.sys.mjs",
   UsageReporting: "resource://gre/modules/UsageReporting.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
   WebProtocolHandlerRegistrar:
@@ -108,6 +118,24 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
+if (AppConstants.MOZ_UPDATER) {
+  ChromeUtils.defineESModuleGetters(lazy, {
+    UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
+  });
+  XPCOMUtils.defineLazyServiceGetters(lazy, {
+    UpdateServiceStub: [
+      "@mozilla.org/updates/update-service-stub;1",
+      "nsIApplicationUpdateServiceStub",
+    ],
+  });
+}
+if (AppConstants.MOZ_UPDATE_AGENT) {
+  ChromeUtils.defineESModuleGetters(lazy, {
+    BackgroundUpdate: "resource://gre/modules/BackgroundUpdate.sys.mjs",
+  });
+}
+
+// PluginManager is used in the listeners object below.
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
   PushService: ["@mozilla.org/push/Service;1", "nsIPushService"],
@@ -1009,12 +1037,6 @@ const listeners = {
   },
 };
 if (AppConstants.MOZ_UPDATER) {
-  ChromeUtils.defineESModuleGetters(lazy, {
-    // This listeners/observers/lazy indirection is too much for eslint:
-    // eslint-disable-next-line mozilla/valid-lazy
-    UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
-  });
-
   listeners.observers["update-downloading"] = ["UpdateListener"];
   listeners.observers["update-staged"] = ["UpdateListener"];
   listeners.observers["update-downloaded"] = ["UpdateListener"];
@@ -2175,28 +2197,8 @@ BrowserGlue.prototype = {
 
   /**
    * Application shutdown handler.
-   *
-   * If you need new code to be called on shutdown, please use
-   * the category manager browser-quit-application-granted category
-   * instead of adding new manual code to this function.
    */
   _onQuitApplicationGranted() {
-    function failureHandler(ex) {
-      if (Cu.isInAutomation) {
-        // This usually happens after the test harness is done collecting
-        // test errors, thus we can't easily add a failure to it. The only
-        // noticeable solution we have is crashing.
-        Cc["@mozilla.org/xpcom/debug;1"]
-          .getService(Ci.nsIDebug2)
-          .abort(ex.filename, ex.lineNumber);
-      }
-    }
-
-    lazy.BrowserUtils.callModulesFromCategory({
-      categoryName: "browser-quit-application-granted",
-      failureHandler,
-    });
-
     let tasks = [
       // This pref must be set here because SessionStore will use its value
       // on quit-application.
@@ -2216,11 +2218,28 @@ BrowserGlue.prototype = {
         }
       },
 
+      () => lazy.BrowserUsageTelemetry.uninit(),
+      () => lazy.SearchSERPTelemetry.uninit(),
+      () => lazy.SearchSERPCategorization.uninit(),
+      () => lazy.Interactions.uninit(),
+      () => lazy.PageDataService.uninit(),
+      () => lazy.PageThumbs.uninit(),
+      () => lazy.NewTabUtils.uninit(),
+      () => lazy.Normandy.uninit(),
+      () => lazy.RFPHelper.uninit(),
+      () => lazy.ShoppingUtils.uninit(),
+      () => lazy.ASRouterNewTabHook.destroy(),
+      () => {
+        if (AppConstants.MOZ_UPDATER) {
+          lazy.UpdateListener.reset();
+        }
+      },
       () => {
         // bug 1839426 - The FOG service needs to be instantiated reliably so it
         // can perform at-shutdown tasks later in shutdown.
         Services.fog;
       },
+      () => lazy.UrlbarSearchTermsPersistence.uninit(),
     ];
 
     for (let task of tasks) {
@@ -2228,7 +2247,14 @@ BrowserGlue.prototype = {
         task();
       } catch (ex) {
         console.error(`Error during quit-application-granted: ${ex}`);
-        failureHandler(ex);
+        if (Cu.isInAutomation) {
+          // This usually happens after the test harness is done collecting
+          // test errors, thus we can't easily add a failure to it. The only
+          // noticeable solution we have is crashing.
+          Cc["@mozilla.org/xpcom/debug;1"]
+            .getService(Ci.nsIDebug2)
+            .abort(ex.filename, ex.lineNumber);
+        }
       }
     }
   },
@@ -2486,39 +2512,7 @@ BrowserGlue.prototype = {
    * to the other ones scheduled together.
    */
   _scheduleStartupIdleTasks() {
-    function runIdleTasks(idleTasks) {
-      for (let task of idleTasks) {
-        if ("condition" in task && !task.condition) {
-          continue;
-        }
-
-        ChromeUtils.idleDispatch(
-          async () => {
-            if (!Services.startup.shuttingDown) {
-              let startTime = Cu.now();
-              try {
-                await task.task();
-              } catch (ex) {
-                console.error(ex);
-              } finally {
-                ChromeUtils.addProfilerMarker(
-                  "startupIdleTask",
-                  startTime,
-                  task.name
-                );
-              }
-            }
-          },
-          task.timeout ? { timeout: task.timeout } : undefined
-        );
-      }
-    }
-
-    // Note: unless you need a timeout, please do not add new tasks here, and
-    // instead use the category manager. You can do this in a manifest file in
-    // the component that needs to run code, or in BrowserComponents.manifest
-    // in this folder. The callModulesFromCategory call below will call them.
-    const earlyTasks = [
+    const idleTasks = [
       // It's important that SafeBrowsing is initialized reasonably
       // early, so we use a maximum timeout for it.
       {
@@ -2536,17 +2530,16 @@ BrowserGlue.prototype = {
           lazy.Discovery.update();
         },
       },
-    ];
 
-    runIdleTasks(earlyTasks);
+      {
+        name: "PlacesUIUtils.unblockToolbars",
+        task: () => {
+          // We postponed loading bookmarks toolbar content until startup
+          // has finished, so we can start loading it now:
+          lazy.PlacesUIUtils.unblockToolbars();
+        },
+      },
 
-    lazy.BrowserUtils.callModulesFromCategory({
-      categoryName: "browser-idle-startup",
-      profilerMarker: "startupIdleTask",
-      idleDispatch: true,
-    });
-
-    const lateTasks = [
       {
         name: "PlacesDBUtils.telemetry",
         condition:
@@ -2814,6 +2807,33 @@ BrowserGlue.prototype = {
         },
       },
 
+      // Install built-in themes. We already installed the active built-in
+      // theme, if any, before UI startup.
+      {
+        name: "BuiltInThemes.ensureBuiltInThemes",
+        task: async () => {
+          await lazy.BuiltInThemes.ensureBuiltInThemes();
+        },
+      },
+
+      {
+        name: "WinTaskbarJumpList.startup",
+        condition: AppConstants.platform == "win",
+        task: () => {
+          // For Windows 7, initialize the jump list module.
+          const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
+          if (
+            WINTASKBAR_CONTRACTID in Cc &&
+            Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available
+          ) {
+            const { WinTaskbarJumpList } = ChromeUtils.importESModule(
+              "resource:///modules/WindowsJumpLists.sys.mjs"
+            );
+            WinTaskbarJumpList.startup();
+          }
+        },
+      },
+
       // Report macOS Dock status
       {
         name: "MacDockSupport.isAppInDock",
@@ -2870,6 +2890,27 @@ BrowserGlue.prototype = {
         name: "webProtocolHandlerService.asyncInit",
         task: () => {
           lazy.WebProtocolHandlerRegistrar.prototype.init(true);
+        },
+      },
+
+      {
+        name: "RFPHelper.init",
+        task: () => {
+          lazy.RFPHelper.init();
+        },
+      },
+
+      {
+        name: "Blocklist.loadBlocklistAsync",
+        task: () => {
+          lazy.Blocklist.loadBlocklistAsync();
+        },
+      },
+
+      {
+        name: "TabUnloader.init",
+        task: () => {
+          lazy.TabUnloader.init();
         },
       },
 
@@ -2998,25 +3039,22 @@ BrowserGlue.prototype = {
 
       {
         name: "BackgroundUpdate",
-        condition: AppConstants.MOZ_UPDATE_AGENT && AppConstants.MOZ_UPDATER,
+        condition: AppConstants.MOZ_UPDATE_AGENT,
         task: async () => {
-          let updateServiceStub = Cc[
-            "@mozilla.org/updates/update-service-stub;1"
-          ].getService(Ci.nsIApplicationUpdateServiceStub);
           // Never in automation!
-          if (!updateServiceStub.updateDisabledForTesting) {
-            let { BackgroundUpdate } = ChromeUtils.importESModule(
-              "resource://gre/modules/BackgroundUpdate.sys.mjs"
-            );
+          if (
+            AppConstants.MOZ_UPDATER &&
+            !lazy.UpdateServiceStub.updateDisabledForTesting
+          ) {
             try {
-              await BackgroundUpdate.scheduleFirefoxMessagingSystemTargetingSnapshotting();
+              await lazy.BackgroundUpdate.scheduleFirefoxMessagingSystemTargetingSnapshotting();
             } catch (e) {
               console.error(
                 "There was an error scheduling Firefox Messaging System targeting snapshotting: ",
                 e
               );
             }
-            await BackgroundUpdate.maybeScheduleBackgroundUpdateTask();
+            await lazy.BackgroundUpdate.maybeScheduleBackgroundUpdateTask();
           }
         },
       },
@@ -3061,6 +3099,35 @@ BrowserGlue.prototype = {
       },
 
       {
+        name: "UpdateListener.maybeShowUnsupportedNotification",
+        condition: AppConstants.MOZ_UPDATER,
+        task: () => {
+          lazy.UpdateListener.maybeShowUnsupportedNotification();
+        },
+      },
+
+      {
+        name: "GenAI.init",
+        task() {
+          lazy.GenAI.init();
+        },
+      },
+
+      {
+        name: "QuickSuggest.init",
+        task: () => {
+          lazy.QuickSuggest.init();
+        },
+      },
+
+      {
+        name: "UrlbarSearchTermsPersistence initialization",
+        task: () => {
+          lazy.UrlbarSearchTermsPersistence.init();
+        },
+      },
+
+      {
         name: "DAPTelemetrySender.startup",
         condition:
           AppConstants.MOZ_TELEMETRY_REPORTING &&
@@ -3074,10 +3141,31 @@ BrowserGlue.prototype = {
       },
 
       {
+        name: "ShoppingUtils.init",
+        task: () => {
+          lazy.ShoppingUtils.init();
+        },
+      },
+
+      {
         // Starts the JSOracle process for ORB JavaScript validation, if it hasn't started already.
         name: "start-orb-javascript-oracle",
         task: () => {
           ChromeUtils.ensureJSOracleStarted();
+        },
+      },
+
+      {
+        name: "SearchSERPCategorization.init",
+        task: () => {
+          lazy.SearchSERPCategorization.init();
+        },
+      },
+
+      {
+        name: "ContentRelevancyManager.init",
+        task: () => {
+          lazy.ContentRelevancyManager.init();
         },
       },
 
@@ -3128,7 +3216,31 @@ BrowserGlue.prototype = {
       // Do NOT add anything after idle tasks finished.
     ];
 
-    runIdleTasks(lateTasks);
+    for (let task of idleTasks) {
+      if ("condition" in task && !task.condition) {
+        continue;
+      }
+
+      ChromeUtils.idleDispatch(
+        async () => {
+          if (!Services.startup.shuttingDown) {
+            let startTime = Cu.now();
+            try {
+              await task.task();
+            } catch (ex) {
+              console.error(ex);
+            } finally {
+              ChromeUtils.addProfilerMarker(
+                "startupIdleTask",
+                startTime,
+                task.name
+              );
+            }
+          }
+        },
+        task.timeout ? { timeout: task.timeout } : undefined
+      );
+    }
   },
 
   /**

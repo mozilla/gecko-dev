@@ -127,22 +127,16 @@ var gBrowserInit = {
   },
 
   onDOMContentLoaded() {
-    // All of this needs setting up before we create the first remote browser.
+    // This needs setting up before we create the first remote browser.
     window.docShell.treeOwner
       .QueryInterface(Ci.nsIInterfaceRequestor)
       .getInterface(Ci.nsIAppWindow).XULBrowserWindow = window.XULBrowserWindow;
-    BrowserUtils.callModulesFromCategory(
-      { categoryName: "browser-window-domcontentloaded-before-tabbrowser" },
-      window
-    );
+    window.browserDOMWindow = new nsBrowserAccess();
 
     gBrowser = new window.Tabbrowser();
     gBrowser.init();
 
-    BrowserUtils.callModulesFromCategory(
-      { categoryName: "browser-window-domcontentloaded" },
-      window
-    );
+    BrowserWindowTracker.track(window);
 
     FirefoxViewHandler.init();
 
@@ -1083,6 +1077,8 @@ var gBrowserInit = {
       ToolbarKeyboardNavigator.uninit();
     }
 
+    NewTabPagePreloading.removePreloadedBrowser(window);
+
     FirefoxViewHandler.uninit();
 
     // Now either cancel delayedStartup, or clean up the services initialized from
@@ -1150,10 +1146,6 @@ var gBrowserInit = {
     window.docShell.treeOwner
       .QueryInterface(Ci.nsIInterfaceRequestor)
       .getInterface(Ci.nsIAppWindow).XULBrowserWindow = null;
-
-    BrowserUtils.callModulesFromCategory(
-      { categoryName: "browser-window-unload" },
-      window
-    );
+    window.browserDOMWindow = null;
   },
 };

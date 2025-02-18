@@ -35,23 +35,11 @@ ChromeUtils.defineLazyGetter(lazy, "CatManListenerManager", () => {
         ({ data: module, value }) => {
           try {
             let [objName, method] = value.split(".");
-            let fn = (...args) => {
-              if (!Object.hasOwn(this.cachedModules, module)) {
-                this.cachedModules[module] = ChromeUtils.importESModule(module);
-              }
-              let obj = this.cachedModules[module][objName];
-              if (!obj) {
-                throw new Error(
-                  `Could not access ${objName} in ${module}. Is it exported?`
-                );
-              }
-              if (typeof obj[method] != "function") {
-                throw new Error(
-                  `${objName}.${method} in ${module} is not a function.`
-                );
-              }
-              return this.cachedModules[module][objName][method](...args);
-            };
+            if (!Object.hasOwn(this.cachedModules, module)) {
+              this.cachedModules[module] = ChromeUtils.importESModule(module);
+            }
+            let fn = (...args) =>
+              this.cachedModules[module][objName][method](...args);
             fn._descriptiveName = value;
             return fn;
           } catch (ex) {
@@ -499,19 +487,11 @@ export var BrowserUtils = {
    * @param {string} [options.profilerMarker=""]
    *        If specified, will create a profiler marker with the provided
    *        identifier for each consumer.
-   * @param {function} [options.failureHandler]
-   *        If specified, will be called for any exceptions raised, in
-   *        order to do custom failure handling.
    * @param {...any} args
    *        Arguments to pass to the consumers.
    */
   callModulesFromCategory(
-    {
-      categoryName,
-      profilerMarker = "",
-      idleDispatch = false,
-      failureHandler = null,
-    },
+    { categoryName, profilerMarker = "", idleDispatch = false },
     ...args
   ) {
     // Use an async function for profiler markers and error handling.
@@ -526,17 +506,6 @@ export var BrowserUtils = {
           `Error in processing ${categoryName} for ${fn._descriptiveName}`
         );
         console.error(ex);
-        try {
-          await failureHandler?.(ex);
-        } catch (nestedEx) {
-          console.error(`Error in handling failure: ${nestedEx}`);
-          // Crash in automation:
-          if (BrowserUtils._inAutomation) {
-            Cc["@mozilla.org/xpcom/debug;1"]
-              .getService(Ci.nsIDebug2)
-              .abort(nestedEx.filename, nestedEx.lineNumber);
-          }
-        }
       }
       if (profilerMarker) {
         ChromeUtils.addProfilerMarker(

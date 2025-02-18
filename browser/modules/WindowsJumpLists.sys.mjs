@@ -329,9 +329,6 @@ export var WinTaskbarJumpList = {
    */
 
   startup: async function WTBJL_startup() {
-    if (!lazy._taskbarService.available) {
-      return;
-    }
     // exit if initting the taskbar failed for some reason.
     if (!(await this._initTaskbar())) {
       return;

@@ -9,52 +9,10 @@
 
 category app-startup nsBrowserGlue @mozilla.org/browser/browserglue;1 application={ec8030f7-c20a-464f-9b0e-13a3a9e97384} application={aa3c5121-dab2-40e2-81ca-7ea25febc110}
 
-# Browser window lifecycle consumers
-category browser-window-domcontentloaded-before-tabbrowser resource:///modules/BrowserDOMWindow.sys.mjs BrowserDOMWindow.setupInWindow
-category browser-window-domcontentloaded resource:///modules/BrowserWindowTracker.sys.mjs BrowserWindowTracker.track
-
+# Browser window lifecycle callers.
 category browser-window-delayed-startup resource:///modules/ContentAnalysis.sys.mjs ContentAnalysis.initialize
 category browser-window-delayed-startup resource:///modules/HomePage.sys.mjs HomePage.delayedStartup
 category browser-window-delayed-startup resource:///modules/ReportBrokenSite.sys.mjs ReportBrokenSite.init
 category browser-window-delayed-startup resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.init
-
-category browser-window-unload resource:///modules/BrowserDOMWindow.sys.mjs BrowserDOMWindow.teardownInWindow
-category browser-window-unload resource:///modules/NewTabPagePreloading.sys.mjs NewTabPagePreloading.removePreloadedBrowser
-
-# App startup consumers
-category browser-idle-startup resource:///modules/PlacesUIUtils.sys.mjs PlacesUIUtils.unblockToolbars
-category browser-idle-startup resource:///modules/BuiltInThemes.sys.mjs BuiltInThemes.ensureBuiltInThemes
-category browser-idle-startup resource://gre/modules/RFPHelper.sys.mjs RFPHelper.init
-category browser-idle-startup resource://gre/modules/Blocklist.sys.mjs Blocklist.loadBlocklistAsync
-category browser-idle-startup resource:///modules/TabUnloader.sys.mjs TabUnloader.init
-category browser-idle-startup resource:///modules/GenAI.sys.mjs GenAI.init
-category browser-idle-startup resource:///modules/QuickSuggest.sys.mjs QuickSuggest.init
-category browser-idle-startup resource:///modules/UrlbarSearchTermsPersistence.sys.mjs UrlbarSearchTermsPersistence.init
-category browser-idle-startup resource:///modules/ShoppingUtils.sys.mjs ShoppingUtils.init
-category browser-idle-startup resource:///modules/SearchSERPTelemetry.sys.mjs SearchSERPCategorization.init
-category browser-idle-startup resource://gre/modules/ContentRelevancyManager.sys.mjs ContentRelevancyManager.init
-#ifdef MOZ_UPDATER
-category browser-idle-startup resource://gre/modules/UpdateListener.sys.mjs UpdateListener.maybeShowUnsupportedNotification
-#endif
-#ifdef XP_WIN
-category browser-idle-startup resource:///modules/WindowsJumpLists.sys.mjs WinTaskbarJumpList.startup
-#endif
-
-# App shutdown consumers
-category browser-quit-application-granted resource:///modules/BrowserUsageTelemetry.sys.mjs BrowserUsageTelemetry.uninit
-category browser-quit-application-granted resource:///modules/SearchSERPTelemetry.sys.mjs SearchSERPTelemetry.uninit
-category browser-quit-application-granted resource:///modules/SearchSERPTelemetry.sys.mjs SearchSERPCategorization.uninit
-category browser-quit-application-granted resource:///modules/Interactions.sys.mjs Interactions.uninit
-category browser-quit-application-granted resource:///modules/pagedata/PageDataService.sys.mjs PageDataService.uninit
-category browser-quit-application-granted resource://gre/modules/PageThumbs.sys.mjs PageThumbs.uninit
-category browser-quit-application-granted resource://gre/modules/NewTabUtils.sys.mjs NewTabUtils.uninit
-category browser-quit-application-granted resource://normandy/Normandy.sys.mjs Normandy.uninit
-category browser-quit-application-granted resource://gre/modules/RFPHelper.sys.mjs RFPHelper.uninit
-category browser-quit-application-granted resource:///modules/ShoppingUtils.sys.mjs ShoppingUtils.uninit
-category browser-quit-application-granted resource:///modules/asrouter/ASRouterNewTabHook.sys.mjs ASRouterNewTabHook.destroy
-#ifdef MOZ_UPDATER
-category browser-quit-application-granted resource://gre/modules/UpdateListener.sys.mjs UpdateListener.reset
-#endif
-category browser-quit-application-granted resource:///modules/UrlbarSearchTermsPersistence.sys.mjs UrlbarSearchTermsPersistence.uninit
 
 category search-service-notification resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.showSearchServiceNotification
