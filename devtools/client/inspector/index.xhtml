@@ -7,6 +7,10 @@
 <html xmlns="http://www.w3.org/1999/xhtml" dir="">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src chrome: resource:; img-src chrome: data:; style-src chrome: 'unsafe-inline';"
+    />
 
     <link rel="stylesheet" href="chrome://devtools/skin/breadcrumbs.css" />
     <link rel="stylesheet" href="chrome://devtools/skin/inspector.css" />
@@ -59,19 +63,7 @@
     />
 
     <script src="chrome://devtools/content/shared/theme-switching.js"></script>
-    <script>
-      /* eslint-disable */
-      var isInChrome = window.location.href.includes("chrome:");
-      if (isInChrome) {
-        var exports = {};
-        var { require, loader } = ChromeUtils.importESModule(
-          "resource://devtools/shared/loader/Loader.sys.mjs"
-        );
-        var { BrowserLoader } = ChromeUtils.importESModule(
-          "resource://devtools/shared/loader/browser-loader.sys.mjs"
-        );
-      }
-    </script>
+    <script src="chrome://devtools/content/inspector/index.js"></script>
 
     <script
       src="resource://devtools/client/inspector/inspector.js"

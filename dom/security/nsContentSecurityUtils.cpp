@@ -1785,7 +1785,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://devtools/content/framework/browser-toolbox/window.html"_ns,
       "chrome://devtools/content/framework/toolbox-options.html"_ns,
       "chrome://devtools/content/framework/toolbox-window.xhtml"_ns,
-      "chrome://devtools/content/inspector/index.xhtml"_ns,
       "chrome://devtools/content/inspector/markup/markup.xhtml"_ns,
       "chrome://devtools/content/memory/index.xhtml"_ns,
       "chrome://devtools/content/netmonitor/index.html"_ns,

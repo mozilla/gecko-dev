@@ -197,6 +197,7 @@ devtools.jar:
     content/inspector/components/InspectorTabPanel.css (inspector/components/InspectorTabPanel.css)
     content/styleeditor/index.xhtml (styleeditor/index.xhtml)
     content/inspector/index.xhtml (inspector/index.xhtml)
+    content/inspector/index.js (inspector/index.js)
     content/responsive/toolbar.xhtml (responsive/toolbar.xhtml)
     content/responsive/index.css (responsive/index.css)
     content/responsive/responsive-browser.css (responsive/responsive-browser.css)
