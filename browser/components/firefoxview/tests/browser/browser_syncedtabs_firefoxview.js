@@ -106,6 +106,43 @@ add_task(async function test_signed_in() {
       "Add device message is shown"
     );
 
+    const supportPageSuffix =
+      "kb/how-do-i-set-sync-my-computer#w_connect-additional-devices-to-sync";
+    const mockConnectAdditionDevicesPath =
+      "https://example.com/" + supportPageSuffix;
+    let expectedUrl = "https://support.mozilla.org/" + supportPageSuffix;
+    let connectAdditionalDevicesLink = await TestUtils.waitForCondition(
+      () => emptyState?.shadowRoot.querySelector("a"),
+      "Support url is visible"
+    );
+    is(
+      connectAdditionalDevicesLink.href,
+      expectedUrl,
+      "Support link href is correct"
+    );
+    connectAdditionalDevicesLink.href = mockConnectAdditionDevicesPath;
+    info("Mock click on support link");
+    let tabOpened = BrowserTestUtils.waitForDocLoadAndStopIt(
+      mockConnectAdditionDevicesPath,
+      gBrowser,
+      channel => {
+        is(
+          channel.originalURI.spec,
+          mockConnectAdditionDevicesPath,
+          "URL matched"
+        );
+        return true;
+      }
+    );
+    EventUtils.synthesizeMouseAtCenter(
+      connectAdditionalDevicesLink,
+      {},
+      // eslint-disable-next-line mozilla/use-ownerGlobal
+      connectAdditionalDevicesLink.ownerDocument.defaultView
+    );
+    await tabOpened;
+
+    await openFirefoxViewTab(window);
     // Test telemetry for adding a device.
     await clearAllParentTelemetryEvents();
     EventUtils.synthesizeMouseAtCenter(
@@ -127,7 +164,10 @@ add_task(async function test_signed_in() {
       { category: "firefoxview_next" },
       { clear: true, process: "parent" }
     );
-    await BrowserTestUtils.removeTab(browser.ownerGlobal.gBrowser.selectedTab);
+    // clean up extra tabs
+    while (gBrowser.tabs.length > 1) {
+      await BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+    }
   });
   await tearDown(sandbox);
 });
