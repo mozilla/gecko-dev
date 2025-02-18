@@ -33,7 +33,7 @@ An example signing task payload:
         "taskType": "build"
       }, {
         "paths": ["public/build/target.tar.gz"],
-        "formats": ["autograph_gpg"],
+        "formats": ["gcp_prod_autograph_gpg"],
         "taskId": "12345",
         "taskType": "build"
       }]
@@ -46,11 +46,12 @@ task definitions via `chain of trust`_ verification. Then it will launch
 `signingscript`_, which requests a signing token from the signing server pool.
 
 Signingscript determines it wants to sign ``target.dmg`` with the ``macapp``
-format, and ``target.tar.gz`` with the ``autograph_gpg`` format. Each of the
-`signing formats`_ has their own behavior. After performing any format-specific
-checks or optimizations, it calls `signtool`_ to submit the file to the signing
-servers and poll them for signed output. Once it downloads all of the signed
-output files, it exits and scriptworker uploads the signed binaries.
+format, and ``target.tar.gz`` with the ``gcp_prod_autograph_gpg`` format. Each
+of the `signing formats`_ has their own behavior. After performing any
+format-specific checks or optimizations, it calls `signtool`_ to submit the
+file to the signing servers and poll them for signed output. Once it downloads
+all of the signed output files, it exits and scriptworker uploads the signed
+binaries.
 
 We can specify multiple paths from a single task for a given set of formats,
 and multiple formats for a given set of paths.
@@ -93,9 +94,9 @@ The known signingscript formats are listed in the fourth column of the
 `signing password files`_.
 
 The formats are specified in the ``upstreamArtifacts`` list-of-dicts.
-``autograph_gpg`` signing results in a detached ``.asc`` signature file. Because of its
-nature, we gpg-sign at the end if given multiple formats for a given set of
-files.
+``gcp_prod_autograph_gpg`` signing results in a detached ``.asc`` signature
+file. Because of its nature, we gpg-sign at the end if given multiple formats
+for a given set of files.
 
 ``jar`` signing is Android apk signing. After signing, we ``zipalign`` the apk.
 This includes the ``focus-jar`` format, which is just a way to specify a different
@@ -109,13 +110,13 @@ is a ``tar.gz``.
 individual file or internals of the zipfile, skipping any already-signed files
 and a select few blocklisted files (using the `should_sign_windows`_ function).
 It returns a signed individual binary or zipfile with signed internals, depending
-on the input. This format includes ``autograph_authenticode``, and
-``autograph_authenticode_stub``.
+on the input. This format includes ``gcp_prod_autograph_authenticode_202412``,
+and ``gcp_prod_autograph_authenticode_202412_stub``.
 
 ``mar`` signing signs our update files (Mozilla ARchive). ``mar_sha384`` is
 the same, but with a different hashing algorithm.
 
-``autograph_widevine`` is also video-related; see the
+``gcp_prod_autograph_widevine`` is also video-related; see the
 `widevine site`_. We sign specific files inside the package and rebuild the
 ``precomplete`` file that we use for updates.
 
