@@ -210,14 +210,8 @@ AndroidHardwareBuffer::~AndroidHardwareBuffer() {
 
 int AndroidHardwareBuffer::Lock(uint64_t aUsage, const ARect* aRect,
                                 void** aOutVirtualAddress) {
-  ipc::FileDescriptor fd = GetAndResetReleaseFence();
-  int32_t fenceFd = -1;
-  ipc::FileDescriptor::UniquePlatformHandle rawFd;
-  if (fd.IsValid()) {
-    rawFd = fd.TakePlatformHandle();
-    fenceFd = rawFd.get();
-  }
-  return AndroidHardwareBufferApi::Get()->Lock(mNativeBuffer, aUsage, fenceFd,
+  UniqueFileHandle fd = GetAndResetReleaseFence();
+  return AndroidHardwareBufferApi::Get()->Lock(mNativeBuffer, aUsage, fd.get(),
                                                aRect, aOutVirtualAddress);
 }
 
@@ -229,63 +223,43 @@ int AndroidHardwareBuffer::Unlock() {
     return ret;
   }
 
-  ipc::FileDescriptor acquireFenceFd;
-  // The value -1 indicates that unlocking has already completed before
-  // the function returned and no further operations are necessary.
-  if (rawFd >= 0) {
-    acquireFenceFd = ipc::FileDescriptor(UniqueFileHandle(rawFd));
-  }
-
-  if (acquireFenceFd.IsValid()) {
-    SetAcquireFence(std::move(acquireFenceFd));
-  }
+  SetAcquireFence(UniqueFileHandle(rawFd));
   return 0;
 }
 
-void AndroidHardwareBuffer::SetReleaseFence(ipc::FileDescriptor&& aFenceFd) {
+void AndroidHardwareBuffer::SetReleaseFence(UniqueFileHandle&& aFenceFd) {
   MonitorAutoLock lock(AndroidHardwareBufferManager::Get()->GetMonitor());
   SetReleaseFence(std::move(aFenceFd), lock);
 }
 
-void AndroidHardwareBuffer::SetReleaseFence(ipc::FileDescriptor&& aFenceFd,
+void AndroidHardwareBuffer::SetReleaseFence(UniqueFileHandle&& aFenceFd,
                                             const MonitorAutoLock& aAutoLock) {
   mReleaseFenceFd = std::move(aFenceFd);
 }
 
-void AndroidHardwareBuffer::SetAcquireFence(ipc::FileDescriptor&& aFenceFd) {
+void AndroidHardwareBuffer::SetAcquireFence(UniqueFileHandle&& aFenceFd) {
   MonitorAutoLock lock(AndroidHardwareBufferManager::Get()->GetMonitor());
 
   mAcquireFenceFd = std::move(aFenceFd);
 }
 
-ipc::FileDescriptor AndroidHardwareBuffer::GetAndResetReleaseFence() {
+UniqueFileHandle AndroidHardwareBuffer::GetAndResetReleaseFence() {
   MonitorAutoLock lock(AndroidHardwareBufferManager::Get()->GetMonitor());
-
-  if (!mReleaseFenceFd.IsValid()) {
-    return ipc::FileDescriptor();
-  }
-
   return std::move(mReleaseFenceFd);
 }
 
-ipc::FileDescriptor AndroidHardwareBuffer::GetAndResetAcquireFence() {
+UniqueFileHandle AndroidHardwareBuffer::GetAndResetAcquireFence() {
   MonitorAutoLock lock(AndroidHardwareBufferManager::Get()->GetMonitor());
-
-  if (!mAcquireFenceFd.IsValid()) {
-    return ipc::FileDescriptor();
-  }
-
   return std::move(mAcquireFenceFd);
 }
 
-ipc::FileDescriptor AndroidHardwareBuffer::GetAcquireFence() {
+UniqueFileHandle AndroidHardwareBuffer::GetAcquireFence() const {
   MonitorAutoLock lock(AndroidHardwareBufferManager::Get()->GetMonitor());
-
-  if (!mAcquireFenceFd.IsValid()) {
-    return ipc::FileDescriptor();
+  if (!mAcquireFenceFd) {
+    return UniqueFileHandle();
   }
 
-  return mAcquireFenceFd;
+  return DuplicateFileHandle(mAcquireFenceFd);
 }
 
 StaticAutoPtr<AndroidHardwareBufferManager>

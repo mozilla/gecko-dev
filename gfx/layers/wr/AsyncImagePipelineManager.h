@@ -10,8 +10,8 @@
 #include <vector>
 
 #include "CompositableHost.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/gfx/Point.h"
-#include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/layers/RemoteTextureMap.h"
 #include "mozilla/layers/TextureHost.h"
 #include "mozilla/Maybe.h"
@@ -71,7 +71,7 @@ class AsyncImagePipelineManager final {
   void NotifyPipelinesUpdated(RefPtr<const wr::WebRenderPipelineInfo> aInfo,
                               wr::RenderedFrameId aLatestFrameId,
                               wr::RenderedFrameId aLastCompletedFrameId,
-                              ipc::FileDescriptor&& aFenceFd);
+                              UniqueFileHandle&& aFenceFd);
 
   // This is run on the compositor thread to process mRenderSubmittedUpdates. We
   // make this public because we need to invoke it from other places.
@@ -277,10 +277,11 @@ class AsyncImagePipelineManager final {
 
   struct WebRenderPipelineInfoHolder {
     WebRenderPipelineInfoHolder(RefPtr<const wr::WebRenderPipelineInfo>&& aInfo,
-                                ipc::FileDescriptor&& aFenceFd);
+                                UniqueFileHandle&& aFenceFd);
     ~WebRenderPipelineInfoHolder();
+    WebRenderPipelineInfoHolder(WebRenderPipelineInfoHolder&&) = default;
     RefPtr<const wr::WebRenderPipelineInfo> mInfo;
-    ipc::FileDescriptor mFenceFd;
+    UniqueFileHandle mFenceFd;
   };
 
   std::vector<std::pair<wr::RenderedFrameId, WebRenderPipelineInfoHolder>>
@@ -291,7 +292,7 @@ class AsyncImagePipelineManager final {
   std::vector<std::pair<wr::RenderedFrameId,
                         std::vector<UniquePtr<ForwardingTextureHost>>>>
       mTexturesInUseByGPU;
-  ipc::FileDescriptor mReleaseFenceFd;
+  UniqueFileHandle mReleaseFenceFd;
 };
 
 }  // namespace layers

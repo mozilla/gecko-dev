@@ -24,7 +24,6 @@
 #include "mozilla/gfx/CriticalSection.h"
 #include "mozilla/gfx/Point.h"  // for IntSize
 #include "mozilla/gfx/Types.h"  // for SurfaceFormat
-#include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/ipc/Shmem.h"  // for Shmem
 #include "mozilla/layers/AtomicRefCountedWithFinalize.h"
 #include "mozilla/layers/CompositorTypes.h"  // for TextureFlags, etc
@@ -32,7 +31,8 @@
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/SyncObject.h"
-#include "mozilla/mozalloc.h"  // for operator delete
+#include "mozilla/mozalloc.h"             // for operator delete
+#include "mozilla/UniquePtrExtensions.h"  // for UniqueFileHandle
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "nsCOMPtr.h"         // for already_AddRefed
 #include "nsISupportsImpl.h"  // for TextureImage::AddRef, etc
@@ -317,9 +317,7 @@ class TextureData {
   // The acquire fence is a fence that is used for waiting until rendering to
   // its AHardwareBuffer is completed.
   // It is used only on android.
-  virtual mozilla::ipc::FileDescriptor GetAcquireFence() {
-    return mozilla::ipc::FileDescriptor();
-  }
+  virtual UniqueFileHandle GetAcquireFence() { return UniqueFileHandle(); }
 
   virtual bool RequiresRefresh() const { return false; }
 

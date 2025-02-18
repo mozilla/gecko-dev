@@ -59,7 +59,7 @@ class SharedSurfaceTextureData : public TextureData {
 
   Maybe<uint64_t> GetBufferId() const override;
 
-  mozilla::ipc::FileDescriptor GetAcquireFence() override;
+  UniqueFileHandle GetAcquireFence() override;
 };
 
 }  // namespace layers

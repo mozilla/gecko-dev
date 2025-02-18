@@ -866,7 +866,7 @@ void RenderThread::UpdateAndRender(
                           renderer->GetCompositorBridge(), info, aStartId,
                           aStartTime, start, end, aRender, *aStats));
 
-  ipc::FileDescriptor fenceFd;
+  UniqueFileHandle fenceFd;
 
   if (latestFrameId.IsValid()) {
     fenceFd = renderer->GetAndResetReleaseFence();

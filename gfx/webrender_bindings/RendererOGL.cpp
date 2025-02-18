@@ -280,7 +280,7 @@ void RendererOGL::WaitForGPU() {
   }
 }
 
-ipc::FileDescriptor RendererOGL::GetAndResetReleaseFence() {
+UniqueFileHandle RendererOGL::GetAndResetReleaseFence() {
   return mCompositor->GetAndResetReleaseFence();
 }
 

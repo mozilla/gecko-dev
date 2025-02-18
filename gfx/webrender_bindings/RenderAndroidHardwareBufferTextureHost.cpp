@@ -49,19 +49,18 @@ bool RenderAndroidHardwareBufferTextureHost::EnsureLockable() {
   }
 
   auto fenceFd = mAndroidHardwareBuffer->GetAndResetAcquireFence();
-  if (fenceFd.IsValid()) {
+  if (fenceFd) {
     const auto& gle = gl::GLContextEGL::Cast(mGL);
     const auto& egl = gle->mEgl;
 
-    auto rawFD = fenceFd.TakePlatformHandle();
     const EGLint attribs[] = {LOCAL_EGL_SYNC_NATIVE_FENCE_FD_ANDROID,
-                              rawFD.get(), LOCAL_EGL_NONE};
+                              fenceFd.get(), LOCAL_EGL_NONE};
 
     EGLSync sync =
         egl->fCreateSync(LOCAL_EGL_SYNC_NATIVE_FENCE_ANDROID, attribs);
     if (sync) {
       // Release fd here, since it is owned by EGLSync
-      Unused << rawFD.release();
+      Unused << fenceFd.release();
 
       if (egl->IsExtensionSupported(gl::EGLExtension::KHR_wait_sync)) {
         egl->fWaitSync(sync, 0);

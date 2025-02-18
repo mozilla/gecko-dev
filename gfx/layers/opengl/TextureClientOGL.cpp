@@ -316,10 +316,9 @@ Maybe<uint64_t> AndroidHardwareBufferTextureData::GetBufferId() const {
   return Some(mAndroidHardwareBuffer->mId);
 }
 
-mozilla::ipc::FileDescriptor
-AndroidHardwareBufferTextureData::GetAcquireFence() {
+UniqueFileHandle AndroidHardwareBufferTextureData::GetAcquireFence() {
   if (!mAndroidHardwareBuffer) {
-    return ipc::FileDescriptor();
+    return UniqueFileHandle();
   }
 
   return mAndroidHardwareBuffer->GetAcquireFence();

@@ -7,7 +7,7 @@
 #ifndef MOZILLA_LAYERS_RENDEREROGL_H
 #define MOZILLA_LAYERS_RENDEREROGL_H
 
-#include "mozilla/ipc/FileDescriptor.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/webrender/RenderThread.h"
@@ -70,7 +70,7 @@ class RendererOGL {
   void WaitForGPU();
 
   /// This can be called on the render thread only.
-  ipc::FileDescriptor GetAndResetReleaseFence();
+  UniqueFileHandle GetAndResetReleaseFence();
 
   /// This can be called on the render thread only.
   RenderedFrameId GetLastCompletedFrameId();

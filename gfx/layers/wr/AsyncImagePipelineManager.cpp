@@ -658,7 +658,7 @@ void AsyncImagePipelineManager::HoldExternalImage(
 void AsyncImagePipelineManager::NotifyPipelinesUpdated(
     RefPtr<const wr::WebRenderPipelineInfo> aInfo,
     wr::RenderedFrameId aLatestFrameId,
-    wr::RenderedFrameId aLastCompletedFrameId, ipc::FileDescriptor&& aFenceFd) {
+    wr::RenderedFrameId aLastCompletedFrameId, UniqueFileHandle&& aFenceFd) {
   MOZ_ASSERT(wr::RenderThread::IsInRenderThread());
   MOZ_ASSERT(mLastCompletedFrameId <= aLastCompletedFrameId.mId);
   MOZ_ASSERT(aLatestFrameId.IsValid());
@@ -701,7 +701,7 @@ void AsyncImagePipelineManager::ProcessPipelineUpdates() {
 
   // submittedUpdates is a vector of RenderedFrameIds paired with vectors of
   // WebRenderPipelineInfo.
-  for (auto update : submittedUpdates) {
+  for (auto& update : submittedUpdates) {
     auto& holder = update.second;
     const auto& info = holder.mInfo->Raw();
 
@@ -736,10 +736,8 @@ void AsyncImagePipelineManager::ProcessPipelineRendered(
     for (auto it = holder->mTextureHostsUntilRenderSubmitted.begin();
          it != firstSubmittedHostToKeep; ++it) {
       const auto& entry = it;
-      if (entry->mTexture->GetAndroidHardwareBuffer() &&
-          mReleaseFenceFd.IsValid()) {
-        ipc::FileDescriptor fenceFd = mReleaseFenceFd;
-        entry->mTexture->SetReleaseFence(std::move(fenceFd));
+      if (entry->mTexture->GetAndroidHardwareBuffer() && mReleaseFenceFd) {
+        entry->mTexture->SetReleaseFence(DuplicateFileHandle(mReleaseFenceFd));
       }
     }
 #endif
@@ -826,8 +824,8 @@ wr::Epoch AsyncImagePipelineManager::GetNextImageEpoch() {
 
 AsyncImagePipelineManager::WebRenderPipelineInfoHolder::
     WebRenderPipelineInfoHolder(RefPtr<const wr::WebRenderPipelineInfo>&& aInfo,
-                                ipc::FileDescriptor&& aFenceFd)
-    : mInfo(aInfo), mFenceFd(aFenceFd) {}
+                                UniqueFileHandle&& aFenceFd)
+    : mInfo(aInfo), mFenceFd(std::move(aFenceFd)) {}
 
 AsyncImagePipelineManager::WebRenderPipelineInfoHolder::
     ~WebRenderPipelineInfoHolder() = default;

@@ -70,7 +70,7 @@ Maybe<uint64_t> SharedSurfaceTextureData::GetBufferId() const {
   return Nothing();
 }
 
-mozilla::ipc::FileDescriptor SharedSurfaceTextureData::GetAcquireFence() {
+UniqueFileHandle SharedSurfaceTextureData::GetAcquireFence() {
 #ifdef MOZ_WIDGET_ANDROID
   if (mDesc.type() ==
       SurfaceDescriptor::TSurfaceDescriptorAndroidHardwareBuffer) {
@@ -79,13 +79,13 @@ mozilla::ipc::FileDescriptor SharedSurfaceTextureData::GetAcquireFence() {
     RefPtr<AndroidHardwareBuffer> buffer =
         AndroidHardwareBufferManager::Get()->GetBuffer(desc.bufferId());
     if (!buffer) {
-      return ipc::FileDescriptor();
+      return UniqueFileHandle();
     }
 
     return buffer->GetAcquireFence();
   }
 #endif
-  return ipc::FileDescriptor();
+  return UniqueFileHandle();
 }
 
 }  // namespace layers
