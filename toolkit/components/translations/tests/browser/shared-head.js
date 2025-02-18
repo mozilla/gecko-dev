@@ -15,6 +15,9 @@ const { TranslationsPanelShared } = ChromeUtils.importESModule(
 const { TranslationsUtils } = ChromeUtils.importESModule(
   "chrome://global/content/translations/TranslationsUtils.mjs"
 );
+const { getInferenceProcessInfo } = ChromeUtils.importESModule(
+  "chrome://global/content/ml/Utils.sys.mjs"
+);
 
 // Avoid about:blank's non-standard behavior.
 const BLANK_PAGE =
