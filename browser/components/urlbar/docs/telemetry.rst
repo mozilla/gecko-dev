@@ -345,6 +345,8 @@ urlbar.searchmode.*
 urlbar.picked.*
 ~~~~~~~~~~~~~~~
 
+  NOTE: This telemetry is no longer collected. See changelog below.
+
   This is a set of keyed scalars whose values are uints incremented each
   time a result is picked from the Urlbar. The suffix on the scalar name
   is the result type. The keys for the scalars above are the 0-based index of
@@ -464,8 +466,17 @@ urlbar.picked.*
   .. _adaptive history autofill document: https://docs.google.com/document/d/e/2PACX-1vRBLr_2dxus-aYhZRUkW9Q3B1K0uC-a0qQyE3kQDTU3pcNpDHb36-Pfo9fbETk89e7Jz4nkrqwRhi4j/pub
   .. _origin: https://html.spec.whatwg.org/multipage/origin.html#origin
 
+  Changelog
+    Firefox 134
+      Legacy ``urlbar.picked`` telemetry mirrored to Glean. (See bug 1927093)
+    Firefox 137
+      Legacy ``urlbar.picked`` telemetry and Glean ``urlbar.picked`` telemetry
+      removed completely. (See bug 1932713)
+
 urlbar.picked.searchmode.*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  NOTE: This telemetry is no longer collected. See changelog below.
 
   This is a set of keyed scalars whose values are uints incremented each time a
   result is picked from the Urlbar while the Urlbar is in search mode. The
@@ -484,6 +495,15 @@ urlbar.picked.searchmode.*
     example, if the user enters search mode by clicking a one-off then selects
     a Google search suggestion at index 2, we would record in **both**
     ``urlbar.picked.searchsuggestion`` and ``urlbar.picked.searchmode.oneoff``.
+
+  Changelog
+    Firefox 134
+      Legacy ``urlbar.picked.searchmode`` telemetry mirrored to Glean. (See
+      bug 1927093)
+    Firefox 137
+      Legacy ``urlbar.picked.searchmode`` telemetry and Glean
+      ``urlbar.picked.searchmode`` telemetry removed completely. (See
+      bug 1932713)
 
 urlbar.tabtosearch.*
 ~~~~~~~~~~~~~~~~~~~~

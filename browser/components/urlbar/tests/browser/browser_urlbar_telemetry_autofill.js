@@ -50,17 +50,6 @@ function snapshotHistograms() {
   };
 }
 
-function assertTelemetryResults(histograms, type, index, method) {
-  TelemetryTestUtils.assertHistogram(histograms.resultMethodHist, method, 1);
-
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    `urlbar.picked.${type}`,
-    index,
-    1
-  );
-}
-
 /**
  * Performs a search and picks the first result.
  *
@@ -190,7 +179,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "ex",
       autofilled: "example.com/",
-      expected: "autofill_origin",
     },
     {
       useAdaptiveHistory: true,
@@ -198,7 +186,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "exa",
       autofilled: "example.com/test",
-      expected: "autofill_adaptive",
     },
     {
       useAdaptiveHistory: true,
@@ -206,7 +193,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "exam",
       autofilled: "example.com/test",
-      expected: "autofill_adaptive",
     },
     {
       useAdaptiveHistory: true,
@@ -214,7 +200,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "example.com",
       autofilled: "example.com/test",
-      expected: "autofill_adaptive",
     },
     {
       useAdaptiveHistory: true,
@@ -222,7 +207,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "example.com/",
       autofilled: "example.com/test",
-      expected: "autofill_adaptive",
     },
     {
       useAdaptiveHistory: true,
@@ -230,7 +214,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "example.com/test",
       autofilled: "example.com/test",
-      expected: "autofill_adaptive",
     },
     {
       useAdaptiveHistory: true,
@@ -238,7 +221,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "example.org",
       autofilled: "example.org/",
-      expected: "autofill_origin",
     },
     {
       useAdaptiveHistory: true,
@@ -246,7 +228,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "example.com/test/",
       autofilled: "example.com/test/",
-      expected: "autofill_url",
     },
     {
       useAdaptiveHistory: true,
@@ -256,7 +237,6 @@ add_task(async function history() {
       ],
       userInput: "http://example.com/test",
       autofilled: "http://example.com/test",
-      expected: "autofill_adaptive",
     },
     {
       useAdaptiveHistory: false,
@@ -264,7 +244,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "example",
       autofilled: "example.com/",
-      expected: "autofill_origin",
     },
     {
       useAdaptiveHistory: false,
@@ -272,7 +251,6 @@ add_task(async function history() {
       inputHistory: [{ uri: "http://example.com/test", input: "exa" }],
       userInput: "example.com/te",
       autofilled: "example.com/test",
-      expected: "autofill_url",
     },
   ];
 
@@ -282,7 +260,6 @@ add_task(async function history() {
     inputHistory,
     userInput,
     autofilled,
-    expected,
   } of testData) {
     const histograms = snapshotHistograms();
 
@@ -297,11 +274,11 @@ add_task(async function history() {
     await triggerAutofillAndPickResult(userInput, autofilled);
 
     assertSearchTelemetryEmpty(histograms.search_hist);
-    assertTelemetryResults(
-      histograms,
-      expected,
-      0,
-      UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
+
+    TelemetryTestUtils.assertHistogram(
+      histograms.resultMethodHist,
+      UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
+      1
     );
 
     UrlbarPrefs.clear("autoFill.adaptiveHistory.enabled");
@@ -316,11 +293,10 @@ add_task(async function about() {
   await triggerAutofillAndPickResult("about:abou", "about:about");
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "autofill_about",
-    0,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
+    1
   );
 
   await PlacesUtils.history.clear();
@@ -337,11 +313,10 @@ add_task(async function other() {
   await triggerAutofillAndPickResult(searchString, autofilledValue);
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "autofill_other",
-    0,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
+    1
   );
 
   await PlacesUtils.history.clear();

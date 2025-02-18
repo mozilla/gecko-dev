@@ -17,7 +17,6 @@ const EN_US_TOPSITES =
   "https://www.youtube.com/,https://www.facebook.com/,https://www.amazon.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/";
 
 function snapshotHistograms() {
-  Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   return {
     resultMethodHist: TelemetryTestUtils.getAndClearHistogram(
@@ -25,17 +24,6 @@ function snapshotHistograms() {
     ),
     search_hist: TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS"),
   };
-}
-
-function assertTelemetryResults(histograms, type, index, method) {
-  TelemetryTestUtils.assertHistogram(histograms.resultMethodHist, method, 1);
-
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    `urlbar.picked.${type}`,
-    index,
-    1
-  );
 }
 
 /**
@@ -120,11 +108,10 @@ add_task(async function test() {
     EventUtils.synthesizeKey("KEY_Enter");
     await loadPromise;
 
-    assertTelemetryResults(
-      histograms,
-      "topsite",
-      0,
-      UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection
+    TelemetryTestUtils.assertHistogram(
+      histograms.resultMethodHist,
+      UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection,
+      1
     );
     await UrlbarTestUtils.promisePopupClose(window, () => {
       gURLBar.blur();

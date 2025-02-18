@@ -76,8 +76,7 @@ async function exitSearchModeAndClosePanel() {
 }
 
 async function assertRestrictKeywordResult(window, restrictToken) {
-  Services.telemetry.clearScalars();
-  let { restrictResult, resultIndex } = await getRestrictKeywordResult(
+  let { restrictResult } = await getRestrictKeywordResult(
     window,
     restrictToken
   );
@@ -94,19 +93,6 @@ async function assertRestrictKeywordResult(window, restrictToken) {
     entry: "keywordoffer",
     restrictType: "keyword",
   });
-
-  const scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
-  let l10nRestrictKeywords = restrictResult.result.payload.l10nRestrictKeywords;
-  let englishLocalSearchMode =
-    l10nRestrictKeywords.length > 1
-      ? l10nRestrictKeywords[1].toLowerCase()
-      : l10nRestrictKeywords[0].toLowerCase();
-  TelemetryTestUtils.assertKeyedScalar(
-    scalars,
-    `urlbar.picked.restrict_keyword_${englishLocalSearchMode}`,
-    resultIndex,
-    1
-  );
 
   await exitSearchModeAndClosePanel();
 }

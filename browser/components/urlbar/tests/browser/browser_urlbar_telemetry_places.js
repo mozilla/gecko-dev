@@ -74,17 +74,6 @@ function snapshotHistograms() {
   };
 }
 
-function assertTelemetryResults(histograms, type, index, method) {
-  TelemetryTestUtils.assertHistogram(histograms.resultMethodHist, method, 1);
-
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    `urlbar.picked.${type}`,
-    index,
-    1
-  );
-}
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -144,11 +133,10 @@ add_task(async function test_history() {
   await p;
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "history",
-    1,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection,
+    1
   );
 
   BrowserTestUtils.removeTab(tab);
@@ -166,11 +154,10 @@ add_task(async function test_history_adaptive() {
   await p;
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "history_adaptive",
-    1,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection,
+    1
   );
 
   BrowserTestUtils.removeTab(tab);
@@ -196,11 +183,10 @@ add_task(async function test_bookmark_without_history() {
   await p;
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "bookmark",
-    1,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection,
+    1
   );
 
   await PlacesUtils.bookmarks.remove(bm);
@@ -226,11 +212,10 @@ add_task(async function test_bookmark_with_history() {
   await p;
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "bookmark_adaptive",
-    1,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection,
+    1
   );
 
   await PlacesUtils.bookmarks.remove(bm);
@@ -252,11 +237,10 @@ add_task(async function test_keyword() {
   await p;
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "keyword",
-    0,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
+    1
   );
 
   BrowserTestUtils.removeTab(tab);
@@ -281,11 +265,10 @@ add_task(async function test_switchtab() {
   await p;
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "switchtab",
-    1,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection,
+    1
   );
 
   BrowserTestUtils.removeTab(tab);
@@ -306,11 +289,11 @@ add_task(async function test_visitURL() {
   await p;
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  assertTelemetryResults(
-    histograms,
-    "visiturl",
-    0,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
+  assertSearchTelemetryEmpty(histograms.search_hist);
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
+    1
   );
 
   BrowserTestUtils.removeTab(tab);

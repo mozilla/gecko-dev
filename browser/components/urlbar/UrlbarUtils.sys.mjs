@@ -1236,10 +1236,6 @@ export var UrlbarUtils = {
    * Extracts a telemetry type from a result, used by scalars and event
    * telemetry.
    *
-   * Note: New types should be added to Scalars.yaml under the urlbar.picked
-   *       category and documented in the in-tree documentation. A data-review
-   *       is always necessary.
-   *
    * @param {UrlbarResult} result The result to analyze.
    * @param {boolean} camelCase Whether the returned telemetry type should be the
                                 camelCase version.
@@ -1294,14 +1290,6 @@ export var UrlbarUtils = {
           return "visiturl";
         }
         if (result.providerName == "UrlbarProviderQuickSuggest") {
-          // Don't add any more `urlbar.picked` legacy telemetry if possible!
-          // Return "quicksuggest" here and rely on Glean instead.
-          switch (result.payload.telemetryType) {
-            case "top_picks":
-              return "navigational";
-            case "wikipedia":
-              return camelCase ? "dynamicWikipedia" : "dynamic_wikipedia";
-          }
           return "quicksuggest";
         }
         if (result.providerName == "UrlbarProviderClipboard") {

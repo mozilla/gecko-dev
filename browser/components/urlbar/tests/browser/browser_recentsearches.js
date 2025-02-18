@@ -60,7 +60,6 @@ add_setup(async () => {
   });
 
   await SearchTestUtils.updateRemoteSettingsConfig(CONFIG_DEFAULT_V2);
-  Services.telemetry.clearScalars();
 
   registerCleanupFunction(async () => {
     await UrlbarTestUtils.formHistory.clear();
@@ -104,25 +103,6 @@ add_task(async () => {
   let { result } = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
   Assert.equal(result.providerName, "RecentSearches");
 
-  info("Selecting the recent search should be indicated in telemetry.");
-  browserLoaded = BrowserTestUtils.browserLoaded(
-    window.gBrowser.selectedBrowser,
-    false,
-    "https://example.com/?q=Bob+Vylan"
-  );
-  await UrlbarTestUtils.promisePopupClose(window, () => {
-    EventUtils.synthesizeKey("KEY_ArrowDown", {}, window);
-    EventUtils.synthesizeKey("KEY_Enter", {}, window);
-  });
-  await browserLoaded;
-
-  let scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
-  TelemetryTestUtils.assertKeyedScalar(
-    scalars,
-    "urlbar.picked.recent_search",
-    0,
-    1
-  );
   await BrowserTestUtils.removeTab(tab);
 });
 

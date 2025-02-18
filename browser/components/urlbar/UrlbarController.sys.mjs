@@ -615,36 +615,6 @@ export class UrlbarController {
       selectedResult,
       this._userSelectionBehavior
     );
-
-    if (!result) {
-      return;
-    }
-
-    // Do not modify existing telemetry types.  To add a new type:
-    //
-    // * Set telemetryType appropriately. Since telemetryType is used as the
-    //   probe name, it must be alphanumeric with optional underscores.
-    // * Add a new keyed scalar probe into the urlbar.picked category for the
-    //   newly added telemetryType.
-    // * Add a new matching Glean metric in browser/components/urlbar/metrics.yaml.
-    // * Add a test named browser_UsageTelemetry_urlbar_newType.js to
-    //   browser/modules/test/browser.
-    //
-    // The "topsite" type overrides the other ones, because it starts from a
-    // unique user interaction, that we want to count apart. We do this here
-    // rather than in telemetryTypeFromResult because other consumers, like
-    // events telemetry, are reporting this information separately.
-    let telemetryType =
-      result.providerName == "UrlbarProviderTopSites"
-        ? "topsite"
-        : lazy.UrlbarUtils.telemetryTypeFromResult(result, true);
-    Glean.urlbarPicked[telemetryType]?.[resultIndex].add(1);
-    if (this.input.searchMode && !this.input.searchMode.isPreview) {
-      let name = this.input.searchMode.entry.replace(/_([a-z])/g, (m, p) =>
-        p.toUpperCase()
-      );
-      Glean.urlbarPickedSearchmode[name]?.[resultIndex].add(1);
-    }
   }
 
   /**

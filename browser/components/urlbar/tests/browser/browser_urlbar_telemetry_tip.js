@@ -16,7 +16,6 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 function snapshotHistograms() {
-  Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   return {
     resultMethodHist: TelemetryTestUtils.getAndClearHistogram(
@@ -24,17 +23,6 @@ function snapshotHistograms() {
     ),
     search_hist: TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS"),
   };
-}
-
-function assertTelemetryResults(histograms, type, index, method) {
-  TelemetryTestUtils.assertHistogram(histograms.resultMethodHist, method, 1);
-
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    `urlbar.picked.${type}`,
-    index,
-    1
-  );
 }
 
 add_setup(async function () {
@@ -90,11 +78,10 @@ add_task(async function test() {
   });
   EventUtils.synthesizeKey("KEY_Enter");
 
-  assertTelemetryResults(
-    histograms,
-    "tip",
-    0,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
+    1
   );
 
   UrlbarProvidersManager.unregisterProvider(provider);

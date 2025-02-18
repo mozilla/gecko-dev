@@ -103,11 +103,10 @@ add_task(async function test() {
     EventUtils.synthesizeKey("KEY_Enter")
   );
 
-  assertTelemetryResults(
-    histograms,
-    "dynamic",
-    0,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter
+  TelemetryTestUtils.assertHistogram(
+    histograms.resultMethodHist,
+    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
+    1
   );
 
   // Clean up for subsequent tests.
@@ -115,22 +114,10 @@ add_task(async function test() {
 });
 
 function snapshotHistograms() {
-  Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   return {
     resultMethodHist: TelemetryTestUtils.getAndClearHistogram(
       "FX_URLBAR_SELECTED_RESULT_METHOD"
     ),
   };
-}
-
-function assertTelemetryResults(histograms, type, index, method) {
-  TelemetryTestUtils.assertHistogram(histograms.resultMethodHist, method, 1);
-
-  TelemetryTestUtils.assertKeyedScalar(
-    TelemetryTestUtils.getProcessScalars("parent", true, true),
-    `urlbar.picked.${type}`,
-    index,
-    1
-  );
 }

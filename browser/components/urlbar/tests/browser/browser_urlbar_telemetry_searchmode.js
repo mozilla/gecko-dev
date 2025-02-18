@@ -10,7 +10,6 @@
 "use strict";
 
 const ENTRY_SCALAR_PREFIX = "urlbar.searchmode.";
-const PICKED_SCALAR_PREFIX = "urlbar.picked.searchmode.";
 const ENGINE_ALIAS = "alias";
 const TEST_QUERY = "test";
 let engineName;
@@ -32,18 +31,14 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 /**
- * Asserts that search mode telemetry was recorded correctly. Checks both the
- * urlbar.searchmode.* and urlbar.searchmode_picked.* probes.
+ * Asserts that search mode telemetry was recorded correctly.
  *
  * @param {string} entry
  *   A search mode entry point.
  * @param {string} engineOrSource
  *   An engine name or a search mode source.
- * @param {number} [resultIndex]
- *   The index of the result picked while in search mode. Only pass this
- *   parameter if a result is picked.
  */
-function assertSearchModeScalars(entry, engineOrSource, resultIndex = -1) {
+function assertSearchModeScalars(entry, engineOrSource) {
   // Check if the urlbar.searchmode.entry scalar contains the expected value.
   const scalars = TelemetryTestUtils.getProcessScalars("parent", true, false);
   TelemetryTestUtils.assertKeyedScalar(
@@ -66,15 +61,6 @@ function assertSearchModeScalars(entry, engineOrSource, resultIndex = -1) {
         `No other urlbar.searchmode scalars should be recorded. Checking ${e}`
       );
     }
-  }
-
-  if (resultIndex >= 0) {
-    TelemetryTestUtils.assertKeyedScalar(
-      scalars,
-      PICKED_SCALAR_PREFIX + entry,
-      resultIndex,
-      1
-    );
   }
 
   Services.telemetry.clearScalars();
