@@ -323,6 +323,7 @@ class RequestListContextMenu {
 
     const toolbox = this.props.connector.getToolbox();
     const isOverridden = !!getOverriddenUrl(toolbox.store.getState(), url);
+    const isLocalTab = toolbox.commands.descriptorFront.isLocalTab;
 
     const copySubMenu = this.createCopySubMenu(clickedRequest, requests);
     const newEditAndResendPref = Services.prefs.getBoolPref(
@@ -433,7 +434,11 @@ class RequestListContextMenu {
         id: "request-list-context-set-override",
         label: L10N.getStr("netmonitor.context.setOverride"),
         accesskey: L10N.getStr("netmonitor.context.setOverride.accesskey"),
-        visible: !isOverridden && (responseContentAvailable || responseContent),
+        visible:
+          // Network overrides are disabled for remote debugging (bug 1881441).
+          isLocalTab &&
+          !isOverridden &&
+          (responseContentAvailable || responseContent),
         click: async () => {
           const content = await this.getResponseContent(id, responseContent);
           toolbox.store.dispatch(
@@ -445,7 +450,8 @@ class RequestListContextMenu {
         id: "request-list-context-remove-override",
         label: L10N.getStr("netmonitor.context.removeOverride"),
         accesskey: L10N.getStr("netmonitor.context.removeOverride.accesskey"),
-        visible: isOverridden,
+        // Network overrides are disabled for remote debugging (bug 1881441).
+        visible: isLocalTab && isOverridden,
         click: () =>
           toolbox.store.dispatch(removeNetworkOverride(toolbox.commands, url)),
       },
