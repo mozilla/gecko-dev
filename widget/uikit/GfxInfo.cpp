@@ -25,7 +25,8 @@ GfxInfo::GetDWriteEnabled(bool* aEnabled) { return NS_ERROR_FAILURE; }
 
 NS_IMETHODIMP
 GfxInfo::GetEmbeddedInFirefoxReality(bool* aEmbeddedInFirefoxReality) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  *aEmbeddedInFirefoxReality = false;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -67,12 +68,13 @@ GfxInfo::GetAdapterRAM2(uint32_t* aAdapterRAM) { return NS_ERROR_FAILURE; }
 
 NS_IMETHODIMP
 GfxInfo::GetAdapterDriverVendor(nsAString& aAdapterDriverVendor) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  aAdapterDriverVendor.AssignLiteral("");
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 GfxInfo::GetAdapterDriverVendor2(nsAString& aAdapterDriverVendor2) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -87,12 +89,14 @@ GfxInfo::GetAdapterDriver2(nsAString& aAdapterDriver) {
 
 NS_IMETHODIMP
 GfxInfo::GetAdapterDriverVersion(nsAString& aAdapterDriverVersion) {
-  return NS_ERROR_FAILURE;
+  aAdapterDriverVersion = EmptyString();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 GfxInfo::GetAdapterDriverVersion2(nsAString& aAdapterDriverVersion) {
-  return NS_ERROR_FAILURE;
+  aAdapterDriverVersion = EmptyString();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -107,22 +111,26 @@ GfxInfo::GetAdapterDriverDate2(nsAString& aAdapterDriverDate) {
 
 NS_IMETHODIMP
 GfxInfo::GetAdapterVendorID(nsAString& aAdapterVendorID) {
-  return NS_ERROR_FAILURE;
+  aAdapterVendorID = EmptyString();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 GfxInfo::GetAdapterVendorID2(nsAString& aAdapterVendorID) {
-  return NS_ERROR_FAILURE;
+  aAdapterVendorID = EmptyString();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 GfxInfo::GetAdapterDeviceID(nsAString& aAdapterDeviceID) {
-  return NS_ERROR_FAILURE;
+  aAdapterDeviceID = EmptyString();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 GfxInfo::GetAdapterDeviceID2(nsAString& aAdapterDeviceID) {
-  return NS_ERROR_FAILURE;
+  aAdapterDeviceID = EmptyString();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
