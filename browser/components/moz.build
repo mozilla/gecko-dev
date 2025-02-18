@@ -92,7 +92,7 @@ XPCOM_MANIFESTS += [
     "components.conf",
 ]
 
-EXTRA_COMPONENTS += [
+EXTRA_PP_COMPONENTS += [
     "BrowserComponents.manifest",
 ]
 

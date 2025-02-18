@@ -9,10 +9,29 @@
 
 category app-startup nsBrowserGlue @mozilla.org/browser/browserglue;1 application={ec8030f7-c20a-464f-9b0e-13a3a9e97384} application={aa3c5121-dab2-40e2-81ca-7ea25febc110}
 
-# Browser window lifecycle callers.
+# Browser window lifecycle consumers
 category browser-window-delayed-startup resource:///modules/ContentAnalysis.sys.mjs ContentAnalysis.initialize
 category browser-window-delayed-startup resource:///modules/HomePage.sys.mjs HomePage.delayedStartup
 category browser-window-delayed-startup resource:///modules/ReportBrokenSite.sys.mjs ReportBrokenSite.init
 category browser-window-delayed-startup resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.init
+
+# App startup consumers
+category browser-idle-startup resource:///modules/PlacesUIUtils.sys.mjs PlacesUIUtils.unblockToolbars
+category browser-idle-startup resource:///modules/BuiltInThemes.sys.mjs BuiltInThemes.ensureBuiltInThemes
+category browser-idle-startup resource://gre/modules/RFPHelper.sys.mjs RFPHelper.init
+category browser-idle-startup resource://gre/modules/Blocklist.sys.mjs Blocklist.loadBlocklistAsync
+category browser-idle-startup resource:///modules/TabUnloader.sys.mjs TabUnloader.init
+category browser-idle-startup resource:///modules/GenAI.sys.mjs GenAI.init
+category browser-idle-startup resource:///modules/QuickSuggest.sys.mjs QuickSuggest.init
+category browser-idle-startup resource:///modules/UrlbarSearchTermsPersistence.sys.mjs UrlbarSearchTermsPersistence.init
+category browser-idle-startup resource:///modules/ShoppingUtils.sys.mjs ShoppingUtils.init
+category browser-idle-startup resource:///modules/SearchSERPTelemetry.sys.mjs SearchSERPCategorization.init
+category browser-idle-startup resource://gre/modules/ContentRelevancyManager.sys.mjs ContentRelevancyManager.init
+#ifdef MOZ_UPDATER
+category browser-idle-startup resource://gre/modules/UpdateListener.sys.mjs UpdateListener.maybeShowUnsupportedNotification
+#endif
+#ifdef XP_WIN
+category browser-idle-startup resource:///modules/WindowsJumpLists.sys.mjs WinTaskbarJumpList.startup
+#endif
 
 category search-service-notification resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.showSearchServiceNotification
