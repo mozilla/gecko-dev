@@ -889,7 +889,7 @@ void TaskController::MayScheduleIdleMemoryCleanup() {
   if (!mIsLazyPurgeEnabled) {
     return;
   }
-  if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+  if (AppShutdown::IsShutdownImpending()) {
     if (sIdleMemoryCleanupRunner) {
       sIdleMemoryCleanupRunner->Cancel();
       sIdleMemoryCleanupRunner = nullptr;
