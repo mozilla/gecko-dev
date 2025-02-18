@@ -981,7 +981,7 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             ),
         ),
         (
-            {"full": True},
+            {"show_all": True},
             [1, 2, 2, 8, 2, 1],
             0,
             (
@@ -995,7 +995,7 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             ),
         ),
         (
-            {"full": True, "query": "'shippable !32 speedometer 'firefox"},
+            {"show_all": True, "query": "'shippable !32 speedometer 'firefox"},
             [1, 2, 2, 8, 2, 1],
             0,
             (
@@ -1060,7 +1060,7 @@ def test_category_expansion_with_non_pgo_flag(category_options, call_counts):
             ),
         ),
         (
-            {"tests": ["amazon"], "full": True},
+            {"tests": ["amazon"], "show_all": True},
             [1, 2, 2, 8, 2, 1],
             0,
             (
@@ -1474,7 +1474,7 @@ def test_save_revision_treeherder(args, call_counts, exists_cache_file):
         ),
         (
             MAX_PERF_TASKS,
-            {"full": True},
+            {"show_all": True},
             [9, 0, 0, 8],
             (
                 "For more information on the performance tests, see our "
@@ -1485,7 +1485,7 @@ def test_save_revision_treeherder(args, call_counts, exists_cache_file):
         (
             int((MAX_PERF_TASKS + 2) / 2),
             {
-                "full": True,
+                "show_all": True,
                 "try_config_params": {"try_task_config": {"rebuild": 2}},
             },
             [1, 0, 0, 1],
@@ -1590,7 +1590,7 @@ def test_build_category_description():
     "options, call_count",
     [
         ({}, [1, 1, 2]),
-        ({"full": True}, [0, 0, 1]),
+        ({"show_all": True}, [0, 0, 1]),
     ],
 )
 def test_preview_description(options, call_count):

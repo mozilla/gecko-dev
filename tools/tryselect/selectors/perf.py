@@ -96,7 +96,7 @@ class InvalidRegressionDetectorQuery(Exception):
 
 class PerfParser(CompareParser):
     name = "perf"
-    common_groups = ["push", "task"]
+    common_groups = ["push"]
     task_configs = [
         "artifact",
         "browsertime",
@@ -118,11 +118,10 @@ class PerfParser(CompareParser):
 
     arguments = [
         [
-            ["--show-all"],
+            ["--show-all", "--full", "--all-tasks"],
             {
                 "action": "store_true",
                 "default": False,
-                "dest": "full",
                 "help": "Show all available tasks. Alternatively, --full may be used.",
             },
         ],
@@ -1325,7 +1324,7 @@ class PerfParser(CompareParser):
 
     def run(
         update=False,
-        full=False,
+        show_all=False,
         parameters=None,
         try_config_params=None,
         dry_run=False,
@@ -1396,7 +1395,7 @@ class PerfParser(CompareParser):
                     "\nAll the tasks of the Alert Summary couldn't be found in the taskgraph.\n"
                     f"Not exist tasks: {alert_tasks - set(all_tasks)}\n"
                 )
-        elif not full:
+        elif not show_all:
             # Expand the categories first
             categories = PerfParser.get_categories(**kwargs)
             PerfParser.build_category_description(base_cmd, categories)
