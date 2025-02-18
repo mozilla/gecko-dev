@@ -51,6 +51,26 @@ bool HandleTLSPrefChange(const nsCString& aPref);
 void SetValidationOptionsCommon();
 void PrepareForShutdownInSocketProcess();
 
+// RAII helper class to indicate that gecko is searching for client auth
+// certificates. Will automatically stop indicating that a search is happening
+// when it goes out of scope.
+// osclientcerts (or ipcclientcerts, in the socket process) will call
+// IsGeckoSearchingForClientAuthCertificates() to determine if gecko is
+// searching for client auth certificates. If so, the module knows to refresh
+// its list of certificates and keys (which can be costly).
+// In theory, two separate threads could both create a
+// AutoSearchingForClientAuthCertificates at overlapping times. If one goes out
+// of scope sooner than the other, IsGeckoSearchingForClientAuthCertificates()
+// could potentially incorrectly return false for the slower thread. However,
+// as long as the faster thread has ensured that osclientcerts/ipcclientcerts
+// has updated its list of known certificates, a second search would be
+// redundant anyway, so it doesn't matter.
+class AutoSearchingForClientAuthCertificates {
+ public:
+  AutoSearchingForClientAuthCertificates();
+  ~AutoSearchingForClientAuthCertificates();
+};
+
 // Implementation of the PSM component interface.
 class nsNSSComponent final : public nsINSSComponent, public nsIObserver {
  public:

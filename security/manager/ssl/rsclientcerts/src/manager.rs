@@ -12,7 +12,10 @@ use std::time::{Duration, Instant};
 
 use crate::error::{Error, ErrorType};
 use crate::error_here;
-use crate::util::*;
+
+extern "C" {
+    fn IsGeckoSearchingForClientAuthCertificates() -> bool;
+}
 
 /// Helper enum to differentiate between sessions on the modern slot and sessions on the legacy
 /// slot. The former is for EC keys and RSA keys that can be used with RSA-PSS whereas the latter is
@@ -321,37 +324,6 @@ impl ManagerProxy {
     }
 }
 
-// Determines if the attributes of a given search correspond to NSS looking for all certificates or
-// private keys. Returns true if so, and false otherwise.
-// These searches are of the form:
-//   { { type: CKA_TOKEN, value: [1] },
-//     { type: CKA_CLASS, value: [CKO_CERTIFICATE or CKO_PRIVATE_KEY, as serialized bytes] } }
-// (although not necessarily in that order - see nssToken_TraverseCertificates and
-// nssToken_FindPrivateKeys)
-fn search_is_for_all_certificates_or_keys(
-    attrs: &[(CK_ATTRIBUTE_TYPE, Vec<u8>)],
-) -> Result<bool, Error> {
-    if attrs.len() != 2 {
-        return Ok(false);
-    }
-    let token_bytes = vec![1_u8];
-    let mut found_token = false;
-    let cko_certificate_bytes = serialize_uint(CKO_CERTIFICATE)?;
-    let cko_private_key_bytes = serialize_uint(CKO_PRIVATE_KEY)?;
-    let mut found_certificate_or_private_key = false;
-    for (attr_type, attr_value) in attrs.iter() {
-        if attr_type == &CKA_TOKEN && attr_value == &token_bytes {
-            found_token = true;
-        }
-        if attr_type == &CKA_CLASS
-            && (attr_value == &cko_certificate_bytes || attr_value == &cko_private_key_bytes)
-        {
-            found_certificate_or_private_key = true;
-        }
-    }
-    Ok(found_token && found_certificate_or_private_key)
-}
-
 const SUPPORTED_ATTRIBUTES: &[CK_ATTRIBUTE_TYPE] = &[
     CKA_CLASS,
     CKA_TOKEN,
@@ -439,7 +411,7 @@ pub struct Manager<B: ClientCertsBackend> {
     /// The next object handle to hand out.
     next_handle: CK_OBJECT_HANDLE,
     /// The last time the implementation looked for new objects in the backend.
-    /// The implementation does this search no more than once every 3 seconds.
+    /// The implementation does this search no more than once every 2 seconds.
     last_scan_time: Option<Instant>,
     backend: B,
 }
@@ -460,14 +432,14 @@ impl<B: ClientCertsBackend> Manager<B> {
         }
     }
 
-    /// When a new search session is opened (provided at least 3 seconds have elapsed since the
+    /// When a new search session is opened (provided at least 2 seconds have elapsed since the
     /// last session was opened), this searches for certificates and keys to expose. We
     /// de-duplicate previously-found certificates and keys by keeping track of their IDs.
     fn maybe_find_new_objects(&mut self) -> Result<(), Error> {
         let now = Instant::now();
         match self.last_scan_time {
             Some(last_scan_time) => {
-                if now.duration_since(last_scan_time) < Duration::new(3, 0) {
+                if now.duration_since(last_scan_time) < Duration::new(2, 0) {
                     return Ok(());
                 }
             }
@@ -552,12 +524,11 @@ impl<B: ClientCertsBackend> Manager<B> {
                 return Ok(());
             }
         }
-        // When NSS wants to find all certificates or all private keys, it will perform a search
-        // with a particular set of attributes. This implementation uses these searches as an
-        // indication for the backend to re-scan for new objects from tokens that may have been
-        // inserted or certificates that may have been imported into the OS. Since these searches
-        // are relatively rare, this minimizes the impact of doing these re-scans.
-        if search_is_for_all_certificates_or_keys(&attrs)? {
+        // Only search for new objects when gecko has indicated that it is looking for client
+        // authentication certificates (or all certificates).
+        // Since these searches are relatively rare, this minimizes the impact of doing these
+        // re-scans.
+        if unsafe { IsGeckoSearchingForClientAuthCertificates() } {
             self.maybe_find_new_objects()?;
         }
         let mut handles = Vec::new();
