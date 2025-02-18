@@ -568,7 +568,7 @@ export class _ExperimentManager {
    * @param {object} options
    * @param {boolean} options.reenroll
    *                  Allow re-enrollment. Only supported for rollouts.
-   * @param {string} options.optInRecipeBranchSlug
+   * @param {string} options.branchSlug
    *                 If enrolling in a Firefox Labs opt-in experiment, this
    *                 option is required and will dictate which branch to enroll
    *                 in.
@@ -579,11 +579,7 @@ export class _ExperimentManager {
    * @throws {Error} If a recipe already exists in the store with the same slug
    *                 as `recipe` and re-enrollment is prevented.
    */
-  async enroll(
-    recipe,
-    source,
-    { reenroll = false, optInRecipeBranchSlug } = {}
-  ) {
+  async enroll(recipe, source, { reenroll = false, branchSlug } = {}) {
     let { slug, branches, bucketConfig, isFirefoxLabsOptIn } = recipe;
 
     const enrollment = this.store.get(slug);
@@ -605,12 +601,12 @@ export class _ExperimentManager {
     let branch;
 
     if (isFirefoxLabsOptIn) {
-      if (typeof optInRecipeBranchSlug === "undefined") {
-        throw new Error(
+      if (typeof branchSlug === "undefined") {
+        throw new TypeError(
           `Branch slug not provided for Firefox Labs opt in recipe: "${slug}"`
         );
       } else {
-        branch = branches.find(branch => branch.slug === optInRecipeBranchSlug);
+        branch = branches.find(branch => branch.slug === branchSlug);
 
         if (!branch) {
           throw new Error(
@@ -618,6 +614,10 @@ export class _ExperimentManager {
           );
         }
       }
+    } else if (typeof branchSlug !== "undefined") {
+      throw new TypeError(
+        "branchSlug only supported for recipes with isFirefoxLabsOptIn = true"
+      );
     } else {
       // recipe is not an opt in recipe hence use a ratio sampled branch
       branch = await this.chooseBranch(slug, branches, userId);

@@ -1997,9 +1997,7 @@ add_task(async function test_updateRecipes_optInsStayEnrolled() {
 
   await loader.updateRecipes();
 
-  await manager.enroll(recipe, "rs-loader", {
-    optInRecipeBranchSlug: "branch-0",
-  });
+  await manager.enroll(recipe, "rs-loader", { branchSlug: "branch-0" });
   Assert.ok(manager.store.get("opt-in")?.active, "Opt-in was enrolled");
 
   await loader.updateRecipes();
@@ -2054,9 +2052,7 @@ add_task(async function test_updateRecipes_optInsUnerollOnFalseTargeting() {
 
   await loader.updateRecipes();
 
-  await manager.enroll(recipe, "rs-loader", {
-    optInRecipeBranchSlug: "branch-0",
-  });
+  await manager.enroll(recipe, "rs-loader", { branchSlug: "branch-0" });
   Assert.ok(manager.store.get("opt-in")?.active, "Opt-in was enrolled");
 
   recipe.targeting = "false";
@@ -2106,9 +2102,7 @@ add_task(async function test_updateRecipes_bucketingCausesOptInUnenrollments() {
 
   await loader.updateRecipes();
 
-  await manager.enroll(recipe, "rs-loader", {
-    optInRecipeBranchSlug: "branch-0",
-  });
+  await manager.enroll(recipe, "rs-loader", { branchSlug: "branch-0" });
   Assert.ok(manager.store.get("opt-in")?.active, "Opt-in was enrolled");
 
   recipe.bucketConfig.count = 0;
@@ -2160,9 +2154,7 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
 
   await loader.updateRecipes();
 
-  await manager.enroll(recipe, "rs-loader", {
-    optInRecipeBranchSlug: "branch-0",
-  });
+  await manager.enroll(recipe, "rs-loader", { branchSlug: "branch-0" });
   Assert.ok(manager.store.get("opt-in")?.active, "Opt-in was enrolled");
 
   recipe.bucketConfig.count = 0;

@@ -36,6 +36,8 @@ run-sequentially = "very high failure rate in parallel"
 
 ["test_ExperimentStore.js"]
 
+["test_FirefoxLabs.js"]
+
 ["test_NimbusTestUtils.js"]
 
 ["test_RemoteSettingsExperimentLoader.js"]

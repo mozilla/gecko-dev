@@ -143,16 +143,14 @@ add_task(async function test_enroll_optin_recipe_branch_selection() {
 
   // Call with incorrect optInRecipeBranchSlug for the optin recipe
   await Assert.rejects(
-    manager.enroll(optInRecipe, "test", {
-      optInRecipeBranchSlug: "invalid-slug",
-    }),
+    manager.enroll(optInRecipe, "test", { branchSlug: "invalid-slug" }),
     /Invalid branch slug provided for Firefox Labs opt in recipe: "opt-in-recipe"/,
     "Should not enroll an opt-in recipe with invalid branch slug"
   );
 
   // Call with the correct branch slug
   await manager.enroll(optInRecipe, "test", {
-    optInRecipeBranchSlug: optInRecipe.branches[0].slug,
+    branchSlug: optInRecipe.branches[0].slug,
   });
   Assert.ok(
     enrollStub.calledOnceWith(optInRecipe, optInRecipe.branches[0], "test"),
