@@ -5,6 +5,9 @@ support-files = [
 ]
 
 ["browser_clipboard_content_analysis.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && opt", # Bug 1948449
+]
 
 ["browser_clipboard_paste_changingclipboardexternal_content_analysis.js"]
 support-files = [
