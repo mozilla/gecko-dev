@@ -8,6 +8,8 @@ prefs = ["browser.bookmarks.testing.skipDefaultBookmarksImport=true"]
 
 ["browser_appendSpanCount.js"]
 
+["browser_hiddenExposure.js"]
+
 ["browser_noUpdateResultsFromOtherProviders.js"]
 
 ["browser_suggestedIndex_10_search_10_url.js"]

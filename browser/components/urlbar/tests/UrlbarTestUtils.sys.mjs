@@ -1496,7 +1496,7 @@ class TestProvider extends UrlbarProvider {
    *
    * @param {object} options
    *   Constructor options
-   * @param {Array} options.results
+   * @param {Array} [options.results]
    *   An array of UrlbarResult objects that will be the provider's results.
    * @param {string} [options.name]
    *   The provider's name.  Provider names should be unique.
@@ -1528,7 +1528,7 @@ class TestProvider extends UrlbarProvider {
    *   If given, we'll await on this before returning results.
    */
   constructor({
-    results,
+    results = [],
     name = "TestProvider" + Services.uuid.generateUUID(),
     type = UrlbarUtils.PROVIDER_TYPE.PROFILE,
     priority = 0,
