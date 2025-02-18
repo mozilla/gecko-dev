@@ -383,18 +383,18 @@ dependencies {
 android.applicationVariants.configureEach { variant ->
     def buildType = variant.buildType.name
 
-    println("----------------------------------------------")
-    println("Variant name:      " + variant.name)
-    println("Application ID:    " + [variant.applicationId, variant.buildType.applicationIdSuffix].findAll().join())
-    println("Build type:        " + variant.buildType.name)
-    println("Flavor:            " + variant.flavorName)
+    project.logger.debug("----------------------------------------------")
+    project.logger.debug("Variant name:      " + variant.name)
+    project.logger.debug("Application ID:    " + [variant.applicationId, variant.buildType.applicationIdSuffix].findAll().join())
+    project.logger.debug("Build type:        " + variant.buildType.name)
+    project.logger.debug("Flavor:            " + variant.flavorName)
 
     if (buildType == "release" || buildType == "nightly" || buildType == "beta") {
         def baseVersionCode = generatedVersionCode
         def versionName = buildType == "nightly" ?
                 "${Config.nightlyVersionName(project)}" :
                 "${Config.releaseVersionName(project)}"
-        println("versionName override: $versionName")
+        project.logger.debug("versionName override: $versionName")
 
         // The Google Play Store does not allow multiple APKs for the same app that all have the
         // same version code. Therefore we need to have different version codes for our ARM and x86
@@ -425,7 +425,7 @@ android.applicationVariants.configureEach { variant ->
             if (aab) {
                 // AAB version code is odd
                 versionCodeOverride = versionCodeOverride + 1
-                println("versionCode for AAB = $versionCodeOverride")
+                project.logger.debug("versionCode for AAB = $versionCodeOverride")
             } else {
                 if (abi == "x86_64") {
                     versionCodeOverride = versionCodeOverride + 6
@@ -438,7 +438,7 @@ android.applicationVariants.configureEach { variant ->
                 } else {
                     throw new RuntimeException("Unknown ABI: " + abi)
                 }
-                println("versionCode for $abi = $versionCodeOverride")
+                project.logger.debug("versionCode for $abi = $versionCodeOverride")
             }
 
             if (versionName != null) {
@@ -456,14 +456,14 @@ android.applicationVariants.configureEach { variant ->
 // -------------------------------------------------------------------------------------------------
 
 android.applicationVariants.configureEach {
-    print("MLS token: ")
+    project.logger.debug("MLS token: ")
     try {
         def token = new File("${rootDir}/.mls_token").text.trim()
         buildConfigField 'String', 'MLS_TOKEN', '"' + token + '"'
-        println "(Added from .mls_token file)"
+        project.logger.debug("(Added from .mls_token file)")
     } catch (FileNotFoundException ignored) {
         buildConfigField 'String', 'MLS_TOKEN', '""'
-        println("X_X")
+        project.logger.debug("X_X")
     }
 }
 
@@ -472,14 +472,14 @@ android.applicationVariants.configureEach {
 // -------------------------------------------------------------------------------------------------
 
 android.applicationVariants.configureEach {
-    print("Sentry token: ")
+    project.logger.debug("Sentry token: ")
     try {
         def token = new File("${rootDir}/.sentry_token").text.trim()
         buildConfigField 'String', 'SENTRY_TOKEN', '"' + token + '"'
-        println "(Added from .sentry_token file)"
+        project.logger.debug("(Added from .sentry_token file)")
     } catch (FileNotFoundException ignored) {
         buildConfigField 'String', 'SENTRY_TOKEN', '""'
-        println("X_X")
+        project.logger.debug("X_X")
     }
 }
 
@@ -532,7 +532,7 @@ def getEnabledLocales() {
 // Nimbus: Read endpoint from local.properties of a local file if it exists
 // -------------------------------------------------------------------------------------------------
 
-print("Nimbus endpoint: ")
+project.logger.debug("Nimbus endpoint: ")
 android.applicationVariants.configureEach { variant ->
     def variantName = variant.getName()
 
@@ -540,18 +540,18 @@ android.applicationVariants.configureEach { variant ->
         try {
             def url = new File("${rootDir}/.nimbus").text.trim()
             buildConfigField 'String', 'NIMBUS_ENDPOINT', '"' + url + '"'
-            println "(Added from .nimbus file)"
+            project.logger.debug("(Added from .nimbus file)")
         } catch (FileNotFoundException ignored) {
             buildConfigField 'String', 'NIMBUS_ENDPOINT', 'null'
-            println("X_X")
+            project.logger.debug("X_X")
         }
     } else if (gradle.hasProperty("localProperties.nimbus.remote-settings.url")) {
         def url = gradle.getProperty("localProperties.nimbus.remote-settings.url")
         buildConfigField 'String', 'NIMBUS_ENDPOINT', '"' + url + '"'
-        println "(Added from local.properties file)"
+        project.logger.debug("(Added from local.properties file)")
     } else {
         buildConfigField 'String', 'NIMBUS_ENDPOINT', 'null'
-        println("--")
+        project.logger.debug("--")
     }
 }
 
