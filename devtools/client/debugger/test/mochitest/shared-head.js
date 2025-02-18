@@ -253,12 +253,23 @@ function waitForSelectedSource(dbg, sourceOrUrl) {
         }
       }
 
-      // Only when we are paused on that specific source (and this isn't a WASM source, which has no AST):
-      // wait for symbols/AST to be parsed
+      const selectedFrame = getSelectedFrame(getCurrentThread());
+      // Only when we are paused on that specific source
+      const isPausedInSource =
+        selectedFrame?.location.source.id == location.source.id;
+      // Wait for symbols/AST to be parsed only when CM5 is enabled or
+      // when paused in original sources, as parserWorker.getClosestFunctionName
+      // is called when mapping original frames (TODO: Remove when Bug 1943945 is fixed)
+      const hasSymbols =
+        !isCm6Enabled || selectedFrame?.location.source.isOriginal
+          ? getSymbols(location)
+          : true;
+      // And this isn't a WASM source (which has no AST)
       if (
-        getSelectedFrame(getCurrentThread())?.location.source.id ==
-          location.source.id &&
-        !getSymbols(location) &&
+        // Only when we are paused on that specific source
+        selectedFrame?.location.source.id == location.source.id &&
+        !hasSymbols &&
+        // And this isn't a WASM source (which has no AST)
         !isWasmBinarySource(location.source)
       ) {
         return false;
@@ -597,7 +608,8 @@ async function waitForPaused(
     await waitForLoadedScopes(dbg);
   }
 
-  // Note that this will wait for symbols, which are fetched on pause
+  // Note that this will wait for symbols (when CM5 is enabled),
+  // which are fetched on pause
   await waitForSelectedSource(dbg, url);
 }
 

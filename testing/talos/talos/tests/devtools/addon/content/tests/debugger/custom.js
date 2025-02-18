@@ -31,6 +31,7 @@ const {
   addBreakpoint,
   waitForPaused,
   waitForState,
+  isCm6Enabled,
 } = require("./debugger-helpers");
 
 const IFRAME_BASE_URL =
@@ -49,10 +50,6 @@ const TEST_URL = PAGES_BASE_URL + "custom/debugger/app-build/index.html";
 const MINIFIED_URL = `${IFRAME_BASE_URL}custom/debugger/app-build/static/js/minified.js`;
 
 module.exports = async function () {
-  const isCm6Enabled = Services.prefs.getBoolPref(
-    "devtools.debugger.features.codemirror-next"
-  );
-
   const tab = await testSetup(TEST_URL, { disableCache: true });
 
   const toolbox = await openDebuggerAndLog("custom", EXPECTED);
@@ -73,9 +70,9 @@ module.exports = async function () {
   await stepDebuggerAndLog(dbg, tab, EXPECTED_FUNCTION);
 
   await testProjectSearch(dbg, tab);
-  await testPreview(dbg, tab, EXPECTED_FUNCTION, isCm6Enabled);
-  await testOpeningLargeMinifiedFile(dbg, isCm6Enabled);
-  await testPrettyPrint(dbg, toolbox, isCm6Enabled);
+  await testPreview(dbg, tab, EXPECTED_FUNCTION);
+  await testOpeningLargeMinifiedFile(dbg);
+  await testPrettyPrint(dbg, toolbox);
 
   await closeToolboxAndLog("custom.jsdebugger", toolbox);
 
@@ -202,13 +199,13 @@ async function testProjectSearch(dbg) {
   await garbageCollect();
 }
 
-async function testPreview(dbg, tab, testFunction, isCm6Enabled) {
+async function testPreview(dbg, tab, testFunction) {
   dump("Executing preview test ...\n");
   const pauseLocation = { line: 22, file: "App.js" };
 
   let test = runTest("custom.jsdebugger.preview.DAMP");
   await pauseDebugger(dbg, tab, testFunction, pauseLocation);
-  await hoverOnToken(dbg, "window.hitBreakpoint", "window", isCm6Enabled);
+  await hoverOnToken(dbg, "window.hitBreakpoint", "window");
   test.done();
 
   await removeBreakpoints(dbg);
@@ -239,7 +236,7 @@ async function testOpeningLargeMinifiedFile(dbg) {
   await garbageCollect();
 }
 
-async function testPrettyPrint(dbg, toolbox, isCm6Enabled) {
+async function testPrettyPrint(dbg, toolbox) {
   const formattedFileUrl = `${MINIFIED_URL}:formatted`;
   const filePrettyChars = "82603: (e, t, n) => {\n";
 
@@ -249,7 +246,7 @@ async function testPrettyPrint(dbg, toolbox, isCm6Enabled) {
   dump("Wait until CodeMirror highlighting is done\n");
   const cm = getCMEditor(dbg).codeMirror;
   await waitUntil(() => {
-    if (isCm6Enabled) {
+    if (isCm6Enabled()) {
       return true;
     }
     // For CM5 highlightFrontier is not documented but is an internal variable indicating the current

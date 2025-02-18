@@ -64,8 +64,9 @@ add_task(async function () {
     !!dbg.selectors.getSourcesTreeSources().length,
     "There is sources displayed in the SourceTree"
   );
+  const location = dbg.selectors.getSelectedLocation();
   is(
-    dbg.selectors.getSelectedLocation().source.id,
+    location.source.id,
     findSource(dbg, "bundle.js").id,
     "The generated source is reporeted as selected"
   );
@@ -75,18 +76,21 @@ add_task(async function () {
     0,
     "Has some expanded source tree items"
   );
-
-  // But also directly querying the reducer states, as we don't necessarily
-  // have selectors exposing their raw internals
   let state = dbg.store.getState();
-  ok(
-    !!Object.keys(state.ast.mutableOriginalSourcesSymbols).length,
-    "Some symbols for original sources exists"
-  );
-  ok(
-    !!Object.keys(state.ast.mutableSourceActorSymbols).length,
-    "Some symbols for generated sources exists"
-  );
+
+  // Symbols are only stored for CM5
+  if (!isCm6Enabled || location.source.isOriginal) {
+    // But also directly querying the reducer states, as we don't necessarily
+    // have selectors exposing their raw internals
+    ok(
+      !!Object.keys(state.ast.mutableOriginalSourcesSymbols).length,
+      "Some symbols for original sources exists"
+    );
+    ok(
+      !!Object.keys(state.ast.mutableSourceActorSymbols).length,
+      "Some symbols for generated sources exists"
+    );
+  }
   ok(!!Object.keys(state.ast.mutableInScopeLines).length, "Some scopes exists");
   Assert.greater(
     state.sourceActors.mutableSourceActors.size,

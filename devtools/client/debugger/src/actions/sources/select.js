@@ -39,7 +39,6 @@ import {
   getSourceByActorId,
   getSelectedFrame,
   getCurrentThread,
-  isMapScopesEnabled,
 } from "../../selectors/index";
 
 // This is only used by jest tests (and within this module)
@@ -334,7 +333,11 @@ export function selectLocation(
     if (
       selectedFrame &&
       (selectedFrame.location.source.id == location.source.id ||
-        selectedFrame.generatedLocation.source.id == location.source.id)
+        selectedFrame.generatedLocation.source.id == location.source.id) &&
+      // The parser worker only load symbols for in scope lines when CM5 is enabled or
+      // when paused in original sources, as `parserWorker.getClosestFunctionName`
+      // is called when mapping original frames (TODO: Remove when Bug 1943945 is fixed)
+      (!features.codemirrorNext || selectedFrame.location.source.isOriginal)
     ) {
       // This is done from selectLocation and not from paused and selectFrame actions
       // because we may select either original or generated location while being paused
@@ -345,17 +348,9 @@ export function selectLocation(
       if (getSelectedLocation(getState()) != location) {
         return;
       }
-      // Note: The Babel parser worker is only used for in scope lines when CM5
-      // is enabled or when its paused in an original source with scope mapping enabled
-      // as the tooltip preview data relies on it for original variable mapping,
-      if (
-        !features.codemirrorNext ||
-        (selectedFrame.location.source.isOriginal &&
-          isMapScopesEnabled(getState()))
-      ) {
-        // /!\ we don't historicaly wait for this async action
-        dispatch(setInScopeLines());
-      }
+
+      // /!\ we don't historicaly wait for this async action
+      dispatch(setInScopeLines());
     }
 
     // When we select a generated source which has a sourcemap,
