@@ -20,6 +20,11 @@ function toGleanMetricsYamlName(attr) {
     case "isFxAEnabled":
       // Would transform to `is_fx_aenabled`.
       return "is_fx_a_enabled";
+    
+    case "isFxASignedIn":
+      // Would transform to `is_fx_asigned_in`.
+      return "is_fx_a_signed_in";
+
 
     case "defaultPDFHandler":
       // Would transform to `default_pdfhandler`.
