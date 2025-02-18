@@ -39,7 +39,13 @@ const perfMetadata = {
           lowerIsBetter: false,
         },
         {
-          name: "total-memory-usage",
+          name: "peak-memory-usage",
+          unit: "MiB",
+          shouldAlert: true,
+          lowerIsBetter: true,
+        },
+        {
+          name: "stabilized-memory-usage",
           unit: "MiB",
           shouldAlert: true,
           lowerIsBetter: true,
@@ -60,9 +66,9 @@ const perfMetadata = {
 };
 
 /**
- * Request 2x longer timeout for this test.
+ * Request 4x longer timeout for this test.
  */
-requestLongerTimeout(2);
+requestLongerTimeout(4);
 
 /**
  * Runs the translations benchmark tests from Spanish to English.
@@ -70,8 +76,10 @@ requestLongerTimeout(2);
 add_task(async function test_translations_performance_es_en() {
   await TranslationsBencher.benchmarkTranslation({
     page: SPANISH_BENCHMARK_PAGE_URL,
-    runCount: 5,
     sourceLanguage: "es",
     targetLanguage: "en",
+    speedBenchCount: 5,
+    memoryBenchCount: 5,
+    memorySampleInterval: 10,
   });
 });

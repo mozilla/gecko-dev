@@ -404,11 +404,30 @@ class TranslationsBencher {
   static METRIC_TOKENS_PER_SECOND = "tokens-per-second";
 
   /**
-   * The metric base name for total memory usage in the inference process.
+   * The metric base name for peak memory usage in the inference process.
+   *
+   * We often see a spike in memory usage when models initialize that eventually
+   * stabilizes as the inference process continues running. As such, it is important
+   * that we collect two memory metrics during our benchmarks.
+   *
+   * @see {TranslationsBencher.METRIC_STABILIZED_MEMORY_USAGE}
    *
    * @type {string}
    */
-  static METRIC_TOTAL_MEMORY_USAGE = "total-memory-usage";
+  static METRIC_PEAK_MEMORY_USAGE = "peak-memory-usage";
+
+  /**
+   * The metric base name for stabilized memory usage in the inference process.
+   *
+   * We often see a spike in memory usage when models initialize that eventually
+   * stabilizes as the inference process continues running. As such, it is important
+   * that we collect two memory metrics during our benchmarks.
+   *
+   * @see {TranslationsBencher.METRIC_PEAK_MEMORY_USAGE}
+   *
+   * @type {string}
+   */
+  static METRIC_STABILIZED_MEMORY_USAGE = "stabilized-memory-usage";
 
   /**
    * The metric base name for total translation time.
@@ -437,6 +456,12 @@ class TranslationsBencher {
    * A class that gathers and reports metrics to perftest.
    */
   static Journal = class {
+    /**
+     * A map of collected metrics, where the key is the metric name
+     * and the value is an array of all recorded values.
+     *
+     * @type {Record<string, number[]>}
+     */
     #metrics = {};
 
     /**
@@ -449,7 +474,8 @@ class TranslationsBencher {
       if (!this.#metrics[metricName]) {
         this.#metrics[metricName] = [];
       }
-      this.#metrics[metricName].push(value);
+
+      this.#metrics[metricName].push(Number(value.toFixed(3)));
     }
 
     /**
@@ -483,21 +509,122 @@ class TranslationsBencher {
   };
 
   /**
-   * Benchmarks the translation process and reports metrics to perftest.
+   * A class to track peak memory usage during translation via sampled intervals.
+   */
+  static PeakMemorySampler = class {
+    /**
+     * The peak recorded memory in mebibytes (MiB).
+     *
+     * @type {number}
+     */
+    #peakMemoryMiB = 0;
+
+    /**
+     * The interval id for the memory sample timer.
+     *
+     * @type {number|null}
+     */
+    #intervalId = null;
+
+    /**
+     * The interval at which memory usage is sampled in milliseconds.
+     *
+     * @type {number}
+     */
+    #interval;
+
+    /**
+     * Constructs a PeakMemorySampler.
+     *
+     * @param {number} interval - The interval in milliseconds between memory samples.
+     */
+    constructor(interval) {
+      this.#interval = interval;
+    }
+
+    /**
+     * Collects the current inference process memory usage and updates
+     * the peak memory measurement if the current usage exceeds the previous peak.
+     *
+     * @returns {Promise<void>}
+     */
+    async #collectMemorySample() {
+      const currentMemoryMiB =
+        await TranslationsBencher.#getInferenceProcessTotalMemoryUsage();
+      if (currentMemoryMiB > this.#peakMemoryMiB) {
+        this.#peakMemoryMiB = currentMemoryMiB;
+      }
+    }
+
+    /**
+     * Starts the interval timer to begin sampling a new peak memory usage.
+     */
+    start() {
+      if (this.#intervalId !== null) {
+        throw new Error(
+          "Attempt to start a PeakMemorySampler that was already running."
+        );
+      }
+
+      this.#peakMemoryMiB = 0;
+      this.#intervalId = setInterval(() => {
+        this.#collectMemorySample().catch(console.error);
+      }, this.#interval);
+    }
+
+    /**
+     * Stops the interval timer from continuing to sample peak memory usage.
+     */
+    stop() {
+      if (this.#intervalId === null) {
+        throw new Error(
+          "Attempt to stop a PeakMemorySampler that was not running."
+        );
+      }
+
+      clearInterval(this.#intervalId);
+      this.#intervalId = null;
+      this.#collectMemorySample();
+    }
+
+    /**
+     * Returns the peak recorded memory usage in mebibytes (MiB).
+     *
+     * @returns {number}
+     */
+    getPeakRecordedMemoryUsage() {
+      if (this.#intervalId) {
+        throw new Error(
+          "Attempt to retrieve peak recorded memory usage while the memory sampler is running."
+        );
+      }
+
+      return this.#peakMemoryMiB;
+    }
+  };
+
+  /**
+   * Benchmarks the translation process (both memory usage and speed)
+   * and reports metrics to perftest. It runs one full translation for
+   * each memory sample, and then one full translation for each speed sample.
    *
    * @param {object} options - The benchmark options.
    * @param {string} options.page - The URL of the page to test.
-   * @param {number} options.runCount - The number of runs to perform.
    * @param {string} options.sourceLanguage - The BCP-47 language tag for the source language.
    * @param {string} options.targetLanguage - The BCP-47 language tag for the target language.
+   * @param {number} options.speedBenchCount - The number of speed-sampling runs to perform.
+   * @param {number} options.memoryBenchCount - The number of memory-sampling runs to perform.
+   * @param {number} [options.memorySampleInterval] - The interval in milliseconds between memory usage samples.
    *
    * @returns {Promise<void>} Resolves when benchmarking is complete.
    */
   static async benchmarkTranslation({
     page,
-    runCount,
     sourceLanguage,
     targetLanguage,
+    speedBenchCount,
+    memoryBenchCount,
+    memorySampleInterval = 10,
   }) {
     const { wordCount, tokenCount, pageLanguage } =
       TranslationsBencher.#PAGE_DATA[page] ?? {};
@@ -540,7 +667,135 @@ class TranslationsBencher {
 
     const journal = new TranslationsBencher.Journal();
 
-    for (let runNumber = 0; runNumber < runCount; ++runNumber) {
+    await TranslationsBencher.#benchmarkTranslationMemory({
+      page,
+      journal,
+      sourceLanguage,
+      targetLanguage,
+      memoryBenchCount,
+      memorySampleInterval,
+    });
+
+    await TranslationsBencher.#benchmarkTranslationSpeed({
+      page,
+      journal,
+      sourceLanguage,
+      targetLanguage,
+      wordCount,
+      tokenCount,
+      speedBenchCount,
+    });
+
+    journal.reportMetrics();
+  }
+
+  /**
+   * Benchmarks memory usage by measuring peak and stabilized memory usage
+   * across multiple runs of the translation process.
+   *
+   * @param {object} options - The benchmark options.
+   * @param {string} options.page - The URL of the page to test.
+   * @param {TranslationsBencher.Journal} options.journal - The shared metrics journal.
+   * @param {string} options.sourceLanguage - The BCP-47 language tag for the source language.
+   * @param {string} options.targetLanguage - The BCP-47 language tag for the target language.
+   * @param {number} options.memoryBenchCount - The number of runs to perform for memory sampling.
+   * @param {number} options.memorySampleInterval - The interval in milliseconds between memory samples.
+   *
+   * @returns {Promise<void>} Resolves when memory benchmarking is complete.
+   */
+  static async #benchmarkTranslationMemory({
+    page,
+    journal,
+    sourceLanguage,
+    targetLanguage,
+    memoryBenchCount,
+    memorySampleInterval,
+  }) {
+    for (let runNumber = 0; runNumber < memoryBenchCount; ++runNumber) {
+      const { cleanup, runInPage } = await loadTestPage({
+        page,
+        endToEndTest: true,
+        languagePairs: [
+          { fromLang: sourceLanguage, toLang: "en" },
+          { fromLang: "en", toLang: targetLanguage },
+        ],
+        prefs: [["browser.translations.logLevel", "Error"]],
+      });
+
+      // Create a new PeakMemorySampler using the provided interval.
+      const peakMemorySampler = new TranslationsBencher.PeakMemorySampler(
+        memorySampleInterval
+      );
+
+      await TranslationsBencher.#injectTranslationCompleteObserver(runInPage);
+
+      await FullPageTranslationsTestUtils.assertTranslationsButton(
+        { button: true, circleArrows: false, locale: false, icon: true },
+        "The button is available."
+      );
+
+      await FullPageTranslationsTestUtils.openPanel({
+        onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewDefault,
+      });
+
+      await FullPageTranslationsTestUtils.changeSelectedFromLanguage({
+        langTag: sourceLanguage,
+      });
+      await FullPageTranslationsTestUtils.changeSelectedToLanguage({
+        langTag: targetLanguage,
+      });
+
+      const translationCompleteTimestampPromise =
+        TranslationsBencher.#getTranslationCompleteTimestampPromise(runInPage);
+
+      peakMemorySampler.start();
+
+      await FullPageTranslationsTestUtils.clickTranslateButton();
+      await translationCompleteTimestampPromise;
+
+      peakMemorySampler.stop();
+
+      const peakMemoryMiB = peakMemorySampler.getPeakRecordedMemoryUsage();
+      const stabilizedMemoryMiB =
+        await TranslationsBencher.#getInferenceProcessTotalMemoryUsage();
+
+      journal.pushMetrics([
+        [TranslationsBencher.METRIC_PEAK_MEMORY_USAGE, peakMemoryMiB],
+        [
+          TranslationsBencher.METRIC_STABILIZED_MEMORY_USAGE,
+          stabilizedMemoryMiB,
+        ],
+      ]);
+
+      await cleanup();
+    }
+  }
+
+  /**
+   * Benchmarks speed by measuring engine init time, words per second, tokens per second,
+   * and total translation time across multiple runs.
+   *
+   * @param {object} options - The benchmark options.
+   * @param {string} options.page - The URL of the page to test.
+   * @param {TranslationsBencher.Journal} options.journal - The shared metrics journal.
+   * @param {string} options.sourceLanguage - The BCP-47 language tag for the source language.
+   * @param {string} options.targetLanguage - The BCP-47 language tag for the target language.
+   * @param {number} options.wordCount - The total word count of the page.
+   * @param {number} options.tokenCount - The total token count of the page.
+   * @param {number} options.speedBenchCount - The number of runs to perform for speed sampling.
+   *
+   * @returns {Promise<void>} Resolves when speed benchmarking is complete.
+   */
+  static async #benchmarkTranslationSpeed({
+    page,
+    journal,
+    sourceLanguage,
+    targetLanguage,
+    wordCount,
+    tokenCount,
+    speedBenchCount,
+  }) {
+    for (let runNumber = 0; runNumber < speedBenchCount; ++runNumber) {
       const { tab, cleanup, runInPage } = await loadTestPage({
         page,
         endToEndTest: true,
@@ -589,37 +844,18 @@ class TranslationsBencher {
       const wordsPerSecond = wordCount / translationTimeSeconds;
       const tokensPerSecond = tokenCount / translationTimeSeconds;
 
-      const totalMemoryMB =
-        await TranslationsBencher.#getInferenceProcessTotalMemoryUsage();
-
-      const decimalPrecision = 3;
       journal.pushMetrics([
-        [
-          TranslationsBencher.METRIC_ENGINE_INIT_TIME,
-          Number(initTimeMilliseconds.toFixed(decimalPrecision)),
-        ],
-        [
-          TranslationsBencher.METRIC_WORDS_PER_SECOND,
-          Number(wordsPerSecond.toFixed(decimalPrecision)),
-        ],
-        [
-          TranslationsBencher.METRIC_TOKENS_PER_SECOND,
-          Number(tokensPerSecond.toFixed(decimalPrecision)),
-        ],
-        [
-          TranslationsBencher.METRIC_TOTAL_MEMORY_USAGE,
-          Number(totalMemoryMB.toFixed(decimalPrecision)),
-        ],
+        [TranslationsBencher.METRIC_ENGINE_INIT_TIME, initTimeMilliseconds],
+        [TranslationsBencher.METRIC_WORDS_PER_SECOND, wordsPerSecond],
+        [TranslationsBencher.METRIC_TOKENS_PER_SECOND, tokensPerSecond],
         [
           TranslationsBencher.METRIC_TOTAL_TRANSLATION_TIME,
-          Number(translationTimeSeconds.toFixed(decimalPrecision)),
+          translationTimeSeconds,
         ],
       ]);
 
       await cleanup();
     }
-
-    journal.reportMetrics();
   }
 
   /**
@@ -702,9 +938,9 @@ class TranslationsBencher {
   }
 
   /**
-   * Returns the total memory used by the inference process in megabytes.
+   * Returns the total memory used by the inference process in mebibytes (MiB).
    *
-   * @returns {Promise<number>} The total memory usage in megabytes.
+   * @returns {Promise<number>} The total memory usage in mebibytes.
    */
   static async #getInferenceProcessTotalMemoryUsage() {
     const inferenceProcessInfo = await getInferenceProcessInfo();
