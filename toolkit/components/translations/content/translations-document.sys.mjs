@@ -49,6 +49,8 @@ const NodeStatus = {
 /**
  * @typedef {import("../translations").NodeVisibility} NodeVisibility
  * @typedef {import("../translations").LanguagePair} LanguagePair
+ * @typedef {import("../translations").PortToPage} PortToPage
+ * @typedef {import("../translations").EngineStatus} EngineStatus
  * @typedef {(message: string) => Promise<string>} TranslationFunction
  */
 
@@ -85,7 +87,7 @@ export class LRUCache {
 
   /**
    * @param {boolean} isHTML
-   * @returns {boolean}
+   * @returns {Map<string, string>}
    */
   #getCache(isHTML) {
     return isHTML ? this.#htmlCache : this.#textCache;
@@ -97,7 +99,7 @@ export class LRUCache {
    *
    * @param {string} sourceString
    * @param {boolean} isHTML
-   * @returns {string}
+   * @returns {string | undefined}
    */
   get(sourceString, isHTML) {
     const cache = this.#getCache(isHTML);
@@ -365,7 +367,8 @@ export class TranslationsDocument {
   /**
    * The BCP 47 language tag that is used on the page.
    *
-    @type {string} */
+   * @type {string}
+   */
   documentLanguage;
 
   /**
@@ -464,7 +467,7 @@ export class TranslationsDocument {
    * This is a key user-visible performance metric. It represents what the user
    * actually sees.
    *
-   * @type {Promise<void> | null}
+   * @type {Promise<unknown> | null}
    */
   viewportTranslated = null;
 
@@ -781,7 +784,7 @@ export class TranslationsDocument {
    * If a pending node contains or is the target node, return that pending node.
    *
    * @param {Node} target
-   * @returns {Node | null}
+   * @returns {Node | undefined}
    */
   getPendingNodeFromTarget(target) {
     return this.#nodeToPendingParent.get(target);
@@ -1287,13 +1290,14 @@ export class TranslationsDocument {
   /**
    * Submit the translations giving priority to nodes in the viewport.
    *
-   * @returns {Array<Promise<void>> | null}
+   * @returns {Array<Promise<unknown>> | null}
    */
   dispatchQueuedTranslations() {
     let inViewportCounts = 0;
     let outOfViewportCounts = 0;
     let hiddenCounts = 0;
 
+    /** @type {null | Array<Promise<unknown>>} */
     let inViewportTranslations = null;
     if (!this.viewportTranslated) {
       inViewportTranslations = [];
@@ -2018,7 +2022,7 @@ function updateElement(translationsDocument, element) {
   /**
    * The Set of translation IDs for nodes that have been cloned.
    *
-   * @type {Set<number>}
+   * @type {Set<string>}
    */
   const clonedNodes = new Set();
 
@@ -2073,11 +2077,11 @@ function updateElement(translationsDocument, element) {
   /**
    * Merge the live tree with the translated tree by re-using elements from the live tree.
    *
-   * @param {Node} liveTree
+   * @param {Element} liveTree
    * @param {Node} translatedTree
    */
   function merge(liveTree, translatedTree) {
-    /** @type {Map<number, Element>} */
+    /** @type {Map<string, Element>} */
     const liveElementsById = new Map();
 
     /** @type {Array<Text>} */
@@ -2384,6 +2388,7 @@ function isNodeQueued(node, queuedNodes) {
   // Accessing the parentNode is expensive here according to performance profilling. This
   // is due to XrayWrappers. Minimize reading attributes by storing a reference to the
   // `parentNode` in a named variable, rather than re-accessing it.
+  /** @type {Node | null} */
   let parentNode;
   let lastNode = node;
   while ((parentNode = lastNode.parentNode)) {
@@ -2461,7 +2466,7 @@ function nodeNeedsSubdividing(node) {
  * Returns an iterator of a node's ancestors.
  *
  * @param {Node} node
- * @returns {Generator<ParentNode>}
+ * @returns {Generator<Node>}
  */
 function* getAncestorsIterator(node) {
   const document = node.ownerDocument;
@@ -2526,7 +2531,7 @@ class QueuedTranslator {
   #queue = new Map();
 
   /**
-   * @type {"uninitialized" | "ready" | "error" | "closed"}
+   * @type {EngineStatus}
    */
   engineStatus = "uninitialized";
 
@@ -2679,7 +2684,7 @@ class QueuedTranslator {
    * @param {string} sourceText
    * @param {boolean} isHTML
    * @param {number} translationId
-   * @returns {{ messageId: number, translation: Promise<string>}}
+   * @returns {Promise<string | null>}
    */
   async translate(node, sourceText, isHTML, translationId) {
     if (this.#isPageShown && !this.#port) {
@@ -2812,7 +2817,10 @@ class QueuedTranslator {
     const portRequest = this.#portRequest;
 
     // Match up a response on the port to message that was sent.
-    port.onmessage = ({ data }) => {
+    port.onmessage = event => {
+      /** @type {{data: PortToPage }} */
+      const { data } = /** @type {any} */ (event);
+
       switch (data.type) {
         case "TranslationsPort:TranslationResponse": {
           if (!this.hasFirstVisibleChange) {
@@ -2849,7 +2857,10 @@ class QueuedTranslator {
           break;
         }
         default:
-          lazy.console.error("Unknown translations port message: " + data.type);
+          lazy.console.error(
+            "Unknown translations port message: " +
+              /** @type {any} */ (data)?.type
+          );
           break;
       }
     };

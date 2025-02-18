@@ -343,3 +343,10 @@ export type TranslationsPortMessages = {
   sourceText: string,
   isHTML: boolean,
 }
+
+export type EngineStatus = "uninitialized" | "ready" | "error" | "closed";
+
+export type PortToPage =
+  | { type: "TranslationsPort:TranslationResponse", targetText: string, translationId: number }
+  | { type: "TranslationsPort:GetEngineStatusResponse", status: EngineStatus }
+  | { type: "TranslationsPort:EngineTerminated" }
