@@ -1,860 +1,163 @@
-From: Jianjun Zhu <jianjun.zhu@intel.com>
-Date: Fri, 3 Jan 2025 21:30:22 +0800
-Subject: (cherry-pick-branch-heads/6943) [M133] Fix is_first_packet_in_frame
- flag for h26x_packet_buffer_unittests.
+From: k-wasniowski <kacp.was@gmail.com>
+Date: Wed, 22 Jan 2025 18:45:34 +0100
+Subject: (cherry-pick-branch-heads/6943) [M133] fix: h26x packet buffer video
+ artifacts
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Update unit tests to follow video_rtp_depacketizer_h264's behavior of
-setting is_first_packet_in_frame. This flag might be used to determine
-if a frame can be assembled.
+This change resolves an issue that arises when there is a gap in the
+sequence numbers of packets associated with a single frame.
 
-(cherry picked from commit a23fbc694f44817ae19944c0d3cf289082455af8)
+Before this change, the H26x packet buffer could potentially assemble a
+frame using only a subset of the packets in the buffer if a packet was
+missing in the middle and a packet with a marker bit arrived.
+
+To address this, the change introduces a check before assembling a
+frame. This ensures that all packets belonging to a single frame are
+correctly collected by iterating backward until the first packet in the
+frame is identified.
+
+(cherry picked from commit eafee5e3d68a7356dd415d2b3eee53017140d38b)
 
 Bug: webrtc:384391181, chromium:392029283
-Change-Id: I6750c20056e426e12c1d4e21eea4c641def7cfbd
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/373168
-Reviewed-by: Erik Språng <sprang@webrtc.org>
-Commit-Queue: Harald Alvestrand <hta@webrtc.org>
-Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#43669}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/375166
-Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
+Change-Id: I4d09a3d6d569624ece204264cb32e5076ed090a2
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/374183
 Reviewed-by: Henrik Boström <hbos@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6943@{#1}
+Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+Reviewed-by: Jianlin Qiu <jianlin.qiu@intel.com>
+Commit-Queue: Henrik Boström <hbos@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43793}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/375165
+Cr-Commit-Position: refs/branch-heads/6943@{#2}
 Cr-Branched-From: cbe304455fe0ae24622252ef8a0707a555fa5caf-refs/heads/main@{#43659}
 ---
- .../h26x_packet_buffer_unittest.cc            | 351 +++++++++++++-----
- 1 file changed, 253 insertions(+), 98 deletions(-)
+ AUTHORS                                       |  1 +
+ modules/video_coding/h26x_packet_buffer.cc    |  6 +++
+ modules/video_coding/h26x_packet_buffer.h     |  2 +-
+ .../h26x_packet_buffer_unittest.cc            | 37 ++++++++++++++++++-
+ video/rtp_video_stream_receiver2_unittest.cc  |  2 +
+ 5 files changed, 46 insertions(+), 2 deletions(-)
 
+diff --git a/AUTHORS b/AUTHORS
+index 46587ac6f3..7c091954c1 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -73,6 +73,7 @@ Jie Mao <maojie0924@gmail.com>
+ Jiwon Kim <jwkim0000@gmail.com>
+ Johnny Wong <hellojinqiang@gmail.com>
+ Jose Antonio Olivera Ortega <josea.olivera@gmail.com>
++Kacper Waśniowski <kacp.was@gmail.com>
+ Karim Hammache <karim@karhm.com>
+ Keiichi Enomoto <enm10k@gmail.com>
+ Kiran Thind <kiran.thind@gmail.com>
+diff --git a/modules/video_coding/h26x_packet_buffer.cc b/modules/video_coding/h26x_packet_buffer.cc
+index 2afe1426b1..8bc5d7e3bf 100644
+--- a/modules/video_coding/h26x_packet_buffer.cc
++++ b/modules/video_coding/h26x_packet_buffer.cc
+@@ -207,6 +207,12 @@ H26xPacketBuffer::InsertResult H26xPacketBuffer::FindFrames(
+         auto& prev_packet = GetPacket(seq_num_start - 1);
+ 
+         if (prev_packet == nullptr || prev_packet->timestamp != rtp_timestamp) {
++          const auto& current_packet = GetPacket(seq_num_start);
++          if (!current_packet->video_header.is_first_packet_in_frame) {
++            // First packet of the frame is missing.
++            return result;
++          }
++
+           if (MaybeAssembleFrame(seq_num_start, seq_num, result)) {
+             // Frame was assembled, continue to look for more frames.
+             break;
+diff --git a/modules/video_coding/h26x_packet_buffer.h b/modules/video_coding/h26x_packet_buffer.h
+index c3db72bdd6..d7f5286a2f 100644
+--- a/modules/video_coding/h26x_packet_buffer.h
++++ b/modules/video_coding/h26x_packet_buffer.h
+@@ -85,7 +85,7 @@ class H26xPacketBuffer {
+   // received without SPS/PPS.
+   void InsertSpsPpsNalus(const std::vector<uint8_t>& sps,
+                          const std::vector<uint8_t>& pps);
+-  // Insert start code and paramter sets for H.264 payload, also update header
++  // Insert start code and parameter sets for H.264 payload, also update header
+   // if parameter sets are inserted. Return false if required SPS or PPS is not
+   // found.
+   bool FixH264Packet(Packet& packet);
 diff --git a/modules/video_coding/h26x_packet_buffer_unittest.cc b/modules/video_coding/h26x_packet_buffer_unittest.cc
-index 5108fe5623..a3ea3dc1c5 100644
+index a3ea3dc1c5..dc5f3b5502 100644
 --- a/modules/video_coding/h26x_packet_buffer_unittest.cc
 +++ b/modules/video_coding/h26x_packet_buffer_unittest.cc
-@@ -75,6 +75,7 @@ class H264Packet {
-   H264Packet& Aud();
-   H264Packet& Marker();
-   H264Packet& AsFirstFragment();
-+  H264Packet& AsFirstPacket();
-   H264Packet& Time(uint32_t rtp_timestamp);
-   H264Packet& SeqNum(int64_t rtp_seq_num);
- 
-@@ -95,6 +96,7 @@ class H264Packet {
-   H264PacketizationTypes type_;
-   RTPVideoHeader video_header_;
-   bool first_fragment_ = false;
-+  bool first_packet_ = false;
-   bool marker_bit_ = false;
-   uint32_t rtp_timestamp_ = 0;
-   int64_t rtp_seq_num_ = 0;
-@@ -169,6 +171,11 @@ H264Packet& H264Packet::AsFirstFragment() {
-   return *this;
+@@ -547,6 +547,40 @@ TEST(H26xPacketBufferTest, IdrIsKeyframeFuaRequiresFirstFragmet) {
+       SizeIs(2));
  }
  
-+H264Packet& H264Packet::AsFirstPacket() {
-+  first_packet_ = true;
-+  return *this;
-+}
++TEST(H26xPacketBufferTest, ReorderedRtpPackets) {
++  H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/true);
 +
- H264Packet& H264Packet::Time(uint32_t rtp_timestamp) {
-   rtp_timestamp_ = rtp_timestamp;
-   return *this;
-@@ -211,6 +218,7 @@ std::unique_ptr<H26xPacketBuffer::Packet> H264Packet::Build() {
-   res->timestamp = rtp_timestamp_;
-   res->sequence_number = rtp_seq_num_;
-   res->video_header.codec = kVideoCodecH264;
-+  res->video_header.is_first_packet_in_frame = first_packet_;
- 
-   return res;
- }
-@@ -262,6 +270,7 @@ class H265Packet {
-   H265Packet& Aud();
-   H265Packet& Marker();
-   H265Packet& AsFirstFragment();
-+  H265Packet& AsFirstPacket();
-   H265Packet& Time(uint32_t rtp_timestamp);
-   H265Packet& SeqNum(int64_t rtp_seq_num);
- 
-@@ -272,6 +281,7 @@ class H265Packet {
- 
-   RTPVideoHeader video_header_;
-   bool first_fragment_ = false;
-+  bool first_packet_ = false;
-   bool marker_bit_ = false;
-   uint32_t rtp_timestamp_ = 0;
-   uint16_t rtp_seq_num_ = 0;
-@@ -332,6 +342,7 @@ std::unique_ptr<H26xPacketBuffer::Packet> H265Packet::Build() {
-   res->sequence_number = rtp_seq_num_;
-   res->video_header.codec = kVideoCodecH265;
-   res->video_payload = rtc::CopyOnWriteBuffer();
-+  res->video_header.is_first_packet_in_frame = first_packet_;
-   for (const auto& payload : nalu_payloads_) {
-     res->video_payload.AppendData(payload);
-   }
-@@ -344,6 +355,11 @@ H265Packet& H265Packet::AsFirstFragment() {
-   return *this;
- }
- 
-+H265Packet& H265Packet::AsFirstPacket() {
-+  first_packet_ = true;
-+  return *this;
-+}
-+
- H265Packet& H265Packet::Time(uint32_t rtp_timestamp) {
-   rtp_timestamp_ = rtp_timestamp;
-   return *this;
-@@ -373,11 +389,13 @@ TEST(H26xPacketBufferTest, IdrOnlyKeyframeWithSprop) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/true);
-   packet_buffer.SetSpropParameterSets(kExampleSpropString);
- 
--  auto packets =
--      packet_buffer
--          .InsertPacket(
--              H264Packet(kH264SingleNalu).Idr({1, 2, 3}, 0).Marker().Build())
--          .packets;
-+  auto packets = packet_buffer
-+                     .InsertPacket(H264Packet(kH264SingleNalu)
-+                                       .Idr({1, 2, 3}, 0)
-+                                       .AsFirstPacket()
-+                                       .Marker()
-+                                       .Build())
-+                     .packets;
-   EXPECT_THAT(packets, SizeIs(1));
-   EXPECT_THAT(PacketPayload(packets[0]),
-               ElementsAreArray(FlatVector({StartCode(),
-@@ -393,11 +411,13 @@ TEST(H26xPacketBufferTest, IdrOnlyKeyframeWithoutSprop) {
- 
-   // Cannot fix biststream by prepending SPS and PPS because no sprop string is
-   // available. Request a key frame.
--  EXPECT_TRUE(
--      packet_buffer
--          .InsertPacket(
--              H264Packet(kH264SingleNalu).Idr({9, 9, 9}, 0).Marker().Build())
--          .buffer_cleared);
-+  EXPECT_TRUE(packet_buffer
-+                  .InsertPacket(H264Packet(kH264SingleNalu)
-+                                    .Idr({9, 9, 9}, 0)
-+                                    .AsFirstPacket()
-+                                    .Marker()
-+                                    .Build())
-+                  .buffer_cleared);
- }
- 
- TEST(H26xPacketBufferTest, IdrOnlyKeyframeWithSpropAndUnknownPpsId) {
-@@ -406,29 +426,37 @@ TEST(H26xPacketBufferTest, IdrOnlyKeyframeWithSpropAndUnknownPpsId) {
- 
-   // Cannot fix biststream because sprop string doesn't contain a PPS with given
-   // ID. Request a key frame.
--  EXPECT_TRUE(
--      packet_buffer
--          .InsertPacket(
--              H264Packet(kH264SingleNalu).Idr({9, 9, 9}, 1).Marker().Build())
--          .buffer_cleared);
-+  EXPECT_TRUE(packet_buffer
-+                  .InsertPacket(H264Packet(kH264SingleNalu)
-+                                    .Idr({9, 9, 9}, 1)
-+                                    .AsFirstPacket()
-+                                    .Marker()
-+                                    .Build())
-+                  .buffer_cleared);
- }
- 
- TEST(H26xPacketBufferTest, IdrOnlyKeyframeInTheMiddle) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/true);
-   packet_buffer.SetSpropParameterSets(kExampleSpropString);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Sps({1, 2, 3}, 1).SeqNum(0).Time(0).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Sps({1, 2, 3}, 1)
-+                                            .SeqNum(0)
-+                                            .Time(0)
-+                                            .AsFirstPacket()
-+                                            .Build()));
-   RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-                                             .Pps({4, 5, 6}, 1, 1)
-                                             .SeqNum(1)
-                                             .Time(0)
-+                                            .AsFirstPacket()
-                                             .Build()));
-   EXPECT_THAT(packet_buffer
-                   .InsertPacket(H264Packet(kH264SingleNalu)
-                                     .Idr({7, 8, 9}, 1)
-                                     .SeqNum(2)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -439,6 +467,7 @@ TEST(H26xPacketBufferTest, IdrOnlyKeyframeInTheMiddle) {
-                                     .Slice()
-                                     .SeqNum(3)
-                                     .Time(1)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -449,6 +478,7 @@ TEST(H26xPacketBufferTest, IdrOnlyKeyframeInTheMiddle) {
-                                        .Idr({10, 11, 12}, 0)
-                                        .SeqNum(4)
-                                        .Time(2)
-+                                       .AsFirstPacket()
-                                        .Marker()
-                                        .Build())
-                      .packets;
-@@ -465,11 +495,14 @@ TEST(H26xPacketBufferTest, IdrOnlyKeyframeInTheMiddle) {
- TEST(H26xPacketBufferTest, IdrIsNotKeyframe) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  EXPECT_THAT(
--      packet_buffer
--          .InsertPacket(H264Packet(kH264SingleNalu).Idr().Marker().Build())
--          .packets,
--      IsEmpty());
-+  EXPECT_THAT(packet_buffer
-+                  .InsertPacket(H264Packet(kH264SingleNalu)
-+                                    .Idr()
-+                                    .AsFirstPacket()
-+                                    .Marker()
-+                                    .Build())
-+                  .packets,
-+              IsEmpty());
- }
- 
- TEST(H26xPacketBufferTest, IdrIsKeyframeFuaRequiresFirstFragmet) {
-@@ -477,11 +510,15 @@ TEST(H26xPacketBufferTest, IdrIsKeyframeFuaRequiresFirstFragmet) {
-   packet_buffer.SetSpropParameterSets(kExampleSpropString);
- 
-   // Not marked as the first fragment
--  EXPECT_THAT(
--      packet_buffer
--          .InsertPacket(H264Packet(kH264FuA).Idr().SeqNum(0).Time(0).Build())
--          .packets,
--      IsEmpty());
-+  EXPECT_THAT(packet_buffer
-+                  .InsertPacket(H264Packet(kH264FuA)
-+                                    .Idr()
-+                                    .SeqNum(0)
-+                                    .Time(0)
-+                                    .AsFirstPacket()
-+                                    .Build())
-+                  .packets,
-+              IsEmpty());
- 
-   EXPECT_THAT(
-       packet_buffer
-@@ -497,6 +534,7 @@ TEST(H26xPacketBufferTest, IdrIsKeyframeFuaRequiresFirstFragmet) {
-                                     .SeqNum(2)
-                                     .Time(1)
-                                     .AsFirstFragment()
-+                                    .AsFirstPacket()
-                                     .Build())
-                   .packets,
-               IsEmpty());
-@@ -512,8 +550,12 @@ TEST(H26xPacketBufferTest, IdrIsKeyframeFuaRequiresFirstFragmet) {
- TEST(H26xPacketBufferTest, SpsPpsIdrIsKeyframeSingleNalus) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Sps().SeqNum(0).Time(0).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Sps()
-+                                            .SeqNum(0)
-+                                            .Time(0)
-+                                            .AsFirstPacket()
-+                                            .Build()));
-   RTC_UNUSED(packet_buffer.InsertPacket(
-       H264Packet(kH264SingleNalu).Pps().SeqNum(1).Time(0).Build()));
-   EXPECT_THAT(packet_buffer
-@@ -521,6 +563,7 @@ TEST(H26xPacketBufferTest, SpsPpsIdrIsKeyframeSingleNalus) {
-                                     .Idr()
-                                     .SeqNum(2)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -534,18 +577,24 @@ TEST(H26xPacketBufferTest, SpsPpsIdrIsKeyframeIgnoresSprop) {
-   // ignored. Use in band parameter sets.
-   packet_buffer.SetSpropParameterSets(kExampleSpropString);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Sps({1, 2, 3}, 0).SeqNum(0).Time(0).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Sps({1, 2, 3}, 0)
-+                                            .SeqNum(0)
-+                                            .Time(0)
-+                                            .AsFirstPacket()
-+                                            .Build()));
-   RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-                                             .Pps({4, 5, 6}, 0, 0)
-                                             .SeqNum(1)
-                                             .Time(0)
-+                                            .AsFirstPacket()
-                                             .Build()));
-   auto packets = packet_buffer
-                      .InsertPacket(H264Packet(kH264SingleNalu)
-                                        .Idr({7, 8, 9}, 0)
-                                        .SeqNum(2)
-                                        .Time(0)
-+                                       .AsFirstPacket()
-                                        .Marker()
-                                        .Build())
-                      .packets;
-@@ -561,13 +610,18 @@ TEST(H26xPacketBufferTest, SpsPpsIdrIsKeyframeIgnoresSprop) {
- TEST(H26xPacketBufferTest, PpsIdrIsNotKeyframeSingleNalus) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Pps().SeqNum(0).Time(0).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Pps()
-+                                            .SeqNum(0)
-+                                            .Time(0)
-+                                            .AsFirstPacket()
-+                                            .Build()));
-   EXPECT_THAT(packet_buffer
-                   .InsertPacket(H264Packet(kH264SingleNalu)
-                                     .Idr()
-                                     .SeqNum(1)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -577,13 +631,18 @@ TEST(H26xPacketBufferTest, PpsIdrIsNotKeyframeSingleNalus) {
- TEST(H26xPacketBufferTest, SpsIdrIsNotKeyframeSingleNalus) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Sps().SeqNum(0).Time(0).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Sps()
-+                                            .SeqNum(0)
-+                                            .Time(0)
-+                                            .AsFirstPacket()
-+                                            .Build()));
-   EXPECT_THAT(packet_buffer
-                   .InsertPacket(H264Packet(kH264SingleNalu)
-                                     .Idr()
-                                     .SeqNum(1)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -600,6 +659,7 @@ TEST(H26xPacketBufferTest, SpsPpsIdrIsKeyframeStapA) {
-                                     .Idr()
-                                     .SeqNum(0)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -615,6 +675,7 @@ TEST(H26xPacketBufferTest, PpsIdrIsNotKeyframeStapA) {
-                                     .Idr()
-                                     .SeqNum(0)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -630,6 +691,7 @@ TEST(H26xPacketBufferTest, SpsIdrIsNotKeyframeStapA) {
-                                     .Idr()
-                                     .SeqNum(2)
-                                     .Time(2)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -642,6 +704,7 @@ TEST(H26xPacketBufferTest, SpsIdrIsNotKeyframeStapA) {
-                                     .Idr()
-                                     .SeqNum(3)
-                                     .Time(3)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -651,15 +714,24 @@ TEST(H26xPacketBufferTest, SpsIdrIsNotKeyframeStapA) {
- TEST(H26xPacketBufferTest, InsertingSpsPpsLastCompletesKeyframe) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Idr().SeqNum(2).Time(1).Marker().Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Idr()
-+                                            .SeqNum(2)
-+                                            .Time(1)
-+                                            .AsFirstPacket()
-+                                            .Marker()
-+                                            .Build()));
- 
--  EXPECT_THAT(
--      packet_buffer
--          .InsertPacket(
--              H264Packet(kH264StapA).Sps().Pps().SeqNum(1).Time(1).Build())
--          .packets,
--      SizeIs(2));
-+  EXPECT_THAT(packet_buffer
-+                  .InsertPacket(H264Packet(kH264StapA)
-+                                    .Sps()
-+                                    .Pps()
-+                                    .SeqNum(1)
-+                                    .Time(1)
-+                                    .AsFirstPacket()
-+                                    .Build())
-+                  .packets,
-+              SizeIs(2));
- }
- 
- TEST(H26xPacketBufferTest, InsertingMidFuaCompletesFrame) {
-@@ -672,6 +744,7 @@ TEST(H26xPacketBufferTest, InsertingMidFuaCompletesFrame) {
-                                     .Idr()
-                                     .SeqNum(0)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -682,6 +755,7 @@ TEST(H26xPacketBufferTest, InsertingMidFuaCompletesFrame) {
-                                             .SeqNum(1)
-                                             .Time(1)
-                                             .AsFirstFragment()
-+                                            .AsFirstPacket()
-                                             .Build()));
-   RTC_UNUSED(packet_buffer.InsertPacket(
-       H264Packet(kH264FuA).Slice().SeqNum(3).Time(1).Marker().Build()));
-@@ -702,16 +776,21 @@ TEST(H26xPacketBufferTest, SeqNumJumpDoesNotCompleteFrame) {
-                                     .Idr()
-                                     .SeqNum(0)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-               SizeIs(1));
- 
--  EXPECT_THAT(
--      packet_buffer
--          .InsertPacket(H264Packet(kH264FuA).Slice().SeqNum(1).Time(1).Build())
--          .packets,
--      IsEmpty());
-+  EXPECT_THAT(packet_buffer
-+                  .InsertPacket(H264Packet(kH264FuA)
-+                                    .Slice()
-+                                    .SeqNum(1)
-+                                    .Time(1)
-+                                    .AsFirstPacket()
-+                                    .Build())
-+                  .packets,
-+              IsEmpty());
- 
-   // Add `kBufferSize` to make the index of the sequence number wrap and end up
-   // where the packet with sequence number 2 would have ended up.
-@@ -734,6 +813,7 @@ TEST(H26xPacketBufferTest, OldFramesAreNotCompletedAfterBufferWrap) {
-                                     .Slice()
-                                     .SeqNum(1)
-                                     .Time(1)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -747,6 +827,7 @@ TEST(H26xPacketBufferTest, OldFramesAreNotCompletedAfterBufferWrap) {
-                                     .Idr()
-                                     .SeqNum(kBufferSize)
-                                     .Time(kBufferSize)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -762,6 +843,7 @@ TEST(H26xPacketBufferTest, OldPacketsDontBlockNewPackets) {
-                                     .Idr()
-                                     .SeqNum(kBufferSize)
-                                     .Time(kBufferSize)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -772,6 +854,7 @@ TEST(H26xPacketBufferTest, OldPacketsDontBlockNewPackets) {
-                                             .SeqNum(kBufferSize + 1)
-                                             .Time(kBufferSize + 1)
-                                             .AsFirstFragment()
-+                                            .AsFirstPacket()
-                                             .Build()));
- 
-   RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264FuA)
-@@ -806,6 +889,7 @@ TEST(H26xPacketBufferTest, OldPacketDoesntCompleteFrame) {
-                                     .Idr()
-                                     .SeqNum(kBufferSize)
-                                     .Time(kBufferSize)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -834,6 +918,7 @@ TEST(H26xPacketBufferTest, OldPacketDoesntCompleteFrame) {
-                                     .SeqNum(kBufferSize + 1)
-                                     .Time(kBufferSize + 1)
-                                     .AsFirstFragment()
-+                                    .AsFirstPacket()
-                                     .Build())
-                   .packets,
-               IsEmpty());
-@@ -876,13 +961,18 @@ TEST(H26xPacketBufferTest, FrameBoundariesAreSet) {
- TEST(H26xPacketBufferTest, ResolutionSetOnFirstPacket) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Aud().SeqNum(1).Time(1).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Aud()
-+                                            .SeqNum(1)
-+                                            .AsFirstPacket()
-+                                            .Time(1)
-+                                            .Build()));
-   auto res = packet_buffer.InsertPacket(H264Packet(kH264StapA)
-                                             .SpsWithResolution({320, 240})
-                                             .Pps()
-                                             .Idr()
-                                             .SeqNum(2)
-+                                            .AsFirstPacket()
-                                             .Time(1)
-                                             .Marker()
-                                             .Build());
-@@ -895,19 +985,29 @@ TEST(H26xPacketBufferTest, ResolutionSetOnFirstPacket) {
- TEST(H26xPacketBufferTest, KeyframeAndDeltaFrameSetOnFirstPacket) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Aud().SeqNum(1).Time(1).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Aud()
-+                                            .SeqNum(1)
-+                                            .AsFirstPacket()
-+                                            .Time(1)
-+                                            .Build()));
-   auto key = packet_buffer.InsertPacket(H264Packet(kH264StapA)
-                                             .Sps()
-                                             .Pps()
-                                             .Idr()
-                                             .SeqNum(2)
-+                                            .AsFirstPacket()
-                                             .Time(1)
-                                             .Marker()
-                                             .Build());
- 
--  auto delta = packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Slice().SeqNum(3).Time(2).Marker().Build());
-+  auto delta = packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                              .Slice()
-+                                              .SeqNum(3)
-+                                              .Time(2)
-+                                              .AsFirstPacket()
-+                                              .Marker()
-+                                              .Build());
- 
-   ASSERT_THAT(key.packets, SizeIs(2));
-   EXPECT_THAT(key.packets[0]->video_header.frame_type,
-@@ -920,11 +1020,20 @@ TEST(H26xPacketBufferTest, KeyframeAndDeltaFrameSetOnFirstPacket) {
- TEST(H26xPacketBufferTest, RtpSeqNumWrap) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264StapA).Sps().Pps().SeqNum(0xffff).Time(0).Build()));
 +  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264StapA)
 +                                            .Sps()
 +                                            .Pps()
-+                                            .SeqNum(0xffff)
-+                                            .Time(0)
-+                                            .AsFirstPacket()
-+                                            .Build()));
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264FuA).Idr().SeqNum(0x1'0000).Time(0).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264FuA)
-+                                            .Idr()
-+                                            .SeqNum(0x1'0000)
-+                                            .Time(0)
-+                                            .AsFirstPacket()
-+                                            .Build()));
-   EXPECT_THAT(packet_buffer
-                   .InsertPacket(H264Packet(kH264FuA)
-                                     .Idr()
-@@ -946,6 +1055,7 @@ TEST(H26xPacketBufferTest, StapAFixedBitstream) {
-                                        .Idr({7, 8, 9})
-                                        .SeqNum(0)
-                                        .Time(0)
-+                                       .AsFirstPacket()
-                                        .Marker()
-                                        .Build())
-                      .packets;
-@@ -963,15 +1073,24 @@ TEST(H26xPacketBufferTest, StapAFixedBitstream) {
- TEST(H26xPacketBufferTest, SingleNaluFixedBitstream) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Sps({1, 2, 3}).SeqNum(0).Time(0).Build()));
--  RTC_UNUSED(packet_buffer.InsertPacket(
--      H264Packet(kH264SingleNalu).Pps({4, 5, 6}).SeqNum(1).Time(0).Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Sps({1, 2, 3})
-+                                            .SeqNum(0)
-+                                            .Time(0)
-+                                            .AsFirstPacket()
-+                                            .Build()));
-+  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264SingleNalu)
-+                                            .Pps({4, 5, 6})
 +                                            .SeqNum(1)
 +                                            .Time(0)
 +                                            .AsFirstPacket()
++                                            .AsFirstFragment()
 +                                            .Build()));
-   auto packets = packet_buffer
-                      .InsertPacket(H264Packet(kH264SingleNalu)
-                                        .Idr({7, 8, 9})
-                                        .SeqNum(2)
-                                        .Time(0)
-+                                       .AsFirstPacket()
-                                        .Marker()
-                                        .Build())
-                      .packets;
-@@ -993,12 +1112,14 @@ TEST(H26xPacketBufferTest, StapaAndFuaFixedBitstream) {
-                                             .Pps({4, 5, 6})
-                                             .SeqNum(0)
-                                             .Time(0)
-+                                            .AsFirstPacket()
-                                             .Build()));
-   RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264FuA)
-                                             .Idr({8, 8, 8})
-                                             .SeqNum(1)
-                                             .Time(0)
-                                             .AsFirstFragment()
-+                                            .AsFirstPacket()
-                                             .Build()));
-   auto packets = packet_buffer
-                      .InsertPacket(H264Packet(kH264FuA)
-@@ -1040,6 +1161,7 @@ TEST(H26xPacketBufferTest, FullPacketBufferDoesNotBlockKeyframe) {
-                                     .Idr()
-                                     .SeqNum(kBufferSize)
-                                     .Time(1)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -1056,6 +1178,7 @@ TEST(H26xPacketBufferTest, AssembleFrameAfterReordering) {
-                                     .Idr()
-                                     .SeqNum(2)
-                                     .Time(2)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -1066,6 +1189,7 @@ TEST(H26xPacketBufferTest, AssembleFrameAfterReordering) {
-                                     .Slice()
-                                     .SeqNum(1)
-                                     .Time(1)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -1078,6 +1202,7 @@ TEST(H26xPacketBufferTest, AssembleFrameAfterReordering) {
-                                     .Idr()
-                                     .SeqNum(0)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -1094,6 +1219,7 @@ TEST(H26xPacketBufferTest, AssembleFrameAfterLoss) {
-                                     .Idr()
-                                     .SeqNum(0)
-                                     .Time(0)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -1106,6 +1232,7 @@ TEST(H26xPacketBufferTest, AssembleFrameAfterLoss) {
-                                     .Idr()
-                                     .SeqNum(2)
-                                     .Time(2)
-+                                    .AsFirstPacket()
-                                     .Marker()
-                                     .Build())
-                   .packets,
-@@ -1116,11 +1243,17 @@ TEST(H26xPacketBufferTest, AssembleFrameAfterLoss) {
- TEST(H26xPacketBufferTest, H265VpsSpsPpsIdrIsKeyframe) {
-   H26xPacketBuffer packet_buffer(/*allow_idr_only_keyframes=*/false);
- 
--  EXPECT_THAT(
--      packet_buffer
--          .InsertPacket(H265Packet().Vps().Sps().Pps().Idr().Marker().Build())
--          .packets,
--      SizeIs(1));
-+  EXPECT_THAT(packet_buffer
-+                  .InsertPacket(H265Packet()
-+                                    .Vps()
-+                                    .Sps()
-+                                    .Pps()
-+                                    .Idr()
-+                                    .AsFirstPacket()
-+                                    .Marker()
-+                                    .Build())
-+                  .packets,
-+              SizeIs(1));
- }
- 
- TEST(H26xPacketBufferTest, H265IrapIsNotKeyframe) {
-@@ -1133,7 +1266,9 @@ TEST(H26xPacketBufferTest, H265IrapIsNotKeyframe) {
-     H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
-     EXPECT_THAT(
--        packet_buffer.InsertPacket(H265Packet().Slice(type).Marker().Build())
-+        packet_buffer
-+            .InsertPacket(
-+                H265Packet().Slice(type).AsFirstPacket().Marker().Build())
-             .packets,
-         IsEmpty());
-   }
-@@ -1143,7 +1278,9 @@ TEST(H26xPacketBufferTest, H265IdrIsNotKeyFrame) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
-   EXPECT_THAT(
--      packet_buffer.InsertPacket(H265Packet().Idr().Marker().Build()).packets,
-+      packet_buffer
-+          .InsertPacket(H265Packet().Idr().AsFirstPacket().Marker().Build())
-+          .packets,
-       IsEmpty());
- }
- 
-@@ -1152,69 +1289,80 @@ TEST(H26xPacketBufferTest, H265IdrIsNotKeyFrameEvenWithSprop) {
-   packet_buffer.SetSpropParameterSets(kExampleSpropString);
- 
-   EXPECT_THAT(
--      packet_buffer.InsertPacket(H265Packet().Idr().Marker().Build()).packets,
-+      packet_buffer
-+          .InsertPacket(H265Packet().Idr().AsFirstPacket().Marker().Build())
-+          .packets,
-       IsEmpty());
- }
- 
- TEST(H26xPacketBufferTest, H265SpsPpsIdrIsNotKeyFrame) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  EXPECT_THAT(packet_buffer
--                  .InsertPacket(H265Packet().Sps().Pps().Idr().Marker().Build())
--                  .packets,
--              IsEmpty());
-+  EXPECT_THAT(
-+      packet_buffer
-+          .InsertPacket(
-+              H265Packet().Sps().Pps().Idr().AsFirstPacket().Marker().Build())
-+          .packets,
-+      IsEmpty());
- }
- 
- TEST(H26xPacketBufferTest, H265VpsPpsIdrIsNotKeyFrame) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  EXPECT_THAT(packet_buffer
--                  .InsertPacket(H265Packet().Vps().Pps().Idr().Marker().Build())
--                  .packets,
--              IsEmpty());
-+  EXPECT_THAT(
-+      packet_buffer
-+          .InsertPacket(
-+              H265Packet().Vps().Pps().Idr().AsFirstPacket().Marker().Build())
-+          .packets,
-+      IsEmpty());
- }
- 
- TEST(H26xPacketBufferTest, H265VpsSpsIdrIsNotKeyFrame) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  EXPECT_THAT(packet_buffer
--                  .InsertPacket(H265Packet().Vps().Sps().Idr().Marker().Build())
--                  .packets,
--              IsEmpty());
-+  EXPECT_THAT(
-+      packet_buffer
-+          .InsertPacket(
-+              H265Packet().Vps().Sps().Idr().AsFirstPacket().Marker().Build())
-+          .packets,
-+      IsEmpty());
- }
- 
- TEST(H26xPacketBufferTest, H265VpsIdrIsNotKeyFrame) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  EXPECT_THAT(
--      packet_buffer.InsertPacket(H265Packet().Vps().Idr().Marker().Build())
--          .packets,
--      IsEmpty());
-+  EXPECT_THAT(packet_buffer
-+                  .InsertPacket(
-+                      H265Packet().Vps().Idr().AsFirstPacket().Marker().Build())
-+                  .packets,
-+              IsEmpty());
- }
- 
- TEST(H26xPacketBufferTest, H265SpsIdrIsNotKeyFrame) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  EXPECT_THAT(
--      packet_buffer.InsertPacket(H265Packet().Sps().Idr().Marker().Build())
--          .packets,
--      IsEmpty());
-+  EXPECT_THAT(packet_buffer
-+                  .InsertPacket(
-+                      H265Packet().Sps().Idr().AsFirstPacket().Marker().Build())
-+                  .packets,
-+              IsEmpty());
- }
- 
- TEST(H26xPacketBufferTest, H265PpsIdrIsNotKeyFrame) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  EXPECT_THAT(
--      packet_buffer.InsertPacket(H265Packet().Pps().Idr().Marker().Build())
--          .packets,
--      IsEmpty());
-+  EXPECT_THAT(packet_buffer
-+                  .InsertPacket(
-+                      H265Packet().Pps().Idr().AsFirstPacket().Marker().Build())
-+                  .packets,
-+              IsEmpty());
- }
- 
- TEST(H26xPacketBufferTest, H265ResolutionSetOnSpsPacket) {
-   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
- 
--  RTC_UNUSED(
--      packet_buffer.InsertPacket(H265Packet().Aud().SeqNum(1).Time(1).Build()));
++
 +  RTC_UNUSED(packet_buffer.InsertPacket(
-+      H265Packet().Aud().SeqNum(1).Time(1).AsFirstPacket().Build()));
-   auto res = packet_buffer.InsertPacket(H265Packet()
-                                             .Vps()
-                                             .SpsWithResolution({320, 240})
-@@ -1222,6 +1370,7 @@ TEST(H26xPacketBufferTest, H265ResolutionSetOnSpsPacket) {
++      H264Packet(kH264FuA).Idr().SeqNum(2).Time(0).Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().SeqNum(3).Time(0).Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().SeqNum(5).Time(0).Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().AsFirstFragment().SeqNum(6).Time(0).Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().SeqNum(7).Time(0).Marker().Build()));
++
++  EXPECT_THAT(
++      packet_buffer
++          .InsertPacket(H264Packet(kH264FuA).Idr().SeqNum(4).Time(0).Build())
++          .packets,
++      SizeIs(7));
++}
++
+ TEST(H26xPacketBufferTest, SpsPpsIdrIsKeyframeSingleNalus) {
+   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
+ 
+@@ -933,6 +967,7 @@ TEST(H26xPacketBufferTest, FrameBoundariesAreSet) {
                                              .Idr()
-                                             .SeqNum(2)
+                                             .SeqNum(1)
                                              .Time(1)
 +                                            .AsFirstPacket()
                                              .Marker()
                                              .Build());
  
-@@ -1237,8 +1386,14 @@ TEST(H26xPacketBufferTest, H265InsertingVpsSpsPpsLastCompletesKeyframe) {
-       H265Packet().Idr().SeqNum(2).Time(1).Marker().Build()));
+@@ -941,7 +976,7 @@ TEST(H26xPacketBufferTest, FrameBoundariesAreSet) {
+   EXPECT_TRUE(key.packets[0]->video_header.is_last_packet_in_frame);
  
-   EXPECT_THAT(packet_buffer
--                  .InsertPacket(
--                      H265Packet().Vps().Sps().Pps().SeqNum(1).Time(1).Build())
-+                  .InsertPacket(H265Packet()
-+                                    .Vps()
-+                                    .Sps()
-+                                    .Pps()
-+                                    .SeqNum(1)
-+                                    .Time(1)
-+                                    .AsFirstPacket()
-+                                    .Build())
-                   .packets,
-               SizeIs(2));
- }
+   RTC_UNUSED(packet_buffer.InsertPacket(
+-      H264Packet(kH264FuA).Slice().SeqNum(2).Time(2).Build()));
++      H264Packet(kH264FuA).Slice().SeqNum(2).Time(2).AsFirstPacket().Build()));
+   RTC_UNUSED(packet_buffer.InsertPacket(
+       H264Packet(kH264FuA).Slice().SeqNum(3).Time(2).Build()));
+   auto delta = packet_buffer.InsertPacket(
+diff --git a/video/rtp_video_stream_receiver2_unittest.cc b/video/rtp_video_stream_receiver2_unittest.cc
+index 07c23a4f33..357fd9b895 100644
+--- a/video/rtp_video_stream_receiver2_unittest.cc
++++ b/video/rtp_video_stream_receiver2_unittest.cc
+@@ -1726,11 +1726,13 @@ TEST_F(RtpVideoStreamReceiver2TestH265, H265Bitstream) {
+   rtp_packet.SetSequenceNumber(0);
+   rtp_packet.SetPayloadType(kH265PayloadType);
+   RTPVideoHeader video_header = GetDefaultH265VideoHeader();
++  video_header.is_first_packet_in_frame = true;
+   mock_on_complete_frame_callback_.AppendExpectedBitstream(vps, sizeof(vps));
+   rtp_video_stream_receiver_->OnReceivedPayloadData(
+       rtc::CopyOnWriteBuffer(vps, sizeof(vps)), rtp_packet, video_header, 0);
+ 
+   rtp_packet.SetSequenceNumber(1);
++  video_header.is_first_packet_in_frame = false;
+   mock_on_complete_frame_callback_.AppendExpectedBitstream(sps, sizeof(sps));
+   rtp_video_stream_receiver_->OnReceivedPayloadData(
+       rtc::CopyOnWriteBuffer(sps, sizeof(sps)), rtp_packet, video_header, 0);
