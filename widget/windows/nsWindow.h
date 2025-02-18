@@ -840,7 +840,8 @@ class nsWindow final : public nsBaseWidget {
 
   // Draggable titlebar region maintained by UpdateWindowDraggingRegion
   LayoutDeviceIntRegion mDraggableRegion;
-  // Opaque region maintained by UpdateOpaqueRegion (relative to the client area).
+  // Opaque region maintained by UpdateOpaqueRegion (relative to the client
+  // area).
   LayoutDeviceIntRegion mOpaqueRegion;
 
   // Graphics
