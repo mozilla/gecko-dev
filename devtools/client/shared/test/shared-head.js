@@ -1078,10 +1078,19 @@ function wait(ms) {
  * @param number maxTries [optional]
  *        How many times the predicate is invoked before timing out.
  *        Can be set globally for a test via `waitFor.overrideMaxTriesForTestFile = someNumber;`.
+ * @param boolean expectTimeout [optional]
+ *        Whether the helper is expected to reach the timeout or not. Consider
+ *        using waitForTimeout instead of passing this to true.
  * @return object
  *         A promise that is resolved with the result of the condition.
  */
-async function waitFor(condition, message = "", interval = 10, maxTries = 500) {
+async function waitFor(
+  condition,
+  message = "",
+  interval = 10,
+  maxTries = 500,
+  expectTimeout = false
+) {
   // Update interval & maxTries if overrides are defined on the waitFor object.
   interval =
     typeof waitFor.overrideIntervalForTestFile !== "undefined"
@@ -1099,11 +1108,44 @@ async function waitFor(condition, message = "", interval = 10, maxTries = 500) {
       interval,
       maxTries
     );
+    if (expectTimeout) {
+      // If we expected a timeout, fail the test here.
+      const errorMessage = `Expected timeout in waitFor(): ${message} \nUnexpected condition: ${condition} \n`;
+      ok(false, errorMessage);
+    }
     return value;
   } catch (e) {
+    if (expectTimeout) {
+      // If we expected a timeout, simply return null, the consumer should not
+      // need any return value.
+      return null;
+    }
+
+    // If we didn't expect a timeout, fail the test here.
     const errorMessage = `Failed waitFor(): ${message} \nFailed condition: ${condition} \nException Message: ${e}`;
+    // Use both assert ok(false) and throw.
+    // Assert captures the correct frame to log variables with dump-scope.js.
+    // Error will make sure the test stops.
+    ok(false, errorMessage);
     throw new Error(errorMessage);
   }
+}
+
+/**
+ * Similar to @see waitFor defined above but expect the predicate to never
+ * be satisfied and therefore to timeout.
+ *
+ * Arguments are identical to `waitFor` but the default values for interval and
+ * maxTries are more conservative since this method expects a timeout.
+ *
+ */
+async function waitForTimeout(
+  condition,
+  message = "",
+  interval = 100,
+  maxTries = 10
+) {
+  return waitFor(condition, message, interval, maxTries, true);
 }
 
 /**

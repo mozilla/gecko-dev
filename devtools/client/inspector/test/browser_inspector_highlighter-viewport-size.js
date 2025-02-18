@@ -82,28 +82,21 @@ add_task(async function () {
   // resize the inspector and wait for 2s to the VIEWPORT_SIZE_ON_RESIZE highlighter
   // to be displayed.
   await resizeInspector(inspector, Toolbox.HostType.RIGHT);
-  try {
-    await waitFor(
-      async () => {
-        const hidden = await isViewportInfobarHidden(
-          highlighterFront,
-          highlighterTestFront
-        );
-        return !hidden;
-      },
-      "",
-      // interval
-      200,
-      // max tries
-      10
-    );
-    ok(
-      false,
-      "The VIEWPORT_SIZE_ON_RESIZE highlighter shouldn't have been displayed"
-    );
-  } catch (e) {
-    ok(true, "The VIEWPORT_SIZE_ON_RESIZE highlighter wasn't displayed");
-  }
+  await waitForTimeout(
+    async () => {
+      const hidden = await isViewportInfobarHidden(
+        highlighterFront,
+        highlighterTestFront
+      );
+      return !hidden;
+    },
+    "",
+    // interval
+    200,
+    // max tries
+    10
+  );
+  ok(true, "The VIEWPORT_SIZE_ON_RESIZE highlighter wasn't displayed");
 
   info("Check that once rulers are hidden, VIEWPORT_SIZE_ON_RESIZE works fine");
   rulersToggleButton.click();

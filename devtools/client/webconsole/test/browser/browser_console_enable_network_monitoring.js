@@ -103,14 +103,8 @@ add_task(async function testEnableNetworkMonitoringInBrowserConsole() {
  */
 async function checkNoMessageExists(hud, msg, selector) {
   info(`Checking that "${msg}" was not logged`);
-  let messages;
-  try {
-    messages = await waitFor(async () => {
-      const msgs = await findMessagesVirtualized({ hud, text: msg, selector });
-      return msgs.length ? msgs : null;
-    });
-    ok(!messages.length, `"${msg}" was logged once`);
-  } catch (e) {
-    ok(true, `Message "${msg}" wasn't logged\n`);
-  }
+  await waitForTimeout(async () => {
+    const msgs = await findMessagesVirtualized({ hud, text: msg, selector });
+    return msgs.length ? msgs : null;
+  });
 }
