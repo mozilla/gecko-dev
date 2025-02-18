@@ -346,6 +346,8 @@
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">ບັນທຶກ</string>
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">ເພີ່ມບຸກມາກ, ທາງລັດ, ຫນ້າທໍາອິດ, ຄໍເລັກຊັນ, PDF</string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">ບຸກມາກຫນ້ານີ້</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -678,10 +680,14 @@
     <string name="errorpage_httpsonly_message_summary">ຢ່າງໃດກໍ່ຕາມ, ມັນກໍ່ເປັນໄປໄດ້ວ່າຜູ້ໂຈມຕີມີສ່ວນຮ່ວມ. ຖ້າທ່ານສືບຕໍ່ໄປຫາເວັບໄຊທ໌, ທ່ານບໍ່ຄວນໃສ່ຂໍ້ມູນລະອຽດອ່ອນໃດໆ. ຖ້າທ່ານສືບຕໍ່, ໂໝດ HTTPS-Only ຈະຖືກປິດໄວ້ຊົ່ວຄາວສໍາລັບເວັບໄຊທ໌.</string>
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">ສິ່ງອຳນວຍຄວາມສະດວກ</string>
+    <!-- Preference to override the Mozilla account server -->
+    <string name="preferences_override_account_server">ເຊີບເວີບັນຊີ Mozilla ແບບກຳນົດເອງ</string>
     <!-- Preference to override the Sync token server -->
     <string name="preferences_override_sync_tokenserver">ກຳຫນົດເຊີເວີ Sync</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">ບັນຊີ</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">ທີ່ຢູ່ແຖບທີ່ຢູ່</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">ຊຸດປັບແຕ່ງ</string>
     <!-- Preference for customizing the home screen -->
@@ -692,11 +698,15 @@
     <string name="preferences_customize">ການປັບແຕ່ງ</string>
     <!-- Preference description for banner about signing in -->
     <string name="preferences_sign_in_description_2">Sync ແທັບ, ບຸກມາກ, ລະຫັດຜ່ານ ແລະ ອື່ນໆຂອງທ່ານ.</string>
+    <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
+    <string name="preferences_account_default_name_2">ບັນຊີ Mozilla</string>
     <!-- Preference text for account title when there was an error syncing FxA -->
     <string name="preferences_account_sync_error">ເຊື່ອມຕໍຄືນເພື່ອເລີ່ມ sync ຄືນໃຫມ່</string>
     <!-- Preference for language -->
     <string name="preferences_language">ພາສາ</string>
 
+    <!-- Preference for translations -->
+    <string name="preferences_translations">ການແປ</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">ທາງເລືອກຂໍ້ມູນ</string>
     <!-- Preference for data collection -->
@@ -722,6 +732,8 @@
     <string name="preferences_account_settings">ການຕັ້ງ​ຄ່າ​ບັນ​ຊີ</string>
     <!-- Preference for enabling url autocomplete-->
     <string name="preferences_enable_autocomplete_urls">ເຕີມ URLs ແບບອັດຕະໂນມັດ</string>
+    <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
+    <string name="preferences_show_sponsored_suggestions">ຄໍາແນະນໍາຈາກຜູ້ສະຫນັບສະຫນູນ</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">ເປີດລີ້ງໃນແອັບ</string>
     <!-- Preference for open links in third party apps always open in apps option -->
