@@ -70,6 +70,12 @@ class FetchEventOpProxyChild final : public PFetchEventOpProxyChild {
   RefPtr<FetchEventPreloadResponseEndPromise::Private>
       mPreloadResponseEndPromise;
 
+  // MozPromise intentionally does not expose synchronous access to the
+  // resolved/rejected state of a promise, so track whether or not we've
+  // resolved these promises manually.
+  bool mPreloadResponseAvailablePromiseResolved = false;
+  bool mPreloadResponseEndPromiseResolved = false;
+
   Maybe<ServiceWorkerOpResult> mCachedOpResult;
 };
 

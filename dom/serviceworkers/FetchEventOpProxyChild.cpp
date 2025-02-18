@@ -75,6 +75,7 @@ void FetchEventOpProxyChild::Initialize(
             __func__);
     mPreloadResponseAvailablePromise->UseSynchronousTaskDispatch(__func__);
     if (aArgs.preloadResponse().isSome()) {
+      mPreloadResponseAvailablePromiseResolved = true;
       mPreloadResponseAvailablePromise->Resolve(
           InternalResponse::FromIPC(aArgs.preloadResponse().ref()), __func__);
     }
@@ -91,6 +92,7 @@ void FetchEventOpProxyChild::Initialize(
         MakeRefPtr<FetchEventPreloadResponseEndPromise::Private>(__func__);
     mPreloadResponseEndPromise->UseSynchronousTaskDispatch(__func__);
     if (aArgs.preloadResponseEndArgs().isSome()) {
+      mPreloadResponseEndPromiseResolved = true;
       mPreloadResponseEndPromise->Resolve(aArgs.preloadResponseEndArgs().ref(),
                                           __func__);
     }
@@ -107,8 +109,8 @@ void FetchEventOpProxyChild::Initialize(
     // result until RecvPreloadResponseEnd is called, such that the preload
     // response could be completed.
     if (self->mPreloadResponseEndPromise &&
-        !self->mPreloadResponseEndPromise->IsResolved() &&
-        self->mPreloadResponseAvailablePromise->IsResolved()) {
+        !self->mPreloadResponseEndPromiseResolved &&
+        self->mPreloadResponseAvailablePromiseResolved) {
       self->mCachedOpResult = Some(aResult);
       return;
     }
@@ -203,6 +205,7 @@ mozilla::ipc::IPCResult FetchEventOpProxyChild::RecvPreloadResponse(
   // Initialize() should have created this promise.
   MOZ_ASSERT(mPreloadResponseAvailablePromise);
 
+  mPreloadResponseAvailablePromiseResolved = true;
   mPreloadResponseAvailablePromise->Resolve(
       InternalResponse::FromIPC(aResponse), __func__);
 
@@ -225,6 +228,7 @@ mozilla::ipc::IPCResult FetchEventOpProxyChild::RecvPreloadResponseEnd(
   // Initialize() should have created this promise.
   MOZ_ASSERT(mPreloadResponseEndPromise);
 
+  mPreloadResponseEndPromiseResolved = true;
   mPreloadResponseEndPromise->Resolve(std::move(aArgs), __func__);
   // If mCachedOpResult is not nothing, it means FetchEventOp had already done
   // and the operation result is cached. Continue closing IPC here.
@@ -259,6 +263,7 @@ void FetchEventOpProxyChild::ActorDestroy(ActorDestroyReason) {
   // FetchEvent. Resolve the preload response promise with
   // NS_ERROR_DOM_ABORT_ERR.
   if (mPreloadResponseAvailablePromise) {
+    mPreloadResponseAvailablePromiseResolved = true;
     mPreloadResponseAvailablePromise->Resolve(
         InternalResponse::NetworkError(NS_ERROR_DOM_ABORT_ERR), __func__);
   }
@@ -268,6 +273,7 @@ void FetchEventOpProxyChild::ActorDestroy(ActorDestroyReason) {
   }
 
   if (mPreloadResponseEndPromise) {
+    mPreloadResponseEndPromiseResolved = true;
     ResponseEndArgs args(FetchDriverObserver::eAborted);
     mPreloadResponseEndPromise->Resolve(args, __func__);
   }
