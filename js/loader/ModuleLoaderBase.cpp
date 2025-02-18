@@ -286,6 +286,10 @@ bool ModuleLoaderBase::HostPopulateImportMeta(
   return true;
 }
 
+static bool ModuleTypeAllowed(JS::ModuleType aModuleType) {
+  return aModuleType != JS::ModuleType::Unknown;
+}
+
 // static
 bool ModuleLoaderBase::HostImportModuleDynamically(
     JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
@@ -336,6 +340,12 @@ bool ModuleLoaderBase::HostImportModuleDynamically(
   // Let moduleType be the result of running the module type from module
   // request steps given moduleRequest.
   JS::ModuleType moduleType = JS::GetModuleRequestType(aCx, aModuleRequest);
+  // This check will be moved to HostLoadImportedModule in bug 1820594.
+  if (!ModuleTypeAllowed(moduleType)) {
+    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+                              JSMSG_BAD_MODULE_TYPE);
+    return false;
+  }
 
   // Create a new top-level load request.
   nsCOMPtr<nsIURI> uri = result.unwrap();
