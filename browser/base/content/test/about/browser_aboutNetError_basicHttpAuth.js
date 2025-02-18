@@ -17,6 +17,8 @@ add_task(async function test_basicHttpAuth() {
       // https first is disabled to enforce the scheme as http
       ["dom.security.https_first", false],
       ["network.http.basic_http_auth.enabled", false],
+      // blank page with error is priortized
+      ["browser.http.blank_page_with_error_response.enabled", true],
     ],
   });
 

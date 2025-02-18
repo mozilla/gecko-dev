@@ -15,6 +15,8 @@ add_task(async function test_subdocument_downgrade() {
       ["dom.security.https_first", true],
       // Makes it easier to detect the error
       ["security.mixed_content.block_active_content", false],
+      // Avoid error page for empty file (blank page with 429)
+      ["browser.http.blank_page_with_error_response.enabled", true],
     ],
   });
 

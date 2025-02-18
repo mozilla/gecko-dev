@@ -46,6 +46,8 @@ class GeckoInstance(object):
         # and causing false-positive test failures. See bug 1176798, bug 1177018,
         # bug 1210465.
         "apz.content_response_timeout": 60000,
+        # Make sure error page is not shown for blank pages with 4xx or 5xx response code
+        "browser.http.blank_page_with_error_response.enabled": True,
         # Don't pull weather data from the network
         "browser.newtabpage.activity-stream.discoverystream.region-weather-config": "",
         # Don't pull wallpaper content from the network

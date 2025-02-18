@@ -15,6 +15,12 @@ const { UrlbarTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/UrlbarTestUtils.sys.mjs"
 );
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.http.blank_page_with_error_response.enabled", true]],
+  });
+});
+
 add_task(async function normal_page__no_target() {
   await doTestInSameWindow({
     link: "wait-a-bit--no-target",

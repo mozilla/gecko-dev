@@ -1619,7 +1619,11 @@
 # is disabled on Android.
 - name: browser.http.blank_page_with_error_response.enabled
   type: bool
+#if !defined(ANDROID)
+  value: false
+#else
   value: true
+#endif
   mirror: always
 
 # The minimum area for a rect to be included in a wireframe, in CSS pixels.

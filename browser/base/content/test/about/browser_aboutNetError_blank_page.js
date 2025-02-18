@@ -60,6 +60,7 @@ async function test_blankPage(
   );
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  await SpecialPowers.popPrefEnv();
 }
 
 add_task(async function test_blankPage_4xx() {
