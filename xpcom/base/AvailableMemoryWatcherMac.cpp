@@ -370,6 +370,8 @@ void nsAvailableMemoryWatcher::ReadSysctls() {
   if (sysctlbyname("kern.memorystatus_vm_pressure_level", &level, &size, NULL,
                    0) == -1) {
     MP_LOG("Failure reading memory pressure sysctl");
+    NS_WARNING("Failure reading memory pressure sysctl");
+    level = kSysctlLevelNormal;
   }
   mLevelSysctl = level;
 
@@ -379,6 +381,8 @@ void nsAvailableMemoryWatcher::ReadSysctls() {
   if (sysctlbyname("kern.memorystatus_level", &availPercent, &size, NULL, 0) ==
       -1) {
     MP_LOG("Failure reading available memory level");
+    NS_WARNING("Failure reading available memory level");
+    availPercent = 50;
   }
   mAvailMemSysctl = availPercent;
 }
