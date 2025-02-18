@@ -912,7 +912,15 @@ void ViewTransition::HandleFrame() {
     }
     return;
   }
-  // TODO(emilio): Step 5 (check CB resize)
+  // Step 5: If transition’s initial snapshot containing block size is not equal
+  // to the snapshot containing block size, then skip the view transition for
+  // transition with an "InvalidStateError" DOMException in transition’s
+  // relevant Realm, and return.
+  if (SnapshotContainingBlockRect().Size() !=
+      mInitialSnapshotContainingBlockSize) {
+    SkipTransition(SkipTransitionReason::Resize);
+    return;
+  }
 
   // Step 6: Update pseudo-element styles for transition.
   if (!UpdatePseudoElementStyles(/* aNeedsInvalidation= */ true)) {
@@ -1112,6 +1120,7 @@ void ViewTransition::SkipTransition(
   mPhase = Phase::Done;
 
   // Step 7: Reject transition's ready promise with reason.
+  Promise* ucd = GetUpdateCallbackDone(IgnoreErrors());
   if (Promise* readyPromise = GetReady(IgnoreErrors())) {
     switch (aReason) {
       case SkipTransitionReason::JS:
@@ -1148,14 +1157,45 @@ void ViewTransition::SkipTransition(
         break;
       case SkipTransitionReason::UpdateCallbackRejected:
         readyPromise->MaybeReject(aUpdateCallbackRejectReason);
+
+        // Step 8, The case we have to reject the finished promise. Do this here
+        // to make sure it reacts to UpdateCallbackRejected.
+        //
+        // Note: we intentionally reject the finished promise after the ready
+        // promise to make sure the order of promise callbacks is correct in
+        // script.
+        if (ucd) {
+          MOZ_ASSERT(ucd->State() == Promise::PromiseState::Rejected);
+          if (Promise* finished = GetFinished(IgnoreErrors())) {
+            // Since the rejection of transition’s update callback done promise
+            // isn’t explicitly handled here, if transition’s update callback
+            // done promise rejects, then transition’s finished promise will
+            // reject with the same reason.
+            finished->MaybeReject(aUpdateCallbackRejectReason);
+          }
+        }
         break;
     }
   }
 
   // Step 8: Resolve transition's finished promise with the result of reacting
-  // to transition's update callback done promise.
-  //
-  // This is done in CallUpdateCallback()
+  // to transition's update callback done promise:
+  // Note: It is not guaranteed that |mPhase| is Done in CallUpdateCallback().
+  // There are two possible cases:
+  // 1. If we skip the view transitions before updateCallbackDone callback
+  //    is dispatched, we come here first. In this case we don't have to resolve
+  //    the finsihed promise because CallUpdateCallback() will do it.
+  // 2. If we skip the view transitions after updateCallbackDone callback, the
+  //    finished promise hasn't been resolved because |mPhase| is not Done (i.e.
+  //    |mPhase| is UpdateCallbackCalled) when we handle updateCallbackDone
+  //    callback. Therefore, we have to resolve the finished promise based on
+  //    the PromiseState of |mUpdateCallbackDone|.
+  if (ucd && ucd->State() == Promise::PromiseState::Resolved) {
+    if (Promise* finished = GetFinished(IgnoreErrors())) {
+      // If the promise was fulfilled, then return undefined.
+      finished->MaybeResolveWithUndefined();
+    }
+  }
 }
 
 JSObject* ViewTransition::WrapObject(JSContext* aCx,
