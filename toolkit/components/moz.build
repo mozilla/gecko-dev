@@ -7,6 +7,9 @@
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "General")
 
+with Files("uniffi*/**"):
+    BUG_COMPONENT = ("Toolkit", "UniFFI Bindings")
+
 # These component dirs are built for all apps (including suite)
 if CONFIG["MOZ_HAS_REMOTE"]:
     DIRS += ["remote"]
