@@ -171,6 +171,18 @@ uint32_t HyperTextAccessible::DOMPointToOffset(nsINode* aNode,
     }
   }
 
+  if (descendant && descendant->IsTextLeaf()) {
+    uint32_t length = nsAccUtils::TextLength(descendant);
+    if (offset > length) {
+      // This can happen if text in the accessibility tree is out of date with
+      // DOM, since the accessibility engine updates text asynchronously. This
+      // should only be the case for a very short time, so it shouldn't be a
+      // real problem.
+      NS_WARNING("Offset too large for text leaf");
+      offset = length;
+    }
+  }
+
   return TransformOffset(descendant, offset, aIsEndOffset);
 }
 
