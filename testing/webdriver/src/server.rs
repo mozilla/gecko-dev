@@ -262,7 +262,9 @@ fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = Rejection> + Clone {
     let chan = Arc::new(Mutex::new(chan));
     let mut std_routes = standard_routes::<U>();
+
     let (method, path, res) = std_routes.pop().unwrap();
+    trace!("Build standard route for {path}");
     let mut wroutes = build_route(
         address,
         allow_hosts.clone(),
@@ -272,7 +274,9 @@ fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
         res,
         chan.clone(),
     );
+
     for (method, path, res) in std_routes {
+        trace!("Build standard route for {path}");
         wroutes = wroutes
             .or(build_route(
                 address,
@@ -286,7 +290,9 @@ fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
             .unify()
             .boxed()
     }
+
     for (method, path, res) in ext_routes {
+        trace!("Build vendor route for {path}");
         wroutes = wroutes
             .or(build_route(
                 address,
@@ -300,6 +306,7 @@ fn build_warp_routes<U: 'static + WebDriverExtensionRoute + Send + Sync>(
             .unify()
             .boxed()
     }
+
     wroutes
 }
 
