@@ -148,9 +148,6 @@ var allowlist = [
     file: "resource://app/localization/en-US/browser/linuxDesktopEntry.ftl",
   },
 
-  // toolkit/content/aboutRights-unbranded.xhtml doesn't use aboutRights.css
-  { file: "chrome://global/skin/aboutRights.css", skipUnofficial: true },
-
   // devtools/client/inspector/bin/dev-server.js
   {
     file: "chrome://devtools/content/inspector/markup/markup.xhtml",

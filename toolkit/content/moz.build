@@ -218,9 +218,6 @@ with Files("aboutLogging*"):
 with Files("aboutProfile*"):
     BUG_COMPONENT = ("Toolkit", "Startup and Profile System")
 
-with Files("aboutRights*"):
-    BUG_COMPONENT = ("Toolkit", "General")
-
 with Files("aboutService*"):
     BUG_COMPONENT = ("Core", "DOM: Workers")
 

@@ -32,7 +32,7 @@ export var ControlCenter = {
     about: {
       selectors: CC_SELECTORS,
       async applyConfig() {
-        await loadPage("about:rights");
+        await loadPage("about:policies");
         await openIdentityPopup();
       },
     },

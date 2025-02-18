@@ -30,8 +30,6 @@ ID01:
         - memory-unit-MB
         - memory-unit-PB
         - memory-unit-TB
-        # toolkit/about/aboutRights.ftl
-        - enableSafeBrowsing-label
         # toolkit/about/aboutTelemetry.ftl
         - about-telemetry-show-in-Firefox-json-viewer
         # toolkit/about/url-classifier.ftl
@@ -183,9 +181,6 @@ CO01:
         - details-notification-soft-blocked-other-enabled
         - plugins-openh264-description
         - recommended-theme-1
-        # toolkit/about/aboutRights.ftl
-        - rights-intro-point-1
-        - rights-intro-point-2
         # toolkit/about/aboutSupport.ftl
         - app-basics-key-mozilla
         - virtual-monitor-disp

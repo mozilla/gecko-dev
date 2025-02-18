@@ -7,7 +7,7 @@ const testState = {
     {
       tabs: [
         { entries: [{ url: "about:blank", triggeringPrincipal_base64 }] },
-        { entries: [{ url: "about:rights", triggeringPrincipal_base64 }] },
+        { entries: [{ url: "about:robots", triggeringPrincipal_base64 }] },
       ],
     },
   ],
@@ -45,7 +45,7 @@ function test_duplicateTab() {
       is(busyEventCount, 1);
       is(readyEventCount, 1);
       is(ss.getCustomTabValue(newTab, "baz"), "qux");
-      is(newTab.linkedBrowser.currentURI.spec, "about:rights");
+      is(newTab.linkedBrowser.currentURI.spec, "about:robots");
 
       window.removeEventListener("SSWindowStateBusy", onSSWindowStateBusy);
       window.removeEventListener("SSWindowStateReady", onSSWindowStateReady);

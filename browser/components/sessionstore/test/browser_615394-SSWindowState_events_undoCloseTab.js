@@ -5,7 +5,7 @@ const testState = {
     {
       tabs: [
         { entries: [{ url: "about:blank", triggeringPrincipal_base64 }] },
-        { entries: [{ url: "about:rights", triggeringPrincipal_base64 }] },
+        { entries: [{ url: "about:robots", triggeringPrincipal_base64 }] },
       ],
     },
   ],
@@ -56,7 +56,7 @@ add_task(async function test_undoCloseTab() {
   Assert.equal(busyEventCount, 1);
   Assert.equal(readyEventCount, 1);
   Assert.equal(ss.getCustomTabValue(reopenedTab, "baz"), "qux");
-  Assert.equal(reopenedTab.linkedBrowser.currentURI.spec, "about:rights");
+  Assert.equal(reopenedTab.linkedBrowser.currentURI.spec, "about:robots");
 
   window.removeEventListener("SSWindowStateBusy", onSSWindowStateBusy);
   window.removeEventListener("SSWindowStateReady", onSSWindowStateReady);
