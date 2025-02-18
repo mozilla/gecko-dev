@@ -84,8 +84,8 @@ TEST_F(AudioSendStreamCallTest, NoExtensionsByDefault) {
    private:
     Action OnSendRtp(rtc::ArrayView<const uint8_t> packet) override {
       RtpPacket rtp_packet;
-      EXPECT_TRUE(rtp_packet.Parse(packet));          // rtp packet is valid.
-      EXPECT_EQ(packet[0] & 0b0001'0000, 0);          // extension bit not set.
+      EXPECT_TRUE(rtp_packet.Parse(packet));  // rtp packet is valid.
+      EXPECT_EQ(packet[0] & 0b0001'0000, 0);  // extension bit not set.
 
       observation_complete_.Set();
       return SEND_PACKET;
