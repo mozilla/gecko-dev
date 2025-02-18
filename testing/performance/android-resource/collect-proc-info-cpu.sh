@@ -22,7 +22,7 @@ get_cpu_info(){
     # c: total %CPU used since start
     # time: CPU time consumed
     # %cpu: percentage of CPU time used
-    adb shell ps -p "$1" -o name=,cpu=,c=,time=,%cpu= >> $2
+    adb shell ps -p "$1" -o name=,cpu=,c=,time+=,%cpu= >> $2
 }
 
 collect_cpu_at() {
