@@ -37,7 +37,7 @@ enum ChaosFeature {
 };
 
 namespace detail {
-extern MFBT_DATA Atomic<uint32_t, SequentiallyConsistent> gChaosModeCounter;
+extern MFBT_DATA Atomic<uint32_t, Relaxed> gChaosModeCounter;
 extern MFBT_DATA ChaosFeature gChaosFeatures;
 }  // namespace detail
 
@@ -53,17 +53,13 @@ class ChaosMode {
   }
 
   static bool isActive(ChaosFeature aFeature) {
-    if (detail::gChaosModeCounter > 0) {
-      return true;
-    }
-    return detail::gChaosFeatures & aFeature;
+    return detail::gChaosModeCounter > 0 && (detail::gChaosFeatures & aFeature);
   }
 
   /**
    * Increase the chaos mode activation level. An equivalent number of
    * calls to leaveChaosMode must be made in order to restore the original
-   * chaos mode state. If the activation level is nonzero all chaos mode
-   * features are activated.
+   * chaos mode state.
    */
   static void enterChaosMode() { detail::gChaosModeCounter++; }
 

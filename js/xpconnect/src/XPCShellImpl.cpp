@@ -1063,14 +1063,16 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
   PR_SetEnv("MOZ_DISABLE_ASAN_REPORTER=1");
 #endif
 
-  if (PR_GetEnv("MOZ_CHAOSMODE")) {
+  if (auto* featureStr = PR_GetEnv("MOZ_CHAOSMODE")) {
     ChaosFeature feature = ChaosFeature::Any;
-    long featureInt = strtol(PR_GetEnv("MOZ_CHAOSMODE"), nullptr, 16);
+    long featureInt = strtol(featureStr, nullptr, 16);
     if (featureInt) {
       // NOTE: MOZ_CHAOSMODE=0 or a non-hex value maps to Any feature.
       feature = static_cast<ChaosFeature>(featureInt);
     }
     ChaosMode::SetChaosFeature(feature);
+    ChaosMode::enterChaosMode();
+    MOZ_ASSERT(ChaosMode::isActive(ChaosFeature::Any));
   }
 
   if (ChaosMode::isActive(ChaosFeature::Any)) {
