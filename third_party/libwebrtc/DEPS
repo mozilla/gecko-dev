@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': '27c7fe6e7a57093e09bcdb675cc6cfedac716110',
+  'chromium_revision': 'e09950b1f2af5a2fa07a0a0925836ae7b1bd0ac6',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -64,9 +64,9 @@ vars = {
 deps = {
   # TODO(kjellander): Move this to be Android-only.
   'src/base':
-    'https://chromium.googlesource.com/chromium/src/base@45089e2aa0b9ed0dc54fd0f9c619523eede27819',
+    'https://chromium.googlesource.com/chromium/src/base@908ffd345cc480c94c35cc9a26737cc7598cae42',
   'src/build':
-    'https://chromium.googlesource.com/chromium/src/build@7f0b4c43e8ba1ab4bb7056479754ac973a2773f2',
+    'https://chromium.googlesource.com/chromium/src/build@4aba7b76ec765b0fe78cf6341887aaa80832f8c6',
   'src/buildtools':
     'https://chromium.googlesource.com/chromium/src/buildtools@b2b1b226f1e3af3715c34c7949d282aab91cad95',
   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
@@ -75,13 +75,13 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/ios': {
-    'url': 'https://chromium.googlesource.com/chromium/src/ios@f75a88f4c203d7f769f371358c77c4998214d9d0',
+    'url': 'https://chromium.googlesource.com/chromium/src/ios@c4e469ee17ffa7cae516c0a1c17b384610da61a5',
     'condition': 'checkout_ios',
   },
   'src/testing':
-    'https://chromium.googlesource.com/chromium/src/testing@91e5dc406672310abef09abe4529cfd3eca253ca',
+    'https://chromium.googlesource.com/chromium/src/testing@4a1296da2272fce4c1dd6d316767fa3268ba5724',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@188712b9b4ef77bd4b185605365e94da6cb5b012',
+    'https://chromium.googlesource.com/chromium/src/third_party@ced79efa53e98ccc05771af4576b6343c2f957bc',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -168,7 +168,7 @@ deps = {
   'src/third_party/libc++abi/src':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git@83dfa1f5bfce32d5f75695542468e37ead8163b8',
   'src/third_party/llvm-libc/src':
-    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git@c19ea20051628d97f4e3a0fc74992ac32fd82a56',
+    'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libc.git@bba78980368407630a21a3918e7e8a4cc5fef205',
   'src/third_party/libunwind/src':
     'https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libunwind.git@d1e95b102f113ded38974cf06a65fe0457b6004b',
 
@@ -286,7 +286,7 @@ deps = {
   },
 
   'src/third_party/boringssl/src':
-    'https://boringssl.googlesource.com/boringssl.git@d777ea2a7004ff7ef40ef983b41a5125f316f898',
+    'https://boringssl.googlesource.com/boringssl.git@f2394d14d81df436b263ff104eb6efc915cbdfc6',
   'src/third_party/breakpad/breakpad':
     'https://chromium.googlesource.com/breakpad/breakpad.git@02dd5c3ffbfed2bcbc93b553ed0e90a1ac951cb4',
   'src/third_party/catapult':
@@ -402,7 +402,7 @@ deps = {
       'condition': 'checkout_android',
   },
   'src/third_party/perfetto':
-    'https://android.googlesource.com/platform/external/perfetto.git@01f1eab6f88647dab2a70eb72c92a6cf7c6acb86',
+    'https://android.googlesource.com/platform/external/perfetto.git@19792a9913a7c898c2a154c10b580087bc2ee7b6',
   'src/third_party/protobuf-javascript/src':
     Var('chromium_git') + '/external/github.com/protocolbuffers/protobuf-javascript' + '@' + 'e34549db516f8712f678fcd4bc411613b5cc5295',
   'src/third_party/libvpx/source/libvpx':
@@ -461,7 +461,7 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/tools':
-    'https://chromium.googlesource.com/chromium/src/tools@45994b9a44ae735868fa67747ae30b0c513221c5',
+    'https://chromium.googlesource.com/chromium/src/tools@13cac1c4f35382400180209d3ab013812d88ddf7',
 
   'src/third_party/espresso': {
       'packages': [
