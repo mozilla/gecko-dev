@@ -299,10 +299,34 @@ class NavigationRegistry extends EventEmitter {
    */
   notifyNavigationStarted(data) {
     const { contextDetails, url } = data;
-
     const context = this.#getContextFromContextDetails(contextDetails);
     const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
+
     let navigation = this.#navigations.get(navigableId);
+
+    // For top-level navigations, `context` is the current browsing context for
+    // the browser with id = `contextDetails.browserId`.
+    // If the navigation replaced the browsing contexts, retrieve the original
+    // browsing context to check if the event is relevant.
+    const originalContext = BrowsingContext.get(
+      contextDetails.browsingContextId
+    );
+
+    // If we have a previousNavigation for the same URL, and the browsing
+    // context for this event (originalContext) is outdated, skip the event.
+    // Any further event from this browsing context will come with the aborted
+    // flag set and will also be ignored.
+    // Bug 1930616: Moving the NavigationManager to the parent process should
+    // hopefully make this irrelevant.
+    if (
+      url == navigation?.url &&
+      context != originalContext &&
+      !context.isReplaced &&
+      originalContext?.isReplaced
+    ) {
+      return null;
+    }
+
     if (navigation) {
       if (navigation.state === "started") {
         // Bug 1908952. As soon as we have support for the "url" field in case of beforeunload
