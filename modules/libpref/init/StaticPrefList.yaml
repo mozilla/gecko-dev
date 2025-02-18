@@ -1346,7 +1346,7 @@
 # Whether memorytesting is enabled when crash reporter client is launched
 - name: browser.crashReporter.memtest
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 # Space-separated list of prioritized memory test kinds
