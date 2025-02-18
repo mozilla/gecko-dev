@@ -3264,7 +3264,7 @@ export class FfiConverterOptionali32 extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterI32.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3301,7 +3301,7 @@ export class FfiConverterOptionalf64 extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterF64.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3338,7 +3338,7 @@ export class FfiConverterOptionalstring extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterString.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3375,7 +3375,7 @@ export class FfiConverterOptionalbytes extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterBytes.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3412,7 +3412,7 @@ export class FfiConverterOptionalTypeFtsMatchInfo extends FfiConverterArrayBuffe
             case 1:
                 return FfiConverterTypeFtsMatchInfo.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3449,7 +3449,7 @@ export class FfiConverterOptionalTypeSuggestionProviderConstraints extends FfiCo
             case 1:
                 return FfiConverterTypeSuggestionProviderConstraints.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3486,7 +3486,7 @@ export class FfiConverterOptionalTypeAmpMatchingStrategy extends FfiConverterArr
             case 1:
                 return FfiConverterTypeAmpMatchingStrategy.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3523,7 +3523,7 @@ export class FfiConverterOptionalTypeGeonameType extends FfiConverterArrayBuffer
             case 1:
                 return FfiConverterTypeGeonameType.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3560,7 +3560,7 @@ export class FfiConverterOptionalTypeInterruptKind extends FfiConverterArrayBuff
             case 1:
                 return FfiConverterTypeInterruptKind.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3597,7 +3597,7 @@ export class FfiConverterOptionalTypeSuggestProviderConfig extends FfiConverterA
             case 1:
                 return FfiConverterTypeSuggestProviderConfig.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3634,7 +3634,7 @@ export class FfiConverterOptionalSequencestring extends FfiConverterArrayBuffer 
             case 1:
                 return FfiConverterSequencestring.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3671,7 +3671,7 @@ export class FfiConverterOptionalSequenceTypeGeoname extends FfiConverterArrayBu
             case 1:
                 return FfiConverterSequenceTypeGeoname.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3708,7 +3708,7 @@ export class FfiConverterOptionalSequenceTypeSuggestionProvider extends FfiConve
             case 1:
                 return FfiConverterSequenceTypeSuggestionProvider.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3745,7 +3745,7 @@ export class FfiConverterOptionalTypeRemoteSettingsConfig extends FfiConverterAr
             case 1:
                 return FfiConverterTypeRemoteSettingsConfig.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 

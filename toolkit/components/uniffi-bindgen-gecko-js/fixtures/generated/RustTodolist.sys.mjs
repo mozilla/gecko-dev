@@ -830,7 +830,7 @@ export class FfiConverterOptionalTypeTodoList extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterTypeTodoList.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 

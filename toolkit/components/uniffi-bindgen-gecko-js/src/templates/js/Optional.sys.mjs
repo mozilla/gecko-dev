@@ -14,7 +14,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
             case 1:
                 return {{ inner_type.ffi_converter() }}.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 

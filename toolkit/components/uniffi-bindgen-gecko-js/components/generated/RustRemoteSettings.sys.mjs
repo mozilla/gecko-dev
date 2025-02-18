@@ -2260,7 +2260,7 @@ export class FfiConverterOptionali64 extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterI64.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2297,7 +2297,7 @@ export class FfiConverterOptionalstring extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterString.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2334,7 +2334,7 @@ export class FfiConverterOptionalTypeAttachment extends FfiConverterArrayBuffer 
             case 1:
                 return FfiConverterTypeAttachment.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2371,7 +2371,7 @@ export class FfiConverterOptionalTypeRemoteSettingsContext extends FfiConverterA
             case 1:
                 return FfiConverterTypeRemoteSettingsContext.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2408,7 +2408,7 @@ export class FfiConverterOptionalTypeRemoteSettingsServer extends FfiConverterAr
             case 1:
                 return FfiConverterTypeRemoteSettingsServer.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2445,7 +2445,7 @@ export class FfiConverterOptionalSequenceTypeRemoteSettingsRecord extends FfiCon
             case 1:
                 return FfiConverterSequenceTypeRemoteSettingsRecord.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2482,7 +2482,7 @@ export class FfiConverterOptionalMapStringTypeRemoteSettingsRecord extends FfiCo
             case 1:
                 return FfiConverterMapStringTypeRemoteSettingsRecord.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2519,7 +2519,7 @@ export class FfiConverterOptionalTypeRsJsonObject extends FfiConverterArrayBuffe
             case 1:
                 return FfiConverterTypeRsJsonObject.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 

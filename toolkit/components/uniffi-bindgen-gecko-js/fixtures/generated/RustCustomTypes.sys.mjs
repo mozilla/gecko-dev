@@ -391,7 +391,7 @@ export class FfiConverterOptionalTypeCustomTypesDemo extends FfiConverterArrayBu
             case 1:
                 return FfiConverterTypeCustomTypesDemo.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 

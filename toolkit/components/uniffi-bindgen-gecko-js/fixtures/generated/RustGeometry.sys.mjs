@@ -468,7 +468,7 @@ export class FfiConverterOptionalTypePoint extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterTypePoint.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 

@@ -2177,7 +2177,7 @@ export class FfiConverterOptionalu8 extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterU8.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2214,7 +2214,7 @@ export class FfiConverterOptionalstring extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterString.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2251,7 +2251,7 @@ export class FfiConverterOptionalTypeJsonEngineUrl extends FfiConverterArrayBuff
             case 1:
                 return FfiConverterTypeJsonEngineUrl.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2288,7 +2288,7 @@ export class FfiConverterOptionalTypeSearchEngineUrl extends FfiConverterArrayBu
             case 1:
                 return FfiConverterTypeSearchEngineUrl.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2325,7 +2325,7 @@ export class FfiConverterOptionalTypeJsonEngineMethod extends FfiConverterArrayB
             case 1:
                 return FfiConverterTypeJsonEngineMethod.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -2362,7 +2362,7 @@ export class FfiConverterOptionalSequenceTypeSearchUrlParam extends FfiConverter
             case 1:
                 return FfiConverterSequenceTypeSearchUrlParam.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 

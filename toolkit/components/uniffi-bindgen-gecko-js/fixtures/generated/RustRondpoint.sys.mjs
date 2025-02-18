@@ -3386,7 +3386,7 @@ export class FfiConverterOptionali32 extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterI32.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3423,7 +3423,7 @@ export class FfiConverterOptionalstring extends FfiConverterArrayBuffer {
             case 1:
                 return FfiConverterString.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
@@ -3460,7 +3460,7 @@ export class FfiConverterOptionalTypeminusculeMajusculeEnum extends FfiConverter
             case 1:
                 return FfiConverterTypeminusculeMajusculeEnum.read(dataStream)
             default:
-                throw UniFFIError(`Unexpected code: ${code}`);
+                throw new UniFFIError(`Unexpected code: ${code}`);
         }
     }
 
