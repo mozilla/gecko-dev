@@ -1577,8 +1577,8 @@ FaultingCodeOffset MacroAssemblerLOONG64::ma_store(
     LoadStoreExtension extension) {
   SecondScratchRegisterScope scratch2(asMasm());
   asMasm().computeScaledAddress(dest, scratch2);
-  return asMasm().ma_store(data, Address(scratch2, dest.offset), size,
-                           extension);
+  ma_add_d(scratch2, scratch2, Imm32(dest.offset));
+  return asMasm().ma_store(data, Address(scratch2, 0), size, extension);
 }
 
 void MacroAssemblerLOONG64::ma_store(Imm32 imm, const BaseIndex& dest,
@@ -4956,9 +4956,9 @@ FaultingCodeOffset MacroAssemblerLOONG64Compat::store32(Register src,
 
 template <typename T>
 void MacroAssemblerLOONG64Compat::storePtr(ImmWord imm, T address) {
-  SecondScratchRegisterScope scratch2(asMasm());
-  ma_li(scratch2, imm);
-  ma_store(scratch2, address, SizeDouble);
+  ScratchRegisterScope scratch(asMasm());
+  ma_li(scratch, imm);
+  ma_store(scratch, address, SizeDouble);
 }
 
 template void MacroAssemblerLOONG64Compat::storePtr<Address>(ImmWord imm,
