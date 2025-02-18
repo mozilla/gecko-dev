@@ -6,6 +6,8 @@
 ChromeUtils.defineESModuleGetters(this, {
   FxAccountsWebChannelHelpers:
     "resource://gre/modules/FxAccountsWebChannel.sys.mjs",
+  SelectableProfileService:
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
 });
 
 // Set up mocked profiles
@@ -40,6 +42,18 @@ add_setup(function setup() {
   do_get_profile();
   // FOG needs to be initialized in order for data to flow.
   Services.fog.initializeFOG();
+
+  // The profile service requires the directory service to have been initialized.
+  Cc["@mozilla.org/xre/directory-provider;1"].getService(Ci.nsIXREDirProvider);
+
+  // The normal isEnabled getter relies on there being a properly working toolkit
+  // profile service. For the purposes of this test just mirror the state of the
+  // preference.
+  Object.defineProperty(SelectableProfileService, "isEnabled", {
+    get() {
+      return Services.prefs.getBoolPref("browser.profiles.enabled");
+    },
+  });
 });
 
 const dialogVariants = [

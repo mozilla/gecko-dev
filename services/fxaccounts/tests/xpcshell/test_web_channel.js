@@ -27,6 +27,11 @@ const mockSendingContext = {
   eventTarget: {},
 };
 
+add_setup(function setup() {
+  // The profile service requires the directory service to have been initialized.
+  Cc["@mozilla.org/xre/directory-provider;1"].getService(Ci.nsIXREDirProvider);
+});
+
 add_test(function () {
   validationHelper(undefined, "Error: Missing configuration options");
 
