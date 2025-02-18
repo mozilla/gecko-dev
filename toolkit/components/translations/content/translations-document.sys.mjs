@@ -371,9 +371,15 @@ export class TranslationsDocument {
   /**
    * The timeout between the first translation received and the call to update the DOM
    * with translations.
+   *
+   * @type {null | number}
    */
-  #updateTimeout = null;
-  #attributeUpdateTimeout = null;
+  #updateTimeoutId = null;
+
+  /**
+   * @type {null | number}
+   */
+  #attributeUpdateTimeoutId = null;
 
   /**
    * The nodes that need translations. They are queued when the document tree is walked,
@@ -1473,9 +1479,9 @@ export class TranslationsDocument {
     if (this.#pendingTranslationsCount === 0) {
       // No translations are pending, update the node.
       this.updateNodesWithTranslationsAttributes();
-    } else if (!this.#attributeUpdateTimeout) {
+    } else if (!this.#attributeUpdateTimeoutId) {
       // Schedule an update.
-      this.#attributeUpdateTimeout = lazy.setTimeout(
+      this.#attributeUpdateTimeoutId = lazy.setTimeout(
         this.updateNodesWithTranslationsAttributes.bind(this),
         DOM_UPDATE_INTERVAL_MS
       );
@@ -1512,7 +1518,7 @@ export class TranslationsDocument {
         }
       }
       this.#elementsWithTranslatedAttributes.clear();
-      this.#attributeUpdateTimeout = null;
+      this.#attributeUpdateTimeoutId = null;
     });
   }
 
@@ -1832,7 +1838,7 @@ export class TranslationsDocument {
       }
 
       this.#nodesWithTranslatedHTML.clear();
-      this.#updateTimeout = null;
+      this.#updateTimeoutId = null;
     });
   }
 
@@ -1862,9 +1868,9 @@ export class TranslationsDocument {
     if (this.#pendingTranslationsCount === 0) {
       // No translations are pending, update the node.
       this.updateNodesWithTranslations();
-    } else if (!this.#updateTimeout) {
+    } else if (!this.#updateTimeoutId) {
       // Schedule an update.
-      this.#updateTimeout = lazy.setTimeout(
+      this.#updateTimeoutId = lazy.setTimeout(
         this.updateNodesWithTranslations.bind(this),
         DOM_UPDATE_INTERVAL_MS
       );
