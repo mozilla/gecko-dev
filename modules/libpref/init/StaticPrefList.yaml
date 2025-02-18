@@ -202,6 +202,22 @@
 #define IS_NOT_XP_MACOSX true
 #endif
 
+#ifdef XP_IOS
+#define IS_IOS true
+#define IS_NOT_IOS false
+#else
+#define IS_IOS false
+#define IS_NOT_IOS true
+#endif
+
+#if defined(ANDROID) || defined(XP_IOS)
+#define IS_MOBILE true
+#define IS_NOT_MOBILE false
+#else
+#define IS_MOBILE false
+#define IS_NOT_MOBILE true
+#endif
+
 #---------------------------------------------------------------------------
 # Prefs starting with "accessibility."
 #---------------------------------------------------------------------------
@@ -671,12 +687,12 @@
 
 - name: apz.keyboard.enabled
   type: bool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: once
 
 - name: apz.keyboard.passive-listeners
   type: RelaxedAtomicBool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 - name: apz.keyboard.focus-optimization
@@ -1569,7 +1585,7 @@
 # Image document's click-to-resize.
 - name: browser.enable_click_image_resizing
   type: bool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 - name: browser.find.ignore_ruby_annotations
@@ -3325,7 +3341,7 @@
 # Whether a native event loop should be used in the content process.
 - name: dom.ipc.useNativeEventProcessing.content
   type: RelaxedAtomicBool
-#if defined(XP_WIN) || defined(XP_MACOSX)
+#if defined(XP_WIN) || defined(XP_DARWIN)
   value: false
 #else
   value: true
@@ -5156,7 +5172,7 @@
 
 - name: dom.webkitBlink.dirPicker.enabled
   type: RelaxedAtomicBool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 # Whether allowing selection across the boundary
@@ -5262,13 +5278,13 @@
 # Is support for HTMLInputElement.webkitEntries enabled?
 - name: dom.webkitBlink.filesystem.enabled
   type: bool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 # Whether the WebMIDI API is enabled
 - name: dom.webmidi.enabled
   type: bool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 # midi permission is addon-gated
@@ -5652,7 +5668,7 @@
 # whether fission is enabled by default.
 - name: fission.autostart
   type: bool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: never
 
 # Disable storing the session history in the parent process, and accessing it
@@ -6510,7 +6526,7 @@
   # some issues remain on Intel hardware.
 -   name: gfx.core-animation.specialize-video
     type: RelaxedAtomicBool
-#if defined(MOZ_AARCH64)
+#if defined(MOZ_AARCH64) && defined(XP_MACOSX)
     value: true
 #else
     value: false
@@ -7256,7 +7272,7 @@
 
 - name: gfx.webrender.compositor
   type: bool
-#if defined(XP_WIN) || defined(XP_MACOSX)
+#if defined(XP_WIN) || defined(XP_DARWIN)
   value: true
 #else
   value: false
@@ -10181,7 +10197,7 @@
 # satisfactorily resolved.
 - name: layout.reflow.synthMouseMove
   type: bool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 # This pref determines which side vertical scrollbars should be on.
@@ -10835,7 +10851,7 @@
 # - A VP9 HW decoder is present.
 - name: media.mediasource.vp9.enabled
   type: RelaxedAtomicBool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 # Whether to enable MediaSource v2 support.
@@ -11291,7 +11307,7 @@
 # of Utility.
 -   name: media.allow-audio-non-utility
     type: RelaxedAtomicBool
-    value: false
+    value: @IS_IOS@
     mirror: always
 
 #ifdef MOZ_OMX
@@ -11967,7 +11983,7 @@
 # prefs. But it is not implemented on android, and can be turned off elsewhere.
 - name: media.getdisplaymedia.enabled
   type: bool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 # The getDisplayMedia prompt uses getDisplayMedia under the hood to show previews.
@@ -13617,7 +13633,7 @@
 - name: network.process.enabled
   type: RelaxedAtomicBool
   mirror: always
-#if defined(ANDROID) || defined(MOZ_THUNDERBIRD)
+#if defined(ANDROID) || defined(MOZ_THUNDERBIRD) || defined(XP_IOS)
   value: false # see bug 1641427
 #else
   value: true
@@ -16240,7 +16256,7 @@
 # Dispatch WebAuthn requests to authenticator-rs
 - name: security.webauth.webauthn_enable_usbtoken
   type: RelaxedAtomicBool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
   rust: true
 
@@ -16788,7 +16804,7 @@
 # Note there's no win32-excl VFS, so this has no effect on Windows.
 - name: storage.sqlite.exclusiveLock.enabled
   type: RelaxedAtomicBool
-  value: @IS_NOT_ANDROID@
+  value: @IS_NOT_MOBILE@
   mirror: always
 
 #---------------------------------------------------------------------------
