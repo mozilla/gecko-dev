@@ -127,11 +127,14 @@ var gBrowserInit = {
   },
 
   onDOMContentLoaded() {
-    // This needs setting up before we create the first remote browser.
+    // All of this needs setting up before we create the first remote browser.
     window.docShell.treeOwner
       .QueryInterface(Ci.nsIInterfaceRequestor)
       .getInterface(Ci.nsIAppWindow).XULBrowserWindow = window.XULBrowserWindow;
-    window.browserDOMWindow = new nsBrowserAccess();
+    BrowserUtils.callModulesFromCategory(
+      { categoryName: "browser-window-domcontentloaded-before-tabbrowser" },
+      window
+    );
 
     gBrowser = new window.Tabbrowser();
     gBrowser.init();
@@ -1146,6 +1149,10 @@ var gBrowserInit = {
     window.docShell.treeOwner
       .QueryInterface(Ci.nsIInterfaceRequestor)
       .getInterface(Ci.nsIAppWindow).XULBrowserWindow = null;
-    window.browserDOMWindow = null;
+
+    BrowserUtils.callModulesFromCategory(
+      { categoryName: "browser-window-unload" },
+      window
+    );
   },
 };
