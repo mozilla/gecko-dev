@@ -255,9 +255,13 @@ class JsepTrack {
   void SetMaxEncodings(size_t aMax);
   bool IsInHaveRemote() const { return mInHaveRemote; }
 
-  const std::string& GetFecCodecName() { return mFecCodec; }
-  const std::string& GetAudioPreferredCodec() { return mAudioPreferredCodec; }
-  const std::string& GetVideoPreferredCodec() { return mVideoPreferredCodec; }
+  const std::string& GetFecCodecName() const { return mFecCodec; }
+  const std::string& GetAudioPreferredCodec() const {
+    return mAudioPreferredCodec;
+  }
+  const std::string& GetVideoPreferredCodec() const {
+    return mVideoPreferredCodec;
+  }
 
  private:
   std::vector<UniquePtr<JsepCodecDescription>> GetCodecClones() const;

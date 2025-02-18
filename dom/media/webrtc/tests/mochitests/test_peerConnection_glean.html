@@ -4,7 +4,9 @@
 <head>
   <script type="application/javascript" src="pc.js"></script>
   <script type="application/javascript" src="sdpUtils.js"></script>
+  <script type="application/javascript" src="simulcast.js"></script>
   <script type="application/javascript" src="iceTestUtils.js"></script>
+  <script type="application/javascript" src="helpers_from_wpt/sdp.js"></script>
 </head>
 
 <body>
@@ -425,6 +427,44 @@
       let preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
       ok(preferredVideoCodec == 2, "checkUlpfecNegotiated glean should show preferred video codec VP8");
 
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, i == 0 ? "1" : "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, i == 1 ? "1" : "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      const audioMsections = await GleanTest.webrtcSignaling.audioMsectionNegotiated.testGetValue() || [];
+      is(audioMsections.length, 0, "Expected number of audio m-sections"); // pc2 finished negotiation before pc1
+
+      const videoMsections = await GleanTest.webrtcSignaling.videoMsectionNegotiated.testGetValue() || [];
+      is(videoMsections.length, 2, "Expected number of video m-sections"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < videoMsections.length; ++i) {
+        const e = videoMsections[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.pc_negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.has_rtcp_mux, "true", `Expected video rtcp-mux for i=${i}`);
+        is(e.direction, i == 0 ? "recvonly" : "sendonly", `Expected video direction for i=${i}`);
+        is(e.preferred_recv_codec, i == 0 ? "VP8" : undefined, `Expected preferred recv video codec for i=${i}`);
+        is(e.preferred_send_codec, i == 0 ? undefined : "VP8", `Expected preferred send video codec for i=${i}`);
+        ok(e.codecs.includes("VP8"), `VP8 codec present for i=${i}`);
+        ok(e.codecs.includes("ulpfec"), `No ulpfec codec present for i=${i}`);
+        is(e.num_send_simulcast_layers, i == 0 ? undefined : "1", `Expected number of simulcast layers for i=${i}`);
+      }
+
       pc1.close();
       pc2.close();
     },
@@ -452,6 +492,44 @@
       is(ulpfecNegotiated, 0, "checkNoUlpfecNegotiated glean should not show ulpfec negotiated " + ulpfecNegotiated);
       const preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
       is(preferredVideoCodec, 2, "checkNoUlpfecNegotiated glean should show preferred video codec VP8");
+
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, i == 0 ? "1" : "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, i == 1 ? "1" : "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      const audioMsections = await GleanTest.webrtcSignaling.audioMsectionNegotiated.testGetValue() || [];
+      is(audioMsections.length, 0, "Expected number of audio m-sections"); // pc2 finished negotiation before pc1
+
+      const videoMsections = await GleanTest.webrtcSignaling.videoMsectionNegotiated.testGetValue() || [];
+      is(videoMsections.length, 2, "Expected number of video m-sections"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < videoMsections.length; ++i) {
+        const e = videoMsections[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.pc_negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.has_rtcp_mux, "true", `Expected video rtcp-mux for i=${i}`);
+        is(e.direction, i == 0 ? "recvonly" : "sendonly", `Expected video direction for i=${i}`);
+        is(e.preferred_recv_codec, i == 0 ? "VP8" : undefined, `Expected preferred recv video codec for i=${i}`);
+        is(e.preferred_send_codec, i == 0 ? undefined : "VP8", `Expected preferred send video codec for i=${i}`);
+        ok(e.codecs.includes("VP8"), `VP8 codec present for i=${i}`);
+        ok(!e.codecs.includes("ulpfec"), `No ulpfec codec present for i=${i}`);
+        is(e.num_send_simulcast_layers, i == 0 ? undefined : "1", `Expected number of simulcast layers for i=${i}`);
+      }
 
       pc1.close();
       pc2.close();
@@ -481,6 +559,46 @@
       const preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP9.testGetValue() || 0;
       is(preferredVideoCodec, 2, "checkFlexfecOffered glean should show preferred video codec VP9");
 
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, i == 0 ? "1" : "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, i == 1 ? "1" : "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      const audioMsections = await GleanTest.webrtcSignaling.audioMsectionNegotiated.testGetValue() || [];
+      is(audioMsections.length, 0, "Expected number of audio m-sections"); // pc2 finished negotiation before pc1
+
+      const videoMsections = await GleanTest.webrtcSignaling.videoMsectionNegotiated.testGetValue() || [];
+      is(videoMsections.length, 2, "Expected number of video m-sections"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < videoMsections.length; ++i) {
+        const e = videoMsections[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.pc_negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.has_rtcp_mux, "true", `Expected video rtcp-mux for i=${i}`);
+        is(e.direction, i == 0 ? "recvonly" : "sendonly", `Expected video direction for i=${i}`);
+        is(e.preferred_recv_codec, i == 0 ? "VP9" : undefined, `Expected preferred recv video codec for i=${i}`);
+        is(e.preferred_send_codec, i == 0 ? undefined : "VP9", `Expected preferred send video codec for i=${i}`);
+        ok(!e.codecs.includes("VP8"), `No VP8 codec present for i=${i}`);
+        ok(!e.codecs.includes("flexfec"), `No flexfec codec present for i=${i}`);
+        ok(e.codecs.includes("VP9"), `VP9 codec present for i=${i}`);
+        ok(e.codecs.includes("ulpfec"), `ulpfec codec present for i=${i}`);
+        is(e.num_send_simulcast_layers, i == 0 ? undefined : "1", `Expected number of simulcast layers for i=${i}`);
+      }
+
       pc1.close();
       pc2.close();
     },
@@ -508,6 +626,45 @@
       is(preferredVideoCodecAVADA1, 1, "checkPreferredVideoCodec glean should show preferred video codec AVADA1" + preferredVideoCodecAVADA1);
       const preferredVideoCodecVP9 = await GleanTest.codecStats.videoPreferredCodec.VP9.testGetValue() || 0;
       is(preferredVideoCodecVP9, 1, "checkPreferredVideoCodec glean should show preferred video codec VP9" + preferredVideoCodecVP9);
+
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, i == 0 ? "1" : "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, i == 1 ? "1" : "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      const audioMsections = await GleanTest.webrtcSignaling.audioMsectionNegotiated.testGetValue() || [];
+      is(audioMsections.length, 0, "Expected number of audio m-sections"); // pc2 finished negotiation before pc1
+
+      const videoMsections = await GleanTest.webrtcSignaling.videoMsectionNegotiated.testGetValue() || [];
+      is(videoMsections.length, 2, "Expected number of video m-sections"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < videoMsections.length; ++i) {
+        const e = videoMsections[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.pc_negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.has_rtcp_mux, "true", `Expected video rtcp-mux for i=${i}`);
+        is(e.direction, i == 0 ? "recvonly" : "sendonly", `Expected video direction for i=${i}`);
+        is(e.preferred_recv_codec, i == 0 ? "AVADA1" : undefined, `Expected preferred recv video codec for i=${i}`);
+        is(e.preferred_send_codec, i == 0 ? undefined : "VP9", `Expected preferred send video codec for i=${i}`);
+        ok(!e.codecs.includes("VP8"), `No VP8 codec present for i=${i}`);
+        ok(!e.codecs.includes("AVADA1"), `No AVADA1 codec present for i=${i}`);
+        ok(e.codecs.includes("VP9"), `VP9 codec present for i=${i}`);
+        is(e.num_send_simulcast_layers, i == 0 ? undefined : "1", `Expected number of simulcast layers for i=${i}`);
+      }
 
       pc1.close();
       pc2.close();
@@ -537,6 +694,44 @@
       const preferredAudioCodecG722 = await GleanTest.codecStats.audioPreferredCodec.G722.testGetValue() || 0;
       is(preferredAudioCodecG722, 1, "checkPreferredAudioCodec Glean should show preferred audio codec G722 " + preferredAudioCodecG722);
 
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, i == 0 ? "1" : "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, i == 0 ? "0" : "1", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      const audioMsections = await GleanTest.webrtcSignaling.audioMsectionNegotiated.testGetValue() || [];
+      is(audioMsections.length, 2, "Expected number of audio m-sections"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < audioMsections.length; ++i) {
+        const e = audioMsections[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.pc_negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.has_rtcp_mux, "true", `Expected audio rtcp-mux for i=${i}`);
+        is(e.direction, i == 0 ? "recvonly" : "sendonly", `Expected audio direction for i=${i}`);
+        is(e.preferred_recv_codec, i == 0 ? "FAKECodec" : undefined, `Expected preferred recv video codec for i=${i}`);
+        is(e.preferred_send_codec, i == 0 ? undefined : "G722", `Expected preferred send video codec for i=${i}`);
+        ok(!e.codecs.includes("opus"), `No opus present for i=${i}`);
+        ok(!e.codecs.includes("FAKECodec"), `No FAKECodec present for i=${i}`);
+        ok(e.codecs.includes("G722"), `VP9 codec present for i=${i}`);
+      }
+
+      const videoMsections = await GleanTest.webrtcSignaling.videoMsectionNegotiated.testGetValue() || [];
+      is(videoMsections.length, 0, "Expected number of video m-sections"); // pc2 finished negotiation before pc1
+
       pc1.close();
       pc2.close();
     },
@@ -558,6 +753,14 @@
       await pc2.setLocalDescription(answer);
       await pc1.setRemoteDescription(answer);
 
+      // Renegotiate
+      const newOffer = await pc1.createOffer();
+      await pc1.setLocalDescription(newOffer);
+      await pc2.setRemoteDescription(newOffer);
+      const newAnswer = await pc2.createAnswer();
+      await pc2.setLocalDescription(newAnswer);
+      await pc1.setRemoteDescription(newAnswer);
+
       // Validate logging shows for each transciever but is not duplicated with the renegotiation
       const ulpfecNotNegotiated = await GleanTest.codecStats.ulpfecNegotiated.not_negotiated.testGetValue() || 0;
       is(ulpfecNotNegotiated, 0, "checkLoggingMultipleTransceivers glean should not count not_negotiated");
@@ -565,6 +768,43 @@
       is(ulpfecNegotiated, 6, "checkLoggingMultipleTransceivers glean should show ulpfec negotiated " + ulpfecNegotiated);
       const preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
       is(preferredVideoCodec, 6, "checkLoggingMultipleTransceivers glean should show preferred video codec VP8 " + preferredVideoCodec);
+
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 4, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i % 2 == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, i > 1 ? "2" : "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, i % 2 == 0 ? "3" : "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, i % 2 == 1 ? "3" : "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      const audioMsections = await GleanTest.webrtcSignaling.audioMsectionNegotiated.testGetValue() || [];
+      is(audioMsections.length, 0, "Expected number of audio m-sections"); // pc2 finished negotiation before pc1
+
+      const videoMsections = await GleanTest.webrtcSignaling.videoMsectionNegotiated.testGetValue() || [];
+      is(videoMsections.length, 12, "Expected number of video m-sections"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < videoMsections.length; ++i) {
+        const e = videoMsections[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i % 6 < 3 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.pc_negotiation_count, `${Math.floor(i / 6) + 1}`, `Expected number of negotiations for i=${i}`);
+        is(e.has_rtcp_mux, "true", `Expected video rtcp-mux for i=${i}`);
+        is(e.direction, i % 6 < 3 ? "recvonly" : "sendonly", `Expected video direction for i=${i}`);
+        is(e.preferred_recv_codec, i % 6 < 3 ? "VP8" : undefined, `Expected preferred recv video codec for i=${i}`);
+        is(e.preferred_send_codec, i % 6 < 3 ? undefined : "VP8", `Expected preferred send video codec for i=${i}`);
+        ok(e.codecs.includes("VP8"), `VP8 codec present for i=${i}`);
+        is(e.num_send_simulcast_layers, i % 6 < 3 ? undefined : "1", `Expected number of simulcast layers for i=${i}`);
+      }
 
       pc1.close();
       pc2.close();
@@ -761,6 +1001,203 @@
           is(count1_2, 0);
           is(count1_3, 0);
       });
+    },
+
+    async function checkSimulcastSendEncodings() {
+      const pc1 = new RTCPeerConnection();
+      const pc2 = new RTCPeerConnection();
+      await gleanResetTestValues();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const { sender } = pc1.addTransceiver(stream.getTracks()[0], {
+        sendEncodings: [{ rid: "0" }, { rid: "1" }, { rid: "2" }]
+      });
+      const offer = await pc1.createOffer();
+      const mungedOffer = ridToMid(offer);
+      await pc1.setLocalDescription(offer);
+      await pc2.setRemoteDescription({type: 'offer', sdp: mungedOffer});
+      const answer = await pc2.createAnswer();
+      const mungedAnswer = midToRid(answer);
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription({type: 'answer', sdp: mungedAnswer});
+
+      const preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
+      is(preferredVideoCodec, 4, "checkSimulcastSendEncodings glean should show preferred video codec VP8");
+
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, i == 0 ? "3" : "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, i == 1 ? "1" : "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      const audioMsections = await GleanTest.webrtcSignaling.audioMsectionNegotiated.testGetValue() || [];
+      is(audioMsections.length, 0, "Expected number of audio m-sections"); // pc2 finished negotiation before pc1
+
+      const videoMsections = await GleanTest.webrtcSignaling.videoMsectionNegotiated.testGetValue() || [];
+      is(videoMsections.length, 4, "Expected number of video m-sections"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < videoMsections.length; ++i) {
+        const e = videoMsections[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i < 3 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.pc_negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.has_rtcp_mux, "true", `Expected video rtcp-mux for i=${i}`);
+        is(e.direction, i < 3 ? "recvonly" : "sendonly", `Expected video direction for i=${i}`);
+        is(e.preferred_recv_codec, i < 3 ? "VP8" : undefined, `Expected preferred recv video codec for i=${i}`);
+        is(e.preferred_send_codec, i < 3 ? undefined : "VP8", `Expected preferred send video codec for i=${i}`);
+        ok(e.codecs.includes("VP8"), `VP8 codec present for i=${i}`);
+        is(e.num_send_simulcast_layers, i < 3 ? undefined : "3", `Expected number of simulcast layers for i=${i}`);
+      }
+
+      pc1.close();
+      pc2.close();
+    },
+
+    async function checkSimulcastJsep() {
+      const pc1 = new RTCPeerConnection();
+      const pc2 = new RTCPeerConnection();
+      await gleanResetTestValues();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      pc2.addTransceiver('video', { direction: "recvonly" });
+      pc2.addTransceiver('video', { direction: "recvonly" });
+      const offer = await pc2.createOffer();
+      const mungedOffer = midToRid(offer);
+      await pc2.setLocalDescription(offer);
+      await pc1.setRemoteDescription({type: 'offer', sdp: mungedOffer});
+      pc1.addTrack(stream.getTracks()[0], stream);
+      const answer = await pc1.createAnswer();
+      const mungedAnswer = ridToMid(answer);
+      await pc2.setRemoteDescription({type: 'answer', sdp: mungedAnswer});
+      await pc1.setLocalDescription(answer);
+
+      const preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
+      is(preferredVideoCodec, 3, "checkSimulcastJsep glean should show preferred video codec VP8");
+
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, i == 0 ? "2" : "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, i == 1 ? "1" : "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      const audioMsections = await GleanTest.webrtcSignaling.audioMsectionNegotiated.testGetValue() || [];
+      is(audioMsections.length, 0, "Expected number of audio m-sections"); // pc2 finished negotiation before pc1
+
+      const videoMsections = await GleanTest.webrtcSignaling.videoMsectionNegotiated.testGetValue() || [];
+      is(videoMsections.length, 3, "Expected number of video m-sections"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < videoMsections.length; ++i) {
+        const e = videoMsections[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i < 2 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.pc_negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.has_rtcp_mux, "true", `Expected video rtcp-mux for i=${i}`);
+        is(e.direction, i < 2 ? "recvonly" : "sendonly", `Expected video direction for i=${i}`);
+        is(e.preferred_recv_codec, i < 2 ? "VP8" : undefined, `Expected preferred recv video codec for i=${i}`);
+        is(e.preferred_send_codec, i < 2 ? undefined : "VP8", `Expected preferred send video codec for i=${i}`);
+        ok(e.codecs.includes("VP8"), `VP8 codec present for i=${i}`);
+        is(e.num_send_simulcast_layers, i < 2 ? undefined : "2", `Expected number of simulcast layers for i=${i}`);
+      }
+
+      pc1.close();
+      pc2.close();
+    },
+
+    async function checkConfigurationNoBundle() {
+      const pc1 = new RTCPeerConnection({bundlePolicy: "max-compat"});
+      const pc2 = new RTCPeerConnection({iceTransportPolicy: "relay"});
+      await gleanResetTestValues();
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const sender1 = pc1.addTrack(stream.getTracks()[0]);
+      const sender2 = pc1.addTrack(sender1.track.clone());
+      await pc1.setLocalDescription();
+      const offer = pc1.localDescription;
+      const mungedOffer = offer.sdp.replace("BUNDLE", "BUNGLE");
+      await pc2.setRemoteDescription({ type: "offer", sdp: mungedOffer });
+      const answer = await pc2.createAnswer();
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
+
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, i == 0 ? "balanced" : "max-compat", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, i == 0 ? "relay" : "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "2", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, i == 0 ? "2" : "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, i == 1 ? "2" : "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "0", `Expected number of data m-sections for i=${i}`);
+      }
+
+      pc1.close();
+      pc2.close();
+    },
+
+    async function checkDataChannel() {
+      const pc1 = new RTCPeerConnection();
+      const pc2 = new RTCPeerConnection();
+      await gleanResetTestValues();
+      pc1.createDataChannel('test');
+      await pc1.setLocalDescription();
+      const offer = pc1.localDescription;
+      await pc2.setRemoteDescription(offer);
+      const answer = await pc2.createAnswer();
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
+
+      // Validate negotiation event logging
+      const sdps = await GleanTest.webrtcSignaling.sdpNegotiated.testGetValue() || [];
+      is(sdps.length, 2, "Expected number of sdps"); // pc2 finished negotiation before pc1
+      for (let i = 0; i < sdps.length; ++i) {
+        const e = sdps[i].extra;
+        is(e.pc_id, SpecialPowers.wrap(i == 0 ? pc2 : pc1).id.split(' ', 1)[0], `Expected RTCPeerConnection identifier for i=${i}`);
+        is(e.negotiation_count, "1", `Expected number of negotiations for i=${i}`);
+        is(e.is_remote_ice_lite, "false", `Expected remote ICE-Lite for i=${i}`);
+        is(e.bundle_policy, "balanced", `Expected BundlePolicy for i=${i}`);
+        is(e.ice_transport_policy, "all", `Expected IceTransportPolicy for i=${i}`);
+        is(e.num_transports, "1", `Expected number of transports for i=${i}`);
+        is(e.num_msections_audio_recvonly, "0", `Expected number of audio recvonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendonly, "0", `Expected number of audio sendonly m-sections for i=${i}`);
+        is(e.num_msections_audio_sendrecv, "0", `Expected number of audio sendrecv m-sections for i=${i}`);
+        is(e.num_msections_video_recvonly, "0", `Expected number of video recvonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendonly, "0", `Expected number of video sendonly m-sections for i=${i}`);
+        is(e.num_msections_video_sendrecv, "0", `Expected number of video sendrecv m-sections for i=${i}`);
+        is(e.num_msections_data, "1", `Expected number of data m-sections for i=${i}`);
+      }
+
+      pc1.close();
+      pc2.close();
     },
 
   ];

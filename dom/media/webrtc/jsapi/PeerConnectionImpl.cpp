@@ -18,6 +18,7 @@
 #include "nss.h"
 #include "pk11pub.h"
 
+#include "nsFmtString.h"
 #include "nsNetCID.h"
 #include "nsILoadContext.h"
 #include "nsEffectiveTLDService.h"
@@ -54,6 +55,7 @@
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/StaticPrefs_media.h"
+#include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/media/MediaUtils.h"
 
 #ifdef XP_WIN
@@ -140,6 +142,9 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using glean::webrtc_signaling::AudioMsectionNegotiatedExtra;
+using glean::webrtc_signaling::SdpNegotiatedExtra;
+using glean::webrtc_signaling::VideoMsectionNegotiatedExtra;
 
 typedef PCObserverString ObString;
 
@@ -2844,6 +2849,132 @@ void PeerConnectionImpl::RecordEndOfCallTelemetry() {
   mCallTelemEnded = true;
 }
 
+void PeerConnectionImpl::RecordSignalingTelemetry() const {
+  uint16_t recvonly[SdpMediaSection::kMediaTypes];
+  uint16_t sendonly[SdpMediaSection::kMediaTypes];
+  uint16_t sendrecv[SdpMediaSection::kMediaTypes];
+  mJsepSession->CountTransceivers(recvonly, sendonly, sendrecv);
+
+  uint32_t numTransports = 0;
+  mJsepSession->ForEachTransceiver([&](const auto& aTransceiver) {
+    if (aTransceiver.HasOwnTransport()) {
+      ++numTransports;
+    }
+  });
+
+  SdpNegotiatedExtra extra = {
+      .bundlePolicy = (mJsConfiguration.mBundlePolicy.WasPassed()
+                           ? Some(mJsConfiguration.mBundlePolicy.Value())
+                           : Nothing())
+                          .map([](RTCBundlePolicy aPolicy) {
+                            return GetEnumString(aPolicy);
+                          }),
+      .iceTransportPolicy =
+          (mJsConfiguration.mIceTransportPolicy.WasPassed()
+               ? Some(mJsConfiguration.mIceTransportPolicy.Value())
+               : Nothing())
+              .map([](RTCIceTransportPolicy aPolicy) {
+                return GetEnumString(aPolicy);
+              }),
+      .isRemoteIceLite = Some(mJsepSession->RemoteIsIceLite()),
+      .negotiationCount = Some(mJsepSession->GetNegotiations()),
+      .numMsectionsAudioRecvonly = Some(recvonly[SdpMediaSection::kAudio]),
+      .numMsectionsAudioSendonly = Some(sendonly[SdpMediaSection::kAudio]),
+      .numMsectionsAudioSendrecv = Some(sendrecv[SdpMediaSection::kAudio]),
+      .numMsectionsData = Some(sendrecv[SdpMediaSection::kApplication]),
+      .numMsectionsVideoRecvonly = Some(recvonly[SdpMediaSection::kVideo]),
+      .numMsectionsVideoSendonly = Some(sendonly[SdpMediaSection::kVideo]),
+      .numMsectionsVideoSendrecv = Some(sendrecv[SdpMediaSection::kVideo]),
+      .numTransports = Some(numTransports),
+      .pcId = Some(nsCString(mHandle.c_str())),
+  };
+  glean::webrtc_signaling::sdp_negotiated.Record(Some(std::move(extra)));
+
+  mJsepSession->ForEachTransceiver([&](const JsepTransceiver& aTransceiver) {
+    if (const auto type = aTransceiver.GetMediaType();
+        type != SdpMediaSection::kAudio && type != SdpMediaSection::kVideo) {
+      return;
+    }
+    if (!aTransceiver.IsNegotiated()) {
+      return;
+    }
+    const bool sending = aTransceiver.mSendTrack.GetActive();
+    const bool receiving = aTransceiver.mRecvTrack.GetActive();
+    const nsFmtCString codecString =
+        ([](const JsepTrackNegotiatedDetails* aDetails) {
+          std::set<std::string> payload_names;
+          const size_t count = aDetails ? aDetails->GetEncodingCount() : 0;
+          for (size_t i = 0; i < count; ++i) {
+            const auto& encoding = aDetails->GetEncoding(i);
+            for (const auto& codec : encoding.GetCodecs()) {
+              if (codec->mEnabled) {
+                payload_names.insert(codec->mName);
+              }
+            }
+          }
+          return nsFmtCString{FMT_STRING("{}"), fmt::join(payload_names, ", ")};
+        })((sending ? aTransceiver.mSendTrack : aTransceiver.mRecvTrack)
+               .GetNegotiatedDetails());
+    const char* direction = ([&]() {
+      if (sending && receiving) {
+        return "sendrecv";
+      }
+      if (sending) {
+        return "sendonly";
+      }
+      if (receiving) {
+        return "recvonly";
+      }
+      return "inactive";
+    })();
+    const bool hasRtcpMux = aTransceiver.mTransport.mComponents == 1;
+    if (aTransceiver.GetMediaType() == SdpMediaSection::kVideo) {
+      VideoMsectionNegotiatedExtra extraVideo{
+          .codecs = Some(codecString),
+          .direction = Some(direction),
+          .hasRtcpMux = Some(hasRtcpMux),
+          .numSendSimulcastLayers =
+              sending ? Some(aTransceiver.mSendTrack.GetRids().size())
+                      : Nothing(),
+          .pcId = Some(nsCString(mHandle.c_str())),
+          .pcNegotiationCount = Some(mJsepSession->GetNegotiations()),
+          .preferredRecvCodec =
+              receiving ? Some(nsDependentCString(
+                              aTransceiver.mRecvTrack.GetVideoPreferredCodec()
+                                  .c_str()))
+                        : Nothing(),
+          .preferredSendCodec =
+              sending ? Some(nsDependentCString(
+                            aTransceiver.mSendTrack.GetVideoPreferredCodec()
+                                .c_str()))
+                      : Nothing(),
+      };
+      glean::webrtc_signaling::video_msection_negotiated.Record(
+          Some(extraVideo));
+    } else {
+      AudioMsectionNegotiatedExtra extraAudio{
+          .codecs = Some(codecString),
+          .direction = Some(direction),
+          .hasRtcpMux = Some(hasRtcpMux),
+          .pcId = Some(nsCString(mHandle.c_str())),
+          .pcNegotiationCount = Some(mJsepSession->GetNegotiations()),
+          .preferredRecvCodec =
+              receiving ? Some(nsDependentCString(
+                              aTransceiver.mRecvTrack.GetAudioPreferredCodec()
+                                  .c_str()))
+                        : Nothing(),
+          .preferredSendCodec =
+              sending ? Some(nsDependentCString(
+                            aTransceiver.mSendTrack.GetAudioPreferredCodec()
+                                .c_str()))
+                      : Nothing(),
+      };
+      glean::webrtc_signaling::audio_msection_negotiated.Record(
+          Some(extraAudio));
+    }
+  });
+}
+
 DOMMediaStream* PeerConnectionImpl::GetReceiveStream(
     const std::string& aId) const {
   nsString wanted = NS_ConvertASCIItoUTF16(aId.c_str());
@@ -3174,6 +3305,13 @@ void PeerConnectionImpl::DoSetDescriptionSuccessPostProcessing(
         for (const auto& stream : newStreams) {
           pcObserver->FireStreamEvent(*stream, jrv);
         }
+
+        if (signalingStateChanged &&
+            mSignalingState == dom::RTCSignalingState::Stable &&
+            aSdpType != RTCSdpType::Rollback) {
+          RecordSignalingTelemetry();
+        }
+
         aP->MaybeResolveWithUndefined();
       }));
 }

@@ -416,6 +416,8 @@ class PeerConnectionImpl final
 
   void RecordEndOfCallTelemetry();
 
+  void RecordSignalingTelemetry() const;
+
   nsresult MaybeInitializeDataChannel();
 
   NS_IMETHODIMP_TO_ERRORRESULT_RETREF(nsDOMDataChannel, CreateDataChannel,

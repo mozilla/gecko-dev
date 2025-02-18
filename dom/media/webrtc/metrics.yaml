@@ -492,6 +492,177 @@ webrtcdtls:
       - webrtc-telemetry-alerts@mozilla.com
     expires: 145
 
+webrtc.signaling:
+  sdp_negotiated:
+    type: event
+    description: >
+      Collects data relevant to a SDP Offer/Answer negotiation completing and
+      the RTCPeerConnection's signaling state becoming stable.
+      The pc_id and negotiation_count uniquely identifies these events.
+    extra_keys:
+      pc_id:
+        description: >
+          A UUID-based identifier for the RTCPeerConnection in charge of this
+          SDP's negotiation.
+        type: string
+      negotiation_count:
+        description: >
+          The number of completed Offer/Answer negotiations for the associated
+          RTCPeerConnection.
+        type: quantity
+      is_remote_ice_lite:
+        description: Whether the remote peer is using ICE-Lite.
+        type: boolean
+      bundle_policy:
+        description: The Bundle policy as set through RTCConfiguration.
+        type: string
+      ice_transport_policy:
+        description: The ICE Transport policy as set through RTCConfiguration.
+        type: string
+      num_transports:
+        description: >
+          The number of transports used for all transceivers of the peer
+          connection. Affected by BUNDLE.
+        type: quantity
+      num_msections_audio_recvonly:
+        description: The number of audio recvonly m-sections in the SDP.
+        type: quantity
+      num_msections_audio_sendonly:
+        description: The number of audio sendonly m-sections in the SDP.
+        type: quantity
+      num_msections_audio_sendrecv:
+        description: The number of audio sendrecv m-sections in the SDP.
+        type: quantity
+      num_msections_video_recvonly:
+        description: The number of video recvonly m-sections in the SDP.
+        type: quantity
+      num_msections_video_sendonly:
+        description: The number of video sendonly m-sections in the SDP.
+        type: quantity
+      num_msections_video_sendrecv:
+        description: The number of video sendrecv m-sections in the SDP.
+        type: quantity
+      num_msections_data:
+        description: The number of data-channel m-sections in the SDP.
+        type: quantity
+    bugs:
+      - https://bugzil.la/1942640
+    data_reviews:
+      - https://bugzil.la/1942640
+    data_sensitivity:
+      - technical
+      - interaction
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+
+  audio_msection_negotiated:
+    type: event
+    description: >
+      Collects data relevant to an audio m-section as part of SDP Offer/Answer
+      negotiation completing and the RTCPeerConnection's signaling state
+      becoming stable.
+    extra_keys:
+      pc_id:
+        description: >
+          A UUID-based identifier for the RTCPeerConnection in charge of this
+          m-section's negotiation.
+        type: string
+      pc_negotiation_count:
+        description: >
+          The number of completed Offer/Answer negotiations for the associated
+          RTCPeerConnection.
+        type: quantity
+      has_rtcp_mux:
+        description: >
+          Whether muxing RTCP with RTP data was negotiated for the m-section.
+        type: boolean
+      direction:
+        description: >
+          Direction of the m-section. recvonly, sendonly, sendrecv or inactive.
+        type: string
+      preferred_send_codec:
+        description: >
+          The preferred send audio codec of the m-section. Only set if direction
+          includes send.
+        type: string
+      preferred_recv_codec:
+        description: >
+          The preferred receive audio codec of the m-section. Only set if
+          direction includes recv.
+        type: string
+      codecs:
+        description: >
+          All negotiated audio codecs of the m-section.
+          Sorted lexicographically.
+        type: string
+    bugs:
+      - https://bugzil.la/1942640
+    data_reviews:
+      - https://bugzil.la/1942640
+    data_sensitivity:
+      - technical
+      - interaction
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+
+  video_msection_negotiated:
+    type: event
+    description: >
+      Collects data relevant to a video m-section as part of SDP Offer/Answer
+      negotiation completing and the RTCPeerConnection's signaling state
+      becoming stable.
+    extra_keys:
+      pc_id:
+        description: >
+          A UUID-based identifier for the RTCPeerConnection in charge of this
+          m-section's negotiation.
+        type: string
+      pc_negotiation_count:
+        description: >
+          The number of completed Offer/Answer negotiations for the associated
+          RTCPeerConnection.
+        type: quantity
+      has_rtcp_mux:
+        description: >
+          Whether muxing RTCP with RTP data was negotiated for the m-section.
+        type: boolean
+      direction:
+        description: >
+          Direction of the m-section. recvonly, sendonly, sendrecv or inactive.
+        type: string
+      preferred_send_codec:
+        description: >
+          The preferred send video codec of the m-section. Only set if direction
+          includes send.
+        type: string
+      preferred_recv_codec:
+        description: >
+          The preferred receive video  codec of the m-section. Only set if
+          direction includes recv.
+        type: string
+      codecs:
+        description: >
+          All negotiated video codecs of the m-section.
+          Sorted lexicographically.
+        type: string
+      num_send_simulcast_layers:
+        description: >
+          The number of simulcast layers negotiated. 1 for singlecast.
+          Only set for m-sections negotiated to send.
+        type: quantity
+    bugs:
+      - https://bugzil.la/1942640
+    data_reviews:
+      - https://bugzil.la/1942640
+    data_sensitivity:
+      - technical
+      - interaction
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: never
+
 webrtc.video:
   recv_codec_used:
     type: labeled_counter
