@@ -1,0 +1,12 @@
+{
+  "description": "A collection of rules that help enforce CSS coding standards in the Mozilla project.",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "node --test tests/**"
+  },
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "stylelint-test-rule-node": "0.4.0"
+  },
+  "private": true
+}
