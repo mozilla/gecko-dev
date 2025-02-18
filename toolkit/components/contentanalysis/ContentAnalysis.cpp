@@ -117,6 +117,7 @@ nsIContentAnalysisAcknowledgement::FinalAction ConvertResult(
     case nsIContentAnalysisResponse::Action::eWarn:
       return nsIContentAnalysisAcknowledgement::FinalAction::eWarn;
     case nsIContentAnalysisResponse::Action::eBlock:
+    case nsIContentAnalysisResponse::Action::eCanceled:
       return nsIContentAnalysisAcknowledgement::FinalAction::eBlock;
     case nsIContentAnalysisResponse::Action::eAllow:
       return nsIContentAnalysisAcknowledgement::FinalAction::eAllow;
@@ -1327,10 +1328,6 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
                                       nsresult aResult) {
   MOZ_ASSERT(!aUserActionId.IsEmpty());
   if (!NS_IsMainThread()) {
-    LOGD(
-        "ContentAnalysis::CancelWithError dispatching to main thread for "
-        "user action %s",
-        aUserActionId.get());
     NS_DispatchToMainThread(NS_NewCancelableRunnableFunction(
         "CancelWithError",
         [aUserActionId = std::move(aUserActionId), aResult]() mutable {
@@ -1375,7 +1372,7 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
         "after last response or before first request was submitted | "
         "userActionId: %s",
         aUserActionId.get());
-    mUserActionMap.Remove(aUserActionId);
+    RemoveFromUserActionMap(std::move(aUserActionId));
     return;
   }
 
@@ -1440,7 +1437,8 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
   for (const auto& token : tokens) {
     auto response = MakeRefPtr<ContentAnalysisResponse>(action, token);
     response->SetCancelError(cancelError);
-    NotifyResponseObservers(response, nsCString(aUserActionId));
+    NotifyResponseObservers(response, nsCString(aUserActionId),
+                            false /* autoAcknowledge */);
     if (action != nsIContentAnalysisResponse::Action::eWarn) {
       if (callback) {
         if (isShutdown) {
@@ -1457,11 +1455,14 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
     }
   }
 
+  mUserActionIdToToCanceledResponseMap.InsertOrUpdate(
+      aUserActionId, CanceledResponse{ConvertResult(action), tokens.Count()});
+
   if (action == nsIContentAnalysisResponse::Action::eWarn) {
     return;
   }
 
-  mUserActionMap.Remove(aUserActionId);
+  RemoveFromUserActionMap(nsCString(aUserActionId));
 
   mCaClientPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
@@ -1584,19 +1585,19 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
 
   mCaClientPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [userActionId, pbRequest = std::move(pbRequest)](
+      [userActionId, pbRequest = std::move(pbRequest), aAutoAcknowledge](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable {
         // The content analysis call is synchronous so run in the background.
-        NS_DispatchBackgroundTask(NS_NewCancelableRunnableFunction(
-                                      __func__,
-                                      [userActionId = std::move(userActionId),
-                                       pbRequest = std::move(pbRequest),
-                                       client = std::move(client)]() mutable {
-                                        DoAnalyzeRequest(
-                                            std::move(userActionId),
-                                            std::move(pbRequest), client);
-                                      }),
-                                  NS_DISPATCH_EVENT_MAY_BLOCK);
+        NS_DispatchBackgroundTask(
+            NS_NewCancelableRunnableFunction(
+                __func__,
+                [userActionId = std::move(userActionId),
+                 pbRequest = std::move(pbRequest), client = std::move(client),
+                 aAutoAcknowledge]() mutable {
+                  DoAnalyzeRequest(std::move(userActionId), aAutoAcknowledge,
+                                   std::move(pbRequest), client);
+                }),
+            NS_DISPATCH_EVENT_MAY_BLOCK);
       },
       [userActionId](nsresult rv) mutable {
         LOGD("RunAnalyzeRequestTask failed to get client");
@@ -1612,7 +1613,7 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
 }
 
 void ContentAnalysis::DoAnalyzeRequest(
-    nsCString&& aUserActionId,
+    nsCString&& aUserActionId, bool aAutoAcknowledge,
     content_analysis::sdk::ContentAnalysisRequest&& aRequest,
     const std::shared_ptr<content_analysis::sdk::Client>& aClient) {
   MOZ_ASSERT(!NS_IsMainThread());
@@ -1660,7 +1661,7 @@ void ContentAnalysis::DoAnalyzeRequest(
   NS_DispatchToMainThread(NS_NewCancelableRunnableFunction(
       "ContentAnalysis::RunAnalyzeRequestTask::HandleResponse",
       [pbResponse = std::move(pbResponse),
-       aUserActionId = std::move(aUserActionId)]() mutable {
+       aUserActionId = std::move(aUserActionId), aAutoAcknowledge]() mutable {
         LOGD("RunAnalyzeRequestTask on main thread about to send response");
         RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -1674,13 +1675,14 @@ void ContentAnalysis::DoAnalyzeRequest(
           LOGE("Content analysis got invalid response!");
           return;
         }
-        owner->NotifyObserversAndMaybeIssueResponse(response,
-                                                    std::move(aUserActionId));
+        owner->NotifyObserversAndMaybeIssueResponse(
+            response, std::move(aUserActionId), aAutoAcknowledge);
       }));
 }
 
 void ContentAnalysis::NotifyResponseObservers(
-    ContentAnalysisResponse* aResponse, nsCString&& aUserActionId) {
+    ContentAnalysisResponse* aResponse, nsCString&& aUserActionId,
+    bool aAutoAcknowledge) {
   MOZ_ASSERT(NS_IsMainThread());
   aResponse->SetOwner(this);
 
@@ -1690,7 +1692,8 @@ void ContentAnalysis::NotifyResponseObservers(
     nsCString requestToken;
     MOZ_ALWAYS_SUCCEEDS(aResponse->GetRequestToken(requestToken));
     mWarnResponseDataMap.InsertOrUpdate(
-        requestToken, WarnResponseData{aResponse, std::move(aUserActionId)});
+        requestToken, WarnResponseData{aResponse, std::move(aUserActionId),
+                                       aAutoAcknowledge});
   }
 
   nsCOMPtr<nsIObserverService> obsServ =
@@ -1699,7 +1702,8 @@ void ContentAnalysis::NotifyResponseObservers(
 }
 
 void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
-                                    nsCString&& aUserActionId) {
+                                    nsCString&& aUserActionId,
+                                    bool aAutoAcknowledge) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aResponse->GetAction() !=
              nsIContentAnalysisResponse::Action::eWarn);
@@ -1707,29 +1711,54 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
   // Call the callback and maybe send an auto acknowledge.
   nsCString token;
   MOZ_ALWAYS_SUCCEEDS(aResponse->GetRequestToken(token));
-
   RefPtr<nsIContentAnalysisCallback> callback;
-  bool autoAcknowledge;
   if (auto maybeUserActionData = mUserActionMap.Lookup(aUserActionId)) {
     callback = maybeUserActionData->mCallback;
-    autoAcknowledge = maybeUserActionData->mAutoAcknowledge;
   } else {
     LOGD(
         "ContentAnalysis::IssueResponse user action not found -- already "
         "responded | userActionId: %s",
         aUserActionId.get());
+
+    if (aAutoAcknowledge) {
+      // Respond to the agent with TOO_LATE because the response arrived
+      // after the request was cancelled (for any reason).
+      nsIContentAnalysisAcknowledgement::FinalAction action;
+      mUserActionIdToToCanceledResponseMap.WithEntryHandle(
+          aUserActionId, [&](auto&& canceledResponseEntry) {
+            if (canceledResponseEntry) {
+              action = canceledResponseEntry->mAction;
+              --canceledResponseEntry->mNumExpectedResponses;
+              if (!canceledResponseEntry->mNumExpectedResponses) {
+                // We've handeled all responses for canceled requests for this
+                // user action.
+                canceledResponseEntry.Remove();
+              }
+            } else {
+              MOZ_ASSERT_UNREACHABLE("missing canceled response action");
+              action =
+                  nsIContentAnalysisAcknowledgement::FinalAction::eUnspecified;
+            }
+            RefPtr<ContentAnalysisAcknowledgement> acknowledgement =
+                MakeRefPtr<ContentAnalysisAcknowledgement>(
+                    nsIContentAnalysisAcknowledgement::Result::eTooLate,
+                    action);
+            aResponse->Acknowledge(acknowledgement);
+          });
+    }
     return;
   }
 
-  LOGD("Content analysis notifying observers and calling callback for token %s",
-       token.get());
-  if (autoAcknowledge) {
+  if (aAutoAcknowledge) {
+    // Acknowledge every response we receive.
     auto acknowledgement = MakeRefPtr<ContentAnalysisAcknowledgement>(
         nsIContentAnalysisAcknowledgement::Result::eSuccess,
         ConvertResult(aResponse->GetAction()));
     aResponse->Acknowledge(acknowledgement);
   }
 
+  LOGD("Content analysis notifying observers and calling callback for token %s",
+       token.get());
   callback->ContentResult(aResponse);
 
   // A negative verdict should have removed our user action.  (This method
@@ -1739,16 +1768,18 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
 }
 
 void ContentAnalysis::NotifyObserversAndMaybeIssueResponse(
-    ContentAnalysisResponse* aResponse, nsCString&& aUserActionId) {
+    ContentAnalysisResponse* aResponse, nsCString&& aUserActionId,
+    bool aAutoAcknowledge) {
   // Successfully made a request to the agent, so mark that we succeeded
   mLastResult = NS_OK;
 
-  NotifyResponseObservers(aResponse, nsCString(aUserActionId));
+  NotifyResponseObservers(aResponse, nsCString(aUserActionId),
+                          aAutoAcknowledge);
 
   // For warn responses, IssueResponse will be called later by
   // RespondToWarnDialog, with the action replaced with the user's selection.
   if (aResponse->GetAction() != nsIContentAnalysisResponse::Action::eWarn) {
-    IssueResponse(aResponse, std::move(aUserActionId));
+    IssueResponse(aResponse, std::move(aUserActionId), aAutoAcknowledge);
   }
 }
 
@@ -2041,16 +2072,16 @@ RefPtr<ContentAnalysis::MultipartRequestCallback>
 ContentAnalysis::MultipartRequestCallback::Create(
     ContentAnalysis* aContentAnalysis,
     const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
-    nsIContentAnalysisCallback* aCallback, bool aAutoAcknowledge) {
+    nsIContentAnalysisCallback* aCallback) {
   auto mpcb = MakeRefPtr<MultipartRequestCallback>();
-  mpcb->Initialize(aContentAnalysis, aRequests, aCallback, aAutoAcknowledge);
+  mpcb->Initialize(aContentAnalysis, aRequests, aCallback);
   return mpcb;
 }
 
 void ContentAnalysis::MultipartRequestCallback::Initialize(
     ContentAnalysis* aContentAnalysis,
     const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
-    nsIContentAnalysisCallback* aCallback, bool aAutoAcknowledge) {
+    nsIContentAnalysisCallback* aCallback) {
   MOZ_ASSERT(aContentAnalysis);
   MOZ_ASSERT(aCallback);
   MOZ_ASSERT(NS_IsMainThread());
@@ -2117,8 +2148,7 @@ void ContentAnalysis::MultipartRequestCallback::Initialize(
   MOZ_ASSERT(!requestTokens.IsEmpty());
 
   // Update our entry in the user action map with the request tokens.
-  auto uaData =
-      UserActionData{this, std::move(requestTokens), aAutoAcknowledge};
+  auto uaData = UserActionData{this, std::move(requestTokens)};
   MOZ_ASSERT(mWeakContentAnalysis->mUserActionMap.Lookup(mUserActionId));
   mWeakContentAnalysis->mUserActionMap.InsertOrUpdate(mUserActionId,
                                                       std::move(uaData));
@@ -2208,7 +2238,13 @@ void ContentAnalysis::MultipartRequestCallback::CancelRequests() {
 
 void ContentAnalysis::MultipartRequestCallback::RemoveFromUserActionMap() {
   if (mWeakContentAnalysis) {
-    mWeakContentAnalysis->mUserActionMap.Remove(mUserActionId);
+    mWeakContentAnalysis->RemoveFromUserActionMap(nsCString(mUserActionId));
+  }
+}
+
+void ContentAnalysis::RemoveFromUserActionMap(nsCString&& aUserActionId) {
+  if (auto entry = mUserActionMap.Lookup(aUserActionId)) {
+    entry.Remove();
   }
 }
 
@@ -2554,8 +2590,7 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
       }
     }
   }
-  mUserActionMap.InsertOrUpdate(
-      userActionId, UserActionData{aCallback, {}, aAutoAcknowledge});
+  mUserActionMap.InsertOrUpdate(userActionId, UserActionData{aCallback, {}});
 
   Result<RefPtr<RequestsPromise::AllPromiseType>,
          RefPtr<nsIContentAnalysisResult>>
@@ -2606,8 +2641,7 @@ ContentAnalysis::AnalyzeContentRequestsCallback(
           return;
         }
         RefPtr<MultipartRequestCallback> mpcb =
-            MultipartRequestCallback::Create(weakThis, aRequests, safeCallback,
-                                             aAutoAcknowledge);
+            MultipartRequestCallback::Create(weakThis, aRequests, safeCallback);
 
         for (const auto& requests : aRequests) {
           for (const auto& request : requests) {
@@ -2754,7 +2788,8 @@ ContentAnalysis::RespondToWarnDialog(const nsACString& aRequestToken,
   }
 
   entry->mResponse->ResolveWarnAction(aAllowContent);
-  IssueResponse(entry->mResponse, nsCString(entry->mUserActionId));
+  IssueResponse(entry->mResponse, nsCString(entry->mUserActionId),
+                entry->mAutoAcknowledge);
   return NS_OK;
 }
 
@@ -3170,6 +3205,23 @@ nsresult ContentAnalysis::RunAcknowledgeTask(
 
   LOGD("Issuing ContentAnalysisAcknowledgement");
   LogAcknowledgement(&pbAck);
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  // Avoid serializing the string here if no one is observing this message
+  if (obsServ->HasObservers("dlp-acknowledgement-sent-raw")) {
+    std::string acknowledgementString = pbAck.SerializeAsString();
+    nsTArray<char16_t> acknowledgementArray;
+    acknowledgementArray.SetLength(acknowledgementString.size() + 1);
+    for (size_t i = 0; i < acknowledgementString.size(); ++i) {
+      // Since NotifyObservers() expects a null-terminated string,
+      // make sure none of these values are 0.
+      acknowledgementArray[i] = acknowledgementString[i] + 0xFF00;
+    }
+    acknowledgementArray[acknowledgementString.size()] = 0;
+    obsServ->NotifyObservers(this, "dlp-acknowledgement-sent-raw",
+                             acknowledgementArray.Elements());
+  }
 
   // The content analysis connection is synchronous so run in the background.
   LOGD("RunAcknowledgeTask dispatching acknowledge task");

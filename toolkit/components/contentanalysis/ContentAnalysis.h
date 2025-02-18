@@ -257,15 +257,17 @@ class ContentAnalysis final : public nsIContentAnalysis,
       nsIContentAnalysisAcknowledgement* aAcknowledgement,
       const nsACString& aRequestToken);
   static void DoAnalyzeRequest(
-      nsCString&& aUserActionId,
+      nsCString&& aUserActionId, bool aAutoAcknowledge,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
       const std::shared_ptr<content_analysis::sdk::Client>& aClient);
   void IssueResponse(ContentAnalysisResponse* response,
-                     nsCString&& aUserActionId);
+                     nsCString&& aUserActionId, bool aAutoAcknowledge);
   void NotifyResponseObservers(ContentAnalysisResponse* aResponse,
-                               nsCString&& aUserActionId);
+                               nsCString&& aUserActionId,
+                               bool aAutoAcknowledge);
   void NotifyObserversAndMaybeIssueResponse(ContentAnalysisResponse* aResponse,
-                                            nsCString&& aUserActionId);
+                                            nsCString&& aUserActionId,
+                                            bool aAutoAcknowledge);
   bool LastRequestSucceeded();
   // Did the URL filter completely handle the request or do we need to check
   // with the agent.
@@ -301,7 +303,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
     static RefPtr<MultipartRequestCallback> Create(
         ContentAnalysis* aContentAnalysis,
         const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
-        nsIContentAnalysisCallback* aCallback, bool aAutoAcknowledge);
+        nsIContentAnalysisCallback* aCallback);
 
    private:
     MultipartRequestCallback() = default;
@@ -313,7 +315,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
     void Initialize(
         ContentAnalysis* aContentAnalysis,
         const nsTArray<ContentAnalysis::ContentAnalysisRequestArray>& aRequests,
-        nsIContentAnalysisCallback* aCallback, bool aAutoAcknowledge);
+        nsIContentAnalysisCallback* aCallback);
 
     void CancelRequests();
     void RemoveFromUserActionMap();
@@ -350,13 +352,24 @@ class ContentAnalysis final : public nsIContentAnalysis,
   struct UserActionData final {
     RefPtr<nsIContentAnalysisCallback> mCallback;
     nsTHashSet<nsCString> mRequestTokens;
-    bool mAutoAcknowledge;
   };
 
   // This map is stored so that requests can be canceled while they are
   // still being checked.  It is maintained by our inner class
   // MultipartRequestCallback.
   nsTHashMap<nsCString, UserActionData> mUserActionMap;
+  void RemoveFromUserActionMap(nsCString&& aUserActionId);
+
+  // The agent may respond to actions that we have canceled and we need to
+  // remember how we handled them, whether it was to cancel (block) them,
+  // or to issue a default response.
+  struct CanceledResponse {
+    nsIContentAnalysisAcknowledgement::FinalAction mAction;
+    uint32_t mNumExpectedResponses;
+  };
+  using UserActionIdToToCanceledResponseMap =
+      nsTHashMap<nsCString, CanceledResponse>;
+  UserActionIdToToCanceledResponseMap mUserActionIdToToCanceledResponseMap;
 
   class CachedClipboardResponse {
    public:
@@ -377,6 +390,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   struct WarnResponseData {
     RefPtr<ContentAnalysisResponse> mResponse;
     nsCString mUserActionId;
+    bool mAutoAcknowledge;
   };
   nsTHashMap<nsCString, WarnResponseData> mWarnResponseDataMap;
 
