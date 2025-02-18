@@ -351,6 +351,21 @@ static bool IsSystemOrAddonOrAboutPrincipal(nsIPrincipal* aPrincipal) {
          aPrincipal->SchemeIs("about");
 }
 
+static bool IsAndroidResource(nsIURI* aURI) {
+#ifdef ANDROID
+  if (aURI->SchemeIs("resource")) {
+    nsAutoCString host, path;
+    aURI->GetHost(host);
+    aURI->GetFilePath(path);
+    if (host.EqualsLiteral("android") &&
+        StringBeginsWith(path, "/assets/"_ns)) {
+      return true;
+    }
+  }
+#endif
+  return false;
+}
+
 bool nsNodeInfoManager::InternalSVGEnabled() {
   MOZ_ASSERT(!mSVGEnabled, "Caller should use the cached mSVGEnabled!");
 
@@ -376,6 +391,7 @@ bool nsNodeInfoManager::InternalSVGEnabled() {
   // of system or add-on UI or about: page)
   bool conclusion =
       (SVGEnabled || IsSystemOrAddonOrAboutPrincipal(mPrincipal) ||
+       IsAndroidResource(mDocument->GetDocumentURI()) ||
        (loadInfo &&
         (loadInfo->GetExternalContentPolicyType() ==
              ExtContentPolicy::TYPE_IMAGE ||
