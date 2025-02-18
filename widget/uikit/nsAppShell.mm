@@ -8,6 +8,7 @@
 #import <UIKit/UIWindow.h>
 #import <UIKit/UIViewController.h>
 
+#include "gfxPlatform.h"
 #include "nsAppShell.h"
 #include "nsCOMPtr.h"
 #include "nsDirectoryServiceDefs.h"
@@ -18,6 +19,13 @@
 #include "nsThreadUtils.h"
 #include "nsMemoryPressure.h"
 #include "nsServiceManagerUtils.h"
+#include "mozilla/widget/ScreenManager.h"
+#include "ScreenHelperUIKit.h"
+#include "mozilla/Hal.h"
+#include "HeadlessScreenHelper.h"
+
+using namespace mozilla;
+using namespace mozilla::widget;
 
 nsAppShell* nsAppShell::gAppShell = NULL;
 UIWindow* nsAppShell::gWindow = nil;
@@ -155,6 +163,18 @@ nsresult nsAppShell::Init() {
   NS_ENSURE_STATE(mCFRunLoopSource);
 
   ::CFRunLoopAddSource(mCFRunLoop, mCFRunLoopSource, kCFRunLoopCommonModes);
+
+  hal::Init();
+
+  if (XRE_IsParentProcess()) {
+    ScreenManager& screenManager = ScreenManager::GetSingleton();
+
+    if (gfxPlatform::IsHeadless()) {
+      screenManager.SetHelper(mozilla::MakeUnique<HeadlessScreenHelper>());
+    } else {
+      screenManager.SetHelper(mozilla::MakeUnique<ScreenHelperUIKit>());
+    }
+  }
 
   return nsBaseAppShell::Init();
 }
