@@ -6,6 +6,7 @@
 
 package org.mozilla.fenix.onboarding.view
 
+import android.content.SharedPreferences
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -17,6 +18,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
@@ -31,8 +33,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import mozilla.components.compose.base.annotation.LightDarkPreview
@@ -41,6 +45,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.PagerIndicator
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.onboarding.WidgetPinnedReceiver.WidgetPinnedState
 import org.mozilla.fenix.onboarding.store.OnboardingAction
 import org.mozilla.fenix.onboarding.store.OnboardingAction.OnboardingThemeAction
@@ -78,7 +83,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
 @Composable
 @Suppress("LongParameterList", "LongMethod")
 fun OnboardingScreen(
-    pagesToDisplay: List<OnboardingPageUiData>,
+    pagesToDisplay: MutableList<OnboardingPageUiData>,
     onMakeFirefoxDefaultClick: () -> Unit,
     onSkipDefaultClick: () -> Unit,
     onSignInButtonClick: () -> Unit,
@@ -105,6 +110,38 @@ fun OnboardingScreen(
         .observeAsComposableState { it.account != null }
     val widgetPinnedFlow: StateFlow<Boolean> = WidgetPinnedState.isPinned
     val isWidgetPinnedState by widgetPinnedFlow.collectAsState()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val settings = context.settings()
+
+        // Observe the shouldShowMarketingOnboarding preference and disable the marketing page
+        // if the preference switches to false
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            val marketingPageIndex = pagesToDisplay.indexOfFirst { it.type == OnboardingPageUiData.Type.MARKETING_DATA }
+            val shouldShowMarketingPreferenceKey = context.getString(R.string.pref_key_should_show_marketing_onboarding)
+
+            if (key == shouldShowMarketingPreferenceKey &&
+                !settings.shouldShowMarketingOnboarding &&
+                pagerState.currentPage < marketingPageIndex
+            ) {
+                pagesToDisplay.removeAt(marketingPageIndex)
+            }
+        }
+
+        settings.preferences.registerOnSharedPreferenceChangeListener(listener)
+
+        // If the preference is already false, disable the marketing page
+        if (!settings.shouldShowMarketingOnboarding) {
+            val marketingPage = pagesToDisplay.find { it.type == OnboardingPageUiData.Type.MARKETING_DATA }
+            marketingPage?.let { pagesToDisplay.remove(it) }
+        }
+
+        onDispose {
+            settings.preferences.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
 
     BackHandler(enabled = pagerState.currentPage > 0) {
         coroutineScope.launch {
