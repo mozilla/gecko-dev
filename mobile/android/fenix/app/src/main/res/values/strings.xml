@@ -2878,7 +2878,7 @@
     <string name="protection_panel_etp_toggle_disabled_description">Protections are OFF. We suggest turning them back on.</string>
     <!-- Text for displaying the total number of trackers blocked in the protection panel.
         %d is a placeholder for the number of trackers blocked. -->
-    <string name="protection_panel_num_trackers_blocked">%d Trackers blocked</string>
+    <string name="protection_panel_num_trackers_blocked">Trackers blocked: %d</string>
     <!-- Text for when no trackers have been blocked. -->
     <string name="protection_panel_no_trackers_blocked">No trackers found</string>
     <!-- Link text to navigate to privacy and security settings from the protection panel. -->
