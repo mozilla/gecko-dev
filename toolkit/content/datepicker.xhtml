@@ -10,6 +10,7 @@
   xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 >
   <head>
+    <meta http-equiv="Content-Security-Policy" content="default-src chrome:;" />
     <link
       rel="stylesheet"
       href="chrome://global/skin/datetimeinputpickers.css"
@@ -54,21 +55,5 @@
       </div>
       <button id="clear-button" data-l10n-id="date-picker-clear-button" />
     </div>
-    <script>
-      /* import-globals-from widgets/datepicker.js */
-      // Create a DatePicker instance and prepare to be
-      // initialized by the "DatePickerInit" event from datetimepopup.xml
-      const root = document.getElementById("date-picker");
-      new DatePicker({
-        monthYearNav: root.querySelector(".month-year-nav"),
-        monthYear: root.querySelector(".month-year"),
-        monthYearView: root.querySelector(".month-year-view"),
-        buttonPrev: root.querySelector(".prev"),
-        buttonNext: root.querySelector(".next"),
-        weekHeader: root.querySelector(".week-header"),
-        daysView: root.querySelector(".days-view"),
-        buttonClear: document.getElementById("clear-button"),
-      });
-    </script>
   </body>
 </html>

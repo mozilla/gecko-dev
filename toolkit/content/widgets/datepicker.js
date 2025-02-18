@@ -601,3 +601,19 @@ function DatePicker(context) {
     },
   };
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Create a DatePicker instance and prepare to be initialized
+  // by the "PickerInit" message.
+  const root = document.getElementById("date-picker");
+  new DatePicker({
+    monthYearNav: root.querySelector(".month-year-nav"),
+    monthYear: root.querySelector(".month-year"),
+    monthYearView: root.querySelector(".month-year-view"),
+    buttonPrev: root.querySelector(".prev"),
+    buttonNext: root.querySelector(".next"),
+    weekHeader: root.querySelector(".week-header"),
+    daysView: root.querySelector(".days-view"),
+    buttonClear: document.getElementById("clear-button"),
+  });
+});
