@@ -682,7 +682,7 @@ export class TranslationsDocument {
 
     const addRootElements = () => {
       this.addRootElement(document.querySelector("title"));
-      this.addRootElement(document.body, true /* reportWordsInViewport */);
+      this.addRootElement(document.body);
     };
 
     if (document.body) {
@@ -1090,6 +1090,7 @@ export class TranslationsDocument {
    * of inline text can be found.
    *
    * @param {Node} node
+   * @returns {null | Array<Promise<unknown>>}
    */
   subdivideNodeForTranslations(node) {
     if (!this.#rootNodes.has(node)) {
@@ -1110,7 +1111,7 @@ export class TranslationsDocument {
             this.determineTranslationStatus(parent) ===
             NodeStatus.NOT_TRANSLATABLE
           ) {
-            return;
+            return null;
           }
         }
       }
@@ -1147,7 +1148,8 @@ export class TranslationsDocument {
     if (node.nodeName === "BODY") {
       this.reportWordsInViewport();
     }
-    this.dispatchQueuedTranslations();
+
+    return this.dispatchQueuedTranslations();
   }
 
   /**
@@ -1649,7 +1651,10 @@ export class TranslationsDocument {
       translationId
     );
 
-    if (this.validateTranslationResponse(node, translationId, translatedHTML)) {
+    if (
+      translatedHTML &&
+      this.validateTranslationResponse(node, translationId, translatedHTML)
+    ) {
       this.scheduleNodeUpdateWithTranslation(
         node,
         translatedHTML,
@@ -1780,6 +1785,7 @@ export class TranslationsDocument {
   async maybeTranslate(node, text, isHTML, translationId) {
     this.#pendingTranslationsCount++;
     try {
+      /** @type {string | null | undefined} */
       let translation = this.translationsCache.get(text, isHTML);
       if (translation === undefined) {
         translation = await this.translator.translate(
@@ -1959,18 +1965,29 @@ export class TranslationsDocument {
  * This function needs to be fairly fast since it's used on many nodes when iterating
  * over the DOM to find nodes to translate.
  *
- * @param {Text | HTMLElement} node
+ * @param {Node} node
  */
 function isNodeHidden(node) {
-  /** @type {HTMLElement} */
   const element = getElementForStyle(node);
   if (!element) {
     throw new Error("Unable to find the Element to compute the style for node");
   }
+  const { ownerGlobal } = element;
+  if (!ownerGlobal) {
+    return true;
+  }
 
   // This flushes the style, which is a performance cost.
-  const style = element.ownerGlobal.getComputedStyle(element);
-  return style.display === "none" || style.visibility === "hidden";
+  const style = ownerGlobal.getComputedStyle(element);
+  if (!style) {
+    return true;
+  }
+
+  // This is an issue with the DOM library generation.
+  // @ts-expect-error Property 'display' does not exist on type 'CSSStyleDeclaration'.ts(2339)
+  const { display, visibility } = style.display;
+
+  return display === "none" || visibility === "hidden";
 }
 
 /**
@@ -2108,11 +2125,15 @@ function updateElement(translationsDocument, element) {
     nodeValues.set(select, select.value);
   }
 
-  merge(element, translationsDocument.body.firstChild);
+  const firstChild = translationsDocument.body?.firstChild;
+  if (firstChild) {
+    merge(element, firstChild);
+  }
 
   // Restore the <select> values.
   if (element.tagName === "SELECT") {
-    element.value = nodeValues.get(element);
+    /** @type {HTMLSelectElement} */ (element).value =
+      nodeValues.get(element) ?? "";
   }
   for (const select of element.querySelectorAll("select")) {
     select.value = nodeValues.get(select);
@@ -2153,7 +2174,15 @@ function updateElement(translationsDocument, element) {
     }
 
     // The translated tree dictates the order.
-    const translatedNodes = [...translatedTree.childNodes];
+
+    /** @type {Node[]} */
+    const translatedNodes = [];
+    for (const childNode of translatedTree.childNodes) {
+      if (childNode) {
+        translatedNodes.push(childNode);
+      }
+    }
+
     for (
       let translatedIndex = 0;
       translatedIndex < translatedNodes.length;
@@ -2436,7 +2465,7 @@ function isNodeQueued(node, queuedNodes) {
   let lastNode = node;
   while ((parentNode = lastNode.parentNode)) {
     if (queuedNodes.has(parentNode)) {
-      return parentNode;
+      return true;
     }
     lastNode = parentNode;
   }
@@ -2449,17 +2478,30 @@ function isNodeQueued(node, queuedNodes) {
  * element or not. Every element that lays out like a block should be sent in as one
  * cohesive unit to be translated.
  *
- * @param {Element} element
+ * @param {Node} node
  */
-function getIsBlockLike(element) {
-  const win = element.ownerGlobal;
+function getIsBlockLike(node) {
+  const element = asElement(node);
+  if (!element) {
+    return false;
+  }
+  const { ownerGlobal } = element;
+  if (!ownerGlobal) {
+    return false;
+  }
   if (element.namespaceURI === "http://www.w3.org/2000/svg") {
     // SVG elements will report as inline, but there is no block layout in SVG.
     // Treat every SVG element as being block so that every node will be subdivided.
     return true;
   }
-  const { display } = win.getComputedStyle(element);
-  return display !== "inline" && display !== "none";
+  /** @type {Record<string, string> | null} */
+  // @ts-expect-error - This is a workaround for the CSSStyleDeclaration not being indexable.
+  const style = ownerGlobal.getComputedStyle(element) ?? { display: null };
+
+  if (!style) {
+    return false;
+  }
+  return style.display !== "inline" && style.display !== "none";
 }
 
 /**
@@ -2533,8 +2575,8 @@ function* getAncestorsIterator(node) {
  * @property {string} sourceText
  * @property {number} translationId
  * @property {boolean} isHTML
- * @property {Function} resolve
- * @property {Function} reject
+ * @property {(translation: Promise<string> | string | null) => unknown} resolve
+ * @property {(reason: any) => unknown} reject
  */
 
 /**
@@ -2676,12 +2718,7 @@ class QueuedTranslator {
       return this.#portRequest.promise;
     }
 
-    const portRequest = { promise: null, resolve: null, reject: null };
-    portRequest.promise = new Promise((resolve, reject) => {
-      portRequest.resolve = resolve;
-      portRequest.reject = reject;
-    });
-
+    const portRequest = Promise.withResolvers();
     this.#portRequest = portRequest;
 
     // Send a request through the actor for a new port. The request response will
@@ -2742,8 +2779,11 @@ class QueuedTranslator {
     // At this point we don't know if the page is still shown, or if the attempt
     // to get a port was successful so check again.
 
-    if (!this.#isPageShown || !this.#port) {
+    const port = this.#port;
+
+    if (!this.#isPageShown || !port) {
       // Queue the request while the page isn't shown.
+
       return new Promise((resolve, reject) => {
         const previousRequest = this.#queue.get(node);
         if (previousRequest) {
@@ -2771,7 +2811,8 @@ class QueuedTranslator {
       node,
       sourceText,
       isHTML,
-      translationId
+      translationId,
+      port
     );
   }
 
@@ -2792,27 +2833,31 @@ class QueuedTranslator {
    * @param {string} sourceText
    * @param {boolean} isHTML
    * @param {number} translationId
-   * @returns {{ translateText: TranslationFunction, translateHTML: TranslationFunction}}
+   * @param {MessagePort} port
+   * @returns {Promise<string>}
    */
-  #postTranslationRequest(node, sourceText, isHTML, translationId) {
-    return new Promise((resolve, reject) => {
-      // Store the "resolve" for the promise. It will be matched back up with the
-      // `translationId` in #handlePortMessage.
-      this.#requests.set(translationId, {
-        node,
-        sourceText,
-        isHTML,
-        translationId,
-        resolve,
-        reject,
-      });
-      this.#port.postMessage({
-        type: "TranslationsPort:TranslationRequest",
-        translationId,
-        sourceText,
-        isHTML,
-      });
+  #postTranslationRequest(node, sourceText, isHTML, translationId, port) {
+    const { promise, resolve, reject } = Promise.withResolvers();
+
+    // Store the "resolve" for the promise. It will be matched back up with the
+    // `translationId` in #handlePortMessage.
+    this.#requests.set(translationId, {
+      node,
+      sourceText,
+      isHTML,
+      translationId,
+      resolve,
+      reject,
     });
+
+    port.postMessage({
+      type: "TranslationsPort:TranslationRequest",
+      translationId,
+      sourceText,
+      isHTML,
+    });
+
+    return promise;
   }
 
   /**
@@ -2917,10 +2962,18 @@ class QueuedTranslator {
   /**
    * Re-send a list of translation requests.
    *
-   * @param {Iterator<TranslationRequest>} translationRequests
+   * @param {Iterable<TranslationRequest>} translationRequests
    *  This is either the this.#queue or this.#requests.
    */
   #repostTranslations(translationRequests) {
+    const port = this.#port;
+    if (!port) {
+      lazy.console.error(
+        "Attempting to repost translations when no port is available."
+      );
+      return;
+    }
+
     for (const request of translationRequests) {
       const { node, sourceText, isHTML, translationId, resolve, reject } =
         request;
@@ -2933,7 +2986,8 @@ class QueuedTranslator {
           node,
           sourceText,
           isHTML,
-          translationId
+          translationId,
+          port
         ).then(resolve, reject);
       }
     }
