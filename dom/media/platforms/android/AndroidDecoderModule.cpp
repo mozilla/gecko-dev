@@ -125,6 +125,13 @@ DecodeSupportSet AndroidDecoderModule::SupportsMimeType(
     case MediaCodec::H264:
       return DecodeSupport::SoftwareDecode;
 
+    case MediaCodec::HEVC:
+      if (!StaticPrefs::media_hevc_enabled()) {
+        SLOG("Rejecting HEVC as the preference is disabled");
+        return media::DecodeSupportSet{};
+      }
+      break;
+
     // AV1 doesn't need any special handling.
     case MediaCodec::AV1:
       break;

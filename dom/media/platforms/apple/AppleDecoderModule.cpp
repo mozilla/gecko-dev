@@ -174,7 +174,7 @@ bool AppleDecoderModule::IsVideoSupported(
     return true;
   }
   if (MP4Decoder::IsHEVC(aConfig.mMimeType)) {
-    return true;
+    return StaticPrefs::media_hevc_enabled();
   }
   if (AOMDecoder::IsAV1(aConfig.mMimeType)) {
     if (!sCanUseHWDecoder[MediaCodec::AV1] ||
