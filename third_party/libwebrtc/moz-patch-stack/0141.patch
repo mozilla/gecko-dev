@@ -1,40 +1,30 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Tue, 28 Jan 2025 21:45:00 +0000
-Subject: Bug 1938047 - Link adapted_video_track_source.cc and generate webrtc
- moz.build files. r=ng,webrtc-reviewers
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 5 Dec 2024 13:45:00 -0600
+Subject: Bug 1934695 - (fix-3fa21c89c0) fix upstream compile issue in
+ apm_data_dumper.h
 
-Differential Revision: https://phabricator.services.mozilla.com/D234863
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b6dd815fc9d2df718a1b48b96f58f99c0cfb7e19
+It is unclear why upstream modified a single DumpRaw call differently than
+all the others, but it doesn't build for us.  We'll fix it the same they
+fixed all the other calls using [[maybe_unused]] annotations.
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8f64d5713228e3112f3014d9a269dce10795febf
 ---
- media/BUILD.gn | 11 -----------
- 1 file changed, 11 deletions(-)
+ modules/audio_processing/logging/apm_data_dumper.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/media/BUILD.gn b/media/BUILD.gn
-index fef3d92493..b9c65841a5 100644
---- a/media/BUILD.gn
-+++ b/media/BUILD.gn
-@@ -53,11 +53,6 @@ rtc_library("rtc_media_base") {
-     "base/video_broadcaster.h",  # Used downstream
-     "base/video_common.h",  # Used downstream
-   ]
--  if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.h",
--    ]
--  }
-   deps = [
-     ":adapted_video_track_source",
-     ":codec",
-@@ -137,12 +132,6 @@ rtc_library("adapted_video_track_source") {
-     "base/adapted_video_track_source.cc",
-     "base/adapted_video_track_source.h",
-   ]
--  if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.cc",
--      "base/adapted_video_track_source.h",
--    ]
--  }
-   deps = [
-     ":video_adapter",
-     ":video_broadcaster",
+diff --git a/modules/audio_processing/logging/apm_data_dumper.h b/modules/audio_processing/logging/apm_data_dumper.h
+index 09d24bd034..d05b580b09 100644
+--- a/modules/audio_processing/logging/apm_data_dumper.h
++++ b/modules/audio_processing/logging/apm_data_dumper.h
+@@ -348,9 +348,9 @@ class ApmDataDumper {
+ #endif
+   }
+ 
+-  void DumpRaw(absl::string_view /* name */,
+-               rtc::ArrayView<const size_t> /* v */,
+-               int /* dump_set */ = kDefaultDumpSet) {
++  void DumpRaw([[maybe_unused]] absl::string_view name,
++               [[maybe_unused]] rtc::ArrayView<const size_t> v,
++               [[maybe_unused]] int dump_set = kDefaultDumpSet) {
+ #if WEBRTC_APM_DEBUG_DUMP == 1
+     if (dump_set_to_use_ && *dump_set_to_use_ != dump_set)
+       return;

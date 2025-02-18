@@ -1,34 +1,107 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 9 Jul 2021 18:14:00 -0500
-Subject: Bug 1654112 - mutex changes to fix tsan errors. r=ng
+From: Philipp Hancke <phancke@meta.com>
+Date: Thu, 30 Jan 2025 10:46:09 -0800
+Subject: (cherry-pick-branch-heads/6943) [Merge-133] Restore primary/rtx
+ payload type assignment logic
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-Differential Revision: https://phabricator.services.mozilla.com/D119674
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/3d5503acf9a4b22e02c4300f29e4fbfed406ea2c
+Changes the order of payload type assignment to keep the rtx_pt =
+primary_pt+1 pattern (even if not required by the specification)
+
+On https://webrtc.github.io/samples/src/content/peerconnection/pc1/ this
+changes PTs as follows:
+
+M132: m=video 9 UDP/TLS/RTP/SAVPF 96 97 102 103
+104 105 106 107 108 109 127 125 39 40 45 46 98 99 100 101 112 113 114
+(121 more lines) mid=1
+
+M134: m=video 9 UDP/TLS/RTP/SAVPF 96 109 99 118 100 119 101 120 103 121
+104 122 37 123 40 127 97 114 98 115 107 44 108 (121 more lines) mid=1
+
+M134 with this patch: m=video 9 UDP/TLS/RTP/SAVPF 96 97 107 108 109 114
+115 116 117 118 119 120 37 121 40 124 98 99 100 101 127 42 43 (121 more
+lines) mid=1
+
+Note that this pushes red and ulpfec into lower range but those codecs
+are not widely used and it is possible to get them back into the upper
+range e.g. by using setCodecPreferences to disable H264 (where ulpfec is
+not supported)
+
+BUG=chromium:391132280
+Fixed: chromium:394000146
+
+(cherry picked from commit f68df0b95c9f8d2f56baa3c850d1f49e6471db02)
+
+Change-Id: I892f00a2f276728d16c37e8ba5f76d01f6322a7d
+No-Iwyu: single include missing, keep it more merge-able
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/375847
+Reviewed-by: Artem Titov <titovartem@webrtc.org>
+Commit-Queue: Guido Urdaneta <guidou@webrtc.org>
+Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Henrik Boström <hbos@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43833}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/375923
+Commit-Queue: Henrik Boström <hbos@webrtc.org>
+Reviewed-by: Guido Urdaneta <guidou@webrtc.org>
+Cr-Commit-Position: refs/branch-heads/6943@{#3}
+Cr-Branched-From: cbe304455fe0ae24622252ef8a0707a555fa5caf-refs/heads/main@{#43659}
 ---
- rtc_base/logging.cc | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ media/engine/webrtc_video_engine.cc | 27 ++++++++++++++++++++-------
+ pc/sdp_offer_answer_unittest.cc     |  3 ++-
+ 2 files changed, 22 insertions(+), 8 deletions(-)
 
-diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index adf6deffa9..d9c782965e 100644
---- a/rtc_base/logging.cc
-+++ b/rtc_base/logging.cc
-@@ -275,8 +275,8 @@ void LogMessage::LogTimestamps(bool on) {
+diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
+index 560fb4c16a..233f83a957 100644
+--- a/media/engine/webrtc_video_engine.cc
++++ b/media/engine/webrtc_video_engine.cc
+@@ -261,15 +261,28 @@ std::vector<Codec> GetPayloadTypesAndDefaultCodecs(
+   // TODO: https://issues.webrtc.org/360058654 - stop assigning PTs here.
+   webrtc::PayloadTypePicker pt_mapper;
+   std::vector<Codec> output_codecs;
+-  webrtc::RTCErrorOr<std::vector<Codec>> result =
+-      AssignPayloadTypes(supported_formats, pt_mapper, trials);
+-  RTC_DCHECK(result.ok());
+-  output_codecs = result.MoveValue();
+-  if (include_rtx) {
++  for (const auto& supported_format : supported_formats) {
+     webrtc::RTCErrorOr<std::vector<Codec>> result =
+-        AddRtx(output_codecs, pt_mapper);
++        AssignPayloadTypes({supported_format}, pt_mapper, trials);
+     RTC_DCHECK(result.ok());
+-    return result.MoveValue();
++    if (result.ok()) {
++      for (const auto& codec : result.value()) {
++        if (include_rtx) {
++          // This will return both primary and rtx if there is rtx.
++          result = AddRtx({codec}, pt_mapper);
++          if (result.ok()) {
++            for (const auto& codec : result.value()) {
++              output_codecs.push_back(codec);
++            }
++          } else {
++            output_codecs.push_back(codec);
++          }
++
++        } else {
++          output_codecs.push_back(codec);
++        }
++      }
++    }
+   }
+   return output_codecs;
+ }
+diff --git a/pc/sdp_offer_answer_unittest.cc b/pc/sdp_offer_answer_unittest.cc
+index a1bb5d85d6..0941a86431 100644
+--- a/pc/sdp_offer_answer_unittest.cc
++++ b/pc/sdp_offer_answer_unittest.cc
+@@ -639,7 +639,8 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {
+   EXPECT_TRUE(pc->SetRemoteDescription(std::move(rejected_answer)));
  }
  
- void LogMessage::LogToDebug(LoggingSeverity min_sev) {
--  g_dbg_sev = min_sev;
-   webrtc::MutexLock lock(&GetLoggingLock());
-+  g_dbg_sev = min_sev;
-   UpdateMinLogSeverity();
- }
+-TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
++// TODO: bugs.webrtc.org/362277533 - reenable before launch.
++TEST_F(SdpOfferAnswerTest, DISABLED_SimulcastOfferWithMixedCodec) {
+   auto pc = CreatePeerConnection(
+       FieldTrials::CreateNoGlobal("WebRTC-MixedCodecSimulcast/Enabled/"));
  
-@@ -460,6 +460,9 @@ void LogMessage::OutputToDebug(const LogLineRef& log_line) {
- 
- // static
- bool LogMessage::IsNoop(LoggingSeverity severity) {
-+  // Added MutexLock to fix tsan warnings on accessing g_dbg_sev. (mjf)
-+  // See https://bugs.chromium.org/p/chromium/issues/detail?id=1228729
-+  webrtc::MutexLock lock(&GetLoggingLock());
-   if (severity >= g_dbg_sev || severity >= g_min_sev)
-     return false;
-   return streams_empty_.load(std::memory_order_relaxed);

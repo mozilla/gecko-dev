@@ -1,38 +1,26 @@
 From: Byron Campen <docfaraday@gmail.com>
 Date: Thu, 20 Jul 2023 14:24:00 +0000
-Subject: Bug 1838080: Ensure that last ref to transformation_queue_ is not
- released on itself. r=pehrsons,webrtc-reviewers
+Subject: Bug 1838080: Remove this duplicate init (that's also on the wrong
+ thread). r=pehrsons,webrtc-reviewers
 
-Differential Revision: https://phabricator.services.mozilla.com/D181699
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/91d9e8b6a5c430a73561ffd2330865f04fcb1a6d
+This was causing assertions.
+
+Differential Revision: https://phabricator.services.mozilla.com/D179731
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6ac6592a04a839a6152d5ad5f0778f63dbbd6b1b
 ---
- .../rtp_sender_video_frame_transformer_delegate.cc       | 9 +++++++++
- 1 file changed, 9 insertions(+)
+ audio/channel_send.cc | 2 --
+ 1 file changed, 2 deletions(-)
 
-diff --git a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
-index 3ebfe1c742..88ba792e73 100644
---- a/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
-+++ b/modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
-@@ -34,6 +34,7 @@
- #include "api/video_codecs/video_codec.h"
- #include "modules/rtp_rtcp/source/rtp_video_header.h"
- #include "rtc_base/checks.h"
-+#include "rtc_base/event.h"
- #include "rtc_base/synchronization/mutex.h"
+diff --git a/audio/channel_send.cc b/audio/channel_send.cc
+index 70d3eaabbd..c3a3262a6b 100644
+--- a/audio/channel_send.cc
++++ b/audio/channel_send.cc
+@@ -543,8 +543,6 @@ ChannelSend::ChannelSend(
  
- namespace webrtc {
-@@ -277,6 +278,14 @@ void RTPSenderVideoFrameTransformerDelegate::Reset() {
-     MutexLock lock(&sender_lock_);
-     sender_ = nullptr;
-   }
-+  // Wait until all pending tasks are executed, to ensure that the last ref
-+  // standing is not on the transformation queue.
-+  rtc::Event flush;
-+  transformation_queue_->PostTask([this, &flush]() {
-+    RTC_DCHECK_RUN_ON(transformation_queue_.get());
-+    flush.Set();
-+  });
-+  flush.Wait(rtc::Event::kForever);
+   int error = audio_coding_->RegisterTransportCallback(this);
+   RTC_DCHECK_EQ(0, error);
+-  if (frame_transformer)
+-    InitFrameTransformerDelegate(std::move(frame_transformer));
  }
  
- std::unique_ptr<TransformableVideoFrameInterface> CloneSenderVideoFrame(
+ ChannelSend::~ChannelSend() {

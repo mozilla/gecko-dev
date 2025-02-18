@@ -1,24 +1,138 @@
-From: Randell Jesup <rjesup@mozilla.com>
-Date: Tue, 1 Oct 2024 21:28:00 +0000
-Subject: Bug 1922048: fix comma instead of semicolon in libwebrtc AEC code
- r=mjf,webrtc-reviewers
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Fri, 13 Sep 2024 09:48:00 +0000
+Subject: Bug 1918096 - Make SckPickerHandle thread safe. r=padenot
 
-Differential Revision: https://phabricator.services.mozilla.com/D224242
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd7a2f8d10cf9d6e862b8f8bb8e675f0d9ddb4bf
+We cannot guarantee that the thread it is used on is static, as both the
+VideoCapture and DesktopCapture threads can come and go.
+
+Differential Revision: https://phabricator.services.mozilla.com/D222082
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/cfcdd5339805363c495841abc4b4f82cd287f712
 ---
- modules/audio_processing/aec3/echo_canceller3.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .../desktop_capture/mac/sck_picker_handle.mm  | 90 +++++++++++++------
+ 1 file changed, 62 insertions(+), 28 deletions(-)
 
-diff --git a/modules/audio_processing/aec3/echo_canceller3.cc b/modules/audio_processing/aec3/echo_canceller3.cc
-index 00010ceaea..4b3747e92b 100644
---- a/modules/audio_processing/aec3/echo_canceller3.cc
-+++ b/modules/audio_processing/aec3/echo_canceller3.cc
-@@ -781,7 +781,7 @@ EchoCanceller3::EchoCanceller3(
-     linear_output_framer_.reset(
-         new BlockFramer(/*num_bands=*/1, num_capture_channels_));
-     linear_output_block_ =
--        std::make_unique<Block>(/*num_bands=*/1, num_capture_channels_),
-+        std::make_unique<Block>(/*num_bands=*/1, num_capture_channels_);
-     linear_output_sub_frame_view_ =
-         std::vector<std::vector<rtc::ArrayView<float>>>(
-             1, std::vector<rtc::ArrayView<float>>(num_capture_channels_));
+diff --git a/modules/desktop_capture/mac/sck_picker_handle.mm b/modules/desktop_capture/mac/sck_picker_handle.mm
+index 25e98b671f..0f26be79d1 100644
+--- a/modules/desktop_capture/mac/sck_picker_handle.mm
++++ b/modules/desktop_capture/mac/sck_picker_handle.mm
+@@ -12,57 +12,91 @@
+ 
+ #import <ScreenCaptureKit/ScreenCaptureKit.h>
+ 
+-#include "api/sequence_checker.h"
++#include "absl/base/attributes.h"
++#include "rtc_base/synchronization/mutex.h"
++
++#include <memory>
++#include <optional>
+ 
+ namespace webrtc {
+ 
+-class API_AVAILABLE(macos(14.0)) SckPickerHandle : public SckPickerHandleInterface {
++class SckPickerProxy;
++
++class API_AVAILABLE(macos(14.0)) SckPickerProxy {
+  public:
+-  explicit SckPickerHandle(DesktopCapturer::SourceId source) : source_(source) {
+-    RTC_DCHECK_RUN_ON(&checker_);
+-    RTC_CHECK_LE(sHandleCount, maximumStreamCount);
+-    if (sHandleCount++ == 0) {
++  static SckPickerProxy* Get() {
++    static SckPickerProxy* sPicker = new SckPickerProxy();
++    return sPicker;
++  }
++
++  bool AtCapacity() const {
++    MutexLock lock(&mutex_);
++    return AtCapacityLocked();
++  }
++
++  SCContentSharingPicker* GetPicker() const { return SCContentSharingPicker.sharedPicker; }
++
++  ABSL_MUST_USE_RESULT std::optional<DesktopCapturer::SourceId> AcquireSourceId() {
++    MutexLock lock(&mutex_);
++    if (AtCapacityLocked()) {
++      return std::nullopt;
++    }
++    if (handle_count_++ == 0) {
+       auto* picker = GetPicker();
+       picker.maximumStreamCount = [NSNumber numberWithUnsignedInt:maximumStreamCount];
+       picker.active = YES;
+     }
++    return ++unique_source_id_;
+   }
+ 
+-  ~SckPickerHandle() {
+-    RTC_DCHECK_RUN_ON(&checker_);
+-    if (--sHandleCount > 0) {
++  void RelinquishSourceId(DesktopCapturer::SourceId source) {
++    MutexLock lock(&mutex_);
++    if (--handle_count_ > 0) {
+       return;
+     }
+     GetPicker().active = NO;
+   }
+ 
+-  SCContentSharingPicker* GetPicker() const override {
+-    return SCContentSharingPicker.sharedPicker;
++ private:
++  bool AtCapacityLocked() const {
++    mutex_.AssertHeld();
++    return handle_count_ == maximumStreamCount;
+   }
+ 
+-  DesktopCapturer::SourceId Source() const override {
+-    return source_;
++  mutable Mutex mutex_;
++  // 100 is an arbitrary number that seems high enough to never get reached, while still providing
++  // a reasonably low upper bound.
++  static constexpr size_t maximumStreamCount = 100;
++  size_t handle_count_ RTC_GUARDED_BY(mutex_) = 0;
++  DesktopCapturer::SourceId unique_source_id_ RTC_GUARDED_BY(mutex_) = 0;
++};
++
++class API_AVAILABLE(macos(14.0)) SckPickerHandle : public SckPickerHandleInterface {
++ public:
++  static std::unique_ptr<SckPickerHandle> Create(SckPickerProxy* proxy) {
++    std::optional<DesktopCapturer::SourceId> id = proxy->AcquireSourceId();
++    if (!id) {
++      return nullptr;
++    }
++    return std::unique_ptr<SckPickerHandle>(new SckPickerHandle(proxy, *id));
+   }
+ 
+-  static bool AtCapacity() { return sHandleCount == maximumStreamCount; }
++  ~SckPickerHandle() { proxy_->RelinquishSourceId(source_); }
++
++  SCContentSharingPicker* GetPicker() const override { return proxy_->GetPicker(); }
++
++  DesktopCapturer::SourceId Source() const override { return source_; }
+ 
+  private:
+-  // 100 is an arbitrary number that seems high enough to never get reached, while still providing
+-  // a reasonably low upper bound.
+-  static constexpr size_t maximumStreamCount = 100;
+-  static size_t sHandleCount;
+-  SequenceChecker checker_;
++  SckPickerHandle(SckPickerProxy* proxy, DesktopCapturer::SourceId source)
++      : proxy_(proxy), source_(source) {}
++
++  SckPickerProxy* const proxy_;
+   const DesktopCapturer::SourceId source_;
+ };
+ 
+-size_t SckPickerHandle::sHandleCount = 0;
+-
+-std::unique_ptr<SckPickerHandleInterface> CreateSckPickerHandle() API_AVAILABLE(macos(14.0)) {
+-  if (SckPickerHandle::AtCapacity()) {
+-    return nullptr;
+-  }
+-  static DesktopCapturer::SourceId unique_source_id = 0;
+-  return std::make_unique<SckPickerHandle>(++unique_source_id);
++std::unique_ptr<SckPickerHandleInterface> CreateSckPickerHandle() {
++  return SckPickerHandle::Create(SckPickerProxy::Get());
+ }
+ 
+-}  // namespace webrtc
+\ No newline at end of file
++}  // namespace webrtc

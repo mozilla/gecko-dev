@@ -1,43 +1,163 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Sat, 13 Feb 2021 04:20:00 -0800
-Subject: Bug 1654112 - Add pid_t to desktop_capture_types.h; r=pehrsons
+From: k-wasniowski <kacp.was@gmail.com>
+Date: Wed, 22 Jan 2025 18:45:34 +0100
+Subject: (cherry-pick-branch-heads/6943) [M133] fix: h26x packet buffer video
+ artifacts
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-Upstreaming bug 1697385
+This change resolves an issue that arises when there is a gap in the
+sequence numbers of packets associated with a single frame.
 
-Also includes:
-Bug 1654112 - Clarifying prev. rev that moved pid_t into the global namespace; r=dminor
+Before this change, the H26x packet buffer could potentially assemble a
+frame using only a subset of the packets in the buffer if a packet was
+missing in the middle and a packet with a marker bit arrived.
 
-Differential Revision: https://phabricator.services.mozilla.com/D107897
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/539b69f0e21118a1898f1ef689577c7193ff7be7
+To address this, the change introduces a check before assembling a
+frame. This ensures that all packets belonging to a single frame are
+correctly collected by iterating backward until the first packet in the
+frame is identified.
+
+(cherry picked from commit eafee5e3d68a7356dd415d2b3eee53017140d38b)
+
+Bug: webrtc:384391181, chromium:392029283
+Change-Id: I4d09a3d6d569624ece204264cb32e5076ed090a2
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/374183
+Reviewed-by: Henrik Boström <hbos@webrtc.org>
+Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
+Reviewed-by: Jianlin Qiu <jianlin.qiu@intel.com>
+Commit-Queue: Henrik Boström <hbos@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#43793}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/375165
+Cr-Commit-Position: refs/branch-heads/6943@{#2}
+Cr-Branched-From: cbe304455fe0ae24622252ef8a0707a555fa5caf-refs/heads/main@{#43659}
 ---
- modules/desktop_capture/desktop_capture_types.h | 4 ++++
- modules/video_capture/video_capture.h           | 1 +
- 2 files changed, 5 insertions(+)
+ AUTHORS                                       |  1 +
+ modules/video_coding/h26x_packet_buffer.cc    |  6 +++
+ modules/video_coding/h26x_packet_buffer.h     |  2 +-
+ .../h26x_packet_buffer_unittest.cc            | 37 ++++++++++++++++++-
+ video/rtp_video_stream_receiver2_unittest.cc  |  2 +
+ 5 files changed, 46 insertions(+), 2 deletions(-)
 
-diff --git a/modules/desktop_capture/desktop_capture_types.h b/modules/desktop_capture/desktop_capture_types.h
-index a4e3e897fd..e777a45f92 100644
---- a/modules/desktop_capture/desktop_capture_types.h
-+++ b/modules/desktop_capture/desktop_capture_types.h
-@@ -13,6 +13,10 @@
+diff --git a/AUTHORS b/AUTHORS
+index 46587ac6f3..7c091954c1 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -73,6 +73,7 @@ Jie Mao <maojie0924@gmail.com>
+ Jiwon Kim <jwkim0000@gmail.com>
+ Johnny Wong <hellojinqiang@gmail.com>
+ Jose Antonio Olivera Ortega <josea.olivera@gmail.com>
++Kacper Waśniowski <kacp.was@gmail.com>
+ Karim Hammache <karim@karhm.com>
+ Keiichi Enomoto <enm10k@gmail.com>
+ Kiran Thind <kiran.thind@gmail.com>
+diff --git a/modules/video_coding/h26x_packet_buffer.cc b/modules/video_coding/h26x_packet_buffer.cc
+index 2afe1426b1..8bc5d7e3bf 100644
+--- a/modules/video_coding/h26x_packet_buffer.cc
++++ b/modules/video_coding/h26x_packet_buffer.cc
+@@ -207,6 +207,12 @@ H26xPacketBuffer::InsertResult H26xPacketBuffer::FindFrames(
+         auto& prev_packet = GetPacket(seq_num_start - 1);
  
- #include <stdint.h>
- 
-+#ifdef XP_WIN      // Moving this into the global namespace
-+typedef int pid_t; // matching what used to be in
-+#endif             // video_capture_defines.h
+         if (prev_packet == nullptr || prev_packet->timestamp != rtp_timestamp) {
++          const auto& current_packet = GetPacket(seq_num_start);
++          if (!current_packet->video_header.is_first_packet_in_frame) {
++            // First packet of the frame is missing.
++            return result;
++          }
 +
- namespace webrtc {
+           if (MaybeAssembleFrame(seq_num_start, seq_num, result)) {
+             // Frame was assembled, continue to look for more frames.
+             break;
+diff --git a/modules/video_coding/h26x_packet_buffer.h b/modules/video_coding/h26x_packet_buffer.h
+index c3db72bdd6..d7f5286a2f 100644
+--- a/modules/video_coding/h26x_packet_buffer.h
++++ b/modules/video_coding/h26x_packet_buffer.h
+@@ -85,7 +85,7 @@ class H26xPacketBuffer {
+   // received without SPS/PPS.
+   void InsertSpsPpsNalus(const std::vector<uint8_t>& sps,
+                          const std::vector<uint8_t>& pps);
+-  // Insert start code and paramter sets for H.264 payload, also update header
++  // Insert start code and parameter sets for H.264 payload, also update header
+   // if parameter sets are inserted. Return false if required SPS or PPS is not
+   // found.
+   bool FixH264Packet(Packet& packet);
+diff --git a/modules/video_coding/h26x_packet_buffer_unittest.cc b/modules/video_coding/h26x_packet_buffer_unittest.cc
+index a3ea3dc1c5..dc5f3b5502 100644
+--- a/modules/video_coding/h26x_packet_buffer_unittest.cc
++++ b/modules/video_coding/h26x_packet_buffer_unittest.cc
+@@ -547,6 +547,40 @@ TEST(H26xPacketBufferTest, IdrIsKeyframeFuaRequiresFirstFragmet) {
+       SizeIs(2));
+ }
  
- enum class CaptureType { kWindow, kScreen, kAnyScreenContent };
-diff --git a/modules/video_capture/video_capture.h b/modules/video_capture/video_capture.h
-index f31b239c71..7279bed476 100644
---- a/modules/video_capture/video_capture.h
-+++ b/modules/video_capture/video_capture.h
-@@ -13,6 +13,7 @@
++TEST(H26xPacketBufferTest, ReorderedRtpPackets) {
++  H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/true);
++
++  RTC_UNUSED(packet_buffer.InsertPacket(H264Packet(kH264StapA)
++                                            .Sps()
++                                            .Pps()
++                                            .SeqNum(1)
++                                            .Time(0)
++                                            .AsFirstPacket()
++                                            .AsFirstFragment()
++                                            .Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().SeqNum(2).Time(0).Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().SeqNum(3).Time(0).Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().SeqNum(5).Time(0).Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().AsFirstFragment().SeqNum(6).Time(0).Build()));
++
++  RTC_UNUSED(packet_buffer.InsertPacket(
++      H264Packet(kH264FuA).Idr().SeqNum(7).Time(0).Marker().Build()));
++
++  EXPECT_THAT(
++      packet_buffer
++          .InsertPacket(H264Packet(kH264FuA).Idr().SeqNum(4).Time(0).Build())
++          .packets,
++      SizeIs(7));
++}
++
+ TEST(H26xPacketBufferTest, SpsPpsIdrIsKeyframeSingleNalus) {
+   H26xPacketBuffer packet_buffer(/*h264_allow_idr_only_keyframes=*/false);
  
- #include "api/video/video_rotation.h"
- #include "api/video/video_sink_interface.h"
-+#include "modules/desktop_capture/desktop_capture_types.h"
- #include "modules/video_capture/raw_video_sink_interface.h"
- #include "modules/video_capture/video_capture_defines.h"
- #include <set>
+@@ -933,6 +967,7 @@ TEST(H26xPacketBufferTest, FrameBoundariesAreSet) {
+                                             .Idr()
+                                             .SeqNum(1)
+                                             .Time(1)
++                                            .AsFirstPacket()
+                                             .Marker()
+                                             .Build());
+ 
+@@ -941,7 +976,7 @@ TEST(H26xPacketBufferTest, FrameBoundariesAreSet) {
+   EXPECT_TRUE(key.packets[0]->video_header.is_last_packet_in_frame);
+ 
+   RTC_UNUSED(packet_buffer.InsertPacket(
+-      H264Packet(kH264FuA).Slice().SeqNum(2).Time(2).Build()));
++      H264Packet(kH264FuA).Slice().SeqNum(2).Time(2).AsFirstPacket().Build()));
+   RTC_UNUSED(packet_buffer.InsertPacket(
+       H264Packet(kH264FuA).Slice().SeqNum(3).Time(2).Build()));
+   auto delta = packet_buffer.InsertPacket(
+diff --git a/video/rtp_video_stream_receiver2_unittest.cc b/video/rtp_video_stream_receiver2_unittest.cc
+index 07c23a4f33..357fd9b895 100644
+--- a/video/rtp_video_stream_receiver2_unittest.cc
++++ b/video/rtp_video_stream_receiver2_unittest.cc
+@@ -1726,11 +1726,13 @@ TEST_F(RtpVideoStreamReceiver2TestH265, H265Bitstream) {
+   rtp_packet.SetSequenceNumber(0);
+   rtp_packet.SetPayloadType(kH265PayloadType);
+   RTPVideoHeader video_header = GetDefaultH265VideoHeader();
++  video_header.is_first_packet_in_frame = true;
+   mock_on_complete_frame_callback_.AppendExpectedBitstream(vps, sizeof(vps));
+   rtp_video_stream_receiver_->OnReceivedPayloadData(
+       rtc::CopyOnWriteBuffer(vps, sizeof(vps)), rtp_packet, video_header, 0);
+ 
+   rtp_packet.SetSequenceNumber(1);
++  video_header.is_first_packet_in_frame = false;
+   mock_on_complete_frame_callback_.AppendExpectedBitstream(sps, sizeof(sps));
+   rtp_video_stream_receiver_->OnReceivedPayloadData(
+       rtc::CopyOnWriteBuffer(sps, sizeof(sps)), rtp_packet, video_header, 0);

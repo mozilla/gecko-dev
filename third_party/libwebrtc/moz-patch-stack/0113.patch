@@ -1,27 +1,25 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 29 Aug 2024 08:31:00 +0000
-Subject: Bug 1914837 - Always initialize DesktopCapturer::pid.
- r=webrtc-reviewers,ng
+From: Dan Baker <dbaker@mozilla.com>
+Date: Tue, 27 Aug 2024 14:09:00 -0600
+Subject: Bug 1912989 - (fix-2360208f7d) Removed build command causing failure.
+ - moz.build file updates
 
-This member is patched on top of libwebrtc. New backends could be added from
-under us. It needs to be initialized.
-
-Differential Revision: https://phabricator.services.mozilla.com/D220265
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fdf5b0a81b0c0e87d31c5963091681a0e5960678
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd4bc7427678a45283f0f56418ee2c70fac711e6
 ---
- modules/desktop_capture/desktop_capturer.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .gn | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/modules/desktop_capture/desktop_capturer.h b/modules/desktop_capture/desktop_capturer.h
-index 60c04723d6..fb3cc94f74 100644
---- a/modules/desktop_capture/desktop_capturer.h
-+++ b/modules/desktop_capture/desktop_capturer.h
-@@ -82,7 +82,7 @@ class RTC_EXPORT DesktopCapturer {
-   struct Source {
-     // The unique id to represent a Source of current DesktopCapturer.
-     SourceId id;
--    pid_t pid;
-+    pid_t pid = 0;
+diff --git a/.gn b/.gn
+index 01bb0e7b02..e379d18527 100644
+--- a/.gn
++++ b/.gn
+@@ -38,7 +38,9 @@ no_check_targets = [
+ exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
+                         [ "//build_overrides/build.gni" ]
  
-     // Title of the window or screen in UTF-8 encoding, maybe empty. This field
-     // should not be used to identify a source.
+-export_compile_commands = [ "*" ]
++# Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
++# available yet.
++#export_compile_commands = [ "*" ]
+ 
+ default_args = {
+   # Webrtc does not support component builds because we are not using the
