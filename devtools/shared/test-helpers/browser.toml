@@ -9,3 +9,5 @@ skip-if = [
   "verify",
   "ccov",
 ]
+
+["browser_dump_scope.js"]
