@@ -159,7 +159,7 @@ impl ModularTransform for XYZtoLAB {
 
 struct ClutOnly {
     clut: Box<[f32]>,
-    grid_size: u16,
+    grid_size: u8,
 }
 
 impl ModularTransform for ClutOnly {
@@ -223,7 +223,7 @@ impl ModularTransform for ClutOnly {
 struct Clut3x3 {
     input_clut_table: [Option<Vec<f32>>; 3],
     clut: Option<Vec<f32>>,
-    grid_size: u16,
+    grid_size: u8,
     output_clut_table: [Option<Vec<f32>>; 3],
 }
 impl ModularTransform for Clut3x3 {
@@ -297,7 +297,7 @@ impl ModularTransform for Clut3x3 {
 struct Clut4x3 {
     input_clut_table: [Option<Vec<f32>>; 4],
     clut: Option<Vec<f32>>,
-    grid_size: u16,
+    grid_size: u8,
     output_clut_table: [Option<Vec<f32>>; 3],
 }
 impl ModularTransform for Clut4x3 {
@@ -656,7 +656,7 @@ fn modular_transform_create_mAB(lut: &lutmABType) -> Option<Vec<Box<dyn ModularT
         // Prepare CLUT
         transforms.push(Box::new(ClutOnly {
             clut: clut_table.into(),
-            grid_size: lut.num_grid_points[0] as u16,
+            grid_size: lut.num_grid_points[0],
         }));
     }
 
@@ -726,7 +726,7 @@ fn modular_transform_create_lut(lut: &lutType) -> Option<Vec<Box<dyn ModularTran
         assert_eq!(clut_length, lut.clut_table.len());
         transform.clut = Some(lut.clut_table.clone());
 
-        transform.grid_size = lut.num_clut_grid_points as u16;
+        transform.grid_size = lut.num_clut_grid_points;
         // Prepare output curves
         transform.output_clut_table[0] =
             Some(lut.output_table[0..lut.num_output_table_entries as usize].to_vec());
@@ -775,7 +775,7 @@ fn modular_transform_create_lut4x3(lut: &lutType) -> Vec<Box<dyn ModularTransfor
     assert_eq!(clut_length, lut.clut_table.len());
     transform.clut = Some(lut.clut_table.clone());
 
-    transform.grid_size = lut.num_clut_grid_points as u16;
+    transform.grid_size = lut.num_clut_grid_points;
     // Prepare output curves
     transform.output_clut_table[0] =
         Some(lut.output_table[0..lut.num_output_table_entries as usize].to_vec());
