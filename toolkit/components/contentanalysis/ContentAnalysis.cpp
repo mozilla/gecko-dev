@@ -2151,8 +2151,11 @@ void ContentAnalysis::MultipartRequestCallback::Initialize(
   MOZ_ASSERT(!requestTokens.IsEmpty());
 
   auto checkedTimeoutMs =
-      CheckedInt32(StaticPrefs::browser_contentanalysis_agent_timeout()) * 1000 * mNumCARequestsRemaining;
-  auto timeoutMs = checkedTimeoutMs.isValid() ? checkedTimeoutMs.value() : std::numeric_limits<int32_t>::max();
+      CheckedInt32(StaticPrefs::browser_contentanalysis_agent_timeout()) *
+      1000 * mNumCARequestsRemaining;
+  auto timeoutMs = checkedTimeoutMs.isValid()
+                       ? checkedTimeoutMs.value()
+                       : std::numeric_limits<int32_t>::max();
   // Non-positive timeout values indicate testing, and the test agent does not
   // care about this value.  Use 25ms (unscaled) in that case.
   timeoutMs = std::max(timeoutMs, 25);
