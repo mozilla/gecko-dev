@@ -46,13 +46,13 @@ function testEncode(engine, charset, query, expected) {
 add_task(async function test_getSubmission_utf8_param() {
   let engine = Services.search.getEngineById("utf8_param");
   // Space should be encoded to + since the search terms are a parameter.
-  testEncode(engine, "UTF-8", "caff\u00E8 shop+", "?q=caff%C3%A8+shop%2B");
+  testEncode(engine, "UTF-8", "caff\u00E8 shop +", "?q=caff%C3%A8+shop+%2B");
 });
 
 add_task(async function test_getSubmission_utf8_url() {
   let engine = Services.search.getEngineById("utf8_url");
   // Space should be encoded to %20 since the search terms are part of the URL.
-  testEncode(engine, "UTF-8", "caff\u00E8 shop+", "/caff%C3%A8%20shop%2B");
+  testEncode(engine, "UTF-8", "caff\u00E8 shop +", "/caff%C3%A8%20shop%20%2B");
 });
 
 add_task(async function test_getSubmission_windows1252() {

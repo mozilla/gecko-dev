@@ -324,7 +324,7 @@ export class EngineURL {
     // terms are part of the URL. We only use '+' if they are a query parameter.
     let url = ParamSubstitution(
       this.template,
-      escapedSearchTerms.replace("+", "%20"),
+      escapedSearchTerms.replaceAll("+", "%20"),
       queryCharset
     );
 
