@@ -60,11 +60,10 @@ class HandleBase {
       : mHandle(std::move(aOther.mHandle)),
         mSize(std::exchange(aOther.mSize, 0)) {}
 
-  HandleBase& operator=(HandleBase&& aOther) {
-    mHandle = std::move(aOther.mHandle);
-    mSize = std::exchange(aOther.mSize, 0);
-    return *this;
-  }
+  HandleBase& operator=(HandleBase&& aOther);
+
+  HandleBase(const HandleBase&) = delete;
+  HandleBase& operator=(const HandleBase&) = delete;
 
   HandleBase Clone() const;
 

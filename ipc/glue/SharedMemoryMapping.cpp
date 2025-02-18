@@ -54,16 +54,12 @@ static void RegisterMemoryReporter() {
 
 MappingBase::MappingBase() { RegisterMemoryReporter(); }
 
-MappingBase::~MappingBase() {
-  if (IsValid()) {
-    Platform::Unmap(mMemory, mSize);
-
-    MOZ_ASSERT(MappingReporter::mapped >= mSize,
-               "Can't unmap more than mapped");
-    MappingReporter::mapped -= mSize;
-    mMemory = nullptr;
-    mSize = 0;
-  }
+MappingBase& MappingBase::operator=(MappingBase&& aOther) {
+  // Swap members with `aOther`, and unmap that mapping.
+  std::swap(aOther.mMemory, mMemory);
+  std::swap(aOther.mSize, mSize);
+  aOther.Unmap();
+  return *this;
 }
 
 void* MappingBase::Data() const {
@@ -100,6 +96,18 @@ bool MappingBase::Map(const HandleBase& aHandle, void* aFixedAddress,
     return true;
   }
   return false;
+}
+
+void MappingBase::Unmap() {
+  if (IsValid()) {
+    Platform::Unmap(mMemory, mSize);
+
+    MOZ_ASSERT(MappingReporter::mapped >= mSize,
+               "Can't unmap more than mapped");
+    MappingReporter::mapped -= mSize;
+  }
+  mMemory = nullptr;
+  mSize = 0;
 }
 
 Mapping::Mapping(const Handle& aHandle, void* aFixedAddress) {
