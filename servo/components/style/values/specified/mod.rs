@@ -133,10 +133,9 @@ pub mod easing;
 pub mod effects;
 pub mod flex;
 pub mod font;
-#[cfg(feature = "gecko")]
-pub mod gecko;
 pub mod grid;
 pub mod image;
+pub mod intersection_observer;
 pub mod length;
 pub mod list;
 pub mod motion;

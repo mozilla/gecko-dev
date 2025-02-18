@@ -196,13 +196,13 @@ DOMIntersectionObserver::CreateLazyLoadObserver(Document& aDocument) {
 }
 
 bool DOMIntersectionObserver::SetRootMargin(const nsACString& aString) {
-  return Servo_IntersectionObserverRootMargin_Parse(&aString, &mRootMargin);
+  return Servo_IntersectionObserverMargin_Parse(&aString, &mRootMargin);
 }
 
 nsISupports* DOMIntersectionObserver::GetParentObject() const { return mOwner; }
 
 void DOMIntersectionObserver::GetRootMargin(nsACString& aRetVal) {
-  Servo_IntersectionObserverRootMargin_ToString(&mRootMargin, &aRetVal);
+  Servo_IntersectionObserverMargin_ToString(&mRootMargin, &aRetVal);
 }
 
 void DOMIntersectionObserver::GetThresholds(nsTArray<double>& aRetVal) {

@@ -159,7 +159,7 @@ use style::values::generics::color::ColorMixFlags;
 use style::values::generics::easing::BeforeFlag;
 use style::values::generics::length::AnchorResolutionResult;
 use style::values::resolved;
-use style::values::specified::gecko::IntersectionObserverRootMargin;
+use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style::values::specified::source_size_list::SourceSizeList;
 use style::values::specified::{AbsoluteLength, NoCalcLength};
 use style::values::{specified, AtomIdent, CustomIdent, KeyframesName};
@@ -8417,9 +8417,9 @@ pub extern "C" fn Servo_ConvertColorSpace(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_IntersectionObserverRootMargin_Parse(
+pub unsafe extern "C" fn Servo_IntersectionObserverMargin_Parse(
     value: &nsACString,
-    result: *mut IntersectionObserverRootMargin,
+    result: *mut IntersectionObserverMargin,
 ) -> bool {
     let value = value.as_str_unchecked();
     let result = result.as_mut().unwrap();
@@ -8439,7 +8439,7 @@ pub unsafe extern "C" fn Servo_IntersectionObserverRootMargin_Parse(
         None,
     );
 
-    let margin = parser.parse_entirely(|p| IntersectionObserverRootMargin::parse(&context, p));
+    let margin = parser.parse_entirely(|p| IntersectionObserverMargin::parse(&context, p));
     match margin {
         Ok(margin) => {
             *result = margin;
@@ -8450,8 +8450,8 @@ pub unsafe extern "C" fn Servo_IntersectionObserverRootMargin_Parse(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_IntersectionObserverRootMargin_ToString(
-    root_margin: &IntersectionObserverRootMargin,
+pub extern "C" fn Servo_IntersectionObserverMargin_ToString(
+    root_margin: &IntersectionObserverMargin,
     result: &mut nsACString,
 ) {
     let mut writer = CssWriter::new(result);

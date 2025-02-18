@@ -187,7 +187,7 @@ include = [
   "Time",
   "Rect",
   "InitialLetter",
-  "IntersectionObserverRootMargin",
+  "IntersectionObserverMargin",
   "Size",
   "MaxSize",
   "FlexBasis",

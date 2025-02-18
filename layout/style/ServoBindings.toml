@@ -440,7 +440,7 @@ cbindgen-types = [
     { gecko = "StyleNonNegativeLengthPercentageOrAuto", servo = "crate::values::computed::NonNegativeLengthPercentageOrAuto" },
     { gecko = "StyleInset", servo = "crate::values::computed::position::Inset" },
     { gecko = "StyleRect", servo = "crate::values::generics::rect::Rect" },
-    { gecko = "StyleIntersectionObserverRootMargin", servo = "crate::values::specified::gecko::IntersectionObserverRootMargin" },
+    { gecko = "StyleIntersectionObserverMargin", servo = "crate::values::specified::intersection_observer::IntersectionObserverMargin" },
     { gecko = "StyleGenericSize", servo = "crate::values::generics::length::Size" },
     { gecko = "StyleGenericMaxSize", servo = "crate::values::generics::length::MaxSize" },
     { gecko = "StyleGenericFlexBasis", servo = "crate::values::generics::flex::FlexBasis" },
