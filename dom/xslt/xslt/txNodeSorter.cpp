@@ -140,8 +140,6 @@ nsresult txNodeSorter::sortNodeSet(txNodeSet* aNodes, txExecutionState* aEs,
   indexes.SetLengthAndRetainStorage(len.value());
   nsTArray<UniquePtr<txObject>> sortValues(numSortValues.value());
   sortValues.SetLengthAndRetainStorage(numSortValues.value());
-  // txObject* has no null initializing constructor, so we init manually.
-  memset(sortValues.Elements(), 0, sortValuesSize.value());
 
   uint32_t i;
   for (i = 0; i < len.value(); ++i) {
