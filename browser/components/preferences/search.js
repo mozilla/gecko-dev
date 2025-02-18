@@ -10,6 +10,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   SearchUIUtils: "resource:///modules/SearchUIUtils.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
+  UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
 });
 
@@ -345,7 +346,7 @@ var gSearchPane = {
 
     if (
       UrlbarPrefs.get("quickSuggestEnabled") &&
-      UrlbarPrefs.get("quickSuggestSettingsUi") != QuickSuggest.SETTINGS_UI.NONE
+      !UrlbarPrefs.get("quickSuggestHideSettingsUI")
     ) {
       // Update the l10n IDs of text elements.
       let l10nIdByElementId = {
@@ -358,12 +359,8 @@ var gSearchPane = {
         element.dataset.l10nId = l10nId;
       }
 
+      // Show the container.
       this._updateFirefoxSuggestInfoBox();
-      document.getElementById(
-        "firefoxSuggestDataCollectionSearchToggleBox"
-      ).hidden =
-        UrlbarPrefs.get("quickSuggestSettingsUi") !=
-        QuickSuggest.SETTINGS_UI.FULL;
 
       this._updateDismissedSuggestionsStatus();
       Preferences.get(PREF_URLBAR_QUICKSUGGEST_BLOCKLIST).on("change", () =>
@@ -398,15 +395,6 @@ var gSearchPane = {
    * on the states of the Firefox Suggest toggles.
    */
   _updateFirefoxSuggestInfoBox() {
-    let infoBox = document.getElementById("firefoxSuggestInfoBox");
-
-    if (
-      UrlbarPrefs.get("quickSuggestSettingsUi") != QuickSuggest.SETTINGS_UI.FULL
-    ) {
-      infoBox.hidden = true;
-      return;
-    }
-
     let nonsponsored = Preferences.get(
       "browser.urlbar.suggest.quicksuggest.nonsponsored"
     ).value;
@@ -437,6 +425,7 @@ var gSearchPane = {
     }
 
     let instance = (this._firefoxSuggestInfoBoxInstance = {});
+    let infoBox = document.getElementById("firefoxSuggestInfoBox");
     if (!l10nId) {
       infoBox.hidden = true;
     } else {
@@ -1204,7 +1193,7 @@ class EngineView {
   // nsITreeView
   get rowCount() {
     let localModes = UrlbarUtils.LOCAL_SEARCH_MODES;
-    if (!UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+    if (!lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
       localModes = localModes.filter(
         mode => mode.source != UrlbarUtils.RESULT_SOURCE.ACTIONS
       );
@@ -1236,7 +1225,9 @@ class EngineView {
       let shortcut = this._getLocalShortcut(index);
       if (shortcut) {
         if (
-          UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")
+          lazy.UrlbarPrefs.getScotchBonnetPref(
+            "searchRestrictKeywords.featureGate"
+          )
         ) {
           let keywords = this._localShortcutL10nNames
             .get(shortcut.source)

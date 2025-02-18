@@ -389,6 +389,21 @@ urlbar:
         other results in the same experiment branch, it's also not necessary to
         set `showExposureResults: false`. To also record keyword exposures,
         include "rust_exposure" in `keywordExposureResults`.
+    quickSuggestHideSettingsUI:
+      type: boolean
+      fallbackPref: browser.urlbar.quicksuggest.hideSettingsUI
+      description: >-
+        This variable is intended to be used in potential exposure experiments
+        in regions and locales where Suggest normally isn't enabled. Potential
+        exposure suggestions are implemented in Suggest, and this variable lets
+        us enable core Suggest functionality but keep it hidden. Set both
+        `quickSuggestEnabled` and `quickSuggestHideSettingsUI` to true, along
+        with `quickSuggestExposureSuggestionTypes`. This variable does NOT hide
+        visible suggestions and other UI that can be independently enabled with
+        other Nimbus variables. But since all visible suggestions are disabled
+        by default for users not in the Suggest population, as long as you don't
+        set any Nimbus variables to enable other suggestions and UI, Suggest
+        will remain hidden.
     quickSuggestImpressionCapsSponsoredEnabled:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.impressionCaps.sponsoredEnabled
@@ -440,17 +455,6 @@ urlbar:
         the scores in this map will override scores that are set in remote
         settings and Merino as well as scores that are hardcoded in the client.
         Example entries: `"amo": 0.5`, `"adm_sponsored": 0.9`
-    quickSuggestSettingsUi:
-      type: int
-      fallbackPref: browser.urlbar.quicksuggest.settingsUi
-      description: >-
-        When Suggest is enabled, this determines the Suggest settings that will
-        be visible in the settings UI (about:preferences). When Suggest is
-        disabled, this is ignored and Suggest settings are hidden. Possible
-        values:
-        0: (default) Full, all settings will be shown.
-        1: None, no settings will be shown.
-        2: Offline only, settings that pertain to online will be hidden.
     quickSuggestShouldShowOnboardingDialog:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.shouldShowOnboardingDialog
