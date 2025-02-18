@@ -81,7 +81,7 @@ class OnboardingFragment : Fragment() {
                 showDefaultBrowserPage = isNotDefaultBrowser(this) && !isDefaultBrowserPromptSupported(),
                 showNotificationPage = canShowNotificationPage(),
                 showAddWidgetPage = canShowAddSearchWidgetPrompt(),
-            )
+            ).toMutableList()
         }
     }
     private val telemetryRecorder by lazy { OnboardingTelemetryRecorder() }
