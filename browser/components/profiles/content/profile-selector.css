@@ -27,7 +27,7 @@ profile-selector {
 .profile-list {
   width: 100%;
   max-height: 400px;
-  overflow: scroll;
+  overflow: auto;
   padding: var(--space-small);
   margin: var(--space-xxlarge) 0;
   display: flex;
