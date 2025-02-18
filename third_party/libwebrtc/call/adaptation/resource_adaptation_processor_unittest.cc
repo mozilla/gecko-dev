@@ -10,24 +10,35 @@
 
 #include "call/adaptation/resource_adaptation_processor.h"
 
+#include <cstddef>
+#include <memory>
+
 #include "api/adaptation/resource.h"
+#include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "api/video/video_adaptation_counters.h"
-#include "call/adaptation/resource_adaptation_processor_interface.h"
 #include "call/adaptation/test/fake_frame_rate_provider.h"
 #include "call/adaptation/test/fake_resource.h"
 #include "call/adaptation/video_source_restrictions.h"
+#include "call/adaptation/video_stream_adapter.h"
 #include "call/adaptation/video_stream_input_state_provider.h"
 #include "rtc_base/event.h"
-#include "rtc_base/gunit.h"
-#include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue_for_test.h"
+#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 
 namespace {
+
+using ::testing::Eq;
 
 const int kDefaultFrameRate = 30;
 const int kDefaultFrameSize = 1280 * 720;
@@ -433,8 +444,11 @@ TEST_F(ResourceAdaptationProcessorTest,
   resource_task_queue.PostTask(
       [&]() { resource_->SetUsageState(ResourceUsageState::kOveruse); });
 
-  EXPECT_EQ_WAIT(1u, restrictions_listener_.restrictions_updated_count(),
-                 kDefaultTimeout.ms());
+  EXPECT_THAT(
+      WaitUntil(
+          [&] { return restrictions_listener_.restrictions_updated_count(); },
+          Eq(1u)),
+      IsRtcOk());
 }
 
 TEST_F(ResourceAdaptationProcessorTest,
