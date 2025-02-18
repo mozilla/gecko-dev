@@ -16,6 +16,29 @@ ChromeUtils.defineESModuleGetters(this, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
 });
 
+// saveScopeVariablesAsJSON is an experimental feature which will attempt to
+// save the values of all variables when a test fails (ie an assert fails).
+// It relies on the DevTools Debugger API to inspect variables and for the
+// moment will only be enabled if either:
+// - the preference devtools.testing.testScopes is set to true
+// - the environment variable MOZ_DEVTOOLS_TEST_SCOPES is set to 1
+//
+// For instance for a try push, you can enable it with
+// `./mach try fuzzy --env MOZ_DEVTOOLS_TEST_SCOPES=1`
+ChromeUtils.defineLazyGetter(this, "saveScopeVariablesAsJSON", () => {
+  const isDevToolsTestScopesEnabled =
+    Services.prefs.getBoolPref("devtools.testing.testScopes", false) ||
+    Services.env.get("MOZ_DEVTOOLS_TEST_SCOPES") === "1";
+  return () => {
+    if (isDevToolsTestScopesEnabled) {
+      ChromeUtils.importESModule(
+        "resource://devtools/shared/test-helpers/dump-scope.sys.mjs",
+        { global: "devtools" }
+      ).dumpScope();
+    }
+  };
+});
+
 const SIMPLETEST_OVERRIDES = [
   "ok",
   "record",
@@ -1576,6 +1599,10 @@ function testResult({ name, pass, todo, ex, stack, allowFailure }) {
     // eslint-disable-next-line no-debugger
     debugger;
   }
+
+  // Optionally, test variables can be saved to a file, which will be uploaded
+  // as an artifact if the test is running on try.
+  saveScopeVariablesAsJSON();
 }
 
 function testMessage(msg) {

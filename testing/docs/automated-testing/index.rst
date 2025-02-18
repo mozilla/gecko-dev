@@ -259,6 +259,14 @@ desktop with GNOME Screencast. This works on try as well, in which case the vide
 file will be uploaded as an artifact and available in the
 ``Artifacts and Debugging Tools`` panel on Treeherder.
 
+For browser chrome mochitests, passing ``MOZ_DEVTOOLS_TEST_SCOPES=1`` as an
+environment variable will record all variables and arguments available in
+the scope of the test when any assert fails. On try, each failed assert will generate
+a JSON file named `scope-variables-[...].json` which will be uploaded as a
+test artifact. When using the feature locally, set MOZ_UPLOAD_DIR to a local
+folder where the JSON files should be saved. Note that Firefox opens JSON files
+with the built-in DevTools JSON viewer.
+
 .. _Need_to_set_preferences_for_test-suites:
 
 Need to set preferences for test-suites?
