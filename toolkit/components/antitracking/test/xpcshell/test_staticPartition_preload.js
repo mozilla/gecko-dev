@@ -124,9 +124,9 @@ add_task(async () => {
 
     await contentPage.spawn([], () => {
       // eslint-disable-next-line no-undef
-      content.windowUtils.clearSharedStyleSheetCache();
+      content.windowUtils.clearStyleSheetCache();
       // eslint-disable-next-line no-undef
-      content.windowUtils.clearSharedScriptCache();
+      content.windowUtils.clearScriptCache();
     });
 
     await contentPage.close();

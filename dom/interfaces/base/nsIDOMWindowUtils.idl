@@ -842,12 +842,12 @@ interface nsIDOMWindowUtils : nsISupports {
   /**
    * Clears the SharedStyleSheetCache.
    */
-  void clearSharedStyleSheetCache();
+  void clearStyleSheetCache();
 
   /**
    * Clears the SharedScriptCache.
    */
-  void clearSharedScriptCache();
+  void clearScriptCache();
 
   /**
    * Returns the number of stylesheets that have been parsed on this document.

@@ -1317,13 +1317,13 @@ nsDOMWindowUtils::SuppressAnimation(bool aSuppress) {
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::ClearSharedStyleSheetCache() {
+nsDOMWindowUtils::ClearStyleSheetCache() {
   SharedStyleSheetCache::Clear();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::ClearSharedScriptCache() {
+nsDOMWindowUtils::ClearScriptCache() {
   SharedScriptCache::Clear();
   return NS_OK;
 }
