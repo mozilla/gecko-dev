@@ -15,7 +15,7 @@
 
 namespace mozilla {
 
-enum ChaosFeature {
+enum class ChaosFeature : uint32_t {
   None = 0x0,
   // Altering thread scheduling.
   ThreadScheduling = 0x1,
@@ -53,7 +53,8 @@ class ChaosMode {
   }
 
   static bool isActive(ChaosFeature aFeature) {
-    return detail::gChaosModeCounter > 0 && (detail::gChaosFeatures & aFeature);
+    return detail::gChaosModeCounter > 0 &&
+           (uint32_t(detail::gChaosFeatures) & uint32_t(aFeature));
   }
 
   /**
