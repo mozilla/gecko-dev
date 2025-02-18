@@ -29,6 +29,7 @@
 #include "mozilla/TaskQueue.h"
 #include "mozilla/ThreadEventQueue.h"
 #include "mozilla/ThreadLocal.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "TaskController.h"
 #include "ThreadEventTarget.h"
 #ifdef MOZ_CANARY
@@ -261,6 +262,18 @@ NS_IMPL_QUERY_INTERFACE_CI(nsThreadManager, nsIThreadManager)
 NS_IMPL_CI_INTERFACE_GETTER(nsThreadManager, nsIThreadManager)
 
 //-----------------------------------------------------------------------------
+
+/*static*/ uint32_t nsIThreadManager::LargeStackSize() {
+  // This is just short of 2MB to avoid the Linux kernel allocating an entire
+  // 2MB huge page for the stack on first access.  ASan and TSan builds are
+  // given a larger stack size due to extra data and red-zones which consume
+  // stack space.
+#if defined(MOZ_ASAN) || defined(MOZ_TSAN)
+  return 4096 * 1024 - 2 * mozilla::ipc::shared_memory::SystemPageSize();
+#else
+  return 2048 * 1024 - 2 * mozilla::ipc::shared_memory::SystemPageSize();
+#endif
+}
 
 /*static*/ nsThreadManager& nsThreadManager::get() {
   static NeverDestroyed<nsThreadManager> sInstance;
