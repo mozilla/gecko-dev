@@ -15,9 +15,9 @@
 
 #include "nsIContentInlines.h"
 
+#include "mozilla/AppShutdown.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/PerfStats.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerMarkers.h"
@@ -701,7 +701,7 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
       mDocument,
       "The document was shut down while refresh observer is attached!");
 
-  if (ipc::ProcessChild::ExpectingShutdown()) {
+  if (AppShutdown::IsShutdownImpending()) {
     return;
   }
 
@@ -720,7 +720,7 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
   // e.g. tab event and content event.
   if (WaitingForParent()) {
     mDocument->ParentDocument()->mNotificationController->WillRefresh(aTime);
-    if (!mDocument || ipc::ProcessChild::ExpectingShutdown()) {
+    if (!mDocument || AppShutdown::IsShutdownImpending()) {
       return;
     }
   }
@@ -750,7 +750,7 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
 #endif
 
     mDocument->DoInitialUpdate();
-    if (ipc::ProcessChild::ExpectingShutdown()) {
+    if (AppShutdown::IsShutdownImpending()) {
       return;
     }
 
@@ -975,7 +975,7 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
     }
   }
 
-  if (ipc::ProcessChild::ExpectingShutdown()) {
+  if (AppShutdown::IsShutdownImpending()) {
     return;
   }
 
@@ -1018,7 +1018,7 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
     mDocument->ClearMutationData();
   }
 
-  if (ipc::ProcessChild::ExpectingShutdown()) {
+  if (AppShutdown::IsShutdownImpending()) {
     return;
   }
 

@@ -8,7 +8,7 @@
 #include "mozilla/a11y/DocAccessibleChild.h"
 #include "mozilla/a11y/CacheConstants.h"
 #include "mozilla/a11y/FocusManager.h"
-#include "mozilla/ipc/ProcessChild.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/PerfStats.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "nsAccessibilityService.h"
@@ -96,7 +96,7 @@ void DocAccessibleChild::InsertIntoIpcTree(LocalAccessible* aChild,
     // limit. Write the show event data to the queue.
     if (data.Length() + mMutationEventBatcher.AccCount() ==
         kMaxAccsPerMessage) {
-      if (ipc::ProcessChild::ExpectingShutdown()) {
+      if (AppShutdown::IsShutdownImpending()) {
         return;
       }
       // Note: std::move used on aSuppressShowEvent to force selection of the
@@ -115,7 +115,7 @@ void DocAccessibleChild::InsertIntoIpcTree(LocalAccessible* aChild,
     LocalAccessible* child = shownTree[accIndex];
     data.AppendElement(SerializeAcc(child));
   }
-  if (ipc::ProcessChild::ExpectingShutdown()) {
+  if (AppShutdown::IsShutdownImpending()) {
     return;
   }
   if (!data.IsEmpty()) {
@@ -503,7 +503,7 @@ void DocAccessibleChild::MutationEventBatcher::PushMutationEventData(
 
 void DocAccessibleChild::MutationEventBatcher::SendQueuedMutationEvents(
     DocAccessibleChild& aDocAcc) {
-  if (ipc::ProcessChild::ExpectingShutdown()) {
+  if (AppShutdown::IsShutdownImpending()) {
     return;
   }
   aDocAcc.SendMutationEvents(mMutationEventData);

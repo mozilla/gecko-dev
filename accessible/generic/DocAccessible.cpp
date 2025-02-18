@@ -34,12 +34,12 @@
 #include "nsIURI.h"
 #include "nsIWebNavigation.h"
 #include "nsFocusManager.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Components.h"  // for mozilla::components
 #include "mozilla/EditorBase.h"
 #include "mozilla/HTMLEditor.h"
-#include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/PerfStats.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ScrollContainerFrame.h"
@@ -1759,7 +1759,7 @@ void DocAccessible::DoInitialUpdate() {
     ParentDocument()->FireDelayedEvent(reorderEvent);
   }
 
-  if (ipc::ProcessChild::ExpectingShutdown()) {
+  if (AppShutdown::IsShutdownImpending()) {
     return;
   }
   if (IPCAccessibilityActive()) {

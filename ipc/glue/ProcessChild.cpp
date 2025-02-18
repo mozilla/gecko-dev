@@ -32,8 +32,6 @@ ProcessChild* ProcessChild::gProcessChild;
 StaticMutex ProcessChild::gIPCShutdownStateLock;
 MOZ_CONSTINIT nsCString ProcessChild::gIPCShutdownStateAnnotation;
 
-static Atomic<bool> sExpectingShutdown(false);
-
 ProcessChild::ProcessChild(IPC::Channel::ChannelHandle aClientChannel,
                            ProcessId aParentPid, const nsID& aMessageChannelId)
     : mUILoop(MessageLoop::current()),
@@ -109,13 +107,10 @@ ProcessChild::~ProcessChild() {
 
 /* static */
 void ProcessChild::NotifiedImpendingShutdown() {
-  sExpectingShutdown = true;
+  AppShutdown::SetImpendingShutdown();
   ProcessChild::AppendToIPCShutdownStateAnnotation(
       "NotifiedImpendingShutdown"_ns);
 }
-
-/* static */
-bool ProcessChild::ExpectingShutdown() { return sExpectingShutdown; }
 
 /* static */
 void ProcessChild::QuickExit() {

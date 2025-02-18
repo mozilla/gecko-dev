@@ -21,6 +21,7 @@
 #include "mozilla/layers/CanvasDrawEventRecorder.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/SourceSurfaceSharedData.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include "nsIObserverService.h"
@@ -66,7 +67,7 @@ class RecorderHelpers final : public CanvasDrawEventRecorder::Helpers {
     if (!mCanvasChild) {
       return false;
     }
-    return !mCanvasChild->CanSend() || ipc::ProcessChild::ExpectingShutdown();
+    return !mCanvasChild->CanSend() || AppShutdown::IsShutdownImpending();
   }
 
   bool RestartReader() override {
