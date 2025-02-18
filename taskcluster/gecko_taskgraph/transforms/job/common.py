@@ -7,7 +7,6 @@ worker implementation they operate on, and take the same three parameters, for
 consistency.
 """
 
-import mozpack.path as mozpath
 from taskgraph.transforms.run.common import CACHES, add_cache
 from taskgraph.util.keyed_by import evaluate_keyed_by
 from taskgraph.util.taskcluster import get_artifact_prefix
@@ -38,8 +37,7 @@ def generic_worker_add_artifacts(config, job, taskdesc):
     # mean the artifacts will be public or private; that is set via the name
     # attribute in add_artifacts.
     path = get_artifact_prefix(taskdesc)
-    # {task_workdir} gets interpolated in run-task
-    taskdesc["worker"].setdefault("env", {})["UPLOAD_DIR"] = f"{{task_workdir}}/{path}"
+    taskdesc["worker"].setdefault("env", {})["UPLOAD_DIR"] = path
     add_artifacts(config, job, taskdesc, path=path)
 
 
@@ -103,12 +101,7 @@ def support_vcs_checkout(config, job, taskdesc):
         }
     )
 
-    if "GECKO_PATH" in env:
-        gecko_path = env["GECKO_PATH"]
-    else:
-        gecko_path = geckodir
-        # {task_workdir} is interpolated by run-task script
-        env["GECKO_PATH"] = mozpath.join("{task_workdir}", geckodir)
+    gecko_path = env.setdefault("GECKO_PATH", geckodir)
 
     if "comm_base_repository" in config.params:
         taskdesc["worker"]["env"].update(
