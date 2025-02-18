@@ -21,9 +21,22 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuDialogTestTag.EXTENSIONS
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 
 class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule) {
+
+    fun verifyMainMenuCFR() {
+        Log.i(TAG, "verifyMainMenuCFR: Trying to verify the main menu CFR title is displayed.")
+        composeTestRule.mainMenuCFRTitle().assertIsDisplayed()
+        Log.i(TAG, "verifyMainMenuCFR: Verified the main menu CFR title is displayed.")
+        Log.i(TAG, "verifyMainMenuCFR: Trying to verify the main menu CFR message is displayed.")
+        composeTestRule.mainMenuCFRMessage().assertIsDisplayed()
+        Log.i(TAG, "verifyMainMenuCFR: Verified the main menu CFR message is displayed.")
+        Log.i(TAG, "verifyMainMenuCFR: Trying to verify the main menu CFR dismiss button is displayed.")
+        composeTestRule.closeMainMenuCFRButton().assertIsDisplayed()
+        Log.i(TAG, "verifyMainMenuCFR: Verified the main menu CFR dismiss button is displayed.")
+    }
 
     fun expandMainMenu() {
         Log.i(TAG, "expandMainMenu: Trying to perform swipe up action on the main menu.")
@@ -283,6 +296,12 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
 
     fun verifyBookmarkThisPageButton() {
         composeTestRule.bookmarkThisPageButton().assertIsDisplayed()
+    }
+
+    fun clickQuitFirefoxButton() {
+        Log.i(TAG, "clickQuitFirefoxButton: Trying to click the \"Quit $appName\" button from the new main menu design.")
+        composeTestRule.quitFirefoxButton().performClick()
+        Log.i(TAG, "clickQuitFirefoxButton: Clicked the \"Quit $appName\" button from the new main menu design.")
     }
 
     class Transition(private val composeTestRule: ComposeTestRule) {
@@ -576,8 +595,33 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             ShareOverlayRobot().interact()
             return ShareOverlayRobot.Transition()
         }
+
+        fun clickCustomizeHomepageButton(interact: SettingsSubMenuHomepageRobot.() -> Unit): SettingsSubMenuHomepageRobot.Transition {
+            Log.i(TAG, "clickCustomizeHomepageButton: Trying to click the \"Customize homepage\" button")
+            composeTestRule.customizeHomeButton().performClick()
+            Log.i(TAG, "clickCustomizeHomepageButton: Clicked the \"Customize homepage\" button")
+
+            SettingsSubMenuHomepageRobot().interact()
+            return SettingsSubMenuHomepageRobot.Transition()
+        }
+
+        fun clickGoBackToMainMenuButton(interact: ThreeDotMenuMainRobotCompose.() -> Unit): Transition {
+            Log.i(TAG, "clickGoBackToMainMenuButton: Trying to click the \"Navigate back\" to main menu button.")
+            composeTestRule.backToMainMenuButton().performClick()
+            Log.i(TAG, "clickGoBackToMainMenuButton: Clicked the \"Navigate back\" to main menu button.")
+
+            ThreeDotMenuMainRobotCompose(composeTestRule).interact()
+            return Transition(composeTestRule)
+        }
     }
 }
+
+private fun ComposeTestRule.mainMenuCFRTitle() = onNodeWithText(getStringResource(R.string.menu_cfr_title))
+
+private fun ComposeTestRule.mainMenuCFRMessage() = onNodeWithText(getStringResource(R.string.menu_cfr_body))
+
+private fun ComposeTestRule.closeMainMenuCFRButton() = onNodeWithTag("cfr.dismiss")
+
 private fun ComposeTestRule.signInButton() = onNodeWithText(getStringResource(R.string.browser_menu_sign_in))
 
 private fun ComposeTestRule.signInButtonDescription() = onNodeWithText(getStringResource(R.string.browser_menu_sign_in_caption))
@@ -607,6 +651,8 @@ private fun ComposeTestRule.passwordsButton() = onNodeWithContentDescription(get
 private fun ComposeTestRule.whatsNewButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_new_in_firefox))
 
 private fun ComposeTestRule.backToMainMenuButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_back_button_content_description))
+
+private fun ComposeTestRule.quitFirefoxButton() = onNodeWithContentDescription("Quit $appName")
 
 // Page main menu items
 

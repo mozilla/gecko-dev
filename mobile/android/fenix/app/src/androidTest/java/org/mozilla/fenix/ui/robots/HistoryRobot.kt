@@ -172,6 +172,15 @@ class HistoryRobot {
     }
 
     class Transition {
+        fun goBackToHomeScreen(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
+            Log.i(TAG, "goBackToHomeScreen: Trying to click go back button")
+            onView(withContentDescription("Navigate up")).click()
+            Log.i(TAG, "goBackToHomeScreen: Clicked go back button")
+
+            HomeScreenRobot().interact()
+            return HomeScreenRobot.Transition()
+        }
+
         fun goBack(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             Log.i(TAG, "goBack: Trying to click go back menu button")
             onView(withContentDescription("Navigate up")).click()

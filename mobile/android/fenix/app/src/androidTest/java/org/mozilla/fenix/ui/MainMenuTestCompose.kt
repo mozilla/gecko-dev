@@ -25,8 +25,11 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
 import org.mozilla.fenix.helpers.DataGenerationHelper.getRecommendedExtensionTitle
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
+import org.mozilla.fenix.helpers.MatcherHelper
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.RecyclerViewIdlingResource
 import org.mozilla.fenix.helpers.TestAssetHelper
+import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
@@ -36,6 +39,7 @@ import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.ui.robots.browserScreen
+import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.customTabScreen
 import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
@@ -784,6 +788,101 @@ class MainMenuTestCompose : TestSetup() {
             acceptPermissionToInstallAddon()
             verifyAddonInstallCompletedPrompt(recommendedExtensionTitle, composeTestRule.activityRule)
             closeAddonInstallCompletePrompt()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860741
+    @Test
+    fun verifyTheHomePageMainMenuSettingsButtonTest() {
+        homeScreen {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openSettings {
+            verifySettingsToolbar()
+        }.goBack {
+            verifyHomeWordmark()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860743
+    @Test
+    fun verifyTheHomePageNewTabButtonInPrivateBrowsingModeTest() {
+        homeScreen {
+        }.togglePrivateBrowsingMode()
+
+        homeScreen {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.clickNewTabButton {
+            verifySearchToolbar(isDisplayed = true)
+        }.dismissSearchBar {
+            verifyIfInPrivateOrNormalMode(privateBrowsingEnabled = false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860745
+    @Test
+    fun verifyTheHomePageNewPrivateTabButtonInNormalBrowsingModeTest() {
+        homeScreen {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.clickNewPrivateTabButton {
+            verifySearchToolbar(isDisplayed = true)
+        }.dismissSearchBar {
+            verifyIfInPrivateOrNormalMode(privateBrowsingEnabled = true)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860751
+    @Test
+    fun verifyTheHomePageMainMenuCustomizeHomepageButtonTest() {
+        homeScreen {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.clickCustomizeHomepageButton {
+            verifyHomePageView()
+        }.goBackToHomeScreen {
+            verifyHomeWordmark()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860725
+    @Test
+    fun verifyTheHomePageMainMenuCFRTest() {
+        composeTestRule.activityRule.applySettingsExceptions {
+            it.isMenuRedesignCFREnabled = true
+        }
+        homeScreen {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            verifyMainMenuCFR()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2728842
+    @Test
+    fun verifyFindInPageInPDFTest() {
+        val testPage = getGenericAsset(mockWebServer, 3)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(testPage.url) {
+            clickPageObject(MatcherHelper.itemWithText("PDF form file"))
+            clickPageObject(itemWithResIdAndText("android:id/button2", "CANCEL"))
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.clickFindInPageButton {
+            verifyFindInPageNextButton()
+            verifyFindInPagePrevButton()
+            verifyFindInPageCloseButton()
+            enterFindInPageQuery("l")
+            verifyFindInPageResult("1/2")
+            clickFindInPageNextButton()
+            verifyFindInPageResult("2/2")
+            clickFindInPagePrevButton()
+            verifyFindInPageResult("1/2")
+        }.closeFindInPageWithCloseButton {
+            verifyFindInPageBar(false)
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.clickFindInPageButton {
+            enterFindInPageQuery("p")
+            verifyFindInPageResult("1/1")
+        }.closeFindInPageWithBackButton {
+            verifyFindInPageBar(false)
         }
     }
 }
