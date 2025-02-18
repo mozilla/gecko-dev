@@ -333,6 +333,27 @@ bool nsCounterList::SetScopeByWalkingBackwardThroughList(
   return false;
 }
 
+#if defined(DEBUG) || defined(MOZ_LAYOUT_DEBUGGER)
+void nsCounterList::Dump() {
+  int32_t i = 0;
+  for (auto* node = First(); node; node = Next(node)) {
+    const char* types[] = {"RESET", "INCREMENT", "SET", "USE"};
+    printf(
+        "  Node #%d @%p frame=%p index=%d type=%s valAfter=%d\n"
+        "       scope-start=%p scope-prev=%p",
+        i++, (void*)node, (void*)node->mPseudoFrame, node->mContentIndex,
+        types[node->mType], node->mValueAfter, (void*)node->mScopeStart,
+        (void*)node->mScopePrev);
+    if (node->mType == nsCounterNode::USE) {
+      nsAutoString text;
+      node->UseNode()->GetText(text);
+      printf(" text=%s", NS_ConvertUTF16toUTF8(text).get());
+    }
+    printf("\n");
+  }
+}
+#endif
+
 void nsCounterList::RecalcAll() {
   AutoRestore<bool> restoreRecalculatingAll(mRecalculatingAll);
   mRecalculatingAll = true;
@@ -535,22 +556,7 @@ void nsCounterManager::Dump() const {
     printf("Counter named \"%s\":\n", nsAtomCString(entry.GetKey()).get());
 
     nsCounterList* list = entry.GetWeak();
-    int32_t i = 0;
-    for (nsCounterNode* node = list->First(); node; node = list->Next(node)) {
-      const char* types[] = {"RESET", "INCREMENT", "SET", "USE"};
-      printf(
-          "  Node #%d @%p frame=%p index=%d type=%s valAfter=%d\n"
-          "       scope-start=%p scope-prev=%p",
-          i++, (void*)node, (void*)node->mPseudoFrame, node->mContentIndex,
-          types[node->mType], node->mValueAfter, (void*)node->mScopeStart,
-          (void*)node->mScopePrev);
-      if (node->mType == nsCounterNode::USE) {
-        nsAutoString text;
-        node->UseNode()->GetText(text);
-        printf(" text=%s", NS_ConvertUTF16toUTF8(text).get());
-      }
-      printf("\n");
-    }
+    list->Dump();
   }
   printf("\n\n");
 }
