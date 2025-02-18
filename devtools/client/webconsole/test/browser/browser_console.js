@@ -86,13 +86,8 @@ async function testMessages() {
   hud.iframeWindow.console.log("message from chrome window");
 
   // Spawn worker from a chrome window and log a message and an error
-  const workerCode = `console.log("message in parent worker");
-        throw new Error("error in parent worker");`;
-  const blob = new hud.iframeWindow.Blob([workerCode], {
-    type: "application/javascript",
-  });
   const chromeSpawnedWorker = new hud.iframeWindow.Worker(
-    URL.createObjectURL(blob)
+    getRootDirectory(gTestPath) + "test-parent-worker.js"
   );
 
   // Spawn Chrome worker from a chrome window and log a message
