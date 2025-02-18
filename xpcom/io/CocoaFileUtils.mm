@@ -317,16 +317,6 @@ void CopyQuarantineReferrerUrl(const CFStringRef aFilePath,
   ::CFRelease(mutQuarantineProps);
 }
 
-CFTypeRefPtr<CFURLRef> GetTemporaryFolder() {
-  nsAutoreleasePool localPool;
-
-  NSString* tempDir = ::NSTemporaryDirectory();
-  return tempDir == nil ? NULL
-                        : CFTypeRefPtr<CFURLRef>::WrapUnderGetRule(
-                              (__bridge CFURLRef)[NSURL fileURLWithPath:tempDir
-                                                            isDirectory:YES]);
-}
-
 CFTypeRefPtr<CFURLRef> GetProductDirectory(bool aLocal) {
   nsAutoreleasePool localPool;
 

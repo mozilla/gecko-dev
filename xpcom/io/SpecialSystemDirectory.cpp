@@ -28,9 +28,13 @@
 #  include <stdlib.h>
 #  include <sys/param.h>
 #  include "prenv.h"
-#  if defined(MOZ_WIDGET_COCOA)
-#    include "CFTypeRefPtr.h"
-#    include "CocoaFileUtils.h"
+#  if defined(XP_DARWIN)
+#    include "DarwinFileUtils.h"
+#    if defined(MOZ_WIDGET_COCOA)
+#      include "CFTypeRefPtr.h"
+#    elif defined(MOZ_WIDGET_UIKIT)
+#      include "mozilla/UIKitDirProvider.h"
+#    endif
 #  endif
 #  if defined(MOZ_WIDGET_GTK)
 #    include "mozilla/WidgetUtilsGtk.h"
@@ -478,9 +482,11 @@ nsresult GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
       }
       return NS_NewLocalFile(nsDependentString(path, len), aFile);
     }
-#elif defined(MOZ_WIDGET_COCOA)
+#elif defined(XP_DARWIN)
     {
-      return GetOSXFolderType(kUserDomain, kTemporaryFolderType, aFile);
+      nsAutoCString tempDir;
+      DarwinFileUtils::GetTemporaryDirectory(tempDir);
+      return NS_NewNativeLocalFile(tempDir, aFile);
     }
 
 #elif defined(XP_UNIX)
@@ -702,14 +708,6 @@ nsresult GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
 nsresult GetOSXFolderType(short aDomain, OSType aFolderType,
                           nsIFile** aLocalFile) {
   nsresult rv = NS_ERROR_FAILURE;
-
-  if (aFolderType == kTemporaryFolderType) {
-    nsCOMPtr<nsILocalFileMac> localMacFile;
-    rv = NS_NewLocalFileWithCFURL(CocoaFileUtils::GetTemporaryFolder().get(),
-                                  getter_AddRefs(localMacFile));
-    localMacFile.forget(aLocalFile);
-    return rv;
-  }
 
   OSErr err;
   FSRef fsRef;

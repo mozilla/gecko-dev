@@ -38,8 +38,6 @@ void AddQuarantineMetadataToFile(const CFStringRef filePath,
 void CopyQuarantineReferrerUrl(const CFStringRef aFilePath,
                                nsAString& aReferrer);
 
-CFTypeRefPtr<CFURLRef> GetTemporaryFolder();
-
 CFTypeRefPtr<CFURLRef> GetProductDirectory(bool aLocal);
 
 }  // namespace CocoaFileUtils
