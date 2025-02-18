@@ -184,7 +184,8 @@ function createTargetsForWatcher(watcherDataObject, isProcessActorStartup) {
     for (const browser of window.document.querySelectorAll(
       `browser[type="content"]`
     )) {
-      const childWindow = browser.browsingContext.window;
+      // Bug 1947777 - the browser context may not have an active DOM Window
+      const childWindow = browser.browsingContext?.window;
       // If the tab isn't on a document loaded in the parent process,
       // the window will be null.
       if (childWindow) {
