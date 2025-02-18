@@ -2693,7 +2693,7 @@ nsEventStatus AsyncPanZoomController::OnScrollWheel(
       }
 
       WheelScrollAnimation* animation = mAnimation->AsWheelScrollAnimation();
-      animation->UpdateDelta(aEvent.mTimeStamp, deltaInAppUnits,
+      animation->UpdateDelta(GetFrameTime().Time(), deltaInAppUnits,
                              nsSize(velocity.x, velocity.y));
       break;
     }

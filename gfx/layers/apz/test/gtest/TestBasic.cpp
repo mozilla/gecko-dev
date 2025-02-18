@@ -576,6 +576,52 @@ class APZCSmoothScrollTester : public APZCBasicTester {
     }
     ASSERT_EQ(2000, apzc->GetFrameMetrics().GetVisualScrollOffset().y);
   }
+
+  // Test that receiving a wheel event with a timestamp far in the future does
+  // not cause scrolling to get stuck.
+  void TestEventWithFutureStamp() {
+    // Set up scroll frame. Starting scroll position is (0, 0).
+    ScrollMetadata metadata;
+    FrameMetrics& metrics = metadata.GetMetrics();
+    metrics.SetScrollableRect(CSSRect(0, 0, 1000, 10000));
+    metrics.SetLayoutViewport(CSSRect(0, 0, 1000, 1000));
+    metrics.SetZoom(CSSToParentLayerScale(1.0));
+    metrics.SetCompositionBounds(ParentLayerRect(0, 0, 1000, 1000));
+    metrics.SetVisualScrollOffset(CSSPoint(0, 0));
+    metrics.SetIsRootContent(true);
+    // Set the line scroll amount to 100 pixels. Note that SmoothWheel() takes
+    // a delta denominated in lines.
+    metadata.SetLineScrollAmount({100, 100});
+    // The page scroll amount also needs to be set, otherwise the wheel handling
+    // code will get confused by things like the "don't scroll more than one
+    // page" check.
+    metadata.SetPageScrollAmount({1000, 1000});
+    apzc->SetScrollMetadata(metadata);
+
+    // Send a wheel event to trigger smooth scrolling by 5 lines (= 500 pixels).
+    // Give the wheel event a timestamp "far" (here, 1 minute) into the future.
+    // This simulates a scenario, observed in bug 1926830, where a bug in the
+    // system toolkit or widget layers causes something to introduce a skew into
+    // the timestamps received from widget code.
+    TimeStamp futureTimeStamp = mcc->Time() + TimeDuration::FromSeconds(60);
+    SmoothWheel(apzc, ScreenIntPoint(50, 50), ScreenPoint(0, 5),
+                futureTimeStamp);
+    apzc->AssertStateIsWheelScroll();
+
+    // Sample the animation 10 frames (a shorter overall duration than the
+    // timestamp skew).
+    for (int i = 0; i < 10; ++i) {
+      SampleAnimationOneFrame();
+    }
+
+    // Assert that we have scrolled. Without a mitigation in place for the
+    // timestamp skew, we may wait for the frame (vsync) time to catch up with
+    // the event's timestamp before doing any scrolling.
+    ASSERT_GT(apzc->GetFrameMetrics().GetVisualScrollOffset().y, 0);
+
+    // Clean up by letting the animation run until completion.
+    apzc->AdvanceAnimationsUntilEnd();
+  }
 };
 
 TEST_F(APZCSmoothScrollTester, ContentShiftBezier) {
@@ -612,6 +658,18 @@ TEST_F(APZCSmoothScrollTester, ContentShiftDoesNotCauseOvershootMsd) {
   SCOPED_GFX_PREF_BOOL("general.smoothScroll", true);
   SCOPED_GFX_PREF_BOOL("general.smoothScroll.msdPhysics.enabled", true);
   TestContentShiftDoesNotCauseOvershoot();
+}
+
+TEST_F(APZCSmoothScrollTester, FutureTimestampBezier) {
+  SCOPED_GFX_PREF_BOOL("general.smoothScroll", true);
+  SCOPED_GFX_PREF_BOOL("general.smoothScroll.msdPhysics.enabled", false);
+  TestEventWithFutureStamp();
+}
+
+TEST_F(APZCSmoothScrollTester, FutureTimestampMsd) {
+  SCOPED_GFX_PREF_BOOL("general.smoothScroll", true);
+  SCOPED_GFX_PREF_BOOL("general.smoothScroll.msdPhysics.enabled", true);
+  TestEventWithFutureStamp();
 }
 
 TEST_F(APZCBasicTester, ZoomAndScrollableRectChangeAfterZoomChange) {
