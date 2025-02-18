@@ -155,19 +155,11 @@ class ProviderGlobalActions extends UrlbarProvider {
   getViewTemplate(result) {
     let children = result.payload.results.map((key, i) => {
       let action = this.#actions.get(key);
-      let style;
-      if (action.dataset?.style) {
-        style = "";
-        for (let [prop, val] of Object.entries(action.dataset.style)) {
-          style += `${prop}: ${val};`;
-        }
-      }
-      return {
+      let btn = {
         name: `button-${i}`,
         tag: "span",
         classList: ["urlbarView-action-btn"],
         attributes: {
-          style,
           inputLength: result.payload.inputLength,
           "data-action": key,
           role: "button",
@@ -185,6 +177,20 @@ class ProviderGlobalActions extends UrlbarProvider {
           },
         ],
       };
+
+      if (action.dataset?.style) {
+        let style = "";
+        for (let [prop, val] of Object.entries(action.dataset.style)) {
+          style += `${prop}: ${val};`;
+        }
+        btn.attributes.style = style;
+      }
+
+      if (action.dataset?.providesSearchMode) {
+        btn.attributes["data-provides-searchmode"] = "true";
+      }
+
+      return btn;
     });
 
     if (result.payload.showOnboardingLabel) {

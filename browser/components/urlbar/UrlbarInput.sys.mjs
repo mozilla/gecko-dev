@@ -1026,7 +1026,7 @@ export class UrlbarInput {
 
     if (
       result.providerName == lazy.UrlbarProviderGlobalActions.name &&
-      result.payload.providesSearchMode
+      this.#providesSearchMode(result)
     ) {
       this.maybeConfirmSearchModeFromResult({
         result,
@@ -1097,7 +1097,7 @@ export class UrlbarInput {
       where = "tab";
     }
 
-    if (!result.payload.providesSearchMode) {
+    if (!this.#providesSearchMode(result)) {
       this.view.close({ elementPicked: true });
     }
 
@@ -1464,7 +1464,7 @@ export class UrlbarInput {
     // we might stay in a search mode of some kind, exit it now.
     if (
       this.searchMode?.isPreview &&
-      !result?.payload.providesSearchMode &&
+      !this.#providesSearchMode(result) &&
       !this.view.oneOffSearchButtons.selectedButton
     ) {
       this.searchMode = null;
@@ -1508,7 +1508,7 @@ export class UrlbarInput {
       this._autofillValue(result.autofill);
     }
 
-    if (result.payload.providesSearchMode) {
+    if (this.#providesSearchMode(result)) {
       let enteredSearchMode;
       // Only preview search mode if the result is selected.
       if (this.view.resultIsSelected(result)) {
@@ -1639,7 +1639,7 @@ export class UrlbarInput {
     if (
       firstResult.heuristic &&
       firstResult.payload.keyword &&
-      !firstResult.payload.providesSearchMode &&
+      !this.#providesSearchMode(firstResult) &&
       this.maybeConfirmSearchModeFromResult({
         result: firstResult,
         entry: "typed",
@@ -2331,6 +2331,24 @@ export class UrlbarInput {
   }
 
   // Private methods below.
+
+  /*
+   * Actions can have several buttons in the same result where not all
+   * will provide a searchMode so check the currently selected button
+   * in that case.
+   */
+  #providesSearchMode(result) {
+    if (!result) {
+      return false;
+    }
+    if (
+      this.view.selectedElement &&
+      result.providerName == lazy.UrlbarProviderGlobalActions.name
+    ) {
+      return this.view.selectedElement.dataset.providesSearchmode == "true";
+    }
+    return result.payload.providesSearchMode;
+  }
 
   _addObservers() {
     Services.obs.addObserver(
