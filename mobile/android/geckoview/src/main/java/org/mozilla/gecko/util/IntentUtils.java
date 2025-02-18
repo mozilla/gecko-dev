@@ -76,6 +76,10 @@ public class IntentUtils {
       return getSafeIntent(aUri) != null;
     }
 
+    if ("fido".equals(scheme)) {
+      return false;
+    }
+
     return true;
   }
 

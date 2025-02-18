@@ -637,6 +637,11 @@ class GeckoEngineSessionTest {
         engineSession.loadUrl("RESOURCE://package/test.text")
         verify(geckoSession, never()).load(GeckoSession.Loader().uri("resource://package/test.text"))
         verify(geckoSession, never()).load(GeckoSession.Loader().uri("RESOURCE://package/test.text"))
+
+        engineSession.loadUrl("fido:/12345678")
+        engineSession.loadUrl("FIDO:/12345678")
+        verify(geckoSession, never()).load(GeckoSession.Loader().uri("fido:/12345678"))
+        verify(geckoSession, never()).load(GeckoSession.Loader().uri("FIDO:/12345678"))
     }
 
     @Test
