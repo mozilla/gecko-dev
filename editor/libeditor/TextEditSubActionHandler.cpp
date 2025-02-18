@@ -622,13 +622,35 @@ Result<EditActionResult, nsresult> TextEditor::HandleDeleteSelectionInternal(
     }
 
     if (!SelectionRef().IsCollapsed()) {
-      nsresult rv = DeleteSelectionWithTransaction(aDirectionAndAmount,
-                                                   nsIEditor::eNoStrip);
-      if (NS_FAILED(rv)) {
-        NS_WARNING(
-            "EditorBase::DeleteSelectionWithTransaction(eNoStrip) failed");
-        return Err(rv);
+      AutoClonedSelectionRangeArray rangesToDelete(SelectionRef());
+      if (NS_WARN_IF(rangesToDelete.Ranges().IsEmpty())) {
+        NS_ASSERTION(false,
+                     "For avoiding to throw incompatible exception for "
+                     "`execCommand`, fix the caller");
+        return Err(NS_ERROR_FAILURE);
       }
+
+      if (const Text* theTextNode = AsTextEditor()->GetTextNode()) {
+        rangesToDelete.EnsureRangesInTextNode(*theTextNode);
+      }
+
+      Result<CaretPoint, nsresult> caretPointOrError =
+          DeleteRangesWithTransaction(aDirectionAndAmount, aStripWrappers,
+                                      rangesToDelete);
+      if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
+        NS_WARNING("EditorBase::DeleteRangesWithTransaction() failed");
+        return caretPointOrError.propagateErr();
+      }
+      nsresult rv = caretPointOrError.inspect().SuggestCaretPointTo(
+          *this, {SuggestCaret::OnlyIfHasSuggestion,
+                  SuggestCaret::OnlyIfTransactionsAllowedToDoIt,
+                  SuggestCaret::AndIgnoreTrivialError});
+      if (NS_FAILED(rv)) {
+        NS_WARNING("CaretPoint::SuggestCaretPointTo() failed");
+      }
+      NS_WARNING_ASSERTION(
+          rv != NS_SUCCESS_EDITOR_BUT_IGNORED_TRIVIAL_ERROR,
+          "CaretPoint::SuggestCaretPointTo() failed, but ignored");
       return EditActionResult::HandledResult();
     }
 

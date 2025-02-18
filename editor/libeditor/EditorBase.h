@@ -2134,9 +2134,6 @@ class EditorBase : public nsIEditor,
 
   /**
    * This method handles "delete selection" commands.
-   * NOTE: Don't call this method recursively from the helper methods since
-   *       when nobody handled it without canceling and returing an error,
-   *       this falls it back to `DeleteSelectionWithTransaction()`.
    *
    * @param aDirectionAndAmount Direction of the deletion.
    * @param aStripWrappers      Must be nsIEditor::eNoStrip if this is a
@@ -2603,22 +2600,6 @@ class EditorBase : public nsIEditor,
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   DeleteSelectionByDragAsAction(bool aDispatchInputEvent);
-
-  /**
-   * DeleteSelectionWithTransaction() removes selected content or content
-   * around caret with transactions and remove empty inclusive ancestor
-   * inline elements of collapsed selection after removing the contents.
-   *
-   * @param aDirectionAndAmount How much range should be removed.
-   * @param aStripWrappers      Whether the parent blocks should be removed
-   *                            when they become empty.
-   *                            Note that this must be `nsIEditor::eNoStrip`
-   *                            if this is a TextEditor because anyway it'll
-   *                            be ignored.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  DeleteSelectionWithTransaction(nsIEditor::EDirection aDirectionAndAmount,
-                                 nsIEditor::EStripWrappers aStripWrappers);
 
   /**
    * DeleteRangeWithTransaction() removes content in aRangeToDelete or content
