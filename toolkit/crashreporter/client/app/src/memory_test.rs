@@ -83,3 +83,87 @@ fn get_memtest_kinds() -> anyhow::Result<Vec<MemtestKind>> {
 
     Ok([specified, remaining].concat())
 }
+
+/// Encapsulated logic for launching and interacting with a memory testing process.
+pub mod child {
+    use crate::std::{
+        env,
+        mem::ManuallyDrop,
+        process::{Child, Command, Stdio},
+        time::Duration,
+    };
+    use ::memtest::MemtestRunnerArgs;
+    use anyhow::Context;
+
+    /// The memtest child process.
+    pub struct Memtest {
+        child: ManuallyDrop<Child>,
+    }
+
+    impl Memtest {
+        /// Try to start an asynchronous memory test.
+        pub fn spawn() -> Option<Self> {
+            match spawn_memtest() {
+                Ok(child) => Some(Memtest {
+                    child: ManuallyDrop::new(child),
+                }),
+                Err(e) => {
+                    log::error!("failed to spawn memtest process: {e:#}");
+                    None
+                }
+            }
+        }
+
+        /// Return the memtest output, waiting for testing to complete.
+        pub fn collect_output_for_submission(mut self) -> anyhow::Result<String> {
+            let child = unsafe { ManuallyDrop::take(&mut self.child) };
+            std::mem::forget(self);
+
+            let output = child
+                .wait_with_output()
+                .context("failed to wait on memtest process")?;
+            if output.status.success() {
+                String::from_utf8(output.stdout)
+                    .context("failed to get valid string from memtest stdout")
+            } else {
+                String::from_utf8(output.stderr)
+                    .context("failed to get valid string from memtest stderr")
+            }
+        }
+    }
+
+    impl Drop for Memtest {
+        fn drop(&mut self) {
+            if let Err(e) = self.child.kill() {
+                log::warn!("failed to kill memtest process: {e}");
+            }
+            if let Err(e) = self.child.wait() {
+                log::warn!("failed to wait on memtest process after kill: {e}");
+            }
+        }
+    }
+
+    fn spawn_memtest() -> anyhow::Result<Child> {
+        let memsize_mb = 1024;
+        let memtest_runner_args = MemtestRunnerArgs {
+            timeout: Duration::from_secs(3),
+            mem_lock_mode: memtest::MemLockMode::Resizable,
+            allow_working_set_resize: true,
+            allow_multithread: true,
+            allow_early_termination: true,
+        };
+
+        let curr_exe = env::current_exe().context("failed to get current exe path")?;
+        Command::new(curr_exe)
+            .arg("--memtest")
+            .arg(memsize_mb.to_string())
+            .arg(
+                serde_json::to_string(&memtest_runner_args)
+                    .expect("memtest_runner_args conversion to json string should not fail"),
+            )
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| e.into())
+    }
+}

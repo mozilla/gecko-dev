@@ -8,6 +8,7 @@
 
 use super::*;
 use crate::config::{test::MINIDUMP_PRUNE_SAVE_COUNT, Config};
+use crate::logic::test::sanitize_extra;
 use crate::settings::Settings;
 use crate::std::{
     ffi::OsString,
@@ -86,27 +87,32 @@ where
 }
 
 const MOCK_MINIDUMP_EXTRA: &str = r#"{
-                            "Vendor": "FooCorp",
-                            "ProductName": "Bar",
-                            "ReleaseChannel": "release",
-                            "BuildID": "1234",
-                            "StackTraces": {
-                                "status": "OK"
-                            },
-                            "Version": "100.0",
-                            "ServerURL": "https://reports.example.com",
-                            "TelemetryServerURL": "https://telemetry.example.com",
-                            "TelemetryClientId": "telemetry_client",
-                            "TelemetryProfileGroupId": "telemetry_profile_group",
-                            "TelemetrySessionId": "telemetry_session",
-                            "SomeNestedJson": { "foo": "bar" },
-                            "URL": "https://url.example.com"
-                        }"#;
-macro_rules! MOCK_MINIDUMP_EXTRA_COMPACT {
-    () => {{
-        let value: serde_json::Value = serde_json::from_str(MOCK_MINIDUMP_EXTRA).unwrap();
-        serde_json::to_string(&value).unwrap()
-    }};
+        "Vendor": "FooCorp",
+        "ProductName": "Bar",
+        "ReleaseChannel": "release",
+        "BuildID": "1234",
+        "StackTraces": {
+            "status": "OK"
+        },
+        "Version": "100.0",
+        "ServerURL": "https://reports.example.com",
+        "TelemetryServerURL": "https://telemetry.example.com",
+        "TelemetryClientId": "telemetry_client",
+        "TelemetryProfileGroupId": "telemetry_profile_group",
+        "TelemetrySessionId": "telemetry_session",
+        "SomeNestedJson": { "foo": "bar" },
+        "URL": "https://url.example.com"
+    }"#;
+
+fn sanitized_json(json: &str) -> String {
+    let mut value: serde_json::Value = serde_json::from_str(json).unwrap();
+    sanitize_extra(&mut value);
+    serde_json::to_string(&value).unwrap()
+}
+
+fn compact_json(json: &str) -> String {
+    let value: serde_json::Value = serde_json::from_str(json).unwrap();
+    serde_json::to_string(&value).unwrap()
 }
 
 // Actual content doesn't matter, aside from the hash that is generated.
@@ -191,7 +197,7 @@ impl GuiTest {
             )
             .add_file_result(
                 "minidump.extra",
-                Ok(MOCK_MINIDUMP_EXTRA_COMPACT!().into()),
+                Ok(compact_json(MOCK_MINIDUMP_EXTRA).into()),
                 current_system_time(),
             );
 
@@ -343,13 +349,26 @@ impl AssertFiles {
         self
     }
 
+    /// Assert that a crash is pending according to the filesystem. The pending crash will have an
+    /// unchanged extra file (due to the crash report not being submitted).
+    pub fn pending_unchanged_extra(&mut self) -> &mut Self {
+        let dmp = self.data("pending/minidump.dmp");
+        self.inner
+            .check(
+                self.data("pending/minidump.extra"),
+                compact_json(MOCK_MINIDUMP_EXTRA),
+            )
+            .check_bytes(dmp, MOCK_MINIDUMP_FILE);
+        self
+    }
+
     /// Assert that a crash is pending according to the filesystem.
     pub fn pending(&mut self) -> &mut Self {
         let dmp = self.data("pending/minidump.dmp");
         self.inner
             .check(
                 self.data("pending/minidump.extra"),
-                MOCK_MINIDUMP_EXTRA_COMPACT!(),
+                sanitized_json(MOCK_MINIDUMP_EXTRA),
             )
             .check_bytes(dmp, MOCK_MINIDUMP_FILE);
         self
@@ -588,7 +607,7 @@ fn no_restart_with_windows_error_reporting() {
         let dmp = assert_files.data("pending/minidump.dmp");
         let extra = assert_files.data("pending/minidump.extra");
         assert_files
-            .check(extra, MINIDUMP_EXTRA_CONTENTS)
+            .check(extra, sanitized_json(MINIDUMP_EXTRA_CONTENTS))
             .check_bytes(dmp, MOCK_MINIDUMP_FILE);
     }
 
@@ -662,7 +681,7 @@ fn no_submit() {
             include_url: false,
             test_hardware: false,
         })
-        .pending();
+        .pending_unchanged_extra();
 }
 
 #[test]
@@ -859,7 +878,7 @@ fn eol_version() {
         "Version end of life: crash reports are no longer accepted."
     );
     test.assert_files()
-        .pending()
+        .pending_unchanged_extra()
         .ignore("data_dir/EndOfLife100.0");
 }
 
@@ -970,7 +989,7 @@ fn persistent_settings() {
             include_url: false,
             test_hardware: false,
         })
-        .pending();
+        .pending_unchanged_extra();
 }
 
 #[test]
@@ -1010,8 +1029,8 @@ fn add_memtest_output_to_extra() {
     test.files.add_dir("data_dir").add_file(
         "data_dir/crashreporter_settings.json",
         Settings {
-            submit_report: false,
-            include_url: false,
+            submit_report: true,
+            include_url: true,
             test_hardware: true,
         }
         .to_string(),
@@ -1025,15 +1044,17 @@ fn add_memtest_output_to_extra() {
     });
 
     let mut value: serde_json::Value = serde_json::from_str(MOCK_MINIDUMP_EXTRA).unwrap();
+    sanitize_extra(&mut value);
     value["MemtestOutput"] = "memtest output".into();
     let new_extra = serde_json::to_string(&value).unwrap();
 
     test.assert_files()
         .saved_settings(Settings {
-            submit_report: false,
-            include_url: false,
+            submit_report: true,
+            include_url: true,
             test_hardware: true,
         })
+        .submitted()
         .pending_with_change(MOCK_MINIDUMP_FILE, &new_extra);
 }
 

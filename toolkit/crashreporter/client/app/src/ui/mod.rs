@@ -203,8 +203,7 @@ impl ReportCrashUI {
         }});
         test_hardware.on_change(cc! { (logic) move |v| {
             let v = *v;
-            logic.push(move |s| {s.settings.borrow_mut().test_hardware = v;
-            s.update_memtest_setting();});
+            logic.push(move |s| s.settings.borrow_mut().test_hardware = v);
         }});
 
         let input_enabled = submit_state.mapped(|s| s == &SubmitState::Initial);
