@@ -11,6 +11,7 @@
 >
   <head>
     <title>Time Picker</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src chrome:" />
     <link
       rel="stylesheet"
       href="chrome://global/skin/datetimeinputpickers.css"
@@ -28,11 +29,5 @@
         <button class="down" />
       </div>
     </template>
-    <script>
-      /* import-globals-from widgets/timepicker.js */
-      // Create a TimePicker instance and prepare to be
-      // initialized by the "TimePickerInit" event from timepicker.xml
-      new TimePicker(document.getElementById("time-picker"));
-    </script>
   </body>
 </html>

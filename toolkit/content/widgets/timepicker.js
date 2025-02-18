@@ -289,3 +289,9 @@ function TimePicker(context) {
     },
   };
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Create a TimePicker instance and prepare to be initialized
+  // by the "PickerInit" message.
+  new TimePicker(document.getElementById("time-picker"));
+});
