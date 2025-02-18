@@ -3764,6 +3764,33 @@ void PresShell::DoScrollContentIntoView() {
                       data->mContentScrollHAxis, data->mContentToScrollToFlags);
 }
 
+static bool NeedToVisuallyScroll(const nsSize& aLayoutViewportSize,
+                                 const nsRect& aPositionFixedRect) {
+  // position:fixed elements are fixed to the layout viewport, thus the
+  // coordinate system is (0, 0) origin.
+  // (and the maximum visible position is the layout viewport size, elements
+  // outside of the size will never be laid out)
+  const nsRect layoutViewport = nsRect(nsPoint(), aLayoutViewportSize);
+
+  // `BaseRect::Intersects(const Sub& aRect)` does return false if `aRect` is
+  // empty, but we do want to visually scroll to empty position:fixed elements
+  // if the elements are inside the layout viewport.
+  if (aPositionFixedRect.IsEmpty()) {
+    if (aPositionFixedRect.x > layoutViewport.XMost() ||
+        aPositionFixedRect.XMost() < layoutViewport.x ||
+        aPositionFixedRect.y > layoutViewport.YMost() ||
+        aPositionFixedRect.YMost() < layoutViewport.y) {
+      return false;
+    }
+    return true;
+  }
+
+  if (!layoutViewport.Intersects(aPositionFixedRect)) {
+    return false;
+  }
+  return true;
+}
+
 void PresShell::ScrollFrameIntoVisualViewport(Maybe<nsPoint>& aDestination,
                                               const nsRect& aPositionFixedRect,
                                               ScrollFlags aScrollFlags) {
@@ -3796,6 +3823,13 @@ void PresShell::ScrollFrameIntoVisualViewport(Maybe<nsPoint>& aDestination,
         aPositionFixedRect.YMost() <= visualViewportSize.height &&
         aPositionFixedRect.x >= 0 &&
         aPositionFixedRect.XMost() <= visualViewportSize.width) {
+      return;
+    }
+
+    // If the position:fixed element is totally outside of the the layout
+    // viewport, it will never be in the viewport.
+    const nsSize layoutViewportSize = root->GetLayoutViewportSize();
+    if (!NeedToVisuallyScroll(layoutViewportSize, aPositionFixedRect)) {
       return;
     }
 
