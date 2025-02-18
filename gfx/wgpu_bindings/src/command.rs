@@ -89,7 +89,7 @@ impl RecordedComputePass {
                 dynamic_offsets: Vec::new(),
                 string_data: Vec::new(),
             },
-            timestamp_writes: desc.timestamp_writes.cloned(),
+            timestamp_writes: desc.timestamp_writes.clone(),
         }
     }
 }
@@ -929,7 +929,7 @@ pub fn replay_compute_pass(
         id,
         &wgc::command::ComputePassDescriptor {
             label: src_pass.base.label.as_ref().map(|s| s.as_str().into()),
-            timestamp_writes: src_pass.timestamp_writes.as_ref(),
+            timestamp_writes: src_pass.timestamp_writes.clone(),
         },
     );
     if let Some(err) = err {

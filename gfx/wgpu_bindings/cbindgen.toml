@@ -40,6 +40,7 @@ using WGPUCommandBufferId = uint64_t;
 using WGPUCommandEncoderId = uint64_t;
 using WGPUComputePipelineId = uint64_t;
 using WGPUDeviceId = uint64_t;
+using WGPUFeaturesWebGPU = uint64_t;
 using WGPUPipelineLayoutId = uint64_t;
 using WGPUQuerySetId = uint64_t;
 using WGPUQueueId = uint64_t;
@@ -84,6 +85,7 @@ include = ["BufferUsages"]
 "SamplerDescriptor______nsACString" = "WGPUSamplerDescriptor"
 "AdapterInformation_nsString" = "WGPUAdapterInformation"
 "QuerySetDescriptor______nsACString" = "WGPUQuerySetDescriptor"
+"RenderPassColorAttachment_TextureViewId" = "WGPURenderPassColorAttachment"
 
 [parse]
 parse_deps = true

@@ -62,8 +62,8 @@ void AdapterInfo::GetWgpuDriverInfo(nsString& s) const {
 
 void AdapterInfo::GetWgpuBackend(nsString& s) const {
   switch (mAboutSupportInfo->backend) {
-    case ffi::WGPUBackend_Empty:
-      s.AssignLiteral("Empty");
+    case ffi::WGPUBackend_Noop:
+      s.AssignLiteral("No-op");
       return;
     case ffi::WGPUBackend_Vulkan:
       s.AssignLiteral("Vulkan");
@@ -100,7 +100,7 @@ struct FeatureImplementationStatus {
       FeatureImplementationStatusTag::NotImplemented;
   union {
     struct {
-      ffi::WGPUFeatures wgpuBit;
+      ffi::WGPUFeaturesWebGPU wgpuBit;
     } implemented;
     struct {
       const char* bugzillaUrlAscii;
@@ -113,7 +113,7 @@ struct FeatureImplementationStatus {
 
   static FeatureImplementationStatus fromDomFeature(
       const dom::GPUFeatureName aFeature) {
-    auto implemented = [](const ffi::WGPUFeatures aBit) {
+    auto implemented = [](const ffi::WGPUFeaturesWebGPU aBit) {
       FeatureImplementationStatus feat;
       feat.tag = FeatureImplementationStatusTag::Implemented;
       feat.value.implemented.wgpuBit = aBit;
@@ -127,39 +127,39 @@ struct FeatureImplementationStatus {
     };
     switch (aFeature) {
       case dom::GPUFeatureName::Depth_clip_control:
-        return implemented(WGPUFeatures_DEPTH_CLIP_CONTROL);
+        return implemented(WGPUWEBGPU_FEATURE_DEPTH_CLIP_CONTROL);
 
       case dom::GPUFeatureName::Depth32float_stencil8:
-        return implemented(WGPUFeatures_DEPTH32FLOAT_STENCIL8);
+        return implemented(WGPUWEBGPU_FEATURE_DEPTH32FLOAT_STENCIL8);
 
       case dom::GPUFeatureName::Texture_compression_bc:
-        return implemented(WGPUFeatures_TEXTURE_COMPRESSION_BC);
+        return implemented(WGPUWEBGPU_FEATURE_TEXTURE_COMPRESSION_BC);
 
       case dom::GPUFeatureName::Texture_compression_etc2:
-        return implemented(WGPUFeatures_TEXTURE_COMPRESSION_ETC2);
+        return implemented(WGPUWEBGPU_FEATURE_TEXTURE_COMPRESSION_ETC2);
 
       case dom::GPUFeatureName::Texture_compression_astc:
-        return implemented(WGPUFeatures_TEXTURE_COMPRESSION_ASTC);
+        return implemented(WGPUWEBGPU_FEATURE_TEXTURE_COMPRESSION_ASTC);
 
       case dom::GPUFeatureName::Timestamp_query:
-        return implemented(WGPUFeatures_TIMESTAMP_QUERY);
+        return implemented(WGPUWEBGPU_FEATURE_TIMESTAMP_QUERY);
 
       case dom::GPUFeatureName::Indirect_first_instance:
-        return implemented(WGPUFeatures_INDIRECT_FIRST_INSTANCE);
+        return implemented(WGPUWEBGPU_FEATURE_INDIRECT_FIRST_INSTANCE);
 
       case dom::GPUFeatureName::Shader_f16:
-        // return implemented(WGPUFeatures_SHADER_F16);
+        // return implemented(WGPUWEBGPU_FEATURE_SHADER_F16);
         return unimplemented(
             "https://bugzilla.mozilla.org/show_bug.cgi?id=1891593");
 
       case dom::GPUFeatureName::Rg11b10ufloat_renderable:
-        return implemented(WGPUFeatures_RG11B10UFLOAT_RENDERABLE);
+        return implemented(WGPUWEBGPU_FEATURE_RG11B10UFLOAT_RENDERABLE);
 
       case dom::GPUFeatureName::Bgra8unorm_storage:
-        return implemented(WGPUFeatures_BGRA8UNORM_STORAGE);
+        return implemented(WGPUWEBGPU_FEATURE_BGRA8UNORM_STORAGE);
 
       case dom::GPUFeatureName::Float32_filterable:
-        return implemented(WGPUFeatures_FLOAT32_FILTERABLE);
+        return implemented(WGPUWEBGPU_FEATURE_FLOAT32_FILTERABLE);
 
       case dom::GPUFeatureName::Float32_blendable:
         return unimplemented(
@@ -170,7 +170,7 @@ struct FeatureImplementationStatus {
             "https://bugzilla.mozilla.org/show_bug.cgi?id=1931629");
 
       case dom::GPUFeatureName::Dual_source_blending:
-        // return implemented(WGPUFeatures_DUAL_SOURCE_BLENDING);
+        // return implemented(WGPUWEBGPU_FEATURE_DUAL_SOURCE_BLENDING);
         return unimplemented(
             "https://bugzilla.mozilla.org/show_bug.cgi?id=1924328");
     }
@@ -230,7 +230,8 @@ Adapter::Adapter(Instance* const aParent, WebGPUChild* const aBridge,
                           // case, and we don't really need to.
 
   static const auto FEATURE_BY_BIT = []() {
-    auto ret = std::unordered_map<ffi::WGPUFeatures, dom::GPUFeatureName>{};
+    auto ret =
+        std::unordered_map<ffi::WGPUFeaturesWebGPU, dom::GPUFeatureName>{};
 
     for (const auto feature :
          dom::MakeWebIDLEnumeratedRange<dom::GPUFeatureName>()) {
@@ -443,7 +444,7 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
     // -
     // Validate Features
 
-    ffi::WGPUFeatures featureBits = 0;
+    ffi::WGPUFeaturesWebGPU featureBits = 0;
     for (const auto requested : aDesc.mRequiredFeatures) {
       auto status = FeatureImplementationStatus::fromDomFeature(requested);
       switch (status.tag) {

@@ -100,7 +100,7 @@ version = "24.0.0"
 path = "../naga"
 
 [dependencies.once_cell]
-version = "1.20.2"
+version = "1.20.3"
 optional = true
 default-features = false
 

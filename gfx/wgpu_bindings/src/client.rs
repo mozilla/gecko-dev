@@ -71,7 +71,7 @@ impl ProgrammableStageDescriptor {
         wgc::pipeline::ProgrammableStageDescriptor {
             module: self.module,
             entry_point: cow_label(&self.entry_point),
-            constants: Cow::Owned(constants),
+            constants,
             zero_initialize_workgroup_memory: true,
         }
     }
@@ -461,7 +461,7 @@ pub extern "C" fn wgpu_client_adapter_extract_info(
 #[repr(C)]
 pub struct FfiDeviceDescriptor<'a> {
     pub label: Option<&'a nsACString>,
-    pub required_features: wgt::Features,
+    pub required_features: wgt::FeaturesWebGPU,
     pub required_limits: wgt::Limits,
 }
 
@@ -471,9 +471,11 @@ pub extern "C" fn wgpu_client_serialize_device_descriptor(
     bb: &mut ByteBuf,
 ) {
     let label = wgpu_string(desc.label);
+    let required_features =
+        wgt::Features::from_internal_flags(wgt::FeaturesWGPU::empty(), desc.required_features);
     let desc = wgt::DeviceDescriptor {
         label,
-        required_features: desc.required_features.clone(),
+        required_features,
         required_limits: desc.required_limits.clone(),
         memory_hints: wgt::MemoryHints::MemoryUsage,
     };
@@ -803,7 +805,6 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_compute_pass(
             end_of_pass_write_index,
         }
     });
-    let timestamp_writes = timestamp_writes.as_ref();
 
     let pass = crate::command::RecordedComputePass::new(&wgc::command::ComputePassDescriptor {
         label,
@@ -829,7 +830,7 @@ pub unsafe extern "C" fn wgpu_compute_pass_destroy(pass: *mut crate::command::Re
 #[repr(C)]
 pub struct RenderPassDescriptor<'a> {
     pub label: Option<&'a nsACString>,
-    pub color_attachments: *const wgc::command::RenderPassColorAttachment,
+    pub color_attachments: *const wgc::command::RenderPassColorAttachment<id::TextureViewId>,
     pub color_attachments_length: usize,
     pub depth_stencil_attachment: Option<&'a RenderPassDepthStencilAttachment>,
     pub timestamp_writes: Option<&'a PassTimestampWrites<'a>>,
@@ -1065,7 +1066,7 @@ pub unsafe extern "C" fn wgpu_client_create_bind_group(
             binding: entry.binding,
             resource: if let Some(id) = entry.buffer {
                 wgc::binding_model::BindingResource::Buffer(wgc::binding_model::BufferBinding {
-                    buffer_id: id,
+                    buffer: id,
                     offset: entry.offset,
                     size: entry.size,
                 })

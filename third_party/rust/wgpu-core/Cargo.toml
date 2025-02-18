@@ -90,7 +90,7 @@ version = "24.0.0"
 path = "../naga"
 
 [dependencies.once_cell]
-version = "1.20.2"
+version = "1.20.3"
 features = ["std"]
 default-features = false
 
@@ -153,6 +153,7 @@ gles = ["wgpu-hal/gles"]
 glsl = ["naga/glsl-in"]
 indirect-validation = ["naga/wgsl-in"]
 metal = ["wgpu-hal/metal"]
+noop = []
 observe_locks = [
     "dep:ron",
     "serde/serde_derive",

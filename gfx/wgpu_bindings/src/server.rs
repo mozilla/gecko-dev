@@ -150,11 +150,12 @@ pub extern "C" fn wgpu_server_new(owner: *mut c_void, use_dxc: bool) -> *mut Glo
             backend_options: wgt::BackendOptions {
                 gl: wgt::GlBackendOptions {
                     gles_minor_version: wgt::Gles3MinorVersion::Automatic,
-                    short_circuit_fences: wgt::GlFenceBehavior::Normal,
+                    fence_behavior: wgt::GlFenceBehavior::Normal,
                 },
                 dx12: wgt::Dx12BackendOptions {
                     shader_compiler: dx12_shader_compiler,
                 },
+                noop: wgt::NoopBackendOptions { enable: false },
             },
         },
     );
@@ -185,9 +186,9 @@ pub extern "C" fn wgpu_server_device_poll(
     force_wait: bool,
 ) {
     let maintain = if force_wait {
-        wgt::Maintain::Wait
+        wgt::PollType::Wait
     } else {
-        wgt::Maintain::Poll
+        wgt::PollType::Poll
     };
     global.device_poll(device_id, maintain).unwrap();
 }
@@ -376,7 +377,7 @@ pub unsafe extern "C" fn wgpu_server_adapter_pack_info(
             let info = AdapterInformation {
                 id,
                 limits: restrict_limits(global.adapter_limits(id)),
-                features: global.adapter_features(id),
+                features: global.adapter_features(id).features_webgpu,
                 name,
                 vendor,
                 device,

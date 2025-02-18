@@ -61,6 +61,11 @@ features = [
 optional = true
 default-features = false
 
+[dependencies.thiserror]
+version = "2"
+optional = true
+default-features = false
+
 [dev-dependencies.serde]
 version = "1"
 features = ["derive"]
@@ -77,6 +82,7 @@ serde = ["dep:serde"]
 std = [
     "js-sys/std",
     "web-sys/std",
+    "thiserror/std",
 ]
 strict_asserts = []
 

@@ -96,7 +96,7 @@ impl ByteBuf {
 pub struct AdapterInformation<S> {
     id: id::AdapterId,
     limits: wgt::Limits,
-    features: wgt::Features,
+    features: wgt::FeaturesWebGPU,
     name: S,
     vendor: u32,
     device: u32,
