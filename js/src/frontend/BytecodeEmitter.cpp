@@ -3856,7 +3856,7 @@ bool BytecodeEmitter::emitDestructuringOpsObject(ListNode* pattern,
         return false;
       }
 
-      if (!emit1(JSOp::NewInit)) {
+      if (!emit2(JSOp::NewInit, 0)) {
         //          [stack] ... SET? RHS LREF* RHS TARGET
         return false;
       }
@@ -4029,7 +4029,7 @@ bool BytecodeEmitter::emitDestructuringObjRestExclusionSet(ListNode* pattern) {
     }
   } else {
     // Take the slow but sure way and start off with a blank object.
-    if (!emit1(JSOp::NewInit)) {
+    if (!emit2(JSOp::NewInit, 0)) {
       //            [stack] OBJ
       return false;
     }
