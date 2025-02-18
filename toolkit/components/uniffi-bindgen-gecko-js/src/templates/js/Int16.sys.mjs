@@ -9,7 +9,7 @@ export class {{ ffi_converter }} extends FfiConverter {
             throw new UniFFITypeError(`${value} exceeds the I16 bounds`);
         }
     }
-    static computeSize() {
+    static computeSize(_value) {
         return 2;
     }
     static lift(value) {

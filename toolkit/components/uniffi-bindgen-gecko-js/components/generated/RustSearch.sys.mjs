@@ -265,7 +265,7 @@ export class FfiConverterU8 extends FfiConverter {
             throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
         }
     }
-    static computeSize() {
+    static computeSize(_value) {
         return 1;
     }
     static lift(value) {
@@ -284,7 +284,7 @@ export class FfiConverterU8 extends FfiConverter {
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterBool extends FfiConverter {
-    static computeSize() {
+    static computeSize(_value) {
         return 1;
     }
     static lift(value) {
