@@ -1199,3 +1199,27 @@ browsertime-indexeddb:
     mozharness:
         extra-options:
             - --extra-profiler-run
+
+browsertime-trr-performance:
+    raptor:
+        apps: [firefox]
+        run-visual-metrics: false
+        subtests:
+            - trr-cloudf
+            - trr-cira
+            - trr-comcas
+            - trr-next
+            - trr-native
+            - trr-w-clou
+            - trr-w-cira
+            - trr-w-comc
+            - trr-w-next
+
+    description: Raptor (browsertime) trr performance tests
+    max-run-time: 600
+    run-on-projects:
+        by-test-platform:
+            windows11-64-24h2-shippable/opt: [mozilla-central]
+            default: []
+    tier: 3
+    treeherder-symbol: Btime(trrperf)

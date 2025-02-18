@@ -5,9 +5,9 @@
 
 ["include:tests/benchmarks/assorted-dom.toml"]
 
-["include:tests/benchmarks/jetstream2.toml"]
-
 ["include:tests/benchmarks/jetstream2-mobile.toml"]
+
+["include:tests/benchmarks/jetstream2.toml"]
 
 ["include:tests/benchmarks/matrix-react-bench.toml"]
 
@@ -52,6 +52,9 @@
 ["include:tests/custom/browsertime-indexeddb.toml"]
 # Custom indexeddb test
 
+["include:tests/custom/browsertime-network-bench.toml"]
+# Custom download/upload performance test
+
 ["include:tests/custom/browsertime-process-switch.toml"]
 # Fission process switch time test
 
@@ -70,11 +73,11 @@
 ["include:tests/custom/browsertime-tp6-bench.toml"]
 # Pageload benchmark test used for getting an overview of impact
 
+["include:tests/custom/browsertime-trr-performance.toml"]
+# Custom trr performance tests
+
 ["include:tests/custom/browsertime-upload.toml"]
 # Custom upload speed test
-
-["include:tests/custom/browsertime-network-bench.toml"]
-# Custom download/upload performance test
 
 ["include:tests/custom/browsertime-video-playback-latency.toml"]
 # Video playback latency tests
