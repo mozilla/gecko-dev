@@ -10,6 +10,7 @@
 
 #include "mozilla/AppShutdown.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/ClearOnShutdown.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Services.h"
 #include "mozIStorageBindingParamsArray.h"
@@ -88,9 +89,6 @@ NS_IMPL_ISUPPORTS(CallbackOnComplete, mozIStorageCompletionCallback)
 
 }  // anonymous namespace
 
-PLACES_FACTORY_SINGLETON_IMPLEMENTATION(ConcurrentConnection,
-                                        gConcurrentConnection)
-
 NS_IMPL_ISUPPORTS(ConcurrentConnection, nsIObserver, nsISupportsWeakReference,
                   nsIAsyncShutdownBlocker, mozIStorageCompletionCallback,
                   mozIStorageStatementCallback)
@@ -98,12 +96,6 @@ NS_IMPL_ISUPPORTS(ConcurrentConnection, nsIObserver, nsISupportsWeakReference,
 ConcurrentConnection::ConcurrentConnection() {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess(),
                         "Can only instantiate in the parent process");
-  MOZ_DIAGNOSTIC_ASSERT(!gConcurrentConnection, "Must be a singleton");
-  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread(), "Must be on the main-thread");
-  gConcurrentConnection = this;
-}
-
-nsresult ConcurrentConnection::Init() {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread(), "Must be on the main-thread");
 
   // Check shutdown and try to add this as a blocker.
@@ -113,7 +105,7 @@ nsresult ConcurrentConnection::Init() {
   if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed) ||
       !asyncShutdownSvc) {
     Shutdown();
-    return NS_OK;
+    return;
   }
 
   // Can't use quit-application-granted here because gtests don't send it.
@@ -127,7 +119,7 @@ nsresult ConcurrentConnection::Init() {
     if (NS_FAILED(rv)) {
       this->Shutdown();
       MOZ_ASSERT(false, "Cannot add shutdown blocker");
-      return NS_OK;
+      return;
     }
   }
 
@@ -139,8 +131,19 @@ nsresult ConcurrentConnection::Init() {
 
   mState = AWAITING_DATABASE_READY;
   TryToOpenConnection();
+}
 
-  return NS_OK;
+Maybe<ConcurrentConnection*> ConcurrentConnection::GetInstance() {
+  static StaticRefPtr<ConcurrentConnection> sInstance;
+  if (!sInstance &&
+      !AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownTeardown)) {
+    sInstance = new ConcurrentConnection();
+    ClearOnShutdown(&sInstance, ShutdownPhase::AppShutdownTeardown);
+  }
+  if (!sInstance) {
+    return Nothing();
+  }
+  return Some(sInstance.get());
 }
 
 // nsIAsyncShutdownBlocker

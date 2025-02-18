@@ -89,9 +89,11 @@ class TestRunnable : public Runnable {
   NS_IMETHOD Run() override {
     MOZ_DIAGNOSTIC_ASSERT(!NS_IsMainThread(),
                           "Should not be called on the main thread");
-    RefPtr<ConcurrentConnection> conn = ConcurrentConnection::GetSingleton();
-    nsCOMPtr<mozIStorageStatement> stmt = conn->GetStatementOnHelperThread(
-        "SELECT * FROM sqlite_master WHERE tbl_name = 'moz_places'"_ns);
+    auto conn = ConcurrentConnection::GetInstance();
+    MOZ_DIAGNOSTIC_ASSERT(conn.isSome());
+    nsCOMPtr<mozIStorageStatement> stmt =
+        conn.value()->GetStatementOnHelperThread(
+            "SELECT * FROM sqlite_master WHERE tbl_name = 'moz_places'"_ns);
     MOZ_DIAGNOSTIC_ASSERT(stmt);
     mozStorageStatementScoper scoper(stmt);
     bool hasResult;
@@ -141,14 +143,15 @@ TEST(test_ConcurrentConnection, test_setup)
 TEST(test_ConcurrentConnection, test_database_not_present)
 {
   // Initialize ConcurrentConnection.
-  RefPtr<ConcurrentConnection> conn = ConcurrentConnection::GetSingleton();
+  auto conn = ConcurrentConnection::GetInstance();
+  MOZ_DIAGNOSTIC_ASSERT(conn.isSome());
   RefPtr<StatementCallback> cb =
       MakeAndAddRef<StatementCallback>("moz_icons"_ns);
-  conn->Queue(
+  conn.value()->Queue(
       "SELECT name FROM favicons.sqlite_master WHERE type = 'table' AND tbl_name = ?"_ns,
       cb);
   RefPtr<TestRunnable> event = MakeAndAddRef<TestRunnable>();
-  conn->Queue(event);
+  conn.value()->Queue(event);
   // Must await for Places to create and initialize the database as there's no
   // database file at this time. This initialized Places.
   nsCOMPtr<mozIStorageConnection> placesConn = do_get_db();
@@ -162,10 +165,11 @@ TEST(test_ConcurrentConnection, test_database_not_present)
 TEST(test_ConcurrentConnection, test_database_initialized)
 {
   // Initialize ConcurrentConnection.
-  RefPtr<ConcurrentConnection> conn = ConcurrentConnection::GetSingleton();
+  auto conn = ConcurrentConnection::GetInstance();
+  MOZ_DIAGNOSTIC_ASSERT(conn.isSome());
   RefPtr<StatementCallback> cb =
       MakeAndAddRef<StatementCallback>("moz_places"_ns);
-  conn->Queue(
+  conn.value()->Queue(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND tbl_name = ?"_ns,
       cb);
   // Statement should be executed as Places was already initialized.

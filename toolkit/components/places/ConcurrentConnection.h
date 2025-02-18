@@ -59,20 +59,17 @@ class ConcurrentConnection final : public nsIObserver,
   NS_DECL_MOZISTORAGECOMPLETIONCALLBACK
   NS_DECL_MOZISTORAGESTATEMENTCALLBACK
 
+  /**
+   * It is normally not necessary to have more than one instance of this, so
+   * it's suggested to use the GetInstance static helper below to instance
+   * this class.
+   */
   ConcurrentConnection();
 
   /**
-   * Used by the Places singleton macro to initializes the instance.
+   * Get a pointer to the singleton instance.
    */
-  nsresult Init();
-
-  /**
-   * Get the singleton instance of this class. This is how you normally get
-   * a handle to this.
-   *
-   * @returns Singleton instance of this class.
-   */
-  static already_AddRefed<ConcurrentConnection> GetSingleton();
+  static Maybe<ConcurrentConnection*> GetInstance();
 
   /**
    * Enqueue a query or a Runnable.

@@ -1546,10 +1546,9 @@ nsresult History::QueueVisitedStatement(RefPtr<VisitedQuery>&& aQuery) {
   if (IsShuttingDown()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  RefPtr<ConcurrentConnection> conn = ConcurrentConnection::GetSingleton();
-  MOZ_ASSERT(conn);
-  if (conn) {
-    conn->Queue(
+  auto conn = ConcurrentConnection::GetInstance();
+  if (conn.isSome()) {
+    conn.value()->Queue(
         "WITH urls (url, url_hash) AS ( "
         "  SELECT value, hash(value) FROM carray(?1) "
         ") "
