@@ -17,7 +17,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * User scripts are internally represented as the options to pass to the
  * WebExtensionContentScript constructor in the child.
  *
- * @typedef {WebExtensionContentScriptInit} InternalUserScript
+ * @typedef {WebExtensionContentScriptInit & {matches: string[]}} InternalUserScript
  *
  * The internal representation is derived from the public representation as
  * defined in user_scripts.json.
@@ -80,10 +80,11 @@ class Store {
    *
    * @param {string} [fromKey]
    * @param {string} [toKey]
-   * @returns {Promise<Array<[string,*]>>}
+   * @returns {Promise<Array<[string, *]>>}
    */
   async getAllEntries(fromKey, toKey) {
     await this.lazyInit();
+    /** @type {Array<[string, *]>} */
     const pairs = [];
     const enumerator = await this._store.enumerate(fromKey, toKey);
     while (enumerator.hasMoreElements()) {
@@ -413,7 +414,7 @@ class UserScriptsManager {
     await store.writeMany([[this.#makeDbKey(worldId, "_world_"), null]]);
   }
 
-  /** @returns {WorldProperties[]} */
+  /** @returns {Promise<WorldProperties[]>} */
   async getWorldConfigurations() {
     return Array.from(this.worldConfigs.values());
   }
@@ -538,6 +539,7 @@ class UserScriptsManager {
    */
   async #makePublicUserScript(publicId, internalScript) {
     let hasCodePromise = false;
+    /** @type {(Promise<{code: string}> | {file?: string, code?: string})[]} */
     let js = internalScript.jsPaths.map(jsPath => {
       if (jsPath.startsWith(this.extension.baseURL)) {
         // Return path without leading origin & /.

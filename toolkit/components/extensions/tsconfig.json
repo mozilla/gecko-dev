@@ -26,6 +26,7 @@
       "resource://gre/modules/ExtensionStorage.sys.mjs": ["./ExtensionStorage.sys.mjs"],
       "resource://gre/modules/ExtensionStorageIDB.sys.mjs": ["./ExtensionStorageIDB.sys.mjs"],
       "resource://gre/modules/ExtensionStorageSync.sys.mjs": ["./ExtensionStorageSync.sys.mjs"],
+      "resource://gre/modules/ExtensionTaskScheduler.sys.mjs": ["./ExtensionTaskScheduler.sys.mjs"],
       "resource://gre/modules/ExtensionTelemetry.sys.mjs": ["./ExtensionTelemetry.sys.mjs"],
       "resource://gre/modules/ExtensionUtils.sys.mjs": ["./ExtensionUtils.sys.mjs"],
       "resource://gre/modules/ExtensionWorkerChild.sys.mjs": ["./ExtensionWorkerChild.sys.mjs"],

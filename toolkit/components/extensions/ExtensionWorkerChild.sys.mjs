@@ -209,7 +209,7 @@ class WorkerMessenger extends Messenger {
    *
    * @returns {ExtensionPortDescriptor}
    */
-  connect({ name, native, ...args }) {
+  connect({ name, native = false, ...args }) {
     let portId = getUniqueId();
     let port = new WorkerPort(this.context, portId, name, !!native);
     this.conduit

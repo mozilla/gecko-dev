@@ -24,7 +24,7 @@ const { DefaultMap, DefaultWeakMap, ExtensionError } = ExtensionUtils;
 const { BaseContext, redefineGetter } = ExtensionCommon;
 
 class WorldConfigHolder {
-  /** @type {Map<ExtensionChild,WorldConfigHolder>} */
+  /** @type {WeakMap<ExtensionChild,WorldConfigHolder>} */
   static allMaps = new DefaultWeakMap(ext => new WorldConfigHolder(ext));
 
   constructor(extension) {
@@ -64,6 +64,8 @@ class WorldConfigHolder {
  * all user script worlds and a content script for a document (and extension)
  * share the same lifetime, we delegate to the only ContentScriptContextChild
  * that exists for the document+extension.
+ *
+ * @typedef {import("./ExtensionContent.sys.mjs").ContentScriptContextChild} ContentScriptContextChild
  */
 class UserScriptContext extends BaseContext {
   /**

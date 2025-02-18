@@ -3021,7 +3021,7 @@ class BootstrapScope {
       [BR.ADDON_UPGRADE]: "ADDON_UPGRADE",
       [BR.ADDON_DOWNGRADE]: "ADDON_DOWNGRADE",
     });
-    return redefineGetter(this, "BOOTSTRAP_REASON_TO_STRING_MAP", value);
+    return redefineGetter(this, "BOOTSTRAP_REASON_MAP", value);
   }
 }
 
@@ -3364,6 +3364,7 @@ export class Extension extends ExtensionData {
       .get([this.id, this.version, locale], () => super.readLocaleFile(locale))
       .then(result => {
         this.localeData.messages.set(locale, result);
+        return result;
       });
   }
 

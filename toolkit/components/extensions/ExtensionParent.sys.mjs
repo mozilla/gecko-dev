@@ -2373,6 +2373,7 @@ ExtensionParent._resetStartupPromises();
 ChromeUtils.defineLazyGetter(ExtensionParent, "PlatformInfo", () => {
   return Object.freeze({
     os: (function () {
+      /** @type {string} */
       let os = AppConstants.platform;
       if (os == "macosx") {
         os = "mac";

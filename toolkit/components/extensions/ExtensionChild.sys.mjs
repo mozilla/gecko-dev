@@ -356,6 +356,7 @@ export class Messenger {
     return this.conduit.queryNativeMessage({ nativeApp, holder });
   }
 
+  /** @type {(args: { context, extensionId?, message, callback, userScriptWorldId? }) => any} */
   sendRuntimeMessage({ context, extensionId, message, callback, ...args }) {
     // this.context is usually used, except with user scripts, where we pass a
     // custom context to ensure that the return value is cloned into the right
@@ -375,7 +376,7 @@ export class Messenger {
     return context.wrapPromise(response, callback);
   }
 
-  connect({ context, name, native, ...args }) {
+  connect({ context, name, native = false, ...args }) {
     // this.context is usually used, except with user scripts, where we pass a
     // custom context to ensure that the return value is cloned into the right
     // USER_SCRIPT world.

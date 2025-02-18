@@ -97,7 +97,7 @@ export var NativeManifests = {
    * @param {string} name The name of the application.
    * @param {object} context A context object as expected by Schemas.normalize.
    * @param {object} data The JSON object of the manifest.
-   * @returns {object} The contents of the validated manifest, or null if
+   * @returns {Promise<object>} The contents of the validated manifest, or null if
    *                   the manifest is not valid.
    */
   async parseManifest(type, path, name, context, data) {

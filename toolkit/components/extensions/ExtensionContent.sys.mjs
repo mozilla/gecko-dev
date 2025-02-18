@@ -931,7 +931,7 @@ var contentScripts = new DefaultWeakMap(matcher => {
  * This is the child side of the ContentScriptContextParent class
  * defined in ExtensionParent.sys.mjs.
  */
-class ContentScriptContextChild extends BaseContext {
+export class ContentScriptContextChild extends BaseContext {
   constructor(extension, contentWindow) {
     super("content_child", extension);
 

@@ -56,7 +56,7 @@ interface ComponentsExceptionOptions {
   data?: object,
 }
 
-interface nsIException extends ExceptionMembers {}
+interface nsIException extends Exception {}
 
 interface nsIXPCComponents_Exception {
   (
@@ -72,7 +72,7 @@ interface nsIXPCComponents_ID {
 }
 
 interface nsIXPCComponents_utils_Sandbox {
-  (principal: nsIPrincipal | nsIPrincipal[], options: object): typeof globalThis;
+  (principal: nsIPrincipal | nsIPrincipal[], options: object): Sandbox;
 }
 
 interface nsXPCComponents_Classes {
@@ -99,6 +99,8 @@ interface PromiseConstructor {
     reject: (reason?: any) => void;
   };
 }
+
+type Sandbox = typeof globalThis & nsISupports;
 
 // Hand-crafted artisanal types.
 interface XULBrowserElement extends XULFrameElement, FrameLoader {
