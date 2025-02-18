@@ -2,7 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const lazy = {};
+/**
+ * @typedef {object} Lazy
+ * @property {typeof setTimeout} setTimeout
+ * @property {typeof clearTimeout} clearTimeout
+ * @property {typeof console} console
+ * @property {typeof import("chrome://global/content/translations/TranslationsUtils.mjs").TranslationsUtils} TranslationsUtils
+ */
+
+/** @type {Lazy} */
+const lazy = /** @type {any} */ ({});
 
 ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
@@ -39,6 +48,7 @@ const NodeStatus = {
 
 /**
  * @typedef {import("../translations").NodeVisibility} NodeVisibility
+ * @typedef {import("../translations").LanguagePair} LanguagePair
  * @typedef {(message: string) => Promise<string>} TranslationFunction
  */
 
