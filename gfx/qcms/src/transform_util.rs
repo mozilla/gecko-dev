@@ -114,16 +114,16 @@ fn lut_interp_linear_precache_output(input_value: u32, table: &[u16]) -> u8 {
 }
 /* value must be a value between 0 and 1 */
 //XXX: is the above a good restriction to have?
-#[inline]
 pub fn lut_interp_linear_float(mut value: f32, table: &[f32]) -> f32 {
-    let max_val = table.len() - 1;
-    value *= max_val as f32;
+    value *= (table.len() - 1) as f32;
 
-    let upper = value.ceil();
-    let lower = value.floor();
+    let upper: i32 = value.ceil() as i32;
+    let lower: i32 = value.floor() as i32;
     //XXX: can we be more performant here?
-    (table[max_val.min(upper as usize)] as f64 * (1.0 - (upper - value) as f64)
-        + (table[max_val.min(lower as usize)] * (upper - value)) as f64) as f32
+    value = (table[upper as usize] as f64 * (1.0f64 - (upper as f32 - value) as f64)
+        + (table[lower as usize] * (upper as f32 - value)) as f64) as f32;
+    /* scale the value */
+    value
 }
 
 fn compute_curve_gamma_table_type1(gamma_table: &mut [f32; 256], gamma: u16) {
