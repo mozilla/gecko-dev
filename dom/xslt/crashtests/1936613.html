@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"></meta>
+<script>
+
+const xsltString = `
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:template match="/">
+    <foo />
+  </xsl:template>
+</xsl:stylesheet>
+`;
+
+
+const parser = new DOMParser();
+
+initialDoc = parser.parseFromString(xsltString, "application/xml");
+
+node = initialDoc.childNodes[0]
+
+doc1 = document.implementation.createDocument(null, null);
+doc1.adoptNode(node);
+doc1.appendChild(node);
+xsltProcessor = new XSLTProcessor();
+xsltProcessor.importStylesheet(node);
+doc1.removeChild(node);
+
+doc2 = document.implementation.createDocument(null, null);
+doc2.adoptNode(node);
+
+node.children[0].innerHTML = "<xsl:choose><foo /></xsl:choose>"
+
+doc1 = 1;
+
+SpecialPowers.forceGC();
+SpecialPowers.forceCC();
+
+doc3 = document.implementation.createDocument(null, null);
+xsltProcessor.importStylesheet(doc3);
+
+doc3 = 1;
+
+SpecialPowers.forceGC();
+SpecialPowers.forceCC();
+
+xsltProcessor.reset();
+
+</script>
+</head>
+</html>
