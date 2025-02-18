@@ -521,9 +521,19 @@ fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
   const byteLength = bytesPerRow * blocksPerColumn;
   const uintLength = byteLength / 4;
 
+  const expandedInputData = new (
+    inputData instanceof Uint32Array
+      ? Uint32Array
+      : inputData instanceof Float32Array
+      ? Float32Array
+      : Float16Array
+  )(inputData.length * 4);
+  for (let i = 0; i < inputData.length; ++i) {
+    expandedInputData[i * 4] = inputData[i];
+  }
   const buffer = t.makeBufferWithContents(
-    inputData,
-    GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+    expandedInputData,
+    GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
   );
 
   const bg = t.device.createBindGroup({

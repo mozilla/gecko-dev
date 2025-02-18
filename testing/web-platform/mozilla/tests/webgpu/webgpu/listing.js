@@ -234,6 +234,14 @@ export const listing = [
     "file": [
       "api",
       "operation",
+      "limits",
+      "max_combined_limits"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "operation",
       "memory_allocation"
     ],
     "readme": "Try to stress memory allocators in the implementation and driver.\n\nTODO: plan and implement\n- Tests which (pseudo-randomly?) allocate a bunch of memory and then assert things about the memory\n  (it's not aliased, it's valid to read and write in various ways, accesses read/write the correct data)\n    - Possibly also with OOB accesses/robust buffer access?\n- Tests which are targeted against particular known implementation details"
@@ -287,6 +295,14 @@ export const listing = [
       "operation",
       "pipeline",
       "default_layout"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "operation",
+      "pipeline",
+      "pipeline_layout_created_with_null_bind_group_layout"
     ]
   },
   {
@@ -550,14 +566,6 @@ export const listing = [
       "operation",
       "texture_view",
       "format_reinterpretation"
-    ]
-  },
-  {
-    "file": [
-      "api",
-      "operation",
-      "texture_view",
-      "read"
     ]
   },
   {
@@ -858,7 +866,43 @@ export const listing = [
       "validation",
       "capability_checks",
       "limits",
+      "maxStorageBuffersInFragmentStage"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "capability_checks",
+      "limits",
+      "maxStorageBuffersInVertexStage"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "capability_checks",
+      "limits",
       "maxStorageBuffersPerShaderStage"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "capability_checks",
+      "limits",
+      "maxStorageTexturesInFragmentStage"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "capability_checks",
+      "limits",
+      "maxStorageTexturesInVertexStage"
     ]
   },
   {
@@ -1689,6 +1733,22 @@ export const listing = [
       "compat",
       "api",
       "validation",
+      "createBindGroupLayout_limits"
+    ]
+  },
+  {
+    "file": [
+      "compat",
+      "api",
+      "validation",
+      "createPipelineLayout"
+    ]
+  },
+  {
+    "file": [
+      "compat",
+      "api",
+      "validation",
       "encoding",
       "cmds",
       "copyTextureToBuffer"
@@ -1738,6 +1798,15 @@ export const listing = [
       "validation",
       "render_pipeline",
       "fragment_state"
+    ]
+  },
+  {
+    "file": [
+      "compat",
+      "api",
+      "validation",
+      "render_pipeline",
+      "in_stage_limits"
     ]
   },
   {
@@ -1798,6 +1867,12 @@ export const listing = [
     "file": [
       "idl",
       "constructable"
+    ]
+  },
+  {
+    "file": [
+      "idl",
+      "javascript"
     ]
   },
   {
@@ -6051,6 +6126,13 @@ export const listing = [
       "web_platform",
       "copyToTexture",
       "image"
+    ]
+  },
+  {
+    "file": [
+      "web_platform",
+      "copyToTexture",
+      "image_file"
     ]
   },
   {

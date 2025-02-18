@@ -33,12 +33,11 @@ vectorize)
   // We will populate a uniform buffer with these input values laid out sequentially:
   // [ case_0_input_1, case_0_input_0, case_1_input_1, case_1_input_0, ...]
   //
-  // The render pipeline will be launched once per pixel per pair of cases over
-  // a viewport size of (2, 2) with the viewport set to cover 1 pixel.
-  // Each 2x2 set of calls will will exercise two test cases. Each of these
-  // draw calls will use a different instance index, which is forwarded to the
-  // fragment shader. Each invocation returns the result which is stored in
-  // a rgba32uint texture.
+  // The render pipeline will be launched once per pair of cases over a viewport
+  // size of (2, 2). Each 2x2 set of calls will will exercise two test cases.
+  // Each of these draw calls will use a different instance index, which is
+  // forwarded to the fragment shader. Each invocation returns the result which
+  // is stored in a rgba32uint texture.
   //
   // Consider draw calls that test 4 cases (c_0, c_1, c_2, c_3).
   //

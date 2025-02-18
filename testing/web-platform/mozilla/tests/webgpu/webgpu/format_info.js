@@ -1793,6 +1793,10 @@ export function canUseAsRenderTarget(format) {
   return kTextureFormatInfo[format].colorRender || isDepthOrStencilTextureFormat(format);
 }
 
+export function is16Float(format) {
+  return format === 'r16float' || format === 'rg16float' || format === 'rgba16float';
+}
+
 export function is32Float(format) {
   return format === 'r32float' || format === 'rg32float' || format === 'rgba32float';
 }
@@ -1852,7 +1856,20 @@ export function isSintOrUintFormat(format) {
 /**
  * Returns true of format can be multisampled.
  */
-export function isMultisampledTextureFormat(format) {
+export const kCompatModeUnsupportedMultisampledTextureFormats = [
+'rgba16float',
+'r32float'];
+
+
+export function isMultisampledTextureFormat(
+format,
+isCompatibilityMode)
+{
+  if (isCompatibilityMode) {
+    if (kCompatModeUnsupportedMultisampledTextureFormats.indexOf(format) >= 0) {
+      return false;
+    }
+  }
   return kAllTextureFormatInfo[format].multisample;
 }
 

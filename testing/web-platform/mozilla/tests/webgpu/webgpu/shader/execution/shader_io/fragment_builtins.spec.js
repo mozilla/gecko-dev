@@ -528,9 +528,8 @@ function computeSampleMask({ sampleMask }) {
  * backends like M1 Mac so it seems better to stick to rgba8unorm here and test
  * using a storage buffer in a fragment shader separately.
  *
- * We can't use rgba32float because it's optional. We can't use rgba16float
- * because it's optional in compat. We can't we use rgba32uint as that can't be
- * multisampled.
+ * We can't use rgba32float, nor rgba16float, nor rgba32uint as they can't be
+ * multisampled in all feature levels.
  */
 async function renderFragmentShaderInputsTo4TexturesAndReadbackValues(
 t,

@@ -14,7 +14,7 @@ If an out-of-bounds access occurs, the built-in function should not be executed.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { unreachable, iterRange, range } from '../../../../../../common/util/util.js';
 import { kTextureFormatInfo } from '../../../../../format_info.js';
-import { GPUTest, MaxLimitsTestMixin, TextureTestMixin } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
 import {
   kFloat32Format,
   kFloat16Format,
@@ -29,7 +29,7 @@ import { TexelFormats } from '../../../../types.js';
 const kDims = ['1d', '2d', '3d'] as const;
 const kViewDimensions = ['1d', '2d', '2d-array', '3d'] as const;
 
-export const g = makeTestGroup(TextureTestMixin(MaxLimitsTestMixin(GPUTest)));
+export const g = makeTestGroup(TextureTestMixin(AllFeaturesMaxLimitsGPUTest));
 
 // We require a few values that are out of range for a given type
 // so we can check clamping behavior.
@@ -92,6 +92,8 @@ g.test('texel_formats')
           t.access === 'read_write' &&
           !kTextureFormatInfo[t.format as GPUTextureFormat].color?.readWriteStorage
       )
+      .combine('mipLevel', [0, 1, 2] as const)
+      .unless(t => t.viewDimension === '1d' && t.mipLevel !== 0)
   )
   .beforeAllSubcases(t => {
     if (t.params.format === 'bgra8unorm') {
@@ -101,7 +103,7 @@ g.test('texel_formats')
     }
   })
   .fn(t => {
-    const { format, stage, access, viewDimension, _shaderType } = t.params;
+    const { format, stage, access, viewDimension, _shaderType, mipLevel } = t.params;
     const values = inputArray(format);
 
     t.skipIf(
@@ -156,7 +158,15 @@ struct VOut {
 }
 `;
 
-    const textureSize = [
+    // choose a size so the mipLevel we will write to is the size we want to test
+    const mipMult = 2 ** mipLevel;
+    const size = values.length * mipMult;
+    const mipLevel0Size = [
+      size,
+      viewDimension === '1d' ? 1 : size,
+      viewDimension === '2d-array' ? values.length : viewDimension === '3d' ? size : 1,
+    ] as const;
+    const testMipLevelSize = [
       values.length,
       viewDimension === '1d' ? 1 : values.length,
       viewDimension === '2d-array' || viewDimension === '3d' ? values.length : 1,
@@ -164,8 +174,8 @@ struct VOut {
     const dimension = getTextureDimensionFromView(viewDimension);
     const texture = t.createTextureTracked({
       format: format as GPUTextureFormat,
-      size: textureSize,
-      mipLevelCount: 1,
+      size: mipLevel0Size,
+      mipLevelCount: viewDimension === '1d' ? 1 : 3,
       dimension,
       usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.COPY_SRC,
     });
@@ -194,6 +204,8 @@ struct VOut {
           resource: texture.createView({
             format: format as GPUTextureFormat,
             dimension: viewDimension,
+            baseMipLevel: mipLevel,
+            mipLevelCount: 1,
           }),
         },
       ],
@@ -205,13 +217,13 @@ struct VOut {
         const pass = encoder.beginComputePass();
         pass.setPipeline(pipeline as GPUComputePipeline);
         pass.setBindGroup(0, bg);
-        pass.dispatchWorkgroups(...textureSize);
+        pass.dispatchWorkgroups(...testMipLevelSize);
         pass.end();
         break;
       }
       case 'fragment': {
         const renderTarget = t.createTextureTracked({
-          size: textureSize.slice(0, 2),
+          size: testMipLevelSize.slice(0, 2),
           format: 'rgba8unorm',
           usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
@@ -226,7 +238,7 @@ struct VOut {
         });
         pass.setPipeline(pipeline as GPURenderPipeline);
         pass.setBindGroup(0, bg);
-        pass.draw(3, textureSize[2]);
+        pass.draw(3, testMipLevelSize[2]);
         pass.end();
         break;
       }
@@ -252,11 +264,11 @@ struct VOut {
         break;
     }
 
-    const buffer = t.copyWholeTextureToNewBufferSimple(texture, 0);
+    const buffer = t.copyWholeTextureToNewBufferSimple(texture, mipLevel);
     const u32sPerTexel = bytesPerTexel / 4;
-    const bytesPerRow = align(textureSize[0] * bytesPerTexel, 256);
+    const bytesPerRow = align(testMipLevelSize[0] * bytesPerTexel, 256);
     const texelsPerRow = bytesPerRow / bytesPerTexel;
-    const texelsPerSlice = texelsPerRow * textureSize[1];
+    const texelsPerSlice = texelsPerRow * testMipLevelSize[1];
     const getValue = (i: number) => values[i % values.length];
     const clampedPack4x8unorm = (...v: number[]) => {
       const c = v.map(v => clamp(v, { min: 0, max: 1 }));
@@ -271,10 +283,10 @@ struct VOut {
       ...iterRange(buffer.size / 4, i => {
         const texelId = (i / u32sPerTexel) | 0;
         const z = (texelId / texelsPerSlice) | 0;
-        const y = ((texelId / texelsPerRow) | 0) % textureSize[1];
+        const y = ((texelId / texelsPerRow) | 0) % testMipLevelSize[1];
         const x = texelId % texelsPerRow;
         // buffer is padded to 256 per row so when x is out of range just return 0
-        if (x >= textureSize[0]) {
+        if (x >= testMipLevelSize[0]) {
           return 0;
         }
         const id = x + y + z;

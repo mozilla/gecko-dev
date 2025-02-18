@@ -11,16 +11,16 @@ import {
 } from './limit_utils.js';
 
 const kFormatsToUseBySize: GPUTextureFormat[] = [
-  'rgba32float',
-  'rgba16float',
+  'rgba32uint',
+  'rgba16uint',
   'rgba8unorm',
   'rg8unorm',
   'r8unorm',
 ];
 
 const kInterleaveFormats: GPUTextureFormat[] = [
-  'rgba16float',
-  'rg16float',
+  'rgba16uint',
+  'rg16uint',
   'rgba8unorm',
   'rg8unorm',
   'r8unorm',
@@ -95,14 +95,16 @@ function getPipelineDescriptor(
     return;
   }
 
+  const typedVec = interleaveFormat.includes('uint') ? 'vec4u' : 'vec4f';
+
   const code = `
     ${getDescription(testValue, actualLimit, sampleCount, targets)}
     @vertex fn vs() -> @builtin(position) vec4f {
       return vec4f(0);
     }
 
-    @fragment fn fs() -> @location(0) vec4f {
-      return vec4f(0);
+    @fragment fn fs() -> @location(0) ${typedVec} {
+      return ${typedVec}(0);
     }
   `;
   const module = device.createShaderModule({ code });

@@ -1168,7 +1168,9 @@ g.test('resolveTarget,format_supports_resolve')
       .filter(t => kTextureFormatInfo[t.format].multisample)
   )
   .beforeAllSubcases(t => {
-    t.skipIfTextureFormatNotSupported(t.params.format);
+    const { format } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
+    t.skipIfMultisampleNotSupportedForFormat(format);
   })
   .fn(t => {
     const { format } = t.params;

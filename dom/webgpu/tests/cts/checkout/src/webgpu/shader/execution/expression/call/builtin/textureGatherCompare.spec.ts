@@ -78,6 +78,7 @@ Parameters:
       .combine('samplePoints', kSamplePointMethods)
       .combine('A', ['i32', 'u32'] as const)
       .combine('compare', kCompareFunctions)
+      .combine('depthOrArrayLayers', [1, 8] as const)
   )
   .beforeAllSubcases(t => {
     t.skipIfTextureFormatNotSupported(t.params.format);
@@ -94,15 +95,17 @@ Parameters:
       filt: minFilter,
       compare,
       offset,
+      depthOrArrayLayers,
     } = t.params;
 
-    const viewDimension = '2d-array';
-    const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension });
+    const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
+    const size = { width, height, depthOrArrayLayers };
 
     const descriptor: GPUTextureDescriptor = {
       format,
       size,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+      ...(t.isCompatibility && { textureBindingViewDimension: '2d-array' }),
     };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor, {
       generator: makeRandomDepthComparisonTexelGenerator(descriptor, compare),
@@ -137,7 +140,7 @@ Parameters:
       };
     });
     const textureType = 'texture_depth_2d_array';
-    const viewDescriptor = {};
+    const viewDescriptor: GPUTextureViewDescriptor = { dimension: '2d-array' };
     const results = await doTextureCalls(
       t,
       texture,

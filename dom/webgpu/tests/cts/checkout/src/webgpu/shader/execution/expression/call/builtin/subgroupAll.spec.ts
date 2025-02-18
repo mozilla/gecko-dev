@@ -342,7 +342,7 @@ g.test('fragment,all_active')
 enable subgroups;
 
 @group(0) @binding(0)
-var<storage, read_write> inputs : array<u32>;
+var<uniform> inputs : array<vec4u, ${inputData.length}>;
 
 @fragment
 fn main(
@@ -357,7 +357,7 @@ fn main(
   let x_in_range = u32(pos.x) < (${t.params.size[0]} - 1);
   let y_in_range = u32(pos.y) < (${t.params.size[1]} - 1);
   let in_range = x_in_range && y_in_range;
-  let input = select(1u, inputs[linear], in_range);
+  let input = select(1u, inputs[linear].x, in_range);
 
   let res = select(0u, 1u, subgroupAll(bool(input)));
   return vec2u(res, subgroup_id);

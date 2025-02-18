@@ -15,7 +15,8 @@ import {
   filterFormatsByFeature,
   viewCompatible,
   textureDimensionAndFormatCompatible,
-  isTextureFormatUsableAsStorageFormat } from
+  isTextureFormatUsableAsStorageFormat,
+  isMultisampledTextureFormat } from
 '../../format_info.js';
 import { maxMipLevelCount } from '../../util/texture/base.js';
 
@@ -299,7 +300,9 @@ fn((t) => {
     usage
   };
 
-  const success = sampleCount === 1 || sampleCount === 4 && info.multisample;
+  const success =
+  sampleCount === 1 ||
+  sampleCount === 4 && isMultisampledTextureFormat(format, t.isCompatibility);
 
   t.expectValidationError(() => {
     t.createTextureTracked(descriptor);
@@ -381,7 +384,8 @@ fn((t) => {
 
   const success =
   sampleCount === 1 && satisfyWithStorageUsageRequirement ||
-  sampleCount === 4 && (
+  sampleCount === 4 &&
+  isMultisampledTextureFormat(format, t.isCompatibility) && (
   dimension === '2d' || dimension === undefined) &&
   kTextureFormatInfo[format].multisample &&
   mipLevelCount === 1 &&

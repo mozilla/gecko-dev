@@ -9,15 +9,15 @@ TODO:
 import { assert, unreachable } from '../../../../common/util/util.js';
 import { kTextureDimensions } from '../../../capability_info.js';
 import { kColorTextureFormats, kTextureFormatInfo } from '../../../format_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { align } from '../../../util/math.js';
 
 const kShaderStagesForReadWriteStorageTexture = ['fragment', 'compute'];
 
 
 
-class F extends GPUTest {
-  GetInitialData(storageTexture) {
+class F extends AllFeaturesMaxLimitsGPUTest {
+  getInitialData(storageTexture) {
     const format = storageTexture.format;
     const bytesPerBlock = kTextureFormatInfo[format].bytesPerBlock;
     assert(bytesPerBlock !== undefined);
@@ -26,7 +26,7 @@ class F extends GPUTest {
     const height = storageTexture.height;
     const depthOrArrayLayers = storageTexture.depthOrArrayLayers;
     const initialData = new ArrayBuffer(bytesPerBlock * width * height * depthOrArrayLayers);
-    const initialTypedData = this.GetTypedArrayBuffer(initialData, format);
+    const initialTypedData = this.getTypedArrayBuffer(initialData, format);
     for (let z = 0; z < depthOrArrayLayers; ++z) {
       for (let y = 0; y < height; ++y) {
         for (let x = 0; x < width; ++x) {
@@ -48,7 +48,7 @@ class F extends GPUTest {
     return initialData;
   }
 
-  GetTypedArrayBuffer(arrayBuffer, format) {
+  getTypedArrayBuffer(arrayBuffer, format) {
     switch (format) {
       case 'r32sint':
         return new Int32Array(arrayBuffer);
@@ -62,7 +62,7 @@ class F extends GPUTest {
     }
   }
 
-  GetExpectedData(
+  getExpectedData(
   shaderStage,
   storageTexture,
   initialData)
@@ -80,8 +80,8 @@ class F extends GPUTest {
     const expectedData = new ArrayBuffer(
       bytesPerRowAlignment * (height * depthOrArrayLayers - 1) + bytesPerBlock * width
     );
-    const expectedTypedData = this.GetTypedArrayBuffer(expectedData, format);
-    const initialTypedData = this.GetTypedArrayBuffer(initialData, format);
+    const expectedTypedData = this.getTypedArrayBuffer(expectedData, format);
+    const initialTypedData = this.getTypedArrayBuffer(initialData, format);
     for (let z = 0; z < depthOrArrayLayers; ++z) {
       for (let y = 0; y < height; ++y) {
         for (let x = 0; x < width; ++x) {
@@ -110,7 +110,7 @@ class F extends GPUTest {
     return expectedData;
   }
 
-  RecordCommandsToTransform(
+  recordCommandsToTransform(
   device,
   shaderStage,
   commandEncoder,
@@ -321,6 +321,16 @@ beforeAllSubcases((t) => {
 fn((t) => {
   const { format, shaderStage, textureDimension, depthOrArrayLayers } = t.params;
 
+  if (t.isCompatibility) {
+    if (shaderStage === 'fragment') {
+      t.skipIf(
+        !(t.device.limits.maxStorageTexturesInFragmentStage > 0),
+        `maxStorageTexturesInFragmentStage(${t.device.limits.
+        maxStorageTexturesInFragmentStage}) is not > 0`
+      );
+    }
+  }
+
   // In compatibility mode the lowest maxComputeInvocationsPerWorkgroup is 128 vs non-compat which is 256
   // So in non-compat we get 16 * 8 * 2, vs compat where we get 8 * 8 * 2
   const kWidth = t.isCompatibility ? 8 : 16;
@@ -334,7 +344,7 @@ fn((t) => {
   });
 
   const bytesPerBlock = kTextureFormatInfo[format].bytesPerBlock;
-  const initialData = t.GetInitialData(storageTexture);
+  const initialData = t.getInitialData(storageTexture);
   t.queue.writeTexture(
     { texture: storageTexture },
     initialData,
@@ -347,9 +357,9 @@ fn((t) => {
 
   const commandEncoder = t.device.createCommandEncoder();
 
-  t.RecordCommandsToTransform(t.device, shaderStage, commandEncoder, storageTexture);
+  t.recordCommandsToTransform(t.device, shaderStage, commandEncoder, storageTexture);
 
-  const expectedData = t.GetExpectedData(shaderStage, storageTexture, initialData);
+  const expectedData = t.getExpectedData(shaderStage, storageTexture, initialData);
   const readbackBuffer = t.createBufferTracked({
     size: expectedData.byteLength,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST

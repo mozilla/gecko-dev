@@ -6,14 +6,14 @@ depth ranges as well.
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert } from '../../../../common/util/util.js';
 import { kDepthStencilFormats, kTextureFormatInfo } from '../../../format_info.js';
-import { GPUTest, MaxLimitsTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import {
   checkElementsBetween,
   checkElementsPassPredicate } from
 
 '../../../util/check_contents.js';
 
-export const g = makeTestGroup(MaxLimitsTestMixin(GPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('depth_clamp_and_clip').
 desc(

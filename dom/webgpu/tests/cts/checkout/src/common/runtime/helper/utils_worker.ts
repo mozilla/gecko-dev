@@ -19,6 +19,7 @@ export function setupWorkerEnvironment(ctsOptions: CTSOptions): Logger {
   globalTestConfig.enableDebugLogs = ctsOptions.debug;
   globalTestConfig.unrollConstEvalLoops = ctsOptions.unrollConstEvalLoops;
   globalTestConfig.compatibility = compatibility;
+  globalTestConfig.enforceDefaultLimits = ctsOptions.enforceDefaultLimits;
   globalTestConfig.logToWebSocket = ctsOptions.logToWebSocket;
 
   const log = new Logger();
@@ -26,7 +27,7 @@ export function setupWorkerEnvironment(ctsOptions: CTSOptions): Logger {
   if (powerPreference || compatibility) {
     setDefaultRequestAdapterOptions({
       ...(powerPreference && { powerPreference }),
-      // MAINTENANCE_TODO: Change this to whatever the option ends up being
+      // MAINTENANCE_TODO: remove compatibilityMode once no longer needed.
       ...(compatibility && { compatibilityMode: true, featureLevel: 'compatibility' }),
     });
   }

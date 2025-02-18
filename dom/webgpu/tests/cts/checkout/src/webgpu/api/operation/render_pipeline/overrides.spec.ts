@@ -171,6 +171,7 @@ g.test('basic')
     );
   });
 
+const kPrecisionTestFormat = 'rgba32float';
 g.test('precision')
   .desc(`Test that the float number precision is preserved for constants`)
   .params(u =>
@@ -191,7 +192,7 @@ g.test('precision')
       ])
   )
   .fn(async t => {
-    const format = 'rgba32float';
+    const format = kPrecisionTestFormat;
     await t.ExpectShaderOutputWithConstants(
       t.params.isAsync,
       format,

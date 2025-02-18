@@ -41,6 +41,18 @@ export class SubcaseBatchState {
    * @internal MAINTENANCE_TODO: Make this not visible to test code?
    */
   async finalize() {}
+
+  /** Throws an exception marking the subcase as skipped. */
+  skip(msg: string): never {
+    throw new SkipTestCase(msg);
+  }
+
+  /** Throws an exception making the subcase as skipped if condition is true */
+  skipIf(cond: boolean, msg: string | (() => string) = '') {
+    if (cond) {
+      this.skip(typeof msg === 'function' ? msg() : msg);
+    }
+  }
 }
 
 /**

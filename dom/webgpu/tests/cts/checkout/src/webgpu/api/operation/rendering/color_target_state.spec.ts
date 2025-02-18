@@ -159,6 +159,7 @@ function computeBlendOperation(
   }
 }
 
+const kBlendingGPUBlendComponentFormat = 'rgba16float';
 g.test('blending,GPUBlendComponent')
   .desc(
     `Test all combinations of parameters for GPUBlendComponent.
@@ -210,7 +211,7 @@ g.test('blending,GPUBlendComponent')
     }
   })
   .fn(t => {
-    const textureFormat: GPUTextureFormat = 'rgba16float';
+    const textureFormat: GPUTextureFormat = kBlendingGPUBlendComponentFormat;
     const srcColor = t.params.srcColor;
     const srcColor1 = t.params.srcColor1;
     const dstColor = t.params.dstColor;

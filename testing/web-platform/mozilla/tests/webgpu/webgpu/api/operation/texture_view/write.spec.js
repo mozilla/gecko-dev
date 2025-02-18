@@ -22,11 +22,11 @@ import {
   kTextureFormatInfo } from
 
 '../../../format_info.js';
-import { GPUTest, MaxLimitsTestMixin, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { kFullscreenQuadVertexShaderCode } from '../../../util/shader.js';
 import { TexelView } from '../../../util/texture/texel_view.js';
 
-export const g = makeTestGroup(TextureTestMixin(MaxLimitsTestMixin(GPUTest)));
+export const g = makeTestGroup(TextureTestMixin(AllFeaturesMaxLimitsGPUTest));
 
 const kTextureViewWriteMethods = [
 'storage-write-fragment',
@@ -341,7 +341,7 @@ filter(({ format, method, sampleCount }) => {
 combine('viewUsageMethod', kTextureViewUsageMethods)
 ).
 beforeAllSubcases((t) => {
-  const { format, method } = t.params;
+  const { format, method, sampleCount } = t.params;
   t.skipIfTextureFormatNotSupported(format);
 
   switch (method) {
@@ -349,6 +349,14 @@ beforeAllSubcases((t) => {
     case 'storage-write-fragment':
       // Still need to filter again for compat mode.
       t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+      if (sampleCount > 1) {
+        t.skipIfMultisampleNotSupportedForFormat(format);
+      }
+      break;
+    case 'render-pass-resolve':
+    case 'render-pass-store':
+      // Requires multisample in `writeTextureAndGetExpectedTexelView`
+      t.skipIfMultisampleNotSupportedForFormat(format);
       break;
   }
 }).

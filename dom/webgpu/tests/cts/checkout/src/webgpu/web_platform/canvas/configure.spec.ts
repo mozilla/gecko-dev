@@ -16,10 +16,10 @@ import {
   filterFormatsByFeature,
   viewCompatible,
 } from '../../format_info.js';
-import { GPUTest } from '../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../gpu_test.js';
 import { kAllCanvasTypes, createCanvas } from '../../util/create_elements.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('defaults')
   .desc(
@@ -212,6 +212,7 @@ g.test('usage')
   )
   .fn(t => {
     const { canvasType, usage } = t.params;
+
     const canvas = createCanvas(t, canvasType, 2, 2);
     const ctx = canvas.getContext('webgpu');
     assert(ctx instanceof GPUCanvasContext, 'Failed to get WebGPU context from canvas');
@@ -269,7 +270,13 @@ g.test('usage')
       });
     }
 
-    if (usage & GPUConst.TextureUsage.STORAGE_BINDING) {
+    const canUseStorageTextureInFragmentShader =
+      !t.isCompatibility || t.device.limits.maxStorageTexturesInFragmentStage! > 0;
+
+    if (
+      (usage & GPUConst.TextureUsage.STORAGE_BINDING) !== 0 &&
+      canUseStorageTextureInFragmentShader
+    ) {
       const bgl = t.device.createBindGroupLayout({
         entries: [
           {

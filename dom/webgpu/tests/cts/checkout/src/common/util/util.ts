@@ -258,6 +258,15 @@ export function mapLazy<T, R>(xs: Iterable<T>, f: (x: T) => R): Iterable<R> {
   };
 }
 
+/** Count the number of elements `x` for which `predicate(x)` is true. */
+export function count<T>(xs: Iterable<T>, predicate: (x: T) => boolean): number {
+  let count = 0;
+  for (const x of xs) {
+    if (predicate(x)) count++;
+  }
+  return count;
+}
+
 const ReorderOrders = {
   forward: true,
   backward: true,

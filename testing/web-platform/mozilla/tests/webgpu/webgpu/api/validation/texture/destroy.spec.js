@@ -43,6 +43,8 @@ fn(async (t) => {
   invalidTexture.destroy();
 });
 
+const kColorTextureFormat = 'rgba8unorm';
+
 g.test('submit_a_destroyed_texture_as_attachment').
 desc(
   `
@@ -69,7 +71,6 @@ fn((t) => {
 
   const isSubmitSuccess = colorTextureState === 'valid' && depthStencilTextureState === 'valid';
 
-  const colorTextureFormat = 'rgba32float';
   const depthStencilTextureFormat =
   depthStencilTextureAspect === 'all' ?
   'depth24plus-stencil8' :
@@ -79,7 +80,7 @@ fn((t) => {
 
   const colorTextureDesc = {
     size: { width: 16, height: 16, depthOrArrayLayers: 1 },
-    format: colorTextureFormat,
+    format: kColorTextureFormat,
     usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
   };
 

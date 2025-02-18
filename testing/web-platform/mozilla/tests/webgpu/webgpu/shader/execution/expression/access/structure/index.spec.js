@@ -182,7 +182,6 @@ u.
 beginSubcases().
 combine('member_index', [0, 1, 2]).
 combine('alignments', [
-[1, 1, 1],
 [4, 4, 4],
 [4, 8, 16],
 [8, 4, 16],

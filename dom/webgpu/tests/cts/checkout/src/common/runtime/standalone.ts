@@ -52,6 +52,7 @@ const { runnow, powerPreference, compatibility, forceFallbackAdapter } = options
 globalTestConfig.enableDebugLogs = options.debug;
 globalTestConfig.unrollConstEvalLoops = options.unrollConstEvalLoops;
 globalTestConfig.compatibility = compatibility;
+globalTestConfig.enforceDefaultLimits = options.enforceDefaultLimits;
 globalTestConfig.logToWebSocket = options.logToWebSocket;
 
 const logger = new Logger();
@@ -84,7 +85,7 @@ stopButtonElem.addEventListener('click', () => {
 if (powerPreference || compatibility || forceFallbackAdapter) {
   setDefaultRequestAdapterOptions({
     ...(powerPreference && { powerPreference }),
-    // MAINTENANCE_TODO: Change this to whatever the option ends up being
+    // MAINTENANCE_TODO: remove compatibilityMode once no longer needed.
     ...(compatibility && { compatibilityMode: true, featureLevel: 'compatibility' }),
     ...(forceFallbackAdapter && { forceFallbackAdapter: true }),
   });
@@ -632,17 +633,21 @@ void (async () => {
       return select;
     };
 
-    for (const [optionName, info] of Object.entries(optionsInfos)) {
+    Object.entries(optionsInfos).forEach(([optionName, info], i) => {
+      const id = `option${i}`;
       const input =
         typeof optionValues[optionName] === 'boolean'
           ? createCheckbox(optionName)
           : createSelect(optionName, info);
+      input.attr('id', id);
       $('<tr>')
         .append($('<td>').append(input))
-        .append($('<td>').text(camelCaseToSnakeCase(optionName)))
+        .append(
+          $('<td>').append($('<label>').attr('for', id).text(camelCaseToSnakeCase(optionName)))
+        )
         .append($('<td>').text(info.description))
         .appendTo(optionsElem);
-    }
+    });
   };
   addOptionsToPage(options, kStandaloneOptionsInfos);
 

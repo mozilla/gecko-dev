@@ -1793,6 +1793,10 @@ export function canUseAsRenderTarget(format: GPUTextureFormat) {
   return kTextureFormatInfo[format].colorRender || isDepthOrStencilTextureFormat(format);
 }
 
+export function is16Float(format: GPUTextureFormat) {
+  return format === 'r16float' || format === 'rg16float' || format === 'rgba16float';
+}
+
 export function is32Float(format: GPUTextureFormat) {
   return format === 'r32float' || format === 'rg32float' || format === 'rgba32float';
 }
@@ -1852,7 +1856,20 @@ export function isSintOrUintFormat(format: GPUTextureFormat) {
 /**
  * Returns true of format can be multisampled.
  */
-export function isMultisampledTextureFormat(format: GPUTextureFormat): boolean {
+export const kCompatModeUnsupportedMultisampledTextureFormats: readonly GPUTextureFormat[] = [
+  'rgba16float',
+  'r32float',
+] as const;
+
+export function isMultisampledTextureFormat(
+  format: GPUTextureFormat,
+  isCompatibilityMode: boolean
+): boolean {
+  if (isCompatibilityMode) {
+    if (kCompatModeUnsupportedMultisampledTextureFormats.indexOf(format) >= 0) {
+      return false;
+    }
+  }
   return kAllTextureFormatInfo[format].multisample;
 }
 

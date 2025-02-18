@@ -12,6 +12,9 @@ import { CanonicalDeviceDescriptor, DescriptorModifier } from '../../../util/dev
 
 /**
  * Gets the adapter limits as a standard JavaScript object.
+ * MAINTENANCE_TODO: Remove this and use the same function from gpu_test.ts once minSubgroupSize is removed
+ * The reason this is separate now is we want this test to fail. `mnSubgroupSize` should never have
+ * be added and this test exists to see that the same mistake doesn't happen in the future.
  */
 function getAdapterLimitsAsDeviceRequiredLimits(adapter: GPUAdapter) {
   const requiredLimits: Record<string, GPUSize64> = {};
@@ -39,7 +42,7 @@ function setAllLimitsToAdapterLimitsAndAddAllFeatures(
  * Used to request a device with all the max limits of the adapter.
  */
 export class AllLimitsAndFeaturesGPUTestSubcaseBatchState extends GPUTestSubcaseBatchState {
-  override selectDeviceOrSkipTestCase(
+  override requestDeviceWithRequiredParametersOrSkip(
     descriptor: DeviceSelectionDescriptor,
     descriptorModifier?: DescriptorModifier
   ): void {
@@ -54,7 +57,10 @@ export class AllLimitsAndFeaturesGPUTestSubcaseBatchState extends GPUTestSubcase
         return `${baseKey}:AllLimitsAndFeaturesTest`;
       },
     };
-    super.selectDeviceOrSkipTestCase(initUncanonicalizedDeviceDescriptor(descriptor), mod);
+    super.requestDeviceWithRequiredParametersOrSkip(
+      initUncanonicalizedDeviceDescriptor(descriptor),
+      mod
+    );
   }
 }
 

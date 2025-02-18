@@ -10,6 +10,7 @@ import {
   kDepthStencilFormats,
   kDepthStencilFormatResolvedAspect,
   kTextureFormatInfo,
+  isMultisampledTextureFormat,
 } from '../../../../format_info.js';
 import { MaxLimitsTestMixin } from '../../../../gpu_test.js';
 import { ValidationTest } from '../../validation_test.js';
@@ -236,6 +237,34 @@ class TextureUsageTracking extends ValidationTest {
     const pipeline = this.createNoOpComputePipeline(layout);
     pass.setPipeline(pipeline);
     pass.dispatchWorkgroups(1);
+  }
+
+  skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(visibility: number) {
+    if (!this.isCompatibility) {
+      return;
+    }
+
+    this.skipIf(
+      (visibility & GPUConst.ShaderStage.VERTEX) !== 0 &&
+        !(this.device.limits.maxStorageTexturesInVertexStage! >= 2),
+      `maxStorageTexturesInVertexStage(${this.device.limits.maxStorageTexturesInVertexStage}) < 2`
+    );
+
+    this.skipIf(
+      (visibility & GPUConst.ShaderStage.FRAGMENT) !== 0 &&
+        !(this.device.limits.maxStorageTexturesInFragmentStage! >= 2),
+      `maxStorageTexturesInFragmentStage(${this.device.limits.maxStorageTexturesInFragmentStage}) < 2`
+    );
+  }
+
+  skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(s: string, visibility: number) {
+    if (
+      s === 'readonly-storage-texture' ||
+      s === 'writeonly-storage-texture' ||
+      s === 'readwrite-storage-texture'
+    ) {
+      this.skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(visibility);
+    }
   }
 }
 
@@ -867,6 +896,8 @@ g.test('shader_stages_and_visibility,storage_write')
       secondUseConflicts,
     } = t.params;
 
+    t.skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(readVisibility | writeVisibility);
+
     const usage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING;
     const view = t.createTestTexture({ usage }).createView();
     const view2 = secondUseConflicts ? view : t.createTestTexture({ usage }).createView();
@@ -940,6 +971,8 @@ g.test('shader_stages_and_visibility,attachment_write')
   .fn(t => {
     const { readVisibility, readEntry, secondUseConflicts } = t.params;
 
+    t.skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(readVisibility);
+
     const usage =
       GPUTextureUsage.TEXTURE_BINDING |
       GPUTextureUsage.RENDER_ATTACHMENT |
@@ -991,6 +1024,8 @@ g.test('replaced_binding')
   )
   .fn(t => {
     const { compute, callDrawOrDispatch, entry } = t.params;
+
+    t.skipIfNeedStorageTexturesByVisibilityAndNoStorageTextures(GPUShaderStage.FRAGMENT);
 
     const sampledView = t.createTestTexture().createView();
     const sampledStorageView = t
@@ -1120,6 +1155,10 @@ g.test('bindings_in_bundle')
     const { binding0InBundle, binding1InBundle, type0, type1, _usage0, _usage1, _sampleCount } =
       t.params;
 
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(type0, GPUShaderStage.FRAGMENT);
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(type1, GPUShaderStage.FRAGMENT);
+    t.skipIf(_sampleCount! > 1 && !isMultisampledTextureFormat('r32float', t.isCompatibility));
+
     // Two bindings are attached to the same texture view.
     const usage =
       _sampleCount === 4
@@ -1237,6 +1276,15 @@ g.test('unused_bindings_in_pipeline')
     if (writableUsage === 'readwrite-storage-texture') {
       t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures');
     }
+
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(
+      readOnlyUsage,
+      GPUShaderStage.FRAGMENT
+    );
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(
+      writableUsage,
+      GPUShaderStage.FRAGMENT
+    );
 
     const view = t
       .createTestTexture({
@@ -1371,6 +1419,9 @@ g.test('scope,dispatch')
   .fn(t => {
     const { dispatch, usage1, usage2, setBindGroup0, setBindGroup1 } = t.params;
 
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage1, GPUShaderStage.FRAGMENT);
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage2, GPUShaderStage.FRAGMENT);
+
     const { bindGroup0, bindGroup1, encoder, pass, pipeline } = t.testValidationScope(
       true,
       usage1,
@@ -1427,12 +1478,10 @@ g.test('scope,basic,render')
       )
   )
   .fn(t => {
-    t.skipIf(
-      t.isCompatibility && !(t.device.limits.maxStorageTexturesInFragmentStage! >= 2),
-      `maxStorageTexturesInFragmentStage(${t.device.limits.maxStorageTexturesInFragmentStage}) < 2`
-    );
-
     const { setBindGroup0, setBindGroup1, usage1, usage2 } = t.params;
+
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage1, GPUShaderStage.FRAGMENT);
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage2, GPUShaderStage.FRAGMENT);
 
     const { bindGroup0, bindGroup1, encoder, pass } = t.testValidationScope(false, usage1, usage2);
     assert(pass instanceof GPURenderPassEncoder);
@@ -1468,6 +1517,9 @@ g.test('scope,pass_boundary,compute')
   )
   .fn(t => {
     const { splitPass, usage1, usage2 } = t.params;
+
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage1, GPUShaderStage.FRAGMENT);
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage2, GPUShaderStage.FRAGMENT);
 
     const { bindGroupLayouts, bindGroups } = t.makeTwoBindGroupsWithOneTextureView(usage1, usage2);
 
@@ -1524,12 +1576,10 @@ g.test('scope,pass_boundary,render')
       )
   )
   .fn(t => {
-    t.skipIf(
-      t.isCompatibility && !(t.device.limits.maxStorageTexturesInFragmentStage! >= 2),
-      `maxStorageTexturesInFragmentStage(${t.device.limits.maxStorageTexturesInFragmentStage}) < 2`
-    );
-
     const { splitPass, draw, usage1, usage2 } = t.params;
+
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage1, GPUShaderStage.FRAGMENT);
+    t.skipIfNeedStorageTexturesByResourceTypeAndNoStorageTextures(usage2, GPUShaderStage.FRAGMENT);
 
     const { bindGroupLayouts, bindGroups } = t.makeTwoBindGroupsWithOneTextureView(usage1, usage2);
 

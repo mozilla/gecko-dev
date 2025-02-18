@@ -238,14 +238,6 @@ class DescriptorToHolderMap {
 
 
 
-
-
-
-
-
-
-
-
 /**
  * Make a stringified map-key from a GPUDeviceDescriptor.
  * Tries to make sure all defaults are resolved, first - but it's okay if some are missed

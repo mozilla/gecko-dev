@@ -787,15 +787,15 @@ fn((t) => {
   t.params;
 
   t.skipIf(
-    t.isCompatibility &&
-    resourceIsStorageTexture(plResourceType) &&
+    t.isCompatibility && (
+    resourceIsStorageTexture(plResourceType) || resourceIsStorageTexture(bgResourceType)) &&
     !(t.device.limits.maxStorageTexturesInFragmentStage >= 1),
     `maxStorageTexturesInFragmentStage(${t.device.limits.maxStorageTexturesInFragmentStage}) is not >= 1`
   );
 
   t.skipIf(
-    t.isCompatibility &&
-    resourceIsStorageBuffer(plResourceType) &&
+    t.isCompatibility && (
+    resourceIsStorageBuffer(plResourceType) || resourceIsStorageBuffer(bgResourceType)) &&
     !(t.device.limits.maxStorageBuffersInFragmentStage >= 1),
     `maxStorageBuffersInFragmentStage(${t.device.limits.maxStorageBuffersInFragmentStage}) is not >= 1`
   );
@@ -830,25 +830,37 @@ fn((t) => {
   );
 });
 
-g.test('empty_bind_group_layouts_requires_empty_bind_groups,compute_pass').
+g.test('empty_bind_group_layouts_never_requires_empty_bind_groups,compute_pass').
 desc(
   `
-  Test that a compute pipeline with empty bind groups layouts requires empty bind groups to be set.
+  Test that a compute pipeline with empty bind group layouts doesn't require empty bind groups to be
+  set as empty bind group layout items should always be ignored.
   `
 ).
 params((u) =>
 u.
+combine('emptyBindGroupLayoutType', ['Null', 'Undefined', 'Empty']).
 combine('bindGroupLayoutEntryCount', [3, 4]).
 combine('computeCommand', ['dispatchIndirect', 'dispatch'])
 ).
 fn((t) => {
-  const { bindGroupLayoutEntryCount, computeCommand } = t.params;
+  const { emptyBindGroupLayoutType, bindGroupLayoutEntryCount, computeCommand } = t.params;
 
   const emptyBGLCount = 4;
   const emptyBGL = t.device.createBindGroupLayout({ entries: [] });
   const emptyBGLs = [];
   for (let i = 0; i < emptyBGLCount; i++) {
-    emptyBGLs.push(emptyBGL);
+    switch (emptyBindGroupLayoutType) {
+      case 'Null':
+        emptyBGLs.push(null);
+        break;
+      case 'Undefined':
+        emptyBGLs.push(undefined);
+        break;
+      case 'Empty':
+        emptyBGLs.push(emptyBGL);
+        break;
+    }
   }
 
   const pipelineLayout = t.device.createPipelineLayout({
@@ -880,21 +892,23 @@ fn((t) => {
   t.doCompute(computePass, computeCommand, true);
   computePass.end();
 
-  const success = bindGroupLayoutEntryCount === emptyBGLCount;
+  const success = true;
 
   t.expectValidationError(() => {
     encoder.finish();
   }, !success);
 });
 
-g.test('empty_bind_group_layouts_requires_empty_bind_groups,render_pass').
+g.test('empty_bind_group_layouts_never_requires_empty_bind_groups,render_pass').
 desc(
   `
-  Test that a render pipeline with empty bind groups layouts requires empty bind groups to be set.
+  Test that a render pipeline with empty bind groups layouts doesn't require empty bind groups to be
+  set as empty bind group layout items should always be ignored.
   `
 ).
 params((u) =>
 u.
+combine('emptyBindGroupLayoutType', ['Null', 'Undefined', 'Empty']).
 combine('bindGroupLayoutEntryCount', [3, 4]).
 combine('renderCommand', [
 'draw',
@@ -904,13 +918,23 @@ combine('renderCommand', [
 )
 ).
 fn((t) => {
-  const { bindGroupLayoutEntryCount, renderCommand } = t.params;
+  const { emptyBindGroupLayoutType, bindGroupLayoutEntryCount, renderCommand } = t.params;
 
   const emptyBGLCount = 4;
   const emptyBGL = t.device.createBindGroupLayout({ entries: [] });
   const emptyBGLs = [];
   for (let i = 0; i < emptyBGLCount; i++) {
-    emptyBGLs.push(emptyBGL);
+    switch (emptyBindGroupLayoutType) {
+      case 'Null':
+        emptyBGLs.push(null);
+        break;
+      case 'Undefined':
+        emptyBGLs.push(undefined);
+        break;
+      case 'Empty':
+        emptyBGLs.push(emptyBGL);
+        break;
+    }
   }
 
   const pipelineLayout = t.device.createPipelineLayout({
@@ -966,7 +990,7 @@ fn((t) => {
   t.doRender(renderPass, renderCommand, true);
   renderPass.end();
 
-  const success = bindGroupLayoutEntryCount === emptyBGLCount;
+  const success = true;
 
   t.expectValidationError(() => {
     encoder.finish();
@@ -997,11 +1021,17 @@ const kPipelineTypesAndBindingTypeParams = [
 g.test('default_bind_group_layouts_never_match,compute_pass').
 desc(
   `
-  Test that bind groups created with default bind group layouts never match other layouts, including empty bind groups.
+  Test that bind groups created with default bind group layouts never match other layouts, except
+  when the default bind group layouts are empty because the empty bind group layouts should all be
+  treated as null bind group layouts and be ignored when checking setBindGroup() against the current
+  pipeline.
 
-  * Test that a pipeline with an explicit layout can not be used with a bindGroup from an auto layout
-  * Test that a pipeline with an auto layout can not be used with a bindGroup from an explicit layout
-  * Test that an auto layout from one pipeline can not be used with an auto layout from a different pipeline.
+  * Test that a pipeline with an explicit layout can not be used with a bindGroup from an auto
+    layout except the explicit layout is empty.
+  * Test that a pipeline with an auto layout can not be used with a bindGroup from an explicit
+    layout except the layout got from the pipeline is empty.
+  * Test that an auto layout from one pipeline can not be used with an auto layout from a different
+    pipeline except the layouts got from the pipeline are empty.
   * Test matching bindgroup layouts on the same default layout pipeline are compatible. In other words if
     you only define group(2) then group(0)'s empty layout and group(1)'s empty layout should be compatible.
     Similarly if group(2) and group(3) have the same types of resources they should be compatible.
@@ -1014,7 +1044,16 @@ combine('empty', [false, true]).
 combine('computeCommand', ['dispatchIndirect', 'dispatch'])
 ).
 fn((t) => {
-  const { pipelineType, bindingType, swap, _success: success, computeCommand, empty } = t.params;
+  const {
+    pipelineType,
+    bindingType,
+    swap,
+    _success: successWhenNonEmpty,
+    computeCommand,
+    empty
+  } = t.params;
+
+  const success = empty || successWhenNonEmpty;
 
   t.runDefaultLayoutBindingTest({
     visibility: GPUShaderStage.COMPUTE,
@@ -1056,11 +1095,17 @@ fn((t) => {
 g.test('default_bind_group_layouts_never_match,render_pass').
 desc(
   `
-  Test that bind groups created with default bind group layouts never match other layouts, including empty bind groups.
+  Test that bind groups created with default bind group layouts never match other layouts, except
+  when the default bind group layouts are empty because the empty bind group layouts should all be
+  treated as null bind group layouts and be ignored when checking setBindGroup() against the current
+  pipeline.
 
-  * Test that a pipeline with an explicit layout can not be used with a bindGroup from an auto layout
-  * Test that a pipeline with an auto layout can not be used with a bindGroup from an explicit layout
-  * Test that an auto layout from one pipeline can not be used with an auto layout from a different pipeline.
+  * Test that a pipeline with an explicit layout can not be used with a bindGroup from an auto
+    layout except the explicit layout is empty.
+  * Test that a pipeline with an auto layout can not be used with a bindGroup from an explicit
+    layout except the layout got from the pipeline is empty.
+  * Test that an auto layout from one pipeline can not be used with an auto layout from a different
+    pipeline except the layouts got from the pipeline are empty.
   * Test matching bindgroup layouts on the same default layout pipeline are compatible. In other words if
     you only define group(2) then group(0)'s empty layout and group(1)'s empty layout should be compatible.
     Similarly if group(2) and group(3) have the same types of resources they should be compatible.
@@ -1078,7 +1123,16 @@ combine('renderCommand', [
 )
 ).
 fn((t) => {
-  const { pipelineType, bindingType, swap, _success: success, renderCommand, empty } = t.params;
+  const {
+    pipelineType,
+    bindingType,
+    swap,
+    _success: successWhenNonEmpty,
+    renderCommand,
+    empty
+  } = t.params;
+
+  const success = empty || successWhenNonEmpty;
 
   t.runDefaultLayoutBindingTest({
     visibility: GPUShaderStage.VERTEX,

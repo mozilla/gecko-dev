@@ -16,13 +16,14 @@ import {
   getPipelineTypeForBindingCombination,
   getPerStageWGSLForBindingCombination,
   LimitsRequest,
+  getStageVisibilityForBinidngCombination,
+  addMaximumLimitUpToDependentLimit,
+  MaximumLimitValueTest,
 } from './limit_utils.js';
 
 const kExtraLimits: LimitsRequest = {
   maxBindingsPerBindGroup: 'adapterLimit',
   maxBindGroups: 'adapterLimit',
-  maxStorageBuffersInFragmentStage: 'adapterLimit',
-  maxStorageBuffersInVertexStage: 'adapterLimit',
 };
 
 const limit = 'maxStorageBuffersPerShaderStage';
@@ -35,7 +36,7 @@ function createBindGroupLayout(
   order: ReorderOrder,
   numBindings: number
 ) {
-  return device.createBindGroupLayout({
+  const bindGroupLayoutDescription = {
     entries: reorder(
       order,
       range(numBindings, i => ({
@@ -44,7 +45,33 @@ function createBindGroupLayout(
         buffer: { type },
       }))
     ),
-  });
+  };
+  return device.createBindGroupLayout(bindGroupLayoutDescription);
+}
+
+function addExtraRequiredLimits(
+  adapter: GPUAdapter,
+  limits: LimitsRequest,
+  limitTest: MaximumLimitValueTest
+) {
+  const newLimits: LimitsRequest = { ...limits };
+
+  addMaximumLimitUpToDependentLimit(
+    adapter,
+    newLimits,
+    'maxStorageBuffersInFragmentStage',
+    limit,
+    limitTest
+  );
+  addMaximumLimitUpToDependentLimit(
+    adapter,
+    newLimits,
+    'maxStorageBuffersInVertexStage',
+    limit,
+    limitTest
+  );
+
+  return newLimits;
 }
 
 g.test('createBindGroupLayout,at_over')
@@ -78,11 +105,13 @@ g.test('createBindGroupLayout,at_over')
           `maxBindingsPerBindGroup = ${t.adapter.limits.maxBindingsPerBindGroup} which is less than ${testValue}`
         );
 
+        t.skipIfNotEnoughStorageBuffersInStage(visibility, testValue);
+
         await t.expectValidationError(() => {
           createBindGroupLayout(device, visibility, type, order, testValue);
         }, shouldError);
       },
-      kExtraLimits
+      addExtraRequiredLimits(t.adapter, kExtraLimits, limitTest)
     );
   });
 
@@ -112,10 +141,13 @@ g.test('createPipelineLayout,at_over')
       limitTest,
       testValueName,
       async ({ device, testValue, shouldError, actualLimit }) => {
+        t.skipIfNotEnoughStorageBuffersInStage(visibility, testValue);
+
         const maxBindingsPerBindGroup = Math.min(
           t.device.limits.maxBindingsPerBindGroup,
           actualLimit
         );
+
         const kNumGroups = Math.ceil(testValue / maxBindingsPerBindGroup);
 
         // Not sure what to do in this case but best we get notified if it happens.
@@ -134,7 +166,7 @@ g.test('createPipelineLayout,at_over')
           shouldError
         );
       },
-      kExtraLimits
+      addExtraRequiredLimits(t.adapter, kExtraLimits, limitTest)
     );
   });
 
@@ -151,6 +183,7 @@ g.test('createPipeline,at_over')
     kMaximumLimitBaseParams
       .combine('async', [false, true] as const)
       .combine('bindingCombination', kBindingCombinations)
+      .beginSubcases()
       .combine('order', kReorderOrderKeys)
       .combine('bindGroupTest', kBindGroupTests)
   )
@@ -167,23 +200,8 @@ g.test('createPipeline,at_over')
           `can not test ${testValue} bindings in same group because maxBindingsPerBindGroup = ${device.limits.maxBindingsPerBindGroup}`
         );
 
-        if (t.isCompatibility) {
-          t.skipIf(
-            (bindingCombination === 'fragment' ||
-              bindingCombination === 'vertexAndFragmentWithPossibleVertexStageOverflow' ||
-              bindingCombination === 'vertexAndFragmentWithPossibleFragmentStageOverflow') &&
-              testValue > device.limits.maxStorageBuffersInFragmentStage!,
-            `can not test ${testValue} bindings as it is more than maxStorageBuffersInFragmentStage(${device.limits.maxStorageBuffersInFragmentStage})`
-          );
-
-          t.skipIf(
-            (bindingCombination === 'vertex' ||
-              bindingCombination === 'vertexAndFragmentWithPossibleVertexStageOverflow' ||
-              bindingCombination === 'vertexAndFragmentWithPossibleFragmentStageOverflow') &&
-              testValue > device.limits.maxStorageBuffersInVertexStage!,
-            `can not test ${testValue} bindings as it is more than maxStorageBuffersInVertexStage(${device.limits.maxStorageBuffersInVertexStage})`
-          );
-        }
+        const visibility = getStageVisibilityForBinidngCombination(bindingCombination);
+        t.skipIfNotEnoughStorageBuffersInStage(visibility, testValue);
 
         const code = getPerStageWGSLForBindingCombination(
           bindingCombination,
@@ -204,6 +222,6 @@ g.test('createPipeline,at_over')
           `actualLimit: ${actualLimit}, testValue: ${testValue}\n:${code}`
         );
       },
-      kExtraLimits
+      addExtraRequiredLimits(t.adapter, kExtraLimits, limitTest)
     );
   });

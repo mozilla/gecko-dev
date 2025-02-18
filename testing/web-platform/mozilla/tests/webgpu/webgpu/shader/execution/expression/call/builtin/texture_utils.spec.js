@@ -90,11 +90,13 @@ combine('sampleCount', [1, 4]).
 unless(
   (t) =>
   t.sampleCount > 1 && (
-  !isMultisampledTextureFormat(t.srcFormat) || t.viewDimension !== '2d')
+  !isMultisampledTextureFormat(t.srcFormat, false) || t.viewDimension !== '2d')
 )
 ).
 beforeAllSubcases((t) => {
   t.skipIfTextureViewDimensionNotSupported(t.params.viewDimension);
+  // recheck if multisampled is supported with compat mode flag
+  t.skipIfMultisampleNotSupportedForFormat(t.params.srcFormat);
 }).
 fn(async (t) => {
   const { srcFormat, texelViewFormat, viewDimension, sampleCount } = t.params;

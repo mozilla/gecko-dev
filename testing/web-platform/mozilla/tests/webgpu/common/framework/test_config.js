@@ -50,6 +50,11 @@
 
 
 
+
+
+
+
+
 export const globalTestConfig = {
   enableDebugLogs: false,
   maxSubcasesInFlight: 100,
@@ -59,5 +64,6 @@ export const globalTestConfig = {
   unrollConstEvalLoops: false,
   compatibility: false,
   forceFallbackAdapter: false,
+  enforceDefaultLimits: false,
   logToWebSocket: false
 };

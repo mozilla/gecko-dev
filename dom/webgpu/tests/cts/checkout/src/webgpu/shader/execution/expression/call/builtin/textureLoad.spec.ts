@@ -19,7 +19,6 @@ If an out of bounds access occurs, the built-in function returns one of:
 
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import {
-  canUseAsRenderTarget,
   isCompressedFloatTextureFormat,
   isDepthTextureFormat,
   isMultisampledTextureFormat,
@@ -29,7 +28,7 @@ import {
   kTextureFormatInfo,
   textureDimensionAndFormatCompatible,
 } from '../../../../../format_info.js';
-import { GPUTest, MaxLimitsTestMixin } from '../../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, GPUTest } from '../../../../../gpu_test.js';
 import { maxMipLevelCount, virtualMipSize } from '../../../../../util/texture/base.js';
 import { TexelFormats } from '../../../../types.js';
 
@@ -80,7 +79,7 @@ function skipIfStorageTexturesNotSupportedInStage(t: GPUTest, stage: ShortShader
   }
 }
 
-export const g = makeTestGroup(MaxLimitsTestMixin(GPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 g.test('sampled_1d')
   .specURL('https://www.w3.org/TR/WGSL/#textureload')
@@ -215,6 +214,7 @@ Parameters:
     const calls: TextureCall<vec2>[] = generateTextureBuiltinInputs2D(50, {
       method: samplePoints,
       descriptor,
+      mipLevel: { num: texture.mipLevelCount, type: L },
       hashInputs: [stage, format, samplePoints, C, L],
     }).map(({ coords, mipLevel }) => {
       return {
@@ -359,7 +359,7 @@ Parameters:
         'texture_depth_multisampled_2d',
       ] as const)
       .combine('format', kAllTextureFormats)
-      .filter(t => isMultisampledTextureFormat(t.format))
+      .filter(t => isMultisampledTextureFormat(t.format, false))
       .filter(t => !isStencilTextureFormat(t.format))
       // Filter out texture_depth_multisampled_2d with non-depth formats
       .filter(
@@ -372,10 +372,10 @@ Parameters:
       .combine('S', ['i32', 'u32'] as const)
   )
   .beforeAllSubcases(t => {
-    const { format } = t.params;
+    const { format, texture_type } = t.params;
     t.skipIfTextureFormatNotSupported(format);
-    t.skipIfTextureLoadNotSupportedForTextureType(t.params.texture_type);
-    t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
+    t.skipIfTextureLoadNotSupportedForTextureType(texture_type);
+    t.skipIfMultisampleNotSupportedForFormat(format);
   })
   .fn(async t => {
     const { texture_type, format, stage, samplePoints, C, S } = t.params;
@@ -384,10 +384,7 @@ Parameters:
     const descriptor: GPUTextureDescriptor = {
       format,
       size: [8, 8],
-      usage:
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.RENDER_ATTACHMENT,
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
       sampleCount,
     };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
@@ -624,26 +621,26 @@ Parameters:
         { C: 'u32', A: 'i32', L: 'u32' },
         { C: 'u32', A: 'u32', L: 'i32' },
       ] as const)
+      .combine('depthOrArrayLayers', [1, 8] as const)
   )
   .beforeAllSubcases(t => {
-    const { format } = t.params;
+    const { format, texture_type } = t.params;
     t.skipIfTextureFormatNotSupported(format);
-    t.skipIfTextureLoadNotSupportedForTextureType(t.params.texture_type);
-    t.selectDeviceForTextureFormatOrSkipTestCase(t.params.format);
+    t.skipIfTextureLoadNotSupportedForTextureType(texture_type);
+    t.selectDeviceForTextureFormatOrSkipTestCase(format);
   })
   .fn(async t => {
-    const { texture_type, format, stage, samplePoints, C, A, L } = t.params;
+    const { texture_type, format, stage, samplePoints, C, A, L, depthOrArrayLayers } = t.params;
 
     // We want at least 4 blocks or something wide enough for 3 mip levels.
-    const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '3d' });
+    const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
+    const size = { width, height, depthOrArrayLayers };
     const descriptor: GPUTextureDescriptor = {
       format,
       size,
-      usage:
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.TEXTURE_BINDING |
-        (canUseAsRenderTarget(format) ? GPUTextureUsage.RENDER_ATTACHMENT : 0),
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
       mipLevelCount: maxMipLevelCount({ size }),
+      ...(t.isCompatibility && { textureBindingViewDimension: '2d-array' }),
     };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
 
@@ -665,7 +662,7 @@ Parameters:
       };
     });
     const textureType = appendComponentTypeForFormatToTextureType(texture_type, texture.format);
-    const viewDescriptor = {};
+    const viewDescriptor: GPUTextureViewDescriptor = { dimension: '2d-array' };
     const sampler = undefined;
     const results = await doTextureCalls(
       t,
@@ -872,6 +869,7 @@ Parameters:
       .combine('samplePoints', kSamplePointMethods)
       .combine('C', ['i32', 'u32'] as const)
       .combine('A', ['i32', 'u32'] as const)
+      .combine('depthOrArrayLayers', [1, 8] as const)
   )
   .beforeAllSubcases(t => {
     t.skipIf(!t.hasLanguageFeature('readonly_and_readwrite_storage_textures'));
@@ -882,16 +880,18 @@ Parameters:
     }
   })
   .fn(async t => {
-    const { format, stage, samplePoints, C, A } = t.params;
+    const { format, stage, samplePoints, C, A, depthOrArrayLayers } = t.params;
 
     skipIfStorageTexturesNotSupportedInStage(t, stage);
 
     // We want at least 3 blocks or something wide enough for 3 mip levels.
-    const size = chooseTextureSize({ minSize: 8, minBlocks: 4, format, viewDimension: '3d' });
+    const [width, height] = chooseTextureSize({ minSize: 8, minBlocks: 4, format });
+    const size = { width, height, depthOrArrayLayers };
     const descriptor: GPUTextureDescriptor = {
       format,
       size,
       usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING,
+      ...(t.isCompatibility && { textureBindingViewDimension: '2d-array' }),
     };
     const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
 

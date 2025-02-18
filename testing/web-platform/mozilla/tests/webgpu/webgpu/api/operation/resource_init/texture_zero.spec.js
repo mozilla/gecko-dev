@@ -9,7 +9,7 @@ TODO:
 - test compressed texture formats [3]
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { unreachable } from '../../../../common/util/util.js';
-import { kTextureFormatInfo } from '../../../format_info.js';
+import { isMultisampledTextureFormat, kTextureFormatInfo } from '../../../format_info.js';
 
 import { checkContentsByBufferCopy, checkContentsByTextureCopy } from './check_texture/by_copy.js';
 import {
@@ -46,6 +46,10 @@ beforeAllSubcases((t) => {
   t.selectDeviceOrSkipTestCase(kTextureFormatInfo[t.params.format].feature);
 }).
 fn((t) => {
+  t.skipIf(
+    t.params.sampleCount > 1 && !isMultisampledTextureFormat(t.params.format, t.isCompatibility)
+  );
+
   const usage = getRequiredTextureUsage(
     t.params.format,
     t.params.sampleCount,

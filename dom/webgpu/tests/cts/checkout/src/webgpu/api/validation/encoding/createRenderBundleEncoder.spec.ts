@@ -14,13 +14,14 @@ import {
   kTextureFormatInfo,
   kRenderableColorTextureFormats,
 } from '../../../format_info.js';
+import { MaxLimitsTestMixin } from '../../../gpu_test.js';
 import { ValidationTest } from '../validation_test.js';
 
 // MAINTENANCE_TODO: This should be changed to kMaxColorAttachmentsToTest
 // when this is made a MaxLimitTest (see above).
 const kMaxColorAttachments = getDefaultLimits('core').maxColorAttachments.default;
 
-export const g = makeTestGroup(ValidationTest);
+export const g = makeTestGroup(MaxLimitsTestMixin(ValidationTest));
 
 g.test('attachment_state,limits,maxColorAttachments')
   .desc(`Tests that attachment state must have <= device.limits.maxColorAttachments.`)

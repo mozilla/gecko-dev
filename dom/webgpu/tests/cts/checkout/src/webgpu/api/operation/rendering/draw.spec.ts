@@ -11,10 +11,10 @@ import {
   TypedArrayBufferView,
   TypedArrayBufferViewConstructor,
 } from '../../../../common/util/util.js';
-import { GPUTest, MaxLimitsTestMixin, TextureTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, TextureTestMixin } from '../../../gpu_test.js';
 import { PerPixelComparison } from '../../../util/texture/texture_ok.js';
 
-class DrawTest extends TextureTestMixin(MaxLimitsTestMixin(GPUTest)) {
+class DrawTest extends TextureTestMixin(AllFeaturesMaxLimitsGPUTest) {
   checkTriangleDraw(opts: {
     firstIndex: number | undefined;
     count: number;
@@ -39,6 +39,8 @@ class DrawTest extends TextureTestMixin(MaxLimitsTestMixin(GPUTest)) {
       baseVertex: opts.baseVertex ?? 0,
     };
 
+    const haveStorageBuffersInFragmentStage =
+      !this.isCompatibility || this.device.limits.maxStorageBuffersInFragmentStage! > 0;
     const renderTargetSize = [72, 36];
 
     // The test will split up the render target into a grid where triangles of
@@ -101,7 +103,7 @@ struct Output {
 @group(0) @binding(0) var<storage, read_write> output : Output;
 
 @fragment fn frag_main() -> @location(0) vec4<f32> {
-  output.value = 1u;
+  ${haveStorageBuffersInFragmentStage ? 'output.value = 1u;' : ''}
   return vec4<f32>(0.0, 1.0, 0.0, 1.0);
 }
 `,
@@ -136,22 +138,26 @@ struct Output {
       },
     });
 
-    const resultBuffer = this.createBufferTracked({
-      size: Uint32Array.BYTES_PER_ELEMENT,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-    });
+    const resultBuffer = haveStorageBuffersInFragmentStage
+      ? this.createBufferTracked({
+          size: Uint32Array.BYTES_PER_ELEMENT,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        })
+      : null;
 
-    const resultBindGroup = this.device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: resultBuffer,
-          },
-        },
-      ],
-    });
+    const resultBindGroup = haveStorageBuffersInFragmentStage
+      ? this.device.createBindGroup({
+          layout: pipeline.getBindGroupLayout(0),
+          entries: [
+            {
+              binding: 0,
+              resource: {
+                buffer: resultBuffer!,
+              },
+            },
+          ],
+        })
+      : null;
 
     const commandEncoder = this.device.createCommandEncoder();
     const renderPass = commandEncoder.beginRenderPass({
@@ -279,7 +285,9 @@ struct Output {
 
     const didDraw = defaulted.count && defaulted.instanceCount;
 
-    this.expectGPUBufferValuesEqual(resultBuffer, new Uint32Array([didDraw ? 1 : 0]));
+    if (resultBuffer) {
+      this.expectGPUBufferValuesEqual(resultBuffer, new Uint32Array([didDraw ? 1 : 0]));
+    }
 
     const baseVertexCount = defaulted.baseVertex ?? 0;
     const pixelComparisons: PerPixelComparison<Uint8Array>[] = [];
@@ -321,7 +329,7 @@ Increasing the |first| param should skip some of the beginning triangles on the 
 Increasing the |first_instance| param should skip of the beginning triangles on the vertical axis.
 The vertex buffer contains two sets of disjoint triangles, and base_vertex is used to select the second set.
 The test checks that the center of all of the expected triangles is drawn, and the others are empty.
-The fragment shader also writes out to a storage buffer. If the draw is zero-sized, check that no value is written.
+The fragment shader also writes out to a storage buffer if it can. If the draw is zero-sized, check that no value is written.
 
 Params:
   - first= {0, 3} - either the firstVertex or firstIndex
@@ -428,6 +436,13 @@ g.test('vertex_attributes,basic')
       .unless(p => p.step_mode === 'mixed' && p.vertex_buffer_count <= 1)
   )
   .fn(t => {
+    // MAINTENANCE_TODO: refactor this test so it doesn't need a storage buffer OR
+    // consider removing it. It's possible the tests in src/webgpu/api/operation/vertex_state/correctness.spec.ts
+    // already test this.
+    t.skipIf(
+      t.isCompatibility && !(t.device.limits.maxStorageBuffersInFragmentStage! > 0),
+      `maxStorageBuffersInFragmentStage(${t.device.limits.maxStorageBuffersInFragmentStage}) is 0`
+    );
     const vertexCount = 4;
     const instanceCount = 4;
 

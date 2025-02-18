@@ -358,7 +358,7 @@ fn((t) => {
   const { mismatched } = t.params;
   const sourceDevice = mismatched ? t.mismatchedDevice : t.device;
 
-  const format = 'r16float';
+  const format = 'r16uint';
   const bundleEncoder = sourceDevice.createRenderBundleEncoder({
     colorFormats: [format]
   });

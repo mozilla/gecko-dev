@@ -10,7 +10,6 @@ local_invocation_index. Tests should avoid assuming there is.
 import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
 import { iterRange } from '../../../../../../common/util/util.js';
-import { GPUTest } from '../../../../../gpu_test.js';
 import {
   kConcreteNumericScalarsAndVectors,
   Type,
@@ -31,15 +30,21 @@ import {
   kPredicateCases,
   runAccuracyTest,
   runComputeTest,
+  SubgroupTest,
+  runFragmentTest,
+  getUintsPerFramebuffer,
+  kFramebufferSizes,
 } from './subgroup_util.js';
 
-export const g = makeTestGroup(GPUTest);
+export const g = makeTestGroup(SubgroupTest);
 
 const kIdentity = 1;
 
 const kDataTypes = objectsToRecord(kConcreteNumericScalarsAndVectors);
 
-const kOperations = ['subgroupMul', 'subgroupExclusiveMul', 'subgroupInclusiveMul'] as const;
+type Op = 'subgroupMul' | 'subgroupExclusiveMul' | 'subgroupInclusiveMul';
+
+const kOperations: Op[] = ['subgroupMul', 'subgroupExclusiveMul', 'subgroupInclusiveMul'];
 
 g.test('fp_accuracy')
   .desc(
@@ -98,7 +103,7 @@ function checkMultiplication(
   metadata: Uint32Array,
   output: Uint32Array,
   type: Type,
-  operation: 'subgroupMul' | 'subgroupExclusiveMul' | 'subgroupInclusiveMul',
+  operation: Op,
   expectedfillValue: number
 ): undefined | Error {
   let numEles = 1;
@@ -264,8 +269,6 @@ fn main(
     );
   });
 
-g.test('fragment').unimplemented();
-
 /**
  * Performs correctness checking for predicated multiplications
  *
@@ -280,7 +283,7 @@ g.test('fragment').unimplemented();
 function checkPredicatedMultiplication(
   metadata: Uint32Array,
   output: Uint32Array,
-  operation: 'subgroupMul' | 'subgroupExclusiveMul' | 'subgroupInclusiveMul',
+  operation: Op,
   filter: (id: number, size: number) => boolean
 ): Error | undefined {
   for (let i = 0; i < output.length; i++) {
@@ -384,6 +387,204 @@ fn main(
       inputData,
       (metadata: Uint32Array, output: Uint32Array) => {
         return checkPredicatedMultiplication(metadata, output, t.params.operation, testcase.filter);
+      }
+    );
+  });
+
+// Max subgroup size is 128.
+const kMaxSize = 128;
+
+/**
+ * Checks subgroup multiplication results in fragment shaders
+ *
+ * Avoid subgroups with invocations in the last row or column to avoid helper invocations.
+ * @param data The framebuffer results
+ *             * Component 0 is the addition result
+ *             * Component 1 is the subgroup_invocation_id
+ *             * Component 2 is a unique generated subgroup_id
+ * @param inputData Input data array
+ * @param op The type of subgroup mulitply
+ * @param format The framebuffer format
+ * @param width The framebuffer width
+ * @param height The framebuffer height
+ */
+function checkFragment(
+  data: Uint32Array,
+  inputData: Uint32Array,
+  op: Op,
+  format: GPUTextureFormat,
+  width: number,
+  height: number
+): Error | undefined {
+  const { uintsPerRow, uintsPerTexel } = getUintsPerFramebuffer(format, width, height);
+
+  // Determine if the subgroup should be included in the checks.
+  const inBounds = new Map<number, boolean>();
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const offset = uintsPerRow * row + col * uintsPerTexel;
+      const subgroup_id = data[offset + 2];
+      if (subgroup_id === 0) {
+        return new Error(`Internal error: helper invocation at (${col}, ${row})`);
+      }
+
+      let ok = inBounds.get(subgroup_id) ?? true;
+      ok = ok && row !== height - 1 && col !== width - 1;
+      inBounds.set(subgroup_id, ok);
+    }
+  }
+
+  let anyInBounds = false;
+  for (const [_, value] of inBounds) {
+    const ok = Boolean(value);
+    anyInBounds = anyInBounds || ok;
+  }
+  if (!anyInBounds) {
+    // This variant would not reliably test behavior.
+    return undefined;
+  }
+
+  // Iteration skips subgroups in the last row or column to avoid helper
+  // invocations because it is not guaranteed whether or not they participate
+  // in the subgroup operation.
+  const expected = new Map<number, Uint32Array>();
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const offset = uintsPerRow * row + col * uintsPerTexel;
+      const subgroup_id = data[offset + 2];
+
+      if (subgroup_id === 0) {
+        return new Error(`Internal error: helper invocation at (${col}, ${row})`);
+      }
+
+      const subgroupInBounds = inBounds.get(subgroup_id) ?? true;
+      if (!subgroupInBounds) {
+        continue;
+      }
+
+      const id = data[offset + 1];
+      const v =
+        expected.get(subgroup_id) ?? new Uint32Array([...iterRange(kMaxSize, x => kIdentity)]);
+      v[id] = inputData[row * width + col];
+      expected.set(subgroup_id, v);
+    }
+  }
+
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const offset = uintsPerRow * row + col * uintsPerTexel;
+      const subgroup_id = data[offset + 2];
+
+      if (subgroup_id === 0) {
+        return new Error(`Internal error: helper invocation at (${col}, ${row})`);
+      }
+
+      const subgroupInBounds = inBounds.get(subgroup_id) ?? true;
+      if (!subgroupInBounds) {
+        continue;
+      }
+
+      const res = data[offset];
+      const id = data[offset + 1];
+      const v =
+        expected.get(subgroup_id) ?? new Uint32Array([...iterRange(kMaxSize, x => kIdentity)]);
+      const bound = op === 'subgroupMul' ? kMaxSize : op === 'subgroupInclusiveMul' ? id + 1 : id;
+      let expect = kIdentity;
+      for (let i = 0; i < bound; i++) {
+        expect *= v[i];
+      }
+
+      if (res !== expect) {
+        return new Error(`Row ${row}, col ${col}: incorrect results
+- expected: ${expect}
+-      got: ${res}`);
+      }
+    }
+  }
+
+  return undefined;
+}
+
+g.test('fragment')
+  .desc('Test subgroup multiplications in fragment shaders')
+  .params(u =>
+    u
+      .combine('op', kOperations)
+      .combine('size', kFramebufferSizes)
+      .beginSubcases()
+      .combine('quadIndex', [0, 1, 2, 3] as const)
+      .combineWithParams([{ format: 'rgba32uint' }] as const)
+  )
+  .beforeAllSubcases(t => {
+    t.selectDeviceOrSkipTestCase('subgroups' as GPUFeatureName);
+  })
+  .fn(async t => {
+    interface SubgroupProperties extends GPUAdapterInfo {
+      subgroupMinSize: number;
+      subgroupMaxSize: number;
+    }
+    const { subgroupMinSize, subgroupMaxSize } = t.device.adapterInfo as SubgroupProperties;
+    const innerTexels = (t.params.size[0] - 1) * (t.params.size[1] - 1);
+    t.skipIf(innerTexels < subgroupMinSize, 'Too few texels to be reliable');
+    t.skipIf(subgroupMaxSize === 4 && t.params.quadIndex !== 0, 'Duplicate test');
+
+    // Max possible subgroup size is 128 which is too large so we reduce the
+    // multiplication by a factor of 4. We populate one element of each quad with a
+    // non-identity value. subgroupMaxSize of 4 is a special case where all
+    // elements are populated.
+    const numInputs = t.params.size[0] * t.params.size[1];
+    const inputData = new Uint32Array([
+      ...iterRange(numInputs, x => {
+        if (subgroupMaxSize === 4) {
+          return 2;
+        } else {
+          const row = Math.floor(x / t.params.size[0]);
+          const col = x % t.params.size[0];
+          const idx = (col % 2) + 2 * (row % 2);
+          return idx === t.params.quadIndex ? 2 : kIdentity;
+        }
+      }),
+    ]);
+
+    const fsShader = `
+enable subgroups;
+
+@group(0) @binding(0)
+var<uniform> inputs : array<vec4u, ${inputData.length}>;
+
+@fragment
+fn main(
+  @builtin(position) pos : vec4f,
+  @builtin(subgroup_invocation_id) id : u32
+) -> @location(0) vec4u {
+  let linear = u32(pos.x) + u32(pos.y) * ${t.params.size[0]};
+  let subgroup_id = subgroupBroadcastFirst(linear + 1);
+
+  // Filter out possible helper invocations.
+  let x_in_range = u32(pos.x) < (${t.params.size[0]} - 1);
+  let y_in_range = u32(pos.y) < (${t.params.size[1]} - 1);
+  let in_range = x_in_range && y_in_range;
+
+  let value = select(${kIdentity}, inputs[linear].x, in_range);
+  return vec4u(${t.params.op}(value), id, subgroup_id, 0);
+};`;
+
+    await runFragmentTest(
+      t,
+      t.params.format,
+      fsShader,
+      t.params.size[0],
+      t.params.size[1],
+      inputData,
+      (data: Uint32Array) => {
+        return checkFragment(
+          data,
+          inputData,
+          t.params.op,
+          t.params.format,
+          t.params.size[0],
+          t.params.size[1]
+        );
       }
     );
   });

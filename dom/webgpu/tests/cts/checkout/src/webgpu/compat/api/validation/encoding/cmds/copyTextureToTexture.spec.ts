@@ -51,13 +51,16 @@ g.test('multisample')
   .desc(`Test that you can not call copyTextureToTexture with multisample textures in compat mode.`)
   .params(u =>
     u
-      .beginSubcases()
       .combine('format', kAllTextureFormats)
+      .beginSubcases()
       .filter(({ format }) => {
         const info = kTextureFormatInfo[format];
         return info.multisample && !info.feature;
       })
   )
+  .beforeAllSubcases(t => {
+    t.skipIfMultisampleNotSupportedForFormat(t.params.format);
+  })
   .fn(t => {
     const { format } = t.params;
     const { blockWidth, blockHeight } = kTextureFormatInfo[format];

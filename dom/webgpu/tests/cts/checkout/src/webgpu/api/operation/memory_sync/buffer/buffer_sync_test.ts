@@ -1,5 +1,5 @@
 import { assert, unreachable } from '../../../../../common/util/util.js';
-import { GPUTest } from '../../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../../gpu_test.js';
 import { checkElementsEqualEither } from '../../../../util/check_contents.js';
 import { OperationContext, OperationContextHelper } from '../operation_context_helper.js';
 
@@ -127,6 +127,21 @@ export function checkOpsValidForContext(
   return true;
 }
 
+function readOpUsesStorageBufferInFragmentShader(readOp: ReadOp) {
+  return (
+    readOp === 'storage-read' ||
+    readOp === 'input-vertex' ||
+    readOp === 'input-index' ||
+    readOp === 'input-indirect' ||
+    readOp === 'input-indirect-index' ||
+    readOp === 'constant-uniform'
+  );
+}
+
+function writeOpUsesStorageBufferInFragmentShader(writeOp: WriteOp) {
+  return writeOp === 'storage' || writeOp === 'write-buffer';
+}
+
 const kDummyVertexShader = `
 @vertex fn vert_main() -> @builtin(position) vec4<f32> {
   return vec4<f32>(0.5, 0.5, 0.0, 1.0);
@@ -135,7 +150,7 @@ const kDummyVertexShader = `
 
 // Note: If it would be useful to have any of these helpers be separate from the fixture,
 // they can be refactored into standalone functions.
-export class BufferSyncTest extends GPUTest {
+export class BufferSyncTest extends AllFeaturesMaxLimitsGPUTest {
   // Vertex and index buffers used in read render pass
   vertexBuffer?: GPUBuffer;
   indexBuffer?: GPUBuffer;
@@ -144,6 +159,40 @@ export class BufferSyncTest extends GPUTest {
   // There can be at most 2 write op
   tmpValueBuffers: (GPUBuffer | undefined)[] = [undefined, undefined];
   tmpValueTextures: (GPUTexture | undefined)[] = [undefined, undefined];
+
+  skipIfNoSupportForStorageBuffersInFragmentStage() {
+    if (this.isCompatibility) {
+      this.skipIf(
+        !(this.device.limits.maxStorageBuffersInFragmentStage! >= 2),
+        `maxStorageBuffersInFragmentStage(${this.device.limits.maxStorageBuffersInFragmentStage}) < 2`
+      );
+    }
+  }
+
+  skipIfReadOpsOrWriteOpsUsesStorageBufferInFragmentStageAndNoSupportStorageBuffersInFragmentShaders(
+    readOp: ReadOp | readonly ReadOp[],
+    writeOp: WriteOp | readonly WriteOp[]
+  ) {
+    if (this.isCompatibility) {
+      const readOps = Array.isArray(readOp) ? readOp : [readOp];
+      const writeOps = Array.isArray(writeOp) ? writeOp : [writeOp];
+      const readOpsUseStorageBuffersInFragmentStage = readOps.reduce(
+        (uses, op) => uses || readOpUsesStorageBufferInFragmentShader(op),
+        false
+      );
+      const writeOpsUseStorageBuffersInFragmentStage = writeOps.reduce(
+        (uses, op) => uses || writeOpUsesStorageBufferInFragmentShader(op),
+        false
+      );
+      const usesStorageBuffersInFragmentStage =
+        readOpsUseStorageBuffersInFragmentStage || writeOpsUseStorageBuffersInFragmentStage;
+      this.skipIf(
+        usesStorageBuffersInFragmentStage &&
+          !(this.device.limits.maxStorageBuffersInFragmentStage! >= 2),
+        `maxStorageBuffersInFragmentStage(${this.device.limits.maxStorageBuffersInFragmentStage}) < 2`
+      );
+    }
+  }
 
   // These intermediate buffers/textures are created before any read/write op
   // to avoid extra memory synchronization between ops introduced by await on buffer/texture creations.

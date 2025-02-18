@@ -182,7 +182,6 @@ g.test('buffer_align')
       .beginSubcases()
       .combine('member_index', [0, 1, 2] as const)
       .combine('alignments', [
-        [1, 1, 1],
         [4, 4, 4],
         [4, 8, 16],
         [8, 4, 16],

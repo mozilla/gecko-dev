@@ -47,6 +47,7 @@ combine('width', [1, 2, 4, 15, 255, 256]).
 combine('height', [1, 2, 4, 15, 255, 256])
 ).
 beforeAllSubcases((t) => {
+  t.skipIf(typeof ImageData === 'undefined', 'ImageData does not exist in this environment');
   t.skipIfTextureFormatNotSupported(t.params.dstColorFormat);
 }).
 fn((t) => {
@@ -152,6 +153,9 @@ combine('dstPremultiplied', [true, false]).
 beginSubcases().
 combine('copySubRectInfo', kCopySubrectInfo)
 ).
+beforeAllSubcases((t) => {
+  t.skipIf(typeof ImageData === 'undefined', 'ImageData does not exist in this environment');
+}).
 fn((t) => {
   const { copySubRectInfo, dstPremultiplied, srcDoFlipYDuringCopy } = t.params;
 

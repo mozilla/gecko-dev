@@ -496,7 +496,7 @@ g.test('fragment,all_active')
 enable subgroups;
 
 @group(0) @binding(0)
-var<storage, read_write> inputs : array<u32>; // unused
+var<uniform> inputs : array<vec4u, 1>; // unused
 
 @fragment
 fn main(

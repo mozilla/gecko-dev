@@ -14,7 +14,11 @@ import {
   kEncodableTextureFormats,
   kTextureFormatInfo } from
 '../../../../../format_info.js';
-import { GPUTest } from '../../../../../gpu_test.js';
+import {
+  AllFeaturesMaxLimitsGPUTest,
+  GPUTest } from
+
+'../../../../../gpu_test.js';
 import {
   align,
   clamp,
@@ -786,7 +790,7 @@ mipLevel)
 /**
  * Used for textureNumSamples, textureNumLevels, textureNumLayers, textureDimension
  */
-export class WGSLTextureQueryTest extends GPUTest {
+export class WGSLTextureQueryTest extends AllFeaturesMaxLimitsGPUTest {
   skipIfNoStorageTexturesInStage(stage) {
     if (this.isCompatibility) {
       this.skipIf(
@@ -2961,7 +2965,11 @@ format)
       fn textureLoadCubeAs2DArray(tex: texture_cube<${componentType}>, coord: vec2u, layer: u32) -> ${resultType} {
         // convert texel coord normalized coord
         let size = textureDimensions(tex, 0);
-        let uv = (vec2f(coord) + 0.5) / vec2f(size.xy);
+
+        // Offset by 0.75 instead of the more common 0.5 for converting from texel to normalized texture coordinate
+        // because we're using textureGather. 0.5 would indicate the center of a texel but based on precision issues
+        // the "gather" could go in any direction from that center. Off center it should go in an expected direction.
+        let uv = (vec2f(coord) + 0.75) / vec2f(size.xy);
 
         // convert uv + layer into cube coord
         let cubeCoord = faceMat[layer] * vec3f(uv, 1.0);
@@ -5068,7 +5076,7 @@ ${stageWGSL}
         entries: [
         {
           binding: 0,
-          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+          visibility: GPUShaderStage.COMPUTE,
           buffer: {
             type: 'storage'
           }

@@ -15,10 +15,10 @@ Conditions that still occur:
   * Writes to non-external memory
 `;import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { iterRange } from '../../../../common/util/util.js';
-import { GPUTest, MaxLimitsTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { checkElementsPassPredicate } from '../../../util/check_contents.js';
 
-export const g = makeTestGroup(MaxLimitsTestMixin(GPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Framebuffer dimensions
 const kWidth = 64;

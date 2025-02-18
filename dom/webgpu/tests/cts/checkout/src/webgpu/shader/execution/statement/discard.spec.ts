@@ -15,10 +15,10 @@ Conditions that still occur:
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { iterRange } from '../../../../common/util/util.js';
-import { GPUTest, MaxLimitsTestMixin } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest, GPUTestBase } from '../../../gpu_test.js';
 import { checkElementsPassPredicate } from '../../../util/check_contents.js';
 
-export const g = makeTestGroup(MaxLimitsTestMixin(GPUTest));
+export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
 
 // Framebuffer dimensions
 const kWidth = 64;
@@ -49,7 +49,7 @@ fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
 `;
 
 function drawFullScreen(
-  t: GPUTest,
+  t: GPUTestBase,
   code: string,
   useStorageBuffers: boolean,
   dataChecker: (a: Float32Array) => Error | undefined,

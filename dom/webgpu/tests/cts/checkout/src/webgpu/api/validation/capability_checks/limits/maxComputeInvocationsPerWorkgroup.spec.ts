@@ -1,10 +1,9 @@
-import { GPUTestBase } from '../../../../gpu_test.js';
-
 import {
   kMaximumLimitBaseParams,
   MaximumLimitValueTest,
   MaximumTestValue,
   makeLimitTestGroup,
+  LimitTestsImpl,
 } from './limit_utils.js';
 
 /**
@@ -77,7 +76,7 @@ function getDeviceLimitToRequest(
 }
 
 function getTestWorkgroupSize(
-  t: GPUTestBase,
+  t: LimitTestsImpl,
   testValueName: MaximumTestValue,
   requestedLimit: number
 ) {
@@ -96,7 +95,7 @@ function getTestWorkgroupSize(
 }
 
 function getDeviceLimitToRequestAndValueToTest(
-  t: GPUTestBase,
+  t: LimitTestsImpl,
   limitValueTest: MaximumLimitValueTest,
   testValueName: MaximumTestValue,
   defaultLimit: number,

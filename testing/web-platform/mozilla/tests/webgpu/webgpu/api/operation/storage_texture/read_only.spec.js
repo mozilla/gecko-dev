@@ -15,7 +15,7 @@ import {
   kColorTextureFormats,
   kTextureFormatInfo } from
 '../../../format_info.js';
-import { GPUTest } from '../../../gpu_test.js';
+import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { kValidShaderStages } from '../../../util/shader.js';
 
 function ComponentCount(format) {
@@ -46,8 +46,8 @@ function ComponentCount(format) {
   }
 }
 
-class F extends GPUTest {
-  InitTextureAndGetExpectedOutputBufferData(
+class F extends AllFeaturesMaxLimitsGPUTest {
+  initTextureAndGetExpectedOutputBufferData(
   storageTexture,
   format)
   {
@@ -59,10 +59,10 @@ class F extends GPUTest {
     const depthOrArrayLayers = storageTexture.depthOrArrayLayers;
 
     const texelData = new ArrayBuffer(bytesPerBlock * width * height * depthOrArrayLayers);
-    const texelTypedDataView = this.GetTypedArrayBufferViewForTexelData(texelData, format);
+    const texelTypedDataView = this.getTypedArrayBufferViewForTexelData(texelData, format);
     const componentCount = ComponentCount(format);
     const outputBufferData = new ArrayBuffer(4 * 4 * width * height * depthOrArrayLayers);
-    const outputBufferTypedData = this.GetTypedArrayBufferForOutputBufferData(
+    const outputBufferTypedData = this.getTypedArrayBufferForOutputBufferData(
       outputBufferData,
       format
     );
@@ -174,7 +174,7 @@ class F extends GPUTest {
     return outputBufferData;
   }
 
-  GetTypedArrayBufferForOutputBufferData(arrayBuffer, format) {
+  getTypedArrayBufferForOutputBufferData(arrayBuffer, format) {
     switch (kTextureFormatInfo[format].color.type) {
       case 'uint':
         return new Uint32Array(arrayBuffer);
@@ -186,7 +186,7 @@ class F extends GPUTest {
     }
   }
 
-  GetTypedArrayBufferViewForTexelData(arrayBuffer, format) {
+  getTypedArrayBufferViewForTexelData(arrayBuffer, format) {
     switch (format) {
       case 'r32uint':
       case 'rg32uint':
@@ -219,7 +219,7 @@ class F extends GPUTest {
     }
   }
 
-  GetOutputBufferWGSLType(format) {
+  getOutputBufferWGSLType(format) {
     switch (kTextureFormatInfo[format].color.type) {
       case 'uint':
         return 'vec4u';
@@ -234,7 +234,7 @@ class F extends GPUTest {
     }
   }
 
-  DoTransform(
+  doTransform(
   storageTexture,
   shaderStage,
   format,
@@ -256,23 +256,22 @@ class F extends GPUTest {
     const textureDeclaration = `
     @group(0) @binding(0) var readOnlyTexture: ${declaration}<${format}, read>;
     `;
-    const bindingResourceDeclaration = `
-    ${textureDeclaration}
-    @group(0) @binding(1)
-    var<storage,read_write> outputBuffer : array<${this.GetOutputBufferWGSLType(format)}>;
-    `;
 
     const bindGroupEntries = [
     {
       binding: 0,
       resource: storageTexture.createView()
     },
+    ...(shaderStage === 'compute' ?
+    [
     {
       binding: 1,
       resource: {
         buffer: outputBuffer
       }
-    }];
+    }] :
+
+    [])];
 
 
     const commandEncoder = this.device.createCommandEncoder();
@@ -296,7 +295,10 @@ class F extends GPUTest {
           }
 
           const computeShader = `
-      ${bindingResourceDeclaration}
+      ${textureDeclaration}
+      @group(0) @binding(1)
+      var<storage,read_write> outputBuffer : array<${this.getOutputBufferWGSLType(format)}>;
+
       @compute
       @workgroup_size(
         ${storageTexture.width}, ${storageTexture.height}, ${storageTexture.depthOrArrayLayers})
@@ -334,61 +336,42 @@ class F extends GPUTest {
               break;
             case '2d':
               textureLoadCoord =
-              storageTexture.depthOrArrayLayers > 1 ? 'textureCoord, z' : 'textureCoord';
+              storageTexture.depthOrArrayLayers > 1 ? 'textureCoord, coordZ' : 'textureCoord';
               break;
             case '3d':
-              textureLoadCoord = 'vec3u(textureCoord, z)';
+              textureLoadCoord = 'vec3u(textureCoord, coordZ)';
               break;
           }
 
-          const fragmentShader = `
-        ${bindingResourceDeclaration}
+          const shader = `
+        ${textureDeclaration}
         @fragment
-        fn main(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
-          let textureCoord = vec2u(fragCoord.xy);
-          let storageTextureTexelCountPerImage = ${storageTexture.width * storageTexture.height}u;
-          for (var z = 0u; z < ${storageTexture.depthOrArrayLayers}; z++) {
-            let initialValue = textureLoad(readOnlyTexture, ${textureLoadCoord});
-            let outputIndex =
-              storageTextureTexelCountPerImage * z + textureCoord.y * ${storageTexture.width} +
-              textureCoord.x;
-            outputBuffer[outputIndex] = initialValue;
-          }
-          return vec4f(0.0, 1.0, 0.0, 1.0);
-        }`;
-          const vertexShader = `
-            @vertex
-            fn main(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
-                var pos = array(
-                  vec2f(-1.0, -1.0),
-                  vec2f(-1.0,  1.0),
-                  vec2f( 1.0, -1.0),
-                  vec2f(-1.0,  1.0),
-                  vec2f( 1.0, -1.0),
-                  vec2f( 1.0,  1.0));
-                return vec4f(pos[vertexIndex], 0.0, 1.0);
-            }
-          `;
+        fn fs(@builtin(position) fragCoord: vec4f) -> @location(0) vec4u {
+          let coordX = u32(fragCoord.x);
+          let coordY = u32(fragCoord.y) % ${storageTexture.height}u;
+          let coordZ = u32(fragCoord.y) / ${storageTexture.height}u;
+          let textureCoord = vec2u(coordX, coordY);
+          return bitcast<vec4u>(textureLoad(readOnlyTexture, ${textureLoadCoord}));
+        }
+
+        @vertex
+        fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
+            var pos = array(
+              vec2f(-1.0,  3.0),
+              vec2f( 3.0, -1.0),
+              vec2f(-1.0, -1.0));
+            return vec4f(pos[vertexIndex], 0.0, 1.0);
+        }
+        `;
+
+          const module = this.device.createShaderModule({
+            code: shader
+          });
           const renderPipeline = this.device.createRenderPipeline({
             layout: 'auto',
-            vertex: {
-              module: this.device.createShaderModule({
-                code: vertexShader
-              })
-            },
-            fragment: {
-              module: this.device.createShaderModule({
-                code: fragmentShader
-              }),
-              targets: [
-              {
-                format: 'rgba8unorm'
-              }]
-
-            },
-            primitive: {
-              topology: 'triangle-list'
-            }
+            vertex: { module },
+            fragment: { module, targets: [{ format: 'rgba32uint' }] },
+            primitive: { topology: 'triangle-list' }
           });
 
           const bindGroup = this.device.createBindGroup({
@@ -396,10 +379,14 @@ class F extends GPUTest {
             entries: bindGroupEntries
           });
 
+          // This is just so our buffer compare is the same as the compute stage.
+          // Otherwise, we'd have to pad every row to a multiple of 256 bytes and
+          // change the comparison code to take that into account.
+          assert(storageTexture.width === 16, `width must be 16 because we require 256 bytesPerRow`);
           const placeholderColorTexture = this.createTextureTracked({
-            size: [storageTexture.width, storageTexture.height, 1],
-            usage: GPUTextureUsage.RENDER_ATTACHMENT,
-            format: 'rgba8unorm'
+            size: [storageTexture.width, storageTexture.height * storageTexture.depthOrArrayLayers],
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+            format: 'rgba32uint'
           });
 
           const renderPassEncoder = commandEncoder.beginRenderPass({
@@ -407,54 +394,50 @@ class F extends GPUTest {
             {
               view: placeholderColorTexture.createView(),
               loadOp: 'clear',
-              clearValue: { r: 0, g: 0, b: 0, a: 0 },
               storeOp: 'store'
             }]
 
           });
           renderPassEncoder.setPipeline(renderPipeline);
           renderPassEncoder.setBindGroup(0, bindGroup);
-          renderPassEncoder.draw(6);
+          renderPassEncoder.draw(3);
           renderPassEncoder.end();
+
+          commandEncoder.copyTextureToBuffer(
+            { texture: placeholderColorTexture },
+            {
+              buffer: outputBuffer,
+              bytesPerRow: 256
+            },
+            placeholderColorTexture
+          );
           break;
         }
       case 'vertex':{
-          // For each texel location (coordX, coordY), draw one point at (coordX + 0.5, coordY + 0.5)
-          // in the storageTexture.width * storageTexture.height grid, and save all the texel values
-          // at (coordX, coordY, z) (z >= 0 && z < storageTexture.depthOrArrayLayers) into the
-          // corresponding vertex shader outputs.
-          let vertexOutputs = '';
-          for (let layer = 0; layer < storageTexture.depthOrArrayLayers; ++layer) {
-            vertexOutputs = vertexOutputs.concat(
-              `
-            @location(${layer + 1}) @interpolate(flat, either)
-            vertex_out${layer}: ${this.GetOutputBufferWGSLType(format)},`
-            );
-          }
-
+          // We draw storageTexture.Width by (storageTexture.height * storageTexture.depthOrArrayLayers)
+          // points via 'point-list' to a placeholderColorTexture of the same size.
+          //
+          // We use the @builtin(vertex_index) to compute a coord in the source texture
+          // and use that same coord to compute a place to render in the point in the placeholder.
           let loadFromTextureWGSL = '';
           switch (storageTexture.dimension) {
             case '1d':
               loadFromTextureWGSL = `
-              output.vertex_out0 = textureLoad(readOnlyTexture, coordX);`;
+              output.vertex_out = textureLoad(readOnlyTexture, coordX);`;
               break;
             case '2d':
               if (storageTexture.depthOrArrayLayers === 1) {
                 loadFromTextureWGSL = `
-                output.vertex_out0 = textureLoad(readOnlyTexture, vec2u(coordX, coordY));`;
+                output.vertex_out = textureLoad(readOnlyTexture, vec2u(coordX, coordY));`;
               } else {
-                for (let z = 0; z < storageTexture.depthOrArrayLayers; ++z) {
-                  loadFromTextureWGSL = loadFromTextureWGSL.concat(`
-                  output.vertex_out${z} =
-                    textureLoad(readOnlyTexture, vec2u(coordX, coordY), ${z});`);
-                }
+                loadFromTextureWGSL = loadFromTextureWGSL.concat(`
+                output.vertex_out =
+                  textureLoad(readOnlyTexture, vec2u(coordX, coordY), coordZ);`);
               }
               break;
             case '3d':
-              for (let z = 0; z < storageTexture.depthOrArrayLayers; ++z) {
-                loadFromTextureWGSL = loadFromTextureWGSL.concat(`
-                output.vertex_out${z} = textureLoad(readOnlyTexture, vec3u(coordX, coordY, ${z}));`);
-              }
+              loadFromTextureWGSL = loadFromTextureWGSL.concat(`
+              output.vertex_out = textureLoad(readOnlyTexture, vec3u(coordX, coordY, coordZ));`);
               break;
           }
 
@@ -470,57 +453,39 @@ class F extends GPUTest {
           }
 
           const shader = `
-        ${bindingResourceDeclaration}
+        ${textureDeclaration}
         struct VertexOutput {
           @builtin(position) my_pos: vec4f,
-          @location(0) @interpolate(flat, either) tex_coord: vec2u,
-          ${vertexOutputs}
+          @location(0) @interpolate(flat, either)
+            vertex_out: ${this.getOutputBufferWGSLType(format)},
         }
         @vertex
         fn vs_main(@builtin(vertex_index) vertexIndex : u32) -> VertexOutput {
             var output : VertexOutput;
             let coordX = vertexIndex % ${storageTexture.width}u;
-            let coordY = vertexIndex / ${storageTexture.width}u;
-            // Each vertex in the mesh take an even step along X axis from -1.0 to 1.0.
-            let posXStep = f32(${2.0 / storageTexture.width});
-            // As well as along Y axis.
-            let posYStep = f32(${2.0 / storageTexture.height});
-            // And the vertex located in the middle of the step, i.e. with a bias of 0.5 step.
-            let outputPosX = -1.0 + posXStep * 0.5 + posXStep * f32(coordX);
-            let outputPosY = -1.0 + posYStep * 0.5 + posYStep * f32(coordY);
-            output.my_pos = vec4f(outputPosX, outputPosY, 0.0, 1.0);
-            output.tex_coord = vec2u(coordX, coordY);
+            let coordY = vertexIndex / ${storageTexture.width}u % ${storageTexture.height}u;
+            let coordZ = vertexIndex / ${storageTexture.width * storageTexture.height}u;
+            let writePos = vec2f(f32(coordX), f32(coordY + coordZ * ${storageTexture.height}));
+            let destSize = vec2f(
+              ${storageTexture.width},
+              ${storageTexture.height * storageTexture.depthOrArrayLayers});
+            output.my_pos = vec4f((((writePos + 0.5) / destSize) * 2.0 - 1.0) * vec2f(1, -1), 0.0, 1.0);
             ${loadFromTextureWGSL}
             return output;
         }
         @fragment
-        fn fs_main(fragmentInput : VertexOutput) -> @location(0) vec4f {
-          let storageTextureTexelCountPerImage = ${storageTexture.width * storageTexture.height}u;
-          ${outputToBufferWGSL}
-          return vec4f(0.0, 1.0, 0.0, 1.0);
+        fn fs_main(fragmentInput : VertexOutput) -> @location(0) vec4u {
+          let v = fragmentInput.vertex_out;
+          return bitcast<vec4u>(v);
         }
         `;
 
+          const module = this.device.createShaderModule({ code: shader });
           const renderPipeline = this.device.createRenderPipeline({
             layout: 'auto',
-            vertex: {
-              module: this.device.createShaderModule({
-                code: shader
-              })
-            },
-            fragment: {
-              module: this.device.createShaderModule({
-                code: shader
-              }),
-              targets: [
-              {
-                format: 'rgba8unorm'
-              }]
-
-            },
-            primitive: {
-              topology: 'point-list'
-            }
+            vertex: { module },
+            fragment: { module, targets: [{ format: 'rgba32uint' }] },
+            primitive: { topology: 'point-list' }
           });
 
           const bindGroup = this.device.createBindGroup({
@@ -529,9 +494,9 @@ class F extends GPUTest {
           });
 
           const placeholderColorTexture = this.createTextureTracked({
-            size: [storageTexture.width, storageTexture.height, 1],
-            usage: GPUTextureUsage.RENDER_ATTACHMENT,
-            format: 'rgba8unorm'
+            size: [storageTexture.width, storageTexture.height * storageTexture.depthOrArrayLayers],
+            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+            format: 'rgba32uint'
           });
 
           const renderPassEncoder = commandEncoder.beginRenderPass({
@@ -546,8 +511,19 @@ class F extends GPUTest {
           });
           renderPassEncoder.setPipeline(renderPipeline);
           renderPassEncoder.setBindGroup(0, bindGroup);
-          renderPassEncoder.draw(storageTexture.width * storageTexture.height);
+          const texelCount =
+          storageTexture.width * storageTexture.height * storageTexture.depthOrArrayLayers;
+          renderPassEncoder.draw(texelCount);
           renderPassEncoder.end();
+
+          commandEncoder.copyTextureToBuffer(
+            { texture: placeholderColorTexture },
+            {
+              buffer: outputBuffer,
+              bytesPerRow: 256
+            },
+            placeholderColorTexture
+          );
           break;
         }
     }
@@ -586,7 +562,23 @@ beforeAllSubcases((t) => {
 fn((t) => {
   const { format, shaderStage, dimension, depthOrArrayLayers } = t.params;
 
-  const kWidth = 8;
+  if (t.isCompatibility) {
+    if (shaderStage === 'fragment') {
+      t.skipIf(
+        !(t.device.limits.maxStorageTexturesInFragmentStage > 0),
+        `maxStorageTexturesInFragmentStage(${t.device.limits.
+        maxStorageTexturesInFragmentStage}) is not > 0`
+      );
+    } else if (shaderStage === 'vertex') {
+      t.skipIf(
+        !(t.device.limits.maxStorageTexturesInVertexStage > 0),
+        `maxStorageTexturesInVertexStage(${t.device.limits.
+        maxStorageTexturesInVertexStage}) is not > 0`
+      );
+    }
+  }
+
+  const kWidth = 16;
   const height = dimension === '1d' ? 1 : 8;
   const storageTexture = t.createTextureTracked({
     format,
@@ -595,14 +587,16 @@ fn((t) => {
     usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
   });
 
-  const expectedData = t.InitTextureAndGetExpectedOutputBufferData(storageTexture, format);
+  const expectedData = t.initTextureAndGetExpectedOutputBufferData(storageTexture, format);
 
+  const bytesPerRow = 4 * 4 * kWidth;
+  assert(bytesPerRow === 256, 'bytesPerRow === 256');
   const outputBuffer = t.createBufferTracked({
-    size: 4 * 4 * kWidth * height * depthOrArrayLayers,
-    usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE
+    size: bytesPerRow * height * depthOrArrayLayers,
+    usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
   });
 
-  t.DoTransform(storageTexture, shaderStage, format, outputBuffer);
+  t.doTransform(storageTexture, shaderStage, format, outputBuffer);
 
   switch (kTextureFormatInfo[format].color.type) {
     case 'uint':

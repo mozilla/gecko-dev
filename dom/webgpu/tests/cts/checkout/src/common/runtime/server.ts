@@ -31,6 +31,9 @@ Options:
   --gpu-provider            Path to node module that provides the GPU implementation.
   --gpu-provider-flag       Flag to set on the gpu-provider as <flag>=<value>
   --unroll-const-eval-loops Unrolls loops in constant-evaluation shader execution tests
+  --enforce-default-limits  Enforce the default limits (note: powerPreference tests may fail)
+  --force-fallback-adapter  Force a fallback adapter
+  --log-to-websocket        Log to a websocket
   --u                       Flag to set on the gpu-provider as <flag>=<value>
 
 Provides an HTTP server used for running tests via an HTTP RPC interface
@@ -96,6 +99,8 @@ for (let i = 0; i < sys.args.length; ++i) {
       emitCoverage = true;
     } else if (a === '--force-fallback-adapter') {
       globalTestConfig.forceFallbackAdapter = true;
+    } else if (a === '--enforce-default-limits') {
+      globalTestConfig.enforceDefaultLimits = true;
     } else if (a === '--log-to-websocket') {
       globalTestConfig.logToWebSocket = true;
     } else if (a === '--gpu-provider') {
@@ -120,7 +125,7 @@ for (let i = 0; i < sys.args.length; ++i) {
 let codeCoverage: CodeCoverageProvider | undefined = undefined;
 
 if (globalTestConfig.compatibility || globalTestConfig.forceFallbackAdapter) {
-  // MAINTENANCE_TODO: remove the cast once compatibilityMode is officially added
+  // MAINTENANCE_TODO: remove compatibilityMode (and the typecast) once no longer needed.
   setDefaultRequestAdapterOptions({
     compatibilityMode: globalTestConfig.compatibility,
     featureLevel: globalTestConfig.compatibility ? 'compatibility' : 'core',
