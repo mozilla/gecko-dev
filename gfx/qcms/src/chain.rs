@@ -261,19 +261,35 @@ impl ModularTransform for Clut3x3 {
                 .unwrap_or_else(unlikely_default)
         };
 
-        let input_clut_table_r = self.input_clut_table[0].as_ref().unwrap();
-        let input_clut_table_g = self.input_clut_table[1].as_ref().unwrap();
-        let input_clut_table_b = self.input_clut_table[2].as_ref().unwrap();
-        let output_clut_table_r = self.output_clut_table[0].as_ref().unwrap();
-        let output_clut_table_g = self.output_clut_table[1].as_ref().unwrap();
-        let output_clut_table_b = self.output_clut_table[2].as_ref().unwrap();
+        let input_clut_table_r = self.input_clut_table[0].as_ref().unwrap().as_slice();
+        let input_clut_table_g = self.input_clut_table[1].as_ref().unwrap().as_slice();
+        let input_clut_table_b = self.input_clut_table[2].as_ref().unwrap().as_slice();
+
+        // num_input_table_entries/num_output_table_entries are checked to be in this range
+        // asserting they're equal optimizes lut_interp_linear_float
+        assert!(
+            (2..4096).contains(&input_clut_table_r.len())
+                && input_clut_table_r.len() == input_clut_table_g.len()
+                && input_clut_table_r.len() == input_clut_table_b.len()
+        );
+
+        let output_clut_table_r = self.output_clut_table[0].as_ref().unwrap().as_slice();
+        let output_clut_table_g = self.output_clut_table[1].as_ref().unwrap().as_slice();
+        let output_clut_table_b = self.output_clut_table[2].as_ref().unwrap().as_slice();
+
+        assert!(
+            (2..4096).contains(&output_clut_table_r.len())
+                && output_clut_table_r.len() == output_clut_table_g.len()
+                && output_clut_table_r.len() == output_clut_table_b.len()
+        );
+
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(3)) {
             let device_r = src[0];
             let device_g = src[1];
             let device_b = src[2];
-            let linear_r = lut_interp_linear_float(device_r, &input_clut_table_r);
-            let linear_g = lut_interp_linear_float(device_g, &input_clut_table_g);
-            let linear_b = lut_interp_linear_float(device_b, &input_clut_table_b);
+            let linear_r = lut_interp_linear_float(device_r, input_clut_table_r);
+            let linear_g = lut_interp_linear_float(device_g, input_clut_table_g);
+            let linear_b = lut_interp_linear_float(device_b, input_clut_table_b);
             let x = (linear_r * grid_max).floor() as u32;
             let y = (linear_g * grid_max).floor() as u32;
             let z = (linear_b * grid_max).floor() as u32;
@@ -345,18 +361,33 @@ impl ModularTransform for Clut4x3 {
                 .unwrap_or_else(unlikely_default)
         };
 
-        let input_clut_table_0 = self.input_clut_table[0].as_ref().unwrap();
-        let input_clut_table_1 = self.input_clut_table[1].as_ref().unwrap();
-        let input_clut_table_2 = self.input_clut_table[2].as_ref().unwrap();
-        let input_clut_table_3 = self.input_clut_table[3].as_ref().unwrap();
-        let output_clut_table_r = &self.output_clut_table[0].as_ref().unwrap();
-        let output_clut_table_g = &self.output_clut_table[1].as_ref().unwrap();
-        let output_clut_table_b = &self.output_clut_table[2].as_ref().unwrap();
+        let input_clut_table_0 = self.input_clut_table[0].as_ref().unwrap().as_slice();
+        let input_clut_table_1 = self.input_clut_table[1].as_ref().unwrap().as_slice();
+        let input_clut_table_2 = self.input_clut_table[2].as_ref().unwrap().as_slice();
+        let input_clut_table_3 = self.input_clut_table[3].as_ref().unwrap().as_slice();
+
+        assert!(
+            (2..4096).contains(&input_clut_table_0.len())
+                && input_clut_table_0.len() == input_clut_table_1.len()
+                && input_clut_table_0.len() == input_clut_table_2.len()
+                && input_clut_table_0.len() == input_clut_table_3.len()
+        );
+
+        let output_clut_table_r = self.output_clut_table[0].as_ref().unwrap().as_slice();
+        let output_clut_table_g = self.output_clut_table[1].as_ref().unwrap().as_slice();
+        let output_clut_table_b = self.output_clut_table[2].as_ref().unwrap().as_slice();
+
+        assert!(
+            (2..4096).contains(&output_clut_table_r.len())
+                && output_clut_table_r.len() == output_clut_table_g.len()
+                && output_clut_table_r.len() == output_clut_table_b.len()
+        );
+
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(4)) {
-            let linear_x = lut_interp_linear_float(src[0], &input_clut_table_0);
-            let linear_y = lut_interp_linear_float(src[1], &input_clut_table_1);
-            let linear_z = lut_interp_linear_float(src[2], &input_clut_table_2);
-            let linear_w = lut_interp_linear_float(src[3], &input_clut_table_3);
+            let linear_x = lut_interp_linear_float(src[0], input_clut_table_0);
+            let linear_y = lut_interp_linear_float(src[1], input_clut_table_1);
+            let linear_z = lut_interp_linear_float(src[2], input_clut_table_2);
+            let linear_w = lut_interp_linear_float(src[3], input_clut_table_3);
 
             let x = (linear_x * grid_max).floor() as u32;
             let y = (linear_y * grid_max).floor() as u32;
@@ -578,9 +609,9 @@ impl ModularTransform for GammaTable {
             let in_r = src[0];
             let in_g = src[1];
             let in_b = src[2];
-            out_r = lut_interp_linear_float(in_r, &input_clut_table_r[..]);
-            out_g = lut_interp_linear_float(in_g, &input_clut_table_g[..]);
-            out_b = lut_interp_linear_float(in_b, &input_clut_table_b[..]);
+            out_r = lut_interp_linear_float(in_r, input_clut_table_r);
+            out_g = lut_interp_linear_float(in_g, input_clut_table_g);
+            out_b = lut_interp_linear_float(in_b, input_clut_table_b);
 
             dest[0] = clamp_float(out_r);
             dest[1] = clamp_float(out_g);
