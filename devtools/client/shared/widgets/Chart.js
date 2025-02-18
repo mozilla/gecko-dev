@@ -318,9 +318,10 @@ function createPieChart(
 
     const hoverX = translateDistance * Math.sin(midAngle);
     const hoverY = -translateDistance * Math.cos(midAngle);
-    const hoverTransform =
-      "transform: translate(" + hoverX + "px, " + hoverY + "px)";
-    pathNode.setAttribute("style", data.length > 1 ? hoverTransform : "");
+    const hoverTranslate = "translate(" + hoverX + "px, " + hoverY + "px)";
+    if (data.length > 1) {
+      pathNode.style.transform = hoverTranslate;
+    }
 
     proxy.slices.set(sliceInfo, pathNode);
     delegate(
@@ -343,7 +344,9 @@ function createPieChart(
       // to avoid duplicating text.
       label.setAttribute("aria-hidden", "true");
       label.setAttribute("class", "pie-chart-label");
-      label.setAttribute("style", data.length > 1 ? hoverTransform : "");
+      if (data.length > 1) {
+        label.style.transform = hoverTranslate;
+      }
       label.setAttribute("x", data.length > 1 ? textX : centerX);
       label.setAttribute("y", data.length > 1 ? textY : centerY);
       interactiveNode.append(label);
