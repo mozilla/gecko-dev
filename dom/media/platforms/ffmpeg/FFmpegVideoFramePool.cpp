@@ -200,7 +200,7 @@ VideoFramePool<LIBAV_VER>::GetVideoFrameSurface(
     AVCodecContext* aAVCodecContext, AVFrame* aAVFrame,
     FFmpegLibWrapper* aLib) {
   if (aVaDesc.fourcc != VA_FOURCC_NV12 && aVaDesc.fourcc != VA_FOURCC_YV12 &&
-      aVaDesc.fourcc != VA_FOURCC_P010) {
+      aVaDesc.fourcc != VA_FOURCC_P010 && aVaDesc.fourcc != VA_FOURCC_P016) {
     DMABUF_LOG("Unsupported VA-API surface format %d", aVaDesc.fourcc);
     return nullptr;
   }

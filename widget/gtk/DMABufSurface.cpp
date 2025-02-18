@@ -1795,12 +1795,9 @@ bool DMABufSurfaceYUV::VerifyTextureCreation() {
 gfx::SurfaceFormat DMABufSurfaceYUV::GetFormat() {
   switch (mFOURCCFormat) {
     case VA_FOURCC_P010:
-    // ReportVA_FOURCC_P010 as NV12 as Gecko threats P010 as a variant of P016
-    // with zeroed bits, see gfx::SurfaceFormat for details.
-    // NV12 / P010 uses the same plane composition but NV12 is 8-bit format
-    // and P010 10-bit one.
-    // It doesn't matter much as long as we create textures with correct
-    // drm format.
+      return gfx::SurfaceFormat::P010;
+    case VA_FOURCC_P016:
+      return gfx::SurfaceFormat::P016;
     case VA_FOURCC_NV12:
       return gfx::SurfaceFormat::NV12;
     case VA_FOURCC_YV12:
