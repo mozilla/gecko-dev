@@ -392,20 +392,20 @@ async function doSuggestVisibilityTest({
 
   // Open prefs and check the initial visibility.
   await openPreferencesViaOpenPreferencesAPI(pane, { leaveOpen: true });
-  assertSuggestVisibility(initialExpected);
+  await assertSuggestVisibility(initialExpected);
 
   // Install a Nimbus experiment.
   await QuickSuggestTestUtils.withExperiment({
     valueOverrides: nimbusVariables,
     callback: async () => {
       // Check visibility again.
-      assertSuggestVisibility(newExpected);
+      await assertSuggestVisibility(newExpected);
 
       // To make sure visibility is properly updated on load, close the tab,
       // open the prefs again, and check visibility.
       gBrowser.removeCurrentTab();
       await openPreferencesViaOpenPreferencesAPI(pane, { leaveOpen: true });
-      assertSuggestVisibility(newExpected);
+      await assertSuggestVisibility(newExpected);
     },
   });
 
@@ -425,22 +425,27 @@ async function doSuggestVisibilityTest({
  *   {string} l10nId
  *     The expected l10n ID of the element. Optional.
  */
-function assertSuggestVisibility(expectedByElementId) {
+async function assertSuggestVisibility(expectedByElementId) {
   let doc = gBrowser.selectedBrowser.contentDocument;
   for (let [elementId, { isVisible, l10nId }] of Object.entries(
     expectedByElementId
   )) {
     let element = doc.getElementById(elementId);
+    await TestUtils.waitForCondition(
+      () => BrowserTestUtils.isVisible(element) == isVisible,
+      "Waiting for element visbility: " +
+        JSON.stringify({ elementId, isVisible })
+    );
     Assert.strictEqual(
       BrowserTestUtils.isVisible(element),
       isVisible,
-      "The element should be visible as expected"
+      "Element should have expected visibility: " + elementId
     );
     if (l10nId) {
       Assert.equal(
         element.dataset.l10nId,
         l10nId,
-        "The l10n ID should be correct for element " + elementId
+        "The l10n ID should be correct for element: " + elementId
       );
     }
   }

@@ -596,6 +596,10 @@ pref("browser.urlbar.quicksuggest.exposureSuggestionTypes", "");
 // Whether Suggest will use the ML backend in addition to Rust.
 pref("browser.urlbar.quicksuggest.mlEnabled", false);
 
+// Which Suggest settings to show in the settings UI. See
+// `QuickSuggest.SETTINGS_UI` for values.
+pref("browser.urlbar.quicksuggest.settingsUi", 0);
+
 // Whether unit conversion is enabled.
 #ifdef NIGHTLY_BUILD
 pref("browser.urlbar.unitConversion.enabled", true);

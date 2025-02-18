@@ -2668,7 +2668,7 @@ var gPrivacyPane = {
 
     if (
       UrlbarPrefs.get("quickSuggestEnabled") &&
-      !UrlbarPrefs.get("quickSuggestHideSettingsUI")
+      UrlbarPrefs.get("quickSuggestSettingsUi") == QuickSuggest.SETTINGS_UI.FULL
     ) {
       container.removeAttribute("hidden");
     } else if (!onInit) {
