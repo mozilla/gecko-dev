@@ -130,7 +130,9 @@ export class LRUCache {
       // If the cache is at the limit, get the least recently used translation and
       // remove it. This works since Maps have keys ordered by insertion order.
       const key = cache.keys().next().value;
-      cache.delete(key);
+      if (key) {
+        cache.delete(key);
+      }
     }
     cache.set(sourceString, targetString);
     this.keepAlive();
@@ -557,8 +559,10 @@ export class TranslationsDocument {
     /** @type {number} */
     this.innerWindowId = innerWindowId;
 
-    /** @type {DOMParser} */
-    this.domParser = new document.ownerGlobal.DOMParser();
+    /** @type {typeof DOMParser} */
+    const OwnerDocDOMParser = ensureExists(document.ownerGlobal).DOMParser;
+
+    this.domParser = new OwnerDocDOMParser();
 
     /** @type {Document} */
     this.document = document;
@@ -596,10 +600,15 @@ export class TranslationsDocument {
      *
      * @type {typeof MutationObserver}
      */
-    const DocumentsMutationObserver = document.ownerGlobal.MutationObserver;
+    const DocumentsMutationObserver = ensureExists(
+      document.ownerGlobal
+    ).MutationObserver;
 
     this.observer = new DocumentsMutationObserver(mutationsList => {
       for (const mutation of mutationsList) {
+        if (!mutation.target) {
+          continue;
+        }
         const pendingNode = this.getPendingNodeFromTarget(mutation.target);
         if (pendingNode) {
           const translationId = this.#pendingTranslations.get(pendingNode);
@@ -609,9 +618,11 @@ export class TranslationsDocument {
             this.markNodeMutated(pendingNode);
             if (mutation.type === "childList") {
               // New nodes could have been added, make sure we can follow their shadow roots.
-              this.document.ownerGlobal.requestAnimationFrame(() => {
-                this.addShadowRootsToObserver(pendingNode);
-              });
+              ensureExists(this.document.ownerGlobal).requestAnimationFrame(
+                () => {
+                  this.addShadowRootsToObserver(pendingNode);
+                }
+              );
             }
             continue;
           }
@@ -619,10 +630,16 @@ export class TranslationsDocument {
         switch (mutation.type) {
           case "childList":
             for (const addedNode of mutation.addedNodes) {
+              if (!addedNode) {
+                continue;
+              }
               this.addShadowRootsToObserver(addedNode);
               this.markNodeMutated(addedNode);
             }
             for (const removedNode of mutation.removedNodes) {
+              if (!removedNode) {
+                continue;
+              }
               const translationId = this.#pendingTranslations.get(removedNode);
               if (translationId) {
                 this.cancelTranslation(removedNode, translationId);
@@ -630,18 +647,27 @@ export class TranslationsDocument {
               this.cancelPendingAttributes(removedNode);
             }
             break;
-          case "characterData":
-            // The mutated node will implement the CharacterData interface. The only
-            // node of this type that contains user-visible text is the `Text` node.
-            // Ignore others such as the comment node.
-            // https://developer.mozilla.org/en-US/docs/Web/API/CharacterData
-            if (mutation.target.nodeType === Node.TEXT_NODE) {
-              this.#processedNodes.delete(mutation.target);
-              this.markNodeMutated(mutation.target);
+          case "characterData": {
+            const node = mutation.target;
+            if (node) {
+              // The mutated node will implement the CharacterData interface. The only
+              // node of this type that contains user-visible text is the `Text` node.
+              // Ignore others such as the comment node.
+              // https://developer.mozilla.org/en-US/docs/Web/API/CharacterData
+              if (node.nodeType === Node.TEXT_NODE) {
+                this.#processedNodes.delete(node);
+                this.markNodeMutated(node);
+              }
             }
             break;
+          }
           case "attributes":
-            this.markAttributeMutated(mutation.target, mutation.attributeName);
+            if (mutation.target && mutation.attributeName) {
+              this.markAttributeMutated(
+                mutation.target,
+                mutation.attributeName
+              );
+            }
             break;
           default:
             break;
@@ -680,7 +706,7 @@ export class TranslationsDocument {
       );
     });
 
-    document.documentElement.lang = targetLanguage;
+    /** @type {HTMLElement} */ (document.documentElement).lang = targetLanguage;
 
     lazy.console.log(
       "Beginning to translate.",
@@ -725,11 +751,12 @@ export class TranslationsDocument {
       (this.#mutatedNodes.size || this.#queuedAttributeNodes)
     ) {
       this.#isMutatedNodesRAFScheduled = true;
+      const ownerGlobal = ensureExists(this.document.ownerGlobal);
       // Perform a double requestAnimationFrame to:
       //   1. Reduce the number of invalidation cycles of canceling intermediate translations.
       //   2. Do less work on the main thread when there are many mutations.
-      this.document.ownerGlobal.requestAnimationFrame(() => {
-        this.document.ownerGlobal.requestAnimationFrame(() => {
+      ownerGlobal.requestAnimationFrame(() => {
+        ownerGlobal.requestAnimationFrame(() => {
           this.#isMutatedNodesRAFScheduled = false;
 
           // Ensure the nodes are still alive.
@@ -961,11 +988,15 @@ export class TranslationsDocument {
    * @param {Node} node
    */
   addShadowRootsToObserver(node) {
-    const nodeIterator = node.ownerDocument.createTreeWalker(
+    const { ownerDocument } = node;
+    if (!ownerDocument) {
+      return;
+    }
+    const nodeIterator = ownerDocument.createTreeWalker(
       node,
       NodeFilter.SHOW_ELEMENT,
       currentNode =>
-        currentNode.openOrClosedShadowRoot
+        getShadowRoot(currentNode)
           ? NodeFilter.FILTER_ACCEPT
           : NodeFilter.FILTER_SKIP
     );
@@ -974,7 +1005,7 @@ export class TranslationsDocument {
     let currentNode;
     while ((currentNode = nodeIterator.nextNode())) {
       // Only shadow hosts are accepted nodes
-      const shadowRoot = currentNode.openOrClosedShadowRoot;
+      const shadowRoot = ensureExists(getShadowRoot(currentNode));
       if (!this.#rootNodes.has(shadowRoot)) {
         this.observeNewRoot(shadowRoot);
       }
@@ -1027,7 +1058,11 @@ export class TranslationsDocument {
    * @param {Node} node
    */
   processSubdivide(node) {
-    const nodeIterator = node.ownerDocument.createTreeWalker(
+    const { ownerDocument } = node;
+    if (!ownerDocument) {
+      return;
+    }
+    const nodeIterator = ownerDocument.createTreeWalker(
       node,
       NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
       this.determineTranslationStatusForUnprocessedNodes
@@ -1037,7 +1072,7 @@ export class TranslationsDocument {
     // be translated.
     let currentNode;
     while ((currentNode = nodeIterator.nextNode())) {
-      const shadowRoot = currentNode.openOrClosedShadowRoot;
+      const shadowRoot = getShadowRoot(currentNode);
       if (shadowRoot) {
         this.processSubdivide(shadowRoot);
       } else {
@@ -1060,7 +1095,7 @@ export class TranslationsDocument {
     if (!this.#rootNodes.has(node)) {
       // This is a non-root node, which means it came from a mutation observer.
       // This new node could be a host element for shadow tree
-      const shadowRoot = node.openOrClosedShadowRoot;
+      const shadowRoot = getShadowRoot(node);
       if (shadowRoot && !this.#rootNodes.has(shadowRoot)) {
         this.observeNewRoot(shadowRoot);
       } else {
@@ -1084,12 +1119,12 @@ export class TranslationsDocument {
     switch (this.determineTranslationStatusForUnprocessedNodes(node)) {
       case NodeStatus.NOT_TRANSLATABLE:
         // This node is rejected as it shouldn't be translated.
-        return;
+        return null;
 
       // SHADOW_HOST and READY_TO_TRANSLATE both map to FILTER_ACCEPT
       case NodeStatus.SHADOW_HOST:
       case NodeStatus.READY_TO_TRANSLATE: {
-        const shadowRoot = node.openOrClosedShadowRoot;
+        const shadowRoot = getShadowRoot(node);
         if (shadowRoot) {
           this.processSubdivide(shadowRoot);
         } else {
@@ -1229,7 +1264,7 @@ export class TranslationsDocument {
    *   These values also work as a `NodeFilter` value.
    */
   determineTranslationStatus(node) {
-    if (node.openOrClosedShadowRoot) {
+    if (getShadowRoot(node)) {
       return NodeStatus.SHADOW_HOST;
     }
 
@@ -1243,7 +1278,7 @@ export class TranslationsDocument {
       return NodeStatus.NOT_TRANSLATABLE;
     }
 
-    if (node.textContent.trim().length === 0) {
+    if (!node.textContent?.trim().length) {
       // Do not use subtrees that are empty of text. This textContent call is fairly
       // expensive.
       return !node.hasChildNodes()
@@ -1540,14 +1575,14 @@ export class TranslationsDocument {
     }
 
     // TODO(Bug 1814195) - Add telemetry.
-    // TODO(Bug 1820618) - This whitespace regex will not work in CJK-like languages.
+    // TODO(Bug 1904418) - This whitespace regex will not work in CJK-like languages.
     // This requires a segmenter for a proper implementation.
 
     const whitespace = /\s+/;
     let wordCount = 0;
     for (const [node, visibility] of this.#queuedNodes) {
       if (visibility === "in-viewport") {
-        wordCount += node.textContent.trim().split(whitespace).length;
+        wordCount += node.textContent?.trim().split(whitespace).length ?? 0;
       }
     }
 
@@ -1637,8 +1672,11 @@ export class TranslationsDocument {
    */
   walkNodeToPendingParent(pendingParent) {
     this.#nodeToPendingParent.set(pendingParent, pendingParent);
-
-    const nodeIterator = pendingParent.ownerDocument.createTreeWalker(
+    const { ownerDocument } = pendingParent;
+    if (!ownerDocument) {
+      return;
+    }
+    const nodeIterator = ownerDocument.createTreeWalker(
       pendingParent,
       NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT
     );
@@ -1750,7 +1788,9 @@ export class TranslationsDocument {
           isHTML,
           translationId
         );
-        this.translationsCache.set(text, translation, isHTML);
+        if (translation !== null) {
+          this.translationsCache.set(text, translation, isHTML);
+        }
       } else if (!this.hasFirstVisibleChange) {
         this.hasFirstVisibleChange = true;
         this.actorReportFirstVisibleChange();
@@ -1977,10 +2017,14 @@ function getElementForStyle(node) {
  *  209 calls to get this funcion.
  *
  * @param {Node} node
+ * @returns {boolean}
  */
 function isNodeInViewport(node) {
   const window = node.ownerGlobal;
   const document = node.ownerDocument;
+  if (!window || !document || !document.documentElement) {
+    return false;
+  }
 
   const element = getElementForStyle(node);
   if (!element) {
@@ -2307,7 +2351,7 @@ function isNodeTextEmpty(node) {
  */
 function removeTextNodes(node) {
   for (const child of node.childNodes) {
-    switch (child.nodeType) {
+    switch (child?.nodeType) {
       case Node.TEXT_NODE:
         node.removeChild(child);
         break;
@@ -2379,9 +2423,8 @@ function isNodeQueued(node, queuedNodes) {
   if (queuedNodes.has(node)) {
     return true;
   }
-
   // If the immediate parent is the body, it is allowed.
-  if (node.parentNode === node.ownerDocument.body) {
+  if (node.parentNode === node.ownerDocument?.body) {
     return false;
   }
 
@@ -2470,6 +2513,9 @@ function nodeNeedsSubdividing(node) {
  */
 function* getAncestorsIterator(node) {
   const document = node.ownerDocument;
+  if (!document) {
+    return;
+  }
   for (
     let parent = node.parentNode;
     parent && parent !== document.documentElement;
@@ -2733,7 +2779,7 @@ class QueuedTranslator {
    * @param {number} translationId
    */
   async cancelSingleTranslation(translationId) {
-    this.#port.postMessage({
+    this.#port?.postMessage({
       type: "TranslationsPort:CancelSingleTranslation",
       translationId,
     });
@@ -2897,7 +2943,7 @@ class QueuedTranslator {
    * Close the port and remove any pending or queued requests.
    */
   destroy() {
-    this.#port.close();
+    this.#port?.close();
     this.#requests = new Map();
     this.#queue = new Map();
   }
