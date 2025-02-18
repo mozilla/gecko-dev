@@ -227,6 +227,6 @@ class ToolbarView(
     }
 
     companion object {
-        const val TOOLBAR_WRAPPER_INCREASE_HEIGHT_DPS = 4
+        const val TOOLBAR_WRAPPER_INCREASE_HEIGHT_DPS = 5
     }
 }
