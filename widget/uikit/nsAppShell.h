@@ -49,6 +49,7 @@ class nsAppShell : public nsBaseAppShell {
   CFRunLoopRef mCFRunLoop;
   CFRunLoopSourceRef mCFRunLoopSource;
 
+  bool mRunningEventLoop;
   bool mTerminated;
   bool mNotifiedWillTerminate;
 };
