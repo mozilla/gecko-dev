@@ -379,7 +379,10 @@ rust-1.81.0:
         type: git
         include-dot-git: true
         repo: https://github.com/rust-lang/rust/
-        revision: eeb90cda1969383f56a2637cbd3037bdf598841c
+        # NOTE: This is 1.81.0 and then some, to accommodate compiling some 1.82.0 code without
+        # breaking patches we use for sanitizers. See
+        # <https://bugzilla.mozilla.org/show_bug.cgi?id=1915537> for follow-up.
+        revision: ab1527f1d6560168f9fd36fa8cd7ba677c1d36ad
 
 rust-nightly:
     description: Rust nightly source code
