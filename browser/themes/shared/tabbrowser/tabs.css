@@ -27,7 +27,6 @@
   --tab-border-radius: 4px;
   --tab-overflow-clip-margin: 2px;
   --tab-close-button-padding: 6px;
-  --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
   --tab-icon-end-margin: 5.5px;
   --tab-label-line-height: 1.7;
@@ -42,7 +41,8 @@
   &[lwt-tab-selected="dark"] {
     --tab-selected-color-scheme: dark;
   }
-  --tab-selected-shadow: 0 0 4px rgba(0,0,0,.4);
+  --tab-selected-shadow-size: 4px;
+  --tab-selected-shadow: 0 0 var(--tab-selected-shadow-size) rgba(0,0,0,.4);
   --tab-outline: 1px solid var(--tab-outline-color);
   --tab-outline-color: transparent;
   --tab-outline-offset: -1px;
@@ -137,7 +137,7 @@
       /* Add padding to match the shadow's blur radius so the
          shadow doesn't get clipped when either the first or
          last tab is selected */
-      padding-inline: var(--tab-shadow-max-size);
+      padding-inline: var(--tab-selected-shadow-size);
     }
 
     /* Make it easier to drag tabs by expanding the drag area downwards. */
@@ -856,7 +856,7 @@
       display: block;
       position: absolute;
       inset-inline-start: var(--tab-group-line-thickness);
-      inset-block: 0;
+      inset-block: 0 var(--tab-selected-shadow-size);
       width: var(--tab-group-line-thickness);
       background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
       border-radius: 1px;
