@@ -139,7 +139,10 @@ var gBrowserInit = {
     gBrowser = new window.Tabbrowser();
     gBrowser.init();
 
-    BrowserWindowTracker.track(window);
+    BrowserUtils.callModulesFromCategory(
+      { categoryName: "browser-window-domcontentloaded" },
+      window
+    );
 
     FirefoxViewHandler.init();
 
@@ -1079,8 +1082,6 @@ var gBrowserInit = {
     if (gToolbarKeyNavEnabled) {
       ToolbarKeyboardNavigator.uninit();
     }
-
-    NewTabPagePreloading.removePreloadedBrowser(window);
 
     FirefoxViewHandler.uninit();
 
