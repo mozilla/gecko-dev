@@ -459,3 +459,54 @@ add_task(async function test_vertical_tabs_expanded() {
 
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_vertical_tabs_min_width() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.verticalTabs", true]],
+  });
+
+  await TestUtils.waitForCondition(
+    () => BrowserTestUtils.isVisible(SidebarController.sidebarMain),
+    "Sidebar launcher is shown."
+  );
+
+  await SidebarController.initializeUIState({ launcherExpanded: false });
+  await SidebarController.sidebarMain.updateComplete;
+
+  // We expect the launcher to be collapsed
+  const expandedStateValues = [
+    SidebarController.getUIState().launcherExpanded,
+    SidebarController.sidebarMain.expanded,
+    gBrowser.tabContainer.hasAttribute("expanded"),
+  ];
+  for (const val of expandedStateValues) {
+    is(val, false, "Launcher is not expanded.");
+  }
+
+  is(
+    window.getComputedStyle(gBrowser.visibleTabs[0]).minWidth,
+    "auto",
+    "Tab min-width is set to 'auto' when vertical tabs are enabled."
+  );
+
+  // Switch to horizontal tabs
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.verticalTabs", false]],
+  });
+
+  let tabbrowserTabs = document.getElementById("tabbrowser-tabs");
+  await TestUtils.waitForCondition(() => {
+    return tabbrowserTabs.getAttribute("orient") === "horizontal";
+  }, "Horizontal tabs are enabled.");
+
+  let tabStyles = window.getComputedStyle(tabbrowserTabs);
+  let tabMinWidthVal = tabStyles.getPropertyValue("--tab-min-width-pref");
+
+  is(
+    window.getComputedStyle(gBrowser.visibleTabs[0]).minWidth,
+    tabMinWidthVal,
+    "Tab min-width is set based on the browser.tabs.tabMinWidth pref in horizontal tabs mode."
+  );
+
+  await SpecialPowers.popPrefEnv();
+});

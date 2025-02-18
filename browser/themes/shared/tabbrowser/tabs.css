@@ -199,9 +199,12 @@
   &:not([pinned]) {
     flex: 100 100;
     max-width: 225px;
-    min-width: var(--tab-min-width-pref, var(--tab-min-width));
     transition: min-width 100ms ease-out,
                 max-width 100ms ease-out;
+
+    #tabbrowser-tabs[orient="horizontal"] & {
+      min-width: var(--tab-min-width-pref, var(--tab-min-width));
+    }
   }
 
   &:not([pinned], [fadein]) {
