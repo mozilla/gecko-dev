@@ -496,8 +496,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       }
 
       position: absolute;
-      inset-block-start: var(--space-xsmall);
-      inset-inline-start: var(--space-xsmall);
+      inset-block-start: 0.188rem;
+      inset-inline-start: 0.188rem;
     }
   }
 }

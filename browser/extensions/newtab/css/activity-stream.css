@@ -1165,8 +1165,8 @@ main section {
 .shortcuts-refresh .top-site-outer .icon-pin-small {
   color-scheme: light;
   position: absolute;
-  inset-block-start: var(--space-xsmall);
-  inset-inline-start: var(--space-xsmall);
+  inset-block-start: 0.188rem;
+  inset-inline-start: 0.188rem;
 }
 [lwt-newtab-brighttext] .shortcuts-refresh .top-site-outer .icon-pin-small {
   color-scheme: dark;
