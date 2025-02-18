@@ -995,9 +995,7 @@ IdentityCredential::DiscoverFromExternalSourceInMainProcess(
     nsresult rv = NS_NewTimerWithCallback(
         getter_AddRefs(timeout),
         [=](auto) {
-          if (!result->IsResolved()) {
-            result->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
-          }
+          result->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
           IdentityCredential::CloseUserInterface(browsingContext);
         },
         StaticPrefs::

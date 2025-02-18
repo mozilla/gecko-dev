@@ -47,6 +47,12 @@ class FetchServicePromises final {
   RefPtr<FetchServiceResponseTimingPromise> GetResponseTimingPromise();
   RefPtr<FetchServiceResponseEndPromise> GetResponseEndPromise();
 
+  bool IsResponseAvailablePromiseResolved() {
+    return mAvailablePromiseResolved;
+  }
+  bool IsResponseTimingPromiseResolved() { return mTimingPromiseResolved; }
+  bool IsResponseEndPromiseResolved() { return mEndPromiseResolved; }
+
   void ResolveResponseAvailablePromise(FetchServiceResponse&& aResponse,
                                        StaticString aMethodName);
   void RejectResponseAvailablePromise(const CopyableErrorResult&& aError,
@@ -66,6 +72,13 @@ class FetchServicePromises final {
   RefPtr<FetchServiceResponseAvailablePromise::Private> mAvailablePromise;
   RefPtr<FetchServiceResponseTimingPromise::Private> mTimingPromise;
   RefPtr<FetchServiceResponseEndPromise::Private> mEndPromise;
+
+  // The MozPromise interface intentionally does not expose synchronous access
+  // to the internal resolved/rejected state. Instead, we track whether or not
+  // we've called Resolve on the FetchServicePromises.
+  bool mAvailablePromiseResolved = false;
+  bool mTimingPromiseResolved = false;
+  bool mEndPromiseResolved = false;
 };
 
 /**

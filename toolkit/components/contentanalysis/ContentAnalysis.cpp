@@ -334,8 +334,6 @@ nsresult ContentAnalysis::CreateContentAnalysisClient(
     nsCString&& aPipePathName, nsString&& aClientSignatureSetting,
     bool aIsPerUser) {
   MOZ_ASSERT(!NS_IsMainThread());
-  // This method should only be called once
-  MOZ_ASSERT(!mCaClientPromise->IsResolved());
 
   std::shared_ptr<content_analysis::sdk::Client> client(
       content_analysis::sdk::Client::Create({aPipePathName.Data(), aIsPerUser})

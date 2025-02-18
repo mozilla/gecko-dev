@@ -657,10 +657,8 @@ const RefPtr<PopulatePromise>& TimoutPromise(
   nsresult rv = NS_NewTimerWithCallback(
       getter_AddRefs(timeout),
       [=](auto) {
-        if (!promise->IsResolved()) {
-          promise->Reject(std::pair(funcName, "TIMEOUT"_ns.AsString()),
-                          __func__);
-        }
+        // NOTE: has no effect if `promise` has already been resolved.
+        promise->Reject(std::pair(funcName, "TIMEOUT"_ns.AsString()), __func__);
       },
       delay, nsITimer::TYPE_ONE_SHOT, "UserCharacteristicsPromiseTimeout");
   if (NS_FAILED(rv)) {

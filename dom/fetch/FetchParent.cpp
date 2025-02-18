@@ -199,8 +199,7 @@ IPCResult FetchParent::RecvFetchOp(FetchOpArgs&& aArgs) {
           })));
     }
 
-    bool isResolved =
-        self->mResponsePromises->GetResponseEndPromise()->IsResolved();
+    bool isResolved = self->mResponsePromises->IsResponseEndPromiseResolved();
     if (!isResolved && self->mIsWorkerFetch) {
       // track only unresolved promises for worker fetch requests
       // this is needed for clean-up of keepalive requests

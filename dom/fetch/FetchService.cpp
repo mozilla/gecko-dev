@@ -68,6 +68,7 @@ FetchServicePromises::GetResponseEndPromise() {
 void FetchServicePromises::ResolveResponseAvailablePromise(
     FetchServiceResponse&& aResponse, StaticString aMethodName) {
   if (mAvailablePromise) {
+    mAvailablePromiseResolved = true;
     mAvailablePromise->Resolve(std::move(aResponse), aMethodName);
   }
 }
@@ -82,6 +83,7 @@ void FetchServicePromises::RejectResponseAvailablePromise(
 void FetchServicePromises::ResolveResponseTimingPromise(
     ResponseTiming&& aTiming, StaticString aMethodName) {
   if (mTimingPromise) {
+    mTimingPromiseResolved = true;
     mTimingPromise->Resolve(std::move(aTiming), aMethodName);
   }
 }
@@ -96,6 +98,7 @@ void FetchServicePromises::RejectResponseTimingPromise(
 void FetchServicePromises::ResolveResponseEndPromise(ResponseEndArgs&& aArgs,
                                                      StaticString aMethodName) {
   if (mEndPromise) {
+    mEndPromiseResolved = true;
     mEndPromise->Resolve(std::move(aArgs), aMethodName);
   }
 }
@@ -345,15 +348,11 @@ void FetchService::FetchInstance::Cancel(bool aForceAbort) {
 
           mArgs.as<WorkerFetchArgs>().mResponseEndPromiseHolder.Disconnect();
 
-          MOZ_ASSERT(
-              !mArgs.as<WorkerFetchArgs>().mFetchParentPromise->IsResolved());
-          if (!mArgs.as<WorkerFetchArgs>().mFetchParentPromise->IsResolved()) {
-            // the parent promise resolution leads to deleting of actors
-            // mActorDying prevents further access to FetchParent
-            mActorDying = true;
-            mArgs.as<WorkerFetchArgs>().mFetchParentPromise->Resolve(true,
-                                                                     __func__);
-          }
+          // the parent promise resolution leads to deleting of actors
+          // mActorDying prevents further access to FetchParent
+          mActorDying = true;
+          mArgs.as<WorkerFetchArgs>().mFetchParentPromise->Resolve(true,
+                                                                   __func__);
         }
       }
       return;
@@ -412,24 +411,21 @@ void FetchService::FetchInstance::OnResponseEnd(
 
   if (aReason == eAborted) {
     // If ResponseAvailablePromise has not resolved yet, resolved with
-    // NS_ERROR_DOM_ABORT_ERR response.
-    if (!mPromises->GetResponseAvailablePromise()->IsResolved()) {
-      mPromises->ResolveResponseAvailablePromise(
-          InternalResponse::NetworkError(NS_ERROR_DOM_ABORT_ERR), __func__);
-    }
+    // NS_ERROR_DOM_ABORT_ERR response. If the promise is already resolved,
+    // this will have no effect.
+    mPromises->ResolveResponseAvailablePromise(
+        InternalResponse::NetworkError(NS_ERROR_DOM_ABORT_ERR), __func__);
 
     // If ResponseTimingPromise has not resolved yet, resolved with empty
-    // ResponseTiming.
-    if (!mPromises->GetResponseTimingPromise()->IsResolved()) {
-      mPromises->ResolveResponseTimingPromise(ResponseTiming(), __func__);
-    }
+    // ResponseTiming. If the promise is already resolved, this has no effect.
+    mPromises->ResolveResponseTimingPromise(ResponseTiming(), __func__);
     // Resolve the ResponseEndPromise
     mPromises->ResolveResponseEndPromise(ResponseEndArgs(aReason), __func__);
     return;
   }
 
-  MOZ_ASSERT(mPromises->GetResponseAvailablePromise()->IsResolved() &&
-             mPromises->GetResponseTimingPromise()->IsResolved());
+  MOZ_ASSERT(mPromises->IsResponseAvailablePromiseResolved() &&
+             mPromises->IsResponseTimingPromiseResolved());
 
   // Resolve the ResponseEndPromise
   mPromises->ResolveResponseEndPromise(ResponseEndArgs(aReason), __func__);
@@ -542,7 +538,7 @@ void FetchService::FetchInstance::OnReportPerformanceTiming() {
   MOZ_ASSERT(mFetchDriver);
   MOZ_ASSERT(mPromises);
 
-  if (mPromises->GetResponseTimingPromise()->IsResolved()) {
+  if (mPromises->IsResponseTimingPromiseResolved()) {
     return;
   }
 
@@ -872,7 +868,7 @@ RefPtr<FetchServicePromises> FetchService::Fetch(FetchArgs&& aArgs) {
   RefPtr<FetchServicePromises> promises = fetch->Fetch();
   MOZ_ASSERT(promises);
 
-  if (!promises->GetResponseAvailablePromise()->IsResolved()) {
+  if (!promises->IsResponseAvailablePromiseResolved()) {
     // Insert the created FetchInstance into FetchInstanceTable.
     if (!mFetchInstanceTable.WithEntryHandle(promises, [&](auto&& entry) {
           if (entry.HasEntry()) {
