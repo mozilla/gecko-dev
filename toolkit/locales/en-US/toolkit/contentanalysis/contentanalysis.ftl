@@ -64,6 +64,11 @@ contentanalysis-error-message-dropped-text = Drag and drop denied.
 contentanalysis-error-message-clipboard = Paste denied.
 contentanalysis-error-message-print = Print denied.
 
+# Variables:
+#   $agent - The name of the DLP agent doing the analysis
+#   $contentName - Description of the content, such as "clipboard" or "aFile.txt"
+contentanalysis-timeout-block-error-message-content = The connection to { $agent } connection timed out. { $contentName } has been blocked.
+
 contentanalysis-block-dialog-title-upload-file = You’re not permitted to upload this file
 # Variables:
 #   $filename - Name of the file that was blocked, such as "aFile.txt"

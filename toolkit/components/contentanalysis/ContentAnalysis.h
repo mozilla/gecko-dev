@@ -352,6 +352,8 @@ class ContentAnalysis final : public nsIContentAnalysis,
   struct UserActionData final {
     RefPtr<nsIContentAnalysisCallback> mCallback;
     nsTHashSet<nsCString> mRequestTokens;
+    RefPtr<mozilla::CancelableRunnable> mTimeoutRunnable;
+    bool mIsHandlingTimeout = false;
   };
 
   // This map is stored so that requests can be canceled while they are

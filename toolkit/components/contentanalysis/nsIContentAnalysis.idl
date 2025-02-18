@@ -68,7 +68,8 @@ interface nsIContentAnalysisResponse : nsIContentAnalysisResult
     eInvalidAgentSignature = 2,
     eErrorOther = 3,
     eOtherRequestInGroupCancelled = 4,
-    eShutdown = 5
+    eShutdown = 5,
+    eTimeout = 6,
   };
 
   [infallible] readonly attribute nsIContentAnalysisResponse_Action action;

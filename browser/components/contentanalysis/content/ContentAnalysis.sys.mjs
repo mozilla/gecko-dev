@@ -852,6 +852,10 @@ export const ContentAnalysis = {
             case Ci.nsIContentAnalysisResponse.eShutdown:
               // we're shutting down, no need to show a dialog
               return null;
+            case Ci.nsIContentAnalysisResponse.eTimeout:
+              // We only show this if the default action was to block.
+              messageId = "contentanalysis-timeout-block-error-message-content";
+              break;
             default:
               console.error(
                 "Unexpected CA cancelError value: " + aRequestCancelError
@@ -862,6 +866,9 @@ export const ContentAnalysis = {
           message = await this.l10n.formatValue(messageId, {
             agent: lazy.agentName,
             content: this._getErrorDialogMessage(aResourceNameOrOperationType),
+            contentName: this._getResourceNameFromNameOrOperationType(
+              aResourceNameOrOperationType
+            ),
           });
           timeoutMs = this._RESULT_NOTIFICATION_TIMEOUT_MS;
         }

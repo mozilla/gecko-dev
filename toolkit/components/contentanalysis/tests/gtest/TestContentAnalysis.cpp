@@ -213,6 +213,40 @@ struct BoolStruct {
   bool mValue = false;
 };
 
+class RawAcknowledgementObserver final : public nsIObserver {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+
+  const std::vector<content_analysis::sdk::ContentAnalysisAcknowledgement>&
+  GetAcknowledgements() {
+    return mAcknowledgements;
+  }
+
+ private:
+  ~RawAcknowledgementObserver() = default;
+  std::vector<content_analysis::sdk::ContentAnalysisAcknowledgement>
+      mAcknowledgements;
+};
+
+NS_IMPL_ISUPPORTS(RawAcknowledgementObserver, nsIObserver);
+
+NS_IMETHODIMP RawAcknowledgementObserver::Observe(nsISupports* aSubject,
+                                                  const char* aTopic,
+                                                  const char16_t* aData) {
+  std::wstring dataWideString(reinterpret_cast<const wchar_t*>(aData));
+  std::vector<uint8_t> dataVector(dataWideString.size());
+  for (size_t i = 0; i < dataWideString.size(); ++i) {
+    // Since this data is really bytes and not a null-terminated string, the
+    // calling code adds 0xFF00 to every member to ensure there are no 0 values.
+    dataVector[i] = static_cast<uint8_t>(dataWideString[i] - 0xFF00);
+  }
+  content_analysis::sdk::ContentAnalysisAcknowledgement request;
+  EXPECT_TRUE(request.ParseFromArray(dataVector.data(), dataVector.size()));
+  mAcknowledgements.push_back(std::move(request));
+  return NS_OK;
+}
+
 nsresult ContentAnalysisTest::SendRequestsCancelAndExpectResponse(
     RefPtr<ContentAnalysis> contentAnalysis,
     const nsTArray<RefPtr<nsIContentAnalysisRequest>>& requests,
@@ -252,8 +286,8 @@ nsresult ContentAnalysisTest::SendRequestsCancelAndExpectResponse(
     return rv;
   }
 
-  RefPtr<CancelableRunnable> timer =
-      NS_NewCancelableRunnableFunction("Content Analysis timeout", [&] {
+  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
+      "SendRequestsCancelAndExpectResponse timeout", [&] {
         if (!gotResponse) {
           timedOut->mValue = true;
         }
@@ -301,6 +335,7 @@ nsresult ContentAnalysisTest::SendRequestsCancelAndExpectResponse(
   EXPECT_FALSE(timedOut->mValue);
   return NS_OK;
 }
+
 void SendRequestAndExpectResponse(
     RefPtr<ContentAnalysis> contentAnalysis,
     const nsCOMPtr<nsIContentAnalysisRequest>& request,
@@ -357,8 +392,8 @@ void SendRequestAndExpectResponse(
   AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request.get()};
   MOZ_ALWAYS_SUCCEEDS(contentAnalysis->AnalyzeContentRequestsCallback(
       requests, false, callback));
-  RefPtr<CancelableRunnable> timer =
-      NS_NewCancelableRunnableFunction("Content Analysis timeout", [&] {
+  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
+      "SendRequestAndExpectResponse timeout", [&] {
         if (!gotResponse.load()) {
           timedOut->mValue = true;
         }
@@ -706,4 +741,68 @@ TEST_F(ContentAnalysisTest, CheckGivenUserActionIdsMustMatch) {
       mContentAnalysis, requests, CancelMechanism::eCancelByUserActionId,
       true /* aExpectFailure */);
   EXPECT_EQ(rv, NS_ERROR_INVALID_ARG);
+}
+
+TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
+  // Submit a request to the agent and then timeout before we get a response.
+  // When we do get a response later, check that we acknowledge as TOO_LATE.
+  // A negative timeout tells Firefox to timeout after 25ms.  The agent
+  // always takes 100ms for requests in tests.  TODO: can we further reduce
+  // these?
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, -1));
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow1(L"allowMe");
+  nsCOMPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow1),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+
+  nsCOMPtr<nsIObserverService> obsServ =
+      mozilla::services::GetObserverService();
+  auto rawAcknowledgementObserver = MakeRefPtr<RawAcknowledgementObserver>();
+  MOZ_ALWAYS_SUCCEEDS(obsServ->AddObserver(
+      rawAcknowledgementObserver, "dlp-acknowledgement-sent-raw", false));
+
+  SendRequestAndExpectResponse(
+      mContentAnalysis, request1, Some(false) /* expectedShouldAllow */,
+      Some(nsIContentAnalysisResponse::Action::eCanceled),
+      Some(false) /* expectIsCached */);
+
+  // The request returns before the ack is sent.  Give it some time to catch up.
+  bool hitTimeout = false;
+  RefPtr<CancelableRunnable> timer = NS_NewCancelableRunnableFunction(
+      "SendRequestsCancelAndExpectResponse timeout",
+      [&] { hitTimeout = true; });
+
+#if defined(MOZ_ASAN)
+  // This can be pretty slow on ASAN builds (bug 1895256)
+  constexpr uint32_t kCATimeoutMs = 25000;
+#else
+  constexpr uint32_t kCATimeoutMs = 10000;
+#endif
+  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeoutMs);
+
+  mozilla::SpinEventLoopUntil("Waiting for ContentAnalysis result"_ns, [&]() {
+    auto acknowledgements = rawAcknowledgementObserver->GetAcknowledgements();
+    if (acknowledgements.empty()) {
+      return hitTimeout;
+    }
+    EXPECT_EQ(static_cast<size_t>(1), acknowledgements.size());
+    EXPECT_EQ(
+        ::content_analysis::sdk::ContentAnalysisAcknowledgement_FinalAction::
+            ContentAnalysisAcknowledgement_FinalAction_BLOCK,
+        acknowledgements[0].final_action());
+    EXPECT_EQ(::content_analysis::sdk::ContentAnalysisAcknowledgement_Status::
+                  ContentAnalysisAcknowledgement_Status_TOO_LATE,
+              acknowledgements[0].status());
+    return true;
+  });
+
+  timer->Cancel();
+  EXPECT_FALSE(hitTimeout);
+
+  MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(rawAcknowledgementObserver,
+                                              "dlp-acknowledgement-sent-raw"));
+  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
 }
