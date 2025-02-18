@@ -106,6 +106,24 @@ class _QuickSuggest {
     );
   }
 
+  /**
+   * @returns {object}
+   *   Possible values of the `quickSuggestSettingsUi` Nimbus variable and its
+   *   fallback pref `browser.urlbar.quicksuggest.settingsUi`. When Suggest is
+   *   enabled, these values determine the Suggest settings that will be visible
+   *   in `about:preferences`. When Suggest is disabled, the variable/pref are
+   *   ignored and Suggest settings are hidden.
+   */
+  get SETTINGS_UI() {
+    return {
+      FULL: 0,
+      NONE: 1,
+      // Only settings relevant to offline will be shown. Settings that pertain
+      // to online will be hidden.
+      OFFLINE_ONLY: 2,
+    };
+  }
+
   get ONBOARDING_CHOICE() {
     return { ...ONBOARDING_CHOICE };
   }

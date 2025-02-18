@@ -12,6 +12,8 @@ ChromeUtils.defineESModuleGetters(this, {
 const CONTAINER_ID = "firefoxSuggestContainer";
 const NONSPONSORED_CHECKBOX_ID = "firefoxSuggestNonsponsored";
 const SPONSORED_CHECKBOX_ID = "firefoxSuggestSponsored";
+const DATA_COLLECTION_TOGGLE_BOX_ID =
+  "firefoxSuggestDataCollectionSearchToggleBox";
 const DATA_COLLECTION_TOGGLE_ID = "firefoxSuggestDataCollectionSearchToggle";
 const INFO_BOX_ID = "firefoxSuggestInfoBox";
 const INFO_TEXT_ID = "firefoxSuggestInfoText";
@@ -20,6 +22,45 @@ const BUTTON_RESTORE_DISMISSED_ID = "restoreDismissedSuggestions";
 const PREF_URLBAR_QUICKSUGGEST_BLOCKLIST =
   "browser.urlbar.quicksuggest.blockedDigests";
 const PREF_URLBAR_WEATHER_USER_ENABLED = "browser.urlbar.suggest.weather";
+
+// Maps `SETTINGS_UI` values to expected visibility state objects. See
+// `assertSuggestVisibility()` in `head.js` for info on the state objects.
+const EXPECTED = {
+  [QuickSuggest.SETTINGS_UI.FULL]: {
+    [CONTAINER_ID]: { isVisible: true },
+    [INFO_BOX_ID]: { isVisible: true },
+    [DATA_COLLECTION_TOGGLE_BOX_ID]: { isVisible: true },
+    locationBarGroupHeader: {
+      isVisible: true,
+      l10nId: "addressbar-header-firefox-suggest",
+    },
+    locationBarSuggestionLabel: {
+      isVisible: true,
+      l10nId: "addressbar-suggest-firefox-suggest",
+    },
+  },
+  [QuickSuggest.SETTINGS_UI.NONE]: {
+    [CONTAINER_ID]: { isVisible: false },
+    locationBarGroupHeader: { isVisible: true, l10nId: "addressbar-header" },
+    locationBarSuggestionLabel: {
+      isVisible: true,
+      l10nId: "addressbar-suggest",
+    },
+  },
+  [QuickSuggest.SETTINGS_UI.OFFLINE_ONLY]: {
+    [CONTAINER_ID]: { isVisible: true },
+    [INFO_BOX_ID]: { isVisible: false },
+    [DATA_COLLECTION_TOGGLE_BOX_ID]: { isVisible: false },
+    locationBarGroupHeader: {
+      isVisible: true,
+      l10nId: "addressbar-header-firefox-suggest",
+    },
+    locationBarSuggestionLabel: {
+      isVisible: true,
+      l10nId: "addressbar-suggest-firefox-suggest",
+    },
+  },
+};
 
 // This test can take a while due to the many permutations some of these tasks
 // run through, so request a longer timeout.
@@ -31,16 +72,22 @@ requestLongerTimeout(10);
 add_task(async function initiallyDisabled_disable() {
   await doSuggestVisibilityTest({
     initialSuggestEnabled: false,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: false },
-      locationBarGroupHeader: { isVisible: true, l10nId: "addressbar-header" },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest",
-      },
-    },
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
     nimbusVariables: {
       quickSuggestEnabled: false,
+    },
+  });
+});
+
+add_task(async function initiallyDisabled_disable_settingsUiFull() {
+  await doSuggestVisibilityTest({
+    initialSuggestEnabled: false,
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
+    nimbusVariables: {
+      quickSuggestEnabled: false,
+      // `quickSuggestEnabled: false` should override this, so the Suggest
+      // settings should not be visible (`initialExpected` should persist).
+      quickSuggestSettingsUi: QuickSuggest.SETTINGS_UI.FULL,
     },
   });
 });
@@ -48,221 +95,113 @@ add_task(async function initiallyDisabled_disable() {
 add_task(async function initiallyDisabled_enable() {
   await doSuggestVisibilityTest({
     initialSuggestEnabled: false,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: false },
-      locationBarGroupHeader: { isVisible: true, l10nId: "addressbar-header" },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest",
-      },
-    },
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
     nimbusVariables: {
       quickSuggestEnabled: true,
     },
-    newExpected: {
-      [CONTAINER_ID]: { isVisible: true },
-      locationBarGroupHeader: {
-        isVisible: true,
-        l10nId: "addressbar-header-firefox-suggest",
-      },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest-firefox-suggest",
-      },
+    newExpected: EXPECTED[QuickSuggest.SETTINGS_UI.FULL],
+  });
+});
+
+add_task(async function initiallyDisabled_enable_settingsUiFull() {
+  await doSuggestVisibilityTest({
+    initialSuggestEnabled: false,
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
+    nimbusVariables: {
+      quickSuggestEnabled: true,
+      quickSuggestSettingsUi: QuickSuggest.SETTINGS_UI.FULL,
+    },
+    newExpected: EXPECTED[QuickSuggest.SETTINGS_UI.FULL],
+  });
+});
+
+add_task(async function initiallyDisabled_enable_settingsUiNone() {
+  await doSuggestVisibilityTest({
+    initialSuggestEnabled: false,
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
+    nimbusVariables: {
+      quickSuggestEnabled: true,
+      quickSuggestSettingsUi: QuickSuggest.SETTINGS_UI.NONE,
     },
   });
 });
 
-add_task(async function initiallyDisabled_enable_hideSettingsUiFalse() {
+add_task(async function initiallyDisabled_enable_settingsUiOfflineOnly() {
   await doSuggestVisibilityTest({
     initialSuggestEnabled: false,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: false },
-      locationBarGroupHeader: { isVisible: true, l10nId: "addressbar-header" },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest",
-      },
-    },
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
     nimbusVariables: {
       quickSuggestEnabled: true,
-      quickSuggestHideSettingsUI: false,
+      quickSuggestSettingsUi: QuickSuggest.SETTINGS_UI.OFFLINE_ONLY,
     },
-    newExpected: {
-      [CONTAINER_ID]: { isVisible: true },
-      locationBarGroupHeader: {
-        isVisible: true,
-        l10nId: "addressbar-header-firefox-suggest",
-      },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest-firefox-suggest",
-      },
-    },
-  });
-});
-
-add_task(async function initiallyDisabled_enable_hideSettingsUiTrue() {
-  await doSuggestVisibilityTest({
-    initialSuggestEnabled: false,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: false },
-      locationBarGroupHeader: { isVisible: true, l10nId: "addressbar-header" },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest",
-      },
-    },
-    nimbusVariables: {
-      quickSuggestEnabled: true,
-      quickSuggestHideSettingsUI: true,
-    },
+    newExpected: EXPECTED[QuickSuggest.SETTINGS_UI.OFFLINE_ONLY],
   });
 });
 
 add_task(async function initiallyEnabled_disable() {
   await doSuggestVisibilityTest({
     initialSuggestEnabled: true,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: true },
-      locationBarGroupHeader: {
-        isVisible: true,
-        l10nId: "addressbar-header-firefox-suggest",
-      },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest-firefox-suggest",
-      },
-    },
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.FULL],
     nimbusVariables: {
       quickSuggestEnabled: false,
     },
-    newExpected: {
-      [CONTAINER_ID]: { isVisible: false },
-      locationBarGroupHeader: { isVisible: true, l10nId: "addressbar-header" },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest",
-      },
+    newExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
+  });
+});
+
+add_task(async function initiallyEnabled_disable_settingsUiFull() {
+  await doSuggestVisibilityTest({
+    initialSuggestEnabled: true,
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.FULL],
+    nimbusVariables: {
+      quickSuggestEnabled: false,
+      // `quickSuggestEnabled: false` should override this, so the Suggest
+      // settings should not be visible.
+      quickSuggestSettingsUi: QuickSuggest.SETTINGS_UI.FULL,
     },
+    newExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
   });
 });
 
 add_task(async function initiallyEnabled_enable() {
   await doSuggestVisibilityTest({
     initialSuggestEnabled: true,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: true },
-      locationBarGroupHeader: {
-        isVisible: true,
-        l10nId: "addressbar-header-firefox-suggest",
-      },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest-firefox-suggest",
-      },
-    },
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.FULL],
     nimbusVariables: {
       quickSuggestEnabled: true,
     },
   });
 });
 
-add_task(async function initiallyEnabled_hideSettingsUiFalse() {
+add_task(async function initiallyEnabled_settingsUiFull() {
   await doSuggestVisibilityTest({
     initialSuggestEnabled: true,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: true },
-      locationBarGroupHeader: {
-        isVisible: true,
-        l10nId: "addressbar-header-firefox-suggest",
-      },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest-firefox-suggest",
-      },
-    },
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.FULL],
     nimbusVariables: {
-      quickSuggestHideSettingsUI: false,
+      quickSuggestSettingsUi: QuickSuggest.SETTINGS_UI.FULL,
     },
   });
 });
 
-add_task(async function initiallyEnabled_hideSettingsUiTrue() {
+add_task(async function initiallyEnabled_settingsUiNone() {
   await doSuggestVisibilityTest({
     initialSuggestEnabled: true,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: true },
-      locationBarGroupHeader: {
-        isVisible: true,
-        l10nId: "addressbar-header-firefox-suggest",
-      },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest-firefox-suggest",
-      },
-    },
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.FULL],
     nimbusVariables: {
-      quickSuggestHideSettingsUI: true,
+      quickSuggestSettingsUi: QuickSuggest.SETTINGS_UI.NONE,
     },
-    newExpected: {
-      [CONTAINER_ID]: { isVisible: false },
-      locationBarGroupHeader: { isVisible: true, l10nId: "addressbar-header" },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest",
-      },
-    },
+    newExpected: EXPECTED[QuickSuggest.SETTINGS_UI.NONE],
   });
 });
 
-add_task(async function initiallyEnabled_enable_hideSettingsUiFalse() {
+add_task(async function initiallyEnabled_settingsUiOfflineOnly() {
   await doSuggestVisibilityTest({
     initialSuggestEnabled: true,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: true },
-      locationBarGroupHeader: {
-        isVisible: true,
-        l10nId: "addressbar-header-firefox-suggest",
-      },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest-firefox-suggest",
-      },
-    },
+    initialExpected: EXPECTED[QuickSuggest.SETTINGS_UI.FULL],
     nimbusVariables: {
-      quickSuggestEnabled: true,
-      quickSuggestHideSettingsUI: false,
+      quickSuggestSettingsUi: QuickSuggest.SETTINGS_UI.OFFLINE_ONLY,
     },
-  });
-});
-
-add_task(async function initiallyEnabled_enable_hideSettingsUiTrue() {
-  await doSuggestVisibilityTest({
-    initialSuggestEnabled: true,
-    initialExpected: {
-      [CONTAINER_ID]: { isVisible: true },
-      locationBarGroupHeader: {
-        isVisible: true,
-        l10nId: "addressbar-header-firefox-suggest",
-      },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest-firefox-suggest",
-      },
-    },
-    nimbusVariables: {
-      quickSuggestEnabled: true,
-      quickSuggestHideSettingsUI: true,
-    },
-    newExpected: {
-      [CONTAINER_ID]: { isVisible: false },
-      locationBarGroupHeader: { isVisible: true, l10nId: "addressbar-header" },
-      locationBarSuggestionLabel: {
-        isVisible: true,
-        l10nId: "addressbar-suggest",
-      },
-    },
+    newExpected: EXPECTED[QuickSuggest.SETTINGS_UI.OFFLINE_ONLY],
   });
 });
 
