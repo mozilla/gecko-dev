@@ -425,7 +425,9 @@ export class MozBaseInputElement extends MozLitElement {
     let propName = e.target.name;
     let hasSlottedContent = e.target
       .assignedNodes()
-      .some(node => node.textContent.trim());
+      .some(
+        node => node.textContent.trim() || node.getAttribute("data-l10n-id")
+      );
 
     if (hasSlottedContent == this.#hasSlottedContent.get(propName)) {
       return;
