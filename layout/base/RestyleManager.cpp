@@ -3475,7 +3475,8 @@ void RestyleManager::ElementStateChanged(Element* aElement,
   // undisplayed elements, since we don't know if it is needed.
   IncrementUndisplayedRestyleGeneration();
 
-  if (!aElement->HasServoData() &&
+  const bool hasData = aElement->HasServoData();
+  if (!hasData &&
       !(aElement->GetSelectorFlags() &
         NodeSelectorFlags::RelativeSelectorSearchDirectionAncestorSibling)) {
     return;
@@ -3486,7 +3487,12 @@ void RestyleManager::ElementStateChanged(Element* aElement,
   snapshot.AddState(previousState);
 
   ServoStyleSet& styleSet = *StyleSet();
-  MaybeRestyleForNthOfState(styleSet, aElement, aChangedBits);
+  if (hasData) {
+    // If the element has no style data, the siblings don't need to be
+    // invalidated, we're inside a display: none subtree anyways. We still need
+    // to invalidate for :has() tho, because that might go upwards.
+    MaybeRestyleForNthOfState(styleSet, aElement, aChangedBits);
+  }
   MaybeRestyleForRelativeSelectorState(styleSet, aElement, aChangedBits);
 }
 
