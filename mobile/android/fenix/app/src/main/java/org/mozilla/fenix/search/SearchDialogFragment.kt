@@ -71,8 +71,10 @@ import mozilla.components.support.ktx.android.content.hasCamera
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.android.content.res.getSpanned
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
+import mozilla.components.support.ktx.android.view.ImeInsetsSynchronizer
 import mozilla.components.support.ktx.android.view.findViewInHierarchy
 import mozilla.components.support.ktx.android.view.hideKeyboard
+import mozilla.components.support.ktx.android.view.setupPersistentInsets
 import mozilla.components.support.ktx.android.view.showKeyboard
 import mozilla.components.support.ktx.kotlin.toNormalizedUrl
 import mozilla.components.ui.autocomplete.InlineAutocompleteEditText
@@ -212,6 +214,8 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                     this@SearchDialogFragment.onBackPressed()
                 }
             }
+
+            window?.setupPersistentInsets()
         }
     }
 
@@ -475,6 +479,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
             updateAccessibilityTraversalOrder()
         }
 
+        ImeInsetsSynchronizer.setup(view)
         observeClipboardState()
         observeSuggestionProvidersState()
 
