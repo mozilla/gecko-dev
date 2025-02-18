@@ -27,7 +27,7 @@ add_task(async function () {
 add_task(async function () {
   info("Test long URL linkification JSON started");
 
-  const url = "https://example.com/" + "a".repeat(100);
+  const url = "https://example.com/" + "a".repeat(250);
   const tab = await addJsonViewTab(
     "data:application/json," + JSON.stringify([url])
   );
@@ -40,7 +40,7 @@ add_task(async function () {
   await testLinkNavigation({
     browser: tab.linkedBrowser,
     url,
-    urlText: url.slice(0, 24) + ELLIPSIS + url.slice(-24),
+    urlText: url.slice(0, 124) + ELLIPSIS + url.slice(-124),
     clickLabel: true,
   });
 });

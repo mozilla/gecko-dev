@@ -31,6 +31,8 @@ define(function (require, exports) {
 
   const { div } = dom;
 
+  const MAX_STRING_LENGTH = 250;
+
   function isObject(value) {
     return Object(value) === value;
   }
@@ -99,7 +101,7 @@ define(function (require, exports) {
       // Render the value (summary) using Reps library.
       return Rep(
         Object.assign({}, props, {
-          cropLimit: 50,
+          cropLimit: MAX_STRING_LENGTH,
           noGrip: true,
           isInContentPage: true,
         })
@@ -124,6 +126,7 @@ define(function (require, exports) {
         columns,
         renderValue: this.renderValue,
         expandedNodes: this.props.expandedNodes,
+        maxStringLength: MAX_STRING_LENGTH,
       });
     }
 
