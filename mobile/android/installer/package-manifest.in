@@ -20,7 +20,6 @@
 #ifdef MOZ_UPDATER
 @BINPATH@/updater.ini
 #endif
-@BINPATH@/dictionaries/*
 @BINPATH@/hyphenation/*
 @BINPATH@/localization/*
 
@@ -81,21 +80,13 @@
 @BINPATH@/@DLL_PREFIX@minidump_analyzer@DLL_SUFFIX@
 #endif
 
-[xpcom]
-@BINPATH@/package-name.txt
-
 [browser]
 ; [Base Browser Files]
 @BINPATH@/application.ini
 @BINPATH@/platform.ini
 @BINPATH@/defaults/settings
 
-; [Components]
-@BINPATH@/components/components.manifest
-
 ; JavaScript components
-@BINPATH@/components/toolkitsearch.manifest
-
 @BINPATH@/components/extensions.manifest
 
 @BINPATH@/components/antitracking.manifest
@@ -120,9 +111,6 @@
 @BINPATH@/components/extensions-toolkit.manifest
 @BINPATH@/components/extensions-mobile.manifest
 
-; Features
-@BINPATH@/features/*
-
 ; DevTools
 @BINPATH@/chrome/devtools@JAREXT@
 @BINPATH@/chrome/devtools.manifest
@@ -136,7 +124,6 @@
 @BINPATH@/*/greprefs.js
 @BINPATH@/@PREF_DIR@/*/geckoview-prefs.js
 #endif # !MOZ_ANDROID_FAT_AAR_ARCHITECTURES
-@BINPATH@/@PREF_DIR@/channel-prefs.js
 @BINPATH@/defaults/autoconfig/prefcalls.js
 
 ; [Layout Engine Resources]
