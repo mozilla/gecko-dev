@@ -28,6 +28,7 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/units/time_delta.h"
@@ -298,11 +299,6 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
       ssl_ctx_(nullptr),
       ssl_mode_(SSL_MODE_DTLS),
       ssl_max_version_(SSL_PROTOCOL_DTLS_12),
-      disable_handshake_ticket_(
-          (field_trials == nullptr)
-              ? true
-              : !field_trials->IsDisabled(
-                    "WebRTC-DisableTlsSessionTicketKillswitch")),
       force_dtls_13_(GetForceDtls13(field_trials)) {
   stream_->SetEventCallback(
       [this](int events, int err) { OnEvent(events, err); });
@@ -1083,9 +1079,7 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
   SSL_CTX_set_permute_extensions(ctx, true);
 #endif
 
-  if (disable_handshake_ticket_) {
-    SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
-  }
+  SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET);
   return ctx;
 }
 
