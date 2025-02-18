@@ -164,52 +164,65 @@ struct ClutOnly {
 
 impl ModularTransform for ClutOnly {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
+        if self.grid_size < 1 {
+            debug_assert!(false);
+            return;
+        }
+        let grid_max = (self.grid_size - 1) as f32;
+
+        // overflow isn't UB, so usize arithmetic is faster,
+        // since it doesn't have to emulate overflow of i32
         let xy_len = 1;
-        let x_len = self.grid_size as i32;
+        let x_len = self.grid_size as usize;
         let len = x_len * x_len;
 
-        let r_table = &self.clut[0..];
-        let g_table = &self.clut[1..];
-        let b_table = &self.clut[2..];
+        let in_table = &self.clut[0..x_len * x_len * x_len];
 
-        let CLU = |table: &[f32], x, y, z| table[((x * len + y * x_len + z * xy_len) * 3) as usize];
+        let CLU = |ch, x, y, z| {
+            in_table
+                // this allows reuse of one bounds checks for 3 channels
+                .chunks_exact(3)
+                .nth(x as usize * len + y as usize * x_len + z as usize * xy_len)
+                .map(|px| px[ch])
+                // 0 value is cheaper than a panic
+                .unwrap_or_else(unlikely_default)
+        };
 
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(3)) {
-            debug_assert!(self.grid_size as i32 >= 1);
             let linear_r = src[0];
             let linear_g = src[1];
             let linear_b = src[2];
-            let x = (linear_r * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let y = (linear_g * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let z = (linear_b * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let x_n = (linear_r * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let y_n = (linear_g * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let z_n = (linear_b * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let x_d = linear_r * (self.grid_size as i32 - 1) as f32 - x as f32;
-            let y_d = linear_g * (self.grid_size as i32 - 1) as f32 - y as f32;
-            let z_d = linear_b * (self.grid_size as i32 - 1) as f32 - z as f32;
+            let x = (linear_r * grid_max).floor() as u32;
+            let y = (linear_g * grid_max).floor() as u32;
+            let z = (linear_b * grid_max).floor() as u32;
+            let x_n = (linear_r * grid_max).ceil() as u32;
+            let y_n = (linear_g * grid_max).ceil() as u32;
+            let z_n = (linear_b * grid_max).ceil() as u32;
+            let x_d = linear_r * grid_max - x as f32;
+            let y_d = linear_g * grid_max - y as f32;
+            let z_d = linear_b * grid_max - z as f32;
 
-            let r_x1 = lerp(CLU(r_table, x, y, z), CLU(r_table, x_n, y, z), x_d);
-            let r_x2 = lerp(CLU(r_table, x, y_n, z), CLU(r_table, x_n, y_n, z), x_d);
+            let r_x1 = lerp(CLU(0, x, y, z), CLU(0, x_n, y, z), x_d);
+            let r_x2 = lerp(CLU(0, x, y_n, z), CLU(0, x_n, y_n, z), x_d);
             let r_y1 = lerp(r_x1, r_x2, y_d);
-            let r_x3 = lerp(CLU(r_table, x, y, z_n), CLU(r_table, x_n, y, z_n), x_d);
-            let r_x4 = lerp(CLU(r_table, x, y_n, z_n), CLU(r_table, x_n, y_n, z_n), x_d);
+            let r_x3 = lerp(CLU(0, x, y, z_n), CLU(0, x_n, y, z_n), x_d);
+            let r_x4 = lerp(CLU(0, x, y_n, z_n), CLU(0, x_n, y_n, z_n), x_d);
             let r_y2 = lerp(r_x3, r_x4, y_d);
             let clut_r = lerp(r_y1, r_y2, z_d);
 
-            let g_x1 = lerp(CLU(g_table, x, y, z), CLU(g_table, x_n, y, z), x_d);
-            let g_x2 = lerp(CLU(g_table, x, y_n, z), CLU(g_table, x_n, y_n, z), x_d);
+            let g_x1 = lerp(CLU(1, x, y, z), CLU(1, x_n, y, z), x_d);
+            let g_x2 = lerp(CLU(1, x, y_n, z), CLU(1, x_n, y_n, z), x_d);
             let g_y1 = lerp(g_x1, g_x2, y_d);
-            let g_x3 = lerp(CLU(g_table, x, y, z_n), CLU(g_table, x_n, y, z_n), x_d);
-            let g_x4 = lerp(CLU(g_table, x, y_n, z_n), CLU(g_table, x_n, y_n, z_n), x_d);
+            let g_x3 = lerp(CLU(1, x, y, z_n), CLU(1, x_n, y, z_n), x_d);
+            let g_x4 = lerp(CLU(1, x, y_n, z_n), CLU(1, x_n, y_n, z_n), x_d);
             let g_y2 = lerp(g_x3, g_x4, y_d);
             let clut_g = lerp(g_y1, g_y2, z_d);
 
-            let b_x1 = lerp(CLU(b_table, x, y, z), CLU(b_table, x_n, y, z), x_d);
-            let b_x2 = lerp(CLU(b_table, x, y_n, z), CLU(b_table, x_n, y_n, z), x_d);
+            let b_x1 = lerp(CLU(2, x, y, z), CLU(2, x_n, y, z), x_d);
+            let b_x2 = lerp(CLU(2, x, y_n, z), CLU(2, x_n, y_n, z), x_d);
             let b_y1 = lerp(b_x1, b_x2, y_d);
-            let b_x3 = lerp(CLU(b_table, x, y, z_n), CLU(b_table, x_n, y, z_n), x_d);
-            let b_x4 = lerp(CLU(b_table, x, y_n, z_n), CLU(b_table, x_n, y_n, z_n), x_d);
+            let b_x3 = lerp(CLU(2, x, y, z_n), CLU(2, x_n, y, z_n), x_d);
+            let b_x4 = lerp(CLU(2, x, y_n, z_n), CLU(2, x_n, y_n, z_n), x_d);
             let b_y2 = lerp(b_x3, b_x4, y_d);
             let clut_b = lerp(b_y1, b_y2, z_d);
 
@@ -219,6 +232,7 @@ impl ModularTransform for ClutOnly {
         }
     }
 }
+
 #[derive(Default)]
 struct Clut3x3 {
     input_clut_table: [Option<Vec<f32>>; 3],
@@ -228,65 +242,74 @@ struct Clut3x3 {
 }
 impl ModularTransform for Clut3x3 {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
+        if self.grid_size < 1 {
+            debug_assert!(false);
+            return;
+        }
+        let grid_max = (self.grid_size - 1) as f32;
         let xy_len = 1;
-        let x_len = self.grid_size as i32;
+        let x_len = self.grid_size as usize;
         let len = x_len * x_len;
 
-        let r_table = &self.clut.as_ref().unwrap()[0..];
-        let g_table = &self.clut.as_ref().unwrap()[1..];
-        let b_table = &self.clut.as_ref().unwrap()[2..];
-        let CLU = |table: &[f32], x, y, z| table[((x * len + y * x_len + z * xy_len) * 3) as usize];
+        let in_table = &self.clut.as_ref().unwrap()[0..x_len * x_len * x_len];
+
+        let CLU = |ch, x, y, z| {
+            in_table
+                .chunks_exact(3)
+                .nth(x as usize * len + y as usize * x_len + z as usize * xy_len)
+                .map(|px| px[ch])
+                .unwrap_or_else(unlikely_default)
+        };
 
         let input_clut_table_r = self.input_clut_table[0].as_ref().unwrap();
         let input_clut_table_g = self.input_clut_table[1].as_ref().unwrap();
         let input_clut_table_b = self.input_clut_table[2].as_ref().unwrap();
+        let output_clut_table_r = self.output_clut_table[0].as_ref().unwrap();
+        let output_clut_table_g = self.output_clut_table[1].as_ref().unwrap();
+        let output_clut_table_b = self.output_clut_table[2].as_ref().unwrap();
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(3)) {
-            debug_assert!(self.grid_size as i32 >= 1);
             let device_r = src[0];
             let device_g = src[1];
             let device_b = src[2];
             let linear_r = lut_interp_linear_float(device_r, &input_clut_table_r);
             let linear_g = lut_interp_linear_float(device_g, &input_clut_table_g);
             let linear_b = lut_interp_linear_float(device_b, &input_clut_table_b);
-            let x = (linear_r * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let y = (linear_g * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let z = (linear_b * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let x_n = (linear_r * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let y_n = (linear_g * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let z_n = (linear_b * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let x_d = linear_r * (self.grid_size as i32 - 1) as f32 - x as f32;
-            let y_d = linear_g * (self.grid_size as i32 - 1) as f32 - y as f32;
-            let z_d = linear_b * (self.grid_size as i32 - 1) as f32 - z as f32;
+            let x = (linear_r * grid_max).floor() as u32;
+            let y = (linear_g * grid_max).floor() as u32;
+            let z = (linear_b * grid_max).floor() as u32;
+            let x_n = (linear_r * grid_max).ceil() as u32;
+            let y_n = (linear_g * grid_max).ceil() as u32;
+            let z_n = (linear_b * grid_max).ceil() as u32;
+            let x_d = linear_r * grid_max - x as f32;
+            let y_d = linear_g * grid_max - y as f32;
+            let z_d = linear_b * grid_max - z as f32;
 
-            let r_x1 = lerp(CLU(r_table, x, y, z), CLU(r_table, x_n, y, z), x_d);
-            let r_x2 = lerp(CLU(r_table, x, y_n, z), CLU(r_table, x_n, y_n, z), x_d);
+            let r_x1 = lerp(CLU(0, x, y, z), CLU(0, x_n, y, z), x_d);
+            let r_x2 = lerp(CLU(0, x, y_n, z), CLU(0, x_n, y_n, z), x_d);
             let r_y1 = lerp(r_x1, r_x2, y_d);
-            let r_x3 = lerp(CLU(r_table, x, y, z_n), CLU(r_table, x_n, y, z_n), x_d);
-            let r_x4 = lerp(CLU(r_table, x, y_n, z_n), CLU(r_table, x_n, y_n, z_n), x_d);
+            let r_x3 = lerp(CLU(0, x, y, z_n), CLU(0, x_n, y, z_n), x_d);
+            let r_x4 = lerp(CLU(0, x, y_n, z_n), CLU(0, x_n, y_n, z_n), x_d);
             let r_y2 = lerp(r_x3, r_x4, y_d);
             let clut_r = lerp(r_y1, r_y2, z_d);
 
-            let g_x1 = lerp(CLU(g_table, x, y, z), CLU(g_table, x_n, y, z), x_d);
-            let g_x2 = lerp(CLU(g_table, x, y_n, z), CLU(g_table, x_n, y_n, z), x_d);
+            let g_x1 = lerp(CLU(1, x, y, z), CLU(1, x_n, y, z), x_d);
+            let g_x2 = lerp(CLU(1, x, y_n, z), CLU(1, x_n, y_n, z), x_d);
             let g_y1 = lerp(g_x1, g_x2, y_d);
-            let g_x3 = lerp(CLU(g_table, x, y, z_n), CLU(g_table, x_n, y, z_n), x_d);
-            let g_x4 = lerp(CLU(g_table, x, y_n, z_n), CLU(g_table, x_n, y_n, z_n), x_d);
+            let g_x3 = lerp(CLU(1, x, y, z_n), CLU(1, x_n, y, z_n), x_d);
+            let g_x4 = lerp(CLU(1, x, y_n, z_n), CLU(1, x_n, y_n, z_n), x_d);
             let g_y2 = lerp(g_x3, g_x4, y_d);
             let clut_g = lerp(g_y1, g_y2, z_d);
 
-            let b_x1 = lerp(CLU(b_table, x, y, z), CLU(b_table, x_n, y, z), x_d);
-            let b_x2 = lerp(CLU(b_table, x, y_n, z), CLU(b_table, x_n, y_n, z), x_d);
+            let b_x1 = lerp(CLU(2, x, y, z), CLU(2, x_n, y, z), x_d);
+            let b_x2 = lerp(CLU(2, x, y_n, z), CLU(2, x_n, y_n, z), x_d);
             let b_y1 = lerp(b_x1, b_x2, y_d);
-            let b_x3 = lerp(CLU(b_table, x, y, z_n), CLU(b_table, x_n, y, z_n), x_d);
-            let b_x4 = lerp(CLU(b_table, x, y_n, z_n), CLU(b_table, x_n, y_n, z_n), x_d);
+            let b_x3 = lerp(CLU(2, x, y, z_n), CLU(2, x_n, y, z_n), x_d);
+            let b_x4 = lerp(CLU(2, x, y_n, z_n), CLU(2, x_n, y_n, z_n), x_d);
             let b_y2 = lerp(b_x3, b_x4, y_d);
             let clut_b = lerp(b_y1, b_y2, z_d);
-            let pcs_r =
-                lut_interp_linear_float(clut_r, &self.output_clut_table[0].as_ref().unwrap());
-            let pcs_g =
-                lut_interp_linear_float(clut_g, &self.output_clut_table[1].as_ref().unwrap());
-            let pcs_b =
-                lut_interp_linear_float(clut_b, &self.output_clut_table[2].as_ref().unwrap());
+            let pcs_r = lut_interp_linear_float(clut_r, output_clut_table_r);
+            let pcs_g = lut_interp_linear_float(clut_g, output_clut_table_g);
+            let pcs_b = lut_interp_linear_float(clut_b, output_clut_table_b);
             dest[0] = clamp_float(pcs_r);
             dest[1] = clamp_float(pcs_g);
             dest[2] = clamp_float(pcs_b);
@@ -302,80 +325,104 @@ struct Clut4x3 {
 }
 impl ModularTransform for Clut4x3 {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
-        let z_stride = self.grid_size as i32;
+        if self.grid_size < 1 {
+            debug_assert!(false);
+            return;
+        }
+        let grid_max = (self.grid_size - 1) as f32;
+
+        let z_stride = self.grid_size as usize;
         let y_stride = z_stride * z_stride;
         let x_stride = z_stride * z_stride * z_stride;
 
-        let r_tbl = &self.clut.as_ref().unwrap()[0..];
-        let g_tbl = &self.clut.as_ref().unwrap()[1..];
-        let b_tbl = &self.clut.as_ref().unwrap()[2..];
+        let in_table = &self.clut.as_ref().unwrap()[0..];
 
-        let CLU = |table: &[f32], x, y, z, w| {
-            table[((x * x_stride + y * y_stride + z * z_stride + w) * 3) as usize]
+        let CLU = |ch, x, y, z, w| {
+            in_table
+                .chunks_exact(3)
+                .nth(x as usize * x_stride + y as usize * y_stride + z as usize * z_stride + w as usize)
+                .map(|px| px[ch])
+                .unwrap_or_else(unlikely_default)
         };
 
         let input_clut_table_0 = self.input_clut_table[0].as_ref().unwrap();
         let input_clut_table_1 = self.input_clut_table[1].as_ref().unwrap();
         let input_clut_table_2 = self.input_clut_table[2].as_ref().unwrap();
         let input_clut_table_3 = self.input_clut_table[3].as_ref().unwrap();
+        let output_clut_table_r = &self.output_clut_table[0].as_ref().unwrap();
+        let output_clut_table_g = &self.output_clut_table[1].as_ref().unwrap();
+        let output_clut_table_b = &self.output_clut_table[2].as_ref().unwrap();
         for (dest, src) in dest.chunks_exact_mut(3).zip(src.chunks_exact(4)) {
-            debug_assert!(self.grid_size as i32 >= 1);
             let linear_x = lut_interp_linear_float(src[0], &input_clut_table_0);
             let linear_y = lut_interp_linear_float(src[1], &input_clut_table_1);
             let linear_z = lut_interp_linear_float(src[2], &input_clut_table_2);
             let linear_w = lut_interp_linear_float(src[3], &input_clut_table_3);
 
-            let x = (linear_x * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let y = (linear_y * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let z = (linear_z * (self.grid_size as i32 - 1) as f32).floor() as i32;
-            let w = (linear_w * (self.grid_size as i32 - 1) as f32).floor() as i32;
+            let x = (linear_x * grid_max).floor() as u32;
+            let y = (linear_y * grid_max).floor() as u32;
+            let z = (linear_z * grid_max).floor() as u32;
+            let w = (linear_w * grid_max).floor() as u32;
 
-            let x_n = (linear_x * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let y_n = (linear_y * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let z_n = (linear_z * (self.grid_size as i32 - 1) as f32).ceil() as i32;
-            let w_n = (linear_w * (self.grid_size as i32 - 1) as f32).ceil() as i32;
+            let x_n = (linear_x * grid_max).ceil() as u32;
+            let y_n = (linear_y * grid_max).ceil() as u32;
+            let z_n = (linear_z * grid_max).ceil() as u32;
+            let w_n = (linear_w * grid_max).ceil() as u32;
 
-            let x_d = linear_x * (self.grid_size as i32 - 1) as f32 - x as f32;
-            let y_d = linear_y * (self.grid_size as i32 - 1) as f32 - y as f32;
-            let z_d = linear_z * (self.grid_size as i32 - 1) as f32 - z as f32;
-            let w_d = linear_w * (self.grid_size as i32 - 1) as f32 - w as f32;
+            let x_d = linear_x * grid_max - x as f32;
+            let y_d = linear_y * grid_max - y as f32;
+            let z_d = linear_z * grid_max - z as f32;
+            let w_d = linear_w * grid_max - w as f32;
 
-            let quadlinear = |tbl| {
-                let CLU = |x, y, z, w| CLU(tbl, x, y, z, w);
-                let r_x1 = lerp(CLU(x, y, z, w), CLU(x_n, y, z, w), x_d);
-                let r_x2 = lerp(CLU(x, y_n, z, w), CLU(x_n, y_n, z, w), x_d);
+            // this must be inlined to reuse bounds checks across channels
+            #[inline(always)]
+            fn quadlinear(
+                ch: usize,
+                x: u32,
+                y: u32,
+                z: u32,
+                w: u32,
+                x_n: u32,
+                y_n: u32,
+                z_n: u32,
+                w_n: u32,
+                x_d: f32,
+                y_d: f32,
+                z_d: f32,
+                w_d: f32,
+                CLU: impl Fn(usize, u32, u32, u32, u32) -> f32,
+            ) -> f32 {
+                let r_x1 = lerp(CLU(ch, x, y, z, w), CLU(ch, x_n, y, z, w), x_d);
+                let r_x2 = lerp(CLU(ch, x, y_n, z, w), CLU(ch, x_n, y_n, z, w), x_d);
                 let r_y1 = lerp(r_x1, r_x2, y_d);
-                let r_x3 = lerp(CLU(x, y, z_n, w), CLU(x_n, y, z_n, w), x_d);
-                let r_x4 = lerp(CLU(x, y_n, z_n, w), CLU(x_n, y_n, z_n, w), x_d);
+                let r_x3 = lerp(CLU(ch, x, y, z_n, w), CLU(ch, x_n, y, z_n, w), x_d);
+                let r_x4 = lerp(CLU(ch, x, y_n, z_n, w), CLU(ch, x_n, y_n, z_n, w), x_d);
                 let r_y2 = lerp(r_x3, r_x4, y_d);
                 let r_z1 = lerp(r_y1, r_y2, z_d);
 
-                let r_x1 = lerp(CLU(x, y, z, w_n), CLU(x_n, y, z, w_n), x_d);
-                let r_x2 = lerp(CLU(x, y_n, z, w_n), CLU(x_n, y_n, z, w_n), x_d);
+                let r_x1 = lerp(CLU(ch, x, y, z, w_n), CLU(ch, x_n, y, z, w_n), x_d);
+                let r_x2 = lerp(CLU(ch, x, y_n, z, w_n), CLU(ch, x_n, y_n, z, w_n), x_d);
                 let r_y1 = lerp(r_x1, r_x2, y_d);
-                let r_x3 = lerp(CLU(x, y, z_n, w_n), CLU(x_n, y, z_n, w_n), x_d);
-                let r_x4 = lerp(CLU(x, y_n, z_n, w_n), CLU(x_n, y_n, z_n, w_n), x_d);
+                let r_x3 = lerp(CLU(ch, x, y, z_n, w_n), CLU(ch, x_n, y, z_n, w_n), x_d);
+                let r_x4 = lerp(CLU(ch, x, y_n, z_n, w_n), CLU(ch, x_n, y_n, z_n, w_n), x_d);
                 let r_y2 = lerp(r_x3, r_x4, y_d);
                 let r_z2 = lerp(r_y1, r_y2, z_d);
                 lerp(r_z1, r_z2, w_d)
-            };
+            }
             // TODO: instead of reading each component separately we should read all three components at once.
-            let clut_r = quadlinear(r_tbl);
-            let clut_g = quadlinear(g_tbl);
-            let clut_b = quadlinear(b_tbl);
+            let clut_r = quadlinear(0, x, y, z, w, x_n, y_n, z_n, w_n, x_d, y_d, z_d, w_d, CLU);
+            let clut_g = quadlinear(1, x, y, z, w, x_n, y_n, z_n, w_n, x_d, y_d, z_d, w_d, CLU);
+            let clut_b = quadlinear(2, x, y, z, w, x_n, y_n, z_n, w_n, x_d, y_d, z_d, w_d, CLU);
 
-            let pcs_r =
-                lut_interp_linear_float(clut_r, &self.output_clut_table[0].as_ref().unwrap());
-            let pcs_g =
-                lut_interp_linear_float(clut_g, &self.output_clut_table[1].as_ref().unwrap());
-            let pcs_b =
-                lut_interp_linear_float(clut_b, &self.output_clut_table[2].as_ref().unwrap());
+            let pcs_r = lut_interp_linear_float(clut_r, output_clut_table_r);
+            let pcs_g = lut_interp_linear_float(clut_g, output_clut_table_g);
+            let pcs_b = lut_interp_linear_float(clut_b, output_clut_table_b);
             dest[0] = clamp_float(pcs_r);
             dest[1] = clamp_float(pcs_g);
             dest[2] = clamp_float(pcs_b);
         }
     }
 }
+
 /* NOT USED
 static void qcms_transform_module_tetra_clut(struct qcms_modular_transform *transform, float *src, float *dest, size_t length)
 {
@@ -1024,4 +1071,10 @@ pub fn chain_transform(
         return Some(lut);
     }
     None
+}
+
+#[cold]
+fn unlikely_default() -> f32 {
+    debug_assert!(false);
+    0.
 }
