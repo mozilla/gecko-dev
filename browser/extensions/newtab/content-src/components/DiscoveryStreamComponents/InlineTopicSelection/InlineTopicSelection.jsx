@@ -158,7 +158,7 @@ function InlineTopicSelection() {
           );
         })}
       </ul>
-      <p>
+      <p className="learn-more-copy">
         <a
           href={prefs["support.url"]}
           data-l10n-id="newtab-topic-selection-privacy-link"

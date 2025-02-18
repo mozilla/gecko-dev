@@ -7977,7 +7977,7 @@ main section {
 }
 
 .inline-selection-wrapper {
-  padding-block-end: var(--space-xxlarge);
+  padding-block-end: var(--space-medium);
 }
 .lightWallpaper .inline-selection-wrapper {
   color-scheme: light;
@@ -7999,12 +7999,16 @@ main section {
 .inline-selection-wrapper .inline-selection-copy {
   color: var(--newtab-contextual-text-primary-color);
 }
+.inline-selection-wrapper .learn-more-copy {
+  margin-block-end: 0;
+}
 .inline-selection-wrapper .topic-list {
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--size-item-small);
+  gap: var(--space-large);
   justify-content: flex-start;
+  margin: var(--space-small) auto var(--space-medium) auto;
   padding-inline-start: 0;
   width: fit-content;
 }
@@ -8020,7 +8024,7 @@ main section {
   border: var(--border-width) solid var(--border-color-interactive);
   border-radius: 40px;
   color: var(--newtab-contextual-text-primary-color);
-  padding: var(--space-small) var(--space-medium);
+  padding: var(--space-small) calc(1.25 * var(--space-small)) var(--space-small) var(--space-small);
 }
 .inline-selection-wrapper .topic-list li > label input[type=checkbox] {
   outline: none;
@@ -8030,6 +8034,7 @@ main section {
   -moz-context-properties: fill;
   fill: currentColor;
   margin-inline-start: var(--space-small);
+  margin-block-start: calc(-0.75 * var(--space-xsmall));
 }
 .inline-selection-wrapper .topic-list li > label:hover {
   background-color: var(--newtab-button-static-hover-background);

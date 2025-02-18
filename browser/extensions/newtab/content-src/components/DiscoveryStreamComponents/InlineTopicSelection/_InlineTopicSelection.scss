@@ -1,7 +1,7 @@
 .inline-selection-wrapper {
   // Maintain the gap between the inline topic picker and the next section
   // in line with how sections are spaced from each other.
-  padding-block-end: var(--space-xxlarge);
+  padding-block-end: var(--space-medium);
 
   @include wallpaper-contrast-fix;
 
@@ -21,13 +21,20 @@
     color: var(--newtab-contextual-text-primary-color);
   }
 
+  // Make sure the "Learn how..." link at the bottom of the block
+  // doesn't push the next section down too much.
+  .learn-more-copy {
+    margin-block-end: 0;
+  }
+
   // A flat list of topics
   .topic-list {
     list-style: none;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--size-item-small);
+    gap: var(--space-large);
     justify-content: flex-start;
+    margin: var(--space-small) auto var(--space-medium) auto;
     padding-inline-start: 0;
     width: fit-content;
 
@@ -47,7 +54,7 @@
       border: var(--border-width) solid var(--border-color-interactive);
       border-radius: 40px;
       color: var(--newtab-contextual-text-primary-color);
-      padding: var(--space-small) var(--space-medium);
+      padding: var(--space-small) calc(1.25 * var(--space-small)) var(--space-small) var(--space-small);
 
       input[type='checkbox'] {
         outline: none;
@@ -58,6 +65,7 @@
         -moz-context-properties: fill;
         fill: currentColor;
         margin-inline-start: var(--space-small);
+        margin-block-start: calc(-0.75 * var(--space-xsmall));
       }
 
       &:hover {

@@ -10213,7 +10213,9 @@ function InlineTopicSelection() {
     }, topic.label), /*#__PURE__*/external_React_default().createElement("div", {
       className: `topic-item-icon icon ${checked ? "icon-check-filled" : "icon-add-circle-fill"}`
     })));
-  })), /*#__PURE__*/external_React_default().createElement("p", null, /*#__PURE__*/external_React_default().createElement("a", {
+  })), /*#__PURE__*/external_React_default().createElement("p", {
+    className: "learn-more-copy"
+  }, /*#__PURE__*/external_React_default().createElement("a", {
     href: prefs["support.url"],
     "data-l10n-id": "newtab-topic-selection-privacy-link"
   })));
