@@ -53,6 +53,7 @@ NS_IMETHODIMP
 nsOSHelperAppService::GetProtocolHandlerInfoFromOS(const nsACString& aScheme,
                                                    bool* found,
                                                    nsIHandlerInfo** _retval) {
-  *found = false;
-  return NS_OK;
+  // We don't want to get protocol handlers from the OS in GV; the app
+  // should take care of that in NavigationDelegate.onLoadRequest().
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
