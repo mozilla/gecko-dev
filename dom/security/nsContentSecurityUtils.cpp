@@ -1791,7 +1791,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://devtools/content/responsive/toolbar.xhtml"_ns,
       "chrome://devtools/content/shared/sourceeditor/codemirror/cmiframe.html"_ns,
       "chrome://devtools/content/shared/webextension-fallback.html"_ns,
-      "chrome://devtools/content/styleeditor/index.xhtml"_ns,
       "chrome://devtools/skin/images/alert.svg"_ns,
       "chrome://extensions/content/dummy.xhtml"_ns,
       "chrome://formautofill/content/editAddress.xhtml"_ns,

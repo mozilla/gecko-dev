@@ -196,6 +196,7 @@ devtools.jar:
     content/inspector/markup/markup.xhtml (inspector/markup/markup.xhtml)
     content/inspector/components/InspectorTabPanel.css (inspector/components/InspectorTabPanel.css)
     content/styleeditor/index.xhtml (styleeditor/index.xhtml)
+    content/styleeditor/index.js (styleeditor/index.js)
     content/inspector/index.xhtml (inspector/index.xhtml)
     content/inspector/index.js (inspector/index.js)
     content/responsive/toolbar.xhtml (responsive/toolbar.xhtml)
