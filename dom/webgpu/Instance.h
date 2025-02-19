@@ -34,6 +34,10 @@ class WGSLLanguageFeatures final : public nsWrapperCache,
  public:
   explicit WGSLLanguageFeatures(Instance* const aParent) : ChildOf(aParent) {}
 
+  void Add(const nsAString& feature, ErrorResult& aRv) {
+    dom::WGSLLanguageFeatures_Binding::SetlikeHelpers::Add(this, feature, aRv);
+  }
+
  private:
   void Cleanup() {}
 

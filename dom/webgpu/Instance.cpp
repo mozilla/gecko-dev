@@ -6,6 +6,8 @@
 #include "Instance.h"
 
 #include "Adapter.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/ErrorResult.h"
 #include "nsIGlobalObject.h"
 #include "ipc/WebGPUChild.h"
 #include "ipc/WebGPUTypes.h"
@@ -14,6 +16,7 @@
 #include "mozilla/gfx/CanvasManagerChild.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "nsString.h"
 
 #ifdef RELEASE_OR_BETA
 #  include "mozilla/dom/WorkerPrivate.h"
@@ -51,7 +54,23 @@ already_AddRefed<Instance> Instance::Create(nsIGlobalObject* aOwner) {
 }
 
 Instance::Instance(nsIGlobalObject* aOwner)
-    : mOwner(aOwner), mWgslLanguageFeatures(new WGSLLanguageFeatures(this)) {}
+    : mOwner(aOwner), mWgslLanguageFeatures(new WGSLLanguageFeatures(this)) {
+  // Populate `mWgslLanguageFeatures`.
+  IgnoredErrorResult rv;
+  nsCString wgslFeature;
+  for (size_t i = 0;; ++i) {
+    wgslFeature.Truncate(0);
+    ffi::wgpu_client_instance_get_wgsl_language_feature(&wgslFeature, i);
+    if (wgslFeature.IsEmpty()) {
+      break;
+    }
+    NS_ConvertASCIItoUTF16 feature{wgslFeature};
+    this->mWgslLanguageFeatures->Add(feature, rv);
+    if (rv.Failed()) {
+      MOZ_CRASH("failed to append WGSL language feature");
+    }
+  }
+}
 
 Instance::~Instance() { Cleanup(); }
 
