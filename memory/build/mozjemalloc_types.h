@@ -214,6 +214,22 @@ static inline bool jemalloc_ptr_is_freed_page(jemalloc_ptr_info_t* info) {
   return info->tag == TagFreedPage;
 }
 
+// The result of a purge step.
+enum purge_result_t {
+  // Done: No more purge requests are pending.
+  Done,
+
+  // There is at least one arena left whose reuse grace period expired and
+  // needs purging asap.
+  NeedsMore,
+
+  // There is at least one arena that waits either for its reuse grace to
+  // expire or for significant reuse to happen. As we cannot foresee the
+  // future, whatever schedules the purges should come back later to check
+  // if we need a purge.
+  WantsLater,
+};
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

@@ -171,7 +171,10 @@ struct DummyArenaAllocator {
 
   static bool moz_enable_deferred_purge(bool aEnable) { return false; }
 
-  static bool moz_may_purge_one_now(bool aPeekOnly) { return false; }
+  static purge_result_t moz_may_purge_one_now(bool aPeekOnly,
+                                              uint32_t aReuseGraceMS) {
+    return purge_result_t::Done;
+  }
 
 #define MALLOC_DECL(name, return_type, ...)                 \
   static return_type moz_arena_##name(                      \

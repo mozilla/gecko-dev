@@ -157,16 +157,25 @@ MALLOC_DECL(moz_set_max_dirty_page_modifier, void, int32_t)
 // explicitly. Disabling it may cause an immediate synchronous purge of all
 // arenas.
 // Must be called only on the main thread.
+// Parameters:
+// bool:            enable/disable
 MALLOC_DECL(moz_enable_deferred_purge, bool, bool)
 
 // Execute at most one purge.
-// Returns true if there are more purges wanted, otherwise false.
-// If the bool parameter aPeekOnly is true, it won't process any purge
-// but just return if at least one is wanted.
+// Returns a purge_result_t with the following meaning:
+// Done:       Purge has completed for all arenas.
+// NeedsMore:  There is at least one arena that needs to be purged now.
+// WantsLater: There is at least one arena that might want a purge later,
+//             according to aReuseGraceMS passed.
+// Parameters:
+// bool:      If the bool parameter aPeekOnly is true, it won't process
+//            any purge but just return if some is needed now or wanted later.
+// uint32_t:  aReuseGraceMS is the time to wait with purge after a significant
+//            re-use happened for an arena.
 // The cost of calling this when there is no pending purge is minimal: a mutex
 // lock/unlock and an isEmpty check. Note that the mutex is never held during
 // expensive operations and guards only that list.
-MALLOC_DECL(moz_may_purge_one_now, bool, bool)
+MALLOC_DECL(moz_may_purge_one_now, purge_result_t, bool, uint32_t)
 
 #  endif
 

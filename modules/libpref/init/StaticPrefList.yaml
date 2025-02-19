@@ -12542,6 +12542,12 @@
   value: 5
   mirror: always
 
+# If lazy purge is enabled, the minimum time we wait with purge after some
+# memory was reused (tracked per arena).
+- name: memory.lazypurge.reuse_grace_period
+  type: uint32_t
+  value: 500
+  mirror: always
 
 #---------------------------------------------------------------------------
 # Prefs starting with "middlemouse."
