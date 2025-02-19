@@ -35,7 +35,7 @@ const FETCH_CONTENT_3 = addBaseHtmlElements(`
 `);
 // This fourth page asserts that links and forms are disabled
 const FETCH_CONTENT_4 = addBaseHtmlElements(
-  `Fetch 3<a href="${REDIRECT_URL}">link</a> -- <form action="${REDIRECT_URL}"><input type="submit"></form>`
+  `Fetch 4<a href="${REDIRECT_URL}">link</a> -- <form action="${REDIRECT_URL}"><input type="submit"></form>`
 );
 
 // Use fetch in order to prevent actually running this code in the test page
@@ -173,7 +173,11 @@ async function expandNetworkRequestAndWaitForHtmlView({
     }
   );
 
-  return iframe;
+  const rawToggleEl = node.querySelector(".devtools-checkbox-toggle");
+  ok(!rawToggleEl.checked, "Raw toggle isn't checked by default");
+  rawToggleEl.click();
+  await waitFor(() => node.querySelector(".CodeMirror"));
+  ok(true, "The CodeMirror instance is rendered");
 }
 
 async function waitForPayloadReady(hud) {
