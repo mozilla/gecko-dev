@@ -281,7 +281,7 @@ class HgRepository(Repository):
             return self.run("status", "--no-status", f"-{df}").splitlines()
         else:
             template = self._files_template(diff_filter)
-            revision_argument = rev if base_rev is None else f"{base_rev}~-1::{rev}"
+            revision_argument = rev if base_rev is None else f"{rev} % {base_rev}"
             return self.run("log", "-r", revision_argument, "-T", template).splitlines()
 
     def get_outgoing_files(self, diff_filter="ADM", upstream=None):

@@ -239,8 +239,7 @@ def parse_volumes(image):
             v = line.split(None, 1)[1]
             if v.startswith(b"["):
                 raise ValueError(
-                    "cannot parse array syntax for VOLUME; "
-                    "convert to multiple entries"
+                    "cannot parse array syntax for VOLUME; convert to multiple entries"
                 )
 
             volumes |= {volume.decode("utf-8") for volume in v.split()}

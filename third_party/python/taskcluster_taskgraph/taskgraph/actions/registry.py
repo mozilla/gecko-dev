@@ -145,18 +145,18 @@ def register_callback_action(
     def register_callback(cb):
         assert isinstance(name, str), "name must be a string"
         assert isinstance(order, int), "order must be an integer"
-        assert callable(schema) or is_json(
-            schema
-        ), "schema must be a JSON compatible object"
+        assert callable(schema) or is_json(schema), (
+            "schema must be a JSON compatible object"
+        )
         assert isinstance(cb, FunctionType), "callback must be a function"
         # Allow for json-e > 25 chars in the symbol.
         if "$" not in symbol:
             assert 1 <= len(symbol) <= 25, "symbol must be between 1 and 25 characters"
         assert isinstance(symbol, str), "symbol must be a string"
 
-        assert not mem[
-            "registered"
-        ], "register_callback_action must be used as decorator"
+        assert not mem["registered"], (
+            "register_callback_action must be used as decorator"
+        )
         assert cb_name not in callbacks, f"callback name {cb_name} is not unique"
 
         def action_builder(parameters, graph_config, decision_task_id):

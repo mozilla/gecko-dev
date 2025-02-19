@@ -204,7 +204,7 @@ TC_TREEHERDER_SCHEMA_URL = (
 
 
 UNKNOWN_GROUP_NAME = (
-    "Treeherder group {} (from {}) has no name; " "add it to taskcluster/config.yml"
+    "Treeherder group {} (from {}) has no name; add it to taskcluster/config.yml"
 )
 
 V2_ROUTE_TEMPLATES = [
@@ -372,9 +372,9 @@ def build_docker_worker_payload(config, task, task_def):
         if "in-tree" in image:
             name = image["in-tree"]
             docker_image_task = "docker-image-" + image["in-tree"]
-            assert "docker-image" not in task.get(
-                "dependencies", ()
-            ), "docker-image key in dependencies object is reserved"
+            assert "docker-image" not in task.get("dependencies", ()), (
+                "docker-image key in dependencies object is reserved"
+            )
             task.setdefault("dependencies", {})["docker-image"] = docker_image_task
 
             image = {
@@ -649,6 +649,8 @@ def build_docker_worker_payload(config, task, task_def):
         Optional("os-groups"): [str],
         # feature for test task to run as administarotr
         Optional("run-as-administrator"): bool,
+        # feature for task to run as current OS user
+        Optional("run-task-as-current-user"): bool,
         # optional features
         Required("chain-of-trust"): bool,
         Optional("taskcluster-proxy"): bool,
@@ -755,6 +757,12 @@ def build_generic_worker_payload(config, task, task_def):
         features["runAsAdministrator"] = True
         task_def["scopes"].append(
             "generic-worker:run-as-administrator:{}".format(task["worker-type"]),
+        )
+
+    if worker.get("run-task-as-current-user", False):
+        features["runTaskAsCurrentUser"] = True
+        task_def["scopes"].append(
+            "generic-worker:run-task-as-current-user:{}".format(task["worker-type"]),
         )
 
     if features:

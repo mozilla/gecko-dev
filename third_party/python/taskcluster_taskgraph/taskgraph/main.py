@@ -326,7 +326,7 @@ def generate_taskgraph(options, parameters, overrides, logdir):
     "--tasks-regex",
     "--tasks",
     default=None,
-    help="only return tasks with labels matching this regular " "expression.",
+    help="only return tasks with labels matching this regular expression.",
 )
 @argument(
     "--exclude-key",
@@ -757,7 +757,7 @@ def action_callback(options):
     "--parameters",
     "-p",
     default="",
-    help="parameters file (.yml or .json; see " "`taskcluster/docs/parameters.rst`)`",
+    help="parameters file (.yml or .json; see `taskcluster/docs/parameters.rst`)`",
 )
 @argument("--task-id", default=None, help="TaskId to which the action applies")
 @argument(

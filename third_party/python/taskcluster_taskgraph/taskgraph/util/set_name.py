@@ -11,9 +11,9 @@ SET_NAME_MAP = {}
 
 def set_name(name, schema=None):
     def wrapper(func):
-        assert (
-            name not in SET_NAME_MAP
-        ), f"duplicate set_name function name {name} ({func} and {SET_NAME_MAP[name]})"
+        assert name not in SET_NAME_MAP, (
+            f"duplicate set_name function name {name} ({func} and {SET_NAME_MAP[name]})"
+        )
         SET_NAME_MAP[name] = func
         func.schema = schema
         return func

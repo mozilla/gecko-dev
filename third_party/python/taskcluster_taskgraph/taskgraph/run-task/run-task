@@ -115,10 +115,12 @@ NULL_REVISION = "0000000000000000000000000000000000000000"
 
 
 def print_line(prefix, m):
-    now = datetime.datetime.utcnow().isoformat().encode("utf-8")
-    # slice microseconds to 3 decimals.
-    now = now[:-3] if now[-7:-6] == b"." else now
-    sys.stdout.buffer.write(b"[%s %sZ] %s" % (prefix, now, m))
+    now = (
+        datetime.datetime.now(tz=datetime.timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .encode("utf-8")
+    )
+    sys.stdout.buffer.write(b"[%s %s] %s" % (prefix, now, m))
     sys.stdout.buffer.flush()
 
 
@@ -1255,24 +1257,20 @@ def main(args):
     for repo in repositories:
         vcs_checkout_from_args(repo)
 
-    # Interpolate environment variables with defined substitution patterns. For
-    # example, the variable `CACHE_DIR={task_workdir}/.cache` will be
-    # interpolated with the task's working directory.
-    env_subs = {
-        "task_workdir": task_workdir,
-    }
-    for k, v in os.environ.items():
-        for subname, subval in env_subs.items():
-            # We check for an exact match rather than using a format string to
-            # avoid accidentally trying to interpolate environment variables
-            # that happen to contain brackets for some other reason.
-            pattern = f"{{{subname}}}"
-            if pattern in v:
-                os.environ[k] = v.replace(pattern, subval)
-                print_line(
-                    b"setup",
-                    b"%s is %s\n" % (k.encode("utf-8"), os.environ[k].encode("utf-8")),
-                )
+    # Convert certain well known environment variables to absolute paths.
+    for k in [
+        "CARGO_HOME",
+        "MOZ_FETCHES_DIR",
+        "PIP_CACHE_DIR",
+        "UPLOAD_DIR",
+        "UV_CACHE_DIR",
+        "npm_config_cache",
+    ] + [
+        "{}_PATH".format(repository["project"].upper())
+        for repository in repositories
+    ]:
+        if k in os.environ:
+            os.environ[k] = os.path.abspath(os.environ[k])
 
     try:
         if "MOZ_FETCHES" in os.environ:

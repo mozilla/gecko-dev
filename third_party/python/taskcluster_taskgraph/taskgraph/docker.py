@@ -126,7 +126,7 @@ def build_image(name, tag, args=None):
     cmdargs = ["docker", "image", "build", "--no-cache", "-"]
     if tag:
         cmdargs.insert(-1, f"-t={tag}")
-    subprocess.run(cmdargs, input=buf.getvalue())
+    subprocess.run(cmdargs, input=buf.getvalue(), check=True)
 
     msg = f"Successfully built {name}"
     if tag:
