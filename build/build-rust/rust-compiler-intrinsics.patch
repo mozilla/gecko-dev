@@ -1,0 +1,35 @@
+The version of `rustc` we build had some `compiler-builtins` updates that broke stuff. Later version
+of rustc in the 1.82 train landed more `compiler-builtins` updates that unbroke the stuff. We need at
+least some of that to make the version of rustc we landed on work.
+
+See also: <https://github.com/rust-lang/rust/pull/128691>
+
+diff --git a/library/alloc/Cargo.toml b/library/alloc/Cargo.toml
+index 479eb0a2ba..82d5893dc5 100644
+--- a/library/alloc/Cargo.toml
++++ b/library/alloc/Cargo.toml
+@@ -10,10 +10,7 @@
+ 
+ [dependencies]
+ core = { path = "../core" }
+-compiler_builtins = { version = "0.1.114", features = ['rustc-dep-of-std'] }
+-
+-[target.'cfg(not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64")))'.dependencies]
+-compiler_builtins = { version = "0.1.114", features = ["no-f16-f128"] }
++compiler_builtins = { version = "0.1.117", features = ['rustc-dep-of-std'] }
+ 
+ [dev-dependencies]
+ rand = { version = "0.8.5", default-features = false, features = ["alloc"] }
+diff --git a/library/std/Cargo.toml b/library/std/Cargo.toml
+index fe601855cc..06e818fb7c 100644
+--- a/library/std/Cargo.toml
++++ b/library/std/Cargo.toml
+@@ -17,7 +17,7 @@
+ panic_unwind = { path = "../panic_unwind", optional = true }
+ panic_abort = { path = "../panic_abort" }
+ core = { path = "../core", public = true }
+-compiler_builtins = { version = "0.1.114" }
++compiler_builtins = { version = "0.1.117" }
+ profiler_builtins = { path = "../profiler_builtins", optional = true }
+ unwind = { path = "../unwind" }
+ hashbrown = { version = "0.14", default-features = false, features = [
