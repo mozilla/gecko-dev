@@ -378,15 +378,9 @@ class WinUtils {
   }
 
   /**
-   * GetInternalMessage() converts a native message to an internal message.
-   * If there is no internal message for the given native message, returns
-   * the native message itself.
-   */
-  static UINT GetInternalMessage(UINT aNativeMessage);
-
-  /**
-   * GetNativeMessage() converts an internal message to a native message.
-   * If aInternalMessage is a native message, returns the native message itself.
+   * GetNativeMessage() converts a (deprecated) MOZ_WM_ internal message to a
+   * native message. If aInternalMessage is a native message, returns the native
+   * message itself.
    */
   static UINT GetNativeMessage(UINT aInternalMessage);
 
