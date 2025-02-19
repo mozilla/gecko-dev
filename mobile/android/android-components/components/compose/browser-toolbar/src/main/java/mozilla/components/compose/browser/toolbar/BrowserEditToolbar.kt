@@ -52,6 +52,10 @@ fun BrowserEditToolbar(
         colors = TextFieldDefaults.textFieldColors(
             textColor = colors.text,
             backgroundColor = colors.background,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent,
         ),
         singleLine = true,
         keyboardOptions = KeyboardOptions(
