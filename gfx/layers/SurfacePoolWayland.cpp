@@ -8,6 +8,19 @@
 #include "GLBlitHelper.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 
+#ifdef MOZ_LOGGING
+#  undef LOG
+#  include "mozilla/Logging.h"
+#  include "nsTArray.h"
+#  include "Units.h"
+extern mozilla::LazyLogModule gWidgetCompositorLog;
+#  define LOG(str, ...)                                     \
+    MOZ_LOG(gWidgetCompositorLog, mozilla::LogLevel::Debug, \
+            (str, ##__VA_ARGS__))
+#else
+#  define LOG(args)
+#endif /* MOZ_LOGGING */
+
 namespace mozilla::layers {
 
 using gfx::IntSize;
@@ -66,7 +79,7 @@ bool SurfacePoolWayland::CanRecycleSurfaceForRequest(
 }
 
 RefPtr<WaylandBuffer> SurfacePoolWayland::ObtainBufferFromPool(
-    const IntSize& aSize, GLContext* aGL) {
+    const IntSize& aSize, GLContext* aGL, RefPtr<widget::DRMFormat> aFormat) {
   MutexAutoLock lock(mMutex);
 
   auto iterToRecycle = std::find_if(
@@ -83,10 +96,8 @@ RefPtr<WaylandBuffer> SurfacePoolWayland::ObtainBufferFromPool(
 
   RefPtr<WaylandBuffer> buffer;
   if (aGL) {
-#if 0
-    buffer = widget::WaylandBufferDMABUF::Create(
-        LayoutDeviceIntSize::FromUnknownSize(aSize), aGL);
-#endif
+    buffer = widget::WaylandBufferDMABUF::CreateRGBA(
+        LayoutDeviceIntSize::FromUnknownSize(aSize), aGL, aFormat);
   } else {
     buffer = widget::WaylandBufferSHM::Create(
         LayoutDeviceIntSize::FromUnknownSize(aSize));
@@ -123,10 +134,16 @@ void SurfacePoolWayland::EnforcePoolSizeLimit() {
     mAvailableEntries.RemoveElementAt(0);
   }
 
-  NS_WARNING_ASSERTION(mPendingEntries.Length() < mPoolSizeLimit * 2,
-                       "Are we leaking pending entries?");
-  NS_WARNING_ASSERTION(mInUseEntries.size() < mPoolSizeLimit * 2,
-                       "Are we leaking in-use entries?");
+  if (mPendingEntries.Length() > mPoolSizeLimit * 2) {
+    LOG("SurfacePoolWayland() mPendingEntries num %d mPoolSizeLimit %d Are we "
+        "leaking pending entries?",
+        (int)mPendingEntries.Length(), (int)mPoolSizeLimit);
+  }
+  if (mInUseEntries.size() > mPoolSizeLimit * 2) {
+    LOG("SurfacePoolWayland() mInUseEntries num %d mPoolSizeLimit %d Are we "
+        "leaking in-use entries?",
+        (int)mInUseEntries.size(), (int)mPoolSizeLimit);
+  }
 }
 
 void SurfacePoolWayland::CollectPendingSurfaces() {
@@ -231,8 +248,8 @@ void SurfacePoolHandleWayland::OnBeginFrame() {
 void SurfacePoolHandleWayland::OnEndFrame() { mPool->EnforcePoolSizeLimit(); }
 
 RefPtr<WaylandBuffer> SurfacePoolHandleWayland::ObtainBufferFromPool(
-    const IntSize& aSize) {
-  return mPool->ObtainBufferFromPool(aSize, mGL);
+    const IntSize& aSize, RefPtr<widget::DRMFormat> aFormat) {
+  return mPool->ObtainBufferFromPool(aSize, mGL, aFormat);
 }
 
 void SurfacePoolHandleWayland::ReturnBufferToPool(
