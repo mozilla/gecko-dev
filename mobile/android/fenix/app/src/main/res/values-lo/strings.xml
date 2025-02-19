@@ -658,6 +658,9 @@
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
     <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s ບໍ່ສາມາດປະຕິເສດຄຳຮ້ອງຂໍຄຸກກີໃນເວັບໄຊນີ້ໄດ້ໂດຍອັດຕະໂນມັດ. ທ່ານສາມາດສົ່ງຄໍາຮ້ອງຂໍເພື່ອສະຫນັບສະຫນູນເວັບໄຊທ໌ນີ້ໃນອະນາຄົດ.</string>
 
+    <!--Message for the cookie banner re-engagement CFR -->
+    <string name="cookie_banner_cfr_message">ລົບກວນໜ້ອຍລົງ, ຄຸກກີ້ໜ້ອຍລົງຕິດຕາມທ່ານຢູ່ໃນເວັບໄຊນີ້.</string>
+
     <!-- Description of the preference to enable "HTTPS-Only" mode. -->
     <string name="preferences_https_only_summary">ພະຍາຍາມເຊື່ອມຕໍ່ຫາເວັບໄຊໂດຍອັດຕະໂນມັດໂດຍໃຊ້ໂປຣໂຕຄໍການເຂົ້າລະຫັດ HTTPS ເພື່ອຄວາມປອດໄພທີ່ເພີ່ມຂຶ້ນ.</string>
     <!-- Summary of https only preference if https only is set to off -->
@@ -1185,8 +1188,16 @@
     <string name="webcompat_reporter_cancel">ຍົກເລີກ</string>
     <!-- The button text for the send button to submit the provided form data. -->
     <string name="webcompat_reporter_send">ສົ່ງ</string>
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">ລາຍງານຂອງທ່ານຖືກສົ່ງໄປແລ້ວ</string>
     <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
     <string name="webcompat_reporter_dismiss_success_snackbar_text">ປິດ</string>
+
+    <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
+    <!-- Broken site reason text for site slow or not working -->
+    <string name="webcompat_reporter_reason_slow">ເວັບໄຊທ໌ຊ້າ ຫຼື ບໍ່ເຮັດວຽກ</string>
+    <!-- Broken site reason text for buttons, links, and other content -->
+    <string name="webcompat_reporter_reason_content">ປຸ່ມ, ການເຊື່ອມຕໍ່, ແລະ ເນື້ອຫາອື່ນໆ</string>
 
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
@@ -2102,6 +2113,17 @@
     <string name="top_sites_menu_sponsor_privacy">ຜູ້ສະຫນັບສະຫນູນຂອງພວກເຮົາ &amp; ຄວາມເປັນສ່ວນຕົວຂອງທ່ານ</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">ໄດ້ຮັບການສະຫນັບສະຫນູນ</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">ແກ້ໄຂ</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">ແກ້ໄຂທາງລັດ</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">ບັນທຶກ</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">ໃສ່ URL ທີ່ຖືກຕ້ອງ</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->

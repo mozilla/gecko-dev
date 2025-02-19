@@ -576,7 +576,7 @@
     <string name="onboarding_preferences_dialog_usage_data_title">Enviar dados técnicos e de interação para a Mozilla</string>
     <!-- Description for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
     <string name="onboarding_preferences_dialog_usage_data_description" moz:removedIn="136" tools:ignore="BrandUsage,UnusedResources">Os dados sobre o seu dispositivo, configuração de hardware e como utiliza o Firefox ajudam a melhorar funcionalidades, desempenho e estabilidade para os utilizadores em todo o lado.</string>
-    <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">Os dados sobre o seu dispositivo, configuração de hardware e como utiliza o Firefox ajudam a melhorar funcionalidades, desempenho e estabilidade para todos.</string>
+    <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">Os dados sobre o seu dispositivo, configuração de hardware e como utiliza o Firefox ajudam a melhorar as funcionalidades, o desempenho e a estabilidade para todos.</string>
     <!-- Learn more link for the usage data option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_usage_data_learn_more" moz:removedIn="136" tools:ignore="UnusedResources">Saber mais sobre os dados de utilização</string>
     <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Saber mais</string>
@@ -600,7 +600,7 @@
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Termos do serviço</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
-    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Termos de utilização do Firefox</string>
+    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Termos de Utilização do Firefox</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
     <string name="onboarding_term_of_service_line_two" moz:removedIn="136" tools:ignore="UnusedResources,BrandUsage">O Firefox preocupa-se com a sua privacidade. Saiba mais na nossa %1$s.</string>
     <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
@@ -612,11 +612,11 @@
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Gerir</string>
     <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Ajude-nos a crescer o Firefox</string>
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Ajude o Firefox a crescer</string>
     <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Quando partilha a informação sobre como descobriu o Firefox e que o utiliza, está a ajudar-nos a apresentar o nosso navegador a mais pessoas.</string>
     <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Partilhe dados mínimos com os parceiros de tecnologia de marketing da Mozilla. Estes dados nunca são vendidos ou utilizados para lhe mostrar anúncios.</string>
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Partilhe dados mínimos com os parceiros de tecnologia de marketing da Mozilla. Estes dados nunca são vendidos ou utilizados para lhe apresentar anúncios.</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Como utilizamos os dados</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -1072,12 +1072,12 @@
     <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Dados de marketing</string>
 
     <!-- Preference switch for campaign measurement data (marketing data) collection -->
-    <string name="preferences_marketing_data_2">Dados de medição da campanha</string>
+    <string name="preferences_marketing_data_2">Dados de medição de campanha</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Partilhe informações sobre como descobriu o Firefox com os parceiros de marketing da Mozilla. Isto ajuda o Firefox a crescer e a construir uma Internet melhor</string>
     <!-- Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
-    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Partilhe como descobriu o Firefox e que o utiliza com os parceiros de tecnologia de marketing da Mozilla.</string>
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Partilhe como descobriu o Firefox e que o utiliza, com os parceiros de tecnologia de marketing da Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Saber mais sobres as informações de marketing</string>
 
@@ -2086,7 +2086,7 @@
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Conheça os seus direitos</string>
     <!-- About page link text to open terms of use link -->
-    <string name="about_terms_of_use" tools:ignore="UnusedResources">Termos de utilização</string>
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Termos de Utilização</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Informação de licenciamento</string>
     <!-- About page link text to open a screen with libraries that are used -->
@@ -3131,7 +3131,7 @@
     <!-- The title of the button in the debug drawer for adding a new address. -->
     <string name="debug_drawer_add_new_address">Adicionar novo endereço ao idioma selecionado</string>
     <!-- The title of the button for deleting in the debug drawer all addresses. -->
-    <string name="debug_drawer_delete_all_addresses">Apagar todos os endereços</string>
+    <string name="debug_drawer_delete_all_addresses">Eliminar todos os endereços</string>
 
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
@@ -3190,5 +3190,5 @@
     <!-- The default content description for the eye trailing icon button in TextField -->
     <string name="text_field_eye_trailing_icon_default_content_description">Mostrar texto oculto</string>
     <!-- The default content description for the cross trailing icon button in TextField -->
-    <string name="text_field_cross_trailing_icon_default_content_description">Texto simples</string>
+    <string name="text_field_cross_trailing_icon_default_content_description">Limpar texto</string>
 </resources>
