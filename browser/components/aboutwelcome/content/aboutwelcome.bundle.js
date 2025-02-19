@@ -1850,6 +1850,7 @@ const SubmenuButtonInner = ({
   handleAction
 }) => {
   const ref = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+  const [isSubmenuExpanded, setIsSubmenuExpanded] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(false);
   const isPrimary = content.submenu_button?.style === "primary";
   const onCommand = (0,react__WEBPACK_IMPORTED_MODULE_0__.useCallback)(event => {
     let {
@@ -1893,11 +1894,13 @@ const SubmenuButtonInner = ({
       menupopup.addEventListener("popupshowing", event => {
         if (event.target === menupopup && event.target.anchorNode) {
           event.target.anchorNode.toggleAttribute("open", true);
+          setIsSubmenuExpanded(true);
         }
       });
       menupopup.addEventListener("popuphiding", event => {
         if (event.target === menupopup && event.target.anchorNode) {
           event.target.anchorNode.toggleAttribute("open", false);
+          setIsSubmenuExpanded(false);
         }
       });
       menupopup.listenersRegistered = true;
@@ -1914,7 +1917,9 @@ const SubmenuButtonInner = ({
     className: `submenu-button ${isPrimary ? "primary" : "secondary"}`,
     value: "submenu_button",
     onClick: onClick,
-    ref: ref
+    ref: ref,
+    "aria-haspopup": "menu",
+    "aria-expanded": isSubmenuExpanded
   }));
 };
 
