@@ -64,46 +64,47 @@ const BLANK_LINE_RX = /^[ \t]*(?:\r\n|\n|\r|\f|$)/;
  * Additionally, editing will set the |changedDeclarations| property
  * on this object.  This property has the same form as the |changed|
  * property of the object returned by |getResult|.
- *
- * @param {Function} isCssPropertyKnown
- *        A function to check if the CSS property is known. This is either an
- *        internal server function or from the CssPropertiesFront.
- *        that are supported by the server. Note that if Bug 1222047
- *        is completed then isCssPropertyKnown will not need to be passed in.
- *        The CssProperty front will be able to obtained directly from the
- *        RuleRewriter.
- * @param {StyleRuleFront} rule The style rule to use.  Note that this
- *        is only needed by the |apply| and |getDefaultIndentation| methods;
- *        and in particular for testing it can be |null|.
- * @param {String} inputString The CSS source text to parse and modify.
- * @return {Object} an object that can be used to rewrite the input text.
  */
-function RuleRewriter(isCssPropertyKnown, rule, inputString) {
-  this.rule = rule;
-  this.isCssPropertyKnown = isCssPropertyKnown;
-  // The RuleRewriter sends CSS rules as text to the server, but with this modifications
-  // array, it also sends the list of changes so the server doesn't have to re-parse the
-  // rule if it needs to track what changed.
-  this.modifications = [];
+class RuleRewriter {
+  /**
+   * @constructor
+   * @param {Function} isCssPropertyKnown
+   *        A function to check if the CSS property is known. This is either an
+   *        internal server function or from the CssPropertiesFront.
+   *        that are supported by the server. Note that if Bug 1222047
+   *        is completed then isCssPropertyKnown will not need to be passed in.
+   *        The CssProperty front will be able to obtained directly from the
+   *        RuleRewriter.
+   * @param {StyleRuleFront} rule The style rule to use.  Note that this
+   *        is only needed by the |apply| and |getDefaultIndentation| methods;
+   *        and in particular for testing it can be |null|.
+   * @param {String} inputString The CSS source text to parse and modify.
+   */
+  constructor(isCssPropertyKnown, rule, inputString) {
+    this.rule = rule;
+    this.isCssPropertyKnown = isCssPropertyKnown;
+    // The RuleRewriter sends CSS rules as text to the server, but with this modifications
+    // array, it also sends the list of changes so the server doesn't have to re-parse the
+    // rule if it needs to track what changed.
+    this.modifications = [];
 
-  // Keep track of which any declarations we had to rewrite while
-  // performing the requested action.
-  this.changedDeclarations = {};
+    // Keep track of which any declarations we had to rewrite while
+    // performing the requested action.
+    this.changedDeclarations = {};
 
-  // If not null, a promise that must be wait upon before |apply| can
-  // do its work.
-  this.editPromise = null;
+    // If not null, a promise that must be wait upon before |apply| can
+    // do its work.
+    this.editPromise = null;
 
-  // If the |defaultIndentation| property is set, then it is used;
-  // otherwise the RuleRewriter will try to compute the default
-  // indentation based on the style sheet's text.  This override
-  // facility is for testing.
-  this.defaultIndentation = null;
+    // If the |defaultIndentation| property is set, then it is used;
+    // otherwise the RuleRewriter will try to compute the default
+    // indentation based on the style sheet's text.  This override
+    // facility is for testing.
+    this.defaultIndentation = null;
 
-  this.startInitialization(inputString);
-}
+    this.startInitialization(inputString);
+  }
 
-RuleRewriter.prototype = {
   /**
    * An internal function to initialize the rewriter with a given
    * input string.
@@ -122,7 +123,7 @@ RuleRewriter.prototype = {
     );
     this.decl = null;
     this.result = null;
-  },
+  }
 
   /**
    * An internal function to complete initialization and set some
@@ -144,7 +145,7 @@ RuleRewriter.prototype = {
       this.decl = null;
       this.result = this.inputString;
     }
-  },
+  }
 
   /**
    * A helper function to compute the indentation of some text.  This
@@ -172,7 +173,7 @@ RuleRewriter.prototype = {
     }
     // Ran off the end.
     return "";
-  },
+  }
 
   /**
    * Modify a property value to ensure it is "lexically safe" for
@@ -300,7 +301,7 @@ RuleRewriter.prototype = {
       result += eofFixup;
     }
     return [anySanitized, result];
-  },
+  }
 
   /**
    * Start at |index| and skip whitespace
@@ -320,7 +321,7 @@ RuleRewriter.prototype = {
       // Nothing.
     }
     return index;
-  },
+  }
 
   /**
    * Terminate a given declaration, if needed.
@@ -369,7 +370,7 @@ RuleRewriter.prototype = {
     if (this.hasNewLine && !NEWLINE_RX.test(trailingText)) {
       this.result += "\n";
     }
-  },
+  }
 
   /**
    * Sanitize the given property value and return the sanitized form.
@@ -386,7 +387,7 @@ RuleRewriter.prototype = {
       this.changedDeclarations[index] = sanitizedText;
     }
     return sanitizedText;
-  },
+  }
 
   /**
    * Rename a declaration.
@@ -402,7 +403,7 @@ RuleRewriter.prototype = {
     // could preserve white space and comments on the LHS of the ":".
     this.completeCopying(this.decl.colonOffsets[0]);
     this.modifications.push({ type: "set", index, name, newName });
-  },
+  }
 
   /**
    * Enable or disable a declaration
@@ -478,7 +479,7 @@ RuleRewriter.prototype = {
     } else {
       this.modifications.push({ type: "disable", index, name });
     }
-  },
+  }
 
   /**
    * Return a promise that will be resolved to the default indentation
@@ -512,7 +513,7 @@ RuleRewriter.prototype = {
     );
     const { indentUnit, indentWithTabs } = getIndentationFromString(source);
     return indentWithTabs ? "\t" : " ".repeat(indentUnit);
-  },
+  }
 
   /**
    * An internal function to create a new declaration.  This does all
@@ -588,7 +589,7 @@ RuleRewriter.prototype = {
       // index.
       this.completeCopying(this.decl.offsets[0]);
     }
-  },
+  }
 
   /**
    * Create a new declaration.
@@ -613,7 +614,7 @@ RuleRewriter.prototype = {
     if (enabled) {
       this.modifications.push({ type: "set", index, name, value, priority });
     }
-  },
+  }
 
   /**
    * Set a declaration's value.
@@ -651,7 +652,7 @@ RuleRewriter.prototype = {
     this.result += ";";
     this.completeCopying(this.decl.offsets[1]);
     this.modifications.push({ type: "set", index, name, value, priority });
-  },
+  }
 
   /**
    * Remove a declaration.
@@ -703,7 +704,7 @@ RuleRewriter.prototype = {
     }
     this.completeCopying(copyOffset);
     this.modifications.push({ type: "remove", index, name });
-  },
+  }
 
   /**
    * An internal function to copy any trailing text to the output
@@ -715,7 +716,7 @@ RuleRewriter.prototype = {
   completeCopying(copyOffset) {
     // Add the trailing text.
     this.result += this.inputString.substring(copyOffset);
-  },
+  }
 
   /**
    * Apply the modifications in this object to the associated rule.
@@ -727,7 +728,7 @@ RuleRewriter.prototype = {
     return Promise.resolve(this.editPromise).then(() => {
       return this.rule.setRuleText(this.result, this.modifications);
     });
-  },
+  }
 
   /**
    * Get the result of the rewriting.  This is used for testing.
@@ -741,8 +742,8 @@ RuleRewriter.prototype = {
    */
   getResult() {
     return { changed: this.changedDeclarations, text: this.result };
-  },
-};
+  }
+}
 
 /**
  * Like trimRight, but only trims CSS-allowed whitespace.
