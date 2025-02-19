@@ -147,8 +147,8 @@ const F32x4RelaxedMaxCode = 0x10e;
 const F64x2RelaxedMinCode = 0x10f;
 const F64x2RelaxedMaxCode = 0x110;
 const I16x8RelaxedQ15MulrSCode = 0x111;
-const I16x8DotI8x16I7x16SCode = 0x112;
-const I32x4DotI8x16I7x16AddSCode = 0x113;
+const I16x8RelaxedDotI8x16I7x16SCode = 0x112;
+const I32x4RelaxedDotI8x16I7x16AddSCode = 0x113;
 
 const FirstInvalidOpcode = 0xc5;
 const LastInvalidOpcode = 0xfa;

@@ -3853,8 +3853,8 @@ bool BaseCompiler::emitBranchPerform(BranchState* b) {
 //  - The exit value is always in a designated join register (type dependent).
 
 bool BaseCompiler::emitBlock() {
-  ResultType params;
-  if (!iter_.readBlock(&params)) {
+  BlockType type;
+  if (!iter_.readBlock(&type)) {
     return false;
   }
 
@@ -3862,7 +3862,7 @@ bool BaseCompiler::emitBlock() {
     sync();  // Simplifies branching out from block
   }
 
-  initControl(controlItem(), params);
+  initControl(controlItem(), type.params());
 
   return true;
 }
@@ -3903,8 +3903,8 @@ bool BaseCompiler::endBlock(ResultType type) {
 }
 
 bool BaseCompiler::emitLoop() {
-  ResultType params;
-  if (!iter_.readLoop(&params)) {
+  BlockType type;
+  if (!iter_.readLoop(&type)) {
     return false;
   }
 
@@ -3912,13 +3912,13 @@ bool BaseCompiler::emitLoop() {
     sync();  // Simplifies branching out from block
   }
 
-  initControl(controlItem(), params);
+  initControl(controlItem(), type.params());
   bceSafe_ = 0;
 
   if (!deadCode_) {
     // Loop entry is a control join, so shuffle the entry parameters into the
     // well-known locations.
-    if (!topBlockParams(params)) {
+    if (!topBlockParams(type.params())) {
       return false;
     }
     masm.nopAlign(CodeAlignment);
@@ -3960,29 +3960,29 @@ bool BaseCompiler::emitLoop() {
 // evaluated.
 
 bool BaseCompiler::emitIf() {
-  ResultType params;
+  BlockType type;
   Nothing unused_cond;
-  if (!iter_.readIf(&params, &unused_cond)) {
+  if (!iter_.readIf(&type, &unused_cond)) {
     return false;
   }
 
   BranchState b(&controlItem().otherLabel, InvertBranch(true));
   if (!deadCode_) {
-    needResultRegisters(params);
+    needResultRegisters(type.params());
     emitBranchSetup(&b);
-    freeResultRegisters(params);
+    freeResultRegisters(type.params());
     sync();
   } else {
     resetLatentOp();
   }
 
-  initControl(controlItem(), params);
+  initControl(controlItem(), type.params());
 
   if (!deadCode_) {
     // Because params can flow immediately to results in the case of an empty
     // "then" or "else" block, and the result of an if/then is a join in
     // general, we shuffle params eagerly to the result allocations.
-    if (!topBlockParams(params)) {
+    if (!topBlockParams(type.params())) {
       return false;
     }
     if (!emitBranchPerform(&b)) {
@@ -4450,8 +4450,8 @@ bool BaseCompiler::emitBrTable() {
 }
 
 bool BaseCompiler::emitTry() {
-  ResultType params;
-  if (!iter_.readTry(&params)) {
+  BlockType type;
+  if (!iter_.readTry(&type)) {
     return false;
   }
 
@@ -4461,7 +4461,7 @@ bool BaseCompiler::emitTry() {
     sync();
   }
 
-  initControl(controlItem(), params);
+  initControl(controlItem(), type.params());
 
   if (!deadCode_) {
     // Be conservative for BCE due to complex control flow in try blocks.
@@ -4475,9 +4475,9 @@ bool BaseCompiler::emitTry() {
 }
 
 bool BaseCompiler::emitTryTable() {
-  ResultType params;
+  BlockType type;
   TryTableCatchVector catches;
-  if (!iter_.readTryTable(&params, &catches)) {
+  if (!iter_.readTryTable(&type, &catches)) {
     return false;
   }
 
@@ -4487,7 +4487,7 @@ bool BaseCompiler::emitTryTable() {
     sync();
   }
 
-  initControl(controlItem(), params);
+  initControl(controlItem(), type.params());
   // Be conservative for BCE due to complex control flow in try blocks.
   controlItem().bceSafeOnExit = 0;
 
@@ -11679,12 +11679,12 @@ bool BaseCompiler::emitBody() {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(RelaxedQ15MulrS));
-          case uint32_t(SimdOp::I16x8DotI8x16I7x16S):
+          case uint32_t(SimdOp::I16x8RelaxedDotI8x16I7x16S):
             if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }
             CHECK_NEXT(dispatchVectorBinary(DotI8x16I7x16S));
-          case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS):
+          case uint32_t(SimdOp::I32x4RelaxedDotI8x16I7x16AddS):
             if (!codeMeta_.v128RelaxedEnabled()) {
               return iter_.unrecognizedOpcode(&op);
             }

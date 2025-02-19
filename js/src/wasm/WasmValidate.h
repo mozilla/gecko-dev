@@ -28,6 +28,7 @@
 #include "wasm/WasmCompile.h"
 #include "wasm/WasmCompileArgs.h"
 #include "wasm/WasmModuleTypes.h"
+#include "wasm/WasmOpIter.h"
 #include "wasm/WasmProcess.h"
 #include "wasm/WasmTypeDef.h"
 
@@ -159,12 +160,6 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 [[nodiscard]] bool ValidateFunctionBody(const CodeMetadata& codeMeta,
                                         uint32_t funcIndex, uint32_t bodySize,
                                         Decoder& d);
-#ifdef DEBUG
-[[nodiscard]] bool DumpFunctionBody(const CodeMetadata& codeMeta,
-                                    uint32_t funcIndex,
-                                    const uint8_t* bodyBegin, uint32_t bodySize,
-                                    IndentedPrinter& out, UniqueChars* error);
-#endif
 
 [[nodiscard]] bool DecodeModuleTail(Decoder& d, CodeMetadata* codeMeta,
                                     ModuleMetadata* meta);
@@ -176,6 +171,46 @@ using ValidatingOpIter = OpIter<ValidatingPolicy>;
 
 [[nodiscard]] bool Validate(JSContext* cx, const ShareableBytes& bytecode,
                             const FeatureOptions& options, UniqueChars* error);
+
+// A base type for dumping wasm ops. Does nothing by default; extend to add
+// actual behavior.
+struct BaseOpDumper {
+  virtual void dumpOpBegin(OpBytes op) {}
+  virtual void dumpOpEnd() {}
+  virtual void dumpTypeIndex(uint32_t typeIndex, bool asTypeUse = false) {}
+  virtual void dumpFuncIndex(uint32_t funcIndex) {}
+  virtual void dumpTableIndex(uint32_t tableIndex) {}
+  virtual void dumpGlobalIndex(uint32_t globalIndex) {}
+  virtual void dumpMemoryIndex(uint32_t memoryIndex) {}
+  virtual void dumpElemIndex(uint32_t elemIndex) {}
+  virtual void dumpDataIndex(uint32_t dataIndex) {}
+  virtual void dumpTagIndex(uint32_t tagIndex) {}
+  virtual void dumpLocalIndex(uint32_t localIndex) {}
+  virtual void dumpBlockType(BlockType type) {}
+  virtual void dumpI32Const(int32_t constant) {}
+  virtual void dumpI64Const(int64_t constant) {}
+  virtual void dumpF32Const(float constant) {}
+  virtual void dumpF64Const(double constant) {}
+  virtual void dumpV128Const(V128 constant) {}
+  virtual void dumpVectorMask(V128 mask) {}
+  virtual void dumpRefType(RefType type) {}
+  virtual void dumpHeapType(RefType type) {}
+  virtual void dumpValType(ValType type) {}
+  virtual void dumpTryTableCatches(const TryTableCatchVector& catches) {}
+  virtual void dumpLinearMemoryAddress(
+      LinearMemoryAddress<mozilla::Nothing> addr) {}
+  virtual void dumpBlockDepth(uint32_t relativeDepth) {}
+  virtual void dumpBlockDepths(const Uint32Vector& relativeDepths) {}
+  virtual void dumpFieldIndex(uint32_t fieldIndex) {}
+  virtual void dumpNumElements(uint32_t numElements) {}
+  virtual void dumpLaneIndex(uint32_t laneIndex) {}
+
+  virtual void startScope() {};
+  virtual void endScope() {};
+};
+
+[[nodiscard]] bool ValidateOps(ValidatingOpIter& iter, BaseOpDumper& dumper,
+                               const CodeMetadata& codeMeta);
 
 }  // namespace wasm
 }  // namespace js

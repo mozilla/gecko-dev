@@ -136,6 +136,7 @@
 #include "wasm/AsmJS.h"
 #include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmBuiltinModule.h"
+#include "wasm/WasmDump.h"
 #include "wasm/WasmFeatures.h"
 #include "wasm/WasmGcObject.h"
 #include "wasm/WasmInstance.h"
@@ -2100,6 +2101,41 @@ static bool WasmDisassemble(JSContext* cx, unsigned argc, Value* vp) {
   JS_ReportErrorASCII(
       cx, "argument is not an exported wasm function or a wasm module");
   return false;
+}
+
+static bool WasmModuleToText(JSContext* cx, unsigned argc, Value* vp) {
+  if (!wasm::HasSupport(cx)) {
+    JS_ReportErrorASCII(cx, "wasm support unavailable");
+    return false;
+  }
+
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (!args.get(0).isObject()) {
+    JS_ReportErrorASCII(cx, "argument is not an object");
+    return false;
+  }
+
+  if (!args[0].toObject().is<WasmModuleObject>()) {
+    JS_ReportErrorASCII(cx, "argument is not a wasm module");
+    return false;
+  }
+
+  const wasm::Module& mod = args[0].toObject().as<WasmModuleObject>().module();
+  JSSprinter out(cx);
+  if (!out.init()) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  wasm::DumpModule(mod, out);
+
+  JSString* str = out.release(cx);
+  if (!str) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  args.rval().set(StringValue(str));
+  return true;
 }
 
 static bool WasmFunctionTier(JSContext* cx, unsigned argc, Value* vp) {
@@ -10773,6 +10809,10 @@ JS_FN_HELP("getFuseState", GetFuseState, 0, 0,
 "      ImportInterpExit - wasm-to-C++ stubs\n"
 "      ImportJitExit    - wasm-to-jitted-JS stubs\n"
 "      all              - all kinds, including obscure ones\n"),
+
+    JS_FN_HELP("wasmModuleToText", WasmModuleToText, 1, 0,
+"wasmModuleToText(wasmModule[, options])\n",
+"  Converts a compiled wasm module to the wasm text format.\n"),
 
     JS_FN_HELP("wasmDumpIon", WasmDumpIon, 2, 0,
 "wasmDumpIon(bytecode, funcIndex, [, contents])\n",

@@ -638,9 +638,9 @@ class MOZ_STACK_CLASS OpIter : private Policy {
 
   [[nodiscard]] bool readOp(OpBytes* op);
   [[nodiscard]] bool readReturn(ValueVector* values);
-  [[nodiscard]] bool readBlock(ResultType* paramType);
-  [[nodiscard]] bool readLoop(ResultType* paramType);
-  [[nodiscard]] bool readIf(ResultType* paramType, Value* condition);
+  [[nodiscard]] bool readBlock(BlockType* type);
+  [[nodiscard]] bool readLoop(BlockType* type);
+  [[nodiscard]] bool readIf(BlockType* type, Value* condition);
   [[nodiscard]] bool readElse(ResultType* paramType, ResultType* resultType,
                               ValueVector* thenResults);
   [[nodiscard]] bool readEnd(LabelKind* kind, ResultType* type,
@@ -654,8 +654,8 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   [[nodiscard]] bool readBrTable(Uint32Vector* depths, uint32_t* defaultDepth,
                                  ResultType* defaultBranchType,
                                  ValueVector* branchValues, Value* index);
-  [[nodiscard]] bool readTry(ResultType* type);
-  [[nodiscard]] bool readTryTable(ResultType* type,
+  [[nodiscard]] bool readTry(BlockType* type);
+  [[nodiscard]] bool readTryTable(BlockType* type,
                                   TryTableCatchVector* catches);
   [[nodiscard]] bool readCatch(LabelKind* kind, uint32_t* tagIndex,
                                ResultType* paramType, ResultType* resultType,
@@ -1350,37 +1350,32 @@ inline bool OpIter<Policy>::readReturn(ValueVector* values) {
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readBlock(ResultType* paramType) {
+inline bool OpIter<Policy>::readBlock(BlockType* type) {
   MOZ_ASSERT(Classify(op_) == OpKind::Block);
 
-  BlockType type;
-  if (!readBlockType(&type)) {
+  if (!readBlockType(type)) {
     return false;
   }
 
-  *paramType = type.params();
-  return pushControl(LabelKind::Block, type);
+  return pushControl(LabelKind::Block, *type);
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readLoop(ResultType* paramType) {
+inline bool OpIter<Policy>::readLoop(BlockType* type) {
   MOZ_ASSERT(Classify(op_) == OpKind::Loop);
 
-  BlockType type;
-  if (!readBlockType(&type)) {
+  if (!readBlockType(type)) {
     return false;
   }
 
-  *paramType = type.params();
-  return pushControl(LabelKind::Loop, type);
+  return pushControl(LabelKind::Loop, *type);
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readIf(ResultType* paramType, Value* condition) {
+inline bool OpIter<Policy>::readIf(BlockType* type, Value* condition) {
   MOZ_ASSERT(Classify(op_) == OpKind::If);
 
-  BlockType type;
-  if (!readBlockType(&type)) {
+  if (!readBlockType(type)) {
     return false;
   }
 
@@ -1388,12 +1383,11 @@ inline bool OpIter<Policy>::readIf(ResultType* paramType, Value* condition) {
     return false;
   }
 
-  if (!pushControl(LabelKind::Then, type)) {
+  if (!pushControl(LabelKind::Then, *type)) {
     return false;
   }
 
-  *paramType = type.params();
-  size_t paramsLength = type.params().length();
+  size_t paramsLength = type->params().length();
   return elseParamStack_.append(valueStack_.end() - paramsLength, paramsLength);
 }
 
@@ -1602,17 +1596,15 @@ inline bool OpIter<Policy>::readBrTable(Uint32Vector* depths,
 #undef UNKNOWN_ARITY
 
 template <typename Policy>
-inline bool OpIter<Policy>::readTry(ResultType* paramType) {
+inline bool OpIter<Policy>::readTry(BlockType* type) {
   MOZ_ASSERT(Classify(op_) == OpKind::Try);
   featureUsage_ |= FeatureUsage::LegacyExceptions;
 
-  BlockType type;
-  if (!readBlockType(&type)) {
+  if (!readBlockType(type)) {
     return false;
   }
 
-  *paramType = type.params();
-  return pushControl(LabelKind::Try, type);
+  return pushControl(LabelKind::Try, *type);
 }
 
 enum class TryTableCatchFlags : uint8_t {
@@ -1622,17 +1614,15 @@ enum class TryTableCatchFlags : uint8_t {
 };
 
 template <typename Policy>
-inline bool OpIter<Policy>::readTryTable(ResultType* paramType,
+inline bool OpIter<Policy>::readTryTable(BlockType* type,
                                          TryTableCatchVector* catches) {
   MOZ_ASSERT(Classify(op_) == OpKind::TryTable);
 
-  BlockType type;
-  if (!readBlockType(&type)) {
+  if (!readBlockType(type)) {
     return false;
   }
 
-  *paramType = type.params();
-  if (!pushControl(LabelKind::TryTable, type)) {
+  if (!pushControl(LabelKind::TryTable, *type)) {
     return false;
   }
 

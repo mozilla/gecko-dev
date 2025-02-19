@@ -2161,7 +2161,7 @@ void CodeGenerator::visitWasmTernarySimd128(LWasmTernarySimd128* ins) {
       masm.laneSelectSimd128(mask, lhs, rhs, dest);
       break;
     }
-    case wasm::SimdOp::I32x4DotI8x16I7x16AddS:
+    case wasm::SimdOp::I32x4RelaxedDotI8x16I7x16AddS:
       masm.dotInt8x16Int7x16ThenAdd(ToFloatRegister(ins->v0()),
                                     ToFloatRegister(ins->v1()),
                                     ToFloatRegister(ins->v2()));
@@ -2559,7 +2559,7 @@ void CodeGenerator::visitWasmBinarySimd128(LWasmBinarySimd128* ins) {
     case wasm::SimdOp::I16x8RelaxedQ15MulrS:
       masm.q15MulrInt16x8Relaxed(lhs, rhs, dest);
       break;
-    case wasm::SimdOp::I16x8DotI8x16I7x16S:
+    case wasm::SimdOp::I16x8RelaxedDotI8x16I7x16S:
       masm.dotInt8x16Int7x16(lhs, rhs, dest);
       break;
     case wasm::SimdOp::MozPMADDUBSW:

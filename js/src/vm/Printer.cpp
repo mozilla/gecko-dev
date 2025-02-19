@@ -335,6 +335,18 @@ static const char JSONEscapeMap[] = {
     // clang-format on
 };
 
+static const char WATEscapeMap[] = {
+    // clang-format off
+    '\t', 't',
+    '\n', 'n',
+    '\r', 'r',
+    '"',  '"',
+    '\'',  '\'',
+    '\\', '\\',
+    '\0'
+    // clang-format on
+};
+
 template <QuoteTarget target, typename CharT>
 JS_PUBLIC_API void QuoteString(Sprinter* sp,
                                const mozilla::Range<const CharT>& chars,
@@ -583,6 +595,20 @@ void StringEscape::convertInto(GenericPrinter& out, char16_t c) {
     // Use \x only if the high byte is 0 and we're in a quoted string, because
     // ECMA-262 allows only \u, not \x, in Unicode identifiers (see bug 621814).
     out.printf(!(c >> 8) ? "\\x%02X" : "\\u%04X", c);
+  }
+}
+
+bool WATStringEscape::isSafeChar(char16_t c) {
+  return js::IsAsciiPrintable(c) && c != '"' && c != '\\';
+}
+
+void WATStringEscape::convertInto(GenericPrinter& out, char16_t c) {
+  const char* escape = nullptr;
+  if (!(c >> 8) && c != 0 &&
+      (escape = strchr(WATEscapeMap, int(c))) != nullptr) {
+    out.printf("\\%c", escape[1]);
+  } else {
+    out.printf("\\%02X", c);
   }
 }
 

@@ -355,7 +355,7 @@ var ins = wasmValidateAndEval(moduleWithSections([
         funcBody({locals:[],
                     body: [...V128StoreExpr(0, [...V128Load(16),
                                                 ...V128Load(32),
-                                                SimdPrefix, ...varU32(I16x8DotI8x16I7x16SCode)])]})])]));
+                                                SimdPrefix, ...varU32(I16x8RelaxedDotI8x16I7x16SCode)])]})])]));
 var mem8 = new Int8Array(ins.exports.mem.buffer);
 var mem16 = new Int16Array(ins.exports.mem.buffer);
 var test7bit = [1, 2, 3, 4, 5, 64, 65, 127, 127, 0, 0,
@@ -385,7 +385,7 @@ var ins = wasmValidateAndEval(moduleWithSections([
                     body: [...V128StoreExpr(0, [...V128Load(16),
                                                 ...V128Load(32),
                                                 ...V128Load(48),
-                                                SimdPrefix, ...varU32(I32x4DotI8x16I7x16AddSCode)])]})])]));
+                                                SimdPrefix, ...varU32(I32x4RelaxedDotI8x16I7x16AddSCode)])]})])]));
 var mem8 = new Int8Array(ins.exports.mem.buffer);
 var mem32 = new Int32Array(ins.exports.mem.buffer);
 var test7bit = [1, 2, 3, 4, 5, 64, 65, 127, 127, 0, 0,

@@ -218,6 +218,7 @@ struct NopOpDumper {
   void dumpV128Const(V128 constant) {}
   void dumpVectorMask(V128 mask) {}
   void dumpRefType(RefType type) {}
+  void dumpHeapType(RefType type) {}
   void dumpValType(ValType type) {}
   void dumpTryTableCatches(const TryTableCatchVector& catches) {}
   void dumpLinearMemoryAddress(LinearMemoryAddress<Nothing> addr) {}
@@ -228,132 +229,47 @@ struct NopOpDumper {
   void dumpLaneIndex(uint32_t laneIndex) {}
 };
 
-#ifdef DEBUG
-struct OpDumper {
-  IndentedPrinter& out;
-  explicit OpDumper(IndentedPrinter& out) : out(out) {}
-
-  void dumpOpBegin(OpBytes op) { out.put(op.toString()); }
-  void dumpOpEnd() { out.put("\n"); }
-  void dumpTypeIndex(uint32_t typeIndex) { out.printf(" %" PRIu32, typeIndex); }
-  void dumpFuncIndex(uint32_t funcIndex) { out.printf(" %" PRIu32, funcIndex); }
-  void dumpTableIndex(uint32_t tableIndex) {
-    out.printf(" %" PRIu32, tableIndex);
-  }
-  void dumpGlobalIndex(uint32_t globalIndex) {
-    out.printf(" %" PRIu32, globalIndex);
-  }
-  void dumpMemoryIndex(uint32_t memoryIndex) {
-    out.printf(" %" PRIu32, memoryIndex);
-  }
-  void dumpElemIndex(uint32_t elemIndex) { out.printf(" %" PRIu32, elemIndex); }
-  void dumpDataIndex(uint32_t dataIndex) { out.printf(" %" PRIu32, dataIndex); }
-  void dumpTagIndex(uint32_t tagIndex) { out.printf(" %" PRIu32, tagIndex); }
-  void dumpLocalIndex(uint32_t localIndex) {
-    out.printf(" %" PRIu32, localIndex);
-  }
-  void dumpResultType(ResultType type) {
-    for (uint32_t i = 0; i < type.length(); i++) {
-      dumpValType(type[i]);
-    }
-  }
-  void dumpI32Const(int32_t constant) { out.printf(" %" PRId32, constant); }
-  void dumpI64Const(int64_t constant) { out.printf(" %" PRId64, constant); }
-  void dumpF32Const(float constant) { out.printf(" %f", constant); }
-  void dumpF64Const(double constant) { out.printf(" %lf", constant); }
-  void dumpV128Const(V128 constant) {
-    out.printf("i8x16 %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
-               constant.bytes[0], constant.bytes[1], constant.bytes[2],
-               constant.bytes[3], constant.bytes[4], constant.bytes[5],
-               constant.bytes[6], constant.bytes[7], constant.bytes[8],
-               constant.bytes[9], constant.bytes[10], constant.bytes[11],
-               constant.bytes[12], constant.bytes[13], constant.bytes[14],
-               constant.bytes[15]);
-  }
-  void dumpVectorMask(V128 mask) {
-    out.printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", mask.bytes[0],
-               mask.bytes[1], mask.bytes[2], mask.bytes[3], mask.bytes[4],
-               mask.bytes[5], mask.bytes[6], mask.bytes[7], mask.bytes[8],
-               mask.bytes[9], mask.bytes[10], mask.bytes[11], mask.bytes[12],
-               mask.bytes[13], mask.bytes[14], mask.bytes[15]);
-  }
-  void dumpRefType(RefType type) {
-    out.put(" ");
-    wasm::Dump(type, out);
-  }
-  void dumpValType(ValType type) {
-    out.put(" ");
-    wasm::Dump(type, out);
-  }
-  void dumpTryTableCatches(const TryTableCatchVector& catches) {
-    for (uint32_t i = 0; i < catches.length(); i++) {
-      const TryTableCatch& tryCatch = catches[i];
-      if (tryCatch.tagIndex == CatchAllIndex) {
-        if (tryCatch.captureExnRef) {
-          out.put(" (catch_all_ref ");
-        } else {
-          out.put(" (catch_all ");
-        }
-      } else {
-        if (tryCatch.captureExnRef) {
-          out.printf(" (catch_ref %d ", tryCatch.tagIndex);
-        } else {
-          out.printf(" (catch %d ", tryCatch.tagIndex);
-        }
-      }
-      dumpBlockDepth(tryCatch.labelRelativeDepth);
-      out.put(")");
-    }
-  }
-  void dumpLinearMemoryAddress(LinearMemoryAddress<Nothing> addr) {
-    if (addr.memoryIndex != 0) {
-      out.printf(" (memory %d)", addr.memoryIndex);
-    }
-    if (addr.offset != 0) {
-      out.printf(" offset=%" PRIu64, addr.offset);
-    }
-    if (addr.align != 0) {
-      out.printf(" align=%d", addr.align);
-    }
-  }
-  void dumpBlockDepth(uint32_t relativeDepth) {
-    out.printf(" %d", relativeDepth);
-  }
-  void dumpBlockDepths(const Uint32Vector& relativeDepths) {
-    for (uint32_t i = 0; i < relativeDepths.length(); i++) {
-      out.printf(" %d", relativeDepths[i]);
-    }
-  }
-  void dumpFieldIndex(uint32_t fieldIndex) { out.printf(" %d", fieldIndex); }
-  void dumpNumElements(uint32_t numElements) { out.printf(" %d", numElements); }
-  void dumpLaneIndex(uint32_t laneIndex) { out.printf(" %d", laneIndex); }
-};
-#endif
-
-template <typename DumpT>
-static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
-                        const CodeMetadata& codeMeta, const uint8_t* bodyEnd) {
+bool wasm::ValidateOps(ValidatingOpIter& iter, BaseOpDumper& dumper,
+                       const CodeMetadata& codeMeta) {
   while (true) {
     OpBytes op;
     if (!iter.readOp(&op)) {
       return false;
     }
-    dumper.dumpOpBegin(op);
+
+    // End instructions get handled differently since we don't actually want to
+    // dump the final `end`. Also, Else instructions need to have their
+    // indentation managed when dumping.
+    if (op.b0 != uint16_t(Op::End)) {
+      if (op.b0 == uint64_t(Op::Else)) {
+        dumper.endScope();
+      }
+      dumper.dumpOpBegin(op);
+      if (op.b0 == uint64_t(Op::Else)) {
+        dumper.startScope();
+      }
+    }
 
     Nothing nothing;
     NothingVector nothings{};
-    ResultType unusedType;
+    BlockType blockType;
+    ResultType resultType;
 
     switch (op.b0) {
       case uint16_t(Op::End): {
         LabelKind unusedKind;
-        if (!iter.readEnd(&unusedKind, &unusedType, &nothings, &nothings)) {
+        if (!iter.readEnd(&unusedKind, &resultType, &nothings, &nothings)) {
           return false;
         }
         iter.popEnd();
         if (iter.controlStackEmpty()) {
           return true;
         }
+
+        // Only dump `end` if it was not the final `end` of the expression.
+        dumper.endScope();
+        dumper.dumpOpBegin(op);
+
         break;
       }
       case uint16_t(Op::Nop): {
@@ -384,8 +300,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
                                    &unusedArgs)) {
           return false;
         }
-        dumper.dumpTypeIndex(funcTypeIndex);
         dumper.dumpTableIndex(tableIndex);
+        dumper.dumpTypeIndex(funcTypeIndex, /*asTypeUse=*/true);
         break;
       }
       case uint16_t(Op::ReturnCall): {
@@ -404,8 +320,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
                                          &unusedArgs)) {
           return false;
         }
-        dumper.dumpTypeIndex(funcTypeIndex);
         dumper.dumpTableIndex(tableIndex);
+        dumper.dumpTypeIndex(funcTypeIndex, /*asTypeUse=*/true);
         break;
       }
       case uint16_t(Op::CallRef): {
@@ -532,28 +448,31 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
         break;
       }
       case uint16_t(Op::Block): {
-        if (!iter.readBlock(&unusedType)) {
+        if (!iter.readBlock(&blockType)) {
           return false;
         }
-        dumper.dumpResultType(unusedType);
+        dumper.dumpBlockType(blockType);
+        dumper.startScope();
         break;
       }
       case uint16_t(Op::Loop): {
-        if (!iter.readLoop(&unusedType)) {
+        if (!iter.readLoop(&blockType)) {
           return false;
         }
-        dumper.dumpResultType(unusedType);
+        dumper.dumpBlockType(blockType);
+        dumper.startScope();
         break;
       }
       case uint16_t(Op::If): {
-        if (!iter.readIf(&unusedType, &nothing)) {
+        if (!iter.readIf(&blockType, &nothing)) {
           return false;
         }
-        dumper.dumpResultType(unusedType);
+        dumper.dumpBlockType(blockType);
+        dumper.startScope();
         break;
       }
       case uint16_t(Op::Else): {
-        if (!iter.readElse(&unusedType, &unusedType, &nothings)) {
+        if (!iter.readElse(&resultType, &resultType, &nothings)) {
           return false;
         }
         break;
@@ -988,7 +907,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
       }
       case uint16_t(Op::Br): {
         uint32_t depth;
-        if (!iter.readBr(&depth, &unusedType, &nothings)) {
+        if (!iter.readBr(&depth, &resultType, &nothings)) {
           return false;
         }
         dumper.dumpBlockDepth(depth);
@@ -996,7 +915,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
       }
       case uint16_t(Op::BrIf): {
         uint32_t depth;
-        if (!iter.readBrIf(&depth, &unusedType, &nothings, &nothing)) {
+        if (!iter.readBrIf(&depth, &resultType, &nothings, &nothing)) {
           return false;
         }
         dumper.dumpBlockDepth(depth);
@@ -1005,7 +924,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
       case uint16_t(Op::BrTable): {
         Uint32Vector depths;
         uint32_t defaultDepth;
-        if (!iter.readBrTable(&depths, &defaultDepth, &unusedType, &nothings,
+        if (!iter.readBrTable(&depths, &defaultDepth, &resultType, &nothings,
                               &nothing)) {
           return false;
         }
@@ -1258,7 +1177,6 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readRefCast(false, &srcType, &destType, &nothing)) {
               return false;
             }
-            dumper.dumpRefType(srcType);
             dumper.dumpRefType(destType);
             break;
           }
@@ -1268,7 +1186,6 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readRefCast(true, &srcType, &destType, &nothing)) {
               return false;
             }
-            dumper.dumpRefType(srcType);
             dumper.dumpRefType(destType);
             break;
           }
@@ -1277,7 +1194,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             RefType srcType;
             RefType destType;
             if (!iter.readBrOnCast(true, &relativeDepth, &srcType, &destType,
-                                   &unusedType, &nothings)) {
+                                   &resultType, &nothings)) {
               return false;
             }
             dumper.dumpBlockDepth(relativeDepth);
@@ -1290,7 +1207,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             RefType srcType;
             RefType destType;
             if (!iter.readBrOnCast(false, &relativeDepth, &srcType, &destType,
-                                   &unusedType, &nothings)) {
+                                   &resultType, &nothings)) {
               return false;
             }
             dumper.dumpBlockDepth(relativeDepth);
@@ -1794,8 +1711,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readLoadLane(1, &addr, &laneIndex, &nothing)) {
               return false;
             }
-            dumper.dumpLaneIndex(laneIndex);
             dumper.dumpLinearMemoryAddress(addr);
+            dumper.dumpLaneIndex(laneIndex);
             break;
           }
 
@@ -1804,8 +1721,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readLoadLane(2, &addr, &laneIndex, &nothing)) {
               return false;
             }
-            dumper.dumpLaneIndex(laneIndex);
             dumper.dumpLinearMemoryAddress(addr);
+            dumper.dumpLaneIndex(laneIndex);
             break;
           }
 
@@ -1814,8 +1731,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readLoadLane(4, &addr, &laneIndex, &nothing)) {
               return false;
             }
-            dumper.dumpLaneIndex(laneIndex);
             dumper.dumpLinearMemoryAddress(addr);
+            dumper.dumpLaneIndex(laneIndex);
             break;
           }
 
@@ -1824,8 +1741,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readLoadLane(8, &addr, &laneIndex, &nothing)) {
               return false;
             }
-            dumper.dumpLaneIndex(laneIndex);
             dumper.dumpLinearMemoryAddress(addr);
+            dumper.dumpLaneIndex(laneIndex);
             break;
           }
 
@@ -1834,8 +1751,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readStoreLane(1, &addr, &laneIndex, &nothing)) {
               return false;
             }
-            dumper.dumpLaneIndex(laneIndex);
             dumper.dumpLinearMemoryAddress(addr);
+            dumper.dumpLaneIndex(laneIndex);
             break;
           }
 
@@ -1844,8 +1761,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readStoreLane(2, &addr, &laneIndex, &nothing)) {
               return false;
             }
-            dumper.dumpLaneIndex(laneIndex);
             dumper.dumpLinearMemoryAddress(addr);
+            dumper.dumpLaneIndex(laneIndex);
             break;
           }
 
@@ -1854,8 +1771,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readStoreLane(4, &addr, &laneIndex, &nothing)) {
               return false;
             }
-            dumper.dumpLaneIndex(laneIndex);
             dumper.dumpLinearMemoryAddress(addr);
+            dumper.dumpLaneIndex(laneIndex);
             break;
           }
 
@@ -1864,8 +1781,8 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
             if (!iter.readStoreLane(8, &addr, &laneIndex, &nothing)) {
               return false;
             }
-            dumper.dumpLaneIndex(laneIndex);
             dumper.dumpLinearMemoryAddress(addr);
+            dumper.dumpLaneIndex(laneIndex);
             break;
           }
 
@@ -1878,7 +1795,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
           case uint32_t(SimdOp::I16x8RelaxedLaneSelect):
           case uint32_t(SimdOp::I32x4RelaxedLaneSelect):
           case uint32_t(SimdOp::I64x2RelaxedLaneSelect):
-          case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS): {
+          case uint32_t(SimdOp::I32x4RelaxedDotI8x16I7x16AddS): {
             if (!codeMeta.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
@@ -1893,7 +1810,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
           case uint32_t(SimdOp::F64x2RelaxedMin):
           case uint32_t(SimdOp::F64x2RelaxedMax):
           case uint32_t(SimdOp::I16x8RelaxedQ15MulrS):
-          case uint32_t(SimdOp::I16x8DotI8x16I7x16S): {
+          case uint32_t(SimdOp::I16x8RelaxedDotI8x16I7x16S): {
             if (!codeMeta.v128RelaxedEnabled()) {
               return iter.unrecognizedOpcode(&op);
             }
@@ -2085,7 +2002,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
       }
       case uint16_t(Op::BrOnNull): {
         uint32_t depth;
-        if (!iter.readBrOnNull(&depth, &unusedType, &nothings, &nothing)) {
+        if (!iter.readBrOnNull(&depth, &resultType, &nothings, &nothing)) {
           return false;
         }
         dumper.dumpBlockDepth(depth);
@@ -2093,7 +2010,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
       }
       case uint16_t(Op::BrOnNonNull): {
         uint32_t depth;
-        if (!iter.readBrOnNonNull(&depth, &unusedType, &nothings, &nothing)) {
+        if (!iter.readBrOnNonNull(&depth, &resultType, &nothings, &nothing)) {
           return false;
         }
         dumper.dumpBlockDepth(depth);
@@ -2118,7 +2035,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
         if (!iter.readRefNull(&type)) {
           return false;
         }
-        dumper.dumpRefType(type);
+        dumper.dumpHeapType(type);
         break;
       }
       case uint16_t(Op::RefIsNull): {
@@ -2129,16 +2046,16 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
         break;
       }
       case uint16_t(Op::Try): {
-        if (!iter.readTry(&unusedType)) {
+        if (!iter.readTry(&blockType)) {
           return false;
         }
-        dumper.dumpResultType(unusedType);
+        dumper.dumpBlockType(blockType);
         break;
       }
       case uint16_t(Op::Catch): {
         LabelKind unusedKind;
         uint32_t tagIndex;
-        if (!iter.readCatch(&unusedKind, &tagIndex, &unusedType, &unusedType,
+        if (!iter.readCatch(&unusedKind, &tagIndex, &resultType, &resultType,
                             &nothings)) {
           return false;
         }
@@ -2147,7 +2064,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
       }
       case uint16_t(Op::CatchAll): {
         LabelKind unusedKind;
-        if (!iter.readCatchAll(&unusedKind, &unusedType, &unusedType,
+        if (!iter.readCatchAll(&unusedKind, &resultType, &resultType,
                                &nothings)) {
           return false;
         }
@@ -2155,7 +2072,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
       }
       case uint16_t(Op::Delegate): {
         uint32_t depth;
-        if (!iter.readDelegate(&depth, &unusedType, &nothings)) {
+        if (!iter.readDelegate(&depth, &resultType, &nothings)) {
           return false;
         }
         iter.popDelegate();
@@ -2192,7 +2109,7 @@ static bool ValidateOps(ValidatingOpIter& iter, DumpT& dumper,
           return iter.unrecognizedOpcode(&op);
         }
         TryTableCatchVector catches;
-        if (!iter.readTryTable(&unusedType, &catches)) {
+        if (!iter.readTryTable(&blockType, &catches)) {
           return false;
         }
         dumper.dumpTryTableCatches(catches);
@@ -2531,44 +2448,18 @@ bool wasm::ValidateFunctionBody(const CodeMetadata& codeMeta,
   }
 
   ValidatingOpIter iter(codeMeta, d, locals);
-  NopOpDumper visitor;
+  BaseOpDumper visitor;
 
   if (!iter.startFunction(funcIndex)) {
     return false;
   }
 
-  if (!ValidateOps(iter, visitor, codeMeta, bodyEnd)) {
+  if (!ValidateOps(iter, visitor, codeMeta)) {
     return false;
   }
 
   return iter.endFunction(bodyEnd);
 }
-
-#ifdef DEBUG
-bool wasm::DumpFunctionBody(const CodeMetadata& codeMeta, uint32_t funcIndex,
-                            const uint8_t* bodyBegin, uint32_t bodySize,
-                            IndentedPrinter& out, UniqueChars* error) {
-  const uint8_t* bodyEnd = bodyBegin + bodySize;
-  Decoder d(bodyBegin, bodyEnd, 0, error);
-
-  ValTypeVector locals;
-  if (!DecodeLocalEntriesWithParams(d, codeMeta, funcIndex, &locals)) {
-    return false;
-  }
-
-  ValidatingOpIter iter(codeMeta, d, locals);
-  if (!iter.startFunction(funcIndex)) {
-    return false;
-  }
-
-  OpDumper visitor(out);
-  if (!ValidateOps(iter, visitor, codeMeta, bodyEnd)) {
-    return false;
-  }
-
-  return iter.endFunction(bodyEnd);
-}
-#endif
 
 // Section macros.
 

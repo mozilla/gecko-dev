@@ -492,6 +492,12 @@ class JS_PUBLIC_API StringEscape {
   void convertInto(GenericPrinter& out, char16_t c);
 };
 
+class JS_PUBLIC_API WATStringEscape {
+ public:
+  bool isSafeChar(char16_t c);
+  void convertInto(GenericPrinter& out, char16_t c);
+};
+
 // A GenericPrinter that can format its output in a structured way, with nice
 // formatting.
 //

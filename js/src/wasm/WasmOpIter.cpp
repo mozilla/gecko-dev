@@ -24,14 +24,13 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
+#ifdef ENABLE_WASM_SIMD
+#  define WASM_SIMD_OP(code) return code
+#else
+#  define WASM_SIMD_OP(code) break
+#endif
+
 #ifdef DEBUG
-
-#  ifdef ENABLE_WASM_SIMD
-#    define WASM_SIMD_OP(code) return code
-#  else
-#    define WASM_SIMD_OP(code) break
-#  endif
-
 OpKind wasm::Classify(OpBytes op) {
   switch (Op(op.b0)) {
     case Op::Block:
@@ -513,7 +512,7 @@ OpKind wasm::Classify(OpBytes op) {
         case SimdOp::F64x2RelaxedMax:
         case SimdOp::I8x16RelaxedSwizzle:
         case SimdOp::I16x8RelaxedQ15MulrS:
-        case SimdOp::I16x8DotI8x16I7x16S:
+        case SimdOp::I16x8RelaxedDotI8x16I7x16S:
           WASM_SIMD_OP(OpKind::Binary);
         case SimdOp::I8x16Neg:
         case SimdOp::I16x8Neg:
@@ -623,7 +622,7 @@ OpKind wasm::Classify(OpBytes op) {
         case SimdOp::I16x8RelaxedLaneSelect:
         case SimdOp::I32x4RelaxedLaneSelect:
         case SimdOp::I64x2RelaxedLaneSelect:
-        case SimdOp::I32x4DotI8x16I7x16AddS:
+        case SimdOp::I32x4RelaxedDotI8x16I7x16AddS:
           WASM_SIMD_OP(OpKind::Ternary);
       }
       break;
@@ -805,7 +804,6 @@ OpKind wasm::Classify(OpBytes op) {
   }
   MOZ_CRASH("unimplemented opcode");
 }
-
 #endif  // DEBUG
 
 const char* OpBytes::toString() const {
@@ -1167,13 +1165,13 @@ const char* OpBytes::toString() const {
     case Op::F32DemoteF64:
       return "f32.demote_f64";
     case Op::F64ConvertI32S:
-      return "f64.converti32_s";
+      return "f64.convert_i32_s";
     case Op::F64ConvertI32U:
-      return "f64.converti32_u";
+      return "f64.convert_i32_u";
     case Op::F64ConvertI64S:
-      return "f64.converti64_s";
+      return "f64.convert_i64_s";
     case Op::F64ConvertI64U:
-      return "f64.converti64_u";
+      return "f64.convert_i64_u";
     case Op::F64PromoteF32:
       return "f64.promote_f32";
     case Op::I32ReinterpretF32:
@@ -1830,10 +1828,10 @@ const char* OpBytes::toString() const {
           return "f64x2.relaxed_max";
         case SimdOp::I16x8RelaxedQ15MulrS:
           return "i16x8.relaxed_q15mulr_s";
-        case SimdOp::I16x8DotI8x16I7x16S:
-          return "i16x8.dot_i8x16i7x16_s";
-        case SimdOp::I32x4DotI8x16I7x16AddS:
-          return "i32x4.dot_i8x16i7x16_add_s";
+        case SimdOp::I16x8RelaxedDotI8x16I7x16S:
+          return "i16x8.relaxed_dot_i8x16_i7x16_s";
+        case SimdOp::I32x4RelaxedDotI8x16I7x16AddS:
+          return "i32x4.relaxed_dot_i8x16_i7x16_add_s";
         default:
           return "unknown";
       }

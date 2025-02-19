@@ -797,7 +797,7 @@ void LIRGenerator::visitWasmTernarySimd128(MWasmTernarySimd128* ins) {
       defineReuseInput(lir, ins, LWasmTernarySimd128::V2Index);
       break;
     }
-    case wasm::SimdOp::I32x4DotI8x16I7x16AddS: {
+    case wasm::SimdOp::I32x4RelaxedDotI8x16I7x16AddS: {
       auto* lir = new (alloc())
           LWasmTernarySimd128(useRegister(ins->v0()), useRegister(ins->v1()),
                               useRegisterAtStart(ins->v2()),
@@ -1073,7 +1073,7 @@ void LIRGenerator::visitWasmBinarySimd128(MWasmBinarySimd128* ins) {
     case wasm::SimdOp::F64x2RelaxedMin:
     case wasm::SimdOp::F64x2RelaxedMax:
     case wasm::SimdOp::I16x8RelaxedQ15MulrS:
-    case wasm::SimdOp::I16x8DotI8x16I7x16S:
+    case wasm::SimdOp::I16x8RelaxedDotI8x16I7x16S:
     case wasm::SimdOp::MozPMADDUBSW:
       if (isThreeOpAllowed()) {
         auto* lir = new (alloc())

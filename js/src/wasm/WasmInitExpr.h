@@ -55,11 +55,11 @@ enum class InitExprKind {
 
 class InitExpr {
   InitExprKind kind_;
-  // The bytecode for this constant expression if this is not a literal.
+  // The bytecode for this constant expression.
   Bytes bytecode_;
-  // The value if this is a literal.
+  // The value, only if this is a literal.
   LitVal literal_;
-  // The value type of this constant expression in either case.
+  // The value type of this constant expression.
   ValType type_;
 
  public:
@@ -84,8 +84,8 @@ class InitExpr {
       JSContext* cx, Handle<WasmInstanceObject*> instanceObj, Decoder& d,
       ValType expectedType, MutableHandleVal result);
 
-  // Evaluate the constant expresssion with the given context. This may only
-  // fail due to an OOM, as all InitExpr's are required to have been validated.
+  // Evaluate the constant expression with the given context. This may only fail
+  // due to an OOM, as all InitExpr's are required to have been validated.
   bool evaluate(JSContext* cx, Handle<WasmInstanceObject*> instanceObj,
                 MutableHandleVal result) const;
 
@@ -99,6 +99,9 @@ class InitExpr {
 
   // Get the type of the resulting value of this expression.
   ValType type() const { return type_; }
+
+  // Return the raw bytecode for the expression.
+  const Bytes& bytecode() const { return bytecode_; }
 
   // Allow moving, but not implicit copying
   InitExpr(const InitExpr&) = delete;

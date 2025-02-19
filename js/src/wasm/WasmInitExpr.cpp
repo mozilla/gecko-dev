@@ -637,7 +637,10 @@ bool InitExpr::decodeAndValidate(Decoder& d, CodeMetadata* codeMeta,
     return false;
   }
   const uint8_t* exprEnd = d.currentPosition();
-  size_t exprSize = exprEnd - exprStart;
+
+  if (!expr->bytecode_.append(exprStart, exprEnd)) {
+    return false;
+  }
 
   MOZ_ASSERT(expr->kind_ == InitExprKind::None);
   expr->type_ = expected;
@@ -650,8 +653,7 @@ bool InitExpr::decodeAndValidate(Decoder& d, CodeMetadata* codeMeta,
   }
 
   expr->kind_ = InitExprKind::Variable;
-  return expr->bytecode_.reserve(exprSize) &&
-         expr->bytecode_.append(exprStart, exprEnd);
+  return true;
 }
 
 /* static */ bool InitExpr::decodeAndEvaluate(

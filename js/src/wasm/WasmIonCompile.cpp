@@ -6003,18 +6003,18 @@ bool FunctionCompiler::emitF64Const() {
 }
 
 bool FunctionCompiler::emitBlock() {
-  ResultType params;
-  return iter().readBlock(&params) && startBlock();
+  BlockType type;
+  return iter().readBlock(&type) && startBlock();
 }
 
 bool FunctionCompiler::emitLoop() {
-  ResultType params;
-  if (!iter().readLoop(&params)) {
+  BlockType type;
+  if (!iter().readLoop(&type)) {
     return false;
   }
 
   MBasicBlock* loopHeader;
-  if (!startLoop(&loopHeader, params.length())) {
+  if (!startLoop(&loopHeader, type.params().length())) {
     return false;
   }
 
@@ -6028,9 +6028,9 @@ bool FunctionCompiler::emitIf() {
   BranchHint branchHint =
       iter().getBranchHint(funcIndex(), relativeBytecodeOffset());
 
-  ResultType params;
+  BlockType type;
   MDefinition* condition = nullptr;
-  if (!iter().readIf(&params, &condition)) {
+  if (!iter().readIf(&type, &condition)) {
     return false;
   }
 
@@ -6239,8 +6239,8 @@ bool FunctionCompiler::emitUnreachable() {
 }
 
 bool FunctionCompiler::emitTry() {
-  ResultType params;
-  if (!iter().readTry(&params)) {
+  BlockType type;
+  if (!iter().readTry(&type)) {
     return false;
   }
 
@@ -6287,9 +6287,9 @@ bool FunctionCompiler::emitCatchAll() {
 }
 
 bool FunctionCompiler::emitTryTable() {
-  ResultType params;
+  BlockType type;
   TryTableCatchVector catches;
-  if (!iter().readTryTable(&params, &catches)) {
+  if (!iter().readTryTable(&type, &catches)) {
     return false;
   }
 
@@ -10015,7 +10015,7 @@ bool FunctionCompiler::emitBodyExprs() {
           case uint32_t(SimdOp::I16x8RelaxedLaneSelect):
           case uint32_t(SimdOp::I32x4RelaxedLaneSelect):
           case uint32_t(SimdOp::I64x2RelaxedLaneSelect):
-          case uint32_t(SimdOp::I32x4DotI8x16I7x16AddS): {
+          case uint32_t(SimdOp::I32x4RelaxedDotI8x16I7x16AddS): {
             if (!codeMeta().v128RelaxedEnabled()) {
               return iter().unrecognizedOpcode(&op);
             }
@@ -10041,7 +10041,7 @@ bool FunctionCompiler::emitBodyExprs() {
             CHECK(emitUnarySimd128(SimdOp(op.b1)));
           }
           case uint32_t(SimdOp::I8x16RelaxedSwizzle):
-          case uint32_t(SimdOp::I16x8DotI8x16I7x16S): {
+          case uint32_t(SimdOp::I16x8RelaxedDotI8x16I7x16S): {
             if (!codeMeta().v128RelaxedEnabled()) {
               return iter().unrecognizedOpcode(&op);
             }
