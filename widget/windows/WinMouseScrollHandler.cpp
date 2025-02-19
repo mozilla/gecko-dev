@@ -297,27 +297,6 @@ bool MouseScrollHandler::ProcessMessage(nsWindow* aWidget, UINT msg,
       return GetInstance()->ProcessMessageDirectly(msg, wParam, lParam,
                                                    aResult);
 
-    case MOZ_WM_MOUSEVWHEEL:
-    case MOZ_WM_MOUSEHWHEEL:
-      GetInstance()->HandleMouseWheelMessage(aWidget, msg, wParam, lParam);
-      if (auto* synth = GetActiveSynthEvent()) {
-        synth->NotifyMessageHandlingFinished();
-      }
-      // Doesn't need to call next wndproc for internal wheel message.
-      aResult.mConsumed = true;
-      return true;
-
-    case MOZ_WM_HSCROLL:
-    case MOZ_WM_VSCROLL:
-      GetInstance()->HandleScrollMessageAsMouseWheelMessage(aWidget, msg,
-                                                            wParam, lParam);
-      if (auto* synth = GetActiveSynthEvent()) {
-        synth->NotifyMessageHandlingFinished();
-      }
-      // Doesn't need to call next wndproc for internal scroll message.
-      aResult.mConsumed = true;
-      return true;
-
     case WM_KEYDOWN:
     case WM_KEYUP:
       MOZ_LOG(gMouseScrollLog, LogLevel::Info,
@@ -447,8 +426,8 @@ ModifierKeyState MouseScrollHandler::GetModifierKeyState(UINT aMessage) {
   // Assume the Control key is down if the Elantech touchpad has sent the
   // mis-ordered WM_KEYDOWN/WM_MOUSEWHEEL messages.  (See the comment in
   // MouseScrollHandler::Device::Elantech::HandleKeyMessage().)
-  if ((aMessage == MOZ_WM_MOUSEVWHEEL || aMessage == WM_MOUSEWHEEL) &&
-      !result.IsControl() && Device::Elantech::IsZooming()) {
+  if (aMessage == WM_MOUSEWHEEL && !result.IsControl() &&
+      Device::Elantech::IsZooming()) {
     // XXX Do we need to unset MODIFIER_SHIFT, MODIFIER_ALT, MODIFIER_META too?
     //     If one of them are true, the default action becomes not zooming.
     result.Unset(MODIFIER_ALTGRAPH);
@@ -603,10 +582,6 @@ bool MouseScrollHandler::HandleMouseWheelMessage(nsWindow* aWidget,
   // for logging only
   const char* const msgName [[maybe_unused]] = [&]() {
     switch (aMessage) {
-      case MOZ_WM_MOUSEVWHEEL:
-        return "MOZ_WM_MOUSEVWHEEL";
-      case MOZ_WM_MOUSEHWHEEL:
-        return "MOZ_WM_MOUSEHWHEEL";
       case WM_MOUSEWHEEL:
         return "WM_MOUSEWHEEL";
       case WM_MOUSEHWHEEL:
@@ -616,16 +591,9 @@ bool MouseScrollHandler::HandleMouseWheelMessage(nsWindow* aWidget,
     }
   }();
 
-  // a remnant of the old scrollwheel message hack
-  if (aMessage == WM_MOUSEWHEEL) {
-    aMessage = MOZ_WM_MOUSEVWHEEL;
-  } else if (aMessage == WM_MOUSEHWHEEL) {
-    aMessage = MOZ_WM_MOUSEHWHEEL;
-  }
-
-  MOZ_ASSERT((aMessage == MOZ_WM_MOUSEVWHEEL || aMessage == MOZ_WM_MOUSEHWHEEL),
+  MOZ_ASSERT((aMessage == WM_MOUSEWHEEL || aMessage == WM_MOUSEHWHEEL),
              "HandleMouseWheelMessage must be called with "
-             "MOZ_WM_MOUSEVWHEEL or MOZ_WM_MOUSEHWHEEL");
+             "WM_MOUSEWHEEL or WM_MOUSEHWHEEL");
 
   MOZ_LOG(gMouseScrollLog, LogLevel::Info,
           ("MouseScroll::HandleMouseWheelMessage: aWidget=%p, "
@@ -636,8 +604,7 @@ bool MouseScrollHandler::HandleMouseWheelMessage(nsWindow* aWidget,
   // before handling the mouse wheel message.
   mSystemSettings.TrustedScrollSettingsDriver();
 
-  EventInfo eventInfo(aWidget, WinUtils::GetNativeMessage(aMessage), aWParam,
-                      aLParam);
+  EventInfo eventInfo(aWidget, aMessage, aWParam, aLParam);
   if (!eventInfo.CanDispatchWheelEvent()) {
     MOZ_LOG(
         gMouseScrollLog, LogLevel::Info,
@@ -684,10 +651,6 @@ bool MouseScrollHandler::HandleScrollMessageAsMouseWheelMessage(
   // for logging only
   const char* const msgName [[maybe_unused]] = [&]() {
     switch (aMessage) {
-      case MOZ_WM_VSCROLL:
-        return "MOZ_WM_VSCROLL";
-      case MOZ_WM_HSCROLL:
-        return "MOZ_WM_HSCROLL";
       case WM_VSCROLL:
         return "WM_VSCROLL";
       case WM_HSCROLL:
@@ -697,23 +660,16 @@ bool MouseScrollHandler::HandleScrollMessageAsMouseWheelMessage(
     }
   }();
 
-  // a remnant of the old scrollwheel message hack
-  if (aMessage == WM_VSCROLL) {
-    aMessage = MOZ_WM_VSCROLL;
-  } else if (aMessage == WM_HSCROLL) {
-    aMessage = MOZ_WM_HSCROLL;
-  }
-
-  MOZ_ASSERT((aMessage == MOZ_WM_VSCROLL || aMessage == MOZ_WM_HSCROLL),
+  MOZ_ASSERT((aMessage == WM_VSCROLL || aMessage == WM_HSCROLL),
              "HandleScrollMessageAsMouseWheelMessage must be called with "
-             "MOZ_WM_VSCROLL or MOZ_WM_HSCROLL");
+             "WM_VSCROLL or WM_HSCROLL");
 
   ModifierKeyState modKeyState = GetModifierKeyState(aMessage);
 
   WidgetWheelEvent wheelEvent(true, eWheel, aWidget);
   double& delta =
-      (aMessage == MOZ_WM_VSCROLL) ? wheelEvent.mDeltaY : wheelEvent.mDeltaX;
-  int32_t& lineOrPageDelta = (aMessage == MOZ_WM_VSCROLL)
+      (aMessage == WM_VSCROLL) ? wheelEvent.mDeltaY : wheelEvent.mDeltaX;
+  int32_t& lineOrPageDelta = (aMessage == WM_VSCROLL)
                                  ? wheelEvent.mLineOrPageDeltaY
                                  : wheelEvent.mLineOrPageDeltaX;
 
