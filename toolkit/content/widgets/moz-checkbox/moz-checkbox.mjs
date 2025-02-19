@@ -30,6 +30,8 @@ export default class MozCheckbox extends MozBaseInputElement {
     checked: { type: Boolean, reflect: true },
   };
 
+  static activatedProperty = "checked";
+
   constructor() {
     super();
     this.checked = false;

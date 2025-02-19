@@ -264,6 +264,14 @@ export class MozBaseInputElement extends MozLitElement {
     this.#updateInternalState(this.description, "description");
     this.#updateInternalState(this.supportPage, "support-link");
     this.#updateInternalState(this.label, "label");
+
+    let activatedProperty = this.constructor.activatedProperty;
+    if (
+      (activatedProperty && changedProperties.has(activatedProperty)) ||
+      changedProperties.has("disabled")
+    ) {
+      this.updateNestedElements();
+    }
   }
 
   #updateInternalState(propVal, stateKey) {
@@ -281,6 +289,15 @@ export class MozBaseInputElement extends MozLitElement {
     }
   }
 
+  updateNestedElements() {
+    for (let el of this.nestedEls) {
+      if ("disabled" in el) {
+        el.disabled =
+          !this[this.constructor.activatedProperty] || this.disabled;
+      }
+    }
+  }
+
   get inputEl() {
     return this.renderRoot.getElementById("input");
   }
@@ -295,6 +312,10 @@ export class MozBaseInputElement extends MozLitElement {
 
   get descriptionEl() {
     return this.renderRoot.getElementById("description");
+  }
+
+  get nestedEls() {
+    return this.renderRoot.querySelector(".nested")?.assignedElements() ?? [];
   }
 
   get hasDescription() {
@@ -414,11 +435,14 @@ export class MozBaseInputElement extends MozLitElement {
   }
 
   nestedFieldsTemplate() {
-    return html`<slot
-      name="nested"
-      class="nested"
-      @slotchange=${this.handleNestedContent}
-    ></slot>`;
+    if (this.constructor.activatedProperty) {
+      return html`<slot
+        name="nested"
+        class="nested"
+        @slotchange=${this.updateNestedElements}
+      ></slot>`;
+    }
+    return "";
   }
 
   onSlotchange(e) {

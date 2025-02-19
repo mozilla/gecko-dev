@@ -22,7 +22,7 @@
       <moz-toggle ${attrs}>${children}</moz-toggle>
     `;
     await testHelpers.setupInputTests({ templateFn });
-    testHelpers.activatedProperty = "pressed";
+    testHelpers.activatedProperty = customElements.get("moz-toggle").activatedProperty;
   });
 
   add_task(async function testMozToggleProperties() {

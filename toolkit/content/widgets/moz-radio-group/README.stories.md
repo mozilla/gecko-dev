@@ -111,3 +111,37 @@ Would be used to set labels on the different elements as follows:
   <moz-radio data-l10n-id="second-moz-radio-id"></moz-radio>
 </moz-radio-group>
 ```
+
+### Nested fields
+
+`moz-radio` elements support nested or dependent fields via a `nested` named
+slot. These fields will be rendered below the radio element in which they are
+nested, and will be indented to visually indicate dependence. Any nested fields
+will mirror the `disabled` state of the radio and will also become `disabled`
+whenever the radio is not `checked`.
+
+When nesting fields under a radio element we do not need to do any additional
+wrapping with `moz-fieldset`, since `moz-radio-group` already relies on
+`moz-fieldset` under the hood:
+
+```html
+<moz-radio-group label="Label for the group">
+  <moz-radio label="Some radio button" value="bar"></moz-radio>
+  <moz-radio label="another another radio button" value="baz"></moz-radio>
+  <moz-radio label="Parent radio button" value="foo" checked>
+    <moz-checkbox slot="nested" label="Nested checkbox one" value="one"></moz-checkbox>
+    <moz-checkbox slot="nested" label="Nested checkbox two" value="two" checked></moz-checkbox>
+  </moz-radio>
+</moz-radio-group>
+```
+
+```html story
+<moz-radio-group label="Label for the group">
+  <moz-radio label="Some radio button" value="bar"></moz-radio>
+  <moz-radio label="another another radio button" value="baz"></moz-radio>
+  <moz-radio label="Parent radio button" value="foo" checked>
+    <moz-checkbox slot="nested" label="Nested checkbox one" value="one"></moz-checkbox>
+    <moz-checkbox slot="nested" label="Nested checkbox two" value="two" checked></moz-checkbox>
+  </moz-radio>
+</moz-radio-group>
+```

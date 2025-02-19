@@ -48,43 +48,38 @@ const Template = ({
   iconSrc,
   hasSlottedSupportLink,
   nestedFields,
-}) => html`
-  <moz-toggle
-    ?pressed=${pressed}
-    ?disabled=${disabled}
-    label=${ifDefined(label)}
-    description=${ifDefined(description)}
-    aria-label=${ifDefined(ariaLabel)}
-    data-l10n-id=${ifDefined(l10nId)}
-    accesskey=${ifDefined(accessKey)}
-    support-page=${ifDefined(supportPage)}
-    iconsrc=${ifDefined(iconSrc)}
-  >
-    ${hasSlottedSupportLink
-      ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
-      : ""}
-    ${nestedFields
-      ? html`<moz-checkbox
-            slot="nested"
-            ?disabled=${disabled}
-            data-l10n-id=${ifDefined(l10nId)}
-          >
-          </moz-checkbox>
-          <moz-checkbox
-            slot="nested"
-            ?disabled=${disabled}
-            data-l10n-id=${ifDefined(l10nId)}
-          >
-            <moz-checkbox
-              slot="nested"
-              ?disabled=${disabled}
-              data-l10n-id=${ifDefined(l10nId)}
-            >
+}) => {
+  let toggleTemplate = html`
+    <moz-toggle
+      ?pressed=${pressed}
+      ?disabled=${disabled}
+      label=${ifDefined(label)}
+      description=${ifDefined(description)}
+      aria-label=${ifDefined(ariaLabel)}
+      data-l10n-id=${ifDefined(l10nId)}
+      accesskey=${ifDefined(accessKey)}
+      support-page=${ifDefined(supportPage)}
+      iconsrc=${ifDefined(iconSrc)}
+    >
+      ${hasSlottedSupportLink
+        ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
+        : ""}
+      ${nestedFields
+        ? html`<moz-checkbox slot="nested" data-l10n-id=${ifDefined(l10nId)}>
             </moz-checkbox>
-          </moz-checkbox> `
-      : ""}
-  </moz-toggle>
-`;
+            <moz-checkbox slot="nested" data-l10n-id=${ifDefined(l10nId)}>
+              <moz-checkbox slot="nested" data-l10n-id=${ifDefined(l10nId)}>
+              </moz-checkbox>
+            </moz-checkbox> `
+        : ""}
+    </moz-toggle>
+  `;
+  return nestedFields
+    ? html`<moz-fieldset label="Toggle with nested fields"
+        >${toggleTemplate}</moz-fieldset
+      >`
+    : toggleTemplate;
+};
 
 export const Default = Template.bind({});
 Default.args = {

@@ -140,6 +140,7 @@ class InputTestHelpers {
     await this.verifyNoWhitespace(elementName);
     if (this.activatedProperty) {
       await this.verifyActivated(elementName);
+      await this.verifyNestedFields(elementName);
     }
   }
 
@@ -686,5 +687,150 @@ class InputTestHelpers {
       ARIA_LABEL,
       "The aria-label is set on the input element."
     );
+  }
+
+  /**
+   * Verifies the behavior of nested elements for inputs that support nesting.
+   *
+   * @param {string} selector - HTML tag of the element under test.
+   */
+  async verifyNestedFields(selector) {
+    let { activatedProperty } = this;
+    let nestedTemplate = this.templateFn({
+      label: "label",
+      value: "foo",
+      [activatedProperty]: true,
+    });
+    let renderTarget = await this.renderInputElements(nestedTemplate);
+    let parentInput = renderTarget.querySelector(selector);
+    let nestedEls = [];
+
+    async function waitForUpdateComplete() {
+      await parentInput.updateComplete;
+      await Promise.all(nestedEls.map(el => el.updateComplete));
+    }
+
+    // Create elements we expect to use in the nested slot.
+    let nestedCheckbox = document.createElement("moz-checkbox");
+    nestedCheckbox.slot = "nested";
+    nestedCheckbox.label = "nested checkbox";
+    nestedCheckbox.checked = true;
+    nestedCheckbox.value = "one";
+    nestedEls.push(nestedCheckbox);
+
+    let nestedBoxButton = document.createElement("moz-box-button");
+    nestedBoxButton.slot = "nested";
+    nestedBoxButton.label = "nested box button";
+    nestedEls.push(nestedBoxButton);
+
+    let nestedSelect = document.createElement("moz-select");
+    nestedSelect.slot = "nested";
+    nestedSelect.label = "nested select";
+    nestedSelect.value = "two";
+    nestedEls.push(nestedSelect);
+
+    let options = ["one", "two", "three"].map(val => {
+      let option = document.createElement("moz-option");
+      option.value = val;
+      option.label = val;
+      return option;
+    });
+    nestedSelect.append(...options);
+
+    parentInput.append(...nestedEls);
+    await waitForUpdateComplete();
+
+    // Test the initial state when parent input is enabled and activated.
+    nestedEls.forEach(nestedEl => {
+      is(
+        nestedEl.disabled,
+        false,
+        `The nested ${nestedEl.localName} element is enabled when the parent input is activated.`
+      );
+    });
+
+    // Deactivate the parent input.
+    parentInput[activatedProperty] = false;
+    await waitForUpdateComplete();
+
+    nestedEls.forEach(nestedEl => {
+      is(
+        nestedEl.disabled,
+        true,
+        `The nested ${nestedEl.localName} element is disabled when the parent input is deactivated.`
+      );
+    });
+
+    // Create another nested element to slot in later.
+    let anotherNestedCheckbox = nestedCheckbox.cloneNode(true);
+    anotherNestedCheckbox.label = "I get slotted later";
+    nestedEls.push(anotherNestedCheckbox);
+
+    // Verify that additional slotted els get the correct disabled state.
+    let checkboxSlotted = BrowserTestUtils.waitForEvent(
+      parentInput.shadowRoot.querySelector(".nested"),
+      "slotchange"
+    );
+    parentInput.append(anotherNestedCheckbox);
+    await checkboxSlotted;
+    is(
+      anotherNestedCheckbox.disabled,
+      true,
+      "Newly slotted checkbox is initially disabled."
+    );
+
+    // Reactivate the parent input.
+    parentInput[activatedProperty] = true;
+    await waitForUpdateComplete();
+
+    nestedEls.forEach(nestedEl => {
+      is(
+        nestedEl.disabled,
+        false,
+        `The nested ${nestedEl.localName} element is enabled when the parent input is reactivated.`
+      );
+    });
+
+    // Verify multiple layers of nested fields work as expected.
+    let deeplyNestedCheckbox = nestedCheckbox.cloneNode(true);
+    deeplyNestedCheckbox.label = "I'm deeply nested";
+    nestedEls.push(deeplyNestedCheckbox);
+
+    let firstNestedCheckbox = nestedEls[0];
+    checkboxSlotted = BrowserTestUtils.waitForEvent(
+      firstNestedCheckbox.shadowRoot.querySelector(".nested"),
+      "slotchange"
+    );
+    firstNestedCheckbox.append(deeplyNestedCheckbox);
+    await checkboxSlotted;
+    is(
+      deeplyNestedCheckbox.disabled,
+      false,
+      "Deeply nested checkbox is initially enabled."
+    );
+
+    // Disabled the parent input.
+    parentInput.disabled = true;
+    await waitForUpdateComplete();
+
+    nestedEls.forEach(nestedEl => {
+      is(
+        nestedEl.disabled,
+        true,
+        `The nested ${nestedEl.localName} element is disabled when parent input is disabled.`
+      );
+    });
+
+    // Reenable the parent input.
+    parentInput.disabled = false;
+    await waitForUpdateComplete();
+
+    nestedEls.forEach(nestedEl => {
+      is(
+        nestedEl.disabled,
+        false,
+        `The nested ${nestedEl.localName} element is enabled when parent input is reenabled.`
+      );
+    });
   }
 }

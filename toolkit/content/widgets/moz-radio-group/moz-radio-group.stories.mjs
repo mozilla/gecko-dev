@@ -100,6 +100,7 @@ const Template = ({
   groupSupportPage,
   hasSlottedSupportLinks,
   groupSlottedSupportLink,
+  nestedFields,
 }) => html`
   <moz-radio-group
     name=${groupName}
@@ -127,6 +128,13 @@ const Template = ({
             ? html`<a slot="support-link" href="www.example.com">
                 Click me!
               </a>`
+            : ""}
+          ${nestedFields
+            ? html`<moz-checkbox
+                slot="nested"
+                data-l10n-id=${ifDefined(buttonLabels[i])}
+              >
+              </moz-checkbox> `
             : ""}
         </moz-radio>
       `
@@ -218,4 +226,10 @@ WithRadioGroupSlottedSupportLink.args = {
   ...Default.args,
   groupL10nId: "moz-radio-group-description",
   groupSlottedSupportLink: true,
+};
+
+export const WithNestedFields = Template.bind({});
+WithNestedFields.args = {
+  ...Default.args,
+  nestedFields: true,
 };

@@ -270,6 +270,8 @@ export class MozRadio extends MozBaseInputElement {
     inputTabIndex: { type: Number, state: true },
   };
 
+  static activatedProperty = "checked";
+
   get controller() {
     return this.#controller;
   }

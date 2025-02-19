@@ -78,3 +78,32 @@ You do not have to specify `data-l10n-attrs` if you're only using an `aria-label
 with-aria-label-only =
   .aria-label = aria-label text goes here
 ```
+
+### Nested fields
+
+`moz-toggle` supports nested or dependent fields via a `nested` named slot.
+These fields will be rendered below the toggle element, and will be indented to
+visually indicate dependence. Any nested fields will mirror the `disabled` state
+of the toggle and will also become `disabled` whenever the toggle is not `pressed`.
+
+When nesting fields it's important to wrap the elements in a `moz-fieldset` to
+indicate to assistive technologies that the fields are related, and to provide a
+label for the group of controls:
+
+```html
+<moz-fieldset label="Label for the group">
+  <moz-toggle label="Parent toggle" pressed>
+    <moz-checkbox slot="nested" label="Nested checkbox one" value="one"></moz-checkbox>
+    <moz-checkbox slot="nested" label="Nested checkbox two" value="two" checked></moz-checkbox>
+  </moz-toggle>
+</moz-fieldset>
+```
+
+```html story
+<moz-fieldset label="Label for the group">
+  <moz-toggle label="Parent toggle" pressed>
+    <moz-checkbox slot="nested" label="Nested checkbox one" value="one"></moz-checkbox>
+    <moz-checkbox slot="nested" label="Nested checkbox two" value="two" checked></moz-checkbox>
+  </moz-toggle>
+</moz-fieldset>
+```

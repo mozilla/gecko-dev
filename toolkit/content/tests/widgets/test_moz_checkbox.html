@@ -6,6 +6,7 @@
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <script type="module" src="chrome://global/content/elements/moz-checkbox.mjs"></script>
   <script src="input-test-helpers.js"></script>
   <script class="testbody" type="application/javascript">
@@ -18,7 +19,7 @@
         templateFn: (attrs, children) =>
           html`<moz-checkbox ${attrs}>${children}</moz-checkbox>`,
       });
-      testHelpers.activatedProperty = "checked";
+      testHelpers.activatedProperty = customElements.get("moz-checkbox").activatedProperty;
     });
 
     add_task(async function testMozCheckboxProperties() {

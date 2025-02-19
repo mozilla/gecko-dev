@@ -44,25 +44,41 @@ const Template = ({
   accesskey,
   supportPage,
   hasSlottedSupportLink,
-}) => html`
-  <moz-checkbox
-    ?checked=${checked}
-    label=${ifDefined(label)}
-    description=${ifDefined(description)}
-    data-l10n-id=${ifDefined(l10nId)}
-    .iconSrc=${iconSrc}
-    ?disabled=${disabled}
-    accesskey=${ifDefined(accesskey)}
-    support-page=${ifDefined(supportPage)}
-  >
-    ${hasSlottedDescription
-      ? html`<div slot="description">test slot text</div>`
-      : ""}
-    ${hasSlottedSupportLink
-      ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
-      : ""}
-  </moz-checkbox>
-`;
+  nestedFields,
+}) => {
+  let checkboxTemplate = html`
+    <moz-checkbox
+      ?checked=${checked}
+      label=${ifDefined(label)}
+      description=${ifDefined(description)}
+      data-l10n-id=${ifDefined(l10nId)}
+      .iconSrc=${iconSrc}
+      ?disabled=${disabled}
+      accesskey=${ifDefined(accesskey)}
+      support-page=${ifDefined(supportPage)}
+    >
+      ${hasSlottedDescription
+        ? html`<div slot="description">test slot text</div>`
+        : ""}
+      ${hasSlottedSupportLink
+        ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
+        : ""}
+      ${nestedFields
+        ? html`<moz-checkbox slot="nested" data-l10n-id=${ifDefined(l10nId)}>
+            </moz-checkbox>
+            <moz-checkbox slot="nested" data-l10n-id=${ifDefined(l10nId)}>
+              <moz-checkbox slot="nested" data-l10n-id=${ifDefined(l10nId)}>
+              </moz-checkbox>
+            </moz-checkbox> `
+        : ""}
+    </moz-checkbox>
+  `;
+  return nestedFields
+    ? html`<moz-fieldset label="Checkbox with nested fields"
+        >${checkboxTemplate}</moz-fieldset
+      >`
+    : checkboxTemplate;
+};
 
 export const Default = Template.bind({});
 Default.args = {
@@ -77,6 +93,7 @@ Default.args = {
   accesskey: "",
   supportPage: "",
   hasSlottedSupportLink: false,
+  nestedFields: false,
 };
 
 export const WithIcon = Template.bind({});
@@ -125,4 +142,10 @@ export const WithSlottedSupportLink = Template.bind({});
 WithSlottedSupportLink.args = {
   ...Default.args,
   hasSlottedSupportLink: true,
+};
+
+export const WithNestedFields = Template.bind({});
+WithNestedFields.args = {
+  ...Default.args,
+  nestedFields: true,
 };

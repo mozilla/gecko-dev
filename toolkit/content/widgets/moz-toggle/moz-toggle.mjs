@@ -27,6 +27,8 @@ export default class MozToggle extends MozBaseInputElement {
     pressed: { type: Boolean, reflect: true },
   };
 
+  static activatedProperty = "pressed";
+
   get buttonEl() {
     return this.inputEl;
   }

@@ -7,6 +7,7 @@
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script type="module" src="chrome://global/content/elements/moz-radio-group.mjs"></script>
   <script src="input-test-helpers.js"></script>
   <script>
     let testHelpers = new InputTestHelpers();
@@ -19,7 +20,7 @@
         </moz-radio-group>
       `;
       await testHelpers.setupInputTests({ templateFn });
-      testHelpers.activatedProperty = "checked";
+      testHelpers.activatedProperty = customElements.get("moz-radio").activatedProperty;
     });
 
     add_task(async function testMozRadioProperties() {
