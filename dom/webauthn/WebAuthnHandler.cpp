@@ -36,10 +36,6 @@ namespace mozilla::dom {
  * Statics
  **********************************************************************/
 
-namespace {
-static mozilla::LazyLogModule gWebAuthnHandlerLog("webauthnhandler");
-}
-
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebAuthnHandler)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
@@ -76,91 +72,6 @@ static uint8_t SerializeTransports(
     }
   }
   return transports;
-}
-
-nsresult GetOrigin(nsPIDOMWindowInner* aParent,
-                   /*out*/ nsAString& aOrigin, /*out*/ nsACString& aHost) {
-  MOZ_ASSERT(aParent);
-  nsCOMPtr<Document> doc = aParent->GetDoc();
-  MOZ_ASSERT(doc);
-
-  nsCOMPtr<nsIPrincipal> principal = doc->NodePrincipal();
-  nsresult rv =
-      nsContentUtils::GetWebExposedOriginSerialization(principal, aOrigin);
-  if (NS_WARN_IF(NS_FAILED(rv)) || NS_WARN_IF(aOrigin.IsEmpty())) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (principal->GetIsIpAddress()) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  if (aOrigin.EqualsLiteral("null")) {
-    // 4.1.1.3 If callerOrigin is an opaque origin, reject promise with a
-    // DOMException whose name is "NotAllowedError", and terminate this
-    // algorithm
-    MOZ_LOG(gWebAuthnHandlerLog, LogLevel::Debug,
-            ("Rejecting due to opaque origin"));
-    return NS_ERROR_DOM_NOT_ALLOWED_ERR;
-  }
-
-  nsCOMPtr<nsIURI> originUri;
-  auto* basePrin = BasePrincipal::Cast(principal);
-  if (NS_FAILED(basePrin->GetURI(getter_AddRefs(originUri)))) {
-    return NS_ERROR_FAILURE;
-  }
-  if (NS_FAILED(originUri->GetAsciiHost(aHost))) {
-    return NS_ERROR_FAILURE;
-  }
-
-  return NS_OK;
-}
-
-nsresult RelaxSameOrigin(nsPIDOMWindowInner* aParent,
-                         const nsAString& aInputRpId,
-                         /* out */ nsACString& aRelaxedRpId) {
-  MOZ_ASSERT(aParent);
-  nsCOMPtr<Document> doc = aParent->GetDoc();
-  MOZ_ASSERT(doc);
-
-  nsCOMPtr<nsIPrincipal> principal = doc->NodePrincipal();
-  auto* basePrin = BasePrincipal::Cast(principal);
-  nsCOMPtr<nsIURI> uri;
-
-  if (NS_FAILED(basePrin->GetURI(getter_AddRefs(uri)))) {
-    return NS_ERROR_FAILURE;
-  }
-  nsAutoCString originHost;
-  if (NS_FAILED(uri->GetAsciiHost(originHost))) {
-    return NS_ERROR_FAILURE;
-  }
-  nsCOMPtr<Document> document = aParent->GetDoc();
-  if (!document || !document->IsHTMLOrXHTML()) {
-    return NS_ERROR_FAILURE;
-  }
-  nsHTMLDocument* html = document->AsHTMLDocument();
-  // See if the given RP ID is a valid domain string.
-  // (We use the document's URI here as a template so we don't have to come up
-  // with our own scheme, etc. If we can successfully set the host as the given
-  // RP ID, then it should be a valid domain string.)
-  nsCOMPtr<nsIURI> inputRpIdURI;
-  nsresult rv = NS_MutateURI(uri)
-                    .SetHost(NS_ConvertUTF16toUTF8(aInputRpId))
-                    .Finalize(inputRpIdURI);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-  nsAutoCString inputRpId;
-  if (NS_FAILED(inputRpIdURI->GetAsciiHost(inputRpId))) {
-    return NS_ERROR_FAILURE;
-  }
-  if (!html->IsRegistrableDomainSuffixOfOrEqualTo(
-          NS_ConvertUTF8toUTF16(inputRpId), originHost)) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  aRelaxedRpId.Assign(inputRpId);
-  return NS_OK;
 }
 
 /***********************************************************************
@@ -220,18 +131,41 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
     CancelTransaction(NS_ERROR_DOM_ABORT_ERR);
   }
 
-  nsString origin;
+  if (!MaybeCreateActor()) {
+    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
+    return promise.forget();
+  }
+
+  nsCOMPtr<Document> doc = mWindow->GetDoc();
+  if (!IsWebAuthnAllowedInDocument(doc)) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+    return promise.forget();
+  }
+
+  nsCOMPtr<nsIPrincipal> principal = doc->NodePrincipal();
+  if (!IsWebAuthnAllowedForPrincipal(principal)) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+    return promise.forget();
+  }
+
   nsCString rpId;
-  nsresult rv = GetOrigin(mWindow, origin, rpId);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    promise->MaybeReject(rv);
+  if (aOptions.mRp.mId.WasPassed()) {
+    rpId = NS_ConvertUTF16toUTF8(aOptions.mRp.mId.Value());
+  } else {
+    nsresult rv = DefaultRpId(principal, rpId);
+    if (NS_FAILED(rv)) {
+      promise->MaybeReject(NS_ERROR_FAILURE);
+      return promise.forget();
+    }
+  }
+  if (!IsValidRpId(principal, rpId)) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
   }
 
   // Enforce 5.4.3 User Account Parameters for Credential Generation
   // When we add UX, we'll want to do more with this value, but for now
   // we just have to verify its correctness.
-
   CryptoBuffer userId;
   userId.Assign(aOptions.mUser.mId);
   if (userId.Length() > 64) {
@@ -248,21 +182,6 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
     adjustedTimeout = aOptions.mTimeout.Value();
     adjustedTimeout = std::max(15000u, adjustedTimeout);
     adjustedTimeout = std::min(120000u, adjustedTimeout);
-  }
-
-  if (aOptions.mRp.mId.WasPassed()) {
-    // If rpId is specified, then invoke the procedure used for relaxing the
-    // same-origin restriction by setting the document.domain attribute, using
-    // rpId as the given value but without changing the current document’s
-    // domain. If no errors are thrown, set rpId to the value of host as
-    // computed by this procedure, and rpIdHash to the SHA-256 hash of rpId.
-    // Otherwise, reject promise with a DOMException whose name is
-    // "SecurityError", and terminate this algorithm.
-
-    if (NS_FAILED(RelaxSameOrigin(mWindow, aOptions.mRp.mId.Value(), rpId))) {
-      promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
-      return promise.forget();
-    }
   }
 
   // <https://w3c.github.io/webauthn/#sctn-appid-extension>
@@ -325,11 +244,6 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
       c.transports() = SerializeTransports(s.mTransports.Value());
     }
     excludeList.AppendElement(c);
-  }
-
-  if (!MaybeCreateActor()) {
-    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
-    return promise.forget();
   }
 
   // TODO: Add extension list building
@@ -447,9 +361,9 @@ already_AddRefed<Promise> WebAuthnHandler::MakeCredential(
     return promise.forget();
   }
 
-  WebAuthnMakeCredentialInfo info(
-      NS_ConvertUTF8toUTF16(rpId), challenge, adjustedTimeout, excludeList,
-      rpInfo, userInfo, coseAlgos, extensions, authSelection, attestation);
+  WebAuthnMakeCredentialInfo info(rpId, challenge, adjustedTimeout, excludeList,
+                                  rpInfo, userInfo, coseAlgos, extensions,
+                                  authSelection, attestation);
 
   // Set up the transaction state. Fallible operations should not be performed
   // below this line, as we must not leave the transaction state partially
@@ -507,11 +421,43 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     CancelTransaction(NS_ERROR_DOM_ABORT_ERR);
   }
 
-  nsString origin;
+  if (!MaybeCreateActor()) {
+    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
+    return promise.forget();
+  }
+
+  nsCOMPtr<Document> doc = mWindow->GetDoc();
+  if (!IsWebAuthnAllowedInDocument(doc)) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+    return promise.forget();
+  }
+
+  nsCOMPtr<nsIPrincipal> principal = doc->NodePrincipal();
+  if (!IsWebAuthnAllowedForPrincipal(principal)) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+    return promise.forget();
+  }
+
   nsCString rpId;
-  nsresult rv = GetOrigin(mWindow, origin, rpId);
+  if (aOptions.mRpId.WasPassed()) {
+    rpId = NS_ConvertUTF16toUTF8(aOptions.mRpId.Value());
+  } else {
+    nsresult rv = DefaultRpId(principal, rpId);
+    if (NS_FAILED(rv)) {
+      promise->MaybeReject(NS_ERROR_FAILURE);
+      return promise.forget();
+    }
+  }
+  if (!IsValidRpId(principal, rpId)) {
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+    return promise.forget();
+  }
+
+  nsCString origin;
+  auto* basePrin = BasePrincipal::Cast(principal);
+  nsresult rv = basePrin->GetWebExposedOriginSerialization(origin);
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    promise->MaybeReject(rv);
+    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
     return promise.forget();
   }
 
@@ -524,21 +470,6 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     adjustedTimeout = aOptions.mTimeout.Value();
     adjustedTimeout = std::max(15000u, adjustedTimeout);
     adjustedTimeout = std::min(120000u, adjustedTimeout);
-  }
-
-  if (aOptions.mRpId.WasPassed()) {
-    // If rpId is specified, then invoke the procedure used for relaxing the
-    // same-origin restriction by setting the document.domain attribute, using
-    // rpId as the given value but without changing the current document’s
-    // domain. If no errors are thrown, set rpId to the value of host as
-    // computed by this procedure, and rpIdHash to the SHA-256 hash of rpId.
-    // Otherwise, reject promise with a DOMException whose name is
-    // "SecurityError", and terminate this algorithm.
-
-    if (NS_FAILED(RelaxSameOrigin(mWindow, aOptions.mRpId.Value(), rpId))) {
-      promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
-      return promise.forget();
-    }
   }
 
   // Abort the request if the allowCredentials set is too large
@@ -569,11 +500,6 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
   }
   if (allowList.Length() == 0 && aOptions.mAllowCredentials.Length() != 0) {
     promise->MaybeReject(NS_ERROR_DOM_NOT_ALLOWED_ERR);
-    return promise.forget();
-  }
-
-  if (!MaybeCreateActor()) {
-    promise->MaybeReject(NS_ERROR_DOM_OPERATION_ERR);
     return promise.forget();
   }
 
@@ -688,9 +614,9 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     return promise.forget();
   }
 
-  WebAuthnGetAssertionInfo info(
-      NS_ConvertUTF8toUTF16(rpId), challenge, adjustedTimeout, allowList,
-      extensions, aOptions.mUserVerification, aConditionallyMediated);
+  WebAuthnGetAssertionInfo info(rpId, challenge, adjustedTimeout, allowList,
+                                extensions, aOptions.mUserVerification,
+                                aConditionallyMediated);
 
   // Set up the transaction state. Fallible operations should not be performed
   // below this line, as we must not leave the transaction state partially

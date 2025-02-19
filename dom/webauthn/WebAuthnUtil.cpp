@@ -4,14 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "hasht.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/WebAuthnUtil.h"
+#include "mozpkix/pkixutil.h"
 #include "nsComponentManagerUtils.h"
+#include "nsHTMLDocument.h"
 #include "nsICryptoHash.h"
 #include "nsIEffectiveTLDService.h"
+#include "nsIURIMutator.h"
 #include "nsNetUtil.h"
-#include "mozpkix/pkixutil.h"
-#include "nsHTMLDocument.h"
-#include "hasht.h"
 
 namespace mozilla::dom {
 
@@ -21,12 +23,11 @@ constexpr auto kGoogleAccountsAppId1 =
 constexpr auto kGoogleAccountsAppId2 =
     u"https://www.gstatic.com/securitykey/a/google.com/origins.json"_ns;
 
-bool EvaluateAppID(nsPIDOMWindowInner* aParent, const nsString& aOrigin,
+bool EvaluateAppID(nsPIDOMWindowInner* aParent, const nsCString& aOrigin,
                    /* in/out */ nsString& aAppId) {
   // Facet is the specification's way of referring to the web origin.
-  nsAutoCString facetString = NS_ConvertUTF16toUTF8(aOrigin);
   nsCOMPtr<nsIURI> facetUri;
-  if (NS_FAILED(NS_NewURI(getter_AddRefs(facetUri), facetString))) {
+  if (NS_FAILED(NS_NewURI(getter_AddRefs(facetUri), aOrigin))) {
     return false;
   }
 
@@ -37,7 +38,7 @@ bool EvaluateAppID(nsPIDOMWindowInner* aParent, const nsString& aOrigin,
 
   // If the appId is empty or null, overwrite it with the facetId and accept
   if (aAppId.IsEmpty() || aAppId.EqualsLiteral("null")) {
-    aAppId.Assign(aOrigin);
+    aAppId.Assign(NS_ConvertUTF8toUTF16(aOrigin));
     return true;
   }
 
@@ -105,6 +106,84 @@ bool EvaluateAppID(nsPIDOMWindowInner* aParent, const nsString& aOrigin,
   }
 
   return false;
+}
+
+nsresult DefaultRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
+                     /* out */ nsACString& aRpId) {
+  // [https://w3c.github.io/webauthn/#rp-id]
+  // "By default, the RP ID for a WebAuthn operation is set to the caller's
+  // origin's effective domain."
+  auto* basePrin = BasePrincipal::Cast(aPrincipal);
+  nsCOMPtr<nsIURI> uri;
+  if (NS_FAILED(basePrin->GetURI(getter_AddRefs(uri)))) {
+    return NS_ERROR_FAILURE;
+  }
+  return uri->GetAsciiHost(aRpId);
+}
+
+bool IsWebAuthnAllowedInDocument(const nsCOMPtr<Document>& aDoc) {
+  MOZ_ASSERT(aDoc);
+  return aDoc->IsHTMLOrXHTML();
+}
+
+bool IsWebAuthnAllowedForPrincipal(const nsCOMPtr<nsIPrincipal>& aPrincipal) {
+  MOZ_ASSERT(aPrincipal);
+  if (aPrincipal->GetIsNullPrincipal()) {
+    return false;
+  }
+  if (aPrincipal->GetIsIpAddress()) {
+    return false;
+  }
+  // This next test is not strictly necessary since CredentialsContainer is
+  // [SecureContext] in our webidl.
+  if (!aPrincipal->GetIsOriginPotentiallyTrustworthy()) {
+    return false;
+  }
+  return true;
+}
+
+bool IsValidRpId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
+                 const nsACString& aRpId) {
+  // This checks two of the conditions defined in
+  // https://w3c.github.io/webauthn/#rp-id, namely that the RP ID value is
+  //  (1) "a valid domain string", and
+  //  (2) "a registrable domain suffix of or is equal to the caller's origin's
+  //      effective domain"
+  //
+  // We do not check that the condition that "origin's scheme is https [, or]
+  // the origin's host is localhost and its scheme is http". These are special
+  // cases of secure contexts (https://www.w3.org/TR/secure-contexts/). We
+  // expose WebAuthn in all secure contexts, which is slightly more lenient
+  // than the spec's condition.
+
+  // Condition (1)
+  nsCString normalizedRpId;
+  nsresult rv = NS_DomainToASCII(aRpId, normalizedRpId);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+  if (normalizedRpId != aRpId) {
+    return false;
+  }
+
+  // Condition (2)
+  // The "is a registrable domain suffix of or is equal to" condition is defined
+  // in https://html.spec.whatwg.org/multipage/browsers.html#dom-document-domain
+  // as a subroutine of the document.domain setter, and it is exposed in XUL as
+  // the Document::IsValidDomain function. This function takes URIs as inputs
+  // rather than domain strings, so we construct a target URI using the current
+  // document URI as a template.
+  auto* basePrin = BasePrincipal::Cast(aPrincipal);
+  nsCOMPtr<nsIURI> currentURI;
+  if (NS_FAILED(basePrin->GetURI(getter_AddRefs(currentURI)))) {
+    return false;
+  }
+  nsCOMPtr<nsIURI> targetURI;
+  rv = NS_MutateURI(currentURI).SetHost(aRpId).Finalize(targetURI);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+  return Document::IsValidDomain(currentURI, targetURI);
 }
 
 static nsresult HashCString(nsICryptoHash* aHashService, const nsACString& aIn,

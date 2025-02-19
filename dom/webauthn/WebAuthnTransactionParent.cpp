@@ -14,6 +14,7 @@
 
 #include "nsThreadUtils.h"
 #include "WebAuthnArgs.h"
+#include "WebAuthnUtil.h"
 
 namespace mozilla::dom {
 
@@ -119,6 +120,16 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestRegister(
 
   WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
   nsIPrincipal* principal = manager->DocumentPrincipal();
+
+  if (!IsWebAuthnAllowedForPrincipal(principal)) {
+    aResolver(NS_ERROR_DOM_SECURITY_ERR);
+    return IPC_OK();
+  }
+
+  if (!IsValidRpId(principal, aTransactionInfo.RpId())) {
+    aResolver(NS_ERROR_DOM_SECURITY_ERR);
+    return IPC_OK();
+  }
 
   nsCString origin;
   nsresult rv = principal->GetWebExposedOriginSerialization(origin);
@@ -299,6 +310,16 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
 
   WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
   nsIPrincipal* principal = manager->DocumentPrincipal();
+
+  if (!IsWebAuthnAllowedForPrincipal(principal)) {
+    aResolver(NS_ERROR_DOM_SECURITY_ERR);
+    return IPC_OK();
+  }
+
+  if (!IsValidRpId(principal, aTransactionInfo.RpId())) {
+    aResolver(NS_ERROR_DOM_SECURITY_ERR);
+    return IPC_OK();
+  }
 
   nsCString origin;
   nsresult rv = principal->GetWebExposedOriginSerialization(origin);

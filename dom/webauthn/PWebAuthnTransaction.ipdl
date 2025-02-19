@@ -112,7 +112,7 @@ struct CoseAlg {
 };
 
 struct WebAuthnMakeCredentialInfo {
-  nsString RpId;
+  nsCString RpId;
   uint8_t[] Challenge;
   uint32_t TimeoutMS;
   WebAuthnScopedCredential[] ExcludeList;
@@ -139,7 +139,7 @@ union WebAuthnMakeCredentialResponse {
 };
 
 struct WebAuthnGetAssertionInfo {
-  nsString RpId;
+  nsCString RpId;
   uint8_t[] Challenge;
   uint32_t TimeoutMS;
   WebAuthnScopedCredential[] AllowList;

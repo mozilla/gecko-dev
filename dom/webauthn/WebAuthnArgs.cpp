@@ -43,7 +43,7 @@ WebAuthnRegisterArgs::GetClientDataHash(nsTArray<uint8_t>& aClientDataHash) {
 
 NS_IMETHODIMP
 WebAuthnRegisterArgs::GetRpId(nsAString& aRpId) {
-  aRpId = mInfo.RpId();
+  aRpId = NS_ConvertUTF8toUTF16(mInfo.RpId());
   return NS_OK;
 }
 
@@ -226,7 +226,7 @@ WebAuthnSignArgs::GetOrigin(nsAString& aOrigin) {
 
 NS_IMETHODIMP
 WebAuthnSignArgs::GetRpId(nsAString& aRpId) {
-  aRpId = mInfo.RpId();
+  aRpId = NS_ConvertUTF8toUTF16(mInfo.RpId());
   return NS_OK;
 }
 
