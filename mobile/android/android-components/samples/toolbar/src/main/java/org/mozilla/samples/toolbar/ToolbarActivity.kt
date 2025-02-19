@@ -11,8 +11,11 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -36,6 +39,9 @@ import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.menu2.BrowserMenuController
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.display.DisplayToolbar
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.concept.menu.Side
 import mozilla.components.concept.menu.candidate.DividerMenuCandidate
 import mozilla.components.concept.menu.candidate.DrawableMenuIcon
@@ -43,10 +49,12 @@ import mozilla.components.concept.menu.candidate.NestedMenuCandidate
 import mozilla.components.concept.menu.candidate.TextMenuCandidate
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.toolbar.ToolbarAutocompleteFeature
+import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.components.ui.tabcounter.TabCounter
+import org.mozilla.samples.toolbar.compose.BrowserToolbar
 import org.mozilla.samples.toolbar.databinding.ActivityToolbarBinding
 import mozilla.components.browser.menu.R as menuR
 import mozilla.components.browser.toolbar.R as toolbarR
@@ -81,6 +89,7 @@ class ToolbarActivity : AppCompatActivity() {
             ToolbarConfiguration.PRIVATE_MODE -> setupDefaultToolbar(private = true)
             ToolbarConfiguration.FENIX -> setupFenixToolbar()
             ToolbarConfiguration.FENIX_CUSTOMTAB -> setupFenixCustomTabToolbar()
+            ToolbarConfiguration.COMPOSE_TOOLBAR -> setupComposeToolbar()
         }
 
         val recyclerView: RecyclerView = findViewById(R.id.recyclerView)
@@ -105,6 +114,8 @@ class ToolbarActivity : AppCompatActivity() {
      * A very simple toolbar with mostly default values.
      */
     private fun setupDefaultToolbar(private: Boolean = false) {
+        showToolbar()
+
         binding.toolbar.setBackgroundColor(
             ContextCompat.getColor(this, colorsR.color.photonBlue80),
         )
@@ -118,6 +129,8 @@ class ToolbarActivity : AppCompatActivity() {
      * A toolbar that looks like Firefox Focus on tablets.
      */
     private fun setupFocusTabletToolbar() {
+        showToolbar()
+
         // //////////////////////////////////////////////////////////////////////////////////////////
         // Use the iconic gradient background
         // //////////////////////////////////////////////////////////////////////////////////////////
@@ -191,6 +204,8 @@ class ToolbarActivity : AppCompatActivity() {
      * A custom browser menu.
      */
     private fun setupCustomMenu() {
+        showToolbar()
+
         binding.toolbar.setBackgroundColor(
             ContextCompat.getColor(this, colorsR.color.photonBlue80),
         )
@@ -224,6 +239,8 @@ class ToolbarActivity : AppCompatActivity() {
      * A toolbar that looks like Firefox Focus on phones.
      */
     private fun setupFocusPhoneToolbar() {
+        showToolbar()
+
         // //////////////////////////////////////////////////////////////////////////////////////////
         // Use the iconic gradient background
         // //////////////////////////////////////////////////////////////////////////////////////////
@@ -314,6 +331,8 @@ class ToolbarActivity : AppCompatActivity() {
      */
     @Suppress("MagicNumber")
     fun setupFenixToolbar() {
+        showToolbar()
+
         binding.toolbar.setBackgroundColor(0xFFFFFFFF.toInt())
 
         binding.toolbar.display.indicators = listOf(
@@ -400,6 +419,8 @@ class ToolbarActivity : AppCompatActivity() {
     @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
     @Suppress("MagicNumber")
     fun setupFenixCustomTabToolbar() {
+        showToolbar()
+
         binding.toolbar.setBackgroundColor(0xFFFFFFFF.toInt())
 
         binding.toolbar.display.indicators = listOf(
@@ -462,6 +483,40 @@ class ToolbarActivity : AppCompatActivity() {
             delay(2000)
             binding.toolbar.title = "Mobile browsers for iOS and Android | Firefox"
         }
+    }
+
+    private fun setupComposeToolbar() {
+        showToolbar(isCompose = true)
+
+        binding.composeToolbar.setContent {
+            val store = remember {
+                BrowserToolbarStore()
+            }
+
+            val uiState by store.observeAsState(initialValue = store.state) { it }
+
+            BrowserToolbar(
+                onDisplayMenuClicked = {},
+                onDisplayToolbarClick = {
+                    store.dispatch(BrowserToolbarAction.ToggleEditMode(editMode = true))
+                },
+                onTextEdit = { text ->
+                    store.dispatch(BrowserEditToolbarAction.UpdateEditText(text = text))
+                },
+                onTextCommit = {
+                    store.dispatch(BrowserToolbarAction.ToggleEditMode(editMode = false))
+                },
+                url = "https://www.mozilla.org/en-US/firefox/mobile/",
+                hint = "Search or enter address",
+                editMode = uiState.editMode,
+                editText = uiState.editState.editText,
+            )
+        }
+    }
+
+    private fun showToolbar(isCompose: Boolean = false) {
+        binding.toolbar.isVisible = !isCompose
+        binding.composeToolbar.isVisible = isCompose
     }
 
     // For testing purposes

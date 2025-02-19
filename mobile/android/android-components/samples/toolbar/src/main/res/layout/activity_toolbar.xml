@@ -14,6 +14,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/composeToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"

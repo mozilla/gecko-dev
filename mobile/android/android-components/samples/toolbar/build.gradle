@@ -26,6 +26,11 @@ android {
 
     buildFeatures {
         viewBinding true
+        compose true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = Versions.compose_compiler
     }
 
     namespace 'org.mozilla.samples.toolbar'
@@ -39,6 +44,8 @@ dependencies {
     implementation project(':browser-menu')
     implementation project(':browser-menu2')
     implementation project(':browser-domains')
+    implementation project(':browser-state')
+    implementation project(':compose-browser-toolbar')
 
     implementation project(':ui-colors')
     implementation project(':ui-tabcounter')
@@ -53,6 +60,7 @@ dependencies {
     implementation ComponentsDependencies.kotlin_coroutines
 
     implementation ComponentsDependencies.androidx_appcompat
+    implementation ComponentsDependencies.androidx_compose_ui
     implementation ComponentsDependencies.androidx_core_ktx
     implementation ComponentsDependencies.androidx_recyclerview
 }
