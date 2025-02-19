@@ -182,6 +182,13 @@ export class MegalistAlpha extends MozLitElement {
     });
   }
 
+  #recordNotificationShown(id) {
+    const gleanNotificationString = id.replaceAll("-", "_");
+    Glean.contextualManager.notificationShown.record({
+      notification_detail: gleanNotificationString,
+    });
+  }
+
   #messageToViewModel(messageName, data) {
     window.windowGlobalChild
       .getActor("Megalist")
@@ -212,6 +219,7 @@ export class MegalistAlpha extends MozLitElement {
   }
 
   receiveSetNotification(notification) {
+    this.#recordNotificationShown(notification.id);
     this.notification = notification;
     this.viewMode = notification.viewMode ?? this.viewMode;
   }
@@ -390,21 +398,24 @@ export class MegalistAlpha extends MozLitElement {
           ${alerts.map(({ displayAlert, notification }) =>
             when(
               displayAlert,
-              () => html`
-                <li>
-                  <notification-message-bar
-                    exportparts="support-link"
-                    .notification=${{
-                      ...notification,
-                      onButtonClick: handleButtonClick,
-                    }}
-                    .onDismiss=${() => (this.viewMode = VIEW_MODES.LIST)}
-                    .messageHandler=${(commandId, options) =>
-                      this.#sendCommand(commandId, options)}
-                  >
-                  </notification-message-bar>
-                </li>
-              `,
+              () => {
+                this.#recordNotificationShown(notification.id);
+                return html`
+                  <li>
+                    <notification-message-bar
+                      exportparts="support-link"
+                      .notification=${{
+                        ...notification,
+                        onButtonClick: handleButtonClick,
+                      }}
+                      .onDismiss=${() => (this.viewMode = VIEW_MODES.LIST)}
+                      .messageHandler=${(commandId, options) =>
+                        this.#sendCommand(commandId, options)}
+                    >
+                    </notification-message-bar>
+                  </li>
+                `;
+              },
               () => ""
             )
           )}

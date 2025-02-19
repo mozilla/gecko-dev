@@ -102,3 +102,34 @@ contextual_manager:
         description: >
           The type of user interaction with the CM record tile
         type: string
+
+  notification_shown:
+    type: event
+    description: >
+      Notification is dislayed to client.
+      Possible notification details include:
+        "import_success": Logins were successfully imported
+        "import_error": There was an error importing logins
+        "export_passwords_success": Logins were successfully exported
+        "add_login_success": A login was successfully added manually
+        "update_login_success": A login was succesfully updated manually
+        "delete_login_success": Logins were successfully deleted
+        "discard_changes": Exited the login form while updating
+        "login_already_exists_warning": A login was not created because it already exists
+        "breached_origin_warning": A login has a breached origin alert
+        "vulnerable_password_warning": A login has a vulnerable password alert
+        "no_username_warning": A login has a no username alert
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634
+    notification_emails:
+      - passwords-dev@mozilla.org
+      - issozi@mozilla.com
+      - tthorne@mozilla.com
+    expires: never
+    extra_keys:
+      notification_detail:
+        description: >
+          The type of notification that is displayed to the client.
+        type: string
