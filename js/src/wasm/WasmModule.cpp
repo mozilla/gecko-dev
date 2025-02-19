@@ -496,7 +496,7 @@ bool Module::instantiateMemories(
 
       if (memory->addressType() != desc.addressType()) {
         JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                                 JSMSG_WASM_BAD_IMP_ADDRESS,
+                                 JSMSG_WASM_BAD_IMP_ADDRESS, "memory",
                                  ToString(memory->addressType()));
         return false;
       }
@@ -585,7 +585,7 @@ bool Module::instantiateImportedTable(JSContext* cx, const TableDesc& td,
   Table& table = tableObj->table();
   if (table.addressType() != td.addressType()) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                             JSMSG_WASM_BAD_IMP_ADDRESS,
+                             JSMSG_WASM_BAD_IMP_ADDRESS, "table",
                              ToString(tableObj->table().addressType()));
     return false;
   }
