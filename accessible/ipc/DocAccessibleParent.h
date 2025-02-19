@@ -111,6 +111,8 @@ class DocAccessibleParent : public RemoteAccessible,
   virtual mozilla::ipc::IPCResult RecvMutationEvents(
       nsTArray<MutationEventData>&& aData) override;
 
+  virtual mozilla::ipc::IPCResult RecvRequestAckMutationEvents() override;
+
   virtual mozilla::ipc::IPCResult RecvFocusEvent(
       const uint64_t& aID, const LayoutDeviceIntRect& aCaretRect) override;
 

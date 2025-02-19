@@ -574,6 +574,13 @@ mozilla::ipc::IPCResult DocAccessibleParent::RecvMutationEvents(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult DocAccessibleParent::RecvRequestAckMutationEvents() {
+  if (!mShutdown) {
+    Unused << SendAckMutationEvents();
+  }
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult DocAccessibleParent::RecvSelectionEvent(
     const uint64_t& aID, const uint64_t& aWidgetID, const uint32_t& aType) {
   ACQUIRE_ANDROID_LOCK

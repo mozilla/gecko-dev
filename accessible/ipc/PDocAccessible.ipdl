@@ -102,6 +102,7 @@ parent:
                        bool aIsSelectionCollapsed, bool aIsAtEndOfLine,
                        int32_t aGranularity, bool aFromUser);
   async MutationEvents(MutationEventData[] aData);
+  async RequestAckMutationEvents();
   async SelectionEvent(uint64_t aID, uint64_t aWidgetID, uint32_t aType);
   async RoleChangedEvent(role aRole, uint8_t aRoleMapEntryIndex);
   async FocusEvent(uint64_t aID, LayoutDeviceIntRect aCaretRect);
@@ -192,6 +193,8 @@ child:
    * Verify the cache. Used for testing purposes.
    */
   async VerifyCache(uint64_t aID, uint64_t aCacheDomain, nullable AccAttributes aFields);
+
+  async AckMutationEvents();
 
 };
 

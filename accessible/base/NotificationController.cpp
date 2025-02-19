@@ -716,6 +716,26 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
     return;
   }
 
+  if (mDocument->IPCDoc() && mDocument->IPCDoc()->HasUnackedMutationEvents()) {
+    // We've sent mutation events to the parent process, but we haven't
+    // received its ACK yet. We defer accessibility updates until we do.
+    // Otherwise, we might flood the IPDL queue with many later mutation events
+    // while the parent process is still trying to process earlier ones, getting
+    // further and further behind and causing the browser to hang for extended
+    // periods. If the same nodes are repeatedly changing or being recreated,
+    // deferring updates can significantly reduce the overall number of events
+    // because we avoid generating events for the intermediate changes that
+    // occur while the parent process is busy. This also avoids the associated
+    // work to update the tree in the content process. We must defer all
+    // work here, not just mutation events, because otherwise, the tree and
+    // other events might get out of sync with the mutation events we've
+    // processed. Queued content insertions, events, etc. will be processed in
+    // a subsequent tick after we receive the ACK, though some of them may be
+    // irrelevant (and thus dropped) by the time that happens if a DOM node or
+    // Accessible was removed in the interim.
+    return;
+  }
+
   // Process parent's notifications before ours, to get proper ordering between
   // e.g. tab event and content event.
   if (WaitingForParent()) {
@@ -1024,11 +1044,18 @@ void NotificationController::WillRefresh(mozilla::TimeStamp aTime) {
 
   ProcessEventQueue();
 
-  // There should not be any more mutation events in the mutation event queue.
-  // ProcessEventQueue should have sent all of them.
   if (mDocument && mDocument->IPCDoc()) {
+    // There should not be any more mutation events in the mutation event queue.
+    // ProcessEventQueue should have sent all of them.
     MOZ_ASSERT(mDocument->IPCDoc()->MutationEventQueueLength() == 0,
                "Mutation event queue is non-empty.");
+    if (mDocument->IPCDoc()->HasUnackedMutationEvents()) {
+      // Now that all mutation events have been sent, request an ACK from the
+      // parent process. This request will be after the mutation events in the
+      // IPDL queue, so the parent process will respond once it has finished
+      // handling all the mutation events.
+      Unused << mDocument->IPCDoc()->SendRequestAckMutationEvents();
+    }
   }
 
   if (IPCAccessibilityActive()) {
