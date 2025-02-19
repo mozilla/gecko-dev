@@ -271,12 +271,10 @@ var SessionFileInternal = {
           path_key: key,
           loadfail_reason: "N/A",
         });
-        Services.telemetry
-          .getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE")
-          .add(false);
-        Services.telemetry
-          .getHistogramById("FX_SESSION_RESTORE_READ_FILE_MS")
-          .add(Date.now() - startMs);
+        Glean.sessionRestore.corruptFile.false.add();
+        Glean.sessionRestore.readFile.accumulateSingleSample(
+          Date.now() - startMs
+        );
         lazy.sessionStoreLogger.debug(`Successful file read of ${key} file`);
         break;
       } catch (ex) {
@@ -324,9 +322,7 @@ var SessionFileInternal = {
       } finally {
         if (exists) {
           noFilesFound = false;
-          Services.telemetry
-            .getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE")
-            .add(corrupted);
+          Glean.sessionRestore.corruptFile[corrupted ? "true" : "false"].add();
           Glean.sessionRestore.backupCanBeLoadedSessionFile.record({
             can_load: (!corrupted).toString(),
             path_key: key,
@@ -351,9 +347,7 @@ var SessionFileInternal = {
 
     // All files are corrupted if files found but none could deliver a result.
     let allCorrupt = !noFilesFound && !result;
-    Services.telemetry
-      .getHistogramById("FX_SESSION_RESTORE_ALL_FILES_CORRUPT")
-      .add(allCorrupt);
+    Glean.sessionRestore.allFilesCorrupt[allCorrupt ? "true" : "false"].add();
 
     if (!result) {
       // If everything fails, start with an empty session.
@@ -432,7 +426,17 @@ var SessionFileInternal = {
     promise = promise.then(
       msg => {
         // Record how long the write took.
-        this._recordTelemetry(msg.telemetry);
+        if (msg.telemetry.writeFileMs) {
+          Glean.sessionRestore.writeFile.accumulateSingleSample(
+            msg.telemetry.writeFileMs
+          );
+        }
+        if (msg.telemetry.fileSizeBytes) {
+          Glean.sessionRestore.fileSizeBytes.accumulate(
+            msg.telemetry.fileSizeBytes
+          );
+        }
+
         this._successes++;
         if (msg.result.upgradeBackup) {
           // We have just completed a backup-on-upgrade, store the information
@@ -490,21 +494,5 @@ var SessionFileInternal = {
     // After a wipe, we need to make sure to re-initialize upon the next read(),
     // because the state variables as sent to the writer have changed.
     this._initialized = false;
-  },
-
-  _recordTelemetry(telemetry) {
-    for (let id of Object.keys(telemetry)) {
-      let value = telemetry[id];
-      let samples = [];
-      if (Array.isArray(value)) {
-        samples.push(...value);
-      } else {
-        samples.push(value);
-      }
-      let histogram = Services.telemetry.getHistogramById(id);
-      for (let sample of samples) {
-        histogram.add(sample);
-      }
-    }
   },
 };

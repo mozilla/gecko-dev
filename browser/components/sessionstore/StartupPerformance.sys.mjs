@@ -105,11 +105,9 @@ export var StartupPerformance = {
         // Once we are done restoring tabs, update Telemetry.
         let delta = this._latestRestoredTimeStamp - this._startTimeStamp;
         if (isAutoRestore) {
-          Services.telemetry
-            .getHistogramById(
-              "FX_SESSION_RESTORE_AUTO_RESTORE_DURATION_UNTIL_EAGER_TABS_RESTORED_MS"
-            )
-            .add(delta);
+          Glean.sessionRestore.autoRestoreDurationUntilEagerTabsRestored.accumulateSingleSample(
+            delta
+          );
         } else {
           Services.telemetry
             .getHistogramById(
@@ -117,15 +115,15 @@ export var StartupPerformance = {
             )
             .add(delta);
         }
-        Services.telemetry
-          .getHistogramById("FX_SESSION_RESTORE_NUMBER_OF_EAGER_TABS_RESTORED")
-          .add(this._totalNumberOfEagerTabs);
-        Services.telemetry
-          .getHistogramById("FX_SESSION_RESTORE_NUMBER_OF_TABS_RESTORED")
-          .add(this._totalNumberOfTabs);
-        Services.telemetry
-          .getHistogramById("FX_SESSION_RESTORE_NUMBER_OF_WINDOWS_RESTORED")
-          .add(this._totalNumberOfWindows);
+        Glean.sessionRestore.numberOfEagerTabsRestored.accumulateSingleSample(
+          this._totalNumberOfEagerTabs
+        );
+        Glean.sessionRestore.numberOfTabsRestored.accumulateSingleSample(
+          this._totalNumberOfTabs
+        );
+        Glean.sessionRestore.numberOfWindowsRestored.accumulateSingleSample(
+          this._totalNumberOfWindows
+        );
 
         // Reset
         this._startTimeStamp = null;

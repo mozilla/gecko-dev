@@ -63,6 +63,310 @@ session_restore:
         type: string
     telemetry_mirror: Session_restore_ShutdownSuccess_SessionStartup
 
+  startup_init_session:
+    type: timing_distribution
+    description: >
+      Session restore: Time it takes to prepare the data structures for
+      restoring a session (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_STARTUP_INIT_SESSION_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_STARTUP_INIT_SESSION_MS
+
+  startup_onload_initial_window:
+    type: timing_distribution
+    description: >
+      Session restore: Time it takes to finish restoration once we have first
+      opened a window (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_STARTUP_ONLOAD_INITIAL_WINDOW_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_STARTUP_ONLOAD_INITIAL_WINDOW_MS
+
+  collect_all_windows_data:
+    type: timing_distribution
+    description: >
+      Session restore: Time to collect all window data (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_COLLECT_ALL_WINDOWS_DATA_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_COLLECT_ALL_WINDOWS_DATA_MS
+
+  collect_data:
+    type: timing_distribution
+    description: >
+      Session restore: Time to collect all window and tab data (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_COLLECT_DATA_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_COLLECT_DATA_MS
+
+  collect_session_history:
+    type: timing_distribution
+    description: >
+      Session restore: Duration of session history collection in the parent
+      process (ms).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_COLLECT_SESSION_HISTORY_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1810704
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1810704
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+      - farre@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_COLLECT_SESSION_HISTORY_MS
+
+  read_file:
+    type: timing_distribution
+    description: >
+      Session restore: Time to read the session data from the file on disk (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_READ_FILE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_READ_FILE_MS
+
+  write_file:
+    type: timing_distribution
+    description: >
+      Session restore: Time to write the session data to the file on disk (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_WRITE_FILE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_WRITE_FILE_MS
+
+  file_size_bytes:
+    type: memory_distribution
+    description: >
+      Session restore: The size of file sessionstore.js (bytes)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_FILE_SIZE_BYTES.
+    memory_unit: byte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_FILE_SIZE_BYTES
+
+  corrupt_file:
+    type: labeled_counter
+    description: >
+      Session restore: Whether the file read on startup contained parse-able
+      JSON
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram FX_SESSION_RESTORE_CORRUPT_FILE.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#FX_SESSION_RESTORE_CORRUPT_FILE
+
+  all_files_corrupt:
+    type: labeled_counter
+    description: >
+      Session restore: Whether none of the backup files contained parse-able
+      JSON
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram FX_SESSION_RESTORE_ALL_FILES_CORRUPT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#FX_SESSION_RESTORE_ALL_FILES_CORRUPT
+
+  restore_window:
+    type: timing_distribution
+    description: >
+      Session restore: Time spent blocking the main thread while restoring a
+      window state (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_RESTORE_WINDOW_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1489524
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_RESTORE_WINDOW_MS
+
+  auto_restore_duration_until_eager_tabs_restored:
+    type: timing_distribution
+    description: >
+      Session restore: If the browser is setup to auto-restore tabs, this probe
+      measures the time elapsed between the instant we start Session Restore and
+      the instant we have finished restoring tabs eagerly. At this stage, the
+      tabs that are restored on demand are not restored yet.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram
+      FX_SESSION_RESTORE_AUTO_RESTORE_DURATION_UNTIL_EAGER_TABS_RESTORED_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_AUTO_RESTORE_DURATION_UNTIL_EAGER_TABS_RESTORED_MS
+
+  manual_restore_duration_until_eager_tabs_restored:
+    type: timing_distribution
+    description: >
+      Session restore: If a session is restored by the user clicking on 'Restore
+      Session', this probe measures the time elapsed between the instant the
+      user has clicked and the instant we have finished restoring tabs eagerly.
+      At this stage, the tabs that are restored on demand are not restored yet.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram
+      FX_SESSION_RESTORE_MANUAL_RESTORE_DURATION_UNTIL_EAGER_TABS_RESTORED_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_MANUAL_RESTORE_DURATION_UNTIL_EAGER_TABS_RESTORED_MS
+
+  number_of_tabs_restored:
+    type: custom_distribution
+    description: >
+      Session restore: Number of tabs in the session that has just been
+      restored.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_SESSION_RESTORE_NUMBER_OF_TABS_RESTORED.
+    range_min: 1
+    range_max: 500
+    bucket_count: 20
+    histogram_type: exponential
+    unit: tabs
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_NUMBER_OF_TABS_RESTORED
+
+  number_of_windows_restored:
+    type: custom_distribution
+    description: >
+      Session restore: Number of windows in the session that has just been
+      restored.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram FX_SESSION_RESTORE_NUMBER_OF_WINDOWS_RESTORED.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_NUMBER_OF_WINDOWS_RESTORED
+
+  number_of_eager_tabs_restored:
+    type: custom_distribution
+    description: >
+      Session restore: Number of tabs restored eagerly in the session that has
+      just been restored.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram FX_SESSION_RESTORE_NUMBER_OF_EAGER_TABS_RESTORED.
+    range_min: 0
+    range_max: 50
+    bucket_count: 51
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: FX_SESSION_RESTORE_NUMBER_OF_EAGER_TABS_RESTORED
+
 browser.engagement:
   sessionrestore_interstitial:
     type: labeled_counter

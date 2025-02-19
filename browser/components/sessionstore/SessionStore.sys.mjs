@@ -1199,7 +1199,7 @@ var SessionStoreInternal = {
    * Initialize the session using the state provided by SessionStartup
    */
   initSession() {
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_STARTUP_INIT_SESSION_MS");
+    let timerId = Glean.sessionRestore.startupInitSession.start();
     let state;
     let ss = lazy.SessionStartup;
     let willRestore = ss.willRestore();
@@ -1326,7 +1326,7 @@ var SessionStoreInternal = {
       this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
     }
 
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_STARTUP_INIT_SESSION_MS");
+    Glean.sessionRestore.startupInitSession.stopAndAccumulate(timerId);
     return state;
   },
 
@@ -1581,9 +1581,7 @@ var SessionStoreInternal = {
           return null;
         }
 
-        TelemetryStopwatch.start(
-          "FX_SESSION_RESTORE_COLLECT_SESSION_HISTORY_MS"
-        );
+        let timerId = Glean.sessionRestore.collectSessionHistory.start();
 
         let fromIndex = collectFull ? -1 : this._fromIndex;
         this._fromIndex = kNoIndex;
@@ -1605,9 +1603,7 @@ var SessionStoreInternal = {
           });
         }
 
-        TelemetryStopwatch.finish(
-          "FX_SESSION_RESTORE_COLLECT_SESSION_HISTORY_MS"
-        );
+        Glean.sessionRestore.collectSessionHistory.stopAndAccumulate(timerId);
 
         return historychange;
       }
@@ -2190,12 +2186,10 @@ var SessionStoreInternal = {
           if (initialState) {
             Services.obs.notifyObservers(null, NOTIFY_RESTORING_ON_STARTUP);
           }
-          TelemetryStopwatch.start(
-            "FX_SESSION_RESTORE_STARTUP_ONLOAD_INITIAL_WINDOW_MS"
-          );
+          let timerId = Glean.sessionRestore.startupOnloadInitialWindow.start();
           this.initializeWindow(aWindow, initialState);
-          TelemetryStopwatch.finish(
-            "FX_SESSION_RESTORE_STARTUP_ONLOAD_INITIAL_WINDOW_MS"
+          Glean.sessionRestore.startupOnloadInitialWindow.stopAndAccumulate(
+            timerId
           );
 
           // Let everyone know we're done.
@@ -5196,7 +5190,7 @@ var SessionStoreInternal = {
 
     var activeWindow = this._getTopWindow();
 
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_COLLECT_ALL_WINDOWS_DATA_MS");
+    let timerId = Glean.sessionRestore.collectAllWindowsData.start();
     if (lazy.RunState.isRunning) {
       // update the data for all windows with activities since the last save operation.
       let index = 0;
@@ -5215,7 +5209,7 @@ var SessionStoreInternal = {
       }
       DirtyWindows.clear();
     }
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_COLLECT_ALL_WINDOWS_DATA_MS");
+    Glean.sessionRestore.collectAllWindowsData.stopAndAccumulate(timerId);
 
     // An array that at the end will hold all current window data.
     var total = [];
@@ -5479,7 +5473,7 @@ var SessionStoreInternal = {
       this.onLoad(aWindow);
     }
 
-    TelemetryStopwatch.start("FX_SESSION_RESTORE_RESTORE_WINDOW_MS");
+    let timerId = Glean.sessionRestore.restoreWindow.start();
 
     // We're not returning from this before we end up calling restoreTabs
     // for this window, so make sure we send the SSWindowStateBusy event.
@@ -5656,7 +5650,7 @@ var SessionStoreInternal = {
     // set smoothScroll back to the original value
     arrowScrollbox.smoothScroll = smoothScroll;
 
-    TelemetryStopwatch.finish("FX_SESSION_RESTORE_RESTORE_WINDOW_MS");
+    Glean.sessionRestore.restoreWindow.stopAndAccumulate(timerId);
 
     this._setWindowStateReady(aWindow);
 

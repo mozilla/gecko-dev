@@ -232,8 +232,8 @@ const SessionWriterInternal = {
         fileStat = await IOUtils.stat(this.Paths.recovery);
       }
 
-      telemetry.FX_SESSION_RESTORE_WRITE_FILE_MS = Date.now() - startWriteMs;
-      telemetry.FX_SESSION_RESTORE_FILE_SIZE_BYTES = fileStat.size;
+      telemetry.writeFileMs = Date.now() - startWriteMs;
+      telemetry.fileSizeBytes = fileStat.size;
     } catch (ex) {
       // Don't throw immediately
       exn = exn || ex;
