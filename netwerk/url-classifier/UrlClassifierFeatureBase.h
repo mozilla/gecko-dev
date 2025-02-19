@@ -81,6 +81,7 @@ class UrlClassifierFeatureAntiTrackingBase : public UrlClassifierFeatureBase {
 };
 
 }  // namespace net
+
 }  // namespace mozilla
 
 #endif  // mozilla_net_UrlClassifierFeatureBase_h

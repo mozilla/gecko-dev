@@ -134,6 +134,10 @@ void UrlClassifierFeatureFactory::GetPhishingProtectionFeatures(
 /* static */
 already_AddRefed<nsIUrlClassifierFeature>
 UrlClassifierFeatureFactory::GetFeatureByName(const nsACString& aName) {
+  if (!XRE_IsParentProcess()) {
+    return nullptr;
+  }
+
   nsCOMPtr<nsIUrlClassifierFeature> feature;
 
   // Cryptomining Annotation

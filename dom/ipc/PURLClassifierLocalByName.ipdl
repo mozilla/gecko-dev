@@ -12,12 +12,13 @@ include PURLClassifierInfo;
 include "mozilla/dom/URLClassifierParent.h";
 include "mozilla/dom/URLClassifierChild.h";
 
+
+
 namespace mozilla {
 namespace dom {
 
-
-[ManualDealloc, ChildImpl="URLClassifierLocalChild", ParentImpl="URLClassifierLocalParent"]
-protocol PURLClassifierLocal
+[ManualDealloc, ChildImpl="URLClassifierLocalByNameChild", ParentImpl="URLClassifierLocalByNameParent"]
+protocol PURLClassifierLocalByName
 {
   manager PContent;
 

@@ -39,6 +39,7 @@ include protocol PWebrtcGlobal;
 include protocol PWindowGlobal;
 include protocol PURLClassifier;
 include protocol PURLClassifierLocal;
+include protocol PURLClassifierLocalByName;
 include protocol PVRManager;
 include protocol PRemoteDecoderManager;
 include protocol PRemoteWorkerService;
@@ -72,6 +73,7 @@ include protocol PSandboxTesting;
 include "ipc/MediaControlIPC.h";
 include "mozilla/AntiTrackingIPCUtils.h";
 include "mozilla/GfxMessageUtils.h";
+include "mozilla/URLClassifierIPCUtils.h";
 include "mozilla/dom/BindingIPCUtils.h";
 include "mozilla/dom/CSPMessageUtils.h";
 include "mozilla/dom/DocShellMessageUtils.h";
@@ -169,6 +171,7 @@ using nsIDNSService::ResolverMode from "nsIDNSService.h";
 using mozilla::dom::UserActivation::Modifiers from "mozilla/dom/UserActivation.h";
 using mozilla::dom::PrivateAttributionImpressionType from "mozilla/dom/PrivateAttributionIPCUtils.h";
 using nsIClipboard::ClipboardType from "nsIClipboard.h";
+using nsIUrlClassifierFeature::listType from "nsIUrlClassifierFeature.h";
 
 union ChromeRegistryItem
 {
@@ -496,6 +499,7 @@ sync protocol PContent
 #endif
     manages PURLClassifier;
     manages PURLClassifierLocal;
+    manages PURLClassifierLocalByName;
     manages PScriptCache;
     manages PSessionStorageObserver;
     manages PBenchmarkStorage;
@@ -1108,6 +1112,7 @@ parent:
         returns (bool success);
 
     async PURLClassifierLocal(nullable nsIURI uri, IPCURLClassifierFeature[] features);
+    async PURLClassifierLocalByName(nullable nsIURI uri, nsCString[] featureNames, listType aListType);
 
     async PSessionStorageObserver();
 

@@ -75,6 +75,10 @@ EXPORTS += [
     "VariableLengthPrefixSet.h",
 ]
 
+EXPORTS.mozilla += [
+    "URLClassifierIPCUtils.h",
+]
+
 FINAL_LIBRARY = "xul"
 
 LOCAL_INCLUDES += [
