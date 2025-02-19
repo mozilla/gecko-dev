@@ -4741,7 +4741,8 @@ void nsDocShell::ActivenessMaybeChanged() {
     mScriptGlobal->SetIsBackground(!isActive);
     if (RefPtr<Document> doc = mScriptGlobal->GetExtantDoc()) {
       // Update orientation when the top-level browsing context becomes active.
-      if (isActive && mBrowsingContext->IsTop()) {
+      if (isActive && mBrowsingContext->IsTop() &&
+          !mBrowsingContext->Windowless()) {
         // We only care about the top-level browsing context.
         auto orientation = mBrowsingContext->GetOrientationLock();
         ScreenOrientation::UpdateActiveOrientationLock(orientation);

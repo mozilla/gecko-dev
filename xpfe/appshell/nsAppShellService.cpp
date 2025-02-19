@@ -414,7 +414,8 @@ nsAppShellService::CreateWindowlessBrowser(bool aIsChrome, uint32_t aChromeMask,
   // Create a BrowsingContext for our windowless browser.
   RefPtr<BrowsingContext> browsingContext = BrowsingContext::CreateIndependent(
       aIsChrome ? BrowsingContext::Type::Chrome
-                : BrowsingContext::Type::Content);
+                : BrowsingContext::Type::Content,
+      true);
 
   if (aChromeMask & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW) {
     browsingContext->SetRemoteTabs(true);
