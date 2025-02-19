@@ -5315,7 +5315,7 @@
 
 - name: dom.webnotifications.requireinteraction.enabled
   type: RelaxedAtomicBool
-#if defined(XP_WIN)
+#if defined(XP_WIN) || defined(XP_LINUX)
   value: true
 #else
   value: @IS_NIGHTLY_BUILD@
