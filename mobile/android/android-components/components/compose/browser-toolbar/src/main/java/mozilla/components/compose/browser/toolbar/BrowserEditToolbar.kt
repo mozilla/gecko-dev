@@ -19,7 +19,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.ui.icons.R as iconsR
 
 /**
@@ -64,7 +66,10 @@ fun BrowserEditToolbar(
             editActions()
 
             if (url.isNotEmpty()) {
-                ClearButton(onButtonClicked = { onUrlEdit("") })
+                ClearButton(
+                    tint = colors.clearButton,
+                    onButtonClicked = { onUrlEdit("") },
+                )
             }
         },
     )
@@ -73,10 +78,14 @@ fun BrowserEditToolbar(
 /**
  * Sub-component of the [BrowserEditToolbar] responsible for displaying a clear icon button.
  *
+ * @param tint Color tint of the clear button.
  * @param onButtonClicked Will be called when the user clicks on the button.
  */
 @Composable
-fun ClearButton(onButtonClicked: () -> Unit = {}) {
+fun ClearButton(
+    tint: Color,
+    onButtonClicked: () -> Unit = {},
+) {
     IconButton(
         modifier = Modifier.requiredSize(40.dp),
         onClick = { onButtonClicked() },
@@ -84,7 +93,18 @@ fun ClearButton(onButtonClicked: () -> Unit = {}) {
         Icon(
             painter = painterResource(iconsR.drawable.mozac_ic_cross_circle_fill_24),
             contentDescription = stringResource(R.string.mozac_clear_button_description),
-            tint = Color.Black,
+            tint = tint,
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun BrowserEditToolbarPreview() {
+    AcornTheme {
+        BrowserEditToolbar(
+            url = "http://www.mozilla.org",
+            colors = BrowserToolbarDefaults.colors().editToolbarColors,
         )
     }
 }

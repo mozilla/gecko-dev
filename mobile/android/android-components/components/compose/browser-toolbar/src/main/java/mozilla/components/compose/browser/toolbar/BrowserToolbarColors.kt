@@ -33,8 +33,10 @@ data class BrowserDisplayToolbarColors(
  *
  * @property background Background color of the toolbar.
  * @property text Text color of the URL.
+ * @property clearButton Color tint for the icon shown when the URL is empty.
  */
 data class BrowserEditToolbarColors(
     val background: Color,
     val text: Color,
+    val clearButton: Color,
 )

@@ -6,6 +6,7 @@ package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
+import mozilla.components.compose.base.theme.AcornTheme
 
 /**
  * Contains the default values used by the browser toolbar.
@@ -23,8 +24,9 @@ object BrowserToolbarDefaults {
             text = MaterialTheme.colors.onBackground,
         ),
         editToolbarColors: BrowserEditToolbarColors = BrowserEditToolbarColors(
-            background = MaterialTheme.colors.background,
-            text = MaterialTheme.colors.onBackground,
+            background = AcornTheme.colors.layer1,
+            text = AcornTheme.colors.textPrimary,
+            clearButton = AcornTheme.colors.iconPrimary,
         ),
     ) = BrowserToolbarColors(
         displayToolbarColors = displayToolbarColors,
