@@ -14,8 +14,8 @@ add_setup(async function () {
 });
 
 add_task(async function test_update_login_success() {
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    ok(true, "Cannot test OSAuth.");
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
     return;
   }
 
@@ -52,7 +52,7 @@ add_task(async function test_update_login_success() {
   info("Submitting form.");
   saveButton.buttonEl.click();
 
-  await waitForNotification(megalist, "update-login-success");
+  await checkNotificationAndTelemetry(megalist, "update-login-success");
   await checkAllLoginsRendered(megalist);
   const updatedPasswordCard = megalist.querySelector("password-card");
 
@@ -76,8 +76,8 @@ add_task(async function test_update_login_success() {
 });
 
 add_task(async function test_update_login_duplicate() {
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    ok(true, "Cannot test OSAuth.");
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
     return;
   }
 
@@ -110,14 +110,14 @@ add_task(async function test_update_login_duplicate() {
   info("Submitting form.");
   saveButton.buttonEl.click();
 
-  await waitForNotification(megalist, "login-already-exists-warning");
+  await checkNotificationAndTelemetry(megalist, "login-already-exists-warning");
   LoginTestUtils.clearData();
   SidebarController.hide();
 });
 
 add_task(async function test_update_login_discard_changes() {
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    ok(true, "Cannot test OSAuth.");
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
     return;
   }
 
@@ -143,7 +143,7 @@ add_task(async function test_update_login_discard_changes() {
     "moz-button[data-l10n-id=login-item-cancel-button]"
   );
   cancelButton.buttonEl.click();
-  await waitForNotification(megalist, "discard-changes");
+  await checkNotificationAndTelemetry(megalist, "discard-changes");
   ok(true, "Got discard changes notification");
 
   info("Pressing Go Back action on notification");
@@ -162,7 +162,7 @@ add_task(async function test_update_login_discard_changes() {
 
   info("Cancelling form again.");
   cancelButton.buttonEl.click();
-  await waitForNotification(megalist, "discard-changes");
+  await checkNotificationAndTelemetry(megalist, "discard-changes", 1);
   ok(true, "Got discard changes notification");
 
   info("Pressing Confirm action on notification");
@@ -181,7 +181,7 @@ add_task(async function test_update_login_discard_changes() {
     "Login form failed to render"
   );
   SidebarController.hide();
-  await waitForNotification(megalist, "discard-changes");
+  await checkNotificationAndTelemetry(megalist, "discard-changes", 2);
   ok(true, "Got discard changes notification when closing sidebar");
 
   info("Sidebar should close if discard changes is confirmed");

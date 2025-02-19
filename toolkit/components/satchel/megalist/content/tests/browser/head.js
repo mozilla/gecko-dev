@@ -168,6 +168,22 @@ function waitForNotification(megalist, notificationId) {
   return notifcationPromise;
 }
 
+async function checkNotificationAndTelemetry(
+  megalist,
+  notificationId,
+  eventIndex = 0
+) {
+  const notificationMessageBar = await waitForNotification(
+    megalist,
+    notificationId
+  );
+  const events = Glean.contextualManager.notificationShown.testGetValue();
+  assertCPMGleanEvent(events[eventIndex], {
+    notification_detail: notificationId.replaceAll("-", "_"),
+  });
+  return notificationMessageBar;
+}
+
 function setInputValue(loginForm, fieldElement, value) {
   info(`Filling ${fieldElement} with value '${value}'.`);
   const field = loginForm.shadowRoot.querySelector(fieldElement);
@@ -240,4 +256,14 @@ function assertCPMGleanEvent(actualEvent, expectedEvent) {
         Expected: '${expectedEvent[key]}'.`
     );
   }
+}
+
+async function resetTelemetryIfKeyStoreTestable() {
+  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    ok(true, "Cannot test OSAuth.");
+    return false;
+  }
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+  return true;
 }

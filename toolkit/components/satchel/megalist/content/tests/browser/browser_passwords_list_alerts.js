@@ -24,8 +24,8 @@ async function close_sidebar(megalist) {
 }
 
 add_task(async function test_breached_origin_alert() {
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    ok(true, "Cannot test OSAuth.");
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
     return;
   }
   await addBreach();
@@ -42,7 +42,8 @@ add_task(async function test_breached_origin_alert() {
     breachedPasswordCard.shadowRoot.querySelector(".view-alert-button");
   info("Click on view alerts.");
   viewAlertsButton.click();
-  const notifMsgBar = await waitForNotification(
+
+  const notifMsgBar = await checkNotificationAndTelemetry(
     megalist,
     "breached-origin-warning"
   );
@@ -59,8 +60,8 @@ add_task(async function test_breached_origin_alert() {
 });
 
 add_task(async function test_no_username_alert() {
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    ok(true, "Cannot test OSAuth.");
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
     return;
   }
 
@@ -85,7 +86,7 @@ add_task(async function test_no_username_alert() {
   assertCPMGleanEvent(events[0], {
     interaction_type: "view_alert",
   });
-  const notifMsgBar = await waitForNotification(
+  const notifMsgBar = await checkNotificationAndTelemetry(
     megalist,
     "no-username-warning"
   );
@@ -102,8 +103,8 @@ add_task(async function test_no_username_alert() {
 });
 
 add_task(async function test_vulnerable_password_alert() {
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    ok(true, "Cannot test OSAuth.");
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
     return;
   }
   await addBreach();
@@ -120,9 +121,10 @@ add_task(async function test_vulnerable_password_alert() {
     breachedPasswordCard.shadowRoot.querySelector(".view-alert-button");
   info("Click on view alerts.");
   viewAlertsButton.click();
-  const notifMsgBar = await waitForNotification(
+  const notifMsgBar = await checkNotificationAndTelemetry(
     megalist,
-    "vulnerable-password-warning"
+    "vulnerable-password-warning",
+    1
   );
 
   info("Click on change password.");

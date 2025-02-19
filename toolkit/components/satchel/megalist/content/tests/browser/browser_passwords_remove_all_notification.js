@@ -32,6 +32,8 @@ async function clickRemoveAllPasswords(megalist) {
 }
 
 add_task(async function test_passwords_remove_all_notification() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
   info("Check that notification is shown when user removes all passwords.");
   const megalist = await openPasswordsSidebar();
   await addMockPasswords();
@@ -61,7 +63,7 @@ add_task(async function test_passwords_remove_all_notification() {
   };
 
   await clickRemoveAllPasswords(megalist);
-  await waitForNotification(megalist, "delete-login-success");
+  await checkNotificationAndTelemetry(megalist, "delete-login-success");
   ok(true, "Notification is shown.");
 
   await checkEmptyState(".no-logins-card-content", megalist);
@@ -74,8 +76,8 @@ add_task(async function test_passwords_remove_all_notification() {
 
 add_task(
   async function test_passwords_remove_all_notification_while_updating_login() {
-    if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-      ok(true, "Cannot test OSAuth.");
+    const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+    if (!canTestOSAuth) {
       return;
     }
 
@@ -118,7 +120,7 @@ add_task(
     };
 
     await clickRemoveAllPasswords(megalist);
-    await waitForNotification(megalist, "delete-login-success");
+    await checkNotificationAndTelemetry(megalist, "delete-login-success");
     ok(true, "Notification is shown.");
 
     await checkEmptyState(".no-logins-card-content", megalist);

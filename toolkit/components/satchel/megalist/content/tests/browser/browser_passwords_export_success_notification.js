@@ -78,8 +78,8 @@ add_setup(async function () {
 
 add_task(async function test_passwords_export_notification() {
   info("Check that notification is shown when user exports all passwords.");
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    ok(true, "Cannot test OSAuth.");
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
     return;
   }
   const megalist = await openPasswordsSidebar();
@@ -110,7 +110,7 @@ add_task(async function test_passwords_export_notification() {
 
   await clickExportAllPasswords(megalist, getMegalistParent());
   ok(true, "Export menu clicked.");
-  await waitForNotification(megalist, "export-passwords-success");
+  await checkNotificationAndTelemetry(megalist, "export-passwords-success");
   ok(true, "Notification for successful export of passwords is shown.");
 
   info("Closing the sidebar");

@@ -14,14 +14,10 @@ add_setup(async function () {
 });
 
 add_task(async function test_delete_login_success() {
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    ok(true, "Cannot test OSAuth.");
+  const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
+  if (!canTestOSAuth) {
     return;
   }
-
-  Services.fog.testResetFOG();
-  await Services.fog.testFlushAllChildren();
-
   await addMockPasswords();
   info("Three logins added in total.");
 
@@ -50,7 +46,7 @@ add_task(async function test_delete_login_success() {
   confirmDeleteBtn.click();
   info("Delete one login.");
 
-  await waitForNotification(megalist, "delete-login-success");
+  await checkNotificationAndTelemetry(megalist, "delete-login-success");
   let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
 
   Assert.equal(updateEvents.length, 1, "Recorded delete password once.");

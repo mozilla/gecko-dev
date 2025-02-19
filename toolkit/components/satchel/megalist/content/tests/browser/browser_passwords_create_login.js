@@ -75,7 +75,7 @@ add_task(async function test_add_login_success() {
   });
 
   addLogin(megalist, TEST_LOGIN_1);
-  await waitForNotification(megalist, "add-login-success");
+  await checkNotificationAndTelemetry(megalist, "add-login-success");
   await checkAllLoginsRendered(megalist);
 
   let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
@@ -88,6 +88,8 @@ add_task(async function test_add_login_success() {
 });
 
 add_task(async function test_add_duplicate_login() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
   const mock_passwords = [TEST_LOGIN_1, TEST_LOGIN_2, TEST_LOGIN_3];
   for (let login of mock_passwords) {
     info(`Saving login: ${login.username}, ${login.password}, ${login.origin}`);
@@ -98,12 +100,15 @@ add_task(async function test_add_duplicate_login() {
   await waitForSnapshots();
   await openLoginForm(megalist);
   addLogin(megalist, TEST_LOGIN_1);
-  await waitForNotification(megalist, "login-already-exists-warning");
+  await checkNotificationAndTelemetry(megalist, "login-already-exists-warning");
 
   LoginTestUtils.clearData();
 });
 
 add_task(async function test_add_login_empty_origin() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   const megalist = await openPasswordsSidebar();
   await waitForSnapshots();
   await openLoginForm(megalist);
@@ -136,6 +141,8 @@ add_task(async function test_add_login_empty_password() {
 });
 
 add_task(async function test_view_login_command() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
   await addMockPasswords();
 
   const megalist = await openPasswordsSidebar();
@@ -146,7 +153,7 @@ add_task(async function test_view_login_command() {
     origin: "https://zzz.com",
   });
 
-  await waitForNotification(megalist, "add-login-success");
+  await checkNotificationAndTelemetry(megalist, "add-login-success");
   await checkAllLoginsRendered(megalist);
   await waitForScroll(megalist);
 
