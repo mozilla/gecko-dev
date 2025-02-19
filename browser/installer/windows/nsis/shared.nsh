@@ -1581,7 +1581,6 @@ ${RemoveDefaultBrowserAgentShortcut}
   Push "end"
   Push "AccessibleMarshal.dll"
   Push "freebl3.dll"
-  Push "nssckbi.dll"
   Push "nspr4.dll"
   Push "nssdbm3.dll"
   Push "mozsqlite3.dll"
