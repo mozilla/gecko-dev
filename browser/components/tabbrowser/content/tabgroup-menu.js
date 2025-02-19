@@ -941,7 +941,7 @@
           this.#showSmartSuggestionsContainer(true);
           this.#showSuggestionButton(false);
           this.#showSuggestionsSeparator(true);
-          this.$showDefaultTabGroupActions(false);
+          this.#showDefaultTabGroupActions(false);
           break;
 
         // CREATE AI WITH NO SUGGESTIONS
