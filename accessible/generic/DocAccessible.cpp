@@ -508,6 +508,8 @@ void DocAccessible::Shutdown() {
   // Mark the document as shutdown before AT is notified about the document
   // removal from its container (valid for root documents on ATK and due to
   // some reason for MSAA, refer to bug 757392 for details).
+  MOZ_DIAGNOSTIC_ASSERT(!IsDefunct(),
+                        "Already marked defunct. Reentrant shutdown!");
   mStateFlags |= eIsDefunct;
 
   if (mNotificationController) {
@@ -517,9 +519,6 @@ void DocAccessible::Shutdown() {
 
   RemoveEventListeners();
 
-  // mParent->RemoveChild clears mParent, but we need to know whether we were a
-  // child later, so use a flag.
-  const bool isChild = !!mParent;
   if (mParent) {
     DocAccessible* parentDocument = mParent->Document();
     if (parentDocument) parentDocument->RemoveChildDocument(this);
@@ -589,12 +588,7 @@ void DocAccessible::Shutdown() {
   HyperTextAccessible::Shutdown();
 
   MOZ_ASSERT(GetAccService());
-  GetAccService()->NotifyOfDocumentShutdown(
-      this, mDocumentNode,
-      // Make sure we don't shut down AccService while a parent document is
-      // still shutting down. The parent will allow service shutdown when it
-      // reaches this point.
-      /* aAllowServiceShutdown */ !isChild);
+  GetAccService()->NotifyOfDocumentShutdown(this, mDocumentNode);
   mDocumentNode = nullptr;
 }
 

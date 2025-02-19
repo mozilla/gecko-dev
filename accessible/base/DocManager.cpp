@@ -86,22 +86,20 @@ LocalAccessible* DocManager::FindAccessibleInCache(nsINode* aNode) const {
   return nullptr;
 }
 
-void DocManager::RemoveFromXPCDocumentCache(DocAccessible* aDocument,
-                                            bool aAllowServiceShutdown) {
+void DocManager::RemoveFromXPCDocumentCache(DocAccessible* aDocument) {
   xpcAccessibleDocument* xpcDoc = mXPCDocumentCache.GetWeak(aDocument);
-  if (xpcDoc) {
-    xpcDoc->Shutdown();
-    mXPCDocumentCache.Remove(aDocument);
-
-    if (aAllowServiceShutdown && !HasXPCDocuments()) {
-      MaybeShutdownAccService(nsAccessibilityService::eXPCOM);
-    }
+  if (!xpcDoc) {
+    return;
+  }
+  xpcDoc->Shutdown();
+  mXPCDocumentCache.Remove(aDocument);
+  if (!HasXPCDocuments()) {
+    MaybeShutdownAccService(nsAccessibilityService::eXPCOM, /* aAsync */ true);
   }
 }
 
 void DocManager::NotifyOfDocumentShutdown(DocAccessible* aDocument,
-                                          Document* aDOMDocument,
-                                          bool aAllowServiceShutdown) {
+                                          Document* aDOMDocument) {
   // We need to remove listeners in both cases, when document is being shutdown
   // or when accessibility service is being shut down as well.
   RemoveListeners(aDOMDocument);
@@ -112,19 +110,19 @@ void DocManager::NotifyOfDocumentShutdown(DocAccessible* aDocument,
     return;
   }
 
-  RemoveFromXPCDocumentCache(aDocument, aAllowServiceShutdown);
+  RemoveFromXPCDocumentCache(aDocument);
   mDocAccessibleCache.Remove(aDOMDocument);
 }
 
 void DocManager::RemoveFromRemoteXPCDocumentCache(DocAccessibleParent* aDoc) {
   xpcAccessibleDocument* doc = GetCachedXPCDocument(aDoc);
-  if (doc) {
-    doc->Shutdown();
-    sRemoteXPCDocumentCache->Remove(aDoc);
+  if (!doc) {
+    return;
   }
-
+  doc->Shutdown();
+  sRemoteXPCDocumentCache->Remove(aDoc);
   if (sRemoteXPCDocumentCache && sRemoteXPCDocumentCache->Count() == 0) {
-    MaybeShutdownAccService(nsAccessibilityService::eXPCOM);
+    MaybeShutdownAccService(nsAccessibilityService::eXPCOM, /* aAsync */ true);
   }
 }
 

@@ -1960,7 +1960,7 @@ nsAccessibilityService* GetOrCreateAccService(uint32_t aNewConsumer,
   return nsAccessibilityService::gAccessibilityService;
 }
 
-void MaybeShutdownAccService(uint32_t aFormerConsumer) {
+void MaybeShutdownAccService(uint32_t aFormerConsumer, bool aAsync) {
   nsAccessibilityService* accService =
       nsAccessibilityService::gAccessibilityService;
 
@@ -1985,11 +1985,32 @@ void MaybeShutdownAccService(uint32_t aFormerConsumer) {
   }
 
   if (nsAccessibilityService::gConsumers & ~aFormerConsumer) {
+    // There are still other consumers of the accessibility service, so we
+    // can't shut down.
     accService->UnsetConsumers(aFormerConsumer);
-  } else {
+    return;
+  }
+
+  if (!aAsync) {
     accService
         ->Shutdown();  // Will unset all nsAccessibilityService::gConsumers
+    return;
   }
+
+  static bool sIsPending = false;
+  if (sIsPending) {
+    // An async shutdown runnable is pending. Don't dispatch another.
+    return;
+  }
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "a11y::MaybeShutdownAccService", [aFormerConsumer]() {
+        // It's possible (albeit very unlikely) that another accessibility
+        // service consumer arrived since this runnable was dispatched. Use
+        // MaybeShutdownAccService to be safe.
+        MaybeShutdownAccService(aFormerConsumer, false);
+        sIsPending = false;
+      }));
+  sIsPending = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

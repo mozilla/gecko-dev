@@ -442,7 +442,7 @@ class nsAccessibilityService final : public mozilla::a11y::DocManager,
 
   friend nsAccessibilityService* GetAccService();
   friend nsAccessibilityService* GetOrCreateAccService(uint32_t, uint64_t);
-  friend void MaybeShutdownAccService(uint32_t);
+  friend void MaybeShutdownAccService(uint32_t, bool);
   friend void mozilla::a11y::PrefChanged(const char*, void*);
   friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();
   friend mozilla::a11y::SelectionManager* mozilla::a11y::SelectionMgr();
@@ -468,8 +468,13 @@ nsAccessibilityService* GetOrCreateAccService(
 
 /**
  * Shutdown accessibility service if needed.
+ * @param aFormerConsumer The ServiceConsumer that is no longer using the
+ *        service.
+ * @param aAsync True to shut down the service asynchronously using a runnable.
+ *        This should be used to avoid reentry if this is called during the
+ *        shutdown of a document.
  */
-void MaybeShutdownAccService(uint32_t aFormerConsumer);
+void MaybeShutdownAccService(uint32_t aFormerConsumer, bool aAsync = false);
 
 /**
  * Return true if we're in a content process and not B2G.
