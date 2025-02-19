@@ -218,13 +218,9 @@ class RegionDetector {
     if (result) {
       await this._storeRegion(result);
     }
-    Services.telemetry
-      .getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_TIME_MS")
-      .add(took);
+    Glean.region.fetchTime.accumulateSingleSample(took);
 
-    Services.telemetry
-      .getHistogramById("SEARCH_SERVICE_COUNTRY_FETCH_RESULT")
-      .add(telemetryResult);
+    Glean.region.fetchResult.accumulateSingleSample(telemetryResult);
 
     return result;
   }
