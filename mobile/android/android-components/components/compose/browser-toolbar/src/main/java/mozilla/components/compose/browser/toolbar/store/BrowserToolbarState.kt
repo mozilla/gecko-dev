@@ -4,6 +4,7 @@
 
 package mozilla.components.compose.browser.toolbar.store
 
+import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.lib.state.State
 
 /**
@@ -33,7 +34,13 @@ data class DisplayState(
  * Wrapper containing the toolbar edit state.
  *
  * @property editText The text the user is editing in "edit" mode.
+ * @property editActionsStart List of [Action]s to be displayed at the start of the URL of
+ * the edit toolbar.
+ * @property editActionsEnd List of [Action]s to be displayed at the end of the URL of
+ * the edit toolbar.
  */
 data class EditState(
     val editText: String? = null,
+    val editActionsStart: List<Action> = emptyList(),
+    val editActionsEnd: List<Action> = emptyList(),
 ) : State

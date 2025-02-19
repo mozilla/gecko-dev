@@ -30,5 +30,17 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
                 editText = action.text,
             ),
         )
+
+        is BrowserEditToolbarAction.AddEditActionStart -> state.copy(
+            editState = state.editState.copy(
+                editActionsStart = state.editState.editActionsStart + action.action,
+            ),
+        )
+
+        is BrowserEditToolbarAction.AddEditActionEnd -> state.copy(
+            editState = state.editState.copy(
+                editActionsEnd = state.editState.editActionsEnd + action.action,
+            ),
+        )
     }
 }

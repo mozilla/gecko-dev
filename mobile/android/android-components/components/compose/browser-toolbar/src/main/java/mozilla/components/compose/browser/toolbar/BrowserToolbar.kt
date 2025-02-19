@@ -63,6 +63,8 @@ fun BrowserToolbar(
         BrowserEditToolbar(
             url = input,
             colors = colors.editToolbarColors,
+            editActionsStart = uiState.editState.editActionsStart,
+            editActionsEnd = uiState.editState.editActionsEnd,
             onUrlCommitted = { text -> onTextCommit(text) },
             onUrlEdit = { text -> onTextEdit(text) },
         )

@@ -5,6 +5,7 @@
 package mozilla.components.compose.browser.toolbar.store
 
 import mozilla.components.lib.state.Action
+import mozilla.components.compose.browser.toolbar.concept.Action as ToolbarAction
 
 /**
  * [Action]s for updating the [BrowserToolbarState] via [BrowserToolbarStore].
@@ -28,4 +29,18 @@ sealed class BrowserEditToolbarAction : BrowserToolbarAction() {
      * @property text The text in the toolbar that is being edited.
      */
     data class UpdateEditText(val text: String) : BrowserEditToolbarAction()
+
+    /**
+     * Adds an [Action] to be displayed at the start of the URL in the browser edit toolbar.
+     *
+     * @property action The [Action] to be added.
+     */
+    data class AddEditActionStart(val action: ToolbarAction) : BrowserEditToolbarAction()
+
+    /**
+     * Adds an [Action] to be displayed at the end of the URL in the browser edit toolbar.
+     *
+     * @property action The [Action] to be added.
+     */
+    data class AddEditActionEnd(val action: ToolbarAction) : BrowserEditToolbarAction()
 }

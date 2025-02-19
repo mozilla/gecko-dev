@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.ui.icons.R as iconsR
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
@@ -37,19 +39,23 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  *
  * @param url The initial URL to be edited.
  * @param colors The color scheme to use in the browser edit toolbar.
+ * @param editActionsStart List of [Action]s to be displayed at the start of the URL of
+ * the edit toolbar.
+ * @param editActionsEnd List of [Action]s to be displayed at the end of the URL of
+ * the edit toolbar.
  * @param onUrlEdit Will be called when the URL value changes. An updated text value comes as a
  * parameter of the callback.
  * @param onUrlCommitted Will be called when the user has finished editing and wants to initiate
  * loading the entered URL. The committed text value comes as a parameter of the callback.
- * @param editActions Optional actions to be displayed on the right side of the toolbar.
  */
 @Composable
 fun BrowserEditToolbar(
     url: String,
     colors: BrowserEditToolbarColors,
+    editActionsStart: List<Action> = emptyList(),
+    editActionsEnd: List<Action> = emptyList(),
     onUrlEdit: (String) -> Unit = {},
     onUrlCommitted: (String) -> Unit = {},
-    editActions: @Composable () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -83,14 +89,19 @@ fun BrowserEditToolbar(
             ),
             modifier = Modifier.fillMaxWidth(),
             shape = ROUNDED_CORNER_SHAPE,
+            leadingIcon = {
+                ActionContainer(actions = editActionsStart)
+            },
             trailingIcon = {
-                editActions()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ActionContainer(actions = editActionsEnd)
 
-                if (url.isNotEmpty()) {
-                    ClearButton(
-                        tint = colors.clearButton,
-                        onButtonClicked = { onUrlEdit("") },
-                    )
+                    if (url.isNotEmpty()) {
+                        ClearButton(
+                            tint = colors.clearButton,
+                            onButtonClicked = { onUrlEdit("") },
+                        )
+                    }
                 }
             },
         )
@@ -127,6 +138,28 @@ private fun BrowserEditToolbarPreview() {
         BrowserEditToolbar(
             url = "http://www.mozilla.org",
             colors = BrowserToolbarDefaults.colors().editToolbarColors,
+            editActionsStart = listOf(
+                Action.ActionButton(
+                    icon = iconsR.drawable.mozac_ic_search_24,
+                    contentDescription = null,
+                    tint = AcornTheme.colors.iconPrimary.toArgb(),
+                    onClick = {},
+                ),
+            ),
+            editActionsEnd = listOf(
+                Action.ActionButton(
+                    icon = iconsR.drawable.mozac_ic_microphone_24,
+                    contentDescription = null,
+                    tint = AcornTheme.colors.iconPrimary.toArgb(),
+                    onClick = {},
+                ),
+                Action.ActionButton(
+                    icon = iconsR.drawable.mozac_ic_qr_code_24,
+                    contentDescription = null,
+                    tint = AcornTheme.colors.iconPrimary.toArgb(),
+                    onClick = {},
+                ),
+            ),
         )
     }
 }
