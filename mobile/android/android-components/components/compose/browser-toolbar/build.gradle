@@ -34,6 +34,7 @@ dependencies {
     implementation project(":concept-engine")
     implementation project(":browser-state")
     implementation project(":feature-session")
+    implementation project(":lib-state")
     implementation project(":ui-icons")
     implementation ComponentsDependencies.androidx_compose_ui
     implementation ComponentsDependencies.androidx_compose_ui_tooling_preview

@@ -18,11 +18,6 @@ class BrowserScreenStore(
 
 private fun reduce(state: BrowserScreenState, action: BrowserScreenAction): BrowserScreenState {
     return when (action) {
-        is BrowserScreenAction.ToggleEditMode -> state.copy(
-            editMode = action.editMode,
-            editText = if (action.editMode) null else state.editText,
-        )
-        is BrowserScreenAction.UpdateEditText -> state.copy(editText = action.text)
         is BrowserScreenAction.ShowTabs -> state.copy(showTabs = true)
         is BrowserScreenAction.HideTabs -> state.copy(showTabs = false)
     }
