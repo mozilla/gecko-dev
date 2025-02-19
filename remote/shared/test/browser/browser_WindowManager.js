@@ -133,6 +133,10 @@ add_task(async function test_minimizeWindow() {
   const testWin = await BrowserTestUtils.openNewBrowserWindow();
 
   try {
+    await windowManager.adjustWindowGeometry(testWin, 100, 100, 800, 600);
+    is(testWin.outerWidth, 800, "Window width is set to initial value");
+    is(testWin.outerHeight, 600, "Window height is set to initial value");
+
     is(
       WindowState.from(testWin.windowState),
       WindowState.Normal,
@@ -162,6 +166,10 @@ add_task(async function test_maximizeWindow() {
   const testWin = await BrowserTestUtils.openNewBrowserWindow();
 
   try {
+    await windowManager.adjustWindowGeometry(testWin, 100, 100, 800, 600);
+    is(testWin.outerWidth, 800, "Window width is set to initial value");
+    is(testWin.outerHeight, 600, "Window height is set to initial value");
+
     is(
       WindowState.from(testWin.windowState),
       WindowState.Normal,
@@ -219,6 +227,9 @@ add_task(async function test_setFullscreen() {
   const testWin = await BrowserTestUtils.openNewBrowserWindow();
 
   try {
+    await windowManager.adjustWindowGeometry(testWin, 100, 100, 800, 600);
+    is(testWin.outerWidth, 800, "Window width is set to initial value");
+    is(testWin.outerHeight, 600, "Window height is set to initial value");
     is(
       WindowState.from(testWin.windowState),
       WindowState.Normal,
