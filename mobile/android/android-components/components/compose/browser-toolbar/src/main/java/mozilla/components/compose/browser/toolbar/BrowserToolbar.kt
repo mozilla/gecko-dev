@@ -10,6 +10,7 @@ import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.Mode
 import mozilla.components.lib.state.ext.observeAsState
 
 /**
@@ -52,25 +53,40 @@ fun BrowserToolbar(
         else -> editText
     }
 
-    if (uiState.editMode) {
-        BrowserEditToolbar(
-            url = input,
-            colors = colors.editToolbarColors,
-            editActionsStart = uiState.editState.editActionsStart,
-            editActionsEnd = uiState.editState.editActionsEnd,
-            onUrlCommitted = { text -> onTextCommit(text) },
-            onUrlEdit = { text -> onTextEdit(text) },
-        )
-    } else {
-        BrowserDisplayToolbar(
-            url = selectedTab?.content?.url ?: uiState.displayState.hint,
-            colors = colors.displayToolbarColors,
-            navigationActions = uiState.displayState.navigationActions,
-            pageActions = uiState.displayState.pageActions,
-            browserActions = uiState.displayState.browserActions,
-            onUrlClicked = {
-                onDisplayToolbarClick()
-            },
-        )
+    when (uiState.mode) {
+        Mode.EDIT -> {
+            BrowserEditToolbar(
+                url = input,
+                colors = colors.editToolbarColors,
+                editActionsStart = uiState.editState.editActionsStart,
+                editActionsEnd = uiState.editState.editActionsEnd,
+                onUrlCommitted = { text -> onTextCommit(text) },
+                onUrlEdit = { text -> onTextEdit(text) },
+            )
+        }
+
+        Mode.DISPLAY -> {
+            BrowserDisplayToolbar(
+                url = selectedTab?.content?.url ?: uiState.displayState.hint,
+                colors = colors.displayToolbarColors,
+                navigationActions = uiState.displayState.navigationActions,
+                pageActions = uiState.displayState.pageActions,
+                browserActions = uiState.displayState.browserActions,
+                onUrlClicked = {
+                    onDisplayToolbarClick()
+                },
+            )
+        }
+
+        Mode.CUSTOM_TAB -> {
+            CustomTabToolbar(
+                url = selectedTab?.content?.url ?: "",
+                title = selectedTab?.content?.title ?: "",
+                colors = colors.customTabToolbarColor,
+                navigationActions = uiState.displayState.navigationActions,
+                pageActions = uiState.displayState.pageActions,
+                browserActions = uiState.displayState.browserActions,
+            )
+        }
     }
 }

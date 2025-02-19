@@ -10,15 +10,42 @@ import mozilla.components.lib.state.State
 /**
  * The state of the browser toolbar.
  *
+ * @property mode The display [Mode] of the browser toolbar.
  * @property displayState Wrapper containing the toolbar display state.
  * @property editState Wrapper containing the toolbar edit state.
- * @property editMode Whether the toolbar is in "edit" or "display" mode.
  */
 data class BrowserToolbarState(
+    val mode: Mode = Mode.DISPLAY,
     val displayState: DisplayState = DisplayState(),
     val editState: EditState = EditState(),
-    val editMode: Boolean = false,
-) : State
+
+) : State {
+
+    /**
+     * Returns true if the browser toolbar is in edit mode and false otherwise.
+     */
+    fun isEditMode() = this.mode == Mode.EDIT
+}
+
+/**
+ * The various display mode of the browser toolbar.
+ */
+enum class Mode {
+    /**
+     * Display mode - Shows the URL and related toolbar actions.
+     */
+    DISPLAY,
+
+    /**
+     * Edit mode - Allows the user to edit the URL.
+     */
+    EDIT,
+
+    /**
+     * Custom tab - Displays the URL and title of a custom tab.
+     */
+    CUSTOM_TAB,
+}
 
 /**
  * Wrapper containing the toolbar display state.

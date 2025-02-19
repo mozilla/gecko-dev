@@ -19,7 +19,7 @@ class BrowserToolbarStore(
 private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): BrowserToolbarState {
     return when (action) {
         is BrowserToolbarAction.ToggleEditMode -> state.copy(
-            editMode = action.editMode,
+            mode = if (action.editMode) Mode.EDIT else Mode.DISPLAY,
             editState = state.editState.copy(
                 editText = if (action.editMode) null else state.editState.editText,
             ),

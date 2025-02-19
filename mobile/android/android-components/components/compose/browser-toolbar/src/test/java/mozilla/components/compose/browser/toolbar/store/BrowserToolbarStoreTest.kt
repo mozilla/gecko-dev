@@ -9,9 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,15 +22,15 @@ class BrowserToolbarStoreTest {
     val coroutineTestRule = MainCoroutineRule()
 
     @Test
-    fun `WHEN toggle edit mode action is dispatched THEN update the edit mode and states`() {
+    fun `WHEN toggle edit mode action is dispatched THEN update the mode and edit text states`() {
         val store = BrowserToolbarStore()
         val editMode = true
 
-        assertFalse(store.state.editMode)
+        assertEquals(Mode.DISPLAY, store.state.mode)
 
         store.dispatch(BrowserToolbarAction.ToggleEditMode(editMode = editMode))
 
-        assertTrue(store.state.editMode)
+        assertEquals(Mode.EDIT, store.state.mode)
         assertNull(store.state.editState.editText)
     }
 

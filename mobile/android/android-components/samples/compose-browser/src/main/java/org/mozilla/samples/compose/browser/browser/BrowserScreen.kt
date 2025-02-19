@@ -96,7 +96,7 @@ fun BrowserScreen(navController: NavController) {
 
     val loadUrl = components().sessionUseCases.loadUrl
 
-    BackHandler(enabled = toolbarState.editMode) {
+    BackHandler(enabled = toolbarState.isEditMode()) {
         toolbarStore.dispatch(BrowserToolbarAction.ToggleEditMode(false))
     }
 
@@ -126,7 +126,7 @@ fun BrowserScreen(navController: NavController) {
                 )
 
                 val url = toolbarState.editState.editText
-                if (toolbarState.editMode && url != null) {
+                if (toolbarState.isEditMode() && url != null) {
                     Suggestions(
                         url,
                         onSuggestionClicked = { suggestion ->
