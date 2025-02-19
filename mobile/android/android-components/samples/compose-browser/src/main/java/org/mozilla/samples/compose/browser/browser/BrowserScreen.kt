@@ -21,12 +21,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.navigation.NavController
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.compose.browser.awesomebar.AwesomeBar
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
@@ -45,6 +48,7 @@ import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.composableStore
 import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
+import mozilla.components.ui.icons.R
 import org.mozilla.samples.compose.browser.BrowserComposeActivity.Companion.ROUTE_SETTINGS
 import org.mozilla.samples.compose.browser.components
 
@@ -64,6 +68,24 @@ fun BrowserScreen(navController: NavController) {
             initialState = BrowserToolbarState(
                 displayState = DisplayState(
                     hint = "Search or enter address",
+                    browserActions = listOf(
+                        CustomAction(
+                            content = {
+                                TabCounterButton(
+                                    store = components().store,
+                                    onClicked = { store.dispatch(BrowserScreenAction.ShowTabs) },
+                                )
+                            },
+                        ),
+                        ActionButton(
+                            icon = R.drawable.mozac_ic_ellipsis_vertical_24,
+                            contentDescription = null,
+                            tint = Color.Black.toArgb(),
+                            onClick = {
+                                navController.navigate(ROUTE_SETTINGS)
+                            },
+                        ),
+                    ),
                 ),
             ),
         )
@@ -84,9 +106,6 @@ fun BrowserScreen(navController: NavController) {
                 store = toolbarStore,
                 browserStore = components().store,
                 target = target,
-                onDisplayMenuClicked = {
-                    navController.navigate(ROUTE_SETTINGS)
-                },
                 onTextCommit = { text ->
                     toolbarStore.dispatch(BrowserToolbarAction.ToggleEditMode(false))
                     loadUrl(text)
@@ -96,12 +115,6 @@ fun BrowserScreen(navController: NavController) {
                 },
                 onDisplayToolbarClick = {
                     toolbarStore.dispatch(BrowserToolbarAction.ToggleEditMode(true))
-                },
-                browserActions = {
-                    TabCounterButton(
-                        components().store,
-                        onClicked = { store.dispatch(BrowserScreenAction.ShowTabs) },
-                    )
                 },
             )
 

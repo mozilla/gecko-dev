@@ -20,6 +20,34 @@ sealed class BrowserToolbarAction : Action {
 }
 
 /**
+ * [BrowserToolbarAction] implementations related to updating the browser display toolbar.
+ */
+sealed class BrowserDisplayToolbarAction : BrowserToolbarAction() {
+    /**
+     * Adds a navigation [Action] to be displayed to the left side of the URL of the display toolbar
+     * (outside of the URL bounding box).
+     *
+     * @property action The [Action] to be added.
+     */
+    data class AddNavigationAction(val action: ToolbarAction) : BrowserDisplayToolbarAction()
+
+    /**
+     * Adds a page [Action] to be displayed to the right side of the URL of the display toolbar.
+     *
+     * @property action The [Action] to be added.
+     */
+    data class AddPageAction(val action: ToolbarAction) : BrowserDisplayToolbarAction()
+
+    /**
+     * Adds a browser [Action] to be displayed to the right side of the URL of the display toolbar
+     * (outside of the URL bounding box).
+     *
+     * @property action The [Action] to be added.
+     */
+    data class AddBrowserAction(val action: ToolbarAction) : BrowserDisplayToolbarAction()
+}
+
+/**
  * [BrowserToolbarAction] implementations related to updating the browser edit toolbar.
  */
 sealed class BrowserEditToolbarAction : BrowserToolbarAction() {

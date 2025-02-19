@@ -107,4 +107,94 @@ class BrowserToolbarStoreTest {
         assertEquals(action1, store.state.editState.editActionsEnd.first())
         assertEquals(action2, store.state.editState.editActionsEnd.last())
     }
+
+    @Test
+    fun `WHEN add navigation action is dispatched THEN update display navigation actions state`() {
+        val store = BrowserToolbarStore()
+        val action1 = ActionButton(
+            icon = iconsR.drawable.mozac_ic_search_24,
+            contentDescription = null,
+            tint = Color.BLACK,
+            onClick = {},
+        )
+        val action2 = ActionButton(
+            icon = iconsR.drawable.mozac_ic_forward_24,
+            contentDescription = null,
+            tint = Color.BLACK,
+            onClick = {},
+        )
+
+        assertEquals(0, store.state.displayState.navigationActions.size)
+
+        store.dispatch(BrowserDisplayToolbarAction.AddNavigationAction(action = action1))
+
+        assertEquals(1, store.state.displayState.navigationActions.size)
+        assertEquals(action1, store.state.displayState.navigationActions.first())
+
+        store.dispatch(BrowserDisplayToolbarAction.AddNavigationAction(action = action2))
+
+        assertEquals(2, store.state.displayState.navigationActions.size)
+        assertEquals(action1, store.state.displayState.navigationActions.first())
+        assertEquals(action2, store.state.displayState.navigationActions.last())
+    }
+
+    @Test
+    fun `WHEN add page action is dispatched THEN update display page actions state`() {
+        val store = BrowserToolbarStore()
+        val action1 = ActionButton(
+            icon = iconsR.drawable.mozac_ic_search_24,
+            contentDescription = null,
+            tint = Color.BLACK,
+            onClick = {},
+        )
+        val action2 = ActionButton(
+            icon = iconsR.drawable.mozac_ic_forward_24,
+            contentDescription = null,
+            tint = Color.BLACK,
+            onClick = {},
+        )
+
+        assertEquals(0, store.state.displayState.pageActions.size)
+
+        store.dispatch(BrowserDisplayToolbarAction.AddPageAction(action = action1))
+
+        assertEquals(1, store.state.displayState.pageActions.size)
+        assertEquals(action1, store.state.displayState.pageActions.first())
+
+        store.dispatch(BrowserDisplayToolbarAction.AddPageAction(action = action2))
+
+        assertEquals(2, store.state.displayState.pageActions.size)
+        assertEquals(action1, store.state.displayState.pageActions.first())
+        assertEquals(action2, store.state.displayState.pageActions.last())
+    }
+
+    @Test
+    fun `WHEN add browser action is dispatched THEN update display browser actions state`() {
+        val store = BrowserToolbarStore()
+        val action1 = ActionButton(
+            icon = iconsR.drawable.mozac_ic_search_24,
+            contentDescription = null,
+            tint = Color.BLACK,
+            onClick = {},
+        )
+        val action2 = ActionButton(
+            icon = iconsR.drawable.mozac_ic_forward_24,
+            contentDescription = null,
+            tint = Color.BLACK,
+            onClick = {},
+        )
+
+        assertEquals(0, store.state.displayState.browserActions.size)
+
+        store.dispatch(BrowserDisplayToolbarAction.AddBrowserAction(action = action1))
+
+        assertEquals(1, store.state.displayState.browserActions.size)
+        assertEquals(action1, store.state.displayState.browserActions.first())
+
+        store.dispatch(BrowserDisplayToolbarAction.AddBrowserAction(action = action2))
+
+        assertEquals(2, store.state.displayState.browserActions.size)
+        assertEquals(action1, store.state.displayState.browserActions.first())
+        assertEquals(action2, store.state.displayState.browserActions.last())
+    }
 }

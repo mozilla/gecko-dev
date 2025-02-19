@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
@@ -522,10 +523,22 @@ class ToolbarActivity : AppCompatActivity() {
 
         binding.composeToolbar.setContent {
             AcornTheme {
+                val iconPrimaryTint = AcornTheme.colors.iconPrimary.toArgb()
+
                 val store = remember {
                     BrowserToolbarStore(
                         initialState = BrowserToolbarState(
-                            displayState = DisplayState(hint = "Search or enter address"),
+                            displayState = DisplayState(
+                                hint = "Search or enter address",
+                                pageActions = listOf(
+                                    Action.ActionButton(
+                                        icon = iconsR.drawable.mozac_ic_arrow_clockwise_24,
+                                        contentDescription = null,
+                                        tint = iconPrimaryTint,
+                                        onClick = {},
+                                    ),
+                                ),
+                            ),
                             editState = EditState(
                                 editActionsStart = listOf(
                                     CustomAction(
@@ -548,7 +561,6 @@ class ToolbarActivity : AppCompatActivity() {
 
                 BrowserToolbar(
                     store = store,
-                    onDisplayMenuClicked = {},
                     onDisplayToolbarClick = {
                         store.dispatch(BrowserToolbarAction.ToggleEditMode(editMode = true))
                     },

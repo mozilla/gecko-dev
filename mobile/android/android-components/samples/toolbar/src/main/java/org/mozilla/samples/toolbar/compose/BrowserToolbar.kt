@@ -20,7 +20,6 @@ import mozilla.components.lib.state.ext.observeAsState
  * URL and controls for navigation. In edit mode the current URL can be edited. Those two modes are
  * implemented by the [BrowserDisplayToolbar] and [BrowserEditToolbar] composables.
  *
- * @param onDisplayMenuClicked Invoked when the user clicks on the menu button in "display" mode.
  * @param onTextEdit Invoked when the user edits the text in the toolbar in "edit" mode.
  * @param onTextCommit Invoked when the user has finished editing the URL and wants
  * to commit the entered text.
@@ -31,7 +30,6 @@ import mozilla.components.lib.state.ext.observeAsState
 @Composable
 fun BrowserToolbar(
     store: BrowserToolbarStore,
-    onDisplayMenuClicked: () -> Unit,
     onDisplayToolbarClick: () -> Unit,
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
@@ -58,10 +56,12 @@ fun BrowserToolbar(
         BrowserDisplayToolbar(
             url = url.takeIf { it.isNotEmpty() } ?: uiState.displayState.hint,
             colors = colors.displayToolbarColors,
+            navigationActions = uiState.displayState.navigationActions,
+            pageActions = uiState.displayState.pageActions,
+            browserActions = uiState.displayState.browserActions,
             onUrlClicked = {
                 onDisplayToolbarClick()
             },
-            onMenuClicked = { onDisplayMenuClicked() },
         )
     }
 }

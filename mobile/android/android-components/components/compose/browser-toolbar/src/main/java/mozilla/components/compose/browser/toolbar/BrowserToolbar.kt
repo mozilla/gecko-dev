@@ -22,8 +22,6 @@ import mozilla.components.lib.state.ext.observeAsState
  * @param store The [BrowserToolbarStore] to observe the UI state from.
  * @param browserStore The [BrowserStore] to observe the [target] from.
  * @param target The target tab to observe.
- * @param onDisplayMenuClicked Function to get executed when the user clicks on the menu button in
- * "display" mode.
  * @param onTextEdit Function to get executed whenever the user edits the text in the toolbar in
  * "edit" mode.
  * @param onTextCommit Function to get executed when the user has finished editing the URL and wants
@@ -31,21 +29,16 @@ import mozilla.components.lib.state.ext.observeAsState
  * @param onDisplayToolbarClick Function to get executed when the user clicks on the URL in "display"
  * mode.
  * @param colors The color scheme the browser toolbar will use for the UI.
- * @param browserActions Additional browser actions to be displayed on the right side of the toolbar
- * (outside of the URL bounding box) in display mode. Also see:
- * [MDN docs](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/user_interface/Browser_action)
  */
 @Composable
 fun BrowserToolbar(
     store: BrowserToolbarStore,
     browserStore: BrowserStore,
     target: Target,
-    onDisplayMenuClicked: () -> Unit,
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
     onDisplayToolbarClick: () -> Unit,
     colors: BrowserToolbarColors = BrowserToolbarDefaults.colors(),
-    browserActions: @Composable () -> Unit = {},
 ) {
     val uiState by store.observeAsState(initialValue = store.state) { it }
     val selectedTab: SessionState? by target.observeAsComposableStateFrom(
@@ -72,11 +65,12 @@ fun BrowserToolbar(
         BrowserDisplayToolbar(
             url = selectedTab?.content?.url ?: uiState.displayState.hint,
             colors = colors.displayToolbarColors,
+            navigationActions = uiState.displayState.navigationActions,
+            pageActions = uiState.displayState.pageActions,
+            browserActions = uiState.displayState.browserActions,
             onUrlClicked = {
                 onDisplayToolbarClick()
             },
-            onMenuClicked = { onDisplayMenuClicked() },
-            browserActions = browserActions,
         )
     }
 }

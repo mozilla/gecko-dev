@@ -25,6 +25,24 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
+        is BrowserDisplayToolbarAction.AddNavigationAction -> state.copy(
+            displayState = state.displayState.copy(
+                navigationActions = state.displayState.navigationActions + action.action,
+            ),
+        )
+
+        is BrowserDisplayToolbarAction.AddPageAction -> state.copy(
+            displayState = state.displayState.copy(
+                pageActions = state.displayState.pageActions + action.action,
+            ),
+        )
+
+        is BrowserDisplayToolbarAction.AddBrowserAction -> state.copy(
+            displayState = state.displayState.copy(
+                browserActions = state.displayState.browserActions + action.action,
+            ),
+        )
+
         is BrowserEditToolbarAction.UpdateEditText -> state.copy(
             editState = state.editState.copy(
                 editText = action.text,
