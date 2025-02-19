@@ -9,105 +9,134 @@
 const http = require("http");
 
 const html = `
- <!DOCTYPE html>
- <html>
-   <head>
-     <title>Upload/Download test</title>
-     <style>
-       html {
-       font-family: neo-sans;
-       font-weight: 700;
-       font-size: calc(42rem / 16);
-       }
-       body {
-       background: white;
-       }
-       section {
-       border-radius: 1em;
-       padding: 1em;
-       position: absolute;
-       top: 50%;
-       left: 50%;
-       margin-right: -50%;
-       transform: translate(-50%, -50%);
-       }
-     </style>
-   </head>
-   <body>
-     <section>
-       Upload/Download test
-     </section>
-     <input type="file" id="fileUpload" />
-     <p id="upload_status"> </p>
-     <button id="downloadBtn">Download Test</button>
-     <p id="download_status"></p>
-     <script>
-       let upload_status = "";
-       let download_status = "";
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Upload/Download test</title>
+    <style>
+      html {
+      font-family: neo-sans;
+      font-weight: 700;
+      font-size: calc(42rem / 16);
+      }
+      body {
+      background: white;
+      }
+      section {
+      border-radius: 1em;
+      padding: 1em;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-right: -50%;
+      transform: translate(-50%, -50%);
+      }
+    </style>
+  </head>
+  <body>
+    <section>
+      Upload/Download test
+    </section>
+    <button id="fileUpload">Upload Test</button>
+    <p id="upload_status"> </p>
+    <button id="downloadBtn">Download Test</button>
+    <p id="download_status"></p>
+    <script>
+      let upload_status = "";
+      let download_status = "";
 
-       function set_status(id, status) {
-         if (id === "upload_status") {
-           upload_status = status;
-         } else if (id === "download_status") {
-           download_status = status;
-         }
-         console.log(id + ":" + status);
-         document.getElementById(id).innerHTML = status;
-       }
+      function set_status(id, status) {
+        if (id === "upload_status") {
+          upload_status = status;
+        } else if (id === "download_status") {
+          download_status = status;
+        }
+        console.log(id + ":" + status);
+        document.getElementById(id).innerHTML = status;
+      }
 
-       set_status("upload_status", "not_started");
-       set_status("download_status", "not_started");
+      set_status("upload_status", "not_started");
+      set_status("download_status", "not_started");
 
-       const handleFileUpload = event => {
-         const files = event.target.files;
-         const formData = new FormData();
-         formData.append("myFile", files[0]);
+      const BLOB_SIZE = 8 * 1024 * 1024;
 
-         set_status("upload_status", "started");
-         const startTime = performance.now();
-         fetch("/saveFile", {
-           method: "POST",
-           body: formData,
-         })
-           .then(response => response.json())
-           .then(data => {
-             console.log(
-               "status: " + data.status + " " + data.path + " size: " + data.size
-             );
-             const endTime = performance.now();
-             const uploadTime = endTime - startTime;
-             set_status("upload_status", "success time:" + uploadTime);
-           })
-           .catch(error => {
-             console.error(error);
-             set_status("upload_status", "error");
-           });
-       };
+      // Function to generate a Blob of specified size
+      function generateBlob(sizeInBytes) {
+        const array = new Uint8Array(sizeInBytes).fill(0);
+        return new Blob([array], { type: 'application/octet-stream' });
+      }
 
-       document.querySelector("#fileUpload").addEventListener("change", event => {
-         handleFileUpload(event);
-       });
+      // Function to upload the entire Blob
+      async function uploadBlob(blob) {
+        const formData = new FormData();
+        formData.append('blob', blob);
 
-       const handleDownloadTest = () => {
-             set_status("download_status", "started");
-             const startTime = performance.now();
-             fetch('/downloadTest')
-               .then(response => response.blob())
-               .then(blob => {
-                 const endTime = performance.now();
-                 const downloadTime = endTime - startTime;
-                 set_status("download_status", "success time:" + downloadTime);
-               })
-               .catch(error => {
-                 console.error(error);
-                 set_download_status("error");
-               });
-           }
-       document.querySelector('#downloadBtn').addEventListener('click', handleDownloadTest);
-     </script>
-   </body>
- </html>
- `;
+        const response = await fetch('/saveFile', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to upload Blob");
+        }
+
+        return response.json();
+      }
+
+      const handleUpload = async () => {
+        const blob = generateBlob(BLOB_SIZE);
+        let totalBytesUploaded = 0;
+        set_status("upload_status", "started");
+        const startTime = performance.now();
+        const uploadDuration = 60 * 1000;
+        const endTime = startTime + uploadDuration;
+
+        try {
+          while (true) {
+            const currentTime = performance.now();
+            if (currentTime >= endTime) {
+              break;
+            }
+
+            await uploadBlob(blob);
+
+            totalBytesUploaded += blob.size;
+            set_status("upload_status", "uploaded:" + totalBytesUploaded);
+          }
+
+          const actualEndTime = performance.now();
+          const totalTimeSeconds = (actualEndTime - startTime) / 1000;
+
+          // Calculate throughput in Mbps
+          const throughputMbps = (totalBytesUploaded * 8) / (totalTimeSeconds * 1_000_000);
+          set_status("upload_status", "success bandwidth:" + throughputMbps);
+        } catch (error) {
+          set_status("upload_status", "error:" + error);
+        }
+      };
+
+      document.querySelector('#fileUpload').addEventListener('click', handleUpload);
+
+      const handleDownloadTest = () => {
+            set_status("download_status", "started");
+            const startTime = performance.now();
+            fetch('/downloadTest')
+              .then(response => response.blob())
+              .then(blob => {
+                const endTime = performance.now();
+                const downloadTime = endTime - startTime;
+                set_status("download_status", "success time:" + downloadTime);
+              })
+              .catch(error => {
+                console.error(error);
+                set_download_status("error");
+              });
+          }
+      document.querySelector('#downloadBtn').addEventListener('click', handleDownloadTest);
+    </script>
+  </body>
+</html>
+`;
 
 const server = http.createServer((req, res) => {
   if (req.url === "/saveFile" && req.method.toLowerCase() === "post") {

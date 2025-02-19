@@ -112,7 +112,7 @@ class NetworkBench(BasePythonSupport):
             s.bind(("localhost", 0))
             return s.getsockname()[1]
 
-    def start_caddy(self, test_file_path):
+    def start_caddy(self, download_html, test_file_path):
         if not self.check_caddy_installed():
             return None
         if self.caddy_port is None or not (1 <= self.caddy_port <= 65535):
@@ -147,71 +147,13 @@ class NetworkBench(BasePythonSupport):
                 }
             ]
         elif self.transfer_type == "download":
-            fetches_dir = Path(os.environ.get("MOZ_FETCHES_DIR", "None"))
-            if not fetches_dir.exists():
-                return None
-
-            def generate_download_test_html(fetches_dir, test_file_name):
-                html_content = """
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Download test</title>
-  </head>
-  <body>
-    <section>Download test</section>
-    <button id='downloadBtn'>Download Test</button>
-    <p id='download_status'></p>
-    <script>
-      let download_status = '';
-
-      function set_status(status) {{
-        download_status = status;
-        console.log('download_status:' + status);
-        document.getElementById('download_status').textContent = status;
-      }}
-
-      set_status('not_started');
-
-      const handleDownloadTest = () => {{
-        set_status('started');
-        const startTime = performance.now();
-        console.log('start');
-        fetch('/{test_file_name}')
-          .then((response) => response.blob())
-          .then((_) => {{
-            console.log('done');
-            const endTime = performance.now();
-            const downloadTime = endTime - startTime;
-            set_status('success time:' + downloadTime);
-          }})
-          .catch((error) => {{
-            console.error(error);
-            set_status('error');
-          }});
-      }};
-      document
-        .querySelector('#downloadBtn')
-        .addEventListener('click', handleDownloadTest);
-    </script>
-  </body>
-</html>
-                """.format(
-                    test_file_name=test_file_name
-                )
-                html_file_path = fetches_dir / "download_test.html"
-                with html_file_path.open("w", encoding="utf-8") as html_file:
-                    html_file.write(html_content)
-                self.cleanup.append(lambda: html_file_path.unlink())
-
-            generate_download_test_html(fetches_dir, test_file_path.name)
             routes = [
                 {
-                    "match": [{"path": ["/download_test.html"]}],
+                    "match": [{"path": [f"/{download_html.name}"]}],
                     "handle": [
                         {
                             "handler": "file_server",
-                            "root": str(fetches_dir),
+                            "root": str(tempfile.gettempdir()),
                             "browse": {},
                         }
                     ],
@@ -237,7 +179,7 @@ class NetworkBench(BasePythonSupport):
                         },
                         {
                             "handler": "file_server",
-                            "root": str(fetches_dir),
+                            "root": str(tempfile.gettempdir()),
                             "browse": {},
                         },
                     ],
@@ -458,21 +400,24 @@ class NetworkBench(BasePythonSupport):
             return transfer_size_bytes
 
         def generate_temp_file(file_size_in_bytes, target_dir):
-            # Create a unique file name with the size in MB
-            temp_file_path = target_dir / f"temp_file_{file_size_in_bytes}B.bin"
+            prefix = f"temp_file_{file_size_in_bytes}B_"
+            suffix = ".bin"
             try:
-                with open(temp_file_path, "wb") as temp_file:
-                    # Write random data to the file
+                with tempfile.NamedTemporaryFile(
+                    mode="wb",
+                    prefix=prefix,
+                    suffix=suffix,
+                    dir=target_dir,
+                    delete=False,
+                ) as temp_file:
+                    # Write random bytes to the file
                     temp_file.write(os.urandom(file_size_in_bytes))
-                LOG.info(f"Temporary file created in MOZ_FETCHES_DIR: {temp_file_path}")
-                return temp_file_path
+                    temp_file_path = Path(temp_file.name)
+                    LOG.info(f"Temporary file created in: {temp_file_path}")
+                    return temp_file_path
             except Exception as e:
                 LOG.error(f"Failed to create temporary file: {e}")
                 return None
-
-        fetches_dir = Path(os.environ.get("MOZ_FETCHES_DIR", "None"))
-        if not fetches_dir.exists():
-            raise Exception("Missing MOZ_FETCHES_DIR")
 
         if network_type == "unthrottled":
             bandwidth_str = "1000Mbit"
@@ -481,8 +426,72 @@ class NetworkBench(BasePythonSupport):
         bandwidth_mbit = float(bandwidth_str.replace("Mbit", ""))
 
         file_size = calculate_file_size(bandwidth_mbit)
-        temp_file_path = generate_temp_file(file_size, fetches_dir)
+        temp_file_path = generate_temp_file(file_size, tempfile.gettempdir())
         return temp_file_path, file_size
+
+    def generate_download_test_html(self, temp_path, test_file_name):
+        html_content = """
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Download test</title>
+  </head>
+  <body>
+    <section>Download test</section>
+    <button id='downloadBtn'>Download Test</button>
+    <p id='download_status'></p>
+    <p id="progress"> </p>
+    <script>
+      let download_status = '';
+
+      function set_status(status) {{
+        download_status = status;
+        console.log('download_status:' + status);
+        document.getElementById('download_status').textContent = status;
+      }}
+
+      set_status('not_started');
+
+      const handleDownloadTest = () => {{
+        set_status('started');
+        const startTime = performance.now();
+        console.log('start');
+        fetch('/{test_file_name}')
+          .then((response) => response.blob())
+          .then((_) => {{
+            console.log('done');
+            const endTime = performance.now();
+            const downloadTime = endTime - startTime;
+            set_status('success time:' + downloadTime);
+          }})
+          .catch((error) => {{
+            console.error(error);
+            set_status('error');
+          }});
+      }};
+      document
+        .querySelector('#downloadBtn')
+        .addEventListener('click', handleDownloadTest);
+    </script>
+  </body>
+</html>
+    """.format(
+            test_file_name=test_file_name
+        )
+        # Write the HTML content to the file
+        prefix = "download_test_"
+        suffix = ".html"
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            prefix=prefix,
+            suffix=suffix,
+            dir=temp_path,
+            delete=False,
+        ) as html_file:
+            html_file.write(html_content)
+            return Path(html_file.name)
+        return None
 
     def modify_command(self, cmd, test):
         if not self._is_chrome:
@@ -511,25 +520,31 @@ class NetworkBench(BasePythonSupport):
             self.caddy_port = self.find_free_port(socket.SOCK_STREAM)
 
         self.get_network_conditions(cmd)
-
-        temp_file_path, file_size = self.network_type_to_temp_file(self.network_type)
-        if not temp_file_path:
-            raise Exception("Failed to generate temporary file")
-        self.cleanup.append(lambda: temp_file_path.unlink())
+        temp_file_path = None
+        download_html = None
 
         if self.transfer_type == "upload":
             cmd += [
                 "--browsertime.server_url",
                 f"https://localhost:{self.caddy_port}",
-                "--browsertime.test_file_name",
-                temp_file_path.name,
-                "--browsertime.test_file_size",
-                str(file_size),
             ]
         elif self.transfer_type == "download":
+            temp_file_path, file_size = self.network_type_to_temp_file(
+                self.network_type
+            )
+            if not temp_file_path:
+                raise Exception("Failed to generate temporary file")
+            self.cleanup.append(lambda: temp_file_path.unlink())
+
+            download_html = self.generate_download_test_html(
+                tempfile.gettempdir(), temp_file_path.name
+            )
+            if not download_html:
+                raise Exception("Failed to generate file for download test")
+            self.cleanup.append(lambda: download_html.unlink())
             cmd += [
                 "--browsertime.server_url",
-                f"https://localhost:{self.caddy_port}/download_test.html",
+                f"https://localhost:{self.caddy_port}/{download_html.name}",
                 "--browsertime.test_file_size",
                 str(file_size),
             ]
@@ -540,7 +555,7 @@ class NetworkBench(BasePythonSupport):
         self.browsertime_node = Path(cmd[0])
         self.backend_server = self.start_backend_server("benchmark_backend_server.js")
         if self.backend_server:
-            self.caddy_server = self.start_caddy(temp_file_path)
+            self.caddy_server = self.start_caddy(download_html, temp_file_path)
         if self.caddy_server is None:
             raise Exception("Failed to start test servers")
 

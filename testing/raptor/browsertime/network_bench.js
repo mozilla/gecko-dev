@@ -64,35 +64,33 @@ async function waitForH3(maxRetries, browser, url, commands, context) {
 }
 
 async function waitForComplete(timeout, commands, context, id) {
-  let starttime = await commands.js.run(`return performance.now();`);
+  let starttime = performance.now();
   let status = "";
+  let bandwidth = 0;
 
-  while (
-    (await commands.js.run(`return performance.now();`)) - starttime <
-      timeout &&
-    status != "error" &&
-    status != "success"
-  ) {
-    await commands.wait.byTime(10);
-
+  while (performance.now() - starttime < timeout) {
     status = await commands.js.run(
       `return document.getElementById('${id}').innerHTML;`
     );
 
     if (status.startsWith("success")) {
+      bandwidth = parseFloat(status.split(":")[1]);
       status = "success";
+      break;
+    } else if (status.startsWith("error")) {
+      break;
     }
 
-    context.log.info("context.log test: " + status);
-    console.log("test: " + status);
+    await commands.wait.byTime(1000);
   }
 
-  let endtime = await commands.js.run(`return performance.now();`);
+  let endtime = performance.now();
 
   return {
     start: starttime,
     end: endtime,
     status,
+    bandwidth,
   };
 }
 
@@ -159,25 +157,31 @@ module.exports = logTest(
             webdriver.By.id("fileUpload")
           );
 
-          if (context.options.browsertime.moz_fetch_dir == "None") {
-            context.log.error(
-              "This test depends on the fetch task. Download the file, 'https://github.com/mozilla/perf-automation/raw/master/test_files/upload-test-32MB.dat' and set the os environment variable MOZ_FETCHES_DIR to that directory."
-            );
-          }
+          let tagName = await uploadItem.getTagName();
+          if (tagName === "input") {
+            if (context.options.browsertime.moz_fetch_dir == "None") {
+              context.log.error(
+                "This test depends on the fetch task. Download the file, 'https://github.com/mozilla/perf-automation/raw/master/test_files/upload-test-32MB.dat' and set the os environment variable MOZ_FETCHES_DIR to that directory."
+              );
+            }
 
-          let localFilePath = path.join(
-            `${context.options.browsertime.moz_fetch_dir}`,
-            `${context.options.browsertime.test_file_name}`
-          );
-          if (!fs.existsSync(localFilePath)) {
-            localFilePath = path.join(
+            let localFilePath = path.join(
               `${context.options.browsertime.moz_fetch_dir}`,
-              "upload-test-32MB.dat"
+              `${context.options.browsertime.test_file_name}`
             );
-          }
+            if (!fs.existsSync(localFilePath)) {
+              localFilePath = path.join(
+                `${context.options.browsertime.moz_fetch_dir}`,
+                "upload-test-32MB.dat"
+              );
+            }
 
-          context.log.info("Sending file path: " + localFilePath);
-          await uploadItem.sendKeys(localFilePath);
+            context.log.info("Sending file path: " + localFilePath);
+            await uploadItem.sendKeys(localFilePath);
+          } else {
+            const actions = driver.actions({ async: true });
+            await actions.move({ origin: uploadItem }).click().perform();
+          }
 
           // Start the test and wait for the upload to complete
           let results = await waitForComplete(
@@ -189,7 +193,9 @@ module.exports = logTest(
           let uploadTime = results.end - results.start;
 
           // Store result in megabit/seconds
-          let uploadBandwidth = (file_size * 8) / ((uploadTime / 1000) * 1e6);
+          let uploadBandwidth = Number.isNaN(results.bandwidth)
+            ? (file_size * 8) / ((uploadTime / 1000) * 1e6)
+            : results.bandwidth;
           context.log.info(
             "upload results: " +
               results.status +
@@ -199,22 +205,30 @@ module.exports = logTest(
               uploadBandwidth +
               "Mbit/s"
           );
-          accumulatedResults.push(uploadBandwidth);
+          if (results.status === "success") {
+            accumulatedResults.push(uploadBandwidth);
+          }
         } else {
           context.log.error("Unsupported test type:" + testType);
         }
       });
 
-      if (browserName === "firefox") {
-        const script = `
+      // No need to close the connection at the last run.
+      if (iteration != iterations - 1) {
+        await commands.navigate("about:blank");
+        if (browserName === "firefox") {
+          const script = `
       Services.obs.notifyObservers(null, "net:cancel-all-connections");
     `;
-        commands.js.runPrivileged(script);
-        context.log.info("Waiting 3s to close connection...");
-        await commands.wait.byTime(3000);
-      } else {
-        context.log.info("Waiting 35s to close connection...");
-        await commands.wait.byTime(35000);
+          commands.js.runPrivileged(script);
+          context.log.info("Waiting 3s to close connection...");
+          await commands.wait.byTime(3000);
+        } else {
+          // TODO: configiure a shorter idle timeout at server side, so we
+          // don't have to wait that long.
+          context.log.info("Waiting 35s to close connection...");
+          await commands.wait.byTime(35000);
+        }
       }
     }
 
