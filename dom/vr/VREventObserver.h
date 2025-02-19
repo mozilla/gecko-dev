@@ -33,7 +33,6 @@ class VREventObserver final : public gfx::VRManagerEventObserver {
   void NotifyDetectRuntimesCompleted() override;
 
   void DisconnectFromOwner();
-  void UpdateSpentTimeIn2DTelemetry(bool aUpdate);
   void StartActivity();
   void StopActivity();
   bool GetStopActivityStatus() const override;
@@ -44,11 +43,7 @@ class VREventObserver final : public gfx::VRManagerEventObserver {
   bool IsWebVR(uint32_t aDisplayID) const;
 
   RefPtr<nsGlobalWindowInner> mWindow;
-  // For WebVR telemetry for tracking users who view content
-  // in the 2D view.
-  TimeStamp mSpendTimeIn2DView;
   bool mIs2DView;
-  bool mHasReset;
   bool mStopActivity;
 };
 

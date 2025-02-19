@@ -4289,12 +4289,6 @@ void nsGlobalWindowInner::DisableVRUpdates() {
   }
 }
 
-void nsGlobalWindowInner::ResetVRTelemetry(bool aUpdate) {
-  if (mVREventObserver) {
-    mVREventObserver->UpdateSpentTimeIn2DTelemetry(aUpdate);
-  }
-}
-
 void nsGlobalWindowInner::StartVRActivity() {
   /**
    * If the content has an XR session, tell

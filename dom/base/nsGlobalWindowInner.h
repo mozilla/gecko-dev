@@ -537,10 +537,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // Enable/disable updates for VR
   void EnableVRUpdates();
   void DisableVRUpdates();
-  // Reset telemetry data when switching windows.
-  // aUpdate, true for accumulating the result to the histogram.
-  // false for only resetting the timestamp.
-  void ResetVRTelemetry(bool aUpdate);
 
   void StartVRActivity();
   void StopVRActivity();

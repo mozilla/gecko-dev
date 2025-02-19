@@ -6514,17 +6514,11 @@ void nsGlobalWindowOuter::SetIsBackground(bool aIsBackground) {
     if (inner && changed) {
       inner->StopGamepadHaptics();
       inner->StopVRActivity();
-      // true is for asking to set the delta time to
-      // the telemetry.
-      inner->ResetVRTelemetry(true);
     }
     return;
   }
 
   if (inner) {
-    // When switching to be as a top tab, restart the telemetry.
-    // false is for only resetting the timestamp.
-    inner->ResetVRTelemetry(false);
     inner->SyncGamepadState();
     inner->StartVRActivity();
   }

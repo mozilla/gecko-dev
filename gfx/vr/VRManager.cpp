@@ -19,7 +19,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "nsIObserverService.h"
 
@@ -1240,8 +1239,6 @@ void VRManager::StartPresentation() {
   if (mBrowserState.presentationActive) {
     return;
   }
-  mTelemetry.Clear();
-  mTelemetry.mPresentationStart = TimeStamp::Now();
 
   // Indicate that we are ready to start immersive mode
   mBrowserState.presentationActive = true;
@@ -1249,11 +1246,6 @@ void VRManager::StartPresentation() {
   PushState();
 
   mDisplayInfo.mDisplayState.lastSubmittedFrameId = 0;
-  if (mDisplayInfo.mDisplayState.reportsDroppedFrames) {
-    mTelemetry.mLastDroppedFrameCount =
-        mDisplayInfo.mDisplayState.droppedFrameCount;
-  }
-
   mLastSubmittedFrameId = 0;
   mLastStartedFrame = 0;
 }
@@ -1272,36 +1264,6 @@ void VRManager::StopPresentation() {
          sizeof(VRLayerState) * std::size(mBrowserState.layerState));
 
   PushState(true);
-
-  Telemetry::HistogramID timeSpentID = Telemetry::HistogramCount;
-  Telemetry::HistogramID droppedFramesID = Telemetry::HistogramCount;
-  int viewIn = 0;
-
-  if (mDisplayInfo.mDisplayState.eightCC ==
-      GFX_VR_EIGHTCC('O', 'c', 'u', 'l', 'u', 's', ' ', 'D')) {
-    // Oculus Desktop API
-    timeSpentID = Telemetry::WEBVR_TIME_SPENT_VIEWING_IN_OCULUS;
-    droppedFramesID = Telemetry::WEBVR_DROPPED_FRAMES_IN_OCULUS;
-    viewIn = 1;
-  } else if (mDisplayInfo.mDisplayState.eightCC ==
-             GFX_VR_EIGHTCC('O', 'p', 'e', 'n', 'V', 'R', ' ', ' ')) {
-    // OpenVR API
-    timeSpentID = Telemetry::WEBVR_TIME_SPENT_VIEWING_IN_OPENVR;
-    droppedFramesID = Telemetry::WEBVR_DROPPED_FRAMES_IN_OPENVR;
-    viewIn = 2;
-  }
-
-  if (viewIn) {
-    const TimeDuration duration =
-        TimeStamp::Now() - mTelemetry.mPresentationStart;
-    Telemetry::Accumulate(Telemetry::WEBVR_USERS_VIEW_IN, viewIn);
-    Telemetry::Accumulate(timeSpentID, duration.ToMilliseconds());
-    const uint32_t droppedFramesPerSec =
-        (uint32_t)((double)(mDisplayInfo.mDisplayState.droppedFrameCount -
-                            mTelemetry.mLastDroppedFrameCount) /
-                   duration.ToSeconds());
-    Telemetry::Accumulate(droppedFramesID, droppedFramesPerSec);
-  }
 }
 
 bool VRManager::IsPresenting() {
