@@ -324,7 +324,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  .../win/screen_capture_utils.cc               |   2 +-
  modules/rtp_rtcp/source/rtcp_sender.cc        |   2 +-
  .../rtp_rtcp/source/rtp_header_extensions.cc  |  39 ++++
- .../rtp_rtcp/source/rtp_header_extensions.h   |  15 ++
+ .../rtp_rtcp/source/rtp_header_extensions.h   |  18 +-
  modules/rtp_rtcp/source/rtp_packet.cc         |   4 +
  .../rtp_rtcp/source/rtp_packet_unittest.cc    |  30 +++
  modules/rtp_rtcp/source/rtp_rtcp_config.h     |   4 +
@@ -345,7 +345,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  test/fuzzers/rtp_packet_fuzzer.cc             |   4 +
  test/vcm_capturer.cc                          |   2 +-
  webrtc.gni                                    |   2 +-
- 38 files changed, 564 insertions(+), 81 deletions(-)
+ 38 files changed, 566 insertions(+), 82 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
 index c272ccae06..0271714c44 100644
@@ -807,10 +807,19 @@ index 46c82180eb..bb035729f8 100644
  //
  // E.g. default video or screenshare.
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index eb35da45c0..5b5c7c1e50 100644
+index eb35da45c0..a42dcfd1cf 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
-@@ -310,6 +310,21 @@ class ColorSpaceExtension {
+@@ -68,7 +68,7 @@ class AbsoluteSendTime {
+ 
+   static constexpr Timestamp ToTimestamp(uint32_t time_24bits) {
+     RTC_DCHECK_LT(time_24bits, (1 << 24));
+-    return Timestamp::Micros((time_24bits* int64_t{1'000'000}) >> 18);
++    return Timestamp::Micros((time_24bits * int64_t{1'000'000}) >> 18);
+   }
+ };
+ 
+@@ -310,6 +310,22 @@ class ColorSpaceExtension {
    static size_t WriteLuminance(uint8_t* data, float f, int denominator);
  };
  
@@ -826,7 +835,8 @@ index eb35da45c0..5b5c7c1e50 100644
 +  static bool Parse(rtc::ArrayView<const uint8_t> data,
 +                    CsrcAudioLevelList* csrcAudioLevels);
 +  static size_t ValueSize(const CsrcAudioLevelList& csrcAudioLevels);
-+  static bool Write(rtc::ArrayView<uint8_t> data, const CsrcAudioLevelList& csrcAudioLevels);
++  static bool Write(rtc::ArrayView<uint8_t> data,
++                    const CsrcAudioLevelList& csrcAudioLevels);
 +};
 +
  // Base extension class for RTP header extensions which are strings.

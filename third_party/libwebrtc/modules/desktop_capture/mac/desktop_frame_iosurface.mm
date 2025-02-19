@@ -23,7 +23,8 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
   }
 
   IOSurfaceIncrementUseCount(io_surface.get());
-  IOReturn status = IOSurfaceLock(io_surface.get(), kIOSurfaceLockReadOnly, nullptr);
+  IOReturn status =
+      IOSurfaceLock(io_surface.get(), kIOSurfaceLockReadOnly, nullptr);
   if (status != kIOReturnSuccess) {
     RTC_LOG(LS_ERROR) << "Failed to lock the IOSurface with status " << status;
     IOSurfaceDecrementUseCount(io_surface.get());
@@ -33,7 +34,8 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
   // Verify that the image has 32-bit depth.
   int bytes_per_pixel = IOSurfaceGetBytesPerElement(io_surface.get());
   if (bytes_per_pixel != DesktopFrame::kBytesPerPixel) {
-    RTC_LOG(LS_ERROR) << "CGDisplayStream handler returned IOSurface with " << (8 * bytes_per_pixel)
+    RTC_LOG(LS_ERROR) << "CGDisplayStream handler returned IOSurface with "
+                      << (8 * bytes_per_pixel)
                       << " bits per pixel. Only 32-bit depth is supported.";
     IOSurfaceUnlock(io_surface.get(), kIOSurfaceLockReadOnly, nullptr);
     IOSurfaceDecrementUseCount(io_surface.get());
@@ -42,7 +44,8 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
 
   size_t surfaceWidth = IOSurfaceGetWidth(io_surface.get());
   size_t surfaceHeight = IOSurfaceGetHeight(io_surface.get());
-  uint8_t* data = static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get()));
+  uint8_t* data =
+      static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get()));
   size_t offset = 0;
   size_t width = surfaceWidth;
   size_t height = surfaceHeight;
@@ -54,26 +57,30 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
     height = std::floor(rect.size.height);
     offsetColumns = std::ceil(rect.origin.x);
     offsetRows = std::ceil(rect.origin.y);
-    RTC_CHECK_GE(surfaceWidth,  offsetColumns + width);
+    RTC_CHECK_GE(surfaceWidth, offsetColumns + width);
     RTC_CHECK_GE(surfaceHeight, offsetRows + height);
     offset = stride * offsetRows + bytes_per_pixel * offsetColumns;
   }
 
-  RTC_LOG(LS_VERBOSE) << "DesktopFrameIOSurface wrapping IOSurface with size " << surfaceWidth << "x"
-      << surfaceHeight << ". Cropping to (" << offsetColumns << "," << offsetRows << "; "
-      << width << "x" << height << "). Stride=" << stride / bytes_per_pixel
-      << ", buffer-offset-px=" << offset / bytes_per_pixel << ", buffer-offset-bytes=" << offset;
+  RTC_LOG(LS_VERBOSE) << "DesktopFrameIOSurface wrapping IOSurface with size "
+                      << surfaceWidth << "x" << surfaceHeight
+                      << ". Cropping to (" << offsetColumns << "," << offsetRows
+                      << "; " << width << "x" << height
+                      << "). Stride=" << stride / bytes_per_pixel
+                      << ", buffer-offset-px=" << offset / bytes_per_pixel
+                      << ", buffer-offset-bytes=" << offset;
 
-  return std::unique_ptr<DesktopFrameIOSurface>(new DesktopFrameIOSurface(io_surface, data + offset, width, height, stride));
+  return std::unique_ptr<DesktopFrameIOSurface>(new DesktopFrameIOSurface(
+      io_surface, data + offset, width, height, stride));
 }
 
 DesktopFrameIOSurface::DesktopFrameIOSurface(
-  rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface, uint8_t* data, int32_t width, int32_t height, int32_t stride)
-    : DesktopFrame(
-          DesktopSize(width, height),
-          stride,
-          data,
-          nullptr),
+    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface,
+    uint8_t* data,
+    int32_t width,
+    int32_t height,
+    int32_t stride)
+    : DesktopFrame(DesktopSize(width, height), stride, data, nullptr),
       io_surface_(io_surface) {
   RTC_DCHECK(io_surface_);
 }
