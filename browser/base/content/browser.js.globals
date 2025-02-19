@@ -266,5 +266,6 @@
   "gFindBar",
   "gFindBarInitialized",
   "gFindBarPromise",
-  "SelectableProfileService"
+  "SelectableProfileService",
+  "ActionsProviderContextualSearch"
 ]

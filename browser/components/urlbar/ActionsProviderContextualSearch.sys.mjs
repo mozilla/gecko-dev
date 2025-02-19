@@ -17,8 +17,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
   loadAndParseOpenSearchEngine:
     "resource://gre/modules/OpenSearchLoader.sys.mjs",
+  PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
-  UrlbarProviderAutofill: "resource:///modules/UrlbarProviderAutofill.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
 });
 
@@ -39,11 +40,24 @@ class ProviderContextualSearch extends ActionsProvider {
   // expensive lookups and we don't want to redo the query every time
   // the user types when the result will not change.
   #hostEngines = new Map();
+  // Cache the result of the query that checks whether an engines domain
+  // has been visited recently. We only want to show engines the user
+  // is using.
+  #visitedEngineDomains = new Map();
+
   // Store the engine returned to the user in case they select it.
   #resultEngine = null;
 
+  #placesObserver = null;
+
   constructor() {
     super();
+
+    this.#placesObserver = new PlacesWeakCallbackWrapper(
+      this.handlePlacesEvents.bind(this)
+    );
+
+    PlacesObservers.addListener(["history-cleared"], this.#placesObserver);
   }
 
   get name() {
@@ -169,6 +183,28 @@ class ProviderContextualSearch extends ActionsProvider {
     return null;
   }
 
+  /**
+   * Called from `onLocationChange` in browser.js. It is used to update
+   * the cache for `visitedEngineDomains` so we can avoid expensive places
+   * queries.
+   *
+   * @param {window} window
+   *  The browser window where the location change happened.
+   * @param {nsIURI} uri
+   *  The URI being navigated to.
+   * @param {nsIWebProgress} _webProgress
+   *   The progress object, which can have event listeners added to it.
+   * @param {number} _flags
+   *   Load flags. See nsIWebProgressListener.idl for possible values.
+   */
+  async onLocationChange(window, uri, _webProgress, _flags) {
+    try {
+      if (this.#visitedEngineDomains.has(uri.host)) {
+        this.#visitedEngineDomains.set(uri.host, true);
+      }
+    } catch (e) {}
+  }
+
   async #matchInstalledEngine(query) {
     let engines = await lazy.UrlbarSearchUtils.enginesForDomainPrefix(query, {
       matchAllDomainLevels: true,
@@ -180,53 +216,17 @@ class ProviderContextualSearch extends ActionsProvider {
   }
 
   /*
-   * This logic is copied from `UrlbarProviderTabToSearch.sys.mjs` and
-   * matches a users search query to an installed engine.
+   * Matches a users search query to the name of an installed engine.
    */
   async #matchTabToSearchEngine(queryContext) {
     let searchStr = queryContext.trimmedSearchString.toLocaleLowerCase();
-    let engines = await lazy.UrlbarSearchUtils.enginesForDomainPrefix(
-      searchStr,
-      {
-        matchAllDomainLevels: true,
-      }
-    );
 
-    if (!engines.length) {
-      return null;
-    }
-
-    let partialMatchEnginesByHost = new Map();
-
-    for (let engine of engines) {
-      let [host] = UrlbarUtils.stripPrefixAndTrim(engine.searchUrlDomain, {
-        stripWww: true,
-      });
-      if (host.startsWith(searchStr)) {
-        return {
-          type: INSTALLED_ENGINE,
-          engine,
-          key: "matched-contextual-search",
-        };
-      }
-      if (host.includes("." + searchStr)) {
-        partialMatchEnginesByHost.set(engine.searchUrlDomain, engine);
-      }
-      let baseDomain = Services.eTLD.getBaseDomainFromHost(
-        engine.searchUrlDomain
-      );
-      if (baseDomain.startsWith(searchStr)) {
-        partialMatchEnginesByHost.set(baseDomain, engine);
-      }
-    }
-
-    if (partialMatchEnginesByHost.size) {
-      let host = await lazy.UrlbarProviderAutofill.getTopHostOverThreshold(
-        queryContext,
-        Array.from(partialMatchEnginesByHost.keys())
-      );
-      if (host) {
-        let engine = partialMatchEnginesByHost.get(host);
+    for (let engine of await Services.search.getVisibleEngines()) {
+      if (
+        engine.name.toLocaleLowerCase().startsWith(searchStr) &&
+        ((await this.#shouldskipRecentVisitCheck(searchStr)) ||
+          (await this.#engineDomainHasRecentVisits(engine.searchUrlDomain)))
+      ) {
         return {
           type: INSTALLED_ENGINE,
           engine,
@@ -235,6 +235,49 @@ class ProviderContextualSearch extends ActionsProvider {
       }
     }
     return null;
+  }
+
+  /*
+   * Check that an engines domain has been visited within the last 30 days
+   * before providing as a match to the users query.
+   */
+  async #engineDomainHasRecentVisits(host) {
+    if (this.#visitedEngineDomains.has(host)) {
+      return this.#visitedEngineDomains.get(host);
+    }
+
+    let db = await lazy.PlacesUtils.promiseLargeCacheDBConnection();
+    let rows = await db.executeCached(
+      `
+      SELECT 1 FROM moz_places
+        WHERE rev_host BETWEEN get_unreversed_host(:host || '.') || '.' AND get_unreversed_host(:host || '.') || '/'
+        AND (foreign_count > 0
+          OR last_visit_date > strftime('%s','now','localtime','start of day','-30 days','utc') * 1000000)
+      LIMIT 1;`,
+      { host }
+    );
+
+    let visited = !!rows.length;
+    this.#visitedEngineDomains.set(host, visited);
+    return visited;
+  }
+
+  async #shouldskipRecentVisitCheck(query) {
+    // If the user has entered enough characters they are very likely looking for
+    // the engine, this avoids confusion for users searching for engines they have
+    // not visited.
+    if (query.length > 3) {
+      return true;
+    }
+    // If we do not store history we cannot check whether an engine has been
+    // visited, in that case we show the engines when matching.
+    return (
+      Services.prefs.getBoolPref("places.history.enabled", true) &&
+      !(
+        Services.prefs.getBoolPref("privacy.clearOnShutdown.history") ||
+        lazy.PrivateBrowsingUtils.permanentPrivateBrowsing
+      )
+    );
   }
 
   async pickAction(queryContext, controller, _element) {
@@ -261,6 +304,10 @@ class ProviderContextualSearch extends ActionsProvider {
     ) {
       this.#showInstallPrompt(controller, engine);
     }
+  }
+
+  handlePlacesEvents(_events) {
+    this.#visitedEngineDomains.clear();
   }
 
   async #performSearch(engine, search, input, enterSearchMode) {
@@ -302,6 +349,8 @@ class ProviderContextualSearch extends ActionsProvider {
       buttons
     );
   }
+
+  QueryInterface = ChromeUtils.generateQI([Ci.nsISupportsWeakReference]);
 }
 
 export var ActionsProviderContextualSearch = new ProviderContextualSearch();

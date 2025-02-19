@@ -209,6 +209,9 @@ add_task(async function restrict_keywords() {
 });
 
 add_task(async function suggest() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.suggest.engines", false]],
+  });
   await doSuggestTest({
     trigger: () => doBlur(),
     assert: () =>

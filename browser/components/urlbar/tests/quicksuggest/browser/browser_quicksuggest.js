@@ -53,6 +53,10 @@ add_setup(async function () {
 
   // Disable Merino so we trigger only remote settings suggestions.
   UrlbarPrefs.set("quicksuggest.dataCollection.enabled", false);
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.suggest.engines", false]],
+  });
 });
 
 // Tests a sponsored result and keyword highlighting.

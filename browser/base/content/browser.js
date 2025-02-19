@@ -20,6 +20,8 @@ ChromeUtils.defineESModuleGetters(this, {
   AMTelemetry: "resource://gre/modules/AddonManager.sys.mjs",
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
   AboutReaderParent: "resource:///actors/AboutReaderParent.sys.mjs",
+  ActionsProviderContextualSearch:
+    "resource:///modules/ActionsProviderContextualSearch.sys.mjs",
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   BrowserTelemetryUtils: "resource://gre/modules/BrowserTelemetryUtils.sys.mjs",
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
@@ -2794,6 +2796,15 @@ var XULBrowserWindow = {
       aWebProgress,
       aFlags
     );
+
+    if (aLocationURI.scheme.startsWith("http")) {
+      ActionsProviderContextualSearch.onLocationChange(
+        window,
+        aLocationURI,
+        aWebProgress,
+        aFlags
+      );
+    }
 
     this._updateElementsForContentType();
 
