@@ -78,7 +78,7 @@ export default class MozCard extends MozLitElement {
       return html`
         <details
           id="moz-card-details"
-          @toggle="${this.onToggle}"
+          @toggle=${this.onToggle}
           ?open=${this.expanded}
         >
           <summary part="summary">${this.headingTemplate()}</summary>

@@ -424,7 +424,7 @@ export default class SidebarMain extends MozLitElement {
         "tools-overflow": toolsOverflowing,
       })}
       type=${isActiveView ? "icon" : "icon ghost"}
-      aria-pressed="${isActiveView}"
+      aria-pressed=${isActiveView}
       view=${action.view}
       @click=${async () => await this.showView(action.view)}
       title=${tooltip}

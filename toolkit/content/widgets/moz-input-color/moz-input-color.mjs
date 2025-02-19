@@ -75,8 +75,8 @@ export default class MozInputColor extends MozLitElement {
       <label>
         <input
           type="color"
-          name="${ifDefined(this.name)}"
-          .value="${this.value}"
+          name=${ifDefined(this.name)}
+          .value=${this.value}
           class="swatch"
           @input=${this.updateInputFromEvent}
           @change=${this.redispatchEvent}

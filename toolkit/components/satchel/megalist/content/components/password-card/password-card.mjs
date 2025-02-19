@@ -173,7 +173,7 @@ export class PasswordCard extends MozLitElement {
         role="option"
         class="line-item"
         data-l10n-id=${dataL10nId}
-        data-l10n-args="${JSON.stringify({ url: this.origin.value })}"
+        data-l10n-args=${JSON.stringify({ url: this.origin.value })}
         inputType="text"
         lineType="origin"
         labelL10nId="passwords-origin-label"
@@ -199,7 +199,7 @@ export class PasswordCard extends MozLitElement {
         role="option"
         class="line-item"
         data-l10n-id=${dataL10nId}
-        data-l10n-args="${JSON.stringify({ username: this.username.value })}"
+        data-l10n-args=${JSON.stringify({ username: this.username.value })}
         inputType="text"
         lineType="username"
         labelL10nId="passwords-username-label"

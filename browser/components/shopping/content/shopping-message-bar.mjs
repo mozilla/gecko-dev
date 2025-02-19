@@ -174,9 +174,9 @@ class ShoppingMessageBar extends MozLitElement {
         <strong
           id="header"
           data-l10n-id="shopping-message-bar-analysis-in-progress-with-amount"
-          data-l10n-args="${JSON.stringify({
+          data-l10n-args=${JSON.stringify({
             percentage: Math.round(this.progress),
-          })}"
+          })}
         ></strong>
         <span
           data-l10n-id="shopping-message-bar-analysis-in-progress-message2"
@@ -202,9 +202,9 @@ class ShoppingMessageBar extends MozLitElement {
         <span
           id="header"
           data-l10n-id="shopping-message-bar-analysis-in-progress-with-amount"
-          data-l10n-args="${JSON.stringify({
+          data-l10n-args=${JSON.stringify({
             percentage: Math.round(this.progress),
-          })}"
+          })}
         ></span>
       </article>
     </div>`;

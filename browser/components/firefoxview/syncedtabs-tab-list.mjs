@@ -152,10 +152,10 @@ export class SyncedTabsTabRow extends FxviewTabRowBase {
           data-l10n-args=${ifDefined(this.secondaryL10nArgs)}
           aria-haspopup=${ifDefined(this.hasPopup)}
           @click=${this.secondaryActionHandler}
-          tabindex="${this.active &&
+          tabindex=${this.active &&
           this.currentActiveElementId === "fxview-tab-row-secondary-button"
             ? "0"
-            : "-1"}"
+            : "-1"}
         ></moz-button>`
     )}`;
   }

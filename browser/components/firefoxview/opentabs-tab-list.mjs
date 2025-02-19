@@ -412,13 +412,13 @@ export class OpenTabsTabRow extends FxviewTabRowBase {
 
   #faviconTemplate() {
     return html`<span
-      class="${classMap({
+      class=${classMap({
         "fxview-tab-row-favicon-wrapper": true,
         pinned: this.indicators?.includes("pinned"),
         pinnedOnNewTab: this.indicators?.includes("pinnedOnNewTab"),
         attention: this.indicators?.includes("attention"),
         bookmark: this.indicators?.includes("bookmark"),
-      })}"
+      })}
     >
       <span
         class="fxview-tab-row-favicon icon"
@@ -499,10 +499,10 @@ export class OpenTabsTabRow extends FxviewTabRowBase {
           soundplaying=${this.indicators?.includes("soundplaying") &&
           !this.indicators?.includes("muted")}
           @click=${this.muteOrUnmuteTab}
-          tabindex="${this.active &&
+          tabindex=${this.active &&
           this.currentActiveElementId === "fxview-tab-row-media-button"
             ? "0"
-            : "-1"}"
+            : "-1"}
         ></moz-button>`,
       () => html`<span></span>`
     )}`;

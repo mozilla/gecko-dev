@@ -355,7 +355,7 @@ export class EditProfileCard extends MozLitElement {
     >
       ${this.themes.map(
         t =>
-          html`<profiles-group-item l10nId="${t.dataL10nId}" value=${t.id}>
+          html`<profiles-group-item l10nId=${t.dataL10nId} value=${t.id}>
             <profiles-theme-card
               .theme=${t}
               value=${t.id}

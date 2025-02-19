@@ -192,7 +192,7 @@ export default class EnableBackupEncryption extends MozLitElement {
       <moz-message-bar
         id="enable-backup-encryption-error"
         type="error"
-        .messageL10nId="${messageId}"
+        .messageL10nId=${messageId}
       ></moz-message-bar>
     `;
   }

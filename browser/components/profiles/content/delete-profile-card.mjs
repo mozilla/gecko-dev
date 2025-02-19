@@ -101,9 +101,9 @@ export class DeleteProfileCard extends MozLitElement {
             <div>
               <h2
                 data-l10n-id="delete-profile-header"
-                data-l10n-args="${JSON.stringify({
+                data-l10n-args=${JSON.stringify({
                   profilename: this.data.profile.name,
-                })}"
+                })}
               ></h2>
               <p
                 class="sub-header"

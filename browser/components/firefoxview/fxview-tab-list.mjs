@@ -728,10 +728,10 @@ export class FxviewTabRowBase extends MozLitElement {
           data-l10n-args=${ifDefined(this.secondaryL10nArgs)}
           aria-haspopup=${ifDefined(this.hasPopup)}
           @click=${this.secondaryActionHandler}
-          tabindex="${this.active &&
+          tabindex=${this.active &&
           this.currentActiveElementId === "fxview-tab-row-secondary-button"
             ? "0"
-            : "-1"}"
+            : "-1"}
           iconSrc=${this.getIconSrc(this.secondaryActionClass)}
         ></moz-button>`
     )}`;
@@ -752,10 +752,10 @@ export class FxviewTabRowBase extends MozLitElement {
           data-l10n-args=${ifDefined(this.tertiaryL10nArgs)}
           aria-haspopup=${ifDefined(this.hasPopup)}
           @click=${this.tertiaryActionHandler}
-          tabindex="${this.active &&
+          tabindex=${this.active &&
           this.currentActiveElementId === "fxview-tab-row-tertiary-button"
             ? "0"
-            : "-1"}"
+            : "-1"}
           iconSrc=${this.getIconSrc(this.tertiaryActionClass)}
         ></moz-button>`
     )}`;

@@ -202,9 +202,9 @@ export class SidebarHistory extends SidebarPage {
             html`<h3
               slot="secondary-header"
               data-l10n-id="firefoxview-search-results-count"
-              data-l10n-args="${JSON.stringify({
+              data-l10n-args=${JSON.stringify({
                 count: this.controller.searchResults.length,
-              })}"
+              })}
             ></h3>`
         )}
         ${this.#tabListTemplate(

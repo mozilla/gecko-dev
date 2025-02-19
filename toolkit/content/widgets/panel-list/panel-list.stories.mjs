@@ -85,28 +85,28 @@ const Template = ({
           type="icon ghost"
           @click=${openMenu}
           @mousedown=${openMenu}
-          ?wide="${wideAnchor}"
+          ?wide=${wideAnchor}
         ></moz-button>
         <moz-button
           type="icon ghost"
           class="end"
           @click=${openMenu}
           @mousedown=${openMenu}
-          ?wide="${wideAnchor}"
+          ?wide=${wideAnchor}
         ></moz-button>
         <moz-button
           type="icon ghost"
           class="bottom"
           @click=${openMenu}
           @mousedown=${openMenu}
-          ?wide="${wideAnchor}"
+          ?wide=${wideAnchor}
         ></moz-button>
         <moz-button
           type="icon ghost"
           class="bottom end"
           @click=${openMenu}
           @mousedown=${openMenu}
-          ?wide="${wideAnchor}"
+          ?wide=${wideAnchor}
         ></moz-button>
       `}
   <panel-list

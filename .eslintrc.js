@@ -66,6 +66,9 @@ module.exports = {
     "prettier",
   ],
   plugins: ["mozilla", "html", "import", "json", "promise", "lit"],
+  rules: {
+    "lit/quoted-expressions": ["error", "never"],
+  },
   overrides: [
     {
       files: ["*.*"],

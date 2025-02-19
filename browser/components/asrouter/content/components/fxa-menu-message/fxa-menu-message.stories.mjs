@@ -22,10 +22,10 @@ const Template = ({
 }) => html`
   <moz-card style="width: 22.5rem;">
     <fxa-menu-message
-      buttonText="${buttonText}"
-      primaryText="${primaryText}"
-      secondaryText="${secondaryText}"
-      imageURL="${imageURL}"
+      buttonText=${buttonText}
+      primaryText=${primaryText}
+      secondaryText=${secondaryText}
+      imageURL=${imageURL}
       style="--illustration-margin-block-offset: ${imageVerticalOffset}px"
     >
     </fxa-menu-message>

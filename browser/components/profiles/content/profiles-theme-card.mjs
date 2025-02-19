@@ -48,8 +48,8 @@ export class ProfilesThemeCard extends MozLitElement {
           </div>
           <div
             class="theme-name"
-            id="${this.theme.dataL10nId}"
-            data-l10n-id="${this.theme.dataL10nId}"
+            id=${this.theme.dataL10nId}
+            data-l10n-id=${this.theme.dataL10nId}
           ></div>
         </div>
       </moz-card>`;

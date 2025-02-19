@@ -145,15 +145,15 @@ class SyncedTabsInView extends ViewPage {
         class="empty-state synced-tabs error"
         ?isSelectedTab=${this.selectedTab}
         ?isInnerCard=${this.recentBrowsing}
-        mainImageUrl="${ifDefined(mainImageUrl)}"
+        mainImageUrl=${ifDefined(mainImageUrl)}
         id="empty-container"
       >
         <button
           class="primary"
           slot="primary-action"
           ?hidden=${!buttonLabel}
-          data-l10n-id="${ifDefined(buttonLabel)}"
-          data-action="${action}"
+          data-l10n-id=${ifDefined(buttonLabel)}
+          data-action=${action}
           @click=${e => this.controller.handleEvent(e)}
         ></button>
       </fxview-empty-state>

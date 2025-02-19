@@ -249,7 +249,7 @@ export default class RestoreFromBackup extends MozLitElement {
             id="restore-from-backup-confirm-button"
             @click=${this.handleConfirm}
             type="primary"
-            data-l10n-id="${buttonL10nId}"
+            data-l10n-id=${buttonL10nId}
             ?disabled=${!this.backupFileToRestore || this.recoveryInProgress}
           ></moz-button>
         </moz-button-group>
@@ -284,7 +284,7 @@ export default class RestoreFromBackup extends MozLitElement {
       <moz-message-bar
         id="restore-from-backup-error"
         type="error"
-        data-l10n-id="${getRecoveryErrorL10nId(this.recoveryErrorCode)}"
+        data-l10n-id=${getRecoveryErrorL10nId(this.recoveryErrorCode)}
       >
       </moz-message-bar>
     `;

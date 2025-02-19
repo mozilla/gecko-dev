@@ -68,7 +68,7 @@ class FxviewEmptyState extends MozLitElement {
       <card-container
         hideHeader="true"
         exportparts="image"
-        ?isInnerCard="${this.isInnerCard}"
+        ?isInnerCard=${this.isInnerCard}
         id="card-container"
         isEmptyState="true"
         role="group"
@@ -104,8 +104,8 @@ class FxviewEmptyState extends MozLitElement {
               ?hidden=${!this.headerLabel}
             >
               <span
-                data-l10n-id="${this.headerLabel}"
-                data-l10n-args="${JSON.stringify(this.headerArgs)}"
+                data-l10n-id=${this.headerLabel}
+                data-l10n-args=${JSON.stringify(this.headerArgs)}
               >
               </span>
             </h2>
@@ -119,7 +119,7 @@ class FxviewEmptyState extends MozLitElement {
                       description: true,
                       secondary: index !== 0,
                     })}
-                    data-l10n-id="${descLabel}"
+                    data-l10n-id=${descLabel}
                     @click=${this.openLinkInParentWindow &&
                     this.linkActionHandler}
                     @keydown=${this.openLinkInParentWindow &&

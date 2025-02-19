@@ -115,7 +115,7 @@ class AnalysisExplainer extends MozLitElement {
       return html`
         <p
           data-l10n-id="shopping-analysis-explainer-highlights-description"
-          data-l10n-args="${JSON.stringify({ retailer })}"
+          data-l10n-args=${JSON.stringify({ retailer })}
         ></p>
       `;
     }

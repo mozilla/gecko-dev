@@ -301,7 +301,7 @@ class HistoryInView extends ViewPage {
       case "site":
         cardsTemplate = this.controller.historyVisits.map(historyItem => {
           return html`<card-container>
-            <h3 slot="header" data-l10n-id="${ifDefined(historyItem.l10nId)}">
+            <h3 slot="header" data-l10n-id=${ifDefined(historyItem.l10nId)}>
               ${historyItem.domain}
             </h3>
             <fxview-tab-list
@@ -375,9 +375,9 @@ class HistoryInView extends ViewPage {
           html`<h3
             slot="secondary-header"
             data-l10n-id="firefoxview-search-results-count"
-            data-l10n-args="${JSON.stringify({
+            data-l10n-args=${JSON.stringify({
               count: this.controller.searchResults.length,
-            })}"
+            })}
           ></h3>`
       )}
       <fxview-tab-list

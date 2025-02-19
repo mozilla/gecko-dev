@@ -75,7 +75,7 @@ export default class FxAMenuMessage extends MozLitElement {
         rel="stylesheet"
         href="chrome://browser/content/asrouter/components/fxa-menu-message.css"
       />
-      <div id="container" ?has-image="${this.imageURL}">
+      <div id="container" ?has-image=${this.imageURL}>
         <moz-button
           id="close-button"
           @click=${this.handleClose}
@@ -86,7 +86,7 @@ export default class FxAMenuMessage extends MozLitElement {
         >
         </moz-button>
         <div id="illustration-container">
-          <img id="illustration" role="presentation" src="${this.imageURL}" />
+          <img id="illustration" role="presentation" src=${this.imageURL} />
         </div>
         <div id="primary">${this.primaryText}</div>
         <div id="secondary">${this.secondaryText}</div>
@@ -96,8 +96,8 @@ export default class FxAMenuMessage extends MozLitElement {
           type="primary"
           tabindex="1"
           autofocus
-          title="${this.buttonText}"
-          aria-label="${this.buttonText}"
+          title=${this.buttonText}
+          aria-label=${this.buttonText}
           >${this.buttonText}</moz-button
         >
       </div>

@@ -211,7 +211,7 @@ export default class TurnOnScheduledBackups extends MozLitElement {
       <moz-message-bar
         id="enable-backup-encryption-error"
         type="error"
-        .messageL10nId="${getEnableErrorL10nId(this.enableBackupErrorCode)}"
+        .messageL10nId=${getEnableErrorL10nId(this.enableBackupErrorCode)}
       ></moz-message-bar>
     `;
   }

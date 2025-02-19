@@ -258,7 +258,7 @@ export class NetErrorCard extends MozLitElement {
                 data-l10n-id="fp-certerror-why-site-dangerous"
               ></strong>
               <span
-                data-l10n-id="${whyDangerousL10nId}"
+                data-l10n-id=${whyDangerousL10nId}
                 data-l10n-args=${JSON.stringify(whyDangerousL10nArgs)}
               ></span>`
           : null}
@@ -267,18 +267,18 @@ export class NetErrorCard extends MozLitElement {
         ? html`<p>
             <strong data-l10n-id="fp-certerror-what-can-you-do"></strong>
             <span
-              data-l10n-id="${whatCanYouDoL10nId}"
+              data-l10n-id=${whatCanYouDoL10nId}
               data-l10n-args=${JSON.stringify(whatCanYouDoL10nArgs)}
             ></span>
           </p>`
         : null}
-      ${importantNote ? html`<p data-l10n-id="${importantNote}"></p>` : null}
+      ${importantNote ? html`<p data-l10n-id=${importantNote}></p>` : null}
       ${learnMoreL10nId
         ? html`<p>
             <a
               is="moz-support-link"
-              support-page="${learnMoreSupportPage}"
-              data-l10n-id="${learnMoreL10nId}"
+              support-page=${learnMoreSupportPage}
+              data-l10n-id=${learnMoreL10nId}
               data-telemetry-id="learn_more_link"
               @click=${this.handleTelemetryClick}
             ></a>
@@ -508,9 +508,9 @@ export class NetErrorCard extends MozLitElement {
             ></moz-button
             ><moz-button
               id="advanced-button"
-              data-l10n-id="${this.advancedShowing
+              data-l10n-id=${this.advancedShowing
                 ? "fp-certerror-hide-advanced-button"
-                : "fp-certerror-advanced-button"}"
+                : "fp-certerror-advanced-button"}
               data-telemetry-id="advanced_button"
               @click=${this.toggleAdvancedShowing}
             ></moz-button

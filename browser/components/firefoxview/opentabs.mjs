@@ -276,12 +276,12 @@ class OpenTabsInView extends ViewPage {
               class=${cardClasses}
               .tabs=${currentWindowTabs}
               .paused=${this.paused}
-              data-inner-id="${this.currentWindow.windowGlobalChild
-                .innerWindowId}"
+              data-inner-id=${this.currentWindow.windowGlobalChild
+                .innerWindowId}
               data-l10n-id="firefoxview-opentabs-current-window-header"
-              data-l10n-args="${JSON.stringify({
+              data-l10n-args=${JSON.stringify({
                 winID: currentWindowIndex,
-              })}"
+              })}
               .searchQuery=${this.searchQuery}
               .bookmarkList=${this.bookmarkList}
             ></view-opentabs-card>
@@ -294,9 +294,9 @@ class OpenTabsInView extends ViewPage {
               class=${cardClasses}
               .tabs=${tabs}
               .paused=${this.paused}
-              data-inner-id="${win.windowGlobalChild.innerWindowId}"
+              data-inner-id=${win.windowGlobalChild.innerWindowId}
               data-l10n-id="firefoxview-opentabs-window-header"
-              data-l10n-args="${JSON.stringify({ winID })}"
+              data-l10n-args=${JSON.stringify({ winID })}
               .searchQuery=${this.searchQuery}
               .bookmarkList=${this.bookmarkList}
             ></view-opentabs-card>
@@ -580,9 +580,9 @@ class OpenTabsInViewCard extends ViewPageContent {
             html` <div
               @click=${this.toggleShowMore}
               @keydown=${this.toggleShowMore}
-              data-l10n-id="${this.showMore
+              data-l10n-id=${this.showMore
                 ? "firefoxview-show-less"
-                : "firefoxview-show-more"}"
+                : "firefoxview-show-more"}
               ?hidden=${!this.classList.contains("height-limited") ||
               this.tabs.length <=
                 OpenTabsInViewCard.MAX_TABS_FOR_COMPACT_HEIGHT}

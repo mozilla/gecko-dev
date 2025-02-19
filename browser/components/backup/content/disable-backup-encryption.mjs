@@ -60,7 +60,7 @@ export default class DisableBackupEncryption extends MozLitElement {
       <moz-message-bar
         id="disable-backup-encryption-error"
         type="error"
-        .messageL10nId="${ERROR_L10N_ID}"
+        .messageL10nId=${ERROR_L10N_ID}
       ></moz-message-bar>
     `;
   }

@@ -145,14 +145,14 @@ class RecommendedAd extends MozLitElement {
       >
         <a id="recommended-ad-wrapper" slot="content" href=${
           this.product.url
-        } target="_blank" title="${this.product.name}" @click=${
+        } target="_blank" title=${this.product.name} @click=${
           this.handleClick
         } @auxclick=${this.handleClick}>
           <div id="ad-content">
             <img id="ad-preview-image" src=${this.imageUrl}></img>
             <div id="ad-letter-wrapper">
               <span id="ad-title" lang="en">${this.product.name}</span>
-              <letter-grade letter="${this.product.grade}"></letter-grade>
+              <letter-grade letter=${this.product.grade}></letter-grade>
             </div>
           </div>
           <div id="footer" class=${hasPrice ? "has-price" : ""}>
