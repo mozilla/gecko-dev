@@ -453,14 +453,6 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     return promise.forget();
   }
 
-  nsCString origin;
-  auto* basePrin = BasePrincipal::Cast(principal);
-  nsresult rv = basePrin->GetWebExposedOriginSerialization(origin);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
-    return promise.forget();
-  }
-
   // If timeoutSeconds was specified, check if its value lies within a
   // reasonable range as defined by the platform and if not, correct it to the
   // closest value lying within that range.
@@ -523,17 +515,22 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
   }
 
   // <https://w3c.github.io/webauthn/#sctn-appid-extension>
+  Maybe<nsCString> maybeAppId;
   if (aOptions.mExtensions.mAppid.WasPassed()) {
-    nsString appId(aOptions.mExtensions.mAppid.Value());
+    nsCString appId(NS_ConvertUTF16toUTF8(aOptions.mExtensions.mAppid.Value()));
 
-    // Check that the appId value is allowed.
-    if (!EvaluateAppID(mWindow, origin, appId)) {
-      promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
-      return promise.forget();
+    // Step 2 of Algorithm 3.1.2 of
+    // https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-appid-and-facets-v2.0-id-20180227.html#determining-if-a-caller-s-facetid-is-authorized-for-an-appid
+    if (appId.IsEmpty() || appId.EqualsLiteral("null")) {
+      auto* basePrin = BasePrincipal::Cast(principal);
+      nsresult rv = basePrin->GetWebExposedOriginSerialization(appId);
+      if (NS_FAILED(rv)) {
+        promise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+        return promise.forget();
+      }
     }
 
-    // Append the hash and send it to the backend.
-    extensions.AppendElement(WebAuthnExtensionAppId(appId));
+    maybeAppId.emplace(std::move(appId));
   }
 
   // <https://w3c.github.io/webauthn/#prf-extension>
@@ -614,9 +611,9 @@ already_AddRefed<Promise> WebAuthnHandler::GetAssertion(
     return promise.forget();
   }
 
-  WebAuthnGetAssertionInfo info(rpId, challenge, adjustedTimeout, allowList,
-                                extensions, aOptions.mUserVerification,
-                                aConditionallyMediated);
+  WebAuthnGetAssertionInfo info(
+      rpId, maybeAppId, challenge, adjustedTimeout, allowList, extensions,
+      aOptions.mUserVerification, aConditionallyMediated);
 
   // Set up the transaction state. Fallible operations should not be performed
   // below this line, as we must not leave the transaction state partially

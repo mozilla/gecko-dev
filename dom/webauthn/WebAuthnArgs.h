@@ -43,8 +43,6 @@ class WebAuthnRegisterArgs final : public nsIWebAuthnRegisterArgs {
           mMinPinLength =
               ext.get_WebAuthnExtensionMinPinLength().minPinLength();
           break;
-        case WebAuthnExtension::TWebAuthnExtensionAppId:
-          break;
         case WebAuthnExtension::TWebAuthnExtensionPrf:
           mPrf = true;
           break;
@@ -85,9 +83,6 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
         mPrf(false) {
     for (const WebAuthnExtension& ext : mInfo.Extensions()) {
       switch (ext.type()) {
-        case WebAuthnExtension::TWebAuthnExtensionAppId:
-          mAppId = Some(ext.get_WebAuthnExtensionAppId().appIdentifier());
-          break;
         case WebAuthnExtension::TWebAuthnExtensionCredProps:
           break;
         case WebAuthnExtension::TWebAuthnExtensionHmacSecret:
@@ -111,8 +106,6 @@ class WebAuthnSignArgs final : public nsIWebAuthnSignArgs {
   const nsCString mClientDataJSON;
   const bool mPrivateBrowsing;
   const WebAuthnGetAssertionInfo mInfo;
-
-  Maybe<nsString> mAppId;
   bool mPrf;
 };
 

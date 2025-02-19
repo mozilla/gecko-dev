@@ -12,8 +12,8 @@
 
 namespace mozilla::dom {
 
-bool EvaluateAppID(nsPIDOMWindowInner* aParent, const nsCString& aOrigin,
-                   /* in/out */ nsString& aAppId);
+bool IsValidAppId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
+                  const nsCString& aAppId);
 
 bool IsWebAuthnAllowedInDocument(const nsCOMPtr<Document>& aDoc);
 

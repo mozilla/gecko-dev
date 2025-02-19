@@ -286,10 +286,10 @@ WebAuthnSignArgs::GetHmacCreateSecret(bool* aHmacCreateSecret) {
 
 NS_IMETHODIMP
 WebAuthnSignArgs::GetAppId(nsAString& aAppId) {
-  if (mAppId.isNothing()) {
+  if (mInfo.AppId().isNothing()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  aAppId = mAppId.ref();
+  aAppId = NS_ConvertUTF8toUTF16(mInfo.AppId().ref());
   return NS_OK;
 }
 

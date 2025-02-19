@@ -17,91 +17,81 @@
 
 namespace mozilla::dom {
 
-// Bug #1436078 - Permit Google Accounts. Remove in Bug #1436085 in Jan 2023.
-constexpr auto kGoogleAccountsAppId1 =
-    u"https://www.gstatic.com/securitykey/origins.json"_ns;
-constexpr auto kGoogleAccountsAppId2 =
-    u"https://www.gstatic.com/securitykey/a/google.com/origins.json"_ns;
+bool IsValidAppId(const nsCOMPtr<nsIPrincipal>& aPrincipal,
+                  const nsCString& aAppId) {
+  // An AppID is a substitute for the RP ID that allows the caller to assert
+  // credentials that were created using the legacy U2F protocol. While an RP ID
+  // is the caller origin's effective domain, or a registrable suffix thereof,
+  // an AppID is a URL (with a scheme and a possibly non-empty path) that is
+  // same-site with the caller's origin.
+  //
+  // The U2F protocol nominally uses Algorithm 3.1.2 of [1] to validate AppIDs.
+  // However, the WebAuthn spec [2] notes that it is not necessary to "implement
+  // steps four and onward of" Algorithm 3.1.2. Instead, in step three, "the
+  // comparison on the host is relaxed to accept hosts on the same site." Step
+  // two is best seen as providing a default value for the AppId when one is not
+  // provided. That leaves step 1 and the same-site check, which is what we
+  // implement here.
+  //
+  // [1]
+  // https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-appid-and-facets-v2.0-id-20180227.html#determining-if-a-caller-s-facetid-is-authorized-for-an-appid
+  // [2] https://w3c.github.io/webauthn/#sctn-appid-extension
 
-bool EvaluateAppID(nsPIDOMWindowInner* aParent, const nsCString& aOrigin,
-                   /* in/out */ nsString& aAppId) {
-  // Facet is the specification's way of referring to the web origin.
-  nsCOMPtr<nsIURI> facetUri;
-  if (NS_FAILED(NS_NewURI(getter_AddRefs(facetUri), aOrigin))) {
+  auto* principal = BasePrincipal::Cast(aPrincipal);
+  nsCOMPtr<nsIURI> callerUri;
+  nsresult rv = principal->GetURI(getter_AddRefs(callerUri));
+  if (NS_FAILED(rv)) {
     return false;
   }
 
-  // If the facetId (origin) is not HTTPS, reject
-  if (!facetUri->SchemeIs("https")) {
-    return false;
-  }
-
-  // If the appId is empty or null, overwrite it with the facetId and accept
-  if (aAppId.IsEmpty() || aAppId.EqualsLiteral("null")) {
-    aAppId.Assign(NS_ConvertUTF8toUTF16(aOrigin));
-    return true;
-  }
-
-  // AppID is user-supplied. It's quite possible for this parse to fail.
-  nsAutoCString appIdString = NS_ConvertUTF16toUTF8(aAppId);
   nsCOMPtr<nsIURI> appIdUri;
-  if (NS_FAILED(NS_NewURI(getter_AddRefs(appIdUri), appIdString))) {
+  rv = NS_NewURI(getter_AddRefs(appIdUri), aAppId);
+  if (NS_FAILED(rv)) {
     return false;
   }
 
-  // if the appId URL is not HTTPS, reject.
+  // Step 1 of Algorithm 3.1.2. "If the AppID is not an HTTPS URL, and matches
+  // the FacetID of the caller, no additional processing is necessary and the
+  // operation may proceed." In the web context, the "FacetID" is defined as
+  // "the Web Origin [RFC6454] of the web page triggering the FIDO operation,
+  // written as a URI with an empty path. Default ports are omitted and any path
+  // component is ignored."
   if (!appIdUri->SchemeIs("https")) {
-    return false;
+    nsCString facetId;
+    rv = principal->GetWebExposedOriginSerialization(facetId);
+    return NS_SUCCEEDED(rv) && facetId == aAppId;
   }
 
-  nsAutoCString appIdHost;
-  if (NS_FAILED(appIdUri->GetAsciiHost(appIdHost))) {
-    return false;
-  }
-
-  // Allow localhost.
-  if (appIdHost.EqualsLiteral("localhost")) {
-    nsAutoCString facetHost;
-    if (NS_FAILED(facetUri->GetAsciiHost(facetHost))) {
-      return false;
-    }
-
-    if (facetHost.EqualsLiteral("localhost")) {
-      return true;
-    }
-  }
-
-  // Run the HTML5 algorithm to relax the same-origin policy, copied from W3C
-  // Web Authentication. See Bug 1244959 comment #8 for context on why we are
-  // doing this instead of implementing the external-fetch FacetID logic.
-  nsCOMPtr<Document> document = aParent->GetDoc();
-  if (!document || !document->IsHTMLOrXHTML()) {
-    return false;
-  }
-
-  nsHTMLDocument* html = document->AsHTMLDocument();
-  // Use the base domain as the facet for evaluation. This lets this algorithm
-  // relax the whole eTLD+1.
+  // Same site check
   nsCOMPtr<nsIEffectiveTLDService> tldService =
       do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
   if (!tldService) {
     return false;
   }
 
-  nsAutoCString lowestFacetHost;
-  if (NS_FAILED(tldService->GetBaseDomain(facetUri, 0, lowestFacetHost))) {
+  nsAutoCString baseDomainCaller;
+  rv = tldService->GetBaseDomain(callerUri, 0, baseDomainCaller);
+  if (NS_FAILED(rv)) {
     return false;
   }
 
-  if (html->IsRegistrableDomainSuffixOfOrEqualTo(
-          NS_ConvertUTF8toUTF16(lowestFacetHost), appIdHost)) {
+  nsAutoCString baseDomainAppId;
+  rv = tldService->GetBaseDomain(appIdUri, 0, baseDomainAppId);
+  if (NS_FAILED(rv)) {
+    return false;
+  }
+
+  if (baseDomainCaller == baseDomainAppId) {
     return true;
   }
 
-  // Bug #1436078 - Permit Google Accounts. Remove in Bug #1436085 in Jan 2023.
-  if (lowestFacetHost.EqualsLiteral("google.com") &&
-      (aAppId.Equals(kGoogleAccountsAppId1) ||
-       aAppId.Equals(kGoogleAccountsAppId2))) {
+  // Exceptions for Google Accounts from Bug 1436078. These were supposed to be
+  // temporary, but users reported breakage when we tried to remove them (Bug
+  // 1822703). We will need to keep them indefinitely.
+  if (baseDomainCaller.EqualsLiteral("google.com") &&
+      (aAppId.Equals("https://www.gstatic.com/securitykey/origins.json"_ns) ||
+       aAppId.Equals(
+           "https://www.gstatic.com/securitykey/a/google.com/origins.json"_ns))) {
     return true;
   }
 

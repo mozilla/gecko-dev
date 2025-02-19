@@ -321,6 +321,12 @@ mozilla::ipc::IPCResult WebAuthnTransactionParent::RecvRequestSign(
     return IPC_OK();
   }
 
+  if (aTransactionInfo.AppId().isSome() &&
+      !IsValidAppId(principal, aTransactionInfo.AppId().ref())) {
+    aResolver(NS_ERROR_DOM_SECURITY_ERR);
+    return IPC_OK();
+  }
+
   nsCString origin;
   nsresult rv = principal->GetWebExposedOriginSerialization(origin);
   if (NS_FAILED(rv)) {
