@@ -4753,8 +4753,10 @@ var SessionStoreInternal = {
       }
       let windowState = this._windows[sourceWindow.__SSi];
       if (windowState) {
-        for (let j = 0, l = windowState._closedTabs.length; j < l; j++) {
-          if (windowState._closedTabs[j].closedId == aClosedId) {
+        let closedTabs =
+          this._getStateForClosedTabsAndClosedGroupTabs(windowState);
+        for (let j = 0, l = closedTabs.length; j < l; j++) {
+          if (closedTabs[j].closedId == aClosedId) {
             return this.undoCloseTab(sourceWindow, j, aTargetWindow);
           }
         }

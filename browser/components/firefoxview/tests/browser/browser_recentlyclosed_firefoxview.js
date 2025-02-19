@@ -351,6 +351,34 @@ add_task(async function test_restore_tab() {
   await cleanup();
 });
 
+add_task(async function test_restore_tab_from_deleted_group() {
+  let tab = await add_new_tab("about:mozilla");
+  let group = gBrowser.addTabGroup([tab]);
+  Assert.equal(gBrowser.visibleTabs.length, 2, "2 tabs are open");
+  Assert.ok(tab.group, "New tab is grouped");
+  gBrowser.removeTabGroup(group);
+  Assert.equal(
+    gBrowser.visibleTabs.length,
+    1,
+    "1 tab is open after group deletion"
+  );
+
+  await withFirefoxView({}, async browser => {
+    const { document } = browser.contentWindow;
+    await navigateToViewAndWait(document, "recentlyclosed");
+
+    let [, listItems] = await waitForRecentlyClosedTabsList(document);
+
+    let closedTabItem = listItems[0];
+    info("Restoring the closed tab");
+    await clearAllParentTelemetryEvents();
+    await restore_tab(closedTabItem, browser, closedTabItem.url);
+    await recentlyClosedTelemetry();
+    Assert.equal(gBrowser.visibleTabs.length, 2, "Tab was restored");
+  });
+  BrowserTestUtils.removeTab(gBrowser.tabs[1]);
+});
+
 /**
  * Asserts that tabs that have been recently closed can be
  * dismissed by clicking on their respective dismiss buttons.
