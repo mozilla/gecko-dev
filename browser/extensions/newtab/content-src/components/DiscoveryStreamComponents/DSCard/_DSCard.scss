@@ -6,10 +6,6 @@ $excerpt-line-height: 20;
 $ds-card-image-gradient-fade: rgba(0, 0, 0, 0%);
 $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
-:root {
-  --newtab-font-size-xsmall: 11px;
-}
-
 .ds-card {
   display: flex;
   flex-direction: column;
@@ -480,7 +476,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
       .source {
         color: var(--newtab-text-secondary-text);
-        font-size: var(--newtab-font-size-xsmall);
+        font-size: var(--font-size-small);
       }
 
       // Sponsored by text
@@ -498,7 +494,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
       .story-sponsored-label {
         line-height: unset;
-        font-size: var(--newtab-font-size-xsmall);
+        font-size: var(--font-size-small);
       }
     }
 
@@ -512,7 +508,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       display: grid;
       align-content: center;
       height: 28px;
-      font-size: var(--newtab-font-size-xsmall);
+      font-size: var(--font-size-small);
       color: var(--newtab-text-topic-label-color);
       margin: initial;
       padding: initial;
