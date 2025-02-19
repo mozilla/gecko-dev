@@ -970,6 +970,7 @@ MSG_DEF(JSMSG_TEMPORAL_PARSER_YEAR_MONTH_CALENDAR_NOT_ISO8601, 1, JSEXN_RANGEERR
 MSG_DEF(JSMSG_TEMPORAL_PARSER_INVALID_SUBMINUTE_TIMEZONE, 1, JSEXN_RANGEERR, "can't parse {0}: time zone offset must not contain seconds precision")
 MSG_DEF(JSMSG_TEMPORAL_PARSER_INCONSISTENT_DATE_SEPARATOR, 1, JSEXN_RANGEERR, "can't parse {0}: date separator '-' must be consistent")
 MSG_DEF(JSMSG_TEMPORAL_PARSER_INCONSISTENT_TIME_SEPARATOR, 1, JSEXN_RANGEERR, "can't parse {0}: time separator ':' must be consistent")
+MSG_DEF(JSMSG_TEMPORAL_PARSER_EMPTY_STRING, 1, JSEXN_RANGEERR, "can't parse empty string as {0}")
 
 // Explicit Resource Management
 

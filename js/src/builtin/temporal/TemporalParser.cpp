@@ -48,11 +48,6 @@
 using namespace js;
 using namespace js::temporal;
 
-// TODO: Better error message for empty strings?
-// TODO: Add string input to error message?
-// TODO: Better error messages, for example display current character?
-// https://bugzilla.mozilla.org/show_bug.cgi?id=1839676
-
 struct StringName final {
   // Start position and length of this name.
   size_t start = 0;
@@ -949,6 +944,8 @@ class TemporalParser final {
   template <typename T>
   mozilla::Result<T, ParserError> complete(const T& value) const;
 
+  mozilla::Result<mozilla::Ok, ParserError> nonempty() const;
+
  public:
   explicit TemporalParser(mozilla::Span<const CharT> str) : reader_(str) {}
 
@@ -1004,6 +1001,15 @@ mozilla::Result<T, ParserError> TemporalParser<CharT>::complete(
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_UNEXPECTED_CHARACTERS_AT_END);
   }
   return result;
+}
+
+template <typename CharT>
+mozilla::Result<mozilla::Ok, ParserError> TemporalParser<CharT>::nonempty()
+    const {
+  if (reader_.length() == 0) {
+    return mozilla::Err(JSMSG_TEMPORAL_PARSER_EMPTY_STRING);
+  }
+  return mozilla::Ok{};
 }
 
 template <typename CharT>
@@ -1480,6 +1486,8 @@ mozilla::Maybe<double> TemporalParser<CharT>::digits(JSContext* cx) {
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalInstantString() {
+  MOZ_TRY(nonempty());
+
   // Initialize all fields to zero.
   ZonedDateTimeString result{};
 
@@ -1570,6 +1578,8 @@ bool js::temporal::ParseTemporalInstantString(JSContext* cx,
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalTimeZoneString() {
+  MOZ_TRY(nonempty());
+
   // Handle the common case of a standalone time zone identifier first.
   if (auto tz = parse(timeZoneIdentifier()); tz.isOk()) {
     auto timeZone = tz.unwrap();
@@ -1730,6 +1740,7 @@ bool js::temporal::ParseTemporalTimeZoneString(
 template <typename CharT>
 mozilla::Result<TimeZoneAnnotation, ParserError>
 TemporalParser<CharT>::parseTimeZoneIdentifier() {
+  MOZ_TRY(nonempty());
   return parse(timeZoneIdentifier());
 }
 
@@ -1780,6 +1791,7 @@ bool js::temporal::ParseTimeZoneIdentifier(
 template <typename CharT>
 mozilla::Result<DateTimeUTCOffset, ParserError>
 TemporalParser<CharT>::parseDateTimeUTCOffset() {
+  MOZ_TRY(nonempty());
   return parse(utcOffsetSubMinutePrecision());
 }
 
@@ -1839,6 +1851,8 @@ mozilla::Result<double, ParserError> TemporalParser<CharT>::durationDigits(
 template <typename CharT>
 mozilla::Result<TemporalDurationString, ParserError>
 TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
+  MOZ_TRY(nonempty());
+
   // Initialize all fields to zero.
   TemporalDurationString result{};
 
@@ -2449,6 +2463,8 @@ TemporalParser<CharT>::dateSpecMonthDay() {
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalCalendarString() {
+  MOZ_TRY(nonempty());
+
   // Handle the common case of a standalone calendar name first.
   //
   // All valid calendar names start with two alphabetic characters and none of
@@ -2574,6 +2590,8 @@ JSLinearString* js::temporal::ParseTemporalCalendarString(
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalTimeString() {
+  MOZ_TRY(nonempty());
+
   // TemporalTimeString :::
   //   AnnotatedTime
   //   AnnotatedDateTime[~Zoned, +TimeRequired]
@@ -2658,6 +2676,8 @@ bool js::temporal::ParseTemporalTimeString(JSContext* cx, Handle<JSString*> str,
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalMonthDayString() {
+  MOZ_TRY(nonempty());
+
   // TemporalMonthDayString :::
   //   AnnotatedMonthDay
   //   AnnotatedDateTime[~Zoned, ~TimeRequired]
@@ -2724,7 +2744,7 @@ bool js::temporal::ParseTemporalMonthDayString(
     return false;
   }
 
-  // Steps 1-2  .
+  // Steps 1-2.
   auto parseResult = ::ParseTemporalMonthDayString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
@@ -2757,6 +2777,8 @@ bool js::temporal::ParseTemporalMonthDayString(
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalYearMonthString() {
+  MOZ_TRY(nonempty());
+
   // TemporalYearMonthString :::
   //   AnnotatedYearMonth
   //   AnnotatedDateTime[~Zoned, ~TimeRequired]
@@ -2853,6 +2875,8 @@ bool js::temporal::ParseTemporalYearMonthString(
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalDateTimeString() {
+  MOZ_TRY(nonempty());
+
   // TemporalDateTimeString[Zoned] :::
   //   AnnotatedDateTime[?Zoned, ~TimeRequired]
 
@@ -2917,6 +2941,8 @@ bool js::temporal::ParseTemporalDateTimeString(
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalZonedDateTimeString() {
+  MOZ_TRY(nonempty());
+
   // Parse goal: TemporalDateTimeString[+Zoned]
   //
   // TemporalDateTimeString[Zoned] :::
@@ -3059,6 +3085,8 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
 template <typename CharT>
 mozilla::Result<ZonedDateTimeString, ParserError>
 TemporalParser<CharT>::parseTemporalRelativeToString() {
+  MOZ_TRY(nonempty());
+
   // Parse goals:
   // TemporalDateTimeString[+Zoned] and TemporalDateTimeString[~Zoned]
   //
