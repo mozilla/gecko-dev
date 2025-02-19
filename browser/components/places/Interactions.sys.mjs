@@ -52,9 +52,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
-export const TIMERS = {
-  tabSelectIdleTimeMs: 1000 * 60 * 60,
-};
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "breakupIfNoUpdatesForSeconds",
+  "browser.places.interactions.breakupIfNoUpdatesForSeconds",
+  60 * 60
+);
 
 const DOMWINDOW_OPENED_TOPIC = "domwindowopened";
 
@@ -199,6 +202,7 @@ class _Interactions {
     }
     Services.obs.addObserver(this, DOMWINDOW_OPENED_TOPIC, true);
     lazy.idleService.addIdleObserver(this, lazy.pageViewIdleTime);
+
     this.#initialized = true;
   }
 
@@ -481,8 +485,9 @@ class _Interactions {
     let browser = this.#activeWindow?.gBrowser.selectedBrowser;
     if (browser && this.#interactions.has(browser)) {
       let interaction = this.#interactions.get(browser);
-      let timePassedSinceUpdate = Date.now() - interaction.updated_at;
-      if (timePassedSinceUpdate >= TIMERS.tabSelectIdleTimeMs) {
+      let timePassedSinceUpdateSeconds =
+        (Date.now() - interaction.updated_at) / 1000;
+      if (timePassedSinceUpdateSeconds >= lazy.breakupIfNoUpdatesForSeconds) {
         this.registerEndOfInteraction(browser);
         this.registerNewInteraction(browser, {
           url: browser.currentURI.spec,

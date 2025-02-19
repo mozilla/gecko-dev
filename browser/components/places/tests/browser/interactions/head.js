@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { Interactions, TIMERS } = ChromeUtils.importESModule(
+const { Interactions } = ChromeUtils.importESModule(
   "resource:///modules/Interactions.sys.mjs"
 );
 
@@ -201,16 +201,6 @@ async function getDatabaseValue(url, property) {
       return rows?.[0]?.getResultByName(property);
     }
   );
-}
-
-const DEFAULT_TAB_SELECT_IDLE_TIME = TIMERS.tabSelectIdleTimeMs;
-registerCleanupFunction(() => {
-  TIMERS.tabSelectIdleTimeMs = DEFAULT_TAB_SELECT_IDLE_TIME;
-});
-
-// For testing purposes, use a short timeout.
-function setTabSelectIdleTimer(timerMs) {
-  TIMERS.tabSelectIdleTimeMs = timerMs;
 }
 
 async function insertIntoMozPlacesMetadata(

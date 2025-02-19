@@ -33,6 +33,8 @@ skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1756157: Randomly times out on macOS
 ]
 
+["browser_interactions_switch_tabs_idleness.js"]
+
 ["browser_interactions_typing.js"]
 
 ["browser_interactions_typing_dom_history.js"]
