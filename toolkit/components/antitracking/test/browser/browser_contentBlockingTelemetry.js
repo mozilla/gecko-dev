@@ -7,7 +7,6 @@
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
-
 const LABEL_STORAGE_GRANTED = 0;
 const LABEL_STORAGE_ACCESS_API = 1;
 const LABEL_OPENER_AFTER_UI = 2;
@@ -15,6 +14,7 @@ const LABEL_OPENER = 3;
 const LABEL_REDIRECT = 4;
 const LABEL_REDIRECT_TRACKER = 5;
 const LABEL_NAVIGATION = 6;
+const LABEL_CT_OFFSET = 7;
 
 function clearTelemetry() {
   Services.telemetry.getSnapshotForHistograms("main", true /* clear */);
@@ -41,6 +41,7 @@ function getExpectedExpiredDaysFromPref(pref) {
 async function testTelemetry(
   aProbeInParent,
   aExpectedCnt,
+  aExpectedCntTracker,
   aLabel,
   aExpectedIdx
 ) {
@@ -73,7 +74,10 @@ async function testTelemetry(
     return (
       !!storageAccessGrantedHistogram &&
       storageAccessGrantedHistogram.values[LABEL_STORAGE_GRANTED] ==
-        aExpectedCnt
+        aExpectedCnt &&
+      storageAccessGrantedHistogram.values[
+        LABEL_STORAGE_GRANTED + LABEL_CT_OFFSET
+      ] == aExpectedCntTracker
     );
   });
 
@@ -84,6 +88,19 @@ async function testTelemetry(
   );
   is(
     storageAccessGrantedHistogram.values[aLabel],
+    1,
+    "There should be one reason count in telemetry."
+  );
+
+  is(
+    storageAccessGrantedHistogram.values[
+      LABEL_STORAGE_GRANTED + LABEL_CT_OFFSET
+    ],
+    aExpectedCntTracker,
+    "There should be expected storage access granted count in telemetry."
+  );
+  is(
+    storageAccessGrantedHistogram.values[aLabel + LABEL_CT_OFFSET],
     1,
     "There should be one reason count in telemetry."
   );
@@ -129,9 +146,9 @@ add_setup(async function () {
   clearTelemetry();
 
   await UrlClassifierTestUtils.addTestTrackers();
-
   registerCleanupFunction(_ => {
     Services.perms.removeAll();
+    UrlClassifierTestUtils.cleanupTestTrackers();
   });
 });
 
@@ -205,7 +222,13 @@ add_task(async function testTelemetryForStorageAccessAPI() {
 
   // The storage access permission will be expired in 29 days, so the expected
   // index in the telemetry probe would be 29.
-  await testTelemetry(false, 1, LABEL_STORAGE_ACCESS_API, expectedExpiredDays);
+  await testTelemetry(
+    false,
+    1,
+    1,
+    LABEL_STORAGE_ACCESS_API,
+    expectedExpiredDays
+  );
 });
 
 add_task(async function testTelemetryForWindowOpenHeuristic() {
@@ -284,7 +307,7 @@ add_task(async function testTelemetryForWindowOpenHeuristic() {
 
   // The storage access permission will be expired in 29 days, so the expected
   // index in the telemetry probe would be 29.
-  await testTelemetry(false, 1, LABEL_OPENER, expectedExpiredDays);
+  await testTelemetry(false, 1, 1, LABEL_OPENER, expectedExpiredDays);
 });
 
 add_task(async function testTelemetryForUserInteractionHeuristic() {
@@ -372,7 +395,7 @@ add_task(async function testTelemetryForUserInteractionHeuristic() {
   //
   // Note that the expected count here is 2. It's because the opener heuristic
   // will also be triggered when triggered UserInteraction Heuristic.
-  await testTelemetry(false, 2, LABEL_OPENER_AFTER_UI, expectedExpiredDays);
+  await testTelemetry(false, 2, 2, LABEL_OPENER_AFTER_UI, expectedExpiredDays);
 });
 
 add_task(async function testTelemetryForRedirectHeuristic() {
@@ -416,6 +439,7 @@ add_task(async function testTelemetryForRedirectHeuristic() {
   // heuristic, so the expected index in the telemetry probe would be 29.
   await testTelemetry(
     true,
+    1,
     1,
     LABEL_REDIRECT_TRACKER,
     expectedExpiredDaysRedirect
