@@ -55,11 +55,18 @@ add_task(async function () {
   });
 
   await test_autocomplete({
-    desc: "CTRL+ENTER on the autofilled part should bypass autofill",
+    desc: "Canonization on the autofilled part should bypass autofill",
     typed: "exam",
     autofilled: "example.com/",
     modified: UrlbarTestUtils.trimURL("https://www.exam.com"),
     waitForUrl: "https://www.exam.com/",
-    keys: [["KEY_Enter", { ctrlKey: true }]],
+    keys: [
+      [
+        "KEY_Enter",
+        AppConstants.platform == "macosx"
+          ? { metaKey: true }
+          : { ctrlKey: true },
+      ],
+    ],
   });
 });
