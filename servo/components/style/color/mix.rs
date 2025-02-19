@@ -188,7 +188,7 @@ pub fn mix(
 }
 
 /// What the outcome of each component should be in a mix result.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 #[repr(u8)]
 enum ComponentMixOutcome {
     /// Mix the left and right sides to give the result.
@@ -544,8 +544,28 @@ fn interpolate_premultiplied(
                     }
                 };
             },
-            ComponentMixOutcome::UseLeft => result[i] = left[i],
-            ComponentMixOutcome::UseRight => result[i] = right[i],
+            ComponentMixOutcome::UseLeft | ComponentMixOutcome::UseRight => {
+                let used_component = if outcomes[i] == ComponentMixOutcome::UseLeft {
+                    left[i]
+                } else {
+                    right[i]
+                };
+                result[i] = if hue_interpolation == HueInterpolationMethod::Longer && hue_index == Some(i) {
+                    // If "longer hue" interpolation is required, we have to actually do
+                    // the computation even if we're using the same value at both ends,
+                    // so that interpolating from the starting hue back to the same value
+                    // produces a full cycle, rather than a constant hue.
+                    normalize_hue(interpolate_hue(
+                        used_component,
+                        left_weight,
+                        used_component,
+                        right_weight,
+                        hue_interpolation,
+                    ))
+                } else {
+                    used_component
+                };
+            },
             ComponentMixOutcome::None => {
                 result[i] = 0.0;
                 match i {
