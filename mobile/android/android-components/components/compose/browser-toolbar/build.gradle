@@ -32,6 +32,7 @@ android {
 }
 
 dependencies {
+    api project(":ui-autocomplete")
     implementation project(":compose-base")
     implementation project(":concept-engine")
     implementation project(":concept-menu")
