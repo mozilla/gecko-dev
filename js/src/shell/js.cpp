@@ -1558,65 +1558,157 @@ static bool SetPromiseRejectionTrackerCallback(JSContext* cx, unsigned argc,
   return true;
 }
 
-// clang-format off
 static const char* telemetryNames[static_cast<int>(JSMetric::Count)] = {
 #define LIT(NAME, _) #NAME,
-  FOR_EACH_JS_METRIC(LIT)
+    FOR_EACH_JS_METRIC(LIT)
 #undef LIT
 };
-// clang-format on
 
 // Telemetry can be executed from multiple threads, and the callback is
 // responsible to avoid contention on the recorded telemetry data.
-static Mutex* telemetryLock = nullptr;
 class MOZ_RAII AutoLockTelemetry : public LockGuard<Mutex> {
   using Base = LockGuard<Mutex>;
 
+  Mutex& getMutex() {
+    static Mutex mutex(mutexid::ShellTelemetry);
+    return mutex;
+  }
+
  public:
-  AutoLockTelemetry() : Base(*telemetryLock) { MOZ_ASSERT(telemetryLock); }
+  AutoLockTelemetry() : Base(getMutex()) {}
 };
 
-using TelemetryData = uint32_t;
-using TelemetryVec = Vector<TelemetryData, 0, SystemAllocPolicy>;
-MOZ_RUNINIT static mozilla::Array<TelemetryVec, size_t(JSMetric::Count)>
-    telemetryResults;
+using TelemetrySamples = mozilla::Vector<uint32_t, 0, js::SystemAllocPolicy>;
+MOZ_CONSTINIT static mozilla::Array<UniquePtr<TelemetrySamples>,
+                                    size_t(JSMetric::Count)>
+    recordedTelemetrySamples;
+
 static void AccumulateTelemetryDataCallback(JSMetric id, uint32_t sample) {
   AutoLockTelemetry alt;
-  // We ignore OOMs while writting teleemtry data.
-  if (telemetryResults[static_cast<int>(id)].append(sample)) {
+  TelemetrySamples* samples = recordedTelemetrySamples[size_t(id)].get();
+  if (!samples) {
     return;
   }
-}
 
-static void WriteTelemetryDataToDisk(const char* dir) {
-  const int pathLen = 260;
-  char fileName[pathLen];
-  Fprinter output;
-  auto initOutput = [&](const char* name) -> bool {
-    if (SprintfLiteral(fileName, "%s%s.csv", dir, name) >= pathLen) {
-      return false;
-    }
-    FILE* file = fopen(fileName, "a");
-    if (!file) {
-      return false;
-    }
-    output.init(file);
-    return true;
-  };
-
-  for (size_t id = 0; id < size_t(JSMetric::Count); id++) {
-    auto clear = MakeScopeExit([&] { telemetryResults[id].clearAndFree(); });
-    if (!initOutput(telemetryNames[id])) {
-      continue;
-    }
-    for (uint32_t data : telemetryResults[id]) {
-      output.printf("%u\n", data);
-    }
-    output.finish();
+  AutoEnterOOMUnsafeRegion oomUnsafe;
+  if (!samples->append(sample)) {
+    oomUnsafe.crash("AccumulateTelemetrySamplesCallback");
   }
 }
 
-#undef MAP_TELEMETRY
+static bool LookupTelemetryName(JSContext* cx, Handle<Value> nameValue,
+                                JSMetric* resultOut) {
+  static_assert(size_t(JSMetric::Count) == std::size(telemetryNames));
+  MOZ_ASSERT(resultOut);
+
+  JSString* str = ToString(cx, nameValue);
+  if (!str) {
+    return false;
+  }
+
+  UniqueChars name = EncodeLatin1(cx, str);
+  if (!name) {
+    return false;
+  }
+
+  for (size_t i = 0; i < std::size(telemetryNames); i++) {
+    if (strcmp(telemetryNames[i], name.get()) == 0) {
+      *resultOut = JSMetric(i);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool StartRecordingTelemetry(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (args.length() != 1) {
+    JS_ReportErrorNumberASCII(cx, my_GetErrorMessage, nullptr,
+                              JSSMSG_INVALID_ARGS, "startRecordingTelemetry");
+    return false;
+  }
+
+  JSMetric id;
+  if (!LookupTelemetryName(cx, args[0], &id)) {
+    JS_ReportErrorASCII(cx, "Telemetry probe name not found");
+    return false;
+  }
+
+  if (recordedTelemetrySamples[size_t(id)]) {
+    JS_ReportErrorASCII(cx, "Already recording telemetry for this probe");
+    return false;
+  }
+
+  auto samples = MakeUnique<TelemetrySamples>();
+  if (!samples) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  recordedTelemetrySamples[size_t(id)] = std::move(samples);
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool StopRecordingTelemetry(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (args.length() != 1) {
+    JS_ReportErrorNumberASCII(cx, my_GetErrorMessage, nullptr,
+                              JSSMSG_INVALID_ARGS, "stopRecordingTelemetry");
+    return false;
+  }
+
+  JSMetric id;
+  if (!LookupTelemetryName(cx, args[0], &id)) {
+    JS_ReportErrorASCII(cx, "Telemetry probe name not found");
+    return false;
+  }
+
+  if (!recordedTelemetrySamples[size_t(id)]) {
+    JS_ReportErrorASCII(cx, "Not recording telemetry for this probe");
+    return false;
+  }
+
+  recordedTelemetrySamples[size_t(id)].reset();
+  args.rval().setUndefined();
+  return true;
+}
+
+static bool GetTelemetrySamples(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (args.length() != 1) {
+    JS_ReportErrorNumberASCII(cx, my_GetErrorMessage, nullptr,
+                              JSSMSG_INVALID_ARGS, "getTelemetrySamples");
+    return false;
+  }
+
+  JSMetric id;
+  if (!LookupTelemetryName(cx, args[0], &id)) {
+    JS_ReportErrorASCII(cx, "Telemetry probe name not found");
+    return false;
+  }
+
+  TelemetrySamples* samples = recordedTelemetrySamples[size_t(id)].get();
+  if (!samples) {
+    args.rval().setUndefined();
+    return true;
+  }
+
+  Rooted<ArrayObject*> array(cx, NewDenseEmptyArray(cx));
+  if (!array) {
+    return false;
+  }
+
+  for (uint32_t sample : *samples) {
+    if (!NewbornArrayPush(cx, array, NumberValue(sample))) {
+      return false;
+    }
+  }
+
+  args.rval().setObject(*array);
+  return true;
+}
 
 // Use Counter introspection
 MOZ_RUNINIT static Mutex useCounterLock(mutexid::ShellUseCounters);
@@ -10369,6 +10461,18 @@ TestAssertRecoveredOnBailout,
 "  Disable execution tracing for the current context."),
 #endif   // MOZ_EXECUTION_TRACING
 
+    JS_FN_HELP("startRecordingTelemetry", StartRecordingTelemetry, 1, 0,
+"startRecordingTelemetry(probeName)",
+"  Start recording telemetry samples for the specified probe."),
+
+    JS_FN_HELP("stopRecordingTelemetry", StopRecordingTelemetry, 1, 0,
+"stopRecordingTelemetry(probeName)",
+"  Stop recording telemetry samples for the specified probe."),
+
+    JS_FN_HELP("getTelemetrySamples", GetTelemetrySamples, 1, 0,
+"getTelemetry(probeName)",
+"  Return an array of recorded telemetry samples for the specified probe."),
+
     JS_FS_HELP_END
 };
 // clang-format on
@@ -12191,18 +12295,6 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  // Record aggregated telemetry data on disk. Do this as early as possible such
-  // that the telemetry is recording both before starting the context and after
-  // closing it.
-  auto writeTelemetryResults = MakeScopeExit([&op] {
-    if (telemetryLock) {
-      const char* dir = op.getStringOption("telemetry-dir");
-      WriteTelemetryDataToDisk(dir);
-      js_free(telemetryLock);
-      telemetryLock = nullptr;
-    }
-  });
-
   if (!InitSharedObjectMailbox()) {
     return EXIT_FAILURE;
   }
@@ -12220,10 +12312,8 @@ int main(int argc, char** argv) {
   }
   ParseLoggerOptions();
 
-  // Register telemetry callbacks, if needed.
-  if (telemetryLock) {
-    JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryDataCallback);
-  }
+  // Register telemetry callbacks.
+  JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryDataCallback);
   JS_SetSetUseCounterCallback(cx, SetUseCounterCallback);
 
   auto destroyCx = MakeScopeExit([cx] { JS_DestroyContext(cx); });
@@ -12776,8 +12866,6 @@ bool InitOptionParser(OptionParser& op) {
 #ifdef FUZZING_JS_FUZZILLI
       !op.addBoolOption('\0', "reprl", "Enable REPRL mode for fuzzing") ||
 #endif
-      !op.addStringOption('\0', "telemetry-dir", "[directory]",
-                          "Output telemetry results in a directory") ||
       !op.addMultiStringOption('P', "setpref", "name[=val]",
                                "Set the value of a JS pref. The value may "
                                "be omitted for boolean prefs, in which case "
@@ -13053,14 +13141,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
 }
 
 bool SetGlobalOptionsPostJSInit(const OptionParser& op) {
-  if (op.getStringOption("telemetry-dir")) {
-    MOZ_ASSERT(!telemetryLock);
-    telemetryLock = js_new<Mutex>(mutexid::ShellTelemetry);
-    if (!telemetryLock) {
-      return false;
-    }
-  }
-
   // Allow dumping on Linux with the fuzzing flag set, even when running with
   // the suid/sgid flag set on the shell.
 #ifdef XP_LINUX

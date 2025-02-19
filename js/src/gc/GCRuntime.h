@@ -683,7 +683,7 @@ class GCRuntime {
 #endif
 
  private:
-  enum IncrementalResult { ResetIncremental = 0, Ok };
+  enum class IncrementalResult { Reset = 0, Abort, Ok };
 
   bool hasBuffersForBackgroundFree() const {
     return !lifoBlocksToFree.ref().isEmpty() ||
