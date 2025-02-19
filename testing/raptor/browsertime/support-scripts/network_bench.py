@@ -570,31 +570,29 @@ class NetworkBench(BasePythonSupport):
             ):
                 raise Exception("apply_network_throttling failed")
 
-    def handle_result(self, bt_result, raw_result, last_result=False, **kwargs):
-        bandwidth_key = (
-            "upload-bandwidth"
-            if self.transfer_type == "upload"
-            else "download-bandwidth"
+    def handle_result(self, gt_result, raw_result, last_result=False, **kwargs):
+        goodput_key = (
+            "upload-goodput" if self.transfer_type == "upload" else "download-goodput"
         )
 
-        def get_bandwidth(data):
+        def get_goodput(data):
             try:
                 extras = data.get("extras", [])
                 if extras and isinstance(extras, list):
                     custom_data = extras[0].get("custom_data", {})
-                    if bandwidth_key in custom_data:
-                        return custom_data[bandwidth_key]
+                    if goodput_key in custom_data:
+                        return custom_data[goodput_key]
                 return None  # Return None if any key or index is missing
             except Exception:
                 return None
 
-        bandwidth = get_bandwidth(raw_result)
-        if not bandwidth:
+        goodput = get_goodput(raw_result)
+        if not goodput:
             return
 
-        LOG.info(f"Bandwidth: {bandwidth}")
-        for b in bandwidth:
-            bt_result["measurements"].setdefault(bandwidth_key, []).append(b)
+        LOG.info(f"Goodput: {goodput}")
+        for g in goodput:
+            gt_result["measurements"].setdefault(goodput_key, []).append(g)
 
     def _build_subtest(self, measurement_name, replicates, test):
         unit = test.get("unit", "Mbit/s")

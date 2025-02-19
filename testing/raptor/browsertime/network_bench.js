@@ -66,7 +66,7 @@ async function waitForH3(maxRetries, browser, url, commands, context) {
 async function waitForComplete(timeout, commands, context, id) {
   let starttime = performance.now();
   let status = "";
-  let bandwidth = 0;
+  let goodput = 0;
 
   while (performance.now() - starttime < timeout) {
     status = await commands.js.run(
@@ -74,7 +74,7 @@ async function waitForComplete(timeout, commands, context, id) {
     );
 
     if (status.startsWith("success")) {
-      bandwidth = parseFloat(status.split(":")[1]);
+      goodput = parseFloat(status.split(":")[1]);
       status = "success";
       break;
     } else if (status.startsWith("error")) {
@@ -90,7 +90,7 @@ async function waitForComplete(timeout, commands, context, id) {
     start: starttime,
     end: endtime,
     status,
-    bandwidth,
+    goodput,
   };
 }
 
@@ -140,18 +140,17 @@ module.exports = logTest(
           );
           let downloadTime = results.end - results.start;
           // Store result in megabit/seconds
-          let downloadBandwidth =
-            (file_size * 8) / ((downloadTime / 1000) * 1e6);
+          let downloadGoodput = (file_size * 8) / ((downloadTime / 1000) * 1e6);
           context.log.info(
             "download results: " +
               results.status +
               " duration: " +
               downloadTime +
-              "ms, downloadBandwidth: " +
-              downloadBandwidth +
+              "ms, downloadGoodput: " +
+              downloadGoodput +
               "Mbit/s"
           );
-          accumulatedResults.push(downloadBandwidth);
+          accumulatedResults.push(downloadGoodput);
         } else if (testType === "upload") {
           const uploadItem = await driver.findElement(
             webdriver.By.id("fileUpload")
@@ -193,20 +192,20 @@ module.exports = logTest(
           let uploadTime = results.end - results.start;
 
           // Store result in megabit/seconds
-          let uploadBandwidth = Number.isNaN(results.bandwidth)
+          let uploadGoodput = Number.isNaN(results.goodput)
             ? (file_size * 8) / ((uploadTime / 1000) * 1e6)
-            : results.bandwidth;
+            : results.goodput;
           context.log.info(
             "upload results: " +
               results.status +
               " duration: " +
               uploadTime +
-              "ms, uploadBandwidth: " +
-              uploadBandwidth +
+              "ms, uploadGoodput: " +
+              uploadGoodput +
               "Mbit/s"
           );
           if (results.status === "success") {
-            accumulatedResults.push(uploadBandwidth);
+            accumulatedResults.push(uploadGoodput);
           }
         } else {
           context.log.error("Unsupported test type:" + testType);
@@ -234,11 +233,11 @@ module.exports = logTest(
 
     if (testType === "download") {
       commands.measure.addObject({
-        custom_data: { "download-bandwidth": accumulatedResults },
+        custom_data: { "download-goodput": accumulatedResults },
       });
     } else if (testType === "upload") {
       commands.measure.addObject({
-        custom_data: { "upload-bandwidth": accumulatedResults },
+        custom_data: { "upload-goodput": accumulatedResults },
       });
     }
   }

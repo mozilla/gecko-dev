@@ -107,9 +107,9 @@ const html = `
           const actualEndTime = performance.now();
           const totalTimeSeconds = (actualEndTime - startTime) / 1000;
 
-          // Calculate throughput in Mbps
-          const throughputMbps = (totalBytesUploaded * 8) / (totalTimeSeconds * 1_000_000);
-          set_status("upload_status", "success bandwidth:" + throughputMbps);
+          // Calculate goodput in Mbps
+          const goodputMbps = (totalBytesUploaded * 8) / (totalTimeSeconds * 1_000_000);
+          set_status("upload_status", "success goodput:" + goodputMbps);
         } catch (error) {
           set_status("upload_status", "error:" + error);
         }
