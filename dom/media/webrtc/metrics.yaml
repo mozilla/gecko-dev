@@ -316,15 +316,18 @@ codec.stats:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1858213
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881396
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912181
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946278
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1858213
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881396
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912181
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946278
     data_sensitivity:
       - technical
     notification_emails:
+      - dbaker@mozilla.com
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 138
+    expires: never
     labels:
       - negotiated
       - not_negotiated
@@ -337,15 +340,18 @@ codec.stats:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1858213
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881396
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912181
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946278
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1858213
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881396
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912181
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946278
     data_sensitivity:
       - technical
     notification_emails:
+      - dbaker@mozilla.com
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 138
+    expires: never
 
   video_preferred_codec:
     type: labeled_counter
@@ -355,15 +361,18 @@ codec.stats:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1858213
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881396
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912181
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946278
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1858213
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881396
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912181
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946278
     data_sensitivity:
       - technical
     notification_emails:
+      - dbaker@mozilla.com
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 138
+    expires: never
 
   audio_preferred_codec:
     type: labeled_counter
@@ -373,15 +382,18 @@ codec.stats:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1858213
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881396
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912181
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946278
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1858213
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881396
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912181
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1946278
     data_sensitivity:
       - technical
     notification_emails:
+      - dbaker@mozilla.com
       - webrtc-telemetry-alerts@mozilla.com
-    expires: 138
+    expires: never
 
 webrtcdtls:
   protocol_version:
