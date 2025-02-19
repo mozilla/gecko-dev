@@ -35,6 +35,17 @@ add_task(async function () {
   await testCopy(hud, random, random.toString());
   await testCopy(hud, JSON.stringify(string), string);
   await testCopy(hud, obj.toSource(), JSON.stringify(obj, null, "  "));
+  await testCopy(
+    hud,
+    `{ typedArray: new Float32Array([1, 2, 3]) }`,
+    `{
+  "typedArray": {
+    "0": 1,
+    "1": 2,
+    "2": 3
+  }
+}`
+  );
 
   const outerHTML = await SpecialPowers.spawn(
     gBrowser.selectedBrowser,

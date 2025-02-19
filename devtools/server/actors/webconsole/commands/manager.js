@@ -802,6 +802,11 @@ WebConsoleCommandsManager.register({
       } else if (typeof value == "string") {
         payload = value;
       } else {
+        // Need to waive Xrays so we can iterate accessor properties.
+        // If Cu is not defined, we are running on a worker thread, where xrays don't exist.
+        if (value && Cu) {
+          value = Cu.waiveXrays(value);
+        }
         payload = JSON.stringify(value, null, "  ");
       }
     } catch (ex) {
