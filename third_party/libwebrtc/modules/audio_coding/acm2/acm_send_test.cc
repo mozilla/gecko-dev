@@ -145,7 +145,7 @@ std::unique_ptr<Packet> AcmSendTestOldApi::CreatePacket() {
   packet_memory[0] = 0x80;
   packet_memory[1] = static_cast<uint8_t>(payload_type_);
   packet_memory[2] = (sequence_number_ >> 8) & 0xFF;
-  packet_memory[3] = (sequence_number_)&0xFF;
+  packet_memory[3] = (sequence_number_) & 0xFF;
   packet_memory[4] = (timestamp_ >> 24) & 0xFF;
   packet_memory[5] = (timestamp_ >> 16) & 0xFF;
   packet_memory[6] = (timestamp_ >> 8) & 0xFF;

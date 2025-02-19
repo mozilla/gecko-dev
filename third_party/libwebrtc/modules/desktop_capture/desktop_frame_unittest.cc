@@ -234,7 +234,6 @@ TEST(DesktopFrameTest, CopyIntersectingPixelsFullyContainedRectsScaled) {
   RunTests(tests, arraysize(tests));
 }
 
-
 TEST(DesktopFrameTest, CopyIntersectingPixelsPartiallyContainedRects) {
   // clang-format off
   const TestData tests[] = {
@@ -298,7 +297,6 @@ TEST(DesktopFrameTest, CopyIntersectingPixelsPartiallyContainedRectsScaled) {
 
   RunTests(tests, arraysize(tests));
 }
-
 
 TEST(DesktopFrameTest, CopyIntersectingPixelsUncontainedRects) {
   // clang-format off

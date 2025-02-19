@@ -94,9 +94,8 @@ TEST(VideoRtpDepacketizerH264Test, SingleNaluSpsWithResolution) {
 }
 
 TEST(VideoRtpDepacketizerH264Test, StapAKey) {
-  const NaluInfo kExpectedNalus[] = { {H264::kSps, 0, -1},
-                                      {H264::kPps, 1, 2},
-                                      {H264::kIdr, -1, 0} };
+  const NaluInfo kExpectedNalus[] = {
+      {H264::kSps, 0, -1}, {H264::kPps, 1, 2}, {H264::kIdr, -1, 0}};
   // clang-format off: split example data on NAL unit boundaries.
   const uint8_t kPayload[] = {
       H264::kStapA,  // F=0, NRI=0, Type=24.

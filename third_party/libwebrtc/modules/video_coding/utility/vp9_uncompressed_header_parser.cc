@@ -254,8 +254,7 @@ std::string Vp9UncompressedHeader::ToString() const {
   char buf[1024];
   rtc::SimpleStringBuilder oss(buf);
 
-  oss << "Vp9UncompressedHeader { "
-      << "profile = " << profile;
+  oss << "Vp9UncompressedHeader { " << "profile = " << profile;
 
   if (show_existing_frame) {
     oss << ", show_existing_frame = " << *show_existing_frame << " }";

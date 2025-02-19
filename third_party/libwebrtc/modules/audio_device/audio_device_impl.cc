@@ -26,6 +26,7 @@
 #endif
 #elif defined(WEBRTC_ANDROID)
 #include <stdlib.h>
+
 #include "sdk/android/native_api/audio_device_module/audio_device_android.h"
 #elif defined(WEBRTC_LINUX)
 #if defined(WEBRTC_ENABLE_LINUX_ALSA)
@@ -82,7 +83,8 @@ rtc::scoped_refptr<AudioDeviceModuleForTest> AudioDeviceModule::CreateForTest(
     return nullptr;
   } else if (audio_layer == AudioDeviceModule::kAndroidJavaAudio ||
              audio_layer == AudioDeviceModule::kAndroidOpenSLESAudio ||
-             audio_layer == AudioDeviceModule::kAndroidJavaInputAndOpenSLESOutputAudio ||
+             audio_layer ==
+                 AudioDeviceModule::kAndroidJavaInputAndOpenSLESOutputAudio ||
              audio_layer == kAndroidAAudioAudio ||
              audio_layer == kAndroidJavaInputAndAAudioOutputAudio) {
     RTC_LOG(LS_ERROR) << "Use the CreateAndroidAudioDeviceModule() "

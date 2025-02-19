@@ -148,8 +148,7 @@ int NackRequester::OnReceivedPacket(uint16_t seq_num) {
   return OnReceivedPacket(seq_num, false);
 }
 
-int NackRequester::OnReceivedPacket(uint16_t seq_num,
-                                    bool is_recovered) {
+int NackRequester::OnReceivedPacket(uint16_t seq_num, bool is_recovered) {
   RTC_DCHECK_RUN_ON(worker_thread_);
   // TODO(philipel): When the packet includes information whether it is
   //                 retransmitted or not, use that value instead. For

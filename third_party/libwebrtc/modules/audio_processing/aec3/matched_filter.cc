@@ -57,10 +57,9 @@ void UpdateAccumulatedError(
   }
 }
 
-size_t ComputePreEchoLag(
-    const rtc::ArrayView<const float> accumulated_error,
-    size_t lag,
-    size_t alignment_shift_winner) {
+size_t ComputePreEchoLag(const rtc::ArrayView<const float> accumulated_error,
+                         size_t lag,
+                         size_t alignment_shift_winner) {
   static constexpr float kPreEchoThreshold = 0.5f;
   RTC_DCHECK_GE(lag, alignment_shift_winner);
   size_t pre_echo_lag_estimate = lag - alignment_shift_winner;

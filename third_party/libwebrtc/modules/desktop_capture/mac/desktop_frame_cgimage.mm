@@ -30,7 +30,8 @@ std::unique_ptr<DesktopFrameCGImage> DesktopFrameCGImage::CreateForDisplay(
 }
 
 // static
-std::unique_ptr<DesktopFrameCGImage> DesktopFrameCGImage::CreateForWindow(CGWindowID window_id) {
+std::unique_ptr<DesktopFrameCGImage> DesktopFrameCGImage::CreateForWindow(
+    CGWindowID window_id) {
   rtc::ScopedCFTypeRef<CGImageRef> cg_image(
       CGWindowListCreateImage(CGRectNull,
                               kCGWindowListOptionIncludingWindow,
@@ -49,7 +50,8 @@ std::unique_ptr<DesktopFrameCGImage> DesktopFrameCGImage::CreateFromCGImage(
   // Verify that the image has 32-bit depth.
   int bits_per_pixel = CGImageGetBitsPerPixel(cg_image.get());
   if (bits_per_pixel / 8 != DesktopFrame::kBytesPerPixel) {
-    RTC_LOG(LS_ERROR) << "CGDisplayCreateImage() returned imaged with " << bits_per_pixel
+    RTC_LOG(LS_ERROR) << "CGDisplayCreateImage() returned imaged with "
+                      << bits_per_pixel
                       << " bits per pixel. Only 32-bit depth is supported.";
     return nullptr;
   }
@@ -58,16 +60,18 @@ std::unique_ptr<DesktopFrameCGImage> DesktopFrameCGImage::CreateFromCGImage(
   CGDataProviderRef cg_provider = CGImageGetDataProvider(cg_image.get());
   RTC_DCHECK(cg_provider);
 
-  // CGDataProviderCopyData returns a new data object containing a copy of the provider’s
-  // data.
+  // CGDataProviderCopyData returns a new data object containing a copy of the
+  // provider’s data.
   rtc::ScopedCFTypeRef<CFDataRef> cg_data(CGDataProviderCopyData(cg_provider));
   RTC_DCHECK(cg_data);
 
-  // CFDataGetBytePtr returns a read-only pointer to the bytes of a CFData object.
+  // CFDataGetBytePtr returns a read-only pointer to the bytes of a CFData
+  // object.
   uint8_t* data = const_cast<uint8_t*>(CFDataGetBytePtr(cg_data.get()));
   RTC_DCHECK(data);
 
-  DesktopSize size(CGImageGetWidth(cg_image.get()), CGImageGetHeight(cg_image.get()));
+  DesktopSize size(CGImageGetWidth(cg_image.get()),
+                   CGImageGetHeight(cg_image.get()));
   int stride = CGImageGetBytesPerRow(cg_image.get());
 
   std::unique_ptr<DesktopFrameCGImage> frame(
@@ -75,17 +79,21 @@ std::unique_ptr<DesktopFrameCGImage> DesktopFrameCGImage::CreateFromCGImage(
 
   CGColorSpaceRef cg_color_space = CGImageGetColorSpace(cg_image.get());
   if (cg_color_space) {
-#if !defined(MAC_OS_X_VERSION_10_13) || MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_13
-    rtc::ScopedCFTypeRef<CFDataRef> cf_icc_profile(CGColorSpaceCopyICCProfile(cg_color_space));
+#if !defined(MAC_OS_X_VERSION_10_13) || \
+    MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_13
+    rtc::ScopedCFTypeRef<CFDataRef> cf_icc_profile(
+        CGColorSpaceCopyICCProfile(cg_color_space));
 #else
-    rtc::ScopedCFTypeRef<CFDataRef> cf_icc_profile(CGColorSpaceCopyICCData(cg_color_space));
+    rtc::ScopedCFTypeRef<CFDataRef> cf_icc_profile(
+        CGColorSpaceCopyICCData(cg_color_space));
 #endif
     if (cf_icc_profile) {
-      const uint8_t* data_as_byte =
-          reinterpret_cast<const uint8_t*>(CFDataGetBytePtr(cf_icc_profile.get()));
+      const uint8_t* data_as_byte = reinterpret_cast<const uint8_t*>(
+          CFDataGetBytePtr(cf_icc_profile.get()));
       const size_t data_size = CFDataGetLength(cf_icc_profile.get());
       if (data_as_byte && data_size > 0) {
-        frame->set_icc_profile(std::vector<uint8_t>(data_as_byte, data_as_byte + data_size));
+        frame->set_icc_profile(
+            std::vector<uint8_t>(data_as_byte, data_as_byte + data_size));
       }
     }
   }
@@ -93,12 +101,15 @@ std::unique_ptr<DesktopFrameCGImage> DesktopFrameCGImage::CreateFromCGImage(
   return frame;
 }
 
-DesktopFrameCGImage::DesktopFrameCGImage(DesktopSize size,
-                                         int stride,
-                                         uint8_t* data,
-                                         rtc::ScopedCFTypeRef<CGImageRef> cg_image,
-                                         rtc::ScopedCFTypeRef<CFDataRef> cg_data)
-    : DesktopFrame(size, stride, data, nullptr), cg_image_(cg_image), cg_data_(cg_data) {
+DesktopFrameCGImage::DesktopFrameCGImage(
+    DesktopSize size,
+    int stride,
+    uint8_t* data,
+    rtc::ScopedCFTypeRef<CGImageRef> cg_image,
+    rtc::ScopedCFTypeRef<CFDataRef> cg_data)
+    : DesktopFrame(size, stride, data, nullptr),
+      cg_image_(cg_image),
+      cg_data_(cg_data) {
   RTC_DCHECK(cg_image_);
   RTC_DCHECK(cg_data_);
 }

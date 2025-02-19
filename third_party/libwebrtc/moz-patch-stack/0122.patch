@@ -22,9 +22,9 @@ Differential Revision: https://phabricator.services.mozilla.com/D221941
 Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bc6215142feaab1a3f7820006129219504851bc8
 ---
  .../mac/desktop_frame_iosurface.h             |  9 +-
- .../mac/desktop_frame_iosurface.mm            | 52 ++++++++--
+ .../mac/desktop_frame_iosurface.mm            | 47 ++++++++--
  .../mac/screen_capturer_sck.mm                | 94 +++++++++++++++++--
- 3 files changed, 136 insertions(+), 19 deletions(-)
+ 3 files changed, 131 insertions(+), 19 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/desktop_frame_iosurface.h b/modules/desktop_capture/mac/desktop_frame_iosurface.h
 index 73da0f693c..ed90e40993 100644
@@ -54,10 +54,10 @@ index 73da0f693c..ed90e40993 100644
    const rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface_;
  };
 diff --git a/modules/desktop_capture/mac/desktop_frame_iosurface.mm b/modules/desktop_capture/mac/desktop_frame_iosurface.mm
-index b59b319db9..a9b06428d1 100644
+index 11f2e9eaa2..a9b06428d1 100644
 --- a/modules/desktop_capture/mac/desktop_frame_iosurface.mm
 +++ b/modules/desktop_capture/mac/desktop_frame_iosurface.mm
-@@ -17,13 +17,14 @@ namespace webrtc {
+@@ -17,7 +17,7 @@ namespace webrtc {
  
  // static
  std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
@@ -66,28 +66,12 @@ index b59b319db9..a9b06428d1 100644
    if (!io_surface) {
      return nullptr;
    }
- 
-   IOSurfaceIncrementUseCount(io_surface.get());
--  IOReturn status = IOSurfaceLock(io_surface.get(), kIOSurfaceLockReadOnly, nullptr);
-+  IOReturn status =
-+      IOSurfaceLock(io_surface.get(), kIOSurfaceLockReadOnly, nullptr);
-   if (status != kIOReturnSuccess) {
-     RTC_LOG(LS_ERROR) << "Failed to lock the IOSurface with status " << status;
-     IOSurfaceDecrementUseCount(io_surface.get());
-@@ -33,22 +34,53 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
-   // Verify that the image has 32-bit depth.
-   int bytes_per_pixel = IOSurfaceGetBytesPerElement(io_surface.get());
-   if (bytes_per_pixel != DesktopFrame::kBytesPerPixel) {
--    RTC_LOG(LS_ERROR) << "CGDisplayStream handler returned IOSurface with " << (8 * bytes_per_pixel)
-+    RTC_LOG(LS_ERROR) << "CGDisplayStream handler returned IOSurface with "
-+                      << (8 * bytes_per_pixel)
-                       << " bits per pixel. Only 32-bit depth is supported.";
-     IOSurfaceUnlock(io_surface.get(), kIOSurfaceLockReadOnly, nullptr);
-     IOSurfaceDecrementUseCount(io_surface.get());
+@@ -42,18 +42,45 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
      return nullptr;
    }
  
--  return std::unique_ptr<DesktopFrameIOSurface>(new DesktopFrameIOSurface(io_surface));
+-  return std::unique_ptr<DesktopFrameIOSurface>(
+-      new DesktopFrameIOSurface(io_surface));
 +  size_t surfaceWidth = IOSurfaceGetWidth(io_surface.get());
 +  size_t surfaceHeight = IOSurfaceGetHeight(io_surface.get());
 +  uint8_t* data =
@@ -120,13 +104,14 @@ index b59b319db9..a9b06428d1 100644
 +      io_surface, data + offset, width, height, stride));
  }
  
--DesktopFrameIOSurface::DesktopFrameIOSurface(rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface)
+ DesktopFrameIOSurface::DesktopFrameIOSurface(
+-    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface)
 -    : DesktopFrame(
--          DesktopSize(IOSurfaceGetWidth(io_surface.get()), IOSurfaceGetHeight(io_surface.get())),
+-          DesktopSize(IOSurfaceGetWidth(io_surface.get()),
+-                      IOSurfaceGetHeight(io_surface.get())),
 -          IOSurfaceGetBytesPerRow(io_surface.get()),
 -          static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get())),
 -          nullptr),
-+DesktopFrameIOSurface::DesktopFrameIOSurface(
 +    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface,
 +    uint8_t* data,
 +    int32_t width,
