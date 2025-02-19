@@ -86,7 +86,6 @@ extern crate l10nregistry_ffi;
 extern crate localization_ffi;
 
 extern crate ipcclientcerts;
-extern crate trust_anchors;
 
 #[cfg(any(
     target_os = "macos",

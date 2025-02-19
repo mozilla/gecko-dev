@@ -317,7 +317,7 @@ macro_rules! emit_build_error {
 
 fn main() -> std::io::Result<()> {
     let testlib_certdata =
-        TOPSRCDIR.join("security/manager/ssl/tests/unit/test_trust_anchors/certdata.txt");
+        TOPSRCDIR.join("security/manager/ssl/tests/unit/test_builtins/certdata.txt");
     let mozilla_certdata = TOPSRCDIR.join("security/nss/lib/ckfw/builtins/certdata.txt");
     let nssckbi_header = TOPSRCDIR.join("security/nss/lib/ckfw/builtins/nssckbi.h");
     println!("cargo:rerun-if-changed={}", testlib_certdata.display());
