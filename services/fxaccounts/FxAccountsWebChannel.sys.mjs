@@ -45,10 +45,18 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FxAccountsStorageManagerCanStoreField:
     "resource://gre/modules/FxAccountsStorage.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-  SelectableProfileService:
-    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
   Weave: "resource://services-sync/main.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
+});
+ChromeUtils.defineLazyGetter(lazy, "SelectableProfileService", () => {
+  try {
+    // Only available in Firefox.
+    return ChromeUtils.importESModule(
+      "resource:///modules/profiles/SelectableProfileService.sys.mjs"
+    ).SelectableProfileService;
+  } catch (ex) {
+    return null;
+  }
 });
 ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {
   return ChromeUtils.importESModule(
@@ -287,7 +295,7 @@ FxAccountsWebChannel.prototype = {
         {
           let response = { command, messageId: message.messageId };
           // If browser profiles are not enabled, then we use the old merge sync dialog
-          if (!lazy.SelectableProfileService.isEnabled) {
+          if (!lazy.SelectableProfileService?.isEnabled) {
             response.data = { ok: this._helpers.shouldAllowRelink(data.email) };
             this._channel.send(response, sendingContext);
             break;
@@ -1218,7 +1226,7 @@ FxAccountsWebChannelHelpers.prototype = {
   ) {
     let variant;
 
-    if (!lazy.SelectableProfileService.isEnabled) {
+    if (!lazy.SelectableProfileService?.isEnabled) {
       // Old merge dialog
       variant = "old-merge";
     } else if (isAccountLoggedIntoAnotherProfile) {
