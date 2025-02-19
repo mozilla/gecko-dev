@@ -208,10 +208,37 @@ class nsTextFragment final {
    * Return the character in the text-fragment at the given
    * index. This always returns a char16_t.
    */
-  char16_t CharAt(uint32_t aIndex) const {
+  [[nodiscard]] char16_t CharAt(uint32_t aIndex) const {
     MOZ_ASSERT(aIndex < mState.mLength, "bad index");
     return mState.mIs2b ? Get2b()[aIndex]
                         : static_cast<unsigned char>(m1b[aIndex]);
+  }
+  [[nodiscard]] char16_t SafeCharAt(uint32_t aIndex) const {
+    return MOZ_LIKELY(mState.mLength < aIndex) ? CharAt(aIndex)
+                                               : static_cast<char16_t>(0);
+  }
+
+  /**
+   * Return the first char, but if you're not sure whether this is empty, you
+   * should use GetFirstChar() instead.
+   */
+  [[nodiscard]] char16_t FirstChar() const {
+    MOZ_ASSERT(mState.mLength);
+    return CharAt(0u);
+  }
+  [[nodiscard]] char16_t SafeFirstChar() const {
+    return MOZ_LIKELY(mState.mLength) ? FirstChar() : static_cast<char16_t>(0);
+  }
+  /**
+   * Return the last char, but if you're not sure whether this is empty, you
+   * should use GetLastChar() instead.
+   */
+  [[nodiscard]] char16_t LastChar() const {
+    MOZ_ASSERT(mState.mLength);
+    return CharAt(mState.mLength - 1);
+  }
+  [[nodiscard]] char16_t SafeLastChar() const {
+    return MOZ_LIKELY(mState.mLength) ? LastChar() : static_cast<char16_t>(0);
   }
 
   /**
@@ -286,6 +313,8 @@ class nsTextFragment final {
    */
   [[nodiscard]] bool TextEquals(const nsTextFragment& aOther) const;
 
+  // FYI: FragmentBits::mLength is only 29 bits.  Therefore, UINT32_MAX won't
+  // be valid offset in the data.
   constexpr static uint32_t kNotFound = UINT32_MAX;
 
   [[nodiscard]] uint32_t FindChar(char aChar, uint32_t aOffset = 0) const {
@@ -335,6 +364,45 @@ class nsTextFragment final {
     return kNotFound;
   }
 
+  /**
+   * Return first different char offset in this fragment after
+   * aOffsetInFragment. For example, if we have "abcdefg", aStr is "bXYe" and
+   * aOffsetInFragment is 1, scan from "b" and return the offset of "c",
+   * i.e., 2.
+   *
+   * Note that this is currently not usable to compare us with longer string.
+   */
+  [[nodiscard]] uint32_t FindFirstDifferentCharOffset(
+      const nsAString& aStr, uint32_t aOffsetInFragment = 0u) const {
+    return FindFirstDifferentCharOffsetInternal(aStr, aOffsetInFragment);
+  }
+  [[nodiscard]] uint32_t FindFirstDifferentCharOffset(
+      const nsACString& aStr, uint32_t aOffsetInFragment = 0u) const {
+    return FindFirstDifferentCharOffsetInternal(aStr, aOffsetInFragment);
+  }
+
+  /**
+   * Return first different char offset in this fragment before
+   * aOffsetInFragment (from backward scanning point of view).
+   * For example, if we have "abcdef", aStr is "bXYe" and aOffsetInFragment is
+   * 5, scan from "e" and return the offset of "d" (vs. "Y") in this fragment,
+   * i.e., 3.  In other words, aOffsetInFragment should be the next offset of
+   * you start to scan. I.e., at least 1 and at most the length of this.  So,
+   * if you want to compare with start of this, you should specify
+   * aStr.Length(), and if you want to compare with end of this, you should
+   * specify GetLength() result of this (or just omit it).
+   *
+   * Note that this is currently not usable to compare us with longer string.
+   */
+  [[nodiscard]] uint32_t RFindFirstDifferentCharOffset(
+      const nsAString& aStr, uint32_t aOffsetInFragment = UINT32_MAX) const {
+    return RFindFirstDifferentCharOffsetInternal(aStr, aOffsetInFragment);
+  }
+  [[nodiscard]] uint32_t RFindFirstDifferentCharOffset(
+      const nsACString& aStr, uint32_t aOffsetInFragment = UINT32_MAX) const {
+    return RFindFirstDifferentCharOffsetInternal(aStr, aOffsetInFragment);
+  }
+
  private:
   void ReleaseText();
 
@@ -353,6 +421,97 @@ class nsTextFragment final {
     uint32_t mAllBits;
     FragmentBits mState;
   };
+
+  /**
+   * See the explanation of FindFirstDifferentCharOffset() for the detail.
+   *
+   * This should not be directly exposed as a public method because it will
+   * cause instantiating the method with various derived classes of nsAString
+   * and nsACString.
+   */
+  template <typename nsAXString>
+  [[nodiscard]] uint32_t FindFirstDifferentCharOffsetInternal(
+      const nsAXString& aStr, uint32_t aOffsetInFragment) const {
+    static_assert(std::is_same_v<nsAXString, nsAString> ||
+                  std::is_same_v<nsAXString, nsACString>);
+    MOZ_ASSERT(!aStr.IsEmpty());
+    const uint32_t length = GetLength();
+    MOZ_ASSERT(aOffsetInFragment <= length);
+    if (NS_WARN_IF(aStr.IsEmpty()) || NS_WARN_IF(length <= aOffsetInFragment) ||
+        NS_WARN_IF(length - aOffsetInFragment < aStr.Length())) {
+      return kNotFound;
+    }
+    if (Is2b()) {
+      const auto* ch = aStr.BeginReading();
+      // At the first char of the scan range.
+      const char16_t* ourCh = Get2b() + aOffsetInFragment;
+      const auto* const end = aStr.EndReading();
+      const char16_t* const ourEnd = Get2b() + length;
+      for (; ch != end && ourCh != ourEnd; ch++, ourCh++) {
+        if (*ch != *ourCh) {
+          return ourCh - Get2b();
+        }
+      }
+      return kNotFound;
+    }
+    const auto* ch = aStr.BeginReading();
+    // At the first char of the scan range.
+    const char* ourCh = Get1b() + aOffsetInFragment;
+    const auto* const end = aStr.EndReading();
+    const char* ourEnd = Get1b() + length;
+    for (; ch != end && ourCh != ourEnd; ch++, ourCh++) {
+      if (*ch != *ourCh) {
+        return ourCh - Get1b();
+      }
+    }
+    return kNotFound;
+  }
+
+  /**
+   * See the explanation of RFindFirstDifferentCharOffset() for the detail.
+   *
+   * This should not be directly exposed as a public method because it will
+   * cause instantiating the method with various derived classes of nsAString
+   * and nsACString.
+   */
+  template <typename nsAXString>
+  [[nodiscard]] uint32_t RFindFirstDifferentCharOffsetInternal(
+      const nsAXString& aStr, uint32_t aOffsetInFragment) const {
+    static_assert(std::is_same_v<nsAXString, nsAString> ||
+                  std::is_same_v<nsAXString, nsACString>);
+    MOZ_ASSERT(!aStr.IsEmpty());
+    const uint32_t length = GetLength();
+    MOZ_ASSERT(aOffsetInFragment <= length);
+    aOffsetInFragment = std::min(length, aOffsetInFragment);
+    if (NS_WARN_IF(aStr.IsEmpty()) || NS_WARN_IF(!aOffsetInFragment) ||
+        NS_WARN_IF(aOffsetInFragment < aStr.Length())) {
+      return kNotFound;
+    }
+    if (Is2b()) {
+      const auto* ch = aStr.EndReading() - 1;
+      // At the last char of the scan range
+      const char16_t* ourCh = Get2b() + aOffsetInFragment - 1;
+      const auto* const end = aStr.BeginReading() - 1;
+      const char16_t* const ourEnd = Get2b() - 1;
+      for (; ch != end && ourCh != ourEnd; ch--, ourCh--) {
+        if (*ch != *ourCh) {
+          return ourCh - Get2b();
+        }
+      }
+      return kNotFound;
+    }
+    const auto* ch = aStr.EndReading() - 1;
+    // At the last char of the scan range
+    const char* ourCh = Get1b() + aOffsetInFragment - 1;
+    const auto* const end = aStr.BeginReading() - 1;
+    const char* const ourEnd = Get1b() - 1;
+    for (; ch != end && ourCh != ourEnd; ch--, ourCh--) {
+      if (*ch != *ourCh) {
+        return ourCh - Get1b();
+      }
+    }
+    return kNotFound;
+  }
 };
 
 #endif /* nsTextFragment_h___ */
