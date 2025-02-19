@@ -484,8 +484,8 @@ export var SearchUtils = {
    *
    * @param {string|nsIURI} uri
    *  The URI to the icon.
-   * @returns {Promise<[number[], string]>}
-   *   The data as a byte array and the mime type as a string.
+   * @returns {Promise<[Uint8Array, string]>}
+   *   An array containing the data and the mime type.
    */
   async fetchIcon(uri) {
     return new Promise((resolve, reject) => {
@@ -497,7 +497,7 @@ export var SearchUtils = {
           if (!byteArray) {
             reject(new Error(""));
           }
-          resolve([byteArray, contentType]);
+          resolve([Uint8Array.from(byteArray), contentType]);
         }
       );
       chan.notificationCallbacks = listener;
@@ -506,24 +506,31 @@ export var SearchUtils = {
   },
 
   /**
-   * Decodes the image to extract the size. Returns null
+   * Decodes the image to extract the size. Returns `fallbackSize`
    * if the image is not square or there is a decoding error.
    *
-   * @param {string} byteString the raw image data
+   * @param {Uint8Array} byteArray the raw image data
    * @param {string} contentType the contentType
+   * @param {?number} fallbackSize fallback if size cannot be determined
    * @returns {?number} the size of the image
    */
-  decodeSize(byteString, contentType) {
+  decodeSize(byteArray, contentType, fallbackSize = null) {
     if (contentType == "image/svg+xml") {
+      let svgString;
+      try {
+        svgString = new TextDecoder("UTF-8", { fatal: true }).decode(byteArray);
+      } catch {
+        return fallbackSize;
+      }
       let parser = new DOMParser();
-      let doc = parser.parseFromString(byteString, contentType);
+      let doc = parser.parseFromString(svgString, contentType);
       if (doc.querySelector("parsererror")) {
-        return null;
+        return fallbackSize;
       }
       let width = doc.documentElement.width.baseVal.value;
       let height = doc.documentElement.height.baseVal.value;
       if (width != height) {
-        return null;
+        return fallbackSize;
       }
       return width;
     }
@@ -531,16 +538,15 @@ export var SearchUtils = {
     let imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
     let imgDecoded;
     try {
-      imgDecoded = imageTools.decodeImageFromBuffer(
-        byteString,
-        byteString.length,
+      imgDecoded = imageTools.decodeImageFromArrayBuffer(
+        byteArray.buffer,
         contentType
       );
     } catch {
-      return null;
+      return fallbackSize;
     }
     if (imgDecoded.width != imgDecoded.height) {
-      return null;
+      return fallbackSize;
     }
 
     return imgDecoded.width;
@@ -549,15 +555,15 @@ export var SearchUtils = {
   /**
    * Tries to rescale an icon to a given size.
    *
-   * @param {Array} byteArray
+   * @param {Uint8Array} byteArray
    *   Byte array containing the icon payload.
    * @param {string} contentType
    *   Mime type of the payload.
    * @param {number} [size]
    *   Desired icon size.
-   * @returns {Array}
-   *   An array of two elements - an array of integers and a string for the content
-   *   type.
+   * @returns {[Uint8Array, string]}
+   *   An array of two elements - an array containing the rescaled icon
+   *   and a string for the content type.
    * @throws if the icon cannot be rescaled or the rescaled icon is too big.
    */
   rescaleIcon(byteArray, contentType, size = 32) {
@@ -566,9 +572,8 @@ export var SearchUtils = {
     }
 
     let imgTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
-    let arrayBuffer = new Int8Array(byteArray).buffer;
     let container = imgTools.decodeImageFromArrayBuffer(
-      arrayBuffer,
+      byteArray.buffer,
       contentType
     );
     let stream = imgTools.encodeScaledImage(container, "image/png", size, size);
@@ -576,8 +581,11 @@ export var SearchUtils = {
     if (streamSize > SearchUtils.MAX_ICON_SIZE) {
       throw new Error("Icon is too big");
     }
+
     let bis = new BinaryInputStream(stream);
-    return [bis.readByteArray(streamSize), "image/png"];
+    let newByteArray = new Uint8Array(streamSize);
+    bis.readArrayBuffer(streamSize, newByteArray.buffer);
+    return [newByteArray, "image/png"];
   },
 };
 

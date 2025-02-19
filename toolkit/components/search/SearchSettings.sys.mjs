@@ -845,8 +845,8 @@ export class SearchSettings {
                 byteArray,
                 contentType
               );
-              let byteString = String.fromCharCode(...byteArray);
-              let url = "data:" + contentType + ";base64," + btoa(byteString);
+              let url =
+                "data:" + contentType + ";base64," + byteArray.toBase64();
 
               engine._iconMapObj ||= {};
               engine._iconMapObj[32] = url;
@@ -858,15 +858,7 @@ export class SearchSettings {
             continue;
           }
 
-          let byteString = String.fromCharCode(...byteArray);
-          let size = lazy.SearchUtils.decodeSize(byteString, contentType);
-          if (!size) {
-            lazy.logConsole.warn(
-              `_iconURL migration: failed to decode size of icon for search engine ${engine._name}.`
-            );
-            size = 16;
-          }
-
+          let size = lazy.SearchUtils.decodeSize(byteArray, contentType, 16);
           engine._iconMapObj ||= {};
           engine._iconMapObj[size] = iconURL;
         }

@@ -67,29 +67,34 @@ add_task(async function test_icon_types() {
 });
 
 add_task(async function test_multiple_icons_in_file() {
+  const ico16 = "data:image/x-icon;base64,aWNvMTY=";
+  const ico32 = "data:image/x-icon;base64,aWNvMzI=";
+  const ico256 = "data:image/png;base64,aWNvMjU2";
   let engine = await SearchTestUtils.installOpenSearchEngine({
     url: `${gHttpURL}/opensearch/images.xml`,
   });
 
-  Assert.ok(
-    (await engine.getIconURL()).includes("ico16"),
-    "Default should be 16."
+  await TestUtils.waitForCondition(
+    () => Object.keys(engine.wrappedJSObject._iconMapObj).length == 3,
+    "Not all added todo"
   );
+
+  Assert.equal(await engine.getIconURL(), ico16, "Default should be 16.");
   info("Available dimensions should return the exact icon.");
-  Assert.ok((await engine.getIconURL(16)).includes("ico16"));
-  Assert.ok((await engine.getIconURL(32)).includes("ico32"));
-  Assert.ok((await engine.getIconURL(256)).includes("ico256"));
+  Assert.equal(await engine.getIconURL(16), ico16);
+  Assert.equal(await engine.getIconURL(32), ico32);
+  Assert.equal(await engine.getIconURL(256), ico256);
 
   info("Other dimensions should return the closest icon.");
-  Assert.ok((await engine.getIconURL(257)).includes("ico256"));
-  Assert.ok((await engine.getIconURL(255)).includes("ico256"));
-  Assert.ok((await engine.getIconURL(33)).includes("ico32"));
-  Assert.ok((await engine.getIconURL(31)).includes("ico32"));
-  Assert.ok((await engine.getIconURL(17)).includes("ico16"));
-  Assert.ok((await engine.getIconURL(15)).includes("ico16"));
+  Assert.equal(await engine.getIconURL(257), ico256);
+  Assert.equal(await engine.getIconURL(255), ico256);
+  Assert.equal(await engine.getIconURL(33), ico32);
+  Assert.equal(await engine.getIconURL(31), ico32);
+  Assert.equal(await engine.getIconURL(17), ico16);
+  Assert.equal(await engine.getIconURL(15), ico16);
 
-  Assert.ok((await engine.getIconURL(77)).includes("ico256"));
-  Assert.ok((await engine.getIconURL(76)).includes("ico32"));
+  Assert.equal(await engine.getIconURL(77), ico256);
+  Assert.equal(await engine.getIconURL(76), ico32);
 });
 
 add_task(async function test_icon_not_in_opensearch_file_invalid_svg() {

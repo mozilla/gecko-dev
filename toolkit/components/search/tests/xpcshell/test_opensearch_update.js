@@ -52,7 +52,7 @@ add_task(async function test_installEngine_with_updates_enabled() {
     name: "original engine",
     method: "GET",
     updateFile: "opensearch/simple.xml",
-    imageURL: "data:image/png;base64,abc", // engineMaker sets to te resolution to 16x16.
+    imageURL: "data:image/png;base64,Zm9v", // engineMaker sets to te resolution to 16x16.
   };
 
   Services.prefs.setBoolPref(SearchUtils.BROWSER_SEARCH_PREF + "update", true);
@@ -62,9 +62,14 @@ add_task(async function test_installEngine_with_updates_enabled() {
     "Should not have registered the update timer already"
   );
 
+  let promiseIconChanged = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.ICON_CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
   let engine = await SearchTestUtils.installOpenSearchEngine({
     url: `${gHttpURL}/sjs/engineMaker.sjs?${JSON.stringify(engineData)}`,
   });
+  await promiseIconChanged;
 
   Assert.ok(
     "search-engine-update-timer" in timerManager.wrappedJSObject._timers,
@@ -85,7 +90,7 @@ add_task(async function test_installEngine_with_updates_enabled() {
 
   Assert.equal(
     await engine.getIconURL(16),
-    "data:image/png;base64,abc",
+    "data:image/png;base64,Zm9v",
     "Has the original icon."
   );
 });

@@ -548,7 +548,6 @@ export class SearchEngine {
     );
     // Only accept remote icons from http[s]
     switch (uri.scheme) {
-      case "data":
       case "moz-extension": {
         if (!size) {
           let byteArray, contentType;
@@ -560,21 +559,14 @@ export class SearchEngine {
             );
             return;
           }
-
-          let byteString = String.fromCharCode(...byteArray);
-          size = lazy.SearchUtils.decodeSize(byteString, contentType);
-          if (!size) {
-            lazy.logConsole.warn(
-              `Failed to decode size of icon for search engine ${this.name}.`,
-              "Assuming 16x16."
-            );
-            size = 16;
-          }
+          size = lazy.SearchUtils.decodeSize(byteArray, contentType, 16);
         }
 
         this._addIconToMap(iconURL, size, override);
         break;
       }
+      // We also fetch data URLs to ensure the size doesn't exceed MAX_ICON_SIZE.
+      case "data":
       case "http":
       case "https": {
         let byteArray, contentType;
@@ -594,8 +586,10 @@ export class SearchEngine {
             );
             [byteArray, contentType] = lazy.SearchUtils.rescaleIcon(
               byteArray,
-              contentType
+              contentType,
+              32
             );
+            size = 32;
           } catch (ex) {
             lazy.logConsole.error(
               `Unable to rescale  icon for search engine ${this.name}:`,
@@ -605,19 +599,11 @@ export class SearchEngine {
           }
         }
 
-        let byteString = String.fromCharCode(...byteArray);
         if (!size) {
-          size = lazy.SearchUtils.decodeSize(byteString, contentType);
-          if (!size) {
-            lazy.logConsole.warn(
-              `Failed to decode size of icon for search engine ${this.name}.`,
-              "Assuming 16x16."
-            );
-            size = 16;
-          }
+          size = lazy.SearchUtils.decodeSize(byteArray, contentType, 16);
         }
 
-        let dataURL = "data:" + contentType + ";base64," + btoa(byteString);
+        let dataURL = "data:" + contentType + ";base64," + byteArray.toBase64();
         this._addIconToMap(dataURL, size, override);
         break;
       }
