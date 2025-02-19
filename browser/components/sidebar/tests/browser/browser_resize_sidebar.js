@@ -11,6 +11,7 @@ add_setup(async () => {
       ["sidebar.verticalTabs", true],
     ],
   });
+  await flushTaskQueue();
   await SidebarController.initializeUIState({
     launcherExpanded: false,
     launcherVisible: true,
@@ -24,31 +25,20 @@ registerCleanupFunction(async () => {
 async function dragLauncher(deltaX, shouldExpand) {
   AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
 
-  // Let the launcher splitter stabilize before attempting a drag-and-drop.
-  await waitForRepaint();
-
   info(`Drag the launcher by ${deltaX} px.`);
-  const { sidebarMain, _launcherSplitter: splitter } = SidebarController;
+  const splitter = SidebarController._launcherSplitter;
+  await flushTaskQueue();
   EventUtils.synthesizeMouseAtCenter(splitter, { type: "mousedown" });
-  await mouseMoveInChunks(splitter, deltaX, 10);
+  await flushTaskQueue();
+  EventUtils.synthesizeMouse(splitter, deltaX, 0, { type: "mousemove" });
+  await flushTaskQueue();
   EventUtils.synthesizeMouse(splitter, 0, 0, { type: "mouseup" });
   await TestUtils.waitForCondition(
-    () => sidebarMain.expanded == shouldExpand,
+    () => SidebarController.sidebarMain.expanded == shouldExpand,
     `The sidebar is ${shouldExpand ? "expanded" : "collapsed"}.`
   );
 
   AccessibilityUtils.resetEnv();
-}
-
-async function mouseMoveInChunks(el, deltaX, numberOfChunks) {
-  for (let i = 0; i < numberOfChunks; i++) {
-    await new Promise(resolve => {
-      requestAnimationFrame(resolve);
-    });
-    EventUtils.synthesizeMouse(el, deltaX / numberOfChunks, 0, {
-      type: "mousemove",
-    });
-  }
 }
 
 function getLauncherWidth({ SidebarController } = window) {

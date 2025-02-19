@@ -540,9 +540,7 @@ var SidebarController = {
       delete state.command;
     }
     await this.promiseInitialized;
-    await this.waitUntilStable(); // Finish currently scheduled tasks.
     this._state.loadInitialState(state);
-    await this.waitUntilStable(); // Finish newly scheduled tasks.
     this.uiStateInitialized = true;
   },
 
@@ -1006,23 +1004,6 @@ var SidebarController = {
         resolve();
       }
     });
-  },
-
-  /**
-   * Wait for Lit updates and ongoing animations to complete.
-   *
-   * @returns {Promise}
-   */
-  async waitUntilStable() {
-    if (!this.sidebarRevampEnabled) {
-      // Legacy sidebar doesn't have animations, nothing to await.
-      return null;
-    }
-    const tasks = [
-      this.sidebarMain.updateComplete,
-      ...this._ongoingAnimations.map(animation => animation.finished),
-    ];
-    return Promise.allSettled(tasks);
   },
 
   async _animateSidebarMain() {

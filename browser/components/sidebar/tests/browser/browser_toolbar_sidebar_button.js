@@ -92,6 +92,7 @@ add_task(async function test_expanded_state_for_always_show() {
   const { SidebarController, document } = win;
   const { sidebarMain, toolbarButton } = SidebarController;
   await SidebarController.promiseInitialized;
+  await flushTaskQueue(win);
 
   const checkExpandedState = async (
     expanded,
@@ -127,14 +128,15 @@ add_task(async function test_expanded_state_for_always_show() {
         ? "Toolbar button expanded attribute is present."
         : "Toolbar button expanded attribute is absent."
     );
+    await flushTaskQueue(win);
   };
 
-  info("Check default expanded state.");
+  info("Set default expanded state.");
+  await SidebarController.initializeUIState({
+    launcherVisible: true,
+    launcherExpanded: false,
+  });
   await checkExpandedState(false);
-  ok(
-    BrowserTestUtils.isVisible(sidebarMain),
-    "The sidebar launcher is visible"
-  );
 
   info("Toggle expanded state via toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
@@ -144,6 +146,7 @@ add_task(async function test_expanded_state_for_always_show() {
 
   info("Don't collapse the sidebar by loading a tool.");
   await SidebarController.initializeUIState({ launcherExpanded: true });
+  await sidebarMain.updateComplete;
   const toolButton = sidebarMain.toolButtons[0];
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
   await checkExpandedState(true);
@@ -222,6 +225,7 @@ add_task(async function test_states_for_hide_sidebar() {
       () => !button.hasAttribute("expanded"),
       "Toolbar button expanded attribute is absent."
     );
+    await flushTaskQueue(win);
   };
 
   info("Check the launcher is initially visible");
@@ -293,6 +297,7 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
         ? "Toolbar button expanded attribute is present."
         : "Toolbar button expanded attribute is absent."
     );
+    await flushTaskQueue(win);
   };
 
   // Check initial sidebar state - it should be hidden
@@ -377,7 +382,10 @@ add_task(async function test_sidebar_button_runtime_pref_enabled() {
   });
   const sidebar = document.querySelector("sidebar-main");
   button.click();
-  Assert.ok(!sidebar.expanded, "Sidebar collapsed by click");
+  await TestUtils.waitForCondition(
+    () => !sidebar.expanded,
+    "Sidebar collapsed by click"
+  );
 });
 
 /**
