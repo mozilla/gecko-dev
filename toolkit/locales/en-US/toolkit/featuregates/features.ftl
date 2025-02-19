@@ -8,11 +8,6 @@ experimental-features-media-jxl =
     .label = Media: JPEG XL
 experimental-features-media-jxl-description = With this feature enabled, { -brand-short-name } supports the JPEG XL (JXL) format. This is an enhanced image file format that supports lossless transition from traditional JPEG files. See <a data-l10n-name="bugzilla">bug 1539075</a> for more details.
 
-# WebRTC global mute toggle controls
-experimental-features-webrtc-global-mute-toggles =
-    .label = WebRTC Global Mute Toggles
-experimental-features-webrtc-global-mute-toggles-description = Add controls to the WebRTC global sharing indicator that allow users to globally mute their microphone and camera feeds.
-
 # JS JIT Warp project
 experimental-features-js-warp =
     .label = JavaScript JIT: Warp

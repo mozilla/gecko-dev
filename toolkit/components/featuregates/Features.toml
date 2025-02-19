@@ -36,17 +36,6 @@ bug-numbers = [1673971]
 is-public-jexl = "true"
 default-value-jexl = "false"
 
-[webrtc-global-mute-toggles]
-group = "experimental-features-group-customize-browsing"
-title = "experimental-features-webrtc-global-mute-toggles"
-description = "experimental-features-webrtc-global-mute-toggles-description"
-restart-required = false
-preference = "privacy.webrtc.globalMuteToggles"
-type = "boolean"
-bug-numbers = [1643027]
-is-public-jexl = "nightly_build"
-default-value-jexl = "false"
-
 [media-jxl]
 group = "experimental-features-group-webpage-display"
 title = "experimental-features-media-jxl"
