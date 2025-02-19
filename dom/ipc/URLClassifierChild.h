@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/PURLClassifierChild.h"
 #include "mozilla/dom/PURLClassifierLocalChild.h"
+#include "mozilla/dom/PURLClassifierLocalByNameChild.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/net/UrlClassifierFeatureResult.h"
 #include "nsIURIClassifier.h"
@@ -83,6 +84,47 @@ class URLClassifierLocalChild : public PURLClassifierLocalChild {
  private:
   nsCOMPtr<nsIUrlClassifierFeatureCallback> mCallback;
   nsTArray<RefPtr<nsIUrlClassifierFeature>> mFeatures;
+};
+
+class URLClassifierLocalByNameChild : public PURLClassifierLocalByNameChild {
+ public:
+  void SetFeaturesAndCallback(const nsTArray<nsCString>& aFeatures,
+                              nsIUrlClassifierFeatureCallback* aCallback) {
+    mCallback = aCallback;
+    mFeatures = aFeatures.Clone();
+  }
+
+  mozilla::ipc::IPCResult Recv__delete__(
+      nsTArray<URLClassifierLocalResult>&& aResults) {
+    nsTArray<RefPtr<nsIUrlClassifierFeatureResult>> finalResults;
+
+    nsTArray<URLClassifierLocalResult> results = std::move(aResults);
+    for (URLClassifierLocalResult& result : results) {
+      for (nsCString feature : mFeatures) {
+        if (result.featureName() != feature) {
+          continue;
+        }
+
+        RefPtr<nsIURI> uri = result.uri();
+        if (NS_WARN_IF(!uri)) {
+          continue;
+        }
+
+        RefPtr<net::UrlClassifierFeatureResult> r =
+            new net::UrlClassifierFeatureResult(uri, nullptr,
+                                                result.matchingList());
+        finalResults.AppendElement(r);
+        break;
+      }
+    }
+
+    mCallback->OnClassifyComplete(finalResults);
+    return IPC_OK();
+  }
+
+ private:
+  nsCOMPtr<nsIUrlClassifierFeatureCallback> mCallback;
+  nsTArray<nsCString> mFeatures;
 };
 
 }  // namespace mozilla::dom

@@ -1299,35 +1299,22 @@ void StorageAccessAPIHelper::UpdateAllowAccessOnParentProcess(
 NS_IMPL_ISUPPORTS(StorageAccessGrantTelemetryClassification,
                   nsIUrlClassifierFeatureCallback);
 
-UniquePtr<nsTArray<RefPtr<nsIUrlClassifierFeature>>>
-    StorageAccessGrantTelemetryClassification::sUrlClassifierFeatures(nullptr);
+// static
+nsTArray<nsCString> StorageAccessGrantTelemetryClassification::
+    sUrlClassifierFeaturesForTelemetry;
 
 // static
-nsTArray<RefPtr<nsIUrlClassifierFeature>>*
-StorageAccessGrantTelemetryClassification::GetClassifierFeaturesForTrackers() {
-  // Populate feature list for URL classification as needed.
-  if (!sUrlClassifierFeatures) {
-    sUrlClassifierFeatures.reset(
-        new nsTArray<RefPtr<nsIUrlClassifierFeature>>());
-
-    // Construct the list of classifier features used for purging telemetry.
-    for (const nsCString& featureName : kUrlClassifierFeatures) {
-      nsCOMPtr<nsIUrlClassifierFeature> feature =
-          mozilla::net::UrlClassifierFeatureFactory::GetFeatureByName(
-              featureName);
-      if (NS_WARN_IF(!feature)) {
-        continue;
-      }
-      sUrlClassifierFeatures->AppendElement(feature);
-    }
-    MOZ_ASSERT(!sUrlClassifierFeatures->IsEmpty(),
-               "At least one URL classifier feature must be present");
-    RunOnShutdown([] {
-      sUrlClassifierFeatures->Clear();
-      sUrlClassifierFeatures.reset(nullptr);
+const nsTArray<nsCString>& StorageAccessGrantTelemetryClassification::
+    GetClassifierFeatureNamesForTrackers() {
+  if (sUrlClassifierFeaturesForTelemetry.IsEmpty()) {
+    sUrlClassifierFeaturesForTelemetry = nsTArray<nsCString>({
+        "emailtracking-protection"_ns,
+        "fingerprinting-annotation"_ns,
+        "socialtracking-annotation"_ns,
+        "tracking-annotation"_ns,
     });
   }
-  return sUrlClassifierFeatures.get();
+  return sUrlClassifierFeaturesForTelemetry;
 }
 
 StorageAccessGrantTelemetryClassification::
@@ -1344,17 +1331,15 @@ void StorageAccessGrantTelemetryClassification::MaybeReportTracker(
   NS_ENSURE_SUCCESS_VOID(rv);
   NS_ENSURE_TRUE_VOID(uriClassifier);
 
-  nsTArray<RefPtr<nsIUrlClassifierFeature>>* features =
+  const nsTArray<nsCString>& featureNames =
       StorageAccessGrantTelemetryClassification::
-          GetClassifierFeaturesForTrackers();
-  MOZ_ASSERT(features);
+          GetClassifierFeatureNamesForTrackers();
 
   RefPtr<StorageAccessGrantTelemetryClassification> classification =
       new StorageAccessGrantTelemetryClassification(aType);
 
-  rv = uriClassifier->AsyncClassifyLocalWithFeatures(
-      aURI, *features, nsIUrlClassifierFeature::blocklist, classification,
-      true);
+  rv = uriClassifier->AsyncClassifyLocalWithFeatureNames(
+      aURI, featureNames, nsIUrlClassifierFeature::blocklist, classification);
 }
 
 // nsIUrlClassifierFeatureCallback

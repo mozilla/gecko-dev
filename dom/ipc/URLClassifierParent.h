@@ -10,6 +10,7 @@
 #include "mozilla/dom/PContent.h"
 #include "mozilla/dom/PURLClassifierParent.h"
 #include "mozilla/dom/PURLClassifierLocalParent.h"
+#include "mozilla/dom/PURLClassifierLocalByNameParent.h"
 #include "nsIURIClassifier.h"
 #include "nsIUrlClassifierFeature.h"
 
@@ -75,6 +76,32 @@ class URLClassifierLocalParent : public nsIUrlClassifierFeatureCallback,
 
  private:
   ~URLClassifierLocalParent() = default;
+
+  // Override PURLClassifierLocalParent::ActorDestroy.
+  void ActorDestroy(ActorDestroyReason aWhy) override { mIPCOpen = false; }
+
+  bool mIPCOpen = true;
+};
+
+//////////////////////////////////////////////////////////////
+// URLClassifierLocalByNameParent
+
+class URLClassifierLocalByNameParent : public nsIUrlClassifierFeatureCallback,
+                                       public PURLClassifierLocalByNameParent {
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
+  mozilla::ipc::IPCResult StartClassify(
+      nsIURI* aURI, const nsTArray<IPCURLClassifierFeature>& aFeatureNames,
+      nsIUrlClassifierFeature::listType aListType);
+
+  // nsIUrlClassifierFeatureCallback.
+  NS_IMETHOD
+  OnClassifyComplete(
+      const nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>& aResults) override;
+
+ private:
+  ~URLClassifierLocalByNameParent() = default;
 
   // Override PURLClassifierLocalParent::ActorDestroy.
   void ActorDestroy(ActorDestroyReason aWhy) override { mIPCOpen = false; }
