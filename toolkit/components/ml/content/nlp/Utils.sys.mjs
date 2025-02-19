@@ -278,12 +278,17 @@ export class KeywordExtractor {
 
   /**
    * Generate the CtfIdf vector of important keywords and their scores
+   * and return the n most important keywords
    *
    * @param {string []} corpus
+   * @param {int} n max number of keywords to extract
+   * @returns {string[][]}
    */
-  fitTransform(corpus) {
+  fitTransform(corpus, n = MAX_WORDS_PER_DOCUMENT) {
     const transformedCorpus = this.cv.fitTransform(corpus);
     this.transformedCtfIdf = this.ctfIdf.fitTransform(transformedCorpus);
+    const { sortedScores, sortedIndices } = this.#getSortedScoresForKeywords();
+    return this.#getKeywordsPerCluster(sortedIndices, sortedScores, n);
   }
 
   /**
@@ -339,16 +344,5 @@ export class KeywordExtractor {
       keywordsForCluster.push(topicWords);
     }
     return keywordsForCluster;
-  }
-
-  /**
-   * Fetch the important keywords in the doc after having fitted to the corpus
-   *
-   * @param {int} n max number of keywords to extract
-   * @returns {string[][]}
-   */
-  getImportantKeywords(n = MAX_WORDS_PER_DOCUMENT) {
-    const { sortedScores, sortedIndices } = this.#getSortedScoresForKeywords();
-    return this.#getKeywordsPerCluster(sortedIndices, sortedScores, n);
   }
 }

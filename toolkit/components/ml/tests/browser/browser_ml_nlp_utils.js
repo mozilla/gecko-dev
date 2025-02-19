@@ -364,8 +364,7 @@ add_task(async function test_extract_keywords_single_document() {
   ];
   const keywordList = [["boston", "planning", "trip", "duck", "tours"]];
   const keywordExtractor = new KeywordExtractor();
-  keywordExtractor.fitTransform(corpus);
-  Assert.deepEqual(keywordExtractor.getImportantKeywords(5), keywordList);
+  Assert.deepEqual(keywordExtractor.fitTransform(corpus, 5), keywordList);
 });
 
 add_task(async function test_extract_keywords_unique_keywords_per_document() {
@@ -380,6 +379,6 @@ add_task(async function test_extract_keywords_unique_keywords_per_document() {
     ["dinner", "tonight", "brussel"],
   ];
   const keywordExtractor = new KeywordExtractor();
-  keywordExtractor.fitTransform(corpus);
-  Assert.deepEqual(keywordExtractor.getImportantKeywords(), keywordList);
+
+  Assert.deepEqual(keywordExtractor.fitTransform(corpus), keywordList);
 });
