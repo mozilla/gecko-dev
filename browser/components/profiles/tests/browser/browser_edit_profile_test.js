@@ -573,3 +573,101 @@ add_task(async function test_theme_picker_arrow_key_support() {
     }
   );
 });
+
+add_task(async function test_edit_profile_system_theme() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+  let profile = await setup();
+
+  let defaultTheme = await lazy.AddonManager.getAddonByID(
+    "default-theme@mozilla.org"
+  );
+  await defaultTheme.enable();
+
+  let computedStyles = window.getComputedStyle(window.document.documentElement);
+
+  let themeFg = computedStyles.getPropertyValue("--toolbar-color");
+  let themeBg = computedStyles.getPropertyValue("--toolbar-bgcolor");
+
+  // Set to light theme so we can select the system theme in the page
+  let lightTheme = await lazy.AddonManager.getAddonByID(
+    "firefox-compact-light@mozilla.org"
+  );
+  await lightTheme.enable();
+
+  let expectedThemeId = "default-theme@mozilla.org";
+
+  let themePromise = new Promise(r =>
+    window.addEventListener("windowlwthemeupdate", r, {
+      once: true,
+    })
+  );
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "about:editprofile",
+    },
+    async browser => {
+      await SpecialPowers.spawn(browser, [], async () => {
+        let editProfileCard =
+          content.document.querySelector("edit-profile-card").wrappedJSObject;
+
+        await ContentTaskUtils.waitForCondition(
+          () => editProfileCard.initialized,
+          "Waiting for edit-profile-card to be initialized"
+        );
+
+        await editProfileCard.updateComplete;
+
+        let defaultThemeCard = editProfileCard.themeCards[9];
+        EventUtils.synthesizeMouseAtCenter(defaultThemeCard, {}, content);
+
+        await ContentTaskUtils.waitForCondition(
+          () => defaultThemeCard.checked,
+          "Waiting for the new theme chip to be selected"
+        );
+
+        // Sometimes the theme takes a little longer to update.
+        await new Promise(resolve => content.setTimeout(resolve, 100));
+      });
+
+      let curProfile = await SelectableProfileService.getProfile(profile.id);
+
+      Assert.equal(
+        curProfile.theme.themeId,
+        expectedThemeId,
+        "Profile theme was updated in database"
+      );
+
+      Assert.equal(
+        SelectableProfileService.currentProfile.theme.themeId,
+        expectedThemeId,
+        "Current profile theme was updated"
+      );
+
+      await themePromise;
+
+      Assert.equal(
+        computedStyles.getPropertyValue("--toolbar-bgcolor"),
+        themeBg,
+        "Theme background color is expected: " + themeBg
+      );
+      Assert.equal(
+        computedStyles.getPropertyValue("--toolbar-color"),
+        themeFg,
+        "Theme  color is expected: " + themeFg
+      );
+    }
+  );
+
+  // Restore the light theme for later tests.
+  lightTheme = await lazy.AddonManager.getAddonByID(
+    "firefox-compact-light@mozilla.org"
+  );
+  await lightTheme.enable();
+});
