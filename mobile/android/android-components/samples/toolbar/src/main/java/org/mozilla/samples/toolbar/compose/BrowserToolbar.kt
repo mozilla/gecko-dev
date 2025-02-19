@@ -5,10 +5,13 @@
 package org.mozilla.samples.toolbar.compose
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import mozilla.components.compose.browser.toolbar.BrowserDisplayToolbar
 import mozilla.components.compose.browser.toolbar.BrowserEditToolbar
 import mozilla.components.compose.browser.toolbar.BrowserToolbarColors
 import mozilla.components.compose.browser.toolbar.BrowserToolbarDefaults
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.lib.state.ext.observeAsState
 
 /**
  * A customizable toolbar for browsers.
@@ -23,38 +26,37 @@ import mozilla.components.compose.browser.toolbar.BrowserToolbarDefaults
  * to commit the entered text.
  * @param onDisplayToolbarClick Invoked when the user clicks on the URL in "display" mode.
  * @param colors The color scheme the browser toolbar will use for the UI.
- * @param hint Text displayed in the toolbar when there's no URL to display (no tab or empty URL)
- * @param editMode Whether the toolbar is in "edit" or "display" mode.
- * @param editText The text the user is editing in "edit" mode.
  */
 @Suppress("MagicNumber")
 @Composable
 fun BrowserToolbar(
+    store: BrowserToolbarStore,
     onDisplayMenuClicked: () -> Unit,
     onDisplayToolbarClick: () -> Unit,
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
     colors: BrowserToolbarColors = BrowserToolbarDefaults.colors(),
     url: String = "",
-    hint: String = "",
-    editMode: Boolean = false,
-    editText: String? = null,
 ) {
-    val input = when (editText) {
+    val uiState by store.observeAsState(initialValue = store.state) { it }
+
+    val input = when (val editText = uiState.editState.editText) {
         null -> url
         else -> editText
     }
 
-    if (editMode) {
+    if (uiState.editMode) {
         BrowserEditToolbar(
             url = input,
             colors = colors.editToolbarColors,
+            editActionsStart = uiState.editState.editActionsStart,
+            editActionsEnd = uiState.editState.editActionsEnd,
             onUrlCommitted = { text -> onTextCommit(text) },
             onUrlEdit = { text -> onTextEdit(text) },
         )
     } else {
         BrowserDisplayToolbar(
-            url = url.takeIf { it.isNotEmpty() } ?: hint,
+            url = url.takeIf { it.isNotEmpty() } ?: uiState.displayState.hint,
             colors = colors.displayToolbarColors,
             onUrlClicked = {
                 onDisplayToolbarClick()

@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
+import mozilla.components.compose.browser.toolbar.ui.SearchSelector
 import mozilla.components.ui.icons.R
 
 /**
@@ -35,6 +37,9 @@ fun ActionContainer(
             when (action) {
                 is ActionButton -> {
                     ActionButton(action)
+                }
+                is CustomAction -> {
+                    action.content()
                 }
             }
         }
@@ -68,6 +73,15 @@ private fun ActionContainerPreview() {
                     contentDescription = null,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = {},
+                ),
+                CustomAction(
+                    content = {
+                        SearchSelector(
+                            painter = painterResource(R.drawable.mozac_ic_search_24),
+                            tint = AcornTheme.colors.iconPrimary,
+                            onClick = {},
+                        )
+                    },
                 ),
             ),
         )

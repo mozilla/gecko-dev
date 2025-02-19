@@ -29,6 +29,9 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.CustomAction
+import mozilla.components.compose.browser.toolbar.ui.SearchSelector
 import mozilla.components.ui.icons.R as iconsR
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
@@ -139,21 +142,24 @@ private fun BrowserEditToolbarPreview() {
             url = "http://www.mozilla.org",
             colors = BrowserToolbarDefaults.colors().editToolbarColors,
             editActionsStart = listOf(
-                Action.ActionButton(
-                    icon = iconsR.drawable.mozac_ic_search_24,
-                    contentDescription = null,
-                    tint = AcornTheme.colors.iconPrimary.toArgb(),
-                    onClick = {},
+                CustomAction(
+                    content = {
+                        SearchSelector(
+                            painter = painterResource(iconsR.drawable.mozac_ic_search_24),
+                            tint = AcornTheme.colors.iconPrimary,
+                            onClick = {},
+                        )
+                    },
                 ),
             ),
             editActionsEnd = listOf(
-                Action.ActionButton(
+                ActionButton(
                     icon = iconsR.drawable.mozac_ic_microphone_24,
                     contentDescription = null,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),
                     onClick = {},
                 ),
-                Action.ActionButton(
+                ActionButton(
                     icon = iconsR.drawable.mozac_ic_qr_code_24,
                     contentDescription = null,
                     tint = AcornTheme.colors.iconPrimary.toArgb(),

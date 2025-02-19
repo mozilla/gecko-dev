@@ -6,6 +6,7 @@ package mozilla.components.compose.browser.toolbar.concept
 
 import androidx.annotation.ColorInt
 import androidx.annotation.DrawableRes
+import androidx.compose.runtime.Composable
 
 /**
  * Actions that can be added to the toolbar.
@@ -25,5 +26,14 @@ sealed class Action {
         val contentDescription: String?,
         @ColorInt val tint: Int,
         val onClick: () -> Unit,
+    ) : Action()
+
+    /**
+     * A custom action that can be displayed with the provided Composable [content].
+     *
+     * @param content Composable content to display.
+     */
+    data class CustomAction(
+        val content: @Composable () -> Unit,
     ) : Action()
 }
