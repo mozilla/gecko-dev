@@ -369,11 +369,29 @@ export function newGeneratedSources(sourceResources) {
   };
 }
 
+/**
+ * Common operations done against generated and original sources,
+ * just after having registered them in the reducers:
+ *  - automatically selecting the source if it matches the last known selected source
+ *    (i.e. the pending selected location).
+ *  - automatically notify the server about new sources that used to be blackboxed.
+ *    The blackboxing is per Source Actor and so we need to notify them individually
+ *    if the source used to be ignored.
+ */
 function checkNewSources(sources) {
   return async ({ dispatch }) => {
-    for (const source of sources) {
-      dispatch(checkSelectedSource(source.id));
-    }
+    // Waiting for `checkSelectedSource` completion is important for pretty printed sources.
+    // `checkPendingBreakpoints`, which is called after this method, is expected to be called
+    // only after the source is mapped and breakpoints positions are updated with the mapped locations.
+    // For source mapped sources, `loadSourceMapsForSourceActors` is called before calling
+    // `checkPendingBreakpoints` and will do all that. For pretty printed source, we rely on
+    // `checkSelectedSource` to do that. Selecting a minimized source which used to be pretty printed
+    // will automatically force pretty printing it and computing the mapped breakpoint positions.
+    await Promise.all(
+      sources.map(
+        async source => await dispatch(checkSelectedSource(source.id))
+      )
+    );
 
     await dispatch(restoreBlackBoxedSources(sources));
 
