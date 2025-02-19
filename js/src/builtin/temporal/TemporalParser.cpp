@@ -1547,7 +1547,7 @@ bool js::temporal::ParseTemporalInstantString(JSContext* cx,
   auto parseResult = ::ParseTemporalInstantString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "instant");
     return false;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -1677,7 +1677,7 @@ bool js::temporal::ParseTemporalTimeZoneString(
   auto parseResult = ::ParseTemporalTimeZoneString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "time zone");
     return false;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -1709,7 +1709,7 @@ bool js::temporal::ParseTemporalTimeZoneString(
     if (timeZone.offset.subMinutePrecision) {
       JS_ReportErrorNumberASCII(
           cx, GetErrorMessage, nullptr,
-          JSMSG_TEMPORAL_PARSER_INVALID_SUBMINUTE_TIMEZONE);
+          JSMSG_TEMPORAL_PARSER_INVALID_SUBMINUTE_TIMEZONE, "time zone");
       return false;
     }
 
@@ -1718,7 +1718,8 @@ bool js::temporal::ParseTemporalTimeZoneString(
   } else {
     // Step 5.
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_PARSER_MISSING_TIMEZONE);
+                              JSMSG_TEMPORAL_PARSER_MISSING_TIMEZONE,
+                              "time zone");
     return false;
   }
 
@@ -1767,7 +1768,7 @@ bool js::temporal::ParseTimeZoneIdentifier(
   auto parseResult = ::ParseTimeZoneIdentifier(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "time zone identifier");
     return false;
   }
   auto timeZone = parseResult.unwrap();
@@ -1816,7 +1817,7 @@ bool js::temporal::ParseDateTimeUTCOffset(JSContext* cx, Handle<JSString*> str,
   auto parseResult = ::ParseDateTimeUTCOffset(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "UTC offset");
     return false;
   }
 
@@ -2029,7 +2030,7 @@ bool js::temporal::ParseTemporalDurationString(JSContext* cx,
   auto parseResult = ::ParseTemporalDurationString(cx, linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "duration");
     return false;
   }
   TemporalDurationString parsed = parseResult.unwrap();
@@ -2551,7 +2552,7 @@ JSLinearString* js::temporal::ParseTemporalCalendarString(
   auto parseResult = ::ParseTemporalCalendarString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "calendar");
     return nullptr;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -2635,7 +2636,7 @@ bool js::temporal::ParseTemporalTimeString(JSContext* cx, Handle<JSString*> str,
   auto parseResult = ::ParseTemporalTimeString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "time");
     return false;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -2727,7 +2728,7 @@ bool js::temporal::ParseTemporalMonthDayString(
   auto parseResult = ::ParseTemporalMonthDayString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "month-day");
     return false;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -2827,7 +2828,7 @@ bool js::temporal::ParseTemporalYearMonthString(
   auto parseResult = ::ParseTemporalYearMonthString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "year-month");
     return false;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -2893,7 +2894,7 @@ bool js::temporal::ParseTemporalDateTimeString(
   auto parseResult = ::ParseTemporalDateTimeString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "date-time");
     return false;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -2973,7 +2974,7 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
   auto parseResult = ::ParseTemporalZonedDateTimeString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "zoned date-time");
     return false;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -3118,7 +3119,7 @@ bool js::temporal::ParseTemporalRelativeToString(
   auto parseResult = ::ParseTemporalRelativeToString(linear);
   if (parseResult.isErr()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              parseResult.unwrapErr());
+                              parseResult.unwrapErr(), "relative date-time");
     return false;
   }
   ZonedDateTimeString parsed = parseResult.unwrap();
@@ -3127,7 +3128,8 @@ bool js::temporal::ParseTemporalRelativeToString(
   if (parsed.timeZone.isUTC() && !parsed.timeZone.hasAnnotation()) {
     JS_ReportErrorNumberASCII(
         cx, GetErrorMessage, nullptr,
-        JSMSG_TEMPORAL_PARSER_INVALID_UTC_DESIGNATOR_WITHOUT_NAME);
+        JSMSG_TEMPORAL_PARSER_INVALID_UTC_DESIGNATOR_WITHOUT_NAME,
+        "relative date-time");
     return false;
   }
 
