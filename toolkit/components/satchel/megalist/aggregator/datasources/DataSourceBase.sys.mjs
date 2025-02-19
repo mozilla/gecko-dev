@@ -80,8 +80,11 @@ export class DataSourceBase {
     this.#aggregatorApi.discardChangesConfirmed();
   }
 
-  formatMessages = createFormatMessages("preview/megalist.ftl");
-  static ftl = new Localization(["branding/brand.ftl", "preview/megalist.ftl"]);
+  formatMessages = createFormatMessages("preview/contextual-manager.ftl");
+  static ftl = new Localization([
+    "branding/brand.ftl",
+    "preview/contextual-manager.ftl",
+  ]);
 
   async localizeStrings(strings) {
     const keys = Object.keys(strings);

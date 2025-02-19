@@ -16,7 +16,7 @@ export default {
   },
 };
 
-window.MozXULElement.insertFTLIfNeeded("preview/megalist.ftl");
+window.MozXULElement.insertFTLIfNeeded("preview/contextual-manager.ftl");
 
 const Template = ({ website, username, password }) => {
   return html`
