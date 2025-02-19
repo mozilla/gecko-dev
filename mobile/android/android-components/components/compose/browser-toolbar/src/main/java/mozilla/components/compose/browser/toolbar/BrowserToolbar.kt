@@ -27,6 +27,7 @@ import mozilla.components.browser.state.store.BrowserStore
  * to load the entered text.
  * @param onDisplayToolbarClick Function to get executed when the user clicks on the URL in "display"
  * mode.
+ * @param colors The color scheme the browser toolbar will use for the UI.
  * @param hint Text displayed in the toolbar when there's no URL to display (no tab or empty URL)
  * @param editMode Whether the toolbar is in "edit" or "display" mode.
  * @param editText The text the user is editing in "edit" mode.
@@ -42,6 +43,7 @@ fun BrowserToolbar(
     onTextEdit: (String) -> Unit,
     onTextCommit: (String) -> Unit,
     onDisplayToolbarClick: () -> Unit,
+    colors: BrowserToolbarColors = BrowserToolbarDefaults.colors(),
     hint: String = "",
     editMode: Boolean = false,
     editText: String? = null,
@@ -61,12 +63,14 @@ fun BrowserToolbar(
     if (editMode) {
         BrowserEditToolbar(
             url = input,
+            colors = colors.editToolbarColors,
             onUrlCommitted = { text -> onTextCommit(text) },
             onUrlEdit = { text -> onTextEdit(text) },
         )
     } else {
         BrowserDisplayToolbar(
             url = selectedTab?.content?.url ?: hint,
+            colors = colors.displayToolbarColors,
             onUrlClicked = {
                 onDisplayToolbarClick()
             },

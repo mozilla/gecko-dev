@@ -9,10 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Button
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.contentColorFor
-import androidx.compose.material.primarySurface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +20,7 @@ import androidx.compose.ui.unit.dp
  * controls ("display mode").
  *
  * @param url The URL to be displayed.
+ * @param colors The color scheme to use in the browser display toolbar.
  * @param onUrlClicked Will be called when the user clicks on the URL.
  * @param onMenuClicked Will be called when the user clicks on the menu button.
  * @param browserActions Additional browser actions to be displayed on the right side of the toolbar
@@ -32,19 +30,17 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun BrowserDisplayToolbar(
     url: String,
+    colors: BrowserDisplayToolbarColors,
     onUrlClicked: () -> Unit = {},
     onMenuClicked: () -> Unit = {},
     browserActions: @Composable () -> Unit = {},
 ) {
-    val backgroundColor = MaterialTheme.colors.primarySurface
-    val foregroundColor = contentColorFor(backgroundColor)
-
     Row(
-        Modifier.background(backgroundColor),
+        Modifier.background(colors.background),
     ) {
         Text(
             url,
-            color = foregroundColor,
+            color = colors.text,
             modifier = Modifier
                 .clickable { onUrlClicked() }
                 .padding(8.dp)

@@ -10,10 +10,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
-import androidx.compose.material.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,6 +27,7 @@ import mozilla.components.ui.icons.R as iconsR
  * URL ("edit mode").
  *
  * @param url The initial URL to be edited.
+ * @param colors The color scheme to use in the browser edit toolbar.
  * @param onUrlEdit Will be called when the URL value changes. An updated text value comes as a
  * parameter of the callback.
  * @param onUrlCommitted Will be called when the user has finished editing and wants to initiate
@@ -38,21 +37,19 @@ import mozilla.components.ui.icons.R as iconsR
 @Composable
 fun BrowserEditToolbar(
     url: String,
+    colors: BrowserEditToolbarColors,
     onUrlEdit: (String) -> Unit = {},
     onUrlCommitted: (String) -> Unit = {},
     editActions: @Composable () -> Unit = {},
 ) {
-    val backgroundColor = MaterialTheme.colors.surface
-    val foregroundColor = contentColorFor(backgroundColor)
-
     TextField(
         url,
         onValueChange = { value ->
             onUrlEdit(value)
         },
         colors = TextFieldDefaults.textFieldColors(
-            textColor = foregroundColor,
-            backgroundColor = backgroundColor,
+            textColor = colors.text,
+            backgroundColor = colors.background,
         ),
         singleLine = true,
         keyboardOptions = KeyboardOptions(
