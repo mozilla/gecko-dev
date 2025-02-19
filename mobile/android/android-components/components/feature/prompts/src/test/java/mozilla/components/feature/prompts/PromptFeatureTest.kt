@@ -200,10 +200,11 @@ class PromptFeatureTest {
                 fragmentManager = fragmentManager,
             ) { },
         )
+        feature.start()
 
         val promptRequest = SingleChoice(arrayOf(), {}, {})
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, promptRequest)).joinBlocking()
-        feature.start()
+
         verify(feature).onPromptRequested(store.state.tabs.first())
     }
 
@@ -250,20 +251,20 @@ class PromptFeatureTest {
         doReturn(tabId).`when`(fragment).sessionId
         doReturn(fragment).`when`(fragmentManager).findFragmentByTag(FRAGMENT_TAG)
 
-        val singleChoiceRequest = SingleChoice(arrayOf(), {}, {})
+        val singleChoiceRequest = mock<SingleChoice>()
+        whenever(singleChoiceRequest.shouldDismissOnLoad).thenReturn(false)
+
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoiceRequest))
             .joinBlocking()
 
-        val feature =
-            PromptFeature(
-                activity = mock(),
-                store = store,
-                fragmentManager = fragmentManager,
-                tabsUseCases = mock(),
-                fileUploadsDirCleaner = mock(),
-                onNeedToRequestPermissions = { },
-
-            )
+        val feature = PromptFeature(
+            activity = mock(),
+            store = store,
+            fragmentManager = fragmentManager,
+            tabsUseCases = mock(),
+            fileUploadsDirCleaner = mock(),
+            onNeedToRequestPermissions = { },
+        )
         feature.start()
         verify(fragment).feature = feature
     }
@@ -2551,6 +2552,7 @@ class PromptFeatureTest {
         val fragment = mock<PromptDialogFragment>()
         whenever(fragment.shouldDismissOnLoad).thenReturn(true)
         whenever(fragment.sessionId).thenReturn(tabId)
+        whenever(fragment.isStateSaved).thenReturn(true)
         feature.activePrompt = WeakReference(fragment)
 
         val secondTabId = "second-test-tab"
@@ -2594,6 +2596,7 @@ class PromptFeatureTest {
         val fragment = mock<PromptDialogFragment>()
         whenever(fragment.shouldDismissOnLoad).thenReturn(true)
         whenever(fragment.sessionId).thenReturn(tabId)
+        whenever(fragment.isStateSaved).thenReturn(true)
         feature.activePrompt = WeakReference(fragment)
 
         val newTabId = "test-tab-2"
@@ -2629,10 +2632,44 @@ class PromptFeatureTest {
 
         val fragment = mock<PromptDialogFragment>()
         whenever(fragment.shouldDismissOnLoad).thenReturn(true)
+        whenever(fragment.isStateSaved).thenReturn(true)
         feature.activePrompt = WeakReference(fragment)
 
         store.dispatch(ContentAction.UpdateUrlAction(tabId, "mozilla.org")).joinBlocking()
         verify(fragment, times(1)).dismiss()
+    }
+
+    @Test
+    fun `dialog will not be dismissed if it is not attached to a fragment`() {
+        val feature = spy(
+            PromptFeature(
+                activity = mock(),
+                store = store,
+                fragmentManager = fragmentManager,
+                tabsUseCases = mock(),
+                shareDelegate = mock(),
+                exitFullscreenUsecase = mock(),
+                fileUploadsDirCleaner = mock(),
+                onNeedToRequestPermissions = {},
+            ),
+        )
+        feature.start()
+
+        val shareRequest = PromptRequest.Share(
+            ShareData("Title", "Text", null),
+            onSuccess = {},
+            onFailure = {},
+            onDismiss = {},
+        )
+        store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, shareRequest)).joinBlocking()
+
+        val fragment = mock<PromptDialogFragment>()
+        whenever(fragment.shouldDismissOnLoad).thenReturn(true)
+        whenever(fragment.isStateSaved).thenReturn(false)
+        feature.activePrompt = WeakReference(fragment)
+
+        store.dispatch(ContentAction.UpdateUrlAction(tabId, "mozilla.org")).joinBlocking()
+        verify(fragment, never()).dismiss()
     }
 
     @Test
@@ -2678,6 +2715,7 @@ class PromptFeatureTest {
             onDismiss = {},
         )
         val saveLoginPrompt: SaveLoginDialogFragment = mock()
+        whenever(saveLoginPrompt.isStateSaved).thenReturn(true)
 
         val feature = spy(
             PromptFeature(
@@ -3163,7 +3201,7 @@ class PromptFeatureTest {
         store.dispatch(ContentAction.UpdatePromptRequestAction(tabId, singleChoicePrompt))
             .joinBlocking()
         val fragment = mock<ChoiceDialogFragment>()
-        whenever(fragment.isAdded).thenReturn(false)
+        whenever(fragment.isStateSaved).thenReturn(false)
 
         store.dispatch(ContentAction.ConsumePromptRequestAction(tabId, singleChoicePrompt))
             .joinBlocking()
@@ -3201,7 +3239,7 @@ class PromptFeatureTest {
 
         val fragment = mock<ChoiceDialogFragment>()
         whenever(fragment.shouldDismissOnLoad).thenReturn(true)
-        whenever(fragment.isAdded).thenReturn(true)
+        whenever(fragment.isStateSaved).thenReturn(true)
         feature.activePrompt = WeakReference(fragment)
 
         store.dispatch(ContentAction.ReplacePromptRequestAction(tabId, previousPrompt.uid, updatedPrompt)).joinBlocking()

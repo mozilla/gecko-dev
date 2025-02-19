@@ -472,7 +472,7 @@ class PromptFeature private constructor(
                                 is MenuChoice,
                                 -> {
                                     (activePrompt?.get() as? ChoiceDialogFragment)?.let { dialog ->
-                                        if (dialog.isAdded) {
+                                        if (dialog.isStateSaved) {
                                             dialog.dismissAllowingStateLoss()
                                         } else {
                                             activePromptsToDismiss.remove(dialog)
@@ -512,13 +512,21 @@ class PromptFeature private constructor(
 
                 store.consumeAllSessionPrompts(
                     sessionId = prompt?.sessionId,
-                    activePrompt,
+                    activePrompt = activePrompt,
                     predicate = { it.shouldDismissOnLoad && it !is File },
-                    consume = { prompt?.dismiss() },
+                    consume = {
+                        if (prompt?.isStateSaved == true) {
+                            prompt.dismiss()
+                        }
+                    },
                 )
 
-                // Let's make sure we do not leave anything behind..
-                activePromptsToDismiss.forEach { fragment -> fragment.dismiss() }
+                // Let's make sure we do not leave anything behind.
+                activePromptsToDismiss.forEach { fragment ->
+                    if (fragment.isStateSaved) {
+                        fragment.dismiss()
+                    }
+                }
             }
         }
 
@@ -806,7 +814,7 @@ class PromptFeature private constructor(
      */
     private fun reattachFragment(fragment: PromptDialogFragment) {
         val session = store.state.findTabOrCustomTab(fragment.sessionId)
-        if (session?.content?.promptRequests?.isEmpty() != false) {
+        if (session == null || session.content.promptRequests.isEmpty()) {
             fragmentManager.beginTransaction()
                 .remove(fragment)
                 .commitAllowingStateLoss()
@@ -1158,22 +1166,7 @@ class PromptFeature private constructor(
         dialog.feature = this
 
         if (canShowThisPrompt(promptRequest)) {
-            // If the ChoiceDialogFragment's choices data were updated,
-            // we need to dismiss the previous dialog
-            activePrompt?.get()?.let { promptDialog ->
-                // ChoiceDialogFragment could update their choices data,
-                // and we need to dismiss the previous UI dialog,
-                // without consuming the engine callbacks, and allow to create a new dialog with the
-                // updated data.
-                if (promptDialog is ChoiceDialogFragment &&
-                    !session.content.promptRequests.any { it.uid == promptDialog.promptRequestUID }
-                ) {
-                    // We want to avoid consuming the engine callbacks and allow a new dialog
-                    // to be created with the updated data.
-                    promptDialog.feature = null
-                    promptDialog.dismiss()
-                }
-            }
+            maybeDismissPreviousDialog(session)
 
             emitPromptDisplayedFact(promptName = dialog::class.simpleName.ifNullOrEmpty { "" })
             dialog.show(fragmentManager, FRAGMENT_TAG)
@@ -1186,6 +1179,29 @@ class PromptFeature private constructor(
             dismissDialogRequest(promptRequest, session)
         }
         promptAbuserDetector.updateJSDialogAbusedState()
+    }
+
+    /**
+     * If the ChoiceDialogFragment's choices data were updated, we need to dismiss the previous
+     * dialog.
+     */
+    private fun maybeDismissPreviousDialog(session: SessionState) {
+        activePrompt?.get()?.let { promptDialog ->
+            // ChoiceDialogFragment could update their choices data,
+            // and we need to dismiss the previous UI dialog,
+            // without consuming the engine callbacks, and allow to create a new dialog with the
+            // updated data.
+            if (promptDialog is ChoiceDialogFragment &&
+                !session.content.promptRequests.any { it.uid == promptDialog.promptRequestUID }
+            ) {
+                // We want to avoid consuming the engine callbacks and allow a new dialog
+                // to be created with the updated data.
+                promptDialog.feature = null
+                if (promptDialog.isStateSaved) {
+                    promptDialog.dismiss()
+                }
+            }
+        }
     }
 
     /**
