@@ -584,3 +584,20 @@ privatebrowsing:
         mozharness:
             extra-options:
                 - "--setpref=browser.privatebrowsing.autostart=true"
+
+privatebrowsing-inc-origin-init:
+    description: "{description} limited to tests identified as being applicable to also run in private browsing mode and with incremental origin initialization enabled"
+    component: "Core::Storage: Quota Manager"
+    expiration: "2025-07-01"
+    suffix: "pb-ioi"
+    replace:
+        tier: 3
+    merge:
+        worker:
+            env:
+                MOZHARNESS_TEST_TAG:
+                    - "privatebrowsing-inc-origin-init"
+                MOZ_ENABLE_INC_ORIGIN_INIT: "1"
+        mozharness:
+            extra-options:
+                - "--setpref=browser.privatebrowsing.autostart=true"
