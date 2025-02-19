@@ -96,6 +96,13 @@ WaylandSurface::~WaylandSurface() {
                      "We can't release WaylandSurface with active timer");
   MOZ_RELEASE_ASSERT(!mIsPendingGdkCleanup,
                      "We can't release WaylandSurface with Gdk resources!");
+  MOZ_RELEASE_ASSERT(
+      !mDMABufFormatRefreshCallback,
+      "We can't release WaylandSurface with DMABufFormatRefreshCallback!");
+  MOZ_RELEASE_ASSERT(!mGdkCommitCallback,
+                     "We can't release WaylandSurface with GdkCommitCallback!");
+  MOZ_RELEASE_ASSERT(!mUnmapCallback,
+                     "We can't release WaylandSurface with numap callback!");
 }
 
 void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
@@ -472,6 +479,13 @@ void WaylandSurface::EnableDMABufFormatsLocked(
   }
 }
 
+void WaylandSurface::DisableDMABufFormatsLocked(
+    const WaylandSurfaceLock& aProofOfLock) {
+  mUseDMABufFormats = false;
+  mDMABufFormatRefreshCallback = nullptr;
+  mFormats = nullptr;
+}
+
 bool WaylandSurface::MapLocked(const WaylandSurfaceLock& aProofOfLock,
                                wl_surface* aParentWLSurface,
                                WaylandSurfaceLock* aParentWaylandSurfaceLock,
@@ -585,13 +599,17 @@ void WaylandSurface::SetUnmapCallbackLocked(
   mUnmapCallback = aUnmapCB;
 }
 
+void WaylandSurface::ClearUnmapCallbackLocked(
+    const WaylandSurfaceLock& aProofOfLock) {
+  mUnmapCallback = nullptr;
+}
+
 void WaylandSurface::RunUnmapCallback() {
   AssertIsOnMainThread();
   MOZ_DIAGNOSTIC_ASSERT(
       mIsMapped, "RunUnmapCallback is supposed to run before surface unmap!");
   if (mUnmapCallback) {
     mUnmapCallback();
-    mUnmapCallback = nullptr;
   }
 }
 
@@ -653,9 +671,6 @@ void WaylandSurface::UnmapLocked(WaylandSurfaceLock& aSurfaceLock) {
 
   mIsReadyToDraw = false;
   mBufferAttached = false;
-
-  mUnmapCallback = nullptr;
-  mGdkCommitCallback = nullptr;
 
   // Remove references to WaylandBuffers attached to mSurface,
   // we don't want to get any buffer release callback when we're unmapped.
@@ -946,6 +961,11 @@ void WaylandSurface::SetGdkCommitCallbackLocked(
     const WaylandSurfaceLock& aProofOfLock,
     const std::function<void(void)>& aGdkCommitCB) {
   mGdkCommitCallback = aGdkCommitCB;
+}
+
+void WaylandSurface::ClearGdkCommitCallbackLocked(
+    const WaylandSurfaceLock& aProofOfLock) {
+  mGdkCommitCallback = nullptr;
 }
 
 void WaylandSurface::AfterPaintHandler(GdkFrameClock* aClock, void* aData) {

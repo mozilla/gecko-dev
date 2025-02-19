@@ -111,6 +111,8 @@ class WaylandSurface final {
   // on main thread.
   void SetUnmapCallbackLocked(const WaylandSurfaceLock& aProofOfLock,
                               const std::function<void(void)>& aUnmapCB);
+  void ClearUnmapCallbackLocked(const WaylandSurfaceLock& aProofOfLock);
+
   void RunUnmapCallback();
 
   // Create Viewport to manage surface transformations.
@@ -157,6 +159,7 @@ class WaylandSurface final {
   void EnableDMABufFormatsLocked(
       const WaylandSurfaceLock& aProofOfLock,
       const std::function<void(DMABufFormats*)>& aFormatRefreshCB);
+  void DisableDMABufFormatsLocked(const WaylandSurfaceLock& aProofOfLock);
 
   // Place this WaylandSurface above aLowerSurface
   void PlaceAboveLocked(const WaylandSurfaceLock& aProofOfLock,
@@ -246,6 +249,7 @@ class WaylandSurface final {
   void SetGdkCommitCallbackLocked(
       const WaylandSurfaceLock& aProofOfLock,
       const std::function<void(void)>& aGdkCommitCB);
+  void ClearGdkCommitCallbackLocked(const WaylandSurfaceLock& aProofOfLock);
   void RequestFrameCallbackForceCommitLocked(
       const WaylandSurfaceLock& aProofOfLock) {
     mFrameCallbackForceCommit = true;
