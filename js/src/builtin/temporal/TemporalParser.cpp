@@ -991,7 +991,7 @@ template <typename T>
 mozilla::Result<T, ParserError> TemporalParser<CharT>::parse(
     mozilla::Result<T, ParserError>&& result) const {
   if (result.isOk() && !reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
+    return mozilla::Err(JSMSG_TEMPORAL_PARSER_UNEXPECTED_CHARACTERS_AT_END);
   }
   return std::move(result);
 }
@@ -1001,7 +1001,7 @@ template <typename T>
 mozilla::Result<T, ParserError> TemporalParser<CharT>::complete(
     const T& result) const {
   if (!reader_.atEnd()) {
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
+    return mozilla::Err(JSMSG_TEMPORAL_PARSER_UNEXPECTED_CHARACTERS_AT_END);
   }
   return result;
 }
