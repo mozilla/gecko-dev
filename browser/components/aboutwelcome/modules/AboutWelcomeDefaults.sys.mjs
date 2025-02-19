@@ -634,55 +634,6 @@ const MR_ABOUT_WELCOME_DEFAULT = {
       },
     },
     {
-      id: "AW_MOBILE_DOWNLOAD",
-      // The mobile download screen should only be shown to users who
-      // are either not logged into FxA, or don't have any mobile devices syncing
-      targeting: "!isFxASignedIn || sync.mobileDevices == 0",
-      content: {
-        fullscreen: true,
-        position: "split",
-        split_narrow_bkg_position: "-160px",
-        image_alt_text: {
-          string_id: "mr2022-onboarding-mobile-download-image-alt",
-        },
-        background:
-          "url('chrome://activity-stream/content/data/content/assets/mr-mobilecrosspromo.svg') var(--mr-secondary-position) no-repeat var(--mr-screen-background-color)",
-        progress_bar: true,
-        logo: {},
-        title: {
-          string_id: "onboarding-mobile-download-security-and-privacy-title",
-        },
-        subtitle: {
-          string_id: "onboarding-mobile-download-security-and-privacy-subtitle",
-        },
-        hero_image: {
-          url: "chrome://activity-stream/content/data/content/assets/mobile-download-qr-new-user.svg",
-        },
-        cta_paragraph: {
-          text: {
-            string_id: "mr2022-onboarding-mobile-download-cta-text",
-            string_name: "download-label",
-          },
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://www.mozilla.org/firefox/mobile/get-app/?utm_medium=firefox-desktop&utm_source=onboarding-modal&utm_campaign=mr2022&utm_content=new-global",
-              where: "tab",
-            },
-          },
-        },
-        secondary_button: {
-          label: {
-            string_id: "mr2022-onboarding-secondary-skip-button-label",
-          },
-          action: {
-            navigate: true,
-          },
-          has_arrow_icon: true,
-        },
-      },
-    },
-    {
       id: "AW_AMO_INTRODUCE",
       targeting: "localeLanguageCode == 'en'",
       content: {

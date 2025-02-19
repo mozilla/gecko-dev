@@ -110,17 +110,6 @@ add_task(async function test_aboutwelcome_mr_template_easy_setup_default() {
     ]
   );
 
-  await onButtonClick(browser, ".action-buttons button.secondary");
-
-  await test_screen_content(
-    browser,
-    "renders mobile download screen",
-    //Expected selectors:
-    ["main.AW_MOBILE_DOWNLOAD"],
-    //Unexpected selectors:
-    ["main.AW_IMPORT_SETTINGS_EMBEDDED"]
-  );
-
   await cleanup();
   await popPrefs();
   sandbox.restore();
@@ -195,16 +184,6 @@ add_task(
       ]
     );
 
-    await onButtonClick(browser, ".action-buttons button.secondary");
-    await test_screen_content(
-      browser,
-      "renders mobile download screen",
-      //Expected selectors:
-      ["main.AW_MOBILE_DOWNLOAD"],
-      //Unexpected selectors:
-      ["main.AW_IMPORT_SETTINGS_EMBEDDED"]
-    );
-
     await cleanup();
     await popPrefs();
     sandbox.restore();
@@ -241,16 +220,6 @@ add_task(async function test_aboutwelcome_mr_template_easy_setup_only_import() {
       "main.AW_EASY_SETUP_NEEDS_DEFAULT_AND_PIN",
       "main.AW_EASY_SETUP_NEEDS_DEFAULT",
     ]
-  );
-
-  await onButtonClick(browser, ".action-buttons button.secondary");
-  await test_screen_content(
-    browser,
-    "renders mobile download screen",
-    //Expected selectors:
-    ["main.AW_MOBILE_DOWNLOAD"],
-    //Unexpected selectors:
-    ["main.AW_IMPORT_SETTINGS_EMBEDDED"]
   );
 
   await cleanup();
