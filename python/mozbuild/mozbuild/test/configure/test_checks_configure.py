@@ -554,6 +554,7 @@ class TestChecksConfigure(unittest.TestCase):
                     def host(_):
                         return namespace(os='unknown', kernel='unknown')
                     toolchains_base_dir = depends(when=True)(lambda: '/mozbuild')
+                    want_bootstrap = dependable(lambda: lambda _: False)
                     include('%(topsrcdir)s/build/moz.configure/java.configure')
                 """
                 % {"topsrcdir": topsrcdir}
