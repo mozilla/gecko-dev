@@ -786,15 +786,10 @@ nsPlacesExpiration.prototype = {
     }
 
     if (this._mostRecentExpiredVisitDays) {
-      try {
-        Services.telemetry
-          .getHistogramById("PLACES_MOST_RECENT_EXPIRED_VISIT_DAYS")
-          .add(this._mostRecentExpiredVisitDays);
-      } catch (ex) {
-        console.error("Unable to report telemetry.");
-      } finally {
-        delete this._mostRecentExpiredVisitDays;
-      }
+      Glean.places.mostRecentExpiredVisit.accumulateSingleSample(
+        this._mostRecentExpiredVisitDays
+      );
+      delete this._mostRecentExpiredVisitDays;
     }
 
     if ("_expectedResultsCount" in this) {
@@ -812,13 +807,9 @@ nsPlacesExpiration.prototype = {
         // Avoid reporting the common cases where the database is clean, or
         // a single step is needed.
         if (oldStatus == STATUS.DIRTY) {
-          try {
-            Services.telemetry
-              .getHistogramById("PLACES_EXPIRATION_STEPS_TO_CLEAN2")
-              .add(this._telemetrySteps);
-          } catch (ex) {
-            console.error("Unable to report telemetry.");
-          }
+          Glean.places.expirationStepsToClean.accumulateSingleSample(
+            this._telemetrySteps
+          );
         }
         this._telemetrySteps = 1;
       }

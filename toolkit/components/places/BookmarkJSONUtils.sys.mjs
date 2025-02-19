@@ -133,16 +133,10 @@ export var BookmarkJSONUtils = {
    */
   async exportToFile(aFilePath, aOptions = {}) {
     let [bookmarks, count] = await lazy.PlacesBackups.getBookmarksTree();
-    let startTime = Date.now();
-    let jsonString = JSON.stringify(bookmarks);
     // Report the time taken to convert the tree to JSON.
-    try {
-      Services.telemetry
-        .getHistogramById("PLACES_BACKUPS_TOJSON_MS")
-        .add(Date.now() - startTime);
-    } catch (ex) {
-      console.error("Unable to report telemetry.");
-    }
+    let timerId = Glean.places.backupsTojson.start();
+    let jsonString = JSON.stringify(bookmarks);
+    Glean.places.backupsTojson.stopAndAccumulate(timerId);
 
     // Use "base64url" as this may be part of a filename.
     let hash = PlacesUtils.sha256(jsonString, { format: "base64url" });

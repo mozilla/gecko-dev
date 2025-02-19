@@ -234,19 +234,13 @@ export var BookmarkHTMLUtils = Object.freeze({
    */
   async exportToFile(aFilePath) {
     let [bookmarks, count] = await lazy.PlacesBackups.getBookmarksTree();
-    let startTime = Date.now();
+    let timerId = Glean.places.exportTohtml.start();
 
     // Report the time taken to convert the tree to HTML.
     let exporter = new BookmarkExporter(bookmarks);
     await exporter.exportToFile(aFilePath);
 
-    try {
-      Services.telemetry
-        .getHistogramById("PLACES_EXPORT_TOHTML_MS")
-        .add(Date.now() - startTime);
-    } catch (ex) {
-      console.error("Unable to report telemetry.");
-    }
+    Glean.places.exportTohtml.stopAndAccumulate(timerId);
 
     return count;
   },

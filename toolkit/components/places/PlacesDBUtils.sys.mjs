@@ -45,16 +45,14 @@ export var PlacesDBUtils = {
       this.removeOldCorruptDBs,
       this.deleteOrphanPreviews,
     ];
-    let telemetryStartTime = Date.now();
+    let timerId = Glean.places.idleMaintenanceTime.start();
     let taskStatusMap = await PlacesDBUtils.runTasks(tasks);
 
     Services.prefs.setIntPref(
       "places.database.lastMaintenance",
       parseInt(Date.now() / 1000)
     );
-    Services.telemetry
-      .getHistogramById("PLACES_IDLE_MAINTENANCE_TIME_MS")
-      .add(Date.now() - telemetryStartTime);
+    Glean.places.idleMaintenanceTime.stopAndAccumulate(timerId);
     return taskStatusMap;
   },
 
@@ -987,34 +985,27 @@ export var PlacesDBUtils = {
    *
    */
   async telemetry() {
-    // This will be populated with one integer property for each probe result,
-    // using the histogram name as key.
-    let probeValues = {};
-
     // The following array contains an ordered list of entries that are
     // processed to collect telemetry data.  Each entry has these properties:
     //
-    //  histogram: Name of the telemetry histogram to update.
+    //  distribution: The Glean distribution metric to update.
+    //  quantity:  The Glean quantity metric to update.
     //  query:     This is optional.  If present, contains a database command
     //             that will be executed asynchronously, and whose result will
     //             be added to the telemetry histogram.
     //  callback:  This is optional.  If present, contains a function that must
-    //             return the value that will be added to the telemetry
-    //             histogram. If a query is also present, its result is passed
+    //             return the value that will be added to the glean metric.
+    //             If a query is also present, its result is passed
     //             as the first argument of the function.  If the function
-    //             raises an exception, no data is added to the histogram.
-    //
-    // Since all queries are executed in order by the database backend, the
-    // callbacks can also use the result of previous queries stored in the
-    // probeValues object.
+    //             raises an exception, no data is added to the metric.
     let probes = [
       {
-        histogram: "PLACES_PAGES_COUNT",
+        distribution: Glean.places.pagesCount,
         query: "SELECT count(*) FROM moz_places",
       },
 
       {
-        histogram: "PLACES_BOOKMARKS_COUNT",
+        distribution: Glean.places.bookmarksCount,
         query: `SELECT count(*) FROM moz_bookmarks b
                     JOIN moz_bookmarks t ON t.id = b.parent
                     AND t.parent <> :tags_folder
@@ -1026,7 +1017,7 @@ export var PlacesDBUtils = {
       },
 
       {
-        histogram: "PLACES_TAGS_COUNT",
+        distribution: Glean.places.tagsCount,
         query: `SELECT count(*) FROM moz_bookmarks
                     WHERE parent = :tags_folder`,
         params: {
@@ -1035,12 +1026,12 @@ export var PlacesDBUtils = {
       },
 
       {
-        histogram: "PLACES_KEYWORDS_COUNT",
+        distribution: Glean.places.keywordsCount,
         query: "SELECT count(*) FROM moz_keywords",
       },
 
       {
-        histogram: "PLACES_SORTED_BOOKMARKS_PERC",
+        distribution: Glean.places.sortedBookmarksPerc,
         query: `SELECT IFNULL(ROUND((
                       SELECT count(*) FROM moz_bookmarks b
                       JOIN moz_bookmarks p ON p.id = b.parent
@@ -1063,7 +1054,7 @@ export var PlacesDBUtils = {
       },
 
       {
-        histogram: "PLACES_TAGGED_BOOKMARKS_PERC",
+        distribution: Glean.places.taggedBookmarksPerc,
         query: `SELECT IFNULL(ROUND((
                       SELECT count(*) FROM moz_bookmarks b
                       JOIN moz_bookmarks t ON t.id = b.parent
@@ -1081,7 +1072,7 @@ export var PlacesDBUtils = {
       },
 
       {
-        histogram: "PLACES_DATABASE_FILESIZE_MB",
+        distribution: Glean.places.databaseFilesize,
         async callback() {
           let placesDbPath = PathUtils.join(
             PathUtils.profileDir,
@@ -1093,7 +1084,7 @@ export var PlacesDBUtils = {
       },
 
       {
-        histogram: "PLACES_DATABASE_FAVICONS_FILESIZE_MB",
+        distribution: Glean.places.databaseFaviconsFilesize,
         async callback() {
           let faviconsDbPath = PathUtils.join(
             PathUtils.profileDir,
@@ -1105,12 +1096,12 @@ export var PlacesDBUtils = {
       },
 
       {
-        histogram: "PLACES_ANNOS_PAGES_COUNT",
+        distribution: Glean.places.annosPagesCount,
         query: "SELECT count(*) FROM moz_annos",
       },
 
       {
-        histogram: "PLACES_MAINTENANCE_DAYSFROMLAST",
+        distribution: Glean.places.maintenanceDaysfromlast,
         callback() {
           try {
             let lastMaintenance = Services.prefs.getIntPref(
@@ -1149,9 +1140,13 @@ export var PlacesDBUtils = {
       if ("callback" in probe) {
         val = await probe.callback(val);
       }
-      probeValues[probe.histogram || probe.scalar] = val;
-      if (probe.histogram) {
-        Services.telemetry.getHistogramById(probe.histogram).add(val);
+      if (probe.distribution) {
+        // Memory distributions have the method named 'accumulate'
+        // instead of 'accumulateSingleSample'.
+        (
+          probe.distribution.accumulateSingleSample ||
+          probe.distribution.accumulate
+        ).call(probe.distribution, val);
       } else if (probe.quantity) {
         probe.quantity.set(val);
       } else {

@@ -78,6 +78,368 @@ places:
     unit: history entries
     telemetry_mirror: PLACES_PREVIOUSDAY_VISITS
 
+  pages_count:
+    type: custom_distribution
+    description: >
+      PLACES: Number of unique pages
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_PAGES_COUNT.
+    range_min: 1000
+    range_max: 150000
+    bucket_count: 20
+    histogram_type: exponential
+    unit: pages
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_PAGES_COUNT
+
+  most_recent_expired_visit:
+    type: timing_distribution
+    description: >
+      PLACES: the most recent expired visit in days
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram PLACES_MOST_RECENT_EXPIRED_VISIT_DAYS.
+    time_unit: day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822848
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822848
+    notification_emails:
+      - mbonardo@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_MOST_RECENT_EXPIRED_VISIT_DAYS
+
+  bookmarks_count:
+    type: custom_distribution
+    description: >
+      PLACES: Number of bookmarks
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_BOOKMARKS_COUNT.
+    range_min: 100
+    range_max: 8000
+    bucket_count: 15
+    histogram_type: exponential
+    unit: bookmarks
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_BOOKMARKS_COUNT
+
+  tags_count:
+    type: custom_distribution
+    description: >
+      PLACES: Number of tags
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_TAGS_COUNT.
+    range_min: 1
+    range_max: 200
+    bucket_count: 10
+    histogram_type: exponential
+    unit: tags
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_TAGS_COUNT
+
+  keywords_count:
+    type: custom_distribution
+    description: >
+      PLACES: Number of keywords
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_KEYWORDS_COUNT.
+    range_min: 1
+    range_max: 200
+    bucket_count: 10
+    histogram_type: exponential
+    unit: keywords
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_KEYWORDS_COUNT
+
+  backups_daysfromlast:
+    type: timing_distribution
+    description: >
+      PLACES: Days from last backup
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PLACES_BACKUPS_DAYSFROMLAST.
+    time_unit: day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_BACKUPS_DAYSFROMLAST
+
+  backups_bookmarkstree:
+    type: timing_distribution
+    description: >
+      PLACES: Time to build the bookmarks tree
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_BACKUPS_BOOKMARKSTREE_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_BACKUPS_BOOKMARKSTREE_MS
+
+  backups_tojson:
+    type: timing_distribution
+    description: >
+      PLACES: Time to convert and write the backup
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_BACKUPS_TOJSON_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_BACKUPS_TOJSON_MS
+
+  export_tohtml:
+    type: timing_distribution
+    description: >
+      PLACES: Time to convert and write bookmarks.html
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_EXPORT_TOHTML_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_EXPORT_TOHTML_MS
+
+  sorted_bookmarks_perc:
+    type: custom_distribution
+    description: >
+      PLACES: Percentage of bookmarks organized in folders
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram PLACES_SORTED_BOOKMARKS_PERC.
+    range_min: 1
+    range_max: 100
+    bucket_count: 10
+    histogram_type: linear
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_SORTED_BOOKMARKS_PERC
+
+  tagged_bookmarks_perc:
+    type: custom_distribution
+    description: >
+      PLACES: Percentage of tagged bookmarks
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram PLACES_TAGGED_BOOKMARKS_PERC.
+    range_min: 1
+    range_max: 100
+    bucket_count: 10
+    histogram_type: linear
+    unit: percent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_TAGGED_BOOKMARKS_PERC
+
+  database_filesize:
+    type: memory_distribution
+    description: >
+      PLACES: Database filesize (MB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_DATABASE_FILESIZE_MB.
+    memory_unit: megabyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822848
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822848
+    notification_emails:
+      - mbonardo@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_DATABASE_FILESIZE_MB
+
+  database_favicons_filesize:
+    type: memory_distribution
+    description: >
+      PLACES: Favicons database filesize (MB)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_DATABASE_FAVICONS_FILESIZE_MB.
+    memory_unit: megabyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1346554
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822848
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1346554
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822848
+    notification_emails:
+      - mbonardo@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_DATABASE_FAVICONS_FILESIZE_MB
+
+  expiration_steps_to_clean:
+    type: custom_distribution
+    description: >
+      PLACES: Expiration steps to cleanup the database
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PLACES_EXPIRATION_STEPS_TO_CLEAN2.
+    range_min: 0
+    range_max: 10
+    bucket_count: 11
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_EXPIRATION_STEPS_TO_CLEAN2
+
+  idle_frecency_decay_time:
+    type: timing_distribution
+    description: >
+      PLACES: Time to decay all frecencies values on idle (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_IDLE_FRECENCY_DECAY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_IDLE_FRECENCY_DECAY_TIME_MS
+
+  idle_maintenance_time:
+    type: timing_distribution
+    description: >
+      PLACES: Time to execute maintenance tasks on idle (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_IDLE_MAINTENANCE_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_IDLE_MAINTENANCE_TIME_MS
+
+  frecency_recalc_chunk_time:
+    type: timing_distribution
+    description: >
+      PLACES: Time to recalculate frecency for a chunk of pages (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_FRECENCY_RECALC_CHUNK_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811209
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822848
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811209
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822848
+    notification_emails:
+      - mbonardo@mozilla.com
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_FRECENCY_RECALC_CHUNK_TIME_MS
+
+  annos_pages_count:
+    type: custom_distribution
+    description: >
+      PLACES: Number of pages annotations
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_ANNOS_PAGES_COUNT.
+    range_min: 50
+    range_max: 5000
+    bucket_count: 10
+    histogram_type: exponential
+    unit: pages
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_ANNOS_PAGES_COUNT
+
+  maintenance_daysfromlast:
+    type: timing_distribution
+    description: >
+      PLACES: Days from last maintenance
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_MAINTENANCE_DAYSFROMLAST.
+    time_unit: day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_MAINTENANCE_DAYSFROMLAST
+
 page_icon:
   small_icon_count:
     type: counter

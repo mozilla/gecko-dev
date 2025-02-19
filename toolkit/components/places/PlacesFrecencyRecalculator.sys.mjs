@@ -185,17 +185,15 @@ export class PlacesFrecencyRecalculator {
     if (this.#task.isFinalized) {
       return;
     }
-    const refObj = {};
-    const histogram = "PLACES_FRECENCY_RECALC_CHUNK_TIME_MS";
-    TelemetryStopwatch.start(histogram, refObj);
+    let timerId = Glean.places.frecencyRecalcChunkTime.start();
     try {
       if (await this.recalculateSomeFrecencies()) {
-        TelemetryStopwatch.finish(histogram, refObj);
+        Glean.places.frecencyRecalcChunkTime.stopAndAccumulate(timerId);
       } else {
-        TelemetryStopwatch.cancel(histogram, refObj);
+        Glean.places.frecencyRecalcChunkTime.cancel(timerId);
       }
     } catch (ex) {
-      TelemetryStopwatch.cancel(histogram, refObj);
+      Glean.places.frecencyRecalcChunkTime.cancel(timerId);
       console.error(ex);
       lazy.logger.error(ex);
     }
@@ -391,8 +389,7 @@ export class PlacesFrecencyRecalculator {
    */
   async decay() {
     lazy.logger.trace("Decay frecency");
-    let refObj = {};
-    TelemetryStopwatch.start("PLACES_IDLE_FRECENCY_DECAY_TIME_MS", refObj);
+    let timerId = Glean.places.idleFrecencyDecayTime.start();
     // Ensure moz_places_afterupdate_frecency_trigger ignores decaying
     // frecency changes.
     lazy.PlacesUtils.history.isFrecencyDecaying = true;
@@ -423,11 +420,11 @@ export class PlacesFrecencyRecalculator {
           }
         );
 
-        TelemetryStopwatch.finish("PLACES_IDLE_FRECENCY_DECAY_TIME_MS", refObj);
+        Glean.places.idleFrecencyDecayTime.stopAndAccumulate(timerId);
         PlacesObservers.notifyListeners([new PlacesRanking()]);
       });
     } catch (ex) {
-      TelemetryStopwatch.cancel("PLACES_IDLE_FRECENCY_DECAY_TIME_MS", refObj);
+      Glean.places.idleFrecencyDecayTime.cancel(timerId);
       console.error(ex);
       lazy.logger.error(ex);
     } finally {
