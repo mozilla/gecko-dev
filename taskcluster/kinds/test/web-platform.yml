@@ -49,6 +49,7 @@ web-platform-tests:
     chunks:
         by-variant:
             privatebrowsing: dynamic
+            inc-origin-init: dynamic
             default:
                 by-test-platform:
                     android.*/debug: 32
@@ -75,6 +76,7 @@ web-platform-tests:
         - geckoview-no-fission-ship
         - async-event-dispatching
         - privatebrowsing
+        - inc-origin-init
     run-on-projects:
         by-variant:
             geckoview-no-fission-ship:
@@ -99,6 +101,12 @@ web-platform-tests:
                     macos.*: []
                     .*-(wayland).*/.*: []
                     default: built-projects
+            inc-origin-init:
+                by-test-platform:
+                    linux.*64(-shippable)?(-qr)?/.*: built-projects
+                    macosx.*64(-shippable)?/.*: built-projects
+                    windows11.*64.*(-shippable)?/.*: built-projects
+                    default: []
             default:
                 by-test-platform:
                     android.*: []
