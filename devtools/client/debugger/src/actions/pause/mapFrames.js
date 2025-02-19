@@ -51,9 +51,9 @@ async function updateFrameLocationAndDisplayName(frame, thunkArgs) {
 
   // As we now know that this frame relates to an original source...
   // Fetch the symbols for it and compute the frame's originalDisplayName.
-  const originalDisplayName = await thunkArgs.dispatch(
-    getOriginalFunctionDisplayName(location)
-  );
+  const originalDisplayName = location.source.isPrettyPrinted
+    ? frame.displayName
+    : await thunkArgs.dispatch(getOriginalFunctionDisplayName(location));
 
   // As we modify frame object, fork it to force causing re-renders
   return {
