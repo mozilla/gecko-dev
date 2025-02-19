@@ -30,6 +30,7 @@ void profiler_add_network_marker(
     mozilla::TimeStamp aEnd, int64_t aCount,
     mozilla::net::CacheDisposition aCacheDisposition, uint64_t aInnerWindowID,
     bool aIsPrivateBrowsing, unsigned long aClassOfServiceFlag,
+    nsresult aRequestStatus,
     const mozilla::net::TimingStruct* aTimings = nullptr,
     mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource = nullptr,
     const mozilla::Maybe<mozilla::net::HttpVersion> aHttpVersion =

@@ -9,6 +9,7 @@
 #include "HttpBaseChannel.h"
 #include "nsIChannelEventSink.h"
 #include "mozilla/Perfetto.h"
+#include "mozilla/ErrorNames.h"
 
 namespace mozilla::net {
 struct NetworkMarker {
@@ -24,6 +25,7 @@ struct NetworkMarker {
       const ProfilerString8View& aRedirectURI,
       const ProfilerString8View& aContentType, uint32_t aRedirectFlags,
       int64_t aRedirectChannelId, unsigned long aClassOfServiceFlag,
+      nsresult aRequestStatus,
       const mozilla::Maybe<mozilla::net::HttpVersion> aHttpVersion,
       mozilla::Maybe<uint32_t> aResponseStatus) {
     // This payload still streams a startTime and endTime property because it
@@ -42,6 +44,11 @@ struct NetworkMarker {
                "aClassOfServiceStr should be set after GetClassOfService");
     aWriter.StringProperty("classOfService",
                            MakeStringSpan(aClassOfServiceStr.get()));
+
+    nsAutoCString aRequestStatusStr;
+    GetErrorName(aRequestStatus, aRequestStatusStr);
+    aWriter.StringProperty("requestStatus",
+                           MakeStringSpan(aRequestStatusStr.get()));
 
     if (Span<const char> cacheString = GetCacheState(aCacheDisposition);
         !cacheString.IsEmpty()) {
@@ -381,7 +388,7 @@ void profiler_add_network_marker(
     mozilla::TimeStamp aEnd, int64_t aCount,
     mozilla::net::CacheDisposition aCacheDisposition, uint64_t aInnerWindowID,
     bool aIsPrivateBrowsing, unsigned long aClassOfServiceFlag,
-    const mozilla::net::TimingStruct* aTimings,
+    nsresult aRequestStatus, const mozilla::net::TimingStruct* aTimings,
     UniquePtr<ProfileChunkedBuffer> aSource,
     const Maybe<mozilla::net::HttpVersion> aHttpVersion,
     const Maybe<uint32_t> aResponseStatus,
@@ -419,7 +426,7 @@ void profiler_add_network_marker(
       aIsPrivateBrowsing, aTimings ? *aTimings : scEmptyNetTimingStruct,
       redirect_spec,
       aContentType ? ProfilerString8View(*aContentType) : ProfilerString8View(),
-      aRedirectFlags, aRedirectChannelId, aClassOfServiceFlag, aHttpVersion,
-      aResponseStatus);
+      aRedirectFlags, aRedirectChannelId, aClassOfServiceFlag, aRequestStatus,
+      aHttpVersion, aResponseStatus);
 }
 }  // namespace mozilla::net

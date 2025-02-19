@@ -112,7 +112,7 @@ void InterceptedHttpChannel::AsyncOpenInternal() {
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags());
+        mClassOfService.Flags(), mStatus);
   }
 
   // If an error occurs in this file we must ensure mListener callbacks are
@@ -551,7 +551,8 @@ InterceptedHttpChannel::Cancel(nsresult aStatus) {
         mLastStatusReported, TimeStamp::Now(), size, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags(), &mTransactionTimings, std::move(mSource));
+        mClassOfService.Flags(), mStatus, &mTransactionTimings,
+        std::move(mSource));
   }
 
   MOZ_DIAGNOSTIC_ASSERT(NS_FAILED(aStatus));
@@ -784,8 +785,8 @@ InterceptedHttpChannel::ResetInterception(bool aBypass) {
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         size, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags(), &mTransactionTimings, std::move(mSource),
-        httpVersion, responseStatus,
+        mClassOfService.Flags(), mStatus, &mTransactionTimings,
+        std::move(mSource), httpVersion, responseStatus,
         Some(nsDependentCString(contentType.get())), mURI, flags,
         newBaseChannel->ChannelId());
   }
@@ -1234,8 +1235,8 @@ InterceptedHttpChannel::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
         mLastStatusReported, TimeStamp::Now(), size, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags(), &mTransactionTimings, std::move(mSource),
-        httpVersion, responseStatus,
+        mClassOfService.Flags(), mStatus, &mTransactionTimings,
+        std::move(mSource), httpVersion, responseStatus,
         Some(nsDependentCString(contentType.get())));
   }
 

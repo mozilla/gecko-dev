@@ -2496,7 +2496,8 @@ TEST(GeckoProfiler, Markers)
       net::kCacheHit,
       /* uint64_t aInnerWindowID */ 78,
       /* bool aIsPrivateBrowsing */ false,
-      /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Leader
+      /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Leader,
+      /* nsresult aRequestStatus */ NS_OK
       /* const mozilla::net::TimingStruct* aTimings = nullptr */
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
@@ -2523,6 +2524,7 @@ TEST(GeckoProfiler, Markers)
       /* uint64_t aInnerWindowID */ 78,
       /* bool aIsPrivateBrowsing */ false,
       /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Follower,
+      /* nsresult aRequestStatus */ NS_BINDING_ABORTED,
       /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
@@ -2555,6 +2557,7 @@ TEST(GeckoProfiler, Markers)
       /* uint64_t aInnerWindowID */ 78,
       /* bool aIsPrivateBrowsing */ false,
       /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Speculative,
+      /* nsresult aRequestStatus */ NS_ERROR_UNEXPECTED,
       /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
@@ -2586,6 +2589,7 @@ TEST(GeckoProfiler, Markers)
       /* uint64_t aInnerWindowID */ 78,
       /* bool aIsPrivateBrowsing */ false,
       /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Background,
+      /* nsresult aRequestStatus */ NS_ERROR_DOCSHELL_DYING,
       /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
@@ -2618,6 +2622,7 @@ TEST(GeckoProfiler, Markers)
       /* bool aIsPrivateBrowsing */ false,
       /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Unblocked |
           nsIClassOfService::TailForbidden,
+      /* nsresult aRequestStatus */ NS_ERROR_DOM_CORP_FAILED,
       /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
@@ -2649,6 +2654,7 @@ TEST(GeckoProfiler, Markers)
       /* bool aIsPrivateBrowsing */ false,
       /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Unblocked |
           nsIClassOfService::Throttleable | nsIClassOfService::TailForbidden,
+      /* nsresult aRequestStatus */ NS_ERROR_BLOCKED_BY_POLICY,
       /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
@@ -2678,7 +2684,8 @@ TEST(GeckoProfiler, Markers)
       net::kCacheUnresolved,
       /* uint64_t aInnerWindowID */ 78,
       /* bool aIsPrivateBrowsing */ true,
-      /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Tail
+      /* unsigned long aClassOfServiceFlag */ nsIClassOfService::Tail,
+      /* nsresult aRequestStatus */ NS_BINDING_REDIRECTED
       /* const mozilla::net::TimingStruct* aTimings = nullptr */
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
@@ -3075,6 +3082,7 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_EQ_JSON(payload["cache"], String, "Hit");
                   EXPECT_TRUE(payload["isPrivateBrowsing"].isNull());
                   EXPECT_EQ_JSON(payload["classOfService"], String, "Leader");
+                  EXPECT_EQ_JSON(payload["requestStatus"], String, "NS_OK");
                   EXPECT_TRUE(payload["RedirectURI"].isNull());
                   EXPECT_TRUE(payload["redirectType"].isNull());
                   EXPECT_TRUE(payload["isHttpToHttpsRedirect"].isNull());
@@ -3096,6 +3104,8 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_TRUE(payload["isPrivateBrowsing"].isNull());
                   EXPECT_EQ_JSON(payload["httpVersion"], String, "h3");
                   EXPECT_EQ_JSON(payload["classOfService"], String, "Follower");
+                  EXPECT_EQ_JSON(payload["requestStatus"], String,
+                                 "NS_BINDING_ABORTED");
                   EXPECT_TRUE(payload["RedirectURI"].isNull());
                   EXPECT_TRUE(payload["redirectType"].isNull());
                   EXPECT_TRUE(payload["isHttpToHttpsRedirect"].isNull());
@@ -3118,6 +3128,8 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_TRUE(payload["isPrivateBrowsing"].isNull());
                   EXPECT_EQ_JSON(payload["classOfService"], String,
                                  "Speculative");
+                  EXPECT_EQ_JSON(payload["requestStatus"], String,
+                                 "NS_ERROR_UNEXPECTED");
                   EXPECT_EQ_JSON(payload["RedirectURI"], String,
                                  "http://example.com/");
                   EXPECT_EQ_JSON(payload["redirectType"], String, "Temporary");
@@ -3140,6 +3152,8 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_TRUE(payload["isPrivateBrowsing"].isNull());
                   EXPECT_EQ_JSON(payload["classOfService"], String,
                                  "Background");
+                  EXPECT_EQ_JSON(payload["requestStatus"], String,
+                                 "NS_ERROR_DOCSHELL_DYING");
                   EXPECT_EQ_JSON(payload["RedirectURI"], String,
                                  "http://example.com/");
                   EXPECT_EQ_JSON(payload["redirectType"], String, "Permanent");
@@ -3162,6 +3176,8 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_TRUE(payload["isPrivateBrowsing"].isNull());
                   EXPECT_EQ_JSON(payload["classOfService"], String,
                                  "Unblocked | TailForbidden");
+                  EXPECT_EQ_JSON(payload["requestStatus"], String,
+                                 "NS_ERROR_DOM_CORP_FAILED");
                   EXPECT_EQ_JSON(payload["RedirectURI"], String,
                                  "http://example.com/");
                   EXPECT_EQ_JSON(payload["redirectType"], String, "Internal");
@@ -3186,6 +3202,8 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_TRUE(payload["isPrivateBrowsing"].isNull());
                   EXPECT_EQ_JSON(payload["classOfService"], String,
                                  "Unblocked | Throttleable | TailForbidden");
+                  EXPECT_EQ_JSON(payload["requestStatus"], String,
+                                 "NS_ERROR_BLOCKED_BY_POLICY");
                   EXPECT_EQ_JSON(payload["RedirectURI"], String,
                                  "http://example.com/");
                   EXPECT_EQ_JSON(payload["redirectType"], String, "Internal");
@@ -3207,6 +3225,8 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_EQ_JSON(payload["cache"], String, "Unresolved");
                   EXPECT_EQ_JSON(payload["isPrivateBrowsing"], Bool, true);
                   EXPECT_EQ_JSON(payload["classOfService"], String, "Tail");
+                  EXPECT_EQ_JSON(payload["requestStatus"], String,
+                                 "NS_BINDING_REDIRECTED");
                   EXPECT_TRUE(payload["RedirectURI"].isNull());
                   EXPECT_TRUE(payload["redirectType"].isNull());
                   EXPECT_TRUE(payload["isHttpToHttpsRedirect"].isNull());

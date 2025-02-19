@@ -171,6 +171,7 @@ add_task(async function test_network_markers_service_worker_use() {
         URI: expectedFile,
         httpVersion: "http/1.1",
         classOfService: "Unset",
+        requestStatus: "NS_OK",
         requestMethod: "GET",
         responseStatus: 200,
         contentType: Expect.stringMatches(/^(text\/html|image\/svg\+xml)$/),

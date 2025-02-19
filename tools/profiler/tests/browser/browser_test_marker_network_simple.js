@@ -52,6 +52,7 @@ add_task(async function test_network_markers() {
         URI: url,
         httpVersion: "http/1.1",
         classOfService: "UrgentStart",
+        requestStatus: "NS_OK",
         requestMethod: "GET",
         contentType: "text/html",
         startTime: Expect.number(),

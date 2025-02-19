@@ -1032,8 +1032,8 @@ void HttpChannelChild::OnStopRequest(
         mLastStatusReported, now, mTransferSize, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags(), &mTransactionTimings, std::move(mSource),
-        httpVersion, responseStatus,
+        mClassOfService.Flags(), mStatus, &mTransactionTimings,
+        std::move(mSource), httpVersion, responseStatus,
         Some(nsDependentCString(contentType.get())));
   }
 
@@ -1606,8 +1606,9 @@ void HttpChannelChild::Redirect1Begin(
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         0, kCacheUnknown, mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags(), &mTransactionTimings, std::move(mSource),
-        Some(responseHead.Version()), Some(responseHead.Status()),
+        mClassOfService.Flags(), mStatus, &mTransactionTimings,
+        std::move(mSource), Some(responseHead.Version()),
+        Some(responseHead.Status()),
         Some(nsDependentCString(contentType.get())), newOriginalURI,
         redirectFlags, channelId);
   }
@@ -1930,7 +1931,7 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener* aListener) {
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags());
+        mClassOfService.Flags(), mStatus);
   }
   StoreIsPending(true);
   StoreWasOpened(true);
@@ -2273,7 +2274,7 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
         mLoadInfo->GetInnerWindowID(),
         mLoadInfo->GetOriginAttributes().IsPrivateBrowsing(),
-        mClassOfService.Flags());
+        mClassOfService.Flags(), mStatus);
   }
   StoreIsPending(true);
   StoreWasOpened(true);
