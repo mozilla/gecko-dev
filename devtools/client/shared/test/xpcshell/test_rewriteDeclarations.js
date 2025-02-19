@@ -16,6 +16,12 @@ const TEST_DATA = [
     expected: "p:N;",
   },
   {
+    desc: "set in rule with nested rule",
+    input: "a:b; span { e:f; }",
+    instruction: { type: "set", name: "a", value: "N", priority: "", index: 0 },
+    expected: "a:N; span { e:f; }",
+  },
+  {
     desc: "simple set clearing !important",
     input: "p:v !important;",
     instruction: { type: "set", name: "p", value: "N", priority: "", index: 0 },
@@ -53,6 +59,12 @@ const TEST_DATA = [
     instruction: { type: "rename", name: "p", newName: "q", index: 0 },
     expected: "q:v;",
   },
+  {
+    desc: "rename in rule with nested rule",
+    input: "a:b; span { e:f; }",
+    instruction: { type: "rename", name: "a", newName: "q", index: 0 },
+    expected: "q:b; span { e:f; }",
+  },
   // "rename" is passed the name that the user entered, and must do
   // any escaping necessary to ensure that this is an identifier.
   {
@@ -86,6 +98,32 @@ const TEST_DATA = [
       enabled: true,
     },
     expected: "a:b; c: d;e: f;",
+  },
+  {
+    desc: "create at the end of rule with nested rule",
+    input: "a:b; span { e:f; }",
+    instruction: {
+      type: "create",
+      name: "c",
+      value: "d",
+      priority: "",
+      index: 1,
+      enabled: true,
+    },
+    expected: "a:b; c: d;span { e:f; }",
+  },
+  {
+    desc: "create at the end of rule with CSSNestedDeclarations",
+    input: "a:b; span { e:f; } g: h;",
+    instruction: {
+      type: "create",
+      name: "c",
+      value: "d",
+      priority: "",
+      index: 1,
+      enabled: true,
+    },
+    expected: "a:b; c: d;span { e:f; } g: h;",
   },
   // "create" is passed the name that the user entered, and must do
   // any escaping necessary to ensure that this is an identifier.
@@ -127,10 +165,28 @@ const TEST_DATA = [
     expected: "/* color:red; */ color: blue;",
   },
   {
+    desc: "disable on rule with nested rule",
+    input: "a:b; span { c:d; }",
+    instruction: { type: "enable", name: "a", value: false, index: 0 },
+    expected: "/*! a:b; */ span { c:d; }",
+  },
+  {
+    desc: "enable on rule with nested rule",
+    input: "/*! a:b; */ span { c:d; }",
+    instruction: { type: "enable", name: "a", value: true, index: 0 },
+    expected: "a:b; span { c:d; }",
+  },
+  {
     desc: "simple remove",
     input: "a:b;c:d;e:f;",
     instruction: { type: "remove", name: "c", index: 1 },
     expected: "a:b;e:f;",
+  },
+  {
+    desc: "remove on rule with nested rule",
+    input: "a:b;c:d;span { e:f; }",
+    instruction: { type: "remove", name: "c", index: 1 },
+    expected: "a:b;span { e:f; }",
   },
   {
     desc: "disable with comment ender in string",
@@ -743,8 +799,13 @@ const TEST_DATA = [
   },
 ];
 
-function rewriteDeclarations(inputString, instruction, defaultIndentation) {
-  const rewriter = new RuleRewriter(isCssPropertyKnown, null, inputString);
+function rewriteDeclarations(
+  win,
+  inputString,
+  instruction,
+  defaultIndentation
+) {
+  const rewriter = new RuleRewriter(win, isCssPropertyKnown, null, inputString);
   rewriter.defaultIndentation = defaultIndentation;
 
   switch (instruction.type) {
@@ -795,8 +856,12 @@ function rewriteDeclarations(inputString, instruction, defaultIndentation) {
 }
 
 function run_test() {
+  const win =
+    Services.appShell.createWindowlessBrowser(false).document.defaultView;
+
   for (const test of TEST_DATA) {
     const { changed, text } = rewriteDeclarations(
+      win,
       test.input,
       test.instruction,
       "\t"

@@ -416,6 +416,7 @@ class Rule {
     const resultPromise = Promise.resolve(this._applyingModifications)
       .then(() => {
         const modifications = this.domRule.startModifyingProperties(
+          this.inspector.panelWin,
           this.cssProperties
         );
         modifier(modifications);
@@ -500,6 +501,7 @@ class Rule {
   previewPropertyValue(property, value, priority) {
     this.elementStyle.ruleView.emitForTests("start-preview-property-value");
     const modifications = this.domRule.startModifyingProperties(
+      this.inspector.panelWin,
       this.cssProperties
     );
     modifications.setProperty(

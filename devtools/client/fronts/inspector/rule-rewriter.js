@@ -50,7 +50,7 @@ const BLANK_LINE_RX = /^[ \t]*(?:\r\n|\n|\r|\f|$)/;
  *
  * An example showing how to disable the 3rd property in a rule:
  *
- *    let rewriter = new RuleRewriter(isCssPropertyKnown, ruleActor,
+ *    let rewriter = new RuleRewriter(win, isCssPropertyKnown, ruleActor,
  *                                    ruleActor.authoredText);
  *    rewriter.setPropertyEnabled(3, "color", false);
  *    rewriter.apply().then(() => { ... the change is made ... });
@@ -68,6 +68,7 @@ const BLANK_LINE_RX = /^[ \t]*(?:\r\n|\n|\r|\f|$)/;
 class RuleRewriter {
   /**
    * @constructor
+   * @param {Window} win
    * @param {Function} isCssPropertyKnown
    *        A function to check if the CSS property is known. This is either an
    *        internal server function or from the CssPropertiesFront.
@@ -80,7 +81,8 @@ class RuleRewriter {
    *        and in particular for testing it can be |null|.
    * @param {String} inputString The CSS source text to parse and modify.
    */
-  constructor(isCssPropertyKnown, rule, inputString) {
+  constructor(win, isCssPropertyKnown, rule, inputString) {
+    this.win = win;
     this.rule = rule;
     this.isCssPropertyKnown = isCssPropertyKnown;
     // The RuleRewriter sends CSS rules as text to the server, but with this modifications
@@ -578,11 +580,45 @@ class RuleRewriter {
         " */";
     }
 
-    this.result += newIndentation + newText;
-    if (this.hasNewLine) {
-      this.result += "\n";
+    newText = `${newIndentation}${newText}${this.hasNewLine ? "\n" : ""}${savedWhitespace}`;
+
+    // If the rule has some nested declarations, we need to find the proper index where
+    // to put the new declaration at.
+    // e.g. if we have `body { color: red; &>span {}; }`, we want to put the new property
+    // after `color: red` but before `&>span`.
+    let nestedDeclarationIndex = -1;
+    // Don't try to find the index if we can already see there's no nested rules
+    if (this.result.includes("{")) {
+      // Create a rule with the initial rule text so we can check for children rules
+      const dummySheet = new this.win.CSSStyleSheet();
+      dummySheet.replaceSync(":root {\n" + this.result + "}");
+      const dummyRule = dummySheet.cssRules[0];
+      if (dummyRule.cssRules.length) {
+        const nestedRule = dummyRule.cssRules[0];
+        const nestedRuleLine = InspectorUtils.getRelativeRuleLine(nestedRule);
+        const nestedRuleColumn = InspectorUtils.getRuleColumn(nestedRule);
+        // We need to account for the new line we added for the parent rule,
+        // and then remove 1 again since the InspectorUtils method returns 1-based values
+        const actualLine = nestedRuleLine - 2;
+        const actualColumn = nestedRuleColumn - 1;
+
+        let lineOffset = 0;
+        for (let i = 0; i < actualLine; i++) {
+          lineOffset = this.result.indexOf("\n", lineOffset);
+        }
+
+        nestedDeclarationIndex = lineOffset + actualColumn;
+      }
     }
-    this.result += savedWhitespace;
+
+    if (nestedDeclarationIndex == -1) {
+      this.result += newText;
+    } else {
+      this.result =
+        this.result.substring(0, nestedDeclarationIndex) +
+        newText +
+        this.result.substring(nestedDeclarationIndex);
+    }
 
     if (this.decl) {
       // Still want to copy in the declaration previously at this

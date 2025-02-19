@@ -77,13 +77,13 @@ addAsyncTest(async function modifyProperties() {
 });
 
 async function setProperty(rule, index, name, value) {
-  const changes = rule.startModifyingProperties(isCssPropertyKnown);
+  const changes = rule.startModifyingProperties(window, isCssPropertyKnown);
   changes.setProperty(index, name, value);
   await changes.apply();
 }
 
 async function removeProperty(rule, index, name) {
-  const changes = rule.startModifyingProperties(isCssPropertyKnown);
+  const changes = rule.startModifyingProperties(window, isCssPropertyKnown);
   changes.removeProperty(index, name);
   await changes.apply();
 }

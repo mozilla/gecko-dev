@@ -48,13 +48,20 @@ class StyleRuleFront extends FrontClassWithSpec(styleRuleSpec) {
    * trait is true; otherwise a RuleModificationList will be
    * returned.
    *
+   * @param {Window} win
+   *                 This is needed by the RuleRewriter.
    * @param {CssPropertiesFront} cssProperties
    *                             This is needed by the RuleRewriter.
    * @return {RuleModificationList}
    */
-  startModifyingProperties(cssProperties) {
+  startModifyingProperties(win, cssProperties) {
     if (this.canSetRuleText) {
-      return new RuleRewriter(cssProperties.isKnown, this, this.authoredText);
+      return new RuleRewriter(
+        win,
+        cssProperties.isKnown,
+        this,
+        this.authoredText
+      );
     }
     return new RuleModificationList(this);
   }

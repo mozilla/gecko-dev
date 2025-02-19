@@ -110,6 +110,7 @@ EditingSession.prototype = {
       // Note that RuleRewriter doesn't support modifying several properties at
       // once, so we do this in a sequence here.
       const modifications = this._rules[0].startModifyingProperties(
+        this._inspector.panelWin,
         this._inspector.cssProperties
       );
 
@@ -148,6 +149,7 @@ EditingSession.prototype = {
     // setProperties for information about why.
     for (const [property, value] of this._modifications) {
       const modifications = this._rules[0].startModifyingProperties(
+        this._inspector.panelWin,
         this._inspector.cssProperties
       );
 
