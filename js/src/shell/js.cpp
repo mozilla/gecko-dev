@@ -12974,6 +12974,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   if (op.getBoolOption("enable-promise-try")) {
     JS::Prefs::setAtStartup_experimental_promise_try(true);
   }
+  if (op.getBoolOption("enable-math-sumprecise")) {
+    JS::Prefs::setAtStartup_experimental_math_sumprecise(true);
+  }
 #ifdef NIGHTLY_BUILD
   if (op.getBoolOption("enable-async-iterator-helpers")) {
     JS::Prefs::setAtStartup_experimental_async_iterator_helpers(true);
@@ -12986,9 +12989,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-iterator-sequencing")) {
     JS::Prefs::setAtStartup_experimental_iterator_sequencing(true);
-  }
-  if (op.getBoolOption("enable-math-sumprecise")) {
-    JS::Prefs::setAtStartup_experimental_math_sumprecise(true);
   }
   if (op.getBoolOption("enable-iterator-range")) {
     JS::Prefs::setAtStartup_experimental_iterator_range(true);

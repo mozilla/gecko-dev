@@ -2333,10 +2333,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
       return true;
     }
   }
-  if (key == JSProto_Math && !JS::Prefs::experimental_math_sumprecise() &&
-      id == NameToId(cx->names().sumPrecise)) {
-    return true;
-  }
   if (key == JSProto_Atomics && !JS::Prefs::experimental_atomics_pause() &&
       id == NameToId(cx->names().pause)) {
     return true;
@@ -2370,6 +2366,11 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
   if (key == JSProto_DataView && !JS::Prefs::experimental_float16array() &&
       (id == NameToId(cx->names().getFloat16) ||
        id == NameToId(cx->names().setFloat16))) {
+    return true;
+  }
+
+  if (key == JSProto_Math && !JS::Prefs::experimental_math_sumprecise() &&
+      id == NameToId(cx->names().sumPrecise)) {
     return true;
   }
 
