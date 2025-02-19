@@ -267,7 +267,7 @@ class NetworkBench(BasePythonSupport):
 
     def run_command(self, command):
         try:
-            subprocess.run(
+            result = subprocess.run(
                 command,
                 shell=True,
                 check=True,
@@ -275,6 +275,7 @@ class NetworkBench(BasePythonSupport):
                 stderr=subprocess.PIPE,
             )
             LOG.info(command)
+            LOG.info(f"Output: {result.stdout.decode().strip()}")
             return True
         except subprocess.CalledProcessError as e:
             LOG.info(f"Error executing command: {command}")
@@ -298,7 +299,9 @@ class NetworkBench(BasePythonSupport):
             raise Exception(f"Unknown network type: {network_type}")
         return result["bandwidth"], result["rtt_ms"]
 
-    def apply_network_throttling(self, interface, network_type, loss, port):
+    def apply_network_throttling(
+        self, interface, network_type, loss, protocol_and_port
+    ):
         def calculate_bdp(bandwidth_mbit, rtt_ms):
             bandwidth_kbps = bandwidth_mbit * 1_000
             bdp_bits = bandwidth_kbps * rtt_ms
@@ -344,32 +347,35 @@ class NetworkBench(BasePythonSupport):
             f"sudo tc qdisc add dev {interface} parent 1:1 handle 10: netem delay {delay_str} loss {loss}% limit {bdp_bytes}"
         ):
             return False
-        # Add a filter to match UDP traffic on the specified port for IPv4
+
+        protocol = 6 if protocol_and_port[0] == "tcp" else 17
+        port = protocol_and_port[1]
+        # Add a filter to match TCP/UDP traffic on the specified port for IPv4
         if not self.run_command(
             f"sudo tc filter add dev {interface} protocol ip parent 1:0 u32 "
-            f"match ip protocol 17 0xff "
+            f"match ip protocol {protocol} 0xff "
             f"match ip dport {port} 0xffff "
             f"flowid 1:1"
         ):
             return False
         if not self.run_command(
             f"sudo tc filter add dev {interface} protocol ip parent 1:0 u32 "
-            f"match ip protocol 17 0xff "
+            f"match ip protocol {protocol} 0xff "
             f"match ip sport {port} 0xffff "
             f"flowid 1:1"
         ):
             return False
-        # Add a filter to match UDP traffic on the specified port for IPv6
+        # Add a filter to match TCP/UDP traffic on the specified port for IPv6
         if not self.run_command(
             f"sudo tc filter add dev {interface} parent 1:0 protocol ipv6 u32 "
-            f"match ip6 protocol 17 0xff "
+            f"match ip6 protocol {protocol} 0xff "
             f"match ip6 dport {port} 0xffff "
             f"flowid 1:1"
         ):
             return False
         if not self.run_command(
             f"sudo tc filter add dev {interface} parent 1:0 protocol ipv6 u32 "
-            f"match ip6 protocol 17 0xff "
+            f"match ip6 protocol {protocol} 0xff "
             f"match ip6 sport {port} 0xffff "
             f"flowid 1:1"
         ):
@@ -493,13 +499,93 @@ class NetworkBench(BasePythonSupport):
             return Path(html_file.name)
         return None
 
+    def start_iperf3(self, port):
+        command = ["iperf3", "--server", "--interval", "10", "--port", str(port)]
+        server_process = Popen(
+            command,
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+            universal_newlines=True,
+            start_new_session=True,
+        )
+
+        def read_output(pipe, log_func):
+            for line in iter(pipe.readline, ""):
+                log_func(line)
+
+        server_stdout = threading.Thread(
+            target=read_output, args=(server_process.stdout, LOG.info)
+        )
+        server_stderr = threading.Thread(
+            target=read_output, args=(server_process.stderr, LOG.info)
+        )
+        server_stdout.start()
+        server_stderr.start()
+
+        # Configuring MSS to 1240 and buffer length to 1200 leads to an
+        # IP payload of 1280 bytes for iperf3.
+        # This is consistent with the IP payload size observed in Firefox.
+        command = [
+            "iperf3",
+            "--client",
+            "127.0.0.1",
+            "-p",
+            str(port),
+            "-M",
+            "1240",  # MSS
+            "-l",
+            "1200",  # The length of buffer to write
+            "--time",
+            "30",  # The time in seconds to transmit for
+            "--interval",
+            "10",  # Reporting interval in seconds
+        ]
+
+        client_process = Popen(
+            command,
+            stdin=PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
+            universal_newlines=True,
+            start_new_session=True,
+        )
+
+        client_process.wait()
+
+        self.shutdown_process("iperf3_client", client_process)
+        self.shutdown_process("iperf3_server", server_process)
+        server_stdout.join()
+        server_stderr.join()
+
+    def iperf3_baseline(self):
+        self.run_command("sysctl net.ipv4.tcp_rmem")
+        self.run_command("sysctl net.ipv4.tcp_wmem")
+        tcp_port = self.find_free_port(socket.SOCK_STREAM)
+        LOG.info(f"iperf3_baseline on port:{tcp_port}")
+
+        if not self.check_tc_command():
+            raise Exception("tc is not available")
+
+        if not self.apply_network_throttling(
+            self.interface,
+            self.network_type,
+            self.packet_loss_rate,
+            ("tcp", tcp_port),
+        ):
+            raise Exception("apply_network_throttling failed")
+
+        self.start_iperf3(tcp_port)
+
     def modify_command(self, cmd, test):
         if not self._is_chrome:
             cmd += [
                 "--firefox.acceptInsecureCerts",
                 "true",
             ]
+        protocol = "tcp"
         if self.http_version == "h3":
+            protocol = "udp"
             self.caddy_port = self.find_free_port(socket.SOCK_DGRAM)
             if not self._is_chrome:
                 cmd += [
@@ -522,6 +608,9 @@ class NetworkBench(BasePythonSupport):
         self.get_network_conditions(cmd)
         temp_file_path = None
         download_html = None
+
+        if self.network_type != "unthrottled":
+            self.iperf3_baseline()
 
         if self.transfer_type == "upload":
             cmd += [
@@ -566,7 +655,7 @@ class NetworkBench(BasePythonSupport):
                 self.interface,
                 self.network_type,
                 self.packet_loss_rate,
-                self.caddy_port,
+                (protocol, self.caddy_port),
             ):
                 raise Exception("apply_network_throttling failed")
 
@@ -632,7 +721,7 @@ class NetworkBench(BasePythonSupport):
                 )
                 item["extraOptions"].append(loss_str)
 
-    def shutdown_server(self, name, proc):
+    def shutdown_process(self, name, proc):
         LOG.info("%s server shutting down ..." % name)
         if proc.poll() is not None:
             LOG.info("server already dead %s" % proc.poll())
@@ -645,9 +734,9 @@ class NetworkBench(BasePythonSupport):
 
     def clean_up(self):
         if self.caddy_server:
-            self.shutdown_server("Caddy", self.caddy_server)
+            self.shutdown_process("Caddy", self.caddy_server)
         if self.backend_server:
-            self.shutdown_server("Backend", self.backend_server)
+            self.shutdown_process("Backend", self.backend_server)
         if self.caddy_stdout:
             self.caddy_stdout.join()
         if self.caddy_stderr:
