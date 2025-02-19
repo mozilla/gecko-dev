@@ -84,9 +84,6 @@ public:
   // Stop the server.
   void Stop();
 
-  // Adjust the path where minidumps are placed, this is thread-safe
-  void SetPath(const char* dump_path);
-
   // Create a "channel" that can be used by clients to report crashes
   // to a CrashGenerationServer.  |*server_fd| should be passed to
   // this class's constructor, and |*client_fd| should be passed to
@@ -126,7 +123,6 @@ private:
 
   bool generate_dumps_;
 
-  pthread_mutex_t dump_dir_mutex_;
   string dump_dir_;
 
   bool started_;

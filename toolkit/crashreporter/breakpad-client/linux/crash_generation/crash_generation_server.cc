@@ -74,7 +74,6 @@ CrashGenerationServer::CrashGenerationServer(
     exit_callback_(exit_callback),
     exit_context_(exit_context),
     generate_dumps_(generate_dumps),
-    dump_dir_mutex_(PTHREAD_MUTEX_INITIALIZER),
     started_(false),
     reserved_fds_{-1, -1}
 {
@@ -136,14 +135,6 @@ CrashGenerationServer::Stop()
   close(control_pipe_out_);
 
   started_ = false;
-}
-
-void
-CrashGenerationServer::SetPath(const char* dump_path)
-{
-  pthread_mutex_lock(&dump_dir_mutex_);
-  this->dump_dir_ = string(dump_path);
-  pthread_mutex_unlock(&dump_dir_mutex_);
 }
 
 //static
@@ -386,9 +377,7 @@ CrashGenerationServer::MakeMinidumpFilename(string& outFilename)
     return false;
 
   char path[PATH_MAX];
-  pthread_mutex_lock(&dump_dir_mutex_);
   snprintf(path, sizeof(path), "%s/%s.dmp", dump_dir_.c_str(), guidString);
-  pthread_mutex_unlock(&dump_dir_mutex_);
 
   outFilename = path;
   return true;

@@ -630,6 +630,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "builtins-static"
+version = "0.1.0"
+dependencies = [
+ "bindgen 0.69.4",
+ "mozbuild",
+ "mozilla-central-workspace-hack",
+ "nom",
+ "pkcs11-bindings",
+ "smallvec",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1083,55 +1095,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "mach2",
-]
-
-[[package]]
-name = "crash_helper_client"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "crash_helper_common",
- "nix 0.29.0",
- "num-derive",
- "num-traits",
- "windows-sys",
-]
-
-[[package]]
-name = "crash_helper_common"
-version = "0.1.0"
-dependencies = [
- "nix 0.29.0",
- "num-derive",
- "num-traits",
- "thiserror 2.0.9",
- "windows-sys",
-]
-
-[[package]]
-name = "crash_helper_server"
-version = "0.1.0"
-dependencies = [
- "android_logger",
- "anyhow",
- "cc",
- "cfg-if",
- "crash_helper_common",
- "env_logger",
- "linked-hash-map",
- "log",
- "mozannotation_server",
- "mozbuild",
- "mozilla-central-workspace-hack",
- "nix 0.29.0",
- "num-derive",
- "num-traits",
- "once_cell",
- "rust_minidump_writer_linux",
- "thiserror 2.0.9",
- "uuid",
- "windows-sys",
- "yaml-rust",
 ]
 
 [[package]]
@@ -1799,7 +1762,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85cdab6a89accf66733ad5a1693a4dcced6aeff64602b634530dd73c1f3ee9f0"
 dependencies = [
  "log",
- "regex",
  "termcolor",
 ]
 
@@ -2455,7 +2417,6 @@ dependencies = [
  "cert_storage",
  "chardetng_c",
  "cose-c",
- "crash_helper_client",
  "crypto_hash",
  "cubeb-coreaudio",
  "cubeb-pulse",
@@ -2525,7 +2486,6 @@ dependencies = [
  "signature_cache",
  "static_prefs",
  "storage",
- "trust-anchors",
  "unic-langid",
  "unic-langid-ffi",
  "unicode-bidi",
@@ -4232,15 +4192,19 @@ dependencies = [
 [[package]]
 name = "mozannotation_client"
 version = "0.1.0"
+dependencies = [
+ "nsstring",
+]
 
 [[package]]
 name = "mozannotation_server"
 version = "0.1.0"
 dependencies = [
- "memoffset 0.9.0",
+ "memoffset 0.8.999",
  "mozannotation_client",
  "process_reader",
- "thiserror 2.0.9",
+ "thin-vec",
+ "thiserror 1.999.999",
 ]
 
 [[package]]
@@ -4402,9 +4366,9 @@ dependencies = [
 name = "mozwer_s"
 version = "0.1.0"
 dependencies = [
- "crash_helper_client",
  "libc",
  "mozilla-central-workspace-hack",
+ "process_reader",
  "rust-ini",
  "serde",
  "serde_json",
@@ -4643,7 +4607,6 @@ dependencies = [
  "cfg-if",
  "cfg_aliases",
  "libc",
- "memoffset 0.9.0",
 ]
 
 [[package]]
@@ -5136,7 +5099,7 @@ dependencies = [
  "memoffset 0.9.0",
  "mozilla-central-workspace-hack",
  "scroll",
- "thiserror 2.0.9",
+ "thiserror 1.999.999",
  "windows-sys",
 ]
 
@@ -6343,7 +6306,7 @@ name = "terminal_size"
 version = "0.3.999"
 
 [[package]]
-name = "test-trust-anchors-static"
+name = "test-builtins-static"
 version = "0.1.0"
 dependencies = [
  "bindgen 0.69.4",
@@ -6595,17 +6558,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "803966e5a8397a70d3d8111afa1597ba8381346d7de4720e9f539471d371a1a3"
 dependencies = [
  "cache-padded",
-]
-
-[[package]]
-name = "trust-anchors"
-version = "0.1.0"
-dependencies = [
- "bindgen 0.69.4",
- "mozbuild",
- "nom",
- "pkcs11-bindings",
- "smallvec",
 ]
 
 [[package]]

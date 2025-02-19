@@ -985,7 +985,6 @@ mac-signing:
                   force: true
                   # These files are signed without entitlements
                   globs:
-                      - "/Contents/MacOS/crashhelper"
                       - "/Contents/MacOS/crashreporter.app"
                       - "/Contents/MacOS/updater.app/Contents/Frameworks/UpdateSettings.framework"
                       - "/Contents/MacOS/updater.app"
@@ -1030,7 +1029,6 @@ mac-signing:
                   force: true
                   entitlements: security/mac/hardenedruntime/v2/developer/utility.xml
                   globs:
-                      - "/Contents/MacOS/crashhelper"
                       - "/Contents/MacOS/crashreporter.app"
                       - "/Contents/MacOS/updater.app/Contents/Frameworks/UpdateSettings.framework"
                       - "/Contents/MacOS/updater.app"

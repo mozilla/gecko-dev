@@ -108,12 +108,6 @@ class CrashGenerationServer {
   // Returns true if initialization is successful; false otherwise.
   bool Start();
 
-  // Adjust the path where minidumps are placed, this is thread-safe.
-  void SetPath(const wchar_t* dump_path);
-
-  // Read the current dump path, this is thread-safe.
-  std::wstring GetPath();
-
   void pre_fetch_custom_info(bool do_pre_fetch) {
     pre_fetch_custom_info_ = do_pre_fetch;
   }
@@ -234,7 +228,7 @@ class CrashGenerationServer {
   // asynchronous IO operation.
   void EnterStateWhenSignaled(IPCServerState state);
 
-  // Sync object for thread-safe access to the shared list of clients and path.
+  // Sync object for thread-safe access to the shared list of clients.
   CRITICAL_SECTION sync_;
 
   // List of clients.
@@ -289,7 +283,7 @@ class CrashGenerationServer {
   bool pre_fetch_custom_info_;
 
   // The dump path for the server.
-  std::wstring dump_path_;
+  const std::wstring dump_path_;
 
   // State of the server in performing the IPC with the client.
   // Note that since we restrict the pipe to one instance, we

@@ -8,8 +8,8 @@ braces = "SameLine"
 line_length = 100
 tab_width = 2
 language = "C++"
-include_guard = "mozannotation_client_ffi_generated_h"
-includes = ["nsStringFwd.h"]
+include_guard = "mozannotation_server_ffi_generated_h"
+includes = ["nsString.h", "nsTArrayForwardDeclare.h"]
 
 [export.rename]
 "ThinVec" = "nsTArray"
