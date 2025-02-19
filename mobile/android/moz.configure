@@ -77,18 +77,6 @@ def android_subproject(value):
 
 set_config("MOZ_ANDROID_SUBPROJECT", android_subproject)
 
-option(
-    "--enable-geckoview-publishing",
-    default=depends("MOZ_AUTOMATION")(lambda x: bool(x)),
-    help="{Enable|Disable} publishing GeckoView to the local Maven repository",
-)
-
-option(
-    "--enable-geckoview-examples",
-    default=depends("MOZ_AUTOMATION")(lambda x: bool(x)),
-    help="{Enable|Disable} assembling example GeckoView projects",
-)
-
 imply_option("MOZ_NORMANDY", False)
 imply_option("MOZ_SERVICES_HEALTHREPORT", True)
 imply_option("MOZ_GECKOVIEW_HISTORY", True)

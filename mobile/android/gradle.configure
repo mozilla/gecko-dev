@@ -333,16 +333,8 @@ option(
 imply_option("--disable-android-bundle", False, when="--enable-address-sanitizer")
 
 
-@depends(
-    gradle_android_build_config,
-    "--enable-geckoview-publishing",
-    "--enable-geckoview-examples",
-)
-def gradle_android_archive_geckoview_tasks(
-    build_config,
-    geckoview_publishing,
-    geckoview_examples,
-):
+@depends(gradle_android_build_config)
+def gradle_android_archive_geckoview_tasks(build_config):
     """Gradle tasks run by |mach android archive-geckoview|."""
     tasks = [
         "geckoview:assemble{geckoview.variant.name}".format(
@@ -351,23 +343,17 @@ def gradle_android_archive_geckoview_tasks(
         "geckoview:assemble{geckoview.variant.name}AndroidTest".format(
             geckoview=build_config.geckoview
         ),
+        "messaging_example:assemble{geckoview_example.variant.name}".format(
+            geckoview_example=build_config.geckoview_example
+        ),
+        "port_messaging_example:assemble{geckoview_example.variant.name}".format(
+            geckoview_example=build_config.geckoview_example
+        ),
+        "geckoview:publish{geckoview.variant.name}PublicationToMavenRepository".format(
+            geckoview=build_config.geckoview
+        ),
+        "exoplayer2:publishDebugPublicationToMavenRepository",
     ]
-    if geckoview_examples:
-        tasks += [
-            "messaging_example:assemble{geckoview_example.variant.name}".format(
-                geckoview_example=build_config.geckoview_example
-            ),
-            "port_messaging_example:assemble{geckoview_example.variant.name}".format(
-                geckoview_example=build_config.geckoview_example
-            ),
-        ]
-    if geckoview_publishing:
-        tasks += [
-            "geckoview:publish{geckoview.variant.name}PublicationToMavenRepository".format(
-                geckoview=build_config.geckoview
-            ),
-            "exoplayer2:publishDebugPublicationToMavenRepository",
-        ]
     return tasks
 
 
