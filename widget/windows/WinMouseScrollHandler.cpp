@@ -207,11 +207,6 @@ void MouseScrollHandler::MaybeLogKeyState() {
 }
 
 /* static */
-bool MouseScrollHandler::SkipScrollWheelHack() {
-  return !StaticPrefs::widget_windows_old_scrollwheel_message_hack();
-}
-
-/* static */
 bool MouseScrollHandler::NeedsMessage(UINT aMsg) {
   switch (aMsg) {
     case WM_SETTINGCHANGE:
@@ -311,38 +306,10 @@ bool MouseScrollHandler::ProcessMessage(nsWindow* aWidget, UINT msg,
 
     case WM_MOUSEWHEEL:
     case WM_MOUSEHWHEEL:
-      if (SkipScrollWheelHack()) {
-        return GetInstance()->ProcessMessageDirectly(msg, wParam, lParam,
-                                                     aResult);
-      }
-
-      GetInstance()->ProcessNativeMouseWheelMessage(aWidget, msg, wParam,
-                                                    lParam);
-      if (auto* synth = GetActiveSynthEvent()) {
-        synth->NotifyNativeMessageHandlingFinished();
-      }
-      // We don't need to call next wndproc for WM_MOUSEWHEEL and
-      // WM_MOUSEHWHEEL.  We should consume them always.  If the messages
-      // would be handled by our window again, it caused making infinite
-      // message loop.
-      aResult.mConsumed = true;
-      aResult.mResult = 0;
-      return true;
-
     case WM_HSCROLL:
     case WM_VSCROLL:
-      if (SkipScrollWheelHack()) {
-        return GetInstance()->ProcessMessageDirectly(msg, wParam, lParam,
-                                                     aResult);
-      }
-
-      aResult.mConsumed = GetInstance()->ProcessNativeScrollMessage(
-          aWidget, msg, wParam, lParam);
-      if (auto* synth = GetActiveSynthEvent()) {
-        synth->NotifyNativeMessageHandlingFinished();
-      }
-      aResult.mResult = 0;
-      return true;
+      return GetInstance()->ProcessMessageDirectly(msg, wParam, lParam,
+                                                   aResult);
 
     case MOZ_WM_MOUSEVWHEEL:
     case MOZ_WM_MOUSEHWHEEL:
@@ -714,17 +681,13 @@ bool MouseScrollHandler::HandleMouseWheelMessage(nsWindow* aWidget,
     }
   }();
 
-  // direct call is OK if this pref is set; to simplify internal logic, adjust
-  // message ID as though we had gone through the hack
-  if (SkipScrollWheelHack()) {
-    if (aMessage == WM_MOUSEWHEEL) {
-      aMessage = MOZ_WM_MOUSEVWHEEL;
-    } else if (aMessage == WM_MOUSEHWHEEL) {
-      aMessage = MOZ_WM_MOUSEHWHEEL;
-    }
+  // a remnant of the old scrollwheel message hack
+  if (aMessage == WM_MOUSEWHEEL) {
+    aMessage = MOZ_WM_MOUSEVWHEEL;
+  } else if (aMessage == WM_MOUSEHWHEEL) {
+    aMessage = MOZ_WM_MOUSEHWHEEL;
   }
 
-  // N.B.: text here is not entirely accurate if SkipScrollWheelHack()
   MOZ_ASSERT((aMessage == MOZ_WM_MOUSEVWHEEL || aMessage == MOZ_WM_MOUSEHWHEEL),
              "HandleMouseWheelMessage must be called with "
              "MOZ_WM_MOUSEVWHEEL or MOZ_WM_MOUSEHWHEEL");
@@ -801,17 +764,13 @@ bool MouseScrollHandler::HandleScrollMessageAsMouseWheelMessage(
     }
   }();
 
-  // direct call is OK if this pref is set; to simplify internal logic, adjust
-  // message ID as though we had gone through the hack
-  if (SkipScrollWheelHack()) {
-    if (aMessage == WM_VSCROLL) {
-      aMessage = MOZ_WM_VSCROLL;
-    } else if (aMessage == WM_HSCROLL) {
-      aMessage = MOZ_WM_HSCROLL;
-    }
+  // a remnant of the old scrollwheel message hack
+  if (aMessage == WM_VSCROLL) {
+    aMessage = MOZ_WM_VSCROLL;
+  } else if (aMessage == WM_HSCROLL) {
+    aMessage = MOZ_WM_HSCROLL;
   }
 
-  // N.B.: text here is not entirely accurate if SkipScrollWheelHack()
   MOZ_ASSERT((aMessage == MOZ_WM_VSCROLL || aMessage == MOZ_WM_HSCROLL),
              "HandleScrollMessageAsMouseWheelMessage must be called with "
              "MOZ_WM_VSCROLL or MOZ_WM_HSCROLL");
@@ -1745,13 +1704,6 @@ nsresult MouseScrollHandler::SynthesizingEvent::Synthesize(
   // We should SEND the message for reducing the possibility of receiving
   // unexpected message which were not sent from here.
   mCursorPoint = aCursorPoint;
-
-  if (!MouseScrollHandler::SkipScrollWheelHack()) {
-    mWnd = aWnd;
-    mMessage = aMessage;
-    mWParam = aWParam;
-    mLParam = aLParam;
-  }
 
   memcpy(mKeyState, aKeyStates, sizeof(mKeyState));
   ::SetKeyboardState(mKeyState);
