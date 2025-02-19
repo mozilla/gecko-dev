@@ -8,6 +8,7 @@ import android.app.Activity
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.locale.LocaleManager
+import mozilla.components.support.locale.LocaleManager.getSystemDefault
 import mozilla.components.support.locale.LocaleUseCases
 import org.mozilla.focus.locale.Locales
 import org.mozilla.focus.settings.InstalledSearchEnginesSettingsFragment
@@ -58,12 +59,22 @@ class LanguageMiddleware(val activity: Activity, private val localeUseCase: Loca
     private fun setCurrentLanguage(languageTag: String) {
         InstalledSearchEnginesSettingsFragment.languageChanged = true
         val locale: Locale?
+
         if (languageTag == LanguageStorage.LOCALE_SYSTEM_DEFAULT) {
+            locale = getSystemDefault()
             LocaleManager.resetToSystemDefault(activity, localeUseCase)
         } else {
             locale = Locales.parseLocaleCode(languageTag)
             LocaleManager.setNewLocale(activity, localeUseCase, locale)
         }
+
+        activity.applicationContext.resources.apply {
+            configuration.setLocale(locale)
+            configuration.setLayoutDirection(locale)
+            @Suppress("DEPRECATION")
+            updateConfiguration(configuration, displayMetrics)
+        }
+
         runOnUiThread { activity.recreate() }
     }
 }
