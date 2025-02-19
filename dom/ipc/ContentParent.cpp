@@ -166,7 +166,6 @@
 #include "mozilla/net/NeckoParent.h"
 #include "mozilla/net/PCookieServiceParent.h"
 #include "mozilla/net/CookieKey.h"
-#include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "mozilla/net/TRRService.h"
 #include "mozilla/TelemetryComms.h"
 #include "mozilla/RemoteLazyInputStreamParent.h"
@@ -6403,70 +6402,6 @@ bool ContentParent::DeallocPURLClassifierLocalParent(
 
   RefPtr<URLClassifierLocalParent> actor =
       dont_AddRef(static_cast<URLClassifierLocalParent*>(aActor));
-  return true;
-}
-
-//////////////////////////////////////////////////////////////////
-// PURLClassifierLocalByNameParent
-
-PURLClassifierLocalByNameParent*
-ContentParent::AllocPURLClassifierLocalByNameParent(
-    nsIURI* aURI, const nsTArray<nsCString>& aFeatures,
-    const nsIUrlClassifierFeature::listType& aListType) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  RefPtr<URLClassifierLocalByNameParent> actor =
-      new URLClassifierLocalByNameParent();
-  return actor.forget().take();
-}
-
-mozilla::ipc::IPCResult ContentParent::RecvPURLClassifierLocalByNameConstructor(
-    PURLClassifierLocalByNameParent* aActor, nsIURI* aURI,
-    nsTArray<nsCString>&& aFeatureNames,
-    const nsIUrlClassifierFeature::listType& aListType) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aActor);
-  if (!aURI) {
-    return IPC_FAIL(this, "aURI should not be null");
-  }
-
-  nsTArray<IPCURLClassifierFeature> ipcFeatures;
-  for (nsCString& featureName : aFeatureNames) {
-    RefPtr<nsIUrlClassifierFeature> feature =
-        UrlClassifierFeatureFactory::GetFeatureByName(featureName);
-    nsAutoCString name;
-    nsresult rv = feature->GetName(name);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
-    }
-
-    nsTArray<nsCString> tables;
-    rv = feature->GetTables(aListType, tables);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
-    }
-
-    nsAutoCString exceptionHostList;
-    rv = feature->GetExceptionHostList(exceptionHostList);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      continue;
-    }
-
-    ipcFeatures.AppendElement(
-        IPCURLClassifierFeature(name, tables, exceptionHostList));
-  }
-
-  auto* actor = static_cast<URLClassifierLocalByNameParent*>(aActor);
-  return actor->StartClassify(aURI, ipcFeatures, aListType);
-}
-
-bool ContentParent::DeallocPURLClassifierLocalByNameParent(
-    PURLClassifierLocalByNameParent* aActor) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aActor);
-
-  RefPtr<URLClassifierLocalByNameParent> actor =
-      dont_AddRef(static_cast<URLClassifierLocalByNameParent*>(aActor));
   return true;
 }
 

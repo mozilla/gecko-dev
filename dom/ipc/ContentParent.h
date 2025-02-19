@@ -50,7 +50,6 @@
 #include "nsITransferable.h"
 #include "nsIDOMGeoPositionCallback.h"
 #include "nsIDOMGeoPositionErrorCallback.h"
-#include "nsIUrlClassifierFeature.h"
 #include "nsRefPtrHashtable.h"
 #include "PermissionMessageUtils.h"
 #include "DriverCrashGuard.h"
@@ -591,16 +590,6 @@ class ContentParent final : public PContentParent,
       PURLClassifierLocalParent* aActor, nsIURI* aURI,
       nsTArray<IPCURLClassifierFeature>&& aFeatures) override;
 
-  // PURLClassifierLocalByNameParent.
-  PURLClassifierLocalByNameParent* AllocPURLClassifierLocalByNameParent(
-      nsIURI* aURI, const nsTArray<nsCString>& aFeatures,
-      const nsIUrlClassifierFeature::listType& aListType);
-
-  virtual mozilla::ipc::IPCResult RecvPURLClassifierLocalByNameConstructor(
-      PURLClassifierLocalByNameParent* aActor, nsIURI* aURI,
-      nsTArray<nsCString>&& aFeatureNames,
-      const nsIUrlClassifierFeature::listType& aListType) override;
-
   PSessionStorageObserverParent* AllocPSessionStorageObserverParent();
 
   virtual mozilla::ipc::IPCResult RecvPSessionStorageObserverConstructor(
@@ -608,9 +597,6 @@ class ContentParent final : public PContentParent,
 
   bool DeallocPSessionStorageObserverParent(
       PSessionStorageObserverParent* aActor);
-
-  bool DeallocPURLClassifierLocalByNameParent(
-      PURLClassifierLocalByNameParent* aActor);
 
   bool DeallocPURLClassifierLocalParent(PURLClassifierLocalParent* aActor);
 

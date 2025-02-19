@@ -191,7 +191,6 @@ IPDL_SOURCES += [
     "PURLClassifier.ipdl",
     "PURLClassifierInfo.ipdlh",
     "PURLClassifierLocal.ipdl",
-    "PURLClassifierLocalByName.ipdl",
     "PVsync.ipdl",
     "PWindowGlobal.ipdl",
     "ServiceWorkerConfiguration.ipdlh",

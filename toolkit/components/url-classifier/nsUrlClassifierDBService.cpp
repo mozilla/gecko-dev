@@ -2437,7 +2437,7 @@ NS_IMETHODIMP
 nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures(
     nsIURI* aURI, const nsTArray<RefPtr<nsIUrlClassifierFeature>>& aFeatures,
     nsIUrlClassifierFeature::listType aListType,
-    nsIUrlClassifierFeatureCallback* aCallback, bool aIdlePriority) {
+    nsIUrlClassifierFeatureCallback* aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (gShuttingDownThread) {
@@ -2528,7 +2528,7 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures(
 
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
       "nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures",
-      [worker, key, holder, callback, startTime, aIdlePriority]() -> void {
+      [worker, key, holder, callback, startTime]() -> void {
         holder->DoLocalLookup(key, worker);
 
         nsCOMPtr<nsIRunnable> cbRunnable = NS_NewRunnableFunction(
@@ -2546,48 +2546,11 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithFeatures(
                   const_cast<nsIUrlClassifierFeatureCallback*>(callback.get());
               cb->OnClassifyComplete(results);
             });
-        if (aIdlePriority) {
-          NS_DispatchToMainThreadQueue(cbRunnable.forget(),
-                                       EventQueuePriority::Idle);
-        } else {
-          NS_DispatchToMainThread(cbRunnable);
-        }
+
+        NS_DispatchToMainThread(cbRunnable);
       });
 
-  if (aIdlePriority) {
-    return NS_DispatchToThreadQueue(r.forget(), gDbBackgroundThread,
-                                    EventQueuePriority::Idle);
-  }
   return gDbBackgroundThread->Dispatch(r, NS_DISPATCH_NORMAL);
-}
-
-NS_IMETHODIMP
-nsUrlClassifierDBService::AsyncClassifyLocalWithFeatureNames(
-    nsIURI* aURI, const nsTArray<nsCString>& aFeatureNames,
-    nsIUrlClassifierFeature::listType aListType,
-    nsIUrlClassifierFeatureCallback* aCallback) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(XRE_IsContentProcess());
-
-  if (gShuttingDownThread) {
-    return NS_ERROR_ABORT;
-  }
-
-  mozilla::dom::ContentChild* content =
-      mozilla::dom::ContentChild::GetSingleton();
-  if (NS_WARN_IF(!content || content->IsShuttingDown())) {
-    return NS_ERROR_FAILURE;
-  }
-
-  auto actor = new mozilla::dom::URLClassifierLocalByNameChild();
-
-  if (!content->SendPURLClassifierLocalByNameConstructor(
-          actor, aURI, aFeatureNames, aListType)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  actor->SetFeaturesAndCallback(aFeatureNames, aCallback);
-  return NS_OK;
 }
 
 bool nsUrlClassifierDBService::AsyncClassifyLocalWithFeaturesUsingPreferences(

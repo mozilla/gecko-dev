@@ -18,6 +18,12 @@ include "mozilla/dom/URLClassifierChild.h";
 namespace mozilla {
 namespace dom {
 
+struct URLClassifierLocalResult
+{
+  nullable nsIURI uri;
+  nsCString featureName;
+  nsCString matchingList;
+};
 
 [ManualDealloc, ChildImpl="URLClassifierLocalChild", ParentImpl="URLClassifierLocalParent"]
 protocol PURLClassifierLocal

@@ -348,8 +348,6 @@ void DynamicFpiRedirectHeuristic(nsIChannel* aOldChannel, nsIURI* aOldURI,
           glean::contentblocking::StorageAccessGrantedCountLabel::eRedirect)
       .Add();
 
-  // We don't need to test if this is a tracker or not, we know it isn't one!
-
   // We don't care about this promise because the operation is actually sync.
   RefPtr<StorageAccessAPIHelper::ParentAccessGrantPromise> promise =
       StorageAccessAPIHelper::SaveAccessForOriginOnParentProcess(

@@ -155,7 +155,7 @@ mozilla::ipc::IPCResult URLClassifierLocalParent::StartClassify(
   // Doesn't matter if we pass blocklist, entitylist or any other list.
   // IPCFeature returns always the same values.
   rv = uriClassifier->AsyncClassifyLocalWithFeatures(
-      aURI, features, nsIUrlClassifierFeature::blocklist, this, false);
+      aURI, features, nsIUrlClassifierFeature::blocklist, this);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     OnClassifyComplete(nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>());
     return IPC_OK();
@@ -166,62 +166,6 @@ mozilla::ipc::IPCResult URLClassifierLocalParent::StartClassify(
 
 NS_IMETHODIMP
 URLClassifierLocalParent::OnClassifyComplete(
-    const nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>& aResults) {
-  if (mIPCOpen) {
-    nsTArray<URLClassifierLocalResult> ipcResults;
-    for (nsIUrlClassifierFeatureResult* result : aResults) {
-      URLClassifierLocalResult* ipcResult = ipcResults.AppendElement();
-
-      net::UrlClassifierFeatureResult* r =
-          static_cast<net::UrlClassifierFeatureResult*>(result);
-
-      ipcResult->uri() = r->URI();
-      r->Feature()->GetName(ipcResult->featureName());
-      ipcResult->matchingList() = r->List();
-    }
-
-    Unused << Send__delete__(this, ipcResults);
-  }
-  return NS_OK;
-}
-
-NS_IMPL_ISUPPORTS(URLClassifierLocalByNameParent,
-                  nsIUrlClassifierFeatureCallback)
-
-mozilla::ipc::IPCResult URLClassifierLocalByNameParent::StartClassify(
-    nsIURI* aURI, const nsTArray<IPCURLClassifierFeature>& aFeatures,
-    nsIUrlClassifierFeature::listType aListType) {
-  MOZ_ASSERT(aURI);
-
-  nsresult rv = NS_OK;
-  // Note that in safe mode, the URL classifier service isn't available, so we
-  // should handle the service not being present gracefully.
-  nsCOMPtr<nsIURIClassifier> uriClassifier =
-      do_GetService(NS_URICLASSIFIERSERVICE_CONTRACTID, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    OnClassifyComplete(nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>());
-    return IPC_OK();
-  }
-
-  nsTArray<RefPtr<nsIUrlClassifierFeature>> features;
-  for (const IPCURLClassifierFeature& feature : aFeatures) {
-    features.AppendElement(new IPCFeature(aURI, feature));
-  }
-
-  // Doesn't matter if we pass blocklist, entitylist or any other list.
-  // IPCFeature returns always the same values.
-  rv = uriClassifier->AsyncClassifyLocalWithFeatures(aURI, features, aListType,
-                                                     this, false);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    OnClassifyComplete(nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>());
-    return IPC_OK();
-  }
-
-  return IPC_OK();
-}
-
-NS_IMETHODIMP
-URLClassifierLocalByNameParent::OnClassifyComplete(
     const nsTArray<RefPtr<nsIUrlClassifierFeatureResult>>& aResults) {
   if (mIPCOpen) {
     nsTArray<URLClassifierLocalResult> ipcResults;

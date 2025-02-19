@@ -3314,20 +3314,6 @@ bool ContentChild::DeallocPURLClassifierLocalChild(
   return true;
 }
 
-PURLClassifierLocalByNameChild*
-ContentChild::AllocPURLClassifierLocalByNameChild(
-    nsIURI* aUri, Span<const nsCString> aFeatures,
-    const nsIUrlClassifierFeature::listType& aListType) {
-  return new URLClassifierLocalByNameChild();
-}
-
-bool ContentChild::DeallocPURLClassifierLocalByNameChild(
-    PURLClassifierLocalByNameChild* aActor) {
-  MOZ_ASSERT(aActor);
-  delete aActor;
-  return true;
-}
-
 PSessionStorageObserverChild*
 ContentChild::AllocPSessionStorageObserverChild() {
   MOZ_CRASH(

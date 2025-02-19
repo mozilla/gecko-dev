@@ -12,7 +12,7 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPrefs_privacy.h"
-#include "nsIURIClassifier.h"
+
 #include "nsIUrlClassifierFeature.h"
 
 class nsIChannel;
@@ -215,23 +215,6 @@ class StorageAccessAPIHelper final {
 
   static void UpdateAllowAccessOnParentProcess(
       dom::BrowsingContext* aParentContext, const nsACString& aTrackingOrigin);
-};
-
-class StorageAccessGrantTelemetryClassification
-    : public nsIUrlClassifierFeatureCallback {
-  // List of features classifying basic trackers that have been annotated.
-  MOZ_RUNINIT static nsTArray<nsCString> sUrlClassifierFeaturesForTelemetry;
-
-  static const nsTArray<nsCString>& GetClassifierFeatureNamesForTrackers();
-
-  uint16_t mType;
-  explicit StorageAccessGrantTelemetryClassification(uint16_t aType);
-  virtual ~StorageAccessGrantTelemetryClassification() = default;
-
- public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIURLCLASSIFIERFEATURECALLBACK
-  static void MaybeReportTracker(uint16_t aType, nsIURI* aURI);
 };
 
 }  // namespace mozilla
