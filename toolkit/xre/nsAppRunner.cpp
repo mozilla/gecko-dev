@@ -4502,7 +4502,6 @@ static void ReadAheadDlls(const wchar_t* greDir) {
     // Prefetch the DLLs shipped with firefox
     ReadAheadPackagedDll(L"libegl.dll", greDir);
     ReadAheadPackagedDll(L"libGLESv2.dll", greDir);
-    ReadAheadPackagedDll(L"nssckbi.dll", greDir);
     ReadAheadPackagedDll(L"freebl3.dll", greDir);
     ReadAheadPackagedDll(L"softokn3.dll", greDir);
 

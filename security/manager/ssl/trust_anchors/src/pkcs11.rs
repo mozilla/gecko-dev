@@ -1120,7 +1120,7 @@ pub static FUNCTION_LIST: CK_FUNCTION_LIST = CK_FUNCTION_LIST {
 };
 
 #[no_mangle]
-pub unsafe fn BUILTINSC_GetFunctionList(ppFunctionList: CK_FUNCTION_LIST_PTR_PTR) -> CK_RV {
+pub unsafe fn TRUST_ANCHORS_GetFunctionList(ppFunctionList: CK_FUNCTION_LIST_PTR_PTR) -> CK_RV {
     if ppFunctionList.is_null() {
         return CKR_ARGUMENTS_BAD;
     }
@@ -1160,7 +1160,7 @@ mod pkcs11_tests {
     fn test_c_get_function_list() {
         let c_null = 0 as *mut std::ffi::c_void;
         let mut pFunctionList: CK_FUNCTION_LIST_PTR = c_null as CK_FUNCTION_LIST_PTR;
-        let rv = unsafe { crate::pkcs11::BUILTINSC_GetFunctionList(&mut pFunctionList) };
+        let rv = unsafe { crate::pkcs11::TRUST_ANCHORS_GetFunctionList(&mut pFunctionList) };
         assert_eq!(CKR_OK, rv);
         if let Some(pC_Initialize) = unsafe { (*pFunctionList).C_Initialize } {
             let rv = unsafe { pC_Initialize(c_null) };

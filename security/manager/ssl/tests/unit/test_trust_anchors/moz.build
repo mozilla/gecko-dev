@@ -8,4 +8,4 @@ DIRS += ["dynamic-library"]
 
 OS_LIBS += CONFIG["DL_LIBS"]
 
-RustLibrary("test-builtins-static")
+RustLibrary("test-trust-anchors-static")
