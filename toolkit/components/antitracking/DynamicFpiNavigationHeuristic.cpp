@@ -14,6 +14,7 @@
 #include "mozilla/Components.h"
 #include "mozilla/glean/AntitrackingMetrics.h"
 #include "nsISHistory.h"
+#include "nsIURIClassifier.h"
 
 namespace mozilla {
 
@@ -125,6 +126,12 @@ void DynamicFpiNavigationHeuristic::MaybeGrantStorageAccess(
           .EnumGet(glean::contentblocking::StorageAccessGrantedCountLabel::
                        eNavigation)
           .Add();
+
+      StorageAccessGrantTelemetryClassification::MaybeReportTracker(
+          static_cast<uint16_t>(
+              glean::contentblocking::StorageAccessGrantedCountLabel::
+                  eNavigationCt),
+          uri);
     }
   }
 }
