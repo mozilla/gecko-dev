@@ -404,6 +404,8 @@ class ParserError final {
   JSErrNum error_ = JSMSG_NOT_AN_ERROR;
 
  public:
+  constexpr ParserError() = default;
+
   constexpr MOZ_IMPLICIT ParserError(JSErrNum error) : error_(error) {}
 
   constexpr JSErrNum error() const { return error_; }
@@ -442,6 +444,29 @@ struct UnusedZero<::ParserError> {
 
 static_assert(mozilla::Result<ZonedDateTimeString, ParserError>::Strategy !=
               mozilla::detail::PackingStrategy::Variant);
+
+/**
+ * Track the error and reader index of the last largest successful parse.
+ */
+class LikelyError final {
+  size_t index_ = 0;
+  ParserError error_{};
+
+ public:
+  template <typename V>
+  void update(const mozilla::Result<V, ParserError>& result, size_t index) {
+    MOZ_ASSERT(result.isErr());
+
+    if (index >= index_) {
+      index_ = index;
+      error_ = result.inspectErr();
+    }
+  }
+
+  size_t index() const { return index_; }
+
+  auto propagate() const { return mozilla::Err(error_); }
+};
 
 template <typename CharT>
 class StringReader final {
@@ -1559,6 +1584,8 @@ TemporalParser<CharT>::parseTemporalTimeZoneString() {
     return result;
   }
 
+  LikelyError likelyError{};
+
   // Try all five parse goals from ParseISODateTime in order.
   //
   // TemporalDateTimeString
@@ -1570,39 +1597,49 @@ TemporalParser<CharT>::parseTemporalTimeZoneString() {
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalDateTimeString(); dt.isOk()) {
-    return dt.unwrap();
+  auto dateTime = parseTemporalDateTimeString();
+  if (dateTime.isOk()) {
+    return dateTime;
   }
+  likelyError.update(dateTime, reader_.index());
 
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalInstantString(); dt.isOk()) {
-    return dt.unwrap();
+  auto instant = parseTemporalInstantString();
+  if (instant.isOk()) {
+    return instant;
   }
+  likelyError.update(instant, reader_.index());
 
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalTimeString(); dt.isOk()) {
-    return dt.unwrap();
+  auto time = parseTemporalTimeString();
+  if (time.isOk()) {
+    return time;
   }
+  likelyError.update(time, reader_.index());
 
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalMonthDayString(); dt.isOk()) {
-    return dt.unwrap();
+  auto monthDay = parseTemporalMonthDayString();
+  if (monthDay.isOk()) {
+    return monthDay;
   }
+  likelyError.update(monthDay, reader_.index());
 
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalYearMonthString(); dt.isOk()) {
-    return dt.unwrap();
-  } else {
-    return dt.propagateErr();
+  auto yearMonth = parseTemporalYearMonthString();
+  if (yearMonth.isOk()) {
+    return yearMonth;
   }
+  likelyError.update(yearMonth, reader_.index());
+
+  return likelyError.propagate();
 }
 
 /**
@@ -2425,6 +2462,8 @@ TemporalParser<CharT>::parseTemporalCalendarString() {
     return result;
   }
 
+  LikelyError likelyError{};
+
   // Try all five parse goals from ParseISODateTime in order.
   //
   // TemporalDateTimeString
@@ -2433,39 +2472,49 @@ TemporalParser<CharT>::parseTemporalCalendarString() {
   // TemporalMonthDayString
   // TemporalYearMonthString
 
-  if (auto dt = parseTemporalDateTimeString(); dt.isOk()) {
-    return dt.unwrap();
+  auto dateTime = parseTemporalDateTimeString();
+  if (dateTime.isOk()) {
+    return dateTime;
   }
+  likelyError.update(dateTime, reader_.index());
 
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalInstantString(); dt.isOk()) {
-    return dt.unwrap();
+  auto instant = parseTemporalInstantString();
+  if (instant.isOk()) {
+    return instant;
   }
+  likelyError.update(instant, reader_.index());
 
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalTimeString(); dt.isOk()) {
-    return dt.unwrap();
+  auto time = parseTemporalTimeString();
+  if (time.isOk()) {
+    return time;
   }
+  likelyError.update(time, reader_.index());
 
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalMonthDayString(); dt.isOk()) {
-    return dt.unwrap();
+  auto monthDay = parseTemporalMonthDayString();
+  if (monthDay.isOk()) {
+    return monthDay;
   }
+  likelyError.update(monthDay, reader_.index());
 
   // Restart parsing from the start of the string.
   reader_.reset();
 
-  if (auto dt = parseTemporalYearMonthString(); dt.isOk()) {
-    return dt.unwrap();
-  } else {
-    return dt.propagateErr();
+  auto yearMonth = parseTemporalYearMonthString();
+  if (yearMonth.isOk()) {
+    return yearMonth;
   }
+  likelyError.update(yearMonth, reader_.index());
+
+  return likelyError.propagate();
 }
 
 /**
@@ -2528,14 +2577,28 @@ TemporalParser<CharT>::parseTemporalTimeString() {
   //   AnnotatedTime
   //   AnnotatedDateTime[~Zoned, +TimeRequired]
 
-  if (auto time = parse(annotatedTime()); time.isOk()) {
+  LikelyError likelyError{};
+
+  auto time = parse(annotatedTime());
+  if (time.isOk()) {
     return time;
   }
+  likelyError.update(time, reader_.index());
 
   // Reset and try the next option.
   reader_.reset();
 
-  return parse(annotatedDateTimeTimeRequired());
+  auto dateTime = parse(annotatedDateTimeTimeRequired());
+  if (dateTime.isOk()) {
+    return dateTime;
+  }
+  likelyError.update(time, reader_.index());
+
+  // Set current index to the likely error index to give better error messages
+  // when called from parserTemporal{Calendar,TimeZone}String.
+  reader_.reset(likelyError.index());
+
+  return likelyError.propagate();
 }
 
 /**
@@ -2598,7 +2661,10 @@ TemporalParser<CharT>::parseTemporalMonthDayString() {
   //   AnnotatedMonthDay
   //   AnnotatedDateTime[~Zoned, ~TimeRequired]
 
-  if (auto monthDay = parse(annotatedMonthDay()); monthDay.isOk()) {
+  LikelyError likelyError{};
+
+  auto monthDay = parse(annotatedMonthDay());
+  if (monthDay.isOk()) {
     auto result = monthDay.unwrap();
 
     // ParseISODateTime, step 3.
@@ -2608,11 +2674,22 @@ TemporalParser<CharT>::parseTemporalMonthDayString() {
     }
     return result;
   }
+  likelyError.update(monthDay, reader_.index());
 
   // Reset and try the next option.
   reader_.reset();
 
-  return parse(annotatedDateTime());
+  auto dateTime = parse(annotatedDateTime());
+  if (dateTime.isOk()) {
+    return dateTime;
+  }
+  likelyError.update(dateTime, reader_.index());
+
+  // Set current index to the likely error index to give better error messages
+  // when called from parserTemporal{Calendar,TimeZone}String.
+  reader_.reset(likelyError.index());
+
+  return likelyError.propagate();
 }
 
 /**
@@ -2683,7 +2760,10 @@ TemporalParser<CharT>::parseTemporalYearMonthString() {
   //   AnnotatedYearMonth
   //   AnnotatedDateTime[~Zoned, ~TimeRequired]
 
-  if (auto yearMonth = parse(annotatedYearMonth()); yearMonth.isOk()) {
+  LikelyError likelyError{};
+
+  auto yearMonth = parse(annotatedYearMonth());
+  if (yearMonth.isOk()) {
     auto result = yearMonth.unwrap();
 
     // ParseISODateTime, step 3.
@@ -2694,11 +2774,22 @@ TemporalParser<CharT>::parseTemporalYearMonthString() {
     }
     return result;
   }
+  likelyError.update(yearMonth, reader_.index());
 
   // Reset and try the next option.
   reader_.reset();
 
-  return parse(annotatedDateTime());
+  auto dateTime = parse(annotatedDateTime());
+  if (dateTime.isOk()) {
+    return dateTime;
+  }
+  likelyError.update(dateTime, reader_.index());
+
+  // Set current index to the likely error index to give better error messages
+  // when called from parserTemporal{Calendar,TimeZone}String.
+  reader_.reset(likelyError.index());
+
+  return likelyError.propagate();
 }
 
 /**
