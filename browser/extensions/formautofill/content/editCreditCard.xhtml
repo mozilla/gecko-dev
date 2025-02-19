@@ -6,6 +6,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title data-l10n-id="autofill-add-card-title"></title>
+    <meta http-equiv="Content-Security-Policy" content="default-src chrome:" />
     <link rel="localization" href="browser/preferences/formAutofill.ftl" />
     <link
       rel="stylesheet"
@@ -15,6 +16,10 @@
       rel="stylesheet"
       href="chrome://formautofill/content/skin/editCreditCard.css"
     />
+    <script
+      type="module"
+      src="chrome://formautofill/content/editCreditCard.mjs"
+    ></script>
   </head>
   <body>
     <form id="form" class="editCreditCardForm contentPane" autocomplete="off">
@@ -81,32 +86,5 @@
       <button id="cancel" data-l10n-id="autofill-cancel-button" />
       <button id="save" class="primary" data-l10n-id="autofill-save-button" />
     </div>
-
-    <!-- eslint-disable -->
-    <script type="module">
-      import { EditCreditCardDialog } from "chrome://formautofill/content/editDialog.mjs";
-      import { EditCreditCard } from "chrome://formautofill/content/autofillEditForms.mjs";
-      const { record } = window.arguments?.[0] ?? {};
-
-      const fieldContainer = new EditCreditCard(
-        {
-          form: document.getElementById("form"),
-        },
-        record,
-        []
-      );
-
-      new EditCreditCardDialog(
-        {
-          title: document.querySelector("title"),
-          fieldContainer,
-          controlsContainer: document.getElementById("controls-container"),
-          cancel: document.getElementById("cancel"),
-          save: document.getElementById("save"),
-        },
-        record
-      );
-    </script>
-    <!-- eslint-enable -->
   </body>
 </html>

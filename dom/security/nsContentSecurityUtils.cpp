@@ -1793,7 +1793,6 @@ void nsContentSecurityUtils::AssertChromePageHasCSP(Document* aDocument) {
       "chrome://devtools/content/shared/webextension-fallback.html"_ns,
       "chrome://devtools/skin/images/alert.svg"_ns,
       "chrome://extensions/content/dummy.xhtml"_ns,
-      "chrome://formautofill/content/editCreditCard.xhtml"_ns,
       "chrome://formautofill/content/manageAddresses.xhtml"_ns,
       "chrome://formautofill/content/manageCreditCards.xhtml"_ns,
       "chrome://geckoview/content/geckoview.xhtml"_ns,
