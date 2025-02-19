@@ -93,7 +93,7 @@ class NavigationToolbarTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.toUri()) {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPageContent("Login Form")
         }.openSiteSecuritySheet {
             verifyQuickActionSheet(defaultWebPage, true)
             openSecureConnectionSubMenu(true)
