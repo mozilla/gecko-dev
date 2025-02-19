@@ -55,26 +55,28 @@ const Template = ({
   options = useOtherOptions ? OTHER_OPTIONS : DEFAULT_OPTIONS,
   hasSlottedSupportLink,
 }) => html`
-  <moz-select
-    name=${name}
-    value=${ifDefined(value || null)}
-    iconsrc=${ifDefined(iconSrc || null)}
-    ?disabled=${disabled}
-    data-l10n-id=${l10nId}
-    support-page=${ifDefined(supportPage || null)}
-    accesskey=${ifDefined(accessKey || null)}
-  >
-    ${hasSlottedDescription
-      ? html`<div slot="description">${description}</div>`
-      : ""}
-    ${hasSlottedSupportLink
-      ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
-      : ""}
-    ${options.map(
-      opt =>
-        html`<moz-option value=${opt.value} label=${opt.label}></moz-option>`
-    )}
-  </moz-select>
+  <div style="width:300px">
+    <moz-select
+      name=${name}
+      value=${ifDefined(value || null)}
+      iconsrc=${ifDefined(iconSrc || null)}
+      ?disabled=${disabled}
+      data-l10n-id=${l10nId}
+      support-page=${ifDefined(supportPage || null)}
+      accesskey=${ifDefined(accessKey || null)}
+    >
+      ${hasSlottedDescription
+        ? html`<div slot="description">${description}</div>`
+        : ""}
+      ${hasSlottedSupportLink
+        ? html`<a slot="support-link" href="www.example.com">Click me!</a>`
+        : ""}
+      ${options.map(
+        opt =>
+          html`<moz-option value=${opt.value} label=${opt.label}></moz-option>`
+      )}
+    </moz-select>
+  </div>
 `;
 
 export const Default = Template.bind({});

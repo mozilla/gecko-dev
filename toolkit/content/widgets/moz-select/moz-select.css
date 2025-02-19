@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
 select {
   border: var(--button-border);
   border-radius: var(--button-border-radius);
@@ -14,6 +19,8 @@ select {
   background: no-repeat url("chrome://global/skin/icons/arrow-down.svg") calc(100% - var(--space-medium)) / var(--icon-size-default) var(--icon-size-default) var(--button-background-color);
   -moz-context-properties: fill;
   fill: var(--icon-color);
+  min-width: var(--select-min-width);
+  max-width: var(--select-max-width);
 
   &:dir(rtl) {
     background-position-x: left var(--space-medium);
