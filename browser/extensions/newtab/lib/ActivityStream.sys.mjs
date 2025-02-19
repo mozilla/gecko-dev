@@ -558,6 +558,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.sections.personalization.inferred.enabled",
+    {
+      title: "Boolean flag to enable inferred personalizaton",
+      value: false,
+    },
+  ],
+  [
     "discoverystream.sections.cards.thumbsUpDown.enabled",
     {
       title:
