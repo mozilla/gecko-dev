@@ -8,12 +8,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import mozilla.components.compose.base.theme.AcornTheme
+
+private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 
 /**
  * Sub-component of the [BrowserToolbar] responsible for displaying the URL and related
@@ -36,7 +41,14 @@ fun BrowserDisplayToolbar(
     browserActions: @Composable () -> Unit = {},
 ) {
     Row(
-        Modifier.background(colors.background),
+        modifier = Modifier
+            .background(color = colors.background)
+            .padding(all = 8.dp)
+            .background(
+                color = colors.urlBackground,
+                shape = ROUNDED_CORNER_SHAPE,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             url,
@@ -54,5 +66,20 @@ fun BrowserDisplayToolbar(
         Button(onClick = { onMenuClicked() }) {
             Text(":")
         }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun BrowserDisplayToolbarPreview() {
+    AcornTheme {
+        BrowserDisplayToolbar(
+            url = "http://www.mozilla.org",
+            colors = BrowserDisplayToolbarColors(
+                background = AcornTheme.colors.layer1,
+                urlBackground = AcornTheme.colors.layer3,
+                text = AcornTheme.colors.textPrimary,
+            ),
+        )
     }
 }

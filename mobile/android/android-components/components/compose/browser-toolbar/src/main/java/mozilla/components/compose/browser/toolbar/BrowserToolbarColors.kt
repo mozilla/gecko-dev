@@ -21,10 +21,12 @@ data class BrowserToolbarColors(
  * Represents the colors used by the browser display toolbar.
  *
  * @property background Background color of the toolbar.
+ * @property urlBackground Background color of the URL text field.
  * @property text Text color of the URL.
  */
 data class BrowserDisplayToolbarColors(
     val background: Color,
+    val urlBackground: Color,
     val text: Color,
 )
 

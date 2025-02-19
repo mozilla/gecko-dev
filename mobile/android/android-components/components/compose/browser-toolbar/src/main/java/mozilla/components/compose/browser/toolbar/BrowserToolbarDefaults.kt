@@ -4,7 +4,6 @@
 
 package mozilla.components.compose.browser.toolbar
 
-import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import mozilla.components.compose.base.theme.AcornTheme
 
@@ -20,8 +19,9 @@ object BrowserToolbarDefaults {
     @Composable
     fun colors(
         displayToolbarColors: BrowserDisplayToolbarColors = BrowserDisplayToolbarColors(
-            background = MaterialTheme.colors.background,
-            text = MaterialTheme.colors.onBackground,
+            background = AcornTheme.colors.layer1,
+            urlBackground = AcornTheme.colors.layer3,
+            text = AcornTheme.colors.textPrimary,
         ),
         editToolbarColors: BrowserEditToolbarColors = BrowserEditToolbarColors(
             background = AcornTheme.colors.layer1,
