@@ -173,6 +173,7 @@ class NavigationToolbarComposeTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(refreshWebPage.url) {
+            verifyPageContent("DEFAULT")
             refreshPageFromRedesignedToolbar()
             verifyPageContent("REFRESHED")
         }
