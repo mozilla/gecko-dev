@@ -220,6 +220,7 @@ static google_breakpad::ExceptionHandler* gExceptionHandler = nullptr;
 static mozilla::Atomic<bool> gEncounteredChildException(false);
 MOZ_CONSTINIT static nsCString gServerURL;
 
+MOZ_RUNINIT static xpstring userAppDataDirectory;
 MOZ_RUNINIT static xpstring pendingDirectory;
 MOZ_RUNINIT static xpstring crashReporterPath;
 MOZ_RUNINIT static xpstring crashHelperPath;
@@ -418,14 +419,18 @@ static void CreateFileFromPath(const xpstring& path, nsIFile** file) {
       DependentPathString(path.c_str(), path.size()), file);
 }
 
+nsresult GetNativePathFromFile(nsIFile* aFile, PathString& aPathString) {
+#ifdef XP_WIN
+  return aFile->GetPath(aPathString);
+#else
+  return aFile->GetNativePath(aPathString);
+#endif
+}
+
 [[nodiscard]]
 static std::optional<xpstring> CreatePathFromFile(nsIFile* file) {
   AutoPathString path;
-#ifdef XP_WIN
-  nsresult rv = file->GetPath(path);
-#else
-  nsresult rv = file->GetNativePath(path);
-#endif
+  nsresult rv = GetNativePathFromFile(file, path);
   if (NS_FAILED(rv)) {
     return {};
   }
@@ -2281,11 +2286,7 @@ nsresult SetupExtraData(nsIFile* aAppDataDirectory,
   memset(lastCrashTimeFilename, 0, sizeof(lastCrashTimeFilename));
 
   PathString filename;
-#if defined(XP_WIN)
-  rv = lastCrashFile->GetPath(filename);
-#else
-  rv = lastCrashFile->GetNativePath(filename);
-#endif
+  rv = GetNativePathFromFile(lastCrashFile, filename);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (filename.Length() < XP_PATH_MAX) {
@@ -2867,15 +2868,17 @@ static void PopulatePendingDir(nsIFile* aUserAppDataDir) {
   pendingDir->Append(u"pending"_ns);
 
   PathString path;
-#ifdef XP_WIN
-  pendingDir->GetPath(path);
-#else
-  pendingDir->GetNativePath(path);
-#endif
-  pendingDirectory = xpstring(path.get());
+  if (NS_SUCCEEDED(GetNativePathFromFile(pendingDir, path))) {
+    pendingDirectory = xpstring(path.get());
+  }
 }
 
 void SetUserAppDataDirectory(nsIFile* aDir) {
+  PathString path;
+  if (NS_SUCCEEDED(GetNativePathFromFile(aDir, path))) {
+    userAppDataDirectory = xpstring(path.get());
+  }
+
   nsCOMPtr<nsIFile> eventsDir;
   aDir->Clone(getter_AddRefs(eventsDir));
 
@@ -2926,12 +2929,9 @@ void SetMemoryReportFile(nsIFile* aFile) {
   }
 
   PathString path;
-#ifdef XP_WIN
-  aFile->GetPath(path);
-#else
-  aFile->GetNativePath(path);
-#endif
-  memoryReportPath = xpstring(path.get());
+  if (NS_SUCCEEDED(GetNativePathFromFile(aFile, path))) {
+    memoryReportPath = xpstring(path.get());
+  }
 }
 
 nsresult GetDefaultMemoryReportFile(nsIFile** aFile) {
@@ -3124,11 +3124,7 @@ bool WriteExtraFile(const nsAString& id, const AnnotationTable& annotations) {
 
   extra->Append(id + u".extra"_ns);
   PathString path;
-#ifdef XP_WIN
-  NS_ENSURE_SUCCESS(extra->GetPath(path), false);
-#elif defined(XP_UNIX)
-  NS_ENSURE_SUCCESS(extra->GetNativePath(path), false);
-#endif
+  NS_ENSURE_SUCCESS(GetNativePathFromFile(extra, path), false);
 
   PlatformWriter pw(path.get());
   return WriteExtraFile(pw, annotations);
@@ -3269,6 +3265,7 @@ static void OOPInit() {
   // the appropriate type of minidump in the crash helper.
   crashHelperClient = crash_helper_launch(
       (const BreakpadChar*)crashHelperPath.c_str(),
+      (const BreakpadChar*)userAppDataDirectory.c_str(),
       (const BreakpadChar*)gExceptionHandler->dump_path().c_str(),
       (const BreakpadChar*)NS_ConvertUTF8toUTF16(childCrashNotifyPipe)
           .BeginReading(),
@@ -3281,18 +3278,19 @@ static void OOPInit() {
 
   const std::string dumpPath =
       gExceptionHandler->minidump_descriptor().directory();
-  crashHelperClient =
-      crash_helper_launch(crashHelperPath.c_str(), dumpPath.c_str(),
-                           serverSocketFd, MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL));
+  crashHelperClient = crash_helper_launch(
+      crashHelperPath.c_str(), userAppDataDirectory.c_str(), dumpPath.c_str(),
+      serverSocketFd, MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL));
   close(serverSocketFd);
 #elif defined(XP_MACOSX)
   childCrashNotifyPipe = nsCString("gecko-crash-server-pipe.");
   childCrashNotifyPipe.AppendInt(static_cast<int>(getpid()));
 
-  crashHelperClient = crash_helper_launch(
-      crashHelperPath.c_str(), gExceptionHandler->dump_path().c_str(),
-      (BreakpadRawData)childCrashNotifyPipe.get(),
-      MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL));
+  crashHelperClient =
+      crash_helper_launch(crashHelperPath.c_str(), userAppDataDirectory.c_str(),
+                          gExceptionHandler->dump_path().c_str(),
+                          (BreakpadRawData)childCrashNotifyPipe.get(),
+                          MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL));
 #endif
 
   gCrashHelperClient = crashHelperClient;

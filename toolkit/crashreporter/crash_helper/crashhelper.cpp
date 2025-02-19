@@ -11,7 +11,7 @@
 #include "mozilla/crash_helper_ffi_generated.h"
 
 int main(int argc, char* argv[]) {
-  if (argc < 2) {
+  if (argc < 3) {
     exit(EXIT_FAILURE);
   }
 
@@ -23,6 +23,8 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  crash_generator_logic(client_pid);
+  char* user_app_data_dir = argv[2];
+
+  crash_generator_logic(client_pid, user_app_data_dir);
   exit(EXIT_SUCCESS);
 }
