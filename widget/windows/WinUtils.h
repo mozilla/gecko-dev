@@ -378,13 +378,6 @@ class WinUtils {
   }
 
   /**
-   * GetNativeMessage() converts a (deprecated) MOZ_WM_ internal message to a
-   * native message. If aInternalMessage is a native message, returns the native
-   * message itself.
-   */
-  static UINT GetNativeMessage(UINT aInternalMessage);
-
-  /**
    * GetMouseInputSource() returns a pointing device information.  The value is
    * one of MouseEvent_Binding::MOZ_SOURCE_*.  This method MUST be called during
    * mouse message handling.

@@ -32,7 +32,6 @@ class MouseScrollHandler {
   static void Initialize();
   static void Shutdown();
 
-  static bool NeedsMessage(UINT aMsg);
   static bool ProcessMessage(nsWindow* aWidget, UINT msg, WPARAM wParam,
                              LPARAM lParam, MSGResult& aResult);
 
