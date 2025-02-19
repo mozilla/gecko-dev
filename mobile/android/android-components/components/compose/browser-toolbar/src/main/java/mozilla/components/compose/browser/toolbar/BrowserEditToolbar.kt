@@ -4,8 +4,12 @@
 
 package mozilla.components.compose.browser.toolbar
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Icon
@@ -13,6 +17,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -23,6 +28,8 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.ui.icons.R as iconsR
+
+private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 
 /**
  * Sub-component of the [BrowserToolbar] responsible for allowing the user to edit the current
@@ -44,39 +51,50 @@ fun BrowserEditToolbar(
     onUrlCommitted: (String) -> Unit = {},
     editActions: @Composable () -> Unit = {},
 ) {
-    TextField(
-        url,
-        onValueChange = { value ->
-            onUrlEdit(value)
-        },
-        colors = TextFieldDefaults.textFieldColors(
-            textColor = colors.text,
-            backgroundColor = colors.background,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            errorIndicatorColor = Color.Transparent,
-        ),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Uri,
-            imeAction = ImeAction.Go,
-        ),
-        keyboardActions = KeyboardActions(
-            onGo = { onUrlCommitted(url) },
-        ),
-        modifier = Modifier.fillMaxWidth(),
-        trailingIcon = {
-            editActions()
+    Row(
+        modifier = Modifier
+            .background(color = colors.background)
+            .padding(all = 8.dp)
+            .background(
+                color = colors.urlBackground,
+                shape = ROUNDED_CORNER_SHAPE,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextField(
+            value = url,
+            onValueChange = { value ->
+                onUrlEdit(value)
+            },
+            colors = TextFieldDefaults.textFieldColors(
+                textColor = colors.text,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent,
+            ),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Uri,
+                imeAction = ImeAction.Go,
+            ),
+            keyboardActions = KeyboardActions(
+                onGo = { onUrlCommitted(url) },
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            shape = ROUNDED_CORNER_SHAPE,
+            trailingIcon = {
+                editActions()
 
-            if (url.isNotEmpty()) {
-                ClearButton(
-                    tint = colors.clearButton,
-                    onButtonClicked = { onUrlEdit("") },
-                )
-            }
-        },
-    )
+                if (url.isNotEmpty()) {
+                    ClearButton(
+                        tint = colors.clearButton,
+                        onButtonClicked = { onUrlEdit("") },
+                    )
+                }
+            },
+        )
+    }
 }
 
 /**

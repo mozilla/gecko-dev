@@ -25,6 +25,7 @@ object BrowserToolbarDefaults {
         ),
         editToolbarColors: BrowserEditToolbarColors = BrowserEditToolbarColors(
             background = AcornTheme.colors.layer1,
+            urlBackground = AcornTheme.colors.layer3,
             text = AcornTheme.colors.textPrimary,
             clearButton = AcornTheme.colors.iconPrimary,
         ),

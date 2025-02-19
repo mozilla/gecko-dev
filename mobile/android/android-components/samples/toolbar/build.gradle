@@ -45,6 +45,7 @@ dependencies {
     implementation project(':browser-menu2')
     implementation project(':browser-domains')
     implementation project(':browser-state')
+    implementation project(':compose-base')
     implementation project(':compose-browser-toolbar')
 
     implementation project(':ui-colors')
