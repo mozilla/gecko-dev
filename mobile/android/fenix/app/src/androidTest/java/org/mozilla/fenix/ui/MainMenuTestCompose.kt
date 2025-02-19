@@ -447,6 +447,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
+            verifyPageContent(testPage.content)
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
