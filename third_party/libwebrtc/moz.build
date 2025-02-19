@@ -737,6 +737,13 @@ if CONFIG["OS_TARGET"] == "WINNT" and CONFIG["TARGET_CPU"] == "x86_64":
         "/third_party/libwebrtc/modules/desktop_capture/desktop_capture_differ_sse2_gn"
     ]
 
+if CONFIG["MOZ_X11"] == "1" and CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DIRS += [
+        "/third_party/libwebrtc/modules/desktop_capture/desktop_capture_gn",
+        "/third_party/libwebrtc/modules/desktop_capture/primitives_gn"
+    ]
+
 if CONFIG["MOZ_X11"] == "1" and CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "ppc64":
 
     DIRS += [

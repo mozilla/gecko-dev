@@ -94,6 +94,10 @@ if CONFIG["OS_TARGET"] == "WINNT":
     DEFINES["_WINDOWS"] = True
     DEFINES["__STD_C"] = True
 
+if CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DEFINES["_GNU_SOURCE"] = True
+
 if CONFIG["TARGET_CPU"] == "mips32":
 
     DEFINES["_GNU_SOURCE"] = True

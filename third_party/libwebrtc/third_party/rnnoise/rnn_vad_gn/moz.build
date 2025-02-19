@@ -104,6 +104,10 @@ if CONFIG["TARGET_CPU"] == "arm":
         "-mfpu=neon"
     ]
 
+if CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DEFINES["_GNU_SOURCE"] = True
+
 if CONFIG["TARGET_CPU"] == "mips32":
 
     DEFINES["_GNU_SOURCE"] = True

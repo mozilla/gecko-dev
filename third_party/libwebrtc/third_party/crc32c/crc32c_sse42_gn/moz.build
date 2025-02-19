@@ -128,6 +128,11 @@ if CONFIG["TARGET_CPU"] == "arm":
 
     DEFINES["HAVE_MM_PREFETCH"] = "0"
 
+if CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DEFINES["HAVE_MM_PREFETCH"] = "0"
+    DEFINES["_GNU_SOURCE"] = True
+
 if CONFIG["TARGET_CPU"] == "mips32":
 
     DEFINES["HAVE_MM_PREFETCH"] = "0"

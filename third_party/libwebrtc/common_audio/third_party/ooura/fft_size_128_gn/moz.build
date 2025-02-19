@@ -159,6 +159,10 @@ if CONFIG["TARGET_CPU"] == "arm":
         "/third_party/libwebrtc/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc"
     ]
 
+if CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DEFINES["_GNU_SOURCE"] = True
+
 if CONFIG["TARGET_CPU"] == "mips32":
 
     DEFINES["MIPS32_LE"] = True

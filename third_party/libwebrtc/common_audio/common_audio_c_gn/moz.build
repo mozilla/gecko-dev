@@ -210,6 +210,16 @@ if CONFIG["TARGET_CPU"] == "arm":
     DEFINES["WEBRTC_ARCH_ARM_V7"] = True
     DEFINES["WEBRTC_HAS_NEON"] = True
 
+if CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DEFINES["_GNU_SOURCE"] = True
+
+    UNIFIED_SOURCES += [
+        "/third_party/libwebrtc/common_audio/signal_processing/complex_bit_reverse.c",
+        "/third_party/libwebrtc/common_audio/signal_processing/complex_fft.c",
+        "/third_party/libwebrtc/common_audio/signal_processing/filter_ar_fast_q12.c"
+    ]
+
 if CONFIG["TARGET_CPU"] == "mips32":
 
     DEFINES["MIPS32_LE"] = True

@@ -130,6 +130,11 @@ if CONFIG["TARGET_CPU"] == "arm":
     DEFINES["WEBRTC_HAS_NEON"] = True
     DEFINES["_GNU_SOURCE"] = True
 
+if CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DEFINES["USE_X11"] = "1"
+    DEFINES["_GNU_SOURCE"] = True
+
 if CONFIG["TARGET_CPU"] == "mips32":
 
     DEFINES["MIPS32_LE"] = True

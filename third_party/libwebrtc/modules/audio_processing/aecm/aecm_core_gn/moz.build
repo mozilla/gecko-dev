@@ -176,6 +176,14 @@ if CONFIG["TARGET_CPU"] == "arm":
         "/third_party/libwebrtc/modules/audio_processing/aecm/aecm_core_neon.cc"
     ]
 
+if CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DEFINES["_GNU_SOURCE"] = True
+
+    SOURCES += [
+        "/third_party/libwebrtc/modules/audio_processing/aecm/aecm_core_c.cc"
+    ]
+
 if CONFIG["TARGET_CPU"] == "mips32":
 
     DEFINES["MIPS32_LE"] = True

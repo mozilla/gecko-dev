@@ -144,6 +144,14 @@ if CONFIG["TARGET_CPU"] == "arm":
         "/third_party/libwebrtc/common_audio/third_party/spl_sqrt_floor/spl_sqrt_floor_arm.S"
     ]
 
+if CONFIG["TARGET_CPU"] == "loongarch64":
+
+    DEFINES["_GNU_SOURCE"] = True
+
+    UNIFIED_SOURCES += [
+        "/third_party/libwebrtc/common_audio/third_party/spl_sqrt_floor/spl_sqrt_floor.c"
+    ]
+
 if CONFIG["TARGET_CPU"] == "mips32":
 
     DEFINES["MIPS32_LE"] = True
