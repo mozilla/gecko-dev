@@ -1887,7 +1887,7 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
       }
     }
 
-    return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
+    return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_UNIT_DESIGNATOR);
   } while (false);
 
   // DurationTime :::
@@ -1952,7 +1952,7 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
     }
   }
 
-  return mozilla::Err(JSMSG_TEMPORAL_PARSER_GARBAGE_AFTER_INPUT);
+  return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_DURATION_UNIT_DESIGNATOR);
 }
 
 /**
