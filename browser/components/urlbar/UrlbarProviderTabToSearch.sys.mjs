@@ -243,32 +243,6 @@ class ProviderTabToSearch extends UrlbarProvider {
     }
   }
 
-  onImpression(state, queryContext, controller, providerVisibleResults) {
-    try {
-      providerVisibleResults.forEach(({ result }) => {
-        if (result.type === UrlbarUtils.RESULT_TYPE.DYNAMIC) {
-          let scalarKey = lazy.UrlbarSearchUtils.getSearchModeScalarKey({
-            engineName: result?.payload.engine,
-          });
-          Glean.urlbarTabtosearch.impressionsOnboarding[scalarKey].add(1);
-        } else if (result.type === UrlbarUtils.RESULT_TYPE.SEARCH) {
-          let scalarKey = lazy.UrlbarSearchUtils.getSearchModeScalarKey({
-            engineName: result?.payload.engine,
-          });
-          Glean.urlbarTabtosearch.impressions[scalarKey].add(1);
-        }
-      });
-    } catch (ex) {
-      // If your test throws this error or causes another test to throw it, it
-      // is likely because your test showed a tab-to-search result but did not
-      // start and end the engagement in which it was shown. Be sure to fire an
-      // input event to start an engagement and blur the Urlbar to end it.
-      this.logger.error(
-        `Exception while recording TabToSearch telemetry: ${ex})`
-      );
-    }
-  }
-
   /**
    * Defines whether the view should defer user selection events while waiting
    * for the first result from this provider.

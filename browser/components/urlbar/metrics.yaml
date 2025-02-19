@@ -1173,39 +1173,6 @@ urlbar.trending:
     expires: never
     telemetry_mirror: URLBAR_TRENDING_BLOCK
 
-urlbar.tabtosearch:
-  impressions:
-    type: labeled_counter
-    description: >
-      A keyed uint recording how many times non-onboarding tab-to-search
-      results are shown in the Urlbar for a particular search engine.
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar urlbar.tabtosearch.impressions.
-    bugs:
-      - https://bugzil.la/1686330
-    data_reviews:
-      - https://bugzil.la/1686330
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-    expires: never
-    telemetry_mirror: URLBAR_TABTOSEARCH_IMPRESSIONS
-
-  impressions_onboarding:
-    type: labeled_counter
-    description: >
-      A keyed uint recording how many times onboarding tab-to-search
-      results are shown in the Urlbar for a particular search engine.
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar urlbar.tabtosearch.impressions_onboarding.
-    bugs:
-      - https://bugzil.la/1686330
-    data_reviews:
-      - https://bugzil.la/1686330
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-    expires: never
-    telemetry_mirror: URLBAR_TABTOSEARCH_IMPRESSIONS_ONBOARDING
-
 urlbar.persistedsearchterms:
   revert_by_popup_count:
     type: counter

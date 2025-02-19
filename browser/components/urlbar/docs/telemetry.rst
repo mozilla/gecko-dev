@@ -508,6 +508,8 @@ urlbar.picked.searchmode.*
 urlbar.tabtosearch.*
 ~~~~~~~~~~~~~~~~~~~~
 
+  NOTE: This telemetry is no longer collected. See changelog below.
+
   This is a set of keyed scalars whose values are uints incremented when a
   tab-to-search result is shown, once per engine per engagement. There are two
   sub-probes: ``urlbar.tabtosearch.impressions`` and
@@ -521,6 +523,14 @@ urlbar.tabtosearch.*
   .. note::
     Due to the potentially sensitive nature of these data, they are currently
     collected only on pre-release version of Firefox. See bug 1686330.
+
+  Changelog
+    Firefox 134
+      Legacy ``urlbar.tabtosearch.*`` telemetry mirrored to Glean. (See
+      bug 1927093)
+    Firefox 137
+      Legacy ``urlbar.tabtosearch.*`` telemetry and Glean
+      ``urlbar.tabtosearch.*`` telemetry removed completely. (See bug 1932715)
 
 urlbar.zeroprefix.abandonment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
