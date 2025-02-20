@@ -69,7 +69,7 @@ class ReleaseParser(BaseTryParser):
         ],
     ]
     common_groups = ["push"]
-    task_configs = ["disable-pgo", "worker-overrides"]
+    task_configs = ["disable-pgo", "worker-overrides", "existing-tasks"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
