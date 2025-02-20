@@ -19,7 +19,8 @@
 
 namespace {
 
-rtc::AdapterType AdapterTypeFromInterfaceType(nw_interface_type_t interfaceType) {
+rtc::AdapterType AdapterTypeFromInterfaceType(
+    nw_interface_type_t interfaceType) {
   rtc::AdapterType adapterType = rtc::ADAPTER_TYPE_UNKNOWN;
   switch (interfaceType) {
     case nw_interface_type_other:
@@ -82,16 +83,22 @@ rtc::AdapterType AdapterTypeFromInterfaceType(nw_interface_type_t interfaceType)
           RTCLog(@"NW path monitor status: satisfiable.");
         }
         std::map<std::string, rtc::AdapterType, rtc::AbslStringViewCmp> *map =
-            new std::map<std::string, rtc::AdapterType, rtc::AbslStringViewCmp>();
+            new std::
+                map<std::string, rtc::AdapterType, rtc::AbslStringViewCmp>();
         nw_path_enumerate_interfaces(
-            path, (nw_path_enumerate_interfaces_block_t) ^ (nw_interface_t interface) {
-              const char *name = nw_interface_get_name(interface);
-              nw_interface_type_t interfaceType = nw_interface_get_type(interface);
-              RTCLog(@"NW path monitor available interface: %s", name);
-              rtc::AdapterType adapterType = AdapterTypeFromInterfaceType(interfaceType);
-              map->insert(std::pair<std::string, rtc::AdapterType>(name, adapterType));
-              return true;
-            });
+            path,
+            (nw_path_enumerate_interfaces_block_t) ^
+                (nw_interface_t interface) {
+                  const char *name = nw_interface_get_name(interface);
+                  nw_interface_type_t interfaceType =
+                      nw_interface_get_type(interface);
+                  RTCLog(@"NW path monitor available interface: %s", name);
+                  rtc::AdapterType adapterType =
+                      AdapterTypeFromInterfaceType(interfaceType);
+                  map->insert(std::pair<std::string, rtc::AdapterType>(
+                      name, adapterType));
+                  return true;
+                });
         @synchronized(strongSelf) {
           webrtc::NetworkMonitorObserver *observer = strongSelf->_observer;
           if (observer) {
@@ -102,7 +109,8 @@ rtc::AdapterType AdapterTypeFromInterfaceType(nw_interface_type_t interfaceType)
       });
       nw_path_monitor_set_queue(
           _pathMonitor,
-          [RTC_OBJC_TYPE(RTCDispatcher) dispatchQueueForType:RTCDispatcherTypeNetworkMonitor]);
+          [RTC_OBJC_TYPE(RTCDispatcher)
+              dispatchQueueForType:RTCDispatcherTypeNetworkMonitor]);
       nw_path_monitor_start(_pathMonitor);
     }
   }

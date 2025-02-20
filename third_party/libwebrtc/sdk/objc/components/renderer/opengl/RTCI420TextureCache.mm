@@ -17,9 +17,9 @@
 
 #include <vector>
 
-// Two sets of 3 textures are used here, one for each of the Y, U and V planes. Having two sets
-// alleviates CPU blockage in the event that the GPU is asked to render to a texture that is already
-// in use.
+// Two sets of 3 textures are used here, one for each of the Y, U and V planes.
+// Having two sets alleviates CPU blockage in the event that the GPU is asked to
+// render to a texture that is already in use.
 static const GLsizei kNumTextureSets = 2;
 static const GLsizei kNumTexturesPerSet = 3;
 static const GLsizei kNumTextures = kNumTexturesPerSet * kNumTextureSets;
@@ -29,7 +29,8 @@ static const GLsizei kNumTextures = kNumTexturesPerSet * kNumTextureSets;
   GLint _currentTextureSet;
   // Handles for OpenGL constructs.
   GLuint _textures[kNumTextures];
-  // Used to create a non-padded plane for GPU upload when we receive padded frames.
+  // Used to create a non-padded plane for GPU upload when we receive padded
+  // frames.
   std::vector<uint8_t> _planeBuffer;
 }
 
@@ -81,7 +82,7 @@ static const GLsizei kNumTextures = kNumTexturesPerSet * kNumTextureSets;
 
   const uint8_t *uploadPlane = plane;
   if ((size_t)stride != width) {
-   if (_hasUnpackRowLength) {
+    if (_hasUnpackRowLength) {
       // GLES3 allows us to specify stride.
       glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
       glTexImage2D(GL_TEXTURE_2D,

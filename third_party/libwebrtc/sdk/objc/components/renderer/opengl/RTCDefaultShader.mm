@@ -25,50 +25,44 @@ static const int kUvTextureUnit = 1;
 
 // Fragment shader converts YUV values from input textures into a final RGB
 // pixel. The conversion formula is from http://www.fourcc.org/fccyvrgb.php.
-static const char kI420FragmentShaderSource[] =
-  SHADER_VERSION
-  "precision highp float;"
-  FRAGMENT_SHADER_IN " vec2 v_texcoord;\n"
-  "uniform lowp sampler2D s_textureY;\n"
-  "uniform lowp sampler2D s_textureU;\n"
-  "uniform lowp sampler2D s_textureV;\n"
-  FRAGMENT_SHADER_OUT
-  "void main() {\n"
-  "    float y, u, v, r, g, b;\n"
-  "    y = " FRAGMENT_SHADER_TEXTURE "(s_textureY, v_texcoord).r;\n"
-  "    u = " FRAGMENT_SHADER_TEXTURE "(s_textureU, v_texcoord).r;\n"
-  "    v = " FRAGMENT_SHADER_TEXTURE "(s_textureV, v_texcoord).r;\n"
-  "    u = u - 0.5;\n"
-  "    v = v - 0.5;\n"
-  "    r = y + 1.403 * v;\n"
-  "    g = y - 0.344 * u - 0.714 * v;\n"
-  "    b = y + 1.770 * u;\n"
-  "    " FRAGMENT_SHADER_COLOR " = vec4(r, g, b, 1.0);\n"
-  "  }\n";
+static const char kI420FragmentShaderSource[] = SHADER_VERSION
+    "precision highp float;" FRAGMENT_SHADER_IN " vec2 v_texcoord;\n"
+    "uniform lowp sampler2D s_textureY;\n"
+    "uniform lowp sampler2D s_textureU;\n"
+    "uniform lowp sampler2D s_textureV;\n" FRAGMENT_SHADER_OUT "void main() {\n"
+    "    float y, u, v, r, g, b;\n"
+    "    y = " FRAGMENT_SHADER_TEXTURE "(s_textureY, v_texcoord).r;\n"
+    "    u = " FRAGMENT_SHADER_TEXTURE "(s_textureU, v_texcoord).r;\n"
+    "    v = " FRAGMENT_SHADER_TEXTURE "(s_textureV, v_texcoord).r;\n"
+    "    u = u - 0.5;\n"
+    "    v = v - 0.5;\n"
+    "    r = y + 1.403 * v;\n"
+    "    g = y - 0.344 * u - 0.714 * v;\n"
+    "    b = y + 1.770 * u;\n"
+    "    " FRAGMENT_SHADER_COLOR " = vec4(r, g, b, 1.0);\n"
+    "  }\n";
 
-static const char kNV12FragmentShaderSource[] =
-  SHADER_VERSION
-  "precision mediump float;"
-  FRAGMENT_SHADER_IN " vec2 v_texcoord;\n"
-  "uniform lowp sampler2D s_textureY;\n"
-  "uniform lowp sampler2D s_textureUV;\n"
-  FRAGMENT_SHADER_OUT
-  "void main() {\n"
-  "    mediump float y;\n"
-  "    mediump vec2 uv;\n"
-  "    y = " FRAGMENT_SHADER_TEXTURE "(s_textureY, v_texcoord).r;\n"
-  "    uv = " FRAGMENT_SHADER_TEXTURE "(s_textureUV, v_texcoord).ra -\n"
-  "        vec2(0.5, 0.5);\n"
-  "    " FRAGMENT_SHADER_COLOR " = vec4(y + 1.403 * uv.y,\n"
-  "                                     y - 0.344 * uv.x - 0.714 * uv.y,\n"
-  "                                     y + 1.770 * uv.x,\n"
-  "                                     1.0);\n"
-  "  }\n";
+static const char kNV12FragmentShaderSource[] = SHADER_VERSION
+    "precision mediump float;" FRAGMENT_SHADER_IN " vec2 v_texcoord;\n"
+    "uniform lowp sampler2D s_textureY;\n"
+    "uniform lowp sampler2D s_textureUV;\n" FRAGMENT_SHADER_OUT
+    "void main() {\n"
+    "    mediump float y;\n"
+    "    mediump vec2 uv;\n"
+    "    y = " FRAGMENT_SHADER_TEXTURE "(s_textureY, v_texcoord).r;\n"
+    "    uv = " FRAGMENT_SHADER_TEXTURE "(s_textureUV, v_texcoord).ra -\n"
+    "        vec2(0.5, 0.5);\n"
+    "    " FRAGMENT_SHADER_COLOR " = vec4(y + 1.403 * uv.y,\n"
+    "                                     y - 0.344 * uv.x - 0.714 * uv.y,\n"
+    "                                     y + 1.770 * uv.x,\n"
+    "                                     1.0);\n"
+    "  }\n";
 
 @implementation RTCDefaultShader {
   GLuint _vertexBuffer;
   GLuint _vertexArray;
-  // Store current rotation and only upload new vertex data when rotation changes.
+  // Store current rotation and only upload new vertex data when rotation
+  // changes.
   std::optional<RTCVideoRotation> _currentRotation;
 
   GLuint _i420Program;

@@ -26,20 +26,22 @@
 #error ABSL_HAVE_THREAD_LOCAL should be defined for MacOS / iOS Targets.
 #endif
 
-NSString *const kRTCAudioSessionErrorDomain = @"org.webrtc.RTC_OBJC_TYPE(RTCAudioSession)";
+NSString *const kRTCAudioSessionErrorDomain =
+    @"org.webrtc.RTC_OBJC_TYPE(RTCAudioSession)";
 NSInteger const kRTCAudioSessionErrorLockRequired = -1;
 NSInteger const kRTCAudioSessionErrorConfiguration = -2;
-NSString * const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
+NSString *const kRTCAudioSessionOutputVolumeSelector = @"outputVolume";
 
 namespace {
-// Since webrtc::Mutex is not a reentrant lock and cannot check if the mutex is locked,
-// we need a separate variable to check that the mutex is locked in the RTCAudioSession.
+// Since webrtc::Mutex is not a reentrant lock and cannot check if the mutex is
+// locked, we need a separate variable to check that the mutex is locked in the
+// RTCAudioSession.
 ABSL_CONST_INIT thread_local bool mutex_locked = false;
 }  // namespace
 
 @interface RTC_OBJC_TYPE (RTCAudioSession)
-() @property(nonatomic,
-             readonly) std::vector<__weak id<RTC_OBJC_TYPE(RTCAudioSessionDelegate)> > delegates;
+() @property(nonatomic, readonly)
+    std::vector<__weak id<RTC_OBJC_TYPE(RTCAudioSessionDelegate)> > delegates;
 @end
 
 // This class needs to be thread-safe because it is accessed from many threads.
@@ -75,7 +77,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
   return [self initWithAudioSession:[AVAudioSession sharedInstance]];
 }
 
-/** This initializer provides a way for unit tests to inject a fake/mock audio session. */
+/** This initializer provides a way for unit tests to inject a fake/mock audio
+ * session. */
 - (instancetype)initWithAudioSession:(id)audioSession {
   self = [super init];
   if (self) {
@@ -105,15 +108,17 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
                selector:@selector(handleSilenceSecondaryAudioHintNotification:)
                    name:AVAudioSessionSilenceSecondaryAudioHintNotification
                  object:nil];
-    // Also track foreground event in order to deal with interruption ended situation.
+    // Also track foreground event in order to deal with interruption ended
+    // situation.
     [center addObserver:self
                selector:@selector(handleApplicationDidBecomeActive:)
                    name:UIApplicationDidBecomeActiveNotification
                  object:nil];
-    [_session addObserver:self
-               forKeyPath:kRTCAudioSessionOutputVolumeSelector
-                  options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld
-                  context:(__bridge void *)RTC_OBJC_TYPE(RTCAudioSession).class];
+    [_session
+        addObserver:self
+         forKeyPath:kRTCAudioSessionOutputVolumeSelector
+            options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld
+            context:(__bridge void *)RTC_OBJC_TYPE(RTCAudioSession).class];
 
     RTCLog(@"RTC_OBJC_TYPE(RTCAudioSession) (%p): init.", self);
   }
@@ -122,9 +127,10 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 
 - (void)dealloc {
   [[NSNotificationCenter defaultCenter] removeObserver:self];
-  [_session removeObserver:self
-                forKeyPath:kRTCAudioSessionOutputVolumeSelector
-                   context:(__bridge void *)RTC_OBJC_TYPE(RTCAudioSession).class];
+  [_session
+      removeObserver:self
+          forKeyPath:kRTCAudioSessionOutputVolumeSelector
+             context:(__bridge void *)RTC_OBJC_TYPE(RTCAudioSession).class];
   RTCLog(@"RTC_OBJC_TYPE(RTCAudioSession) (%p): dealloc.", self);
 }
 
@@ -142,11 +148,19 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
                       "  inputLatency: %f\n"
                       "  outputVolume: %f\n"
                       "}";
-  NSString *description = [NSString stringWithFormat:format,
-      self.category, (long)self.categoryOptions, self.mode,
-      self.isActive, self.sampleRate, self.IOBufferDuration,
-      self.outputNumberOfChannels, self.inputNumberOfChannels,
-      self.outputLatency, self.inputLatency, self.outputVolume];
+  NSString *description =
+      [NSString stringWithFormat:format,
+                                 self.category,
+                                 (long)self.categoryOptions,
+                                 self.mode,
+                                 self.isActive,
+                                 self.sampleRate,
+                                 self.IOBufferDuration,
+                                 self.outputNumberOfChannels,
+                                 self.inputNumberOfChannels,
+                                 self.outputLatency,
+                                 self.inputLatency,
+                                 self.outputVolume];
   return description;
 }
 
@@ -201,7 +215,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
         ignoresPreferredAttributeConfigurationErrors) {
       return;
     }
-    _ignoresPreferredAttributeConfigurationErrors = ignoresPreferredAttributeConfigurationErrors;
+    _ignoresPreferredAttributeConfigurationErrors =
+        ignoresPreferredAttributeConfigurationErrors;
   }
 }
 
@@ -229,10 +244,9 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
     return;
   }
   @synchronized(self) {
-    _delegates.erase(std::remove(_delegates.begin(),
-                                 _delegates.end(),
-                                 delegate),
-                     _delegates.end());
+    _delegates.erase(
+        std::remove(_delegates.begin(), _delegates.end(), delegate),
+        _delegates.end());
     [self removeZeroedDelegates];
   }
 }
@@ -347,8 +361,7 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
   return self.session.preferredIOBufferDuration;
 }
 
-- (BOOL)setActive:(BOOL)active
-            error:(NSError **)outError {
+- (BOOL)setActive:(BOOL)active error:(NSError **)outError {
   if (![self checkLock:outError]) {
     return NO;
   }
@@ -373,9 +386,7 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
     // option.
     AVAudioSessionSetActiveOptions options =
         active ? 0 : AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation;
-    success = [session setActive:active
-                     withOptions:options
-                           error:&error];
+    success = [session setActive:active withOptions:options error:&error];
     if (outError) {
       *outError = error;
     }
@@ -394,7 +405,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
     }
   } else {
     RTCLogError(@"Failed to setActive:%d. Error: %@",
-                active, error.localizedDescription);
+                active,
+                error.localizedDescription);
     [self notifyFailedToSetActive:active error:error];
   }
   // Set isActive and decrement activation count on deactivation
@@ -417,7 +429,10 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
   if (![self checkLock:outError]) {
     return NO;
   }
-  return [self.session setCategory:category mode:mode options:options error:outError];
+  return [self.session setCategory:category
+                              mode:mode
+                           options:options
+                             error:outError];
 }
 
 - (BOOL)setCategory:(AVAudioSessionCategory)category
@@ -508,7 +523,7 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 #pragma mark - Notifications
 
 - (void)handleInterruptionNotification:(NSNotification *)notification {
-  NSNumber* typeNumber =
+  NSNumber *typeNumber =
       notification.userInfo[AVAudioSessionInterruptionTypeKey];
   AVAudioSessionInterruptionType type =
       (AVAudioSessionInterruptionType)typeNumber.unsignedIntegerValue;
@@ -537,7 +552,7 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 
 - (void)handleRouteChangeNotification:(NSNotification *)notification {
   // Get reason for current route change.
-  NSNumber* reasonNumber =
+  NSNumber *reasonNumber =
       notification.userInfo[AVAudioSessionRouteChangeReasonKey];
   AVAudioSessionRouteChangeReason reason =
       (AVAudioSessionRouteChangeReason)reasonNumber.unsignedIntegerValue;
@@ -569,11 +584,12 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
       RTCLog(@"Audio route changed: RouteConfigurationChange");
       break;
   }
-  AVAudioSessionRouteDescription* previousRoute =
+  AVAudioSessionRouteDescription *previousRoute =
       notification.userInfo[AVAudioSessionRouteChangePreviousRouteKey];
   // Log previous route configuration.
   RTCLog(@"Previous route: %@\nCurrent route:%@",
-         previousRoute, self.session.currentRoute);
+         previousRoute,
+         self.session.currentRoute);
   [self notifyDidChangeRouteWithReason:reason previousRoute:previousRoute];
 }
 
@@ -589,14 +605,16 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
   [self notifyMediaServicesWereReset];
 }
 
-- (void)handleSilenceSecondaryAudioHintNotification:(NSNotification *)notification {
+- (void)handleSilenceSecondaryAudioHintNotification:
+    (NSNotification *)notification {
   // TODO(henrika): just adding logs here for now until we know if we are ever
   // see this notification and might be affected by it or if further actions
   // are required.
   NSNumber *typeNumber =
       notification.userInfo[AVAudioSessionSilenceSecondaryAudioHintTypeKey];
   AVAudioSessionSilenceSecondaryAudioHintType type =
-      (AVAudioSessionSilenceSecondaryAudioHintType)typeNumber.unsignedIntegerValue;
+      (AVAudioSessionSilenceSecondaryAudioHintType)
+          typeNumber.unsignedIntegerValue;
   switch (type) {
     case AVAudioSessionSilenceSecondaryAudioHintTypeBegin:
       RTCLog(@"Another application's primary audio has started.");
@@ -609,7 +627,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 
 - (void)handleApplicationDidBecomeActive:(NSNotification *)notification {
   BOOL isInterrupted = self.isInterrupted;
-  RTCLog(@"Application became active after an interruption. Treating as interruption "
+  RTCLog(@"Application became active after an interruption. Treating as "
+         @"interruption "
           "end. isInterrupted changed from %d to 0.",
          isInterrupted);
   if (isInterrupted) {
@@ -623,11 +642,14 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 #pragma mark - Private
 
 + (NSError *)lockError {
-  NSDictionary *userInfo =
-      @{NSLocalizedDescriptionKey : @"Must call lockForConfiguration before calling this method."};
-  NSError *error = [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
-                                              code:kRTCAudioSessionErrorLockRequired
-                                          userInfo:userInfo];
+  NSDictionary *userInfo = @{
+    NSLocalizedDescriptionKey :
+        @"Must call lockForConfiguration before calling this method."
+  };
+  NSError *error =
+      [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
+                                 code:kRTCAudioSessionErrorLockRequired
+                             userInfo:userInfo];
   return error;
 }
 
@@ -687,8 +709,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
   @synchronized(self) {
     if (_isInterrupted == isInterrupted) {
       return;
-   }
-   _isInterrupted = isInterrupted;
+    }
+    _isInterrupted = isInterrupted;
   }
 }
 
@@ -766,9 +788,9 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
   if (sessionSampleRate != preferredSampleRate) {
     RTCLogWarning(
         @"Current sample rate (%.2f) is not the preferred rate (%.2f)",
-        sessionSampleRate, preferredSampleRate);
-    if (![self setPreferredSampleRate:sessionSampleRate
-                                error:&error]) {
+        sessionSampleRate,
+        preferredSampleRate);
+    if (![self setPreferredSampleRate:sessionSampleRate error:&error]) {
       RTCLogError(@"Failed to set preferred sample rate: %@",
                   error.localizedDescription);
       if (outError) {
@@ -791,8 +813,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 }
 
 - (NSError *)configurationErrorWithDescription:(NSString *)description {
-  NSDictionary* userInfo = @{
-    NSLocalizedDescriptionKey: description,
+  NSDictionary *userInfo = @{
+    NSLocalizedDescriptionKey : description,
   };
   return [[NSError alloc] initWithDomain:kRTCAudioSessionErrorDomain
                                     code:kRTCAudioSessionErrorConfiguration
@@ -802,7 +824,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 - (void)updateAudioSessionAfterEvent {
   BOOL shouldActivate = self.activationCount > 0;
   AVAudioSessionSetActiveOptions options = shouldActivate ?
-      0 : AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation;
+      0 :
+      AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation;
   NSError *error = nil;
   if ([self.session setActive:shouldActivate
                   withOptions:options
@@ -810,7 +833,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
     self.isActive = shouldActivate;
   } else {
     RTCLogError(@"Failed to set session active to %d. Error:%@",
-                shouldActivate, error.localizedDescription);
+                shouldActivate,
+                error.localizedDescription);
   }
 }
 
@@ -851,7 +875,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 
 - (void)audioSessionDidDeactivate:(AVAudioSession *)session {
   if (_session != session) {
-    RTCLogError(@"audioSessionDidDeactivate called on different AVAudioSession");
+    RTCLogError(
+        @"audioSessionDidDeactivate called on different AVAudioSession");
   }
   RTCLog(@"Audio session was externally deactivated.");
   self.isActive = NO;
@@ -881,9 +906,10 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
     SEL sel = @selector(audioSession:audioUnitStartFailedWithError:);
     if ([delegate respondsToSelector:sel]) {
       [delegate audioSession:self
-          audioUnitStartFailedWithError:[NSError errorWithDomain:kRTCAudioSessionErrorDomain
-                                                            code:error
-                                                        userInfo:nil]];
+          audioUnitStartFailedWithError:
+              [NSError errorWithDomain:kRTCAudioSessionErrorDomain
+                                  code:error
+                              userInfo:nil]];
     }
   }
 }
@@ -909,7 +935,8 @@ ABSL_CONST_INIT thread_local bool mutex_locked = false;
 }
 
 - (void)notifyDidChangeRouteWithReason:(AVAudioSessionRouteChangeReason)reason
-    previousRoute:(AVAudioSessionRouteDescription *)previousRoute {
+                         previousRoute:
+                             (AVAudioSessionRouteDescription *)previousRoute {
   for (auto delegate : self.delegates) {
     SEL sel = @selector(audioSessionDidChangeRoute:reason:previousRoute:);
     if ([delegate respondsToSelector:sel]) {

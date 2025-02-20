@@ -33,8 +33,8 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * Sets the provided view as rendering destination if possible.
  *
- * If not possible method returns NO and callers of the method are responisble for performing
- * cleanups.
+ * If not possible method returns NO and callers of the method are responisble
+ * for performing cleanups.
  */
 
 #if TARGET_OS_IOS
@@ -52,7 +52,8 @@ NS_AVAILABLE(10_11, 9_0)
 @interface RTCMTLRenderer : NSObject <RTCMTLRenderer>
 
 /** @abstract   A wrapped RTCVideoRotation, or nil.
-    @discussion When not nil, the rotation of the actual frame is ignored when rendering.
+    @discussion When not nil, the rotation of the actual frame is ignored when
+   rendering.
  */
 @property(atomic, nullable) NSValue *rotationOverride;
 

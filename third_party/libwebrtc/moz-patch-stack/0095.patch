@@ -13,7 +13,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/91a763d768b74acc9
  2 files changed, 19 insertions(+), 3 deletions(-)
 
 diff --git a/sdk/objc/components/capturer/RTCCameraVideoCapturer.h b/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
-index 9874121238..39619b2fc3 100644
+index 5185fa866e..6aeb577b13 100644
 --- a/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
 +++ b/sdk/objc/components/capturer/RTCCameraVideoCapturer.h
 @@ -26,7 +26,10 @@ RTC_OBJC_EXPORT
@@ -26,8 +26,8 @@ index 9874121238..39619b2fc3 100644
 +// Returns list of default capture devices types
 ++ (NSArray<AVCaptureDeviceType> *)defaultCaptureDeviceTypes;
  // Returns list of formats that are supported by this class for this device.
- + (NSArray<AVCaptureDeviceFormat *> *)supportedFormatsForDevice:(AVCaptureDevice *)device;
- 
+ + (NSArray<AVCaptureDeviceFormat *> *)supportedFormatsForDevice:
+     (AVCaptureDevice *)device;
 diff --git a/sdk/objc/components/capturer/RTCCameraVideoCapturer.m b/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
 index d25f5e20ae..4f92f56807 100644
 --- a/sdk/objc/components/capturer/RTCCameraVideoCapturer.m
