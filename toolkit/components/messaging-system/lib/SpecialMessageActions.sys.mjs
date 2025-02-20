@@ -501,6 +501,30 @@ export const SpecialMessageActions = {
     GleanPings.onboardingOptOut.submit("set_upload_enabled");
   },
 
+  async handleMultiAction(actions, browser, orderedExecution) {
+    if (orderedExecution) {
+      for (const action of actions) {
+        try {
+          await this.handleAction(action, browser);
+        } catch (err) {
+          console.error("Error in MULTI_ACTION event:", err);
+          throw err;
+        }
+      }
+      return;
+    }
+    // If order doesn't matter, allow actions to run concurrently
+    await Promise.all(
+      actions.map(async action => {
+        try {
+          await this.handleAction(action, browser);
+        } catch (err) {
+          throw new Error(`Error in MULTI_ACTION event: ${err.message}`);
+        }
+      })
+    );
+  },
+
   /**
    * Processes "Special Message Actions", which are definitions of behaviors such as opening tabs
    * installing add-ons, or focusing the awesome bar that are allowed to can be triggered from
@@ -685,14 +709,10 @@ export const SpecialMessageActions = {
         this.setPref(action.data.pref);
         break;
       case "MULTI_ACTION":
-        await Promise.all(
-          action.data.actions.map(async action => {
-            try {
-              await this.handleAction(action, browser);
-            } catch (err) {
-              throw new Error(`Error in MULTI_ACTION event: ${err.message}`);
-            }
-          })
+        await this.handleMultiAction(
+          action.data.actions,
+          browser,
+          action.data.orderedExecution
         );
         break;
       default:

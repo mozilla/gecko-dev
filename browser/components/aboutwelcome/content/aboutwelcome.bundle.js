@@ -692,6 +692,8 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
     // 2. checkbox action 2
     // 3. radio action
     // 4. CTA action (which perhaps depends on the radio action)
+    // Note, this order is only guaranteed if action.data has the
+    // `orderedExecution` flag set to true.
     let multiSelectActions = [];
     const processTile = tile => {
       if (tile?.type === "multiselect" && Array.isArray(tile.data)) {

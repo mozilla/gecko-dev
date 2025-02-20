@@ -595,6 +595,8 @@ export class WelcomeScreen extends React.PureComponent {
     // 2. checkbox action 2
     // 3. radio action
     // 4. CTA action (which perhaps depends on the radio action)
+    // Note, this order is only guaranteed if action.data has the
+    // `orderedExecution` flag set to true.
     let multiSelectActions = [];
 
     const processTile = tile => {
