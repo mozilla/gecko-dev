@@ -83,6 +83,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1934567-www.port8.fi-scrolling-fix.css",
     "injections/css/bug1941530-climate.rutgers.edu-fix-broken-images.css",
     "injections/css/bug1942292-beterbed.nl-scrollbar-fix.css",
+    "injections/css/bug1943920-add.org-fix-overlapping-menu.css",
     "injections/css/bug1944727-www.linkedin.com-fix-dark-overlay.css",
     "injections/css/bug1945830-aliexpress.com-country-flags-fix.css",
 ]

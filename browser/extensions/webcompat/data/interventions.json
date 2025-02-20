@@ -2802,6 +2802,23 @@
       }
     ]
   },
+  "1943920": {
+    "label": "add.org",
+    "bugs": {
+      "1943920": {
+        "issue": "broken-layout",
+        "matches": ["*://add.org/adhd-facts*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1943920-add.org-fix-overlapping-menu.css"]
+        }
+      }
+    ]
+  },
   "1941530": {
     "label": "climate.rutgers.edu",
     "bugs": {
