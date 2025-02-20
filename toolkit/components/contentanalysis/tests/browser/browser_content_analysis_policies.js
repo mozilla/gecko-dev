@@ -27,6 +27,7 @@ const kIndividualPrefs = new Map([
   ["PerUser", "is_per_user"],
   ["ShowBlocked", "show_blocked_result"],
   ["DefaultResult", "default_result"],
+  ["TimeoutResult", "timeout_result"],
   ["BypassForSameTab", "bypass_for_same_tab_operations"],
 ]);
 function getIndividualPrefName(name) {
@@ -165,6 +166,7 @@ add_task(async function test_ca_enterprise_config() {
         IsPerUser: true,
         ShowBlockedResult: false,
         DefaultResult: 1,
+        TimeoutResult: 2,
         BypassForSameTabOperations: true,
         InterceptionPoints: {
           Clipboard: {
@@ -230,6 +232,11 @@ add_task(async function test_ca_enterprise_config() {
     Services.prefs.getIntPref(getIndividualPrefName("DefaultResult")),
     1,
     "default result match"
+  );
+  is(
+    Services.prefs.getIntPref(getIndividualPrefName("TimeoutResult")),
+    2,
+    "timeout result match"
   );
   is(
     Services.prefs.getBoolPref(getIndividualPrefName("BypassForSameTab")),

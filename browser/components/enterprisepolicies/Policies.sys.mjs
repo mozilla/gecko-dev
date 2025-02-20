@@ -559,23 +559,30 @@ export var Policies = {
         "ClientSignature",
         "browser.contentanalysis.client_signature"
       );
-      if ("DefaultResult" in param) {
-        if (
-          !Number.isInteger(param.DefaultResult) ||
-          param.DefaultResult < 0 ||
-          param.DefaultResult > 2
-        ) {
-          lazy.log.error(
-            `Non-integer or out of range value for DefaultResult: ${param.DefaultResult}`
-          );
+      let resultPrefs = [
+        ["DefaultResult", "default_result"],
+        ["TimeoutResult", "timeout_result"],
+      ];
+      for (let pref of resultPrefs) {
+        if (pref[0] in param) {
+          if (
+            !Number.isInteger(param[pref[0]]) ||
+            param[pref[0]] < 0 ||
+            param[pref[0]] > 2
+          ) {
+            lazy.log.error(
+              `Non-integer or out of range value for ${pref[0]}: ${param[pref[0]]}`
+            );
+            Services.prefs.lockPref(`browser.contentanalysis.${pref[1]}`);
+          } else {
+            setAndLockPref(
+              `browser.contentanalysis.${pref[1]}`,
+              param[pref[0]]
+            );
+          }
         } else {
-          setAndLockPref(
-            "browser.contentanalysis.default_result",
-            param.DefaultResult
-          );
+          Services.prefs.lockPref(`browser.contentanalysis.${pref[1]}`);
         }
-      } else {
-        Services.prefs.lockPref("browser.contentanalysis.default_result");
       }
       let boolPrefs = [
         ["IsPerUser", "is_per_user"],
