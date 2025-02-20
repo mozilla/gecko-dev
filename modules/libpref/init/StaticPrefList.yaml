@@ -11389,6 +11389,14 @@
     value: 35 # An empirical value for better quality of the video output
     mirror: always
 
+# Set the FFmpeg encoder's cpu-used option, only for the AV1 encoder in quality
+# mode currently. While values from 6 to 9 are generally used for real-time
+# encoding in libaom, we opt to prioritize speed over quality in this case.
+-   name: media.ffmpeg.encoder.cpu-used
+    type: RelaxedAtomicInt32
+    value: 7
+    mirror: always
+
 # Allow using openh264 decoding with ffmpeg
 -   name: media.ffmpeg.allow-openh264
     type: RelaxedAtomicBool

@@ -414,6 +414,12 @@ nsresult FFmpegVideoEncoder<LIBAV_VER>::InitSpecific() {
       mLib->av_opt_set(mCodecContext->priv_data, "tile-columns", "0", 0);
       mLib->av_opt_set(mCodecContext->priv_data, "tile-rows", "0", 0);
     }
+  } else {
+    if (mConfig.mCodec == CodecType::AV1) {
+      mLib->av_opt_set_int(
+          mCodecContext->priv_data, "cpu-used",
+          static_cast<int>(StaticPrefs::media_ffmpeg_encoder_cpu_used()), 0);
+    }
   }
 
   if (SvcEnabled()) {
