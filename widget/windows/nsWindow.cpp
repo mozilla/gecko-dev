@@ -668,7 +668,6 @@ nsWindow::nsWindow(bool aIsChildWindow)
       mFrameState(std::in_place, this),
       mIsChildWindow(aIsChildWindow),
       mPIPWindow(false),
-      mMicaBackdrop(false),
       mLastPaintEndTime(TimeStamp::Now()),
       mCachedHitTestTime(TimeStamp::Now()),
       mSizeConstraintsScale(GetDefaultScale().scale),
@@ -2525,25 +2524,14 @@ void nsWindow::SetColorScheme(const Maybe<ColorScheme>& aScheme) {
 }
 
 void nsWindow::SetMicaBackdrop(bool aEnabled) {
-  if (aEnabled == mMicaBackdrop) {
-    return;
-  }
-
-  mMicaBackdrop = aEnabled;
-  UpdateMicaBackdrop();
-}
-
-void nsWindow::UpdateMicaBackdrop(bool aForce) {
   const bool micaEnabled =
       IsPopup() ? WinUtils::MicaPopupsEnabled() : WinUtils::MicaEnabled();
-  if (!micaEnabled && !aForce) {
+  if (!micaEnabled) {
     return;
   }
 
-  const bool useBackdrop = mMicaBackdrop && micaEnabled;
-
   const DWM_SYSTEMBACKDROP_TYPE backdrop = [&] {
-    if (!useBackdrop) {
+    if (!aEnabled) {
       return DWMSBT_AUTO;
     }
     return IsPopup() ? DWMSBT_TRANSIENTWINDOW : DWMSBT_TABBEDWINDOW;
@@ -2558,7 +2546,7 @@ void nsWindow::UpdateMicaBackdrop(bool aForce) {
     //    otherwise it'd draw the inactive window backdrop rather than
     //    acrylic). See also the WM_NCACTIVATE implementation.
     const DWM_WINDOW_CORNER_PREFERENCE corner =
-        useBackdrop ? DWMWCP_ROUND : DWMWCP_DEFAULT;
+        aEnabled ? DWMWCP_ROUND : DWMWCP_DEFAULT;
     ::DwmSetWindowAttribute(mWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &corner,
                             sizeof corner);
     ::PostMessageW(mWnd, WM_NCACTIVATE, TRUE, -1);

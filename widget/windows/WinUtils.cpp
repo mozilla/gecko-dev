@@ -2005,43 +2005,16 @@ bool WinUtils::GetTimezoneName(wchar_t* aBuffer) {
   return true;
 }
 
-static constexpr nsLiteralCString kMicaPrefs[] = {
-    "widget.windows.mica"_ns,
-    "widget.windows.mica.popups"_ns,
-};
-
-static BOOL CALLBACK UpdateMicaInHwnd(HWND aHwnd, LPARAM aLParam) {
-  if (RefPtr<nsWindow> win = WinUtils::GetNSWindowPtr(aHwnd)) {
-    win->UpdateMicaBackdrop(/* aForce = */ true);
-  }
-  return TRUE;
-}
-
-static void UpdateMicaInAllWindows(const char*, void*) {
-  ::EnumWindows(&UpdateMicaInHwnd, 0);
-  LookAndFeel::NotifyChangedAllWindows(
-      widget::ThemeChangeKind::MediaQueriesOnly);
-}
-
-bool WinUtils::MicaAvailable() {
-  static bool sAvailable = [] {
-    if (!IsWin1122H2OrLater()) {
-      return false;
-    }
-    for (const auto& pref : kMicaPrefs) {
-      Preferences::RegisterCallback(::UpdateMicaInAllWindows, pref);
-    }
-    return true;
-  }();
-  return sAvailable;
-}
-
 bool WinUtils::MicaEnabled() {
-  return MicaAvailable() && StaticPrefs::widget_windows_mica();
+  static bool sEnabled =
+      IsWin1122H2OrLater() && StaticPrefs::widget_windows_mica_AtStartup();
+  return sEnabled;
 }
 
 bool WinUtils::MicaPopupsEnabled() {
-  return MicaAvailable() && StaticPrefs::widget_windows_mica_popups();
+  static bool sEnabled = IsWin1122H2OrLater() &&
+                         StaticPrefs::widget_windows_mica_popups_AtStartup();
+  return sEnabled;
 }
 
 // There are undocumented APIs to query/change the system DPI settings found by

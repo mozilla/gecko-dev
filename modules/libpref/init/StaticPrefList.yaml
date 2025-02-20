@@ -18434,13 +18434,14 @@
 - name: widget.windows.mica
   type: bool
   value: false
-  mirror: always
+  mirror: once
 
 # Whether we use the mica backdrop for popups. Off by default for now.
+# TODO(emilio): Make these toggleable at runtime?
 - name: widget.windows.mica.popups
   type: bool
   value: false
-  mirror: always
+  mirror: once
 #endif
 
 # Whether to disable SwipeTracker (e.g. swipe-to-nav).
