@@ -628,7 +628,9 @@ class AndroidMixin(object):
             return
 
         if self.is_emulator:
-            max_restarts = 5
+            # Emulator hangs can take up to 10 min for all the inner retry loops
+            # and timeouts to fire.
+            max_restarts = 2
             emulator_ok = self._retry(
                 max_restarts,
                 10,
