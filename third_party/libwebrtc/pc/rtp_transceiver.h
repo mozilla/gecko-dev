@@ -304,10 +304,12 @@ class RtpTransceiver : public RtpTransceiverInterface {
   void OnFirstPacketReceived();
   void OnFirstPacketSent();
   void StopSendingAndReceiving();
-  // Delete a channel, and ensure that references to its media channel
+  // Tell the senders and receivers about possibly-new media channels
+  // in a newly created `channel_`.
+  void PushNewMediaChannel();
+  // Delete `channel_`, and ensure that references to its media channels
   // are updated before deleting it.
-  void PushNewMediaChannelAndDeleteChannel(
-      std::unique_ptr<cricket::ChannelInterface> channel_to_delete);
+  void DeleteChannel();
 
   // Enforce that this object is created, used and destroyed on one thread.
   TaskQueueBase* const thread_;
