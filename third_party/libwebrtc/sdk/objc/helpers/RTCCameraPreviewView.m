@@ -31,7 +31,7 @@
   return self;
 }
 
-- (instancetype)initWithCoder:(NSCoder*)aDecoder {
+- (instancetype)initWithCoder:(NSCoder *)aDecoder {
   self = [super initWithCoder:aDecoder];
   if (self) {
     [self addOrientationObserver];
@@ -51,15 +51,18 @@
   [RTC_OBJC_TYPE(RTCDispatcher)
       dispatchAsyncOnType:RTCDispatcherTypeMain
                     block:^{
-                      AVCaptureVideoPreviewLayer *previewLayer = [self previewLayer];
+                      AVCaptureVideoPreviewLayer *previewLayer =
+                          [self previewLayer];
                       [RTC_OBJC_TYPE(RTCDispatcher)
                           dispatchAsyncOnType:RTCDispatcherTypeCaptureSession
                                         block:^{
                                           previewLayer.session = captureSession;
                                           [RTC_OBJC_TYPE(RTCDispatcher)
-                                              dispatchAsyncOnType:RTCDispatcherTypeMain
+                                              dispatchAsyncOnType:
+                                                  RTCDispatcherTypeMain
                                                             block:^{
-                                                              [self setCorrectVideoOrientation];
+                                                              [self
+                                                                  setCorrectVideoOrientation];
                                                             }];
                                         }];
                     }];
@@ -72,7 +75,7 @@
   [self setCorrectVideoOrientation];
 }
 
--(void)orientationChanged:(NSNotification *)notification {
+- (void)orientationChanged:(NSNotification *)notification {
   [self setCorrectVideoOrientation];
 }
 
@@ -97,23 +100,26 @@
       previewLayer.connection.videoOrientation =
           AVCaptureVideoOrientationPortrait;
     }
-    // If device orientation switches to FaceUp or FaceDown, don't change video orientation.
+    // If device orientation switches to FaceUp or FaceDown, don't change video
+    // orientation.
   }
 }
 
 #pragma mark - Private
 
 - (void)addOrientationObserver {
-  [[NSNotificationCenter defaultCenter] addObserver:self
-                                            selector:@selector(orientationChanged:)
-                                                name:UIDeviceOrientationDidChangeNotification
-                                              object:nil];
+  [[NSNotificationCenter defaultCenter]
+      addObserver:self
+         selector:@selector(orientationChanged:)
+             name:UIDeviceOrientationDidChangeNotification
+           object:nil];
 }
 
 - (void)removeOrientationObserver {
-  [[NSNotificationCenter defaultCenter] removeObserver:self
-                                                  name:UIDeviceOrientationDidChangeNotification
-                                                object:nil];
+  [[NSNotificationCenter defaultCenter]
+      removeObserver:self
+                name:UIDeviceOrientationDidChangeNotification
+              object:nil];
 }
 
 - (AVCaptureVideoPreviewLayer *)previewLayer {

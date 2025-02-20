@@ -23,8 +23,10 @@
   NSString *fullPath = [NSString stringWithFormat:@"%s", __FILE__];
   NSString *extension = fullPath.pathExtension;
 
-  XCTAssertEqualObjects(
-      @"m", extension, @"Do not rename %@. It should end with .m.", fullPath.lastPathComponent);
+  XCTAssertEqualObjects(@"m",
+                        extension,
+                        @"Do not rename %@. It should end with .m.",
+                        fullPath.lastPathComponent);
 }
 
 @end

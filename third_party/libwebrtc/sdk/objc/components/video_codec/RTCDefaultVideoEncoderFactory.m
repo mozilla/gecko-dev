@@ -32,8 +32,9 @@
     @"packetization-mode" : @"1",
   };
   RTC_OBJC_TYPE(RTCVideoCodecInfo) *constrainedHighInfo =
-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH264Name
-                                                  parameters:constrainedHighParams];
+      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc]
+          initWithName:kRTCVideoCodecH264Name
+            parameters:constrainedHighParams];
 
   NSDictionary<NSString *, NSString *> *constrainedBaselineParams = @{
     @"profile-level-id" : kRTCMaxSupportedH264ProfileLevelConstrainedBaseline,
@@ -41,11 +42,12 @@
     @"packetization-mode" : @"1",
   };
   RTC_OBJC_TYPE(RTCVideoCodecInfo) *constrainedBaselineInfo =
-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecH264Name
-                                                  parameters:constrainedBaselineParams];
+      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc]
+          initWithName:kRTCVideoCodecH264Name
+            parameters:constrainedBaselineParams];
 
-  RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info =
-      [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp8Name];
+  RTC_OBJC_TYPE(RTCVideoCodecInfo) *vp8Info = [[RTC_OBJC_TYPE(RTCVideoCodecInfo)
+      alloc] initWithName:kRTCVideoCodecVp8Name];
 
   NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *result = [@[
     constrainedHighInfo,
@@ -54,18 +56,20 @@
   ] mutableCopy];
 
   if ([RTC_OBJC_TYPE(RTCVideoEncoderVP9) isSupported]) {
-    [result
-        addObject:[[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecVp9Name]];
+    [result addObject:[[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc]
+                          initWithName:kRTCVideoCodecVp9Name]];
   }
 
 #if defined(RTC_USE_LIBAOM_AV1_ENCODER)
-  [result addObject:[[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithName:kRTCVideoCodecAv1Name]];
+  [result addObject:[[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc]
+                        initWithName:kRTCVideoCodecAv1Name]];
 #endif
 
   return result;
 }
 
-- (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)createEncoder:(RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
+- (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)createEncoder:
+    (RTC_OBJC_TYPE(RTCVideoCodecInfo) *)info {
   if ([info.name isEqualToString:kRTCVideoCodecH264Name]) {
     return [[RTC_OBJC_TYPE(RTCVideoEncoderH264) alloc] initWithCodecInfo:info];
   } else if ([info.name isEqualToString:kRTCVideoCodecVp8Name]) {
@@ -88,7 +92,8 @@
   NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *codecs =
       [[[self class] supportedCodecs] mutableCopy];
 
-  NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *orderedCodecs = [NSMutableArray array];
+  NSMutableArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *orderedCodecs =
+      [NSMutableArray array];
   NSUInteger index = [codecs indexOfObject:self.preferredCodec];
   if (index != NSNotFound) {
     [orderedCodecs addObject:[codecs objectAtIndex:index]];

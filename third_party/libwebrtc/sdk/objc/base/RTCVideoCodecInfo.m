@@ -21,7 +21,8 @@
 }
 
 - (instancetype)initWithName:(NSString *)name
-                  parameters:(nullable NSDictionary<NSString *, NSString *> *)parameters {
+                  parameters:(nullable NSDictionary<NSString *, NSString *> *)
+                                 parameters {
   NSDictionary<NSString *, NSString *> *params = parameters ? parameters : @{};
   return [self initWithName:name parameters:params scalabilityModes:@[]];
 }
@@ -49,10 +50,8 @@
 }
 
 - (BOOL)isEqual:(id)object {
-  if (self == object)
-    return YES;
-  if (![object isKindOfClass:[self class]])
-    return NO;
+  if (self == object) return YES;
+  if (![object isKindOfClass:[self class]]) return NO;
   return [self isEqualToCodecInfo:object];
 }
 
