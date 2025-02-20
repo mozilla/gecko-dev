@@ -88,6 +88,11 @@ class Mochitest(Layer):
                 "--mochitest-extra-args headless profile-path=/path/to/profile"
             ),
         },
+        "name-change": {
+            "action": "store_true",
+            "default": False,
+            "help": "Use the test name from the metadata instead of the test filename.",
+        },
     }
 
     def __init__(self, env, mach_cmd):
@@ -227,6 +232,10 @@ class Mochitest(Layer):
 
     def run(self, metadata):
         test = Path(metadata.script["filename"])
+        if self.get_arg("name-change", False):
+            test_name = metadata.script["name"]
+        else:
+            test_name = test.name
 
         results = []
         cycles = self.get_arg("cycles", 1)
@@ -284,7 +293,7 @@ class Mochitest(Layer):
 
         metadata.add_result(
             {
-                "name": test.name,
+                "name": test_name,
                 "framework": {"name": "mozperftest"},
                 "transformer": "mozperftest.test.mochitest:MochitestData",
                 "results": results,
