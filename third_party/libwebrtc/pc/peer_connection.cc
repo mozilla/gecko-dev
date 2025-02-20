@@ -613,8 +613,8 @@ RTCErrorOr<rtc::scoped_refptr<PeerConnection>> PeerConnection::Create(
   bool dtls_enabled = DtlsEnabled(configuration, options, dependencies);
 
   if (!dependencies.async_dns_resolver_factory) {
-      dependencies.async_dns_resolver_factory =
-          std::make_unique<BasicAsyncDnsResolverFactory>();
+    dependencies.async_dns_resolver_factory =
+        std::make_unique<BasicAsyncDnsResolverFactory>();
   }
 
   // The PeerConnection constructor consumes some, but not all, dependencies.

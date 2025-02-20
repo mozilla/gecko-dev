@@ -548,8 +548,7 @@ void SrtpSession::DumpPacket(const void* buf, int len, bool outbound) {
                       << std::setw(2) << hours << ":" << std::setfill('0')
                       << std::setw(2) << minutes << ":" << std::setfill('0')
                       << std::setw(2) << seconds << "." << std::setfill('0')
-                      << std::setw(3) << millis << " "
-                      << "000000 "
+                      << std::setw(3) << millis << " " << "000000 "
                       << rtc::hex_encode_with_delimiter(
                              absl::string_view((const char*)buf, len), ' ')
                       << " # RTP_DUMP";

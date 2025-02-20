@@ -97,11 +97,10 @@ RTCError VerifyCodecPreferences(
           return codec.MatchesRtpCodec(codec_preference);
         });
     if (!is_recv_codec) {
-        LOG_AND_RETURN_ERROR(
-            RTCErrorType::INVALID_MODIFICATION,
-            std::string(
-                "Invalid codec preferences: invalid codec with name \"") +
-                codec_preference.name + "\".");
+      LOG_AND_RETURN_ERROR(
+          RTCErrorType::INVALID_MODIFICATION,
+          std::string("Invalid codec preferences: invalid codec with name \"") +
+              codec_preference.name + "\".");
     }
   }
 

@@ -1010,10 +1010,8 @@ TEST_P(PeerConnectionSignalingTest, ReceiveFlexFec) {
   auto answer = caller->CreateAnswer();
   ASSERT_EQ(answer->description()->contents().size(), 1u);
   ASSERT_NE(answer->description()->contents()[0].media_description(), nullptr);
-  auto codecs = answer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      answer->description()->contents()[0].media_description()->codecs();
   ASSERT_EQ(codecs.size(), 2u);
   EXPECT_EQ(codecs[1].name, "flexfec-03");
 
@@ -1063,10 +1061,8 @@ TEST_P(PeerConnectionSignalingTest, ReceiveFlexFecReoffer) {
   auto answer = caller->CreateAnswer();
   ASSERT_EQ(answer->description()->contents().size(), 1u);
   ASSERT_NE(answer->description()->contents()[0].media_description(), nullptr);
-  auto codecs = answer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      answer->description()->contents()[0].media_description()->codecs();
   ASSERT_EQ(codecs.size(), 2u);
   EXPECT_EQ(codecs[1].name, "flexfec-03");
   EXPECT_EQ(codecs[1].id, 35);
@@ -1075,10 +1071,8 @@ TEST_P(PeerConnectionSignalingTest, ReceiveFlexFecReoffer) {
 
   // This generates a collision for AV1 which needs to be remapped.
   auto offer = caller->CreateOffer(RTCOfferAnswerOptions());
-  auto offer_codecs = offer->description()
-                          ->contents()[0]
-                          .media_description()
-                          ->codecs();
+  auto offer_codecs =
+      offer->description()->contents()[0].media_description()->codecs();
   auto flexfec_it = std::find_if(
       offer_codecs.begin(), offer_codecs.end(),
       [](const cricket::Codec& codec) { return codec.name == "flexfec-03"; });
@@ -1373,10 +1367,8 @@ TEST_F(PeerConnectionSignalingUnifiedPlanTest, RtxReofferApt) {
 
   callee->pc()->GetTransceivers()[0]->StopStandard();
   auto reoffer = callee->CreateOffer(RTCOfferAnswerOptions());
-  auto codecs = reoffer->description()
-                    ->contents()[0]
-                    .media_description()
-                    ->codecs();
+  auto codecs =
+      reoffer->description()->contents()[0].media_description()->codecs();
   ASSERT_GT(codecs.size(), 2u);
   EXPECT_EQ(codecs[0].name, "VP8");
   EXPECT_EQ(codecs[1].name, "rtx");
