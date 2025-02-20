@@ -3360,6 +3360,7 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
               BlockInlineCheck::UseComputedDisplayStyle,
               editableBlockElementOrInlineEditingHost);
       if (previousContent &&
+          HTMLEditUtils::IsSimplyEditableNode(*previousContent) &&
           !HTMLEditUtils::IsBlockElement(
               *previousContent, BlockInlineCheck::UseComputedDisplayStyle)) {
         newCaretPosition =
@@ -3376,10 +3377,13 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
                        {LeafNodeType::LeafNodeOrNonEditableNode},
                        BlockInlineCheck::UseComputedDisplayStyle,
                        editableBlockElementOrInlineEditingHost)) {
-        newCaretPosition = nextContent->IsText() ||
-                                   HTMLEditUtils::IsContainerNode(*nextContent)
-                               ? EditorDOMPoint(nextContent, 0)
-                               : EditorDOMPoint(nextContent);
+        if (HTMLEditUtils::IsSimplyEditableNode(*nextContent)) {
+          newCaretPosition =
+              nextContent->IsText() ||
+                      HTMLEditUtils::IsContainerNode(*nextContent)
+                  ? EditorDOMPoint(nextContent, 0)
+                  : EditorDOMPoint(nextContent);
+        }
       }
     }
   }
@@ -3390,10 +3394,13 @@ HTMLEditor::DeleteTextAndNormalizeSurroundingWhiteSpaces(
   if (newCaretPosition.IsStartOfContainer() &&
       newCaretPosition.IsInTextNode() &&
       newCaretPosition.GetContainer()->GetPreviousSibling() &&
+      newCaretPosition.GetContainer()->GetPreviousSibling()->IsEditable() &&
       newCaretPosition.GetContainer()->GetPreviousSibling()->IsText()) {
     newCaretPosition.SetToEndOf(
         newCaretPosition.GetContainer()->GetPreviousSibling()->AsText());
   }
+  MOZ_ASSERT(HTMLEditUtils::IsSimplyEditableNode(
+      *newCaretPosition.ContainerAs<nsIContent>()));
 
   {
     AutoTrackDOMPoint trackPointToPutCaret(RangeUpdaterRef(),
@@ -11192,6 +11199,8 @@ HTMLEditor::InsertPaddingBRElementIfNeeded(
     const EditorDOMPoint& aPoint, nsIEditor::EStripWrappers aDeleteEmptyInlines,
     const Element& aEditingHost) {
   MOZ_ASSERT(aPoint.IsInContentNode());
+  MOZ_ASSERT(HTMLEditUtils::NodeIsEditableOrNotInComposedDoc(
+      *aPoint.ContainerAs<nsIContent>()));
 
   auto pointToInsertPaddingBR = [&]() MOZ_NEVER_INLINE_DEBUG -> EditorDOMPoint {
     // If the point is immediately before a block boundary which is for a

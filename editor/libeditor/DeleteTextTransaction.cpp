@@ -146,10 +146,16 @@ NS_IMETHODIMP DeleteTextTransaction::DoTransaction() {
 }
 
 EditorDOMPoint DeleteTextTransaction::SuggestPointToPutCaret() const {
-  if (NS_WARN_IF(!mTextNode) || NS_WARN_IF(!mTextNode->IsInComposedDoc())) {
+  if (NS_WARN_IF(!mTextNode) || NS_WARN_IF(!mTextNode->IsInComposedDoc()) ||
+      NS_WARN_IF(mTextNode->TextDataLength() < mOffset)) {
     return EditorDOMPoint();
   }
-  return EditorDOMPoint(mTextNode, mOffset);
+  EditorDOMPoint candidatePoint(mTextNode, mOffset);
+  if (!candidatePoint.IsInNativeAnonymousSubtreeInTextControl() &&
+      !HTMLEditUtils::IsSimplyEditableNode(*mTextNode)) {
+    return EditorDOMPoint();
+  }
+  return candidatePoint;
 }
 
 // XXX: We may want to store the selection state and restore it properly.  Was

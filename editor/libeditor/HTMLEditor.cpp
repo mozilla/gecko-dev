@@ -4053,6 +4053,7 @@ Result<CaretPoint, nsresult>
 HTMLEditor::DeleteEmptyInclusiveAncestorInlineElements(
     nsIContent& aContent, const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
+  MOZ_ASSERT(HTMLEditUtils::IsRemovableFromParentNode(aContent));
 
   constexpr static HTMLEditUtils::EmptyCheckOptions kOptionsToCheckInline =
       HTMLEditUtils::EmptyCheckOptions{
@@ -4107,8 +4108,10 @@ HTMLEditor::DeleteEmptyInclusiveAncestorInlineElements(
   if (NS_WARN_IF(nextSibling && nextSibling->GetParentNode() != parentNode)) {
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
-  return CaretPoint(nextSibling ? EditorDOMPoint(nextSibling)
-                                : EditorDOMPoint::AtEndOf(*parentNode));
+  return CaretPoint(nextSibling &&
+                            HTMLEditUtils::IsSimplyEditableNode(*nextSibling)
+                        ? EditorDOMPoint(nextSibling)
+                        : EditorDOMPoint::AtEndOf(*parentNode));
 }
 
 nsresult HTMLEditor::DeleteAllChildrenWithTransaction(Element& aElement) {
@@ -4528,7 +4531,8 @@ nsresult HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak(
   const Maybe<EditorLineBreak> unnecessaryLineBreak =
       HTMLEditUtils::GetFollowingUnnecessaryLineBreak<EditorLineBreak>(
           aNextOrAfterModifiedPoint);
-  if (MOZ_LIKELY(unnecessaryLineBreak.isNothing())) {
+  if (MOZ_LIKELY(unnecessaryLineBreak.isNothing() ||
+                 !unnecessaryLineBreak->IsDeletableFromComposedDoc())) {
     return NS_OK;
   }
   if (unnecessaryLineBreak->IsHTMLBRElement()) {

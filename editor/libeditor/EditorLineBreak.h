@@ -145,6 +145,14 @@ class EditorLineBreakBase {
            TextRef().TextFragment().CharAt(*mOffsetInText) == '\n';
   }
 
+  [[nodiscard]] bool IsDeletableFromComposedDoc() const {
+    if (IsPreformattedLineBreak()) {
+      return TextRef().IsEditable();
+    }
+    const nsIContent* const parent = BRElementRef().GetParent();
+    return parent && parent->IsEditable();
+  }
+
  private:
   ContentType mContent;
   Maybe<uint32_t> mOffsetInText;

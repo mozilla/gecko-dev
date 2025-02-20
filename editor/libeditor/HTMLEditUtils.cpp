@@ -715,6 +715,8 @@ EditorDOMPoint HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(
   if (MOZ_UNLIKELY(!aPoint.IsInContentNode())) {
     return EditorDOMPoint();
   }
+  MOZ_ASSERT(HTMLEditUtils::NodeIsEditableOrNotInComposedDoc(
+      *aPoint.template ContainerAs<nsIContent>()));
   // First, if the container is an element node, get the next deepest point.
   EditorRawDOMPoint point = aPoint.template To<EditorRawDOMPoint>();
   if (point.IsContainerElement()) {
@@ -723,7 +725,7 @@ EditorDOMPoint HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(
       if (child->IsHTMLElement(nsGkAtoms::br)) {
         return EditorDOMPoint();
       }
-      if (!HTMLEditUtils::IsSimplyEditableNode(*child) ||
+      if (!HTMLEditUtils::NodeIsEditableOrNotInComposedDoc(*child) ||
           HTMLEditUtils::IsBlockElement(
               *child, BlockInlineCheck::UseComputedDisplayOutsideStyle) ||
           (child->IsElement() && !HTMLEditUtils::IsContainerNode(*child))) {
@@ -766,8 +768,11 @@ EditorDOMPoint HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(
           aPointToInsertLineBreak.Clear();
           return;
         }
-        while (MOZ_UNLIKELY(!HTMLEditUtils::CanNodeContain(
-            *aPointToInsertLineBreak.GetContainer(), *nsGkAtoms::br))) {
+        while (MOZ_UNLIKELY(
+            !HTMLEditUtils::CanNodeContain(
+                *aPointToInsertLineBreak.GetContainer(), *nsGkAtoms::br) ||
+            !HTMLEditUtils::NodeIsEditableOrNotInComposedDoc(
+                *aPointToInsertLineBreak.GetContainer()))) {
           if (MOZ_UNLIKELY(aPointToInsertLineBreak.GetContainer() ==
                                aParentBlockElement ||
                            aPointToInsertLineBreak.GetContainer() ==
@@ -816,13 +821,18 @@ EditorDOMPoint HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(
     }
     const WSScanResult nextThing =
         WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
-            WSRunScanner::Scan::EditableNodes, point,
+            WSRunScanner::Scan::All, point,
             BlockInlineCheck::UseComputedDisplayOutsideStyle);
     if (nextThing.ReachedBlockBoundary()) {
       if (nextThing.ReachedCurrentBlockBoundary()) {
         preferredPaddingLineBreakPoint = point.AfterContainer<EditorDOMPoint>();
       } else {
         preferredPaddingLineBreakPoint = point.To<EditorDOMPoint>();
+      }
+      // FIXME: Scan an editable point to put a padding <br>.
+      if (NS_WARN_IF(!HTMLEditUtils::NodeIsEditableOrNotInComposedDoc(
+              *preferredPaddingLineBreakPoint.GetContainer()))) {
+        return false;
       }
       return true;
     }
@@ -1031,14 +1041,12 @@ template <typename EditorLineBreakType>
 Maybe<EditorLineBreakType> HTMLEditUtils::GetUnnecessaryLineBreak(
     const Element& aBlockElement, ScanLineBreak aScanLineBreak) {
   auto* lastLineBreakContent = [&]() -> nsIContent* {
-    const LeafNodeTypes leafNodeOrNonEditableNode{
-        LeafNodeType::LeafNodeOrNonEditableNode};
     const WalkTreeOptions onlyPrecedingLine{
         WalkTreeOption::StopAtBlockBoundary};
     for (nsIContent* content =
              aScanLineBreak == ScanLineBreak::AtEndOfBlock
-                 ? HTMLEditUtils::GetLastLeafContent(aBlockElement,
-                                                     leafNodeOrNonEditableNode)
+                 ? HTMLEditUtils::GetLastLeafContent(
+                       aBlockElement, {LeafNodeType::OnlyLeafNode})
                  : HTMLEditUtils::GetPreviousContent(
                        aBlockElement, onlyPrecedingLine,
                        BlockInlineCheck::UseComputedDisplayStyle,
@@ -1047,7 +1055,7 @@ Maybe<EditorLineBreakType> HTMLEditUtils::GetUnnecessaryLineBreak(
          content =
              aScanLineBreak == ScanLineBreak::AtEndOfBlock
                  ? HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-                       *content, leafNodeOrNonEditableNode,
+                       *content, {LeafNodeType::OnlyLeafNode},
                        BlockInlineCheck::UseComputedDisplayStyle,
                        &aBlockElement)
                  : HTMLEditUtils::GetPreviousContent(
@@ -1115,19 +1123,16 @@ Maybe<EditorLineBreakType> HTMLEditUtils::GetUnnecessaryLineBreak(
   MOZ_ASSERT_IF(!lastLineBreakText, lastBRElement);
 
   // Scan previous leaf content, but now, we can stop at child block boundary.
-  const LeafNodeTypes leafNodeOrNonEditableNodeOrChildBlock{
-      LeafNodeType::LeafNodeOrNonEditableNode,
-      LeafNodeType::LeafNodeOrChildBlock};
   const Element* blockElement = HTMLEditUtils::GetAncestorElement(
       *lastLineBreakContent, HTMLEditUtils::ClosestBlockElement,
       BlockInlineCheck::UseComputedDisplayStyle);
   for (nsIContent* content =
            HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-               *lastLineBreakContent, leafNodeOrNonEditableNodeOrChildBlock,
+               *lastLineBreakContent, {LeafNodeType::LeafNodeOrChildBlock},
                BlockInlineCheck::UseComputedDisplayStyle, blockElement);
        content;
        content = HTMLEditUtils::GetPreviousLeafContentOrPreviousBlockElement(
-           *content, leafNodeOrNonEditableNodeOrChildBlock,
+           *content, {LeafNodeType::LeafNodeOrChildBlock},
            BlockInlineCheck::UseComputedDisplayStyle, blockElement)) {
     if (HTMLEditUtils::IsBlockElement(
             *content, BlockInlineCheck::UseComputedDisplayStyle) ||
@@ -1204,7 +1209,7 @@ Maybe<EditorLineBreakType> HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
 
   const WSScanResult nextThing =
       WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
-          WSRunScanner::Scan::EditableNodes, aPoint,
+          WSRunScanner::Scan::All, aPoint,
           BlockInlineCheck::UseComputedDisplayStyle);
   if (!nextThing.ReachedBRElement() &&
       !(nextThing.ReachedPreformattedLineBreak() &&
@@ -1214,7 +1219,7 @@ Maybe<EditorLineBreakType> HTMLEditUtils::GetFollowingUnnecessaryLineBreak(
   }
   const WSScanResult nextThingOfLineBreak =
       WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundary(
-          WSRunScanner::Scan::EditableNodes,
+          WSRunScanner::Scan::All,
           nextThing.PointAfterReachedContent<EditorRawDOMPoint>(),
           BlockInlineCheck::UseComputedDisplayStyle);
   const Element* const blockElement =

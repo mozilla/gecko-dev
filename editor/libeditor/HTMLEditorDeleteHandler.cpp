@@ -1338,6 +1338,8 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteRangesWithTransaction(
   const bool isDeleteSelection =
       GetTopLevelEditSubAction() == EditSubAction::eDeleteSelectedContent;
   EditorDOMPoint pointToPutCaret = result.unwrap().UnwrapCaretPoint();
+  MOZ_ASSERT_IF(pointToPutCaret.IsSet(), HTMLEditUtils::IsSimplyEditableNode(
+                                             *pointToPutCaret.GetContainer()));
   {
     AutoTrackDOMPoint trackCaretPoint(RangeUpdaterRef(), &pointToPutCaret);
     for (const auto& range : aRangesToDelete.Ranges()) {
@@ -1355,6 +1357,10 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteRangesWithTransaction(
           !editingHost->IsContentEditablePlainTextOnly()) {
         const OwningNonNull<nsIContent> maybeEmptyContent =
             *pointToInsertLineBreak.ContainerAs<nsIContent>();
+        if (MOZ_UNLIKELY(
+                !HTMLEditUtils::IsRemovableFromParentNode(maybeEmptyContent))) {
+          continue;
+        }
         Result<CaretPoint, nsresult> caretPointOrError =
             DeleteEmptyInclusiveAncestorInlineElements(maybeEmptyContent,
                                                        *editingHost);
@@ -1368,6 +1374,10 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteRangesWithTransaction(
                        !range->GetStartContainer()->IsContent())) {
           continue;
         }
+        MOZ_ASSERT_IF(
+            caretPointOrError.inspect().HasCaretPointSuggestion(),
+            HTMLEditUtils::IsSimplyEditableNode(
+                *caretPointOrError.inspect().CaretPointRef().GetContainer()));
         caretPointOrError.unwrap().MoveCaretPointTo(
             pointToInsertLineBreak, {SuggestCaret::OnlyIfHasSuggestion});
         if (NS_WARN_IF(!pointToInsertLineBreak.IsSetAndValidInComposedDoc())) {
@@ -1390,6 +1400,8 @@ Result<CaretPoint, nsresult> HTMLEditor::DeleteRangesWithTransaction(
         if (NS_WARN_IF(!pointToInsertLineBreak.IsSetAndValidInComposedDoc())) {
           continue;
         }
+        MOZ_ASSERT(HTMLEditUtils::IsSimplyEditableNode(
+            *pointToInsertLineBreak.GetContainer()));
       }
 
       if (isDeleteSelection) {
@@ -2399,7 +2411,9 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     // Don't remove empty inline elements in the plaintext-only mode because
     // nobody can restore the style again.
     if (MOZ_LIKELY(newCaretPosition.IsInContentNode()) &&
-        !aEditingHost.IsContentEditablePlainTextOnly()) {
+        !aEditingHost.IsContentEditablePlainTextOnly() &&
+        MOZ_LIKELY(HTMLEditUtils::IsRemovableFromParentNode(
+            *newCaretPosition.ContainerAs<nsIContent>()))) {
       Result<CaretPoint, nsresult> caretPointOrError =
           aHTMLEditor.DeleteEmptyInclusiveAncestorInlineElements(
               MOZ_KnownLive(*newCaretPosition.ContainerAs<nsIContent>()),
@@ -2602,7 +2616,9 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     // Don't remove empty inline elements in the plaintext-only mode because
     // nobody can restore the style again.
     if (MOZ_LIKELY(pointToPutCaret.IsInContentNode()) &&
-        !aEditingHost.IsContentEditablePlainTextOnly()) {
+        !aEditingHost.IsContentEditablePlainTextOnly() &&
+        MOZ_LIKELY(HTMLEditUtils::IsRemovableFromParentNode(
+            *pointToPutCaret.ContainerAs<nsIContent>()))) {
       AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
                                              &pointToPutCaret);
       Result<CaretPoint, nsresult> caretPointOrError =
@@ -3729,6 +3745,10 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     return moveFirstLineResult.propagateErr();
   }
   DeleteRangeResult unwrappedMoveFirstLineResult = moveFirstLineResult.unwrap();
+  MOZ_ASSERT_IF(
+      unwrappedMoveFirstLineResult.HasCaretPointSuggestion(),
+      HTMLEditUtils::IsSimplyEditableNode(
+          *unwrappedMoveFirstLineResult.CaretPointRef().GetContainer()));
 #ifdef DEBUG
   if (joiner.ShouldDeleteLeafContentInstead()) {
     NS_ASSERTION(unwrappedMoveFirstLineResult.Ignored(),
@@ -3755,6 +3775,12 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
       }
     }
     mSkippedInvisibleContents.Clear();
+    trackMoveFirstLineResult.FlushAndStopTracking();
+    if (unwrappedMoveFirstLineResult.HasCaretPointSuggestion() &&
+        NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(
+            *unwrappedMoveFirstLineResult.CaretPointRef().GetContainer()))) {
+      unwrappedMoveFirstLineResult.ForgetCaretPointSuggestion();
+    }
   }
 
   // If we're deleting selection (not replacing with new content) and
@@ -3768,9 +3794,10 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoDeleteRangesHandler::
         unwrappedMoveFirstLineResult.UnwrapCaretPoint();
     // Don't remove empty inline elements in the plaintext-only mode because
     // nobody can restore the style again.
-    if (pointToPutCaret.IsSetAndValidInComposedDoc() &&
-        pointToPutCaret.IsInContentNode() &&
-        !aEditingHost.IsContentEditablePlainTextOnly()) {
+    if (pointToPutCaret.IsInContentNodeAndValidInComposedDoc() &&
+        !aEditingHost.IsContentEditablePlainTextOnly() &&
+        MOZ_LIKELY(HTMLEditUtils::IsRemovableFromParentNode(
+            *pointToPutCaret.ContainerAs<nsIContent>()))) {
       AutoTrackDOMPoint trackCaretPoint(aHTMLEditor.RangeUpdaterRef(),
                                         &pointToPutCaret);
       Result<CaretPoint, nsresult> caretPointOrError =
@@ -7249,7 +7276,8 @@ nsresult HTMLEditor::AutoMoveOneLineHandler::
                 ScanLineBreak::BeforeBlock)
           : HTMLEditUtils::GetUnnecessaryLineBreak<EditorLineBreak>(
                 *mDestInclusiveAncestorBlock, ScanLineBreak::AtEndOfBlock);
-  if (lastLineBreak.isNothing()) {
+  if (lastLineBreak.isNothing() ||
+      !lastLineBreak->IsDeletableFromComposedDoc()) {
     return NS_OK;
   }
   const auto atUnnecessaryLineBreak = lastLineBreak->To<EditorRawDOMPoint>();

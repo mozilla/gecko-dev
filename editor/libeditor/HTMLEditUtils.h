@@ -77,6 +77,15 @@ class HTMLEditUtils final {
   }
 
   /**
+   * Return true if aNode is editable or not in a composed doc.  This is useful
+   * if the caller may modify document fragment before inserting it into a
+   * Document.
+   */
+  static bool NodeIsEditableOrNotInComposedDoc(const nsINode& aNode) {
+    return MOZ_UNLIKELY(!aNode.IsInComposedDoc()) || aNode.IsEditable();
+  }
+
+  /**
    * Return true if aElement is an editing host which is either:
    * - the root element
    * - parent is not editable
@@ -2066,6 +2075,7 @@ class HTMLEditUtils final {
   /**
    * Return last <br> element or last text node ending with a preserved line
    * break of/before aBlockElement.
+   * Note that the result may be non-editable and/or non-removable.
    */
   template <typename EditorLineBreakType>
   static Maybe<EditorLineBreakType> GetUnnecessaryLineBreak(
@@ -2075,6 +2085,7 @@ class HTMLEditUtils final {
    * Return following <br> element from aPoint if and only if it's immediately
    * before a block boundary but it's not necessary to make the preceding
    * empty line of the block boundary visible anymore.
+   * Note that the result may be non-editable and/or non-removable linebreak.
    */
   template <typename EditorLineBreakType, typename EditorDOMPointType>
   [[nodiscard]] static Maybe<EditorLineBreakType>

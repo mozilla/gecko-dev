@@ -396,4 +396,15 @@ DeleteRangeTransaction::AppendTransactionsToDeleteNodesWhoseEndBoundaryIn(
   return NS_OK;
 }
 
+EditorDOMPoint DeleteRangeTransaction::SuggestPointToPutCaret() const {
+  if (!mPointToPutCaret.IsSetAndValidInComposedDoc()) {
+    return EditorDOMPoint();
+  }
+  if (!mPointToPutCaret.IsInNativeAnonymousSubtreeInTextControl() &&
+      !HTMLEditUtils::IsSimplyEditableNode(*mPointToPutCaret.GetContainer())) {
+    return EditorDOMPoint();
+  }
+  return mPointToPutCaret;
+}
+
 }  // namespace mozilla
