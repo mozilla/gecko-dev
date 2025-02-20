@@ -230,9 +230,8 @@ bool VideoAdapter::AdaptFrameResolution(int in_width,
     *cropped_height =
         std::min(in_height, static_cast<int>(in_width / requested_aspect));
   }
-  const Fraction scale =
-      FindScale(*cropped_width, *cropped_height, target_pixel_count,
-                max_pixel_count);
+  const Fraction scale = FindScale(*cropped_width, *cropped_height,
+                                   target_pixel_count, max_pixel_count);
   // Adjust cropping slightly to get correctly aligned output size and a perfect
   // scale factor.
   *cropped_width = roundUp(*cropped_width,

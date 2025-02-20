@@ -62,8 +62,7 @@ bool FakeWebRtcVideoDecoder::Configure(const Settings& /* settings */) {
   return true;
 }
 
-int32_t FakeWebRtcVideoDecoder::Decode(const webrtc::EncodedImage&,
-                                       int64_t) {
+int32_t FakeWebRtcVideoDecoder::Decode(const webrtc::EncodedImage&, int64_t) {
   num_frames_received_++;
   return WEBRTC_VIDEO_CODEC_OK;
 }
