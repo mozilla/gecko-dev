@@ -2005,8 +2005,11 @@ interface nsIDOMWindowUtils : nsISupports {
   /**
    * Get the content- and compositor-side APZ test data instances.
    * The return values are of type APZTestData (see APZTestData.webidl).
+   *
+   * |aElement| is an optional argument for popup window where APZ is enabled.
+   * |aElement| would be a popup element for popup
    */
-  [implicit_jscontext] jsval getContentAPZTestData();
+  [implicit_jscontext] jsval getContentAPZTestData([optional] in Element aElement);
 
   /*
    * |aElement| is an optional argument for popup window where APZ is enabled.

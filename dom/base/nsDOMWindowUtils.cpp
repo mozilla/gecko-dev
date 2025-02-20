@@ -4176,8 +4176,9 @@ nsDOMWindowUtils::IsKeyboardEventUserActivity(Event* aEvent, bool* aResult) {
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetContentAPZTestData(
-    JSContext* aContext, JS::MutableHandle<JS::Value> aOutContentTestData) {
-  if (nsIWidget* widget = GetWidget()) {
+    Element* aElement, JSContext* aContext,
+    JS::MutableHandle<JS::Value> aOutContentTestData) {
+  if (nsIWidget* widget = GetWidgetForElement(aElement)) {
     WindowRenderer* renderer = widget->GetWindowRenderer();
     if (!renderer) {
       return NS_OK;

@@ -41,7 +41,9 @@
 
     function getIframeDisplayport(iframe) {
       return SpecialPowers.spawn(iframe, [], () => {
-        return content.wrappedJSObject.getLastContentDisplayportFor("fission_empty_docelement", false);
+        return content.wrappedJSObject.getLastContentDisplayportFor(
+          "fission_empty_docelement", { expectPainted: false }
+        );
       });
     }
 

@@ -26,7 +26,10 @@ html {
       parent.postMessage("wereDone", "*");
       return;
     }
-    let dp = getLastContentDisplayportFor("helper_wide_crossorigin_iframe_child_docelement", /* expectPainted = */ false);
+    let dp = getLastContentDisplayportFor(
+      "helper_wide_crossorigin_iframe_child_docelement",
+      { expectPainted: false }
+    );
     if (dp != null) {
       info("result " + dp.x + " " + dp.y + " " + dp.width + " " + dp.height);
 
