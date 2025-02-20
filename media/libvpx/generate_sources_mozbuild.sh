@@ -228,6 +228,8 @@ gen_config_files linux/arm64 "--target=arm64-linux-gcc ${all_platforms} ${realti
 gen_config_files mac/arm64 "--target=arm64-darwin-gcc ${all_platforms}"
 gen_config_files win/aarch64 "--target=arm64-win64-vs15 ${all_platforms} ${realtime_only} ${disable_sve}" # Bug 1885585
 
+gen_config_files linux/loongarch64 "--target=loongarch64-linux-gcc ${all_platforms} ${runtime_cpu_detect} ${realtime_only}"
+
 gen_config_files generic "--target=generic-gnu ${all_platforms}"
 
 echo "Remove temporary directory."
@@ -251,6 +253,8 @@ gen_rtcd_header linux/arm armv7
 gen_rtcd_header linux/arm64 arm64 $disable_sve # Bug 1889813
 gen_rtcd_header mac/arm64 arm64
 gen_rtcd_header win/aarch64 arm64 $disable_sve # Bug 1885585
+
+gen_rtcd_header linux/loongarch64 loongarch64
 
 gen_rtcd_header generic generic
 
@@ -325,6 +329,12 @@ config=$(print_config win/aarch64)
 make_clean
 make libvpx_srcs.txt target=libs $config > /dev/null
 convert_srcs_to_project_files libvpx_srcs.txt WIN_AARCH64 win/aarch64
+
+echo "Generate LoongArch64 source list on Linux"
+config=$(print_config linux/loongarch64)
+make_clean
+make libvpx_srcs.txt target=libs $config > /dev/null
+convert_srcs_to_project_files libvpx_srcs.txt LINUX_LOONGARCH64 linux/loongarch64
 
 echo "Generate generic source list."
 config=$(print_config generic)
