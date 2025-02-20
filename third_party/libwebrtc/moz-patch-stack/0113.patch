@@ -45,7 +45,7 @@ index fbec429ffe..707199cd9e 100644
  namespace webrtc {
  class ScreenCapturerSck;
  }  // namespace webrtc
-@@ -49,6 +51,14 @@ API_AVAILABLE(macos(14.0))
+@@ -49,6 +51,14 @@ - (void)releaseCapturer;
  
  namespace webrtc {
  
@@ -60,7 +60,7 @@ index fbec429ffe..707199cd9e 100644
  class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
      : public DesktopCapturer {
   public:
-@@ -376,11 +386,10 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
+@@ -376,11 +386,10 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
  
  std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
      const DesktopCaptureOptions& options) {
@@ -74,7 +74,7 @@ index fbec429ffe..707199cd9e 100644
  }
  
  }  // namespace webrtc
-@@ -442,3 +451,5 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+@@ -442,3 +451,5 @@ - (void)releaseCapturer {
  }
  
  @end

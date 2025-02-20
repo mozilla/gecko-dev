@@ -13,7 +13,7 @@ diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/deskto
 index 379784afa2..915aa90bd7 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -110,7 +110,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
+@@ -110,7 +110,7 @@ void StartWithFilter(SCContentFilter* filter)
  
    // Called by SckHelper to notify of a newly captured frame. May run on an
    // arbitrary thread.
@@ -22,7 +22,7 @@ index 379784afa2..915aa90bd7 100644
  
   private:
    // Called when starting the capturer or the configuration has changed (either
-@@ -524,10 +524,13 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
+@@ -524,10 +524,13 @@ void StartWithFilter(SCContentFilter* filter)
  }
  
  void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
@@ -37,7 +37,7 @@ index 379784afa2..915aa90bd7 100644
    rtc::ScopedCFTypeRef<IOSurfaceRef> scoped_io_surface(
        io_surface, rtc::RetainPolicy::RETAIN);
    std::unique_ptr<DesktopFrameIOSurface> desktop_frame_io_surface =
-@@ -551,29 +554,20 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
+@@ -551,29 +554,20 @@ void StartWithFilter(SCContentFilter* filter)
    }
  
    if (!dirty) {
@@ -71,7 +71,7 @@ index 379784afa2..915aa90bd7 100644
        if (!CGRectIsEmpty(rect)) {
          dirty = true;
          break;
-@@ -728,7 +722,7 @@ std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(
+@@ -728,7 +722,7 @@ - (void)stream:(SCStream*)stream
  
    webrtc::MutexLock lock(&_capturer_lock);
    if (_capturer) {
