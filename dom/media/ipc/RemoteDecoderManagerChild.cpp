@@ -278,8 +278,11 @@ bool RemoteDecoderManagerChild::Supports(
 #if defined(XP_WIN)
         return aLocation == RemoteDecodeIn::UtilityProcess_MFMediaEngineCDM ||
                aLocation == RemoteDecodeIn::GpuProcess;
-#else
+#elif defined(MOZ_APPLEMEDIA) || defined(MOZ_WIDGET_ANDROID)
         return trackSupport.contains(TrackSupport::Video);
+#else
+        // TODO : not support on Linux yet
+        return false;
 #endif
       }
       return trackSupport.contains(TrackSupport::Video);

@@ -21,11 +21,8 @@
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 #  include "mozilla/ProfilerMarkers.h"
 #endif
-#ifdef MOZ_USE_HWDECODE
-#  include "H264.h"
-#  include "H265.h"
-#endif
 #if defined(MOZ_USE_HWDECODE) && defined(MOZ_WIDGET_GTK)
+#  include "H264.h"
 #  include "mozilla/gfx/gfxVars.h"
 #  include "mozilla/layers/DMABUFSurfaceImage.h"
 #  include "mozilla/widget/DMABufLibWrapper.h"
@@ -553,9 +550,6 @@ bool FFmpegVideoDecoder<LIBAV_VER>::ShouldEnableLinuxHWDecoding() const {
     case AV_CODEC_ID_AV1:
       supported = gfx::gfxVars::UseAV1HwDecode();
       break;
-    case AV_CODEC_ID_HEVC:
-      supported = gfx::gfxVars::UseHEVCHwDecode();
-      break;
     default:
       break;
   }
@@ -1001,9 +995,6 @@ void FFmpegVideoDecoder<LIBAV_VER>::InitHWCodecContext(ContextType aType) {
   if (mCodecID == AV_CODEC_ID_H264) {
     mCodecContext->extra_hw_frames =
         H264::ComputeMaxRefFrames(mInfo.mExtraData);
-  } else if (mCodecID == AV_CODEC_ID_HEVC) {
-    mCodecContext->extra_hw_frames =
-        H265::ComputeMaxRefFrames(mInfo.mExtraData);
   } else {
     mCodecContext->extra_hw_frames = EXTRA_HW_FRAMES;
   }
@@ -1128,9 +1119,6 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::DoDecode(
 #if LIBAVCODEC_VERSION_MAJOR >= 55
       case AV_CODEC_ID_VP9:
         flag |= MediaInfoFlag::VIDEO_VP9;
-        break;
-      case AV_CODEC_ID_HEVC:
-        flag |= MediaInfoFlag::VIDEO_HEVC;
         break;
 #endif
 #ifdef FFMPEG_AV1_DECODE
@@ -1741,12 +1729,6 @@ AVCodecID FFmpegVideoDecoder<LIBAV_VER>::GetCodecId(
     return AV_CODEC_ID_H264;
   }
 
-#if LIBAVCODEC_VERSION_MAJOR >= 55
-  if (MP4Decoder::IsHEVC(aMimeType)) {
-    return AV_CODEC_ID_HEVC;
-  }
-#endif
-
   if (aMimeType.EqualsLiteral("video/x-vnd.on2.vp6")) {
     return AV_CODEC_ID_VP6F;
   }
@@ -1825,9 +1807,6 @@ static const struct {
     MAP(VP9, VP9Profile2, "VP9Profile2"),
     MAP(AV1, AV1Profile0, "AV1Profile0"),
     MAP(AV1, AV1Profile1, "AV1Profile1"),
-    MAP(HEVC, HEVCMain, "HEVCMain"),
-    MAP(HEVC, HEVCMain10, "HEVCMain10"),
-    MAP(HEVC, HEVCMain10, "HEVCMain12"),
 #  undef MAP
 };
 

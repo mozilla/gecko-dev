@@ -41,7 +41,6 @@ inline bool IsVideoCodec(AVCodecID aCodecID) {
 #endif
 #if LIBAVCODEC_VERSION_MAJOR >= 55
     case AV_CODEC_ID_VP9:
-    case AV_CODEC_ID_HEVC:
 #endif
 #if LIBAVCODEC_VERSION_MAJOR >= 59
     case AV_CODEC_ID_AV1:

@@ -3012,7 +3012,7 @@ void gfxPlatform::InitHardwareVideoConfig() {
   }
   gfxVars::SetUseVP9HwDecode(featureVP9.IsEnabled());
 
-  // H264/AV1/HEVC_HW_DECODE are used on Linux only right now.
+  // H264_HW_DECODE/AV1_HW_DECODE is used on Linux only right now.
 #ifdef MOZ_WIDGET_GTK
   FeatureState& featureH264 = gfxConfig::GetFeature(Feature::H264_HW_DECODE);
   featureH264.EnableByDefault();
@@ -3031,15 +3031,6 @@ void gfxPlatform::InitHardwareVideoConfig() {
     featureAV1.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
   }
   gfxVars::SetUseAV1HwDecode(featureAV1.IsEnabled());
-
-  FeatureState& featureHEVC = gfxConfig::GetFeature(Feature::HEVC_HW_DECODE);
-  featureHEVC.EnableByDefault();
-
-  if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_HEVC_HW_DECODE, &message,
-                           failureId)) {
-    featureHEVC.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
-  }
-  gfxVars::SetUseHEVCHwDecode(featureHEVC.IsEnabled());
 #endif
 }
 

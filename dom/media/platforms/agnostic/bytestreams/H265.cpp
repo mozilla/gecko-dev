@@ -1476,7 +1476,20 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::CreateFakeExtraData() {
 
 /* static */
 already_AddRefed<mozilla::MediaByteBuffer> H265::CreateNewExtraData(
-    const HVCCConfig& aConfig, const nsTArray<H265NALU>& aNALUs) {
+    const HVCCConfig& aConfig, const Maybe<H265NALU>& aSPS,
+    const Maybe<H265NALU>& aPPS, const Maybe<H265NALU>& aVPS) {
+  // Append essential NALUs if they exist
+  nsTArray<H265NALU> nalus;
+  if (aSPS) {
+    nalus.AppendElement(*aSPS);
+  }
+  if (aPPS) {
+    nalus.AppendElement(*aPPS);
+  }
+  if (aVPS) {
+    nalus.AppendElement(*aVPS);
+  }
+
   // HEVCDecoderConfigurationRecord (HVCC) is in ISO/IEC 14496-15 8.3.2.1.2
   auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
   BitWriter writer(extradata);
@@ -1502,8 +1515,8 @@ already_AddRefed<mozilla::MediaByteBuffer> H265::CreateNewExtraData(
   writer.WriteBits(aConfig.numTemporalLayers, 3);
   writer.WriteBits(aConfig.temporalIdNested, 1);
   writer.WriteBits(aConfig.lengthSizeMinusOne, 2);
-  writer.WriteU8(aNALUs.Length());  // numOfArrays
-  for (auto& nalu : aNALUs) {
+  writer.WriteU8(nalus.Length());  // numOfArrays
+  for (auto& nalu : nalus) {
     writer.WriteBits(0, 2);                     // array_completeness + reserved
     writer.WriteBits(nalu.mNalUnitType, 6);     // NAL_unit_type
     writer.WriteBits(1, 16);                    // numNalus

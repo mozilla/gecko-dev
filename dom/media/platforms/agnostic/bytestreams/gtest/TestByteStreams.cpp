@@ -886,11 +886,8 @@ TEST(H265, SPSIteratorAndCreateNewExtraData)
   EXPECT_TRUE(ppsMaybe);
   auto vpsMaybe = hvcc.GetFirstAvaiableNALU(H265NALU::NAL_TYPES::VPS_NUT);
   EXPECT_TRUE(vpsMaybe);
-  nsTArray<H265NALU> nalus;
-  nalus.AppendElement(*spsMaybe);
-  nalus.AppendElement(*ppsMaybe);
-  nalus.AppendElement(*vpsMaybe);
-  RefPtr<MediaByteBuffer> newExtradata = H265::CreateNewExtraData(hvcc, nalus);
+  RefPtr<MediaByteBuffer> newExtradata =
+      H265::CreateNewExtraData(hvcc, spsMaybe, ppsMaybe, vpsMaybe);
   EXPECT_TRUE(newExtradata);
 
   // The new extradata should match the original extradata.

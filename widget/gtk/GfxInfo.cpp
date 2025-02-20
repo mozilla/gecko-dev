@@ -60,7 +60,6 @@ constexpr int CODEC_HW_H264 = 1 << 4;
 constexpr int CODEC_HW_VP8 = 1 << 5;
 constexpr int CODEC_HW_VP9 = 1 << 6;
 constexpr int CODEC_HW_AV1 = 1 << 7;
-constexpr int CODEC_HW_HEVC = 1 << 8;
 
 nsresult GfxInfo::Init() {
   mGLMajorVersion = 0;
@@ -705,10 +704,6 @@ void GfxInfo::GetDataVAAPI() {
         media::MCSInfo::AddSupport(
             media::MediaCodecsSupport::AV1HardwareDecode);
       }
-      if (mVAAPISupportedCodecs & CODEC_HW_HEVC) {
-        media::MCSInfo::AddSupport(
-            media::MediaCodecsSupport::HEVCHardwareDecode);
-      }
     } else if (!strcmp(line, "WARNING") || !strcmp(line, "ERROR")) {
       gfxCriticalNote << "vaapitest: " << line;
       line = NS_strtok("\n", &bufptr);
@@ -1298,8 +1293,7 @@ nsresult GfxInfo::GetFeatureStatusImpl(
   } kFeatureToCodecs[] = {{nsIGfxInfo::FEATURE_H264_HW_DECODE, CODEC_HW_H264},
                           {nsIGfxInfo::FEATURE_VP8_HW_DECODE, CODEC_HW_VP8},
                           {nsIGfxInfo::FEATURE_VP9_HW_DECODE, CODEC_HW_VP9},
-                          {nsIGfxInfo::FEATURE_AV1_HW_DECODE, CODEC_HW_AV1},
-                          {nsIGfxInfo::FEATURE_HEVC_HW_DECODE, CODEC_HW_HEVC}};
+                          {nsIGfxInfo::FEATURE_AV1_HW_DECODE, CODEC_HW_AV1}};
 
   for (const auto& pair : kFeatureToCodecs) {
     if (aFeature != pair.mFeature) {
