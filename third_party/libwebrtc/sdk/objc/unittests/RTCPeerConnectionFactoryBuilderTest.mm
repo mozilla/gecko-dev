@@ -37,11 +37,14 @@ extern "C" {
 @implementation RTCPeerConnectionFactoryBuilderTests
 
 - (void)testBuilder {
-  id factoryMock = OCMStrictClassMock([RTC_OBJC_TYPE(RTCPeerConnectionFactory) class]);
+  id factoryMock =
+      OCMStrictClassMock([RTC_OBJC_TYPE(RTCPeerConnectionFactory) class]);
   OCMExpect([factoryMock alloc]).andReturn(factoryMock);
-  RTC_UNUSED([[[[factoryMock expect] andReturn:factoryMock] ignoringNonObjectArgs]
-      initWithMediaAndDependencies:webrtc::PeerConnectionFactoryDependencies()]);
-  RTCPeerConnectionFactoryBuilder* builder = [[RTCPeerConnectionFactoryBuilder alloc] init];
+  RTC_UNUSED([[[[factoryMock expect] andReturn:factoryMock]
+      ignoringNonObjectArgs] initWithMediaAndDependencies:
+                                 webrtc::PeerConnectionFactoryDependencies()]);
+  RTCPeerConnectionFactoryBuilder* builder =
+      [[RTCPeerConnectionFactoryBuilder alloc] init];
   RTC_OBJC_TYPE(RTCPeerConnectionFactory)* peerConnectionFactory =
       [builder createPeerConnectionFactory];
   EXPECT_TRUE(peerConnectionFactory != nil);
@@ -49,11 +52,14 @@ extern "C" {
 }
 
 - (void)testDefaultComponentsBuilder {
-  id factoryMock = OCMStrictClassMock([RTC_OBJC_TYPE(RTCPeerConnectionFactory) class]);
+  id factoryMock =
+      OCMStrictClassMock([RTC_OBJC_TYPE(RTCPeerConnectionFactory) class]);
   OCMExpect([factoryMock alloc]).andReturn(factoryMock);
-  RTC_UNUSED([[[[factoryMock expect] andReturn:factoryMock] ignoringNonObjectArgs]
-      initWithMediaAndDependencies:webrtc::PeerConnectionFactoryDependencies()]);
-  RTCPeerConnectionFactoryBuilder* builder = [RTCPeerConnectionFactoryBuilder defaultBuilder];
+  RTC_UNUSED([[[[factoryMock expect] andReturn:factoryMock]
+      ignoringNonObjectArgs] initWithMediaAndDependencies:
+                                 webrtc::PeerConnectionFactoryDependencies()]);
+  RTCPeerConnectionFactoryBuilder* builder =
+      [RTCPeerConnectionFactoryBuilder defaultBuilder];
   RTC_OBJC_TYPE(RTCPeerConnectionFactory)* peerConnectionFactory =
       [builder createPeerConnectionFactory];
   EXPECT_TRUE(peerConnectionFactory != nil);

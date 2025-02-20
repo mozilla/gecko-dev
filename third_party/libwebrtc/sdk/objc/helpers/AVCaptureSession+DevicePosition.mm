@@ -20,7 +20,8 @@ BOOL CFStringContainsString(CFStringRef theString, CFStringRef stringToFind) {
 
 @implementation AVCaptureSession (DevicePosition)
 
-+ (AVCaptureDevicePosition)devicePositionForSampleBuffer:(CMSampleBufferRef)sampleBuffer {
++ (AVCaptureDevicePosition)devicePositionForSampleBuffer:
+    (CMSampleBufferRef)sampleBuffer {
   // Check the image's EXIF for the camera the image came from.
   AVCaptureDevicePosition cameraPosition = AVCaptureDevicePositionUnspecified;
   CFDictionaryRef attachments = CMCopyDictionaryOfAttachments(
@@ -29,8 +30,9 @@ BOOL CFStringContainsString(CFStringRef theString, CFStringRef stringToFind) {
     int size = CFDictionaryGetCount(attachments);
     if (size > 0) {
       CFDictionaryRef cfExifDictVal = nil;
-      if (CFDictionaryGetValueIfPresent(
-              attachments, (const void *)CFSTR("{Exif}"), (const void **)&cfExifDictVal)) {
+      if (CFDictionaryGetValueIfPresent(attachments,
+                                        (const void *)CFSTR("{Exif}"),
+                                        (const void **)&cfExifDictVal)) {
         CFStringRef cfLensModelStrVal;
         if (CFDictionaryGetValueIfPresent(cfExifDictVal,
                                           (const void *)CFSTR("LensModel"),

@@ -18,7 +18,8 @@
 
 namespace webrtc {
 
-ObjCVideoRenderer::ObjCVideoRenderer(id<RTC_OBJC_TYPE(RTCVideoRenderer)> renderer)
+ObjCVideoRenderer::ObjCVideoRenderer(
+    id<RTC_OBJC_TYPE(RTCVideoRenderer)> renderer)
     : renderer_(renderer), size_(CGSizeZero) {}
 
 void ObjCVideoRenderer::OnFrame(const VideoFrame& nativeVideoFrame) {

@@ -18,11 +18,14 @@ namespace webrtc {
 
 namespace {
 
-/** ObjCFrameBuffer that conforms to I420BufferInterface by wrapping RTC_OBJC_TYPE(RTCI420Buffer) */
+/** ObjCFrameBuffer that conforms to I420BufferInterface by wrapping
+ * RTC_OBJC_TYPE(RTCI420Buffer) */
 class ObjCI420FrameBuffer : public I420BufferInterface {
  public:
   explicit ObjCI420FrameBuffer(id<RTC_OBJC_TYPE(RTCI420Buffer)> frame_buffer)
-      : frame_buffer_(frame_buffer), width_(frame_buffer.width), height_(frame_buffer.height) {}
+      : frame_buffer_(frame_buffer),
+        width_(frame_buffer.width),
+        height_(frame_buffer.height) {}
   ~ObjCI420FrameBuffer() override {}
 
   int width() const override { return width_; }
@@ -49,8 +52,11 @@ class ObjCI420FrameBuffer : public I420BufferInterface {
 
 }  // namespace
 
-ObjCFrameBuffer::ObjCFrameBuffer(id<RTC_OBJC_TYPE(RTCVideoFrameBuffer)> frame_buffer)
-    : frame_buffer_(frame_buffer), width_(frame_buffer.width), height_(frame_buffer.height) {}
+ObjCFrameBuffer::ObjCFrameBuffer(
+    id<RTC_OBJC_TYPE(RTCVideoFrameBuffer)> frame_buffer)
+    : frame_buffer_(frame_buffer),
+      width_(frame_buffer.width),
+      height_(frame_buffer.height) {}
 
 ObjCFrameBuffer::~ObjCFrameBuffer() {}
 
@@ -70,20 +76,24 @@ rtc::scoped_refptr<I420BufferInterface> ObjCFrameBuffer::ToI420() {
   return rtc::make_ref_counted<ObjCI420FrameBuffer>([frame_buffer_ toI420]);
 }
 
-rtc::scoped_refptr<VideoFrameBuffer> ObjCFrameBuffer::CropAndScale(int offset_x,
-                                                                   int offset_y,
-                                                                   int crop_width,
-                                                                   int crop_height,
-                                                                   int scaled_width,
-                                                                   int scaled_height) {
-  if ([frame_buffer_ respondsToSelector:@selector
-                     (cropAndScaleWith:offsetY:cropWidth:cropHeight:scaleWidth:scaleHeight:)]) {
-    return rtc::make_ref_counted<ObjCFrameBuffer>([frame_buffer_ cropAndScaleWith:offset_x
-                                                                          offsetY:offset_y
-                                                                        cropWidth:crop_width
-                                                                       cropHeight:crop_height
-                                                                       scaleWidth:scaled_width
-                                                                      scaleHeight:scaled_height]);
+rtc::scoped_refptr<VideoFrameBuffer> ObjCFrameBuffer::CropAndScale(
+    int offset_x,
+    int offset_y,
+    int crop_width,
+    int crop_height,
+    int scaled_width,
+    int scaled_height) {
+  if ([frame_buffer_
+          respondsToSelector:@selector
+          (cropAndScaleWith:
+                    offsetY:cropWidth:cropHeight:scaleWidth:scaleHeight:)]) {
+    return rtc::make_ref_counted<ObjCFrameBuffer>([frame_buffer_
+        cropAndScaleWith:offset_x
+                 offsetY:offset_y
+               cropWidth:crop_width
+              cropHeight:crop_height
+              scaleWidth:scaled_width
+             scaleHeight:scaled_height]);
   }
 
   // Use the default implementation.
@@ -91,7 +101,8 @@ rtc::scoped_refptr<VideoFrameBuffer> ObjCFrameBuffer::CropAndScale(int offset_x,
       offset_x, offset_y, crop_width, crop_height, scaled_width, scaled_height);
 }
 
-id<RTC_OBJC_TYPE(RTCVideoFrameBuffer)> ObjCFrameBuffer::wrapped_frame_buffer() const {
+id<RTC_OBJC_TYPE(RTCVideoFrameBuffer)> ObjCFrameBuffer::wrapped_frame_buffer()
+    const {
   return frame_buffer_;
 }
 
@@ -100,7 +111,8 @@ id<RTC_OBJC_TYPE(RTCVideoFrameBuffer)> ToObjCVideoFrameBuffer(
   if (buffer->type() == VideoFrameBuffer::Type::kNative) {
     return static_cast<ObjCFrameBuffer*>(buffer.get())->wrapped_frame_buffer();
   } else {
-    return [[RTC_OBJC_TYPE(RTCI420Buffer) alloc] initWithFrameBuffer:buffer->ToI420()];
+    return [[RTC_OBJC_TYPE(RTCI420Buffer) alloc]
+        initWithFrameBuffer:buffer->ToI420()];
   }
 }
 

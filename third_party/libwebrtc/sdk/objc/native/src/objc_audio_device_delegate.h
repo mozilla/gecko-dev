@@ -22,11 +22,14 @@ class ObjCAudioDeviceModule;
 }  // namespace objc_adm
 }  // namespace webrtc
 
-@interface ObjCAudioDeviceDelegate : NSObject <RTC_OBJC_TYPE (RTCAudioDeviceDelegate)>
+@interface ObjCAudioDeviceDelegate
+    : NSObject <RTC_OBJC_TYPE (RTCAudioDeviceDelegate)>
 
-- (instancetype)initWithAudioDeviceModule:
-                    (rtc::scoped_refptr<webrtc::objc_adm::ObjCAudioDeviceModule>)audioDeviceModule
-                        audioDeviceThread:(rtc::Thread*)thread;
+- (instancetype)
+    initWithAudioDeviceModule:
+        (rtc::scoped_refptr<webrtc::objc_adm::ObjCAudioDeviceModule>)
+            audioDeviceModule
+            audioDeviceThread:(rtc::Thread*)thread;
 
 - (void)resetAudioDeviceModule;
 

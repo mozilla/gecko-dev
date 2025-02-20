@@ -27,4 +27,4 @@ std::unique_ptr<rtc::NetworkMonitorFactory> CreateNetworkMonitorFactory() {
 #endif
 }
 
-}
+}  // namespace webrtc

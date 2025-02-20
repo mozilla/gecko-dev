@@ -20,8 +20,9 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /** Callback block for encoder. */
-typedef BOOL (^RTCVideoEncoderCallback)(RTC_OBJC_TYPE(RTCEncodedImage) * frame,
-                                        id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)> info);
+typedef BOOL (^RTCVideoEncoderCallback)(
+    RTC_OBJC_TYPE(RTCEncodedImage) * frame,
+    id<RTC_OBJC_TYPE(RTCCodecSpecificInfo)> info);
 
 /** Protocol for encoder implementations. */
 RTC_OBJC_EXPORT
@@ -29,7 +30,8 @@ RTC_OBJC_EXPORT
 (RTCVideoEncoder)<NSObject>
 
     - (void)setCallback : (nullable RTCVideoEncoderCallback)callback;
-- (NSInteger)startEncodeWithSettings:(RTC_OBJC_TYPE(RTCVideoEncoderSettings) *)settings
+- (NSInteger)startEncodeWithSettings:
+                 (RTC_OBJC_TYPE(RTCVideoEncoderSettings) *)settings
                        numberOfCores:(int)numberOfCores;
 - (NSInteger)releaseEncoder;
 - (NSInteger)encode:(RTC_OBJC_TYPE(RTCVideoFrame) *)frame
@@ -38,20 +40,21 @@ RTC_OBJC_EXPORT
 - (int)setBitrate:(uint32_t)bitrateKbit framerate:(uint32_t)framerate;
 - (NSString *)implementationName;
 
-/** Returns QP scaling settings for encoder. The quality scaler adjusts the resolution in order to
- *  keep the QP from the encoded images within the given range. Returning nil from this function
- *  disables quality scaling. */
+/** Returns QP scaling settings for encoder. The quality scaler adjusts the
+ * resolution in order to keep the QP from the encoded images within the given
+ * range. Returning nil from this function disables quality scaling. */
 - (nullable RTC_OBJC_TYPE(RTCVideoEncoderQpThresholds) *)scalingSettings;
 
 /** Resolutions should be aligned to this value. */
 @property(nonatomic, readonly) NSInteger resolutionAlignment;
 
-/** If enabled, resolution alignment is applied to all simulcast layers simultaneously so that when
-    scaled, all resolutions comply with 'resolutionAlignment'. */
+/** If enabled, resolution alignment is applied to all simulcast layers
+   simultaneously so that when scaled, all resolutions comply with
+   'resolutionAlignment'. */
 @property(nonatomic, readonly) BOOL applyAlignmentToAllSimulcastLayers;
 
-/** If YES, the receiver is expected to resample/scale the source texture to the expected output
-    size. */
+/** If YES, the receiver is expected to resample/scale the source texture to the
+   expected output size. */
 @property(nonatomic, readonly) BOOL supportsNativeHandle;
 
 @end

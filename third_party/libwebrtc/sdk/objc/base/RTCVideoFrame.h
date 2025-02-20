@@ -49,7 +49,8 @@ RTC_OBJC_EXPORT
 
 /** Initialize an RTCVideoFrame from a frame buffer, rotation, and timestamp.
  */
-- (instancetype)initWithBuffer:(id<RTC_OBJC_TYPE(RTCVideoFrameBuffer)>)frameBuffer
+- (instancetype)initWithBuffer:
+                    (id<RTC_OBJC_TYPE(RTCVideoFrameBuffer)>)frameBuffer
                       rotation:(RTCVideoRotation)rotation
                    timeStampNs:(int64_t)timeStampNs;
 

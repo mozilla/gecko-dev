@@ -30,7 +30,9 @@
                    "59052 typ host generation 0";
 
   RTC_OBJC_TYPE(RTCIceCandidate) *candidate =
-      [[RTC_OBJC_TYPE(RTCIceCandidate) alloc] initWithSdp:sdp sdpMLineIndex:0 sdpMid:@"audio"];
+      [[RTC_OBJC_TYPE(RTCIceCandidate) alloc] initWithSdp:sdp
+                                            sdpMLineIndex:0
+                                                   sdpMid:@"audio"];
 
   std::unique_ptr<webrtc::IceCandidateInterface> nativeCandidate =
       candidate.nativeCandidate;
@@ -50,7 +52,8 @@
       webrtc::CreateIceCandidate("audio", 0, sdp, nullptr));
 
   RTC_OBJC_TYPE(RTCIceCandidate) *iceCandidate =
-      [[RTC_OBJC_TYPE(RTCIceCandidate) alloc] initWithNativeCandidate:nativeCandidate.get()];
+      [[RTC_OBJC_TYPE(RTCIceCandidate) alloc]
+          initWithNativeCandidate:nativeCandidate.get()];
   EXPECT_NE(nativeCandidate.get(), iceCandidate.nativeCandidate.get());
   EXPECT_TRUE([@"audio" isEqualToString:iceCandidate.sdpMid]);
   EXPECT_EQ(0, iceCandidate.sdpMLineIndex);

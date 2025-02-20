@@ -18,22 +18,40 @@ void DrawGradientInRGBPixelBuffer(CVPixelBufferRef pixelBuffer) {
   size_t width = CVPixelBufferGetWidth(pixelBuffer);
   size_t height = CVPixelBufferGetHeight(pixelBuffer);
   CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-  int byteOrder = CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_32ARGB ?
+  int byteOrder = CVPixelBufferGetPixelFormatType(pixelBuffer) ==
+          kCVPixelFormatType_32ARGB ?
       kCGBitmapByteOrder32Little :
       0;
-  CGContextRef cgContext = CGBitmapContextCreate(baseAddr,
-                                                 width,
-                                                 height,
-                                                 8,
-                                                 CVPixelBufferGetBytesPerRow(pixelBuffer),
-                                                 colorSpace,
-                                                 byteOrder | kCGImageAlphaNoneSkipLast);
+  CGContextRef cgContext =
+      CGBitmapContextCreate(baseAddr,
+                            width,
+                            height,
+                            8,
+                            CVPixelBufferGetBytesPerRow(pixelBuffer),
+                            colorSpace,
+                            byteOrder | kCGImageAlphaNoneSkipLast);
 
   // Create a gradient
   CGFloat colors[] = {
-      1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      1.0,
+      1.0,
   };
-  CGGradientRef gradient = CGGradientCreateWithColorComponents(colorSpace, colors, NULL, 4);
+  CGGradientRef gradient =
+      CGGradientCreateWithColorComponents(colorSpace, colors, NULL, 4);
 
   CGContextDrawLinearGradient(
       cgContext, gradient, CGPointMake(0, 0), CGPointMake(width, height), 0);
@@ -47,36 +65,44 @@ void DrawGradientInRGBPixelBuffer(CVPixelBufferRef pixelBuffer) {
   CVPixelBufferUnlockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
 }
 
-rtc::scoped_refptr<webrtc::I420Buffer> CreateI420Gradient(int width, int height) {
-  rtc::scoped_refptr<webrtc::I420Buffer> buffer(webrtc::I420Buffer::Create(width, height));
+rtc::scoped_refptr<webrtc::I420Buffer> CreateI420Gradient(int width,
+                                                          int height) {
+  rtc::scoped_refptr<webrtc::I420Buffer> buffer(
+      webrtc::I420Buffer::Create(width, height));
   // Initialize with gradient, Y = 128(x/w + y/h), U = 256 x/w, V = 256 y/h
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
-      buffer->MutableDataY()[x + y * width] = 128 * (x * height + y * width) / (width * height);
+      buffer->MutableDataY()[x + y * width] =
+          128 * (x * height + y * width) / (width * height);
     }
   }
   int chroma_width = buffer->ChromaWidth();
   int chroma_height = buffer->ChromaHeight();
   for (int x = 0; x < chroma_width; x++) {
     for (int y = 0; y < chroma_height; y++) {
-      buffer->MutableDataU()[x + y * chroma_width] = 255 * x / (chroma_width - 1);
-      buffer->MutableDataV()[x + y * chroma_width] = 255 * y / (chroma_height - 1);
+      buffer->MutableDataU()[x + y * chroma_width] =
+          255 * x / (chroma_width - 1);
+      buffer->MutableDataV()[x + y * chroma_width] =
+          255 * y / (chroma_height - 1);
     }
   }
   return buffer;
 }
 
-void CopyI420BufferToCVPixelBuffer(rtc::scoped_refptr<webrtc::I420Buffer> i420Buffer,
-                                   CVPixelBufferRef pixelBuffer) {
+void CopyI420BufferToCVPixelBuffer(
+    rtc::scoped_refptr<webrtc::I420Buffer> i420Buffer,
+    CVPixelBufferRef pixelBuffer) {
   CVPixelBufferLockBaseAddress(pixelBuffer, 0);
 
   const OSType pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer);
   if (pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange ||
       pixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) {
     // NV12
-    uint8_t* dstY = static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
+    uint8_t* dstY = static_cast<uint8_t*>(
+        CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
     const int dstYStride = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
-    uint8_t* dstUV = static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1));
+    uint8_t* dstUV = static_cast<uint8_t*>(
+        CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1));
     const int dstUVStride = CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1);
 
     libyuv::I420ToNV12(i420Buffer->DataY(),
@@ -92,7 +118,8 @@ void CopyI420BufferToCVPixelBuffer(rtc::scoped_refptr<webrtc::I420Buffer> i420Bu
                        i420Buffer->width(),
                        i420Buffer->height());
   } else {
-    uint8_t* dst = static_cast<uint8_t*>(CVPixelBufferGetBaseAddress(pixelBuffer));
+    uint8_t* dst =
+        static_cast<uint8_t*>(CVPixelBufferGetBaseAddress(pixelBuffer));
     const int bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
 
     if (pixelFormat == kCVPixelFormatType_32BGRA) {
