@@ -397,10 +397,9 @@ class H265 final {
 
   // Create new extradata with the essential information from the given
   // HVCCConfig, excluding its original NALUs. The NALUs will be replaced by the
-  // provided SPS, PPS, and VPS.
+  // given NALUS, which are usually SPS, PPS, VPS and SEI.
   static already_AddRefed<mozilla::MediaByteBuffer> CreateNewExtraData(
-      const HVCCConfig& aConfig, const Maybe<H265NALU>& aSPS,
-      const Maybe<H265NALU>& aPPS, const Maybe<H265NALU>& aVPS);
+      const HVCCConfig& aConfig, const nsTArray<H265NALU>& aNALUs);
 
  private:
   // Return RAW BYTE SEQUENCE PAYLOAD (rbsp) from NAL content.
