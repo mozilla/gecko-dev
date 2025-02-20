@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -247,6 +248,7 @@ fun SponsoredContent(
 ) {
     ListItemTabSurface(
         imageUrl = sponsoredContent.imageUrl,
+        imageContentScale = ContentScale.Crop,
         contentPadding = PaddingValues(16.dp, 0.dp),
         backgroundColor = backgroundColor,
         onClick = { onClick(sponsoredContent) },
