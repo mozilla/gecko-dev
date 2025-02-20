@@ -37,13 +37,6 @@
             android:layout="@layout/checkbox_left_preference"
             android:title="@string/preferences_show_search_suggestions_in_private"
             app:iconSpaceReserved="false" />
-        <CheckBoxPreference
-            android:defaultValue="true"
-            android:dependency="@string/pref_key_show_search_suggestions"
-            android:key="@string/pref_key_show_trending_search_suggestions"
-            android:layout="@layout/checkbox_left_preference"
-            android:title="@string/preferences_show_trending_search_suggestions"
-            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory

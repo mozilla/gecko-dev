@@ -101,7 +101,6 @@ import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.secure
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.search.awesomebar.AwesomeBarView
 import org.mozilla.fenix.search.awesomebar.toSearchProviderState
 import org.mozilla.fenix.search.ext.searchEngineShortcuts
@@ -484,13 +483,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         observeClipboardState()
         observeSuggestionProvidersState()
 
-        if (
-            view.context.settings().shouldShowTrendingSearchSuggestions &&
-            (
-                store.state.query.isNotEmpty() ||
-                    FxNimbus.features.trendingSearches.value().showTrendingSearchesOnHomepage
-                )
-        ) {
+        if (view.context.settings().enableTrendingSearches && store.state.query.isNotEmpty()) {
             binding.awesomeBar.isVisible = true
         } else {
             observeAwesomeBarState()

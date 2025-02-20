@@ -1147,28 +1147,4 @@ class SettingsTest {
             assertEquals(56, bottomToolbarHeight)
         }
     }
-
-    @Test
-    fun `GIVEN trending searches is enabled and visible THEN should show trending searches`() {
-        val settings = spyk(settings)
-        every { settings.trendingSearchSuggestionsEnabled } returns true
-        every { settings.isTrendingSearchesVisible } returns true
-
-        assertTrue(settings.shouldShowTrendingSearchSuggestions)
-
-        every { settings.trendingSearchSuggestionsEnabled } returns false
-        every { settings.isTrendingSearchesVisible } returns true
-
-        assertFalse(settings.shouldShowTrendingSearchSuggestions)
-
-        every { settings.trendingSearchSuggestionsEnabled } returns true
-        every { settings.isTrendingSearchesVisible } returns false
-
-        assertFalse(settings.shouldShowTrendingSearchSuggestions)
-
-        every { settings.trendingSearchSuggestionsEnabled } returns false
-        every { settings.isTrendingSearchesVisible } returns false
-
-        assertFalse(settings.shouldShowTrendingSearchSuggestions)
-    }
 }
