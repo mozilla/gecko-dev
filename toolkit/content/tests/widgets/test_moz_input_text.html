@@ -8,14 +8,14 @@
   <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
   <script type="module" src="chrome://global/content/elements/moz-input-text.mjs"></script>
-  <script src="input-test-helpers.js"></script>
+  <script src="lit-test-helpers.js"></script>
   <script class="testbody" type="application/javascript">
     let testHelpers = new InputTestHelpers();
     let html;
 
     add_setup(async function setup() {
       ({ html } = await testHelpers.setupLit());
-      await testHelpers.setupInputTests({
+      testHelpers.setupTests({
         templateFn: (attrs, children) =>
           html`<moz-input-text ${attrs}>${children}</moz-input-text>`,
       });

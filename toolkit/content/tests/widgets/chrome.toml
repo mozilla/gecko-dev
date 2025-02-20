@@ -6,7 +6,7 @@ support-files = [
   "window_label_checkbox.xhtml",
   "window_menubar.xhtml",
   "seek_with_sound.webm",
-  "input-test-helpers.js",
+  "lit-test-helpers.js",
 ]
 prefs = ["app.support.baseURL='https://support.mozilla.org/'"]
 
