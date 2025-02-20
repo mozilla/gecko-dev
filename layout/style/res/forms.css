@@ -320,7 +320,7 @@ select > option {
   padding-inline: 4px;
 }
 
-option:checked {
+select:-moz-select-list-box option:checked {
   background-color: -moz-cellhighlight;
   color: -moz-cellhighlighttext;
 }

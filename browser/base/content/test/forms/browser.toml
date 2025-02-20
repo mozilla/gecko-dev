@@ -9,6 +9,8 @@ skip-if = [
   "verify && os == 'win'",
 ]
 
+["browser_selectpopup_checked.js"]
+
 ["browser_selectpopup_colors.js"]
 skip-if = ["os == 'linux'"] # Bug 1329991 - test fails intermittently on Linux builds
 

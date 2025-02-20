@@ -49,7 +49,6 @@ export var SelectContentHelper = function (aElement, aOptions, aActor) {
   this.isOpenedViaTouch = aOptions.isOpenedViaTouch;
   this._closeAfterBlur = true;
   this._pseudoStylesSetup = false;
-  this._lockedDescendants = null;
   this.init();
   this.showDropDown();
   this._updateTimer = new lazy.DeferredTask(this._update.bind(this), 0);
@@ -137,15 +136,6 @@ SelectContentHelper.prototype = {
     // any styles.
     this._pseudoStylesSetup = true;
     InspectorUtils.addPseudoClassLock(this.element, ":focus");
-    let lockedDescendants = (this._lockedDescendants =
-      this.element.querySelectorAll(":checked"));
-    for (let child of lockedDescendants) {
-      // Selected options have the :checked pseudo-class, which
-      // we want to disable before calculating the computed
-      // styles since the user agent styles alter the styling
-      // based on :checked.
-      InspectorUtils.addPseudoClassLock(child, ":checked", false);
-    }
   },
 
   _clearPseudoClassStyles() {
@@ -155,11 +145,6 @@ SelectContentHelper.prototype = {
     // Undo all of the things that change style at once, after we're
     // done reading styles.
     InspectorUtils.clearPseudoClassLocks(this.element);
-    let lockedDescendants = this._lockedDescendants;
-    for (let child of lockedDescendants) {
-      InspectorUtils.clearPseudoClassLocks(child);
-    }
-    this._lockedDescendants = null;
     this._pseudoStylesSetup = false;
   },
 
