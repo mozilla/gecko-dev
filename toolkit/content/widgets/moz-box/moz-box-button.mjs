@@ -3,30 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { html } from "../vendor/lit.all.mjs";
-import { MozLitElement } from "../lit-utils.mjs";
-
-const NAVIGATION_TYPE_ICONS = {
-  subpage: "chrome://global/skin/icons/arrow-right.svg",
-};
+import MozBoxBase from "./moz-box-base.mjs";
 
 /**
- * A button custom element used for navigating between sub-pages and/or opening
- * dialogs or external links.
+ * A button custom element used for navigating between sub-pages or opening
+ * dialogs.
  *
  * @tagname moz-box-button
  * @property {string} label - Label for the button.
- * @property {string} type - Type of box button, either "subpage" or "external".
+ * @property {string} description - Descriptive text for the button.
+ * @property {string} iconSrc - The src for an optional icon shown next to the label.
  * @property {boolean} disabled - Whether or not the button is disabled.
  */
-export default class MozBoxButton extends MozLitElement {
+export default class MozBoxButton extends MozBoxBase {
   static shadowRootOptions = {
-    ...MozLitElement.shadowRootOptions,
+    ...super.shadowRootOptions,
     delegatesFocus: true,
   };
 
   static properties = {
-    label: { type: String, fluent: true },
-    type: { type: String },
     disabled: { type: Boolean },
   };
 
@@ -37,7 +32,6 @@ export default class MozBoxButton extends MozLitElement {
 
   constructor() {
     super();
-    this.type = "subpage";
     this.disabled = false;
   }
 
@@ -47,15 +41,16 @@ export default class MozBoxButton extends MozLitElement {
 
   render() {
     return html`
+      ${super.stylesTemplate()}
       <link
         rel="stylesheet"
         href="chrome://global/content/elements/moz-box-button.css"
       />
       <button ?disabled=${this.disabled}>
-        ${this.label}
+        ${super.textTemplate()}
         <img
-          class="nav-icon"
-          src=${NAVIGATION_TYPE_ICONS[this.type]}
+          class="icon nav-icon"
+          src="chrome://global/skin/icons/arrow-right.svg"
           role="presentation"
         />
       </button>
