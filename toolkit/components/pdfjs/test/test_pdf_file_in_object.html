@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>PDFjs: Load a PDF in an object/embed.</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+
+<body>
+<pre id="test">
+<script type="text/javascript">
+"use strict";
+async function check_viewer_container(frame) {
+  const hasViewerContainer = await SpecialPowers.spawn(
+    SpecialPowers.wrap(frame).browsingContext,
+    [],
+    () => !!this.content.document.getElementById("viewerContainer")
+  );
+  ok(
+    hasViewerContainer,
+    "The object element with a pdf must have a `viewerContainer`"
+  );
+}
+
+async function test_object() {
+  const object = document.createElement("object");
+  const { promise: loaded, resolve } = Promise.withResolvers();
+  object.onload = resolve;
+
+  document.body.append(object);
+  object.type = "application/pdf";
+  object.data = "file_pdfjs_test.pdf";
+
+  await loaded;
+  await check_viewer_container(object);
+}
+
+async function test_embed() {
+  const embed = document.createElement("embed");
+  const { promise: loaded, resolve } = Promise.withResolvers();
+  embed.onload = resolve;
+
+  document.body.append(embed);
+  embed.type = "application/pdf";
+  embed.src = "file_pdfjs_test.pdf";
+
+  await loaded;
+  await check_viewer_container(embed);
+}
+
+add_setup(async function setup() {
+  await SpecialPowers.pushPrefEnv({
+    "set": [["pdfjs.disabled", false]],
+  });
+});
+
+add_task(async function test_default() {
+  await test_object();
+  await test_embed();
+});
+
+// Helper to change the MIME handler for application/pdf. This is an async
+// version of `changeMimeHandler` from head.js such that it can be used from a
+// normal mochitest.
+async function changeMimeHandler(preferredAction, alwaysAskBeforeHandling) {
+  return SpecialPowers.spawnChrome([preferredAction, alwaysAskBeforeHandling], (preferred, alwaysAsk) => {
+    let handlerService = Cc[
+      "@mozilla.org/uriloader/handler-service;1"
+    ].getService(Ci.nsIHandlerService);
+    let mimeService = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
+    let handlerInfo = mimeService.getFromTypeAndExtension(
+      "application/pdf",
+      "pdf"
+    );
+
+    let oldAction = [handlerInfo.preferredAction, handlerInfo.alwaysAskBeforeHandling];
+
+    // Change and save mime handler settings.
+    handlerInfo.alwaysAskBeforeHandling = alwaysAsk;
+    handlerInfo.preferredAction = preferred;
+    handlerService.store(handlerInfo);
+
+    // Refresh data
+    handlerInfo = mimeService.getFromTypeAndExtension("application/pdf", "pdf");
+
+    // Test: Mime handler was updated
+    is(
+      handlerInfo.alwaysAskBeforeHandling,
+      alwaysAsk,
+      "always-ask prompt change successful"
+    );
+    is(
+      handlerInfo.preferredAction,
+      preferred,
+      "mime handler change successful"
+    );
+
+    return oldAction;
+  });
+}
+
+add_task(async function test_not_default() {
+  // Unlike in iframes, we expect to load pdf.js in an object/embed element even
+  // if we are not configured to open pdfs within Firefox.
+  let oldAction = await changeMimeHandler(SpecialPowers.Ci.nsIHandlerInfo.useSystemDefault, true);
+  try {
+    await test_object();
+    await test_embed();
+  } finally {
+    await changeMimeHandler(oldAction[0], oldAction[1]);
+  }
+});
+</script>
+</pre>
+</body>
+
+</html>
