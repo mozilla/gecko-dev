@@ -91,6 +91,8 @@ class ScriptHashKey : public PLDHashEntryHdr {
   nsIPrincipal* LoaderPrincipal() const { return mLoaderPrincipal; }
   nsIPrincipal* PartitionPrincipal() const { return mPartitionPrincipal; }
 
+  nsIURI* URI() const { return mURI; }
+
   enum { ALLOW_MEMMOVE = true };
 
  protected:
@@ -196,7 +198,8 @@ class SharedScriptCache final
   // a sheet cache (loaders that are not owned by a document).
   static void LoadCompleted(SharedScriptCache*, ScriptLoadData&);
   using Base::LoadCompleted;
-  static void Clear(const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal = Nothing(),
+  static void Clear(const Maybe<bool>& aChrome = Nothing(),
+                    const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal = Nothing(),
                     const Maybe<nsCString>& aSchemelessSite = Nothing(),
                     const Maybe<OriginAttributesPattern>& aPattern = Nothing());
 
