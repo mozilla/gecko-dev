@@ -6,4 +6,7 @@ export let Module1 = {
       arg
     );
   },
+  throwingFunction() {
+    throw new Error("Uh oh. I have a bad feeling about this.");
+  },
 };

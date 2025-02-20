@@ -499,11 +499,19 @@ export var BrowserUtils = {
    * @param {string} [options.profilerMarker=""]
    *        If specified, will create a profiler marker with the provided
    *        identifier for each consumer.
+   * @param {function} [options.failureHandler]
+   *        If specified, will be called for any exceptions raised, in
+   *        order to do custom failure handling.
    * @param {...any} args
    *        Arguments to pass to the consumers.
    */
   callModulesFromCategory(
-    { categoryName, profilerMarker = "", idleDispatch = false },
+    {
+      categoryName,
+      profilerMarker = "",
+      idleDispatch = false,
+      failureHandler = null,
+    },
     ...args
   ) {
     // Use an async function for profiler markers and error handling.
@@ -518,6 +526,17 @@ export var BrowserUtils = {
           `Error in processing ${categoryName} for ${fn._descriptiveName}`
         );
         console.error(ex);
+        try {
+          await failureHandler?.(ex);
+        } catch (nestedEx) {
+          console.error(`Error in handling failure: ${nestedEx}`);
+          // Crash in automation:
+          if (BrowserUtils._inAutomation) {
+            Cc["@mozilla.org/xpcom/debug;1"]
+              .getService(Ci.nsIDebug2)
+              .abort(nestedEx.filename, nestedEx.lineNumber);
+          }
+        }
       }
       if (profilerMarker) {
         ChromeUtils.addProfilerMarker(

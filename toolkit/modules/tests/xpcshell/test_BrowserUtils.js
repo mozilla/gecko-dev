@@ -399,3 +399,66 @@ add_task(async function test_callModulesFromCategory() {
 
   Services.obs.removeObserver(ob, OBSTOPIC1);
 });
+
+// Test that errors are reported but do not throw at the callsite,
+// and that custom error handlers are invoked.
+add_task(async function test_callModulesFromCategory_errors() {
+  const OTHER_CAT = "someothercat";
+  const MODULE1 = "resource://test/my_catman_1.sys.mjs";
+
+  // Add an item that doesn't exist, and check that although we report errors,
+  // the callsite doesn't throw.
+  let catManUpdated = TestUtils.topicObserved("xpcom-category-entry-added");
+  Services.catMan.addCategoryEntry(
+    OTHER_CAT,
+    MODULE1,
+    `Module1.nonExistantFunction`,
+    false,
+    false
+  );
+  await catManUpdated;
+  let catEntries = Array.from(Services.catMan.enumerateCategory(OTHER_CAT));
+  Assert.equal(catEntries.length, 1);
+
+  let consolePromise = TestUtils.consoleMessageObserved(m => {
+    let firstArg = m.wrappedJSObject.arguments?.[0]?.message;
+    return typeof firstArg == "string" && firstArg.includes("not a function");
+  });
+  BrowserUtils.callModulesFromCategory(
+    {
+      categoryName: OTHER_CAT,
+    },
+    "Hello"
+  );
+  let reportedError = await consolePromise;
+  let firstArg = reportedError.wrappedJSObject.arguments?.[0]?.message;
+  Assert.stringContains(
+    firstArg,
+    MODULE1,
+    "Error message should include module URL."
+  );
+  Services.catMan.deleteCategoryEntry(OTHER_CAT, MODULE1, false);
+
+  // Check that custom exception handling from extant methods works:
+  catManUpdated = TestUtils.topicObserved("xpcom-category-entry-added");
+  Services.catMan.addCategoryEntry(
+    OTHER_CAT,
+    MODULE1,
+    `Module1.throwingFunction`,
+    false,
+    false
+  );
+  await catManUpdated;
+  Assert.equal(catEntries.length, 1);
+  let exHandler = Promise.withResolvers();
+  BrowserUtils.callModulesFromCategory({
+    categoryName: OTHER_CAT,
+    failureHandler: exHandler.resolve,
+  });
+  let caughtException = await exHandler.promise;
+  Assert.stringContains(
+    caughtException.message,
+    "Uh oh",
+    "Exceptions should be handled."
+  );
+});

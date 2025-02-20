@@ -74,7 +74,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  RFPHelper: "resource://gre/modules/RFPHelper.sys.mjs",
   RemoteSecuritySettings:
     "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -92,7 +91,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
   ShellService: "resource:///modules/ShellService.sys.mjs",
   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
-  ShoppingUtils: "resource:///modules/ShoppingUtils.sys.mjs",
   SpecialMessageActions:
     "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
   TelemetryReportingPolicy:
@@ -100,8 +98,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
-  UrlbarSearchTermsPersistence:
-    "resource:///modules/UrlbarSearchTermsPersistence.sys.mjs",
   UsageReporting: "resource://gre/modules/UsageReporting.sys.mjs",
   WebChannel: "resource://gre/modules/WebChannel.sys.mjs",
   WebProtocolHandlerRegistrar:
@@ -113,24 +109,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
-if (AppConstants.MOZ_UPDATER) {
-  ChromeUtils.defineESModuleGetters(lazy, {
-    UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
-  });
-  XPCOMUtils.defineLazyServiceGetters(lazy, {
-    UpdateServiceStub: [
-      "@mozilla.org/updates/update-service-stub;1",
-      "nsIApplicationUpdateServiceStub",
-    ],
-  });
-}
-if (AppConstants.MOZ_UPDATE_AGENT) {
-  ChromeUtils.defineESModuleGetters(lazy, {
-    BackgroundUpdate: "resource://gre/modules/BackgroundUpdate.sys.mjs",
-  });
-}
-
-// PluginManager is used in the listeners object below.
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
   PushService: ["@mozilla.org/push/Service;1", "nsIPushService"],
@@ -1032,6 +1010,12 @@ const listeners = {
   },
 };
 if (AppConstants.MOZ_UPDATER) {
+  ChromeUtils.defineESModuleGetters(lazy, {
+    // This listeners/observers/lazy indirection is too much for eslint:
+    // eslint-disable-next-line mozilla/valid-lazy
+    UpdateListener: "resource://gre/modules/UpdateListener.sys.mjs",
+  });
+
   listeners.observers["update-downloading"] = ["UpdateListener"];
   listeners.observers["update-staged"] = ["UpdateListener"];
   listeners.observers["update-downloaded"] = ["UpdateListener"];
@@ -2192,8 +2176,28 @@ BrowserGlue.prototype = {
 
   /**
    * Application shutdown handler.
+   *
+   * If you need new code to be called on shutdown, please use
+   * the category manager browser-quit-application-granted category
+   * instead of adding new manual code to this function.
    */
   _onQuitApplicationGranted() {
+    function failureHandler(ex) {
+      if (Cu.isInAutomation) {
+        // This usually happens after the test harness is done collecting
+        // test errors, thus we can't easily add a failure to it. The only
+        // noticeable solution we have is crashing.
+        Cc["@mozilla.org/xpcom/debug;1"]
+          .getService(Ci.nsIDebug2)
+          .abort(ex.filename, ex.lineNumber);
+      }
+    }
+
+    lazy.BrowserUtils.callModulesFromCategory({
+      categoryName: "browser-quit-application-granted",
+      failureHandler,
+    });
+
     let tasks = [
       // This pref must be set here because SessionStore will use its value
       // on quit-application.
@@ -2213,28 +2217,16 @@ BrowserGlue.prototype = {
         }
       },
 
-      () => lazy.BrowserUsageTelemetry.uninit(),
+      // These should also be moved to use the category manager, but ran into
+      // leaking issues. Bug 1949294 tracks.
       () => lazy.SearchSERPTelemetry.uninit(),
       () => lazy.SearchSERPCategorization.uninit(),
-      () => lazy.Interactions.uninit(),
-      () => lazy.PageDataService.uninit(),
-      () => lazy.PageThumbs.uninit(),
-      () => lazy.NewTabUtils.uninit(),
-      () => lazy.Normandy.uninit(),
-      () => lazy.RFPHelper.uninit(),
-      () => lazy.ShoppingUtils.uninit(),
-      () => lazy.ASRouterNewTabHook.destroy(),
-      () => {
-        if (AppConstants.MOZ_UPDATER) {
-          lazy.UpdateListener.reset();
-        }
-      },
+
       () => {
         // bug 1839426 - The FOG service needs to be instantiated reliably so it
         // can perform at-shutdown tasks later in shutdown.
         Services.fog;
       },
-      () => lazy.UrlbarSearchTermsPersistence.uninit(),
     ];
 
     for (let task of tasks) {
@@ -2242,14 +2234,7 @@ BrowserGlue.prototype = {
         task();
       } catch (ex) {
         console.error(`Error during quit-application-granted: ${ex}`);
-        if (Cu.isInAutomation) {
-          // This usually happens after the test harness is done collecting
-          // test errors, thus we can't easily add a failure to it. The only
-          // noticeable solution we have is crashing.
-          Cc["@mozilla.org/xpcom/debug;1"]
-            .getService(Ci.nsIDebug2)
-            .abort(ex.filename, ex.lineNumber);
-        }
+        failureHandler(ex);
       }
     }
   },
@@ -3019,22 +3004,25 @@ BrowserGlue.prototype = {
 
       {
         name: "BackgroundUpdate",
-        condition: AppConstants.MOZ_UPDATE_AGENT,
+        condition: AppConstants.MOZ_UPDATE_AGENT && AppConstants.MOZ_UPDATER,
         task: async () => {
+          let updateServiceStub = Cc[
+            "@mozilla.org/updates/update-service-stub;1"
+          ].getService(Ci.nsIApplicationUpdateServiceStub);
           // Never in automation!
-          if (
-            AppConstants.MOZ_UPDATER &&
-            !lazy.UpdateServiceStub.updateDisabledForTesting
-          ) {
+          if (!updateServiceStub.updateDisabledForTesting) {
+            let { BackgroundUpdate } = ChromeUtils.importESModule(
+              "resource://gre/modules/BackgroundUpdate.sys.mjs"
+            );
             try {
-              await lazy.BackgroundUpdate.scheduleFirefoxMessagingSystemTargetingSnapshotting();
+              await BackgroundUpdate.scheduleFirefoxMessagingSystemTargetingSnapshotting();
             } catch (e) {
               console.error(
                 "There was an error scheduling Firefox Messaging System targeting snapshotting: ",
                 e
               );
             }
-            await lazy.BackgroundUpdate.maybeScheduleBackgroundUpdateTask();
+            await BackgroundUpdate.maybeScheduleBackgroundUpdateTask();
           }
         },
       },

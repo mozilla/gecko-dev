@@ -34,4 +34,19 @@ category browser-idle-startup resource://gre/modules/UpdateListener.sys.mjs Upda
 category browser-idle-startup resource:///modules/WindowsJumpLists.sys.mjs WinTaskbarJumpList.startup
 #endif
 
+# App shutdown consumers
+category browser-quit-application-granted resource:///modules/BrowserUsageTelemetry.sys.mjs BrowserUsageTelemetry.uninit
+category browser-quit-application-granted resource:///modules/Interactions.sys.mjs Interactions.uninit
+category browser-quit-application-granted resource:///modules/pagedata/PageDataService.sys.mjs PageDataService.uninit
+category browser-quit-application-granted resource://gre/modules/PageThumbs.sys.mjs PageThumbs.uninit
+category browser-quit-application-granted resource://gre/modules/NewTabUtils.sys.mjs NewTabUtils.uninit
+category browser-quit-application-granted resource://normandy/Normandy.sys.mjs Normandy.uninit
+category browser-quit-application-granted resource://gre/modules/RFPHelper.sys.mjs RFPHelper.uninit
+category browser-quit-application-granted resource:///modules/ShoppingUtils.sys.mjs ShoppingUtils.uninit
+category browser-quit-application-granted resource:///modules/asrouter/ASRouterNewTabHook.sys.mjs ASRouterNewTabHook.destroy
+#ifdef MOZ_UPDATER
+category browser-quit-application-granted resource://gre/modules/UpdateListener.sys.mjs UpdateListener.reset
+#endif
+category browser-quit-application-granted resource:///modules/UrlbarSearchTermsPersistence.sys.mjs UrlbarSearchTermsPersistence.uninit
+
 category search-service-notification resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.showSearchServiceNotification
