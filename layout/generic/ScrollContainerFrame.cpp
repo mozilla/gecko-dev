@@ -4293,7 +4293,10 @@ nsRect ScrollContainerFrame::RestrictToRootDisplayPort(
     return aDisplayportBase;
   }
   const mozilla::PresShell* const rootPresShell = rootPresContext->PresShell();
-  nsIFrame* rootFrame = rootPresShell->GetRootScrollContainerFrame();
+  nsIFrame* displayRootFrame = nsLayoutUtils::GetDisplayRootFrame(this);
+  nsIFrame* rootFrame = displayRootFrame->IsMenuPopupFrame()
+                            ? displayRootFrame
+                            : rootPresShell->GetRootScrollContainerFrame();
   if (!rootFrame) {
     rootFrame = rootPresShell->GetRootFrame();
   }
