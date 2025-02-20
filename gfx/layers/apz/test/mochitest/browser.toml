@@ -38,6 +38,12 @@ skip-if = [
   "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
 ]
 
+["browser_test_displayport_in_popup.js"]
+support-files = ["helper_popup_menu_in_parent_process-1.html"]
+skip-if = [
+  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
+]
+
 ["browser_test_mousemove_optimization.js"]
 skip-if = ["display == 'wayland' && os_version == '22.04'"]  # Bug 1857059
 
