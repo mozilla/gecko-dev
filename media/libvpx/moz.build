@@ -87,6 +87,12 @@ elif CONFIG['TARGET_CPU'] == 'aarch64':
         SOURCES += files['LINUX_ARM64_SOURCES']
         ASFLAGS += [ '-I%s/media/libvpx/config/linux/arm64/' % TOPSRCDIR ]
         LOCAL_INCLUDES += [ '/media/libvpx/config/linux/arm64/' ]
+elif CONFIG['TARGET_CPU'] == 'loongarch64':
+    # LoongArch64 is Linux-only for now.
+    EXPORTS.vpx += files['LINUX_LOONGARCH64_EXPORTS']
+    SOURCES += files['LINUX_LOONGARCH64_SOURCES']
+    ASFLAGS += [ '-I%s/media/libvpx/config/linux/loongarch64/' % TOPSRCDIR ]
+    LOCAL_INCLUDES += [ '/media/libvpx/config/linux/loongarch64/' ]
 else:
     # Generic C-only configuration
     EXPORTS.vpx += files['GENERIC_EXPORTS']
@@ -133,6 +139,8 @@ for f in SOURCES:
             SOURCES[f].flags += ['-march=armv8.2-a+dotprod+i8mm+sve']
         if 'sve2.c' in f:
             SOURCES[f].flags += ['-march=armv9-a+sve2']
+        if 'lsx.c' in f:
+            SOURCES[f].flags += ['-mlsx']
 
 # Suppress warnings in third-party code.
 CFLAGS += [
