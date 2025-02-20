@@ -10,27 +10,39 @@
 
 #include "modules/audio_coding/neteq/tools/neteq_test_factory.h"
 
-#include <errno.h>
 #include <limits.h>  // For ULONG_MAX returned by strtoul.
 #include <stdio.h>
 #include <stdlib.h>  // For strtoul.
 
+#include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "api/audio_codecs/audio_codec_pair_id.h"
+#include "api/audio_codecs/audio_decoder.h"
+#include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/audio_codecs/audio_format.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/environment/environment.h"
+#include "api/make_ref_counted.h"
 #include "api/neteq/neteq.h"
+#include "api/neteq/neteq_factory.h"
+#include "api/rtp_headers.h"
+#include "api/scoped_refptr.h"
+#include "logging/rtc_event_log/rtc_event_log_parser.h"
 #include "modules/audio_coding/neteq/tools/audio_sink.h"
 #include "modules/audio_coding/neteq/tools/fake_decode_from_file.h"
 #include "modules/audio_coding/neteq/tools/initial_packet_inserter_neteq_input.h"
 #include "modules/audio_coding/neteq/tools/input_audio_file.h"
-#include "modules/audio_coding/neteq/tools/neteq_delay_analyzer.h"
 #include "modules/audio_coding/neteq/tools/neteq_event_log_input.h"
+#include "modules/audio_coding/neteq/tools/neteq_input.h"
 #include "modules/audio_coding/neteq/tools/neteq_replacement_input.h"
 #include "modules/audio_coding/neteq/tools/neteq_rtp_dump_input.h"
 #include "modules/audio_coding/neteq/tools/neteq_stats_getter.h"
@@ -39,6 +51,7 @@
 #include "modules/audio_coding/neteq/tools/output_audio_file.h"
 #include "modules/audio_coding/neteq/tools/output_wav_file.h"
 #include "modules/audio_coding/neteq/tools/rtp_file_source.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "rtc_base/checks.h"
 #include "test/function_audio_decoder_factory.h"
 #include "test/testsupport/file_utils.h"
@@ -62,7 +75,8 @@ std::optional<int> CodecSampleRate(
       payload_type == config.cn_swb32 || payload_type == config.avt_32)
     return 32000;
   if (payload_type == config.opus || payload_type == config.pcm16b_swb48 ||
-      payload_type == config.cn_swb48 || payload_type == config.avt_48)
+      payload_type == config.cn_swb48 || payload_type == config.avt_48 ||
+      payload_type == config.opus_red)
     return 48000;
   if (payload_type == config.red)
     return 0;
@@ -284,9 +298,9 @@ std::unique_ptr<NetEqTest> NetEqTestFactory::InitializeTest(
 
     std::set<uint8_t> cn_types = std_set_int32_to_uint8(
         {config.cn_nb, config.cn_wb, config.cn_swb32, config.cn_swb48});
-    std::set<uint8_t> forbidden_types =
-        std_set_int32_to_uint8({config.g722, config.red, config.avt,
-                                config.avt_16, config.avt_32, config.avt_48});
+    std::set<uint8_t> forbidden_types = std_set_int32_to_uint8(
+        {config.g722, config.red, config.opus_red, config.avt, config.avt_16,
+         config.avt_32, config.avt_48});
     input.reset(new NetEqReplacementInput(std::move(input), replacement_pt,
                                           cn_types, forbidden_types));
 
