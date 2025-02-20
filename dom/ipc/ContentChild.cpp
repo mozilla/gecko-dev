@@ -2129,7 +2129,7 @@ mozilla::ipc::IPCResult ContentChild::RecvClearImageCacheFromSite(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvClearImageCache(
-    const bool& privateLoader, const bool& chrome) {
+    const bool& privateLoader, const mozilla::Maybe<bool>& chrome) {
   imgLoader* loader = privateLoader ? imgLoader::PrivateBrowsingLoader()
                                     : imgLoader::NormalLoader();
 

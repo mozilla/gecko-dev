@@ -260,7 +260,7 @@ class ContentChild final : public PContentChild,
       const nsCString& aSchemelessSite,
       const OriginAttributesPattern& aPattern);
   mozilla::ipc::IPCResult RecvClearImageCache(const bool& privateLoader,
-                                              const bool& chrome);
+                                              const Maybe<bool>& chrome);
 
   PRemoteSpellcheckEngineChild* AllocPRemoteSpellcheckEngineChild();
 

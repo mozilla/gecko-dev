@@ -1372,7 +1372,12 @@ imgLoader::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 NS_IMETHODIMP
-imgLoader::ClearCache(bool chrome) {
+imgLoader::ClearCache(JS::Handle<JS::Value> chrome) {
+  return ClearCache(chrome.isBoolean() ? Some(chrome.toBoolean()) : Nothing());
+}
+
+NS_IMETHODIMP
+imgLoader::ClearCache(Maybe<bool> chrome) {
   if (XRE_IsParentProcess()) {
     bool privateLoader = this == gPrivateBrowsingLoader;
     for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
@@ -1381,7 +1386,11 @@ imgLoader::ClearCache(bool chrome) {
   }
   ClearOptions options;
   if (chrome) {
-    options += ClearOption::ChromeOnly;
+    if (*chrome) {
+      options += ClearOption::ChromeOnly;
+    } else {
+      options += ClearOption::ContentOnly;
+    }
   }
   return ClearImageCache(options);
 }
@@ -2148,11 +2157,19 @@ bool imgLoader::RemoveFromCache(imgCacheEntry* entry, QueueState aQueueState) {
 
 nsresult imgLoader::ClearImageCache(ClearOptions aOptions) {
   const bool chromeOnly = aOptions.contains(ClearOption::ChromeOnly);
+  const bool contentOnly = aOptions.contains(ClearOption::ContentOnly);
   const auto ShouldRemove = [&](imgCacheEntry* aEntry) {
-    if (chromeOnly) {
+    if (chromeOnly || contentOnly) {
       // TODO: Consider also removing "resource://" etc?
       RefPtr<imgRequest> request = aEntry->GetRequest();
-      if (!request || !request->CacheKey().URI()->SchemeIs("chrome")) {
+      if (!request) {
+        return false;
+      }
+      bool isChrome = request->CacheKey().URI()->SchemeIs("chrome");
+      if (chromeOnly && !isChrome) {
+        return false;
+      }
+      if (contentOnly && isChrome) {
         return false;
       }
     }
@@ -2176,7 +2193,7 @@ nsresult imgLoader::ClearImageCache(ClearOptions aOptions) {
       }
     }
 
-    MOZ_ASSERT(chromeOnly || mCacheQueue.GetNumElements() == 0);
+    MOZ_ASSERT(chromeOnly || contentOnly || mCacheQueue.GetNumElements() == 0);
     return NS_OK;
   }
 
@@ -2193,7 +2210,7 @@ nsresult imgLoader::ClearImageCache(ClearOptions aOptions) {
       return NS_ERROR_FAILURE;
     }
   }
-  MOZ_ASSERT(chromeOnly || mCache.IsEmpty());
+  MOZ_ASSERT(chromeOnly || contentOnly || mCache.IsEmpty());
   return NS_OK;
 }
 

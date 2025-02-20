@@ -448,10 +448,8 @@ bool gfxWindowsPlatform::HandleDeviceReset() {
   // Remove devices and adapters.
   DeviceManagerDx::Get()->ResetDevices();
 
-  imgLoader::NormalLoader()->ClearCache(true);
-  imgLoader::NormalLoader()->ClearCache(false);
-  imgLoader::PrivateBrowsingLoader()->ClearCache(true);
-  imgLoader::PrivateBrowsingLoader()->ClearCache(false);
+  imgLoader::NormalLoader()->ClearCache();
+  imgLoader::PrivateBrowsingLoader()->ClearCache();
   gfxAlphaBoxBlur::ShutdownBlurCache();
 
   gfxConfig::Reset(Feature::D3D11_COMPOSITING);
