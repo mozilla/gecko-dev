@@ -2589,6 +2589,21 @@
       }
     ]
   },
+  "1914327": {
+    "label": "media.qdnd.vn",
+    "bugs": {
+      "1914327": {
+        "issue": "broken-videos",
+        "matches": ["*://media.qdnd.vn/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "ua_string": ["Chrome"]
+      }
+    ]
+  },
   "1921410": {
     "label": "beta.maps.apple.com",
     "bugs": {
