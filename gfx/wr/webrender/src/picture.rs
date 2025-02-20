@@ -1541,13 +1541,6 @@ impl DirtyRegion {
         // Include this in the overall dirty rect
         self.combined = self.combined.union(&raster_rect);
     }
-
-    /// TODO: This assumes that the visibility node is the root node which
-    /// is about to change. This method should be removed in favor of treating
-    /// the combined rect as raster space.
-    pub fn combined_as_world_space(&self) -> WorldRect {
-        self.combined.cast_unit()
-    }
 }
 
 // TODO(gw): Tidy this up by:
@@ -2169,6 +2162,14 @@ impl TileCacheInstance {
             .unmap(&frame_context.global_screen_world_rect)
             .expect("unable to unmap screen rect");
 
+        let pic_to_vis_mapper = SpaceMapper::new_with_target(
+            // TODO: use the raster node instead of the root node.
+            frame_context.root_spatial_node_index,
+            self.spatial_node_index,
+            surface.culling_rect,
+            frame_context.spatial_tree,
+        );
+
         // If there is a valid set of shared clips, build a clip chain instance for this,
         // which will provide a local clip rect. This is useful for establishing things
         // like whether the backdrop rect supplied by Gecko can be considered opaque.
@@ -2191,12 +2192,12 @@ impl TileCacheInstance {
             let clip_chain_instance = frame_state.clip_store.build_clip_chain_instance(
                 pic_rect.cast_unit(),
                 &map_local_to_picture,
-                &pic_to_world_mapper,
+                &pic_to_vis_mapper,
                 frame_context.spatial_tree,
                 frame_state.gpu_cache,
                 frame_state.resource_cache,
                 frame_context.global_device_pixel_scale,
-                &frame_context.global_screen_world_rect,
+                &surface.culling_rect,
                 &mut frame_state.data_stores.clip,
                 frame_state.rg_builder,
                 true,
@@ -5242,7 +5243,8 @@ impl PicturePrimitive {
             Some(ref raster_config) => raster_config.surface_index,
             None => parent_surface_index.expect("bug: no parent"),
         };
-        let surface_spatial_node_index = frame_state.surfaces[surface_index.0].surface_spatial_node_index;
+        let surface = &frame_state.surfaces[surface_index.0];
+        let surface_spatial_node_index = surface.surface_spatial_node_index;
 
         let map_pic_to_world = SpaceMapper::new_with_target(
             frame_context.root_spatial_node_index,
@@ -5251,6 +5253,17 @@ impl PicturePrimitive {
             frame_context.spatial_tree,
         );
 
+        let map_pic_to_vis = SpaceMapper::new_with_target(
+            // TODO: switch from root to raster space.
+            frame_context.root_spatial_node_index,
+            surface_spatial_node_index,
+            surface.culling_rect,
+            frame_context.spatial_tree,
+        );
+
+        // TODO: When moving VisRect to raster space, compute the picture
+        // bounds by projecting the parent surface's culling rect into the
+        // current surface's raster space.
         let pic_bounds = map_pic_to_world
             .unmap(&map_pic_to_world.bounds)
             .unwrap_or_else(PictureRect::max_rect);
@@ -6483,7 +6496,7 @@ impl PicturePrimitive {
 
         let state = PictureState {
             map_local_to_pic,
-            map_pic_to_world,
+            map_pic_to_vis,
         };
 
         let mut dirty_region_count = 0;

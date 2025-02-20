@@ -139,6 +139,7 @@ pub type LayoutToDeviceScale = Scale<f32, LayoutPixel, DevicePixel>;
 pub type LayoutTransform = Transform3D<f32, LayoutPixel, LayoutPixel>;
 pub type LayoutToWorldTransform = Transform3D<f32, LayoutPixel, WorldPixel>;
 pub type WorldToLayoutTransform = Transform3D<f32, WorldPixel, LayoutPixel>;
+pub type LayoutToVisTransform = Transform3D<f32, LayoutPixel, VisPixel>;
 
 pub type LayoutToPictureTransform = Transform3D<f32, LayoutPixel, PicturePixel>;
 pub type PictureToLayoutTransform = Transform3D<f32, PicturePixel, LayoutPixel>;

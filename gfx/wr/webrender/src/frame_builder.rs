@@ -257,7 +257,7 @@ pub struct PictureContext {
 /// the children are processed.
 pub struct PictureState {
     pub map_local_to_pic: SpaceMapper<LayoutPixel, PicturePixel>,
-    pub map_pic_to_world: SpaceMapper<PicturePixel, WorldPixel>,
+    pub map_pic_to_vis: SpaceMapper<PicturePixel, VisPixel>,
 }
 
 impl FrameBuilder {

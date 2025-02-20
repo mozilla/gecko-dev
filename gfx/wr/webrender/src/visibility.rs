@@ -191,12 +191,16 @@ pub fn update_prim_visibility(
     };
 
     let surface = &frame_state.surfaces[surface_index.0 as usize];
+    let surface_culling_rect = surface.culling_rect;
+
     let device_pixel_scale = surface.device_pixel_scale;
     let mut map_local_to_picture = surface.map_local_to_picture.clone();
-    let map_surface_to_world = SpaceMapper::new_with_target(
+
+    let map_surface_to_vis = SpaceMapper::new_with_target(
+        // TODO: switch from root to raster space.
         frame_context.root_spatial_node_index,
         surface.surface_spatial_node_index,
-        frame_context.global_screen_world_rect,
+        surface.culling_rect,
         frame_context.spatial_tree,
     );
     let visibility_spatial_node_index = surface.visibility_spatial_node_index;
@@ -300,12 +304,12 @@ pub fn update_prim_visibility(
                 .build_clip_chain_instance(
                     local_coverage_rect,
                     &map_local_to_picture,
-                    &map_surface_to_world,
+                    &map_surface_to_vis,
                     &frame_context.spatial_tree,
                     frame_state.gpu_cache,
                     frame_state.resource_cache,
                     device_pixel_scale,
-                    &world_culling_rect,
+                    &surface_culling_rect,
                     &mut frame_state.data_stores.clip,
                     frame_state.rg_builder,
                     true,

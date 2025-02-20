@@ -1008,7 +1008,7 @@ impl ClipNodeRange {
 pub enum ClipSpaceConversion {
     Local,
     ScaleOffset(ScaleOffset),
-    Transform(LayoutToWorldTransform),
+    Transform(LayoutToVisTransform),
 }
 
 impl ClipSpaceConversion {
@@ -1475,12 +1475,12 @@ impl ClipStore {
         &mut self,
         local_prim_rect: LayoutRect,
         prim_to_pic_mapper: &SpaceMapper<LayoutPixel, PicturePixel>,
-        pic_to_world_mapper: &SpaceMapper<PicturePixel, WorldPixel>,
+        pic_to_vis_mapper: &SpaceMapper<PicturePixel, VisPixel>,
         spatial_tree: &SpatialTree,
         gpu_cache: &mut GpuCache,
         resource_cache: &mut ResourceCache,
         device_pixel_scale: DevicePixelScale,
-        world_rect: &WorldRect,
+        culling_rect: &VisRect,
         clip_data_store: &mut ClipDataStore,
         rg_builder: &mut RenderTaskGraphBuilder,
         request_resources: bool,
@@ -1493,7 +1493,7 @@ impl ClipStore {
 
         let local_bounding_rect = local_prim_rect.intersection(&local_clip_rect)?;
         let mut pic_coverage_rect = prim_to_pic_mapper.map(&local_bounding_rect)?;
-        let world_clip_rect = pic_to_world_mapper.map(&pic_coverage_rect)?;
+        let vis_clip_rect = pic_to_vis_mapper.map(&pic_coverage_rect)?;
 
         // Now, we've collected all the clip nodes that *potentially* affect this
         // primitive region, and reduced the size of the prim region as much as possible.
@@ -1521,8 +1521,8 @@ impl ClipStore {
                     has_non_local_clips = true;
                     node.item.kind.get_clip_result_complex(
                         transform,
-                        &world_clip_rect,
-                        world_rect,
+                        &vis_clip_rect,
+                        culling_rect,
                     )
                 }
             };
@@ -1959,11 +1959,11 @@ impl ClipItemKind {
 
     fn get_clip_result_complex(
         &self,
-        transform: &LayoutToWorldTransform,
-        prim_world_rect: &WorldRect,
-        world_rect: &WorldRect,
+        transform: &LayoutToVisTransform,
+        prim_rect: &VisRect,
+        culling_rect: &VisRect,
     ) -> ClipResult {
-        let visible_rect = match prim_world_rect.intersection(world_rect) {
+        let visible_rect = match prim_rect.intersection(culling_rect) {
             Some(rect) => rect,
             None => return ClipResult::Reject,
         };
@@ -1998,13 +1998,13 @@ impl ClipItemKind {
                 let outer_clip_rect = match project_rect(
                     transform,
                     &clip_rect,
-                    &world_rect,
+                    &culling_rect,
                 ) {
                     Some(outer_clip_rect) => outer_clip_rect,
                     None => return ClipResult::Partial,
                 };
 
-                match outer_clip_rect.intersection(prim_world_rect) {
+                match outer_clip_rect.intersection(prim_rect) {
                     Some(..) => {
                         ClipResult::Partial
                     }
@@ -2254,8 +2254,8 @@ pub fn polygon_contains_point(
 
 pub fn projected_rect_contains(
     source_rect: &LayoutRect,
-    transform: &LayoutToWorldTransform,
-    target_rect: &WorldRect,
+    transform: &LayoutToVisTransform,
+    target_rect: &VisRect,
 ) -> Option<()> {
     let points = [
         transform.transform_point2d(source_rect.top_left())?,
