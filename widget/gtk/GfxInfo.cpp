@@ -60,6 +60,7 @@ constexpr int CODEC_HW_H264 = 1 << 4;
 constexpr int CODEC_HW_VP8 = 1 << 5;
 constexpr int CODEC_HW_VP9 = 1 << 6;
 constexpr int CODEC_HW_AV1 = 1 << 7;
+constexpr int CODEC_HW_HEVC = 1 << 8;
 
 nsresult GfxInfo::Init() {
   mGLMajorVersion = 0;
@@ -703,6 +704,10 @@ void GfxInfo::GetDataVAAPI() {
       if (mVAAPISupportedCodecs & CODEC_HW_AV1) {
         media::MCSInfo::AddSupport(
             media::MediaCodecsSupport::AV1HardwareDecode);
+      }
+      if (mVAAPISupportedCodecs & CODEC_HW_HEVC) {
+        media::MCSInfo::AddSupport(
+            media::MediaCodecsSupport::HEVCHardwareDecode);
       }
     } else if (!strcmp(line, "WARNING") || !strcmp(line, "ERROR")) {
       gfxCriticalNote << "vaapitest: " << line;
