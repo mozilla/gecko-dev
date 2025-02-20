@@ -270,6 +270,15 @@ namespace ChromeUtils {
   undefined clearScriptCache(optional boolean chrome);
 
   /**
+   * Clears the entire resource cache (stylesheets, JavaScripts, and images).
+   *
+   * If chrome parameter is passed and true, this clears chrome cache.
+   * If chrome parameter is passed and false, this clears content cache.
+   * If chrome parameter is not passed, this clears all cache.
+   */
+  undefined clearResourceCache(optional boolean chrome);
+
+  /**
    * Clears the Messaging Layer Security state by schemeless site.
    * This includes associated state-partitioned cache.
    */

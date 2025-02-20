@@ -70,6 +70,7 @@
 #include "nsDocShell.h"
 #include "nsIException.h"
 #include "VsyncSource.h"
+#include "imgLoader.h"
 
 #ifdef XP_UNIX
 #  include <errno.h>
@@ -1609,6 +1610,15 @@ void ChromeUtils::ClearScriptCache(GlobalObject&,
                                    const Optional<bool>& aChrome) {
   SharedScriptCache::Clear(aChrome.WasPassed() ? Some(aChrome.Value())
                                                : Nothing());
+}
+
+void ChromeUtils::ClearResourceCache(GlobalObject&,
+                                     const Optional<bool>& aChrome) {
+  Maybe<bool> chrome = aChrome.WasPassed() ? Some(aChrome.Value()) : Nothing();
+  SharedStyleSheetCache::Clear(chrome);
+  SharedScriptCache::Clear(chrome);
+  imgLoader::PrivateBrowsingLoader()->ClearCache(chrome);
+  imgLoader::NormalLoader()->ClearCache(chrome);
 }
 
 #define PROCTYPE_TO_WEBIDL_CASE(_procType, _webidl) \

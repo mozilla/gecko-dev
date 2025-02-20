@@ -216,6 +216,9 @@ class ChromeUtils {
   static void ClearScriptCache(GlobalObject& aGlobal,
                                const Optional<bool>& aChrome);
 
+  static void ClearResourceCache(GlobalObject& aGlobal,
+                                 const Optional<bool>& aChrome);
+
   static void SetPerfStatsCollectionMask(GlobalObject& aGlobal, uint64_t aMask);
 
   static already_AddRefed<Promise> CollectPerfStats(GlobalObject& aGlobal,
