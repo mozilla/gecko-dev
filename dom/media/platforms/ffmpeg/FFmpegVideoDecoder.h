@@ -75,7 +75,13 @@ class FFmpegVideoDecoder<LIBAV_VER>
   }
   nsCString GetCodecName() const override;
   ConversionRequired NeedsConversion() const override {
-    return ConversionRequired::kNeedAVCC;
+#if LIBAVCODEC_VERSION_MAJOR >= 55
+    if (mCodecID == AV_CODEC_ID_HEVC) {
+      return ConversionRequired::kNeedHVCC;
+    }
+#endif
+    return mCodecID == AV_CODEC_ID_H264 ? ConversionRequired::kNeedAVCC
+                                        : ConversionRequired::kNeedNone;
   }
 
   static AVCodecID GetCodecId(const nsACString& aMimeType);
