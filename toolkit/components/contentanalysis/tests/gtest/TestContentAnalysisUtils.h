@@ -7,6 +7,7 @@
 #define mozilla_testcontentanalysis_h
 
 #include <processthreadsapi.h>
+#include <errhandlingapi.h>
 
 #include "content_analysis/sdk/analysis_client.h"
 #include "gtest/gtest.h"
@@ -16,6 +17,11 @@ struct MozAgentInfo {
   PROCESS_INFORMATION processInfo;
   std::unique_ptr<content_analysis::sdk::Client> client;
   void TerminateProcess() {
+    DWORD exitCode = 0;
+    BOOL result = ::GetExitCodeProcess(processInfo.hProcess, &exitCode);
+    EXPECT_NE(static_cast<BOOL>(0), result);
+    EXPECT_EQ(STILL_ACTIVE, exitCode);
+
     BOOL terminateResult = ::TerminateProcess(processInfo.hProcess, 0);
     ASSERT_NE(FALSE, terminateResult)
         << "Failed to terminate content_analysis_sdk_agent process";

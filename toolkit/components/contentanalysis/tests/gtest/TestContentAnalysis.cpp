@@ -4,18 +4,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "gtest/gtest.h"
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/SpinEventLoopUntil.h"
+#include "mozilla/dom/Promise-inl.h"
 #include "mozilla/media/MediaUtils.h"
-#include "nsComponentManagerUtils.h"
+#include "js/Object.h"
+#include "js/PropertyAndElement.h"
 #include "nsNetUtil.h"
 #include "nsIFile.h"
 #include "nsIObserverService.h"
 #include "nsIURI.h"
 #include "nsIURIMutator.h"
+#include "nsJSUtils.h"
 #include "ContentAnalysis.h"
 #include "SpecialSystemDirectory.h"
 #include "TestContentAnalysisUtils.h"
@@ -28,6 +30,7 @@ const char* kDenyUrlPref = "browser.contentanalysis.deny_url_regex_list";
 const char* kPipePathNamePref = "browser.contentanalysis.pipe_path_name";
 const char* kIsDLPEnabledPref = "browser.contentanalysis.enabled";
 const char* kTimeoutPref = "browser.contentanalysis.agent_timeout";
+const char* kClientSignaturePref = "browser.contentanalysis.client_signature";
 
 using namespace mozilla;
 using namespace mozilla::contentanalysis;
@@ -68,10 +71,14 @@ class ContentAnalysisTest : public testing::Test {
   // through all of these tests.
   static void SetUpTestSuite() {
     GeneratePipeName(L"contentanalysissdk-gtest-", mPipeName);
-    mAgentInfo = LaunchAgentNormal(L"block", mPipeName);
+    StartAgent();
   }
 
   static void TearDownTestSuite() { mAgentInfo.TerminateProcess(); }
+
+  static void StartAgent() {
+    mAgentInfo = LaunchAgentNormal(L"block", mPipeName);
+  }
 
   void TearDown() override {
     mContentAnalysis->mParsedUrlLists = false;
@@ -113,6 +120,8 @@ class ContentAnalysisTest : public testing::Test {
       RefPtr<ContentAnalysis> contentAnalysis,
       const nsTArray<RefPtr<nsIContentAnalysisRequest>>& requests,
       CancelMechanism aCancelMechanism, bool aExpectFailure);
+  RefPtr<ContentAnalysisDiagnosticInfo> GetDiagnosticInfo(
+      RefPtr<ContentAnalysis> contentAnalysis);
   RefPtr<ContentAnalysis> mContentAnalysis;
   static nsString mPipeName;
   static MozAgentInfo mAgentInfo;
@@ -212,6 +221,66 @@ nsCOMPtr<nsIURI> GetExampleDotComWithPathURI() {
 struct BoolStruct {
   bool mValue = false;
 };
+
+RefPtr<ContentAnalysisDiagnosticInfo> ContentAnalysisTest::GetDiagnosticInfo(
+    RefPtr<ContentAnalysis> contentAnalysis) {
+  dom::AutoJSAPI jsapi;
+  // We're using this context to deserialize, stringify, and print a message
+  // manager message here. Since the messages are always sent from and to system
+  // scopes, we need to do this in a system scope, or attempting to deserialize
+  // certain privileged objects will fail.
+  MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
+  JSContext* cx = jsapi.cx();
+  bool gotResponse = false;
+  RefPtr timedOut = MakeRefPtr<media::Refcountable<BoolStruct>>();
+  dom::Promise* promise = nullptr;
+  RefPtr<ContentAnalysisDiagnosticInfo> diagnosticInfo = nullptr;
+  MOZ_ALWAYS_SUCCEEDS(mContentAnalysis->GetDiagnosticInfo(cx, &promise));
+  auto result = promise->ThenWithCycleCollectedArgs(
+      [&, timedOut](JSContext* aCx, JS::Handle<JS::Value> aValue,
+                    ErrorResult& aRv) -> already_AddRefed<dom::Promise> {
+        if (timedOut->mValue) {
+          return nullptr;
+        }
+        EXPECT_TRUE(aValue.isObject());
+        JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+        JS::Rooted<JS::Value> value(aCx);
+        EXPECT_TRUE(JS_GetProperty(aCx, obj, "connectedToAgent", &value));
+        bool connectedToAgent = JS::ToBoolean(value);
+        EXPECT_TRUE(JS_GetProperty(aCx, obj, "agentPath", &value));
+        nsAutoJSString agentPath;
+        EXPECT_TRUE(agentPath.init(aCx, value));
+        EXPECT_TRUE(
+            JS_GetProperty(aCx, obj, "failedSignatureVerification", &value));
+        bool failedSignatureVerification = JS::ToBoolean(value);
+        EXPECT_TRUE(JS_GetProperty(aCx, obj, "requestCount", &value));
+        int64_t requestCount;
+        EXPECT_TRUE(JS::ToInt64(aCx, value, &requestCount));
+        diagnosticInfo = MakeRefPtr<ContentAnalysisDiagnosticInfo>(
+            connectedToAgent, agentPath, failedSignatureVerification,
+            requestCount);
+
+        gotResponse = true;
+        return nullptr;
+      });
+
+  RefPtr<CancelableRunnable> timer =
+      NS_NewCancelableRunnableFunction("GetDiagnosticInfo timeout", [&] {
+        if (!gotResponse) {
+          timedOut->mValue = true;
+        }
+      });
+  constexpr uint32_t kDiagnosticTimeout = 10000;
+  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kDiagnosticTimeout);
+  mozilla::SpinEventLoopUntil(
+      "Waiting for GetDiagnosticInfo result"_ns,
+      [&, timedOut]() { return gotResponse || timedOut->mValue; });
+  timer->Cancel();
+  EXPECT_TRUE(gotResponse);
+  EXPECT_FALSE(timedOut->mValue);
+
+  return diagnosticInfo;
+}
 
 class RawAcknowledgementObserver final : public nsIObserver {
  public:
@@ -412,6 +481,65 @@ void SendRequestAndExpectResponse(
   EXPECT_TRUE(gotResponse);
   EXPECT_FALSE(timedOut->mValue);
 }
+void SendRequestAndExpectNoAgentResponse(
+    RefPtr<ContentAnalysis> contentAnalysis,
+    const nsCOMPtr<nsIContentAnalysisRequest>& request,
+    nsIContentAnalysisResponse::CancelError expectedCancelError =
+        nsIContentAnalysisResponse::CancelError::eNoAgent) {
+  std::atomic<bool> gotResponse = false;
+  // Make timedOut a RefPtr so if we get a response from content analysis
+  // after this function has finished we can safely check that (and don't
+  // start accessing stack values that don't exist anymore)
+  RefPtr timedOut = MakeRefPtr<media::Refcountable<BoolStruct>>();
+  auto callback = MakeRefPtr<ContentAnalysisCallback>(
+      [&, timedOut](nsIContentAnalysisResult* result) {
+        if (timedOut->mValue) {
+          return;
+        }
+        nsCOMPtr<nsIContentAnalysisResponse> response =
+            do_QueryInterface(result);
+        EXPECT_TRUE(response);
+        EXPECT_EQ(expectedCancelError, response->GetCancelError());
+        // We're just doing default deny here
+        EXPECT_EQ(false, response->GetShouldAllowContent());
+        gotResponse = true;
+      },
+      [&gotResponse, timedOut](nsresult error) {
+        if (timedOut->mValue) {
+          return;
+        }
+        const char* errorName = mozilla::GetStaticErrorName(error);
+        errorName = errorName ? errorName : "";
+        printf("Got error response code %s(%x)\n", errorName, error);
+        // Errors should not have errorCode NS_OK
+        EXPECT_NE(NS_OK, error);
+        gotResponse = true;
+        FAIL() << "Got error response";
+      });
+
+  AutoTArray<RefPtr<nsIContentAnalysisRequest>, 1> requests{request.get()};
+  MOZ_ALWAYS_SUCCEEDS(contentAnalysis->AnalyzeContentRequestsCallback(
+      requests, false, callback));
+  RefPtr<CancelableRunnable> timer =
+      NS_NewCancelableRunnableFunction("Content Analysis timeout", [&] {
+        if (!gotResponse.load()) {
+          timedOut->mValue = true;
+        }
+      });
+#if defined(MOZ_ASAN)
+  // This can be pretty slow on ASAN builds (bug 1895256)
+  constexpr uint32_t kCATimeout = 25000;
+#else
+  constexpr uint32_t kCATimeout = 10000;
+#endif
+  NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kCATimeout);
+  mozilla::SpinEventLoopUntil(
+      "Waiting for ContentAnalysis result"_ns,
+      [&, timedOut]() { return gotResponse.load() || timedOut->mValue; });
+  timer->Cancel();
+  EXPECT_TRUE(gotResponse);
+  EXPECT_FALSE(timedOut->mValue);
+}
 
 void YieldMainThread(uint32_t timeInMs) {
   std::atomic<bool> timeExpired = false;
@@ -451,6 +579,40 @@ TEST_F(ContentAnalysisTest, SendBlockedTextToAgent_GetBlockResponse) {
 
   SendRequestAndExpectResponse(mContentAnalysis, request, Some(false),
                                Some(nsIContentAnalysisResponse::eBlock),
+                               Some(false));
+}
+
+TEST_F(ContentAnalysisTest,
+       RestartAgent_SendAllowedTextToAgent_GetAllowedResponse) {
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allow");
+  mAgentInfo.TerminateProcess();
+  StartAgent();
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
+                               Some(nsIContentAnalysisResponse::eAllow),
+                               Some(false));
+}
+
+TEST_F(ContentAnalysisTest, TerminateAgent_SendAllowedTextToAgent_GetError) {
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allow");
+  mAgentInfo.TerminateProcess();
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+
+  SendRequestAndExpectNoAgentResponse(mContentAnalysis, request);
+  StartAgent();
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
+                               Some(nsIContentAnalysisResponse::eAllow),
                                Some(false));
 }
 
@@ -805,4 +967,115 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
   MOZ_ALWAYS_SUCCEEDS(obsServ->RemoveObserver(rawAcknowledgementObserver,
                                               "dlp-acknowledgement-sent-raw"));
   MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
+}
+
+TEST_F(ContentAnalysisTest, GetDiagnosticInfo_Initial) {
+  RefPtr<ContentAnalysisDiagnosticInfo> info =
+      GetDiagnosticInfo(mContentAnalysis);
+  EXPECT_TRUE(info->GetConnectedToAgent());
+  EXPECT_FALSE(info->GetFailedSignatureVerification());
+  nsString agentPath;
+  MOZ_ALWAYS_SUCCEEDS(info->GetAgentPath(agentPath));
+  int32_t index = agentPath.Find(u"content_analysis_sdk_agent.exe");
+  EXPECT_EQ(agentPath.Length() - (sizeof("content_analysis_sdk_agent.exe") - 1),
+            static_cast<size_t>(index));
+  EXPECT_GE(info->GetRequestCount(), 0);
+}
+
+TEST_F(ContentAnalysisTest,
+       GetDiagnosticInfo_AfterAgentTerminateAndOneRequest) {
+  mAgentInfo.TerminateProcess();
+
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allow");
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  SendRequestAndExpectNoAgentResponse(mContentAnalysis, request);
+
+  RefPtr<ContentAnalysisDiagnosticInfo> info =
+      GetDiagnosticInfo(mContentAnalysis);
+  EXPECT_FALSE(info->GetConnectedToAgent());
+  EXPECT_FALSE(info->GetFailedSignatureVerification());
+  nsString agentPath;
+  MOZ_ALWAYS_SUCCEEDS(info->GetAgentPath(agentPath));
+  EXPECT_TRUE(agentPath.IsEmpty());
+  EXPECT_GE(info->GetRequestCount(), 0);
+
+  StartAgent();
+}
+
+TEST_F(ContentAnalysisTest, GetDiagnosticInfo_AfterAgentTerminateAndReconnect) {
+  mAgentInfo.TerminateProcess();
+  StartAgent();
+
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allow");
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
+                               Some(nsIContentAnalysisResponse::eAllow),
+                               Nothing());
+
+  RefPtr<ContentAnalysisDiagnosticInfo> info =
+      GetDiagnosticInfo(mContentAnalysis);
+  EXPECT_TRUE(info->GetConnectedToAgent());
+  EXPECT_FALSE(info->GetFailedSignatureVerification());
+  nsString agentPath;
+  MOZ_ALWAYS_SUCCEEDS(info->GetAgentPath(agentPath));
+  int32_t index = agentPath.Find(u"content_analysis_sdk_agent.exe");
+  EXPECT_EQ(agentPath.Length() - (sizeof("content_analysis_sdk_agent.exe") - 1),
+            static_cast<size_t>(index));
+  EXPECT_GE(info->GetRequestCount(), 0);
+}
+
+TEST_F(ContentAnalysisTest, GetDiagnosticInfo_RequestCountIncreases) {
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allow");
+  RefPtr<ContentAnalysisDiagnosticInfo> info =
+      GetDiagnosticInfo(mContentAnalysis);
+  int64_t firstRequestCount = info->GetRequestCount();
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
+                               Some(nsIContentAnalysisResponse::eAllow),
+                               Nothing());
+
+  info = GetDiagnosticInfo(mContentAnalysis);
+  EXPECT_EQ(firstRequestCount + 1, info->GetRequestCount());
+}
+
+TEST_F(ContentAnalysisTest, GetDiagnosticInfo_FailedSignatureVerification) {
+  MOZ_ALWAYS_SUCCEEDS(
+      Preferences::SetCString(kClientSignaturePref, "anInvalidSignature"));
+  mAgentInfo.TerminateProcess();
+  StartAgent();
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allow");
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+  SendRequestAndExpectNoAgentResponse(
+      mContentAnalysis, request,
+      nsIContentAnalysisResponse::CancelError::eInvalidAgentSignature);
+
+  RefPtr<ContentAnalysisDiagnosticInfo> info =
+      GetDiagnosticInfo(mContentAnalysis);
+  EXPECT_FALSE(info->GetConnectedToAgent());
+  EXPECT_TRUE(info->GetFailedSignatureVerification());
+
+  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kClientSignaturePref));
+  // Reset the agent so it's working for future tests
+  mAgentInfo.TerminateProcess();
+  StartAgent();
 }
