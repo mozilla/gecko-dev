@@ -1635,6 +1635,8 @@ pub struct TileCacheParams {
     pub slice_flags: SliceFlags,
     // The anchoring spatial node / scroll root
     pub spatial_node_index: SpatialNodeIndex,
+    // The space in which visibility/invalidation/clipping computations are done.
+    pub visibility_node_index: SpatialNodeIndex,
     // Optional background color of this tilecache. If present, can be used as an optimization
     // to enable opaque blending and/or subpixel AA in more places.
     pub background_color: Option<ColorF>,
@@ -1782,6 +1784,8 @@ pub struct TileCacheInstance {
     pub sub_slices: Vec<SubSlice>,
     /// The positioning node for this tile cache.
     pub spatial_node_index: SpatialNodeIndex,
+    /// The coordinate space to do visibility/clipping/invalidation in.
+    pub visibility_node_index: SpatialNodeIndex,
     /// List of opacity bindings, with some extra information
     /// about whether they changed since last frame.
     opacity_bindings: FastHashMap<PropertyBindingId, OpacityBindingInfo>,
@@ -1930,6 +1934,7 @@ impl TileCacheInstance {
             slice: params.slice,
             slice_flags: params.slice_flags,
             spatial_node_index: params.spatial_node_index,
+            visibility_node_index: params.visibility_node_index,
             sub_slices,
             opacity_bindings: FastHashMap::default(),
             old_opacity_bindings: FastHashMap::default(),

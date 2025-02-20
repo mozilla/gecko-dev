@@ -460,6 +460,11 @@ impl TileCacheBuilder {
         let mut tile_cache_pictures = Vec::new();
         let primary_slices = std::mem::replace(&mut self.primary_slices, Vec::new());
 
+        // TODO: At the moment, culling, clipping and invalidation are always
+        // done in the root coordinate space. The plan is to move to doing it
+        // (always or mostly) in raster space.
+        let visibility_node = spatial_tree.root_reference_frame_index();
+
         for mut primary_slice in primary_slices {
 
             if primary_slice.has_too_many_slices() {
@@ -478,6 +483,7 @@ impl TileCacheBuilder {
                             self.debug_flags,
                             primary_slice.slice_flags,
                             descriptor.scroll_root,
+                            visibility_node,
                             primary_slice.iframe_clip,
                             descriptor.prim_list,
                             primary_slice.background_color,
@@ -496,6 +502,7 @@ impl TileCacheBuilder {
                             self.debug_flags,
                             primary_slice.slice_flags,
                             descriptor.scroll_root,
+                            visibility_node,
                             primary_slice.iframe_clip,
                             descriptor.prim_list,
                             primary_slice.background_color,
@@ -575,6 +582,7 @@ fn create_tile_cache(
     debug_flags: DebugFlags,
     slice_flags: SliceFlags,
     scroll_root: SpatialNodeIndex,
+    visibility_node: SpatialNodeIndex,
     iframe_clip: Option<ClipId>,
     prim_list: PrimitiveList,
     background_color: Option<ColorF>,
@@ -622,6 +630,7 @@ fn create_tile_cache(
         slice,
         slice_flags,
         spatial_node_index: scroll_root,
+        visibility_node_index: visibility_node,
         background_color,
         shared_clip_node_id,
         shared_clip_leaf_id,
