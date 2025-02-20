@@ -1382,8 +1382,6 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
   }
   AssertIsOnMainThread();
 
-  SetLastResult(aResult);
-
   // We clear the tokens array since we cancel all of them.
   nsTHashSet<nsCString> tokens;
   RefPtr<nsIContentAnalysisCallback> callback;
@@ -1897,9 +1895,6 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
 void ContentAnalysis::NotifyObserversAndMaybeIssueResponse(
     ContentAnalysisResponse* aResponse, nsCString&& aUserActionId,
     bool aAutoAcknowledge) {
-  // Successfully made a request to the agent, so mark that we succeeded
-  mLastResult = NS_OK;
-
   NotifyResponseObservers(aResponse, nsCString(aUserActionId),
                           aAutoAcknowledge);
 
@@ -3417,12 +3412,6 @@ nsresult ContentAnalysis::RunAcknowledgeTask(
   return NS_OK;
 }
 
-bool ContentAnalysis::LastRequestSucceeded() {
-  return mLastResult != NS_ERROR_NOT_AVAILABLE &&
-         mLastResult != NS_ERROR_INVALID_SIGNATURE &&
-         mLastResult != NS_ERROR_FAILURE;
-}
-
 NS_IMETHODIMP
 ContentAnalysis::GetDiagnosticInfo(JSContext* aCx, dom::Promise** aPromise) {
   RefPtr<dom::Promise> promise;
@@ -3453,8 +3442,10 @@ ContentAnalysis::GetDiagnosticInfo(JSContext* aCx, dom::Promise** aPromise) {
                 return;
               }
               nsString agentWidePath = NS_ConvertUTF8toUTF16(agentPath);
+              // Note that if we made it here, we have successfully connected to
+              // the agent.
               auto info = MakeRefPtr<ContentAnalysisDiagnosticInfo>(
-                  self->LastRequestSucceeded(), std::move(agentWidePath), false,
+                  /* mConnectedToAgent */ true, std::move(agentWidePath), false,
                   self ? self->mRequestCount : 0);
               promiseHolder->MaybeResolve(info);
             }));

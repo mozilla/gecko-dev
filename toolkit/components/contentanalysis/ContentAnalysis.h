@@ -182,7 +182,6 @@ class ContentAnalysis final : public nsIContentAnalysis,
   NS_DECL_NSICONTENTANALYSIS
 
   ContentAnalysis();
-  void SetLastResult(nsresult aLastResult) { mLastResult = aLastResult; }
 
 #if defined(XP_WIN)
   struct PrintAllowedResult final {
@@ -377,7 +376,6 @@ class ContentAnalysis final : public nsIContentAnalysis,
   bool mHaveResolvedClientPromise MOZ_GUARDED_BY(sMainThreadCapability) = false;
 
   bool mSetByEnterprise;
-  nsresult mLastResult = NS_OK;
 
   struct UserActionData final {
     RefPtr<nsIContentAnalysisCallback> mCallback;
