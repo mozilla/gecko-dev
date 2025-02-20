@@ -25,16 +25,17 @@
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/dtmf_sender_interface.h"
+#include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/make_ref_counted.h"
 #include "api/media_stream_interface.h"
 #include "api/rtc_error.h"
-#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_receiver_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/test/fake_frame_decryptor.h"
 #include "api/test/fake_frame_encryptor.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
 #include "api/video/video_bitrate_allocator_factory.h"
 #include "api/video/video_codec_constants.h"
@@ -61,19 +62,12 @@
 #include "pc/video_rtp_receiver.h"
 #include "pc/video_track.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/unique_id_generator.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/run_loop.h"
-
-using ::testing::_;
-using ::testing::ContainerEq;
-using ::testing::Exactly;
-using ::testing::InvokeWithoutArgs;
-using ::testing::Return;
-using RidList = std::vector<std::string>;
+#include "test/wait_until.h"
 
 namespace {
 
@@ -86,7 +80,6 @@ static const uint32_t kAudioSsrc = 99;
 static const uint32_t kAudioSsrc2 = 101;
 static const uint32_t kVideoSsrcSimulcast = 102;
 static const uint32_t kVideoSimulcastLayerCount = 2;
-static const int kDefaultTimeout = 10000;  // 10 seconds.
 
 class MockSetStreamsObserver
     : public webrtc::RtpSenderBase::SetStreamsObserver {
@@ -97,6 +90,9 @@ class MockSetStreamsObserver
 }  // namespace
 
 namespace webrtc {
+
+using ::testing::ContainerEq;
+using RidList = std::vector<std::string>;
 
 class RtpSenderReceiverTest
     : public ::testing::Test,
@@ -431,7 +427,7 @@ class RtpSenderReceiverTest
   // This test assumes that some layers have already been disabled.
   void RunSetLastLayerAsInactiveTest(VideoRtpSender* sender) {
     auto parameters = sender->GetParameters();
-    if (parameters.encodings.size() == 0) {
+    if (parameters.encodings.empty()) {
       return;
     }
 
@@ -1784,8 +1780,11 @@ TEST_F(RtpSenderReceiverTest, InsertDtmf) {
   dtmf_sender->InsertDtmf("012", expected_duration, 100);
 
   // Verify
-  ASSERT_EQ_WAIT(3U, voice_media_send_channel()->dtmf_info_queue().size(),
-                 kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil(
+          [&] { return voice_media_send_channel()->dtmf_info_queue().size(); },
+          ::testing::Eq(3U)),
+      IsRtcOk());
   const uint32_t send_ssrc =
       voice_media_send_channel()->send_streams()[0].first_ssrc();
   EXPECT_TRUE(CompareDtmfInfo(voice_media_send_channel()->dtmf_info_queue()[0],

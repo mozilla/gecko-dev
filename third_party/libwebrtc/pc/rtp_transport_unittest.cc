@@ -10,17 +10,26 @@
 
 #include "pc/rtp_transport.h"
 
-#include <utility>
+#include <cerrno>
+#include <cstdint>
+#include <optional>
 
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
+#include "call/rtp_demuxer.h"
 #include "p2p/base/fake_packet_transport.h"
 #include "pc/test/rtp_transport_test_util.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/containers/flat_set.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/network/ecn_marking.h"
+#include "rtc_base/network/sent_packet.h"
+#include "rtc_base/network_route.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "test/explicit_key_value_config.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/run_loop.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 
@@ -398,7 +407,10 @@ TEST(RtpTransportTest, RecursiveSetSendDoesNotCrash) {
   EXPECT_TRUE(observer.ready_to_send());
   EXPECT_EQ(observer.ready_to_send_signal_count(), 1);
   // After the wait, the ready-to-send false is observed.
-  EXPECT_EQ_WAIT(observer.ready_to_send_signal_count(), 2, kShortTimeout);
+  EXPECT_THAT(WaitUntil([&] { return observer.ready_to_send_signal_count(); },
+                        ::testing::Eq(2),
+                        {.timeout = webrtc::TimeDelta::Millis(kShortTimeout)}),
+              IsRtcOk());
   EXPECT_FALSE(observer.ready_to_send());
 }
 
@@ -423,7 +435,10 @@ TEST(RtpTransportTest, RecursiveOnSentPacketDoesNotCrash) {
   rtc::CopyOnWriteBuffer rtp_data(kRtpData, kRtpLen);
   transport.SendRtpPacket(&rtp_data, options, flags);
   EXPECT_EQ(observer.sent_packet_count(), 1);
-  EXPECT_EQ_WAIT(observer.sent_packet_count(), 2, kShortTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return observer.sent_packet_count(); }, ::testing::Eq(2),
+                {.timeout = webrtc::TimeDelta::Millis(kShortTimeout)}),
+      IsRtcOk());
 }
 
 }  // namespace webrtc

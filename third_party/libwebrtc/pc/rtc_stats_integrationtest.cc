@@ -9,7 +9,6 @@
  */
 
 #include <stdint.h>
-#include <string.h>
 
 #include <memory>
 #include <optional>
@@ -23,24 +22,27 @@
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/audio_options.h"
 #include "api/data_channel_interface.h"
+#include "api/make_ref_counted.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtp_receiver_interface.h"
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/stats/attribute.h"
 #include "api/stats/rtc_stats.h"
 #include "api/stats/rtc_stats_report.h"
 #include "api/stats/rtcstats_objects.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "pc/rtc_stats_traversal.h"
 #include "pc/test/peer_connection_test_wrapper.h"
 #include "pc/test/rtc_stats_obtainer.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/event_tracer.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/trace_event.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 using ::testing::Contains;
 
@@ -124,7 +126,11 @@ class RTCStatsIntegrationTest : public ::testing::Test {
     rtc::scoped_refptr<RTCStatsObtainer> stats_obtainer =
         RTCStatsObtainer::Create();
     pc->GetStats(stats_obtainer.get());
-    EXPECT_TRUE_WAIT(stats_obtainer->report() != nullptr, kGetStatsTimeoutMs);
+    EXPECT_THAT(
+        WaitUntil([&] { return stats_obtainer->report() != nullptr; },
+                  ::testing::IsTrue(),
+                  {.timeout = webrtc::TimeDelta::Millis(kGetStatsTimeoutMs)}),
+        IsRtcOk());
     return stats_obtainer->report();
   }
 
@@ -135,7 +141,11 @@ class RTCStatsIntegrationTest : public ::testing::Test {
     rtc::scoped_refptr<RTCStatsObtainer> stats_obtainer =
         RTCStatsObtainer::Create();
     pc->GetStats(selector, stats_obtainer);
-    EXPECT_TRUE_WAIT(stats_obtainer->report() != nullptr, kGetStatsTimeoutMs);
+    EXPECT_THAT(
+        WaitUntil([&] { return stats_obtainer->report() != nullptr; },
+                  ::testing::IsTrue(),
+                  {.timeout = webrtc::TimeDelta::Millis(kGetStatsTimeoutMs)}),
+        IsRtcOk());
     return stats_obtainer->report();
   }
 
@@ -1024,7 +1034,11 @@ TEST_F(RTCStatsIntegrationTest, GetStatsFromCallee) {
            inbound_stats.front()->round_trip_time.has_value() &&
            inbound_stats.front()->round_trip_time_measurements.has_value();
   };
-  EXPECT_TRUE_WAIT(GetStatsReportAndReturnTrueIfRttIsDefined(), kMaxWaitMs);
+  EXPECT_THAT(
+      WaitUntil([&] { return GetStatsReportAndReturnTrueIfRttIsDefined(); },
+                ::testing::IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitMs)}),
+      IsRtcOk());
   RTCStatsReportVerifier(report.get()).VerifyReport({});
 }
 

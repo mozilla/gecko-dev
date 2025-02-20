@@ -13,11 +13,17 @@
 #include <string.h>
 
 #include <algorithm>
+#include <cstdint>
 
+#include "api/audio/audio_device_defines.h"
 #include "api/scoped_refptr.h"
-#include "rtc_base/gunit.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 class FakeAdmTest : public ::testing::Test, public webrtc::AudioTransport {
  protected:
@@ -151,7 +157,10 @@ TEST_F(FakeAdmTest, PlayoutTest) {
   EXPECT_EQ(0, fake_audio_capture_module_->PlayoutDelay(&delay_ms));
   EXPECT_EQ(0, delay_ms);
 
-  EXPECT_TRUE_WAIT(pull_iterations() > 0, kMsInSecond);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return pull_iterations(); }, ::testing::Gt(0),
+                        {.timeout = webrtc::TimeDelta::Millis(kMsInSecond)}),
+      webrtc::IsRtcOk());
   EXPECT_GE(0, push_iterations());
 
   EXPECT_EQ(0, fake_audio_capture_module_->StopPlayout());
@@ -174,7 +183,10 @@ TEST_F(FakeAdmTest, RecordTest) {
   EXPECT_EQ(0, fake_audio_capture_module_->StartRecording());
   EXPECT_TRUE(fake_audio_capture_module_->Recording());
 
-  EXPECT_TRUE_WAIT(push_iterations() > 0, kMsInSecond);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return push_iterations(); }, ::testing::Gt(0),
+                        {.timeout = webrtc::TimeDelta::Millis(kMsInSecond)}),
+      webrtc::IsRtcOk());
   EXPECT_GE(0, pull_iterations());
 
   EXPECT_EQ(0, fake_audio_capture_module_->StopRecording());
@@ -190,8 +202,14 @@ TEST_F(FakeAdmTest, DuplexTest) {
   EXPECT_EQ(0, fake_audio_capture_module_->InitRecording());
   EXPECT_EQ(0, fake_audio_capture_module_->StartRecording());
 
-  EXPECT_TRUE_WAIT(push_iterations() > 0, kMsInSecond);
-  EXPECT_TRUE_WAIT(pull_iterations() > 0, kMsInSecond);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return push_iterations(); }, ::testing::Gt(0),
+                        {.timeout = webrtc::TimeDelta::Millis(kMsInSecond)}),
+      webrtc::IsRtcOk());
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return pull_iterations(); }, ::testing::Gt(0),
+                        {.timeout = webrtc::TimeDelta::Millis(kMsInSecond)}),
+      webrtc::IsRtcOk());
 
   EXPECT_EQ(0, fake_audio_capture_module_->StopPlayout());
   EXPECT_EQ(0, fake_audio_capture_module_->StopRecording());

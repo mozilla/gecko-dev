@@ -47,6 +47,7 @@
 #include "api/rtp_parameters.h"
 #include "api/rtp_receiver_interface.h"
 #include "api/rtp_sender_interface.h"
+#include "api/rtp_transceiver_direction.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
@@ -54,6 +55,7 @@
 #include "api/stats/rtcstats_objects.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/test/mock_async_dns_resolver.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
 #include "api/video/video_rotation.h"
 #include "logging/rtc_event_log/fake_rtc_event_log_factory.h"
@@ -81,7 +83,6 @@
 #include "rtc_base/fake_mdns_responder.h"
 #include "rtc_base/fake_network.h"
 #include "rtc_base/firewall_socket_server.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/socket_address.h"
@@ -95,6 +96,7 @@
 #include "system_wrappers/include/metrics.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 
@@ -444,7 +446,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
 
   // Return the last observed data channel.
   DataChannelInterface* data_channel() {
-    if (data_channels_.size() == 0) {
+    if (data_channels_.empty()) {
       return nullptr;
     }
     return data_channels_.back().get();
@@ -455,7 +457,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   }
 
   MockDataChannelObserver* data_observer() const {
-    if (data_observers_.size() == 0) {
+    if (data_observers_.empty()) {
       return nullptr;
     }
     return data_observers_.back().get();
@@ -500,7 +502,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     EXPECT_TRUE(peer_connection_->GetStats(
         observer.get(), nullptr,
         PeerConnectionInterface::kStatsOutputLevelStandard));
-    EXPECT_TRUE_WAIT(observer->called(), kDefaultTimeout);
+    EXPECT_THAT(
+        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+        IsRtcOk());
     return observer;
   }
 
@@ -514,7 +518,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   rtc::scoped_refptr<const RTCStatsReport> NewGetStats() {
     auto callback = rtc::make_ref_counted<MockRTCStatsCollectorCallback>();
     peer_connection_->GetStats(callback.get());
-    EXPECT_TRUE_WAIT(callback->called(), kDefaultTimeout);
+    EXPECT_THAT(
+        WaitUntil([&] { return callback->called(); }, ::testing::IsTrue()),
+        IsRtcOk());
     return callback->report();
   }
 
@@ -689,7 +695,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     RTC_LOG(LS_INFO) << debug_name_ << ": SetRemoteDescription SDP:" << desc;
     pc()->SetRemoteDescription(std::move(desc), observer);  // desc.release());
     RemoveUnusedVideoRenderers();
-    EXPECT_TRUE_WAIT(observer->called(), kDefaultTimeout);
+    EXPECT_THAT(
+        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+        IsRtcOk());
     auto err = observer->error();
     if (!err.ok()) {
       RTC_LOG(LS_WARNING) << debug_name_
@@ -849,7 +857,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
 
   std::unique_ptr<SessionDescriptionInterface> WaitForDescriptionFromObserver(
       MockCreateSessionDescriptionObserver* observer) {
-    EXPECT_EQ_WAIT(true, observer->called(), kDefaultTimeout);
+    EXPECT_THAT(
+        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+        IsRtcOk());
     if (!observer->result()) {
       return nullptr;
     }
@@ -878,7 +888,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     // As mentioned above, we need to send the message immediately after
     // SetLocalDescription.
     SendSdpMessage(type, sdp);
-    EXPECT_TRUE_WAIT(observer->called(), kDefaultTimeout);
+    EXPECT_THAT(
+        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+        IsRtcOk());
     return true;
   }
 
@@ -980,7 +992,9 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     pc()->AddIceCandidate(absl::WrapUnique(CreateIceCandidate(
                               sdp_mid, sdp_mline_index, msg, nullptr)),
                           [&result](RTCError r) { result = r; });
-    EXPECT_TRUE_WAIT(result.has_value(), kDefaultTimeout);
+    EXPECT_THAT(
+        WaitUntil([&] { return result.has_value(); }, ::testing::IsTrue()),
+        IsRtcOk());
     EXPECT_TRUE(result.value().ok());
   }
 
@@ -1744,15 +1758,21 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     }
 
     // Wait for the expected frames.
-    EXPECT_TRUE_WAIT(caller()->audio_frames_received() >=
-                             total_caller_audio_frames_expected &&
-                         caller()->min_video_frames_received_per_track() >=
-                             total_caller_video_frames_expected &&
-                         callee()->audio_frames_received() >=
-                             total_callee_audio_frames_expected &&
-                         callee()->min_video_frames_received_per_track() >=
-                             total_callee_video_frames_expected,
-                     kMaxWaitForFramesMs);
+    EXPECT_THAT(
+        WaitUntil(
+            [&] {
+              return caller()->audio_frames_received() >=
+                         total_caller_audio_frames_expected &&
+                     caller()->min_video_frames_received_per_track() >=
+                         total_caller_video_frames_expected &&
+                     callee()->audio_frames_received() >=
+                         total_callee_audio_frames_expected &&
+                     callee()->min_video_frames_received_per_track() >=
+                         total_callee_video_frames_expected;
+            },
+            ::testing::IsTrue(),
+            {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+        IsRtcOk());
     bool expectations_correct =
         caller()->audio_frames_received() >=
             total_caller_audio_frames_expected &&
@@ -1831,9 +1851,13 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     caller()->AddAudioVideoTracks();
     callee()->AddAudioVideoTracks();
     caller()->CreateAndSetAndSignalOffer();
-    ASSERT_TRUE_WAIT(DtlsConnected(), kDefaultTimeout);
-    EXPECT_EQ_WAIT(rtc::SrtpCryptoSuiteToName(expected_cipher_suite),
-                   caller()->OldGetStats()->SrtpCipher(), kDefaultTimeout);
+    ASSERT_THAT(WaitUntil([&] { return DtlsConnected(); }, ::testing::IsTrue()),
+                IsRtcOk());
+    EXPECT_THAT(
+        WaitUntil(
+            [&] { return caller()->OldGetStats()->SrtpCipher(); },
+            ::testing::Eq(rtc::SrtpCryptoSuiteToName(expected_cipher_suite))),
+        IsRtcOk());
   }
 
   void TestGcmNegotiationUsesCipherSuite(bool local_gcm_enabled,

@@ -12,26 +12,38 @@
 
 #include <stdint.h>
 
+#include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
+#include "api/data_channel_interface.h"
 #include "api/function_view.h"
-#include "api/set_remote_description_observer_interface.h"
+#include "api/jsep.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_sender_interface.h"
+#include "api/rtp_transceiver_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/stats/rtc_stats_report.h"
+#include "api/test/rtc_error_matchers.h"
 #include "pc/sdp_utils.h"
 #include "pc/test/fake_video_track_source.h"
+#include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 
 using RTCOfferAnswerOptions = PeerConnectionInterface::RTCOfferAnswerOptions;
-
-namespace {
-const uint32_t kDefaultTimeout = 10000U;
-}
 
 PeerConnectionWrapper::PeerConnectionWrapper(
     rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory,
@@ -136,7 +148,9 @@ std::unique_ptr<SessionDescriptionInterface> PeerConnectionWrapper::CreateSdp(
     std::string* error_out) {
   auto observer = rtc::make_ref_counted<MockCreateSessionDescriptionObserver>();
   fn(observer.get());
-  EXPECT_EQ_WAIT(true, observer->called(), kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+      IsRtcOk());
   if (error_out && !observer->result()) {
     *error_out = observer->error();
   }
@@ -168,7 +182,9 @@ bool PeerConnectionWrapper::SetRemoteDescription(
     RTCError* error_out) {
   auto observer = rtc::make_ref_counted<FakeSetRemoteDescriptionObserver>();
   pc()->SetRemoteDescription(std::move(desc), observer);
-  EXPECT_EQ_WAIT(true, observer->called(), kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+      IsRtcOk());
   bool ok = observer->error().ok();
   if (error_out)
     *error_out = std::move(observer->error());
@@ -180,7 +196,9 @@ bool PeerConnectionWrapper::SetSdp(
     std::string* error_out) {
   auto observer = rtc::make_ref_counted<MockSetSessionDescriptionObserver>();
   fn(observer.get());
-  EXPECT_EQ_WAIT(true, observer->called(), kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+      IsRtcOk());
   if (error_out && !observer->result()) {
     *error_out = observer->error();
   }
@@ -342,7 +360,9 @@ bool PeerConnectionWrapper::IsIceConnected() {
 rtc::scoped_refptr<const RTCStatsReport> PeerConnectionWrapper::GetStats() {
   auto callback = rtc::make_ref_counted<MockRTCStatsCollectorCallback>();
   pc()->GetStats(callback.get());
-  EXPECT_TRUE_WAIT(callback->called(), kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return callback->called(); }, ::testing::IsTrue()),
+      IsRtcOk());
   return callback->report();
 }
 

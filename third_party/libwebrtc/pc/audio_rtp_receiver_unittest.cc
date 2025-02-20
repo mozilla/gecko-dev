@@ -11,17 +11,24 @@
 #include "pc/audio_rtp_receiver.h"
 
 #include <atomic>
+#include <cstdint>
+#include <string>
+#include <vector>
 
+#include "api/make_ref_counted.h"
+#include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "pc/test/mock_voice_media_receive_channel_interface.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/thread.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/run_loop.h"
+#include "test/wait_until.h"
 
 using ::testing::_;
+using ::testing::Eq;
 using ::testing::InvokeWithoutArgs;
-using ::testing::Mock;
 
 static const int kTimeOut = 100;
 static const double kDefaultVolume = 1;
@@ -76,7 +83,9 @@ TEST_F(AudioRtpReceiverTest, SetOutputVolumeIsCalled) {
       }));
 
   receiver_->OnSetVolume(kVolume);
-  EXPECT_TRUE_WAIT(set_volume_calls == 2, kTimeOut);
+  EXPECT_THAT(WaitUntil([&] { return set_volume_calls.load(); }, Eq(2),
+                        {.timeout = webrtc::TimeDelta::Millis(kTimeOut)}),
+              IsRtcOk());
 }
 
 TEST_F(AudioRtpReceiverTest, VolumesSetBeforeStartingAreRespected) {

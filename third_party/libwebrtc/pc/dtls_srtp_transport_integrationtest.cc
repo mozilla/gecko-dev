@@ -17,6 +17,8 @@
 #include "api/crypto/crypto_options.h"
 #include "api/dtls_transport_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "call/rtp_demuxer.h"
 #include "media/base/fake_rtp.h"
 #include "p2p/base/fake_ice_transport.h"
@@ -30,15 +32,16 @@
 #include "rtc_base/buffer.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/fake_clock.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
+#include "test/wait_until.h"
 
 const int kRtpAuthTagLen = 10;
 static const int kTimeout = 10000;
@@ -122,9 +125,15 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
     client_ice_transport_->SetDestination(server_ice_transport_.get());
 
     // Wait for the DTLS connection to be up.
-    EXPECT_TRUE_SIMULATED_WAIT(client_dtls_transport_->writable() &&
-                                   server_dtls_transport_->writable(),
-                               kTimeout, fake_clock_);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] {
+                      return client_dtls_transport_->writable() &&
+                             server_dtls_transport_->writable();
+                    },
+                    ::testing::IsTrue(),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                     .clock = &fake_clock_}),
+                webrtc::IsRtcOk());
     EXPECT_EQ(client_dtls_transport_->dtls_state(),
               webrtc::DtlsTransportState::kConnected);
     EXPECT_EQ(server_dtls_transport_->dtls_state(),
@@ -174,8 +183,12 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
 
     EXPECT_TRUE(srtp_transport_.SendRtpPacket(&packet, options,
                                               cricket::PF_SRTP_BYPASS));
-    EXPECT_TRUE_SIMULATED_WAIT(dtls_srtp_transport_observer_.rtp_count() == 1,
-                               kTimeout, fake_clock_);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return dtls_srtp_transport_observer_.rtp_count(); },
+                    ::testing::Eq(1),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                     .clock = &fake_clock_}),
+                webrtc::IsRtcOk());
     EXPECT_EQ(1, dtls_srtp_transport_observer_.rtp_count());
     ASSERT_TRUE(dtls_srtp_transport_observer_.last_recv_rtp_packet().data());
     EXPECT_EQ(
@@ -190,8 +203,12 @@ class DtlsSrtpTransportIntegrationTest : public ::testing::Test {
 
     EXPECT_TRUE(dtls_srtp_transport_.SendRtpPacket(&packet, options,
                                                    cricket::PF_SRTP_BYPASS));
-    EXPECT_TRUE_SIMULATED_WAIT(srtp_transport_observer_.rtp_count() == 1,
-                               kTimeout, fake_clock_);
+    EXPECT_THAT(
+        webrtc::WaitUntil([&] { return srtp_transport_observer_.rtp_count(); },
+                          ::testing::Eq(1),
+                          {.timeout = webrtc::TimeDelta::Millis(kTimeout),
+                           .clock = &fake_clock_}),
+        webrtc::IsRtcOk());
     EXPECT_EQ(1, srtp_transport_observer_.rtp_count());
     ASSERT_TRUE(srtp_transport_observer_.last_recv_rtp_packet().data());
     EXPECT_EQ(

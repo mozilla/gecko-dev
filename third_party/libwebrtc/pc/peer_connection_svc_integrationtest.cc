@@ -13,18 +13,23 @@
 
 #include <stdint.h>
 
-#include <functional>
+#include <algorithm>
 #include <vector>
 
 #include "absl/strings/match.h"
+#include "absl/strings/string_view.h"
+#include "api/media_types.h"
+#include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
+#include "media/base/media_constants.h"
 #include "pc/test/integration_test_helpers.h"
-#include "rtc_base/crypto_random.h"
-#include "rtc_base/gunit.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 
@@ -134,7 +139,9 @@ TEST_F(PeerConnectionSVCIntegrationTest,
   EXPECT_TRUE(SetCodecPreferences(transceiver, cricket::kVp8CodecName).ok());
 
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   RtpParameters parameters = transceiver->sender()->GetParameters();
   ASSERT_EQ(parameters.encodings.size(), 1u);
@@ -158,7 +165,9 @@ TEST_F(PeerConnectionSVCIntegrationTest,
   EXPECT_TRUE(SetCodecPreferences(transceiver, cricket::kVp9CodecName).ok());
 
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   RtpParameters parameters = transceiver->sender()->GetParameters();
   ASSERT_EQ(parameters.encodings.size(), 1u);
@@ -182,7 +191,9 @@ TEST_F(PeerConnectionSVCIntegrationTest,
   EXPECT_TRUE(SetCodecPreferences(transceiver, cricket::kVp8CodecName).ok());
 
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   RtpParameters parameters = transceiver->sender()->GetParameters();
   ASSERT_EQ(parameters.encodings.size(), 1u);
@@ -207,7 +218,9 @@ TEST_F(PeerConnectionSVCIntegrationTest,
   EXPECT_TRUE(SetCodecPreferences(transceiver, cricket::kVp9CodecName).ok());
 
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   RtpParameters parameters = transceiver->sender()->GetParameters();
   ASSERT_EQ(parameters.encodings.size(), 1u);
@@ -251,7 +264,9 @@ TEST_F(PeerConnectionSVCIntegrationTest, FallbackToL1Tx) {
   EXPECT_TRUE(result.ok());
 
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   parameters = caller_transceiver->sender()->GetParameters();
   ASSERT_TRUE(parameters.encodings[0].scalability_mode.has_value());
@@ -271,7 +286,9 @@ TEST_F(PeerConnectionSVCIntegrationTest, FallbackToL1Tx) {
 
   // Renegotiate to force the new codec list to be used
   caller()->CreateAndSetAndSignalOffer();
-  ASSERT_TRUE_WAIT(SignalingStateStable(), kDefaultTimeout);
+  ASSERT_THAT(
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
+      IsRtcOk());
 
   // Fallback should happen and L3T3 is not used anymore
   parameters = caller_transceiver->sender()->GetParameters();
