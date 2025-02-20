@@ -898,6 +898,10 @@ LUse LIRGeneratorShared::useLowWord(MDefinition* mir, LUse policy) {
   return policy;
 }
 
+LUse LIRGeneratorShared::useLowWordRegister(MDefinition* mir) {
+  return useLowWord(mir, LUse(LUse::REGISTER));
+}
+
 LUse LIRGeneratorShared::useLowWordRegisterAtStart(MDefinition* mir) {
   return useLowWord(mir, LUse(LUse::REGISTER, true));
 }
