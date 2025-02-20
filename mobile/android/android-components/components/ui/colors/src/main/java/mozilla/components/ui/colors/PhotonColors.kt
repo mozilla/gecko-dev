@@ -123,6 +123,7 @@ object PhotonColors {
     // Light grey should primarily be used for the Light Theme and secondary buttons.
     val LightGrey05 = Color(0xFFFBFBFE)
     val LightGrey05A40 = Color(0x66FBFBFE)
+    val LightGrey05A50 = Color(0x80FBFBFE)
     val LightGrey05A60 = Color(0x99FBFBFE)
     val LightGrey10 = Color(0xFFF9F9FB)
     val LightGrey20 = Color(0xFFF0F0F4)
