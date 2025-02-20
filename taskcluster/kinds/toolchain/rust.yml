@@ -11,12 +11,12 @@ task-defaults:
         script: repack_rust.py
         toolchain-artifact: public/build/rustc.tar.zst
 
-linux64-rust-1.82:
+linux64-rust-1.76:
     treeherder:
-        symbol: TL(rust-1.82)
+        symbol: TL(rust-1.76)
     run:
         arguments: [
-            '--channel', '1.82.0',
+            '--channel', '1.76.0',
             '--host', 'x86_64-unknown-linux-gnu',
             '--target', 'x86_64-unknown-linux-gnu',
             '--target', 'i686-unknown-linux-gnu',
@@ -110,7 +110,6 @@ linux64-rust-1.81-dev:
             RUSTFLAGS_NOT_BOOTSTRAP: '-Clink-arg=-Wl,--undefined-version'
     run:
         arguments: [
-            '--patch', 'rust-compiler-intrinsics.patch',
             '--patch', 'rust-vendor-std.patch',
             '--patch', 'src/tools/cargo:cargo-vendor-std-1.79.patch',
             '--channel', 'dev',
@@ -118,7 +117,6 @@ linux64-rust-1.81-dev:
             '--target', 'x86_64-unknown-linux-gnu',
         ]
         resources:
-            - build/build-rust/rust-compiler-intrinsics.patch
             - build/build-rust/rust-vendor-std.patch
             - build/build-rust/cargo-vendor-std-1.79.patch
         toolchain-alias:
@@ -331,7 +329,6 @@ linux64-rust-nightly-dev:
             RUSTFLAGS_NOT_BOOTSTRAP: '-Clink-arg=-Wl,--undefined-version'
     run:
         arguments: [
-            '--patch', 'rust-compiler-intrinsics.patch',
             '--patch', 'rust-vendor-std.patch',
             '--patch', 'src/tools/cargo:cargo-vendor-std-1.79.patch',
             '--channel', 'dev',
@@ -339,7 +336,6 @@ linux64-rust-nightly-dev:
             '--target', 'x86_64-unknown-linux-gnu',
         ]
         resources:
-            - build/build-rust/rust-compiler-intrinsics.patch
             - build/build-rust/rust-vendor-std.patch
             - build/build-rust/cargo-vendor-std-1.79.patch
         toolchain-alias:
