@@ -63,6 +63,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
 XPCOMUtils.defineLazyServiceGetters(lazy, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
 });
+ChromeUtils.defineLazyGetter(lazy, "log", () => {
+  const { Logger } = ChromeUtils.importESModule(
+    "resource://messaging-system/lib/Logger.sys.mjs"
+  );
+  return new Logger("ASRouter");
+});
 import { MESSAGING_EXPERIMENTS_DEFAULT_FEATURES } from "resource:///modules/asrouter/MessagingExperimentConstants.sys.mjs";
 import { CFRMessageProvider } from "resource:///modules/asrouter/CFRMessageProvider.sys.mjs";
 import { OnboardingMessageProvider } from "resource:///modules/asrouter/OnboardingMessageProvider.sys.mjs";
@@ -537,7 +543,7 @@ export const MessageLoaderUtils = {
             try {
               return this._delocalizeValues(message);
             } catch (e) {
-              lazy.ASRouterPreferences.console.error(
+              lazy.log.error(
                 `Failed to delocalize message ${message.id}:`,
                 e.message,
                 e.cause
@@ -941,13 +947,8 @@ export class _ASRouter {
 
       // Some messages have triggers that require us to initalise trigger listeners
       const unseenListeners = new Set(lazy.ASRouterTriggerListeners.keys());
-      for (const message of newState.messages) {
-        const { trigger } = message;
-        if (
-          trigger &&
-          lazy.ASRouterTriggerListeners.has(trigger.id) &&
-          !this._shouldSkipForAutomation(message)
-        ) {
+      for (const { trigger } of newState.messages) {
+        if (trigger && lazy.ASRouterTriggerListeners.has(trigger.id)) {
           lazy.ASRouterTriggerListeners.get(trigger.id).init(
             this._triggerHandler,
             trigger.params,
@@ -1373,17 +1374,6 @@ export class _ASRouter {
     return true;
   }
 
-  _shouldSkipForAutomation(message) {
-    return (
-      message.skip_in_tests &&
-      // `this.messagesEnabledInAutomation` should be stubbed in tests
-      !this.messagesEnabledInAutomation?.includes(message.id) &&
-      (Cu.isInAutomation ||
-        Services.env.exists("XPCSHELL_TEST_PROFILE_DIR") ||
-        Services.env.get("MOZ_AUTOMATION"))
-    );
-  }
-
   _findProvider(providerID) {
     return this._localProviders[
       this.state.providers.find(i => i.id === providerID).localProvider
@@ -1392,6 +1382,21 @@ export class _ASRouter {
 
   routeCFRMessage(message, browser, trigger, force = false) {
     if (!message) {
+      return { message: {} };
+    }
+
+    // filter out messages we want to exclude from tests
+    if (
+      message.skip_in_tests &&
+      // `this.messagesEnabledInAutomation` should be stubbed in tests
+      !this.messagesEnabledInAutomation?.includes(message.id) &&
+      (Cu.isInAutomation ||
+        Services.env.exists("XPCSHELL_TEST_PROFILE_DIR") ||
+        Services.env.get("MOZ_AUTOMATION"))
+    ) {
+      lazy.log.debug(
+        `Skipping message ${message.id} because ${message.skip_in_tests}`
+      );
       return { message: {} };
     }
 
@@ -1672,13 +1677,6 @@ export class _ASRouter {
     const messages =
       candidates ||
       this.state.messages.filter(m => {
-        if (this._shouldSkipForAutomation(m)) {
-          lazy.ASRouterPreferences.console.debug(
-            m.id,
-            ` filtered in tests because ${m.skip_in_tests}`
-          );
-          return false;
-        }
         if (provider && m.provider !== provider) {
           lazy.ASRouterPreferences.console.debug(m.id, " filtered by provider");
           return false;

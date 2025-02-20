@@ -181,7 +181,8 @@ const MESSAGES = () => {
       },
       targeting:
         "(region in ['CA', 'US']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures && !(sync || {}).mobileDevices",
-      skip_in_tests: "it's not tested in automation",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "DESKTOP_TO_MOBILE_ADOPTION_SIGNED_INTO_ACCOUNT_EU",
@@ -281,7 +282,8 @@ const MESSAGES = () => {
       },
       targeting:
         "(locale in ['de', 'en-CA', 'en-GB', 'en-US', 'fr']) && (region in ['DE', 'FR', 'GB']) && isFxASignedIn && previousSessionEnd && !willShowDefaultPrompt && !activeNotifications && userPrefs.cfrFeatures && !(sync || {}).mobileDevices",
-      skip_in_tests: "it's not tested in automation",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "TAB_GROUP_ONBOARDING_CALLOUT",
@@ -354,7 +356,8 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests: "it's not tested in automation",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "TAB_GROUP_ONBOARDING_CALLOUT",
@@ -427,7 +430,8 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests: "it's not tested in automation",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
@@ -485,7 +489,8 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests: "it's not tested in automation",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
@@ -544,7 +549,8 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests: "it's not tested in automation",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
@@ -602,7 +608,8 @@ const MESSAGES = () => {
       frequency: {
         lifetime: 1,
       },
-      skip_in_tests: "it's not tested in automation",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY",
@@ -878,7 +885,8 @@ const MESSAGES = () => {
         id: "preferenceObserver",
         params: ["browser.shopping.experience2023.optedIn"],
       },
-      skip_in_tests: "it's not tested in automation",
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       id: "ADDONS_STAFF_PICK_PT_2",
@@ -1529,7 +1537,7 @@ const MESSAGES = () => {
       trigger: { id: "shoppingProductPageWithSidebarClosed" },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "it's not tested in automation and might pop up unexpectedly during review checker tests",
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 3" in the Fakespot Figma spec, but
@@ -1697,7 +1705,7 @@ const MESSAGES = () => {
         lifetime: 3,
       },
       skip_in_tests:
-        "it's not tested in automation and might pop up unexpectedly during review checker tests",
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 4" in the Fakespot Figma spec, for rediscoverability experiment 2.
@@ -1775,7 +1783,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "it's not tested in automation and might pop up unexpectedly during review checker tests",
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 5" in the Fakespot Figma spec, for rediscoverability experiment 2.
@@ -1853,7 +1861,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "it's not tested in automation and might pop up unexpectedly during review checker tests",
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
 
     // cookie banner reduction onboarding
@@ -1998,7 +2006,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "it's not tested in automation and might pop up unexpectedly during review checker tests",
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 6" in the Review Checker Figma spec
@@ -2069,7 +2077,7 @@ const MESSAGES = () => {
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
-        "it's not tested in automation and might pop up unexpectedly during review checker tests",
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
   ];
   messages = add24HourImpressionJEXLTargeting(
