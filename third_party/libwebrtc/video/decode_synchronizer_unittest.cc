@@ -239,7 +239,7 @@ TEST(DecodeSynchronizerStandaloneTest,
                                           time_controller.GetMainThread());
   absl::AnyInvocable<void() &&> callback;
   EXPECT_CALL(metronome, RequestCallOnNextTick)
-      .WillOnce(Invoke([&callback](absl::AnyInvocable<void() &&> cb) {
+      .WillOnce(Invoke([&callback](absl::AnyInvocable<void()&&> cb) {
         callback = std::move(cb);
       }));
   auto scheduler = decode_synchronizer_.CreateSynchronizedFrameScheduler();

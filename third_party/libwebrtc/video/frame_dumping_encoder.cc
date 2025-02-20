@@ -96,8 +96,8 @@ class FrameDumpingEncoder : public VideoEncoder, public EncodedImageCallback {
       RTC_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
     char filename_buffer[1024];
     rtc::SimpleStringBuilder builder(filename_buffer);
-    builder << output_directory_ << "/webrtc_encoded_frames"
-            << "." << origin_time_micros_ << "." << index << ".ivf";
+    builder << output_directory_ << "/webrtc_encoded_frames" << "."
+            << origin_time_micros_ << "." << index << ".ivf";
     return builder.str();
   }
 

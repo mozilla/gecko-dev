@@ -248,31 +248,31 @@ void ReceiveStatisticsProxy::UpdateHistograms(
     if (e2e_delay_ms) {
       RTC_HISTOGRAM_COUNTS_SPARSE_10000(uma_prefix + ".EndToEndDelayInMs",
                                         *e2e_delay_ms);
-      log_stream << uma_prefix << ".EndToEndDelayInMs"
-                 << " " << *e2e_delay_ms << '\n';
+      log_stream << uma_prefix << ".EndToEndDelayInMs" << " " << *e2e_delay_ms
+                 << '\n';
     }
     std::optional<int> e2e_delay_max_ms = stats.e2e_delay_counter.Max();
     if (e2e_delay_max_ms && e2e_delay_ms) {
       RTC_HISTOGRAM_COUNTS_SPARSE_100000(uma_prefix + ".EndToEndDelayMaxInMs",
                                          *e2e_delay_max_ms);
-      log_stream << uma_prefix << ".EndToEndDelayMaxInMs"
-                 << " " << *e2e_delay_max_ms << '\n';
+      log_stream << uma_prefix << ".EndToEndDelayMaxInMs" << " "
+                 << *e2e_delay_max_ms << '\n';
     }
     std::optional<int> interframe_delay_ms =
         stats.interframe_delay_counter.Avg(kMinRequiredSamples);
     if (interframe_delay_ms) {
       RTC_HISTOGRAM_COUNTS_SPARSE_10000(uma_prefix + ".InterframeDelayInMs",
                                         *interframe_delay_ms);
-      log_stream << uma_prefix << ".InterframeDelayInMs"
-                 << " " << *interframe_delay_ms << '\n';
+      log_stream << uma_prefix << ".InterframeDelayInMs" << " "
+                 << *interframe_delay_ms << '\n';
     }
     std::optional<int> interframe_delay_max_ms =
         stats.interframe_delay_counter.Max();
     if (interframe_delay_max_ms && interframe_delay_ms) {
       RTC_HISTOGRAM_COUNTS_SPARSE_10000(uma_prefix + ".InterframeDelayMaxInMs",
                                         *interframe_delay_max_ms);
-      log_stream << uma_prefix << ".InterframeDelayMaxInMs"
-                 << " " << *interframe_delay_max_ms << '\n';
+      log_stream << uma_prefix << ".InterframeDelayMaxInMs" << " "
+                 << *interframe_delay_max_ms << '\n';
     }
 
     std::optional<uint32_t> interframe_delay_95p_ms =
@@ -281,24 +281,24 @@ void ReceiveStatisticsProxy::UpdateHistograms(
       RTC_HISTOGRAM_COUNTS_SPARSE_10000(
           uma_prefix + ".InterframeDelay95PercentileInMs",
           *interframe_delay_95p_ms);
-      log_stream << uma_prefix << ".InterframeDelay95PercentileInMs"
-                 << " " << *interframe_delay_95p_ms << '\n';
+      log_stream << uma_prefix << ".InterframeDelay95PercentileInMs" << " "
+                 << *interframe_delay_95p_ms << '\n';
     }
 
     std::optional<int> width = stats.received_width.Avg(kMinRequiredSamples);
     if (width) {
       RTC_HISTOGRAM_COUNTS_SPARSE_10000(uma_prefix + ".ReceivedWidthInPixels",
                                         *width);
-      log_stream << uma_prefix << ".ReceivedWidthInPixels"
-                 << " " << *width << '\n';
+      log_stream << uma_prefix << ".ReceivedWidthInPixels" << " " << *width
+                 << '\n';
     }
 
     std::optional<int> height = stats.received_height.Avg(kMinRequiredSamples);
     if (height) {
       RTC_HISTOGRAM_COUNTS_SPARSE_10000(uma_prefix + ".ReceivedHeightInPixels",
                                         *height);
-      log_stream << uma_prefix << ".ReceivedHeightInPixels"
-                 << " " << *height << '\n';
+      log_stream << uma_prefix << ".ReceivedHeightInPixels" << " " << *height
+                 << '\n';
     }
 
     std::optional<double> corruption_score = stats.corruption_score.GetMean();
@@ -321,8 +321,8 @@ void ReceiveStatisticsProxy::UpdateHistograms(
                                                   flow_duration_sec / 1000);
         RTC_HISTOGRAM_COUNTS_SPARSE_10000(
             uma_prefix + ".MediaBitrateReceivedInKbps", media_bitrate_kbps);
-        log_stream << uma_prefix << ".MediaBitrateReceivedInKbps"
-                   << " " << media_bitrate_kbps << '\n';
+        log_stream << uma_prefix << ".MediaBitrateReceivedInKbps" << " "
+                   << media_bitrate_kbps << '\n';
       }
 
       int num_total_frames =
@@ -333,15 +333,14 @@ void ReceiveStatisticsProxy::UpdateHistograms(
             (num_key_frames * 1000 + num_total_frames / 2) / num_total_frames;
         RTC_HISTOGRAM_COUNTS_SPARSE_1000(
             uma_prefix + ".KeyFramesReceivedInPermille", key_frames_permille);
-        log_stream << uma_prefix << ".KeyFramesReceivedInPermille"
-                   << " " << key_frames_permille << '\n';
+        log_stream << uma_prefix << ".KeyFramesReceivedInPermille" << " "
+                   << key_frames_permille << '\n';
       }
 
       std::optional<int> qp = stats.qp_counter.Avg(kMinRequiredSamples);
       if (qp) {
         RTC_HISTOGRAM_COUNTS_SPARSE_200(uma_prefix + ".Decoded.Vp8.Qp", *qp);
-        log_stream << uma_prefix << ".Decoded.Vp8.Qp"
-                   << " " << *qp << '\n';
+        log_stream << uma_prefix << ".Decoded.Vp8.Qp" << " " << *qp << '\n';
       }
     }
   }
