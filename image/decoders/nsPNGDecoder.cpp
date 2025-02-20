@@ -1032,7 +1032,8 @@ void nsPNGDecoder::error_callback(png_structp png_ptr,
   nsPNGDecoder* decoder =
       static_cast<nsPNGDecoder*>(png_get_progressive_ptr(png_ptr));
 
-  if (strstr(error_msg, "invalid chunk type")) {
+  if (strstr(error_msg, "invalid chunk type") ||
+      strstr(error_msg, "bad header (invalid type)")) {
     decoder->mErrorIsRecoverable = true;
   } else {
     decoder->mErrorIsRecoverable = false;
