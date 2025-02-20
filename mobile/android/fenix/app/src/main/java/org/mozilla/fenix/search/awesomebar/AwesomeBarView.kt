@@ -384,7 +384,7 @@ class AwesomeBarView(
 
         providersToAdd.add(searchEngineSuggestionProvider)
 
-        if (activity.settings().enableTrendingSearches) {
+        if (activity.settings().shouldShowTrendingSearchSuggestions) {
             providersToAdd.add(defaultTrendingSearchProvider)
         }
 
