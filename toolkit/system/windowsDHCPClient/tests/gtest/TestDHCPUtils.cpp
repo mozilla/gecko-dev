@@ -104,6 +104,7 @@ class TestDHCPUtils : public ::testing::Test {
     adapterAddresses.Next = nullptr;
     adapterAddresses.Dhcpv4Server.iSockaddrLength = 0;
     adapterAddresses.Dhcpv6Server.iSockaddrLength = 0;
+    adapterAddresses.Flags |= IP_ADAPTER_DHCP_ENABLED;
     AddAdapterAddresses(adapterAddresses);
   }
 
