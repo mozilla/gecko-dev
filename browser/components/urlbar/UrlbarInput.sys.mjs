@@ -1484,8 +1484,10 @@ export class UrlbarInput {
     // like transforming a url into a search.
     // This choice also makes it easier to copy the full url of a result.
 
-    // For autofilled results, the value that should be canonized is not the
-    // autofilled value but the value that the user typed.
+    // We are supporting canonization of any result, in particular this allows
+    // for single word search suggestions to be converted to a .com URL.
+    // For autofilled results, the value to canonize is the user typed string,
+    // not the autofilled value.
     let canonizedUrl = this._maybeCanonizeURL(
       event,
       result.autofill ? this._lastSearchString : this.value
@@ -3010,6 +3012,22 @@ export class UrlbarInput {
   }
 
   /**
+   * Returns whether the passed-in event may represents a canonization request.
+   *
+   * @param {DOMEvent} event a KeyboardEvent to examine.
+   * @returns {boolean} Whether the event is a canonization one.
+   */
+  #isCanonizeKeyboardEvent(event) {
+    return (
+      KeyboardEvent.isInstance(event) &&
+      event.keyCode == KeyEvent.DOM_VK_RETURN &&
+      (AppConstants.platform == "macosx" ? event.metaKey : event.ctrlKey) &&
+      !event._disableCanonization &&
+      lazy.UrlbarPrefs.get("ctrlCanonizesURLs")
+    );
+  }
+
+  /**
    * If appropriate, this prefixes a search string with 'www.' and suffixes it
    * with browser.fixup.alternate.suffix prior to navigating.
    *
@@ -3024,10 +3042,7 @@ export class UrlbarInput {
     // Only add the suffix when the URL bar value isn't already "URL-like",
     // and only if we get a keyboard event, to match user expectations.
     if (
-      !KeyboardEvent.isInstance(event) ||
-      event._disableCanonization ||
-      !event.ctrlKey ||
-      !lazy.UrlbarPrefs.get("ctrlCanonizesURLs") ||
+      !this.#isCanonizeKeyboardEvent(event) ||
       !/^\s*[^.:\/\s]+(?:\/.*|\s*)$/i.test(value)
     ) {
       return null;
@@ -3341,13 +3356,9 @@ export class UrlbarInput {
       // We support using 'alt' to open in a tab, because ctrl/shift
       // might be used for canonizing URLs:
       where = event.shiftKey ? "tabshifted" : "tab";
-    } else if (
-      isKeyboardEvent &&
-      event.ctrlKey &&
-      lazy.UrlbarPrefs.get("ctrlCanonizesURLs")
-    ) {
-      // If we're allowing canonization, and this is a key event with ctrl
-      // pressed, open in current tab to allow ctrl-enter to canonize URL.
+    } else if (this.#isCanonizeKeyboardEvent(event)) {
+      // If we're allowing canonization, and this is a canonization key event,
+      // open in current tab to avoid handling as new tab modifier.
       where = "current";
     } else {
       where = lazy.BrowserUtils.whereToOpenLink(event, false, false);
@@ -4028,6 +4039,8 @@ export class UrlbarInput {
       this._keyDownEnterDeferred = null;
     }
     this._isKeyDownWithCtrl = false;
+    this._isKeyDownWithMeta = false;
+    this._isKeyDownWithMetaAndLeft = false;
 
     Services.obs.notifyObservers(null, "urlbar-blur");
   }
@@ -4581,20 +4594,32 @@ export class UrlbarInput {
     if (!event.repeat) {
       this.#allTextSelectedOnKeyDown = this.#allTextSelected;
 
-      this._isKeyDownWithMetaAndLeft =
-        event.keyCode == KeyEvent.DOM_VK_LEFT &&
-        event.metaKey &&
-        !event.shiftKey;
-
       if (event.keyCode === KeyEvent.DOM_VK_RETURN) {
         if (this._keyDownEnterDeferred) {
           this._keyDownEnterDeferred.reject();
         }
         this._keyDownEnterDeferred = Promise.withResolvers();
-        event._disableCanonization = this._isKeyDownWithCtrl;
-      } else if (event.keyCode !== KeyEvent.DOM_VK_CONTROL && event.ctrlKey) {
+        event._disableCanonization =
+          AppConstants.platform == "macosx"
+            ? this._isKeyDownWithMeta
+            : this._isKeyDownWithCtrl;
+      }
+
+      // Now set the keydown trackers for the current event, anything that wants
+      // to check the previous events should have happened before this point.
+      // The previously value is persisted until keyup, as we check if the
+      // modifiers were down, even if other keys are pressed in the meanwhile.
+      if (event.ctrlKey && event.keyCode != KeyEvent.DOM_VK_CONTROL) {
         this._isKeyDownWithCtrl = true;
       }
+      if (event.metaKey && event.keyCode != KeyEvent.DOM_VK_META) {
+        this._isKeyDownWithMeta = true;
+      }
+      // This is used in keyup, so it can be set every time.
+      this._isKeyDownWithMetaAndLeft =
+        this._isKeyDownWithMeta &&
+        !event.shiftKey &&
+        event.keyCode == KeyEvent.DOM_VK_LEFT;
 
       this._toggleActionOverride(event);
     }
@@ -4631,6 +4656,7 @@ export class UrlbarInput {
       this.#maybeUntrimUrl({ moveCursorToStart });
     }
     if (event.keyCode === KeyEvent.DOM_VK_META) {
+      this._isKeyDownWithMeta = false;
       this._isKeyDownWithMetaAndLeft = false;
     }
     if (event.keyCode === KeyEvent.DOM_VK_CONTROL) {
