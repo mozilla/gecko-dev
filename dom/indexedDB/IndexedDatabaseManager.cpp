@@ -242,7 +242,8 @@ auto DatabaseFilePathMatchPredicate(const nsAString* const aDatabaseFilePath) {
 
 }  // namespace
 
-IndexedDatabaseManager::IndexedDatabaseManager() : mBackgroundActor(nullptr) {
+IndexedDatabaseManager::IndexedDatabaseManager()
+    : mLocaleInitialized(false), mBackgroundActor(nullptr) {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 }
 
@@ -773,7 +774,11 @@ void IndexedDatabaseManager::LoggingModePrefChangedCallback(
 }
 
 nsresult IndexedDatabaseManager::EnsureLocale() {
-  MOZ_ASSERT(NS_IsMainThread());
+  AssertIsOnMainThread();
+
+  if (mLocaleInitialized) {
+    return NS_OK;
+  }
 
   nsAutoCString acceptLang;
   Preferences::GetLocalizedCString("intl.accept_languages", acceptLang);
@@ -793,6 +798,8 @@ nsresult IndexedDatabaseManager::EnsureLocale() {
   if (mLocale.IsEmpty()) {
     mLocale.AssignLiteral("en_US");
   }
+
+  mLocaleInitialized = true;
 
   return NS_OK;
 }
