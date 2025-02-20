@@ -13,6 +13,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/layers/LayersSurfaces.h"
+#include "mozilla/layers/OverlayInfo.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/webrender/webrender_ffi.h"
 #include "mozilla/webrender/WebRenderTypes.h"
@@ -57,6 +58,9 @@ class RenderTextureHostUsageInfo final {
   bool VideoOverlayDisabled() { return mVideoOverlayDisabled; }
   void DisableVideoOverlay() { mVideoOverlayDisabled = true; }
 
+  void OnVideoPresent(int aFrameId, uint32_t aDurationMs);
+  void OnCompositorEndFrame(int aFrameId, uint32_t aDurationMs);
+
   const TimeStamp mCreationTimeStamp;
 
  protected:
@@ -64,6 +68,10 @@ class RenderTextureHostUsageInfo final {
 
   // RenderTextureHost prefers to disable video overlay.
   Atomic<bool> mVideoOverlayDisabled{false};
+
+  int mVideoPresentFrameId = 0;
+  int mSlowPresentCount = 0;
+  int mSlowCommitCount = 0;
 };
 
 class RenderTextureHost {

@@ -185,6 +185,8 @@ class DCLayerTree {
 
   void SetUsedOverlayTypeInFrame(DCompOverlayTypes aTypes);
 
+  int GetFrameId() { return mCurrentFrame; }
+
  protected:
   bool Initialize(HWND aHwnd, nsACString& aError);
   bool InitializeVideoOverlaySupport();
@@ -265,7 +267,6 @@ class DCLayerTree {
   mutable Maybe<color::ColorProfileDesc> mOutputColorProfile;
 
   DCompOverlayTypes mUsedOverlayTypesInFrame = DCompOverlayTypes::NO_OVERLAY;
-  int mSlowCommitCount = 0;
 
  public:
   const color::ColorProfileDesc& OutputColorProfile() const {
@@ -423,10 +424,9 @@ class DCSurfaceVideo : public DCSurface {
   void AttachExternalImage(wr::ExternalImageId aExternalImage) override;
   bool CalculateSwapChainSize(gfx::Matrix& aTransform);
   void PresentVideo();
+  void OnCompositorEndFrame(int aFrameId, uint32_t aDurationMs);
 
   DCSurfaceVideo* AsDCSurfaceVideo() override { return this; }
-
-  void DisableVideoOverlay();
 
  protected:
   virtual ~DCSurfaceVideo();
@@ -449,7 +449,7 @@ class DCSurfaceVideo : public DCSurface {
   RefPtr<RenderTextureHost> mRenderTextureHost;
   RefPtr<RenderTextureHost> mPrevTexture;
   RefPtr<RenderTextureHostUsageInfo> mRenderTextureHostUsageInfo;
-  int mSlowPresentCount = 0;
+  bool mFirstPresent = true;
   const UINT mSwapChainBufferCount;
   bool mUseVpAutoHDR = false;
   bool mVpAutoHDRFailed = false;
