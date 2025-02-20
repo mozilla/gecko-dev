@@ -296,7 +296,7 @@
     },
     "interventions": [
       {
-        "platforms": ["desktop"],
+        "platforms": ["all"],
         "ua_string": ["add_Chrome"]
       }
     ]
