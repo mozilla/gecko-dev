@@ -32,7 +32,6 @@
 #include "mozilla/dom/FetchEventOpProxyChild.h"
 #include "mozilla/dom/IndexedDatabaseManager.h"
 #include "mozilla/dom/MessagePort.h"
-#include "mozilla/dom/RemoteWorkerManager.h"  // RemoteWorkerManager::IsRemoteTypeAllowed
 #include "mozilla/dom/RemoteWorkerTypes.h"
 #include "mozilla/dom/ServiceWorkerDescriptor.h"
 #include "mozilla/dom/ServiceWorkerInterceptController.h"
@@ -231,14 +230,6 @@ nsresult RemoteWorkerChild::ExecWorkerOnMainThread(
 
   auto scopeExit =
       MakeScopeExit([&] { ExceptionalErrorTransitionDuringExecWorker(); });
-
-  // Verify the the RemoteWorker should be really allowed to run in this
-  // process, and fail if it shouldn't (This shouldn't normally happen,
-  // unless the RemoteWorkerData has been tempered in the process it was
-  // sent from).
-  if (!RemoteWorkerManager::IsRemoteTypeAllowed(aData)) {
-    return NS_ERROR_UNEXPECTED;
-  }
 
   auto principalOrErr = PrincipalInfoToPrincipal(aData.principalInfo());
   if (NS_WARN_IF(principalOrErr.isErr())) {

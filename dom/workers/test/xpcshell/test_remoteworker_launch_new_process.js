@@ -83,10 +83,13 @@ add_task(async function launch_remoteworkers_in_new_processes() {
     return Services.ppmm.childCount - initialChildCount >= 1;
   }, "wait for a new child processes to be started");
 
-  // Wait both workers to become active to be sure that. besides spawning
-  // the new child processes as expected, the two remote worker have been
-  // able to run successfully (in other word their remote worker data did
-  // pass successfull the IsRemoteTypeAllowed check in RemoteworkerChild).
+  // Wait both workers to become active to ensure script loading completed
+  // successfully.  Note that when this test was originally introduced, we had a
+  // method IsRemoteTypeAllowed which would be run in the content process as an
+  // additional check that we ended up in the process we expected.  Improvements
+  // in bug 1901851 and other bugs eliminated that concern, so now all we care
+  // about is that script loading completes and thereby allows the SW to advance
+  // to active.
   info("Wait for webcontent worker to become active");
   await TestUtils.waitForCondition(
     () => swRegInfoWeb.activeWorker,
