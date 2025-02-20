@@ -103,7 +103,7 @@ use style::invalidation::element::relative_selector::{
 };
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::invalidation::stylesheets::RuleChangeKind;
-use style::logical_geometry::PhysicalAxis;
+use style::logical_geometry::PhysicalSide;
 use style::media_queries::MediaList;
 use style::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko_debug")]
@@ -8384,7 +8384,7 @@ pub extern "C" fn Servo_ResolveCalcLengthPercentage(
 pub extern "C" fn Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
     calc: &computed::length_percentage::CalcLengthPercentage,
     basis: f32,
-    axis: PhysicalAxis,
+    side: PhysicalSide,
     position_property: PositionProperty,
     result: &mut f32,
     percentage_used: &mut bool,
@@ -8392,7 +8392,7 @@ pub extern "C" fn Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
     let resolved = calc.resolve(
         computed::Length::new(basis),
         Some(CalcAnchorFunctionResolutionInfo {
-            axis,
+            side,
             position_property,
         }),
     );
@@ -9811,11 +9811,11 @@ impl AnchorPositioningFunctionResolution {
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorFunction(
     func: &AnchorFunction,
-    axis: PhysicalAxis,
+    side: PhysicalSide,
     prop: PositionProperty,
     out: &mut AnchorPositioningFunctionResolution,
 ) {
-    *out = AnchorPositioningFunctionResolution::new(func.resolve(axis, prop));
+    *out = AnchorPositioningFunctionResolution::new(func.resolve(side, prop));
 }
 
 #[no_mangle]

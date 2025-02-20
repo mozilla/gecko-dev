@@ -90,7 +90,6 @@ using ComputedKeyframeValues = nsTArray<PropertyStyleAnimationValuePair>;
 
 class ComputedStyle;
 enum class LogicalAxis : uint8_t;
-enum class PhysicalAxis : uint8_t;
 class SeenPtrs;
 class SharedFontList;
 class StyleSheet;

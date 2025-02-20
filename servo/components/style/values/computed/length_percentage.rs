@@ -27,7 +27,7 @@
 use super::{Context, Length, Percentage, PositionProperty, ToComputedValue};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::GeckoFontMetrics;
-use crate::logical_geometry::PhysicalAxis;
+use crate::logical_geometry::PhysicalSide;
 use crate::values::animated::{Animate, Context as AnimatedContext, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::calc::{CalcUnits, PositivePercentageBasis};
@@ -937,7 +937,7 @@ fn map_node(
     match node {
         CalcNode::Anchor(f) => {
             context.anchor_function_used = true;
-            match f.resolve(info.axis, info.position_property) {
+            match f.resolve(info.side, info.position_property) {
                 AnchorResolutionResult::Invalid => return Err(()),
                 AnchorResolutionResult::Fallback(fb) => {
                     let mut inner_context = ResolveContext::default();
@@ -992,12 +992,12 @@ fn map_node(
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct CalcAnchorFunctionResolutionInfo {
-    /// Which axis we're resolving anchor functions for.
+    /// Which side we're resolving anchor functions for.
     /// This is only relevant for `anchor()`, which requires
     /// the property using the function to be in the same axis
     /// as the specified side [1].
     /// [1]: https://drafts.csswg.org/css-anchor-position-1/#anchor-valid
-    pub axis: PhysicalAxis,
+    pub side: PhysicalSide,
     /// `position` property of the box for which this style is being resolved.
     pub position_property: PositionProperty,
 }
@@ -1008,7 +1008,7 @@ impl CalcAnchorFunctionResolutionInfo {
             // Makes anchor functions always invalid
             position_property: PositionProperty::Static,
             // Doesn't matter
-            axis: PhysicalAxis::Vertical,
+            side: PhysicalSide::Left,
         }
     }
 }

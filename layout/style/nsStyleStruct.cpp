@@ -1362,7 +1362,7 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
 
 AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
     Side aSide, StylePositionProperty aPosition) const {
-  return {mOffset.Get(aSide), GetStylePhysicalAxis(aSide), aPosition};
+  return {mOffset.Get(aSide), aSide, aPosition};
 }
 
 AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
@@ -1372,15 +1372,15 @@ AnchorResolvedInset nsStylePosition::GetAnchorResolvedInset(
 }
 
 AnchorResolvedInset::AnchorResolvedInset(
-    const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
+    const mozilla::StyleInset& aValue, mozilla::Side aSide,
     mozilla::StylePositionProperty aPosition)
-    : AnchorResolved<StyleInset>{FromUnresolved(aValue, aAxis, aPosition)} {}
+    : AnchorResolved<StyleInset>{FromUnresolved(aValue, aSide, aPosition)} {}
 
 AnchorResolvedInset::AnchorResolvedInset(
-    const mozilla::StyleInset& aValue, mozilla::LogicalAxis aAxis,
+    const mozilla::StyleInset& aValue, mozilla::LogicalSide aSide,
     mozilla::WritingMode aWM, mozilla::StylePositionProperty aPosition)
-    : AnchorResolved<StyleInset>{FromUnresolved(
-          aValue, ToStylePhysicalAxis(aWM.PhysicalAxis(aAxis)), aPosition)} {}
+    : AnchorResolved<StyleInset>{
+          FromUnresolved(aValue, aWM.PhysicalSide(aSide), aPosition)} {}
 
 AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::Invalid() {
   return AnchorResolved::Evaluated(StyleInset::Auto());
@@ -1397,15 +1397,9 @@ AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::Evaluated(
 }
 
 AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::FromUnresolved(
-    const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
+    const mozilla::StyleInset& aValue, mozilla::Side aSide,
     mozilla::StylePositionProperty aPosition) {
   // TODO(dshin): Maybe worth pref-gating here.
-  static_assert(static_cast<uint8_t>(mozilla::PhysicalAxis::Vertical) ==
-                    static_cast<uint8_t>(StylePhysicalAxis::Vertical),
-                "Vertical axis doesn't match");
-  static_assert(static_cast<uint8_t>(mozilla::PhysicalAxis::Horizontal) ==
-                    static_cast<uint8_t>(StylePhysicalAxis::Horizontal),
-                "Horizontal axis doesn't match");
   switch (aValue.tag) {
     case StyleInset::Tag::Auto:
       return AnchorResolved::Unchanged(aValue);
@@ -1416,7 +1410,8 @@ AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::FromUnresolved(
         float result{};
         bool percentageUsed{};
         if (!Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
-                &c, 0.0, aAxis, aPosition, &result, &percentageUsed)) {
+                &c, 0.0, ToStylePhysicalSide(aSide), aPosition, &result,
+                &percentageUsed)) {
           return Invalid();
         }
         if (percentageUsed) {
@@ -1432,7 +1427,8 @@ AnchorResolved<mozilla::StyleInset> AnchorResolvedInset::FromUnresolved(
     }
     case StyleInset::Tag::AnchorFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
-      Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(), aAxis, aPosition,
+      Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(),
+                                  ToStylePhysicalSide(aSide), aPosition,
                                   &resolved);
       if (resolved.IsInvalid()) {
         return Invalid();

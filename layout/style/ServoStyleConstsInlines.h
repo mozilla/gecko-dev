@@ -732,12 +732,12 @@ nscoord StyleCalcLengthPercentage::Resolve(nscoord aBasis,
 }
 
 nscoord StyleCalcLengthPercentage::ResolveWithAnchor(
-    nscoord aBasis, mozilla::StylePhysicalAxis aAxis,
+    nscoord aBasis, mozilla::StylePhysicalSide aSide,
     mozilla::StylePositionProperty aProp) const {
   float value{};
   bool unused{};
   bool result = Servo_ResolveCalcLengthPercentageWithAnchorFunctions(
-      this, CSSPixel::FromAppUnits(aBasis), aAxis, aProp, &value, &unused);
+      this, CSSPixel::FromAppUnits(aBasis), aSide, aProp, &value, &unused);
   if (!result) {
     MOZ_ASSERT_UNREACHABLE(
         "Was expecting initial anchor resolution to determine validity");
@@ -802,7 +802,7 @@ nscoord LengthPercentage::Resolve(nscoord aPercentageBasis,
 }
 
 nscoord LengthPercentage::ResolveWithAnchor(
-    nscoord aPercentageBasis, mozilla::StylePhysicalAxis aAxis,
+    nscoord aPercentageBasis, mozilla::StylePhysicalSide aSide,
     mozilla::StylePositionProperty aProp) const {
   if (ConvertsToLength()) {
     return ToLength();
@@ -815,7 +815,7 @@ nscoord LengthPercentage::ResolveWithAnchor(
     return detail::DefaultPercentLengthToAppUnits(
         static_cast<float>(aPercentageBasis) * percent);
   }
-  return AsCalc().ResolveWithAnchor(aPercentageBasis, aAxis, aProp);
+  return AsCalc().ResolveWithAnchor(aPercentageBasis, aSide, aProp);
 }
 
 void LengthPercentage::ScaleLengthsBy(float aScale) {
@@ -1289,17 +1289,21 @@ inline gfx::Point StyleCoordinatePair<LengthPercentage>::ToGfxPoint(
                     y.ResolveToCSSPixels(aBasis->Height()));
 }
 
-inline StylePhysicalAxis GetStylePhysicalAxis(Side aSide) {
-  return aSide == mozilla::Side::eSideTop || aSide == mozilla::Side::eSideBottom
-             ? StylePhysicalAxis::Vertical
-             : StylePhysicalAxis::Horizontal;
-}
-
-inline StylePhysicalAxis ToStylePhysicalAxis(PhysicalAxis aAxis) {
+inline StylePhysicalSide ToStylePhysicalSide(mozilla::Side aSide) {
   // TODO(dhsin): Should look into merging these two values...
-  // Assert for this casting lives in `nsStyleStruct.cpp` since
-  // `PhysicalAxis` is a forward decl here.
-  return static_cast<StylePhysicalAxis>(static_cast<uint8_t>(aAxis));
+  static_assert(static_cast<uint8_t>(mozilla::Side::eSideTop) ==
+                    static_cast<uint8_t>(StylePhysicalSide::Top),
+                "Top side doesn't match");
+  static_assert(static_cast<uint8_t>(mozilla::Side::eSideBottom) ==
+                    static_cast<uint8_t>(StylePhysicalSide::Bottom),
+                "Bottom side doesn't match");
+  static_assert(static_cast<uint8_t>(mozilla::Side::eSideLeft) ==
+                    static_cast<uint8_t>(StylePhysicalSide::Left),
+                "Left side doesn't match");
+  static_assert(static_cast<uint8_t>(mozilla::Side::eSideRight) ==
+                    static_cast<uint8_t>(StylePhysicalSide::Right),
+                "Right side doesn't match");
+  return static_cast<StylePhysicalSide>(static_cast<uint8_t>(aSide));
 }
 
 }  // namespace mozilla
