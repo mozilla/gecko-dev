@@ -107,6 +107,21 @@ pub type WorldPoint3D = Point3D<f32, WorldPixel>;
 pub type WorldVector2D = Vector2D<f32, WorldPixel>;
 pub type WorldVector3D = Vector3D<f32, WorldPixel>;
 
+/// Geometry in the space in which we decided to perform visibility/clipping/invalidation
+/// calculations.
+/// This is intended to be a temporary type while transitioning some calculation from world
+/// to raster space.
+#[derive(Hash, Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, Ord, PartialOrd, Deserialize, Serialize, PeekPoke)]
+pub struct VisPixel;
+
+pub type VisRect = Box2D<f32, VisPixel>;
+
+/// TODO: Remove this once visibility rects have moved to raster space.
+pub fn vis_rect_as_world(r: VisRect) -> WorldRect {
+    r.cast_unit()
+}
+
+
 /// Offset in number of tiles.
 #[derive(Hash, Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Tiles;
