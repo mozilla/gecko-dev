@@ -39,12 +39,6 @@
       let button = await renderTemplate();
 
       ok(button, "The box button renders.");
-      is(
-        button.type,
-        "subpage",
-        "The button is a subpage navigation button by default."
-      );
-
       ok(
         button.navIcon,
         "The box button has an icon indicating the type of navigation that happens on click."
@@ -52,14 +46,34 @@
       is(
         button.navIcon.src,
         "chrome://global/skin/icons/arrow-right.svg",
-        "The subpage button uses the expected icon."
+        "The button uses the expected icon."
       );
 
       is(button.label, "this is a test", "The box button has the expected label.");
       is(
-        button.buttonEl.textContent.trim(),
+        button.labelEl.textContent.trim(),
         "this is a test",
         "The box button label is rendered."
+      );
+
+      const TEST_DESCRIPTION = "This is a description";
+      button.description = TEST_DESCRIPTION;
+      await button.updateComplete;
+
+      is(
+        button.descriptionEl.textContent.trim(),
+        TEST_DESCRIPTION,
+        "The button supports setting a description."
+      );
+
+      const ICON_SRC = "chrome://global/skin/icons/edit-copy.svg";
+      button.iconSrc = ICON_SRC;
+      await button.updateComplete;
+
+      is(
+        button.iconEl.getAttribute("src"),
+        ICON_SRC,
+        "The button supports setting an icon."
       );
     });
 

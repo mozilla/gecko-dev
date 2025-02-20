@@ -1,0 +1,46 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@layer box-common {
+  :host {
+    --box-border: var(--border-width) solid var(--border-color-interactive);
+    --box-border-radius: var(--border-radius-medium);
+    --box-border-radius-inner: calc(var(--box-border-radius) - var(--border-width));
+    --box-padding: var(--space-large);
+    --box-icon-margin-block: calc((1lh - var(--icon-size-default)) / 2);
+
+    border: var(--box-border);
+    border-radius: var(--box-border-radius);
+    display: block;
+  }
+
+  .text-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    row-gap: var(--space-xxsmall);
+
+    &.has-icon .description {
+      margin-inline-start: calc(var(--icon-size-default) + var(--space-small));
+    }
+  }
+
+  .label-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-small);
+  }
+
+  .icon {
+    width: var(--icon-size-default);
+    height: var(--icon-size-default);
+    -moz-context-properties: fill;
+    fill: var(--icon-color);
+
+    .label-wrapper & {
+      margin-block: var(--box-icon-margin-block);
+      align-self: flex-start;
+    }
+  }
+}
