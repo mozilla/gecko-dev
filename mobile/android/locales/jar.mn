@@ -44,8 +44,6 @@ relativesrcdir toolkit/locales:
   toolkit/about                                    (%toolkit/about/*Mozilla.ftl)
 #about:support
   toolkit/about                                    (%toolkit/about/*Support.ftl)
-#about:rights
-  toolkit/about                                    (%toolkit/about/*Rights.ftl)
 #about:compat
   toolkit/about                                    (%toolkit/about/*Compat.ftl)
 #about:webrtc

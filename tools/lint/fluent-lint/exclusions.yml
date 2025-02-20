@@ -177,9 +177,6 @@ CO01:
         - details-notification-soft-blocked-other-enabled
         # toolkit/locales/en-US/toolkit/about/aboutGlean.ftl
         - about-glean-description
-        # toolkit/locales/en-US/toolkit/about/aboutRights.ftl
-        - rights-intro-point-1
-        - rights-intro-point-2
         # toolkit/locales/en-US/toolkit/about/aboutSupport.ftl
         - app-basics-key-mozilla
         - virtual-monitor-disp

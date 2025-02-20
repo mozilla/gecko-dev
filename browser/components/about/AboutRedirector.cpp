@@ -90,9 +90,9 @@ static const RedirEntry kRedirMap[] = {
     {"profiling",
      "chrome://devtools/content/performance-new/aboutprofiling/index.xhtml",
      nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI},
-    {"rights", "chrome://global/content/aboutRights.xhtml",
+    {"rights", "https://www.mozilla.org/about/legal/terms/firefox/",
      nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
-         nsIAboutModule::ALLOW_SCRIPT | nsIAboutModule::IS_SECURE_CHROME_UI},
+         nsIAboutModule::URI_MUST_LOAD_IN_CHILD},
     {"robots", "chrome://browser/content/aboutRobots.xhtml",
      nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT |
          nsIAboutModule::ALLOW_SCRIPT},

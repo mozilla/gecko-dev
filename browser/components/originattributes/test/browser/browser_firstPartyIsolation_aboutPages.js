@@ -183,7 +183,7 @@ add_task(async function test_aboutURL() {
   let aboutURLs = [];
 
   // List of about: URLs that will initiate network requests.
-  let networkURLs = ["credits", "logins"];
+  let networkURLs = ["credits", "logins", "rights"];
 
   for (let cid in Cc) {
     let result = cid.match(

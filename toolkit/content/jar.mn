@@ -17,12 +17,6 @@ toolkit.jar:
    content/global/aboutProfiles.js
    content/global/aboutProfiles.xhtml
 #endif
-   content/global/aboutRights.js
-#ifdef MOZILLA_OFFICIAL
-   content/global/aboutRights.xhtml
-#else
-   content/global/aboutRights.xhtml           (aboutRights-unbranded.xhtml)
-#endif
    content/global/aboutServiceWorkers.js
    content/global/aboutServiceWorkers.xhtml
    content/global/aboutwebrtc/aboutWebrtc.css   (aboutwebrtc/aboutWebrtc.css)
