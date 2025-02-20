@@ -1381,23 +1381,6 @@
       }
     ]
   },
-  "1830813": {
-    "label": "onstove.com",
-    "bugs": {
-      "1898966": {
-        "issue": "unsupported-warning",
-        "matches": ["*://*.onstove.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "css": ["bug1830813-page.onstove.com-hide-unsupported.css"]
-        }
-      }
-    ]
-  },
   "1830821_90981": {
     "label": "enjoy.point.auone.jp",
     "bugs": {
