@@ -786,6 +786,11 @@ workers:
             implementation: generic-worker
             os: linux-bitbar
             worker-type: 'gecko-{alias}'
+        t-lambda-.*:
+            provisioner: proj-autophone
+            implementation: generic-worker
+            os: linux-lambda
+            worker-type: 'gecko-{alias}'
         t-linux(-large|-xlarge|-xlarge-source):
             provisioner: '{trust-domain}-t'
             implementation: docker-worker

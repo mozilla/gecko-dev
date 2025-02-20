@@ -149,6 +149,7 @@ def generic_worker_run_task(config, job, taskdesc):
     is_win = worker["os"] == "windows"
     is_mac = worker["os"] == "macosx"
     is_bitbar = worker["os"] == "linux-bitbar"
+    is_lambda = worker["os"] == "linux-lambda"
 
     if run["tooltool-downloads"]:
         internal = run["tooltool-downloads"] == "internal"
@@ -215,6 +216,8 @@ def generic_worker_run_task(config, job, taskdesc):
         # Use the bitbar wrapper script which sets up the device and adb
         # environment variables
         command.append("/builds/taskcluster/script.py")
+    elif is_lambda:
+        command.append("/home/ltuser/taskcluster/script.py")
     command.extend(run_command)
 
     if is_win:

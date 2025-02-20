@@ -630,7 +630,9 @@ def build_docker_worker_payload(config, task, task_def):
 @payload_builder(
     "generic-worker",
     schema={
-        Required("os"): Any("windows", "macosx", "linux", "linux-bitbar"),
+        Required("os"): Any(
+            "windows", "macosx", "linux", "linux-bitbar", "linux-lambda"
+        ),
         # see http://schemas.taskcluster.net/generic-worker/v1/payload.json
         # and https://docs.taskcluster.net/reference/workers/generic-worker/payload
         # command is a list of commands to run, sequentially
@@ -727,7 +729,7 @@ def build_generic_worker_payload(config, task, task_def):
         task_def["payload"].setdefault("onExitStatus", {}).setdefault(
             "retry", []
         ).extend(worker["retry-exit-status"])
-    if worker["os"] == "linux-bitbar":
+    if worker["os"] in ["linux-bitbar", "linux-lambda"]:
         task_def["payload"].setdefault("onExitStatus", {}).setdefault("retry", [])
         # exit code 4 is used to indicate an intermittent android device error
         if 4 not in task_def["payload"]["onExitStatus"]["retry"]:

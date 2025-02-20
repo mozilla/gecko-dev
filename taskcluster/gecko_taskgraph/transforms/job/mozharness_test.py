@@ -271,8 +271,12 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
 
     is_macosx = worker["os"] == "macosx"
     is_windows = worker["os"] == "windows"
-    is_linux = worker["os"] == "linux" or worker["os"] == "linux-bitbar"
+    is_linux = worker["os"] == "linux" or worker["os"] in [
+        "linux-bitbar",
+        "linux-lambda",
+    ]
     is_bitbar = worker["os"] == "linux-bitbar"
+    is_lambda = worker["os"] == "linux-lambda"
     assert is_macosx or is_windows or is_linux
 
     artifacts = [
@@ -295,7 +299,7 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
             }
         )
 
-    if is_bitbar:
+    if is_bitbar or is_lambda:
         artifacts = [
             {
                 "name": "public/test/",
@@ -362,7 +366,7 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
                 "SHELL": "/bin/bash",
             }
         )
-    elif is_bitbar:
+    elif is_bitbar or is_lambda:
         env.update(
             {
                 "LANG": "en_US.UTF-8",
@@ -405,7 +409,7 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
             "-u",
             "mozharness\\scripts\\" + normpath(mozharness["script"]),
         ]
-    elif is_bitbar:
+    elif is_bitbar or is_lambda:
         py_binary = "python3"
         mh_command = ["bash", f"./{bitbar_script}"]
     elif is_macosx:
@@ -473,7 +477,7 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
             "format": "zip",
         }
     ]
-    if is_bitbar:
+    if is_bitbar or is_lambda:
         a_url = config.params.file_url(
             f"taskcluster/scripts/tester/{bitbar_script}",
         )
@@ -494,6 +498,6 @@ def mozharness_test_on_generic_worker(config, job, taskdesc):
         "use-caches": use_caches,
         "using": "run-task",
     }
-    if is_bitbar:
+    if is_bitbar or is_lambda:
         job["run"]["run-as-root"] = True
     configure_taskdesc_for_run(config, job, taskdesc, worker["implementation"])
