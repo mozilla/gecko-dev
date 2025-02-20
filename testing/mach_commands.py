@@ -7,8 +7,10 @@ import logging
 import os
 import sys
 from datetime import date, timedelta
+from typing import Optional
 
 import requests
+from clean_skipfails import CleanSkipfails
 from mach.decorators import Command, CommandArgument, SubCommand
 from mozbuild.base import BuildEnvironmentNotFoundException
 from mozbuild.base import MachCommandConditions as conditions
@@ -1311,3 +1313,46 @@ def skipfails(
         use_failures,
         max_failures,
     )
+
+
+@SubCommand(
+    "manifest",
+    "clean-skip-fails",
+    description="Update manifests to remove skip-if conditions for a specific platform. Only works for TOML manifests.",
+)
+@CommandArgument(
+    "manifest_search_path",
+    nargs=1,
+    help="Path to the folder containing the manifests to update, or the path to a single manifest",
+)
+@CommandArgument(
+    "-o",
+    "--os",
+    default=None,
+    dest="os_name",
+    help="OS to remove (linux, mac, win)",
+)
+@CommandArgument(
+    "-s",
+    "--os_version",
+    default=None,
+    dest="os_version",
+    help="Version of the OS to remove (eg: 18.04 for linux)",
+)
+@CommandArgument(
+    "-p",
+    "--processor",
+    default=None,
+    dest="processor",
+    help="Type of processor architecture to remove (eg: x86)",
+)
+def clean_skipfails(
+    command_context,
+    manifest_search_path: list[str],
+    os_name: Optional[str] = None,
+    os_version: Optional[str] = None,
+    processor: Optional[str] = None,
+):
+    CleanSkipfails(
+        command_context, manifest_search_path[0], os_name, os_version, processor
+    ).run()

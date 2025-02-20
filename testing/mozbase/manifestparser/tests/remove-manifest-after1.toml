@@ -1,0 +1,16 @@
+[DEFAULT]
+
+["test_remove_skip1.html"]
+skip-if = [
+  "os == 'mac'", #  Bug 111
+  "os == 'win'", #  Bug 333
+]
+
+["test_remove_skip2.html"]
+skip-if = ["os == 'macosx' && os_version == '14.70' && processor == 'x86'"] #  Bug 333
+
+["test_remove_skip3.html"]
+other-key = "test"
+
+["test_remove_skip4.html"]
+skip-if = ["os == 'mac'"] #  Bug 111

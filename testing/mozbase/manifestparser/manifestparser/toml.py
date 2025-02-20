@@ -5,6 +5,10 @@
 import io
 import os
 import re
+from typing import Optional
+
+from tomlkit.items import Array, Table
+from tomlkit.toml_document import TOMLDocument
 
 from .ini import combine_fields
 
@@ -338,3 +342,89 @@ def add_skip_if(manifest, filename, condition, bug=None):
         skip_if = {"skip-if": mp_array}
         del keyvals["skip-if"]
         keyvals.update(skip_if)
+
+
+def _should_remove_condition(
+    condition: str,
+    os_name: Optional[str] = None,
+    os_version: Optional[str] = None,
+    processor: Optional[str] = None,
+):
+    to_ignore = [os_name, os_version, processor]
+    for part in to_ignore:
+        if part is not None and part not in condition:
+            return False
+    return True
+
+
+def remove_skip_if(
+    manifest: TOMLDocument,
+    os_name: Optional[str] = None,
+    os_version: Optional[str] = None,
+    processor: Optional[str] = None,
+):
+    from tomlkit import array
+    from tomlkit.items import Comment, String
+
+    if os_name is None and os_version is None and processor is None:
+        raise ValueError("Needs at least os name, version or processor to be set.")
+
+    has_removed_items = False
+
+    for filename in manifest:
+        key_values = manifest[filename]
+        if isinstance(key_values, Table) and "skip-if" in key_values:
+            condition_array = key_values["skip-if"]
+            if isinstance(condition_array, Array):
+                new_conditions = array()
+                condition = None
+                comment = None
+                conditions_to_add: list[tuple[str, Optional[str]]] = []
+                for item in condition_array._iter_items():
+                    if isinstance(item, String):
+                        if condition is not None:
+                            if not _should_remove_condition(
+                                condition, os_name, os_version, processor
+                            ):
+                                conditions_to_add.append((condition, comment))
+                            else:
+                                has_removed_items = True
+                            condition = None
+                            comment = None
+                        if len(item) > 0:
+                            condition = item.as_string().strip('"')
+                    elif isinstance(item, Comment):
+                        comment = _simplify_comment(item.as_string())
+                if condition is not None:
+                    if not _should_remove_condition(
+                        condition, os_name, os_version, processor
+                    ):
+                        conditions_to_add.append((condition, comment))
+                    else:
+                        has_removed_items = True
+
+                if len(conditions_to_add) > 0:
+                    # If there is only one condition, make the skip-if a one-liner
+                    if len(conditions_to_add) > 1:
+                        for condition, comment in conditions_to_add:
+                            new_conditions.add_line(
+                                condition, comment=comment, indent="  "
+                            )
+                    else:
+                        condition, comment = conditions_to_add[0]
+                        new_conditions.add_line(
+                            condition, indent="", add_comma=False, newline=False
+                        )
+                        # Make sure the comment is added outside the array on one-liners
+                        if comment is not None:
+                            new_conditions.comment(comment)
+
+                # Do not keep an empty skip-if array if there are no conditions
+                if len(new_conditions) > 0:
+                    if len(new_conditions) > 1:
+                        new_conditions.add_line("", indent="")
+                    key_values.update({"skip-if": new_conditions})
+                else:
+                    del key_values["skip-if"]
+
+    return has_removed_items
