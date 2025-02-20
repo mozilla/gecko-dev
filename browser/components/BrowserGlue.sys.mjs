@@ -19,7 +19,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   BackupService: "resource:///modules/backup/BackupService.sys.mjs",
-  Blocklist: "resource://gre/modules/Blocklist.sys.mjs",
   BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.sys.mjs",
   BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.sys.mjs",
   BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.sys.mjs",
@@ -30,8 +29,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CaptchaDetectionPingUtils:
     "resource://gre/modules/CaptchaDetectionPingUtils.sys.mjs",
   CommonDialog: "resource://gre/modules/CommonDialog.sys.mjs",
-  ContentRelevancyManager:
-    "resource://gre/modules/ContentRelevancyManager.sys.mjs",
   ContextualIdentityService:
     "resource://gre/modules/ContextualIdentityService.sys.mjs",
   DAPTelemetrySender: "resource://gre/modules/DAPTelemetrySender.sys.mjs",
@@ -49,7 +46,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   // eslint-disable-next-line mozilla/valid-lazy
   FilePickerCrashed: "resource:///modules/FilePickerCrashed.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
-  GenAI: "resource:///modules/GenAI.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
   Integration: "resource://gre/modules/Integration.sys.mjs",
   Interactions: "resource:///modules/Interactions.sys.mjs",
@@ -103,7 +99,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/TelemetryReportingPolicy.sys.mjs",
   TRRRacer: "resource:///modules/TRRPerformance.sys.mjs",
   TabCrashHandler: "resource:///modules/ContentCrashHandlers.sys.mjs",
-  TabUnloader: "resource:///modules/TabUnloader.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarSearchTermsPersistence:
     "resource:///modules/UrlbarSearchTermsPersistence.sys.mjs",
@@ -2512,7 +2507,39 @@ BrowserGlue.prototype = {
    * to the other ones scheduled together.
    */
   _scheduleStartupIdleTasks() {
-    const idleTasks = [
+    function runIdleTasks(idleTasks) {
+      for (let task of idleTasks) {
+        if ("condition" in task && !task.condition) {
+          continue;
+        }
+
+        ChromeUtils.idleDispatch(
+          async () => {
+            if (!Services.startup.shuttingDown) {
+              let startTime = Cu.now();
+              try {
+                await task.task();
+              } catch (ex) {
+                console.error(ex);
+              } finally {
+                ChromeUtils.addProfilerMarker(
+                  "startupIdleTask",
+                  startTime,
+                  task.name
+                );
+              }
+            }
+          },
+          task.timeout ? { timeout: task.timeout } : undefined
+        );
+      }
+    }
+
+    // Note: unless you need a timeout, please do not add new tasks here, and
+    // instead use the category manager. You can do this in a manifest file in
+    // the component that needs to run code, or in BrowserComponents.manifest
+    // in this folder. The callModulesFromCategory call below will call them.
+    const earlyTasks = [
       // It's important that SafeBrowsing is initialized reasonably
       // early, so we use a maximum timeout for it.
       {
@@ -2530,16 +2557,17 @@ BrowserGlue.prototype = {
           lazy.Discovery.update();
         },
       },
+    ];
 
-      {
-        name: "PlacesUIUtils.unblockToolbars",
-        task: () => {
-          // We postponed loading bookmarks toolbar content until startup
-          // has finished, so we can start loading it now:
-          lazy.PlacesUIUtils.unblockToolbars();
-        },
-      },
+    runIdleTasks(earlyTasks);
 
+    lazy.BrowserUtils.callModulesFromCategory({
+      categoryName: "browser-idle-startup",
+      profilerMarker: "startupIdleTask",
+      idleDispatch: true,
+    });
+
+    const lateTasks = [
       {
         name: "PlacesDBUtils.telemetry",
         condition:
@@ -2807,33 +2835,6 @@ BrowserGlue.prototype = {
         },
       },
 
-      // Install built-in themes. We already installed the active built-in
-      // theme, if any, before UI startup.
-      {
-        name: "BuiltInThemes.ensureBuiltInThemes",
-        task: async () => {
-          await lazy.BuiltInThemes.ensureBuiltInThemes();
-        },
-      },
-
-      {
-        name: "WinTaskbarJumpList.startup",
-        condition: AppConstants.platform == "win",
-        task: () => {
-          // For Windows 7, initialize the jump list module.
-          const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
-          if (
-            WINTASKBAR_CONTRACTID in Cc &&
-            Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available
-          ) {
-            const { WinTaskbarJumpList } = ChromeUtils.importESModule(
-              "resource:///modules/WindowsJumpLists.sys.mjs"
-            );
-            WinTaskbarJumpList.startup();
-          }
-        },
-      },
-
       // Report macOS Dock status
       {
         name: "MacDockSupport.isAppInDock",
@@ -2890,27 +2891,6 @@ BrowserGlue.prototype = {
         name: "webProtocolHandlerService.asyncInit",
         task: () => {
           lazy.WebProtocolHandlerRegistrar.prototype.init(true);
-        },
-      },
-
-      {
-        name: "RFPHelper.init",
-        task: () => {
-          lazy.RFPHelper.init();
-        },
-      },
-
-      {
-        name: "Blocklist.loadBlocklistAsync",
-        task: () => {
-          lazy.Blocklist.loadBlocklistAsync();
-        },
-      },
-
-      {
-        name: "TabUnloader.init",
-        task: () => {
-          lazy.TabUnloader.init();
         },
       },
 
@@ -3099,35 +3079,6 @@ BrowserGlue.prototype = {
       },
 
       {
-        name: "UpdateListener.maybeShowUnsupportedNotification",
-        condition: AppConstants.MOZ_UPDATER,
-        task: () => {
-          lazy.UpdateListener.maybeShowUnsupportedNotification();
-        },
-      },
-
-      {
-        name: "GenAI.init",
-        task() {
-          lazy.GenAI.init();
-        },
-      },
-
-      {
-        name: "QuickSuggest.init",
-        task: () => {
-          lazy.QuickSuggest.init();
-        },
-      },
-
-      {
-        name: "UrlbarSearchTermsPersistence initialization",
-        task: () => {
-          lazy.UrlbarSearchTermsPersistence.init();
-        },
-      },
-
-      {
         name: "DAPTelemetrySender.startup",
         condition:
           AppConstants.MOZ_TELEMETRY_REPORTING &&
@@ -3141,31 +3092,10 @@ BrowserGlue.prototype = {
       },
 
       {
-        name: "ShoppingUtils.init",
-        task: () => {
-          lazy.ShoppingUtils.init();
-        },
-      },
-
-      {
         // Starts the JSOracle process for ORB JavaScript validation, if it hasn't started already.
         name: "start-orb-javascript-oracle",
         task: () => {
           ChromeUtils.ensureJSOracleStarted();
-        },
-      },
-
-      {
-        name: "SearchSERPCategorization.init",
-        task: () => {
-          lazy.SearchSERPCategorization.init();
-        },
-      },
-
-      {
-        name: "ContentRelevancyManager.init",
-        task: () => {
-          lazy.ContentRelevancyManager.init();
         },
       },
 
@@ -3216,31 +3146,7 @@ BrowserGlue.prototype = {
       // Do NOT add anything after idle tasks finished.
     ];
 
-    for (let task of idleTasks) {
-      if ("condition" in task && !task.condition) {
-        continue;
-      }
-
-      ChromeUtils.idleDispatch(
-        async () => {
-          if (!Services.startup.shuttingDown) {
-            let startTime = Cu.now();
-            try {
-              await task.task();
-            } catch (ex) {
-              console.error(ex);
-            } finally {
-              ChromeUtils.addProfilerMarker(
-                "startupIdleTask",
-                startTime,
-                task.name
-              );
-            }
-          }
-        },
-        task.timeout ? { timeout: task.timeout } : undefined
-      );
-    }
+    runIdleTasks(lateTasks);
   },
 
   /**

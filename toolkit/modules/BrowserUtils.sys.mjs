@@ -35,11 +35,23 @@ ChromeUtils.defineLazyGetter(lazy, "CatManListenerManager", () => {
         ({ data: module, value }) => {
           try {
             let [objName, method] = value.split(".");
-            if (!Object.hasOwn(this.cachedModules, module)) {
-              this.cachedModules[module] = ChromeUtils.importESModule(module);
-            }
-            let fn = (...args) =>
-              this.cachedModules[module][objName][method](...args);
+            let fn = (...args) => {
+              if (!Object.hasOwn(this.cachedModules, module)) {
+                this.cachedModules[module] = ChromeUtils.importESModule(module);
+              }
+              let obj = this.cachedModules[module][objName];
+              if (!obj) {
+                throw new Error(
+                  `Could not access ${objName} in ${module}. Is it exported?`
+                );
+              }
+              if (typeof obj[method] != "function") {
+                throw new Error(
+                  `${objName}.${method} in ${module} is not a function.`
+                );
+              }
+              return this.cachedModules[module][objName][method](...args);
+            };
             fn._descriptiveName = value;
             return fn;
           } catch (ex) {
