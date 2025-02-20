@@ -100,7 +100,6 @@ web-platform-tests:
             privatebrowsing:
                 by-test-platform:
                     android.*: []
-                    macos.*: []
                     .*-(wayland).*/.*: []
                     default: built-projects
             inc-origin-init:
