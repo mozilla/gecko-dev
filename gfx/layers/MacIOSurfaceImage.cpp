@@ -290,22 +290,21 @@ already_AddRefed<MacIOSurface> MacIOSurfaceRecycleAllocator::Allocate(
       continue;
     }
 
-#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+#ifdef DEBUG
     Maybe<OSType> pixelFormat = MacIOSurface::ChoosePixelFormat(
         aChromaSubsampling, aColorRange, aColorDepth);
-    MOZ_DIAGNOSTIC_ASSERT(pixelFormat.isSome());
-    MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetPixelFormat(surf.get()) ==
-                          *pixelFormat);
-    MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetWidthOfPlane(surf.get(), 0) ==
-                          (size_t)aYSize.width);
-    MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetHeightOfPlane(surf.get(), 0) ==
-                          (size_t)aYSize.height);
+    MOZ_ASSERT(pixelFormat.isSome());
+    MOZ_ASSERT(::IOSurfaceGetPixelFormat(surf.get()) == *pixelFormat);
+    MOZ_ASSERT(::IOSurfaceGetWidthOfPlane(surf.get(), 0) ==
+               (size_t)aYSize.width);
+    MOZ_ASSERT(::IOSurfaceGetHeightOfPlane(surf.get(), 0) ==
+               (size_t)aYSize.height);
     if (*pixelFormat != kCVPixelFormatType_422YpCbCr8_yuvs &&
         *pixelFormat != kCVPixelFormatType_422YpCbCr8FullRange) {
-      MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetWidthOfPlane(surf.get(), 1) ==
-                            (size_t)aCbCrSize.width);
-      MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetHeightOfPlane(surf.get(), 1) ==
-                            (size_t)aCbCrSize.height);
+      MOZ_ASSERT(::IOSurfaceGetWidthOfPlane(surf.get(), 1) ==
+                 (size_t)aCbCrSize.width);
+      MOZ_ASSERT(::IOSurfaceGetHeightOfPlane(surf.get(), 1) ==
+                 (size_t)aCbCrSize.height);
     }
 #endif
 

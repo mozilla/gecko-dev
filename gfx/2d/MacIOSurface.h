@@ -150,10 +150,13 @@ class MacIOSurface final
 
   static size_t GetMaxWidth();
   static size_t GetMaxHeight();
+
+#  ifdef DEBUG
   static mozilla::Maybe<OSType> ChoosePixelFormat(
       mozilla::gfx::ChromaSubsampling aChromaSubsampling,
       mozilla::gfx::ColorRange aColorRange,
       mozilla::gfx::ColorDepth aColorDepth);
+#  endif
 
   CFTypeRefPtr<IOSurfaceRef> GetIOSurfaceRef() { return mIOSurfaceRef; }
 

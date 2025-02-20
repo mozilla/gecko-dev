@@ -515,6 +515,7 @@ ColorDepth MacIOSurface::GetColorDepth() const {
   }
 }
 
+#ifdef DEBUG
 /* static */ Maybe<OSType> MacIOSurface::ChoosePixelFormat(
     ChromaSubsampling aChromaSubsampling, ColorRange aColorRange,
     ColorDepth aColorDepth) {
@@ -576,6 +577,7 @@ ColorDepth MacIOSurface::GetColorDepth() const {
   }
   return Nothing();
 }
+#endif
 
 bool MacIOSurface::BindTexImage(mozilla::gl::GLContext* aGL, size_t aPlane,
                                 mozilla::gfx::SurfaceFormat* aOutReadFormat) {
