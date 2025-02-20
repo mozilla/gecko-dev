@@ -587,17 +587,17 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "discoverystream.sections.topicSelection.enabled",
+    "discoverystream.sections.interestPicker.enabled",
     {
-      title: "Boolean flag to enable inline topic selection",
+      title: "Boolean flag to enable the inline interest picker",
       value: false,
     },
   ],
   [
-    "discoverystream.sections.topicSelection.position",
+    "discoverystream.sections.interestPicker.visibleSections",
     {
-      title: "index position of inline topic selection",
-      value: 1,
+      title: "comma separated string of sections that are visible",
+      value: "",
     },
   ],
   [

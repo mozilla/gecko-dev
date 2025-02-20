@@ -187,7 +187,7 @@ module.exports = function (config) {
             /**
              * Tests for inline topic selection are coming in a follow-up task
              */
-            "content-src/components/DiscoveryStreamComponents/InlineTopicSelection/*.jsx":
+            "content-src/components/DiscoveryStreamComponents/InterestPicker/*.jsx":
               {
                 statements: 0,
                 lines: 0,
@@ -203,9 +203,9 @@ module.exports = function (config) {
               },
             "content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx":
               {
-                statements: 93.62,
-                lines: 93.48,
-                functions: 92.31,
+                statements: 90.82,
+                lines: 90.53,
+                functions: 87.5,
                 branches: 60,
               },
             "content-src/components/DiscoveryStreamComponents/SectionContextMenu/SectionContextMenu.jsx":

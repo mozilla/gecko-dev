@@ -10062,7 +10062,7 @@ function SectionContextMenu({
     }
   }));
 }
-;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/InlineTopicSelection/InlineTopicSelection.jsx
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/InterestPicker/InterestPicker.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10072,7 +10072,7 @@ function SectionContextMenu({
 
 
 const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
-const PREF_TOPIC_SELECTION_POSITION = "discoverystream.sections.topicSelection.position";
+const PREF_VISIBLE_SECTIONS = "discoverystream.sections.interestPicker.visibleSections";
 
 /**
  * Shows a list of recommended topics with visual indication whether
@@ -10081,56 +10081,32 @@ const PREF_TOPIC_SELECTION_POSITION = "discoverystream.sections.topicSelection.p
  *
  * @returns {React.Element}
  */
-function InlineTopicSelection() {
+function InterestPicker({
+  data
+}) {
   const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
   const focusedRef = (0,external_React_namespaceObject.useRef)(null);
   const focusRef = (0,external_React_namespaceObject.useRef)(null);
   const [focusedIndex, setFocusedIndex] = (0,external_React_namespaceObject.useState)(0);
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
-  const following = prefs[PREF_FOLLOWED_SECTIONS] ? prefs[PREF_FOLLOWED_SECTIONS].split(", ") : [];
-  // Stub out topics, will replace with server topics
-  const topics = [{
-    label: "Politics",
-    id: "government"
-  }, {
-    label: "Sports",
-    id: "sports"
-  }, {
-    label: "Life Hacks",
-    id: "society"
-  }, {
-    label: "Food",
-    id: "food"
-  }, {
-    label: "Tech",
-    id: "tech"
-  }, {
-    label: "Travel",
-    id: "travel"
-  }, {
-    label: "Health",
-    id: "health"
-  }, {
-    label: "Money",
-    id: "finance"
-  }, {
-    label: "Science",
-    id: "education-science"
-  }, {
-    label: "Home & Garden",
-    id: "home"
-  }, {
-    label: "Entertainment",
-    id: "arts"
-  }];
+  const visibleSections = prefs[PREF_VISIBLE_SECTIONS]?.split(",").map(item => item.trim()).filter(item => item);
+  const {
+    title,
+    subtitle,
+    receivedFeedRank,
+    sections
+  } = data;
+  // if undefined or null, assign as empty array to avoid an error
+  const interests = sections ?? [];
+  const following = prefs[PREF_FOLLOWED_SECTIONS] ? prefs[PREF_FOLLOWED_SECTIONS].split(",") : [];
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.INLINE_SELECTION_IMPRESSION,
       data: {
-        position: prefs[PREF_TOPIC_SELECTION_POSITION]
+        position: receivedFeedRank
       }
     }));
-  }, [dispatch, prefs]);
+  }, [dispatch, receivedFeedRank]);
   const ref = useIntersectionObserver(handleIntersection);
   const onKeyDown = (0,external_React_namespaceObject.useCallback)(e => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -10166,6 +10142,12 @@ function InlineTopicSelection() {
     let updatedTopics = following;
     if (checked) {
       updatedTopics = updatedTopics.length ? [...updatedTopics, topic] : [topic];
+      if (!visibleSections.includes(topic)) {
+        // add section to visible sections and place after the inline picker
+        // subtract 1 from the rank so that it is normalized with array index
+        visibleSections.splice(receivedFeedRank - 1, 0, topic);
+        dispatch(actionCreators.SetPref(PREF_VISIBLE_SECTIONS, visibleSections.join(",")));
+      }
     } else {
       updatedTopics = updatedTopics.filter(t => t !== topic);
     }
@@ -10175,32 +10157,32 @@ function InlineTopicSelection() {
         topic,
         is_followed: checked,
         topic_position: index,
-        position: prefs[PREF_TOPIC_SELECTION_POSITION]
+        position: receivedFeedRank
       }
     }));
-    dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(", ")));
+    dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(",")));
   }
   return /*#__PURE__*/external_React_default().createElement("section", {
     className: "inline-selection-wrapper",
     ref: el => {
       ref.current = [el];
     }
-  }, /*#__PURE__*/external_React_default().createElement("h2", null, "Follow topics to personalize your feed"), /*#__PURE__*/external_React_default().createElement("p", {
+  }, /*#__PURE__*/external_React_default().createElement("h2", null, title), /*#__PURE__*/external_React_default().createElement("p", {
     className: "inline-selection-copy"
-  }, "We will bring you personalized content, all while respecting your privacy. You'll have powerful control over what content you see and what you don't."), /*#__PURE__*/external_React_default().createElement("ul", {
+  }, subtitle), /*#__PURE__*/external_React_default().createElement("ul", {
     className: "topic-list",
     onFocus: onWrapperFocus,
     onBlur: onWrapperBlur,
     ref: focusRef
-  }, topics.map((topic, index) => {
-    const checked = following.includes(topic.id);
+  }, interests.map((interest, index) => {
+    const checked = following.includes(interest.sectionId);
     return /*#__PURE__*/external_React_default().createElement("li", {
-      key: topic.id,
+      key: interest.id,
       ref: index === focusedIndex ? focusedRef : null
     }, /*#__PURE__*/external_React_default().createElement("label", null, /*#__PURE__*/external_React_default().createElement("input", {
       type: "checkbox",
-      id: topic.id,
-      name: topic.id,
+      id: interest.sectionId,
+      name: interest.sectionId,
       checked: checked,
       "aria-checked": checked,
       onChange: e => handleChange(e, index),
@@ -10209,8 +10191,9 @@ function InlineTopicSelection() {
         onItemFocus(index);
       }
     }), /*#__PURE__*/external_React_default().createElement("span", {
-      className: "topic-item-label"
-    }, topic.label), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "topic-item-label",
+      "data-l10n-id": `newtab-topic-label-${interest.sectionId}`
+    }), /*#__PURE__*/external_React_default().createElement("div", {
       className: `topic-item-icon icon ${checked ? "icon-check-filled" : "icon-add-circle-fill"}`
     })));
   })), /*#__PURE__*/external_React_default().createElement("p", {
@@ -10245,8 +10228,8 @@ const CardSections_PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following"
 const PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocked";
 const CardSections_PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const CardSections_PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
-const PREF_TOPIC_SELECTION_ENABLED = "discoverystream.sections.topicSelection.enabled";
-const CardSections_PREF_TOPIC_SELECTION_POSITION = "discoverystream.sections.topicSelection.position";
+const PREF_INTEREST_PICKER_ENABLED = "discoverystream.sections.interestPicker.enabled";
+const CardSections_PREF_VISIBLE_SECTIONS = "discoverystream.sections.interestPicker.visibleSections";
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
     classNames: [],
@@ -10286,13 +10269,14 @@ function getMaxTiles(responsiveLayouts) {
 }
 
 /**
- * Transforms a comma-separated string of topics in user preferences
+ * Transforms a comma-separated string in user preferences
  * into a cleaned-up array.
  *
- * @param pref
- * @returns string[]
+ * @param {string} pref - The comma-separated pref to be converted.
+ * @returns {string[]} An array of trimmed strings, excluding empty values.
  */
-const getTopics = pref => {
+
+const prefToArray = (pref = "") => {
   return pref.split(",").map(item => item.trim()).filter(item => item);
 };
 function CardSection({
@@ -10327,9 +10311,9 @@ function CardSection({
   const {
     responsiveLayouts
   } = section.layout;
-  const followedSections = getTopics(followedSectionsPref);
+  const followedSections = prefToArray(followedSectionsPref);
   const following = followedSections.includes(sectionKey);
-  const blockedSections = getTopics(blockedSectionsPref);
+  const blockedSections = prefToArray(blockedSectionsPref);
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.CARD_SECTION_IMPRESSION,
@@ -10497,20 +10481,48 @@ function CardSections({
 }) {
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
-  const topicSelectionEnabled = prefs[PREF_TOPIC_SELECTION_ENABLED];
-  const topicSelectionPosition = prefs[CardSections_PREF_TOPIC_SELECTION_POSITION];
+  const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
     return null;
   }
-
-  // Retrieve blocked sections
-  const blockedSections = getTopics(prefs[PREF_BLOCKED_SECTIONS] || "");
-
-  // Only show sections that haven't been blocked by the user
-  const sections = data.sections.filter(section => !blockedSections.includes(section.sectionKey));
-  const isEmpty = sections.length === 0;
+  const visibleSections = prefToArray(prefs[CardSections_PREF_VISIBLE_SECTIONS]);
+  const blockedSections = prefToArray(prefs[PREF_BLOCKED_SECTIONS] || "");
+  const {
+    interestPicker
+  } = data;
+  let filteredSections = data.sections.filter(section => !blockedSections.includes(section.sectionKey));
+  if (interestPickerEnabled && visibleSections.length) {
+    filteredSections = visibleSections.reduce((acc, visibleSection) => {
+      const found = filteredSections.find(({
+        sectionKey
+      }) => sectionKey === visibleSection);
+      if (found) {
+        acc.push(found);
+      }
+      return acc;
+    }, []);
+  }
+  let sectionsToRender = filteredSections.map((section, sectionPosition) => /*#__PURE__*/external_React_default().createElement(CardSection, {
+    key: `section-${section.sectionKey}`,
+    sectionPosition: sectionPosition,
+    section: section,
+    dispatch: dispatch,
+    type: type,
+    firstVisibleTimestamp: firstVisibleTimestamp,
+    is_collection: is_collection,
+    spocMessageVariant: spocMessageVariant,
+    ctaButtonVariant: ctaButtonVariant,
+    ctaButtonSponsors: ctaButtonSponsors
+  }));
+  if (interestPickerEnabled && personalizationEnabled && interestPicker) {
+    const index = interestPicker.receivedFeedRank - 1;
+    sectionsToRender.splice(Math.min(sectionsToRender.length - 1, index), 0, /*#__PURE__*/external_React_default().createElement(InterestPicker, {
+      data: interestPicker
+    }));
+  }
+  const isEmpty = sectionsToRender.length === 0;
   return isEmpty ? /*#__PURE__*/external_React_default().createElement("div", {
     className: "ds-card-grid empty"
   }, /*#__PURE__*/external_React_default().createElement(DSEmptyState, {
@@ -10519,21 +10531,7 @@ function CardSections({
     feed: feed
   })) : /*#__PURE__*/external_React_default().createElement("div", {
     className: "ds-section-wrapper"
-  }, sections.map((section, sectionPosition) => {
-    const shouldRenderTopicSelection = sectionPosition === topicSelectionPosition && personalizationEnabled && topicSelectionEnabled;
-    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, shouldRenderTopicSelection && /*#__PURE__*/external_React_default().createElement(InlineTopicSelection, null), /*#__PURE__*/external_React_default().createElement(CardSection, {
-      key: `section-${section.sectionKey}`,
-      sectionPosition: sectionPosition,
-      section: section,
-      dispatch: dispatch,
-      type: type,
-      firstVisibleTimestamp: firstVisibleTimestamp,
-      is_collection: is_collection,
-      spocMessageVariant: spocMessageVariant,
-      ctaButtonVariant: ctaButtonVariant,
-      ctaButtonSponsors: ctaButtonSponsors
-    }));
-  }));
+  }, sectionsToRender);
 }
 
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamBase/DiscoveryStreamBase.jsx
@@ -10919,7 +10917,7 @@ const SectionsMgmtPanel_PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocke
  * @returns string[]
  */
 // TODO: DRY Issue: Import function from CardSections.jsx?
-const SectionsMgmtPanel_getTopics = pref => {
+const getTopics = pref => {
   return pref.split(",").map(item => item.trim()).filter(item => item);
 };
 function SectionsMgmtPanel({
@@ -10943,8 +10941,8 @@ function SectionsMgmtPanel({
   }
   const followedSectionsPref = prefs[SectionsMgmtPanel_PREF_FOLLOWED_SECTIONS] || "";
   const blockedSectionsPref = prefs[SectionsMgmtPanel_PREF_BLOCKED_SECTIONS] || "";
-  const followedSections = SectionsMgmtPanel_getTopics(followedSectionsPref);
-  const blockedSections = SectionsMgmtPanel_getTopics(blockedSectionsPref);
+  const followedSections = getTopics(followedSectionsPref);
+  const blockedSections = getTopics(blockedSectionsPref);
   const [followedSectionsState, setFollowedSectionsState] = (0,external_React_namespaceObject.useState)(followedSectionsPref); // State management with useState
   const [blockedSectionsState, setBlockedSectionsState] = (0,external_React_namespaceObject.useState)(blockedSectionsPref); // State management with useState
 

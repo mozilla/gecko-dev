@@ -9,7 +9,7 @@ import { useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useIntersectionObserver } from "../../../lib/hooks";
 import { SectionContextMenu } from "../SectionContextMenu/SectionContextMenu";
-import { InlineTopicSelection } from "../InlineTopicSelection/InlineTopicSelection";
+import { InterestPicker } from "../InterestPicker/InterestPicker";
 
 // Prefs
 const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
@@ -23,10 +23,10 @@ const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
 const PREF_BLOCKED_SECTIONS = "discoverystream.sections.blocked";
 const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const PREF_THUMBS_UP_DOWN_ENABLED = "discoverystream.thumbsUpDown.enabled";
-const PREF_TOPIC_SELECTION_ENABLED =
-  "discoverystream.sections.topicSelection.enabled";
-const PREF_TOPIC_SELECTION_POSITION =
-  "discoverystream.sections.topicSelection.position";
+const PREF_INTEREST_PICKER_ENABLED =
+  "discoverystream.sections.interestPicker.enabled";
+const PREF_VISIBLE_SECTIONS =
+  "discoverystream.sections.interestPicker.visibleSections";
 
 function getLayoutData(responsiveLayouts, index) {
   let layoutData = {
@@ -73,13 +73,14 @@ function getMaxTiles(responsiveLayouts) {
 }
 
 /**
- * Transforms a comma-separated string of topics in user preferences
+ * Transforms a comma-separated string in user preferences
  * into a cleaned-up array.
  *
- * @param pref
- * @returns string[]
+ * @param {string} pref - The comma-separated pref to be converted.
+ * @returns {string[]} An array of trimmed strings, excluding empty values.
  */
-const getTopics = pref => {
+
+const prefToArray = (pref = "") => {
   return pref
     .split(",")
     .map(item => item.trim())
@@ -115,9 +116,9 @@ function CardSection({
   const { sectionKey, title, subtitle } = section;
   const { responsiveLayouts } = section.layout;
 
-  const followedSections = getTopics(followedSectionsPref);
+  const followedSections = prefToArray(followedSectionsPref);
   const following = followedSections.includes(sectionKey);
-  const blockedSections = getTopics(blockedSectionsPref);
+  const blockedSections = prefToArray(blockedSectionsPref);
 
   const handleIntersection = useCallback(() => {
     dispatch(
@@ -322,55 +323,66 @@ function CardSections({
 }) {
   const prefs = useSelector(state => state.Prefs.values);
   const personalizationEnabled = prefs[PREF_SECTIONS_PERSONALIZATION_ENABLED];
-  const topicSelectionEnabled = prefs[PREF_TOPIC_SELECTION_ENABLED];
-  const topicSelectionPosition = prefs[PREF_TOPIC_SELECTION_POSITION];
+  const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
 
   // Handle a render before feed has been fetched by displaying nothing
   if (!data) {
     return null;
   }
 
-  // Retrieve blocked sections
-  const blockedSections = getTopics(prefs[PREF_BLOCKED_SECTIONS] || "");
+  const visibleSections = prefToArray(prefs[PREF_VISIBLE_SECTIONS]);
+  const blockedSections = prefToArray(prefs[PREF_BLOCKED_SECTIONS] || "");
+  const { interestPicker } = data;
 
-  // Only show sections that haven't been blocked by the user
-  const sections = data.sections.filter(
+  let filteredSections = data.sections.filter(
     section => !blockedSections.includes(section.sectionKey)
   );
 
-  const isEmpty = sections.length === 0;
+  if (interestPickerEnabled && visibleSections.length) {
+    filteredSections = visibleSections.reduce((acc, visibleSection) => {
+      const found = filteredSections.find(
+        ({ sectionKey }) => sectionKey === visibleSection
+      );
+      if (found) {
+        acc.push(found);
+      }
+      return acc;
+    }, []);
+  }
+
+  let sectionsToRender = filteredSections.map((section, sectionPosition) => (
+    <CardSection
+      key={`section-${section.sectionKey}`}
+      sectionPosition={sectionPosition}
+      section={section}
+      dispatch={dispatch}
+      type={type}
+      firstVisibleTimestamp={firstVisibleTimestamp}
+      is_collection={is_collection}
+      spocMessageVariant={spocMessageVariant}
+      ctaButtonVariant={ctaButtonVariant}
+      ctaButtonSponsors={ctaButtonSponsors}
+    />
+  ));
+
+  if (interestPickerEnabled && personalizationEnabled && interestPicker) {
+    const index = interestPicker.receivedFeedRank - 1;
+
+    sectionsToRender.splice(
+      Math.min(sectionsToRender.length - 1, index),
+      0,
+      <InterestPicker data={interestPicker} />
+    );
+  }
+
+  const isEmpty = sectionsToRender.length === 0;
 
   return isEmpty ? (
     <div className="ds-card-grid empty">
       <DSEmptyState status={data.status} dispatch={dispatch} feed={feed} />
     </div>
   ) : (
-    <div className="ds-section-wrapper">
-      {sections.map((section, sectionPosition) => {
-        const shouldRenderTopicSelection =
-          sectionPosition === topicSelectionPosition &&
-          personalizationEnabled &&
-          topicSelectionEnabled;
-
-        return (
-          <>
-            {shouldRenderTopicSelection && <InlineTopicSelection />}
-            <CardSection
-              key={`section-${section.sectionKey}`}
-              sectionPosition={sectionPosition}
-              section={section}
-              dispatch={dispatch}
-              type={type}
-              firstVisibleTimestamp={firstVisibleTimestamp}
-              is_collection={is_collection}
-              spocMessageVariant={spocMessageVariant}
-              ctaButtonVariant={ctaButtonVariant}
-              ctaButtonSponsors={ctaButtonSponsors}
-            />
-          </>
-        );
-      })}
-    </div>
+    <div className="ds-section-wrapper">{sectionsToRender}</div>
   );
 }
 

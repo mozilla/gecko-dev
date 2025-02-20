@@ -7,8 +7,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useIntersectionObserver } from "../../../lib/hooks";
 const PREF_FOLLOWED_SECTIONS = "discoverystream.sections.following";
-const PREF_TOPIC_SELECTION_POSITION =
-  "discoverystream.sections.topicSelection.position";
+const PREF_VISIBLE_SECTIONS =
+  "discoverystream.sections.interestPicker.visibleSections";
 
 /**
  * Shows a list of recommended topics with visual indication whether
@@ -17,40 +17,34 @@ const PREF_TOPIC_SELECTION_POSITION =
  *
  * @returns {React.Element}
  */
-function InlineTopicSelection() {
+function InterestPicker({ data }) {
   const dispatch = useDispatch();
   const focusedRef = useRef(null);
   const focusRef = useRef(null);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const prefs = useSelector(state => state.Prefs.values);
+  const visibleSections = prefs[PREF_VISIBLE_SECTIONS]?.split(",")
+    .map(item => item.trim())
+    .filter(item => item);
+
+  const { title, subtitle, receivedFeedRank, sections } = data;
+  // if undefined or null, assign as empty array to avoid an error
+  const interests = sections ?? [];
+
   const following = prefs[PREF_FOLLOWED_SECTIONS]
-    ? prefs[PREF_FOLLOWED_SECTIONS].split(", ")
+    ? prefs[PREF_FOLLOWED_SECTIONS].split(",")
     : [];
-  // Stub out topics, will replace with server topics
-  const topics = [
-    { label: "Politics", id: "government" },
-    { label: "Sports", id: "sports" },
-    { label: "Life Hacks", id: "society" },
-    { label: "Food", id: "food" },
-    { label: "Tech", id: "tech" },
-    { label: "Travel", id: "travel" },
-    { label: "Health", id: "health" },
-    { label: "Money", id: "finance" },
-    { label: "Science", id: "education-science" },
-    { label: "Home & Garden", id: "home" },
-    { label: "Entertainment", id: "arts" },
-  ];
 
   const handleIntersection = useCallback(() => {
     dispatch(
       ac.AlsoToMain({
         type: at.INLINE_SELECTION_IMPRESSION,
         data: {
-          position: prefs[PREF_TOPIC_SELECTION_POSITION],
+          position: receivedFeedRank,
         },
       })
     );
-  }, [dispatch, prefs]);
+  }, [dispatch, receivedFeedRank]);
 
   const ref = useIntersectionObserver(handleIntersection);
 
@@ -95,6 +89,12 @@ function InlineTopicSelection() {
       updatedTopics = updatedTopics.length
         ? [...updatedTopics, topic]
         : [topic];
+      if (!visibleSections.includes(topic)) {
+        // add section to visible sections and place after the inline picker
+        // subtract 1 from the rank so that it is normalized with array index
+        visibleSections.splice(receivedFeedRank - 1, 0, topic);
+        dispatch(ac.SetPref(PREF_VISIBLE_SECTIONS, visibleSections.join(",")));
+      }
     } else {
       updatedTopics = updatedTopics.filter(t => t !== topic);
     }
@@ -105,13 +105,12 @@ function InlineTopicSelection() {
           topic,
           is_followed: checked,
           topic_position: index,
-          position: prefs[PREF_TOPIC_SELECTION_POSITION],
+          position: receivedFeedRank,
         },
       })
     );
-    dispatch(ac.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(", ")));
+    dispatch(ac.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(",")));
   }
-
   return (
     <section
       className="inline-selection-wrapper"
@@ -120,27 +119,26 @@ function InlineTopicSelection() {
       }}
     >
       {/* Will replace copy here to copy sent from over the server */}
-      <h2>Follow topics to personalize your feed</h2>
-      <p className="inline-selection-copy">
-        We will bring you personalized content, all while respecting your
-        privacy. You'll have powerful control over what content you see and what
-        you don't.
-      </p>
+      <h2>{title}</h2>
+      <p className="inline-selection-copy">{subtitle}</p>
       <ul
         className="topic-list"
         onFocus={onWrapperFocus}
         onBlur={onWrapperBlur}
         ref={focusRef}
       >
-        {topics.map((topic, index) => {
-          const checked = following.includes(topic.id);
+        {interests.map((interest, index) => {
+          const checked = following.includes(interest.sectionId);
           return (
-            <li key={topic.id} ref={index === focusedIndex ? focusedRef : null}>
+            <li
+              key={interest.id}
+              ref={index === focusedIndex ? focusedRef : null}
+            >
               <label>
                 <input
                   type="checkbox"
-                  id={topic.id}
-                  name={topic.id}
+                  id={interest.sectionId}
+                  name={interest.sectionId}
                   checked={checked}
                   aria-checked={checked}
                   onChange={e => handleChange(e, index)}
@@ -149,7 +147,10 @@ function InlineTopicSelection() {
                     onItemFocus(index);
                   }}
                 />
-                <span className="topic-item-label">{topic.label}</span>
+                <span
+                  className="topic-item-label"
+                  data-l10n-id={`newtab-topic-label-${interest.sectionId}`}
+                />
                 <div
                   className={`topic-item-icon icon ${checked ? "icon-check-filled" : "icon-add-circle-fill"}`}
                 ></div>
@@ -168,4 +169,4 @@ function InlineTopicSelection() {
   );
 }
 
-export { InlineTopicSelection };
+export { InterestPicker };

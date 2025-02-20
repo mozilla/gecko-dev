@@ -967,7 +967,7 @@ newtabInlineTopicSelection:
       type: boolean
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.discoverystream.sections.topicSelection.enabled
+        pref: browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.enabled
       description: >-
         Enables inline topic selection
 

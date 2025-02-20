@@ -3518,6 +3518,7 @@ describe("DiscoveryStreamFeed", () => {
         data: {
           settings: {},
           sections: [],
+          interestPicker: {},
           recommendations: [
             {
               id: 1234,

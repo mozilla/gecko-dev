@@ -121,6 +121,10 @@ const PREF_CONTEXTUAL_CONTENT_FAKESPOT_CTA_URL =
 const PREF_SECTIONS_ENABLED = "discoverystream.sections.enabled";
 const PREF_SECTIONS_FOLLOWING = "discoverystream.sections.following";
 const PREF_SECTIONS_BLOCKED = "discoverystream.sections.blocked";
+const PREF_INTEREST_PICKER_ENABLED =
+  "discoverystream.sections.interestPicker.enabled";
+const PREF_VISIBLE_SECTIONS =
+  "discoverystream.sections.interestPicker.visibleSections";
 
 let getHardcodedLayout;
 
@@ -1704,6 +1708,8 @@ export class DiscoveryStreamFeed {
                   subtitle: sectionData.subtitle || "",
                   receivedRank: sectionData.receivedFeedRank,
                   layout: sectionData.layout,
+                  // property if initially shown (with interest picker)
+                  visible: sectionData.isInitiallyVisible,
                 });
               }
             }
@@ -1725,6 +1731,20 @@ export class DiscoveryStreamFeed {
           "feed"
         );
 
+        if (sections.length) {
+          const visibleSections = sections
+            .filter(({ visible }) => visible)
+            .sort((a, b) => a.receivedRank - b.receivedRank)
+            .map(section => section.sectionKey)
+            .join(",");
+
+          // after the request only show the sections that are
+          // initially visible and only keep the initial order (determined by the server)
+          this.store.dispatch(
+            ac.SetPref(PREF_VISIBLE_SECTIONS, visibleSections)
+          );
+        }
+
         // We can cleanup any impressions we have that are old before we rotate.
         // In theory we can do this anywhere, but doing it just before rotate is optimal.
         // Rotate is also the only place that uses these impressions.
@@ -1740,6 +1760,7 @@ export class DiscoveryStreamFeed {
           data: {
             settings,
             sections,
+            interestPicker: feedResponse.interestPicker || {},
             recommendations: filteredResults,
             status: "success",
           },
@@ -1844,6 +1865,9 @@ export class DiscoveryStreamFeed {
         isBlocked: blockedSections.includes(section),
       }));
 
+      // To display the inline interest picker pass `enableInterestPicker` into the request
+      const interestPickerEnabled = prefs[PREF_INTEREST_PICKER_ENABLED];
+
       headers.append("content-type", "application/json");
       let body = {
         ...(prefMerinoFeedExperiment ? this.getExperimentInfo() : {}),
@@ -1851,6 +1875,7 @@ export class DiscoveryStreamFeed {
         region: this.region,
         topics,
         sections,
+        enableInterestPicker: !!interestPickerEnabled,
       };
 
       const sectionsEnabled = prefs[PREF_SECTIONS_ENABLED];
@@ -2360,6 +2385,7 @@ export class DiscoveryStreamFeed {
       case PREF_CONTEXTUAL_CONTENT_ENABLED:
       case PREF_CONTEXTUAL_CONTENT_SELECTED_FEED:
       case PREF_SECTIONS_ENABLED:
+      case PREF_INTEREST_PICKER_ENABLED:
         // This is a config reset directly related to Discovery Stream pref.
         this.configReset();
         break;

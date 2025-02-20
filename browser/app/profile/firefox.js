@@ -1970,6 +1970,10 @@ pref("browser.newtabpage.activity-stream.discoverystream.sections.region-content
 pref("browser.newtabpage.activity-stream.discoverystream.sections.cards.enabled", true);
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.enabled", false);
 
+pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.enabled", false);
+pref("browser.newtabpage.activity-stream.discoverystream.sections.interestPicker.visibleSections", "");
+
+
 
 pref("browser.newtabpage.activity-stream.discoverystream.merino-provider.endpoint", "merino.services.mozilla.com");
 // List of regions that get spocs by default.
