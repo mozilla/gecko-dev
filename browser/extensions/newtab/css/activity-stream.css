@@ -40,7 +40,6 @@ input {
   --newtab-background-card: rgba(255, 255, 255, 0.8);
   --newtab-text-topic-label-color: #45278D;
   --newtab-text-secondary-text: #15141AB0;
-  --newtab-font-size-xsmall: 11px;
   --newtab-contextual-text-primary-color: light-dark(var(--newtab-text-primary-color), #fbfbfe);
   --newtab-primary-action-background: light-dark(#0061e0, #00ddff);
   --newtab-primary-action-background-pocket: #008078;
@@ -6079,10 +6078,6 @@ main section {
   transition-delay: 333ms;
 }
 
-:root {
-  --newtab-font-size-xsmall: 11px;
-}
-
 .ds-card {
   display: flex;
   flex-direction: column;
@@ -6453,7 +6448,7 @@ main section {
 }
 .ds-card-grid .sections-card-ui .meta .source {
   color: var(--newtab-text-secondary-text);
-  font-size: var(--newtab-font-size-xsmall);
+  font-size: var(--font-size-small);
 }
 .ds-card-grid .sections-card-ui .meta .story-footer {
   justify-content: flex-start;
@@ -6467,7 +6462,7 @@ main section {
 }
 .ds-card-grid .sections-card-ui .meta .story-sponsored-label {
   line-height: unset;
-  font-size: var(--newtab-font-size-xsmall);
+  font-size: var(--font-size-small);
 }
 .ds-card-grid .sections-card-ui .sections-card-footer {
   margin-block-start: var(--space-small);
@@ -6478,7 +6473,7 @@ main section {
   display: grid;
   align-content: center;
   height: 28px;
-  font-size: var(--newtab-font-size-xsmall);
+  font-size: var(--font-size-small);
   color: var(--newtab-text-topic-label-color);
   margin: initial;
   padding: initial;
