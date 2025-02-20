@@ -524,10 +524,10 @@ index a77f04aba5..b0e089d378 100644
      }
    }
 diff --git a/modules/audio_processing/agc/BUILD.gn b/modules/audio_processing/agc/BUILD.gn
-index b8363ad79e..a75d0d2000 100644
+index 14b75f1229..626997322e 100644
 --- a/modules/audio_processing/agc/BUILD.gn
 +++ b/modules/audio_processing/agc/BUILD.gn
-@@ -84,7 +84,7 @@ rtc_library("legacy_agc") {
+@@ -86,7 +86,7 @@ rtc_library("legacy_agc") {
    if (rtc_build_with_neon) {
      if (target_cpu != "arm64") {
        # Enable compilation for the NEON instruction set.
