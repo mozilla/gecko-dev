@@ -2011,6 +2011,12 @@ bool WinUtils::MicaEnabled() {
   return sEnabled;
 }
 
+bool WinUtils::MicaPopupsEnabled() {
+  static bool sEnabled = IsWin1122H2OrLater() &&
+                         StaticPrefs::widget_windows_mica_popups_AtStartup();
+  return sEnabled;
+}
+
 // There are undocumented APIs to query/change the system DPI settings found by
 // https://github.com/lihas/ . We use those APIs only for testing purpose, i.e.
 // in mochitests or some such. To avoid exposing them in our official release

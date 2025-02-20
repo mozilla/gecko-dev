@@ -346,6 +346,10 @@ void nsMenuPopupFrame::PropagateStyleToWidget(WidgetStyleFlags aFlags) const {
   if (aFlags.contains(WidgetStyle::Transform)) {
     widget->SetWindowTransform(ComputeWidgetTransform());
   }
+  if (aFlags.contains(WidgetStyle::MicaBackdrop)) {
+    widget->SetMicaBackdrop(StyleDisplay()->EffectiveAppearance() ==
+                            StyleAppearance::Menupopup);
+  }
 }
 
 bool nsMenuPopupFrame::IsMouseTransparent() const {
@@ -454,6 +458,11 @@ void nsMenuPopupFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
 
   if (newUI.mWindowShadow != oldUI.mWindowShadow) {
     flags += WidgetStyle::Shadow;
+  }
+
+  if (aOldStyle->StyleDisplay()->EffectiveAppearance() !=
+      StyleDisplay()->EffectiveAppearance()) {
+    flags += WidgetStyle::MicaBackdrop;
   }
 
   const auto& pc = *PresContext();
