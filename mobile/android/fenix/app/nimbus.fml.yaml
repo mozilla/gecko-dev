@@ -565,6 +565,20 @@ features:
         type: Boolean
         default: true
 
+  trending-searches:
+    description: Enables trending searches.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable trending searches.
+        type: Boolean
+        default: false
+      show-trending-searches-on-homepage:
+        description: >
+          Whether or not to display trending searches on the homepage.
+        type: Boolean
+        default: false
+
   set-as-default-prompt:
     description: >
       Displays native default browser prompt to existing users.
