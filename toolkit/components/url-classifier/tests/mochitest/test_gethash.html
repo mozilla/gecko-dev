@@ -3,6 +3,7 @@
 <head>
   <title>Bug 1272239 - Test gethash.</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/ChromeTask.js"></script>
   <script type="text/javascript" src="classifierHelper.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
@@ -78,8 +79,16 @@ function setup() {
 }
 
 // manually reset DB to make sure next test won't be affected by cache.
-function reset() {
-  return classifierHelper.resetDatabase();
+async function reset() {
+  // Clear network cache to make sure next test won't be affected by cache.
+  await ChromeTask.spawn(null, async () => {
+    await new Promise(resolve => {
+      Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, () =>
+        resolve()
+      );
+    });
+  });
+  await classifierHelper.resetDatabase();
 }
 
 function runTest() {
@@ -92,6 +101,7 @@ function runTest() {
     // This test resources are not blocked when gethash returns an error
     .then(setup404)
     .then(() => loadTestFrame("testFrame2"))
+    .then(reset)
     .then(function() {
       SimpleTest.finish();
     }).catch(function(e) {

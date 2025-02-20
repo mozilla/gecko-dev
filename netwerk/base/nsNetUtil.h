@@ -1032,10 +1032,16 @@ nsresult NS_GetSecureUpgradedURI(nsIURI* aURI, nsIURI** aUpgradedURI);
 
 nsresult NS_CompareLoadInfoAndLoadContext(nsIChannel* aChannel);
 
+// The type of classification to perform.
+enum class ClassifyType : uint8_t {
+  SafeBrowsing,  // Perform Safe Browsing classification.
+  ETP,           // Perform URL Classification for Enhanced Tracking Protection.
+};
+
 /**
  * Return true if this channel should be classified by the URL classifier.
  */
-bool NS_ShouldClassifyChannel(nsIChannel* aChannel);
+bool NS_ShouldClassifyChannel(nsIChannel* aChannel, ClassifyType aType);
 
 /**
  * Helper to set the blocking reason on loadinfo of the channel.

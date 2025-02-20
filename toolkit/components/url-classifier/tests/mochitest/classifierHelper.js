@@ -50,9 +50,6 @@ classifierHelper.allowCompletion = async function (lists, url) {
     await SpecialPowers.setCharPref(PREFS.DISALLOW_COMPLETIONS, pref);
   }
 
-  // Store the original get hash URL in order to reset it back during clean up.
-  gOriginalGetHashURL = SpecialPowers.getCharPref(PREFS.PROVIDER_GETHASHURL);
-
   // Set get hash url
   await SpecialPowers.setCharPref(PREFS.PROVIDER_GETHASHURL, url);
 };
@@ -181,6 +178,9 @@ classifierHelper._setup = function () {
   gScript.addMessageListener("updateSuccess", classifierHelper._updateSuccess);
   gScript.addMessageListener("updateError", classifierHelper._updateError);
   gScript.addMessageListener("safeBrowsingInited", classifierHelper._inited);
+
+  // Store the original get hash URL in order to reset it back during clean up.
+  gOriginalGetHashURL = SpecialPowers.getCharPref(PREFS.PROVIDER_GETHASHURL);
 
   // cleanup will be called at end of each testcase to remove all the urls added to database.
   SimpleTest.registerCleanupFunction(classifierHelper._cleanup);

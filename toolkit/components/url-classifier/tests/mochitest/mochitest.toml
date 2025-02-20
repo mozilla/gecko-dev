@@ -1,5 +1,8 @@
 [DEFAULT]
 tags = "condprof"
+prefs = [
+  "browser.safebrowsing.only_top_level=false",
+]
 support-files = [
   "classifierCommon.js",
   "classifierFrame.html",
@@ -66,6 +69,8 @@ skip-if = [
   "http3",
   "http2",
 ]
+
+["test_classify_only_top_context.html"]
 
 ["test_classify_ping.html"]
 skip-if = ["verify && debug && (os == 'win' || os == 'mac')"]

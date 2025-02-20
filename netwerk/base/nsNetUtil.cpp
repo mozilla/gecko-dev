@@ -3264,13 +3264,18 @@ bool NS_IsOffline() {
 
 /**
  * This function returns true if this channel should be classified by
- * the URL Classifier, false otherwise.
+ * the URL Classifier, false otherwise. There are two types of classification:
+ *   1. SafeBrowsing
+ *   2. Enhanced Tracking Protection (ETP)
  *
  * The idea of the algorithm to determine if a channel should be
  * classified is based on:
- * 1. Channels created by non-privileged code should be classified.
+ * 1. Channels created by non-privileged code should be classified for
+ *    ETP. For SafeBrowsing, it depends on the pref
+ *    "browser.safebrowsing.only_top_level" to decide if it should be
+ *    classified.
  * 2. Top-level document’s channels, if loaded by privileged code
- *    (system principal), should be classified.
+ *    (system principal), should be classified for both types.
  * 3. Any other channel, created by privileged code, is considered safe.
  *
  * A bad/hacked/corrupted safebrowsing database, plus a mistakenly
@@ -3288,7 +3293,7 @@ bool NS_IsOffline() {
  * 2. nsIChannel::LOAD_BYPASS_URL_CLASSIFIER, channel's opener can use this
  *    flag to enforce bypassing the URL classifier check.
  */
-bool NS_ShouldClassifyChannel(nsIChannel* aChannel) {
+bool NS_ShouldClassifyChannel(nsIChannel* aChannel, ClassifyType aType) {
   nsLoadFlags loadFlags;
   Unused << aChannel->GetLoadFlags(&loadFlags);
   //  If our load flags dictate that we must let this channel through without
@@ -3313,6 +3318,14 @@ bool NS_ShouldClassifyChannel(nsIChannel* aChannel) {
 
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   ExtContentPolicyType type = loadInfo->GetExternalContentPolicyType();
+
+  // Skip classifying channel for safe browsing unless it is a top-level.
+  if (aType == ClassifyType::SafeBrowsing &&
+      (StaticPrefs::browser_safebrowsing_only_top_level() &&
+       ExtContentPolicy::TYPE_DOCUMENT != type)) {
+    return false;
+  }
+
   // Skip classifying channel triggered by system unless it is a top-level
   // load.
   return !(loadInfo->TriggeringPrincipal()->IsSystemPrincipal() &&

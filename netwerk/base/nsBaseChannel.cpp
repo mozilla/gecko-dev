@@ -286,7 +286,7 @@ void nsBaseChannel::ClassifyURI() {
     return;
   }
 
-  if (NS_ShouldClassifyChannel(this)) {
+  if (NS_ShouldClassifyChannel(this, ClassifyType::SafeBrowsing)) {
     auto classifier = MakeRefPtr<net::nsChannelClassifier>(this);
     classifier->Start();
   }

@@ -1777,6 +1777,12 @@
   value: 512*1024
   mirror: always
 
+# Whether to only classify top-level channels for safe browsing.
+- name: browser.safebrowsing.only_top_level
+  type: bool
+  value: false
+  mirror: always
+
 # SessionStore prefs
 # Maximum number of bytes of DOMSessionStorage data we collect per origin.
 - name: browser.sessionstore.dom_storage_limit

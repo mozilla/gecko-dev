@@ -5,6 +5,10 @@ const SECURE_CONTAINER_URL =
   "https://example.com/browser/browser/components/safebrowsing/content/test/empty_file.html";
 
 add_task(async function testNormalBrowsing() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.safebrowsing.only_top_level", false]],
+  });
+
   await BrowserTestUtils.withNewTab(
     SECURE_CONTAINER_URL,
     async function (browser) {

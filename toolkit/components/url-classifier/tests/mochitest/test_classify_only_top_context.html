@@ -1,0 +1,148 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Bug -</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/ChromeTask.js"></script>
+  <script type="text/javascript" src="classifierHelper.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">
+</div>
+<pre id="test"></pre>
+
+<script src="head.js"></script>
+<script class="testbody" type="text/javascript">
+
+const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
+
+const { TestUtils } = SpecialPowers.ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
+
+var shouldLoad = false;
+
+const MALWARE_LIST = "mochi-malware-simple";
+const MALWARE_HOST = "malware.example.com/";
+
+const UNWANTED_LIST = "mochi-unwanted-simple";
+const UNWANTED_HOST = "unwanted.example.com/";
+
+var testData = [
+  { url: MALWARE_HOST,
+    db: MALWARE_LIST,
+  },
+  { url: UNWANTED_HOST,
+    db: UNWANTED_LIST,
+  },
+];
+
+// A helper function to load a frame which loads non-frame malicious resources.
+function loadTestFrameForNonFrameResources() {
+  return new Promise(resolve => {
+    var iframe = document.createElement("iframe");
+    iframe.setAttribute("src", "gethashFrame.html");
+    document.body.appendChild(iframe);
+
+    iframe.onload = function() {
+      document.body.removeChild(iframe);
+      resolve();
+    };
+  });
+}
+
+// A helper function to load a malicious iframe.
+async function loadTestFrameForFrameResources(shouldLoadTheFrame) {
+  let iframe = document.createElement("iframe");
+  iframe.setAttribute("src", "https://malware.example.com/");
+  document.body.appendChild(iframe);
+
+  if (!shouldLoadTheFrame) {
+    await TestUtils.waitForCondition(async () => {
+      let frameURI = await SpecialPowers.spawnChrome([], _ => {
+        return this.browsingContext
+                   .children[0]
+                   .currentWindowGlobal
+                   .documentURI
+                   .spec;
+      });
+
+      return frameURI.startsWith("about:blocked");
+    }, "Waiting for frame to load the about:blocked page");
+
+    ok(true, "iFrame should be blocked")
+  } else {
+    await new Promise(resolve => {
+      iframe.onload = resolve;
+    });
+
+    ok(true, "iFrame should be loaded")
+  }
+}
+
+add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({"set": [
+    ["browser.safebrowsing.malware.enabled", true],
+    ["urlclassifier.malwareTable", "mochi-malware-simple,mochi-unwanted-simple"],
+    ["network.predictor.enabled", false],
+    ["urlclassifier.gethash.timeout_ms", 30000],
+  ]});
+
+  await classifierHelper.waitForInit();
+
+  await classifierHelper.addUrlToDB(testData)
+
+  SimpleTest.registerCleanupFunction(async () => {
+    // Clear network cache to make sure next test won't be affected by cache.
+    await ChromeTask.spawn(null, async () => {
+      await new Promise(resolve => {
+        Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, () =>
+          resolve()
+        );
+      });
+    });
+    await classifierHelper.resetDatabase();
+  });
+});
+
+add_task(async function test_blocking_subresources() {
+  await SpecialPowers.pushPrefEnv({"set": [
+    ["browser.safebrowsing.only_top_level", false],
+  ]});
+
+  // Indicates that the test frame should block the malware and unwanted
+  // resources because we classify every context.
+  shouldLoad = false;
+
+  // Skip running the blocking frame test on Android because we don't show a
+  // about:blocked page on Android.
+  if (AppConstants.platform != "android") {
+    await loadTestFrameForFrameResources(shouldLoad);
+  }
+
+  await loadTestFrameForNonFrameResources();
+});
+
+add_task(async function test_loading_subresources() {
+  await SpecialPowers.pushPrefEnv({"set": [
+    ["browser.safebrowsing.only_top_level", true],
+  ]});
+
+  // Indicates that the test frame should load the malware and unwanted
+  // resources because we only classify top-level contexts.
+  shouldLoad = true;
+
+  await loadTestFrameForFrameResources(shouldLoad);
+
+  await loadTestFrameForNonFrameResources();
+});
+
+</script>
+</pre>
+</body>
+</html>

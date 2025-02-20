@@ -6807,7 +6807,8 @@ void nsHttpChannel::AsyncOpenFinal(TimeStamp aTimeStamp) {
   // lookup is not needed so CheckIsTrackerWithLocalTable() will return an
   // error and then we can MaybeResolveProxyAndBeginConnect() right away.
   // We skip the check in case this is an internal redirected channel
-  if (!LoadAuthRedirectedChannel() && NS_ShouldClassifyChannel(this)) {
+  if (!LoadAuthRedirectedChannel() &&
+      NS_ShouldClassifyChannel(this, ClassifyType::ETP)) {
     RefPtr<nsHttpChannel> self = this;
     willCallback = NS_SUCCEEDED(
         AsyncUrlChannelClassifier::CheckChannel(this, [self]() -> void {
@@ -7192,10 +7193,11 @@ nsresult nsHttpChannel::BeginConnect() {
   }
   // skip classifier checks if this channel was the result of internal auth
   // redirect
-  bool shouldBeClassified =
-      !LoadAuthRedirectedChannel() && NS_ShouldClassifyChannel(this);
+  bool shouldBeClassifiedForTracker =
+      !LoadAuthRedirectedChannel() &&
+      NS_ShouldClassifyChannel(this, ClassifyType::ETP);
 
-  if (shouldBeClassified) {
+  if (shouldBeClassifiedForTracker) {
     if (LoadChannelClassifierCancellationPending()) {
       LOG(
           ("Waiting for safe-browsing protection cancellation in BeginConnect "
@@ -7219,7 +7221,10 @@ nsresult nsHttpChannel::BeginConnect() {
     return rv;
   }
 
-  if (shouldBeClassified) {
+  bool shouldBeClassifiedForSafeBrowsing =
+      NS_ShouldClassifyChannel(this, ClassifyType::SafeBrowsing);
+
+  if (shouldBeClassifiedForSafeBrowsing) {
     // Start nsChannelClassifier to catch phishing and malware URIs.
     RefPtr<nsChannelClassifier> channelClassifier =
         GetOrCreateChannelClassifier();
