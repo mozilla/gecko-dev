@@ -89,7 +89,7 @@ index a2ea218a8b..23a8f4f3f3 100644
  #include <new>
  #include <string>
 diff --git a/rtc_base/byte_order.h b/rtc_base/byte_order.h
-index ed7c75996f..be49d1b9e1 100644
+index 0b70e0e129..767b462e09 100644
 --- a/rtc_base/byte_order.h
 +++ b/rtc_base/byte_order.h
 @@ -90,6 +90,8 @@
@@ -102,7 +102,7 @@ index ed7c75996f..be49d1b9e1 100644
  #include <endian.h>
  #else
 diff --git a/rtc_base/physical_socket_server.cc b/rtc_base/physical_socket_server.cc
-index 5f9959a8df..79e63c50fd 100644
+index 2b4ff128de..2ec8936f4f 100644
 --- a/rtc_base/physical_socket_server.cc
 +++ b/rtc_base/physical_socket_server.cc
 @@ -75,7 +75,10 @@ typedef void* SockOptArg;

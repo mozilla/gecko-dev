@@ -563,7 +563,6 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
   }
 
   void TestHandshake(bool expect_success = true) {
-
     if (!dtls_) {
       // Make sure we simulate a reliable network for TLS.
       // This is just a check to make sure that people don't write wrong
