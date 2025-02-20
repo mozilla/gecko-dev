@@ -461,6 +461,10 @@ nsresult ScriptLoader::CheckContentPolicy(Document* aDocument,
                                           nsIScriptElement* aElement,
                                           const nsAString& aNonce,
                                           ScriptLoadRequest* aRequest) {
+  MOZ_ASSERT(aDocument);
+  MOZ_ASSERT(aElement);
+  MOZ_ASSERT(aRequest);
+
   nsContentPolicyType contentPolicyType =
       ScriptLoadRequestToContentPolicyType(aRequest);
 
@@ -1112,15 +1116,21 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
     RefPtr<ScriptLoadRequest> aRequest =
         new ScriptLoadRequest(aKind, aURI, aReferrerPolicy, fetchOptions,
                               aIntegrity, referrer, context);
-    if (requestType == RequestType::External && mCache) {
+    if ((requestType == RequestType::External ||
+         requestType == RequestType::Preload) &&
+        mCache) {
       ScriptHashKey key(this, aRequest);
       auto cacheResult = mCache->Lookup(*this, key,
                                         /* aSyncLoad = */ true);
       if (cacheResult.mState == CachedSubResourceState::Complete) {
-        if (NS_FAILED(
-                CheckContentPolicy(mDocument, aElement, aNonce, aRequest))) {
-          aRequest->NoCacheEntryFound();
-          return aRequest.forget();
+        if (requestType == RequestType::External) {
+          // NOTE: The preload case checks the same after the
+          //       LookupPreloadRequest call.
+          if (NS_FAILED(
+                  CheckContentPolicy(mDocument, aElement, aNonce, aRequest))) {
+            aRequest->NoCacheEntryFound();
+            return aRequest.forget();
+          }
         }
 
         nsCOMPtr<nsINode> context;
@@ -4438,10 +4448,12 @@ void ScriptLoader::PreloadURI(
          request.get(), url.get()));
   }
 
-  nsAutoString charset(aCharset);
-  nsresult rv = StartLoad(request, Some(charset));
-  if (NS_FAILED(rv)) {
-    return;
+  if (!request->IsStencil()) {
+    nsAutoString charset(aCharset);
+    nsresult rv = StartLoad(request, Some(charset));
+    if (NS_FAILED(rv)) {
+      return;
+    }
   }
 
   PreloadInfo* pi = mPreloads.AppendElement();
