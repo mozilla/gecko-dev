@@ -2918,6 +2918,10 @@ class PresShell final : public nsStubDocumentObserver,
     already_AddRefed<PresShell> GetParentPresShellForEventHandling() {
       return mPresShell->GetParentPresShellForEventHandling();
     }
+
+    bool UpdateFocusSequenceNumber(nsIFrame* aFrameForPresShell,
+                                   uint64_t aEventFocusSequenceNumber);
+
     OwningNonNull<PresShell> mPresShell;
     AutoCurrentEventInfoSetter* mCurrentEventInfoSetter;
     static TimeStamp sLastInputCreated;
@@ -3105,9 +3109,6 @@ class PresShell final : public nsStubDocumentObserver,
 
   // Only populated on root content documents.
   nsSize mVisualViewportSize;
-
-  // The focus information needed for async keyboard scrolling
-  FocusTarget mAPZFocusTarget;
 
   using Arena = nsPresArena<8192, ArenaObjectID, eArenaObjectID_COUNT>;
   Arena mFrameArena;

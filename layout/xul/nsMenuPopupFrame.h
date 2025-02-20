@@ -550,6 +550,12 @@ class nsMenuPopupFrame final : public nsBlockFrame {
 
   void WidgetPositionOrSizeDidChange();
 
+  uint64_t GetAPZFocusSequenceNumber() const { return mAPZFocusSequenceNumber; }
+
+  void UpdateAPZFocusSequenceNumber(uint64_t aNewNumber) {
+    mAPZFocusSequenceNumber = aNewNumber;
+  }
+
  protected:
   nsString mIncrementalString;  // for incremental typing navigation
 
@@ -595,6 +601,9 @@ class nsMenuPopupFrame final : public nsBlockFrame {
   // ourselves. We store this so that we can detect when it changes but the
   // position of our widget didn't change.
   mozilla::LayoutDeviceIntPoint mLastClientOffset;
+
+  // The focus sequence number of the last processed input event
+  uint64_t mAPZFocusSequenceNumber = 0;
 
   PopupType mPopupType = PopupType::Panel;  // type of popup
   nsPopupState mPopupState = ePopupClosed;  // open state of the popup

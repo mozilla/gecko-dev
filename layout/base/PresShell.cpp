@@ -6581,18 +6581,25 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
     return;
   }
 
+  nsIFrame* frame = aViewToPaint->GetFrame();
+
+  FocusTarget focusTarget;
   if (StaticPrefs::apz_keyboard_enabled_AtStartup()) {
     // Update the focus target for async keyboard scrolling. This will be
     // forwarded to APZ by nsDisplayList::PaintRoot. We need to to do this
     // before we enter the paint phase because dispatching eVoid events can
     // cause layout to happen.
-    mAPZFocusTarget = FocusTarget(this, mAPZFocusSequenceNumber);
+    uint64_t focusSequenceNumber;
+    if (nsMenuPopupFrame* popup = do_QueryFrame(frame)) {
+      focusSequenceNumber = popup->GetAPZFocusSequenceNumber();
+    } else {
+      focusSequenceNumber = mAPZFocusSequenceNumber;
+    }
+    focusTarget = FocusTarget(this, focusSequenceNumber);
   }
 
   nsPresContext* presContext = GetPresContext();
   AUTO_LAYOUT_PHASE_ENTRY_POINT(presContext, Paint);
-
-  nsIFrame* frame = aViewToPaint->GetFrame();
 
   WindowRenderer* renderer = aViewToPaint->GetWidget()->GetWindowRenderer();
   NS_ASSERTION(renderer, "Must be in paint event");
@@ -6619,7 +6626,7 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
   // Send an updated focus target with this transaction. Be sure to do this
   // before we paint in the case this is an empty transaction.
   if (layerManager) {
-    layerManager->SetFocusTarget(mAPZFocusTarget);
+    layerManager->SetFocusTarget(focusTarget);
   }
 
   if (frame) {
@@ -7283,6 +7290,27 @@ nsresult PresShell::HandleEvent(nsIFrame* aFrameForPresShell,
                                   aDontRetargetEvents, aEventStatus);
 }
 
+bool PresShell::EventHandler::UpdateFocusSequenceNumber(
+    nsIFrame* aFrameForPresShell, uint64_t aEventFocusSequenceNumber) {
+  uint64_t focusSequenceNumber;
+  nsMenuPopupFrame* popup = do_QueryFrame(aFrameForPresShell);
+  if (popup) {
+    focusSequenceNumber = popup->GetAPZFocusSequenceNumber();
+  } else {
+    focusSequenceNumber = mPresShell->mAPZFocusSequenceNumber;
+  }
+  if (focusSequenceNumber >= aEventFocusSequenceNumber) {
+    return false;
+  }
+
+  if (popup) {
+    popup->UpdateAPZFocusSequenceNumber(aEventFocusSequenceNumber);
+  } else {
+    mPresShell->mAPZFocusSequenceNumber = aEventFocusSequenceNumber;
+  }
+  return true;
+}
+
 nsresult PresShell::EventHandler::HandleEvent(nsIFrame* aFrameForPresShell,
                                               WidgetGUIEvent* aGUIEvent,
                                               bool aDontRetargetEvents,
@@ -7295,8 +7323,8 @@ nsresult PresShell::EventHandler::HandleEvent(nsIFrame* aFrameForPresShell,
 
   // Update the latest focus sequence number with this new sequence number;
   // the next transasction that gets sent to the compositor will carry this over
-  if (mPresShell->mAPZFocusSequenceNumber < aGUIEvent->mFocusSequenceNumber) {
-    mPresShell->mAPZFocusSequenceNumber = aGUIEvent->mFocusSequenceNumber;
+  if (UpdateFocusSequenceNumber(aFrameForPresShell,
+                                aGUIEvent->mFocusSequenceNumber)) {
     if (aFrameForPresShell && StaticPrefs::apz_keyboard_focus_optimization()) {
       aFrameForPresShell->SchedulePaint(nsIFrame::PAINT_COMPOSITE_ONLY);
     }
