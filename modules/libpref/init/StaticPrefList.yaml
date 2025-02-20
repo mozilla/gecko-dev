@@ -7669,7 +7669,7 @@
   value: false
   mirror: always
 
-#if defined(NIGHTLY_BUILD) && defined(MOZ_WAYLAND)
+#if defined(MOZ_WAYLAND)
 - name: gfx.wayland.hdr
   type: bool
   value: false
