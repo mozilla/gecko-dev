@@ -264,6 +264,7 @@ const TEST_GLOBAL = {
     importGlobalProperties() {},
     now: () => window.performance.now(),
     cloneInto: o => JSON.parse(JSON.stringify(o)),
+    isInAutomation: true,
   },
   console: {
     ...console,
@@ -387,7 +388,9 @@ const TEST_GLOBAL = {
       get: () => ({ parent: { parent: { path: "appPath" } } }),
     },
     env: {
+      get: () => undefined,
       set: () => undefined,
+      exists: () => false,
     },
     locale: {
       get appLocaleAsBCP47() {
