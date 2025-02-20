@@ -9,6 +9,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/CORSMode.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/UniquePtr.h"
@@ -142,12 +143,12 @@ class imgCacheEntry {
 
 #include <vector>
 
-#define NS_IMGLOADER_CID                             \
-  { /* c1354898-e3fe-4602-88a7-c4520c21cb4e */       \
-    0xc1354898, 0xe3fe, 0x4602, {                    \
-      0x88, 0xa7, 0xc4, 0x52, 0x0c, 0x21, 0xcb, 0x4e \
-    }                                                \
-  }
+#define NS_IMGLOADER_CID                      \
+  {/* c1354898-e3fe-4602-88a7-c4520c21cb4e */ \
+   0xc1354898,                                \
+   0xe3fe,                                    \
+   0x4602,                                    \
+   {0x88, 0xa7, 0xc4, 0x52, 0x0c, 0x21, 0xcb, 0x4e}}
 
 class imgCacheQueue {
  public:
@@ -243,6 +244,8 @@ class imgLoader final : public imgILoader,
   imgLoader();
   nsresult Init();
 
+  nsresult ClearCache(mozilla::Maybe<bool> chrome);
+
   bool IsImageAvailable(nsIURI*, nsIPrincipal* aTriggeringPrincipal,
                         mozilla::CORSMode, mozilla::dom::Document*);
 
@@ -287,6 +290,7 @@ class imgLoader final : public imgILoader,
 
   enum class ClearOption {
     ChromeOnly,
+    ContentOnly,
     UnusedOnly,
   };
   using ClearOptions = mozilla::EnumSet<ClearOption>;

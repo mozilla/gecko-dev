@@ -653,7 +653,7 @@ child:
 
     async ClearImageCacheFromSite(nsCString aSchemelessSite, OriginAttributesPattern aPattern);
 
-    async ClearImageCache(bool privateLoader, bool chrome);
+    async ClearImageCache(bool privateLoader, bool? chrome);
 
     async ClearStyleSheetCache(nullable nsIPrincipal? aPrincipal,
                                nsCString? aSchemelessSite,
