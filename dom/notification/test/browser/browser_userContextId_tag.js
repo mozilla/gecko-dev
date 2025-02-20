@@ -60,13 +60,10 @@ add_task(async function no_tag_collision_between_containers() {
   });
   let browser2 = gBrowser.getBrowserForTab(tab2);
 
-  gBrowser.selectedTab = tab1;
-  tab1.ownerGlobal.focus();
-  await BrowserTestUtils.browserLoaded(browser1);
-
-  gBrowser.selectedTab = tab2;
-  tab2.ownerGlobal.focus();
-  await BrowserTestUtils.browserLoaded(browser2);
+  await Promise.all([
+    BrowserTestUtils.browserLoaded(browser1),
+    BrowserTestUtils.browserLoaded(browser2),
+  ]);
 
   // Open notifications on each tab with the same tag
 
