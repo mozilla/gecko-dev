@@ -242,8 +242,12 @@ namespace ChromeUtils {
 
   /**
    * Clears the entire stylesheet cache.
+   *
+   * If chrome parameter is passed and true, this clears chrome cache.
+   * If chrome parameter is passed and false, this clears content cache.
+   * If chrome parameter is not passed, this clears all cache.
    */
-  undefined clearStyleSheetCache();
+  undefined clearStyleSheetCache(optional boolean chrome);
 
   /**
    * Clears the JavaScript cache by schemeless site. This includes associated
@@ -258,8 +262,12 @@ namespace ChromeUtils {
 
   /**
    * Clears the entire JavaScript cache.
+   *
+   * If chrome parameter is passed and true, this clears chrome cache.
+   * If chrome parameter is passed and false, this clears content cache.
+   * If chrome parameter is not passed, this clears all cache.
    */
-  undefined clearScriptCache();
+  undefined clearScriptCache(optional boolean chrome);
 
   /**
    * Clears the Messaging Layer Security state by schemeless site.

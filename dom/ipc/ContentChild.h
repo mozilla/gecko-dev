@@ -245,12 +245,12 @@ class ContentChild final : public PContentChild,
       const ChromeRegistryItem& item);
 
   mozilla::ipc::IPCResult RecvClearStyleSheetCache(
-      const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
+      const Maybe<bool>& aChrome, const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
       const Maybe<nsCString>& aSchemelessSite,
       const Maybe<OriginAttributesPattern>& aPattern);
 
   mozilla::ipc::IPCResult RecvClearScriptCache(
-      const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
+      const Maybe<bool>& aChrome, const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
       const Maybe<nsCString>& aSchemelessSite,
       const Maybe<OriginAttributesPattern>& aPattern);
 

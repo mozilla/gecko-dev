@@ -655,11 +655,13 @@ child:
 
     async ClearImageCache(bool privateLoader, bool? chrome);
 
-    async ClearStyleSheetCache(nullable nsIPrincipal? aPrincipal,
+    async ClearStyleSheetCache(bool? aChrome,
+                               nullable nsIPrincipal? aPrincipal,
                                nsCString? aSchemelessSite,
                                OriginAttributesPattern? aPattern);
 
-    async ClearScriptCache(nullable nsIPrincipal? aPrincipal,
+    async ClearScriptCache(bool? aChrome,
+                           nullable nsIPrincipal? aPrincipal,
                            nsCString? aSchemelessSite,
                            OriginAttributesPattern? aPattern);
 
