@@ -736,6 +736,7 @@ scheme = "https"
 skip-if = [
   "os == 'android'", # bug 1149374
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929444
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1929444
 ]
 
 ["test_eme_pssh_in_moof.html"]

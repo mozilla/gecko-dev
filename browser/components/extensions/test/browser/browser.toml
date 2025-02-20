@@ -186,7 +186,10 @@ https_first_disabled = true
 ["browser_ext_contextMenus_srcUrl_redirect.js"]
 
 ["browser_ext_contextMenus_targetUrlPatterns.js"]
-skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64'"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+]
 tags = "bleedover"
 
 ["browser_ext_contextMenus_uninstall.js"]
@@ -287,13 +290,19 @@ https_first_disabled = true
 ["browser_ext_menus_targetElement.js"]
 
 ["browser_ext_menus_targetElement_extension.js"]
-skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64'"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+]
 tags = "bleedover"
 
 ["browser_ext_menus_targetElement_shadow.js"]
 
 ["browser_ext_menus_viewType.js"]
-skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64'"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+]
 tags = "bleedover"
 
 ["browser_ext_menus_visible.js"]
@@ -660,6 +669,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1565738
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1565738
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1565738
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1565738
 ]
 
 ["browser_ext_windows.js"]
@@ -695,6 +705,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 
 ["browser_ext_windows_update.js"]

@@ -701,6 +701,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # bug 1570474
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # bug 1570474
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # bug 1869788
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # bug 1570474
 ]
 
 ["browser_urlbar_telemetry.js"]

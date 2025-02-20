@@ -89,7 +89,11 @@ https_first_disabled = true
 
 ["browser_dynamical_window_rounding.js"]
 https_first_disabled = true
-skip-if = ["os == 'mac'"] # Bug 1775698
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1775698
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1775698
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt", # Bug 1775698
+]
 
 ["browser_exslt_time_precision.js"]
 

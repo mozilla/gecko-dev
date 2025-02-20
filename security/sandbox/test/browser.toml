@@ -17,6 +17,7 @@ run-if = ["os == 'mac'"] # This is a Mac-specific test
 skip-if = [
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929424
 ]
+tags = "os_integration"
 
 ["browser_content_sandbox_fs.js"]
 skip-if = [
