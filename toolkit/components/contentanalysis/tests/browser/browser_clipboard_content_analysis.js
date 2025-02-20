@@ -165,6 +165,11 @@ async function testClipboardWithContentAnalysis(allowPaste, plainTextOnly) {
       mockCA.calls[0].userActionId,
       2
     );
+    is(
+      mockCA.agentCancelCalls,
+      allowPaste ? 0 : 1,
+      "Response cancels other requests only if it is BLOCK"
+    );
   }
   mockCA.clearCalls();
 

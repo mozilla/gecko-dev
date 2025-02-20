@@ -458,4 +458,14 @@ interface nsIContentAnalysis : nsISupports
   nsIContentAnalysisResponse makeResponseForTest(
       in nsIContentAnalysisResponse_Action aAction,
       in ACString aToken);
+
+  /**
+   * Send CancelRequests to agent on a background thread.
+   *
+   * This is abstracted so that it can be mocked in tests.  Do not call this.
+   *
+   * @param aUserActionId     The user action ID
+   */
+  void sendCancelToAgent(in ACString aUserActionId);
+
 };

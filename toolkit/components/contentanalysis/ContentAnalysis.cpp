@@ -1465,9 +1465,23 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
 
   RemoveFromUserActionMap(nsCString(aUserActionId));
 
+  // Re-get service in case the registered service is mocked for testing.
+  nsCOMPtr<nsIContentAnalysis> contentAnalysis =
+      mozilla::components::nsIContentAnalysis::Service();
+  if (contentAnalysis) {
+    contentAnalysis->SendCancelToAgent(aUserActionId);
+  } else {
+    LOGD(
+        "Content Analysis Service has been shut down.  Cancel will not be "
+        "sent to agent.");
+  }
+}
+
+NS_IMETHODIMP ContentAnalysis::SendCancelToAgent(
+    const nsACString& aUserActionId) {
   mCaClientPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [userActionId = std::move(aUserActionId)](
+      [userActionId = nsCString(aUserActionId)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable {
         auto owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -1510,6 +1524,7 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
             NS_DISPATCH_EVENT_MAY_BLOCK);
       },
       [](nsresult rv) { LOGE("CancelWithError failed to get the client"); });
+  return NS_OK;
 }
 
 RefPtr<ContentAnalysis> ContentAnalysis::GetContentAnalysisFromService() {

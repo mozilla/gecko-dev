@@ -145,6 +145,7 @@ function makeMockContentAnalysis() {
     clearCalls() {
       this.calls = [];
       this.browsingContextsForURIs = [];
+      this.agentCancelCalls = 0;
     },
 
     getAction() {
@@ -288,6 +289,11 @@ function makeMockContentAnalysis() {
 
     showBlockedRequestDialog(aRequest) {
       info(`got showBlockedRequestDialog for request ${aRequest.requestToken}`);
+    },
+
+    sendCancelToAgent(aUserActionId) {
+      info(`got sendCancelToAgent for user action ID ${aUserActionId}`);
+      this.agentCancelCalls = this.agentCancelCalls + 1;
     },
   };
 }
