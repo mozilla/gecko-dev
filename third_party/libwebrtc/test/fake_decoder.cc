@@ -40,8 +40,7 @@ bool FakeDecoder::Configure(const Settings& settings) {
   return true;
 }
 
-int32_t FakeDecoder::Decode(const EncodedImage& input,
-                            int64_t render_time_ms) {
+int32_t FakeDecoder::Decode(const EncodedImage& input, int64_t render_time_ms) {
   if (input._encodedWidth > 0 && input._encodedHeight > 0) {
     width_ = input._encodedWidth;
     height_ = input._encodedHeight;

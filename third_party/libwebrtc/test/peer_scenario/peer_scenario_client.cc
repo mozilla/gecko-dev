@@ -380,43 +380,43 @@ void PeerScenarioClient::SetSdpOfferAndGetAnswer(
     std::function<void()> remote_description_set,
     std::function<void(std::string)> answer_handler) {
   if (!signaling_thread_->IsCurrent()) {
-    signaling_thread_->PostTask([this, remote_offer, remote_description_set,
-                                 answer_handler] {
-      SetSdpOfferAndGetAnswer(remote_offer, remote_description_set,
-                              answer_handler);
-    });
+    signaling_thread_->PostTask(
+        [this, remote_offer, remote_description_set, answer_handler] {
+          SetSdpOfferAndGetAnswer(remote_offer, remote_description_set,
+                                  answer_handler);
+        });
     return;
   }
   RTC_DCHECK_RUN_ON(signaling_thread_);
   peer_connection_->SetRemoteDescription(
       CreateSessionDescription(SdpType::kOffer, remote_offer),
-      rtc::make_ref_counted<
-          LambdaSetRemoteDescriptionObserver>([this, remote_description_set,
-                                               answer_handler](RTCError) {
-        RTC_DCHECK_RUN_ON(signaling_thread_);
-        if (remote_description_set) {
-          // Allow the caller to modify transceivers
-          // before creating the answer.
-          remote_description_set();
-        }
-        peer_connection_->CreateAnswer(
-            rtc::make_ref_counted<LambdaCreateSessionDescriptionObserver>(
-                [this, answer_handler](
-                    std::unique_ptr<SessionDescriptionInterface> answer) {
-                  RTC_DCHECK_RUN_ON(signaling_thread_);
-                  std::string sdp_answer;
-                  answer->ToString(&sdp_answer);
-                  RTC_LOG(LS_INFO) << sdp_answer;
-                  peer_connection_->SetLocalDescription(
-                      std::move(answer),
-                      rtc::make_ref_counted<LambdaSetLocalDescriptionObserver>(
-                          [answer_handler, sdp_answer](RTCError) {
-                            answer_handler(sdp_answer);
-                          }));
-                })
-                .get(),
-            PeerConnectionInterface::RTCOfferAnswerOptions());
-      }));
+      rtc::make_ref_counted<LambdaSetRemoteDescriptionObserver>(
+          [this, remote_description_set, answer_handler](RTCError) {
+            RTC_DCHECK_RUN_ON(signaling_thread_);
+            if (remote_description_set) {
+              // Allow the caller to modify transceivers
+              // before creating the answer.
+              remote_description_set();
+            }
+            peer_connection_->CreateAnswer(
+                rtc::make_ref_counted<LambdaCreateSessionDescriptionObserver>(
+                    [this, answer_handler](
+                        std::unique_ptr<SessionDescriptionInterface> answer) {
+                      RTC_DCHECK_RUN_ON(signaling_thread_);
+                      std::string sdp_answer;
+                      answer->ToString(&sdp_answer);
+                      RTC_LOG(LS_INFO) << sdp_answer;
+                      peer_connection_->SetLocalDescription(
+                          std::move(answer),
+                          rtc::make_ref_counted<
+                              LambdaSetLocalDescriptionObserver>(
+                              [answer_handler, sdp_answer](RTCError) {
+                                answer_handler(sdp_answer);
+                              }));
+                    })
+                    .get(),
+                PeerConnectionInterface::RTCOfferAnswerOptions());
+          }));
 }
 
 void PeerScenarioClient::SetSdpAnswer(

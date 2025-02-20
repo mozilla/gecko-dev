@@ -1674,13 +1674,13 @@ VideoCodecTester::RunEncodeDecodeTest(
         frame_settings.layers_settings.rbegin()->second;
     VideoFrame source_frame = video_source.PullFrame(
         timestamp_rtp, top_layer.resolution, top_layer.framerate);
-    encoder.Encode(source_frame, frame_settings,
-                   [&decoders,
-                    source_frame](const EncodedImage& encoded_frame) {
-                     int sidx = encoded_frame.SpatialIndex().value_or(
-                         encoded_frame.SimulcastIndex().value_or(0));
-                     decoders.at(sidx)->Decode(encoded_frame, source_frame);
-                   });
+    encoder.Encode(
+        source_frame, frame_settings,
+        [&decoders, source_frame](const EncodedImage& encoded_frame) {
+          int sidx = encoded_frame.SpatialIndex().value_or(
+              encoded_frame.SimulcastIndex().value_or(0));
+          decoders.at(sidx)->Decode(encoded_frame, source_frame);
+        });
   }
 
   encoder.Flush();
