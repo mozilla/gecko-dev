@@ -769,15 +769,16 @@ CodecList MatchCodecPreference(
         // Search for the matching rtx or red codec.
         if (want_red || want_rtx) {
           for (const auto& codec : codecs) {
-            if (codec.GetResiliencyType() == Codec::ResiliencyType::kRtx) {
+            if (want_rtx &&
+                codec.GetResiliencyType() == Codec::ResiliencyType::kRtx) {
               const auto apt =
                   codec.params.find(cricket::kCodecParamAssociatedPayloadType);
               if (apt != codec.params.end() && apt->second == id) {
                 filtered_codecs.push_back(codec);
                 break;
               }
-            } else if (codec.GetResiliencyType() ==
-                       Codec::ResiliencyType::kRed) {
+            } else if (want_red && codec.GetResiliencyType() ==
+                                       Codec::ResiliencyType::kRed) {
               // For RED, do not insert the codec again if it was already
               // inserted. audio/red for opus gets enabled by having RED before
               // the primary codec.

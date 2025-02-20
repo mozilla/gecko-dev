@@ -15,40 +15,35 @@
 #include <algorithm>
 #include <functional>
 #include <iterator>
-#include <map>
 #include <memory>
 #include <optional>
 #include <set>
 #include <string>
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "api/audio_options.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/rtc_event_log/rtc_event_log_factory.h"
-#include "api/rtc_event_log/rtc_event_log_factory_interface.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_direction.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
-#include "api/task_queue/task_queue_factory.h"
 #include "media/base/codec.h"
 #include "media/base/fake_media_engine.h"
 #include "media/base/media_channel.h"
 #include "media/base/media_constants.h"
 #include "media/base/media_engine.h"
 #include "media/base/stream_params.h"
+#include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/fake_port_allocator.h"
 #include "p2p/base/p2p_constants.h"
-#include "p2p/base/port_allocator.h"
 #include "p2p/base/transport_info.h"
 #include "pc/channel_interface.h"
 #include "pc/media_session.h"
@@ -59,7 +54,7 @@
 #include "pc/test/enable_fake_media.h"
 #include "pc/test/mock_peer_connection_observers.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/rtc_certificate_generator.h"
+#include "rtc_base/ref_counted_object.h"
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
 #ifdef WEBRTC_ANDROID
@@ -2071,6 +2066,45 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
   RTCOfferAnswerOptions options;
   EXPECT_TRUE(caller->SetLocalDescription(caller->CreateOffer(options)));
   EXPECT_EQ(audio_transceiver->direction(), RtpTransceiverDirection::kStopped);
+}
+
+TEST_F(PeerConnectionMediaTestUnifiedPlan, SetCodecPreferencesVideoNoRtx) {
+  auto fake_engine = std::make_unique<cricket::FakeMediaEngine>();
+
+  std::vector<cricket::Codec> video_codecs;
+  video_codecs.emplace_back(cricket::CreateVideoCodec(100, "bar"));
+  video_codecs.emplace_back(cricket::CreateVideoRtxCodec(101, 100));
+  video_codecs.emplace_back(
+      cricket::CreateVideoCodec(102, cricket::kRedCodecName));
+  fake_engine->SetVideoCodecs(video_codecs);
+
+  auto caller = CreatePeerConnectionWithVideo(std::move(fake_engine));
+
+  auto transceivers = caller->pc()->GetTransceivers();
+  ASSERT_EQ(1u, transceivers.size());
+
+  auto video_transceiver = caller->pc()->GetTransceivers()[0];
+  EXPECT_TRUE(video_transceiver
+                  ->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly)
+                  .ok());
+  auto capabilities = caller->pc_factory()->GetRtpSenderCapabilities(
+      cricket::MediaType::MEDIA_TYPE_VIDEO);
+  auto it =
+      std::remove_if(capabilities.codecs.begin(), capabilities.codecs.end(),
+                     [](const RtpCodecCapability& codec) {
+                       return codec.name == cricket::kRtxCodecName;
+                     });
+  capabilities.codecs.erase(it, capabilities.codecs.end());
+  EXPECT_EQ(capabilities.codecs.size(), 2u);
+  EXPECT_TRUE(video_transceiver->SetCodecPreferences(capabilities.codecs).ok());
+
+  RTCOfferAnswerOptions options;
+  auto offer = caller->CreateOffer(options);
+  const auto& content = offer->description()->contents()[0];
+  auto& codecs = content.media_description()->codecs();
+  ASSERT_EQ(codecs.size(), 2u);
+  EXPECT_EQ(codecs[0].name, "bar");
+  EXPECT_EQ(codecs[1].name, cricket::kRedCodecName);
 }
 
 INSTANTIATE_TEST_SUITE_P(PeerConnectionMediaTest,
