@@ -84,20 +84,7 @@ add_task(async () => {
   await popupshownPromise;
 
   // Make sure APZ is ready for the popup.
-  // With enabling GPU process initiating APZ in the popup takes some time.
-  // Before the APZ has been initiated, calling flushApzRepaints() for the popup
-  // returns false so we retry calling flushApzRepaints() 10 times here.
-  let retry = 0;
-  while (
-    !SpecialPowers.getDOMWindowUtils(dialogWindow).flushApzRepaints(popup)
-  ) {
-    await promiseFrame();
-    retry++;
-    if (retry > 10) {
-      ok(false, "The popup didn't initialize APZ");
-      return;
-    }
-  }
+  await ensureApzReadyForPopup(popup, dialogWindow);
   await promiseApzFlushedRepaints(popup);
 
   // Do a hit test inside the popup.

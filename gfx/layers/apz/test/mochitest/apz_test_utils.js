@@ -1282,3 +1282,25 @@ async function setupCrossOriginIFrame(aIFrame, aUrl, aIsOffScreen = false) {
     });
   }
 }
+
+// Make sure APZ is ready for the popup.
+// With enabling GPU process initiating APZ in the popup takes some time.
+// Before the APZ has been initiated, calling flushApzRepaints() for the popup
+// returns false.
+async function ensureApzReadyForPopup(
+  aPopupElement,
+  aWindow = window,
+  aRetry = 10
+) {
+  let retry = 0;
+  while (
+    !SpecialPowers.getDOMWindowUtils(aWindow).flushApzRepaints(aPopupElement)
+  ) {
+    await promiseFrame();
+    retry++;
+    if (retry > aRetry) {
+      ok(false, "The popup didn't initialize APZ");
+      return;
+    }
+  }
+}
