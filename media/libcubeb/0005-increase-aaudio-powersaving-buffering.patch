@@ -1,0 +1,24 @@
+diff --git a/src/cubeb_aaudio.cpp b/src/cubeb_aaudio.cpp
+--- a/src/cubeb_aaudio.cpp
++++ b/src/cubeb_aaudio.cpp
+@@ -1328,18 +1328,18 @@ aaudio_stream_init_impl(cubeb_stream * s
+ 
+     int rate = WRAP(AAudioStream_getSampleRate)(stm->ostream);
+     int32_t output_burst_frames =
+         WRAP(AAudioStream_getFramesPerBurst)(stm->ostream);
+     // 3 times the burst size seems fairly robust, use it as minimum.
+     int32_t output_buffer_size_frames = 3 * output_burst_frames;
+     if (stm->latency_frames > POWERSAVE_LATENCY_FRAMES_THRESHOLD) {
+       // FramesPerBurst is large in power saving mode, reduce the buffer size to
+-      // 1 burst.
+-      output_buffer_size_frames = output_burst_frames;
++      // 2 bursts.
++      output_buffer_size_frames = 2 * output_burst_frames;
+     }
+     // Make output buffer size a function of the requested latency so clients
+     // can adapt to their use case.
+     output_buffer_size_frames =
+         std::max(output_buffer_size_frames,
+                  static_cast<int32_t>(stm->latency_frames / 2));
+     int32_t output_final_buffer_size_frames =
+         WRAP(AAudioStream_setBufferSizeInFrames)(stm->ostream,

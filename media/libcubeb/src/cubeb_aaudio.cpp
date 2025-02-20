@@ -1333,8 +1333,8 @@ aaudio_stream_init_impl(cubeb_stream * stm, lock_guard<mutex> & lock)
     int32_t output_buffer_size_frames = 3 * output_burst_frames;
     if (stm->latency_frames > POWERSAVE_LATENCY_FRAMES_THRESHOLD) {
       // FramesPerBurst is large in power saving mode, reduce the buffer size to
-      // 1 burst.
-      output_buffer_size_frames = output_burst_frames;
+      // 2 bursts.
+      output_buffer_size_frames = 2 * output_burst_frames;
     }
     // Make output buffer size a function of the requested latency so clients
     // can adapt to their use case.
