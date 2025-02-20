@@ -10,6 +10,7 @@ import android.view.View
 import android.webkit.WebView
 import android.widget.ImageButton
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.support.ktx.android.view.setupPersistentInsets
 import org.mozilla.fenix.R
 
 /**
@@ -22,6 +23,7 @@ class PrivacyContentDisplayActivity : Activity(), EngineSession.Observer {
     private var url: String? = ""
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setupPersistentInsets()
         setContentView(R.layout.activity_privacy_content_display)
         val addr = intent.extras
         if (addr != null) {

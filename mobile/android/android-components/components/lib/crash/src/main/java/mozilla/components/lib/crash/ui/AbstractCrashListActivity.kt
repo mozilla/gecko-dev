@@ -8,6 +8,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.R
+import mozilla.components.support.ktx.android.view.setupPersistentInsets
 
 /**
  * Activity for displaying the list of reported crashes.
@@ -17,6 +18,7 @@ abstract class AbstractCrashListActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setupPersistentInsets()
 
         setTitle(R.string.mozac_lib_crash_activity_title)
 
