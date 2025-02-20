@@ -78,7 +78,8 @@ add_task(async function () {
       SpecialPowers.Ci.imgITools
     );
     let imageCache = tools.getImgCacheForDocument(window.document);
-    imageCache.clearCache(); // no parameter=all
+    imageCache.clearCache(true); // true=chrome
+    imageCache.clearCache(false); // false=content
     Services.cache2.clear();
 
     info("Enabling network state partitioning");

@@ -70,7 +70,6 @@
 #include "nsDocShell.h"
 #include "nsIException.h"
 #include "VsyncSource.h"
-#include "imgLoader.h"
 
 #ifdef XP_UNIX
 #  include <errno.h>
@@ -1283,21 +1282,18 @@ void ChromeUtils::ClearRecentJSDevError(GlobalObject&) {
 
 void ChromeUtils::ClearStyleSheetCacheByPrincipal(GlobalObject&,
                                                   nsIPrincipal* aForPrincipal) {
-  SharedStyleSheetCache::Clear(Nothing(), Some(aForPrincipal));
+  SharedStyleSheetCache::Clear(Some(aForPrincipal));
 }
 
 void ChromeUtils::ClearStyleSheetCacheBySite(
     GlobalObject&, const nsACString& aSchemelessSite,
     const dom::OriginAttributesPatternDictionary& aPattern) {
-  SharedStyleSheetCache::Clear(Nothing(), Nothing(),
-                               Some(nsCString(aSchemelessSite)),
+  SharedStyleSheetCache::Clear(Nothing(), Some(nsCString(aSchemelessSite)),
                                Some(OriginAttributesPattern(aPattern)));
 }
 
-void ChromeUtils::ClearStyleSheetCache(GlobalObject&,
-                                       const Optional<bool>& aChrome) {
-  SharedStyleSheetCache::Clear(aChrome.WasPassed() ? Some(aChrome.Value())
-                                                   : Nothing());
+void ChromeUtils::ClearStyleSheetCache(GlobalObject&) {
+  SharedStyleSheetCache::Clear();
 }
 
 void ChromeUtils::ClearMessagingLayerSecurityStateByPrincipal(
@@ -1596,29 +1592,18 @@ void ChromeUtils::ClearMessagingLayerSecurityState(GlobalObject&,
 
 void ChromeUtils::ClearScriptCacheByPrincipal(GlobalObject&,
                                               nsIPrincipal* aForPrincipal) {
-  SharedScriptCache::Clear(Nothing(), Some(aForPrincipal));
+  SharedScriptCache::Clear(Some(aForPrincipal));
 }
 
 void ChromeUtils::ClearScriptCacheBySite(
     GlobalObject&, const nsACString& aSchemelessSite,
     const dom::OriginAttributesPatternDictionary& aPattern) {
-  SharedScriptCache::Clear(Nothing(), Nothing(),
-                           Some(nsCString(aSchemelessSite)), Some(aPattern));
+  SharedScriptCache::Clear(Nothing(), Some(nsCString(aSchemelessSite)),
+                           Some(aPattern));
 }
 
-void ChromeUtils::ClearScriptCache(GlobalObject&,
-                                   const Optional<bool>& aChrome) {
-  SharedScriptCache::Clear(aChrome.WasPassed() ? Some(aChrome.Value())
-                                               : Nothing());
-}
-
-void ChromeUtils::ClearResourceCache(GlobalObject&,
-                                     const Optional<bool>& aChrome) {
-  Maybe<bool> chrome = aChrome.WasPassed() ? Some(aChrome.Value()) : Nothing();
-  SharedStyleSheetCache::Clear(chrome);
-  SharedScriptCache::Clear(chrome);
-  imgLoader::PrivateBrowsingLoader()->ClearCache(chrome);
-  imgLoader::NormalLoader()->ClearCache(chrome);
+void ChromeUtils::ClearScriptCache(GlobalObject&) {
+  SharedScriptCache::Clear();
 }
 
 #define PROCTYPE_TO_WEBIDL_CASE(_procType, _webidl) \

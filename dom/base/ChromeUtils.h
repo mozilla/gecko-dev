@@ -193,8 +193,7 @@ class ChromeUtils {
       GlobalObject&, const nsACString& aSchemelessSite,
       const dom::OriginAttributesPatternDictionary& aPattern);
 
-  static void ClearStyleSheetCache(GlobalObject& aGlobal,
-                                   const Optional<bool>& aChrome);
+  static void ClearStyleSheetCache(GlobalObject& aGlobal);
 
   static void ClearMessagingLayerSecurityStateByPrincipal(
       GlobalObject&, nsIPrincipal* aPrincipal, ErrorResult& aRv);
@@ -213,11 +212,7 @@ class ChromeUtils {
       GlobalObject& aGlobal, const nsACString& aSchemelessSite,
       const dom::OriginAttributesPatternDictionary& aPattern);
 
-  static void ClearScriptCache(GlobalObject& aGlobal,
-                               const Optional<bool>& aChrome);
-
-  static void ClearResourceCache(GlobalObject& aGlobal,
-                                 const Optional<bool>& aChrome);
+  static void ClearScriptCache(GlobalObject& aGlobal);
 
   static void SetPerfStatsCollectionMask(GlobalObject& aGlobal, uint64_t aMask);
 

@@ -1372,12 +1372,7 @@ imgLoader::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 NS_IMETHODIMP
-imgLoader::ClearCache(JS::Handle<JS::Value> chrome) {
-  return ClearCache(chrome.isBoolean() ? Some(chrome.toBoolean()) : Nothing());
-}
-
-NS_IMETHODIMP
-imgLoader::ClearCache(Maybe<bool> chrome) {
+imgLoader::ClearCache(bool chrome) {
   if (XRE_IsParentProcess()) {
     bool privateLoader = this == gPrivateBrowsingLoader;
     for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
@@ -1386,11 +1381,7 @@ imgLoader::ClearCache(Maybe<bool> chrome) {
   }
   ClearOptions options;
   if (chrome) {
-    if (*chrome) {
-      options += ClearOption::ChromeOnly;
-    } else {
-      options += ClearOption::ContentOnly;
-    }
+    options += ClearOption::ChromeOnly;
   }
   return ClearImageCache(options);
 }
@@ -2157,19 +2148,11 @@ bool imgLoader::RemoveFromCache(imgCacheEntry* entry, QueueState aQueueState) {
 
 nsresult imgLoader::ClearImageCache(ClearOptions aOptions) {
   const bool chromeOnly = aOptions.contains(ClearOption::ChromeOnly);
-  const bool contentOnly = aOptions.contains(ClearOption::ContentOnly);
   const auto ShouldRemove = [&](imgCacheEntry* aEntry) {
-    if (chromeOnly || contentOnly) {
+    if (chromeOnly) {
+      // TODO: Consider also removing "resource://" etc?
       RefPtr<imgRequest> request = aEntry->GetRequest();
-      if (!request) {
-        return false;
-      }
-      nsIURI* uri = request->CacheKey().URI();
-      bool isChrome = uri->SchemeIs("chrome") || uri->SchemeIs("resource");
-      if (chromeOnly && !isChrome) {
-        return false;
-      }
-      if (contentOnly && isChrome) {
+      if (!request || !request->CacheKey().URI()->SchemeIs("chrome")) {
         return false;
       }
     }
@@ -2193,7 +2176,7 @@ nsresult imgLoader::ClearImageCache(ClearOptions aOptions) {
       }
     }
 
-    MOZ_ASSERT(chromeOnly || contentOnly || mCacheQueue.GetNumElements() == 0);
+    MOZ_ASSERT(chromeOnly || mCacheQueue.GetNumElements() == 0);
     return NS_OK;
   }
 
@@ -2210,7 +2193,7 @@ nsresult imgLoader::ClearImageCache(ClearOptions aOptions) {
       return NS_ERROR_FAILURE;
     }
   }
-  MOZ_ASSERT(chromeOnly || contentOnly || mCache.IsEmpty());
+  MOZ_ASSERT(chromeOnly || mCache.IsEmpty());
   return NS_OK;
 }
 

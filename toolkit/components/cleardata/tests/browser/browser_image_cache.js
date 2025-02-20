@@ -114,7 +114,8 @@ function cleanup() {
   let imageCache = Cc["@mozilla.org/image/tools;1"]
     .getService(Ci.imgITools)
     .getImgCacheForDocument(null);
-  imageCache.clearCache(); // no parameter=all
+  imageCache.clearCache(false);
+  imageCache.clearCache(true);
 }
 
 add_setup(function () {

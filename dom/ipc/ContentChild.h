@@ -245,12 +245,12 @@ class ContentChild final : public PContentChild,
       const ChromeRegistryItem& item);
 
   mozilla::ipc::IPCResult RecvClearStyleSheetCache(
-      const Maybe<bool>& aChrome, const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
+      const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
       const Maybe<nsCString>& aSchemelessSite,
       const Maybe<OriginAttributesPattern>& aPattern);
 
   mozilla::ipc::IPCResult RecvClearScriptCache(
-      const Maybe<bool>& aChrome, const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
+      const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
       const Maybe<nsCString>& aSchemelessSite,
       const Maybe<OriginAttributesPattern>& aPattern);
 
@@ -260,7 +260,7 @@ class ContentChild final : public PContentChild,
       const nsCString& aSchemelessSite,
       const OriginAttributesPattern& aPattern);
   mozilla::ipc::IPCResult RecvClearImageCache(const bool& privateLoader,
-                                              const Maybe<bool>& chrome);
+                                              const bool& chrome);
 
   PRemoteSpellcheckEngineChild* AllocPRemoteSpellcheckEngineChild();
 

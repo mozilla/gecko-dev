@@ -10,7 +10,8 @@ function clearAllImageCaches() {
     SpecialPowers.Ci.imgITools
   );
   var imageCache = tools.getImgCacheForDocument(window.document);
-  imageCache.clearCache(); // no parameter=all
+  imageCache.clearCache(true); // true=chrome
+  imageCache.clearCache(false); // false=content
 }
 
 // Helper function to clear the image cache of content images

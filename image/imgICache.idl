@@ -34,14 +34,10 @@ interface imgICache : nsISupports
   /**
    * Evict images from the cache.
    *
-   * @param chrome If passed and TRUE,  evict only chrome images.
-   *               If passed and FALSE, evict everything except chrome images.
-   *               If not passed, evict all images.
-   *
-   * NOTE: Given that XPIDL doesn't support "was-not-passed" state for boolean,
-   *       the chrome parameter uses jsval instead of boolean.
+   * @param chrome If TRUE,  evict only chrome images.
+   *               If FALSE, evict everything except chrome images.
    */
-  void clearCache([optional] in jsval chrome);
+  void clearCache(in boolean chrome);
 
   /**
    * Evict images from the cache.

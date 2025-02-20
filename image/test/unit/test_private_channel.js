@@ -131,7 +131,8 @@ function run_loadImage_tests() {
   }
 
   for (let loader of [gPublicLoader, gPrivateLoader]) {
-    loader.QueryInterface(Ci.imgICache).clearCache(); // no parameter=all
+    loader.QueryInterface(Ci.imgICache).clearCache(true);
+    loader.QueryInterface(Ci.imgICache).clearCache(false);
   }
   Services.obs.addObserver(observer, "cacheservice:empty-cache");
   let cs = Services.cache2;
