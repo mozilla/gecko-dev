@@ -633,18 +633,8 @@ static nsresult VerifySheetIntegrity(const SRIMetadata& aMetadata,
                                      const nsACString& aSourceFileURI,
                                      nsIConsoleReportCollector* aReporter) {
   NS_ENSURE_ARG_POINTER(aReporter);
-
-  if (MOZ_LOG_TEST(SRILogHelper::GetSriLog(), LogLevel::Debug)) {
-    nsAutoCString requestURL;
-    nsCOMPtr<nsIURI> originalURI;
-    if (aChannel &&
-        NS_SUCCEEDED(aChannel->GetOriginalURI(getter_AddRefs(originalURI))) &&
-        originalURI) {
-      originalURI->GetAsciiSpec(requestURL);
-    }
-    MOZ_LOG(SRILogHelper::GetSriLog(), LogLevel::Debug,
-            ("VerifySheetIntegrity (unichar stream)"));
-  }
+  MOZ_LOG(SRILogHelper::GetSriLog(), LogLevel::Debug,
+          ("VerifySheetIntegrity (unichar stream)"));
 
   SRICheckDataVerifier verifier(aMetadata, aSourceFileURI, aReporter);
   nsresult rv =
@@ -667,17 +657,69 @@ static bool AllLoadsCanceled(const SheetLoadData& aData) {
   return true;
 }
 
+void SheetLoadData::OnStartRequest(nsIRequest* aRequest) {
+  MOZ_ASSERT(NS_IsMainThread());
+  NotifyStart(aRequest);
+
+  SetMinimumExpirationTime(
+      nsContentUtils::GetSubresourceCacheExpirationTime(aRequest, mURI));
+
+  // We need to block resolution of parse promise until we receive OnStopRequest
+  // on Main thread. This is necessary because parse promise resolution fires
+  // OnLoad event must not be dispatched until OnStopRequest in main thread is
+  // processed, for stuff like performance resource entries.
+  mSheet->BlockParsePromise();
+
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+  if (!channel) {
+    return;
+  }
+
+  nsCOMPtr<nsIURI> originalURI;
+  channel->GetOriginalURI(getter_AddRefs(originalURI));
+  MOZ_DIAGNOSTIC_ASSERT(originalURI,
+                        "Someone just violated the nsIRequest contract");
+  nsCOMPtr<nsIURI> finalURI;
+  NS_GetFinalChannelURI(channel, getter_AddRefs(finalURI));
+  MOZ_DIAGNOSTIC_ASSERT(finalURI,
+                        "Someone just violated the nsIRequest contract");
+  mSheet->SetURIs(finalURI, originalURI, finalURI);
+
+  nsCOMPtr<nsIPrincipal> principal;
+  nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
+  if (mUseSystemPrincipal) {
+    secMan->GetSystemPrincipal(getter_AddRefs(principal));
+  } else {
+    secMan->GetChannelResultPrincipal(channel, getter_AddRefs(principal));
+  }
+  MOZ_DIAGNOSTIC_ASSERT(principal);
+  mSheet->SetPrincipal(principal);
+
+  nsCOMPtr<nsIReferrerInfo> referrerInfo =
+      ReferrerInfo::CreateForExternalCSSResources(
+          mSheet, nsContentUtils::GetReferrerPolicyFromChannel(channel));
+  mSheet->SetReferrerInfo(referrerInfo);
+
+  if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(channel)) {
+    nsCString sourceMapURL;
+    if (nsContentUtils::GetSourceMapURL(httpChannel, sourceMapURL)) {
+      mSheet->SetSourceMapURL(std::move(sourceMapURL));
+    }
+  }
+
+  mIsCrossOriginNoCORS = mSheet->GetCORSMode() == CORS_NONE &&
+                         !mTriggeringPrincipal->Subsumes(mSheet->Principal());
+}
+
 /*
- * Stream completion code shared by Stylo and the old style system.
- *
  * Here we need to check that the load did not give us an http error
  * page and check the mimetype on the channel to make sure we're not
  * loading non-text/css data in standards mode.
  */
-nsresult SheetLoadData::VerifySheetReadyToParse(
-    nsresult aStatus, const nsACString& aBytes1, const nsACString& aBytes2,
-    nsIChannel* aChannel, nsIURI* aFinalChannelURI,
-    nsIPrincipal* aChannelResultPrincipal) {
+nsresult SheetLoadData::VerifySheetReadyToParse(nsresult aStatus,
+                                                const nsACString& aBytes1,
+                                                const nsACString& aBytes2,
+                                                nsIChannel* aChannel) {
   LOG(("SheetLoadData::VerifySheetReadyToParse"));
   NS_ASSERTION((!NS_IsMainThread() || !mLoader->mSyncCallback),
                "Synchronous callback from necko");
@@ -726,62 +768,17 @@ nsresult SheetLoadData::VerifySheetReadyToParse(
     return NS_OK;
   }
 
-  nsCOMPtr<nsIURI> originalURI;
-  aChannel->GetOriginalURI(getter_AddRefs(originalURI));
-
-  // If the channel's original URI is "chrome:", we want that, since
-  // the observer code in nsXULPrototypeCache depends on chrome stylesheets
-  // having a chrome URI.  (Whether or not chrome stylesheets come through
-  // this codepath seems nondeterministic.)
-  // Otherwise we want the potentially-HTTP-redirected URI.
-  if (!aFinalChannelURI || !originalURI) {
-    MOZ_ASSERT(NS_IsMainThread());
-    NS_ERROR("Someone just violated the nsIRequest contract");
-    LOG_WARN(("  Channel without a URI.  Bad!"));
-    mLoader->SheetComplete(*this, NS_ERROR_UNEXPECTED);
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsIPrincipal> principal;
-  nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
-  nsresult result = NS_ERROR_NOT_AVAILABLE;
-  if (secMan) {  // Could be null if we already shut down
-    if (mUseSystemPrincipal) {
-      result = secMan->GetSystemPrincipal(getter_AddRefs(principal));
-    } else {
-      if (aChannelResultPrincipal) {
-        principal = aChannelResultPrincipal;
-        result = NS_OK;
-      }
-    }
-  }
-
-  if (NS_FAILED(result)) {
-    if (NS_IsMainThread()) {
-      LOG_WARN(("  Couldn't get principal"));
-      mLoader->SheetComplete(*this, result);
-    }
-    return NS_OK;
-  }
-
-  mSheet->SetPrincipal(principal);
-
   // If it's an HTTP channel, we want to make sure this is not an
   // error document we got.
   if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel)) {
     bool requestSucceeded;
-    result = httpChannel->GetRequestSucceeded(&requestSucceeded);
+    nsresult result = httpChannel->GetRequestSucceeded(&requestSucceeded);
     if (NS_SUCCEEDED(result) && !requestSucceeded) {
       if (NS_IsMainThread()) {
         LOG(("  Load returned an error page"));
         mLoader->SheetComplete(*this, NS_ERROR_NOT_AVAILABLE);
       }
       return NS_OK;
-    }
-
-    nsCString sourceMapURL;
-    if (nsContentUtils::GetSourceMapURL(httpChannel, sourceMapURL)) {
-      mSheet->SetSourceMapURL(std::move(sourceMapURL));
     }
   }
 
@@ -793,9 +790,9 @@ nsresult SheetLoadData::VerifySheetReadyToParse(
   // MIME type, but only if the style sheet is same-origin with the
   // requesting document or parent sheet.  See bug 524223.
 
-  bool validType = contentType.EqualsLiteral("text/css") ||
-                   contentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE) ||
-                   contentType.IsEmpty();
+  const bool validType = contentType.EqualsLiteral("text/css") ||
+                         contentType.EqualsLiteral(UNKNOWN_CONTENT_TYPE) ||
+                         contentType.IsEmpty();
 
   if (!validType) {
     if (!NS_IsMainThread()) {
@@ -806,7 +803,8 @@ nsresult SheetLoadData::VerifySheetReadyToParse(
     bool sameOrigin = true;
 
     bool subsumed;
-    result = mTriggeringPrincipal->Subsumes(principal, &subsumed);
+    nsresult result =
+        mTriggeringPrincipal->Subsumes(mSheet->Principal(), &subsumed);
     if (NS_FAILED(result) || !subsumed) {
       sameOrigin = false;
     }
@@ -820,7 +818,7 @@ nsresult SheetLoadData::VerifySheetReadyToParse(
     }
 
     AutoTArray<nsString, 2> strings;
-    CopyUTF8toUTF16(aFinalChannelURI->GetSpecOrDefault(),
+    CopyUTF8toUTF16(mSheet->GetSheetURI()->GetSpecOrDefault(),
                     *strings.AppendElement());
     CopyASCIItoUTF16(contentType, *strings.AppendElement());
 
@@ -871,21 +869,6 @@ nsresult SheetLoadData::VerifySheetReadyToParse(
       return NS_OK;
     }
   }
-
-  if (mSheet->GetCORSMode() == CORS_NONE &&
-      !mTriggeringPrincipal->Subsumes(principal)) {
-    mIsCrossOriginNoCORS = true;
-  }
-  // Enough to set the URIs on mSheet, since any sibling datas we have share
-  // the same mInner as mSheet and will thus get the same URI.
-  mSheet->SetURIs(aFinalChannelURI, originalURI, aFinalChannelURI);
-
-  ReferrerPolicy policy =
-      nsContentUtils::GetReferrerPolicyFromChannel(aChannel);
-  nsCOMPtr<nsIReferrerInfo> referrerInfo =
-      ReferrerInfo::CreateForExternalCSSResources(mSheet, policy);
-
-  mSheet->SetReferrerInfo(referrerInfo);
   return NS_OK_PARSE_SHEET;
 }
 

@@ -17,8 +17,7 @@ namespace mozilla {
 void StyleSheet::SetURIs(nsIURI* aSheetURI, nsIURI* aOriginalSheetURI,
                          nsIURI* aBaseURI) {
   MOZ_ASSERT(aSheetURI && aBaseURI, "null ptr");
-  // HasRules() should be accessed only on the main thread
-  MOZ_ASSERT_IF(NS_IsMainThread(), !HasRules() && !IsComplete());
+  MOZ_ASSERT(!HasRules() && !IsComplete());
   StyleSheetInfo& info = Inner();
   info.mSheetURI = aSheetURI;
   info.mOriginalSheetURI = aOriginalSheetURI;
