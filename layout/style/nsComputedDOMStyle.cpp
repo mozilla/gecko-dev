@@ -1911,8 +1911,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
   const nsStylePosition* positionData = StylePosition();
   int32_t sign = 1;
   const auto positionProperty = StyleDisplay()->mPosition;
-  auto side = aSide;
-  auto coord = positionData->GetAnchorResolvedInset(side, positionProperty);
+  auto coord = positionData->GetAnchorResolvedInset(aSide, positionProperty);
 
   if (coord->IsAuto()) {
     if (!aResolveAuto) {
@@ -1920,8 +1919,8 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
       val->SetString("auto");
       return val.forget();
     }
-    side = NS_OPPOSITE_SIDE(side);
-    coord = positionData->GetAnchorResolvedInset(side, positionProperty);
+    coord = positionData->GetAnchorResolvedInset(NS_OPPOSITE_SIDE(aSide),
+                                                 positionProperty);
     sign = -1;
   }
   if (coord->IsAuto()) {
@@ -1941,11 +1940,8 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetNonStaticPositionOffset(
     return PixelsToCSSValue(0.0f);
   }
 
-  // TODO(dshin, bug 1947482): Anchor resolution only cares about the axis it's
-  // being resolved in, so we should be able to use `PhysicalAxis` and not worry
-  // about keeping track of `side`.
   nscoord result = lp.ResolveWithAnchor(
-      percentageBase, ToStylePhysicalSide(side), positionProperty);
+      percentageBase, GetStylePhysicalAxis(aSide), positionProperty);
   return AppUnitsToCSSValue(sign * result);
 }
 
