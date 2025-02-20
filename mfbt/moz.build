@@ -203,3 +203,5 @@ DEFINES["MOZ_SUPPORT_LEAKCHECKING"] = True
 # but pure_virtual requires mfbt to build and some projects
 # don't use mfbt.
 DIRS += ["../build/pure_virtual"]
+
+FINAL_LIBRARY = "mozglue"
