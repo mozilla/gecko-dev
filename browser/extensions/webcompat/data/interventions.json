@@ -2885,6 +2885,21 @@
       }
     ]
   },
+  "1944518": {
+    "label": "app.powerbi.com",
+    "bugs": {
+      "1944518": {
+        "issue": "broken-scrolling",
+        "matches": ["*://app.powerbi.com/view*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["mac"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1944727": {
     "label": "linkedin.com",
     "bugs": {
