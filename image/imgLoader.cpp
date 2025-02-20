@@ -1376,8 +1376,8 @@ imgLoader::ClearCache(JS::Handle<JS::Value> chrome) {
   return ClearCache(chrome.isBoolean() ? Some(chrome.toBoolean()) : Nothing());
 }
 
-NS_IMETHODIMP
-imgLoader::ClearCache(Maybe<bool> chrome) {
+nsresult
+imgLoader::ClearCache(mozilla::Maybe<bool> chrome) {
   if (XRE_IsParentProcess()) {
     bool privateLoader = this == gPrivateBrowsingLoader;
     for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
