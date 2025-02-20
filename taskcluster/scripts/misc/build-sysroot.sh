@@ -19,17 +19,9 @@ sysroot=${sysroot%%.*}
 case "$arch" in
 i386|amd64)
   dist=jessie
-  if [ -n "$PACKAGES_TASKS" ]; then
-    gcc_version=8
-  else
-    gcc_version=4.9
-  fi
-  # The Debian Jessie GPG key expired.
-  extra_apt_opt='Apt::Key::gpgvcommand "/usr/local/sbin/gpgvnoexpkeysig"'
   ;;
 arm64)
   dist=buster
-  gcc_version=8
   ;;
 *)
   echo "$arch is not supported." >&2
@@ -37,15 +29,52 @@ arm64)
   ;;
 esac
 
+if [ -n "$DIST" ]; then
+  dist="$DIST"
+fi
+
 case "$dist" in
 jessie)
+  gcc_version=4.9
+  ;;
+stretch)
+  gcc_version=6
+  ;;
+buster)
+  gcc_version=8
+  ;;
+bullseye)
+  gcc_version=10
+  ;;
+bookworm)
+  gcc_version=12
+  ;;
+esac
+
+if [ -n "$GCC_VERSION" ]; then
+  gcc_version="$GCC_VERSION"
+fi
+
+case "$dist" in
+jessie|stretch|buster)
   repo_url=https://archive.debian.org/debian
   ;;
 *)
-  SNAPSHOT=20230611T210420Z
+  : ${SNAPSHOT:=20230611T210420Z}
   repo_url=http://snapshot.debian.org/archive/debian/$SNAPSHOT
   ;;
 esac
+
+case "$dist" in
+jessie)
+  # The Debian Jessie GPG key expired.
+  GPG_KEY_EXPIRED=1
+  ;;
+esac
+
+if [ -n "$GPG_KEY_EXPIRED" ]; then
+  extra_apt_opt='Apt::Key::gpgvcommand "/usr/local/sbin/gpgvnoexpkeysig"'
+fi
 
 packages="
   linux-libc-dev
@@ -87,9 +116,11 @@ queue_base="$TASKCLUSTER_ROOT_URL/api/queue/v1"
   --dpkgopt=path-include="/lib/*" \
   --dpkgopt=path-exclude="/lib/systemd/*" \
   --dpkgopt=path-include="/lib32/*" \
+  --dpkgopt=path-include="/lib64/*" \
   --dpkgopt=path-include="/usr/include/*" \
   --dpkgopt=path-include="/usr/lib/*" \
   --dpkgopt=path-include="/usr/lib32/*" \
+  --dpkgopt=path-include="/usr/lib64/*" \
   --dpkgopt=path-exclude="/usr/lib/debug/*" \
   --dpkgopt=path-exclude="/usr/lib/python*" \
   --dpkgopt=path-exclude="/usr/lib/valgrind/*" \
