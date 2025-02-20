@@ -571,3 +571,38 @@ add_task(async function test_context_paramters() {
     "rollout",
   ]);
 });
+
+add_task(async function test_experimentStore_updateEvent() {
+  const manager = ExperimentFakes.manager();
+  const stub = sinon.stub();
+
+  await manager.onStartup();
+  await manager.store.ready();
+
+  manager.store.on("update", stub);
+
+  await manager.enroll(
+    ExperimentFakes.recipe("experiment", {
+      bucketConfig: {
+        ...ExperimentFakes.recipe.bucketConfig,
+        count: 1000,
+      },
+    }),
+    "rs-loader"
+  );
+  Assert.ok(
+    stub.calledOnceWith("update", { slug: "experiment", active: true })
+  );
+  stub.resetHistory();
+
+  manager.unenroll("experiment", "individual-opt-out");
+  Assert.ok(
+    stub.calledOnceWith("update", {
+      slug: "experiment",
+      active: false,
+      unenrollReason: "individual-opt-out",
+    })
+  );
+
+  await assertEmptyStore(manager.store);
+});

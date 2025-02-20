@@ -869,7 +869,6 @@ add_task(async function test_cleanupOldRecipes() {
   store._cleanupOldRecipes();
 
   Assert.ok(stub.calledOnce, "Recipe cleanup called");
-  dump(`!!! remove = ${JSON.stringify(stub.firstCall.args[0])}\n`);
   Assert.equal(
     stub.firstCall.args[0].length,
     2,
