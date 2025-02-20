@@ -400,9 +400,7 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   }
 
  protected:
-  void SendGatheringStateEvent() {
-    gathering_state_callback_list_.Send(this);
-  }
+  void SendGatheringStateEvent() { gathering_state_callback_list_.Send(this); }
 
   webrtc::CallbackList<IceTransportInternal*,
                        const StunDictionaryView&,

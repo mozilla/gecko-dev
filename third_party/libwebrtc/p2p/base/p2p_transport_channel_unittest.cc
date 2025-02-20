@@ -1211,17 +1211,17 @@ const P2PTransportChannelMatrixTest::Result*
 
 #define P2P_TEST(x, y) P2P_TEST_DECLARATION(x, y, /* empty argument */)
 
-#define P2P_TEST_SET(x)                    \
-  P2P_TEST(x, OPEN)                        \
-  P2P_TEST(x, NAT_FULL_CONE)               \
-  P2P_TEST(x, NAT_ADDR_RESTRICTED)         \
-  P2P_TEST(x, NAT_PORT_RESTRICTED)         \
-  P2P_TEST(x, NAT_SYMMETRIC)               \
-  P2P_TEST(x, NAT_DOUBLE_CONE)             \
-  P2P_TEST(x, NAT_SYMMETRIC_THEN_CONE)     \
-  P2P_TEST(x, BLOCK_UDP)                   \
-  P2P_TEST(x, BLOCK_UDP_AND_INCOMING_TCP)  \
-  P2P_TEST(x, BLOCK_ALL_BUT_OUTGOING_HTTP) \
+#define P2P_TEST_SET(x)                   \
+  P2P_TEST(x, OPEN)                       \
+  P2P_TEST(x, NAT_FULL_CONE)              \
+  P2P_TEST(x, NAT_ADDR_RESTRICTED)        \
+  P2P_TEST(x, NAT_PORT_RESTRICTED)        \
+  P2P_TEST(x, NAT_SYMMETRIC)              \
+  P2P_TEST(x, NAT_DOUBLE_CONE)            \
+  P2P_TEST(x, NAT_SYMMETRIC_THEN_CONE)    \
+  P2P_TEST(x, BLOCK_UDP)                  \
+  P2P_TEST(x, BLOCK_UDP_AND_INCOMING_TCP) \
+  P2P_TEST(x, BLOCK_ALL_BUT_OUTGOING_HTTP)
 
 P2P_TEST_SET(OPEN)
 P2P_TEST_SET(NAT_FULL_CONE)

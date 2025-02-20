@@ -739,8 +739,7 @@ void Connection::SendStunBindingResponse(const StunMessage* message) {
         RTC_LOG(LS_ERROR) << "GOOG_DELTA consumer did not return ack!";
       }
     } else {
-      RTC_LOG(LS_WARNING) << "Ignore GOOG_DELTA"
-                          << " len: " << delta->length()
+      RTC_LOG(LS_WARNING) << "Ignore GOOG_DELTA" << " len: " << delta->length()
                           << " answer_goog_delta = "
                           << field_trials_->answer_goog_delta
                           << " goog_delta_consumer_ = "
