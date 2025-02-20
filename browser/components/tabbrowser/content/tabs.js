@@ -290,6 +290,7 @@
 
     on_TabGroupCollapse(event) {
       this._invalidateCachedVisibleTabs();
+      this._unlockTabSizing();
 
       // If the user's selected tab is in the collapsing group, kick them off
       // the tab. If no tabs exist outside the group, create a new one and
