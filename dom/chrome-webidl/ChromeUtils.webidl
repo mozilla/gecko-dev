@@ -246,6 +246,22 @@ namespace ChromeUtils {
   undefined clearStyleSheetCache();
 
   /**
+   * Clears the JavaScript cache by schemeless site. This includes associated
+   * state-partitioned cache.
+   */
+  undefined clearScriptCacheBySite(UTF8String schemelessSite, optional OriginAttributesPatternDictionary pattern = {});
+
+  /**
+   * Clears the JavaScript cache by principal.
+   */
+  undefined clearScriptCacheByPrincipal(Principal principal);
+
+  /**
+   * Clears the entire JavaScript cache.
+   */
+  undefined clearScriptCache();
+
+  /**
    * Clears the Messaging Layer Security state by schemeless site.
    * This includes associated state-partitioned cache.
    */
@@ -263,22 +279,6 @@ namespace ChromeUtils {
    */
   [Throws]
   undefined clearMessagingLayerSecurityState();
-
-  /**
-   * Clears the JavaScript cache by schemeless site. This includes associated
-   * state-partitioned cache.
-   */
-  undefined clearScriptCacheBySite(UTF8String schemelessSite, optional OriginAttributesPatternDictionary pattern = {});
-
-  /**
-   * Clears the JavaScript cache by principal.
-   */
-  undefined clearScriptCacheByPrincipal(Principal principal);
-
-  /**
-   * Clears the entire JavaScript cache.
-   */
-  undefined clearScriptCache();
 
   /**
    * If the profiler is currently running and recording the current thread,
