@@ -10,17 +10,28 @@
 
 #include "audio/audio_receive_stream.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
-#include <string>
+#include <memory>
 #include <utility>
 #include <vector>
 
+#include "api/audio_codecs/audio_format.h"
+#include "api/crypto/frame_decryptor_interface.h"
 #include "api/environment/environment_factory.h"
+#include "api/make_ref_counted.h"
+#include "api/rtp_headers.h"
+#include "api/scoped_refptr.h"
 #include "api/test/mock_audio_mixer.h"
 #include "api/test/mock_frame_decryptor.h"
+#include "audio/channel_receive.h"
 #include "audio/conversion.h"
 #include "audio/mock_voe_channel_proxy.h"
+#include "call/audio_receive_stream.h"
+#include "call/audio_state.h"
 #include "call/rtp_stream_receiver_controller.h"
+#include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/audio_device/include/mock_audio_device.h"
 #include "modules/audio_processing/include/mock_audio_processing.h"
 #include "modules/pacing/packet_router.h"
@@ -127,7 +138,6 @@ struct ConfigHelper {
         .Times(1);
     EXPECT_CALL(*channel_receive_, ResetReceiverCongestionControlObjects())
         .Times(1);
-    EXPECT_CALL(*channel_receive_, SetAssociatedSendChannel(nullptr)).Times(1);
     EXPECT_CALL(*channel_receive_, SetReceiveCodecs(_))
         .WillRepeatedly(Invoke([](const std::map<int, SdpAudioFormat>& codecs) {
           EXPECT_THAT(codecs, ::testing::IsEmpty());
@@ -190,7 +200,7 @@ struct ConfigHelper {
   MockTransport rtcp_send_transport_;
 };
 
-const std::vector<uint8_t> CreateRtcpSenderReport() {
+std::vector<uint8_t> CreateRtcpSenderReport() {
   std::vector<uint8_t> packet;
   const size_t kRtcpSrLength = 28;  // In bytes.
   packet.resize(kRtcpSrLength);

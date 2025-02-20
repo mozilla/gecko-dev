@@ -11,26 +11,34 @@
 #ifndef AUDIO_CHANNEL_RECEIVE_H_
 #define AUDIO_CHANNEL_RECEIVE_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
 
+#include "api/audio/audio_frame.h"
 #include "api/audio/audio_mixer.h"
+#include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/audio_codecs/audio_format.h"
 #include "api/call/audio_sink.h"
 #include "api/call/transport.h"
 #include "api/crypto/crypto_options.h"
 #include "api/environment/environment.h"
 #include "api/frame_transformer_interface.h"
 #include "api/neteq/neteq_factory.h"
+#include "api/rtp_headers.h"
+#include "api/scoped_refptr.h"
 #include "api/transport/rtp/rtp_source.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "call/rtp_packet_sink_interface.h"
 #include "call/syncable.h"
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
-#include "modules/rtp_rtcp/source/source_tracker.h"
 
 // TODO(solenberg, nisse): This file contains a few NOLINT marks, to silence
 // warnings about use of unsigned short.
@@ -153,11 +161,6 @@ class ChannelReceiveInterface : public RtpPacketSinkInterface {
   virtual int PreferredSampleRate() const = 0;
 
   virtual std::vector<RtpSource> GetSources() const = 0;
-
-  // Associate to a send channel.
-  // Used for obtaining RTT for a receive-only channel.
-  virtual void SetAssociatedSendChannel(
-      const ChannelSendInterface* channel) = 0;
 
   // Sets a frame transformer between the depacketizer and the decoder, to
   // transform the received frames before decoding them.
