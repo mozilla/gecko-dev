@@ -1333,6 +1333,10 @@
       "1944323": {
         "issue": "firefox-blocked-completely",
         "matches": ["*://*.yabbycasino.com/*"]
+      },
+      "1947963": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.slotmadness.com/*"]
       }
     },
     "interventions": [
