@@ -2160,12 +2160,12 @@ nsresult imgLoader::ClearImageCache(ClearOptions aOptions) {
   const bool contentOnly = aOptions.contains(ClearOption::ContentOnly);
   const auto ShouldRemove = [&](imgCacheEntry* aEntry) {
     if (chromeOnly || contentOnly) {
-      // TODO: Consider also removing "resource://" etc?
       RefPtr<imgRequest> request = aEntry->GetRequest();
       if (!request) {
         return false;
       }
-      bool isChrome = request->CacheKey().URI()->SchemeIs("chrome");
+      nsIURI* uri = request->CacheKey().URI();
+      bool isChrome = uri->SchemeIs("chrome") || uri->SchemeIs("resource");
       if (chromeOnly && !isChrome) {
         return false;
       }
