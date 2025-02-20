@@ -4,7 +4,8 @@ URL = "https://mp3cut.net/it/"
 PICKER_DROPDOWN_BUTTON_CSS = ".file-picker.el-dropdown button[aria-haspopup=list]"
 PICKER_FROM_URL_CSS = ".el-dropdown-menu__item.url"
 AUDIO_FILE_URL = "https://searchfox.org/mozilla-central/source/toolkit/content/tests/widgets/audio.wav"
-TEMPO_BUTTON_CSS = ".el-radio-button.item.atempo"
+TEMPO_MENU_CSS = ".toolbar:has(.el-radio-button.item.atempo)"
+TEMPO_BUTTON_CSS = ".el-radio-button.item.atempo, .el-dropdown-menu__item.atempo"
 UNSUPPORTED_CSS = ".s-atempo.unsupported"
 SUPPORTED_CSS = ".s-atempo:not(.unsupported) .el-slider.horizontal"
 
@@ -14,6 +15,8 @@ async def open_editor(client):
     await client.navigate(URL)
     client.await_css(PICKER_DROPDOWN_BUTTON_CSS, is_displayed=True).click()
     client.await_css(PICKER_FROM_URL_CSS, is_displayed=True).click()
+    # The tempo/velocità option may be hidden in a drop-down menu on narrow displays/mobile
+    client.await_css(TEMPO_MENU_CSS, is_displayed=True).click()
     client.await_css(TEMPO_BUTTON_CSS, is_displayed=True).click()
 
 

@@ -17,12 +17,14 @@ async def is_reload_cycle_detected(client):
         return False
 
 
+@pytest.mark.only_platforms("android")
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
     assert not await is_reload_cycle_detected(client)
 
 
+@pytest.mark.only_platforms("android")
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
