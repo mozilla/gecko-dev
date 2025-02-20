@@ -277,7 +277,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   static Result<std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>,
                 nsresult>
   DoAnalyzeRequest(
-      nsCString&& aUserActionId, bool aAutoAcknowledge,
+      nsCString&& aUserActionId,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
       const std::shared_ptr<content_analysis::sdk::Client>& aClient);
   void IssueResponse(ContentAnalysisResponse* response,
