@@ -96,6 +96,31 @@ class ParentProcessTargetActor extends WindowGlobalTargetActor {
       window = Services.wm.getMostRecentWindow(null);
     }
 
+    // On Fenix, we may not have any document to inspect when there is no tab
+    // opened, so return a fake document, just to ensure the ParentProcessWindowGlobalTarget
+    // actor has a functional document to operate with.
+    if (!window) {
+      const browser = Services.appShell.createWindowlessBrowser(false);
+
+      // Keep a strong reference to the document to keep it alive
+      this.headlessBrowser = browser;
+
+      // Create a document in order to avoid being on the initial about:blank document
+      // and have the document be ignored because its `isInitialDocument` attribute being true
+      const systemPrincipal =
+        Services.scriptSecurityManager.getSystemPrincipal();
+      browser.docShell.createAboutBlankDocumentViewer(
+        systemPrincipal,
+        systemPrincipal
+      );
+
+      window = browser.docShell.domWindow;
+
+      // Set some content to be shown in the inspector
+      window.document.documentElement.innerHTML =
+        "Fake DevTools document, as there is no tab opened yet";
+    }
+
     return window.docShell;
   }
 
@@ -143,6 +168,8 @@ class ParentProcessTargetActor extends WindowGlobalTargetActor {
       }
       this._progressListener.unwatch(docShell);
     }
+
+    this.headlessBrowser = null;
 
     return super._detach();
   }
