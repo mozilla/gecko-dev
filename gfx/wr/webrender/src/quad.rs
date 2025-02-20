@@ -301,6 +301,7 @@ pub fn prepare_quad(
                 let conversion = ClipSpaceConversion::new(
                     prim_spatial_node_index,
                     clip_node.item.spatial_node_index,
+                    pic_context.visibility_spatial_node_index,
                     frame_context.spatial_tree,
                 );
 

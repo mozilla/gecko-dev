@@ -246,6 +246,7 @@ pub struct PictureContext {
     pub pic_index: PictureIndex,
     pub surface_spatial_node_index: SpatialNodeIndex,
     pub raster_spatial_node_index: SpatialNodeIndex,
+    pub visibility_spatial_node_index: SpatialNodeIndex,
     /// The surface that this picture will render on.
     pub surface_index: SurfaceIndex,
     pub dirty_region_count: usize,

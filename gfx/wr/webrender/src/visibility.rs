@@ -199,6 +199,7 @@ pub fn update_prim_visibility(
         frame_context.global_screen_world_rect,
         frame_context.spatial_tree,
     );
+    let visibility_spatial_node_index = surface.visibility_spatial_node_index;
 
     for cluster in &pic.prim_list.clusters {
         profile_scope!("cluster");
@@ -287,6 +288,7 @@ pub fn update_prim_visibility(
             frame_state.clip_store.set_active_clips(
                 cluster.spatial_node_index,
                 map_local_to_picture.ref_spatial_node_index,
+                visibility_spatial_node_index,
                 prim_instance.clip_leaf_id,
                 &frame_context.spatial_tree,
                 &frame_state.data_stores.clip,

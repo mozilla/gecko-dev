@@ -2181,6 +2181,7 @@ impl TileCacheInstance {
             frame_state.clip_store.set_active_clips(
                 self.spatial_node_index,
                 map_local_to_picture.ref_spatial_node_index,
+                surface.visibility_spatial_node_index,
                 shared_clip_leaf_id,
                 frame_context.spatial_tree,
                 &mut frame_state.data_stores.clip,
@@ -6558,6 +6559,8 @@ impl PicturePrimitive {
         let context = PictureContext {
             pic_index,
             raster_spatial_node_index: frame_state.surfaces[surface_index.0].raster_spatial_node_index,
+            // TODO: switch the visibility spatial node from the root to raster space.
+            visibility_spatial_node_index: frame_context.root_spatial_node_index,
             surface_spatial_node_index,
             surface_index,
             dirty_region_count,

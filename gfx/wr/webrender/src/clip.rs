@@ -112,7 +112,7 @@ use crate::render_task_graph::RenderTaskGraphBuilder;
 use crate::resource_cache::{ImageRequest, ResourceCache};
 use crate::scene_builder_thread::Interners;
 use crate::space::SpaceMapper;
-use crate::util::{clamp_to_scale_factor, MaxRect, extract_inner_rect_safe, project_rect, ScaleOffset};
+use crate::util::{clamp_to_scale_factor, extract_inner_rect_safe, project_rect, MatrixHelpers, MaxRect, ScaleOffset};
 use euclid::approxeq::ApproxEq;
 use std::{iter, ops, u32, mem};
 
@@ -1016,6 +1016,7 @@ impl ClipSpaceConversion {
     pub fn new(
         prim_spatial_node_index: SpatialNodeIndex,
         clip_spatial_node_index: SpatialNodeIndex,
+        visibility_spatial_node_index: SpatialNodeIndex,
         spatial_tree: &SpatialTree,
     ) -> Self {
         //Note: this code is different from `get_relative_transform` in a way that we only try
@@ -1032,9 +1033,10 @@ impl ClipSpaceConversion {
             ClipSpaceConversion::ScaleOffset(scale_offset)
         } else {
             ClipSpaceConversion::Transform(
-                spatial_tree
-                    .get_world_transform(clip_spatial_node_index)
-                    .into_transform()
+                spatial_tree.get_relative_transform(
+                    clip_spatial_node_index,
+                    visibility_spatial_node_index,
+                ).into_transform().cast_unit()
             )
         }
     }
@@ -1311,6 +1313,7 @@ impl ClipStore {
         &mut self,
         prim_spatial_node_index: SpatialNodeIndex,
         pic_spatial_node_index: SpatialNodeIndex,
+        visibility_spatial_node_index: SpatialNodeIndex,
         clip_leaf_id: ClipLeafId,
         spatial_tree: &SpatialTree,
         clip_data_store: &ClipDataStore,
@@ -1333,6 +1336,7 @@ impl ClipStore {
                 node.handle,
                 prim_spatial_node_index,
                 pic_spatial_node_index,
+                visibility_spatial_node_index,
                 &mut local_clip_rect,
                 &mut self.active_clip_node_info,
                 &mut self.active_pic_coverage_rect,
@@ -1353,6 +1357,7 @@ impl ClipStore {
         &mut self,
         prim_clip_chain: &ClipChainInstance,
         prim_spatial_node_index: SpatialNodeIndex,
+        visibility_spatial_node_index: SpatialNodeIndex,
         spatial_tree: &SpatialTree,
         clip_data_store: &ClipDataStore,
     ) {
@@ -1371,6 +1376,7 @@ impl ClipStore {
             let conversion = ClipSpaceConversion::new(
                 prim_spatial_node_index,
                 clip.item.spatial_node_index,
+                visibility_spatial_node_index,
                 spatial_tree,
             );
             self.active_clip_node_info.push(ClipNodeInfo {
@@ -2289,6 +2295,7 @@ fn add_clip_node_to_current_chain(
     handle: ClipDataHandle,
     prim_spatial_node_index: SpatialNodeIndex,
     pic_spatial_node_index: SpatialNodeIndex,
+    visibility_spatial_node_index: SpatialNodeIndex,
     local_clip_rect: &mut LayoutRect,
     clip_node_info: &mut Vec<ClipNodeInfo>,
     pic_coverage_rect: &mut PictureRect,
@@ -2302,6 +2309,7 @@ fn add_clip_node_to_current_chain(
     let conversion = ClipSpaceConversion::new(
         prim_spatial_node_index,
         clip_node.item.spatial_node_index,
+        visibility_spatial_node_index,
         spatial_tree,
     );
 
