@@ -19,9 +19,11 @@
 
 @synthesize nativeMediaSource = _nativeMediaSource;
 
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-              nativeMediaSource:(rtc::scoped_refptr<webrtc::MediaSourceInterface>)nativeMediaSource
-                           type:(RTCMediaSourceType)type {
+- (instancetype)
+      initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+    nativeMediaSource:
+        (rtc::scoped_refptr<webrtc::MediaSourceInterface>)nativeMediaSource
+                 type:(RTCMediaSourceType)type {
   RTC_DCHECK(factory);
   RTC_DCHECK(nativeMediaSource);
   self = [super init];

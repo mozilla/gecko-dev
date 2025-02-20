@@ -23,7 +23,8 @@
   return [self initWithNativeParameters:nativeExtension];
 }
 
-- (instancetype)initWithNativeParameters:(const webrtc::RtpExtension &)nativeParameters {
+- (instancetype)initWithNativeParameters:
+    (const webrtc::RtpExtension &)nativeParameters {
   self = [super init];
   if (self) {
     _uri = [NSString stringForStdString:nativeParameters.uri];

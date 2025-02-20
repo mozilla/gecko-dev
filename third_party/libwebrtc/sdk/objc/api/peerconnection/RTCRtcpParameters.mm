@@ -22,7 +22,8 @@
   return [self initWithNativeParameters:nativeParameters];
 }
 
-- (instancetype)initWithNativeParameters:(const webrtc::RtcpParameters &)nativeParameters {
+- (instancetype)initWithNativeParameters:
+    (const webrtc::RtcpParameters &)nativeParameters {
   self = [super init];
   if (self) {
     _cname = [NSString stringForStdString:nativeParameters.cname];

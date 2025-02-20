@@ -50,10 +50,13 @@ RTC_OBJC_EXPORT
  * Initializes CryptoOptions with all possible options set explicitly. This
  * is done when converting from a native RTCConfiguration.crypto_options.
  */
-- (instancetype)initWithSrtpEnableGcmCryptoSuites:(BOOL)srtpEnableGcmCryptoSuites
-              srtpEnableAes128Sha1_32CryptoCipher:(BOOL)srtpEnableAes128Sha1_32CryptoCipher
-           srtpEnableEncryptedRtpHeaderExtensions:(BOOL)srtpEnableEncryptedRtpHeaderExtensions
-                     sframeRequireFrameEncryption:(BOOL)sframeRequireFrameEncryption
+- (instancetype)
+         initWithSrtpEnableGcmCryptoSuites:(BOOL)srtpEnableGcmCryptoSuites
+       srtpEnableAes128Sha1_32CryptoCipher:
+           (BOOL)srtpEnableAes128Sha1_32CryptoCipher
+    srtpEnableEncryptedRtpHeaderExtensions:
+        (BOOL)srtpEnableEncryptedRtpHeaderExtensions
+              sframeRequireFrameEncryption:(BOOL)sframeRequireFrameEncryption
     NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)init NS_UNAVAILABLE;

@@ -16,7 +16,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 /**
- * This class extension exposes methods that work directly with injectable C++ components.
+ * This class extension exposes methods that work directly with injectable C++
+ * components.
  */
 @interface RTC_OBJC_TYPE (RTCRtpReceiver)
 ()
@@ -25,7 +26,8 @@ NS_ASSUME_NONNULL_BEGIN
      * This will decrypt the entire frame using the user provided decryption
      * mechanism regardless of whether SRTP is enabled or not.
      */
-    - (void)setFrameDecryptor : (rtc::scoped_refptr<webrtc::FrameDecryptorInterface>)frameDecryptor;
+    - (void)setFrameDecryptor
+    : (rtc::scoped_refptr<webrtc::FrameDecryptorInterface>)frameDecryptor;
 
 @end
 

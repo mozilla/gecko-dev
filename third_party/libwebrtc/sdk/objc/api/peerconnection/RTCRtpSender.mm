@@ -37,29 +37,36 @@
 
 - (void)setParameters:(RTC_OBJC_TYPE(RTCRtpParameters) *)parameters {
   if (!_nativeRtpSender->SetParameters(parameters.nativeParameters).ok()) {
-    RTCLogError(@"RTC_OBJC_TYPE(RTCRtpSender)(%p): Failed to set parameters: %@", self, parameters);
+    RTCLogError(
+        @"RTC_OBJC_TYPE(RTCRtpSender)(%p): Failed to set parameters: %@",
+        self,
+        parameters);
   }
 }
 
 - (RTC_OBJC_TYPE(RTCMediaStreamTrack) *)track {
   rtc::scoped_refptr<webrtc::MediaStreamTrackInterface> nativeTrack(
-    _nativeRtpSender->track());
+      _nativeRtpSender->track());
   if (nativeTrack) {
-    return [RTC_OBJC_TYPE(RTCMediaStreamTrack) mediaTrackForNativeTrack:nativeTrack
-                                                                factory:_factory];
+    return
+        [RTC_OBJC_TYPE(RTCMediaStreamTrack) mediaTrackForNativeTrack:nativeTrack
+                                                             factory:_factory];
   }
   return nil;
 }
 
 - (void)setTrack:(RTC_OBJC_TYPE(RTCMediaStreamTrack) *)track {
   if (!_nativeRtpSender->SetTrack(track.nativeTrack.get())) {
-    RTCLogError(@"RTC_OBJC_TYPE(RTCRtpSender)(%p): Failed to set track %@", self, track);
+    RTCLogError(@"RTC_OBJC_TYPE(RTCRtpSender)(%p): Failed to set track %@",
+                self,
+                track);
   }
 }
 
 - (NSArray<NSString *> *)streamIds {
   std::vector<std::string> nativeStreamIds = _nativeRtpSender->stream_ids();
-  NSMutableArray *streamIds = [NSMutableArray arrayWithCapacity:nativeStreamIds.size()];
+  NSMutableArray *streamIds =
+      [NSMutableArray arrayWithCapacity:nativeStreamIds.size()];
   for (const auto &s : nativeStreamIds) {
     [streamIds addObject:[NSString stringForStdString:s]];
   }
@@ -76,7 +83,8 @@
 
 - (NSString *)description {
   return [NSString
-      stringWithFormat:@"RTC_OBJC_TYPE(RTCRtpSender) {\n  senderId: %@\n}", self.senderId];
+      stringWithFormat:@"RTC_OBJC_TYPE(RTCRtpSender) {\n  senderId: %@\n}",
+                       self.senderId];
 }
 
 - (BOOL)isEqual:(id)object {
@@ -99,7 +107,8 @@
 
 #pragma mark - Native
 
-- (void)setFrameEncryptor:(rtc::scoped_refptr<webrtc::FrameEncryptorInterface>)frameEncryptor {
+- (void)setFrameEncryptor:
+    (rtc::scoped_refptr<webrtc::FrameEncryptorInterface>)frameEncryptor {
   _nativeRtpSender->SetFrameEncryptor(frameEncryptor);
 }
 
@@ -109,8 +118,10 @@
   return _nativeRtpSender;
 }
 
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-                nativeRtpSender:(rtc::scoped_refptr<webrtc::RtpSenderInterface>)nativeRtpSender {
+- (instancetype)
+    initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+    nativeRtpSender:
+        (rtc::scoped_refptr<webrtc::RtpSenderInterface>)nativeRtpSender {
   NSParameterAssert(factory);
   NSParameterAssert(nativeRtpSender);
   self = [super init];
@@ -121,11 +132,13 @@
       rtc::scoped_refptr<webrtc::DtmfSenderInterface> nativeDtmfSender(
           _nativeRtpSender->GetDtmfSender());
       if (nativeDtmfSender) {
-        _dtmfSender =
-            [[RTC_OBJC_TYPE(RTCDtmfSender) alloc] initWithNativeDtmfSender:nativeDtmfSender];
+        _dtmfSender = [[RTC_OBJC_TYPE(RTCDtmfSender) alloc]
+            initWithNativeDtmfSender:nativeDtmfSender];
       }
     }
-    RTCLogInfo(@"RTC_OBJC_TYPE(RTCRtpSender)(%p): created sender: %@", self, self.description);
+    RTCLogInfo(@"RTC_OBJC_TYPE(RTCRtpSender)(%p): created sender: %@",
+               self,
+               self.description);
   }
   return self;
 }

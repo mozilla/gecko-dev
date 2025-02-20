@@ -35,35 +35,40 @@
   _dependencies.trials = std::move(fieldTrials);
 }
 
-- (void)setVideoEncoderFactory:(std::unique_ptr<webrtc::VideoEncoderFactory>)videoEncoderFactory {
+- (void)setVideoEncoderFactory:
+    (std::unique_ptr<webrtc::VideoEncoderFactory>)videoEncoderFactory {
   _dependencies.video_encoder_factory = std::move(videoEncoderFactory);
 }
 
-- (void)setVideoDecoderFactory:(std::unique_ptr<webrtc::VideoDecoderFactory>)videoDecoderFactory {
+- (void)setVideoDecoderFactory:
+    (std::unique_ptr<webrtc::VideoDecoderFactory>)videoDecoderFactory {
   _dependencies.video_decoder_factory = std::move(videoDecoderFactory);
 }
 
 - (void)setAudioEncoderFactory:
-        (rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory {
+    (rtc::scoped_refptr<webrtc::AudioEncoderFactory>)audioEncoderFactory {
   _dependencies.audio_encoder_factory = std::move(audioEncoderFactory);
 }
 
 - (void)setAudioDecoderFactory:
-        (rtc::scoped_refptr<webrtc::AudioDecoderFactory>)audioDecoderFactory {
+    (rtc::scoped_refptr<webrtc::AudioDecoderFactory>)audioDecoderFactory {
   _dependencies.audio_decoder_factory = std::move(audioDecoderFactory);
 }
 
-- (void)setAudioDeviceModule:(rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
+- (void)setAudioDeviceModule:
+    (rtc::scoped_refptr<webrtc::AudioDeviceModule>)audioDeviceModule {
   _dependencies.adm = std::move(audioDeviceModule);
 }
 
 - (void)setAudioProcessingModule:
-        (rtc::scoped_refptr<webrtc::AudioProcessing>)audioProcessingModule {
-  _dependencies.audio_processing_builder = CustomAudioProcessing(std::move(audioProcessingModule));
+    (rtc::scoped_refptr<webrtc::AudioProcessing>)audioProcessingModule {
+  _dependencies.audio_processing_builder =
+      CustomAudioProcessing(std::move(audioProcessingModule));
 }
 
 - (void)setAudioProcessingBuilder:
-    (std::unique_ptr<webrtc::AudioProcessingBuilderInterface>)audioProcessingBuilder {
+    (std::unique_ptr<webrtc::AudioProcessingBuilderInterface>)
+        audioProcessingBuilder {
   _dependencies.audio_processing_builder = std::move(audioProcessingBuilder);
 }
 

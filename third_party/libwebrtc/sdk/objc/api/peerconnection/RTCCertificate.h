@@ -24,10 +24,12 @@ RTC_OBJC_EXPORT
 @property(nonatomic, readonly, copy) NSString *certificate;
 
 /**
- * Initialize an RTCCertificate with PEM strings for private_key and certificate.
+ * Initialize an RTCCertificate with PEM strings for private_key and
+ * certificate.
  */
 - (instancetype)initWithPrivateKey:(NSString *)private_key
-                       certificate:(NSString *)certificate NS_DESIGNATED_INITIALIZER;
+                       certificate:(NSString *)certificate
+    NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)init NS_UNAVAILABLE;
 
@@ -37,7 +39,8 @@ RTC_OBJC_EXPORT
  *  provided.
  *  - name: "ECDSA" or "RSASSA-PKCS1-v1_5"
  */
-+ (nullable RTC_OBJC_TYPE(RTCCertificate) *)generateCertificateWithParams:(NSDictionary *)params;
++ (nullable RTC_OBJC_TYPE(RTCCertificate) *)generateCertificateWithParams:
+    (NSDictionary *)params;
 
 @end
 

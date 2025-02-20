@@ -66,7 +66,8 @@ RTC_OBJC_EXPORT
 @property(nonatomic, assign) RTCPriority networkPriority;
 
 /** Allow dynamic frame length changes for audio:
- https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-adaptiveptime */
+ https://w3c.github.io/webrtc-extensions/#dom-rtcrtpencodingparameters-adaptiveptime
+ */
 @property(nonatomic, assign) BOOL adaptiveAudioPacketTime;
 
 - (instancetype)init;

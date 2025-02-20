@@ -42,24 +42,32 @@ class CallbackLogSink final : public rtc::LogSink {
 
 class CallbackWithSeverityLogSink final : public rtc::LogSink {
  public:
-  CallbackWithSeverityLogSink(RTCCallbackLoggerMessageAndSeverityHandler callbackHandler)
+  CallbackWithSeverityLogSink(
+      RTCCallbackLoggerMessageAndSeverityHandler callbackHandler)
       : callback_handler_(callbackHandler) {}
 
-  void OnLogMessage(const std::string& message) override { RTC_DCHECK_NOTREACHED(); }
+  void OnLogMessage(const std::string& message) override {
+    RTC_DCHECK_NOTREACHED();
+  }
 
-  void OnLogMessage(const std::string& message, rtc::LoggingSeverity severity) override {
+  void OnLogMessage(const std::string& message,
+                    rtc::LoggingSeverity severity) override {
     OnLogMessage(absl::string_view(message), severity);
   }
 
-  void OnLogMessage(absl::string_view message, rtc::LoggingSeverity severity) override {
+  void OnLogMessage(absl::string_view message,
+                    rtc::LoggingSeverity severity) override {
     if (callback_handler_) {
-      RTCLoggingSeverity loggingSeverity = NativeSeverityToObjcSeverity(severity);
-      callback_handler_([NSString stringForAbslStringView:message], loggingSeverity);
+      RTCLoggingSeverity loggingSeverity =
+          NativeSeverityToObjcSeverity(severity);
+      callback_handler_([NSString stringForAbslStringView:message],
+                        loggingSeverity);
     }
   }
 
  private:
-  static RTCLoggingSeverity NativeSeverityToObjcSeverity(rtc::LoggingSeverity severity) {
+  static RTCLoggingSeverity NativeSeverityToObjcSeverity(
+      rtc::LoggingSeverity severity) {
     switch (severity) {
       case rtc::LS_VERBOSE:
         return RTCLoggingSeverityVerbose;
@@ -77,7 +85,7 @@ class CallbackWithSeverityLogSink final : public rtc::LogSink {
   RTCCallbackLoggerMessageAndSeverityHandler callback_handler_;
 };
 
-}
+}  // namespace
 
 @implementation RTC_OBJC_TYPE (RTCCallbackLogger) {
   BOOL _hasStarted;
@@ -110,7 +118,7 @@ class CallbackWithSeverityLogSink final : public rtc::LogSink {
 }
 
 - (void)startWithMessageAndSeverityHandler:
-        (nullable RTCCallbackLoggerMessageAndSeverityHandler)handler {
+    (nullable RTCCallbackLoggerMessageAndSeverityHandler)handler {
   if (_hasStarted) {
     return;
   }

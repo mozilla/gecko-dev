@@ -38,9 +38,12 @@
     _codecs = codecs;
 
     NSMutableArray *headerExtensions = [[NSMutableArray alloc] init];
-    for (const auto &headerExtension : nativeRtpCapabilities.header_extensions) {
-      [headerExtensions addObject:[[RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) alloc]
-                                      initWithNativeRtpHeaderExtensionCapability:headerExtension]];
+    for (const auto &headerExtension :
+         nativeRtpCapabilities.header_extensions) {
+      [headerExtensions
+          addObject:
+              [[RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) alloc]
+                  initWithNativeRtpHeaderExtensionCapability:headerExtension]];
     }
     _headerExtensions = headerExtensions;
   }
@@ -52,8 +55,10 @@
   for (RTC_OBJC_TYPE(RTCRtpCodecCapability) * codec in _codecs) {
     rtpCapabilities.codecs.push_back(codec.nativeRtpCodecCapability);
   }
-  for (RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) * headerExtension in _headerExtensions) {
-    rtpCapabilities.header_extensions.push_back(headerExtension.nativeRtpHeaderExtensionCapability);
+  for (RTC_OBJC_TYPE(RTCRtpHeaderExtensionCapability) *
+       headerExtension in _headerExtensions) {
+    rtpCapabilities.header_extensions.push_back(
+        headerExtension.nativeRtpHeaderExtensionCapability);
   }
   return rtpCapabilities;
 }

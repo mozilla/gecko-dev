@@ -17,9 +17,9 @@ NS_ASSUME_NONNULL_BEGIN
 @interface RTC_OBJC_TYPE (RTCIceCandidateErrorEvent)
 ()
 
-    - (instancetype)initWithAddress : (const std::string&)address port : (const int)port url
-    : (const std::string&)url errorCode : (const int)errorCode errorText
-    : (const std::string&)errorText;
+    - (instancetype)initWithAddress : (const std::string&)address port
+    : (const int)port url : (const std::string&)url errorCode
+    : (const int)errorCode errorText : (const std::string&)errorText;
 
 @end
 

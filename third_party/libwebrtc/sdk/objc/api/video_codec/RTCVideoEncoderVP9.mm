@@ -26,7 +26,8 @@
 
     @implementation RTC_OBJC_TYPE (RTCVideoEncoderVP9Builder)
 
-    - (std::unique_ptr<webrtc::VideoEncoder>)build:(const webrtc::Environment&)env {
+    - (std::unique_ptr<webrtc::VideoEncoder>)build:
+        (const webrtc::Environment&)env {
       return webrtc::CreateVp9Encoder(env);
     }
 
@@ -47,7 +48,8 @@
       for (webrtc::ScalabilityMode mode : webrtc::kAllScalabilityModes) {
         if (webrtc::VP9Encoder::SupportsScalabilityMode(mode)) {
           [result
-              addObject:[NSString stringForAbslStringView:webrtc::ScalabilityModeToString(mode)]];
+              addObject:[NSString stringForAbslStringView:
+                                      webrtc::ScalabilityModeToString(mode)]];
         }
       }
       return result;

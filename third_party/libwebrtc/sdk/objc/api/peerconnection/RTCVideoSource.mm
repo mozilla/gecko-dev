@@ -28,9 +28,10 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(
   rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> _nativeVideoSource;
 }
 
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-              nativeVideoSource:
-                  (rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)nativeVideoSource {
+- (instancetype)
+      initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+    nativeVideoSource:(rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)
+                          nativeVideoSource {
   RTC_DCHECK(factory);
   RTC_DCHECK(nativeVideoSource);
   self = [super initWithFactory:factory
@@ -42,14 +43,17 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(
   return self;
 }
 
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
-              nativeMediaSource:(rtc::scoped_refptr<webrtc::MediaSourceInterface>)nativeMediaSource
-                           type:(RTCMediaSourceType)type {
+- (instancetype)
+      initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+    nativeMediaSource:
+        (rtc::scoped_refptr<webrtc::MediaSourceInterface>)nativeMediaSource
+                 type:(RTCMediaSourceType)type {
   RTC_DCHECK_NOTREACHED();
   return nil;
 }
 
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+- (instancetype)initWithFactory:
+                    (RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
                 signalingThread:(rtc::Thread *)signalingThread
                    workerThread:(rtc::Thread *)workerThread {
   return [self initWithFactory:factory
@@ -58,7 +62,8 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(
                   isScreenCast:NO];
 }
 
-- (instancetype)initWithFactory:(RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
+- (instancetype)initWithFactory:
+                    (RTC_OBJC_TYPE(RTCPeerConnectionFactory) *)factory
                 signalingThread:(rtc::Thread *)signalingThread
                    workerThread:(rtc::Thread *)workerThread
                    isScreenCast:(BOOL)isScreenCast {
@@ -67,12 +72,16 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(
 
   return [self initWithFactory:factory
              nativeVideoSource:webrtc::VideoTrackSourceProxy::Create(
-                                   signalingThread, workerThread, objCVideoTrackSource)];
+                                   signalingThread,
+                                   workerThread,
+                                   objCVideoTrackSource)];
 }
 
 - (NSString *)description {
   NSString *stateString = [[self class] stringForState:self.state];
-  return [NSString stringWithFormat:@"RTC_OBJC_TYPE(RTCVideoSource)( %p ): %@", self, stateString];
+  return [NSString stringWithFormat:@"RTC_OBJC_TYPE(RTCVideoSource)( %p ): %@",
+                                    self,
+                                    stateString];
 }
 
 - (void)capturer:(RTC_OBJC_TYPE(RTCVideoCapturer) *)capturer
@@ -81,7 +90,8 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(
 }
 
 - (void)adaptOutputFormatToWidth:(int)width height:(int)height fps:(int)fps {
-  getObjCVideoSource(_nativeVideoSource)->OnOutputFormatRequest(width, height, fps);
+  getObjCVideoSource(_nativeVideoSource)
+      ->OnOutputFormatRequest(width, height, fps);
 }
 
 #pragma mark - Private

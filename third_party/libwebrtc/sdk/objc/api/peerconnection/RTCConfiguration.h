@@ -35,7 +35,10 @@ typedef NS_ENUM(NSInteger, RTCBundlePolicy) {
 };
 
 /** Represents the rtcp mux policy. */
-typedef NS_ENUM(NSInteger, RTCRtcpMuxPolicy) { RTCRtcpMuxPolicyNegotiate, RTCRtcpMuxPolicyRequire };
+typedef NS_ENUM(NSInteger, RTCRtcpMuxPolicy) {
+  RTCRtcpMuxPolicyNegotiate,
+  RTCRtcpMuxPolicyRequire
+};
 
 /** Represents the tcp candidate policy. */
 typedef NS_ENUM(NSInteger, RTCTcpCandidatePolicy) {
@@ -95,7 +98,8 @@ RTC_OBJC_EXPORT
 @property(nonatomic, assign) RTCRtcpMuxPolicy rtcpMuxPolicy;
 @property(nonatomic, assign) RTCTcpCandidatePolicy tcpCandidatePolicy;
 @property(nonatomic, assign) RTCCandidateNetworkPolicy candidateNetworkPolicy;
-@property(nonatomic, assign) RTCContinualGatheringPolicy continualGatheringPolicy;
+@property(nonatomic, assign)
+    RTCContinualGatheringPolicy continualGatheringPolicy;
 
 /** If set to YES, don't gather IPv6 ICE candidates on Wi-Fi.
  *  Only intended to be used on specific devices. Certain phones disable IPv6
@@ -150,7 +154,8 @@ RTC_OBJC_EXPORT
  * transport type and as a result not observed by PeerConnectionDelegateAdapter,
  * will be surfaced to the delegate.
  */
-@property(nonatomic, assign) BOOL shouldSurfaceIceCandidatesOnIceTransportTypeChanged;
+@property(nonatomic, assign)
+    BOOL shouldSurfaceIceCandidatesOnIceTransportTypeChanged;
 
 /** If set to non-nil, controls the minimal interval between consecutive ICE
  *  check packets.
@@ -225,7 +230,8 @@ RTC_OBJC_EXPORT
  * when ICE is strongly connected, and it overrides the
  * default value of this interval in the ICE implementation;
  */
-@property(nonatomic, copy, nullable) NSNumber *iceCheckIntervalStrongConnectivity;
+@property(nonatomic, copy, nullable)
+    NSNumber *iceCheckIntervalStrongConnectivity;
 
 /**
  * Defines the counterpart for ALL pairs when ICE is

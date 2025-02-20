@@ -21,8 +21,8 @@ NS_ASSUME_NONNULL_BEGIN
     @property(nonatomic, readonly) webrtc::RtpParameters nativeParameters;
 
 /** Initialize the object with a native RtpParameters structure. */
-- (instancetype)initWithNativeParameters:(const webrtc::RtpParameters &)nativeParameters
-    NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithNativeParameters:
+    (const webrtc::RtpParameters &)nativeParameters NS_DESIGNATED_INITIALIZER;
 
 @end
 

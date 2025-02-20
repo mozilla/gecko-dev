@@ -20,8 +20,9 @@ RTC_OBJC_EXPORT
 
     /**
      * Returns true if this RTCDtmfSender is capable of sending DTMF. Otherwise
-     * returns false. To be able to send DTMF, the associated RTCRtpSender must be
-     * able to send packets, and a "telephone-event" codec must be negotiated.
+     * returns false. To be able to send DTMF, the associated RTCRtpSender must
+     * be able to send packets, and a "telephone-event" codec must be
+     * negotiated.
      */
     @property(nonatomic, readonly) BOOL canInsertDtmf;
 
@@ -54,15 +55,16 @@ RTC_OBJC_EXPORT
 - (nonnull NSString *)remainingTones;
 
 /**
- * The current tone duration value. This value will be the value last set via the
- * insertDtmf method, or the default value of 100 ms if insertDtmf was never called.
+ * The current tone duration value. This value will be the value last set via
+ * the insertDtmf method, or the default value of 100 ms if insertDtmf was never
+ * called.
  */
 - (NSTimeInterval)duration;
 
 /**
- * The current value of the between-tone gap. This value will be the value last set
- * via the insertDtmf() method, or the default value of 50 ms if insertDtmf() was never
- * called.
+ * The current value of the between-tone gap. This value will be the value last
+ * set via the insertDtmf() method, or the default value of 50 ms if
+ * insertDtmf() was never called.
  */
 - (NSTimeInterval)interToneGap;
 

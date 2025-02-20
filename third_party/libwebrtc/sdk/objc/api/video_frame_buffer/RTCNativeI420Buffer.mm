@@ -34,8 +34,14 @@
                         dataV:(const uint8_t *)dataV {
   self = [super init];
   if (self) {
-    _i420Buffer = webrtc::I420Buffer::Copy(
-        width, height, dataY, width, dataU, (width + 1) / 2, dataV, (width + 1) / 2);
+    _i420Buffer = webrtc::I420Buffer::Copy(width,
+                                           height,
+                                           dataY,
+                                           width,
+                                           dataU,
+                                           (width + 1) / 2,
+                                           dataV,
+                                           (width + 1) / 2);
   }
   return self;
 }
@@ -47,12 +53,14 @@
                       strideV:(int)strideV {
   self = [super init];
   if (self) {
-    _i420Buffer = webrtc::I420Buffer::Create(width, height, strideY, strideU, strideV);
+    _i420Buffer =
+        webrtc::I420Buffer::Create(width, height, strideY, strideU, strideV);
   }
   return self;
 }
 
-- (instancetype)initWithFrameBuffer:(rtc::scoped_refptr<webrtc::I420BufferInterface>)i420Buffer {
+- (instancetype)initWithFrameBuffer:
+    (rtc::scoped_refptr<webrtc::I420BufferInterface>)i420Buffer {
   self = [super init];
   if (self) {
     _i420Buffer = i420Buffer;
@@ -107,10 +115,12 @@
                                                 scaleWidth:(int)scaleWidth
                                                scaleHeight:(int)scaleHeight {
   rtc::scoped_refptr<webrtc::VideoFrameBuffer> scaled_buffer =
-      _i420Buffer->CropAndScale(offsetX, offsetY, cropWidth, cropHeight, scaleWidth, scaleHeight);
+      _i420Buffer->CropAndScale(
+          offsetX, offsetY, cropWidth, cropHeight, scaleWidth, scaleHeight);
   RTC_DCHECK_EQ(scaled_buffer->type(), webrtc::VideoFrameBuffer::Type::kI420);
   // Calling ToI420() doesn't do any conversions.
-  rtc::scoped_refptr<webrtc::I420BufferInterface> buffer = scaled_buffer->ToI420();
+  rtc::scoped_refptr<webrtc::I420BufferInterface> buffer =
+      scaled_buffer->ToI420();
   RTC_OBJC_TYPE(RTCI420Buffer) *result =
       [[RTC_OBJC_TYPE(RTCI420Buffer) alloc] initWithFrameBuffer:buffer];
   return result;
@@ -130,7 +140,8 @@
 
 #if !defined(NDEBUG) && defined(WEBRTC_IOS)
 - (id)debugQuickLookObject {
-  UIGraphicsBeginImageContext(CGSizeMake(_i420Buffer->width(), _i420Buffer->height()));
+  UIGraphicsBeginImageContext(
+      CGSizeMake(_i420Buffer->width(), _i420Buffer->height()));
   CGContextRef c = UIGraphicsGetCurrentContext();
   uint8_t *ctxData = (uint8_t *)CGBitmapContextGetData(c);
 

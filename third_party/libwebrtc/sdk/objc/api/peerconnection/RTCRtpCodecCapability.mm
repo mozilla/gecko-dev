@@ -36,8 +36,8 @@
   self = [super init];
   if (self) {
     if (nativeRtpCodecCapability.preferred_payload_type) {
-      _preferredPayloadType =
-          [NSNumber numberWithInt:*nativeRtpCodecCapability.preferred_payload_type];
+      _preferredPayloadType = [NSNumber
+          numberWithInt:*nativeRtpCodecCapability.preferred_payload_type];
     }
     _name = [NSString stringForStdString:nativeRtpCodecCapability.name];
     switch (nativeRtpCodecCapability.kind) {
@@ -55,10 +55,12 @@
         break;
     }
     if (nativeRtpCodecCapability.clock_rate) {
-      _clockRate = [NSNumber numberWithInt:*nativeRtpCodecCapability.clock_rate];
+      _clockRate =
+          [NSNumber numberWithInt:*nativeRtpCodecCapability.clock_rate];
     }
     if (nativeRtpCodecCapability.num_channels) {
-      _numChannels = [NSNumber numberWithInt:*nativeRtpCodecCapability.num_channels];
+      _numChannels =
+          [NSNumber numberWithInt:*nativeRtpCodecCapability.num_channels];
     }
     NSMutableDictionary *parameters = [NSMutableDictionary dictionary];
     for (const auto &parameter : nativeRtpCodecCapability.parameters) {
@@ -66,29 +68,32 @@
                      forKey:[NSString stringForStdString:parameter.first]];
     }
     _parameters = parameters;
-    _mimeType = [NSString stringForStdString:nativeRtpCodecCapability.mime_type()];
+    _mimeType =
+        [NSString stringForStdString:nativeRtpCodecCapability.mime_type()];
   }
   return self;
 }
 
 - (NSString *)description {
-  return [NSString stringWithFormat:@"RTC_OBJC_TYPE(RTCRtpCodecCapability) {\n  "
-                                    @"preferredPayloadType: %@\n  name: %@\n  kind: %@\n  "
-                                    @"clockRate: %@\n  numChannels: %@\n  parameters: %@\n  "
-                                    @"mimeType: %@\n}",
-                                    _preferredPayloadType,
-                                    _name,
-                                    _kind,
-                                    _clockRate,
-                                    _numChannels,
-                                    _parameters,
-                                    _mimeType];
+  return [NSString
+      stringWithFormat:@"RTC_OBJC_TYPE(RTCRtpCodecCapability) {\n  "
+                       @"preferredPayloadType: %@\n  name: %@\n  kind: %@\n  "
+                       @"clockRate: %@\n  numChannels: %@\n  parameters: %@\n  "
+                       @"mimeType: %@\n}",
+                       _preferredPayloadType,
+                       _name,
+                       _kind,
+                       _clockRate,
+                       _numChannels,
+                       _parameters,
+                       _mimeType];
 }
 
 - (webrtc::RtpCodecCapability)nativeRtpCodecCapability {
   webrtc::RtpCodecCapability rtpCodecCapability;
   if (_preferredPayloadType != nil) {
-    rtpCodecCapability.preferred_payload_type = std::optional<int>(_preferredPayloadType.intValue);
+    rtpCodecCapability.preferred_payload_type =
+        std::optional<int>(_preferredPayloadType.intValue);
   }
   rtpCodecCapability.name = [NSString stdStringForString:_name];
   // NSString pointer comparison is safe here since "kind" is readonly and only

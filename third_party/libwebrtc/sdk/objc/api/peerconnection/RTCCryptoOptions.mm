@@ -13,19 +13,25 @@
 @implementation RTC_OBJC_TYPE (RTCCryptoOptions)
 
 @synthesize srtpEnableGcmCryptoSuites = _srtpEnableGcmCryptoSuites;
-@synthesize srtpEnableAes128Sha1_32CryptoCipher = _srtpEnableAes128Sha1_32CryptoCipher;
-@synthesize srtpEnableEncryptedRtpHeaderExtensions = _srtpEnableEncryptedRtpHeaderExtensions;
+@synthesize srtpEnableAes128Sha1_32CryptoCipher =
+    _srtpEnableAes128Sha1_32CryptoCipher;
+@synthesize srtpEnableEncryptedRtpHeaderExtensions =
+    _srtpEnableEncryptedRtpHeaderExtensions;
 @synthesize sframeRequireFrameEncryption = _sframeRequireFrameEncryption;
 
-- (instancetype)initWithSrtpEnableGcmCryptoSuites:(BOOL)srtpEnableGcmCryptoSuites
-              srtpEnableAes128Sha1_32CryptoCipher:(BOOL)srtpEnableAes128Sha1_32CryptoCipher
-           srtpEnableEncryptedRtpHeaderExtensions:(BOOL)srtpEnableEncryptedRtpHeaderExtensions
-                     sframeRequireFrameEncryption:(BOOL)sframeRequireFrameEncryption {
+- (instancetype)
+         initWithSrtpEnableGcmCryptoSuites:(BOOL)srtpEnableGcmCryptoSuites
+       srtpEnableAes128Sha1_32CryptoCipher:
+           (BOOL)srtpEnableAes128Sha1_32CryptoCipher
+    srtpEnableEncryptedRtpHeaderExtensions:
+        (BOOL)srtpEnableEncryptedRtpHeaderExtensions
+              sframeRequireFrameEncryption:(BOOL)sframeRequireFrameEncryption {
   self = [super init];
   if (self) {
     _srtpEnableGcmCryptoSuites = srtpEnableGcmCryptoSuites;
     _srtpEnableAes128Sha1_32CryptoCipher = srtpEnableAes128Sha1_32CryptoCipher;
-    _srtpEnableEncryptedRtpHeaderExtensions = srtpEnableEncryptedRtpHeaderExtensions;
+    _srtpEnableEncryptedRtpHeaderExtensions =
+        srtpEnableEncryptedRtpHeaderExtensions;
     _sframeRequireFrameEncryption = sframeRequireFrameEncryption;
   }
   return self;

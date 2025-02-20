@@ -24,7 +24,8 @@
 
     @implementation RTC_OBJC_TYPE (RTCVideoDecoderVP8Builder)
 
-    - (std::unique_ptr<webrtc::VideoDecoder>)build:(const webrtc::Environment&)env {
+    - (std::unique_ptr<webrtc::VideoDecoder>)build:
+        (const webrtc::Environment&)env {
       return webrtc::CreateVp8Decoder(env);
     }
 

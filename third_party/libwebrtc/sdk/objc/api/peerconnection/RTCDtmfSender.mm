@@ -30,7 +30,8 @@
   RTC_DCHECK(tones != nil);
 
   int durationMs = static_cast<int>(duration * rtc::kNumMillisecsPerSec);
-  int interToneGapMs = static_cast<int>(interToneGap * rtc::kNumMillisecsPerSec);
+  int interToneGapMs =
+      static_cast<int>(interToneGap * rtc::kNumMillisecsPerSec);
   return _nativeDtmfSender->InsertDtmf(
       [NSString stdStringForString:tones], durationMs, interToneGapMs);
 }
@@ -40,7 +41,8 @@
 }
 
 - (NSTimeInterval)duration {
-  return static_cast<NSTimeInterval>(_nativeDtmfSender->duration()) / rtc::kNumMillisecsPerSec;
+  return static_cast<NSTimeInterval>(_nativeDtmfSender->duration()) /
+      rtc::kNumMillisecsPerSec;
 }
 
 - (NSTimeInterval)interToneGap {
@@ -49,11 +51,13 @@
 }
 
 - (NSString *)description {
-  return [NSString stringWithFormat:@"RTC_OBJC_TYPE(RTCDtmfSender) {\n  remainingTones: %@\n  "
-                                    @"duration: %f sec\n  interToneGap: %f sec\n}",
-                                    [self remainingTones],
-                                    [self duration],
-                                    [self interToneGap]];
+  return
+      [NSString stringWithFormat:
+                    @"RTC_OBJC_TYPE(RTCDtmfSender) {\n  remainingTones: %@\n  "
+                    @"duration: %f sec\n  interToneGap: %f sec\n}",
+                    [self remainingTones],
+                    [self duration],
+                    [self interToneGap]];
 }
 
 #pragma mark - Private
@@ -63,13 +67,14 @@
 }
 
 - (instancetype)initWithNativeDtmfSender:
-        (rtc::scoped_refptr<webrtc::DtmfSenderInterface>)nativeDtmfSender {
+    (rtc::scoped_refptr<webrtc::DtmfSenderInterface>)nativeDtmfSender {
   NSParameterAssert(nativeDtmfSender);
   self = [super init];
   if (self) {
     _nativeDtmfSender = nativeDtmfSender;
-    RTCLogInfo(
-        @"RTC_OBJC_TYPE(RTCDtmfSender)(%p): created DTMF sender: %@", self, self.description);
+    RTCLogInfo(@"RTC_OBJC_TYPE(RTCDtmfSender)(%p): created DTMF sender: %@",
+               self,
+               self.description);
   }
   return self;
 }
