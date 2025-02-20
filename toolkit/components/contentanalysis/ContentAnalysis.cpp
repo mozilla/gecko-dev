@@ -1816,6 +1816,17 @@ void ContentAnalysis::NotifyResponseObservers(
     // IssueResponse with the result.
     nsCString requestToken;
     MOZ_ALWAYS_SUCCEEDS(aResponse->GetRequestToken(requestToken));
+
+    // We have our response.  Cancelling the timeout timer is normally
+    // done when we issue the response but we don't care how long the user
+    // takes to respond to a warn dialog, so stop it now.
+    if (auto entry = mUserActionMap.Lookup(aUserActionId)) {
+      if (entry->mTimeoutRunnable && !entry->mIsHandlingTimeout) {
+        entry->mTimeoutRunnable->Cancel();
+        entry->mTimeoutRunnable = nullptr;
+      }
+    }
+
     mWarnResponseDataMap.InsertOrUpdate(
         requestToken, WarnResponseData{aResponse, std::move(aUserActionId),
                                        aAutoAcknowledge});
