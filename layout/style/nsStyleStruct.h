@@ -740,15 +740,16 @@ class AnchorResolved {
 
 class AnchorResolvedInset final : public AnchorResolved<mozilla::StyleInset> {
  public:
-  AnchorResolvedInset(const mozilla::StyleInset& aValue, mozilla::Side aSide,
+  AnchorResolvedInset(const mozilla::StyleInset& aValue,
+                      mozilla::StylePhysicalAxis aAxis,
                       mozilla::StylePositionProperty aPosition);
   AnchorResolvedInset(const mozilla::StyleInset& aValue,
-                      mozilla::LogicalSide aSide, mozilla::WritingMode aWM,
+                      mozilla::LogicalAxis aAxis, mozilla::WritingMode aWM,
                       mozilla::StylePositionProperty aPosition);
 
  private:
   static AnchorResolved<mozilla::StyleInset> FromUnresolved(
-      const mozilla::StyleInset& aValue, mozilla::Side aSide,
+      const mozilla::StyleInset& aValue, mozilla::StylePhysicalAxis aAxis,
       mozilla::StylePositionProperty aPosition);
   static AnchorResolved<mozilla::StyleInset> Invalid();
   static AnchorResolved<mozilla::StyleInset> Evaluated(
