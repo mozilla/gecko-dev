@@ -427,7 +427,6 @@ class HeadersPanel extends Component {
         {
           key: `${headerKey}RawHeadersBtn`,
           className: "raw-headers-toggle",
-          htmlFor: `raw-${headerKey}-checkbox`,
           onClick: event => event.stopPropagation(),
           onKeyDown: event => event.stopPropagation(),
         },
