@@ -77,8 +77,9 @@ def get_digest_data(config, run, taskdesc):
     files = list(run.pop("resources", []))
     # The script
     files.append("taskcluster/scripts/misc/{}".format(run["script"]))
+    env = taskdesc["worker"].get("env", {})
     # Tooltool manifest if any is defined:
-    tooltool_manifest = taskdesc["worker"]["env"].get("TOOLTOOL_MANIFEST")
+    tooltool_manifest = env.get("TOOLTOOL_MANIFEST")
     if tooltool_manifest:
         files.append(tooltool_manifest)
 
@@ -103,6 +104,13 @@ def get_digest_data(config, run, taskdesc):
     if args:
         data.extend(args)
 
+    # Environment variables defined by the user (as opposed to added by transforms)
+    for key, value in env.items():
+        # Ignore the tooltool manifest because its content was already added above.
+        if key == "TOOLTOOL_MANIFEST":
+            continue
+        data.append(f"##{key}={value}##")
+
     if taskdesc["attributes"].get("rebuild-on-release"):
         # Add whether this is a release branch or not
         data.append(str(config.params["project"] in RELEASE_PROJECTS))
@@ -125,22 +133,8 @@ def common_toolchain(config, job, taskdesc, is_docker):
         # tasks are ready.
         run["use-caches"] = False
 
-    env = worker.setdefault("env", {})
-    env.update(
-        {
-            "MOZ_BUILD_DATE": config.params["moz_build_date"],
-            "MOZ_SCM_LEVEL": config.params["level"],
-            "TOOLCHAIN_ARTIFACT": run["toolchain-artifact"],
-        }
-    )
-
-    if is_docker:
-        # Toolchain checkouts don't live under {workdir}/checkouts
-        workspace = "{workdir}/workspace/build".format(**run)
-        env["GECKO_PATH"] = f"{workspace}/src"
-
     attributes = taskdesc.setdefault("attributes", {})
-    attributes["toolchain-artifact"] = run.pop("toolchain-artifact")
+    attributes["toolchain-artifact"] = run["toolchain-artifact"]
     toolchain_artifact = attributes["toolchain-artifact"]
     if not toolchain_artifact.startswith("public/build/"):
         if "artifact_prefix" in attributes:
@@ -149,6 +143,23 @@ def common_toolchain(config, job, taskdesc, is_docker):
                 " allowed on toolchain tasks.".format(taskdesc["label"])
             )
         attributes["artifact_prefix"] = os.path.dirname(toolchain_artifact)
+
+    # Note: this must be called before altering `env`.
+    digest_data = get_digest_data(config, run, taskdesc)
+
+    env = worker.setdefault("env", {})
+    env.update(
+        {
+            "MOZ_BUILD_DATE": config.params["moz_build_date"],
+            "MOZ_SCM_LEVEL": config.params["level"],
+            "TOOLCHAIN_ARTIFACT": run.pop("toolchain-artifact"),
+        }
+    )
+
+    if is_docker:
+        # Toolchain checkouts don't live under {workdir}/checkouts
+        workspace = "{workdir}/workspace/build".format(**run)
+        env["GECKO_PATH"] = f"{workspace}/src"
 
     resolve_keyed_by(
         run,
@@ -172,8 +183,6 @@ def common_toolchain(config, job, taskdesc, is_docker):
             docker_worker_add_artifacts(config, job, taskdesc)
         else:
             generic_worker_add_artifacts(config, job, taskdesc)
-
-    digest_data = get_digest_data(config, run, taskdesc)
 
     if job.get("attributes", {}).get("cached_task") is not False and not taskgraph.fast:
         name = taskdesc["label"].replace(f"{config.kind}-", "", 1)
