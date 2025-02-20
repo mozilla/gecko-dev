@@ -143,15 +143,26 @@ const MESSAGES = () => [
                       raw: "Test option 1",
                     },
                     description: {
-                      raw: "This is description text explaining text option 1.",
+                      raw: "This is description text explaining text option 1. This pins to taskbar.",
                     },
                     action: {
-                      type: "SET_PREF",
+                      type: "MULTI_ACTION",
                       data: {
-                        pref: {
-                          name: "test-pref-1",
-                          value: true,
-                        },
+                        orderedExecution: true,
+                        actions: [
+                          {
+                            type: "SET_PREF",
+                            data: {
+                              pref: {
+                                name: "test-pref-1",
+                                value: true,
+                              },
+                            },
+                          },
+                          {
+                            type: "PIN_FIREFOX_TO_TASKBAR",
+                          },
+                        ],
                       },
                     },
                   },
@@ -163,15 +174,26 @@ const MESSAGES = () => [
                       raw: "Test option 2",
                     },
                     description: {
-                      raw: "This is description text explaining text option 2.",
+                      raw: "This is description text explaining text option 2. This sets as default.",
                     },
                     action: {
-                      type: "SET_PREF",
+                      type: "MULTI_ACTION",
                       data: {
-                        pref: {
-                          name: "test-pref-2",
-                          value: true,
-                        },
+                        orderedExecution: true,
+                        actions: [
+                          {
+                            type: "SET_PREF",
+                            data: {
+                              pref: {
+                                name: "test-pref-2",
+                                value: true,
+                              },
+                            },
+                          },
+                          {
+                            type: "SET_DEFAULT_BROWSER",
+                          },
+                        ],
                       },
                     },
                   },
@@ -188,7 +210,18 @@ const MESSAGES = () => [
                 type: "MULTI_ACTION",
                 collectSelect: true,
                 data: {
-                  actions: [],
+                  orderedExecution: true,
+                  actions: [
+                    {
+                      type: "SET_PREF",
+                      data: {
+                        pref: {
+                          name: "test-pref-3",
+                          value: true,
+                        },
+                      },
+                    },
+                  ],
                 },
                 dismiss: true,
               },

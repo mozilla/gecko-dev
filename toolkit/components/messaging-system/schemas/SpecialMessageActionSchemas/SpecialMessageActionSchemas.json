@@ -563,13 +563,22 @@
           "type": "object",
           "properties": {
             "data": {
-              "actions": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "description": "A special message action definition"
+              "type": "object",
+              "properties": {
+                "orderedExecution": {
+                  "type": "boolean",
+                  "description": "Optional - if true, actions will execute sequentially"
+                },
+                "actions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "description": "A special message action definition"
+                  }
                 }
-              }
+              },
+              "required": ["actions"],
+              "additionalProperties": false
             },
             "type": {
               "type": "string",
