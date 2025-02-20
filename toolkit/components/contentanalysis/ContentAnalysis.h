@@ -19,6 +19,7 @@
 #include "nsTHashMap.h"
 #include "nsTHashSet.h"
 
+#include <atomic>
 #include <regex>
 #include <string>
 
@@ -246,9 +247,24 @@ class ContentAnalysis final : public nsIContentAnalysis,
   // Remove unneeded copy constructor/assignment
   ContentAnalysis(const ContentAnalysis&) = delete;
   ContentAnalysis& operator=(ContentAnalysis&) = delete;
+  // Only call this through CreateClientIfNecessary(), as it provides
+  // synchronization to avoid doing this multiple times at once.
   nsresult CreateContentAnalysisClient(nsCString&& aPipePathName,
                                        nsString&& aClientSignatureSetting,
                                        bool aIsPerUser);
+
+  // Helper function to retry calling the client in case either the client
+  // does not exist, or calling the client fails (indicating that the DLP agent
+  // has terminated and possibly restarted)
+  //
+  // aClientCallFunc - gets called on a background thread after we have a
+  // client. Returns a Result<T, nsresult>. An Err(nsresult) indicates
+  // that the client call failed and we should try to reconnect. A successful
+  // response indicates success (or at least that we should not try to
+  // reconnect), and that value will be Resolve()d into the returned MozPromise.
+  template <typename T, typename U>
+  RefPtr<MozPromise<T, nsresult, true>> CallClientWithRetry(
+      StaticString aMethodName, U&& aClientCallFunc);
 
   nsresult RunAnalyzeRequestTask(
       const RefPtr<nsIContentAnalysisRequest>& aRequest, bool aAutoAcknowledge,
@@ -256,7 +272,11 @@ class ContentAnalysis final : public nsIContentAnalysis,
   nsresult RunAcknowledgeTask(
       nsIContentAnalysisAcknowledgement* aAcknowledgement,
       const nsACString& aRequestToken);
-  static void DoAnalyzeRequest(
+  nsresult CreateClientIfNecessary(bool aForceCreate = false);
+
+  static Result<std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>,
+                nsresult>
+  DoAnalyzeRequest(
       nsCString&& aUserActionId, bool aAutoAcknowledge,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
       const std::shared_ptr<content_analysis::sdk::Client>& aClient);
@@ -342,9 +362,19 @@ class ContentAnalysis final : public nsIContentAnalysis,
       MozPromise<std::shared_ptr<content_analysis::sdk::Client>, nsresult,
                  false>;
   int64_t mRequestCount = 0;
-  RefPtr<ClientPromise::Private> mCaClientPromise;
-  // Only accessed from the main thread
-  bool mClientCreationAttempted;
+  // Must only be resolved/rejected or Then()'d on the main thread.
+  //
+  // Note that if this promise is resolved, the resolve value will
+  // be a non-null content_analysis::sdk::Client. However, if the
+  // DLP agent process has terminated, it is possible that trying to
+  // call into this client will return an error. Therefore, any
+  // method that wants to call into the client should go through
+  // CallClientWithRetry() to make it easy to try reconnecting
+  // to the client.
+  RefPtr<ClientPromise::Private> mCaClientPromise
+      MOZ_GUARDED_BY(sMainThreadCapability);
+  bool mCreatingClient MOZ_GUARDED_BY(sMainThreadCapability) = false;
+  bool mHaveResolvedClientPromise MOZ_GUARDED_BY(sMainThreadCapability) = false;
 
   bool mSetByEnterprise;
   nsresult mLastResult = NS_OK;
