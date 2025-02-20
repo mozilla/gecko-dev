@@ -63,15 +63,8 @@ struct BoolStruct {
 class FilesCallback : public GetFilesCallback {
  public:
   FilesCallback(std::atomic<bool>& aGotResponse,
-                const nsTArray<nsTArray<const char*>>& aExpectedPathSegments)
-      : mGotResponse(aGotResponse) {
-    for (const auto& pathSegments : aExpectedPathSegments) {
-      auto file = MakeFileFromPathSegments(pathSegments);
-      nsString expectedPath;
-      MOZ_ALWAYS_SUCCEEDS(file->GetPath(expectedPath));
-      mExpectedPaths.AppendElement(expectedPath);
-    }
-  }
+                const nsTArray<nsString>& aExpectedPaths)
+      : mGotResponse(aGotResponse), mExpectedPaths(aExpectedPaths.Clone()) {}
 
   // -------------------
   // GetFilesCallback
@@ -94,13 +87,46 @@ class FilesCallback : public GetFilesCallback {
   nsTArray<nsString> mExpectedPaths;
 };
 
+nsTArray<nsString> GetExpectedPaths(
+    const nsTArray<nsTArray<const char*>>& aPathSegmentsArray) {
+  nsTArray<nsString> expectedPaths(aPathSegmentsArray.Length());
+  for (const auto& pathSegments : aPathSegmentsArray) {
+    auto file = MakeFileFromPathSegments(pathSegments);
+    nsString expectedPath;
+    MOZ_ALWAYS_SUCCEEDS(file->GetPath(expectedPath));
+    expectedPaths.AppendElement(expectedPath);
+  }
+  return expectedPaths;
+}
+
 void ExpectGetFilesHelperResponse(
     RefPtr<GetFilesHelper> aHelper,
     const nsTArray<nsTArray<const char*>>& aPathSegmentsArray) {
-  std::atomic<bool> gotResponse = false;
+  nsTArray<nsString> expectedPaths = GetExpectedPaths(aPathSegmentsArray);
+
+  std::atomic<bool> gotCallbackResponse = false;
+  std::atomic<bool> gotMozPromiseResponse = false;
   RefPtr<FilesCallback> callback =
-      MakeRefPtr<FilesCallback>(gotResponse, aPathSegmentsArray);
+      MakeRefPtr<FilesCallback>(gotCallbackResponse, expectedPaths);
   aHelper->AddCallback(callback);
+  auto mozPromise = MakeRefPtr<GetFilesHelper::MozPromiseType>(__func__);
+  aHelper->AddMozPromise(mozPromise,
+                         xpc::NativeGlobal(xpc::PrivilegedJunkScope()));
+  mozPromise->Then(
+      GetMainThreadSerialEventTarget(), __func__,
+      [&gotMozPromiseResponse,
+       &expectedPaths](const nsTArray<RefPtr<mozilla::dom::File>>& aFiles) {
+        EXPECT_EQ(aFiles.Length(), expectedPaths.Length());
+        for (const auto& file : aFiles) {
+          nsString path;
+          ErrorResult error;
+          file->GetMozFullPathInternal(path, error);
+          ASSERT_EQ(error.StealNSResult(), NS_OK);
+          ASSERT_TRUE(expectedPaths.Contains(path));
+        }
+        gotMozPromiseResponse = true;
+      },
+      []() { FAIL() << "MozPromise got rejected!"; });
   // Make timedOut a RefPtr so if we get a response after this function
   // has finished we can safely check that (and don't start accessing stack
   // values that don't exist anymore)
@@ -108,17 +134,20 @@ void ExpectGetFilesHelperResponse(
 
   RefPtr<CancelableRunnable> timer =
       NS_NewCancelableRunnableFunction("GetFilesHelper timeout", [&] {
-        if (!gotResponse.load()) {
+        if (!gotCallbackResponse.load() || !gotMozPromiseResponse.load()) {
           timedOut->mValue = true;
         }
       });
   constexpr uint32_t kTimeout = 10000;
   NS_DelayedDispatchToCurrentThread(do_AddRef(timer), kTimeout);
   mozilla::SpinEventLoopUntil(
-      "Waiting for GetFilesHelper result"_ns,
-      [&, timedOut]() { return gotResponse.load() || timedOut->mValue; });
+      "Waiting for GetFilesHelper result"_ns, [&, timedOut]() {
+        return (gotCallbackResponse.load() && gotMozPromiseResponse.load()) ||
+               timedOut->mValue;
+      });
   timer->Cancel();
-  EXPECT_TRUE(gotResponse);
+  EXPECT_TRUE(gotCallbackResponse);
+  EXPECT_TRUE(gotMozPromiseResponse);
   EXPECT_FALSE(timedOut->mValue);
 }
 

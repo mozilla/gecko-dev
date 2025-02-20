@@ -106,14 +106,31 @@ class GetFilesHelper : public Runnable, public GetFilesHelperBase {
 
   void OperationCompleted();
 
-  void ResolveOrRejectPromise(Promise* aPromise);
-
   struct MozPromiseAndGlobal {
     RefPtr<MozPromiseType> mMozPromise;
     RefPtr<nsIGlobalObject> mGlobal;
   };
 
-  void ResolveOrRejectMozPromise(MozPromiseAndGlobal aPromise);
+  class PromiseAdapter {
+   public:
+    explicit PromiseAdapter(MozPromiseAndGlobal&& aMozPromise);
+    explicit PromiseAdapter(Promise* aDomPromise);
+    ~PromiseAdapter();
+
+    void Clear();
+    void Traverse(nsCycleCollectionTraversalCallback& cb);
+
+    nsIGlobalObject* GetGlobalObject();
+    void Resolve(nsTArray<RefPtr<File>>&& aFiles);
+    void Reject(nsresult aError);
+
+   private:
+    using PromiseVariant = Variant<RefPtr<Promise>, MozPromiseAndGlobal>;
+    PromiseVariant mPromise;
+  };
+
+  void AddPromiseInternal(PromiseAdapter&& aPromise);
+  void ResolveOrRejectPromise(PromiseAdapter&& aPromise);
 
   void RunCallback(GetFilesCallback* aCallback);
 
@@ -123,8 +140,8 @@ class GetFilesHelper : public Runnable, public GetFilesHelperBase {
   // Error code to propagate.
   nsresult mErrorResult;
 
-  nsTArray<RefPtr<Promise>> mPromises;
-  nsTArray<MozPromiseAndGlobal> mMozPromises;
+  nsTArray<PromiseAdapter> mPromises;
+
   nsTArray<RefPtr<GetFilesCallback>> mCallbacks;
 
   Mutex mMutex MOZ_UNANNOTATED;
