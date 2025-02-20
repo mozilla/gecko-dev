@@ -29,7 +29,9 @@ const char* kAllowUrlPref = "browser.contentanalysis.allow_url_regex_list";
 const char* kDenyUrlPref = "browser.contentanalysis.deny_url_regex_list";
 const char* kPipePathNamePref = "browser.contentanalysis.pipe_path_name";
 const char* kIsDLPEnabledPref = "browser.contentanalysis.enabled";
+const char* kDefaultResultPref = "browser.contentanalysis.default_result";
 const char* kTimeoutPref = "browser.contentanalysis.agent_timeout";
+const char* kTimeoutResultPref = "browser.contentanalysis.timeout_result";
 const char* kClientSignaturePref = "browser.contentanalysis.client_signature";
 
 using namespace mozilla;
@@ -484,6 +486,7 @@ void SendRequestAndExpectResponse(
 void SendRequestAndExpectNoAgentResponse(
     RefPtr<ContentAnalysis> contentAnalysis,
     const nsCOMPtr<nsIContentAnalysisRequest>& request,
+    bool expectedShouldAllow = false,
     nsIContentAnalysisResponse::CancelError expectedCancelError =
         nsIContentAnalysisResponse::CancelError::eNoAgent) {
   std::atomic<bool> gotResponse = false;
@@ -500,8 +503,7 @@ void SendRequestAndExpectNoAgentResponse(
             do_QueryInterface(result);
         EXPECT_TRUE(response);
         EXPECT_EQ(expectedCancelError, response->GetCancelError());
-        // We're just doing default deny here
-        EXPECT_EQ(false, response->GetShouldAllowContent());
+        EXPECT_EQ(expectedShouldAllow, response->GetShouldAllowContent());
         gotResponse = true;
       },
       [&gotResponse, timedOut](nsresult error) {
@@ -614,6 +616,24 @@ TEST_F(ContentAnalysisTest, TerminateAgent_SendAllowedTextToAgent_GetError) {
   SendRequestAndExpectResponse(mContentAnalysis, request, Some(true),
                                Some(nsIContentAnalysisResponse::eAllow),
                                Some(false));
+}
+
+TEST_F(ContentAnalysisTest,
+       TerminateAgent_SendAllowedTextToAgentWithDefaultAllow_GetAllowResponse) {
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kDefaultResultPref, 2));
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow(L"allow");
+  mAgentInfo.TerminateProcess();
+  nsCOMPtr<nsIContentAnalysisRequest> request = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+
+  SendRequestAndExpectNoAgentResponse(mContentAnalysis, request, true);
+  StartAgent();
+
+  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kDefaultResultPref));
 }
 
 class RawRequestObserver final : public nsIObserver {
@@ -969,6 +989,29 @@ TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeout) {
   MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
 }
 
+TEST_F(ContentAnalysisTest, CheckBrowserReportsTimeoutWithDefaultTimeoutAllow) {
+  // Submit a request to the agent and then timeout before we get a response.
+  // When we do get a response later, check that we respect the timeout_result
+  // pref.
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutPref, -1));
+  MOZ_ALWAYS_SUCCEEDS(Preferences::SetInt(kTimeoutResultPref, 2));
+  nsCOMPtr<nsIURI> uri = GetExampleDotComURI();
+  nsString allow1(L"allowMe");
+  nsCOMPtr<nsIContentAnalysisRequest> request1 = new ContentAnalysisRequest(
+      nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry,
+      nsIContentAnalysisRequest::Reason::eClipboardPaste, std::move(allow1),
+      false, EmptyCString(), uri,
+      nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
+
+  SendRequestAndExpectResponse(mContentAnalysis, request1,
+                               Some(true) /* expectedShouldAllow */,
+                               Some(nsIContentAnalysisResponse::Action::eAllow),
+                               Some(false) /* expectIsCached */);
+
+  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutPref));
+  MOZ_ALWAYS_SUCCEEDS(Preferences::ClearUser(kTimeoutResultPref));
+}
+
 TEST_F(ContentAnalysisTest, GetDiagnosticInfo_Initial) {
   RefPtr<ContentAnalysisDiagnosticInfo> info =
       GetDiagnosticInfo(mContentAnalysis);
@@ -1066,7 +1109,7 @@ TEST_F(ContentAnalysisTest, GetDiagnosticInfo_FailedSignatureVerification) {
       false, EmptyCString(), uri,
       nsIContentAnalysisRequest::OperationType::eClipboard, nullptr);
   SendRequestAndExpectNoAgentResponse(
-      mContentAnalysis, request,
+      mContentAnalysis, request, false,
       nsIContentAnalysisResponse::CancelError::eInvalidAgentSignature);
 
   RefPtr<ContentAnalysisDiagnosticInfo> info =

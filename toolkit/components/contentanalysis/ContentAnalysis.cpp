@@ -1009,12 +1009,15 @@ static bool ShouldAllowAction(
          aResponseCode == nsIContentAnalysisResponse::Action::eWarn;
 }
 
-static DefaultResult GetDefaultResultFromPref() {
-  uint32_t value = StaticPrefs::browser_contentanalysis_default_result();
+static DefaultResult GetDefaultResultFromPref(bool isTimeout) {
+  uint32_t value = isTimeout
+                       ? StaticPrefs::browser_contentanalysis_timeout_result()
+                       : StaticPrefs::browser_contentanalysis_default_result();
   if (value > static_cast<uint32_t>(DefaultResult::eLastValue)) {
     LOGE(
-        "Invalid value for browser.contentanalysis.default_result pref "
-        "value");
+        "Invalid value for browser.contentanalysis.%s pref "
+        "value",
+        isTimeout ? "default_timeout_result" : "default_result");
     return DefaultResult::eBlock;
   }
   return static_cast<DefaultResult>(value);
@@ -1035,7 +1038,10 @@ NS_IMETHODIMP ContentAnalysisActionResult::GetShouldAllowContent(
 
 NS_IMETHODIMP ContentAnalysisNoResult::GetShouldAllowContent(
     bool* aShouldAllowContent) {
-  if (GetDefaultResultFromPref() == DefaultResult::eAllow) {
+  // Make sure to use the non-timeout pref here, because timeouts won't
+  // go through this code path.
+  if (GetDefaultResultFromPref(/* isTimeout */ false) ==
+      DefaultResult::eAllow) {
     *aShouldAllowContent =
         mValue != NoContentAnalysisResult::DENY_DUE_TO_CANCELED;
   } else {
@@ -1418,6 +1424,7 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
 
   bool isShutdown = aResult == NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
   bool isCancel = aResult == NS_ERROR_ABORT;
+  bool isTimeout = aResult == NS_ERROR_DOM_TIMEOUT_ERR;
 
   // Propagate shutdown error to the callback as that same error.  All other
   // cases use the default response, except user cancel, which always uses
@@ -1429,7 +1436,7 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
   nsIContentAnalysisResponse::Action action =
       nsIContentAnalysisResponse::Action::eCanceled;
   if (!isShutdown && !isCancel) {
-    DefaultResult defaultResponse = GetDefaultResultFromPref();
+    DefaultResult defaultResponse = GetDefaultResultFromPref(isTimeout);
     switch (defaultResponse) {
       case DefaultResult::eAllow:
         action = nsIContentAnalysisResponse::Action::eAllow;

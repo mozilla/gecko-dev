@@ -1236,6 +1236,18 @@
   value: 0
   mirror: always
 
+# What content analysis should return if the agent takes too long to respond
+# to a request. (see DefaultResponse enum in ContentAnalysis.h)
+# Make sure these stay in sync with the out-of-range check in Policies.sys.mjs.
+#
+#   0: Block all requests
+#   1: Warn on all requests (which lets the user decide)
+#   2: Allow all requests
+- name: browser.contentanalysis.timeout_result
+  type: uint32_t
+  value: 0
+  mirror: always
+
 # Is the IPC pipe to the DLP tool specific to the user or to the system?
 - name: browser.contentanalysis.is_per_user
   type: bool
