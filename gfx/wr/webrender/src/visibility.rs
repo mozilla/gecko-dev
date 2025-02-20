@@ -378,17 +378,16 @@ pub fn update_prim_visibility(
 
 pub fn compute_conservative_visible_rect(
     clip_chain: &ClipChainInstance,
-    world_culling_rect: WorldRect,
+    culling_rect: VisRect,
+    visibility_node_index: SpatialNodeIndex,
     prim_spatial_node_index: SpatialNodeIndex,
     spatial_tree: &SpatialTree,
 ) -> LayoutRect {
-    let root_spatial_node_index = spatial_tree.root_reference_frame_index();
-
     // Mapping from picture space -> world space
-    let map_pic_to_world: SpaceMapper<PicturePixel, WorldPixel> = SpaceMapper::new_with_target(
-        root_spatial_node_index,
+    let map_pic_to_vis: SpaceMapper<PicturePixel, VisPixel> = SpaceMapper::new_with_target(
+        visibility_node_index,
         clip_chain.pic_spatial_node_index,
-        world_culling_rect,
+        culling_rect,
         spatial_tree,
     );
 
@@ -402,7 +401,7 @@ pub fn compute_conservative_visible_rect(
 
     // Unmap the world culling rect from world -> picture space. If this mapping fails due
     // to matrix weirdness, best we can do is use the clip chain's local clip rect.
-    let pic_culling_rect = match map_pic_to_world.unmap(&world_culling_rect) {
+    let pic_culling_rect = match map_pic_to_vis.unmap(&culling_rect) {
         Some(rect) => rect,
         None => return clip_chain.local_clip_rect,
     };
