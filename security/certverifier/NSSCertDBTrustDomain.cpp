@@ -702,34 +702,7 @@ Result BuildCRLiteTimestampArray(
   return Success;
 }
 
-Result NSSCertDBTrustDomain::CheckCRLiteStash(
-    const nsTArray<uint8_t>& issuerSubjectPublicKeyInfoBytes,
-    const nsTArray<uint8_t>& serialNumberBytes) {
-  // This information is deterministic and has already been validated by our
-  // infrastructure (it comes from signed CRLs), so if the stash says a
-  // certificate is revoked, it is.
-  bool isRevokedByStash = false;
-  nsresult rv = mCertStorage->IsCertRevokedByStash(
-      issuerSubjectPublicKeyInfoBytes, serialNumberBytes, &isRevokedByStash);
-  if (NS_FAILED(rv)) {
-    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-            ("NSSCertDBTrustDomain::CheckCRLiteStash: IsCertRevokedByStash "
-             "failed"));
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-  if (isRevokedByStash) {
-    MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
-            ("NSSCertDBTrustDomain::CheckCRLiteStash: IsCertRevokedByStash "
-             "returned true"));
-    mozilla::glean::cert_verifier::crlite_status.Get("revoked_in_stash"_ns)
-        .Add(1);
-    return Result::ERROR_REVOKED_CERTIFICATE;
-  }
-  return Success;
-}
-
 Result NSSCertDBTrustDomain::CheckCRLite(
-    const nsTArray<uint8_t>& issuerBytes,
     const nsTArray<uint8_t>& issuerSubjectPublicKeyInfoBytes,
     const nsTArray<uint8_t>& serialNumberBytes,
     const nsTArray<RefPtr<nsICRLiteTimestamp>>& timestamps,
@@ -737,8 +710,8 @@ Result NSSCertDBTrustDomain::CheckCRLite(
   filterCoversCertificate = false;
   int16_t crliteRevocationState;
   nsresult rv = mCertStorage->GetCRLiteRevocationState(
-      issuerBytes, issuerSubjectPublicKeyInfoBytes, serialNumberBytes,
-      timestamps, &crliteRevocationState);
+      issuerSubjectPublicKeyInfoBytes, serialNumberBytes, timestamps,
+      &crliteRevocationState);
   if (NS_FAILED(rv)) {
     MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
             ("NSSCertDBTrustDomain::CheckCRLite: CRLite call failed"));
@@ -885,29 +858,17 @@ Result NSSCertDBTrustDomain::CheckRevocationByCRLite(
   nsTArray<uint8_t> serialNumberBytes;
   serialNumberBytes.AppendElements(certID.serialNumber.UnsafeGetData(),
                                    certID.serialNumber.GetLength());
-  // The CRLite stash is essentially a subset of a collection of CRLs, so if
-  // it says a certificate is revoked, it is.
-  Result rv =
-      CheckCRLiteStash(issuerSubjectPublicKeyInfoBytes, serialNumberBytes);
-  if (rv != Success) {
-    crliteCoversCertificate = (rv == Result::ERROR_REVOKED_CERTIFICATE);
-    return rv;
-  }
-
-  nsTArray<uint8_t> issuerBytes;
-  issuerBytes.AppendElements(certID.issuer.UnsafeGetData(),
-                             certID.issuer.GetLength());
 
   nsTArray<RefPtr<nsICRLiteTimestamp>> timestamps;
-  rv = BuildCRLiteTimestampArray(sctExtension, timestamps);
+  Result rv = BuildCRLiteTimestampArray(sctExtension, timestamps);
   if (rv != Success) {
     MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
             ("decoding SCT extension failed - CRLite will be not be "
              "consulted"));
     return Success;
   }
-  return CheckCRLite(issuerBytes, issuerSubjectPublicKeyInfoBytes,
-                     serialNumberBytes, timestamps, crliteCoversCertificate);
+  return CheckCRLite(issuerSubjectPublicKeyInfoBytes, serialNumberBytes,
+                     timestamps, crliteCoversCertificate);
 }
 
 Result NSSCertDBTrustDomain::CheckRevocationByOCSP(

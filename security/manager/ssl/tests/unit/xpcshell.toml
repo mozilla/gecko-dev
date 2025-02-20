@@ -7,7 +7,6 @@ prefs = [
 ]
 skip-if = ["os == 'win' && msix"] # https://bugzilla.mozilla.org/show_bug.cgi?id=1809477
 support-files = [
-  "corrupted_crlite_helper.js",
   "bad_certs/**",
   "ocsp_certs/**",
   "test_baseline_requirements/**",
@@ -19,17 +18,13 @@ support-files = [
   "test_cert_overrides_read_only/**",
   "test_cert_sha1/**",
   "test_cert_signatures/**",
-  "test_cert_storage_direct/**",
   "test_cert_storage_preexisting/**",
-  "test_cert_storage_preexisting_crlite/**",
   "test_cert_trust/**",
   "test_cert_utf8/**",
   "test_cert_version/**",
   "test_certDB_import/**",
   "test_content_signing/**",
   "test_crlite_filters/**",
-  "test_crlite_preexisting/**",
-  "test_crlite_corrupted/**",
   "test_ct/**",
   "test_delegated_credentials/**",
   "test_encrypted_client_hello/**",
@@ -126,10 +121,6 @@ tags = "addons psm blocklist"
 
 ["test_cert_storage_preexisting.js"]
 
-["test_cert_storage_preexisting_crlite.js"]
-# This test cannot succeed on 32-bit platforms. See bugs 1546361 and 1548956.
-skip-if = ["bits != 64"]
-
 ["test_cert_trust.js"]
 
 ["test_cert_utf8.js"]
@@ -143,28 +134,10 @@ skip-if = ["condprof"]
 
 ["test_content_signing.js"]
 
-["test_crlite_coverage_missing.js"]
-
-["test_crlite_coverage_trunc1.js"]
-
-["test_crlite_coverage_trunc2.js"]
-
-["test_crlite_coverage_trunc3.js"]
-
-["test_crlite_coverage_version.js"]
-
-["test_crlite_enrollment_trunc1.js"]
-
-["test_crlite_enrollment_version.js"]
-
-["test_crlite_filter_corrupted.js"]
-
 ["test_crlite_filters.js"]
 tags = "remote-settings psm"
 
 ["test_crlite_preexisting.js"]
-
-["test_crlite_stash_corrupted.js"]
 
 ["test_ct.js"]
 # Requires hard-coded debug-only data

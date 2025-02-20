@@ -16,7 +16,6 @@ extern crate moz_task;
 extern crate nserror;
 extern crate nsstring;
 extern crate rkv;
-extern crate rust_cascade;
 extern crate sha2;
 extern crate thin_vec;
 extern crate time;
@@ -29,7 +28,7 @@ extern crate wr_malloc_size_of;
 use wr_malloc_size_of as malloc_size_of;
 
 use base64::prelude::*;
-use byteorder::{LittleEndian, NetworkEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
 use clubcard::{ApproximateSizeOf, Queryable};
 use clubcard_crlite::{CRLiteClubcard, CRLiteKey, CRLiteQuery, CRLiteStatus};
 use crossbeam_utils::atomic::AtomicCell;
@@ -42,14 +41,12 @@ use nserror::{
 use nsstring::{nsACString, nsCStr, nsCString, nsString};
 use rkv::backend::{BackendEnvironmentBuilder, SafeMode, SafeModeDatabase, SafeModeEnvironment};
 use rkv::{StoreError, StoreOptions, Value};
-use rust_cascade::Cascade;
 use sha2::{Digest, Sha256};
-use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::ffi::{CString, OsString};
 use std::fmt::Display;
-use std::fs::{create_dir_all, remove_file, File, OpenOptions};
-use std::io::{BufRead, BufReader, Read, Write};
+use std::fs::{create_dir_all, remove_file, File};
+use std::io::{BufRead, BufReader};
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 use std::str;
@@ -58,8 +55,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use storage_variant::VariantType;
 use thin_vec::ThinVec;
 use xpcom::interfaces::{
-    nsICRLiteCoverage, nsICRLiteTimestamp, nsICertInfo, nsICertStorage, nsICertStorageCallback,
-    nsIFile, nsIHandleReportCallback, nsIIssuerAndSerialRevocationState, nsIMemoryReporter,
+    nsICRLiteTimestamp, nsICertInfo, nsICertStorage, nsICertStorageCallback, nsIFile,
+    nsIHandleReportCallback, nsIIssuerAndSerialRevocationState, nsIMemoryReporter,
     nsIMemoryReporterManager, nsIProperties, nsIRevocationState, nsISerialEventTarget,
     nsISubjectAndPubKeyRevocationState, nsISupports,
 };
@@ -72,12 +69,6 @@ const PREFIX_CERT: &str = "cert";
 const PREFIX_DATA_TYPE: &str = "datatype";
 
 const LAST_CRLITE_UPDATE_KEY: &str = "last_crlite_update";
-
-const COVERAGE_SERIALIZATION_VERSION: u8 = 1;
-const COVERAGE_V1_ENTRY_BYTES: usize = 48;
-
-const ENROLLMENT_SERIALIZATION_VERSION: u8 = 1;
-const ENROLLMENT_V1_ENTRY_BYTES: usize = 32;
 
 type Rkv = rkv::Rkv<SafeModeEnvironment>;
 type SingleStore = rkv::SingleStore<SafeModeDatabase>;
@@ -133,134 +124,7 @@ impl MallocSizeOf for EnvAndStore {
     }
 }
 
-struct CascadeWithMetadata {
-    cascade: Cascade,
-    /// Maps an RFC 6962 LogID to a pair of 64 bit unix timestamps
-    coverage: HashMap<Vec<u8>, (u64, u64)>,
-    /// Set of `SHA256(subject || spki)` values for enrolled issuers
-    enrollment: HashSet<Vec<u8>>,
-}
-
-impl CascadeWithMetadata {
-    fn new(
-        cascade: Cascade,
-        coverage_path: &PathBuf,
-        enrollment_path: &PathBuf,
-    ) -> Result<Self, SecurityStateError> {
-        if !coverage_path.exists() {
-            return Err(SecurityStateError::from("missing coverage file"));
-        }
-
-        if !enrollment_path.exists() {
-            return Err(SecurityStateError::from("missing enrollment file"));
-        }
-
-        // Deserialize the coverage metadata.
-        // The format is described in `set_full_crlite_filter`.
-        let coverage_file = File::open(coverage_path)?;
-        let coverage_file_len = coverage_file.metadata()?.len() as usize;
-        let mut coverage_reader = BufReader::new(coverage_file);
-        match coverage_reader.read_u8() {
-            Ok(COVERAGE_SERIALIZATION_VERSION) => (),
-            _ => return Err(SecurityStateError::from("unknown CRLite coverage version")),
-        }
-        if (coverage_file_len - 1) % COVERAGE_V1_ENTRY_BYTES != 0 {
-            return Err(SecurityStateError::from("truncated CRLite coverage file"));
-        }
-        let coverage_count = (coverage_file_len - 1) / COVERAGE_V1_ENTRY_BYTES;
-        let mut coverage = HashMap::new();
-        for _ in 0..coverage_count {
-            let mut coverage_entry = [0u8; COVERAGE_V1_ENTRY_BYTES];
-            match coverage_reader.read_exact(&mut coverage_entry) {
-                Ok(()) => (),
-                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
-            };
-            let log_id = &coverage_entry[0..32];
-            let min_timestamp: u64;
-            let max_timestamp: u64;
-            match (&coverage_entry[32..40]).read_u64::<LittleEndian>() {
-                Ok(value) => min_timestamp = value,
-                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
-            }
-            match (&coverage_entry[40..48]).read_u64::<LittleEndian>() {
-                Ok(value) => max_timestamp = value,
-                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
-            }
-            coverage.insert(log_id.to_vec(), (min_timestamp, max_timestamp));
-        }
-
-        // Deserialize the enrollment metadata.
-        // The format is described in `set_full_crlite_filter`.
-        let enrollment_file = File::open(enrollment_path)?;
-        let enrollment_file_len = enrollment_file.metadata()?.len() as usize;
-        let mut enrollment_reader = BufReader::new(enrollment_file);
-        match enrollment_reader.read_u8() {
-            Ok(ENROLLMENT_SERIALIZATION_VERSION) => (),
-            _ => {
-                return Err(SecurityStateError::from(
-                    "unknown CRLite enrollment version",
-                ))
-            }
-        }
-        if (enrollment_file_len - 1) % ENROLLMENT_V1_ENTRY_BYTES != 0 {
-            return Err(SecurityStateError::from("truncated CRLite enrollment file"));
-        }
-        let enrollment_count = (enrollment_file_len - 1) / ENROLLMENT_V1_ENTRY_BYTES;
-        let mut enrollment = HashSet::new();
-        for _ in 0..enrollment_count {
-            let mut enrollment_entry = [0u8; ENROLLMENT_V1_ENTRY_BYTES];
-            match enrollment_reader.read_exact(&mut enrollment_entry) {
-                Ok(()) => (),
-                _ => return Err(SecurityStateError::from("truncated CRLite enrollment file")),
-            };
-            let issuer_id = &enrollment_entry[..];
-            enrollment.insert(issuer_id.to_vec());
-        }
-
-        Ok(Self {
-            cascade,
-            coverage,
-            enrollment,
-        })
-    }
-
-    fn filter_covers_some_timestamp(&self, timestamps: &[CRLiteTimestamp]) -> bool {
-        let mut covered_timestamp_count = 0;
-        for entry in timestamps {
-            if let Some(&(low, high)) = self.coverage.get(entry.log_id.as_ref()) {
-                if low <= entry.timestamp && entry.timestamp <= high {
-                    covered_timestamp_count += 1;
-                }
-            }
-        }
-
-        covered_timestamp_count
-            >= static_prefs::pref!("security.pki.crlite_timestamps_for_coverage")
-    }
-
-    fn issuer_is_enrolled(&self, subject: &[u8], pub_key: &[u8]) -> bool {
-        let mut digest = Sha256::default();
-        digest.update(subject);
-        digest.update(pub_key);
-        let issuer_id = digest.finalize();
-        self.enrollment.contains(issuer_id.as_slice())
-    }
-
-    fn has(&self, crlite_key: &[u8]) -> bool {
-        self.cascade.has(crlite_key.to_vec())
-    }
-}
-
-impl MallocSizeOf for CascadeWithMetadata {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        self.cascade.approximate_size_of()
-            + self.coverage.size_of(ops)
-            + self.enrollment.size_of(ops)
-    }
-}
-
 enum Filter {
-    Cascade(CascadeWithMetadata),
     Clubcard(CRLiteClubcard),
 }
 
@@ -278,47 +142,13 @@ impl Filter {
 
         if let Ok(clubcard) = CRLiteClubcard::from_bytes(&filter_bytes) {
             Ok(Some(Filter::Clubcard(clubcard)))
-        } else if let Ok(maybe_cascade) = Cascade::from_bytes(filter_bytes) {
-            let Some(cascade) = maybe_cascade else {
-                return Err(SecurityStateError::from("expecting non-empty filter"));
-            };
-            let coverage_path = store_path.join("crlite.coverage");
-            let enrollment_path = store_path.join("crlite.enrollment");
-            if !coverage_path.exists() || !enrollment_path.exists() {
-                return Ok(None);
-            }
-            let cascade_with_metadata =
-                CascadeWithMetadata::new(cascade, &coverage_path, &enrollment_path)?;
-            Ok(Some(Filter::Cascade(cascade_with_metadata)))
         } else {
             Err(SecurityStateError::from("invalid CRLite filter"))
         }
     }
 
-    fn has(
-        &self,
-        issuer_dn: &[u8],
-        issuer_spki: &[u8],
-        issuer_spki_hash: &[u8],
-        serial: &[u8],
-        clubcard_crlite_key: &CRLiteKey,
-        timestamps: &[CRLiteTimestamp],
-    ) -> i16 {
+    fn has(&self, clubcard_crlite_key: &CRLiteKey, timestamps: &[CRLiteTimestamp]) -> i16 {
         match self {
-            Filter::Cascade(cascade) => {
-                let mut crlite_key = Vec::with_capacity(issuer_spki_hash.len() + serial.len());
-                crlite_key.extend_from_slice(issuer_spki_hash);
-                crlite_key.extend_from_slice(serial);
-                if !cascade.issuer_is_enrolled(issuer_dn, issuer_spki) {
-                    nsICertStorage::STATE_NOT_ENROLLED
-                } else if !cascade.filter_covers_some_timestamp(timestamps) {
-                    nsICertStorage::STATE_NOT_COVERED
-                } else if cascade.has(&crlite_key) {
-                    nsICertStorage::STATE_ENFORCE
-                } else {
-                    nsICertStorage::STATE_UNSET
-                }
-            }
             Filter::Clubcard(clubcard) => {
                 let timestamp_iter = timestamps
                     .iter()
@@ -354,9 +184,8 @@ impl Filter {
 }
 
 impl MallocSizeOf for Filter {
-    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+    fn size_of(&self, _: &mut MallocSizeOfOps) -> usize {
         match self {
-            Filter::Cascade(cascade) => cascade.size_of(ops),
             Filter::Clubcard(clubcard) => clubcard.approximate_size_of(),
         }
     }
@@ -367,8 +196,6 @@ struct SecurityState {
     profile_path: PathBuf,
     env_and_store: Option<EnvAndStore>,
     crlite_filters: Vec<Filter>,
-    /// Maps issuer spki hashes to sets of serial numbers.
-    crlite_stash: Option<HashMap<Vec<u8>, HashSet<Vec<u8>>>>,
     /// Tracks the number of asynchronous operations which have been dispatched but not completed.
     remaining_ops: i32,
 }
@@ -381,7 +208,6 @@ impl SecurityState {
             profile_path,
             env_and_store: None,
             crlite_filters: vec![],
-            crlite_stash: None,
             remaining_ops: 0,
         }
     }
@@ -515,7 +341,7 @@ impl SecurityState {
             return Ok(!self.crlite_filters.is_empty());
         }
         if data_type == nsICertStorage::DATA_TYPE_CRLITE_FILTER_INCREMENTAL {
-            return Ok(self.crlite_stash.is_some() || self.crlite_filters.len() > 1);
+            return Ok(self.crlite_filters.len() > 1);
         }
 
         let env_and_store = match self.env_and_store.as_ref() {
@@ -652,19 +478,15 @@ impl SecurityState {
         }
     }
 
-    pub fn set_full_crlite_filter(
-        &mut self,
-        filter: Vec<u8>,
-        enrolled_issuers: Vec<nsCString>,
-        coverage_entries: &[(nsCString, u64, u64)],
-    ) -> Result<(), SecurityStateError> {
+    pub fn set_full_crlite_filter(&mut self, filter: Vec<u8>) -> Result<(), SecurityStateError> {
         let store_path = get_store_path(&self.profile_path)?;
 
-        // Drop any existing crlite filter and clear the accumulated stash.
+        // Drop any existing crlite filters
         self.crlite_filters.clear();
-        self.crlite_stash = None;
 
-        // Delete the backing data for any stash or delta files.
+        // Delete the backing data for the previous collection of filters. We may be migrating
+        // from a bloom filter cascade, so check for and delete "coverage", "enrollment", and
+        // "stash" files in addition to "delta" and "filter" files.
         for entry in std::fs::read_dir(&store_path)? {
             let Ok(entry) = entry else {
                 continue;
@@ -674,53 +496,18 @@ impl SecurityState {
                 .extension()
                 .map(|os_str| os_str.to_str())
                 .flatten();
-            if extension == Some("stash") || extension == Some("delta") {
+            if extension == Some("coverage")
+                || extension == Some("delta")
+                || extension == Some("enrollment")
+                || extension == Some("filter")
+                || extension == Some("stash")
+            {
                 let _ = std::fs::remove_file(entry_path);
             }
         }
 
         // Write the new full filter.
         std::fs::write(store_path.join("crlite.filter"), &filter)?;
-
-        // Serialize the coverage metadata as a 1 byte version number followed by any number of 48
-        // byte entries. Each entry is a 32 byte (opaque) log id, followed by two 8 byte
-        // timestamps. Each timestamp is an 8 byte unsigned integer in little endian.
-        let mut coverage_bytes =
-            Vec::with_capacity(size_of::<u8>() + coverage_entries.len() * COVERAGE_V1_ENTRY_BYTES);
-        coverage_bytes.push(COVERAGE_SERIALIZATION_VERSION);
-        for (b64_log_id, min_t, max_t) in coverage_entries {
-            let log_id = match BASE64_STANDARD.decode(&b64_log_id) {
-                Ok(log_id) if log_id.len() == 32 => log_id,
-                _ => {
-                    warn!("malformed log ID - skipping: {}", b64_log_id);
-                    continue;
-                }
-            };
-            coverage_bytes.extend_from_slice(&log_id);
-            coverage_bytes.extend_from_slice(&min_t.to_le_bytes());
-            coverage_bytes.extend_from_slice(&max_t.to_le_bytes());
-        }
-        // Write the coverage file for the new filter
-        std::fs::write(store_path.join("crlite.coverage"), &coverage_bytes)?;
-
-        // Serialize the enrollment list as a 1 byte version number followed by:
-        // Version 1: any number of 32 byte values of the form `SHA256(subject || spki)`.
-        let mut enrollment_bytes = Vec::with_capacity(
-            size_of::<u8>() + enrolled_issuers.len() * ENROLLMENT_V1_ENTRY_BYTES,
-        );
-        enrollment_bytes.push(ENROLLMENT_SERIALIZATION_VERSION);
-        for b64_issuer_id in enrolled_issuers {
-            let issuer_id = match BASE64_STANDARD.decode(&b64_issuer_id) {
-                Ok(issuer_id) if issuer_id.len() == 32 => issuer_id,
-                _ => {
-                    warn!("malformed issuer ID - skipping: {}", b64_issuer_id);
-                    continue;
-                }
-            };
-            enrollment_bytes.extend_from_slice(&issuer_id);
-        }
-        // Write the enrollment file for the new filter
-        std::fs::write(store_path.join("crlite.enrollment"), &enrollment_bytes)?;
 
         self.note_crlite_update_time()?;
         self.load_crlite_filter()?;
@@ -743,19 +530,6 @@ impl SecurityState {
         Ok(())
     }
 
-    pub fn add_crlite_stash(&mut self, stash: Vec<u8>) -> Result<(), SecurityStateError> {
-        // Append the update to the previously-seen stashes.
-        let mut path = get_store_path(&self.profile_path)?;
-        path.push("crlite.stash");
-        let mut stash_file = OpenOptions::new().append(true).create(true).open(path)?;
-        stash_file.write_all(&stash)?;
-        let crlite_stash = self.crlite_stash.get_or_insert(HashMap::new());
-        load_crlite_stash_from_reader_into_map(&mut stash.as_slice(), crlite_stash)?;
-        self.note_crlite_update_time()?;
-        self.note_memory_usage();
-        Ok(())
-    }
-
     pub fn add_crlite_delta(
         &mut self,
         delta: Vec<u8>,
@@ -772,28 +546,8 @@ impl SecurityState {
         Ok(())
     }
 
-    pub fn is_cert_revoked_by_stash(
-        &self,
-        issuer_spki: &[u8],
-        serial: &[u8],
-    ) -> Result<bool, SecurityStateError> {
-        let crlite_stash = match self.crlite_stash.as_ref() {
-            Some(crlite_stash) => crlite_stash,
-            None => return Ok(false),
-        };
-        let mut digest = Sha256::default();
-        digest.update(issuer_spki);
-        let lookup_key = digest.finalize().to_vec();
-        let serials = match crlite_stash.get(&lookup_key) {
-            Some(serials) => serials,
-            None => return Ok(false),
-        };
-        Ok(serials.contains(&serial.to_vec()))
-    }
-
     pub fn get_crlite_revocation_state(
         &self,
-        issuer: &[u8],
         issuer_spki: &[u8],
         serial_number: &[u8],
         timestamps: &[CRLiteTimestamp],
@@ -812,14 +566,7 @@ impl SecurityState {
         let issuer_spki_hash = Sha256::digest(issuer_spki);
         let clubcard_crlite_key = CRLiteKey::new(issuer_spki_hash.as_ref(), serial_number);
         for filter in &self.crlite_filters {
-            match filter.has(
-                issuer,
-                issuer_spki,
-                issuer_spki_hash.as_ref(),
-                serial_number,
-                &clubcard_crlite_key,
-                timestamps,
-            ) {
+            match filter.has(&clubcard_crlite_key, timestamps) {
                 nsICertStorage::STATE_ENFORCE => return nsICertStorage::STATE_ENFORCE,
                 nsICertStorage::STATE_UNSET => maybe_good = true,
                 nsICertStorage::STATE_NOT_ENROLLED => covered = true,
@@ -1015,7 +762,6 @@ impl MallocSizeOf for SecurityState {
                 .iter()
                 .map(|filter| filter.size_of(ops))
                 .sum::<usize>()
-            + self.crlite_stash.size_of(ops)
             + self.remaining_ops.size_of(ops)
     }
 }
@@ -1302,71 +1048,26 @@ fn remove_db(path: &Path) -> Result<(), SecurityStateError> {
     Ok(())
 }
 
-// Helper function to read stash information from the given reader and insert the results into the
-// given stash map.
-fn load_crlite_stash_from_reader_into_map(
-    reader: &mut dyn Read,
-    dest: &mut HashMap<Vec<u8>, HashSet<Vec<u8>>>,
-) -> Result<(), SecurityStateError> {
-    // The basic unit of the stash file is an issuer subject public key info
-    // hash (sha-256) followed by a number of serial numbers corresponding
-    // to revoked certificates issued by that issuer. More specifically,
-    // each unit consists of:
-    //   4 bytes little-endian: the number of serial numbers following the issuer spki hash
-    //   1 byte: the length of the issuer spki hash
-    //   issuer spki hash length bytes: the issuer spki hash
-    //   as many times as the indicated serial numbers:
-    //     1 byte: the length of the serial number
-    //     serial number length bytes: the serial number
-    // The stash file consists of any number of these units concatenated
-    // together.
-    loop {
-        let num_serials = match reader.read_u32::<LittleEndian>() {
-            Ok(num_serials) => num_serials,
-            Err(_) => break, // end of input, presumably
-        };
-        let issuer_spki_hash_len = reader.read_u8().map_err(|e| {
-            SecurityStateError::from(format!("error reading stash issuer_spki_hash_len: {}", e))
-        })?;
-        let mut issuer_spki_hash = vec![0; issuer_spki_hash_len.into()];
-        reader.read_exact(&mut issuer_spki_hash).map_err(|e| {
-            SecurityStateError::from(format!("error reading stash issuer_spki_hash: {}", e))
-        })?;
-        let serials = dest.entry(issuer_spki_hash).or_insert(HashSet::new());
-        for _ in 0..num_serials {
-            let serial_len = reader.read_u8().map_err(|e| {
-                SecurityStateError::from(format!("error reading stash serial_len: {}", e))
-            })?;
-            let mut serial = vec![0; serial_len.into()];
-            reader.read_exact(&mut serial).map_err(|e| {
-                SecurityStateError::from(format!("error reading stash serial: {}", e))
-            })?;
-            let _ = serials.insert(serial);
-        }
-    }
-    Ok(())
-}
-
-// This is a helper struct that implements the task that asynchronously reads the CRLite stash on a
-// background thread.
-struct BackgroundReadStashTask {
+// This is a helper struct that implements the task that asynchronously reads CRLite deltas on
+// a background thread.
+struct BackgroundReadDeltasTask {
     profile_path: PathBuf,
     security_state: Arc<RwLock<SecurityState>>,
 }
 
-impl BackgroundReadStashTask {
+impl BackgroundReadDeltasTask {
     fn new(
         profile_path: PathBuf,
         security_state: &Arc<RwLock<SecurityState>>,
-    ) -> BackgroundReadStashTask {
-        BackgroundReadStashTask {
+    ) -> BackgroundReadDeltasTask {
+        BackgroundReadDeltasTask {
             profile_path,
             security_state: Arc::clone(security_state),
         }
     }
 }
 
-impl Task for BackgroundReadStashTask {
+impl Task for BackgroundReadDeltasTask {
     fn run(&self) {
         let Ok(store_path) = get_store_path(&self.profile_path) else {
             error!("error getting security_state path");
@@ -1390,23 +1091,6 @@ impl Task for BackgroundReadStashTask {
             }
         }
 
-        let mut maybe_crlite_stash = None;
-        let stash_path = store_path.join("crlite.stash");
-        // Before we've downloaded any stashes, this file won't exist.
-        if stash_path.exists() {
-            if let Ok(stash_file) = File::open(stash_path) {
-                let mut stash_reader = BufReader::new(stash_file);
-                let mut crlite_stash = HashMap::new();
-                match load_crlite_stash_from_reader_into_map(&mut stash_reader, &mut crlite_stash) {
-                    Ok(()) => maybe_crlite_stash = Some(crlite_stash),
-                    Err(e) => {
-                        error!("error loading crlite stash: {}", e.message);
-                    }
-                }
-            } else {
-                error!("error opening stash file");
-            }
-        }
         let Ok(mut ss) = self.security_state.write() else {
             return;
         };
@@ -1414,7 +1098,6 @@ impl Task for BackgroundReadStashTask {
             error!("error opening security state db: {}", e.message);
         }
         ss.crlite_filters.append(&mut delta_filters);
-        ss.crlite_stash = maybe_crlite_stash;
     }
 
     fn done(&self) -> Result<(), nsresult> {
@@ -1434,23 +1117,21 @@ fn do_construct_cert_storage(
     });
     let memory_reporter = MemoryReporter::allocate(InitMemoryReporter { security_state });
 
-    // Dispatch a task to the background task queue to asynchronously read the CRLite stash file (if
-    // present) and load it into cert_storage. This task does not hold the
+    // Dispatch a task to the background task queue to asynchronously read CRLite delta files (if
+    // present) and load them into cert_storage. This task does not hold the
     // cert_storage.security_state mutex for the majority of its operation, which allows certificate
     // verification threads to query cert_storage without blocking. This is important for
     // performance, but it means that certificate verifications that happen before the task has
-    // completed will not have stash information, and thus may not know of revocations that have
-    // occurred since the last full CRLite filter was downloaded. As long as the last full filter
-    // was downloaded no more than 10 days ago, this is no worse than relying on OCSP responses,
-    // which have a maximum validity of 10 days.
+    // completed will not have delta information, and thus may not know of revocations that have
+    // occurred since the last full CRLite filter was downloaded.
     // NB: because the background task queue is serial, this task will complete before other tasks
-    // later dispatched to the queue run. This means that other tasks that interact with the stash
-    // will do so with the correct set of preconditions.
-    let load_crlite_stash_task = Box::new(BackgroundReadStashTask::new(
+    // later dispatched to the queue run. This means that other tasks that depend on deltas will do
+    // so with the correct set of preconditions.
+    let load_crlite_deltas_task = Box::new(BackgroundReadDeltasTask::new(
         path_buf,
         &cert_storage.security_state,
     ));
-    let runnable = TaskRunnable::new("LoadCrliteStash", load_crlite_stash_task)?;
+    let runnable = TaskRunnable::new("LoadCrliteDeltas", load_crlite_deltas_task)?;
     TaskRunnable::dispatch(runnable, cert_storage.queue.coerce())?;
 
     if let Some(reporter) = memory_reporter.query_interface::<nsIMemoryReporter>() {
@@ -1729,68 +1410,23 @@ impl CertStorage {
     unsafe fn SetFullCRLiteFilter(
         &self,
         filter: *const ThinVec<u8>,
-        enrolled_issuers: *const ThinVec<nsCString>,
-        coverage: *const ThinVec<Option<RefPtr<nsICRLiteCoverage>>>,
         callback: *const nsICertStorageCallback,
     ) -> nserror::nsresult {
         if !is_main_thread() {
             return NS_ERROR_NOT_SAME_THREAD;
         }
-        if filter.is_null()
-            || coverage.is_null()
-            || callback.is_null()
-            || enrolled_issuers.is_null()
-        {
+        if filter.is_null() || callback.is_null() {
             return NS_ERROR_NULL_POINTER;
         }
 
         let filter_owned = (*filter).to_vec();
-        let enrolled_issuers_owned = (*enrolled_issuers).to_vec();
-
-        let coverage = &*coverage;
-        let mut coverage_entries = Vec::with_capacity(coverage.len());
-        for entry in coverage.iter().flatten() {
-            let mut b64_log_id = nsCString::new();
-            try_ns!((*entry).GetB64LogID(&mut *b64_log_id).to_result(), or continue);
-            let mut min_timestamp: u64 = 0;
-            try_ns!((*entry).GetMinTimestamp(&mut min_timestamp).to_result(), or continue);
-            let mut max_timestamp: u64 = 0;
-            try_ns!((*entry).GetMaxTimestamp(&mut max_timestamp).to_result(), or continue);
-            coverage_entries.push((b64_log_id, min_timestamp, max_timestamp));
-        }
 
         let task = Box::new(try_ns!(SecurityStateTask::new(
             &*callback,
             &self.security_state,
-            move |ss| ss.set_full_crlite_filter(
-                filter_owned,
-                enrolled_issuers_owned,
-                &coverage_entries
-            ),
+            move |ss| ss.set_full_crlite_filter(filter_owned),
         )));
         let runnable = try_ns!(TaskRunnable::new("SetFullCRLiteFilter", task));
-        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
-        NS_OK
-    }
-
-    unsafe fn AddCRLiteStash(
-        &self,
-        stash: *const ThinVec<u8>,
-        callback: *const nsICertStorageCallback,
-    ) -> nserror::nsresult {
-        if !is_main_thread() {
-            return NS_ERROR_NOT_SAME_THREAD;
-        }
-        if stash.is_null() || callback.is_null() {
-            return NS_ERROR_NULL_POINTER;
-        }
-        let stash_owned = (*stash).to_vec();
-        let task = Box::new(try_ns!(SecurityStateTask::new(
-            &*callback,
-            &self.security_state,
-            move |ss| ss.add_crlite_stash(stash_owned),
-        )));
-        let runnable = try_ns!(TaskRunnable::new("AddCRLiteStash", task));
         try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
         NS_OK
     }
@@ -1819,26 +1455,25 @@ impl CertStorage {
         NS_OK
     }
 
-    unsafe fn IsCertRevokedByStash(
+    unsafe fn TestNoteCRLiteUpdateTime(
         &self,
-        issuer_spki: *const ThinVec<u8>,
-        serial_number: *const ThinVec<u8>,
-        is_revoked: *mut bool,
+        callback: *const nsICertStorageCallback,
     ) -> nserror::nsresult {
-        if issuer_spki.is_null() || serial_number.is_null() || is_revoked.is_null() {
-            return NS_ERROR_NULL_POINTER;
+        if !is_main_thread() {
+            return NS_ERROR_NOT_SAME_THREAD;
         }
-        let ss = get_security_state!(self);
-        *is_revoked = match ss.is_cert_revoked_by_stash(&*issuer_spki, &*serial_number) {
-            Ok(is_revoked) => is_revoked,
-            Err(_) => return NS_ERROR_FAILURE,
-        };
+        let task = Box::new(try_ns!(SecurityStateTask::new(
+            &*callback,
+            &self.security_state,
+            move |ss| ss.note_crlite_update_time(),
+        )));
+        let runnable = try_ns!(TaskRunnable::new("TestNoteCRLiteUpdateTime", task));
+        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
         NS_OK
     }
 
     unsafe fn GetCRLiteRevocationState(
         &self,
-        issuer: *const ThinVec<u8>,
         issuerSPKI: *const ThinVec<u8>,
         serialNumber: *const ThinVec<u8>,
         timestamps: *const ThinVec<Option<RefPtr<nsICRLiteTimestamp>>>,
@@ -1846,11 +1481,7 @@ impl CertStorage {
     ) -> nserror::nsresult {
         // TODO (bug 1541212): We really want to restrict this to non-main-threads only, but we
         // can't do so until bug 1406854 is fixed.
-        if issuer.is_null()
-            || issuerSPKI.is_null()
-            || serialNumber.is_null()
-            || state.is_null()
-            || timestamps.is_null()
+        if issuerSPKI.is_null() || serialNumber.is_null() || state.is_null() || timestamps.is_null()
         {
             return NS_ERROR_NULL_POINTER;
         }
@@ -1864,12 +1495,7 @@ impl CertStorage {
             timestamp_entries.push(CRLiteTimestamp { log_id, timestamp });
         }
         let ss = get_security_state!(self);
-        *state = ss.get_crlite_revocation_state(
-            &*issuer,
-            &*issuerSPKI,
-            &*serialNumber,
-            &timestamp_entries,
-        );
+        *state = ss.get_crlite_revocation_state(&*issuerSPKI, &*serialNumber, &timestamp_entries);
         NS_OK
     }
 

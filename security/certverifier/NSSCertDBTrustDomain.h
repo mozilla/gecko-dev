@@ -248,11 +248,7 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
   IssuerSources GetIssuerSources() { return mIssuerSources; }
 
  private:
-  Result CheckCRLiteStash(
-      const nsTArray<uint8_t>& issuerSubjectPublicKeyInfoBytes,
-      const nsTArray<uint8_t>& serialNumberBytes);
   Result CheckCRLite(
-      const nsTArray<uint8_t>& issuerBytes,
       const nsTArray<uint8_t>& issuerSubjectPublicKeyInfoBytes,
       const nsTArray<uint8_t>& serialNumberBytes,
       const nsTArray<RefPtr<nsICRLiteTimestamp>>& crliteTimestamps,

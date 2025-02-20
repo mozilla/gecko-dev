@@ -57,17 +57,6 @@ function bytesToString(bytes) {
   return String.fromCharCode.apply(null, bytes);
 }
 
-class CRLiteCoverage {
-  constructor(b64LogID, minTimestamp, maxTimestamp) {
-    this.b64LogID = b64LogID;
-    this.minTimestamp = minTimestamp;
-    this.maxTimestamp = maxTimestamp;
-  }
-}
-CRLiteCoverage.prototype.QueryInterface = ChromeUtils.generateQI([
-  "nsICRLiteCoverage",
-]);
-
 class CertInfo {
   constructor(cert, subject) {
     this.cert = cert;
@@ -124,9 +113,9 @@ function hasPriorData(dataType) {
     Ci.nsICertStorage
   );
   return new Promise(resolve => {
-    certStorage.hasPriorData(dataType, (rv, hasPriorData) => {
+    certStorage.hasPriorData(dataType, (rv, out) => {
       if (rv == Cr.NS_OK) {
-        resolve(hasPriorData);
+        resolve(out);
       } else {
         // If calling hasPriorData failed, assume we need to reload everything
         // (even though it's unlikely doing so will succeed).
@@ -570,10 +559,10 @@ class CRLiteFilters {
         toReset.map(r => ({ ...r, loaded_into_cert_storage: false }))
       );
     }
-    let hasPriorStash = await hasPriorData(
+    let hasPriorDelta = await hasPriorData(
       Ci.nsICertStorage.DATA_TYPE_CRLITE_FILTER_INCREMENTAL
     );
-    if (!hasPriorStash) {
+    if (!hasPriorDelta) {
       let current = await this.getFilteredRecords();
       let toReset = current.filter(
         record => record.incremental && record.loaded_into_cert_storage
@@ -651,56 +640,14 @@ class CRLiteFilters {
       }
       let filter = fullFiltersDownloaded[0];
 
-      let coverage = [];
-      if (filter.coverage) {
-        for (let entry of filter.coverage) {
-          coverage.push(
-            new CRLiteCoverage(
-              entry.logID,
-              entry.minTimestamp,
-              entry.maxTimestamp
-            )
-          );
-        }
-      }
-      let enrollment = filter.enrolledIssuers ? filter.enrolledIssuers : [];
-
       await new Promise(resolve => {
-        certList.setFullCRLiteFilter(filter.bytes, enrollment, coverage, rv => {
+        certList.setFullCRLiteFilter(filter.bytes, rv => {
           lazy.log.debug(`setFullCRLiteFilter: ${rv}`);
           resolve();
         });
       });
     }
-    let stashes = filtersDownloaded.filter(
-      filter =>
-        filter.incremental && filter.attachment.filename.endsWith("stash")
-    );
-    let totalLength = stashes.reduce(
-      (sum, filter) => sum + filter.bytes.length,
-      0
-    );
-    let concatenatedStashes = new Uint8Array(totalLength);
-    let offset = 0;
-    for (let filter of stashes) {
-      concatenatedStashes.set(filter.bytes, offset);
-      offset += filter.bytes.length;
-    }
-    if (concatenatedStashes.length) {
-      lazy.log.debug(
-        `adding concatenated incremental updates of total length ${concatenatedStashes.length}`
-      );
-      await new Promise(resolve => {
-        certList.addCRLiteStash(concatenatedStashes, rv => {
-          lazy.log.debug(`addCRLiteStash: ${rv}`);
-          resolve();
-        });
-      });
-    }
-    let deltas = filtersDownloaded.filter(
-      filter =>
-        filter.incremental && filter.attachment.filename.endsWith("delta")
-    );
+    let deltas = filtersDownloaded.filter(filter => filter.incremental);
     for (let filter of deltas) {
       lazy.log.debug(`adding delta update of size ${filter.bytes.length}`);
       await new Promise(resolve => {

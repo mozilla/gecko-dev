@@ -52,23 +52,6 @@ interface nsISubjectAndPubKeyRevocationState : nsIRevocationState {
 };
 
 /**
- * An interface representing a set of certificates that are covered by a CRLite
- * filter. The set is represented by a certificate transparency log ID and a
- * pair of timestamps. The timestamps are such that the CRLite aggregator has
- * seen every certificate from the specified log with an SCT between the two
- * timestamps.
- * b64LogID is a base 64-encoded RFC 6962 LogID.
- * minTimestamp is the smallest timestamp that the CRLite filter covers.
- * maxTimestamp is the largest timestamp that the CRLite filter covers.
- */
-[scriptable, uuid(416453f7-29bd-4820-a039-9c2e055d3715)]
-interface nsICRLiteCoverage : nsISupports {
-    readonly attribute ACString b64LogID;
-    readonly attribute unsigned long long minTimestamp;
-    readonly attribute unsigned long long maxTimestamp;
-};
-
-/**
  * An interface representing the id and timestamp fields from an RFC 6962
  * SignedCertificateTimestamp struct.
  * logID is the id field.
@@ -148,23 +131,20 @@ interface nsICertStorage : nsISupports {
                            in Array<octet> pubkey);
 
   /**
-   * Given the contents of a new CRLite filter, a list containing
-   * `base64(sha256(subject DN || subject SPKI))` for each enrolled issuer, and
-   * the filter's timestamp coverage, replaces any existing filter with the new
-   * one. Also clears any previously-set incremental revocation updates
-   * ("stashes" or "deltas").
+   * Given the contents of a new CRLite filter, replaces any existing filter
+   * with the new one. Also clears any previously-set incremental revocation
+   * updates ("deltas").
    */
   [must_use]
   void setFullCRLiteFilter(in Array<octet> filter,
-                           in Array<ACString> enrolledIssuers,
-                           in Array<nsICRLiteCoverage> coverage,
                            in nsICertStorageCallback callback);
 
   /**
-   * Given the DER-encoded issuer distinguished name, DER-encoded issuer subject public key info,
-   * the bytes of the value of the serial number (so, not including the DER tag and length) of a
-   * certificate, and the timestamps from that certificate's embedded SCTs, returns the result of
-   * looking up the corresponding entry in the currently-saved CRLite filter (if any).
+   * Given the DER-encoded issuer subject public key info, the bytes of the
+   * value of the serial number (so, not including the DER tag and length) of a
+   * certificate, and the timestamps from that certificate's embedded SCTs,
+   * returns the result of looking up the corresponding entry in the
+   * currently-saved CRLite filter (if any).
    * Returns
    *    - STATE_ENFORCE if the lookup indicates the certificate is revoked via CRLite,
    *    - STATE_UNSET if the lookup indicates the certificate is not revoked via CRLite,
@@ -175,27 +155,9 @@ interface nsICertStorage : nsISupports {
    * No lookup is performed in the STATE_NOT_ENROLLED and STATE_NOT_COVERED cases.
    */
   [must_use, noscript]
-  short getCRLiteRevocationState(in Array<octet> issuer,
-                                 in Array<octet> issuerSPKI,
+  short getCRLiteRevocationState(in Array<octet> issuerSPKI,
                                  in Array<octet> serialNumber,
                                  in Array<nsICRLiteTimestamp> timestamps);
-
-  /**
-   * Given the contents of a CRLite incremental revocation update ("stash"), adds the revocation
-   * information to the current set of stashed revocations. The basic unit of the stash file is an
-   * issuer subject public key info hash (sha-256) followed by a number of serial numbers
-   * corresponding to revoked certificates issued by that issuer. More specifically, each unit
-   * consists of:
-   *   4 bytes little-endian: the number of serial numbers following the issuer spki hash
-   *   1 byte: the length of the issuer spki hash
-   *   issuer spki hash length bytes: the issuer spki hash
-   *   as many times as the indicated serial numbers:
-   *     1 byte: the length of the serial number
-   *     serial number length bytes: the serial number
-   * The stash file consists of any number of these units concatenated together.
-   */
-  [must_use]
-  void addCRLiteStash(in Array<octet> stash, in nsICertStorageCallback callback);
 
   /**
    * Add a new CRLite filter for consideration in revocation checks. This
@@ -208,13 +170,10 @@ interface nsICertStorage : nsISupports {
   void addCRLiteDelta(in Array<octet> delta, in ACString filename, in nsICertStorageCallback callback);
 
   /**
-   * Given a DER-encoded issuer subject public key info and the bytes of the value of the serial
-   * number (so, not including the DER tag and length), determines if the certificate identified by
-   * this issuer SPKI and serial number is revoked according to the current set of stashed CRLite
-   * revocation information.
+   * Mark CRLite filters as fresh. For use in tests only.
    */
-  [must_use, noscript]
-  boolean isCertRevokedByStash(in Array<octet> issuerSPKI, in Array<octet> serialNumber);
+  [must_use]
+  void testNoteCRLiteUpdateTime(in nsICertStorageCallback callback);
 
   /**
    * Trust flags to use when adding a adding a certificate.

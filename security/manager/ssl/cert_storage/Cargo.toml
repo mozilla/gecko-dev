@@ -18,7 +18,6 @@ moz_task = { path = "../../../../xpcom/rust/moz_task" }
 nserror = { path = "../../../../xpcom/rust/nserror" }
 nsstring = { path = "../../../../xpcom/rust/nsstring" }
 rkv = { version = "0.19", default-features = false }
-rust_cascade = "1.4.0"
 sha2 = "0.10.2"
 static_prefs = { path = "../../../../modules/libpref/init/static_prefs" }
 storage_variant = { path = "../../../../storage/variant" }
