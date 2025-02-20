@@ -156,9 +156,7 @@ export var AttributionCode = {
       return parsed;
     }
 
-    Services.telemetry
-      .getHistogramById("BROWSER_ATTRIBUTION_ERRORS")
-      .add("decode_error");
+    Glean.browser.attributionErrors.decode_error.add(1);
 
     return {};
   },
@@ -196,16 +194,12 @@ export var AttributionCode = {
         gCachedAttrData = {};
 
         lazy.log.debug(`_getMacAttrDataAsync: null attribution string`);
-        Services.telemetry
-          .getHistogramById("BROWSER_ATTRIBUTION_ERRORS")
-          .add("null_error");
+        Glean.browser.attributionErrors.null_error.add(1);
       } else if (attrStr == "") {
         gCachedAttrData = {};
 
         lazy.log.debug(`_getMacAttrDataAsync: empty attribution string`);
-        Services.telemetry
-          .getHistogramById("BROWSER_ATTRIBUTION_ERRORS")
-          .add("empty_error");
+        Glean.browser.attributionErrors.empty_error.add(1);
       } else {
         gCachedAttrData = this.parseAttributionCode(attrStr);
       }
@@ -221,9 +215,7 @@ export var AttributionCode = {
         ex.result == Cr.NS_ERROR_UNEXPECTED
       ) {
         // Bad quarantine data.
-        Services.telemetry
-          .getHistogramById("BROWSER_ATTRIBUTION_ERRORS")
-          .add("quarantine_error");
+        Glean.browser.attributionErrors.quarantine_error.add(1);
       }
     }
 
@@ -313,9 +305,7 @@ export var AttributionCode = {
       lazy.log.debug("Full exception is:");
       lazy.log.debug(ex);
 
-      Services.telemetry
-        .getHistogramById("BROWSER_ATTRIBUTION_ERRORS")
-        .add("read_error");
+      Glean.browser.attributionErrors.read_error.add(1);
     }
     if (bytes) {
       try {
@@ -339,9 +329,7 @@ export var AttributionCode = {
         );
       } catch (ex) {
         // TextDecoder can throw an error
-        Services.telemetry
-          .getHistogramById("BROWSER_ATTRIBUTION_ERRORS")
-          .add("decode_error");
+        Glean.browser.attributionErrors.decode_error.add(1);
       }
     }
 

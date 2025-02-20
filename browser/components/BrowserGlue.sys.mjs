@@ -5424,9 +5424,7 @@ export var DefaultBrowserCheck = {
 
     try {
       let resultEnum = buttonNumClicked * 2 + !checkboxState;
-      Services.telemetry
-        .getHistogramById("BROWSER_SET_DEFAULT_RESULT")
-        .add(resultEnum);
+      Glean.browser.setDefaultResult.accumulateSingleSample(resultEnum);
     } catch (ex) {
       /* Don't break if Telemetry is acting up. */
     }
@@ -5523,18 +5521,16 @@ export var DefaultBrowserCheck = {
       try {
         // Report default browser status on startup to telemetry
         // so we can track whether we are the default.
-        Services.telemetry
-          .getHistogramById("BROWSER_IS_USER_DEFAULT")
-          .add(isDefault);
-        Services.telemetry
-          .getHistogramById("BROWSER_IS_USER_DEFAULT_ERROR")
-          .add(isDefaultError);
-        Services.telemetry
-          .getHistogramById("BROWSER_SET_DEFAULT_ALWAYS_CHECK")
-          .add(shouldCheck);
-        Services.telemetry
-          .getHistogramById("BROWSER_SET_DEFAULT_DIALOG_PROMPT_RAWCOUNT")
-          .add(promptCount);
+        Glean.browser.isUserDefault[isDefault ? "true" : "false"].add();
+        Glean.browser.isUserDefaultError[
+          isDefaultError ? "true" : "false"
+        ].add();
+        Glean.browser.setDefaultAlwaysCheck[
+          shouldCheck ? "true" : "false"
+        ].add();
+        Glean.browser.setDefaultDialogPromptRawcount.accumulateSingleSample(
+          promptCount
+        );
       } catch (ex) {
         /* Don't break the default prompt if telemetry is broken. */
       }

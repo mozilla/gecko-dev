@@ -755,3 +755,233 @@ primary.password:
       - mtigley@mozilla.com
     expires: never
     telemetry_mirror: PRIMARY_PASSWORD_ENABLED
+
+browser:
+  is_user_default:
+    type: labeled_counter
+    description: >
+      Whether Firefox is the system default browser on startup. A true value is
+      also recorded here, and a false value is recorded to
+      set_default_error, if a user clicked 'Use Firefox as my default
+      browser' on an in-product prompt. (Note that on Windows 8+ the latter
+      action opens the right settings dialog but does not actually change the
+      default browser without further user action.) On Windows, 'system default
+      browser' is operationalized as whether Firefox is the default HTTP
+      protocol handler.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram BROWSER_IS_USER_DEFAULT.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=855928
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1641713
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=855928
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1641713
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#BROWSER_IS_USER_DEFAULT
+
+  is_user_default_error:
+    type: labeled_counter
+    description: >
+      True if the browser was unable to determine if the browser was set as
+      default.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram BROWSER_IS_USER_DEFAULT_ERROR.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#BROWSER_IS_USER_DEFAULT_ERROR
+
+  set_default_dialog_prompt_rawcount:
+    type: custom_distribution
+    description: >
+      The number of times that a profile has seen the 'Set Default Browser'
+      dialog.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram BROWSER_SET_DEFAULT_DIALOG_PROMPT_RAWCOUNT.
+    range_min: 1
+    range_max: 250
+    bucket_count: 15
+    histogram_type: exponential
+    unit: prompts
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SET_DEFAULT_DIALOG_PROMPT_RAWCOUNT
+
+  set_default_always_check:
+    type: labeled_counter
+    description: >
+      True if the profile has `browser.shell.checkDefaultBrowser` set to true.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram BROWSER_SET_DEFAULT_ALWAYS_CHECK.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#BROWSER_SET_DEFAULT_ALWAYS_CHECK
+
+  set_default_result:
+    type: custom_distribution
+    description: >
+      Result of the Set Default Browser dialog. After Firefox 89 the these
+      values are: (0=Use Firefox + 'Don't ask again' checked, 1=Use Firefox +
+      'Don't ask again' unchecked, 2=Not Now + 'Don't ask again' checked, 3=Not
+      Now + 'Don't ask again' unchecked). Before Firefox 89 these values were:
+      (0=Use Firefox + 'Always perform check' unchecked, 1=Use Firefox + 'Always
+      perform check' checked, 2=Not Now + 'Always perform check' unchecked,
+      3=Not Now + 'Always perform check' checked).
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram BROWSER_SET_DEFAULT_RESULT.
+    range_min: 0
+    range_max: 4
+    bucket_count: 5
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_SET_DEFAULT_RESULT
+
+  set_default_error:
+    type: labeled_counter
+    description: >
+      True if the browser was unable to set Firefox as the default browser
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram BROWSER_SET_DEFAULT_ERROR.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#BROWSER_SET_DEFAULT_ERROR
+
+  set_default_pdf_handler_user_choice_result:
+    type: labeled_counter
+    description: >
+      Result of each attempt to set the default browser with
+      SetDefaultExtensionHandlersUserChoice() for pdf extension
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram BROWSER_SET_DEFAULT_PDF_HANDLER_USER_CHOICE_RESULT.
+    labels:
+      - Success
+      - ErrProgID
+      - ErrHash
+      - ErrLaunchExe
+      - ErrExeTimeout
+      - ErrExeProgID
+      - ErrExeHash
+      - ErrExeRejected
+      - ErrExeOther
+      - ErrOther
+      - ErrBuild
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1805509
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1883466
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1805509
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1883466
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#BROWSER_SET_DEFAULT_PDF_HANDLER_USER_CHOICE_RESULT
+
+  set_default_user_choice_result:
+    type: labeled_counter
+    description: >
+      Result of each attempt to set the default browser with
+      SetDefaultBrowserUserChoice()
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram BROWSER_SET_DEFAULT_USER_CHOICE_RESULT.
+    labels:
+      - Success
+      - ErrProgID
+      - ErrHash
+      - ErrLaunchExe
+      - ErrExeTimeout
+      - ErrExeProgID
+      - ErrExeHash
+      - ErrExeRejected
+      - ErrExeOther
+      - ErrOther
+      - ErrBuild
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1736631
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1791928
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1881397
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1703578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1736631
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1791928
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1881397
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: h#BROWSER_SET_DEFAULT_USER_CHOICE_RESULT
+
+  attribution_errors:
+    type: labeled_counter
+    description: >
+      Count for the number of errors encountered trying to determine attribution
+      data: on Windows, from the installers (stub and full); on macOS, from an
+      extended attributed on the .app bundle.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram BROWSER_ATTRIBUTION_ERRORS.
+    labels:
+      - read_error
+      - decode_error
+      - write_error
+      - quarantine_error
+      - empty_error
+      - null_error
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1621402
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1525076
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1874944
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1621402
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1525076
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1874944
+    notification_emails:
+      - aoprea@mozilla.com
+    expires: never
+    telemetry_mirror: h#BROWSER_ATTRIBUTION_ERRORS
