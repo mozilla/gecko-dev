@@ -1343,7 +1343,7 @@ TEST(RtpVideoSenderTest, ClearsPendingPacketsOnInactivation) {
 
   // Set a very low bitrate.
   test.router()->OnBitrateUpdated(
-      CreateBitrateAllocationUpdate(/*rate_bps=*/10'000),
+      CreateBitrateAllocationUpdate(/*target_bitrate_bps=*/10'000),
       /*framerate=*/30);
 
   // Create and send a large keyframe.
@@ -1421,7 +1421,7 @@ TEST(RtpVideoSenderTest,
 
   // Set a very low bitrate.
   test.router()->OnBitrateUpdated(
-      CreateBitrateAllocationUpdate(/*rate_bps=*/10'000),
+      CreateBitrateAllocationUpdate(/*target_bitrate_bps=*/10'000),
       /*framerate=*/30);
 
   // Create and send a large keyframe.

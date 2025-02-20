@@ -381,16 +381,16 @@ std::optional<FrameDependencyStructure> RtpPayloadParams::GenericStructure(
     case VideoCodecType::kVideoCodecGeneric:
       if (simulate_generic_structure_) {
         return MinimalisticStructure(/*num_spatial_layers=*/1,
-                                     /*num_temporal_layer=*/1);
+                                     /*num_temporal_layers=*/1);
       }
       return std::nullopt;
     case VideoCodecType::kVideoCodecVP8:
       return MinimalisticStructure(/*num_spatial_layers=*/1,
-                                   /*num_temporal_layer=*/kMaxTemporalStreams);
+                                   /*num_temporal_layers=*/kMaxTemporalStreams);
     case VideoCodecType::kVideoCodecVP9: {
       std::optional<FrameDependencyStructure> structure = MinimalisticStructure(
           /*num_spatial_layers=*/kMaxSimulatedSpatialLayers,
-          /*num_temporal_layer=*/kMaxTemporalStreams);
+          /*num_temporal_layers=*/kMaxTemporalStreams);
       const CodecSpecificInfoVP9& vp9 = codec_specific_info->codecSpecific.VP9;
       if (vp9.ss_data_available && vp9.spatial_layer_resolution_present) {
         RenderResolution first_valid;

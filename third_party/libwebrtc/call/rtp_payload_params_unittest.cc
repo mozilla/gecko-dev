@@ -14,6 +14,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <vector>
 
 #include "absl/container/inlined_vector.h"
 #include "absl/types/variant.h"

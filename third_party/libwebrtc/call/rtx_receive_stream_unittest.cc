@@ -30,7 +30,6 @@ namespace webrtc {
 
 namespace {
 
-using ::testing::_;
 using ::testing::Property;
 using ::testing::StrictMock;
 

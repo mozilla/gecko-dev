@@ -179,7 +179,7 @@ PayloadTypePicker::PayloadTypePicker() {
       {{cricket::kDtmfCodecName, 32000, 1}, 112},
       {{cricket::kDtmfCodecName, 16000, 1}, 113},
       {{cricket::kDtmfCodecName, 8000, 1}, 126}};
-  for (auto entry : default_audio_mappings) {
+  for (const MapTableEntry& entry : default_audio_mappings) {
     AddMapping(PayloadType(entry.payload_type),
                cricket::CreateAudioCodec(entry.format));
   }
@@ -198,7 +198,7 @@ RTCErrorOr<PayloadType> PayloadTypePicker::SuggestMapping(
   }
   // The first matching entry is returned, unless excluder
   // maps it to something different.
-  for (auto entry : entries_) {
+  for (const MapEntry& entry : entries_) {
     if (MatchesWithReferenceAttributes(entry.codec(), codec)) {
       if (excluder) {
         auto result = excluder->LookupCodec(entry.payload_type());
@@ -223,7 +223,7 @@ RTCError PayloadTypePicker::AddMapping(PayloadType payload_type,
                                        cricket::Codec codec) {
   // Completely duplicate mappings are ignored.
   // Multiple mappings for the same codec and the same PT are legal;
-  for (auto entry : entries_) {
+  for (const MapEntry& entry : entries_) {
     if (payload_type == entry.payload_type() &&
         MatchesWithReferenceAttributes(codec, entry.codec())) {
       return RTCError::OK();
