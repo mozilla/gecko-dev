@@ -1131,7 +1131,7 @@ fn prepare_interned_prim_for_render(
                 data_stores,
             ) {
                 if let Picture3DContext::In { root_data: None, plane_splitter_index, .. } = pic.context_3d {
-                    let dirty_rect = frame_state.current_dirty_region().combined;
+                    let dirty_rect = frame_state.current_dirty_region().combined_as_world_space();
                     let splitter = &mut frame_state.plane_splitters[plane_splitter_index.0];
                     let surface_index = pic.raster_config.as_ref().unwrap().surface_index;
                     let surface = &frame_state.surfaces[surface_index.0];
@@ -1238,7 +1238,7 @@ fn decompose_repeated_gradient(
 
         let visible_rect = compute_conservative_visible_rect(
             &prim_vis.clip_chain,
-            frame_state.current_dirty_region().combined,
+            frame_state.current_dirty_region().combined_as_world_space(),
             prim_spatial_node_index,
             spatial_tree,
         );
@@ -1415,7 +1415,7 @@ fn update_clip_task_for_brush(
         );
         clip_mask_instances.push(clip_mask_kind);
     } else {
-        let dirty_world_rect = frame_state.current_dirty_region().combined;
+        let dirty_world_rect = frame_state.current_dirty_region().combined_as_world_space();
 
         for segment in segments {
             // Build a clip chain for the smaller segment rect. This will

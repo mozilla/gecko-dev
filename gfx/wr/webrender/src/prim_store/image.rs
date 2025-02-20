@@ -318,7 +318,7 @@ impl ImageData {
 
                 let visible_rect = compute_conservative_visible_rect(
                     &visibility.clip_chain,
-                    frame_state.current_dirty_region().combined,
+                    frame_state.current_dirty_region().combined_as_world_space(),
                     prim_spatial_node_index,
                     frame_context.spatial_tree,
                 );

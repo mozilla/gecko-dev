@@ -1478,34 +1478,46 @@ impl TileDescriptor {
     }
 }
 
-/// Represents the dirty region of a tile cache picture.
+/// Represents the dirty region of a tile cache picture, relative to a
+/// "visibility" spatial node. At the moment the visibility node is
+/// world space, but the plan is to switch to raster space.
+///
+/// The plan is to move away from these world space representation and
+/// compute dirty regions in raster space instead.
 #[derive(Clone)]
 pub struct DirtyRegion {
     /// The overall dirty rect, a combination of dirty_rects
-    pub combined: WorldRect,
+    pub combined: VisRect,
 
-    /// Spatial node of the picture cache this region represents
-    spatial_node_index: SpatialNodeIndex,
+    /// The corrdinate space used to do clipping, visibility, and
+    /// dirty rect calculations.
+    visibility_spatial_node: SpatialNodeIndex,
+    /// Spatial node of the picture this region represents.
+    local_spatial_node: SpatialNodeIndex,
 }
 
 impl DirtyRegion {
     /// Construct a new dirty region tracker.
     pub fn new(
-        spatial_node_index: SpatialNodeIndex,
+        visibility_spatial_node: SpatialNodeIndex,
+        local_spatial_node: SpatialNodeIndex,
     ) -> Self {
         DirtyRegion {
-            combined: WorldRect::zero(),
-            spatial_node_index,
+            combined: VisRect::zero(),
+            visibility_spatial_node,
+            local_spatial_node,
         }
     }
 
     /// Reset the dirty regions back to empty
     pub fn reset(
         &mut self,
-        spatial_node_index: SpatialNodeIndex,
+        visibility_spatial_node: SpatialNodeIndex,
+        local_spatial_node: SpatialNodeIndex,
     ) {
-        self.combined = WorldRect::zero();
-        self.spatial_node_index = spatial_node_index;
+        self.combined = VisRect::zero();
+        self.visibility_spatial_node = visibility_spatial_node;
+        self.local_spatial_node = local_spatial_node;
     }
 
     /// Add a dirty region to the tracker. Returns the visibility mask that corresponds to
@@ -1515,19 +1527,26 @@ impl DirtyRegion {
         rect_in_pic_space: PictureRect,
         spatial_tree: &SpatialTree,
     ) {
-        let map_pic_to_world = SpaceMapper::new_with_target(
-            spatial_tree.root_reference_frame_index(),
-            self.spatial_node_index,
-            WorldRect::max_rect(),
+        let map_pic_to_raster = SpaceMapper::new_with_target(
+            self.visibility_spatial_node,
+            self.local_spatial_node,
+            VisRect::max_rect(),
             spatial_tree,
         );
 
-        let world_rect = map_pic_to_world
+        let raster_rect = map_pic_to_raster
             .map(&rect_in_pic_space)
             .expect("bug");
 
         // Include this in the overall dirty rect
-        self.combined = self.combined.union(&world_rect);
+        self.combined = self.combined.union(&raster_rect);
+    }
+
+    /// TODO: This assumes that the visibility node is the root node which
+    /// is about to change. This method should be removed in favor of treating
+    /// the combined rect as raster space.
+    pub fn combined_as_world_space(&self) -> WorldRect {
+        self.combined.cast_unit()
     }
 }
 
@@ -1941,7 +1960,7 @@ impl TileCacheInstance {
             spatial_node_comparer: SpatialNodeComparer::new(),
             color_bindings: FastHashMap::default(),
             old_color_bindings: FastHashMap::default(),
-            dirty_region: DirtyRegion::new(params.spatial_node_index),
+            dirty_region: DirtyRegion::new(params.visibility_node_index, params.spatial_node_index),
             tile_size: PictureSize::zero(),
             tile_rect: TileRect::zero(),
             tile_bounds_p0: TileOffset::zero(),
@@ -3779,7 +3798,10 @@ impl TileCacheInstance {
     ) {
         assert!(self.current_surface_traversal_depth == 0);
 
-        self.dirty_region.reset(self.spatial_node_index);
+        // TODO: Switch from the root node ot raster space.
+        let visibility_node = frame_context.spatial_tree.root_reference_frame_index();
+
+        self.dirty_region.reset(visibility_node, self.spatial_node_index);
         self.subpixel_mode = self.calculate_subpixel_mode();
 
         self.transform_index = composite_state.register_transform(
@@ -6458,6 +6480,7 @@ impl PicturePrimitive {
         if let Some(RasterConfig { composite_mode: PictureCompositeMode::TileCache { slice_id }, .. }) = self.raster_config {
             let dirty_region = tile_caches[&slice_id].dirty_region.clone();
             frame_state.push_dirty_region(dirty_region);
+
             dirty_region_count += 1;
         }
 
