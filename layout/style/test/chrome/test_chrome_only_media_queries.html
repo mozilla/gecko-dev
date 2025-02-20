@@ -6,6 +6,14 @@
 <script>
 const SHEET = document.querySelector('style');
 
+let lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  WindowsVersionInfo:
+    "resource://gre/modules/components-utils/WindowsVersionInfo.sys.mjs",
+});
+
+
 SimpleTest.waitForExplicitFinish();
 
 function expect(q, shouldBeKnown) {
@@ -92,6 +100,26 @@ expectUnkown("(-moz-platform: )");
   await testMozPref('-moz-pref("foo.bar.str")', "foo.bar.str", "foo", "");
   await testMozPref('-moz-pref("foo.bar.int", 1)', "foo.bar.int", 1, 2);
   await testMozPref('-moz-pref("foo.bar.int")', "foo.bar.int", 1, 0);
+
+  let supportsMica = matchMedia('(-moz-platform: windows)').matches && lazy.WindowsVersionInfo.get().buildNumber >= 22621;
+  info(`Mica supported: ${supportsMica}`);
+  for (let [query, pref] of [['(-moz-windows-mica)', 'widget.windows.mica'], ['(-moz-windows-mica-popups)', 'widget.windows.mica.popups']]) {
+    let prefEnabled = SpecialPowers.getBoolPref("widget.windows.mica", false);
+    let mediaList = matchMedia(query);
+    is(mediaList.matches, supportsMica && prefEnabled, `Mica support is as expected ${query}`);
+    let change = new Promise(r => {
+      mediaList.addEventListener("change", r, { once: true });
+    });
+    await SpecialPowers.pushPrefEnv({
+      set:[[pref, !prefEnabled]],
+    });
+    if (supportsMica) {
+      await change;
+    }
+    is(mediaList.matches, supportsMica && !prefEnabled, `Mica query works dynamically if appropriate ${query}`);
+    await SpecialPowers.popPrefEnv();
+  }
+
   SimpleTest.finish();
 }());
 </script>
