@@ -29,7 +29,6 @@ only-for-build-platforms:
     - linux64/opt
     - linux64-aarch64-shippable/opt
     - linux64-aarch64-devedition/opt
-    - linux64-aarch64/opt
     - macosx64-shippable/opt
     - macosx64-devedition/opt
     - macosx64/opt
