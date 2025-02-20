@@ -10,7 +10,7 @@
   solution for token variables for the new widgets -->
   <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <script type="module" src="chrome://global/content/elements/moz-toggle.mjs"></script>
-  <script src="lit-test-helpers.js"></script>
+  <script src="input-test-helpers.js"></script>
 </head>
 <body>
 <script class="testbody" type="application/javascript">
@@ -21,7 +21,7 @@
     let templateFn = (attrs, children) => html`
       <moz-toggle ${attrs}>${children}</moz-toggle>
     `;
-    testHelpers.setupTests({ templateFn });
+    await testHelpers.setupInputTests({ templateFn });
     testHelpers.activatedProperty = customElements.get("moz-toggle").activatedProperty;
   });
 
@@ -32,7 +32,7 @@
   add_task(async function testMozToggleInteraction() {
     let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
     let interactionTemplate = testHelpers.templateFn({ value: "default", label: "Label" });
-    let renderTarget = await testHelpers.renderTemplate(interactionTemplate);
+    let renderTarget = await testHelpers.renderInputElements(interactionTemplate);
     const mozToggle = renderTarget.querySelector("moz-toggle");
     const button = mozToggle.buttonEl;
     mozToggle.pressed = true;
