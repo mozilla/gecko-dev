@@ -190,6 +190,10 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
       return media::DecodeSupportSet{};
     }
 
+    if (MP4Decoder::IsHEVC(mimeType) && !StaticPrefs::media_hevc_enabled()) {
+      return media::DecodeSupportSet{};
+    }
+
     AVCodecID videoCodec = FFmpegVideoDecoder<V>::GetCodecId(mimeType);
     AVCodecID audioCodec = FFmpegAudioDecoder<V>::GetCodecId(
         mimeType,
