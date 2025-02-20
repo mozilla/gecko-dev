@@ -2920,5 +2920,20 @@
         }
       }
     ]
+  },
+  "1948723": {
+    "label": "babel.com",
+    "bugs": {
+      "1948723": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.babel.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome"]
+      }
+    ]
   }
 }
