@@ -7,7 +7,7 @@
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
-  <script src="input-test-helpers.js"></script>
+  <script src="lit-test-helpers.js"></script>
   <script>
     let testHelpers = new InputTestHelpers();
 
@@ -22,7 +22,7 @@
           ${children}
         </moz-select>
       `;
-      await testHelpers.setupInputTests({ templateFn });
+      testHelpers.setupTests({ templateFn });
     });
 
     add_task(async function testMozSelectProperties() {
@@ -31,7 +31,7 @@
 
     add_task(async function testMozSelectChange() {
       let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
-      let target = await testHelpers.renderInputElements();
+      let target = await testHelpers.renderTemplate();
       let select = target.querySelector("moz-select");
       await select.updateComplete;
       is(select.value, "1", "First option is selected");
@@ -78,7 +78,7 @@
     });
 
     add_task(async function testMozSelectModifyOptions() {
-      let target = await testHelpers.renderInputElements();
+      let target = await testHelpers.renderTemplate();
       let select = target.querySelector("moz-select");
       await select.updateComplete;
 
