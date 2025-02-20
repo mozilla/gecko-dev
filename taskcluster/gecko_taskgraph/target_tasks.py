@@ -751,6 +751,9 @@ def target_tasks_custom_car_perf_testing(full_task_graph, parameters, graph_conf
                 # Bug 1928416
                 # For ARM coverage, this will only run on M2 machines at the moment.
                 if "jetstream2" in try_name:
+                    # Bug 1947649 - Disable js2 on 1400 mac for custom-car due to near perma
+                    if "m-car" in try_name and "1400" in platform:
+                        return False
                     return True
                 return True
         elif accept_raptor_android_build(platform):
