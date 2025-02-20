@@ -5794,8 +5794,10 @@
       this._handleTabMove(tab, () => {
         if (dropBefore) {
           this.tabContainer.insertBefore(tab, targetElement);
-        } else {
+        } else if (targetElement) {
           targetElement.after(tab);
+        } else {
+          this.tabContainer.appendChild(tab);
         }
       });
     }
