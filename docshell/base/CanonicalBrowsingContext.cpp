@@ -3290,8 +3290,19 @@ bool CanonicalBrowsingContext::CanOpenModalPicker() {
   // Only allow web content to open a picker when it has focus. For example, if
   // the focus is on the URL bar, web content cannot open a picker, even if it
   // is the foreground tab.
+  // topFrameElement may be a <browser> embedded in another <browser>. In that
+  // case, verify that the full chain of <browser> elements has focus.
   mozilla::dom::Element* topFrameElement = GetTopFrameElement();
-  return !topFrameElement || topFrameElement == chromeDoc->GetActiveElement();
+  while (topFrameElement) {
+    RefPtr<Document> doc = topFrameElement->OwnerDoc();
+    if (doc->GetActiveElement() != topFrameElement) {
+      return false;
+    }
+    topFrameElement = doc->GetBrowsingContext()->GetTopFrameElement();
+    // Eventually topFrameElement == nullptr, implying that we have reached the
+    // top browser window (and chromeDoc == doc).
+  }
+  return true;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(CanonicalBrowsingContext)
