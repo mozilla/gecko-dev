@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -77,7 +78,10 @@ internal fun Homepage(
         modifier = Modifier
             .verticalScroll(rememberScrollState()),
     ) {
-        HomepageHeader(browsingMode = state.browsingMode, browsingModeChanged = interactor::onPrivateModeButtonClicked)
+        HomepageHeader(
+            browsingMode = state.browsingMode,
+            browsingModeChanged = interactor::onPrivateModeButtonClicked,
+        )
 
         with(state) {
             when (this) {
@@ -340,7 +344,9 @@ private fun CustomizeHomeButton(buttonBackgroundColor: Color, interactor: Custom
 
     TertiaryButton(
         text = stringResource(R.string.browser_menu_customize_home_1),
-        modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.home_item_horizontal_margin)),
+        modifier = Modifier
+            .padding(horizontal = dimensionResource(R.dimen.home_item_horizontal_margin))
+            .fillMaxWidth(),
         backgroundColor = buttonBackgroundColor,
         onClick = interactor::openCustomizeHomePage,
     )
