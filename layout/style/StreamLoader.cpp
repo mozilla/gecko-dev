@@ -9,6 +9,7 @@
 #include "mozilla/Encoding.h"
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/TaskQueue.h"
+#include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "mozilla/dom/CacheExpirationTime.h"
 #include "nsContentUtils.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
@@ -81,6 +82,9 @@ NS_IMETHODIMP
 StreamLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   MOZ_ASSERT_IF(!StaticPrefs::network_send_OnDataFinished_cssLoader(),
                 !mOnStopProcessingDone);
+  mRequest = nullptr;
+
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
 
   // StreamLoader::OnStopRequest can get triggered twice for a request.
   // Once from the path
@@ -96,10 +100,7 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   // Resolution of parse promise fires onLoadEvent and this should not happen
   // before main thread OnStopRequest is dispatched.
   if (NS_IsMainThread()) {
-    {
-      nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
-      channel->SetNotificationCallbacks(nullptr);
-    }
+    channel->SetNotificationCallbacks(nullptr);
 
     mSheetLoadData->mNetworkMetadata =
         new SubResourceNetworkMetadataHolder(aRequest);
@@ -112,37 +113,58 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
           .AccumulateRawDuration(delta);
     }
     mSheetLoadData->mSheet->UnblockParsePromise();
+  } else {
+    if (mSheetLoadData->mRecordErrors) {
+      // We can't report errors off main thread right now.
+      return NS_OK;
+    }
   }
+
+  auto HandleErrorInMainThread = [&] {
+    MOZ_ASSERT(mStatus != NS_OK_PARSE_SHEET);
+    MOZ_ASSERT(NS_IsMainThread());
+    if (net::UrlClassifierFeatureFactory::IsClassifierBlockingErrorCode(
+            mStatus)) {
+      // Handle sheet not loading error because source was a tracking URL (or
+      // fingerprinting, cryptomining, etc). We make a note of this sheet node
+      // by including it in a dedicated array of blocked tracking nodes under
+      // its parent document.
+      //
+      // Multiple sheet load instances might be tied to this request, we
+      // annotate each one linked to a valid owning element (node).
+      //
+      // TODO(emilio): Maybe this should be done in Loader::NotifyObservers?
+      // Feels pretty random here.
+      for (SheetLoadData* data = mSheetLoadData; data; data = data->mNext) {
+        if (nsINode* node = data->mSheet->GetOwnerNode()) {
+          node->OwnerDoc()->AddBlockedNodeByClassifier(node);
+        }
+      }
+    }
+    mSheetLoadData->mLoader->SheetComplete(*mSheetLoadData, mStatus);
+  };
 
   if (mOnStopProcessingDone) {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (mStatus != NS_OK_PARSE_SHEET) {
+      HandleErrorInMainThread();
+    }
     return NS_OK;
   }
+
   mOnStopProcessingDone = true;
 
-  nsresult rv = mStatus;
   // Decoded data
   nsCString utf8String;
   {
-    nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
-
-    if (NS_FAILED(mStatus)) {
-      mSheetLoadData->VerifySheetReadyToParse(mStatus, ""_ns, ""_ns, channel);
-      if (!NS_IsMainThread()) {
-        // When processing OMT, we have code paths in VerifySheetReadyToParse
-        // that are main-thread only. We bail on such scenarios and continue
-        // processing them on main thread OnStopRequest.
-        mOnStopProcessingDone = false;
+    nsresult status = NS_FAILED(mStatus) ? mStatus : aStatus;
+    mStatus = mSheetLoadData->VerifySheetReadyToParse(status, mBOMBytes, mBytes,
+                                                      channel);
+    if (mStatus != NS_OK_PARSE_SHEET) {
+      if (NS_IsMainThread()) {
+        HandleErrorInMainThread();
       }
       return mStatus;
-    }
-
-    rv = mSheetLoadData->VerifySheetReadyToParse(aStatus, mBOMBytes, mBytes,
-                                                 channel);
-    if (rv != NS_OK_PARSE_SHEET) {
-      if (!NS_IsMainThread()) {
-        mOnStopProcessingDone = false;
-      }
-      return rv;
     }
 
     // At this point all the conditions that requires us to run on main
@@ -177,8 +199,8 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
       // empty string, which seems like a plausible assumption.
       utf8String = std::move(bytes);
     } else {
-      rv = encoding->DecodeWithoutBOMHandling(bytes, utf8String, validated);
-      NS_ENSURE_SUCCESS(rv, rv);
+      // FIXME: Seems early returning here is wrong, what completes the sheet?
+      MOZ_TRY(encoding->DecodeWithoutBOMHandling(bytes, utf8String, validated));
     }
   }  // run destructor for `bytes`
 
@@ -187,8 +209,6 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   // accessing fields of mSheetLoadData from here.
   mSheetLoadData->mLoader->ParseSheet(utf8String, mMainThreadSheetLoadData,
                                       Loader::AllowAsyncParse::Yes);
-
-  mRequest = nullptr;
 
   return NS_OK;
 }
@@ -220,11 +240,12 @@ void StreamLoader::HandleBOM() {
 
 NS_IMETHODIMP
 StreamLoader::OnDataFinished(nsresult aResult) {
+  nsCOMPtr<nsIRequest> request = mRequest.forget();
   if (StaticPrefs::network_send_OnDataFinished_cssLoader()) {
     MOZ_ASSERT(mOnDataFinishedTime.IsNull(),
                "OnDataFinished should only be called once");
     mOnDataFinishedTime = TimeStamp::Now();
-    return OnStopRequest(mRequest, aResult);
+    return OnStopRequest(request, aResult);
   }
 
   return NS_OK;
