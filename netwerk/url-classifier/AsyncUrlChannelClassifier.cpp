@@ -139,7 +139,8 @@ const nsTArray<nsCString>& URIData::Fragments() {
     if (mURIType == nsIUrlClassifierFeature::pairwiseEntitylistURI) {
       rv = LookupCache::GetLookupEntitylistFragments(mURISpec, &mFragments);
     } else {
-      rv = LookupCache::GetLookupFragments(mURISpec, &mFragments);
+      LookupCache::GetLookupFragments(mURISpec, &mFragments);
+      rv = NS_OK;
     }
 
     Unused << NS_WARN_IF(NS_FAILED(rv));
