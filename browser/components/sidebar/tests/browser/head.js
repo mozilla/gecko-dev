@@ -142,6 +142,26 @@ async function toggleSidebarPanel(win, commandID) {
   await promiseFocused;
 }
 
+async function waitForTabstripOrientation(
+  toOrientation = "vertical",
+  win = window
+) {
+  await win.SidebarController.promiseInitialized;
+  // We use the orient attribute on the tabstrip element as a reliable signal that
+  // tabstrip orientation has changed/is settled into the given orientation
+  info(
+    `waitForTabstripOrientation: waiting for orient attribute to be "${toOrientation}"`
+  );
+  await BrowserTestUtils.waitForMutationCondition(
+    win.gBrowser.tabContainer,
+    { attributes: true, attributeFilter: ["orient"] },
+    () => win.gBrowser.tabContainer.getAttribute("orient") == toOrientation
+  );
+  // This change is followed by a update/render step for the lit elements.
+  // We need to wait for that too
+  await win.SidebarController.sidebarMain?.updateComplete;
+}
+
 // Reset the Glean events after each test.
 registerCleanupFunction(() => {
   Services.fog.testResetFOG();

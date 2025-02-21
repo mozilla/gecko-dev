@@ -21,6 +21,7 @@ add_setup(async () => {
       [SIDEBAR_BUTTON_INTRODUCED_PREF, false],
     ],
   });
+  await waitForTabstripOrientation("vertical");
   Assert.equal(
     Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "always-show",
@@ -179,6 +180,7 @@ add_task(async function test_states_for_hide_sidebar() {
   await SpecialPowers.pushPrefEnv({
     set: [[SIDEBAR_TAB_DIRECTION_PREF, false]],
   });
+  await waitForTabstripOrientation("horizontal");
 
   Assert.equal(
     Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),

@@ -11,6 +11,7 @@ async function test_sidebar_hidden_on_popup() {
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", true]],
   });
+  await waitForTabstripOrientation("vertical");
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;
 

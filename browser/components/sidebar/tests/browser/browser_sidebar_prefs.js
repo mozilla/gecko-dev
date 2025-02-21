@@ -154,8 +154,8 @@ add_task(async function test_tool_pref_change() {
  */
 add_task(async function test_flip_revamp_pref() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
+  await waitForTabstripOrientation("horizontal", win);
   const sidebar = win.document.querySelector("sidebar-main");
-  await sidebar.updateComplete;
 
   let verticalTabs = win.document.querySelector("#vertical-tabs");
   ok(
@@ -166,6 +166,7 @@ add_task(async function test_flip_revamp_pref() {
   await toggleSidebarPanel(win, "viewHistorySidebar");
 
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
+  await waitForTabstripOrientation("vertical", win);
   ok(BrowserTestUtils.isVisible(verticalTabs), "Vertical tabs slot is visible");
 
   ok(sidebar, "Revamped sidebar is shown initially.");
@@ -176,6 +177,7 @@ add_task(async function test_flip_revamp_pref() {
   );
 
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.revamp", false]] });
+  await waitForTabstripOrientation("horizontal", win);
 
   await TestUtils.waitForCondition(() => {
     let isSidebarMainShown =

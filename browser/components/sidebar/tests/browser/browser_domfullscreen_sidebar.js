@@ -12,6 +12,7 @@ add_setup(async () => {
   DOMFullscreenTestUtils.init(this, window);
   win = await BrowserTestUtils.openNewBrowserWindow();
   await waitForBrowserWindowActive(win);
+  await waitForTabstripOrientation("vertical");
 });
 
 registerCleanupFunction(async () => {
