@@ -380,66 +380,35 @@ export class BaseContent extends React.PureComponent {
 
   async updateWallpaper() {
     const prefs = this.props.Prefs.values;
-    const wallpaperLight = prefs["newtabWallpapers.wallpaper-light"];
-    const wallpaperDark = prefs["newtabWallpapers.wallpaper-dark"];
-    // selected wallpaper is used for v2 of wallpapers
+
     const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
     const { wallpaperList } = this.props.Wallpapers;
 
     if (wallpaperList) {
-      let lightWallpaper;
-      let darkWallpaper;
-      if (selectedWallpaper) {
-        // if selectedWallpaper exists - we override what light and dark prefs are to match that
-        const wallpaper = wallpaperList.find(
-          wp => wp.title === selectedWallpaper
-        );
-        lightWallpaper = wallpaper;
-        darkWallpaper = wallpaper;
-      } else {
-        lightWallpaper =
-          wallpaperList.find(wp => wp.title === wallpaperLight) || "";
-        darkWallpaper =
-          wallpaperList.find(wp => wp.title === wallpaperDark) || "";
-      }
+      let wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);
 
       // solid-color-picker-#00d100
       const regexRGB = /#([a-fA-F0-9]{6})/;
 
       // Override Remote Settings to set custom HEX bg color
-      if (wallpaperLight.includes("solid-color-picker")) {
-        lightWallpaper = {
-          theme: "light",
+      if (selectedWallpaper.includes("solid-color-picker")) {
+        wallpaper = {
+          theme: wallpaper?.theme || "light",
           title: "solid-color-picker",
           category: "solid-colors",
-          solid_color: wallpaperLight.match(regexRGB)[0],
+          solid_color: selectedWallpaper.match(regexRGB)?.[0],
         };
       }
 
-      if (wallpaperDark.includes("solid-color-picker")) {
-        darkWallpaper = {
-          theme: "dark",
-          title: "solid-color-picker",
-          category: "solid-colors",
-          solid_color: wallpaperDark.match(regexRGB)[0],
-        };
-      }
-
-      const wallpaperColor =
-        darkWallpaper?.solid_color || lightWallpaper?.solid_color || "";
+      const wallpaperColor = wallpaper?.solid_color || "";
 
       global.document?.body.style.setProperty(
-        `--newtab-wallpaper-light`,
-        `url(${lightWallpaper?.wallpaperUrl || ""})`
+        "--newtab-wallpaper",
+        `url(${wallpaper?.wallpaperUrl || ""})`
       );
 
       global.document?.body.style.setProperty(
-        `--newtab-wallpaper-dark`,
-        `url(${darkWallpaper?.wallpaperUrl || ""})`
-      );
-
-      global.document?.body.style.setProperty(
-        `--newtab-wallpaper-color`,
+        "--newtab-wallpaper-color",
         wallpaperColor || "transparent"
       );
 
@@ -452,8 +421,7 @@ export class BaseContent extends React.PureComponent {
         wallpaperTheme = isColorDark ? "dark" : "light";
       } else {
         // Grab the contrast of the currently displayed wallpaper.
-        const { theme } =
-          this.state.colorMode === "light" ? lightWallpaper : darkWallpaper;
+        const { theme } = this.state.colorMode === "light" && selectedWallpaper;
 
         if (theme) {
           wallpaperTheme = theme;
@@ -478,9 +446,8 @@ export class BaseContent extends React.PureComponent {
     const prefs = this.props.Prefs.values;
 
     // If wallpapers (or v2 wallpapers) are not enabled, don't show the highlight.
-    const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
     const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
-    if (!wallpapersEnabled || !wallpapersV2Enabled) {
+    if (!wallpapersV2Enabled) {
       return false;
     }
 
@@ -492,9 +459,9 @@ export class BaseContent extends React.PureComponent {
     }
 
     // If the user has selected a wallpaper, don't show the pop-up
-    const activeWallpaperLight = prefs[`newtabWallpapers.wallpaper-light`];
-    const activeWallpaperDark = prefs[`newtabWallpapers.wallpaper-dark`];
-    if (activeWallpaperLight || activeWallpaperDark) {
+    const activeWallpaper = prefs[`newtabWallpapers.wallpaper`];
+
+    if (activeWallpaper) {
       this.props.dispatch(ac.SetPref(WALLPAPER_HIGHLIGHT_DISMISSED_PREF, true));
       return false;
     }
@@ -587,7 +554,6 @@ export class BaseContent extends React.PureComponent {
 
     const activeWallpaper =
       prefs[`newtabWallpapers.wallpaper-${this.state.colorMode}`];
-    const wallpapersEnabled = prefs["newtabWallpapers.enabled"];
     const wallpapersV2Enabled = prefs["newtabWallpapers.v2.enabled"];
     const weatherEnabled = prefs.showWeather;
     const { showTopicSelection } = DiscoveryStream;
@@ -679,7 +645,7 @@ export class BaseContent extends React.PureComponent {
     ]
       .filter(v => v)
       .join(" ");
-    if (wallpapersEnabled || wallpapersV2Enabled) {
+    if (wallpapersV2Enabled) {
       this.updateWallpaper();
     }
 
@@ -693,7 +659,6 @@ export class BaseContent extends React.PureComponent {
             openPreferences={this.openPreferences}
             setPref={this.setPref}
             enabledSections={enabledSections}
-            wallpapersEnabled={wallpapersEnabled}
             wallpapersV2Enabled={wallpapersV2Enabled}
             activeWallpaper={activeWallpaper}
             pocketRegion={pocketRegion}
@@ -752,7 +717,7 @@ export class BaseContent extends React.PureComponent {
               )}
             </div>
             <ConfirmDialog />
-            {wallpapersEnabled && this.renderWallpaperAttribution()}
+            {wallpapersV2Enabled && this.renderWallpaperAttribution()}
           </main>
           <aside>
             {this.props.Notifications?.showNotifications && (

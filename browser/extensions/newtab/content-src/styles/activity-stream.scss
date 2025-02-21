@@ -36,14 +36,8 @@ body {
   background-position: center;
   background-attachment: fixed;
   background-image:
-    var(--newtab-wallpaper-light, ''),
+    var(--newtab-wallpaper, ''),
     linear-gradient(to right, var(--newtab-wallpaper-color, ''), var(--newtab-wallpaper-color, ''));
-
-  @media (prefers-color-scheme: dark) {
-    background-image:
-      var(--newtab-wallpaper-dark, ''),
-      linear-gradient(to right, var(--newtab-wallpaper-color, ''), var(--newtab-wallpaper-color, ''));
-  }
 }
 
 .no-scroll {

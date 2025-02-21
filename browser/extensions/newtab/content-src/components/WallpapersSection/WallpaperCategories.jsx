@@ -47,9 +47,6 @@ export class _WallpaperCategories extends React.PureComponent {
       this.setState({ customHexValue: event.target.style.backgroundColor });
     }
 
-    this.props.setPref("newtabWallpapers.wallpaper-light", id);
-    this.props.setPref("newtabWallpapers.wallpaper-dark", id);
-    // Setting this now so when we remove v1 we don't have to migrate v1 values.
     this.props.setPref("newtabWallpapers.wallpaper", id);
 
     this.handleUserEvent(at.WALLPAPER_CLICK, {
@@ -141,9 +138,6 @@ export class _WallpaperCategories extends React.PureComponent {
   }
 
   handleReset() {
-    this.props.setPref("newtabWallpapers.wallpaper-light", "");
-    this.props.setPref("newtabWallpapers.wallpaper-dark", "");
-    // Setting this now so when we remove v1 we don't have to migrate v1 values.
     this.props.setPref("newtabWallpapers.wallpaper", "");
     this.handleUserEvent(at.WALLPAPER_CLICK, {
       selected_wallpaper: "none",
@@ -223,17 +217,13 @@ export class _WallpaperCategories extends React.PureComponent {
 
     let wallpaperCustomSolidColorHex = null;
 
-    const wallpaperLight = prefs["newtabWallpapers.wallpaper-light"];
-    const wallpaperDark = prefs["newtabWallpapers.wallpaper-dark"];
+    const selectedWallpaper = prefs["newtabWallpapers.wallpaper"];
 
     // User has previous selected a custom color
-    if (
-      wallpaperLight.includes("solid-color-picker") &&
-      wallpaperDark.includes("solid-color-picker")
-    ) {
+    if (selectedWallpaper.includes("solid-color-picker")) {
       this.setState({ showColorPicker: true });
       const regex = /#([a-fA-F0-9]{6})/;
-      [wallpaperCustomSolidColorHex] = wallpaperLight.match(regex);
+      [wallpaperCustomSolidColorHex] = selectedWallpaper.match(regex);
     }
 
     // Enable custom color select if preffed on

@@ -679,20 +679,6 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "newtabWallpapers.wallpaper-light",
-    {
-      title: "Currently set light wallpaper",
-      value: "",
-    },
-  ],
-  [
-    "newtabWallpapers.wallpaper-dark",
-    {
-      title: "Currently set dark wallpaper",
-      value: "",
-    },
-  ],
-  [
     "newtabWallpapers.wallpaper",
     {
       title: "Currently set wallpaper",

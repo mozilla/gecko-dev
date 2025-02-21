@@ -24,34 +24,10 @@ export class _WallpapersSection extends React.PureComponent {
   handleChange(event) {
     const { id } = event.target;
     const prefs = this.props.Prefs.values;
-    const colorMode = this.prefersDarkQuery?.matches ? "dark" : "light";
 
     if (prefs["newtabWallpapers.v2.enabled"]) {
       // If we don't care about color mode, set both to the same wallpaper.
-      this.props.setPref(`newtabWallpapers.wallpaper-dark`, id);
-      this.props.setPref(`newtabWallpapers.wallpaper-light`, id);
-    } else {
-      this.props.setPref(`newtabWallpapers.wallpaper-${colorMode}`, id);
-      // bug 1892095
-      if (
-        prefs["newtabWallpapers.wallpaper-dark"] === "" &&
-        colorMode === "light"
-      ) {
-        this.props.setPref(
-          "newtabWallpapers.wallpaper-dark",
-          id.replace("light", "dark")
-        );
-      }
-
-      if (
-        prefs["newtabWallpapers.wallpaper-light"] === "" &&
-        colorMode === "dark"
-      ) {
-        this.props.setPref(
-          `newtabWallpapers.wallpaper-light`,
-          id.replace("dark", "light")
-        );
-      }
+      this.props.setPref(`newtabWallpapers.wallpaper`, id);
     }
     this.handleUserEvent({
       selected_wallpaper: id,
@@ -61,12 +37,8 @@ export class _WallpapersSection extends React.PureComponent {
 
   handleReset() {
     const prefs = this.props.Prefs.values;
-    const colorMode = this.prefersDarkQuery?.matches ? "dark" : "light";
     if (prefs["newtabWallpapers.v2.enabled"]) {
-      this.props.setPref("newtabWallpapers.wallpaper-light", "");
-      this.props.setPref("newtabWallpapers.wallpaper-dark", "");
-    } else {
-      this.props.setPref(`newtabWallpapers.wallpaper-${colorMode}`, "");
+      this.props.setPref("newtabWallpapers.wallpaper", "");
     }
     this.handleUserEvent({
       selected_wallpaper: "none",

@@ -1821,8 +1821,6 @@ pref("browser.newtabpage.activity-stream.newtabWallpapers.customColor.enabled", 
 pref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.enabled", false);
 
 // Current new tab page background images.
-pref("browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-light", "");
-pref("browser.newtabpage.activity-stream.newtabWallpapers.wallpaper-dark", "");
 pref("browser.newtabpage.activity-stream.newtabWallpapers.wallpaper", "");
 
 // Preference to show feature highlight about wallpaper on new tab page
