@@ -166,10 +166,11 @@ class nsUrlClassifierDBService::FeatureHolder final {
     // only look up at most 5 URLs per aSpec, even if aSpec has more than 5
     // components.
     nsTArray<nsCString> fragments;
-    LookupCache::GetLookupFragments(aSpec, &fragments);
+    nsresult rv = LookupCache::GetLookupFragments(aSpec, &fragments);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     for (TableData* tableData : mTableData) {
-      nsresult rv = aWorker->DoSingleLocalLookupWithURIFragments(
+      rv = aWorker->DoSingleLocalLookupWithURIFragments(
           fragments, tableData->mTable, tableData->mResults);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;

@@ -455,8 +455,7 @@ nsresult LookupCache::GetLookupEntitylistFragments(
   // "/?resoruce=" because this means the URL is not generated in
   // CreatePairwiseEntityListURI()
   if (!FindInReadable("/?resource="_ns, iter, iter_end)) {
-    GetLookupFragments(aSpec, aFragments);
-    return NS_OK;
+    return GetLookupFragments(aSpec, aFragments);
   }
 
   const nsACString& topLevelURL = Substring(begin, iter++);
@@ -525,8 +524,8 @@ nsresult LookupCache::GetLookupEntitylistFragments(
 }
 
 /* static */
-void LookupCache::GetLookupFragments(const nsACString& aSpec,
-                                     nsTArray<nsCString>* aFragments)
+nsresult LookupCache::GetLookupFragments(const nsACString& aSpec,
+                                         nsTArray<nsCString>* aFragments)
 
 {
   aFragments->Clear();
@@ -537,7 +536,7 @@ void LookupCache::GetLookupFragments(const nsACString& aSpec,
 
   iter = begin;
   if (!FindCharInReadable('/', iter, end)) {
-    return;
+    return NS_OK;
   }
 
   const nsACString& host = Substring(begin, iter++);
@@ -625,6 +624,8 @@ void LookupCache::GetLookupFragments(const nsACString& aSpec,
       aFragments->AppendElement(key);
     }
   }
+
+  return NS_OK;
 }
 
 nsresult LookupCache::LoadPrefixSet() {
