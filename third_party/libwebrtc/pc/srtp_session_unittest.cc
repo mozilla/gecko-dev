@@ -285,8 +285,6 @@ TEST_F(SrtpSessionTest, RemoveSsrc) {
   EXPECT_TRUE(s2_.RemoveSsrcFromSession(1));
 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 TEST_F(SrtpSessionTest, ProtectUnprotectWrapAroundRocMismatch) {
   // This unit tests demonstrates why you should be careful when
   // choosing the initial RTP sequence number as there can be decryption
@@ -308,6 +306,8 @@ TEST_F(SrtpSessionTest, ProtectUnprotectWrapAroundRocMismatch) {
       0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
       // clang-format on
   };
+  rtc::CopyOnWriteBuffer packet1(kFrame1, sizeof(kFrame1) - 10,
+                                 sizeof(kFrame1));
   unsigned char kFrame2[] = {
       // clang-format off
       // PT=0, SN=1, TS=0, SSRC=1
@@ -317,34 +317,77 @@ TEST_F(SrtpSessionTest, ProtectUnprotectWrapAroundRocMismatch) {
       0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
       // clang-format on
   };
+  rtc::CopyOnWriteBuffer packet2(kFrame2, sizeof(kFrame2) - 10,
+                                 sizeof(kFrame1));
   const unsigned char kPayload[] = {0xBE, 0xEF};
 
-  int out_len;
   // Encrypt the frames in-order. There is a sequence number rollover from
   // 65535 to 1 (skipping 0) and the second packet gets encrypted with a
   // roll-over counter (ROC) of 1. See
   // https://datatracker.ietf.org/doc/html/rfc3711#section-3.3.1
-  EXPECT_TRUE(
-      s1_.ProtectRtp(kFrame1, sizeof(kFrame1) - 10, sizeof(kFrame1), &out_len));
-  EXPECT_EQ(out_len, 24);
-  EXPECT_TRUE(
-      s1_.ProtectRtp(kFrame2, sizeof(kFrame2) - 10, sizeof(kFrame2), &out_len));
-  EXPECT_EQ(out_len, 24);
+  EXPECT_TRUE(s1_.ProtectRtp(packet1));
+  EXPECT_EQ(packet1.size(), 24u);
+  EXPECT_TRUE(s1_.ProtectRtp(packet2));
+  EXPECT_EQ(packet2.size(), 24u);
 
   // If we decrypt frame 2 first it will have a ROC of 1 but the receiver
   // does not know this is a rollover so will attempt with a ROC of 0.
   // Note: If libsrtp is modified to attempt to decrypt with ROC=1 for this
   // case, this test will fail and needs to be modified accordingly to unblock
   // the roll. See https://issues.webrtc.org/353565743 for details.
-  EXPECT_FALSE(s2_.UnprotectRtp(kFrame2, sizeof(kFrame2), &out_len));
+  EXPECT_FALSE(s2_.UnprotectRtp(packet2));
   // Decrypt frame 1.
-  EXPECT_TRUE(s2_.UnprotectRtp(kFrame1, sizeof(kFrame1), &out_len));
-  EXPECT_EQ(0, std::memcmp(kFrame1 + 12, kPayload, sizeof(kPayload)));
+  EXPECT_TRUE(s2_.UnprotectRtp(packet1));
+  ASSERT_EQ(packet1.size(), 14u);
+  EXPECT_EQ(0, std::memcmp(packet1.data() + 12, kPayload, sizeof(kPayload)));
   // Now decrypt frame 2 again. A rollover is detected which increases
   // the ROC to 1 so this succeeds.
-  EXPECT_TRUE(s2_.UnprotectRtp(kFrame2, sizeof(kFrame2), &out_len));
-  EXPECT_EQ(0, std::memcmp(kFrame2 + 12, kPayload, sizeof(kPayload)));
+  EXPECT_TRUE(s2_.UnprotectRtp(packet2));
+  ASSERT_EQ(packet2.size(), 14u);
+  EXPECT_EQ(0, std::memcmp(packet2.data() + 12, kPayload, sizeof(kPayload)));
 }
-#pragma clang diagnostic pop
+
+TEST_F(SrtpSessionTest, ProtectGetPacketIndex) {
+  EXPECT_TRUE(s1_.SetSend(kSrtpAes128CmSha1_80, kTestKey1,
+                          kEncryptedHeaderExtensionIds));
+  EXPECT_TRUE(s2_.SetReceive(kSrtpAes128CmSha1_80, kTestKey1,
+                             kEncryptedHeaderExtensionIds));
+  // Buffers include enough room for the 10 byte SRTP auth tag so we can
+  // encrypt in place.
+  unsigned char kFrame1[] = {
+      // clang-format off
+      // PT=0, SN=65535, TS=0, SSRC=1
+      0x80, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+      0xBE, 0xEF,  // data bytes
+      // Space for the SRTP auth tag
+      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+      // clang-format on
+  };
+  rtc::CopyOnWriteBuffer packet1(kFrame1, sizeof(kFrame1) - 10,
+                                 sizeof(kFrame1));
+  unsigned char kFrame2[] = {
+      // clang-format off
+      // PT=0, SN=1, TS=0, SSRC=1
+      0x80, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+      0xBE, 0xEF,  // data bytes
+      // Space for the SRTP auth tag
+      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+      // clang-format on
+  };
+  rtc::CopyOnWriteBuffer packet2(kFrame2, sizeof(kFrame2) - 10,
+                                 sizeof(kFrame1));
+
+  // Encrypt the frames in-order. There is a sequence number rollover from
+  // 65535 to 1 (skipping 0) and the second packet gets encrypted with a
+  // roll-over counter (ROC) of 1. See
+  // https://datatracker.ietf.org/doc/html/rfc3711#section-3.3.1
+  int64_t index;
+  EXPECT_TRUE(s1_.ProtectRtp(packet1, &index));
+  EXPECT_EQ(packet1.size(), 24u);
+  EXPECT_EQ(index, 0xffff00000000);  // ntohl(65535 << 16)
+  EXPECT_TRUE(s1_.ProtectRtp(packet2, &index));
+  EXPECT_EQ(packet2.size(), 24u);
+  EXPECT_EQ(index, 0x10001000000);  // ntohl(65537 << 16)
+}
 
 }  // namespace rtc

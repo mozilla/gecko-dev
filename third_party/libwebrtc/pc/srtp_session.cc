@@ -507,16 +507,19 @@ bool SrtpSession::RemoveSsrcFromSession(uint32_t ssrc) {
 bool SrtpSession::GetSendStreamPacketIndex(rtc::CopyOnWriteBuffer& buffer,
                                            int64_t* index) {
   RTC_DCHECK(thread_checker_.IsCurrent());
-  // libSRTP expects the SSRC to be in network byte order.
-  srtp_stream_ctx_t* stream =
-      srtp_get_stream(session_, htonl(webrtc::ParseRtpSsrc(buffer)));
-  if (!stream) {
+  const srtp_hdr_t* hdr = reinterpret_cast<const srtp_hdr_t*>(buffer.data());
+
+  uint32_t roc;
+  if (srtp_get_stream_roc(session_, htonl(hdr->ssrc), &roc) !=
+      srtp_err_status_ok) {
     return false;
   }
+  // Calculate the extended sequence number.
+  uint16_t seq_num = webrtc::ParseRtpSequenceNumber(buffer);
+  int64_t extended_seq_num = (roc << 16) + seq_num;
 
-  // Shift packet index, put into network byte order
-  *index = static_cast<int64_t>(rtc::NetworkToHost64(
-      srtp_rdbx_get_packet_index(&stream->rtp_rdbx) << 16));
+  // Shift extended sequence number, put into network byte order
+  *index = static_cast<int64_t>(rtc::NetworkToHost64(extended_seq_num << 16));
   return true;
 }
 
