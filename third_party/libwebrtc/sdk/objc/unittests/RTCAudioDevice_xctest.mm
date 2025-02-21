@@ -48,7 +48,8 @@
   _audioDeviceModule = webrtc::CreateAudioDeviceModule();
   _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
       /*bypass_voice_processing=*/false,
-      /*muted_speech_event_handler=*/nullptr));
+      /*muted_speech_event_handler=*/nullptr,
+      /*render_error_handler=*/nullptr));
   self.audioSession = [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
 
   NSError *error = nil;
@@ -149,7 +150,8 @@
 
   _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
       /*bypass_voice_processing=*/false,
-      /*muted_speech_event_handler=*/muted_speech_event_handler));
+      /*muted_speech_event_handler=*/muted_speech_event_handler,
+      /*render_error_handler=*/nullptr));
 
   _audio_device->OnReceivedMutedSpeechActivity(
       kAUVoiceIOSpeechActivityHasStarted);
@@ -168,7 +170,8 @@
 
   _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
       /*bypass_voice_processing=*/false,
-      /*muted_speech_event_handler=*/muted_speech_event_handler));
+      /*muted_speech_event_handler=*/muted_speech_event_handler,
+      /*render_error_handler=*/nullptr));
   _audio_device->OnReceivedMutedSpeechActivity(
       kAUVoiceIOSpeechActivityHasEnded);
   [self waitForExpectations:@[ handlerExpectation ] timeout:10.0];

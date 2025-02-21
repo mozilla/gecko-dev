@@ -84,10 +84,13 @@ int32_t AudioDeviceModuleIOS::Init() {
   RTC_DLOG(LS_INFO) << __FUNCTION__;
   if (initialized_) return 0;
 
+  AudioDeviceIOSRenderErrorHandler error_handler = ^(OSStatus error) {
+    ReportError(kRecordingDeviceFailed);
+  };
   audio_device_buffer_.reset(
       new webrtc::AudioDeviceBuffer(task_queue_factory_.get()));
-  audio_device_.reset(new ios_adm::AudioDeviceIOS(bypass_voice_processing_,
-                                                  muted_speech_event_handler_));
+  audio_device_.reset(new ios_adm::AudioDeviceIOS(
+      bypass_voice_processing_, muted_speech_event_handler_, error_handler));
   RTC_CHECK(audio_device_);
 
   this->AttachAudioBuffer();

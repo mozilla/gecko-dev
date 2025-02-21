@@ -97,9 +97,12 @@ static void LogDeviceInfo() {
 
 AudioDeviceIOS::AudioDeviceIOS(
     bool bypass_voice_processing,
-    AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler)
+    AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler,
+    AudioDeviceIOSRenderErrorHandler render_error_handler)
     : bypass_voice_processing_(bypass_voice_processing),
       muted_speech_event_handler_(muted_speech_event_handler),
+      render_error_handler_(render_error_handler),
+      disregard_next_render_error_(false),
       audio_device_buffer_(nullptr),
       audio_unit_(nullptr),
       recording_(0),
@@ -431,13 +434,18 @@ OSStatus AudioDeviceIOS::OnDeliverRecordedData(
   // to the preallocated audio buffer list that the audio unit renders into.
   // We can make the audio unit provide a buffer instead in io_data, but we
   // currently just use our own.
-  // TODO(henrika): should error handling be improved?
   result = audio_unit_->Render(
       flags, time_stamp, bus_number, num_frames, &audio_buffer_list);
   if (result != noErr) {
     RTCLogError(@"Failed to render audio.");
+    if (render_error_handler_ && !disregard_next_render_error_) {
+      disregard_next_render_error_ = true;
+      thread_->PostTask(
+          SafeTask(safety_, [this, result] { render_error_handler_(result); }));
+    }
     return result;
   }
+  disregard_next_render_error_ = false;
 
   // Get a pointer to the recorded audio and send it to the WebRTC ADB.
   // Use the FineAudioBuffer instance to convert between native buffer size
