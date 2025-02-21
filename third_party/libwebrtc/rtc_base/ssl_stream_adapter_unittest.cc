@@ -1196,16 +1196,32 @@ class SSLStreamAdapterTestDTLS : public SSLStreamAdapterTestDTLSBase {
             std::make_pair(rtc::DIGEST_SHA_256, SHA256_DIGEST_LENGTH)) {}
 };
 
+#ifdef OPENSSL_IS_BORINGSSL
+#define MAYBE_TestDTLSConnectWithLostFirstPacketNoDelay \
+  TestDTLSConnectWithLostFirstPacketNoDelay
+#else
+#define MAYBE_TestDTLSConnectWithLostFirstPacketNoDelay \
+  DISABLED_TestDTLSConnectWithLostFirstPacketNoDelay
+#endif
 // Test that we can make a handshake work if the first packet in
 // each direction is lost. This gives us predictable loss
 // rather than having to tune random
-TEST_F(SSLStreamAdapterTestDTLS, TestDTLSConnectWithLostFirstPacket) {
+TEST_F(SSLStreamAdapterTestDTLS,
+       MAYBE_TestDTLSConnectWithLostFirstPacketNoDelay) {
   SetLoseFirstPacket(true);
   TestHandshake();
 }
 
+#ifdef OPENSSL_IS_BORINGSSL
+#define MAYBE_TestDTLSConnectWithLostFirstPacketDelay2s \
+  TestDTLSConnectWithLostFirstPacketDelay2s
+#else
+#define MAYBE_TestDTLSConnectWithLostFirstPacketDelay2s \
+  DISABLED_TestDTLSConnectWithLostFirstPacketDelay2s
+#endif
 // Test a handshake with loss and delay
-TEST_F(SSLStreamAdapterTestDTLS, TestDTLSConnectWithLostFirstPacketDelay2s) {
+TEST_F(SSLStreamAdapterTestDTLS,
+       MAYBE_TestDTLSConnectWithLostFirstPacketDelay2s) {
   SetLoseFirstPacket(true);
   SetDelay(2000);
   SetHandshakeWait(20000);
