@@ -1959,9 +1959,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if Trending Searches is enabled.
      */
-    var isTrendingSearchesVisible by booleanPreference(
+    var isTrendingSearchesVisible by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_enable_trending_searches),
-        default = FeatureFlags.TRENDING_SEARCHES,
+        default = { FxNimbus.features.trendingSearches.value().enabled },
+        featureFlag = true,
     )
 
     /**
