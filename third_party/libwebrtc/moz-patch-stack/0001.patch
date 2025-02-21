@@ -40,10 +40,10 @@ Cr-Branched-From: cbe304455fe0ae24622252ef8a0707a555fa5caf-refs/heads/main@{#436
  5 files changed, 46 insertions(+), 2 deletions(-)
 
 diff --git a/AUTHORS b/AUTHORS
-index b4e0e330fc..3f25653bb7 100644
+index 4c7e6900a4..0adf774e2e 100644
 --- a/AUTHORS
 +++ b/AUTHORS
-@@ -73,6 +73,7 @@ Jie Mao <maojie0924@gmail.com>
+@@ -74,6 +74,7 @@ Jie Mao <maojie0924@gmail.com>
  Jiwon Kim <jwkim0000@gmail.com>
  Johnny Wong <hellojinqiang@gmail.com>
  Jose Antonio Olivera Ortega <josea.olivera@gmail.com>
