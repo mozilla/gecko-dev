@@ -39,7 +39,8 @@ android {
 // There is an `extensions/` folder in between, which is needed to access
 // the extension at: `resource://android/assets/extensions/webcompat/`.
 tasks.register("syncWebcompatExtension", Sync) {
-    from "${rootProject.projectDir}/browser/extensions/webcompat"
+    def topsrcdir = gradle.mozconfig.topsrcdir
+    from "$topsrcdir/browser/extensions/webcompat"
     into layout.buildDirectory.dir("generated/assets/extensions/webcompat/")
     exclude "**/tests/**", "**/components.conf", "**/moz.build"
 
@@ -50,7 +51,7 @@ tasks.register("syncWebcompatExtension", Sync) {
         '**/run.js',
     ]) {
         filter(ReplaceTokens, beginToken: '', endToken: '', tokens: [
-            '#include data/interventions.json': rootProject.file('browser/extensions/webcompat/data/interventions.json').text.trim(),
+            '#include data/interventions.json': file("$topsrcdir/browser/extensions/webcompat/data/interventions.json").text.trim(),
         ])
     }
 }
