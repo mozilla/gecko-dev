@@ -13,9 +13,13 @@ add_task(async function testSingleRequest() {
   await addTab(TEST_URL);
 
   const onNetworkEvents = waitForNetworkEvents(REQUEST_URL, 1);
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [REQUEST_URL], _url => {
-    content.wrappedJSObject.fetch(_url);
-  });
+  await SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [REQUEST_URL],
+    async _url => {
+      await content.wrappedJSObject.fetch(_url);
+    }
+  );
 
   const events = await onNetworkEvents;
   is(events.length, 1, "Received the expected number of network events");
@@ -32,10 +36,12 @@ add_task(async function testMultipleRequests() {
   await SpecialPowers.spawn(
     gBrowser.selectedBrowser,
     [REQUEST_URL, EXPECTED_REQUESTS_COUNT],
-    (_url, _count) => {
+    async (_url, _count) => {
+      const requests = [];
       for (let i = 0; i < _count; i++) {
-        content.wrappedJSObject.fetch(_url);
+        requests.push(content.wrappedJSObject.fetch(_url));
       }
+      await Promise.all(requests);
     }
   );
 
