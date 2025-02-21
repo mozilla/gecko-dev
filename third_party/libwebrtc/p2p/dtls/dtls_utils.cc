@@ -20,8 +20,14 @@
 
 namespace {
 // https://datatracker.ietf.org/doc/html/rfc5246#appendix-A.1
-const uint8_t kDtlsHandshakeRecord = 22;
 const uint8_t kDtlsChangeCipherSpecRecord = 20;
+const uint8_t kDtlsHandshakeRecord = 22;
+
+// https://www.rfc-editor.org/rfc/rfc9147.html#section-4
+const uint8_t kFixedBitmask = 0b00100000;
+const uint8_t kConnectionBitmask = 0b00010000;
+const uint8_t kSequenceNumberBitmask = 0b00001000;
+const uint8_t kLengthPresentBitmask = 0b00000100;
 }  // namespace
 
 namespace cricket {
@@ -61,10 +67,38 @@ std::optional<std::vector<uint16_t>> GetDtlsHandshakeAcks(
     uint8_t content_type;
     uint64_t epoch_and_seq;
     uint16_t len;
-    // Read content_type(1), skip version(2), read epoch+seq(2+6),
-    // read len(2)
-    if (!(record_buf.ReadUInt8(&content_type) && record_buf.Consume(2) &&
-          record_buf.ReadUInt64(&epoch_and_seq) &&
+    // Read content_type(1).
+    if (!record_buf.ReadUInt8(&content_type)) {
+      return std::nullopt;
+    }
+
+    // DTLS 1.3 rules:
+    // https://www.rfc-editor.org/rfc/rfc9147.html#section-4.1
+    if ((content_type & kFixedBitmask) == kFixedBitmask) {
+      // Interpret as DTLSCipherText:
+      // https://www.rfc-editor.org/rfc/rfc9147.html#appendix-A.1
+      // We assume no connection id is used so C must be 0.
+      if ((content_type & kConnectionBitmask) != 0) {
+        return std::nullopt;
+      }
+      // Skip sequence_number(1 or 2 bytes depending on S bit).
+      if (!record_buf.Consume((content_type & kSequenceNumberBitmask) ==
+                                      kSequenceNumberBitmask
+                                  ? 2
+                                  : 1)) {
+        return std::nullopt;
+      }
+      // If the L bit is set, consume the 16 bit length field.
+      if ((content_type & kLengthPresentBitmask) == kLengthPresentBitmask) {
+        if (!(record_buf.ReadUInt16(&len) && record_buf.Consume(len))) {
+          return std::nullopt;
+        }
+      }
+      // DTLSCipherText is encrypted so we can not read it.
+      continue;
+    }
+    // Skip version(2), read epoch+seq(2+6), read len(2)
+    if (!(record_buf.Consume(2) && record_buf.ReadUInt64(&epoch_and_seq) &&
           record_buf.ReadUInt16(&len) && record_buf.Length() >= len)) {
       return std::nullopt;
     }
