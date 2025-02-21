@@ -40,7 +40,7 @@ Cr-Branched-From: cbe304455fe0ae24622252ef8a0707a555fa5caf-refs/heads/main@{#436
  5 files changed, 46 insertions(+), 2 deletions(-)
 
 diff --git a/AUTHORS b/AUTHORS
-index 46587ac6f3..7c091954c1 100644
+index b4e0e330fc..3f25653bb7 100644
 --- a/AUTHORS
 +++ b/AUTHORS
 @@ -73,6 +73,7 @@ Jie Mao <maojie0924@gmail.com>
