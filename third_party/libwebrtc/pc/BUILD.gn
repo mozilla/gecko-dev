@@ -594,6 +594,8 @@ rtc_source_set("srtp_session") {
     "../rtc_base:buffer",
     "../rtc_base:byte_order",
     "../rtc_base:checks",
+    "../rtc_base:copy_on_write_buffer",
+    "../rtc_base:ip_address",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
     "../rtc_base:ssl_adapter",
@@ -620,6 +622,8 @@ rtc_source_set("srtp_transport") {
     "../api:field_trials_view",
     "../api:libjingle_peerconnection_api",
     "../api:rtc_error",
+    "../api/units:timestamp",
+    "../call:rtp_receiver",
     "../media:rtp_utils",
     "../modules/rtp_rtcp:rtp_rtcp_format",
     "../p2p:packet_transport_internal",
@@ -633,6 +637,7 @@ rtc_source_set("srtp_transport") {
     "../rtc_base:safe_conversions",
     "../rtc_base:ssl_adapter",
     "../rtc_base:zero_memory",
+    "../rtc_base/network:received_packet",
     "//third_party/abseil-cpp/absl/strings",
   ]
 }
