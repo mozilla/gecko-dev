@@ -73,6 +73,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PluginManager: "resource:///actors/PluginParent.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.sys.mjs",
+  QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   RemoteSecuritySettings:
     "resource://gre/modules/psm/RemoteSecuritySettings.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -4688,6 +4689,8 @@ BrowserGlue.prototype = {
         return;
       }
       DefaultBrowserCheck.prompt(win);
+    } else if (await lazy.QuickSuggest.maybeShowOnboardingDialog()) {
+      return;
     }
 
     await lazy.ASRouter.waitForInitialized;

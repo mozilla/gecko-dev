@@ -344,7 +344,7 @@ urlbar:
       setPref:
         branch: default
         pref: browser.urlbar.quicksuggest.contextualOptIn
-      description: Whether the Firefox Suggest contextual opt-in result is enabled.
+      description: Whether the Firefox Suggest contextual opt-in result is enabled. If true, this implicitly disables shouldShowOnboardingDialog.
     quickSuggestContextualOptInFirstReshowAfterPeriodDays:
       type: int
       setPref:
@@ -411,6 +411,10 @@ urlbar:
       description: >-
         The index of non-sponsored QuickSuggest results within the general
         group. A negative index is relative to the end of the group
+    quickSuggestOnboardingDialogVariation:
+      type: string
+      description: >-
+        Specify the messages/UI variation for QuickSuggest onboarding dialog. This value is case insensitive.
     quickSuggestRankingMode:
       type: string
       fallbackPref: browser.urlbar.quicksuggest.rankingMode
@@ -447,6 +451,14 @@ urlbar:
         0: (default) Full, all settings will be shown.
         1: None, no settings will be shown.
         2: Offline only, settings that pertain to online will be hidden.
+    quickSuggestShouldShowOnboardingDialog:
+      type: boolean
+      fallbackPref: browser.urlbar.quicksuggest.shouldShowOnboardingDialog
+      description: Whether or not to show the QuickSuggest onboarding dialog
+    quickSuggestShowOnboardingDialogAfterNRestarts:
+      type: int
+      fallbackPref: browser.urlbar.quicksuggest.showOnboardingDialogAfterNRestarts
+      description: Show QuickSuggest onboarding dialog after N browser restarts
     quickSuggestSponsoredEnabled:
       type: boolean
       description: Whether sponsored suggestions should be enabled by default. If this variable is specified, it will override the value implied by the scenario. It will never override the user's local preference to disable (or enable) sponsored suggestions, if the user has already toggled that preference.

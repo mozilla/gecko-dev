@@ -5,6 +5,8 @@
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Address Bar")
 
+JAR_MANIFESTS += ["jar.mn"]
+
 DIRS += [
     "unitconverters",
 ]
