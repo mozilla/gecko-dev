@@ -79,6 +79,22 @@ packaging_description_schema = Schema(
             ),
             Optional("vendor"): str,
         },
+        Optional("flatpak"): {
+            Required("name"): optionally_keyed_by(
+                "level",
+                "build-platform",
+                "release-type",
+                "shipping-product",
+                str,
+            ),
+            Required("branch"): optionally_keyed_by(
+                "level",
+                "build-platform",
+                "release-type",
+                "shipping-product",
+                str,
+            ),
+        },
         # All l10n jobs use mozharness
         Required("mozharness"): {
             Extra: object,
@@ -309,6 +325,31 @@ PACKAGE_FORMATS = {
         "inputs": {},
         "output": "target.flatpak.desktop",
     },
+    "flatpak": {
+        "args": [
+            "flatpak",
+            "--name",
+            "{flatpak-name}",
+            "--arch",
+            "{architecture}",
+            "--version",
+            "{version_display}",
+            "--product",
+            "{package-name}",
+            "--release-type",
+            "{release_type}",
+            "--flatpak-branch",
+            "{flatpak-branch}",
+            "--template-dir",
+            "{flatpak-templates}",
+            "--langpack-pattern",
+            "{fetch-dir}/extensions/*/target.langpack.xpi",
+        ],
+        "inputs": {
+            "input": "target{archive_format}",
+        },
+        "output": "target.flatpak.tar.xz",
+    },
 }
 MOZHARNESS_EXPANSIONS = [
     "package-name",
@@ -319,6 +360,7 @@ MOZHARNESS_EXPANSIONS = [
     "deb-l10n-templates",
     "sfx-stub",
     "wsx-stub",
+    "flatpak-templates",
 ]
 
 transforms = TransformSequence()
@@ -357,6 +399,8 @@ def handle_keyed_by(config, jobs):
         "mozharness.config",
         "package-formats",
         "worker.max-run-time",
+        "flatpak.name",
+        "flatpak.branch",
     ]
     for job in jobs:
         job = deepcopy(job)  # don't overwrite dict values here
@@ -495,6 +539,48 @@ def make_job_description(config, jobs):
                 version=config.params["version"],
             )
 
+        elif config.kind == "repackage-flatpak":
+            assert not locale
+
+            if attributes.get("l10n_chunk") or attributes.get("chunk_locales"):
+                # We don't want to produce flatpaks for single-locale repack builds.
+                continue
+
+            fetches = job.setdefault("fetches", {})
+            # The keys are unique, like `shippable-l10n-signing-linux64-shippable-1/opt`, so we
+            # can't ask for the tasks directly, we must filter for them.
+            for t in config.kind_dependencies_tasks.values():
+                if attributes.get("shippable"):
+                    if (
+                        t.kind != "shippable-l10n-signing"
+                        or t.attributes["build_platform"] != "linux64-shippable"
+                    ):
+                        continue
+                elif t.kind != "l10n" or t.attributes["build_platform"] != "linux64":
+                    continue
+                if t.attributes["build_type"] != "opt":
+                    continue
+
+                locales = t.attributes.get(
+                    "chunk_locales", t.attributes.get("all_locales")
+                )
+
+                dependencies.update({t.label: t.label})
+
+                fetches.update(
+                    {
+                        t.label: [
+                            {
+                                "artifact": f"{loc}/target.langpack.xpi",
+                                "extract": False,
+                                # Otherwise we can't disambiguate locales!
+                                "dest": f"extensions/{loc}",
+                            }
+                            for loc in locales
+                        ]
+                    }
+                )
+
         _fetch_subst_locale = "en-US"
         if locale:
             _fetch_subst_locale = locale
@@ -520,6 +606,8 @@ def make_job_description(config, jobs):
                 "build_number": config.params["build_number"],
                 "release_product": config.params["release_product"],
                 "release_type": config.params["release_type"],
+                "flatpak-name": job.get("flatpak", {}).get("name"),
+                "flatpak-branch": job.get("flatpak", {}).get("branch"),
             }
             # Allow us to replace `args` as well, but specifying things expanded in mozharness
             # without breaking .format and without allowing unknown through.

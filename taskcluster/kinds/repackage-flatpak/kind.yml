@@ -1,0 +1,53 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+loader: taskgraph.loader.transform:loader
+
+transforms:
+    - taskgraph.transforms.from_deps
+    - gecko_taskgraph.transforms.name_sanity
+    - gecko_taskgraph.transforms.repackage
+    - gecko_taskgraph.transforms.job
+    - gecko_taskgraph.transforms.task
+
+kind-dependencies:
+    # We're going to generate tasks based on this.  We `depend` on and fetch the package from this.
+    - build-signing
+    # We're not going to generate tasks based on these.  But we are going to `depend` on and fetch
+    # langpacks from these.
+    - l10n
+    - shippable-l10n-signing
+
+only-for-build-platforms:
+    - linux64/opt
+    - linux64-shippable/opt
+
+tasks:
+    repackage-flatpak:
+        from-deps:
+            group-by: platform
+            unique-kinds: false
+        worker-type: b-linux-gcp
+        worker:
+            max-run-time: 2700
+            docker-image: {in-tree: debian12-flatpak}
+        run-on-projects: []
+        shipping-phase: promote
+        package-formats: [flatpak]
+        mozharness:
+            config:
+                by-build-platform:
+                    linux64\b.*:
+                        - repackage/base.py
+                        - repackage/linux64_signed.py
+        treeherder:
+            symbol: Rpk-flatpak
+        flatpak:
+            name: org.mozilla.firefox
+            branch:
+                by-release-type:
+                    release.*: stable
+                    beta: beta
+                    nightly: nightly
+                    default: default
