@@ -11,39 +11,62 @@
 #include "audio/channel_send.h"
 
 #include <algorithm>
-#include <map>
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/audio_codecs/audio_encoder.h"
+#include "api/audio_codecs/audio_format.h"
+#include "api/call/bitrate_allocation.h"
 #include "api/call/transport.h"
+#include "api/crypto/crypto_options.h"
 #include "api/crypto/frame_encryptor_interface.h"
-#include "api/rtc_event_log/rtc_event_log.h"
+#include "api/environment/environment.h"
+#include "api/frame_transformer_interface.h"
+#include "api/function_view.h"
+#include "api/make_ref_counted.h"
+#include "api/media_types.h"
+#include "api/rtp_headers.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/task_queue/task_queue_factory.h"
+#include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "audio/channel_send_frame_transformer_delegate.h"
 #include "audio/utility/audio_frame_operations.h"
 #include "call/rtp_transport_controller_send_interface.h"
-#include "logging/rtc_event_log/events/rtc_event_audio_playout.h"
-#include "modules/audio_coding/audio_network_adaptor/include/audio_network_adaptor_config.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
+#include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/audio_processing/rms_level.h"
 #include "modules/pacing/packet_router.h"
+#include "modules/rtp_rtcp/include/report_block_data.h"
+#include "modules/rtp_rtcp/include/rtcp_statistics.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
+#include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_impl2.h"
+#include "modules/rtp_rtcp/source/rtp_sender_audio.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/event.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/race_checker.h"
 #include "rtc_base/rate_limiter.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/system/no_unique_address.h"
-#include "rtc_base/time_utils.h"
+#include "rtc_base/thread_annotations.h"
 #include "rtc_base/trace_event.h"
-#include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/metrics.h"
 
 namespace webrtc {
@@ -51,8 +74,8 @@ namespace voe {
 
 namespace {
 
-constexpr int64_t kMaxRetransmissionWindowMs = 1000;
-constexpr int64_t kMinRetransmissionWindowMs = 30;
+constexpr TimeDelta kMaxRetransmissionWindow = TimeDelta::Seconds(1);
+constexpr TimeDelta kMinRetransmissionWindow = TimeDelta::Millis(30);
 
 class RtpPacketSenderProxy;
 class TransportSequenceNumberProxy;
@@ -197,8 +220,6 @@ class ChannelSend : public ChannelSendInterface,
   // can go back to sleep and be prepared to deliver an new captured audio
   // packet.
   void ProcessAndEncodeAudio(std::unique_ptr<AudioFrame> audio_frame) override;
-
-  int64_t GetRTT() const override;
 
   // E2EE Custom Audio Frame Encryption
   void SetFrameEncryptor(
@@ -502,7 +523,7 @@ ChannelSend::ChannelSend(
       rtcp_counter_observer_(new RtcpCounterObserver(ssrc)),
       rtp_packet_pacer_proxy_(new RtpPacketSenderProxy()),
       retransmission_rate_limiter_(
-          new RateLimiter(&env_.clock(), kMaxRetransmissionWindowMs)),
+          new RateLimiter(&env_.clock(), kMaxRetransmissionWindow.ms())),
       frame_encryptor_(frame_encryptor),
       crypto_options_(crypto_options),
       encoder_queue_(env_.task_queue_factory().CreateTaskQueue(
@@ -674,21 +695,16 @@ void ChannelSend::ReceivedRTCPPacket(const uint8_t* data, size_t length) {
   // Deliver RTCP packet to RTP/RTCP module for parsing
   rtp_rtcp_->IncomingRtcpPacket(rtc::MakeArrayView(data, length));
 
-  int64_t rtt = GetRTT();
-  if (rtt == 0) {
+  std::optional<TimeDelta> rtt = rtp_rtcp_->LastRtt();
+  if (!rtt.has_value()) {
     // Waiting for valid RTT.
     return;
   }
 
-  int64_t nack_window_ms = rtt;
-  if (nack_window_ms < kMinRetransmissionWindowMs) {
-    nack_window_ms = kMinRetransmissionWindowMs;
-  } else if (nack_window_ms > kMaxRetransmissionWindowMs) {
-    nack_window_ms = kMaxRetransmissionWindowMs;
-  }
-  retransmission_rate_limiter_->SetWindowSize(nack_window_ms);
+  retransmission_rate_limiter_->SetWindowSize(
+      rtt->Clamped(kMinRetransmissionWindow, kMaxRetransmissionWindow).ms());
 
-  OnReceivedRtt(rtt);
+  OnReceivedRtt(rtt->ms());
 }
 
 void ChannelSend::SetInputMute(bool enable) {
@@ -787,7 +803,7 @@ std::vector<ReportBlockData> ChannelSend::GetRemoteRTCPReportBlocks() const {
 CallSendStatistics ChannelSend::GetRTCPStatistics() const {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
   CallSendStatistics stats = {0};
-  stats.rttMs = GetRTT();
+  stats.rttMs = rtp_rtcp_->LastRtt().value_or(TimeDelta::Zero()).ms();
   stats.rtcp_packet_type_counts = rtcp_counter_observer_->GetCounts();
 
   StreamDataCounters rtp_stats;
@@ -915,18 +931,6 @@ ANAStats ChannelSend::GetANAStatistics() const {
 
 RtpRtcpInterface* ChannelSend::GetRtpRtcp() const {
   return rtp_rtcp_.get();
-}
-
-int64_t ChannelSend::GetRTT() const {
-  std::vector<ReportBlockData> report_blocks =
-      rtp_rtcp_->GetLatestReportBlockData();
-  if (report_blocks.empty()) {
-    return 0;
-  }
-
-  // We don't know in advance the remote ssrc used by the other end's receiver
-  // reports, so use the first report block for the RTT.
-  return report_blocks.front().last_rtt().ms();
 }
 
 void ChannelSend::SetFrameEncryptor(

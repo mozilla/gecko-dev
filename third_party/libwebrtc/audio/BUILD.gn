@@ -39,6 +39,7 @@ rtc_library("audio") {
 
   deps = [
     "../api:array_view",
+    "../api:bitrate_allocation",
     "../api:call_api",
     "../api:field_trials_view",
     "../api:frame_transformer_interface",
@@ -67,6 +68,8 @@ rtc_library("audio") {
     "../api/task_queue",
     "../api/task_queue:pending_task_safety_flag",
     "../api/transport/rtp:rtp_source",
+    "../api/units:data_rate",
+    "../api/units:data_size",
     "../api/units:time_delta",
     "../api/units:timestamp",
     "../call:audio_sender_interface",
