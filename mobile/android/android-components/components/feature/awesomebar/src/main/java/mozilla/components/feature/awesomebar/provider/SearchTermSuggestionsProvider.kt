@@ -50,6 +50,8 @@ private const val MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT_REACHED =
  * highest scored suggestion URL.
  * @param showEditSuggestion optional parameter to specify if the suggestion should show the edit button.
  * @param suggestionsHeader optional parameter to specify if the suggestion should have a header
+ * @param showSuggestionsWhenEmpty optional parameter to specify if suggestions should be shown even
+ * when the input text is empty.
  */
 class SearchTermSuggestionsProvider(
     private val historyStorage: PlacesHistoryStorage,
@@ -61,6 +63,7 @@ class SearchTermSuggestionsProvider(
     private val engine: Engine? = null,
     private val showEditSuggestion: Boolean = true,
     private val suggestionsHeader: String? = null,
+    private val showSuggestionsWhenEmpty: Boolean = false,
 ) : AwesomeBar.SuggestionProvider {
     init {
         if (maxNumberOfSuggestions > SEARCH_TERMS_MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT) {
@@ -77,7 +80,7 @@ class SearchTermSuggestionsProvider(
     override suspend fun onInputChanged(text: String): List<AwesomeBar.Suggestion> = coroutineScope {
         historyStorage.cancelReads(text)
 
-        if (text.isBlank()) {
+        if (!showSuggestionsWhenEmpty && text.isBlank()) {
             return@coroutineScope emptyList()
         }
 

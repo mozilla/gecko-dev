@@ -305,9 +305,10 @@ class AwesomeBarView(
         }
 
         if (state.showSearchTermHistory) {
-            getSearchTermSuggestionsProvider(state.searchEngineSource)?.let {
-                providersToAdd.add(it)
-            }
+            getSearchTermSuggestionsProvider(
+                state.searchEngineSource,
+                activity.settings().shouldShowTrendingSearchSuggestions,
+            )?.let { providersToAdd.add(it) }
         }
 
         if (state.showAllHistorySuggestions) {
@@ -467,6 +468,7 @@ class AwesomeBarView(
     @VisibleForTesting
     internal fun getSearchTermSuggestionsProvider(
         searchEngineSource: SearchEngineSource,
+        showSuggestionsWhenEmpty: Boolean = false,
     ): AwesomeBar.SuggestionProvider? {
         val validSearchEngine = searchEngineSource.searchEngine ?: return null
 
@@ -477,6 +479,7 @@ class AwesomeBarView(
             icon = getDrawable(activity, R.drawable.ic_history)?.toBitmap(),
             engine = engineForSpeculativeConnects,
             suggestionsHeader = getSearchEngineSuggestionsHeader(searchEngineSource.searchEngine),
+            showSuggestionsWhenEmpty = showSuggestionsWhenEmpty,
         )
     }
 
