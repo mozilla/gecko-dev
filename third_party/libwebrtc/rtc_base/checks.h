@@ -212,6 +212,7 @@ inline Val<CheckArgType::kVoidP, const void*> MakeVal(
 // The enum class types are not implicitly convertible to arithmetic types.
 template <typename T,
           absl::enable_if_t<std::is_enum<T>::value &&
+                            !absl::HasAbslStringify<T>::value &&
                             !std::is_arithmetic<T>::value>* = nullptr>
 inline decltype(MakeVal(std::declval<absl::underlying_type_t<T>>())) MakeVal(
     T x) {
