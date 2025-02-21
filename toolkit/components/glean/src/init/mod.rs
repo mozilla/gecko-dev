@@ -358,10 +358,11 @@ fn fog_test_reset_internal(
     // I'd prefer to reuse the uploader, but it gets moved into Glean so we build anew.
     conf.uploader = Some(Box::new(ViaductUploader) as Box<dyn glean::net::PingUploader>);
 
-    // Register all custom pings before we initialize.
+    glean::test_reset_glean(conf, client_info, true);
+
+    // Register all custom pings after we initialize.
     pings::register_pings(None);
 
-    glean::test_reset_glean(conf, client_info, true);
     Ok(())
 }
 

@@ -902,3 +902,28 @@ add_task(async function test_jog_labeled_quantity_works() {
     "Should throw because of a recording error."
   );
 });
+
+add_task(function test_disabled_ping_with_test_reset() {
+  Services.fog.testResetFOG();
+  Services.fog.testRegisterRuntimeMetric(
+    "counter",
+    "jog_cat",
+    "jog_counter",
+    ["disabled-ping"],
+    `"ping"`,
+    false
+  );
+  Glean.jogCat.jogCounter.add(1);
+  Assert.equal(
+    undefined,
+    Glean.jogCat.jogCounter.testGetValue(),
+    "Metric in disabled ping stores no value."
+  );
+  GleanPings.disabledPing.setEnabled(true);
+  Glean.jogCat.jogCounter.add(42);
+  Assert.equal(
+    42,
+    Glean.jogCat.jogCounter.testGetValue(),
+    "Metric in now-enabled ping stores its value."
+  );
+});

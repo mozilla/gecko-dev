@@ -261,6 +261,10 @@ extern "C" void jog_test_clear_registered_metrics_and_pings();
 extern "C" NS_EXPORT void JOG_MaybeReload() {
   MOZ_ASSERT(NS_IsMainThread());
 
+  gCategories = nullptr;
+  gMetricNames = nullptr;
+  gMetrics = nullptr;
+  gPings = nullptr;
   jog_test_clear_registered_metrics_and_pings();
   mozilla::glean::sFoundAndLoadedJogfile = mozilla::Nothing();
   mozilla::glean::JOG::EnsureRuntimeMetricsRegistered();
@@ -269,6 +273,10 @@ extern "C" NS_EXPORT void JOG_MaybeReload() {
 extern "C" NS_EXPORT void JOG_RegisterPing(const nsACString& aPingName,
                                            uint32_t aPingId) {
   MOZ_ASSERT(NS_IsMainThread());
+
+  MOZ_LOG(mozilla::glean::sLog, mozilla::LogLevel::Verbose,
+          ("Registering ping %s id %" PRIu32 "",
+           PromiseFlatCString(aPingName).get(), aPingId));
 
   if (AppShutdown::IsInOrBeyond(ShutdownPhase::XPCOMWillShutdown)) {
     return;
