@@ -2582,8 +2582,10 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithFeatureNames(
       }
       features.AppendElement(feature);
     }
-    MOZ_ASSERT(!features->IsEmpty(), "At least one URL classifier feature must be present");
-    return AsyncClassifyLocalWithFeatures(aURI, features, aListType, aCallback, true);
+    MOZ_ASSERT(!features->IsEmpty(),
+               "At least one URL classifier feature must be present");
+    return AsyncClassifyLocalWithFeatures(aURI, features, aListType, aCallback,
+                                          true);
   }
 
   mozilla::dom::ContentChild* content =
