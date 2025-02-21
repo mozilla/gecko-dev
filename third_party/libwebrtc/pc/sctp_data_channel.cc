@@ -43,8 +43,12 @@ BYPASS_PROXY_METHOD0(void, UnregisterObserver)
 BYPASS_PROXY_CONSTMETHOD0(std::string, label)
 BYPASS_PROXY_CONSTMETHOD0(bool, reliable)
 BYPASS_PROXY_CONSTMETHOD0(bool, ordered)
+// TODO: issues.webrtc.org/42220231 - remove when deprecation done
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 BYPASS_PROXY_CONSTMETHOD0(uint16_t, maxRetransmitTime)
 BYPASS_PROXY_CONSTMETHOD0(uint16_t, maxRetransmits)
+#pragma clang diagnostic pop
 BYPASS_PROXY_CONSTMETHOD0(std::optional<int>, maxRetransmitsOpt)
 BYPASS_PROXY_CONSTMETHOD0(std::optional<int>, maxPacketLifeTime)
 BYPASS_PROXY_CONSTMETHOD0(std::string, protocol)
