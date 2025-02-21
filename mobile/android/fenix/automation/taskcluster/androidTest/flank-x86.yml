@@ -20,7 +20,6 @@ gcloud:
   performance-metrics: true
 
   test-targets:
-   - notPackage org.mozilla.fenix.screenshots
    - notPackage org.mozilla.fenix.syncintegration
    - notPackage org.mozilla.fenix.experimentintegration
 
