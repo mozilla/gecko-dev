@@ -18,7 +18,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -53,6 +52,8 @@ namespace cricket {
 // Version number for GOOG_PING, this is added to have the option of
 // adding other flavors in the future.
 constexpr int kGoogPingVersion = 1;
+// 1200 is the "commonly used" MTU. Subtract M-I attribute (20+4) and FP (4+4).
+constexpr int kMaxStunBindingLength = 1200 - 24 - 8;
 
 // Forward declaration so that a ConnectionRequest can contain a Connection.
 class Connection;
@@ -359,6 +360,23 @@ class RTC_EXPORT Connection : public CandidatePairInterface {
     goog_delta_ack_consumer_ = std::nullopt;
   }
 
+  void RegisterDtlsPiggyback(
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          data_producer,
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          ack_producer,
+      absl::AnyInvocable<void(const StunByteStringAttribute*,
+                              const StunByteStringAttribute*)> consumer) {
+    dtls_stun_piggyback_data_producer_ = std::move(data_producer);
+    dtls_stun_piggyback_ack_producer_ = std::move(ack_producer);
+    dtls_stun_piggyback_consumer_ = std::move(consumer);
+  }
+  void DeregisterDtlsPiggyback() {
+    dtls_stun_piggyback_consumer_ = nullptr;
+    dtls_stun_piggyback_data_producer_ = nullptr;
+    dtls_stun_piggyback_ack_producer_ = nullptr;
+  }
+
  protected:
   // A ConnectionRequest is a simple STUN ping used to determine writability.
   class ConnectionRequest;
@@ -511,6 +529,15 @@ class RTC_EXPORT Connection : public CandidatePairInterface {
       goog_delta_ack_consumer_;
   absl::AnyInvocable<void(Connection*, const rtc::ReceivedPacket&)>
       received_packet_callback_;
+
+  void MaybeAddDtlsPiggybackingAttributes(StunMessage* msg);
+  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+      dtls_stun_piggyback_data_producer_ = nullptr;
+  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+      dtls_stun_piggyback_ack_producer_ = nullptr;
+  absl::AnyInvocable<void(const StunByteStringAttribute*,
+                          const StunByteStringAttribute*)>
+      dtls_stun_piggyback_consumer_ = nullptr;
 };
 
 // ProxyConnection defers all the interesting work to the port.

@@ -21,6 +21,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/crypto/crypto_options.h"
@@ -34,6 +36,8 @@
 #include "p2p/dtls/dtls_utils.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/byte_order.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
@@ -44,7 +48,6 @@
 #include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
-#include "test/field_trial.h"
 #include "test/gtest.h"
 
 #define MAYBE_SKIP_TEST(feature)                                  \

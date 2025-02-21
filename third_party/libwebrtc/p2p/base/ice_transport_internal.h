@@ -23,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/candidate.h"
+#include "api/field_trials_view.h"
 #include "api/rtc_error.h"
 #include "api/transport/enums.h"
 #include "p2p/base/candidate_pair_interface.h"
@@ -34,6 +35,7 @@
 #include "p2p/base/transport_description.h"
 #include "rtc_base/callback_list.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/network/received_packet.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
@@ -200,6 +202,9 @@ struct RTC_EXPORT IceConfig {
   std::optional<rtc::AdapterType> network_preference;
 
   webrtc::VpnPreference vpn_preference = webrtc::VpnPreference::kDefault;
+
+  // Experimental feature to transport the DTLS handshake in STUN packets.
+  bool dtls_handshake_in_stun = false;
 
   IceConfig();
   IceConfig(int receiving_timeout_ms,
@@ -398,6 +403,15 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   virtual const webrtc::FieldTrialsView* field_trials() const {
     return nullptr;
   }
+  void SetPiggybackDtlsDataCallback(
+      absl::AnyInvocable<void(rtc::PacketTransportInternal* transport,
+                              const rtc::ReceivedPacket& packet)> callback) {
+    RTC_DCHECK(callback == nullptr || !piggybacked_dtls_callback_);
+    piggybacked_dtls_callback_ = std::move(callback);
+  }
+  virtual void SetDtlsDataToPiggyback(rtc::ArrayView<const uint8_t>) {}
+  virtual void SetDtlsHandshakeComplete(bool is_dtls_client) {}
+  virtual bool IsDtlsPiggybackSupportedByPeer() { return false; }
 
  protected:
   void SendGatheringStateEvent() { gathering_state_callback_list_.Send(this); }
@@ -419,6 +433,9 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
 
   absl::AnyInvocable<void(const cricket::CandidatePairChangeEvent&)>
       candidate_pair_change_callback_;
+  absl::AnyInvocable<void(rtc::PacketTransportInternal*,
+                          const rtc::ReceivedPacket&)>
+      piggybacked_dtls_callback_;
 };
 
 }  // namespace cricket

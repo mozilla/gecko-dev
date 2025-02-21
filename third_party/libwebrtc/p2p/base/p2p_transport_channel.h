@@ -58,6 +58,7 @@
 #include "p2p/base/regathering_controller.h"
 #include "p2p/base/stun_dictionary.h"
 #include "p2p/base/transport_description.h"
+#include "p2p/dtls/dtls_stun_piggyback_controller.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/dscp.h"
@@ -250,6 +251,18 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
 
   const webrtc::FieldTrialsView* field_trials() const override {
     return field_trials_;
+  }
+  void SetDtlsDataToPiggyback(rtc::ArrayView<const uint8_t> data) override {
+    dtls_stun_piggyback_controller_.SetDataToPiggyback(data);
+  }
+  void SetDtlsHandshakeComplete(bool is_dtls_client) override {
+    dtls_stun_piggyback_controller_.SetDtlsHandshakeComplete(is_dtls_client);
+  }
+  bool IsDtlsPiggybackSupportedByPeer() override {
+    RTC_DCHECK_RUN_ON(network_thread_);
+    return config_.dtls_handshake_in_stun &&
+           dtls_stun_piggyback_controller_.state() !=
+               DtlsStunPiggybackController::State::OFF;
   }
 
  private:
@@ -515,6 +528,9 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
 
   // A dictionary that tracks attributes from peer.
   StunDictionaryView stun_dict_view_;
+
+  // A controller for piggybacking DTLS in STUN.
+  DtlsStunPiggybackController dtls_stun_piggyback_controller_;
 };
 
 }  // namespace cricket

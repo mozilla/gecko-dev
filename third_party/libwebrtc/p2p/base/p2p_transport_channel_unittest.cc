@@ -10,29 +10,57 @@
 
 #include "p2p/base/p2p_transport_channel.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <list>
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
-#include <tuple>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
+#include "api/async_dns_resolver.h"
+#include "api/candidate.h"
+#include "api/field_trials_view.h"
+#include "api/ice_transport_interface.h"
+#include "api/packet_socket_factory.h"
+#include "api/scoped_refptr.h"
+#include "api/task_queue/pending_task_safety_flag.h"
 #include "api/test/mock_async_dns_resolver.h"
-#include "p2p/base/active_ice_controller_factory_interface.h"
-#include "p2p/base/active_ice_controller_interface.h"
+#include "api/transport/enums.h"
+#include "api/transport/stun.h"
+#include "api/units/time_delta.h"
 #include "p2p/base/basic_ice_controller.h"
+#include "p2p/base/basic_packet_socket_factory.h"
+#include "p2p/base/candidate_pair_interface.h"
 #include "p2p/base/connection.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/fake_port_allocator.h"
+#include "p2p/base/ice_controller_factory_interface.h"
+#include "p2p/base/ice_controller_interface.h"
+#include "p2p/base/ice_switch_reason.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/mock_active_ice_controller.h"
 #include "p2p/base/mock_ice_controller.h"
+#include "p2p/base/p2p_constants.h"
 #include "p2p/base/packet_transport_internal.h"
+#include "p2p/base/port.h"
+#include "p2p/base/port_allocator.h"
+#include "p2p/base/port_interface.h"
+#include "p2p/base/stun_dictionary.h"
+#include "p2p/base/stun_server.h"
 #include "p2p/base/test_stun_server.h"
 #include "p2p/base/test_turn_server.h"
+#include "p2p/base/transport_description.h"
 #include "p2p/client/basic_port_allocator.h"
+#include "rtc_base/byte_buffer.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/crypto_random.h"
 #include "rtc_base/dscp.h"
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/fake_mdns_responder.h"
@@ -40,19 +68,28 @@
 #include "rtc_base/firewall_socket_server.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/internal/default_socket_server.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/mdns_responder_interface.h"
-#include "rtc_base/nat_server.h"
 #include "rtc_base/nat_socket_factory.h"
+#include "rtc_base/nat_types.h"
+#include "rtc_base/net_helper.h"
+#include "rtc_base/net_helpers.h"
+#include "rtc_base/network.h"
 #include "rtc_base/network/received_packet.h"
-#include "rtc_base/proxy_server.h"
+#include "rtc_base/network/sent_packet.h"
+#include "rtc_base/network_constants.h"
+#include "rtc_base/network_route.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
-#include "rtc_base/ssl_adapter.h"
-#include "rtc_base/strings/string_builder.h"
+#include "rtc_base/socket_server.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "system_wrappers/include/metrics.h"
+#include "test/gmock.h"
+#include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 
 namespace {
@@ -6450,6 +6487,64 @@ TEST_F(P2PTransportChannelTest, TestIceNoOldCandidatesAfterIceRestart) {
     EXPECT_EQ(cd.candidate.username(), kIceUfrag[3]);
   }
 
+  DestroyChannels();
+}
+
+class P2PTransportChannelTestDtlsInStun : public P2PTransportChannelTestBase {
+ public:
+  P2PTransportChannelTestDtlsInStun() : P2PTransportChannelTestBase() {}
+
+ protected:
+  void Run(bool ep1_support, bool ep2_support) {
+    IceConfig ep1_config;
+    ep1_config.dtls_handshake_in_stun = ep1_support;
+    IceConfig ep2_config;
+    ep2_config.dtls_handshake_in_stun = ep2_support;
+    CreateChannels(ep1_config, ep2_config);
+    // DTLS server hello done message as test data.
+    std::vector<uint8_t> dtls_data = {
+        0x16, 0xfe, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x0c, 0x0e, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    if (ep1_support) {
+      ep1_ch1()->SetDtlsDataToPiggyback(dtls_data);
+    }
+    if (ep2_support) {
+      ep2_ch1()->SetDtlsDataToPiggyback(dtls_data);
+    }
+    EXPECT_TRUE_SIMULATED_WAIT(CheckConnected(ep1_ch1(), ep2_ch1()),
+                               kDefaultTimeout, clock_);
+  }
+
+  rtc::ScopedFakeClock clock_;
+};
+
+TEST_F(P2PTransportChannelTestDtlsInStun, NotSupportedByEither) {
+  Run(false, false);
+  EXPECT_FALSE(ep1_ch1()->IsDtlsPiggybackSupportedByPeer());
+  EXPECT_FALSE(ep2_ch1()->IsDtlsPiggybackSupportedByPeer());
+  DestroyChannels();
+}
+
+TEST_F(P2PTransportChannelTestDtlsInStun, SupportedByClient) {
+  Run(true, false);
+  EXPECT_FALSE(ep1_ch1()->IsDtlsPiggybackSupportedByPeer());
+  EXPECT_FALSE(ep2_ch1()->IsDtlsPiggybackSupportedByPeer());
+  DestroyChannels();
+}
+
+TEST_F(P2PTransportChannelTestDtlsInStun, SupportedByServer) {
+  Run(false, true);
+  EXPECT_FALSE(ep1_ch1()->IsDtlsPiggybackSupportedByPeer());
+  EXPECT_FALSE(ep2_ch1()->IsDtlsPiggybackSupportedByPeer());
+  DestroyChannels();
+}
+
+TEST_F(P2PTransportChannelTestDtlsInStun, SupportedByBoth) {
+  Run(true, true);
+  EXPECT_TRUE(ep1_ch1()->IsDtlsPiggybackSupportedByPeer());
+  EXPECT_TRUE(ep2_ch1()->IsDtlsPiggybackSupportedByPeer());
   DestroyChannels();
 }
 

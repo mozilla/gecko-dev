@@ -237,7 +237,7 @@ class DtlsTransport : public DtlsTransportInternal {
   void MaybeStartDtls();
   bool HandleDtlsPacket(rtc::ArrayView<const uint8_t> payload);
   void OnDtlsHandshakeError(rtc::SSLHandshakeError error);
-  void ConfigureHandshakeTimeout();
+  void ConfigureHandshakeTimeout(bool uses_dtls_in_stun);
 
   void set_receiving(bool receiving);
   void set_writable(bool writable);
@@ -268,6 +268,8 @@ class DtlsTransport : public DtlsTransportInternal {
 
   bool receiving_ = false;
   bool writable_ = false;
+
+  bool was_ever_connected_ = false;
 
   webrtc::RtcEventLog* const event_log_;
 };
