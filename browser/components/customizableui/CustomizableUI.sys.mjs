@@ -1680,6 +1680,72 @@ var CustomizableUIInternal = {
     this.notifyListeners("onWindowClosed", aWindow);
   },
 
+  handleNewBrowserWindow(aWindow) {
+    let { gNavToolbox, document, gBrowser } = aWindow;
+    gNavToolbox.palette = document.getElementById(
+      "BrowserToolbarPalette"
+    ).content;
+
+    let isVerticalTabs = Services.prefs.getBoolPref(
+      kPrefSidebarVerticalTabsEnabled,
+      false
+    );
+    let nonRemovables;
+
+    // We don't want these normally non-removable elements to get put back into the
+    // tabstrip if we're initializing with vertical tabs.
+    // We do this for all windows, including popups, as otherwise it's possible for
+    // us to get confused about window state and save a blank state to prefs.
+    if (isVerticalTabs) {
+      nonRemovables = [gBrowser.tabContainer];
+      for (let elem of nonRemovables) {
+        elem.setAttribute("removable", "true");
+        // tell CUI to ignore this element when it builds the toolbar areas
+        elem.setAttribute("skipintoolbarset", "true");
+      }
+    }
+
+    // Now register all the toolbars
+    for (let area of CustomizableUI.areas) {
+      let type = CustomizableUI.getAreaType(area);
+      if (type == CustomizableUI.TYPE_TOOLBAR) {
+        let node = document.getElementById(area);
+        this.registerToolbarNode(node);
+      }
+    }
+
+    // Handle initial state of vertical tabs.
+    if (isVerticalTabs) {
+      // Show the vertical tabs toolbar
+      aWindow.setToolbarVisibility(
+        document.getElementById(CustomizableUI.AREA_VERTICAL_TABSTRIP),
+        true,
+        false,
+        false
+      );
+      let tabstripToolbar = document.getElementById(
+        CustomizableUI.AREA_TABSTRIP
+      );
+      let wasCollapsed = tabstripToolbar.collapsed;
+      aWindow.TabBarVisibility.update();
+      if (tabstripToolbar.collapsed !== wasCollapsed) {
+        let eventParams = {
+          detail: {
+            visible: !tabstripToolbar.collapsed,
+          },
+          bubbles: true,
+        };
+        let event = new CustomEvent("toolbarvisibilitychange", eventParams);
+        tabstripToolbar.dispatchEvent(event);
+      }
+
+      for (let elem of nonRemovables) {
+        elem.setAttribute("removable", "false");
+        elem.removeAttribute("skipintoolbarset");
+      }
+    }
+  },
+
   setLocationAttributes(aNode, aArea) {
     let props = gAreas.get(aArea);
     if (!props) {
@@ -5926,6 +5992,16 @@ export var CustomizableUI = {
     }
 
     parent.appendChild(aSubview);
+  },
+
+  /**
+   * Called when DOMContentLoaded fires for a new browser window.
+   *
+   * @param {DOMWindow} aWindow
+   *   The DOM Window that has just opened.
+   */
+  handleNewBrowserWindow(aWindow) {
+    return CustomizableUIInternal.handleNewBrowserWindow(aWindow);
   },
 
   getCustomizationTarget(aElement) {

@@ -12,6 +12,7 @@ category app-startup nsBrowserGlue @mozilla.org/browser/browserglue;1 applicatio
 # Browser window lifecycle consumers
 category browser-window-domcontentloaded-before-tabbrowser resource:///modules/BrowserDOMWindow.sys.mjs BrowserDOMWindow.setupInWindow
 category browser-window-domcontentloaded resource:///modules/BrowserWindowTracker.sys.mjs BrowserWindowTracker.track
+category browser-window-domcontentloaded resource:///modules/CustomizableUI.sys.mjs CustomizableUI.handleNewBrowserWindow
 
 category browser-window-delayed-startup resource:///modules/ContentAnalysis.sys.mjs ContentAnalysis.initialize
 category browser-window-delayed-startup resource:///modules/HomePage.sys.mjs HomePage.delayedStartup

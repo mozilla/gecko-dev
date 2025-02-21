@@ -146,64 +146,6 @@ var gBrowserInit = {
 
     FirefoxViewHandler.init();
 
-    gNavToolbox.palette = document.getElementById(
-      "BrowserToolbarPalette"
-    ).content;
-
-    let isVerticalTabs = Services.prefs.getBoolPref(
-      "sidebar.verticalTabs",
-      false
-    );
-    let nonRemovables;
-
-    // We don't want these normally non-removable elements to get put back into the
-    // tabstrip if we're initializing with vertical tabs.
-    // We should refrain from excluding popups here to make sure CUI doesn't
-    // get into a blank saved state.
-    if (isVerticalTabs) {
-      nonRemovables = [gBrowser.tabContainer];
-      for (let elem of nonRemovables) {
-        elem.setAttribute("removable", "true");
-        // tell CUI to ignore this element when it builds the toolbar areas
-        elem.setAttribute("skipintoolbarset", "true");
-      }
-    }
-    for (let area of CustomizableUI.areas) {
-      let type = CustomizableUI.getAreaType(area);
-      if (type == CustomizableUI.TYPE_TOOLBAR) {
-        let node = document.getElementById(area);
-        CustomizableUI.registerToolbarNode(node);
-      }
-    }
-    if (isVerticalTabs) {
-      // Show the vertical tabs toolbar
-      setToolbarVisibility(
-        document.getElementById(CustomizableUI.AREA_VERTICAL_TABSTRIP),
-        true,
-        false,
-        false
-      );
-      let tabstripToolbar = document.getElementById(
-        CustomizableUI.AREA_TABSTRIP
-      );
-      let wasCollapsed = tabstripToolbar.collapsed;
-      TabBarVisibility.update();
-      if (tabstripToolbar.collapsed !== wasCollapsed) {
-        let eventParams = {
-          detail: {
-            visible: !tabstripToolbar.collapsed,
-          },
-          bubbles: true,
-        };
-        let event = new CustomEvent("toolbarvisibilitychange", eventParams);
-        tabstripToolbar.dispatchEvent(event);
-      }
-
-      for (let elem of nonRemovables) {
-        elem.setAttribute("removable", "false");
-        elem.removeAttribute("skipintoolbarset");
-      }
-    }
     gURLBar.initPlaceHolder();
 
     // Hack to ensure that the various initial pages favicon is loaded
