@@ -10200,7 +10200,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.0.164",
+    apiVersion: "5.0.197",
     data,
     password,
     disableAutoFetch,
@@ -11836,8 +11836,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.0.164";
-const build = "3f15e0c46";
+const version = "5.0.197";
+const build = "34ef74cf0";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -19490,6 +19490,10 @@ class SignatureEditor extends DrawingEditor {
     let newHeight = heightInPage / pageHeight;
     newHeight = newHeight >= 1 ? 0.5 : newHeight;
     this.width *= newHeight / this.height;
+    if (this.width >= 1) {
+      newHeight *= 0.9 / this.width;
+      this.width = 0.9;
+    }
     this.height = newHeight;
     this.setDims(parentWidth * this.width, parentHeight * this.height);
     this.x = savedX;
@@ -20697,9 +20701,9 @@ class AnnotationEditorLayer {
   canCreateNewEmptyEditor() {
     return this.#currentEditorType?.canCreateNewEmptyEditor();
   }
-  pasteEditor(mode, params) {
+  async pasteEditor(mode, params) {
     this.#uiManager.updateToolbar(mode);
-    this.#uiManager.updateMode(mode);
+    await this.#uiManager.updateMode(mode);
     const {
       offsetX,
       offsetY
@@ -21178,8 +21182,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.0.164";
-const pdfjsBuild = "3f15e0c46";
+const pdfjsVersion = "5.0.197";
+const pdfjsBuild = "34ef74cf0";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

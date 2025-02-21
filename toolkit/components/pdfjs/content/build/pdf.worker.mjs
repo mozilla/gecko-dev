@@ -3310,10 +3310,10 @@ function readDataBlock(data, offset) {
     endOffset = fileMarker.offset;
   }
   const array = data.subarray(offset, endOffset);
-  offset += array.length;
   return {
     appData: array,
-    newOffset: offset
+    oldOffset: offset,
+    newOffset: offset + array.length
   };
 }
 function skipData(data, offset) {
@@ -3335,6 +3335,7 @@ class JpegImage {
     this._colorTransform = colorTransform;
   }
   static canUseImageDecoder(data, colorTransform = -1) {
+    let exifOffsets = null;
     let offset = 0;
     let numComponents = null;
     let fileMarker = readUint16(data, offset);
@@ -3349,11 +3350,18 @@ class JpegImage {
         case 0xffe1:
           const {
             appData,
+            oldOffset,
             newOffset
           } = readDataBlock(data, offset);
           offset = newOffset;
           if (appData[0] === 0x45 && appData[1] === 0x78 && appData[2] === 0x69 && appData[3] === 0x66 && appData[4] === 0 && appData[5] === 0) {
-            appData.fill(0x00, 6);
+            if (exifOffsets) {
+              throw new JpegError("Duplicate EXIF-blocks found.");
+            }
+            exifOffsets = {
+              exifStart: oldOffset + 6,
+              exifEnd: newOffset
+            };
           }
           fileMarker = readUint16(data, offset);
           offset += 2;
@@ -3374,12 +3382,12 @@ class JpegImage {
       offset += 2;
     }
     if (numComponents === 4) {
-      return false;
+      return null;
     }
     if (numComponents === 3 && colorTransform === 0) {
-      return false;
+      return null;
     }
-    return true;
+    return exifOffsets || {};
   }
   parse(data, {
     dnlScanLines = null
@@ -3941,9 +3949,14 @@ class JpegStream extends DecodeStream {
       if (!bytes) {
         return null;
       }
-      const data = this.#skipUselessBytes(bytes);
-      if (!JpegImage.canUseImageDecoder(data, jpegOptions.colorTransform)) {
+      let data = this.#skipUselessBytes(bytes);
+      const useImageDecoder = JpegImage.canUseImageDecoder(data, jpegOptions.colorTransform);
+      if (!useImageDecoder) {
         return null;
+      }
+      if (useImageDecoder.exifStart) {
+        data = data.slice();
+        data.fill(0x00, useImageDecoder.exifStart, useImageDecoder.exifEnd);
       }
       decoder = new ImageDecoder({
         data,
@@ -31146,14 +31159,12 @@ class PartialEvaluator {
     }
   }
   loadFont(fontName, font, resources, fallbackFontDict = null, cssFontInfo = null) {
-    const errorFont = async () => {
-      return new TranslatedFont({
-        loadedName: "g_font_error",
-        font: new ErrorFont(`Font "${fontName}" is not available.`),
-        dict: font,
-        evaluatorOptions: this.options
-      });
-    };
+    const errorFont = async () => new TranslatedFont({
+      loadedName: "g_font_error",
+      font: new ErrorFont(`Font "${fontName}" is not available.`),
+      dict: font,
+      evaluatorOptions: this.options
+    });
     let fontRef;
     if (font) {
       if (font instanceof Ref) {
@@ -48486,16 +48497,14 @@ class XFAFactory {
 
 class AnnotationFactory {
   static createGlobals(pdfManager) {
-    return Promise.all([pdfManager.ensureCatalog("acroForm"), pdfManager.ensureDoc("xfaDatasets"), pdfManager.ensureCatalog("structTreeRoot"), pdfManager.ensureCatalog("baseUrl"), pdfManager.ensureCatalog("attachments")]).then(([acroForm, xfaDatasets, structTreeRoot, baseUrl, attachments]) => {
-      return {
-        pdfManager,
-        acroForm: acroForm instanceof Dict ? acroForm : Dict.empty,
-        xfaDatasets,
-        structTreeRoot,
-        baseUrl,
-        attachments
-      };
-    }, reason => {
+    return Promise.all([pdfManager.ensureCatalog("acroForm"), pdfManager.ensureDoc("xfaDatasets"), pdfManager.ensureCatalog("structTreeRoot"), pdfManager.ensureCatalog("baseUrl"), pdfManager.ensureCatalog("attachments")]).then(([acroForm, xfaDatasets, structTreeRoot, baseUrl, attachments]) => ({
+      pdfManager,
+      acroForm: acroForm instanceof Dict ? acroForm : Dict.empty,
+      xfaDatasets,
+      structTreeRoot,
+      baseUrl,
+      attachments
+    }), reason => {
       warn(`createGlobals: "${reason}".`);
       return null;
     });
@@ -53893,7 +53902,6 @@ class XRef {
     }
     let xrefEntry = this.getEntry(num);
     if (xrefEntry === null) {
-      this._cacheMap.set(num, xrefEntry);
       return xrefEntry;
     }
     if (this._pendingRefs.has(ref)) {
@@ -55172,23 +55180,21 @@ class PDFDocument {
     } else {
       promise = catalog.getPageDict(pageIndex);
     }
-    promise = promise.then(([pageDict, ref]) => {
-      return new Page({
-        pdfManager: this.pdfManager,
-        xref: this.xref,
-        pageIndex,
-        pageDict,
-        ref,
-        globalIdFactory: this._globalIdFactory,
-        fontCache: catalog.fontCache,
-        builtInCMapCache: catalog.builtInCMapCache,
-        standardFontDataCache: catalog.standardFontDataCache,
-        globalImageCache: catalog.globalImageCache,
-        systemFontCache: catalog.systemFontCache,
-        nonBlendModesSet: catalog.nonBlendModesSet,
-        xfaFactory
-      });
-    });
+    promise = promise.then(([pageDict, ref]) => new Page({
+      pdfManager: this.pdfManager,
+      xref: this.xref,
+      pageIndex,
+      pageDict,
+      ref,
+      globalIdFactory: this._globalIdFactory,
+      fontCache: catalog.fontCache,
+      builtInCMapCache: catalog.builtInCMapCache,
+      standardFontDataCache: catalog.standardFontDataCache,
+      globalImageCache: catalog.globalImageCache,
+      systemFontCache: catalog.systemFontCache,
+      nonBlendModesSet: catalog.nonBlendModesSet,
+      xfaFactory
+    }));
     this._pagePromises.set(pageIndex, promise);
     return promise;
   }
@@ -56551,7 +56557,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.0.164";
+    const workerVersion = "5.0.197";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57083,8 +57089,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.0.164";
-const pdfjsBuild = "3f15e0c46";
+const pdfjsVersion = "5.0.197";
+const pdfjsBuild = "34ef74cf0";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

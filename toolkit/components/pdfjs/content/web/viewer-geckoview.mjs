@@ -3238,25 +3238,23 @@ class PDFFindController {
         resolve
       } = Promise.withResolvers();
       this._extractTextPromises[i] = promise;
-      deferred = deferred.then(() => {
-        return this._pdfDocument.getPage(i + 1).then(pdfPage => pdfPage.getTextContent(textOptions)).then(textContent => {
-          const strBuf = [];
-          for (const textItem of textContent.items) {
-            strBuf.push(textItem.str);
-            if (textItem.hasEOL) {
-              strBuf.push("\n");
-            }
+      deferred = deferred.then(() => this._pdfDocument.getPage(i + 1).then(pdfPage => pdfPage.getTextContent(textOptions)).then(textContent => {
+        const strBuf = [];
+        for (const textItem of textContent.items) {
+          strBuf.push(textItem.str);
+          if (textItem.hasEOL) {
+            strBuf.push("\n");
           }
-          [this._pageContents[i], this._pageDiffs[i], this._hasDiacritics[i]] = normalize(strBuf.join(""));
-          resolve();
-        }, reason => {
-          console.error(`Unable to get text content for page ${i + 1}`, reason);
-          this._pageContents[i] = "";
-          this._pageDiffs[i] = null;
-          this._hasDiacritics[i] = false;
-          resolve();
-        });
-      });
+        }
+        [this._pageContents[i], this._pageDiffs[i], this._hasDiacritics[i]] = normalize(strBuf.join(""));
+        resolve();
+      }, reason => {
+        console.error(`Unable to get text content for page ${i + 1}`, reason);
+        this._pageContents[i] = "";
+        this._pageDiffs[i] = null;
+        this._hasDiacritics[i] = false;
+        resolve();
+      }));
     }
   }
   #updatePage(index) {
@@ -4714,6 +4712,7 @@ class AnnotationLayerBuilder {
   #externalHide = false;
   #onAppend = null;
   #eventAbortController = null;
+  #linksInjected = false;
   constructor({
     pdfPage,
     linkService,
@@ -4838,9 +4837,10 @@ class AnnotationLayerBuilder {
     if (this.#annotations === null) {
       throw new Error("`render` method must be called before `injectLinkAnnotations`.");
     }
-    if (this._cancelled) {
+    if (this._cancelled || this.#linksInjected) {
       return;
     }
+    this.#linksInjected = true;
     const newLinks = this.#annotations.length ? this.#checkInferredLinks(inferredLinks) : inferredLinks;
     if (!newLinks.length) {
       return;
@@ -5005,19 +5005,27 @@ class Autolinker {
   static #index = 0;
   static #regex;
   static findLinks(text) {
-    this.#regex ??= /\b(?:https?:\/\/|mailto:|www\.)(?:[[\S--\[]--\p{P}]|\/|[\p{P}--\[]+[[\S--\[]--\p{P}])+|\b[[\S--@]--\{]+@[\S--.]+\.[[\S--\[]--\p{P}]{2,}/gmv;
+    this.#regex ??= /\b(?:https?:\/\/|mailto:|www\.)(?:[\S--[\p{P}<>]]|\/|[\S--[\[\]]]+[\S--[\p{P}<>]])+|\b[\S--[@\p{Ps}\p{Pe}<>]]+@([\S--[\p{P}<>]]+(?:\.[\S--[\p{P}<>]]+)+)/gmv;
     const [normalizedText, diffs] = normalize(text);
     const matches = normalizedText.matchAll(this.#regex);
     const links = [];
     for (const match of matches) {
-      const raw = match[0].startsWith("www.") || match[0].startsWith("mailto:") || match[0].startsWith("http://") || match[0].startsWith("https://") ? match[0] : `mailto:${match[0]}`;
-      const url = createValidAbsoluteUrl(raw, null, {
+      const [url, emailDomain] = match;
+      let raw;
+      if (url.startsWith("www.") || url.startsWith("http://") || url.startsWith("https://")) {
+        raw = url;
+      } else if (URL.canParse(`http://${emailDomain}`)) {
+        raw = url.startsWith("mailto:") ? url : `mailto:${url}`;
+      } else {
+        continue;
+      }
+      const absoluteURL = createValidAbsoluteUrl(raw, null, {
         addDefaultProtocol: true
       });
-      if (url) {
-        const [index, length] = getOriginalIndex(diffs, match.index, match[0].length);
+      if (absoluteURL) {
+        const [index, length] = getOriginalIndex(diffs, match.index, url.length);
         links.push({
-          url: url.href,
+          url: absoluteURL.href,
           index,
           length
         });
@@ -6733,7 +6741,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.164";
+    const viewerVersion = "5.0.197";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -10219,8 +10227,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.164";
-const pdfjsBuild = "3f15e0c46";
+const pdfjsVersion = "5.0.197";
+const pdfjsBuild = "34ef74cf0";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

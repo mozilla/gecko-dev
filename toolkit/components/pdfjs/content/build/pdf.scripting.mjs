@@ -342,7 +342,23 @@ class Color extends PDFObject {
   }
 }
 
+;// ./src/scripting_api/app_utils.js
+const VIEWER_TYPE = "PDF.js";
+const VIEWER_VARIATION = "Full";
+const VIEWER_VERSION = 21.00720099;
+const FORMS_VERSION = 21.00720099;
+const USERACTIVATION_CALLBACKID = 0;
+const USERACTIVATION_MAXTIME_VALIDITY = 5000;
+function serializeError(error) {
+  const value = `${error.toString()}\n${error.stack}`;
+  return {
+    command: "error",
+    value
+  };
+}
+
 ;// ./src/scripting_api/field.js
+
 
 
 
@@ -804,13 +820,14 @@ class Field extends PDFObject {
       return false;
     }
     const actions = this._actions.get(eventName);
-    try {
-      for (const action of actions) {
+    for (const action of actions) {
+      try {
         this._globalEval(action);
+      } catch (error) {
+        const serializedError = serializeError(error);
+        serializedError.value = `Error when executing "${eventName}" for field "${this._id}"\n${serializedError.value}`;
+        this._send(serializedError);
       }
-    } catch (error) {
-      event.rc = false;
-      throw error;
     }
     return true;
   }
@@ -1386,21 +1403,6 @@ class AForm {
   }
 }
 
-;// ./src/scripting_api/app_utils.js
-const VIEWER_TYPE = "PDF.js";
-const VIEWER_VARIATION = "Full";
-const VIEWER_VERSION = 21.00720099;
-const FORMS_VERSION = 21.00720099;
-const USERACTIVATION_CALLBACKID = 0;
-const USERACTIVATION_MAXTIME_VALIDITY = 5000;
-function serializeError(error) {
-  const value = `${error.toString()}\n${error.stack}`;
-  return {
-    command: "error",
-    value
-  };
-}
-
 ;// ./src/scripting_api/event.js
 
 class Event {
@@ -1623,12 +1625,7 @@ class EventDispatcher {
     const first = this._calculationOrder[0];
     const source = this._objects[first];
     globalThis.event = new Event({});
-    try {
-      this.runCalculate(source, globalThis.event);
-    } catch (error) {
-      this._isCalculating = false;
-      throw error;
-    }
+    this.runCalculate(source, globalThis.event);
     this._isCalculating = false;
   }
   runCalculate(source, event) {
@@ -1645,15 +1642,7 @@ class EventDispatcher {
       event.value = null;
       const target = this._objects[targetId];
       let savedValue = target.obj._getValue();
-      try {
-        this.runActions(source, target, event, "Calculate");
-      } catch (error) {
-        const fieldId = target.obj._id;
-        const serializedError = serializeError(error);
-        serializedError.value = `Error when calculating value for field "${fieldId}"\n${serializedError.value}`;
-        this._externalCall("send", [serializedError]);
-        continue;
-      }
+      this.runActions(source, target, event, "Calculate");
       if (!event.rc) {
         continue;
       }
@@ -2524,9 +2513,16 @@ class Doc extends PDFObject {
   }
   _runActions(name) {
     const actions = this._actions.get(name);
-    if (actions) {
-      for (const action of actions) {
+    if (!actions) {
+      return;
+    }
+    for (const action of actions) {
+      try {
         this._globalEval(action);
+      } catch (error) {
+        const serializedError = serializeError(error);
+        serializedError.value = `Error when executing "${name}" for document\n${serializedError.value}`;
+        this._send(serializedError);
       }
     }
   }
@@ -4047,8 +4043,8 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "5.0.164";
-const pdfjsBuild = "3f15e0c46";
+const pdfjsVersion = "5.0.197";
+const pdfjsBuild = "34ef74cf0";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };

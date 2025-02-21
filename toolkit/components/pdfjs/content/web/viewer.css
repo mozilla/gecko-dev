@@ -2302,11 +2302,11 @@
 }
 
 #editorSignatureParamsToolbar{
-  padding:10px;
+  padding:8px;
 
   #addSignatureDoorHanger{
     gap:8px;
-    overflow-y:unset;
+    padding:2px;
 
     .toolbarAddSignatureButtonContainer{
       height:32px;
@@ -5086,9 +5086,13 @@ dialog :link{
       font-style:normal;
       font-weight:400;
       line-height:150%;
-      color:var(--main-color);
       width:fit-content;
       inset-inline-start:0;
+      color:var(--main-color);
+    }
+
+    button:is(:hover, :focus-visible) .editorParamsLabel{
+      color:var(--doorhanger-hover-color);
     }
 
     .editorParamsToolbarContainer{
