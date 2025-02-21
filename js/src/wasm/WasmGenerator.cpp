@@ -927,12 +927,6 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     }
     codeBlock_->codeBase = codeStart;
     codeBlock_->codeLength = codeLength;
-
-    // All metadata in code block is relative to the start of the code segment
-    // we were placed in, so we must adjust offsets for where we were
-    // allocated.
-    uint32_t codeBlockOffset = codeStart - codeBlock_->segment->base();
-    codeBlock_->offsetMetadataBy(codeBlockOffset);
   } else {
     // Create a new CodeSegment for the code and use that.
     codeBlock_->segment = CodeSegment::createFromMasm(

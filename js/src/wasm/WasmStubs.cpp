@@ -1516,7 +1516,8 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
   // Actual call.
   const CodeBlock& codeBlock = inst.code().funcCodeBlock(fe.funcIndex());
   const CodeRange& codeRange = codeBlock.codeRange(fe);
-  void* callee = codeBlock.segment->base() + codeRange.funcUncheckedCallEntry();
+  void* callee = const_cast<uint8_t*>(codeBlock.base()) +
+                 codeRange.funcUncheckedCallEntry();
 
   masm.assertStackAlignment(WasmStackAlignment);
   MoveSPForJitABI(masm);
