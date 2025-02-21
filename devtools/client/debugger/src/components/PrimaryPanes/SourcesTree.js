@@ -51,7 +51,13 @@ class SourcesTree extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {};
+    this.state = {
+      hasOverflow: undefined,
+    };
+
+    // Monitor resize to check if the source tree shows a scrollbar.
+    this.onResize = this.onResize.bind(this);
+    this.resizeObserver = new ResizeObserver(this.onResize);
   }
 
   static get propTypes() {
@@ -69,6 +75,33 @@ class SourcesTree extends Component {
       setHideOrShowIgnoredSources: PropTypes.func.isRequired,
       hideIgnoredSources: PropTypes.bool.isRequired,
     };
+  }
+
+  onResize() {
+    const tree = this.refs.tree;
+    if (!tree) {
+      return;
+    }
+
+    // "treeRef" is created via createRef() in the Tree component.
+    const treeEl = tree.treeRef.current;
+    const hasOverflow = treeEl.scrollHeight > treeEl.clientHeight;
+    if (hasOverflow !== this.state.hasOverflow) {
+      this.setState({ hasOverflow });
+    }
+  }
+
+  componentDidUpdate() {
+    this.onResize();
+  }
+
+  componentDidMount() {
+    this.resizeObserver.observe(this.refs.pane);
+    this.onResize();
+  }
+
+  componentWillUnmount() {
+    this.resizeObserver.disconnect();
   }
 
   selectSourceItem = item => {
@@ -275,6 +308,7 @@ class SourcesTree extends Component {
         return this.props.expanded.has(this.getKey(item));
       },
       onActivate: this.onActivate,
+      ref: "tree",
       renderItem: this.renderItem,
       preventBlur: true,
     };
@@ -362,8 +396,10 @@ class SourcesTree extends Component {
     return div(
       {
         key: "pane",
+        ref: "pane",
         className: classnames("sources-list", {
           "sources-list-custom-root": !!projectRoot,
+          "sources-list-has-overflow": this.state.hasOverflow,
         }),
       },
       this.renderSettingsButton(),

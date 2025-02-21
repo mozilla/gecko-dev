@@ -53,9 +53,21 @@
 
 .sources-list .debugger-settings-menu-button {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: 1px;
+  right: 0px;
   z-index: 5;
+
+  background: var(--theme-toolbar-background);
+  min-width: unset;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--theme-splitter-color);
+  border-top-width: 0;
+}
+
+.sources-list.sources-list-has-overflow:not(.sources-list-custom-root)
+  .debugger-settings-menu-button {
+  right: 15px;
 }
 
 .sources-list .sources-clear-root-container {
