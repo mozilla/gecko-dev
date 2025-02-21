@@ -887,8 +887,15 @@ rtc_library("async_dns_resolver_unittests") {
   deps = [
     ":async_dns_resolver",
     ":gunit_helpers",
+    ":logging",
+    ":net_helpers",
+    ":socket_address",
+    ":threading",
+    "../api:rtc_error_matchers",
+    "../api/units:time_delta",
     "../test:run_loop",
     "../test:test_support",
+    "../test:wait_until",
   ]
 }
 
@@ -1695,12 +1702,16 @@ rtc_library("testclient") {
     "test_client.h",
   ]
   deps = [
+    ":async_packet_socket",
     ":async_udp_socket",
     ":buffer",
     ":gunit_helpers",
     ":rtc_base_tests_utils",
+    ":socket",
+    ":socket_address",
     ":threading",
     ":timeutils",
+    "../api/units:time_delta",
     "../api/units:timestamp",
     "network:received_packet",
     "synchronization:mutex",
@@ -1850,11 +1861,16 @@ if (rtc_include_tests) {
 
     sources = [ "operations_chain_unittest.cc" ]
     deps = [
+      ":checks",
       ":gunit_helpers",
       ":rtc_event",
       ":rtc_operations_chain",
       ":threading",
+      "../api:rtc_error_matchers",
+      "../api:scoped_refptr",
+      "../api/units:time_delta",
       "../test:test_support",
+      "../test:wait_until",
     ]
   }
 
@@ -1888,10 +1904,12 @@ if (rtc_include_tests) {
         ":rtc_base_tests_utils",
         ":socket",
         ":socket_address",
+        ":socket_factory",
         ":socket_server",
         ":testclient",
         ":threading",
         ":timeutils",
+        "../api:rtc_error_matchers",
         "../api/units:time_delta",
         "../api/units:timestamp",
         "../system_wrappers",
@@ -1899,6 +1917,8 @@ if (rtc_include_tests) {
         "../test:fileutils",
         "../test:test_main",
         "../test:test_support",
+        "../test:wait_until",
+        "network:ecn_marking",
         "third_party/sigslot",
         "//testing/gtest",
         "//third_party/abseil-cpp/absl/memory",
@@ -2150,6 +2170,7 @@ if (rtc_include_tests) {
         ":net_helpers",
         ":net_test_helpers",
         ":network",
+        ":network_constants",
         ":network_route",
         ":null_socket_server",
         ":refcount",
@@ -2175,6 +2196,8 @@ if (rtc_include_tests) {
         "../api:array_view",
         "../api:field_trials_view",
         "../api:make_ref_counted",
+        "../api:rtc_error_matchers",
+        "../api:scoped_refptr",
         "../api:sequence_checker",
         "../api/task_queue",
         "../api/task_queue:pending_task_safety_flag",
@@ -2186,6 +2209,7 @@ if (rtc_include_tests) {
         "../test:scoped_key_value_config",
         "../test:test_main",
         "../test:test_support",
+        "../test:wait_until",
         "memory:fifo_buffer",
         "network:received_packet",
         "synchronization:mutex",

@@ -33,6 +33,7 @@
 #include "api/array_view.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/buffer_queue.h"
@@ -40,7 +41,6 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
 #include "rtc_base/fake_clock.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/message_digest.h"
 #include "rtc_base/ssl_identity.h"
@@ -51,6 +51,7 @@
 #include "test/field_trial.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 using ::testing::Combine;
 using ::testing::NotNull;
@@ -423,7 +424,7 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
         lose_first_packet_(false),
         damage_(false),
         dtls_(dtls),
-        handshake_wait_(5000),
+        handshake_wait_(webrtc::TimeDelta::Millis(5000)),
         identities_set_(false) {
     // Set use of the test RNG to get predictable loss patterns.
     rtc::SetRandomTestMode(true);
@@ -587,12 +588,20 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
 
     // Now run the handshake
     if (expect_success) {
-      EXPECT_TRUE_SIMULATED_WAIT((client_ssl_->GetState() == rtc::SS_OPEN) &&
-                                     (server_ssl_->GetState() == rtc::SS_OPEN),
-                                 handshake_wait_, clock_);
+      EXPECT_THAT(webrtc::WaitUntil(
+                      [&] {
+                        return (client_ssl_->GetState() == rtc::SS_OPEN) &&
+                               (server_ssl_->GetState() == rtc::SS_OPEN);
+                      },
+                      ::testing::IsTrue(),
+                      {.timeout = handshake_wait_, .clock = &clock_}),
+                  webrtc::IsRtcOk());
     } else {
-      EXPECT_TRUE_SIMULATED_WAIT(client_ssl_->GetState() == rtc::SS_CLOSED,
-                                 handshake_wait_, clock_);
+      EXPECT_THAT(
+          webrtc::WaitUntil([&] { return client_ssl_->GetState(); },
+                            ::testing::Eq(rtc::SS_CLOSED),
+                            {.timeout = handshake_wait_, .clock = &clock_}),
+          webrtc::IsRtcOk());
     }
   }
 
@@ -629,9 +638,13 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     while (client_ssl_->GetState() == rtc::SS_OPENING &&
            (rtc::TimeDiff(clock_.TimeNanos(), time_start) <
             3600 * rtc::kNumNanosecsPerSec)) {
-      EXPECT_TRUE_SIMULATED_WAIT(!((client_ssl_->GetState() == rtc::SS_OPEN) &&
-                                   (server_ssl_->GetState() == rtc::SS_OPEN)),
-                                 1000, clock_);
+      EXPECT_THAT(webrtc::WaitUntil(
+                      [&] {
+                        return !((client_ssl_->GetState() == rtc::SS_OPEN) &&
+                                 (server_ssl_->GetState() == rtc::SS_OPEN));
+                      },
+                      ::testing::IsTrue(), {.clock = &clock_}),
+                  webrtc::IsRtcOk());
       clock_.AdvanceTime(time_increment);
     }
     EXPECT_EQ(client_ssl_->GetState(), rtc::SS_CLOSED);
@@ -656,9 +669,14 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
     ASSERT_EQ(0, client_ssl_->StartSSL());
 
     // Now run the handshake.
-    EXPECT_TRUE_SIMULATED_WAIT(
-        client_ssl_->IsTlsConnected() && server_ssl_->IsTlsConnected(),
-        handshake_wait_, clock_);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] {
+                      return client_ssl_->IsTlsConnected() &&
+                             server_ssl_->IsTlsConnected();
+                    },
+                    ::testing::IsTrue(),
+                    {.timeout = handshake_wait_, .clock = &clock_}),
+                webrtc::IsRtcOk());
 
     // Until the identity has been verified, the state should still be
     // SS_OPENING and writes should return SR_BLOCK.
@@ -779,7 +797,9 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
 
   void SetMtu(size_t mtu) { mtu_ = mtu; }
 
-  void SetHandshakeWait(int wait) { handshake_wait_ = wait; }
+  void SetHandshakeWait(int wait) {
+    handshake_wait_ = webrtc::TimeDelta::Millis(wait);
+  }
 
   void SetDtlsSrtpCryptoSuites(const std::vector<int>& ciphers, bool client) {
     if (client)
@@ -875,7 +895,7 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
   bool lose_first_packet_;
   bool damage_;
   bool dtls_;
-  int handshake_wait_;
+  webrtc::TimeDelta handshake_wait_;
   bool identities_set_;
 };
 
@@ -978,15 +998,20 @@ class SSLStreamAdapterTestDTLSBase : public SSLStreamAdapterTestBase {
 
     WriteData();
 
-    EXPECT_TRUE_SIMULATED_WAIT(sent_ == count_, 10000, clock_);
+    EXPECT_THAT(webrtc::WaitUntil([&] { return sent_; }, ::testing::Eq(count_),
+                                  {.timeout = webrtc::TimeDelta::Millis(10000),
+                                   .clock = &clock_}),
+                webrtc::IsRtcOk());
     RTC_LOG(LS_INFO) << "sent_ == " << sent_;
 
     if (damage_) {
-      SIMULATED_WAIT(false, 2000, clock_);
+      clock_.AdvanceTime(webrtc::TimeDelta::Millis(2000));
       EXPECT_EQ(0U, received_.size());
     } else if (loss_ == 0) {
-      EXPECT_EQ_SIMULATED_WAIT(static_cast<size_t>(sent_), received_.size(),
-                               1000, clock_);
+      EXPECT_THAT(webrtc::WaitUntil([&] { return received_.size(); },
+                                    ::testing::Eq(static_cast<size_t>(sent_)),
+                                    {.clock = &clock_}),
+                  webrtc::IsRtcOk());
     } else {
       RTC_LOG(LS_INFO) << "Sent " << sent_ << " packets; received "
                        << received_.size();

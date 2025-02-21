@@ -13,16 +13,13 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "absl/memory/memory.h"
-#include "api/units/time_delta.h"
-#include "rtc_base/async_packet_socket.h"
+#include "api/test/rtc_error_matchers.h"
 #include "rtc_base/async_tcp_socket.h"
 #include "rtc_base/async_udp_socket.h"
-#include "rtc_base/event.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/buffer.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/nat_server.h"
@@ -40,8 +37,10 @@
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
+#include "test/wait_until.h"
 
 namespace rtc {
 namespace {
@@ -408,7 +407,9 @@ TEST_F(NatTcpTest, DISABLED_TestConnectOut) {
 
   ConnectEvents();
 
-  EXPECT_TRUE_WAIT(connected_, 1000);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return connected_; }, ::testing::IsTrue()),
+      webrtc::IsRtcOk());
   EXPECT_EQ(client_->GetRemoteAddress(), server_->GetLocalAddress());
   EXPECT_EQ(accepted_->GetRemoteAddress().ipaddr(), ext_addr_.ipaddr());
 

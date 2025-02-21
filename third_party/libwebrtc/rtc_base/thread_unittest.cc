@@ -10,27 +10,39 @@
 
 #include "rtc_base/thread.h"
 
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <utility>
+#include <vector>
 
+#include "absl/strings/string_view.h"
 #include "api/field_trials_view.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "api/task_queue/task_queue_test.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/units/time_delta.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/async_udp_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/event.h"
 #include "rtc_base/fake_clock.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/internal/default_socket_server.h"
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/null_socket_server.h"
-#include "rtc_base/physical_socket_server.h"
-#include "rtc_base/ref_counted_object.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/socket_server.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread_annotations.h"
+#include "rtc_base/time_utils.h"
 #include "test/gmock.h"
+#include "test/gtest.h"
 #include "test/testsupport/rtc_expect_death.h"
+#include "test/wait_until.h"
 
 #if defined(WEBRTC_WIN)
 #include <comdef.h>  // NOLINT
@@ -457,7 +469,9 @@ TEST(ThreadTest, ThreeThreadsBlockingCall) {
         SetAndInvokeSet(&async_invoked, thread2, out);
       });
 
-      EXPECT_TRUE_WAIT(async_invoked.Get(), 2000);
+      EXPECT_THAT(webrtc::WaitUntil([&] { return async_invoked.Get(); },
+                                    ::testing::IsTrue()),
+                  webrtc::IsRtcOk());
     }
   };
 
@@ -472,7 +486,9 @@ TEST(ThreadTest, ThreeThreadsBlockingCall) {
   });
   EXPECT_FALSE(thread_a_called.Get());
 
-  EXPECT_TRUE_WAIT(thread_a_called.Get(), 2000);
+  EXPECT_THAT(webrtc::WaitUntil([&] { return thread_a_called.Get(); },
+                                ::testing::IsTrue()),
+              webrtc::IsRtcOk());
 }
 
 static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(

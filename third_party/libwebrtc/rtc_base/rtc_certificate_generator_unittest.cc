@@ -10,14 +10,21 @@
 
 #include "rtc_base/rtc_certificate_generator.h"
 
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <utility>
 
-#include "api/make_ref_counted.h"
+#include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/rtc_certificate.h"
+#include "rtc_base/ssl_identity.h"
 #include "rtc_base/thread.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace rtc {
 
@@ -65,7 +72,8 @@ class RTCCertificateGeneratorFixture {
 class RTCCertificateGeneratorTest : public ::testing::Test {
  public:
  protected:
-  static constexpr int kGenerationTimeoutMs = 10000;
+  static constexpr webrtc::TimeDelta kGenerationTimeoutMs =
+      webrtc::TimeDelta::Millis(10000);
 
   rtc::AutoThread main_thread_;
   RTCCertificateGeneratorFixture fixture_;
@@ -90,7 +98,10 @@ TEST_F(RTCCertificateGeneratorTest, GenerateAsyncECDSA) {
   // posted to this thread (which is done by `EXPECT_TRUE_WAIT`).
   EXPECT_FALSE(fixture_.GenerateAsyncCompleted());
   EXPECT_FALSE(fixture_.certificate());
-  EXPECT_TRUE_WAIT(fixture_.GenerateAsyncCompleted(), kGenerationTimeoutMs);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return fixture_.GenerateAsyncCompleted(); },
+                        ::testing::IsTrue(), {.timeout = kGenerationTimeoutMs}),
+      webrtc::IsRtcOk());
   EXPECT_TRUE(fixture_.certificate());
 }
 
@@ -118,7 +129,7 @@ TEST_F(RTCCertificateGeneratorTest, GenerateWithExpires) {
   EXPECT_GT(cert_b->Expires(), cert_a->Expires());
   uint64_t expires_diff = cert_b->Expires() - cert_a->Expires();
   EXPECT_GE(expires_diff, kExpiresMs);
-  EXPECT_LE(expires_diff, kExpiresMs + 2 * kGenerationTimeoutMs + 1000);
+  EXPECT_LE(expires_diff, kExpiresMs + 2 * kGenerationTimeoutMs.ms() + 1000);
 }
 
 TEST_F(RTCCertificateGeneratorTest, GenerateWithInvalidParamsShouldFail) {
@@ -130,7 +141,10 @@ TEST_F(RTCCertificateGeneratorTest, GenerateWithInvalidParamsShouldFail) {
 
   fixture_.generator()->GenerateCertificateAsync(invalid_params, std::nullopt,
                                                  fixture_.OnGenerated());
-  EXPECT_TRUE_WAIT(fixture_.GenerateAsyncCompleted(), kGenerationTimeoutMs);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return fixture_.GenerateAsyncCompleted(); },
+                        ::testing::IsTrue(), {.timeout = kGenerationTimeoutMs}),
+      webrtc::IsRtcOk());
   EXPECT_FALSE(fixture_.certificate());
 }
 

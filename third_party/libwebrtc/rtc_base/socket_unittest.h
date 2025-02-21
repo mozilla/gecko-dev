@@ -11,13 +11,16 @@
 #ifndef RTC_BASE_SOCKET_UNITTEST_H_
 #define RTC_BASE_SOCKET_UNITTEST_H_
 
+#include <cstddef>
+
 #include "absl/strings/string_view.h"
-#include "rtc_base/gunit.h"
-#include "rtc_base/thread.h"
+#include "rtc_base/ip_address.h"
+#include "rtc_base/socket_factory.h"
+#include "test/gtest.h"
 
 namespace rtc {
 
-// Generic socket tests, to be used when testing individual socketservers.
+// Generic socket tests, to be used when testing individual socket servers.
 // Derive your specific test class from SocketTest, install your
 // socketserver, and call the SocketTest test methods.
 class SocketTest : public ::testing::Test {
@@ -67,7 +70,6 @@ class SocketTest : public ::testing::Test {
   void TestSocketSendRecvWithEcnIPV4();
   void TestSocketSendRecvWithEcnIPV6();
 
-  static const int kTimeout = 5000;  // ms
   const IPAddress kIPv4Loopback;
   const IPAddress kIPv6Loopback;
 
