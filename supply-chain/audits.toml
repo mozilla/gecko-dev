@@ -1235,6 +1235,11 @@ who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.22.3 -> 0.23.1"
 
+[[audits.core-graphics]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "0.23.1 -> 0.24.0"
+
 [[audits.core-graphics-types]]
 who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -1268,6 +1273,11 @@ the variants of CTFontCreateWithName and CTFontCreateWithFontDescriptor that acc
 parameter. These are directly parallel to the existing versions without CTFontOptions, and do not
 introduce any new forms of risk.
 """
+
+[[audits.core-text]]
+who = "Erich Gubler <erichdongubler@gmail.com>"
+criteria = "safe-to-deploy"
+delta = "20.1.0 -> 21.0.0"
 
 [[audits.core_maths]]
 who = "Makoto Kato <m_kato@ga2.so-net.ne.jp>"
