@@ -180,8 +180,9 @@ void DebugState::toggleBreakpointTrap(JSRuntime* rt, Instance* instance,
   }
   size_t debugTrapOffset = callSite.returnAddressOffset();
 
+  const CodeSegment& codeSegment = debugSegment();
   const CodeRange* codeRange =
-      code_->lookupFuncRange(debugCode().base() + debugTrapOffset);
+      code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
   MOZ_ASSERT(codeRange);
 
   uint32_t funcIndex = codeRange->funcIndex();
@@ -299,7 +300,7 @@ void DebugState::disableDebuggingForFunction(Instance* instance,
 }
 
 void DebugState::enableDebugTrapping(Instance* instance) {
-  instance->setDebugStub(code_->sharedStubs().base() +
+  instance->setDebugStub(code_->sharedStubs().segment->base() +
                          code_->debugStubOffset());
 }
 
@@ -339,11 +340,11 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
            !iter.done() && !mustLeaveEnabled; iter.next()) {
         WasmBreakpointSite* site = iter.get().value();
         CallSite callSite;
-        const CodeBlock& codeBlock = debugCode();
-        if (SlowCallSiteSearchByOffset(codeBlock, site->offset, &callSite)) {
+        if (SlowCallSiteSearchByOffset(debugCode(), site->offset, &callSite)) {
           size_t debugTrapOffset = callSite.returnAddressOffset();
+          const CodeSegment& codeSegment = debugSegment();
           const CodeRange* codeRange =
-              code_->lookupFuncRange(codeBlock.base() + debugTrapOffset);
+              code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
           MOZ_ASSERT(codeRange);
           mustLeaveEnabled = codeRange->funcIndex() == funcIdx;
         }

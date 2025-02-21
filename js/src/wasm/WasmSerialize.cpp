@@ -1052,14 +1052,15 @@ static inline uint32_t ComputeCodeOffset(const uint8_t* codeStart,
 }
 
 CoderResult CodeStackMaps(Coder<MODE_DECODE>& coder,
-                          CoderArg<MODE_DECODE, wasm::StackMaps> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::StackMaps, 40);
+                          CoderArg<MODE_DECODE, wasm::StackMaps> item,
+                          const uint8_t* codeStart) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::StackMaps, 48);
   // Decode the amount of stack maps
   size_t length;
   MOZ_TRY(CodePod(coder, &length));
 
   for (size_t i = 0; i < length; i++) {
-    // Decode the offset
+    // Decode the offset relative to codeStart
     uint32_t codeOffset;
     MOZ_TRY(CodePod(coder, &codeOffset));
 
@@ -1068,32 +1069,37 @@ CoderResult CodeStackMaps(Coder<MODE_DECODE>& coder,
     MOZ_TRY(CodeStackMap(coder, &map));
 
     // Add it to the map
-    if (!item->add(codeOffset, map)) {
+    const uint8_t* nextInsnAddr = codeStart + codeOffset;
+    if (!item->add(nextInsnAddr, map)) {
       return Err(OutOfMemory());
     }
   }
 
+  // Finish the maps, asserting they are sorted
+  item->finishAlreadySorted();
   return Ok();
 }
 
 template <CoderMode mode>
 CoderResult CodeStackMaps(Coder<mode>& coder,
-                          CoderArg<mode, wasm::StackMaps> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::StackMaps, 40);
+                          CoderArg<mode, wasm::StackMaps> item,
+                          const uint8_t* codeStart) {
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::StackMaps, 48);
   STATIC_ASSERT_ENCODING_OR_SIZING;
 
   // Encode the amount of stack maps
   size_t length = item->length();
   MOZ_TRY(CodePod(coder, &length));
 
-  for (auto iter = item->mapping_.iter(); !iter.done(); iter.next()) {
-    uint32_t codeOffset = iter.get().key();
+  for (size_t i = 0; i < length; i++) {
+    StackMaps::Maplet maplet = item->get(i);
+    uint32_t codeOffset = ComputeCodeOffset(codeStart, maplet.nextInsnAddr);
 
-    // Encode the offset
+    // Encode the offset relative to codeStart
     MOZ_TRY(CodePod(coder, &codeOffset));
 
     // Encode the stack map
-    MOZ_TRY(CodeStackMap(coder, iter.get().value()));
+    MOZ_TRY(CodeStackMap(coder, maplet.map));
   }
   return Ok();
 }
@@ -1346,7 +1352,7 @@ CoderResult CodeFuncToCodeRangeMap(
 CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
                           wasm::UniqueCodeBlock* item,
                           const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2576);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2584);
   *item = js::MakeUnique<CodeBlock>(CodeBlock::kindFromTier(Tier::Serialized));
   if (!*item) {
     return Err(OutOfMemory());
@@ -1362,7 +1368,7 @@ CoderResult CodeCodeBlock(Coder<MODE_DECODE>& coder,
   MOZ_TRY(CodeCallSites(coder, &(*item)->callSites));
   MOZ_TRY(CodeTrapSites(coder, &(*item)->trapSites));
   MOZ_TRY(CodePodVector(coder, &(*item)->funcExports));
-  MOZ_TRY(CodeStackMaps(coder, &(*item)->stackMaps));
+  MOZ_TRY(CodeStackMaps(coder, &(*item)->stackMaps, (*item)->segment->base()));
   MOZ_TRY(CodePodVector(coder, &(*item)->tryNotes));
   MOZ_TRY(CodePodVector(coder, &(*item)->codeRangeUnwindInfos));
   return Ok();
@@ -1372,7 +1378,7 @@ template <CoderMode mode>
 CoderResult CodeCodeBlock(Coder<mode>& coder,
                           CoderArg<mode, wasm::CodeBlock> item,
                           const wasm::LinkData& linkData) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2576);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeBlock, 2584);
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeBlock));
   // We don't support serializing sub-ranges yet. These only happen with
@@ -1385,7 +1391,7 @@ CoderResult CodeCodeBlock(Coder<mode>& coder,
   MOZ_TRY(CodeCallSites(coder, &item->callSites));
   MOZ_TRY(CodeTrapSites(coder, &item->trapSites));
   MOZ_TRY(CodePodVector(coder, &item->funcExports));
-  MOZ_TRY(CodeStackMaps(coder, &item->stackMaps));
+  MOZ_TRY(CodeStackMaps(coder, &item->stackMaps, item->segment->base()));
   MOZ_TRY(CodePodVector(coder, &item->tryNotes));
   MOZ_TRY(CodePodVector(coder, &item->codeRangeUnwindInfos));
   return Ok();

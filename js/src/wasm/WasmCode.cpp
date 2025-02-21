@@ -143,7 +143,7 @@ bool wasm::StaticallyLink(jit::AutoMarkJitCodeWritableForThread& writable,
     const CodeBlock& bestBlock = maybeCode->funcCodeBlock(far.targetFuncIndex);
     uint32_t stubRangeIndex = bestBlock.funcToCodeRange[far.targetFuncIndex];
     const CodeRange& stubRange = bestBlock.codeRanges[stubRangeIndex];
-    uint8_t* stubBase = bestBlock.base();
+    uint8_t* stubBase = bestBlock.segment->base();
     MacroAssembler::patchFarJump(base + far.jumpOffset,
                                  stubBase + stubRange.funcUncheckedCallEntry());
   }
@@ -537,6 +537,7 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
   stubCodeBlock->codeLength = codeLength;
   stubCodeBlock->codeRanges = std::move(codeRanges);
 
+  uint32_t offsetInSegment = codeStart - stubCodeBlock->segment->base();
   *stubBlockIndex = guard->blocks.length();
 
   uint32_t codeRangeIndex = 0;
@@ -547,10 +548,22 @@ bool Code::createManyLazyEntryStubs(const WriteGuard& guard,
     LazyFuncExport lazyExport(fe.funcIndex(), *stubBlockIndex, codeRangeIndex,
                               tierCodeBlock.kind);
 
+    // Offset the code range for the interp entry to where it landed in the
+    // segment.
+    CodeRange& interpRange = stubCodeBlock->codeRanges[codeRangeIndex];
+    MOZ_ASSERT(interpRange.isInterpEntry());
+    MOZ_ASSERT(interpRange.funcIndex() == fe.funcIndex());
+    interpRange.offsetBy(offsetInSegment);
     codeRangeIndex += 1;
 
+    // Offset the code range for the jit entry (if any) to where it landed in
+    // the segment.
     if (funcType.canHaveJitEntry()) {
+      CodeRange& jitRange = stubCodeBlock->codeRanges[codeRangeIndex];
+      MOZ_ASSERT(jitRange.isJitEntry());
+      MOZ_ASSERT(jitRange.funcIndex() == fe.funcIndex());
       codeRangeIndex += 1;
+      jitRange.offsetBy(offsetInSegment);
     }
 
     size_t exportIndex;
@@ -596,6 +609,7 @@ bool Code::createOneLazyEntryStub(const WriteGuard& guard,
   }
 
   const CodeBlock& block = *guard->blocks[stubBlockIndex];
+  const CodeSegment& segment = *block.segment;
   const CodeRangeVector& codeRanges = block.codeRanges;
 
   const FuncExport& fe = tierCodeBlock.funcExports[funcExportIndex];
@@ -609,7 +623,7 @@ bool Code::createOneLazyEntryStub(const WriteGuard& guard,
   const CodeRange& interpRange =
       codeRanges[codeRanges.length() - funcEntryRanges];
   MOZ_ASSERT(interpRange.isInterpEntry());
-  *interpEntry = block.base() + interpRange.begin();
+  *interpEntry = segment.base() + interpRange.begin();
 
   // The second created range is the jit entry
   if (funcType.canHaveJitEntry()) {
@@ -617,7 +631,7 @@ bool Code::createOneLazyEntryStub(const WriteGuard& guard,
         codeRanges[codeRanges.length() - funcEntryRanges + 1];
     MOZ_ASSERT(jitRange.isJitEntry());
     jumpTables_.setJitEntry(jitRange.funcIndex(),
-                            block.base() + jitRange.begin());
+                            segment.base() + jitRange.begin());
   }
   return true;
 }
@@ -631,7 +645,7 @@ bool Code::getOrCreateInterpEntry(uint32_t funcIndex,
 
   const FuncExport& fe = **funcExport;
   if (fe.hasEagerStubs()) {
-    *interpEntry = codeBlock.base() + fe.eagerInterpEntryOffset();
+    *interpEntry = codeBlock.segment->base() + fe.eagerInterpEntryOffset();
     return true;
   }
 
@@ -804,11 +818,12 @@ bool Code::finishTier2(UniqueCodeBlock tier2CodeBlock,
     // Update jump vectors with pointers to tier-2 lazy entry stubs, if any.
     if (stub2Index) {
       const CodeBlock& block = *guard->blocks[*stub2Index];
+      const CodeSegment& segment = *block.segment;
       for (const CodeRange& cr : block.codeRanges) {
         if (!cr.isJitEntry()) {
           continue;
         }
-        jumpTables_.setJitEntry(cr.funcIndex(), block.base() + cr.begin());
+        jumpTables_.setJitEntry(cr.funcIndex(), segment.base() + cr.begin());
       }
     }
   }
@@ -816,7 +831,7 @@ bool Code::finishTier2(UniqueCodeBlock tier2CodeBlock,
   // And we update the jump vectors with pointers to tier-2 functions and eager
   // stubs.  Callers will continue to invoke tier-1 code until, suddenly, they
   // will invoke tier-2 code.  This is benign.
-  uint8_t* base = tier2CodePointer->base();
+  uint8_t* base = tier2CodePointer->segment->base();
   for (const CodeRange& cr : tier2CodePointer->codeRanges) {
     // These are racy writes that we just want to be visible, atomically,
     // eventually.  All hardware we care about will do this right.  But
@@ -910,7 +925,8 @@ void* Code::lookupLazyInterpEntry(const WriteGuard& guard,
     return nullptr;
   }
   const CodeBlock& block = *guard->blocks[fe->lazyStubBlockIndex];
-  return block.base() + block.codeRanges[fe->funcCodeRangeIndex].begin();
+  const CodeSegment& segment = *block.segment;
+  return segment.base() + block.codeRanges[fe->funcCodeRangeIndex].begin();
 }
 
 CodeBlock::~CodeBlock() {
@@ -1009,7 +1025,7 @@ void CodeBlock::sendToProfiler(
     if (!desc) {
       return;
     }
-    uintptr_t start = uintptr_t(base() + codeRange.begin());
+    uintptr_t start = uintptr_t(segment->base() + codeRange.begin());
     uintptr_t size = codeRange.end() - codeRange.begin();
     funcIonSpewer.spewer.saveWasmProfile(start, size, desc);
   }
@@ -1022,7 +1038,7 @@ void CodeBlock::sendToProfiler(
     if (!desc) {
       return;
     }
-    uintptr_t start = uintptr_t(base() + codeRange.begin());
+    uintptr_t start = uintptr_t(segment->base() + codeRange.begin());
     uintptr_t size = codeRange.end() - codeRange.begin();
     funcBaselineSpewer.spewer.saveProfile(start, size, desc);
   }
@@ -1045,7 +1061,7 @@ void CodeBlock::sendToProfiler(
       return;
     }
 
-    uintptr_t start = uintptr_t(base() + codeRange.begin());
+    uintptr_t start = uintptr_t(segment->base() + codeRange.begin());
     uintptr_t size = codeRange.end() - codeRange.begin();
 
 #ifdef MOZ_VTUNE
@@ -1058,6 +1074,27 @@ void CodeBlock::sendToProfiler(
     if (PerfEnabled()) {
       CollectPerfSpewerWasmMap(start, size, std::move(desc));
     }
+  }
+}
+
+void CodeBlock::offsetMetadataBy(uint32_t delta) {
+  if (delta == 0) {
+    return;
+  }
+  for (CodeRange& cr : codeRanges) {
+    cr.offsetBy(delta);
+  }
+  callSites.offsetBy(delta);
+  trapSites.offsetBy(delta);
+  for (FuncExport& fe : funcExports) {
+    fe.offsetBy(delta);
+  }
+  stackMaps.offsetBy(delta);
+  for (TryNote& tn : tryNotes) {
+    tn.offsetBy(delta);
+  }
+  for (CodeRangeUnwindInfo& crui : codeRangeUnwindInfos) {
+    crui.offsetBy(delta);
   }
 }
 
@@ -1076,23 +1113,21 @@ void CodeBlock::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
 }
 
 const CodeRange* CodeBlock::lookupRange(const void* pc) const {
-  CodeRange::OffsetInCode target((uint8_t*)pc - base());
+  CodeRange::OffsetInCode target((uint8_t*)pc - segment->base());
   return LookupInSorted(codeRanges, target);
 }
 
 bool CodeBlock::lookupCallSite(void* pc, CallSite* callSite) const {
-  uint32_t target = ((uint8_t*)pc) - base();
+  uint32_t target = ((uint8_t*)pc) - segment->base();
   return callSites.lookup(target, callSite);
 }
 
 const StackMap* CodeBlock::lookupStackMap(uint8_t* pc) const {
-  // We need to subtract the offset from the beginning of the codeblock.
-  uint32_t offsetInCodeBlock = pc - base();
-  return stackMaps.lookup(offsetInCodeBlock);
+  return stackMaps.findMap(pc);
 }
 
 const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {
-  size_t target = (uint8_t*)pc - base();
+  size_t target = (uint8_t*)pc - segment->base();
 
   // We find the first hit (there may be multiple) to obtain the innermost
   // handler, which is why we cannot binary search here.
@@ -1108,7 +1143,7 @@ const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {
 bool CodeBlock::lookupTrap(void* pc, Trap* kindOut,
                            TrapSiteDesc* trapOut) const {
   MOZ_ASSERT(containsCodePC(pc));
-  uint32_t target = ((uint8_t*)pc) - base();
+  uint32_t target = ((uint8_t*)pc) - segment->base();
   return trapSites.lookup(target, kindOut, trapOut);
 }
 
@@ -1120,7 +1155,7 @@ struct UnwindInfoPCOffset {
 };
 
 const CodeRangeUnwindInfo* CodeBlock::lookupUnwindInfo(void* pc) const {
-  uint32_t target = ((uint8_t*)pc) - base();
+  uint32_t target = ((uint8_t*)pc) - segment->base();
   size_t match;
   const CodeRangeUnwindInfo* info = nullptr;
   if (BinarySearch(UnwindInfoPCOffset(codeRangeUnwindInfos), 0,
@@ -1194,7 +1229,7 @@ bool JumpTables::initialize(CompileMode mode, const CodeMetadata& codeMeta,
     return false;
   }
 
-  uint8_t* codeBase = sharedStubs.base();
+  uint8_t* codeBase = sharedStubs.segment->base();
   for (const CodeRange& cr : sharedStubs.codeRanges) {
     if (cr.isFunction()) {
       setTieringEntry(cr.funcIndex(), codeBase + cr.funcTierEntry());
@@ -1203,7 +1238,7 @@ bool JumpTables::initialize(CompileMode mode, const CodeMetadata& codeMeta,
     }
   }
 
-  codeBase = tier1.base();
+  codeBase = tier1.segment->base();
   for (const CodeRange& cr : tier1.codeRanges) {
     if (cr.isFunction()) {
       setTieringEntry(cr.funcIndex(), codeBase + cr.funcTierEntry());
@@ -1240,7 +1275,7 @@ bool Code::initialize(FuncImportVector&& funcImports,
 
   sharedStubs_ = sharedStubs.get();
   completeTier1_ = tier1CodeBlock.get();
-  trapCode_ = sharedStubs_->base() + sharedStubsLinkData->trapOffset;
+  trapCode_ = sharedStubs_->segment->base() + sharedStubsLinkData->trapOffset;
   if (!jumpTables_.initialize(mode_, *codeMeta_, *sharedStubs_,
                               *completeTier1_) ||
       !addCodeBlock(guard, std::move(sharedStubs),
@@ -1509,7 +1544,7 @@ void CodeBlock::disassemble(JSContext* cx, int kindSelection,
       }
       printString(buf);
 
-      uint8_t* theCode = base() + range.begin();
+      uint8_t* theCode = segment->base() + range.begin();
       jit::Disassemble(theCode, range.end() - range.begin(), printString);
     }
   }

@@ -329,7 +329,8 @@ bool Instance::callImport(JSContext* cx, uint32_t funcImportIndex,
   }
 
   // The import may already have become optimized.
-  void* jitExitCode = code().sharedStubs().base() + fi.jitExitCodeOffset();
+  void* jitExitCode =
+      code().sharedStubs().segment->base() + fi.jitExitCodeOffset();
   if (import.code == jitExitCode) {
     return true;
   }
@@ -2310,9 +2311,9 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
 
   // Initialize the request-tier-up stub pointer, if relevant
   if (code().mode() == CompileMode::LazyTiering) {
-    setRequestTierUpStub(code().sharedStubs().base() +
+    setRequestTierUpStub(code().sharedStubs().segment->base() +
                          code().requestTierUpStubOffset());
-    setUpdateCallRefMetricsStub(code().sharedStubs().base() +
+    setUpdateCallRefMetricsStub(code().sharedStubs().segment->base() +
                                 code().updateCallRefMetricsStubOffset());
   } else {
     setRequestTierUpStub(nullptr);
@@ -2438,12 +2439,14 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
       } else {
         import.instance = this;
         import.realm = fun->realm();
-        import.code = code().sharedStubs().base() + fi.interpExitCodeOffset();
+        import.code =
+            code().sharedStubs().segment->base() + fi.interpExitCodeOffset();
       }
     } else {
       import.instance = this;
       import.realm = f->nonCCWRealm();
-      import.code = code().sharedStubs().base() + fi.interpExitCodeOffset();
+      import.code =
+          code().sharedStubs().segment->base() + fi.interpExitCodeOffset();
     }
   }
 
@@ -3616,7 +3619,7 @@ bool Instance::getExportedFunction(JSContext* cx, uint32_t funcIndex,
   Instance* instance = const_cast<Instance*>(this);
   const SuperTypeVector* superTypeVector = funcTypeDef.superTypeVector();
   void* uncheckedCallEntry =
-      codeBlock.base() + codeRange.funcUncheckedCallEntry();
+      codeBlock.segment->base() + codeRange.funcUncheckedCallEntry();
 
   if (isAsmJS()) {
     // asm.js needs to act like a normal JS function which means having the
@@ -4022,11 +4025,12 @@ void Instance::disassembleExport(JSContext* cx, uint32_t funcIndex, Tier tier,
   const CodeBlock& codeBlock = code().funcCodeBlock(funcIndex);
   const FuncExport& funcExport = codeBlock.lookupFuncExport(funcIndex);
   const CodeRange& range = codeBlock.codeRange(funcExport);
+  const CodeSegment& segment = *codeBlock.segment;
 
-  MOZ_ASSERT(range.begin() < codeBlock.length());
-  MOZ_ASSERT(range.end() < codeBlock.length());
+  MOZ_ASSERT(range.begin() < segment.lengthBytes());
+  MOZ_ASSERT(range.end() < segment.lengthBytes());
 
-  uint8_t* functionCode = codeBlock.base() + range.begin();
+  uint8_t* functionCode = segment.base() + range.begin();
   jit::Disassemble(functionCode, range.end() - range.begin(), printString);
 }
 

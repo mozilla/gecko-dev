@@ -1780,11 +1780,12 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     js::wasm::Instance& inst = fun->wasmInstance();
     const uint32_t funcIndex = fun->wasmFuncIndex();
     const js::wasm::CodeBlock& codeBlock = inst.code().funcCodeBlock(funcIndex);
+    const js::wasm::CodeSegment& segment = *codeBlock.segment;
     const js::wasm::FuncExport& func = codeBlock.lookupFuncExport(funcIndex);
     const js::wasm::CodeRange& codeRange = codeBlock.codeRange(func);
 
-    jit_begin = codeBlock.base() + codeRange.begin();
-    jit_end = codeBlock.base() + codeRange.end();
+    jit_begin = segment.base() + codeRange.begin();
+    jit_end = segment.base() + codeRange.end();
   } else if (fun->hasJitScript() && fun->nonLazyScript()->hasIonScript()) {
     sprinter.printf("; backend=ion\n");
     jit_begin = fun->nonLazyScript()->ionScript()->method()->raw();
