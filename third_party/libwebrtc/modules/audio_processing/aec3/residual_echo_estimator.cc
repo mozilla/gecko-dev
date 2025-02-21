@@ -16,9 +16,10 @@
 #include <vector>
 
 #include "api/array_view.h"
+#include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "modules/audio_processing/aec3/reverb_model.h"
 #include "rtc_base/checks.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 namespace {
@@ -30,25 +31,28 @@ float GetTransparentModeGain() {
 }
 
 float GetEarlyReflectionsDefaultModeGain(
+    const FieldTrialsView& field_trials,
     const EchoCanceller3Config::EpStrength& config) {
-  if (field_trial::IsEnabled("WebRTC-Aec3UseLowEarlyReflectionsDefaultGain")) {
+  if (field_trials.IsEnabled("WebRTC-Aec3UseLowEarlyReflectionsDefaultGain")) {
     return 0.1f;
   }
   return config.default_gain;
 }
 
 float GetLateReflectionsDefaultModeGain(
+    const FieldTrialsView& field_trials,
     const EchoCanceller3Config::EpStrength& config) {
-  if (field_trial::IsEnabled("WebRTC-Aec3UseLowLateReflectionsDefaultGain")) {
+  if (field_trials.IsEnabled("WebRTC-Aec3UseLowLateReflectionsDefaultGain")) {
     return 0.1f;
   }
   return config.default_gain;
 }
 
 bool UseErleOnsetCompensationInDominantNearend(
+    const FieldTrialsView& field_trials,
     const EchoCanceller3Config::EpStrength& config) {
   return config.erle_onset_compensation_in_dominant_nearend ||
-         field_trial::IsEnabled(
+         field_trials.IsEnabled(
              "WebRTC-Aec3UseErleOnsetCompensationInDominantNearend");
 }
 
@@ -154,18 +158,22 @@ void EchoGeneratingPower(size_t num_render_channels,
 
 }  // namespace
 
-ResidualEchoEstimator::ResidualEchoEstimator(const EchoCanceller3Config& config,
+ResidualEchoEstimator::ResidualEchoEstimator(const Environment& env,
+                                             const EchoCanceller3Config& config,
                                              size_t num_render_channels)
     : config_(config),
       num_render_channels_(num_render_channels),
       early_reflections_transparent_mode_gain_(GetTransparentModeGain()),
       late_reflections_transparent_mode_gain_(GetTransparentModeGain()),
       early_reflections_general_gain_(
-          GetEarlyReflectionsDefaultModeGain(config_.ep_strength)),
+          GetEarlyReflectionsDefaultModeGain(env.field_trials(),
+                                             config_.ep_strength)),
       late_reflections_general_gain_(
-          GetLateReflectionsDefaultModeGain(config_.ep_strength)),
+          GetLateReflectionsDefaultModeGain(env.field_trials(),
+                                            config_.ep_strength)),
       erle_onset_compensation_in_dominant_nearend_(
-          UseErleOnsetCompensationInDominantNearend(config_.ep_strength)) {
+          UseErleOnsetCompensationInDominantNearend(env.field_trials(),
+                                                    config_.ep_strength)) {
   Reset();
 }
 

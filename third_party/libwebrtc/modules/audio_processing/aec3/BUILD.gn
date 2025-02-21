@@ -155,7 +155,6 @@ rtc_library("aec3") {
     "../../../rtc_base/experiments:field_trial_parser",
     "../../../rtc_base/system:arch",
     "../../../system_wrappers",
-    "../../../system_wrappers:field_trial",
     "../../../system_wrappers:metrics",
     "../utility:cascaded_biquad_filter",
     "//third_party/abseil-cpp/absl/strings:string_view",

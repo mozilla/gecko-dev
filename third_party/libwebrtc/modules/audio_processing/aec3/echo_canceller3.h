@@ -181,6 +181,7 @@ class EchoCanceller3 : public EchoControl {
   // Analyzes the full-band domain capture signal to detect signal saturation.
   void AnalyzeCapture(const AudioBuffer& capture);
 
+  const Environment env_;
   rtc::RaceChecker capture_race_checker_;
   rtc::RaceChecker render_race_checker_;
 

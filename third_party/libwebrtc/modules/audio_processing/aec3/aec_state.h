@@ -21,6 +21,7 @@
 
 #include "api/array_view.h"
 #include "api/audio/echo_canceller3_config.h"
+#include "api/environment/environment.h"
 #include "modules/audio_processing/aec3/aec3_common.h"
 #include "modules/audio_processing/aec3/delay_estimate.h"
 #include "modules/audio_processing/aec3/echo_audibility.h"
@@ -41,7 +42,9 @@ class ApmDataDumper;
 // Handles the state and the conditions for the echo removal functionality.
 class AecState {
  public:
-  AecState(const EchoCanceller3Config& config, size_t num_capture_channels);
+  AecState(const Environment& env,
+           const EchoCanceller3Config& config,
+           size_t num_capture_channels);
   ~AecState();
 
   // Returns whether the echo subtractor can be used to determine the residual

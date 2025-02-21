@@ -735,7 +735,8 @@ EchoCanceller3::EchoCanceller3(
     int sample_rate_hz,
     size_t num_render_channels,
     size_t num_capture_channels)
-    : data_dumper_(new ApmDataDumper(instance_count_.fetch_add(1) + 1)),
+    : env_(env),
+      data_dumper_(new ApmDataDumper(instance_count_.fetch_add(1) + 1)),
       config_(AdjustConfig(config, env.field_trials())),
       sample_rate_hz_(sample_rate_hz),
       num_bands_(NumBandsForRate(sample_rate_hz_)),
@@ -825,9 +826,9 @@ void EchoCanceller3::Initialize() {
   render_blocker_.reset(
       new FrameBlocker(num_bands_, num_render_channels_to_aec_));
 
-  block_processor_.reset(BlockProcessor::Create(
-      config_selector_.active_config(), sample_rate_hz_,
-      num_render_channels_to_aec_, num_capture_channels_));
+  block_processor_ = BlockProcessor::Create(
+      env_, config_selector_.active_config(), sample_rate_hz_,
+      num_render_channels_to_aec_, num_capture_channels_);
 
   render_sub_frame_view_ = std::vector<std::vector<rtc::ArrayView<float>>>(
       num_bands_,

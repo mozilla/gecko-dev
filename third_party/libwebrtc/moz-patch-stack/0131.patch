@@ -498,7 +498,7 @@ index 55c39a530f..bf53fee4d5 100644
  
  config("audio_device_warnings_config") {
 diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
-index 29667e2eea..9874aca8b4 100644
+index afd80a29cf..2d7a333c9e 100644
 --- a/modules/audio_processing/aec3/BUILD.gn
 +++ b/modules/audio_processing/aec3/BUILD.gn
 @@ -124,7 +124,7 @@ rtc_library("aec3") {
