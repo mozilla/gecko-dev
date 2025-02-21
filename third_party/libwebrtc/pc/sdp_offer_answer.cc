@@ -776,7 +776,7 @@ cricket::MediaDescriptionOptions GetMediaDescriptionOptionsForTransceiver(
   cricket::MediaDescriptionOptions media_description_options(
       transceiver->media_type(), mid, transceiver->direction(), stopped);
   media_description_options.codec_preferences =
-      transceiver->codec_preferences();
+      transceiver->filtered_codec_preferences();
   media_description_options.header_extensions =
       transceiver->GetHeaderExtensionsToNegotiate();
   // This behavior is specified in JSEP. The gist is that:

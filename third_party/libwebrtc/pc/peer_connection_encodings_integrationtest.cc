@@ -63,6 +63,7 @@ using ::testing::Each;
 using ::testing::Eq;
 using ::testing::Field;
 using ::testing::Gt;
+using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
 using ::testing::IsTrue;
 using ::testing::Key;
@@ -2995,13 +2996,13 @@ INSTANTIATE_TEST_SUITE_P(StandardPath,
                                            "AV1"),
                          StringParamToString());
 
-#ifdef RTC_ENABLE_H265
 // These tests use fake encoders and decoders, allowing testing of codec
 // preferences, SDP negotiation and get/setParamaters(). But because the codecs
 // implementations are fake, these tests do not encode or decode any frames.
 class PeerConnectionEncodingsFakeCodecsIntegrationTest
     : public PeerConnectionEncodingsIntegrationTest {
  public:
+#ifdef RTC_ENABLE_H265
   scoped_refptr<PeerConnectionTestWrapper> CreatePcWithFakeH265(
       std::unique_ptr<FieldTrialsView> field_trials = nullptr) {
     std::unique_ptr<cricket::FakeWebRtcVideoEncoderFactory>
@@ -3026,8 +3027,62 @@ class PeerConnectionEncodingsFakeCodecsIntegrationTest
         std::move(video_decoder_factory), std::move(field_trials));
     return pc_wrapper;
   }
+#endif  // RTC_ENABLE_H265
+
+  // Creates a PC where we have H264 with one sendonly, one recvonly and one
+  // sendrecv "profile-level-id". The sendrecv one is constrained baseline.
+  scoped_refptr<PeerConnectionTestWrapper> CreatePcWithUnidirectionalH264(
+      std::unique_ptr<FieldTrialsView> field_trials = nullptr) {
+    std::unique_ptr<cricket::FakeWebRtcVideoEncoderFactory>
+        video_encoder_factory =
+            std::make_unique<cricket::FakeWebRtcVideoEncoderFactory>();
+    SdpVideoFormat h264_constrained_baseline =
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "42f00b"}},  // sendrecv
+                       {ScalabilityMode::kL1T1});
+    video_encoder_factory->AddSupportedVideoCodec(h264_constrained_baseline);
+    video_encoder_factory->AddSupportedVideoCodec(
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "640034"}},  // sendonly
+                       {ScalabilityMode::kL1T1}));
+    std::unique_ptr<cricket::FakeWebRtcVideoDecoderFactory>
+        video_decoder_factory =
+            std::make_unique<cricket::FakeWebRtcVideoDecoderFactory>();
+    video_decoder_factory->AddSupportedVideoCodec(h264_constrained_baseline);
+    video_decoder_factory->AddSupportedVideoCodec(
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "f4001f"}},  // recvonly
+                       {ScalabilityMode::kL1T1}));
+    auto pc_wrapper = make_ref_counted<PeerConnectionTestWrapper>(
+        "pc", &pss_, background_thread_.get(), background_thread_.get());
+    pc_wrapper->CreatePc(
+        {}, CreateBuiltinAudioEncoderFactory(),
+        CreateBuiltinAudioDecoderFactory(), std::move(video_encoder_factory),
+        std::move(video_decoder_factory), std::move(field_trials));
+    return pc_wrapper;
+  }
+
+  std::string LocalDescriptionStr(PeerConnectionTestWrapper* pc_wrapper) {
+    const SessionDescriptionInterface* local_description =
+        pc_wrapper->pc()->local_description();
+    if (!local_description) {
+      return "";
+    }
+    std::string str;
+    if (!local_description->ToString(&str)) {
+      return "";
+    }
+    return str;
+  }
 };
 
+#ifdef RTC_ENABLE_H265
 TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest, H265Singlecast) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper =
       CreatePcWithFakeH265();
@@ -3159,5 +3214,144 @@ TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest,
   }
 }
 #endif  // RTC_ENABLE_H265
+
+TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest,
+       H264UnidirectionalNegotiation) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper =
+      CreatePcWithUnidirectionalH264();
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper =
+      CreatePcWithUnidirectionalH264();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      local_pc_wrapper->pc()
+          ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO)
+          .MoveValue();
+
+  // Filter on codec name and assert that sender capabilities have codecs for
+  // {sendrecv, sendonly} and the receiver capabilities have codecs for
+  // {sendrecv, recvonly}.
+  std::vector<RtpCodecCapability> send_codecs =
+      local_pc_wrapper->pc_factory()
+          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          .codecs;
+  send_codecs.erase(std::remove_if(send_codecs.begin(), send_codecs.end(),
+                                   [](const RtpCodecCapability& codec) {
+                                     return codec.name != "H264";
+                                   }),
+                    send_codecs.end());
+  std::vector<RtpCodecCapability> recv_codecs =
+      local_pc_wrapper->pc_factory()
+          ->GetRtpReceiverCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          .codecs;
+  recv_codecs.erase(std::remove_if(recv_codecs.begin(), recv_codecs.end(),
+                                   [](const RtpCodecCapability& codec) {
+                                     RTC_LOG(LS_ERROR) << codec.name;
+                                     return codec.name != "H264";
+                                   }),
+                    recv_codecs.end());
+  ASSERT_THAT(send_codecs, SizeIs(2u));
+  ASSERT_THAT(recv_codecs, SizeIs(2u));
+  EXPECT_EQ(send_codecs[0], recv_codecs[0]);
+  EXPECT_NE(send_codecs[1], recv_codecs[1]);
+  RtpCodecCapability& sendrecv_codec = send_codecs[0];
+  RtpCodecCapability& sendonly_codec = send_codecs[1];
+  RtpCodecCapability& recvonly_codec = recv_codecs[1];
+
+  // Preferring sendonly + recvonly on a sendrecv transceiver is the same as
+  // not having any preferences, meaning the sendrecv codec (not listed) is the
+  // one being negotiated.
+  std::vector<RtpCodecCapability> preferred_codecs = {sendonly_codec,
+                                                      recvonly_codec};
+  EXPECT_THAT(transceiver->SetCodecPreferences(preferred_codecs), IsRtcOk());
+  EXPECT_THAT(
+      transceiver->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  Negotiate(local_pc_wrapper, remote_pc_wrapper);
+  std::string local_sdp = LocalDescriptionStr(local_pc_wrapper.get());
+  EXPECT_THAT(local_sdp,
+              HasSubstr(sendrecv_codec.parameters["profile-level-id"]));
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(sendonly_codec.parameters["profile-level-id"])));
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(recvonly_codec.parameters["profile-level-id"])));
+
+  // Prefer all codecs and expect that the SDP offer contains the relevant
+  // codecs after filtering. Complete O/A each time.
+  preferred_codecs = {sendrecv_codec, sendonly_codec, recvonly_codec};
+  EXPECT_THAT(transceiver->SetCodecPreferences(preferred_codecs), IsRtcOk());
+  // Transceiver direction: sendrecv.
+  EXPECT_THAT(
+      transceiver->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  Negotiate(local_pc_wrapper, remote_pc_wrapper);
+  local_sdp = LocalDescriptionStr(local_pc_wrapper.get());
+  EXPECT_THAT(local_sdp,
+              HasSubstr(sendrecv_codec.parameters["profile-level-id"]));
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(sendonly_codec.parameters["profile-level-id"])));
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(recvonly_codec.parameters["profile-level-id"])));
+  // Transceiver direction: sendonly.
+  EXPECT_THAT(
+      transceiver->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  Negotiate(local_pc_wrapper, remote_pc_wrapper);
+  local_sdp = LocalDescriptionStr(local_pc_wrapper.get());
+  EXPECT_THAT(local_sdp,
+              HasSubstr(sendrecv_codec.parameters["profile-level-id"]));
+  EXPECT_THAT(local_sdp,
+              HasSubstr(sendonly_codec.parameters["profile-level-id"]));
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(recvonly_codec.parameters["profile-level-id"])));
+  // Transceiver direction: recvonly.
+  EXPECT_THAT(
+      transceiver->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  Negotiate(local_pc_wrapper, remote_pc_wrapper);
+  local_sdp = LocalDescriptionStr(local_pc_wrapper.get());
+  EXPECT_THAT(local_sdp,
+              HasSubstr(sendrecv_codec.parameters["profile-level-id"]));
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(sendonly_codec.parameters["profile-level-id"])));
+  EXPECT_THAT(local_sdp,
+              HasSubstr(recvonly_codec.parameters["profile-level-id"]));
+
+  // Test that offering a sendonly codec on a sendonly transceiver is possible.
+  // - Note that we don't complete the negotiation this time because we're not
+  //   capable of receiving the codec.
+  preferred_codecs = {sendonly_codec};
+  EXPECT_THAT(transceiver->SetCodecPreferences(preferred_codecs), IsRtcOk());
+  EXPECT_THAT(
+      transceiver->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  std::unique_ptr<SessionDescriptionInterface> offer =
+      CreateOffer(local_pc_wrapper);
+  EXPECT_TRUE(Await({SetLocalDescription(local_pc_wrapper, offer.get())}));
+  local_sdp = LocalDescriptionStr(local_pc_wrapper.get());
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(sendrecv_codec.parameters["profile-level-id"])));
+  EXPECT_THAT(local_sdp,
+              HasSubstr(sendonly_codec.parameters["profile-level-id"]));
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(recvonly_codec.parameters["profile-level-id"])));
+  // Test that offering recvonly codec on a recvonly transceiver is possible.
+  // - Note that we don't complete the negotiation this time because we're not
+  //   capable of sending the codec.
+  preferred_codecs = {recvonly_codec};
+  EXPECT_THAT(transceiver->SetCodecPreferences(preferred_codecs), IsRtcOk());
+  EXPECT_THAT(
+      transceiver->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  offer = CreateOffer(local_pc_wrapper);
+  EXPECT_TRUE(Await({SetLocalDescription(local_pc_wrapper, offer.get())}));
+  local_sdp = LocalDescriptionStr(local_pc_wrapper.get());
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(sendrecv_codec.parameters["profile-level-id"])));
+  EXPECT_THAT(local_sdp,
+              Not(HasSubstr(sendonly_codec.parameters["profile-level-id"])));
+  EXPECT_THAT(local_sdp,
+              HasSubstr(recvonly_codec.parameters["profile-level-id"]));
+}
 
 }  // namespace webrtc

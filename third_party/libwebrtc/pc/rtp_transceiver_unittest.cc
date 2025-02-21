@@ -20,7 +20,9 @@
 #include "api/environment/environment_factory.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtp_parameters.h"
+#include "api/test/rtc_error_matchers.h"
 #include "media/base/fake_media_engine.h"
+#include "pc/rtp_parameters_conversion.h"
 #include "pc/test/enable_fake_media.h"
 #include "pc/test/mock_channel_interface.h"
 #include "pc/test/mock_rtp_receiver_internal.h"
@@ -37,6 +39,7 @@ using ::testing::Optional;
 using ::testing::Property;
 using ::testing::Return;
 using ::testing::ReturnRef;
+using ::testing::SizeIs;
 
 namespace webrtc {
 
@@ -168,6 +171,7 @@ class RtpTransceiverUnifiedPlanTest : public RtpTransceiverTest {
         /* on_negotiation_needed= */ [] {});
   }
 
+ protected:
   rtc::AutoThread main_thread_;
 };
 
@@ -196,6 +200,263 @@ TEST_F(RtpTransceiverUnifiedPlanTest, StopSetsDirection) {
   EXPECT_EQ(RtpTransceiverDirection::kStopped,
             *transceiver->current_direction());
 }
+
+class RtpTransceiverFilteredCodecPreferencesTest
+    : public RtpTransceiverUnifiedPlanTest {
+ public:
+  RtpTransceiverFilteredCodecPreferencesTest()
+      : transceiver_(CreateTransceiver(
+            MockSender(cricket::MediaType::MEDIA_TYPE_VIDEO),
+            MockReceiver(cricket::MediaType::MEDIA_TYPE_VIDEO))) {}
+
+  struct H264CodecCapabilities {
+    cricket::Codec cricket_sendrecv_codec;
+    RtpCodecCapability sendrecv_codec;
+    cricket::Codec cricket_sendonly_codec;
+    RtpCodecCapability sendonly_codec;
+    cricket::Codec cricket_recvonly_codec;
+    RtpCodecCapability recvonly_codec;
+    cricket::Codec cricket_rtx_codec;
+    RtpCodecCapability rtx_codec;
+  };
+
+  // For H264, the profile and level IDs are entangled and not ignored by
+  // IsSameRtpCodecIgnoringLevel().
+  H264CodecCapabilities ConfigureH264CodecCapabilities() {
+    cricket::Codec cricket_sendrecv_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "42f00b"}},
+                       {ScalabilityMode::kL1T1}));
+    cricket::Codec cricket_sendonly_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "640034"}},
+                       {ScalabilityMode::kL1T1}));
+    cricket::Codec cricket_recvonly_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H264",
+                       {{"level-asymmetry-allowed", "1"},
+                        {"packetization-mode", "1"},
+                        {"profile-level-id", "f4001f"}},
+                       {ScalabilityMode::kL1T1}));
+    cricket::Codec cricket_rtx_codec = cricket::CreateVideoRtxCodec(
+        cricket::Codec::kIdNotSet, cricket::Codec::kIdNotSet);
+    media_engine()->SetVideoSendCodecs(
+        {cricket_sendrecv_codec, cricket_sendonly_codec, cricket_rtx_codec});
+    media_engine()->SetVideoRecvCodecs(
+        {cricket_sendrecv_codec, cricket_recvonly_codec, cricket_rtx_codec});
+    return {
+        .cricket_sendrecv_codec = cricket_sendrecv_codec,
+        .sendrecv_codec = ToRtpCodecCapability(cricket_sendrecv_codec),
+        .cricket_sendonly_codec = cricket_sendonly_codec,
+        .sendonly_codec = ToRtpCodecCapability(cricket_sendonly_codec),
+        .cricket_recvonly_codec = cricket_recvonly_codec,
+        .recvonly_codec = ToRtpCodecCapability(cricket_recvonly_codec),
+        .cricket_rtx_codec = cricket_rtx_codec,
+        .rtx_codec = ToRtpCodecCapability(cricket_rtx_codec),
+    };
+  }
+
+#ifdef RTC_ENABLE_H265
+  struct H265CodecCapabilities {
+    // The level-id from sender getCapabilities() or receiver getCapabilities().
+    static constexpr const char* kSendOnlyLevel = "180";
+    static constexpr const char* kRecvOnlyLevel = "156";
+    // A valid H265 level-id, but one not present in either getCapabilities().
+    static constexpr const char* kLevelNotInCapabilities = "135";
+
+    cricket::Codec cricket_sendonly_codec;
+    RtpCodecCapability sendonly_codec;
+    cricket::Codec cricket_recvonly_codec;
+    RtpCodecCapability recvonly_codec;
+  };
+
+  // For H265, the profile and level IDs are separate and are ignored by
+  // IsSameRtpCodecIgnoringLevel().
+  H265CodecCapabilities ConfigureH265CodecCapabilities() {
+    cricket::Codec cricket_sendonly_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H265",
+                       {{"profile-id", "1"},
+                        {"tier-flag", "0"},
+                        {"level-id", H265CodecCapabilities::kSendOnlyLevel},
+                        {"tx-mode", "SRST"}},
+                       {ScalabilityMode::kL1T1}));
+    cricket::Codec cricket_recvonly_codec = cricket::CreateVideoCodec(
+        SdpVideoFormat("H265",
+                       {{"profile-id", "1"},
+                        {"tier-flag", "0"},
+                        {"level-id", H265CodecCapabilities::kRecvOnlyLevel},
+                        {"tx-mode", "SRST"}},
+                       {ScalabilityMode::kL1T1}));
+    media_engine()->SetVideoSendCodecs({cricket_sendonly_codec});
+    media_engine()->SetVideoRecvCodecs({cricket_recvonly_codec});
+    return {
+        .cricket_sendonly_codec = cricket_sendonly_codec,
+        .sendonly_codec = ToRtpCodecCapability(cricket_sendonly_codec),
+        .cricket_recvonly_codec = cricket_recvonly_codec,
+        .recvonly_codec = ToRtpCodecCapability(cricket_recvonly_codec),
+    };
+  }
+#endif  // RTC_ENABLE_H265
+
+ protected:
+  rtc::scoped_refptr<RtpTransceiver> transceiver_;
+};
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest, EmptyByDefault) {
+  ConfigureH264CodecCapabilities();
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kInactive),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest, OrderIsMaintained) {
+  const auto codecs = ConfigureH264CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {codecs.sendrecv_codec,
+                                                        codecs.rtx_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+  // Reverse order.
+  codec_capabilities = {codecs.rtx_codec, codecs.sendrecv_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       FiltersCodecsBasedOnDirection) {
+  const auto codecs = ConfigureH264CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {
+      codecs.sendonly_codec, codecs.sendrecv_codec, codecs.recvonly_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.sendrecv_codec));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.sendonly_codec, codecs.sendrecv_codec));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.sendrecv_codec, codecs.recvonly_codec));
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kInactive),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.sendrecv_codec));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       RtxIsIncludedAfterFiltering) {
+  const auto codecs = ConfigureH264CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {codecs.recvonly_codec,
+                                                        codecs.rtx_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.recvonly_codec, codecs.rtx_codec));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       NoMediaIsTheSameAsNoPreference) {
+  const auto codecs = ConfigureH264CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {codecs.recvonly_codec,
+                                                        codecs.rtx_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  // After filtering the only codec that remains is RTX which is not a media
+  // codec, this is the same as not having any preferences.
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+
+  // But the preferences are remembered in case the direction changes such that
+  // we do have a media codec.
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codecs.recvonly_codec, codecs.rtx_codec));
+}
+
+#ifdef RTC_ENABLE_H265
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       H265LevelIdIsIgnoredByFilter) {
+  const auto codecs = ConfigureH265CodecCapabilities();
+  std::vector<RtpCodecCapability> codec_capabilities = {codecs.sendonly_codec,
+                                                        codecs.recvonly_codec};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  // Regardless of direction, both codecs are preferred due to ignoring levels.
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0], codec_capabilities[1]));
+}
+
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       H265LevelIdHasToFromSenderOrReceiverCapabilities) {
+  ConfigureH265CodecCapabilities();
+  cricket::Codec cricket_codec = cricket::CreateVideoCodec(SdpVideoFormat(
+      "H265",
+      {{"profile-id", "1"},
+       {"tier-flag", "0"},
+       {"level-id", H265CodecCapabilities::kLevelNotInCapabilities},
+       {"tx-mode", "SRST"}},
+      {ScalabilityMode::kL1T1}));
+
+  std::vector<RtpCodecCapability> codec_capabilities = {
+      ToRtpCodecCapability(cricket_codec)};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities),
+              IsRtcErrorWithTypeAndMessage(
+                  RTCErrorType::INVALID_MODIFICATION,
+                  "Invalid codec preferences: Missing codec from codec "
+                  "capabilities."));
+}
+#endif  // RTC_ENABLE_H265
 
 class RtpTransceiverTestForHeaderExtensions
     : public RtpTransceiverUnifiedPlanTest {

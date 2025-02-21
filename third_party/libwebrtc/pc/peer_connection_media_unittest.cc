@@ -60,6 +60,7 @@
 #ifdef WEBRTC_ANDROID
 #include "pc/test/android_test_initializer.h"
 #endif
+#include "api/test/rtc_error_matchers.h"
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gmock.h"
 
@@ -1512,8 +1513,9 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
                     return codec.name.find("_only_") != std::string::npos;
                   });
 
-  auto result = transceiver->SetCodecPreferences(codecs);
-  EXPECT_EQ(RTCErrorType::INVALID_MODIFICATION, result.type());
+  // This is OK, however because the codec is send-only and the transciever is
+  // not send-only, it would get filtered out during negotiation.
+  EXPECT_THAT(transceiver->SetCodecPreferences(codecs), IsRtcOk());
 }
 
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
@@ -2044,7 +2046,7 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
 }
 
 TEST_F(PeerConnectionMediaTestUnifiedPlan,
-       SetCodecPreferencesReceiveOnlyWithSendOnlyTransceiverStops) {
+       SetCodecPreferencesRecvOnlyCodecOnSendOnlyTransceiver) {
   auto fake_engine = std::make_unique<cricket::FakeMediaEngine>();
 
   std::vector<cricket::Codec> audio_codecs;
@@ -2065,7 +2067,10 @@ TEST_F(PeerConnectionMediaTestUnifiedPlan,
   EXPECT_TRUE(audio_transceiver->SetCodecPreferences(capabilities.codecs).ok());
   RTCOfferAnswerOptions options;
   EXPECT_TRUE(caller->SetLocalDescription(caller->CreateOffer(options)));
-  EXPECT_EQ(audio_transceiver->direction(), RtpTransceiverDirection::kStopped);
+  // The transceiver is still sendonly (not stopped) because preferring a codec
+  // that is not applicable to the sendonly use case is the same as not having
+  // any codec preferences.
+  EXPECT_EQ(audio_transceiver->direction(), RtpTransceiverDirection::kSendOnly);
 }
 
 TEST_F(PeerConnectionMediaTestUnifiedPlan, SetCodecPreferencesVideoNoRtx) {
