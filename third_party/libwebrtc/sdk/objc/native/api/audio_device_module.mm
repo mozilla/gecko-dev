@@ -22,7 +22,9 @@ rtc::scoped_refptr<AudioDeviceModule> CreateAudioDeviceModule(
   RTC_DLOG(LS_INFO) << __FUNCTION__;
 #if defined(WEBRTC_IOS)
   return rtc::make_ref_counted<ios_adm::AudioDeviceModuleIOS>(
-      bypass_voice_processing, nullptr);
+      bypass_voice_processing,
+      /*muted_speech_event_handler=*/nullptr,
+      /*error_handler=*/nullptr);
 #else
   RTC_LOG(LS_ERROR)
       << "current platform is not supported => this module will self destruct!";
@@ -31,12 +33,22 @@ rtc::scoped_refptr<AudioDeviceModule> CreateAudioDeviceModule(
 }
 
 rtc::scoped_refptr<AudioDeviceModule> CreateMutedDetectAudioDeviceModule(
-    AudioDeviceModule::MutedSpeechEventHandler handler,
+    AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler,
+    bool bypass_voice_processing) {
+  RTC_DLOG(LS_INFO) << __FUNCTION__;
+  return CreateMutedDetectAudioDeviceModule(muted_speech_event_handler,
+                                            /*error_handler=*/nullptr,
+                                            bypass_voice_processing);
+}
+
+rtc::scoped_refptr<AudioDeviceModule> CreateMutedDetectAudioDeviceModule(
+    AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler,
+    ADMErrorHandler error_handler,
     bool bypass_voice_processing) {
   RTC_DLOG(LS_INFO) << __FUNCTION__;
 #if defined(WEBRTC_IOS)
   return rtc::make_ref_counted<ios_adm::AudioDeviceModuleIOS>(
-      bypass_voice_processing, handler);
+      bypass_voice_processing, muted_speech_event_handler, error_handler);
 #else
   RTC_LOG(LS_ERROR)
       << "current platform is not supported => this module will self destruct!";
