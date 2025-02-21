@@ -8,4 +8,4 @@ This section is meant to make it easier to use and implement cross-platform comp
 
 Topic Guides <topic-guides/index>
 API References <api/index>
-uniffi
+Developing Rust Components <developing-rust-components/index>
