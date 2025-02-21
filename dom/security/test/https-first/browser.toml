@@ -23,6 +23,9 @@ support-files = [
 
 ["browser_http_scheme_no_upgrade.js"]
 
+["browser_https_rr_no_downgrade.js"]
+support-files = ["file_https_rr_no_downgrade.sjs"]
+
 ["browser_https_telemetry.js"]
 support-files = [
   "file_https_telemetry_hsts.sjs",
