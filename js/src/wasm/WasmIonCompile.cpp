@@ -10024,7 +10024,16 @@ bool FunctionCompiler::emitBodyExprs() {
           case uint32_t(SimdOp::F32x4RelaxedMin):
           case uint32_t(SimdOp::F32x4RelaxedMax):
           case uint32_t(SimdOp::F64x2RelaxedMin):
-          case uint32_t(SimdOp::F64x2RelaxedMax):
+          case uint32_t(SimdOp::F64x2RelaxedMax): {
+            if (!codeMeta().v128RelaxedEnabled()) {
+              return iter().unrecognizedOpcode(&op);
+            }
+            // These aren't really commutative, because at least on Intel, the
+            // behaviour in the presence of NaNs depends on the order of the
+            // operands.  And we need to have that ordering fixed, so that we
+            // can produce the same results as baseline.  See bug 1946618.
+            CHECK(emitBinarySimd128(/* commutative= */ false, SimdOp(op.b1)));
+          }
           case uint32_t(SimdOp::I16x8RelaxedQ15MulrS): {
             if (!codeMeta().v128RelaxedEnabled()) {
               return iter().unrecognizedOpcode(&op);
