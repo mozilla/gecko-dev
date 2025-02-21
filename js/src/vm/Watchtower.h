@@ -38,7 +38,8 @@ class Watchtower {
   static bool watchPropertyRemoveSlow(JSContext* cx, Handle<NativeObject*> obj,
                                       HandleId id);
   static bool watchPropertyChangeSlow(JSContext* cx, Handle<NativeObject*> obj,
-                                      HandleId id, PropertyFlags flags);
+                                      HandleId id, PropertyInfo propInfo,
+                                      PropertyFlags newFlags);
   template <AllowGC allowGC>
   static bool watchPropertyModificationSlow(
       JSContext* cx,
@@ -102,11 +103,12 @@ class Watchtower {
     return watchPropertyRemoveSlow(cx, obj, id);
   }
   static bool watchPropertyChange(JSContext* cx, Handle<NativeObject*> obj,
-                                  HandleId id, PropertyFlags flags) {
+                                  HandleId id, PropertyInfo propInfo,
+                                  PropertyFlags newFlags) {
     if (MOZ_LIKELY(!watchesPropertyChange(obj))) {
       return true;
     }
-    return watchPropertyChangeSlow(cx, obj, id, flags);
+    return watchPropertyChangeSlow(cx, obj, id, propInfo, newFlags);
   }
 
   // Note: We can only watch property modification for regular object slots

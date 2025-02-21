@@ -530,10 +530,6 @@ bool NativeObject::changeProperty(JSContext* cx, Handle<NativeObject*> obj,
   MOZ_ASSERT(!flags.isCustomDataProperty(),
              "Use changeCustomDataPropAttributes for custom data properties");
 
-  if (!Watchtower::watchPropertyChange(cx, obj, id, flags)) {
-    return false;
-  }
-
   Rooted<PropMap*> map(cx, obj->shape()->propMap());
   uint32_t mapLength = obj->shape()->propMapLength();
 
@@ -545,6 +541,10 @@ bool NativeObject::changeProperty(JSContext* cx, Handle<NativeObject*> obj,
 
   PropertyInfo oldProp = propMap->getPropertyInfo(propIndex);
   AssertCanChangeFlags(oldProp, flags);
+
+  if (!Watchtower::watchPropertyChange(cx, obj, id, oldProp, flags)) {
+    return false;
+  }
 
   if (oldProp.isAccessorProperty()) {
     objectFlags.setFlag(ObjectFlag::HadGetterSetterChange);
@@ -649,10 +649,6 @@ bool NativeObject::changeCustomDataPropAttributes(JSContext* cx,
   AssertValidArrayIndex(obj, id);
   AssertValidCustomDataProp(obj, flags);
 
-  if (!Watchtower::watchPropertyChange(cx, obj, id, flags)) {
-    return false;
-  }
-
   Rooted<PropMap*> map(cx, obj->shape()->propMap());
   uint32_t mapLength = obj->shape()->propMapLength();
 
@@ -663,6 +659,10 @@ bool NativeObject::changeCustomDataPropAttributes(JSContext* cx,
   PropertyInfo oldProp = propMap->getPropertyInfo(propIndex);
   MOZ_ASSERT(oldProp.isCustomDataProperty());
   AssertCanChangeFlags(oldProp, flags);
+
+  if (!Watchtower::watchPropertyChange(cx, obj, id, oldProp, flags)) {
+    return false;
+  }
 
   // If the property flags are not changing, we're done.
   if (oldProp.flags() == flags) {

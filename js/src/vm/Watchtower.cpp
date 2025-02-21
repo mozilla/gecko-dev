@@ -348,8 +348,10 @@ bool Watchtower::watchPropertyRemoveSlow(JSContext* cx,
 // static
 bool Watchtower::watchPropertyChangeSlow(JSContext* cx,
                                          Handle<NativeObject*> obj, HandleId id,
-                                         PropertyFlags flags) {
+                                         PropertyInfo propInfo,
+                                         PropertyFlags newFlags) {
   MOZ_ASSERT(watchesPropertyChange(obj));
+  MOZ_ASSERT(obj->lookupPure(id).ref() == propInfo);
 
   if (obj->isUsedAsPrototype() && !id.isInt()) {
     InvalidateMegamorphicCache(cx, obj);
@@ -359,12 +361,8 @@ bool Watchtower::watchPropertyChangeSlow(JSContext* cx,
     // The global generation counter only cares whether a property
     // changes from data property to accessor or vice-versa. Changing
     // the flags on a property doesn't matter.
-    uint32_t propIndex;
-    Rooted<PropMap*> map(cx, obj->shape()->lookup(cx, id, &propIndex));
-    MOZ_ASSERT(map);
-    PropertyInfo prop = map->getPropertyInfo(propIndex);
-    bool wasAccessor = prop.isAccessorProperty();
-    bool isAccessor = flags.isAccessorProperty();
+    bool wasAccessor = propInfo.isAccessorProperty();
+    bool isAccessor = newFlags.isAccessorProperty();
     if (wasAccessor != isAccessor) {
       obj->as<GlobalObject>().bumpGenerationCount();
     }
