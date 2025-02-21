@@ -534,7 +534,7 @@ template("rtc_test") {
       android_manifest = webrtc_root + "test/android/AndroidManifest.xml"
       use_raw_android_executable = false
       min_sdk_version = 21
-      target_sdk_version = 23
+      target_sdk_version = 24
       deps += [
         "//chromium/build/android/gtest_apk:native_test_instrumentation_test_runner_java",
         webrtc_root + "sdk/android:native_test_jni_onload",
