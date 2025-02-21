@@ -498,7 +498,7 @@ index 55c39a530f..bf53fee4d5 100644
  
  config("audio_device_warnings_config") {
 diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
-index 411c0d27ca..c2bbc19292 100644
+index 29667e2eea..9874aca8b4 100644
 --- a/modules/audio_processing/aec3/BUILD.gn
 +++ b/modules/audio_processing/aec3/BUILD.gn
 @@ -124,7 +124,7 @@ rtc_library("aec3") {
@@ -812,7 +812,7 @@ index 953e4c595e..981ca46067 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index c1f6792ed4..4e9ed11dd8 100644
+index b7c7fc621d..943ba32578 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@

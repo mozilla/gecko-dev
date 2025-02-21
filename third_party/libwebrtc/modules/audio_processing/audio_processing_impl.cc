@@ -1898,7 +1898,7 @@ void AudioProcessingImpl::InitializeEchoController() {
         multichannel_config = EchoCanceller3::CreateDefaultMultichannelConfig();
       }
       submodules_.echo_controller = std::make_unique<EchoCanceller3>(
-          config, multichannel_config, proc_sample_rate_hz(),
+          env_, config, multichannel_config, proc_sample_rate_hz(),
           num_reverse_channels(), num_proc_channels());
     }
 

@@ -590,6 +590,7 @@ webrtc_fuzzer_test("aec3_fuzzer") {
   deps = [
     ":fuzz_data_helper",
     "../../api/audio:audio_processing",
+    "../../api/environment:environment_factory",
     "../../modules/audio_processing:audio_buffer",
     "../../modules/audio_processing/aec3",
   ]
