@@ -373,3 +373,12 @@ BEGIN_TEST(testJitRValueAlloc_IntPtrStack) {
   return true;
 }
 END_TEST(testJitRValueAlloc_IntPtrStack)
+
+BEGIN_TEST(testJitRValueAlloc_IntPtrInt32Stack) {
+  for (auto i : Fibonacci{}) {
+    auto s = RValueAllocation::IntPtrInt32(i);
+    CHECK(s == Read(s));
+  }
+  return true;
+}
+END_TEST(testJitRValueAlloc_IntPtrInt32Stack)

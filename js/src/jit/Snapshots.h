@@ -60,6 +60,7 @@ class RValueAllocation {
     INTPTR_CST = 0x0c,
     INTPTR_REG = 0x0d,
     INTPTR_STACK = 0x0e,
+    INTPTR_INT32_STACK = 0x0f,
 
     // The JSValueType is packed in the Mode.
     TYPED_REG_MIN = 0x10,
@@ -305,6 +306,9 @@ class RValueAllocation {
   }
   static RValueAllocation IntPtr(int32_t offset) {
     return RValueAllocation(INTPTR_STACK, payloadOfStackOffset(offset));
+  }
+  static RValueAllocation IntPtrInt32(int32_t offset) {
+    return RValueAllocation(INTPTR_INT32_STACK, payloadOfStackOffset(offset));
   }
 
   // Int64

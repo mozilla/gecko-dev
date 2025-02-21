@@ -127,6 +127,10 @@ using namespace js::jit;
 //           Unpacked IntPtr value stored in intptr_t. Payload is stored at an
 //           offset on the stack.
 //
+//         INTPTR_INT32_STACK [STACK_OFFSET]:
+//           Unpacked IntPtr value stored in int32_t. Payload is stored at an
+//           offset on the stack.
+//
 //         TYPED_REG [PACKED_TAG, GPR_REG]:
 //           Value with statically known type, which payload is stored in a
 //           register.
@@ -252,6 +256,12 @@ const RValueAllocation::Layout& RValueAllocation::layoutFromMode(Mode mode) {
     case INTPTR_STACK: {
       static const RValueAllocation::Layout layout = {
           PAYLOAD_STACK_OFFSET, PAYLOAD_NONE, "unpacked intptr"};
+      return layout;
+    }
+
+    case INTPTR_INT32_STACK: {
+      static const RValueAllocation::Layout layout = {
+          PAYLOAD_STACK_OFFSET, PAYLOAD_NONE, "unpacked intptr (int32)"};
       return layout;
     }
 

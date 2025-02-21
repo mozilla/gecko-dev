@@ -501,10 +501,17 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       MOZ_ASSERT(payload->isMemory() || payload->isGeneralReg());
       if (payload->isGeneralReg()) {
         alloc = RValueAllocation::IntPtr(ToRegister(payload));
+      } else if (payload->isStackSlot()) {
+        LStackSlot::Width width = payload->toStackSlot()->width();
+        MOZ_ASSERT(width == LStackSlot::width(LDefinition::GENERAL) ||
+                   width == LStackSlot::width(LDefinition::INT32));
+
+        if (width == LStackSlot::width(LDefinition::GENERAL)) {
+          alloc = RValueAllocation::IntPtr(ToStackIndex(payload));
+        } else {
+          alloc = RValueAllocation::IntPtrInt32(ToStackIndex(payload));
+        }
       } else {
-        MOZ_ASSERT_IF(payload->isStackSlot(),
-                      payload->toStackSlot()->width() ==
-                          LStackSlot::width(LDefinition::GENERAL));
         alloc = RValueAllocation::IntPtr(ToStackIndex(payload));
       }
       break;

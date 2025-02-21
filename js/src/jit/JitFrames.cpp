@@ -1729,6 +1729,7 @@ bool SnapshotIterator::allocationReadable(const RValueAllocation& alloc,
     case RValueAllocation::INTPTR_REG:
       return hasRegister(alloc.reg());
     case RValueAllocation::INTPTR_STACK:
+    case RValueAllocation::INTPTR_INT32_STACK:
       return hasStack(alloc.stackOffset());
 
 #if defined(JS_NUNBOX32)
@@ -1842,6 +1843,7 @@ Value SnapshotIterator::allocationValue(const RValueAllocation& alloc,
     case RValueAllocation::INTPTR_CST:
     case RValueAllocation::INTPTR_REG:
     case RValueAllocation::INTPTR_STACK:
+    case RValueAllocation::INTPTR_INT32_STACK:
       MOZ_CRASH("Can't read IntPtr as Value");
 
     case RValueAllocation::INT64_CST:
@@ -1920,7 +1922,8 @@ bool SnapshotIterator::readMaybeUnpackedBigInt(JSContext* cx,
     }
     case RValueAllocation::INTPTR_CST:
     case RValueAllocation::INTPTR_REG:
-    case RValueAllocation::INTPTR_STACK: {
+    case RValueAllocation::INTPTR_STACK:
+    case RValueAllocation::INTPTR_INT32_STACK: {
       auto* bigInt = JS::BigInt::createFromIntPtr(cx, allocationIntPtr(alloc));
       if (!bigInt) {
         return false;
@@ -1999,6 +2002,9 @@ intptr_t SnapshotIterator::allocationIntPtr(const RValueAllocation& alloc) {
       return static_cast<intptr_t>(fromRegister(alloc.reg()));
     case RValueAllocation::INTPTR_STACK:
       return static_cast<intptr_t>(fromStack(alloc.stackOffset()));
+    case RValueAllocation::INTPTR_INT32_STACK:
+      return static_cast<intptr_t>(
+          ReadFrameInt32Slot(fp_, alloc.stackOffset()));
     default:
       break;
   }
@@ -2011,6 +2017,7 @@ JS::BigInt* SnapshotIterator::readBigInt(JSContext* cx) {
     case RValueAllocation::INTPTR_CST:
     case RValueAllocation::INTPTR_REG:
     case RValueAllocation::INTPTR_STACK:
+    case RValueAllocation::INTPTR_INT32_STACK:
       return JS::BigInt::createFromIntPtr(cx, allocationIntPtr(alloc));
     default:
       return allocationValue(alloc).toBigInt();
@@ -2034,6 +2041,7 @@ void SnapshotIterator::writeAllocationValuePayload(
     case RValueAllocation::INTPTR_CST:
     case RValueAllocation::INTPTR_REG:
     case RValueAllocation::INTPTR_STACK:
+    case RValueAllocation::INTPTR_INT32_STACK:
     case RValueAllocation::INT64_CST:
 #if defined(JS_NUNBOX32)
     case RValueAllocation::INT64_REG_REG:
