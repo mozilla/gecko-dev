@@ -14,6 +14,7 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "modules/desktop_capture/desktop_geometry.h"
