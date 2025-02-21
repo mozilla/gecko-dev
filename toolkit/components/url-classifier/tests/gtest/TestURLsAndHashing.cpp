@@ -10,8 +10,7 @@
 static void VerifyFragments(const nsACString& aURL,
                             const nsTArray<nsCString>& aExpected) {
   nsTArray<nsCString> fragments;
-  nsresult rv = LookupCache::GetLookupFragments(aURL, &fragments);
-  ASSERT_EQ(rv, NS_OK) << "GetLookupFragments should not fail";
+  LookupCache::GetLookupFragments(aURL, &fragments);
 
   ASSERT_EQ(aExpected.Length(), fragments.Length())
       << "Fragments generated from " << aURL.BeginReading()
