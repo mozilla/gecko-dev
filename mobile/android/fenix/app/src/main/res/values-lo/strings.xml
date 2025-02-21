@@ -529,6 +529,7 @@
     <string name="onboarding_preferences_dialog_crash_reporting_title">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
     <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">ຮຽນຮູ້ເພີ່ມຕື່ມ</string>
+    <string name="onboarding_preferences_dialog_usage_data_learn_more_2">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
     <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
     <string name="onboarding_preferences_dialog_positive_button">ສຳເລັດ</string>
     <!-- Negative button label for the privacy preferences dialog shown during onboarding. -->
@@ -541,6 +542,8 @@
     <string name="onboarding_term_of_service_line_one_2">ໂດຍການດຳເນີນການຕໍ່, ທ່ານເຫັນດີນຳ %1$s.</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_one. -->
     <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">ເງື່ອນໄຂການໃຫ້ບໍລິການ</string>
+    <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
+    <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">ເງື່ອນໄຂການນໍາໃຊ້ Firefox</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text">ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
@@ -752,6 +755,8 @@
     <!-- Message to indicate users that we are quitting the application to apply the changes -->
     <string name="quit_application">ກຳລັງອອກຈາກແອັບພລິເຄຊັນເພື່ອນຳໃຊ້ການປ່ຽນແປງ…</string>
 
+    <!-- Preference for extensions -->
+    <string name="preferences_extensions">ສ່ວນຂະຫຍາຍ</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">ການແຈ້ງເຕືອນ</string>
 
@@ -886,6 +891,8 @@
     <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
     <string name="exceptions_empty_message_learn_more_link">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
 
+    <!-- Preference switch for usage and technical learn more link -->
+    <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">ຮຽນຮູ້ເພີ່ມເຕີມ</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">ແບ່ງປັນຂໍ້ມູນປະສິດທິພາບ, ການໃຊ້ງານ, ຮາດແວ ແລະ ການປັບແຕ່ງໃນບຣາວເຊີຂອງທ່ານກັບ Mozilla ເພື່ອຊ່ວຍພວກເຮົາສ້າງ %1$s ໃຫ້ດີຂື້ນກ່ວາເກົ່າ</string>
     <!-- Preference switch for marketing data collection -->
@@ -1184,6 +1191,8 @@
 
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
+    <!-- The error message of the URL text field when an invalid URL has been entered. -->
+    <string name="webcompat_reporter_url_error_invalid">ກະລຸນາປ້ອນ URL ທີ່ຖືກຕ້ອງ</string>
     <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
     <string name="webcompat_reporter_cancel">ຍົກເລີກ</string>
     <!-- The button text for the send button to submit the provided form data. -->
@@ -1255,6 +1264,8 @@
     <string name="bookmark_folder_label">ໂຟ​ລ​ເດີ</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">ຊື່</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">ຊື່</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">ເພີ່ມໂຟລເດີ</string>
     <!-- Bookmark select folder screen title -->
@@ -1275,6 +1286,8 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">ເອົາກັບຄືນ</string>
 
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">%s ລຶບແລ້ວ</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">ປ້ອນຄຳທີ່ຕ້ອງການຄົ້ນຫາ</string>
 
@@ -1775,6 +1788,8 @@
 
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">ຮັບຮູ້ສິດທິຂອງທ່ານ</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">ເງື່ອນໄຂການນໍາໃຊ້</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">ຂໍ້ມູນກ່ຽວກັບລາຍເຊັນ</string>
     <!-- About page link text to open a screen with libraries that are used -->
@@ -1812,6 +1827,8 @@
     <!-- Describes the add to homescreen functionality -->
     <string name="add_to_homescreen_description_2">ທ່ານສາມາດເພີ່ມເວັບໄຊທ໌ນີ້ໃສ່ໜ້າຈໍຫຼັກຂອງອຸປະກອນທ່ານໄດ້ຢ່າງງ່າຍດາຍເພື່ອໃຫ້ເຂົ້າເຖິງທັນທີ ແລະທ່ອງເວັບໄວຂຶ້ນດ້ວຍປະສົບການທີ່ຄ້າຍຄືກັບແອັບ.</string>
 
+    <!-- Preference for managing the settings for logins and passwords in Fenix -->
+    <string name="preferences_passwords_logins_and_passwords_2">ລະຫັດຜ່ານ</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">ຖາມເພື່ອບັນທຶກ</string>
     <!-- Preference option for never saving passwords in Fenix -->
@@ -2191,6 +2208,9 @@
     <string name="experiments_snackbar">ເປີດໃຊ້ງານການສົ່ງຂໍ້ມູນທາງໄກເພື່ອສົ່ງຂໍ້ມູນ.</string>
     <!-- Snackbar button text to navigate to telemetry settings.-->
     <string name="experiments_snackbar_button">ໄປທີ່ການຕັ້ງຄ່າ</string>
+
+    <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
+    <string name="review_quality_check_contextual_onboarding_terms_use" moz:removedIn="136" tools:ignore="UnusedResources">ເງື່ອນ​ໄຂ​ການ​ນໍາ​ໃຊ້​</string>
 
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->

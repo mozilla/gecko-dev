@@ -622,7 +622,7 @@
     <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
     <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Quand vous partagez comment vous avez découvert Firefox et que vous l’utilisez, vous nous aidez à faire connaître notre navigateur à plus de monde.</string>
     <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Partagez un minimum de données avec les partenaires en technologies marketing de Mozilla. Ces données ne sont jamais ni vendues ni utilisées pour vous montrer des publicités.</string>
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Partagez un minimum de données avec les partenaires en technologies marketing de Mozilla. Ces données ne sont jamais vendues ou utilisées pour vous montrer des publicités.</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Notre utilisation des données</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->

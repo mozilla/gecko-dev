@@ -22,6 +22,8 @@
      then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
      %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission. -->
     <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Tilgå dine data på %1$d andre domæner</string>
+    <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+    <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Tilgå dine data for websteder på %1$d domæner</string>
     <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
     <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d af %3$d</string>
     <!-- Description for tabs add-on permission. -->
@@ -74,8 +76,14 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Hente og køre AI-modeller på din enhed</string>
     <!-- Description for userScripts permission. -->
     <string name="mozac_feature_addons_permissions_user_scripts_description">Tillade ubekræftede tredjeparts-scripts at få adgang til dine data</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Ubekræftede scripts kan udgøre en risiko for din sikkerhed eller beskyttelsen af dit privatliv. Kør kun scripts fra udvidelser eller kilder, du stoler på.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Udvide Udviklerværktøj til at have adgang til data i åbne faneblade</string>
+    <!-- Description for text button that expands the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_all_sites">Vis alle websteder</string>
+    <!-- Description for text button that hides the majority of the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_fewer_sites">Vis færre websteder</string>
     <!-- The version on of add-on. -->
     <string name="mozac_feature_addons_version">Version</string>
     <!-- The author of an add-on. -->
