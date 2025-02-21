@@ -15,9 +15,17 @@ const { TranslationsPanelShared } = ChromeUtils.importESModule(
 const { TranslationsUtils } = ChromeUtils.importESModule(
   "chrome://global/content/translations/TranslationsUtils.mjs"
 );
-const { getInferenceProcessInfo } = ChromeUtils.importESModule(
-  "chrome://global/content/ml/Utils.sys.mjs"
-);
+
+// This is a bit silly, but ml/tests/browser/head.js relies on this function:
+// https://searchfox.org/mozilla-central/rev/14f68f084d6a3bc438a3f973ed81d3a4dbab9629/toolkit/components/ml/tests/browser/head.js#23-25
+//
+// And it also pulls in the entirety of this file.
+// https://searchfox.org/mozilla-central/rev/14f68f084d6a3bc438a3f973ed81d3a4dbab9629/toolkit/components/ml/tests/browser/head.js#41-46
+//
+// So we can't have a naming conflict of a variable defined twice like this.
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1949530
+const { getInferenceProcessInfo: fetchInferenceProcessInfo } =
+  ChromeUtils.importESModule("chrome://global/content/ml/Utils.sys.mjs");
 
 // Avoid about:blank's non-standard behavior.
 const BLANK_PAGE =
