@@ -896,7 +896,7 @@ const TargetingGetters = {
     if (
       window.gURLBar?.view.isOpen ||
       window.gNotificationBox?.currentNotification ||
-      window.gBrowser.getNotificationBox()?.currentNotification ||
+      window.gBrowser.readNotificationBox()?.currentNotification ||
       // Avoid showing messages if the newtab Topic selection modal was shown in
       // the past 1 minute
       duration <= NOTIFICATION_INTERVAL_AFTER_TOPIC_MODAL_MS
