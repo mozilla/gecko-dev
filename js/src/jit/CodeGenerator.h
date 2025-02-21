@@ -48,32 +48,9 @@ template <typename Fn, Fn fn, class ArgSeq, class StoreOutputTo>
 class OutOfLineCallVM;
 
 class OutOfLineTestObject;
-class OutOfLineNewArray;
-class OutOfLineNewObject;
-class CheckOverRecursedFailure;
-class OutOfLineUnboxFloatingPoint;
-class OutOfLineStoreElementHole;
-class OutOfLineTypeOfV;
-class OutOfLineTypeOfIsNonPrimitiveV;
-class OutOfLineTypeOfIsNonPrimitiveO;
-class OutOfLineUpdateCache;
 class OutOfLineICFallback;
 class OutOfLineCallPostWriteBarrier;
 class OutOfLineCallPostWriteElementBarrier;
-class OutOfLineElementPostWriteBarrier;
-class OutOfLineIsCallable;
-class OutOfLineIsConstructor;
-class OutOfLineRegExpMatcher;
-class OutOfLineRegExpSearcher;
-class OutOfLineRegExpExecMatch;
-class OutOfLineRegExpExecTest;
-class OutOfLineRegExpPrototypeOptimizable;
-class OutOfLineRegExpInstanceOptimizable;
-class OutOfLineNaNToZero;
-class OutOfLineGuardNumberToIntPtrIndex;
-class OutOfLineBoxNonStrictThis;
-class OutOfLineArrayPush;
-class OutOfLineAtomizeSlot;
 
 class CodeGenerator final : public CodeGeneratorSpecific {
   // Warp snapshot. This is nullptr for Wasm compilations.
@@ -140,53 +117,18 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void visitOutOfLineCallVM(
       OutOfLineCallVM<Fn, fn, ArgSeq, StoreOutputTo>* ool);
 
-  void visitOutOfLineRegExpMatcher(OutOfLineRegExpMatcher* ool);
-  void visitOutOfLineRegExpSearcher(OutOfLineRegExpSearcher* ool);
-  void visitOutOfLineRegExpExecMatch(OutOfLineRegExpExecMatch* ool);
-  void visitOutOfLineRegExpExecTest(OutOfLineRegExpExecTest* ool);
-  void visitOutOfLineRegExpPrototypeOptimizable(
-      OutOfLineRegExpPrototypeOptimizable* ool);
-  void visitOutOfLineRegExpInstanceOptimizable(
-      OutOfLineRegExpInstanceOptimizable* ool);
-
-  void visitOutOfLineTypeOfV(OutOfLineTypeOfV* ool);
-  void visitOutOfLineTypeOfIsNonPrimitiveV(OutOfLineTypeOfIsNonPrimitiveV* ool);
-  void visitOutOfLineTypeOfIsNonPrimitiveO(OutOfLineTypeOfIsNonPrimitiveO* ool);
-
-  void visitOutOfLineIsCallable(OutOfLineIsCallable* ool);
-  void visitOutOfLineIsConstructor(OutOfLineIsConstructor* ool);
-
-  void visitOutOfLineNaNToZero(OutOfLineNaNToZero* ool);
+  void emitStoreElementHoleOOL(LInstruction* lir);
+  void emitIsCallableOOL(Register object, Register output);
 
   void emitResumableWasmTrapOOL(LInstruction* lir, size_t framePushed,
                                 const wasm::TrapSiteDesc& trapSiteDesc,
                                 wasm::Trap trap);
-
-  void visitCheckOverRecursedFailure(CheckOverRecursedFailure* ool);
-
-  void visitOutOfLineUnboxFloatingPoint(OutOfLineUnboxFloatingPoint* ool);
-  void visitOutOfLineStoreElementHole(OutOfLineStoreElementHole* ool);
-
-  void visitOutOfLineBoxNonStrictThis(OutOfLineBoxNonStrictThis* ool);
 
   void visitOutOfLineICFallback(OutOfLineICFallback* ool);
 
   void visitOutOfLineCallPostWriteBarrier(OutOfLineCallPostWriteBarrier* ool);
   void visitOutOfLineCallPostWriteElementBarrier(
       OutOfLineCallPostWriteElementBarrier* ool);
-
-  void visitOutOfLineElementPostWriteBarrier(
-      OutOfLineElementPostWriteBarrier* ool);
-
-  void visitOutOfLineNewArray(OutOfLineNewArray* ool);
-  void visitOutOfLineNewObject(OutOfLineNewObject* ool);
-
-  void visitOutOfLineGuardNumberToIntPtrIndex(
-      OutOfLineGuardNumberToIntPtrIndex* ool);
-
-  void visitOutOfLineArrayPush(OutOfLineArrayPush* ool);
-
-  void visitOutOfLineAtomizeSlot(OutOfLineAtomizeSlot* ool);
 
   void callWasmStructAllocFun(LInstruction* lir, wasm::SymbolicAddress fun,
                               Register typeDefData, Register output,
