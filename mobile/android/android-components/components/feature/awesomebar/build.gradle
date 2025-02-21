@@ -33,6 +33,7 @@ dependencies {
     implementation project(':browser-storage-sync')
     implementation project(':browser-icons')
 
+    implementation project(':feature-top-sites')
     implementation project(':feature-tabs')
     implementation project(':feature-session')
     implementation project(':feature-search')

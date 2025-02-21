@@ -26,6 +26,7 @@ import mozilla.components.feature.awesomebar.provider.SearchEngineSuggestionProv
 import mozilla.components.feature.awesomebar.provider.SearchSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.SearchTermSuggestionsProvider
 import mozilla.components.feature.awesomebar.provider.SessionSuggestionProvider
+import mozilla.components.feature.awesomebar.provider.TopSitesSuggestionProvider
 import mozilla.components.feature.awesomebar.provider.TrendingSearchProvider
 import mozilla.components.feature.fxsuggest.FxSuggestSuggestionProvider
 import mozilla.components.feature.search.SearchUseCases
@@ -65,6 +66,7 @@ class AwesomeBarView(
     private val defaultCombinedHistoryProvider: CombinedHistorySuggestionProvider
     private val shortcutsEnginePickerProvider: ShortcutsSuggestionProvider
     private val defaultSearchSuggestionProvider: SearchSuggestionProvider
+    private val defaultTopSitesSuggestionProvider: TopSitesSuggestionProvider
     private val defaultTrendingSearchProvider: TrendingSearchProvider
     private val defaultSearchActionProvider: SearchActionProvider
     private val searchEngineSuggestionProvider: SearchEngineSuggestionProvider
@@ -170,6 +172,14 @@ class AwesomeBarView(
                     BrowsingMode.Private -> true
                 },
                 suggestionsHeader = getSearchEngineSuggestionsHeader(),
+            )
+
+        defaultTopSitesSuggestionProvider =
+            TopSitesSuggestionProvider(
+                topSitesStorage = components.core.topSitesStorage,
+                loadUrlUseCase = loadUrlUseCase,
+                icons = components.core.icons,
+                engine = engineForSpeculativeConnects,
             )
 
         defaultTrendingSearchProvider =
@@ -385,6 +395,7 @@ class AwesomeBarView(
         providersToAdd.add(searchEngineSuggestionProvider)
 
         if (activity.settings().shouldShowTrendingSearchSuggestions) {
+            providersToAdd.add(defaultTopSitesSuggestionProvider)
             providersToAdd.add(defaultTrendingSearchProvider)
         }
 
