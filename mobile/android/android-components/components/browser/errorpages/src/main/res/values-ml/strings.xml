@@ -190,7 +190,7 @@
 </ul>]]></string>
 
     <!-- The document title and heading of an error page. -->
-    <string name="mozac_browser_errorpages_unknown_protocol_title">അപരിചിതമായ പ്രോട്ടോക്കോള്‍</string>
+    <string name="mozac_browser_errorpages_unknown_protocol_title">അപരിചിതമായ പെരുമാറ്റച്ചട്ടം</string>
 
     <string name="mozac_browser_errorpages_unknown_protocol_message"><![CDATA[<p>വിലാസം നൽകിയ പ്രോട്ടോകോൾ  (ഉദാ. <q>wxyz://</q>) ബ്രൗസറിനു് തിരിച്ചറിയുവാന്‍ സാധിക്കുന്നില്ല, ആയതിനാൽ ബ്രൗസറിന് സൈറ്റിലേക്ക് ശരിയായി ബന്ധിപ്പിക്കാനാവുന്നില്ല</p><ul><li>നിങ്ങള്‍ മള്‍ട്ടിമീഡിയയോ അതോ മറ്റേതെങ്കിലും ടെക്സ്റ്റല്ലാത്ത സേവനങ്ങളോ ലഭ്യമാക്കാനാണോ ശ്രമിക്കുന്നത്? കൂടുതല്‍ ആവശ്യങ്ങൾ എന്തെല്ലാം എന്നറിയുന്നതിനായി സൈറ്റ് പരിശോധിക്കുക.</li><li>ചില പ്രോട്ടോക്കോളുകള്‍ക്ക്, അവയെ ബ്രൗസറിന് തിരിച്ചറിയാനാവുന്നതിന് തേര്‍ഡ്-പാര്‍ട്ടി സോഫ്റ്റ്‌വെയര്‍ അല്ലെങ്കില്‍ പ്ലഗിനുകൾ ആവശ്യമുണ്ടാകാം.</li></ul>]]></string>
 

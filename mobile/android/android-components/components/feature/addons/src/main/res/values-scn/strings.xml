@@ -37,7 +37,7 @@
     <!-- Description for browser_setting permission. -->
     <string name="mozac_feature_addons_permissions_browser_setting_description">Lèggiri e canciari i mpustazzioni dû navicaturi</string>
     <!-- Description for browser_data permission. -->
-    <string name="mozac_feature_addons_permissions_browser_data_description">Cancillari a crunuluggìa ricenti di navicazzioni, i viscotta e i dati rilativi</string>
+    <string name="mozac_feature_addons_permissions_browser_data_description">Scancillari a crunuluggìa ricenti di navicazzioni, i viscotta e i dati rilativi</string>
     <!-- Description for clipboard_read permission. -->
     <string name="mozac_feature_addons_permissions_clipboard_read_description">Pigghiari dati dû pitazzu</string>
     <!-- Description for clipboard_write permission. -->
@@ -93,7 +93,7 @@
     <!-- The developer website (Homepage) of the add-on. -->
     <string name="mozac_feature_addons_home_page">Pàggina mastra</string>
     <!-- A link where users can find more information about add-ons permissions. -->
-    <string name="mozac_feature_addons_learn_more">Cchiù nfurmazzioni supra ê pirmisi</string>
+    <string name="mozac_feature_addons_learn_more">Cchiù nfurmazzioni supra ê pirmissi</string>
     <!-- The rating of the add-on. -->
     <string name="mozac_feature_addons_rating">Vutu</string>
     <!-- A link that points to the detail page of the extension. -->
@@ -131,9 +131,9 @@
     <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_permissions_dialog_title">Nzitari %1$s?</string>
     <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s addumanna pirmisi suverchiu.</string>
+    <string name="mozac_feature_addons_optional_permissions_dialog_title">%1$s addumanna pirmissi suverchiu.</string>
     <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-    <string name="mozac_feature_addons_permissions_dialog_subtitle">Addumanna u to\' pirmisu pi:</string>
+    <string name="mozac_feature_addons_permissions_dialog_subtitle">Addumanna u to\' pirmissu pi:</string>
     <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
     <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Vulissi:</string>
     <!-- This is a button to add (install) an add-on . -->
@@ -173,9 +173,9 @@
     <!-- The tile of the notification, this will be shown to the user when an add-on needs new permissions, to be updated. %1$s is the name of the add-ons-->
     <string name="mozac_feature_addons_updater_notification_title">%1$s àvi n\'attualizzu novu</string>
     <!-- The content of the notification, this will be shown when an add-on needs new permissions, to be updated. %1$d is the amount of new permissions-->
-    <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d addumanna pirmisi novi</string>
+    <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d addumanna pirmissi novi</string>
     <!-- The content of the notification displayed when an add-on needs a new permission-->
-    <string name="mozac_feature_addons_updater_notification_content_singular">Cc\'è bisognu d\'un pirmisu novu</string>
+    <string name="mozac_feature_addons_updater_notification_content_singular">Cc\'è bisognu d\'un pirmissu novu</string>
     <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
     <string name="mozac_feature_addons_updater_notification_channel_2">Attualizzi dî stinneri</string>
     <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->

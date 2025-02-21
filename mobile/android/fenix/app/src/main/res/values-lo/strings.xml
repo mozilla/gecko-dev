@@ -740,6 +740,11 @@
     <string name="preferences_enable_autocomplete_urls">ເຕີມ URLs ແບບອັດຕະໂນມັດ</string>
     <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
     <string name="preferences_show_sponsored_suggestions">ຄໍາແນະນໍາຈາກຜູ້ສະຫນັບສະຫນູນ</string>
+    <!-- Preference title for switch preference to show Firefox Suggest search suggestions for web content.
+         The first parameter is the name of the application. -->
+    <string name="preferences_show_nonsponsored_suggestions">ຄຳແນະນຳຈາກ %1$s</string>
+    <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
+    <string name="preferences_show_nonsponsored_suggestions_summary">ຮັບຄຳແນະນຳຈາກເວັບທີ່ກ່ຽວຂ້ອງກັບການຄົ້ນຫາຂອງທ່ານ</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">ເປີດລີ້ງໃນແອັບ</string>
     <!-- Preference for open links in third party apps always open in apps option -->
@@ -757,6 +762,8 @@
 
     <!-- Preference for extensions -->
     <string name="preferences_extensions">ສ່ວນຂະຫຍາຍ</string>
+    <!-- Preference for installing a local extension -->
+    <string name="preferences_install_local_extension">ຕິດຕັ້ງສ່ວນຂະຫຍາຍຈາກໄຟລ໌       </string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">ການແຈ້ງເຕືອນ</string>
 
@@ -765,6 +772,9 @@
     <!-- Summary for notification preference indicating notifications are not allowed -->
     <string name="notifications_not_allowed_summary">ບໍ່​ອະ​ນຸ​ຍາດ</string>
 
+    <!-- Add-on Permissions -->
+    <!-- The title of the required permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">ຕ້ອງການ</string>
     <!-- The title of the optional permissions section from addon's permissions screen -->
     <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">ທາງເລືອກ</string>
 
@@ -1524,6 +1534,8 @@
     <string name="snackbar_tab_closed">ປິດແທັບແລ້ວ</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">ປິດແທັບແລ້ວ</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">ປິດແຖບ: %1$s</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">ເພີ່ມໃສ່ທາງລັດແລ້ວ!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1578,6 +1590,8 @@
         number of history items the user has -->
     <string name="preferences_delete_browsing_data_browsing_data_subtitle">ທີ່ຢູ່ %d</string>
 
+    <!-- Title for the cookies and site data items in Delete browsing data -->
+    <string name="preferences_delete_browsing_data_cookies_and_site_data">ຄຸກກີ້ ແລະ ຂໍ້ມູນໄຊ</string>
     <!-- Subtitle for the cookies item in Delete browsing data -->
     <string name="preferences_delete_browsing_data_cookies_subtitle">ທ່ານຈະໄດ້ອອກຈາກລະບົບທັງຫມົດ</string>
 
@@ -1719,6 +1733,8 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">ໃນແທັບສ່ວນຕົວເທົ່ານັ້ນ</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Cryptominers</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">ລາຍນິ້ວດິຈິຕອນທີ່ຮູ້ຈັກ</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">ລາຍລະອຽດ</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->

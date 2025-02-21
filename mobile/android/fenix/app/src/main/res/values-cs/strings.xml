@@ -2572,6 +2572,8 @@
     <!-- Search suggestions title for Firefox Suggest. -->
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Návrhy od Firefoxu</string>
 
+    <!-- Search suggestions title for trending searches. -->
+    <string name="trending_searches_header">Trendy ve vyhledávání</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Vyhledání na Googlu</string>
 
@@ -3005,7 +3007,6 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">Zrušit</string>
 
-    <!-- Unified Trust Panel -->
     <!-- Title text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_title">Buďte na této stránce opatrní</string>
     <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3026,6 +3027,11 @@
     <string name="protection_panel_etp_toggle_enabled_description">Pokud na tomto webu něco vypadá nefunkčně, zkuste vypnout ochrany.</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">Ochrana je VYPNUTÁ. Doporučujeme ji znovu zapnout.</string>
+
+    <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+    <string name="clear_site_data_dialog_positive_button_text">Vymazat</string>
+    <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+    <string name="clear_site_data_dialog_negative_button_text">Zrušit</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->

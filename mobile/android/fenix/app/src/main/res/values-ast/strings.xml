@@ -1455,7 +1455,6 @@
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">En cursu</string>
 
-    <!-- Unified Trust Panel -->
     <!-- Title text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_title">Ten curiáu nesti sitiu</string>
     <!-- Description text for the protection panel banner when the site is not secure. -->
