@@ -49,20 +49,18 @@
         return;
       }
 
+      this._initialized = true;
+      this.saveOnWindowClose = true;
+
       this.textContent = "";
       this.appendChild(this.constructor.fragment);
       this.initializeAttributeInheritance();
-
-      this._initialized = true;
 
       this.#labelElement = this.querySelector(".tab-group-label");
       this.#labelElement.addEventListener("click", this);
 
       this.#updateLabelAriaAttributes();
       this.#updateCollapsedAriaAttributes();
-
-      this.createdDate = Date.now();
-      this.saveOnWindowClose = true;
 
       this.addEventListener("TabSelect", this);
 

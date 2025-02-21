@@ -8428,11 +8428,14 @@ var TabContextMenu = {
         groupableTabs.map(t => t.group).filter(g => g)
       ).size;
 
-      // Determine whether or not the "current" tab group should appear in the move context menu
       let availableGroupsToMoveTo = gBrowser
         .getAllTabGroups()
-        .sort((a, b) => a.createdDate - b.createdDate);
+        .sort(
+          (group1, group2) => group2.lastSeenActive - group1.lastSeenActive
+        );
 
+      // Determine whether or not the "current" tab group should appear in the
+      // "move tab to group" context menu.
       let groupToFilter;
       if (selectedGroupCount == 1) {
         groupToFilter = groupableTabs[0].group;
