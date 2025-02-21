@@ -53,19 +53,24 @@ TEST_F(PeerConnectionCongestionControlTest, ReceiveOfferSetsCcfbFlag) {
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_THAT(WaitUntil([&] { return SignalingStateStable(); }, IsTrue()),
               IsRtcOk());
-  // Check that the callee parsed it.
-  auto parsed_contents =
-      callee()->pc()->remote_description()->description()->contents();
-  EXPECT_FALSE(parsed_contents.empty());
-  for (const auto& content : parsed_contents) {
-    EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
+  {
+    // Check that the callee parsed it.
+    auto parsed_contents =
+        callee()->pc()->remote_description()->description()->contents();
+    EXPECT_FALSE(parsed_contents.empty());
+    for (const auto& content : parsed_contents) {
+      EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
+    }
   }
-  // Check that the caller also parsed it.
-  parsed_contents =
-      caller()->pc()->remote_description()->description()->contents();
-  EXPECT_FALSE(parsed_contents.empty());
-  for (const auto& content : parsed_contents) {
-    EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
+
+  {
+    // Check that the caller also parsed it.
+    auto parsed_contents =
+        caller()->pc()->remote_description()->description()->contents();
+    EXPECT_FALSE(parsed_contents.empty());
+    for (const auto& content : parsed_contents) {
+      EXPECT_TRUE(content.media_description()->rtcp_fb_ack_ccfb());
+    }
   }
   // Check that the answer does not contain transport-cc
   std::string answer_str = absl::StrCat(*caller()->pc()->remote_description());

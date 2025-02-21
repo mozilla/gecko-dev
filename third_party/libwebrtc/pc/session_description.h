@@ -399,26 +399,29 @@ enum class MediaProtocolType {
 class RTC_EXPORT ContentInfo {
  public:
   explicit ContentInfo(MediaProtocolType type) : type(type) {}
+  ContentInfo(MediaProtocolType type,
+              std::unique_ptr<MediaContentDescription> description)
+      : type(type), description_(std::move(description)) {}
   ~ContentInfo();
-  // Copy
+
+  // Copy ctor and assignment will clone `description_`.
   ContentInfo(const ContentInfo& o);
-  ContentInfo& operator=(const ContentInfo& o);
+  // Const ref assignment operator removed. Instead, use the explicit ctor.
+  ContentInfo& operator=(const ContentInfo& o) = delete;
+
   ContentInfo(ContentInfo&& o) = default;
   ContentInfo& operator=(ContentInfo&& o) = default;
 
   // Alias for `name`.
-  std::string mid() const { return name; }
-  void set_mid(const std::string& mid) { this->name = mid; }
+  // TODO(tommi): change return type to string_view.
+  const std::string& mid() const { return name; }
+  void set_mid(absl::string_view mid) { name = std::string(mid); }
 
   // Alias for `description`.
   MediaContentDescription* media_description();
   const MediaContentDescription* media_description() const;
 
-  void set_media_description(std::unique_ptr<MediaContentDescription> desc) {
-    description_ = std::move(desc);
-  }
-
-  // TODO(bugs.webrtc.org/8620): Rename this to mid.
+  // TODO(bugs.webrtc.org/8620): Rename this to mid and make private.
   std::string name;
   MediaProtocolType type;
   bool rejected = false;
@@ -462,11 +465,6 @@ class ContentGroup {
 typedef std::vector<ContentInfo> ContentInfos;
 typedef std::vector<ContentGroup> ContentGroups;
 
-const ContentInfo* FindContentInfoByName(const ContentInfos& contents,
-                                         const std::string& name);
-const ContentInfo* FindContentInfoByType(const ContentInfos& contents,
-                                         const std::string& type);
-
 // Determines how the MSID will be signaled in the SDP.
 // These can be used as bit flags to indicate both or the special value none.
 enum MsidSignaling {
@@ -502,8 +500,8 @@ class SessionDescription {
   const ContentInfo* GetContentByName(const std::string& name) const;
   ContentInfo* GetContentByName(const std::string& name);
   const MediaContentDescription* GetContentDescriptionByName(
-      const std::string& name) const;
-  MediaContentDescription* GetContentDescriptionByName(const std::string& name);
+      absl::string_view name) const;
+  MediaContentDescription* GetContentDescriptionByName(absl::string_view name);
   const ContentInfo* FirstContentByType(MediaProtocolType type) const;
   const ContentInfo* FirstContent() const;
 
