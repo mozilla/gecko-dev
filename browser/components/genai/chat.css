@@ -86,7 +86,7 @@ browser {
   .onboardingContainer {
     height: unset;
     margin: var(--space-large);
-    margin-top: 80px;
+    margin-top: max(36px, 10vh - 31px);
   }
 
   .screen {
@@ -110,6 +110,33 @@ browser {
 
   .tiles-single-select-container {
     margin-top: 0;
+
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media not -moz-pref("browser.ml.chat.onboarding.unresponsive") {
+      --fade-height: 20px;
+      --fade-padding: 8px;
+      margin-block: calc(-1 * var(--fade-padding));
+      max-height: max(144px, 100vh - 310px);
+      overflow-y: auto;
+
+      &::after,
+      &::before {
+        content: "\00a0";
+        font-size: var(--fade-height);
+        margin-top: calc(-1 * var(--fade-height) + var(--fade-padding));
+        pointer-events: none;
+        position: sticky;
+        z-index: 1;
+      }
+      &::after {
+        background: linear-gradient(transparent, var(--in-content-page-background));
+        bottom: 0;
+      }
+      &::before {
+        background: linear-gradient(var(--in-content-page-background), transparent);
+        top: 0;
+      }
+    }
   }
 
   fieldset {
