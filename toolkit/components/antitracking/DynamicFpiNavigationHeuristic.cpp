@@ -73,13 +73,28 @@ void DynamicFpiNavigationHeuristic::MaybeGrantStorageAccess(
       continue;
     }
     RefPtr<nsIURI> entryURI = entry->GetResultPrincipalURI();
+
+    // Fall back to an unmodified entry's URI.
+    // Warning: you should not copy-paste this code elsewhere, nor should you
+    // use GetURI in security-critical contexts where you really want something
+    // like the resultPrincipalURI. We are only doing that here because we do not
+    // have a OriginalURI set, are giving a permission based on a heuristic,
+    // and constrain ourselves to http(s) URIs.
     if (!entryURI) {
+      entryURI = entry->GetURI();
+      if (!entryURI) {
+        continue;
+      }
+    }
+    nsAutoCString scheme;
+    nsresult rv = entryURI->GetScheme(scheme);
+    if (NS_FAILED(rv) ||
+        (!scheme.EqualsLiteral("http") && !scheme.EqualsLiteral("https"))) {
       continue;
     }
 
     bool isThirdPartyEntry = false;
-    nsresult rv =
-        resultPrincipal->IsThirdPartyURI(entryURI, &isThirdPartyEntry);
+    rv = resultPrincipal->IsThirdPartyURI(entryURI, &isThirdPartyEntry);
     if (NS_SUCCEEDED(rv) && !isThirdPartyEntry) {
       nsAutoCString entryScheme;
       rv = entryURI->GetScheme(entryScheme);
@@ -114,7 +129,7 @@ void DynamicFpiNavigationHeuristic::MaybeGrantStorageAccess(
               uri, resultPrincipal->OriginAttributesRef());
 
       Unused << StorageAccessAPIHelper::SaveAccessForOriginOnParentProcess(
-          embedeePrincipal, resultPrincipal,
+          resultPrincipal, embedeePrincipal,
           StorageAccessAPIHelper::StorageAccessPromptChoices::eAllow, false,
           StaticPrefs::privacy_restrict3rdpartystorage_expiration_visited());
 
