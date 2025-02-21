@@ -372,7 +372,7 @@ bool Watchtower::watchPropertyFlagsChangeSlow(JSContext* cx,
 
   if (MOZ_UNLIKELY(obj->useWatchtowerTestingLog())) {
     RootedValue val(cx, IdToValue(id));
-    if (!AddToWatchtowerLog(cx, "change-prop", obj, val)) {
+    if (!AddToWatchtowerLog(cx, "change-prop-flags", obj, val)) {
       return false;
     }
   }
@@ -382,12 +382,12 @@ bool Watchtower::watchPropertyFlagsChangeSlow(JSContext* cx,
 
 // static
 template <AllowGC allowGC>
-bool Watchtower::watchPropertyModificationSlow(
+bool Watchtower::watchPropertyValueChangeSlow(
     JSContext* cx, typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
     typename MaybeRooted<PropertyKey, allowGC>::HandleType id,
     typename MaybeRooted<Value, allowGC>::HandleType value,
     PropertyInfo propInfo) {
-  MOZ_ASSERT(watchesPropertyModification(obj));
+  MOZ_ASSERT(watchesPropertyValueChange(obj));
 
   // Note: this is also called when changing the GetterSetter value of an
   // accessor property or when redefining a data property as an accessor
@@ -407,7 +407,7 @@ bool Watchtower::watchPropertyModificationSlow(
   if constexpr (allowGC == AllowGC::CanGC) {
     if (MOZ_UNLIKELY(obj->useWatchtowerTestingLog())) {
       RootedValue val(cx, IdToValue(id));
-      if (!AddToWatchtowerLog(cx, "modify-prop", obj, val)) {
+      if (!AddToWatchtowerLog(cx, "change-prop-value", obj, val)) {
         return false;
       }
     }
@@ -416,13 +416,13 @@ bool Watchtower::watchPropertyModificationSlow(
   return true;
 }
 
-template bool Watchtower::watchPropertyModificationSlow<AllowGC::CanGC>(
+template bool Watchtower::watchPropertyValueChangeSlow<AllowGC::CanGC>(
     JSContext* cx,
     typename MaybeRooted<NativeObject*, AllowGC::CanGC>::HandleType obj,
     typename MaybeRooted<PropertyKey, AllowGC::CanGC>::HandleType id,
     typename MaybeRooted<Value, AllowGC::CanGC>::HandleType value,
     PropertyInfo propInfo);
-template bool Watchtower::watchPropertyModificationSlow<AllowGC::NoGC>(
+template bool Watchtower::watchPropertyValueChangeSlow<AllowGC::NoGC>(
     JSContext* cx,
     typename MaybeRooted<NativeObject*, AllowGC::NoGC>::HandleType obj,
     typename MaybeRooted<PropertyKey, AllowGC::NoGC>::HandleType id,

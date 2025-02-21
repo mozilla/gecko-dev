@@ -825,8 +825,8 @@ static bool CanAddNewPropertyExcludingProtoFast(PlainObject* obj) {
     return false;
   }
 
-  // Don't fastpath assign if we're watching for property modification.
-  if (Watchtower::watchesPropertyModification(obj)) {
+  // Don't fastpath assign if we're watching for property value changes.
+  if (Watchtower::watchesPropertyValueChange(obj)) {
     return false;
   }
 

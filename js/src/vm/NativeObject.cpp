@@ -1247,7 +1247,7 @@ static bool ChangeProperty(JSContext* cx, Handle<NativeObject*> obj,
 
   if (existing->isNativeProperty()) {
     Rooted<Value> value(cx, PrivateGCThingValue(gs));
-    if (!Watchtower::watchPropertyModification<AllowGC::CanGC>(
+    if (!Watchtower::watchPropertyValueChange<AllowGC::CanGC>(
             cx, obj, id, value, existing->propertyInfo())) {
       return false;
     }
@@ -1351,7 +1351,7 @@ static MOZ_ALWAYS_INLINE bool AddOrChangeProperty(
       }
     } else {
       if (existing->isNativeProperty()) {
-        if (!Watchtower::watchPropertyModification<AllowGC::CanGC>(
+        if (!Watchtower::watchPropertyValueChange<AllowGC::CanGC>(
                 cx, obj, id, desc.value(), existing->propertyInfo())) {
           return false;
         }
@@ -2408,8 +2408,8 @@ static bool NativeSetExistingDataProperty(JSContext* cx,
   MOZ_ASSERT(obj->is<NativeObject>());
   MOZ_ASSERT(prop.isDataDescriptor());
 
-  if (!Watchtower::watchPropertyModification<AllowGC::CanGC>(cx, obj, id, v,
-                                                             prop)) {
+  if (!Watchtower::watchPropertyValueChange<AllowGC::CanGC>(cx, obj, id, v,
+                                                            prop)) {
     return false;
   }
 

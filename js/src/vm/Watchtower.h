@@ -42,7 +42,7 @@ class Watchtower {
                                            HandleId id, PropertyInfo propInfo,
                                            PropertyFlags newFlags);
   template <AllowGC allowGC>
-  static bool watchPropertyModificationSlow(
+  static bool watchPropertyValueChangeSlow(
       JSContext* cx,
       typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
       typename MaybeRooted<PropertyKey, allowGC>::HandleType id,
@@ -69,7 +69,7 @@ class Watchtower {
                             ObjectFlag::GenerationCountedGlobal,
                             ObjectFlag::UseWatchtowerTestingLog});
   }
-  static bool watchesPropertyModification(NativeObject* obj) {
+  static bool watchesPropertyValueChange(NativeObject* obj) {
     return obj->hasAnyFlag(
         {ObjectFlag::HasFuseProperty, ObjectFlag::UseWatchtowerTestingLog});
   }
@@ -112,19 +112,19 @@ class Watchtower {
     return watchPropertyFlagsChangeSlow(cx, obj, id, propInfo, newFlags);
   }
 
-  // Note: We can only watch property modification for regular object slots
+  // Note: We can only watch property value changes for regular object slots
   // with an id, not reserved slots.
   template <AllowGC allowGC>
-  static bool watchPropertyModification(
+  static bool watchPropertyValueChange(
       JSContext* cx,
       typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
       typename MaybeRooted<PropertyKey, allowGC>::HandleType id,
       typename MaybeRooted<Value, allowGC>::HandleType value,
       PropertyInfo propInfo) {
-    if (MOZ_LIKELY(!watchesPropertyModification(obj))) {
+    if (MOZ_LIKELY(!watchesPropertyValueChange(obj))) {
       return true;
     }
-    return watchPropertyModificationSlow<allowGC>(cx, obj, id, value, propInfo);
+    return watchPropertyValueChangeSlow<allowGC>(cx, obj, id, value, propInfo);
   }
   static bool watchFreezeOrSeal(JSContext* cx, Handle<NativeObject*> obj,
                                 IntegrityLevel level) {

@@ -38,7 +38,7 @@ proto-change
 proto-change
 add-prop: 12345
 remove-prop: x
-change-prop: y
+change-prop-flags: y
 add-prop: x
 freeze-or-seal
 freeze-or-seal`);
@@ -80,7 +80,7 @@ function testCustomDataProp() {
 
     Object.defineProperty(o, "length", {writable: false});
     let log = getLogString(o);
-    assertEq(log, "change-prop: length");
+    assertEq(log, "change-prop-flags: length");
 }
 for (var i = 0; i < 20; i++) {
     testCustomDataProp();

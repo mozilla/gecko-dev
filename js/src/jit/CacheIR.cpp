@@ -4563,7 +4563,7 @@ static bool CanAttachNativeSetSlot(JSOp op, JSObject* obj, PropertyKey id,
     return false;
   }
 
-  if (Watchtower::watchesPropertyModification(&obj->as<NativeObject>())) {
+  if (Watchtower::watchesPropertyValueChange(&obj->as<NativeObject>())) {
     return false;
   }
 

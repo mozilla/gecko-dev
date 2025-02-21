@@ -13,21 +13,21 @@ function testBasic() {
     let o = { a: 10 };
     addWatchtowerTarget(o);
 
-    // modify-prop: a
+    // change-prop-value: a
     o.a = 12;
     let p = { a: 15 };
 
-    // modify-prop: a
+    // change-prop-value: a
     Object.assign(o, p);
 
-    // modify-prop: a
+    // change-prop-value: a
     Object.defineProperty(o, "a", { value: 19 });
     let log = getLogString(o);
 
     assertEq(log,
-        `modify-prop: a
-modify-prop: a
-modify-prop: a`);
+        `change-prop-value: a
+change-prop-value: a
+change-prop-value: a`);
 }
 
 for (var i = 0; i < 20; i++) {
