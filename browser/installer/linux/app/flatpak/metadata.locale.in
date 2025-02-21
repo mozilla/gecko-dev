@@ -1,0 +1,5 @@
+[Runtime]
+name=org.mozilla.firefox.Locale
+
+[ExtensionOf]
+ref=app/org.mozilla.firefox/${ARCH}/${FLATPAK_BRANCH}
