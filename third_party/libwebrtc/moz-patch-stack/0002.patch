@@ -1,107 +1,467 @@
-From: Philipp Hancke <phancke@meta.com>
-Date: Thu, 30 Jan 2025 10:46:09 -0800
-Subject: (cherry-pick-branch-heads/6943) [Merge-133] Restore primary/rtx
- payload type assignment logic
+From: Jan-Ivar Bruaroey <jan-ivar@users.noreply.github.com>
+Date: Thu, 20 Feb 2025 22:08:47 -0500
+Subject: (tmp-cherry-pick) Revert "Reland "Allow sending to separate payload
+ types for each simulcast index."" (de1735058b)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Changes the order of payload type assignment to keep the rtx_pt =
-primary_pt+1 pattern (even if not required by the specification)
+This reverts commit 49ac6b758cc3c28be2fc13028a829f016b453d39.
 
-On https://webrtc.github.io/samples/src/content/peerconnection/pc1/ this
-changes PTs as follows:
+Reason for revert: Break codec switch in singlecast.
 
-M132: m=video 9 UDP/TLS/RTP/SAVPF 96 97 102 103
-104 105 106 107 108 109 127 125 39 40 45 46 98 99 100 101 112 113 114
-(121 more lines) mid=1
+Original change's description:
+> Reland "Allow sending to separate payload types for each simulcast index."
+>
+> This is a reland of commit bcb19c00ba8ab1788ba3c08f28ee1b23e0cc77b9
+>
+> Original change's description:
+> > Allow sending to separate payload types for each simulcast index.
+> >
+> > This change is for mixed-codec simulcast.
+> >
+> > By obtaining the payload type via RtpConfig::GetStreamConfig(),
+> > the correct payload type can be retrieved regardless of whether
+> > RtpConfig::stream_configs is initialized or not.
+> >
+> > Bug: webrtc:362277533
+> > Change-Id: I6b2a1ae66356b20a832565ce6729c3ce9e73a161
+> > Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364760
+> > Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+> > Commit-Queue: Florent Castelli <orphis@webrtc.org>
+> > Reviewed-by: Florent Castelli <orphis@webrtc.org>
+> > Cr-Commit-Position: refs/heads/main@{#43197}
+>
+> Bug: webrtc:362277533
+> Change-Id: Ia82c3390cceb9f68315c2fd9ba5114693669af32
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/374780
+> Commit-Queue: Henrik Boström <hbos@webrtc.org>
+> Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+> Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43787}
 
-M134: m=video 9 UDP/TLS/RTP/SAVPF 96 109 99 118 100 119 101 120 103 121
-104 122 37 123 40 127 97 114 98 115 107 44 108 (121 more lines) mid=1
-
-M134 with this patch: m=video 9 UDP/TLS/RTP/SAVPF 96 97 107 108 109 114
-115 116 117 118 119 120 37 121 40 124 98 99 100 101 127 42 43 (121 more
-lines) mid=1
-
-Note that this pushes red and ulpfec into lower range but those codecs
-are not widely used and it is possible to get them back into the upper
-range e.g. by using setCodecPreferences to disable H264 (where ulpfec is
-not supported)
-
-BUG=chromium:391132280
-Fixed: chromium:394000146
-
-(cherry picked from commit f68df0b95c9f8d2f56baa3c850d1f49e6471db02)
-
-Change-Id: I892f00a2f276728d16c37e8ba5f76d01f6322a7d
-No-Iwyu: single include missing, keep it more merge-able
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/375847
-Reviewed-by: Artem Titov <titovartem@webrtc.org>
-Commit-Queue: Guido Urdaneta <guidou@webrtc.org>
+Bug: webrtc:362277533
+Change-Id: Ife7d43471c85fdea9bd26cc982bce410c0d75527
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/376040
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
 Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Reviewed-by: Henrik Boström <hbos@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#43833}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/375923
-Commit-Queue: Henrik Boström <hbos@webrtc.org>
-Reviewed-by: Guido Urdaneta <guidou@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6943@{#3}
-Cr-Branched-From: cbe304455fe0ae24622252ef8a0707a555fa5caf-refs/heads/main@{#43659}
+Reviewed-by: Jonas Oreland <jonaso@webrtc.org>
+Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
+Commit-Queue: Jonas Oreland <jonaso@webrtc.org>
+Reviewed-by: Per Kjellander <perkj@webrtc.org>
+Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
+Reviewed-by: Evan Shrubsole <eshr@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#43830}
 ---
- media/engine/webrtc_video_engine.cc | 27 ++++++++++++++++++++-------
- pc/sdp_offer_answer_unittest.cc     |  3 ++-
- 2 files changed, 22 insertions(+), 8 deletions(-)
+ call/rtp_config.cc                  |  27 -------
+ call/rtp_config.h                   |   3 -
+ call/rtp_video_sender.cc            |  32 +++-----
+ call/rtp_video_sender.h             |   1 +
+ call/rtp_video_sender_unittest.cc   | 113 +---------------------------
+ media/engine/webrtc_video_engine.cc |  66 ++++++----------
+ 6 files changed, 38 insertions(+), 204 deletions(-)
 
+diff --git a/call/rtp_config.cc b/call/rtp_config.cc
+index 16911297ef..02cc0f40b1 100644
+--- a/call/rtp_config.cc
++++ b/call/rtp_config.cc
+@@ -239,31 +239,4 @@ std::optional<std::string> RtpConfig::GetRidForSsrc(uint32_t ssrc) const {
+   return std::nullopt;
+ }
+ 
+-RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
+-  // GetStreamConfig function usually returns stream_configs[index], but if
+-  // stream_configs is not initialized (i.e., index >= stream_configs.size()),
+-  // it creates and returns an RtpStreamConfig using fields such as ssrcs, rids,
+-  // payload_name, and payload_type from RtpConfig.
+-  RTC_DCHECK_LT(index, ssrcs.size());
+-  if (index < stream_configs.size()) {
+-    return stream_configs[index];
+-  }
+-  RtpStreamConfig stream_config;
+-  stream_config.ssrc = ssrcs[index];
+-  if (index < rids.size()) {
+-    stream_config.rid = rids[index];
+-  }
+-  stream_config.payload_name = payload_name;
+-  stream_config.payload_type = payload_type;
+-  stream_config.raw_payload = raw_payload;
+-  if (!rtx.ssrcs.empty()) {
+-    RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
+-    auto& stream_config_rtx = stream_config.rtx.emplace();
+-    stream_config_rtx.ssrc = rtx.ssrcs[index];
+-    stream_config_rtx.payload_type = rtx.payload_type;
+-  }
+-
+-  return stream_config;
+-}
+-
+ }  // namespace webrtc
+diff --git a/call/rtp_config.h b/call/rtp_config.h
+index d77289febc..6b79e55f40 100644
+--- a/call/rtp_config.h
++++ b/call/rtp_config.h
+@@ -193,9 +193,6 @@ struct RtpConfig {
+   uint32_t GetMediaSsrcAssociatedWithRtxSsrc(uint32_t rtx_ssrc) const;
+   uint32_t GetMediaSsrcAssociatedWithFlexfecSsrc(uint32_t flexfec_ssrc) const;
+   std::optional<std::string> GetRidForSsrc(uint32_t ssrc) const;
+-
+-  // Returns send config for RTP stream by provided simulcast `index`.
+-  RtpStreamConfig GetStreamConfig(size_t index) const;
+ };
+ }  // namespace webrtc
+ #endif  // CALL_RTP_CONFIG_H_
+diff --git a/call/rtp_video_sender.cc b/call/rtp_video_sender.cc
+index 8964e4b6bc..37cab225b7 100644
+--- a/call/rtp_video_sender.cc
++++ b/call/rtp_video_sender.cc
+@@ -330,13 +330,11 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
+   return rtp_streams;
+ }
+ 
+-std::optional<VideoCodecType> GetVideoCodecType(const RtpConfig& config,
+-                                                size_t simulcast_index) {
+-  auto stream_config = config.GetStreamConfig(simulcast_index);
+-  if (stream_config.raw_payload) {
++std::optional<VideoCodecType> GetVideoCodecType(const RtpConfig& config) {
++  if (config.raw_payload) {
+     return std::nullopt;
+   }
+-  return PayloadStringToCodecType(stream_config.payload_name);
++  return PayloadStringToCodecType(config.payload_name);
+ }
+ bool TransportSeqNumExtensionConfigured(const RtpConfig& config) {
+   return absl::c_any_of(config.extensions, [](const RtpExtension& ext) {
+@@ -423,6 +421,7 @@ RtpVideoSender::RtpVideoSender(
+                                           crypto_options,
+                                           std::move(frame_transformer))),
+       rtp_config_(rtp_config),
++      codec_type_(GetVideoCodecType(rtp_config)),
+       transport_(transport),
+       independent_frame_ids_(
+           !env.field_trials().IsDisabled(
+@@ -471,14 +470,12 @@ RtpVideoSender::RtpVideoSender(
+   }
+ 
+   bool fec_enabled = false;
+-  for (size_t i = 0; i < rtp_streams_.size(); i++) {
+-    const RtpStreamSender& stream = rtp_streams_[i];
++  for (const RtpStreamSender& stream : rtp_streams_) {
+     // Simulcast has one module for each layer. Set the CNAME on all modules.
+     stream.rtp_rtcp->SetCNAME(rtp_config_.c_name.c_str());
+     stream.rtp_rtcp->SetMaxRtpPacketSize(rtp_config_.max_packet_size);
+-    stream.rtp_rtcp->RegisterSendPayloadFrequency(
+-        rtp_config_.GetStreamConfig(i).payload_type,
+-        kVideoPayloadTypeFrequency);
++    stream.rtp_rtcp->RegisterSendPayloadFrequency(rtp_config_.payload_type,
++                                                  kVideoPayloadTypeFrequency);
+     if (stream.fec_generator != nullptr) {
+       fec_enabled = true;
+     }
+@@ -579,7 +576,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
+   // knowledge of the offset to a single place.
+   if (!rtp_streams_[simulcast_index].rtp_rtcp->OnSendingRtpFrame(
+           encoded_image.RtpTimestamp(), encoded_image.capture_time_ms_,
+-          rtp_config_.GetStreamConfig(simulcast_index).payload_type,
++          rtp_config_.payload_type,
+           encoded_image._frameType == VideoFrameType::kVideoFrameKey)) {
+     // The payload router could be active but this module isn't sending.
+     return Result(Result::ERROR_SEND_FAILED);
+@@ -619,9 +616,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
+ 
+   bool send_result =
+       rtp_streams_[simulcast_index].sender_video->SendEncodedImage(
+-          rtp_config_.GetStreamConfig(simulcast_index).payload_type,
+-          GetVideoCodecType(rtp_config_, simulcast_index), rtp_timestamp,
+-          encoded_image,
++          rtp_config_.payload_type, codec_type_, rtp_timestamp, encoded_image,
+           params_[simulcast_index].GetRtpVideoHeader(
+               encoded_image, codec_specific_info, frame_id),
+           expected_retransmission_time);
+@@ -759,12 +754,9 @@ void RtpVideoSender::ConfigureSsrcs(
+ 
+   // Configure RTX payload types.
+   RTC_DCHECK_GE(rtp_config_.rtx.payload_type, 0);
+-  for (size_t i = 0; i < rtp_streams_.size(); ++i) {
+-    const RtpStreamSender& stream = rtp_streams_[i];
+-    RtpStreamConfig stream_config = rtp_config_.GetStreamConfig(i);
+-    RTC_DCHECK(stream_config.rtx);
+-    stream.rtp_rtcp->SetRtxSendPayloadType(stream_config.rtx->payload_type,
+-                                           stream_config.payload_type);
++  for (const RtpStreamSender& stream : rtp_streams_) {
++    stream.rtp_rtcp->SetRtxSendPayloadType(rtp_config_.rtx.payload_type,
++                                           rtp_config_.payload_type);
+     stream.rtp_rtcp->SetRtxSendStatus(kRtxRetransmitted |
+                                       kRtxRedundantPayloads);
+   }
+diff --git a/call/rtp_video_sender.h b/call/rtp_video_sender.h
+index 8965cfb311..65da26db2b 100644
+--- a/call/rtp_video_sender.h
++++ b/call/rtp_video_sender.h
+@@ -201,6 +201,7 @@ class RtpVideoSender : public RtpVideoSenderInterface,
+   const std::vector<webrtc_internal_rtp_video_sender::RtpStreamSender>
+       rtp_streams_;
+   const RtpConfig rtp_config_;
++  const std::optional<VideoCodecType> codec_type_;
+   RtpTransportControllerSendInterface* const transport_;
+ 
+   // When using the generic descriptor we want all simulcast streams to share
+diff --git a/call/rtp_video_sender_unittest.cc b/call/rtp_video_sender_unittest.cc
+index 8fc744fe74..936f2937a1 100644
+--- a/call/rtp_video_sender_unittest.cc
++++ b/call/rtp_video_sender_unittest.cc
+@@ -84,7 +84,6 @@ using ::testing::SaveArg;
+ using ::testing::SizeIs;
+ 
+ const int8_t kPayloadType = 96;
+-const int8_t kPayloadType2 = 98;
+ const uint32_t kSsrc1 = 12345;
+ const uint32_t kSsrc2 = 23456;
+ const uint32_t kRtxSsrc1 = 34567;
+@@ -134,8 +133,7 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
+     Transport* transport,
+     const std::vector<uint32_t>& ssrcs,
+     const std::vector<uint32_t>& rtx_ssrcs,
+-    int payload_type,
+-    rtc::ArrayView<const int> payload_types) {
++    int payload_type) {
+   VideoSendStream::Config config(transport);
+   config.rtp.ssrcs = ssrcs;
+   config.rtp.rtx.ssrcs = rtx_ssrcs;
+@@ -147,20 +145,6 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
+   config.rtp.extensions.emplace_back(RtpDependencyDescriptorExtension::Uri(),
+                                      kDependencyDescriptorExtensionId);
+   config.rtp.extmap_allow_mixed = true;
+-
+-  if (!payload_types.empty()) {
+-    RTC_CHECK_EQ(payload_types.size(), ssrcs.size());
+-    for (size_t i = 0; i < ssrcs.size(); ++i) {
+-      auto& stream_config = config.rtp.stream_configs.emplace_back();
+-      stream_config.ssrc = ssrcs[i];
+-      stream_config.payload_type = payload_types[i];
+-      if (i < rtx_ssrcs.size()) {
+-        auto& rtx = stream_config.rtx.emplace();
+-        rtx.ssrc = rtx_ssrcs[i];
+-        rtx.payload_type = payload_types[i] + 1;
+-      }
+-    }
+-  }
+   return config;
+ }
+ 
+@@ -173,7 +157,6 @@ class RtpVideoSenderTestFixture {
+       const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
+       FrameCountObserver* frame_count_observer,
+       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+-      const std::vector<int>& payload_types,
+       const FieldTrialsView* field_trials = nullptr)
+       : time_controller_(Timestamp::Millis(1000000)),
+         env_(CreateEnvironment(&field_trials_,
+@@ -183,8 +166,7 @@ class RtpVideoSenderTestFixture {
+         config_(CreateVideoSendStreamConfig(&transport_,
+                                             ssrcs,
+                                             rtx_ssrcs,
+-                                            payload_type,
+-                                            payload_types)),
++                                            payload_type)),
+         bitrate_config_(GetBitrateConfig()),
+         transport_controller_(
+             RtpTransportConfig{.env = env_, .bitrate_config = bitrate_config_}),
+@@ -206,22 +188,6 @@ class RtpVideoSenderTestFixture {
+         std::make_unique<FecControllerDefault>(env_), nullptr, CryptoOptions{},
+         frame_transformer);
+   }
+-  RtpVideoSenderTestFixture(
+-      const std::vector<uint32_t>& ssrcs,
+-      const std::vector<uint32_t>& rtx_ssrcs,
+-      int payload_type,
+-      const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
+-      FrameCountObserver* frame_count_observer,
+-      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
+-      const FieldTrialsView* field_trials = nullptr)
+-      : RtpVideoSenderTestFixture(ssrcs,
+-                                  rtx_ssrcs,
+-                                  payload_type,
+-                                  suspended_payload_states,
+-                                  frame_count_observer,
+-                                  frame_transformer,
+-                                  /*payload_types=*/{},
+-                                  field_trials) {}
+ 
+   RtpVideoSenderTestFixture(
+       const std::vector<uint32_t>& ssrcs,
+@@ -236,7 +202,6 @@ class RtpVideoSenderTestFixture {
+                                   suspended_payload_states,
+                                   frame_count_observer,
+                                   /*frame_transformer=*/nullptr,
+-                                  /*payload_types=*/{},
+                                   field_trials) {}
+ 
+   RtpVideoSenderTestFixture(
+@@ -251,7 +216,6 @@ class RtpVideoSenderTestFixture {
+                                   suspended_payload_states,
+                                   /*frame_count_observer=*/nullptr,
+                                   /*frame_transformer=*/nullptr,
+-                                  /*payload_types=*/{},
+                                   field_trials) {}
+ 
+   ~RtpVideoSenderTestFixture() { SetSending(false); }
+@@ -989,79 +953,6 @@ TEST(RtpVideoSenderTest,
+   EXPECT_EQ(dd_s1.frame_number(), 1002);
+ }
+ 
+-TEST(RtpVideoSenderTest, MixedCodecSimulcastPayloadType) {
+-  // When multiple payload types are set, verify that the payload type switches
+-  // corresponding to the simulcast index.
+-  RtpVideoSenderTestFixture test({kSsrc1, kSsrc2}, {kRtxSsrc1, kRtxSsrc2},
+-                                 kPayloadType, {}, nullptr, nullptr,
+-                                 {kPayloadType, kPayloadType2});
+-  test.SetSending(true);
+-
+-  std::vector<uint16_t> rtp_sequence_numbers;
+-  std::vector<RtpPacket> sent_packets;
+-  EXPECT_CALL(test.transport(), SendRtp)
+-      .Times(3)
+-      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+-                          const PacketOptions& options) -> bool {
+-        RtpPacket& rtp_packet = sent_packets.emplace_back();
+-        EXPECT_TRUE(rtp_packet.Parse(packet));
+-        rtp_sequence_numbers.push_back(rtp_packet.SequenceNumber());
+-        return true;
+-      });
+-
+-  const uint8_t kPayload[1] = {'a'};
+-  EncodedImage encoded_image;
+-  encoded_image.SetEncodedData(
+-      EncodedImageBuffer::Create(kPayload, sizeof(kPayload)));
+-
+-  CodecSpecificInfo codec_specific;
+-  codec_specific.codecType = VideoCodecType::kVideoCodecVP8;
+-
+-  encoded_image.SetSimulcastIndex(0);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-  encoded_image.SetSimulcastIndex(1);
+-  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
+-            EncodedImageCallback::Result::OK);
+-
+-  test.AdvanceTime(TimeDelta::Millis(33));
+-  ASSERT_THAT(sent_packets, SizeIs(3));
+-  EXPECT_EQ(sent_packets[0].PayloadType(), kPayloadType);
+-  EXPECT_EQ(sent_packets[1].PayloadType(), kPayloadType);
+-  EXPECT_EQ(sent_packets[2].PayloadType(), kPayloadType2);
+-
+-  // Verify that NACK is sent to the RTX payload type corresponding to the
+-  // payload type.
+-  rtcp::Nack nack1, nack2;
+-  nack1.SetMediaSsrc(kSsrc1);
+-  nack2.SetMediaSsrc(kSsrc2);
+-  nack1.SetPacketIds({rtp_sequence_numbers[0], rtp_sequence_numbers[1]});
+-  nack2.SetPacketIds({rtp_sequence_numbers[2]});
+-  rtc::Buffer nack_buffer1 = nack1.Build();
+-  rtc::Buffer nack_buffer2 = nack2.Build();
+-
+-  std::vector<RtpPacket> sent_rtx_packets;
+-  EXPECT_CALL(test.transport(), SendRtp)
+-      .Times(3)
+-      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
+-                          const PacketOptions& options) {
+-        RtpPacket& rtp_packet = sent_rtx_packets.emplace_back();
+-        EXPECT_TRUE(rtp_packet.Parse(packet));
+-        return true;
+-      });
+-  test.router()->DeliverRtcp(nack_buffer1.data(), nack_buffer1.size());
+-  test.router()->DeliverRtcp(nack_buffer2.data(), nack_buffer2.size());
+-
+-  test.AdvanceTime(TimeDelta::Millis(33));
+-
+-  ASSERT_THAT(sent_rtx_packets, SizeIs(3));
+-  EXPECT_EQ(sent_rtx_packets[0].PayloadType(), kPayloadType + 1);
+-  EXPECT_EQ(sent_rtx_packets[1].PayloadType(), kPayloadType + 1);
+-  EXPECT_EQ(sent_rtx_packets[2].PayloadType(), kPayloadType2 + 1);
+-}
+-
+ TEST(RtpVideoSenderTest,
+      SupportsDependencyDescriptorForVp8NotProvidedByEncoder) {
+   constexpr uint8_t kPayload[1] = {'a'};
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index ac0042ebc4..b3e25c6c5b 100644
+index c4635859fa..ac0042ebc4 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
-@@ -261,15 +261,28 @@ std::vector<Codec> GetPayloadTypesAndDefaultCodecs(
-   // TODO: https://issues.webrtc.org/360058654 - stop assigning PTs here.
-   webrtc::PayloadTypePicker pt_mapper;
-   std::vector<Codec> output_codecs;
--  webrtc::RTCErrorOr<std::vector<Codec>> result =
--      AssignPayloadTypes(supported_formats, pt_mapper, trials);
--  RTC_DCHECK(result.ok());
--  output_codecs = result.MoveValue();
--  if (include_rtx) {
-+  for (const auto& supported_format : supported_formats) {
-     webrtc::RTCErrorOr<std::vector<Codec>> result =
--        AddRtx(output_codecs, pt_mapper);
-+        AssignPayloadTypes({supported_format}, pt_mapper, trials);
-     RTC_DCHECK(result.ok());
--    return result.MoveValue();
-+    if (result.ok()) {
-+      for (const auto& codec : result.value()) {
-+        if (include_rtx) {
-+          // This will return both primary and rtx if there is rtx.
-+          result = AddRtx({codec}, pt_mapper);
-+          if (result.ok()) {
-+            for (const auto& codec : result.value()) {
-+              output_codecs.push_back(codec);
-+            }
-+          } else {
-+            output_codecs.push_back(codec);
-+          }
-+
-+        } else {
-+          output_codecs.push_back(codec);
-+        }
-+      }
-+    }
-   }
-   return output_codecs;
- }
-diff --git a/pc/sdp_offer_answer_unittest.cc b/pc/sdp_offer_answer_unittest.cc
-index 3307dfa317..1aba5f4485 100644
---- a/pc/sdp_offer_answer_unittest.cc
-+++ b/pc/sdp_offer_answer_unittest.cc
-@@ -652,7 +652,8 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {
-   EXPECT_TRUE(pc->SetRemoteDescription(std::move(rejected_answer)));
- }
+@@ -1428,51 +1428,31 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
+         break;
+     }
  
--TEST_F(SdpOfferAnswerTest, SimulcastOfferWithMixedCodec) {
-+// TODO: bugs.webrtc.org/362277533 - reenable before launch.
-+TEST_F(SdpOfferAnswerTest, DISABLED_SimulcastOfferWithMixedCodec) {
-   auto pc = CreatePeerConnection(
-       FieldTrials::CreateNoGlobal("WebRTC-MixedCodecSimulcast/Enabled/"));
+-    if (send_codec_ &&
+-        std::any_of(parameters.encodings.begin(), parameters.encodings.end(),
+-                    [](const auto& e) { return e.codec; })) {
+-      std::vector<VideoCodecSettings> send_codecs;
+-
+-      for (size_t i = 0; i < parameters.encodings.size(); i++) {
+-        const auto& codec = parameters.encodings[i].codec;
+-        std::optional<VideoCodecSettings> found_codec;
+-        if (!codec) {
+-          found_codec = *send_codec_;
+-        } else if (i < send_codecs_.size()) {
+-          const auto& send_codec = send_codecs_[i];
+-          if (IsSameRtpCodecIgnoringLevel(send_codec.codec, *codec)) {
+-            found_codec = send_codec;
+-          }
+-        }
+-        if (!found_codec) {
+-          RTC_DCHECK(codec);
+-          auto matched_codec =
+-              absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
+-                return IsSameRtpCodecIgnoringLevel(negotiated_codec.codec,
+-                                                   *codec);
+-              });
+-          if (matched_codec == negotiated_codecs_.end()) {
+-            return webrtc::InvokeSetParametersCallback(
+-                callback,
+-                webrtc::RTCError(
+-                    webrtc::RTCErrorType::INVALID_MODIFICATION,
+-                    "Attempted to use an unsupported codec for layer " +
+-                        std::to_string(i)));
+-          }
+-          found_codec = *matched_codec;
+-        }
+-        RTC_DCHECK(found_codec);
+-        send_codecs.push_back(*found_codec);
++    // Since we validate that all layers have the same value, we can just check
++    // the first layer.
++    // TODO: https://issues.webrtc.org/362277533 - Support mixed-codec simulcast
++    if (parameters.encodings[0].codec && send_codec_ &&
++        !IsSameRtpCodecIgnoringLevel(send_codec_->codec,
++                                     *parameters.encodings[0].codec)) {
++      RTC_LOG(LS_VERBOSE) << "Trying to change codec to "
++                          << parameters.encodings[0].codec->name;
++      // Ignore level when matching negotiated codecs against the requested
++      // codec.
++      auto matched_codec =
++          absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
++            return IsSameRtpCodecIgnoringLevel(negotiated_codec.codec,
++                                               *parameters.encodings[0].codec);
++          });
++      if (matched_codec == negotiated_codecs_.end()) {
++        return webrtc::InvokeSetParametersCallback(
++            callback, webrtc::RTCError(
++                          webrtc::RTCErrorType::INVALID_MODIFICATION,
++                          "Attempted to use an unsupported codec for layer 0"));
+       }
  
+-      if (send_codecs_ != send_codecs) {
+-        ChangedSenderParameters params;
+-        if (!send_codecs.empty()) {
+-          params.send_codec = send_codecs[0];
+-        }
+-        params.send_codecs = send_codecs;
+-        ApplyChangedParams(params);
+-      }
++      ChangedSenderParameters params;
++      params.send_codec = *matched_codec;
++      ApplyChangedParams(params);
+     }
+ 
+     SetPreferredDscp(new_dscp);

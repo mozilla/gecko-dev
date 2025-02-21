@@ -1,0 +1,22 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 7 Feb 2025 16:26:00 -0600
+Subject: Bug 1942428 - (fix-e500d46600) upstream removed p2p:rtc_p2p
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0155a8718d5d7f23b8391a1d04b1196e30127dad
+---
+ BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/BUILD.gn b/BUILD.gn
+index be1bd2f3d1..2ee538412c 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -598,7 +598,7 @@ if (!build_with_chromium) {
+         "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+         "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+         "logging:rtc_event_log_api",
+-        "p2p:rtc_p2p",
++#        "p2p:rtc_p2p",
+         "pc:libjingle_peerconnection",
+         "pc:rtc_pc",
+         "sdk",
