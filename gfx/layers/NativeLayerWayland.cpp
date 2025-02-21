@@ -178,16 +178,18 @@ void NativeLayerRootWayland::Init() {
 void NativeLayerRootWayland::Shutdown() {
   LOG("NativeLayerRootWayland::Shutdown()");
 
+  {
+    WaylandSurfaceLock lock(mSurface);
+    if (mSurface->IsMapped()) {
+      mSurface->RemoveAttachedBufferLocked(lock);
+    }
+    mSurface->ClearUnmapCallbackLocked(lock);
+    mSurface->ClearGdkCommitCallbackLocked(lock);
+    mSurface->DisableDMABufFormatsLocked(lock);
+  }
+  mSurface = nullptr;
   mTmpBuffer = nullptr;
   mDRMFormat = nullptr;
-
-  WaylandSurfaceLock lock(mSurface);
-  MOZ_DIAGNOSTIC_ASSERT(!mSurface->IsMapped(),
-                        "Can't shutdown with live WaylandSurface!");
-  mSurface->ClearUnmapCallbackLocked(lock);
-  mSurface->ClearGdkCommitCallbackLocked(lock);
-  mSurface->DisableDMABufFormatsLocked(lock);
-  mSurface = nullptr;
 }
 
 NativeLayerRootWayland::NativeLayerRootWayland(
