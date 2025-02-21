@@ -25,7 +25,16 @@ add_task(async function () {
   );
 
   for (let size of [16, 32, 64]) {
-    let file = do_get_file(`favicon-multi-frame${size}.png`);
+    let allowMissing = AppConstants.USE_LIBZ_RS;
+    let file = do_get_file(
+      `favicon-multi-frame${size}` +
+        (AppConstants.USE_LIBZ_RS ? ".libz-rs.png" : ".png"),
+      allowMissing
+    );
+    if (!file.exists()) {
+      file = do_get_file(`favicon-multi-frame${size}.png`);
+    }
+
     let data = readFileData(file);
 
     info("Check getFaviconDataForPage");

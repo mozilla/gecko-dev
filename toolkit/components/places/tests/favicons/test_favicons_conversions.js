@@ -57,7 +57,16 @@ async function checkFaviconDataConversion(
     if (!aExpectConversion) {
       checkFaviconDataForPage(pageURI, aFileMimeType, fileData, resolve);
     } else if (!aVaryOnWindows || !isWindows) {
-      let expectedFile = do_get_file("expected-" + aFileName + ".png");
+      let allowMissing = AppConstants.USE_LIBZ_RS;
+      let expectedFile = do_get_file(
+        "expected-" +
+          aFileName +
+          (AppConstants.USE_LIBZ_RS ? ".libz-rs.png" : ".png"),
+        allowMissing
+      );
+      if (!expectedFile.exists()) {
+        expectedFile = do_get_file("expected-" + aFileName + ".png");
+      }
       let expectedData = readFileData(expectedFile);
       checkFaviconDataForPage(pageURI, "image/png", expectedData, resolve);
     } else {
