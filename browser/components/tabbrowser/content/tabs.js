@@ -1096,6 +1096,21 @@
           shouldTranslate &&= oldTranslateX && oldTranslateX != newTranslateX;
         }
 
+        let moveTabs = () => {
+          if (dropIndex !== undefined) {
+            for (let tab of movingTabs) {
+              gBrowser.moveTabTo(tab, dropIndex);
+              if (!directionForward) {
+                dropIndex++;
+              }
+            }
+          } else if (dropBefore) {
+            gBrowser.moveTabsBefore(movingTabs, dropElement);
+          } else {
+            gBrowser.moveTabsAfter(movingTabs, dropElement);
+          }
+        };
+
         if (shouldTranslate) {
           let translationPromises = [];
           for (let tab of movingTabs) {
@@ -1127,16 +1142,7 @@
           }
           Promise.all(translationPromises).then(() => {
             this._finishAnimateTabMove();
-            if (dropIndex !== undefined) {
-              for (let tab of movingTabs) {
-                gBrowser.moveTabTo(tab, dropIndex);
-                if (!directionForward) {
-                  dropIndex++;
-                }
-              }
-            } else {
-              gBrowser.dropTabs(movingTabs, dropElement, dropBefore);
-            }
+            moveTabs();
           });
         } else {
           this._finishAnimateTabMove();
@@ -1151,15 +1157,8 @@
               showCreateUI: true,
               color: draggedTab._dragData.tabGroupCreationColor,
             });
-          } else if (dropIndex !== undefined) {
-            for (let tab of movingTabs) {
-              gBrowser.moveTabTo(tab, dropIndex);
-              if (!directionForward) {
-                dropIndex++;
-              }
-            }
-          } else if (dropElement) {
-            gBrowser.dropTabs(movingTabs, dropElement, dropBefore);
+          } else {
+            moveTabs();
           }
         }
       } else if (draggedTab) {
@@ -2844,7 +2843,7 @@
         if (animate) {
           addAnimationData(movingTab, true);
         } else {
-          gBrowser.dropTab(movingTab, tab, true);
+          gBrowser.moveTabBefore(movingTab, tab);
         }
       }
 
@@ -2854,7 +2853,7 @@
         if (animate) {
           addAnimationData(movingTab, false);
         } else {
-          gBrowser.dropTab(movingTab, tab, false);
+          gBrowser.moveTabAfter(movingTab, tab);
         }
       }
 
@@ -2890,12 +2889,12 @@
 
       // Moving left or top tabs
       for (let i = 0; i < tabIndex; i++) {
-        gBrowser.dropTab(selectedTabs[i], tab, true);
+        gBrowser.moveTabBefore(selectedTabs[i], tab);
       }
 
       // Moving right or bottom tabs
       for (let i = selectedTabs.length - 1; i > tabIndex; i--) {
-        gBrowser.dropTab(selectedTabs[i], tab, false);
+        gBrowser.moveTabAfter(selectedTabs[i], tab);
       }
 
       for (let item of this.ariaFocusableItems) {
