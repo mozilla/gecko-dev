@@ -1947,6 +1947,7 @@ void PeerConnection::Close() {
     StopRtcEventLog_w();
   });
   ReportUsagePattern();
+  ReportCloseUsageMetrics();
 
   // Signal shutdown to the sdp handler. This invalidates weak pointers for
   // internal pending callbacks.
@@ -2083,6 +2084,54 @@ void PeerConnection::ReportFirstConnectUsageMetrics() {
   }
   RTC_HISTOGRAM_ENUMERATION("WebRTC.PeerConnection.RtcpMuxPolicy",
                             rtcp_mux_policy, kRtcpMuxPolicyUsageMax);
+  switch (local_description()->GetType()) {
+    case SdpType::kOffer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.Offer.ConnectionEstablished",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kAnswer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.Answer.ConnectionEstablished",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kPrAnswer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.PrAnswer.ConnectionEstablished",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kRollback:
+      // Rollback does not have SDP so can not be munged.
+      break;
+  }
+}
+
+void PeerConnection::ReportCloseUsageMetrics() {
+  if (!was_ever_connected_) {
+    return;
+  }
+  RTC_DCHECK(local_description());
+  RTC_DCHECK(sdp_handler_);
+  switch (local_description()->GetType()) {
+    case SdpType::kOffer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.Offer.ConnectionClosed",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kAnswer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.Answer.ConnectionClosed",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kPrAnswer:
+      RTC_HISTOGRAM_ENUMERATION(
+          "WebRTC.PeerConnection.SdpMunging.PrAnswer.ConnectionClosed",
+          sdp_handler_->sdp_munging_type(), SdpMungingType::kMaxValue);
+      break;
+    case SdpType::kRollback:
+      // Rollback does not have SDP so can not be munged.
+      break;
+  }
 }
 
 void PeerConnection::OnIceGatheringChange(

@@ -43,6 +43,7 @@
 
 namespace webrtc {
 
+using ::testing::Eq;
 using RTCOfferAnswerOptions = PeerConnectionInterface::RTCOfferAnswerOptions;
 
 PeerConnectionWrapper::PeerConnectionWrapper(
@@ -165,6 +166,20 @@ bool PeerConnectionWrapper::SetLocalDescription(
         pc()->SetLocalDescription(observer, desc.release());
       },
       error_out);
+}
+
+bool PeerConnectionWrapper::SetLocalDescription(
+    std::unique_ptr<SessionDescriptionInterface> desc,
+    RTCError* error_out) {
+  auto observer = rtc::make_ref_counted<FakeSetLocalDescriptionObserver>();
+  pc()->SetLocalDescription(std::move(desc), observer);
+  EXPECT_THAT(
+      WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+      IsRtcOk());
+  bool ok = observer->error().ok();
+  if (error_out)
+    *error_out = std::move(observer->error());
+  return ok;
 }
 
 bool PeerConnectionWrapper::SetRemoteDescription(

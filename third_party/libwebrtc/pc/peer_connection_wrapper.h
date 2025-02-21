@@ -23,6 +23,7 @@
 #include "api/media_types.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
@@ -95,6 +96,8 @@ class PeerConnectionWrapper {
   // Returns true if the description was successfully set.
   bool SetLocalDescription(std::unique_ptr<SessionDescriptionInterface> desc,
                            std::string* error_out = nullptr);
+  bool SetLocalDescription(std::unique_ptr<SessionDescriptionInterface> desc,
+                           RTCError* error_out);
   // Calls the underlying PeerConnection's SetRemoteDescription method with the
   // given session description and waits for the success/failure response.
   // Returns true if the description was successfully set.

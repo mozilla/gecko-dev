@@ -385,6 +385,9 @@ class PeerConnection : public PeerConnectionInternal,
 
   // Report several UMA metrics on establishing the connection.
   void ReportFirstConnectUsageMetrics() RTC_RUN_ON(signaling_thread());
+  // Report several UMA metrics for established connections when the connection
+  // is closed.
+  void ReportCloseUsageMetrics() RTC_RUN_ON(signaling_thread());
 
   // Returns true if the PeerConnection is configured to use Unified Plan
   // semantics for creating offers/answers and setting local/remote

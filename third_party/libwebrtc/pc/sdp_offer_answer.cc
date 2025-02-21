@@ -79,6 +79,7 @@
 #include "pc/rtp_sender_proxy.h"
 #include "pc/rtp_transceiver.h"
 #include "pc/rtp_transmission_manager.h"
+#include "pc/sdp_munging_detector.h"
 #include "pc/session_description.h"
 #include "pc/simulcast_description.h"
 #include "pc/stream_collection.h"
@@ -1286,6 +1287,31 @@ class CreateSessionDescriptionObserverOperationWrapper
   std::function<void()> operation_complete_callback_;
 };
 
+// Wraps a session description observer so a Clone of the last created
+// offer/answer can be stored.
+class CreateDescriptionObserverWrapperWithCreationCallback
+    : public CreateSessionDescriptionObserver {
+ public:
+  CreateDescriptionObserverWrapperWithCreationCallback(
+      std::function<void(const SessionDescriptionInterface* desc)> callback,
+      rtc::scoped_refptr<CreateSessionDescriptionObserver> observer)
+      : callback_(callback), observer_(observer) {
+    RTC_DCHECK(observer_);
+  }
+  void OnSuccess(SessionDescriptionInterface* desc) override {
+    callback_(desc);
+    observer_->OnSuccess(desc);
+  }
+  void OnFailure(RTCError error) override {
+    callback_(nullptr);
+    observer_->OnFailure(std::move(error));
+  }
+
+ private:
+  std::function<void(const SessionDescriptionInterface* desc)> callback_;
+  rtc::scoped_refptr<CreateSessionDescriptionObserver> observer_;
+};
+
 // Wrapper for SetSessionDescriptionObserver that invokes the success or failure
 // callback in a posted message handled by the peer connection. This introduces
 // a delay that prevents recursive API calls by the observer, but this also
@@ -2401,8 +2427,15 @@ void SdpOfferAnswerHandler::DoSetLocalDescription(
     return;
   }
 
-  // Grab the description type before moving ownership to ApplyLocalDescription,
-  // which may destroy it before returning.
+  // Determine if SDP munging was done. This is not yet acted upon.
+  bool had_local_description = !!local_description();
+  SdpMungingType sdp_munging_type =
+      DetermineSdpMungingType(desc.get(), desc->GetType() == SdpType::kOffer
+                                              ? last_created_offer_.get()
+                                              : last_created_answer_.get());
+
+  // Grab the description type before moving ownership to
+  // ApplyLocalDescription, which may destroy it before returning.
   const SdpType type = desc->GetType();
 
   error = ApplyLocalDescription(std::move(desc), bundle_groups_by_mid);
@@ -2431,12 +2464,40 @@ void SdpOfferAnswerHandler::DoSetLocalDescription(
         [this] { port_allocator()->DiscardCandidatePool(); });
   }
 
+  // Clear last created offer/answer and update SDP munging type.
+  last_created_offer_.reset(nullptr);
+  last_created_answer_.reset(nullptr);
+  last_sdp_munging_type_ = sdp_munging_type;
+  // Report SDP munging of the initial call to setLocalDescription separately.
+  if (!had_local_description) {
+    switch (local_description()->GetType()) {
+      case SdpType::kOffer:
+        RTC_HISTOGRAM_ENUMERATION(
+            "WebRTC.PeerConnection.SdpMunging.Offer.Initial",
+            last_sdp_munging_type_, SdpMungingType::kMaxValue);
+        break;
+      case SdpType::kAnswer:
+        RTC_HISTOGRAM_ENUMERATION(
+            "WebRTC.PeerConnection.SdpMunging.Answer.Initial",
+            last_sdp_munging_type_, SdpMungingType::kMaxValue);
+        break;
+      case SdpType::kPrAnswer:
+        RTC_HISTOGRAM_ENUMERATION(
+            "WebRTC.PeerConnection.SdpMunging.PrAnswer.Initial",
+            last_sdp_munging_type_, SdpMungingType::kMaxValue);
+        break;
+      case SdpType::kRollback:
+        // Rollback does not have SDP so can not be munged.
+        break;
+    }
+  }
+
   observer->OnSetLocalDescriptionComplete(RTCError::OK());
   pc_->NoteUsageEvent(UsageEvent::SET_LOCAL_DESCRIPTION_SUCCEEDED);
 
   // Check if negotiation is needed. We must do this after informing the
-  // observer that SetLocalDescription() has completed to ensure negotiation is
-  // not needed prior to the promise resolving.
+  // observer that SetLocalDescription() has completed to ensure negotiation
+  // is not needed prior to the promise resolving.
   if (IsUnifiedPlan()) {
     bool was_negotiation_needed = is_negotiation_needed_;
     UpdateNegotiationNeeded();
@@ -2449,9 +2510,9 @@ void SdpOfferAnswerHandler::DoSetLocalDescription(
     }
   }
 
-  // MaybeStartGathering needs to be called after informing the observer so that
-  // we don't signal any candidates before signaling that SetLocalDescription
-  // completed.
+  // MaybeStartGathering needs to be called after informing the observer so
+  // that we don't signal any candidates before signaling that
+  // SetLocalDescription completed.
   transport_controller_s()->MaybeStartGathering();
 }
 
@@ -2508,7 +2569,18 @@ void SdpOfferAnswerHandler::DoCreateOffer(
 
   cricket::MediaSessionOptions session_options;
   GetOptionsForOffer(options, &session_options);
-  webrtc_session_desc_factory_->CreateOffer(observer.get(), options,
+  auto observer_wrapper = rtc::make_ref_counted<
+      CreateDescriptionObserverWrapperWithCreationCallback>(
+      [this](const SessionDescriptionInterface* desc) {
+        RTC_DCHECK_RUN_ON(signaling_thread());
+        if (desc) {
+          last_created_offer_ = desc->Clone();
+        } else {
+          last_created_offer_.reset(nullptr);
+        }
+      },
+      std::move(observer));
+  webrtc_session_desc_factory_->CreateOffer(observer_wrapper.get(), options,
                                             session_options);
 }
 
@@ -2594,7 +2666,19 @@ void SdpOfferAnswerHandler::DoCreateAnswer(
 
   cricket::MediaSessionOptions session_options;
   GetOptionsForAnswer(options, &session_options);
-  webrtc_session_desc_factory_->CreateAnswer(observer.get(), session_options);
+  auto observer_wrapper = rtc::make_ref_counted<
+      CreateDescriptionObserverWrapperWithCreationCallback>(
+      [this](const SessionDescriptionInterface* desc) {
+        RTC_DCHECK_RUN_ON(signaling_thread());
+        if (desc) {
+          last_created_answer_ = desc->Clone();
+        } else {
+          last_created_answer_.reset(nullptr);
+        }
+      },
+      std::move(observer));
+  webrtc_session_desc_factory_->CreateAnswer(observer_wrapper.get(),
+                                             session_options);
 }
 
 void SdpOfferAnswerHandler::DoSetRemoteDescription(

@@ -953,6 +953,24 @@ rtc_source_set("rtc_stats_traversal") {
   ]
 }
 
+rtc_source_set("sdp_munging_detector") {
+  visibility = [ ":*" ]
+  sources = [
+    "sdp_munging_detector.cc",
+    "sdp_munging_detector.h",
+  ]
+  deps = [
+    ":session_description",
+    "../api:libjingle_peerconnection_api",
+    "../media:codec",
+    "../media:media_constants",
+    "../media:stream_params",
+    "../p2p:transport_info",
+    "../rtc_base:checks",
+    "../rtc_base:logging",
+    "//third_party/abseil-cpp/absl/algorithm:container",
+  ]
+}
 rtc_source_set("sdp_offer_answer") {
   visibility = [ ":*" ]
   sources = [
@@ -980,6 +998,7 @@ rtc_source_set("sdp_offer_answer") {
     ":rtp_sender_proxy",
     ":rtp_transceiver",
     ":rtp_transmission_manager",
+    ":sdp_munging_detector",
     ":sdp_state_provider",
     ":session_description",
     ":simulcast_description",
@@ -1009,6 +1028,7 @@ rtc_source_set("sdp_offer_answer") {
     "../call:payload_type",
     "../media:codec",
     "../media:media_channel",
+    "../media:media_constants",
     "../media:media_engine",
     "../media:rid_description",
     "../media:stream_params",
