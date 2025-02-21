@@ -7,6 +7,7 @@ package org.mozilla.fenix.customtabs
 import android.app.assist.AssistContent
 import android.net.Uri
 import android.os.Build
+import android.view.MotionEvent
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import mozilla.components.browser.state.selector.findCustomTab
@@ -24,6 +25,8 @@ const val EXTRA_IS_SANDBOX_CUSTOM_TAB = "org.mozilla.fenix.customtabs.EXTRA_IS_S
  */
 @Suppress("TooManyFunctions")
 open class ExternalAppBrowserActivity : HomeActivity() {
+    var isFinishedAnimating = false
+
     override fun onResume() {
         super.onResume()
 
@@ -73,5 +76,18 @@ open class ExternalAppBrowserActivity : HomeActivity() {
         super.onProvideAssistContent(outContent)
         val currentTabUrl = getExternalTab()?.content?.url
         outContent?.webUri = currentTabUrl?.let { Uri.parse(it) }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        if (!isFinishedAnimating) {
+            return true
+        }
+
+        return super.dispatchTouchEvent(ev)
+    }
+
+    override fun onEnterAnimationComplete() {
+        super.onEnterAnimationComplete()
+        isFinishedAnimating = true
     }
 }
