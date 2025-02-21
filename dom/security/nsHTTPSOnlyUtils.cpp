@@ -13,6 +13,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/net/DNS.h"
 #include "nsContentUtils.h"
+#include "nsDNSPrefetch.h"
 #include "nsHTTPSOnlyUtils.h"
 #include "nsIEffectiveTLDService.h"
 #include "nsIHttpChannel.h"
@@ -1146,11 +1147,31 @@ TestHTTPAnswerRunnable::GetInterface(const nsIID& aIID, void** aResult) {
 
 NS_IMETHODIMP
 TestHTTPAnswerRunnable::Run() {
+  {
+    // Before we start our timer we kick of a DNS request for HTTPS RR. If we
+    // find a HTTPS RR we will not downgrade later.
+    nsCOMPtr<nsIChannel> origChannel = mDocumentLoadListener->GetChannel();
+    mozilla::OriginAttributes originAttributes;
+    mozilla::StoragePrincipalHelper::GetOriginAttributesForHTTPSRR(
+        origChannel, originAttributes);
+    RefPtr<nsDNSPrefetch> resolver =
+        new nsDNSPrefetch(mURI, originAttributes, origChannel->GetTRRMode());
+    nsCOMPtr<nsIHttpChannelInternal> internalChannel =
+        do_QueryInterface(origChannel);
+    uint32_t caps;
+    if (NS_SUCCEEDED(internalChannel->GetCaps(&caps))) {
+      mozilla::Unused << resolver->FetchHTTPSSVC(
+          caps & NS_HTTP_REFRESH_DNS, false,
+          [self = RefPtr{this}](nsIDNSHTTPSSVCRecord* aRecord) {
+            self->mHasHTTPSRR = (aRecord != nullptr);
+          });
+    }
+  }
+
   // Wait N milliseconds to give the original https request a heads start
-  // before firing up this http request in the background. By default the
-  // timer is set to 3 seconds.  If the https request has not received
-  // any signal from the server during that time, than it's almost
-  // certain the upgraded request will result in time out.
+  // before firing up this http request in the background. If the https request
+  // has not received any signal from the server during that time, than it's
+  // almost certain the upgraded request will result in time out.
   uint32_t background_timer_ms = mozilla::StaticPrefs::
       dom_security_https_only_fire_http_request_background_timer_ms();
 
@@ -1174,16 +1195,15 @@ TestHTTPAnswerRunnable::Notify(nsITimer* aTimer) {
       origHttpsOnlyStatus & nsILoadInfo::HTTPS_ONLY_TOP_LEVEL_LOAD_IN_PROGRESS;
   uint32_t downloadInProgress =
       origHttpsOnlyStatus & nsILoadInfo::HTTPS_ONLY_DOWNLOAD_IN_PROGRESS;
-  // If the upgrade is caused by HSTS we do not allow downgrades so we do not
-  // need to start a racing request.
-  // TODO: We should do the same for HTTPS RR but it is more difficult
-  // and the spec hasn't decided yet.
-  // https://bugzilla.mozilla.org/show_bug.cgi?id=1906590
+
+  // If the upgrade is caused by HSTS or HTTPS RR we do not allow downgrades
+  // so we do not need to start a racing request.
   bool isClientRequestedUpgrade =
       origHttpsOnlyStatus &
-      (nsILoadInfo::HTTPS_ONLY_UPGRADED_LISTENER_NOT_REGISTERED |
-       nsILoadInfo::HTTPS_ONLY_UPGRADED_LISTENER_REGISTERED |
-       nsILoadInfo::HTTPS_ONLY_UPGRADED_HTTPS_FIRST);
+          (nsILoadInfo::HTTPS_ONLY_UPGRADED_LISTENER_NOT_REGISTERED |
+           nsILoadInfo::HTTPS_ONLY_UPGRADED_LISTENER_REGISTERED |
+           nsILoadInfo::HTTPS_ONLY_UPGRADED_HTTPS_FIRST) &&
+      !mHasHTTPSRR;
 
   if (topLevelLoadInProgress || downloadInProgress ||
       !isClientRequestedUpgrade) {
