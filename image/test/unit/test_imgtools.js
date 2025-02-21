@@ -5,6 +5,9 @@
 const { NetUtil } = ChromeUtils.importESModule(
   "resource://gre/modules/NetUtil.sys.mjs"
 );
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
 
 /*
  * dumpToFile()
@@ -229,10 +232,14 @@ function run_test() {
 
       encodedBytes = streamToArray(istream);
       // Get bytes for expected result
-      refName = isWindows ? "image2jpg16x16-win.png" : "image2jpg16x16.png";
+      if (AppConstants.USE_LIBZ_RS) {
+        refName = "image2jpg16x16.libz-rs.png";
+      } else {
+        refName = isWindows ? "image2jpg16x16-win.png" : "image2jpg16x16.png";
+      }
       refFile = do_get_file(refName);
       istream = getFileInputStream(refFile);
-      Assert.equal(istream.available(), 955);
+      Assert.equal(istream.available(), AppConstants.USE_LIBZ_RS ? 941 : 955);
       referenceBytes = streamToArray(istream);
 
       // compare the encoder's output to the reference file.
@@ -249,10 +256,14 @@ function run_test() {
       encodedBytes = streamToArray(istream);
 
       // Get bytes for expected result
-      refName = isWindows ? "image2jpg32x32-win.png" : "image2jpg32x32.png";
+      if (AppConstants.USE_LIBZ_RS) {
+        refName = "image2jpg32x32.libz-rs.png";
+      } else {
+        refName = isWindows ? "image2jpg32x32-win.png" : "image2jpg32x32.png";
+      }
       refFile = do_get_file(refName);
       istream = getFileInputStream(refFile);
-      Assert.equal(istream.available(), 3026);
+      Assert.equal(istream.available(), AppConstants.USE_LIBZ_RS ? 2916 : 3026);
       referenceBytes = streamToArray(istream);
 
       // compare the encoder's output to the reference file.
@@ -292,10 +303,12 @@ function run_test() {
     encodedBytes = streamToArray(istream);
 
     // Get bytes for expected result
-    refName = "image3ico32x32.png";
+    refName = AppConstants.USE_LIBZ_RS
+      ? "image3ico32x32.libz-rs.png"
+      : "image3ico32x32.png";
     refFile = do_get_file(refName);
     istream = getFileInputStream(refFile);
-    Assert.equal(istream.available(), 2280);
+    Assert.equal(istream.available(), AppConstants.USE_LIBZ_RS ? 2283 : 2280);
     referenceBytes = streamToArray(istream);
 
     // compare the encoder's output to the reference file.
@@ -310,10 +323,12 @@ function run_test() {
     encodedBytes = streamToArray(istream);
 
     // Get bytes for expected result
-    refName = "image3ico16x16.png";
+    refName = AppConstants.USE_LIBZ_RS
+      ? "image3ico16x16.libz-rs.png"
+      : "image3ico16x16.png";
     refFile = do_get_file(refName);
     istream = getFileInputStream(refFile);
-    Assert.equal(istream.available(), 520);
+    Assert.equal(istream.available(), AppConstants.USE_LIBZ_RS ? 512 : 520);
     referenceBytes = streamToArray(istream);
 
     // compare the encoder's output to the reference file.
@@ -745,7 +760,9 @@ function run_test() {
       {
         preImage: "image3.ico",
         preImageMimeType: "image/x-icon",
-        refImage: "image3ico16x16.png",
+        refImage: AppConstants.USE_LIBZ_RS
+          ? "image3ico16x16.libz-rs.png"
+          : "image3ico16x16.png",
         refImageMimeType: "image/png",
       },
       {

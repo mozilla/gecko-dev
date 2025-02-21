@@ -3,6 +3,10 @@
  *
  */
 
+const { AppConstants } = ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
+
 var png1A = {
   // A 3x3 image, rows are red, green, blue.
   // RGB format, transparency defaults.
@@ -70,8 +74,9 @@ var png2A = {
       ],
     },
   ],
-  expected:
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAGUlEQVQIW2P8z8AARAyrQZgRyETiMPyHcwDKCwoAGxxLEQAAAABJRU5ErkJggg==",
+  expected: AppConstants.USE_LIBZ_RS
+    ? "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAG0lEQVQIW2P8z8Dwn4GBYTUIMzL8R+Yw/IdzAMoLCgDGywYPAAAAAElFTkSuQmCC"
+    : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAAGUlEQVQIW2P8z8AARAyrQZgRyETiMPyHcwDKCwoAGxxLEQAAAABJRU5ErkJggg==",
 };
 
 var png2B = {
