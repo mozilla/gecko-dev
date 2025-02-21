@@ -28,7 +28,7 @@ class RtpPacketizerAv1 : public RtpPacketizer {
                    PayloadSizeLimits limits,
                    VideoFrameType frame_type,
                    bool is_last_frame_in_picture,
-                   bool even_distribution);
+                   bool even_distribution = true);
   ~RtpPacketizerAv1() override = default;
 
   size_t NumPackets() const override { return packets_.size() - packet_index_; }
