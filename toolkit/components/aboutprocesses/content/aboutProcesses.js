@@ -570,17 +570,14 @@ var View = {
           processNameElement = document.createElement("span");
           nameCell.appendChild(processNameElement);
 
-          let profilerButton = document.createElement("span");
-          profilerButton.className = "profiler-icon";
-          profilerButton.setAttribute("role", "button");
-          profilerButton.setAttribute("tabindex", "0");
-          profilerButton.setAttribute("aria-pressed", "false");
+          let profilerIcon = document.createElement("span");
+          profilerIcon.className = "profiler-icon";
           document.l10n.setAttributes(
-            profilerButton,
+            profilerIcon,
             "about-processes-profile-process",
             { duration: PROFILE_DURATION }
           );
-          nameCell.appendChild(profilerButton);
+          nameCell.appendChild(profilerIcon);
         } else {
           processNameElement = nameCell.firstChild;
         }
@@ -661,16 +658,8 @@ var View = {
     let cpuCell = memoryCell.nextSibling;
     this.displayCpu(data, cpuCell, maxSlopeCpu);
 
-    // Column: Actions with Kill button – but not for all processes.
-    let actionCell = cpuCell.nextSibling;
-
-    if (!actionCell.firstChild) {
-      let span = document.createElement("span");
-      actionCell.appendChild(span);
-    }
-
-    let killButton = actionCell.firstChild;
-
+    // Column: Kill button – but not for all processes.
+    let killButton = cpuCell.nextSibling;
     killButton.className = "action-icon";
 
     if (data.type != "browser") {
@@ -685,12 +674,9 @@ var View = {
         // But we also want to make it visible that the process is being
         // killed.
         row.classList.add("killed");
-        row.setAttribute("aria-busy", "true");
       } else {
         // Otherwise, let's display the kill button.
         killButton.classList.add("close-icon");
-        killButton.setAttribute("role", "button");
-        killButton.setAttribute("tabindex", "0");
         let killButtonLabelId = data.type.startsWith("web")
           ? "about-processes-shutdown-process"
           : "about-processes-kill-process";
@@ -771,34 +757,32 @@ var View = {
     if (!nameCell.firstChild) {
       nameCell.className = "name indent";
       // Create the nodes:
-      let imgButton = document.createElement("span");
+      let imgBtn = document.createElement("span");
       // Provide markup for an accessible disclosure button:
-      imgButton.className = "twisty";
-      imgButton.setAttribute("role", "button");
-      imgButton.setAttribute("tabindex", "0");
+      imgBtn.className = "twisty";
+      imgBtn.setAttribute("role", "button");
+      imgBtn.setAttribute("tabindex", "0");
       // Label to include both summary and details texts
-      imgButton.setAttribute("aria-labelledby", `${data.pid}-label ${rowId}`);
-      if (!imgButton.hasAttribute("aria-expanded")) {
-        imgButton.setAttribute("aria-expanded", "false");
+      imgBtn.setAttribute("aria-labelledby", `${data.pid}-label ${rowId}`);
+      if (!imgBtn.hasAttribute("aria-expanded")) {
+        imgBtn.setAttribute("aria-expanded", "false");
       }
-      nameCell.appendChild(imgButton);
+      nameCell.appendChild(imgBtn);
 
       span = document.createElement("span");
       span.setAttribute("id", rowId);
       nameCell.appendChild(span);
     } else {
       // The only thing that can change is the thread count.
-      let imgButton = nameCell.firstChild;
-      isOpen = imgButton.classList.contains("open");
-      span = imgButton.nextSibling;
+      let imgBtn = nameCell.firstChild;
+      isOpen = imgBtn.classList.contains("open");
+      span = imgBtn.nextSibling;
     }
     document.l10n.setAttributes(span, fluentName, fluentArgs);
 
     // Column: action
     let actionCell = nameCell.nextSibling;
     actionCell.className = "action-icon";
-    // Note: if/when this action-icon would become a control, ensure it is marked up
-    // as a button that is focusable and actionable with keyboard (see killButton)
 
     return isOpen;
   },
@@ -847,15 +831,7 @@ var View = {
     }
 
     // Column: action
-    let actionCell = nameCell.nextSibling;
-
-    if (!actionCell.firstChild) {
-      let span = document.createElement("span");
-      actionCell.appendChild(span);
-    }
-
-    let killButton = actionCell.firstChild;
-
+    let killButton = nameCell.nextSibling;
     killButton.className = "action-icon";
 
     if (data.tab && data.tab.tabbrowser) {
@@ -874,12 +850,9 @@ var View = {
         // But we also want to make it visible that the window is being
         // killed.
         row.classList.add("killed");
-        row.setAttribute("aria-busy", "true");
       } else {
         // Otherwise, let's display the kill button.
         killButton.classList.add("close-icon");
-        killButton.setAttribute("role", "button");
-        killButton.setAttribute("tabindex", "0");
         document.l10n.setAttributes(killButton, "about-processes-shutdown-tab");
       }
     }
@@ -1464,7 +1437,7 @@ var Control = {
 
   // Open/close list of threads.
   _handleTwisty(target) {
-    let row = target.closest("tr");
+    let row = target.parentNode.parentNode;
     if (target.classList.toggle("open")) {
       target.setAttribute("aria-expanded", "true");
       this._showThreads(row, this._maxSlopeCpu);
@@ -1477,7 +1450,7 @@ var Control = {
 
   // Kill process/close tab/close subframe.
   _handleKill(target) {
-    let row = target.closest("tr");
+    let row = target.parentNode;
     if (row.process) {
       // Kill process immediately.
       let pid = row.process.pid;
@@ -1488,7 +1461,6 @@ var Control = {
 
       // Discard tab contents and show that the process and all its contents are getting killed.
       row.classList.add("killing");
-      row.setAttribute("aria-busy", "true");
 
       // Avoid continuing to show the tooltip when the button isn't visible.
       target.removeAttribute("data-l10n-id");
@@ -1524,7 +1496,6 @@ var Control = {
       });
       View._killedRecently.push({ outerWindowId: row.win.outerWindowId });
       row.classList.add("killing");
-      row.setAttribute("aria-busy", "true");
       target.removeAttribute("data-l10n-id");
       target.removeAttribute("title");
 
@@ -1565,11 +1536,9 @@ var Control = {
       ["pid:" + target.parentNode.parentNode.process.pid]
     );
     target.classList.add("profiler-active");
-    target.setAttribute("aria-pressed", "true");
     setTimeout(() => {
       ProfilerPopupBackground.captureProfile("aboutprofiling");
       target.classList.remove("profiler-active");
-      target.setAttribute("aria-pressed", "false");
     }, PROFILE_DURATION * 1000);
   },
 
