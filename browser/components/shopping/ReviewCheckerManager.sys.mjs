@@ -216,9 +216,10 @@ export class ReviewCheckerManager {
         this.hideSidebar();
         lazy.ShoppingUtils.sendTrigger({
           browser: this.window.gBrowser,
-          id: "showRCSidebarClosedCallout",
+          id: "reviewCheckerSidebarClosedCallout",
           context: {
             isReviewCheckerInSidebarClosed: !this.SidebarController?.isOpen,
+            isSidebarVisible: this.SidebarController._state?.launcherVisible,
           },
         });
         break;

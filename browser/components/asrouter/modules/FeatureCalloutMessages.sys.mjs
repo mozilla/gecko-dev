@@ -2013,6 +2013,203 @@ const MESSAGES = () => {
       targeting: `'cookiebanners.ui.desktop.enabled'|preferenceValue == true && 'cookiebanners.ui.desktop.showCallout'|preferenceValue == true && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false`,
     },
     {
+      // "Callout 4A" in the Review Checker Sidebar Migration Figma spec
+      // User is opted into Review Checker and decides to opt out of auto open
+      // Sidebar is set to expand and collapse
+      // Horizontal tabs
+      id: "REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN_HORIZONTAL",
+            anchors: [
+              {
+                selector:
+                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "topleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "leftcenter",
+                  callout_attachment: "topright",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id:
+                  "shopping-integrated-callout-disabled-auto-open-title",
+              },
+              subtitle: {
+                string_id:
+                  "shopping-integrated-callout-disabled-auto-open-subtitle",
+                letterSpacing: "0",
+              },
+              logo: {
+                imageURL:
+                  "chrome://browser/content/shopping/assets/reviewCheckerCalloutPriceTag.svg",
+                height: "195px",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+                marginBlock: "28px 0",
+                marginInline: "0 28px",
+              },
+            },
+          },
+        ],
+      },
+      priority: 1,
+      // Auto-open feature flag is enabled; User disabled auto-open behavior; User is opted in; Has not opted out of CFRs; integrated sidebar is enabled; new sidebar is active; Sidebar is visible; Callout 6 has not been shown within 24 hrs;
+      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue && !'browser.shopping.experience2023.autoOpen.userEnabled' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && isSidebarVisible && !'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED[messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED | length - 1]) / 3600000) < 24)`,
+      trigger: { id: "reviewCheckerSidebarClosedCallout" },
+      frequency: { lifetime: 1 },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      // "Callout 4A" in the Reivew Checker Sidebar Migration Figma spec
+      // User is opted into Review Checker and decides to opt out of auto open
+      // Sidebar is set to expand and collapse
+      // Vertical tabs
+      id: "REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN_VERTICAL",
+            anchors: [
+              {
+                selector:
+                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "bottomleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "leftcenter",
+                  callout_attachment: "bottomright",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id:
+                  "shopping-integrated-callout-disabled-auto-open-title",
+              },
+              subtitle: {
+                string_id:
+                  "shopping-integrated-callout-disabled-auto-open-subtitle",
+                letterSpacing: "0",
+              },
+              logo: {
+                imageURL:
+                  "chrome://browser/content/shopping/assets/reviewCheckerCalloutPriceTag.svg",
+                height: "195px",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+                marginBlock: "28px 0",
+                marginInline: "0 28px",
+              },
+            },
+          },
+        ],
+      },
+      priority: 1,
+      // Auto-open feature flag is enabled; User disabled auto-open behavior; User is opted in; Has not opted out of CFRs; integrated sidebar is enabled; new sidebar is active; Sidebar is visible; Callout 6 has not been shown within 24 hrs;
+      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue && !'browser.shopping.experience2023.autoOpen.userEnabled' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED[messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED | length - 1]) / 3600000) < 24)`,
+      trigger: { id: "reviewCheckerSidebarClosedCallout" },
+      frequency: { lifetime: 1 },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      // "Callout 4B" in the Review Checker Sidebar Migration Figma spec
+      // User is opted into Review Checker and decides to opt out of auto open
+      // Sidebar is set to Show and hide
+      id: "REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN",
+            anchors: [
+              {
+                selector: "#sidebar-button",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topleft",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id:
+                  "shopping-integrated-callout-disabled-auto-open-title",
+              },
+              subtitle: {
+                string_id:
+                  "shopping-integrated-callout-no-logo-disabled-auto-open-subtitle",
+                letterSpacing: "0",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+              },
+            },
+          },
+        ],
+      },
+      priority: 1,
+      // Auto-open feature flag is enabled; User disabled auto-open behavior; User is opted in; Has not opted out of CFRs; integrated sidebar is enabled; new sidebar is active; Sidebar is not visible; Callout 6 has not shown within 24 hrs;
+      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue == true && 'browser.shopping.experience2023.autoOpen.userEnabled' | preferenceValue == false && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue == true && 'sidebar.revamp' | preferenceValue == true && !isSidebarVisible && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED[messageImpressions.REVIEW_CHECKER_SIDEBAR_CLOSED | length - 1]) / 3600000) < 24)`,
+      trigger: {
+        id: "sidebarButtonClicked",
+      },
+      frequency: { lifetime: 1 },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
       // "Callout 5" in the Review Checker Sidebar Migration Figma spec
       // Confirm settings update to turn off Review Checker and make sure users know how to get back to Review Checker
       // Horizontal tabs
@@ -2216,10 +2413,10 @@ const MESSAGES = () => {
         ],
       },
       priority: 1,
-      // Has not opted out of CFRs; Review Checker integrated sidebar is enabled; sidebar revamp is enabled; user is opted in to review checker; Using horizontal tabs.
-      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && !'sidebar.verticalTabs' | preferenceValue`,
+      // Has not opted out of CFRs; Review Checker integrated sidebar is enabled; sidebar revamp is enabled; user is opted in to review checker; Using horizontal tabs; Neither Callout 4A or 4B has shown within 24 hrs;
+      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && !'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24) && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24)`,
       trigger: {
-        id: "showRCSidebarClosedCallout",
+        id: "reviewCheckerSidebarClosedCallout",
       },
       frequency: { lifetime: 1 },
       skip_in_tests:
@@ -2287,10 +2484,10 @@ const MESSAGES = () => {
         ],
       },
       priority: 1,
-      // Has not opted out of CFRs; Review Checker integrated sidebar is enabled; sidebar revamp is enabled; user is opted in to review checker; Vertical tabs is enabled.
-      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && 'sidebar.verticalTabs' | preferenceValue`,
+      // Has not opted out of CFRs; Review Checker integrated sidebar is enabled; sidebar revamp is enabled; user is opted in to review checker; Vertical tabs is enabled; Neither callout 4A or 4B has shown within 24 hrs;
+      targeting: `'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 1 && isReviewCheckerInSidebarClosed && 'sidebar.verticalTabs' | preferenceValue && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_EXPAND_COLLAPSE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24) && !(((currentDate|date - messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN[messageImpressions.REVIEW_CHECKER_SHOW_HIDE_DISABLED_AUTO_OPEN | length - 1]) / 3600000) < 24)`,
       trigger: {
-        id: "showRCSidebarClosedCallout",
+        id: "reviewCheckerSidebarClosedCallout",
       },
       frequency: { lifetime: 1 },
       skip_in_tests:

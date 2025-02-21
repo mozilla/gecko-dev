@@ -34,4 +34,10 @@ shopping-integrated-callout-opted-out-subtitle = To turn it back on, select the 
 shopping-integrated-callout-sidebar-closed-title = Get back to Review Checker
 shopping-integrated-callout-sidebar-closed-subtitle = Select the price tag in the sidebar to see if you can trust a product’s reviews.
 
+## Pref confirmation callout for auto-open
+
+shopping-integrated-callout-disabled-auto-open-title = Get back to Review Checker
+shopping-integrated-callout-disabled-auto-open-subtitle = Select the price tag in the sidebar to see if you can trust a product’s reviews.
+shopping-integrated-callout-no-logo-disabled-auto-open-subtitle = Select the sidebar button to see if you can trust a product’s reviews.
+
 ##

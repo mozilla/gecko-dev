@@ -7,6 +7,11 @@
  * dynamically adding menubar menu items for the View -> Sidebar menu,
  * and provides APIs for sidebar extensions, etc.
  */
+
+var { ShoppingUtils } = ChromeUtils.importESModule(
+  "resource:///modules/ShoppingUtils.sys.mjs"
+);
+
 const defaultTools = {
   viewGenaiChatSidebar: "aichat",
   viewReviewCheckerSidebar: "reviewchecker",
@@ -1150,11 +1155,23 @@ var SidebarController = {
     if (this._animationEnabled && !window.gReduceMotion) {
       this._animateSidebarMain();
     }
+
     this._state.updateVisibility(!this._state.launcherVisible, true);
     if (this.sidebarRevampVisibility === "expand-on-hover") {
       this.toggleExpandOnHover(initialExpandedValue);
     }
     this.updateToolbarButton();
+
+    if (this.lastOpenedId == "viewReviewCheckerSidebar") {
+      ShoppingUtils.sendTrigger({
+        browser: this.browser,
+        id: "sidebarButtonClicked",
+        context: {
+          isReviewCheckerInSidebarClosed: !this?.isOpen,
+          isSidebarVisible: this._state?.launcherVisible,
+        },
+      });
+    }
   },
 
   /**
