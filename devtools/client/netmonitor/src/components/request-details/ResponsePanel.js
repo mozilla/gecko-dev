@@ -364,7 +364,9 @@ class ResponsePanel extends Component {
             checked,
             className: "devtools-checkbox-toggle",
             onChange: event => {
-              this.props.setDefaultRawResponse(event.target.checked);
+              if (this.props.setDefaultRawResponse) {
+                this.props.setDefaultRawResponse(event.target.checked);
+              }
               this.toggleRawResponsePayload();
             },
             type: "checkbox",

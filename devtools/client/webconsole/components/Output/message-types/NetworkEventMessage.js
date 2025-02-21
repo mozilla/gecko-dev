@@ -215,6 +215,7 @@ function NetworkEventMessage({
         },
         hideToggleButton: true,
         showMessagesView: false,
+        targetSearchResult: null,
       })
     );
 
