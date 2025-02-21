@@ -11416,12 +11416,6 @@
     mirror: always
 
 #ifdef MOZ_WIDGET_GTK
-# Use VA-API for ffmpeg video playback on Linux
-- name: media.ffmpeg.vaapi.enabled
-  type: bool
-  value: false
-  mirror: once
-
 # Force to copy dmabuf video frames
 # Used for debugging/troubleshooting only
 # 0 - force disable

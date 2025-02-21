@@ -2454,8 +2454,7 @@ void gfxPlatform::InitAcceleration() {
     sLayersSupportsHardwareVideoDecoding =
         gfxPlatformGtk::GetPlatform()->InitVAAPIConfig(
             StaticPrefs::
-                media_hardware_video_decoding_force_enabled_AtStartup() ||
-            StaticPrefs::media_ffmpeg_vaapi_enabled_AtStartup());
+                media_hardware_video_decoding_force_enabled_AtStartup());
 #else
     if (
 #  ifdef XP_WIN
