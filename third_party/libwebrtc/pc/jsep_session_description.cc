@@ -223,7 +223,7 @@ bool JsepSessionDescription::AddCandidate(
   if (mediasection_index >= number_of_mediasections())
     return false;
   const std::string& content_name =
-      description_->contents()[mediasection_index].name;
+      description_->contents()[mediasection_index].mid();
   const cricket::TransportInfo* transport_info =
       description_->GetTransportInfoByName(content_name);
   if (!transport_info) {
@@ -314,7 +314,7 @@ bool JsepSessionDescription::GetMediasectionIndex(
     bool found = false;
     // Try to match the sdp_mid with content name.
     for (size_t i = 0; i < description_->contents().size(); ++i) {
-      if (candidate->sdp_mid() == description_->contents().at(i).name) {
+      if (candidate->sdp_mid() == description_->contents().at(i).mid()) {
         *index = i;
         found = true;
         break;
@@ -333,7 +333,7 @@ int JsepSessionDescription::GetMediasectionIndex(const Candidate& candidate) {
   // Find the description with a matching transport name of the candidate.
   const std::string& transport_name = candidate.transport_name();
   for (size_t i = 0; i < description_->contents().size(); ++i) {
-    if (transport_name == description_->contents().at(i).name) {
+    if (transport_name == description_->contents().at(i).mid()) {
       return static_cast<int>(i);
     }
   }

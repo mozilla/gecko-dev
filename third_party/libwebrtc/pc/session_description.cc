@@ -149,9 +149,7 @@ void SessionDescription::AddContent(
     const std::string& name,
     MediaProtocolType type,
     std::unique_ptr<MediaContentDescription> description) {
-  ContentInfo content(type, std::move(description));
-  content.name = name;
-  AddContent(std::move(content));
+  AddContent(ContentInfo(type, name, std::move(description)));
 }
 
 void SessionDescription::AddContent(
@@ -159,10 +157,7 @@ void SessionDescription::AddContent(
     MediaProtocolType type,
     bool rejected,
     std::unique_ptr<MediaContentDescription> description) {
-  ContentInfo content(type, std::move(description));
-  content.name = name;
-  content.rejected = rejected;
-  AddContent(std::move(content));
+  AddContent(ContentInfo(type, name, std::move(description), rejected));
 }
 
 void SessionDescription::AddContent(
@@ -171,11 +166,8 @@ void SessionDescription::AddContent(
     bool rejected,
     bool bundle_only,
     std::unique_ptr<MediaContentDescription> description) {
-  ContentInfo content(type, std::move(description));
-  content.name = name;
-  content.rejected = rejected;
-  content.bundle_only = bundle_only;
-  AddContent(std::move(content));
+  AddContent(
+      ContentInfo(type, name, std::move(description), rejected, bundle_only));
 }
 
 void SessionDescription::AddContent(ContentInfo&& content) {
@@ -282,10 +274,10 @@ ContentInfo::~ContentInfo() {}
 
 // Copy operator.
 ContentInfo::ContentInfo(const ContentInfo& o)
-    : name(o.name),
-      type(o.type),
+    : type(o.type),
       rejected(o.rejected),
       bundle_only(o.bundle_only),
+      mid_(o.mid_),
       description_(o.description_->Clone()) {}
 
 const MediaContentDescription* ContentInfo::media_description() const {

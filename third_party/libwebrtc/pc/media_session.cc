@@ -385,7 +385,7 @@ std::vector<const ContentInfo*> GetActiveContents(
     const MediaDescriptionOptions& media_options =
         session_options.media_description_options[i];
     if (!content.rejected && !media_options.stopped &&
-        content.name == media_options.mid) {
+        content.mid() == media_options.mid) {
       active_contents.push_back(&content);
     }
   }
@@ -1145,13 +1145,13 @@ webrtc::RTCErrorOr<std::vector<Codec>> GetNegotiatedCodecsForOffer(
     // Add the codecs from current content if it exists and is not rejected nor
     // recycled.
     if (current_content && !current_content->rejected &&
-        current_content->name == media_description_options.mid) {
+        current_content->mid() == media_description_options.mid) {
       if (!IsMediaContentOfType(current_content,
                                 media_description_options.type)) {
         // Can happen if the remote side re-uses a MID while recycling.
         LOG_AND_RETURN_ERROR(RTCErrorType::INTERNAL_ERROR,
                              "Media type for content with mid='" +
-                                 current_content->name +
+                                 current_content->mid() +
                                  "' does not match previous type.");
       }
       const MediaContentDescription* mcd = current_content->media_description();
@@ -1223,13 +1223,13 @@ webrtc::RTCErrorOr<Codecs> GetNegotiatedCodecsForAnswer(
     // Add the codecs from current content if it exists and is not rejected nor
     // recycled.
     if (current_content && !current_content->rejected &&
-        current_content->name == media_description_options.mid) {
+        current_content->mid() == media_description_options.mid) {
       if (!IsMediaContentOfType(current_content,
                                 media_description_options.type)) {
         // Can happen if the remote side re-uses a MID while recycling.
         LOG_AND_RETURN_ERROR(RTCErrorType::INTERNAL_ERROR,
                              "Media type for content with mid='" +
-                                 current_content->name +
+                                 current_content->mid() +
                                  "' does not match previous type.");
       }
       const MediaContentDescription* mcd = current_content->media_description();
@@ -1492,7 +1492,7 @@ MediaSessionDescriptionFactory::CreateOfferOrError(
       // type to represent different codecs, or same IDs for different header
       // extensions. We need to detect this and not try to bundle those media
       // descriptions together.
-      offer_bundle.AddContentName(content.name);
+      offer_bundle.AddContentName(content.mid());
     }
     if (!offer_bundle.content_names().empty()) {
       offer->AddGroup(offer_bundle);
@@ -1606,7 +1606,7 @@ MediaSessionDescriptionFactory::CreateAnswerOrError(
     // MediaDescriptionOptions.
     RTC_DCHECK(
         IsMediaContentOfType(offer_content, media_description_options.type));
-    RTC_DCHECK(media_description_options.mid == offer_content->name);
+    RTC_DCHECK(media_description_options.mid == offer_content->mid());
     // Get the index of the BUNDLE group that this MID belongs to, if any.
     std::optional<size_t> bundle_index;
     for (size_t i = 0; i < offer_bundles.size(); ++i) {
@@ -1673,10 +1673,10 @@ MediaSessionDescriptionFactory::CreateAnswerOrError(
     if (!added.rejected && session_options.bundle_enabled &&
         bundle_index.has_value()) {
       // The `bundle_index` is for `media_description_options.mid`.
-      RTC_DCHECK_EQ(media_description_options.mid, added.name);
-      answer_bundles[bundle_index.value()].AddContentName(added.name);
+      RTC_DCHECK_EQ(media_description_options.mid, added.mid());
+      answer_bundles[bundle_index.value()].AddContentName(added.mid());
       bundle_transports[bundle_index.value()].reset(
-          new TransportInfo(*answer->GetTransportInfoByName(added.name)));
+          new TransportInfo(*answer->GetTransportInfoByName(added.mid())));
     }
   }
 
