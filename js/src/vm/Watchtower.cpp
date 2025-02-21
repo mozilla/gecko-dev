@@ -382,7 +382,7 @@ bool Watchtower::watchPropertyFlagsChangeSlow(JSContext* cx,
 
 // static
 template <AllowGC allowGC>
-bool Watchtower::watchPropertyValueChangeSlow(
+void Watchtower::watchPropertyValueChangeSlow(
     JSContext* cx, typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
     typename MaybeRooted<PropertyKey, allowGC>::HandleType id,
     typename MaybeRooted<Value, allowGC>::HandleType value,
@@ -395,7 +395,7 @@ bool Watchtower::watchPropertyValueChangeSlow(
 
   if (propInfo.hasSlot() && obj->getSlot(propInfo.slot()) == value) {
     // We're not actually changing the property's value.
-    return true;
+    return;
   }
 
   if (MOZ_UNLIKELY(obj->hasFuseProperty())) {
@@ -408,21 +408,21 @@ bool Watchtower::watchPropertyValueChangeSlow(
     if (MOZ_UNLIKELY(obj->useWatchtowerTestingLog())) {
       RootedValue val(cx, IdToValue(id));
       if (!AddToWatchtowerLog(cx, "change-prop-value", obj, val)) {
-        return false;
+        // Ignore OOM because this is just a testing feature and infallible
+        // watchPropertyValueChange simplifies the callers.
+        cx->clearPendingException();
       }
     }
   }
-
-  return true;
 }
 
-template bool Watchtower::watchPropertyValueChangeSlow<AllowGC::CanGC>(
+template void Watchtower::watchPropertyValueChangeSlow<AllowGC::CanGC>(
     JSContext* cx,
     typename MaybeRooted<NativeObject*, AllowGC::CanGC>::HandleType obj,
     typename MaybeRooted<PropertyKey, AllowGC::CanGC>::HandleType id,
     typename MaybeRooted<Value, AllowGC::CanGC>::HandleType value,
     PropertyInfo propInfo);
-template bool Watchtower::watchPropertyValueChangeSlow<AllowGC::NoGC>(
+template void Watchtower::watchPropertyValueChangeSlow<AllowGC::NoGC>(
     JSContext* cx,
     typename MaybeRooted<NativeObject*, AllowGC::NoGC>::HandleType obj,
     typename MaybeRooted<PropertyKey, AllowGC::NoGC>::HandleType id,

@@ -1247,13 +1247,11 @@ static bool ChangeProperty(JSContext* cx, Handle<NativeObject*> obj,
 
   if (existing->isNativeProperty()) {
     Rooted<Value> value(cx, PrivateGCThingValue(gs));
-    if (!Watchtower::watchPropertyValueChange<AllowGC::CanGC>(
-            cx, obj, id, value, existing->propertyInfo())) {
-      return false;
-    }
     if (!NativeObject::changeProperty(cx, obj, id, flags, slotOut)) {
       return false;
     }
+    Watchtower::watchPropertyValueChange<AllowGC::CanGC>(
+        cx, obj, id, value, existing->propertyInfo());
     obj->setSlot(*slotOut, value);
     return true;
   }
@@ -1351,19 +1349,18 @@ static MOZ_ALWAYS_INLINE bool AddOrChangeProperty(
       }
     } else {
       if (existing->isNativeProperty()) {
-        if (!Watchtower::watchPropertyValueChange<AllowGC::CanGC>(
-                cx, obj, id, desc.value(), existing->propertyInfo())) {
-          return false;
-        }
         if (!NativeObject::changeProperty(cx, obj, id, flags, &slot)) {
           return false;
         }
+        Watchtower::watchPropertyValueChange<AllowGC::CanGC>(
+            cx, obj, id, desc.value(), existing->propertyInfo());
+        obj->setSlot(slot, desc.value());
       } else {
         if (!NativeObject::addProperty(cx, obj, id, flags, &slot)) {
           return false;
         }
+        obj->initSlot(slot, desc.value());
       }
-      obj->setSlot(slot, desc.value());
     }
   }
 
@@ -2408,10 +2405,7 @@ static bool NativeSetExistingDataProperty(JSContext* cx,
   MOZ_ASSERT(obj->is<NativeObject>());
   MOZ_ASSERT(prop.isDataDescriptor());
 
-  if (!Watchtower::watchPropertyValueChange<AllowGC::CanGC>(cx, obj, id, v,
-                                                            prop)) {
-    return false;
-  }
+  Watchtower::watchPropertyValueChange<AllowGC::CanGC>(cx, obj, id, v, prop);
 
   if (prop.isDataProperty()) {
     // The common path. Standard data property.

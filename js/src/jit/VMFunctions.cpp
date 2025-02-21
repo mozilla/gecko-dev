@@ -2237,10 +2237,8 @@ static bool TryAddOrSetPlainObjectProperty(JSContext* cx,
     }
     bool watchesPropValue = Watchtower::watchesPropertyValueChange(obj);
     if (MOZ_UNLIKELY(watchesPropValue)) {
-      if (!Watchtower::watchPropertyValueChange<AllowGC::NoGC>(cx, obj, key,
-                                                               value, prop)) {
-        return false;
-      }
+      Watchtower::watchPropertyValueChange<AllowGC::NoGC>(cx, obj, key, value,
+                                                          prop);
     }
     obj->setSlot(prop.slot(), value);
     *optimized = true;
