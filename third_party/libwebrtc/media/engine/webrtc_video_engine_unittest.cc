@@ -471,6 +471,34 @@ TEST_F(WebRtcVideoEngineTest, DefaultRtxCodecHasAssociatedPayloadTypeSet) {
   FAIL() << "No RTX codec found among default codecs.";
 }
 
+// Test that we prefer to assign RTX payload types as "primary codec PT + 1".
+// This is purely for backwards compatibility (see https://crbug.com/391132280).
+// The spec does NOT mandate we do this and note that this is best-effort, if
+// "PT + 1" is already in-use the PT suggester would pick a different PT.
+TEST_F(WebRtcVideoEngineTest,
+       DefaultRtxCodecIsAssignedAssociatedPayloadTypePlusOne) {
+  AddSupportedVideoCodecType("VP8");
+  AddSupportedVideoCodecType("VP9");
+  AddSupportedVideoCodecType("AV1");
+  AddSupportedVideoCodecType("H264");
+  for (const Codec& codec : engine_.send_codecs()) {
+    if (codec.name != kRtxCodecName)
+      continue;
+    int associated_payload_type;
+    ASSERT_TRUE(codec.GetParam(kCodecParamAssociatedPayloadType,
+                               &associated_payload_type));
+    EXPECT_EQ(codec.id, associated_payload_type + 1);
+  }
+  for (const Codec& codec : engine_.recv_codecs()) {
+    if (codec.name != kRtxCodecName)
+      continue;
+    int associated_payload_type;
+    ASSERT_TRUE(codec.GetParam(kCodecParamAssociatedPayloadType,
+                               &associated_payload_type));
+    EXPECT_EQ(codec.id, associated_payload_type + 1);
+  }
+}
+
 TEST_F(WebRtcVideoEngineTest, SupportsTimestampOffsetHeaderExtension) {
   ExpectRtpCapabilitySupport(RtpExtension::kTimestampOffsetUri, true);
 }
