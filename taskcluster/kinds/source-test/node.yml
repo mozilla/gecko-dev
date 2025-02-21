@@ -28,6 +28,11 @@ newtab-unit-tests:
                 linux1804-64/opt: build-linux64/opt
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
+    fetches:
+        build:
+            - target.tar.xz
+        toolchain:
+            - linux64-node
     run:
         command: >
             cd /builds/worker/checkouts/gecko &&
@@ -36,7 +41,7 @@ newtab-unit-tests:
             cd /builds/worker/checkouts/gecko/browser/extensions/newtab &&
             rm -rf node_modules &&
             npm ci &&
-            node bin/try-runner.js
+            FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox node bin/try-runner.js
     when:
         files-changed:
             - "browser/extensions/newtab/**"
@@ -56,6 +61,11 @@ newtab-unit-tests-ccov:
                 linux1804-64/opt: build-linux64/opt
             default:
                 linux1804-64/opt: build-linux64-shippable/opt
+    fetches:
+        build:
+            - target.tar.xz
+        toolchain:
+            - linux64-node
     run:
         command: >
             cd /builds/worker/checkouts/gecko &&
@@ -64,7 +74,7 @@ newtab-unit-tests-ccov:
             cd /builds/worker/checkouts/gecko/browser/extensions/newtab &&
             rm -rf node_modules &&
             npm ci &&
-            node bin/try-runner.js
+            FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox node bin/try-runner.js
     # This should only run on mozilla-central, as the bot will only parse mozilla-central
     # coverage anyways.
     run-on-projects: ["mozilla-central"]
