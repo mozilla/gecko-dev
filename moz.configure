@@ -897,6 +897,7 @@ set_config("MOZ_SYSTEM_ZLIB", True, when="--with-system-zlib")
 
 option(
     env="USE_LIBZ_RS",
+    default=milestone.is_nightly,
     help="Use libz-rs-sys instead of zlib",
     when=toolkit & ~with_system_zlib_option,
 )
