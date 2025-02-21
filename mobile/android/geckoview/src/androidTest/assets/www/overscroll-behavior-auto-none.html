@@ -12,8 +12,8 @@
      to exist, however, gradient isn't considered as contentful per spec, so Gecko
      wouldn't generate a timestamp for it. Hence, we added a transparent gif
      to the image list to trick the detection. */
-      background: url("/assets/www/transparent.gif"),
-        linear-gradient(135deg, red, white);
+      background:
+        url("/assets/www/transparent.gif"), linear-gradient(135deg, red, white);
       overscroll-behavior: auto none;
     }
     body {
