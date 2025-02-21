@@ -81,7 +81,13 @@ add_task(async function transferPopupNotificationToNewWindowAndResolve() {
   let promiseWin = BrowserTestUtils.waitForNewWindow();
   let newWindow = window.gBrowser.replaceTabWithWindow(tab);
   await promiseWin;
+  popupShownPromise = new Promise(resolve => {
+    waitForNotificationPanel(newWindow, function () {
+      resolve(this);
+    });
+  });
   await waitForWindowReadyForPopupNotifications(newWindow);
+  await popupShownPromise;
   let timeNow = Cu.now();
 
   // Ensure security delay is completed
