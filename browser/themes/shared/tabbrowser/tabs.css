@@ -1024,6 +1024,7 @@
      margin: 0;
      position: absolute;
      pointer-events: none;
+     top: -100px;
   }
 
   .tab-group-editor-swatch {
