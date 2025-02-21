@@ -33,10 +33,12 @@ const ALLOWED_HEADERS_KEYS = [
   "status",
   "fileSize", // the size in bytes we store
   "Content-Length", // the size we download (can be different when gzipped)
+  "lastUpdated",
+  "lastUsed",
 ];
 
 // Default indexedDB revision.
-const DEFAULT_MODEL_REVISION = 5;
+const DEFAULT_MODEL_REVISION = 6;
 
 // The origin to use for storage. If null uses system.
 const DEFAULT_PRINCIPAL_ORIGIN = null;
@@ -218,9 +220,14 @@ class IndexedDBCache {
 
   async #migrateStore(db, oldVersion) {
     const newVersion = db.version;
-
     lazy.console.debug(`Migrating from version ${oldVersion} to ${newVersion}`);
     try {
+      // If we are migrating from version 5 to 6, we can skip the migration
+      // as we just added the header lastUsed and lastUpdated fields
+      if (oldVersion === 5 && newVersion === 6) {
+        return;
+      }
+
       if (oldVersion < newVersion) {
         for (const name of [
           this.fileStoreName,
@@ -596,6 +603,25 @@ class IndexedDBCache {
   }
 
   /**
+   * Sets the headers for a specific cache entry.
+   *
+   * @param {object} config
+   * @param {string} config.model - The model name (organization/name)
+   * @param {string} config.revision - The model revision.
+   * @param {string} config.file - The file name.
+   * @param {object} config.headers - The headers to set.
+   * @returns {Promise<void>} A promise that resolves when the headers are set.
+   */
+  async setHeaders({ model, revision, file, headers }) {
+    return await this.#updateData(this.headersStoreName, {
+      model,
+      revision,
+      file,
+      headers,
+    });
+  }
+
+  /**
    * Retrieves the file for a specific cache entry.
    *
    * @param {object} config
@@ -621,6 +647,10 @@ class IndexedDBCache {
           this.generateFilePathInOPFS({ model, revision, file })
         )
       ).getFile();
+
+      // mark the last used header value
+      headers.lastUsed = Date.now();
+      await this.setHeaders({ model, revision, file, headers });
 
       return [fileData, headers];
     }
@@ -725,7 +755,7 @@ class IndexedDBCache {
    * @param {string} config.file - The file name.
    * @param {Blob | string} config.data - The content or path to the data to cache.
    * @param {object} [config.headers] - The headers for the file.
-   * @returns {Promise<void>}
+   * @returns {Promise<timestamp>} A promise that resolves when the cache entry is added or updated.
    */
   async put({
     engineId = lazy.DEFAULT_ENGINE_ID,
@@ -774,12 +804,16 @@ class IndexedDBCache {
       })
     );
 
+    const currentTimeSinceEpoch = Date.now();
+
     // Update headers store - whith defaults for ETag and Content-Type
     headers = headers || {};
     headers["Content-Type"] =
       headers["Content-Type"] ?? "application/octet-stream";
     headers.fileSize = fileSize;
     headers.ETag = headers.ETag ?? NO_ETAG;
+    headers.lastUpdated = currentTimeSinceEpoch;
+    headers.lastUsed = currentTimeSinceEpoch;
 
     // filter out any keys that are not allowed
     headers = Object.keys(headers)
@@ -802,6 +836,7 @@ class IndexedDBCache {
     );
 
     await Promise.all(updatePromises);
+    return currentTimeSinceEpoch;
   }
 
   /**
@@ -1556,6 +1591,10 @@ export class ModelHub {
           statusText: lazy.Progress.ProgressStatusText.DONE,
         })
       );
+
+      cachedHeaders.lastUsed = Date.now();
+      await this.cache.setHeaders({ model, revision, file, cachedHeaders });
+
       return [localFilePath, cachedHeaders];
     }
 

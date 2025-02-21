@@ -25,3 +25,5 @@ about-inference-learn-more = Learn more about the platform here.
 about-inference-category-local-inference = Local Inference
 about-inference-category-http-inference = HTTP Inference
 about-inference-category-models-storage = Models Storage
+about-inference-last-used = Last Used
+about-inference-last-updated = Last Updated

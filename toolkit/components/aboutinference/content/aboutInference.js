@@ -170,6 +170,20 @@ function formatBytes(bytes) {
 
 let updateStatusInterval = null;
 
+function ts2str(ts) {
+  try {
+    return new Date(ts).toLocaleString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch (e) {
+    return "?";
+  }
+}
+
 /**
  * Displays engines info in a table.
  *
@@ -385,11 +399,22 @@ async function updateModels() {
     let thFile = document.createElement("th");
     document.l10n.setAttributes(thFile, "about-inference-file");
     headerRow.appendChild(thFile);
+
     thFile = document.createElement("th");
     document.l10n.setAttributes(thFile, "about-inference-size");
     headerRow.appendChild(thFile);
+    thFile = document.createElement("th");
+    document.l10n.setAttributes(thFile, "about-inference-last-used");
+    headerRow.appendChild(thFile);
+    thFile = document.createElement("th");
+    document.l10n.setAttributes(thFile, "about-inference-last-updated");
+    headerRow.appendChild(thFile);
+
     thead.appendChild(headerRow);
     table.appendChild(thead);
+
+    var lastUsed = 0;
+    var lastUpdated = 0;
 
     // Create table body
     let tbody = document.createElement("tbody");
@@ -404,9 +429,29 @@ async function updateModels() {
         file.headers.fileSize || file.headers["Content-Length"] || 0
       );
 
+      if ("lastUsed" in file.headers && file.headers.lastUsed > lastUsed) {
+        lastUsed = file.headers.lastUsed;
+      }
+      if (
+        "lastUpdated" in file.headers &&
+        file.headers.lastUpdated > lastUpdated
+      ) {
+        lastUpdated = file.headers.lastUpdated;
+      }
+
       tdFile = document.createElement("td");
       tdFile.textContent = formatBytes(fileSize);
       row.appendChild(tdFile);
+
+      tdFile = document.createElement("td");
+      tdFile.textContent = ts2str(file.headers.lastUsed);
+      row.appendChild(tdFile);
+
+      tdFile = document.createElement("td");
+      tdFile.textContent = ts2str(file.headers.lastUpdated);
+
+      row.appendChild(tdFile);
+
       tbody.appendChild(row);
       totalSize += fileSize;
     }
@@ -420,8 +465,16 @@ async function updateModels() {
     let tdTotalValue = document.createElement("td");
     tdTotalValue.textContent = formatBytes(totalSize);
     totalRow.appendChild(tdTotalValue);
-    tbody.appendChild(totalRow);
 
+    let tdTotalLastUsed = document.createElement("td");
+    tdTotalLastUsed.textContent = ts2str(lastUsed);
+    totalRow.appendChild(tdTotalLastUsed);
+
+    let tdTotalLastUpdated = document.createElement("td");
+    tdTotalLastUpdated.textContent = ts2str(lastUpdated);
+    totalRow.appendChild(tdTotalLastUpdated);
+
+    tbody.appendChild(totalRow);
     table.appendChild(tbody);
     fragment.appendChild(table);
   }
