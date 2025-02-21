@@ -630,18 +630,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "builtins-static"
-version = "0.1.0"
-dependencies = [
- "bindgen 0.69.4",
- "mozbuild",
- "mozilla-central-workspace-hack",
- "nom",
- "pkcs11-bindings",
- "smallvec",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.15.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2485,6 +2473,7 @@ dependencies = [
  "signature_cache",
  "static_prefs",
  "storage",
+ "trust-anchors",
  "unic-langid",
  "unic-langid-ffi",
  "unicode-bidi",
@@ -6306,7 +6295,7 @@ name = "terminal_size"
 version = "0.3.999"
 
 [[package]]
-name = "test-builtins-static"
+name = "test-trust-anchors-static"
 version = "0.1.0"
 dependencies = [
  "bindgen 0.69.4",
@@ -6558,6 +6547,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "803966e5a8397a70d3d8111afa1597ba8381346d7de4720e9f539471d371a1a3"
 dependencies = [
  "cache-padded",
+]
+
+[[package]]
+name = "trust-anchors"
+version = "0.1.0"
+dependencies = [
+ "bindgen 0.69.4",
+ "mozbuild",
+ "nom",
+ "pkcs11-bindings",
+ "smallvec",
 ]
 
 [[package]]

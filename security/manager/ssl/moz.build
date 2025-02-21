@@ -4,8 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DIRS += ["builtins"]
-
 TEST_DIRS += ["tests"]
 
 XPIDL_SOURCES += [
@@ -225,6 +223,8 @@ GeneratedFile(
 
 DEFINES["SSL_DISABLE_DEPRECATED_CIPHER_SUITE_NAMES"] = "True"
 DEFINES["NSS_ENABLE_ECC"] = "True"
+if CONFIG["MOZ_SYSTEM_NSS"]:
+    DEFINES["MOZ_SYSTEM_NSS"] = True
 
 # mozpkix is linked statically from the in-tree sources independent of whether
 # system NSS is used or not.

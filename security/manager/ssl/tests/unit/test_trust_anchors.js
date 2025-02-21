@@ -12,12 +12,12 @@ const gCertDb = Cc["@mozilla.org/security/x509certdb;1"].getService(
 
 add_setup(function load_nssckbi_testlib() {
   let moduleName = "Mock Builtins";
-  let libraryName = "test_builtins";
+  let libraryName = "test_trust_anchors";
 
   checkPKCS11ModuleNotPresent(moduleName, libraryName);
 
   let libraryFile = Services.dirsvc.get("CurWorkD", Ci.nsIFile);
-  libraryFile.append("test_builtins");
+  libraryFile.append("test_trust_anchors");
   libraryFile.append(ctypes.libraryName(libraryName));
   loadPKCS11Module(libraryFile, moduleName, true);
   let testModule = checkPKCS11ModuleExists(moduleName, libraryName);
@@ -39,7 +39,7 @@ add_setup(function load_nssckbi_testlib() {
 add_task(async function test_distrust_after() {
   let ee_pre_distrust_cert = addCertFromFile(
     gCertDb,
-    "test_builtins/ee-notBefore-2021.pem",
+    "test_trust_anchors/ee-notBefore-2021.pem",
     ",,"
   );
   notEqual(
@@ -50,7 +50,7 @@ add_task(async function test_distrust_after() {
 
   let ee_post_distrust_cert = addCertFromFile(
     gCertDb,
-    "test_builtins/ee-notBefore-2023.pem",
+    "test_trust_anchors/ee-notBefore-2023.pem",
     ",,"
   );
   notEqual(
@@ -59,7 +59,7 @@ add_task(async function test_distrust_after() {
     "EE cert should have successfully loaded"
   );
 
-  let int_cert = addCertFromFile(gCertDb, "test_builtins/int.pem", ",,");
+  let int_cert = addCertFromFile(gCertDb, "test_trust_anchors/int.pem", ",,");
   notEqual(int_cert, null, "Intermediate cert should have successfully loaded");
 
   // A certificate with a notBefore before the distrustAfter date

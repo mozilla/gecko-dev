@@ -66,6 +66,7 @@ SECStatus InitializeNSS(const nsACString& dir, NSSDBConfig nssDbConfig,
 
 void DisableMD5();
 
+#ifdef MOZ_SYSTEM_NSS
 /**
  * Loads root certificates from a module.
  *
@@ -75,7 +76,16 @@ void DisableMD5();
  *        If empty, the (library) path will be searched.
  * @return true if the roots were successfully loaded, false otherwise.
  */
+
 bool LoadLoadableRoots(const nsCString& dir);
+#endif  // MOZ_SYSTEM_NSS
+
+/**
+ * Loads root certificates from libxul.
+ *
+ * @return true if the roots were successfully loaded, false otherwise.
+ */
+bool LoadLoadableRootsFromXul();
 
 /**
  * Loads the OS client certs module.

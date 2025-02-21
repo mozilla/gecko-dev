@@ -4,11 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-FINAL_TARGET = "_tests/xpcshell/security/manager/ssl/tests/unit/test_builtins"
+FINAL_TARGET = "_tests/xpcshell/security/manager/ssl/tests/unit/test_trust_anchors"
 
-USE_LIBS += ["test-builtins-static"]
+USE_LIBS += ["test-trust-anchors-static"]
 
-# see notes in ipcclientcerts/dynamic-library/moz.build
+# On Linux (but not when building for Android), this needs to use the C++
+# version to avoid linking against the wrong libc symbols.
+# On Android, this needs to use the C version to avoid multiple definitions
+# of symbols caused by their presence in libgcc and trust-anchors-static.
 
 if CONFIG["OS_ARCH"] == "Linux" and CONFIG["OS_TARGET"] != "Android":
     SOURCES += [
@@ -40,7 +43,7 @@ if CONFIG["OS_ARCH"] == "WINNT":
             "synchronization",
         ]
 
-SharedLibrary("test_builtins")
+SharedLibrary("test_trust_anchors")
 
 NoVisibilityFlags()
-SYMBOLS_FILE = "builtins.symbols"
+SYMBOLS_FILE = "trust-anchors.symbols"

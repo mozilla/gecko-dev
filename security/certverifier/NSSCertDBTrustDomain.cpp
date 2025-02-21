@@ -1819,7 +1819,22 @@ bool LoadOSClientCertsModule() {
 #endif
 }
 
+#ifdef MOZ_SYSTEM_NSS
 bool LoadLoadableRoots(const nsCString& dir) {
+  int unusedModType;
+  Unused << SECMOD_DeleteModule("Root Certs", &unusedModType);
+  return LoadUserModuleAt(kRootModuleName.get(), "nssckbi", dir, nullptr);
+}
+#endif  // MOZ_SYSTEM_NSS
+
+extern "C" {
+// Extern function to call trust-anchors module C_GetFunctionList.
+// NSS calls it to obtain the list of functions comprising this module.
+// ppFunctionList must be a valid pointer.
+CK_RV TRUST_ANCHORS_GetFunctionList(CK_FUNCTION_LIST_PTR_PTR ppFunctionList);
+}  // extern "C"
+
+bool LoadLoadableRootsFromXul() {
   // Some NSS command-line utilities will load a roots module under the name
   // "Root Certs" if there happens to be a `MOZ_DLL_PREFIX "nssckbi"
   // MOZ_DLL_SUFFIX` file in the directory being operated on. In some cases this
@@ -1827,7 +1842,12 @@ bool LoadLoadableRoots(const nsCString& dir) {
   // "Root Certs" module allows us to load the correct one. See bug 1406396.
   int unusedModType;
   Unused << SECMOD_DeleteModule("Root Certs", &unusedModType);
-  return LoadUserModuleAt(kRootModuleName.get(), "nssckbi", dir, nullptr);
+
+  if (!LoadUserModuleFromXul(kRootModuleName.get(),
+                             TRUST_ANCHORS_GetFunctionList)) {
+    return false;
+  }
+  return true;
 }
 
 nsresult DefaultServerNicknameForCert(const CERTCertificate* cert,
