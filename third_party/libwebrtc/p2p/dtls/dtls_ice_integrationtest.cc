@@ -184,9 +184,9 @@ TEST_P(DtlsIceIntegrationTest, SmokeTest) {
           {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout),
            .clock = &fake_clock_}),
       webrtc::IsRtcOk());
-  EXPECT_EQ(client_ice_->IsDtlsPiggybackSupportedByPeer(),
+  EXPECT_EQ(client_dtls_.IsDtlsPiggybackSupportedByPeer(),
             client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
-  EXPECT_EQ(server_ice_->IsDtlsPiggybackSupportedByPeer(),
+  EXPECT_EQ(server_dtls_.IsDtlsPiggybackSupportedByPeer(),
             client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
 }
 

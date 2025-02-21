@@ -26,6 +26,7 @@
 #include "api/field_trials_view.h"
 #include "api/rtc_error.h"
 #include "api/transport/enums.h"
+#include "api/transport/stun.h"
 #include "p2p/base/candidate_pair_interface.h"
 #include "p2p/base/connection.h"
 #include "p2p/base/connection_info.h"
@@ -35,7 +36,6 @@
 #include "p2p/base/transport_description.h"
 #include "rtc_base/callback_list.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/network/received_packet.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
@@ -403,15 +403,14 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
   virtual const webrtc::FieldTrialsView* field_trials() const {
     return nullptr;
   }
-  void SetPiggybackDtlsDataCallback(
-      absl::AnyInvocable<void(rtc::PacketTransportInternal* transport,
-                              const rtc::ReceivedPacket& packet)> callback) {
-    RTC_DCHECK(callback == nullptr || !piggybacked_dtls_callback_);
-    piggybacked_dtls_callback_ = std::move(callback);
-  }
-  virtual void SetDtlsDataToPiggyback(rtc::ArrayView<const uint8_t>) {}
-  virtual void SetDtlsHandshakeComplete(bool is_dtls_client, bool is_dtls13) {}
-  virtual bool IsDtlsPiggybackSupportedByPeer() { return false; }
+  virtual void SetDtlsPiggybackingCallbacks(
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          dtls_piggyback_get_data,
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          dtls_piggyback_get_ack,
+      absl::AnyInvocable<void(const StunByteStringAttribute*,
+                              const StunByteStringAttribute*)>
+          dtls_piggyback_report_data) {}
 
  protected:
   void SendGatheringStateEvent() { gathering_state_callback_list_.Send(this); }
@@ -433,9 +432,6 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
 
   absl::AnyInvocable<void(const cricket::CandidatePairChangeEvent&)>
       candidate_pair_change_callback_;
-  absl::AnyInvocable<void(rtc::PacketTransportInternal*,
-                          const rtc::ReceivedPacket&)>
-      piggybacked_dtls_callback_;
 };
 
 }  // namespace cricket

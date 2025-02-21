@@ -245,6 +245,7 @@ rtc_library("dtls_transport") {
     "dtls/dtls_transport.h",
   ]
   deps = [
+    ":dtls_stun_piggyback_controller",
     ":dtls_transport_internal",
     ":dtls_utils",
     ":ice_transport_internal",
@@ -256,6 +257,7 @@ rtc_library("dtls_transport") {
     "../api:sequence_checker",
     "../api/crypto:options",
     "../api/rtc_event_log",
+    "../api/transport:stun_types",
     "../api/units:timestamp",
     "../logging:ice_log",
     "../rtc_base:async_packet_socket",
@@ -278,6 +280,7 @@ rtc_library("dtls_transport") {
     "../rtc_base/network:received_packet",
     "../rtc_base/network:sent_packet",
     "../rtc_base/system:no_unique_address",
+    "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
@@ -383,6 +386,7 @@ rtc_library("ice_transport_internal") {
     "../api:field_trials_view",
     "../api:rtc_error",
     "../api/transport:enums",
+    "../api/transport:stun_types",
     "../rtc_base:callback_list",
     "../rtc_base:checks",
     "../rtc_base:network_constants",
@@ -415,7 +419,6 @@ rtc_library("p2p_transport_channel") {
     ":candidate_pair_interface",
     ":connection",
     ":connection_info",
-    ":dtls_stun_piggyback_controller",
     ":ice_agent_interface",
     ":ice_controller_factory_interface",
     ":ice_controller_interface",
@@ -467,6 +470,7 @@ rtc_library("p2p_transport_channel") {
     "../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base:core_headers",
+    "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",

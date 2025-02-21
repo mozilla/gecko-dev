@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
@@ -200,16 +201,7 @@ P2PTransportChannel::P2PTransportChannel(
               true /* presume_writable_when_fully_relayed */,
               REGATHER_ON_FAILED_NETWORKS_INTERVAL,
               RECEIVING_SWITCHING_DELAY),
-      field_trials_(field_trials),
-      dtls_stun_piggyback_controller_(
-          [this](rtc::ArrayView<const uint8_t> piggybacked_dtls_packet) {
-            if (piggybacked_dtls_callback_ == nullptr) {
-              return;
-            }
-            piggybacked_dtls_callback_(
-                this, rtc::ReceivedPacket(piggybacked_dtls_packet,
-                                          rtc::SocketAddress()));
-          }) {
+      field_trials_(field_trials) {
   TRACE_EVENT0("webrtc", "P2PTransportChannel::P2PTransportChannel");
   RTC_DCHECK(allocator_ != nullptr);
   // Validate IceConfig even for mostly built-in constant default values in case
@@ -322,16 +314,14 @@ void P2PTransportChannel::AddConnection(Connection* connection) {
   if (config_.dtls_handshake_in_stun) {
     connection->RegisterDtlsPiggyback(
         [this](StunMessageType stun_message_type) {
-          return dtls_stun_piggyback_controller_.GetDataToPiggyback(
-              stun_message_type);
+          return dtls_piggyback_get_data_(stun_message_type);
         },
         [this](StunMessageType stun_message_type) {
-          return dtls_stun_piggyback_controller_.GetAckToPiggyback(
-              stun_message_type);
+          return dtls_piggyback_get_ack_(stun_message_type);
         },
         [this](const StunByteStringAttribute* data,
                const StunByteStringAttribute* ack) {
-          dtls_stun_piggyback_controller_.ReportDataPiggybacked(data, ack);
+          dtls_piggyback_report_data_(data, ack);
         });
   }
 
@@ -1634,15 +1624,6 @@ int P2PTransportChannel::SendPacket(const char* data,
     return -1;
   }
 
-  // If we try to use DTLS-in-STUN, DTLS packets will be sent as part of STUN
-  // packets and are consumed here.
-  rtc::ArrayView<const uint8_t> data_view =
-      rtc::MakeArrayView(reinterpret_cast<const uint8_t*>(data), len);
-  if (config_.dtls_handshake_in_stun &&
-      dtls_stun_piggyback_controller_.MaybeConsumePacket(data_view)) {
-    return len;
-  }
-
   // If we don't think the connection is working yet, return ENOTCONN
   // instead of sending a packet that will probably be dropped.
   if (!ReadyToSend(selected_connection_)) {
@@ -2314,9 +2295,11 @@ void P2PTransportChannel::SetWritable(bool writable) {
   }
   SignalWritableState(this);
 
-  if (config_.dtls_handshake_in_stun && IsDtlsPiggybackSupportedByPeer()) {
+  if (config_.dtls_handshake_in_stun &&
+      dtls_piggyback_report_data_ != nullptr) {
     // Need to STUN ping here to get the last bit of the DTLS handshake across
-    // as quickly as possible.
+    // as quickly as possible. Only done when DTLS-in-STUN is configured
+    // and the data callback has not been reset due to lack of support.
     SendPingRequestInternal(selected_connection_);
   }
 }
@@ -2388,6 +2371,38 @@ void P2PTransportChannel::GoogDeltaAckReceived(
     stun_dict_writer_.Disable();
     RTC_LOG(LS_ERROR) << "Failed GOOG_DELTA_ACK: "
                       << error_or_ack.error().message();
+  }
+}
+
+void P2PTransportChannel::SetDtlsPiggybackingCallbacks(
+    absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+        dtls_piggyback_get_data,
+    absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+        dtls_piggyback_get_ack,
+    absl::AnyInvocable<void(const StunByteStringAttribute*,
+                            const StunByteStringAttribute*)>
+        dtls_piggyback_report_data) {
+  RTC_DCHECK_RUN_ON(network_thread_);
+  dtls_piggyback_get_data_ = std::move(dtls_piggyback_get_data);
+  dtls_piggyback_get_ack_ = std::move(dtls_piggyback_get_ack);
+  dtls_piggyback_report_data_ = std::move(dtls_piggyback_report_data);
+
+  RTC_DCHECK(  // either all set
+      (dtls_piggyback_get_data_ != nullptr &&
+       dtls_piggyback_get_ack_ != nullptr &&
+       dtls_piggyback_report_data_ != nullptr) ||
+      // or all nullptr
+      (dtls_piggyback_get_data_ == nullptr &&
+       dtls_piggyback_get_ack_ == nullptr &&
+       dtls_piggyback_report_data_ == nullptr));
+
+  if (dtls_piggyback_get_data_ == nullptr &&
+      dtls_piggyback_get_ack_ == nullptr &&
+      dtls_piggyback_report_data_ == nullptr) {
+    // Iterate over connections, deregister.
+    for (auto& connection : connections_) {
+      connection->DeregisterDtlsPiggyback();
+    }
   }
 }
 

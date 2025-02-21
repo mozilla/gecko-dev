@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/async_dns_resolver.h"
@@ -58,7 +59,6 @@
 #include "p2p/base/regathering_controller.h"
 #include "p2p/base/stun_dictionary.h"
 #include "p2p/base/transport_description.h"
-#include "p2p/dtls/dtls_stun_piggyback_controller.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/dscp.h"
@@ -252,27 +252,14 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   const webrtc::FieldTrialsView* field_trials() const override {
     return field_trials_;
   }
-
-  void SetDtlsHandshakeComplete(bool is_dtls_client, bool is_dtls13) override {
-    dtls_stun_piggyback_controller_.SetDtlsHandshakeComplete(is_dtls_client,
-                                                             is_dtls13);
-  }
-
-  bool IsDtlsPiggybackSupportedByPeer() override {
-    RTC_DCHECK_RUN_ON(network_thread_);
-    return config_.dtls_handshake_in_stun &&
-           dtls_stun_piggyback_controller_.state() !=
-               DtlsStunPiggybackController::State::OFF;
-  }
-
-  bool IsDtlsPiggybackHandshaking() {
-    RTC_DCHECK_RUN_ON(network_thread_);
-    return config_.dtls_handshake_in_stun &&
-           (dtls_stun_piggyback_controller_.state() ==
-                DtlsStunPiggybackController::State::TENTATIVE ||
-            dtls_stun_piggyback_controller_.state() ==
-                DtlsStunPiggybackController::State::CONFIRMED);
-  }
+  void SetDtlsPiggybackingCallbacks(
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          dtls_piggyback_get_data,
+      absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+          dtls_piggyback_get_ack,
+      absl::AnyInvocable<void(const StunByteStringAttribute*,
+                              const StunByteStringAttribute*)>
+          dtls_piggyback_report_data) override;
 
  private:
   P2PTransportChannel(
@@ -538,8 +525,14 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   // A dictionary that tracks attributes from peer.
   StunDictionaryView stun_dict_view_;
 
-  // A controller for piggybacking DTLS in STUN.
-  DtlsStunPiggybackController dtls_stun_piggyback_controller_;
+  // DTLS-STUN piggybacking callbacks.
+  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+      dtls_piggyback_get_data_;
+  absl::AnyInvocable<std::optional<absl::string_view>(StunMessageType)>
+      dtls_piggyback_get_ack_;
+  absl::AnyInvocable<void(const StunByteStringAttribute*,
+                          const StunByteStringAttribute*)>
+      dtls_piggyback_report_data_;
 };
 
 }  // namespace cricket
