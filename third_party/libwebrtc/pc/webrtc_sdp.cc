@@ -933,7 +933,7 @@ std::string SdpSerialize(const JsepSessionDescription& jdesc) {
   for (const ContentInfo& content : desc->contents()) {
     std::vector<Candidate> candidates;
     GetCandidatesByMindex(jdesc, ++mline_index, &candidates);
-    BuildMediaDescription(&content, desc->GetTransportInfoByName(content.name),
+    BuildMediaDescription(&content, desc->GetTransportInfoByName(content.mid()),
                           content.media_description()->type(), candidates,
                           desc->msid_signaling(), &message);
   }
@@ -1554,7 +1554,7 @@ void BuildMediaDescription(const ContentInfo* content_info,
   // identification-tag = token
   // Use the content name as the mid identification-tag.
   InitAttrLine(kAttributeMid, &os);
-  os << kSdpDelimiterColon << content_info->name;
+  os << kSdpDelimiterColon << content_info->mid();
   AddLine(os.str(), message);
 
   if (cricket::IsDtlsSctp(media_desc->protocol())) {

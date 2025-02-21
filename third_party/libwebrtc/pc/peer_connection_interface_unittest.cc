@@ -3584,7 +3584,7 @@ TEST_P(PeerConnectionInterfaceTest, CreateOfferWithIceRestart) {
 
   std::unique_ptr<SessionDescriptionInterface> offer;
   CreateOfferWithOptionsAsLocalDescription(&offer, rtc_options);
-  std::string mid = cricket::GetFirstAudioContent(offer->description())->name;
+  auto mid = cricket::GetFirstAudioContent(offer->description())->mid();
   auto ufrag1 =
       offer->description()->GetTransportInfoByName(mid)->description.ice_ufrag;
   auto pwd1 =

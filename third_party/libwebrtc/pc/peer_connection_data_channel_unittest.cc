@@ -225,10 +225,10 @@ TEST_P(PeerConnectionDataChannelTest, SctpContentAndTransportNameSetCorrectly) {
   const auto& offer_contents = offer->description()->contents();
   ASSERT_EQ(cricket::MEDIA_TYPE_AUDIO,
             offer_contents[0].media_description()->type());
-  std::string audio_mid = offer_contents[0].name;
+  auto audio_mid = offer_contents[0].mid();
   ASSERT_EQ(cricket::MEDIA_TYPE_DATA,
             offer_contents[2].media_description()->type());
-  std::string data_mid = offer_contents[2].name;
+  auto data_mid = offer_contents[2].mid();
 
   ASSERT_TRUE(
       caller->SetLocalDescription(CloneSessionDescription(offer.get())));
@@ -274,7 +274,7 @@ TEST_P(PeerConnectionDataChannelTest,
   ASSERT_TRUE(data_content);
   EXPECT_FALSE(data_content->rejected);
   EXPECT_TRUE(
-      answer->description()->GetTransportInfoByName(data_content->name));
+      answer->description()->GetTransportInfoByName(data_content->mid()));
 }
 
 TEST_P(PeerConnectionDataChannelTest, SctpPortPropagatedFromSdpToTransport) {

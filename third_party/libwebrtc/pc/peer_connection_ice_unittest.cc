@@ -106,8 +106,8 @@ class PeerConnectionWrapperForIceTest : public PeerConnectionWrapper {
     const auto* desc = pc()->remote_description()->description();
     RTC_DCHECK(!desc->contents().empty());
     const auto& first_content = desc->contents()[0];
-    candidate->set_transport_name(first_content.name);
-    return CreateIceCandidate(first_content.name, -1, *candidate);
+    candidate->set_transport_name(first_content.mid());
+    return CreateIceCandidate(first_content.mid(), -1, *candidate);
   }
 
   // Adds a new ICE candidate to the first transport.
@@ -233,7 +233,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
                       const std::string& pwd) {
     auto* desc = sdesc->description();
     for (const auto& content : desc->contents()) {
-      auto* transport_info = desc->GetTransportInfoByName(content.name);
+      auto* transport_info = desc->GetTransportInfoByName(content.mid());
       transport_info->description.ice_ufrag = ufrag;
       transport_info->description.ice_pwd = pwd;
     }
@@ -244,7 +244,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
                   const cricket::IceMode ice_mode) {
     auto* desc = sdesc->description();
     for (const auto& content : desc->contents()) {
-      auto* transport_info = desc->GetTransportInfoByName(content.name);
+      auto* transport_info = desc->GetTransportInfoByName(content.mid());
       transport_info->description.ice_mode = ice_mode;
     }
   }
@@ -254,7 +254,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     auto* desc = sdesc->description();
     RTC_DCHECK(!desc->contents().empty());
     auto* transport_info =
-        desc->GetTransportInfoByName(desc->contents()[0].name);
+        desc->GetTransportInfoByName(desc->contents()[0].mid());
     RTC_DCHECK(transport_info);
     return &transport_info->description;
   }
@@ -264,7 +264,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     auto* desc = sdesc->description();
     RTC_DCHECK(!desc->contents().empty());
     auto* transport_info =
-        desc->GetTransportInfoByName(desc->contents()[0].name);
+        desc->GetTransportInfoByName(desc->contents()[0].mid());
     RTC_DCHECK(transport_info);
     return &transport_info->description;
   }
@@ -297,7 +297,7 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     const auto* desc = description->description();
     for (const auto& content_info : desc->contents()) {
       const auto* transport_info =
-          desc->GetTransportInfoByName(content_info.name);
+          desc->GetTransportInfoByName(content_info.mid());
       if (transport_info) {
         ice_credentials.push_back(
             std::make_pair(transport_info->description.ice_ufrag,
@@ -312,9 +312,9 @@ class PeerConnectionIceBaseTest : public ::testing::Test {
     auto* desc = sdesc->description();
     RTC_DCHECK(!desc->contents().empty());
     const auto& first_content = desc->contents()[0];
-    candidate->set_transport_name(first_content.name);
+    candidate->set_transport_name(first_content.mid());
     std::unique_ptr<IceCandidateInterface> jsep_candidate =
-        CreateIceCandidate(first_content.name, 0, *candidate);
+        CreateIceCandidate(first_content.mid(), 0, *candidate);
     return sdesc->AddCandidate(jsep_candidate.get());
   }
 
@@ -538,7 +538,7 @@ TEST_P(PeerConnectionIceTest, CannotAddCandidateWhenPeerConnectionClosed) {
   auto* audio_content = cricket::GetFirstAudioContent(
       caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> jsep_candidate =
-      CreateIceCandidate(audio_content->name, 0, candidate);
+      CreateIceCandidate(audio_content->mid(), 0, candidate);
 
   caller->pc()->Close();
 
@@ -592,7 +592,7 @@ TEST_P(PeerConnectionIceTest,
   auto* audio_content = cricket::GetFirstAudioContent(
       caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
-      CreateIceCandidate(audio_content->name, 0, candidate);
+      CreateIceCandidate(audio_content->mid(), 0, candidate);
 
   ASSERT_TRUE(caller->pc()->AddIceCandidate(ice_candidate.get()));
 
@@ -617,7 +617,7 @@ TEST_P(PeerConnectionIceTest,
   auto* audio_content = cricket::GetFirstAudioContent(
       caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
-      CreateIceCandidate(audio_content->name, 0, candidate);
+      CreateIceCandidate(audio_content->mid(), 0, candidate);
   EXPECT_TRUE(caller->pc()->AddIceCandidate(ice_candidate.get()));
   EXPECT_TRUE(caller->pc()->RemoveIceCandidates({candidate}));
 }
@@ -1573,7 +1573,7 @@ TEST_P(PeerConnectionIceTest, IceCredentialsCreateOffer) {
 
   auto* desc = offer->description();
   for (const auto& content : desc->contents()) {
-    auto* transport_info = desc->GetTransportInfoByName(content.name);
+    auto* transport_info = desc->GetTransportInfoByName(content.mid());
     EXPECT_EQ(transport_info->description.ice_ufrag, credentials[0].ufrag);
     EXPECT_EQ(transport_info->description.ice_pwd, credentials[0].pwd);
   }
@@ -1594,7 +1594,7 @@ TEST_P(PeerConnectionIceTest, IceCredentialsCreateAnswer) {
 
   auto* desc = answer->description();
   for (const auto& content : desc->contents()) {
-    auto* transport_info = desc->GetTransportInfoByName(content.name);
+    auto* transport_info = desc->GetTransportInfoByName(content.mid());
     EXPECT_EQ(transport_info->description.ice_ufrag, credentials[0].ufrag);
     EXPECT_EQ(transport_info->description.ice_pwd, credentials[0].pwd);
   }
@@ -1624,7 +1624,7 @@ TEST_P(PeerConnectionIceTest, PrefersMidOverMLineIndex) {
   auto* audio_content = cricket::GetFirstAudioContent(
       caller->pc()->local_description()->description());
   std::unique_ptr<IceCandidateInterface> ice_candidate =
-      CreateIceCandidate(audio_content->name, 65535, candidate);
+      CreateIceCandidate(audio_content->mid(), 65535, candidate);
   EXPECT_TRUE(caller->pc()->AddIceCandidate(ice_candidate.get()));
   EXPECT_TRUE(caller->pc()->RemoveIceCandidates({candidate}));
 }

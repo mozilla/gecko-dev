@@ -1037,7 +1037,7 @@ TEST_P(PeerConnectionMediaInvalidMediaTest, FailToSetLocalAnswer) {
 void RemoveVideoContentAndUnbundle(cricket::SessionDescription* desc) {
   // Removing BUNDLE is easier than removing the content in there.
   desc->RemoveGroupByName("BUNDLE");
-  auto content_name = cricket::GetFirstVideoContent(desc)->name;
+  auto content_name = cricket::GetFirstVideoContent(desc)->mid();
   desc->RemoveContentByName(content_name);
   desc->RemoveTransportInfoByName(content_name);
 }
@@ -1046,9 +1046,9 @@ void RenameVideoContentAndUnbundle(cricket::SessionDescription* desc) {
   // Removing BUNDLE is easier than renaming the content in there.
   desc->RemoveGroupByName("BUNDLE");
   auto* video_content = cricket::GetFirstVideoContent(desc);
-  auto* transport_info = desc->GetTransportInfoByName(video_content->name);
-  video_content->name = "video_renamed";
-  transport_info->content_name = video_content->name;
+  auto* transport_info = desc->GetTransportInfoByName(video_content->mid());
+  video_content->set_mid("video_renamed");
+  transport_info->content_name = video_content->mid();
 }
 
 void ReverseMediaContent(cricket::SessionDescription* desc) {
@@ -1057,7 +1057,7 @@ void ReverseMediaContent(cricket::SessionDescription* desc) {
 }
 
 void ChangeMediaTypeAudioToVideo(cricket::SessionDescription* desc) {
-  std::string audio_mid = cricket::GetFirstAudioContent(desc)->name;
+  auto audio_mid = cricket::GetFirstAudioContent(desc)->mid();
   desc->RemoveContentByName(audio_mid);
   auto* video_content = cricket::GetFirstVideoContent(desc);
   desc->AddContent(audio_mid, video_content->type,
@@ -1137,8 +1137,8 @@ void RenameContent(cricket::SessionDescription* desc,
                    const std::string& new_name) {
   auto* content = cricket::GetFirstMediaContent(desc, media_type);
   RTC_DCHECK(content);
-  std::string old_name = content->name;
-  content->name = new_name;
+  std::string old_name(content->mid());
+  content->set_mid(new_name);
   auto* transport = desc->GetTransportInfoByName(old_name);
   RTC_DCHECK(transport);
   transport->content_name = new_name;
@@ -1167,9 +1167,9 @@ TEST_P(PeerConnectionMediaTest, AnswerHasSameMidsAsOffer) {
 
   auto answer = callee->CreateAnswer();
   EXPECT_EQ(kAudioMid,
-            cricket::GetFirstAudioContent(answer->description())->name);
+            cricket::GetFirstAudioContent(answer->description())->mid());
   EXPECT_EQ(kVideoMid,
-            cricket::GetFirstVideoContent(answer->description())->name);
+            cricket::GetFirstVideoContent(answer->description())->mid());
 }
 
 // Test that if the callee creates a re-offer, the MIDs are the same as the
@@ -1189,9 +1189,9 @@ TEST_P(PeerConnectionMediaTest, ReOfferHasSameMidsAsFirstOffer) {
 
   auto reoffer = callee->CreateOffer();
   EXPECT_EQ(kAudioMid,
-            cricket::GetFirstAudioContent(reoffer->description())->name);
+            cricket::GetFirstAudioContent(reoffer->description())->mid());
   EXPECT_EQ(kVideoMid,
-            cricket::GetFirstVideoContent(reoffer->description())->name);
+            cricket::GetFirstVideoContent(reoffer->description())->mid());
 }
 
 // Test that SetRemoteDescription returns an error if there are two m= sections

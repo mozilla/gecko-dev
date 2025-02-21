@@ -155,7 +155,7 @@ class PeerConnectionCryptoBaseTest : public ::testing::Test {
       cricket::SessionDescription* desc,
       cricket::ContentInfo* content) {
     RTC_DCHECK(content);
-    auto* transport_info = desc->GetTransportInfoByName(content->name);
+    auto* transport_info = desc->GetTransportInfoByName(content->mid());
     RTC_DCHECK(transport_info);
     return transport_info->description.connection_role;
   }
@@ -505,7 +505,7 @@ TEST_P(PeerConnectionCryptoTest, SessionErrorIfFingerprintInvalid) {
   ASSERT_TRUE(audio_content);
   auto* audio_transport_info =
       invalid_answer->description()->GetTransportInfoByName(
-          audio_content->name);
+          audio_content->mid());
   ASSERT_TRUE(audio_transport_info);
   audio_transport_info->description.identity_fingerprint =
       rtc::SSLFingerprint::CreateFromCertificate(*other_certificate);

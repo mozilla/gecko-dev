@@ -92,7 +92,7 @@ index ac0042ebc4..b3e25c6c5b 100644
    return output_codecs;
  }
 diff --git a/pc/sdp_offer_answer_unittest.cc b/pc/sdp_offer_answer_unittest.cc
-index f21fea7dc1..1c2dd4756d 100644
+index 3307dfa317..1aba5f4485 100644
 --- a/pc/sdp_offer_answer_unittest.cc
 +++ b/pc/sdp_offer_answer_unittest.cc
 @@ -652,7 +652,8 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {

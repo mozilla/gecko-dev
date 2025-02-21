@@ -3978,9 +3978,9 @@ TEST_F(MediaSessionDescriptionFactoryTest, TestMIDsMatchesExistingOffer) {
   ASSERT_TRUE(audio_content);
   ASSERT_TRUE(video_content);
   ASSERT_TRUE(data_content);
-  EXPECT_EQ("audio_modified", audio_content->name);
-  EXPECT_EQ("video_modified", video_content->name);
-  EXPECT_EQ("data_modified", data_content->name);
+  EXPECT_EQ("audio_modified", audio_content->mid());
+  EXPECT_EQ("video_modified", video_content->mid());
+  EXPECT_EQ("data_modified", data_content->mid());
 }
 
 // The following tests verify that the unified plan SDP is supported.
@@ -4215,8 +4215,8 @@ TEST_F(MediaSessionDescriptionFactoryTest,
 
   ASSERT_TRUE(offer);
   ASSERT_EQ(2u, offer->contents().size());
-  EXPECT_EQ("video", offer->contents()[0].name);
-  EXPECT_EQ("audio", offer->contents()[1].name);
+  EXPECT_EQ("video", offer->contents()[0].mid());
+  EXPECT_EQ("audio", offer->contents()[1].mid());
 }
 
 // Test that different media sections using the same codec have same payload

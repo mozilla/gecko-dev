@@ -262,7 +262,7 @@ SdpMungingType DetermineSdpMungingType(
   }
   for (size_t i = 0; i < last_created_contents.size(); i++) {
     // TODO: crbug.com/40567530 - more checks are needed here.
-    if (last_created_contents[i].name != contents_to_set[i].name) {
+    if (last_created_contents[i].mid() != contents_to_set[i].mid()) {
       RTC_LOG(LS_WARNING) << "SDP munging: mid does not match "
                              "last created description.";
       return SdpMungingType::kMid;

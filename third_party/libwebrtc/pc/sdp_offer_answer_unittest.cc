@@ -1744,8 +1744,8 @@ TEST_F(SdpOfferAnswerMungingTest, RemoveContent) {
   auto offer = pc->CreateOffer();
   auto& contents = offer->description()->contents();
   ASSERT_EQ(contents.size(), 1u);
-  std::string name = contents[0].name;
-  EXPECT_TRUE(offer->description()->RemoveContentByName(contents[0].name));
+  auto name = contents[0].mid();
+  EXPECT_TRUE(offer->description()->RemoveContentByName(contents[0].mid()));
   std::string sdp;
   offer->ToString(&sdp);
   auto modified_offer = CreateSessionDescription(
@@ -1766,8 +1766,8 @@ TEST_F(SdpOfferAnswerMungingTest, Mid) {
   auto offer = pc->CreateOffer();
   auto& contents = offer->description()->contents();
   ASSERT_EQ(contents.size(), 1u);
-  std::string name = contents[0].name;
-  contents[0].name = "amungedmid";
+  std::string name(contents[0].mid());
+  contents[0].set_mid("amungedmid");
 
   auto& transport_infos = offer->description()->transport_infos();
   ASSERT_EQ(transport_infos.size(), 1u);

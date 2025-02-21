@@ -114,9 +114,9 @@ class PeerConnectionWrapperForBundleTest : public PeerConnectionWrapper {
     for (size_t i = 0; i < desc->contents().size(); i++) {
       const auto& content = desc->contents()[i];
       if (content.media_description()->type() == media_type) {
-        candidate->set_transport_name(content.name);
+        candidate->set_transport_name(content.mid());
         std::unique_ptr<IceCandidateInterface> jsep_candidate =
-            CreateIceCandidate(content.name, i, *candidate);
+            CreateIceCandidate(content.mid(), i, *candidate);
         return pc()->AddIceCandidate(jsep_candidate.get());
       }
     }
@@ -878,8 +878,8 @@ TEST_P(PeerConnectionBundleTest, AddContentToBundleGroupInAnswerNotSupported) {
   auto callee = CreatePeerConnectionWithAudioVideo();
 
   auto offer = caller->CreateOffer();
-  std::string first_mid = offer->description()->contents()[0].name;
-  std::string second_mid = offer->description()->contents()[1].name;
+  const auto first_mid = offer->description()->contents()[0].mid();
+  const auto second_mid = offer->description()->contents()[1].mid();
 
   cricket::ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
   bundle_group.AddContentName(first_mid);
@@ -928,7 +928,7 @@ TEST_P(PeerConnectionBundleTest, RemoveContentFromBundleGroup) {
 
   EXPECT_TRUE(callee->SetRemoteDescription(caller->CreateOfferAndSetAsLocal()));
   auto answer = callee->CreateAnswer();
-  std::string second_mid = answer->description()->contents()[1].name;
+  const auto second_mid = answer->description()->contents()[1].mid();
 
   auto invalid_bundle_group =
       *answer->description()->GetGroupByName(cricket::GROUP_TYPE_BUNDLE);
