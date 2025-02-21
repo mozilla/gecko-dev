@@ -967,9 +967,12 @@
     box-sizing: content-box;
     line-height: var(--tab-group-label-height);
     max-width: -moz-available;
-    margin-block: var(--space-small);
     margin-inline-end: var(--space-medium);
     padding-block: var(--tab-group-label-padding);
+
+    tab-group:not([collapsed]) > .tab-group-label-container > & {
+      margin-block-end: var(--space-small);
+    }
   }
 
   #tabbrowser-tabs[tablist-has-focus] &.tablist-keyboard-focus {
