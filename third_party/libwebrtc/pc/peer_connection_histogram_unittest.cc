@@ -55,7 +55,8 @@ using RTCOfferAnswerOptions = PeerConnectionInterface::RTCOfferAnswerOptions;
 using ::testing::NiceMock;
 
 static const char kUsagePatternMetric[] = "WebRTC.PeerConnection.UsagePattern";
-static constexpr int kDefaultTimeout = 10000;
+static constexpr webrtc::TimeDelta kDefaultTimeout =
+    webrtc::TimeDelta::Millis(10000);
 static const rtc::SocketAddress kLocalAddrs[2] = {
     rtc::SocketAddress("1.1.1.1", 0), rtc::SocketAddress("2.2.2.2", 0)};
 static const rtc::SocketAddress kPrivateLocalAddress("10.1.1.1", 0);
@@ -185,12 +186,12 @@ class PeerConnectionWrapperForUsageHistogramTest
       return false;
     }
     // Wait until the gathering completes before we signal the candidate.
-    WAIT(observer()->ice_gathering_complete_, kDefaultTimeout);
-    WAIT(callee->observer()->ice_gathering_complete_, kDefaultTimeout);
+    WAIT(observer()->ice_gathering_complete_, kDefaultTimeout.ms());
+    WAIT(callee->observer()->ice_gathering_complete_, kDefaultTimeout.ms());
     AddBufferedIceCandidates();
     callee->AddBufferedIceCandidates();
-    WAIT(IsConnected(), kDefaultTimeout);
-    WAIT(callee->IsConnected(), kDefaultTimeout);
+    WAIT(IsConnected(), kDefaultTimeout.ms());
+    WAIT(callee->IsConnected(), kDefaultTimeout.ms());
     return IsConnected() && callee->IsConnected();
   }
 

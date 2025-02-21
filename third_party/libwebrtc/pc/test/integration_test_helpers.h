@@ -116,11 +116,11 @@ using ::testing::UnorderedElementsAreArray;
 using ::testing::Values;
 using RTCConfiguration = PeerConnectionInterface::RTCConfiguration;
 
-static const int kDefaultTimeout = 10000;
-static const int kLongTimeout = 60000;
-static const int kMaxWaitForStatsMs = 3000;
-static const int kMaxWaitForActivationMs = 5000;
-static const int kMaxWaitForFramesMs = 10000;
+constexpr TimeDelta kDefaultTimeout = TimeDelta::Millis(10000);
+constexpr TimeDelta kLongTimeout = TimeDelta::Millis(60000);
+constexpr TimeDelta kMaxWaitForStats = TimeDelta::Millis(3000);
+constexpr TimeDelta kMaxWaitForActivation = TimeDelta::Millis(5000);
+constexpr TimeDelta kMaxWaitForFrames = TimeDelta::Millis(10000);
 // Default number of audio/video frames to wait for before considering a test
 // successful.
 static const int kDefaultExpectedAudioFrameCount = 3;
@@ -1758,21 +1758,19 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
     }
 
     // Wait for the expected frames.
-    EXPECT_THAT(
-        WaitUntil(
-            [&] {
-              return caller()->audio_frames_received() >=
-                         total_caller_audio_frames_expected &&
-                     caller()->min_video_frames_received_per_track() >=
-                         total_caller_video_frames_expected &&
-                     callee()->audio_frames_received() >=
-                         total_callee_audio_frames_expected &&
-                     callee()->min_video_frames_received_per_track() >=
-                         total_callee_video_frames_expected;
-            },
-            ::testing::IsTrue(),
-            {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
-        IsRtcOk());
+    EXPECT_THAT(WaitUntil(
+                    [&] {
+                      return caller()->audio_frames_received() >=
+                                 total_caller_audio_frames_expected &&
+                             caller()->min_video_frames_received_per_track() >=
+                                 total_caller_video_frames_expected &&
+                             callee()->audio_frames_received() >=
+                                 total_callee_audio_frames_expected &&
+                             callee()->min_video_frames_received_per_track() >=
+                                 total_callee_video_frames_expected;
+                    },
+                    ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
+                IsRtcOk());
     bool expectations_correct =
         caller()->audio_frames_received() >=
             total_caller_audio_frames_expected &&

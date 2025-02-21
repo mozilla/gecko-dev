@@ -362,7 +362,7 @@ TEST_P(DataChannelIntegrationTest, EndToEndCallWithSctpDataChannelFullBuffer) {
   // heavily parallelized runs.
   EXPECT_THAT(WaitUntil([&] { return caller()->data_observer()->state(); },
                         Eq(DataChannelInterface::DataState::kClosed),
-                        {.timeout = webrtc::TimeDelta::Millis(kLongTimeout)}),
+                        {.timeout = kLongTimeout}),
               IsRtcOk());
   EXPECT_THAT(caller()->data_observer()->states(),
               ::testing::ElementsAreArray(expected_states));

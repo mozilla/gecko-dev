@@ -177,8 +177,7 @@ TEST_P(PeerConnectionIntegrationTest,
                           return o->first_packet_received();
                         });
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
   EXPECT_THAT(WaitUntil(
                   [&] {
@@ -188,8 +187,7 @@ TEST_P(PeerConnectionIntegrationTest,
                           return o->first_packet_received();
                         });
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
   // If new observers are set after the first packet was already received, the
   // callback should still be invoked.
@@ -231,8 +229,7 @@ TEST_P(PeerConnectionIntegrationTest, RtpSenderObserverOnFirstPacketSent) {
                           return o->first_packet_sent();
                         });
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
   EXPECT_THAT(WaitUntil(
                   [&] {
@@ -242,8 +239,7 @@ TEST_P(PeerConnectionIntegrationTest, RtpSenderObserverOnFirstPacketSent) {
                           return o->first_packet_sent();
                         });
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
   // If new observers are set after the first packet was already sent, the
   // callback should still be invoked.
@@ -396,8 +392,7 @@ TEST_P(PeerConnectionIntegrationTest,
                                0 &&
                            callee()->min_video_frames_received_per_track() > 0;
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
 
   // Check rendered aspect ratio.
@@ -764,8 +759,7 @@ TEST_P(PeerConnectionIntegrationTest, RotatedVideoWithCVOExtension) {
                                0 &&
                            callee()->min_video_frames_received_per_track() > 0;
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
 
   // Ensure that the aspect ratio is unmodified.
@@ -809,8 +803,7 @@ TEST_P(PeerConnectionIntegrationTest, RotatedVideoWithoutCVOExtension) {
                                0 &&
                            callee()->min_video_frames_received_per_track() > 0;
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
 
   // Expect that the aspect ratio is inversed to account for the 90/270 degree
@@ -995,9 +988,8 @@ TEST_P(PeerConnectionIntegrationTest, VideoRejectedInSubsequentOffer) {
   }
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_THAT(
-      WaitUntil(
-          [&] { return SignalingStateStable(); }, ::testing::IsTrue(),
-          {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForActivationMs)}),
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue(),
+                {.timeout = kMaxWaitForActivation}),
       IsRtcOk());
 
   // Sanity check that the caller's description has a rejected video section.
@@ -1388,8 +1380,7 @@ TEST_P(PeerConnectionIntegrationTest, GetAudioOutputLevelStatsWithOldStatsApi) {
   // until an RTCP packet has been received.
   EXPECT_THAT(
       WaitUntil([&] { return callee()->OldGetStats()->AudioOutputLevel(); },
-                ::testing::Gt(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                ::testing::Gt(0), {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
 }
 
@@ -1410,8 +1401,7 @@ TEST_P(PeerConnectionIntegrationTest, GetAudioInputLevelStatsWithOldStatsApi) {
   // soon after the test starts.
   EXPECT_THAT(
       WaitUntil([&] { return caller()->OldGetStats()->AudioInputLevel(); },
-                ::testing::Gt(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForStatsMs)}),
+                ::testing::Gt(0), {.timeout = kMaxWaitForStats}),
       IsRtcOk());
 }
 
@@ -1862,12 +1852,12 @@ TEST_P(PeerConnectionIntegrationTest, IceStatesReachCompletion) {
   EXPECT_THAT(
       WaitUntil([&] { return caller()->ice_gathering_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceGatheringComplete),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
   EXPECT_THAT(
       WaitUntil([&] { return callee()->ice_gathering_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceGatheringComplete),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
   // After the best candidate pair is selected and all candidates are signaled,
   // the ICE connection state should reach "complete".
@@ -2056,13 +2046,12 @@ TEST_P(PeerConnectionIntegrationIceStatesTestWithFakeClock,
   // According to RFC7675, if there is no response within 30 seconds then the
   // peer should consider the other side to have rejected the connection. This
   // is signaled by the state transitioning to "failed".
-  constexpr int kConsentTimeout = 30000;
+  constexpr TimeDelta kConsentTimeout = TimeDelta::Millis(30000);
   ScopedFakeClock& fake_clock = FakeClock();
   ASSERT_THAT(
       WaitUntil([&] { return caller()->standardized_ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionFailed),
-                {.timeout = webrtc::TimeDelta::Millis(kConsentTimeout),
-                 .clock = &fake_clock}),
+                {.timeout = kConsentTimeout, .clock = &fake_clock}),
       IsRtcOk());
 }
 
@@ -2166,12 +2155,12 @@ TEST_P(PeerConnectionIntegrationTest, MediaContinuesFlowingAfterIceRestart) {
   EXPECT_THAT(
       WaitUntil([&] { return caller()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionCompleted),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
   EXPECT_THAT(
       WaitUntil([&] { return callee()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionConnected),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
 
   // To verify that the ICE restart actually occurs, get
@@ -2207,12 +2196,12 @@ TEST_P(PeerConnectionIntegrationTest, MediaContinuesFlowingAfterIceRestart) {
   EXPECT_THAT(
       WaitUntil([&] { return caller()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionCompleted),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
   EXPECT_THAT(
       WaitUntil([&] { return callee()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionConnected),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
 
   // Grab the ufrags/candidates again.
@@ -2400,20 +2389,19 @@ TEST_F(PeerConnectionIntegrationTestPlanB,
       callee()->pc()->CreateSender("video", "callee_stream");
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_THAT(
-      WaitUntil(
-          [&] { return SignalingStateStable(); }, ::testing::IsTrue(),
-          {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForActivationMs)}),
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue(),
+                {.timeout = kMaxWaitForActivation}),
       IsRtcOk());
   // Wait for ICE to complete, without any tracks being set.
   EXPECT_THAT(
       WaitUntil([&] { return caller()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionCompleted),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
   EXPECT_THAT(
       WaitUntil([&] { return callee()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionConnected),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
   // Now set the tracks, and expect frames to immediately start flowing.
   EXPECT_TRUE(
@@ -2451,20 +2439,19 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   });
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_THAT(
-      WaitUntil(
-          [&] { return SignalingStateStable(); }, ::testing::IsTrue(),
-          {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForActivationMs)}),
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue(),
+                {.timeout = kMaxWaitForActivation}),
       IsRtcOk());
   // Wait for ICE to complete, without any tracks being set.
   EXPECT_THAT(
       WaitUntil([&] { return caller()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionCompleted),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
   EXPECT_THAT(
       WaitUntil([&] { return callee()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionConnected),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
   // Now set the tracks, and expect frames to immediately start flowing.
   auto callee_audio_sender = callee()->pc()->GetSenders()[0];
@@ -2493,9 +2480,8 @@ TEST_F(PeerConnectionIntegrationTestPlanB, CanSendRemoteVideoTrack) {
   caller()->AddVideoTrack();
   caller()->CreateAndSetAndSignalOffer();
   ASSERT_THAT(
-      WaitUntil(
-          [&] { return SignalingStateStable(); }, ::testing::IsTrue(),
-          {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForActivationMs)}),
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue(),
+                {.timeout = kMaxWaitForActivation}),
       IsRtcOk());
   ASSERT_EQ(1U, callee()->remote_streams()->count());
 
@@ -2504,9 +2490,8 @@ TEST_F(PeerConnectionIntegrationTestPlanB, CanSendRemoteVideoTrack) {
   callee()->pc()->AddStream(callee()->remote_streams()->at(0));
   callee()->CreateAndSetAndSignalOffer();
   ASSERT_THAT(
-      WaitUntil(
-          [&] { return SignalingStateStable(); }, ::testing::IsTrue(),
-          {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForActivationMs)}),
+      WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue(),
+                {.timeout = kMaxWaitForActivation}),
       IsRtcOk());
 
   MediaExpectations media_expectations;
@@ -2782,7 +2767,7 @@ TEST_P(PeerConnectionIntegrationTest, TCPUsedForTurnConnections) {
   EXPECT_THAT(
       WaitUntil([&] { return callee()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionConnected),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                {.timeout = kMaxWaitForFrames}),
       IsRtcOk());
 
   MediaExpectations media_expectations;
@@ -3335,10 +3320,9 @@ TEST_P(PeerConnectionIntegrationTest,
       IsRtcOk());
 
   // Wait for the callee to receive audio stats.
-  EXPECT_THAT(
-      WaitUntil([&] { return GetAudioEnergyStat(caller()); }, ::testing::Gt(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
-      IsRtcOk());
+  EXPECT_THAT(WaitUntil([&] { return GetAudioEnergyStat(caller()); },
+                        ::testing::Gt(0), {.timeout = kMaxWaitForFrames}),
+              IsRtcOk());
 }
 
 #endif  // !defined(THREAD_SANITIZER)
@@ -4559,16 +4543,12 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   ASSERT_THAT(
       WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
       IsRtcOk());
-  ASSERT_THAT(
-      WaitUntil([&] { return caller()->GetCorruptionScoreCount(); },
-                ::testing::Gt(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForStatsMs)}),
-      IsRtcOk());
-  ASSERT_THAT(
-      WaitUntil([&] { return callee()->GetCorruptionScoreCount(); },
-                ::testing::Eq(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForStatsMs)}),
-      IsRtcOk());
+  ASSERT_THAT(WaitUntil([&] { return caller()->GetCorruptionScoreCount(); },
+                        ::testing::Gt(0), {.timeout = kMaxWaitForStats}),
+              IsRtcOk());
+  ASSERT_THAT(WaitUntil([&] { return callee()->GetCorruptionScoreCount(); },
+                        ::testing::Eq(0), {.timeout = kMaxWaitForStats}),
+              IsRtcOk());
 
   for (const auto& pair : {caller(), callee()}) {
     rtc::scoped_refptr<const RTCStatsReport> report = pair->NewGetStats();
@@ -4625,16 +4605,12 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   ASSERT_THAT(
       WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
       IsRtcOk());
-  ASSERT_THAT(
-      WaitUntil([&] { return caller()->GetCorruptionScoreCount(); },
-                ::testing::Gt(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForStatsMs)}),
-      IsRtcOk());
-  ASSERT_THAT(
-      WaitUntil([&] { return callee()->GetCorruptionScoreCount(); },
-                ::testing::Gt(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForStatsMs)}),
-      IsRtcOk());
+  ASSERT_THAT(WaitUntil([&] { return caller()->GetCorruptionScoreCount(); },
+                        ::testing::Gt(0), {.timeout = kMaxWaitForStats}),
+              IsRtcOk());
+  ASSERT_THAT(WaitUntil([&] { return callee()->GetCorruptionScoreCount(); },
+                        ::testing::Gt(0), {.timeout = kMaxWaitForStats}),
+              IsRtcOk());
 
   for (const auto& pair : {caller(), callee()}) {
     rtc::scoped_refptr<const RTCStatsReport> report = pair->NewGetStats();
@@ -4682,16 +4658,12 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan,
   ASSERT_THAT(
       WaitUntil([&] { return SignalingStateStable(); }, ::testing::IsTrue()),
       IsRtcOk());
-  ASSERT_THAT(
-      WaitUntil([&] { return caller()->GetCorruptionScoreCount(); },
-                ::testing::Eq(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForStatsMs)}),
-      IsRtcOk());
-  ASSERT_THAT(
-      WaitUntil([&] { return callee()->GetCorruptionScoreCount(); },
-                ::testing::Eq(0),
-                {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForStatsMs)}),
-      IsRtcOk());
+  ASSERT_THAT(WaitUntil([&] { return caller()->GetCorruptionScoreCount(); },
+                        ::testing::Eq(0), {.timeout = kMaxWaitForStats}),
+              IsRtcOk());
+  ASSERT_THAT(WaitUntil([&] { return callee()->GetCorruptionScoreCount(); },
+                        ::testing::Eq(0), {.timeout = kMaxWaitForStats}),
+              IsRtcOk());
 
   for (const auto& pair : {caller(), callee()}) {
     rtc::scoped_refptr<const RTCStatsReport> report = pair->NewGetStats();

@@ -120,8 +120,7 @@ TEST_P(PeerConnectionIntegrationTest,
                           return o->first_packet_received();
                         });
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
   EXPECT_THAT(WaitUntil(
                   [&] {
@@ -131,8 +130,7 @@ TEST_P(PeerConnectionIntegrationTest,
                           return o->first_packet_received();
                         });
                   },
-                  ::testing::IsTrue(),
-                  {.timeout = webrtc::TimeDelta::Millis(kMaxWaitForFramesMs)}),
+                  ::testing::IsTrue(), {.timeout = kMaxWaitForFrames}),
               IsRtcOk());
   // If new observers are set after the first packet was already received, the
   // callback should still be invoked.
@@ -230,7 +228,7 @@ TEST_P(PeerConnectionIntegrationTest,
   // TODO(bugs.webrtc.org/9219): When IceConnectionState is implemented
   // properly, should be able to just wait for a state of "failed" instead of
   // waiting a fixed 10 seconds.
-  WAIT_(DtlsConnected(), kDefaultTimeout, wait_res);
+  WAIT_(DtlsConnected(), kDefaultTimeout.ms(), wait_res);
   ASSERT_FALSE(wait_res);
 
   EXPECT_GT(client_1_cert_verifier->call_count_, 0u);
@@ -266,8 +264,7 @@ TEST_P(PeerConnectionIntegrationTest, GetCaptureStartNtpTimeWithOldStatsApi) {
                 ->OldGetStatsForTrack(remote_audio_track.get())
                 ->CaptureStartNtpTime();
           },
-          ::testing::Gt(0),
-          {.timeout = webrtc::TimeDelta::Millis(2 * kMaxWaitForFramesMs)}),
+          ::testing::Gt(0), {.timeout = 2 * kMaxWaitForFrames}),
       IsRtcOk());
 }
 
@@ -444,7 +441,7 @@ TEST_P(PeerConnectionIntegrationIceStatesTestWithFakeClock, VerifyIceStates) {
   // According to RFC7675, if there is no response within 30 seconds then the
   // peer should consider the other side to have rejected the connection. This
   // is signaled by the state transitioning to "failed".
-  constexpr int kConsentTimeout = 30000;
+  constexpr TimeDelta kConsentTimeout = TimeDelta::Millis(30000);
   for (const auto& caller_address : CallerAddresses()) {
     firewall()->AddRule(false, rtc::FP_ANY, rtc::FD_ANY, caller_address);
   }
@@ -452,14 +449,12 @@ TEST_P(PeerConnectionIntegrationIceStatesTestWithFakeClock, VerifyIceStates) {
   ASSERT_THAT(
       WaitUntil([&] { return caller()->ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionFailed),
-                {.timeout = webrtc::TimeDelta::Millis(kConsentTimeout),
-                 .clock = &fake_clock}),
+                {.timeout = kConsentTimeout, .clock = &fake_clock}),
       IsRtcOk());
   ASSERT_THAT(
       WaitUntil([&] { return caller()->standardized_ice_connection_state(); },
                 ::testing::Eq(PeerConnectionInterface::kIceConnectionFailed),
-                {.timeout = webrtc::TimeDelta::Millis(kConsentTimeout),
-                 .clock = &fake_clock}),
+                {.timeout = kConsentTimeout, .clock = &fake_clock}),
       IsRtcOk());
 }
 #endif

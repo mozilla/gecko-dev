@@ -34,7 +34,6 @@
 #include "api/scoped_refptr.h"
 #include "api/test/rtc_error_matchers.h"
 #include "api/uma_metrics.h"
-#include "api/units/time_delta.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
 #include "api/video_codecs/video_decoder_factory_template_dav1d_adapter.h"
@@ -1559,14 +1558,12 @@ TEST_F(SdpOfferAnswerMungingTest, DISABLED_ReportUMAMetricsWithNoMunging) {
       metrics::Samples("WebRTC.PeerConnection.SdpMunging.Answer.Initial"),
       ElementsAre(Pair(SdpMungingType::kNoModification, 1)));
 
-  EXPECT_THAT(
-      WaitUntil([&] { return caller->IsIceGatheringDone(); }, IsTrue(),
-                {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
-      IsRtcOk());
-  EXPECT_THAT(
-      WaitUntil([&] { return callee->IsIceGatheringDone(); }, IsTrue(),
-                {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
-      IsRtcOk());
+  EXPECT_THAT(WaitUntil([&] { return caller->IsIceGatheringDone(); }, IsTrue(),
+                        {.timeout = kDefaultTimeout}),
+              IsRtcOk());
+  EXPECT_THAT(WaitUntil([&] { return callee->IsIceGatheringDone(); }, IsTrue(),
+                        {.timeout = kDefaultTimeout}),
+              IsRtcOk());
   for (const auto& candidate : caller->observer()->GetAllCandidates()) {
     callee->pc()->AddIceCandidate(candidate);
   }
@@ -1576,12 +1573,12 @@ TEST_F(SdpOfferAnswerMungingTest, DISABLED_ReportUMAMetricsWithNoMunging) {
   EXPECT_THAT(
       WaitUntil([&] { return caller->pc()->peer_connection_state(); },
                 Eq(PeerConnectionInterface::PeerConnectionState::kConnected),
-                {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
+                {.timeout = kDefaultTimeout}),
       IsRtcOk());
   EXPECT_THAT(
       WaitUntil([&] { return callee->pc()->peer_connection_state(); },
                 Eq(PeerConnectionInterface::PeerConnectionState::kConnected),
-                {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
+                {.timeout = kDefaultTimeout}),
       IsRtcOk());
 
   caller->pc()->Close();
