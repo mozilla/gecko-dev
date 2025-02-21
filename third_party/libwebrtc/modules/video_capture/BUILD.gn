@@ -173,10 +173,13 @@ if (!build_with_chromium || is_linux || is_chromeos) {
       deps = [
         ":video_capture_internal_impl",
         ":video_capture_module",
+        "../../api:rtc_error_matchers",
         "../../api:scoped_refptr",
+        "../../api/units:time_delta",
         "../../api/video:video_frame",
         "../../api/video:video_rtp_headers",
         "../../common_video",
+        "../../rtc_base:checks",
         "../../rtc_base:gunit_helpers",
         "../../rtc_base:timeutils",
         "../../rtc_base/synchronization:mutex",
@@ -185,6 +188,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
         "../../test:test_main",
         "../../test:test_support",
         "../../test:video_test_common",
+        "../../test:wait_until",
         "//testing/gtest",
         "//third_party/abseil-cpp/absl/memory",
       ]

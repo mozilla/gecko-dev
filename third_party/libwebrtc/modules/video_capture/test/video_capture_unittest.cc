@@ -12,22 +12,30 @@
 
 #include <stdio.h>
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <sstream>
+#include <string>
+#include <vector>
 
-#include "absl/memory/memory.h"
 #include "api/scoped_refptr.h"
-#include "api/video/i420_buffer.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "api/video/video_frame.h"
-#include "common_video/libyuv/include/webrtc_libyuv.h"
+#include "api/video/video_rotation.h"
+#include "api/video/video_sink_interface.h"
+#include "modules/video_capture/video_capture_defines.h"
 #include "modules/video_capture/video_capture_factory.h"
-#include "rtc_base/gunit.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/time_utils.h"
 #include "test/frame_utils.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
+using ::testing::Ge;
 using webrtc::VideoCaptureCapability;
 using webrtc::VideoCaptureFactory;
 using webrtc::VideoCaptureModule;
@@ -203,7 +211,10 @@ TEST_F(VideoCaptureTest, MAYBE_CreateDelete) {
     EXPECT_LE(rtc::TimeMillis() - start_time, 4000);
 
     // Make sure 5 frames are captured.
-    EXPECT_TRUE_WAIT(capture_observer.incoming_frames() >= 5, kTimeOut);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return capture_observer.incoming_frames(); }, Ge(5),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeOut)}),
+                webrtc::IsRtcOk());
 
     int64_t stop_time = rtc::TimeMillis();
     EXPECT_EQ(0, module->StopCapture());
@@ -254,7 +265,10 @@ TEST_F(VideoCaptureTest, MAYBE_Capabilities) {
     capture_observer.SetExpectedCapability(capability);
     ASSERT_NO_FATAL_FAILURE(StartCapture(module.get(), capability));
     // Make sure at least one frame is captured.
-    EXPECT_TRUE_WAIT(capture_observer.incoming_frames() >= 1, kTimeOut);
+    EXPECT_THAT(webrtc::WaitUntil(
+                    [&] { return capture_observer.incoming_frames(); }, Ge(1),
+                    {.timeout = webrtc::TimeDelta::Millis(kTimeOut)}),
+                webrtc::IsRtcOk());
 
     EXPECT_EQ(0, module->StopCapture());
   }
@@ -317,8 +331,14 @@ TEST_F(VideoCaptureTest, DISABLED_TestTwoCameras) {
 
   ASSERT_NO_FATAL_FAILURE(StartCapture(module1.get(), capability1));
   ASSERT_NO_FATAL_FAILURE(StartCapture(module2.get(), capability2));
-  EXPECT_TRUE_WAIT(capture_observer1.incoming_frames() >= 5, kTimeOut);
-  EXPECT_TRUE_WAIT(capture_observer2.incoming_frames() >= 5, kTimeOut);
+  EXPECT_THAT(webrtc::WaitUntil(
+                  [&] { return capture_observer1.incoming_frames(); }, Ge(5),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeOut)}),
+              webrtc::IsRtcOk());
+  EXPECT_THAT(webrtc::WaitUntil(
+                  [&] { return capture_observer2.incoming_frames(); }, Ge(5),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeOut)}),
+              webrtc::IsRtcOk());
   EXPECT_EQ(0, module2->StopCapture());
   EXPECT_EQ(0, module1->StopCapture());
 }
@@ -346,12 +366,18 @@ TEST_F(VideoCaptureTest, MAYBE_ConcurrentAccess) {
 
   // Starting module1 should work.
   ASSERT_NO_FATAL_FAILURE(StartCapture(module1.get(), capability));
-  EXPECT_TRUE_WAIT(capture_observer1.incoming_frames() >= 5, kTimeOut);
+  EXPECT_THAT(webrtc::WaitUntil(
+                  [&] { return capture_observer1.incoming_frames(); }, Ge(5),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeOut)}),
+              webrtc::IsRtcOk());
 
   // When module1 is stopped, starting module2 for the same device should work.
   EXPECT_EQ(0, module1->StopCapture());
   ASSERT_NO_FATAL_FAILURE(StartCapture(module2.get(), capability));
-  EXPECT_TRUE_WAIT(capture_observer2.incoming_frames() >= 5, kTimeOut);
+  EXPECT_THAT(webrtc::WaitUntil(
+                  [&] { return capture_observer2.incoming_frames(); }, Ge(5),
+                  {.timeout = webrtc::TimeDelta::Millis(kTimeOut)}),
+              webrtc::IsRtcOk());
 
   EXPECT_EQ(0, module2->StopCapture());
 }
