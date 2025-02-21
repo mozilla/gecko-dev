@@ -544,9 +544,6 @@ pref("browser.urlbar.quicksuggest.contextualOptIn.thirdReshowAfterPeriodDays", 6
 // Whether the quick suggest feature in the urlbar is enabled.
 pref("browser.urlbar.quicksuggest.enabled", false);
 
-// Whether Suggest should be hidden in the settings UI even when enabled.
-pref("browser.urlbar.quicksuggest.hideSettingsUI", false);
-
 // Ranking mode of QuickSuggest. Currently used for relevance ranking
 // experimentation. It can be any of "default", "interest", and "random".
 pref("browser.urlbar.quicksuggest.rankingMode", "default");
