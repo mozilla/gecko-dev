@@ -41250,7 +41250,7 @@ class ChoiceList extends XFAObject {
     const field = ui[$getParent]();
     const fontSize = field.font?.size || 10;
     const optionStyle = {
-      fontSize: `calc(${fontSize}px * var(--scale-factor))`
+      fontSize: `calc(${fontSize}px * var(--total-scale-factor))`
     };
     const children = [];
     if (field.items.children.length > 0) {
@@ -47633,7 +47633,7 @@ function mapStyle(styleStr, node, richText) {
     style.verticalAlign = measureToString(Math.sign(getMeasurement(style.verticalAlign)) * fontSize * VERTICAL_FACTOR);
   }
   if (richText && style.fontSize) {
-    style.fontSize = `calc(${style.fontSize} * var(--scale-factor))`;
+    style.fontSize = `calc(${style.fontSize} * var(--total-scale-factor))`;
   }
   fixTextIndent(style);
   return style;
@@ -56475,7 +56475,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.0.43";
+    const workerVersion = "5.0.44";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57007,8 +57007,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.0.43";
-const pdfjsBuild = "38800715c";
+const pdfjsVersion = "5.0.44";
+const pdfjsBuild = "e0873f575";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };
