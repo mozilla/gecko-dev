@@ -2010,6 +2010,7 @@ if (rtc_include_tests && !build_with_chromium) {
     sources = [
       "audio_rtp_receiver_unittest.cc",
       "channel_unittest.cc",
+      "codec_vendor_unittest.cc",
       "dtls_srtp_transport_integrationtest.cc",
       "dtls_srtp_transport_unittest.cc",
       "dtls_transport_unittest.cc",
@@ -2036,6 +2037,7 @@ if (rtc_include_tests && !build_with_chromium) {
     deps = [
       ":audio_rtp_receiver",
       ":channel",
+      ":codec_vendor",
       ":dtls_srtp_transport",
       ":dtls_transport",
       ":ice_transport",
