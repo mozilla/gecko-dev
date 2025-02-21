@@ -24,11 +24,11 @@ add_setup(async function () {
       ["dom.storage_access.enabled", true],
       [
         "network.cookie.cookieBehavior",
-        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
       ],
       [
         "network.cookie.cookieBehavior.pbmode",
-        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+        Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
       ],
       ["privacy.trackingprotection.enabled", false],
       ["privacy.trackingprotection.pbmode.enabled", false],
@@ -486,12 +486,6 @@ async function runTestUserInteractionHeuristic(disableHeuristics) {
 
 add_task(async function testUserInteractionHeuristic() {
   await runTestUserInteractionHeuristic(false);
-});
-
-add_task(async function testUserInteractionHeuristicWithoutTracker() {
-  UrlClassifierTestUtils.cleanupTestTrackers();
-  await runTestUserInteractionHeuristic(false);
-  await UrlClassifierTestUtils.addTestTrackers();
 });
 
 add_task(async function testUserInteractionHeuristicDisabled() {

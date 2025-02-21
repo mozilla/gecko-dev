@@ -21,14 +21,6 @@ function clearTelemetry() {
   Services.telemetry.getHistogramById("STORAGE_ACCESS_REMAINING_DAYS").clear();
 }
 
-async function cleanup() {
-  await new Promise(resolve => {
-    Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, () =>
-      resolve()
-    );
-  });
-}
-
 function getExpectedExpiredDaysFromPref(pref) {
   let expiredSecond = Services.prefs.getIntPref(pref);
 
@@ -78,6 +70,7 @@ async function testTelemetry(
       ).content;
     }
     storageAccessGrantedHistogram = histograms.STORAGE_ACCESS_GRANTED_COUNT;
+
     return (
       !!storageAccessGrantedHistogram &&
       storageAccessGrantedHistogram.values[LABEL_STORAGE_GRANTED] ==
@@ -124,7 +117,6 @@ async function testTelemetry(
 
   // Clear telemetry probes
   clearTelemetry();
-  await cleanup();
 }
 
 add_setup(async function () {
@@ -137,6 +129,7 @@ add_setup(async function () {
         "privacy.restrict3rdpartystorage.userInteractionRequiredForHosts",
         "tracking.example.com,tracking.example.org",
       ],
+      ["privacy.restrict3rdpartystorage.heuristic.redirect", true],
       ["toolkit.telemetry.ipcBatchTimeout", 0],
       // Explicity set the expiration time to 29 days to avoid an intermittent
       // issue that we could get 30 days of expiration time if we test the
@@ -236,7 +229,6 @@ add_task(async function testTelemetryForStorageAccessAPI() {
     LABEL_STORAGE_ACCESS_API,
     expectedExpiredDays
   );
-  await cleanup();
 });
 
 add_task(async function testTelemetryForWindowOpenHeuristic() {
@@ -316,21 +308,12 @@ add_task(async function testTelemetryForWindowOpenHeuristic() {
   // The storage access permission will be expired in 29 days, so the expected
   // index in the telemetry probe would be 29.
   await testTelemetry(false, 1, 1, LABEL_OPENER, expectedExpiredDays);
-  await cleanup();
 });
 
 add_task(async function testTelemetryForUserInteractionHeuristic() {
   info(
     "Starting testing if UserInteraction heuristic send telemetry probe ..."
   );
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      [
-        "privacy.restrict3rdpartystorage.heuristic.opened_window_after_interaction",
-        true,
-      ],
-    ],
-  });
 
   // First, clear all permissions.
   Services.perms.removeAll();
@@ -413,80 +396,6 @@ add_task(async function testTelemetryForUserInteractionHeuristic() {
   // Note that the expected count here is 2. It's because the opener heuristic
   // will also be triggered when triggered UserInteraction Heuristic.
   await testTelemetry(false, 2, 2, LABEL_OPENER_AFTER_UI, expectedExpiredDays);
-  await cleanup();
-});
-
-add_task(async function testTelemetryForNavigationHeuristic() {
-  info("Starting testing if navigation heuristic send telemetry probe ...");
-
-  const TEST_TRACKING_PAGE = TEST_3RD_PARTY_DOMAIN + TEST_PATH + "page.html";
-
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["privacy.restrict3rdpartystorage.heuristic.recently_visited", false],
-      [
-        "privacy.restrict3rdpartystorage.heuristic.opened_window_after_interaction",
-        false,
-      ],
-      ["privacy.restrict3rdpartystorage.heuristic.window_open", false],
-      ["privacy.restrict3rdpartystorage.heuristic.redirect", false],
-      ["privacy.restrict3rdpartystorage.heuristic.navigation", true],
-    ],
-  });
-
-  // First, clear all permissions.
-  Services.perms.removeAll();
-
-  info("Creating a new tab");
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    TEST_TOP_PAGE_HTTPS
-  );
-  let browser = gBrowser.getBrowserForTab(tab);
-
-  info("Navigate to the tracking page.");
-  await SpecialPowers.spawn(browser, [TEST_TRACKING_PAGE], async url => {
-    content.document.userInteractionForTesting();
-
-    let link = content.document.createElement("a");
-    link.appendChild(content.document.createTextNode("click me!"));
-    link.href = url;
-    content.document.body.appendChild(link);
-    link.click();
-  });
-
-  await BrowserTestUtils.browserLoaded(browser, false, TEST_TRACKING_PAGE);
-
-  info("Navigate back to the first page.");
-  await SpecialPowers.spawn(browser, [TEST_TOP_PAGE_HTTPS], async url => {
-    content.document.userInteractionForTesting();
-
-    let link = content.document.createElement("a");
-    link.appendChild(content.document.createTextNode("click me!"));
-    link.href = url;
-    content.document.body.appendChild(link);
-    link.click();
-  });
-
-  await BrowserTestUtils.browserLoaded(browser, false, TEST_TOP_PAGE_HTTPS);
-
-  info("Removing the tab");
-  BrowserTestUtils.removeTab(tab);
-
-  let expectedExpiredDaysRedirect = getExpectedExpiredDaysFromPref(
-    "privacy.restrict3rdpartystorage.expiration_redirect"
-  );
-
-  // We would only grant the storage permission for 29 days for the redirect
-  // heuristic, so the expected index in the telemetry probe would be 29.
-  await testTelemetry(
-    true,
-    1,
-    1,
-    LABEL_NAVIGATION,
-    expectedExpiredDaysRedirect
-  );
-  await cleanup();
 });
 
 add_task(async function testTelemetryForRedirectHeuristic() {
@@ -494,12 +403,7 @@ add_task(async function testTelemetryForRedirectHeuristic() {
 
   const TEST_TRACKING_PAGE = TEST_3RD_PARTY_DOMAIN + TEST_PATH + "page.html";
   const TEST_REDIRECT_PAGE =
-    TEST_3RD_PARTY_DOMAIN + TEST_PATH + "redirect.sjs?" + TEST_TOP_PAGE_HTTPS;
-
-  // Perform per test setup
-  await SpecialPowers.pushPrefEnv({
-    set: [["privacy.restrict3rdpartystorage.heuristic.redirect", true]],
-  });
+    TEST_3RD_PARTY_DOMAIN + TEST_PATH + "redirect.sjs?" + TEST_TOP_PAGE;
 
   // First, clear all permissions.
   Services.perms.removeAll();
@@ -522,7 +426,7 @@ add_task(async function testTelemetryForRedirectHeuristic() {
     link.click();
   });
 
-  await BrowserTestUtils.browserLoaded(browser, false, TEST_TOP_PAGE_HTTPS);
+  await BrowserTestUtils.browserLoaded(browser, false, TEST_TOP_PAGE);
 
   info("Removing the tab");
   BrowserTestUtils.removeTab(tab);
@@ -540,5 +444,4 @@ add_task(async function testTelemetryForRedirectHeuristic() {
     LABEL_REDIRECT_TRACKER,
     expectedExpiredDaysRedirect
   );
-  await cleanup();
 });

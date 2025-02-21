@@ -141,7 +141,6 @@ async function redirectWithUserInteraction(browser, url, wait = null) {
     browser,
     (content, value) => {
       content.document.userInteractionForTesting();
-      content.document.notifyUserGestureActivation();
 
       let link = content.document.createElement("a");
       link.appendChild(content.document.createTextNode("click me!"));
@@ -194,14 +193,8 @@ async function runTestRedirectHeuristic(disableHeuristics) {
 
   await SpecialPowers.pushPrefEnv({
     set: [
-      [
-        "privacy.restrict3rdpartystorage.heuristic.opened_window_after_interaction",
-        false,
-      ],
-      ["privacy.restrict3rdpartystorage.heuristic.window_open", false],
       ["privacy.restrict3rdpartystorage.heuristic.recently_visited", isAndroid],
       ["privacy.restrict3rdpartystorage.heuristic.navigation", !isAndroid],
-      ["privacy.restrict3rdpartystorage.heuristic.redirect", false],
       ["privacy.antitracking.enableWebcompat", !disableHeuristics],
     ],
   });

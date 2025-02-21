@@ -1340,7 +1340,6 @@ void StorageAccessGrantTelemetryClassification::MaybeReportTracker(
 
   rv = uriClassifier->AsyncClassifyLocalWithFeatureNames(
       aURI, featureNames, nsIUrlClassifierFeature::blocklist, classification);
-  NS_WARN_IF(NS_FAILED(rv));
 }
 
 // nsIUrlClassifierFeatureCallback
