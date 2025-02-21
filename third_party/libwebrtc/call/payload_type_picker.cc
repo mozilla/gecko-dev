@@ -25,6 +25,7 @@
 #include "media/base/media_constants.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/string_encode.h"
 
 namespace webrtc {
 
@@ -80,6 +81,15 @@ bool CodecPrefersLowerRange(const cricket::Codec& codec) {
         return true;
       }
     }
+  } else if (absl::EqualsIgnoreCase(codec.name, cricket::kRtxCodecName)) {
+    // For RTX prefer lower range if the associated codec is in that range.
+    std::string associated_pt_str;
+    int associated_pt;
+    return codec.GetParam(cricket::kCodecParamAssociatedPayloadType,
+                          &associated_pt_str) &&
+           rtc::FromString(associated_pt_str, &associated_pt) &&
+           associated_pt >= kFirstDynamicPayloadTypeLowerRange &&
+           associated_pt <= kLastDynamicPayloadTypeLowerRange;
   }
   return false;
 }
