@@ -10,6 +10,7 @@ use crate::{
         AddProposal, ProposalType, RemoveProposal, Sender, UpdateProposal,
     },
     iter::wrap_iter,
+    mls_rules::CommitDirection,
     protocol_version::ProtocolVersion,
     time::MlsTime,
     tree_kem::{
@@ -20,13 +21,20 @@ use crate::{
     CipherSuiteProvider, ExtensionList,
 };
 
-use super::filtering_common::{filter_out_invalid_psks, ApplyProposalsOutput, ProposalApplier};
+use super::{
+    filtering_common::{filter_out_invalid_psks, ApplyProposalsOutput, ProposalApplier},
+    ProposalSource,
+};
 
 #[cfg(feature = "by_ref_proposal")]
 use crate::extension::ExternalSendersExt;
 
 use alloc::vec::Vec;
-use mls_rs_core::{error::IntoAnyError, identity::IdentityProvider, psk::PreSharedKeyStorage};
+use mls_rs_core::{
+    error::IntoAnyError,
+    identity::{IdentityProvider, MemberValidationContext},
+    psk::PreSharedKeyStorage,
+};
 
 #[cfg(any(
     feature = "custom_proposal",
@@ -45,7 +53,7 @@ use {crate::iter::ParallelIteratorExt, rayon::prelude::*};
 #[cfg(mls_build_async)]
 use futures::{StreamExt, TryStreamExt};
 
-impl<'a, C, P, CSP> ProposalApplier<'a, C, P, CSP>
+impl<C, P, CSP> ProposalApplier<'_, C, P, CSP>
 where
     C: IdentityProvider,
     P: PreSharedKeyStorage,
@@ -91,9 +99,11 @@ where
         .await?;
 
         let proposals = filter_out_extra_group_context_extensions(strategy, proposals)?;
-        let proposals = filter_out_invalid_reinit(strategy, proposals, self.protocol_version)?;
-        let proposals = filter_out_reinit_if_other_proposals(strategy.is_ignore(), proposals)?;
 
+        let proposals =
+            filter_out_invalid_reinit(strategy, proposals, self.original_context.protocol_version)?;
+
+        let proposals = filter_out_reinit_if_other_proposals(strategy.is_ignore(), proposals)?;
         let proposals = filter_out_external_init(strategy, proposals)?;
 
         self.apply_proposal_changes(strategy, proposals, commit_time)
@@ -116,7 +126,7 @@ where
                 self.apply_tree_changes(
                     strategy,
                     proposals,
-                    self.original_group_extensions,
+                    &self.original_context.extensions,
                     commit_time,
                 )
                 .await
@@ -129,11 +139,11 @@ where
         &self,
         strategy: FilterStrategy,
         proposals: ProposalBundle,
-        group_extensions_in_use: &ExtensionList,
+        new_extensions: &ExtensionList,
         commit_time: Option<MlsTime>,
     ) -> Result<ApplyProposalsOutput, MlsError> {
         let mut applied_proposals = self
-            .validate_new_nodes(strategy, proposals, group_extensions_in_use, commit_time)
+            .validate_new_nodes(strategy, proposals, new_extensions, commit_time)
             .await?;
 
         let mut new_tree = self.original_tree.clone();
@@ -141,7 +151,7 @@ where
         let added = new_tree
             .batch_edit(
                 &mut applied_proposals,
-                group_extensions_in_use,
+                new_extensions,
                 self.identity_provider,
                 self.cipher_suite_provider,
                 strategy.is_ignore(),
@@ -166,13 +176,18 @@ where
         &self,
         strategy: FilterStrategy,
         mut proposals: ProposalBundle,
-        group_extensions_in_use: &ExtensionList,
+        new_extensions: &ExtensionList,
         commit_time: Option<MlsTime>,
     ) -> Result<ProposalBundle, MlsError> {
+        let member_validation_context = MemberValidationContext::ForCommit {
+            current_context: self.original_context,
+            new_extensions,
+        };
+
         let leaf_node_validator = &LeafNodeValidator::new(
             self.cipher_suite_provider,
             self.identity_provider,
-            Some(group_extensions_in_use),
+            member_validation_context,
         );
 
         let bad_indices: Vec<_> = wrap_iter(proposals.update_proposals())
@@ -185,7 +200,11 @@ where
                     let res = leaf_node_validator
                         .check_if_valid(
                             leaf,
-                            ValidationContext::Update((self.group_id, *sender_index, commit_time)),
+                            ValidationContext::Update((
+                                &self.original_context.group_id,
+                                *sender_index,
+                                commit_time,
+                            )),
                         )
                         .await;
 
@@ -199,7 +218,7 @@ where
                         .valid_successor(
                             &old_leaf.signing_identity,
                             &leaf.signing_identity,
-                            group_extensions_in_use,
+                            new_extensions,
                         )
                         .await
                         .map_err(|e| MlsError::IdentityProviderError(e.into_any_error()))
@@ -247,6 +266,15 @@ where
 pub enum FilterStrategy {
     IgnoreByRef,
     IgnoreNone,
+}
+
+impl From<CommitDirection> for FilterStrategy {
+    fn from(value: CommitDirection) -> Self {
+        match value {
+            CommitDirection::Send => FilterStrategy::IgnoreByRef,
+            CommitDirection::Receive => FilterStrategy::IgnoreNone,
+        }
+    }
 }
 
 impl FilterStrategy {
@@ -429,10 +457,10 @@ fn filter_out_external_init(
 pub(crate) fn proposer_can_propose(
     proposer: Sender,
     proposal_type: ProposalType,
-    by_ref: bool,
+    source: &ProposalSource,
 ) -> Result<(), MlsError> {
-    let can_propose = match (proposer, by_ref) {
-        (Sender::Member(_), false) => matches!(
+    let can_propose = match (proposer, source) {
+        (Sender::Member(_), ProposalSource::ByValue | ProposalSource::Local) => matches!(
             proposal_type,
             ProposalType::ADD
                 | ProposalType::REMOVE
@@ -440,7 +468,7 @@ pub(crate) fn proposer_can_propose(
                 | ProposalType::RE_INIT
                 | ProposalType::GROUP_CONTEXT_EXTENSIONS
         ),
-        (Sender::Member(_), true) => matches!(
+        (Sender::Member(_), ProposalSource::ByReference(_)) => matches!(
             proposal_type,
             ProposalType::ADD
                 | ProposalType::UPDATE
@@ -450,9 +478,9 @@ pub(crate) fn proposer_can_propose(
                 | ProposalType::GROUP_CONTEXT_EXTENSIONS
         ),
         #[cfg(feature = "by_ref_proposal")]
-        (Sender::External(_), false) => false,
+        (Sender::External(_), ProposalSource::ByValue) => false,
         #[cfg(feature = "by_ref_proposal")]
-        (Sender::External(_), true) => matches!(
+        (Sender::External(_), _) => matches!(
             proposal_type,
             ProposalType::ADD
                 | ProposalType::REMOVE
@@ -460,13 +488,15 @@ pub(crate) fn proposer_can_propose(
                 | ProposalType::PSK
                 | ProposalType::GROUP_CONTEXT_EXTENSIONS
         ),
-        (Sender::NewMemberCommit, false) => matches!(
+        (Sender::NewMemberCommit, ProposalSource::ByValue | ProposalSource::Local) => matches!(
             proposal_type,
             ProposalType::REMOVE | ProposalType::PSK | ProposalType::EXTERNAL_INIT
         ),
-        (Sender::NewMemberCommit, true) => false,
-        (Sender::NewMemberProposal, false) => false,
-        (Sender::NewMemberProposal, true) => matches!(proposal_type, ProposalType::ADD),
+        (Sender::NewMemberCommit, ProposalSource::ByReference(_)) => false,
+        (Sender::NewMemberProposal, ProposalSource::ByValue | ProposalSource::Local) => false,
+        (Sender::NewMemberProposal, ProposalSource::ByReference(_)) => {
+            matches!(proposal_type, ProposalType::ADD)
+        }
     };
 
     can_propose
@@ -480,7 +510,7 @@ pub(crate) fn filter_out_invalid_proposers(
 ) -> Result<ProposalBundle, MlsError> {
     for i in (0..proposals.add_proposals().len()).rev() {
         let p = &proposals.add_proposals()[i];
-        let res = proposer_can_propose(p.sender, ProposalType::ADD, p.is_by_reference());
+        let res = proposer_can_propose(p.sender, ProposalType::ADD, &p.source);
 
         if !apply_strategy(strategy, p.is_by_reference(), res)? {
             proposals.remove::<AddProposal>(i);
@@ -489,7 +519,7 @@ pub(crate) fn filter_out_invalid_proposers(
 
     for i in (0..proposals.update_proposals().len()).rev() {
         let p = &proposals.update_proposals()[i];
-        let res = proposer_can_propose(p.sender, ProposalType::UPDATE, p.is_by_reference());
+        let res = proposer_can_propose(p.sender, ProposalType::UPDATE, &p.source);
 
         if !apply_strategy(strategy, p.is_by_reference(), res)? {
             proposals.remove::<UpdateProposal>(i);
@@ -499,7 +529,7 @@ pub(crate) fn filter_out_invalid_proposers(
 
     for i in (0..proposals.remove_proposals().len()).rev() {
         let p = &proposals.remove_proposals()[i];
-        let res = proposer_can_propose(p.sender, ProposalType::REMOVE, p.is_by_reference());
+        let res = proposer_can_propose(p.sender, ProposalType::REMOVE, &p.source);
 
         if !apply_strategy(strategy, p.is_by_reference(), res)? {
             proposals.remove::<RemoveProposal>(i);
@@ -509,7 +539,7 @@ pub(crate) fn filter_out_invalid_proposers(
     #[cfg(feature = "psk")]
     for i in (0..proposals.psk_proposals().len()).rev() {
         let p = &proposals.psk_proposals()[i];
-        let res = proposer_can_propose(p.sender, ProposalType::PSK, p.is_by_reference());
+        let res = proposer_can_propose(p.sender, ProposalType::PSK, &p.source);
 
         if !apply_strategy(strategy, p.is_by_reference(), res)? {
             proposals.remove::<PreSharedKeyProposal>(i);
@@ -518,7 +548,7 @@ pub(crate) fn filter_out_invalid_proposers(
 
     for i in (0..proposals.reinit_proposals().len()).rev() {
         let p = &proposals.reinit_proposals()[i];
-        let res = proposer_can_propose(p.sender, ProposalType::RE_INIT, p.is_by_reference());
+        let res = proposer_can_propose(p.sender, ProposalType::RE_INIT, &p.source);
 
         if !apply_strategy(strategy, p.is_by_reference(), res)? {
             proposals.remove::<ReInitProposal>(i);
@@ -527,7 +557,7 @@ pub(crate) fn filter_out_invalid_proposers(
 
     for i in (0..proposals.external_init_proposals().len()).rev() {
         let p = &proposals.external_init_proposals()[i];
-        let res = proposer_can_propose(p.sender, ProposalType::EXTERNAL_INIT, p.is_by_reference());
+        let res = proposer_can_propose(p.sender, ProposalType::EXTERNAL_INIT, &p.source);
 
         if !apply_strategy(strategy, p.is_by_reference(), res)? {
             proposals.remove::<ExternalInit>(i);
@@ -537,7 +567,7 @@ pub(crate) fn filter_out_invalid_proposers(
     for i in (0..proposals.group_context_ext_proposals().len()).rev() {
         let p = &proposals.group_context_ext_proposals()[i];
         let gce_type = ProposalType::GROUP_CONTEXT_EXTENSIONS;
-        let res = proposer_can_propose(p.sender, gce_type, p.is_by_reference());
+        let res = proposer_can_propose(p.sender, gce_type, &p.source);
 
         if !apply_strategy(strategy, p.is_by_reference(), res)? {
             proposals.remove::<ExtensionList>(i);

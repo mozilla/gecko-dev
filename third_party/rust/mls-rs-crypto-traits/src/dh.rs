@@ -12,6 +12,13 @@ use alloc::vec::Vec;
 #[cfg(feature = "mock")]
 use mockall::automock;
 
+#[derive(Clone, Debug, Copy)]
+pub enum SamplingMethod {
+    HpkeWithBitmask(u8),
+    HpkeWithoutBitmask,
+    Raw,
+}
+
 /// A trait that provides the required DH functions, as in RFC 9180,Section 4.1
 #[cfg_attr(feature = "mock", automock(type Error = crate::mock::TestError;))]
 #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
@@ -48,9 +55,10 @@ pub trait DhType: Send + Sync {
     ///   significant one are filtered out),
     /// * `Some(0xFF)`for curves P-256 and P-384 (rejection sampling is needed but no
     ///   bits need to be filtered).
-    fn bitmask_for_rejection_sampling(&self) -> Option<u8>;
+    fn bitmask_for_rejection_sampling(&self) -> SamplingMethod;
 
     fn secret_key_size(&self) -> usize;
+    fn public_key_size(&self) -> usize;
 
     fn public_key_validate(&self, key: &HpkePublicKey) -> Result<(), Self::Error>;
 }

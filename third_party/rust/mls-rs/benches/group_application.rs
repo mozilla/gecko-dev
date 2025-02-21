@@ -3,13 +3,11 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use criterion::{BatchSize, BenchmarkId, Criterion, Throughput};
-use mls_rs::test_utils::benchmarks::load_group_states;
-use mls_rs::CipherSuite;
+use mls_rs::test_utils::benchmarks::{load_group_states, BENCH_CIPHER_SUITE};
 use rand::RngCore;
 
 fn bench(c: &mut Criterion) {
-    let cipher_suite = CipherSuite::CURVE25519_AES128;
-    let group_states = load_group_states(cipher_suite).pop().unwrap();
+    let group_states = load_group_states().pop().unwrap();
 
     let mut bytes = vec![0; 1000000];
     rand::thread_rng().fill_bytes(&mut bytes);
@@ -21,7 +19,7 @@ fn bench(c: &mut Criterion) {
     while n <= 1000000 {
         bench_group.throughput(Throughput::Bytes(n as u64));
         bench_group.bench_with_input(
-            BenchmarkId::new(format!("{cipher_suite:?}"), n),
+            BenchmarkId::new(format!("{BENCH_CIPHER_SUITE:?}"), n),
             &n,
             |b, _| {
                 b.iter_batched_ref(

@@ -2,20 +2,27 @@
 // Copyright by contributors to this project.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+#[cfg(feature = "rfc_compliant")]
 use alloc::vec;
 use alloc::vec::Vec;
-use mls_rs_codec::{MlsDecode, MlsEncode};
-use mls_rs_core::crypto::{CipherSuite, CipherSuiteProvider};
+#[cfg(feature = "rfc_compliant")]
+use mls_rs_codec::MlsDecode;
+use mls_rs_codec::MlsEncode;
+#[cfg(feature = "rfc_compliant")]
+use mls_rs_core::crypto::CipherSuite;
+use mls_rs_core::crypto::CipherSuiteProvider;
 
+#[cfg(feature = "rfc_compliant")]
 use itertools::Itertools;
 
+#[cfg(feature = "rfc_compliant")]
 use crate::{
     crypto::test_utils::try_test_cipher_suite_provider, identity::basic::BasicIdentityProvider,
 };
 
-use super::{
-    node::NodeVec, test_utils::TreeWithSigners, tree_validator::TreeValidator, TreeKemPublic,
-};
+use super::TreeKemPublic;
+#[cfg(feature = "rfc_compliant")]
+use super::{node::NodeVec, test_utils::TreeWithSigners, tree_validator::TreeValidator};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone)]
 struct ValidationTestCase {

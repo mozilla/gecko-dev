@@ -139,7 +139,7 @@ pub(crate) mod test_utils {
         pub signature: Vec<u8>,
     }
 
-    impl<'a> Signable<'a> for TestSignable {
+    impl Signable<'_> for TestSignable {
         const SIGN_LABEL: &'static str = "SignWithLabel";
 
         type SigningContext = Vec<u8>;

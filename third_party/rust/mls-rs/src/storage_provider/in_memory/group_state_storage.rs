@@ -18,19 +18,16 @@ use mls_rs_core::group::{EpochRecord, GroupState, GroupStateStorage};
 #[cfg(not(target_has_atomic = "ptr"))]
 use portable_atomic_util::Arc;
 
-use crate::client::MlsError;
+use crate::{
+    client::MlsError,
+    map::{LargeMap, LargeMapEntry},
+};
 
 #[cfg(feature = "std")]
-use std::collections::{hash_map::Entry, HashMap};
+use std::sync::{Mutex, MutexGuard};
 
 #[cfg(not(feature = "std"))]
-use alloc::collections::{btree_map::Entry, BTreeMap};
-
-#[cfg(feature = "std")]
-use std::sync::Mutex;
-
-#[cfg(not(feature = "std"))]
-use spin::Mutex;
+use spin::{Mutex, MutexGuard};
 
 pub(crate) const DEFAULT_EPOCH_RETENTION_LIMIT: usize = 3;
 
@@ -101,10 +98,7 @@ impl InMemoryGroupData {
 ///
 /// All clones of an instance of this type share the same underlying HashMap.
 pub struct InMemoryGroupStateStorage {
-    #[cfg(feature = "std")]
-    pub(crate) inner: Arc<Mutex<HashMap<Vec<u8>, InMemoryGroupData>>>,
-    #[cfg(not(feature = "std"))]
-    pub(crate) inner: Arc<Mutex<BTreeMap<Vec<u8>, InMemoryGroupData>>>,
+    pub(crate) inner: Arc<Mutex<LargeMap<Vec<u8>, InMemoryGroupData>>>,
     pub(crate) max_epoch_retention: usize,
 }
 
@@ -158,14 +152,12 @@ impl InMemoryGroupStateStorage {
         self.lock().remove(group_id);
     }
 
-    #[cfg(feature = "std")]
-    fn lock(&self) -> std::sync::MutexGuard<'_, HashMap<Vec<u8>, InMemoryGroupData>> {
-        self.inner.lock().unwrap()
-    }
+    fn lock(&self) -> MutexGuard<'_, LargeMap<Vec<u8>, InMemoryGroupData>> {
+        #[cfg(feature = "std")]
+        return self.inner.lock().unwrap();
 
-    #[cfg(not(feature = "std"))]
-    fn lock(&self) -> spin::mutex::MutexGuard<'_, BTreeMap<Vec<u8>, InMemoryGroupData>> {
-        self.inner.lock()
+        #[cfg(not(feature = "std"))]
+        return self.inner.lock();
     }
 }
 
@@ -210,12 +202,12 @@ impl GroupStateStorage for InMemoryGroupStateStorage {
         let mut group_map = self.lock();
 
         let group_data = match group_map.entry(state.id) {
-            Entry::Occupied(entry) => {
+            LargeMapEntry::Occupied(entry) => {
                 let data = entry.into_mut();
                 data.state_data = state.data;
                 data
             }
-            Entry::Vacant(entry) => entry.insert(InMemoryGroupData::new(state.data)),
+            LargeMapEntry::Vacant(entry) => entry.insert(InMemoryGroupData::new(state.data)),
         };
 
         epoch_inserts

@@ -44,13 +44,12 @@ fn test_group_external_join() -> Result<(), PlatformError> {
 
     // Create signature keypairs and store them in the state
     let alice_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+        mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
-    let bob_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+    let bob_id = mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
     let diana_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+        mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
     println!("\nAlice identifier: {}", hex::encode(&alice_id));
     println!("Bob identifier: {}", hex::encode(&bob_id));
@@ -77,7 +76,7 @@ fn test_group_external_join() -> Result<(), PlatformError> {
     println!("\nGroup created by Alice: {}", hex::encode(&gide.group_id));
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!("Members (alice, before adding bob): {members:?}");
 
     //
@@ -106,7 +105,7 @@ fn test_group_external_join() -> Result<(), PlatformError> {
     )?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!("Members (alice, after adding bob): {members:?}");
 
     // Bob joins
@@ -114,7 +113,7 @@ fn test_group_external_join() -> Result<(), PlatformError> {
     mls_platform_api::mls_group_join(&state_global, &bob_id, &welcome, None)?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after joining the group): {members:?}");
 
     //
@@ -144,7 +143,7 @@ fn test_group_external_join() -> Result<(), PlatformError> {
     )?;
 
     let members_alice =
-        mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+        mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!(
         "Members (alice, after receiving the commit allowing external join): {members_alice:?}"
     );
@@ -156,7 +155,7 @@ fn test_group_external_join() -> Result<(), PlatformError> {
         &MessageOrAck::MlsMessage(commit_4_output.commit.clone()),
     )?;
 
-    let members_bob = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members_bob = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after commit allowing external join): {members_bob:?}");
 
     //
@@ -177,7 +176,7 @@ fn test_group_external_join() -> Result<(), PlatformError> {
     println!("Externally joined group {:?}", &external_commit_output.gid);
 
     let members_diana =
-        mls_platform_api::mls_group_members(&state_global, &gide.group_id, &diana_id)?;
+        mls_platform_api::mls_group_details(&state_global, &gide.group_id, &diana_id)?;
     println!("Members (diane, after joining): {members_diana:?}");
 
     // Alice receives Diana's commit
@@ -189,7 +188,7 @@ fn test_group_external_join() -> Result<(), PlatformError> {
     )?;
 
     let members_alice =
-        mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+        mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!("Members (alice, after receiving the commit from Diana): {members_alice:?}");
 
     // Bob receives Diana's commit
@@ -200,7 +199,7 @@ fn test_group_external_join() -> Result<(), PlatformError> {
         &MessageOrAck::MlsMessage(external_commit_output.external_commit.clone()),
     )?;
 
-    let members_bob = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members_bob = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after receiving the commit from Diana): {members_bob:?}");
 
     // Check if Diana is in the members list

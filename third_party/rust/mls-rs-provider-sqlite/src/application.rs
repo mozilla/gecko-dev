@@ -30,7 +30,7 @@ impl SqLiteApplicationStorage {
     /// Insert `value` into storage indexed by `key`.
     ///
     /// If a value already exists for `key` it will be overwritten.
-    pub fn insert(&self, key: String, value: Vec<u8>) -> Result<(), SqLiteDataStorageError> {
+    pub fn insert(&self, key: &str, value: &[u8]) -> Result<(), SqLiteDataStorageError> {
         let connection = self.connection.lock().unwrap();
 
         // Upsert into the database
@@ -41,13 +41,13 @@ impl SqLiteApplicationStorage {
     }
 
     /// Execute multiple [`SqLiteApplicationStorage::insert`] operations in a transaction.
-    pub fn transact_insert(&self, items: Vec<Item>) -> Result<(), SqLiteDataStorageError> {
+    pub fn transact_insert(&self, items: &[Item]) -> Result<(), SqLiteDataStorageError> {
         let mut connection = self.connection.lock().unwrap();
 
         // Upsert into the database
         let tx = connection.transaction().map_err(sql_engine_error)?;
 
-        items.into_iter().try_for_each(|item| {
+        items.iter().try_for_each(|item| {
             tx.execute(INSERT_SQL, params![item.key, item.value])
                 .map_err(sql_engine_error)
                 .map(|_| ())
@@ -179,7 +179,7 @@ mod tests {
         let (key, value) = test_kv();
         let storage = test_storage();
 
-        storage.insert(key.clone(), value.clone()).unwrap();
+        storage.insert(&key, &value).unwrap();
 
         let from_storage = storage.get(&key).unwrap().unwrap();
         assert_eq!(from_storage, value);
@@ -192,8 +192,8 @@ mod tests {
 
         let storage = test_storage();
 
-        storage.insert(key.clone(), value).unwrap();
-        storage.insert(key.clone(), new_value.clone()).unwrap();
+        storage.insert(&key, &value).unwrap();
+        storage.insert(&key, &new_value).unwrap();
 
         let from_storage = storage.get(&key).unwrap().unwrap();
         assert_eq!(from_storage, new_value);
@@ -204,7 +204,7 @@ mod tests {
         let (key, value) = test_kv();
         let storage = test_storage();
 
-        storage.insert(key.clone(), value).unwrap();
+        storage.insert(&key, &value).unwrap();
         storage.delete(&key).unwrap();
 
         assert!(storage.get(&key).unwrap().is_none());
@@ -217,8 +217,7 @@ mod tests {
 
         let storage = test_storage();
 
-        keys.iter()
-            .for_each(|k| storage.insert(k.clone(), value.clone()).unwrap());
+        keys.iter().for_each(|k| storage.insert(k, &value).unwrap());
 
         let mut expected = vec![
             Item::new(keys[0].clone(), value.clone()),
@@ -249,15 +248,9 @@ mod tests {
     fn test_special_characters() {
         let storage = test_storage();
 
-        storage
-            .insert("%$_ƕ❤_$%".to_string(), gen_rand_bytes(5))
-            .unwrap();
-        storage
-            .insert("%$_ƕ❤a$%".to_string(), gen_rand_bytes(5))
-            .unwrap();
-        storage
-            .insert("%$_ƕ❤Ḉ$%".to_string(), gen_rand_bytes(5))
-            .unwrap();
+        storage.insert("%$_ƕ❤_$%", &gen_rand_bytes(5)).unwrap();
+        storage.insert("%$_ƕ❤a$%", &gen_rand_bytes(5)).unwrap();
+        storage.insert("%$_ƕ❤Ḉ$%", &gen_rand_bytes(5)).unwrap();
 
         let items = storage.get_by_prefix("%$_ƕ❤_").unwrap();
         let keys = items.into_iter().map(|i| i.key).collect::<Vec<_>>();
@@ -269,7 +262,7 @@ mod tests {
         let storage = test_storage();
         let items = vec![test_item(), test_item(), test_item()];
 
-        storage.transact_insert(items.clone()).unwrap();
+        storage.transact_insert(&items).unwrap();
 
         for item in items {
             assert_eq!(storage.get(&item.key).unwrap(), Some(item.value));

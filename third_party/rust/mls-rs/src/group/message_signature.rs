@@ -159,7 +159,7 @@ pub(crate) struct AuthenticatedContentTBS<'a> {
     pub(crate) context: Option<&'a GroupContext>,
 }
 
-impl<'a> MlsSize for AuthenticatedContentTBS<'a> {
+impl MlsSize for AuthenticatedContentTBS<'_> {
     fn mls_encoded_len(&self) -> usize {
         self.protocol_version.mls_encoded_len()
             + self.wire_format.mls_encoded_len()
@@ -168,7 +168,7 @@ impl<'a> MlsSize for AuthenticatedContentTBS<'a> {
     }
 }
 
-impl<'a> MlsEncode for AuthenticatedContentTBS<'a> {
+impl MlsEncode for AuthenticatedContentTBS<'_> {
     fn mls_encode(&self, writer: &mut Vec<u8>) -> Result<(), mls_rs_codec::Error> {
         self.protocol_version.mls_encode(writer)?;
         self.wire_format.mls_encode(writer)?;

@@ -21,8 +21,10 @@ pub use traits::*;
 
 pub use mls_rs_core::identity::{CertificateChain, DerCertificate};
 
+#[cfg(all(test, target_arch = "wasm32"))]
+wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 /// X.509 certificate request in DER format.
 pub struct DerCertificateRequest(Vec<u8>);
 
@@ -34,7 +36,6 @@ impl Debug for DerCertificateRequest {
     }
 }
 
-#[cfg_attr(all(feature = "ffi", not(test)), safer_ffi_gen::safer_ffi_gen)]
 impl DerCertificateRequest {
     /// Create a DER certificate request from raw bytes.
     pub fn new(data: Vec<u8>) -> DerCertificateRequest {

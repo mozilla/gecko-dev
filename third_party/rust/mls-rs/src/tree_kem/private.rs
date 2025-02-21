@@ -198,7 +198,7 @@ mod tests {
                 &mut get_test_group_context(42, cipher_suite).await,
                 &[],
                 &alice_signing,
-                default_properties(),
+                Some(default_properties()),
                 None,
                 &cipher_suite_provider,
                 #[cfg(test)]

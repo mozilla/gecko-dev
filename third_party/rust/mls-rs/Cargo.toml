@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.68.2"
 name = "mls-rs"
-version = "0.39.1"
+version = "0.45.0"
 build = false
 exclude = ["test_data"]
 autolib = false
@@ -142,28 +142,33 @@ default-features = false
 version = "0.2.10"
 
 [dependencies.mls-rs-codec]
-version = "0.5.2"
+version = "0.6"
 path = "../mls-rs-codec"
 default-features = false
 
 [dependencies.mls-rs-core]
-version = "0.18.0"
+version = "0.21.0"
 path = "../mls-rs-core"
 default-features = false
 
+[dependencies.mls-rs-crypto-awslc]
+version = "0.15"
+path = "../mls-rs-crypto-awslc"
+optional = true
+
 [dependencies.mls-rs-crypto-openssl]
-version = "0.9.0"
+version = "0.14.0"
 path = "../mls-rs-crypto-openssl"
 optional = true
 
 [dependencies.mls-rs-identity-x509]
-version = "0.11.0"
+version = "0.15.0"
 path = "../mls-rs-identity-x509"
 optional = true
 default-features = false
 
 [dependencies.mls-rs-provider-sqlite]
-version = "0.11.0"
+version = "0.15.0"
 path = "../mls-rs-provider-sqlite"
 optional = true
 default-features = false
@@ -232,6 +237,7 @@ arbitrary = [
     "dep:arbitrary",
     "mls-rs-core/arbitrary",
 ]
+benchmark_pq_crypto = ["mls-rs-crypto-awslc/post-quantum"]
 benchmark_util = [
     "test_util",
     "default",
@@ -256,6 +262,8 @@ fuzz_util = [
     "dep:mls-rs-crypto-openssl",
 ]
 grease = ["std"]
+last_resort_key_package_ext = ["mls-rs-core/last_resort_key_package_ext"]
+non_domain_separated_hpke_encrypt_decrypt = []
 out_of_order = ["private_message"]
 prior_epoch = []
 private_message = []
@@ -265,7 +273,6 @@ rayon = [
     "dep:rayon",
 ]
 rfc_compliant = [
-    "state_update",
     "private_message",
     "custom_proposal",
     "out_of_order",
@@ -298,7 +305,6 @@ sqlite-bundled = [
     "sqlite",
     "mls-rs-provider-sqlite/sqlite-bundled",
 ]
-state_update = []
 std = [
     "mls-rs-core/std",
     "mls-rs-codec/std",
@@ -337,7 +343,7 @@ features = [
 ]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies.mls-rs-crypto-openssl]
-version = "0.9.0"
+version = "0.14.0"
 path = "../mls-rs-crypto-openssl"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.getrandom]
@@ -354,7 +360,7 @@ features = ["alloc"]
 default-features = false
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.wasm-bindgen]
-version = "^0.2.79"
+version = "0.2"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.criterion]
 version = "0.5.1"
@@ -367,12 +373,11 @@ features = [
 default-features = false
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.mls-rs-crypto-webcrypto]
-version = "0.4.0"
+version = "0.8.0"
 path = "../mls-rs-crypto-webcrypto"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.wasm-bindgen-test]
-version = "0.3.26"
-default-features = false
+version = "0.3"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

@@ -2,14 +2,12 @@
 // Copyright by contributors to this project.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+use alloc::boxed::Box;
 use alloc::vec;
 use alloc::vec::Vec;
-use core::fmt::{self, Debug};
+use core::fmt::Debug;
 use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
-use mls_rs_core::{
-    crypto::{CipherSuiteProvider, SignatureSecretKey},
-    error::IntoAnyError,
-};
+use mls_rs_core::{crypto::SignatureSecretKey, error::IntoAnyError};
 
 use crate::{
     cipher_suite::CipherSuite,
@@ -43,12 +41,14 @@ use super::{
     confirmation_tag::ConfirmationTag,
     framing::{Content, MlsMessage, MlsMessagePayload, Sender},
     key_schedule::{KeySchedule, WelcomeSecret},
+    message_hash::MessageHash,
     message_processor::{path_update_required, MessageProcessor},
     message_signature::AuthenticatedContent,
     mls_rules::CommitDirection,
     proposal::{Proposal, ProposalOrRef},
-    ConfirmedTranscriptHash, EncryptedGroupSecrets, ExportedTree, Group, GroupContext, GroupInfo,
-    Welcome,
+    CommitEffect, CommitMessageDescription, EncryptedGroupSecrets, EpochSecrets, ExportedTree,
+    Group, GroupContext, GroupInfo, GroupState, InterimTranscriptHash, NewEpoch,
+    PendingCommitSnapshot, Welcome,
 };
 
 #[cfg(not(feature = "by_ref_proposal"))]
@@ -66,40 +66,34 @@ pub(crate) struct Commit {
 }
 
 #[derive(Clone, PartialEq, Debug, MlsEncode, MlsDecode, MlsSize)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub(super) struct CommitGeneration {
-    pub content: AuthenticatedContent,
-    pub pending_private_tree: TreeKemPrivate,
-    pub pending_commit_secret: PathSecret,
-    pub commit_message_hash: CommitHash,
+pub(crate) struct PendingCommit {
+    pub(crate) state: GroupState,
+    pub(crate) epoch_secrets: EpochSecrets,
+    pub(crate) private_tree: TreeKemPrivate,
+    pub(crate) key_schedule: KeySchedule,
+    pub(crate) signer: SignatureSecretKey,
+
+    pub(crate) output: CommitMessageDescription,
+
+    pub(crate) commit_message_hash: MessageHash,
 }
 
-#[derive(Clone, PartialEq, MlsEncode, MlsDecode, MlsSize)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub(crate) struct CommitHash(
-    #[mls_codec(with = "mls_rs_codec::byte_vec")]
-    #[cfg_attr(feature = "serde", serde(with = "mls_rs_core::vec_serde"))]
-    Vec<u8>,
-);
+#[cfg_attr(
+    all(feature = "ffi", not(test)),
+    safer_ffi_gen::ffi_type(clone, opaque)
+)]
+#[derive(Clone)]
+pub struct CommitSecrets(pub(crate) PendingCommitSnapshot);
 
-impl Debug for CommitHash {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        mls_rs_core::debug::pretty_bytes(&self.0)
-            .named("CommitHash")
-            .fmt(f)
+impl CommitSecrets {
+    /// Deserialize the commit secrets from bytes
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, MlsError> {
+        Ok(MlsDecode::mls_decode(&mut &*bytes).map(Self)?)
     }
-}
 
-impl CommitHash {
-    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
-    pub(crate) async fn compute<CS: CipherSuiteProvider>(
-        cs: &CS,
-        commit: &MlsMessage,
-    ) -> Result<Self, MlsError> {
-        cs.hash(&commit.mls_encode_to_vec()?)
-            .await
-            .map_err(|e| MlsError::CryptoProviderError(e.into_any_error()))
-            .map(Self)
+    /// Serialize the commit secrets to bytes
+    pub fn to_bytes(&self) -> Result<Vec<u8>, MlsError> {
+        Ok(self.0.mls_encode_to_vec()?)
     }
 }
 
@@ -133,6 +127,8 @@ pub struct CommitOutput {
     /// Proposals that were received in the prior epoch but not included in the following commit.
     #[cfg(feature = "by_ref_proposal")]
     pub unused_proposals: Vec<crate::mls_rules::ProposalInfo<Proposal>>,
+    /// Indicator that the commit contains a path update
+    pub contains_update_path: bool,
 }
 
 #[cfg_attr(all(feature = "ffi", not(test)), ::safer_ffi_gen::safer_ffi_gen)]
@@ -189,6 +185,7 @@ where
     group_info_extensions: ExtensionList,
     new_signer: Option<SignatureSecretKey>,
     new_signing_identity: Option<SigningIdentity>,
+    new_leaf_node_extensions: Option<ExtensionList>,
 }
 
 impl<'a, C> CommitBuilder<'a, C>
@@ -292,7 +289,7 @@ where
 
     /// Insert a proposal that was previously constructed such as when a
     /// proposal is returned from
-    /// [`StateUpdate::unused_proposals`](super::StateUpdate::unused_proposals).
+    /// [`NewEpoch::unused_proposals`](super::NewEpoch::unused_proposals).
     pub fn raw_proposal(mut self, proposal: Proposal) -> Self {
         self.proposals.push(proposal);
         self
@@ -300,7 +297,7 @@ where
 
     /// Insert proposals that were previously constructed such as when a
     /// proposal is returned from
-    /// [`StateUpdate::unused_proposals`](super::StateUpdate::unused_proposals).
+    /// [`NewEpoch::unused_proposals`](super::NewEpoch::unused_proposals).
     pub fn raw_proposals(mut self, mut proposals: Vec<Proposal>) -> Self {
         self.proposals.append(&mut proposals);
         self
@@ -337,6 +334,14 @@ where
         }
     }
 
+    /// Change the committer's leaf node extensions as part of making this commit.
+    pub fn set_leaf_node_extensions(self, new_leaf_node_extensions: ExtensionList) -> Self {
+        Self {
+            new_leaf_node_extensions: Some(new_leaf_node_extensions),
+            ..self
+        }
+    }
+
     /// Finalize the commit to send.
     ///
     /// # Errors
@@ -347,7 +352,8 @@ where
     /// [proposal rules](crate::client_builder::ClientBuilder::mls_rules).
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
     pub async fn build(self) -> Result<CommitOutput, MlsError> {
-        self.group
+        let (output, pending_commit) = self
+            .group
             .commit_internal(
                 self.proposals,
                 None,
@@ -355,8 +361,40 @@ where
                 self.group_info_extensions,
                 self.new_signer,
                 self.new_signing_identity,
+                self.new_leaf_node_extensions,
             )
-            .await
+            .await?;
+
+        self.group.pending_commit = pending_commit.try_into()?;
+
+        Ok(output)
+    }
+
+    /// The same function as `GroupBuilder::build` except the secrets generated
+    /// for the commit are outputted instead of being cached internally.
+    ///
+    /// A detached commit can be applied using `Group::apply_detached_commit`.
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    pub async fn build_detached(self) -> Result<(CommitOutput, CommitSecrets), MlsError> {
+        let (output, pending_commit) = self
+            .group
+            .commit_internal(
+                self.proposals,
+                None,
+                self.authenticated_data,
+                self.group_info_extensions,
+                self.new_signer,
+                self.new_signing_identity,
+                self.new_leaf_node_extensions,
+            )
+            .await?;
+
+        Ok((
+            output,
+            CommitSecrets(PendingCommitSnapshot::PendingCommit(
+                pending_commit.mls_encode_to_vec()?,
+            )),
+        ))
     }
 }
 
@@ -406,15 +444,25 @@ where
     /// or [`ReInit`](crate::group::proposal::Proposal::ReInit) are part of the commit.
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
     pub async fn commit(&mut self, authenticated_data: Vec<u8>) -> Result<CommitOutput, MlsError> {
-        self.commit_internal(
-            vec![],
-            None,
-            authenticated_data,
-            Default::default(),
-            None,
-            None,
-        )
-        .await
+        self.commit_builder()
+            .authenticated_data(authenticated_data)
+            .build()
+            .await
+    }
+
+    /// The same function as `Group::commit` except the secrets generated
+    /// for the commit are outputted instead of being cached internally.
+    ///
+    /// A detached commit can be applied using `Group::apply_detached_commit`.
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    pub async fn commit_detached(
+        &mut self,
+        authenticated_data: Vec<u8>,
+    ) -> Result<(CommitOutput, CommitSecrets), MlsError> {
+        self.commit_builder()
+            .authenticated_data(authenticated_data)
+            .build_detached()
+            .await
     }
 
     /// Create a new commit builder that can include proposals
@@ -427,6 +475,7 @@ where
             group_info_extensions: Default::default(),
             new_signer: Default::default(),
             new_signing_identity: Default::default(),
+            new_leaf_node_extensions: Default::default(),
         }
     }
 
@@ -442,8 +491,9 @@ where
         mut welcome_group_info_extensions: ExtensionList,
         new_signer: Option<SignatureSecretKey>,
         new_signing_identity: Option<SigningIdentity>,
-    ) -> Result<CommitOutput, MlsError> {
-        if self.pending_commit.is_some() {
+        new_leaf_node_extensions: Option<ExtensionList>,
+    ) -> Result<(CommitOutput, PendingCommit), MlsError> {
+        if !self.pending_commit.is_none() {
             return Err(MlsError::ExistingPendingCommit);
         }
 
@@ -464,7 +514,7 @@ where
             Sender::Member(*self.private_tree.self_index)
         };
 
-        let new_signer_ref = new_signer.as_ref().unwrap_or(&self.signer);
+        let new_signer = new_signer.unwrap_or_else(|| self.signer.clone());
         let old_signer = &self.signer;
 
         #[cfg(feature = "std")]
@@ -505,15 +555,13 @@ where
             self.private_tree.self_index = provisional_private_tree.self_index;
         }
 
-        let mut provisional_group_context = provisional_state.group_context;
-
         // Decide whether to populate the path field: If the path field is required based on the
         // proposals that are in the commit (see above), then it MUST be populated. Otherwise, the
         // sender MAY omit the path field at its discretion.
         let commit_options = mls_rules
             .commit_options(
                 &provisional_state.public_tree.roster(),
-                &provisional_group_context.extensions,
+                &provisional_state.group_context,
                 &provisional_state.applied_proposals,
             )
             .map_err(|e| MlsError::MlsRulesError(e.into_any_error()))?;
@@ -528,15 +576,25 @@ where
             // group_id, epoch, tree_hash, and confirmed_transcript_hash values in the initial
             // GroupContext object. The leaf_key_package for this UpdatePath must have a
             // parent_hash extension.
+
+            let new_leaf_node_extensions =
+                new_leaf_node_extensions.or(external_leaf.map(|ln| ln.ungreased_extensions()));
+
+            let new_leaf_node_extensions = match new_leaf_node_extensions {
+                Some(extensions) => extensions,
+                // If we are not setting new extensions and this is not an external leaf then the current node MUST exist.
+                None => self.current_user_leaf_node()?.ungreased_extensions(),
+            };
+
             let encap_gen = TreeKem::new(
                 &mut provisional_state.public_tree,
                 &mut provisional_private_tree,
             )
             .encap(
-                &mut provisional_group_context,
+                &mut provisional_state.group_context,
                 &provisional_state.indexes_of_added_kpkgs,
-                new_signer_ref,
-                self.config.leaf_properties(),
+                &new_signer,
+                Some(self.config.leaf_properties(new_leaf_node_extensions)),
                 new_signing_identity,
                 &self.cipher_suite_provider,
                 #[cfg(test)]
@@ -559,7 +617,7 @@ where
                 )
                 .await?;
 
-            provisional_group_context.tree_hash = provisional_state
+            provisional_state.group_context.tree_hash = provisional_state
                 .public_tree
                 .tree_hash(&self.cipher_suite_provider)
                 .await?;
@@ -583,7 +641,7 @@ where
             .collect();
 
         let commit = Commit {
-            proposals: provisional_state.applied_proposals.into_proposals_or_refs(),
+            proposals: provisional_state.applied_proposals.proposals_or_refs(),
             path: update_path,
         };
 
@@ -591,7 +649,7 @@ where
             &self.cipher_suite_provider,
             self.context(),
             sender,
-            Content::Commit(alloc::boxed::Box::new(commit)),
+            Content::Commit(Box::new(commit)),
             old_signer,
             #[cfg(feature = "private_message")]
             self.encryption_options()?.control_wire_format(sender),
@@ -603,21 +661,21 @@ where
 
         // Use the signature, the commit_secret and the psk_secret to advance the key schedule and
         // compute the confirmation_tag value in the MlsPlaintext.
-        let confirmed_transcript_hash = ConfirmedTranscriptHash::create(
+        let confirmed_transcript_hash = super::transcript_hash::create(
             self.cipher_suite_provider(),
             &self.state.interim_transcript_hash,
             &auth_content,
         )
         .await?;
 
-        provisional_group_context.confirmed_transcript_hash = confirmed_transcript_hash;
+        provisional_state.group_context.confirmed_transcript_hash = confirmed_transcript_hash;
 
         let key_schedule_result = KeySchedule::from_key_schedule(
             &self.key_schedule,
             &commit_secret,
-            &provisional_group_context,
+            &provisional_state.group_context,
             #[cfg(any(feature = "secret_tree_access", feature = "private_message"))]
-            self.state.public_tree.total_leaf_count(),
+            provisional_state.public_tree.total_leaf_count(),
             &psk_secret,
             &self.cipher_suite_provider,
         )
@@ -625,8 +683,15 @@ where
 
         let confirmation_tag = ConfirmationTag::create(
             &key_schedule_result.confirmation_key,
-            &provisional_group_context.confirmed_transcript_hash,
+            &provisional_state.group_context.confirmed_transcript_hash,
             &self.cipher_suite_provider,
+        )
+        .await?;
+
+        let interim_transcript_hash = InterimTranscriptHash::create(
+            self.cipher_suite_provider(),
+            &provisional_state.group_context.confirmed_transcript_hash,
+            &confirmation_tag,
         )
         .await?;
 
@@ -656,10 +721,10 @@ where
 
                 let info = self
                     .make_group_info(
-                        &provisional_group_context,
+                        &provisional_state.group_context,
                         extensions,
                         &confirmation_tag,
-                        new_signer_ref,
+                        &new_signer,
                     )
                     .await?;
 
@@ -679,10 +744,10 @@ where
 
         let welcome_group_info = self
             .make_group_info(
-                &provisional_group_context,
+                &provisional_state.group_context,
                 welcome_group_info_extensions,
                 &confirmation_tag,
-                new_signer_ref,
+                &new_signer,
             )
             .await?;
 
@@ -705,11 +770,11 @@ where
         #[cfg(not(any(mls_build_async, not(feature = "rayon"))))]
         let encrypted_path_secrets: Vec<_> = added_key_pkgs
             .into_par_iter()
-            .zip(provisional_state.indexes_of_added_kpkgs)
+            .zip(&provisional_state.indexes_of_added_kpkgs)
             .map(|(key_package, leaf_index)| {
                 self.encrypt_group_secrets(
                     &key_package,
-                    leaf_index,
+                    *leaf_index,
                     &key_schedule_result.joiner_secret,
                     path_secrets,
                     #[cfg(feature = "psk")]
@@ -725,12 +790,12 @@ where
 
             for (key_package, leaf_index) in added_key_pkgs
                 .into_iter()
-                .zip(provisional_state.indexes_of_added_kpkgs)
+                .zip(&provisional_state.indexes_of_added_kpkgs)
             {
                 secrets.push(
                     self.encrypt_group_secrets(
                         &key_package,
-                        leaf_index,
+                        *leaf_index,
                         &key_schedule_result.joiner_secret,
                         path_secrets,
                         #[cfg(feature = "psk")]
@@ -756,31 +821,61 @@ where
 
         let commit_message = self.format_for_wire(auth_content.clone()).await?;
 
-        let pending_commit = CommitGeneration {
-            content: auth_content,
-            pending_private_tree: provisional_private_tree,
-            pending_commit_secret: commit_secret,
-            commit_message_hash: CommitHash::compute(&self.cipher_suite_provider, &commit_message)
+        // TODO is it necessary to clone the tree here? or can we just output serialized bytes?
+        let ratchet_tree = (!commit_options.ratchet_tree_extension)
+            .then(|| ExportedTree::new(provisional_state.public_tree.nodes.clone()));
+
+        let pending_reinit = provisional_state
+            .applied_proposals
+            .reinitializations
+            .first();
+
+        let pending_commit = PendingCommit {
+            output: CommitMessageDescription {
+                is_external: matches!(auth_content.content.sender, Sender::NewMemberCommit),
+                authenticated_data: auth_content.content.authenticated_data,
+                committer: *provisional_private_tree.self_index,
+                effect: match pending_reinit {
+                    Some(r) => CommitEffect::ReInit(r.clone()),
+                    None => CommitEffect::NewEpoch(
+                        NewEpoch::new(self.state.clone(), &provisional_state).into(),
+                    ),
+                },
+            },
+
+            state: GroupState {
+                #[cfg(feature = "by_ref_proposal")]
+                proposals: crate::group::ProposalCache::new(
+                    self.protocol_version(),
+                    self.group_id().to_vec(),
+                ),
+                context: provisional_state.group_context,
+                public_tree: provisional_state.public_tree,
+                interim_transcript_hash,
+                pending_reinit: pending_reinit.map(|r| r.proposal.clone()),
+                confirmation_tag,
+            },
+
+            commit_message_hash: MessageHash::compute(&self.cipher_suite_provider, &commit_message)
                 .await?,
+            signer: new_signer,
+            epoch_secrets: key_schedule_result.epoch_secrets,
+            key_schedule: key_schedule_result.key_schedule,
+
+            private_tree: provisional_private_tree,
         };
 
-        self.pending_commit = Some(pending_commit);
-
-        let ratchet_tree = (!commit_options.ratchet_tree_extension)
-            .then(|| ExportedTree::new(provisional_state.public_tree.nodes));
-
-        if let Some(signer) = new_signer {
-            self.signer = signer;
-        }
-
-        Ok(CommitOutput {
+        let output = CommitOutput {
             commit_message,
             welcome_messages,
             ratchet_tree,
             external_commit_group_info,
+            contains_update_path: perform_path_update,
             #[cfg(feature = "by_ref_proposal")]
             unused_proposals: provisional_state.unused_proposals,
-        })
+        };
+
+        Ok((output, pending_commit))
     }
 
     // Construct a GroupInfo reflecting the new state
@@ -856,25 +951,14 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 mod tests {
-    use alloc::boxed::Box;
-
     use mls_rs_core::{
         error::IntoAnyError,
         extension::ExtensionType,
-        identity::{CredentialType, IdentityProvider},
+        identity::{CredentialType, IdentityProvider, MemberValidationContext},
         time::MlsTime,
     };
 
-    use crate::{
-        crypto::test_utils::{test_cipher_suite_provider, TestCryptoProvider},
-        group::{mls_rules::DefaultMlsRules, test_utils::test_group_custom},
-        mls_rules::CommitOptions,
-        Client,
-    };
-
-    #[cfg(feature = "by_ref_proposal")]
-    use crate::extension::ExternalSendersExt;
-
+    use crate::extension::RequiredCapabilitiesExt;
     use crate::{
         client::test_utils::{test_client_with_key_pkg, TEST_CIPHER_SUITE, TEST_PROTOCOL_VERSION},
         client_builder::{
@@ -882,7 +966,9 @@ mod tests {
             WithIdentityProvider,
         },
         client_config::ClientConfig,
+        crypto::test_utils::TestCryptoProvider,
         extension::test_utils::{TestExtension, TEST_EXTENSION_TYPE},
+        group::test_utils::{test_group, test_group_custom},
         group::{
             proposal::ProposalType,
             test_utils::{test_group_custom_config, test_n_member_group},
@@ -890,9 +976,16 @@ mod tests {
         identity::test_utils::get_test_signing_identity,
         identity::{basic::BasicIdentityProvider, test_utils::get_test_basic_credential},
         key_package::test_utils::test_key_package_message,
+        mls_rules::CommitOptions,
+        Client,
     };
 
-    use crate::extension::RequiredCapabilitiesExt;
+    #[cfg(feature = "by_ref_proposal")]
+    use crate::crypto::test_utils::test_cipher_suite_provider;
+    #[cfg(feature = "by_ref_proposal")]
+    use crate::extension::ExternalSendersExt;
+    #[cfg(feature = "by_ref_proposal")]
+    use crate::group::mls_rules::DefaultMlsRules;
 
     #[cfg(feature = "psk")]
     use crate::{
@@ -1219,19 +1312,11 @@ mod tests {
         let (bob, bob_kp) =
             test_client_with_key_pkg(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE, "b").await;
 
-        group
-            .group
-            .propose_add(alice_kp.clone(), vec![])
-            .await
-            .unwrap();
+        group.propose_add(alice_kp.clone(), vec![]).await.unwrap();
 
-        group
-            .group
-            .propose_add(bob_kp.clone(), vec![])
-            .await
-            .unwrap();
+        group.propose_add(bob_kp.clone(), vec![]).await.unwrap();
 
-        let output = group.group.commit(Vec::new()).await.unwrap();
+        let output = group.commit(Vec::new()).await.unwrap();
         let welcomes = output.welcome_messages;
 
         let cs = test_cipher_suite_provider(TEST_CIPHER_SUITE);
@@ -1257,7 +1342,6 @@ mod tests {
         let (identity, secret_key) = get_test_signing_identity(cs, b"member").await;
 
         let commit_output = groups[0]
-            .group
             .commit_builder()
             .set_new_signing_identity(secret_key, identity.clone())
             .build()
@@ -1266,7 +1350,7 @@ mod tests {
 
         // Check that the credential was updated by in the committer's state.
         groups[0].process_pending_commit().await.unwrap();
-        let new_member = groups[0].group.roster().member_with_index(0).unwrap();
+        let new_member = groups[0].roster().member_with_index(0).unwrap();
 
         assert_eq!(
             new_member.signing_identity.credential,
@@ -1284,7 +1368,7 @@ mod tests {
             .await
             .unwrap();
 
-        let new_member = groups[1].group.roster().member_with_index(0).unwrap();
+        let new_member = groups[1].roster().member_with_index(0).unwrap();
 
         assert_eq!(
             new_member.signing_identity.credential,
@@ -1306,8 +1390,7 @@ mod tests {
             None,
             Some(CommitOptions::new().with_ratchet_tree_extension(false)),
         )
-        .await
-        .group;
+        .await;
 
         let commit = group.commit(vec![]).await.unwrap();
 
@@ -1327,8 +1410,7 @@ mod tests {
             None,
             Some(CommitOptions::new().with_ratchet_tree_extension(true)),
         )
-        .await
-        .group;
+        .await;
 
         let commit = group.commit(vec![]).await.unwrap();
 
@@ -1348,8 +1430,7 @@ mod tests {
                     .with_ratchet_tree_extension(false),
             ),
         )
-        .await
-        .group;
+        .await;
 
         let commit = group.commit(vec![]).await.unwrap();
 
@@ -1376,8 +1457,7 @@ mod tests {
                     .with_ratchet_tree_extension(true),
             ),
         )
-        .await
-        .group;
+        .await;
 
         let commit = group.commit(vec![]).await.unwrap();
 
@@ -1400,8 +1480,7 @@ mod tests {
             None,
             Some(CommitOptions::new().with_allow_external_commit(false)),
         )
-        .await
-        .group;
+        .await;
 
         let commit = group.commit(vec![]).await.unwrap();
 
@@ -1411,10 +1490,16 @@ mod tests {
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
     async fn member_identity_is_validated_against_new_extensions() {
         let alice = client_with_test_extension(b"alice").await;
-        let mut alice = alice.create_group(ExtensionList::new()).await.unwrap();
+        let mut alice = alice
+            .create_group(ExtensionList::new(), Default::default())
+            .await
+            .unwrap();
 
         let bob = client_with_test_extension(b"bob").await;
-        let bob_kp = bob.generate_key_package_message().await.unwrap();
+        let bob_kp = bob
+            .generate_key_package_message(Default::default(), Default::default())
+            .await
+            .unwrap();
 
         let mut extension_list = ExtensionList::new();
         let extension = TestExtension { foo: b'a' };
@@ -1435,7 +1520,11 @@ mod tests {
 
         alice
             .commit_builder()
-            .add_member(alex.generate_key_package_message().await.unwrap())
+            .add_member(
+                alex.generate_key_package_message(Default::default(), Default::default())
+                    .await
+                    .unwrap(),
+            )
             .unwrap()
             .set_group_context_ext(extension_list.clone())
             .unwrap()
@@ -1448,7 +1537,10 @@ mod tests {
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
     async fn server_identity_is_validated_against_new_extensions() {
         let alice = client_with_test_extension(b"alice").await;
-        let mut alice = alice.create_group(ExtensionList::new()).await.unwrap();
+        let mut alice = alice
+            .create_group(ExtensionList::new(), Default::default())
+            .await
+            .unwrap();
 
         let mut extension_list = ExtensionList::new();
         let extension = TestExtension { foo: b'a' };
@@ -1538,9 +1630,9 @@ mod tests {
             &self,
             identity: &SigningIdentity,
             timestamp: Option<MlsTime>,
-            extensions: Option<&ExtensionList>,
+            context: MemberValidationContext<'_>,
         ) -> Result<(), Self::Error> {
-            self.starts_with_foo(identity, timestamp, extensions)
+            self.starts_with_foo(identity, timestamp, context.new_extensions())
                 .await
                 .then_some(())
                 .ok_or(IdentityProviderWithExtensionError {})
@@ -1597,5 +1689,15 @@ mod tests {
             .identity_provider(IdentityProviderWithExtension(BasicIdentityProvider::new()))
             .signing_identity(identity, secret_key, TEST_CIPHER_SUITE)
             .build()
+    }
+
+    #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
+    async fn detached_commit() {
+        let mut group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
+
+        let (_commit, secrets) = group.commit_builder().build_detached().await.unwrap();
+        assert!(group.pending_commit.is_none());
+        group.apply_detached_commit(secrets).await.unwrap();
+        assert_eq!(group.context().epoch, 1);
     }
 }

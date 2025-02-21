@@ -58,7 +58,7 @@ fn make_groups_best_case<P: CryptoProvider + Clone>(
 ) -> Result<Vec<Group<impl MlsConfig>>, MlsError> {
     let bob_client = make_client(crypto_provider.clone(), &make_name(0))?;
 
-    let bob_group = bob_client.create_group(Default::default())?;
+    let bob_group = bob_client.create_group(Default::default(), Default::default())?;
 
     let mut groups = vec![bob_group];
 
@@ -66,7 +66,8 @@ fn make_groups_best_case<P: CryptoProvider + Clone>(
         let bob_client = make_client(crypto_provider.clone(), &make_name(i + 1))?;
 
         // The new client generates a key package.
-        let bob_kpkg = bob_client.generate_key_package_message()?;
+        let bob_kpkg =
+            bob_client.generate_key_package_message(Default::default(), Default::default())?;
 
         // Last group sends a commit adding the new client to the group.
         let commit = groups
@@ -100,7 +101,7 @@ fn make_groups_worst_case<P: CryptoProvider + Clone>(
 ) -> Result<Vec<Group<impl MlsConfig>>, MlsError> {
     let alice_client = make_client(crypto_provider.clone(), &make_name(0))?;
 
-    let mut alice_group = alice_client.create_group(Default::default())?;
+    let mut alice_group = alice_client.create_group(Default::default(), Default::default())?;
 
     let bob_clients = (0..(num_groups - 1))
         .map(|i| make_client(crypto_provider.clone(), &make_name(i + 1)))
@@ -110,7 +111,8 @@ fn make_groups_worst_case<P: CryptoProvider + Clone>(
     let mut commit_builder = alice_group.commit_builder();
 
     for bob_client in &bob_clients {
-        let bob_kpkg = bob_client.generate_key_package_message()?;
+        let bob_kpkg =
+            bob_client.generate_key_package_message(Default::default(), Default::default())?;
         commit_builder = commit_builder.add_member(bob_kpkg)?;
     }
 

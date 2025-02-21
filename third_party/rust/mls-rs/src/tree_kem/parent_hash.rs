@@ -135,7 +135,7 @@ impl TreeKemPublic {
             )
             .await?;
 
-            (parent.parent_hash, hash) = (hash, calculated);
+            parent.parent_hash = core::mem::replace(&mut hash, calculated);
         }
 
         Ok(hash)

@@ -9,7 +9,9 @@ use core::{
 };
 
 use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
-use mls_rs_core::{crypto::CipherSuiteProvider, error::IntoAnyError};
+use mls_rs_core::{
+    crypto::CipherSuiteProvider, error::IntoAnyError, group::ConfirmedTranscriptHash,
+};
 
 use crate::{
     client::MlsError,
@@ -19,69 +21,36 @@ use crate::{
 
 use super::{AuthenticatedContent, ConfirmationTag};
 
-#[derive(Clone, PartialEq, Eq, MlsSize, MlsEncode, MlsDecode)]
-#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ConfirmedTranscriptHash(
-    #[mls_codec(with = "mls_rs_codec::byte_vec")]
-    #[cfg_attr(feature = "serde", serde(with = "mls_rs_core::vec_serde"))]
-    Vec<u8>,
-);
-
-impl Debug for ConfirmedTranscriptHash {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        mls_rs_core::debug::pretty_bytes(&self.0)
-            .named("ConfirmedTranscriptHash")
-            .fmt(f)
+#[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+pub(crate) async fn create<P: CipherSuiteProvider>(
+    cipher_suite_provider: &P,
+    interim_transcript_hash: &InterimTranscriptHash,
+    content: &AuthenticatedContent,
+) -> Result<ConfirmedTranscriptHash, MlsError> {
+    #[derive(Debug, MlsSize, MlsEncode)]
+    struct ConfirmedTranscriptHashInput<'a> {
+        wire_format: WireFormat,
+        content: &'a FramedContent,
+        signature: &'a MessageSignature,
     }
-}
 
-impl Deref for ConfirmedTranscriptHash {
-    type Target = Vec<u8>;
+    let input = ConfirmedTranscriptHashInput {
+        wire_format: content.wire_format,
+        content: &content.content,
+        signature: &content.auth.signature,
+    };
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+    let hash_input = [
+        interim_transcript_hash.deref(),
+        input.mls_encode_to_vec()?.deref(),
+    ]
+    .concat();
 
-impl From<Vec<u8>> for ConfirmedTranscriptHash {
-    fn from(value: Vec<u8>) -> Self {
-        Self(value)
-    }
-}
-
-impl ConfirmedTranscriptHash {
-    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
-    pub(crate) async fn create<P: CipherSuiteProvider>(
-        cipher_suite_provider: &P,
-        interim_transcript_hash: &InterimTranscriptHash,
-        content: &AuthenticatedContent,
-    ) -> Result<Self, MlsError> {
-        #[derive(Debug, MlsSize, MlsEncode)]
-        struct ConfirmedTranscriptHashInput<'a> {
-            wire_format: WireFormat,
-            content: &'a FramedContent,
-            signature: &'a MessageSignature,
-        }
-
-        let input = ConfirmedTranscriptHashInput {
-            wire_format: content.wire_format,
-            content: &content.content,
-            signature: &content.auth.signature,
-        };
-
-        let hash_input = [
-            interim_transcript_hash.deref(),
-            input.mls_encode_to_vec()?.deref(),
-        ]
-        .concat();
-
-        cipher_suite_provider
-            .hash(&hash_input)
-            .await
-            .map(Into::into)
-            .map_err(|e| MlsError::CryptoProviderError(e.into_any_error()))
-    }
+    cipher_suite_provider
+        .hash(&hash_input)
+        .await
+        .map(Into::into)
+        .map_err(|e| MlsError::CryptoProviderError(e.into_any_error()))
 }
 
 #[derive(Clone, PartialEq, MlsSize, MlsEncode, MlsDecode)]
@@ -129,7 +98,7 @@ impl InterimTranscriptHash {
         let input = InterimTranscriptHashInput { confirmation_tag }.mls_encode_to_vec()?;
 
         cipher_suite_provider
-            .hash(&[confirmed.0.deref(), &input].concat())
+            .hash(&[&confirmed[..], &input].concat())
             .await
             .map(Into::into)
             .map_err(|e| MlsError::CryptoProviderError(e.into_any_error()))
@@ -167,7 +136,7 @@ mod tests {
     };
 
     #[cfg(not(mls_build_async))]
-    use super::{ConfirmedTranscriptHash, InterimTranscriptHash};
+    use super::InterimTranscriptHash;
 
     #[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone)]
     struct TestCase {
@@ -258,9 +227,7 @@ mod tests {
             .unwrap();
 
             let interim_hash_before = cs.random_bytes_vec(cs.kdf_extract_size()).unwrap().into();
-
-            let conf_hash_after =
-                ConfirmedTranscriptHash::create(&cs, &interim_hash_before, &auth_content).unwrap();
+            let conf_hash_after = super::create(&cs, &interim_hash_before, &auth_content).unwrap();
 
             let conf_key = cs.random_bytes_vec(cs.kdf_extract_size()).unwrap();
             let conf_tag = ConfirmationTag::create(&conf_key, &conf_hash_after, &cs).unwrap();
@@ -277,8 +244,8 @@ mod tests {
                 authenticated_content: auth_content.mls_encode_to_vec().unwrap(),
                 interim_transcript_hash_before: interim_hash_before.0,
 
-                confirmed_transcript_hash_after: conf_hash_after.0,
-                interim_transcript_hash_after: interim_hash_after.0,
+                confirmed_transcript_hash_after: conf_hash_after.to_vec(),
+                interim_transcript_hash_after: interim_hash_after.to_vec(),
             };
 
             test_cases.push(test_case);

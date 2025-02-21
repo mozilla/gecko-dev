@@ -68,16 +68,15 @@ fn main() -> Result<(), PlatformError> {
 
     // Create signature keypairs and store them in the state
     let alice_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+        mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
-    let bob_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+    let bob_id = mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
     let charlie_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+        mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
     let diana_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+        mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
     println!("\nAlice identifier: {}", hex::encode(&alice_id));
     println!("Bob identifier: {}", hex::encode(&bob_id));
@@ -113,7 +112,7 @@ fn main() -> Result<(), PlatformError> {
     println!("\nGroup created by Alice: {}", hex::encode(&gide.group_id));
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!("Members (alice, before adding bob): {members:?}");
 
     //
@@ -142,7 +141,7 @@ fn main() -> Result<(), PlatformError> {
     )?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!("Members (alice, after adding bob): {members:?}");
 
     // Bob joins
@@ -150,7 +149,7 @@ fn main() -> Result<(), PlatformError> {
     mls_platform_api::mls_group_join(&state_global, &bob_id, &welcome, None)?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after joining the group): {members:?}");
 
     //
@@ -201,7 +200,7 @@ fn main() -> Result<(), PlatformError> {
     )?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after adding charlie): {members:?}");
 
     // Alice receives the commit
@@ -217,7 +216,7 @@ fn main() -> Result<(), PlatformError> {
     mls_platform_api::mls_group_join(&state_global, &charlie_id, &welcome_2, None)?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &charlie_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &charlie_id)?;
     println!("Members (charlie, after joining the group): {members:?}");
 
     //
@@ -236,7 +235,7 @@ fn main() -> Result<(), PlatformError> {
         &MessageOrAck::Ack(gide.group_id.to_vec()),
     )?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &charlie_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &charlie_id)?;
     println!("Members (charlie, after removing alice): {members:?}");
 
     // Alice receives the commit from Charlie
@@ -257,7 +256,7 @@ fn main() -> Result<(), PlatformError> {
         &MessageOrAck::MlsMessage(commit_3.clone()),
     )?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after receiving alice's removal the group): {members:?}");
 
     //
@@ -286,7 +285,7 @@ fn main() -> Result<(), PlatformError> {
         &MessageOrAck::MlsMessage(commit_4_output.commit.clone()),
     )?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after commit allowing external join): {members:?}");
 
     // Charlie receives Bob's commit with GroupInfo for External Join
@@ -296,7 +295,7 @@ fn main() -> Result<(), PlatformError> {
         &MessageOrAck::MlsMessage(commit_4_output.commit),
     )?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &charlie_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &charlie_id)?;
     println!("Members (charlie, after bob's commit allowing external join): {members:?}");
 
     //
@@ -316,7 +315,7 @@ fn main() -> Result<(), PlatformError> {
 
     println!("Externally joined group {:?}", &external_commit_output.gid);
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &diana_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &diana_id)?;
     println!("Members (diane, after joining): {members:?}");
 
     //
@@ -338,7 +337,7 @@ fn main() -> Result<(), PlatformError> {
         &MessageOrAck::MlsMessage(external_commit_output.external_commit.clone()),
     )?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &diana_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &diana_id)?;
     println!("Members (bob, after diane joined externally): {members:?}");
 
     // Bob receives Diana's application message
@@ -365,7 +364,7 @@ fn main() -> Result<(), PlatformError> {
         &MessageOrAck::MlsMessage(external_commit_output.external_commit),
     )?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &charlie_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &charlie_id)?;
     println!("Members (charlie, after diane joined externally): {members:?}");
 
     // Charlie receives Diana's application message
@@ -408,7 +407,7 @@ fn main() -> Result<(), PlatformError> {
     println!("\nDiana processes the remove commit");
     mls_platform_api::mls_receive(&state_global, &diana_id, &commit_5_msg)?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &diana_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &diana_id)?;
     println!("Members (diana, after removing bob): {members:?}");
 
     // Charlie processes the remove commit
@@ -420,7 +419,7 @@ fn main() -> Result<(), PlatformError> {
     )?;
     mls_platform_api::mls_receive(&state_global, &charlie_id, &commit_5_msg)?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &charlie_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &charlie_id)?;
     println!("Members (charlie, after removing bob): {members:?}");
 
     // Bob processes the remove commit
@@ -435,7 +434,7 @@ fn main() -> Result<(), PlatformError> {
     println!("Bob's state for the group has been removed");
 
     // Note: Bob cannot look at its own group state because it was already removed
-    // let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    // let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     // let members_str = mls_platform_api::utils_json_bytes_to_string_custom(&members)?;
     // println!("Members (bob, after its removal): {members_str:?}");
 
@@ -464,7 +463,7 @@ fn main() -> Result<(), PlatformError> {
     println!("\nCharlie processes the close commit");
     mls_platform_api::mls_receive(&state_global, &charlie_id, &commit_6_msg)?;
 
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &charlie_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &charlie_id)?;
     println!("Members (charlie, after processing their group_close commit): {members:?}");
 
     // Charlie deletes her state for the group

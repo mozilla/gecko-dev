@@ -21,6 +21,10 @@ pub mod test_suite;
 #[derive(Clone, PartialEq, Eq, MlsSize, MlsEncode, MlsDecode)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    all(feature = "ffi", not(test)),
+    safer_ffi_gen::ffi_type(clone, opaque)
+)]
 /// Ciphertext produced by [`CipherSuiteProvider::hpke_seal`]
 pub struct HpkeCiphertext {
     #[mls_codec(with = "mls_rs_codec::byte_vec")]
@@ -226,6 +230,12 @@ impl AsRef<[u8]> for SignaturePublicKey {
 impl From<Vec<u8>> for SignaturePublicKey {
     fn from(data: Vec<u8>) -> Self {
         SignaturePublicKey(data)
+    }
+}
+
+impl From<SignaturePublicKey> for Vec<u8> {
+    fn from(value: SignaturePublicKey) -> Self {
+        value.0
     }
 }
 

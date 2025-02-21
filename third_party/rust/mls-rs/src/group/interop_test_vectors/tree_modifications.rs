@@ -166,7 +166,7 @@ async fn generate_update(i: u32, tree: &TreeWithSigners) -> Proposal {
             &test_cipher_suite_provider(TEST_CIPHER_SUITE),
             TEST_GROUP,
             i,
-            default_properties(),
+            Some(default_properties()),
             None,
             signer,
         )

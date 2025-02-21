@@ -33,6 +33,12 @@ pub struct AddProposal {
 }
 
 impl AddProposal {
+    /// The [`KeyPackage`] used by this proposal to add
+    /// a [`Member`](mls_rs_core::group::Member) to the group.
+    pub fn key_package(&self) -> &KeyPackage {
+        &self.key_package
+    }
+
     /// The [`SigningIdentity`] of the [`Member`](mls_rs_core::group::Member)
     /// that will be added by this proposal.
     pub fn signing_identity(&self) -> &SigningIdentity {

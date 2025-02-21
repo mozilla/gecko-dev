@@ -29,7 +29,7 @@ use mls_rs::{
     error::MlsError,
     group::{
         proposal::{MlsCustomProposal, Proposal},
-        Roster, Sender,
+        GroupContext, Roster, Sender,
     },
     mls_rules::{
         CommitDirection, CommitOptions, CommitSource, EncryptionOptions, ProposalBundle,
@@ -44,7 +44,10 @@ use mls_rs_core::{
     error::IntoAnyError,
     extension::{ExtensionError, ExtensionType, MlsCodecExtension},
     group::ProposalType,
-    identity::{Credential, CredentialType, CustomCredential, MlsCredential, SigningIdentity},
+    identity::{
+        Credential, CredentialType, CustomCredential, MemberValidationContext, MlsCredential,
+        SigningIdentity,
+    },
     time::MlsTime,
 };
 
@@ -128,12 +131,16 @@ impl MlsRules for CustomMlsRules {
         _: CommitDirection,
         _: CommitSource,
         _: &Roster,
-        extension_list: &ExtensionList,
+        context: &GroupContext,
         mut proposals: ProposalBundle,
     ) -> Result<ProposalBundle, Self::Error> {
         // Find our extension
-        let mut roster: RosterExtension =
-            extension_list.get_as().ok().flatten().ok_or(CustomError)?;
+        let mut roster: RosterExtension = context
+            .extensions
+            .get_as()
+            .ok()
+            .flatten()
+            .ok_or(CustomError)?;
 
         // Find AddUser proposals
         let add_user_proposals = proposals
@@ -149,7 +156,7 @@ impl MlsRules for CustomMlsRules {
         }
 
         // Issue GroupContextExtensions proposal to modify our roster (eventually we don't have to do this if there were no AddUser proposals)
-        let mut new_extensions = extension_list.clone();
+        let mut new_extensions = context.extensions.clone();
         new_extensions.set_from(roster)?;
         let gce_proposal = Proposal::GroupContextExtensions(new_extensions);
         proposals.add(gce_proposal, Sender::Member(0), ProposalSource::Local);
@@ -160,7 +167,7 @@ impl MlsRules for CustomMlsRules {
     fn commit_options(
         &self,
         _: &Roster,
-        _: &ExtensionList,
+        _: &GroupContext,
         _: &ProposalBundle,
     ) -> Result<CommitOptions, Self::Error> {
         Ok(CommitOptions::new())
@@ -169,7 +176,7 @@ impl MlsRules for CustomMlsRules {
     fn encryption_options(
         &self,
         _: &Roster,
-        _: &ExtensionList,
+        _: &GroupContext,
     ) -> Result<EncryptionOptions, Self::Error> {
         Ok(EncryptionOptions::new(false, PaddingMode::None))
     }
@@ -202,9 +209,9 @@ impl IdentityProvider for CustomIdentityProvider {
         &self,
         signing_identity: &SigningIdentity,
         _: Option<MlsTime>,
-        extensions: Option<&ExtensionList>,
+        context: MemberValidationContext<'_>,
     ) -> Result<(), Self::Error> {
-        let Some(extensions) = extensions else {
+        let Some(extensions) = context.new_extensions() else {
             return Ok(());
         };
 
@@ -369,11 +376,13 @@ fn main() -> Result<(), CustomError> {
     let roster = vec![alice.credential];
     context_extensions.set_from(RosterExtension { roster })?;
 
-    let mut alice_tablet_group = make_client(alice_tablet)?.create_group(context_extensions)?;
+    let mut alice_tablet_group =
+        make_client(alice_tablet)?.create_group(context_extensions, Default::default())?;
 
     // Alice can add her other device
     let alice_pc_client = make_client(alice_pc)?;
-    let key_package = alice_pc_client.generate_key_package_message()?;
+    let key_package =
+        alice_pc_client.generate_key_package_message(Default::default(), Default::default())?;
 
     let welcome = alice_tablet_group
         .commit_builder()
@@ -387,7 +396,8 @@ fn main() -> Result<(), CustomError> {
 
     // Alice cannot add bob's devices yet
     let bob_tablet_client = make_client(bob_tablet)?;
-    let key_package = bob_tablet_client.generate_key_package_message()?;
+    let key_package =
+        bob_tablet_client.generate_key_package_message(Default::default(), Default::default())?;
 
     let res = alice_tablet_group
         .commit_builder()

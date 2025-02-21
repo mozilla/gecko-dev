@@ -4,6 +4,8 @@
 
 use mls_rs_core::crypto::CipherSuite;
 
+use crate::SamplingMethod;
+
 /// Elliptic curve types
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -66,11 +68,11 @@ impl Curve {
     }
 
     #[inline(always)]
-    pub fn curve_bitmask(&self) -> Option<u8> {
+    pub fn hpke_sampling_method(&self) -> SamplingMethod {
         match self {
-            Curve::P256 | Curve::P384 => Some(0xFF),
-            Curve::P521 => Some(0x01),
-            _ => None,
+            Curve::P256 | Curve::P384 => SamplingMethod::HpkeWithBitmask(0xFF),
+            Curve::P521 => SamplingMethod::HpkeWithBitmask(0x01),
+            _ => SamplingMethod::HpkeWithoutBitmask,
         }
     }
 }

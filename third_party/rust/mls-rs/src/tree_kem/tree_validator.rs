@@ -16,7 +16,7 @@ use crate::group::GroupContext;
 use crate::iter::wrap_impl_iter;
 use crate::tree_kem::math as tree_math;
 use crate::tree_kem::{leaf_node_validator::LeafNodeValidator, TreeKemPublic};
-use mls_rs_core::identity::IdentityProvider;
+use mls_rs_core::identity::{IdentityProvider, MemberValidationContext};
 
 #[cfg(all(not(mls_build_async), feature = "rayon"))]
 use rayon::prelude::*;
@@ -41,12 +41,16 @@ impl<'a, C: IdentityProvider, CSP: CipherSuiteProvider> TreeValidator<'a, C, CSP
         context: &'a GroupContext,
         identity_provider: &'a C,
     ) -> Self {
+        let member_validation_context = MemberValidationContext::ForNewGroup {
+            current_context: context,
+        };
+
         TreeValidator {
             expected_tree_hash: &context.tree_hash,
             leaf_node_validator: LeafNodeValidator::new(
                 cipher_suite_provider,
                 identity_provider,
-                Some(&context.extensions),
+                member_validation_context,
             ),
             group_id: &context.group_id,
             cipher_suite_provider,
@@ -218,7 +222,7 @@ mod tests {
                 &mut get_test_group_context(42, cipher_suite).await,
                 &[LeafIndex(1), LeafIndex(2)],
                 &test_tree.creator_signing_key,
-                default_properties(),
+                Some(default_properties()),
                 None,
                 &cipher_suite_provider,
                 #[cfg(test)]

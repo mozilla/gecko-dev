@@ -966,7 +966,7 @@ mod tests {
         key_package::test_utils::test_key_package,
     };
 
-    #[cfg(any(feature = "by_ref_proposal", feature = "custo_proposal"))]
+    #[cfg(feature = "by_ref_proposal")]
     use crate::tree_kem::leaf_node::test_utils::get_basic_test_node;
 
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]

@@ -18,6 +18,7 @@ pub mod byte_vec;
 
 pub mod iter;
 
+mod bool;
 mod cow;
 mod map;
 mod option;
@@ -121,10 +122,7 @@ pub trait MlsDecode: Sized {
     fn mls_decode(reader: &mut &[u8]) -> Result<Self, Error>;
 }
 
-impl<T> MlsDecode for Box<T>
-where
-    T: MlsDecode + ?Sized,
-{
+impl<T: MlsDecode> MlsDecode for Box<T> {
     #[inline]
     fn mls_decode(reader: &mut &[u8]) -> Result<Self, Error> {
         T::mls_decode(reader).map(Box::new)

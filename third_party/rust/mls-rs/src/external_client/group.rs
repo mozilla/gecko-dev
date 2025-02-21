@@ -21,10 +21,12 @@ use crate::{
             ApplicationMessageDescription, CommitMessageDescription, EventOrContent,
             MessageProcessor, ProposalMessageDescription, ProvisionalState,
         },
+        proposal::RemoveProposal,
+        proposal_filter::ProposalInfo,
         snapshot::RawGroupState,
         state::GroupState,
         transcript_hash::InterimTranscriptHash,
-        validate_group_info_joiner, ContentType, ExportedTree, GroupContext, GroupInfo, Roster,
+        validate_tree_and_info_joiner, ContentType, ExportedTree, GroupContext, GroupInfo, Roster,
         Welcome,
     },
     identity::SigningIdentity,
@@ -56,7 +58,7 @@ use mls_rs_core::{crypto::CipherSuiteProvider, psk::ExternalPskId};
 #[cfg(feature = "by_ref_proposal")]
 use crate::{
     extension::ExternalSendersExt,
-    group::proposal::{AddProposal, ReInitProposal, RemoveProposal},
+    group::proposal::{AddProposal, ReInitProposal},
 };
 
 #[cfg(all(feature = "by_ref_proposal", feature = "psk"))]
@@ -127,7 +129,7 @@ impl<C: ExternalClientConfig + Clone> ExternalGroup<C> {
             group_info.group_context.cipher_suite,
         )?;
 
-        let public_tree = validate_group_info_joiner(
+        let public_tree = validate_tree_and_info_joiner(
             protocol_version,
             &group_info,
             tree_data,
@@ -414,9 +416,14 @@ impl<C: ExternalClientConfig + Clone> ExternalGroup<C> {
             .await
     }
 
+    /// Issue an external proposal.
+    ///
+    /// This function is useful for reissuing external proposals that
+    /// are returned in [crate::group::NewEpoch::unused_proposals]
+    /// after a commit is processed.
     #[cfg(feature = "by_ref_proposal")]
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
-    async fn propose(
+    pub async fn propose(
         &mut self,
         proposal: Proposal,
         authenticated_data: Vec<u8>,
@@ -450,11 +457,8 @@ impl<C: ExternalClientConfig + Clone> ExternalGroup<C> {
         )
         .await?;
 
-        self.state.proposals.insert(
-            ProposalRef::from_content(&self.cipher_suite_provider, &auth_content).await?,
-            proposal,
-            sender,
-        );
+        let proposal_ref =
+            ProposalRef::from_content(&self.cipher_suite_provider, &auth_content).await?;
 
         let plaintext = PublicMessage {
             content: auth_content.content,
@@ -462,10 +466,14 @@ impl<C: ExternalClientConfig + Clone> ExternalGroup<C> {
             membership_tag: None,
         };
 
-        Ok(MlsMessage::new(
+        let message = MlsMessage::new(
             self.group_context().version(),
             MlsMessagePayload::Plain(plaintext),
-        ))
+        );
+
+        self.state.proposals.insert(proposal_ref, proposal, sender);
+
+        Ok(message)
     }
 
     /// Delete all sent and received proposals cached for commit.
@@ -582,7 +590,6 @@ where
             &self.cipher_suite_provider,
             message,
             None,
-            None,
             &self.state,
         )
         .await?;
@@ -633,8 +640,11 @@ where
         &mut self.state
     }
 
-    fn can_continue_processing(&self, _provisional_state: &ProvisionalState) -> bool {
-        true
+    fn removal_proposal(
+        &self,
+        _provisional_state: &ProvisionalState,
+    ) -> Option<ProposalInfo<RemoveProposal>> {
+        None
     }
 
     #[cfg(feature = "private_message")]
@@ -653,7 +663,7 @@ where
 #[derive(Debug, MlsEncode, MlsSize, MlsDecode, PartialEq, Clone)]
 pub struct ExternalSnapshot {
     version: u16,
-    state: RawGroupState,
+    pub(crate) state: RawGroupState,
     signing_data: Option<(SignatureSecretKey, SigningIdentity)>,
 }
 
@@ -666,6 +676,11 @@ impl ExternalSnapshot {
     /// Deserialize the snapshot
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, MlsError> {
         Ok(Self::mls_decode(&mut &*bytes)?)
+    }
+
+    /// Group context encoded in the snapshot
+    pub fn context(&self) -> &GroupContext {
+        &self.state.context
     }
 }
 
@@ -680,6 +695,23 @@ where
             version: 1,
             signing_data: self.signing_data.clone(),
         }
+    }
+
+    /// Create a snapshot of this group's current internal state.
+    /// The tree is not included in the state and can be stored
+    /// separately by calling [`Group::export_tree`].
+    pub fn snapshot_without_ratchet_tree(&mut self) -> ExternalSnapshot {
+        let tree = std::mem::take(&mut self.state.public_tree.nodes);
+
+        let snapshot = ExternalSnapshot {
+            state: RawGroupState::export(&self.state),
+            version: 1,
+            signing_data: self.signing_data.clone(),
+        };
+
+        self.state.public_tree.nodes = tree;
+
+        snapshot
     }
 
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
@@ -777,7 +809,6 @@ pub(crate) mod test_utils {
             config,
             None,
             group
-                .group
                 .group_info_message_allowing_ext_commit(true)
                 .await
                 .unwrap(),
@@ -802,14 +833,15 @@ mod tests {
         external_client::{
             group::test_utils::make_external_group_with_config,
             tests_utils::{TestExternalClientBuilder, TestExternalClientConfig},
-            ExternalGroup, ExternalReceivedMessage, ExternalSnapshot,
+            ExternalClient, ExternalGroup, ExternalReceivedMessage, ExternalSnapshot,
         },
         group::{
             framing::{Content, MlsMessagePayload},
+            message_processor::CommitEffect,
             proposal::{AddProposal, Proposal, ProposalOrRef},
             proposal_ref::ProposalRef,
             test_utils::{test_group, TestGroup},
-            ProposalMessageDescription,
+            CommitMessageDescription, ExportedTree, ProposalMessageDescription,
         },
         identity::{test_utils::get_test_signing_identity, SigningIdentity},
         key_package::test_utils::{test_key_package, test_key_package_message},
@@ -822,7 +854,7 @@ mod tests {
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
     async fn test_group_with_one_commit(v: ProtocolVersion, cs: CipherSuite) -> TestGroup {
         let mut group = test_group(v, cs).await;
-        group.group.commit(Vec::new()).await.unwrap();
+        group.commit(Vec::new()).await.unwrap();
         group.process_pending_commit().await.unwrap();
         group
     }
@@ -837,11 +869,7 @@ mod tests {
 
         let bob_key_package = test_key_package_message(v, cs, "bob").await;
 
-        let mut commit_builder = group
-            .group
-            .commit_builder()
-            .add_member(bob_key_package)
-            .unwrap();
+        let mut commit_builder = group.commit_builder().add_member(bob_key_package).unwrap();
 
         #[cfg(feature = "by_ref_proposal")]
         if let Some(ext_signer) = ext_identity {
@@ -877,15 +905,15 @@ mod tests {
     async fn external_group_can_process_commit() {
         let mut alice = test_group_with_one_commit(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
         let mut server = make_external_group(&alice).await;
-        let commit_output = alice.group.commit(Vec::new()).await.unwrap();
-        alice.group.apply_pending_commit().await.unwrap();
+        let commit_output = alice.commit(Vec::new()).await.unwrap();
+        alice.apply_pending_commit().await.unwrap();
 
         server
             .process_incoming_message(commit_output.commit_message)
             .await
             .unwrap();
 
-        assert_eq!(alice.group.state, server.state);
+        assert_eq!(alice.state, server.state);
     }
 
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
@@ -909,25 +937,29 @@ mod tests {
             ExternalReceivedMessage::Proposal(ProposalMessageDescription { ref proposal, ..}) if proposal == &add_proposal
         );
 
-        let commit_output = alice.group.commit(vec![]).await.unwrap();
-        alice.group.apply_pending_commit().await.unwrap();
+        let commit_output = alice.commit(vec![]).await.unwrap();
+        alice.apply_pending_commit().await.unwrap();
 
-        let commit_result = server
+        let new_epoch = match server
             .process_incoming_message(commit_output.commit_message)
             .await
-            .unwrap();
+            .unwrap()
+        {
+            ExternalReceivedMessage::Commit(CommitMessageDescription {
+                effect: CommitEffect::NewEpoch(new_epoch),
+                ..
+            }) => new_epoch,
+            _ => panic!("Expected processed commit"),
+        };
 
-        #[cfg(feature = "state_update")]
-        assert_matches!(
-            commit_result,
-            ExternalReceivedMessage::Commit(commit_description)
-                if commit_description.state_update.roster_update.added().iter().any(|added| added.index == 1)
-        );
+        assert_eq!(new_epoch.applied_proposals.len(), 1);
 
-        #[cfg(not(feature = "state_update"))]
-        assert_matches!(commit_result, ExternalReceivedMessage::Commit(_));
+        assert!(new_epoch
+            .applied_proposals
+            .into_iter()
+            .any(|p| p.proposal == add_proposal));
 
-        assert_eq!(alice.group.state, server.state);
+        assert_eq!(alice.state, server.state);
     }
 
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
@@ -936,17 +968,28 @@ mod tests {
         let mut server = make_external_group(&alice).await;
         let (_, commit) = alice.join("bob").await;
 
-        let update = match server.process_incoming_message(commit).await.unwrap() {
-            ExternalReceivedMessage::Commit(update) => update.state_update,
+        let new_epoch = match server.process_incoming_message(commit).await.unwrap() {
+            ExternalReceivedMessage::Commit(CommitMessageDescription {
+                effect: CommitEffect::NewEpoch(new_epoch),
+                ..
+            }) => new_epoch,
             _ => panic!("Expected processed commit"),
         };
 
-        #[cfg(feature = "state_update")]
-        assert_eq!(update.roster_update.added().len(), 1);
+        assert_eq!(new_epoch.applied_proposals.len(), 1);
+
+        assert_eq!(
+            new_epoch
+                .applied_proposals
+                .into_iter()
+                .filter(|p| matches!(p.proposal, Proposal::Add(_)))
+                .count(),
+            1
+        );
 
         assert_eq!(server.state.public_tree.get_leaf_nodes().len(), 2);
 
-        assert_eq!(alice.group.state, server.state);
+        assert_eq!(alice.state, server.state);
     }
 
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
@@ -954,7 +997,7 @@ mod tests {
         let mut alice = test_group_with_one_commit(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
         let mut server = make_external_group(&alice).await;
 
-        let mut commit_output = alice.group.commit(vec![]).await.unwrap();
+        let mut commit_output = alice.commit(vec![]).await.unwrap();
 
         match commit_output.commit_message.payload {
             MlsMessagePayload::Plain(ref mut plain) => plain.content.epoch = 0,
@@ -978,7 +1021,7 @@ mod tests {
         )
         .await;
 
-        let mut commit_output = alice.group.commit(Vec::new()).await.unwrap();
+        let mut commit_output = alice.commit(Vec::new()).await.unwrap();
 
         match commit_output.commit_message.payload {
             MlsMessagePayload::Plain(ref mut plain) => plain.auth.signature = Vec::new().into(),
@@ -1018,7 +1061,6 @@ mod tests {
             config,
             None,
             alice
-                .group
                 .group_info_message_allowing_ext_commit(true)
                 .await
                 .unwrap(),
@@ -1040,7 +1082,6 @@ mod tests {
         let config = TestExternalClientBuilder::new_for_test().build_config();
 
         let mut group_info = alice
-            .group
             .group_info_message_allowing_ext_commit(true)
             .await
             .unwrap();
@@ -1093,7 +1134,7 @@ mod tests {
         alice.process_message(external_proposal).await.unwrap();
 
         // Alice commits the proposal
-        let commit_output = alice.group.commit(vec![]).await.unwrap();
+        let commit_output = alice.commit(vec![]).await.unwrap();
 
         let commit = match commit_output
             .commit_message
@@ -1119,7 +1160,7 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(alice.group.state, server.state);
+        assert_eq!(alice.state, server.state);
     }
 
     #[cfg(feature = "by_ref_proposal")]
@@ -1211,12 +1252,11 @@ mod tests {
         .await;
 
         let old_application_msg = alice
-            .group
             .encrypt_application_message(&[], vec![])
             .await
             .unwrap();
 
-        let commit_output = alice.group.commit(vec![]).await.unwrap();
+        let commit_output = alice.commit(vec![]).await.unwrap();
 
         server
             .process_incoming_message(commit_output.commit_message)
@@ -1240,9 +1280,9 @@ mod tests {
         )
         .await;
 
-        let proposal = alice.group.propose_update(vec![]).await.unwrap();
+        let proposal = alice.propose_update(vec![]).await.unwrap();
 
-        let commit_output = alice.group.commit(vec![]).await.unwrap();
+        let commit_output = alice.commit(vec![]).await.unwrap();
 
         server
             .process_incoming_message(proposal.clone())
@@ -1262,7 +1302,6 @@ mod tests {
         let mut alice = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
 
         let info = alice
-            .group
             .group_info_message_allowing_ext_commit(true)
             .await
             .unwrap();
@@ -1271,7 +1310,7 @@ mod tests {
         let mut server = ExternalGroup::join(config, None, info, None).await.unwrap();
 
         for _ in 0..2 {
-            let commit = alice.group.commit(vec![]).await.unwrap().commit_message;
+            let commit = alice.commit(vec![]).await.unwrap().commit_message;
             alice.process_pending_commit().await.unwrap();
             server.process_incoming_message(commit).await.unwrap();
         }
@@ -1299,7 +1338,6 @@ mod tests {
         let mut server = make_external_group(&alice).await;
 
         let info = alice
-            .group
             .group_info_message_allowing_ext_commit(false)
             .await
             .unwrap();
@@ -1329,7 +1367,6 @@ mod tests {
         let mut server = make_external_group(&alice).await;
 
         let [welcome] = alice
-            .group
             .commit_builder()
             .add_member(
                 test_key_package_message(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE, "john").await,
@@ -1345,5 +1382,38 @@ mod tests {
         let update = server.process_incoming_message(welcome).await.unwrap();
 
         assert_matches!(update, ExternalReceivedMessage::Welcome);
+    }
+
+    #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
+    async fn external_group_can_be_stored_without_tree() {
+        let mut server =
+            make_external_group(&test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await).await;
+
+        let snapshot_with_tree = server.snapshot().mls_encode_to_vec().unwrap();
+
+        let snapshot_without_tree = server
+            .snapshot_without_ratchet_tree()
+            .mls_encode_to_vec()
+            .unwrap();
+
+        let tree = server.state.public_tree.nodes.mls_encode_to_vec().unwrap();
+        let empty_tree = Vec::<u8>::new().mls_encode_to_vec().unwrap();
+
+        assert_eq!(
+            snapshot_with_tree.len() - snapshot_without_tree.len(),
+            tree.len() - empty_tree.len()
+        );
+
+        let exported_tree = server.export_tree().unwrap();
+
+        let restored = ExternalClient::new(server.config.clone(), None)
+            .load_group_with_ratchet_tree(
+                ExternalSnapshot::from_bytes(&snapshot_without_tree).unwrap(),
+                ExportedTree::from_bytes(&exported_tree).unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(restored.group_state(), server.group_state());
     }
 }

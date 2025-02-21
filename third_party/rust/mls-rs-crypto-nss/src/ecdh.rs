@@ -6,12 +6,11 @@ use core::ops::Deref;
 
 use alloc::vec::Vec;
 
-use mls_rs_crypto_traits::{Curve, DhType};
-
 use mls_rs_core::{
     crypto::{CipherSuite, HpkePublicKey, HpkeSecretKey},
     error::IntoAnyError,
 };
+use mls_rs_crypto_traits::{Curve, DhType, SamplingMethod};
 
 use crate::ec::{
     generate_keypair, private_key_bytes_to_public, private_key_ecdh, private_key_from_bytes,
@@ -85,8 +84,8 @@ impl DhType for Ecdh {
         Ok((key_pair.secret.into(), key_pair.public.into()))
     }
 
-    fn bitmask_for_rejection_sampling(&self) -> Option<u8> {
-        self.curve_bitmask()
+    fn bitmask_for_rejection_sampling(&self) -> SamplingMethod {
+        self.0.hpke_sampling_method()
     }
 
     fn public_key_validate(&self, key: &HpkePublicKey) -> Result<(), Self::Error> {
@@ -95,6 +94,10 @@ impl DhType for Ecdh {
 
     fn secret_key_size(&self) -> usize {
         self.0.secret_key_size()
+    }
+
+    fn public_key_size(&self) -> usize {
+        self.0.public_key_size()
     }
 }
 

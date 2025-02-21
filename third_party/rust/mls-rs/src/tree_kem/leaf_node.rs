@@ -103,7 +103,7 @@ impl LeafNode {
         cipher_suite_provider: &P,
         group_id: &[u8],
         leaf_index: u32,
-        new_properties: ConfigProperties,
+        new_properties: Option<ConfigProperties>,
         signing_identity: Option<SigningIdentity>,
         signer: &SignatureSecretKey,
     ) -> Result<HpkeSecretKey, MlsError> {
@@ -113,8 +113,12 @@ impl LeafNode {
             .map_err(|e| MlsError::CryptoProviderError(e.into_any_error()))?;
 
         self.public_key = public;
-        self.capabilities = new_properties.capabilities;
-        self.extensions = new_properties.extensions;
+
+        if let Some(new_properties) = new_properties {
+            self.capabilities = new_properties.capabilities;
+            self.extensions = new_properties.extensions;
+        }
+
         self.leaf_node_source = LeafNodeSource::Update;
 
         self.grease(cipher_suite_provider)?;
@@ -140,7 +144,7 @@ impl LeafNode {
         cipher_suite_provider: &P,
         group_id: &[u8],
         leaf_index: u32,
-        new_properties: ConfigProperties,
+        new_properties: Option<ConfigProperties>,
         new_signing_identity: Option<SigningIdentity>,
         signer: &SignatureSecretKey,
     ) -> Result<HpkeSecretKey, MlsError> {
@@ -150,8 +154,11 @@ impl LeafNode {
             .map_err(|e| MlsError::CryptoProviderError(e.into_any_error()))?;
 
         self.public_key = public;
-        self.capabilities = new_properties.capabilities;
-        self.extensions = new_properties.extensions;
+
+        if let Some(new_properties) = new_properties {
+            self.capabilities = new_properties.capabilities;
+            self.extensions = new_properties.extensions;
+        }
 
         if let Some(new_signing_identity) = new_signing_identity {
             self.signing_identity = new_signing_identity;
@@ -179,7 +186,7 @@ struct LeafNodeTBS<'a> {
     leaf_index: Option<u32>,
 }
 
-impl<'a> MlsSize for LeafNodeTBS<'a> {
+impl MlsSize for LeafNodeTBS<'_> {
     fn mls_encoded_len(&self) -> usize {
         self.public_key.mls_encoded_len()
             + self.signing_identity.mls_encoded_len()
@@ -194,7 +201,7 @@ impl<'a> MlsSize for LeafNodeTBS<'a> {
     }
 }
 
-impl<'a> MlsEncode for LeafNodeTBS<'a> {
+impl MlsEncode for LeafNodeTBS<'_> {
     fn mls_encode(&self, writer: &mut Vec<u8>) -> Result<(), mls_rs_codec::Error> {
         self.public_key.mls_encode(writer)?;
         self.signing_identity.mls_encode(writer)?;
@@ -503,7 +510,7 @@ mod tests {
                     &cipher_suite_provider,
                     b"group",
                     0,
-                    default_properties(),
+                    Some(default_properties()),
                     None,
                     &secret,
                 )
@@ -554,7 +561,7 @@ mod tests {
             &test_cipher_suite_provider(cipher_suite),
             b"group",
             0,
-            new_properties.clone(),
+            Some(new_properties.clone()),
             None,
             &secret,
         )
@@ -582,7 +589,7 @@ mod tests {
                     &cipher_suite_provider,
                     b"group",
                     0,
-                    default_properties(),
+                    Some(default_properties()),
                     None,
                     &secret,
                 )
@@ -634,7 +641,7 @@ mod tests {
             &test_cipher_suite_provider(cipher_suite),
             b"group",
             0,
-            new_properties.clone(),
+            Some(new_properties.clone()),
             Some(new_signing_identity.clone()),
             &secret,
         )

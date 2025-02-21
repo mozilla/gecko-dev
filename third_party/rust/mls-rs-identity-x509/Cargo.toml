@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "mls-rs-identity-x509"
-version = "0.11.0"
+version = "0.15.0"
 build = false
 autolib = false
 autobins = false
@@ -37,7 +37,7 @@ path = "src/lib.rs"
 maybe-async = "0.2.10"
 
 [dependencies.mls-rs-core]
-version = "0.18.0"
+version = "0.21.0"
 path = "../mls-rs-core"
 features = ["x509"]
 default-features = false
@@ -71,8 +71,7 @@ version = "0.2"
 features = ["js"]
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.wasm-bindgen-test]
-version = "0.3.26"
-default-features = false
+version = "0.3"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

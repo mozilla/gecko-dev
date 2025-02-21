@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use crate::CipherSuiteProvider;
-use crate::{client::MlsError, group::transcript_hash::ConfirmedTranscriptHash};
+use crate::{client::MlsError, group::ConfirmedTranscriptHash};
 use alloc::vec::Vec;
 use core::{
     fmt::{self, Debug},
@@ -12,7 +12,7 @@ use core::{
 use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
 use mls_rs_core::error::IntoAnyError;
 
-#[derive(Clone, PartialEq, MlsSize, MlsEncode, MlsDecode)]
+#[derive(Clone, PartialEq, MlsSize, MlsEncode, MlsDecode, Default)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ConfirmationTag(

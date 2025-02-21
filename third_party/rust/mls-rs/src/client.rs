@@ -7,13 +7,16 @@ use crate::client_builder::{recreate_config, BaseConfig, ClientBuilder, MakeConf
 use crate::client_config::ClientConfig;
 use crate::group::framing::MlsMessage;
 
+use crate::group::{cipher_suite_provider, validate_group_info_joiner, GroupInfo};
+use crate::group::{
+    framing::MlsMessagePayload, snapshot::Snapshot, ExportedTree, Group, NewMemberInfo,
+};
 #[cfg(feature = "by_ref_proposal")]
 use crate::group::{
-    framing::{Content, MlsMessagePayload, PublicMessage, Sender, WireFormat},
+    framing::{Content, PublicMessage, Sender, WireFormat},
     message_signature::AuthenticatedContent,
     proposal::{AddProposal, Proposal},
 };
-use crate::group::{snapshot::Snapshot, ExportedTree, Group, NewMemberInfo};
 use crate::identity::SigningIdentity;
 use crate::key_package::{KeyPackageGeneration, KeyPackageGenerator};
 use crate::protocol_version::ProtocolVersion;
@@ -24,7 +27,7 @@ use mls_rs_core::crypto::{CryptoProvider, SignatureSecretKey};
 use mls_rs_core::error::{AnyError, IntoAnyError};
 use mls_rs_core::extension::{ExtensionError, ExtensionList, ExtensionType};
 use mls_rs_core::group::{GroupStateStorage, ProposalType};
-use mls_rs_core::identity::CredentialType;
+use mls_rs_core::identity::{CredentialType, IdentityProvider, MemberValidationContext};
 use mls_rs_core::key_package::KeyPackageStorage;
 
 use crate::group::external_commit::ExternalCommitBuilder;
@@ -335,6 +338,8 @@ pub enum MlsError {
     InvalidGroupInfo,
     #[cfg_attr(feature = "std", error("Invalid welcome message"))]
     InvalidWelcomeMessage,
+    #[cfg_attr(feature = "std", error("Exporter deleted"))]
+    ExporterDeleted,
 }
 
 impl IntoAnyError for MlsError {
@@ -426,12 +431,23 @@ where
     ///
     /// A key package message may only be used once.
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
-    pub async fn generate_key_package_message(&self) -> Result<MlsMessage, MlsError> {
-        Ok(self.generate_key_package().await?.key_package_message())
+    pub async fn generate_key_package_message(
+        &self,
+        key_package_extensions: ExtensionList,
+        leaf_node_extensions: ExtensionList,
+    ) -> Result<MlsMessage, MlsError> {
+        Ok(self
+            .generate_key_package(key_package_extensions, leaf_node_extensions)
+            .await?
+            .key_package_message())
     }
 
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
-    async fn generate_key_package(&self) -> Result<KeyPackageGeneration, MlsError> {
+    async fn generate_key_package(
+        &self,
+        key_package_extensions: ExtensionList,
+        leaf_node_extensions: ExtensionList,
+    ) -> Result<KeyPackageGeneration, MlsError> {
         let (signing_identity, cipher_suite) = self.signing_identity()?;
 
         let cipher_suite_provider = self
@@ -445,15 +461,14 @@ where
             cipher_suite_provider: &cipher_suite_provider,
             signing_key: self.signer()?,
             signing_identity,
-            identity_provider: &self.config.identity_provider(),
         };
 
         let key_pkg_gen = key_package_generator
             .generate(
                 self.config.lifetime(),
                 self.config.capabilities(),
-                self.config.key_package_extensions(),
-                self.config.leaf_node_extensions(),
+                key_package_extensions,
+                leaf_node_extensions,
             )
             .await?;
 
@@ -484,6 +499,7 @@ where
         &self,
         group_id: Vec<u8>,
         group_context_extensions: ExtensionList,
+        leaf_node_extensions: ExtensionList,
     ) -> Result<Group<C>, MlsError> {
         let (signing_identity, cipher_suite) = self.signing_identity()?;
 
@@ -494,6 +510,7 @@ where
             self.version,
             signing_identity.clone(),
             group_context_extensions,
+            leaf_node_extensions,
             self.signer()?.clone(),
         )
         .await
@@ -508,6 +525,7 @@ where
     pub async fn create_group(
         &self,
         group_context_extensions: ExtensionList,
+        leaf_node_extensions: ExtensionList,
     ) -> Result<Group<C>, MlsError> {
         let (signing_identity, cipher_suite) = self.signing_identity()?;
 
@@ -518,6 +536,7 @@ where
             self.version,
             signing_identity.clone(),
             group_context_extensions,
+            leaf_node_extensions,
             self.signer()?.clone(),
         )
         .await
@@ -545,6 +564,50 @@ where
             self.signer()?.clone(),
         )
         .await
+    }
+
+    /// Decrypt GroupInfo encrypted in the Welcome message without actually joining
+    /// the group. The ratchet tree is not needed.
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    pub async fn examine_welcome_message(
+        &self,
+        welcome_message: &MlsMessage,
+    ) -> Result<GroupInfo, MlsError> {
+        Group::decrypt_group_info(welcome_message, &self.config).await
+    }
+
+    /// Validate GroupInfo message. This does NOT validate the ratchet tree in case
+    /// it is provided in the extension. It validates the signature, identity of the
+    /// signer, identities of external senders and cipher suite.
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    pub async fn validate_group_info(
+        &self,
+        group_info_message: &MlsMessage,
+        signer: &SigningIdentity,
+    ) -> Result<(), MlsError> {
+        let MlsMessagePayload::GroupInfo(group_info) = &group_info_message.payload else {
+            return Err(MlsError::UnexpectedMessageType);
+        };
+
+        let cs = cipher_suite_provider(
+            self.config.crypto_provider(),
+            group_info.group_context.cipher_suite,
+        )?;
+
+        let id = self.config.identity_provider();
+
+        validate_group_info_joiner(group_info_message.version, group_info, signer, &id, &cs)
+            .await?;
+
+        let context = MemberValidationContext::ForNewGroup {
+            current_context: &group_info.group_context,
+        };
+
+        id.validate_member(signer, None, context)
+            .await
+            .map_err(|e| MlsError::IdentityProviderError(e.into_any_error()))?;
+
+        Ok(())
     }
 
     /// 0-RTT add to an existing [group](crate::group::Group)
@@ -620,6 +683,31 @@ where
         Group::from_snapshot(self.config.clone(), snapshot).await
     }
 
+    /// Load an existing group state into this client using the
+    /// [GroupStateStorage](crate::GroupStateStorage) that
+    /// this client was configured to use. The tree is taken from
+    /// `tree_data` instead of the stored state.
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    #[inline(never)]
+    pub async fn load_group_with_ratchet_tree(
+        &self,
+        group_id: &[u8],
+        tree_data: ExportedTree<'_>,
+    ) -> Result<Group<C>, MlsError> {
+        let snapshot = self
+            .config
+            .group_state_storage()
+            .state(group_id)
+            .await
+            .map_err(|e| MlsError::GroupStorageError(e.into_any_error()))?
+            .ok_or(MlsError::GroupNotFound)?;
+
+        let mut snapshot = Snapshot::mls_decode(&mut &*snapshot)?;
+        snapshot.state.public_tree.nodes = tree_data.0.into_owned();
+
+        Group::from_snapshot(self.config.clone(), snapshot).await
+    }
+
     /// Request to join an existing [group](crate::group::Group).
     ///
     /// An existing group member will need to perform a
@@ -632,6 +720,8 @@ where
         group_info: &MlsMessage,
         tree_data: Option<crate::group::ExportedTree<'_>>,
         authenticated_data: Vec<u8>,
+        key_package_extensions: ExtensionList,
+        leaf_node_extensions: ExtensionList,
     ) -> Result<MlsMessage, MlsError> {
         let protocol_version = group_info.version;
 
@@ -651,7 +741,7 @@ where
             .cipher_suite_provider(cipher_suite)
             .ok_or(MlsError::UnsupportedCipherSuite(cipher_suite))?;
 
-        crate::group::validate_group_info_joiner(
+        crate::group::validate_tree_and_info_joiner(
             protocol_version,
             group_info,
             tree_data,
@@ -660,7 +750,10 @@ where
         )
         .await?;
 
-        let key_package = self.generate_key_package().await?.key_package;
+        let key_package = self
+            .generate_key_package(key_package_extensions, leaf_node_extensions)
+            .await?
+            .key_package;
 
         (key_package.cipher_suite == cipher_suite)
             .then_some(())
@@ -703,11 +796,6 @@ where
             .ok_or(MlsError::SignerNotFound)
     }
 
-    /// Returns key package extensions used by this client
-    pub fn key_package_extensions(&self) -> ExtensionList {
-        self.config.key_package_extensions()
-    }
-
     /// The [KeyPackageStorage] that this client was configured to use.
     #[cfg_attr(all(feature = "ffi", not(test)), safer_ffi_gen::safer_ffi_gen_ignore)]
     pub fn key_package_store(&self) -> <C as ClientConfig>::KeyPackageRepository {
@@ -725,6 +813,12 @@ where
     #[cfg_attr(all(feature = "ffi", not(test)), safer_ffi_gen::safer_ffi_gen_ignore)]
     pub fn group_state_storage(&self) -> <C as ClientConfig>::GroupStateStorage {
         self.config.group_state_storage()
+    }
+
+    /// The [IdentityProvider](crate::IdentityProvider) that this client was configured to use.
+    #[cfg_attr(all(feature = "ffi", not(test)), safer_ffi_gen::safer_ffi_gen_ignore)]
+    pub fn identity_provider(&self) -> <C as ClientConfig>::IdentityProvider {
+        self.config.identity_provider()
     }
 }
 
@@ -745,7 +839,15 @@ pub(crate) mod test_utils {
         cipher_suite: CipherSuite,
         identity: &str,
     ) -> (Client<TestClientConfig>, MlsMessage) {
-        test_client_with_key_pkg_custom(protocol_version, cipher_suite, identity, |_| {}).await
+        test_client_with_key_pkg_custom(
+            protocol_version,
+            cipher_suite,
+            identity,
+            Default::default(),
+            Default::default(),
+            |_| {},
+        )
+        .await
     }
 
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
@@ -753,6 +855,8 @@ pub(crate) mod test_utils {
         protocol_version: ProtocolVersion,
         cipher_suite: CipherSuite,
         identity: &str,
+        key_package_extensions: ExtensionList,
+        leaf_node_extensions: ExtensionList,
         mut config: F,
     ) -> (Client<TestClientConfig>, MlsMessage)
     where
@@ -768,7 +872,10 @@ pub(crate) mod test_utils {
 
         config(&mut client.config);
 
-        let key_package = client.generate_key_package_message().await.unwrap();
+        let key_package = client
+            .generate_key_package_message(key_package_extensions, leaf_node_extensions)
+            .await
+            .unwrap();
 
         (client, key_package)
     }
@@ -786,16 +893,17 @@ mod tests {
     };
     use assert_matches::assert_matches;
 
-    use crate::{
-        group::{
-            message_processor::ProposalMessageDescription,
-            proposal::Proposal,
-            test_utils::{test_group, test_group_custom_config},
-            ReceivedMessage,
-        },
-        psk::{ExternalPskId, PreSharedKey},
-    };
-
+    #[cfg(feature = "by_ref_proposal")]
+    use crate::group::message_processor::ProposalMessageDescription;
+    #[cfg(feature = "by_ref_proposal")]
+    use crate::group::proposal::Proposal;
+    use crate::group::test_utils::test_group;
+    #[cfg(feature = "psk")]
+    use crate::group::test_utils::test_group_custom_config;
+    #[cfg(feature = "by_ref_proposal")]
+    use crate::group::ReceivedMessage;
+    #[cfg(feature = "psk")]
+    use crate::psk::{ExternalPskId, PreSharedKey};
     use alloc::vec;
 
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
@@ -814,7 +922,10 @@ mod tests {
                 .build();
 
             // TODO: Tests around extensions
-            let key_package = client.generate_key_package_message().await.unwrap();
+            let key_package = client
+                .generate_key_package_message(Default::default(), Default::default())
+                .await
+                .unwrap();
 
             assert_eq!(key_package.version, protocol_version);
 
@@ -850,15 +961,16 @@ mod tests {
 
         let proposal = bob
             .external_add_proposal(
-                &alice_group.group.group_info_message(true).await.unwrap(),
+                &alice_group.group_info_message(true).await.unwrap(),
                 None,
                 vec![],
+                Default::default(),
+                Default::default(),
             )
             .await
             .unwrap();
 
         let message = alice_group
-            .group
             .process_incoming_message(proposal)
             .await
             .unwrap();
@@ -870,12 +982,11 @@ mod tests {
             ) if p.key_package.leaf_node.signing_identity == bob_identity
         );
 
-        alice_group.group.commit(vec![]).await.unwrap();
-        alice_group.group.apply_pending_commit().await.unwrap();
+        alice_group.commit(vec![]).await.unwrap();
+        alice_group.apply_pending_commit().await.unwrap();
 
         // Check that the new member is in the group
         assert!(alice_group
-            .group
             .roster()
             .members_iter()
             .any(|member| member.signing_identity == bob_identity))
@@ -887,6 +998,8 @@ mod tests {
         // An external commit cannot be the first commit in a group as it requires
         // interim_transcript_hash to be computed from the confirmed_transcript_hash and
         // confirmation_tag, which is not the case for the initial interim_transcript_hash.
+
+        use crate::group::{message_processor::CommitEffect, CommitMessageDescription};
 
         let psk = PreSharedKey::from(b"psk".to_vec());
         let psk_id = ExternalPskId::new(b"psk id".to_vec());
@@ -905,7 +1018,6 @@ mod tests {
             .unwrap();
 
         let group_info_msg = alice_group
-            .group
             .group_info_message_allowing_ext_commit(true)
             .await
             .unwrap();
@@ -937,37 +1049,40 @@ mod tests {
         assert_eq!(new_group.roster().members_iter().count(), num_members);
 
         let _ = alice_group
-            .group
             .process_incoming_message(external_commit.clone())
             .await
             .unwrap();
 
-        let bob_current_epoch = bob_group.group.current_epoch();
+        let bob_current_epoch = bob_group.current_epoch();
 
         let message = bob_group
-            .group
             .process_incoming_message(external_commit)
             .await
             .unwrap();
 
-        assert!(alice_group.group.roster().members_iter().count() == num_members);
+        assert!(alice_group.roster().members_iter().count() == num_members);
 
         if !do_remove {
-            assert!(bob_group.group.roster().members_iter().count() == num_members);
+            assert!(bob_group.roster().members_iter().count() == num_members);
         } else {
             // Bob was removed so his epoch must stay the same
-            assert_eq!(bob_group.group.current_epoch(), bob_current_epoch);
+            assert_eq!(bob_group.current_epoch(), bob_current_epoch);
 
-            #[cfg(feature = "state_update")]
-            assert_matches!(message, ReceivedMessage::Commit(desc) if !desc.state_update.active);
-
-            #[cfg(not(feature = "state_update"))]
-            assert_matches!(message, ReceivedMessage::Commit(_));
+            assert_matches!(
+                message,
+                ReceivedMessage::Commit(CommitMessageDescription {
+                    effect: CommitEffect::Removed {
+                        new_epoch: _,
+                        remover: _
+                    },
+                    ..
+                })
+            );
         }
 
         // Comparing epoch authenticators is sufficient to check that members are in sync.
         assert_eq!(
-            alice_group.group.epoch_authenticator().unwrap(),
+            alice_group.epoch_authenticator().unwrap(),
             new_group.epoch_authenticator().unwrap()
         );
 
@@ -996,7 +1111,10 @@ mod tests {
             .signing_identity(alice_identity.clone(), secret_key, TEST_CIPHER_SUITE)
             .build();
 
-        let msg = alice.generate_key_package_message().await.unwrap();
+        let msg = alice
+            .generate_key_package_message(Default::default(), Default::default())
+            .await
+            .unwrap();
         let res = alice.commit_external(msg).await.map(|_| ());
 
         assert_matches!(res, Err(MlsError::UnexpectedMessageType));
@@ -1007,11 +1125,10 @@ mod tests {
         let mut alice_group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
         let mut bob_group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
 
-        bob_group.group.commit(vec![]).await.unwrap();
-        bob_group.group.apply_pending_commit().await.unwrap();
+        bob_group.commit(vec![]).await.unwrap();
+        bob_group.apply_pending_commit().await.unwrap();
 
         let group_info_msg = bob_group
-            .group
             .group_info_message_allowing_ext_commit(true)
             .await
             .unwrap();
@@ -1031,10 +1148,7 @@ mod tests {
             .unwrap();
 
         // If Carol tries to join Alice's group using the group info from Bob's group, that fails.
-        let res = alice_group
-            .group
-            .process_incoming_message(external_commit)
-            .await;
+        let res = alice_group.process_incoming_message(external_commit).await;
         assert_matches!(res, Err(_));
     }
 
@@ -1045,5 +1159,71 @@ mod tests {
             .build();
         let bob = alice.to_builder().extension_type(34.into()).build();
         assert_eq!(bob.config.supported_extensions(), [33, 34].map(Into::into));
+    }
+
+    #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
+    async fn examine_welcome_message() {
+        let mut alice = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE)
+            .await
+            .group;
+
+        let (bob, kp) =
+            test_client_with_key_pkg(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE, "bob").await;
+
+        let commit = alice
+            .commit_builder()
+            .add_member(kp)
+            .unwrap()
+            .build()
+            .await
+            .unwrap();
+
+        alice.apply_pending_commit().await.unwrap();
+
+        let mut group_info = bob
+            .examine_welcome_message(&commit.welcome_messages[0])
+            .await
+            .unwrap();
+
+        // signature is random so we won't compare it
+        group_info.signature = vec![];
+        group_info.ungrease();
+
+        let mut expected_group_info = alice
+            .group_info_message(commit.ratchet_tree.is_none())
+            .await
+            .unwrap()
+            .into_group_info()
+            .unwrap();
+
+        expected_group_info.signature = vec![];
+        expected_group_info.ungrease();
+
+        assert_eq!(expected_group_info, group_info);
+    }
+
+    #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
+    async fn validate_group_info() {
+        let alice = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE)
+            .await
+            .group;
+
+        let bob = test_client_with_key_pkg(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE, "bob")
+            .await
+            .0;
+
+        let group_info = alice.group_info_message(false).await.unwrap();
+        let alice_signer = alice.current_member_signing_identity().unwrap().clone();
+
+        bob.validate_group_info(&group_info, &alice_signer)
+            .await
+            .unwrap();
+
+        let other_signer = get_test_signing_identity(TEST_CIPHER_SUITE, b"alice")
+            .await
+            .0;
+
+        let res = bob.validate_group_info(&group_info, &other_signer).await;
+        assert_matches!(res, Err(MlsError::InvalidSignature));
     }
 }

@@ -47,13 +47,12 @@ fn test_group_propose_self_remove() -> Result<(), PlatformError> {
 
     // Create signature keypairs and store them in the state
     let alice_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+        mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
-    let bob_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+    let bob_id = mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
     let charlie_id =
-        mls_platform_api::mls_generate_signature_keypair(&state_global, group_config.ciphersuite)?;
+        mls_platform_api::mls_generate_identity(&state_global, group_config.ciphersuite)?;
 
     println!("\nAlice identifier: {}", hex::encode(&alice_id));
     println!("Bob identifier: {}", hex::encode(&bob_id));
@@ -88,7 +87,7 @@ fn test_group_propose_self_remove() -> Result<(), PlatformError> {
     println!("\nGroup created by Alice: {}", hex::encode(&gide.group_id));
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!("Members (alice, before adding bob): {members:?}");
 
     //
@@ -117,7 +116,7 @@ fn test_group_propose_self_remove() -> Result<(), PlatformError> {
     )?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!("Members (alice, after adding bob): {members:?}");
 
     // Bob joins
@@ -125,7 +124,7 @@ fn test_group_propose_self_remove() -> Result<(), PlatformError> {
     mls_platform_api::mls_group_join(&state_global, &bob_id, &welcome, None)?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after joining the group): {members:?}");
 
     //
@@ -155,7 +154,7 @@ fn test_group_propose_self_remove() -> Result<(), PlatformError> {
     )?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &bob_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &bob_id)?;
     println!("Members (bob, after adding charlie): {members:?}");
 
     // Alice receives the commit
@@ -171,7 +170,7 @@ fn test_group_propose_self_remove() -> Result<(), PlatformError> {
     mls_platform_api::mls_group_join(&state_global, &charlie_id, &welcome_2, None)?;
 
     // List the members of the group
-    let members = mls_platform_api::mls_group_members(&state_global, &gide.group_id, &charlie_id)?;
+    let members = mls_platform_api::mls_group_details(&state_global, &gide.group_id, &charlie_id)?;
     println!("Members (charlie, after joining the group): {members:?}");
 
     //
@@ -207,7 +206,7 @@ fn test_group_propose_self_remove() -> Result<(), PlatformError> {
     mls_platform_api::mls_receive(&state_global, &alice_id, &commit_5_msg)?;
 
     let members_alice =
-        mls_platform_api::mls_group_members(&state_global, &gide.group_id, &alice_id)?;
+        mls_platform_api::mls_group_details(&state_global, &gide.group_id, &alice_id)?;
     println!("Members (alice, after removing Bob): {members_alice:?}");
 
     // Charlie processes the remove commit
@@ -215,7 +214,7 @@ fn test_group_propose_self_remove() -> Result<(), PlatformError> {
     mls_platform_api::mls_receive(&state_global, &charlie_id, &commit_5_msg)?;
 
     let members_charlie =
-        mls_platform_api::mls_group_members(&state_global, &gide.group_id, &charlie_id)?;
+        mls_platform_api::mls_group_details(&state_global, &gide.group_id, &charlie_id)?;
     println!("Members (charlie, after removing bob): {members_charlie:?}");
 
     // Bob processes the remove commit

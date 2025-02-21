@@ -18,15 +18,10 @@ use crate::{
         Commit, Group,
     },
     identity::{basic::BasicIdentityProvider, SigningIdentity},
-    Client, ExtensionList,
+    Client,
 };
 
-#[cfg(awslc)]
-pub use mls_rs_crypto_awslc::AwsLcCryptoProvider as MlsCryptoProvider;
-#[cfg(not(any(awslc, rustcrypto)))]
 pub use mls_rs_crypto_openssl::OpensslCryptoProvider as MlsCryptoProvider;
-#[cfg(rustcrypto)]
-pub use mls_rs_crypto_rustcrypto::RustCryptoProvider as MlsCryptoProvider;
 
 pub type TestClientConfig =
     WithIdentityProvider<BasicIdentityProvider, WithCryptoProvider<MlsCryptoProvider, BaseConfig>>;
@@ -38,11 +33,16 @@ pub fn create_group() -> Group<TestClientConfig> {
     let alice = make_client(cipher_suite, "alice");
     let bob = make_client(cipher_suite, "bob");
 
-    let mut alice = alice.create_group(ExtensionList::new()).unwrap();
+    let mut alice = alice
+        .create_group(Default::default(), Default::default())
+        .unwrap();
 
     alice
         .commit_builder()
-        .add_member(bob.generate_key_package_message().unwrap())
+        .add_member(
+            bob.generate_key_package_message(Default::default(), Default::default())
+                .unwrap(),
+        )
         .unwrap()
         .build()
         .unwrap();

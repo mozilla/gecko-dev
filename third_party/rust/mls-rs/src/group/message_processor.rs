@@ -13,7 +13,8 @@ use super::{
     proposal_filter::ProposalBundle,
     state::GroupState,
     transcript_hash::InterimTranscriptHash,
-    transcript_hashes, validate_group_info_member, GroupContext, GroupInfo, Welcome,
+    transcript_hashes, validate_group_info_member, GroupContext, GroupInfo, ReInitProposal,
+    RemoveProposal, Welcome,
 };
 use crate::{
     client::MlsError,
@@ -27,12 +28,16 @@ use crate::{
     },
     CipherSuiteProvider, KeyPackage,
 };
-#[cfg(mls_build_async)]
+use itertools::Itertools;
+use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
+
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::fmt::{self, Debug};
 use mls_rs_core::{
-    identity::IdentityProvider, protocol_version::ProtocolVersion, psk::PreSharedKeyStorage,
+    identity::{IdentityProvider, MemberValidationContext},
+    protocol_version::ProtocolVersion,
+    psk::PreSharedKeyStorage,
 };
 
 #[cfg(feature = "by_ref_proposal")]
@@ -41,35 +46,11 @@ use super::proposal_ref::ProposalRef;
 #[cfg(not(feature = "by_ref_proposal"))]
 use crate::group::proposal_cache::resolve_for_commit;
 
-#[cfg(feature = "by_ref_proposal")]
 use super::proposal::Proposal;
-
-#[cfg(feature = "custom_proposal")]
 use super::proposal_filter::ProposalInfo;
-
-#[cfg(feature = "state_update")]
-use mls_rs_core::{
-    crypto::CipherSuite,
-    group::{MemberUpdate, RosterUpdate},
-};
-
-#[cfg(all(feature = "state_update", feature = "psk"))]
-use mls_rs_core::psk::ExternalPskId;
-
-#[cfg(feature = "state_update")]
-use crate::tree_kem::UpdatePath;
-
-#[cfg(feature = "state_update")]
-use super::{member_from_key_package, member_from_leaf_node};
-
-#[cfg(all(feature = "state_update", feature = "custom_proposal"))]
-use super::proposal::CustomProposal;
 
 #[cfg(feature = "private_message")]
 use crate::group::framing::PrivateMessage;
-
-#[cfg(feature = "by_ref_proposal")]
-use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
 
 #[derive(Debug)]
 pub(crate) struct ProvisionalState {
@@ -78,8 +59,7 @@ pub(crate) struct ProvisionalState {
     pub(crate) group_context: GroupContext,
     pub(crate) external_init_index: Option<LeafIndex>,
     pub(crate) indexes_of_added_kpkgs: Vec<LeafIndex>,
-    #[cfg(feature = "by_ref_proposal")]
-    pub(crate) unused_proposals: Vec<crate::mls_rules::ProposalInfo<Proposal>>,
+    pub(crate) unused_proposals: Vec<ProposalInfo<Proposal>>,
 }
 
 //By default, the path field of a Commit MUST be populated. The path field MAY be omitted if
@@ -93,7 +73,7 @@ pub(crate) struct ProvisionalState {
 // psk
 // reinit
 pub(crate) fn path_update_required(proposals: &ProposalBundle) -> bool {
-    let res = proposals.external_init_proposals().first().is_some();
+    let res = !proposals.external_init_proposals().is_empty();
 
     #[cfg(feature = "by_ref_proposal")]
     let res = res || !proposals.update_proposals().is_empty();
@@ -103,72 +83,114 @@ pub(crate) fn path_update_required(proposals: &ProposalBundle) -> bool {
         || !proposals.remove_proposals().is_empty()
 }
 
-/// Representation of changes made by a [commit](crate::Group::commit).
-#[cfg(feature = "state_update")]
-#[derive(Clone, Debug, PartialEq)]
-pub struct StateUpdate {
-    pub(crate) roster_update: RosterUpdate,
-    #[cfg(feature = "psk")]
-    pub(crate) added_psks: Vec<ExternalPskId>,
-    pub(crate) pending_reinit: Option<CipherSuite>,
-    pub(crate) active: bool,
-    pub(crate) epoch: u64,
-    #[cfg(feature = "custom_proposal")]
-    pub(crate) custom_proposals: Vec<ProposalInfo<CustomProposal>>,
-    #[cfg(feature = "by_ref_proposal")]
-    pub(crate) unused_proposals: Vec<crate::mls_rules::ProposalInfo<Proposal>>,
+#[cfg_attr(
+    all(feature = "ffi", not(test)),
+    safer_ffi_gen::ffi_type(clone, opaque)
+)]
+#[derive(Clone, Debug, PartialEq, MlsSize, MlsEncode, MlsDecode)]
+#[non_exhaustive]
+pub struct NewEpoch {
+    pub epoch: u64,
+    pub prior_state: GroupState,
+    pub applied_proposals: Vec<ProposalInfo<Proposal>>,
+    pub unused_proposals: Vec<ProposalInfo<Proposal>>,
 }
 
-#[cfg(not(feature = "state_update"))]
-#[non_exhaustive]
-#[derive(Clone, Debug, PartialEq)]
-pub struct StateUpdate {}
-
-#[cfg(feature = "state_update")]
-impl StateUpdate {
-    /// Changes to the roster as a result of proposals.
-    pub fn roster_update(&self) -> &RosterUpdate {
-        &self.roster_update
+impl NewEpoch {
+    pub(crate) fn new(prior_state: GroupState, provisional_state: &ProvisionalState) -> NewEpoch {
+        NewEpoch {
+            epoch: provisional_state.group_context.epoch,
+            prior_state,
+            unused_proposals: provisional_state.unused_proposals.clone(),
+            applied_proposals: provisional_state
+                .applied_proposals
+                .clone()
+                .into_proposals()
+                .collect_vec(),
+        }
     }
+}
 
-    #[cfg(feature = "psk")]
-    /// Pre-shared keys that have been added to the group.
-    pub fn added_psks(&self) -> &[ExternalPskId] {
-        &self.added_psks
-    }
-
-    /// Flag to indicate if the group is now pending reinitialization due to
-    /// receiving a [`ReInit`](crate::group::proposal::Proposal::ReInit)
-    /// proposal.
-    pub fn is_pending_reinit(&self) -> bool {
-        self.pending_reinit.is_some()
-    }
-
-    /// Flag to indicate the group is still active. This will be false if the
-    /// member processing the commit has been removed from the group.
-    pub fn is_active(&self) -> bool {
-        self.active
-    }
-
-    /// The new epoch of the group state.
-    pub fn new_epoch(&self) -> u64 {
+#[cfg(all(feature = "ffi", not(test)))]
+#[safer_ffi_gen::safer_ffi_gen]
+impl NewEpoch {
+    pub fn epoch(&self) -> u64 {
         self.epoch
     }
 
-    /// Custom proposals that were committed to.
-    #[cfg(feature = "custom_proposal")]
-    pub fn custom_proposals(&self) -> &[ProposalInfo<CustomProposal>] {
-        &self.custom_proposals
+    pub fn prior_state(&self) -> &GroupState {
+        &self.prior_state
     }
 
-    /// Proposals that were received in the prior epoch but not committed to.
-    #[cfg(feature = "by_ref_proposal")]
-    pub fn unused_proposals(&self) -> &[crate::mls_rules::ProposalInfo<Proposal>] {
+    pub fn applied_proposals(&self) -> &[ProposalInfo<Proposal>] {
+        &self.applied_proposals
+    }
+
+    pub fn unused_proposals(&self) -> &[ProposalInfo<Proposal>] {
         &self.unused_proposals
     }
+}
 
-    pub fn pending_reinit_ciphersuite(&self) -> Option<CipherSuite> {
-        self.pending_reinit
+#[cfg_attr(
+    all(feature = "ffi", not(test)),
+    safer_ffi_gen::ffi_type(clone, opaque)
+)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum CommitEffect {
+    NewEpoch(Box<NewEpoch>),
+    Removed {
+        new_epoch: Box<NewEpoch>,
+        remover: Sender,
+    },
+    ReInit(ProposalInfo<ReInitProposal>),
+}
+
+impl MlsSize for CommitEffect {
+    fn mls_encoded_len(&self) -> usize {
+        0u8.mls_encoded_len()
+            + match self {
+                Self::NewEpoch(e) => e.mls_encoded_len(),
+                Self::Removed { new_epoch, remover } => {
+                    new_epoch.mls_encoded_len() + remover.mls_encoded_len()
+                }
+                Self::ReInit(r) => r.mls_encoded_len(),
+            }
+    }
+}
+
+impl MlsEncode for CommitEffect {
+    fn mls_encode(&self, writer: &mut Vec<u8>) -> Result<(), mls_rs_codec::Error> {
+        match self {
+            Self::NewEpoch(e) => {
+                1u8.mls_encode(writer)?;
+                e.mls_encode(writer)?;
+            }
+            Self::Removed { new_epoch, remover } => {
+                2u8.mls_encode(writer)?;
+                new_epoch.mls_encode(writer)?;
+                remover.mls_encode(writer)?;
+            }
+            Self::ReInit(r) => {
+                3u8.mls_encode(writer)?;
+                r.mls_encode(writer)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl MlsDecode for CommitEffect {
+    fn mls_decode(reader: &mut &[u8]) -> Result<Self, mls_rs_codec::Error> {
+        match u8::mls_decode(reader)? {
+            1u8 => Ok(Self::NewEpoch(NewEpoch::mls_decode(reader)?.into())),
+            2u8 => Ok(Self::Removed {
+                new_epoch: NewEpoch::mls_decode(reader)?.into(),
+                remover: Sender::mls_decode(reader)?,
+            }),
+            3u8 => Ok(Self::ReInit(ProposalInfo::mls_decode(reader)?)),
+            _ => Err(mls_rs_codec::Error::UnsupportedEnumDiscriminant),
+        }
     }
 }
 
@@ -272,7 +294,7 @@ impl ApplicationMessageDescription {
 //     all(feature = "ffi", not(test)),
 //     safer_ffi_gen::ffi_type(clone, opaque)
 // )]
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, MlsSize, MlsEncode, MlsDecode)]
 #[non_exhaustive]
 /// Description of a processed MLS commit message.
 pub struct CommitMessageDescription {
@@ -281,8 +303,9 @@ pub struct CommitMessageDescription {
     /// The index in the group state of the member who performed this commit.
     pub committer: u32,
     /// A full description of group state changes as a result of this commit.
-    pub state_update: StateUpdate,
+    pub effect: CommitEffect,
     /// Plaintext authenticated data in the received MLS packet.
+    #[mls_codec(with = "mls_rs_codec::byte_vec")]
     pub authenticated_data: Vec<u8>,
 }
 
@@ -291,7 +314,7 @@ impl Debug for CommitMessageDescription {
         f.debug_struct("CommitMessageDescription")
             .field("is_external", &self.is_external)
             .field("committer", &self.committer)
-            .field("state_update", &self.state_update)
+            .field("effect", &self.effect)
             .field(
                 "authenticated_data",
                 &mls_rs_core::debug::pretty_bytes(&self.authenticated_data),
@@ -300,16 +323,18 @@ impl Debug for CommitMessageDescription {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, MlsEncode, MlsDecode, MlsSize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[repr(u8)]
 /// Proposal sender type.
 pub enum ProposalSender {
     /// A current member of the group by index in the group state.
-    Member(u32),
+    Member(u32) = 1u8,
     /// An external entity by index within an
     /// [`ExternalSendersExt`](crate::extension::built_in::ExternalSendersExt).
-    External(u32),
+    External(u32) = 2u8,
     /// A new member proposing their addition to the group.
-    NewMember,
+    NewMember = 3u8,
 }
 
 impl TryFrom<Sender> for ProposalSender {
@@ -332,7 +357,8 @@ impl TryFrom<Sender> for ProposalSender {
 //     all(feature = "ffi", not(test)),
 //     safer_ffi_gen::ffi_type(clone, opaque)
 // )]
-#[derive(Clone)]
+#[derive(Clone, MlsEncode, MlsDecode, MlsSize, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 /// Description of a processed MLS proposal message.
 pub struct ProposalMessageDescription {
@@ -400,6 +426,20 @@ impl ProposalMessageDescription {
 
     pub fn proposal_ref(&self) -> Vec<u8> {
         self.proposal_ref.to_vec()
+    }
+
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    pub(crate) async fn new<C: CipherSuiteProvider>(
+        cs: &C,
+        content: &AuthenticatedContent,
+        proposal: Proposal,
+    ) -> Result<Self, MlsError> {
+        Ok(ProposalMessageDescription {
+            authenticated_data: content.content.authenticated_data.clone(),
+            proposal,
+            sender: content.content.sender.try_into()?,
+            proposal_ref: ProposalRef::from_content(cs, content).await?,
+        })
     }
 }
 
@@ -587,127 +627,24 @@ pub(crate) trait MessageProcessor: Send + Sync {
         proposal: &Proposal,
         cache_proposal: bool,
     ) -> Result<ProposalMessageDescription, MlsError> {
-        let proposal_ref =
-            ProposalRef::from_content(self.cipher_suite_provider(), auth_content).await?;
+        let proposal = ProposalMessageDescription::new(
+            self.cipher_suite_provider(),
+            auth_content,
+            proposal.clone(),
+        )
+        .await?;
 
         let group_state = self.group_state_mut();
 
         if cache_proposal {
-            let proposal_ref = proposal_ref.clone();
-
             group_state.proposals.insert(
-                proposal_ref.clone(),
-                proposal.clone(),
+                proposal.proposal_ref.clone(),
+                proposal.proposal.clone(),
                 auth_content.content.sender,
             );
         }
 
-        Ok(ProposalMessageDescription {
-            authenticated_data: auth_content.content.authenticated_data.clone(),
-            proposal: proposal.clone(),
-            sender: auth_content.content.sender.try_into()?,
-            proposal_ref,
-        })
-    }
-
-    #[cfg(feature = "state_update")]
-    async fn make_state_update(
-        &self,
-        provisional: &ProvisionalState,
-        path: Option<&UpdatePath>,
-        sender: LeafIndex,
-    ) -> Result<StateUpdate, MlsError> {
-        let added = provisional
-            .applied_proposals
-            .additions
-            .iter()
-            .zip(provisional.indexes_of_added_kpkgs.iter())
-            .map(|(p, index)| member_from_key_package(&p.proposal.key_package, *index))
-            .collect::<Vec<_>>();
-
-        let mut added = added;
-
-        let old_tree = &self.group_state().public_tree;
-
-        let removed = provisional
-            .applied_proposals
-            .removals
-            .iter()
-            .map(|p| {
-                let index = p.proposal.to_remove;
-                let node = old_tree.nodes.borrow_as_leaf(index)?;
-                Ok(member_from_leaf_node(node, index))
-            })
-            .collect::<Result<_, MlsError>>()?;
-
-        #[cfg(feature = "by_ref_proposal")]
-        let mut updated = provisional
-            .applied_proposals
-            .update_senders
-            .iter()
-            .map(|index| {
-                let prior = old_tree
-                    .get_leaf_node(*index)
-                    .map(|n| member_from_leaf_node(n, *index))?;
-
-                let new = provisional
-                    .public_tree
-                    .get_leaf_node(*index)
-                    .map(|n| member_from_leaf_node(n, *index))?;
-
-                Ok::<_, MlsError>(MemberUpdate::new(prior, new))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        #[cfg(not(feature = "by_ref_proposal"))]
-        let mut updated = Vec::new();
-
-        if let Some(path) = path {
-            if !provisional
-                .applied_proposals
-                .external_initializations
-                .is_empty()
-            {
-                added.push(member_from_leaf_node(&path.leaf_node, sender))
-            } else {
-                let prior = old_tree
-                    .get_leaf_node(sender)
-                    .map(|n| member_from_leaf_node(n, sender))?;
-
-                let new = member_from_leaf_node(&path.leaf_node, sender);
-
-                updated.push(MemberUpdate::new(prior, new))
-            }
-        }
-
-        #[cfg(feature = "psk")]
-        let psks = provisional
-            .applied_proposals
-            .psks
-            .iter()
-            .filter_map(|psk| psk.proposal.external_psk_id().cloned())
-            .collect::<Vec<_>>();
-
-        let roster_update = RosterUpdate::new(added, removed, updated);
-
-        let update = StateUpdate {
-            roster_update,
-            #[cfg(feature = "psk")]
-            added_psks: psks,
-            pending_reinit: provisional
-                .applied_proposals
-                .reinitializations
-                .first()
-                .map(|ri| ri.proposal.new_cipher_suite()),
-            active: true,
-            epoch: provisional.group_context.epoch,
-            #[cfg(feature = "custom_proposal")]
-            custom_proposals: provisional.applied_proposals.custom_proposals.clone(),
-            #[cfg(feature = "by_ref_proposal")]
-            unused_proposals: provisional.unused_proposals.clone(),
-        };
-
-        Ok(update)
+        Ok(proposal)
     }
 
     async fn process_commit(
@@ -763,33 +700,14 @@ pub(crate) trait MessageProcessor: Send + Sync {
 
         let sender = commit_sender(&auth_content.content.sender, &provisional_state)?;
 
-        #[cfg(feature = "state_update")]
-        let mut state_update = self
-            .make_state_update(&provisional_state, commit.path.as_ref(), sender)
-            .await?;
-
-        #[cfg(not(feature = "state_update"))]
-        let state_update = StateUpdate {};
-
         //Verify that the path value is populated if the proposals vector contains any Update
         // or Remove proposals, or if it's empty. Otherwise, the path value MAY be omitted.
         if path_update_required(&provisional_state.applied_proposals) && commit.path.is_none() {
             return Err(MlsError::CommitMissingPath);
         }
 
-        if !self.can_continue_processing(&provisional_state) {
-            #[cfg(feature = "state_update")]
-            {
-                state_update.active = false;
-            }
-
-            return Ok(CommitMessageDescription {
-                is_external: matches!(auth_content.content.sender, Sender::NewMemberCommit),
-                authenticated_data: auth_content.content.authenticated_data,
-                committer: *sender,
-                state_update,
-            });
-        }
+        let self_removed = self.removal_proposal(&provisional_state);
+        let is_self_removed = self_removed.is_some();
 
         let update_path = match commit.path {
             Some(update_path) => Some(
@@ -800,18 +718,36 @@ pub(crate) trait MessageProcessor: Send + Sync {
                     &provisional_state,
                     sender,
                     time_sent,
+                    &group_state.context,
                 )
                 .await?,
             ),
             None => None,
         };
 
+        let commit_effect =
+            if let Some(reinit) = provisional_state.applied_proposals.reinitializations.pop() {
+                self.group_state_mut().pending_reinit = Some(reinit.proposal.clone());
+                CommitEffect::ReInit(reinit)
+            } else if let Some(remove_proposal) = self_removed {
+                let new_epoch = NewEpoch::new(self.group_state().clone(), &provisional_state);
+                CommitEffect::Removed {
+                    remover: remove_proposal.sender,
+                    new_epoch: Box::new(new_epoch),
+                }
+            } else {
+                CommitEffect::NewEpoch(Box::new(NewEpoch::new(
+                    self.group_state().clone(),
+                    &provisional_state,
+                )))
+            };
+
         let new_secrets = match update_path {
-            Some(update_path) => {
+            Some(update_path) if !is_self_removed => {
                 self.apply_update_path(sender, &update_path, &mut provisional_state)
                     .await
             }
-            None => Ok(None),
+            _ => Ok(None),
         }?;
 
         // Update the transcript hash to get the new context.
@@ -829,30 +765,23 @@ pub(crate) trait MessageProcessor: Send + Sync {
             .tree_hash(self.cipher_suite_provider())
             .await?;
 
-        if let Some(reinit) = provisional_state.applied_proposals.reinitializations.pop() {
-            self.group_state_mut().pending_reinit = Some(reinit.proposal);
-
-            #[cfg(feature = "state_update")]
-            {
-                state_update.active = false;
-            }
-        }
-
         if let Some(confirmation_tag) = &auth_content.auth.confirmation_tag {
-            // Update the key schedule to calculate new private keys
-            self.update_key_schedule(
-                new_secrets,
-                interim_transcript_hash,
-                confirmation_tag,
-                provisional_state,
-            )
-            .await?;
+            if !is_self_removed {
+                // Update the key schedule to calculate new private keys
+                self.update_key_schedule(
+                    new_secrets,
+                    interim_transcript_hash,
+                    confirmation_tag,
+                    provisional_state,
+                )
+                .await?;
+            }
 
             Ok(CommitMessageDescription {
                 is_external: matches!(auth_content.content.sender, Sender::NewMemberCommit),
                 authenticated_data: auth_content.content.authenticated_data,
                 committer: *sender,
-                state_update,
+                effect: commit_effect,
             })
         } else {
             Err(MlsError::InvalidConfirmationTag)
@@ -865,7 +794,11 @@ pub(crate) trait MessageProcessor: Send + Sync {
     fn identity_provider(&self) -> Self::IdentityProvider;
     fn cipher_suite_provider(&self) -> &Self::CipherSuiteProvider;
     fn psk_storage(&self) -> Self::PreSharedKeyStorage;
-    fn can_continue_processing(&self, provisional_state: &ProvisionalState) -> bool;
+
+    fn removal_proposal(
+        &self,
+        provisional_state: &ProvisionalState,
+    ) -> Option<ProposalInfo<RemoveProposal>>;
 
     #[cfg(feature = "private_message")]
     fn min_epoch_available(&self) -> Option<u64>;
@@ -1017,7 +950,7 @@ pub(crate) async fn validate_key_package<C: CipherSuiteProvider, I: IdentityProv
     cs: &C,
     id: &I,
 ) -> Result<(), MlsError> {
-    let validator = LeafNodeValidator::new(cs, id, None);
+    let validator = LeafNodeValidator::new(cs, id, MemberValidationContext::None);
 
     #[cfg(feature = "std")]
     let context = Some(MlsTime::now());
@@ -1034,4 +967,50 @@ pub(crate) async fn validate_key_package<C: CipherSuiteProvider, I: IdentityProv
     validate_key_package_properties(key_package, version, cs).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::{vec, vec::Vec};
+    use mls_rs_codec::{MlsDecode, MlsEncode};
+
+    use crate::{
+        client::test_utils::TEST_PROTOCOL_VERSION,
+        group::{test_utils::get_test_group_context, GroupState, Sender},
+    };
+
+    use super::{CommitEffect, NewEpoch};
+
+    #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
+    async fn commit_effect_codec() {
+        let epoch = NewEpoch {
+            epoch: 7,
+            prior_state: GroupState {
+                #[cfg(feature = "by_ref_proposal")]
+                proposals: crate::group::ProposalCache::new(TEST_PROTOCOL_VERSION, vec![]),
+                context: get_test_group_context(7, 7.into()).await,
+                public_tree: Default::default(),
+                interim_transcript_hash: vec![].into(),
+                pending_reinit: None,
+                confirmation_tag: Default::default(),
+            },
+            applied_proposals: vec![],
+            unused_proposals: vec![],
+        };
+
+        let effects = vec![
+            CommitEffect::NewEpoch(epoch.clone().into()),
+            CommitEffect::Removed {
+                new_epoch: epoch.into(),
+                remover: Sender::Member(0),
+            },
+        ];
+
+        let bytes = effects.mls_encode_to_vec().unwrap();
+
+        assert_eq!(
+            effects,
+            Vec::<CommitEffect>::mls_decode(&mut &*bytes).unwrap()
+        );
+    }
 }

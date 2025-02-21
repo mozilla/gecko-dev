@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 
 #[cfg(feature = "custom_proposal")]
 use itertools::Itertools;
+use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
 
 use crate::{
     group::{
@@ -316,10 +317,12 @@ impl ProposalBundle {
         )
     }
 
-    pub(crate) fn into_proposals_or_refs(self) -> Vec<ProposalOrRef> {
-        self.into_proposals()
+    pub(crate) fn proposals_or_refs(&self) -> Vec<ProposalOrRef> {
+        self.iter_proposals()
             .filter_map(|p| match p.source {
-                ProposalSource::ByValue => Some(ProposalOrRef::Proposal(Box::new(p.proposal))),
+                ProposalSource::ByValue => {
+                    Some(ProposalOrRef::Proposal(Box::new(p.proposal.into())))
+                }
                 #[cfg(feature = "by_ref_proposal")]
                 ProposalSource::ByReference(reference) => Some(ProposalOrRef::Reference(reference)),
                 _ => None,
@@ -481,12 +484,13 @@ impl<'a> FromIterator<&'a (ProposalRef, CachedProposal)> for ProposalBundle {
 //     safer_ffi_gen::ffi_type(clone, opaque)
 // )]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, MlsSize, MlsEncode, MlsDecode)]
+#[repr(u8)]
 pub enum ProposalSource {
-    ByValue,
+    ByValue = 1u8,
     #[cfg(feature = "by_ref_proposal")]
-    ByReference(ProposalRef),
-    Local,
+    ByReference(ProposalRef) = 2u8,
+    Local = 3u8,
 }
 
 // #[cfg_attr(all(feature = "ffi", not(test)), safer_ffi_gen::ffi_type(opaque))]
@@ -504,7 +508,34 @@ pub struct ProposalInfo<T> {
     pub source: ProposalSource,
 }
 
-// #[cfg_attr(all(feature = "ffi", not(test)), ::safer_ffi_gen::safer_ffi_gen)]
+impl<T: MlsSize> MlsSize for ProposalInfo<T> {
+    fn mls_encoded_len(&self) -> usize {
+        self.proposal.mls_encoded_len()
+            + self.sender.mls_encoded_len()
+            + self.source.mls_encoded_len()
+    }
+}
+
+impl<T: MlsEncode> MlsEncode for ProposalInfo<T> {
+    fn mls_encode(&self, writer: &mut Vec<u8>) -> Result<(), mls_rs_codec::Error> {
+        self.proposal.mls_encode(writer)?;
+        self.sender.mls_encode(writer)?;
+        self.source.mls_encode(writer)?;
+        Ok(())
+    }
+}
+
+impl<T: MlsDecode> MlsDecode for ProposalInfo<T> {
+    fn mls_decode(reader: &mut &[u8]) -> Result<Self, mls_rs_codec::Error> {
+        Ok(Self {
+            proposal: T::mls_decode(reader)?,
+            sender: Sender::mls_decode(reader)?,
+            source: ProposalSource::mls_decode(reader)?,
+        })
+    }
+}
+
+#[cfg_attr(all(feature = "ffi", not(test)), ::safer_ffi_gen::safer_ffi_gen)]
 impl<T> ProposalInfo<T> {
     /// Create a new ProposalInfo.
     ///
@@ -562,12 +593,19 @@ impl<T> ProposalInfo<T> {
 
     #[inline(always)]
     pub fn is_by_value(&self) -> bool {
-        self.source == ProposalSource::ByValue
+        !self.is_by_reference()
     }
 
+    #[cfg(feature = "by_ref_proposal")]
     #[inline(always)]
     pub fn is_by_reference(&self) -> bool {
-        !self.is_by_value()
+        matches!(self.source, ProposalSource::ByReference(_))
+    }
+
+    #[cfg(not(feature = "by_ref_proposal"))]
+    #[inline(always)]
+    pub fn is_by_reference(&self) -> bool {
+        false
     }
 
     /// The [`ProposalRef`] of this proposal if its source is [`ProposalSource::ByReference`]

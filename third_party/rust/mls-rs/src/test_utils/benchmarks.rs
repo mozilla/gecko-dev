@@ -9,10 +9,20 @@ use crate::{
     test_utils::{generate_basic_client, get_test_groups},
 };
 
+#[cfg(not(feature = "benchmark_pq_crypto"))]
 pub use mls_rs_crypto_openssl::OpensslCryptoProvider as MlsCryptoProvider;
+
+#[cfg(feature = "benchmark_pq_crypto")]
+pub use mls_rs_crypto_awslc::AwsLcCryptoProvider as MlsCryptoProvider;
 
 pub type TestClientConfig =
     WithIdentityProvider<BasicIdentityProvider, WithCryptoProvider<MlsCryptoProvider, BaseConfig>>;
+
+#[cfg(not(feature = "benchmark_pq_crypto"))]
+pub const BENCH_CIPHER_SUITE: CipherSuite = CipherSuite::CURVE25519_AES128;
+
+#[cfg(feature = "benchmark_pq_crypto")]
+pub const BENCH_CIPHER_SUITE: CipherSuite = CipherSuite::ML_KEM_768_X25519;
 
 macro_rules! load_test_case_mls {
     ($name:ident, $generate:expr) => {
@@ -54,13 +64,13 @@ macro_rules! load_test_case_mls {
 }
 
 #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
-async fn generate_test_cases(cs: CipherSuite) -> Vec<MlsMessage> {
+async fn generate_test_cases() -> Vec<MlsMessage> {
     let mut cases = Vec::new();
 
     for size in [16, 64, 128] {
         let group = get_test_groups(
             ProtocolVersion::MLS_10,
-            cs,
+            BENCH_CIPHER_SUITE,
             size,
             None,
             false,
@@ -87,20 +97,19 @@ pub struct GroupStates<C: MlsConfig> {
     pub receiver: Group<C>,
 }
 
-#[cfg(mls_build_async)]
-pub fn load_group_states(cs: CipherSuite) -> Vec<GroupStates<impl MlsConfig>> {
-    let group_info = load_test_case_mls!(group_state, block_on(generate_test_cases(cs)), to_vec);
-    join_group(cs, group_info)
-}
-
 #[cfg(not(mls_build_async))]
-pub fn load_group_states(cs: CipherSuite) -> Vec<GroupStates<impl MlsConfig>> {
+pub fn load_group_states() -> Vec<GroupStates<impl MlsConfig>> {
+    #[cfg(not(feature = "benchmark_pq_crypto"))]
     let group_infos: Vec<MlsMessage> =
-        load_test_case_mls!(group_state, generate_test_cases(cs), to_vec);
+        load_test_case_mls!(group_state, generate_test_cases(), to_vec);
+
+    #[cfg(feature = "benchmark_pq_crypto")]
+    let group_infos: Vec<MlsMessage> =
+        load_test_case_mls!(group_state_pq, generate_test_cases(), to_vec);
 
     group_infos
         .into_iter()
-        .map(|info| join_group(cs, info))
+        .map(|info| join_group(BENCH_CIPHER_SUITE, info))
         .collect()
 }
 

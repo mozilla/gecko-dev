@@ -95,22 +95,23 @@ impl TreeKemPublic {
     ) -> Result<(), MlsError> {
         let num_leaves = self.total_leaf_count();
 
-        let trailing_blanks = (0..num_leaves)
-            .rev()
-            .map_while(|l| {
+        let leaves = updated_leaves
+            .iter()
+            .copied()
+            .chain((0..num_leaves).rev().map_while(|l| {
                 self.tree_hashes
                     .current
                     .get(2 * l as usize)
                     .is_none()
                     .then_some(LeafIndex(l))
-            })
+            }))
             .collect::<Vec<_>>();
 
         // Update the current hashes for direct paths of all modified leaves.
         tree_hash(
             &mut self.tree_hashes.current,
             &self.nodes,
-            Some([updated_leaves, &trailing_blanks].concat()),
+            Some(leaves),
             &[],
             num_leaves,
             cipher_suite_provider,

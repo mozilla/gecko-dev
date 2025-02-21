@@ -5,7 +5,7 @@ use alloc::{
 
 use crate::{Error, MlsDecode, MlsEncode, MlsSize};
 
-impl<'a, T> MlsSize for Cow<'a, T>
+impl<T> MlsSize for Cow<'_, T>
 where
     T: MlsSize + ToOwned,
 {
@@ -14,7 +14,7 @@ where
     }
 }
 
-impl<'a, T> MlsEncode for Cow<'a, T>
+impl<T> MlsEncode for Cow<'_, T>
 where
     T: MlsEncode + ToOwned,
 {
@@ -24,7 +24,7 @@ where
     }
 }
 
-impl<'a, T> MlsDecode for Cow<'a, T>
+impl<T> MlsDecode for Cow<'_, T>
 where
     T: ToOwned,
     <T as ToOwned>::Owned: MlsDecode,

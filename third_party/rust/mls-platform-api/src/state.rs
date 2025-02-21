@@ -121,14 +121,6 @@ impl PlatformState {
             )
             .protocol_version(version);
 
-        if let Some(key_package_extensions) = &config.key_package_extensions {
-            builder = builder.key_package_extensions(key_package_extensions.clone());
-        };
-
-        if let Some(leaf_node_extensions) = &config.leaf_node_extensions {
-            builder = builder.leaf_node_extensions(leaf_node_extensions.clone());
-        }
-
         if let Some(key_package_lifetime_s) = config.key_package_lifetime_s {
             builder = builder.key_package_lifetime(key_package_lifetime_s);
         }
@@ -182,7 +174,7 @@ impl PlatformState {
             .map_err(|e| PlatformError::StorageError(e.into_any_error()))?;
 
         storage
-            .insert(hex::encode(identifier), data)
+            .insert(&hex::encode(identifier), &data)
             .map_err(|e| PlatformError::StorageError(e.into_any_error()))?;
         Ok(())
     }

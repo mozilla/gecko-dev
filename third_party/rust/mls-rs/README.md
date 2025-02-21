@@ -60,6 +60,7 @@ For cipher suite descriptions see the RFC documentation [here](https://www.rfc-e
 | Rust Crypto | 1,2,3         | ⚠️ Experimental |
 | Web Crypto  | ⚠️ Experimental 2,5,7 | Unsupported |
 | CryptoKit   | 1,2,3,5,7     | Unsupported     |
+| NSS         | 1,2,3         | Unsupported     |
 
 ## Security Notice
 

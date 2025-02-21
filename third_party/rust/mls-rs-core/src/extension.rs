@@ -34,6 +34,9 @@ impl ExtensionType {
     pub const EXTERNAL_PUB: ExtensionType = ExtensionType(4);
     pub const EXTERNAL_SENDERS: ExtensionType = ExtensionType(5);
 
+    #[cfg(feature = "last_resort_key_package_ext")]
+    pub const LAST_RESORT_KEY_PACKAGE: ExtensionType = ExtensionType(0x000A);
+
     /// Default extension types defined
     /// in [RFC 9420](https://www.rfc-editor.org/rfc/rfc9420.html#name-leaf-node-contents)
     pub const DEFAULT: &'static [ExtensionType] = &[

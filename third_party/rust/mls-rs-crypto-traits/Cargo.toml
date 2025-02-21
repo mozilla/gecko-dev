@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "mls-rs-crypto-traits"
-version = "0.10.0"
+version = "0.15.0"
 build = false
 autolib = false
 autobins = false
@@ -37,7 +37,7 @@ path = "src/lib.rs"
 maybe-async = "0.2.10"
 
 [dependencies.mls-rs-core]
-version = "0.18.0"
+version = "0.21.0"
 path = "../mls-rs-core"
 default-features = false
 

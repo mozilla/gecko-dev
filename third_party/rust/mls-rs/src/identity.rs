@@ -15,10 +15,9 @@ pub use mls_rs_core::identity::{
     Credential, CredentialType, CustomCredential, MlsCredential, SigningIdentity,
 };
 
-pub use mls_rs_core::group::RosterUpdate;
-
 #[cfg(test)]
 pub(crate) mod test_utils {
+    #[cfg(feature = "std")]
     use alloc::boxed::Box;
     use alloc::vec;
     use alloc::vec::Vec;
@@ -26,7 +25,9 @@ pub(crate) mod test_utils {
         crypto::{CipherSuite, CipherSuiteProvider, SignatureSecretKey},
         error::IntoAnyError,
         extension::ExtensionList,
-        identity::{Credential, CredentialType, IdentityProvider, SigningIdentity},
+        identity::{
+            Credential, CredentialType, IdentityProvider, MemberValidationContext, SigningIdentity,
+        },
         time::MlsTime,
     };
 
@@ -120,7 +121,7 @@ pub(crate) mod test_utils {
             &self,
             _signing_identity: &SigningIdentity,
             _timestamp: Option<MlsTime>,
-            _extensions: Option<&ExtensionList>,
+            _context: MemberValidationContext<'_>,
         ) -> Result<(), Self::Error> {
             //TODO: Is it actually beneficial to check the key, or does that already happen elsewhere before
             //this point?

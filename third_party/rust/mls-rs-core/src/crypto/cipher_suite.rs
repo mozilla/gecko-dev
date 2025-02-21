@@ -67,6 +67,18 @@ impl CipherSuite {
     /// MLS_256_DHKEMP384_AES256GCM_SHA384_P384
     pub const P384_AES256: CipherSuite = CipherSuite(7);
 
+    /// So far, there are no official PQ cipher suites
+    #[cfg(feature = "post-quantum")]
+    pub const ML_KEM_512: CipherSuite = CipherSuite(65001);
+    #[cfg(feature = "post-quantum")]
+    pub const ML_KEM_768: CipherSuite = CipherSuite(65002);
+    #[cfg(feature = "post-quantum")]
+    pub const ML_KEM_1024: CipherSuite = CipherSuite(65003);
+
+    /// So far, there are no official PQ cipher suites
+    #[cfg(feature = "post-quantum")]
+    pub const ML_KEM_768_X25519: CipherSuite = CipherSuite(65100);
+
     /// Ciphersuite from a raw value.
     pub const fn new(value: u16) -> CipherSuite {
         CipherSuite(value)

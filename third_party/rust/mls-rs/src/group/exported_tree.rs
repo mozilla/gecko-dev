@@ -7,6 +7,8 @@ use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
 
 use crate::{client::MlsError, tree_kem::node::NodeVec};
 
+use super::Roster;
+
 #[cfg_attr(
     all(feature = "ffi", not(test)),
     safer_ffi_gen::ffi_type(clone, opaque)
@@ -34,6 +36,12 @@ impl<'a> ExportedTree<'a> {
 
     pub fn into_owned(self) -> ExportedTree<'static> {
         ExportedTree(Cow::Owned(self.0.into_owned()))
+    }
+
+    pub fn roster(&'a self) -> Roster<'a> {
+        Roster {
+            public_tree: &self.0,
+        }
     }
 }
 

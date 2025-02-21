@@ -10,19 +10,16 @@ use core::fmt::{self, Debug};
 use crate::group::proposal::ProposalType;
 
 #[cfg(feature = "tree_index")]
-use crate::identity::CredentialType;
+use crate::{
+    identity::CredentialType,
+    map::{LargeMap, LargeMapEntry},
+};
 
 #[cfg(feature = "tree_index")]
 use mls_rs_core::crypto::SignaturePublicKey;
 
 #[cfg(all(feature = "tree_index", feature = "std"))]
 use itertools::Itertools;
-
-#[cfg(all(feature = "tree_index", not(feature = "std")))]
-use alloc::collections::{btree_map::Entry, BTreeMap};
-
-#[cfg(all(feature = "tree_index", feature = "std"))]
-use std::collections::{hash_map::Entry, HashMap};
 
 #[cfg(all(feature = "tree_index", not(feature = "std")))]
 use alloc::collections::BTreeSet;
@@ -43,26 +40,15 @@ impl Debug for Identifier {
     }
 }
 
-#[cfg(all(feature = "tree_index", feature = "std"))]
+#[cfg(feature = "tree_index")]
 #[derive(Clone, Debug, Default, PartialEq, MlsSize, MlsEncode, MlsDecode)]
 pub struct TreeIndex {
-    credential_signature_key: HashMap<SignaturePublicKey, LeafIndex>,
-    hpke_key: HashMap<HpkePublicKey, LeafIndex>,
-    identities: HashMap<Identifier, LeafIndex>,
-    credential_type_counters: HashMap<CredentialType, TypeCounter>,
+    credential_signature_key: LargeMap<SignaturePublicKey, LeafIndex>,
+    hpke_key: LargeMap<HpkePublicKey, LeafIndex>,
+    identities: LargeMap<Identifier, LeafIndex>,
+    credential_type_counters: LargeMap<CredentialType, TypeCounter>,
     #[cfg(feature = "custom_proposal")]
-    proposal_type_counter: HashMap<ProposalType, u32>,
-}
-
-#[cfg(all(feature = "tree_index", not(feature = "std")))]
-#[derive(Clone, Debug, Default, PartialEq, MlsSize, MlsEncode, MlsDecode)]
-pub struct TreeIndex {
-    credential_signature_key: BTreeMap<SignaturePublicKey, LeafIndex>,
-    hpke_key: BTreeMap<HpkePublicKey, LeafIndex>,
-    identities: BTreeMap<Identifier, LeafIndex>,
-    credential_type_counters: BTreeMap<CredentialType, TypeCounter>,
-    #[cfg(feature = "custom_proposal")]
-    proposal_type_counter: BTreeMap<ProposalType, u32>,
+    proposal_type_counter: LargeMap<ProposalType, u32>,
 }
 
 #[cfg(feature = "tree_index")]
@@ -156,18 +142,18 @@ impl TreeIndex {
         let pub_key = leaf_node.signing_identity.signature_key.clone();
         let credential_entry = self.credential_signature_key.entry(pub_key);
 
-        if let Entry::Occupied(entry) = credential_entry {
+        if let LargeMapEntry::Occupied(entry) = credential_entry {
             return Err(MlsError::DuplicateLeafData(**entry.get()));
         }
 
         let hpke_entry = self.hpke_key.entry(leaf_node.public_key.clone());
 
-        if let Entry::Occupied(entry) = hpke_entry {
+        if let LargeMapEntry::Occupied(entry) = hpke_entry {
             return Err(MlsError::DuplicateLeafData(**entry.get()));
         }
 
         let identity_entry = self.identities.entry(Identifier(identity));
-        if let Entry::Occupied(entry) = identity_entry {
+        if let LargeMapEntry::Occupied(entry) = identity_entry {
             return Err(MlsError::DuplicateLeafData(**entry.get()));
         }
 

@@ -27,6 +27,14 @@ name = "mls_platform_api"
 path = "src/lib.rs"
 
 [[test]]
+name = "clear_pending_commit"
+path = "tests/clear_pending_commit.rs"
+
+[[test]]
+name = "clear_pending_proposals"
+path = "tests/clear_pending_proposals.rs"
+
+[[test]]
 name = "group_add"
 path = "tests/group_add.rs"
 
@@ -78,7 +86,7 @@ features = ["serde"]
 
 [dependencies.mls-rs]
 git = "https://github.com/beurdouche/mls-rs"
-rev = "eedb37e50e3fca51863f460755afd632137da57c"
+rev = "b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 features = [
     "sqlcipher-bundled",
     "serde",
@@ -86,11 +94,11 @@ features = [
 
 [dependencies.mls-rs-crypto-nss]
 git = "https://github.com/beurdouche/mls-rs"
-rev = "eedb37e50e3fca51863f460755afd632137da57c"
+rev = "b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 
 [dependencies.mls-rs-provider-sqlite]
 git = "https://github.com/beurdouche/mls-rs"
-rev = "eedb37e50e3fca51863f460755afd632137da57c"
+rev = "b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 
 [dependencies.serde]
 version = "1.0"

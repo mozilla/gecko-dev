@@ -139,7 +139,7 @@ impl KeyPackage {
     }
 }
 
-impl<'a> Signable<'a> for KeyPackage {
+impl Signable<'_> for KeyPackage {
     const SIGN_LABEL: &'static str = "KeyPackageTBS";
 
     type SigningContext = ();
@@ -173,7 +173,6 @@ pub(crate) mod test_utils {
     use crate::{
         crypto::test_utils::test_cipher_suite_provider,
         group::framing::MlsMessagePayload,
-        identity::basic::BasicIdentityProvider,
         identity::test_utils::get_test_signing_identity,
         tree_kem::{leaf_node::test_utils::get_test_capabilities, Lifetime},
         MlsMessage,
@@ -206,7 +205,6 @@ pub(crate) mod test_utils {
             cipher_suite_provider: &test_cipher_suite_provider(cipher_suite),
             signing_identity: &signing_identity,
             signing_key: &secret_key,
-            identity_provider: &BasicIdentityProvider,
         };
 
         let key_package = generator

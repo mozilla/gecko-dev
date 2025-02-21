@@ -6,7 +6,11 @@ use crate::{identity::CredentialType, identity::SigningIdentity, time::MlsTime};
 use alloc::vec;
 use alloc::vec::Vec;
 pub use mls_rs_core::identity::BasicCredential;
-use mls_rs_core::{error::IntoAnyError, extension::ExtensionList, identity::IdentityProvider};
+use mls_rs_core::{
+    error::IntoAnyError,
+    extension::ExtensionList,
+    identity::{IdentityProvider, MemberValidationContext},
+};
 
 #[derive(Debug)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
@@ -62,7 +66,7 @@ impl IdentityProvider for BasicIdentityProvider {
         &self,
         signing_identity: &SigningIdentity,
         _timestamp: Option<MlsTime>,
-        _extensions: Option<&ExtensionList>,
+        _context: MemberValidationContext<'_>,
     ) -> Result<(), Self::Error> {
         resolve_basic_identity(signing_identity).map(|_| ())
     }

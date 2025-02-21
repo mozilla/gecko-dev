@@ -17,7 +17,10 @@ use super::filtering_common::{filter_out_invalid_psks, ApplyProposalsOutput, Pro
 #[cfg(feature = "by_ref_proposal")]
 use {crate::extension::ExternalSendersExt, mls_rs_core::error::IntoAnyError};
 
-use mls_rs_core::{identity::IdentityProvider, psk::PreSharedKeyStorage};
+use mls_rs_core::{
+    identity::{IdentityProvider, MemberValidationContext},
+    psk::PreSharedKeyStorage,
+};
 
 #[cfg(feature = "custom_proposal")]
 use itertools::Itertools;
@@ -39,7 +42,7 @@ use crate::group::{
 #[cfg(all(feature = "std", feature = "psk"))]
 use std::collections::HashSet;
 
-impl<'a, C, P, CSP> ProposalApplier<'a, C, P, CSP>
+impl<C, P, CSP> ProposalApplier<'_, C, P, CSP>
 where
     C: IdentityProvider,
     P: PreSharedKeyStorage,
@@ -59,7 +62,7 @@ where
         filter_out_invalid_group_extensions(proposals, self.identity_provider, commit_time).await?;
 
         filter_out_extra_group_context_extensions(proposals)?;
-        filter_out_invalid_reinit(proposals, self.protocol_version)?;
+        filter_out_invalid_reinit(proposals, self.original_context.protocol_version)?;
         filter_out_reinit_if_other_proposals(proposals)?;
 
         self.apply_proposal_changes(proposals, commit_time).await
@@ -77,7 +80,7 @@ where
                     .await
             }
             None => {
-                self.apply_tree_changes(proposals, self.original_group_extensions, commit_time)
+                self.apply_tree_changes(proposals, &self.original_context.extensions, commit_time)
                     .await
             }
         }
@@ -87,10 +90,10 @@ where
     pub(super) async fn apply_tree_changes(
         &self,
         proposals: &ProposalBundle,
-        group_extensions_in_use: &ExtensionList,
+        new_extensions: &ExtensionList,
         commit_time: Option<MlsTime>,
     ) -> Result<ApplyProposalsOutput, MlsError> {
-        self.validate_new_nodes(proposals, group_extensions_in_use, commit_time)
+        self.validate_new_nodes(proposals, new_extensions, commit_time)
             .await?;
 
         let mut new_tree = self.original_tree.clone();
@@ -98,7 +101,7 @@ where
         let added = new_tree
             .batch_edit_lite(
                 proposals,
-                group_extensions_in_use,
+                new_extensions,
                 self.identity_provider,
                 self.cipher_suite_provider,
             )
@@ -121,13 +124,18 @@ where
     async fn validate_new_nodes(
         &self,
         proposals: &ProposalBundle,
-        group_extensions_in_use: &ExtensionList,
+        new_extensions: &ExtensionList,
         commit_time: Option<MlsTime>,
     ) -> Result<(), MlsError> {
+        let member_validation_context = MemberValidationContext::ForCommit {
+            current_context: self.original_context,
+            new_extensions,
+        };
+
         let leaf_node_validator = &LeafNodeValidator::new(
             self.cipher_suite_provider,
             self.identity_provider,
-            Some(group_extensions_in_use),
+            member_validation_context,
         );
 
         let adds = wrap_iter(proposals.add_proposals());

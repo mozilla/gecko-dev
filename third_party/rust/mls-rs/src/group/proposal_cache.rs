@@ -7,6 +7,7 @@ use alloc::vec::Vec;
 use super::{
     message_processor::ProvisionalState,
     mls_rules::{CommitDirection, CommitSource, MlsRules},
+    proposal_filter::prepare_proposals_for_mls_rules,
     GroupState, ProposalOrRef,
 };
 use crate::{
@@ -19,12 +20,12 @@ use crate::{
 };
 
 #[cfg(feature = "by_ref_proposal")]
-use crate::group::{proposal_filter::FilterStrategy, ProposalRef, ProtocolVersion};
+use crate::{
+    group::{message_hash::MessageHash, ProposalMessageDescription, ProposalRef, ProtocolVersion},
+    MlsMessage,
+};
 
 use crate::tree_kem::leaf_node::LeafNode;
-
-#[cfg(all(feature = "std", feature = "by_ref_proposal"))]
-use std::collections::HashMap;
 
 #[cfg(feature = "by_ref_proposal")]
 use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
@@ -46,14 +47,21 @@ pub struct CachedProposal {
 }
 
 #[cfg(feature = "by_ref_proposal")]
-#[derive(Clone, PartialEq)]
+#[derive(Clone, MlsSize, MlsEncode, MlsDecode)]
 pub(crate) struct ProposalCache {
     protocol_version: ProtocolVersion,
     group_id: Vec<u8>,
-    #[cfg(feature = "std")]
-    pub(crate) proposals: HashMap<ProposalRef, CachedProposal>,
-    #[cfg(not(feature = "std"))]
-    pub(crate) proposals: Vec<(ProposalRef, CachedProposal)>,
+    pub(crate) proposals: crate::map::SmallMap<ProposalRef, CachedProposal>,
+    pub(crate) own_proposals: crate::map::SmallMap<MessageHash, ProposalMessageDescription>,
+}
+
+#[cfg(feature = "by_ref_proposal")]
+impl PartialEq for ProposalCache {
+    fn eq(&self, other: &Self) -> bool {
+        self.protocol_version == other.protocol_version
+            && self.group_id == other.group_id
+            && self.proposals == other.proposals
+    }
 }
 
 #[cfg(feature = "by_ref_proposal")]
@@ -77,28 +85,30 @@ impl ProposalCache {
             protocol_version,
             group_id,
             proposals: Default::default(),
+            own_proposals: Default::default(),
         }
     }
 
     pub fn import(
         protocol_version: ProtocolVersion,
         group_id: Vec<u8>,
-        #[cfg(feature = "std")] proposals: HashMap<ProposalRef, CachedProposal>,
-        #[cfg(not(feature = "std"))] proposals: Vec<(ProposalRef, CachedProposal)>,
+        proposals: crate::map::SmallMap<ProposalRef, CachedProposal>,
+        own_proposals: crate::map::SmallMap<MessageHash, ProposalMessageDescription>,
     ) -> Self {
         Self {
             protocol_version,
             group_id,
             proposals,
+            own_proposals,
         }
     }
 
-    #[inline]
     pub fn clear(&mut self) {
         self.proposals.clear();
+        self.own_proposals.clear();
     }
 
-    #[cfg(feature = "private_message")]
+    #[cfg(feature = "by_ref_proposal")]
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.proposals.is_empty()
@@ -113,6 +123,26 @@ impl ProposalCache {
         #[cfg(not(feature = "std"))]
         // This may result in dups but it does not matter
         self.proposals.push((proposal_ref, cached_proposal));
+    }
+
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    pub async fn insert_own<CS: CipherSuiteProvider>(
+        &mut self,
+        proposal: ProposalMessageDescription,
+        message: &MlsMessage,
+        sender: Sender,
+        cs: &CS,
+    ) -> Result<(), MlsError> {
+        self.insert(
+            proposal.proposal_ref.clone(),
+            proposal.proposal.clone(),
+            sender,
+        );
+
+        let message_hash = MessageHash::compute(cs, message).await?;
+        self.own_proposals.insert(message_hash, proposal);
+
+        Ok(())
     }
 
     pub fn prepare_commit(
@@ -169,6 +199,17 @@ impl ProposalCache {
 
         Ok(proposals)
     }
+
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    pub async fn get_own<CS: CipherSuiteProvider>(
+        &self,
+        cs: &CS,
+        message: &MlsMessage,
+    ) -> Result<Option<ProposalMessageDescription>, MlsError> {
+        let message_hash = MessageHash::compute(cs, message).await?;
+
+        Ok(self.own_proposals.get(&message_hash).cloned())
+    }
 }
 
 #[cfg(not(feature = "by_ref_proposal"))]
@@ -223,7 +264,6 @@ impl GroupState {
         CSP: CipherSuiteProvider,
     {
         let roster = self.public_tree.roster();
-        let group_extensions = &self.context.extensions;
 
         #[cfg(feature = "by_ref_proposal")]
         let all_proposals = proposals.clone();
@@ -243,36 +283,26 @@ impl GroupState {
             )),
         }?;
 
+        prepare_proposals_for_mls_rules(&mut proposals, direction, &self.public_tree)?;
+
         proposals = user_rules
-            .filter_proposals(direction, origin, &roster, group_extensions, proposals)
+            .filter_proposals(direction, origin, &roster, &self.context, proposals)
             .await
             .map_err(|e| MlsError::MlsRulesError(e.into_any_error()))?;
 
         let applier = ProposalApplier::new(
             &self.public_tree,
-            self.context.protocol_version,
             cipher_suite_provider,
-            group_extensions,
+            &self.context,
             external_leaf,
             identity_provider,
             psk_storage,
-            #[cfg(feature = "by_ref_proposal")]
-            &self.context.group_id,
         );
 
         #[cfg(feature = "by_ref_proposal")]
-        let applier_output = match direction {
-            CommitDirection::Send => {
-                applier
-                    .apply_proposals(FilterStrategy::IgnoreByRef, &sender, proposals, commit_time)
-                    .await?
-            }
-            CommitDirection::Receive => {
-                applier
-                    .apply_proposals(FilterStrategy::IgnoreNone, &sender, proposals, commit_time)
-                    .await?
-            }
-        };
+        let applier_output = applier
+            .apply_proposals(direction.into(), &sender, proposals, commit_time)
+            .await?;
 
         #[cfg(not(feature = "by_ref_proposal"))]
         let applier_output = applier
@@ -287,6 +317,9 @@ impl GroupState {
             },
             &applier_output.applied_proposals,
         );
+
+        #[cfg(not(feature = "by_ref_proposal"))]
+        let unused_proposals = alloc::vec::Vec::default();
 
         let mut group_context = self.context.clone();
         group_context.epoch += 1;
@@ -304,7 +337,6 @@ impl GroupState {
             applied_proposals: proposals,
             external_init_index: applier_output.external_init_index,
             indexes_of_added_kpkgs: applier_output.indexes_of_added_kpkgs,
-            #[cfg(feature = "by_ref_proposal")]
             unused_proposals,
         })
     }
@@ -629,8 +661,8 @@ mod tests {
     use crate::group::proposal_ref::test_utils::auth_content_from_proposal;
     use crate::group::proposal_ref::ProposalRef;
     use crate::group::{
-        AddProposal, AuthenticatedContent, Content, ExternalInit, Proposal, ProposalOrRef,
-        ReInitProposal, RemoveProposal, Roster, Sender, UpdateProposal,
+        AddProposal, AuthenticatedContent, Content, ExternalInit, GroupContext, Proposal,
+        ProposalOrRef, ReInitProposal, RemoveProposal, Roster, Sender, UpdateProposal,
     };
     use crate::key_package::test_utils::test_key_package_with_signer;
     use crate::signer::Signable;
@@ -751,7 +783,7 @@ mod tests {
             &test_cipher_suite_provider(TEST_CIPHER_SUITE),
             TEST_GROUP,
             leaf_index,
-            default_properties(),
+            Some(default_properties()),
             None,
             &signer,
         )
@@ -854,7 +886,6 @@ mod tests {
             group_context: get_test_group_context(1, cipher_suite).await,
             external_init_index: None,
             indexes_of_added_kpkgs: vec![LeafIndex(1)],
-            #[cfg(feature = "state_update")]
             unused_proposals: vec![],
             applied_proposals: bundle,
         };
@@ -923,8 +954,8 @@ mod tests {
     }
 
     fn assert_matches(mut expected_state: ProvisionalState, state: ProvisionalState) {
-        let expected_proposals = expected_state.applied_proposals.into_proposals_or_refs();
-        let proposals = state.applied_proposals.into_proposals_or_refs();
+        let expected_proposals = expected_state.applied_proposals.proposals_or_refs();
+        let proposals = state.applied_proposals.proposals_or_refs();
 
         assert_eq!(proposals.len(), expected_proposals.len());
 
@@ -955,7 +986,6 @@ mod tests {
 
         assert_eq!(expected_state.public_tree, state.public_tree);
 
-        #[cfg(feature = "state_update")]
         assert_eq!(expected_state.unused_proposals, state.unused_proposals);
     }
 
@@ -1119,7 +1149,7 @@ mod tests {
 
         assert!(!provisional_state
             .applied_proposals
-            .into_proposals_or_refs()
+            .proposals_or_refs()
             .contains(&ProposalOrRef::Reference(update_proposal_ref)))
     }
 
@@ -1254,7 +1284,7 @@ mod tests {
         let proposals = expected_effects
             .applied_proposals
             .clone()
-            .into_proposals_or_refs();
+            .proposals_or_refs();
 
         let resolution = cache
             .resolve_for_commit_default(
@@ -1314,7 +1344,7 @@ mod tests {
                 &test_cipher_suite_provider(TEST_CIPHER_SUITE),
                 TEST_GROUP,
                 0,
-                default_properties(),
+                Some(default_properties()),
                 None,
                 &signer,
             )
@@ -1331,7 +1361,7 @@ mod tests {
 
         let kem_output = vec![0; cipher_suite_provider.kdf_extract_size()];
         let group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
-        let public_tree = &group.group.state.public_tree;
+        let public_tree = &group.state.public_tree;
 
         let res = cache
             .resolve_for_commit_default(
@@ -1340,7 +1370,7 @@ mod tests {
                     ExternalInit { kem_output },
                 )))],
                 None,
-                &group.group.context().extensions,
+                &group.context().extensions,
                 &BasicIdentityProvider,
                 &cipher_suite_provider,
                 public_tree,
@@ -1371,14 +1401,14 @@ mod tests {
         );
 
         let group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
-        let public_tree = &group.group.state.public_tree;
+        let public_tree = &group.state.public_tree;
 
         let res = cache
             .resolve_for_commit_default(
                 Sender::NewMemberCommit,
                 vec![ProposalOrRef::Reference(proposal_ref)],
                 Some(&test_node().await),
-                &group.group.context().extensions,
+                &group.context().extensions,
                 &BasicIdentityProvider,
                 &cipher_suite_provider,
                 public_tree,
@@ -1396,7 +1426,7 @@ mod tests {
         let cipher_suite_provider = test_cipher_suite_provider(TEST_CIPHER_SUITE);
         let kem_output = vec![0; cipher_suite_provider.kdf_extract_size()];
         let group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
-        let public_tree = &group.group.state.public_tree;
+        let public_tree = &group.state.public_tree;
 
         let res = cache
             .resolve_for_commit_default(
@@ -1411,7 +1441,7 @@ mod tests {
                 .map(|p| ProposalOrRef::Proposal(Box::new(p)))
                 .collect(),
                 Some(&test_node().await),
-                &group.group.context().extensions,
+                &group.context().extensions,
                 &BasicIdentityProvider,
                 &cipher_suite_provider,
                 public_tree,
@@ -1432,7 +1462,7 @@ mod tests {
         let cipher_suite_provider = test_cipher_suite_provider(TEST_CIPHER_SUITE);
         let kem_output = vec![0; cipher_suite_provider.kdf_extract_size()];
         let group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
-        let public_tree = &group.group.state.public_tree;
+        let public_tree = &group.state.public_tree;
 
         cache
             .resolve_for_commit_default(
@@ -1445,7 +1475,7 @@ mod tests {
                 .map(|p| ProposalOrRef::Proposal(Box::new(p)))
                 .collect(),
                 Some(&test_node().await),
-                &group.group.context().extensions,
+                &group.context().extensions,
                 &BasicIdentityProvider,
                 &cipher_suite_provider,
                 public_tree,
@@ -1476,7 +1506,7 @@ mod tests {
         let cipher_suite_provider = test_cipher_suite_provider(TEST_CIPHER_SUITE);
         let kem_output = vec![0; cipher_suite_provider.kdf_extract_size()];
         let group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
-        let group_extensions = group.group.context().extensions.clone();
+        let group_extensions = group.context().extensions.clone();
         let mut public_tree = group.group.state.public_tree;
 
         let foo = get_basic_test_node(TEST_CIPHER_SUITE, "foo").await;
@@ -1530,7 +1560,7 @@ mod tests {
         let cipher_suite_provider = test_cipher_suite_provider(TEST_CIPHER_SUITE);
         let kem_output = vec![0; cipher_suite_provider.kdf_extract_size()];
         let group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
-        let group_extensions = group.group.context().extensions.clone();
+        let group_extensions = group.context().extensions.clone();
         let mut public_tree = group.group.state.public_tree;
 
         let node = get_basic_test_node(TEST_CIPHER_SUITE, "bar").await;
@@ -1579,7 +1609,7 @@ mod tests {
         let cipher_suite_provider = test_cipher_suite_provider(TEST_CIPHER_SUITE);
         let kem_output = vec![0; cipher_suite_provider.kdf_extract_size()];
         let group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
-        let group_extensions = group.group.context().extensions.clone();
+        let group_extensions = group.context().extensions.clone();
         let mut public_tree = group.group.state.public_tree;
 
         let node = get_basic_test_node(TEST_CIPHER_SUITE, "foo").await;
@@ -1674,14 +1704,14 @@ mod tests {
         let cache = make_proposal_cache();
         let cipher_suite_provider = test_cipher_suite_provider(TEST_CIPHER_SUITE);
         let group = test_group(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE).await;
-        let public_tree = &group.group.state.public_tree;
+        let public_tree = &group.state.public_tree;
 
         let res = cache
             .resolve_for_commit_default(
                 Sender::NewMemberCommit,
                 Vec::new(),
                 Some(&test_node().await),
-                &group.group.context().extensions,
+                &group.context().extensions,
                 &BasicIdentityProvider,
                 &cipher_suite_provider,
                 public_tree,
@@ -1993,7 +2023,7 @@ mod tests {
                 )
                 .await?;
 
-            let proposals = state.applied_proposals.clone().into_proposals_or_refs();
+            let proposals = state.applied_proposals.clone().proposals_or_refs();
 
             Ok((proposals, state))
         }
@@ -2002,7 +2032,7 @@ mod tests {
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
     async fn key_package_with_invalid_signature() -> KeyPackage {
         let mut kp = test_key_package(TEST_PROTOCOL_VERSION, TEST_CIPHER_SUITE, "mallory").await;
-        kp.signature.clear();
+        kp.signature = vec![1, 2, 3];
         kp
     }
 
@@ -2036,6 +2066,7 @@ mod tests {
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
     async fn receiving_add_with_invalid_key_package_fails() {
         let (alice, tree) = new_tree("alice").await;
+        let kp = key_package_with_invalid_signature().await;
 
         let res = CommitReceiver::new(
             &tree,
@@ -2043,9 +2074,7 @@ mod tests {
             alice,
             test_cipher_suite_provider(TEST_CIPHER_SUITE),
         )
-        .receive([Proposal::Add(Box::new(AddProposal {
-            key_package: key_package_with_invalid_signature().await,
-        }))])
+        .receive([Proposal::Add(Box::new(AddProposal { key_package: kp }))])
         .await;
 
         assert_matches!(res, Err(MlsError::InvalidSignature));
@@ -2088,7 +2117,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2135,7 +2163,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2183,7 +2210,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2242,7 +2268,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2324,7 +2349,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2393,7 +2417,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2492,7 +2515,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2546,7 +2568,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2597,7 +2618,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2651,7 +2671,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, vec![remove_ref.into()]);
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![update_info]);
     }
 
@@ -2721,7 +2740,6 @@ mod tests {
         let add_refs = [add_ref_one, add_ref_two];
         assert!(add_refs.contains(committed_add_ref));
 
-        #[cfg(feature = "state_update")]
         assert_matches!(
             &*processed_proposals.1.unused_proposals,
             [rejected_add_info] if committed_add_ref != rejected_add_info.proposal_ref().unwrap() && add_refs.contains(rejected_add_info.proposal_ref().unwrap())
@@ -2768,7 +2786,6 @@ mod tests {
 
         // Bob proposed the update, so it is not listed as rejected when Alice commits it because
         // she didn't propose it.
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![update_info]);
     }
 
@@ -2859,7 +2876,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -2938,7 +2954,6 @@ mod tests {
 
         assert!(proposal_info.contains(&committed_info));
 
-        #[cfg(feature = "state_update")]
         match &*processed_proposals.1.unused_proposals {
             [r] => {
                 assert_ne!(*r, committed_info);
@@ -2991,8 +3006,8 @@ mod tests {
         );
     }
 
-    fn make_extension_list(foo: u8) -> ExtensionList {
-        vec![TestExtension { foo }.into_extension().unwrap()].into()
+    fn make_extension_list(something: u8) -> ExtensionList {
+        vec![TestExtension { foo: something }.into_extension().unwrap()].into()
     }
 
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
@@ -3069,7 +3084,6 @@ mod tests {
 
         assert!(gce_info.contains(&committed_gce_info));
 
-        #[cfg(feature = "state_update")]
         assert_matches!(
             &*processed_proposals.1.unused_proposals,
             [rejected_gce_info] if committed_gce_info != *rejected_gce_info && gce_info.contains(rejected_gce_info)
@@ -3148,7 +3162,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -3208,7 +3221,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, vec![add_ref.into()]);
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![reinit_info]);
     }
 
@@ -3272,7 +3284,6 @@ mod tests {
 
         assert!(*processed_ref == reinit_ref || *processed_ref == other_reinit_ref);
 
-        #[cfg(feature = "state_update")]
         {
             let (rejected_ref, unused_proposal) = match &*processed_proposals.1.unused_proposals {
                 [r] => (r.proposal_ref().unwrap().clone(), r.proposal.clone()),
@@ -3338,7 +3349,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(
             processed_proposals.1.unused_proposals,
             vec![external_init_info]
@@ -3410,7 +3420,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -3587,7 +3596,6 @@ mod tests {
             cipher_suite_provider: &test_cipher_suite_provider(TEST_CIPHER_SUITE),
             signing_identity: &signing_identity,
             signing_key: &secret_key,
-            identity_provider: &BasicWithCustomProvider::new(BasicIdentityProvider::new()),
         };
 
         generator
@@ -3656,7 +3664,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![add_info]);
     }
 
@@ -3702,7 +3709,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![custom_info]);
     }
 
@@ -3786,7 +3792,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -3858,7 +3863,6 @@ mod tests {
 
         assert_eq!(processed_proposals.0, Vec::new());
 
-        #[cfg(feature = "state_update")]
         assert_eq!(processed_proposals.1.unused_proposals, vec![proposal_info]);
     }
 
@@ -3876,7 +3880,7 @@ mod tests {
                 _: CommitDirection,
                 _: CommitSource,
                 _: &Roster,
-                _: &ExtensionList,
+                _: &GroupContext,
                 mut proposals: ProposalBundle,
             ) -> Result<ProposalBundle, Self::Error> {
                 proposals.group_context_extensions.clear();
@@ -3887,7 +3891,7 @@ mod tests {
             fn commit_options(
                 &self,
                 _: &Roster,
-                _: &ExtensionList,
+                _: &GroupContext,
                 _: &ProposalBundle,
             ) -> Result<CommitOptions, Self::Error> {
                 Ok(Default::default())
@@ -3897,7 +3901,7 @@ mod tests {
             fn encryption_options(
                 &self,
                 _: &Roster,
-                _: &ExtensionList,
+                _: &GroupContext,
             ) -> Result<EncryptionOptions, Self::Error> {
                 Ok(Default::default())
             }
@@ -3928,7 +3932,7 @@ mod tests {
             _: CommitDirection,
             _: CommitSource,
             _: &Roster,
-            _: &ExtensionList,
+            _: &GroupContext,
             _: ProposalBundle,
         ) -> Result<ProposalBundle, Self::Error> {
             Err(MlsError::InvalidSignature)
@@ -3938,7 +3942,7 @@ mod tests {
         fn commit_options(
             &self,
             _: &Roster,
-            _: &ExtensionList,
+            _: &GroupContext,
             _: &ProposalBundle,
         ) -> Result<CommitOptions, Self::Error> {
             Ok(Default::default())
@@ -3948,14 +3952,14 @@ mod tests {
         fn encryption_options(
             &self,
             _: &Roster,
-            _: &ExtensionList,
+            _: &GroupContext,
         ) -> Result<EncryptionOptions, Self::Error> {
             Ok(Default::default())
         }
     }
 
     struct InjectMlsRules {
-        to_inject: Proposal,
+        to_inject: Vec<Proposal>,
         source: ProposalSource,
     }
 
@@ -3969,14 +3973,13 @@ mod tests {
             _: CommitDirection,
             _: CommitSource,
             _: &Roster,
-            _: &ExtensionList,
+            _: &GroupContext,
             mut proposals: ProposalBundle,
         ) -> Result<ProposalBundle, Self::Error> {
-            proposals.add(
-                self.to_inject.clone(),
-                Sender::Member(0),
-                self.source.clone(),
-            );
+            for proposal in self.to_inject.iter().cloned() {
+                proposals.add(proposal, Sender::Member(0), self.source.clone());
+            }
+
             Ok(proposals)
         }
 
@@ -3984,7 +3987,7 @@ mod tests {
         fn commit_options(
             &self,
             _: &Roster,
-            _: &ExtensionList,
+            _: &GroupContext,
             _: &ProposalBundle,
         ) -> Result<CommitOptions, Self::Error> {
             Ok(Default::default())
@@ -3994,7 +3997,7 @@ mod tests {
         fn encryption_options(
             &self,
             _: &Roster,
-            _: &ExtensionList,
+            _: &GroupContext,
         ) -> Result<EncryptionOptions, Self::Error> {
             Ok(Default::default())
         }
@@ -4009,7 +4012,7 @@ mod tests {
         let (committed, _) =
             CommitSender::new(&tree, alice, test_cipher_suite_provider(TEST_CIPHER_SUITE))
                 .with_user_rules(InjectMlsRules {
-                    to_inject: test_proposal.clone(),
+                    to_inject: vec![test_proposal.clone()],
                     source: ProposalSource::ByValue,
                 })
                 .send()
@@ -4031,7 +4034,7 @@ mod tests {
         let (committed, _) =
             CommitSender::new(&tree, alice, test_cipher_suite_provider(TEST_CIPHER_SUITE))
                 .with_user_rules(InjectMlsRules {
-                    to_inject: test_proposal.clone(),
+                    to_inject: vec![test_proposal.clone()],
                     source: ProposalSource::Local,
                 })
                 .send()
@@ -4051,13 +4054,32 @@ mod tests {
 
         let res = CommitSender::new(&tree, alice, test_cipher_suite_provider(TEST_CIPHER_SUITE))
             .with_user_rules(InjectMlsRules {
-                to_inject: test_proposal.clone(),
+                to_inject: vec![test_proposal.clone()],
                 source: ProposalSource::ByValue,
             })
             .send()
             .await;
 
         assert_matches!(res, Err(MlsError::InvalidProposalTypeForSender { .. }))
+    }
+
+    #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
+    async fn sending_invalid_local_proposal_fails() {
+        let (alice, tree) = new_tree("alice").await;
+        let gce_proposal = Proposal::GroupContextExtensions(Default::default());
+
+        let res = CommitSender::new(&tree, alice, test_cipher_suite_provider(TEST_CIPHER_SUITE))
+            .with_user_rules(InjectMlsRules {
+                to_inject: vec![gce_proposal.clone(), gce_proposal],
+                source: ProposalSource::Local,
+            })
+            .send()
+            .await;
+
+        assert_matches!(
+            res,
+            Err(MlsError::MoreThanOneGroupContextExtensionsProposal)
+        );
     }
 
     #[maybe_async::test(not(mls_build_async), async(mls_build_async, crate::futures_test))]
@@ -4146,17 +4168,27 @@ mod tests {
             #[cfg(feature = "by_ref_proposal")]
             let receiver = receiver.with_extensions(extensions);
 
-            let (receiver, proposals, proposer) = if by_ref {
+            let (receiver, proposals, proposer, source) = if by_ref {
                 let proposal_ref = make_proposal_ref(proposal, proposer).await;
                 let receiver = receiver.cache(proposal_ref.clone(), proposal.clone(), proposer);
-                (receiver, vec![ProposalOrRef::from(proposal_ref)], proposer)
+                (
+                    receiver,
+                    vec![ProposalOrRef::from(proposal_ref.clone())],
+                    proposer,
+                    ProposalSource::ByReference(proposal_ref),
+                )
             } else {
-                (receiver, vec![proposal.clone().into()], committer)
+                (
+                    receiver,
+                    vec![proposal.clone().into()],
+                    committer,
+                    ProposalSource::Local,
+                )
             };
 
             let res = receiver.receive(proposals).await;
 
-            if proposer_can_propose(proposer, proposal.proposal_type(), by_ref).is_err() {
+            if proposer_can_propose(proposer, proposal.proposal_type(), &source).is_err() {
                 assert_matches!(res, Err(MlsError::InvalidProposalTypeForSender));
             } else {
                 let is_self_update = proposal.proposal_type() == ProposalType::UPDATE

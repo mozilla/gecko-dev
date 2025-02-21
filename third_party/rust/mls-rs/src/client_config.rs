@@ -37,8 +37,6 @@ pub trait ClientConfig: Send + Sync + Clone {
     fn identity_provider(&self) -> Self::IdentityProvider;
     fn crypto_provider(&self) -> Self::CryptoProvider;
 
-    fn key_package_extensions(&self) -> ExtensionList;
-    fn leaf_node_extensions(&self) -> ExtensionList;
     fn lifetime(&self) -> Lifetime;
 
     fn capabilities(&self) -> Capabilities {
@@ -59,10 +57,10 @@ pub trait ClientConfig: Send + Sync + Clone {
         self.identity_provider().supported_types()
     }
 
-    fn leaf_properties(&self) -> ConfigProperties {
+    fn leaf_properties(&self, leaf_node_extensions: ExtensionList) -> ConfigProperties {
         ConfigProperties {
             capabilities: self.capabilities(),
-            extensions: self.leaf_node_extensions(),
+            extensions: leaf_node_extensions,
         }
     }
 }

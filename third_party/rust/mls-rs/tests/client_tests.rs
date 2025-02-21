@@ -164,11 +164,14 @@ async fn test_create(
 ) {
     let alice = generate_client(cipher_suite, protocol_version, 0, encrypt_controls).await;
     let bob = generate_client(cipher_suite, protocol_version, 1, encrypt_controls).await;
-    let bob_key_pkg = bob.generate_key_package_message().await.unwrap();
+    let bob_key_pkg = bob
+        .generate_key_package_message(Default::default(), Default::default())
+        .await
+        .unwrap();
 
     // Alice creates a group and adds bob
     let mut alice_group = alice
-        .create_group_with_id(b"group".to_vec(), ExtensionList::default())
+        .create_group_with_id(b"group".to_vec(), Default::default(), Default::default())
         .await
         .unwrap();
 
@@ -490,7 +493,7 @@ async fn external_commits_work(
     let creator = generate_client(cipher_suite, protocol_version, 0, false).await;
 
     let creator_group = creator
-        .create_group_with_id(b"group".to_vec(), ExtensionList::default())
+        .create_group_with_id(b"group".to_vec(), Default::default(), Default::default())
         .await
         .unwrap();
 
@@ -585,6 +588,8 @@ async fn test_remove_nonexisting_leaf() {
 #[cfg(feature = "psk")]
 #[maybe_async::test(not(mls_build_async), async(mls_build_async, futures_test))]
 async fn reinit_works() {
+    use mls_rs::group::{CommitEffect, CommitMessageDescription};
+
     let suite1 = CipherSuite::P256_AES128;
 
     let Some(suite2) = CipherSuite::all()
@@ -599,8 +604,14 @@ async fn reinit_works() {
     let bob1 = generate_client(suite1, version, 2, Default::default()).await;
 
     // Create a group with 2 parties
-    let mut alice_group = alice1.create_group(ExtensionList::new()).await.unwrap();
-    let kp = bob1.generate_key_package_message().await.unwrap();
+    let mut alice_group = alice1
+        .create_group(Default::default(), Default::default())
+        .await
+        .unwrap();
+    let kp = bob1
+        .generate_key_package_message(Default::default(), Default::default())
+        .await
+        .unwrap();
 
     let welcome = &alice_group
         .commit_builder()
@@ -637,27 +648,18 @@ async fn reinit_works() {
 
     // Both process Bob's commit
 
-    #[cfg(feature = "state_update")]
-    {
-        let state_update = bob_group.apply_pending_commit().await.unwrap().state_update;
-        assert!(!state_update.is_active() && state_update.is_pending_reinit());
-    }
-
-    #[cfg(not(feature = "state_update"))]
-    bob_group.apply_pending_commit().await.unwrap();
+    let commit_effect = bob_group.apply_pending_commit().await.unwrap().effect;
+    assert_matches!(commit_effect, CommitEffect::ReInit(_));
 
     let message = alice_group.process_incoming_message(commit).await.unwrap();
 
-    #[cfg(feature = "state_update")]
-    if let ReceivedMessage::Commit(commit_description) = message {
-        assert!(
-            !commit_description.state_update.is_active()
-                && commit_description.state_update.is_pending_reinit()
-        );
-    }
-
-    #[cfg(not(feature = "state_update"))]
-    assert_matches!(message, ReceivedMessage::Commit(_));
+    assert_matches!(
+        message,
+        ReceivedMessage::Commit(CommitMessageDescription {
+            effect: CommitEffect::ReInit(_),
+            ..
+        })
+    );
 
     // They can't create new epochs anymore
     let res = alice_group.commit(Vec::new()).await;
@@ -667,7 +669,7 @@ async fn reinit_works() {
     assert!(res.is_err());
 
     // Get reinit clients for alice and bob
-    let (secret_key, public_key) = TestCryptoProvider::new()
+    let (secret_key, public_key) = TestCryptoProvider::default()
         .cipher_suite_provider(suite2)
         .unwrap()
         .signature_key_generate()
@@ -680,7 +682,7 @@ async fn reinit_works() {
         .get_reinit_client(Some(secret_key), Some(identity))
         .unwrap();
 
-    let (secret_key, public_key) = TestCryptoProvider::new()
+    let (secret_key, public_key) = TestCryptoProvider::default()
         .cipher_suite_provider(suite2)
         .unwrap()
         .signature_key_generate()
@@ -695,7 +697,7 @@ async fn reinit_works() {
 
     // Bob produces key package, alice commits, bob joins
     let kp = bob2.generate_key_package().await.unwrap();
-    let (mut alice_group, welcome) = alice2.commit(vec![kp]).await.unwrap();
+    let (mut alice_group, welcome) = alice2.commit(vec![kp], Default::default()).await.unwrap();
     let (mut bob_group, _) = bob2.join(&welcome[0], None).await.unwrap();
 
     assert!(bob_group.cipher_suite() == suite2);
@@ -703,7 +705,10 @@ async fn reinit_works() {
     // They can talk
     let carol = generate_client(suite2, version, 3, Default::default()).await;
 
-    let kp = carol.generate_key_package_message().await.unwrap();
+    let kp = carol
+        .generate_key_package_message(Default::default(), Default::default())
+        .await
+        .unwrap();
 
     let commit_output = alice_group
         .commit_builder()
@@ -813,7 +818,7 @@ async fn weird_tree_scenario() {
 async fn fake_key_package(id: usize) -> MlsMessage {
     generate_client(CipherSuite::P256_AES128, ProtocolVersion::MLS_10, id, false)
         .await
-        .generate_key_package_message()
+        .generate_key_package_message(Default::default(), Default::default())
         .await
         .unwrap()
 }
@@ -844,4 +849,25 @@ async fn external_info_from_commit_allows_to_join() {
         .unwrap();
 
     alice.process_incoming_message(commit).await.unwrap();
+}
+
+#[maybe_async::test(not(mls_build_async), async(mls_build_async, futures_test))]
+async fn can_process_own_removal_if_pending_commit() {
+    let mut groups =
+        get_test_groups(ProtocolVersion::MLS_10, CipherSuite::P256_AES128, 2, false).await;
+
+    let commit = groups[1]
+        .commit_builder()
+        .remove_member(0)
+        .unwrap()
+        .build()
+        .await
+        .unwrap();
+
+    groups[0].commit(vec![]).await.unwrap();
+
+    groups[0]
+        .process_incoming_message(commit.commit_message)
+        .await
+        .unwrap();
 }

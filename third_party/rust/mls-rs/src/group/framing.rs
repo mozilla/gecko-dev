@@ -410,6 +410,13 @@ impl MlsMessage {
         }
     }
 
+    pub fn as_key_package(&self) -> Option<&KeyPackage> {
+        match &self.payload {
+            MlsMessagePayload::KeyPackage(kp) => Some(kp),
+            _ => None,
+        }
+    }
+
     /// The wire format value describing the contents of this message.
     pub fn wire_format(&self) -> WireFormat {
         match self.payload {
@@ -505,7 +512,7 @@ impl MlsMessage {
     }
 
     /// If this is a plaintext proposal, return the proposal reference that can be matched e.g. with
-    /// [`StateUpdate::unused_proposals`](super::StateUpdate::unused_proposals).
+    /// [`NewEpoch::unused_proposals`](super::NewEpoch::unused_proposals).
     #[cfg(feature = "by_ref_proposal")]
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
     pub async fn into_proposal_reference<C: CipherSuiteProvider>(

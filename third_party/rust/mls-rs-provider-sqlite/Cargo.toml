@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "mls-rs-provider-sqlite"
-version = "0.11.0"
+version = "0.15.0"
 build = false
 autolib = false
 autobins = false
@@ -43,7 +43,7 @@ thiserror = "1.0.40"
 version = "0.4"
 
 [dependencies.mls-rs-core]
-version = "0.18.0"
+version = "0.21.0"
 path = "../mls-rs-core"
 
 [dependencies.rusqlite]
@@ -73,7 +73,7 @@ sqlcipher-bundled = [
     "sqlite",
     "rusqlite/bundled-sqlcipher",
 ]
-sqlite = ["rusqlite/modern_sqlite"]
+sqlite = []
 sqlite-bundled = [
     "sqlite",
     "rusqlite/bundled",

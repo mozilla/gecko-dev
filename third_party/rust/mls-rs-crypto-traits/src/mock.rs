@@ -2,7 +2,10 @@
 // Copyright by contributors to this project.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-pub use crate::{aead::MockAeadType, dh::MockDhType, kdf::MockKdfType, kem::MockKemType};
+pub use crate::{
+    aead::MockAeadType, dh::MockDhType, kdf::MockKdfType, kem::MockKemType, MockHash,
+    MockVariableLengthHash,
+};
 
 #[derive(Debug)]
 pub struct TestError {}

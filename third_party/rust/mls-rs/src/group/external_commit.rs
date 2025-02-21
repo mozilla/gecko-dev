@@ -2,7 +2,9 @@
 // Copyright by contributors to this project.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-use mls_rs_core::{crypto::SignatureSecretKey, identity::SigningIdentity};
+use mls_rs_core::{
+    crypto::SignatureSecretKey, extension::ExtensionList, identity::SigningIdentity,
+};
 
 use crate::{
     client_config::ClientConfig,
@@ -39,13 +41,14 @@ use crate::group::{
     PreSharedKeyProposal, {JustPreSharedKeyID, PreSharedKeyID},
 };
 
-use super::{validate_group_info_joiner, ExportedTree};
+use super::{validate_tree_and_info_joiner, ExportedTree};
 
 /// A builder that aids with the construction of an external commit.
 #[cfg_attr(all(feature = "ffi", not(test)), safer_ffi_gen::ffi_type(opaque))]
 pub struct ExternalCommitBuilder<C: ClientConfig> {
     signer: SignatureSecretKey,
     signing_identity: SigningIdentity,
+    leaf_node_extensions: ExtensionList,
     config: C,
     tree_data: Option<ExportedTree<'static>>,
     to_remove: Option<u32>,
@@ -70,6 +73,7 @@ impl<C: ClientConfig> ExternalCommitBuilder<C> {
             authenticated_data: Vec::new(),
             signer,
             signing_identity,
+            leaf_node_extensions: Default::default(),
             config,
             #[cfg(feature = "psk")]
             external_psks: Vec::new(),
@@ -140,6 +144,14 @@ impl<C: ClientConfig> ExternalCommitBuilder<C> {
         self
     }
 
+    /// Change the committer's leaf node extensions as part of making this commit.
+    pub fn with_leaf_node_extensions(self, leaf_node_extensions: ExtensionList) -> Self {
+        Self {
+            leaf_node_extensions,
+            ..self
+        }
+    }
+
     /// Build the external commit using a GroupInfo message provided by an existing group member.
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
     pub async fn build(self, group_info: MlsMessage) -> Result<(Group<C>, MlsMessage), MlsError> {
@@ -163,7 +175,7 @@ impl<C: ClientConfig> ExternalCommitBuilder<C> {
             .get_as::<ExternalPubExt>()?
             .ok_or(MlsError::MissingExternalPubExtension)?;
 
-        let public_tree = validate_group_info_joiner(
+        let public_tree = validate_tree_and_info_joiner(
             protocol_version,
             &group_info,
             self.tree_data,
@@ -174,7 +186,7 @@ impl<C: ClientConfig> ExternalCommitBuilder<C> {
 
         let (leaf_node, _) = LeafNode::generate(
             &cipher_suite,
-            self.config.leaf_properties(),
+            self.config.leaf_properties(self.leaf_node_extensions),
             self.signing_identity,
             &self.signer,
             self.config.lifetime(),
@@ -233,9 +245,7 @@ impl<C: ClientConfig> ExternalCommitBuilder<C> {
             };
 
             let auth_content = AuthenticatedContent::from(plaintext.clone());
-
-            verify_plaintext_authentication(&cipher_suite, plaintext, None, None, &group.state)
-                .await?;
+            verify_plaintext_authentication(&cipher_suite, plaintext, None, &group.state).await?;
 
             group
                 .process_event_or_content(EventOrContent::Content(auth_content), true, None)
@@ -248,7 +258,7 @@ impl<C: ClientConfig> ExternalCommitBuilder<C> {
             }));
         }
 
-        let commit_output = group
+        let (commit_output, pending_commit) = group
             .commit_internal(
                 proposals,
                 Some(&leaf_node),
@@ -256,9 +266,11 @@ impl<C: ClientConfig> ExternalCommitBuilder<C> {
                 Default::default(),
                 None,
                 None,
+                None,
             )
             .await?;
 
+        group.pending_commit = pending_commit.try_into()?;
         group.apply_pending_commit().await?;
 
         Ok((group, commit_output.commit_message))

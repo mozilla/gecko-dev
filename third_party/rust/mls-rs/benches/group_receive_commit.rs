@@ -3,16 +3,15 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use criterion::{BatchSize, BenchmarkId, Criterion};
-use mls_rs::{test_utils::benchmarks::load_group_states, CipherSuite};
+use mls_rs::test_utils::benchmarks::{load_group_states, BENCH_CIPHER_SUITE};
 
 fn bench(c: &mut Criterion) {
-    let cipher_suite = CipherSuite::CURVE25519_AES128;
-    let group_states = load_group_states(cipher_suite);
+    let group_states = load_group_states();
     let mut bench_group = c.benchmark_group("group_receive_commit");
 
     for (i, mut group_states) in group_states.into_iter().enumerate() {
         bench_group.bench_with_input(
-            BenchmarkId::new(format!("{cipher_suite:?}"), i),
+            BenchmarkId::new(format!("{BENCH_CIPHER_SUITE:?}"), i),
             &i,
             |b, _| {
                 b.iter_batched_ref(

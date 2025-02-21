@@ -2,12 +2,36 @@
 // Copyright by contributors to this project.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-use crate::{error::IntoAnyError, extension::ExtensionList, time::MlsTime};
+use crate::{error::IntoAnyError, extension::ExtensionList, group::GroupContext, time::MlsTime};
 #[cfg(mls_build_async)]
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
 use super::{CredentialType, SigningIdentity};
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize,))]
+#[non_exhaustive]
+pub enum MemberValidationContext<'a> {
+    ForCommit {
+        current_context: &'a GroupContext,
+        new_extensions: &'a ExtensionList,
+    },
+    ForNewGroup {
+        current_context: &'a GroupContext,
+    },
+    None,
+}
+
+impl MemberValidationContext<'_> {
+    pub fn new_extensions(&self) -> Option<&ExtensionList> {
+        match self {
+            Self::ForCommit { new_extensions, .. } => Some(*new_extensions),
+            Self::ForNewGroup { current_context } => Some(&current_context.extensions),
+            Self::None => None,
+        }
+    }
+}
 
 /// Identity system that can be used to validate a
 /// [`SigningIdentity`](mls-rs-core::identity::SigningIdentity)
@@ -26,7 +50,7 @@ pub trait IdentityProvider: Send + Sync {
         &self,
         signing_identity: &SigningIdentity,
         timestamp: Option<MlsTime>,
-        extensions: Option<&ExtensionList>,
+        context: MemberValidationContext<'_>,
     ) -> Result<(), Self::Error>;
 
     /// Determine if `signing_identity` is valid for an external sender in

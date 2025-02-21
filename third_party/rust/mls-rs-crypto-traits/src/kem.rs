@@ -5,6 +5,7 @@
 use mls_rs_core::{
     crypto::{CipherSuite, HpkePublicKey, HpkeSecretKey},
     error::IntoAnyError,
+    mls_rs_codec::{self, MlsDecode, MlsEncode, MlsSize},
 };
 
 use alloc::vec::Vec;
@@ -20,13 +21,17 @@ use mockall::automock;
     maybe_async::must_be_async
 )]
 #[cfg_attr(feature = "mock", automock(type Error = crate::mock::TestError;))]
-pub trait KemType: Send + Sync {
+pub trait KemType: Send + Sync + Sized {
     type Error: IntoAnyError + Send + Sync;
 
     /// KEM Id, as specified in RFC 9180, Section 5.1 and Table 2.
     fn kem_id(&self) -> u16;
 
-    async fn derive(&self, ikm: &[u8]) -> Result<(HpkeSecretKey, HpkePublicKey), Self::Error>;
+    async fn generate_deterministic(
+        &self,
+        seed: &[u8],
+    ) -> Result<(HpkeSecretKey, HpkePublicKey), Self::Error>;
+
     async fn generate(&self) -> Result<(HpkeSecretKey, HpkePublicKey), Self::Error>;
     fn public_key_validate(&self, key: &HpkePublicKey) -> Result<(), Self::Error>;
 
@@ -38,9 +43,18 @@ pub trait KemType: Send + Sync {
         secret_key: &HpkeSecretKey,
         local_public: &HpkePublicKey,
     ) -> Result<Vec<u8>, Self::Error>;
+
+    fn seed_length_for_derive(&self) -> usize;
+    fn public_key_size(&self) -> usize;
+    fn secret_key_size(&self) -> usize;
+
+    fn enc_size(&self) -> usize {
+        self.public_key_size()
+    }
 }
 
 /// Struct to represent the output of the kem [encap](KemType::encap) function
+#[derive(Clone, Debug, MlsDecode, MlsEncode, MlsSize)]
 pub struct KemResult {
     pub shared_secret: Vec<u8>,
     pub enc: Vec<u8>,

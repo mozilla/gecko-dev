@@ -10,12 +10,6 @@ use portable_atomic_util::Arc;
 
 use core::convert::Infallible;
 
-#[cfg(feature = "std")]
-use std::collections::HashMap;
-
-#[cfg(not(feature = "std"))]
-use alloc::collections::BTreeMap;
-
 use mls_rs_core::psk::{ExternalPskId, PreSharedKey, PreSharedKeyStorage};
 
 #[cfg(mls_build_async)]
@@ -26,15 +20,14 @@ use std::sync::Mutex;
 #[cfg(not(feature = "std"))]
 use spin::Mutex;
 
+use crate::map::LargeMap;
+
 #[derive(Clone, Debug, Default)]
 /// In memory pre-shared key storage backed by a HashMap.
 ///
 /// All clones of an instance of this type share the same underlying HashMap.
 pub struct InMemoryPreSharedKeyStorage {
-    #[cfg(feature = "std")]
-    inner: Arc<Mutex<HashMap<ExternalPskId, PreSharedKey>>>,
-    #[cfg(not(feature = "std"))]
-    inner: Arc<Mutex<BTreeMap<ExternalPskId, PreSharedKey>>>,
+    inner: Arc<Mutex<LargeMap<ExternalPskId, PreSharedKey>>>,
 }
 
 impl InMemoryPreSharedKeyStorage {

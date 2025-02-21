@@ -3,7 +3,9 @@
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 use mls_rs_core::{
-    error::IntoAnyError, identity::IdentityProvider, key_package::KeyPackageStorage,
+    error::IntoAnyError,
+    identity::{IdentityProvider, SigningIdentity},
+    key_package::KeyPackageStorage,
 };
 
 use crate::{
@@ -32,7 +34,7 @@ use super::message_processor::ProvisionalState;
 pub(crate) async fn validate_group_info_common<C: CipherSuiteProvider>(
     msg_version: ProtocolVersion,
     group_info: &GroupInfo,
-    tree: &TreeKemPublic,
+    signer: &SigningIdentity,
     cs: &C,
 ) -> Result<(), MlsError> {
     if msg_version != group_info.group_context.protocol_version {
@@ -43,11 +45,7 @@ pub(crate) async fn validate_group_info_common<C: CipherSuiteProvider>(
         return Err(MlsError::CipherSuiteMismatch);
     }
 
-    let sender_leaf = &tree.get_leaf_node(group_info.signer)?;
-
-    group_info
-        .verify(cs, &sender_leaf.signing_identity.signature_key, &())
-        .await?;
+    group_info.verify(cs, &signer.signature_key, &()).await?;
 
     Ok(())
 }
@@ -59,7 +57,8 @@ pub(crate) async fn validate_group_info_member<C: CipherSuiteProvider>(
     group_info: &GroupInfo,
     cs: &C,
 ) -> Result<(), MlsError> {
-    validate_group_info_common(msg_version, group_info, &self_state.public_tree, cs).await?;
+    let signer = &self_state.public_tree.get_leaf_node(group_info.signer)?;
+    validate_group_info_common(msg_version, group_info, &signer.signing_identity, cs).await?;
 
     let self_tree = ExportedTree::new_borrowed(&self_state.public_tree.nodes);
 
@@ -78,17 +77,31 @@ pub(crate) async fn validate_group_info_member<C: CipherSuiteProvider>(
 }
 
 #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
-pub(crate) async fn validate_group_info_joiner<C, I>(
+pub(crate) async fn validate_tree_and_info_joiner<C: CipherSuiteProvider, I: IdentityProvider>(
     msg_version: ProtocolVersion,
     group_info: &GroupInfo,
     tree: Option<ExportedTree<'_>>,
     id_provider: &I,
     cs: &C,
-) -> Result<TreeKemPublic, MlsError>
-where
-    C: CipherSuiteProvider,
-    I: IdentityProvider,
-{
+) -> Result<TreeKemPublic, MlsError> {
+    let public_tree = validate_tree_joiner(group_info, tree, id_provider, cs).await?;
+
+    let signer = &public_tree
+        .get_leaf_node(group_info.signer)?
+        .signing_identity;
+
+    validate_group_info_joiner(msg_version, group_info, signer, id_provider, cs).await?;
+
+    Ok(public_tree)
+}
+
+#[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+pub(crate) async fn validate_tree_joiner<C: CipherSuiteProvider, I: IdentityProvider>(
+    group_info: &GroupInfo,
+    tree: Option<ExportedTree<'_>>,
+    id_provider: &I,
+    cs: &C,
+) -> Result<TreeKemPublic, MlsError> {
     let tree = match group_info.extensions.get_as::<RatchetTreeExt>()? {
         Some(ext) => ext.tree_data,
         None => tree.ok_or(MlsError::RatchetTreeNotFound)?,
@@ -104,6 +117,21 @@ where
         .validate(&mut tree)
         .await?;
 
+    Ok(tree)
+}
+
+#[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+pub(crate) async fn validate_group_info_joiner<C: CipherSuiteProvider, I: IdentityProvider>(
+    msg_version: ProtocolVersion,
+    group_info: &GroupInfo,
+    signer: &SigningIdentity,
+    #[cfg(feature = "by_ref_proposal")] id_provider: &I,
+    #[cfg(not(feature = "by_ref_proposal"))] _id_provider: &I,
+    cs: &C,
+) -> Result<(), MlsError> {
+    #[cfg(feature = "by_ref_proposal")]
+    let context = &group_info.group_context;
+
     #[cfg(feature = "by_ref_proposal")]
     if let Some(ext_senders) = context.extensions.get_as::<ExternalSendersExt>()? {
         // TODO do joiners verify group against current time??
@@ -113,9 +141,9 @@ where
             .map_err(|e| MlsError::IdentityProviderError(e.into_any_error()))?;
     }
 
-    validate_group_info_common(msg_version, group_info, &tree, cs).await?;
+    validate_group_info_common(msg_version, group_info, signer, cs).await?;
 
-    Ok(tree)
+    Ok(())
 }
 
 pub(crate) fn commit_sender(
@@ -140,7 +168,7 @@ pub(super) async fn transcript_hashes<P: CipherSuiteProvider>(
     prev_interim_transcript_hash: &InterimTranscriptHash,
     content: &AuthenticatedContent,
 ) -> Result<(InterimTranscriptHash, ConfirmedTranscriptHash), MlsError> {
-    let confirmed_transcript_hash = ConfirmedTranscriptHash::create(
+    let confirmed_transcript_hash = super::transcript_hash::create(
         cipher_suite_provider,
         prev_interim_transcript_hash,
         content,

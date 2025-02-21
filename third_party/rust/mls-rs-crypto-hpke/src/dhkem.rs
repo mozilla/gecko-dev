@@ -2,7 +2,7 @@
 // Copyright by contributors to this project.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-use mls_rs_crypto_traits::{DhType, KdfType, KemResult, KemType};
+use mls_rs_crypto_traits::{DhType, KdfType, KemResult, KemType, SamplingMethod};
 
 use mls_rs_core::{
     crypto::{HpkePublicKey, HpkeSecretKey},
@@ -75,24 +75,31 @@ impl<DH: DhType, KDF: KdfType> KemType for DhKem<DH, KDF> {
         self.kem_id
     }
 
-    async fn derive(&self, ikm: &[u8]) -> Result<(HpkeSecretKey, HpkePublicKey), DhKemError> {
-        let dkp_prk = self
-            .kdf
-            .labeled_extract(&[], b"dkp_prk", ikm)
-            .await
-            .map_err(|e| DhKemError::KdfError(e.into_any_error()))?;
-
-        if let Some(bitmask) = self.dh.bitmask_for_rejection_sampling() {
-            self.derive_with_rejection_sampling(&dkp_prk, bitmask).await
-        } else {
-            self.derive_without_rejection_sampling(&dkp_prk).await
+    async fn generate_deterministic(
+        &self,
+        seed: &[u8],
+    ) -> Result<(HpkeSecretKey, HpkePublicKey), DhKemError> {
+        match self.dh.bitmask_for_rejection_sampling() {
+            SamplingMethod::HpkeWithBitmask(bitmask) => {
+                self.derive_with_rejection_sampling(seed, bitmask).await
+            }
+            SamplingMethod::HpkeWithoutBitmask => {
+                self.derive_without_rejection_sampling(seed).await
+            }
+            SamplingMethod::Raw => self.derive_raw(seed.to_vec()).await,
         }
     }
 
     async fn generate(&self) -> Result<(HpkeSecretKey, HpkePublicKey), Self::Error> {
         #[cfg(feature = "test_utils")]
         if !self.test_key_data.is_empty() {
-            return self.derive(&self.test_key_data).await;
+            let dkp_prk = self
+                .kdf
+                .labeled_extract(&[], b"dkp_prk", &self.test_key_data)
+                .await
+                .map_err(|e| DhKemError::KdfError(e.into_any_error()))?;
+
+            return self.generate_deterministic(&dkp_prk).await;
         }
 
         self.dh
@@ -150,6 +157,17 @@ impl<DH: DhType, KDF: KdfType> KemType for DhKem<DH, KDF> {
             .public_key_validate(key)
             .map_err(|e| DhKemError::DhError(e.into_any_error()))
     }
+
+    fn seed_length_for_derive(&self) -> usize {
+        self.n_secret
+    }
+
+    fn public_key_size(&self) -> usize {
+        self.dh.public_key_size()
+    }
+    fn secret_key_size(&self) -> usize {
+        self.dh.secret_key_size()
+    }
 }
 
 impl<DH: DhType, KDF: KdfType> DhKem<DH, KDF> {
@@ -194,8 +212,17 @@ impl<DH: DhType, KDF: KdfType> DhKem<DH, KDF> {
             .kdf
             .labeled_expand(dkp_prk, b"sk", &[], self.dh.secret_key_size())
             .await
-            .map_err(|e| DhKemError::KdfError(e.into_any_error()))?
-            .into();
+            .map_err(|e| DhKemError::KdfError(e.into_any_error()))?;
+
+        self.derive_raw(sk).await
+    }
+
+    #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
+    async fn derive_raw(
+        &self,
+        seed: Vec<u8>,
+    ) -> Result<(HpkeSecretKey, HpkePublicKey), DhKemError> {
+        let sk = seed.into();
 
         let pk = self
             .dh

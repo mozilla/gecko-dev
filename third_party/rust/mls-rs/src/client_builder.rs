@@ -10,7 +10,7 @@ use crate::{
     cipher_suite::CipherSuite,
     client::Client,
     client_config::ClientConfig,
-    extension::{ExtensionType, MlsExtension},
+    extension::ExtensionType,
     group::{
         mls_rules::{DefaultMlsRules, MlsRules},
         proposal::ProposalType,
@@ -294,56 +294,6 @@ impl<C: IntoConfig> ClientBuilder<C> {
     {
         let mut c = self.0.into_config();
         c.0.settings.protocol_versions.extend(versions);
-        ClientBuilder(c)
-    }
-
-    /// Add a key package extension to the list of key package extensions supported by the client.
-    pub fn key_package_extension<T>(
-        self,
-        extension: T,
-    ) -> Result<ClientBuilder<IntoConfigOutput<C>>, ExtensionError>
-    where
-        T: MlsExtension,
-        Self: Sized,
-    {
-        let mut c = self.0.into_config();
-        c.0.settings.key_package_extensions.set_from(extension)?;
-        Ok(ClientBuilder(c))
-    }
-
-    /// Add multiple key package extensions to the list of key package extensions supported by the
-    /// client.
-    pub fn key_package_extensions(
-        self,
-        extensions: ExtensionList,
-    ) -> ClientBuilder<IntoConfigOutput<C>> {
-        let mut c = self.0.into_config();
-        c.0.settings.key_package_extensions.append(extensions);
-        ClientBuilder(c)
-    }
-
-    /// Add a leaf node extension to the list of leaf node extensions supported by the client.
-    pub fn leaf_node_extension<T>(
-        self,
-        extension: T,
-    ) -> Result<ClientBuilder<IntoConfigOutput<C>>, ExtensionError>
-    where
-        T: MlsExtension,
-        Self: Sized,
-    {
-        let mut c = self.0.into_config();
-        c.0.settings.leaf_node_extensions.set_from(extension)?;
-        Ok(ClientBuilder(c))
-    }
-
-    /// Add multiple leaf node extensions to the list of leaf node extensions supported by the
-    /// client.
-    pub fn leaf_node_extensions(
-        self,
-        extensions: ExtensionList,
-    ) -> ClientBuilder<IntoConfigOutput<C>> {
-        let mut c = self.0.into_config();
-        c.0.settings.leaf_node_extensions.append(extensions);
         ClientBuilder(c)
     }
 
@@ -733,14 +683,6 @@ where
         self.crypto_provider.clone()
     }
 
-    fn key_package_extensions(&self) -> ExtensionList {
-        self.settings.key_package_extensions.clone()
-    }
-
-    fn leaf_node_extensions(&self) -> ExtensionList {
-        self.settings.leaf_node_extensions.clone()
-    }
-
     fn lifetime(&self) -> Lifetime {
         #[cfg(feature = "std")]
         let now_timestamp = MlsTime::now().seconds_since_epoch();
@@ -840,14 +782,6 @@ impl<T: MlsConfig> ClientConfig for T {
         self.get().crypto_provider()
     }
 
-    fn key_package_extensions(&self) -> ExtensionList {
-        self.get().key_package_extensions()
-    }
-
-    fn leaf_node_extensions(&self) -> ExtensionList {
-        self.get().leaf_node_extensions()
-    }
-
     fn lifetime(&self) -> Lifetime {
         self.get().lifetime()
     }
@@ -870,8 +804,6 @@ pub(crate) struct Settings {
     pub(crate) extension_types: Vec<ExtensionType>,
     pub(crate) protocol_versions: Vec<ProtocolVersion>,
     pub(crate) custom_proposal_types: Vec<ProposalType>,
-    pub(crate) key_package_extensions: ExtensionList,
-    pub(crate) leaf_node_extensions: ExtensionList,
     pub(crate) lifetime_in_s: u64,
     #[cfg(any(test, feature = "test_util"))]
     pub(crate) key_package_not_before: Option<u64>,
@@ -882,8 +814,6 @@ impl Default for Settings {
         Self {
             extension_types: Default::default(),
             protocol_versions: Default::default(),
-            key_package_extensions: Default::default(),
-            leaf_node_extensions: Default::default(),
             lifetime_in_s: 365 * 24 * 3600,
             custom_proposal_types: Default::default(),
             #[cfg(any(test, feature = "test_util"))]
@@ -903,8 +833,6 @@ pub(crate) fn recreate_config<T: ClientConfig>(
             extension_types: c.supported_extensions(),
             protocol_versions: c.supported_protocol_versions(),
             custom_proposal_types: c.supported_custom_proposals(),
-            key_package_extensions: c.key_package_extensions(),
-            leaf_node_extensions: c.leaf_node_extensions(),
             lifetime_in_s: {
                 let l = c.lifetime();
                 l.not_after - l.not_before
@@ -979,7 +907,6 @@ mod private {
 
 use mls_rs_core::{
     crypto::{CryptoProvider, SignatureSecretKey},
-    extension::{ExtensionError, ExtensionList},
     group::GroupStateStorage,
     identity::IdentityProvider,
     key_package::KeyPackageStorage,

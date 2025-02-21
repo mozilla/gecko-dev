@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "mls-rs-crypto-hpke"
-version = "0.9.0"
+version = "0.14.0"
 build = false
 autolib = false
 autobins = false
@@ -43,12 +43,12 @@ cfg-if = "^1"
 maybe-async = "0.2.10"
 
 [dependencies.mls-rs-core]
-version = "0.18.0"
+version = "0.21.0"
 path = "../mls-rs-core"
 default-features = false
 
 [dependencies.mls-rs-crypto-traits]
-version = "0.10.0"
+version = "0.15.0"
 path = "../mls-rs-crypto-traits"
 default-features = false
 
@@ -73,7 +73,7 @@ version = "^0.4.3"
 features = ["serde"]
 
 [dev-dependencies.mls-rs-crypto-traits]
-version = "0.10.0"
+version = "0.15.0"
 path = "../mls-rs-crypto-traits"
 features = ["mock"]
 
@@ -105,8 +105,7 @@ version = "0.2"
 features = ["js"]
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.wasm-bindgen-test]
-version = "0.3.26"
-default-features = false
+version = "0.3"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

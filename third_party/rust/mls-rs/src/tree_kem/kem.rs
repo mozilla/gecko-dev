@@ -64,7 +64,7 @@ impl<'a> TreeKem<'a> {
         context: &mut GroupContext,
         excluding: &[LeafIndex],
         signer: &SignatureSecretKey,
-        update_leaf_properties: ConfigProperties,
+        update_leaf_properties: Option<ConfigProperties>,
         signing_identity: Option<SigningIdentity>,
         cipher_suite_provider: &P,
         #[cfg(test)] commit_modifiers: &CommitModifiers,
@@ -581,7 +581,7 @@ mod tests {
                 &mut get_test_group_context(42, cipher_suite).await,
                 &[],
                 &encap_signer,
-                update_leaf_properties,
+                Some(update_leaf_properties),
                 None,
                 &cipher_suite_provider,
                 #[cfg(test)]

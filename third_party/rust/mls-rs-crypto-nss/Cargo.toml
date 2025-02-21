@@ -46,17 +46,17 @@ version = "^0.4.3"
 features = ["serde"]
 
 [dependencies.mls-rs-core]
-version = "0.18.0"
+version = "0.21.0"
 path = "../mls-rs-core"
 default-features = false
 
 [dependencies.mls-rs-crypto-hpke]
-version = "0.9.0"
+version = "0.14.0"
 path = "../mls-rs-crypto-hpke"
 default-features = false
 
 [dependencies.mls-rs-crypto-traits]
-version = "0.10.0"
+version = "0.15.0"
 path = "../mls-rs-crypto-traits"
 default-features = false
 
@@ -90,12 +90,12 @@ default-features = false
 assert_matches = "1.5.0"
 
 [dev-dependencies.mls-rs-core]
-version = "0.18.0"
+version = "0.21.0"
 path = "../mls-rs-core"
 features = ["test_suite"]
 
 [dev-dependencies.mls-rs-crypto-hpke]
-version = "0.9.0"
+version = "0.14.0"
 path = "../mls-rs-crypto-hpke"
 features = ["test_utils"]
 default-features = false

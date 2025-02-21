@@ -70,6 +70,7 @@ pub struct Hpke<KEM: KemType, KDF: KdfType, AEAD: AeadType> {
     pub(crate) kem: KEM,
     pub(crate) kdf: HpkeKdf<KDF>,
     pub(crate) aead: Option<AEAD>,
+    kem_kdf: HpkeKdf<KDF>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Default)]
@@ -104,8 +105,14 @@ where
         ]
         .concat();
 
-        let kdf = HpkeKdf::new(suite_id, kdf);
-        Self { kem, kdf, aead }
+        let kem_suite_id = [b"KEM", &kem.kem_id().to_be_bytes() as &[u8]].concat();
+
+        Self {
+            kem,
+            aead,
+            kdf: HpkeKdf::new(suite_id, kdf.clone()),
+            kem_kdf: HpkeKdf::new(kem_suite_id, kdf),
+        }
     }
 
     /// Based on RFC 9180 Single-Shot APIs. This function combines the action
@@ -210,8 +217,14 @@ where
 
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
     pub async fn derive(&self, ikm: &[u8]) -> Result<(HpkeSecretKey, HpkePublicKey), HpkeError> {
+        let dkp_prk = self
+            .kem_kdf
+            .labeled_extract(&[], b"dkp_prk", ikm)
+            .await
+            .map_err(|e| HpkeError::KdfError(e.into_any_error()))?;
+
         self.kem
-            .derive(ikm)
+            .generate_deterministic(&dkp_prk)
             .await
             .map_err(|e| HpkeError::KemError(e.into_any_error()))
     }

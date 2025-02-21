@@ -2,16 +2,46 @@
 // Copyright by contributors to this project.
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-use alloc::vec;
-use alloc::vec::Vec;
-use core::fmt::{self, Debug};
+use crate::{crypto::CipherSuite, extension::ExtensionList, protocol_version::ProtocolVersion};
+use alloc::{vec, vec::Vec};
+use core::{
+    fmt::{self, Debug},
+    ops::Deref,
+};
 use mls_rs_codec::{MlsDecode, MlsEncode, MlsSize};
 
-use crate::{cipher_suite::CipherSuite, protocol_version::ProtocolVersion, ExtensionList};
+#[derive(Clone, PartialEq, Eq, MlsSize, MlsEncode, MlsDecode)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct ConfirmedTranscriptHash(
+    #[mls_codec(with = "mls_rs_codec::byte_vec")]
+    #[cfg_attr(feature = "serde", serde(with = "crate::vec_serde"))]
+    Vec<u8>,
+);
 
-use super::ConfirmedTranscriptHash;
+impl Debug for ConfirmedTranscriptHash {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        crate::debug::pretty_bytes(&self.0)
+            .named("ConfirmedTranscriptHash")
+            .fmt(f)
+    }
+}
 
-#[derive(Clone, PartialEq, MlsSize, MlsEncode, MlsDecode)]
+impl Deref for ConfirmedTranscriptHash {
+    type Target = Vec<u8>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<Vec<u8>> for ConfirmedTranscriptHash {
+    fn from(value: Vec<u8>) -> Self {
+        Self(value)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, MlsSize, MlsEncode, MlsDecode)]
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 // #[cfg_attr(
 //     all(feature = "ffi", not(test)),
@@ -19,17 +49,17 @@ use super::ConfirmedTranscriptHash;
 // )]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GroupContext {
-    pub(crate) protocol_version: ProtocolVersion,
-    pub(crate) cipher_suite: CipherSuite,
+    pub protocol_version: ProtocolVersion,
+    pub cipher_suite: CipherSuite,
     #[mls_codec(with = "mls_rs_codec::byte_vec")]
-    #[cfg_attr(feature = "serde", serde(with = "mls_rs_core::vec_serde"))]
-    pub(crate) group_id: Vec<u8>,
-    pub(crate) epoch: u64,
-    #[cfg_attr(feature = "serde", serde(with = "mls_rs_core::vec_serde"))]
+    #[cfg_attr(feature = "serde", serde(with = "crate::vec_serde"))]
+    pub group_id: Vec<u8>,
+    pub epoch: u64,
+    #[cfg_attr(feature = "serde", serde(with = "crate::vec_serde"))]
     #[mls_codec(with = "mls_rs_codec::byte_vec")]
-    pub(crate) tree_hash: Vec<u8>,
-    pub(crate) confirmed_transcript_hash: ConfirmedTranscriptHash,
-    pub(crate) extensions: ExtensionList,
+    pub tree_hash: Vec<u8>,
+    pub confirmed_transcript_hash: ConfirmedTranscriptHash,
+    pub extensions: ExtensionList,
 }
 
 impl Debug for GroupContext {
@@ -37,15 +67,9 @@ impl Debug for GroupContext {
         f.debug_struct("GroupContext")
             .field("protocol_version", &self.protocol_version)
             .field("cipher_suite", &self.cipher_suite)
-            .field(
-                "group_id",
-                &mls_rs_core::debug::pretty_group_id(&self.group_id),
-            )
+            .field("group_id", &crate::debug::pretty_group_id(&self.group_id))
             .field("epoch", &self.epoch)
-            .field(
-                "tree_hash",
-                &mls_rs_core::debug::pretty_bytes(&self.tree_hash),
-            )
+            .field("tree_hash", &crate::debug::pretty_bytes(&self.tree_hash))
             .field("confirmed_transcript_hash", &self.confirmed_transcript_hash)
             .field("extensions", &self.extensions)
             .finish()
@@ -54,20 +78,21 @@ impl Debug for GroupContext {
 
 // #[cfg_attr(all(feature = "ffi", not(test)), ::safer_ffi_gen::safer_ffi_gen)]
 impl GroupContext {
-    pub(crate) fn new_group(
+    /// Create a group context for a new MLS group.
+    pub fn new(
         protocol_version: ProtocolVersion,
         cipher_suite: CipherSuite,
         group_id: Vec<u8>,
         tree_hash: Vec<u8>,
         extensions: ExtensionList,
-    ) -> Self {
+    ) -> GroupContext {
         GroupContext {
             protocol_version,
             cipher_suite,
             group_id,
             epoch: 0,
             tree_hash,
-            confirmed_transcript_hash: ConfirmedTranscriptHash::from(vec![]),
+            confirmed_transcript_hash: vec![].into(),
             extensions,
         }
     }

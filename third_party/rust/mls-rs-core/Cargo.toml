@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "mls-rs-core"
-version = "0.18.0"
+version = "0.21.0"
 build = false
 exclude = ["test_data"]
 autolib = false
@@ -52,7 +52,7 @@ version = "0.12"
 optional = true
 
 [dependencies.mls-rs-codec]
-version = "0.5.2"
+version = "0.6"
 path = "../mls-rs-codec"
 default-features = false
 
@@ -100,6 +100,8 @@ default = [
 ]
 fast_serialize = ["mls-rs-codec/preallocate"]
 ffi = []
+last_resort_key_package_ext = []
+post-quantum = []
 rfc_compliant = ["x509"]
 serde = [
     "dep:serde",
@@ -127,8 +129,7 @@ async-trait = "^0.1"
 version = "^0.2.79"
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies.wasm-bindgen-test]
-version = "0.3.26"
-default-features = false
+version = "0.3"
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

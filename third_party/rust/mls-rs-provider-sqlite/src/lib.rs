@@ -55,6 +55,31 @@ impl mls_rs_core::error::IntoAnyError for SqLiteDataStorageError {
 }
 
 #[derive(Clone, Debug)]
+pub enum JournalMode {
+    Delete,
+    Truncate,
+    Persist,
+    Memory,
+    Wal,
+    Off,
+}
+
+/// Note: for in-memory dbs (such as what the tests use), the only available options are MEMORY or OFF
+/// Invalid modes do not error, only no-op
+impl JournalMode {
+    fn as_str(&self) -> &'static str {
+        match self {
+            JournalMode::Delete => "DELETE",
+            JournalMode::Truncate => "TRUNCATE",
+            JournalMode::Persist => "PERSIST",
+            JournalMode::Memory => "MEMORY",
+            JournalMode::Wal => "WAL",
+            JournalMode::Off => "OFF",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 /// SQLite data storage engine.
 pub struct SqLiteDataStorageEngine<CS>
 where
@@ -62,6 +87,7 @@ where
 {
     connection_strategy: CS,
     group_state_context: Option<Vec<u8>>,
+    journal_mode: Option<JournalMode>,
 }
 
 impl<CS> SqLiteDataStorageEngine<CS>
@@ -74,12 +100,21 @@ where
         Ok(SqLiteDataStorageEngine {
             connection_strategy,
             group_state_context: None,
+            journal_mode: None,
         })
     }
 
     pub fn with_context(self, group_state_context: Vec<u8>) -> Self {
         Self {
             group_state_context: Some(group_state_context),
+            ..self
+        }
+    }
+
+    /// A `journal_mode` of `None` means the SQLite default is used.
+    pub fn with_journal_mode(self, journal_mode: Option<JournalMode>) -> Self {
+        Self {
+            journal_mode,
             ..self
         }
     }
@@ -91,6 +126,12 @@ where
         let current_schema = connection
             .pragma_query_value(None, "user_version", |rows| rows.get::<_, u32>(0))
             .map_err(|e| SqLiteDataStorageError::SqlEngineError(e.into()))?;
+
+        if let Some(journal_mode) = &self.journal_mode {
+            connection
+                .pragma_update(None, "journal_mode", journal_mode.as_str())
+                .map_err(|e| SqLiteDataStorageError::SqlEngineError(e.into()))?;
+        }
 
         if current_schema != 1 {
             create_tables_v1(&connection)?;
@@ -164,7 +205,12 @@ fn create_tables_v1(connection: &Connection) -> Result<(), SqLiteDataStorageErro
 
 #[cfg(test)]
 mod tests {
-    use crate::{connection_strategy::MemoryStrategy, SqLiteDataStorageEngine};
+    use tempfile::tempdir;
+
+    use crate::{
+        connection_strategy::{FileConnectionStrategy, MemoryStrategy},
+        SqLiteDataStorageEngine,
+    };
 
     #[test]
     pub fn user_version_test() {
@@ -181,5 +227,27 @@ mod tests {
             .unwrap();
 
         assert_eq!(current_schema, 1);
+    }
+
+    #[test]
+    pub fn journal_mode_test() {
+        let temp = tempdir().unwrap();
+
+        // Connect with journal_mode other than the default of MEMORY
+        let database = SqLiteDataStorageEngine::new(FileConnectionStrategy::new(
+            &temp.path().join("test_db.sqlite"),
+        ))
+        .unwrap();
+
+        let connection = database
+            .with_journal_mode(Some(crate::JournalMode::Truncate))
+            .create_connection()
+            .unwrap();
+
+        let journal_mode = connection
+            .pragma_query_value(None, "journal_mode", |rows| rows.get::<_, String>(0))
+            .unwrap();
+
+        assert_eq!(journal_mode, "truncate");
     }
 }

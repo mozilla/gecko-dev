@@ -31,7 +31,9 @@ fn main() {
         .signing_identity(signing_identity, secret_key, CIPHERSUITE)
         .build();
 
-    let mut alice_group = alice_client.create_group(Default::default()).unwrap();
+    let mut alice_group = alice_client
+        .create_group(Default::default(), Default::default())
+        .unwrap();
 
     alice_group.commit(Vec::new()).unwrap();
     alice_group.apply_pending_commit().unwrap();

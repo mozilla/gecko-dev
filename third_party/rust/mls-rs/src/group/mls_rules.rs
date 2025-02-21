@@ -12,9 +12,9 @@ use crate::{
 
 use alloc::boxed::Box;
 use core::convert::Infallible;
-use mls_rs_core::{
-    error::IntoAnyError, extension::ExtensionList, group::Member, identity::SigningIdentity,
-};
+use mls_rs_core::{error::IntoAnyError, group::Member, identity::SigningIdentity};
+
+use super::GroupContext;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CommitDirection {
@@ -143,7 +143,7 @@ pub trait MlsRules: Send + Sync {
         direction: CommitDirection,
         source: CommitSource,
         current_roster: &Roster,
-        extension_list: &ExtensionList,
+        current_context: &GroupContext,
         proposals: ProposalBundle,
     ) -> Result<ProposalBundle, Self::Error>;
 
@@ -156,7 +156,7 @@ pub trait MlsRules: Send + Sync {
     fn commit_options(
         &self,
         new_roster: &Roster,
-        new_extension_list: &ExtensionList,
+        new_context: &GroupContext,
         proposals: &ProposalBundle,
     ) -> Result<CommitOptions, Self::Error>;
 
@@ -168,7 +168,7 @@ pub trait MlsRules: Send + Sync {
     fn encryption_options(
         &self,
         current_roster: &Roster,
-        current_extension_list: &ExtensionList,
+        current_context: &GroupContext,
     ) -> Result<EncryptionOptions, Self::Error>;
 }
 
@@ -185,29 +185,29 @@ macro_rules! delegate_mls_rules {
                 direction: CommitDirection,
                 source: CommitSource,
                 current_roster: &Roster,
-                extension_list: &ExtensionList,
+                context: &GroupContext,
                 proposals: ProposalBundle,
             ) -> Result<ProposalBundle, Self::Error> {
                 (**self)
-                    .filter_proposals(direction, source, current_roster, extension_list, proposals)
+                    .filter_proposals(direction, source, current_roster, context, proposals)
                     .await
             }
 
             fn commit_options(
                 &self,
                 roster: &Roster,
-                extension_list: &ExtensionList,
+                context: &GroupContext,
                 proposals: &ProposalBundle,
             ) -> Result<CommitOptions, Self::Error> {
-                (**self).commit_options(roster, extension_list, proposals)
+                (**self).commit_options(roster, context, proposals)
             }
 
             fn encryption_options(
                 &self,
                 roster: &Roster,
-                extension_list: &ExtensionList,
+                context: &GroupContext,
             ) -> Result<EncryptionOptions, Self::Error> {
-                (**self).encryption_options(roster, extension_list)
+                (**self).encryption_options(roster, context)
             }
         }
     };
@@ -258,7 +258,7 @@ impl MlsRules for DefaultMlsRules {
         _direction: CommitDirection,
         _source: CommitSource,
         _current_roster: &Roster,
-        _extension_list: &ExtensionList,
+        _: &GroupContext,
         proposals: ProposalBundle,
     ) -> Result<ProposalBundle, Self::Error> {
         Ok(proposals)
@@ -267,7 +267,7 @@ impl MlsRules for DefaultMlsRules {
     fn commit_options(
         &self,
         _: &Roster,
-        _: &ExtensionList,
+        _: &GroupContext,
         _: &ProposalBundle,
     ) -> Result<CommitOptions, Self::Error> {
         Ok(self.commit_options)
@@ -276,7 +276,7 @@ impl MlsRules for DefaultMlsRules {
     fn encryption_options(
         &self,
         _: &Roster,
-        _: &ExtensionList,
+        _: &GroupContext,
     ) -> Result<EncryptionOptions, Self::Error> {
         Ok(self.encryption_options)
     }

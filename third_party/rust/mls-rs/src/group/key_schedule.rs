@@ -83,6 +83,10 @@ impl KeySchedule {
         }
     }
 
+    pub fn delete_exporter(&mut self) {
+        self.exporter_secret = Default::default();
+    }
+
     #[cfg_attr(not(mls_build_async), maybe_async::must_be_sync)]
     pub async fn derive_for_external<P: CipherSuiteProvider>(
         &self,
@@ -234,6 +238,10 @@ impl KeySchedule {
         len: usize,
         cipher_suite: &P,
     ) -> Result<Zeroizing<Vec<u8>>, MlsError> {
+        if self.exporter_secret.is_empty() {
+            return Err(MlsError::ExporterDeleted);
+        }
+
         let secret = kdf_derive_secret(cipher_suite, &self.exporter_secret, label).await?;
 
         let context_hash = cipher_suite

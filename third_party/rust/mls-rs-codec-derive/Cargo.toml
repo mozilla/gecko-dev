@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "mls-rs-codec-derive"
-version = "0.1.1"
+version = "0.2.0"
 build = false
 autolib = false
 autobins = false

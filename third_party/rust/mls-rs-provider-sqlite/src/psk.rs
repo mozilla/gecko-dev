@@ -24,7 +24,7 @@ impl SqLitePreSharedKeyStorage {
     }
 
     /// Insert a pre-shared key into storage.
-    pub fn insert(&self, psk_id: Vec<u8>, psk: PreSharedKey) -> Result<(), SqLiteDataStorageError> {
+    pub fn insert(&self, psk_id: &[u8], psk: &PreSharedKey) -> Result<(), SqLiteDataStorageError> {
         let connection = self.connection.lock().unwrap();
 
         // Upsert into the database
@@ -103,7 +103,7 @@ mod tests {
         let (psk_id, psk) = test_psk();
         let storage = test_storage();
 
-        storage.insert(psk_id.clone(), psk.clone()).unwrap();
+        storage.insert(&psk_id, &psk).unwrap();
 
         let from_storage = storage.get(&psk_id).unwrap().unwrap();
         assert_eq!(from_storage, psk);
@@ -116,8 +116,8 @@ mod tests {
 
         let storage = test_storage();
 
-        storage.insert(psk_id.clone(), psk).unwrap();
-        storage.insert(psk_id.clone(), new_psk.clone()).unwrap();
+        storage.insert(&psk_id, &psk).unwrap();
+        storage.insert(&psk_id, &new_psk).unwrap();
 
         let from_storage = storage.get(&psk_id).unwrap().unwrap();
         assert_eq!(from_storage, new_psk);
@@ -128,7 +128,7 @@ mod tests {
         let (psk_id, psk) = test_psk();
         let storage = test_storage();
 
-        storage.insert(psk_id.clone(), psk).unwrap();
+        storage.insert(&psk_id, &psk).unwrap();
         storage.delete(&psk_id).unwrap();
 
         assert!(storage.get(&psk_id).unwrap().is_none());

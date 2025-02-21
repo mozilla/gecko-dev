@@ -55,6 +55,10 @@ impl GroupInfo {
     pub fn grease<P: CipherSuiteProvider>(&mut self, cs: &P) -> Result<(), MlsError> {
         grease_functions::grease_extensions(&mut self.extensions, cs).map(|_| ())
     }
+
+    pub fn ungrease(&mut self) {
+        grease_functions::ungrease_extensions(&mut self.extensions)
+    }
 }
 
 impl NewMemberInfo {
