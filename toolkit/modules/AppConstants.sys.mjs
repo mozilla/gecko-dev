@@ -269,6 +269,8 @@ export var AppConstants = Object.freeze({
     false,
 #endif
 
+  USE_LIBZ_RS: @USE_LIBZ_RS_BOOL@,
+
   // Returns true for CN region build when distibution id set as 'MozillaOnline'
   isChinaRepack() {
     return (
