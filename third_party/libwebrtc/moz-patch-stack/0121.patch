@@ -32,10 +32,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/86a5d2db126efcee9
  create mode 100644 modules/desktop_capture/mac/sck_picker_handle.mm
 
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index 94741d8fc7..3940323d7e 100644
+index d508767753..c639ca6220 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
-@@ -600,6 +600,8 @@ if (is_mac) {
+@@ -603,6 +603,8 @@ if (is_mac) {
        "mac/desktop_frame_iosurface.mm",
        "mac/desktop_frame_provider.h",
        "mac/desktop_frame_provider.mm",

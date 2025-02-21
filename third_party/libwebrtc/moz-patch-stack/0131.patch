@@ -603,7 +603,7 @@ index 6587fd14f3..a3b3be86b6 100644
    }
  
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index 3940323d7e..2f99e3f75f 100644
+index c639ca6220..2245146890 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
 @@ -6,8 +6,8 @@
