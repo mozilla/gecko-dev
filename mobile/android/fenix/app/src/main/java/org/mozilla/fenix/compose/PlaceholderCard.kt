@@ -81,7 +81,7 @@ private fun PlaceholderCardPreview() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .wrapContentHeight(),
-                            horizontalArrangement = Arrangement.Absolute.SpaceBetween,
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
