@@ -15692,6 +15692,40 @@ use.counter.deprecated_ops.page:
     send_in_pings:
       - use-counters
 
+  before_script_execute_event:
+    type: counter
+    description: >
+      Whether a page regiested beforescriptexecute event listener.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+    notification_emails:
+      - dom-core@mozilla.com
+      - echen@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  after_script_execute_event:
+    type: counter
+    description: >
+      Whether a page regiested afterscriptexecute event listener.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+    notification_emails:
+      - dom-core@mozilla.com
+      - echen@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
 # Total of 55 'deprecated operations (document)' use counters.
 use.counter.deprecated_ops.doc:
   domsubtree_modified:
@@ -16625,6 +16659,40 @@ use.counter.deprecated_ops.doc:
     notification_emails:
       - dom-core@mozilla.com
       - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  before_script_execute_event:
+    type: counter
+    description: >
+      Whether a document regiested beforescriptexecute event listener.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+    notification_emails:
+      - dom-core@mozilla.com
+      - echen@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  after_script_execute_event:
+    type: counter
+    description: >
+      Whether a document regiested afterscriptexecute event listener.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+    notification_emails:
+      - dom-core@mozilla.com
+      - echen@mozilla.com
     expires: never
     send_in_pings:
       - use-counters

@@ -189,10 +189,6 @@ partial interface Document {
   // special event handler IDL attributes that only apply to Document objects
   [LegacyLenientThis] attribute EventHandler onreadystatechange;
 
-  // Gecko extensions?
-                attribute EventHandler onbeforescriptexecute;
-                attribute EventHandler onafterscriptexecute;
-
   /**
    * True if this document is synthetic : stand alone image, video, audio file,
    * etc.
@@ -376,6 +372,10 @@ partial interface Document {
 
 //  Mozilla extensions of various sorts
 partial interface Document {
+  // @deprecated We are going to remove these (bug 1584269).
+  attribute EventHandler onbeforescriptexecute;
+  attribute EventHandler onafterscriptexecute;
+
   // Creates a new XUL element regardless of the document's default type.
   [ChromeOnly, CEReactions, NewObject, Throws]
   Element createXULElement(DOMString localName, optional (ElementCreationOptions or DOMString) options = {});
