@@ -376,7 +376,7 @@ class PeerConnection : public PeerConnectionInternal,
   void NoteUsageEvent(UsageEvent event) override;
 
   // Asynchronously adds a remote candidate on the network thread.
-  void AddRemoteCandidate(const std::string& mid,
+  void AddRemoteCandidate(absl::string_view mid,
                           const cricket::Candidate& candidate) override;
 
   // Report the UMA metric BundleUsage for the given remote description.

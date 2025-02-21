@@ -2587,7 +2587,7 @@ bool PeerConnection::GetLocalCandidateMediaIndex(
   bool content_found = false;
   const ContentInfos& contents = local_description()->description()->contents();
   for (size_t index = 0; index < contents.size(); ++index) {
-    if (contents[index].name == content_name) {
+    if (contents[index].mid() == content_name) {
       *sdp_mline_index = static_cast<int>(index);
       content_found = true;
       break;
@@ -2669,7 +2669,7 @@ bool PeerConnection::ValidateBundleSettings(
        citer != contents.end(); ++citer) {
     const cricket::ContentInfo* content = (&*citer);
     RTC_DCHECK(content != NULL);
-    auto it = bundle_groups_by_mid.find(content->name);
+    auto it = bundle_groups_by_mid.find(content->mid());
     if (it != bundle_groups_by_mid.end() &&
         !(content->rejected || content->bundle_only) &&
         content->type == MediaProtocolType::kRtp) {
@@ -2747,7 +2747,7 @@ void PeerConnection::NoteUsageEvent(UsageEvent event) {
 }
 
 // Asynchronously adds remote candidates on the network thread.
-void PeerConnection::AddRemoteCandidate(const std::string& mid,
+void PeerConnection::AddRemoteCandidate(absl::string_view mid,
                                         const cricket::Candidate& candidate) {
   RTC_DCHECK_RUN_ON(signaling_thread());
 
@@ -2763,7 +2763,8 @@ void PeerConnection::AddRemoteCandidate(const std::string& mid,
   new_candidate.set_underlying_type_for_vpn(rtc::ADAPTER_TYPE_UNKNOWN);
 
   network_thread()->PostTask(SafeTask(
-      network_thread_safety_, [this, mid = mid, candidate = new_candidate] {
+      network_thread_safety_,
+      [this, mid = std::string(mid), candidate = new_candidate] {
         RTC_DCHECK_RUN_ON(network_thread());
         std::vector<cricket::Candidate> candidates = {candidate};
         RTCError error =

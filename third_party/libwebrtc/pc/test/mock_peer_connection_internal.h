@@ -270,7 +270,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   MOCK_METHOD(void, StartSctpTransport, (int, int, int), (override));
   MOCK_METHOD(void,
               AddRemoteCandidate,
-              (const std::string&, const cricket::Candidate&),
+              (absl::string_view, const cricket::Candidate&),
               (override));
   MOCK_METHOD(Call*, call_ptr, (), (override));
   MOCK_METHOD(bool, SrtpRequired, (), (const, override));
