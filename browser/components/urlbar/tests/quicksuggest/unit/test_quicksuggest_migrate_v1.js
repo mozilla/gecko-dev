@@ -10,7 +10,6 @@
 const DEFAULT_PREFS = {
   "quicksuggest.enabled": true,
   "quicksuggest.dataCollection.enabled": false,
-  "quicksuggest.shouldShowOnboardingDialog": false,
   "suggest.quicksuggest.nonsponsored": true,
   "suggest.quicksuggest.sponsored": true,
 };

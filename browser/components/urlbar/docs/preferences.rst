@@ -177,9 +177,6 @@ browser.urlbar.quicksuggest.enabled (boolean, default: false)
 browser.urlbar.quicksuggest.dataCollection.enabled (boolean, default: false)
   Whether data collection is enabled for quick suggest results.
 
-browser.urlbar.quicksuggest.shouldShowOnboardingDialog (boolean, default: false)
-  Whether to show the quick suggest onboarding dialog.
-
 browser.urlbar.richSuggestions.tail (boolean, default: true)
   If true, we show tail search suggestions when available.
 

@@ -238,8 +238,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // JSON'ed array of blocked quick suggest URL digests.
   ["quicksuggest.blockedDigests", ""],
 
-  // Whether the Firefox Suggest data collection opt-in result is enabled. If
-  // true, this implicitly disables shouldShowOnboardingDialog.
+  // Whether the Firefox Suggest data collection opt-in result is enabled.
   ["quicksuggest.contextualOptIn", false],
 
   // The last time (as ISO string) the user dismissed the Firefox Suggest
@@ -304,12 +303,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether Suggest will use the ML backend in addition to Rust.
   ["quicksuggest.mlEnabled", false],
 
-  // The user's response to the Firefox Suggest online opt-in dialog.
-  ["quicksuggest.onboardingDialogChoice", ""],
-
-  // The version of dialog user saw.
-  ["quicksuggest.onboardingDialogVersion", ""],
-
   // Whether Firefox Suggest will use the new Rust backend instead of the
   // original JS backend.
   ["quicksuggest.rustEnabled", true],
@@ -319,15 +312,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // will persist across app restarts. The default value is 24 hours, same as
   // the interval used by the desktop remote settings client.
   ["quicksuggest.rustIngestIntervalSeconds", 60 * 60 * 24],
-
-  // Count the restarts before showing the onboarding dialog.
-  ["quicksuggest.seenRestarts", 0],
-
-  // Whether to show the quick suggest onboarding dialog.
-  ["quicksuggest.shouldShowOnboardingDialog", false],
-
-  // Whether the user has seen the onboarding dialog.
-  ["quicksuggest.showedOnboardingDialog", false],
 
   // We only show recent searches within the past 3 days by default.
   // Stored as a string as some code handle timestamp sized int's.

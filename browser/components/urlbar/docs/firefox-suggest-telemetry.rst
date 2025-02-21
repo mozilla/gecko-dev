@@ -1295,9 +1295,13 @@ Changelog
   Firefox 100.0
     Added ``learn_more_1``. [Bug 1761171_]
 
+  Firefox 137.0
+    Removed. [Bug 1936455_]
+
 .. _1734447: https://bugzilla.mozilla.org/show_bug.cgi?id=1734447
 .. _1745026: https://bugzilla.mozilla.org/show_bug.cgi?id=1745026
 .. _1761171: https://bugzilla.mozilla.org/show_bug.cgi?id=1761171
+.. _1936455: https://bugzilla.mozilla.org/show_bug.cgi?id=1936455
 
 browser.urlbar.quicksuggest.dataCollection.enabled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
