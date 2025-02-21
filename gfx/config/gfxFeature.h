@@ -52,6 +52,7 @@ namespace gfx {
   _(ACCELERATED_CANVAS2D, Feature, "Accelerated Canvas2D")                   \
   _(H264_HW_DECODE, Feature, "H.264 hardware decoding")                      \
   _(AV1_HW_DECODE, Feature, "AV1 hardware decoding")                         \
+  _(HEVC_HW_DECODE, Feature, "HEVC hardware decoding")                       \
   _(REMOTE_CANVAS, Feature, "Remote canvas")                                 \
   _(DMABUF_WEBGL, Feature, "DMABuf for WebGL")                               \
   /* Add new entries above this comment */

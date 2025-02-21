@@ -103,6 +103,8 @@ GFXINFO_FEATURE(ACCELERATED_CANVAS2D, "ACCELERATED_CANVAS2D", "accelerated-canva
 GFXINFO_FEATURE(H264_HW_DECODE, "H264_HW_DECODE", "h264.hw-decode")
 /* Whether hardware AV1 decoding is supported, starting in 114; downloadable blocking in 132. */
 GFXINFO_FEATURE(AV1_HW_DECODE, "AV1_HW_DECODE", "av1.hw-decode")
+/* Whether hardware HEVC decoding is supported, starting and downloadable blocking in 137. */
+GFXINFO_FEATURE(HEVC_HW_DECODE, "HEVC_HW_DECODE", "hevc.hw-decode")
 /* Whether video overlay of software decoded video is supported, starting in 116; downloadable blocking in 132. */
 GFXINFO_FEATURE(VIDEO_SOFTWARE_OVERLAY, "VIDEO_SOFTWARE_OVERLAY", "video-software-overlay")
 /* Whether WebGL is allowed to use hardware rendering, otherwise software fallbacks, starting in 120 (115esr); downloadable blocking in 132. */
