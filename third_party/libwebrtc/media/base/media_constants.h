@@ -158,6 +158,7 @@ extern const char kAv1FmtpTier[];
 
 extern const int kDefaultVideoMaxFramerate;
 extern const int kDefaultVideoMaxQpVpx;
+extern const int kDefaultVideoMaxQpAv1;
 extern const int kDefaultVideoMaxQpH26x;
 
 extern const size_t kConferenceMaxNumSpatialLayers;

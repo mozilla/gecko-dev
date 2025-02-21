@@ -442,7 +442,7 @@ class TestVideoEncoderFactoryWrapper final {
         } else {
           RTC_LOG(LS_WARNING) << "Failed to configure svc bitrates for av1.";
         }
-        video_codec.qpMax = cricket::kDefaultVideoMaxQpVpx;
+        video_codec.qpMax = cricket::kDefaultVideoMaxQpAv1;
         break;
       case kVideoCodecH265:
         // TODO(bugs.webrtc.org/13485)

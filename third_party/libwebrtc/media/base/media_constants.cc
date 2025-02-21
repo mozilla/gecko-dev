@@ -137,6 +137,7 @@ const int kDefaultVideoMaxFramerate = 60;
 // Max encode quantizer for VP8/9 and AV1 encoders assuming libvpx/libaom API
 // range [0, 63]
 const int kDefaultVideoMaxQpVpx = 56;
+const int kDefaultVideoMaxQpAv1 = 52;
 // Max encode quantizer for H264/5 assuming the bitstream range [0, 51].
 const int kDefaultVideoMaxQpH26x = 51;
 

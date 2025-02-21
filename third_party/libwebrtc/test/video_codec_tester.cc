@@ -1122,7 +1122,7 @@ class Encoder : public EncodedImageCallback {
         vc.qpMax = cricket::kDefaultVideoMaxQpVpx;
         break;
       case kVideoCodecAV1:
-        vc.qpMax = cricket::kDefaultVideoMaxQpVpx;
+        vc.qpMax = cricket::kDefaultVideoMaxQpAv1;
         break;
       case kVideoCodecH264:
         *(vc.H264()) = VideoEncoder::GetDefaultH264Settings();
