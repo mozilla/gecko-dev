@@ -328,9 +328,11 @@ txMozillaXSLTProcessor::AddXSLTParamNamespace(const nsString& aPrefix,
 
 class txXSLTParamContext : public txIParseContext, public txIEvalContext {
  public:
-  txXSLTParamContext(txNamespaceMap* aResolver, const txXPathNode& aContext,
+  txXSLTParamContext(txNamespaceMap* aResolver, txXPathNode&& aContext,
                      txResultRecycler* aRecycler)
-      : mResolver(aResolver), mContext(aContext), mRecycler(aRecycler) {}
+      : mResolver(aResolver),
+        mContext(std::move(aContext)),
+        mRecycler(aRecycler) {}
 
   // txIParseContext
   int32_t resolveNamespacePrefix(nsAtom* aPrefix) override {
@@ -385,7 +387,7 @@ txMozillaXSLTProcessor::AddXSLTParam(const nsString& aName,
   uint16_t resultType;
   if (!aSelect.IsVoid()) {
     // Set up context
-    UniquePtr<txXPathNode> contextNode(
+    Maybe<txXPathNode> contextNode(
         txXPathNativeNode::createXPathNode(aContext));
     NS_ENSURE_TRUE(contextNode, NS_ERROR_OUT_OF_MEMORY);
 
@@ -393,7 +395,7 @@ txMozillaXSLTProcessor::AddXSLTParam(const nsString& aName,
       mRecycler = new txResultRecycler;
     }
 
-    txXSLTParamContext paramContext(&mParamNamespaceMap, *contextNode,
+    txXSLTParamContext paramContext(&mParamNamespaceMap, contextNode.extract(),
                                     mRecycler);
 
     // Parse
@@ -655,8 +657,7 @@ XSLTProcessRequest::SetTRRMode(nsIRequest::TRRMode aTRRMode) {
 
 nsresult txMozillaXSLTProcessor::TransformToDoc(Document** aResult,
                                                 bool aCreateDataDocument) {
-  UniquePtr<txXPathNode> sourceNode(
-      txXPathNativeNode::createXPathNode(mSource));
+  Maybe<txXPathNode> sourceNode(txXPathNativeNode::createXPathNode(mSource));
   if (!sourceNode) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -754,7 +755,7 @@ already_AddRefed<DocumentFragment> txMozillaXSLTProcessor::TransformToFragment(
     source = &aSource;
   }
 
-  UniquePtr<txXPathNode> sourceNode(txXPathNativeNode::createXPathNode(source));
+  Maybe<txXPathNode> sourceNode(txXPathNativeNode::createXPathNode(source));
   if (!sourceNode) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
@@ -768,7 +769,7 @@ already_AddRefed<DocumentFragment> txMozillaXSLTProcessor::TransformToFragment(
   txToFragmentHandlerFactory handlerFactory(frag);
   es.mOutputHandlerFactory = &handlerFactory;
 
-  rv = es.init(*sourceNode, &mVariables);
+  rv = es.init(sourceNode.extract(), &mVariables);
 
   // Process root of XML source document
   if (NS_SUCCEEDED(rv)) {
@@ -1185,7 +1186,7 @@ nsresult txVariable::convert(const OwningXSLTParameterValue& aUnionValue,
 
   if (aUnionValue.IsNode()) {
     nsINode& node = aUnionValue.GetAsNode();
-    UniquePtr<txXPathNode> xpathNode(txXPathNativeNode::createXPathNode(&node));
+    Maybe<txXPathNode> xpathNode(txXPathNativeNode::createXPathNode(&node));
     if (!xpathNode) {
       return NS_ERROR_FAILURE;
     }
@@ -1199,13 +1200,13 @@ nsresult txVariable::convert(const OwningXSLTParameterValue& aUnionValue,
     const Sequence<OwningNonNull<nsINode>>& values =
         aUnionValue.GetAsNodeSequence();
     for (const auto& node : values) {
-      UniquePtr<txXPathNode> xpathNode(
+      Maybe<txXPathNode> xpathNode(
           txXPathNativeNode::createXPathNode(node.get()));
       if (!xpathNode) {
         return NS_ERROR_FAILURE;
       }
 
-      nodeSet->append(*xpathNode);
+      nodeSet->append(xpathNode.extract());
     }
     nodeSet.forget(aValue);
     return NS_OK;
