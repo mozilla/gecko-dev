@@ -3700,22 +3700,19 @@
 - name: WasmLoadField
   gen_boilerplate: false
 
-- name: WasmLoadFieldKA
+- name: WasmLoadElement
   gen_boilerplate: false
 
-- name: WasmLoadElementKA
+- name: WasmStoreField
   gen_boilerplate: false
 
-- name: WasmStoreFieldKA
+- name: WasmStoreFieldRef
   gen_boilerplate: false
 
-- name: WasmStoreFieldRefKA
+- name: WasmStoreElement
   gen_boilerplate: false
 
-- name: WasmStoreElementKA
-  gen_boilerplate: false
-
-- name: WasmStoreElementRefKA
+- name: WasmStoreElementRef
   gen_boilerplate: false
 
 - name: WasmRefIsSubtypeOfConcrete

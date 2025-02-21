@@ -2363,23 +2363,37 @@ static inline const char* StringFromMNarrowingOp(MNarrowingOp op) {
 }
 #endif
 
-// Load an object field stored at a fixed offset from a base pointer.  This
-// field may be any value type, including references.  No barriers are
-// performed.  The offset must be representable as a 31-bit unsigned integer.
-class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
+// Loads a value from a location, denoted as a fixed offset from a base
+// pointer. This field may be any value type, including references. No
+// barriers are performed.
+//
+// This instruction can extend the lifetime of an optional `keepAlive`
+// parameter to match the lifetime of this instruction. This is necessary if
+// the base pointer is owned by some GC'ed object, which means that the GC
+// object must have the same lifetime as all uses of it's owned pointers.
+// No code to access the keepAlive value is generated.
+//
+// `offset` must be representable as a 31-bit unsigned integer.
+//
+// An optional structFieldIndex can be given for struct accesses and used in
+// scalar replacement.
+class MWasmLoadField : public MBinaryInstruction, public NoTypePolicy::Data {
   uint32_t offset_;
+  mozilla::Maybe<uint32_t> structFieldIndex_;
   MWideningOp wideningOp_;
   AliasSet aliases_;
   wasm::MaybeTrapSiteDesc maybeTrap_;
 
-  MWasmLoadField(MDefinition* obj, uint32_t offset, MIRType type,
+  MWasmLoadField(MDefinition* base, MDefinition* keepAlive, size_t offset,
+                 mozilla::Maybe<uint32_t> structFieldIndex, MIRType type,
                  MWideningOp wideningOp, AliasSet aliases,
                  wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
-      : MUnaryInstruction(classOpcode, obj),
+      : MBinaryInstruction(classOpcode, base, keepAlive ? keepAlive : base),
         offset_(uint32_t(offset)),
+        structFieldIndex_(structFieldIndex),
         wideningOp_(wideningOp),
         aliases_(aliases),
-        maybeTrap_(maybeTrap) {
+        maybeTrap_(std::move(maybeTrap)) {
     MOZ_ASSERT(offset <= INT32_MAX);
     // "if you want to widen the value when it is loaded, the destination type
     // must be Int32".
@@ -2388,9 +2402,15 @@ class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
         aliases.flags() ==
             AliasSet::Load(AliasSet::WasmStructOutlineDataPointer).flags() ||
         aliases.flags() ==
+            AliasSet::Load(AliasSet::WasmStructInlineDataArea).flags() ||
+        aliases.flags() ==
+            AliasSet::Load(AliasSet::WasmStructOutlineDataArea).flags() ||
+        aliases.flags() ==
             AliasSet::Load(AliasSet::WasmArrayNumElements).flags() ||
         aliases.flags() ==
             AliasSet::Load(AliasSet::WasmArrayDataPointer).flags() ||
+        aliases.flags() ==
+            AliasSet::Load(AliasSet::WasmArrayDataArea).flags() ||
         aliases.flags() == AliasSet::Load(AliasSet::Any).flags());
     setResultType(type);
     if (maybeTrap_) {
@@ -2401,9 +2421,12 @@ class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
  public:
   INSTRUCTION_HEADER(WasmLoadField)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, obj))
+  NAMED_OPERANDS((0, base), (1, keepAlive))
 
   uint32_t offset() const { return offset_; }
+  mozilla::Maybe<uint32_t> structFieldIndex() const {
+    return structFieldIndex_;
+  }
   MWideningOp wideningOp() const { return wideningOp_; }
   AliasSet getAliasSet() const override { return aliases_; }
   wasm::MaybeTrapSiteDesc maybeTrap() const { return maybeTrap_; }
@@ -2419,74 +2442,11 @@ class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
     }
     const MWasmLoadField* other = ins->toWasmLoadField();
     return ins->isWasmLoadField() && congruentIfOperandsEqual(ins) &&
-           offset() == other->offset() && wideningOp() == other->wideningOp() &&
+           offset() == other->offset() &&
+           structFieldIndex() == other->structFieldIndex() &&
+           wideningOp() == other->wideningOp() &&
            getAliasSet().flags() == other->getAliasSet().flags();
   }
-
-#ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) const override {
-    char buf[96];
-    SprintfLiteral(buf, "(offs=%lld, wideningOp=%s)", (long long int)offset_,
-                   StringFromMWideningOp(wideningOp_));
-    extras->add(buf);
-  }
-#endif
-};
-
-// Loads a value from a location, denoted as a fixed offset from a base
-// pointer, which (it is assumed) is within a wasm object.  This field may be
-// any value type, including references.  No barriers are performed.
-//
-// This instruction takes a pointer to a second object `ka`, which it is
-// necessary to keep alive.  It is expected that `ka` holds a reference to
-// `obj`, but this is not enforced and no code is generated to access `ka`.
-// This instruction extends the lifetime of `ka` so that it, and hence `obj`,
-// cannot be collected while `obj` is live.  This is necessary if `obj` does
-// not point to a GC-managed object.  `offset` must be representable as a
-// 31-bit unsigned integer.
-class MWasmLoadFieldKA : public MBinaryInstruction, public NoTypePolicy::Data {
-  uint32_t offset_;
-  uint32_t fieldIndex_;
-  MWideningOp wideningOp_;
-  AliasSet aliases_;
-  wasm::MaybeTrapSiteDesc maybeTrap_;
-
-  MWasmLoadFieldKA(MDefinition* ka, MDefinition* obj, size_t offset,
-                   uint32_t fieldIndex, MIRType type, MWideningOp wideningOp,
-                   AliasSet aliases,
-                   wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
-      : MBinaryInstruction(classOpcode, ka, obj),
-        offset_(uint32_t(offset)),
-        fieldIndex_(fieldIndex),
-        wideningOp_(wideningOp),
-        aliases_(aliases),
-        maybeTrap_(maybeTrap) {
-    MOZ_ASSERT(offset <= INT32_MAX);
-    MOZ_ASSERT_IF(wideningOp != MWideningOp::None, type == MIRType::Int32);
-    MOZ_ASSERT(
-        aliases.flags() ==
-            AliasSet::Load(AliasSet::WasmStructInlineDataArea).flags() ||
-        aliases.flags() ==
-            AliasSet::Load(AliasSet::WasmStructOutlineDataArea).flags() ||
-        aliases.flags() ==
-            AliasSet::Load(AliasSet::WasmArrayDataArea).flags() ||
-        aliases.flags() == AliasSet::Load(AliasSet::Any).flags());
-    setResultType(type);
-    if (maybeTrap_) {
-      setGuard();
-    }
-  }
-
- public:
-  INSTRUCTION_HEADER(WasmLoadFieldKA)
-  TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, ka), (1, obj))
-
-  uint32_t offset() const { return offset_; }
-  uint32_t fieldIndex() const { return fieldIndex_; }
-  MWideningOp wideningOp() const { return wideningOp_; }
-  AliasSet getAliasSet() const override { return aliases_; }
-  wasm::MaybeTrapSiteDesc maybeTrap() const { return maybeTrap_; }
 
 #ifdef JS_JITSPEW
   void getExtras(ExtrasCollector* extras) const override {
@@ -2506,24 +2466,24 @@ class MWasmLoadFieldKA : public MBinaryInstruction, public NoTypePolicy::Data {
 // MIRType::Int32 and MWideningOp::FromU16 together indicate an element size of
 // 16 bits.
 //
-// This instruction takes a second object `ka` that must be kept alive, as
-// described for MWasmLoadFieldKA above.
-class MWasmLoadElementKA : public MTernaryInstruction,
-                           public NoTypePolicy::Data {
+// This instruction takes an optional second object `keepAlive` that must be
+// kept alive, as described for MWasmLoadField above.
+class MWasmLoadElement : public MTernaryInstruction, public NoTypePolicy::Data {
   MWideningOp wideningOp_;
   Scale scale_;
   AliasSet aliases_;
   wasm::MaybeTrapSiteDesc maybeTrap_;
 
-  MWasmLoadElementKA(MDefinition* ka, MDefinition* base, MDefinition* index,
-                     MIRType type, MWideningOp wideningOp, Scale scale,
-                     AliasSet aliases,
-                     wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
-      : MTernaryInstruction(classOpcode, ka, base, index),
+  MWasmLoadElement(MDefinition* base, MDefinition* keepAlive,
+                   MDefinition* index, MIRType type, MWideningOp wideningOp,
+                   Scale scale, AliasSet aliases,
+                   wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
+      : MTernaryInstruction(classOpcode, base, index,
+                            keepAlive ? keepAlive : base),
         wideningOp_(wideningOp),
         scale_(scale),
         aliases_(aliases),
-        maybeTrap_(maybeTrap) {
+        maybeTrap_(std::move(maybeTrap)) {
     MOZ_ASSERT(base->type() == MIRType::WasmArrayData);
     MOZ_ASSERT(aliases.flags() ==
                    AliasSet::Load(AliasSet::WasmArrayDataArea).flags() ||
@@ -2535,9 +2495,9 @@ class MWasmLoadElementKA : public MTernaryInstruction,
   }
 
  public:
-  INSTRUCTION_HEADER(WasmLoadElementKA)
+  INSTRUCTION_HEADER(WasmLoadElement)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, ka), (1, base), (2, index))
+  NAMED_OPERANDS((0, base), (1, index), (2, keepAlive))
 
   MWideningOp wideningOp() const { return wideningOp_; }
   Scale scale() const { return scale_; }
@@ -2560,26 +2520,26 @@ class MWasmLoadElementKA : public MTernaryInstruction,
 // 'Ref' variant of this instruction.  The offset must be representable as a
 // 31-bit unsigned integer.
 //
-// This instruction takes a second object `ka` that must be kept alive, as
-// described for MWasmLoadFieldKA above.
-class MWasmStoreFieldKA : public MTernaryInstruction,
-                          public NoTypePolicy::Data {
+// This instruction takes a second object `keepAlive` that must be kept alive,
+// as described for MWasmLoadField above.
+class MWasmStoreField : public MTernaryInstruction, public NoTypePolicy::Data {
   uint32_t offset_;
-  uint32_t fieldIndex_;
+  mozilla::Maybe<uint32_t> structFieldIndex_;
   MNarrowingOp narrowingOp_;
   AliasSet aliases_;
   wasm::MaybeTrapSiteDesc maybeTrap_;
 
-  MWasmStoreFieldKA(MDefinition* ka, MDefinition* obj, size_t offset,
-                    uint32_t fieldIndex, MDefinition* value,
-                    MNarrowingOp narrowingOp, AliasSet aliases,
-                    wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
-      : MTernaryInstruction(classOpcode, ka, obj, value),
+  MWasmStoreField(MDefinition* base, MDefinition* keepAlive, size_t offset,
+                  mozilla::Maybe<uint32_t> structFieldIndex, MDefinition* value,
+                  MNarrowingOp narrowingOp, AliasSet aliases,
+                  wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
+      : MTernaryInstruction(classOpcode, base, value,
+                            keepAlive ? keepAlive : base),
         offset_(uint32_t(offset)),
-        fieldIndex_(fieldIndex),
+        structFieldIndex_(structFieldIndex),
         narrowingOp_(narrowingOp),
         aliases_(aliases),
-        maybeTrap_(maybeTrap) {
+        maybeTrap_(std::move(maybeTrap)) {
     MOZ_ASSERT(offset <= INT32_MAX);
     MOZ_ASSERT(value->type() != MIRType::WasmAnyRef);
     // "if you want to narrow the value when it is stored, the source type
@@ -2600,12 +2560,14 @@ class MWasmStoreFieldKA : public MTernaryInstruction,
   }
 
  public:
-  INSTRUCTION_HEADER(WasmStoreFieldKA)
+  INSTRUCTION_HEADER(WasmStoreField)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, ka), (1, obj), (2, value))
+  NAMED_OPERANDS((0, base), (1, value), (2, keepAlive))
 
   uint32_t offset() const { return offset_; }
-  uint32_t fieldIndex() const { return fieldIndex_; }
+  mozilla::Maybe<uint32_t> structFieldIndex() const {
+    return structFieldIndex_;
+  }
   MNarrowingOp narrowingOp() const { return narrowingOp_; }
   AliasSet getAliasSet() const override { return aliases_; }
   wasm::MaybeTrapSiteDesc maybeTrap() const { return maybeTrap_; }
@@ -2625,30 +2587,32 @@ class MWasmStoreFieldKA : public MTernaryInstruction,
 // instruction emits a pre-barrier.  A post barrier _must_ be performed
 // separately.  The offset must be representable as a 31-bit unsigned integer.
 //
-// This instruction takes a second object `ka` that must be kept alive, as
-// described for MWasmLoadFieldKA above.
-class MWasmStoreFieldRefKA : public MAryInstruction<4>,
-                             public NoTypePolicy::Data {
+// This instruction takes a second object `keepAlive` that must be kept alive,
+// as described for MWasmLoadField above.
+class MWasmStoreFieldRef : public MAryInstruction<4>,
+                           public NoTypePolicy::Data {
   uint32_t offset_;
-  uint32_t fieldIndex_;
+  mozilla::Maybe<uint32_t> structFieldIndex_;
   AliasSet aliases_;
   wasm::MaybeTrapSiteDesc maybeTrap_;
   WasmPreBarrierKind preBarrierKind_;
 
-  MWasmStoreFieldRefKA(MDefinition* instance, MDefinition* ka, MDefinition* obj,
-                       size_t offset, uint32_t fieldIndex, MDefinition* value,
-                       AliasSet aliases, wasm::MaybeTrapSiteDesc maybeTrap,
-                       WasmPreBarrierKind preBarrierKind)
+  MWasmStoreFieldRef(MDefinition* instance, MDefinition* base,
+                     MDefinition* keepAlive, size_t offset,
+                     mozilla::Maybe<uint32_t> structFieldIndex,
+                     MDefinition* value, AliasSet aliases,
+                     wasm::MaybeTrapSiteDesc maybeTrap,
+                     WasmPreBarrierKind preBarrierKind)
       : MAryInstruction<4>(classOpcode),
         offset_(uint32_t(offset)),
-        fieldIndex_(fieldIndex),
+        structFieldIndex_(structFieldIndex),
         aliases_(aliases),
-        maybeTrap_(maybeTrap),
+        maybeTrap_(std::move(maybeTrap)),
         preBarrierKind_(preBarrierKind) {
-    MOZ_ASSERT(obj->type() == TargetWordMIRType() ||
-               obj->type() == MIRType::Pointer ||
-               obj->type() == MIRType::WasmAnyRef ||
-               obj->type() == MIRType::WasmArrayData);
+    MOZ_ASSERT(base->type() == TargetWordMIRType() ||
+               base->type() == MIRType::Pointer ||
+               base->type() == MIRType::WasmAnyRef ||
+               base->type() == MIRType::WasmArrayData);
     MOZ_ASSERT(offset <= INT32_MAX);
     MOZ_ASSERT(value->type() == MIRType::WasmAnyRef);
     MOZ_ASSERT(
@@ -2660,21 +2624,23 @@ class MWasmStoreFieldRefKA : public MAryInstruction<4>,
             AliasSet::Store(AliasSet::WasmArrayDataArea).flags() ||
         aliases.flags() == AliasSet::Store(AliasSet::Any).flags());
     initOperand(0, instance);
-    initOperand(1, ka);
-    initOperand(2, obj);
-    initOperand(3, value);
+    initOperand(1, base);
+    initOperand(2, value);
+    initOperand(3, keepAlive ? keepAlive : base);
     if (maybeTrap_) {
       setGuard();
     }
   }
 
  public:
-  INSTRUCTION_HEADER(WasmStoreFieldRefKA)
+  INSTRUCTION_HEADER(WasmStoreFieldRef)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, instance), (1, ka), (2, obj), (3, value))
+  NAMED_OPERANDS((0, instance), (1, base), (2, value), (3, keepAlive))
 
   uint32_t offset() const { return offset_; }
-  uint32_t fieldIndex() const { return fieldIndex_; }
+  mozilla::Maybe<uint32_t> structFieldIndex() const {
+    return structFieldIndex_;
+  }
   AliasSet getAliasSet() const override { return aliases_; }
   wasm::MaybeTrapSiteDesc maybeTrap() const { return maybeTrap_; }
   WasmPreBarrierKind preBarrierKind() const { return preBarrierKind_; }
@@ -2697,24 +2663,25 @@ class MWasmStoreFieldRefKA : public MAryInstruction<4>,
 // MIRType::Int32 and MNarrowingOp::To16 together indicate an element size of 16
 // bits.
 //
-// This instruction takes a second object `ka` that must be kept alive, as
-// described for MWasmLoadFieldKA above.
-class MWasmStoreElementKA : public MQuaternaryInstruction,
-                            public NoTypePolicy::Data {
+// This instruction takes a second object `keepAlive` that must be kept alive,
+// as described for MWasmLoadField above.
+class MWasmStoreElement : public MQuaternaryInstruction,
+                          public NoTypePolicy::Data {
   MNarrowingOp narrowingOp_;
   Scale scale_;
   AliasSet aliases_;
   wasm::MaybeTrapSiteDesc maybeTrap_;
 
-  MWasmStoreElementKA(MDefinition* ka, MDefinition* base, MDefinition* index,
-                      MDefinition* value, MNarrowingOp narrowingOp, Scale scale,
-                      AliasSet aliases,
-                      wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
-      : MQuaternaryInstruction(classOpcode, ka, base, index, value),
+  MWasmStoreElement(MDefinition* base, MDefinition* index, MDefinition* value,
+                    MDefinition* keepAlive, MNarrowingOp narrowingOp,
+                    Scale scale, AliasSet aliases,
+                    wasm::MaybeTrapSiteDesc maybeTrap = mozilla::Nothing())
+      : MQuaternaryInstruction(classOpcode, base, index, value,
+                               keepAlive ? keepAlive : base),
         narrowingOp_(narrowingOp),
         scale_(scale),
         aliases_(aliases),
-        maybeTrap_(maybeTrap) {
+        maybeTrap_(std::move(maybeTrap)) {
     MOZ_ASSERT(base->type() == MIRType::WasmArrayData);
     MOZ_ASSERT(value->type() != MIRType::WasmAnyRef);
     // "if you want to narrow the value when it is stored, the source type
@@ -2730,9 +2697,9 @@ class MWasmStoreElementKA : public MQuaternaryInstruction,
   }
 
  public:
-  INSTRUCTION_HEADER(WasmStoreElementKA)
+  INSTRUCTION_HEADER(WasmStoreElement)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, ka), (1, base), (2, index), (3, value))
+  NAMED_OPERANDS((0, base), (1, index), (2, value), (3, keepAlive))
 
   MNarrowingOp narrowingOp() const { return narrowingOp_; }
   Scale scale() const { return scale_; }
@@ -2755,24 +2722,24 @@ class MWasmStoreElementKA : public MQuaternaryInstruction,
 // separately.
 //
 // The element size is implicitly defined by MIRType and MNarrowingOp, as
-// described for MWasmStoreElementKA above.
+// described for MWasmStoreElement above.
 //
 // This instruction takes a second object `ka` that must be kept alive, as
-// described for MWasmLoadFieldKA above.
-class MWasmStoreElementRefKA : public MAryInstruction<5>,
-                               public NoTypePolicy::Data {
+// described for MWasmLoadField above.
+class MWasmStoreElementRef : public MAryInstruction<5>,
+                             public NoTypePolicy::Data {
   AliasSet aliases_;
   wasm::MaybeTrapSiteDesc maybeTrap_;
   WasmPreBarrierKind preBarrierKind_;
 
-  MWasmStoreElementRefKA(MDefinition* instance, MDefinition* ka,
-                         MDefinition* base, MDefinition* index,
-                         MDefinition* value, AliasSet aliases,
-                         wasm::MaybeTrapSiteDesc maybeTrap,
-                         WasmPreBarrierKind preBarrierKind)
+  MWasmStoreElementRef(MDefinition* instance, MDefinition* base,
+                       MDefinition* index, MDefinition* value,
+                       MDefinition* keepAlive, AliasSet aliases,
+                       wasm::MaybeTrapSiteDesc maybeTrap,
+                       WasmPreBarrierKind preBarrierKind)
       : MAryInstruction<5>(classOpcode),
         aliases_(aliases),
-        maybeTrap_(maybeTrap),
+        maybeTrap_(std::move(maybeTrap)),
         preBarrierKind_(preBarrierKind) {
     MOZ_ASSERT(base->type() == MIRType::WasmArrayData);
     MOZ_ASSERT(value->type() == MIRType::WasmAnyRef);
@@ -2780,19 +2747,20 @@ class MWasmStoreElementRefKA : public MAryInstruction<5>,
                    AliasSet::Store(AliasSet::WasmArrayDataArea).flags() ||
                aliases.flags() == AliasSet::Store(AliasSet::Any).flags());
     initOperand(0, instance);
-    initOperand(1, ka);
-    initOperand(2, base);
-    initOperand(3, index);
-    initOperand(4, value);
+    initOperand(1, base);
+    initOperand(2, index);
+    initOperand(3, value);
+    initOperand(4, keepAlive ? keepAlive : base);
     if (maybeTrap_) {
       setGuard();
     }
   }
 
  public:
-  INSTRUCTION_HEADER(WasmStoreElementRefKA)
+  INSTRUCTION_HEADER(WasmStoreElementRef)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, instance), (1, ka), (2, base), (3, index), (4, value))
+  NAMED_OPERANDS((0, instance), (1, base), (2, index), (3, value),
+                 (4, keepAlive))
 
   AliasSet getAliasSet() const override { return aliases_; }
   wasm::MaybeTrapSiteDesc maybeTrap() const { return maybeTrap_; }

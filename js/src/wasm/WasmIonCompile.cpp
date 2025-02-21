@@ -4409,8 +4409,9 @@ class FunctionCompiler {
 
     // Get the data pointer from the exception object
     auto* data = MWasmLoadField::New(
-        alloc(), exception, WasmExceptionObject::offsetOfData(),
-        MIRType::Pointer, MWideningOp::None, AliasSet::Load(AliasSet::Any));
+        alloc(), exception, nullptr, WasmExceptionObject::offsetOfData(),
+        mozilla::Nothing(), MIRType::Pointer, MWideningOp::None,
+        AliasSet::Load(AliasSet::Any));
     if (!data) {
       return false;
     }
@@ -4426,9 +4427,10 @@ class FunctionCompiler {
       if (!mirGen().ensureBallast()) {
         return false;
       }
-      auto* load = MWasmLoadFieldKA::New(
-          alloc(), exception, data, offsets[i], i, params[i].toMIRType(),
-          MWideningOp::None, AliasSet::Load(AliasSet::Any));
+      auto* load =
+          MWasmLoadField::New(alloc(), data, exception, offsets[i],
+                              mozilla::Nothing(), params[i].toMIRType(),
+                              MWideningOp::None, AliasSet::Load(AliasSet::Any));
       if (!load || !values->append(load)) {
         return false;
       }
@@ -4560,8 +4562,9 @@ class FunctionCompiler {
 
     // Load the data pointer from the object
     auto* data = MWasmLoadField::New(
-        alloc(), exception, WasmExceptionObject::offsetOfData(),
-        MIRType::Pointer, MWideningOp::None, AliasSet::Load(AliasSet::Any));
+        alloc(), exception, nullptr, WasmExceptionObject::offsetOfData(),
+        mozilla::Nothing(), MIRType::Pointer, MWideningOp::None,
+        AliasSet::Load(AliasSet::Any));
     if (!data) {
       return false;
     }
@@ -4577,8 +4580,8 @@ class FunctionCompiler {
       uint32_t offset = tagType->argOffsets()[i];
 
       if (!type.isRefRepr()) {
-        auto* store = MWasmStoreFieldKA::New(
-            alloc(), exception, data, offset, i, argValues[i],
+        auto* store = MWasmStoreField::New(
+            alloc(), data, exception, offset, mozilla::Nothing(), argValues[i],
             MNarrowingOp::None, AliasSet::Store(AliasSet::Any));
         if (!store) {
           return false;
@@ -4588,9 +4591,10 @@ class FunctionCompiler {
       }
 
       // Store the new value
-      auto* store = MWasmStoreFieldRefKA::New(
-          alloc(), instancePointer_, exception, data, offset, i, argValues[i],
-          AliasSet::Store(AliasSet::Any), Nothing(), WasmPreBarrierKind::None);
+      auto* store = MWasmStoreFieldRef::New(
+          alloc(), instancePointer_, data, exception, offset,
+          mozilla::Nothing(), argValues[i], AliasSet::Store(AliasSet::Any),
+          Nothing(), WasmPreBarrierKind::None);
       if (!store) {
         return false;
       }
@@ -4765,9 +4769,10 @@ class FunctionCompiler {
       if (needsTrapInfo) {
         maybeTrap.emplace(trapSiteDesc());
       }
-      auto* store = MWasmStoreFieldKA::New(
-          alloc(), keepAlive, base, offset, fieldIndex, value, narrowingOp,
-          AliasSet::Store(aliasBitset), maybeTrap);
+
+      auto* store = MWasmStoreField::New(
+          alloc(), base, keepAlive, offset, mozilla::Some(fieldIndex), value,
+          narrowingOp, AliasSet::Store(aliasBitset), maybeTrap);
       if (!store) {
         return false;
       }
@@ -4786,10 +4791,10 @@ class FunctionCompiler {
     MOZ_ASSERT(type.widenToValType() == type.valType());
 
     // Store the new value
-    auto* store = MWasmStoreFieldRefKA::New(
-        alloc(), instancePointer_, keepAlive, base, offset, fieldIndex, value,
-        AliasSet::Store(aliasBitset), mozilla::Some(trapSiteDesc()),
-        preBarrierKind);
+    auto* store = MWasmStoreFieldRef::New(
+        alloc(), instancePointer_, base, keepAlive, offset,
+        mozilla::Some(fieldIndex), value, AliasSet::Store(aliasBitset),
+        mozilla::Some(trapSiteDesc()), preBarrierKind);
     if (!store) {
       return false;
     }
@@ -4819,8 +4824,8 @@ class FunctionCompiler {
     if (!type.isRefRepr()) {
       MaybeTrapSiteDesc maybeTrap;
       Scale scale = scaleFromFieldType(type);
-      auto* store = MWasmStoreElementKA::New(
-          alloc(), keepAlive, base, index, value, narrowingOp, scale,
+      auto* store = MWasmStoreElement::New(
+          alloc(), base, index, value, keepAlive, narrowingOp, scale,
           AliasSet::Store(aliasBitset), maybeTrap);
       if (!store) {
         return false;
@@ -4834,8 +4839,8 @@ class FunctionCompiler {
     MOZ_ASSERT(type.widenToValType() == type.valType());
 
     // Store the new value
-    auto* store = MWasmStoreElementRefKA::New(
-        alloc(), instancePointer_, keepAlive, base, index, value,
+    auto* store = MWasmStoreElementRef::New(
+        alloc(), instancePointer_, base, index, value, keepAlive,
         AliasSet::Store(aliasBitset), mozilla::Some(trapSiteDesc()),
         preBarrierKind);
     if (!store) {
@@ -4865,9 +4870,9 @@ class FunctionCompiler {
       maybeTrap.emplace(trapSiteDesc());
     }
 
-    auto* load = MWasmLoadFieldKA::New(alloc(), keepAlive, base, offset,
-                                       fieldIndex, mirType, mirWideningOp,
-                                       AliasSet::Load(aliasBitset), maybeTrap);
+    auto* load = MWasmLoadField::New(
+        alloc(), base, keepAlive, offset, mozilla::Some(fieldIndex), mirType,
+        mirWideningOp, AliasSet::Load(aliasBitset), maybeTrap);
     if (!load) {
       return nullptr;
     }
@@ -4889,8 +4894,8 @@ class FunctionCompiler {
     MWideningOp mirWideningOp;
     fieldLoadInfoToMIR(type, fieldWideningOp, &mirType, &mirWideningOp);
     Scale scale = scaleFromFieldType(type);
-    auto* load = MWasmLoadElementKA::New(
-        alloc(), keepAlive, base, index, mirType, mirWideningOp, scale,
+    auto* load = MWasmLoadElement::New(
+        alloc(), base, keepAlive, index, mirType, mirWideningOp, scale,
         AliasSet::Load(aliasBitset), mozilla::Some(trapSiteDesc()));
     if (!load) {
       return nullptr;
@@ -4974,16 +4979,17 @@ class FunctionCompiler {
     MDefinition* base;
     bool needsTrapInfo;
     if (areaIsOutline) {
-      auto* load = MWasmLoadField::New(
-          alloc(), structObject, WasmStructObject::offsetOfOutlineData(),
+      auto* loadDataPointer = MWasmLoadField::New(
+          alloc(), structObject, nullptr,
+          WasmStructObject::offsetOfOutlineData(), mozilla::Nothing(),
           MIRType::Pointer, MWideningOp::None,
           AliasSet::Load(AliasSet::WasmStructOutlineDataPointer),
           mozilla::Some(trapSiteDesc()));
-      if (!load) {
+      if (!loadDataPointer) {
         return false;
       }
-      curBlock_->add(load);
-      base = load;
+      curBlock_->add(loadDataPointer);
+      base = loadDataPointer;
       needsTrapInfo = false;
     } else {
       base = structObject;
@@ -5024,16 +5030,17 @@ class FunctionCompiler {
     MDefinition* base;
     bool needsTrapInfo;
     if (areaIsOutline) {
-      auto* loadOOLptr = MWasmLoadField::New(
-          alloc(), structObject, WasmStructObject::offsetOfOutlineData(),
+      auto* loadDataPointer = MWasmLoadField::New(
+          alloc(), structObject, nullptr,
+          WasmStructObject::offsetOfOutlineData(), mozilla::Nothing(),
           MIRType::Pointer, MWideningOp::None,
           AliasSet::Load(AliasSet::WasmStructOutlineDataPointer),
           mozilla::Some(trapSiteDesc()));
-      if (!loadOOLptr) {
+      if (!loadDataPointer) {
         return nullptr;
       }
-      curBlock_->add(loadOOLptr);
-      base = loadOOLptr;
+      curBlock_->add(loadDataPointer);
+      base = loadDataPointer;
       needsTrapInfo = false;
     } else {
       base = structObject;
@@ -5095,8 +5102,8 @@ class FunctionCompiler {
     MOZ_ASSERT(arrayObject->type() == MIRType::WasmAnyRef);
 
     auto* numElements = MWasmLoadField::New(
-        alloc(), arrayObject, WasmArrayObject::offsetOfNumElements(),
-        MIRType::Int32, MWideningOp::None,
+        alloc(), arrayObject, nullptr, WasmArrayObject::offsetOfNumElements(),
+        mozilla::Nothing(), MIRType::Int32, MWideningOp::None,
         AliasSet::Load(AliasSet::WasmArrayNumElements),
         mozilla::Some(trapSiteDesc()));
     if (!numElements) {
@@ -5113,8 +5120,8 @@ class FunctionCompiler {
     MOZ_ASSERT(arrayObject->type() == MIRType::WasmAnyRef);
 
     auto* data = MWasmLoadField::New(
-        alloc(), arrayObject, WasmArrayObject::offsetOfData(),
-        MIRType::WasmArrayData, MWideningOp::None,
+        alloc(), arrayObject, nullptr, WasmArrayObject::offsetOfData(),
+        mozilla::Nothing(), MIRType::WasmArrayData, MWideningOp::None,
         AliasSet::Load(AliasSet::WasmArrayDataPointer),
         mozilla::Some(trapSiteDesc()));
     if (!data) {
@@ -5396,8 +5403,8 @@ class FunctionCompiler {
     curBlock_ = copyBlock;
 
     MInstruction* dstData = MWasmLoadField::New(
-        alloc(), dstArrayObject, WasmArrayObject::offsetOfData(),
-        MIRType::WasmArrayData, MWideningOp::None,
+        alloc(), dstArrayObject, nullptr, WasmArrayObject::offsetOfData(),
+        mozilla::Nothing(), MIRType::WasmArrayData, MWideningOp::None,
         AliasSet::Load(AliasSet::WasmArrayDataPointer));
     if (!dstData) {
       return false;
@@ -5405,8 +5412,8 @@ class FunctionCompiler {
     curBlock_->add(dstData);
 
     MInstruction* srcData = MWasmLoadField::New(
-        alloc(), srcArrayObject, WasmArrayObject::offsetOfData(),
-        MIRType::WasmArrayData, MWideningOp::None,
+        alloc(), srcArrayObject, nullptr, WasmArrayObject::offsetOfData(),
+        mozilla::Nothing(), MIRType::WasmArrayData, MWideningOp::None,
         AliasSet::Load(AliasSet::WasmArrayDataPointer));
     if (!srcData) {
       return false;
