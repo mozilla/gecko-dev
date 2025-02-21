@@ -483,7 +483,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
         observeClipboardState()
         observeSuggestionProvidersState()
 
-        if (view.context.settings().enableTrendingSearches && store.state.query.isNotEmpty()) {
+        if (view.context.settings().shouldShowTrendingSearchSuggestions && store.state.query.isNotEmpty()) {
             binding.awesomeBar.isVisible = true
         } else {
             observeAwesomeBarState()

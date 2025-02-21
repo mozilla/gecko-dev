@@ -126,7 +126,7 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
 
         requirePreference<SwitchPreference>(R.string.pref_key_enable_trending_searches).apply {
             isVisible = Config.channel.isNightlyOrDebug
-            isChecked = context.settings().enableTrendingSearches
+            isChecked = context.settings().isTrendingSearchesVisible
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 

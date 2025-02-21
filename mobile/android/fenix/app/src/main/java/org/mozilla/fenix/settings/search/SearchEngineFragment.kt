@@ -43,6 +43,9 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         requirePreference<Preference>(R.string.pref_key_learn_about_fx_suggest).apply {
             isVisible = context.settings().enableFxSuggest
         }
+        requirePreference<CheckBoxPreference>(R.string.pref_key_show_trending_search_suggestions).apply {
+            isVisible = context.settings().isTrendingSearchesVisible
+        }
 
         view?.hideKeyboard()
     }
@@ -61,6 +64,14 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         val searchSuggestionsPreference =
             requirePreference<SwitchPreference>(R.string.pref_key_show_search_suggestions).apply {
                 isChecked = context.settings().shouldShowSearchSuggestions
+            }
+
+        val trendingSearchSuggestionsPreference =
+            requirePreference<CheckBoxPreference>(R.string.pref_key_show_trending_search_suggestions).apply {
+                isVisible = context.settings().isTrendingSearchesVisible
+                isEnabled = requireContext().components.core.store.state.search
+                    .selectedOrDefaultSearchEngine?.trendingUrl != null
+                isChecked = isEnabled && context.settings().trendingSearchSuggestionsEnabled
             }
 
         val autocompleteURLsPreference =
@@ -122,6 +133,7 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         showSyncedTabsSuggestions.onPreferenceChangeListener = SharedPreferenceUpdater()
         showClipboardSuggestions.onPreferenceChangeListener = SharedPreferenceUpdater()
         searchSuggestionsInPrivatePreference.onPreferenceChangeListener = SharedPreferenceUpdater()
+        trendingSearchSuggestionsPreference.onPreferenceChangeListener = SharedPreferenceUpdater()
         showVoiceSearchPreference.onPreferenceChangeListener = object : Preference.OnPreferenceChangeListener {
             override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
                 val newBooleanValue = newValue as? Boolean ?: return false
@@ -138,7 +150,13 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
             if (!searchSuggestionsPreference.isChecked) {
                 searchSuggestionsInPrivatePreference.isChecked = false
                 searchSuggestionsInPrivatePreference.callChangeListener(false)
+                trendingSearchSuggestionsPreference.isChecked = false
+                trendingSearchSuggestionsPreference.callChangeListener(false)
+            } else {
+                trendingSearchSuggestionsPreference.isChecked = true
+                trendingSearchSuggestionsPreference.callChangeListener(true)
             }
+
             true
         }
 
