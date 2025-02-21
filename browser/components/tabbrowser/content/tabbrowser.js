@@ -821,7 +821,7 @@
 
       this.showTab(aTab);
       if (this.tabContainer.verticalMode) {
-        this._handleTabMove(aTab, () =>
+        this.#handleTabMove(aTab, () =>
           this.verticalPinnedTabsContainer.appendChild(aTab)
         );
       } else {
@@ -838,7 +838,7 @@
       }
 
       if (this.tabContainer.verticalMode) {
-        this._handleTabMove(aTab, () => {
+        this.#handleTabMove(aTab, () => {
           // we remove this attribute first, so that allTabs represents
           // the moving of a tab from the vertical pinned tabs container
           // and back into arrowscrollbox.
@@ -3011,7 +3011,7 @@
         return;
       }
 
-      this._handleTabMove(tab, () =>
+      this.#handleTabMove(tab, () =>
         gBrowser.tabContainer.insertBefore(tab, tab.group.nextElementSibling)
       );
     }
@@ -5772,7 +5772,7 @@
         return;
       }
 
-      this._handleTabMove(aTab, () => {
+      this.#handleTabMove(aTab, () => {
         let neighbor = this.tabs[aIndex];
         if (forceStandaloneTab && neighbor.group) {
           neighbor = neighbor.group;
@@ -5823,7 +5823,7 @@
      * @param {boolean} moveBefore
      */
     #moveTabNextTo(tab, targetElement, moveBefore = false) {
-      this._handleTabMove(tab, () => {
+      this.#handleTabMove(tab, () => {
         if (moveBefore) {
           this.tabContainer.insertBefore(tab, targetElement);
         } else if (targetElement) {
@@ -5855,7 +5855,7 @@
       }
 
       aGroup.collapsed = false;
-      this._handleTabMove(aTab, () => aGroup.appendChild(aTab));
+      this.#handleTabMove(aTab, () => aGroup.appendChild(aTab));
       this.removeFromMultiSelectedTabs(aTab);
       this.tabContainer._notifyBackgroundTab(aTab);
     }
@@ -5865,7 +5865,7 @@
      * @param {function():void} moveActionCallback
      * @returns
      */
-    _handleTabMove(aTab, moveActionCallback) {
+    #handleTabMove(aTab, moveActionCallback) {
       let wasFocused = document.activeElement == this.selectedTab;
       let oldPosition = aTab._tPos;
 
@@ -5964,7 +5964,7 @@
         filter: tab => !tab.hidden && selectedTab.pinned == tab.pinned,
       });
       if (nextTab) {
-        this._handleTabMove(selectedTab, () => {
+        this.#handleTabMove(selectedTab, () => {
           if (!selectedTab.group && nextTab.group) {
             if (nextTab.group.collapsed) {
               // Skip over collapsed tab group.
@@ -5996,7 +5996,7 @@
       });
 
       if (previousTab) {
-        this._handleTabMove(selectedTab, () => {
+        this.#handleTabMove(selectedTab, () => {
           if (!selectedTab.group && previousTab.group) {
             if (previousTab.group.collapsed) {
               // Skip over collapsed tab group.
