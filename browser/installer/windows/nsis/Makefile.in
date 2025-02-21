@@ -1,0 +1,29 @@
+
+include $(topsrcdir)/toolkit/mozapps/installer/package-name.mk
+include $(topsrcdir)/config/config.mk
+
+VPATH = @srcdir@
+
+CONFIG_DIR = $(topobjdir)/browser/installer/windows/instgen
+BIN_UTIL_DIR = $(topobjdir)/dist/bin
+
+TEST_STUB_INSTALLER_DEPS := \
+	 test_stub.nsi \
+	stub.nsh \
+	stub_shared_defs.nsh \
+	$(topsrcdir)/toolkit/mozapps/installer/windows/nsis/common.nsh \
+	shared.nsh \
+	defines.nsi.in \
+	$(NULL)
+
+test_stub_installer:
+ifdef ENABLE_TESTS
+	$(MAKE) $(BIN_UTIL_DIR)/test_stub_installer.exe
+else
+	@echo Skipping build of test_stub_installer.exe since tests are not enabled
+endif # ENABLE_TESTS
+
+$(BIN_UTIL_DIR)/test_stub_installer.exe: $(TEST_STUB_INSTALLER_DEPS)
+	$(MAKE) -C .. install_deps
+	cd $(CONFIG_DIR) && $(MAKENSISU) -nocd -- $(CONFIG_DIR)/test_stub.nsi
+	cp $(CONFIG_DIR)/test_stub_installer.exe $(BIN_UTIL_DIR)/test_stub_installer.exe

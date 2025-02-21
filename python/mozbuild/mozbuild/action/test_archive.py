@@ -47,6 +47,7 @@ TEST_HARNESS_BINS = [
     "screenshot",
     "screentopng",
     "ssltunnel",
+    "test_stub_installer",
     "xpcshell",
     "plugin-container",
 ]

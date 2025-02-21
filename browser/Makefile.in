@@ -10,7 +10,19 @@ ifdef MAKENSISU
 # uninstaller is included with the application for mar file generation.
 libs::
 	$(MAKE) -C installer/windows uninstaller
+ifdef ENABLE_TESTS
+	$(MAKE) -C installer/windows install_deps
+endif #ENABLE_TESTS
+
 ifdef MOZ_MAINTENANCE_SERVICE
 	$(MAKE) -C installer/windows maintenanceservice_installer
 endif
-endif
+
+
+ifdef ENABLE_TESTS
+tools::
+	# test_stub.exe is used for testing installer functionality.
+	$(MAKE) -C installer/windows/nsis test_stub_installer
+endif #ENABLE_TESTS
+
+endif #MAKENSISU
