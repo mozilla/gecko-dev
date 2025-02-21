@@ -23,18 +23,41 @@ class txAOutputHandlerFactory;
 class txAXMLEventHandler;
 class txInstruction;
 
-using txLoadedDocumentEntry = mozilla::Variant<txXPathNode, nsresult>;
-
-class txLoadedDocumentsHash
-    : public nsTHashMap<nsString, txLoadedDocumentEntry> {
+class txLoadedDocumentEntry : public nsStringHashKey {
  public:
-  txLoadedDocumentsHash() : nsTHashMap<nsString, txLoadedDocumentEntry>(4) {}
+  explicit txLoadedDocumentEntry(KeyTypePointer aStr)
+      : nsStringHashKey(aStr), mLoadResult(NS_OK) {}
+  txLoadedDocumentEntry(txLoadedDocumentEntry&& aOther)
+      : nsStringHashKey(std::move(aOther)),
+        mDocument(std::move(aOther.mDocument)),
+        mLoadResult(std::move(aOther.mLoadResult)) {
+    NS_ERROR("We're horked.");
+  }
+  ~txLoadedDocumentEntry() {
+    if (mDocument) {
+      txXPathNodeUtils::release(mDocument.get());
+    }
+  }
+  bool LoadingFailed() {
+    NS_ASSERTION(NS_SUCCEEDED(mLoadResult) || !mDocument,
+                 "Load failed but we still got a document?");
 
+    return NS_FAILED(mLoadResult);
+  }
+
+  mozilla::UniquePtr<txXPathNode> mDocument;
+  nsresult mLoadResult;
+};
+
+class txLoadedDocumentsHash : public nsTHashtable<txLoadedDocumentEntry> {
+ public:
+  txLoadedDocumentsHash() : nsTHashtable<txLoadedDocumentEntry>(4) {}
+  ~txLoadedDocumentsHash();
   [[nodiscard]] nsresult init(const txXPathNode& aSource);
 
  private:
   friend class txExecutionState;
-  mozilla::Maybe<txXPathNode> mSourceDocument;
+  mozilla::UniquePtr<txXPathNode> mSourceDocument;
 };
 
 class txExecutionState : public txIMatchContext {
