@@ -187,6 +187,7 @@
       window.addEventListener("activate", this);
       window.addEventListener("deactivate", this);
       window.addEventListener("TabGroupCreate", this);
+      window.addEventListener("MlLabelCreate", this);
 
       this.tabContainer.init();
       this._setupInitialBrowserAndTab();
@@ -2959,6 +2960,12 @@
           group.label = newLabel;
           if (this.tabGroupMenu.panel.state !== "closed") {
             this.tabGroupNameField.value = newLabel;
+            group.dispatchEvent(
+              new CustomEvent("MlLabelCreate", {
+                bubbles: true,
+                detail: { mlLabel: newLabel },
+              })
+            );
           }
         });
       }
@@ -6691,6 +6698,11 @@
         case "TabGroupCreate":
           if (aEvent.detail.showCreateUI) {
             this.tabGroupMenu.openCreateModal(aEvent.target);
+          }
+          break;
+        case "MlLabelCreate":
+          if (aEvent.detail.mlLabel) {
+            this.tabGroupMenu.mlLabel = aEvent.detail.mlLabel;
           }
           break;
         case "activate":

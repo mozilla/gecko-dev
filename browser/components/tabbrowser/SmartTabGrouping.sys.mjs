@@ -17,6 +17,12 @@ import {
   computeRandScore,
 } from "chrome://global/content/ml/ClusterAlgos.sys.mjs";
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  NLP: "resource://gre/modules/NLP.sys.mjs",
+});
+
 const EMBED_TEXT_KEY = "combined_text";
 export const CLUSTER_METHODS = {
   KMEANS: "KMEANS",
@@ -646,6 +652,57 @@ export class SmartTabGroupingManager {
           ? ""
           : genResult.generated_text || ""
       ).trim();
+    });
+  }
+
+  /**
+   * Generates glean metrics for ml smart tab label / topic.
+   * This is currently called when the user saves or cancels the "suggest label" flow.
+   *
+   * @param {string} action "save" or "cancel"
+   * @param {number} numTabsInGroup Number of tabs used to generate the label
+   * @param {string} mlLabel ML generated label for the tab group
+   * @param {string} userLabel User saved label for the tab group
+   */
+  handleLabelTelemetry({ action, numTabsInGroup, mlLabel, userLabel }) {
+    Glean.browserMlInteraction.smartTabTopic.record({
+      action,
+      num_tabs_in_group: numTabsInGroup,
+      ml_label_length: (mlLabel || "").length,
+      user_label_length: (userLabel || "").length,
+      levenshtein_distance: lazy.NLP.levenshtein(
+        userLabel || "",
+        mlLabel || ""
+      ),
+    });
+  }
+
+  /**
+   * Generates glean metrics for ml smart tab label / topic.
+   * This is currently called when the user saves or cancels the "suggest other tabs" flow
+   *
+   * @param {string} action "save" or "cancel"
+   * @param {number} numTabsInWindow Number of tabs in the current window
+   * @param {number} numTabsInGroup Number of tabs in the current group
+   * @param {number} numTabsSuggested Number of tabs suggested by the model
+   * @param {number} numTabsApproved Number of tabs approved by the user
+   * @param {number} numTabsRemoved Number of tabs removed by the user
+   */
+  handleSuggestTelemetry({
+    action,
+    numTabsInWindow,
+    numTabsInGroup,
+    numTabsSuggested,
+    numTabsApproved,
+    numTabsRemoved,
+  }) {
+    Glean.browserMlInteraction.smartTabSuggest.record({
+      action,
+      num_tabs_in_window: numTabsInWindow,
+      num_tabs_in_group: numTabsInGroup,
+      num_tabs_suggested: numTabsSuggested,
+      num_tabs_approved: numTabsApproved,
+      num_tabs_removed: numTabsRemoved,
     });
   }
 }

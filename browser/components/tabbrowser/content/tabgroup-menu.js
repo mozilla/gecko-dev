@@ -294,6 +294,8 @@
     #suggestionsMessage;
     #suggestionsDisclaimer;
     #selectedSuggestedTabs = [];
+    #suggestedMlLabel;
+    #hasSuggestedMlTabs = false;
     #suggestedTabs = [];
     #suggestionsLoadActions;
     #suggestionsLoadCancel;
@@ -334,10 +336,12 @@
       this.#populateSwatches();
 
       this.#cancelButton.addEventListener("click", () => {
+        this.#handleMlTelemetry("cancel");
         this.close(false);
       });
 
       this.#createButton.addEventListener("click", () => {
+        this.#handleMlTelemetry("save");
         this.close();
       });
 
@@ -445,6 +449,7 @@
         "#tab-group-create-suggestions-button"
       );
       this.#createSuggestionsButton.addEventListener("click", () => {
+        this.#handleMlTelemetry("save");
         this.activeGroup.addTabs(this.#selectedSuggestedTabs);
         this.close(true);
       });
@@ -452,6 +457,7 @@
         "#tab-group-cancel-suggestions-button"
       );
       this.#cancelSuggestionsButton.addEventListener("click", () => {
+        this.#handleMlTelemetry("cancel");
         this.close();
       });
       this.#suggestionsSeparator = this.querySelector(
@@ -581,6 +587,28 @@
       this.#panel.openPopup(group.firstChild, {
         position: this.#panelPosition,
       });
+    }
+
+    /*
+     * set the ml generated label
+     */
+    set mlLabel(label) {
+      this.#suggestedMlLabel = label;
+    }
+
+    get mlLabel() {
+      return this.#suggestedMlLabel;
+    }
+
+    /*
+     * Set if the ml suggest tab flow was done
+     */
+    set hasSuggestedMlTabs(suggested) {
+      this.#hasSuggestedMlTabs = suggested;
+    }
+
+    get hasSuggestedMlTabs() {
+      return this.#hasSuggestedMlTabs;
     }
 
     openEditModal(group) {
@@ -773,6 +801,39 @@
       this.suggestionState = this.#createMode
         ? MozTabbrowserTabGroupMenu.State.CREATE_AI_WITH_SUGGESTIONS
         : MozTabbrowserTabGroupMenu.State.EDIT_AI_WITH_SUGGESTIONS;
+
+      this.#hasSuggestedMlTabs = true;
+    }
+
+    /**
+     * Sends Glean metrics if smart tab grouping is enabled
+     * @param {string} action "save" or "cancel"
+     */
+    #handleMlTelemetry(action) {
+      if (!lazy.smartTabGroupsEnabled) {
+        return;
+      }
+      if (this.#suggestedMlLabel) {
+        this.#smartTabGroupingManager.handleLabelTelemetry({
+          action,
+          numTabsInGroup: this.#activeGroup.tabs.length,
+          mlLabel: this.#suggestedMlLabel,
+          userLabel: this.#nameField.value,
+        });
+        this.#suggestedMlLabel = "";
+      }
+      if (this.#hasSuggestedMlTabs) {
+        this.#smartTabGroupingManager.handleSuggestTelemetry({
+          action,
+          numTabsInWindow: gBrowser.tabs.length,
+          numTabsInGroup: this.#activeGroup.tabs.length,
+          numTabsSuggested: this.#suggestedTabs.length,
+          numTabsApproved: this.#selectedSuggestedTabs.length,
+          numTabsRemoved:
+            this.#suggestedTabs.length - this.#selectedSuggestedTabs.length,
+        });
+        this.#hasSuggestedMlTabs = false;
+      }
     }
 
     #createRow(tab, index) {
