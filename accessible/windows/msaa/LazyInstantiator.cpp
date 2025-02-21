@@ -351,17 +351,6 @@ void LazyInstantiator::TransplantRefCnt() {
 
 HRESULT
 LazyInstantiator::MaybeResolveRoot() {
-  if (!NS_IsMainThread()) {
-    MOZ_ASSERT_UNREACHABLE("Called on a background thread!");
-    // Bug 1814780: This should never happen, since a caller should only be able
-    // to get this via AccessibleObjectFromWindow/AccessibleObjectFromEvent or
-    // WM_GETOBJECT/ObjectFromLresult, which should marshal any calls on
-    // a background thread to the main thread. Nevertheless, Windows sometimes
-    // calls QueryInterface from a background thread! To avoid crashes, fail
-    // gracefully here.
-    return RPC_E_WRONG_THREAD;
-  }
-
   if (mWeakAccessible) {
     return S_OK;
   }
@@ -419,6 +408,11 @@ LazyInstantiator::MaybeResolveRoot() {
   }
 
 IMPL_IUNKNOWN_QUERY_HEAD(LazyInstantiator)
+if (NS_WARN_IF(!NS_IsMainThread())) {
+  // Bug 1814780, bug 1949617: The COM marshaler sometimes calls QueryInterface
+  // on the wrong thread.
+  return RPC_E_WRONG_THREAD;
+}
 IMPL_IUNKNOWN_QUERY_IFACE_AMBIGIOUS(IUnknown, IAccessible)
 IMPL_IUNKNOWN_QUERY_IFACE(IAccessible)
 IMPL_IUNKNOWN_QUERY_IFACE(IDispatch)

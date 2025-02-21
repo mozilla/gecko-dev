@@ -29,6 +29,12 @@ MsaaRootAccessible::InternalQueryInterface(REFIID aIid, void** aOutInterface) {
     return E_INVALIDARG;
   }
 
+  if (NS_WARN_IF(!NS_IsMainThread())) {
+    // Bug 1949617: The COM marshaler sometimes calls QueryInterface on the
+    // wrong thread.
+    return RPC_E_WRONG_THREAD;
+  }
+
   // InternalQueryInterface should always return its internal unknown
   // when queried for IID_IUnknown...
   if (aIid == IID_IUnknown) {
