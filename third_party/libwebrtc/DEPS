@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': 'bb864a5b8d176340ac1aa931059f14bfd537a51c',
+  'chromium_revision': '48223dfc0a41ab1fc4d174980cad13a3dfca6119',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -75,13 +75,13 @@ deps = {
     'condition': 'checkout_android',
   },
   'src/ios': {
-    'url': 'https://chromium.googlesource.com/chromium/src/ios@5080dff087105ee0a5adb9cbf1f6be5239441de4',
+    'url': 'https://chromium.googlesource.com/chromium/src/ios@42cfea3f59db6bf4b25e097a230737f214a09ca5',
     'condition': 'checkout_ios',
   },
   'src/testing':
     'https://chromium.googlesource.com/chromium/src/testing@bd43e8a355bb28a0a5424fe4d7c842c4b82f516c',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@53f19d08f2b05a8f6761180f7c81ef5830ce17dd',
+    'https://chromium.googlesource.com/chromium/src/third_party@71c33544a81c9bd85d50b623f5bdeaa29d2f3e54',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -437,7 +437,7 @@ deps = {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
-              'version': 'b0-V7mjcfUuIECZDVC_qF6F977c3rQeDSLXCIUl-f5wC',
+              'version': 'PO3aHSPf_6XsPQhr5ej6sRCj8EXUTKutmhlFCLBeak4C',
           },
       ],
       'condition': 'checkout_android',
