@@ -331,7 +331,7 @@ bool DxgiDuplicatorController::DoDuplicateUnlocked(Context* context,
                                                    SharedDesktopFrame* target) {
   Setup(context);
 
-  if (!EnsureFrameCaptured(context, target)) {
+  if (!EnsureFrameCaptured(context, monitor_id, target)) {
     return false;
   }
 
@@ -381,12 +381,11 @@ bool DxgiDuplicatorController::DoDuplicateOne(Context* context,
   return false;
 }
 
-int64_t DxgiDuplicatorController::GetNumFramesCaptured() const {
+int64_t DxgiDuplicatorController::GetNumFramesCaptured(int monitor_id) const {
   int64_t min = INT64_MAX;
   for (const auto& duplicator : duplicators_) {
-    min = std::min(min, duplicator.GetNumFramesCaptured());
+    min = std::min(min, duplicator.GetNumFramesCaptured(monitor_id));
   }
-
   return min;
 }
 
@@ -434,6 +433,7 @@ DesktopSize DxgiDuplicatorController::SelectedDesktopSize(
 }
 
 bool DxgiDuplicatorController::EnsureFrameCaptured(Context* context,
+                                                   int monitor_id,
                                                    SharedDesktopFrame* target) {
   // On a modern system, the FPS / monitor refresh rate is usually larger than
   // or equal to 60. So 17 milliseconds is enough to capture at least one frame.
@@ -448,7 +448,7 @@ bool DxgiDuplicatorController::EnsureFrameCaptured(Context* context,
   // called. 500 milliseconds should be enough for ~30 frames.
   const int64_t timeout_ms = 500;
 
-  if (GetNumFramesCaptured() == 0 && !IsConsoleSession()) {
+  if (GetNumFramesCaptured(monitor_id) == 0 && !IsConsoleSession()) {
     // When capturing a console session, waiting for a single frame is
     // sufficient to ensure that DXGI output duplication is working. When the
     // session is not attached to the console, it has been observed that DXGI
@@ -460,31 +460,38 @@ bool DxgiDuplicatorController::EnsureFrameCaptured(Context* context,
     frames_to_skip = 5;
   }
 
-  if (GetNumFramesCaptured() >= frames_to_skip) {
+  if (GetNumFramesCaptured(monitor_id) >= frames_to_skip) {
     return true;
   }
 
   std::unique_ptr<SharedDesktopFrame> fallback_frame;
   SharedDesktopFrame* shared_frame = nullptr;
-  if (target->size().width() >= desktop_size().width() &&
-      target->size().height() >= desktop_size().height()) {
-    // `target` is large enough to cover entire screen, we do not need to use
-    // `fallback_frame`.
+  DesktopSize selected_size = SelectedDesktopSize(monitor_id);
+  if (target->size().width() >= selected_size.width() &&
+      target->size().height() >= selected_size.height()) {
+    // `target` is large enough to cover the currently captured screen,
+    // we do not need to use `fallback_frame`.
     shared_frame = target;
   } else {
     fallback_frame = SharedDesktopFrame::Wrap(
-        std::unique_ptr<DesktopFrame>(new BasicDesktopFrame(desktop_size())));
+        std::unique_ptr<DesktopFrame>(new BasicDesktopFrame(selected_size)));
     shared_frame = fallback_frame.get();
   }
 
   const int64_t start_ms = rtc::TimeMillis();
-  while (GetNumFramesCaptured() < frames_to_skip) {
-    if (!DoDuplicateAll(context, shared_frame)) {
-      return false;
+  while (GetNumFramesCaptured(monitor_id) < frames_to_skip) {
+    if (monitor_id < 0) {
+      if (!DoDuplicateAll(context, shared_frame)) {
+        return false;
+      }
+    } else {
+      if (!DoDuplicateOne(context, monitor_id, shared_frame)) {
+        return false;
+      }
     }
 
     // Calling DoDuplicateAll() may change the number of frames captured.
-    if (GetNumFramesCaptured() >= frames_to_skip) {
+    if (GetNumFramesCaptured(monitor_id) >= frames_to_skip) {
       break;
     }
 

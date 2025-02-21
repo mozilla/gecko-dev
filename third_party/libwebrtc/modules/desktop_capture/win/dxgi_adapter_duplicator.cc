@@ -164,12 +164,15 @@ int DxgiAdapterDuplicator::screen_count() const {
   return static_cast<int>(duplicators_.size());
 }
 
-int64_t DxgiAdapterDuplicator::GetNumFramesCaptured() const {
+int64_t DxgiAdapterDuplicator::GetNumFramesCaptured(int monitor_id) const {
   int64_t min = INT64_MAX;
-  for (const auto& duplicator : duplicators_) {
-    min = std::min(min, duplicator.num_frames_captured());
+  if (monitor_id < 0) {
+    for (const auto& duplicator : duplicators_) {
+      min = std::min(min, duplicator.num_frames_captured());
+    }
+  } else if (static_cast<size_t>(monitor_id) < duplicators_.size()) {
+    min = duplicators_[monitor_id].num_frames_captured();
   }
-
   return min;
 }
 

@@ -73,7 +73,7 @@ class DxgiAdapterDuplicator {
   void Unregister(const Context* const context);
 
   // The minimum num_frames_captured() returned by `duplicators_`.
-  int64_t GetNumFramesCaptured() const;
+  int64_t GetNumFramesCaptured(int monitor_id) const;
 
   // Moves `desktop_rect_` and all underlying `duplicators_`. See
   // DxgiDuplicatorController::TranslateRect().
