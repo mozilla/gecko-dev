@@ -12,7 +12,7 @@ nsstring = { path = "../../../xpcom/rust/nsstring" }
 xpcom = { path = "../../../xpcom/rust/xpcom" }
 static_prefs = { path = "../../../modules/libpref/init/static_prefs" }
 
-mls-platform-api = { git = "https://github.com/beurdouche/mls-platform-api", rev="19c3f18b747d13354370ba84440bb0b963932634", features = ["gecko"] }
+mls-platform-api = { git = "https://github.com/beurdouche/mls-platform-api", rev="5d88241b9765cae3669aba21f0946bd3700f7db1", features = ["gecko"] }
 nss-gk-api = { git = "https://github.com/beurdouche/nss-gk-api", rev = "e48a946811ffd64abc78de3ee284957d8d1c0d63", default-features = false }
 thin-vec = { version = "^0.2.12", features = ["gecko-ffi"] }
 hex = "^0.4.3"

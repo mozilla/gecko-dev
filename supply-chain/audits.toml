@@ -3312,7 +3312,12 @@ version = "0.39.1"
 [[audits.mls-rs]]
 who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.39.1 -> 0.39.1@git:eedb37e50e3fca51863f460755afd632137da57c"
+delta = "0.39.1 -> 0.45.0"
+
+[[audits.mls-rs]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.45.0 -> 0.45.0@git:b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 importable = false
 
 [[audits.mls-rs-codec]]
@@ -3323,7 +3328,12 @@ version = "0.5.3"
 [[audits.mls-rs-codec]]
 who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.5.3 -> 0.5.3@git:eedb37e50e3fca51863f460755afd632137da57c"
+delta = "0.5.3 -> 0.6.0"
+
+[[audits.mls-rs-codec]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.6.0 -> 0.6.0@git:b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 importable = false
 
 [[audits.mls-rs-codec-derive]]
@@ -3335,7 +3345,12 @@ notes = "No unsafe code"
 [[audits.mls-rs-codec-derive]]
 who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.1.1 -> 0.1.1@git:eedb37e50e3fca51863f460755afd632137da57c"
+delta = "0.1.1 -> 0.2.0"
+
+[[audits.mls-rs-codec-derive]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.2.0 -> 0.2.0@git:b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 importable = false
 
 [[audits.mls-rs-core]]
@@ -3346,7 +3361,12 @@ version = "0.18.0"
 [[audits.mls-rs-core]]
 who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.18.0 -> 0.18.0@git:eedb37e50e3fca51863f460755afd632137da57c"
+delta = "0.18.0 -> 0.21.0"
+
+[[audits.mls-rs-core]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.21.0 -> 0.21.0@git:b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 importable = false
 
 [[audits.mls-rs-crypto-hpke]]
@@ -3357,7 +3377,17 @@ version = "0.9.0"
 [[audits.mls-rs-crypto-hpke]]
 who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.9.0 -> 0.9.0@git:eedb37e50e3fca51863f460755afd632137da57c"
+delta = "0.9.0 -> 0.14.0"
+
+[[audits.mls-rs-crypto-hpke]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.9.0 -> 0.14.0"
+
+[[audits.mls-rs-crypto-hpke]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.14.0 -> 0.14.0@git:b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 importable = false
 
 [[audits.mls-rs-crypto-traits]]
@@ -3368,7 +3398,12 @@ version = "0.10.0"
 [[audits.mls-rs-crypto-traits]]
 who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.10.0 -> 0.10.0@git:eedb37e50e3fca51863f460755afd632137da57c"
+delta = "0.10.0 -> 0.15.0"
+
+[[audits.mls-rs-crypto-traits]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.15.0 -> 0.15.0@git:b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 importable = false
 
 [[audits.mls-rs-identity-x509]]
@@ -3379,7 +3414,12 @@ version = "0.11.0"
 [[audits.mls-rs-identity-x509]]
 who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.11.0 -> 0.11.0@git:eedb37e50e3fca51863f460755afd632137da57c"
+delta = "0.11.0 -> 0.15.0"
+
+[[audits.mls-rs-identity-x509]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.15.0 -> 0.15.0@git:b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 importable = false
 
 [[audits.mls-rs-provider-sqlite]]
@@ -3390,7 +3430,12 @@ version = "0.11.0"
 [[audits.mls-rs-provider-sqlite]]
 who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.11.0 -> 0.11.0@git:eedb37e50e3fca51863f460755afd632137da57c"
+delta = "0.11.0 -> 0.15.0"
+
+[[audits.mls-rs-provider-sqlite]]
+who = "Benjamin Beurdouche <beurdouche@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.15.0 -> 0.15.0@git:b747d7efb85a776b97ad8afa8d1b32893fa5efa3"
 importable = false
 
 [[audits.moz_cbor]]
