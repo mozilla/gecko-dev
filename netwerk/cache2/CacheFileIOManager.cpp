@@ -3314,7 +3314,7 @@ nsresult CacheFileIOManager::EvictByContextInternal(
       }
 
       // Filter by LoadContextInfo.
-      if (aLoadContextInfo && !info->EqualsIgnoringFPD(aLoadContextInfo)) {
+      if (aLoadContextInfo && !info->Equals(aLoadContextInfo)) {
         return false;
       }
 

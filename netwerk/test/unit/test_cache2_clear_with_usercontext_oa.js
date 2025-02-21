@@ -75,7 +75,7 @@ add_task(
     await test(
       { userContextId: 0, partitionKey: "(https,example.com)" },
       { userContextId: 0 },
-      false
+      true
     );
   }
 );
