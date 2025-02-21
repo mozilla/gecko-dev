@@ -32,7 +32,11 @@ Changelog
   Firefox 93.0
     Introduced. [Bug 1727799_]
 
+  Firefox 137.0
+    Removed. [Bug 1946922_]
+
 .. _1727799: https://bugzilla.mozilla.org/show_bug.cgi?id=1727799
+.. _1946922: https://bugzilla.mozilla.org/show_bug.cgi?id=1946922
 
 FX_URLBAR_MERINO_LATENCY_WEATHER_MS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -46,7 +50,11 @@ Changelog
   Firefox 110.0
     Introduced. [Bug 1804536_]
 
+  Firefox 137.0
+    Removed. [Bug 1946922_]
+
 .. _1804536: https://bugzilla.mozilla.org/show_bug.cgi?id=1804536
+.. _1946922: https://bugzilla.mozilla.org/show_bug.cgi?id=1946922
 
 FX_URLBAR_MERINO_RESPONSE
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,8 +89,12 @@ Changelog
     timeout elapsed" to "The fetch completed without any error before the
     timeout elapsed and it included at least one suggestion." [Bug 1804536_]
 
+  Firefox 137.0
+    Removed. [Bug 1946922_]
+
 .. _1737923: https://bugzilla.mozilla.org/show_bug.cgi?id=1737923
 .. _1804536: https://bugzilla.mozilla.org/show_bug.cgi?id=1804536
+.. _1946922: https://bugzilla.mozilla.org/show_bug.cgi?id=1946922
 
 FX_URLBAR_MERINO_RESPONSE_WEATHER
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,7 +122,11 @@ Changelog
   Firefox 110.0
     Introduced. [Bug 1804536_]
 
+  Firefox 137.0
+    Removed. [Bug 1946922_]
+
 .. _1804536: https://bugzilla.mozilla.org/show_bug.cgi?id=1804536
+.. _1946922: https://bugzilla.mozilla.org/show_bug.cgi?id=1946922
 
 FX_URLBAR_QUICK_SUGGEST_REMOTE_SETTINGS_LATENCY_MS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -129,7 +145,11 @@ Changelog
   Firefox 94.0.2
     Introduced. [Bug 1737651_]
 
+  Firefox 135.0
+    Removed. [Bug 1932502_]
+
 .. _1737651: https://bugzilla.mozilla.org/show_bug.cgi?id=1737651
+.. _1932502: https://bugzilla.mozilla.org/show_bug.cgi?id=1932502
 
 Scalars
 -------

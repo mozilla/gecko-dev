@@ -20,9 +20,6 @@ const SEARCH_PARAMS = {
 
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
-const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_MS";
-const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE";
-
 /**
  * Client class for querying the Merino server. Each instance maintains its own
  * session state including a session ID and sequence number that is included in
@@ -116,8 +113,7 @@ export class MerinoClient {
 
   /**
    * @returns {string}
-   *   A string that indicates the status of the last fetch. The values are the
-   *   same as the labels used in the `FX_URLBAR_MERINO_RESPONSE` histogram:
+   *   A string that indicates the status of the last fetch. Possible values:
    *   success, timeout, network_error, http_error
    */
   get lastFetchStatus() {
@@ -139,12 +135,6 @@ export class MerinoClient {
    *   Timeout in milliseconds. This method will return once the timeout
    *   elapses, a response is received, or an error occurs, whichever happens
    *   first.
-   * @param {string} options.extraLatencyHistogram
-   *   If specified, the fetch's latency will be recorded in this histogram in
-   *   addition to the usual Merino latency histogram.
-   * @param {string} options.extraResponseHistogram
-   *   If specified, the fetch's response will be recorded in this histogram in
-   *   addition to the usual Merino response histogram.
    * @param {object} options.otherParams
    *   If specified, the otherParams will be added as a query params. Currently
    *   used for accuweather's location autocomplete endpoint
@@ -156,8 +146,6 @@ export class MerinoClient {
     query,
     providers = null,
     timeoutMs = lazy.UrlbarPrefs.get("merinoTimeoutMs"),
-    extraLatencyHistogram = null,
-    extraResponseHistogram = null,
     otherParams = {},
   }) {
     this.logger.debug("Fetch start", { query });
@@ -257,12 +245,6 @@ export class MerinoClient {
 
     let recordResponse = category => {
       this.logger.debug("Fetch done", { status: category });
-      Services.telemetry.getHistogramById(HISTOGRAM_RESPONSE).add(category);
-      if (extraResponseHistogram) {
-        Services.telemetry
-          .getHistogramById(extraResponseHistogram)
-          .add(category);
-      }
       this.#lastFetchStatus = category;
       recordResponse = null;
     };
@@ -291,11 +273,6 @@ export class MerinoClient {
     // Do the fetch.
     let response;
     let controller = (this.#fetchController = new AbortController());
-    let stopwatchInstance = (this.#latencyStopwatchInstance = {});
-    TelemetryStopwatch.start(HISTOGRAM_LATENCY, stopwatchInstance);
-    if (extraLatencyHistogram) {
-      TelemetryStopwatch.start(extraLatencyHistogram, stopwatchInstance);
-    }
     await Promise.race([
       timer.promise,
       (async () => {
@@ -309,10 +286,6 @@ export class MerinoClient {
           // the response from this inner function and assuming it will also be
           // returned by `Promise.race`.
           response = await fetch(url, { signal: controller.signal });
-          TelemetryStopwatch.finish(HISTOGRAM_LATENCY, stopwatchInstance);
-          if (extraLatencyHistogram) {
-            TelemetryStopwatch.finish(extraLatencyHistogram, stopwatchInstance);
-          }
           this.logger.debug("Got response", {
             status: response.status,
             ...details,
@@ -321,10 +294,6 @@ export class MerinoClient {
             recordResponse?.("http_error");
           }
         } catch (error) {
-          TelemetryStopwatch.cancel(HISTOGRAM_LATENCY, stopwatchInstance);
-          if (extraLatencyHistogram) {
-            TelemetryStopwatch.cancel(extraLatencyHistogram, stopwatchInstance);
-          }
           if (error.name != "AbortError") {
             this.logger.error("Fetch error", error);
             recordResponse?.("network_error");
@@ -449,10 +418,6 @@ export class MerinoClient {
     return this.#fetchController;
   }
 
-  get _test_latencyStopwatchInstance() {
-    return this.#latencyStopwatchInstance;
-  }
-
   // State related to the current session.
   #sessionID = null;
   #sequenceNumber = 0;
@@ -462,7 +427,6 @@ export class MerinoClient {
   #name;
   #timeoutTimer = null;
   #fetchController = null;
-  #latencyStopwatchInstance = null;
   #lastFetchStatus = null;
   #nextResponseDeferred = null;
   #nextSessionResetDeferred = null;

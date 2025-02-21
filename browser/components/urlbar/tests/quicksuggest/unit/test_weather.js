@@ -16,9 +16,6 @@ ChromeUtils.defineESModuleGetters(this, {
   UrlbarProviderPlaces: "resource:///modules/UrlbarProviderPlaces.sys.mjs",
 });
 
-const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_WEATHER_MS";
-const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE_WEATHER";
-
 const { WEATHER_SUGGESTION } = MerinoTestUtils;
 
 let gWeather;
@@ -73,11 +70,6 @@ async function doBasicDisableAndEnableTest(pref) {
     matches: [],
   });
 
-  let histograms = MerinoTestUtils.getAndClearHistograms({
-    extraLatency: HISTOGRAM_LATENCY,
-    extraResponse: HISTOGRAM_RESPONSE,
-  });
-
   // Re-enable the feature.
   info("Re-enable the feature");
   UrlbarPrefs.set(pref, true);
@@ -91,22 +83,10 @@ async function doBasicDisableAndEnableTest(pref) {
     context,
     matches: [QuickSuggestTestUtils.weatherResult()],
   });
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: gWeather._test_merino,
-  });
 }
 
 // Tests a Merino fetch that doesn't return a suggestion.
 add_task(async function noSuggestion() {
-  let histograms = MerinoTestUtils.getAndClearHistograms({
-    extraLatency: HISTOGRAM_LATENCY,
-    extraResponse: HISTOGRAM_RESPONSE,
-  });
-
   let { suggestions } = MerinoTestUtils.server.response.body;
   MerinoTestUtils.server.response.body.suggestions = [];
 
@@ -117,13 +97,6 @@ add_task(async function noSuggestion() {
   await check_results({
     context,
     matches: [],
-  });
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "no_suggestion",
-    latencyRecorded: true,
-    client: gWeather._test_merino,
   });
 
   MerinoTestUtils.server.response.body.suggestions = suggestions;
@@ -180,119 +153,6 @@ add_task(async function urlAlreadyInHistory() {
   });
 
   await PlacesUtils.history.clear();
-});
-
-// Tests a Merino fetch that fails with a network error.
-add_task(async function networkError() {
-  // This task is unreliable on Windows. See the comment in
-  // `MerinoTestUtils.withNetworkError()`.
-  if (AppConstants.platform == "win") {
-    Assert.ok(true, "Skipping this task on Windows");
-    return;
-  }
-
-  let histograms = MerinoTestUtils.getAndClearHistograms({
-    extraLatency: HISTOGRAM_LATENCY,
-    extraResponse: HISTOGRAM_RESPONSE,
-  });
-
-  await MerinoTestUtils.server.withNetworkError(async () => {
-    let context = createContext("weather", {
-      providers: [UrlbarProviderQuickSuggest.name],
-      isPrivate: false,
-    });
-    await check_results({
-      context,
-      matches: [],
-    });
-  });
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "network_error",
-    latencyRecorded: false,
-    client: gWeather._test_merino,
-  });
-});
-
-// Tests a Merino fetch that fails with an HTTP error.
-add_task(async function httpError() {
-  let histograms = MerinoTestUtils.getAndClearHistograms({
-    extraLatency: HISTOGRAM_LATENCY,
-    extraResponse: HISTOGRAM_RESPONSE,
-  });
-
-  MerinoTestUtils.server.response = { status: 500 };
-
-  let context = createContext("weather", {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
-  await check_results({
-    context,
-    matches: [],
-  });
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "http_error",
-    latencyRecorded: true,
-    client: gWeather._test_merino,
-  });
-
-  MerinoTestUtils.server.reset();
-  MerinoTestUtils.server.response.body.suggestions = [WEATHER_SUGGESTION];
-});
-
-// Tests a Merino fetch that fails due to a client timeout.
-add_task(async function clientTimeout() {
-  let histograms = MerinoTestUtils.getAndClearHistograms({
-    extraLatency: HISTOGRAM_LATENCY,
-    extraResponse: HISTOGRAM_RESPONSE,
-  });
-
-  // Make the server return a delayed response so the Merino client times out
-  // waiting for it.
-  MerinoTestUtils.server.response.delay = 400;
-
-  // Make the client time out immediately.
-  gWeather._test_setTimeoutMs(1);
-
-  // Set up a promise that will be resolved when the client finally receives the
-  // response.
-  let responsePromise = gWeather._test_merino.waitForNextResponse();
-
-  let context = createContext("weather", {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
-  await check_results({
-    context,
-    matches: [],
-  });
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "timeout",
-    latencyRecorded: false,
-    latencyStopwatchRunning: true,
-    client: gWeather._test_merino,
-  });
-
-  // Await the response.
-  await responsePromise;
-
-  // The `checkAndClearHistograms()` call above cleared the histograms. After
-  // that, nothing else should have been recorded for the response.
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: null,
-    latencyRecorded: true,
-    client: gWeather._test_merino,
-  });
-
-  gWeather._test_setTimeoutMs(-1);
-  delete MerinoTestUtils.server.response.delay;
 });
 
 // Locale task for when this test runs on an en-US OS.

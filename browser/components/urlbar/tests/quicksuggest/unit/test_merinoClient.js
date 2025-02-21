@@ -57,8 +57,6 @@ add_task(async function name() {
 
 // Does a successful fetch.
 add_task(async function success() {
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   await fetchAndCheckSuggestions({
     expected: EXPECTED_MERINO_SUGGESTIONS,
   });
@@ -68,20 +66,12 @@ add_task(async function success() {
     "success",
     "The request successfully finished"
   );
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: gClient,
-  });
 });
 
 // Does a successful fetch that doesn't return any suggestions.
 add_task(async function noSuggestions() {
   let { suggestions } = MerinoTestUtils.server.response.body;
   MerinoTestUtils.server.response.body.suggestions = [];
-
-  let histograms = MerinoTestUtils.getAndClearHistograms();
 
   await fetchAndCheckSuggestions({
     expected: [],
@@ -92,12 +82,6 @@ add_task(async function noSuggestions() {
     "no_suggestion",
     "The request successfully finished without suggestions"
   );
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "no_suggestion",
-    latencyRecorded: true,
-    client: gClient,
-  });
 
   MerinoTestUtils.server.response.body.suggestions = suggestions;
 });
@@ -269,8 +253,6 @@ async function doFetchAndGetCalls(client, fetchArgs) {
 
 // Checks a response that's valid but also has some unexpected properties.
 add_task(async function unexpectedResponseProperties() {
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   MerinoTestUtils.server.response.body.unexpectedString = "some value";
   MerinoTestUtils.server.response.body.unexpectedArray = ["a", "b", "c"];
   MerinoTestUtils.server.response.body.unexpectedObject = { foo: "bar" };
@@ -284,18 +266,10 @@ add_task(async function unexpectedResponseProperties() {
     "success",
     "The request successfully finished"
   );
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: gClient,
-  });
 });
 
 // Checks some responses with unexpected response bodies.
 add_task(async function unexpectedResponseBody() {
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   let responses = [
     { body: {} },
     { body: { bogus: [] } },
@@ -316,12 +290,6 @@ add_task(async function unexpectedResponseBody() {
       "no_suggestion",
       "The request successfully finished without suggestions"
     );
-    MerinoTestUtils.checkAndClearHistograms({
-      histograms,
-      response: "no_suggestion",
-      latencyRecorded: true,
-      client: gClient,
-    });
   }
 
   MerinoTestUtils.server.reset();
@@ -329,8 +297,6 @@ add_task(async function unexpectedResponseBody() {
 
 // Tests with a network error.
 add_task(async function networkError() {
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   // This promise will be resolved when the client processes the network error.
   let responsePromise = gClient.waitForNextResponse();
 
@@ -354,18 +320,10 @@ add_task(async function networkError() {
     "network_error",
     "The request failed with a network error"
   );
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "network_error",
-    latencyRecorded: false,
-    client: gClient,
-  });
 });
 
 // Tests with an HTTP error.
 add_task(async function httpError() {
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   MerinoTestUtils.server.response = { status: 500 };
   await fetchAndCheckSuggestions({ expected: [] });
 
@@ -374,12 +332,6 @@ add_task(async function httpError() {
     "http_error",
     "The request failed with an HTTP error"
   );
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "http_error",
-    latencyRecorded: true,
-    client: gClient,
-  });
 
   MerinoTestUtils.server.reset();
 });
@@ -430,8 +382,6 @@ async function doClientTimeoutTest({
   fetchArgs = { query: "search" },
   expectedResponseStatus = 200,
 } = {}) {
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   let originalPrefTimeoutMs = UrlbarPrefs.get("merino.timeoutMs");
   UrlbarPrefs.set("merino.timeoutMs", prefTimeoutMs);
 
@@ -462,16 +412,6 @@ async function doClientTimeoutTest({
     "fetchController is not aborted"
   );
 
-  // The latency histogram should not be updated since the response has not been
-  // received.
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "timeout",
-    latencyRecorded: false,
-    latencyStopwatchRunning: true,
-    client: gClient,
-  });
-
   // Wait for the client to receive the response.
   let httpResponse = await responsePromise;
   Assert.ok(httpResponse, "Response was received");
@@ -479,15 +419,6 @@ async function doClientTimeoutTest({
 
   // The client should have nulled out the fetch controller.
   Assert.ok(!gClient._test_fetchController, "fetchController no longer exists");
-
-  // The `checkAndClearHistograms()` call above cleared the histograms. After
-  // that, nothing else should have been recorded for the response.
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: null,
-    latencyRecorded: true,
-    client: gClient,
-  });
 
   MerinoTestUtils.server.reset();
   UrlbarPrefs.set("merino.timeoutMs", originalPrefTimeoutMs);
@@ -498,8 +429,6 @@ async function doClientTimeoutTest({
 // the client should abort the first so that there is at most one fetch at a
 // time.
 add_task(async function newFetchAbortsPrevious() {
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   // Make the server return a very delayed response so that it would time out
   // and we can start a second fetch that will abort the first fetch.
   MerinoTestUtils.server.response.delay =
@@ -531,16 +460,6 @@ add_task(async function newFetchAbortsPrevious() {
     "fetchController is not aborted"
   );
 
-  // The latency histogram should not be updated since the fetch is still
-  // ongoing.
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "timeout",
-    latencyRecorded: false,
-    latencyStopwatchRunning: true,
-    client: gClient,
-  });
-
   // Do the second fetch. This time don't delay the response.
   delete MerinoTestUtils.server.response.delay;
   await fetchAndCheckSuggestions({
@@ -564,13 +483,6 @@ add_task(async function newFetchAbortsPrevious() {
     null,
     "timeoutTimer does not exist after second fetch finished"
   );
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: gClient,
-  });
 
   MerinoTestUtils.server.reset();
 });

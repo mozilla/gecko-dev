@@ -5,7 +5,6 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
 
@@ -40,19 +39,6 @@ const REQUIRED_SEARCH_PARAMS = [
 // CI, especially TV tests, where the Merino fetch unexpectedly doesn't finish
 // before the default timeout.
 const CLIENT_TIMEOUT_MS = 2000;
-
-const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_MS";
-const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE";
-
-// Maps from string labels of the `FX_URLBAR_MERINO_RESPONSE` histogram to their
-// numeric values.
-const RESPONSE_HISTOGRAM_VALUES = {
-  success: 0,
-  timeout: 1,
-  network_error: 2,
-  http_error: 3,
-  no_suggestion: 4,
-};
 
 const WEATHER_SUGGESTION = {
   title: "Weather for San Francisco",
@@ -198,138 +184,6 @@ class _MerinoTestUtils {
    */
   get server() {
     return this.#server;
-  }
-
-  /**
-   * Clears the Merino-related histograms and returns them.
-   *
-   * @param {object} options
-   *   Options
-   * @param {string} options.extraLatency
-   *   The name of another latency histogram you expect to be updated.
-   * @param {string} options.extraResponse
-   *   The name of another response histogram you expect to be updated.
-   * @returns {object}
-   *   An object of histograms: `{ latency, response }`
-   *   `latency` and `response` are both arrays of Histogram objects.
-   */
-  getAndClearHistograms({
-    extraLatency = undefined,
-    extraResponse = undefined,
-  } = {}) {
-    let histograms = {
-      latency: [
-        lazy.TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_LATENCY),
-      ],
-      response: [
-        lazy.TelemetryTestUtils.getAndClearHistogram(HISTOGRAM_RESPONSE),
-      ],
-    };
-    if (extraLatency) {
-      histograms.latency.push(
-        lazy.TelemetryTestUtils.getAndClearHistogram(extraLatency)
-      );
-    }
-    if (extraResponse) {
-      histograms.response.push(
-        lazy.TelemetryTestUtils.getAndClearHistogram(extraResponse)
-      );
-    }
-    return histograms;
-  }
-
-  /**
-   * Asserts the Merino-related histograms are updated as expected. Clears the
-   * histograms before returning.
-   *
-   * @param {object} options
-   *   Options object
-   * @param {MerinoClient} options.client
-   *   The relevant `MerinoClient` instance. This is used to check the latency
-   *   stopwatch.
-   * @param {object} options.histograms
-   *   The histograms object returned from `getAndClearHistograms()`.
-   * @param {string} options.response
-   *   The expected string label for the `response` histogram. If the histogram
-   *   should not be recorded, pass null.
-   * @param {boolean} options.latencyRecorded
-   *   Whether the latency histogram is expected to contain a value.
-   * @param {boolean} options.latencyStopwatchRunning
-   *   Whether the latency stopwatch is expected to be running.
-   */
-  checkAndClearHistograms({
-    client,
-    histograms,
-    response,
-    latencyRecorded,
-    latencyStopwatchRunning = false,
-  }) {
-    // Check the response histograms.
-    if (response) {
-      this.Assert.ok(
-        RESPONSE_HISTOGRAM_VALUES.hasOwnProperty(response),
-        "Sanity check: Expected response is valid: " + response
-      );
-      for (let histogram of histograms.response) {
-        lazy.TelemetryTestUtils.assertHistogram(
-          histogram,
-          RESPONSE_HISTOGRAM_VALUES[response],
-          1
-        );
-      }
-    } else {
-      for (let histogram of histograms.response) {
-        this.Assert.strictEqual(
-          histogram.snapshot().sum,
-          0,
-          "Response histogram not updated: " + histogram.name()
-        );
-      }
-    }
-
-    // Check the latency histograms.
-    if (latencyRecorded) {
-      // There should be a single value across all buckets.
-      for (let histogram of histograms.latency) {
-        this.Assert.deepEqual(
-          Object.values(histogram.snapshot().values).filter(v => v > 0),
-          [1],
-          "Latency histogram updated: " + histogram.name()
-        );
-      }
-    } else {
-      for (let histogram of histograms.latency) {
-        this.Assert.strictEqual(
-          histogram.snapshot().sum,
-          0,
-          "Latency histogram not updated: " + histogram.name()
-        );
-      }
-    }
-
-    // Check the latency stopwatch.
-    if (!client) {
-      this.Assert.ok(
-        !latencyStopwatchRunning,
-        "Client is null, latency stopwatch should not be expected to be running"
-      );
-    } else {
-      this.Assert.equal(
-        TelemetryStopwatch.running(
-          HISTOGRAM_LATENCY,
-          client._test_latencyStopwatchInstance
-        ),
-        latencyStopwatchRunning,
-        "Latency stopwatch running as expected"
-      );
-    }
-
-    // Clear histograms.
-    for (let histogramArray of Object.values(histograms)) {
-      for (let histogram of histogramArray) {
-        histogram.clear();
-      }
-    }
   }
 
   /**

@@ -70,8 +70,6 @@ add_task(async function merinoDisabled() {
   // by also matching an RS suggestion with the same or higher score.
   await QuickSuggestTestUtils.setRemoteSettingsRecords([]);
 
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   let context = createContext(SEARCH_STRING, {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
@@ -79,13 +77,6 @@ add_task(async function merinoDisabled() {
   await check_results({
     context,
     matches: [],
-  });
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: null,
-    latencyRecorded: false,
-    client: merinoClient(),
   });
 
   UrlbarPrefs.set("merino.endpointURL", mockEndpointUrl);
@@ -130,8 +121,6 @@ add_task(async function dataCollectionDisabled() {
 add_task(async function higherScore() {
   UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
 
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   MerinoTestUtils.server.response.body.suggestions[0].score =
     2 * DEFAULT_SUGGESTION_SCORE;
 
@@ -144,13 +133,6 @@ add_task(async function higherScore() {
     matches: [EXPECTED_MERINO_URLBAR_RESULT],
   });
 
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: merinoClient(),
-  });
-
   MerinoTestUtils.server.reset();
   merinoClient().resetSession();
 });
@@ -159,8 +141,6 @@ add_task(async function higherScore() {
 // suggestion, the remote settings suggestion should be used.
 add_task(async function lowerScore() {
   UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
-
-  let histograms = MerinoTestUtils.getAndClearHistograms();
 
   MerinoTestUtils.server.response.body.suggestions[0].score =
     DEFAULT_SUGGESTION_SCORE / 2;
@@ -174,77 +154,6 @@ add_task(async function lowerScore() {
     matches: [EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT],
   });
 
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: merinoClient(),
-  });
-
-  MerinoTestUtils.server.reset();
-  merinoClient().resetSession();
-});
-
-// When the Merino and remote settings suggestions have the same score, the
-// remote settings suggestion should be used.
-add_task(async function sameScore() {
-  UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
-
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
-  MerinoTestUtils.server.response.body.suggestions[0].score =
-    DEFAULT_SUGGESTION_SCORE;
-
-  let context = createContext(SEARCH_STRING, {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
-  await check_results({
-    context,
-    matches: [EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT],
-  });
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: merinoClient(),
-  });
-
-  MerinoTestUtils.server.reset();
-  merinoClient().resetSession();
-});
-
-// When the Merino suggestion does not include a score, the remote settings
-// suggestion should be used.
-add_task(async function noMerinoScore() {
-  UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
-
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
-  Assert.equal(
-    typeof MerinoTestUtils.server.response.body.suggestions[0].score,
-    "number",
-    "Sanity check: First suggestion has a score"
-  );
-  delete MerinoTestUtils.server.response.body.suggestions[0].score;
-
-  let context = createContext(SEARCH_STRING, {
-    providers: [UrlbarProviderQuickSuggest.name],
-    isPrivate: false,
-  });
-  await check_results({
-    context,
-    matches: [EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT],
-  });
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: merinoClient(),
-  });
-
   MerinoTestUtils.server.reset();
   merinoClient().resetSession();
 });
@@ -253,8 +162,6 @@ add_task(async function noMerinoScore() {
 // suggestion should be used.
 add_task(async function noSuggestion_remoteSettings() {
   UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
-
-  let histograms = MerinoTestUtils.getAndClearHistograms();
 
   let context = createContext("this doesn't match remote settings", {
     providers: [UrlbarProviderQuickSuggest.name],
@@ -265,13 +172,6 @@ add_task(async function noSuggestion_remoteSettings() {
     matches: [EXPECTED_MERINO_URLBAR_RESULT],
   });
 
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: merinoClient(),
-  });
-
   MerinoTestUtils.server.reset();
   merinoClient().resetSession();
 });
@@ -280,8 +180,6 @@ add_task(async function noSuggestion_remoteSettings() {
 // settings suggestion should be used.
 add_task(async function noSuggestion_merino() {
   UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
-
-  let histograms = MerinoTestUtils.getAndClearHistograms();
 
   MerinoTestUtils.server.response.body.suggestions = [];
 
@@ -294,13 +192,6 @@ add_task(async function noSuggestion_merino() {
     matches: [EXPECTED_REMOTE_SETTINGS_URLBAR_RESULT],
   });
 
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "no_suggestion",
-    latencyRecorded: true,
-    client: merinoClient(),
-  });
-
   MerinoTestUtils.server.reset();
   merinoClient().resetSession();
 });
@@ -309,8 +200,6 @@ add_task(async function noSuggestion_merino() {
 // should be used.
 add_task(async function multipleMerinoSuggestions() {
   UrlbarPrefs.set(PREF_DATA_COLLECTION_ENABLED, true);
-
-  let histograms = MerinoTestUtils.getAndClearHistograms();
 
   MerinoTestUtils.server.response.body.suggestions = [
     {
@@ -381,13 +270,6 @@ add_task(async function multipleMerinoSuggestions() {
     ],
   });
 
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: merinoClient(),
-  });
-
   MerinoTestUtils.server.reset();
   merinoClient().resetSession();
 });
@@ -445,8 +327,6 @@ add_task(async function suggestedDisabled_dataCollectionEnabled() {
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", false);
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", false);
 
-  let histograms = MerinoTestUtils.getAndClearHistograms();
-
   let context = createContext("test", {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
@@ -466,13 +346,6 @@ add_task(async function suggestedDisabled_dataCollectionEnabled() {
       },
     },
   ]);
-
-  MerinoTestUtils.checkAndClearHistograms({
-    histograms,
-    response: "success",
-    latencyRecorded: true,
-    client: merinoClient(),
-  });
 
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", true);
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);

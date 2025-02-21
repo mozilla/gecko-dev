@@ -20,9 +20,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const MERINO_PROVIDER = "accuweather";
 const MERINO_TIMEOUT_MS = 5000; // 5s
 
-const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_WEATHER_MS";
-const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE_WEATHER";
-
 // Cache period for Merino's weather response. This is intentionally a small
 // amount of time. See the `cachePeriodMs` discussion in `MerinoClient`. In
 // addition, caching also helps prevent the weather suggestion from flickering
@@ -227,8 +224,6 @@ export class WeatherSuggestions extends SuggestProvider {
       otherParams,
       providers: [MERINO_PROVIDER],
       timeoutMs: this.#timeoutMs,
-      extraLatencyHistogram: HISTOGRAM_LATENCY,
-      extraResponseHistogram: HISTOGRAM_RESPONSE,
     });
     if (fetchInstance != this.#fetchInstance || merino != this.#merino) {
       return null;
