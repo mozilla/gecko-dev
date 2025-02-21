@@ -303,7 +303,6 @@ class TestHTTPAnswerRunnable final : public mozilla::Runnable,
   // through redirects)
   RefPtr<mozilla::net::DocumentLoadListener> mDocumentLoadListener;
   RefPtr<nsITimer> mTimer;
-  bool mHasHTTPSRR{false};
 };
 
 /**
