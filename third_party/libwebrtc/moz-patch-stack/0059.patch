@@ -138,7 +138,7 @@ index 01de2fdabc..5cba8860a4 100644
    RTC_CHECK_NOTREACHED();
  }
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index 6a7b233e29..705ceee309 100644
+index fdc7c8be80..8b3427644a 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
 @@ -79,11 +79,13 @@ void FuzzOneInput(const uint8_t* data, size_t size) {

@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <optional>
 
-#include "common_video/corruption_detection_message.h"
+#include "api/transport/rtp/corruption_detection_message.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 

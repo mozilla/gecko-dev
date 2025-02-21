@@ -8,8 +8,8 @@
  * be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef COMMON_VIDEO_CORRUPTION_DETECTION_MESSAGE_H_
-#define COMMON_VIDEO_CORRUPTION_DETECTION_MESSAGE_H_
+#ifndef API_TRANSPORT_RTP_CORRUPTION_DETECTION_MESSAGE_H_
+#define API_TRANSPORT_RTP_CORRUPTION_DETECTION_MESSAGE_H_
 
 #include <cstddef>
 #include <optional>
@@ -150,4 +150,4 @@ class CorruptionDetectionMessage::Builder {
 
 }  // namespace webrtc
 
-#endif  // COMMON_VIDEO_CORRUPTION_DETECTION_MESSAGE_H_
+#endif  // API_TRANSPORT_RTP_CORRUPTION_DETECTION_MESSAGE_H_

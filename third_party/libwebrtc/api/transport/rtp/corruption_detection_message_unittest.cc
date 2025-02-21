@@ -8,7 +8,7 @@
  * be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "common_video/corruption_detection_message.h"
+#include "api/transport/rtp/corruption_detection_message.h"
 
 #include <optional>
 #include <vector>

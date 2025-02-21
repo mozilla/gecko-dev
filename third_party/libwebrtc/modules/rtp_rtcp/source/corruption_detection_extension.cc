@@ -16,7 +16,7 @@
 
 #include "absl/container/inlined_vector.h"
 #include "api/array_view.h"
-#include "common_video/corruption_detection_message.h"
+#include "api/transport/rtp/corruption_detection_message.h"
 
 namespace webrtc {
 namespace {

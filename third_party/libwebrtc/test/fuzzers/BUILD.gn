@@ -250,7 +250,7 @@ webrtc_fuzzer_test("rtcp_receiver_fuzzer") {
 webrtc_fuzzer_test("rtp_packet_fuzzer") {
   sources = [ "rtp_packet_fuzzer.cc" ]
   deps = [
-    "../../common_video:corruption_detection_message",
+    "../../api/transport/rtp:corruption_detection_message",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
   ]
   seed_corpus = "corpora/rtp-corpus"

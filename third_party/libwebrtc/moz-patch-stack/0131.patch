@@ -79,7 +79,7 @@ index c810498584..6cec17ccb0 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index 4a425bee51..1d9a620018 100644
+index 42912cd787..f21cc7996b 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -111,7 +111,7 @@ index 4a425bee51..1d9a620018 100644
      defines = []
  
      deps = [
-@@ -874,7 +874,7 @@ rtc_static_library("dcsctp") {
+@@ -875,7 +875,7 @@ rtc_static_library("dcsctp") {
    visibility = [ "//:default" ]
    sources = []
    complete_static_lib = true
@@ -812,7 +812,7 @@ index 953e4c595e..981ca46067 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index 773dca56e6..14e8a1c20e 100644
+index 9c3b9c89b1..2fb1b9904f 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@
