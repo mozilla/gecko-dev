@@ -206,8 +206,7 @@ TEST_F(GenericDecoderTest, IsLowLatencyStreamActivatedByPlayoutDelay) {
   EncodedFrame encoded_frame;
   const VideoPlayoutDelay kPlayoutDelay(TimeDelta::Zero(),
                                         TimeDelta::Millis(50));
-  timing_.set_min_playout_delay(kPlayoutDelay.min());
-  timing_.set_max_playout_delay(kPlayoutDelay.max());
+  timing_.set_playout_delay(kPlayoutDelay);
   generic_decoder_.Decode(encoded_frame, clock_->CurrentTime());
   time_controller_.AdvanceTime(TimeDelta::Millis(10));
   std::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();

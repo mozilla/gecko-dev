@@ -203,20 +203,19 @@ TEST(VCMTimingTest, UseLowLatencyRenderer) {
   // Default is false.
   EXPECT_FALSE(timing.RenderParameters().use_low_latency_rendering);
   // False if min playout delay > 0.
-  timing.set_min_playout_delay(TimeDelta::Millis(10));
-  timing.set_max_playout_delay(TimeDelta::Millis(20));
+  timing.set_playout_delay({TimeDelta::Millis(10), TimeDelta::Millis(20)});
   EXPECT_FALSE(timing.RenderParameters().use_low_latency_rendering);
   // True if min==0, max > 0.
-  timing.set_min_playout_delay(TimeDelta::Zero());
+  timing.set_playout_delay({TimeDelta::Zero(), TimeDelta::Millis(20)});
   EXPECT_TRUE(timing.RenderParameters().use_low_latency_rendering);
   // True if min==max==0.
-  timing.set_max_playout_delay(TimeDelta::Zero());
+  timing.set_playout_delay({TimeDelta::Zero(), TimeDelta::Zero()});
   EXPECT_TRUE(timing.RenderParameters().use_low_latency_rendering);
   // True also for max playout delay==500 ms.
-  timing.set_max_playout_delay(TimeDelta::Millis(500));
+  timing.set_playout_delay({TimeDelta::Zero(), TimeDelta::Millis(500)});
   EXPECT_TRUE(timing.RenderParameters().use_low_latency_rendering);
   // False if max playout delay > 500 ms.
-  timing.set_max_playout_delay(TimeDelta::Millis(501));
+  timing.set_playout_delay({TimeDelta::Zero(), TimeDelta::Millis(501)});
   EXPECT_FALSE(timing.RenderParameters().use_low_latency_rendering);
 
   EXPECT_THAT(timing.GetTimings(), HasConsistentVideoDelayTimings());
@@ -232,7 +231,7 @@ TEST(VCMTimingTest, MaxWaitingTimeIsZeroForZeroRenderTime) {
   test::ScopedKeyValueConfig field_trials;
   VCMTiming timing(&clock, field_trials);
   timing.Reset();
-  timing.set_max_playout_delay(TimeDelta::Zero());
+  timing.set_playout_delay({TimeDelta::Zero(), TimeDelta::Zero()});
   for (int i = 0; i < 10; ++i) {
     clock.AdvanceTime(kTimeDelta);
     Timestamp now = clock.CurrentTime();
@@ -416,9 +415,8 @@ TEST(VCMTimingTest, GetTimings) {
   TimeDelta render_delay = TimeDelta::Millis(11);
   timing.set_render_delay(render_delay);
   TimeDelta min_playout_delay = TimeDelta::Millis(50);
-  timing.set_min_playout_delay(min_playout_delay);
   TimeDelta max_playout_delay = TimeDelta::Millis(500);
-  timing.set_max_playout_delay(max_playout_delay);
+  timing.set_playout_delay({min_playout_delay, max_playout_delay});
 
   // On complete.
   timing.IncomingTimestamp(3000, clock.CurrentTime());
@@ -456,8 +454,7 @@ TEST(VCMTimingTest, GetTimingsBeforeAndAfterValidRtpTimestamp) {
 
   // Setup.
   TimeDelta min_playout_delay = TimeDelta::Millis(50);
-  timing.set_min_playout_delay(min_playout_delay);
-  timing.set_max_playout_delay(TimeDelta::Millis(500));
+  timing.set_playout_delay({min_playout_delay, TimeDelta::Millis(500)});
 
   // On decodable frames before valid rtp timestamp.
   constexpr int decodeable_frame_cnt = 10;

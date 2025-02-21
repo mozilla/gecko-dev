@@ -306,7 +306,7 @@ TEST_P(VideoReceiveStream2Test, CreateFrameFromH264FmtpSpropAndIdr) {
 
 TEST_P(VideoReceiveStream2Test, PlayoutDelay) {
   const VideoPlayoutDelay kPlayoutDelay(TimeDelta::Millis(123),
-                                        TimeDelta::Millis(321));
+                                        TimeDelta::Millis(521));
   std::unique_ptr<test::FakeEncodedFrame> test_frame =
       test::FakeFrameBuilder()
           .Id(0)
@@ -340,6 +340,21 @@ TEST_P(VideoReceiveStream2Test, PlayoutDelay) {
   video_receive_stream_->SetMinimumPlayoutDelay(0);
   timings = timing_->GetTimings();
   EXPECT_EQ(123, timings.min_playout_delay.ms());
+}
+
+TEST_P(VideoReceiveStream2Test, MinPlayoutDelayIsLimitedByMaxPlayoutDelay) {
+  const VideoPlayoutDelay kPlayoutDelay(TimeDelta::Millis(123),
+                                        TimeDelta::Millis(321));
+  video_receive_stream_->OnCompleteFrame(test::FakeFrameBuilder()
+                                             .Id(0)
+                                             .PlayoutDelay(kPlayoutDelay)
+                                             .AsLast()
+                                             .Build());
+  EXPECT_EQ(timing_->GetTimings().min_playout_delay, kPlayoutDelay.min());
+
+  // Check that the biggest minimum delay is limited by the max playout delay.
+  video_receive_stream_->SetMinimumPlayoutDelay(400);
+  EXPECT_EQ(timing_->GetTimings().min_playout_delay, kPlayoutDelay.max());
 }
 
 TEST_P(VideoReceiveStream2Test, RenderParametersSetToDefaultValues) {
