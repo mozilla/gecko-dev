@@ -198,3 +198,69 @@ add_task(async function test_canOpenModalPicker_in_options_ui() {
 
   await extension.unload();
 });
+
+async function testPickerInExtensionBackgroundPage({
+  expectedCanOpenWithoutClick,
+  expectedCanOpenAfterClick,
+}) {
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      browser_action: {},
+    },
+    background() {
+      browser.browserAction.onClicked.addListener(() => {
+        browser.test.sendMessage("clicked_browserAction");
+      });
+    },
+  });
+  await extension.startup();
+  let bgBrowsingContext;
+  for (let view of WebExtensionPolicy.getByID(extension.id).extension.views) {
+    if (view.viewType === "background") {
+      bgBrowsingContext = view.browsingContext;
+    }
+  }
+  is(
+    bgBrowsingContext.canOpenModalPicker,
+    expectedCanOpenWithoutClick,
+    "Extension background script has expected canOpenModalPicker before click"
+  );
+  await clickBrowserAction(extension);
+  await extension.awaitMessage("clicked_browserAction");
+  is(
+    bgBrowsingContext.canOpenModalPicker,
+    expectedCanOpenAfterClick,
+    `Extension background script has expected canOpenModalPicker after click`
+  );
+  await extension.unload();
+}
+
+add_task(async function test_canOpenModalPicker_in_background_pref_default() {
+  is(
+    Services.prefs.getBoolPref("browser.disable_pickers_background_tabs"),
+    AppConstants.NIGHTLY_BUILD,
+    "Testing default behavior (browser.disable_pickers_background_tabs pref)"
+  );
+});
+
+add_task(async function test_canOpenModalPicker_in_background_pref_true() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.disable_pickers_in_hidden_extension_pages", true]],
+  });
+  await testPickerInExtensionBackgroundPage({
+    expectedCanOpenWithoutClick: false,
+    expectedCanOpenAfterClick: false,
+  });
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function test_canOpenModalPicker_in_background_pref_false() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.disable_pickers_in_hidden_extension_pages", false]],
+  });
+  await testPickerInExtensionBackgroundPage({
+    expectedCanOpenWithoutClick: true,
+    expectedCanOpenAfterClick: true,
+  });
+  await SpecialPowers.popPrefEnv();
+});

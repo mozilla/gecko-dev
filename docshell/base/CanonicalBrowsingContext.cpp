@@ -3282,6 +3282,17 @@ bool CanonicalBrowsingContext::CanOpenModalPicker() {
     return false;
   }
 
+  mozilla::dom::Element* topFrameElement = GetTopFrameElement();
+  if (!mozilla::StaticPrefs::
+          browser_disable_pickers_in_hidden_extension_pages() &&
+      Windowless()) {
+    WindowGlobalParent* wgp = GetCurrentWindowGlobal();
+    if (wgp && BasePrincipal::Cast(wgp->DocumentPrincipal())->AddonPolicy()) {
+      // This may be a HiddenExtensionPage, e.g. an extension background page.
+      return true;
+    }
+  }
+
   RefPtr<Document> chromeDoc = TopCrossChromeBoundary()->GetExtantDocument();
   if (!chromeDoc || !chromeDoc->HasFocus(mozilla::IgnoreErrors())) {
     return false;
@@ -3292,7 +3303,6 @@ bool CanonicalBrowsingContext::CanOpenModalPicker() {
   // is the foreground tab.
   // topFrameElement may be a <browser> embedded in another <browser>. In that
   // case, verify that the full chain of <browser> elements has focus.
-  mozilla::dom::Element* topFrameElement = GetTopFrameElement();
   while (topFrameElement) {
     RefPtr<Document> doc = topFrameElement->OwnerDoc();
     if (doc->GetActiveElement() != topFrameElement) {
