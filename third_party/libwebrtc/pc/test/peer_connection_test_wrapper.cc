@@ -172,6 +172,8 @@ bool PeerConnectionTestWrapper::CreatePc(
     const webrtc::PeerConnectionInterface::RTCConfiguration& config,
     rtc::scoped_refptr<webrtc::AudioEncoderFactory> audio_encoder_factory,
     rtc::scoped_refptr<webrtc::AudioDecoderFactory> audio_decoder_factory,
+    std::unique_ptr<webrtc::VideoEncoderFactory> video_encoder_factory,
+    std::unique_ptr<webrtc::VideoDecoderFactory> video_decoder_factory,
     std::unique_ptr<webrtc::FieldTrialsView> field_trials) {
   std::unique_ptr<cricket::PortAllocator> port_allocator(
       new cricket::FakePortAllocator(
@@ -190,12 +192,7 @@ bool PeerConnectionTestWrapper::CreatePc(
       network_thread_, worker_thread_, rtc::Thread::Current(),
       rtc::scoped_refptr<webrtc::AudioDeviceModule>(fake_audio_capture_module_),
       audio_encoder_factory, audio_decoder_factory,
-      std::make_unique<FuzzyMatchedVideoEncoderFactory>(),
-      std::make_unique<webrtc::VideoDecoderFactoryTemplate<
-          webrtc::LibvpxVp8DecoderTemplateAdapter,
-          webrtc::LibvpxVp9DecoderTemplateAdapter,
-          webrtc::OpenH264DecoderTemplateAdapter,
-          webrtc::Dav1dDecoderTemplateAdapter>>(),
+      std::move(video_encoder_factory), std::move(video_decoder_factory),
       nullptr /* audio_mixer */, nullptr /* audio_processing */, nullptr,
       std::move(field_trials));
   if (!peer_connection_factory_) {
@@ -215,6 +212,22 @@ bool PeerConnectionTestWrapper::CreatePc(
   } else {
     return false;
   }
+}
+
+bool PeerConnectionTestWrapper::CreatePc(
+    const webrtc::PeerConnectionInterface::RTCConfiguration& config,
+    rtc::scoped_refptr<webrtc::AudioEncoderFactory> audio_encoder_factory,
+    rtc::scoped_refptr<webrtc::AudioDecoderFactory> audio_decoder_factory,
+    std::unique_ptr<webrtc::FieldTrialsView> field_trials) {
+  return CreatePc(config, std::move(audio_encoder_factory),
+                  std::move(audio_decoder_factory),
+                  std::make_unique<FuzzyMatchedVideoEncoderFactory>(),
+                  std::make_unique<webrtc::VideoDecoderFactoryTemplate<
+                      webrtc::LibvpxVp8DecoderTemplateAdapter,
+                      webrtc::LibvpxVp9DecoderTemplateAdapter,
+                      webrtc::OpenH264DecoderTemplateAdapter,
+                      webrtc::Dav1dDecoderTemplateAdapter>>(),
+                  std::move(field_trials));
 }
 
 rtc::scoped_refptr<webrtc::DataChannelInterface>

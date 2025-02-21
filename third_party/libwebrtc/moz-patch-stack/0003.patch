@@ -52,7 +52,7 @@ Cr-Branched-From: cbe304455fe0ae24622252ef8a0707a555fa5caf-refs/heads/main@{#436
  2 files changed, 22 insertions(+), 8 deletions(-)
 
 diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index 560fb4c16a..233f83a957 100644
+index ac0042ebc4..b3e25c6c5b 100644
 --- a/media/engine/webrtc_video_engine.cc
 +++ b/media/engine/webrtc_video_engine.cc
 @@ -261,15 +261,28 @@ std::vector<Codec> GetPayloadTypesAndDefaultCodecs(

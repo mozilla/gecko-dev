@@ -41,6 +41,7 @@
 #include "api/test/rtc_error_matchers.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
+#include "media/engine/fake_webrtc_video_engine.h"
 #include "pc/sdp_utils.h"
 #include "pc/session_description.h"
 #include "pc/simulcast_description.h"
@@ -2993,5 +2994,170 @@ INSTANTIATE_TEST_SUITE_P(StandardPath,
 #endif  // defined(WEBRTC_USE_H264)
                                            "AV1"),
                          StringParamToString());
+
+#ifdef RTC_ENABLE_H265
+// These tests use fake encoders and decoders, allowing testing of codec
+// preferences, SDP negotiation and get/setParamaters(). But because the codecs
+// implementations are fake, these tests do not encode or decode any frames.
+class PeerConnectionEncodingsFakeCodecsIntegrationTest
+    : public PeerConnectionEncodingsIntegrationTest {
+ public:
+  scoped_refptr<PeerConnectionTestWrapper> CreatePcWithFakeH265(
+      std::unique_ptr<FieldTrialsView> field_trials = nullptr) {
+    std::unique_ptr<cricket::FakeWebRtcVideoEncoderFactory>
+        video_encoder_factory =
+            std::make_unique<cricket::FakeWebRtcVideoEncoderFactory>();
+    video_encoder_factory->AddSupportedVideoCodec(
+        SdpVideoFormat("H265",
+                       {{"profile-id", "1"},
+                        {"tier-flag", "0"},
+                        {"level-id", "156"},
+                        {"tx-mode", "SRST"}},
+                       {ScalabilityMode::kL1T1}));
+    std::unique_ptr<cricket::FakeWebRtcVideoDecoderFactory>
+        video_decoder_factory =
+            std::make_unique<cricket::FakeWebRtcVideoDecoderFactory>();
+    video_decoder_factory->AddSupportedVideoCodecType("H265");
+    auto pc_wrapper = make_ref_counted<PeerConnectionTestWrapper>(
+        "pc", &pss_, background_thread_.get(), background_thread_.get());
+    pc_wrapper->CreatePc(
+        {}, CreateBuiltinAudioEncoderFactory(),
+        CreateBuiltinAudioDecoderFactory(), std::move(video_encoder_factory),
+        std::move(video_decoder_factory), std::move(field_trials));
+    return pc_wrapper;
+  }
+};
+
+TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest, H265Singlecast) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper =
+      CreatePcWithFakeH265();
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper =
+      CreatePcWithFakeH265();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      local_pc_wrapper->pc()
+          ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO)
+          .MoveValue();
+  std::vector<RtpCodecCapability> preferred_codecs =
+      GetCapabilitiesAndRestrictToCodec(local_pc_wrapper, "H265");
+  transceiver->SetCodecPreferences(preferred_codecs);
+
+  Negotiate(local_pc_wrapper, remote_pc_wrapper);
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  // Verify codec.
+  rtc::scoped_refptr<const RTCStatsReport> report = GetStats(local_pc_wrapper);
+  std::vector<const RTCOutboundRtpStreamStats*> outbound_rtps =
+      report->GetStatsOfType<RTCOutboundRtpStreamStats>();
+  ASSERT_THAT(outbound_rtps, SizeIs(1u));
+  EXPECT_THAT(GetCurrentCodecMimeType(report, *outbound_rtps[0]),
+              StrCaseEq("video/H265"));
+}
+
+TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest, H265Simulcast) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper =
+      CreatePcWithFakeH265();
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper =
+      CreatePcWithFakeH265();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  std::vector<cricket::SimulcastLayer> layers =
+      CreateLayers({"q", "h", "f"}, /*active=*/true);
+
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
+                                        layers);
+  std::vector<RtpCodecCapability> preferred_codecs =
+      GetCapabilitiesAndRestrictToCodec(local_pc_wrapper, "H265");
+  transceiver->SetCodecPreferences(preferred_codecs);
+
+  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  // Wait until all outbound RTPs exist.
+  EXPECT_THAT(
+      GetStatsUntil(local_pc_wrapper, OutboundRtpStatsAre(UnorderedElementsAre(
+                                          AllOf(RidIs("q")), AllOf(RidIs("h")),
+                                          AllOf(RidIs("f"))))),
+      IsRtcOk());
+
+  // Verify codec.
+  rtc::scoped_refptr<const RTCStatsReport> report = GetStats(local_pc_wrapper);
+  std::vector<const RTCOutboundRtpStreamStats*> outbound_rtps =
+      report->GetStatsOfType<RTCOutboundRtpStreamStats>();
+  ASSERT_THAT(outbound_rtps, SizeIs(3u));
+  EXPECT_THAT(GetCurrentCodecMimeType(report, *outbound_rtps[0]),
+              StrCaseEq("video/H265"));
+  EXPECT_THAT(GetCurrentCodecMimeType(report, *outbound_rtps[1]),
+              StrCaseEq("video/H265"));
+  EXPECT_THAT(GetCurrentCodecMimeType(report, *outbound_rtps[2]),
+              StrCaseEq("video/H265"));
+}
+
+TEST_F(PeerConnectionEncodingsFakeCodecsIntegrationTest,
+       H265SetParametersIgnoresLevelId) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper =
+      CreatePcWithFakeH265();
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper =
+      CreatePcWithFakeH265();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  std::vector<cricket::SimulcastLayer> layers =
+      CreateLayers({"f"}, /*active=*/true);
+
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
+                                        layers);
+  std::vector<RtpCodecCapability> preferred_codecs =
+      GetCapabilitiesAndRestrictToCodec(local_pc_wrapper, "H265");
+  transceiver->SetCodecPreferences(preferred_codecs);
+  rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
+
+  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  // This includes non-codecs like rtx, red and flexfec too so we need to find
+  // H265.
+  std::vector<RtpCodecCapability> sender_codecs =
+      local_pc_wrapper->pc_factory()
+          ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_VIDEO)
+          .codecs;
+  auto it = std::find_if(sender_codecs.begin(), sender_codecs.end(),
+                         [](const RtpCodecCapability codec_capability) {
+                           return codec_capability.name == "H265";
+                         });
+  ASSERT_NE(it, sender_codecs.end());
+  RtpCodecCapability& h265_codec = *it;
+
+  // SetParameters() without changing level-id.
+  EXPECT_EQ(h265_codec.parameters["level-id"], "156");
+  {
+    RtpParameters parameters = sender->GetParameters();
+    ASSERT_THAT(parameters.encodings, SizeIs(1));
+    parameters.encodings[0].codec = h265_codec;
+    ASSERT_THAT(sender->SetParameters(parameters), IsRtcOk());
+  }
+  // SetParameters() with a lower level-id.
+  h265_codec.parameters["level-id"] = "30";
+  {
+    RtpParameters parameters = sender->GetParameters();
+    ASSERT_THAT(parameters.encodings, SizeIs(1));
+    parameters.encodings[0].codec = h265_codec;
+    ASSERT_THAT(sender->SetParameters(parameters), IsRtcOk());
+  }
+  // SetParameters() with a higher level-id.
+  h265_codec.parameters["level-id"] = "180";
+  {
+    RtpParameters parameters = sender->GetParameters();
+    ASSERT_THAT(parameters.encodings, SizeIs(1));
+    parameters.encodings[0].codec = h265_codec;
+    ASSERT_THAT(sender->SetParameters(parameters), IsRtcOk());
+  }
+}
+#endif  // RTC_ENABLE_H265
 
 }  // namespace webrtc
