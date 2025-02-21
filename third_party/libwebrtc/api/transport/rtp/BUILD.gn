@@ -34,6 +34,7 @@ rtc_source_set("dependency_descriptor") {
 }
 
 rtc_source_set("corruption_detection_message") {
+  visibility = [ "*" ]
   sources = [ "corruption_detection_message.h" ]
   deps = [
     "../../../api:array_view",
