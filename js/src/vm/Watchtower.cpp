@@ -346,12 +346,14 @@ bool Watchtower::watchPropertyRemoveSlow(JSContext* cx,
 }
 
 // static
-bool Watchtower::watchPropertyChangeSlow(JSContext* cx,
-                                         Handle<NativeObject*> obj, HandleId id,
-                                         PropertyInfo propInfo,
-                                         PropertyFlags newFlags) {
-  MOZ_ASSERT(watchesPropertyChange(obj));
+bool Watchtower::watchPropertyFlagsChangeSlow(JSContext* cx,
+                                              Handle<NativeObject*> obj,
+                                              HandleId id,
+                                              PropertyInfo propInfo,
+                                              PropertyFlags newFlags) {
+  MOZ_ASSERT(watchesPropertyFlagsChange(obj));
   MOZ_ASSERT(obj->lookupPure(id).ref() == propInfo);
+  MOZ_ASSERT(propInfo.flags() != newFlags);
 
   if (obj->isUsedAsPrototype() && !id.isInt()) {
     InvalidateMegamorphicCache(cx, obj);
@@ -366,12 +368,6 @@ bool Watchtower::watchPropertyChangeSlow(JSContext* cx,
     if (wasAccessor != isAccessor) {
       obj->as<GlobalObject>().bumpGenerationCount();
     }
-  }
-
-  // Property fuses should also be popped on property changes, as value can
-  // change via this path.
-  if (MOZ_UNLIKELY(obj->hasFuseProperty())) {
-    MaybePopFuses(cx, obj, id);
   }
 
   if (MOZ_UNLIKELY(obj->useWatchtowerTestingLog())) {
@@ -392,9 +388,12 @@ bool Watchtower::watchPropertyModificationSlow(
     typename MaybeRooted<Value, allowGC>::HandleType value,
     PropertyInfo propInfo) {
   MOZ_ASSERT(watchesPropertyModification(obj));
-  MOZ_ASSERT(propInfo.isDataDescriptor());
 
-  if (propInfo.isDataProperty() && obj->getSlot(propInfo.slot()) == value) {
+  // Note: this is also called when changing the GetterSetter value of an
+  // accessor property or when redefining a data property as an accessor
+  // property and vice versa.
+
+  if (propInfo.hasSlot() && obj->getSlot(propInfo.slot()) == value) {
     // We're not actually changing the property's value.
     return true;
   }

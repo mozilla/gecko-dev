@@ -37,9 +37,10 @@ class Watchtower {
                                    HandleId id);
   static bool watchPropertyRemoveSlow(JSContext* cx, Handle<NativeObject*> obj,
                                       HandleId id);
-  static bool watchPropertyChangeSlow(JSContext* cx, Handle<NativeObject*> obj,
-                                      HandleId id, PropertyInfo propInfo,
-                                      PropertyFlags newFlags);
+  static bool watchPropertyFlagsChangeSlow(JSContext* cx,
+                                           Handle<NativeObject*> obj,
+                                           HandleId id, PropertyInfo propInfo,
+                                           PropertyFlags newFlags);
   template <AllowGC allowGC>
   static bool watchPropertyModificationSlow(
       JSContext* cx,
@@ -63,10 +64,10 @@ class Watchtower {
         {ObjectFlag::IsUsedAsPrototype, ObjectFlag::GenerationCountedGlobal,
          ObjectFlag::UseWatchtowerTestingLog, ObjectFlag::HasFuseProperty});
   }
-  static bool watchesPropertyChange(NativeObject* obj) {
-    return obj->hasAnyFlag(
-        {ObjectFlag::IsUsedAsPrototype, ObjectFlag::GenerationCountedGlobal,
-         ObjectFlag::HasFuseProperty, ObjectFlag::UseWatchtowerTestingLog});
+  static bool watchesPropertyFlagsChange(NativeObject* obj) {
+    return obj->hasAnyFlag({ObjectFlag::IsUsedAsPrototype,
+                            ObjectFlag::GenerationCountedGlobal,
+                            ObjectFlag::UseWatchtowerTestingLog});
   }
   static bool watchesPropertyModification(NativeObject* obj) {
     return obj->hasAnyFlag(
@@ -102,13 +103,13 @@ class Watchtower {
     }
     return watchPropertyRemoveSlow(cx, obj, id);
   }
-  static bool watchPropertyChange(JSContext* cx, Handle<NativeObject*> obj,
-                                  HandleId id, PropertyInfo propInfo,
-                                  PropertyFlags newFlags) {
-    if (MOZ_LIKELY(!watchesPropertyChange(obj))) {
+  static bool watchPropertyFlagsChange(JSContext* cx, Handle<NativeObject*> obj,
+                                       HandleId id, PropertyInfo propInfo,
+                                       PropertyFlags newFlags) {
+    if (MOZ_LIKELY(!watchesPropertyFlagsChange(obj))) {
       return true;
     }
-    return watchPropertyChangeSlow(cx, obj, id, propInfo, newFlags);
+    return watchPropertyFlagsChangeSlow(cx, obj, id, propInfo, newFlags);
   }
 
   // Note: We can only watch property modification for regular object slots

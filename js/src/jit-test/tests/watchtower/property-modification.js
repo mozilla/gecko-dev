@@ -20,14 +20,14 @@ function testBasic() {
     // modify-prop: a
     Object.assign(o, p);
 
-    // change-prop: a
+    // modify-prop: a
     Object.defineProperty(o, "a", { value: 19 });
     let log = getLogString(o);
 
     assertEq(log,
         `modify-prop: a
 modify-prop: a
-change-prop: a`);
+modify-prop: a`);
 }
 
 for (var i = 0; i < 20; i++) {

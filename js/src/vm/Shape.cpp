@@ -542,8 +542,10 @@ bool NativeObject::changeProperty(JSContext* cx, Handle<NativeObject*> obj,
   PropertyInfo oldProp = propMap->getPropertyInfo(propIndex);
   AssertCanChangeFlags(oldProp, flags);
 
-  if (!Watchtower::watchPropertyChange(cx, obj, id, oldProp, flags)) {
-    return false;
+  if (oldProp.flags() != flags) {
+    if (!Watchtower::watchPropertyFlagsChange(cx, obj, id, oldProp, flags)) {
+      return false;
+    }
   }
 
   if (oldProp.isAccessorProperty()) {
@@ -660,13 +662,13 @@ bool NativeObject::changeCustomDataPropAttributes(JSContext* cx,
   MOZ_ASSERT(oldProp.isCustomDataProperty());
   AssertCanChangeFlags(oldProp, flags);
 
-  if (!Watchtower::watchPropertyChange(cx, obj, id, oldProp, flags)) {
-    return false;
-  }
-
   // If the property flags are not changing, we're done.
   if (oldProp.flags() == flags) {
     return true;
+  }
+
+  if (!Watchtower::watchPropertyFlagsChange(cx, obj, id, oldProp, flags)) {
+    return false;
   }
 
   const JSClass* clasp = obj->shape()->getObjectClass();

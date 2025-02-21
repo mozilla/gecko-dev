@@ -1246,16 +1246,22 @@ static bool ChangeProperty(JSContext* cx, Handle<NativeObject*> obj,
   }
 
   if (existing->isNativeProperty()) {
+    Rooted<Value> value(cx, PrivateGCThingValue(gs));
+    if (!Watchtower::watchPropertyModification<AllowGC::CanGC>(
+            cx, obj, id, value, existing->propertyInfo())) {
+      return false;
+    }
     if (!NativeObject::changeProperty(cx, obj, id, flags, slotOut)) {
       return false;
     }
-  } else {
-    if (!NativeObject::addProperty(cx, obj, id, flags, slotOut)) {
-      return false;
-    }
+    obj->setSlot(*slotOut, value);
+    return true;
   }
 
-  obj->setSlot(*slotOut, PrivateGCThingValue(gs));
+  if (!NativeObject::addProperty(cx, obj, id, flags, slotOut)) {
+    return false;
+  }
+  obj->initSlot(*slotOut, PrivateGCThingValue(gs));
   return true;
 }
 
@@ -1345,6 +1351,10 @@ static MOZ_ALWAYS_INLINE bool AddOrChangeProperty(
       }
     } else {
       if (existing->isNativeProperty()) {
+        if (!Watchtower::watchPropertyModification<AllowGC::CanGC>(
+                cx, obj, id, desc.value(), existing->propertyInfo())) {
+          return false;
+        }
         if (!NativeObject::changeProperty(cx, obj, id, flags, &slot)) {
           return false;
         }
