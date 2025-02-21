@@ -7593,4 +7593,24 @@ bool EventStateManager::WheelPrefs::IsOverOnePageScrollAllowedY(
          MIN_MULTIPLIER_VALUE_ALLOWING_OVER_ONE_PAGE_SCROLL;
 }
 
+void EventStateManager::NotifyDestroyingFrameForGesture(nsIFrame* aFrame) {
+  MOZ_ASSERT(aFrame);
+  if (mGestureDownContent != aFrame->GetContent()) {
+    return;
+  }
+
+  if (nsIFrame* parent = aFrame->GetParent()) {
+    nsIFrame* f = nsLayoutUtils::GetNonGeneratedAncestor(parent);
+    MOZ_ASSERT(f);
+
+    nsIContent* content = f->GetContent();
+    mGestureDownContent = content;
+    mGestureDownFrameOwner = content;
+    mGestureDownInTextControl =
+        content && content->IsInNativeAnonymousSubtree() &&
+        TextControlElement::FromNodeOrNull(
+            content->GetClosestNativeAnonymousSubtreeRootParentOrHost());
+  }
+}
+
 }  // namespace mozilla

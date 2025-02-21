@@ -4696,6 +4696,17 @@ nsresult nsIFrame::MoveCaretToEventPoint(nsPresContext* aPresContext,
     return NS_OK;
   }
 
+  EventStateManager* const esm = aPresContext->EventStateManager();
+  if (nsIContent* dragGestureContent = esm->GetTrackingDragGestureContent()) {
+    if (dragGestureContent != this->GetContent()) {
+      // When the current tracked dragging gesture is different
+      // than this frame, it means this frame was being dragged, however
+      // it got moved/destroyed. So we should consider the drag is
+      // still happening, so return early here.
+      return NS_OK;
+    }
+  }
+
   const nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(
       aMouseEvent, RelativeTo{this});
 
