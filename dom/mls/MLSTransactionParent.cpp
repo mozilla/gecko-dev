@@ -175,9 +175,9 @@ MLSTransactionParent::RecvRequestGenerateIdentityKeypair(
           ("MLSTransactionParent::RecvRequestGenerateIdentityKeypair()"));
 
   // Call to the MLS rust code
-  nsTArray<uint8_t> signatureIdentifier;
-  nsresult rv = security::mls::mls_generate_signature_keypair(
-      &mDatabasePath, &signatureIdentifier);
+  nsTArray<uint8_t> identity;
+  nsresult rv = security::mls::mls_generate_identity(
+      &mDatabasePath, &identity);
 
   // Return Nothing if failed
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -186,7 +186,7 @@ MLSTransactionParent::RecvRequestGenerateIdentityKeypair(
   }
 
   // Return the result if success
-  aResolver(Some(RawBytes{std::move(signatureIdentifier)}));
+  aResolver(Some(RawBytes{std::move(identity)}));
   return IPC_OK();
 }
 
@@ -427,10 +427,10 @@ mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestGroupDetails(
           ("MLSTransactionParent::RecvRequestGroupDetails()"));
 
   // Call to the MLS rust code
-  security::mls::GkGroupMembers members;
-  nsresult rv = security::mls::mls_group_members(
+  security::mls::GkGroupDetails details;
+  nsresult rv = security::mls::mls_group_details(
       &mDatabasePath, aGroupIdentifier.Elements(), aGroupIdentifier.Length(),
-      aIdentifier.Elements(), aIdentifier.Length(), &members);
+      aIdentifier.Elements(), aIdentifier.Length(), &details);
 
   // Return Nothing if failed
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -439,7 +439,7 @@ mozilla::ipc::IPCResult MLSTransactionParent::RecvRequestGroupDetails(
   }
 
   // Return the result if success
-  aResolver(Some(std::move(members)));
+  aResolver(Some(std::move(details)));
 
   return IPC_OK();
 }

@@ -5,7 +5,7 @@
 include protocol PBackground;
 using struct mozilla::security::mls::GkGroupIdEpoch from "mozilla/dom/MLSTransactionMessage.h";
 using struct mozilla::security::mls::GkMlsCommitOutput from "mozilla/dom/MLSTransactionMessage.h";
-using struct mozilla::security::mls::GkGroupMembers from "mozilla/dom/MLSTransactionMessage.h";
+using struct mozilla::security::mls::GkGroupDetails from "mozilla/dom/MLSTransactionMessage.h";
 using struct mozilla::security::mls::GkExporterOutput from "mozilla/dom/MLSTransactionMessage.h";
 using struct mozilla::security::mls::GkReceived from "mozilla/dom/MLSTransactionMessage.h";
 
@@ -33,7 +33,7 @@ parent:
   async RequestGroupRemove(uint8_t[] groupIdentifier, uint8_t[] identifier, uint8_t[] remIdentifier) returns (GkMlsCommitOutput? result);
   async RequestGroupProposeRemove(uint8_t[] groupIdentifier, uint8_t[] identifier, uint8_t[] remIdentifier) returns (RawBytes? result);
   async RequestGroupClose(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (GkMlsCommitOutput? result);
-  async RequestGroupDetails(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (GkGroupMembers? result);
+  async RequestGroupDetails(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (GkGroupDetails? result);
   async RequestReceive(uint8_t[] identifier, uint8_t[] message) returns (GkReceived result);
   async RequestApplyPendingCommit(uint8_t[] groupIdentifier, uint8_t[] identifier) returns (GkReceived result);
   async RequestSend(uint8_t[] groupIdentifier, uint8_t[] identifier, uint8_t[] message) returns (RawBytes? result);

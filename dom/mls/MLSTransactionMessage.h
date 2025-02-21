@@ -40,7 +40,7 @@ DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::security::mls::GkMlsCommitOutput,
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::security::mls::GkClientIdentifiers,
                                   identity, credential);
 
-DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::security::mls::GkGroupMembers,
+DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::security::mls::GkGroupDetails,
                                   group_id, group_epoch, group_members);
 
 DEFINE_IPC_SERIALIZER_WITH_FIELDS(mozilla::security::mls::GkExporterOutput,

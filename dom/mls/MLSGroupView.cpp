@@ -618,9 +618,9 @@ already_AddRefed<Promise> MLSGroupView::Details(ErrorResult& aRv) {
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [promise, self = RefPtr<MLSGroupView>(this)](
-              Maybe<GkGroupMembers>&& groupMembers) {
+              Maybe<GkGroupDetails>&& groupDetails) {
             // Check if the value is Nothing
-            if (groupMembers.isNothing()) {
+            if (groupDetails.isNothing()) {
               promise->MaybeReject(NS_ERROR_FAILURE);
               return;
             }
@@ -636,14 +636,14 @@ already_AddRefed<Promise> MLSGroupView::Details(ErrorResult& aRv) {
             // Construct the Uint8Array objects
             ErrorResult error;
             JS::Rooted<JSObject*> jsGroupId(
-                cx, Uint8Array::Create(cx, groupMembers->group_id, error));
+                cx, Uint8Array::Create(cx, groupDetails->group_id, error));
             error.WouldReportJSException();
             if (error.Failed()) {
               promise->MaybeReject(std::move(error));
               return;
             }
             JS::Rooted<JSObject*> jsGroupEpoch(
-                cx, Uint8Array::Create(cx, groupMembers->group_epoch, error));
+                cx, Uint8Array::Create(cx, groupDetails->group_epoch, error));
             error.WouldReportJSException();
             if (error.Failed()) {
               promise->MaybeReject(std::move(error));
@@ -656,12 +656,12 @@ already_AddRefed<Promise> MLSGroupView::Details(ErrorResult& aRv) {
             rvalue.mGroupId.Init(jsGroupId);
             rvalue.mGroupEpoch.Init(jsGroupEpoch);
             if (!rvalue.mMembers.SetCapacity(
-                    groupMembers->group_members.Length(), fallible)) {
+                    groupDetails->group_members.Length(), fallible)) {
               promise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
               return;
             }
 
-            for (const auto& member : groupMembers->group_members) {
+            for (const auto& member : groupDetails->group_members) {
               JS::Rooted<JSObject*> jsClientId(
                   cx, Uint8Array::Create(cx, member.identity, error));
               error.WouldReportJSException();

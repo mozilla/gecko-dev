@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use mls_platform_api::{
-    ClientIdentifiers, ExporterOutput, GroupIdEpoch, GroupMembers, MlsCommitOutput, Received,
+    ClientIdentifiers, ExporterOutput, GroupDetails, GroupIdEpoch, MlsCommitOutput, Received,
 };
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_ERROR_INVALID_ARG, NS_OK};
 use nsstring::nsACString;
@@ -154,12 +154,12 @@ pub unsafe extern "C" fn mls_state_delete_group(
 }
 
 #[no_mangle]
-pub extern "C" fn mls_generate_signature_keypair(
+pub extern "C" fn mls_generate_identity(
     storage_prefix: &nsACString,
     ret_identifier: &mut ThinVec<u8>,
 ) -> nsresult {
     // Log the function call
-    log::debug!("Entering mls_generate_signature_keypair");
+    log::debug!("Entering mls_generate_identity");
 
     // Retrieve the platform state based on the storage prefix
     let Ok(mut pstate) = state_access(storage_prefix) else {
@@ -171,8 +171,7 @@ pub extern "C" fn mls_generate_signature_keypair(
 
     // Generate the signature keypair
     let identifier =
-        match mls_platform_api::mls_generate_signature_keypair(&mut pstate, default_gc.ciphersuite)
-        {
+        match mls_platform_api::mls_generate_identity(&mut pstate, default_gc.ciphersuite) {
             Ok(id) => id,
             Err(e) => {
                 log::error!("{:?}", e);
@@ -324,15 +323,15 @@ impl From<ClientIdentifiers> for GkClientIdentifiers {
 }
 
 #[repr(C)]
-pub struct GkGroupMembers {
+pub struct GkGroupDetails {
     pub group_id: ThinVec<u8>,
     pub group_epoch: ThinVec<u8>,
     pub group_members: ThinVec<GkClientIdentifiers>,
 }
 
-impl From<GroupMembers> for GkGroupMembers {
-    fn from(v: GroupMembers) -> Self {
-        let GroupMembers {
+impl From<GroupDetails> for GkGroupDetails {
+    fn from(v: GroupDetails) -> Self {
+        let GroupDetails {
             group_id,
             group_epoch,
             group_members,
@@ -346,16 +345,16 @@ impl From<GroupMembers> for GkGroupMembers {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn mls_group_members(
+pub unsafe extern "C" fn mls_group_details(
     storage_prefix: &nsACString,
     group_id_bytes_ptr: *const u8,
     group_id_bytes_len: usize,
     identifier_bytes_ptr: *const u8,
     identifier_bytes_len: usize,
-    ret_group_members: &mut GkGroupMembers,
+    ret_group_details: &mut GkGroupDetails,
 ) -> nsresult {
     // Log the function call
-    log::debug!("Entering mls_group_members");
+    log::debug!("Entering mls_group_details");
 
     // Validate the inputs
     if group_id_bytes_len == 0 {
@@ -378,19 +377,19 @@ pub unsafe extern "C" fn mls_group_members(
         return NS_ERROR_FAILURE;
     };
 
-    // Retrieve the group membership
-    let Ok(group_members) =
-        mls_platform_api::mls_group_members(&mut pstate, group_id_bytes, identifier_bytes)
+    // Retrieve the group details (includes members)
+    let Ok(group_details) =
+        mls_platform_api::mls_group_details(&mut pstate, group_id_bytes, identifier_bytes)
     else {
-        log::error!("Failed to retrieve group members");
+        log::error!("Failed to retrieve group details");
         return NS_ERROR_FAILURE;
     };
 
     // Log the result
-    log::debug!(" (returns) Group Members: {:?}", group_members);
+    log::debug!(" (returns) Group Details: {:?}", group_details);
 
     // Write the result
-    *ret_group_members = group_members.into();
+    *ret_group_details = group_details.into();
 
     NS_OK
 }
