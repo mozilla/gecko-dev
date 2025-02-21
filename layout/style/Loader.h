@@ -652,7 +652,7 @@ class Loader final {
 
   nsCompatibility mDocumentCompatMode;
 
-  nsCOMPtr<nsIConsoleReportCollector> mReporter;
+  const nsCOMPtr<nsIConsoleReportCollector> mReporter;
 
   // Number of datas for asynchronous sheet loads still waiting to be notified.
   // This includes pending stylesheets whose load hasn't started yet but which

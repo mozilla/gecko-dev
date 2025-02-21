@@ -52,20 +52,15 @@ static nsresult IsEligible(nsIChannel* aChannel,
     return NS_OK;
   }
 
-  nsCOMPtr<nsIURI> finalURI;
-  nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(finalURI));
-  NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<nsIURI> originalURI;
-  rv = aChannel->GetOriginalURI(getter_AddRefs(originalURI));
+  nsresult rv = aChannel->GetOriginalURI(getter_AddRefs(originalURI));
   NS_ENSURE_SUCCESS(rv, rv);
   nsAutoCString requestSpec;
   rv = originalURI->GetSpec(requestSpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (MOZ_LOG_TEST(SRILogHelper::GetSriLog(), mozilla::LogLevel::Debug)) {
-    SRILOG(("SRICheck::IsEligible, requestURI=%s; finalURI=%s",
-            requestSpec.get(),
-            finalURI ? finalURI->GetSpecOrDefault().get() : ""));
+    SRILOG(("SRICheck::IsEligible, requestURI=%s", requestSpec.get()));
   }
 
   // Is the sub-resource same-origin?
@@ -203,6 +198,10 @@ nsresult SRICheckDataVerifier::EnsureCryptoHash() {
   return NS_OK;
 }
 
+nsresult SRICheckDataVerifier::Update(Span<const uint8_t> aBytes) {
+  return Update(aBytes.size(), aBytes.data());
+}
+
 nsresult SRICheckDataVerifier::Update(uint32_t aStringLen,
                                       const uint8_t* aString) {
   NS_ENSURE_ARG_POINTER(aString);
@@ -312,12 +311,22 @@ nsresult SRICheckDataVerifier::Verify(const SRIMetadata& aMetadata,
                                       nsIChannel* aChannel,
                                       const nsACString& aSourceFileURI,
                                       nsIConsoleReportCollector* aReporter) {
+  MOZ_ASSERT(aChannel);
+  nsCOMPtr loadInfo = aChannel->LoadInfo();
+  return Verify(aMetadata, aChannel, loadInfo->GetTainting(), aSourceFileURI,
+                aReporter);
+}
+
+nsresult SRICheckDataVerifier::Verify(const SRIMetadata& aMetadata,
+                                      nsIChannel* aChannel,
+                                      LoadTainting aLoadTainting,
+                                      const nsACString& aSourceFileURI,
+                                      nsIConsoleReportCollector* aReporter) {
   NS_ENSURE_ARG_POINTER(aReporter);
 
   if (MOZ_LOG_TEST(SRILogHelper::GetSriLog(), mozilla::LogLevel::Debug)) {
     nsAutoCString requestURL;
-    nsCOMPtr<nsIRequest> request = aChannel;
-    request->GetName(requestURL);
+    aChannel->GetName(requestURL);
     SRILOG(("SRICheckDataVerifier::Verify, url=%s (length=%zu)",
             requestURL.get(), mBytesHashed));
   }
@@ -325,10 +334,8 @@ nsresult SRICheckDataVerifier::Verify(const SRIMetadata& aMetadata,
   nsresult rv = Finish();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  LoadTainting tainting = loadInfo->GetTainting();
-
-  if (NS_FAILED(IsEligible(aChannel, tainting, aSourceFileURI, aReporter))) {
+  if (NS_FAILED(
+          IsEligible(aChannel, aLoadTainting, aSourceFileURI, aReporter))) {
     return NS_ERROR_SRI_NOT_ELIGIBLE;
   }
 

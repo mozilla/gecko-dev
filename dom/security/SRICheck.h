@@ -11,6 +11,7 @@
 #include "nsStringFwd.h"
 #include "nsCOMPtr.h"
 #include "nsICryptoHash.h"
+#include "mozilla/LoadTainting.h"
 
 class nsIChannel;
 class nsIConsoleReportCollector;
@@ -54,8 +55,15 @@ class SRICheckDataVerifier final {
   // Append the following bytes to the content used to compute the hash. Once
   // all bytes are streamed, use the Verify function to check the integrity.
   nsresult Update(uint32_t aStringLen, const uint8_t* aString);
+  nsresult Update(Span<const uint8_t>);
 
   // Verify that the computed hash corresponds to the metadata.
+  nsresult Verify(const SRIMetadata& aMetadata, nsIChannel* aChannel,
+                  LoadTainting aLoadTainting, const nsACString& aSourceFileURI,
+                  nsIConsoleReportCollector* aReporter);
+
+  // Like Verify(), but takes the load tainting from the channel's load info
+  // (which is main-thread only).
   nsresult Verify(const SRIMetadata& aMetadata, nsIChannel* aChannel,
                   const nsACString& aSourceFileURI,
                   nsIConsoleReportCollector* aReporter);

@@ -133,6 +133,10 @@ class SheetLoadData final
   // applicable.
   CacheExpirationTime mExpirationTime = CacheExpirationTime::Never();
 
+  // The load tainting of the request. Needed to be able to pass it around off
+  // the main thread for SRI checks.
+  LoadTainting mTainting{LoadTainting::Basic};
+
   // Number of sheets we @import-ed that are still loading
   uint32_t mPendingChildren;
 
