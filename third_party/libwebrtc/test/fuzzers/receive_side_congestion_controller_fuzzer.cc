@@ -31,8 +31,7 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
   ReceiveSideCongestionController cc(
       CreateEnvironment(&clock),
       /*feedback_sender=*/[](auto...) {},
-      /*remb_sender=*/[](auto...) {},
-      /*network_state_estimator=*/nullptr);
+      /*remb_sender=*/[](auto...) {});
   RtpHeaderExtensionMap extensions;
   extensions.Register<TransmissionOffset>(1);
   extensions.Register<AbsoluteSendTime>(2);

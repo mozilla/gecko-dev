@@ -1972,7 +1972,7 @@ void EventLogAnalyzer::CreateReceiveSideBweSimulationGraph(Plot* plot) const {
   RembInterceptor remb_interceptor;
   ReceiveSideCongestionController rscc(
       CreateEnvironment(&clock), [](auto...) {},
-      absl::bind_front(&RembInterceptor::SendRemb, &remb_interceptor), nullptr);
+      absl::bind_front(&RembInterceptor::SendRemb, &remb_interceptor));
   // TODO(holmer): Log the call config and use that here instead.
   // static const uint32_t kDefaultStartBitrateBps = 300000;
   // rscc.SetBweBitrates(0, kDefaultStartBitrateBps, -1);
