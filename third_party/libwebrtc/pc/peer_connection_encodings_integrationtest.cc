@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
@@ -41,6 +42,7 @@
 #include "api/test/rtc_error_matchers.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
+#include "media/base/codec.h"
 #include "media/engine/fake_webrtc_video_engine.h"
 #include "pc/sdp_utils.h"
 #include "pc/session_description.h"
@@ -59,6 +61,7 @@
 
 using ::testing::AllOf;
 using ::testing::AnyOf;
+using ::testing::Contains;
 using ::testing::Each;
 using ::testing::Eq;
 using ::testing::Field;
@@ -70,6 +73,7 @@ using ::testing::Key;
 using ::testing::Le;
 using ::testing::Matcher;
 using ::testing::Ne;
+using ::testing::NotNull;
 using ::testing::Optional;
 using ::testing::Pair;
 using ::testing::Pointer;
@@ -1835,6 +1839,72 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   parameters.encodings[0].codec = opus;
   RTCError error = audio_transceiver->sender()->SetParameters(parameters);
   EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
+}
+
+// Test coverage for https://crbug.com/webrtc/391340599.
+// Some web apps add non-standard FMTP parameters to video codecs and because
+// they get successfully negotiated due to being ignored by SDP rules, they show
+// up in GetParameters().codecs. Using SetParameters() with such codecs should
+// still work.
+TEST_F(PeerConnectionEncodingsIntegrationTest,
+       SetParametersAcceptsMungedCodecFromGetParameters) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  auto transceiver_or_error =
+      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  ASSERT_TRUE(transceiver_or_error.ok());
+  rtc::scoped_refptr<RtpTransceiverInterface> video_transceiver =
+      transceiver_or_error.MoveValue();
+
+  std::unique_ptr<SessionDescriptionInterface> offer =
+      CreateOffer(local_pc_wrapper);
+  // Munge a new parameter for VP8 in the offer.
+  auto* mcd = offer->description()->contents()[0].media_description();
+  ASSERT_THAT(mcd, NotNull());
+  std::vector<cricket::Codec> codecs = mcd->codecs();
+  ASSERT_THAT(codecs, Contains(Field(&cricket::Codec::name, "VP8")));
+  auto vp8_codec = absl::c_find_if(
+      codecs, [](const cricket::Codec& codec) { return codec.name == "VP8"; });
+  vp8_codec->params.emplace("non-standard-param", "true");
+  mcd->set_codecs(codecs);
+
+  rtc::scoped_refptr<MockSetSessionDescriptionObserver> p1 =
+      SetLocalDescription(local_pc_wrapper, offer.get());
+  rtc::scoped_refptr<MockSetSessionDescriptionObserver> p2 =
+      SetRemoteDescription(remote_pc_wrapper, offer.get());
+  EXPECT_TRUE(Await({p1, p2}));
+
+  // Create answer and apply it
+  std::unique_ptr<SessionDescriptionInterface> answer =
+      CreateAnswer(remote_pc_wrapper);
+  mcd = answer->description()->contents()[0].media_description();
+  ASSERT_THAT(mcd, NotNull());
+  codecs = mcd->codecs();
+  ASSERT_THAT(codecs, Contains(Field(&cricket::Codec::name, "VP8")));
+  vp8_codec = absl::c_find_if(
+      codecs, [](const cricket::Codec& codec) { return codec.name == "VP8"; });
+  vp8_codec->params.emplace("non-standard-param", "true");
+  mcd->set_codecs(codecs);
+  p1 = SetLocalDescription(remote_pc_wrapper, answer.get());
+  p2 = SetRemoteDescription(local_pc_wrapper, answer.get());
+  EXPECT_TRUE(Await({p1, p2}));
+
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  RtpParameters parameters = video_transceiver->sender()->GetParameters();
+  auto it = absl::c_find_if(
+      parameters.codecs, [](const auto& codec) { return codec.name == "VP8"; });
+  ASSERT_NE(it, parameters.codecs.end());
+  RtpCodecParameters& vp8_codec_from_parameters = *it;
+  EXPECT_THAT(vp8_codec_from_parameters.parameters,
+              Contains(Pair("non-standard-param", "true")));
+  parameters.encodings[0].codec = vp8_codec_from_parameters;
+
+  EXPECT_THAT(video_transceiver->sender()->SetParameters(parameters),
+              IsRtcOk());
 }
 
 TEST_F(PeerConnectionEncodingsIntegrationTest,

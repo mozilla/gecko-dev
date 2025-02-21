@@ -399,13 +399,14 @@ bool IsSameRtpCodecIgnoringLevel(const Codec& codec,
   CodecParameterMap params2 =
       InsertDefaultParams(rtp_codec2.name, rtp_codec2.parameters);
 
-  // Currently we only ignore H.265 level-id parameter.
-#ifdef RTC_ENABLE_H265
-  if (absl::EqualsIgnoreCase(rtp_codec.name, cricket::kH265CodecName)) {
-    params1.erase(cricket::kH265FmtpLevelId);
-    params2.erase(cricket::kH265FmtpLevelId);
+  // Some video codecs are compatible with others (e.g. same profile but
+  // different level). This comparison looks at the relevant parameters,
+  // ignoring ones that are either irrelevant or unrecognized.
+  if (rtp_codec.kind == cricket::MediaType::MEDIA_TYPE_VIDEO &&
+      rtp_codec.IsMediaCodec()) {
+    return IsSameCodecSpecific(rtp_codec.name, params1, rtp_codec2.name,
+                               params2);
   }
-#endif
 
   return params1 == params2;
 }

@@ -21,6 +21,7 @@
 #include "api/peer_connection_interface.h"
 #include "api/rtp_parameters.h"
 #include "api/test/rtc_error_matchers.h"
+#include "media/base/codec_comparators.h"
 #include "media/base/fake_media_engine.h"
 #include "pc/rtp_parameters_conversion.h"
 #include "pc/test/enable_fake_media.h"
@@ -220,8 +221,8 @@ class RtpTransceiverFilteredCodecPreferencesTest
     RtpCodecCapability rtx_codec;
   };
 
-  // For H264, the profile and level IDs are entangled and not ignored by
-  // IsSameRtpCodecIgnoringLevel().
+  // For H264, the profile and level IDs are entangled. This function uses
+  // profile-level-id values that are not equal even when levels are ignored.
   H264CodecCapabilities ConfigureH264CodecCapabilities() {
     cricket::Codec cricket_sendrecv_codec = cricket::CreateVideoCodec(
         SdpVideoFormat("H264",
@@ -247,7 +248,7 @@ class RtpTransceiverFilteredCodecPreferencesTest
         {cricket_sendrecv_codec, cricket_sendonly_codec, cricket_rtx_codec});
     media_engine()->SetVideoRecvCodecs(
         {cricket_sendrecv_codec, cricket_recvonly_codec, cricket_rtx_codec});
-    return {
+    H264CodecCapabilities capabilities = {
         .cricket_sendrecv_codec = cricket_sendrecv_codec,
         .sendrecv_codec = ToRtpCodecCapability(cricket_sendrecv_codec),
         .cricket_sendonly_codec = cricket_sendonly_codec,
@@ -257,6 +258,13 @@ class RtpTransceiverFilteredCodecPreferencesTest
         .cricket_rtx_codec = cricket_rtx_codec,
         .rtx_codec = ToRtpCodecCapability(cricket_rtx_codec),
     };
+    EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(
+        capabilities.cricket_sendrecv_codec, capabilities.sendonly_codec));
+    EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(
+        capabilities.cricket_sendrecv_codec, capabilities.recvonly_codec));
+    EXPECT_FALSE(IsSameRtpCodecIgnoringLevel(
+        capabilities.cricket_sendonly_codec, capabilities.recvonly_codec));
+    return capabilities;
   }
 
 #ifdef RTC_ENABLE_H265
@@ -412,6 +420,57 @@ TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
               ElementsAre(codecs.recvonly_codec, codecs.rtx_codec));
 }
 
+TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
+       H264LevelIdsIgnoredByFilter) {
+  // Baseline 3.1 and 5.2 are compatible when ignoring level IDs.
+  cricket::Codec baseline_3_1 = cricket::CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{"level-asymmetry-allowed", "1"},
+                      {"packetization-mode", "1"},
+                      {"profile-level-id", "42001f"}},
+                     {ScalabilityMode::kL1T1}));
+  cricket::Codec baseline_5_2 = cricket::CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{"level-asymmetry-allowed", "1"},
+                      {"packetization-mode", "1"},
+                      {"profile-level-id", "420034"}},
+                     {ScalabilityMode::kL1T1}));
+  // High is NOT compatible with baseline.
+  cricket::Codec high_3_1 = cricket::CreateVideoCodec(
+      SdpVideoFormat("H264",
+                     {{"level-asymmetry-allowed", "1"},
+                      {"packetization-mode", "1"},
+                      {"profile-level-id", "64001f"}},
+                     {ScalabilityMode::kL1T1}));
+  // Configure being able to both send and receive Baseline but using different
+  // level IDs in either direction, while the High profile is "truly" recvonly.
+  media_engine()->SetVideoSendCodecs({baseline_3_1});
+  media_engine()->SetVideoRecvCodecs({baseline_5_2, high_3_1});
+
+  // Prefer to "sendrecv" Baseline 5.2. Even though we can only send 3.1 this
+  // codec is not filtered out due to 5.2 and 3.1 being compatible when ignoring
+  // level IDs.
+  std::vector<RtpCodecCapability> codec_capabilities = {
+      ToRtpCodecCapability(baseline_5_2)};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kSendRecv),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0]));
+  // Prefer to "sendrecv" High 3.1. This gets filtered out because we cannot
+  // send it (Baseline 3.1 is not compatible with it).
+  codec_capabilities = {ToRtpCodecCapability(high_3_1)};
+  EXPECT_THAT(transceiver_->SetCodecPreferences(codec_capabilities), IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(), SizeIs(0));
+  // Change direction to "recvonly" to avoid High 3.1 being filtered out.
+  EXPECT_THAT(
+      transceiver_->SetDirectionWithError(RtpTransceiverDirection::kRecvOnly),
+      IsRtcOk());
+  EXPECT_THAT(transceiver_->filtered_codec_preferences(),
+              ElementsAre(codec_capabilities[0]));
+}
+
 #ifdef RTC_ENABLE_H265
 TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
        H265LevelIdIsIgnoredByFilter) {
@@ -438,7 +497,7 @@ TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
 }
 
 TEST_F(RtpTransceiverFilteredCodecPreferencesTest,
-       H265LevelIdHasToFromSenderOrReceiverCapabilities) {
+       H265LevelIdHasToBeFromSenderOrReceiverCapabilities) {
   ConfigureH265CodecCapabilities();
   cricket::Codec cricket_codec = cricket::CreateVideoCodec(SdpVideoFormat(
       "H265",
