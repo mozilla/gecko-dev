@@ -454,6 +454,14 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
         }
       }
     }
+    // Note what PTs are already in use.
+    UsedPayloadTypes
+        used_pltypes;  // Used to avoid pt collisions in filtered_codecs
+    for (auto& codec : filtered_codecs) {
+      // Note: This may change PTs. Doing so woud indicate an error, but
+      // UsedPayloadTypes doesn't offer a means to make the distinction.
+      used_pltypes.FindAndSetIdUsed(&codec);
+    }
     // Add other supported codecs.
     for (const Codec& codec : supported_codecs) {
       std::optional<Codec> found_codec =
@@ -461,12 +469,12 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
       if (found_codec &&
           !FindMatchingCodec(supported_codecs, filtered_codecs, codec)) {
         // Use the `found_codec` from `codecs` because it has the
-        // correctly mapped payload type.
-        // This is only done for video since we do not yet have rtx for audio.
+        // correctly mapped payload type (most of the time).
         if (media_description_options.type == MEDIA_TYPE_VIDEO &&
             found_codec->GetResiliencyType() == Codec::ResiliencyType::kRtx) {
           // For RTX we might need to adjust the apt parameter if we got a
           // remote offer without RTX for a codec for which we support RTX.
+          // This is only done for video since we do not yet have rtx for audio.
           auto referenced_codec =
               GetAssociatedCodecForRtx(supported_codecs, codec);
           RTC_DCHECK(referenced_codec);
@@ -479,6 +487,8 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
                                   changed_referenced_codec->id);
           }
         }
+        // Quick fix for b/395077842: Remap the codec if it collides.
+        used_pltypes.FindAndSetIdUsed(&(*found_codec));
         filtered_codecs.push_back(*found_codec);
       }
     }

@@ -748,6 +748,30 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     });
   }
 
+  // Setting the local description and sending the SDP message over the fake
+  // signaling channel are combined into the same method because the SDP
+  // message needs to be sent as soon as SetLocalDescription finishes, without
+  // waiting for the observer to be called. This ensures that ICE candidates
+  // don't outrace the description.
+  bool SetLocalDescriptionAndSendSdpMessage(
+      std::unique_ptr<SessionDescriptionInterface> desc) {
+    auto observer = rtc::make_ref_counted<MockSetSessionDescriptionObserver>();
+    RTC_LOG(LS_INFO) << debug_name_ << ": SetLocalDescriptionAndSendSdpMessage";
+    SdpType type = desc->GetType();
+    std::string sdp;
+    EXPECT_TRUE(desc->ToString(&sdp));
+    RTC_LOG(LS_INFO) << debug_name_ << ": local SDP contents=\n" << sdp;
+    pc()->SetLocalDescription(observer.get(), desc.release());
+    RemoveUnusedVideoRenderers();
+    // As mentioned above, we need to send the message immediately after
+    // SetLocalDescription.
+    SendSdpMessage(type, sdp);
+    EXPECT_THAT(
+        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
+        IsRtcOk());
+    return true;
+  }
+
  private:
   // Constructor used by friend class PeerConnectionIntegrationBaseTest.
   explicit PeerConnectionIntegrationWrapper(const std::string& debug_name)
@@ -870,29 +894,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     return description;
   }
 
-  // Setting the local description and sending the SDP message over the fake
-  // signaling channel are combined into the same method because the SDP
-  // message needs to be sent as soon as SetLocalDescription finishes, without
-  // waiting for the observer to be called. This ensures that ICE candidates
-  // don't outrace the description.
-  bool SetLocalDescriptionAndSendSdpMessage(
-      std::unique_ptr<SessionDescriptionInterface> desc) {
-    auto observer = rtc::make_ref_counted<MockSetSessionDescriptionObserver>();
-    RTC_LOG(LS_INFO) << debug_name_ << ": SetLocalDescriptionAndSendSdpMessage";
-    SdpType type = desc->GetType();
-    std::string sdp;
-    EXPECT_TRUE(desc->ToString(&sdp));
-    RTC_LOG(LS_INFO) << debug_name_ << ": local SDP contents=\n" << sdp;
-    pc()->SetLocalDescription(observer.get(), desc.release());
-    RemoveUnusedVideoRenderers();
-    // As mentioned above, we need to send the message immediately after
-    // SetLocalDescription.
-    SendSdpMessage(type, sdp);
-    EXPECT_THAT(
-        WaitUntil([&] { return observer->called(); }, ::testing::IsTrue()),
-        IsRtcOk());
-    return true;
-  }
 
   // This is a work around to remove unused fake_video_renderers from
   // transceivers that have either stopped or are no longer receiving.
