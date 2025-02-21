@@ -1,0 +1,4 @@
+[DEFAULT]
+
+["test_stub_installer.js"]
+run-if = ["!msix"]
