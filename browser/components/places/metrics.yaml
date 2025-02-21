@@ -58,3 +58,186 @@ library:
       - firefox-view-engineers@mozilla.com
     expires: never
     telemetry_mirror: LIBRARY_SEARCH
+
+  history_search_time:
+    type: timing_distribution
+    description: >
+      PLACES: Time to search the history library (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram PLACES_HISTORY_LIBRARY_SEARCH_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - firefox-view-engineers@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_HISTORY_LIBRARY_SEARCH_TIME_MS
+
+  cumulative_history_searches:
+    type: custom_distribution
+    description: >
+      Cumulative no. of History-specific searches performed before selecting a
+      History link in Library.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PLACES_LIBRARY_CUMULATIVE_HISTORY_SEARCHES.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1815906
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1815906
+    notification_emails:
+      - kcochrane@mozilla.com
+      - firefox-view-engineers@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_LIBRARY_CUMULATIVE_HISTORY_SEARCHES
+
+  cumulative_bookmark_searches:
+    type: custom_distribution
+    description: >
+      Cumulative no. of Bookmark-specific searches performed before selecting a
+      bookmark link in Library.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PLACES_LIBRARY_CUMULATIVE_BOOKMARK_SEARCHES.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819081
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819081
+    notification_emails:
+      - firefox-view-engineers@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_LIBRARY_CUMULATIVE_BOOKMARK_SEARCHES
+
+history_sidebar:
+  filter_type:
+    type: labeled_counter
+    description: >
+      The type of search filters used for the sidebar search.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram PLACES_SEARCHBAR_FILTER_TYPE.
+    labels:
+      - visited
+      - lastvisited
+      - dayandsite
+      - site
+      - day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1801290
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1801290
+    notification_emails:
+      - pguruprasad@mozilla.com
+      - rfambro@mozilla.com
+    expires: never
+    telemetry_mirror: h#PLACES_SEARCHBAR_FILTER_TYPE
+
+  cumulative_searches:
+    type: custom_distribution
+    description: >
+      Cumulative no. of searches performed before selecting a link.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PLACES_SEARCHBAR_CUMULATIVE_SEARCHES.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1801290
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1801290
+    notification_emails:
+      - pguruprasad@mozilla.com
+      - rfambro@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_SEARCHBAR_CUMULATIVE_SEARCHES
+
+  cumulative_filter_count:
+    type: custom_distribution
+    description: >
+      Cumulative no. of search filters applied performed before selecting a
+      link.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PLACES_SEARCHBAR_CUMULATIVE_FILTER_COUNT.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1801290
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1801290
+    notification_emails:
+      - pguruprasad@mozilla.com
+      - rfambro@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_SEARCHBAR_CUMULATIVE_FILTER_COUNT
+
+  lastvisited_tree_query_time:
+    type: timing_distribution
+    description: >
+      PLACES: Time to load the sidebar history tree sorted by last visit (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram HISTORY_LASTVISITED_TREE_QUERY_TIME_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - firefox-view-engineers@mozilla.com
+    expires: never
+    telemetry_mirror: HISTORY_LASTVISITED_TREE_QUERY_TIME_MS
+
+bookmarks_sidebar:
+  cumulative_searches:
+    type: custom_distribution
+    description: >
+      Cumulative no. bookmark of searches performed before selecting a link.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram PLACES_BOOKMARKS_SEARCHBAR_CUMULATIVE_SEARCHES.
+    range_min: 0
+    range_max: 20
+    bucket_count: 21
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819081
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1819081
+    notification_emails:
+      - firefox-view-engineers@mozilla.com
+    expires: never
+    telemetry_mirror: PLACES_BOOKMARKS_SEARCHBAR_CUMULATIVE_SEARCHES
+
+bookmarks_toolbar:
+  init:
+    type: timing_distribution
+    description: >
+      Firefox: Time to initialize the bookmarks toolbar view (ms)
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram FX_BOOKMARKS_TOOLBAR_INIT_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=723165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=723165
+    notification_emails:
+      - mak@mozilla.com
+    expires: never
+    telemetry_mirror: FX_BOOKMARKS_TOOLBAR_INIT_MS

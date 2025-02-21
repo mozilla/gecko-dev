@@ -82,9 +82,9 @@ function searchBookmarks(event) {
 }
 
 function updateTelemetry(urlsOpened = []) {
-  Services.telemetry
-    .getHistogramById("PLACES_BOOKMARKS_SEARCHBAR_CUMULATIVE_SEARCHES")
-    .add(gCumulativeSearches);
+  Glean.bookmarksSidebar.cumulativeSearches.accumulateSingleSample(
+    gCumulativeSearches
+  );
   clearCumulativeCounter();
 
   Glean.sidebar.link.bookmarks.add(urlsOpened.length);

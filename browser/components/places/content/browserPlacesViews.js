@@ -826,7 +826,7 @@ class PlacesViewBase {
  */
 class PlacesToolbar extends PlacesViewBase {
   constructor(placesUrl, rootElt, viewElt) {
-    let startTime = Date.now();
+    let timerId = Glean.bookmarksToolbar.init.start();
     super(placesUrl, rootElt, viewElt);
     this._addEventListeners(this._dragRoot, this._cbEvents, false);
     this._addEventListeners(
@@ -852,9 +852,7 @@ class PlacesToolbar extends PlacesViewBase {
       );
     }
 
-    Services.telemetry
-      .getHistogramById("FX_BOOKMARKS_TOOLBAR_INIT_MS")
-      .add(Date.now() - startTime);
+    Glean.bookmarksToolbar.init.stopAndAccumulate(timerId);
   }
 
   // Called by PlacesViewBase so we can init properties that class

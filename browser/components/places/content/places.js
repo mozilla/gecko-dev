@@ -35,8 +35,6 @@ var { AppConstants } = ChromeUtils.importESModule(
 );
 
 const RESTORE_FILEPICKER_FILTER_EXT = "*.json;*.jsonlz4";
-const HISTORY_LIBRARY_SEARCH_TELEMETRY =
-  "PLACES_HISTORY_LIBRARY_SEARCH_TIME_MS";
 
 const SORTBY_L10N_IDS = new Map([
   ["title", "places-view-sortby-name"],
@@ -963,9 +961,9 @@ var PlacesSearchBox = {
           options.includeHidden = true;
           currentView.load([query], options);
         } else {
-          TelemetryStopwatch.start(HISTORY_LIBRARY_SEARCH_TELEMETRY);
+          let timerId = Glean.library.historySearchTime.start();
           currentView.applyFilter(filterString, null, true);
-          TelemetryStopwatch.finish(HISTORY_LIBRARY_SEARCH_TELEMETRY);
+          Glean.library.historySearchTime.stopAndAccumulate(timerId);
           Glean.library.search.history.add(1);
           this.cumulativeHistorySearches++;
         }
@@ -1069,9 +1067,9 @@ function updateTelemetry(urlsOpened) {
     link => !link.isBookmark && !PlacesUtils.nodeIsBookmark(link)
   );
   if (!historyLinks.length) {
-    Services.telemetry
-      .getHistogramById("PLACES_LIBRARY_CUMULATIVE_BOOKMARK_SEARCHES")
-      .add(PlacesSearchBox.cumulativeBookmarkSearches);
+    Glean.library.cumulativeBookmarkSearches.accumulateSingleSample(
+      PlacesSearchBox.cumulativeBookmarkSearches
+    );
 
     // Clear cumulative search counter
     PlacesSearchBox.cumulativeBookmarkSearches = 0;
@@ -1081,9 +1079,9 @@ function updateTelemetry(urlsOpened) {
   }
 
   // Record cumulative search count before selecting History link from Library
-  Services.telemetry
-    .getHistogramById("PLACES_LIBRARY_CUMULATIVE_HISTORY_SEARCHES")
-    .add(PlacesSearchBox.cumulativeHistorySearches);
+  Glean.library.cumulativeHistorySearches.accumulateSingleSample(
+    PlacesSearchBox.cumulativeHistorySearches
+  );
 
   // Clear cumulative search counter
   PlacesSearchBox.cumulativeHistorySearches = 0;

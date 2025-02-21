@@ -59,10 +59,7 @@ window.addEventListener("load", () => {
   let viewButton = document.getElementById("viewButton");
   gHistoryGrouping = viewButton.getAttribute("selectedsort");
 
-  this.groupHistogram = Services.telemetry.getHistogramById(
-    "PLACES_SEARCHBAR_FILTER_TYPE"
-  );
-  this.groupHistogram.add(gHistoryGrouping);
+  Glean.historySidebar.filterType[gHistoryGrouping].add(1);
 
   if (gHistoryGrouping == "site") {
     document.getElementById("bysite").setAttribute("checked", "true");
@@ -97,7 +94,7 @@ window.addEventListener("load", () => {
 
 function GroupBy(groupingType) {
   if (groupingType != gHistoryGrouping) {
-    this.groupHistogram.add(groupingType);
+    Glean.historySidebar.filterType[groupingType].add(1);
   }
   gHistoryGrouping = groupingType;
   gCumulativeFilterCount++;
@@ -105,12 +102,12 @@ function GroupBy(groupingType) {
 }
 
 function updateTelemetry(urlsOpened = []) {
-  Services.telemetry
-    .getHistogramById("PLACES_SEARCHBAR_CUMULATIVE_SEARCHES")
-    .add(gCumulativeSearches);
-  Services.telemetry
-    .getHistogramById("PLACES_SEARCHBAR_CUMULATIVE_FILTER_COUNT")
-    .add(gCumulativeFilterCount);
+  Glean.historySidebar.cumulativeSearches.accumulateSingleSample(
+    gCumulativeSearches
+  );
+  Glean.historySidebar.cumulativeFilterCount.accumulateSingleSample(
+    gCumulativeFilterCount
+  );
   clearCumulativeCounters();
 
   Glean.sidebar.link.history.add(urlsOpened.length);
@@ -158,8 +155,9 @@ function searchHistory(aInput) {
   options.resultType = resultType;
   options.includeHidden = !!aInput;
 
+  let timerId;
   if (gHistoryGrouping == "lastvisited") {
-    TelemetryStopwatch.start("HISTORY_LASTVISITED_TREE_QUERY_TIME_MS");
+    timerId = Glean.historySidebar.lastvisitedTreeQueryTime.start();
   }
 
   // call load() on the tree manually
@@ -177,7 +175,7 @@ function searchHistory(aInput) {
   }
 
   if (gHistoryGrouping == "lastvisited") {
-    TelemetryStopwatch.finish("HISTORY_LASTVISITED_TREE_QUERY_TIME_MS");
+    Glean.historySidebar.lastvisitedTreeQueryTime.stopAndAccumulate(timerId);
   }
 }
 
