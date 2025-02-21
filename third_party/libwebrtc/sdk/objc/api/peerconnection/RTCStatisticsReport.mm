@@ -131,9 +131,10 @@ NSObject *ValueFromStatsAttribute(const Attribute &attribute) {
     _type = [NSString stringWithCString:statistics.type()
                                encoding:NSUTF8StringEncoding];
 
+    const std::vector<webrtc::Attribute> attributes = statistics.Attributes();
     NSMutableDictionary<NSString *, NSObject *> *values =
-        [NSMutableDictionary dictionary];
-    for (const auto &attribute : statistics.Attributes()) {
+        [NSMutableDictionary dictionaryWithCapacity:attributes.size()];
+    for (const auto &attribute : attributes) {
       NSObject *value = ValueFromStatsAttribute(attribute);
       if (value) {
         NSString *name = [NSString stringWithCString:attribute.name()
