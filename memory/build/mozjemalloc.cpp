@@ -1574,7 +1574,7 @@ class ArenaCollection {
 
   void DisposeArena(arena_t* aArena) MOZ_EXCLUDES(mLock) {
     // This will not call MayPurge but only unlink the element in case.
-    RemoveObsoletePurgeFromList(aArena);
+    RemoveFromOutstandingPurges(aArena);
     {
       MutexAutoLock lock(mLock);
       Tree& tree =
@@ -1711,7 +1711,7 @@ class ArenaCollection {
   void AddToOutstandingPurges(arena_t* aArena) MOZ_EXCLUDES(mPurgeListLock);
 
   // Remove an unhandled purge request for aArena.
-  void RemoveObsoletePurgeFromList(arena_t* aArena)
+  void RemoveFromOutstandingPurges(arena_t* aArena)
       MOZ_EXCLUDES(mPurgeListLock);
 
   // Execute all outstanding purge requests, if any.
@@ -1765,6 +1765,12 @@ class ArenaCollection {
   uint64_t mNumOperationsDisposedArenas = 0;
 
   // Linked list of outstanding purges. This list has no particular order.
+  // It is ok for an arena to be in this list even if mIsDeferredPurgePending
+  // is false, it will just cause an extra round of a (most likely no-op)
+  // purge.
+  // It is not ok to not be in this list but have mIsDeferredPurgePending
+  // set to true, as this would prevent any future purges for this arena
+  // (except for the short, controlled moment during MayPurgeStep).
   DoublyLinkedList<arena_t> mOutstandingPurges MOZ_GUARDED_BY(mPurgeListLock);
   // Flag if we should defer purge to later. Only ever set when holding the
   // collection lock.
@@ -4677,6 +4683,11 @@ inline purge_action_t arena_t::ShouldStartPurge() {
 inline void arena_t::MayDoOrQueuePurge(purge_action_t aAction) {
   switch (aAction) {
     case purge_action_t::Queue:
+      // Note that this thread committed earlier by setting
+      // mIsDeferredPurgePending to add us to the list. There is a low
+      // chance that in the meantime another thread ran Purge() and cleared
+      // the flag, but that is fine, we'll adjust our bookkeeping when calling
+      // ShouldStartPurge() or Purge() next time.
       gArenas.AddToOutstandingPurges(this);
       break;
     case purge_action_t::PurgeNow:
@@ -5954,7 +5965,7 @@ inline void ArenaCollection::AddToOutstandingPurges(arena_t* aArena) {
   }
 }
 
-inline void ArenaCollection::RemoveObsoletePurgeFromList(arena_t* aArena) {
+inline void ArenaCollection::RemoveFromOutstandingPurges(arena_t* aArena) {
   MOZ_ASSERT(aArena);
 
   // We cannot trust the caller to know whether the element was already removed
@@ -5992,11 +6003,22 @@ purge_result_t ArenaCollection::MayPurgeStep(bool aPeekOnly,
       return purge_result_t::NeedsMore;
     }
   }
-  if (!found->Purge(false)) {
-    // If this arena finished purging, remove it from the list.
+
+  // We need to avoid to exit in a state where mIsDeferredPurgePending is set
+  // but the arena is not in the list. Only Purge can clear the flag and only
+  // ShouldStartPurge can set it. So if Purge exits true, we can be sure the
+  // flag is still set and re-add the arena.
+  RemoveFromOutstandingPurges(found);
+  if (found->Purge(false)) {
+    // Note that between the above Purge() and the lock there is a potential
+    // rare race with MayPurgeAll() running on a different thread that clears
+    // mIsDeferredPurgePending. That is fine, we'll adjust our bookkeeping
+    // when calling either ShouldStartPurge() or Purge() next time.
     MutexAutoLock lock(mPurgeListLock);
-    if (mOutstandingPurges.ElementProbablyInList(found)) {
-      mOutstandingPurges.remove(found);
+    if (!mOutstandingPurges.ElementProbablyInList(found)) {
+      // Given we want to continue to purge this arena, push it to the front to
+      // increase the probability to find it fast.
+      mOutstandingPurges.pushFront(found);
     }
   }
 
@@ -6013,8 +6035,8 @@ void ArenaCollection::MayPurgeAll(bool aForce) {
     // Arenas that are not IsMainThreadOnly can be purged from any thread.
     // So we do what we can even if called from another thread.
     if (!arena->IsMainThreadOnly() || IsOnMainThreadWeak()) {
+      RemoveFromOutstandingPurges(arena);
       while (arena->Purge(aForce));
-      RemoveObsoletePurgeFromList(arena);
     }
   }
 }
