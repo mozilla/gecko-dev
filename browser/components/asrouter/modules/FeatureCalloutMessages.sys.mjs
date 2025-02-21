@@ -433,6 +433,9 @@ const MESSAGES = () => {
       skip_in_tests:
         "not tested in automation and might pop up unexpectedly during review checker tests",
     },
+    // Appears the first time a user uses the "save and close" action on a tab group,
+    // anchored to the alltabs-button. Will only show if at least an hour has passed
+    // since the CREATE_TAB_GROUP callout showed.
     {
       id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
       template: "feature_callout",
@@ -467,7 +470,7 @@ const MESSAGES = () => {
                 alignment: "top",
               },
               title: {
-                string_id: "tab-groups-onboarding-saved-groups-title",
+                string_id: "tab-groups-onboarding-saved-groups-title-2",
               },
               primary_button: {
                 label: {
@@ -492,6 +495,10 @@ const MESSAGES = () => {
       skip_in_tests:
         "not tested in automation and might pop up unexpectedly during review checker tests",
     },
+    // Appears the first time a user uses the "save and close" action on a tab group,
+    // if the alltabs-button has been removed. Anchored to the urlbar. Will only show
+    // if CREATE_TAB_GROUP callout has not shown, or at least an hour has passed since
+    // the CREATE_TAB_GROUP callout showed.
     {
       id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
       template: "feature_callout",
@@ -508,8 +515,8 @@ const MESSAGES = () => {
               {
                 selector: ".urlbar-input-box",
                 panel_position: {
-                  anchor_attachment: "bottomleft",
-                  callout_attachment: "topleft",
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topcenter",
                 },
               },
             ],
@@ -527,7 +534,7 @@ const MESSAGES = () => {
               },
               title: {
                 string_id:
-                  "tab-groups-onboarding-saved-groups-no-alltabs-button-title",
+                  "tab-groups-onboarding-saved-groups-no-alltabs-button-title-2",
               },
               primary_button: {
                 label: {
@@ -552,6 +559,10 @@ const MESSAGES = () => {
       skip_in_tests:
         "not tested in automation and might pop up unexpectedly during review checker tests",
     },
+    // Appears the first time a user creates a tab group, after clicking the "Done"
+    // button. Anchored to the alltabs-button. Will only show if the SAVE_TAB_GROUP
+    // callout has not shown, or if at least an hour has passed
+    // since the SAVE_TAB_GROUP callout showed.
     {
       id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
       template: "feature_callout",
@@ -563,13 +574,13 @@ const MESSAGES = () => {
         transitions: false,
         screens: [
           {
-            id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
+            id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT_ALLTABS_BUTTON",
             anchors: [
               {
-                selector: ".urlbar-input-box",
+                selector: "#alltabs-button",
                 panel_position: {
-                  anchor_attachment: "bottomleft",
-                  callout_attachment: "topleft",
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topright",
                 },
               },
             ],
@@ -586,7 +597,7 @@ const MESSAGES = () => {
                 alignment: "top",
               },
               title: {
-                string_id: "tab-groups-onboarding-create-group-title",
+                string_id: "tab-groups-onboarding-create-group-title-2",
               },
               primary_button: {
                 label: {
@@ -601,7 +612,71 @@ const MESSAGES = () => {
         ],
       },
       targeting:
-        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000)",
+        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType != null",
+      trigger: {
+        id: "tabGroupCreated",
+      },
+      frequency: {
+        lifetime: 1,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    // Appears the first time a user creates a tab group, after clicking the "Done"
+    // button, if the alltabs-button has been removed. Anchored to the urlbar. Will
+    // only show if the SAVE_TAB_GROUP callout has not shown, or if at least an hour
+    // has passed since the SAVE_TAB_GROUP callout showed.
+    {
+      id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
+      template: "feature_callout",
+      groups: [],
+      content: {
+        id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        screens: [
+          {
+            id: "CREATE_TAB_GROUP_ONBOARDING_CALLOUT_URLBAR",
+            anchors: [
+              {
+                selector: ".urlbar-input-box",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topcenter",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              padding: 16,
+              width: "330px",
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 16px",
+                alignment: "top",
+              },
+              title: {
+                string_id:
+                  "tab-groups-onboarding-create-group-no-alltabs-button-title",
+              },
+              primary_button: {
+                label: {
+                  string_id: "tab-groups-onboarding-dismiss",
+                },
+                action: {
+                  dismiss: true,
+                },
+              },
+            },
+          },
+        ],
+      },
+      targeting:
+        "('browser.tabs.groups.enabled' | preferenceValue) && (!messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] || messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT[messageImpressions.SAVE_TAB_GROUP_ONBOARDING_CALLOUT | length - 1] < currentDate|date - 3600000) && alltabsButtonAreaType == null",
       trigger: {
         id: "tabGroupCreated",
       },
