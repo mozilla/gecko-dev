@@ -29,12 +29,12 @@ tasks:
         from-deps:
             group-by: single-with-filters
         upstream-mac-kind:
-            by-build-type:
-                debug: release-eme-free-repack-mac-signing
-                default:
-                    by-project:
-                        mozilla-(central|beta|release|esr.*): release-eme-free-repack-mac-notarization
-                        default: release-eme-free-repack-mac-signing
+            by-build-platform:
+                macosx64-(shippable|devedition):
+                    by-release-level:
+                        production: release-eme-free-repack-mac-notarization
+                        staging: release-eme-free-repack-mac-signing
+                default: release-eme-free-repack-mac-signing
         mozharness:
             config:
                 by-build-platform:

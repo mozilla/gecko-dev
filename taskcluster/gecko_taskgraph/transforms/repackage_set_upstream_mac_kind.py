@@ -9,6 +9,8 @@ from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.dependencies import get_primary_dependency
 from taskgraph.util.schema import resolve_keyed_by
 
+from gecko_taskgraph.util.attributes import release_level
+
 transforms = TransformSequence()
 
 
@@ -32,8 +34,8 @@ def repackage_set_upstream_mac_kind(config, tasks):
             "upstream-mac-kind",
             item_name=config.kind,
             **{
-                "build-type": primary_dep.attributes["build_type"],
-                "project": config.params.get("project"),
+                "build-platform": primary_dep.attributes["build_platform"],
+                "release-level": release_level(config.params["project"]),
             }
         )
         upstream_mac_kind = task.pop("upstream-mac-kind")

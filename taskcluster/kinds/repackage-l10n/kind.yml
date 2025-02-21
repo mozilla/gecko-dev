@@ -40,12 +40,12 @@ tasks:
         from-deps:
             group-by: single-with-filters
         upstream-mac-kind:
-            by-build-type:
-                debug: shippable-l10n-mac-signing
-                default:
-                    by-project:
-                        mozilla-(central|beta|release|esr.*): shippable-l10n-mac-notarization
-                        default: shippable-l10n-mac-signing
+            by-build-platform:
+                macosx64-(shippable|devedition):
+                    by-release-level:
+                        production: shippable-l10n-mac-notarization
+                        staging: shippable-l10n-mac-signing
+                default: shippable-l10n-mac-signing
         worker-type: b-linux-gcp
         mozharness:
             config:
