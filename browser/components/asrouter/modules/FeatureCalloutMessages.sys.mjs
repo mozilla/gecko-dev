@@ -955,7 +955,7 @@ const MESSAGES = () => {
       },
       priority: 2,
       targeting:
-        "'browser.shopping.experience2023.optedIn' | preferenceValue == 2 && !'browser.shopping.experience2023.active' | preferenceValue && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false",
+        "'browser.shopping.experience2023.optedIn' | preferenceValue == 2 && !'browser.shopping.experience2023.active' | preferenceValue && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && !'browser.shopping.experience2023.integratedSidebar' | preferenceValue",
       trigger: {
         id: "preferenceObserver",
         params: ["browser.shopping.experience2023.optedIn"],
@@ -1928,8 +1928,8 @@ const MESSAGES = () => {
         ],
       },
       priority: 1,
-      // Auto-open feature flag is enabled; User has opted out; Has not opted out of CFRs.
-      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue == true && 'browser.shopping.experience2023.optedIn' | preferenceValue == 2 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false`,
+      // Auto-open feature flag is enabled; User has opted out; Has not opted out of CFRs; Integrated sidebar is false.
+      targeting: `'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue == true && 'browser.shopping.experience2023.optedIn' | preferenceValue == 2 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && !'browser.shopping.experience2023.integratedSidebar' | preferenceValue`,
       trigger: {
         id: "preferenceObserver",
         params: ["browser.shopping.experience2023.optedIn"],
@@ -2011,6 +2011,148 @@ const MESSAGES = () => {
         id: "cookieBannerHandled",
       },
       targeting: `'cookiebanners.ui.desktop.enabled'|preferenceValue == true && 'cookiebanners.ui.desktop.showCallout'|preferenceValue == true && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false`,
+    },
+    {
+      // "Callout 5" in the Review Checker Sidebar Migration Figma spec
+      // Confirm settings update to turn off Review Checker and make sure users know how to get back to Review Checker
+      // Horizontal tabs
+      id: "REVIEW_CHECKER_INTEGRATED_SHOW_OPTED_OUT",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_INTEGRATED_SHOW_OPTED_OUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_INTEGRATED_SHOW_OPTED_OUT_HORIZONTAL",
+            anchors: [
+              {
+                selector:
+                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "topleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "leftcenter",
+                  callout_attachment: "topright",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id: "shopping-integrated-callout-opted-out-title",
+              },
+              subtitle: {
+                string_id: "shopping-integrated-callout-opted-out-subtitle",
+                letterSpacing: "0",
+              },
+              logo: {
+                imageURL:
+                  "chrome://browser/content/shopping/assets/reviewCheckerCalloutPriceTag.svg",
+                height: "195px",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+                marginBlock: "28px 0",
+                marginInline: "0 28px",
+              },
+            },
+          },
+        ],
+      },
+      priority: 1,
+      // User has opted out; Has not opted out of CFRs; Integrated sidebar is enabled; Sidebar revamp is enabled.
+      targeting: `'browser.shopping.experience2023.optedIn' | preferenceValue == 2 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && !'sidebar.verticalTabs' | preferenceValue`,
+      trigger: {
+        id: "preferenceObserver",
+        params: ["browser.shopping.experience2023.optedIn"],
+      },
+      frequency: { lifetime: 1 },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      // "Callout 5" in the Review Checker Sidebar Migration Figma spec
+      // Confirm settings update to turn off Review Checker and make sure users know how to get back to Review Checker
+      // Vertical tabs
+      id: "REVIEW_CHECKER_INTEGRATED_SHOW_OPTED_OUT",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_INTEGRATED_SHOW_OPTED_OUT",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_INTEGRATED_SHOW_OPTED_OUT_VERTICAL",
+            anchors: [
+              {
+                selector:
+                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "bottomleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "leftcenter",
+                  callout_attachment: "bottomright",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id: "shopping-integrated-callout-opted-out-title",
+              },
+              subtitle: {
+                string_id: "shopping-integrated-callout-opted-out-subtitle",
+                letterSpacing: "0",
+              },
+              logo: {
+                imageURL:
+                  "chrome://browser/content/shopping/assets/reviewCheckerCalloutPriceTag.svg",
+                height: "195px",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+                marginBlock: "28px 0",
+                marginInline: "0 28px",
+              },
+            },
+          },
+        ],
+      },
+      priority: 1,
+      // User has opted out; Has not opted out of CFRs; Integrated sidebar is enabled; Sidebar revamp is enabled.
+      targeting: `'browser.shopping.experience2023.optedIn' | preferenceValue == 2 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'sidebar.verticalTabs' | preferenceValue`,
+      trigger: {
+        id: "preferenceObserver",
+        params: ["browser.shopping.experience2023.optedIn"],
+      },
+      frequency: { lifetime: 1 },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
       // "Callout 6" in the Review Checker Figma spec
