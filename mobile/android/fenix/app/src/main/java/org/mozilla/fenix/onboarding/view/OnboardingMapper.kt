@@ -47,8 +47,8 @@ private fun OnboardingCardData.isCardEnabled(
     OnboardingCardType.NOTIFICATION_PERMISSION -> enabled && showNotificationPage
     OnboardingCardType.ADD_SEARCH_WIDGET -> enabled && showAddWidgetPage
     OnboardingCardType.ADD_ONS -> extraData?.addOnsData?.isNotEmpty() == true
-    OnboardingCardType.TOOLBAR_PLACEMENT -> extraData?.customizationToolbarData?.isNotEmpty() == true
-    OnboardingCardType.THEME_SELECTION -> extraData?.customizationThemeData?.isNotEmpty() == true
+    OnboardingCardType.TOOLBAR_PLACEMENT -> enabled && extraData?.customizationToolbarData?.isNotEmpty() == true
+    OnboardingCardType.THEME_SELECTION -> enabled && extraData?.customizationThemeData?.isNotEmpty() == true
     else -> enabled
 }
 
