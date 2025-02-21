@@ -176,8 +176,7 @@ MLSTransactionParent::RecvRequestGenerateIdentityKeypair(
 
   // Call to the MLS rust code
   nsTArray<uint8_t> identity;
-  nsresult rv = security::mls::mls_generate_identity(
-      &mDatabasePath, &identity);
+  nsresult rv = security::mls::mls_generate_identity(&mDatabasePath, &identity);
 
   // Return Nothing if failed
   if (NS_WARN_IF(NS_FAILED(rv))) {
