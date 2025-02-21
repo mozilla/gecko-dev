@@ -109,7 +109,7 @@ class NavigationToolbarTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            waitForPageToLoad()
+            verifyPageContent(defaultWebPage.content)
         }.openSiteSecuritySheet {
             verifyQuickActionSheet(defaultWebPage.url.toString(), false)
             openSecureConnectionSubMenu(false)
