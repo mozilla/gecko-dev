@@ -80,6 +80,7 @@ fn crc32_words_inner(words: &[usize], start: u32, per_word_crcs: &[u32]) -> u32 
 
 pub fn crc32_braid<const N: usize>(start: u32, data: &[u8]) -> u32 {
     // Get a word-aligned sub-slice of the input data
+    // SAFETY: it is safe to transmute a slice of u8 into a usize.
     let (prefix, words, suffix) = unsafe { data.align_to::<usize>() };
     let crc = !start;
     let crc = crc32_naive_inner(prefix, crc);

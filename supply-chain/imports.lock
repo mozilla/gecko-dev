@@ -355,13 +355,6 @@ user-id = 51017
 user-login = "JohnTitor"
 user-name = "Yuki Okushi"
 
-[[publisher.libz-rs-sys]]
-version = "0.2.1"
-when = "2024-07-08"
-user-id = 1303
-user-login = "rnijveld"
-user-name = "Ruben Nijveld"
-
 [[publisher.linux-raw-sys]]
 version = "0.4.12"
 when = "2023-11-30"
@@ -898,13 +891,6 @@ when = "2021-03-18"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
-
-[[publisher.zlib-rs]]
-version = "0.2.1"
-when = "2024-07-08"
-user-id = 1303
-user-login = "rnijveld"
-user-name = "Ruben Nijveld"
 
 [[audits.bytecode-alliance.wildcard-audits.arbitrary]]
 who = "Nick Fitzgerald <fitzgen@gmail.com>"
@@ -1766,6 +1752,21 @@ who = "Brandon Pitman <bran@bran.land>"
 criteria = "safe-to-deploy"
 delta = "0.1.3 -> 0.1.4"
 
+[[audits.isrg.audits.libz-rs-sys]]
+who = "Ameer Ghani <inahga@divviup.org>"
+criteria = "safe-to-deploy"
+version = "0.4.0"
+notes = """
+This crate uses unsafe since it's for C to Rust FFI. I have reviewed and fuzzed it, and I believe it is free of any serious security problems.
+
+The only dependency is zlib-rs, which is maintained by the same maintainers as this crate.
+"""
+
+[[audits.isrg.audits.libz-rs-sys]]
+who = "Ameer Ghani <inahga@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "0.4.0 -> 0.4.1"
+
 [[audits.isrg.audits.once_cell]]
 who = "Brandon Pitman <bran@bran.land>"
 criteria = "safe-to-deploy"
@@ -1840,6 +1841,21 @@ version = "0.10.6"
 who = "Brandon Pitman <bran@bran.land>"
 criteria = "safe-to-deploy"
 delta = "0.10.7 -> 0.10.8"
+
+[[audits.isrg.audits.zlib-rs]]
+who = "Ameer Ghani <inahga@divviup.org>"
+criteria = "safe-to-deploy"
+version = "0.4.0"
+notes = """
+zlib-rs uses unsafe Rust for invoking compiler intrinsics (i.e. SIMD), eschewing bounds checks, along the FFI boundary, and for interacting with pointers sourced from C. I have extensively reviewed and fuzzed the unsafe code. All findings from that work have been resolved as of version 0.4.0. To the best of my ability, I believe it's free of any serious security problems.
+
+zlib-rs does not require any external dependencies.
+"""
+
+[[audits.isrg.audits.zlib-rs]]
+who = "Ameer Ghani <inahga@divviup.org>"
+criteria = "safe-to-deploy"
+delta = "0.4.0 -> 0.4.1"
 
 [[audits.mozilla.wildcard-audits.weedle2]]
 who = "Jan-Erik Rediger <jrediger@mozilla.com>"

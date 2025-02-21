@@ -1,3 +1,7 @@
+//! # Safety
+//!
+//! The functions in this module should only be executed on aarch64 machines with the Neon
+//! extension.
 use core::arch::aarch64::{
     uint16x8_t, uint16x8x2_t, uint16x8x4_t, uint8x16_t, vaddq_u32, vaddw_high_u8, vaddw_u8,
     vdupq_n_u16, vdupq_n_u32, vget_high_u32, vget_lane_u32, vget_low_u16, vget_low_u32,
@@ -20,6 +24,8 @@ const TAPS: [uint16x8x4_t; 2] = unsafe {
 
 pub fn adler32_neon(adler: u32, buf: &[u8]) -> u32 {
     assert!(crate::cpu_features::is_enabled_neon());
+    // SAFETY: the assertion above ensures this code is not executed unless the CPU has Neon
+    // extensions.
     unsafe { adler32_neon_internal(adler, buf) }
 }
 
@@ -81,6 +87,7 @@ fn handle_tail(mut pair: (u32, u32), buf: &[u8]) -> (u32, u32) {
     pair
 }
 
+#[allow(unsafe_op_in_unsafe_fn)]
 #[target_feature(enable = "neon")]
 unsafe fn accum32(s: (u32, u32), buf: &[uint8x16_t]) -> (u32, u32) {
     let mut adacc = vdupq_n_u32(0);
@@ -234,8 +241,8 @@ mod tests {
     fn large_input() {
         const DEFAULT: &[u8] = include_bytes!("../deflate/test-data/paper-100k.pdf");
 
-        let neon = adler32_neon(42, &DEFAULT);
-        let rust = crate::adler32::generic::adler32_rust(42, &DEFAULT);
+        let neon = adler32_neon(42, DEFAULT);
+        let rust = crate::adler32::generic::adler32_rust(42, DEFAULT);
 
         assert_eq!(neon, rust);
     }

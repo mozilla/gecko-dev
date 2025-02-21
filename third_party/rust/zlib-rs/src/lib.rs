@@ -12,6 +12,7 @@ pub mod crc32;
 pub mod deflate;
 pub mod inflate;
 pub mod read_buf;
+mod weak_slice;
 
 pub use adler32::{adler32, adler32_combine};
 pub use crc32::{crc32, crc32_combine};

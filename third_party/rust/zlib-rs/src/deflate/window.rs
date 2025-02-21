@@ -1,11 +1,11 @@
-use crate::allocate::Allocator;
+use crate::{allocate::Allocator, weak_slice::WeakSliceMut};
 use core::mem::MaybeUninit;
 
 #[derive(Debug)]
 pub struct Window<'a> {
     // the full window allocation. This is longer than w_size so that operations don't need to
     // perform bounds checks.
-    buf: &'a mut [MaybeUninit<u8>],
+    buf: WeakSliceMut<'a, MaybeUninit<u8>>,
 
     // number of initialized bytes
     filled: usize,
@@ -17,7 +17,10 @@ pub struct Window<'a> {
 
 impl<'a> Window<'a> {
     pub fn new_in(alloc: &Allocator<'a>, window_bits: usize) -> Option<Self> {
-        let buf = alloc.allocate_slice::<u8>(2 * ((1 << window_bits) + Self::padding()))?;
+        let len = 2 * ((1 << window_bits) + Self::padding());
+        let ptr = alloc.allocate_slice_raw::<MaybeUninit<u8>>(len)?;
+        // SAFETY: freshly allocated buffer
+        let buf = unsafe { WeakSliceMut::from_raw_parts_mut(ptr, len) };
 
         Some(Self {
             buf,
@@ -30,17 +33,23 @@ impl<'a> Window<'a> {
     pub fn clone_in(&self, alloc: &Allocator<'a>) -> Option<Self> {
         let mut clone = Self::new_in(alloc, self.window_bits)?;
 
-        clone.buf.copy_from_slice(self.buf);
+        clone
+            .buf
+            .as_mut_slice()
+            .copy_from_slice(self.buf.as_slice());
         clone.filled = self.filled;
         clone.high_water = self.high_water;
 
         Some(clone)
     }
 
+    /// # Safety
+    ///
+    /// [`Self`] must not be used after calling this function.
     pub unsafe fn drop_in(&mut self, alloc: &Allocator) {
         if !self.buf.is_empty() {
-            let buf = core::mem::take(&mut self.buf);
-            alloc.deallocate(buf.as_mut_ptr(), buf.len());
+            let mut buf = core::mem::replace(&mut self.buf, WeakSliceMut::empty());
+            unsafe { alloc.deallocate(buf.as_mut_ptr(), buf.len()) };
         }
     }
 
@@ -51,14 +60,14 @@ impl<'a> Window<'a> {
     /// Returns a shared reference to the filled portion of the buffer.
     #[inline]
     pub fn filled(&self) -> &[u8] {
-        // safety: `self.buf` has been initialized for at least `filled` elements
+        // SAFETY: `self.buf` has been initialized for at least `filled` elements
         unsafe { core::slice::from_raw_parts(self.buf.as_ptr().cast(), self.filled) }
     }
 
     /// Returns a mutable reference to the filled portion of the buffer.
     #[inline]
     pub fn filled_mut(&mut self) -> &mut [u8] {
-        // safety: `self.buf` has been initialized for at least `filled` elements
+        // SAFETY: `self.buf` has been initialized for at least `filled` elements
         unsafe { core::slice::from_raw_parts_mut(self.buf.as_mut_ptr().cast(), self.filled) }
     }
 
@@ -68,8 +77,8 @@ impl<'a> Window<'a> {
     pub unsafe fn copy_and_initialize(&mut self, range: core::ops::Range<usize>, src: *const u8) {
         let (start, end) = (range.start, range.end);
 
-        let dst = self.buf[range].as_mut_ptr() as *mut u8;
-        core::ptr::copy_nonoverlapping(src, dst, end - start);
+        let dst = self.buf.as_mut_slice()[range].as_mut_ptr() as *mut u8;
+        unsafe { core::ptr::copy_nonoverlapping(src, dst, end - start) };
 
         if start >= self.filled {
             self.filled = Ord::max(self.filled, end);
@@ -100,7 +109,7 @@ impl<'a> Window<'a> {
                 // bytes or up to end of window, whichever is less.
                 let init = Ord::min(self.capacity() - curr, WIN_INIT);
 
-                self.buf[curr..][..init].fill(MaybeUninit::new(0));
+                self.buf.as_mut_slice()[curr..][..init].fill(MaybeUninit::new(0));
 
                 self.high_water = curr + init;
 
@@ -114,7 +123,7 @@ impl<'a> Window<'a> {
                     self.capacity() - self.high_water,
                 );
 
-                self.buf[self.high_water..][..init].fill(MaybeUninit::new(0));
+                self.buf.as_mut_slice()[self.high_water..][..init].fill(MaybeUninit::new(0));
 
                 self.high_water += init;
                 self.filled += init;
@@ -124,7 +133,7 @@ impl<'a> Window<'a> {
 
     pub fn initialize_at_least(&mut self, at_least: usize) {
         let end = at_least.clamp(self.high_water, self.buf.len());
-        self.buf[self.high_water..end].fill(MaybeUninit::new(0));
+        self.buf.as_mut_slice()[self.high_water..end].fill(MaybeUninit::new(0));
 
         self.high_water = end;
         self.filled = end;

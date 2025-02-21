@@ -24,13 +24,16 @@ impl<'a> BitReader<'a> {
         }
     }
 
+    /// # Safety
+    ///
+    /// ptr and len must satisfy the requirements of [`core::slice::from_raw_parts`].
     #[inline(always)]
-    pub fn update_slice(&mut self, slice: &[u8]) {
-        let range = slice.as_ptr_range();
+    pub unsafe fn update_slice(&mut self, ptr: *const u8, len: usize) {
+        let end = ptr.wrapping_add(len);
 
         *self = Self {
-            ptr: range.start,
-            end: range.end,
+            ptr,
+            end,
             bit_buffer: self.bit_buffer,
             bits_used: self.bits_used,
             _marker: PhantomData,
@@ -39,7 +42,7 @@ impl<'a> BitReader<'a> {
 
     #[inline(always)]
     pub fn advance(&mut self, bytes: usize) {
-        self.ptr = Ord::min(unsafe { self.ptr.add(bytes) }, self.end);
+        self.ptr = Ord::min(self.ptr.wrapping_add(bytes), self.end);
     }
 
     #[inline(always)]
@@ -48,8 +51,14 @@ impl<'a> BitReader<'a> {
     }
 
     #[inline(always)]
+    pub fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.ptr as *mut u8
+    }
+
+    #[inline(always)]
     pub fn as_slice(&self) -> &[u8] {
         let len = self.bytes_remaining();
+        // SAFETY: condition of constructing this struct.
         unsafe { core::slice::from_raw_parts(self.ptr, len) }
     }
 
@@ -66,6 +75,11 @@ impl<'a> BitReader<'a> {
     #[inline(always)]
     pub fn bytes_remaining(&self) -> usize {
         self.end as usize - self.ptr as usize
+    }
+
+    #[inline(always)]
+    pub fn bytes_remaining_including_buffer(&self) -> usize {
+        (self.end as usize - self.ptr as usize) + (self.bits_used as usize >> 3)
     }
 
     #[inline(always)]
@@ -86,10 +100,10 @@ impl<'a> BitReader<'a> {
 
     #[inline(always)]
     pub fn pull_byte(&mut self) -> Result<u8, ReturnCode> {
+        // SAFETY: bounds checking.
         if self.ptr == self.end {
             return Err(ReturnCode::Ok);
         }
-
         let byte = unsafe { *self.ptr };
         self.ptr = unsafe { self.ptr.add(1) };
 
@@ -103,31 +117,12 @@ impl<'a> BitReader<'a> {
     pub fn refill(&mut self) {
         debug_assert!(self.bytes_remaining() >= 8);
 
+        // SAFETY: assertion above ensures we have 8 bytes to read for a u64.
         let read = unsafe { core::ptr::read_unaligned(self.ptr.cast::<u64>()) }.to_le();
         self.bit_buffer |= read << self.bits_used;
         let increment = (63 - self.bits_used) >> 3;
         self.ptr = self.ptr.wrapping_add(increment as usize);
         self.bits_used |= 56;
-    }
-
-    #[inline(always)]
-    pub fn refill_and<T>(&mut self, f: impl Fn(u64) -> T) -> T {
-        debug_assert!(self.bytes_remaining() >= 8);
-
-        // the trick of this function is that the read can happen concurrently
-        // with the arithmetic below. That makes the read effectively free.
-        let read = unsafe { core::ptr::read_unaligned(self.ptr.cast::<u64>()) }.to_le();
-        let next_bit_buffer = self.bit_buffer | read << self.bits_used;
-
-        let increment = (63 - self.bits_used) >> 3;
-        self.ptr = self.ptr.wrapping_add(increment as usize);
-        self.bits_used |= 56;
-
-        let result = f(self.bit_buffer);
-
-        self.bit_buffer = next_bit_buffer;
-
-        result
     }
 
     #[inline(always)]
@@ -139,9 +134,9 @@ impl<'a> BitReader<'a> {
     }
 
     #[inline(always)]
-    pub fn drop_bits(&mut self, n: usize) {
+    pub fn drop_bits(&mut self, n: u8) {
         self.bit_buffer >>= n;
-        self.bits_used -= n as u8;
+        self.bits_used -= n;
     }
 
     #[inline(always)]
@@ -178,6 +173,8 @@ impl<'a> BitReader<'a> {
     #[inline(always)]
     pub fn return_unused_bytes(&mut self) {
         let len = self.bits_used >> 3;
+        // SAFETY: ptr is advanced whenever bits_used is incremented by 8, so this sub is always
+        // in bounds.
         self.ptr = unsafe { self.ptr.sub(len as usize) };
         self.bits_used -= len << 3;
         self.bit_buffer &= (1u64 << self.bits_used) - 1u64;
@@ -193,7 +190,7 @@ impl std::io::Read for BitReader<'_> {
 
         let number_of_bytes = Ord::min(buf.len(), self.bytes_remaining());
 
-        // safety: `buf` is a mutable (exclusive) reference, so it cannot overlap the memory that
+        // SAFETY: `buf` is a mutable (exclusive) reference, so it cannot overlap the memory that
         // the reader contains
         unsafe { core::ptr::copy_nonoverlapping(self.ptr, buf.as_mut_ptr(), number_of_bytes) }
 

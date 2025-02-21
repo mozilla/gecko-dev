@@ -1,10 +1,12 @@
-use core::mem::MaybeUninit;
+#![warn(unsafe_op_in_unsafe_fn)]
 
 #[cfg(target_arch = "x86_64")]
 mod avx2;
 mod generic;
 #[cfg(target_arch = "aarch64")]
 mod neon;
+#[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+mod wasm;
 
 pub fn adler32(start_checksum: u32, data: &[u8]) -> u32 {
     #[cfg(target_arch = "x86_64")]
@@ -17,20 +19,21 @@ pub fn adler32(start_checksum: u32, data: &[u8]) -> u32 {
         return self::neon::adler32_neon(start_checksum, data);
     }
 
+    #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
+    if crate::cpu_features::is_enabled_simd128() {
+        return self::wasm::adler32_wasm(start_checksum, data);
+    }
+
     generic::adler32_rust(start_checksum, data)
 }
 
-pub fn adler32_fold_copy(start_checksum: u32, dst: &mut [MaybeUninit<u8>], src: &[u8]) -> u32 {
+pub fn adler32_fold_copy(start_checksum: u32, dst: &mut [u8], src: &[u8]) -> u32 {
     debug_assert!(dst.len() >= src.len(), "{} < {}", dst.len(), src.len());
 
-    #[cfg(target_arch = "x86_64")]
-    if crate::cpu_features::is_enabled_avx2() {
-        return avx2::adler32_fold_copy_avx2(start_checksum, dst, src);
-    }
-
-    let adler = adler32(start_checksum, src);
-    dst[..src.len()].copy_from_slice(slice_to_uninit(src));
-    adler
+    // integrating the memcpy into the adler32 function did not have any benefits, and in fact was
+    // a bit slower for very small chunk sizes.
+    dst[..src.len()].copy_from_slice(src);
+    adler32(start_checksum, src)
 }
 
 pub fn adler32_combine(adler1: u32, adler2: u32, len2: u64) -> u32 {
@@ -62,12 +65,6 @@ pub fn adler32_combine(adler1: u32, adler2: u32, len2: u64) -> u32 {
     }
 
     (sum1 | (sum2 << 16)) as u32
-}
-
-// when stable, use MaybeUninit::write_slice
-fn slice_to_uninit(slice: &[u8]) -> &[MaybeUninit<u8>] {
-    // safety: &[T] and &[MaybeUninit<T>] have the same layout
-    unsafe { &*(slice as *const [u8] as *const [MaybeUninit<u8>]) }
 }
 
 // inefficient but correct, useful for testing

@@ -184,33 +184,30 @@ struct Match {
     orgstart: u16,
 }
 
-fn emit_match(state: &mut State, mut m: Match) -> bool {
+fn emit_match(state: &mut State, m: Match) -> bool {
     let mut bflush = false;
 
     /* matches that are not long enough we need to emit as literals */
     if (m.match_length as usize) < WANT_MIN_MATCH {
-        while m.match_length > 0 {
-            let lc = state.window.filled()[state.strstart];
-            bflush |= state.tally_lit(lc);
+        for lc in &state.window.filled()[state.strstart..][..m.match_length as usize] {
+            bflush |= State::tally_lit_help(&mut state.sym_buf, &mut state.l_desc, *lc);
             state.lookahead -= 1;
-            m.strstart += 1;
-            m.match_length -= 1;
         }
-        return bflush;
+    } else {
+        // check_match(s, m.strstart, m.match_start, m.match_length);
+
+        bflush |= state.tally_dist(
+            (m.strstart - m.match_start) as usize,
+            m.match_length as usize - STD_MIN_MATCH,
+        );
+
+        state.lookahead -= m.match_length as usize;
     }
-
-    // check_match(s, m.strstart, m.match_start, m.match_length);
-
-    bflush |= state.tally_dist(
-        (m.strstart - m.match_start) as usize,
-        m.match_length as usize - STD_MIN_MATCH,
-    );
-
-    state.lookahead -= m.match_length as usize;
 
     bflush
 }
 
+#[inline(always)]
 fn insert_match(state: &mut State, mut m: Match) {
     if state.lookahead <= (m.match_length as usize + WANT_MIN_MATCH) {
         return;

@@ -6216,7 +6216,7 @@ end = "2024-10-25"
 
 [[trusted.libz-rs-sys]]
 criteria = "safe-to-deploy"
-user-id = 1303 # Ruben Nijveld (rnijveld)
+user-id = 1303
 start = "2024-02-23"
 end = "2024-09-01"
 
@@ -6558,6 +6558,6 @@ end = "2024-09-12"
 
 [[trusted.zlib-rs]]
 criteria = "safe-to-deploy"
-user-id = 1303 # Ruben Nijveld (rnijveld)
+user-id = 1303
 start = "2024-02-23"
 end = "2024-09-01"

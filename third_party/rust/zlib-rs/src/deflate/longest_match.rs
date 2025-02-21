@@ -5,6 +5,7 @@ type Pos = u16;
 const EARLY_EXIT_TRIGGER_LEVEL: i8 = 5;
 
 const UNALIGNED_OK: bool = cfg!(any(
+    target_arch = "wasm32",
     target_arch = "x86",
     target_arch = "x86_64",
     target_arch = "arm",
@@ -13,6 +14,7 @@ const UNALIGNED_OK: bool = cfg!(any(
 ));
 
 const UNALIGNED64_OK: bool = cfg!(any(
+    target_arch = "wasm32",
     target_arch = "x86_64",
     target_arch = "aarch64",
     target_arch = "powerpc64",
@@ -53,7 +55,7 @@ fn longest_match_help<const SLOW: bool>(
         () => {
             chain_length -= 1;
             if chain_length > 0 {
-                cur_match = state.prev[cur_match as usize & wmask];
+                cur_match = state.prev.as_slice()[cur_match as usize & wmask];
 
                 if cur_match > limit {
                     continue;
@@ -130,7 +132,7 @@ fn longest_match_help<const SLOW: bool>(
                 hash = state.update_hash(hash, *b as u32);
 
                 /* If we're starting with best_len >= 3, we can use offset search. */
-                pos = state.head[hash as usize];
+                pos = state.head.as_slice()[hash as usize];
                 if pos < cur_match {
                     match_offset = (i + 1) as Pos;
                     cur_match = pos;
@@ -155,7 +157,7 @@ fn longest_match_help<const SLOW: bool>(
     }
 
     assert!(
-        strstart <= state.window_size - MIN_LOOKAHEAD,
+        strstart <= state.window_size.saturating_sub(MIN_LOOKAHEAD),
         "need lookahead"
     );
 
@@ -171,17 +173,22 @@ fn longest_match_help<const SLOW: bool>(
         // that depend on those values. However the length of the match is limited to the
         // lookahead, so the output of deflate is not affected by the uninitialized values.
 
-        // # Safety
-        //
-        // The two pointers must be valid for reads of N bytes.
+        /// # Safety
+        ///
+        /// The two pointers must be valid for reads of N bytes.
         #[inline(always)]
         unsafe fn memcmp_n_ptr<const N: usize>(src0: *const u8, src1: *const u8) -> bool {
-            let src0_cmp = core::ptr::read(src0 as *const [u8; N]);
-            let src1_cmp = core::ptr::read(src1 as *const [u8; N]);
-
-            src0_cmp == src1_cmp
+            unsafe {
+                let src0_cmp = core::ptr::read(src0 as *const [u8; N]);
+                let src1_cmp = core::ptr::read(src1 as *const [u8; N]);
+                src0_cmp == src1_cmp
+            }
         }
 
+        /// # Safety
+        ///
+        /// scan_start and scan_end must be valid for reads of N bytes. mbase_end and mbase_start
+        /// must be valid for reads of N + cur_match bytes.
         #[inline(always)]
         unsafe fn is_match<const N: usize>(
             cur_match: u16,
@@ -192,12 +199,14 @@ fn longest_match_help<const SLOW: bool>(
         ) -> bool {
             let be = mbase_end.wrapping_add(cur_match as usize);
             let bs = mbase_start.wrapping_add(cur_match as usize);
-
-            memcmp_n_ptr::<N>(be, scan_end) && memcmp_n_ptr::<N>(bs, scan_start)
+            unsafe { memcmp_n_ptr::<N>(be, scan_end) && memcmp_n_ptr::<N>(bs, scan_start) }
         }
 
         // first, do a quick check on the start and end bytes. Go to the next item in the chain if
         // these bytes don't match.
+        // SAFETY: we read up to 8 bytes in this block. scan_start and start_end are 8 byte arrays.
+        // this loop also breaks before cur_match gets past strstart, which is bounded by
+        // window_size - MIN_LOOKAHEAD, so 8 byte reads of mbase_end/start are in-bounds.
         unsafe {
             let scan_start = scan_start.as_ptr();
             let scan_end = scan_end.as_ptr();
@@ -246,9 +255,11 @@ fn longest_match_help<const SLOW: bool>(
 
         // we know that there is at least some match. Now count how many bytes really match
         let len = {
-            // TODO this just looks so incredibly unsafe!
-            let src1: &[u8; 256] =
-                unsafe { &*mbase_start.wrapping_add(cur_match as usize + 2).cast() };
+            // SAFETY: cur_match is bounded by window_size - MIN_LOOKAHEAD, where MIN_LOOKAHEAD
+            // is 256 + 2, so 258-byte reads of mbase_start are in-bounds.
+            let src1 = unsafe {
+                core::slice::from_raw_parts(mbase_start.wrapping_add(cur_match as usize + 2), 256)
+            };
 
             crate::deflate::compare256::compare256_slice(&scan[2..], src1) + 2
         };
@@ -298,7 +309,7 @@ fn longest_match_help<const SLOW: bool>(
                 let mut next_pos = cur_match;
 
                 for i in 0..=len - STD_MIN_MATCH {
-                    pos = state.prev[(cur_match as usize + i) & wmask];
+                    pos = state.prev.as_slice()[(cur_match as usize + i) & wmask];
                     if pos < next_pos {
                         /* Hash chain is more distant, use it */
                         if pos <= limit_base + i as Pos {
@@ -325,7 +336,7 @@ fn longest_match_help<const SLOW: bool>(
                 hash = state.update_hash(hash, scan1 as u32);
                 hash = state.update_hash(hash, scan2 as u32);
 
-                pos = state.head[hash as usize];
+                pos = state.head.as_slice()[hash as usize];
                 if pos < cur_match {
                     match_offset = (len - (STD_MIN_MATCH + 1)) as Pos;
                     if pos <= limit_base + match_offset {

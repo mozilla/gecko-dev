@@ -1,7 +1,12 @@
+//! # Safety
+//!
+//! The functions in this module must only be executed on an ARM system with the CRC feature.
+
 #[cfg_attr(not(target_arch = "aarch64"), allow(unused))]
-pub fn crc32_acle_aarch64(crc: u32, buf: &[u8]) -> u32 {
+pub unsafe fn crc32_acle_aarch64(crc: u32, buf: &[u8]) -> u32 {
     let mut c = !crc;
 
+    // SAFETY: [u8; 8] safely transmutes into u64.
     let (before, middle, after) = unsafe { buf.align_to::<u64>() };
 
     c = remainder(c, before);
@@ -20,9 +25,10 @@ pub fn crc32_acle_aarch64(crc: u32, buf: &[u8]) -> u32 {
 }
 
 #[cfg_attr(not(target_arch = "arm"), allow(unused))]
-pub fn crc32_acle_arm(crc: u32, buf: &[u8]) -> u32 {
+pub unsafe fn crc32_acle_arm(crc: u32, buf: &[u8]) -> u32 {
     let mut c = !crc;
 
+    // SAFETY: [u8; 4] safely transmutes into u32.
     let (before, middle, after) = unsafe { buf.align_to::<u32>() };
 
     c = remainder(c, before);
@@ -67,8 +73,10 @@ fn remainder(mut c: u32, mut buf: &[u8]) -> u32 {
 #[target_feature(enable = "crc")]
 #[cfg_attr(target_arch = "arm", target_feature(enable = "v8"))]
 unsafe fn __crc32b(mut crc: u32, data: u8) -> u32 {
-    core::arch::asm!("crc32b {crc:w}, {crc:w}, {data:w}", crc = inout(reg) crc, data = in(reg) data);
-    crc
+    unsafe {
+        core::arch::asm!("crc32b {crc:w}, {crc:w}, {data:w}", crc = inout(reg) crc, data = in(reg) data);
+        crc
+    }
 }
 
 /// CRC32 single round checksum for half words (16 bits).
@@ -77,8 +85,10 @@ unsafe fn __crc32b(mut crc: u32, data: u8) -> u32 {
 #[target_feature(enable = "crc")]
 #[cfg_attr(target_arch = "arm", target_feature(enable = "v8"))]
 unsafe fn __crc32h(mut crc: u32, data: u16) -> u32 {
-    core::arch::asm!("crc32h {crc:w}, {crc:w}, {data:w}", crc = inout(reg) crc, data = in(reg) data);
-    crc
+    unsafe {
+        core::arch::asm!("crc32h {crc:w}, {crc:w}, {data:w}", crc = inout(reg) crc, data = in(reg) data);
+        crc
+    }
 }
 
 /// CRC32 single round checksum for words (32 bits).
@@ -87,8 +97,10 @@ unsafe fn __crc32h(mut crc: u32, data: u16) -> u32 {
 #[target_feature(enable = "crc")]
 #[cfg_attr(target_arch = "arm", target_feature(enable = "v8"))]
 pub unsafe fn __crc32w(mut crc: u32, data: u32) -> u32 {
-    core::arch::asm!("crc32w {crc:w}, {crc:w}, {data:w}", crc = inout(reg) crc, data = in(reg) data);
-    crc
+    unsafe {
+        core::arch::asm!("crc32w {crc:w}, {crc:w}, {data:w}", crc = inout(reg) crc, data = in(reg) data);
+        crc
+    }
 }
 
 /// CRC32 single round checksum for double words (64 bits).
@@ -97,8 +109,10 @@ pub unsafe fn __crc32w(mut crc: u32, data: u32) -> u32 {
 #[cfg(target_arch = "aarch64")]
 #[target_feature(enable = "crc")]
 unsafe fn __crc32d(mut crc: u32, data: u64) -> u32 {
-    core::arch::asm!("crc32x {crc:w}, {crc:w}, {data:x}", crc = inout(reg) crc, data = in(reg) data);
-    crc
+    unsafe {
+        core::arch::asm!("crc32x {crc:w}, {crc:w}, {data:x}", crc = inout(reg) crc, data = in(reg) data);
+        crc
+    }
 }
 
 /// CRC32-C single round checksum for words (32 bits).
@@ -107,8 +121,10 @@ unsafe fn __crc32d(mut crc: u32, data: u64) -> u32 {
 #[target_feature(enable = "crc")]
 #[cfg_attr(target_arch = "arm", target_feature(enable = "v8"))]
 pub unsafe fn __crc32cw(mut crc: u32, data: u32) -> u32 {
-    core::arch::asm!("crc32cw {crc:w}, {crc:w}, {data:w}", crc = inout(reg) crc, data = in(reg) data);
-    crc
+    unsafe {
+        core::arch::asm!("crc32cw {crc:w}, {crc:w}, {data:w}", crc = inout(reg) crc, data = in(reg) data);
+        crc
+    }
 }
 
 #[cfg(test)]
@@ -121,7 +137,7 @@ mod tests {
             let mut h = crc32fast::Hasher::new_with_initial(start);
             h.update(&v);
 
-            let a = crc32_acle_aarch64(start, &v) ;
+            let a = unsafe { crc32_acle_aarch64(start, &v) };
             let b = h.finalize();
 
             a == b
@@ -131,7 +147,7 @@ mod tests {
             let mut h = crc32fast::Hasher::new_with_initial(start);
             h.update(&v);
 
-            let a = crc32_acle_arm(start, &v) ;
+            let a = unsafe { crc32_acle_arm(start, &v) };
             let b = h.finalize();
 
             a == b

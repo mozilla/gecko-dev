@@ -314,6 +314,12 @@ pub unsafe extern "C-unwind" fn uncompress(
 /// * Either
 ///     - `strm` is `NULL`
 ///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`inflateInit_`] or similar
+/// * Either
+///     - `strm.next_out` is `NULL`
+///     - `strm.next_out` and `strm.avail_out` satisfy the requirements of [`core::slice::from_raw_parts_mut::<MaybeUninit<u8>>`]
+/// * Either
+///     - `strm.next_in` is `NULL`
+///     - `strm.next_in` and `strm.avail_in` satisfy the requirements of [`core::slice::from_raw_parts::<u8>`]
 #[export_name = prefix!(inflate)]
 pub unsafe extern "C-unwind" fn inflate(strm: *mut z_stream, flush: i32) -> i32 {
     if let Some(stream) = InflateStream::from_stream_mut(strm) {
@@ -887,6 +893,12 @@ pub unsafe extern "C-unwind" fn inflateCodesUsed(_strm: *mut z_stream) -> c_ulon
 /// * Either
 ///     - `strm` is `NULL`
 ///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`deflateInit_`] or similar
+/// * Either
+///     - `strm.next_out` is `NULL`
+///     - `strm.next_out` and `strm.avail_out` satisfy the requirements of [`core::slice::from_raw_parts_mut::<MaybeUninit<u8>>`]
+/// * Either
+///     - `strm.next_in` is `NULL`
+///     - `strm.next_in` and `strm.avail_in` satisfy the requirements of [`core::slice::from_raw_parts::<u8>`]
 #[export_name = prefix!(deflate)]
 pub unsafe extern "C-unwind" fn deflate(strm: *mut z_stream, flush: i32) -> c_int {
     if let Some(stream) = DeflateStream::from_stream_mut(strm) {
@@ -920,7 +932,10 @@ pub unsafe extern "C-unwind" fn deflate(strm: *mut z_stream, flush: i32) -> c_in
 ///     - `strm` satisfies the requirements of `&mut *strm` and was initialized with [`deflateInit_`] or similar
 /// * Either
 ///     - `head` is `NULL`
-///     - `head` satisfies the requirements of `&mut *head`
+///     - `head` satisfies the requirements of `&mut *head` and satisfies the following:
+///         - `head.extra` is `NULL` or is readable for at least `head.extra_len` bytes
+///         - `head.name` is `NULL` or satisfies the requirements of [`core::ffi::CStr::from_ptr`]
+///         - `head.comment` is `NULL` or satisfies the requirements of [`core::ffi::CStr::from_ptr`]
 #[export_name = prefix!(deflateSetHeader)]
 pub unsafe extern "C-unwind" fn deflateSetHeader(strm: *mut z_stream, head: gz_headerp) -> c_int {
     let Some(stream) = (unsafe { DeflateStream::from_stream_mut(strm) }) else {
@@ -1336,9 +1351,8 @@ pub unsafe extern "C-unwind" fn deflateCopy(dest: z_streamp, source: z_streamp) 
 /// - level `1` gives best speed
 /// - level `9` gives best compression
 /// - [`Z_DEFAULT_COMPRESSION`] requests a default compromise between speed and compression (currently equivalent to level `6`).
-
 ///
-/// A call to [`inflateInit_`] is equivalent to [`inflateInit2_`] where
+/// A call to [`deflateInit_`] is equivalent to [`deflateInit2_`] where:
 ///
 /// - `method` is `8` (deflate)
 /// - `windowBits` is `15`
@@ -1426,10 +1440,6 @@ pub unsafe extern "C-unwind" fn deflateInit_(
 /// - level `1` gives best speed
 /// - level `9` gives best compression
 /// - [`Z_DEFAULT_COMPRESSION`] requests a default compromise between speed and compression (currently equivalent to level `6`).
-
-///
-/// A call to [`inflateInit_`] is equivalent to [`inflateInit2_`] where
-///
 ///
 /// # Returns
 ///
