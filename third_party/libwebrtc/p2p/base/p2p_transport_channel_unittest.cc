@@ -3204,7 +3204,10 @@ TEST_F(P2PTransportChannelMultihomedTest, TestPreferWifiToWifiConnection) {
   // Create channels and let them go writable, as usual.
   CreateChannels();
 
-  EXPECT_TRUE_WAIT_MARGIN(CheckConnected(ep1_ch1(), ep2_ch1()), 1000, 1000);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&]() { return CheckConnected(ep1_ch1(), ep2_ch1()); },
+                        IsTrue()),
+      webrtc::IsRtcOk());
   // Need to wait to make sure the connections on both networks are writable.
   EXPECT_THAT(webrtc::WaitUntil(
                   [&] {
@@ -3234,9 +3237,13 @@ TEST_F(P2PTransportChannelMultihomedTest, TestPreferWifiOverCellularNetwork) {
   // Create channels and let them go writable, as usual.
   CreateChannels();
 
-  EXPECT_TRUE_WAIT_MARGIN(CheckCandidatePairAndConnected(ep1_ch1(), ep2_ch1(),
-                                                         cellular[0], wifi[1]),
-                          1000, 1000);
+  EXPECT_THAT(webrtc::WaitUntil(
+                  [&]() {
+                    return CheckCandidatePairAndConnected(ep1_ch1(), ep2_ch1(),
+                                                          cellular[0], wifi[1]);
+                  },
+                  IsTrue()),
+              webrtc::IsRtcOk());
   DestroyChannels();
 }
 
@@ -3255,7 +3262,10 @@ TEST_F(P2PTransportChannelMultihomedTest, TestPingBackupConnectionRate) {
 
   // Create channels and let them go writable, as usual.
   CreateChannels();
-  EXPECT_TRUE_WAIT_MARGIN(CheckConnected(ep1_ch1(), ep2_ch1()), 1000, 1000);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return CheckConnected(ep1_ch1(), ep2_ch1()); },
+                        IsTrue()),
+      webrtc::IsRtcOk());
   int backup_ping_interval = 2000;
   ep2_ch1()->SetIceConfig(
       CreateIceConfig(2000, GATHER_ONCE, backup_ping_interval));
@@ -3300,7 +3310,10 @@ TEST_F(P2PTransportChannelMultihomedTest, TestStableWritableRate) {
 
   // Create channels and let them go writable, as usual.
   CreateChannels();
-  EXPECT_TRUE_WAIT_MARGIN(CheckConnected(ep1_ch1(), ep2_ch1()), 1000, 1000);
+  EXPECT_THAT(
+      webrtc::WaitUntil([&] { return CheckConnected(ep1_ch1(), ep2_ch1()); },
+                        IsTrue()),
+      webrtc::IsRtcOk());
   // Set a value larger than the default value of 2500 ms
   int ping_interval_ms = 3456;
   IceConfig config = CreateIceConfig(2 * ping_interval_ms, GATHER_ONCE);
@@ -3428,8 +3441,11 @@ TEST_F(P2PTransportChannelMultihomedTest,
   CreateChannels(continual_gathering_config, continual_gathering_config);
   SetAllocatorFlags(0, kOnlyLocalPorts);
   SetAllocatorFlags(1, kOnlyLocalPorts);
-  EXPECT_TRUE_WAIT_MARGIN(CheckConnected(ep1_ch1(), ep2_ch1()), kDefaultTimeout,
-                          kDefaultTimeout);
+  EXPECT_THAT(
+      webrtc::WaitUntil(
+          [&] { return CheckConnected(ep1_ch1(), ep2_ch1()); }, IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
+      webrtc::IsRtcOk());
 
   // Add a new wifi interface on end point 2. We should expect a new connection
   // to be created and the new one will be the best connection.

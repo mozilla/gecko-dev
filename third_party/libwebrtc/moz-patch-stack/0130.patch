@@ -719,10 +719,10 @@ index 3ca6994c81..f248ce40da 100644
  
  rtc_source_set("arch") {
 diff --git a/rtc_tools/network_tester/BUILD.gn b/rtc_tools/network_tester/BUILD.gn
-index f8ce64e215..56d0b1e6c2 100644
+index 2ad4abd328..c1a19c0cd1 100644
 --- a/rtc_tools/network_tester/BUILD.gn
 +++ b/rtc_tools/network_tester/BUILD.gn
-@@ -174,8 +174,8 @@ if (is_android) {
+@@ -176,8 +176,8 @@ if (is_android) {
        "../../rtc_base:threading",
      ]
  
@@ -734,7 +734,7 @@ index f8ce64e215..56d0b1e6c2 100644
      output_extension = "so"
    }
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 87ae8c96fd..5c9eaf4249 100644
+index 185af67fa6..1a1849d772 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -9,11 +9,11 @@
@@ -761,7 +761,7 @@ index 87ae8c96fd..5c9eaf4249 100644
      }
    }
  
-@@ -1242,7 +1242,7 @@ if (is_ios || is_mac) {
+@@ -1245,7 +1245,7 @@ if (is_ios || is_mac) {
            }
  
            public_deps = [
@@ -812,7 +812,7 @@ index 953e4c595e..981ca46067 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index b7c7fc621d..943ba32578 100644
+index 773dca56e6..14e8a1c20e 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@

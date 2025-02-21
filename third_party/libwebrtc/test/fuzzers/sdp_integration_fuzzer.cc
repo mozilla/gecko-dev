@@ -12,7 +12,9 @@
 #include <stdint.h>
 
 #include "absl/strings/string_view.h"
+#include "api/test/rtc_error_matchers.h"
 #include "pc/test/integration_test_helpers.h"
+#include "test/wait_until.h"
 
 namespace webrtc {
 
@@ -35,14 +37,18 @@ class FuzzerTest : public PeerConnectionIntegrationBaseTest {
     caller()->pc()->SetRemoteDescription(std::move(sdp), srd_observer);
     // Wait a short time for observer to be called. Timeout is short
     // because the fuzzer should be trying many branches.
-    EXPECT_TRUE_WAIT(srd_observer->called(), 100);
+    EXPECT_THAT(
+        WaitUntil([&] { return srd_observer->called(); }, ::testing::IsTrue()),
+        IsRtcOk());
 
     // If set-remote-description was successful, try to answer.
     auto sld_observer =
         rtc::make_ref_counted<FakeSetLocalDescriptionObserver>();
     if (srd_observer->error().ok()) {
       caller()->pc()->SetLocalDescription(sld_observer);
-      EXPECT_TRUE_WAIT(sld_observer->called(), 100);
+      EXPECT_THAT(WaitUntil([&] { return sld_observer->called(); },
+                            ::testing::IsTrue()),
+                  IsRtcOk());
     }
     // If there is an EXPECT failure, die here.
     RTC_CHECK(!HasFailure());

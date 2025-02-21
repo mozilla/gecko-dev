@@ -461,7 +461,9 @@ if (!build_with_chromium) {
   webrtc_fuzzer_test("sdp_integration_fuzzer") {
     sources = [ "sdp_integration_fuzzer.cc" ]
     deps = [
+      "..:wait_until",
       "../../api:libjingle_peerconnection_api",
+      "../../api:rtc_error_matchers",
       "../../pc:integration_test_helpers",
       "../../pc:libjingle_peerconnection",
       "../../test:test_support",
