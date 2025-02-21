@@ -18,7 +18,6 @@ CRCCheck on
 
 RequestExecutionLevel user
 
-Unicode true
 ManifestSupportedOS all
 ManifestDPIAware true
 
@@ -30,7 +29,6 @@ Var CheckboxCleanupProfile
 
 Var FontFamilyName
 
-Var CanWriteToInstallDir
 Var HasRequiredSpaceAvailable
 Var IsDownloadFinished
 Var DownloadSizeBytes
@@ -233,12 +231,6 @@ Var ArchToInstall
 !define DefaultInstDir32bit "$PROGRAMFILES32\${BrandFullName}"
 !define DefaultInstDir64bit "$PROGRAMFILES64\${BrandFullName}"
 
-!include "LogicLib.nsh"
-!include "FileFunc.nsh"
-!include "TextFunc.nsh"
-!include "WinVer.nsh"
-!include "WordFunc.nsh"
-
 !insertmacro GetParameters
 !insertmacro GetOptions
 !insertmacro LineFind
@@ -272,6 +264,7 @@ Var ArchToInstall
 
 !include "common.nsh"
 
+
 !insertmacro CopyPostSigningData
 !insertmacro ElevateUAC
 !insertmacro GetLongPath
@@ -289,8 +282,7 @@ VIAddVersionKey "FileDescription" "${BrandShortName} Installer"
 VIAddVersionKey "OriginalFilename" "setup-stub.exe"
 
 Name "$BrandFullName"
-OutFile "setup-stub.exe"
-Icon "firefox64.ico"
+
 XPStyle on
 BrandingText " "
 ChangeUI IDD_INST "nsisui.exe"
@@ -304,248 +296,6 @@ ChangeUI IDD_INST "nsisui.exe"
 !include "nsisstrings.nlf"
 
 Caption "$(INSTALLER_WIN_CAPTION)"
-
-Page custom createProfileCleanup
-Page custom createInstall ; Download / Installation page
-
-Function .onInit
-  ; Remove the current exe directory from the search order.
-  ; This only effects LoadLibrary calls and not implicitly loaded DLLs.
-  System::Call 'kernel32::SetDllDirectoryW(w "")'
-  StrCpy $PingAlreadySent "false"
-  StrCpy $AbortInstallation "false"
-  StrCpy $LANGUAGE 0
-  ; This macro is used to set the brand name variables but the ini file method
-  ; isn't supported for the stub installer.
-  ${SetBrandNameVars} "$PLUGINSDIR\ignored.ini"
-
-  ; Don't install on systems that don't support SSE2. The parameter value of
-  ; 10 is for PF_XMMI64_INSTRUCTIONS_AVAILABLE which will check whether the
-  ; SSE2 instruction set is available.
-  System::Call "kernel32::IsProcessorFeaturePresent(i 10)i .R7"
-
-  ; Windows 8.1/Server 2012 R2 and lower are not supported.
-  ${Unless} ${AtLeastWin10}
-    StrCpy $ExitCode "${ERR_PREINSTALL_SYS_OS_REQ}"
-    ${If} "$R7" == "0"
-      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
-    ${Else}
-      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
-    ${EndIf}
-    MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" IDCANCEL +2
-    ExecShell "open" "${URLWinPre10NeedsEsr115}"
-    StrCpy $AbortInstallation "true"
-    Return
-  ${EndUnless}
-
-  ; SSE2 CPU support
-  ${If} "$R7" == "0"
-    StrCpy $ExitCode "${ERR_PREINSTALL_SYS_HW_REQ}"
-    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_CPU_MSG)" IDCANCEL +2
-    ExecShell "open" "${URLSystemRequirements}"
-    StrCpy $AbortInstallation "true"
-    Return
-  ${EndIf}
-
-  Call GetArchToInstall
-  ${If} $ArchToInstall == ${ARCH_AARCH64}
-  ${OrIf} $ArchToInstall == ${ARCH_AMD64}
-    StrCpy $INSTDIR "${DefaultInstDir64bit}"
-  ${Else}
-    StrCpy $INSTDIR "${DefaultInstDir32bit}"
-  ${EndIf}
-
-  ; Require elevation if the user can elevate
-  ${ElevateUAC}
-
-  ; If we have any existing installation, use its location as the default
-  ; path for this install, even if it's not the same architecture.
-  SetRegView 32
-  SetShellVarContext all ; Set SHCTX to HKLM
-  ${GetSingleInstallPath} "Software\Mozilla\${BrandFullNameInternal}" $R9
-
-  ${If} "$R9" == "false"
-    ${If} ${IsNativeAMD64}
-    ${OrIf} ${IsNativeARM64}
-      SetRegView 64
-      ${GetSingleInstallPath} "Software\Mozilla\${BrandFullNameInternal}" $R9
-    ${EndIf}
-  ${EndIf}
-
-  ${If} "$R9" == "false"
-    SetShellVarContext current ; Set SHCTX to HKCU
-    ${GetSingleInstallPath} "Software\Mozilla\${BrandFullNameInternal}" $R9
-  ${EndIf}
-
-  StrCpy $PreviousInstallDir ""
-  ${If} "$R9" != "false"
-    StrCpy $PreviousInstallDir "$R9"
-    StrCpy $INSTDIR "$PreviousInstallDir"
-  ${EndIf}
-
-  ; Used to determine if the default installation directory was used.
-  StrCpy $InitialInstallDir "$INSTDIR"
-
-  ; Initialize the majority of variables except those that need to be reset
-  ; when a page is displayed.
-  StrCpy $ExitCode "${ERR_UNKNOWN}"
-  StrCpy $IntroPhaseSeconds "0"
-  StrCpy $OptionsPhaseSeconds "0"
-  StrCpy $EndPreInstallPhaseTickCount "0"
-  StrCpy $EndInstallPhaseTickCount "0"
-  StrCpy $StartDownloadPhaseTickCount "0"
-  StrCpy $EndDownloadPhaseTickCount "0"
-  StrCpy $InitialInstallRequirementsCode ""
-  StrCpy $IsDownloadFinished ""
-  StrCpy $FirefoxLaunchCode "0"
-  StrCpy $CheckboxShortcuts "1"
-  StrCpy $CheckboxCleanupProfile "0"
-  StrCpy $ProgressCompleted "0"
-!ifdef MOZ_MAINTENANCE_SERVICE
-  ; We can only install the maintenance service if the user is an admin.
-  Call IsUserAdmin
-  Pop $0
-  ${If} "$0" == "true"
-    StrCpy $CheckboxInstallMaintSvc "1"
-  ${Else}
-    StrCpy $CheckboxInstallMaintSvc "0"
-  ${EndIf}
-!else
-  StrCpy $CheckboxInstallMaintSvc "0"
-!endif
-
-  StrCpy $FontFamilyName ""
-!ifdef FONT_FILE1
-  ${If} ${FileExists} "$FONTS\${FONT_FILE1}"
-    StrCpy $FontFamilyName "${FONT_NAME1}"
-  ${EndIf}
-!endif
-
-!ifdef FONT_FILE2
-  ${If} $FontFamilyName == ""
-  ${AndIf} ${FileExists} "$FONTS\${FONT_FILE2}"
-    StrCpy $FontFamilyName "${FONT_NAME2}"
-  ${EndIf}
-!endif
-
-  ${If} $FontFamilyName == ""
-    StrCpy $FontFamilyName "$(^Font)"
-  ${EndIf}
-
-  InitPluginsDir
-  File /oname=$PLUGINSDIR\bgstub.jpg "bgstub.jpg"
-
-  ; Detect whether the machine is running with a high contrast theme.
-  ; We'll hide our background images in that case, both because they don't
-  ; always render properly and also to improve the contrast.
-  System::Call '*(i 12, i 0, p 0) p . r0'
-  ; 0x42 == SPI_GETHIGHCONTRAST
-  System::Call 'user32::SystemParametersInfoW(i 0x42, i 0, p r0, i 0)'
-  System::Call '*$0(i, i . r1, p)'
-  System::Free $0
-  IntOp $UsingHighContrastMode $1 & 1
-
-  SetShellVarContext all ; Set SHCTX to All Users
-  ; If the user doesn't have write access to the installation directory set
-  ; the installation directory to a subdirectory of the user's local
-  ; application directory (e.g. non-roaming).
-  Call CanWrite
-  ${If} "$CanWriteToInstallDir" == "false"
-    ${GetLocalAppDataFolder} $0
-    StrCpy $INSTDIR "$0\${BrandFullName}\"
-    Call CanWrite
-  ${EndIf}
-
-  Call CheckSpace
-
-  ${If} ${FileExists} "$INSTDIR"
-    ; Always display the long path if the path exists.
-    ${GetLongPath} "$INSTDIR" $INSTDIR
-  ${EndIf}
-
-  ; Check whether the install requirements are satisfied using the default
-  ; values for metrics.
-  ${If} "$InitialInstallRequirementsCode" == ""
-    ${If} "$CanWriteToInstallDir" != "true"
-    ${AndIf} "$HasRequiredSpaceAvailable" != "true"
-      StrCpy $InitialInstallRequirementsCode "1"
-    ${ElseIf} "$CanWriteToInstallDir" != "true"
-      StrCpy $InitialInstallRequirementsCode "2"
-    ${ElseIf} "$HasRequiredSpaceAvailable" != "true"
-      StrCpy $InitialInstallRequirementsCode "3"
-    ${Else}
-      StrCpy $InitialInstallRequirementsCode "0"
-    ${EndIf}
-  ${EndIf}
-
-  Call CanWrite
-  ${If} "$CanWriteToInstallDir" == "false"
-    StrCpy $ExitCode "${ERR_PREINSTALL_NOT_WRITABLE}"
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(WARN_WRITE_ACCESS_QUIT)$\n$\n$INSTDIR"
-    StrCpy $AbortInstallation "true"
-    Return
-  ${EndIf}
-
-  Call CheckSpace
-  ${If} "$HasRequiredSpaceAvailable" == "false"
-      StrCpy $ExitCode "${ERR_PREINSTALL_SPACE}"
-    MessageBox MB_OK|MB_ICONEXCLAMATION "$(WARN_DISK_SPACE_QUIT)"
-    StrCpy $AbortInstallation "true"
-    Return
-  ${EndIf}
-
-  ${InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
-
-  File /oname=$PLUGINSDIR\stub_common.css "stub_common.css"
-  File /oname=$PLUGINSDIR\stub_common.js "stub_common.js"
-FunctionEnd
-
-; .onGUIInit isn't needed except for RTL locales
-!ifdef ${AB_CD}_rtl
-Function .onGUIInit
-  ${MakeWindowRTL} $HWNDPARENT
-FunctionEnd
-!endif
-
-Function .onGUIEnd
-  Delete "$PLUGINSDIR\_temp"
-  Delete "$PLUGINSDIR\download.exe"
-  Delete "$PLUGINSDIR\${CONFIG_INI}"
-
-  ${UnloadUAC}
-FunctionEnd
-
-Function .onUserAbort
-  WebBrowser::CancelTimer $TimerHandle
-
-  ${If} "$IsDownloadFinished" != ""
-    ; Go ahead and cancel the download so it doesn't keep running while this
-    ; prompt is up. We'll resume it if the user decides to continue.
-    InetBgDL::Get /RESET /END
-
-    ${ShowTaskDialog} $(STUB_CANCEL_PROMPT_HEADING) \
-                      $(STUB_CANCEL_PROMPT_MESSAGE) \
-                      $(STUB_CANCEL_PROMPT_BUTTON_CONTINUE) \
-                      $(STUB_CANCEL_PROMPT_BUTTON_EXIT)
-    Pop $0
-    ${If} $0 == 1002
-      ; The cancel button was clicked
-      StrCpy $ExitCode "${ERR_DOWNLOAD_CANCEL}"
-      Call LaunchHelpPage
-      Call SendPing
-    ${Else}
-      ; Either the continue button was clicked or the dialog was dismissed
-      Call StartDownload
-    ${EndIf}
-  ${Else}
-    Call SendPing
-  ${EndIf}
-
-  ; Aborting the abort will allow SendPing to hide the installer window and
-  ; close the installer after it sends the metrics ping, or allow us to just go
-  ; back to installing if that's what the user selected.
-  Abort
-FunctionEnd
 
 !macro _RegisterAllCustomFunctions
   GetFunctionAddress $0 getUIString
@@ -1390,38 +1140,7 @@ Function CheckSpace
   ${EndIf}
 FunctionEnd
 
-Function CanWrite
-  StrCpy $CanWriteToInstallDir "false"
 
-  StrCpy $0 "$INSTDIR"
-  ; Use the existing directory when it exists
-  ${Unless} ${FileExists} "$INSTDIR"
-    ; Get the topmost directory that exists for new installs
-    ${DoUntil} ${FileExists} "$0"
-      ${GetParent} "$0" $0
-      ${If} "$0" == ""
-        Return
-      ${EndIf}
-    ${Loop}
-  ${EndUnless}
-
-  GetTempFileName $2 "$0"
-  Delete $2
-  CreateDirectory "$2"
-
-  ${If} ${FileExists} "$2"
-    ${If} ${FileExists} "$INSTDIR"
-      GetTempFileName $3 "$INSTDIR"
-    ${Else}
-      GetTempFileName $3 "$2"
-    ${EndIf}
-    ${If} ${FileExists} "$3"
-      Delete "$3"
-      StrCpy $CanWriteToInstallDir "true"
-    ${EndIf}
-    RmDir "$2"
-  ${EndIf}
-FunctionEnd
 
 Function LaunchApp
   StrCpy $FirefoxLaunchCode "2"
@@ -1816,5 +1535,218 @@ Function GetDownloadURL
   Exch $0
 FunctionEnd
 
-Section
-SectionEnd
+
+Function CommonOnInit
+  ; Remove the current exe directory from the search order.
+  ; This only effects LoadLibrary calls and not implicitly loaded DLLs.
+  System::Call 'kernel32::SetDllDirectoryW(w "")'
+  StrCpy $PingAlreadySent "false"
+  StrCpy $AbortInstallation "false"
+  StrCpy $LANGUAGE 0
+  ; This macro is used to set the brand name variables but the ini file method
+  ; isn't supported for the stub installer.
+  ${SetBrandNameVars} "$PLUGINSDIR\ignored.ini"
+
+  StrCpy $CpuSupportsSSE "0"
+  Call CheckCpuSupportsSSE
+
+  ; Windows 8.1/Server 2012 R2 and lower are not supported.
+  ${Unless} ${AtLeastWin10}
+    StrCpy $ExitCode "${ERR_PREINSTALL_SYS_OS_REQ}"
+    ${If} "$CpuSupportsSSE" == "0"
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_CPU_MSG)"
+    ${Else}
+      strCpy $R7 "$(WARN_MIN_SUPPORTED_OSVER_MSG)"
+    ${EndIf}
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$R7" /SD IDCANCEL IDCANCEL +2
+    ExecShell "open" "${URLWinPre10NeedsEsr115}"
+    StrCpy $AbortInstallation "true"
+    Return
+  ${EndUnless}
+
+  ; SSE2 CPU support
+  ${If} "$CpuSupportsSSE" == "0"
+    StrCpy $ExitCode "${ERR_PREINSTALL_SYS_HW_REQ}"
+    MessageBox MB_OKCANCEL|MB_ICONSTOP "$(WARN_MIN_SUPPORTED_CPU_MSG)" /SD IDCANCEL IDCANCEL +2
+    ExecShell "open" "${URLSystemRequirements}"
+    StrCpy $AbortInstallation "true"
+    Return
+  ${EndIf}
+
+  Call GetArchToInstall
+  ${If} $ArchToInstall == ${ARCH_AARCH64}
+  ${OrIf} $ArchToInstall == ${ARCH_AMD64}
+    StrCpy $INSTDIR "${DefaultInstDir64bit}"
+  ${Else}
+    StrCpy $INSTDIR "${DefaultInstDir32bit}"
+  ${EndIf}
+  
+  !insertmacro IsTestBreakpointSet ${TestBreakpointArchToInstall}
+
+  ; Require elevation if the user can elevate
+  ${ElevateUAC}
+
+  ; If we have any existing installation, use its location as the default
+  ; path for this install, even if it's not the same architecture.
+  SetRegView 32
+  SetShellVarContext all ; Set SHCTX to HKLM
+  ${GetSingleInstallPath} "Software\Mozilla\${BrandFullNameInternal}" $R9
+
+  ${If} "$R9" == "false"
+    ${If} ${IsNativeAMD64}
+    ${OrIf} ${IsNativeARM64}
+      SetRegView 64
+      ${GetSingleInstallPath} "Software\Mozilla\${BrandFullNameInternal}" $R9
+    ${EndIf}
+  ${EndIf}
+
+  ${If} "$R9" == "false"
+    SetShellVarContext current ; Set SHCTX to HKCU
+    ${GetSingleInstallPath} "Software\Mozilla\${BrandFullNameInternal}" $R9
+  ${EndIf}
+
+  StrCpy $PreviousInstallDir ""
+  ${If} "$R9" != "false"
+    StrCpy $PreviousInstallDir "$R9"
+    StrCpy $INSTDIR "$PreviousInstallDir"
+  ${EndIf}
+
+  ; Used to determine if the default installation directory was used.
+  StrCpy $InitialInstallDir "$INSTDIR"
+
+
+  ; Initialize the majority of variables except those that need to be reset
+  ; when a page is displayed.
+  StrCpy $ExitCode "${ERR_UNKNOWN}"
+  StrCpy $IntroPhaseSeconds "0"
+  StrCpy $OptionsPhaseSeconds "0"
+  StrCpy $EndPreInstallPhaseTickCount "0"
+  StrCpy $EndInstallPhaseTickCount "0"
+  StrCpy $StartDownloadPhaseTickCount "0"
+  StrCpy $EndDownloadPhaseTickCount "0"
+  StrCpy $InitialInstallRequirementsCode ""
+  StrCpy $IsDownloadFinished ""
+  StrCpy $FirefoxLaunchCode "0"
+  StrCpy $CheckboxShortcuts "1"
+  StrCpy $CheckboxCleanupProfile "0"
+  StrCpy $ProgressCompleted "0"
+!ifdef MOZ_MAINTENANCE_SERVICE
+  ; We can only install the maintenance service if the user is an admin.
+  Call IsUserAdmin
+  Pop $0
+  ${If} "$0" == "true"
+    StrCpy $CheckboxInstallMaintSvc "1"
+  ${Else}
+    StrCpy $CheckboxInstallMaintSvc "0"
+  ${EndIf}
+!else
+  StrCpy $CheckboxInstallMaintSvc "0"
+!endif
+
+!insertmacro IsTestBreakpointSet ${TestBreakpointMaintService}
+
+  StrCpy $FontFamilyName ""
+!ifdef FONT_FILE1
+  ${If} ${FileExists} "$FONTS\${FONT_FILE1}"
+    StrCpy $FontFamilyName "${FONT_NAME1}"
+  ${EndIf}
+!endif
+
+!ifdef FONT_FILE2
+  ${If} $FontFamilyName == ""
+  ${AndIf} ${FileExists} "$FONTS\${FONT_FILE2}"
+    StrCpy $FontFamilyName "${FONT_NAME2}"
+  ${EndIf}
+!endif
+
+  ${If} $FontFamilyName == ""
+    StrCpy $FontFamilyName "$(^Font)"
+  ${EndIf}
+  
+  InitPluginsDir
+  File /oname=$PLUGINSDIR\bgstub.jpg "bgstub.jpg"
+
+  ; Detect whether the machine is running with a high contrast theme.
+  ; We'll hide our background images in that case, both because they don't
+  ; always render properly and also to improve the contrast.
+  System::Call '*(i 12, i 0, p 0) p . r0'
+  ; 0x42 == SPI_GETHIGHCONTRAST
+  System::Call 'user32::SystemParametersInfoW(i 0x42, i 0, p r0, i 0)'
+  System::Call '*$0(i, i . r1, p)'
+  System::Free $0
+  IntOp $UsingHighContrastMode $1 & 1
+
+  SetShellVarContext all ; Set SHCTX to All Users
+  ; If the user doesn't have write access to the installation directory set
+  ; the installation directory to a subdirectory of the user's local
+  ; application directory (e.g. non-roaming).
+  Call CanWrite
+  ${If} "$CanWriteToInstallDir" == "false"
+    ${GetLocalAppDataFolder} $0
+    StrCpy $INSTDIR "$0\${BrandFullName}\"
+    Call CanWrite
+  ${EndIf}
+
+
+  Call CheckSpace
+
+  ${If} ${FileExists} "$INSTDIR"
+    ; Always display the long path if the path exists.
+    ${GetLongPath} "$INSTDIR" $INSTDIR
+  ${EndIf}
+
+  ; Check whether the install requirements are satisfied using the default
+  ; values for metrics.
+  ${If} "$InitialInstallRequirementsCode" == ""
+    ${If} "$CanWriteToInstallDir" != "true"
+    ${AndIf} "$HasRequiredSpaceAvailable" != "true"
+      StrCpy $InitialInstallRequirementsCode "1"
+    ${ElseIf} "$CanWriteToInstallDir" != "true"
+      StrCpy $InitialInstallRequirementsCode "2"
+    ${ElseIf} "$HasRequiredSpaceAvailable" != "true"
+      StrCpy $InitialInstallRequirementsCode "3"
+    ${Else}
+      StrCpy $InitialInstallRequirementsCode "0"
+    ${EndIf}
+  ${EndIf}
+
+  Call CanWrite
+  ${If} "$CanWriteToInstallDir" == "false"
+    StrCpy $ExitCode "${ERR_PREINSTALL_NOT_WRITABLE}"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "$(WARN_WRITE_ACCESS_QUIT)$\n$\n$INSTDIR" /SD IDOK
+    StrCpy $AbortInstallation "true"
+    Return
+  ${EndIf}
+
+  !insertmacro IsTestBreakpointSet ${TestBreakpointCanWriteToDir}
+
+  Call CheckSpace
+  ${If} "$HasRequiredSpaceAvailable" == "false"
+      StrCpy $ExitCode "${ERR_PREINSTALL_SPACE}"
+    MessageBox MB_OK|MB_ICONEXCLAMATION "$(WARN_DISK_SPACE_QUIT)"
+    StrCpy $AbortInstallation "true"
+    Return
+  ${EndIf}
+
+  !insertmacro IsTestBreakpointSet ${TestBreakpointCheckSpace}
+
+  ${InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
+
+  File /oname=$PLUGINSDIR\stub_common.css "stub_common.css"
+  File /oname=$PLUGINSDIR\stub_common.js "stub_common.js"
+FunctionEnd
+
+; .onGUIInit isn't needed except for RTL locales
+!ifdef ${AB_CD}_rtl
+Function .onGUIInit
+  ${MakeWindowRTL} $HWNDPARENT
+FunctionEnd
+!endif
+
+Function .onGUIEnd
+  Delete "$PLUGINSDIR\_temp"
+  Delete "$PLUGINSDIR\download.exe"
+  Delete "$PLUGINSDIR\${CONFIG_INI}"
+
+  ${UnloadUAC}
+FunctionEnd
