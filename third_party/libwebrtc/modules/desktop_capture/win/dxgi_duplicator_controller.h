@@ -206,6 +206,13 @@ class RTC_EXPORT DxgiDuplicatorController {
   // Returns a DesktopSize to cover entire `desktop_rect_`.
   DesktopSize desktop_size() const RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+  // Returns the device scale factor of one screen. `monitor_id` should be >= 0.
+  // If system does not support DXGI based capturer, or `monitor_id` is greater
+  // than the total screen count of all the Duplicators, this function returns
+  // std::nullopt.
+  std::optional<int32_t> GetDeviceScaleFactor(int monitor_id) const
+      RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
   // Returns the size of one screen. `id` should be >= 0. If system does not
   // support DXGI based capturer, or `id` is greater than the total screen count
   // of all the Duplicators, this function returns an empty DesktopRect.

@@ -189,7 +189,8 @@ DxgiDuplicatorController::Result DxgiDuplicatorController::DoDuplicate(
     return Result::INITIALIZATION_FAILED;
   }
 
-  if (!frame->Prepare(SelectedDesktopSize(monitor_id), monitor_id)) {
+  if (!frame->Prepare(SelectedDesktopSize(monitor_id), monitor_id,
+                      GetDeviceScaleFactor(monitor_id))) {
     return Result::FRAME_PREPARE_FAILED;
   }
 
@@ -391,6 +392,21 @@ int64_t DxgiDuplicatorController::GetNumFramesCaptured(int monitor_id) const {
 
 DesktopSize DxgiDuplicatorController::desktop_size() const {
   return desktop_rect_.size();
+}
+
+std::optional<int32_t> DxgiDuplicatorController::GetDeviceScaleFactor(
+    int monitor_id) const {
+  if (monitor_id < 0) {
+    return std::nullopt;
+  }
+  for (const auto& duplicator : duplicators_) {
+    if (monitor_id >= duplicator.screen_count()) {
+      monitor_id -= duplicator.screen_count();
+    } else {
+      return duplicator.GetDeviceScaleFactor(monitor_id);
+    }
+  }
+  return std::nullopt;
 }
 
 DesktopRect DxgiDuplicatorController::ScreenRect(int id) const {

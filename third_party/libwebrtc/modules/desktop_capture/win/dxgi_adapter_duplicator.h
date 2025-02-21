@@ -55,6 +55,11 @@ class DxgiAdapterDuplicator {
   // Returns desktop rect covered by this DxgiAdapterDuplicator.
   DesktopRect desktop_rect() const { return desktop_rect_; }
 
+  // Returns the device scale factor of screen identified by `screen_id`, which
+  // is owned by this DxgiAdapterDuplicator. `screen_id` should be between [0,
+  // screen_count()).
+  std::optional<int32_t> GetDeviceScaleFactor(int screen_id) const;
+
   // Returns the size of one screen owned by this DxgiAdapterDuplicator. `id`
   // should be between [0, screen_count()).
   DesktopRect ScreenRect(int id) const;
