@@ -50,10 +50,6 @@ Register64 CodeGeneratorX86Shared::ToOperandOrRegister64(
 }
 #endif
 
-void OutOfLineBailout::accept(CodeGeneratorX86Shared* codegen) {
-  codegen->visitOutOfLineBailout(this);
-}
-
 void CodeGeneratorX86Shared::emitBranch(Assembler::Condition cond,
                                         MBasicBlock* mirTrue,
                                         MBasicBlock* mirFalse) {
@@ -332,9 +328,36 @@ void CodeGenerator::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins) {
 
   Scalar::Type accessType = mir->accessType();
 
-  OutOfLineAsmJSLoadHeapOutOfBounds* ool = nullptr;
+  OutOfLineCode* ool = nullptr;
   if (mir->needsBoundsCheck()) {
-    ool = new (alloc()) OutOfLineAsmJSLoadHeapOutOfBounds(out, accessType);
+    ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+      switch (accessType) {
+        case Scalar::Int64:
+        case Scalar::BigInt64:
+        case Scalar::BigUint64:
+        case Scalar::Simd128:
+        case Scalar::Float16:
+        case Scalar::MaxTypedArrayViewType:
+          MOZ_CRASH("unexpected array type");
+        case Scalar::Float32:
+          masm.loadConstantFloat32(float(GenericNaN()), out.fpu());
+          break;
+        case Scalar::Float64:
+          masm.loadConstantDouble(GenericNaN(), out.fpu());
+          break;
+        case Scalar::Int8:
+        case Scalar::Uint8:
+        case Scalar::Int16:
+        case Scalar::Uint16:
+        case Scalar::Int32:
+        case Scalar::Uint32:
+        case Scalar::Uint8Clamped:
+          Register destReg = out.gpr();
+          masm.mov(ImmWord(0), destReg);
+          break;
+      }
+      masm.jmp(ool.rejoin());
+    });
     addOutOfLineCode(ool, mir);
 
     masm.wasmBoundsCheck32(Assembler::AboveOrEqual, ToRegister(ptr),
@@ -347,36 +370,6 @@ void CodeGenerator::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins) {
   if (ool) {
     masm.bind(ool->rejoin());
   }
-}
-
-void CodeGeneratorX86Shared::visitOutOfLineAsmJSLoadHeapOutOfBounds(
-    OutOfLineAsmJSLoadHeapOutOfBounds* ool) {
-  switch (ool->viewType()) {
-    case Scalar::Int64:
-    case Scalar::BigInt64:
-    case Scalar::BigUint64:
-    case Scalar::Simd128:
-    case Scalar::Float16:
-    case Scalar::MaxTypedArrayViewType:
-      MOZ_CRASH("unexpected array type");
-    case Scalar::Float32:
-      masm.loadConstantFloat32(float(GenericNaN()), ool->dest().fpu());
-      break;
-    case Scalar::Float64:
-      masm.loadConstantDouble(GenericNaN(), ool->dest().fpu());
-      break;
-    case Scalar::Int8:
-    case Scalar::Uint8:
-    case Scalar::Int16:
-    case Scalar::Uint16:
-    case Scalar::Int32:
-    case Scalar::Uint32:
-    case Scalar::Uint8Clamped:
-      Register destReg = ool->dest().gpr();
-      masm.mov(ImmWord(0), destReg);
-      break;
-  }
-  masm.jmp(ool->rejoin());
 }
 
 void CodeGenerator::visitAsmJSStoreHeap(LAsmJSStoreHeap* ins) {
@@ -533,7 +526,10 @@ void CodeGeneratorX86Shared::bailout(const T& binder, LSnapshot* snapshot) {
   // All bailout code is associated with the bytecodeSite of the block we are
   // bailing out from.
   InlineScriptTree* tree = snapshot->mir()->block()->trackedTree();
-  OutOfLineBailout* ool = new (alloc()) OutOfLineBailout(snapshot);
+  auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+    masm.push(Imm32(snapshot->snapshotOffset()));
+    masm.jmp(&deoptLabel_);
+  });
   addOutOfLineCode(ool,
                    new (alloc()) BytecodeSite(tree, tree->script()->code()));
 
@@ -561,11 +557,6 @@ void CodeGeneratorX86Shared::bailout(LSnapshot* snapshot) {
   Label label;
   masm.jump(&label);
   bailoutFrom(&label, snapshot);
-}
-
-void CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout* ool) {
-  masm.push(Imm32(ool->snapshot()->snapshotOffset()));
-  masm.jmp(&deoptLabel_);
 }
 
 void CodeGenerator::visitMinMaxD(LMinMaxD* ins) {
@@ -641,18 +632,38 @@ void CodeGenerator::visitPowHalfD(LPowHalfD* ins) {
   masm.bind(&done);
 }
 
-class OutOfLineUndoALUOperation
-    : public OutOfLineCodeBase<CodeGeneratorX86Shared> {
-  LInstruction* ins_;
+void CodeGeneratorX86Shared::emitUndoALUOperationOOL(LInstruction* ins) {
+  Register reg = ToRegister(ins->getDef(0));
 
- public:
-  explicit OutOfLineUndoALUOperation(LInstruction* ins) : ins_(ins) {}
+  DebugOnly<LAllocation*> lhs = ins->getOperand(0);
+  LAllocation* rhs = ins->getOperand(1);
 
-  virtual void accept(CodeGeneratorX86Shared* codegen) override {
-    codegen->visitOutOfLineUndoALUOperation(this);
+  MOZ_ASSERT(reg == ToRegister(lhs));
+  MOZ_ASSERT_IF(rhs->isGeneralReg(), reg != ToRegister(rhs));
+
+  // Undo the effect of the ALU operation, which was performed on the output
+  // register and overflowed. Writing to the output register clobbered an
+  // input reg, and the original value of the input needs to be recovered
+  // to satisfy the constraint imposed by any RECOVERED_INPUT operands to
+  // the bailout snapshot.
+
+  if (rhs->isConstant()) {
+    Imm32 constant(ToInt32(rhs));
+    if (ins->isAddI()) {
+      masm.subl(constant, reg);
+    } else {
+      masm.addl(constant, reg);
+    }
+  } else {
+    if (ins->isAddI()) {
+      masm.subl(ToOperand(rhs), reg);
+    } else {
+      masm.addl(ToOperand(rhs), reg);
+    }
   }
-  LInstruction* ins() const { return ins_; }
-};
+
+  bailout(ins->snapshot());
+}
 
 void CodeGenerator::visitAddI(LAddI* ins) {
   if (ins->rhs()->isConstant()) {
@@ -663,8 +674,8 @@ void CodeGenerator::visitAddI(LAddI* ins) {
 
   if (ins->snapshot()) {
     if (ins->recoversInput()) {
-      OutOfLineUndoALUOperation* ool =
-          new (alloc()) OutOfLineUndoALUOperation(ins);
+      auto* ool = new (alloc()) LambdaOutOfLineCode(
+          [=](OutOfLineCode& ool) { emitUndoALUOperationOOL(ins); });
       addOutOfLineCode(ool, ins->mir());
       masm.j(Assembler::Overflow, ool->entry());
     } else {
@@ -696,8 +707,8 @@ void CodeGenerator::visitSubI(LSubI* ins) {
 
   if (ins->snapshot()) {
     if (ins->recoversInput()) {
-      OutOfLineUndoALUOperation* ool =
-          new (alloc()) OutOfLineUndoALUOperation(ins);
+      auto* ool = new (alloc()) LambdaOutOfLineCode(
+          [=](OutOfLineCode& ool) { emitUndoALUOperationOOL(ins); });
       addOutOfLineCode(ool, ins->mir());
       masm.j(Assembler::Overflow, ool->entry());
     } else {
@@ -719,53 +730,6 @@ void CodeGenerator::visitSubI64(LSubI64* lir) {
 
   masm.sub64(ToOperandOrRegister64(rhs), ToRegister64(lhs));
 }
-
-void CodeGeneratorX86Shared::visitOutOfLineUndoALUOperation(
-    OutOfLineUndoALUOperation* ool) {
-  LInstruction* ins = ool->ins();
-  Register reg = ToRegister(ins->getDef(0));
-
-  DebugOnly<LAllocation*> lhs = ins->getOperand(0);
-  LAllocation* rhs = ins->getOperand(1);
-
-  MOZ_ASSERT(reg == ToRegister(lhs));
-  MOZ_ASSERT_IF(rhs->isGeneralReg(), reg != ToRegister(rhs));
-
-  // Undo the effect of the ALU operation, which was performed on the output
-  // register and overflowed. Writing to the output register clobbered an
-  // input reg, and the original value of the input needs to be recovered
-  // to satisfy the constraint imposed by any RECOVERED_INPUT operands to
-  // the bailout snapshot.
-
-  if (rhs->isConstant()) {
-    Imm32 constant(ToInt32(rhs));
-    if (ins->isAddI()) {
-      masm.subl(constant, reg);
-    } else {
-      masm.addl(constant, reg);
-    }
-  } else {
-    if (ins->isAddI()) {
-      masm.subl(ToOperand(rhs), reg);
-    } else {
-      masm.addl(ToOperand(rhs), reg);
-    }
-  }
-
-  bailout(ool->ins()->snapshot());
-}
-
-class MulNegativeZeroCheck : public OutOfLineCodeBase<CodeGeneratorX86Shared> {
-  LMulI* ins_;
-
- public:
-  explicit MulNegativeZeroCheck(LMulI* ins) : ins_(ins) {}
-
-  virtual void accept(CodeGeneratorX86Shared* codegen) override {
-    codegen->visitMulNegativeZeroCheck(this);
-  }
-  LMulI* ins() const { return ins_; }
-};
 
 void CodeGenerator::visitMulI(LMulI* ins) {
   const LAllocation* lhs = ins->lhs();
@@ -823,7 +787,21 @@ void CodeGenerator::visitMulI(LMulI* ins) {
 
     if (mul->canBeNegativeZero()) {
       // Jump to an OOL path if the result is 0.
-      MulNegativeZeroCheck* ool = new (alloc()) MulNegativeZeroCheck(ins);
+      auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+        Register result = ToRegister(ins->output());
+        Operand lhsCopy = ToOperand(ins->lhsCopy());
+        Operand rhs = ToOperand(ins->rhs());
+        MOZ_ASSERT_IF(lhsCopy.kind() == Operand::REG,
+                      lhsCopy.reg() != result.code());
+
+        // Result is -0 if lhs or rhs is negative.
+        masm.movl(lhsCopy, result);
+        masm.orl(rhs, result);
+        bailoutIf(Assembler::Signed, ins->snapshot());
+
+        masm.mov(ImmWord(0), result);
+        masm.jmp(ool.rejoin());
+      });
       addOutOfLineCode(ool, mul);
 
       masm.test32(ToRegister(lhs), ToRegister(lhs));
@@ -872,23 +850,6 @@ void CodeGenerator::visitMulI64(LMulI64* lir) {
   }
 }
 
-class ReturnZero : public OutOfLineCodeBase<CodeGeneratorX86Shared> {
-  Register reg_;
-
- public:
-  explicit ReturnZero(Register reg) : reg_(reg) {}
-
-  virtual void accept(CodeGeneratorX86Shared* codegen) override {
-    codegen->visitReturnZero(this);
-  }
-  Register reg() const { return reg_; }
-};
-
-void CodeGeneratorX86Shared::visitReturnZero(ReturnZero* ool) {
-  masm.mov(ImmWord(0), ool->reg());
-  masm.jmp(ool->rejoin());
-}
-
 void CodeGenerator::visitUDivOrMod(LUDivOrMod* ins) {
   Register lhs = ToRegister(ins->lhs());
   Register rhs = ToRegister(ins->rhs());
@@ -898,7 +859,7 @@ void CodeGenerator::visitUDivOrMod(LUDivOrMod* ins) {
   MOZ_ASSERT(rhs != edx);
   MOZ_ASSERT_IF(output == eax, ToRegister(ins->remainder()) == edx);
 
-  ReturnZero* ool = nullptr;
+  OutOfLineCode* ool = nullptr;
 
   // Put the lhs in eax.
   if (lhs != eax) {
@@ -915,7 +876,10 @@ void CodeGenerator::visitUDivOrMod(LUDivOrMod* ins) {
         masm.wasmTrap(wasm::Trap::IntegerDivideByZero, ins->trapSiteDesc());
         masm.bind(&nonZero);
       } else {
-        ool = new (alloc()) ReturnZero(output);
+        ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+          masm.mov(ImmWord(0), output);
+          masm.jmp(ool.rejoin());
+        });
         masm.j(Assembler::Zero, ool->entry());
       }
     } else {
@@ -1025,23 +989,6 @@ void CodeGenerator::visitUDivOrModConstant(LUDivOrModConstant* ins) {
     masm.cmpl(lhs, eax);
     bailoutIf(Assembler::NotEqual, ins->snapshot());
   }
-}
-
-void CodeGeneratorX86Shared::visitMulNegativeZeroCheck(
-    MulNegativeZeroCheck* ool) {
-  LMulI* ins = ool->ins();
-  Register result = ToRegister(ins->output());
-  Operand lhsCopy = ToOperand(ins->lhsCopy());
-  Operand rhs = ToOperand(ins->rhs());
-  MOZ_ASSERT_IF(lhsCopy.kind() == Operand::REG, lhsCopy.reg() != result.code());
-
-  // Result is -0 if lhs or rhs is negative.
-  masm.movl(lhsCopy, result);
-  masm.orl(rhs, result);
-  bailoutIf(Assembler::Signed, ins->snapshot());
-
-  masm.mov(ImmWord(0), result);
-  masm.jmp(ool->rejoin());
 }
 
 void CodeGenerator::visitDivPowTwoI(LDivPowTwoI* ins) {
@@ -1219,7 +1166,7 @@ void CodeGenerator::visitDivI(LDivI* ins) {
   MOZ_ASSERT(output == eax);
 
   Label done;
-  ReturnZero* ool = nullptr;
+  OutOfLineCode* ool = nullptr;
 
   // Put the lhs in eax, for either the negative overflow case or the regular
   // divide case.
@@ -1238,7 +1185,10 @@ void CodeGenerator::visitDivI(LDivI* ins) {
     } else if (mir->canTruncateInfinities()) {
       // Truncated division by zero is zero (Infinity|0 == 0)
       if (!ool) {
-        ool = new (alloc()) ReturnZero(output);
+        ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+          masm.mov(ImmWord(0), output);
+          masm.jmp(ool.rejoin());
+        });
       }
       masm.j(Assembler::Zero, ool->entry());
     } else {
@@ -1378,7 +1328,7 @@ void CodeGenerator::visitModI(LModI* ins) {
   MOZ_ASSERT(ToRegister(ins->temp0()) == eax);
 
   Label done;
-  ReturnZero* ool = nullptr;
+  OutOfLineCode* ool = nullptr;
   ModOverflowCheck* overflow = nullptr;
 
   // Set up eax in preparation for doing a div.
@@ -1399,7 +1349,10 @@ void CodeGenerator::visitModI(LModI* ins) {
         masm.bind(&nonZero);
       } else {
         if (!ool) {
-          ool = new (alloc()) ReturnZero(edx);
+          ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+            masm.mov(ImmWord(0), edx);
+            masm.jmp(ool.rejoin());
+          });
         }
         masm.j(Assembler::Zero, ool->entry());
       }
