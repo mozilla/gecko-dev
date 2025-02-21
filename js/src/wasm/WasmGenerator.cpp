@@ -525,15 +525,9 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
     }
   }
 
-  for (size_t i = 0; i < code.stackMaps.length(); i++) {
-    StackMaps::Maplet maplet = code.stackMaps.move(i);
-    maplet.offsetBy(offsetInModule);
-    if (!codeBlock_->stackMaps.add(maplet)) {
-      // This function is now the only owner of maplet.map, so we'd better
-      // free it right now.
-      maplet.map->destroy();
-      return false;
-    }
+  // Transfer all stackmaps with the offset in module.
+  if (!codeBlock_->stackMaps.appendAll(code.stackMaps, offsetInModule)) {
+    return false;
   }
 
   auto unwindInfoOp = [=](uint32_t, CodeRangeUnwindInfo* i) {
@@ -808,8 +802,7 @@ static void CheckCodeBlock(const CodeBlock& codeBlock) {
   }
 
   codeBlock.callSites.checkInvariants();
-  codeBlock.trapSites.checkInvariants(
-      (const uint8_t*)(codeBlock.segment->base()));
+  codeBlock.trapSites.checkInvariants(codeBlock.base());
 
   last = 0;
   for (const CodeRangeUnwindInfo& info : codeBlock.codeRangeUnwindInfos) {
@@ -826,18 +819,8 @@ static void CheckCodeBlock(const CodeBlock& codeBlock) {
     last = tryNote.tryBodyBegin();
   }
 
-  // Check that the stackmap vector is sorted with no duplicates, and each
-  // entry points to a plausible instruction.
-  const uint8_t* previousNextInsnAddr = nullptr;
-  for (size_t i = 0; i < codeBlock.stackMaps.length(); i++) {
-    const StackMaps::Maplet& maplet = codeBlock.stackMaps.get(i);
-    MOZ_ASSERT_IF(i > 0, uintptr_t(maplet.nextInsnAddr) >
-                             uintptr_t(previousNextInsnAddr));
-    previousNextInsnAddr = maplet.nextInsnAddr;
+  codeBlock.stackMaps.checkInvariants(codeBlock.base());
 
-    MOZ_ASSERT(IsPlausibleStackMapKey(maplet.nextInsnAddr),
-               "wasm stackmap does not reference a valid insn");
-  }
 #endif
 }
 
@@ -888,10 +871,6 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     return nullptr;
   }
 
-  // The stackmaps aren't yet sorted.  Do so now, since we'll need to
-  // binary-search them at GC time.
-  codeBlock_->stackMaps.finishAndSort();
-
   // The try notes also need to be sorted to simplify lookup.
   std::sort(codeBlock_->tryNotes.begin(), codeBlock_->tryNotes.end());
 
@@ -938,10 +917,6 @@ UniqueCodeBlock ModuleGenerator::finishCodeBlock(UniqueLinkData* linkData) {
     codeBlock_->codeBase = codeBlock_->segment->base();
     codeBlock_->codeLength = codeBlock_->segment->lengthBytes();
   }
-
-  // Add the segment base address to the stack map addresses.  See comments
-  // at the declaration of CodeBlock::funcToCodeRange for explanation.
-  codeBlock_->stackMaps.offsetBy(uintptr_t(codeBlock_->segment->base()));
 
   // Check that metadata is consistent with the actual code we generated,
   // linked, and loaded.
