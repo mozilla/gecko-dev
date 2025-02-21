@@ -115,6 +115,7 @@ XPCSHELL_TESTS_MANIFESTS += ["test/unit/xpcshell.toml"]
 
 EXTRA_JS_MODULES += [
     "AboutNewTab.sys.mjs",
+    "BrowserDOMWindow.sys.mjs",
     "BrowserUIUtils.sys.mjs",
     "BrowserUsageTelemetry.sys.mjs",
     "BrowserWindowTracker.sys.mjs",
