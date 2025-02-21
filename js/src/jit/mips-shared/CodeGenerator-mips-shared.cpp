@@ -77,10 +77,6 @@ void CodeGeneratorMIPSShared::branchToBlock(Assembler::FloatFormat fmt,
   }
 }
 
-void OutOfLineBailout::accept(CodeGeneratorMIPSShared* codegen) {
-  codegen->visitOutOfLineBailout(this);
-}
-
 bool CodeGeneratorMIPSShared::generateOutOfLineCode() {
   if (!CodeGeneratorShared::generateOutOfLineCode()) {
     return false;
@@ -110,8 +106,14 @@ void CodeGeneratorMIPSShared::bailoutFrom(Label* label, LSnapshot* snapshot) {
   encode(snapshot);
 
   InlineScriptTree* tree = snapshot->mir()->block()->trackedTree();
-  OutOfLineBailout* ool =
-      new (alloc()) OutOfLineBailout(snapshot, masm.framePushed());
+  auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+    // Push snapshotOffset and make sure stack is aligned.
+    masm.subPtr(Imm32(sizeof(Value)), StackPointer);
+    masm.storePtr(ImmWord(snapshot->snapshotOffset()),
+                  Address(StackPointer, 0));
+
+    masm.jump(&deoptLabel_);
+  });
   addOutOfLineCode(ool,
                    new (alloc()) BytecodeSite(tree, tree->script()->code()));
 
@@ -993,15 +995,6 @@ void CodeGenerator::visitWasmTruncateToInt32(LWasmTruncateToInt32* lir) {
   }
 
   masm.bind(ool->rejoin());
-}
-
-void CodeGeneratorMIPSShared::visitOutOfLineBailout(OutOfLineBailout* ool) {
-  // Push snapshotOffset and make sure stack is aligned.
-  masm.subPtr(Imm32(sizeof(Value)), StackPointer);
-  masm.storePtr(ImmWord(ool->snapshot()->snapshotOffset()),
-                Address(StackPointer, 0));
-
-  masm.jump(&deoptLabel_);
 }
 
 void CodeGeneratorMIPSShared::visitOutOfLineWasmTruncateCheck(

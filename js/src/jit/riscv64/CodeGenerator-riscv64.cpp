@@ -77,10 +77,6 @@ void CodeGeneratorRiscv64::branchToBlock(FloatFormat fmt, FloatRegister lhs,
   }
 }
 
-void OutOfLineBailout::accept(CodeGeneratorRiscv64* codegen) {
-  codegen->visitOutOfLineBailout(this);
-}
-
 MoveOperand CodeGeneratorRiscv64::toMoveOperand(LAllocation a) const {
   if (a.isGeneralReg()) {
     return MoveOperand(ToRegister(a));
@@ -103,7 +99,14 @@ void CodeGeneratorRiscv64::bailoutFrom(Label* label, LSnapshot* snapshot) {
   encode(snapshot);
 
   InlineScriptTree* tree = snapshot->mir()->block()->trackedTree();
-  OutOfLineBailout* ool = new (alloc()) OutOfLineBailout(snapshot);
+  auto* ool = new (alloc()) LambdaOutOfLineCode([=](OutOfLineCode& ool) {
+    // Push snapshotOffset and make sure stack is aligned.
+    masm.subPtr(Imm32(sizeof(Value)), StackPointer);
+    masm.storePtr(ImmWord(snapshot->snapshotOffset()),
+                  Address(StackPointer, 0));
+
+    masm.jump(&deoptLabel_);
+  });
   addOutOfLineCode(ool,
                    new (alloc()) BytecodeSite(tree, tree->script()->code()));
 
@@ -249,15 +252,6 @@ void CodeGeneratorRiscv64::generateInvalidateEpilogue() {
   TrampolinePtr thunk = gen->jitRuntime()->getInvalidationThunk();
 
   masm.jump(thunk);
-}
-
-void CodeGeneratorRiscv64::visitOutOfLineBailout(OutOfLineBailout* ool) {
-  // Push snapshotOffset and make sure stack is aligned.
-  masm.subPtr(Imm32(sizeof(Value)), StackPointer);
-  masm.storePtr(ImmWord(ool->snapshot()->snapshotOffset()),
-                Address(StackPointer, 0));
-
-  masm.jump(&deoptLabel_);
 }
 
 void CodeGeneratorRiscv64::visitOutOfLineTableSwitch(

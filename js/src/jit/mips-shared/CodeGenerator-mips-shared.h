@@ -13,7 +13,6 @@ namespace js {
 namespace jit {
 
 class CodeGeneratorMIPSShared;
-class OutOfLineBailout;
 class OutOfLineTableSwitch;
 
 using OutOfLineWasmTruncateCheck =
@@ -123,24 +122,8 @@ class CodeGeneratorMIPSShared : public CodeGeneratorShared {
 
  public:
   // Out of line visitors.
-  void visitOutOfLineBailout(OutOfLineBailout* ool);
   void visitOutOfLineTableSwitch(OutOfLineTableSwitch* ool);
   void visitOutOfLineWasmTruncateCheck(OutOfLineWasmTruncateCheck* ool);
-};
-
-// An out-of-line bailout thunk.
-class OutOfLineBailout : public OutOfLineCodeBase<CodeGeneratorMIPSShared> {
- protected:
-  LSnapshot* snapshot_;
-  uint32_t frameSize_;
-
- public:
-  OutOfLineBailout(LSnapshot* snapshot, uint32_t frameSize)
-      : snapshot_(snapshot), frameSize_(frameSize) {}
-
-  void accept(CodeGeneratorMIPSShared* codegen) override;
-
-  LSnapshot* snapshot() const { return snapshot_; }
 };
 
 }  // namespace jit
