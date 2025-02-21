@@ -7,6 +7,7 @@
 #ifndef jit_StackSlotAllocator_h
 #define jit_StackSlotAllocator_h
 
+#include "jit/LIR.h"
 #include "jit/Registers.h"
 
 namespace js {
@@ -80,47 +81,13 @@ class StackSlotAllocator {
     alloc->setBase(height_);
   }
 
-  static uint32_t width(LDefinition::Type type) {
-    switch (type) {
-#if JS_BITS_PER_WORD == 32
-      case LDefinition::GENERAL:
-      case LDefinition::OBJECT:
-      case LDefinition::SLOTS:
-      case LDefinition::WASM_ANYREF:
-#endif
-#ifdef JS_NUNBOX32
-      case LDefinition::TYPE:
-      case LDefinition::PAYLOAD:
-#endif
-      case LDefinition::INT32:
-      case LDefinition::FLOAT32:
-        return 4;
-#if JS_BITS_PER_WORD == 64
-      case LDefinition::GENERAL:
-      case LDefinition::OBJECT:
-      case LDefinition::SLOTS:
-      case LDefinition::WASM_ANYREF:
-#endif
-#ifdef JS_PUNBOX64
-      case LDefinition::BOX:
-#endif
-      case LDefinition::DOUBLE:
-        return 8;
-      case LDefinition::SIMD128:
-        return 16;
-      case LDefinition::STACKRESULTS:
-        MOZ_CRASH("Stack results area must be allocated manually");
-    }
-    MOZ_CRASH("Unknown slot type");
-  }
-
-  uint32_t allocateSlot(LDefinition::Type type) {
-    switch (width(type)) {
-      case 4:
+  uint32_t allocateSlot(LStackSlot::Width width) {
+    switch (width) {
+      case LStackSlot::Word:
         return allocateSlot();
-      case 8:
+      case LStackSlot::DoubleWord:
         return allocateDoubleSlot();
-      case 16:
+      case LStackSlot::QuadWord:
         return allocateQuadSlot();
     }
     MOZ_CRASH("Unknown slot width");

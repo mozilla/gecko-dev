@@ -392,10 +392,51 @@ class LConstantIndex : public LAllocation {
 
 // Stack slots are indices into the stack. The indices are byte indices.
 class LStackSlot : public LAllocation {
- public:
-  explicit LStackSlot(uint32_t slot) : LAllocation(STACK_SLOT, slot) {}
+  // Stack slots are aligned to 32-bit word boundaries.
+  static constexpr uint32_t SLOT_ALIGNMENT = 4;
 
-  uint32_t slot() const { return data(); }
+  // Stack slot width is stored in the two least significant bits.
+  static constexpr uint32_t WIDTH_MASK = SLOT_ALIGNMENT - 1;
+
+  // Remaining bits hold the stack slot offset.
+  static constexpr uint32_t SLOT_MASK = ~WIDTH_MASK;
+
+ public:
+  enum Width {
+    Word,
+    DoubleWord,
+    QuadWord,
+  };
+
+  LStackSlot(uint32_t slot, Width width)
+      : LAllocation(STACK_SLOT, slotAndWidth(slot, width)) {}
+
+  uint32_t slot() const { return data() & SLOT_MASK; }
+
+  Width width() const { return Width(data() & WIDTH_MASK); }
+
+  // |Type| is LDefinition::Type, but can't forward declare a nested definition.
+  template <typename Type>
+  static Width width(Type type);
+
+  static uint32_t ByteWidth(Width width) {
+    switch (width) {
+      case Width::Word:
+        return 4;
+      case Width::DoubleWord:
+        return 8;
+      case Width::QuadWord:
+        return 16;
+    }
+    MOZ_CRASH("invalid width");
+  }
+
+ private:
+  static uint32_t slotAndWidth(uint32_t slot, Width width) {
+    MOZ_ASSERT(slot % SLOT_ALIGNMENT == 0);
+    MOZ_ASSERT(uint32_t(width) < SLOT_ALIGNMENT);
+    return slot | uint32_t(width);
+  }
 };
 
 // Stack area indicates a contiguous stack allocation meant to receive call
@@ -688,6 +729,41 @@ class LInt64Definition : public LInt64Value<LDefinition> {
 #endif
   }
 };
+
+template <>
+inline LStackSlot::Width LStackSlot::width(LDefinition::Type type) {
+  switch (type) {
+#if JS_BITS_PER_WORD == 32
+    case LDefinition::GENERAL:
+    case LDefinition::OBJECT:
+    case LDefinition::SLOTS:
+    case LDefinition::WASM_ANYREF:
+#endif
+#ifdef JS_NUNBOX32
+    case LDefinition::TYPE:
+    case LDefinition::PAYLOAD:
+#endif
+    case LDefinition::INT32:
+    case LDefinition::FLOAT32:
+      return LStackSlot::Word;
+#if JS_BITS_PER_WORD == 64
+    case LDefinition::GENERAL:
+    case LDefinition::OBJECT:
+    case LDefinition::SLOTS:
+    case LDefinition::WASM_ANYREF:
+#endif
+#ifdef JS_PUNBOX64
+    case LDefinition::BOX:
+#endif
+    case LDefinition::DOUBLE:
+      return LStackSlot::DoubleWord;
+    case LDefinition::SIMD128:
+      return LStackSlot::QuadWord;
+    case LDefinition::STACKRESULTS:
+      MOZ_CRASH("Stack results area must be allocated manually");
+  }
+  MOZ_CRASH("Unknown slot type");
+}
 
 // Forward declarations of LIR types.
 #define LIROP(op) class L##op;

@@ -438,6 +438,9 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
 
       MOZ_DIAGNOSTIC_ASSERT(payload->isMemory() || payload->isRegister());
       if (payload->isMemory()) {
+        MOZ_ASSERT_IF(payload->isStackSlot(),
+                      payload->toStackSlot()->width() ==
+                          LStackSlot::width(LDefinition::TypeFrom(type)));
         alloc = RValueAllocation::Typed(valueType, ToStackIndex(payload));
       } else if (payload->isGeneralReg()) {
         alloc = RValueAllocation::Typed(valueType, ToRegister(payload));
@@ -464,6 +467,9 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       if (payload->isFloatReg()) {
         alloc = RValueAllocation::AnyFloat(ToFloatRegister(payload));
       } else {
+        MOZ_ASSERT_IF(payload->isStackSlot(),
+                      payload->toStackSlot()->width() ==
+                          LStackSlot::width(LDefinition::TypeFrom(type)));
         alloc = RValueAllocation::AnyFloat(ToStackIndex(payload));
       }
       break;
@@ -496,6 +502,9 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       if (payload->isGeneralReg()) {
         alloc = RValueAllocation::IntPtr(ToRegister(payload));
       } else {
+        MOZ_ASSERT_IF(payload->isStackSlot(),
+                      payload->toStackSlot()->width() ==
+                          LStackSlot::width(LDefinition::GENERAL));
         alloc = RValueAllocation::IntPtr(ToStackIndex(payload));
       }
       break;
@@ -546,6 +555,13 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       LAllocation* type = snapshot->typeOfSlot(*allocIndex);
       MOZ_ASSERT(type->isMemory() || type->isRegister());
 
+      MOZ_ASSERT_IF(payload->isStackSlot(),
+                    payload->toStackSlot()->width() ==
+                        LStackSlot::width(LDefinition::GENERAL));
+      MOZ_ASSERT_IF(type->isStackSlot(),
+                    type->toStackSlot()->width() ==
+                        LStackSlot::width(LDefinition::GENERAL));
+
       if (payload->isRegister()) {
         if (type->isRegister()) {
           alloc =
@@ -567,6 +583,9 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       if (payload->isRegister()) {
         alloc = RValueAllocation::Int64(ToRegister(payload));
       } else {
+        MOZ_ASSERT_IF(payload->isStackSlot(),
+                      payload->toStackSlot()->width() ==
+                          LStackSlot::width(LDefinition::GENERAL));
         alloc = RValueAllocation::Int64(ToStackIndex(payload));
       }
 #endif

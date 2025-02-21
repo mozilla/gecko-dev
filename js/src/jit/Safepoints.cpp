@@ -541,7 +541,7 @@ static inline LAllocation PartFromStream(CompactBufferReader& stream,
   }
 
   if (kind == Part_Stack) {
-    return LStackSlot(info);
+    return LStackSlot(info, LStackSlot::Word);
   }
 
   MOZ_ASSERT(kind == Part_Arg);

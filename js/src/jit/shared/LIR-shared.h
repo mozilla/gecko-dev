@@ -937,7 +937,14 @@ inline void LStackArea::ResultIterator::next() {
 inline LAllocation LStackArea::ResultIterator::alloc() const {
   MOZ_ASSERT(!done());
   MWasmStackResultArea* area = alloc_.ins()->toWasmStackResultArea()->mir();
-  return LStackSlot(area->base() - area->result(idx_).offset());
+  const auto& stackResult = area->result(idx_);
+  MIRType type = stackResult.type();
+  auto width =
+#ifndef JS_PUNBOX64
+      type == MIRType::Int64 ? LStackSlot::DoubleWord :
+#endif
+                             LStackSlot::width(LDefinition::TypeFrom(type));
+  return LStackSlot(area->base() - stackResult.offset(), width);
 }
 inline bool LStackArea::ResultIterator::isWasmAnyRef() const {
   MOZ_ASSERT(!done());
@@ -961,7 +968,8 @@ class LWasmStackResult : public LInstructionHelper<1, 1, 0> {
 
   MWasmStackResult* mir() const { return mir_->toWasmStackResult(); }
   LStackSlot result(uint32_t base) const {
-    return LStackSlot(base - mir()->result().offset());
+    auto width = LStackSlot::width(LDefinition::TypeFrom(mir()->type()));
+    return LStackSlot(base - mir()->result().offset(), width);
   }
 };
 
@@ -984,7 +992,7 @@ class LWasmStackResult64 : public LInstructionHelper<INT64_PIECES, 1, 0> {
 #else
     MOZ_ASSERT(def == getDef(0));
 #endif
-    return LStackSlot(offset);
+    return LStackSlot(offset, LStackSlot::DoubleWord);
   }
 };
 

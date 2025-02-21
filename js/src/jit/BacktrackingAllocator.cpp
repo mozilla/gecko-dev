@@ -2095,7 +2095,7 @@ static bool CanMergeTypesInBundle(LDefinition::Type a, LDefinition::Type b) {
 
   // Only merge if the sizes match, so that we don't get confused about the
   // width of spill slots.
-  return StackSlotAllocator::width(a) == StackSlotAllocator::width(b);
+  return LStackSlot::width(a) == LStackSlot::width(b);
 }
 
 // Helper for ::tryMergeReusedRegister
@@ -3892,14 +3892,14 @@ bool BacktrackingAllocator::pickStackSlot(SpillSet* spillSet) {
       spillSet->spilledBundle(0)->firstRange()->vreg().type();
 
   SpillSlotList* slotList;
-  switch (StackSlotAllocator::width(type)) {
-    case 4:
+  switch (LStackSlot::width(type)) {
+    case LStackSlot::Word:
       slotList = &normalSlots;
       break;
-    case 8:
+    case LStackSlot::DoubleWord:
       slotList = &doubleSlots;
       break;
-    case 16:
+    case LStackSlot::QuadWord:
       slotList = &quadSlots;
       break;
     default:
@@ -3963,10 +3963,11 @@ bool BacktrackingAllocator::pickStackSlot(SpillSet* spillSet) {
   }
 
   // We need a new physical stack slot.
-  uint32_t stackSlot = stackSlotAllocator.allocateSlot(type);
+  LStackSlot::Width width = LStackSlot::width(type);
+  uint32_t stackSlot = stackSlotAllocator.allocateSlot(width);
 
   SpillSlot* spillSlot =
-      new (alloc().fallible()) SpillSlot(stackSlot, alloc().lifoAlloc());
+      new (alloc().fallible()) SpillSlot(stackSlot, width, alloc().lifoAlloc());
   if (!spillSlot) {
     return false;
   }
