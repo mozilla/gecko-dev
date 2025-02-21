@@ -104,8 +104,7 @@ export class GroupsPanel {
     );
 
     let totalItemCount = savedGroups.length + openGroups.length;
-    let showAll = this.#showAll || totalItemCount <= MAX_INITIAL_ITEMS;
-    if (totalItemCount && !showAll) {
+    if (totalItemCount && !this.#showAll) {
       let header = this.doc.createElement("h2");
       header.setAttribute("class", "subview-subheader");
       this.doc.l10n.setAttributes(
@@ -115,9 +114,10 @@ export class GroupsPanel {
       fragment.appendChild(header);
     }
 
-    let itemCount = 1; // Start with 1 to account for "show more" button
+    let addShowAllButton = !this.#showAll && totalItemCount > MAX_INITIAL_ITEMS;
+    let itemCount = addShowAllButton ? 1 : 0;
     for (let groupData of openGroups) {
-      if (itemCount >= MAX_INITIAL_ITEMS && !showAll) {
+      if (itemCount >= MAX_INITIAL_ITEMS && !this.#showAll) {
         break;
       }
       itemCount++;
@@ -130,7 +130,7 @@ export class GroupsPanel {
     }
 
     for (let groupData of savedGroups) {
-      if (itemCount >= MAX_INITIAL_ITEMS && !showAll) {
+      if (itemCount >= MAX_INITIAL_ITEMS && !this.#showAll) {
         break;
       }
       itemCount++;
@@ -143,7 +143,7 @@ export class GroupsPanel {
       fragment.appendChild(row);
     }
 
-    if (!showAll) {
+    if (addShowAllButton) {
       let button = this.doc.createXULElement("toolbarbutton");
       button.setAttribute("id", "allTabsMenu-groupsViewShowMore");
       button.setAttribute("class", "subviewbutton subviewbutton-nav");
