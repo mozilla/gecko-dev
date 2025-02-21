@@ -18,9 +18,16 @@ all-tabs-menu-close-all-duplicate-tabs =
 all-tabs-menu-synced-tabs =
   .label = Tabs from other devices
 
-all-tabs-menu-current-window-header = Current window
+# "Recent" refers to tab groups being sorted in recently used order. We show up
+# to five of these in this section.
+all-tabs-menu-recent-tab-groups-header = Recent tab groups
 
-# "Show all" is for showing all open groups as well as saved groups. Initially,
-# we only show up to five of these groups.
+# This opens the sub view listing _all_ open and saved tab groups.
 all-tabs-menu-tab-groups-show-all =
   .label = Show all
+
+# This is header for the sub view listing _all_ open and saved tab groups.
+all-tabs-menu-tab-groups-sub-view =
+  .title = Tab groups
+
+all-tabs-menu-current-window-header = Current window

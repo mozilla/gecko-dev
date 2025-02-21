@@ -212,8 +212,6 @@ tabbrowser-manager-current-window-tab-group =
 
 ## Tab Groups
 
-tab-group-menu-header = Tab groups
-
 tab-group-name-default = Unnamed Group
 tab-group-editor-title-create = Create tab group
 tab-group-editor-title-edit = Manage tab group

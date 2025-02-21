@@ -104,14 +104,17 @@ export class GroupsPanel {
     );
 
     let totalItemCount = savedGroups.length + openGroups.length;
-    if (totalItemCount) {
+    let showAll = this.#showAll || totalItemCount <= MAX_INITIAL_ITEMS;
+    if (totalItemCount && !showAll) {
       let header = this.doc.createElement("h2");
       header.setAttribute("class", "subview-subheader");
-      this.doc.l10n.setAttributes(header, "tab-group-menu-header");
+      this.doc.l10n.setAttributes(
+        header,
+        "all-tabs-menu-recent-tab-groups-header"
+      );
       fragment.appendChild(header);
     }
 
-    let showAll = this.#showAll || totalItemCount <= MAX_INITIAL_ITEMS;
     let itemCount = 1; // Start with 1 to account for "show more" button
     for (let groupData of openGroups) {
       if (itemCount >= MAX_INITIAL_ITEMS && !showAll) {
