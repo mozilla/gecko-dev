@@ -1677,6 +1677,8 @@ void DCSurfaceVideo::PresentVideo() {
 
   const auto device = mDCLayerTree->GetDevice();
   HRESULT hr;
+
+  auto start = TimeStamp::Now();
   if (mFirstPresent) {
     mFirstPresent = false;
     UINT flags = DXGI_PRESENT_USE_DURATION;
@@ -1735,7 +1737,6 @@ void DCSurfaceVideo::PresentVideo() {
     interval = 0;
   }
 
-  auto start = TimeStamp::Now();
   hr = mVideoSwapChain->Present(interval, flags);
   auto end = TimeStamp::Now();
 
@@ -1766,9 +1767,6 @@ void DCSurfaceVideo::PresentVideo() {
     mRenderTextureHostUsageInfo->OnVideoPresent(mDCLayerTree->GetFrameId(),
                                                 presentDurationMs);
   }
-
-  // printf_stderr("DCSurfaceVideo::PresentVideo() 5 presentDurationMs %u\n",
-  // presentDurationMs);
 }
 
 void DCSurfaceVideo::OnCompositorEndFrame(int aFrameId, uint32_t aDurationMs) {
