@@ -110,7 +110,10 @@ class FuncType {
  public:
   FuncType() = default;
   FuncType(ValTypeVector&& args, ValTypeVector&& results)
-      : args_(std::move(args)), results_(std::move(results)) {}
+      : args_(std::move(args)), results_(std::move(results)) {
+    MOZ_ASSERT(args_.length() <= MaxParams);
+    MOZ_ASSERT(results_.length() <= MaxResults);
+  }
 
   FuncType(FuncType&&) = default;
   FuncType& operator=(FuncType&&) = default;
@@ -320,7 +323,9 @@ class StructType {
   StructType() : size_(0), isDefaultable_(false) {}
 
   explicit StructType(FieldTypeVector&& fields)
-      : fields_(std::move(fields)), size_(0) {}
+      : fields_(std::move(fields)), size_(0) {
+    MOZ_ASSERT(fields_.length() <= MaxStructFields);
+  }
 
   StructType(StructType&&) = default;
   StructType& operator=(StructType&&) = default;
@@ -990,6 +995,8 @@ class RecGroup : public AtomicRefCounted<RecGroup> {
       switch (typeDef.kind()) {
         case TypeDefKind::Func: {
           const FuncType& funcType = typeDef.funcType();
+          MOZ_RELEASE_ASSERT(funcType.args().length() <= MaxParams);
+          MOZ_RELEASE_ASSERT(funcType.results().length() <= MaxResults);
           for (auto type : funcType.args()) {
             visitValType(type);
           }
@@ -1000,6 +1007,7 @@ class RecGroup : public AtomicRefCounted<RecGroup> {
         }
         case TypeDefKind::Struct: {
           const StructType& structType = typeDef.structType();
+          MOZ_RELEASE_ASSERT(structType.fields_.length() <= MaxStructFields);
           for (const auto& field : structType.fields_) {
             visitStorageType(field.type);
           }

@@ -4067,6 +4067,11 @@ bool WasmFunctionConstruct(JSContext* cx, unsigned argc, Value* vp) {
   if (!ParseValTypes(cx, parametersVal, params)) {
     return false;
   }
+  if (params.length() > MaxParams) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_FUNCTION_TYPE, "parameters");
+    return false;
+  }
 
   RootedValue resultsVal(cx);
   if (!JS_GetProperty(cx, typeObj, "results", &resultsVal)) {
@@ -4075,6 +4080,11 @@ bool WasmFunctionConstruct(JSContext* cx, unsigned argc, Value* vp) {
 
   ValTypeVector results;
   if (!ParseValTypes(cx, resultsVal, results)) {
+    return false;
+  }
+  if (results.length() > MaxResults) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_FUNCTION_TYPE, "results");
     return false;
   }
 

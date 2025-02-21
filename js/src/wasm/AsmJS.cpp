@@ -2082,10 +2082,6 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
   }
   bool declareImport(TaggedParserAtomIndex name, FuncType&& sig,
                      unsigned ffiIndex, uint32_t* importIndex) {
-    if (sig.args().length() > MaxParams) {
-      return failCurrentOffset("too many parameters");
-    }
-
     FuncImportMap::AddPtr p =
         funcImportMap_.lookupForAdd(NamedSig::Lookup(name, sig));
     if (p) {
@@ -3271,6 +3267,10 @@ static bool CheckArguments(FunctionValidatorShared& f, ParseNode** stmtIter,
     }
   }
 
+  if (argTypes->length() > MaxParams) {
+    return f.fail(stmt, "too many parameters");
+  }
+
   *stmtIter = stmt;
   return true;
 }
@@ -3991,6 +3991,9 @@ static bool CheckCallArgs(FunctionValidator<Unit>& f, ParseNode* callNode,
       return false;
     }
   }
+  if (args->length() > MaxParams) {
+    return f.fail(callNode, "too many parameters");
+  }
   return true;
 }
 
@@ -4007,10 +4010,6 @@ template <typename Unit>
 static bool CheckFunctionSignature(ModuleValidator<Unit>& m, ParseNode* usepn,
                                    FuncType&& sig, TaggedParserAtomIndex name,
                                    ModuleValidatorShared::Func** func) {
-  if (sig.args().length() > MaxParams) {
-    return m.failf(usepn, "too many parameters");
-  }
-
   ModuleValidatorShared::Func* existing = m.lookupFuncDef(name);
   if (!existing) {
     if (!CheckModuleLevelName(m, usepn, name)) {
