@@ -1474,7 +1474,24 @@ TEST_F(DataChannelIntegrationTestUnifiedPlan,
       IsRtcOk());
 }
 
-TEST_F(DataChannelIntegrationTestUnifiedPlan, DtlsRestart) {
+class DataChannelIntegrationTestUnifiedPlanFieldTrials
+    : public DataChannelIntegrationTestUnifiedPlan,
+      public ::testing::WithParamInterface<
+          std::tuple</* callee-DTLS-active=*/bool, std::string>> {
+ protected:
+  DataChannelIntegrationTestUnifiedPlanFieldTrials() {
+    SetFieldTrials(std::get<1>(GetParam()));
+  }
+
+ private:
+};
+
+INSTANTIATE_TEST_SUITE_P(DataChannelIntegrationTestUnifiedPlanFieldTrials,
+                         DataChannelIntegrationTestUnifiedPlanFieldTrials,
+                         Combine(testing::Bool(),
+                                 Values("", "WebRTC-ForceDtls13/Enabled/")));
+
+TEST_P(DataChannelIntegrationTestUnifiedPlanFieldTrials, DtlsRestart) {
   RTCConfiguration config;
   ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
   PeerConnectionDependencies dependencies(nullptr);
@@ -1486,6 +1503,12 @@ TEST_F(DataChannelIntegrationTestUnifiedPlan, DtlsRestart) {
                                              std::move(dependencies), nullptr,
                                              /*reset_encoder_factory=*/false,
                                              /*reset_decoder_factory=*/false);
+
+  if (std::get<0>(GetParam())) {
+    callee()->SetReceivedSdpMunger(MakeActiveSctpOffer);
+    callee2->SetReceivedSdpMunger(MakeActiveSctpOffer);
+  }
+
   ConnectFakeSignaling();
 
   DataChannelInit dc_init;
