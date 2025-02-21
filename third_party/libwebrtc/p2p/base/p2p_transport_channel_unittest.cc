@@ -7448,8 +7448,12 @@ class P2PTransportChannelTestDtlsInStun : public P2PTransportChannelTestBase {
     if (ep2_support) {
       ep2_ch1()->SetDtlsDataToPiggyback(dtls_data);
     }
-    EXPECT_TRUE_SIMULATED_WAIT(CheckConnected(ep1_ch1(), ep2_ch1()),
-                               kDefaultTimeout, clock_);
+    EXPECT_THAT(
+        webrtc::WaitUntil(
+            [&] { return CheckConnected(ep1_ch1(), ep2_ch1()); }, IsTrue(),
+            {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout),
+             .clock = &clock_}),
+        webrtc::IsRtcOk());
   }
 
   rtc::ScopedFakeClock clock_;

@@ -17,6 +17,8 @@
 #include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
+#include "api/units/time_delta.h"
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_transport_channel.h"
@@ -26,7 +28,6 @@
 #include "p2p/dtls/dtls_transport.h"
 #include "rtc_base/fake_clock.h"
 #include "rtc_base/fake_network.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/ssl_fingerprint.h"
@@ -35,7 +36,9 @@
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 namespace {
 constexpr int kDefaultTimeout = 10000;
@@ -55,6 +58,8 @@ void SetRemoteFingerprintFromCert(
 }  // namespace
 
 namespace cricket {
+
+using ::testing::IsTrue;
 
 class DtlsIceIntegrationTest
     : public ::testing::TestWithParam<std::tuple<bool, bool>>,
@@ -172,8 +177,13 @@ TEST_P(DtlsIceIntegrationTest, SmokeTest) {
   server_ice_->MaybeStartGathering();
 
   // Note: this only reaches the pending piggybacking state.
-  EXPECT_TRUE_SIMULATED_WAIT(client_dtls_.writable() && server_dtls_.writable(),
-                             kDefaultTimeout, fake_clock_);
+  EXPECT_THAT(
+      webrtc::WaitUntil(
+          [&] { return client_dtls_.writable() && server_dtls_.writable(); },
+          IsTrue(),
+          {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout),
+           .clock = &fake_clock_}),
+      webrtc::IsRtcOk());
   EXPECT_EQ(client_ice_->IsDtlsPiggybackSupportedByPeer(),
             client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
   EXPECT_EQ(server_ice_->IsDtlsPiggybackSupportedByPeer(),

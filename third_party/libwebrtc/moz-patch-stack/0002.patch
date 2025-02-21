@@ -92,10 +92,10 @@ index ac0042ebc4..b3e25c6c5b 100644
    return output_codecs;
  }
 diff --git a/pc/sdp_offer_answer_unittest.cc b/pc/sdp_offer_answer_unittest.cc
-index 1546db04d5..ba3c9a81e3 100644
+index 3eb61ac44e..f60565e008 100644
 --- a/pc/sdp_offer_answer_unittest.cc
 +++ b/pc/sdp_offer_answer_unittest.cc
-@@ -649,7 +649,8 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {
+@@ -653,7 +653,8 @@ TEST_F(SdpOfferAnswerTest, SimulcastAnswerWithNoRidsIsRejected) {
    EXPECT_TRUE(pc->SetRemoteDescription(std::move(rejected_answer)));
  }
  

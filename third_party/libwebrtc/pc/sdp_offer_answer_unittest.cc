@@ -32,7 +32,9 @@
 #include "api/rtp_transceiver_direction.h"
 #include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
+#include "api/test/rtc_error_matchers.h"
 #include "api/uma_metrics.h"
+#include "api/units/time_delta.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_decoder_factory_template.h"
 #include "api/video_codecs/video_decoder_factory_template_dav1d_adapter.h"
@@ -54,12 +56,12 @@
 #include "pc/test/fake_rtc_certificate_generator.h"
 #include "pc/test/integration_test_helpers.h"
 #include "pc/test/mock_peer_connection_observers.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/metrics.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/wait_until.h"
 
 // This file contains unit tests that relate to the behavior of the
 // SdpOfferAnswer module.
@@ -69,6 +71,8 @@
 
 namespace webrtc {
 
+using ::testing::Eq;
+using ::testing::IsTrue;
 using RTCConfiguration = PeerConnectionInterface::RTCConfiguration;
 using ::testing::ElementsAre;
 using ::testing::Pair;
@@ -1555,18 +1559,30 @@ TEST_F(SdpOfferAnswerMungingTest, DISABLED_ReportUMAMetricsWithNoMunging) {
       metrics::Samples("WebRTC.PeerConnection.SdpMunging.Answer.Initial"),
       ElementsAre(Pair(SdpMungingType::kNoModification, 1)));
 
-  EXPECT_TRUE_WAIT(caller->IsIceGatheringDone(), kDefaultTimeout);
-  EXPECT_TRUE_WAIT(callee->IsIceGatheringDone(), kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return caller->IsIceGatheringDone(); }, IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
+      IsRtcOk());
+  EXPECT_THAT(
+      WaitUntil([&] { return callee->IsIceGatheringDone(); }, IsTrue(),
+                {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
+      IsRtcOk());
   for (const auto& candidate : caller->observer()->GetAllCandidates()) {
     callee->pc()->AddIceCandidate(candidate);
   }
   for (const auto& candidate : callee->observer()->GetAllCandidates()) {
     caller->pc()->AddIceCandidate(candidate);
   }
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnected,
-                 caller->pc()->peer_connection_state(), kDefaultTimeout);
-  EXPECT_EQ_WAIT(PeerConnectionInterface::PeerConnectionState::kConnected,
-                 callee->pc()->peer_connection_state(), kDefaultTimeout);
+  EXPECT_THAT(
+      WaitUntil([&] { return caller->pc()->peer_connection_state(); },
+                Eq(PeerConnectionInterface::PeerConnectionState::kConnected),
+                {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
+      IsRtcOk());
+  EXPECT_THAT(
+      WaitUntil([&] { return callee->pc()->peer_connection_state(); },
+                Eq(PeerConnectionInterface::PeerConnectionState::kConnected),
+                {.timeout = webrtc::TimeDelta::Millis(kDefaultTimeout)}),
+      IsRtcOk());
 
   caller->pc()->Close();
   callee->pc()->Close();
