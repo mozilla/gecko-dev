@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -65,17 +66,19 @@ fun Collections(
                 val lastId = collection.tabs.last().id
 
                 for (tab in collection.tabs) {
-                    CollectionItem(
-                        tab = tab,
-                        isLastInCollection = tab.id == lastId,
-                        onClick = { interactor.onCollectionOpenTabClicked(tab) },
-                        onRemove = {
-                            interactor.onCollectionRemoveTab(
-                                collection = collection,
-                                tab = tab,
-                            )
-                        },
-                    )
+                    key(tab.id) {
+                        CollectionItem(
+                            tab = tab,
+                            isLastInCollection = tab.id == lastId,
+                            onClick = { interactor.onCollectionOpenTabClicked(tab) },
+                            onRemove = {
+                                interactor.onCollectionRemoveTab(
+                                    collection = collection,
+                                    tab = tab,
+                                )
+                            },
+                        )
+                    }
                 }
             }
         }
