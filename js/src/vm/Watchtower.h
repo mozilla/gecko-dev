@@ -43,7 +43,9 @@ class Watchtower {
   static bool watchPropertyModificationSlow(
       JSContext* cx,
       typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
-      typename MaybeRooted<PropertyKey, allowGC>::HandleType id);
+      typename MaybeRooted<PropertyKey, allowGC>::HandleType id,
+      typename MaybeRooted<Value, allowGC>::HandleType value,
+      PropertyInfo propInfo);
   static bool watchFreezeOrSealSlow(JSContext* cx, Handle<NativeObject*> obj,
                                     IntegrityLevel level);
   static bool watchProtoChangeSlow(JSContext* cx, HandleObject obj);
@@ -113,11 +115,13 @@ class Watchtower {
   static bool watchPropertyModification(
       JSContext* cx,
       typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
-      typename MaybeRooted<PropertyKey, allowGC>::HandleType id) {
+      typename MaybeRooted<PropertyKey, allowGC>::HandleType id,
+      typename MaybeRooted<Value, allowGC>::HandleType value,
+      PropertyInfo propInfo) {
     if (MOZ_LIKELY(!watchesPropertyModification(obj))) {
       return true;
     }
-    return watchPropertyModificationSlow<allowGC>(cx, obj, id);
+    return watchPropertyModificationSlow<allowGC>(cx, obj, id, value, propInfo);
   }
   static bool watchFreezeOrSeal(JSContext* cx, Handle<NativeObject*> obj,
                                 IntegrityLevel level) {

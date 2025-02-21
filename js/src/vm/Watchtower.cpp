@@ -390,8 +390,16 @@ bool Watchtower::watchPropertyChangeSlow(JSContext* cx,
 template <AllowGC allowGC>
 bool Watchtower::watchPropertyModificationSlow(
     JSContext* cx, typename MaybeRooted<NativeObject*, allowGC>::HandleType obj,
-    typename MaybeRooted<PropertyKey, allowGC>::HandleType id) {
+    typename MaybeRooted<PropertyKey, allowGC>::HandleType id,
+    typename MaybeRooted<Value, allowGC>::HandleType value,
+    PropertyInfo propInfo) {
   MOZ_ASSERT(watchesPropertyModification(obj));
+  MOZ_ASSERT(propInfo.isDataDescriptor());
+
+  if (propInfo.isDataProperty() && obj->getSlot(propInfo.slot()) == value) {
+    // We're not actually changing the property's value.
+    return true;
+  }
 
   if (MOZ_UNLIKELY(obj->hasFuseProperty())) {
     MaybePopFuses(cx, obj, id);
@@ -414,11 +422,15 @@ bool Watchtower::watchPropertyModificationSlow(
 template bool Watchtower::watchPropertyModificationSlow<AllowGC::CanGC>(
     JSContext* cx,
     typename MaybeRooted<NativeObject*, AllowGC::CanGC>::HandleType obj,
-    typename MaybeRooted<PropertyKey, AllowGC::CanGC>::HandleType id);
+    typename MaybeRooted<PropertyKey, AllowGC::CanGC>::HandleType id,
+    typename MaybeRooted<Value, AllowGC::CanGC>::HandleType value,
+    PropertyInfo propInfo);
 template bool Watchtower::watchPropertyModificationSlow<AllowGC::NoGC>(
     JSContext* cx,
     typename MaybeRooted<NativeObject*, AllowGC::NoGC>::HandleType obj,
-    typename MaybeRooted<PropertyKey, AllowGC::NoGC>::HandleType id);
+    typename MaybeRooted<PropertyKey, AllowGC::NoGC>::HandleType id,
+    typename MaybeRooted<Value, AllowGC::NoGC>::HandleType value,
+    PropertyInfo propInfo);
 
 // static
 bool Watchtower::watchFreezeOrSealSlow(JSContext* cx, Handle<NativeObject*> obj,

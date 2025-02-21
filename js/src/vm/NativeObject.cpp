@@ -2398,7 +2398,8 @@ static bool NativeSetExistingDataProperty(JSContext* cx,
   MOZ_ASSERT(obj->is<NativeObject>());
   MOZ_ASSERT(prop.isDataDescriptor());
 
-  if (!Watchtower::watchPropertyModification<AllowGC::CanGC>(cx, obj, id)) {
+  if (!Watchtower::watchPropertyModification<AllowGC::CanGC>(cx, obj, id, v,
+                                                             prop)) {
     return false;
   }
 
