@@ -12,7 +12,7 @@ import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.isSuccess
-import mozilla.components.feature.awesomebar.facts.emitSearchSuggestionClickedFact
+import mozilla.components.feature.awesomebar.facts.emitTrendingSearchSuggestionClickedFact
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.search.ext.buildSearchUrl
 import mozilla.components.feature.search.trendingsearches.TrendingSearchClient
@@ -128,7 +128,7 @@ class TrendingSearchProvider private constructor(
                 score = Int.MAX_VALUE - (index + TRENDING_SEARCHES_MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT + 2),
                 onSuggestionClicked = {
                     searchUseCase.invoke(item)
-                    emitSearchSuggestionClickedFact()
+                    emitTrendingSearchSuggestionClickedFact()
                 },
             )
         }

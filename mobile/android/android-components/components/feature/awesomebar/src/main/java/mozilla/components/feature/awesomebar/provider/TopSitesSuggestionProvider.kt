@@ -8,6 +8,7 @@ import mozilla.components.browser.icons.BrowserIcons
 import mozilla.components.browser.icons.IconRequest
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
+import mozilla.components.feature.awesomebar.facts.emitTopSiteSuggestionClickedFact
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.top.sites.DefaultTopSitesStorage
 import mozilla.components.feature.top.sites.TopSite
@@ -76,7 +77,10 @@ internal suspend fun Iterable<TopSite>.toAwesomebarSuggestions(
             flags = setOf(AwesomeBar.Suggestion.Flag.HISTORY),
             title = result.title,
             editSuggestion = null,
-            onSuggestionClicked = { loadUrlUseCase(result.url) },
+            onSuggestionClicked = {
+                loadUrlUseCase(result.url)
+                emitTopSiteSuggestionClickedFact()
+            },
             score = MAX_VALUE - index,
         )
     }

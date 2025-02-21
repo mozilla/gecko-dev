@@ -775,6 +775,36 @@ class MetricControllerTest {
 
         assertNotNull(Awesomebar.searchActionClicked.testGetValue())
 
+        // Verify search suggestion action clicked
+        assertNull(Awesomebar.searchSuggestionClicked.testGetValue())
+        fact = Fact(Component.FEATURE_AWESOMEBAR, Action.CANCEL, AwesomeBarFacts.Items.SEARCH_SUGGESTION_CLICKED)
+
+        with(controller) {
+            fact.process()
+        }
+
+        assertNotNull(Awesomebar.searchSuggestionClicked.testGetValue())
+
+        // Verify trending search suggestion action clicked
+        assertNull(Awesomebar.trendingSearchSuggestionClicked.testGetValue())
+        fact = Fact(Component.FEATURE_AWESOMEBAR, Action.CANCEL, AwesomeBarFacts.Items.TRENDING_SEARCH_SUGGESTION_CLICKED)
+
+        with(controller) {
+            fact.process()
+        }
+
+        assertNotNull(Awesomebar.trendingSearchSuggestionClicked.testGetValue())
+
+        // Verify top site suggestion action clicked
+        assertNull(Awesomebar.topSiteSuggestionClicked.testGetValue())
+        fact = Fact(Component.FEATURE_AWESOMEBAR, Action.CANCEL, AwesomeBarFacts.Items.TOP_SITE_SUGGESTION_CLICKED)
+
+        with(controller) {
+            fact.process()
+        }
+
+        assertNotNull(Awesomebar.topSiteSuggestionClicked.testGetValue())
+
         // Verify bookmark opened tab suggestion clicked
         assertNull(Awesomebar.openedTabSuggestionClicked.testGetValue())
         fact = Fact(Component.FEATURE_AWESOMEBAR, Action.CANCEL, AwesomeBarFacts.Items.OPENED_TAB_SUGGESTION_CLICKED)

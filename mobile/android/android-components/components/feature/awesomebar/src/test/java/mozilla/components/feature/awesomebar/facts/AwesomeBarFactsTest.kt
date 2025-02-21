@@ -59,17 +59,33 @@ class AwesomeBarFactsTest {
                 assertEquals(AwesomeBarFacts.Items.SEARCH_SUGGESTION_CLICKED, item)
             }
 
-            emitOpenTabSuggestionClickedFact()
+            emitTrendingSearchSuggestionClickedFact()
             assertEquals(6, facts.size)
             facts[5].apply {
+                assertEquals(Component.FEATURE_AWESOMEBAR, component)
+                assertEquals(Action.INTERACTION, action)
+                assertEquals(AwesomeBarFacts.Items.TRENDING_SEARCH_SUGGESTION_CLICKED, item)
+            }
+
+            emitTopSiteSuggestionClickedFact()
+            assertEquals(7, facts.size)
+            facts[6].apply {
+                assertEquals(Component.FEATURE_AWESOMEBAR, component)
+                assertEquals(Action.INTERACTION, action)
+                assertEquals(AwesomeBarFacts.Items.TOP_SITE_SUGGESTION_CLICKED, item)
+            }
+
+            emitOpenTabSuggestionClickedFact()
+            assertEquals(8, facts.size)
+            facts[7].apply {
                 assertEquals(Component.FEATURE_AWESOMEBAR, component)
                 assertEquals(Action.INTERACTION, action)
                 assertEquals(AwesomeBarFacts.Items.OPENED_TAB_SUGGESTION_CLICKED, item)
             }
 
             emitSearchTermSuggestionClickedFact()
-            assertEquals(7, facts.size)
-            facts[6].apply {
+            assertEquals(9, facts.size)
+            facts[8].apply {
                 assertEquals(Component.FEATURE_AWESOMEBAR, component)
                 assertEquals(Action.INTERACTION, action)
                 assertEquals(AwesomeBarFacts.Items.SEARCH_TERM_SUGGESTION_CLICKED, item)

@@ -110,7 +110,7 @@ class TrendingSearchProviderTest {
                     facts[0].apply {
                         assertEquals(Component.FEATURE_AWESOMEBAR, component)
                         assertEquals(Action.INTERACTION, action)
-                        assertEquals(AwesomeBarFacts.Items.SEARCH_SUGGESTION_CLICKED, item)
+                        assertEquals(AwesomeBarFacts.Items.TRENDING_SEARCH_SUGGESTION_CLICKED, item)
                     }
                 }
 

@@ -148,6 +148,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 getString(R.string.pref_key_sync_history),
                 getString(R.string.pref_key_show_voice_search),
                 getString(R.string.pref_key_show_search_suggestions_in_private),
+                getString(R.string.pref_key_show_trending_search_suggestions),
             )
         }
 

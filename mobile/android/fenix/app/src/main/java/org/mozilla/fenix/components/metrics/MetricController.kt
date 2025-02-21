@@ -292,6 +292,12 @@ internal class ReleaseMetricController(
         Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.SEARCH_SUGGESTION_CLICKED -> {
             Awesomebar.searchSuggestionClicked.record(NoExtras())
         }
+        Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.TRENDING_SEARCH_SUGGESTION_CLICKED -> {
+            Awesomebar.trendingSearchSuggestionClicked.record(NoExtras())
+        }
+        Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.TOP_SITE_SUGGESTION_CLICKED -> {
+            Awesomebar.topSiteSuggestionClicked.record(NoExtras())
+        }
         Component.FEATURE_AWESOMEBAR to AwesomeBarFacts.Items.OPENED_TAB_SUGGESTION_CLICKED -> {
             Awesomebar.openedTabSuggestionClicked.record(NoExtras())
         }

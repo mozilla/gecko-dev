@@ -9,8 +9,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.storage.TopFrecentSiteInfo
+import mozilla.components.feature.awesomebar.facts.AwesomeBarFacts
 import mozilla.components.feature.top.sites.DefaultTopSitesStorage
 import mozilla.components.feature.top.sites.TopSite
+import mozilla.components.support.base.Component
+import mozilla.components.support.base.facts.Action
+import mozilla.components.support.base.facts.processor.CollectionProcessor
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
@@ -139,5 +143,35 @@ class TopSitesSuggestionProviderTest {
         suggestions = provider.onInputChanged("")
         assertEquals(2, suggestions.size)
         verify(engine, times(1)).speculativeConnect(topSites[0].url)
+    }
+
+    @Test
+    fun `GIVEN top site suggestion is clicked THEN suggestion clicked fact is emitted`() {
+        runTest {
+            val storage: DefaultTopSitesStorage = mock()
+            val engine: Engine = mock()
+            val provider = TopSitesSuggestionProvider(storage, mock(), engine = engine)
+
+            var suggestions = provider.onInputChanged("")
+            assertTrue(suggestions.isEmpty())
+            verify(engine, never()).speculativeConnect(anyString())
+
+            whenever(storage.cachedTopSites).thenReturn(topSites)
+
+            suggestions = provider.onInputChanged("")
+            assertEquals(2, suggestions.size)
+            verify(engine, times(1)).speculativeConnect(topSites[0].url)
+
+            CollectionProcessor.withFactCollection { facts ->
+                suggestions[1].onSuggestionClicked!!.invoke()
+
+                assertEquals(1, facts.size)
+                facts[0].apply {
+                    assertEquals(Component.FEATURE_AWESOMEBAR, component)
+                    assertEquals(Action.INTERACTION, action)
+                    assertEquals(AwesomeBarFacts.Items.TOP_SITE_SUGGESTION_CLICKED, item)
+                }
+            }
+        }
     }
 }
