@@ -23,7 +23,8 @@ template <int V>
 class FFmpegDecoderModule : public PlatformDecoderModule {
  public:
   static void Init(FFmpegLibWrapper* aLib) {
-#if defined(XP_WIN) && !defined(MOZ_FFVPX_AUDIOONLY)
+#if defined(MOZ_USE_HWDECODE)
+#  if defined(XP_WIN) && !defined(MOZ_FFVPX_AUDIOONLY)
     if (!XRE_IsGPUProcess()) {
       return;
     }
@@ -51,7 +52,45 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
         }
       }
     }
-#endif
+#  elif MOZ_WIDGET_GTK
+    // Hardware decoding on Linux should only happen on the RDD process for now.
+    if (!XRE_IsRDDProcess()) {
+      return;
+    }
+
+// UseXXXHWDecode are already set in gfxPlatform at the startup.
+#    define ADD_HW_CODEC(codec)                                \
+      if (gfx::gfxVars::Use##codec##HwDecode()) {              \
+        sSupportedHWCodecs.AppendElement(AV_CODEC_ID_##codec); \
+      }
+
+// These proprietary video codecs can only be decoded via hardware by using the
+// system ffmpeg, not supported by ffvpx.
+#    ifndef FFVPX_VERSION
+    ADD_HW_CODEC(H264);
+#      if LIBAVCODEC_VERSION_MAJOR >= 55
+    ADD_HW_CODEC(HEVC);
+#      endif
+#    endif  // !FFVPX_VERSION
+
+// The following open video codecs can be decoded via hardware using ffvpx.
+#    if LIBAVCODEC_VERSION_MAJOR >= 54
+    ADD_HW_CODEC(VP8);
+#    endif
+#    if LIBAVCODEC_VERSION_MAJOR >= 55
+    ADD_HW_CODEC(VP9);
+#    endif
+#    if LIBAVCODEC_VERSION_MAJOR >= 59
+    ADD_HW_CODEC(AV1);
+#    endif
+
+    for (const auto& codec : sSupportedHWCodecs) {
+      MOZ_LOG(sPDMLog, LogLevel::Debug,
+              ("Support %s for hw decoding", AVCodecToString(codec)));
+    }
+#    undef ADD_HW_CODEC
+#  endif  // XP_WIN, MOZ_WIDGET_GTK
+#endif    // MOZ_USE_HWDECODE
   }
 
   static already_AddRefed<PlatformDecoderModule> Create(
@@ -177,11 +216,11 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
               ("FFmpeg decoder rejects as openh264 disabled by pref"));
       return media::DecodeSupportSet{};
     }
-    // TODO : note, currently on Linux, hardware decoding is reported in its own
-    // path (in widget/gtk/GfxInfo.cpp) Make it correct on Linux as well in bug
-    // 1935572.
-    return XRE_IsGPUProcess() ? media::DecodeSupport::HardwareDecode
-                              : media::DecodeSupport::SoftwareDecode;
+    media::DecodeSupportSet support = media::DecodeSupport::SoftwareDecode;
+    if (IsHWDecodingSupported(mimeType)) {
+      support += media::DecodeSupport::HardwareDecode;
+    }
+    return support;
   }
 
  protected:
@@ -196,10 +235,14 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
 
   bool IsHWDecodingSupported(const nsACString& aMimeType) const {
     if (!gfx::gfxVars::IsInitialized() ||
-        !gfx::gfxVars::CanUseHardwareVideoDecoding() ||
-        !StaticPrefs::media_ffvpx_hw_enabled()) {
+        !gfx::gfxVars::CanUseHardwareVideoDecoding()) {
       return false;
     }
+#ifdef FFVPX_VERSION
+    if (!StaticPrefs::media_ffvpx_hw_enabled()) {
+      return false;
+    }
+#endif
     AVCodecID videoCodec = FFmpegVideoDecoder<V>::GetCodecId(aMimeType);
     return sSupportedHWCodecs.Contains(videoCodec);
   }
