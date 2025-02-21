@@ -91,19 +91,22 @@ td:first-child {
   display: inline-block;
   height: 100%;
   width: 16px;
-  padding: 5px 7px;
-  /* The -10px is -5 to undo the td padding and -5 to undo the padding here. */
-  margin: -10px 3px;
+  padding: 2px 7px;
+  /* The -7px is -5 to undo the td padding and -2 to undo the padding here. */
+  margin: -7px 3px;
   -moz-context-properties: fill, fill-opacity;
   fill-opacity: 0.9;
   fill: currentColor;
 }
-.profiler-icon:hover {
+
+.profiler-icon:hover,
+.profiler-icon:focus-visible {
   background-color: var(--in-content-button-background-hover);
   color: var(--in-content-button-text-color-hover);
 }
 
-.profiler-icon:hover:active {
+.profiler-icon:hover:active,
+.profiler-icon:focus-visible:active {
   background-color: var(--in-content-button-background-active);
   color: var(--in-content-button-text-color-active);
   fill-opacity: 1;
@@ -116,8 +119,11 @@ td:first-child {
 .profiler-active {
   fill: var(--color-accent-primary);
 }
-td:not(:hover) > .profiler-icon:not(.profiler-active) {
-  display: none;
+
+/* Visually hide profiler icons until the row is hovered or the profiler button
+is focused or active, but do not remove it for screen readers */
+td:not(:hover) > .profiler-icon:not(.profiler-active, :focus-visible) {
+  opacity: 0;
 }
 
 .twisty {
@@ -226,21 +232,30 @@ tr.thread {
 /* icons */
 .close-icon {
   background: url("chrome://global/skin/icons/close.svg") no-repeat center;
+  display: inline-block;
+  height: 100%;
+  width: 10px;
+  padding: 2px 7px;
+  /* The -5px is -3 to partially undo the td padding, but keep the distance from the CPU meter. */
+  margin: -2px -5px;
   opacity: 0;      /* Start out as transparent */
   -moz-context-properties: fill;
   fill: currentColor;
 }
 
-tr:is([selected], :hover):not(.killing) > .close-icon {
+tr:is([selected], :hover, :focus-visible):not(.killing) > td > .close-icon,
+.close-icon:focus-visible {
   opacity: 1;
 }
 
-.close-icon:hover {
+.close-icon:hover,
+.close-icon:focus-visible {
   background-color: var(--in-content-button-background-hover);
   color: var(--in-content-button-text-color-hover);
 }
 
-.close-icon:hover:active {
+.close-icon:hover:active,
+.close-icon:focus-visible:active {
   background-color: var(--in-content-button-background-active);
   color: var(--in-content-button-text-color-active);
 }
