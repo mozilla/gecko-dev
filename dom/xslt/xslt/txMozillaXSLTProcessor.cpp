@@ -5,7 +5,6 @@
 
 #include "txMozillaXSLTProcessor.h"
 #include "nsError.h"
-#include "mozilla/AutoRestore.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Document.h"
 #include "nsIStringBundle.h"
@@ -329,11 +328,9 @@ txMozillaXSLTProcessor::AddXSLTParamNamespace(const nsString& aPrefix,
 
 class txXSLTParamContext : public txIParseContext, public txIEvalContext {
  public:
-  txXSLTParamContext(txNamespaceMap* aResolver, txXPathNode&& aContext,
+  txXSLTParamContext(txNamespaceMap* aResolver, const txXPathNode& aContext,
                      txResultRecycler* aRecycler)
-      : mResolver(aResolver),
-        mContext(std::move(aContext)),
-        mRecycler(aRecycler) {}
+      : mResolver(aResolver), mContext(aContext), mRecycler(aRecycler) {}
 
   // txIParseContext
   int32_t resolveNamespacePrefix(nsAtom* aPrefix) override {
@@ -388,7 +385,7 @@ txMozillaXSLTProcessor::AddXSLTParam(const nsString& aName,
   uint16_t resultType;
   if (!aSelect.IsVoid()) {
     // Set up context
-    Maybe<txXPathNode> contextNode(
+    UniquePtr<txXPathNode> contextNode(
         txXPathNativeNode::createXPathNode(aContext));
     NS_ENSURE_TRUE(contextNode, NS_ERROR_OUT_OF_MEMORY);
 
@@ -396,7 +393,7 @@ txMozillaXSLTProcessor::AddXSLTParam(const nsString& aName,
       mRecycler = new txResultRecycler;
     }
 
-    txXSLTParamContext paramContext(&mParamNamespaceMap, contextNode.extract(),
+    txXSLTParamContext paramContext(&mParamNamespaceMap, *contextNode,
                                     mRecycler);
 
     // Parse
@@ -476,8 +473,6 @@ class nsTransformBlockerEvent : public mozilla::Runnable {
   }
 
   NS_IMETHOD Run() override {
-    MOZ_RELEASE_ASSERT(mProcessor->mState ==
-                       txMozillaXSLTProcessor::State::None);
     mProcessor->TransformToDoc(nullptr, false);
     return NS_OK;
   }
@@ -508,13 +503,6 @@ void txMozillaXSLTProcessor::ImportStylesheet(nsINode& aStyle,
     aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
     return;
   }
-
-  if (mState != State::None) {
-    aRv.ThrowInvalidStateError("Invalid call.");
-    return;
-  }
-  mozilla::AutoRestore<State> restore(mState);
-  mState = State::Compiling;
 
   MOZ_ASSERT(!mEmbeddedStylesheetRoot);
 
@@ -559,20 +547,11 @@ already_AddRefed<Document> txMozillaXSLTProcessor::TransformToDocument(
     return nullptr;
   }
 
-  if (mState != State::None) {
-    aRv.ThrowInvalidStateError("Invalid call.");
-    return nullptr;
-  }
-
   nsresult rv = ensureStylesheet();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aRv.Throw(rv);
     return nullptr;
   }
-
-  MOZ_RELEASE_ASSERT(mState == State::None);
-  mozilla::AutoRestore<State> restore(mState);
-  mState = State::Transforming;
 
   mSource = aSource.CloneNode(true, aRv);
   if (aRv.Failed()) {
@@ -676,7 +655,8 @@ XSLTProcessRequest::SetTRRMode(nsIRequest::TRRMode aTRRMode) {
 
 nsresult txMozillaXSLTProcessor::TransformToDoc(Document** aResult,
                                                 bool aCreateDataDocument) {
-  Maybe<txXPathNode> sourceNode(txXPathNativeNode::createXPathNode(mSource));
+  UniquePtr<txXPathNode> sourceNode(
+      txXPathNativeNode::createXPathNode(mSource));
   if (!sourceNode) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -758,20 +738,11 @@ already_AddRefed<DocumentFragment> txMozillaXSLTProcessor::TransformToFragment(
     return nullptr;
   }
 
-  if (mState != State::None) {
-    aRv.ThrowInvalidStateError("Invalid call.");
-    return nullptr;
-  }
-
   nsresult rv = ensureStylesheet();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aRv.Throw(rv);
     return nullptr;
   }
-
-  MOZ_RELEASE_ASSERT(mState == State::None);
-  mozilla::AutoRestore<State> restore(mState);
-  mState = State::Transforming;
 
   nsCOMPtr<nsINode> source;
   if (aCloneSource) {
@@ -783,7 +754,7 @@ already_AddRefed<DocumentFragment> txMozillaXSLTProcessor::TransformToFragment(
     source = &aSource;
   }
 
-  Maybe<txXPathNode> sourceNode(txXPathNativeNode::createXPathNode(source));
+  UniquePtr<txXPathNode> sourceNode(txXPathNativeNode::createXPathNode(source));
   if (!sourceNode) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
@@ -797,7 +768,7 @@ already_AddRefed<DocumentFragment> txMozillaXSLTProcessor::TransformToFragment(
   txToFragmentHandlerFactory handlerFactory(frag);
   es.mOutputHandlerFactory = &handlerFactory;
 
-  rv = es.init(sourceNode.extract(), &mVariables);
+  rv = es.init(*sourceNode, &mVariables);
 
   // Process root of XML source document
   if (NS_SUCCEEDED(rv)) {
@@ -821,11 +792,6 @@ void txMozillaXSLTProcessor::SetParameter(const nsAString& aNamespaceURI,
                                           const nsAString& aLocalName,
                                           const XSLTParameterValue& aValue,
                                           ErrorResult& aError) {
-  if (mState != State::None) {
-    aError.ThrowInvalidStateError("Invalid call.");
-    return;
-  }
-
   if (aValue.IsNode()) {
     if (!nsContentUtils::CanCallerAccess(&aValue.GetAsNode())) {
       aError.ThrowSecurityError("Caller is not allowed to access node.");
@@ -914,11 +880,6 @@ void txMozillaXSLTProcessor::GetParameter(
 void txMozillaXSLTProcessor::RemoveParameter(const nsAString& aNamespaceURI,
                                              const nsAString& aLocalName,
                                              ErrorResult& aRv) {
-  if (mState != State::None) {
-    aRv.ThrowInvalidStateError("Invalid call.");
-    return;
-  }
-
   int32_t nsId = kNameSpaceID_Unknown;
   nsresult rv =
       nsNameSpaceManager::GetInstance()->RegisterNameSpace(aNamespaceURI, nsId);
@@ -932,21 +893,9 @@ void txMozillaXSLTProcessor::RemoveParameter(const nsAString& aNamespaceURI,
   mVariables.remove(varName);
 }
 
-void txMozillaXSLTProcessor::ClearParameters(ErrorResult& aError) {
-  if (mState != State::None) {
-    aError.ThrowInvalidStateError("Invalid call.");
-    return;
-  }
+void txMozillaXSLTProcessor::ClearParameters() { mVariables.clear(); }
 
-  mVariables.clear();
-}
-
-void txMozillaXSLTProcessor::Reset(ErrorResult& aError) {
-  if (mState != State::None) {
-    aError.ThrowInvalidStateError("Invalid call.");
-    return;
-  }
-
+void txMozillaXSLTProcessor::Reset() {
   if (mStylesheetDocument) {
     mStylesheetDocument->RemoveMutationObserver(this);
   }
@@ -1106,12 +1055,6 @@ void txMozillaXSLTProcessor::notifyError() {
 }
 
 nsresult txMozillaXSLTProcessor::ensureStylesheet() {
-  if (mState != State::None) {
-    return NS_ERROR_FAILURE;
-  }
-  mozilla::AutoRestore<State> restore(mState);
-  mState = State::Compiling;
-
   if (mStylesheet) {
     return NS_OK;
   }
@@ -1242,7 +1185,7 @@ nsresult txVariable::convert(const OwningXSLTParameterValue& aUnionValue,
 
   if (aUnionValue.IsNode()) {
     nsINode& node = aUnionValue.GetAsNode();
-    Maybe<txXPathNode> xpathNode(txXPathNativeNode::createXPathNode(&node));
+    UniquePtr<txXPathNode> xpathNode(txXPathNativeNode::createXPathNode(&node));
     if (!xpathNode) {
       return NS_ERROR_FAILURE;
     }
@@ -1256,13 +1199,13 @@ nsresult txVariable::convert(const OwningXSLTParameterValue& aUnionValue,
     const Sequence<OwningNonNull<nsINode>>& values =
         aUnionValue.GetAsNodeSequence();
     for (const auto& node : values) {
-      Maybe<txXPathNode> xpathNode(
+      UniquePtr<txXPathNode> xpathNode(
           txXPathNativeNode::createXPathNode(node.get()));
       if (!xpathNode) {
         return NS_ERROR_FAILURE;
       }
 
-      nodeSet->append(xpathNode.extract());
+      nodeSet->append(*xpathNode);
     }
     nodeSet.forget(aValue);
     return NS_OK;

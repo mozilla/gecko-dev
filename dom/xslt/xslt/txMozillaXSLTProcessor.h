@@ -92,17 +92,17 @@ class txMozillaXSLTProcessor final : public nsIDocumentTransformer,
   static already_AddRefed<txMozillaXSLTProcessor> Constructor(
       const mozilla::dom::GlobalObject& aGlobal);
 
-  void ImportStylesheet(nsINode& aStylesheet, mozilla::ErrorResult& aRv);
+  void ImportStylesheet(nsINode& stylesheet, mozilla::ErrorResult& aRv);
   already_AddRefed<mozilla::dom::DocumentFragment> TransformToFragment(
-      nsINode& aSource, mozilla::dom::Document& aOutput,
+      nsINode& aSource, mozilla::dom::Document& aDocument,
       mozilla::ErrorResult& aRv) {
-    return TransformToFragment(aSource, true, aOutput, aRv);
+    return TransformToFragment(aSource, true, aDocument, aRv);
   }
   already_AddRefed<mozilla::dom::DocumentFragment> TransformToFragment(
       nsINode& aSource, bool aCloneSource, mozilla::dom::Document& aOutput,
       mozilla::ErrorResult& aRv);
   already_AddRefed<mozilla::dom::Document> TransformToDocument(
-      nsINode& aSource, mozilla::ErrorResult& aRv);
+      nsINode& source, mozilla::ErrorResult& aRv);
 
   void SetParameter(const nsAString& aNamespaceURI, const nsAString& aLocalName,
                     const XSLTParameterValue& aValue,
@@ -112,8 +112,8 @@ class txMozillaXSLTProcessor final : public nsIDocumentTransformer,
                     mozilla::ErrorResult& aRv);
   void RemoveParameter(const nsAString& aNamespaceURI,
                        const nsAString& aLocalName, mozilla::ErrorResult& aRv);
-  void ClearParameters(mozilla::ErrorResult& aError);
-  void Reset(mozilla::ErrorResult& aError);
+  void ClearParameters();
+  void Reset();
 
   uint32_t Flags(mozilla::dom::SystemCallerGuarantee);
   void SetFlags(uint32_t aFlags, mozilla::dom::SystemCallerGuarantee);
@@ -136,8 +136,6 @@ class txMozillaXSLTProcessor final : public nsIDocumentTransformer,
   static void Shutdown();
 
  private:
-  friend class nsTransformBlockerEvent;
-
   explicit txMozillaXSLTProcessor(nsISupports* aOwner);
   /**
    * Default destructor for txMozillaXSLTProcessor
@@ -164,13 +162,6 @@ class txMozillaXSLTProcessor final : public nsIDocumentTransformer,
   RefPtr<txResultRecycler> mRecycler;
 
   uint32_t mFlags;
-
-  enum class State {
-    None,
-    Compiling,
-    Transforming,
-  };
-  State mState = State::None;
 };
 
 extern nsresult TX_LoadSheet(nsIURI* aUri, txMozillaXSLTProcessor* aProcessor,

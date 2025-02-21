@@ -10,11 +10,6 @@
 
 class txXPathNode;
 
-namespace mozilla {
-template <typename V, typename E>
-class Result;
-}  // namespace mozilla
-
 /**
  * API to load XML files into DOM datastructures.
  * Parsing is either done by expat, or by expat via the syncloaderservice
@@ -24,7 +19,9 @@ class Result;
  * Parse a document from the aHref location, with referrer URI on behalf
  * of the document aLoader.
  */
-mozilla::Result<txXPathNode, nsresult> txParseDocumentFromURI(
-    const nsAString& aHref, const txXPathNode& aLoader, nsAString& aErrMsg);
+extern "C" nsresult txParseDocumentFromURI(const nsAString& aHref,
+                                           const txXPathNode& aLoader,
+                                           nsAString& aErrMsg,
+                                           txXPathNode** aResult);
 
 #endif

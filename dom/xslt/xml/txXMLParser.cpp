@@ -12,15 +12,16 @@
 #include "nsNetUtil.h"
 #include "nsIURI.h"
 
-using namespace mozilla;
 using namespace mozilla::dom;
 
-Result<txXPathNode, nsresult> txParseDocumentFromURI(const nsAString& aHref,
-                                                     const txXPathNode& aLoader,
-                                                     nsAString& aErrMsg) {
+nsresult txParseDocumentFromURI(const nsAString& aHref,
+                                const txXPathNode& aLoader, nsAString& aErrMsg,
+                                txXPathNode** aResult) {
+  NS_ENSURE_ARG_POINTER(aResult);
+  *aResult = nullptr;
   nsCOMPtr<nsIURI> documentURI;
   nsresult rv = NS_NewURI(getter_AddRefs(documentURI), aHref);
-  NS_ENSURE_SUCCESS(rv, Err(rv));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   Document* loaderDocument = txXPathNativeNode::getDocument(aLoader);
 
@@ -31,7 +32,7 @@ Result<txXPathNode, nsresult> txParseDocumentFromURI(const nsAString& aHref,
 
   // Raw pointer, we want the resulting txXPathNode to hold a reference to
   // the document.
-  nsCOMPtr<Document> theDocument;
+  Document* theDocument = nullptr;
   nsAutoSyncOperation sync(loaderDocument,
                            SyncOperationBehavior::eSuspendInput);
   rv = nsSyncLoadService::LoadDocument(
@@ -39,14 +40,20 @@ Result<txXPathNode, nsresult> txParseDocumentFromURI(const nsAString& aHref,
       loaderDocument->NodePrincipal(),
       nsILoadInfo::SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT, loadGroup,
       loaderDocument->CookieJarSettings(), true,
-      loaderDocument->GetReferrerPolicy(), getter_AddRefs(theDocument));
+      loaderDocument->GetReferrerPolicy(), &theDocument);
 
   if (NS_FAILED(rv)) {
     aErrMsg.AppendLiteral("Document load of ");
     aErrMsg.Append(aHref);
     aErrMsg.AppendLiteral(" failed.");
-    return Err(rv);
+    return NS_FAILED(rv) ? rv : NS_ERROR_FAILURE;
   }
 
-  return txXPathNode(theDocument);
+  *aResult = txXPathNativeNode::createXPathNode(theDocument);
+  if (!*aResult) {
+    NS_RELEASE(theDocument);
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
 }

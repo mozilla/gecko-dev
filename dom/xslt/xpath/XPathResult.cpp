@@ -238,13 +238,13 @@ nsresult XPathResult::GetExprResult(txAExprResult** aExprResult) {
   RefPtr<txNodeSet> nodeSet = new txNodeSet(nullptr);
   uint32_t i, count = mResultNodes.Length();
   for (i = 0; i < count; ++i) {
-    Maybe<txXPathNode> node(
+    UniquePtr<txXPathNode> node(
         txXPathNativeNode::createXPathNode(mResultNodes[i]));
     if (!node) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    nodeSet->append(node.extract());
+    nodeSet->append(*node);
   }
 
   NS_ADDREF(*aExprResult = nodeSet);
