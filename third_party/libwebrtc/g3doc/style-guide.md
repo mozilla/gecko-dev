@@ -111,6 +111,7 @@ inline std::pony PonyPlz(const std::pony_spec& ps) {
 }
 ```
 or wrap the test with
+
 ```cpp
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
