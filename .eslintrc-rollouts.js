@@ -320,7 +320,6 @@ const rollouts = [
       "browser/components/asrouter/**",
       "browser/components/attribution/**",
       "browser/components/downloads/**",
-      "browser/components/newtab/**",
       "browser/components/originattributes/test/browser/**",
       "browser/components/pocket/content/pkt*",
       "browser/components/preferences/**",

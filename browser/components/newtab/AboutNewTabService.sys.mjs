@@ -94,9 +94,9 @@ export const AboutHomeStartupCacheChild = {
    * the nsIAboutNewTabService when the initial about:home document is
    * eventually requested.
    *
-   * @param pageInputStream (nsIInputStream)
+   * @param {nsIInputStream} pageInputStream
    *   The stream for the cached page markup.
-   * @param scriptInputStream (nsIInputStream)
+   * @param {nsIInputStream} scriptInputStream
    *   The stream for the cached script to run on the page.
    */
   init(pageInputStream, scriptInputStream) {
@@ -176,12 +176,12 @@ export const AboutHomeStartupCacheChild = {
    * It is expected that the same BrowsingContext that loads the cached
    * page will also load the cached script.
    *
-   * @param uri (nsIURI)
+   * @param {nsIURI} uri
    *   The URI for the requested page, as passed by nsIAboutNewTabService.
-   * @param loadInfo (nsILoadInfo)
+   * @param {nsILoadInfo} loadInfo
    *   The nsILoadInfo for the requested load, as passed by
    *   nsIAboutNewWTabService.
-   * @return nsIChannel or null.
+   * @returns {?nsIChannel}
    */
   maybeGetCachedPageChannel(uri, loadInfo) {
     if (!this._initted) {
@@ -280,11 +280,10 @@ export const AboutHomeStartupCacheChild = {
    * is sent to the parent process with the nsIInputStream's for the
    * markup and script contents.
    *
-   * @param state (Object)
+   * @param {object} state
    *   The Redux state of the about:home document to render.
-   * @return Promise
-   * @resolves undefined
-   *   After the message with the nsIInputStream's have been sent to
+   * @returns {Promise<undefined>}
+   *   Fulfills after the message with the nsIInputStream's have been sent to
    *   the parent.
    */
   async constructAndSendCache(state) {
@@ -415,7 +414,7 @@ class BaseAboutNewTabService {
   }
 
   /**
-   * Returns the default URL.
+   * @returns {string} the default URL
    *
    * This URL depends on various activity stream prefs. Overriding
    * the newtab page has no effect on the result of this function.
@@ -437,13 +436,16 @@ class BaseAboutNewTabService {
     ].join("");
   }
 
+  /**
+   * @returns {string} the about:welcome URL
+   *
+   * This is calculated in the same way the default URL is.
+   *
+   * (defaultURL's description)
+   * this URL depends on various activity stream prefs. Overriding
+   * the newtab page has no effect on the result of this function.
+   */
   get welcomeURL() {
-    /*
-     * Returns the about:welcome URL
-     *
-     * This is calculated in the same way the default URL is.
-     */
-
     lazy.NimbusFeatures.aboutwelcome.recordExposureEvent({ once: true });
     if (lazy.NimbusFeatures.aboutwelcome.getVariable("enabled") ?? true) {
       return ABOUT_WELCOME_URL;
