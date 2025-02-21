@@ -76,14 +76,13 @@ hazardous behaviors.
 l10n
 ----
 
-The l10n kind takes the last published nightly build, and generates localized builds
-from it. You can read more about how to trigger these on the `wiki
-<https://wiki.mozilla.org/ReleaseEngineering/TryServer#Desktop_l10n_jobs_.28on_Taskcluster.29>`_.
+The l10n kind repacks a build (from the same source) for a subset of locales,
+to exercise the localized repack logic in CI.
 
 shippable-l10n
 --------------
 
-The nightly l10n kind repacks a specific nightly build (from the same source code)
+The nightly l10n kind repacks a shippable build (from the same source code)
 in order to provide localized versions of the same source.
 
 shippable-l10n-signing
