@@ -885,7 +885,13 @@
 }
 
 .tab-group-label-container {
-  transition: var(--tab-dragover-transition);
+  @media (prefers-reduced-motion: no-preference) {
+    #tabbrowser-tabs[movingtab] &,
+    &[multiselected-move-together],
+    &[tabdrop-samewindow] {
+      transition: var(--tab-dragover-transition);
+    }
+  }
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media not -moz-pref("sidebar.verticalTabs") {
