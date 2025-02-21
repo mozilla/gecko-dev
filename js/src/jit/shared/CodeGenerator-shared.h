@@ -422,6 +422,19 @@ class OutOfLineCode : public TempObject,
   const BytecodeSite* bytecodeSite() const { return site_; }
 };
 
+// An implementation of OutOfLineCode for quick and simple cases. The lambda
+// should have the signature (OutOfLineCode& ool) -> void.
+template <typename Func>
+class LambdaOutOfLineCode : public OutOfLineCode {
+  Func generateFunc_;
+
+ public:
+  explicit LambdaOutOfLineCode(Func generateFunc)
+      : generateFunc_(std::move(generateFunc)) {}
+
+  void generate(CodeGeneratorShared*) override { generateFunc_(*this); }
+};
+
 // For OOL paths that want a specific-typed code generator.
 template <typename T>
 class OutOfLineCodeBase : public OutOfLineCode {
