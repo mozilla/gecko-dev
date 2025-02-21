@@ -190,31 +190,6 @@ class CaptchaDetectionParent extends JSWindowActorParent {
   }
 
   /** @type {CaptchaStateUpdateFunction} */
-  #recordAWSWafEvent({
-    isPBM,
-    state: { event, success, numSolutionsRequired },
-  }) {
-    if (event === "shown") {
-      // We don't call maybeSubmitPing here because we might end up
-      // submitting the ping without the "completed" event.
-      // maybeSubmitPing will be called when "completed" event is
-      // received, or when the daily maybeSubmitPing is called.
-      const shownMetric = "awswafPs" + (isPBM ? "Pbm" : "");
-      Glean.captchaDetection[shownMetric].add(1);
-    } else if (event === "completed") {
-      const suffix = isPBM ? "Pbm" : "";
-      const resultMetric = "awswaf" + (success ? "Pc" : "Pf") + suffix;
-      Glean.captchaDetection[resultMetric].add(1);
-
-      const solutionsRequiredMetric =
-        Glean.captchaDetection["awswafSolutionsRequired" + suffix];
-      solutionsRequiredMetric.accumulateSingleSample(numSolutionsRequired);
-
-      this.#onMetricSet();
-    }
-  }
-
-  /** @type {CaptchaStateUpdateFunction} */
   #recordArkoseLabsEvent({
     isPBM,
     state: { event, solved, solutionsSubmitted },
@@ -237,62 +212,6 @@ class CaptchaDetectionParent extends JSWindowActorParent {
 
       this.#onMetricSet();
     }
-  }
-
-  async #awsWafInit() {
-    this.#responseObserver = new lazy.CaptchaResponseObserver(
-      channel =>
-        channel.loadInfo?.browsingContextID === this.browsingContext.id &&
-        channel.URI &&
-        channel.URI.scheme === "https" &&
-        (Cu.isInAutomation ||
-          channel.URI.host.endsWith(".captcha.awswaf.com")) &&
-        channel.URI.filePath.endsWith(
-          Cu.isInAutomation ? "aws_waf_api.sjs" : "/verify"
-        ),
-      (_channel, statusCode, responseBody) => {
-        if (statusCode !== Cr.NS_OK) {
-          return;
-        }
-
-        let body;
-        try {
-          body = JSON.parse(responseBody);
-          if (!body) {
-            lazy.console.debug("handleResponseBody", "Failed to parse JSON");
-            return;
-          }
-        } catch (e) {
-          lazy.console.debug(
-            "handleResponseBody",
-            "Failed to parse JSON",
-            e,
-            responseBody
-          );
-          return;
-        }
-
-        // Check for the presence of the expected keys
-        if (
-          !["success", "num_solutions_required"].every(key =>
-            body.hasOwnProperty(key)
-          )
-        ) {
-          lazy.console.debug("handleResponseBody", "Missing keys", body);
-          return;
-        }
-
-        this.#recordAWSWafEvent({
-          isPBM: this.browsingContext.usePrivateBrowsing,
-          state: {
-            event: "completed",
-            success: body.success,
-            numSolutionsRequired: body.num_solutions_required,
-          },
-        });
-      }
-    );
-    this.#responseObserver.register();
   }
 
   async #arkoseLabsInit() {
@@ -429,9 +348,6 @@ class CaptchaDetectionParent extends JSWindowActorParent {
           case "hCaptcha":
             this.#recordHCaptchaState(message.data);
             break;
-          case "awsWaf":
-            this.#recordAWSWafEvent(message.data);
-            break;
         }
         break;
       case "TabState:Closed":
@@ -449,8 +365,6 @@ class CaptchaDetectionParent extends JSWindowActorParent {
         switch (message.data.type) {
           case "datadome":
             return this.#datadomeInit();
-          case "awsWaf":
-            return this.#awsWafInit();
           case "arkoseLabs":
             return this.#arkoseLabsInit();
         }

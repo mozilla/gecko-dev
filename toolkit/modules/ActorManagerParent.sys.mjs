@@ -269,8 +269,6 @@ let JSWINDOWACTORS = {
       "https://geo.captcha-delivery.com/captcha/*",
       // hCaptcha
       "https://newassets.hcaptcha.com/captcha/v1/*",
-      // AWS WAF Captcha
-      "https://*.amazonaws.com/latest*",
       // Arkose Labs Captcha
       "https://client-api.arkoselabs.com/fc/assets/ec-game-core/game-core/*",
       // Mochitest
