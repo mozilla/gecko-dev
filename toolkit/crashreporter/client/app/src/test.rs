@@ -407,7 +407,6 @@ impl AssertFiles {
                         "status": "OK"
                     },
                     "metadata": {
-                        "AsyncShutdownTimeout": "{}",
                         "BuildID": "1234",
                         "ProductName": "Bar",
                         "ReleaseChannel": "release",
@@ -555,7 +554,6 @@ fn no_restart_with_windows_error_reporting() {
                             "ProductName": "Bar",
                             "ReleaseChannel": "release",
                             "BuildID": "1234",
-                            "AsyncShutdownTimeout": "{}",
                             "StackTraces": {
                                 "status": "OK"
                             },
