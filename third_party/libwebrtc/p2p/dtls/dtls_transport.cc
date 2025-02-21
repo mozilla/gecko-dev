@@ -585,11 +585,12 @@ void DtlsTransport::OnWritableState(rtc::PacketTransportInternal* transport) {
   // Recreate the DTLS session. Note: this assumes we can consider
   // the previous DTLS session state beyond repair and no packet
   // reached the peer.
-  if (dtls_ && !was_ever_connected_ &&
+  if (ice_transport_->config().dtls_handshake_in_stun && dtls_ &&
+      !was_ever_connected_ &&
       !ice_transport_->IsDtlsPiggybackSupportedByPeer() &&
       (dtls_state() == webrtc::DtlsTransportState::kConnecting ||
        dtls_state() == webrtc::DtlsTransportState::kNew)) {
-    RTC_LOG(LS_ERROR) << "DTLS piggybacking not supported, restarting...";
+    RTC_LOG(LS_INFO) << "DTLS piggybacking not supported, restarting...";
     ice_transport_->SetPiggybackDtlsDataCallback(nullptr);
 
     dtls_.reset(nullptr);
