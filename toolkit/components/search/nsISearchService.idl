@@ -321,16 +321,17 @@ interface nsISearchService : nsISupports
   /**
    * Adds a new search engine defined by the user.
    *
-   * @param options
-   *        An object containing the following fields:
-   *        - {name} The name of the engine.
-   *        - {url} The url of the engine with %s denoting where to
-   *          replace the search term.
-   *        - {alias} [optional] The alias to refer to the engine.
-   *        - {suggestUrl} [optional] The url that the search engine
-   *          uses for search suggestions.
+   * @param name
+   *        The name of the engine.
+   * @param url
+   *        The url of the engine with %s denoting where to
+   *        replace the search term.
+   * @param alias [optional]
+   *        The alias to refer to the engine.
    */
-  Promise addUserEngine(in jsval options);
+  Promise addUserEngine(in AString name,
+                        in AString url,
+                        [optional] in AString alias);
 
   /**
    * Adds search providers to the search service.  If the search

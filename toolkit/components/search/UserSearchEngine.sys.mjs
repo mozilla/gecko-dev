@@ -21,8 +21,6 @@ export class UserSearchEngine extends SearchEngine {
    *   The search engine name.
    * @param {string} [options.details.url]
    *   The search url for the engine.
-   * @param {string} [options.details.suggestUrl]
-   *   The url for the search engine suggestions.
    * @param {string} [options.details.alias]
    *   The keyword for the engine.
    * @param {object} [options.json]
@@ -37,7 +35,6 @@ export class UserSearchEngine extends SearchEngine {
       this._initWithDetails({
         name: options.details.name,
         search_url: encodeURI(options.details.url),
-        suggest_url: options.details.suggestUrl,
         keyword: options.details.alias,
       });
     } else {

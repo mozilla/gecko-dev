@@ -636,22 +636,18 @@ export class SearchService {
   /**
    * Adds a search engine that is specified by the user.
    *
-   * @param {object} options
-   *   The options for the search engine
-   * @param {string} options.name
+   * @param {string} name
    *   The name of the search engine
-   * @param {string} options.url
+   * @param {string} url
    *   The url that the search engine uses for searches
-   * @param {?string} options.alias
+   * @param {string} alias
    *   An alias for the search engine
-   * @param {?string} options.suggestUrl
-   *   The url that the search engine uses for search suggestions
    */
-  async addUserEngine(options) {
+  async addUserEngine(name, url, alias) {
     await this.init();
 
     let newEngine = new lazy.UserSearchEngine({
-      details: options,
+      details: { name, url, alias },
     });
     lazy.logConsole.debug(`Adding ${newEngine.name}`);
     this.#addEngineToStore(newEngine);

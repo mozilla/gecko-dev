@@ -29,7 +29,6 @@
       />
 
       <html:link rel="localization" href="browser/preferences/addEngine.ftl" />
-      <html:link rel="localization" href="preview/enUS-searchFeatures.ftl" />
     </linkset>
 
     <script src="chrome://browser/content/preferences/dialogs/addEngine.js" />
@@ -59,21 +58,7 @@
         data-l10n-id="add-engine-url"
       />
       <hbox>
-        <html:input
-          id="engineUrl"
-          type="url"
-          required="required"
-          pattern=".*%s.*"
-        />
-      </hbox>
-
-      <html:label
-        id="suggestUrlLabel"
-        for="suggestUrl"
-        data-l10n-id="add-engine-suggest-url"
-      />
-      <hbox>
-        <html:input id="suggestUrl" type="url" pattern=".*%s.*" />
+        <html:input id="engineUrl" type="url" required="required" />
       </hbox>
 
       <html:span
