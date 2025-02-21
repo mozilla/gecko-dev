@@ -25,7 +25,7 @@ add_setup(async () => {
   Assert.equal(
     Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "always-show",
-    "Sanity check the visibilty pref when verticalTabs are enabled"
+    "Sanity check the visibility pref when verticalTabs are enabled"
   );
 
   let navbarDefaults = gAreas.get("nav-bar").get("defaultPlacements");
@@ -52,18 +52,25 @@ add_setup(async () => {
     0,
     "sidebar-button"
   );
-  if (window.SidebarController.sidebarMain?.expanded) {
-    info("In setup, the sidebar is currently expanded. Collapsing it");
-    await window.SidebarController.initializeUIState({
-      launcherExpanded: false,
-    });
-    await window.SidebarController.sidebarMain.updateComplete;
-  }
+  ok(
+    window.SidebarController.sidebarMain?.expanded,
+    "With verticalTabs enabled, the launcher should be initially expanded"
+  );
   ok(
     BrowserTestUtils.isVisible(window.SidebarController.sidebarMain),
     "Sidebar launcher is visible at setup"
   );
 });
+
+async function waitUntilSidebarIsStable(win = window) {
+  const tasks = [
+    win.SidebarController.sidebarMain.updateComplete,
+    ...win.SidebarController._ongoingAnimations.map(
+      animation => animation.finished
+    ),
+  ];
+  return Promise.allSettled(tasks);
+}
 
 add_task(async function test_toolbar_sidebar_button() {
   ok(
@@ -89,11 +96,8 @@ add_task(async function test_toolbar_sidebar_button() {
 });
 
 add_task(async function test_expanded_state_for_always_show() {
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  const { SidebarController, document } = win;
-  const { sidebarMain, toolbarButton } = SidebarController;
-  await SidebarController.promiseInitialized;
-  await flushTaskQueue(win);
+  await waitForTabstripOrientation("vertical");
+  const { sidebarMain, toolbarButton } = window.SidebarController;
 
   const checkExpandedState = async (
     expanded,
@@ -129,54 +133,49 @@ add_task(async function test_expanded_state_for_always_show() {
         ? "Toolbar button expanded attribute is present."
         : "Toolbar button expanded attribute is absent."
     );
-    await flushTaskQueue(win);
   };
 
-  info("Set default expanded state.");
-  await SidebarController.initializeUIState({
-    launcherVisible: true,
-    launcherExpanded: false,
-  });
-  await checkExpandedState(false);
+  await checkExpandedState(true);
 
   info("Toggle expanded state via toolbar button.");
-  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
-  await checkExpandedState(true);
-  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
+  EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, window);
+  await waitUntilSidebarIsStable(window);
   await checkExpandedState(false);
 
   info("Don't collapse the sidebar by loading a tool.");
   await SidebarController.initializeUIState({ launcherExpanded: true });
-  await sidebarMain.updateComplete;
+  await waitUntilSidebarIsStable(window);
+
   const toolButton = sidebarMain.toolButtons[0];
-  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, window);
+  await waitUntilSidebarIsStable(window);
   await checkExpandedState(true);
 
   info("Load and unload a tool with the sidebar collapsed to begin with.");
   await SidebarController.initializeUIState({ launcherExpanded: false });
-  await sidebarMain.updateComplete;
-  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
-  await checkExpandedState(false);
-  EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
+  await waitUntilSidebarIsStable(window);
+
+  EventUtils.synthesizeMouseAtCenter(toolButton, {}, window);
+  await waitUntilSidebarIsStable(window);
   await checkExpandedState(false);
 
   info("Check expanded state on a new window.");
   await SidebarController.initializeUIState({ launcherExpanded: true });
-  await sidebarMain.updateComplete;
+  await waitUntilSidebarIsStable(window);
+
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
+  await waitForTabstripOrientation("vertical", newWin);
   await checkExpandedState(
     true,
     newWin.SidebarController.sidebarMain,
     newWin.SidebarController.toolbarButton
   );
 
-  await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
-  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_states_for_hide_sidebar() {
-  // With horizontal tabs and visibiliy set to "hide-sidebar", check launcher is initially visible
+  // With horizontal tabs and visibility set to "hide-sidebar", check launcher is initially visible
   await SpecialPowers.pushPrefEnv({
     set: [[SIDEBAR_TAB_DIRECTION_PREF, false]],
   });
@@ -185,12 +184,22 @@ add_task(async function test_states_for_hide_sidebar() {
   Assert.equal(
     Services.prefs.getStringPref(SIDEBAR_VISIBILITY_PREF),
     "hide-sidebar",
-    "Sanity check the visibilty pref when verticalTabs are disabled"
+    "Sanity check the visibility pref when verticalTabs are disabled"
+  );
+  // The sidebar launcher should be initially visible when visibility is "hide-sidebar"
+  Assert.ok(
+    !window.SidebarController.sidebarContainer.hidden,
+    "The launcher is initially visible"
+  );
+  Assert.ok(
+    window.SidebarController.toolbarButton.checked,
+    "The toolbar button is initially checked"
   );
 
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { SidebarController } = win;
   const { sidebarContainer, sidebarMain, toolbarButton } = SidebarController;
+  await waitForTabstripOrientation("horizontal", win);
 
   const checkStates = async (
     { hidden },
@@ -227,7 +236,6 @@ add_task(async function test_states_for_hide_sidebar() {
       () => !button.hasAttribute("expanded"),
       "Toolbar button expanded attribute is absent."
     );
-    await flushTaskQueue(win);
   };
 
   info("Check the launcher is initially visible");
@@ -236,29 +244,48 @@ add_task(async function test_states_for_hide_sidebar() {
   info("Hide sidebar using the toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkStates({ hidden: true });
+  Assert.ok(
+    !toolbarButton.checked,
+    "The toolbar button becomes unchecked when clicking it hides the launcher"
+  );
 
-  await checkStates({ hidden: true });
+  info("Check states on a new window.");
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
+  await waitForTabstripOrientation("horizontal", newWin);
   await checkStates(
     { hidden: true },
     newWin.SidebarController.sidebarContainer,
     newWin.SidebarController.sidebarMain,
     newWin.SidebarController.toolbarButton
   );
+  Assert.ok(
+    !newWin.SidebarController.toolbarButton.checked,
+    "The toolbar button in the new window is unchecked when the launcher is hidden"
+  );
 
   await BrowserTestUtils.closeWindow(win);
   await BrowserTestUtils.closeWindow(newWin);
   await SpecialPowers.popPrefEnv();
+  await waitForTabstripOrientation("vertical");
 });
 
 add_task(async function test_states_for_hide_sidebar_vertical() {
+  info(
+    `starting test with pref values: verticalTabs: ${Services.prefs.getBoolPref("sidebar.verticalTabs")}, visibility: ${Services.prefs.getStringPref("sidebar.visibility")}`
+  );
+  await waitForTabstripOrientation("vertical", window);
   await SpecialPowers.pushPrefEnv({
-    set: [
-      [SIDEBAR_TAB_DIRECTION_PREF, true],
-      [SIDEBAR_VISIBILITY_PREF, "hide-sidebar"],
-    ],
+    set: [["sidebar.visibility", "hide-sidebar"]],
   });
+  await window.SidebarController.sidebarMain.updateComplete;
+  ok(
+    window.SidebarController.sidebarContainer.hidden,
+    "Sidebar is hidden when visibility is set to hide-sidebar"
+  );
+
+  info("Initial state ok, opening a new browser window");
   const win = await BrowserTestUtils.openNewBrowserWindow();
+  await waitForTabstripOrientation("vertical", win);
   const { SidebarController } = win;
   const { sidebarContainer, sidebarMain, toolbarButton } = SidebarController;
 
@@ -299,11 +326,10 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
         ? "Toolbar button expanded attribute is present."
         : "Toolbar button expanded attribute is absent."
     );
-    await flushTaskQueue(win);
   };
 
   // Check initial sidebar state - it should be hidden
-  info("Check default hidden state.");
+  info("Check default hidden state in the new window.");
   await checkStates({ hidden: true, expanded: false });
   info("Show expanded sidebar using the toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
@@ -312,7 +338,11 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
   info("Don't collapse the sidebar by loading a tool.");
   const toolButton = sidebarMain.toolButtons[0];
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, win);
-  ok(SidebarController.isOpen, "Panel is open.");
+
+  await TestUtils.waitForCondition(
+    () => SidebarController.isOpen,
+    "Panel is open"
+  );
   await checkStates({ hidden: false, expanded: true });
 
   info("Close a panel using the toolbar button.");

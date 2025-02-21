@@ -541,6 +541,10 @@ var SidebarController = {
     }
     await this.promiseInitialized;
     this._state.loadInitialState(state);
+    if (this.revampComponentsLoaded) {
+      await this.sidebarMain.updateComplete;
+    }
+    this.updateToolbarButton();
     this.uiStateInitialized = true;
   },
 
@@ -922,7 +926,7 @@ var SidebarController = {
    * True if the sidebar is currently open.
    */
   get isOpen() {
-    return !this._box.hidden;
+    return this._box ? !this._box.hidden : false;
   },
 
   /**
@@ -1150,6 +1154,7 @@ var SidebarController = {
     if (this.sidebarRevampVisibility === "expand-on-hover") {
       this.toggleExpandOnHover(initialExpandedValue);
     }
+    this.updateToolbarButton();
   },
 
   /**
@@ -2022,6 +2027,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
           SidebarController._animateSidebarMain();
         }
         const forceExpand = isVerticalTabs && newValue === "always-show";
+
+        // horizontal tabs and hide-sidebar = visible initially.
+        // vertical tab and hide-sidebar = not visible initally.
         SidebarController._state.updateVisibility(
           (newValue != "hide-sidebar" && isVerticalTabs) || !isVerticalTabs,
           false,

@@ -196,6 +196,7 @@ add_task(async function test_customize_position_setting() {
     {},
     win.SidebarController.browser.contentWindow
   );
+  await panel.updateComplete;
   ok(panel.positionInput.checked, "Sidebar is positioned on the right");
 
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
@@ -243,6 +244,7 @@ add_task(async function test_customize_visibility_setting() {
     {},
     win.SidebarController.browser.contentWindow
   );
+  await panel.updateComplete;
   ok(panel.visibilityInput.checked, "Hide sidebar is enabled.");
   ok(
     win.SidebarController.sidebarContainer.hidden,
@@ -280,6 +282,7 @@ add_task(async function test_vertical_tabs_setting() {
     {},
     win.SidebarController.browser.contentWindow
   );
+  await panel.updateComplete;
   ok(panel.verticalTabsInput.checked, "Vertical tabs is enabled.");
   await waitForTabstripOrientation("vertical", win);
 
@@ -311,6 +314,8 @@ add_task(async function test_keyboard_navigation_away_from_settings_link() {
     "Settings link is focused"
   );
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, win);
+  await panel.updateComplete;
+
   Assert.notEqual(
     panel.shadowRoot.activeElement,
     manageSettingsLink,
