@@ -1973,7 +1973,7 @@ hooks = [
   {
     'name': 'rust',
     'pattern': '.',
-    'condition': 'checkout_android or checkout_fuzzer',
+    'condition': 'checkout_fuzzer',
     'action': ['python3', 'src/tools/rust/update_rust.py'],
   },
   {
