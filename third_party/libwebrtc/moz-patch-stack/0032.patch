@@ -1310,7 +1310,7 @@ index 3012f35f97..bb3c4eaa10 100644
      "../api/adaptation:resource_adaptation_api",
      "../api/environment",
 diff --git a/webrtc.gni b/webrtc.gni
-index d8ad84e48c..8ad489db00 100644
+index 4c24147133..69c55610c9 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -35,6 +35,11 @@ if (is_mac) {
