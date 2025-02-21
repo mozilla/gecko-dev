@@ -192,8 +192,9 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
                     rtp_sender_->Rid(),
                     config.task_queue_factory)
               : nullptr),
-      enable_av1_even_split_(
-          config.field_trials->IsEnabled("WebRTC-Video-AV1EvenPayloadSizes")) {
+      // TODO: bugs.webrtc.org/42226301 - Remove when fully launched.
+      enable_av1_even_split_(!config.field_trials->IsDisabled(
+          "WebRTC-Video-AV1EvenPayloadSizes")) {
   if (frame_transformer_delegate_)
     frame_transformer_delegate_->Init();
 }
