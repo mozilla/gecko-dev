@@ -120,9 +120,7 @@ VideoEncoder::EncoderInfo::EncoderInfo(const EncoderInfo&) = default;
 VideoEncoder::EncoderInfo::~EncoderInfo() = default;
 
 std::string VideoEncoder::EncoderInfo::ToString() const {
-  char string_buf[2048];
-  rtc::SimpleStringBuilder oss(string_buf);
-
+  rtc::StringBuilder oss;
   oss << "EncoderInfo { "
          "ScalingSettings { ";
   if (scaling_settings.thresholds) {
