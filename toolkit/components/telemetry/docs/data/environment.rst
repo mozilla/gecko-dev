@@ -612,6 +612,8 @@ Version History
 
   - Removed unused and Android-only fields as part of Glean mirroring support. (`bug 1943698 <https://bugzilla.mozilla.org/show_bug.cgi?id=1943698>`_)
 
+  - Removed ``browser.urlbar.quicksuggest.onboardingDialogChoice`` as part of removing whole onboarding dialog. (`bug 1936455 <https://bugzilla.mozilla.org/show_bug.cgi?id=1936455>`_)
+
 - Firefox 88:
 
   - Removed ``addons.activePlugins`` as part of removing NPAPI plugin support. (`bug 1682030 <https://bugzilla.mozilla.org/show_bug.cgi?id=1682030>`_)

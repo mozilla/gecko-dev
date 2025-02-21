@@ -23,8 +23,6 @@ const SINGLE_FEATURE_RECIPE = {
           enabled: true,
           quickSuggestEnabled: false,
           quickSuggestNonSponsoredIndex: -1,
-          quickSuggestShouldShowOnboardingDialog: true,
-          quickSuggestShowOnboardingDialogAfterNRestarts: 2,
           quickSuggestSponsoredIndex: -1,
         },
       },
@@ -39,8 +37,6 @@ const SINGLE_FEATURE_RECIPE = {
           enabled: true,
           quickSuggestEnabled: true,
           quickSuggestNonSponsoredIndex: -1,
-          quickSuggestShouldShowOnboardingDialog: false,
-          quickSuggestShowOnboardingDialogAfterNRestarts: 2,
           quickSuggestSponsoredIndex: -1,
         },
       },
@@ -98,14 +94,6 @@ add_task(async function test_TODO() {
     ),
     -1,
     "Should store early startup variable for sync access"
-  );
-
-  Assert.equal(
-    NimbusFeatures.urlbar.getVariable(
-      "quickSuggestShowOnboardingDialogAfterNRestarts"
-    ),
-    2,
-    "Should return value"
   );
 
   NimbusFeatures.urlbar.recordExposureEvent();
