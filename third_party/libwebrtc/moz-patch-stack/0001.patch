@@ -1,467 +1,232 @@
 From: Jan-Ivar Bruaroey <jan-ivar@users.noreply.github.com>
-Date: Thu, 20 Feb 2025 22:08:47 -0500
-Subject: (tmp-cherry-pick) Revert "Reland "Allow sending to separate payload
- types for each simulcast index."" (de1735058b)
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Date: Thu, 20 Feb 2025 22:33:52 -0500
+Subject: (tmp-cherry-pick) Revert "Cleanup usage of the global field trials in
+ the PeerConnectionE2EQualityTest helper" (d8fea51d65)
 
-This reverts commit 49ac6b758cc3c28be2fc13028a829f016b453d39.
+This reverts commit a97304ca03c2aeb4267dc1bd794c50aa8bdb9a69.
 
-Reason for revert: Break codec switch in singlecast.
+Reason for revert: performance tests still rely in on global field trials to configure PC created by this test fixture
 
 Original change's description:
-> Reland "Allow sending to separate payload types for each simulcast index."
+> Cleanup usage of the global field trials in the PeerConnectionE2EQualityTest helper
 >
-> This is a reland of commit bcb19c00ba8ab1788ba3c08f28ee1b23e0cc77b9
->
-> Original change's description:
-> > Allow sending to separate payload types for each simulcast index.
-> >
-> > This change is for mixed-codec simulcast.
-> >
-> > By obtaining the payload type via RtpConfig::GetStreamConfig(),
-> > the correct payload type can be retrieved regardless of whether
-> > RtpConfig::stream_configs is initialized or not.
-> >
-> > Bug: webrtc:362277533
-> > Change-Id: I6b2a1ae66356b20a832565ce6729c3ce9e73a161
-> > Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/364760
-> > Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-> > Commit-Queue: Florent Castelli <orphis@webrtc.org>
-> > Reviewed-by: Florent Castelli <orphis@webrtc.org>
-> > Cr-Commit-Position: refs/heads/main@{#43197}
->
-> Bug: webrtc:362277533
-> Change-Id: Ia82c3390cceb9f68315c2fd9ba5114693669af32
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/374780
-> Commit-Queue: Henrik Boström <hbos@webrtc.org>
-> Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-> Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#43787}
+> Bug: webrtc:42220378
+> Change-Id: I3dc1a71c043ef506b6d592673b04e49f4a022d17
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/374901
+> Reviewed-by: Jeremy Leconte <jleconte@webrtc.org>
+> Commit-Queue: Danil Chapovalov <danilchap@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#43803}
 
-Bug: webrtc:362277533
-Change-Id: Ife7d43471c85fdea9bd26cc982bce410c0d75527
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/376040
+Bug: webrtc:42220378, webrtc:392672060
+Change-Id: Ide265c1284f9d53c0b652ed5e144dfb0a532f87a
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/375621
+Reviewed-by: Artem Titov <titovartem@webrtc.org>
+Auto-Submit: Danil Chapovalov <danilchap@webrtc.org>
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Reviewed-by: Jonas Oreland <jonaso@webrtc.org>
-Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-Commit-Queue: Jonas Oreland <jonaso@webrtc.org>
-Reviewed-by: Per Kjellander <perkj@webrtc.org>
-Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-Reviewed-by: Evan Shrubsole <eshr@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#43830}
+Commit-Queue: Artem Titov <titovartem@webrtc.org>
+Commit-Queue: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Cr-Commit-Position: refs/heads/main@{#43812}
 ---
- call/rtp_config.cc                  |  27 -------
- call/rtp_config.h                   |   3 -
- call/rtp_video_sender.cc            |  32 +++-----
- call/rtp_video_sender.h             |   1 +
- call/rtp_video_sender_unittest.cc   | 113 +---------------------------
- media/engine/webrtc_video_engine.cc |  66 ++++++----------
- 6 files changed, 38 insertions(+), 204 deletions(-)
+ test/pc/e2e/BUILD.gn                        |  3 +-
+ test/pc/e2e/peer_connection_quality_test.cc | 41 +++++++++++++++------
+ test/pc/e2e/peer_connection_quality_test.h  | 16 +++-----
+ 3 files changed, 36 insertions(+), 24 deletions(-)
 
-diff --git a/call/rtp_config.cc b/call/rtp_config.cc
-index 16911297ef..02cc0f40b1 100644
---- a/call/rtp_config.cc
-+++ b/call/rtp_config.cc
-@@ -239,31 +239,4 @@ std::optional<std::string> RtpConfig::GetRidForSsrc(uint32_t ssrc) const {
-   return std::nullopt;
- }
+diff --git a/test/pc/e2e/BUILD.gn b/test/pc/e2e/BUILD.gn
+index 8a14703bb7..94e6c62a1f 100644
+--- a/test/pc/e2e/BUILD.gn
++++ b/test/pc/e2e/BUILD.gn
+@@ -247,7 +247,6 @@ if (!build_with_chromium) {
+         "../..:test_flags",
+         "../..:test_support",
+         "../../../api:audio_quality_analyzer_api",
+-        "../../../api:field_trials",
+         "../../../api:libjingle_peerconnection_api",
+         "../../../api:media_stream_interface",
+         "../../../api:peer_connection_quality_test_fixture_api",
+@@ -283,8 +282,10 @@ if (!build_with_chromium) {
+         "../../../rtc_base/synchronization:mutex",
+         "../../../rtc_base/task_utils:repeating_task",
+         "../../../system_wrappers",
++        "../../../system_wrappers:field_trial",
+         "analyzer/video:default_video_quality_analyzer",
+         "analyzer/video:single_process_encoded_image_data_injector",
++        "analyzer/video:video_frame_tracking_id_injector",
+         "analyzer/video:video_quality_analyzer_injection_helper",
+         "analyzer/video:video_quality_metrics_reporter",
+         "//third_party/abseil-cpp/absl/flags:flag",
+diff --git a/test/pc/e2e/peer_connection_quality_test.cc b/test/pc/e2e/peer_connection_quality_test.cc
+index 040f8b1b3f..8fa99826df 100644
+--- a/test/pc/e2e/peer_connection_quality_test.cc
++++ b/test/pc/e2e/peer_connection_quality_test.cc
+@@ -22,7 +22,6 @@
  
--RtpStreamConfig RtpConfig::GetStreamConfig(size_t index) const {
--  // GetStreamConfig function usually returns stream_configs[index], but if
--  // stream_configs is not initialized (i.e., index >= stream_configs.size()),
--  // it creates and returns an RtpStreamConfig using fields such as ssrcs, rids,
--  // payload_name, and payload_type from RtpConfig.
--  RTC_DCHECK_LT(index, ssrcs.size());
--  if (index < stream_configs.size()) {
--    return stream_configs[index];
--  }
--  RtpStreamConfig stream_config;
--  stream_config.ssrc = ssrcs[index];
--  if (index < rids.size()) {
--    stream_config.rid = rids[index];
--  }
--  stream_config.payload_name = payload_name;
--  stream_config.payload_type = payload_type;
--  stream_config.raw_payload = raw_payload;
--  if (!rtx.ssrcs.empty()) {
--    RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
--    auto& stream_config_rtx = stream_config.rtx.emplace();
--    stream_config_rtx.ssrc = rtx.ssrcs[index];
--    stream_config_rtx.payload_type = rtx.payload_type;
--  }
--
--  return stream_config;
--}
--
- }  // namespace webrtc
-diff --git a/call/rtp_config.h b/call/rtp_config.h
-index d77289febc..6b79e55f40 100644
---- a/call/rtp_config.h
-+++ b/call/rtp_config.h
-@@ -193,9 +193,6 @@ struct RtpConfig {
-   uint32_t GetMediaSsrcAssociatedWithRtxSsrc(uint32_t rtx_ssrc) const;
-   uint32_t GetMediaSsrcAssociatedWithFlexfecSsrc(uint32_t flexfec_ssrc) const;
-   std::optional<std::string> GetRidForSsrc(uint32_t ssrc) const;
--
--  // Returns send config for RTP stream by provided simulcast `index`.
--  RtpStreamConfig GetStreamConfig(size_t index) const;
- };
- }  // namespace webrtc
- #endif  // CALL_RTP_CONFIG_H_
-diff --git a/call/rtp_video_sender.cc b/call/rtp_video_sender.cc
-index 8964e4b6bc..37cab225b7 100644
---- a/call/rtp_video_sender.cc
-+++ b/call/rtp_video_sender.cc
-@@ -330,13 +330,11 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
-   return rtp_streams;
- }
- 
--std::optional<VideoCodecType> GetVideoCodecType(const RtpConfig& config,
--                                                size_t simulcast_index) {
--  auto stream_config = config.GetStreamConfig(simulcast_index);
--  if (stream_config.raw_payload) {
-+std::optional<VideoCodecType> GetVideoCodecType(const RtpConfig& config) {
-+  if (config.raw_payload) {
-     return std::nullopt;
+ #include "absl/flags/flag.h"
+ #include "absl/strings/string_view.h"
+-#include "api/field_trials.h"
+ #include "api/jsep.h"
+ #include "api/media_stream_interface.h"
+ #include "api/media_types.h"
+@@ -53,13 +52,18 @@
+ #include "pc/test/mock_peer_connection_observers.h"
+ #include "rtc_base/checks.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/strings/string_builder.h"
+ #include "rtc_base/synchronization/mutex.h"
+ #include "rtc_base/task_queue_for_test.h"
+ #include "rtc_base/task_utils/repeating_task.h"
+ #include "system_wrappers/include/cpu_info.h"
++#include "system_wrappers/include/field_trial.h"
++#include "test/field_trial.h"
+ #include "test/gtest.h"
+ #include "test/pc/e2e/analyzer/audio/default_audio_quality_analyzer.h"
+ #include "test/pc/e2e/analyzer/video/default_video_quality_analyzer.h"
++#include "test/pc/e2e/analyzer/video/single_process_encoded_image_data_injector.h"
++#include "test/pc/e2e/analyzer/video/video_frame_tracking_id_injector.h"
+ #include "test/pc/e2e/analyzer/video/video_quality_analyzer_injection_helper.h"
+ #include "test/pc/e2e/analyzer/video/video_quality_metrics_reporter.h"
+ #include "test/pc/e2e/cross_media_metrics_reporter.h"
+@@ -185,10 +189,18 @@ PeerConnectionE2EQualityTest::PeerConnectionE2EQualityTest(
+     video_quality_analyzer = std::make_unique<DefaultVideoQualityAnalyzer>(
+         time_controller_.GetClock(), metrics_logger_);
    }
--  return PayloadStringToCodecType(stream_config.payload_name);
-+  return PayloadStringToCodecType(config.payload_name);
- }
- bool TransportSeqNumExtensionConfigured(const RtpConfig& config) {
-   return absl::c_any_of(config.extensions, [](const RtpExtension& ext) {
-@@ -423,6 +421,7 @@ RtpVideoSender::RtpVideoSender(
-                                           crypto_options,
-                                           std::move(frame_transformer))),
-       rtp_config_(rtp_config),
-+      codec_type_(GetVideoCodecType(rtp_config)),
-       transport_(transport),
-       independent_frame_ids_(
-           !env.field_trials().IsDisabled(
-@@ -471,14 +470,12 @@ RtpVideoSender::RtpVideoSender(
++  if (field_trial::IsEnabled("WebRTC-VideoFrameTrackingIdAdvertised")) {
++    encoded_image_data_propagator_ =
++        std::make_unique<VideoFrameTrackingIdInjector>();
++  } else {
++    encoded_image_data_propagator_ =
++        std::make_unique<SingleProcessEncodedImageDataInjector>();
++  }
+   video_quality_analyzer_injection_helper_ =
+       std::make_unique<VideoQualityAnalyzerInjectionHelper>(
+           time_controller_.GetClock(), std::move(video_quality_analyzer),
+-          &encoded_image_data_propagator_, &encoded_image_data_propagator_);
++          encoded_image_data_propagator_.get(),
++          encoded_image_data_propagator_.get());
+ 
+   if (audio_quality_analyzer == nullptr) {
+     audio_quality_analyzer =
+@@ -247,9 +259,7 @@ void PeerConnectionE2EQualityTest::Run(RunParams run_params) {
+         << "Only simulcast stream from first peer is supported";
    }
  
-   bool fec_enabled = false;
--  for (size_t i = 0; i < rtp_streams_.size(); i++) {
--    const RtpStreamSender& stream = rtp_streams_[i];
-+  for (const RtpStreamSender& stream : rtp_streams_) {
-     // Simulcast has one module for each layer. Set the CNAME on all modules.
-     stream.rtp_rtcp->SetCNAME(rtp_config_.c_name.c_str());
-     stream.rtp_rtcp->SetMaxRtpPacketSize(rtp_config_.max_packet_size);
--    stream.rtp_rtcp->RegisterSendPayloadFrequency(
--        rtp_config_.GetStreamConfig(i).payload_type,
--        kVideoPayloadTypeFrequency);
-+    stream.rtp_rtcp->RegisterSendPayloadFrequency(rtp_config_.payload_type,
-+                                                  kVideoPayloadTypeFrequency);
-     if (stream.fec_generator != nullptr) {
-       fec_enabled = true;
-     }
-@@ -579,7 +576,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
-   // knowledge of the offset to a single place.
-   if (!rtp_streams_[simulcast_index].rtp_rtcp->OnSendingRtpFrame(
-           encoded_image.RtpTimestamp(), encoded_image.capture_time_ms_,
--          rtp_config_.GetStreamConfig(simulcast_index).payload_type,
-+          rtp_config_.payload_type,
-           encoded_image._frameType == VideoFrameType::kVideoFrameKey)) {
-     // The payload router could be active but this module isn't sending.
-     return Result(Result::ERROR_SEND_FAILED);
-@@ -619,9 +616,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
+-  std::string field_trials = GetFieldTrials(run_params);
+-  alice_configurer->SetFieldTrials(FieldTrials::CreateNoGlobal(field_trials));
+-  bob_configurer->SetFieldTrials(FieldTrials::CreateNoGlobal(field_trials));
++  test::ScopedFieldTrials field_trials(GetFieldTrials(run_params));
  
-   bool send_result =
-       rtp_streams_[simulcast_index].sender_video->SendEncodedImage(
--          rtp_config_.GetStreamConfig(simulcast_index).payload_type,
--          GetVideoCodecType(rtp_config_, simulcast_index), rtp_timestamp,
--          encoded_image,
-+          rtp_config_.payload_type, codec_type_, rtp_timestamp, encoded_image,
-           params_[simulcast_index].GetRtpVideoHeader(
-               encoded_image, codec_specific_info, frame_id),
-           expected_retransmission_time);
-@@ -759,12 +754,9 @@ void RtpVideoSender::ConfigureSsrcs(
+   // Print test summary
+   RTC_LOG(LS_INFO)
+@@ -270,8 +280,9 @@ void PeerConnectionE2EQualityTest::Run(RunParams run_params) {
+       time_controller_.GetClock());
  
-   // Configure RTX payload types.
-   RTC_DCHECK_GE(rtp_config_.rtx.payload_type, 0);
--  for (size_t i = 0; i < rtp_streams_.size(); ++i) {
--    const RtpStreamSender& stream = rtp_streams_[i];
--    RtpStreamConfig stream_config = rtp_config_.GetStreamConfig(i);
--    RTC_DCHECK(stream_config.rtx);
--    stream.rtp_rtcp->SetRtxSendPayloadType(stream_config.rtx->payload_type,
--                                           stream_config.payload_type);
-+  for (const RtpStreamSender& stream : rtp_streams_) {
-+    stream.rtp_rtcp->SetRtxSendPayloadType(rtp_config_.rtx.payload_type,
-+                                           rtp_config_.payload_type);
-     stream.rtp_rtcp->SetRtxSendStatus(kRtxRetransmitted |
-                                       kRtxRedundantPayloads);
+   // Create a `task_queue_`.
+-  task_queue_ = time_controller_.GetTaskQueueFactory()->CreateTaskQueue(
+-      "pc_e2e_quality_test", webrtc::TaskQueueFactory::Priority::NORMAL);
++  task_queue_ = std::make_unique<webrtc::TaskQueueForTest>(
++      time_controller_.GetTaskQueueFactory()->CreateTaskQueue(
++          "pc_e2e_quality_test", webrtc::TaskQueueFactory::Priority::NORMAL));
+ 
+   // Create call participants: Alice and Bob.
+   // Audio streams are intercepted in AudioDeviceModule, so if it is required to
+@@ -361,8 +372,8 @@ void PeerConnectionE2EQualityTest::Run(RunParams run_params) {
+ 
+   // Setup alive logging. It is done to prevent test infra to think that test is
+   // dead.
+-  RepeatingTaskHandle::DelayedStart(task_queue_.get(), kAliveMessageLogInterval,
+-                                    []() {
++  RepeatingTaskHandle::DelayedStart(task_queue_->Get(),
++                                    kAliveMessageLogInterval, []() {
+                                       std::printf("Test is still running...\n");
+                                       return kAliveMessageLogInterval;
+                                     });
+@@ -420,7 +431,7 @@ void PeerConnectionE2EQualityTest::Run(RunParams run_params) {
+   // There is no guarantee, that last stats collection will happen at the end
+   // of the call, so we force it after executor, which is among others is doing
+   // stats collection, was stopped.
+-  SendTask(task_queue_.get(), [&stats_poller]() {
++  task_queue_->SendTask([&stats_poller]() {
+     // Get final end-of-call stats.
+     stats_poller.PollStatsAndNotifyObservers();
+   });
+@@ -458,10 +469,16 @@ void PeerConnectionE2EQualityTest::Run(RunParams run_params) {
+ 
+ std::string PeerConnectionE2EQualityTest::GetFieldTrials(
+     const RunParams& run_params) {
++  std::vector<absl::string_view> default_field_trials = {};
+   if (run_params.enable_flex_fec_support) {
+-    return kFlexFecEnabledFieldTrials;
++    default_field_trials.push_back(kFlexFecEnabledFieldTrials);
++  }
++  rtc::StringBuilder sb;
++  sb << field_trial::GetFieldTrialString();
++  for (const absl::string_view& field_trial : default_field_trials) {
++    sb << field_trial;
    }
-diff --git a/call/rtp_video_sender.h b/call/rtp_video_sender.h
-index 8965cfb311..65da26db2b 100644
---- a/call/rtp_video_sender.h
-+++ b/call/rtp_video_sender.h
-@@ -201,6 +201,7 @@ class RtpVideoSender : public RtpVideoSenderInterface,
-   const std::vector<webrtc_internal_rtp_video_sender::RtpStreamSender>
-       rtp_streams_;
-   const RtpConfig rtp_config_;
-+  const std::optional<VideoCodecType> codec_type_;
-   RtpTransportControllerSendInterface* const transport_;
- 
-   // When using the generic descriptor we want all simulcast streams to share
-diff --git a/call/rtp_video_sender_unittest.cc b/call/rtp_video_sender_unittest.cc
-index 8fc744fe74..936f2937a1 100644
---- a/call/rtp_video_sender_unittest.cc
-+++ b/call/rtp_video_sender_unittest.cc
-@@ -84,7 +84,6 @@ using ::testing::SaveArg;
- using ::testing::SizeIs;
- 
- const int8_t kPayloadType = 96;
--const int8_t kPayloadType2 = 98;
- const uint32_t kSsrc1 = 12345;
- const uint32_t kSsrc2 = 23456;
- const uint32_t kRtxSsrc1 = 34567;
-@@ -134,8 +133,7 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
-     Transport* transport,
-     const std::vector<uint32_t>& ssrcs,
-     const std::vector<uint32_t>& rtx_ssrcs,
--    int payload_type,
--    rtc::ArrayView<const int> payload_types) {
-+    int payload_type) {
-   VideoSendStream::Config config(transport);
-   config.rtp.ssrcs = ssrcs;
-   config.rtp.rtx.ssrcs = rtx_ssrcs;
-@@ -147,20 +145,6 @@ VideoSendStream::Config CreateVideoSendStreamConfig(
-   config.rtp.extensions.emplace_back(RtpDependencyDescriptorExtension::Uri(),
-                                      kDependencyDescriptorExtensionId);
-   config.rtp.extmap_allow_mixed = true;
--
--  if (!payload_types.empty()) {
--    RTC_CHECK_EQ(payload_types.size(), ssrcs.size());
--    for (size_t i = 0; i < ssrcs.size(); ++i) {
--      auto& stream_config = config.rtp.stream_configs.emplace_back();
--      stream_config.ssrc = ssrcs[i];
--      stream_config.payload_type = payload_types[i];
--      if (i < rtx_ssrcs.size()) {
--        auto& rtx = stream_config.rtx.emplace();
--        rtx.ssrc = rtx_ssrcs[i];
--        rtx.payload_type = payload_types[i] + 1;
--      }
--    }
--  }
-   return config;
+-  return "";
++  return sb.Release();
  }
  
-@@ -173,7 +157,6 @@ class RtpVideoSenderTestFixture {
-       const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
-       FrameCountObserver* frame_count_observer,
-       rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
--      const std::vector<int>& payload_types,
-       const FieldTrialsView* field_trials = nullptr)
-       : time_controller_(Timestamp::Millis(1000000)),
-         env_(CreateEnvironment(&field_trials_,
-@@ -183,8 +166,7 @@ class RtpVideoSenderTestFixture {
-         config_(CreateVideoSendStreamConfig(&transport_,
-                                             ssrcs,
-                                             rtx_ssrcs,
--                                            payload_type,
--                                            payload_types)),
-+                                            payload_type)),
-         bitrate_config_(GetBitrateConfig()),
-         transport_controller_(
-             RtpTransportConfig{.env = env_, .bitrate_config = bitrate_config_}),
-@@ -206,22 +188,6 @@ class RtpVideoSenderTestFixture {
-         std::make_unique<FecControllerDefault>(env_), nullptr, CryptoOptions{},
-         frame_transformer);
-   }
--  RtpVideoSenderTestFixture(
--      const std::vector<uint32_t>& ssrcs,
--      const std::vector<uint32_t>& rtx_ssrcs,
--      int payload_type,
--      const std::map<uint32_t, RtpPayloadState>& suspended_payload_states,
--      FrameCountObserver* frame_count_observer,
--      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
--      const FieldTrialsView* field_trials = nullptr)
--      : RtpVideoSenderTestFixture(ssrcs,
--                                  rtx_ssrcs,
--                                  payload_type,
--                                  suspended_payload_states,
--                                  frame_count_observer,
--                                  frame_transformer,
--                                  /*payload_types=*/{},
--                                  field_trials) {}
+ void PeerConnectionE2EQualityTest::OnTrackCallback(
+diff --git a/test/pc/e2e/peer_connection_quality_test.h b/test/pc/e2e/peer_connection_quality_test.h
+index 7045c7d5db..6cbf232874 100644
+--- a/test/pc/e2e/peer_connection_quality_test.h
++++ b/test/pc/e2e/peer_connection_quality_test.h
+@@ -10,15 +10,12 @@
+ #ifndef TEST_PC_E2E_PEER_CONNECTION_QUALITY_TEST_H_
+ #define TEST_PC_E2E_PEER_CONNECTION_QUALITY_TEST_H_
  
-   RtpVideoSenderTestFixture(
-       const std::vector<uint32_t>& ssrcs,
-@@ -236,7 +202,6 @@ class RtpVideoSenderTestFixture {
-                                   suspended_payload_states,
-                                   frame_count_observer,
-                                   /*frame_transformer=*/nullptr,
--                                  /*payload_types=*/{},
-                                   field_trials) {}
+-#include <functional>
+ #include <memory>
++#include <queue>
+ #include <string>
+ #include <vector>
  
-   RtpVideoSenderTestFixture(
-@@ -251,7 +216,6 @@ class RtpVideoSenderTestFixture {
-                                   suspended_payload_states,
-                                   /*frame_count_observer=*/nullptr,
-                                   /*frame_transformer=*/nullptr,
--                                  /*payload_types=*/{},
-                                   field_trials) {}
+ #include "absl/strings/string_view.h"
+-#include "api/rtp_transceiver_interface.h"
+-#include "api/scoped_refptr.h"
+-#include "api/task_queue/task_queue_base.h"
+ #include "api/task_queue/task_queue_factory.h"
+ #include "api/test/audio_quality_analyzer_interface.h"
+ #include "api/test/metrics/metrics_logger.h"
+@@ -27,20 +24,17 @@
+ #include "api/test/pclf/peer_configurer.h"
+ #include "api/test/peerconnection_quality_test_fixture.h"
+ #include "api/test/time_controller.h"
+-#include "api/test/video_quality_analyzer_interface.h"
+ #include "api/units/time_delta.h"
+ #include "api/units/timestamp.h"
+-#include "api/video/video_frame.h"
+-#include "api/video/video_sink_interface.h"
+-#include "rtc_base/checks.h"
+ #include "rtc_base/synchronization/mutex.h"
++#include "rtc_base/task_queue_for_test.h"
+ #include "rtc_base/thread.h"
+ #include "rtc_base/thread_annotations.h"
++#include "system_wrappers/include/clock.h"
+ #include "test/pc/e2e/analyzer/video/single_process_encoded_image_data_injector.h"
+ #include "test/pc/e2e/analyzer/video/video_quality_analyzer_injection_helper.h"
+ #include "test/pc/e2e/analyzer_helper.h"
+ #include "test/pc/e2e/media/media_helper.h"
+-#include "test/pc/e2e/media/test_video_capturer_video_track_source.h"
+ #include "test/pc/e2e/sdp/sdp_changer.h"
+ #include "test/pc/e2e/test_activities_executor.h"
+ #include "test/pc/e2e/test_peer.h"
+@@ -122,7 +116,7 @@ class PeerConnectionE2EQualityTest
+   std::unique_ptr<VideoQualityAnalyzerInjectionHelper>
+       video_quality_analyzer_injection_helper_;
+   std::unique_ptr<MediaHelper> media_helper_;
+-  SingleProcessEncodedImageDataInjector encoded_image_data_propagator_;
++  std::unique_ptr<EncodedImageDataPropagator> encoded_image_data_propagator_;
+   std::unique_ptr<AudioQualityAnalyzerInterface> audio_quality_analyzer_;
+   std::unique_ptr<TestActivitiesExecutor> executor_;
+   test::MetricsLogger* const metrics_logger_;
+@@ -149,7 +143,7 @@ class PeerConnectionE2EQualityTest
+   // Task queue, that is used for running activities during test call.
+   // This task queue will be created before call set up and will be destroyed
+   // immediately before call tear down.
+-  std::unique_ptr<TaskQueueBase, TaskQueueDeleter> task_queue_;
++  std::unique_ptr<TaskQueueForTest> task_queue_;
  
-   ~RtpVideoSenderTestFixture() { SetSending(false); }
-@@ -989,79 +953,6 @@ TEST(RtpVideoSenderTest,
-   EXPECT_EQ(dd_s1.frame_number(), 1002);
- }
- 
--TEST(RtpVideoSenderTest, MixedCodecSimulcastPayloadType) {
--  // When multiple payload types are set, verify that the payload type switches
--  // corresponding to the simulcast index.
--  RtpVideoSenderTestFixture test({kSsrc1, kSsrc2}, {kRtxSsrc1, kRtxSsrc2},
--                                 kPayloadType, {}, nullptr, nullptr,
--                                 {kPayloadType, kPayloadType2});
--  test.SetSending(true);
--
--  std::vector<uint16_t> rtp_sequence_numbers;
--  std::vector<RtpPacket> sent_packets;
--  EXPECT_CALL(test.transport(), SendRtp)
--      .Times(3)
--      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
--                          const PacketOptions& options) -> bool {
--        RtpPacket& rtp_packet = sent_packets.emplace_back();
--        EXPECT_TRUE(rtp_packet.Parse(packet));
--        rtp_sequence_numbers.push_back(rtp_packet.SequenceNumber());
--        return true;
--      });
--
--  const uint8_t kPayload[1] = {'a'};
--  EncodedImage encoded_image;
--  encoded_image.SetEncodedData(
--      EncodedImageBuffer::Create(kPayload, sizeof(kPayload)));
--
--  CodecSpecificInfo codec_specific;
--  codec_specific.codecType = VideoCodecType::kVideoCodecVP8;
--
--  encoded_image.SetSimulcastIndex(0);
--  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
--            EncodedImageCallback::Result::OK);
--  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
--            EncodedImageCallback::Result::OK);
--  encoded_image.SetSimulcastIndex(1);
--  ASSERT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
--            EncodedImageCallback::Result::OK);
--
--  test.AdvanceTime(TimeDelta::Millis(33));
--  ASSERT_THAT(sent_packets, SizeIs(3));
--  EXPECT_EQ(sent_packets[0].PayloadType(), kPayloadType);
--  EXPECT_EQ(sent_packets[1].PayloadType(), kPayloadType);
--  EXPECT_EQ(sent_packets[2].PayloadType(), kPayloadType2);
--
--  // Verify that NACK is sent to the RTX payload type corresponding to the
--  // payload type.
--  rtcp::Nack nack1, nack2;
--  nack1.SetMediaSsrc(kSsrc1);
--  nack2.SetMediaSsrc(kSsrc2);
--  nack1.SetPacketIds({rtp_sequence_numbers[0], rtp_sequence_numbers[1]});
--  nack2.SetPacketIds({rtp_sequence_numbers[2]});
--  rtc::Buffer nack_buffer1 = nack1.Build();
--  rtc::Buffer nack_buffer2 = nack2.Build();
--
--  std::vector<RtpPacket> sent_rtx_packets;
--  EXPECT_CALL(test.transport(), SendRtp)
--      .Times(3)
--      .WillRepeatedly([&](rtc::ArrayView<const uint8_t> packet,
--                          const PacketOptions& options) {
--        RtpPacket& rtp_packet = sent_rtx_packets.emplace_back();
--        EXPECT_TRUE(rtp_packet.Parse(packet));
--        return true;
--      });
--  test.router()->DeliverRtcp(nack_buffer1.data(), nack_buffer1.size());
--  test.router()->DeliverRtcp(nack_buffer2.data(), nack_buffer2.size());
--
--  test.AdvanceTime(TimeDelta::Millis(33));
--
--  ASSERT_THAT(sent_rtx_packets, SizeIs(3));
--  EXPECT_EQ(sent_rtx_packets[0].PayloadType(), kPayloadType + 1);
--  EXPECT_EQ(sent_rtx_packets[1].PayloadType(), kPayloadType + 1);
--  EXPECT_EQ(sent_rtx_packets[2].PayloadType(), kPayloadType2 + 1);
--}
--
- TEST(RtpVideoSenderTest,
-      SupportsDependencyDescriptorForVp8NotProvidedByEncoder) {
-   constexpr uint8_t kPayload[1] = {'a'};
-diff --git a/media/engine/webrtc_video_engine.cc b/media/engine/webrtc_video_engine.cc
-index c4635859fa..ac0042ebc4 100644
---- a/media/engine/webrtc_video_engine.cc
-+++ b/media/engine/webrtc_video_engine.cc
-@@ -1428,51 +1428,31 @@ webrtc::RTCError WebRtcVideoSendChannel::SetRtpSendParameters(
-         break;
-     }
- 
--    if (send_codec_ &&
--        std::any_of(parameters.encodings.begin(), parameters.encodings.end(),
--                    [](const auto& e) { return e.codec; })) {
--      std::vector<VideoCodecSettings> send_codecs;
--
--      for (size_t i = 0; i < parameters.encodings.size(); i++) {
--        const auto& codec = parameters.encodings[i].codec;
--        std::optional<VideoCodecSettings> found_codec;
--        if (!codec) {
--          found_codec = *send_codec_;
--        } else if (i < send_codecs_.size()) {
--          const auto& send_codec = send_codecs_[i];
--          if (IsSameRtpCodecIgnoringLevel(send_codec.codec, *codec)) {
--            found_codec = send_codec;
--          }
--        }
--        if (!found_codec) {
--          RTC_DCHECK(codec);
--          auto matched_codec =
--              absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
--                return IsSameRtpCodecIgnoringLevel(negotiated_codec.codec,
--                                                   *codec);
--              });
--          if (matched_codec == negotiated_codecs_.end()) {
--            return webrtc::InvokeSetParametersCallback(
--                callback,
--                webrtc::RTCError(
--                    webrtc::RTCErrorType::INVALID_MODIFICATION,
--                    "Attempted to use an unsupported codec for layer " +
--                        std::to_string(i)));
--          }
--          found_codec = *matched_codec;
--        }
--        RTC_DCHECK(found_codec);
--        send_codecs.push_back(*found_codec);
-+    // Since we validate that all layers have the same value, we can just check
-+    // the first layer.
-+    // TODO: https://issues.webrtc.org/362277533 - Support mixed-codec simulcast
-+    if (parameters.encodings[0].codec && send_codec_ &&
-+        !IsSameRtpCodecIgnoringLevel(send_codec_->codec,
-+                                     *parameters.encodings[0].codec)) {
-+      RTC_LOG(LS_VERBOSE) << "Trying to change codec to "
-+                          << parameters.encodings[0].codec->name;
-+      // Ignore level when matching negotiated codecs against the requested
-+      // codec.
-+      auto matched_codec =
-+          absl::c_find_if(negotiated_codecs_, [&](auto negotiated_codec) {
-+            return IsSameRtpCodecIgnoringLevel(negotiated_codec.codec,
-+                                               *parameters.encodings[0].codec);
-+          });
-+      if (matched_codec == negotiated_codecs_.end()) {
-+        return webrtc::InvokeSetParametersCallback(
-+            callback, webrtc::RTCError(
-+                          webrtc::RTCErrorType::INVALID_MODIFICATION,
-+                          "Attempted to use an unsupported codec for layer 0"));
-       }
- 
--      if (send_codecs_ != send_codecs) {
--        ChangedSenderParameters params;
--        if (!send_codecs.empty()) {
--          params.send_codec = send_codecs[0];
--        }
--        params.send_codecs = send_codecs;
--        ApplyChangedParams(params);
--      }
-+      ChangedSenderParameters params;
-+      params.send_codec = *matched_codec;
-+      ApplyChangedParams(params);
-     }
- 
-     SetPreferredDscp(new_dscp);
+   bool alice_connected_ = false;
+   bool bob_connected_ = false;
