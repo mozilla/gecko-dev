@@ -53,9 +53,6 @@ function snapshotHistograms() {
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   return {
-    resultMethodHist: TelemetryTestUtils.getAndClearHistogram(
-      "FX_URLBAR_SELECTED_RESULT_METHOD"
-    ),
     search_hist: TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS"),
   };
 }
@@ -158,11 +155,6 @@ add_task(async function test_remotetab() {
   await p;
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  TelemetryTestUtils.assertHistogram(
-    histograms.resultMethodHist,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection,
-    1
-  );
 
   BrowserTestUtils.removeTab(tab);
 });

@@ -122,11 +122,7 @@ class BrowserSearchTelemetryHandler {
     } else {
       category = "enter";
     }
-    if (source == "urlbar") {
-      Services.telemetry
-        .getHistogramById("FX_URLBAR_SELECTED_RESULT_METHOD")
-        .add(category);
-    } else {
+    if (source == "searchbar") {
       Services.telemetry
         .getHistogramById("FX_SEARCHBAR_SELECTED_RESULT_METHOD")
         .add(category);

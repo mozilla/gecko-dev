@@ -29,6 +29,9 @@ PLACES_AUTOCOMPLETE_6_FIRST_RESULTS_TIME_MS
 FX_URLBAR_SELECTED_RESULT_METHOD
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+  NOTE: This histogram has been completely removed, as its data is now
+  collected as part of the `urlbar.engagement` Glean event. (See bug 1932707)
+
   This probe tracks how a result was picked by the user from the list.
   It is a categorical histogram with these values:
 

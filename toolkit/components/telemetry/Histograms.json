@@ -7254,28 +7254,10 @@
     "bug_numbers": [1806765],
     "description": "Firefox: Records how long the user is exposed to the zero-prefix results panel (ms)"
   },
-  "FX_URLBAR_SELECTED_RESULT_METHOD": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": ["dzeber@mozilla.com", "fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "releaseChannelCollection": "opt-out",
-    "kind": "categorical",
-    "labels": [
-      "enter",
-      "enterSelection",
-      "click",
-      "arrowEnterSelection",
-      "tabEnterSelection",
-      "rightClickEnter"
-    ],
-    "bug_numbers": [1334615],
-    "description": "The input method the user used to select a result in the urlbar. 'enter' => The user hit the Enter key on the heuristic result at index 0. 'enterSelection' => The user chose a non-heuristic result (in exotic ways) and then hit the Enter key. 'click' => The user clicked a result with the mouse. 'arrowEnterSelection' => The user chose a non-heuristic result using arrow keys and then hit the Enter key. 'tabEnterSelection' => The user chose a non-heuristic result using tab at least once and then hit the Enter key. 'rightClickEnter' => The user chose a non-heuristic result using right click and then hit the Enter key."
-  },
   "FX_SEARCHBAR_SELECTED_RESULT_METHOD": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
-    "alert_emails": ["dzeber@mozilla.com"],
+    "alert_emails": ["fx-search-telemetry@mozilla.com"],
     "expires_in_version": "never",
     "releaseChannelCollection": "opt-out",
     "kind": "categorical",

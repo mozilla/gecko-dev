@@ -43,9 +43,6 @@ function snapshotHistograms() {
   Services.telemetry.clearScalars();
   Services.telemetry.clearEvents();
   return {
-    resultMethodHist: TelemetryTestUtils.getAndClearHistogram(
-      "FX_URLBAR_SELECTED_RESULT_METHOD"
-    ),
     search_hist: TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS"),
   };
 }
@@ -275,12 +272,6 @@ add_task(async function history() {
 
     assertSearchTelemetryEmpty(histograms.search_hist);
 
-    TelemetryTestUtils.assertHistogram(
-      histograms.resultMethodHist,
-      UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
-      1
-    );
-
     UrlbarPrefs.clear("autoFill.adaptiveHistory.enabled");
     await PlacesTestUtils.clearInputHistory();
     await PlacesUtils.history.clear();
@@ -293,11 +284,6 @@ add_task(async function about() {
   await triggerAutofillAndPickResult("about:abou", "about:about");
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  TelemetryTestUtils.assertHistogram(
-    histograms.resultMethodHist,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
-    1
-  );
 
   await PlacesUtils.history.clear();
 });
@@ -313,11 +299,6 @@ add_task(async function other() {
   await triggerAutofillAndPickResult(searchString, autofilledValue);
 
   assertSearchTelemetryEmpty(histograms.search_hist);
-  TelemetryTestUtils.assertHistogram(
-    histograms.resultMethodHist,
-    UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
-    1
-  );
 
   await PlacesUtils.history.clear();
   UrlbarProvidersManager.unregisterProvider(provider);

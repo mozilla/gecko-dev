@@ -18,17 +18,6 @@ ChromeUtils.defineESModuleGetters(this, {
     "resource:///modules/UrlbarProviderTabToSearch.sys.mjs",
 });
 
-function snapshotHistograms() {
-  Services.telemetry.clearScalars();
-  Services.telemetry.clearEvents();
-  return {
-    resultMethodHist: TelemetryTestUtils.getAndClearHistogram(
-      "FX_URLBAR_SELECTED_RESULT_METHOD"
-    ),
-    search_hist: TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS"),
-  };
-}
-
 /**
  * Checks to see if the second result in the Urlbar is a tab-to-search result
  * with the correct engine.
@@ -91,8 +80,6 @@ add_setup(async function () {
 
 add_task(async function test() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
-    const histograms = snapshotHistograms();
-
     for (let i = 0; i < 3; i++) {
       await PlacesTestUtils.addVisits([`https://${ENGINE_DOMAIN}/`]);
     }
@@ -133,12 +120,6 @@ add_task(async function test() {
       engineName: ENGINE_NAME,
       entry: "tabtosearch",
     });
-
-    TelemetryTestUtils.assertHistogram(
-      histograms.resultMethodHist,
-      UrlbarTestUtils.SELECTED_RESULT_METHODS.arrowEnterSelection,
-      1
-    );
 
     await UrlbarTestUtils.exitSearchMode(window);
     await UrlbarTestUtils.promisePopupClose(window, () => {

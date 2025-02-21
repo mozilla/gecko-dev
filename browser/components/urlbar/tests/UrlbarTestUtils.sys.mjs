@@ -30,11 +30,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 export var UrlbarTestUtils = {
   /**
-   * This maps the categories used by the FX_URLBAR_SELECTED_RESULT_METHOD and
-   * FX_SEARCHBAR_SELECTED_RESULT_METHOD histograms to their indexes in the
-   * `labels` array.  This only needs to be used by tests that need to map from
-   * category names to indexes in histogram snapshots.  Actual app code can use
-   * these category names directly when they add to a histogram.
+   * This maps the categories used by the FX_SEARCHBAR_SELECTED_RESULT_METHOD
+   * histogram to its indexes in the `labels` array. This only needs to be
+   * used by tests that need to map from category names to indexes in histogram
+   * snapshots. Actual app code can use these category names directly when
+   * they add to a histogram.
    */
   SELECTED_RESULT_METHODS: {
     enter: 0,
