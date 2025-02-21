@@ -1902,28 +1902,6 @@
     "description": "AVIF image decode speed (Kbytes/sec)",
     "bug_numbers": [1294490]
   },
-  "AVIF_MAJOR_BRAND": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox"],
-    "alert_emails": ["media-alerts@mozilla.com"],
-    "expires_in_version": "never",
-    "releaseChannelCollection": "opt-out",
-    "kind": "categorical",
-    "labels": ["avif", "avis", "other"],
-    "description": "AVIF major brand",
-    "bug_numbers": [1745608]
-  },
-  "AVIF_SEQUENCE": {
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox"],
-    "alert_emails": ["media-alerts@mozilla.com"],
-    "expires_in_version": "never",
-    "releaseChannelCollection": "opt-out",
-    "kind": "categorical",
-    "labels": ["present", "absent"],
-    "description": "AVIF image sequence",
-    "bug_numbers": [1745608]
-  },
   "KEYPRESS_PRESENT_LATENCY": {
     "record_in_processes": ["all"],
     "products": ["firefox"],

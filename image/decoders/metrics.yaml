@@ -461,6 +461,43 @@ avif:
         type: string
     telemetry_mirror: Avif_Dav1dGetPicture_ReturnValue
 
+  major_brand:
+    type: labeled_counter
+    description: >
+      AVIF major brand
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram AVIF_MAJOR_BRAND.
+    labels:
+      - avif
+      - avis
+      - other
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1745608
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1745608
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+
+  sequence:
+    type: labeled_counter
+    description: >
+      AVIF image sequence
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram AVIF_SEQUENCE.
+    labels:
+      - present
+      - absent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1745608
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1745608
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+
 image_decode:
   time:
     type: timing_distribution

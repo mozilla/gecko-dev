@@ -18,7 +18,6 @@
 #include "SurfacePipeFactory.h"
 
 #include "mozilla/glean/ImageDecodersMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtrExtensions.h"
 
 using namespace mozilla::gfx;
@@ -26,9 +25,6 @@ using namespace mozilla::gfx;
 namespace mozilla {
 
 namespace image {
-
-using Telemetry::LABELS_AVIF_MAJOR_BRAND;
-using Telemetry::LABELS_AVIF_SEQUENCE;
 
 static LazyLogModule sAVIFLog("AVIFDecoder");
 
@@ -1316,15 +1312,18 @@ static void RecordMetadataTelem(const Mp4parseAvifInfo& aInfo) {
 
   const auto& major_brand = aInfo.major_brand;
   if (!memcmp(major_brand, "avif", sizeof(major_brand))) {
-    AccumulateCategorical(LABELS_AVIF_MAJOR_BRAND::avif);
+    glean::avif::major_brand.EnumGet(glean::avif::MajorBrandLabel::eAvif).Add();
   } else if (!memcmp(major_brand, "avis", sizeof(major_brand))) {
-    AccumulateCategorical(LABELS_AVIF_MAJOR_BRAND::avis);
+    glean::avif::major_brand.EnumGet(glean::avif::MajorBrandLabel::eAvis).Add();
   } else {
-    AccumulateCategorical(LABELS_AVIF_MAJOR_BRAND::other);
+    glean::avif::major_brand.EnumGet(glean::avif::MajorBrandLabel::eOther)
+        .Add();
   }
 
-  AccumulateCategorical(aInfo.has_sequence ? LABELS_AVIF_SEQUENCE::present
-                                           : LABELS_AVIF_SEQUENCE::absent);
+  glean::avif::sequence
+      .EnumGet(aInfo.has_sequence ? glean::avif::SequenceLabel::ePresent
+                                  : glean::avif::SequenceLabel::eAbsent)
+      .Add();
 
 #define FEATURE_RECORD_GLEAN(metric, metricLabel, fourcc)        \
   mozilla::glean::avif::metric                                   \
