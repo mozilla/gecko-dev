@@ -9,7 +9,9 @@ support-files = [
   "data/test.zip",
   "data/test_bug399727.html",
   "data/test_bug399727.zlib",
+  "data/test_bug399727.libz-rs.zlib",
   "data/test_bug717061.gz",
+  "data/test_bug717061.libz-rs.gz",
   "data/test_bug717061.html",
 ]
 
