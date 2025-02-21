@@ -33,34 +33,44 @@ DtlsStunPiggybackController::DtlsStunPiggybackController(
 
 DtlsStunPiggybackController::~DtlsStunPiggybackController() {}
 
-void DtlsStunPiggybackController::SetDtlsHandshakeComplete(
-    bool is_dtls_client) {
+void DtlsStunPiggybackController::SetDtlsHandshakeComplete(bool is_dtls_client,
+                                                           bool is_dtls13) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   // Peer does not support this so fallback to a normal DTLS handshake
   // happened.
   if (state_ == State::OFF) {
     return;
   }
-  // As DTLS server we need to keep the last flight around until
+  state_ = State::PENDING;
+  // As DTLS 1.2 server we need to keep the last flight around until
   // we receive the post-handshake acknowledgment.
-  // As DTLS client we have nothing more to send at this point
+  // As DTLS 1.2 client we have nothing more to send at this point
   // but will continue to send ACK attributes until receiving
   // the last flight from the server.
-  state_ = State::PENDING;
-  if (is_dtls_client) {
+  // For DTLS 1.3 this is reversed since the handshake has one round trip less.
+  if ((is_dtls_client && !is_dtls13) || (!is_dtls_client && is_dtls13)) {
     pending_packet_.Clear();
   }
 }
 
-void DtlsStunPiggybackController::SetDataToPiggyback(
+bool DtlsStunPiggybackController::MaybeConsumePacket(
     rtc::ArrayView<const uint8_t> data) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  if (state_ == State::OFF) {
-    return;
+  bool should_consume =
+      (state_ == State::TENTATIVE || state_ == State::CONFIRMED) &&
+      IsDtlsPacket(data);
+  if (should_consume) {
+    // Note: this overwrites the existing packets which is an issue
+    // if this gets called with fragmented DTLS flights.
+    pending_packet_.SetData(data);
+    return true;
   }
-  // Note: this overwrites the existing packets which is an issue
-  // if this gets called with fragmented DTLS flights.
-  pending_packet_.SetData(data);
+  return false;
+}
+
+void DtlsStunPiggybackController::ClearCachedPacketForTesting() {
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
+  pending_packet_.Clear();
 }
 
 std::optional<absl::string_view>
@@ -124,7 +134,7 @@ void DtlsStunPiggybackController::ReportDataPiggybacked(
     state_ = State::CONFIRMED;
   }
 
-  if (ack != nullptr) {
+  if (ack != nullptr && !ack->string_view().empty()) {
     RTC_LOG(LS_VERBOSE) << "DTLS-STUN piggybacking ACK: "
                         << rtc::hex_encode(ack->string_view());
   }

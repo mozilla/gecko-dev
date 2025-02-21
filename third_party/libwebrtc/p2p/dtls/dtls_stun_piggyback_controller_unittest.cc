@@ -65,7 +65,11 @@ class DtlsStunPiggybackControllerTest : public ::testing::Test {
 
   void SendClientToServer(const std::vector<uint8_t> data,
                           StunMessageType type) {
-    client_.SetDataToPiggyback(data);
+    if (!data.empty()) {
+      EXPECT_TRUE(client_.MaybeConsumePacket(data));
+    } else {
+      client_.ClearCachedPacketForTesting();
+    }
     std::unique_ptr<StunByteStringAttribute> attr_data;
     if (client_.GetDataToPiggyback(type)) {
       attr_data = std::make_unique<StunByteStringAttribute>(
@@ -77,14 +81,14 @@ class DtlsStunPiggybackControllerTest : public ::testing::Test {
           STUN_ATTR_META_DTLS_IN_STUN_ACK, *client_.GetAckToPiggyback(type));
     }
     server_.ReportDataPiggybacked(attr_data.get(), attr_ack.get());
-    if (data == dtls_flight3) {
-      // When receiving flight 3, server handshake is complete.
-      server_.SetDtlsHandshakeComplete(/*is_client=*/false);
-    }
   }
   void SendServerToClient(const std::vector<uint8_t> data,
                           StunMessageType type) {
-    server_.SetDataToPiggyback(data);
+    if (!data.empty()) {
+      EXPECT_TRUE(server_.MaybeConsumePacket(data));
+    } else {
+      server_.ClearCachedPacketForTesting();
+    }
     std::unique_ptr<StunByteStringAttribute> attr_data;
     if (server_.GetDataToPiggyback(type)) {
       attr_data = std::make_unique<StunByteStringAttribute>(
@@ -97,8 +101,11 @@ class DtlsStunPiggybackControllerTest : public ::testing::Test {
     }
     client_.ReportDataPiggybacked(attr_data.get(), attr_ack.get());
     if (data == dtls_flight4) {
+      // After sending flight 4, the server handshake is complete.
+      server_.SetDtlsHandshakeComplete(/*is_client=*/false,
+                                       /*is_dtls13=*/false);
       // When receiving flight 4, client handshake is complete.
-      client_.SetDtlsHandshakeComplete(/*is_client=*/true);
+      client_.SetDtlsHandshakeComplete(/*is_client=*/true, /*is_dtls13=*/false);
     }
   }
 
@@ -143,7 +150,7 @@ TEST_F(DtlsStunPiggybackControllerTest, FirstClientPacketLost) {
   // Flight 2+3
   SendServerToClient(dtls_flight2, STUN_BINDING_REQUEST);
   SendClientToServer(dtls_flight3, STUN_BINDING_RESPONSE);
-  EXPECT_EQ(server_.state(), State::PENDING);
+  EXPECT_EQ(server_.state(), State::CONFIRMED);
   EXPECT_EQ(client_.state(), State::CONFIRMED);
 
   // Flight 4
@@ -235,9 +242,9 @@ TEST_F(DtlsStunPiggybackControllerTest,
   DisableSupport(server_);
 
   // Set DTLS complete after normal handshake.
-  client_.SetDtlsHandshakeComplete(true);
+  client_.SetDtlsHandshakeComplete(/*is_client=*/true, /*is_dtls13=*/false);
   EXPECT_EQ(client_.state(), State::OFF);
-  server_.SetDtlsHandshakeComplete(true);
+  server_.SetDtlsHandshakeComplete(/*is_client=*/false, /*is_dtls13=*/false);
   EXPECT_EQ(server_.state(), State::OFF);
 }
 

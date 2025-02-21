@@ -570,7 +570,6 @@ rtc_library("p2p_transport_channel") {
     ":connection",
     ":connection_info",
     ":dtls_stun_piggyback_controller",
-    ":dtls_utils",
     ":ice_agent_interface",
     ":ice_controller_factory_interface",
     ":ice_controller_interface",

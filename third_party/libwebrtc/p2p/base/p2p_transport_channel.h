@@ -252,17 +252,26 @@ class RTC_EXPORT P2PTransportChannel : public IceTransportInternal,
   const webrtc::FieldTrialsView* field_trials() const override {
     return field_trials_;
   }
-  void SetDtlsDataToPiggyback(rtc::ArrayView<const uint8_t> data) override {
-    dtls_stun_piggyback_controller_.SetDataToPiggyback(data);
+
+  void SetDtlsHandshakeComplete(bool is_dtls_client, bool is_dtls13) override {
+    dtls_stun_piggyback_controller_.SetDtlsHandshakeComplete(is_dtls_client,
+                                                             is_dtls13);
   }
-  void SetDtlsHandshakeComplete(bool is_dtls_client) override {
-    dtls_stun_piggyback_controller_.SetDtlsHandshakeComplete(is_dtls_client);
-  }
+
   bool IsDtlsPiggybackSupportedByPeer() override {
     RTC_DCHECK_RUN_ON(network_thread_);
     return config_.dtls_handshake_in_stun &&
            dtls_stun_piggyback_controller_.state() !=
                DtlsStunPiggybackController::State::OFF;
+  }
+
+  bool IsDtlsPiggybackHandshaking() {
+    RTC_DCHECK_RUN_ON(network_thread_);
+    return config_.dtls_handshake_in_stun &&
+           (dtls_stun_piggyback_controller_.state() ==
+                DtlsStunPiggybackController::State::TENTATIVE ||
+            dtls_stun_piggyback_controller_.state() ==
+                DtlsStunPiggybackController::State::CONFIRMED);
   }
 
  private:

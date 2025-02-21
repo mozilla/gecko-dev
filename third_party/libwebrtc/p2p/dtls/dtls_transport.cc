@@ -99,12 +99,6 @@ rtc::StreamResult StreamInterfaceChannel::Write(
     int& /* error */) {
   RTC_DCHECK_RUN_ON(&callback_sequence_);
 
-  if (IsDtlsHandshakePacket(data) &&
-      ice_transport_->IsDtlsPiggybackSupportedByPeer()) {
-    ice_transport_->SetDtlsDataToPiggyback(data);
-    // The ICE transport is responsible for dropping these packets.
-  }
-
   // Always succeeds, since this is an unreliable transport anyway.
   // TODO(zhihuang): Should this block if ice_transport_'s temporarily
   // unwritable?
@@ -545,12 +539,12 @@ void DtlsTransport::ConnectToIceTransport() {
       [this](rtc::PacketTransportInternal* transport,
              const rtc::ReceivedPacket& packet) {
         RTC_DCHECK(dtls_active_);
-        RTC_DCHECK(IsDtlsHandshakePacket(packet.payload()));
+        RTC_DCHECK(IsDtlsPacket(packet.payload()));
         if (!dtls_active_) {
           // Not doing DTLS.
           return;
         }
-        if (!IsDtlsHandshakePacket(packet.payload())) {
+        if (!IsDtlsPacket(packet.payload())) {
           return;
         }
         OnReadPacket(transport, packet);
@@ -748,15 +742,22 @@ void DtlsTransport::OnReadyToSend(
 
 void DtlsTransport::OnDtlsEvent(int sig, int err) {
   RTC_DCHECK_RUN_ON(&thread_checker_);
+  RTC_DCHECK(dtls_);
+
   if (sig & rtc::SE_OPEN) {
     // This is the first time.
     RTC_LOG(LS_INFO) << ToString() << ": DTLS handshake complete.";
+    // The check for OPEN shouldn't be necessary but let's make
+    // sure we don't accidentally frob the state if it's closed.
     if (dtls_->GetState() == rtc::SS_OPEN) {
-      // The check for OPEN shouldn't be necessary but let's make
-      // sure we don't accidentally frob the state if it's closed.
+      int ssl_version_bytes;
+      bool ret = dtls_->GetSslVersionBytes(&ssl_version_bytes);
+      RTC_DCHECK(ret);
+      ice_transport_->SetDtlsHandshakeComplete(
+          dtls_role_ == rtc::SSL_CLIENT,
+          ssl_version_bytes == rtc::kDtls13VersionBytes);
       set_dtls_state(webrtc::DtlsTransportState::kConnected);
       set_writable(true);
-      ice_transport_->SetDtlsHandshakeComplete(dtls_role_ == rtc::SSL_CLIENT);
     }
   }
   if (sig & rtc::SE_READ) {

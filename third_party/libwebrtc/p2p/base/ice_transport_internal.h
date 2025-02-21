@@ -410,7 +410,7 @@ class RTC_EXPORT IceTransportInternal : public rtc::PacketTransportInternal {
     piggybacked_dtls_callback_ = std::move(callback);
   }
   virtual void SetDtlsDataToPiggyback(rtc::ArrayView<const uint8_t>) {}
-  virtual void SetDtlsHandshakeComplete(bool is_dtls_client) {}
+  virtual void SetDtlsHandshakeComplete(bool is_dtls_client, bool is_dtls13) {}
   virtual bool IsDtlsPiggybackSupportedByPeer() { return false; }
 
  protected:

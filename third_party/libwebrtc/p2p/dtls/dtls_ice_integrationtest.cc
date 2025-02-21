@@ -12,7 +12,6 @@
 #include <memory>
 #include <optional>
 #include <tuple>
-#include <utility>
 
 #include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
@@ -62,7 +61,8 @@ namespace cricket {
 using ::testing::IsTrue;
 
 class DtlsIceIntegrationTest
-    : public ::testing::TestWithParam<std::tuple<bool, bool>>,
+    : public ::testing::TestWithParam<
+          std::tuple<bool, bool, rtc::SSLProtocolVersion>>,
       public sigslot::has_slots<> {
  public:
   void CandidateC2S(IceTransportInternal*, const Candidate& c) {
@@ -95,11 +95,11 @@ class DtlsIceIntegrationTest
         client_dtls_(client_ice_.get(),
                      webrtc::CryptoOptions(),
                      /*event_log=*/nullptr,
-                     rtc::SSL_PROTOCOL_DTLS_12),
+                     std::get<2>(GetParam())),
         server_dtls_(server_ice_.get(),
                      webrtc::CryptoOptions(),
                      /*event_log=*/nullptr,
-                     rtc::SSL_PROTOCOL_DTLS_12),
+                     std::get<2>(GetParam())),
         client_ice_parameters_("c_ufrag",
                                "c_icepwd_something_something",
                                false),
@@ -190,11 +190,19 @@ TEST_P(DtlsIceIntegrationTest, SmokeTest) {
             client_dtls_stun_piggyback_ && server_dtls_stun_piggyback_);
 }
 
-INSTANTIATE_TEST_SUITE_P(DtlsStunPiggybackingIntegrationTest,
-                         DtlsIceIntegrationTest,
-                         ::testing::Values(std::make_pair(false, false),
-                                           std::make_pair(true, false),
-                                           std::make_pair(false, true),
-                                           std::make_pair(true, true)));
+// Test cases are parametrized by
+// * client-piggybacking-enabled,
+// * server-piggybacking-enabled,
+// * maximum DTLS version to use.
+INSTANTIATE_TEST_SUITE_P(
+    DtlsStunPiggybackingIntegrationTest,
+    DtlsIceIntegrationTest,
+    ::testing::Values(
+        std::make_tuple(false, false, rtc::SSL_PROTOCOL_DTLS_12),
+        std::make_tuple(true, false, rtc::SSL_PROTOCOL_DTLS_12),
+        std::make_tuple(false, true, rtc::SSL_PROTOCOL_DTLS_12),
+        std::make_tuple(true, true, rtc::SSL_PROTOCOL_DTLS_12),
+        // Skip negative cases that are behaving similar for DTLS 1.3
+        std::make_tuple(true, true, rtc::SSL_PROTOCOL_DTLS_13)));
 
 }  // namespace cricket
