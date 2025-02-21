@@ -618,18 +618,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                         },
                     ),
                     duration = SnackbarState.Duration.Preset.Long,
-                    action = Action(
-                        label = getString(R.string.create_collection_view),
-                        onClick = {
-                            findNavController().navigate(
-                                TabsTrayFragmentDirections.actionGlobalHome(
-                                    focusOnAddressBar = false,
-                                    scrollToCollection = true,
-                                ),
-                            )
-                            dismissTabsTray()
-                        },
-                    ),
                 ),
             )
         }
