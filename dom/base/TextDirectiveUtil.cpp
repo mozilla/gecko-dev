@@ -70,7 +70,6 @@ TextDirectiveUtil::RangeContentAsFoldCase(nsRange* aRange) {
     const RangeBoundary& aSearchStart, const RangeBoundary& aSearchEnd,
     const nsAString& aQuery, bool aWordStartBounded, bool aWordEndBounded,
     nsContentUtils::NodeIndexCache* aCache) {
-
   TEXT_FRAGMENT_LOG("query='{}', wordStartBounded='{}', wordEndBounded='{}'.\n",
                     NS_ConvertUTF16toUTF8(aQuery), aWordStartBounded,
                     aWordEndBounded);
