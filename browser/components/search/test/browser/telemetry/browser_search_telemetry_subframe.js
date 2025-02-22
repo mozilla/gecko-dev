@@ -7,6 +7,9 @@
 
 "use strict";
 
+// Just in case waiting for the non-presence of ads causes failures on TV mode.
+requestLongerTimeout(2);
+
 const TEST_PROVIDER_INFO = [
   {
     telemetryId: "example",
@@ -17,11 +20,11 @@ const TEST_PROVIDER_INFO = [
     taggedCodes: ["ff"],
     adServerAttributes: ["mozAttr"],
     nonAdsLinkRegexps: [],
-    extraAdServersRegexps: [/^https:\/\/example\.com\/ad/],
+    extraAdServersRegexps: [/^http:\/\/localhost\:40000\/ad/],
     subframes: [
       {
         regexp:
-          /^https:\/\/example\.org\/browser\/browser\/components\/search\/test\/browser\/telemetry\/searchTelemetrySubframe/,
+          /^https:\/\/test1\.example\.com\/browser\/browser\/components\/search\/test\/browser\/telemetry\/searchTelemetrySubframe/,
         inspectRegexpInSERP: true,
       },
     ],
@@ -83,9 +86,9 @@ add_task(async function test_sponsored_subframe_no_regexp_inspection() {
   let NO_REGEXP_INSPECTION = [
     {
       ...TEST_PROVIDER_INFO[0],
-      iframes: [
+      subframes: [
         {
-          regexp: /^https:\/\/mochi\.test\:8888\/ad/,
+          regexp: TEST_PROVIDER_INFO[0].subframes[0].regexp,
           inspectRegexpInSERP: false,
         },
       ],
@@ -106,6 +109,16 @@ add_task(async function test_sponsored_subframe_no_regexp_inspection() {
     {
       "browser.search.content.unknown": { "example:tagged:ff": 1 },
     }
+  );
+
+  info("Wait for ads to potentially be recorded in telemery.");
+  /* eslint-disable-next-line mozilla/no-arbitrary-setTimeout */
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  let scalars = Services.telemetry.getSnapshotForKeyedScalars("main", false);
+  Assert.ok(
+    !scalars.parent.hasOwnProperty("browser.search.withads.unknown"),
+    "Ads weren't found on page."
   );
 
   BrowserTestUtils.removeTab(tab);

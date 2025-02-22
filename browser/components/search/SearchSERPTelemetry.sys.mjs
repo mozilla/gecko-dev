@@ -1592,7 +1592,7 @@ class ContentHandler {
     // The sponsored link could be opened in a new tab, in which case the
     // browser URI may not match a SERP. Thus, try to find a tab that contains
     // a URI matching a SERP.
-    let browser = wrappedChannel.browser;
+    let browser = wrappedChannel.browserElement;
     if (browser?.currentURI.spec == "about:blank") {
       let tabBrowser = browser.getTabBrowser();
       let tab = tabBrowser.getTabForBrowser(browser).openerTab;

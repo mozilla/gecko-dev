@@ -2,12 +2,27 @@
    https://creativecommons.org/publicdomain/zero/1.0/ */
 
 /**
- * These tests check sponsored links in subframes are reported accurately when
- * clicked. For ease of testing with subframes, we use the same domain for both
- * the parent and subframe to avoid cross domain issues.
+ * Check sponsored links in subframes are reported accurately when clicked.
+ *
+ * Each test loads a page that has an iframe from an origin differing from the
+ * SERP. Sponsored links also have a different origin so that we can set up a
+ * server that redirects the user to their target page.
+ *
+ * The difference between each test is sponsored link load occuring in the
+ * existing tab or a new tab/window.
+ *
  */
 
 "use strict";
+
+let { HttpServer } = ChromeUtils.importESModule(
+  "resource://testing-common/httpd.sys.mjs"
+);
+
+const LINK_SELECTORS = {
+  NEW_TAB: "#open_in_new_tab",
+  SAME_TAB: "#open_in_same_tab",
+};
 
 const TEST_PROVIDER_INFO = [
   {
@@ -19,11 +34,11 @@ const TEST_PROVIDER_INFO = [
     taggedCodes: ["ff"],
     adServerAttributes: ["mozAttr"],
     nonAdsLinkRegexps: [],
-    extraAdServersRegexps: [/^https:\/\/example\.com\/ad/],
+    extraAdServersRegexps: [/^http:\/\/localhost\:40000\/ad/],
     subframes: [
       {
         regexp:
-          /^https:\/\/example\.org\/browser\/browser\/components\/search\/test\/browser\/telemetry/,
+          /^https:\/\/test1\.example\.com\/browser\/browser\/components\/search\/test\/browser\/telemetry\/searchTelemetrySubframe/,
         inspectRegexpInSERP: true,
         inspectRegexpInParent: true,
       },
@@ -37,15 +52,47 @@ const TEST_PROVIDER_INFO = [
   },
 ];
 
+// Choose a port that's also used in searchTelemetrySubframe.html
+const PORT = 40000;
+
 add_setup(async function () {
+  let httpServer = new HttpServer();
+
+  httpServer.start(PORT);
+
+  httpServer.registerPathHandler("/ad", (request, response) => {
+    response.setStatusLine(request.httpVersion, 302, "Found");
+    response.setHeader("Location", "https://example.com/", false);
+  });
+
+  httpServer.registerPathHandler("/", (request, response) => {
+    response.setStatusLine(request.httpVersion, 200, "OK");
+    response.write("Redirected Successfully!");
+  });
+
   SearchSERPTelemetry.overrideSearchTelemetryForTests(TEST_PROVIDER_INFO);
   await waitForIdle();
 
   registerCleanupFunction(async () => {
+    httpServer.stop();
     SearchSERPTelemetry.overrideSearchTelemetryForTests();
     resetTelemetry();
   });
 });
+
+async function clickLinkInSubframe(openInNewTab) {
+  let query = openInNewTab ? LINK_SELECTORS.NEW_TAB : LINK_SELECTORS.SAME_TAB;
+
+  let subframe = gBrowser.selectedBrowser.browsingContext.children[0];
+  Assert.ok(subframe, "Subframe exists on page.");
+
+  await SpecialPowers.spawn(subframe, [query], async _query => {
+    let el = content.document.querySelector(_query);
+    Assert.ok(el, "Clickable element is visible on page.");
+
+    await EventUtils.synthesizeMouseAtCenter(el, {}, content.window);
+  });
+}
 
 add_task(async function test_click_subframe_link_and_load_page() {
   info("Load SERP in a new tab.");
@@ -62,16 +109,12 @@ add_task(async function test_click_subframe_link_and_load_page() {
     }
   );
 
+  info("Click link in subframe to load page in same tab.");
   let pageLoadPromise = BrowserTestUtils.waitForLocationChange(
     gBrowser,
-    "https://example.com/ad"
+    "https://example.com/"
   );
-  await SpecialPowers.spawn(tab.linkedBrowser, [], () => {
-    const doc = content.document;
-    const iframe = doc.querySelector("iframe");
-    const iframeDocument = iframe.contentWindow.document;
-    iframeDocument.querySelector("a#open_in_same_tab").click();
-  });
+  await clickLinkInSubframe(false);
   await pageLoadPromise;
 
   await assertSearchSourcesTelemetry(
@@ -102,17 +145,13 @@ add_task(async function test_click_subframe_link_in_new_tab() {
     }
   );
 
+  info("Click link in subframe to open in a new tab.");
   let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser);
   let pageLoadPromise = BrowserTestUtils.waitForLocationChange(
     gBrowser,
-    "https://example.com/ad"
+    "https://example.com/"
   );
-  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
-    const doc = content.document;
-    const iframe = doc.querySelector("iframe");
-    const iframeDocument = iframe.contentWindow.document;
-    iframeDocument.querySelector("a#open_in_new_tab").click();
-  });
+  await clickLinkInSubframe(true);
   let newTab = await newTabPromise;
   await pageLoadPromise;
 
@@ -132,6 +171,7 @@ add_task(async function test_click_subframe_link_in_new_tab() {
 });
 
 add_task(async function test_click_subframe_link_in_new_window() {
+  info("Change pref so that links open in a new window.");
   await SpecialPowers.pushPrefEnv({
     set: [["browser.link.open_newwindow", 2]],
   });
@@ -150,16 +190,12 @@ add_task(async function test_click_subframe_link_in_new_window() {
     }
   );
 
+  info("Click link in subframe to open in a new window.");
   let newWindowPromise = BrowserTestUtils.waitForNewWindow({
-    url: "https://example.com/ad",
+    url: "https://example.com/",
     maybeErrorPage: true,
   });
-  await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
-    const doc = content.document;
-    const iframe = doc.querySelector("iframe");
-    const iframeDocument = iframe.contentWindow.document;
-    iframeDocument.querySelector("a#open_in_new_tab").click();
-  });
+  await clickLinkInSubframe(true);
   let newWindow = await newWindowPromise;
 
   await assertSearchSourcesTelemetry(
