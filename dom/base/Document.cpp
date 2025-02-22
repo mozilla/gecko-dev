@@ -3169,10 +3169,8 @@ size_t Document::FindDocStyleSheetInsertionPoint(const StyleSheet& aSheet) {
       continue;
     }
     size_t sheetDocIndex = StyleOrderIndexOfSheet(*sheet);
-    if (sheetDocIndex == mStyleSheets.NoIndex) {
-      MOZ_ASSERT(mAdditionalSheets[eAuthorSheet].Contains(sheet));
-      // This is an additional author sheet on the document, which means the new
-      // doc sheet should end up before it.
+    if (MOZ_UNLIKELY(sheetDocIndex == mStyleSheets.NoIndex)) {
+      MOZ_ASSERT_UNREACHABLE("Which stylesheet can hit this?");
       continue;
     }
     MOZ_ASSERT(sheetDocIndex != newDocIndex);
@@ -7820,7 +7818,6 @@ nsresult Document::LoadAdditionalStyleSheet(additionalSheetType aType,
 
   RefPtr<StyleSheet> sheet = result.unwrap();
 
-  sheet->SetAssociatedDocumentOrShadowRoot(this);
   MOZ_ASSERT(sheet->IsApplicable());
 
   return AddAdditionalStyleSheet(aType, sheet);
@@ -7833,6 +7830,10 @@ nsresult Document::AddAdditionalStyleSheet(additionalSheetType aType,
   }
 
   if (!aSheet->IsApplicable()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  if (NS_WARN_IF(aSheet->GetAssociatedDocumentOrShadowRoot())) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -13900,12 +13901,7 @@ already_AddRefed<Document> Document::CreateStaticClone(
     auto& sheets = mAdditionalSheets[additionalSheetType(t)];
     for (StyleSheet* sheet : sheets) {
       if (sheet->IsApplicable()) {
-        RefPtr<StyleSheet> clonedSheet = sheet->Clone(nullptr, clonedDoc);
-        NS_WARNING_ASSERTION(clonedSheet, "Cloning a stylesheet didn't work!");
-        if (clonedSheet) {
-          clonedDoc->AddAdditionalStyleSheet(additionalSheetType(t),
-                                             clonedSheet);
-        }
+        clonedDoc->AddAdditionalStyleSheet(additionalSheetType(t), sheet);
       }
     }
   }

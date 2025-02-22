@@ -3885,14 +3885,7 @@ nsDOMWindowUtils::AddSheet(nsIPreloadedStyleSheet* aSheet,
   NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
   StyleSheet* sheet = nullptr;
-  auto* preloadedSheet = static_cast<PreloadedStyleSheet*>(aSheet);
-  nsresult rv = preloadedSheet->GetSheet(&sheet);
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(sheet, NS_ERROR_FAILURE);
-
-  if (sheet->GetAssociatedDocumentOrShadowRoot()) {
-    return NS_ERROR_INVALID_ARG;
-  }
+  MOZ_TRY_VAR(sheet, static_cast<PreloadedStyleSheet*>(aSheet)->GetSheet());
 
   Document::additionalSheetType type = convertSheetType(aSheetType);
   return doc->AddAdditionalStyleSheet(type, sheet);

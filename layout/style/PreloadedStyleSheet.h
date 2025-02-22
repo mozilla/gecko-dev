@@ -33,9 +33,7 @@ class PreloadedStyleSheet : public nsIPreloadedStyleSheet {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(PreloadedStyleSheet)
 
-  // *aResult is not addrefed, since the PreloadedStyleSheet holds a strong
-  // reference to the sheet.
-  nsresult GetSheet(StyleSheet** aResult);
+  Result<StyleSheet*, nsresult> GetSheet();
 
   nsresult Preload();
   nsresult PreloadAsync(NotNull<dom::Promise*> aPromise);

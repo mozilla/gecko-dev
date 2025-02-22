@@ -29,30 +29,23 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(PreloadedStyleSheet)
 
 NS_IMPL_CYCLE_COLLECTION(PreloadedStyleSheet, mSheet)
 
-nsresult PreloadedStyleSheet::GetSheet(StyleSheet** aResult) {
-  *aResult = nullptr;
-
+Result<StyleSheet*, nsresult> PreloadedStyleSheet::GetSheet() {
   MOZ_DIAGNOSTIC_ASSERT(mLoaded);
 
   if (!mSheet) {
     auto loader = MakeRefPtr<css::Loader>();
-    auto result = loader->LoadSheetSync(mURI, mParsingMode,
-                                        css::Loader::UseSystemPrincipal::Yes);
-    if (result.isErr()) {
-      return result.unwrapErr();
-    }
-    mSheet = result.unwrap();
+    MOZ_TRY_VAR(mSheet,
+                loader->LoadSheetSync(mURI, mParsingMode,
+                                      css::Loader::UseSystemPrincipal::Yes));
   }
-
-  *aResult = mSheet;
-  return NS_OK;
+  return {mSheet.get()};
 }
 
 nsresult PreloadedStyleSheet::Preload() {
   MOZ_DIAGNOSTIC_ASSERT(!mLoaded);
   mLoaded = true;
-  StyleSheet* sheet;
-  return GetSheet(&sheet);
+  MOZ_TRY(GetSheet());
+  return NS_OK;
 }
 
 NS_IMPL_ISUPPORTS(PreloadedStyleSheet::StylesheetPreloadObserver,
