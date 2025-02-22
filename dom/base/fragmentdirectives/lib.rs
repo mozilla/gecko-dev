@@ -157,3 +157,17 @@ pub extern "C" fn create_text_directive(
     }
     false
 }
+
+#[repr(C)]
+pub struct TextDirectiveCandidateContents<'a> {
+    full_prefix_content: &'a nsString,
+    full_start_content: &'a nsString,
+    full_end_content: &'a nsString,
+    full_suffix_content: &'a nsString,
+
+    prefix_content: &'a nsString,
+    start_content: &'a nsString,
+    end_content: &'a nsString,
+    suffix_content: &'a nsString,
+    use_exact_matching: bool,
+}

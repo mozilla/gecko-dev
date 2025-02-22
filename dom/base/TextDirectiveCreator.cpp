@@ -241,7 +241,7 @@ Result<TextDirectiveCandidate, ErrorResult> TextDirectiveCandidate::CloneWith(
     if (MOZ_UNLIKELY(maybeContent.isErr())) {
       return maybeContent.propagateErr();
     }
-    clone.mPrefixContentFoldCase = maybeContent.unwrap();
+    clone.mFoldCaseContents.prefix_content = maybeContent.unwrap();
   }
   if (aNewStartRange) {
     clone.mStartRange = std::move(aNewStartRange);
@@ -250,7 +250,7 @@ Result<TextDirectiveCandidate, ErrorResult> TextDirectiveCandidate::CloneWith(
     if (MOZ_UNLIKELY(maybeContent.isErr())) {
       return maybeContent.propagateErr();
     }
-    clone.mStartContentFoldCase = maybeContent.unwrap();
+    clone.mFoldCaseContents.start_content = maybeContent.unwrap();
   }
   // mEndRange is null if exact matching is used.
   MOZ_ASSERT_IF(aNewEndRange, mEndRange);
@@ -261,7 +261,7 @@ Result<TextDirectiveCandidate, ErrorResult> TextDirectiveCandidate::CloneWith(
     if (MOZ_UNLIKELY(maybeContent.isErr())) {
       return maybeContent.propagateErr();
     }
-    clone.mEndContentFoldCase = maybeContent.unwrap();
+    clone.mFoldCaseContents.end_content = maybeContent.unwrap();
   }
   if (aNewSuffixRange) {
     clone.mSuffixRange = std::move(aNewSuffixRange);
@@ -270,7 +270,7 @@ Result<TextDirectiveCandidate, ErrorResult> TextDirectiveCandidate::CloneWith(
     if (MOZ_UNLIKELY(maybeContent.isErr())) {
       return maybeContent.propagateErr();
     }
-    clone.mSuffixContentFoldCase = maybeContent.unwrap();
+    clone.mFoldCaseContents.suffix_content = maybeContent.unwrap();
   }
 
   // from now on, the cloned candidate is immutable. Therefore it is allowed to
@@ -455,21 +455,25 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
                          newCandidates.LastElement().TextDirectiveString());
     return Ok();
   };
-  MOZ_ASSERT(mFullPrefixContentFoldCase && aOther.mFullPrefixContentFoldCase);
+  MOZ_ASSERT(mFoldCaseContents.full_prefix_content &&
+             aOther.mFoldCaseContents.full_prefix_content);
   MOZ_TRY(
       createRangeExtendedUntilMismatch(
-          mFullPrefixRange, *mFullPrefixContentFoldCase,
-          aOther.mFullPrefixRange, *aOther.mFullPrefixContentFoldCase,
+          mFullPrefixRange, *mFoldCaseContents.full_prefix_content,
+          aOther.mFullPrefixRange,
+          *aOther.mFoldCaseContents.full_prefix_content,
           TextScanDirection::Left)
           .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
             return createAndAddCandidate("prefix", std::move(extendedRange),
                                          nullptr, nullptr, nullptr);
           }));
-  MOZ_ASSERT(mFullSuffixContentFoldCase && aOther.mFullSuffixContentFoldCase);
+  MOZ_ASSERT(mFoldCaseContents.full_suffix_content &&
+             aOther.mFoldCaseContents.full_suffix_content);
   MOZ_TRY(
       createRangeExtendedUntilMismatch(
-          mFullSuffixRange, *mFullSuffixContentFoldCase,
-          aOther.mFullSuffixRange, *aOther.mFullSuffixContentFoldCase,
+          mFullSuffixRange, *mFoldCaseContents.full_suffix_content,
+          aOther.mFullSuffixRange,
+          *aOther.mFoldCaseContents.full_suffix_content,
           TextScanDirection::Right)
           .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
             return createAndAddCandidate("suffix", nullptr, nullptr, nullptr,
@@ -480,21 +484,24 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
   if (UseExactMatch()) {
     return std::move(newCandidates);
   }
-  MOZ_ASSERT(mFullStartContentFoldCase && aOther.mFullStartContentFoldCase);
+  MOZ_ASSERT(mFoldCaseContents.full_start_content &&
+             aOther.mFoldCaseContents.full_start_content);
   MOZ_TRY(
       createRangeExtendedUntilMismatch(
-          mFullStartRange, *mFullStartContentFoldCase, aOther.mFullStartRange,
-          *aOther.mFullStartContentFoldCase, TextScanDirection::Right,
-          Some(mEndRange->StartRef()))
+          mFullStartRange, *mFoldCaseContents.full_start_content,
+          aOther.mFullStartRange, *aOther.mFoldCaseContents.full_start_content,
+          TextScanDirection::Right, Some(mEndRange->StartRef()))
           .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
             return createAndAddCandidate(
                 "start", nullptr, std::move(extendedRange), nullptr, nullptr);
           }));
-  MOZ_ASSERT(mFullEndContentFoldCase && aOther.mFullEndContentFoldCase);
+  MOZ_ASSERT(mFoldCaseContents.full_end_content &&
+             aOther.mFoldCaseContents.full_end_content);
   MOZ_TRY(
       createRangeExtendedUntilMismatch(
-          mFullEndRange, *mFullEndContentFoldCase, aOther.mFullEndRange,
-          *aOther.mFullEndContentFoldCase, TextScanDirection::Left)
+          mFullEndRange, *mFoldCaseContents.full_end_content,
+          aOther.mFullEndRange, *aOther.mFoldCaseContents.full_end_content,
+          TextScanDirection::Left)
           .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
             return createAndAddCandidate("end", nullptr, nullptr,
                                          std::move(extendedRange), nullptr);
@@ -560,14 +567,16 @@ TextDirectiveCandidate::MaybeCreateEndToBlockBoundaryRange(
 
 bool TextDirectiveCandidate::ThisCandidateMatchesOther(
     const TextDirectiveCandidate& aOther) const {
-  if (TextDirectiveUtil::FindCommonSuffix(*mPrefixContentFoldCase,
-                                          *aOther.mFullPrefixContentFoldCase) !=
-      mPrefixContentFoldCase->Length()) {
+  if (TextDirectiveUtil::FindCommonSuffix(
+          *mFoldCaseContents.prefix_content,
+          *aOther.mFoldCaseContents.full_prefix_content) !=
+      mFoldCaseContents.prefix_content->Length()) {
     return false;
   }
-  if (TextDirectiveUtil::FindCommonPrefix(*mSuffixContentFoldCase,
-                                          *aOther.mFullSuffixContentFoldCase) !=
-      mSuffixContentFoldCase->Length()) {
+  if (TextDirectiveUtil::FindCommonPrefix(
+          *mFoldCaseContents.suffix_content,
+          *aOther.mFoldCaseContents.full_suffix_content) !=
+      mFoldCaseContents.suffix_content->Length()) {
     return false;
   }
 
@@ -575,14 +584,16 @@ bool TextDirectiveCandidate::ThisCandidateMatchesOther(
   if (UseExactMatch()) {
     return true;
   }
-  if (TextDirectiveUtil::FindCommonPrefix(*mStartContentFoldCase,
-                                          *aOther.mFullStartContentFoldCase) !=
-      mStartContentFoldCase->Length()) {
+  if (TextDirectiveUtil::FindCommonPrefix(
+          *mFoldCaseContents.start_content,
+          *aOther.mFoldCaseContents.full_start_content) !=
+      mFoldCaseContents.start_content->Length()) {
     return false;
   }
-  return TextDirectiveUtil::FindCommonSuffix(*mEndContentFoldCase,
-                                             *aOther.mFullEndContentFoldCase) ==
-         mEndContentFoldCase->Length();
+  return TextDirectiveUtil::FindCommonSuffix(
+             *mFoldCaseContents.end_content,
+             *aOther.mFoldCaseContents.full_end_content) ==
+         mFoldCaseContents.end_content->Length();
 }
 
 /* static */
@@ -671,15 +682,16 @@ Result<Ok, ErrorResult> TextDirectiveCandidate::CreateFoldCaseContents(
   MOZ_ASSERT(mFullPrefixRange);
   MOZ_ASSERT(mFullSuffixRange);
   MOZ_ASSERT(mStartRange);
-  MOZ_TRY(getFoldCase(mFullPrefixRange, mFullPrefixContentFoldCase));
-  MOZ_TRY(getFoldCase(mFullStartRange, mFullStartContentFoldCase));
-  MOZ_TRY(getFoldCase(mFullEndRange, mFullEndContentFoldCase));
-  MOZ_TRY(getFoldCase(mFullSuffixRange, mFullSuffixContentFoldCase));
+  MOZ_TRY(getFoldCase(mFullPrefixRange, mFoldCaseContents.full_prefix_content));
+  MOZ_TRY(getFoldCase(mFullStartRange, mFoldCaseContents.full_start_content));
+  MOZ_TRY(getFoldCase(mFullEndRange, mFoldCaseContents.full_end_content));
+  MOZ_TRY(getFoldCase(mFullSuffixRange, mFoldCaseContents.full_suffix_content));
 
-  MOZ_TRY(getFoldCase(mPrefixRange, mPrefixContentFoldCase));
-  MOZ_TRY(getFoldCase(mStartRange, mStartContentFoldCase));
-  MOZ_TRY(getFoldCase(mEndRange, mEndContentFoldCase));
-  MOZ_TRY(getFoldCase(mSuffixRange, mSuffixContentFoldCase));
+  MOZ_TRY(getFoldCase(mPrefixRange, mFoldCaseContents.prefix_content));
+  MOZ_TRY(getFoldCase(mStartRange, mFoldCaseContents.start_content));
+  MOZ_TRY(getFoldCase(mEndRange, mFoldCaseContents.end_content));
+  MOZ_TRY(getFoldCase(mSuffixRange, mFoldCaseContents.suffix_content));
+  mFoldCaseContents.use_exact_matching = UseExactMatch();
   return Ok();
 }
 

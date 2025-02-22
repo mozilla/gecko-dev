@@ -9,6 +9,7 @@
 
 #include <tuple>
 #include "RangeBoundary.h"
+#include "mozilla/dom/fragmentdirectives_ffi_generated.h"
 #include "TextDirectiveUtil.h"
 #include "nsStringFwd.h"
 #include "mozilla/RefPtr.h"
@@ -255,14 +256,7 @@ class TextDirectiveCandidate {
 
   nsCString mTextDirectiveString;
 
-  const nsString* mStartContentFoldCase = nullptr;
-  const nsString* mFullStartContentFoldCase = nullptr;
-  const nsString* mEndContentFoldCase = nullptr;
-  const nsString* mFullEndContentFoldCase = nullptr;
-  const nsString* mPrefixContentFoldCase = nullptr;
-  const nsString* mFullPrefixContentFoldCase = nullptr;
-  const nsString* mSuffixContentFoldCase = nullptr;
-  const nsString* mFullSuffixContentFoldCase = nullptr;
+  TextDirectiveCandidateContents mFoldCaseContents{};
 };
 
 /**
