@@ -479,7 +479,8 @@ TextDirectiveUtil::FindBlockBoundaryInRange(const nsRange& aRange,
       *comp == -1 ? std::tuple{&aRangeBoundary1, &aRangeBoundary2}
                   : std::tuple{&aRangeBoundary2, &aRangeBoundary1};
 
-  if (NS_FAILED(iter.Init(firstBoundary->AsRaw(), secondBoundary->AsRaw()))) {
+  if (NS_FAILED(iter.InitWithoutValidatingPoints(firstBoundary->AsRaw(),
+                                                 secondBoundary->AsRaw()))) {
     return false;
   }
 

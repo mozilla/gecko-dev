@@ -48,7 +48,8 @@ class ContentIteratorBase {
                                       uint32_t aEndOffset);
   [[nodiscard]] virtual nsresult Init(const RawRangeBoundary& aStart,
                                       const RawRangeBoundary& aEnd);
-
+  [[nodiscard]] virtual nsresult InitWithoutValidatingPoints(
+      const RawRangeBoundary& aStart, const RawRangeBoundary& aEnd);
   virtual void First();
   virtual void Last();
   virtual void Next();

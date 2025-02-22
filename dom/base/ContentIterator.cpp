@@ -250,6 +250,13 @@ nsresult ContentIteratorBase<NodeType>::Init(const RawRangeBoundary& aStart,
 }
 
 template <typename NodeType>
+nsresult ContentIteratorBase<NodeType>::InitWithoutValidatingPoints(
+    const RawRangeBoundary& aStart, const RawRangeBoundary& aEnd) {
+  MOZ_DIAGNOSTIC_ASSERT(RangeUtils::IsValidPoints(aStart, aEnd));
+  return InitInternal(aStart, aEnd);
+}
+
+template <typename NodeType>
 class MOZ_STACK_CLASS ContentIteratorBase<NodeType>::Initializer final {
  public:
   Initializer(ContentIteratorBase<NodeType>& aIterator,
