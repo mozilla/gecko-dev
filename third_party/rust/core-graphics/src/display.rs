@@ -9,20 +9,21 @@
 
 #![allow(non_upper_case_globals)]
 
+use bitflags::bitflags;
 use libc;
-use std::ptr;
 use std::ops::Deref;
+use std::ptr;
 
-pub use base::{CGError, boolean_t};
-pub use geometry::{CGRect, CGPoint, CGSize};
+pub use crate::base::{boolean_t, CGError};
+pub use crate::geometry::{CGPoint, CGRect, CGSize};
 
-use core_foundation::string::{CFString, CFStringRef};
+use crate::image::CGImage;
 use core_foundation::base::{CFRetain, TCFType};
-use image::CGImage;
-use foreign_types::ForeignType;
+use core_foundation::string::{CFString, CFStringRef};
+use foreign_types::{foreign_type, ForeignType};
 
 pub type CGDirectDisplayID = u32;
-pub type CGWindowID        = u32;
+pub type CGWindowID = u32;
 pub type CGWindowLevel = i32;
 
 pub const kCGNullWindowID: CGWindowID = 0 as CGWindowID;
@@ -30,12 +31,12 @@ pub const kCGNullDirectDisplayID: CGDirectDisplayID = 0 as CGDirectDisplayID;
 
 pub type CGWindowListOption = u32;
 
-pub const kCGWindowListOptionAll:              CGWindowListOption    = 0;
-pub const kCGWindowListOptionOnScreenOnly:     CGWindowListOption    = 1 << 0;
+pub const kCGWindowListOptionAll: CGWindowListOption = 0;
+pub const kCGWindowListOptionOnScreenOnly: CGWindowListOption = 1 << 0;
 pub const kCGWindowListOptionOnScreenAboveWindow: CGWindowListOption = 1 << 1;
 pub const kCGWindowListOptionOnScreenBelowWindow: CGWindowListOption = 1 << 2;
-pub const kCGWindowListOptionIncludingWindow:  CGWindowListOption    = 1 << 3;
-pub const kCGWindowListExcludeDesktopElements: CGWindowListOption    = 1 << 4;
+pub const kCGWindowListOptionIncludingWindow: CGWindowListOption = 1 << 3;
+pub const kCGWindowListExcludeDesktopElements: CGWindowListOption = 1 << 4;
 
 pub type CGWindowImageOption = u32;
 
@@ -46,28 +47,28 @@ pub const kCGWindowImageOnlyShadows: CGWindowImageOption = 1 << 2;
 pub const kCGWindowImageBestResolution: CGWindowImageOption = 1 << 3;
 pub const kCGWindowImageNominalResolution: CGWindowImageOption = 1 << 4;
 
-pub const kDisplayModeValidFlag: u32               = 0x00000001;
-pub const kDisplayModeSafeFlag: u32                = 0x00000002;
-pub const kDisplayModeDefaultFlag: u32             = 0x00000004;
-pub const kDisplayModeAlwaysShowFlag: u32          = 0x00000008;
-pub const kDisplayModeNeverShowFlag: u32           = 0x00000080;
-pub const kDisplayModeNotResizeFlag: u32           = 0x00000010;
-pub const kDisplayModeRequiresPanFlag: u32         = 0x00000020;
-pub const kDisplayModeInterlacedFlag: u32          = 0x00000040;
-pub const kDisplayModeSimulscanFlag: u32           = 0x00000100;
-pub const kDisplayModeBuiltInFlag: u32             = 0x00000400;
-pub const kDisplayModeNotPresetFlag: u32           = 0x00000200;
-pub const kDisplayModeStretchedFlag: u32           = 0x00000800;
-pub const kDisplayModeNotGraphicsQualityFlag: u32  = 0x00001000;
-pub const kDisplayModeValidateAgainstDisplay: u32  = 0x00002000;
-pub const kDisplayModeTelevisionFlag: u32          = 0x00100000;
-pub const kDisplayModeValidForMirroringFlag: u32   = 0x00200000;
-pub const kDisplayModeAcceleratorBackedFlag: u32   = 0x00400000;
-pub const kDisplayModeValidForHiResFlag: u32       = 0x00800000;
-pub const kDisplayModeValidForAirPlayFlag: u32     = 0x01000000;
-pub const kDisplayModeNativeFlag: u32              = 0x02000000;
+pub const kDisplayModeValidFlag: u32 = 0x00000001;
+pub const kDisplayModeSafeFlag: u32 = 0x00000002;
+pub const kDisplayModeDefaultFlag: u32 = 0x00000004;
+pub const kDisplayModeAlwaysShowFlag: u32 = 0x00000008;
+pub const kDisplayModeNeverShowFlag: u32 = 0x00000080;
+pub const kDisplayModeNotResizeFlag: u32 = 0x00000010;
+pub const kDisplayModeRequiresPanFlag: u32 = 0x00000020;
+pub const kDisplayModeInterlacedFlag: u32 = 0x00000040;
+pub const kDisplayModeSimulscanFlag: u32 = 0x00000100;
+pub const kDisplayModeBuiltInFlag: u32 = 0x00000400;
+pub const kDisplayModeNotPresetFlag: u32 = 0x00000200;
+pub const kDisplayModeStretchedFlag: u32 = 0x00000800;
+pub const kDisplayModeNotGraphicsQualityFlag: u32 = 0x00001000;
+pub const kDisplayModeValidateAgainstDisplay: u32 = 0x00002000;
+pub const kDisplayModeTelevisionFlag: u32 = 0x00100000;
+pub const kDisplayModeValidForMirroringFlag: u32 = 0x00200000;
+pub const kDisplayModeAcceleratorBackedFlag: u32 = 0x00400000;
+pub const kDisplayModeValidForHiResFlag: u32 = 0x00800000;
+pub const kDisplayModeValidForAirPlayFlag: u32 = 0x01000000;
+pub const kDisplayModeNativeFlag: u32 = 0x02000000;
 
-pub const kDisplayModeSafetyFlags: u32             = 0x00000007;
+pub const kDisplayModeSafetyFlags: u32 = 0x00000007;
 
 pub type CGDisplayBlendFraction = f32;
 pub const kCGDisplayBlendNormal: CGDisplayBlendFraction = 0.0;
@@ -80,24 +81,25 @@ pub type CGDisplayFadeInterval = f32;
 pub type CGDisplayReservationInterval = f32;
 pub const kCGMaxDisplayReservationInterval: CGDisplayReservationInterval = 15.0;
 
-pub const IO1BitIndexedPixels: &str =     "P";
-pub const IO2BitIndexedPixels: &str =     "PP";
-pub const IO4BitIndexedPixels: &str =     "PPPP";
-pub const IO8BitIndexedPixels: &str =     "PPPPPPPP";
-pub const IO16BitDirectPixels: &str =     "-RRRRRGGGGGBBBBB";
-pub const IO32BitDirectPixels: &str =     "--------RRRRRRRRGGGGGGGGBBBBBBBB";
-pub const kIO30BitDirectPixels: &str =    "--RRRRRRRRRRGGGGGGGGGGBBBBBBBBBB";
-pub const kIO64BitDirectPixels: &str =    "-16R16G16B16";
-pub const kIO16BitFloatPixels: &str =     "-16FR16FG16FB16";
-pub const kIO32BitFloatPixels: &str =     "-32FR32FG32FB32";
-pub const IOYUV422Pixels: &str =          "Y4U2V2";
-pub const IO8BitOverlayPixels: &str =     "O8";
+pub const IO1BitIndexedPixels: &str = "P";
+pub const IO2BitIndexedPixels: &str = "PP";
+pub const IO4BitIndexedPixels: &str = "PPPP";
+pub const IO8BitIndexedPixels: &str = "PPPPPPPP";
+pub const IO16BitDirectPixels: &str = "-RRRRRGGGGGBBBBB";
+pub const IO32BitDirectPixels: &str = "--------RRRRRRRRGGGGGGGGBBBBBBBB";
+pub const kIO30BitDirectPixels: &str = "--RRRRRRRRRRGGGGGGGGGGBBBBBBBBBB";
+pub const kIO64BitDirectPixels: &str = "-16R16G16B16";
+pub const kIO16BitFloatPixels: &str = "-16FR16FG16FB16";
+pub const kIO32BitFloatPixels: &str = "-32FR32FG32FB32";
+pub const IOYUV422Pixels: &str = "Y4U2V2";
+pub const IO8BitOverlayPixels: &str = "O8";
 
-
-pub use core_foundation::dictionary::{ CFDictionary, CFDictionaryRef, CFDictionaryGetValueIfPresent };
-pub use core_foundation::array::{ CFArray, CFArrayRef };
-pub use core_foundation::array::{ CFArrayGetCount, CFArrayGetValueAtIndex };
-pub use core_foundation::base::{  CFIndex, CFRelease, CFTypeRef };
+pub use core_foundation::array::{CFArray, CFArrayRef};
+pub use core_foundation::array::{CFArrayGetCount, CFArrayGetValueAtIndex};
+pub use core_foundation::base::{CFIndex, CFRelease, CFTypeRef};
+pub use core_foundation::dictionary::{
+    CFDictionary, CFDictionaryGetValueIfPresent, CFDictionaryRef,
+};
 
 pub type CGDisplayConfigRef = *mut libc::c_void;
 
@@ -109,6 +111,41 @@ pub enum CGConfigureOption {
     ConfigurePermanently = 2,
 }
 
+/// A client-supplied callback function that’s invoked whenever the configuration of a local display is changed.
+pub type CGDisplayReconfigurationCallBack =
+    unsafe extern "C" fn(display: CGDirectDisplayID, flags: u32, user_info: *const libc::c_void);
+
+bitflags! {
+    /// The configuration parameters that are passed to a display reconfiguration callback function.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct CGDisplayChangeSummaryFlags: u32 {
+        /// The display configuration is about to change.
+        const kCGDisplayBeginConfigurationFlag = 1;
+        /// The location of the upper-left corner of the display in the global display coordinate space has changed.
+        const kCGDisplayMovedFlag = 1 << 1;
+        /// The display is now the main display.
+        const kCGDisplaySetMainFlag = 1 << 2;
+        /// The display mode has changed.
+        const kCGDisplaySetModeFlag = 1 << 3;
+        /// The display has been added to the active display list.
+        const kCGDisplayAddFlag = 1 << 4;
+        /// The display has been removed from the active display list.
+        const kCGDisplayRemoveFlag = 1 << 5;
+        /// The display has been enabled.
+        const kCGDisplayEnabledFlag = 1 << 8;
+        /// The display has been disabled.
+        const kCGDisplayDisabledFlag = 1 << 9;
+        /// The display is now mirroring another display.
+        const kCGDisplayMirrorFlag = 1 << 10;
+        /// The display is no longer mirroring another display.
+        const kCGDisplayUnMirrorFlag = 1 << 11;
+        /// The shape of the desktop (the union of display areas) has changed.
+        const kCGDisplayDesktopShapeChangedFlag = 1 << 12;
+
+        const _ = !0;
+    }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct CGDisplay {
     pub id: CGDirectDisplayID,
@@ -117,7 +154,7 @@ pub struct CGDisplay {
 foreign_type! {
     #[doc(hidden)]
     pub unsafe type CGDisplayMode {
-        type CType = ::sys::CGDisplayMode;
+        type CType = crate::sys::CGDisplayMode;
         fn drop = CGDisplayModeRelease;
         fn clone = |p| CFRetain(p as *const _) as *mut _;
     }
@@ -126,7 +163,7 @@ foreign_type! {
 impl CGDisplay {
     #[inline]
     pub fn new(id: CGDirectDisplayID) -> CGDisplay {
-        CGDisplay { id: id }
+        CGDisplay { id }
     }
 
     /// Returns the the main display.
@@ -459,11 +496,15 @@ impl CGDisplay {
     /// Provides a list of displays that are active (or drawable).
     #[inline]
     pub fn active_displays() -> Result<Vec<CGDirectDisplayID>, CGError> {
-        let count = CGDisplay::active_display_count()?;
-        let mut buf: Vec<CGDirectDisplayID> = vec![0; count as usize];
+        let expected_count = CGDisplay::active_display_count()?;
+        let mut buf: Vec<CGDirectDisplayID> = vec![0; expected_count as usize];
+
+        let mut actual_count: u32 = 0;
+
         let result =
-            unsafe { CGGetActiveDisplayList(count as u32, buf.as_mut_ptr(), ptr::null_mut()) };
+            unsafe { CGGetActiveDisplayList(expected_count, buf.as_mut_ptr(), &mut actual_count) };
         if result == 0 {
+            buf.truncate(actual_count as usize);
             Ok(buf)
         } else {
             Err(result)
@@ -476,7 +517,7 @@ impl CGDisplay {
         let mut count: u32 = 0;
         let result = unsafe { CGGetActiveDisplayList(0, ptr::null_mut(), &mut count) };
         if result == 0 {
-            Ok(count as u32)
+            Ok(count)
         } else {
             Err(result)
         }
@@ -560,9 +601,10 @@ impl CGDisplayMode {
                 let vec: Vec<CGDisplayMode> = modes
                     .into_iter()
                     .map(|value0| {
-                        let x = *value0.deref() as *mut ::sys::CGDisplayMode;
+                        let x = *value0.deref() as *mut crate::sys::CGDisplayMode;
                         unsafe { CGDisplayMode::from_ptr(x) }
-                    }).collect();
+                    })
+                    .collect();
                 Some(vec)
             }
             None => None,
@@ -601,7 +643,7 @@ impl CGDisplayMode {
     /// Returns the I/O Kit flags of the specified display mode.
     #[inline]
     pub fn io_flags(&self) -> u32 {
-        unsafe { CGDisplayModeGetIOFlags(self.as_ptr()) as u32 }
+        unsafe { CGDisplayModeGetIOFlags(self.as_ptr()) }
     }
 
     /// Returns the pixel encoding of the specified display mode.
@@ -639,15 +681,15 @@ impl CGDisplayMode {
     }
 }
 
-#[link(name = "CoreGraphics", kind = "framework")]
+#[cfg_attr(feature = "link", link(name = "CoreGraphics", kind = "framework"))]
 extern "C" {
     pub static CGRectNull: CGRect;
     pub static CGRectInfinite: CGRect;
 
     pub static kCGDisplayShowDuplicateLowResolutionModes: CFStringRef;
 
-    pub fn CGDisplayModeRetain(mode: ::sys::CGDisplayModeRef);
-    pub fn CGDisplayModeRelease(mode: ::sys::CGDisplayModeRef);
+    pub fn CGDisplayModeRetain(mode: crate::sys::CGDisplayModeRef);
+    pub fn CGDisplayModeRelease(mode: crate::sys::CGDisplayModeRef);
 
     pub fn CGMainDisplayID() -> CGDirectDisplayID;
     pub fn CGDisplayIsActive(display: CGDirectDisplayID) -> boolean_t;
@@ -682,11 +724,11 @@ extern "C" {
     pub fn CGDisplayPixelsHigh(display: CGDirectDisplayID) -> libc::size_t;
     pub fn CGDisplayPixelsWide(display: CGDirectDisplayID) -> libc::size_t;
     pub fn CGDisplayBounds(display: CGDirectDisplayID) -> CGRect;
-    pub fn CGDisplayCreateImage(display: CGDirectDisplayID) -> ::sys::CGImageRef;
+    pub fn CGDisplayCreateImage(display: CGDirectDisplayID) -> crate::sys::CGImageRef;
     pub fn CGDisplayCreateImageForRect(
         display: CGDirectDisplayID,
         rect: CGRect,
-    ) -> ::sys::CGImageRef;
+    ) -> crate::sys::CGImageRef;
 
     // Capturing and Releasing Displays
     pub fn CGDisplayCapture(display: CGDirectDisplayID) -> CGError;
@@ -703,7 +745,7 @@ extern "C" {
     pub fn CGConfigureDisplayWithDisplayMode(
         config: CGDisplayConfigRef,
         display: CGDirectDisplayID,
-        mode: ::sys::CGDisplayModeRef,
+        mode: crate::sys::CGDisplayModeRef,
         options: CFDictionaryRef,
     ) -> CGError;
     pub fn CGConfigureDisplayMirrorOfDisplay(
@@ -718,16 +760,24 @@ extern "C" {
         y: i32,
     ) -> CGError;
     pub fn CGRestorePermanentDisplayConfiguration();
+    pub fn CGDisplayRegisterReconfigurationCallback(
+        callback: CGDisplayReconfigurationCallBack,
+        user_info: *const libc::c_void,
+    ) -> CGError;
+    pub fn CGDisplayRemoveReconfigurationCallback(
+        callback: CGDisplayReconfigurationCallBack,
+        user_info: *const libc::c_void,
+    ) -> CGError;
 
-    pub fn CGDisplayCopyDisplayMode(display: CGDirectDisplayID) -> ::sys::CGDisplayModeRef;
-    pub fn CGDisplayModeGetHeight(mode: ::sys::CGDisplayModeRef) -> libc::size_t;
-    pub fn CGDisplayModeGetWidth(mode: ::sys::CGDisplayModeRef) -> libc::size_t;
-    pub fn CGDisplayModeGetPixelHeight(mode: ::sys::CGDisplayModeRef) -> libc::size_t;
-    pub fn CGDisplayModeGetPixelWidth(mode: ::sys::CGDisplayModeRef) -> libc::size_t;
-    pub fn CGDisplayModeGetRefreshRate(mode: ::sys::CGDisplayModeRef) -> libc::c_double;
-    pub fn CGDisplayModeGetIOFlags(mode: ::sys::CGDisplayModeRef) -> u32;
-    pub fn CGDisplayModeCopyPixelEncoding(mode: ::sys::CGDisplayModeRef) -> CFStringRef;
-    pub fn CGDisplayModeGetIODisplayModeID(mode: ::sys::CGDisplayModeRef) -> i32;
+    pub fn CGDisplayCopyDisplayMode(display: CGDirectDisplayID) -> crate::sys::CGDisplayModeRef;
+    pub fn CGDisplayModeGetHeight(mode: crate::sys::CGDisplayModeRef) -> libc::size_t;
+    pub fn CGDisplayModeGetWidth(mode: crate::sys::CGDisplayModeRef) -> libc::size_t;
+    pub fn CGDisplayModeGetPixelHeight(mode: crate::sys::CGDisplayModeRef) -> libc::size_t;
+    pub fn CGDisplayModeGetPixelWidth(mode: crate::sys::CGDisplayModeRef) -> libc::size_t;
+    pub fn CGDisplayModeGetRefreshRate(mode: crate::sys::CGDisplayModeRef) -> libc::c_double;
+    pub fn CGDisplayModeGetIOFlags(mode: crate::sys::CGDisplayModeRef) -> u32;
+    pub fn CGDisplayModeCopyPixelEncoding(mode: crate::sys::CGDisplayModeRef) -> CFStringRef;
+    pub fn CGDisplayModeGetIODisplayModeID(mode: crate::sys::CGDisplayModeRef) -> i32;
 
     pub fn CGDisplayCopyAllDisplayModes(
         display: CGDirectDisplayID,
@@ -735,7 +785,7 @@ extern "C" {
     ) -> CFArrayRef;
     pub fn CGDisplaySetDisplayMode(
         display: CGDirectDisplayID,
-        mode: ::sys::CGDisplayModeRef,
+        mode: crate::sys::CGDisplayModeRef,
         options: CFDictionaryRef,
     ) -> CGError;
 
@@ -782,10 +832,10 @@ extern "C" {
         listOptions: CGWindowListOption,
         windowId: CGWindowID,
         imageOptions: CGWindowImageOption,
-    ) -> ::sys::CGImageRef;
+    ) -> crate::sys::CGImageRef;
     pub fn CGWindowListCreateImageFromArray(
         screenBounds: CGRect,
         windowArray: CFArrayRef,
         imageOptions: CGWindowImageOption,
-    ) -> ::sys::CGImageRef;
+    ) -> crate::sys::CGImageRef;
 }

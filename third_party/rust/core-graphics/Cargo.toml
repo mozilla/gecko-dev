@@ -10,9 +10,15 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2018"
 name = "core-graphics"
-version = "0.23.1"
+version = "0.24.0"
 authors = ["The Servo Project Developers"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Bindings to Core Graphics for macOS"
 homepage = "https://github.com/servo/core-foundation-rs"
 readme = "README.md"
@@ -20,16 +26,23 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/servo/core-foundation-rs"
 
 [package.metadata.docs.rs]
+all-features = true
 default-target = "x86_64-apple-darwin"
 
+[lib]
+name = "core_graphics"
+path = "src/lib.rs"
+
 [dependencies.bitflags]
-version = "1.0"
+version = "2"
 
 [dependencies.core-foundation]
-version = "0.9"
+version = "0.10"
+default-features = false
 
 [dependencies.core-graphics-types]
-version = "0.1"
+version = "0.2"
+default-features = false
 
 [dependencies.foreign-types]
 version = "0.5.0"
@@ -38,6 +51,10 @@ version = "0.5.0"
 version = "0.2"
 
 [features]
-default = []
+default = ["link"]
 elcapitan = []
 highsierra = []
+link = [
+    "core-foundation/link",
+    "core-graphics-types/link",
+]

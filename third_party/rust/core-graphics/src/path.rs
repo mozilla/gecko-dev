@@ -7,11 +7,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-pub use sys::CGPathRef as SysCGPathRef;
+pub use crate::sys::CGPathRef as SysCGPathRef;
 
+use crate::geometry::{CGAffineTransform, CGPoint, CGRect};
 use core_foundation::base::{CFRelease, CFRetain, CFTypeID};
-use foreign_types::ForeignType;
-use geometry::{CGAffineTransform, CGPoint, CGRect};
+use foreign_types::{foreign_type, ForeignType};
 use libc::c_void;
 use std::fmt::{self, Debug, Formatter};
 use std::marker::PhantomData;
@@ -22,7 +22,7 @@ use std::slice;
 foreign_type! {
     #[doc(hidden)]
     pub unsafe type CGPath {
-        type CType = ::sys::CGPath;
+        type CType = crate::sys::CGPath;
         fn drop = |p| CFRelease(p as *mut _);
         fn clone = |p| CFRetain(p as *const _) as *mut _;
     }
@@ -40,18 +40,25 @@ impl CGPath {
     }
 
     pub fn type_id() -> CFTypeID {
-        unsafe {
-            CGPathGetTypeID()
-        }
+        unsafe { CGPathGetTypeID() }
     }
 
-    pub fn apply<'a, F>(&'a self, mut closure: &'a F) where F: FnMut(CGPathElementRef<'a>) {
+    pub fn apply<'a, F>(&'a self, mut closure: &'a F)
+    where
+        F: FnMut(CGPathElementRef<'a>),
+    {
         unsafe {
-            CGPathApply(self.as_ptr(), &mut closure as *mut _ as *mut c_void, do_apply::<F>);
+            CGPathApply(
+                self.as_ptr(),
+                &mut closure as *mut _ as *mut c_void,
+                do_apply::<F>,
+            );
         }
 
         unsafe extern "C" fn do_apply<'a, F>(info: *mut c_void, element: *const CGPathElement)
-                                             where F: FnMut(CGPathElementRef<'a>) {
+        where
+            F: FnMut(CGPathElementRef<'a>),
+        {
             let closure = info as *mut *mut F;
             (**closure)(CGPathElementRef::new(element))
         }
@@ -76,7 +83,7 @@ pub struct CGPathElementRef<'a> {
 impl<'a> CGPathElementRef<'a> {
     fn new<'b>(element: *const CGPathElement) -> CGPathElementRef<'b> {
         CGPathElementRef {
-            element: element,
+            element,
             phantom: PhantomData,
         }
     }
@@ -85,9 +92,7 @@ impl<'a> CGPathElementRef<'a> {
 impl<'a> Deref for CGPathElementRef<'a> {
     type Target = CGPathElement;
     fn deref(&self) -> &CGPathElement {
-        unsafe {
-            &*self.element
-        }
+        unsafe { &*self.element }
     }
 }
 
@@ -118,12 +123,14 @@ impl CGPathElement {
     }
 }
 
-type CGPathApplierFunction = unsafe extern "C" fn(info: *mut c_void,
-                                                  element: *const CGPathElement);
+type CGPathApplierFunction = unsafe extern "C" fn(info: *mut c_void, element: *const CGPathElement);
 
-#[link(name = "CoreGraphics", kind = "framework")]
-extern {
-    fn CGPathCreateWithRect(rect: CGRect, transform: *const CGAffineTransform) -> ::sys::CGPathRef;
-    fn CGPathApply(path: ::sys::CGPathRef, info: *mut c_void, function: CGPathApplierFunction);
+#[cfg_attr(feature = "link", link(name = "CoreGraphics", kind = "framework"))]
+extern "C" {
+    fn CGPathCreateWithRect(
+        rect: CGRect,
+        transform: *const CGAffineTransform,
+    ) -> crate::sys::CGPathRef;
+    fn CGPathApply(path: crate::sys::CGPathRef, info: *mut c_void, function: CGPathApplierFunction);
     fn CGPathGetTypeID() -> CFTypeID;
 }

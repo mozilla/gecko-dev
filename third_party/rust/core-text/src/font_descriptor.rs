@@ -16,6 +16,7 @@ use core_foundation::number::{CFNumber, CFNumberRef};
 use core_foundation::set::CFSetRef;
 use core_foundation::string::{CFString, CFStringRef};
 use core_foundation::url::{CFURLRef, CFURL};
+use core_foundation::{declare_TCFType, impl_CFTypeDescription, impl_TCFType};
 use core_graphics::base::CGFloat;
 
 use std::os::raw::c_void;

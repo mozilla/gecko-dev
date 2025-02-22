@@ -9,12 +9,12 @@
 
 use core_foundation::base::{CFRelease, CFRetain, CFTypeID};
 use core_foundation::string::CFStringRef;
-use foreign_types::ForeignType;
+use foreign_types::{foreign_type, ForeignType};
 
 foreign_type! {
     #[doc(hidden)]
     pub unsafe type CGColorSpace {
-        type CType = ::sys::CGColorSpace;
+        type CType = crate::sys::CGColorSpace;
         fn drop = |p| CFRelease(p as *mut _);
         fn clone = |p| CFRetain(p as *const _) as *mut _;
     }
@@ -22,15 +22,17 @@ foreign_type! {
 
 impl CGColorSpace {
     pub fn type_id() -> CFTypeID {
-        unsafe {
-            CGColorSpaceGetTypeID()
-        }
+        unsafe { CGColorSpaceGetTypeID() }
     }
 
     pub fn create_with_name(name: CFStringRef) -> Option<CGColorSpace> {
         unsafe {
             let p = CGColorSpaceCreateWithName(name);
-            if !p.is_null() {Some(CGColorSpace::from_ptr(p))} else {None}
+            if !p.is_null() {
+                Some(CGColorSpace::from_ptr(p))
+            } else {
+                None
+            }
         }
     }
 
@@ -51,8 +53,8 @@ impl CGColorSpace {
     }
 }
 
-#[link(name = "CoreGraphics", kind = "framework")]
-extern {
+#[cfg_attr(feature = "link", link(name = "CoreGraphics", kind = "framework"))]
+extern "C" {
     /// The Display P3 color space, created by Apple.
     pub static kCGColorSpaceDisplayP3: CFStringRef;
     /// The Display P3 color space, using the HLG transfer function.
@@ -109,9 +111,8 @@ extern {
     /// The name of the generic gray color space.
     pub static kCGColorSpaceGenericGray: CFStringRef;
 
-    fn CGColorSpaceCreateDeviceRGB() -> ::sys::CGColorSpaceRef;
-    fn CGColorSpaceCreateDeviceGray() -> ::sys::CGColorSpaceRef;
-    fn CGColorSpaceCreateWithName(name: CFStringRef) -> ::sys::CGColorSpaceRef;
+    fn CGColorSpaceCreateDeviceRGB() -> crate::sys::CGColorSpaceRef;
+    fn CGColorSpaceCreateDeviceGray() -> crate::sys::CGColorSpaceRef;
+    fn CGColorSpaceCreateWithName(name: CFStringRef) -> crate::sys::CGColorSpaceRef;
     fn CGColorSpaceGetTypeID() -> CFTypeID;
 }
-
