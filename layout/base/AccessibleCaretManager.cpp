@@ -1289,7 +1289,7 @@ nsRect AccessibleCaretManager::GetAllChildFrameRectsUnion(nsIFrame* aFrame) {
   // frames below.
   for (nsIFrame* frame = aFrame->GetContentInsertionFrame(); frame;
        frame = frame->GetNextContinuation()) {
-    nsRect frameRect;
+    Maybe<nsRect> childrenRect;
 
     for (const auto& childList : frame->ChildLists()) {
       // Loop all children to union their scrollable overflow rect.
@@ -1297,24 +1297,24 @@ nsRect AccessibleCaretManager::GetAllChildFrameRectsUnion(nsIFrame* aFrame) {
         nsRect childRect = child->ScrollableOverflowRectRelativeToSelf();
         nsLayoutUtils::TransformRect(child, frame, childRect);
 
-        // A TextFrame containing only '\n' has positive height and width 0, or
-        // positive width and height 0 if it's vertical. Need to use UnionEdges
-        // to add its rect. BRFrame rect should be non-empty.
-        if (childRect.IsEmpty()) {
-          frameRect = frameRect.UnionEdges(childRect);
+        if (childrenRect) {
+          // Some frames (e.g. BRFrame or a TextFrame that only contains '\n')
+          // can have a positive block size but a zero inline size. Using
+          // UnionEdges ensures these dimensions are properly included in
+          // childrenRect.
+          *childrenRect = childrenRect->UnionEdges(childRect);
         } else {
-          frameRect = frameRect.Union(childRect);
+          childrenRect.emplace(childRect);
         }
       }
     }
 
-    MOZ_ASSERT(!frameRect.IsEmpty(),
-               "Editable frames should have at least one BRFrame child to make "
-               "frameRect non-empty!");
-    if (frame != aFrame) {
-      nsLayoutUtils::TransformRect(frame, aFrame, frameRect);
+    if (childrenRect) {
+      if (frame != aFrame) {
+        nsLayoutUtils::TransformRect(frame, aFrame, *childrenRect);
+      }
+      unionRect = unionRect.Union(*childrenRect);
     }
-    unionRect = unionRect.Union(frameRect);
   }
 
   return unionRect;
