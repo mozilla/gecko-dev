@@ -7,8 +7,19 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[cfg(target_os = "macos")]
-pub mod access;
+extern crate libc;
+
+#[macro_use]
+extern crate core_foundation;
+
+#[macro_use]
+extern crate bitflags;
+
+#[macro_use]
+extern crate foreign_types;
+
+extern crate core_graphics_types;
+
 pub mod base;
 pub mod color;
 pub mod color_space;
@@ -23,10 +34,12 @@ pub mod event_source;
 pub mod font;
 pub mod geometry;
 pub mod gradient;
-pub mod image;
-pub mod path;
-#[cfg(target_os = "macos")]
-pub mod private;
-pub mod sys;
 #[cfg(target_os = "macos")]
 pub mod window;
+#[cfg(target_os = "macos")]
+pub mod private;
+pub mod image;
+pub mod path;
+pub mod sys;
+#[cfg(target_os = "macos")]
+pub mod access;

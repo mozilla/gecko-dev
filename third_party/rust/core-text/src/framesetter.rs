@@ -11,7 +11,6 @@ use super::frame::{CTFrame, CTFrameRef};
 use core_foundation::attributed_string::CFAttributedStringRef;
 use core_foundation::base::{CFRange, CFTypeID, TCFType};
 use core_foundation::dictionary::CFDictionaryRef;
-use core_foundation::{declare_TCFType, impl_CFTypeDescription, impl_TCFType};
 use core_graphics::geometry::CGSize;
 use core_graphics::path::{CGPath, CGPathRef};
 use foreign_types::{ForeignType, ForeignTypeRef};
@@ -75,7 +74,7 @@ impl CTFramesetter {
     }
 }
 
-#[cfg_attr(feature = "link", link(name = "CoreText", kind = "framework"))]
+#[link(name = "CoreText", kind = "framework")]
 extern "C" {
     fn CTFramesetterGetTypeID() -> CFTypeID;
     fn CTFramesetterCreateWithAttributedString(string: CFAttributedStringRef) -> CTFramesetterRef;
