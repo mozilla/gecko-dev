@@ -3150,15 +3150,16 @@ size_t Document::FindDocStyleSheetInsertionPoint(const StyleSheet& aSheet) {
   ServoStyleSet& styleSet = EnsureStyleSet();
 
   // lowest index first
-  int32_t newDocIndex = StyleOrderIndexOfSheet(aSheet);
+  size_t newDocIndex = StyleOrderIndexOfSheet(aSheet);
 
   size_t count = styleSet.SheetCount(StyleOrigin::Author);
   size_t index = 0;
   for (; index < count; index++) {
     auto* sheet = styleSet.SheetAt(StyleOrigin::Author, index);
     MOZ_ASSERT(sheet);
-    int32_t sheetDocIndex = StyleOrderIndexOfSheet(*sheet);
-    if (sheetDocIndex > newDocIndex) {
+    size_t sheetDocIndex = StyleOrderIndexOfSheet(*sheet);
+    if (newDocIndex != mStyleSheets.NoIndex &&
+        sheetDocIndex != mStyleSheets.NoIndex && sheetDocIndex > newDocIndex) {
       break;
     }
 
@@ -3166,7 +3167,7 @@ size_t Document::FindDocStyleSheetInsertionPoint(const StyleSheet& aSheet) {
     // sheet registered at nsStyleSheetService or an additional author
     // sheet on the document, which means the new
     // doc sheet should end up before it.
-    if (sheetDocIndex < 0) {
+    if (sheetDocIndex == mStyleSheets.NoIndex) {
       if (sheetService) {
         auto& authorSheets = *sheetService->AuthorStyleSheets();
         if (authorSheets.IndexOf(sheet) != authorSheets.NoIndex) {
@@ -7679,7 +7680,7 @@ void Document::InsertSheetAt(size_t aIndex, StyleSheet& aSheet) {
 void Document::StyleSheetApplicableStateChanged(StyleSheet& aSheet) {
   const bool applicable = aSheet.IsApplicable();
   // If we're actually in the document style sheet list
-  if (StyleOrderIndexOfSheet(aSheet) >= 0) {
+  if (StyleOrderIndexOfSheet(aSheet) != mStyleSheets.NoIndex) {
     if (applicable) {
       AddStyleSheetToStyleSets(aSheet);
     } else {

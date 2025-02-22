@@ -85,7 +85,7 @@ class DocumentOrShadowRoot {
    *
    * Handles sheets from both mStyleSheets and mAdoptedStyleSheets
    */
-  int32_t StyleOrderIndexOfSheet(const StyleSheet& aSheet) const;
+  size_t StyleOrderIndexOfSheet(const StyleSheet& aSheet) const;
 
   StyleSheetList* StyleSheets();
 
