@@ -881,30 +881,29 @@ TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery) {
   }
   nsTArray<RefPtr<nsRange>> matchingRanges;
   size_t counter = 0;
+  RangeBoundary searchStart = searchRange->StartRef();
+  const RangeBoundary searchEnd = searchRange->EndRef();
   while (!searchRange->Collapsed()) {
     if (++counter % 100 == 0 && mWatchdog.IsDone()) {
       return matchingRanges;
     }
     RefPtr<nsRange> searchResult = TextDirectiveUtil::FindStringInRange(
-        searchRange, aSearchQuery, true, true);
+        searchStart, searchEnd, aSearchQuery, true, true);
     if (!searchResult) {
       // This would mean we reached a weird edge case in which the search query
       // is not in the search range.
       break;
     }
     if (TextDirectiveUtil::NormalizedRangeBoundariesAreEqual(
-            searchResult->EndRef(), mInputRange->EndRef())) {
+            searchResult->EndRef(), searchEnd)) {
       // It is safe to assume that this algorithm reached the end of all
       // potential ranges if the search result is equal to the search query.
       // Therefore, this range is not added to the results.
       break;
     }
     matchingRanges.AppendElement(searchResult);
-    RangeBoundary newStartBoundary =
-        TextDirectiveUtil::MoveRangeBoundaryOneWord(searchResult->StartRef(),
-                                                    TextScanDirection::Right);
-
-    searchRange->SetStart(newStartBoundary.AsRaw(), rv);
+    searchStart = TextDirectiveUtil::MoveRangeBoundaryOneWord(
+        searchResult->StartRef(), TextScanDirection::Right);
   }
 
   TEXT_FRAGMENT_LOG(

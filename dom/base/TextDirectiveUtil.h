@@ -58,10 +58,10 @@ class TextDirectiveUtil final {
    *
    * This is a thin wrapper around `nsFind`.
    */
-  static RefPtr<nsRange> FindStringInRange(nsRange* aSearchRange,
-                                           const nsAString& aQuery,
-                                           bool aWordStartBounded,
-                                           bool aWordEndBounded);
+  static RefPtr<nsRange> FindStringInRange(
+      const RangeBoundary& aSearchStart, const RangeBoundary& aSearchEnd,
+      const nsAString& aQuery, bool aWordStartBounded, bool aWordEndBounded,
+      nsContentUtils::NodeIndexCache* aCache = nullptr);
 
   /**
    * @brief Moves `aRangeBoundary` one word in `aDirection`.
