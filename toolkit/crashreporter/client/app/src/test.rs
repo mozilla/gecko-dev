@@ -91,6 +91,7 @@ const MOCK_MINIDUMP_EXTRA: &str = r#"{
         "ProductName": "Bar",
         "ReleaseChannel": "release",
         "BuildID": "1234",
+        "AsyncShutdownTimeout": "{}",
         "StackTraces": {
             "status": "OK"
         },
@@ -407,6 +408,7 @@ impl AssertFiles {
                         "status": "OK"
                     },
                     "metadata": {
+                        "AsyncShutdownTimeout": "{}",
                         "BuildID": "1234",
                         "ProductName": "Bar",
                         "ReleaseChannel": "release",
