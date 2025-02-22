@@ -22,27 +22,31 @@ class ErrorResult;
 
 namespace mozilla::dom {
 class Document;
-
-class RangeContentCache {
+/**
+ * @brief Caches fold case representations of `nsRange`s.
+ *
+ * This class is a specialization for a hashmap using `nsRange*` as key and
+ * `UniquePtr<nsString>` as value.
+ * The class only exposes the strings as raw pointers, which are valid as long
+ * as this cache is alive. The addresses will not change and the pointers can
+ * safely be stored, as long as the lifetime of this cache is greater.
+ *
+ */
+class RangeContentCache final {
  public:
-  /** Get fold string representation of a pair of two ranges.
+  /**
+   * @brief Get the fold case representation of `aRange`.
    *
-   * If the fold case string for a range is not yet available in the cache, it
-   * is created using `TextDirectiveUtil::RangeContentAsFoldCase()` and inserted
-   * into the cache. Because inserting into the cache might reallocate the
-   * cache, the lifetime of the returned objects is bound by calls to `Get()`.
-   *
-   * Due to the nature of the current use cases, this method accepts two ranges
-   * and returns a tuple of two strings.
-   *
-   * This method is safe to be called with any of the input ranges being
-   * `nullptr`. In that case, the returned string will be empty.
+   * This method uses a maximum of two hashtable lookups to either return a
+   * cached fold case representation of `aRange`s content, or to create one.
+   * The returned string pointer is alive as long as the cache is alive.
+   * Returns `nullptr` if `aRange` is `nullptr`, and propagates the error of
+   * converting the range content into fold case.
    */
-  Result<std::tuple<const nsString&, const nsString&>, ErrorResult> Get(
-      nsRange* aRange1, nsRange* aRange2);
+  Result<const nsString*, ErrorResult> GetOrCreate(nsRange* aRange);
 
  private:
-  nsTHashMap<nsRange*, nsString> mCache;
+  nsTHashMap<nsRange*, UniquePtr<nsString>> mCache;
 };
 
 /**
@@ -65,9 +69,12 @@ class TextDirectiveCandidate {
  public:
   TextDirectiveCandidate(TextDirectiveCandidate&&) = default;
   TextDirectiveCandidate& operator=(TextDirectiveCandidate&&) = default;
-  TextDirectiveCandidate(const TextDirectiveCandidate&) = delete;
-  TextDirectiveCandidate& operator=(const TextDirectiveCandidate&) = delete;
 
+ private:
+  TextDirectiveCandidate(const TextDirectiveCandidate&) = default;
+  TextDirectiveCandidate& operator=(const TextDirectiveCandidate&) = default;
+
+ public:
   /**
    * @brief Creates a candidate from a given input range.
    *
@@ -78,13 +85,16 @@ class TextDirectiveCandidate {
    * creates an instance.
    *
    * @param aInputRange The input range.
+   * @param aRangeContentCache A cache which stores fold case representations of
+   *                           the ranges used to compare ranges for equality.
    * @return A text directive candidate, or an error.
    */
   static Result<TextDirectiveCandidate, ErrorResult> CreateFromInputRange(
-      const nsRange* aInputRange);
+      const nsRange* aInputRange, RangeContentCache& aRangeContentCache);
 
   static Result<TextDirectiveCandidate, ErrorResult> CreateFromStartAndEndRange(
-      const nsRange* aStartRange, const nsRange* aEndRange);
+      const nsRange* aStartRange, const nsRange* aEndRange,
+      RangeContentCache& aRangeContentCache);
 
   /**
    * Creates new text directive candidates for each element of `aMatches`, which
@@ -125,7 +135,8 @@ class TextDirectiveCandidate {
    */
   Result<TextDirectiveCandidate, ErrorResult> CloneWith(
       RefPtr<nsRange>&& aNewPrefixRange, RefPtr<nsRange>&& aNewStartRange,
-      RefPtr<nsRange>&& aNewEndRange, RefPtr<nsRange>&& aNewSuffixRange) const;
+      RefPtr<nsRange>&& aNewEndRange, RefPtr<nsRange>&& aNewSuffixRange,
+      RangeContentCache& aRangeContentCache) const;
 
   /**
    * @brief Returns true if the text directive string in `this` would match the
@@ -134,9 +145,7 @@ class TextDirectiveCandidate {
    * The candidate matches another candidate if the context terms are fully
    * present in the fully-expanded context terms of the other candidate.
    */
-  Result<bool, ErrorResult> ThisCandidateMatchesOther(
-      const TextDirectiveCandidate& aOther,
-      RangeContentCache& aRangeContentCache) const;
+  bool ThisCandidateMatchesOther(const TextDirectiveCandidate& aOther) const;
 
   /**
    * @brief Returns a filtered list of candidates, which still match against
@@ -146,8 +155,7 @@ class TextDirectiveCandidate {
    * is still matching against `this` or can be ruled out.
    */
   nsTArray<const TextDirectiveCandidate*> FilterNonMatchingCandidates(
-      const nsTArray<const TextDirectiveCandidate*>& aMatches,
-      RangeContentCache& aRangeContentCache);
+      const nsTArray<const TextDirectiveCandidate*>& aMatches);
 
   /** Returns true if the candidate uses exact matching (and not range-based) */
   bool UseExactMatch() const { return !mEndRange; }
@@ -229,6 +237,12 @@ class TextDirectiveCandidate {
    */
   Result<Ok, ErrorResult> CreateTextDirectiveString();
 
+  /**
+   * Creates fold case representations of all ranges used in this candidate.
+   */
+  Result<Ok, ErrorResult> CreateFoldCaseContents(
+      RangeContentCache& aRangeContentCache);
+
   RefPtr<nsRange> mStartRange;
   RefPtr<nsRange> mFullStartRange;
   RefPtr<nsRange> mEndRange;
@@ -240,6 +254,15 @@ class TextDirectiveCandidate {
   RefPtr<nsRange> mFullSuffixRange;
 
   nsCString mTextDirectiveString;
+
+  const nsString* mStartContentFoldCase = nullptr;
+  const nsString* mFullStartContentFoldCase = nullptr;
+  const nsString* mEndContentFoldCase = nullptr;
+  const nsString* mFullEndContentFoldCase = nullptr;
+  const nsString* mPrefixContentFoldCase = nullptr;
+  const nsString* mFullPrefixContentFoldCase = nullptr;
+  const nsString* mSuffixContentFoldCase = nullptr;
+  const nsString* mFullSuffixContentFoldCase = nullptr;
 };
 
 /**
@@ -267,7 +290,8 @@ class TextDirectiveCreator final {
 
  private:
   TextDirectiveCreator(Document& aDocument, nsRange* aInputRange,
-                       TextDirectiveCandidate&& aTextDirective);
+                       TextDirectiveCandidate&& aTextDirective,
+                       RangeContentCache&& aRangeContentCache);
   /**
    * Find all ranges up to the end of the target range that have the same
    * content. The input range will *not* be part of the result, therefore an

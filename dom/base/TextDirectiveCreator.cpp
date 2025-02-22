@@ -16,37 +16,21 @@
 
 namespace mozilla::dom {
 
-Result<std::tuple<const nsString&, const nsString&>, ErrorResult>
-RangeContentCache::Get(nsRange* aRange1, nsRange* aRange2) {
-  auto cachedContent1 = mCache.Lookup(aRange1);
-  auto cachedContent2 = mCache.Lookup(aRange2);
-  // intermediate bool flags are necessary because the `LookupResult` objects
-  // are invalidated after an insertion.
-  const bool needsToInsert1 = !cachedContent1;
-  const bool needsToInsert2 = !cachedContent2;
-  if (!needsToInsert1 && !needsToInsert2) {
-    return std::tuple<const nsString&, const nsString&>{*cachedContent1,
-                                                        *cachedContent2};
+Result<const nsString*, ErrorResult> RangeContentCache::GetOrCreate(
+    nsRange* aRange) {
+  if (!aRange) {
+    return nullptr;
   }
-
-  if (needsToInsert1) {
-    Result<nsString, ErrorResult> content1 =
-        TextDirectiveUtil::RangeContentAsFoldCase(aRange1);
-    if (MOZ_UNLIKELY(content1.isErr())) {
-      return content1.propagateErr();
-    }
-    mCache.InsertOrUpdate(aRange1, content1.unwrap());
+  if (const auto rangeContent = mCache.Lookup(aRange)) {
+    return rangeContent->get();
   }
-  if (needsToInsert2) {
-    Result<nsString, ErrorResult> content2 =
-        TextDirectiveUtil::RangeContentAsFoldCase(aRange2);
-    if (MOZ_UNLIKELY(content2.isErr())) {
-      return content2.propagateErr();
-    }
-    mCache.InsertOrUpdate(aRange2, content2.unwrap());
-  }
-  return std::tuple<const nsString&, const nsString&>{*mCache.Lookup(aRange1),
-                                                      *mCache.Lookup(aRange2)};
+  return TextDirectiveUtil::RangeContentAsFoldCase(aRange).andThen(
+      [cache = &mCache, range = RefPtr(aRange)](
+          nsString&& content) -> Result<const nsString*, ErrorResult> {
+        return cache
+            ->InsertOrUpdate(range, MakeUnique<nsString>(std::move(content)))
+            .get();
+      });
 }
 
 TextDirectiveCandidate::TextDirectiveCandidate(
@@ -64,7 +48,8 @@ TextDirectiveCandidate::TextDirectiveCandidate(
 
 /* static */
 Result<TextDirectiveCandidate, ErrorResult>
-TextDirectiveCandidate::CreateFromInputRange(const nsRange* aInputRange) {
+TextDirectiveCandidate::CreateFromInputRange(
+    const nsRange* aInputRange, RangeContentCache& aRangeContentCache) {
   MOZ_ASSERT(aInputRange);
   ErrorResult rv;
   // To create a fully-populated text directive candidate from a given Range
@@ -170,14 +155,16 @@ TextDirectiveCandidate::CreateFromInputRange(const nsRange* aInputRange) {
   auto instance = TextDirectiveCandidate{
       startRange,  fullStartRange,  endRange,    fullEndRange,
       prefixRange, fullPrefixRange, suffixRange, fullSuffixRange};
+  MOZ_TRY(instance.CreateFoldCaseContents(aRangeContentCache));
   MOZ_TRY(instance.CreateTextDirectiveString());
   return instance;
 }
 
 /* static */
 Result<TextDirectiveCandidate, ErrorResult>
-TextDirectiveCandidate::CreateFromStartAndEndRange(const nsRange* aStartRange,
-                                                   const nsRange* aEndRange) {
+TextDirectiveCandidate::CreateFromStartAndEndRange(
+    const nsRange* aStartRange, const nsRange* aEndRange,
+    RangeContentCache& aRangeContentCache) {
   MOZ_ASSERT(aStartRange);
   MOZ_ASSERT(aEndRange);
   ErrorResult rv;
@@ -228,34 +215,62 @@ TextDirectiveCandidate::CreateFromStartAndEndRange(const nsRange* aStartRange,
   auto instance = TextDirectiveCandidate{
       startRange,  fullStartRange,  endRange,    fullEndRange,
       prefixRange, fullPrefixRange, suffixRange, fullSuffixRange};
+  MOZ_TRY(instance.CreateFoldCaseContents(aRangeContentCache));
   MOZ_TRY(instance.CreateTextDirectiveString());
   return instance;
 }
 
 Result<TextDirectiveCandidate, ErrorResult> TextDirectiveCandidate::CloneWith(
     RefPtr<nsRange>&& aNewPrefixRange, RefPtr<nsRange>&& aNewStartRange,
-    RefPtr<nsRange>&& aNewEndRange, RefPtr<nsRange>&& aNewSuffixRange) const {
+    RefPtr<nsRange>&& aNewEndRange, RefPtr<nsRange>&& aNewSuffixRange,
+    RangeContentCache& aRangeContentCache) const {
   MOZ_ASSERT(
       mFullPrefixRange && mFullSuffixRange,
       "TextDirectiveCandidate::CloneWith(): Source object is in invalid state");
 
-  TextDirectiveCandidate clone(mStartRange, mFullStartRange, mEndRange,
-                               mFullEndRange, mPrefixRange, mFullPrefixRange,
-                               mSuffixRange, mFullSuffixRange);
+  // start with a shallow copy. This copies all ranges, and all fold case
+  // content raw pointers.
+  TextDirectiveCandidate clone(*this);
 
+  // Replace the pointers for all ranges which are present in the parameter
+  // list, and create new fold case representations.
   if (aNewPrefixRange) {
     clone.mPrefixRange = std::move(aNewPrefixRange);
+    Result<const nsString*, ErrorResult> maybeContent =
+        aRangeContentCache.GetOrCreate(clone.mPrefixRange);
+    if (MOZ_UNLIKELY(maybeContent.isErr())) {
+      return maybeContent.propagateErr();
+    }
+    clone.mPrefixContentFoldCase = maybeContent.unwrap();
   }
   if (aNewStartRange) {
     clone.mStartRange = std::move(aNewStartRange);
+    Result<const nsString*, ErrorResult> maybeContent =
+        aRangeContentCache.GetOrCreate(clone.mStartRange);
+    if (MOZ_UNLIKELY(maybeContent.isErr())) {
+      return maybeContent.propagateErr();
+    }
+    clone.mStartContentFoldCase = maybeContent.unwrap();
   }
   // mEndRange is null if exact matching is used.
   MOZ_ASSERT_IF(aNewEndRange, mEndRange);
   if (aNewEndRange) {
     clone.mEndRange = std::move(aNewEndRange);
+    Result<const nsString*, ErrorResult> maybeContent =
+        aRangeContentCache.GetOrCreate(clone.mEndRange);
+    if (MOZ_UNLIKELY(maybeContent.isErr())) {
+      return maybeContent.propagateErr();
+    }
+    clone.mEndContentFoldCase = maybeContent.unwrap();
   }
   if (aNewSuffixRange) {
     clone.mSuffixRange = std::move(aNewSuffixRange);
+    Result<const nsString*, ErrorResult> maybeContent =
+        aRangeContentCache.GetOrCreate(clone.mSuffixRange);
+    if (MOZ_UNLIKELY(maybeContent.isErr())) {
+      return maybeContent.propagateErr();
+    }
+    clone.mSuffixContentFoldCase = maybeContent.unwrap();
   }
 
   // from now on, the cloned candidate is immutable. Therefore it is allowed to
@@ -358,20 +373,12 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
 
   AutoTArray<TextDirectiveCandidate, 4> newCandidates;
   auto createRangeExtendedUntilMismatch =
-      [&aRangeContentCache](
-          nsRange* thisFullRange, nsRange* otherFullRange,
-          TextScanDirection expandDirection,
-          Maybe<RangeBoundary> expandLimit =
-              Nothing{}) -> Result<RefPtr<nsRange>, ErrorResult> {
+      [](nsRange* thisFullRange, const nsString& thisFullRangeFoldCase,
+         nsRange* otherFullRange, const nsString& otherFullRangeFoldCase,
+         TextScanDirection expandDirection,
+         Maybe<RangeBoundary> expandLimit =
+             Nothing{}) -> Result<RefPtr<nsRange>, ErrorResult> {
     ErrorResult rv;
-    auto foldCaseContents =
-        aRangeContentCache.Get(thisFullRange, otherFullRange);
-    if (MOZ_UNLIKELY(foldCaseContents.isErr())) {
-      return foldCaseContents.propagateErr();
-    }
-    const auto& [thisFullRangeFoldCase, otherFullRangeFoldCase] =
-        foldCaseContents.unwrap();
-
     auto equalSubstringLength =
         expandDirection == TextScanDirection::Right
             ? TextDirectiveUtil::FindCommonPrefix(thisFullRangeFoldCase,
@@ -425,7 +432,8 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
   };
 
   auto createAndAddCandidate =
-      [candidate = this, &newCandidates, func = __FUNCTION__](
+      [candidate = this, &newCandidates, &aRangeContentCache,
+       func = __FUNCTION__](
           const char* contextTermName, RefPtr<nsRange>&& extendedPrefix,
           RefPtr<nsRange>&& extendedStart, RefPtr<nsRange>&& extendedEnd,
           RefPtr<nsRange>&& extendedSuffix) -> Result<Ok, ErrorResult> {
@@ -437,7 +445,7 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
     Result<TextDirectiveCandidate, ErrorResult> extendedCandidate =
         candidate->CloneWith(std::move(extendedPrefix),
                              std::move(extendedStart), std::move(extendedEnd),
-                             std::move(extendedSuffix));
+                             std::move(extendedSuffix), aRangeContentCache);
     if (MOZ_UNLIKELY(extendedCandidate.isErr())) {
       return extendedCandidate.propagateErr();
     }
@@ -447,17 +455,22 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
                          newCandidates.LastElement().TextDirectiveString());
     return Ok();
   };
-
+  MOZ_ASSERT(mFullPrefixContentFoldCase && aOther.mFullPrefixContentFoldCase);
   MOZ_TRY(
       createRangeExtendedUntilMismatch(
-          mFullPrefixRange, aOther.mFullPrefixRange, TextScanDirection::Left)
+          mFullPrefixRange, *mFullPrefixContentFoldCase,
+          aOther.mFullPrefixRange, *aOther.mFullPrefixContentFoldCase,
+          TextScanDirection::Left)
           .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
             return createAndAddCandidate("prefix", std::move(extendedRange),
                                          nullptr, nullptr, nullptr);
           }));
+  MOZ_ASSERT(mFullSuffixContentFoldCase && aOther.mFullSuffixContentFoldCase);
   MOZ_TRY(
       createRangeExtendedUntilMismatch(
-          mFullSuffixRange, aOther.mFullSuffixRange, TextScanDirection::Right)
+          mFullSuffixRange, *mFullSuffixContentFoldCase,
+          aOther.mFullSuffixRange, *aOther.mFullSuffixContentFoldCase,
+          TextScanDirection::Right)
           .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
             return createAndAddCandidate("suffix", nullptr, nullptr, nullptr,
                                          std::move(extendedRange));
@@ -467,17 +480,21 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
   if (UseExactMatch()) {
     return std::move(newCandidates);
   }
+  MOZ_ASSERT(mFullStartContentFoldCase && aOther.mFullStartContentFoldCase);
   MOZ_TRY(
-      createRangeExtendedUntilMismatch(mFullStartRange, aOther.mFullStartRange,
-                                       TextScanDirection::Right,
-                                       Some(mEndRange->StartRef()))
+      createRangeExtendedUntilMismatch(
+          mFullStartRange, *mFullStartContentFoldCase, aOther.mFullStartRange,
+          *aOther.mFullStartContentFoldCase, TextScanDirection::Right,
+          Some(mEndRange->StartRef()))
           .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
             return createAndAddCandidate(
                 "start", nullptr, std::move(extendedRange), nullptr, nullptr);
           }));
+  MOZ_ASSERT(mFullEndContentFoldCase && aOther.mFullEndContentFoldCase);
   MOZ_TRY(
-      createRangeExtendedUntilMismatch(mFullEndRange, aOther.mFullEndRange,
-                                       TextScanDirection::Left)
+      createRangeExtendedUntilMismatch(
+          mFullEndRange, *mFullEndContentFoldCase, aOther.mFullEndRange,
+          *aOther.mFullEndContentFoldCase, TextScanDirection::Left)
           .andThen([&createAndAddCandidate](RefPtr<nsRange>&& extendedRange) {
             return createAndAddCandidate("end", nullptr, nullptr,
                                          std::move(extendedRange), nullptr);
@@ -487,13 +504,10 @@ TextDirectiveCandidate::CreateNewCandidatesForGivenMatch(
 
 nsTArray<const TextDirectiveCandidate*>
 TextDirectiveCandidate::FilterNonMatchingCandidates(
-    const nsTArray<const TextDirectiveCandidate*>& aMatches,
-    RangeContentCache& aRangeContentCache) {
+    const nsTArray<const TextDirectiveCandidate*>& aMatches) {
   AutoTArray<const TextDirectiveCandidate*, 8> stillMatching;
   for (const auto* match : aMatches) {
-    if (Result<bool, ErrorResult> matchesFoldCase =
-            ThisCandidateMatchesOther(*match, aRangeContentCache);
-        MOZ_LIKELY(matchesFoldCase.isOk()) && matchesFoldCase.unwrap()) {
+    if (ThisCandidateMatchesOther(*match)) {
       stillMatching.AppendElement(match);
     }
   }
@@ -544,38 +558,16 @@ TextDirectiveCandidate::MaybeCreateEndToBlockBoundaryRange(
   return fullRange;
 }
 
-Result<bool, ErrorResult> TextDirectiveCandidate::ThisCandidateMatchesOther(
-    const TextDirectiveCandidate& aOther,
-    RangeContentCache& aRangeContentCache) const {
-  auto shortRangeIsSubsetOfFullRange =
-      [&aRangeContentCache](
-          nsRange* shortRange, nsRange* fullRange,
-          const std::function<uint32_t(const nsAString&, const nsAString&)>&
-              comparator) -> Result<bool, ErrorResult> {
-    auto contents = aRangeContentCache.Get(shortRange, fullRange);
-    if (MOZ_UNLIKELY(contents.isErr())) {
-      return contents.propagateErr();
-    }
-    const auto& [shortContent, fullContent] = contents.unwrap();
-    return comparator(shortContent, fullContent) == shortContent.Length();
-  };
-
-  Result<bool, ErrorResult> prefixIsSubset =
-      shortRangeIsSubsetOfFullRange(mPrefixRange, aOther.mFullPrefixRange,
-                                    TextDirectiveUtil::FindCommonSuffix);
-  if (MOZ_UNLIKELY(prefixIsSubset.isErr())) {
-    return prefixIsSubset.propagateErr();
-  }
-  if (!prefixIsSubset.unwrap()) {
+bool TextDirectiveCandidate::ThisCandidateMatchesOther(
+    const TextDirectiveCandidate& aOther) const {
+  if (TextDirectiveUtil::FindCommonSuffix(*mPrefixContentFoldCase,
+                                          *aOther.mFullPrefixContentFoldCase) !=
+      mPrefixContentFoldCase->Length()) {
     return false;
   }
-  Result<bool, ErrorResult> suffixIsSubset =
-      shortRangeIsSubsetOfFullRange(mSuffixRange, aOther.mFullSuffixRange,
-                                    TextDirectiveUtil::FindCommonPrefix);
-  if (MOZ_UNLIKELY(suffixIsSubset.isErr())) {
-    return suffixIsSubset.propagateErr();
-  }
-  if (!suffixIsSubset.unwrap()) {
+  if (TextDirectiveUtil::FindCommonPrefix(*mSuffixContentFoldCase,
+                                          *aOther.mFullSuffixContentFoldCase) !=
+      mSuffixContentFoldCase->Length()) {
     return false;
   }
 
@@ -583,20 +575,14 @@ Result<bool, ErrorResult> TextDirectiveCandidate::ThisCandidateMatchesOther(
   if (UseExactMatch()) {
     return true;
   }
-  Result<bool, ErrorResult> startIsSubset = shortRangeIsSubsetOfFullRange(
-      mStartRange, aOther.mFullStartRange, TextDirectiveUtil::FindCommonPrefix);
-  if (MOZ_UNLIKELY(startIsSubset.isErr())) {
-    return startIsSubset.propagateErr();
-  }
-  if (!startIsSubset.unwrap()) {
+  if (TextDirectiveUtil::FindCommonPrefix(*mStartContentFoldCase,
+                                          *aOther.mFullStartContentFoldCase) !=
+      mStartContentFoldCase->Length()) {
     return false;
   }
-  Result<bool, ErrorResult> endIsSubset = shortRangeIsSubsetOfFullRange(
-      mEndRange, aOther.mFullEndRange, TextDirectiveUtil::FindCommonSuffix);
-  if (MOZ_UNLIKELY(endIsSubset.isErr())) {
-    return endIsSubset.propagateErr();
-  }
-  return endIsSubset.unwrap();
+  return TextDirectiveUtil::FindCommonSuffix(*mEndContentFoldCase,
+                                             *aOther.mFullEndContentFoldCase) ==
+         mEndContentFoldCase->Length();
 }
 
 /* static */
@@ -671,6 +657,32 @@ Result<Ok, ErrorResult> TextDirectiveCandidate::CreateTextDirectiveString() {
   return Ok();
 }
 
+Result<Ok, ErrorResult> TextDirectiveCandidate::CreateFoldCaseContents(
+    RangeContentCache& aRangeContentCache) {
+  auto getFoldCase = [&aRangeContentCache](
+                         nsRange* range,
+                         const nsString*& content) -> Result<Ok, ErrorResult> {
+    return aRangeContentCache.GetOrCreate(range).andThen(
+        [&content](const nsString*&& value) -> Result<Ok, ErrorResult> {
+          content = value;
+          return Ok();
+        });
+  };
+  MOZ_ASSERT(mFullPrefixRange);
+  MOZ_ASSERT(mFullSuffixRange);
+  MOZ_ASSERT(mStartRange);
+  MOZ_TRY(getFoldCase(mFullPrefixRange, mFullPrefixContentFoldCase));
+  MOZ_TRY(getFoldCase(mFullStartRange, mFullStartContentFoldCase));
+  MOZ_TRY(getFoldCase(mFullEndRange, mFullEndContentFoldCase));
+  MOZ_TRY(getFoldCase(mFullSuffixRange, mFullSuffixContentFoldCase));
+
+  MOZ_TRY(getFoldCase(mPrefixRange, mPrefixContentFoldCase));
+  MOZ_TRY(getFoldCase(mStartRange, mStartContentFoldCase));
+  MOZ_TRY(getFoldCase(mEndRange, mEndContentFoldCase));
+  MOZ_TRY(getFoldCase(mSuffixRange, mSuffixContentFoldCase));
+  return Ok();
+}
+
 void TextDirectiveCandidate::LogCurrentState(const char* aCallerFunc) const {
   if (!TextDirectiveUtil::ShouldLog()) {
     return;
@@ -706,10 +718,12 @@ void TextDirectiveCandidate::LogCurrentState(const char* aCallerFunc) const {
 
 TextDirectiveCreator::TextDirectiveCreator(
     Document& aDocument, nsRange* aInputRange,
-    TextDirectiveCandidate&& aTextDirective)
+    TextDirectiveCandidate&& aTextDirective,
+    RangeContentCache&& aRangeContentCache)
     : mDocument(aDocument),
       mInputRange(aInputRange),
-      mTextDirective(std::move(aTextDirective)) {}
+      mTextDirective(std::move(aTextDirective)),
+      mRangeContentCache(std::move(aRangeContentCache)) {}
 
 /* static */
 mozilla::Result<nsCString, ErrorResult>
@@ -740,16 +754,18 @@ TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
 
   // 3. Create a fully-populated text directive candidate
   // textDirectiveCandidate.
+  RangeContentCache rangeContentCache;
   Result<TextDirectiveCandidate, ErrorResult> maybeTextDirectiveCandidate =
       TextDirectiveCandidate::CreateFromInputRange(
-          inputRangeExtendedToWordBoundaries);
+          inputRangeExtendedToWordBoundaries, rangeContentCache);
   if (MOZ_UNLIKELY(maybeTextDirectiveCandidate.isErr())) {
     return maybeTextDirectiveCandidate.propagateErr();
   }
   auto textDirectiveCandidate = maybeTextDirectiveCandidate.unwrap();
 
   TextDirectiveCreator creator(aDocument, inputRangeExtendedToWordBoundaries,
-                               std::move(textDirectiveCandidate));
+                               std::move(textDirectiveCandidate),
+                               std::move(rangeContentCache));
 
   // 4. Create a list of fully populated text directive candidates.
   // 5. Run the create text directive from matches algorithm and return its
@@ -783,7 +799,8 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
     auto rangeMatches = maybeRangeMatches.unwrap();
     textDirectiveMatches.SetCapacity(rangeMatches.Length());
     for (const auto& rangeMatch : rangeMatches) {
-      auto candidate = TextDirectiveCandidate::CreateFromInputRange(rangeMatch);
+      auto candidate = TextDirectiveCandidate::CreateFromInputRange(
+          rangeMatch, mRangeContentCache);
       if (MOZ_UNLIKELY(candidate.isErr())) {
         return candidate.propagateErr();
       }
@@ -842,7 +859,7 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
         continue;
       }
       auto candidate = TextDirectiveCandidate::CreateFromStartAndEndRange(
-          matchStartRange, matchEndRange);
+          matchStartRange, matchEndRange, mRangeContentCache);
       if (MOZ_UNLIKELY(candidate.isErr())) {
         return candidate.propagateErr();
       }
@@ -985,9 +1002,9 @@ TextDirectiveCreator::CreateTextDirectiveFromMatches(
       //       `candidatesAndMatchesForNextIteration`, consisting of
       //       `newCandidate` and the result of running the Filter Non-matching
       //       Candidates algorithm using `newCandidate` and `matches`.
-      candidatesAndMatchesForNextIteration.AppendElement(std::pair{
-          std::move(newCandidate), newCandidate.FilterNonMatchingCandidates(
-                                       matches, mRangeContentCache)});
+      candidatesAndMatchesForNextIteration.AppendElement(
+          std::pair{std::move(newCandidate),
+                    newCandidate.FilterNonMatchingCandidates(matches)});
     }
 
     // 1.5 Sort the elements of `candidatesAndMatchesForNextIteration`
