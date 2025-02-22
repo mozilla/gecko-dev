@@ -833,6 +833,8 @@
     <string name="preferences_show_voice_search">Показване на гласово търсене</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">В поверителен режим също</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Показване на набиращи популярност предложения</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Предложения от буфера</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->

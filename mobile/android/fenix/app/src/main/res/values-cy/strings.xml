@@ -831,6 +831,8 @@
     <string name="preferences_show_voice_search">Dangos chwiliad llais</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Dangos mewn sesiynau preifat</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Dangos awgrymiadau tueddiadau</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Dangos awgrymiadau o’r clipfwrdd</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -2547,7 +2549,7 @@
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Awgrymiadau Firefox</string>
 
     <!-- Search suggestions title for trending searches. -->
-    <string name="trending_searches_header">Chwiliadau Tueddu</string>
+    <string name="trending_searches_header">Tueddiadau Chwilio</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google Search</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
@@ -3019,7 +3021,7 @@
     <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
     <!-- Description text for a dialog confirming whether the user wants to delete all data for current site.
         %s is a placeholder for the base domain of website. -->
-    <string name="clear_site_data_dialog_description"><![CDATA[Mae\'n bosibl y bydd dileu cwcis a data gwefan ar gyfer <b>%s</b> yn eich allgofnodi o wefannau a chlirio certi siopa.]]></string>
+    <string name="clear_site_data_dialog_description"><![CDATA[Mae\'n bosibl y bydd dileu cwcis a data gwefan <b>%s</b> yn eich allgofnodi o wefannau a chlirio\'ch certi siopa.]]></string>
     <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
     <string name="clear_site_data_dialog_positive_button_text">Clirio</string>
     <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->

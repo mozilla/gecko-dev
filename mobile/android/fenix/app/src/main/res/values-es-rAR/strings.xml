@@ -839,6 +839,8 @@
     <string name="preferences_show_voice_search">Mostrar búsqueda por voz</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Mostrar en sesiones privadas</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Mostrar sugerencias de tendencias</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Mostrar sugerencias del portapapeles</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -3053,7 +3055,7 @@
     <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
     <!-- Description text for a dialog confirming whether the user wants to delete all data for current site.
         %s is a placeholder for the base domain of website. -->
-    <string name="clear_site_data_dialog_description"><![CDATA[Eliminar las cookies y los datos del sitio para <b> %s</b> podría cerrar la sesión de los sitios web y limpiar los carritos de compras.]]></string>
+    <string name="clear_site_data_dialog_description"><![CDATA[Eliminar cookies y datos del sitio para <b>%s</b> puede cerrar sesión en los sitios web y limpiar los carritos de compras.]]></string>
     <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
     <string name="clear_site_data_dialog_positive_button_text">Limpiar</string>
     <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->

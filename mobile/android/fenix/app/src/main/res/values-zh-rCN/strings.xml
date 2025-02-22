@@ -3067,10 +3067,20 @@
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">保护已关闭，建议重新启用。</string>
 
+    <!-- Text for displaying the total number of trackers blocked in the protection panel.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="protection_panel_num_trackers_blocked">已拦截 %d 个跟踪器</string>
     <!-- Text for when no trackers have been blocked. -->
     <string name="protection_panel_no_trackers_blocked">未发现跟踪器</string>
     <!-- Link text to navigate to privacy and security settings from the protection panel. -->
     <string name="protection_panel_privacy_and_security_settings">隐私与安全设置</string>
+    <!-- Text for displaying the total number of trackers blocked in the trackers blocked panel.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="trackers_blocked_panel_total_num_trackers_blocked">已拦截 %d 个跟踪器</string>
+    <!-- Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+        %s is a placeholder for the name of the tracker category.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s：%d</string>
     <!-- Description text for a dialog confirming whether the user wants to delete all data for current site.
         %s is a placeholder for the base domain of website. -->
     <string name="clear_site_data_dialog_description"><![CDATA[移除 <b>%s</b> 的 Cookie 和网站数据可能会导致网站退出登录或清空购物车。]]></string>
