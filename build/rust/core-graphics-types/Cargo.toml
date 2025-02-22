@@ -1,0 +1,16 @@
+[package]
+name = "core-graphics-types"
+version = "0.1.999"
+edition = "2018"
+license = "MIT or APACHE-2.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.core-graphics-types]
+version = "0.2.0"
+default-features = false
+
+[features]
+default = ["core-graphics-types/default"]
+link = ["core-graphics-types/link"]

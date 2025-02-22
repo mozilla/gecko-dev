@@ -12,10 +12,16 @@
 [package]
 edition = "2018"
 name = "core-foundation"
-version = "0.9.4"
+version = "0.10.0"
 authors = ["The Servo Project Developers"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Bindings to Core Foundation for macOS"
 homepage = "https://github.com/servo/core-foundation-rs"
+readme = false
 keywords = [
     "macos",
     "framework",
@@ -29,19 +35,23 @@ repository = "https://github.com/servo/core-foundation-rs"
 all-features = true
 default-target = "x86_64-apple-darwin"
 
-[dependencies.chrono]
-version = "0.4"
-optional = true
+[lib]
+name = "core_foundation"
+path = "src/lib.rs"
+
+[[test]]
+name = "use_macro_outside_crate"
+path = "tests/use_macro_outside_crate.rs"
 
 [dependencies.core-foundation-sys]
-version = "0.8.6"
+version = "0.8.7"
 default-features = false
 
 [dependencies.libc]
 version = "0.2"
 
 [dependencies.uuid]
-version = "0.5"
+version = "1"
 optional = true
 
 [features]
@@ -49,5 +59,4 @@ default = ["link"]
 link = ["core-foundation-sys/link"]
 mac_os_10_7_support = ["core-foundation-sys/mac_os_10_7_support"]
 mac_os_10_8_features = ["core-foundation-sys/mac_os_10_8_features"]
-with-chrono = ["chrono"]
 with-uuid = ["uuid"]

@@ -189,7 +189,7 @@ fn safari_private_frameworks_url() {
 }
 
 #[test]
-fn non_existant_bundle() {
+fn non_existent_bundle() {
     use crate::string::CFString;
     use crate::url::{kCFURLPOSIXPathStyle, CFURL};
 
