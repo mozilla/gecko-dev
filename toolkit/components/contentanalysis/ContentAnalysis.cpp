@@ -1379,28 +1379,41 @@ NS_IMETHODIMP ContentAnalysis::GetCachedResponse(
 }
 
 void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
+                                      Maybe<nsCString>&& aRequestToken,
                                       nsresult aResult) {
   MOZ_ASSERT(!aUserActionId.IsEmpty());
   if (!NS_IsMainThread()) {
     NS_DispatchToMainThread(NS_NewCancelableRunnableFunction(
         "CancelWithError",
-        [aUserActionId = std::move(aUserActionId), aResult]() mutable {
+        [aUserActionId = std::move(aUserActionId),
+         aRequestToken = std::move(aRequestToken), aResult]() mutable {
           auto self = GetContentAnalysisFromService();
           if (!self) {
             // May be shutting down
             return;
           }
-          self->CancelWithError(std::move(aUserActionId), aResult);
+          self->CancelWithError(std::move(aUserActionId),
+                                std::move(aRequestToken), aResult);
         }));
     return;
   }
   AssertIsOnMainThread();
 
-  // We clear the tokens array since we cancel all of them.
-  nsTHashSet<nsCString> tokens;
+  AutoTArray<nsCString, 1> tokens;
   RefPtr<nsIContentAnalysisCallback> callback;
   if (auto maybeUserActionData = mUserActionMap.Lookup(aUserActionId)) {
-    tokens = std::move(maybeUserActionData->mRequestTokens);
+    if (aRequestToken) {
+      // We are only cancelling one request.
+      if (maybeUserActionData->mRequestTokens.EnsureRemoved(*aRequestToken)) {
+        tokens.AppendElement(*aRequestToken);
+      } else {
+        MOZ_ASSERT_UNREACHABLE("Request token not found");
+      }
+    } else {
+      // We are cancelling all existing requests for this user action.
+      tokens = ToTArray<AutoTArray<nsCString, 1>>(
+          maybeUserActionData->mRequestTokens);
+    }
     callback = maybeUserActionData->mCallback;
   } else {
     LOGD(
@@ -1420,6 +1433,9 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
     // (2) We canceled before the final request list was formed.  We still
     // need to call the callback -- we do this when the final request list
     // is complete.
+    MOZ_ASSERT(
+        !aRequestToken && aResult == NS_ERROR_ABORT,
+        "Token list can only be empty when canceling all remaining requests");
     LOGD(
         "ContentAnalysis::CancelWithError user action not found -- either was "
         "after last response or before first request was submitted | "
@@ -1495,6 +1511,8 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
   for (const auto& token : tokens) {
     auto response = MakeRefPtr<ContentAnalysisResponse>(action, token);
     response->SetCancelError(cancelError);
+    // Alert the UI and (if action is not warn) the callback.  We aren't
+    // handling an actual response so we have nothing to acknowledge.
     NotifyResponseObservers(response, nsCString(aUserActionId),
                             false /* autoAcknowledge */);
     if (action != nsIContentAnalysisResponse::Action::eWarn) {
@@ -1513,14 +1531,18 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
     }
   }
 
-  mUserActionIdToToCanceledResponseMap.InsertOrUpdate(
-      aUserActionId, CanceledResponse{ConvertResult(action), tokens.Count()});
-
-  if (action == nsIContentAnalysisResponse::Action::eWarn) {
+  if (aRequestToken) {
+    // Only remove from the user action map and send cancel to the agent
+    // if we are cancelling all requests.
     return;
   }
 
+  MOZ_ASSERT(action != nsIContentAnalysisResponse::Action::eWarn);
+
   RemoveFromUserActionMap(nsCString(aUserActionId));
+
+  mUserActionIdToCanceledResponseMap.InsertOrUpdate(
+      aUserActionId, CanceledResponse{ConvertResult(action), tokens.Length()});
 
   // Re-get service in case the registered service is mocked for testing.
   nsCOMPtr<nsIContentAnalysis> contentAnalysis =
@@ -1759,14 +1781,15 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
             owner->NotifyObserversAndMaybeIssueResponse(
                 response, std::move(userActionId), aAutoAcknowledge);
           },
-          [userActionId](nsresult rv) mutable {
+          [userActionId, requestToken](nsresult rv) mutable {
             LOGD("RunAnalyzeRequestTask failed to get client a second time");
             RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
             if (!owner) {
               // May be shutting down
               return;
             }
-            owner->CancelWithError(std::move(userActionId), rv);
+            owner->CancelWithError(std::move(userActionId),
+                                   Some(std::move(requestToken)), rv);
           });
 
   return NS_OK;
@@ -1798,7 +1821,8 @@ ContentAnalysis::DoAnalyzeRequest(
     nsString filePath = NS_ConvertUTF8toUTF16(fileCPath);
     nsresult rv = ContentAnalysisRequest::GetFileDigest(filePath, digest);
     if (NS_FAILED(rv)) {
-      owner->CancelWithError(std::move(aUserActionId), rv);
+      owner->CancelWithError(std::move(aUserActionId),
+                             Some(nsCString(aRequest.request_token())), rv);
       // Don't return an error because we don't want to retry
       return std::shared_ptr<content_analysis::sdk::ContentAnalysisResponse>(
           nullptr);
@@ -1874,13 +1898,13 @@ void ContentAnalysis::IssueResponse(ContentAnalysisResponse* aResponse,
       // Respond to the agent with TOO_LATE because the response arrived
       // after the request was cancelled (for any reason).
       nsIContentAnalysisAcknowledgement::FinalAction action;
-      mUserActionIdToToCanceledResponseMap.WithEntryHandle(
+      mUserActionIdToCanceledResponseMap.WithEntryHandle(
           aUserActionId, [&](auto&& canceledResponseEntry) {
             if (canceledResponseEntry) {
               action = canceledResponseEntry->mAction;
               --canceledResponseEntry->mNumExpectedResponses;
               if (!canceledResponseEntry->mNumExpectedResponses) {
-                // We've handeled all responses for canceled requests for this
+                // We've handled all responses for canceled requests for this
                 // user action.
                 canceledResponseEntry.Remove();
               }
@@ -2312,8 +2336,8 @@ void ContentAnalysis::MultipartRequestCallback::Initialize(
                   weakContentAnalysis->mUserActionMap.Lookup(userActionId)) {
             entry->mIsHandlingTimeout = true;
           }
-          weakContentAnalysis->CancelWithError(std::move(userActionId),
-                                               NS_ERROR_DOM_TIMEOUT_ERR);
+          weakContentAnalysis->CancelWithError(
+              std::move(userActionId), Nothing(), NS_ERROR_DOM_TIMEOUT_ERR);
         }
       });
   NS_DelayedDispatchToCurrentThread((RefPtr{timeoutRunnable}).forget(),
@@ -2332,8 +2356,7 @@ ContentAnalysis::MultipartRequestCallback::ContentResult(
     nsIContentAnalysisResult* aResult) {
   MOZ_ASSERT(NS_IsMainThread());
   if (mWeakContentAnalysis) {
-    // Remove aResult's request token from the remaining requests list.  Note
-    // that it may already be removed by CancelWithError.
+    // Remove aResult's request token from the remaining requests list.
     if (auto maybeUserActionData =
             mWeakContentAnalysis->mUserActionMap.Lookup(mUserActionId)) {
       nsCOMPtr<nsIContentAnalysisResponse> response =
@@ -2341,7 +2364,12 @@ ContentAnalysis::MultipartRequestCallback::ContentResult(
       MOZ_ASSERT(response);
       nsAutoCString token;
       MOZ_ALWAYS_SUCCEEDS(response->GetRequestToken(token));
-      maybeUserActionData->mRequestTokens.Remove(token);
+      DebugOnly<bool> removed =
+          maybeUserActionData->mRequestTokens.EnsureRemoved(token);
+      // Either we removed the token or it was previously removed, along with
+      // all others, as part of a cancellation.
+      MOZ_ASSERT(removed || maybeUserActionData->mRequestTokens.IsEmpty(),
+                 "Request token was not found");
     }
   }
 
@@ -2920,7 +2948,7 @@ ContentAnalysis::CancelRequestsByRequestToken(const nsACString& aRequestToken) {
 NS_IMETHODIMP
 ContentAnalysis::CancelRequestsByUserAction(const nsACString& aUserActionId) {
   MOZ_ASSERT(NS_IsMainThread());
-  CancelWithError(nsCString(aUserActionId), NS_ERROR_ABORT);
+  CancelWithError(nsCString(aUserActionId), Nothing(), NS_ERROR_ABORT);
   return NS_OK;
 }
 

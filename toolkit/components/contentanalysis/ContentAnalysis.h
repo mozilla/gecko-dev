@@ -231,7 +231,17 @@ class ContentAnalysis final : public nsIContentAnalysis,
       nsIClipboard::ClipboardType aClipboardType,
       ContentAnalysisCallback* aResolver, bool aForFullClipboard = false);
   static RefPtr<ContentAnalysis> GetContentAnalysisFromService();
-  void CancelWithError(nsCString&& aUserActionId, nsresult aResult);
+
+  // Cancel one request (if aRequestToken is set) or all requests (otherwise).
+  // aResult is used to determine what kind of cancellation this is
+  // (user-initiated, timeout, blocked user action, internal error, etc).
+  // The cancellation behavior is dependent on that value.  In particular,
+  // some causes lead to programmable default behaviors -- see e.g.
+  // browser.contentanalysis.default_result and
+  // browser.contentanalysis.timeout_result.  Oothers, like user-initiated
+  // and shutdown cancellations, have fixed behavior.
+  void CancelWithError(nsCString&& aUserActionId,
+                       Maybe<nsCString>&& aRequestToken, nsresult aResult);
 
   // Duration the cache holds requests for. This holds strong references
   // to the elements of the request, such as the WindowGlobalParent,
@@ -395,11 +405,11 @@ class ContentAnalysis final : public nsIContentAnalysis,
   // or to issue a default response.
   struct CanceledResponse {
     nsIContentAnalysisAcknowledgement::FinalAction mAction;
-    uint32_t mNumExpectedResponses;
+    size_t mNumExpectedResponses;
   };
-  using UserActionIdToToCanceledResponseMap =
+  using UserActionIdToCanceledResponseMap =
       nsTHashMap<nsCString, CanceledResponse>;
-  UserActionIdToToCanceledResponseMap mUserActionIdToToCanceledResponseMap;
+  UserActionIdToCanceledResponseMap mUserActionIdToCanceledResponseMap;
 
   class CachedClipboardResponse {
    public:
