@@ -34,6 +34,7 @@
 #include "hb-open-type.hh"
 #include "hb-set.hh"
 #include "hb-bimap.hh"
+#include "hb-cache.hh"
 
 #include "OT/Layout/Common/Coverage.hh"
 #include "OT/Layout/types.hh"
@@ -2076,6 +2077,15 @@ struct ClassDef
     default:return 0;
     }
   }
+  unsigned int get_class (hb_codepoint_t glyph_id,
+			  hb_ot_lookup_cache_t *cache) const
+  {
+    unsigned klass;
+    if (cache && cache->get (glyph_id, &klass)) return klass;
+    klass = get_class (glyph_id);
+    if (cache) cache->set (glyph_id, klass);
+    return klass;
+  }
 
   unsigned get_population () const
   {
@@ -3731,11 +3741,13 @@ struct ItemVarStoreInstancer
 
   float operator() (uint32_t varIdx, unsigned short offset = 0) const
   {
+   if (!coords || varIdx == VarIdx::NO_VARIATION)
+     return 0.f;
+
+    varIdx += offset;
     if (varIdxMap)
-      varIdx = varIdxMap->map (VarIdx::add (varIdx, offset));
-    else
-      varIdx += offset;
-    return coords ? varStore->get_delta (varIdx, coords, cache) : 0.f;
+      varIdx = varIdxMap->map (varIdx);
+    return varStore->get_delta (varIdx, coords, cache);
   }
 
   const ItemVariationStore *varStore;
@@ -3767,12 +3779,11 @@ struct MultiItemVarStoreInstancer
 
   void operator() (hb_array_t<float> out, uint32_t varIdx, unsigned short offset = 0) const
   {
-    if (coords)
+    if (coords && varIdx != VarIdx::NO_VARIATION)
     {
+      varIdx += offset;
       if (varIdxMap)
-	varIdx = varIdxMap->map (VarIdx::add (varIdx, offset));
-      else
-	varIdx += offset;
+	varIdx = varIdxMap->map (varIdx);
       varStore->get_delta (varIdx, coords, out, cache);
     }
     else
@@ -3890,8 +3901,8 @@ struct ConditionAxisRange
     {
       // add axisIndex->value into the hashmap so we can check if the record is
       // unique with variations
-      int16_t int_filter_max_val = filterRangeMaxValue.to_int ();
-      int16_t int_filter_min_val = filterRangeMinValue.to_int ();
+      uint16_t int_filter_max_val = (uint16_t) filterRangeMaxValue.to_int ();
+      uint16_t int_filter_min_val = (uint16_t) filterRangeMinValue.to_int ();
       hb_codepoint_t val = (int_filter_max_val << 16) + int_filter_min_val;
 
       condition_map->set (axisIndex, val);

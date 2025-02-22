@@ -1923,9 +1923,10 @@ apply_forward (OT::hb_ot_apply_context_t *c,
   while (buffer->idx < buffer->len && buffer->successful)
   {
     bool applied = false;
-    if (accel.digest.may_have (buffer->cur().codepoint) &&
-	(buffer->cur().mask & c->lookup_mask) &&
-	c->check_glyph_property (&buffer->cur(), c->lookup_props))
+    auto &cur = buffer->cur();
+    if (accel.digest.may_have (cur.codepoint) &&
+	(cur.mask & c->lookup_mask) &&
+	c->check_glyph_property (&cur, c->lookup_props))
      {
        applied = accel.apply (c, subtable_count, use_cache);
      }
@@ -1951,9 +1952,10 @@ apply_backward (OT::hb_ot_apply_context_t *c,
   hb_buffer_t *buffer = c->buffer;
   do
   {
-    if (accel.digest.may_have (buffer->cur().codepoint) &&
-	(buffer->cur().mask & c->lookup_mask) &&
-	c->check_glyph_property (&buffer->cur(), c->lookup_props))
+    auto &cur = buffer->cur();
+    if (accel.digest.may_have (cur.codepoint) &&
+	(cur.mask & c->lookup_mask) &&
+	c->check_glyph_property (&cur, c->lookup_props))
       ret |= accel.apply (c, subtable_count, false);
 
     /* The reverse lookup doesn't "advance" cursor (for good reason). */
@@ -2033,7 +2035,7 @@ inline void hb_ot_map_t::apply (const Proxy &proxy,
        * (plus some past glyphs).
        *
        * Only try applying the lookup if there is any overlap. */
-      if (accel->digest.may_have (c.digest))
+      if (accel->digest.may_intersect (c.digest))
       {
 	c.set_lookup_index (lookup_index);
 	c.set_lookup_mask (lookup.mask, false);
@@ -2059,7 +2061,7 @@ inline void hb_ot_map_t::apply (const Proxy &proxy,
       if (stage->pause_func (plan, font, buffer))
       {
 	/* Refresh working buffer digest since buffer changed. */
-	c.digest = buffer->digest ();
+	buffer->collect_codepoints (c.digest);
       }
     }
   }

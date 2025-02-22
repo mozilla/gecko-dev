@@ -87,20 +87,11 @@ struct IntType
     return pb->cmp (*pa);
   }
   template <typename Type2,
-	    hb_enable_if (std::is_integral<Type2>::value &&
-			  sizeof (Type2) < sizeof (int) &&
-			  sizeof (Type) < sizeof (int))>
-  int cmp (Type2 a) const
-  {
-    Type b = v;
-    return (int) a - (int) b;
-  }
-  template <typename Type2,
 	    hb_enable_if (hb_is_convertible (Type2, Type))>
   int cmp (Type2 a) const
   {
     Type b = v;
-    return a < b ? -1 : a == b ? 0 : +1;
+    return (a > b) - (a < b);
   }
   bool sanitize (hb_sanitize_context_t *c) const
   {
@@ -299,11 +290,6 @@ typedef Index NameID;
 struct VarIdx : HBUINT32 {
   static constexpr unsigned NO_VARIATION = 0xFFFFFFFFu;
   static_assert (NO_VARIATION == HB_OT_LAYOUT_NO_VARIATIONS_INDEX, "");
-  static uint32_t add (uint32_t i, unsigned short v)
-  {
-    if (i == NO_VARIATION) return i;
-    return i + v;
-  }
   VarIdx& operator = (uint32_t i) { HBUINT32::operator= (i); return *this; }
 };
 DECLARE_NULL_NAMESPACE_BYTES (OT, VarIdx);
