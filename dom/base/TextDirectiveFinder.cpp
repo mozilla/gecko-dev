@@ -97,6 +97,7 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
   if (rv.Failed()) {
     return nullptr;
   }
+  nsContentUtils::NodeIndexCache nodeIndexCache;
   // 2. While searchRange is not collapsed:
   while (!searchRange->Collapsed()) {
     // 2.1. Let potentialMatch be null.
@@ -108,7 +109,7 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       // searchRange, wordStartBounded true and wordEndBounded false.
       RefPtr<nsRange> prefixMatch = TextDirectiveUtil::FindStringInRange(
           searchRange->StartRef(), searchRange->EndRef(), aTextDirective.prefix,
-          true, false);
+          true, false, &nodeIndexCache);
       // 2.2.2. If prefixMatch is null, return null.
       if (!prefixMatch) {
         TEXT_FRAGMENT_LOG(
@@ -213,7 +214,7 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       // wordStartBounded true, and wordEndBounded mustEndAtWordBoundary.
       potentialMatch = TextDirectiveUtil::FindStringInRange(
           searchRange->StartRef(), searchRange->EndRef(), aTextDirective.start,
-          true, mustEndAtWordBoundary);
+          true, mustEndAtWordBoundary, &nodeIndexCache);
       // 2.3.3. If potentialMatch is null, return null.
       if (!potentialMatch) {
         TEXT_FRAGMENT_LOG(
@@ -258,7 +259,7 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
         // mustEndAtWordBoundary.
         RefPtr<nsRange> endMatch = TextDirectiveUtil::FindStringInRange(
             rangeEndSearchRange->StartRef(), rangeEndSearchRange->EndRef(),
-            aTextDirective.end, true, mustEndAtWordBoundary);
+            aTextDirective.end, true, mustEndAtWordBoundary, &nodeIndexCache);
         // 2.5.1.3. If endMatch is null then return null.
         if (!endMatch) {
           TEXT_FRAGMENT_LOG(

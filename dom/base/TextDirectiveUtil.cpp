@@ -425,8 +425,8 @@ TextDirectiveUtil::FindBlockBoundaryInRange(const nsRange& aRange,
 }
 
 /* static */ bool TextDirectiveUtil::NormalizedRangeBoundariesAreEqual(
-    const RangeBoundary& aRangeBoundary1,
-    const RangeBoundary& aRangeBoundary2) {
+    const RangeBoundary& aRangeBoundary1, const RangeBoundary& aRangeBoundary2,
+    nsContentUtils::NodeIndexCache* aCache /* = nullptr */) {
   MOZ_ASSERT(aRangeBoundary1.IsSetAndValid() &&
              aRangeBoundary2.IsSetAndValid());
   if (aRangeBoundary1 == aRangeBoundary2) {
@@ -468,7 +468,8 @@ TextDirectiveUtil::FindBlockBoundaryInRange(const nsRange& aRange,
 
   mozilla::UnsafePreContentIterator iter;
   // ContentIterator classes require boundaries to be in correct order.
-  auto comp = nsContentUtils::ComparePoints(aRangeBoundary1, aRangeBoundary2);
+  auto comp =
+      nsContentUtils::ComparePoints(aRangeBoundary1, aRangeBoundary2, aCache);
   if (!comp) {
     return false;
   }

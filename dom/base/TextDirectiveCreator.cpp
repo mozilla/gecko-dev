@@ -873,6 +873,7 @@ Result<nsTArray<RefPtr<nsRange>>, ErrorResult>
 TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery) {
   MOZ_ASSERT(!aSearchQuery.IsEmpty());
   ErrorResult rv;
+  nsContentUtils::NodeIndexCache nodeIndexCache;
   RangeBoundary documentStart{&mDocument, 0u};
   RefPtr<nsRange> searchRange =
       nsRange::Create(documentStart, mInputRange->EndRef(), rv);
@@ -888,14 +889,14 @@ TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery) {
       return matchingRanges;
     }
     RefPtr<nsRange> searchResult = TextDirectiveUtil::FindStringInRange(
-        searchStart, searchEnd, aSearchQuery, true, true);
+        searchStart, searchEnd, aSearchQuery, true, true, &nodeIndexCache);
     if (!searchResult) {
       // This would mean we reached a weird edge case in which the search query
       // is not in the search range.
       break;
     }
     if (TextDirectiveUtil::NormalizedRangeBoundariesAreEqual(
-            searchResult->EndRef(), searchEnd)) {
+            searchResult->EndRef(), searchEnd, &nodeIndexCache)) {
       // It is safe to assume that this algorithm reached the end of all
       // potential ranges if the search result is equal to the search query.
       // Therefore, this range is not added to the results.

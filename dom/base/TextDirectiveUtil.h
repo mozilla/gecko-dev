@@ -193,7 +193,8 @@ class TextDirectiveUtil final {
    */
   static bool NormalizedRangeBoundariesAreEqual(
       const RangeBoundary& aRangeBoundary1,
-      const RangeBoundary& aRangeBoundary2);
+      const RangeBoundary& aRangeBoundary2,
+      nsContentUtils::NodeIndexCache* aCache = nullptr);
 
   /**
    * @brief Extends the range boundaries to word boundaries across nodes.
