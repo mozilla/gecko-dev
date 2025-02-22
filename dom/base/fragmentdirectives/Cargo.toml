@@ -6,6 +6,7 @@ edition = "2021"
 license = "MPL-2.0"
 
 [dependencies]
+rayon = "1"
 nsstring = { path = "../../../xpcom/rust/nsstring/" }
 thin-vec = { version = "0.2.1", features = ["gecko-ffi"] }
 percent-encoding = { version = "2.3.1" }

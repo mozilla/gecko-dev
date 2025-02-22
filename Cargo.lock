@@ -1619,6 +1619,7 @@ version = "0.1.0"
 dependencies = [
  "nsstring",
  "percent-encoding",
+ "rayon",
  "thin-vec",
 ]
 

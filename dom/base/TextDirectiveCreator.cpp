@@ -926,6 +926,39 @@ TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery) {
   return matchingRanges;
 }
 
+nsTArray<
+    std::pair<TextDirectiveCandidate, nsTArray<const TextDirectiveCandidate*>>>
+TextDirectiveCreator::FindMatchesForCandidates(
+    nsTArray<TextDirectiveCandidate>&& aCandidates,
+    const nsTArray<const TextDirectiveCandidate*>& aMatches) {
+  AutoTArray<const TextDirectiveCandidateContents*, 32> candidateContents;
+  candidateContents.SetCapacity(aCandidates.Length());
+  for (const auto& c : aCandidates) {
+    candidateContents.AppendElement(&c.RangeContents());
+  }
+  AutoTArray<const TextDirectiveCandidateContents*, 32> matchContents;
+  matchContents.SetCapacity(aMatches.Length());
+  for (const auto* m : aMatches) {
+    matchContents.AppendElement(&m->RangeContents());
+  }
+  nsTArray<nsTArray<size_t>> matchIndices;
+  fragment_directive_filter_non_matching_candidates(
+      &candidateContents, &matchContents, &matchIndices);
+
+  nsTArray<std::pair<TextDirectiveCandidate,
+                     nsTArray<const TextDirectiveCandidate*>>>
+      candidatesAndMatches(aCandidates.Length());
+  for (size_t index = 0; index < aCandidates.Length(); ++index) {
+    AutoTArray<const TextDirectiveCandidate*, 8> stillMatching;
+    for (auto i : matchIndices[index]) {
+      stillMatching.AppendElement(aMatches[i]);
+    }
+    candidatesAndMatches.AppendElement(
+        std::pair(std::move(aCandidates[index]), std::move(stillMatching)));
+  }
+  return candidatesAndMatches;
+}
+
 Result<nsCString, ErrorResult>
 TextDirectiveCreator::CreateTextDirectiveFromMatches(
     const nsTArray<TextDirectiveCandidate>& aTextDirectiveMatches) {
@@ -1005,19 +1038,15 @@ TextDirectiveCreator::CreateTextDirectiveFromMatches(
     // Note: This will map all elements of `matches` which would still match
     //       against the new candidate. These matches would need to be
     //       examined further in the next iteration.
+    // 1.4 For each element `newCandidate` in `newCandidates`:
+    // 1.4.1 Insert a new element into
+    //       `candidatesAndMatchesForNextIteration`, consisting of
+    //       `newCandidate` and the result of running the Filter Non-matching
+    //       Candidates algorithm using `newCandidate` and `matches`.
     nsTArray<std::pair<TextDirectiveCandidate,
                        nsTArray<const TextDirectiveCandidate*>>>
-        candidatesAndMatchesForNextIteration(newCandidates.Length());
-    // 1.4 For each element `newCandidate` in `newCandidates`:
-    for (auto& newCandidate : newCandidates) {
-      // 1.4.1 Insert a new element into
-      //       `candidatesAndMatchesForNextIteration`, consisting of
-      //       `newCandidate` and the result of running the Filter Non-matching
-      //       Candidates algorithm using `newCandidate` and `matches`.
-      candidatesAndMatchesForNextIteration.AppendElement(
-          std::pair{std::move(newCandidate),
-                    newCandidate.FilterNonMatchingCandidates(matches)});
-    }
+        candidatesAndMatchesForNextIteration =
+            FindMatchesForCandidates(std::move(newCandidates), matches);
 
     // 1.5 Sort the elements of `candidatesAndMatchesForNextIteration`
     //     ascending using the following criteria:
