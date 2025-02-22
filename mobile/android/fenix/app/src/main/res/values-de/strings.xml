@@ -614,11 +614,11 @@
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Verwalten</string>
     <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Hilf uns dabei, Firefox zu verbreiten</string>
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Helfen Sie uns dabei, Firefox zu verbreiten</string>
     <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Wenn du anderen erzählst, wie du auf Firefox gestoßen bist, hilfst du uns dabei, unseren Browser mehr Menschen näherzubringen.</string>
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Wenn Sie anderen erzählen, wie Sie auf Firefox gestoßen sind, helfen Sie uns dabei, unseren Browser mehr Menschen näherzubringen.</string>
     <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Teile nur wenige Daten mit Mozillas Marketing-Technologie-Partnern. Diese Daten werden niemals verkauft oder verwendet, um dir Werbung zu zeigen.</string>
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Teilen Sie nur wenige Daten mit Mozillas Marketing-Technologie-Partnern. Diese Daten werden niemals verkauft oder verwendet, um Ihnen Werbung zu zeigen.</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Wie wir die Daten nutzen</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -2579,6 +2579,8 @@
     <!-- Search suggestions title for Firefox Suggest. -->
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox-Vorschläge</string>
 
+    <!-- Search suggestions title for trending searches. -->
+    <string name="trending_searches_header">Aktuell beliebte Suchanfragen</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google-Suche</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
@@ -3009,6 +3011,10 @@
     <string name="download_language_file_dialog_negative_button_text">Abbrechen</string>
 
     <!-- Unified Trust Panel -->
+    <!-- Text for the protection panel header when the site is secure. -->
+    <string name="protection_panel_header_secure">Sicher</string>
+    <!-- Text for the protection panel header when the site is not secure. -->
+    <string name="protection_panel_header_not_secure">Nicht sicher</string>
     <!-- Title text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_title">Seien Sie vorsichtig auf dieser Website</string>
     <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3029,6 +3035,37 @@
     <string name="protection_panel_etp_toggle_enabled_description">Wenn etwas auf dieser Website beschädigt aussieht, versuchen Sie, die Schutzmaßnahmen zu deaktivieren.</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">Der Schutz ist DEAKTIVIERT. Wir empfehlen Ihnen, ihn wieder zu aktivieren.</string>
+
+    <!-- Text for displaying the total number of trackers blocked in the protection panel.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="protection_panel_num_trackers_blocked">Blockierte Tracker: %d</string>
+    <!-- Text for when no trackers have been blocked. -->
+    <string name="protection_panel_no_trackers_blocked">Keine Tracker gefunden</string>
+    <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+    <string name="protection_panel_privacy_and_security_settings">Einstellungen zu Datenschutz und Sicherheit</string>
+    <!-- Text for displaying the total number of trackers blocked in the trackers blocked panel.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="trackers_blocked_panel_total_num_trackers_blocked">Blockierte Tracker: %d</string>
+    <!-- Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+        %s is a placeholder for the name of the tracker category.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+    <!-- Description text for a dialog confirming whether the user wants to delete all data for current site.
+        %s is a placeholder for the base domain of website. -->
+    <string name="clear_site_data_dialog_description"><![CDATA[Durch das Löschen von Cookies und Website-Daten für <b>%s</b> werden Sie eventuell von Websites abgemeldet und Warenkörbe gelöscht.]]></string>
+    <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+    <string name="clear_site_data_dialog_positive_button_text">Leeren</string>
+    <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+    <string name="clear_site_data_dialog_negative_button_text">Abbrechen</string>
+    <!-- Snackbar title shown when the site data has been cleared. -->
+    <string name="clear_site_data_snackbar">Cookies und Website-Daten entfernt</string>
+    <!-- Text for the connection security panel when the site is secure. -->
+    <string name="connection_security_panel_secure">Sichere Verbindung</string>
+    <!-- Text for the connection security panel when the site is not secure. -->
+    <string name="connection_security_panel_not_secure">Verbindung nicht sicher</string>
+    <!-- Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket -->
+    <string name="connection_security_panel_verified_by">Verifiziert von %s</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->

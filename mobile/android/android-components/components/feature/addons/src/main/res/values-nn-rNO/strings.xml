@@ -74,6 +74,10 @@
     <string name="mozac_feature_addons_permissions_trial_ml_description">Last ned og køyr AI-modellar på eininga di</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Utvide utviklarverktøy for å få tilgang til dine data i opne faner</string>
+    <!-- Description for text button that expands the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_all_sites">Vis alle nettstadar</string>
+    <!-- Description for text button that hides the majority of the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_fewer_sites">Vis færre nettstadar</string>
     <!-- The version on of add-on. -->
     <string name="mozac_feature_addons_version">Versjon</string>
     <!-- The author of an add-on. -->

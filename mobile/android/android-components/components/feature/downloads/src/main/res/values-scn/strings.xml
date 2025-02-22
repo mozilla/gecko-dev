@@ -43,7 +43,7 @@
     <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->--&gt;
     <string name="mozac_feature_downloads_unable_to_open_third_party_app">Mpussìbbili gràpiri %1$s</string>
     <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
-    <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">Àju bisognu dî pirmisi pi accèdiri ê prichi e cuntinuru murtimidiali. Vai nnê mpustazzioni di Android, ammacca pirmisi e auturizza.</string>
+    <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">Àju bisognu dî pirmissi pi accèdiri ê prichi e cuntinuru murtimidiali. Vai nnê mpustazzioni di Android, ammacca pirmissi e doppu auturizza.</string>
 
     <!-- Alert dialog confirmation before cancelling downloads, this is the title   -->
     <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Vo\' sfalliri i scarricamenti privati?</string>

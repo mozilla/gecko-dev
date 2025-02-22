@@ -601,6 +601,16 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Por helpi plibonigi la retumilon, Firefox sendas diagnozajn kaj interagajn datumojn al Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Administri</string>
+    <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Helpu nin diskonigi Firefox</string>
+    <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">Kiam vi rakontas kiel vi malkovris Firefox kaj la fakton ke vi ĝin uzas, vi helpas nin prezenti la retumilon al pli da personoj.</string>
+    <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">Dividu minimumajn datumojn kun la marketikaj teknologiaj asociitoj de Mozilla. Tiuj datumoj neniam estos venditaj aŭ uzitaj por montri al vi reklamojn.</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Kiel ni uzas la datumojn</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Konfirmi kaj komenci retumi</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Elektu lokon por la ilaro</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -1042,14 +1052,23 @@
 
     <!-- Preference switch for usage and technical data collection -->
     <string name="preference_usage_data_1">Teknikaj kaj interagaj datumoj</string>
+    <!-- Preference switch for usage and technical data collection -->
+    <string name="preference_usage_data_2" tools:ignore="UnusedResources">Sendi teknikajn kaj interagajn datumojn</string>
     <!-- Preference switch for usage and technical learn more link -->
     <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources">Pli da informo</string>
     <!-- Preference description for usage and technical data collection -->
     <string name="preferences_usage_data_description" tools:ignore="UnusedResources" moz:removedIn="136">Divido kun Mozilla de retumilaj datumoj pri efikeco, uzo, aparataro kaj personecigoj, por helpi nin plibonigi %1$s.</string>
+    <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+    <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage, UnusedResources">Informoj pri via aparato, ĝia aparataro kaj kiel vi uzas Firefox helpas nin plibonigi trajtojn, efikecon kaj stabilecon.</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data" tools:ignore="UnusedResources" moz:removedIn="136">Merkatikaj datumoj</string>
+    <!-- Preference switch for campaign measurement data (marketing data) collection -->
+    <string name="preferences_marketing_data_2">Kampanjo pri mezuro de datumoj</string>
     <!-- Preference description for marketing data collection. Note: The words "Firefox" and "Mozilla" should NOT be translated -->
     <string name="preferences_marketing_data_description_3" tools:ignore="BrandUsage, UnusedResources" moz:removedIn="136">Dividi kun la merkatikaj asociitoj de Mozilla informojn pri kiel vi malkovris Firefox. Tio helpas nin disvastigi Firefox kaj konstrui pli bonan interreton</string>
+    <!-- Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for. -->
+    <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Rakontu pri kiel vi malkovris Firefox kaj la fakton ke vi ĝin uzas kun la marketikaj teknologiaj asociitoj de Mozilla.</string>
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Pli da informo pri merkatikaj datumoj</string>
 
@@ -1231,6 +1250,10 @@
     <string name="studies_active">Aktiva</string>
     <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
     <string name="studies_description_2" tools:ignore="UnusedResources" moz:removedIn="136">%1$s povas de tempo al tempo instali kaj fari studojn.</string>
+    <!-- Description for studies -->
+    <string name="studies_description_3">Testu trajtojn kaj ideojn antaŭ ol ili estos liveritaj al ĉiuj.</string>
+    <!-- Title of the Studies data preference -->
+    <string name="studies_title">Instali kaj ruli esplorojn</string>
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Pli da informo</string>
     <!-- Dialog message shown after removing a study -->
@@ -2056,6 +2079,8 @@
     <string name="about_privacy_notice">Rimarko pri privateco</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Konu viajn rajtojn</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Kondiĉoj de uzo</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Permesila informo</string>
     <!-- About page link text to open a screen with libraries that are used -->
@@ -2525,6 +2550,8 @@
     <!-- Search suggestions title for Firefox Suggest. -->
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Sugestoj de Firefox</string>
 
+    <!-- Search suggestions title for trending searches. -->
+    <string name="trending_searches_header">Popularaj serĉoj</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Serĉo per Google</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
@@ -2959,6 +2986,10 @@
     <string name="download_language_file_dialog_negative_button_text">Nuligi</string>
 
     <!-- Unified Trust Panel -->
+    <!-- Text for the protection panel header when the site is secure. -->
+    <string name="protection_panel_header_secure">Sekura</string>
+    <!-- Text for the protection panel header when the site is not secure. -->
+    <string name="protection_panel_header_not_secure">Nesekura</string>
     <!-- Title text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_title">Estu singarda en tiu ĉi retejo</string>
     <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -2979,6 +3010,37 @@
     <string name="protection_panel_etp_toggle_enabled_description">Se io misfunkcias en tiu ĉi retejo, provu malŝalti protektojn.</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">Protektoj estas MALAKTIVAJ. Ni sugestas reaktivigi ilin.</string>
+
+    <!-- Text for displaying the total number of trackers blocked in the protection panel.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="protection_panel_num_trackers_blocked">Blokitaj spuriloj: %d</string>
+    <!-- Text for when no trackers have been blocked. -->
+    <string name="protection_panel_no_trackers_blocked">Neniu spurilo trovita</string>
+    <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+    <string name="protection_panel_privacy_and_security_settings">Privatecaj kaj sekurecaj agordoj</string>
+    <!-- Text for displaying the total number of trackers blocked in the trackers blocked panel.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="trackers_blocked_panel_total_num_trackers_blocked">Blokitaj spuriloj: %d</string>
+    <!-- Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+        %s is a placeholder for the name of the tracker category.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+    <!-- Description text for a dialog confirming whether the user wants to delete all data for current site.
+        %s is a placeholder for the base domain of website. -->
+    <string name="clear_site_data_dialog_description"><![CDATA[La forigo de kuketoj kaj retejaj datumoj de <b>%s</b> povus fini seancojn kaj malplenigi aĉetumĉarojn.]]></string>
+    <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+    <string name="clear_site_data_dialog_positive_button_text">Viŝi</string>
+    <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+    <string name="clear_site_data_dialog_negative_button_text">Nuligi</string>
+    <!-- Snackbar title shown when the site data has been cleared. -->
+    <string name="clear_site_data_snackbar">Kuketoj kaj retejaj datumoj forigitaj</string>
+    <!-- Text for the connection security panel when the site is secure. -->
+    <string name="connection_security_panel_secure">Sekura konekto</string>
+    <!-- Text for the connection security panel when the site is not secure. -->
+    <string name="connection_security_panel_not_secure">Nesekura konekto</string>
+    <!-- Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket -->
+    <string name="connection_security_panel_verified_by">Kontrolita de %s</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
@@ -3159,4 +3221,9 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Kelkaj trajtoj ĉesos funkcii morgaŭ.</string>
 
-    </resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Montri kaŝitan tekston</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Viŝi tekston</string>
+</resources>

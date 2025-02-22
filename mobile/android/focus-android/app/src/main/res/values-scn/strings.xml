@@ -673,7 +673,7 @@
     <string name="preference_category_advanced">Avanzati</string>
 
     <!-- Preference for site permissions -->
-    <string name="preference_site_permissions">Pirmisi dî siti</string>
+    <string name="preference_site_permissions">Pirmissi dî siti</string>
 
     <!--  Preference for cookie banner. The name of the item from settings screen and the title of the cookie banner screen. -->
     <string name="preferences_cookie_banner">Cchiù picca banneri dî viscotta</string>
@@ -754,7 +754,7 @@
     <string name="phone_feature_blocked_step_settings">1. Vai nnê mpustazzioni di Android</string>
 
     <!-- Second step for the allowing a permission -->
-    <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Ammacca <b>Pirmisi</b>]]></string>
+    <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Ammacca <b>Pirmissi</b>]]></string>
 
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Vai nnê mpustazzioni</string>
