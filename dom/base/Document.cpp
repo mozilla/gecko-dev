@@ -3158,11 +3158,14 @@ size_t Document::FindDocStyleSheetInsertionPoint(const StyleSheet& aSheet) {
     MOZ_ASSERT(sheet);
     if (!sheet->GetAssociatedDocumentOrShadowRoot()) {
       // If the sheet is not owned by the document it should be an author sheet
-      // registered at nsStyleSheetService. In that case the doc sheet should
-      // end up before it.
+      // registered at nsStyleSheetService, or an additional sheet. In that case
+      // the doc sheet should end up before it.
+      // FIXME(emilio): Additional stylesheets inconsistently end up with
+      // associated document, depending on which code-path adds them. Fix this.
       MOZ_ASSERT(
           nsStyleSheetService::GetInstance()->AuthorStyleSheets()->Contains(
-              sheet));
+              sheet) ||
+          mAdditionalSheets[eAuthorSheet].Contains(sheet));
       continue;
     }
     size_t sheetDocIndex = StyleOrderIndexOfSheet(*sheet);
