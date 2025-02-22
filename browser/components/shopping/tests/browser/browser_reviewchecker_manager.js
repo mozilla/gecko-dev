@@ -13,6 +13,8 @@ const AUTO_OPEN_ENABLED_PREF =
   "browser.shopping.experience2023.autoOpen.enabled";
 const AUTO_OPEN_USER_ENABLED_PREF =
   "browser.shopping.experience2023.autoOpen.userEnabled";
+const AUTO_CLOSE_USER_ENABLED_PREF =
+  "browser.shopping.experience2023.autoClose.userEnabled";
 
 function assertSidebarState(isOpen) {
   let { SidebarController } = window;
@@ -217,6 +219,138 @@ add_task(async function test_auto_open_on_tab_switch() {
 
     await BrowserTestUtils.removeTab(newProductTab);
   });
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/* Tests that the sidebar stays open navigating to a product page when auto-close is enabled */
+add_task(async function test_auto_close_product_page_rc_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.shopping.experience2023.optedIn", 1],
+      ["browser.shopping.experience2023.autoClose.userEnabled", true],
+    ],
+  });
+
+  await BrowserTestUtils.withNewTab(
+    SUPPORTED_SITE_URL,
+    async function (browser) {
+      await SidebarController.show("viewReviewCheckerSidebar");
+      ok(SidebarController.isOpen, "Sidebar is open");
+
+      // Navigate to a new supported site URL:
+      BrowserTestUtils.startLoadingURIString(browser, PRODUCT_TEST_URL);
+      await BrowserTestUtils.browserLoaded(browser);
+
+      ok(SidebarController.isOpen, "Sidebar should be open");
+    }
+  );
+
+  SidebarController.hide();
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/* Tests that the sidebar stays open navigating to a supported page when auto-close is enabled */
+add_task(async function test_auto_close_supported_site_rc_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.shopping.experience2023.optedIn", 1],
+      ["browser.shopping.experience2023.autoClose.userEnabled", true],
+    ],
+  });
+
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async function (browser) {
+    await SidebarController.show("viewReviewCheckerSidebar");
+    ok(SidebarController.isOpen, "Sidebar is open");
+
+    // Navigate to a new supported site URL:
+    BrowserTestUtils.startLoadingURIString(browser, SUPPORTED_SITE_URL);
+    await BrowserTestUtils.browserLoaded(browser);
+
+    ok(SidebarController.isOpen, "Sidebar should be open");
+  });
+
+  SidebarController.hide();
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/* Tests that the sidebar closes when navigating to an unsupported site
+ *  within the same tab with auto-close enabled
+ */
+add_task(async function test_auto_close_unsupported_site_rc_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.shopping.experience2023.optedIn", 1],
+      ["browser.shopping.experience2023.autoClose.userEnabled", true],
+    ],
+  });
+
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async function (browser) {
+    await SidebarController.show("viewReviewCheckerSidebar");
+    ok(SidebarController.isOpen, "Sidebar is open");
+
+    // Navigate to a new supported site URL:
+    BrowserTestUtils.startLoadingURIString(browser, "about:newtab");
+    await BrowserTestUtils.browserLoaded(browser);
+
+    ok(!SidebarController.isOpen, "Sidebar should be closed");
+  });
+
+  SidebarController.hide();
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/* Tests that the sidebar closes when switching to an unsupported site on a new tab
+ *  with auto-close enabled
+ */
+add_task(async function test_auto_close_on_tab_switch() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.shopping.experience2023.autoClose.userEnabled", true]],
+  });
+
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async function () {
+    // Wait for the sidebar to open
+    await SidebarController.show("viewReviewCheckerSidebar");
+    // Add a new tab
+    let newTab = BrowserTestUtils.addTab(gBrowser, "about:newtab");
+
+    await BrowserTestUtils.switchTab(gBrowser, newTab);
+
+    ok(!SidebarController.isOpen, "Sidebar should be closed");
+
+    await BrowserTestUtils.removeTab(newTab);
+  });
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/* Tests that the sidebar stays open when navigating to an unsupported site
+ *  within the same tab with auto-close disabled
+ */
+
+add_task(async function test_auto_close_disabled_unsupported_site_rc_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.shopping.experience2023.optedIn", 1],
+      ["browser.shopping.experience2023.autoClose.userEnabled", false],
+    ],
+  });
+
+  await BrowserTestUtils.withNewTab(PRODUCT_TEST_URL, async function (browser) {
+    await SidebarController.show("viewReviewCheckerSidebar");
+    ok(SidebarController.isOpen, "Sidebar is open");
+
+    // Navigate to a new supported site URL:
+    BrowserTestUtils.startLoadingURIString(browser, "about:newtab");
+    await BrowserTestUtils.browserLoaded(browser);
+
+    ok(SidebarController.isOpen, "Sidebar should be open");
+  });
+
+  SidebarController.hide();
 
   await SpecialPowers.popPrefEnv();
 });

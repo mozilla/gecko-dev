@@ -7,6 +7,10 @@
 
 const CONTENT_PAGE = "https://example.com";
 
+ChromeUtils.defineESModuleGetters(this, {
+  ContentTaskUtils: "resource://testing-common/ContentTaskUtils.sys.mjs",
+});
+
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
     set: [

@@ -26,6 +26,8 @@ const AUTO_OPEN_ENABLED_PREF =
   "browser.shopping.experience2023.autoOpen.enabled";
 const AUTO_OPEN_USER_ENABLED_PREF =
   "browser.shopping.experience2023.autoOpen.userEnabled";
+const AUTO_CLOSE_USER_ENABLED_PREF =
+  "browser.shopping.experience2023.autoClose.userEnabled";
 const SIDEBAR_CLOSED_COUNT_PREF =
   "browser.shopping.experience2023.sidebarClosedCount";
 
@@ -204,6 +206,12 @@ export const ShoppingUtils = {
     );
   },
 
+  recordUserAutoClosePreference() {
+    Glean.shoppingSettings.autoCloseUserDisabled.set(
+      !ShoppingUtils.autoCloseUserEnabled
+    );
+  },
+
   onIntegratedSidebarUpdate(_pref, _prev, current) {
     if (current && !this.managers.size) {
       this._addReviewCheckerManagers();
@@ -372,6 +380,14 @@ XPCOMUtils.defineLazyPreferenceGetter(
   AUTO_OPEN_USER_ENABLED_PREF,
   false,
   ShoppingUtils.recordUserAutoOpenPreference
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  ShoppingUtils,
+  "autoCloseUserEnabled",
+  AUTO_CLOSE_USER_ENABLED_PREF,
+  true,
+  ShoppingUtils.recordUserAutoClosePreference
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(

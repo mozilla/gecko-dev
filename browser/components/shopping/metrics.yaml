@@ -121,6 +121,27 @@ shopping.settings:
     no_lint:
       - GIFFT_NON_PING_LIFETIME
 
+  auto_close_user_disabled:
+    type: boolean
+    lifetime: application
+    description: |
+      Indicates if the user has manually disabled the auto close sidebar feature.
+      Set during shopping component init and updated when changed in browser.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1945688
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1945688
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - betling@mozilla.com
+      - fx-desktop-shopping-eng@mozilla.com
+    send_in_pings:
+      - metrics
+    no_lint:
+      - GIFFT_NON_PING_LIFETIME
+
 shopping:
   surface_displayed:
     type: event
@@ -691,6 +712,30 @@ shopping:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879125
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879125
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - betling@mozilla.com
+      - fx-desktop-shopping-eng@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      action:
+        description: >
+          Whether the toggle was used to enable or disable auto-open. Possible values
+          are `enabled` and `disabled`.
+        type: string
+
+  surface_auto_close_setting_toggled:
+    type: event
+    description: |
+      The user clicked the settings toggle to enable or disable auto-close in the
+      sidebar settings component.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1945688
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1945688
     data_sensitivity:
       - interaction
     expires: 147

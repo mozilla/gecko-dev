@@ -270,6 +270,7 @@ export let RemotePageAccessManager = {
         "browser.shopping.experience2023.sidebarClosedCount",
         "browser.shopping.experience2023.showKeepSidebarClosedMessage",
         "browser.shopping.experience2023.autoOpen.userEnabled",
+        "browser.shopping.experience2023.autoClose.userEnabled",
       ],
       RPMGetFormatURLPref: ["app.support.baseURL"],
       RPMGetIntPref: ["browser.shopping.experience2023.sidebarClosedCount"],

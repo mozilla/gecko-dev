@@ -60,6 +60,17 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }
   }
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "autoCloseEnabledByUser",
+  "browser.shopping.experience2023.autoClose.userEnabled",
+  true,
+  function autoCloseEnabledByUserChanged() {
+    for (let actor of gAllActors) {
+      actor.autoCloseEnabledByUserChanged();
+    }
+  }
+);
 
 /**
  * The ReviewCheckerChild will get the current URL from the parent
@@ -113,6 +124,10 @@ export class ReviewCheckerChild extends RemotePageChild {
 
   get autoOpenEnabledByUser() {
     return lazy.autoOpenEnabledByUser;
+  }
+
+  get autoCloseEnabledByUser() {
+    return lazy.autoCloseEnabledByUser;
   }
 
   receiveMessage(message) {
@@ -292,6 +307,14 @@ export class ReviewCheckerChild extends RemotePageChild {
    */
   autoOpenEnabledByUserChanged() {
     this.updateAutoOpenEnabledByUser(this.autoOpenEnabledByUser);
+  }
+
+  /**
+   * Update auto-close to user's pref value.
+   *
+   */
+  autoCloseEnabledByUserChanged() {
+    this.updateAutoCloseEnabledByUser(this.autoCloseEnabledByUser);
   }
 
   /**
@@ -610,6 +633,7 @@ export class ReviewCheckerChild extends RemotePageChild {
       adsEnabledByUser: lazy.adsEnabledByUser,
       autoOpenEnabled: lazy.autoOpenEnabled,
       autoOpenEnabledByUser: lazy.autoOpenEnabledByUser,
+      autoCloseEnabledByUser: lazy.autoCloseEnabledByUser,
       showOnboarding: !this.canFetchAndShowData,
       data: null,
       recommendationData: null,
@@ -725,6 +749,17 @@ export class ReviewCheckerChild extends RemotePageChild {
   updateAutoOpenEnabledByUser(autoOpenEnabledByUser) {
     this.sendToContent("autoOpenEnabledByUserChanged", {
       autoOpenEnabledByUser,
+    });
+  }
+
+  /**
+   * Updates if auto close has been enabled or disable in the content settings.
+   *
+   * @param {bool} autoCloseEnabledByUser
+   */
+  updateAutoCloseEnabledByUser(autoCloseEnabledByUser) {
+    this.sendToContent("autoCloseEnabledByUserChanged", {
+      autoCloseEnabledByUser,
     });
   }
 

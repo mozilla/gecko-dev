@@ -7,6 +7,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   isProductURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
+  isSupportedSiteURL: "chrome://global/content/shopping/ShoppingProduct.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ShoppingUtils: "resource:///modules/ShoppingUtils.sys.mjs",
 });
@@ -16,6 +17,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "optedIn",
   "browser.shopping.experience2023.optedIn",
   null
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "autoClose",
+  "browser.shopping.experience2023.autoClose.userEnabled",
+  true
 );
 
 /**
@@ -183,8 +191,15 @@ export class ReviewCheckerManager {
     // Record the location change.
     lazy.ShoppingUtils.onLocationChange(aLocationURI, aFlags);
 
+    let isSupportedSite = lazy.isSupportedSiteURL(aLocationURI);
+    let isProductURL = lazy.isProductURL(aLocationURI);
+
+    if (lazy.autoClose && !isSupportedSite && !isProductURL) {
+      this.hideSidebar();
+    }
+
     // Only auto-open the sidebar for locations that are products.
-    if (!lazy.isProductURL(aLocationURI)) {
+    if (!isProductURL) {
       return;
     }
 
