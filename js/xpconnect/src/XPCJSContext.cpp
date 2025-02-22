@@ -36,6 +36,7 @@
 #include "mozilla/StaticPrefs_javascript.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/glean/JsXpconnectMetrics.h"
+#include "mozilla/scache/StartupCache.h"
 
 #include "nsContentUtils.h"
 #include "nsCCUncollectableMarker.h"
@@ -1144,8 +1145,22 @@ static void DispatchOffThreadTask(JS::HelperThreadTask* aTask) {
   TaskController::Get()->AddTask(MakeAndAddRef<HelperThreadTaskHandler>(aTask));
 }
 
+// Name of entry in mozilla::scache::StartupCache to use for SpiderMonkey
+// self-hosted JS precompiled bytecode.
+static constexpr char kSelfHostCacheKey[] = "js.self-hosted";
+
 static bool CreateSelfHostedSharedMemory(JSContext* aCx,
                                          JS::SelfHostedCache aBuf) {
+  // Record the data to the "StartupCache" for future restarts to use to
+  // initialize the shmem with.
+  if (auto* sc = scache::StartupCache::GetSingleton()) {
+    UniqueFreePtr<char[]> copy(static_cast<char*>(malloc(aBuf.LengthBytes())));
+    if (copy) {
+      memcpy(copy.get(), aBuf.Elements(), aBuf.LengthBytes());
+      sc->PutBuffer(kSelfHostCacheKey, std::move(copy), aBuf.LengthBytes());
+    }
+  }
+
   auto& shm = xpc::SelfHostedShmem::GetSingleton();
   MOZ_RELEASE_ASSERT(shm.Content().IsEmpty());
   // Failures within InitFromParent output warnings but do not cause
@@ -1352,18 +1367,29 @@ nsresult XPCJSContext::Initialize() {
     NS_ABORT_OOM(0);  // Size is unknown.
   }
 
-  // When available, set the self-hosted shared memory to be read, so that we
-  // can decode the self-hosted content instead of parsing it.
+  // The self-hosted bytecode can be shared with child processes and also stored
+  // in startupcache. Only the parent process may initialize the data.
   auto& shm = xpc::SelfHostedShmem::GetSingleton();
-  JS::SelfHostedCache selfHostedContent = shm.Content();
   JS::SelfHostedWriter writer = nullptr;
   if (XRE_IsParentProcess() && sSelfHostedUseSharedMemory) {
-    // Only the Parent process has permissions to write to the self-hosted
-    // shared memory.
-    writer = CreateSelfHostedSharedMemory;
+    // Check the startup cache for a copy of the bytecode.
+    if (auto* sc = scache::StartupCache::GetSingleton()) {
+      const char* buf = nullptr;
+      uint32_t len = 0;
+      if (NS_SUCCEEDED(sc->GetBuffer(kSelfHostCacheKey, &buf, &len))) {
+        shm.InitFromParent(AsBytes(mozilla::Span(buf, len)));
+      }
+    }
+
+    // If we have no data then the InitSelfHostedCode call below will parse from
+    // scratch and invoke this callback with the results. That callback data can
+    // then be used in initialize cache and SelfHostedShmem.
+    if (shm.Content().IsEmpty()) {
+      writer = CreateSelfHostedSharedMemory;
+    }
   }
 
-  if (!JS::InitSelfHostedCode(cx, selfHostedContent, writer)) {
+  if (!JS::InitSelfHostedCode(cx, shm.Content(), writer)) {
     // Note: If no exception is pending, failure is due to OOM.
     if (!JS_IsExceptionPending(cx) || JS_IsThrowingOutOfMemory(cx)) {
       NS_ABORT_OOM(0);  // Size is unknown.

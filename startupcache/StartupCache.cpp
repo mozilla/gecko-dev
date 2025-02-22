@@ -451,7 +451,6 @@ nsresult StartupCache::GetBuffer(const char* id, const char** outbuf,
   return NS_OK;
 }
 
-// Makes a copy of the buffer, client retains ownership of inbuf.
 nsresult StartupCache::PutBuffer(const char* id, UniqueFreePtr<char[]>&& inbuf,
                                  uint32_t len) MOZ_NO_THREAD_SAFETY_ANALYSIS {
   NS_ASSERTION(NS_IsMainThread(),
