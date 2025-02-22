@@ -201,11 +201,6 @@ LogicalSize nsTextControlFrame::CalcIntrinsicSize(gfxContext* aRenderingContext,
                         nsPresContext::CSSPixelsToAppUnits(4));
     internalPadding = RoundToMultiple(internalPadding, AppUnitsPerCSSPixel());
     intrinsicSize.ISize(aWM) += internalPadding;
-  } else if (PresContext()->CompatibilityMode() ==
-             eCompatibility_FullStandards) {
-    // This is to account for the anonymous <br> having a 1 twip width
-    // in Full Standards mode, see BRFrame::Reflow and bug 228752.
-    intrinsicSize.ISize(aWM) += 1;
   }
 
   // Increment width with cols * letter-spacing.
