@@ -1136,7 +1136,7 @@ void ViewTransition::SkipTransition(
             "Skipped ViewTransition due to document being hidden");
         break;
       case SkipTransitionReason::Timeout:
-        readyPromise->MaybeRejectWithAbortError(
+        readyPromise->MaybeRejectWithTimeoutError(
             "Skipped ViewTransition due to timeout");
         break;
       case SkipTransitionReason::DuplicateTransitionNameCapturingOldState:
