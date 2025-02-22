@@ -3146,41 +3146,47 @@ already_AddRefed<nsIPrincipal> Document::MaybeDowngradePrincipal(
 }
 
 size_t Document::FindDocStyleSheetInsertionPoint(const StyleSheet& aSheet) {
-  nsStyleSheetService* sheetService = nsStyleSheetService::GetInstance();
   ServoStyleSet& styleSet = EnsureStyleSet();
 
   // lowest index first
-  size_t newDocIndex = StyleOrderIndexOfSheet(aSheet);
+  const size_t newDocIndex = StyleOrderIndexOfSheet(aSheet);
+  MOZ_ASSERT(newDocIndex != mStyleSheets.NoIndex);
 
-  size_t count = styleSet.SheetCount(StyleOrigin::Author);
-  size_t index = 0;
-  for (; index < count; index++) {
+  size_t index = styleSet.SheetCount(StyleOrigin::Author);
+  while (index--) {
     auto* sheet = styleSet.SheetAt(StyleOrigin::Author, index);
     MOZ_ASSERT(sheet);
+    if (!sheet->GetAssociatedDocumentOrShadowRoot()) {
+      // If the sheet is not owned by the document it should be an author sheet
+      // registered at nsStyleSheetService. In that case the doc sheet should
+      // end up before it.
+      MOZ_ASSERT(
+          nsStyleSheetService::GetInstance()->AuthorStyleSheets()->Contains(
+              sheet));
+      continue;
+    }
     size_t sheetDocIndex = StyleOrderIndexOfSheet(*sheet);
-    if (newDocIndex != mStyleSheets.NoIndex &&
-        sheetDocIndex != mStyleSheets.NoIndex && sheetDocIndex > newDocIndex) {
-      break;
-    }
-
-    // If the sheet is not owned by the document it can be an author
-    // sheet registered at nsStyleSheetService or an additional author
-    // sheet on the document, which means the new
-    // doc sheet should end up before it.
     if (sheetDocIndex == mStyleSheets.NoIndex) {
-      if (sheetService) {
-        auto& authorSheets = *sheetService->AuthorStyleSheets();
-        if (authorSheets.IndexOf(sheet) != authorSheets.NoIndex) {
-          break;
-        }
-      }
-      if (sheet == GetFirstAdditionalAuthorSheet()) {
-        break;
-      }
+      MOZ_ASSERT(mAdditionalSheets[eAuthorSheet].Contains(sheet));
+      // This is an additional author sheet on the document, which means the new
+      // doc sheet should end up before it.
+      continue;
     }
+    MOZ_ASSERT(sheetDocIndex != newDocIndex);
+    if (sheetDocIndex < newDocIndex) {
+      // We found a document-owned sheet. All of them go together, so if the
+      // current sheet goes before ours, we're at the right index already.
+      return index + 1;
+    }
+    // Otherwise keep looking. Unfortunately we can't do something clever like:
+    //
+    // return index - sheetDocIndex + newDocIndex;
+    //
+    // Or so, because we need to deal with disabled / non-applicable sheets
+    // which are not in the styleset, even though they're in the document.
   }
-
-  return index;
+  // We found no sheet that goes before us, so we're index 0.
+  return 0;
 }
 
 void Document::ResetStylesheetsToURI(nsIURI* aURI) {
@@ -7678,14 +7684,13 @@ void Document::InsertSheetAt(size_t aIndex, StyleSheet& aSheet) {
 }
 
 void Document::StyleSheetApplicableStateChanged(StyleSheet& aSheet) {
-  const bool applicable = aSheet.IsApplicable();
-  // If we're actually in the document style sheet list
-  if (StyleOrderIndexOfSheet(aSheet) != mStyleSheets.NoIndex) {
-    if (applicable) {
-      AddStyleSheetToStyleSets(aSheet);
-    } else {
-      RemoveStyleSheetFromStyleSets(aSheet);
-    }
+  if (!aSheet.IsDirectlyAssociatedTo(*this)) {
+    return;
+  }
+  if (aSheet.IsApplicable()) {
+    AddStyleSheetToStyleSets(aSheet);
+  } else {
+    RemoveStyleSheetFromStyleSets(aSheet);
   }
 }
 

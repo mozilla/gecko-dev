@@ -955,6 +955,29 @@ void StyleSheet::SubjectSubsumesInnerPrincipal(nsIPrincipal& aSubjectPrincipal,
   info.mPrincipal = &aSubjectPrincipal;
 }
 
+bool StyleSheet::IsDirectlyAssociatedTo(
+    dom::DocumentOrShadowRoot& aTree) const {
+  if (mParentSheet) {
+    // @import is never directly associated to a tree.
+    MOZ_ASSERT(aTree.StyleOrderIndexOfSheet(*this) ==
+               nsTArray<RefPtr<StyleSheet>>::NoIndex);
+    return false;
+  }
+  bool associated = false;
+  if (IsConstructed()) {
+    // Idea is that the adopted stylesheet list is likely to be smaller than
+    // list of adopters of a single sheet, but we could reverse the check if
+    // needed.
+    associated = aTree.AdoptedStyleSheets().Contains(this);
+    MOZ_ASSERT(associated == mAdopters.Contains(&aTree));
+  } else {
+    associated = GetAssociatedDocumentOrShadowRoot() == &aTree;
+  }
+  MOZ_ASSERT(associated == (aTree.StyleOrderIndexOfSheet(*this) !=
+                            nsTArray<RefPtr<StyleSheet>>::NoIndex));
+  return associated;
+}
+
 bool StyleSheet::AreRulesAvailable(nsIPrincipal& aSubjectPrincipal,
                                    ErrorResult& aRv) {
   // Rules are not available on incomplete sheets.

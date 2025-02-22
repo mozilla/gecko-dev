@@ -631,7 +631,7 @@ size_t DocumentOrShadowRoot::StyleOrderIndexOfSheet(
     size_t index = mAdoptedStyleSheets.LastIndexOf(&aSheet);
     return index == mAdoptedStyleSheets.NoIndex ? index : index + SheetCount();
   }
-  return mStyleSheets.IndexOf(&aSheet);
+  return mStyleSheets.LastIndexOf(&aSheet);
 }
 
 void DocumentOrShadowRoot::TraverseSheetRefInStylesIfApplicable(

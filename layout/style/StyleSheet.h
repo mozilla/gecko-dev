@@ -406,6 +406,12 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // True if the sheet was created through the Constructable StyleSheets API
   bool IsConstructed() const { return !!mConstructorDocument; }
 
+  // Whether this sheet is directly associated to the given doc or shadow root.
+  // That means that it's a non-imported regular, adopted, or additional style
+  // sheet, and thus that it should be in the top level list of sheets for that
+  // subtree. It can be cheaper than walking the whole list of stylesheets.
+  bool IsDirectlyAssociatedTo(dom::DocumentOrShadowRoot&) const;
+
   // True if any of this sheet's ancestors were created through the
   // Constructable StyleSheets API
   bool SelfOrAncestorIsConstructed() const {

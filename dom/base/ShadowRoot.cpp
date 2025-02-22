@@ -525,8 +525,8 @@ void ShadowRoot::InsertSheetIntoAuthorData(
 // presumably.
 void ShadowRoot::StyleSheetApplicableStateChanged(StyleSheet& aSheet) {
   auto& sheetList = aSheet.IsConstructed() ? mAdoptedStyleSheets : mStyleSheets;
-  int32_t index = sheetList.LastIndexOf(&aSheet);
-  if (index < 0) {
+  size_t index = sheetList.LastIndexOf(&aSheet);
+  if (index == sheetList.NoIndex) {
     // NOTE(emilio): @import sheets are handled in the relevant RuleAdded
     // notification, which only notifies after the sheet is loaded.
     //
@@ -537,7 +537,7 @@ void ShadowRoot::StyleSheetApplicableStateChanged(StyleSheet& aSheet) {
     return;
   }
   if (aSheet.IsApplicable()) {
-    InsertSheetIntoAuthorData(size_t(index), aSheet, sheetList);
+    InsertSheetIntoAuthorData(index, aSheet, sheetList);
   } else {
     MOZ_ASSERT(mServoStyles);
     if (mStyleRuleMap) {

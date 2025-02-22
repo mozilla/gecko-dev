@@ -732,15 +732,11 @@ void ServoStyleSet::AddDocStyleSheet(StyleSheet& aSheet) {
   if (index < SheetCount(Origin::Author)) {
     // This case is insert before.
     StyleSheet* beforeSheet = SheetAt(Origin::Author, index);
-
-    // Maintain a mirrored list of sheets on the servo side.
     Servo_StyleSet_InsertStyleSheetBefore(mRawData.get(), &aSheet, beforeSheet);
-    SetStylistStyleSheetsDirty();
   } else {
-    // Maintain a mirrored list of sheets on the servo side.
     Servo_StyleSet_AppendStyleSheet(mRawData.get(), &aSheet);
-    SetStylistStyleSheetsDirty();
   }
+  SetStylistStyleSheetsDirty();
 
   if (mStyleRuleMap) {
     mStyleRuleMap->SheetAdded(aSheet);
