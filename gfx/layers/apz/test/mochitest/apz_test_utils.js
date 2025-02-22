@@ -1208,12 +1208,14 @@ async function cancelScrollAnimation(aElement, aWindow = window) {
 }
 
 function collectSampledScrollOffsets(aElement, aPopupElement = null) {
-  let data =
-    SpecialPowers.DOMWindowUtils.getCompositorAPZTestData(aPopupElement);
+  const utils = SpecialPowers.getDOMWindowUtils(
+    aPopupElement ? aPopupElement.ownerGlobal : window
+  );
+  let data = utils.getCompositorAPZTestData(aPopupElement);
   let sampledResults = data.sampledResults;
 
-  const layersId = SpecialPowers.DOMWindowUtils.getLayersId(aPopupElement);
-  const scrollId = SpecialPowers.DOMWindowUtils.getViewId(aElement);
+  const layersId = utils.getLayersId(aPopupElement);
+  const scrollId = utils.getViewId(aElement);
 
   return sampledResults.filter(
     result =>
