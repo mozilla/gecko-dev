@@ -6,6 +6,12 @@ skip-if = [
   "artifact",
 ]
 support-files = ["head.js"]
+prefs = [
+  # The browser test harness clears the clipboard after each test. Copying to
+  # the clipboard activates Windows accessibility suppression by default.
+  # Disable this so that accessibility isn't suppressed for our tests.
+  "accessibility.windows.suppress-after-clipboard-copy=0",
+]
 
 ["browser_groupPosition.js"]
 

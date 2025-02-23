@@ -11,6 +11,7 @@
 
 #include "AccessibleText_i.c"
 
+#include "mozilla/a11y/Compatibility.h"
 #include "mozilla/a11y/HyperTextAccessibleBase.h"
 #include "mozilla/ClearOnShutdown.h"
 
@@ -124,6 +125,19 @@ ia2AccessibleText::get_nSelections(long* aNSelections) {
   }
 
   *aNSelections = textAcc->SelectionCount();
+  if (*aNSelections == 0 &&
+      (Compatibility::A11ySuppressionReasons() &
+       SuppressionReasons::Clipboard) &&
+      static_cast<ia2AccessibleHypertext*>(this)->Acc()->IsDoc()) {
+    // Bug 1798098: Windows Suggested Actions (introduced in Windows 11
+    // 22H2) might walk the document a11y tree using UIA whenever anything
+    // is copied to the clipboard. This causes an unacceptable hang. It walks
+    // using IAccessibleText/IAccessibleHyperText if the document reports no
+    // selection, so we lie here and say that there is a selection even though
+    // there isn't. It will subsequently call get_selection, which will fail,
+    // but this hack here seems to be enough to avoid further text calls.
+    *aNSelections = 1;
+  }
 
   return S_OK;
 }
