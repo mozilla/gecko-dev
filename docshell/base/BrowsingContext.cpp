@@ -492,6 +492,7 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
         new BrowsingContext(parentWC, group, id, aType, std::move(fields));
   }
 
+  context->mWindowless = aOptions.windowless;
   context->mEmbeddedByThisProcess = XRE_IsParentProcess() || aParent;
   context->mCreatedDynamically = aOptions.createdDynamically;
   if (inherit) {
@@ -515,13 +516,13 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
 }
 
 already_AddRefed<BrowsingContext> BrowsingContext::CreateIndependent(
-    Type aType) {
+    Type aType, bool aWindowless) {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess(),
                         "BCs created in the content process must be related to "
                         "some BrowserChild");
   RefPtr<BrowsingContext> bc(
       CreateDetached(nullptr, nullptr, nullptr, u""_ns, aType, {}));
-  bc->mWindowless = bc->IsContent();
+  bc->mWindowless = aWindowless;
   bc->mEmbeddedByThisProcess = true;
   bc->EnsureAttached();
   return bc.forget();
