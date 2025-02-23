@@ -7,6 +7,7 @@
 #ifndef BaseProfilingCategory_h
 #define BaseProfilingCategory_h
 
+#include "mozilla/Span.h"
 #include "mozilla/Types.h"
 
 #include <cstdint>
@@ -53,11 +54,19 @@ enum class ProfilingCategory : uint32_t {
 
 // clang-format on
 
+struct ProfilingCategoryInfo {
+  const char* mName;
+  const char* mColor;
+  const mozilla::Span<const char* const> mSubcategoryNames;
+};
+
 struct ProfilingCategoryPairInfo {
   ProfilingCategory mCategory;
   uint32_t mSubcategoryIndex;
   const char* mLabel;
 };
+
+MFBT_API mozilla::Span<const ProfilingCategoryInfo> GetProfilingCategoryList();
 
 MFBT_API const ProfilingCategoryPairInfo& GetProfilingCategoryPairInfo(
     ProfilingCategoryPair aCategoryPair);
