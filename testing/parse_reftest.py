@@ -454,8 +454,7 @@ class ListManifestParser(object):
                     modifiers.insert(first, modifier)
                     first += 1
             else:  # fuzzy-if
-                if i < first:
-                    first = i
+                first = min(i, first)
                 condition = m[0][0]
                 dmin = int(m[0][1])
                 dmax = int(m[0][2])
