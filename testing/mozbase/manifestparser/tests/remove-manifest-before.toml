@@ -1,0 +1,26 @@
+[DEFAULT]
+
+["test_remove_skip1.html"]
+skip-if = [
+  "os == 'mac'", #  Bug 111
+  "os == 'linux'", #  Bug 222
+  "os == 'win'", #  Bug 333
+]
+
+["test_remove_skip2.html"]
+skip-if = [
+  "os == 'macosx' && os_version == '14.70' && processor == 'x86'", #  Bug 333
+  "os == 'linux' && os_version == '18.04' && processor == 'x86'", #  Bug 111
+  "os == 'linux' && os_version == '22.04' && processor == 'x86'", #  Bug 222
+]
+
+["test_remove_skip3.html"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86'", #  Bug 111
+  "os == 'linux' && os_version == '18.04' && processor == 'armv7'", #  Bug 111
+  "os == 'linux' && os_version == '22.04' && processor == 'x86' && debug", #  Bug 222
+]
+other-key = "test"
+
+["test_remove_skip4.html"]
+skip-if = ["os == 'mac'"] #  Bug 111

@@ -12,6 +12,7 @@ from io import StringIO
 
 import manifestparser.toml
 import mozunit
+import pytest
 from manifestparser import ManifestParser
 from tomlkit import TOMLDocument
 
@@ -621,6 +622,69 @@ yellow = submarine
         after_path = os.path.join(here, after)
         after_str = open(after_path, "r", encoding="utf-8").read()
         assert manifest_str == after_str
+
+    def test_remove_skipif(self):
+        """
+        Verify removing skip-if conditions from TOML manifest
+        """
+        parser = ManifestParser(use_toml=True, document=True)
+        before = "remove-manifest-before.toml"
+        before_path = os.path.join(here, before)
+        parser.read(before_path)
+        manifest = parser.source_documents[before_path]
+
+        manifestparser.toml.remove_skip_if(manifest, os_name="linux")
+
+        manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
+        after = "remove-manifest-after1.toml"
+        after_path = os.path.join(here, after)
+        after_str = open(after_path, "r", encoding="utf-8").read()
+        assert manifest_str == after_str
+
+        parser.read(before_path)
+        manifest = parser.source_documents[before_path]
+
+        manifestparser.toml.remove_skip_if(
+            manifest, os_name="linux", os_version="18.04"
+        )
+
+        manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
+        after = "remove-manifest-after2.toml"
+        after_path = os.path.join(here, after)
+        after_str = open(after_path, "r", encoding="utf-8").read()
+        assert manifest_str == after_str
+
+        parser.read(before_path)
+        manifest = parser.source_documents[before_path]
+
+        manifestparser.toml.remove_skip_if(
+            manifest, os_name="linux", os_version="18.04", processor="x86"
+        )
+
+        manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
+        after = "remove-manifest-after3.toml"
+        after_path = os.path.join(here, after)
+        after_str = open(after_path, "r", encoding="utf-8").read()
+        assert manifest_str == after_str
+
+        parser.read(before_path)
+        manifest = parser.source_documents[before_path]
+
+        manifestparser.toml.remove_skip_if(
+            manifest, os_name="unknown", os_version="18.04", processor="x86"
+        )
+
+        manifest_str = manifestparser.toml.alphabetize_toml_str(manifest)
+        after = "remove-manifest-before.toml"
+        after_path = os.path.join(here, after)
+        after_str = open(after_path, "r", encoding="utf-8").read()
+        assert manifest_str == after_str
+
+        parser.read(before_path)
+        manifest = parser.source_documents[before_path]
+
+        with pytest.raises(ValueError):
+            manifestparser.toml.remove_skip_if(manifest)
 
 
 if __name__ == "__main__":
