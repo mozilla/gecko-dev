@@ -346,8 +346,6 @@ async def _download_from_config(verifyConfig):
             line = url.replace("\n", "")
             log.info(f"Line {ln+1}: {line}")
 
-    return None
-
 
 def download_from_config(verifyConfig):
     """
