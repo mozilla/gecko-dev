@@ -840,7 +840,7 @@
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Mostrar en sesiones privadas</string>
     <!-- Preference title for switch preference to show trending search suggestions -->
-    <string name="preferences_show_trending_search_suggestions">Mostrar sugerencias de tendencias</string>
+    <string name="preferences_show_trending_search_suggestions">Mostrar las sugerencias más populares</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Mostrar sugerencias del portapapeles</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->

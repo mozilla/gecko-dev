@@ -828,6 +828,8 @@
     <string name="preferences_show_voice_search">הצגת חיפוש קולי</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">הצגה בהפעלות פרטיות</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">הצגת הצעות פופולריות</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">הצגת הצעות מלוח העריכה</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
