@@ -84,7 +84,6 @@ interface nsIURIClassifier : nsISupports
    * Asynchronously classify a URI with list of features. This does not make
    * network requests. This takes a list of names so it can safely be called in
    * the content process.
-   * This is content process only, and will ASSERT otherwise.
    */
   void asyncClassifyLocalWithFeatureNames(in nsIURI aURI,
                                       in Array<ACString> aFeatures,
