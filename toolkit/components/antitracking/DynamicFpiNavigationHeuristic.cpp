@@ -77,8 +77,8 @@ void DynamicFpiNavigationHeuristic::MaybeGrantStorageAccess(
     // Fall back to an unmodified entry's URI.
     // Warning: you should not copy-paste this code elsewhere, nor should you
     // use GetURI in security-critical contexts where you really want something
-    // like the resultPrincipalURI. We are only doing that here because we do not
-    // have a OriginalURI set, are giving a permission based on a heuristic,
+    // like the resultPrincipalURI. We are only doing that here because we do
+    // not have a OriginalURI set, are giving a permission based on a heuristic,
     // and constrain ourselves to http(s) URIs.
     if (!entryURI) {
       entryURI = entry->GetURI();
