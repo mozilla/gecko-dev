@@ -824,6 +824,8 @@
     <string name="preferences_show_voice_search">Shfaq kërkim zanor</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Shfaqi në sesione private</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Shfaq sugjerime prirjesh</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Shfaq sugjerime të papastre</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->

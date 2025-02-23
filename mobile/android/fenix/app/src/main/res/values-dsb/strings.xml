@@ -832,6 +832,8 @@
     <string name="preferences_show_voice_search">Głosowe pytanje pokazaś</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">W priwatnych pósejźenjach pokazaś</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Trendowe naraźenja pokazaś</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Naraźenja z mjazywótkłada pokazaś</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->

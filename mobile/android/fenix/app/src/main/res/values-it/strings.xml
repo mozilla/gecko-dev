@@ -840,6 +840,8 @@
     <string name="preferences_show_voice_search">Mostra ricerca vocale</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Mostra in sessioni anonime</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Mostra suggerimenti di tendenza</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Mostra suggerimenti dagli appunti</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->

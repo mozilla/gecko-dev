@@ -450,6 +450,11 @@
     The parameter is the search engine name (for example: DuckDuckGo). -->
     <string name="search_engine_icon_content_description_1">Hekaha mongu’eha: %s</string>
 
+    <!-- Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    The parameter is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button. -->
+    <string name="search_engine_selector_content_description">%s: jehekaha poravoha</string>
+
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Eg̃uahẽporãite ñanduti mba’eguáva</string>
@@ -601,6 +606,10 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Oiko porãve hag̃ua pe kundahára, Firefox omondo techapy ha ñomongetakue Mozilla-pe. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Ñangareko</string>
+    <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+    <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Mba’éichapa jaiporu umi mba’ekuaarã</string>
+    <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Emonneĩ ha eikundaháma</string>
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Eiporavo tembiporu rupa rendag̃ua</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -617,6 +626,9 @@
     <!-- Onboarding toolbar selection card content description for the toolbar placement image. %1$s is placeholder for either 'top' or 'bottom'. -->
     <string name="onboarding_customize_toolbar_placement_content_description" moz:removedIn="135" tools:ignore="UnusedResources">Ta’ãnga %1$s rembiporu rupápe</string>
 
+    <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
+    <string name="onboarding_customize_toolbar_placement_bottom_content_description">Ta’ãnga rembiporu rupa michĩvéva</string>
+    <string name="onboarding_customize_toolbar_placement_top_content_description">Ta’ãnga rembiporu rupa tuichavéva</string>
     <!-- Onboarding toolbar selection card label for 'Not now' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">Ani ko’ág̃a</string>
 
@@ -1051,6 +1063,8 @@
     <!-- Learn more link for marketing data preference -->
     <string name="preferences_marketing_data_learn_more">Eikuaave marketing mba’ekuaarã</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preferences_daily_usage_ping_title">Ping eiporumeméva</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_send_crashes_title">Emondo marandu jejavy rehegua</string>
     <string name="preferences_automatically_submit_crashes_title" moz:removedIn="136" tools:ignore="UnusedResources">Emondo marandu jejavy rehegua</string>
@@ -1363,8 +1377,12 @@
     <string name="webcompat_reporter_url_error_invalid">Emoinge peteĩ URL oikóva</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">Mba’épa oñembyai (eipotárõ)</string>
+    <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken_2">¿Mba’épa apañuái?</string>
     <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_choose_reason">Ere mba’érepa</string>
+    <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason_error">Ikatúpa, eremi mba’érepa</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
     <string name="webcompat_reporter_label_description">Emoha’ãnga apañuái (eipotárõ)</string>
     <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
@@ -1375,6 +1393,8 @@
     <string name="webcompat_reporter_send">Mondo</string>
 
 
+    <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+    <string name="webcompat_reporter_success_snackbar_text">Marandu’i oñemondóma</string>
     <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
     <string name="webcompat_reporter_dismiss_success_snackbar_text">Mboty</string>
 
@@ -2048,6 +2068,8 @@
     <string name="about_privacy_notice">Marandu’i ñemiguáva</string>
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">Eikuaa nde derécho</string>
+    <!-- About page link text to open terms of use link -->
+    <string name="about_terms_of_use" tools:ignore="UnusedResources">Jeporurã reko</string>
     <!-- About page link text to open licensing information link -->
     <string name="about_licensing_information">Marandu ñemoneĩgua</string>
     <!-- About page link text to open a screen with libraries that are used -->
@@ -2525,6 +2547,8 @@
     <!-- Search suggestions title for Firefox Suggest. -->
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Kuave’ẽmby</string>
 
+    <!-- Search suggestions title for trending searches. -->
+    <string name="trending_searches_header">Jehekakue ojejapovéva</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google Jehekaha</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
@@ -2962,6 +2986,11 @@
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
     <string name="download_language_file_dialog_negative_button_text">Heja</string>
 
+    <!-- Unified Trust Panel -->
+    <!-- Text for the protection panel header when the site is secure. -->
+    <string name="protection_panel_header_secure">Hekorosã</string>
+    <!-- Text for the protection panel header when the site is not secure. -->
+    <string name="protection_panel_header_not_secure">Nahekorosãi</string>
     <!-- Title text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_title">Eñatendéke ko tendápe</string>
     <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -2983,6 +3012,25 @@
 
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
     <string name="protection_panel_etp_toggle_disabled_description">Umi ñemo’ãha oñembotypáma. Roipota embojurujajey.</string>
+
+    <!-- Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+        %s is a placeholder for the name of the tracker category.
+        %d is a placeholder for the number of trackers blocked. -->
+    <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+    <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+    <string name="clear_site_data_dialog_positive_button_text">Mopotĩ</string>
+    <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+    <string name="clear_site_data_dialog_negative_button_text">Heja</string>
+
+    <!-- Snackbar title shown when the site data has been cleared. -->
+    <string name="clear_site_data_snackbar">Kookie ha tenda mba’ekuaarã mboguepyre</string>
+    <!-- Text for the connection security panel when the site is secure. -->
+    <string name="connection_security_panel_secure">Jeikekatu</string>
+    <!-- Text for the connection security panel when the site is not secure. -->
+    <string name="connection_security_panel_not_secure">Jeikekatu’ỹ</string>
+    <!-- Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket -->
+    <string name="connection_security_panel_verified_by">Ohechapyréva %s</string>
 
     <!-- Debug drawer -->
     <!-- The user-facing title of the Debug Drawer feature. -->
@@ -3105,6 +3153,11 @@
     <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
     <string name="debug_drawer_addresses_debug_locales_header">Ñe’ẽnguéra rysýi emyandy hag̃ua</string>
 
+    <!-- The title of the header for the section for managing addresses. -->
+    <string name="debug_drawer_addresses_management_header">Kundaharape ñangareko</string>
+    <!-- The title of the button for deleting in the debug drawer all addresses. -->
+    <string name="debug_drawer_delete_all_addresses">Emboguepaite umi kundaharape</string>
+
     <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Tembiporu CFR</string>
@@ -3150,4 +3203,9 @@
     <!-- Push notification message about old Firefox version -->
     <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Oĩ tembiapoite ndoikomo’ãvéimava ko’ẽrõ.</string>
 
-    </resources>
+    <!-- TextField Design System Component -->
+    <!-- The default content description for the eye trailing icon button in TextField -->
+    <string name="text_field_eye_trailing_icon_default_content_description">Ehechauka moñe’ẽrã kañymby</string>
+    <!-- The default content description for the cross trailing icon button in TextField -->
+    <string name="text_field_cross_trailing_icon_default_content_description">Embogue moñe’ẽrã</string>
+</resources>

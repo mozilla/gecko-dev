@@ -473,6 +473,8 @@
     <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">ຄົ້ນຫາວ່າເປັນຫຍັງຈຶ່ງມີຫຼາຍລ້ານຄົນຮັກ Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">ການທ່ອງເວັບທີ່ປອດໄພມີທາງເລືອກຫຼາຍ</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_3">ບຣາວເຊີທີ່ບໍ່ຫວັງຜົນກຳໄລຂອງພວກເຮົາຊ່ວຍຢຸດບໍລິສັດບໍ່ໃຫ້ຕິດຕາມທ່ານໄປທົ່ວເວັບ.</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">ຕັ້ງໃຫ້ເປັນບຣາວເຊີຫລັກ</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -536,6 +538,10 @@
     <string name="onboarding_preferences_dialog_negative_button" tools:ignore="UnusedResources" moz:removedIn="136">ຍົກເລີກ</string>
     <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here-->
     <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">ຍິນດີຕ້ອນຮັບສູ່ Firefox</string>
+    <!-- Terms of service sub header label. -->
+    <string name="onboarding_terms_of_service_sub_header" tools:ignore="UnusedResources" moz:removedIn="136">ການທ່ອງເວັບທີ່ວ່ອງໄວ ແລະ ປອດໄພ.</string>
+    <!-- Terms of service sub header label. -->
+    <string name="onboarding_terms_of_service_sub_header_2">ການທ່ອງເວັບທີ່ວ່ອງໄວ ແລະ ປອດໄພ</string>
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label">ເຫັນດີ ແລະ ສືບຕໍ່</string>
     <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
@@ -575,6 +581,8 @@
     <string name="onboarding_customize_theme_light_option">ແຈ້ງ</string>
     <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_system_option">ລະບົບອັດຕະໂນມັດ</string>
+    <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
+    <string name="onboarding_customize_theme_content_description">ຮູບພາບຂອງຮູບແບບສີສັນ %1$s</string>
     <!-- Onboarding theme selection card label for 'Not now' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_theme_not_now_button" moz:removedIn="136" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
 
@@ -1199,10 +1207,20 @@
     <string name="download_delete_item_1">ລຶບ</string>
 
 
+    <!-- The description of the Web Compat Reporter feature. This first parameter is the name of the application (For example: Fenix) -->
+    <string name="webcompat_reporter_description">ຊ່ວຍເຮັດໃຫ້ %1$s ດີຂຶ້ນສຳລັບທຸກຄົນ. ພະນັກງານ Mozilla ໃຊ້ຂໍ້ມູນທີ່ທ່ານສົ່ງເພື່ອແກ້ໄຂບັນຫາເວັບໄຊທ໌.</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->
     <string name="webcompat_reporter_url_error_invalid">ກະລຸນາປ້ອນ URL ທີ່ຖືກຕ້ອງ</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_label_whats_broken" moz:removedIn="136" tools:ignore="UnusedResources">ຂໍ້ຜິດພາດແມ່ນຫຍັງ? (ທາງເລືອກ)</string>
+    <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason">ເລືອກເຫດຜົນ</string>
+    <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
+    <string name="webcompat_reporter_label_description">ອະທິບາຍບັນຫາ (ທາງເລືອກ)</string>
+    <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
+    <string name="webcompat_reporter_send_more_info">ສົ່ງຂໍ້ມູນເພີ່ມເຕີມ</string>
     <!-- The button text for the cancel button to leave the Web Compat Reporter feature. -->
     <string name="webcompat_reporter_cancel">ຍົກເລີກ</string>
     <!-- The button text for the send button to submit the provided form data. -->
@@ -1215,8 +1233,13 @@
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->
     <string name="webcompat_reporter_reason_slow">ເວັບໄຊທ໌ຊ້າ ຫຼື ບໍ່ເຮັດວຽກ</string>
+    <!-- Broken site reason text for images or videos -->
+    <string name="webcompat_reporter_reason_media">ຮູບພາບ ຫຼື ວິດີໂອ</string>
     <!-- Broken site reason text for buttons, links, and other content -->
     <string name="webcompat_reporter_reason_content">ປຸ່ມ, ການເຊື່ອມຕໍ່, ແລະ ເນື້ອຫາອື່ນໆ</string>
+
+    <!-- Broken site reason text for sign in or sign out -->
+    <string name="webcompat_reporter_reason_account">ເຂົ້າສູ່ລະບົບ ຫຼື ອອກຈາກລະບົບ</string>
 
     <!-- Crashes -->
     <!-- Title text displayed on the tab crash page. This first parameter is the name of the application (For example: Fenix) -->
@@ -1240,6 +1263,8 @@
 
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ແກ້ໄຂ</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">ຍ້າຍ</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">ແກ້ໄຂ</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1272,6 +1297,8 @@
 
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">ໂຟ​ລ​ເດີ</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">ບັນທຶກໃນ</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">ຊື່</string>
     <!-- Label for a text input field for a bookmark or folder name -->

@@ -3073,6 +3073,9 @@
         %s is a placeholder for the name of the tracker category.
         %d is a placeholder for the number of trackers blocked. -->
     <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+    <!-- Description text for a dialog confirming whether the user wants to delete all data for current site.
+        %s is a placeholder for the base domain of website. -->
+    <string name="clear_site_data_dialog_description"><![CDATA[Remover cookies e datos de sito pro <b>%s</b> pote disconnecter te de sitos web e vacuar carrettos de compras.]]></string>
     <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
     <string name="clear_site_data_dialog_positive_button_text">Vacuar</string>
     <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
