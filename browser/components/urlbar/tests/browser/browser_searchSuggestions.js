@@ -129,10 +129,10 @@ add_task(async function plainEnterOnSuggestion() {
   await testPressEnterOnSuggestion();
 });
 
-add_task(async function ctrlEnterOnSuggestion() {
-  await testPressEnterOnSuggestion("https://www.foofoo.com/", {
-    ctrlKey: true,
-  });
+add_task(async function canonizeSuggestion() {
+  let modifiers =
+    AppConstants.platform == "macosx" ? { metaKey: true } : { ctrlKey: true };
+  await testPressEnterOnSuggestion("https://www.foofoo.com/", modifiers);
 });
 
 add_task(async function copySuggestionText() {

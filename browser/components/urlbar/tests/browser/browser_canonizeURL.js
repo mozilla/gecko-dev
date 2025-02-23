@@ -9,7 +9,12 @@ requestLongerTimeout(2);
 
 const TEST_ENGINE_BASENAME = "searchSuggestionEngine.xml";
 
-add_task(async function checkCtrlWorks() {
+const CANONIZE_MODIFIERS =
+  AppConstants.platform == "macosx" ? { metaKey: true } : { ctrlKey: true };
+const MODIFIER_KEY =
+  AppConstants.platform == "macosx" ? "VK_META" : "VK_CONTROL";
+
+add_task(async function checkCanonizeWorks() {
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
     await UrlbarTestUtils.formHistory.clear();
@@ -23,28 +28,28 @@ add_task(async function checkCtrlWorks() {
 
   let defaultEngine = await Services.search.getDefault();
   let testcases = [
-    ["example", "https://www.example.com/", { ctrlKey: true }],
+    ["example", "https://www.example.com/", CANONIZE_MODIFIERS],
     // Check that a direct load is not overwritten by a previous canonization.
     ["http://example.com/test/", "http://example.com/test/", {}],
-    ["ex-ample", "https://www.ex-ample.com/", { ctrlKey: true }],
-    ["  example ", "https://www.example.com/", { ctrlKey: true }],
-    [" example/foo ", "https://www.example.com/foo", { ctrlKey: true }],
+    ["ex-ample", "https://www.ex-ample.com/", CANONIZE_MODIFIERS],
+    ["  example ", "https://www.example.com/", CANONIZE_MODIFIERS],
+    [" example/foo ", "https://www.example.com/foo", CANONIZE_MODIFIERS],
     [
       " example/foo bar ",
       "https://www.example.com/foo%20bar",
-      { ctrlKey: true },
+      CANONIZE_MODIFIERS,
     ],
-    ["example.net", "http://example.net/", { ctrlKey: true }],
-    ["http://example", "http://example/", { ctrlKey: true }],
-    ["example:8080", "http://example:8080/", { ctrlKey: true }],
-    ["ex-ample.foo", "http://ex-ample.foo/", { ctrlKey: true }],
-    ["example.foo/bar ", "http://example.foo/bar", { ctrlKey: true }],
-    ["1.1.1.1", "http://1.1.1.1/", { ctrlKey: true }],
-    ["ftp.example.bar", "http://ftp.example.bar/", { ctrlKey: true }],
+    ["example.net", "http://example.net/", CANONIZE_MODIFIERS],
+    ["http://example", "http://example/", CANONIZE_MODIFIERS],
+    ["example:8080", "http://example:8080/", CANONIZE_MODIFIERS],
+    ["ex-ample.foo", "http://ex-ample.foo/", CANONIZE_MODIFIERS],
+    ["example.foo/bar ", "http://example.foo/bar", CANONIZE_MODIFIERS],
+    ["1.1.1.1", "http://1.1.1.1/", CANONIZE_MODIFIERS],
+    ["ftp.example.bar", "http://ftp.example.bar/", CANONIZE_MODIFIERS],
     [
       "ex ample",
       defaultEngine.getSubmission("ex ample", null, "keyword").uri.spec,
-      { ctrlKey: true },
+      CANONIZE_MODIFIERS,
     ],
   ];
 
@@ -97,43 +102,28 @@ add_task(async function checkPrefTurnsOffCanonize() {
   });
 
   let newURL = "http://mochi.test:8888/?terms=example";
-  // On MacOS CTRL+Enter is not supposed to open in a new tab, because it uses
-  // CMD+Enter for that.
-  let promiseLoaded =
-    AppConstants.platform == "macosx"
-      ? BrowserTestUtils.browserLoaded(
-          win.gBrowser.selectedBrowser,
-          false,
-          newURL
-        )
-      : BrowserTestUtils.waitForNewTab(win.gBrowser);
+  let promiseLoaded = BrowserTestUtils.waitForNewTab(win.gBrowser);
 
   win.gURLBar.focus();
   win.gURLBar.selectionStart = win.gURLBar.selectionEnd =
     win.gURLBar.value.length;
   win.gURLBar.value = "exampl";
   EventUtils.sendString("e", win);
-  EventUtils.synthesizeKey("KEY_Enter", { ctrlKey: true }, win);
+  EventUtils.synthesizeKey("KEY_Enter", CANONIZE_MODIFIERS, win);
 
   await promiseLoaded;
-  if (AppConstants.platform == "macosx") {
-    Assert.equal(
-      initialTab.linkedBrowser.currentURI.spec,
-      newURL,
-      "Original tab should have navigated"
-    );
-  } else {
-    Assert.equal(
-      initialTab.linkedBrowser.currentURI.spec,
-      "about:mozilla",
-      "Original tab shouldn't have navigated"
-    );
-    Assert.equal(
-      win.gBrowser.selectedBrowser.currentURI.spec,
-      newURL,
-      "New tab should have navigated"
-    );
-  }
+
+  Assert.equal(
+    initialTab.linkedBrowser.currentURI.spec,
+    "about:mozilla",
+    "Original tab shouldn't have navigated"
+  );
+  Assert.equal(
+    win.gBrowser.selectedBrowser.currentURI.spec,
+    newURL,
+    "New tab should have navigated"
+  );
+
   while (win.gBrowser.tabs.length > 1) {
     win.gBrowser.removeTab(win.gBrowser.selectedTab, { animate: false });
   }
@@ -169,11 +159,11 @@ add_task(async function autofill() {
   ]);
 
   let testcases = [
-    ["ex", "https://www.ex.com/", { ctrlKey: true }],
+    ["ex", "https://www.ex.com/", CANONIZE_MODIFIERS],
     // Check that a direct load is not overwritten by a previous canonization.
     ["ex", "https://example.com/", {}],
     // search alias
-    ["@goo", "https://www.goo.com/", { ctrlKey: true }],
+    ["@goo", "https://www.goo.com/", CANONIZE_MODIFIERS],
   ];
 
   for (let [inputValue, expectedURL, options] of testcases) {
@@ -205,7 +195,7 @@ add_task(async function autofill() {
 
 add_task(async function () {
   info(
-    "Test whether canonization is disabled until the ctrl key is releasing if the key was used to paste text into urlbar"
+    "Test whether canonization is disabled until the modifier key is releasing if the key was used to paste text into urlbar"
   );
 
   await SpecialPowers.pushPrefEnv({
@@ -219,21 +209,23 @@ add_task(async function () {
   simulatePastingToUrlbar(testWord, win);
   is(win.gURLBar.value, testWord, "Paste the test word correctly");
 
-  info("Send enter key while pressing the ctrl key");
-  EventUtils.synthesizeKey("VK_RETURN", { ctrlKey: true }, win);
+  info("Send enter key while pressing the canonization modifier");
+  EventUtils.synthesizeKey("VK_RETURN", CANONIZE_MODIFIERS, win);
   await BrowserTestUtils.browserLoaded(win.gBrowser.selectedBrowser);
   is(
     win.gBrowser.selectedBrowser.documentURI.spec,
     `http://mochi.test:8888/?terms=${testWord}`,
     "The loaded url is not canonized"
   );
-  EventUtils.synthesizeKey("VK_CONTROL", { type: "keyup" }, win);
+  EventUtils.synthesizeKey(MODIFIER_KEY, { type: "keyup" }, win);
 
   await BrowserTestUtils.closeWindow(win);
 });
 
 add_task(async function () {
-  info("Test whether canonization is enabled again after releasing the ctrl");
+  info(
+    "Test whether canonization is enabled again after releasing the modifier key"
+  );
 
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.ctrlCanonizesURLs", true]],
@@ -246,10 +238,10 @@ add_task(async function () {
   simulatePastingToUrlbar(testWord, win);
   is(win.gURLBar.value, testWord, "Paste the test word correctly");
 
-  info("Release the ctrl key befoer typing Enter key");
-  EventUtils.synthesizeKey("VK_CONTROL", { type: "keyup" }, win);
+  info("Release the canonization modifier before typing Enter key");
+  EventUtils.synthesizeKey(MODIFIER_KEY, { type: "keyup" }, win);
 
-  info("Send enter key with the ctrl");
+  info("Send enter key with the canonization modifier");
   const onLoad = BrowserTestUtils.waitForDocLoadAndStopIt(
     `https://www.${testWord}.com/`,
     win.gBrowser.selectedBrowser
@@ -259,7 +251,8 @@ add_task(async function () {
     undefined,
     true
   );
-  EventUtils.synthesizeKey("VK_RETURN", { ctrlKey: true }, win);
+  EventUtils.synthesizeKey("VK_RETURN", CANONIZE_MODIFIERS, win);
+
   await Promise.all([onLoad, onStop]);
   info("The loaded url is canonized");
 
@@ -275,7 +268,9 @@ function simulatePastingToUrlbar(text, win) {
     .toLowerCase();
   EventUtils.synthesizeKey(
     keyForPaste,
-    { type: "keydown", ctrlKey: true },
+    AppConstants.platform == "macosx"
+      ? { type: "keydown", metaKey: true }
+      : { type: "keydown", ctrlKey: true },
     win
   );
 
