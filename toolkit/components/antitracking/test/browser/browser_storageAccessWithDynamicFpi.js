@@ -141,6 +141,7 @@ async function redirectWithUserInteraction(browser, url, wait = null) {
     browser,
     (content, value) => {
       content.document.userInteractionForTesting();
+      content.document.notifyUserGestureActivation();
 
       let link = content.document.createElement("a");
       link.appendChild(content.document.createTextNode("click me!"));

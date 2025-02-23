@@ -607,12 +607,23 @@ nsresult BounceTrackingState::OnStartNavigation(
     }
   }
 
+
+  // If sourceSnapshotParams’s has transient activation is true,
+  // we initialize a new bounce tracking record with the initialHost
+  // having been activated. Also treat system principal navigation as
+  // having user interaction.
+  bool hasUserActivation = aHasValidUserGestureActivation ||
+                           aTriggeringPrincipal->IsSystemPrincipal();
+
   // If navigable’s bounce tracking record is null: Set navigable’s bounce
   // tracking record to a new bounce tracking record with initial host set to
   // initialHost.
   if (!mBounceTrackingRecord) {
     mBounceTrackingRecord = Some(BounceTrackingRecord());
     mBounceTrackingRecord->SetInitialHost(siteHost);
+    if (hasUserActivation) {
+      mBounceTrackingRecord->AddUserActivationHost(siteHost);
+    }
 
     MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
             ("%s: new BounceTrackingRecord(): %s", __FUNCTION__,
@@ -624,10 +635,6 @@ nsresult BounceTrackingState::OnStartNavigation(
 
   // If sourceSnapshotParams’s has transient activation is true: The user
   // activation ends the extended navigation. Process the bounce candidates.
-  // Also treat system principal navigation as having user interaction
-  bool hasUserActivation = aHasValidUserGestureActivation ||
-                           aTriggeringPrincipal->IsSystemPrincipal();
-
   MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug,
           ("%s: site: %s, hasUserActivation? %d", __FUNCTION__, siteHost.get(),
            hasUserActivation));
@@ -638,6 +645,7 @@ nsresult BounceTrackingState::OnStartNavigation(
     MOZ_ASSERT(!mBounceTrackingRecord);
     mBounceTrackingRecord = Some(BounceTrackingRecord());
     mBounceTrackingRecord->SetInitialHost(siteHost);
+    mBounceTrackingRecord->AddUserActivationHost(siteHost);
 
     return NS_OK;
   }
