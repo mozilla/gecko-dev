@@ -1995,6 +1995,13 @@
   value: true
   mirror: always
 
+# Whether we block opening pickers from hidden extension pages in WebExtensions.
+# This includes background pages and devtools pages, but not background tabs.
+- name: browser.disable_pickers_in_hidden_extension_pages
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "channelclassifier."
 #---------------------------------------------------------------------------
