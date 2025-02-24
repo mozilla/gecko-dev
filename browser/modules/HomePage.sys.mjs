@@ -133,6 +133,17 @@ export let HomePage = {
     return homePages;
   },
 
+  getForErrorPage(win) {
+    if (lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
+      return win.BROWSER_NEW_TAB_URL;
+    }
+    let url = this.get(win);
+    if (url.includes("|")) {
+      url = url.split("|")[0];
+    }
+    return url;
+  },
+
   /**
    * @returns {string}
    *   Returns the application default homepage.

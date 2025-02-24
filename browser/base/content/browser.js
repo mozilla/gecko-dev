@@ -1526,36 +1526,6 @@ function PageProxyClickHandler(aEvent) {
   }
 }
 
-/**
- * Re-direct the browser to a known-safe page.  This function is
- * used when, for example, the user browses to a known malware page
- * and is presented with about:blocked.  The "Get me out of here!"
- * button should take the user to the default start page so that even
- * when their own homepage is infected, we can get them somewhere safe.
- */
-function getMeOutOfHere(browsingContext) {
-  browsingContext.top.fixupAndLoadURIString(getDefaultHomePage(), {
-    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(), // Also needs to load homepage
-  });
-}
-
-/**
- * Return the default start page for the cases when the user's own homepage is
- * infected, so we can get them somewhere safe.
- */
-function getDefaultHomePage() {
-  let url = BROWSER_NEW_TAB_URL;
-  if (PrivateBrowsingUtils.isWindowPrivate(window)) {
-    return url;
-  }
-  url = HomePage.getDefault();
-  // If url is a pipe-delimited set of pages, just take the first one.
-  if (url.includes("|")) {
-    url = url.split("|")[0];
-  }
-  return url;
-}
-
 var browserDragAndDrop = {
   canDropLink: aEvent => Services.droppedLinkHandler.canDropLink(aEvent, true),
 

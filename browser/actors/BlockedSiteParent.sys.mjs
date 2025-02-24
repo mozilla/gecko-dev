@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { EscapablePageParent } from "resource://gre/actors/NetErrorParent.sys.mjs";
+
 let lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -108,7 +110,7 @@ SafeBrowsingNotificationBox.prototype.QueryInterface = ChromeUtils.generateQI([
   "nsISupportsWeakReference",
 ]);
 
-export class BlockedSiteParent extends JSWindowActorParent {
+export class BlockedSiteParent extends EscapablePageParent {
   receiveMessage(msg) {
     switch (msg.name) {
       case "Browser:SiteBlockedError":
@@ -154,7 +156,7 @@ export class BlockedSiteParent extends JSWindowActorParent {
             nsISecTel[bucketName + "GET_ME_OUT_OF_HERE"]
           );
         }
-        browser.ownerGlobal.getMeOutOfHere(this.browsingContext);
+        this.leaveErrorPage(browser, /* Never go back */ false);
         break;
       case "ignore_warning_link":
         if (Services.prefs.getBoolPref("browser.safebrowsing.allowOverride")) {
@@ -194,8 +196,9 @@ export class BlockedSiteParent extends JSWindowActorParent {
         accessKey: lazy.browserBundle.GetStringFromName(
           "safebrowsing.getMeOutOfHereButton.accessKey"
         ),
-        callback() {
-          browsingContext.topChromeWindow.getMeOutOfHere(browsingContext);
+        callback: () => {
+          let browser = browsingContext.top.embedderElement;
+          this.leaveErrorPage(browser, /* Never go back */ false);
         },
       },
     ];

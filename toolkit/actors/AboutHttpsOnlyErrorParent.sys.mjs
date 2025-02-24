@@ -2,10 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { HomePage } from "resource:///modules/HomePage.sys.mjs";
-import { PrivateBrowsingUtils } from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
+import { EscapablePageParent } from "resource://gre/actors/NetErrorParent.sys.mjs";
 
-export class AboutHttpsOnlyErrorParent extends JSWindowActorParent {
+export class AboutHttpsOnlyErrorParent extends EscapablePageParent {
   get browser() {
     return this.browsingContext.top.embedderElement;
   }
@@ -13,36 +12,8 @@ export class AboutHttpsOnlyErrorParent extends JSWindowActorParent {
   receiveMessage(aMessage) {
     switch (aMessage.name) {
       case "goBack":
-        this.goBackFromErrorPage(this.browser);
+        this.leaveErrorPage(this.browser);
         break;
     }
-  }
-
-  goBackFromErrorPage(aBrowser) {
-    if (!aBrowser.canGoBack) {
-      // If the unsafe page is the first or the only one in history, go to the
-      // start page.
-      aBrowser.fixupAndLoadURIString(
-        this.getDefaultHomePage(aBrowser.ownerGlobal),
-        {
-          triggeringPrincipal:
-            Services.scriptSecurityManager.getSystemPrincipal(),
-        }
-      );
-    } else {
-      aBrowser.goBack();
-    }
-  }
-
-  getDefaultHomePage(win) {
-    if (PrivateBrowsingUtils.isWindowPrivate(win)) {
-      return win.BROWSER_NEW_TAB_URL || "about:blank";
-    }
-    let url = HomePage.getDefault();
-    // If url is a pipe-delimited set of pages, just take the first one.
-    if (url.includes("|")) {
-      url = url.split("|")[0];
-    }
-    return url;
   }
 }

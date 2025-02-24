@@ -39,8 +39,6 @@
   "UpdateUrlbarSearchSplitterState",
   "UpdatePopupNotificationsVisibility",
   "PageProxyClickHandler",
-  "getMeOutOfHere",
-  "getDefaultHomePage",
   "browserDragAndDrop",
   "homeButtonObserver",
   "openHomeDialog",
