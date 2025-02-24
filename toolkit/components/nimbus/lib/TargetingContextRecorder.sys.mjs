@@ -21,11 +21,11 @@ Object.defineProperty(lazy, "ExperimentManager", {
 });
 
 const { PREF_INVALID, PREF_STRING, PREF_INT, PREF_BOOL } = Ci.nsIPrefBranch;
-const PREF_TYPES = {
+const PREF_TYPES = Object.freeze({
   [PREF_STRING]: "Ci.nsIPrefBranch.PREF_STRING",
   [PREF_INT]: "Ci.nsIPrefBranch.PREF_INT",
   [PREF_BOOL]: "Ci.nsIPrefBranch.PREF_BOOL",
-};
+});
 
 /**
  * Return a function that returns specific keys of an object.
@@ -155,6 +155,7 @@ export const ATTRIBUTE_TRANSFORMS = Object.freeze({
     "windowsBuildNumber",
     "windowsVersion"
   ),
+  primaryResolution: pick("height", "width"),
   profileAgeCreated: typeAssertions.quantity,
   region: typeAssertions.string,
   totalBookmarksCount: typeAssertions.quantity,
