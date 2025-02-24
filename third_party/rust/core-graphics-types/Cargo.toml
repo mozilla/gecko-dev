@@ -12,21 +12,31 @@
 [package]
 edition = "2018"
 name = "core-graphics-types"
-version = "0.1.3"
+version = "0.2.0"
 authors = ["The Servo Project Developers"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Bindings for some fundamental Core Graphics types"
 homepage = "https://github.com/servo/core-foundation-rs"
+readme = false
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/servo/core-foundation-rs"
 
 [package.metadata.docs.rs]
 default-target = "x86_64-apple-darwin"
 
+[lib]
+name = "core_graphics_types"
+path = "src/lib.rs"
+
 [dependencies.bitflags]
-version = "1.0"
+version = "2"
 
 [dependencies.core-foundation]
-version = "0.9.4"
+version = "0.10"
 default-features = false
 
 [dependencies.libc]

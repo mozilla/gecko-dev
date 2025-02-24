@@ -1,0 +1,19 @@
+[package]
+name = "core-foundation"
+version = "0.9.999"
+edition = "2018"
+license = "MIT or APACHE-2.0"
+
+[lib]
+path = "lib.rs"
+
+[dependencies.core-foundation]
+version = "0.10.0"
+default-features = false
+
+[features]
+default = ["core-foundation/default"]
+link = ["core-foundation/link"]
+mac_os_10_7_support = ["core-foundation/mac_os_10_7_support"]
+mac_os_10_8_features = ["core-foundation/mac_os_10_8_features"]
+with-uuid = ["core-foundation/with-uuid"]

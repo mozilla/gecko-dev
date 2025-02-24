@@ -21,7 +21,7 @@ use crate::base::{CFIndexConvertible, TCFType};
 use crate::base::{FromVoid, ItemRef, ToVoid};
 use crate::ConcreteCFType;
 
-// consume the type parameters with PhantomDatas
+// consume the type parameters with `PhantomData`
 pub struct CFDictionary<K = *const c_void, V = *const c_void>(
     CFDictionaryRef,
     PhantomData<K>,
@@ -148,7 +148,7 @@ impl<K, V> CFDictionary<K, V> {
     }
 }
 
-// consume the type parameters with PhantomDatas
+// consume the type parameters with `PhantomData`
 pub struct CFMutableDictionary<K = *const c_void, V = *const c_void>(
     CFMutableDictionaryRef,
     PhantomData<K>,
