@@ -11,6 +11,10 @@ from mach.decorators import Command, CommandArgument
 
 def classname_for_test(test, test_path):
     """Convert path of test file to gradle recognized test suite name"""
+    # Example:
+    # test      = mobile/android/android-components/components/feature/addons/src/test/java/mozilla/components/feature/addons/ui/PermissionsDialogFragmentTest.kt
+    # test_path = src/test/java
+    # returns   = mozilla.components.feature.addons.ui.PermissionsDialogFragmentTest
     return (
         os.path.normpath(test)
         .split(os.path.normpath(test_path))[-1]
@@ -22,6 +26,10 @@ def classname_for_test(test, test_path):
 
 def project_for_ac(test, test_path):
     """Get project name for android-component subprojects from path of test file"""
+    # Example:
+    # test      = mobile/android/android-components/components/feature/addons/src/test/java/mozilla/components/feature/addons/ui/PermissionsDialogFragmentTest.kt
+    # test_path = src/test/java
+    # returns   = feature-addons
     dir = os.path.normpath("mobile/android/android-components/components")
     return (
         os.path.normpath(test)
@@ -69,7 +77,7 @@ def run_android_test(command_context, subproject, test=None, test_objects=[], **
             "java",
         )
     elif subproject in AC:
-        if not test_objects or test:
+        if not test_objects and not test:
             return command_context._mach_context.commands.dispatch(
                 "gradle",
                 command_context._mach_context,
