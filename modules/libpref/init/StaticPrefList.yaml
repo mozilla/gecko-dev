@@ -8418,13 +8418,6 @@
   mirror: always
   set_spidermonkey_pref: startup
 
-# Support for Object.groupBy/Map.groupBy in JavaScript.
-- name: javascript.options.array_grouping
-  type: bool
-  value: true
-  mirror: always
-  set_spidermonkey_pref: startup
-
 # Experimental support for ArrayBuffer.prototype.transfer{,ToFixedLength}() in JavaScript.
 - name: javascript.options.arraybuffer_transfer
   type: bool

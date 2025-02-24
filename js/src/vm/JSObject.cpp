@@ -2230,10 +2230,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
   // to realize is that this is a -constructor function-, not a function
   // on the prototype; and the proto of the constructor is JSProto_Function.
   if (key == JSProto_Function) {
-    if (!JS::Prefs::array_grouping() && (id == NameToId(cx->names().groupBy))) {
-      return true;
-    }
-
     if (!JS::Prefs::experimental_uint8array_base64() &&
         (id == NameToId(cx->names().fromBase64) ||
          id == NameToId(cx->names().fromHex))) {

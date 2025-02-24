@@ -12928,10 +12928,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
 
   // Override pref values for prefs that have a custom shell flag.
   // If you're adding a new feature, consider using --setpref instead.
-
-  if (op.getBoolOption("disable-array-grouping")) {
-    JS::Prefs::setAtStartup_array_grouping(false);
-  }
   if (op.getBoolOption("disable-arraybuffer-transfer")) {
     JS::Prefs::setAtStartup_arraybuffer_transfer(false);
   }
