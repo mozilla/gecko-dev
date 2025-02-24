@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 from datetime import date, timedelta
-from typing import Optional
+from typing import List, Optional
 
 import requests
 from clean_skipfails import CleanSkipfails
@@ -1348,7 +1348,7 @@ def skipfails(
 )
 def clean_skipfails(
     command_context,
-    manifest_search_path: list[str],
+    manifest_search_path: List[str],
     os_name: Optional[str] = None,
     os_version: Optional[str] = None,
     processor: Optional[str] = None,

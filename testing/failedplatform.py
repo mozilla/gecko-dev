@@ -4,7 +4,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from functools import reduce
-from typing import Dict, Set
+from typing import Dict, List, Set
 
 
 class FailedPlatform:
@@ -29,10 +29,10 @@ class FailedPlatform:
         self.failures: Dict[str, Set[str]] = {}
         self.oop_permutations = oop_permutations
 
-    def get_possible_build_types(self) -> list[str]:
+    def get_possible_build_types(self) -> List[str]:
         return list(self.oop_permutations.keys())
 
-    def get_possible_test_variants(self, build_type: str) -> list[str]:
+    def get_possible_test_variants(self, build_type: str) -> List[str]:
         permutations = self.oop_permutations.get(build_type, {})
         return [tv for tv in permutations]
 

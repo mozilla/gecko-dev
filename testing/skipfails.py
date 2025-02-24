@@ -16,7 +16,7 @@ import urllib.parse
 from copy import deepcopy
 from pathlib import Path
 from statistics import median
-from typing import Any, Dict, Literal
+from typing import Any, Dict, List, Literal, Tuple
 from xmlrpc.client import Fault
 
 from failedplatform import FailedPlatform
@@ -438,7 +438,7 @@ class Skipfails(object):
         except ValueError:
             return task.label
 
-    def get_failures(self, tasks: list[TestTask]):
+    def get_failures(self, tasks: List[TestTask]):
         """
         find failures and create structure comprised of runs by path:
            result:
@@ -454,7 +454,7 @@ class Skipfails(object):
         """
 
         failures = {}
-        manifest_paths: Dict[str, Dict[str, list[str]]] = {}
+        manifest_paths: Dict[str, Dict[str, List[str]]] = {}
         manifest_ = {
             KIND: Kind.UNKNOWN,
             LL: {},
@@ -989,8 +989,8 @@ class Skipfails(object):
         kind: str,
         path: str,
         anyjs: Optional[Dict[str, bool]],
-        differences: list[int],
-        pixels: list[int],
+        differences: List[int],
+        pixels: List[int],
         lineno: int,
         status: str,
         label: str,
@@ -1206,7 +1206,7 @@ class Skipfails(object):
             task_id: str = result["taskId"]
             result = queue.listLatestArtifacts(task_id)
             if result is not None and task_id is not None:
-                artifact_list: list[Dict[Literal["name"], str]] = result["artifacts"]
+                artifact_list: List[Dict[Literal["name"], str]] = result["artifacts"]
                 for artifact in artifact_list:
                     artifact_name = artifact["name"]
                     if artifact_name.endswith("test-info-testrun-matrix.json"):
@@ -1623,7 +1623,7 @@ class Skipfails(object):
 
     def wpt_paths(
         self, shortpath: str
-    ) -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
         """
         Analyzes the WPT short path for a test and returns
         (path, manifest, query, anyjs) where
