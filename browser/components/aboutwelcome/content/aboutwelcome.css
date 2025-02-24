@@ -407,6 +407,9 @@ div#feature-callout.hidden {
 #feature-callout .screen[pos=callout] .section-main .main-content .main-content-inner {
   gap: 12px;
 }
+#feature-callout .screen[pos=callout] .section-main .main-content .main-content-inner .legal-paragraph .text-link {
+  color: var(--fc-color);
+}
 #feature-callout .screen[pos=callout] .section-main .main-content .steps {
   height: auto;
   position: absolute;

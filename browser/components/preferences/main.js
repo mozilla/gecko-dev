@@ -1282,7 +1282,6 @@ var gMainPane = {
         }
         this.updateAllButtons();
         this.elements.installList.appendChild(listFragment);
-        this.elements.installList.hidden = false;
       }
 
       /**

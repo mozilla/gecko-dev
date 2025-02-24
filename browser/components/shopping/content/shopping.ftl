@@ -8,8 +8,20 @@
 
 ## Opt-in message strings for Review Checker when it is integrated into the global sidebar.
 
-shopping-opt-in-integrated-headline = Shop with confidence
+shopping-opt-in-integrated-headline = Can you trust these reviews?
 shopping-opt-in-integrated-subtitle = Turn on Review Checker in { -brand-product-name } to see how reliable product reviews are, before you buy. It uses AI technology to analyze reviews. <a data-l10n-name="learn_more">Learn more</a>
+
+## Messages for callout for users not opted into the sidebar integrated version of Review Checker.
+
+# Appears underneath shopping-opt-in-integrated-headline to answer the question 'Can you trust these reviews?'
+shopping-callout-not-opted-in-integrated-paragraph1 = Turn on Review Checker from { -brand-product-name } to find out. It’s powered by { -fakespot-brand-full-name } and uses AI technology to analyze reviews.
+
+shopping-callout-not-opted-in-integrated-paragraph2 = By selecting “{ shopping-opt-in-integrated-button }” you agree to { -brand-product-name }’s <a data-l10n-name="privacy_policy">privacy notice</a> and { -fakespot-brand-full-name }’s <a data-l10n-name="terms_of_use">terms of use</a>.
+shopping-callout-not-opted-in-integrated-reminder-dismiss-button = Dismiss
+shopping-callout-not-opted-in-integrated-reminder-accept-button = Turn on Review Checker
+shopping-callout-not-opted-in-integrated-reminder-do-not-show = Don’t show this recommendation again
+shopping-callout-not-opted-in-integrated-reminder-show-fewer = Show fewer recommendations
+shopping-callout-not-opted-in-integrated-reminder-manage-settings = Manage settings
 shopping-opt-in-integrated-subtitle-unsupported-site = Review Checker from { -brand-product-name } helps you know how reliable a product’s reviews are, before you buy. It uses AI technology to analyze reviews. <a data-l10n-name="learn_more">Learn more</a>
 
 shopping-opt-in-integrated-privacy-policy-and-terms-of-use = Review Checker is powered by { -fakespot-brand-full-name }. By selecting “{ shopping-opt-in-integrated-button }“ you agree to { -brand-product-name }’s <a data-l10n-name="privacy_policy">privacy notice</a> and { -fakespot-brand-name }’s <a data-l10n-name="terms_of_use">terms of use.</a>

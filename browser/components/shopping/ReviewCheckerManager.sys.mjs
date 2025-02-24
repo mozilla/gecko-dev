@@ -96,7 +96,7 @@ export class ReviewCheckerManager {
       return;
     }
     this.window.gBrowser.addProgressListener(this);
-    this.window.addEventListener("ShowReviewCheckerSidebar", this);
+    this.window.addEventListener("OpenReviewCheckerSidebar", this);
     this.window.addEventListener("CloseReviewCheckerSidebar", this);
     this.#hasListeners = true;
   }
@@ -106,7 +106,7 @@ export class ReviewCheckerManager {
       return;
     }
     this.window.gBrowser.removeProgressListener(this);
-    this.window.removeEventListener("ShowReviewCheckerSidebar", this);
+    this.window.removeEventListener("OpenReviewCheckerSidebar", this);
     this.window.removeEventListener("CloseReviewCheckerSidebar", this);
     this.#hasListeners = null;
   }
@@ -209,6 +209,14 @@ export class ReviewCheckerManager {
     } else {
       // Check if we should auto-open to allow opting in.
       shouldAutoOpen = lazy.ShoppingUtils.handleAutoActivateOnProduct();
+
+      lazy.ShoppingUtils.sendTrigger({
+        browser: selectedBrowser,
+        id: "shoppingProductPageWithIntegratedRCSidebarClosed",
+        context: {
+          isReviewCheckerInSidebarClosed: !this.SidebarController?.isOpen,
+        },
+      });
     }
 
     // Only show sidebar if no sidebar panel is currently showing,

@@ -310,6 +310,12 @@
 
           .main-content-inner {
             gap: 12px;
+
+            .legal-paragraph {
+              .text-link {
+                color: var(--fc-color);
+              }
+            }
           }
 
           .steps {

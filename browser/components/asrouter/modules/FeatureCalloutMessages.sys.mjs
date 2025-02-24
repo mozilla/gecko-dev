@@ -1783,6 +1783,516 @@ const MESSAGES = () => {
         "not tested in automation and might pop up unexpectedly during review checker tests",
     },
     {
+      // "Callout 3" in the Review Checker Integrated Sidebar Migration Figma spec
+      // For non-opted in users
+      // Triggered if the Review Checker is panel is closed and user visits a product page
+      // Explains why you should use Review Checker and prompts to opt in
+      // Horizontal tabs
+      id: "REVIEW_CHECKER_CALLOUT_PDP_NOT_OPTED_IN_REMINDER",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_CALLOUT_PDP_NOT_OPTED_IN_REMINDER",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_CALLOUT_PDP_NOT_OPTED_IN_REMINDER_HORIZONTAL",
+            anchors: [
+              {
+                selector:
+                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "topleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "leftcenter",
+                  callout_attachment: "topright",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id: "shopping-opt-in-integrated-headline",
+                fontSize: "20px",
+                letterSpacing: "0",
+              },
+              subtitle: {
+                string_id:
+                  "shopping-callout-not-opted-in-integrated-paragraph1",
+                letterSpacing: "0",
+              },
+              above_button_content: [
+                {
+                  type: "text",
+                  text: {
+                    string_id:
+                      "shopping-callout-not-opted-in-integrated-paragraph2",
+                    letterSpacing: "0",
+                    textAlign: "start",
+                    fontSize: "0.831em",
+                    marginBlock: "0",
+                    marginInline: "0",
+                  },
+                  link_keys: ["privacy_policy", "terms_of_use"],
+                  font_styles: "legal",
+                },
+              ],
+              privacy_policy: {
+                action: {
+                  type: "OPEN_URL",
+                  data: {
+                    args: "https://www.mozilla.org/privacy/firefox?utm_source=review-checker&utm_campaign=privacy-policy&utm_medium=in-product&utm_term=opt-in-screen",
+                    where: "tab",
+                  },
+                },
+              },
+              terms_of_use: {
+                action: {
+                  type: "OPEN_URL",
+                  data: {
+                    args: "https://www.fakespot.com/terms?utm_source=review-checker&utm_campaign=terms-of-use&utm_medium=in-product",
+                    where: "tab",
+                  },
+                },
+              },
+              logo: {
+                imageURL:
+                  "chrome://browser/content/shopping/assets/reviewsVisualCallout.svg",
+                alt: {
+                  string_id: "shopping-callout-not-opted-in-reminder-img-alt",
+                },
+                height: "214px",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+                marginBlock: "28px 0",
+                marginInline: "0 28px",
+              },
+              secondary_button: {
+                label: {
+                  string_id:
+                    "shopping-callout-not-opted-in-integrated-reminder-accept-button",
+                  marginBlock: "0 -8px",
+                },
+                style: "primary",
+                action: {
+                  type: "MULTI_ACTION",
+                  collectSelect: true,
+                  data: {
+                    actions: [
+                      {
+                        type: "SET_PREF",
+                        data: {
+                          pref: {
+                            name: "browser.shopping.experience2023.optedIn",
+                            value: 1,
+                          },
+                        },
+                      },
+                      {
+                        type: "OPEN_SIDEBAR",
+                        data: "viewReviewCheckerSidebar",
+                      },
+                    ],
+                  },
+                  dismiss: true,
+                },
+              },
+              additional_button: {
+                label: {
+                  string_id:
+                    "shopping-callout-not-opted-in-integrated-reminder-dismiss-button",
+                  marginBlock: "0 -8px",
+                },
+                style: "secondary",
+                action: { dismiss: true },
+              },
+              submenu_button: {
+                submenu: [
+                  {
+                    type: "action",
+                    label: {
+                      raw: {
+                        string_id:
+                          "shopping-callout-not-opted-in-integrated-reminder-do-not-show",
+                      },
+                    },
+                    action: {
+                      type: "SET_PREF",
+                      data: {
+                        pref: {
+                          name: "messaging-system-action.shopping-block-review-checker-callout-3",
+                          value: true,
+                        },
+                      },
+                      dismiss: true,
+                    },
+                    id: "shopping-callout-not-opted-in-integrated-reminder-do-not-show",
+                  },
+                  {
+                    type: "action",
+                    label: {
+                      raw: {
+                        string_id:
+                          "shopping-callout-not-opted-in-integrated-reminder-show-fewer",
+                      },
+                    },
+                    action: {
+                      type: "MULTI_ACTION",
+                      collectSelect: true,
+                      data: {
+                        actions: [
+                          {
+                            type: "SET_PREF",
+                            data: {
+                              pref: {
+                                name: "messaging-system-action.shopping-block-review-checker-callouts",
+                                value: true,
+                              },
+                            },
+                          },
+                          {
+                            type: "SET_PREF",
+                            data: {
+                              pref: {
+                                name: "messaging-system-action.shopping-block-review-checker-callout-3",
+                                value: true,
+                              },
+                            },
+                          },
+                        ],
+                      },
+                      dismiss: true,
+                    },
+                    id: "shopping-callout-not-opted-in-integrated-reminder-show-fewer",
+                  },
+                  {
+                    type: "separator",
+                  },
+                  {
+                    type: "action",
+                    label: {
+                      raw: {
+                        string_id:
+                          "shopping-callout-not-opted-in-integrated-reminder-manage-settings",
+                      },
+                    },
+                    action: {
+                      type: "OPEN_ABOUT_PAGE",
+                      data: {
+                        args: "settings#general-cfrfeatures",
+                        where: "tab",
+                      },
+                      dismiss: true,
+                    },
+                    id: "shopping-callout-not-opted-in-integrated-reminder-manage-settings",
+                  },
+                ],
+                attached_to: "additional_button",
+                style: "secondary",
+                label: {
+                  marginBlock: "0 -8px",
+                },
+              },
+              tiles: {
+                type: "multiselect",
+                style: {
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                },
+                data: [],
+              },
+            },
+          },
+        ],
+      },
+      priority: 2,
+      // Review checker is added to the sidebar; Sidebar is closed; Review checker callouts have not been disabled; Integrated Sidebar is enabled; User is not opted in; Has not opted out of CFRs; Onboarding impression was at least 24 hr ago; Frequency of 5 days;
+      targeting:
+        "'sidebar.main.tools' | preferenceValue | regExpMatch('reviewchecker') && !'messaging-system-action.shopping-block-review-checker-callout-3' | preferenceValue && !'messaging-system-action.shopping-block-review-checker-callouts' | preferenceValue && isReviewCheckerInSidebarClosed && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 0 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && 'browser.shopping.experience2023.firstImpressionTime' | preferenceValue && ((currentDate | date - ('browser.shopping.experience2023.firstImpressionTime' | preferenceValue * 1000)) / 3600000) > 24 && !'sidebar.verticalTabs' | preferenceValue",
+      trigger: {
+        id: "shoppingProductPageWithIntegratedRCSidebarClosed",
+      },
+      frequency: {
+        custom: [
+          {
+            cap: 1,
+            period: 432000000,
+          },
+        ],
+        lifetime: 3,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
+      // "Callout 3" in the Review Checker Integrated Sidebar Migration Figma spec
+      // For non-opted in users
+      // Triggered if the Review Checker is panel is closed and user visits a product page
+      // Explains why you should use Review Checker and prompts to opt in
+      // Vertical tabs
+      id: "REVIEW_CHECKER_CALLOUT_PDP_NOT_OPTED_IN_REMINDER",
+      template: "feature_callout",
+      content: {
+        id: "REVIEW_CHECKER_CALLOUT_PDP_NOT_OPTED_IN_REMINDER",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "REVIEW_CHECKER_CALLOUT_PDP_NOT_OPTED_IN_REMINDER_VERTICAL",
+            anchors: [
+              {
+                selector:
+                  "#sidebar-main:not([positionend]) > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "rightcenter",
+                  callout_attachment: "bottomleft",
+                },
+                no_open_on_anchor: true,
+              },
+              {
+                selector:
+                  "#sidebar-main[positionend] > sidebar-main::%shadow% .tools-and-extensions::%shadow% moz-button[view='viewReviewCheckerSidebar']",
+                panel_position: {
+                  anchor_attachment: "leftcenter",
+                  callout_attachment: "bottomright",
+                },
+                no_open_on_anchor: true,
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "401px",
+              title: {
+                string_id: "shopping-opt-in-integrated-headline",
+                fontSize: "20px",
+                letterSpacing: "0",
+              },
+              subtitle: {
+                string_id:
+                  "shopping-callout-not-opted-in-integrated-paragraph1",
+                letterSpacing: "0",
+              },
+              above_button_content: [
+                {
+                  type: "text",
+                  text: {
+                    string_id:
+                      "shopping-callout-not-opted-in-integrated-paragraph2",
+                    letterSpacing: "0",
+                    textAlign: "start",
+                    fontSize: "0.831em",
+                    marginBlock: "0",
+                    marginInline: "0",
+                  },
+                  link_keys: ["privacy_policy", "terms_of_use"],
+                  font_styles: "legal",
+                },
+              ],
+              privacy_policy: {
+                action: {
+                  type: "OPEN_URL",
+                  data: {
+                    args: "https://www.mozilla.org/privacy/firefox?utm_source=review-checker&utm_campaign=privacy-policy&utm_medium=in-product&utm_term=opt-in-screen",
+                    where: "tab",
+                  },
+                },
+              },
+              terms_of_use: {
+                action: {
+                  type: "OPEN_URL",
+                  data: {
+                    args: "https://www.fakespot.com/terms?utm_source=review-checker&utm_campaign=terms-of-use&utm_medium=in-product",
+                    where: "tab",
+                  },
+                },
+              },
+              logo: {
+                imageURL:
+                  "chrome://browser/content/shopping/assets/reviewsVisualCallout.svg",
+                alt: {
+                  string_id: "shopping-callout-not-opted-in-reminder-img-alt",
+                },
+                height: "214px",
+              },
+              dismiss_button: {
+                action: { dismiss: true },
+                size: "small",
+                marginBlock: "28px 0",
+                marginInline: "0 28px",
+              },
+              secondary_button: {
+                label: {
+                  string_id:
+                    "shopping-callout-not-opted-in-integrated-reminder-accept-button",
+                  marginBlock: "0 -8px",
+                },
+                style: "primary",
+                action: {
+                  type: "MULTI_ACTION",
+                  collectSelect: true,
+                  data: {
+                    actions: [
+                      {
+                        type: "SET_PREF",
+                        data: {
+                          pref: {
+                            name: "browser.shopping.experience2023.optedIn",
+                            value: 1,
+                          },
+                        },
+                      },
+                      {
+                        type: "OPEN_SIDEBAR",
+                        data: "viewReviewCheckerSidebar",
+                      },
+                    ],
+                  },
+                  dismiss: true,
+                },
+              },
+              additional_button: {
+                label: {
+                  string_id:
+                    "shopping-callout-not-opted-in-integrated-reminder-dismiss-button",
+                  marginBlock: "0 -8px",
+                },
+                style: "secondary",
+                action: { dismiss: true },
+              },
+              submenu_button: {
+                submenu: [
+                  {
+                    type: "action",
+                    label: {
+                      raw: {
+                        string_id:
+                          "shopping-callout-not-opted-in-integrated-reminder-do-not-show",
+                      },
+                    },
+                    action: {
+                      type: "SET_PREF",
+                      data: {
+                        pref: {
+                          name: "messaging-system-action.shopping-block-review-checker-callout-3",
+                          value: true,
+                        },
+                      },
+                      dismiss: true,
+                    },
+                    id: "shopping-callout-not-opted-in-integrated-reminder-do-not-show",
+                  },
+                  {
+                    type: "action",
+                    label: {
+                      raw: {
+                        string_id:
+                          "shopping-callout-not-opted-in-integrated-reminder-show-fewer",
+                      },
+                    },
+                    action: {
+                      type: "MULTI_ACTION",
+                      collectSelect: true,
+                      data: {
+                        actions: [
+                          {
+                            type: "SET_PREF",
+                            data: {
+                              pref: {
+                                name: "messaging-system-action.shopping-block-review-checker-callouts",
+                                value: true,
+                              },
+                            },
+                          },
+                          {
+                            type: "SET_PREF",
+                            data: {
+                              pref: {
+                                name: "messaging-system-action.shopping-block-review-checker-callout-3",
+                                value: true,
+                              },
+                            },
+                          },
+                        ],
+                      },
+                      dismiss: true,
+                    },
+                    id: "shopping-callout-not-opted-in-integrated-reminder-show-fewer",
+                  },
+                  {
+                    type: "separator",
+                  },
+                  {
+                    type: "action",
+                    label: {
+                      raw: {
+                        string_id:
+                          "shopping-callout-not-opted-in-integrated-reminder-manage-settings",
+                      },
+                    },
+                    action: {
+                      type: "OPEN_ABOUT_PAGE",
+                      data: {
+                        args: "settings#general-cfrfeatures",
+                        where: "tab",
+                      },
+                      dismiss: true,
+                    },
+                    id: "shopping-callout-not-opted-in-integrated-reminder-manage-settings",
+                  },
+                ],
+                attached_to: "additional_button",
+                style: "secondary",
+                label: {
+                  marginBlock: "0 -8px",
+                },
+              },
+              tiles: {
+                type: "multiselect",
+                style: {
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                },
+                data: [],
+              },
+            },
+          },
+        ],
+      },
+      priority: 2,
+      // Review checker is added to the sidebar; Sidebar is closed; Review checker callouts have not been disabled; Integrated Sidebar is enabled; User is not opted in; Has not opted out of CFRs; Onboarding impression was at least 24 hr ago; Frequency of 5 days;
+      targeting:
+        "'sidebar.main.tools' | preferenceValue | regExpMatch('reviewchecker') && !'messaging-system-action.shopping-block-review-checker-callout-3' | preferenceValue && !'messaging-system-action.shopping-block-review-checker-callouts' | preferenceValue && isReviewCheckerInSidebarClosed && 'browser.shopping.experience2023.integratedSidebar' | preferenceValue && 'sidebar.revamp' | preferenceValue && 'browser.shopping.experience2023.optedIn' | preferenceValue == 0 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && 'browser.shopping.experience2023.firstImpressionTime' | preferenceValue && ((currentDate | date - ('browser.shopping.experience2023.firstImpressionTime' | preferenceValue * 1000)) / 3600000) > 24 && 'sidebar.verticalTabs' | preferenceValue",
+      trigger: {
+        id: "shoppingProductPageWithIntegratedRCSidebarClosed",
+      },
+      frequency: {
+        custom: [
+          {
+            cap: 1,
+            period: 432000000,
+          },
+        ],
+        lifetime: 3,
+      },
+      skip_in_tests:
+        "not tested in automation and might pop up unexpectedly during review checker tests",
+    },
+    {
       // "Callout 4" in the Fakespot Figma spec, for rediscoverability experiment 2.
       id: "FAKESPOT_CALLOUT_DISABLED_AUTO_OPEN",
       template: "feature_callout",

@@ -624,7 +624,7 @@ export class FeatureCallout {
       // example, if we're anchoring directly to the trigger tab, our selector
       // might look like `%triggerTab%[visuallyselected]`. In this case,
       // querySelector() will return nothing, but matches() will return true.
-      if (!element && scope.matches(selector)) {
+      if (!element && scope.matches?.(selector)) {
         element = scope;
       }
       if (!element) {
