@@ -107,7 +107,7 @@ export class Popup extends Component {
 
   renderPreview() {
     const {
-      preview: { root, exception, resultGrip, previewType },
+      preview: { root, exception, previewType },
     } = this.props;
 
     const usesCustomFormatter =
@@ -150,15 +150,8 @@ export class Popup extends Component {
         onDOMNodeMouseOver: grip => this.props.highlightDomElement(grip),
         onDOMNodeMouseOut: grip => this.props.unHighlightDomElement(grip),
         mayUseCustomFormatter: true,
-        onViewSourceInDebugger: () => {
-          return (
-            resultGrip.location &&
-            this.props.selectSourceURL(resultGrip.location.url, {
-              line: resultGrip.location.line,
-              column: resultGrip.location.column,
-            })
-          );
-        },
+        onViewSourceInDebugger: ({ url, line, column }) =>
+          this.props.selectSourceURL(url, { line, column }),
       })
     );
   }

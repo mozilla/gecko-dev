@@ -14,6 +14,7 @@ const TEST_URL =
     debugger;
   }
   function b() {}
+  const o = { b };
 </script>`);
 
 const TEST_URL_ONE_LINE =
@@ -62,4 +63,22 @@ add_task(async function testJumpToDefinitionInPrettyPrintedSource() {
   await clickElement(dbg, "previewPopupObjectFunctionJumpToDefinition");
 
   await waitForSelectedLocation(dbg, 6, 10);
+});
+
+add_task(async function testJumpToDefinitionOfObjectProperty() {
+  const dbg = await initDebuggerWithAbsoluteURL(TEST_URL, TEST_URL);
+
+  invokeInTab("main");
+  await waitForPaused(dbg);
+
+  info("Hovers over 'o' token to display the preview.");
+  await tryHovering(dbg, 7, 9, "previewPopup");
+
+  info("Wait for the 'b' function to be previewed");
+  await waitForAllElements(dbg, "previewPopupObjectFunction", 1);
+
+  info("Click on the function to jump to its location");
+  await clickElement(dbg, "previewPopupObjectFunctionJumpToDefinition");
+
+  await waitForSelectedLocation(dbg, 6, 12);
 });
