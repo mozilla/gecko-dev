@@ -11,6 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import mozilla.components.lib.state.ext.observeAsState
+import org.mozilla.fenix.settings.doh.addexception.AddExceptionScreen
+import org.mozilla.fenix.settings.doh.exceptionslist.ExceptionsListScreen
 import org.mozilla.fenix.settings.doh.info.InfoScreen
 import org.mozilla.fenix.settings.doh.info.InfoScreenTopic
 import org.mozilla.fenix.settings.doh.root.DohSettingsScreen
@@ -147,6 +149,50 @@ internal fun DohSettingsNavHost(
                 },
             )
         }
+
+        composable(route = DohSettingsDestinations.EXCEPTIONS_LIST) {
+            val state by store.observeAsState(store.state) { it }
+            ExceptionsListScreen(
+                state = state,
+                onNavigateUp = {
+                    store.dispatch(
+                        BackClicked,
+                    )
+                },
+                onAddExceptionsClicked = {
+                    store.dispatch(
+                        ExceptionsAction.AddExceptionsClicked,
+                    )
+                },
+                onRemoveClicked = { url ->
+                    store.dispatch(
+                        ExceptionsAction.RemoveClicked(url),
+                    )
+                },
+                onRemoveAllClicked = {
+                    store.dispatch(
+                        ExceptionsAction.RemoveAllClicked,
+                    )
+                },
+            )
+        }
+
+        composable(route = DohSettingsDestinations.ADD_EXCEPTION) {
+            val state by store.observeAsState(store.state) { it }
+            AddExceptionScreen(
+                state = state,
+                onNavigateUp = {
+                    store.dispatch(
+                        BackClicked,
+                    )
+                },
+                onSaveClicked = { url ->
+                    store.dispatch(
+                        ExceptionsAction.SaveClicked(url),
+                    )
+                },
+            )
+        }
     }
 }
 
@@ -158,4 +204,6 @@ internal object DohSettingsDestinations {
     const val INFO_DEFAULT = "doh:settings:info"
     const val INFO_INCREASED = "doh:settings:info-increased"
     const val INFO_MAX = "doh:settings:info-max"
+    const val EXCEPTIONS_LIST = "doh:settings:list-exceptions"
+    const val ADD_EXCEPTION = "doh:settings:add-exception"
 }
