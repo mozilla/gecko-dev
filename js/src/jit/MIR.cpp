@@ -4659,16 +4659,15 @@ static mozilla::Maybe<TypeOfCompareInput> IsTypeOfCompare(MCompare* ins) {
     auto* lhs = ins->lhs();
     auto* rhs = ins->rhs();
 
-    if (ins->type() != MIRType::Boolean || lhs->type() != MIRType::Int32 ||
-        rhs->type() != MIRType::Int32) {
-      return mozilla::Nothing();
-    }
-
     // NOTE: The comparison is generated inside JIT, and typeof should always
     //       be in the LHS.
     if (!lhs->isTypeOf() || !rhs->isConstant()) {
       return mozilla::Nothing();
     }
+
+    MOZ_ASSERT(ins->type() == MIRType::Boolean);
+    MOZ_ASSERT(lhs->type() == MIRType::Int32);
+    MOZ_ASSERT(rhs->type() == MIRType::Int32);
 
     auto* typeOf = lhs->toTypeOf();
     auto* constant = rhs->toConstant();
@@ -4713,70 +4712,61 @@ bool MCompare::tryFoldTypeOf(bool* result) {
   auto* typeOf = typeOfCompare->typeOf;
   JSType type = typeOfCompare->type;
 
-  switch (type) {
-    case JSTYPE_BOOLEAN:
-      if (!typeOf->input()->mightBeType(MIRType::Boolean)) {
-        *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-        return true;
-      }
-      break;
-    case JSTYPE_NUMBER:
-      if (!typeOf->input()->mightBeType(MIRType::Int32) &&
-          !typeOf->input()->mightBeType(MIRType::Float32) &&
-          !typeOf->input()->mightBeType(MIRType::Double)) {
-        *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-        return true;
-      }
-      break;
-    case JSTYPE_STRING:
-      if (!typeOf->input()->mightBeType(MIRType::String)) {
-        *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-        return true;
-      }
-      break;
-    case JSTYPE_SYMBOL:
-      if (!typeOf->input()->mightBeType(MIRType::Symbol)) {
-        *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-        return true;
-      }
-      break;
-    case JSTYPE_BIGINT:
-      if (!typeOf->input()->mightBeType(MIRType::BigInt)) {
-        *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-        return true;
-      }
-      break;
-    case JSTYPE_OBJECT:
-      if (!typeOf->input()->mightBeType(MIRType::Object) &&
-          !typeOf->input()->mightBeType(MIRType::Null)) {
-        *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-        return true;
-      }
-      break;
-    case JSTYPE_UNDEFINED:
-      if (!typeOf->input()->mightBeType(MIRType::Object) &&
-          !typeOf->input()->mightBeType(MIRType::Undefined)) {
-        *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-        return true;
-      }
-      break;
-    case JSTYPE_FUNCTION:
-      if (!typeOf->input()->mightBeType(MIRType::Object)) {
-        *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-        return true;
-      }
-      break;
-    case JSTYPE_LIMIT:
-      *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
-      return true;
-#ifdef ENABLE_RECORD_TUPLE
-    case JSTYPE_RECORD:
-    case JSTYPE_TUPLE:
-      MOZ_CRASH("Records and Tuples are not supported yet.");
-#endif
+  // Can't fold if the input is boxed. (Unless the typeof string is bogus.)
+  MIRType inputType = typeOf->input()->type();
+  if (inputType == MIRType::Value && type != JSTYPE_LIMIT) {
+    return false;
   }
 
-  return false;
+  bool matchesInputType;
+  switch (type) {
+    case JSTYPE_BOOLEAN:
+      matchesInputType = (inputType == MIRType::Boolean);
+      break;
+    case JSTYPE_NUMBER:
+      matchesInputType = IsTypeRepresentableAsDouble(inputType);
+      break;
+    case JSTYPE_STRING:
+      matchesInputType = (inputType == MIRType::String);
+      break;
+    case JSTYPE_SYMBOL:
+      matchesInputType = (inputType == MIRType::Symbol);
+      break;
+    case JSTYPE_BIGINT:
+      matchesInputType = (inputType == MIRType::BigInt);
+      break;
+    case JSTYPE_OBJECT:
+      // Watch out for `object-emulating-undefined` and callable objects.
+      if (inputType == MIRType::Object) {
+        return false;
+      }
+      matchesInputType = (inputType == MIRType::Null);
+      break;
+    case JSTYPE_UNDEFINED:
+      // Watch out for `object-emulating-undefined`.
+      if (inputType == MIRType::Object) {
+        return false;
+      }
+      matchesInputType = (inputType == MIRType::Undefined);
+      break;
+    case JSTYPE_FUNCTION:
+      // Can't decide at compile-time if an object is callable.
+      if (inputType == MIRType::Object) {
+        return false;
+      }
+      matchesInputType = false;
+      break;
+    case JSTYPE_LIMIT:
+      matchesInputType = false;
+      break;
+  }
+
+  if (matchesInputType) {
+    *result = (jsop() == JSOp::StrictEq || jsop() == JSOp::Eq);
+  } else {
+    *result = (jsop() == JSOp::StrictNe || jsop() == JSOp::Ne);
+  }
+  return true;
 }
 
 bool MCompare::tryFold(bool* result) {
