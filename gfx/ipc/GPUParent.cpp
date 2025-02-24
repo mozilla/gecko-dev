@@ -413,6 +413,10 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
   gfx::CanvasRenderThread::Start();
   image::ImageMemoryReporter::InitForWebRender();
 
+  // Since gfxPlatform::Init is never called for the GPU process, ensure that
+  // common memory reporters get registered here instead.
+  gfxPlatform::InitMemoryReportersForGPUProcess();
+
   VRManager::ManagerInit();
   // Send a message to the UI process that we're done.
   GPUDeviceData data;

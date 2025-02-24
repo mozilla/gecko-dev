@@ -1045,6 +1045,13 @@ void gfxPlatform::Init() {
   }
 }
 
+void gfxPlatform::InitMemoryReportersForGPUProcess() {
+  MOZ_RELEASE_ASSERT(XRE_IsGPUProcess());
+
+  RegisterStrongMemoryReporter(new GfxMemoryImageReporter());
+  RegisterStrongMemoryReporter(new SkMemoryReporter());
+}
+
 void gfxPlatform::ReportTelemetry() {
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess(),
                      "GFX: Only allowed to be called from parent process.");

@@ -215,6 +215,8 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   static int32_t MaxAllocSize();
   static void InitMoz2DLogging();
 
+  static void InitMemoryReportersForGPUProcess();
+
   static bool IsHeadless();
 
   static bool UseRemoteCanvas();
