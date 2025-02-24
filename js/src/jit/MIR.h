@@ -13,6 +13,7 @@
 #define jit_MIR_h
 
 #include "mozilla/Array.h"
+#include "mozilla/EnumSet.h"
 #include "mozilla/HashFunctions.h"
 #ifdef JS_JITSPEW
 #  include "mozilla/Attributes.h"  // MOZ_STACK_CLASS
@@ -740,8 +741,15 @@ class MDefinition : public MNode {
 
   bool mightBeMagicType() const;
 
-  // Return true if the result-set types are a subset of the given types.
-  bool definitelyType(std::initializer_list<MIRType> types) const;
+  // Default EnumSet serialization is based on the enum's underlying type, which
+  // means uint8_t for MIRType. To store all possible MIRType values we need at
+  // least uint32_t.
+  using MIRTypeEnumSet = mozilla::EnumSet<MIRType, uint32_t>;
+  static_assert(static_cast<size_t>(MIRType::Last) <
+                sizeof(MIRTypeEnumSet::serializedType) * CHAR_BIT);
+
+  // Return true if the result type is a member of the given types.
+  bool definitelyType(MIRTypeEnumSet types) const;
 
   // Float32 specialization operations (see big comment in IonAnalysis before
   // the Float32 specialization algorithm).

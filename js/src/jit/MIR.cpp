@@ -516,7 +516,7 @@ bool MDefinition::mightBeMagicType() const {
   return true;
 }
 
-bool MDefinition::definitelyType(std::initializer_list<MIRType> types) const {
+bool MDefinition::definitelyType(MIRTypeEnumSet types) const {
 #ifdef DEBUG
   // Only support specialized, non-magic types.
   auto isSpecializedNonMagic = [](MIRType type) {
@@ -524,14 +524,14 @@ bool MDefinition::definitelyType(std::initializer_list<MIRType> types) const {
   };
 #endif
 
-  MOZ_ASSERT(types.size() > 0);
+  MOZ_ASSERT(!types.isEmpty());
   MOZ_ASSERT(std::all_of(types.begin(), types.end(), isSpecializedNonMagic));
 
   if (type() == MIRType::Value) {
     return false;
   }
 
-  return std::find(types.begin(), types.end(), type()) != types.end();
+  return types.contains(type());
 }
 
 MDefinition* MInstruction::foldsToStore(TempAllocator& alloc) {
