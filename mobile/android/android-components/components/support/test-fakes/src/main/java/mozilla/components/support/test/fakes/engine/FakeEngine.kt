@@ -27,6 +27,7 @@ import org.junit.Assert.assertEquals
  */
 class FakeEngine(
     private val expectToRestoreRealEngineSessionState: Boolean = false,
+    private val expectedSettings: Settings = DefaultSettings(),
 ) : Engine {
     override val version: EngineVersion
         get() = throw NotImplementedError()
@@ -67,5 +68,5 @@ class FakeEngine(
     override val profiler: Profiler
         get() = throw NotImplementedError()
 
-    override val settings: Settings = DefaultSettings()
+    override val settings: Settings = expectedSettings
 }
