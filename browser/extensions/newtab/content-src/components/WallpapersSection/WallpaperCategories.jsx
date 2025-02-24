@@ -59,6 +59,16 @@ export class _WallpaperCategories extends React.PureComponent {
     );
   }
 
+  componentDidUpdate(prevProps) {
+    // Walllpaper category subpanel should close when parent menu is closed
+    if (
+      this.props.exitEventFired &&
+      this.props.exitEventFired !== prevProps.exitEventFired
+    ) {
+      this.handleBack();
+    }
+  }
+
   handleColorInput(event) {
     let { id } = event.target;
     // Set ID to include hex value of custom color
