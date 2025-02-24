@@ -189,14 +189,19 @@ void AltSvcMapping::ProcessHeader(
   }
 
   auto doUpdateAltSvcMapping = [&](AltSvcMapping* aMapping) {
-    if (aTransConnInfo &&
-        StaticPrefs::network_http_skip_alt_svc_validation_on_https_rr()) {
-      RefPtr<nsHttpConnectionInfo> ci;
-      aMapping->GetConnectionInfo(getter_AddRefs(ci), proxyInfo,
-                                  originAttributes);
-      if (ci->HashKey().Equals(aTransConnInfo->HashKey())) {
-        LOG(("The transaction's conninfo is the same, no need to validate"));
-        aDontValidate = true;
+    if (aTransConnInfo) {
+      if (aTransConnInfo->HasEchConfig()) {
+        LOG(("Server has ECH, use HTTPS RR to connect instead"));
+        return;
+      }
+      if (StaticPrefs::network_http_skip_alt_svc_validation_on_https_rr()) {
+        RefPtr<nsHttpConnectionInfo> ci;
+        aMapping->GetConnectionInfo(getter_AddRefs(ci), proxyInfo,
+                                    originAttributes);
+        if (ci->HashKey().Equals(aTransConnInfo->HashKey())) {
+          LOG(("The transaction's conninfo is the same, no need to validate"));
+          aDontValidate = true;
+        }
       }
     }
     if (!aDontValidate) {
@@ -1008,7 +1013,9 @@ already_AddRefed<AltSvcMapping> AltSvcCache::LookupMapping(
   return mapping.forget();
 }
 
-// This is only used for testing!
+// For cases where the connection's hash key matches the hash key generated
+// from the alt-svc header, validation is skipped since an equivalent connection
+// already exists.
 void AltSvcCache::UpdateAltServiceMappingWithoutValidation(
     AltSvcMapping* map, nsProxyInfo* pi, nsIInterfaceRequestor* aCallbacks,
     uint32_t caps, const OriginAttributes& originAttributes) {
