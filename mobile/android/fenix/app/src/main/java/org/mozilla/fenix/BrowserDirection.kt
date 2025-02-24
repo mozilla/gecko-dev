@@ -26,6 +26,7 @@ enum class BrowserDirection(@IdRes val fragmentId: Int) {
     FromAbout(R.id.aboutFragment),
     FromTrackingProtection(R.id.trackingProtectionFragment),
     FromHttpsOnlyMode(R.id.httpsOnlyFragment),
+    FromDnsOverHttps(R.id.dohSettingsFragment),
     FromTrackingProtectionDialog(R.id.trackingProtectionPanelDialogFragment),
     FromSavedLoginsFragment(R.id.savedLoginsFragment),
     FromAddNewDeviceFragment(R.id.addNewDeviceFragment),

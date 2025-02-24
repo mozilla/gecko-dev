@@ -34,6 +34,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
+import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.sync.AccountObserver
 import mozilla.components.concept.sync.AuthType
 import mozilla.components.concept.sync.OAuthAccount
@@ -368,6 +369,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 SettingsFragmentDirections.actionSettingsFragmentToTrackingProtectionFragment()
             }
 
+            resources.getString(R.string.pref_key_doh_settings) -> {
+                SettingsFragmentDirections.actionSettingsFragmentToDohSettingsFragment()
+            }
+
             resources.getString(R.string.pref_key_site_permissions) -> {
                 SettingsFragmentDirections.actionSettingsFragmentToSitePermissionsFragment()
             }
@@ -561,6 +566,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         setupSearchPreference()
         setupHomepagePreference()
         setupTrackingProtectionPreference()
+        setupDnsOverHttpsPreference(requireContext().settings())
     }
 
     /**
@@ -728,6 +734,19 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 context.settings().useStandardTrackingProtection -> getString(R.string.tracking_protection_standard)
                 context.settings().useStrictTrackingProtection -> getString(R.string.tracking_protection_strict)
                 context.settings().useCustomTrackingProtection -> getString(R.string.tracking_protection_custom)
+                else -> null
+            }
+        }
+    }
+
+    private fun setupDnsOverHttpsPreference(settings: Settings) {
+        with(requirePreference<Preference>(R.string.pref_key_doh_settings)) {
+            isVisible = settings.showDohEntryPoint
+            summary = when (context.components.core.engine.settings.dohSettingsMode) {
+                Engine.DohSettingsMode.DEFAULT -> getString(R.string.preference_doh_default_protection)
+                Engine.DohSettingsMode.OFF -> getString(R.string.preference_doh_off)
+                Engine.DohSettingsMode.INCREASED -> getString(R.string.preference_doh_increased_protection)
+                Engine.DohSettingsMode.MAX -> getString(R.string.preference_doh_max_protection)
                 else -> null
             }
         }

@@ -47,6 +47,7 @@ import org.mozilla.fenix.settings.SettingsFragmentDirections
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.TrackingProtectionFragmentDirections
 import org.mozilla.fenix.settings.about.AboutFragmentDirections
+import org.mozilla.fenix.settings.doh.DohSettingsFragmentDirections
 import org.mozilla.fenix.settings.logins.fragment.LoginDetailFragmentDirections
 import org.mozilla.fenix.settings.logins.fragment.SavedLoginsAuthFragmentDirections
 import org.mozilla.fenix.settings.search.SaveSearchEngineFragmentDirections
@@ -294,6 +295,8 @@ private fun getHomeNavDirections(
         TrackingProtectionExceptionsFragmentDirections.actionGlobalBrowser()
 
     BrowserDirection.FromHttpsOnlyMode -> HttpsOnlyFragmentDirections.actionGlobalBrowser()
+
+    BrowserDirection.FromDnsOverHttps -> DohSettingsFragmentDirections.actionGlobalBrowser()
 
     BrowserDirection.FromAbout -> AboutFragmentDirections.actionGlobalBrowser()
 

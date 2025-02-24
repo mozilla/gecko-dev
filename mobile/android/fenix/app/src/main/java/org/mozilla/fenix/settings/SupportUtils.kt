@@ -61,6 +61,9 @@ object SupportUtils {
         SMARTBLOCK("smartblock-enhanced-tracking-protection"),
         SPONSOR_PRIVACY("sponsor-privacy"),
         HTTPS_ONLY_MODE("https-only-mode-firefox-android"),
+        DNS_OVER_HTTPS("https-only-mode-firefox-android"), // FIXME
+        DNS_OVER_HTTPS_LOCAL_PROVIDER("https-only-mode-firefox-android"), // FIXME
+        DNS_OVER_HTTPS_NETWORK("https-only-mode-firefox-android"), // FIXME
         UNSIGNED_ADDONS("unsigned-addons"),
         REVIEW_QUALITY_CHECK("review_checker_mobile"),
         FX_SUGGEST("search-suggestions-firefox"),

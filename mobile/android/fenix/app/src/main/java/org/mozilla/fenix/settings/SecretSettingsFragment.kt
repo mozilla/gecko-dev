@@ -151,6 +151,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             }
         }
 
+        requirePreference<SwitchPreference>(R.string.pref_key_doh_settings_enabled).apply {
+            isVisible = Config.channel.isDebug
+            isChecked = context.settings().showDohEntryPoint
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_should_enable_felt_privacy).apply {
             isVisible = true
             isChecked = context.settings().feltPrivateBrowsingEnabled
