@@ -11,6 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import mozilla.components.lib.state.ext.observeAsState
+import org.mozilla.fenix.settings.doh.info.InfoScreen
+import org.mozilla.fenix.settings.doh.info.InfoScreenTopic
 import org.mozilla.fenix.settings.doh.root.DohSettingsScreen
 
 /**
@@ -93,6 +95,58 @@ internal fun DohSettingsNavHost(
                 },
             )
         }
+
+        composable(route = DohSettingsDestinations.INFO_DEFAULT) {
+            InfoScreen(
+                infoScreenTopic = InfoScreenTopic.DEFAULT,
+                onNavigateUp = {
+                    store.dispatch(
+                        BackClicked,
+                    )
+                },
+                onLearnMoreClicked = { url ->
+                    store.dispatch(
+                        LearnMoreClicked(
+                            url,
+                        ),
+                    )
+                },
+            )
+        }
+        composable(route = DohSettingsDestinations.INFO_INCREASED) {
+            InfoScreen(
+                infoScreenTopic = InfoScreenTopic.INCREASED,
+                onNavigateUp = {
+                    store.dispatch(
+                        BackClicked,
+                    )
+                },
+                onLearnMoreClicked = { url ->
+                    store.dispatch(
+                        LearnMoreClicked(
+                            url,
+                        ),
+                    )
+                },
+            )
+        }
+        composable(route = DohSettingsDestinations.INFO_MAX) {
+            InfoScreen(
+                infoScreenTopic = InfoScreenTopic.MAX,
+                onNavigateUp = {
+                    store.dispatch(
+                        BackClicked,
+                    )
+                },
+                onLearnMoreClicked = { url ->
+                    store.dispatch(
+                        LearnMoreClicked(
+                            url,
+                        ),
+                    )
+                },
+            )
+        }
     }
 }
 
@@ -101,4 +155,7 @@ internal fun DohSettingsNavHost(
  */
 internal object DohSettingsDestinations {
     const val ROOT = "doh:settings:root"
+    const val INFO_DEFAULT = "doh:settings:info"
+    const val INFO_INCREASED = "doh:settings:info-increased"
+    const val INFO_MAX = "doh:settings:info-max"
 }
