@@ -504,18 +504,6 @@ MDefinition* MDefinition::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
-bool MDefinition::mightBeMagicType() const {
-  if (IsMagicType(type())) {
-    return true;
-  }
-
-  if (MIRType::Value != type()) {
-    return false;
-  }
-
-  return true;
-}
-
 MDefinition* MInstruction::foldsToStore(TempAllocator& alloc) {
   if (!dependency()) {
     return nullptr;
@@ -7207,7 +7195,7 @@ MDefinition* MCheckThis::foldsTo(TempAllocator& alloc) {
   }
 
   MDefinition* unboxed = input->toBox()->input();
-  if (unboxed->mightBeMagicType()) {
+  if (IsMagicType(unboxed->type())) {
     return this;
   }
 

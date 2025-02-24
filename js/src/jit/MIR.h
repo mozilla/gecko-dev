@@ -725,8 +725,6 @@ class MDefinition : public MNode {
   // is MIRType::Int32.
   MIRType type() const { return resultType_; }
 
-  bool mightBeMagicType() const;
-
   // Default EnumSet serialization is based on the enum's underlying type, which
   // means uint8_t for MIRType. To store all possible MIRType values we need at
   // least uint32_t.
