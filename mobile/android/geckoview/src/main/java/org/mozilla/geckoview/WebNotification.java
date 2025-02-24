@@ -30,12 +30,7 @@ public class WebNotification implements Parcelable {
    */
   public final @Nullable String title;
 
-  /**
-   * Tag is the ID of the notification.
-   *
-   * @see <a href="https://developer.mozilla.org/en-US/docs/Web/API/Notification/tag">Web
-   *     Notification - tag</a>
-   */
+  /** Tag is the ID of the notification, matching `nsIAlertNotification.name`. */
   public final @NonNull String tag;
 
   private final @Nullable String mCookie;

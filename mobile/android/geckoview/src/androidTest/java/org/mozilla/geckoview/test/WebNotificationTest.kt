@@ -71,7 +71,6 @@ class WebNotificationTest : BaseSessionTest() {
     fun assertNotificationData(notification: WebNotification, requireInteraction: Boolean) {
         assertThat("Title should match", notification.title, equalTo("The Title"))
         assertThat("Body should match", notification.text, equalTo("The Text"))
-        assertThat("Tag should match", notification.tag, endsWith("Tag"))
         assertThat("ImageUrl should match", notification.imageUrl, endsWith("icon.png"))
         assertThat("Language should match", notification.lang, equalTo("en-US"))
         assertThat("Direction should match", notification.textDirection, equalTo("ltr"))
@@ -116,6 +115,60 @@ class WebNotificationTest : BaseSessionTest() {
         )
 
         sessionRule.waitForResult(notificationResult)
+    }
+
+    @Test
+    fun onShowNotificationSameTag() {
+        val tags = mutableListOf<String>()
+        val notificationResult = GeckoResult<Void>()
+
+        sessionRule.delegateDuringNextWait(object : WebNotificationDelegate {
+            @GeckoSessionTestRule.AssertCalled
+            override fun onShowNotification(notification: WebNotification) {
+                tags += notification.tag
+                if (tags.size == 2) {
+                    notificationResult.complete(null)
+                }
+            }
+        })
+
+        mainSession.evaluateJS(
+            """
+            new Notification('The Title', { tag: 'Tag' });
+            new Notification('The Title', { tag: 'Tag' });
+            """.trimIndent(),
+        )
+
+        sessionRule.waitForResult(notificationResult)
+
+        assertThat("tags should be same", tags[0], equalTo(tags[1]))
+    }
+
+    @Test
+    fun onShowNotificationDifferentTag() {
+        val tags = mutableListOf<String>()
+        val notificationResult = GeckoResult<Void>()
+
+        sessionRule.delegateDuringNextWait(object : WebNotificationDelegate {
+            @GeckoSessionTestRule.AssertCalled
+            override fun onShowNotification(notification: WebNotification) {
+                tags += notification.tag
+                if (tags.size == 2) {
+                    notificationResult.complete(null)
+                }
+            }
+        })
+
+        mainSession.evaluateJS(
+            """
+            new Notification('The Title', { tag: 'Tag1' });
+            new Notification('The Title', { tag: 'Tag2' });
+            """.trimIndent(),
+        )
+
+        sessionRule.waitForResult(notificationResult)
+
+        assertThat("tags should be different", tags[0], not(equalTo(tags[1])))
     }
 
     @Test fun onCloseNotification() {
@@ -183,6 +236,7 @@ class WebNotificationTest : BaseSessionTest() {
         val deserialized = WebNotification.CREATOR.createFromParcel(parcel)
         assertNotificationData(deserialized, requireInteraction)
         assertThat("privateBrowsing should match", deserialized.privateBrowsing, equalTo(false))
+        assertThat("tag should match", deserialized.tag, equalTo(notification.tag))
 
         deserialized!!.click()
         assertThat("Promise should have been resolved.", promiseResult.value as Double, equalTo(1.0))
