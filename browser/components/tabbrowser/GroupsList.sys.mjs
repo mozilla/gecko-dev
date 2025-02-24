@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { PrivateBrowsingUtils } from "resource://gre/modules/PrivateBrowsingUtils.sys.mjs";
+
 const MAX_INITIAL_ITEMS = 5;
 
 export class GroupsPanel {
@@ -99,9 +101,12 @@ export class GroupsPanel {
       (group1, group2) => group2.lastSeenActive - group1.lastSeenActive
     );
 
-    let savedGroups = this.win.SessionStore.savedGroups.toSorted(
-      (group1, group2) => group2.closedAt - group1.closedAt
-    );
+    let savedGroups = [];
+    if (!PrivateBrowsingUtils.isWindowPrivate(this.win)) {
+      savedGroups = this.win.SessionStore.savedGroups.toSorted(
+        (group1, group2) => group2.closedAt - group1.closedAt
+      );
+    }
 
     let totalItemCount = savedGroups.length + openGroups.length;
     if (totalItemCount && !this.#showAll) {

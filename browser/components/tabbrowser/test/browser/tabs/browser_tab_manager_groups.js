@@ -560,7 +560,9 @@ add_task(async function test_tabGroupsIsolatedByPrivateness() {
   forgetSavedTabGroups();
   const groupsViewId = "#allTabsMenu-groupsView toolbaritem";
 
-  info("Test that non-private windows don't appear in private menus");
+  info(
+    "Test that non-private groups don't appear in menus from private windows"
+  );
 
   let privateWindow = await BrowserTestUtils.openNewBrowserWindow({
     private: true,
@@ -609,6 +611,46 @@ add_task(async function test_tabGroupsIsolatedByPrivateness() {
   );
   await closeTabsMenu();
   await removeTabGroup(privateGroup);
+
+  await BrowserTestUtils.closeWindow(privateWindow, { animate: false });
+  forgetSavedTabGroups();
+});
+
+/**
+ * Tests that saved groups never appear in menus from private windows.
+ */
+add_task(async function test_tabGroupsIsolatedByPrivateness() {
+  forgetSavedTabGroups();
+  const groupsViewId = "#allTabsMenu-groupsView toolbaritem";
+
+  info("Test that saved groups do not appear in menus from private windows");
+
+  let privateWindow = await BrowserTestUtils.openNewBrowserWindow({
+    private: true,
+  });
+  privateWindow.gTabsPanel.init();
+
+  let allTabsMenuPrivate = await openTabsMenu(privateWindow);
+  Assert.equal(
+    allTabsMenuPrivate.querySelectorAll(groupsViewId).length,
+    0,
+    "Tab groups section is initially empty in private window"
+  );
+  await closeTabsMenu(privateWindow);
+
+  let savedGroup = await createTestGroup({
+    label: "saved-group",
+  });
+  savedGroup.save();
+  await removeTabGroup(savedGroup);
+
+  allTabsMenuPrivate = await openTabsMenu(privateWindow);
+  Assert.equal(
+    allTabsMenuPrivate.querySelectorAll(groupsViewId).length,
+    0,
+    "Tab groups section is still empty even when saved tab group exists"
+  );
+  await closeTabsMenu(privateWindow);
 
   await BrowserTestUtils.closeWindow(privateWindow, { animate: false });
   forgetSavedTabGroups();
