@@ -510,7 +510,7 @@ export class FfiConverterTypeSearchEngineSelector extends FfiConverter {
  * configuration.
  */
 export class JsonEngineUrl {
-    constructor({ base, method, params, searchTermParamName } = {}) {
+    constructor({ base, method, params, searchTermParamName }) {
         try {
             FfiConverterOptionalstring.checkType(base)
         } catch (e) {
@@ -650,7 +650,7 @@ export class FfiConverterTypeJsonEngineUrl extends FfiConverterArrayBuffer {
  * Reflects `types::SearchEngineUrls`, but using `EngineUrl`.
  */
 export class JsonEngineUrls {
-    constructor({ search, suggestions, trending } = {}) {
+    constructor({ search, suggestions, trending }) {
         try {
             FfiConverterTypeJsonEngineUrl.checkType(search)
         } catch (e) {
@@ -761,7 +761,7 @@ export class FfiConverterTypeJsonEngineUrls extends FfiConverterArrayBuffer {
  * of processing the search configuration.
  */
 export class RefinedSearchConfig {
-    constructor({ engines, appDefaultEngineId, appPrivateDefaultEngineId } = {}) {
+    constructor({ engines, appDefaultEngineId, appPrivateDefaultEngineId }) {
         try {
             FfiConverterSequenceTypeSearchEngineDefinition.checkType(engines)
         } catch (e) {
@@ -888,7 +888,7 @@ export class FfiConverterTypeRefinedSearchConfig extends FfiConverterArrayBuffer
  * A definition for an individual search engine to be presented to the user.
  */
 export class SearchEngineDefinition {
-    constructor({ aliases, charset, classification, identifier, name, optional, partnerCode, telemetrySuffix, urls, orderHint } = {}) {
+    constructor({ aliases, charset, classification, identifier, name, optional, partnerCode, telemetrySuffix, urls, orderHint }) {
         try {
             FfiConverterSequencestring.checkType(aliases)
         } catch (e) {
@@ -1187,7 +1187,7 @@ export class FfiConverterTypeSearchEngineDefinition extends FfiConverterArrayBuf
  * Defines an individual search engine URL.
  */
 export class SearchEngineUrl {
-    constructor({ base, method, params, searchTermParamName } = {}) {
+    constructor({ base, method, params, searchTermParamName }) {
         try {
             FfiConverterString.checkType(base)
         } catch (e) {
@@ -1327,7 +1327,7 @@ export class FfiConverterTypeSearchEngineUrl extends FfiConverterArrayBuffer {
  * The URLs associated with the search engine.
  */
 export class SearchEngineUrls {
-    constructor({ search, suggestions, trending } = {}) {
+    constructor({ search, suggestions, trending }) {
         try {
             FfiConverterTypeSearchEngineUrl.checkType(search)
         } catch (e) {
@@ -1438,7 +1438,7 @@ export class FfiConverterTypeSearchEngineUrls extends FfiConverterArrayBuffer {
  * specified, along with one of value, experiment_config or search_access_point.
  */
 export class SearchUrlParam {
-    constructor({ name, value, experimentConfig } = {}) {
+    constructor({ name, value, experimentConfig }) {
         try {
             FfiConverterString.checkType(name)
         } catch (e) {
@@ -1552,7 +1552,7 @@ export class FfiConverterTypeSearchUrlParam extends FfiConverterArrayBuffer {
  * The user's environment that is used for filtering the search configuration.
  */
 export class SearchUserEnvironment {
-    constructor({ locale, region, updateChannel, distributionId, experiment, appName, version, deviceType } = {}) {
+    constructor({ locale, region, updateChannel, distributionId, experiment, appName, version, deviceType }) {
         try {
             FfiConverterString.checkType(locale)
         } catch (e) {

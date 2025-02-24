@@ -2347,7 +2347,7 @@ export class FfiConverterTypeStringifier extends FfiConverter {
  * Dictionnaire
  */
 export class Dictionnaire {
-    constructor({ un, deux, petitNombre, grosNombre } = {}) {
+    constructor({ un, deux, petitNombre, grosNombre }) {
         try {
             FfiConverterTypeEnumeration.checkType(un)
         } catch (e) {
@@ -2478,7 +2478,7 @@ export class FfiConverterTypeDictionnaire extends FfiConverterArrayBuffer {
  * DictionnaireNombres
  */
 export class DictionnaireNombres {
-    constructor({ petitNombre, courtNombre, nombreSimple, grosNombre } = {}) {
+    constructor({ petitNombre, courtNombre, nombreSimple, grosNombre }) {
         try {
             FfiConverterU8.checkType(petitNombre)
         } catch (e) {
@@ -2609,7 +2609,7 @@ export class FfiConverterTypeDictionnaireNombres extends FfiConverterArrayBuffer
  * DictionnaireNombresSignes
  */
 export class DictionnaireNombresSignes {
-    constructor({ petitNombre, courtNombre, nombreSimple, grosNombre } = {}) {
+    constructor({ petitNombre, courtNombre, nombreSimple, grosNombre }) {
         try {
             FfiConverterI8.checkType(petitNombre)
         } catch (e) {
@@ -2740,7 +2740,7 @@ export class FfiConverterTypeDictionnaireNombresSignes extends FfiConverterArray
  * OptionneurDictionnaire
  */
 export class OptionneurDictionnaire {
-    constructor({ i8Var = -8, u8Var = 8, i16Var = -16, u16Var = 0x10, i32Var = -32, u32Var = 32, i64Var = -64, u64Var = 64, floatVar = 4.0, doubleVar = 8.0, booleanVar = true, stringVar = "default", listVar = [], enumerationVar = Enumeration.DEUX, dictionnaireVar = null } = {}) {
+    constructor({ i8Var = -8, u8Var = 8, i16Var = -16, u16Var = 0x10, i32Var = -32, u32Var = 32, i64Var = -64, u64Var = 64, floatVar = 4.0, doubleVar = 8.0, booleanVar = true, stringVar = "default", listVar = [], enumerationVar = Enumeration.DEUX, dictionnaireVar = null }) {
         try {
             FfiConverterI8.checkType(i8Var)
         } catch (e) {
@@ -3135,7 +3135,7 @@ export class FfiConverterTypeOptionneurDictionnaire extends FfiConverterArrayBuf
  * MinusculeMajusculeDict
  */
 export class MinusculeMajusculeDict {
-    constructor({ minusculeMajusculeField } = {}) {
+    constructor({ minusculeMajusculeField }) {
         try {
             FfiConverterBool.checkType(minusculeMajusculeField)
         } catch (e) {

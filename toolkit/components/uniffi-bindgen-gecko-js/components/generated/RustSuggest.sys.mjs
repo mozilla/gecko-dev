@@ -1127,7 +1127,7 @@ export class FfiConverterTypeSuggestStoreBuilder extends FfiConverter {
  * Additional data about how an FTS match was made
  */
 export class FtsMatchInfo {
-    constructor({ prefix, stemming } = {}) {
+    constructor({ prefix, stemming }) {
         try {
             FfiConverterBool.checkType(prefix)
         } catch (e) {
@@ -1217,7 +1217,7 @@ export class FfiConverterTypeFtsMatchInfo extends FfiConverterArrayBuffer {
  * [1]: https://download.geonames.org/export/dump/readme.txt
  */
 export class Geoname {
-    constructor({ geonameId, name, latitude, longitude, countryCode, admin1Code, population } = {}) {
+    constructor({ geonameId, name, latitude, longitude, countryCode, admin1Code, population }) {
         try {
             FfiConverterI64.checkType(geonameId)
         } catch (e) {
@@ -1433,7 +1433,7 @@ export class FfiConverterTypeGeoname extends FfiConverterArrayBuffer {
  * A fetched geoname with info on how it was matched.
  */
 export class GeonameMatch {
-    constructor({ geoname, matchType, prefix } = {}) {
+    constructor({ geoname, matchType, prefix }) {
         try {
             FfiConverterTypeGeoname.checkType(geoname)
         } catch (e) {
@@ -1543,7 +1543,7 @@ export class FfiConverterTypeGeonameMatch extends FfiConverterArrayBuffer {
  * Single sample for a Glean labeled_timing_distribution
  */
 export class LabeledTimingSample {
-    constructor({ label, value } = {}) {
+    constructor({ label, value }) {
         try {
             FfiConverterString.checkType(label)
         } catch (e) {
@@ -1627,7 +1627,7 @@ export class FfiConverterTypeLabeledTimingSample extends FfiConverterArrayBuffer
  * QueryWithMetricsResult
  */
 export class QueryWithMetricsResult {
-    constructor({ suggestions, queryTimes } = {}) {
+    constructor({ suggestions, queryTimes }) {
         try {
             FfiConverterSequenceTypeSuggestion.checkType(suggestions)
         } catch (e) {
@@ -1711,7 +1711,7 @@ export class FfiConverterTypeQueryWithMetricsResult extends FfiConverterArrayBuf
  * Global Suggest configuration data.
  */
 export class SuggestGlobalConfig {
-    constructor({ showLessFrequentlyCap } = {}) {
+    constructor({ showLessFrequentlyCap }) {
         try {
             FfiConverterI32.checkType(showLessFrequentlyCap)
         } catch (e) {
@@ -1770,7 +1770,7 @@ export class FfiConverterTypeSuggestGlobalConfig extends FfiConverterArrayBuffer
  * Constraints limit which suggestions to ingest from Remote Settings.
  */
 export class SuggestIngestionConstraints {
-    constructor({ providers = null, providerConstraints = null, emptyOnly = false } = {}) {
+    constructor({ providers = null, providerConstraints = null, emptyOnly = false }) {
         try {
             FfiConverterOptionalSequenceTypeSuggestionProvider.checkType(providers)
         } catch (e) {
@@ -1881,7 +1881,7 @@ export class FfiConverterTypeSuggestIngestionConstraints extends FfiConverterArr
  * These are recorded during [crate::Store::ingest] and returned to the consumer to record.
  */
 export class SuggestIngestionMetrics {
-    constructor({ ingestionTimes, downloadTimes } = {}) {
+    constructor({ ingestionTimes, downloadTimes }) {
         try {
             FfiConverterSequenceTypeLabeledTimingSample.checkType(ingestionTimes)
         } catch (e) {
@@ -1967,7 +1967,7 @@ export class FfiConverterTypeSuggestIngestionMetrics extends FfiConverterArrayBu
  * other operations on those providers must be constrained to a desired subtype.
  */
 export class SuggestionProviderConstraints {
-    constructor({ exposureSuggestionTypes = null, ampAlternativeMatching = null } = {}) {
+    constructor({ exposureSuggestionTypes = null, ampAlternativeMatching = null }) {
         try {
             FfiConverterOptionalSequencestring.checkType(exposureSuggestionTypes)
         } catch (e) {
@@ -2055,7 +2055,7 @@ export class FfiConverterTypeSuggestionProviderConstraints extends FfiConverterA
  * A query for suggestions to show in the address bar.
  */
 export class SuggestionQuery {
-    constructor({ keyword, providers, providerConstraints = null, limit = null } = {}) {
+    constructor({ keyword, providers, providerConstraints = null, limit = null }) {
         try {
             FfiConverterString.checkType(keyword)
         } catch (e) {

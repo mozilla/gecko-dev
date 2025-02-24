@@ -1,7 +1,7 @@
 {%- let record = ci.get_record_definition(name).unwrap() -%}
 {{ record.js_docstring(0) -}}
 export class {{ record.js_name() }} {
-    constructor({{ record.constructor_field_list() }} = {}) {
+    constructor({{ record.constructor_field_list() }}) {
         {%- for field in record.fields() %}
         try {
             {{ field.ffi_converter() }}.checkType({{ field.js_name() }})

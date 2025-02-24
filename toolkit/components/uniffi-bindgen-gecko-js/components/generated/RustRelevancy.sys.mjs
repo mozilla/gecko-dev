@@ -785,7 +785,7 @@ export class FfiConverterTypeRelevancyStore extends FfiConverter {
  * BanditData
  */
 export class BanditData {
-    constructor({ bandit, arm, impressions, clicks, alpha, beta } = {}) {
+    constructor({ bandit, arm, impressions, clicks, alpha, beta }) {
         try {
             FfiConverterString.checkType(bandit)
         } catch (e) {
@@ -973,7 +973,7 @@ export class FfiConverterTypeBanditData extends FfiConverterArrayBuffer {
  * rounding.  This is to make them compatible with Glean's distribution metrics.
  */
 export class InterestMetrics {
-    constructor({ topSingleInterestSimilarity, top2interestSimilarity, top3interestSimilarity } = {}) {
+    constructor({ topSingleInterestSimilarity, top2interestSimilarity, top3interestSimilarity }) {
         try {
             FfiConverterU32.checkType(topSingleInterestSimilarity)
         } catch (e) {
@@ -1092,7 +1092,7 @@ export class FfiConverterTypeInterestMetrics extends FfiConverterArrayBuffer {
  * number of elements.
  */
 export class InterestVector {
-    constructor({ inconclusive, animals, arts, autos, business, career, education, fashion, finance, food, government, hobbies, home, news, realEstate, society, sports, tech, travel } = {}) {
+    constructor({ inconclusive, animals, arts, autos, business, career, education, fashion, finance, food, government, hobbies, home, news, realEstate, society, sports, tech, travel }) {
         try {
             FfiConverterU32.checkType(inconclusive)
         } catch (e) {
