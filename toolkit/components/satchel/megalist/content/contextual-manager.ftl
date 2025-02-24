@@ -99,8 +99,7 @@ passwords-import-success-heading =
 # Variables
 #   $added (number) - Number of added passwords
 #   $modified (number) - Number of modified passwords
-passwords-import-success-message =
-  New passwords added: { $added }<br/>Existing passwords updated: { $modified }
+passwords-import-success-message = New: { $added }, Updated: { $modified }
 
 passwords-import-detailed-report = View detailed report
 passwords-import-success-button = Done
