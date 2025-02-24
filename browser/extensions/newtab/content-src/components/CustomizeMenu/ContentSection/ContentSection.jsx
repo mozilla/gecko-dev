@@ -135,7 +135,6 @@ export class ContentSection extends React.PureComponent {
               <WallpaperCategories
                 setPref={setPref}
                 activeWallpaper={activeWallpaper}
-                exitEventFired={exitEventFired}
               />
             </div>
             <span className="divider" role="separator"></span>

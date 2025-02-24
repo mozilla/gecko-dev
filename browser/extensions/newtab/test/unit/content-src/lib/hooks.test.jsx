@@ -1,6 +1,6 @@
 import React from "react";
 import { mount } from "enzyme";
-import { useIntersectionObserver } from "content-src/lib/utils.jsx";
+import { useIntersectionObserver } from "content-src/lib/hooks.jsx";
 
 // Test component to use the useIntersectionObserver
 function TestComponent({ callback, threshold }) {

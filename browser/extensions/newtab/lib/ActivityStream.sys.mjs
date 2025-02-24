@@ -462,14 +462,6 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "newtabWallpapers.customWallpaper.uploadedPreviously",
-    {
-      title:
-        "Boolean flag to track if a user has previously uploaded a custom wallpaper",
-      value: false,
-    },
-  ],
-  [
     "newtabAdSize.variant-a",
     {
       title: "Boolean flag to turn ad size variant A on and off",
