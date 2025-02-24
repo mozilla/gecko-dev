@@ -496,22 +496,6 @@ async function cleanupDownloads(listId = Downloads.PUBLIC) {
   }
 }
 
-async function closeDownloadPanel() {
-  if (DownloadsPanel.panel.state !== "closed") {
-    const hiddenPromise = BrowserTestUtils.waitForEvent(
-      DownloadsPanel.panel,
-      "popuphidden"
-    );
-    DownloadsPanel.hidePanel();
-    await hiddenPromise;
-  }
-  is(
-    DownloadsPanel.panel.state,
-    "closed",
-    "Check that the download panel is closed"
-  );
-}
-
 function makePDFJSHandler() {
   let mimeService = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
   let handlerInfo = mimeService.getFromTypeAndExtension(
