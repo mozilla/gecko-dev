@@ -1117,6 +1117,21 @@ class BrowserRobot {
         Log.i(TAG, "selectToAlwaysOpenDownloadedFileWithApp: Clicked the \"Always\" button from the \"Open with\" prompt")
     }
 
+    fun verifyWebCompatReporterViewItems(websiteURL: String) {
+        assertUIObjectExists(
+            itemContainingText(
+                "Help make $appName better for everyone. Mozilla employees use the info you send to fix website problems.",
+            ),
+            itemContainingText(getStringResource(R.string.webcompat_reporter_label_url)),
+            itemContainingText(websiteURL),
+            itemContainingText(getStringResource(R.string.webcompat_reporter_label_whats_broken_2)),
+            itemContainingText(getStringResource(R.string.webcompat_reporter_choose_reason)),
+            itemContainingText(getStringResource(R.string.webcompat_reporter_label_description)),
+            itemContainingText(getStringResource(R.string.webcompat_reporter_send_more_info)),
+            itemContainingText(getStringResource(R.string.webcompat_reporter_send)),
+        )
+    }
+
     class Transition {
         fun openThreeDotMenu(interact: ThreeDotMenuMainRobot.() -> Unit): ThreeDotMenuMainRobot.Transition {
             Log.i(TAG, "openThreeDotMenu: Waiting for device to be idle for $waitingTime ms")
@@ -1451,6 +1466,15 @@ class BrowserRobot {
 
             ShareOverlayRobot().interact()
             return ShareOverlayRobot.Transition()
+        }
+
+        fun closeWebCompatReporter(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "clickShareButtonFromRedesignedToolbar: Trying to click the \"Navigate back\" button")
+            itemWithDescription("Navigate back").click()
+            Log.i(TAG, "clickShareButtonFromRedesignedToolbar: Clicked the \"Navigate back\" button")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
         }
     }
 }

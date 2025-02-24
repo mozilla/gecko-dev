@@ -7,7 +7,6 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -22,6 +21,7 @@ import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
+import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -240,7 +240,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2283302
-    @Ignore("Disabled after the addition of the Web Compat Reporter feature: https://bugzilla.mozilla.org/show_bug.cgi?id=1941689")
     @Test
     fun reportSiteIssueTest() {
         runWithCondition(
@@ -251,6 +250,20 @@ class MainMenuTest : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+            }.openThreeDotMenu {
+            }.openReportSiteIssue {
+                verifyWebCompatReporterViewItems(websiteURL = defaultWebPage.url.toString())
+            }.closeWebCompatReporter {
+            }.openThreeDotMenu {
+            }.openSettings {
+            }.openSettingsSubMenuDataCollection {
+                clickUsageAndTechnicalDataToggle()
+                verifyUsageAndTechnicalDataToggle(enabled = false)
+            }
+
+            exitMenu()
+
+            browserScreen {
             }.openThreeDotMenu {
             }.openReportSiteIssue {
                 verifyUrl("webcompat.com/issues/new")
