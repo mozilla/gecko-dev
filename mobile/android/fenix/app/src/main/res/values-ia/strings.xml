@@ -842,6 +842,8 @@
     <string name="preferences_show_voice_search">Monstrar recerca vocal</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Monstrar in sessiones private</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Monstrar suggestiones popular</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Monstrar suggestiones de area de transferentia</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->

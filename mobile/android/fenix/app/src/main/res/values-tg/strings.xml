@@ -843,6 +843,8 @@
     <string name="preferences_show_voice_search">Намоиш додани ҷустуҷӯи овозӣ</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Намоиш додан дар ҷаласаҳои хусусӣ</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Намоиш додани пешниҳодҳои ҳавасангез</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Намоиш додани пешниҳодҳо аз ҳофизаи муваққатӣ</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->

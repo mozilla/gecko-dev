@@ -847,6 +847,8 @@
     <string name="preferences_show_voice_search">显示语音搜索</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">在隐私浏览中显示</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">显示热门建议</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">显示剪贴板建议</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
