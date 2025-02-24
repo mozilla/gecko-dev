@@ -2333,10 +2333,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
       return true;
     }
   }
-  if (key == JSProto_Atomics && !JS::Prefs::experimental_atomics_pause() &&
-      id == NameToId(cx->names().pause)) {
-    return true;
-  }
   if (key == JSProto_Map || key == JSProto_WeakMap) {
     if (!JS::Prefs::experimental_upsert() &&
         (id == NameToId(cx->names().getOrInsert) ||
@@ -2371,6 +2367,11 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
 
   if (key == JSProto_Math && !JS::Prefs::experimental_math_sumprecise() &&
       id == NameToId(cx->names().sumPrecise)) {
+    return true;
+  }
+
+  if (key == JSProto_Atomics && !JS::Prefs::experimental_atomics_pause() &&
+      id == NameToId(cx->names().pause)) {
     return true;
   }
 
