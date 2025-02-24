@@ -53,6 +53,7 @@ class ServiceWorkerContainer;
 class ServiceWorkerRegistration;
 class ServiceWorkerRegistrationDescriptor;
 class StorageManager;
+class WebTaskSchedulingState;
 enum class CallerType : uint32_t;
 }  // namespace dom
 namespace ipc {
@@ -191,6 +192,13 @@ class nsIGlobalObject : public nsISupports {
 
   virtual mozilla::dom::DebuggerNotificationManager*
   GetExistingDebuggerNotificationManager() {
+    return nullptr;
+  }
+
+  virtual void SetWebTaskSchedulingState(
+      mozilla::dom::WebTaskSchedulingState* aState) {}
+  virtual mozilla::dom::WebTaskSchedulingState* GetWebTaskSchedulingState()
+      const {
     return nullptr;
   }
 
