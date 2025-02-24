@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import androidx.compose.material.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +65,8 @@ data class LinkTextState(
  * @param linkTextColor [Color] applied to the clickable part of the text.
  * @param linkTextDecoration [TextDecoration] applied to the clickable part of the text.
  * @param textAlign The alignment of the text within the lines of the paragraph. See [TextStyle.textAlign].
+ * @param shouldApplyAccessibleSize determines whether a minimum interactive size should be applied
+ * to improve accessibility touch targets.
  */
 @Composable
 fun LinkText(
@@ -76,6 +79,7 @@ fun LinkText(
     linkTextColor: Color = FirefoxTheme.colors.textAccent,
     linkTextDecoration: TextDecoration = TextDecoration.None,
     textAlign: TextAlign? = null,
+    shouldApplyAccessibleSize: Boolean = false,
 ) {
     val annotatedString = buildUrlAnnotatedString(
         text,
@@ -91,10 +95,16 @@ fun LinkText(
         LinksDialog(linkTextStates) { showDialog.value = false }
     }
 
+    val modifier = if (shouldApplyAccessibleSize) {
+        Modifier.minimumInteractiveComponentSize()
+    } else {
+        Modifier
+    }
+
     Text(
         text = annotatedString,
         style = style,
-        modifier = Modifier.clearAndSetSemantics {
+        modifier = modifier.clearAndSetSemantics {
             onClick {
                 if (linkTextStates.size > 1) {
                     showDialog.value = true
@@ -103,7 +113,6 @@ fun LinkText(
                         it.onClick(it.url)
                     }
                 }
-
                 return@onClick true
             }
             contentDescription = "$annotatedString $linksAvailable"

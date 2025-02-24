@@ -104,7 +104,7 @@ fun TermsOfServiceOnboardingPage(
                 ) {
                     BodyText(pageState, eventHandler)
 
-                    Spacer(Modifier.height(32.dp))
+                    Spacer(Modifier.height(24.dp))
 
                     PrimaryButton(
                         text = primaryButton.text,
@@ -157,9 +157,8 @@ private fun BodyText(
                     textAlign = TextAlign.Center,
                     color = FirefoxTheme.colors.textSecondary,
                 ),
+                shouldApplyAccessibleSize = true,
             )
-
-            Spacer(Modifier.height(16.dp))
 
             LinkText(
                 text = it.lineTwoText.updateFirstPlaceholder(it.lineTwoLinkText),
@@ -170,9 +169,8 @@ private fun BodyText(
                     textAlign = TextAlign.Center,
                     color = FirefoxTheme.colors.textSecondary,
                 ),
+                shouldApplyAccessibleSize = true,
             )
-
-            Spacer(Modifier.height(16.dp))
 
             LinkText(
                 text = it.lineThreeText.updateFirstPlaceholder(it.lineThreeLinkText),
@@ -183,6 +181,7 @@ private fun BodyText(
                     textAlign = TextAlign.Center,
                     color = FirefoxTheme.colors.textSecondary,
                 ),
+                shouldApplyAccessibleSize = true,
             )
         }
     }
