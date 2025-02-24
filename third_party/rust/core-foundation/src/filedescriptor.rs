@@ -97,8 +97,6 @@ impl AsRawFd for CFFileDescriptor {
 
 #[cfg(test)]
 mod test {
-    extern crate libc;
-
     use super::*;
     use crate::runloop::CFRunLoop;
     use core_foundation_sys::base::CFOptionFlags;

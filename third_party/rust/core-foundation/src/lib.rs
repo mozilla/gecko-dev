@@ -15,12 +15,6 @@
 //! It also provides a framework for other crates to use when wrapping
 //! other frameworks that use the CoreFoundation framework.
 
-extern crate core_foundation_sys;
-extern crate libc;
-
-#[cfg(feature = "with-chrono")]
-extern crate chrono;
-
 use crate::base::TCFType;
 
 pub unsafe trait ConcreteCFType: TCFType {}
@@ -32,7 +26,7 @@ pub unsafe trait ConcreteCFType: TCFType {}
 /// provided using the [`impl_TCFType`] macro.
 ///
 /// ```
-/// #[macro_use] extern crate core_foundation;
+/// use core_foundation::{declare_TCFType, impl_TCFType};
 /// // Make sure that the `TCFType` trait is in scope.
 /// use core_foundation::base::{CFTypeID, TCFType};
 ///
