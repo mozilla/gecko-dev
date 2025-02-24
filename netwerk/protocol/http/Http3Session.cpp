@@ -182,11 +182,14 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
     return servCertHashes && !servCertHashes->IsEmpty();
   };
 
+  auto config = mConnInfo->GetEchConfig();
+
   // In WebTransport, when servCertHashes is specified, it indicates that the
   // connection to the WebTransport server should authenticate using the
   // expected certificate hash. Therefore, 0RTT should be disabled in this
   // context to ensure the certificate hash is checked.
-  if (StaticPrefs::network_http_http3_enable_0rtt() && !hasServCertHashes() &&
+  if (StaticPrefs::network_http_http3_enable_0rtt() && config.IsEmpty() &&
+      !hasServCertHashes() &&
       NS_SUCCEEDED(SSLTokensCache::Get(peerId, token, info))) {
     LOG(("Found a resumption token in the cache."));
     mHttp3Connection->SetResumptionToken(token);
@@ -218,7 +221,6 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
   }
 #endif
 
-  auto config = mConnInfo->GetEchConfig();
   if (config.IsEmpty()) {
     if (StaticPrefs::security_tls_ech_grease_http3() && config.IsEmpty()) {
       if ((RandomUint64().valueOr(0) % 100) >=
