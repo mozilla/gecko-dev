@@ -237,9 +237,11 @@ async function testPickerInExtensionBackgroundPage({
 
 add_task(async function test_canOpenModalPicker_in_background_pref_default() {
   is(
-    Services.prefs.getBoolPref("browser.disable_pickers_background_tabs"),
+    Services.prefs.getBoolPref(
+      "browser.disable_pickers_in_hidden_extension_pages"
+    ),
     AppConstants.NIGHTLY_BUILD,
-    "Testing default behavior (browser.disable_pickers_background_tabs pref)"
+    "Testing default of browser.disable_pickers_in_hidden_extension_pages pref"
   );
 });
 
