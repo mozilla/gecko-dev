@@ -160,9 +160,7 @@ class AppErrorBoundary extends Component {
           {
             className: "error-panel-file-button",
             href: this.getBugLink(),
-            onClick: () => {
-              window.open(this.getBugLink(), "_blank");
-            },
+            target: "_blank",
           },
           FILE_BUG_BUTTON
         ),
