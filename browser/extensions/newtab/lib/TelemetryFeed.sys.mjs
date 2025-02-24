@@ -916,6 +916,7 @@ export class TelemetryFeed {
       case at.WALLPAPER_CLICK:
       case at.WALLPAPERS_FEATURE_HIGHLIGHT_DISMISSED:
       case at.WALLPAPERS_FEATURE_HIGHLIGHT_CTA_CLICKED:
+      case at.WALLPAPER_UPLOAD:
         this.handleWallpaperUserEvent(action);
         break;
       case at.SET_PREF:
@@ -1138,6 +1139,8 @@ export class TelemetryFeed {
       return;
     }
 
+    const { data } = action;
+
     // Wallpaper specific telemtry events can be added and parsed here.
     switch (action.type) {
       case "WALLPAPER_CATEGORY_CLICK":
@@ -1148,7 +1151,6 @@ export class TelemetryFeed {
         break;
       case "WALLPAPER_CLICK":
         {
-          const { data } = action;
           const { selected_wallpaper, had_previous_wallpaper } = data;
 
           // if either of the wallpaper prefs are truthy, they had a previous wallpaper
@@ -1169,6 +1171,18 @@ export class TelemetryFeed {
           newtab_visit_id: session.session_id,
         });
         break;
+      case "WALLPAPER_UPLOAD":
+        {
+          const { had_uploaded_previously, had_previous_wallpaper } = data;
+
+          Glean.newtab.wallpaperUpload.record({
+            newtab_visit_id: session.session_id,
+            had_previous_wallpaper,
+            had_uploaded_previously,
+          });
+        }
+        break;
+
       default:
         break;
     }

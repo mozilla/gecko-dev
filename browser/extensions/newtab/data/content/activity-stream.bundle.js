@@ -265,6 +265,7 @@ for (const type of [
   "WALLPAPERS_SET",
   "WALLPAPER_CATEGORY_CLICK",
   "WALLPAPER_CLICK",
+  "WALLPAPER_UPLOAD",
   "WEATHER_IMPRESSION",
   "WEATHER_LOAD_ERROR",
   "WEATHER_LOCATION_DATA_UPDATE",
@@ -9956,7 +9957,7 @@ const selectLayoutRender = ({ state = {}, prefs = {} }) => {
   return { layoutRender };
 };
 
-;// CONCATENATED MODULE: ./content-src/lib/hooks.jsx
+;// CONCATENATED MODULE: ./content-src/lib/utils.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
@@ -11216,9 +11217,28 @@ const WallpapersSection = (0,external_ReactRedux_namespaceObject.connect)(state 
 
 // eslint-disable-next-line no-shadow
 
+const PREF_WALLPAPER_UPLOADED_PREVIOUSLY = "newtabWallpapers.customWallpaper.uploadedPreviously";
+
+// Returns a function will not be continuously triggered when called. The
+// function will be triggered if called again after `wait` milliseconds.
+function debounce(func, wait) {
+  let timer;
+  return (...args) => {
+    if (timer) {
+      return;
+    }
+    let wakeUp = () => {
+      timer = null;
+    };
+    timer = setTimeout(wakeUp, wait);
+    func.apply(this, args);
+  };
+}
 class _WallpaperCategories extends (external_React_default()).PureComponent {
   constructor(props) {
     super(props);
+    this.handleColorInput = this.handleColorInput.bind(this);
+    this.debouncedHandleChange = debounce(this.handleChange.bind(this), 999);
     this.handleChange = this.handleChange.bind(this);
     this.handleReset = this.handleReset.bind(this);
     this.handleCategory = this.handleCategory.bind(this);
@@ -11240,18 +11260,35 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
   componentDidMount() {
     this.prefersDarkQuery = globalThis.matchMedia("(prefers-color-scheme: dark)");
   }
+  handleColorInput(event) {
+    let {
+      id
+    } = event.target;
+    // Set ID to include hex value of custom color
+    id = `solid-color-picker-${event.target.value}`;
+    const rgbColors = this.getRGBColors(event.target.value);
+
+    // Set background color to custom color
+    event.target.style.backgroundColor = `rgb(${rgbColors.toString()})`;
+    this.setState({
+      customHexValue: event.target.style.backgroundColor
+    });
+
+    // Setting this now so when we remove v1 we don't have to migrate v1 values.
+    this.props.setPref("newtabWallpapers.wallpaper", id);
+  }
+
+  // Note: There's a separate event (debouncedHandleChange) that fires the handleChange
+  // event but is delayed so that it doesn't fire multiple events when a user
+  // is selecting a custom color background
   handleChange(event) {
     let {
       id
     } = event.target;
+
+    // Set ID to include hex value of custom color
     if (id === "solid-color-picker") {
       id = `solid-color-picker-${event.target.value}`;
-      const rgbColors = this.getRGBColors(event.target.value);
-      event.target.style.backgroundColor = `rgb(${rgbColors.toString()})`;
-      event.target.checked = true;
-      this.setState({
-        customHexValue: event.target.style.backgroundColor
-      });
     }
     this.props.setPref("newtabWallpapers.wallpaper", id);
     this.handleUserEvent(actionTypes.WALLPAPER_CLICK, {
@@ -11354,8 +11391,17 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
   };
   handleUpload() {
     // TODO: Bug 1947645: Add custom image upload functionality
-    // TODO: Bug 1943663: Add telemetry
     // TODO: Bug 1947813: Add image upload error states/UI
+
+    // TODO: Once Bug 1947813 has landed, we may need a separate event
+    // for selecting previously uploaded wallpaper, rather than uploading a new one.
+    // The plan would be to reuse at.WALLPAPER_CLICK for this use case
+    const uploadedPreviously = this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
+    this.handleUserEvent(actionTypes.WALLPAPER_UPLOAD, {
+      had_uploaded_previously: !!uploadedPreviously,
+      had_previous_wallpaper: !!this.props.activeWallpaper
+    });
+    this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, true);
   }
   handleBack() {
     this.setState({
@@ -11437,7 +11483,8 @@ class _WallpaperCategories extends (external_React_default()).PureComponent {
     let colorPickerInput = showColorPicker && activeCategory === "solid-colors" ? /*#__PURE__*/external_React_default().createElement("div", {
       className: "theme-custom-color-picker"
     }, /*#__PURE__*/external_React_default().createElement("input", {
-      onChange: this.handleChange,
+      onInput: this.handleColorInput,
+      onChange: this.debouncedHandleChange,
       onClick: () => this.setActiveId("solid-color-picker") //
       ,
       type: "color",
@@ -13044,7 +13091,7 @@ const PrefsButton = ({
 
 // Returns a function will not be continuously triggered when called. The
 // function will be triggered if called again after `wait` milliseconds.
-function debounce(func, wait) {
+function Base_debounce(func, wait) {
   let timer;
   return (...args) => {
     if (timer) {
@@ -13108,7 +13155,7 @@ class BaseContent extends (external_React_default()).PureComponent {
     this.openCustomizationMenu = this.openCustomizationMenu.bind(this);
     this.closeCustomizationMenu = this.closeCustomizationMenu.bind(this);
     this.handleOnKeyDown = this.handleOnKeyDown.bind(this);
-    this.onWindowScroll = debounce(this.onWindowScroll.bind(this), 5);
+    this.onWindowScroll = Base_debounce(this.onWindowScroll.bind(this), 5);
     this.setPref = this.setPref.bind(this);
     this.shouldShowWallpapersHighlight = this.shouldShowWallpapersHighlight.bind(this);
     this.updateWallpaper = this.updateWallpaper.bind(this);
