@@ -3875,12 +3875,13 @@ static void AssertKnownClass(TempAllocator& alloc, MInstruction* ins,
 
 MDefinition* MBoxNonStrictThis::foldsTo(TempAllocator& alloc) {
   MDefinition* in = input();
-  if (in->isBox()) {
-    in = in->toBox()->input();
+  if (!in->isBox()) {
+    return this;
   }
 
-  if (in->type() == MIRType::Object) {
-    return in;
+  MDefinition* unboxed = in->toBox()->input();
+  if (unboxed->type() == MIRType::Object) {
+    return unboxed;
   }
 
   return this;
@@ -3940,19 +3941,16 @@ MDefinition* MIdToStringOrSymbol::foldsTo(TempAllocator& alloc) {
 
 MDefinition* MReturnFromCtor::foldsTo(TempAllocator& alloc) {
   MDefinition* rval = value();
-  if (rval->isBox()) {
-    rval = rval->toBox()->input();
+  if (!rval->isBox()) {
+    return this;
   }
 
-  if (rval->type() == MIRType::Object) {
-    return rval;
+  MDefinition* unboxed = rval->toBox()->input();
+  if (unboxed->type() == MIRType::Object) {
+    return unboxed;
   }
 
-  if (rval->type() != MIRType::Value) {
-    return object();
-  }
-
-  return this;
+  return object();
 }
 
 MDefinition* MTypeOf::foldsTo(TempAllocator& alloc) {
@@ -6572,34 +6570,25 @@ MDefinition* MGuardNumberToIntPtrIndex::foldsTo(TempAllocator& alloc) {
 }
 
 MDefinition* MIsObject::foldsTo(TempAllocator& alloc) {
-  if (!object()->isBox()) {
+  MDefinition* input = object();
+  if (!input->isBox()) {
     return this;
   }
 
-  MDefinition* unboxed = object()->getOperand(0);
-  if (unboxed->type() == MIRType::Object) {
-    return MConstant::New(alloc, BooleanValue(true));
-  }
-
-  return this;
+  MDefinition* unboxed = input->toBox()->input();
+  return MConstant::New(alloc,
+                        BooleanValue(unboxed->type() == MIRType::Object));
 }
 
 MDefinition* MIsNullOrUndefined::foldsTo(TempAllocator& alloc) {
   MDefinition* input = value();
-  if (input->isBox()) {
-    input = input->toBox()->input();
+  if (!input->isBox()) {
+    return this;
   }
 
-  if (input->typeIsOneOf({MIRType::Null, MIRType::Undefined})) {
-    return MConstant::New(alloc, BooleanValue(true));
-  }
-
-  if (!input->mightBeType(MIRType::Null) &&
-      !input->mightBeType(MIRType::Undefined)) {
-    return MConstant::New(alloc, BooleanValue(false));
-  }
-
-  return this;
+  MDefinition* unboxed = input->toBox()->input();
+  return MConstant::New(alloc,
+                        BooleanValue(IsNullOrUndefined(unboxed->type())));
 }
 
 AliasSet MHomeObjectSuperBase::getAliasSet() const {
@@ -6618,12 +6607,13 @@ MDefinition* MGuardValue::foldsTo(TempAllocator& alloc) {
 
 MDefinition* MGuardNullOrUndefined::foldsTo(TempAllocator& alloc) {
   MDefinition* input = value();
-  if (input->isBox()) {
-    input = input->toBox()->input();
+  if (!input->isBox()) {
+    return this;
   }
 
-  if (input->typeIsOneOf({MIRType::Null, MIRType::Undefined})) {
-    return value();
+  MDefinition* unboxed = input->toBox()->input();
+  if (IsNullOrUndefined(unboxed->type())) {
+    return input;
   }
 
   return this;
@@ -6631,15 +6621,16 @@ MDefinition* MGuardNullOrUndefined::foldsTo(TempAllocator& alloc) {
 
 MDefinition* MGuardIsNotObject::foldsTo(TempAllocator& alloc) {
   MDefinition* input = value();
-  if (input->isBox()) {
-    input = input->toBox()->input();
+  if (!input->isBox()) {
+    return this;
   }
 
-  if (!input->mightBeType(MIRType::Object)) {
-    return value();
+  MDefinition* unboxed = input->toBox()->input();
+  if (unboxed->type() == MIRType::Object) {
+    return this;
   }
 
-  return this;
+  return input;
 }
 
 MDefinition* MGuardObjectIdentity::foldsTo(TempAllocator& alloc) {
@@ -7150,7 +7141,7 @@ MDefinition* MCheckIsObj::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  MDefinition* unboxed = input()->getOperand(0);
+  MDefinition* unboxed = input()->toBox()->input();
   if (unboxed->type() == MIRType::Object) {
     return unboxed;
   }
@@ -7221,7 +7212,7 @@ MDefinition* MCheckThis::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  MDefinition* unboxed = input->getOperand(0);
+  MDefinition* unboxed = input->toBox()->input();
   if (unboxed->mightBeMagicType()) {
     return this;
   }
@@ -7235,7 +7226,7 @@ MDefinition* MCheckThisReinit::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  MDefinition* unboxed = input->getOperand(0);
+  MDefinition* unboxed = input->toBox()->input();
   if (unboxed->type() != MIRType::MagicUninitializedLexical) {
     return this;
   }
@@ -7378,7 +7369,7 @@ MDefinition* MGuardNonGCThing::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  MDefinition* unboxed = input()->getOperand(0);
+  MDefinition* unboxed = input()->toBox()->input();
   if (!IsNonGCThing(unboxed->type())) {
     return this;
   }
