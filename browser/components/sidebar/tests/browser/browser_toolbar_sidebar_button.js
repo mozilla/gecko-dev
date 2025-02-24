@@ -62,16 +62,6 @@ add_setup(async () => {
   );
 });
 
-async function waitUntilSidebarIsStable(win = window) {
-  const tasks = [
-    win.SidebarController.sidebarMain.updateComplete,
-    ...win.SidebarController._ongoingAnimations.map(
-      animation => animation.finished
-    ),
-  ];
-  return Promise.allSettled(tasks);
-}
-
 add_task(async function test_toolbar_sidebar_button() {
   ok(
     document.getElementById("sidebar-button"),
@@ -139,29 +129,29 @@ add_task(async function test_expanded_state_for_always_show() {
 
   info("Toggle expanded state via toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, window);
-  await waitUntilSidebarIsStable(window);
+  await SidebarController.waitUntilStable();
   await checkExpandedState(false);
 
   info("Don't collapse the sidebar by loading a tool.");
   await SidebarController.initializeUIState({ launcherExpanded: true });
-  await waitUntilSidebarIsStable(window);
+  await SidebarController.waitUntilStable();
 
   const toolButton = sidebarMain.toolButtons[0];
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, window);
-  await waitUntilSidebarIsStable(window);
+  await SidebarController.waitUntilStable();
   await checkExpandedState(true);
 
   info("Load and unload a tool with the sidebar collapsed to begin with.");
   await SidebarController.initializeUIState({ launcherExpanded: false });
-  await waitUntilSidebarIsStable(window);
+  await SidebarController.waitUntilStable();
 
   EventUtils.synthesizeMouseAtCenter(toolButton, {}, window);
-  await waitUntilSidebarIsStable(window);
+  await SidebarController.waitUntilStable();
   await checkExpandedState(false);
 
   info("Check expanded state on a new window.");
   await SidebarController.initializeUIState({ launcherExpanded: true });
-  await waitUntilSidebarIsStable(window);
+  await SidebarController.waitUntilStable();
 
   const newWin = await BrowserTestUtils.openNewBrowserWindow();
   await waitForTabstripOrientation("vertical", newWin);
@@ -334,6 +324,7 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
   info("Show expanded sidebar using the toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   await checkStates({ hidden: false, expanded: true });
+  await SidebarController.waitUntilStable();
 
   info("Don't collapse the sidebar by loading a tool.");
   const toolButton = sidebarMain.toolButtons[0];
@@ -348,7 +339,7 @@ add_task(async function test_states_for_hide_sidebar_vertical() {
   info("Close a panel using the toolbar button.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
   ok(!SidebarController.isOpen, "Panel is closed.");
-  await checkStates({ hidden: true, expanded: false });
+  await checkStates({ hidden: true, expanded: true });
 
   info("Check states on a new window.");
   EventUtils.synthesizeMouseAtCenter(toolbarButton, {}, win);
@@ -408,16 +399,11 @@ add_task(async function test_sidebar_button_runtime_pref_enabled() {
   await SpecialPowers.popPrefEnv();
 
   // When the button was removed, "hide-sidebar" was set automatically. Revert for the next test.
-  // Expanded is the default when "hide-sidebar" is set - click the button to revert to collapsed for the next test.
+  // Expanded is the default when "hide-sidebar" is set - revert to collapsed for the next test.
   await SpecialPowers.pushPrefEnv({
     set: [[SIDEBAR_VISIBILITY_PREF, "always-show"]],
   });
-  const sidebar = document.querySelector("sidebar-main");
-  button.click();
-  await TestUtils.waitForCondition(
-    () => !sidebar.expanded,
-    "Sidebar collapsed by click"
-  );
+  await SidebarController.initializeUIState({ expanded: false });
 });
 
 /**

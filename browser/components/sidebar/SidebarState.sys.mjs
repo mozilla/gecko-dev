@@ -365,17 +365,15 @@ export class SidebarState {
 
   set launcherWidth(width) {
     this.#props.launcherWidth = width;
-    const { document, requestAnimationFrame } = this.#controllerGlobal;
+    const { document } = this.#controllerGlobal;
     if (!document.documentElement.hasAttribute("inDOMFullscreen")) {
-      requestAnimationFrame(() => {
-        this.#panelEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
-        // Expand the launcher when it gets wide enough.
-        if (lazy.verticalTabsEnabled) {
-          this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
-        } else {
-          this.launcherExpanded = false;
-        }
-      });
+      this.#panelEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
+      // Expand the launcher when it gets wide enough.
+      if (lazy.verticalTabsEnabled) {
+        this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
+      } else {
+        this.launcherExpanded = false;
+      }
     }
   }
 

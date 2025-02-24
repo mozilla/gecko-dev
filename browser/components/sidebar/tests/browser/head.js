@@ -168,13 +168,16 @@ registerCleanupFunction(() => {
 });
 
 /**
- * Wait for rendering and microtasks / macrotasks to finish.
+ * Wait until Style and Layout information have been calculated and the paint
+ * has occurred.
+ *
+ * @see https://firefox-source-docs.mozilla.org/performance/bestpractices.html
  */
-async function flushTaskQueue({ requestAnimationFrame, setTimeout } = window) {
-  await new Promise(resolve => {
+async function waitForRepaint() {
+  await SidebarController.waitUntilStable();
+  return new Promise(resolve =>
     requestAnimationFrame(() => {
-      requestAnimationFrame(resolve);
-    });
-  });
-  await new Promise(r => setTimeout(r, 0));
+      Services.tm.dispatchToMainThread(resolve);
+    })
+  );
 }

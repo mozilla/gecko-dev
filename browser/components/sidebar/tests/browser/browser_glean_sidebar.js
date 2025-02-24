@@ -16,11 +16,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 add_setup(async () => {
-  // turn off animations for this test
-  await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.animation.enabled", false]],
-  });
-
   SidebarController.init();
   await TestUtils.waitForTick();
 });
@@ -455,6 +450,7 @@ add_task(async function test_customize_tabs_layout() {
 
 add_task(async function test_customize_firefox_settings_clicked() {
   await SidebarController.show("viewCustomizeSidebar");
+  await SidebarController.waitUntilStable();
   const { contentDocument, contentWindow } = SidebarController.browser;
   const component = contentDocument.querySelector("sidebar-customize");
   let settingsLink = component.shadowRoot.querySelector("#manage-settings > a");
