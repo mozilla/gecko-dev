@@ -237,9 +237,12 @@ export var ToolbarContextMenu = {
     // autohide item's checked state to mirror the autohide pref.
     showFullScreenViewContextMenuItems(popup);
 
+    let sidebarRevampEnabled = Services.prefs.getBoolPref("sidebar.revamp");
+    let showSidebarActions = toolbarItem?.id == "sidebar-button";
     let toggleVerticalTabsItem = document.getElementById(
       "toolbar-context-toggle-vertical-tabs"
     );
+    toggleVerticalTabsItem.hidden = !showSidebarActions;
     document.l10n.setAttributes(
       toggleVerticalTabsItem,
       gBrowser.tabContainer?.verticalMode
@@ -247,7 +250,9 @@ export var ToolbarContextMenu = {
         : "toolbar-context-turn-on-vertical-tabs"
     );
     document.getElementById("toolbar-context-customize-sidebar").hidden =
-      !gBrowser.tabContainer?.verticalMode;
+      !sidebarRevampEnabled || !showSidebarActions;
+    document.getElementById("sidebarRevampSeparator").hidden =
+      !showSidebarActions;
 
     // View -> Toolbars menu doesn't have the moveToPanel or removeFromToolbar items.
     if (!moveToPanel || !removeFromToolbar) {

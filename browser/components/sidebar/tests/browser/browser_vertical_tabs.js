@@ -289,7 +289,7 @@ add_task(async function test_toggle_vertical_tabs() {
 
   await openAndWaitForContextMenu(
     toolbarContextMenu,
-    gBrowser.tabContainer,
+    document.getElementById("sidebar-button"),
     () => {
       ok(
         !document.getElementById("toolbar-context-customize-sidebar").hidden,

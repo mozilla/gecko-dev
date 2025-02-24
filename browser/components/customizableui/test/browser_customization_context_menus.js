@@ -34,9 +34,42 @@ add_task(async function home_button_context() {
   expectedEntries.push(
     ["#toggle_PersonalToolbar", true],
     ["---"],
-    [".viewCustomizeToolbar", true],
+    [".viewCustomizeToolbar", true]
+  );
+  checkContextMenu(contextMenu, expectedEntries);
+
+  let hiddenPromise = popupHidden(contextMenu);
+  contextMenu.hidePopup();
+  await hiddenPromise;
+});
+
+// Right-click on the sidebar button should show a context
+// menu with options to toggle vertical tabs and customize.
+add_task(async function sidebar_button_context() {
+  let contextMenu = document.getElementById("toolbar-context-menu");
+  let shownPromise = popupShown(contextMenu);
+  CustomizableUI.addWidgetToArea("sidebar-button", "nav-bar");
+  let sidebarButton = document.getElementById("sidebar-button");
+  EventUtils.synthesizeMouse(sidebarButton, 2, 2, {
+    type: "contextmenu",
+    button: 2,
+  });
+  await shownPromise;
+
+  let expectedEntries = [
+    ["#toolbar-context-toggle-vertical-tabs", true],
     ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true]
+    [".customize-context-moveToPanel", true],
+    [".customize-context-removeFromToolbar", true],
+    ["---"],
+  ];
+  if (!isOSX) {
+    expectedEntries.push(["#toggle_toolbar-menubar", true]);
+  }
+  expectedEntries.push(
+    ["#toggle_PersonalToolbar", true],
+    ["---"],
+    [".viewCustomizeToolbar", true]
   );
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -81,9 +114,7 @@ add_task(async function tabstrip_context() {
   expectedEntries.push(
     ["#toggle_PersonalToolbar", true],
     ["---"],
-    [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true]
+    [".viewCustomizeToolbar", true]
   );
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -123,9 +154,7 @@ add_task(async function titlebar_spacer_context() {
   expectedEntries.push(
     ["#toggle_PersonalToolbar", true],
     ["---"],
-    [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true]
+    [".viewCustomizeToolbar", true]
   );
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -161,9 +190,7 @@ add_task(async function empty_toolbar_context() {
     ["#toggle_PersonalToolbar", true],
     ["#toggle_880164_empty_toolbar", true],
     ["---"],
-    [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true]
+    [".viewCustomizeToolbar", true]
   );
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -197,9 +224,7 @@ add_task(async function urlbar_context() {
   expectedEntries.push(
     ["#toggle_PersonalToolbar", true],
     ["---"],
-    [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true]
+    [".viewCustomizeToolbar", true]
   );
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -278,8 +303,6 @@ add_task(async function context_within_panel() {
     [".customize-context-removeFromPanel", true],
     ["---"],
     [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true],
   ];
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -318,9 +341,7 @@ add_task(async function context_home_button_in_customize_mode() {
   expectedEntries.push(
     ["#toggle_PersonalToolbar", true],
     ["---"],
-    [".viewCustomizeToolbar", false],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true]
+    [".viewCustomizeToolbar", false]
   );
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -377,8 +398,6 @@ add_task(async function context_click_in_customize_mode() {
     [".customize-context-removeFromPanel", true],
     ["---"],
     [".viewCustomizeToolbar", false],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true],
   ];
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -423,8 +442,6 @@ add_task(async function context_click_customize_mode_panel_not_opened() {
     [".customize-context-removeFromPanel", true],
     ["---"],
     [".viewCustomizeToolbar", false],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true],
   ];
   checkContextMenu(contextMenu, expectedEntries, this.otherWin);
 
@@ -493,9 +510,7 @@ add_task(async function context_combined_buttons_toolbar() {
   expectedEntries.push(
     ["#toggle_PersonalToolbar", true],
     ["---"],
-    [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true]
+    [".viewCustomizeToolbar", true]
   );
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -538,8 +553,6 @@ add_task(async function context_after_customization_panel() {
     [".customize-context-removeFromPanel", true],
     ["---"],
     [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true],
   ];
   checkContextMenu(contextMenu, expectedEntries);
 
@@ -639,8 +652,6 @@ add_task(async function flexible_space_context_menu() {
     ["#toggle_PersonalToolbar", true],
     ["---"],
     [".viewCustomizeToolbar", true],
-    ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true],
   ];
 
   if (!isOSX) {

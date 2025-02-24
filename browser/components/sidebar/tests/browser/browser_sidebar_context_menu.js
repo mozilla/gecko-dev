@@ -248,7 +248,7 @@ add_task(async function test_sidebar_context_menu() {
   is(contextMenu.state, "closed", "Context menu closed for vertical tabs");
 });
 
-add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
+add_task(async function test_toggle_vertical_tabs_from_sidebar_button() {
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", false]],
   });
@@ -259,7 +259,7 @@ add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
     "Sanity check the visibilty pref when verticalTabs are disabled"
   );
 
-  info("Enable vertical tabs from the toolbar.");
+  info("Enable vertical tabs from right clicking the sidebar-button");
   const toolbarContextMenu = document.getElementById("toolbar-context-menu");
   const toggleMenuItem = document.getElementById(
     "toolbar-context-toggle-vertical-tabs"
@@ -267,18 +267,15 @@ add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
   const customizeSidebarItem = document.getElementById(
     "toolbar-context-customize-sidebar"
   );
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    gBrowser.tabContainer,
-    () => {
-      Assert.deepEqual(
-        document.l10n.getAttributes(toggleMenuItem),
-        { id: "toolbar-context-turn-on-vertical-tabs", args: null },
-        "Context menu item indicates that it enables vertical tabs."
-      );
-      toggleMenuItem.click();
-    }
-  );
+  const sidebarButton = document.getElementById("sidebar-button");
+  await openAndWaitForContextMenu(toolbarContextMenu, sidebarButton, () => {
+    Assert.deepEqual(
+      document.l10n.getAttributes(toggleMenuItem),
+      { id: "toolbar-context-turn-on-vertical-tabs", args: null },
+      "Context menu item indicates that it enables vertical tabs."
+    );
+    toggleMenuItem.click();
+  });
   await waitForTabstripOrientation("vertical");
   await TestUtils.waitForCondition(
     () => gBrowser.tabContainer.verticalMode,
@@ -291,13 +288,9 @@ add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
   );
 
   // Open customize sidebar panel from context menu
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    gBrowser.tabContainer,
-    () => {
-      customizeSidebarItem.click();
-    }
-  );
+  await openAndWaitForContextMenu(toolbarContextMenu, sidebarButton, () => {
+    customizeSidebarItem.click();
+  });
   ok(window.SidebarController.isOpen, "Sidebar is open");
   Assert.equal(
     window.SidebarController.currentID,
@@ -305,19 +298,15 @@ add_task(async function test_toggle_vertical_tabs_from_tab_strip() {
     "Sidebar should have opened to the customize sidebar panel"
   );
 
-  info("Disable vertical tabs from the toolbar.");
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    gBrowser.tabContainer,
-    () => {
-      Assert.deepEqual(
-        document.l10n.getAttributes(toggleMenuItem),
-        { id: "toolbar-context-turn-off-vertical-tabs", args: null },
-        "Context menu item indicates that it disables vertical tabs."
-      );
-      toggleMenuItem.click();
-    }
-  );
+  info("Disable vertical tabs from right clicking the sidebar-button");
+  await openAndWaitForContextMenu(toolbarContextMenu, sidebarButton, () => {
+    Assert.deepEqual(
+      document.l10n.getAttributes(toggleMenuItem),
+      { id: "toolbar-context-turn-off-vertical-tabs", args: null },
+      "Context menu item indicates that it disables vertical tabs."
+    );
+    toggleMenuItem.click();
+  });
   await waitForTabstripOrientation("horizontal");
   await TestUtils.waitForCondition(
     () => !gBrowser.tabContainer.verticalMode,
