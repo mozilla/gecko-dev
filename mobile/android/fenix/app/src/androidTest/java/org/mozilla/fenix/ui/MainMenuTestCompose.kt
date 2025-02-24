@@ -27,6 +27,7 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
+import org.mozilla.fenix.helpers.MockBrowserDataHelper
 import org.mozilla.fenix.helpers.RecyclerViewIdlingResource
 import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
@@ -55,8 +56,6 @@ class MainMenuTestCompose : TestSetup() {
                 isMenuRedesignEnabled = true,
                 isMenuRedesignCFREnabled = false,
                 isPageLoadTranslationsPromptEnabled = false,
-                isRecentlyVisitedFeatureEnabled = false,
-                isRecentTabsFeatureEnabled = false,
             ),
         ) { it.activity }
 
@@ -501,15 +500,18 @@ class MainMenuTestCompose : TestSetup() {
         val firstTestPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
         val secondTestPage = TestAssetHelper.getGenericAsset(mockWebServer, 2)
 
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(firstTestPage.url) {
-        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
-            expandMainMenu()
-            clickSaveButton()
-        }.clickSaveToCollectionButton {
-        }.typeCollectionNameAndSave(collectionTitle) {
-            verifySnackBarText("Collection saved!")
+        composeTestRule.activityRule.applySettingsExceptions {
+            // Disabling these features to have better visibility of the Collections view
+            it.isRecentlyVisitedFeatureEnabled = false
+            it.isRecentTabsFeatureEnabled = false
         }
+
+        MockBrowserDataHelper
+            .createCollection(
+                Pair(firstTestPage.url.toString(), firstTestPage.title),
+                title = collectionTitle,
+            )
+
         navigationToolbar {
         }.enterURLAndEnterToBrowser(secondTestPage.url) {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
