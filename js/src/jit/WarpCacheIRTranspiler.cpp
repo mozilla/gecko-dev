@@ -1287,6 +1287,16 @@ bool WarpCacheIRTranspiler::emitGuardArgumentsObjectFlags(ObjOperandId objId,
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitGuardObjectHasSameRealm(ObjOperandId objId) {
+  MDefinition* obj = getOperand(objId);
+
+  auto* ins = MGuardObjectHasSameRealm::New(alloc(), obj);
+  add(ins);
+
+  setOperand(objId, ins);
+  return true;
+}
+
 bool WarpCacheIRTranspiler::emitGuardNonDoubleType(ValOperandId inputId,
                                                    ValueType type) {
   switch (type) {

@@ -2654,6 +2654,9 @@ AttachDecision GetPropIRGenerator::tryAttachArgumentsObjectIterator(
   if (args->hasOverriddenIterator()) {
     return AttachDecision::NoAction;
   }
+  if (cx_->realm() != args->realm()) {
+    return AttachDecision::NoAction;
+  }
 
   AssertArgumentsCustomDataProp(args, id);
 
@@ -2673,6 +2676,7 @@ AttachDecision GetPropIRGenerator::tryAttachArgumentsObjectIterator(
   }
   uint32_t flags = ArgumentsObject::ITERATOR_OVERRIDDEN_BIT;
   writer.guardArgumentsObjectFlags(objId, flags);
+  writer.guardObjectHasSameRealm(objId);
 
   ObjOperandId iterId = writer.loadObject(&iterator.toObject());
   writer.loadObjectResult(iterId);
@@ -6271,6 +6275,12 @@ AttachDecision OptimizeSpreadCallIRGenerator::tryAttachArguments() {
     return AttachDecision::NoAction;
   }
 
+  // Don't optimize arguments objects from a different realm because in this
+  // case we have to use the other realm's %ArrayIteratorPrototype% object.
+  if (cx_->realm() != args->realm()) {
+    return AttachDecision::NoAction;
+  }
+
   Rooted<Shape*> shape(cx_, GlobalObject::getArrayShapeWithDefaultProto(cx_));
   if (!shape) {
     cx_->clearPendingException();
@@ -6300,6 +6310,7 @@ AttachDecision OptimizeSpreadCallIRGenerator::tryAttachArguments() {
                   ArgumentsObject::ITERATOR_OVERRIDDEN_BIT |
                   ArgumentsObject::FORWARDED_ARGUMENTS_BIT;
   writer.guardArgumentsObjectFlags(objId, flags);
+  writer.guardObjectHasSameRealm(objId);
 
   ObjOperandId protoId = writer.loadObject(arrayIteratorProto);
   ObjOperandId nextId = writer.loadObject(nextFun);

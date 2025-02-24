@@ -5058,6 +5058,8 @@ static bool OptimizeArgumentsSpreadCall(JSContext* cx, HandleObject obj,
   //   * the arguments object has no deleted elements
   //   * arguments.length is not overridden
   //   * arguments[@@iterator] is not overridden
+  //   * the arguments object belongs to the current realm (affects which
+  //     %ArrayIteratorPrototype% is used)
   //   * %ArrayIteratorPrototype%.next is not modified
 
   if (!obj->is<ArgumentsObject>()) {
@@ -5067,6 +5069,9 @@ static bool OptimizeArgumentsSpreadCall(JSContext* cx, HandleObject obj,
   Handle<ArgumentsObject*> args = obj.as<ArgumentsObject>();
   if (args->hasOverriddenElement() || args->hasOverriddenLength() ||
       args->hasOverriddenIterator()) {
+    return true;
+  }
+  if (cx->realm() != args->realm()) {
     return true;
   }
 

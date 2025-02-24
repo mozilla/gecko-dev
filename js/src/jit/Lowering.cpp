@@ -515,6 +515,16 @@ void LIRGenerator::visitGuardArgumentsObjectFlags(
   redefine(ins, argsObj);
 }
 
+void LIRGenerator::visitGuardObjectHasSameRealm(MGuardObjectHasSameRealm* ins) {
+  MDefinition* obj = ins->object();
+  MOZ_ASSERT(obj->type() == MIRType::Object);
+
+  auto* lir = new (alloc()) LGuardObjectHasSameRealm(useRegister(obj), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  add(lir, ins);
+  redefine(ins, obj);
+}
+
 void LIRGenerator::visitBoundFunctionNumArgs(MBoundFunctionNumArgs* ins) {
   MDefinition* obj = ins->object();
   MOZ_ASSERT(obj->type() == MIRType::Object);

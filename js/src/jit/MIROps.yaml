@@ -587,6 +587,18 @@
   # The flags are packed with the length in a fixed private slot.
   alias_set: custom
 
+# Guard cx->realm() == obj->realm().
+- name: GuardObjectHasSameRealm
+  operands:
+    object: Object
+  result_type: Object
+  guard: true
+  movable: true
+  congruent_to: if_operands_equal
+  # The object's realm is immutable. The context's realm must always be the same
+  # realm for this compilation.
+  alias_set: none
+
 - name: LoadScriptedProxyHandler
   operands:
     object: Object

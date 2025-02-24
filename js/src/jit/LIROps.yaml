@@ -622,6 +622,12 @@
   num_temps: 1
   mir_op: true
 
+- name: GuardObjectHasSameRealm
+  operands:
+    object: WordSized
+  num_temps: 1
+  mir_op: true
+
 - name: BoundFunctionNumArgs
   result_type: WordSized
   operands:

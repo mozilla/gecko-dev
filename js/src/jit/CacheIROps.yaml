@@ -802,6 +802,14 @@
     obj: ObjId
     flags: ByteImm
 
+# Guard cx->realm() == obj->realm().
+- name: GuardObjectHasSameRealm
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    obj: ObjId
+
 - name: LoadObject
   shared: true
   transpile: true

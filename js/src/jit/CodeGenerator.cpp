@@ -9128,6 +9128,16 @@ void CodeGenerator::visitGuardArgumentsObjectFlags(
   bailoutFrom(&bail, lir->snapshot());
 }
 
+void CodeGenerator::visitGuardObjectHasSameRealm(
+    LGuardObjectHasSameRealm* lir) {
+  Register obj = ToRegister(lir->object());
+  Register temp = ToRegister(lir->temp0());
+
+  Label bail;
+  masm.guardObjectHasSameRealm(obj, temp, &bail);
+  bailoutFrom(&bail, lir->snapshot());
+}
+
 void CodeGenerator::visitBoundFunctionNumArgs(LBoundFunctionNumArgs* lir) {
   Register obj = ToRegister(lir->object());
   Register output = ToRegister(lir->output());

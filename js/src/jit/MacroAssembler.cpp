@@ -2714,6 +2714,15 @@ void MacroAssembler::setIsCrossRealmArrayConstructor(Register obj,
   bind(&done);
 }
 
+void MacroAssembler::guardObjectHasSameRealm(Register obj, Register scratch,
+                                             Label* fail) {
+  loadPtr(Address(obj, JSObject::offsetOfShape()), scratch);
+  loadPtr(Address(scratch, Shape::offsetOfBaseShape()), scratch);
+  loadPtr(Address(scratch, BaseShape::offsetOfRealm()), scratch);
+  branchPtr(Assembler::NotEqual, AbsoluteAddress(ContextRealmPtr(runtime())),
+            scratch, fail);
+}
+
 void MacroAssembler::setIsDefinitelyTypedArrayConstructor(Register obj,
                                                           Register output) {
   Label isFalse, isTrue, done;

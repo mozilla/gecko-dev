@@ -5308,6 +5308,21 @@ bool CacheIRCompiler::emitGuardArgumentsObjectFlags(ObjOperandId objId,
   return true;
 }
 
+bool CacheIRCompiler::emitGuardObjectHasSameRealm(ObjOperandId objId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register obj = allocator.useRegister(masm, objId);
+  AutoScratchRegister scratch(allocator, masm);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.guardObjectHasSameRealm(obj, scratch, failure->label());
+  return true;
+}
+
 bool CacheIRCompiler::emitLoadDenseElementHoleResult(ObjOperandId objId,
                                                      Int32OperandId indexId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
