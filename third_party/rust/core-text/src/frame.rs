@@ -10,6 +10,7 @@
 use crate::line::CTLine;
 use core_foundation::array::{CFArray, CFArrayRef};
 use core_foundation::base::{CFRange, CFTypeID, TCFType};
+use core_foundation::{declare_TCFType, impl_CFTypeDescription, impl_TCFType};
 use core_graphics::context::{CGContext, CGContextRef};
 use core_graphics::geometry::CGPoint;
 use core_graphics::path::{CGPath, SysCGPathRef};
@@ -84,7 +85,7 @@ impl CTFrame {
     }
 }
 
-#[link(name = "CoreText", kind = "framework")]
+#[cfg_attr(feature = "link", link(name = "CoreText", kind = "framework"))]
 extern "C" {
     fn CTFrameGetTypeID() -> CFTypeID;
     fn CTFrameGetLines(frame: CTFrameRef) -> CFArrayRef;

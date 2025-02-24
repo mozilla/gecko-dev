@@ -10,30 +10,37 @@
 use core_foundation::base::{CFRelease, CFRetain, CFTypeID, TCFType};
 use core_foundation::data::{CFData, CFDataRef};
 
-use libc::{size_t, off_t};
+use libc::{off_t, size_t};
 use std::mem;
+use std::os::raw::c_void;
 use std::ptr;
 use std::sync::Arc;
-use std::os::raw::c_void;
 
-use foreign_types::{ForeignType, ForeignTypeRef};
+use foreign_types::{foreign_type, ForeignType, ForeignTypeRef};
 
-pub type CGDataProviderGetBytesCallback = Option<unsafe extern fn (*mut c_void, *mut c_void, size_t) -> size_t>;
-pub type CGDataProviderReleaseInfoCallback = Option<unsafe extern fn (*mut c_void)>;
-pub type CGDataProviderRewindCallback = Option<unsafe extern fn (*mut c_void)>;
-pub type CGDataProviderSkipBytesCallback = Option<unsafe extern fn (*mut c_void, size_t)>;
-pub type CGDataProviderSkipForwardCallback = Option<unsafe extern fn (*mut c_void, off_t) -> off_t>;
+pub type CGDataProviderGetBytesCallback =
+    Option<unsafe extern "C" fn(*mut c_void, *mut c_void, size_t) -> size_t>;
+pub type CGDataProviderReleaseInfoCallback = Option<unsafe extern "C" fn(*mut c_void)>;
+pub type CGDataProviderRewindCallback = Option<unsafe extern "C" fn(*mut c_void)>;
+pub type CGDataProviderSkipBytesCallback = Option<unsafe extern "C" fn(*mut c_void, size_t)>;
+pub type CGDataProviderSkipForwardCallback =
+    Option<unsafe extern "C" fn(*mut c_void, off_t) -> off_t>;
 
-pub type CGDataProviderGetBytePointerCallback = Option<unsafe extern fn (*mut c_void) -> *mut c_void>;
-pub type CGDataProviderGetBytesAtOffsetCallback = Option<unsafe extern fn (*mut c_void, *mut c_void, size_t, size_t)>;
-pub type CGDataProviderReleaseBytePointerCallback = Option<unsafe extern fn (*mut c_void, *const c_void)>;
-pub type CGDataProviderReleaseDataCallback = Option<unsafe extern fn (*mut c_void, *const c_void, size_t)>;
-pub type CGDataProviderGetBytesAtPositionCallback = Option<unsafe extern fn (*mut c_void, *mut c_void, off_t, size_t)>;
+pub type CGDataProviderGetBytePointerCallback =
+    Option<unsafe extern "C" fn(*mut c_void) -> *mut c_void>;
+pub type CGDataProviderGetBytesAtOffsetCallback =
+    Option<unsafe extern "C" fn(*mut c_void, *mut c_void, size_t, size_t)>;
+pub type CGDataProviderReleaseBytePointerCallback =
+    Option<unsafe extern "C" fn(*mut c_void, *const c_void)>;
+pub type CGDataProviderReleaseDataCallback =
+    Option<unsafe extern "C" fn(*mut c_void, *const c_void, size_t)>;
+pub type CGDataProviderGetBytesAtPositionCallback =
+    Option<unsafe extern "C" fn(*mut c_void, *mut c_void, off_t, size_t)>;
 
 foreign_type! {
     #[doc(hidden)]
     pub unsafe type CGDataProvider {
-        type CType = ::sys::CGDataProvider;
+        type CType = crate::sys::CGDataProvider;
         fn drop = |cs| CFRelease(cs as *mut _);
         fn clone = |p| CFRetain(p as *const _) as *mut _;
     }
@@ -41,9 +48,7 @@ foreign_type! {
 
 impl CGDataProvider {
     pub fn type_id() -> CFTypeID {
-        unsafe {
-            CGDataProviderGetTypeID()
-        }
+        unsafe { CGDataProviderGetTypeID() }
     }
 
     /// Creates a data provider from the given reference-counted buffer.
@@ -84,7 +89,9 @@ impl CGDataProvider {
         return CGDataProvider::from_ptr(data_provider);
 
         unsafe extern "C" fn release(info: *mut c_void, _: *const c_void, _: size_t) {
-            drop(mem::transmute::<*mut c_void, Box<Box<dyn CustomData>>>(info))
+            drop(mem::transmute::<*mut c_void, Box<Box<dyn CustomData>>>(
+                info,
+            ))
         }
     }
 }
@@ -99,10 +106,10 @@ impl CGDataProviderRef {
 /// Encapsulates custom data that can be wrapped.
 pub trait CustomData {
     /// Returns a pointer to the start of the custom data. This pointer *must not change* during
-    /// the lifespan of this CustomData.
+    /// the lifespan of this `CustomData`.
     unsafe fn ptr(&self) -> *const u8;
     /// Returns the length of this custom data. This value must not change during the lifespan of
-    /// this CustomData.
+    /// this `CustomData`.
     unsafe fn len(&self) -> usize;
 }
 
@@ -134,7 +141,10 @@ fn test_data_provider() {
     }
 
     let dropped = Arc::new(AtomicBool::default());
-    let l = Arc::new(VecWrapper {inner: vec![5], dropped: dropped.clone() });
+    let l = Arc::new(VecWrapper {
+        inner: vec![5],
+        dropped: dropped.clone(),
+    });
     let m = l.clone();
     let dp = CGDataProvider::from_buffer(l);
     drop(m);
@@ -143,17 +153,18 @@ fn test_data_provider() {
     assert!(dropped.load(SeqCst))
 }
 
-#[link(name = "CoreGraphics", kind = "framework")]
-extern {
-    fn CGDataProviderCopyData(provider: ::sys::CGDataProviderRef) -> CFDataRef;
+#[cfg_attr(feature = "link", link(name = "CoreGraphics", kind = "framework"))]
+extern "C" {
+    fn CGDataProviderCopyData(provider: crate::sys::CGDataProviderRef) -> CFDataRef;
     //fn CGDataProviderCreateDirect
     //fn CGDataProviderCreateSequential
     //fn CGDataProviderCreateWithCFData
-    fn CGDataProviderCreateWithData(info: *mut c_void,
-                                    data: *const c_void,
-                                    size: size_t,
-                                    releaseData: CGDataProviderReleaseDataCallback
-                                   ) -> ::sys::CGDataProviderRef;
+    fn CGDataProviderCreateWithData(
+        info: *mut c_void,
+        data: *const c_void,
+        size: size_t,
+        releaseData: CGDataProviderReleaseDataCallback,
+    ) -> crate::sys::CGDataProviderRef;
     //fn CGDataProviderCreateWithFilename(filename: *c_char) -> CGDataProviderRef;
     //fn CGDataProviderCreateWithURL
     fn CGDataProviderGetTypeID() -> CFTypeID;

@@ -974,13 +974,13 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "core-graphics"
-version = "0.23.1"
+version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "970a29baf4110c26fedbc7f82107d42c23f7e88e404c4577ed73fe99ff85a212"
+checksum = "fa95a34622365fa5bbf40b20b75dba8dfa8c94c734aea8ac9a5ca38af14316f1"
 dependencies = [
- "bitflags 1.999.999",
- "core-foundation 0.9.999",
- "core-graphics-types 0.1.999",
+ "bitflags 2.7.0",
+ "core-foundation 0.10.0",
+ "core-graphics-types 0.2.0",
  "foreign-types",
  "libc",
 ]
@@ -1005,11 +1005,11 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "20.1.0"
+version = "21.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9d2790b5c08465d49f8dc05c8bcae9fea467855947db39b0f8145c091aaced5"
+checksum = "a593227b66cbd4007b2a050dfdd9e1d1318311409c8d600dc82ba1b15ca9c130"
 dependencies = [
- "core-foundation 0.9.999",
+ "core-foundation 0.10.0",
  "core-graphics",
  "foreign-types",
  "libc",
@@ -7233,7 +7233,7 @@ version = "0.1.0"
 dependencies = [
  "app_units",
  "bincode",
- "core-foundation 0.9.999",
+ "core-foundation 0.10.0",
  "core-graphics",
  "dirs",
  "dwrote",
@@ -7538,7 +7538,7 @@ dependencies = [
 name = "wr_glyph_rasterizer"
 version = "0.1.0"
 dependencies = [
- "core-foundation 0.9.999",
+ "core-foundation 0.10.0",
  "core-graphics",
  "core-text",
  "dwrote",

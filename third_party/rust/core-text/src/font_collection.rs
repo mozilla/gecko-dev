@@ -7,9 +7,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use font_descriptor;
-use font_descriptor::{CTFontDescriptor, CTFontDescriptorCreateMatchingFontDescriptors};
-use font_manager::{
+use crate::font_descriptor;
+use crate::font_descriptor::{CTFontDescriptor, CTFontDescriptorCreateMatchingFontDescriptors};
+use crate::font_manager::{
     CTFontManagerCopyAvailableFontFamilyNames, CTFontManagerCopyAvailablePostScriptNames,
 };
 
@@ -19,6 +19,7 @@ use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
 use core_foundation::number::CFNumber;
 use core_foundation::set::CFSet;
 use core_foundation::string::{CFString, CFStringRef};
+use core_foundation::{declare_TCFType, impl_CFTypeDescription, impl_TCFType};
 
 use std::os::raw::c_void;
 
@@ -78,7 +79,7 @@ pub fn create_for_all_families() -> CTFontCollection {
 }
 
 pub fn create_for_family(family: &str) -> Option<CTFontCollection> {
-    use font_descriptor::kCTFontFamilyNameAttribute;
+    use crate::font_descriptor::kCTFontFamilyNameAttribute;
 
     unsafe {
         let family_attr = CFString::wrap_under_get_rule(kCTFontFamilyNameAttribute);

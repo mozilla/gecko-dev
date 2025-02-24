@@ -16,13 +16,6 @@ Many of these functions will add objects to the autorelease pool.
 If you don't have one this will cause leaks.
 */
 
-extern crate foreign_types;
-extern crate libc;
-
-#[macro_use]
-extern crate core_foundation;
-extern crate core_graphics;
-
 pub mod font;
 pub mod font_collection;
 pub mod font_descriptor;

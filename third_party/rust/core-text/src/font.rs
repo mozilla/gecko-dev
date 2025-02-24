@@ -9,10 +9,12 @@
 
 #![allow(non_upper_case_globals)]
 
-use font_descriptor;
-use font_descriptor::{CTFontDescriptor, CTFontDescriptorRef, CTFontOrientation};
-use font_descriptor::{CTFontSymbolicTraits, CTFontTraits, SymbolicTraitAccessors, TraitAccessors};
-use font_manager::create_font_descriptor;
+use crate::font_descriptor;
+use crate::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef, CTFontOrientation};
+use crate::font_descriptor::{
+    CTFontSymbolicTraits, CTFontTraits, SymbolicTraitAccessors, TraitAccessors,
+};
+use crate::font_manager::create_font_descriptor;
 
 use core_foundation::array::{CFArray, CFArrayRef};
 use core_foundation::base::{CFIndex, CFOptionFlags, CFType, CFTypeID, CFTypeRef, TCFType};
@@ -21,6 +23,7 @@ use core_foundation::dictionary::{CFDictionary, CFDictionaryRef};
 use core_foundation::number::CFNumber;
 use core_foundation::string::{CFString, CFStringRef, UniChar};
 use core_foundation::url::{CFURLRef, CFURL};
+use core_foundation::{declare_TCFType, impl_CFTypeDescription, impl_TCFType};
 use core_graphics::base::CGFloat;
 use core_graphics::context::CGContext;
 use core_graphics::font::{CGFont, CGGlyph};
@@ -492,6 +495,10 @@ impl CTFont {
         }
     }
 
+    pub fn get_matrix(&self) -> CGAffineTransform {
+        unsafe { CTFontGetMatrix(self.as_concrete_TypeRef()) }
+    }
+
     pub fn url(&self) -> Option<CFURL> {
         unsafe {
             let result = CTFontCopyAttribute(self.0, kCTFontURLAttribute);
@@ -594,7 +601,7 @@ pub fn cascade_list_for_languages(
     }
 }
 
-#[link(name = "CoreText", kind = "framework")]
+#[cfg_attr(feature = "link", link(name = "CoreText", kind = "framework"))]
 extern "C" {
     /*
      * CTFont.h
@@ -690,7 +697,7 @@ extern "C" {
     fn CTFontCopyFontDescriptor(font: CTFontRef) -> CTFontDescriptorRef;
     fn CTFontCopyAttribute(font: CTFontRef, attribute: CFStringRef) -> CFTypeRef;
     fn CTFontGetSize(font: CTFontRef) -> CGFloat;
-    //fn CTFontGetMatrix
+    fn CTFontGetMatrix(font: CTFontRef) -> CGAffineTransform;
     fn CTFontGetSymbolicTraits(font: CTFontRef) -> CTFontSymbolicTraits;
     fn CTFontCopyTraits(font: CTFontRef) -> CFDictionaryRef;
 
@@ -877,7 +884,7 @@ fn copy_system_font() {
     let ps = small.postscript_name();
     let desc = small.copy_descriptor();
 
-    // check that we can construct a new vesion by descriptor
+    // check that we can construct a new version by descriptor
     let ctfont = new_from_descriptor(&desc, 20.);
     assert_eq!(big.postscript_name(), ctfont.postscript_name());
 
@@ -938,11 +945,13 @@ fn copy_system_font() {
 #[test]
 fn out_of_range_variations() {
     use crate::*;
+    use core_foundation::base::ItemRef;
 
     let small = new_ui_font_for_language(kCTFontSystemDetailFontType, 19., None);
 
     let axes = small.get_variation_axes();
-    if macos_version() < (10, 12, 0) {
+    let version = dbg!(macos_version());
+    if version < (10, 12, 0) {
         assert!(axes.is_none());
         return;
     }
@@ -978,10 +987,25 @@ fn out_of_range_variations() {
     let var_desc = variation_font.copy_descriptor();
     let var_attrs = var_desc.attributes();
     dbg!(&var_attrs);
-    // attributes greater than max are dropped on macOS <= 11
-    // on macOS 12 they seem to be preserved as is.
+
+    // Handling of attributes greater than max changed between versions
     let var_attrs = var_attrs.find(variation_attribute);
-    if macos_version() >= (12, 0, 0) && macos_version() < (13, 0, 0) {
+    if version >= (14, 0, 0) {
+        check_attrs(0., var_attrs, axes);
+    } else if version >= (12, 0, 0) && version < (13, 0, 0) {
+        check_attrs(1., var_attrs, axes);
+    } else if version >= (10, 15, 0) {
+        assert!(var_attrs.is_none());
+    } else {
+        let var_attrs = var_attrs.unwrap().downcast::<CFDictionary>().unwrap();
+        assert!(var_attrs.is_empty());
+    }
+
+    fn check_attrs(
+        clamp_diff: f64,
+        var_attrs: Option<ItemRef<'_, CFType>>,
+        axes: CFArray<CFDictionary<CFString, CFType>>,
+    ) {
         let var_attrs = var_attrs.unwrap().downcast::<CFDictionary>().unwrap();
         assert!(!var_attrs.is_empty());
         let var_attrs: CFDictionary<CFType, CFType> = unsafe { std::mem::transmute(var_attrs) };
@@ -1004,13 +1028,14 @@ fn out_of_range_variations() {
                 .unwrap()
                 .to_f64()
                 .unwrap();
-            assert_eq!(val, max + 1.);
+
+            let expected = max + clamp_diff;
+            assert_eq!(
+                val, expected,
+                "axis {:?} = {:?} (expected {:?})",
+                tag, val, expected
+            );
         }
-    } else if macos_version() >= (10, 15, 0) {
-        assert!(var_attrs.is_none());
-    } else {
-        let var_attrs = var_attrs.unwrap().downcast::<CFDictionary>().unwrap();
-        assert!(var_attrs.is_empty());
     }
 }
 
