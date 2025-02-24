@@ -607,7 +607,6 @@ nsresult BounceTrackingState::OnStartNavigation(
     }
   }
 
-
   // If sourceSnapshotParams’s has transient activation is true,
   // we initialize a new bounce tracking record with the initialHost
   // having been activated. Also treat system principal navigation as

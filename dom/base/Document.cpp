@@ -17627,15 +17627,16 @@ void Document::MaybeAllowStorageForOpenerAfterUserInteraction() {
     }
   }
 
-
   // We don't care when the asynchronous work finishes here.
   // Without e10s or fission enabled this is run in the parent process.
   if (XRE_IsParentProcess()) {
     Unused << StorageAccessAPIHelper::AllowAccessForOnParentProcess(
-        NodePrincipal(), openerBC, ContentBlockingNotifier::eOpenerAfterUserInteraction);
+        NodePrincipal(), openerBC,
+        ContentBlockingNotifier::eOpenerAfterUserInteraction);
   } else {
     Unused << StorageAccessAPIHelper::AllowAccessForOnChildProcess(
-        NodePrincipal(), openerBC, ContentBlockingNotifier::eOpenerAfterUserInteraction);
+        NodePrincipal(), openerBC,
+        ContentBlockingNotifier::eOpenerAfterUserInteraction);
   }
 }
 

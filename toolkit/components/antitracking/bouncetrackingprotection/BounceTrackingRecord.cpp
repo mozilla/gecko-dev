@@ -63,7 +63,7 @@ void BounceTrackingRecord::AddStorageAccessHost(const nsACString& aHost) {
 }
 
 void BounceTrackingRecord::AddUserActivationHost(const nsACString& aHost) {
-  if(!aHost.IsEmpty()) {
+  if (!aHost.IsEmpty()) {
     mUserActivationHosts.Insert(aHost);
   }
 }
