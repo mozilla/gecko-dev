@@ -137,8 +137,3 @@ add_task(async function testGutterBreakpointsForSourceWithIgnoredLines() {
     "The breakpoint on an ignored line is disabled"
   );
 });
-
-async function assertContextMenuItemDisabled(dbg, selector, expectedState) {
-  const item = await waitFor(() => findContextMenu(dbg, selector));
-  is(item.disabled, expectedState, "The context menu item is disabled");
-}

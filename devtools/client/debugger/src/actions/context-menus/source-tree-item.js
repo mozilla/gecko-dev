@@ -90,6 +90,8 @@ export function showSourceTreeItemContextMenu(
         id: "node-menu-overrides",
         label: L10N.getStr(`overridesContextItem.${overrideStr}`),
         accesskey: L10N.getStr(`overridesContextItem.${overrideStr}.accesskey`),
+        // Network overrides are disabled for original files.
+        disabled: source.isOriginal,
         // Network overrides are disabled for remote debugging (bug 1881441).
         visible: panel.toolbox.commands.descriptorFront.isLocalTab,
         click: () =>

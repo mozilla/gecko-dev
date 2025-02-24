@@ -2138,6 +2138,11 @@ function findContextMenu(dbg, selector) {
   return popup.querySelector(selector);
 }
 
+async function assertContextMenuItemDisabled(dbg, selector, expectedState) {
+  const item = await waitFor(() => findContextMenu(dbg, selector));
+  is(item.disabled, expectedState, "The context menu item is disabled");
+}
+
 // Waits for the context menu to exist and to fully open. Once this function
 // completes, selectDebuggerContextMenuItem can be called.
 // waitForContextMenu must be called after menu opening has been triggered, e.g.
