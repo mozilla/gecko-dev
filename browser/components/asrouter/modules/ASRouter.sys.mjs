@@ -1385,7 +1385,7 @@ export class _ASRouter {
       return { message: {} };
     }
 
-    // filter out messages we want to exclude from tests
+    // Filters out messages we want to exclude from tests
     if (
       message.skip_in_tests &&
       // `this.messagesEnabledInAutomation` should be stubbed in tests
