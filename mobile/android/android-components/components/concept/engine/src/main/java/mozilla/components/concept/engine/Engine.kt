@@ -85,6 +85,31 @@ interface Engine : WebExtensionRuntime, TranslationsRuntime, DataCleanable {
     }
 
     /**
+     * DoH Settings Mode
+     */
+    enum class DohSettingsMode {
+        /**
+         * DoH setting is set to "Default", corresponds to TRR_MODE_OFF (0) from GeckoView.
+         */
+        DEFAULT,
+
+        /**
+         * DoH setting is set to "Increased", corresponds to TRR_MODE_FIRST (2) from GeckoView.
+         */
+        INCREASED,
+
+        /**
+         * DoH setting is set to "Max", corresponds to TRR_MODE_ONLY (3) from GeckoView.
+         */
+        MAX,
+
+        /**
+         * DoH is disabled, corresponds to TRR_MODE_DISABLED (5) from GeckoView.
+         */
+        OFF,
+    }
+
+    /**
      * Makes sure all required engine initialization logic is executed. The
      * details are specific to individual implementations, but the following must be true:
      *

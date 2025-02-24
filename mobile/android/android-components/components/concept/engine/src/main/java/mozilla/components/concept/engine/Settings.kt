@@ -244,6 +244,26 @@ abstract class Settings {
     open var httpsOnlyMode: Engine.HttpsOnlyMode by UnsupportedSetting()
 
     /**
+     * Setting the DNS over HTTPS mode for upgrading connections to HTTPS.
+     */
+    open var dohSettingsMode: Engine.DohSettingsMode by UnsupportedSetting()
+
+    /**
+     * The url of the current provider in the DNS over HTTPS mode
+     */
+    open var dohProviderUrl: String by UnsupportedSetting()
+
+    /**
+     * The url of the default provider in the DNS over HTTPS mode
+     */
+    open var dohDefaultProviderUrl: String? by UnsupportedSetting()
+
+    /**
+     * The exceptions in the DNS over HTTPS mode
+     */
+    open var dohExceptionsList: List<String> by UnsupportedSetting()
+
+    /**
      * Setting to control whether Global Privacy Control isenabled.
      */
     open var globalPrivacyControlEnabled: Boolean by UnsupportedSetting()
@@ -358,6 +378,10 @@ data class DefaultSettings(
     override var clearColor: Int? = null,
     override var enterpriseRootsEnabled: Boolean = false,
     override var httpsOnlyMode: Engine.HttpsOnlyMode = Engine.HttpsOnlyMode.DISABLED,
+    override var dohSettingsMode: Engine.DohSettingsMode = Engine.DohSettingsMode.DEFAULT,
+    override var dohProviderUrl: String = "",
+    override var dohDefaultProviderUrl: String? = "",
+    override var dohExceptionsList: List<String> = emptyList(),
     override var globalPrivacyControlEnabled: Boolean = false,
     override var fingerprintingProtection: Boolean? = null,
     override var fingerprintingProtectionPrivateBrowsing: Boolean? = null,

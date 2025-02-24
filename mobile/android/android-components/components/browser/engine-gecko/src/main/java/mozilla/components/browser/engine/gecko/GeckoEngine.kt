@@ -1337,6 +1337,82 @@ class GeckoEngine(
                     Engine.HttpsOnlyMode.ENABLED -> GeckoRuntimeSettings.HTTPS_ONLY
                 }
             }
+
+        @Suppress("TooGenericExceptionCaught")
+        override var dohSettingsMode: Engine.DohSettingsMode
+            get() {
+                try {
+                    runtime.settings.trustedRecusiveResolverMode
+                } catch (npe: NullPointerException) {
+                    runtime.settings.setTrustedRecursiveResolverMode(GeckoRuntimeSettings.TRR_MODE_OFF)
+                }
+                return when (runtime.settings.trustedRecusiveResolverMode) {
+                    GeckoRuntimeSettings.TRR_MODE_OFF -> Engine.DohSettingsMode.DEFAULT
+                    GeckoRuntimeSettings.TRR_MODE_FIRST -> Engine.DohSettingsMode.INCREASED
+                    GeckoRuntimeSettings.TRR_MODE_ONLY -> Engine.DohSettingsMode.MAX
+                    GeckoRuntimeSettings.TRR_MODE_DISABLED -> Engine.DohSettingsMode.OFF
+                    else -> Engine.DohSettingsMode.DEFAULT
+                }
+            }
+            set(value) {
+                when (value) {
+                    Engine.DohSettingsMode.DEFAULT ->
+                        runtime.settings.setTrustedRecursiveResolverMode(GeckoRuntimeSettings.TRR_MODE_OFF)
+
+                    Engine.DohSettingsMode.INCREASED ->
+                        runtime.settings.setTrustedRecursiveResolverMode(GeckoRuntimeSettings.TRR_MODE_FIRST)
+
+                    Engine.DohSettingsMode.MAX ->
+                        runtime.settings.setTrustedRecursiveResolverMode(GeckoRuntimeSettings.TRR_MODE_ONLY)
+
+                    Engine.DohSettingsMode.OFF ->
+                        runtime.settings.setTrustedRecursiveResolverMode(GeckoRuntimeSettings.TRR_MODE_DISABLED)
+                }
+            }
+
+        @Suppress("TooGenericExceptionCaught")
+        override var dohProviderUrl: String
+            get() {
+                return try {
+                    runtime.settings.trustedRecursiveResolverUri
+                } catch (npe: NullPointerException) {
+                    // network.trr.uri pref has not been set
+                    runtime.settings.setTrustedRecursiveResolverUri("")
+                    runtime.settings.trustedRecursiveResolverUri
+                }
+            }
+            set(value) { runtime.settings.setTrustedRecursiveResolverUri(value) }
+
+        @Suppress("TooGenericExceptionCaught")
+        override var dohDefaultProviderUrl: String?
+            get() {
+                return try {
+                    runtime.settings.defaultRecursiveResolverUri
+                } catch (npe: NullPointerException) {
+                    // network.trr.default_provider_uri pref has not been set
+                    runtime.settings.setDefaultRecursiveResolverUri("")
+                    runtime.settings.defaultRecursiveResolverUri
+                }
+            }
+            set(value) {
+                if (value != null) {
+                    runtime.settings.setDefaultRecursiveResolverUri(value)
+                }
+            }
+
+        @Suppress("TooGenericExceptionCaught")
+        override var dohExceptionsList: List<String>
+            get() {
+                return try {
+                    runtime.settings.trustedRecursiveResolverExcludedDomains
+                } catch (npe: NullPointerException) {
+                    // network.trr.excluded-domains pref has not been set
+                    runtime.settings.setTrustedRecursiveResolverExcludedDomains(emptyList())
+                    runtime.settings.trustedRecursiveResolverExcludedDomains
+                }
+            }
+            set(value) { runtime.settings.setTrustedRecursiveResolverExcludedDomains(value) }
+
         override var globalPrivacyControlEnabled: Boolean
             get() = runtime.settings.globalPrivacyControl
             set(value) { runtime.settings.setGlobalPrivacyControl(value) }
