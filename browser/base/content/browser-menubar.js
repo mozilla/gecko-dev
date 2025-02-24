@@ -95,7 +95,7 @@ document.addEventListener(
           });
           break;
         case "menu_HelpPopup_reportPhishingErrortoolmenu":
-          ReportFalseDeceptiveSite();
+          gSafeBrowsing.reportFalseDeceptiveSite();
           break;
         case "helpSwitchDevice":
           openSwitchingDevicesPage();

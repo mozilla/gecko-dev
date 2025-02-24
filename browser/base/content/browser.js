@@ -4978,45 +4978,6 @@ function undoCloseWindow(aIndex) {
   return window;
 }
 
-function ReportFalseDeceptiveSite() {
-  let contextsToVisit = [gBrowser.selectedBrowser.browsingContext];
-  while (contextsToVisit.length) {
-    let currentContext = contextsToVisit.pop();
-    let global = currentContext.currentWindowGlobal;
-
-    if (!global) {
-      continue;
-    }
-    let docURI = global.documentURI;
-    // Ensure the page is an about:blocked pagae before handling.
-    if (docURI && docURI.spec.startsWith("about:blocked?e=deceptiveBlocked")) {
-      let actor = global.getActor("BlockedSite");
-      actor.sendQuery("DeceptiveBlockedDetails").then(data => {
-        let reportUrl = gSafeBrowsing.getReportURL(
-          "PhishMistake",
-          data.blockedInfo
-        );
-        if (reportUrl) {
-          openTrustedLinkIn(reportUrl, "tab");
-        } else {
-          let bundle = Services.strings.createBundle(
-            "chrome://browser/locale/safebrowsing/safebrowsing.properties"
-          );
-          Services.prompt.alert(
-            window,
-            bundle.GetStringFromName("errorReportFalseDeceptiveTitle"),
-            bundle.formatStringFromName("errorReportFalseDeceptiveMessage", [
-              data.blockedInfo.provider,
-            ])
-          );
-        }
-      });
-    }
-
-    contextsToVisit.push(...currentContext.children);
-  }
-}
-
 /**
  * This is a temporary hack to connect a Help menu item for reporting
  * site issues to the WebCompat team's Site Compatability Reporter

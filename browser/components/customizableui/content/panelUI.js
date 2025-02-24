@@ -755,7 +755,7 @@ const PanelUI = {
         });
         break;
       case "appMenu_menu_HelpPopup_reportPhishingErrortoolmenu":
-        ReportFalseDeceptiveSite();
+        gSafeBrowsing.reportFalseDeceptiveSite();
         break;
       case "appMenu_helpSwitchDevice":
         openSwitchingDevicesPage();
