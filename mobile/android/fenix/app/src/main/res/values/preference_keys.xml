@@ -198,6 +198,9 @@
     <!-- Cookie Banner Reduction Settings-->
     <string name="pref_key_cookie_banner_private_mode" translatable="false">pref_key_cookie_banner_private_mode</string>
 
+    <!-- DNS Over HTTPS Settings -->
+    <string name="pref_key_doh_settings" translatable="false">pref_key_doh_settings</string>
+
     <!-- Tracking Protection Settings -->
     <string name="pref_key_etp_learn_more" translatable="false">pref_key_etp_learn_more</string>
     <string name="pref_key_tracking_protection_settings" translatable="false">pref_key_tracking_protection_settings</string>
@@ -437,6 +440,9 @@
     <!-- Bookmarks -->
     <string name="pref_key_use_new_bookmarks_ui" translatable="false">pref_key_use_new_bookmarks_ui</string>
     <string name="pref_last_folder_saved_in" translatable="false">pref_last_folder_saved_in</string>
+
+    <!-- DNS over HTTPS Secret settings -->
+    <string name="pref_key_doh_settings_enabled" translatable="false">pref_key_doh_settings_enabled</string>
 
     <!-- Glean usage profile id -->
     <string name="pref_key_glean_usage_profile_id" translatable="false">pref_key_glean_usage_profile_id</string>

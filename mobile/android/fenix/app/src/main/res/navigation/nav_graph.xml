@@ -725,6 +725,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settingsFragment_to_dohSettingsFragment"
+            app:destination="@id/dohSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
     <dialog
         android:id="@+id/profilerStartDialogFragment"
@@ -1153,6 +1160,11 @@
             app:argType="string"
             app:nullable="true" />
     </dialog>
+    <fragment
+        android:id="@+id/dohSettingsFragment"
+        android:name="org.mozilla.fenix.settings.doh.DohSettingsFragment"
+        tools:layout="@layout/fragment_doh_settings">
+    </fragment>
     <fragment
         android:id="@+id/addonDetailsFragment"
         android:name="org.mozilla.fenix.addons.AddonDetailsFragment"

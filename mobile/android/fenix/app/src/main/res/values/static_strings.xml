@@ -104,6 +104,9 @@
     <!-- Label for enabling Trending Searches -->
     <string name="preferences_debug_settings_trending_searches" translatable="false">Enable Trending Searches</string>
 
+    <!-- Label for enabling the DNS over HTTPS settings -->
+    <string name="preferences_debug_settings_enable_doh_settings" translatable="false">Enable DNS over HTTPS settings</string>
+    
     <!-- A secret menu option in the tabs tray for making a tab inactive for testing. -->
     <string name="inactive_tabs_menu_item">Make inactive</string>
 
