@@ -16,6 +16,7 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.params.SessionConfiguration
 import android.media.Image
+import android.media.ImageReader
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
@@ -832,5 +833,30 @@ class QrFragmentTest {
         verify(qrFragment, times(2)).maybeStartBackgroundThread()
         verify(qrFragment, times(2)).maybeStartExecutorService()
         verify(qrFragment).tryOpenCamera(anyInt(), anyInt(), anyBoolean())
+    }
+
+    @Test
+    fun `WHEN image reader's surface is null THEN creating preview session should not crash `() {
+        val qrFragment = spy(QrFragment.newInstance(mock()))
+
+        val camera: CameraDevice = mock()
+        qrFragment.cameraDevice = camera
+
+        val imageReader: ImageReader = mock()
+        qrFragment.imageReader = imageReader
+
+        whenever(imageReader.surface).thenReturn(null)
+
+        val textureView: AutoFitTextureView = mock()
+        whenever(textureView.surfaceTexture).thenReturn(mock())
+        qrFragment.textureView = textureView
+
+        qrFragment.previewSize = mock()
+
+        try {
+            qrFragment.createCameraPreviewSession()
+        } catch (e: NullPointerException) {
+            fail("NullPointerException should not not have been thrown.")
+        }
     }
 }

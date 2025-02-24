@@ -214,7 +214,9 @@ class QrFragment : Fragment() {
      * An [ImageReader] that handles still image capture.
      * This is the output file for our picture.
      */
-    private var imageReader: ImageReader? = null
+    @VisibleForTesting
+    internal var imageReader: ImageReader? = null
+
     private val imageAvailableListener = object : ImageReader.OnImageAvailableListener {
 
         private var image: Image? = null
@@ -541,12 +543,14 @@ class QrFragment : Fragment() {
         texture?.setDefaultBufferSize(size.width, size.height)
 
         val surface = Surface(texture)
-        val mImageSurface = imageReader?.surface
+
+        // If image reader's surface is null, stop here.
+        val imageSurface = imageReader?.surface ?: return
 
         handleCaptureException("Failed to create camera preview session") {
             cameraDevice?.let {
                 previewRequestBuilder = it.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW).apply {
-                    addTarget(mImageSurface as Surface)
+                    addTarget(imageSurface)
                     addTarget(surface)
                 }
 
@@ -585,7 +589,7 @@ class QrFragment : Fragment() {
                         logger.error("Failed to configure CameraCaptureSession")
                     }
                 }
-                createCaptureSessionCompat(it, mImageSurface as Surface, surface, stateCallback)
+                createCaptureSessionCompat(it, imageSurface, surface, stateCallback)
             }
         }
     }
