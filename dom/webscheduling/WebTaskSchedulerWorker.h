@@ -20,8 +20,7 @@ namespace mozilla::dom {
 
 class WebTaskWorkerRunnable final : public WorkerSameThreadRunnable {
  public:
-  WebTaskWorkerRunnable(WorkerPrivate* aWorkerPrivate,
-                        WebTaskSchedulerWorker* aSchedulerWorker);
+  explicit WebTaskWorkerRunnable(WebTaskSchedulerWorker* aSchedulerWorker);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
@@ -42,8 +41,9 @@ class WebTaskSchedulerWorker final : public WebTaskScheduler {
  private:
   ~WebTaskSchedulerWorker() = default;
 
-  nsresult SetTimeoutForDelayedTask(WebTask* aTask, uint64_t aDelay) override;
-  bool DispatchEventLoopRunnable() override;
+  nsresult SetTimeoutForDelayedTask(WebTask* aTask, uint64_t aDelay,
+                                    EventQueuePriority aPriority) override;
+  bool DispatchEventLoopRunnable(EventQueuePriority aPriority) override;
 
   RefPtr<StrongWorkerRef> mWorkerRef;
   bool mWorkerIsShuttingDown{false};
