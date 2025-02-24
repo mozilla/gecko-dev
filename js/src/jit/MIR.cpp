@@ -7230,9 +7230,8 @@ MDefinition* MCheckObjCoercible::foldsTo(TempAllocator& alloc) {
     return this;
   }
 
-  MDefinition* unboxed = input->getOperand(0);
-  if (unboxed->mightBeType(MIRType::Null) ||
-      unboxed->mightBeType(MIRType::Undefined)) {
+  MDefinition* unboxed = input->toBox()->input();
+  if (IsNullOrUndefined(unboxed->type())) {
     return this;
   }
 
