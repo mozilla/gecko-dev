@@ -29,40 +29,56 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
     const MOCK_CID = Components.ID("{dbe37e64-d9a3-402c-8d8a-0826c619f7ad}");
     const SYSTEM_CID = Components.ID("{a0ccaaf8-09da-44d8-b250-9ac3e93c8117}");
     const ALERTS_SERVICE_CONTRACT_ID = "@mozilla.org/alerts-service;1";
+    const NOTIFICATION_STORAGE_CONTRACT_ID = "@mozilla.org/notificationStorage;1";
 
     var notificationsCreated = [];
 
+    let notificationStorage = Cc[NOTIFICATION_STORAGE_CONTRACT_ID].getService(
+      Ci.nsINotificationStorage
+    );
+
+    const storageGet = (origin) => {
+      const { promise, resolve } = Promise.withResolvers();
+      const ids = [];
+      notificationStorage.get(origin, "", {
+        handle(id) {
+          ids.push(id);
+        },
+        done() {
+          resolve(ids);
+        }
+      })
+      return promise;
+    };
+
     const mockAlertsService = {
-      showAlert(alert) {
+      async showAlert(alert, observer) {
+        observer.observe(null, "alertshow", alert.cookie);
+
         notificationsCreated.push(alert.name);
         if (notificationsCreated.length == 3) {
-          // notifications created by the test1 origin
-          var test1notifications = [];
-          // notifications created by the test2 origin
-          var test2notifications = [];
-          for (var i = 0; i < notificationsCreated.length; i++) {
-            var notificationName = notificationsCreated[i];
-            if (notificationName.includes("test1")) {
-              test1notifications.push(notificationsCreated[i]);
-            } else if (notificationName.includes("test2")) {
-              test2notifications.push(notificationsCreated[i]);
-            }
-          }
+          const test1notifications = await storageGet("https://test1.example.org");
+          const test2notifications = await storageGet("https://test2.example.org");
 
           is(
             test1notifications.length,
-            2,
-            "2 notifications should be created by test1.example.org:80 origin."
+            1,
+            " notification should be stored by test1.example.org:80 origin."
           );
           is(
-            test1notifications[0],
-            test1notifications[1],
-            "notification names should be identical."
+            notificationsCreated.filter(n => n === test1notifications[0]).length,
+            2,
+            "2 notifications are created by test1.example.org:80 test1 origin."
           );
           is(
             test2notifications.length,
             1,
-            "1 notification should be created by test2.example.org:80 origin."
+            "1 notification should be stored by test2.example.org:80 origin."
+          );
+          is(
+            notificationsCreated.filter(n => n === test2notifications[0]).length,
+            1,
+            "1 notifications is created by test1.example.org:80 test1 origin."
           );
 
           // Register original alerts service.

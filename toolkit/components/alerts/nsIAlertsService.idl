@@ -102,9 +102,16 @@ interface nsIAlertNotification : nsISupports
             [optional] in Array<uint32_t> aVibrate);
 
   /**
-   * The name of the notification. On Windows and Android, the name is hashed
-   * and used as a notification ID. Notifications will replace previous
-   * notifications with the same name.
+   * The unique ID of the notification, based on the profile path and the caller
+   * given name.
+   *
+   * Throws if init() is not called yet.
+   */
+  readonly attribute AString id;
+
+  /**
+   * The name of the notification given by the caller.
+   * Notifications will replace previous notifications with the same name.
    */
   readonly attribute AString name;
 

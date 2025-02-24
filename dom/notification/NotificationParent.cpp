@@ -32,8 +32,6 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
     return FireClickEvent();
   }
   if (!strcmp("alertshow", aTopic)) {
-    (void)NS_WARN_IF(NS_FAILED(
-        AdjustPushQuota(mPrincipal, NotificationStatusChange::Shown)));
     if (!mResolver) {
 #ifdef ANDROID
       // XXX: This can happen as we resolve showNotification() immediately on
@@ -45,6 +43,8 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
 #endif
     }
 
+    (void)NS_WARN_IF(NS_FAILED(
+        AdjustPushQuota(mPrincipal, NotificationStatusChange::Shown)));
     // XXX(krosylight): Non-persistent notifications probably don't need this
     nsresult rv = PersistNotification(mPrincipal, mId, mOptions, mScope);
     if (NS_FAILED(rv)) {
@@ -129,6 +129,8 @@ nsresult NotificationParent::FireCloseEvent() {
 // Step 4 of
 // https://notifications.spec.whatwg.org/#dom-notification-notification
 mozilla::ipc::IPCResult NotificationParent::RecvShow(ShowResolver&& aResolver) {
+  MOZ_ASSERT(mId.IsEmpty(), "ID should not be given for a new notification");
+
   mResolver.emplace(std::move(aResolver));
 
   // Step 4.1: If the result of getting the notifications permission state is
@@ -166,9 +168,6 @@ nsresult NotificationParent::Show() {
   // observer (for show and close events) right and ultimately call the alerts
   // service function.
 
-  nsAutoString alertName;
-  GetAlertName(alertName);
-
   // In the case of IPC, the parent process uses the cookie to map to
   // nsIObserver. Thus the cookie must be unique to differentiate observers.
   // XXX(krosylight): This is about ContentChild::mAlertObserver which is not
@@ -186,12 +185,14 @@ nsresult NotificationParent::Show() {
   if (!alert) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  MOZ_TRY(alert->Init(alertName, mOptions.icon(), mOptions.title(),
+  MOZ_TRY(alert->Init(mOptions.tag(), mOptions.icon(), mOptions.title(),
                       mOptions.body(), true, obsoleteCookie,
                       NS_ConvertASCIItoUTF16(GetEnumString(mOptions.dir())),
                       mOptions.lang(), mOptions.dataSerialized(), mPrincipal,
                       mPrincipal->GetIsInPrivateBrowsing(), requireInteraction,
                       mOptions.silent(), mOptions.vibrate()));
+
+  MOZ_TRY(alert->GetId(mId));
 
   nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service();
   MOZ_TRY(alertService->ShowAlert(alert, this));
@@ -220,10 +221,7 @@ void NotificationParent::Unregister(CloseMode aCloseMode) {
   }
 
   mDangling = true;
-
-  nsAutoString alertName;
-  GetAlertName(alertName);
-  UnregisterNotification(mPrincipal, mId, alertName, aCloseMode);
+  UnregisterNotification(mPrincipal, mId, aCloseMode);
 }
 
 nsresult NotificationParent::BindToMainThread(
@@ -246,14 +244,6 @@ nsresult NotificationParent::BindToMainThread(
 
 void NotificationParent::ActorDestroy(ActorDestroyReason aWhy) {
   Unregister(CloseMode::InactiveGlobal);
-}
-
-void NotificationParent::MaybeInitAlertName() {
-  if (!mAlertName.IsEmpty()) {
-    return;
-  }
-
-  ComputeAlertName(mPrincipal, mOptions.tag(), mId, mAlertName);
 }
 
 }  // namespace mozilla::dom::notification

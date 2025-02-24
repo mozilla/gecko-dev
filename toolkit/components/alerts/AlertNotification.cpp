@@ -11,12 +11,12 @@
 #include "imgIRequest.h"
 #include "imgLoader.h"
 #include "nsAlertsUtils.h"
+#include "nsAppDirectoryServiceDefs.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
+#include "nsDirectoryServiceUtils.h"
 #include "nsNetUtil.h"
 #include "nsServiceManagerUtils.h"
-
-#include "mozilla/Unused.h"
 
 namespace mozilla {
 
@@ -35,6 +35,10 @@ AlertNotification::Init(const nsAString& aName, const nsAString& aImageURL,
                         const nsAString& aData, nsIPrincipal* aPrincipal,
                         bool aInPrivateBrowsing, bool aRequireInteraction,
                         bool aSilent, const nsTArray<uint32_t>& aVibrate) {
+  if (!mId.IsEmpty()) {
+    return NS_ERROR_ALREADY_INITIALIZED;
+  }
+
   mName = aName;
   mImageURL = aImageURL;
   mTitle = aTitle;
@@ -49,6 +53,59 @@ AlertNotification::Init(const nsAString& aName, const nsAString& aImageURL,
   mRequireInteraction = aRequireInteraction;
   mSilent = aSilent;
   mVibrate = aVibrate.Clone();
+
+  return InitId();
+}
+
+nsresult AlertNotification::InitId() {
+  nsAutoString id;
+
+  // Multiple profiles might overwrite each other's toast messages when a
+  // common name is used for a given origin. We prevent this by including
+  // the profile directory as part of the toast hash.
+  nsCOMPtr<nsIFile> profDir;
+  MOZ_TRY(NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                                 getter_AddRefs(profDir)));
+  MOZ_TRY(profDir->Normalize());
+  MOZ_TRY(profDir->GetPath(id));
+
+  if (mPrincipal && mPrincipal->GetIsContentPrincipal()) {
+    // Notification originated from a web notification.
+    nsAutoCString origin;
+    MOZ_TRY(mPrincipal->GetOrigin(origin));
+    id += NS_ConvertUTF8toUTF16(origin);
+  } else {
+    id += u"chrome";
+  }
+
+  if (mName.IsEmpty()) {
+    // No associated name, append a UUID to prevent reuse of the same tag.
+    nsIDToCString uuidString(nsID::GenerateUUID());
+    size_t len = strlen(uuidString.get());
+    MOZ_ASSERT(len == NSID_LENGTH - 1);
+    nsAutoString uuid;
+    CopyASCIItoUTF16(nsDependentCSubstring(uuidString.get(), len), uuid);
+
+    id += u"#notag:"_ns;
+    id += uuid;
+  } else {
+    id += u"#tag:"_ns;
+    id += mName;
+  }
+
+  // Windows notification tags are limited to 16 characters, or 64 characters
+  // after the Creators Update; therefore we hash the tag to fit the minimum
+  // range.
+  HashNumber hash = HashString(id);
+  mId.AppendPrintf("%010u", hash);
+  return NS_OK;
+}
+
+NS_IMETHODIMP AlertNotification::GetId(nsAString& aId) {
+  if (mId.IsEmpty()) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+  aId = mId;
   return NS_OK;
 }
 
@@ -61,7 +118,17 @@ AlertNotification::SetActions(
 
 NS_IMETHODIMP
 AlertNotification::GetName(nsAString& aName) {
-  aName = mName;
+  if (mPrincipal && mPrincipal->GetIsContentPrincipal()) {
+    // mName is no longer unique, but there has been a long assumption
+    // throughout the codebase that GetName will be unique. So we return mId for
+    // GetName for web triggered notifications to keep uniqueness without
+    // accidentially causing subtle breakage in other modules.
+    aName = mId;
+  } else {
+    // System callers has always been expected to provide unique names
+    // themselves, so it's fine to return mName as is.
+    aName = mName;
+  }
   return NS_OK;
 }
 

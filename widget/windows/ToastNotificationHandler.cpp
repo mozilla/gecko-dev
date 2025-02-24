@@ -300,7 +300,7 @@ void ToastNotificationHandler::UnregisterHandler() {
 
 nsresult ToastNotificationHandler::InitAlertAsync(
     nsIAlertNotification* aAlert) {
-  MOZ_TRY(InitWindowsTag());
+  MOZ_TRY(aAlert->GetId(mWindowsTag));
 
 #ifdef MOZ_BACKGROUNDTASKS
   nsAutoString imageUrl;
@@ -316,60 +316,6 @@ nsresult ToastNotificationHandler::InitAlertAsync(
 
   return aAlert->LoadImage(/* aTimeout = */ 0, this, /* aUserData = */ nullptr,
                            getter_AddRefs(mImageRequest));
-}
-
-// Uniquely identify this toast to Windows.  Existing names and cookies are not
-// suitable: we want something generated and unique.  This is needed to check if
-// toast is still present in the Windows Action Center when we receive a dismiss
-// timeout.
-//
-// Local testing reveals that the space of tags is not global but instead is per
-// AUMID.  Since an installation uses a unique AUMID incorporating the install
-// directory hash, it should not witness another installation's tag.
-nsresult ToastNotificationHandler::InitWindowsTag() {
-  mWindowsTag.Truncate();
-
-  nsAutoString tag;
-
-  // Multiple profiles might overwrite each other's toast messages when a
-  // common name is used for a given host port. We prevent this by including
-  // the profile directory as part of the toast hash.
-  nsCOMPtr<nsIFile> profDir;
-  MOZ_TRY(NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
-                                 getter_AddRefs(profDir)));
-  MOZ_TRY(profDir->GetPath(tag));
-
-  if (!mHostPort.IsEmpty()) {
-    // Notification originated from a web notification.
-    // `mName` will be in the form `{mHostPort}#tag:{tag}` if the notification
-    // was created with a tag and `{mHostPort}#notag:{uuid}` otherwise.
-    tag += mName;
-  } else {
-    // Notification originated from the browser chrome.
-    if (!mName.IsEmpty()) {
-      tag += u"chrome#tag:"_ns;
-      // Browser chrome notifications don't follow any convention for naming.
-      tag += mName;
-    } else {
-      // No associated name, append a UUID to prevent reuse of the same tag.
-      nsIDToCString uuidString(nsID::GenerateUUID());
-      size_t len = strlen(uuidString.get());
-      MOZ_ASSERT(len == NSID_LENGTH - 1);
-      nsAutoString uuid;
-      CopyASCIItoUTF16(nsDependentCSubstring(uuidString.get(), len), uuid);
-
-      tag += u"chrome#notag:"_ns;
-      tag += uuid;
-    }
-  }
-
-  // Windows notification tags are limited to 16 characters, or 64 characters
-  // after the Creators Update; therefore we hash the tag to fit the minimum
-  // range.
-  HashNumber hash = HashString(tag);
-  mWindowsTag.AppendPrintf("%010u", hash);
-
-  return NS_OK;
 }
 
 nsString ToastNotificationHandler::ActionArgsJSONString(

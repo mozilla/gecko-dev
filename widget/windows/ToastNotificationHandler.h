@@ -141,7 +141,6 @@ class ToastNotificationHandler final
   nsresult OnWriteImageSuccess();
   void SendFinished();
 
-  nsresult InitWindowsTag();
   bool CreateWindowsNotificationFromXml(ComPtr<IXmlDocument>& aToastXml);
   ComPtr<IXmlDocument> CreateToastXmlDocument();
 

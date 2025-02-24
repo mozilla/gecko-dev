@@ -47,7 +47,6 @@
 #include "nsIPermissionManager.h"
 #include "nsIScriptError.h"
 #include "nsIServiceWorkerManager.h"
-#include "nsIUUIDGenerator.h"
 #include "nsNetUtil.h"
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
@@ -524,24 +523,6 @@ void Notification::MaybeNotifyClose() {
 already_AddRefed<Notification> Notification::CreateInternal(
     nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
     const NotificationOptions& aOptions, ErrorResult& aRv) {
-  nsresult rv;
-  nsString id;
-  if (!aID.IsEmpty()) {
-    id = aID;
-  } else {
-    nsCOMPtr<nsIUUIDGenerator> uuidgen =
-        do_GetService("@mozilla.org/uuid-generator;1");
-    NS_ENSURE_TRUE(uuidgen, nullptr);
-    nsID uuid;
-    rv = uuidgen->GenerateUUIDInPlace(&uuid);
-    NS_ENSURE_SUCCESS(rv, nullptr);
-
-    char buffer[NSID_LENGTH];
-    uuid.ToProvidedString(buffer);
-    NS_ConvertASCIItoUTF16 convertedID(buffer);
-    id = convertedID;
-  }
-
   // Step 20: Set notification’s silent preference to options["silent"].
   bool silent = false;
   if (StaticPrefs::dom_webnotifications_silent_enabled()) {
@@ -579,7 +560,7 @@ already_AddRefed<Notification> Notification::CreateInternal(
   ResolveIconURL(aGlobal, iconUrl);
 
   RefPtr<Notification> notification = new Notification(
-      aGlobal, id, aTitle, aOptions.mBody, aOptions.mDir, aOptions.mLang,
+      aGlobal, aID, aTitle, aOptions.mBody, aOptions.mDir, aOptions.mLang,
       aOptions.mTag, iconUrl, aOptions.mRequireInteraction, silent,
       std::move(vibrate));
   return notification.forget();

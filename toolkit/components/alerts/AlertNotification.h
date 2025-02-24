@@ -63,6 +63,9 @@ class AlertNotification : public nsIAlertNotification {
   virtual ~AlertNotification();
 
  private:
+  nsresult InitId();
+
+  nsString mId;
   nsString mName;
   nsString mImageURL;
   nsString mTitle;

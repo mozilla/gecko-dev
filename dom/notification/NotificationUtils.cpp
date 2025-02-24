@@ -161,28 +161,6 @@ nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin) {
   return NS_OK;
 }
 
-void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
-                      const nsString& aId, nsString& aResult) {
-  nsAutoString alertName;
-  nsresult rv = GetOrigin(aPrincipal, alertName);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return;
-  }
-
-  // Get the notification name that is unique per origin + tag/ID.
-  // The name of the alert is of the form origin#tag/ID.
-  alertName.Append('#');
-  if (!aTag.IsEmpty()) {
-    alertName.AppendLiteral("tag:");
-    alertName.Append(aTag);
-  } else {
-    alertName.AppendLiteral("notag:");
-    alertName.Append(aId);
-  }
-
-  aResult = alertName;
-}
-
 nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate) {
   return do_GetService(isPrivate ? NS_MEMORY_NOTIFICATION_STORAGE_CONTRACTID
                                  : NS_NOTIFICATION_STORAGE_CONTRACTID);
@@ -229,12 +207,12 @@ nsresult UnpersistNotification(nsIPrincipal* aPrincipal, const nsString& aId) {
 }
 
 void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                            const nsString& aAlertName, CloseMode aCloseMode) {
+                            CloseMode aCloseMode) {
   // XXX: unpersist only when explicitly closed, bug 1095073
   UnpersistNotification(aPrincipal, aId);
   if (nsCOMPtr<nsIAlertsService> alertService = components::Alerts::Service()) {
     alertService->CloseAlert(
-        aAlertName,
+        aId,
         /* aContextClosed */ aCloseMode == CloseMode::InactiveGlobal);
   }
 }

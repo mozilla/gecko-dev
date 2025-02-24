@@ -59,9 +59,10 @@
 
     // Simulate dismissing the notification by using the alerts service
     // directly, instead of `Notification#close`.
-    const principal = SpecialPowers.wrap(document).nodePrincipal;
-    const alertName = principal.origin + "#tag:dismiss";
-    await MockAlertsService.closeNotification(alertName);
+    const ids = await MockAlertsService.getNotificationIds();
+    is(ids.length, 1, "Only one notification registered in the service");
+
+    await MockAlertsService.closeNotification(ids[0]);
 
     // Make sure dismissed notifications are no longer retrieved.
     is((await reg.getNotifications()).length, 0, "There should be no more stored notifications");

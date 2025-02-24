@@ -67,9 +67,6 @@ nsCOMPtr<nsINotificationStorage> GetNotificationStorage(bool isPrivate);
 
 nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin);
 
-void ComputeAlertName(nsIPrincipal* aPrincipal, const nsString& aTag,
-                      const nsString& aId, nsString& aResult);
-
 nsresult PersistNotification(nsIPrincipal* aPrincipal, const nsString& aId,
                              const IPCNotificationOptions& aOptions,
                              const nsString& aScope);
@@ -81,7 +78,7 @@ enum class CloseMode {
   InactiveGlobal,
 };
 void UnregisterNotification(nsIPrincipal* aPrincipal, const nsString& aId,
-                            const nsString& aAlertName, CloseMode aCloseMode);
+                            CloseMode aCloseMode);
 
 nsresult RemovePermission(nsIPrincipal* aPrincipal);
 nsresult OpenSettings(nsIPrincipal* aPrincipal);

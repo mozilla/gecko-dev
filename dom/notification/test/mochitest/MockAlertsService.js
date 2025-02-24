@@ -136,6 +136,10 @@ function mockServicesChromeScript() {
     mockAlertsService.autoClick = true;
   });
 
+  addMessageListener("mock-alert-service:get-notification-ids", () =>
+    Object.keys(activeNotifications)
+  );
+
   sendAsyncMessage("mock-alert-service:registered");
 }
 
@@ -192,5 +196,10 @@ const MockAlertsService = {
   },
   async enableAutoClick() {
     await this._chromeScript.sendQuery("mock-alert-service:enable-autoclick");
+  },
+  async getNotificationIds() {
+    return await this._chromeScript.sendQuery(
+      "mock-alert-service:get-notification-ids"
+    );
   },
 };

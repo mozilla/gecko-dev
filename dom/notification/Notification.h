@@ -189,6 +189,8 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
 
   WeakPtr<notification::NotificationChild> mActor;
 
+  // An existing ID loaded from NotificationDB. Leave it empty if we are
+  // creating a new notification.
   const nsString mID;
   const nsString mTitle;
   const nsString mBody;
