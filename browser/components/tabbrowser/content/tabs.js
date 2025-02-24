@@ -2241,7 +2241,7 @@
         }
       }
 
-      if (newIndex >= oldIndex) {
+      if (newIndex >= oldIndex && newIndex < tabs.length) {
         newIndex++;
       }
 
@@ -2249,8 +2249,8 @@
         return;
       }
       dragData.animDropIndex = newIndex;
-      dragData.dropElement = this.allTabs[newIndex];
-      dragData.dropBefore = true;
+      dragData.dropElement = tabs[newIndex];
+      dragData.dropBefore = newIndex < tabs.length;
 
       // Shift background tabs to leave a gap where the dragged tab
       // would currently be dropped.

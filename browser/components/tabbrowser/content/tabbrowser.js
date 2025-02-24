@@ -5830,13 +5830,19 @@
      * @param {boolean} moveBefore
      */
     #moveTabNextTo(tab, targetElement, moveBefore = false) {
+      let getContainer = () => {
+        if (tab.pinned && this.tabContainer.verticalMode) {
+          return this.tabContainer.verticalPinnedTabsContainer;
+        }
+        return this.tabContainer;
+      };
       this.#handleTabMove(tab, () => {
         if (moveBefore) {
-          this.tabContainer.insertBefore(tab, targetElement);
+          getContainer().insertBefore(tab, targetElement);
         } else if (targetElement) {
           targetElement.after(tab);
         } else {
-          this.tabContainer.appendChild(tab);
+          getContainer().appendChild(tab);
         }
       });
     }
