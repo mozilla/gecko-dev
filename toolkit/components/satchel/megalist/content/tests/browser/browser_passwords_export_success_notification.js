@@ -110,8 +110,15 @@ add_task(async function test_passwords_export_notification() {
 
   await clickExportAllPasswords(megalist, getMegalistParent());
   ok(true, "Export menu clicked.");
-  await checkNotificationAndTelemetry(megalist, "export-passwords-success");
+  const notifMsgBar = await checkNotificationAndTelemetry(
+    megalist,
+    "export-passwords-success"
+  );
   ok(true, "Notification for successful export of passwords is shown.");
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "export_passwords_success",
+    action_type: "dismiss",
+  });
 
   info("Closing the sidebar");
   SidebarController.hide();

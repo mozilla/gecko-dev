@@ -46,7 +46,15 @@ add_task(async function test_delete_login_success() {
   confirmDeleteBtn.click();
   info("Delete one login.");
 
-  await checkNotificationAndTelemetry(megalist, "delete-login-success");
+  const notifMsgBar = await checkNotificationAndTelemetry(
+    megalist,
+    "delete-login-success"
+  );
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "delete_login_success",
+    action_type: "dismiss",
+  });
+
   let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
 
   Assert.equal(updateEvents.length, 1, "Recorded delete password once.");

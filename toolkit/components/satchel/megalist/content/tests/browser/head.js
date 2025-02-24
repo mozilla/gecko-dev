@@ -184,6 +184,20 @@ async function checkNotificationAndTelemetry(
   return notificationMessageBar;
 }
 
+async function checkNotificationInteractionTelemetry(
+  notifMsgBar,
+  buttonId,
+  expectedEvent,
+  eventIndex = 0
+) {
+  info(`Click on ${buttonId} button and test telemetry.`);
+  const mozMessageBar = notifMsgBar.shadowRoot.querySelector("moz-message-bar");
+  const element = mozMessageBar.querySelector(`#${buttonId}`);
+  element.click();
+  const events = Glean.contextualManager.notificationInteraction.testGetValue();
+  assertCPMGleanEvent(events[eventIndex], expectedEvent);
+}
+
 function setInputValue(loginForm, fieldElement, value) {
   info(`Filling ${fieldElement} with value '${value}'.`);
   const field = loginForm.shadowRoot.querySelector(fieldElement);

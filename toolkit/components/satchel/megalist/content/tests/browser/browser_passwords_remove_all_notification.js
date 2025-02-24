@@ -63,8 +63,16 @@ add_task(async function test_passwords_remove_all_notification() {
   };
 
   await clickRemoveAllPasswords(megalist);
-  await checkNotificationAndTelemetry(megalist, "delete-login-success");
+  const notifMsgBar = await checkNotificationAndTelemetry(
+    megalist,
+    "delete-login-success"
+  );
   ok(true, "Notification is shown.");
+
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "delete_login_success",
+    action_type: "dismiss",
+  });
 
   await checkEmptyState(".no-logins-card-content", megalist);
   ok(true, "Empty state rendered after logins are removed.");
@@ -120,8 +128,16 @@ add_task(
     };
 
     await clickRemoveAllPasswords(megalist);
-    await checkNotificationAndTelemetry(megalist, "delete-login-success");
+    const notifMsgBar = await checkNotificationAndTelemetry(
+      megalist,
+      "delete-login-success"
+    );
     ok(true, "Notification is shown.");
+
+    checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+      notification_detail: "delete_login_success",
+      action_type: "dismiss",
+    });
 
     await checkEmptyState(".no-logins-card-content", megalist);
     ok(true, "Empty state rendered after logins are removed.");

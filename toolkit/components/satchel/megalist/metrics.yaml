@@ -155,7 +155,7 @@ contextual_manager:
         "open_link": Open a link
         "import": Import records after a failed attempt
         "confirm_discard_changes": Continue exiting the login form while updating
-        "nav_password": Navigate to a newly created or existing record
+        "nav_record": Navigate to a newly created or existing record
         "dismiss": Close a notification
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1947634

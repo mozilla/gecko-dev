@@ -79,14 +79,6 @@ const clickImportFromCsv = async (
   await waitForFilePicker();
 };
 
-const waitForImportToComplete = async passwordsSidebar => {
-  info("Waiting for the import to complete");
-  await BrowserTestUtils.waitForCondition(
-    () => passwordsSidebar.querySelector("notification-message-bar"),
-    "Notification Message Bar failed to render"
-  );
-};
-
 add_task(async function test_import_from_file_summary() {
   Services.fog.testResetFOG();
   await Services.fog.testFlushAllChildren();
@@ -100,15 +92,17 @@ add_task(async function test_import_from_file_summary() {
     option_name: "import_file",
   });
 
-  await waitForImportToComplete(passwordsSidebar);
-
-  const mozMessageBar = passwordsSidebar
-    .querySelector("notification-message-bar")
-    .shadowRoot.querySelector("moz-message-bar");
-  is(mozMessageBar.type, "success", "Import succeeded");
-
+  const notifMsgBar = await checkNotificationAndTelemetry(
+    passwordsSidebar,
+    "import-success"
+  );
+  const mozMessageBar = notifMsgBar.shadowRoot.querySelector("moz-message-bar");
   const summary = mozMessageBar.messageL10nArgs;
   is(summary.added, 1, "Import added one item");
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "import_success",
+    action_type: "dismiss",
+  });
 
   LoginTestUtils.clearData();
   info("Closing the sidebar");
@@ -116,14 +110,28 @@ add_task(async function test_import_from_file_summary() {
 });
 
 add_task(async function test_import_from_invalid_file() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
   const passwordsSidebar = await openPasswordsSidebar();
   await clickImportFromCsv(passwordsSidebar, ["invalid csv"]);
-  await waitForImportToComplete(passwordsSidebar);
-
-  const mozMessageBar = passwordsSidebar
-    .querySelector("notification-message-bar")
-    .shadowRoot.querySelector("moz-message-bar");
-  is(mozMessageBar.type, "error", "Import failed");
+  const notifMsgBar = await checkNotificationAndTelemetry(
+    passwordsSidebar,
+    "import-error"
+  );
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "import_error",
+    action_type: "import",
+  });
+  checkNotificationInteractionTelemetry(
+    notifMsgBar,
+    "secondary-action",
+    {
+      notification_detail: "import_error",
+      action_type: "dismiss",
+    },
+    1
+  );
 
   LoginTestUtils.clearData();
   info("Closing the sidebar");
@@ -144,7 +152,7 @@ add_task(async function test_import_empty_state() {
     option_name: "import_file",
   });
 
-  await waitForImportToComplete(passwordsSidebar);
+  await checkNotificationAndTelemetry(passwordsSidebar, "import-success");
 
   const mozMessageBar = passwordsSidebar
     .querySelector("notification-message-bar")

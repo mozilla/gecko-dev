@@ -23,6 +23,14 @@ async function close_sidebar(megalist) {
     .click();
 }
 
+function testNotificationInteractionTelemetry(notificationId) {
+  const events = Glean.contextualManager.notificationInteraction.testGetValue();
+  assertCPMGleanEvent(events[0], {
+    notification_detail: notificationId,
+    action_type: "change_record",
+  });
+}
+
 add_task(async function test_breached_origin_alert() {
   const canTestOSAuth = await resetTelemetryIfKeyStoreTestable();
   if (!canTestOSAuth) {
@@ -55,6 +63,7 @@ add_task(async function test_breached_origin_alert() {
     () => megalist.querySelector("login-form"),
     "Login form failed to render"
   );
+  testNotificationInteractionTelemetry("breached_origin_warning");
 
   await close_sidebar(megalist);
 });
@@ -99,6 +108,8 @@ add_task(async function test_no_username_alert() {
     "Login form failed to render"
   );
 
+  testNotificationInteractionTelemetry("no_username_warning");
+
   await close_sidebar(megalist);
 });
 
@@ -135,5 +146,6 @@ add_task(async function test_vulnerable_password_alert() {
     "Login form failed to render"
   );
 
+  testNotificationInteractionTelemetry("vulnerable_password_warning");
   await close_sidebar(megalist);
 });

@@ -58,16 +58,23 @@ function waitForPopup(megalist, element) {
   return popupPromise;
 }
 
-function waitForScroll(megalist) {
-  const notificationMsgBar = megalist.querySelector(
-    "notification-message-bar"
-  ).shadowRoot;
+function waitForRecords(count) {
+  info(`Wait for records to reach expected amount ${count}.`);
+  const sidebar = document.getElementById("sidebar");
+  const megalistComponent =
+    sidebar.contentDocument.querySelector("megalist-alpha");
+  return BrowserTestUtils.waitForCondition(
+    () => megalistComponent.records.length == count,
+    `records did not he ${count} elements`
+  );
+}
+
+function getScrollPromise(megalist) {
   const scrollingElement = megalist.ownerDocument.scrollingElement;
   const scrollPromise = BrowserTestUtils.waitForCondition(
     () => scrollingElement.scrollTopMax == scrollingElement.scrollTop,
     "Did not scroll to new login."
   );
-  notificationMsgBar.querySelector("moz-button").click();
   return scrollPromise;
 }
 
@@ -87,8 +94,17 @@ add_task(async function test_add_login_success() {
   });
 
   addLogin(megalist, TEST_LOGIN_1);
-  await checkNotificationAndTelemetry(megalist, "add-login-success");
+  const notifMsgBar = await checkNotificationAndTelemetry(
+    megalist,
+    "add-login-success"
+  );
+
   await checkAllLoginsRendered(megalist);
+
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "add_login_success",
+    action_type: "nav_record",
+  });
 
   let updateEvents = Glean.contextualManager.recordsUpdate.testGetValue();
   Assert.equal(updateEvents.length, 1, "Recorded manual add password once.");
@@ -102,17 +118,21 @@ add_task(async function test_add_login_success() {
 add_task(async function test_add_duplicate_login() {
   Services.fog.testResetFOG();
   await Services.fog.testFlushAllChildren();
-  const mock_passwords = [TEST_LOGIN_1, TEST_LOGIN_2, TEST_LOGIN_3];
-  for (let login of mock_passwords) {
-    info(`Saving login: ${login.username}, ${login.password}, ${login.origin}`);
-    await LoginTestUtils.addLogin(login);
-  }
+
+  await addMockPasswords();
 
   const megalist = await openPasswordsSidebar();
-  await waitForSnapshots();
+  await waitForRecords(3);
   await openLoginForm(megalist);
   addLogin(megalist, TEST_LOGIN_1);
-  await checkNotificationAndTelemetry(megalist, "login-already-exists-warning");
+  const notifMsgBar = await checkNotificationAndTelemetry(
+    megalist,
+    "login-already-exists-warning"
+  );
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "login_already_exists_warning",
+    action_type: "nav_record",
+  });
 
   LoginTestUtils.clearData();
 });
@@ -165,10 +185,17 @@ add_task(async function test_view_login_command() {
     origin: "https://zzz.com",
   });
 
-  await checkNotificationAndTelemetry(megalist, "add-login-success");
+  const notifMsgBar = await checkNotificationAndTelemetry(
+    megalist,
+    "add-login-success"
+  );
   await checkAllLoginsRendered(megalist);
-  await waitForScroll(megalist);
-
+  const scrollPromise = getScrollPromise(megalist);
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "add_login_success",
+    action_type: "nav_record",
+  });
+  await scrollPromise;
   LoginTestUtils.clearData();
 });
 
@@ -188,8 +215,12 @@ add_task(async function test_passwords_add_password_empty_state() {
     option_name: "add_new",
   });
   addLogin(megalist, TEST_LOGIN_1);
-  await waitForNotification(megalist, "add-login-success");
+  const notifMsgBar = await waitForNotification(megalist, "add-login-success");
   await checkAllLoginsRendered(megalist);
+  checkNotificationInteractionTelemetry(notifMsgBar, "primary-action", {
+    notification_detail: "add_login_success",
+    action_type: "nav_record",
+  });
 
   LoginTestUtils.clearData();
 

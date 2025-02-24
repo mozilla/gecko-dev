@@ -12,12 +12,12 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 const recordNotificationInteraction = (notificationDetail, actionType) => {
   Glean.contextualManager.notificationInteraction.record({
-    notificationDetail: notificationDetail.replaceAll("-", "_"),
+    notification_detail: notificationDetail.replaceAll("-", "_"),
     action_type: actionType,
   });
 };
 
-const actionButton = action => {
+const actionButton = (action, id) => {
   return html` <moz-button
     slot=${ifDefined(action.slot)}
     type=${ifDefined(action.type)}
@@ -26,6 +26,7 @@ const actionButton = action => {
       recordNotificationInteraction(action.telemetryId, action.telemetryType);
       action.onClick();
     }}
+    id=${id}
   ></moz-button>`;
 };
 
@@ -75,9 +76,10 @@ const notificationShell = ({
         secondaryAction,
         () =>
           html` <moz-button-group slot="actions">
-            ${actionButton(primaryAction)} ${actionButton(secondaryAction)}
+            ${actionButton(primaryAction, "primary-action")}
+            ${actionButton(secondaryAction, "secondary-action")}
           </moz-button-group>`,
-        () => html`${actionButton(primaryAction)}`
+        () => html`${actionButton(primaryAction, "primary-action")}`
       )}
     </moz-message-bar>
   `;
