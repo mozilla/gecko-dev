@@ -44,15 +44,16 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_ERROR_FAILURE;
 #endif
     }
+
+    // XXX(krosylight): Non-persistent notifications probably don't need this
+    nsresult rv = PersistNotification(mPrincipal, mId, mOptions, mScope);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Could not persist Notification");
+    }
     mResolver.take().value()(CopyableErrorResult());
     return NS_OK;
   }
   if (!strcmp("alertfinished", aTopic)) {
-    // XXX: QM_TRY?
-    (void)NS_WARN_IF(NS_FAILED(
-        AdjustPushQuota(mPrincipal, NotificationStatusChange::Closed)));
-    (void)NS_WARN_IF(NS_FAILED(UnpersistNotification(mPrincipal, mId)));
-
     if (mResolver) {
       // alertshow happens first before alertfinished, and it should have
       // nullified mResolver. If not it means it failed to show and is bailing
@@ -61,6 +62,10 @@ NotificationParent::Observe(nsISupports* aSubject, const char* aTopic,
       // alertshow at all.
       mResolver.take().value()(CopyableErrorResult(NS_ERROR_FAILURE));
     } else {
+      // XXX: QM_TRY?
+      (void)NS_WARN_IF(NS_FAILED(
+          AdjustPushQuota(mPrincipal, NotificationStatusChange::Closed)));
+      (void)NS_WARN_IF(NS_FAILED(UnpersistNotification(mPrincipal, mId)));
       (void)NS_WARN_IF(NS_FAILED(FireCloseEvent()));
     }
 
@@ -161,13 +166,8 @@ nsresult NotificationParent::Show() {
   // observer (for show and close events) right and ultimately call the alerts
   // service function.
 
-  // XXX(krosylight): Non-persistent notifications probably don't need this
   nsAutoString alertName;
   GetAlertName(alertName);
-  nsresult rv = PersistNotification(mPrincipal, mId, mOptions, mScope);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Could not persist Notification");
-  }
 
   // In the case of IPC, the parent process uses the cookie to map to
   // nsIObserver. Thus the cookie must be unique to differentiate observers.
@@ -198,11 +198,10 @@ nsresult NotificationParent::Show() {
 
 #ifdef ANDROID
   // XXX: the Android nsIAlertsService is broken and doesn't send alertshow
-  // properly, which means we cannot depend on it to resolve the promise. For
-  // now we resolve the promise here.
+  // properly, so we call it here manually.
   // (This now fires onshow event regardless of the actual result, but it should
   // be better than the previous behavior that did not do anything at all)
-  mResolver.take().value()(CopyableErrorResult());
+  Observe(nullptr, "alertshow", nullptr);
 #endif
 
   return NS_OK;
