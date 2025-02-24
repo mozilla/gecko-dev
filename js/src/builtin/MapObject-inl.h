@@ -32,7 +32,8 @@ template <JSProtoKey ProtoKey>
     return true;
   }
 
-  if (!IsPackedArray(&iterable.toObject())) {
+  if (!IsArrayWithDefaultIterator<MustBePacked::Yes>(&iterable.toObject(),
+                                                     cx)) {
     return true;
   }
   Rooted<ArrayObject*> array(cx, &iterable.toObject().as<ArrayObject>());
@@ -83,12 +84,8 @@ template <JSProtoKey ProtoKey>
     return true;
   }
 
-  ForOfPIC::Chain* stubChain = ForOfPIC::getOrCreate(cx);
-  if (!stubChain) {
-    return false;
-  }
-
-  return stubChain->tryOptimizeArray(cx, array, optimized);
+  *optimized = true;
+  return true;
 }
 
 }  // namespace js

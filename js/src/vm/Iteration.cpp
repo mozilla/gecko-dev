@@ -2331,3 +2331,54 @@ bool js::IterableToArray(JSContext* cx, HandleValue iterable,
   }
   return true;
 }
+
+bool js::HasOptimizableArrayIteratorPrototype(JSContext* cx) {
+  // Return true if %ArrayIteratorPrototype% does not have (re)defined `next`
+  // and `return` properties.
+  return cx->realm()->realmFuses.optimizeArrayIteratorPrototypeFuse.intact();
+}
+
+template <MustBePacked Packed>
+bool js::IsArrayWithDefaultIterator(JSObject* obj, JSContext* cx) {
+  if constexpr (Packed == MustBePacked::Yes) {
+    if (!IsPackedArray(obj)) {
+      return false;
+    }
+  } else {
+    if (!obj->is<ArrayObject>()) {
+      return false;
+    }
+  }
+  ArrayObject* arr = &obj->as<ArrayObject>();
+
+  // Ensure Array.prototype[@@iterator] and %ArrayIteratorPrototype% haven't
+  // been mutated in a way that affects the iterator protocol.
+  if (!arr->realm()->realmFuses.optimizeGetIteratorFuse.intact()) {
+    return false;
+  }
+
+  // Ensure the array has Array.prototype as prototype and doesn't have an own
+  // @@iterator property.
+  //
+  // Most arrays have the default array shape so we have a fast path for this
+  // case.
+  GlobalObject& global = arr->global();
+  if (arr->shape() == global.maybeArrayShapeWithDefaultProto()) {
+    return true;
+  }
+
+  NativeObject* arrayProto = global.maybeGetArrayPrototype();
+  if (!arrayProto || arr->staticPrototype() != arrayProto) {
+    return false;
+  }
+  if (arr->containsPure(PropertyKey::Symbol(cx->wellKnownSymbols().iterator))) {
+    return false;
+  }
+
+  return true;
+}
+
+template bool js::IsArrayWithDefaultIterator<MustBePacked::No>(JSObject* obj,
+                                                               JSContext* cx);
+template bool js::IsArrayWithDefaultIterator<MustBePacked::Yes>(JSObject* obj,
+                                                                JSContext* cx);

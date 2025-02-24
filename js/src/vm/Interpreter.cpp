@@ -5032,19 +5032,11 @@ static bool OptimizeArrayIteration(JSContext* cx, HandleObject obj,
   //   * %ArrayIteratorPrototype%.next is not modified
   //   * %ArrayIteratorPrototype%.return is not defined
   //   * return is nowhere on the proto chain
-  if (!IsPackedArray(obj)) {
+  if (!IsArrayWithDefaultIterator<MustBePacked::Yes>(obj, cx)) {
     return true;
   }
 
-  ForOfPIC::Chain* stubChain = ForOfPIC::getOrCreate(cx);
-  if (!stubChain) {
-    return false;
-  }
-
-  if (!stubChain->tryOptimizeArray(cx, obj.as<ArrayObject>(), optimized)) {
-    return false;
-  }
-
+  *optimized = true;
   return true;
 }
 
@@ -5075,16 +5067,7 @@ static bool OptimizeArgumentsSpreadCall(JSContext* cx, HandleObject obj,
     return true;
   }
 
-  ForOfPIC::Chain* stubChain = ForOfPIC::getOrCreate(cx);
-  if (!stubChain) {
-    return false;
-  }
-
-  bool optimized;
-  if (!stubChain->tryOptimizeArrayIteratorNext(cx, &optimized)) {
-    return false;
-  }
-  if (!optimized) {
+  if (!HasOptimizableArrayIteratorPrototype(cx)) {
     return true;
   }
 

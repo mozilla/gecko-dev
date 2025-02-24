@@ -811,6 +811,13 @@ IteratorHelperObject* NewIteratorHelper(JSContext* cx);
 bool IterableToArray(JSContext* cx, HandleValue iterable,
                      MutableHandle<ArrayObject*> array);
 
+bool HasOptimizableArrayIteratorPrototype(JSContext* cx);
+
+enum class MustBePacked { No, Yes };
+
+template <MustBePacked Packed>
+bool IsArrayWithDefaultIterator(JSObject* obj, JSContext* cx);
+
 // Typed arrays and classes with an enumerate hook can have extra properties not
 // included in the shape's property map or the object's dense elements.
 static inline bool ClassCanHaveExtraEnumeratedProperties(const JSClass* clasp) {
