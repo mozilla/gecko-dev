@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-02-13T12:36:24.387040+00:00'
+updated_at: '2025-02-21T14:10:00.703387+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -1181,6 +1181,7 @@ modules:
     peers:
       - *kaya
     meta:
+      review_group: android-reviewers
   - machine_name: code_coverage
     name: Code Coverage
     description: Tools for code coverage instrumentation, and coverage data parsing
@@ -1265,6 +1266,7 @@ modules:
       group: dev-platform
       components:
         - 'Core::Privacy: Anti-Tracking'
+      review_group: anti-tracking
     owners:
       - *timhuang
     peers:
@@ -1380,6 +1382,7 @@ modules:
             - Brian Stack
             - Gregory Szorc
             - Justin Wood
+          review_group: taskgraph-reviewers
         owners:
           - *ahal
         peers:
@@ -1451,6 +1454,7 @@ modules:
       group: dev-platform
       components:
         - 'Core::Networking: Cookies'
+      review_group: cookies
     owners:
       - *dveditz
       - *timhuang
@@ -1780,6 +1784,7 @@ modules:
       url: https://wiki.mozilla.org/Mobile/GeckoView
       components:
         - GeckoView::General
+      review_group: geckoview-reviewers
     owners:
       - *owlish
     peers:
@@ -1838,6 +1843,7 @@ modules:
         - 'Core::Graphics: Color Management'
         - 'Core::Graphics: Canvas2D'
         - 'Core::Graphics: CanvasWebGL'
+      review_group: gfx-reviewers
     owners:
       - *jrmuizel
     peers:
@@ -2019,6 +2025,7 @@ modules:
         - 'Core::JavaScript: Standard Library'
         - 'Core::JavaScript: WebAssembly'
         - Core::js-ctypes
+      review_group: spidermonkey-reviewers
     owners:
       - *jandem
     peers:
@@ -2108,6 +2115,7 @@ modules:
         - 'Core::Layout: Text and Fonts'
         - Core::Print Preview
         - 'Core::Printing: Output'
+      review_group: layout-reviewers
     owners:
       - *dholbert
     peers:
@@ -2170,6 +2178,7 @@ modules:
     meta:
       components:
         - Core::Machine Learning
+      review_group: firefox-ai-ml-reviewers
     owners:
       - *Mardak
       - *tarek
@@ -2220,6 +2229,7 @@ modules:
       group: dev-media
       components:
         - Core::Audio/Video
+      review_group: media-playback-reviewers
     peers:
       - *kinetik
       - *jhlin
@@ -2385,6 +2395,7 @@ modules:
         - 'Core::Networking: Proxy'
         - 'Core::Networking: Websockets'
         - 'Core::DOM: Networking'
+      review_group: necko-reviewers
     owners:
       - *valentin
     peers:
@@ -2678,6 +2689,7 @@ modules:
         - JSS
         - Core::Security
         - 'Core::Security: S/MIME'
+      review_group: nss-reviewers
     owners:
       - *beurdouche
       - *rrelyea
@@ -2743,6 +2755,7 @@ modules:
       group: dev-platform
       components:
         - Core::Rewriting & Analysis
+      review_group: static-analysis-reviewers
     owners:
       - *andi
     peers:
@@ -2806,6 +2819,7 @@ modules:
       components:
         - Core::CSS Parsing and Computation
         - 'Core::DOM: CSS Object Model'
+      review_group: firefox-style-system-reviewers
     owners:
       - *emilio
     peers:
@@ -2827,6 +2841,7 @@ modules:
       group: dev-platform
       components:
         - Firefox Build System::General
+      review_group: supply-chain-reviewers
     owners:
       - *bholley
     peers:
@@ -2847,6 +2862,7 @@ modules:
         - Core::SVG
       peers_emeritus:
         - Robert O'Callahan
+      review_group: firefox-svg-reviewers
     owners:
       - *jwatt
     peers:
@@ -3157,6 +3173,7 @@ modules:
       group: dev-platform
       components:
         - 'Core::Widget: Cocoa'
+      review_group: mac-reviewers
     owners:
       - *spohl
     peers:
@@ -3366,6 +3383,7 @@ modules:
       components:
         - Firefox
         - Toolkit
+      review_group: firefox-desktop-core-reviewers
     owners:
       - *mossop
       - *Gijs
@@ -3444,6 +3462,7 @@ modules:
         meta:
           peers_emeritus:
             - Adam Gashlin
+          review_group: application-update-reviewers
 
 
       - name: Bookmarks & History
@@ -3484,6 +3503,7 @@ modules:
           components:
             - Firefox::Theme
             - Toolkit::Themes
+          review_group: desktop-theme-reviewers
         owners:
           - *dao
         peers:
@@ -3644,6 +3664,8 @@ modules:
         description: Tooling to enable translation and facilitate localization.
         includes: []
         excludes: []
+        meta:
+          review_group: fluent-reviewers
         owners:
           - *flod
         peers:
@@ -3809,6 +3831,7 @@ modules:
             - Anny Gakhokidze
           components:
             - Firefox::Session Restore
+          review_group: sessionstore-reviewers
         owners:
           - *sclements
           - *sfoster
@@ -3828,6 +3851,7 @@ modules:
             - Jared Wein
           peers_emeritus:
             - Tim Nguyen
+          review_group: preferences-reviewers
         owners:
           - *mossop
         peers:
@@ -3866,6 +3890,7 @@ modules:
         meta:
           components:
             - Firefox::Installer
+          review_group: browser-installer-reviewers
         owners:
           - *molly
         peers:
@@ -3933,6 +3958,7 @@ modules:
       url: http://firefox-dev.tools/
       components:
         - DevTools
+      review_group: devtools-reviewers
   - machine_name: fenix
     name: Fenix
     description: Android Project to build Firefox for Android
@@ -4082,6 +4108,7 @@ modules:
             - Yulia Startsev
           components:
             - 'Remote Protocol :: CDP'
+          review_group: webdriver-reviewers
         owners:
           - *whimboo
         peers:
@@ -4105,6 +4132,7 @@ modules:
           components:
             - 'Remote Protocol :: Marionette'
           group: dev-webdriver
+          review_group: webdriver-reviewers
         owners:
           - *whimboo
         peers:
@@ -4121,6 +4149,7 @@ modules:
           components:
             - 'Remote Protocol :: WebDriver BiDi'
           group: dev-webdriver
+          review_group: webdriver-reviewers
         owners:
           - *whimboo
         peers:
@@ -4280,6 +4309,7 @@ modules:
         - 'Testing :: mozperftest'
         - 'Testing :: Condprofile'
       url: :ref:`Performance Testing`
+      review_group: perftest-reviewers
   - machine_name: testing_reftest
     name: Reftest (+ jsreftest + crashtest)
     description: Reftest test framework
@@ -4432,6 +4462,7 @@ modules:
           components:
             - Web Compatibility::Interventions
             - Web Compatibility::Tooling & Investigations
+          review_group: webcompat-reviewers
         owners:
           - *denschub
           - *twisniewski
@@ -4448,6 +4479,7 @@ modules:
           peers_emeritus:
             - Andrew Swan
             - Kris Maglione
+          review_group: extensions-reviewers
         owners:
           - *scaraveo
           - *zombie
@@ -4528,5 +4560,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 86fe6cfd0ba2cfe84e27b62def925fdcca197fa7
-  export: 28d5dd8d8d2e39041ef159a0938336477643a7a8
+  config: d10cebf1e6370a4fc7b9a3b838cb0014b36bc54a
+  export: bf264580f2d6a069bd9e825c6e7b4c5cf2aa0b7d

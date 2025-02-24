@@ -99,10 +99,10 @@ Review groups
      - cubeb, Gecko's audio input/output library and associated projects (audioipc, cubeb-rs, rust cubeb backends)
      - `Member list <https://phabricator.services.mozilla.com/project/profile/129/>`__
    * - #desktop-theme-reviewers
-     - User interface CSS
+     - `User interface CSS </mots/index.html#desktop-theme>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/141/>`__
    * - #devtools-reviewers
-     - Firefox DevTools
+     - `Firefox DevTools </mots/index.html#devtools>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/153/>`__
    * - #dom-core
      - `Core: DOM <https://firefox-source-docs.mozilla.org/mots/index.html#core-document-object-model>`__
