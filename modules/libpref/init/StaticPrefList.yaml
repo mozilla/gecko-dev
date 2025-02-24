@@ -11534,7 +11534,15 @@
 
 - name: media.hevc.enabled
   type: RelaxedAtomicBool
+#if defined(XP_WIN)
   value: true
+#elif defined(XP_MACOSX)
+  value: true
+#elif defined(ANDROID)
+  value: true
+#else
+  value: false
+#endif
   mirror: always
 
 - name: media.decoder-doctor.testing
