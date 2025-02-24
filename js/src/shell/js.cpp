@@ -12533,8 +12533,6 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "disable-well-formed-unicode-strings",
                         "Disable String.prototype.{is,to}WellFormed() methods"
                         "(Well-Formed Unicode Strings) (default: Enabled)") ||
-      !op.addBoolOption('\0', "disable-arraybuffer-transfer",
-                        "Disable ArrayBuffer.prototype.transfer() methods") ||
       !op.addBoolOption('\0', "enable-symbols-as-weakmap-keys",
                         "Enable Symbols As WeakMap keys") ||
       !op.addBoolOption('\0', "enable-uint8array-base64",
@@ -12928,9 +12926,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
 
   // Override pref values for prefs that have a custom shell flag.
   // If you're adding a new feature, consider using --setpref instead.
-  if (op.getBoolOption("disable-arraybuffer-transfer")) {
-    JS::Prefs::setAtStartup_arraybuffer_transfer(false);
-  }
   if (op.getBoolOption("enable-shadow-realms")) {
     JS::Prefs::set_experimental_shadow_realms(true);
   }

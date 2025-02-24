@@ -8418,13 +8418,6 @@
   mirror: always
   set_spidermonkey_pref: startup
 
-# Experimental support for ArrayBuffer.prototype.transfer{,ToFixedLength}() in JavaScript.
-- name: javascript.options.arraybuffer_transfer
-  type: bool
-  value: true
-  mirror: always
-  set_spidermonkey_pref: startup
-
 # Experimental support for Duplicate Named Capture Groups in JavaScript.
 - name: javascript.options.experimental.regexp_duplicate_named_groups
   type: bool

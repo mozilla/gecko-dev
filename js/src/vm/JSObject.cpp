@@ -2237,13 +2237,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
     }
   }
 
-  if (key == JSProto_ArrayBuffer && !JS::Prefs::arraybuffer_transfer() &&
-      (id == NameToId(cx->names().transfer) ||
-       id == NameToId(cx->names().transferToFixedLength) ||
-       id == NameToId(cx->names().detached))) {
-    return true;
-  }
-
   if (key == JSProto_Uint8Array &&
       !JS::Prefs::experimental_uint8array_base64() &&
       (id == NameToId(cx->names().setFromBase64) ||
