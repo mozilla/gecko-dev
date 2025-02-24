@@ -12554,8 +12554,6 @@ bool InitOptionParser(OptionParser& op) {
                         "Enable top-level await") ||
       !op.addBoolOption('\0', "enable-import-attributes",
                         "Enable import attributes") ||
-      !op.addBoolOption('\0', "disable-destructuring-fuse",
-                        "Disable Destructuring Fuse") ||
       !op.addStringOption('\0', "shared-memory", "on/off",
                           "SharedArrayBuffer and Atomics "
 #if SHARED_MEMORY_DEFAULT
@@ -13022,9 +13020,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
 
   JS::Prefs::setAtStartup_experimental_weakrefs_expose_cleanupSome(true);
 
-  if (op.getBoolOption("disable-destructuring-fuse")) {
-    JS::Prefs::setAtStartup_destructuring_fuse(false);
-  }
   if (op.getBoolOption("disable-property-error-message-fix")) {
     JS::Prefs::setAtStartup_property_error_message_fix(false);
   }
