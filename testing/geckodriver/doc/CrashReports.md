@@ -5,49 +5,26 @@ generated crash data aka minidump files, and report these to us.
 
 ## Retrieve the crash data
 
-Because geckodriver creates a temporary user profile for Firefox, it also
-automatically removes all its folders once the tests have been finished. That
-also means that if Firefox crashed the created minidump files are lost. To
-prevent that a custom profile has to be used instead. The following code
-shows an example by using the Python Selenium bindings on Mac OS:
+Since geckodriver creates a temporary user profile for Firefox, it automatically
+removes all associated folders once the tests complete. As a result, any minidump
+files generated during a crash are also deleted.
 
-```python
-import tempfile
+To preserve these files, set the `MINIDUMP_SAVE_PATH` environment variable to an
+existing folder and pass it into geckodriver:
 
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-
-# Custom profile folder to keep the minidump files
-profile = tempfile.mkdtemp(".selenium")
-print("*** Using profile: {}".format(profile))
-
-# Use the above folder as custom profile
-opts = Options()
-opts.add_argument("-profile")
-opts.add_argument(profile)
-opts.binary = "/Applications/Firefox.app/Contents/MacOS/firefox"
-
-driver = webdriver.Firefox(
-    options=opts,
-    # hard-code the Marionette port so geckodriver can connect
-    service_args=["--marionette-port", "2828"]
-)
-
-# Your test code which crashes Firefox
+```shell
+MINIDUMP_SAVE_PATH="~/.geckodriver/minidumps" geckodriver
 ```
 
-Executing the test with Selenium now, which triggers the crash of Firefox
-will leave all the files from the user profile around in the above path.
+For each detected Firefox crash, two files will be stored in the specified folder:
 
-To retrieve the minidump files navigate to that folder and look for a sub
-folder with the name `minidumps`. It should contain at least one series of
-files. One file with the `.dmp` extension and another one with `.extra`.
-Both of those files are needed. If more crash files are present grab them all.
+- **`.dmp` file** – Contains the actual crash data.
+- **`.extra` file** – Includes details about the running Firefox instance.
 
-Attach the files as best archived as zip file to the created [geckodriver issue]
-on Github.
+Both files are essential for further analysis and should be attached to a
+[GitHub issue] for investigation.
 
-[geckodriver issue]: https://github.com/mozilla/geckodriver/issues/new
+[GitHub issue]: https://github.com/mozilla/geckodriver/issues/new
 
 ## Getting details of the crash
 
