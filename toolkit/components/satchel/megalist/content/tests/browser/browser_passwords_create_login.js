@@ -13,14 +13,26 @@ add_setup(async function () {
   registerCleanupFunction(LoginTestUtils.clearData);
 });
 
-async function openLoginForm(megalist, selector = ".first-row > moz-button") {
+const getShadowBtn = (el, selector) =>
+  el.querySelector(selector).shadowRoot.querySelector("button");
+
+async function openLoginForm(megalist, isFromMenuDropdown = true) {
   info("Opening login form.");
-  const addButton = megalist.querySelector(selector);
+
+  let button = megalist.querySelector(".empty-state-add-password");
+  if (isFromMenuDropdown) {
+    const menu = megalist.querySelector("panel-list");
+    const menuButton = megalist.querySelector("#more-options-menubutton");
+    menuButton.click();
+    await BrowserTestUtils.waitForEvent(menu, "shown");
+    button = getShadowBtn(menu, "[action='add-password']");
+  }
+
   const loginFormPromise = BrowserTestUtils.waitForCondition(
     () => megalist.querySelector("login-form"),
     "Login form failed to load."
   );
-  addButton.buttonEl.click();
+  button.click();
   return loginFormPromise;
 }
 
@@ -169,7 +181,7 @@ add_task(async function test_passwords_add_password_empty_state() {
   ok(true, "Empty state rendered.");
 
   info("Add a password via empty state");
-  await openLoginForm(megalist, ".empty-state-add-password");
+  await openLoginForm(megalist, false);
   let events = Glean.contextualManager.toolbarAction.testGetValue();
   assertCPMGleanEvent(events[0], {
     trigger: "empty_state_card",

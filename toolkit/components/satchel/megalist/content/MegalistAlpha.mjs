@@ -85,18 +85,6 @@ export class MegalistAlpha extends MozLitElement {
     await Promise.all(passwordCards.map(el => el.updateComplete));
   }
 
-  async updated(changedProperties) {
-    if (changedProperties.has("viewMode")) {
-      const mozButton = this.shadowRoot.querySelector("#create-login-button");
-      await mozButton.updateComplete;
-      // Need to set aria-expanded on the button element of the moz-button for screen readers to announce the change.
-      mozButton.buttonEl.setAttribute(
-        "aria-expanded",
-        this.viewMode === VIEW_MODES.ADD ? "true" : "false"
-      );
-    }
-  }
-
   #onPasswordRevealClick(concealed, lineIndex) {
     if (concealed) {
       this.#messageToViewModel("Command", {
@@ -578,14 +566,7 @@ export class MegalistAlpha extends MozLitElement {
 
   renderFirstRow() {
     return html`<div class="first-row">
-      ${this.renderSearch()}
-      <moz-button
-        id="create-login-button"
-        @click=${() => this.#onAddButtonClick("toolbar")}
-        data-l10n-id="create-login-button"
-        type="icon"
-        iconSrc="chrome://global/skin/icons/plus.svg"
-      ></moz-button>
+      ${this.renderSearch()} ${this.renderMenu()}
     </div>`;
   }
 
@@ -639,6 +620,11 @@ export class MegalistAlpha extends MozLitElement {
         data-l10n-id="more-options-popup"
       >
         <panel-item
+          action="add-password"
+          data-l10n-id="passwords-command-create"
+          @click=${() => this.#onAddButtonClick("toolbar")}
+        ></panel-item>
+        <panel-item
           action="import-from-browser"
           data-l10n-id="passwords-command-import-from-browser"
           @click=${() => {
@@ -669,7 +655,7 @@ export class MegalistAlpha extends MozLitElement {
             this.#sendCommand("RemoveAll");
             this.#recordToolbarAction("remove_all", "toolbar");
           }}
-          ?disabled=${!this.header.value.total}
+          ?disabled=${!this.header?.value.total}
         ></panel-item>
         <hr />
         <panel-item
@@ -703,9 +689,7 @@ export class MegalistAlpha extends MozLitElement {
       return "";
     }
 
-    return html`<div class="second-row">
-      ${this.renderRadioButtons()} ${this.renderMenu()}
-    </div>`;
+    return html`<div class="second-row">${this.renderRadioButtons()}</div>`;
   }
 
   async #scrollPasswordCardIntoView(guid) {
