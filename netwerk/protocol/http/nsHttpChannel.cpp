@@ -2459,7 +2459,7 @@ void nsHttpChannel::ProcessSSLInformation() {
   }
 }
 
-void nsHttpChannel::ProcessAltService() {
+void nsHttpChannel::ProcessAltService(nsHttpConnectionInfo* aTransConnInfo) {
   // e.g. Alt-Svc: h2=":443"; ma=60
   // e.g. Alt-Svc: h2="otherhost:443"
   // Alt-Svc       = 1#( alternative *( OWS ";" OWS parameter ) )
@@ -2528,9 +2528,10 @@ void nsHttpChannel::ProcessAltService() {
         this, originAttributes);
   }
 
-  AltSvcMapping::ProcessHeader(
-      altSvc, scheme, originHost, originPort, mUsername, mPrivateBrowsing,
-      callbacks, proxyInfo, mCaps & NS_HTTP_DISALLOW_SPDY, originAttributes);
+  AltSvcMapping::ProcessHeader(altSvc, scheme, originHost, originPort,
+                               mUsername, mPrivateBrowsing, callbacks,
+                               proxyInfo, mCaps & NS_HTTP_DISALLOW_SPDY,
+                               originAttributes, aTransConnInfo);
 }
 
 nsresult nsHttpChannel::ProcessResponse() {
@@ -2745,7 +2746,8 @@ nsresult nsHttpChannel::ContinueProcessResponse1() {
     }
 
     if ((httpStatus < 500) && (httpStatus != 421)) {
-      ProcessAltService();
+      RefPtr<nsHttpConnectionInfo> connInfo = mTransaction->GetConnInfo();
+      ProcessAltService(connInfo);
     }
   }
 

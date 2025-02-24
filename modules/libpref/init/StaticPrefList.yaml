@@ -14719,6 +14719,12 @@
   mirror: always
   rust: true
 
+# When true, skip alt-svc validation when the connection is made using HTTPS RR.
+- name: network.http.skip_alt_svc_validation_on_https_rr
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # When true, a http request will be upgraded to https when HTTPS RR is
 # available.
 - name: network.dns.upgrade_with_https_rr

@@ -918,7 +918,8 @@ void TRRServiceChannel::AfterApplyContentConversions(
   }
 }
 
-void TRRServiceChannel::ProcessAltService() {
+void TRRServiceChannel::ProcessAltService(
+    nsHttpConnectionInfo* aTransConnInfo) {
   // e.g. Alt-Svc: h2=":443"; ma=60
   // e.g. Alt-Svc: h2="otherhost:443"
   // Alt-Svc       = 1#( alternative *( OWS ";" OWS parameter ) )
@@ -967,21 +968,23 @@ void TRRServiceChannel::ProcessAltService() {
     proxyInfo = do_QueryInterface(mProxyInfo);
   }
 
+  RefPtr<nsHttpConnectionInfo> connectionInfo = aTransConnInfo;
   auto processHeaderTask = [altSvc, scheme, originHost, originPort,
                             userName(mUsername),
                             privateBrowsing(mPrivateBrowsing), callbacks,
-                            proxyInfo, caps(mCaps)]() {
+                            proxyInfo, caps(mCaps), connectionInfo]() {
     if (XRE_IsSocketProcess()) {
       AltServiceChild::ProcessHeader(altSvc, scheme, originHost, originPort,
                                      userName, privateBrowsing, callbacks,
                                      proxyInfo, caps & NS_HTTP_DISALLOW_SPDY,
-                                     OriginAttributes());
+                                     OriginAttributes(), connectionInfo);
       return;
     }
 
-    AltSvcMapping::ProcessHeader(
-        altSvc, scheme, originHost, originPort, userName, privateBrowsing,
-        callbacks, proxyInfo, caps & NS_HTTP_DISALLOW_SPDY, OriginAttributes());
+    AltSvcMapping::ProcessHeader(altSvc, scheme, originHost, originPort,
+                                 userName, privateBrowsing, callbacks,
+                                 proxyInfo, caps & NS_HTTP_DISALLOW_SPDY,
+                                 OriginAttributes(), connectionInfo);
   };
 
   if (NS_IsMainThread()) {
@@ -1037,7 +1040,9 @@ TRRServiceChannel::OnStartRequest(nsIRequest* request) {
       }
 
       if ((httpStatus < 500) && (httpStatus != 421) && (httpStatus != 407)) {
-        ProcessAltService();
+        RefPtr<nsHttpConnectionInfo> connectionInfo =
+            mTransaction->GetConnInfo();
+        ProcessAltService(connectionInfo);
       }
 
       if (httpStatus == 300 || httpStatus == 301 || httpStatus == 302 ||

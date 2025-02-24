@@ -2883,9 +2883,10 @@ void nsHttpHandler::MaybeAddAltSvcForTesting(
     aUri->GetPort(&originPort);
     LOG(("nsHttpHandler::MaybeAddAltSvcForTesting for %s map: %s",
          originHost.get(), PromiseFlatCString(*map).get()));
-    AltSvcMapping::ProcessHeader(
-        *map, nsCString("https"), originHost, originPort, aUsername,
-        aPrivateBrowsing, aCallbacks, nullptr, 0, aOriginAttributes, true);
+    AltSvcMapping::ProcessHeader(*map, nsCString("https"), originHost,
+                                 originPort, aUsername, aPrivateBrowsing,
+                                 aCallbacks, nullptr, 0, aOriginAttributes,
+                                 nullptr, true);
   }
 }
 

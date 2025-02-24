@@ -2528,14 +2528,14 @@ class UpdateAltSvcEvent : public Runnable {
       AltServiceChild::ProcessHeader(
           mHeader, originScheme, originHost, originPort, mCI->GetUsername(),
           mCI->GetPrivate(), nullptr, mCI->ProxyInfo(), 0,
-          mCI->GetOriginAttributes());
+          mCI->GetOriginAttributes(), mCI);
       return NS_OK;
     }
 
     AltSvcMapping::ProcessHeader(mHeader, originScheme, originHost, originPort,
                                  mCI->GetUsername(), mCI->GetPrivate(), nullptr,
                                  mCI->ProxyInfo(), 0,
-                                 mCI->GetOriginAttributes());
+                                 mCI->GetOriginAttributes(), mCI);
     return NS_OK;
   }
 

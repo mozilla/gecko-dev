@@ -343,7 +343,7 @@ class nsHttpChannel final : public HttpBaseChannel,
   [[nodiscard]] nsresult ContinueProcessResponse4(nsresult);
   [[nodiscard]] nsresult ProcessNormal();
   [[nodiscard]] nsresult ContinueProcessNormal(nsresult);
-  void ProcessAltService();
+  void ProcessAltService(nsHttpConnectionInfo* aTransConnInfo = nullptr);
   bool ShouldBypassProcessNotModified();
   [[nodiscard]] nsresult ProcessNotModified(
       const std::function<nsresult(nsHttpChannel*, nsresult)>&

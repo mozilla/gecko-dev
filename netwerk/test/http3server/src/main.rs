@@ -387,6 +387,29 @@ impl HttpServer for Http3TestServer {
                                         .unwrap();
                                     stream.stream_close_send().unwrap();
                                 }
+                            } else if path == "/alt_svc_header" {
+                                if let Some(alt_svc) =
+                                    headers.iter().find(|h| h.name() == "x-altsvc")
+                                {
+                                    stream
+                                        .send_headers(&[
+                                            Header::new(":status", "200"),
+                                            Header::new("cache-control", "no-cache"),
+                                            Header::new("content-type", "text/plain"),
+                                            Header::new("content-length", 100.to_string()),
+                                            Header::new("alt-svc", format!("h3={}", alt_svc.value())),
+                                        ])
+                                        .unwrap();
+                                    self.new_response(stream, vec![b'a'; 100]);
+                                } else {
+                                    stream
+                                        .send_headers(&[
+                                            Header::new(":status", "200"),
+                                            Header::new("cache-control", "no-cache"),
+                                        ])
+                                        .unwrap();
+                                    self.new_response(stream, vec![b'a'; 100]);
+                                }
                             } else {
                                 match path.trim_matches(|p| p == '/').parse::<usize>() {
                                     Ok(v) => {

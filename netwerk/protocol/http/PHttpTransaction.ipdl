@@ -60,7 +60,8 @@ parent:
                        TRRMode trrMode,
                        TRRSkippedReason trrSkipReason,
                        uint32_t caps,
-                       TimeStamp onStartRequestStart);
+                       TimeStamp onStartRequestStart,
+                       HttpConnectionInfoCloneArgs connInfoArgs);
   async OnTransportStatus(nsresult status,
                           int64_t progress,
                           int64_t progressMax,
@@ -76,7 +77,6 @@ parent:
                       nsHttpHeaderArray? responseTrailers,
                       TransactionObserverResult? transactionObserverResult,
                       TimeStamp lastActiveTabOptimization,
-                      HttpConnectionInfoCloneArgs connInfoArgs,
                       TimeStamp onStopRequestStart);
   async OnInitFailed(nsresult status);
   async OnH2PushStream(uint32_t pushedStreamId,

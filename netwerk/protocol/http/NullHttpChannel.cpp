@@ -11,7 +11,7 @@
 namespace mozilla {
 namespace net {
 
-NS_IMPL_ISUPPORTS(NullHttpChannel, nsINullChannel, nsIHttpChannel,
+NS_IMPL_ISUPPORTS(NullHttpChannel, nsINullChannel, nsIChannel, nsIHttpChannel,
                   nsIIdentChannel, nsITimedChannel)
 
 NullHttpChannel::NullHttpChannel() {

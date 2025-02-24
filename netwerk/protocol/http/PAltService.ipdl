@@ -28,7 +28,8 @@ parent:
                       bool privateBrowsing,
                       ProxyInfoCloneArgs[] proxyInfo,
                       uint32_t caps,
-                      OriginAttributes originAttributes);
+                      OriginAttributes originAttributes,
+                      HttpConnectionInfoCloneArgs connInfoArgs);
 
 child:
   async __delete__();
