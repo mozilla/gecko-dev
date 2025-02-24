@@ -11,7 +11,7 @@ transforms:
     - gecko_taskgraph.transforms.task:transforms
 
 kind-dependencies:
-    - release-flatpak-repackage
+    - repackage-flatpak
 
 task-defaults:
     description: Pushes Flatpaks onto Flathub
