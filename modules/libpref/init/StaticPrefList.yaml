@@ -18451,7 +18451,7 @@
 
 # Whether we use the mica backdrop for popups. Off by default for now.
 - name: widget.windows.mica.popups
-  type: bool
+  type: RelaxedAtomicBool
   value: false
   mirror: always
 #endif
