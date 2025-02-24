@@ -4,16 +4,21 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * https://wicg.github.io/sanitizer-api/#sanitizer
- * https://wicg.github.io/sanitizer-api/#config
+ * https://wicg.github.io/sanitizer-api/#idl-index
  *
- * * Copyright © 2020 the Contributors to the HTML Sanitizer API Specification,
+ * Copyright © 2020 the Contributors to the HTML Sanitizer API Specification,
  * published by the Web Platform Incubator Community Group under the W3C Community Contributor License Agreement (CLA).
  */
 
-// NOTE: This IDL is still under development:
-// https://github.com/WICG/sanitizer-api/issues/181
-
+enum SanitizerPresets { "default" };
+dictionary SetHTMLOptions {
+  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = "default";
+};
+/*
+dictionary SetHTMLUnsafeOptions {
+  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = {};
+};
+*/
 
 dictionary SanitizerElementNamespace {
   required DOMString name;
@@ -43,17 +48,27 @@ dictionary SanitizerConfig {
   sequence<SanitizerAttribute> attributes;
   sequence<SanitizerAttribute> removeAttributes;
 
-  boolean customElements;
-  boolean unknownMarkup; // Name TBD!
   boolean comments;
+  boolean dataAttributes;
 };
 
-typedef (DocumentFragment or Document) SanitizerInput;
-
-[Exposed=Window, SecureContext, Pref="dom.security.sanitizer.enabled"]
+[Exposed=Window, Pref="dom.security.sanitizer.enabled"]
 interface Sanitizer {
   [Throws, UseCounter]
-  constructor(optional SanitizerConfig sanitizerConfig = {});
-  [UseCounter, Throws]
-  DocumentFragment sanitize(SanitizerInput input);
+  constructor(optional (SanitizerConfig or SanitizerPresets) configuration = "default");
+
+  // Query configuration:
+  SanitizerConfig get();
+
+  // Modify a Sanitizer’s lists and fields:
+  undefined allowElement(SanitizerElementWithAttributes element);
+  undefined removeElement(SanitizerElement element);
+  undefined replaceElementWithChildren(SanitizerElement element);
+  undefined allowAttribute(SanitizerAttribute attribute);
+  undefined removeAttribute(SanitizerAttribute attribute);
+  undefined setComments(boolean allow);
+  undefined setDataAttributes(boolean allow);
+
+  // Remove markup that executes script. May modify multiple lists:
+  undefined removeUnsafe();
 };

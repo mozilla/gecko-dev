@@ -395,12 +395,8 @@ partial interface Element {
 
 
 // Sanitizer API, https://wicg.github.io/sanitizer-api/
-dictionary SetHTMLOptions {
-  SanitizerConfig sanitizer;
-};
-
 partial interface Element {
-  [SecureContext, UseCounter, Throws, Pref="dom.security.setHTML.enabled"]
+  [CEReactions, UseCounter, Throws, Pref="dom.security.sanitizer.enabled"]
   undefined setHTML(DOMString aInnerHTML, optional SetHTMLOptions options = {});
 };
 
@@ -411,6 +407,7 @@ dictionary GetHTMLOptions {
 
 partial interface Element {
   // https://html.spec.whatwg.org/#dom-element-sethtmlunsafe
+  /* TODO: optional SetHTMLUnsafeOptions options = {} */
   [Pref="dom.webcomponents.shadowdom.declarative.enabled", Throws]
   undefined setHTMLUnsafe((TrustedHTML or DOMString) html);
   [Pref="dom.webcomponents.shadowdom.declarative.enabled"]

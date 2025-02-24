@@ -4327,13 +4327,6 @@
   value: false
   mirror: always
 
-# Pref that controls the Element.setHTML API idenpendetly of the sanitizer
-# API.
-- name: dom.security.setHTML.enabled
-  type: bool
-  value: false
-  mirror: always
-
 # Logs elements and attributes removed by the Sanitizer API to the console.
 - name: dom.security.sanitizer.logging
   type: bool

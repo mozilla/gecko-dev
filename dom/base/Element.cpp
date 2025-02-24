@@ -5397,10 +5397,14 @@ void Element::SetHTML(const nsAString& aInnerHTML,
   }
 
   RefPtr<Sanitizer> sanitizer;
-  if (aOptions.mSanitizer.WasPassed()) {
-    sanitizer = Sanitizer::New(global, aOptions.mSanitizer.Value(), aError);
+  if (aOptions.mSanitizer.IsSanitizer()) {
+    sanitizer = aOptions.mSanitizer.GetAsSanitizer();
+  } else if (aOptions.mSanitizer.IsSanitizerConfig()) {
+    sanitizer = Sanitizer::New(
+        global, aOptions.mSanitizer.GetAsSanitizerConfig(), aError);
   } else {
-    sanitizer = Sanitizer::New(global, {}, aError);
+    sanitizer = Sanitizer::New(
+        global, aOptions.mSanitizer.GetAsSanitizerPresets(), aError);
   }
   if (aError.Failed()) {
     return;

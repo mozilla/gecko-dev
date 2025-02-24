@@ -43,24 +43,30 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<Sanitizer> New(nsIGlobalObject* aGlobal,
-                                         const SanitizerConfig& aOptions,
+                                         const SanitizerConfig& aConfig,
                                          ErrorResult& aRv);
 
-  /**
-   * Sanitizer() WebIDL constructor
-   * @return a new Sanitizer object, with methods as below
-   */
-  static already_AddRefed<Sanitizer> Constructor(
-      const GlobalObject& aGlobal, const SanitizerConfig& aOptions,
-      ErrorResult& aRv);
+  static already_AddRefed<Sanitizer> New(nsIGlobalObject* aGlobal,
+                                         const SanitizerPresets aConfig,
+                                         ErrorResult& aRv);
 
-  /**
-   * sanitize WebIDL method.
-   * @param aInput       "bad" HTML that needs to be sanitized
-   * @return DocumentFragment of the sanitized HTML
-   */
-  already_AddRefed<DocumentFragment> Sanitize(
-      const mozilla::dom::DocumentFragmentOrDocument& aInput, ErrorResult& aRv);
+  // WebIDL
+  static already_AddRefed<Sanitizer> Constructor(
+      const GlobalObject& aGlobal,
+      const SanitizerConfigOrSanitizerPresets& aConfig, ErrorResult& aRv);
+
+  void Get(SanitizerConfig& aConfig);
+
+  void AllowElement(
+      const StringOrSanitizerElementNamespaceWithAttributes& aElement);
+  void RemoveElement(const StringOrSanitizerElementNamespace& aElement);
+  void ReplaceElementWithChildren(
+      const StringOrSanitizerElementNamespace& aElement);
+  void AllowAttribute(const StringOrSanitizerAttributeNamespace& aAttribute);
+  void RemoveAttribute(const StringOrSanitizerAttributeNamespace& aAttribute);
+  void SetComments(bool aAllow);
+  void SetDataAttributes(bool aAllow);
+  void RemoveUnsafe();
 
   /**
    * Sanitizes a fragment in place. This assumes that the fragment
@@ -84,8 +90,7 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
 
  private:
   ~Sanitizer() = default;
-  already_AddRefed<DocumentFragment> InputToNewFragment(
-      const mozilla::dom::DocumentFragmentOrDocument& aInput, ErrorResult& aRv);
+
   /**
    * Logs localized message to either content console or browser console
    * @param aMessage           Message to log

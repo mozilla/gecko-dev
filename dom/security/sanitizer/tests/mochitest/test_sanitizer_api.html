@@ -15,27 +15,10 @@ SimpleTest.waitForExplicitFinish();
     SimpleTest.finish();
   }
 
-  function* possibleInputTypes(inputStr) {
-    /* This generator function, given a string, yields all possible input objects
-    for our sanitizer API (string, docfragment, document).
-    */
-
-    // 1) as string
-    yield ({testInput: inputStr, testType: "String" });
-    // 2) as DocumentFragment
-    let temp = document.createElement('template');
-    // asking eslint to skip this: innerHTML is safe for template elements.
-    temp.innerHTML = inputStr;
-    yield ({testInput: temp.content, testType: "DocumentFragment" });
-    // 3) as HTMLDocument
-    const parser = new DOMParser;
-    yield ({testInput: parser.parseFromString(inputStr, "text/html"), testType: "Document" });
-  }
   // basic interface smoke test
   ok(typeof Sanitizer === "function", "Sanitizer constructor exposed when preffed on");
   const mySanitizer = new Sanitizer();
   ok(mySanitizer, "Sanitizer constructor works");
-  ok(mySanitizer.sanitize, "sanitize function exists");
   ok("setHTML" in Element.prototype, "Element.setHTML exists");
 
   // testing sanitizer results
@@ -44,6 +27,11 @@ SimpleTest.waitForExplicitFinish();
       testString: "<p>hello</p>",
       testExpected: "<p>hello</p>",
       sanitizerOptions: {}
+    },
+    {
+      testString: "<p>hello</p>",
+      testExpected: "<p>hello</p>",
+      sanitizerOptions: "default"
     },
     /*
     {
@@ -107,33 +95,13 @@ SimpleTest.waitForExplicitFinish();
   const div = document.createElement("div");
   for (let test of testCases) {
     const {testString, testExpected, sanitizerOptions} = test;
-    const testSanitizer = new Sanitizer(sanitizerOptions);
 
-    for (let testInputAndType of possibleInputTypes(testString)) {
-      const {testInput, testType} = testInputAndType;
-
-      if (testType != "String") {
-        // test sanitize(document/fragment)
-        try {
-          div.innerHTML = "";
-          const docFragment = testSanitizer.sanitize(testInput);
-          div.append(docFragment);
-          is(div.innerHTML, testExpected, `Sanitizer.sanitize() should turn (${testType}) '${testInput}' into '${testExpected}'`);
-        }
-        catch (e) {
-          ok(false, 'Error in sanitize() test: ' + e)
-        }
-      }
-      else {
-        // test setHTML:
-        try {
-          div.setHTML(testString, { sanitizer: sanitizerOptions });
-          is(div.innerHTML, testExpected, `div.setHTML() should turn(${testType}) '${testInput}' into '${testExpected}'`);
-        }
-        catch (e) {
-          ok(false, 'Error in setHTML() test: ' + e)
-        }
-      }
+    try {
+      div.setHTML(testString, { sanitizer: sanitizerOptions });
+      is(div.innerHTML, testExpected, `div.setHTML should turn '${testString}' into '${testExpected}' (options: ${JSON.stringify(sanitizerOptions)})`);
+    }
+    catch (e) {
+      ok(false, 'Error in setHTML() test: ' + e)
     }
   }
 
