@@ -206,9 +206,17 @@ export class _WallpaperCategories extends React.PureComponent {
     const { activeWallpaper } = this.props;
     const { activeCategory, showColorPicker } = this.state;
     const { activeCategoryFluentID } = this.state;
-    const filteredWallpapers = wallpaperList.filter(
+    let filteredWallpapers = wallpaperList.filter(
       wallpaper => wallpaper.category === activeCategory
     );
+
+    function reduceColorsToFitCustomColorInput(arr) {
+      // Reduce the amount of custom colors to make space for the custom color picker
+      while (arr.length % 3 !== 2) {
+        arr.pop();
+      }
+      return arr;
+    }
 
     let categorySectionClassname = "category wallpaper-list";
     if (prefs["newtabWallpapers.v2.enabled"]) {
@@ -226,14 +234,23 @@ export class _WallpaperCategories extends React.PureComponent {
       [wallpaperCustomSolidColorHex] = selectedWallpaper.match(regex);
     }
 
-    // Enable custom color select if preffed on
-    if (prefs["newtabWallpapers.customColor.enabled"]) {
-      this.setState({ showColorPicker: true });
+    // Enable custom color select if pref'ed on
+    this.setState({
+      showColorPicker: prefs["newtabWallpapers.customColor.enabled"],
+    });
+
+    // Remove last item of solid colors to make space for custom color picker
+    if (
+      prefs["newtabWallpapers.customColor.enabled"] &&
+      activeCategory === "solid-colors"
+    ) {
+      filteredWallpapers =
+        reduceColorsToFitCustomColorInput(filteredWallpapers);
     }
 
     let colorPickerInput =
       showColorPicker && activeCategory === "solid-colors" ? (
-        <>
+        <div className="theme-custom-color-picker">
           <input
             onChange={this.handleChange}
             onClick={() => this.setActiveId("solid-color-picker")} //
@@ -244,18 +261,14 @@ export class _WallpaperCategories extends React.PureComponent {
             aria-current={this.state.activeId === "solid-color-picker"}
             // If nothing selected, default to Zilla Green
             value={wallpaperCustomSolidColorHex || "#00d230"}
-            className={`wallpaper-input theme-solid-color-picker
+            className={`wallpaper-input
               ${this.state.activeId === "solid-color-picker" ? "active" : ""}`}
           />
           <label
             htmlFor="solid-color-picker"
-            className="sr-only"
-            // TODO: Add Fluent string
-            // data-l10n-id={fluent_id}
-          >
-            Solid Color Picker
-          </label>
-        </>
+            data-l10n-id="newtab-wallpaper-custom-color"
+          ></label>
+        </div>
       ) : (
         ""
       );
