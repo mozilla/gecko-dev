@@ -2657,10 +2657,7 @@ bool DoOptimizeGetIteratorFallback(JSContext* cx, BaselineFrame* frame,
   TryAttachStub<OptimizeGetIteratorIRGenerator>("OptimizeGetIterator", cx,
                                                 frame, stub, value);
 
-  bool result;
-  if (!OptimizeGetIterator(cx, value, &result)) {
-    return false;
-  }
+  bool result = OptimizeGetIterator(value, cx);
   res.setBoolean(result);
   return true;
 }

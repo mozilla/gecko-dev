@@ -269,12 +269,8 @@ bool WeakMapObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   // Steps 5-6, 11.
   if (!args.get(0).isNullOrUndefined()) {
     Handle<Value> iterable = args[0];
-    bool optimized = false;
-    if (!IsOptimizableInitForMapOrSet<JSProto_WeakMap>(
-            cx, WeakMapObject::set, obj, iterable, &optimized)) {
-      return false;
-    }
-
+    bool optimized = IsOptimizableInitForMapOrSet<JSProto_WeakMap>(
+        WeakMapObject::set, obj, iterable, cx);
     if (optimized) {
       RootedValue keyVal(cx);
       RootedValue value(cx);

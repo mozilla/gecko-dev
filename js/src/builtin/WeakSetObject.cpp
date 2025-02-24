@@ -194,12 +194,8 @@ bool WeakSetObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 
   if (!args.get(0).isNullOrUndefined()) {
     Handle<Value> iterable = args[0];
-    bool optimized = false;
-    if (!IsOptimizableInitForMapOrSet<JSProto_WeakSet>(
-            cx, WeakSetObject::add, obj, iterable, &optimized)) {
-      return false;
-    }
-
+    bool optimized = IsOptimizableInitForMapOrSet<JSProto_WeakSet>(
+        WeakSetObject::add, obj, iterable, cx);
     if (optimized) {
       RootedValue keyVal(cx);
       Rooted<ArrayObject*> array(cx, &iterable.toObject().as<ArrayObject>());

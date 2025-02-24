@@ -2413,13 +2413,8 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     END_CASE(CloseIter)
 
     CASE(OptimizeGetIterator) {
-      ReservedRooted<Value> val(&rootValue0, REGS.sp[-1]);
-      MutableHandleValue rval = REGS.stackHandleAt(-1);
-      bool result;
-      if (!OptimizeGetIterator(cx, val, &result)) {
-        goto error;
-      }
-      rval.setBoolean(result);
+      bool result = OptimizeGetIterator(REGS.sp[-1], cx);
+      REGS.sp[-1].setBoolean(result);
     }
     END_CASE(OptimizeGetIterator)
 
@@ -5017,10 +5012,7 @@ bool js::SpreadCallOperation(JSContext* cx, HandleScript script, jsbytecode* pc,
   return true;
 }
 
-static bool OptimizeArrayIteration(JSContext* cx, HandleObject obj,
-                                   bool* optimized) {
-  *optimized = false;
-
+static bool OptimizeArrayIteration(JSObject* obj, JSContext* cx) {
   // Optimize spread call by skipping spread operation when following
   // conditions are met:
   //   * the argument is an array
@@ -5031,12 +5023,7 @@ static bool OptimizeArrayIteration(JSContext* cx, HandleObject obj,
   //   * %ArrayIteratorPrototype%.next is not modified
   //   * %ArrayIteratorPrototype%.return is not defined
   //   * return is nowhere on the proto chain
-  if (!IsArrayWithDefaultIterator<MustBePacked::Yes>(obj, cx)) {
-    return true;
-  }
-
-  *optimized = true;
-  return true;
+  return IsArrayWithDefaultIterator<MustBePacked::Yes>(obj, cx);
 }
 
 static bool OptimizeArgumentsSpreadCall(JSContext* cx, HandleObject obj,
@@ -5090,11 +5077,7 @@ bool js::OptimizeSpreadCall(JSContext* cx, HandleValue arg,
   }
 
   RootedObject obj(cx, &arg.toObject());
-  bool optimized;
-  if (!OptimizeArrayIteration(cx, obj, &optimized)) {
-    return false;
-  }
-  if (optimized) {
+  if (OptimizeArrayIteration(obj, cx)) {
     result.setObject(*obj);
     return true;
   }
@@ -5110,28 +5093,11 @@ bool js::OptimizeSpreadCall(JSContext* cx, HandleValue arg,
   return true;
 }
 
-bool js::OptimizeGetIterator(JSContext* cx, HandleValue arg, bool* result) {
-  // This function returns |false| if the iteration can't be optimized.
-  *result = false;
-
+bool js::OptimizeGetIterator(const Value& arg, JSContext* cx) {
   if (!arg.isObject()) {
-    return true;
-  }
-
-  RootedObject obj(cx, &arg.toObject());
-
-  bool optimized;
-  if (!OptimizeArrayIteration(cx, obj, &optimized)) {
     return false;
   }
-
-  if (optimized) {
-    *result = true;
-    return true;
-  }
-
-  MOZ_ASSERT(!*result);
-  return true;
+  return OptimizeArrayIteration(&arg.toObject(), cx);
 }
 
 ArrayObject* js::ArrayFromArgumentsObject(JSContext* cx,

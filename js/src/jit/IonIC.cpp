@@ -515,7 +515,8 @@ bool IonOptimizeGetIteratorIC::update(JSContext* cx, HandleScript outerScript,
 
   TryAttachIonStub<OptimizeGetIteratorIRGenerator>(cx, ic, ionScript, value);
 
-  return OptimizeGetIterator(cx, value, result);
+  *result = OptimizeGetIterator(value, cx);
+  return true;
 }
 
 /*  static */

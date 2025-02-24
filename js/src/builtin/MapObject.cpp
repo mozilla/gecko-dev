@@ -719,12 +719,8 @@ MapObject* MapObject::createFromIterable(JSContext* cx, Handle<JSObject*> proto,
   }
 
   if (!iterable.isNullOrUndefined()) {
-    bool optimized = false;
-    if (!IsOptimizableInitForMapOrSet<JSProto_Map>(cx, MapObject::set, obj,
-                                                   iterable, &optimized)) {
-      return nullptr;
-    }
-
+    bool optimized = IsOptimizableInitForMapOrSet<JSProto_Map>(
+        MapObject::set, obj, iterable, cx);
     if (optimized) {
       ArrayObject* array = &iterable.toObject().as<ArrayObject>();
       uint32_t len = array->getDenseInitializedLength();
@@ -1414,12 +1410,8 @@ SetObject* SetObject::createFromIterable(JSContext* cx, Handle<JSObject*> proto,
   }
 
   if (!iterable.isNullOrUndefined()) {
-    bool optimized = false;
-    if (!IsOptimizableInitForMapOrSet<JSProto_Set>(cx, SetObject::add, obj,
-                                                   iterable, &optimized)) {
-      return nullptr;
-    }
-
+    bool optimized = IsOptimizableInitForMapOrSet<JSProto_Set>(
+        SetObject::add, obj, iterable, cx);
     if (optimized) {
       ArrayObject* array = &iterable.toObject().as<ArrayObject>();
       uint32_t len = array->getDenseInitializedLength();
