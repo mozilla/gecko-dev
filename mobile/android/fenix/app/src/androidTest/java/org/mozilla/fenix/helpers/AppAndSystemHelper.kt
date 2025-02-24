@@ -56,6 +56,7 @@ import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
+import org.mozilla.fenix.helpers.NetworkConnectionStatusHelper.checkActiveNetworkState
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.appContext
@@ -245,6 +246,8 @@ object AppAndSystemHelper {
     fun setNetworkEnabled(enabled: Boolean) {
         val networkDisconnectedIdlingResource = NetworkConnectionIdlingResource(false)
         val networkConnectedIdlingResource = NetworkConnectionIdlingResource(true)
+        val enableNetworkTimerIdlingResource = TimerIdlingResource(5000)
+        val disableNetworkTimerIdlingResource = TimerIdlingResource(3000)
 
         when (enabled) {
             true -> {
@@ -270,6 +273,16 @@ object AppAndSystemHelper {
                     IdlingRegistry.getInstance().unregister(networkConnectedIdlingResource)
                 }
                 Log.i(TAG, "setNetworkEnabled: Network connection was enabled.")
+
+                // Register the TimerIdlingResource
+                IdlingRegistry.getInstance().register(enableNetworkTimerIdlingResource)
+
+                // Wait for the TimerIdlingResource to become idle
+                Espresso.onIdle {
+                    IdlingRegistry.getInstance().unregister(networkConnectedIdlingResource)
+                    // Check the active network state
+                    checkActiveNetworkState(enabled = true)
+                }
             }
 
             false -> {
@@ -295,6 +308,16 @@ object AppAndSystemHelper {
                     IdlingRegistry.getInstance().unregister(networkDisconnectedIdlingResource)
                 }
                 Log.i(TAG, "setNetworkEnabled: Network connection was disabled.")
+
+                // Register the TimerIdlingResource
+                IdlingRegistry.getInstance().register(enableNetworkTimerIdlingResource)
+
+                // Wait for the TimerIdlingResource to become idle
+                Espresso.onIdle {
+                    IdlingRegistry.getInstance().unregister(disableNetworkTimerIdlingResource)
+                    // Check the active network state
+                    checkActiveNetworkState(enabled = false)
+                }
             }
         }
     }

@@ -6,7 +6,6 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -391,7 +390,6 @@ class TranslationsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2440963
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1947953")
     @Test
     fun downloadLanguageWhileDataSaverModeIsOnTest() {
         val firstTestPage = TestAssetHelper.getFirstForeignWebPageAsset(mockWebServer)

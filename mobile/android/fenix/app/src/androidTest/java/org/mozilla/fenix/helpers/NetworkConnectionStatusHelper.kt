@@ -16,20 +16,20 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.mozilla.fenix.helpers.Constants.TAG
 
 object NetworkConnectionStatusHelper {
+    // Get the context of the app to access system services
+    val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    // Get the ConnectivityManager system service to manage network connections
+    val connectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    // Get a list of all networks currently available
+    val allNetworks = connectivityManager.allNetworks
+
+    // Get the active network the device is currently connected to
+    val activeNetwork = connectivityManager.activeNetwork
+
     fun getNetworkDetails() {
-        // Get the context of the app to access system services
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-
-        // Get the ConnectivityManager system service to manage network connections
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        // Get a list of all networks currently available
-        val allNetworks = connectivityManager.allNetworks
-
-        // Get the active network the device is currently connected to
-        val activeNetwork = connectivityManager.activeNetwork
-
         // Get the network capabilities of the active network
         val activeNetworkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
         // Check if the active network has capabilities and determine its type
@@ -73,6 +73,30 @@ object NetworkConnectionStatusHelper {
             } else {
                 Log.i(TAG, "getNetworkDetails: No Network Connection")
             }
+        }
+    }
+
+    fun checkActiveNetworkState(enabled: Boolean): Boolean {
+        // Get the network capabilities of the active network
+        val activeNetworkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+
+        return if (activeNetworkCapabilities != null) {
+            // Determine the type of active network connection
+            val connectionType = when {
+                activeNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "WiFi"
+                activeNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "Cellular"
+                else -> "Unknown"
+            }
+
+            // Check if the active network is connected to WiFi or Cellular
+            val isConnected = activeNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || activeNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+            Log.i(TAG, "checkActiveNetworkState: Active network is ${if (isConnected) "connected" else "not connected"} ($connectionType)")
+            // Return true if the enabled parameter matches the connection state
+            enabled == isConnected
+        } else {
+            // Log and return false if there is no active network connection
+            Log.i(TAG, "checkActiveNetworkState: No active network connection")
+            false
         }
     }
 
