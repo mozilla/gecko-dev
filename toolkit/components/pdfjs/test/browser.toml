@@ -59,6 +59,9 @@ support-files = ["file_pdfjs_js.pdf"]
 
 ["browser_pdfjs_minimum_font_size.js"]
 
+["browser_pdfjs_multipart_response.js"]
+support-files = ["pdf_multipart.sjs"]
+
 ["browser_pdfjs_navigation.js"]
 
 ["browser_pdfjs_nonpdf_filename.js"]
