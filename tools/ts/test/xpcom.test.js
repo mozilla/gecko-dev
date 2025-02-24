@@ -13,6 +13,6 @@ const dir = path.join(__dirname, "../../../xpcom/idl-parser/xpidl/fixtures/");
 const files = ["xpctest.d.json"];
 
 test("xpctest.d.json produces expected baseline d.ts", () => {
-  let dts = ts_link(dir, files).join("\n");
+  let dts = ts_link(dir, files, () => true);
   expect(dts).toEqual(fs.readFileSync(test_dts, "utf8"));
 });

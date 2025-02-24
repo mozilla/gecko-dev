@@ -20,6 +20,68 @@ const HEADER = `/**
  */
 `;
 
+const FOOTER = `
+// XPCOM internal utility types.
+
+/** XPCOM inout param is passed in as a js object with a value property. */
+type InOutParam<T> = { value: T };
+
+/** XPCOM out param is written to the passed in object's value property. */
+type OutParam<T> = { value?: T };
+
+/** A named type to enable interfaces to inherit from enums. */
+type Enums<enums> = enums;
+
+/** Callable accepts either form of a [function] interface. */
+type Callable<iface> = iface | Extract<iface[keyof iface], Function>
+
+export {};
+`;
+
+const PLATFORM_SPECIFIC = new Set([
+  "nsIAboutThirdParty.idl",
+  "nsIAboutWindowsMessages.idl",
+  "nsIAccessibleMacInterface.idl",
+  "nsIApplicationChooser.idl",
+  "nsIDefaultAgent.idl",
+  "nsIGeolocationUIUtilsWin.idl",
+  "nsIGtkTaskbarProgress.idl",
+  "nsIGNOMEShellService.idl",
+  "nsIJumpListBuilder.idl",
+  "nsIKeychainMigrationUtils.idl",
+  "nsILocalFileMac.idl",
+  "nsIMacDockSupport.idl",
+  "nsIMacFinderProgress.idl",
+  "nsIMacPreferencesReader.idl",
+  "nsIMacSharingService.idl",
+  "nsIMacShellService.idl",
+  "nsIMacUserActivityUpdater.idl",
+  "nsIMacWebAppUtils.idl",
+  "nsINamedPipeService.idl",
+  "nsIOpenTabsProvider.idl",
+  "nsIPrintSettingsWin.idl",
+  "nsIStandaloneNativeMenu.idl",
+  "nsITaskbarOverlayIconController.idl",
+  "nsITaskbarPreview.idl",
+  "nsITaskbarPreviewButton.idl",
+  "nsITaskbarPreviewController.idl",
+  "nsITaskbarProgress.idl",
+  "nsITaskbarTabPreview.idl",
+  "nsITaskbarWindowPreview.idl",
+  "nsITouchBarHelper.idl",
+  "nsITouchBarInput.idl",
+  "nsITouchBarUpdater.idl",
+  "nsIWinAppHelper.idl",
+  "nsIWinTaskbar.idl",
+  "nsIWinTaskSchedulerService.idl",
+  "nsIWindowsAlertsService.idl",
+  "nsIWindowsMutex.idl",
+  "nsIWindowsPackageManager.idl",
+  "nsIWindowsRegKey.idl",
+  "nsIWindowsShellService.idl",
+  "nsIWindowsUIUtils.idl",
+]);
+
 // Emit a typescript interface, along with any related enums.
 function ts_interface(iface) {
   let lines = [];
@@ -88,15 +150,15 @@ function ts_interface(iface) {
 }
 
 // Link all generated .d.json files into a self-contained ts typelib.
-function ts_link(dir, files) {
+function ts_link(dir, files, filter) {
   let lines = [HEADER, "declare global {\n"];
   let typedefs = {};
   let iids = [];
 
-  for (let djson of files) {
+  for (let djson of files.sort()) {
     let modules = JSON.parse(fs.readFileSync(`${dir}/${djson}`, "utf8"));
 
-    for (let mod of modules) {
+    for (let mod of modules.filter(m => filter(m.path.split("/").at(-1)))) {
       lines.push(`// ${URL}${mod.path}\n`);
       Object.assign(typedefs, Object.fromEntries(mod.typedefs ?? []));
 
@@ -119,20 +181,23 @@ function ts_link(dir, files) {
   for (let [id, type] of Object.entries(typedefs).sort()) {
     lines.push(`type ${id} = ${type};`);
   }
-  lines.push("");
+  lines.push(FOOTER);
 
-  // Include xpcom builtins.
-  lines.push(fs.readFileSync(`${__dirname}/config/intrinsics.d.ts`, "utf8"));
-  return lines;
+  return lines.join("\n");
 }
 
 // For testing.
 module.exports = { ts_link };
 
-function main(lib_dts, djson_dir, ...djson_files) {
-  let dts = ts_link(djson_dir, djson_files).join("\n");
-  console.log(`[INFO] ${lib_dts} (${dts.length.toLocaleString()} bytes)`);
-  fs.writeFileSync(lib_dts, dts);
+function main(lib_xpcom, djson_dir, ...djson_files) {
+  let dts = ts_link(djson_dir, djson_files, m => !PLATFORM_SPECIFIC.has(m));
+  console.log(`[INFO] ${lib_xpcom} (${dts.length.toLocaleString()} bytes)`);
+  fs.writeFileSync(lib_xpcom, dts);
+
+  let lib_plat = lib_xpcom.replace("xpcom", process.platform);
+  let spec = ts_link(djson_dir, djson_files, m => PLATFORM_SPECIFIC.has(m));
+  console.log(`[INFO] ${lib_plat} (${spec.length.toLocaleString()} bytes)`);
+  fs.writeFileSync(lib_plat, spec);
 }
 
 if (require.main === module) {

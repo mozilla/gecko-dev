@@ -99,11 +99,14 @@ def setup(ctx):
 @SubCommand("ts", "update", description="Update tools/@types libraries.")
 def update(ctx):
     typelib_dir = mozpath.join(ctx.topsrcdir, "tools/@types")
+    platforms = ["darwin", "linux", "win32"]
 
-    for lib in targets:
+    for lib in targets + platforms:
         file = f"lib.gecko.{lib}.d.ts"
         path = mozpath.join(ctx.distdir, "@types", file)
         if not os.path.exists(path):
+            if lib in platforms:
+                continue
             print(f"[ERROR] {path} not found. Did you run `mach ts build`?")
             return 1
 

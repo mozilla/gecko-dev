@@ -8,6 +8,12 @@
 /// <reference types="./lib.gecko.nsresult.d.ts" />
 /// <reference types="./lib.gecko.services.d.ts" />
 /// <reference types="./lib.gecko.xpcom.d.ts" />
+/// <reference types="./lib.gecko.xpidl.d.ts" />
+
+/// Platform specific XPCOM modules.
+/// <reference types="./lib.gecko.darwin.d.ts" />
+/// <reference types="./lib.gecko.linux.d.ts" />
+/// <reference types="./lib.gecko.win32.d.ts" />
 
 /// Order of references matters here, for overriding type signatures.
 /// <reference types="./lib.gecko.tweaks.d.ts" />
