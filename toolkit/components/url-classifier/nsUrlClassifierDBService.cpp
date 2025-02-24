@@ -2566,10 +2566,24 @@ nsUrlClassifierDBService::AsyncClassifyLocalWithFeatureNames(
     nsIUrlClassifierFeature::listType aListType,
     nsIUrlClassifierFeatureCallback* aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(XRE_IsContentProcess());
 
   if (gShuttingDownThread) {
     return NS_ERROR_ABORT;
+  }
+
+  if (!XRE_IsContentProcess()) {
+    nsTArray<RefPtr<nsIUrlClassifierFeature>> features;
+    for (const nsCString& featureName : aFeatureNames) {
+      nsCOMPtr<nsIUrlClassifierFeature> feature =
+          mozilla::net::UrlClassifierFeatureFactory::GetFeatureByName(
+              featureName);
+      if (NS_WARN_IF(!feature)) {
+        continue;
+      }
+      features.AppendElement(feature);
+    }
+    MOZ_ASSERT(!features.IsEmpty(), "At least one URL classifier feature must be present");
+    return AsyncClassifyLocalWithFeatures(aURI, features, aListType, aCallback, true);
   }
 
   mozilla::dom::ContentChild* content =
