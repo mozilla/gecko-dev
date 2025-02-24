@@ -183,6 +183,7 @@
 }
 
 .line-container {
+  width: 100%;
   height: var(--line-container-height);
   border-radius: var(--inner-border-radius);
   display: flex;
@@ -219,4 +220,5 @@
   overflow: hidden;
   appearance: textfield;
   color: var(--input-field-color);
+  width: 100%;
 }

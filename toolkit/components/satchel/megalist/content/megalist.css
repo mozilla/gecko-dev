@@ -7,7 +7,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  padding: var(--space-medium);
 }
 
 /* Password Card styles */
@@ -26,12 +26,11 @@ login-form {
 }
 
 .search-container {
-  height: 32px;
+  min-height: var(--input-text-min-height);
   padding-inline-start: var(--space-small);
   cursor: text;
-  border-radius: var(--border-radius-small);
-  border: 1px solid var(--border-color-interactive);
-  background-color: var(--background-color-box);
+  border-radius: var(--border-radius-medium);
+  background-color: var(--table-row-background-color-alternate);
   display: flex;
 
   &:focus-within {
@@ -55,14 +54,15 @@ login-form {
   margin-inline-start: var(--space-xsmall);
   background: transparent;
   width: 100%;
+  text-overflow: ellipsis;
 }
 
 .first-row {
   display: grid;
   grid-template-columns: 1fr min-content;
-  grid-gap: 12px;
+  grid-gap: var(--space-small);
   align-items: center;
-  margin-block-end: 20px;
+  margin-block-end: var(--space-medium);
 }
 
 .second-row {
