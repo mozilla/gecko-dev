@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize||!this.SharedArrayBuffer
-
 const TypedArrays = [
   Int8Array,
   Uint8Array,

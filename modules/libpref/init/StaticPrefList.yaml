@@ -8439,20 +8439,6 @@
   mirror: always
   set_spidermonkey_pref: startup
 
-# Experimental support for resizable ArrayBuffers in JavaScript.
-- name: javascript.options.experimental.arraybuffer_resizable
-  type: bool
-  value: true
-  mirror: always
-  set_spidermonkey_pref: startup
-
-# Experimental support for growable SharedArrayBuffers in JavaScript.
-- name: javascript.options.experimental.sharedarraybuffer_growable
-  type: bool
-  value: true
-  mirror: always
-  set_spidermonkey_pref: startup
-
 # Experimental support for Duplicate Named Capture Groups in JavaScript.
 - name: javascript.options.experimental.regexp_duplicate_named_groups
   type: bool

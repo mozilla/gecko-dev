@@ -1,4 +1,4 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize||!this.SharedArrayBuffer||helperThreadCount()===0
+// |jit-test| skip-if: helperThreadCount()===0
 
 function setup() {
   // Shared memory locations:

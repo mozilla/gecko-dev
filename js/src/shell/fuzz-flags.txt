@@ -98,6 +98,3 @@
 
 # Well-Formed Unicode Strings
 --enable-well-formed-unicode-strings
-
-# Resizable ArrayBuffers and Growable SharedArrayBuffers
---enable-arraybuffer-resizable

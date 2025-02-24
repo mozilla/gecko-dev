@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize
-
 const TypedArrayByteOffset = getSelfHostedValue("TypedArrayByteOffset");
 
 function testTypedArrayByteOffset() {

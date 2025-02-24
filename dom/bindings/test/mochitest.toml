@@ -10,8 +10,6 @@ support-files = [
 ]
 prefs = [
   "javascript.options.large_arraybuffers=true",
-  "javascript.options.experimental.arraybuffer_resizable=true",
-  "javascript.options.experimental.sharedarraybuffer_growable=true",
 ]
 
 ["test_ByteString.html"]

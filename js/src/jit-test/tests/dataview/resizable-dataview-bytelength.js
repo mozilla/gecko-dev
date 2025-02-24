@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize
-
 load(libdir + "asserts.js");
 
 function testResizableArrayBuffer() {

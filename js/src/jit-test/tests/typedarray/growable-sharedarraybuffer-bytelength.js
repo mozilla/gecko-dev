@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize||!this.SharedArrayBuffer
-
 function testGrowableSharedArrayBuffer() {
   for (let i = 0; i < 4; ++i) {
     let sab = new SharedArrayBuffer(i, {maxByteLength: i + 100});

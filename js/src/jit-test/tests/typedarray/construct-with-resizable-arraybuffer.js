@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize
-
 // Test TypedArray constructor when called with resizable ArrayBuffers.
 
 function testArrayBuffer() {

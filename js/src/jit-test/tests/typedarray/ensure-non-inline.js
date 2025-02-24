@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable
-
 const constructors = [
     Int8Array,
     Uint8Array,

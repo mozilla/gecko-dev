@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize
-
 function testResizableArrayBuffer() {
   for (let i = 0; i < 4; ++i) {
     let ab = new ArrayBuffer(i, {maxByteLength: i + 1});

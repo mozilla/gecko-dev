@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !SharedArrayBuffer.prototype.grow
-
 const scopes = [
   "SameProcess",
 ];

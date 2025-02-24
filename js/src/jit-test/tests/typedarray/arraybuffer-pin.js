@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable
-
 load(libdir + "asserts.js");
 
 var ab_inline = new ArrayBuffer(4);
@@ -16,35 +14,27 @@ assertErrorMessage(() => detachArrayBuffer(ab_big), RangeError, /change pinned l
 assertEq(pinArrayBufferOrViewLength(ab_big, false), true);
 detachArrayBuffer(ab_big);
 
-if (ArrayBuffer.prototype.resize) {
-  var rab_small = new ArrayBuffer(4, { maxByteLength: 20 });
-  assertEq(pinArrayBufferOrViewLength(rab_small), true);
-  assertEq(pinArrayBufferOrViewLength(rab_small), false);
-  assertErrorMessage(() => detachArrayBuffer(rab_small), RangeError, /change pinned length/);
-  assertErrorMessage(() => rab_small.resize(18), RangeError, /change pinned length/);
-  assertEq(pinArrayBufferOrViewLength(rab_small, false), true);
-  assertEq(rab_small.byteLength, 4);
-  rab_small.resize(18);
-  assertEq(rab_small.byteLength, 18);
-  detachArrayBuffer(rab_small);
-} else {
-  print("Skipped test: resizable ArrayBuffers unavailable");
-}
+var rab_small = new ArrayBuffer(4, { maxByteLength: 20 });
+assertEq(pinArrayBufferOrViewLength(rab_small), true);
+assertEq(pinArrayBufferOrViewLength(rab_small), false);
+assertErrorMessage(() => detachArrayBuffer(rab_small), RangeError, /change pinned length/);
+assertErrorMessage(() => rab_small.resize(18), RangeError, /change pinned length/);
+assertEq(pinArrayBufferOrViewLength(rab_small, false), true);
+assertEq(rab_small.byteLength, 4);
+rab_small.resize(18);
+assertEq(rab_small.byteLength, 18);
+detachArrayBuffer(rab_small);
 
-if (ArrayBuffer.prototype.resize) {
-  var rab_big = new ArrayBuffer(200, { maxByteLength: 1000 });
-  assertEq(pinArrayBufferOrViewLength(rab_big), true);
-  assertEq(pinArrayBufferOrViewLength(rab_big), false);
-  assertErrorMessage(() => detachArrayBuffer(rab_big), RangeError, /change pinned length/);
-  assertErrorMessage(() => rab_big.resize(400), RangeError, /change pinned length/);
-  assertEq(pinArrayBufferOrViewLength(rab_big, false), true);
-  assertEq(rab_big.byteLength, 200);
-  rab_big.resize(400);
-  assertEq(rab_big.byteLength, 400);
-  detachArrayBuffer(rab_big);
-} else {
-  print("Skipped test: resizable ArrayBuffers unavailable");
-}
+var rab_big = new ArrayBuffer(200, { maxByteLength: 1000 });
+assertEq(pinArrayBufferOrViewLength(rab_big), true);
+assertEq(pinArrayBufferOrViewLength(rab_big), false);
+assertErrorMessage(() => detachArrayBuffer(rab_big), RangeError, /change pinned length/);
+assertErrorMessage(() => rab_big.resize(400), RangeError, /change pinned length/);
+assertEq(pinArrayBufferOrViewLength(rab_big, false), true);
+assertEq(rab_big.byteLength, 200);
+rab_big.resize(400);
+assertEq(rab_big.byteLength, 400);
+detachArrayBuffer(rab_big);
 
 var sab = new SharedArrayBuffer(4);
 assertEq(pinArrayBufferOrViewLength(sab), false);

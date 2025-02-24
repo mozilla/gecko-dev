@@ -1,4 +1,4 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !this.SharedArrayBuffer?.prototype?.grow||helperThreadCount()===0
+// |jit-test| skip-if: helperThreadCount()===0
 
 let gsab = new SharedArrayBuffer(3, {maxByteLength: 4});
 

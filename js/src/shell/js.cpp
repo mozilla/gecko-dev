@@ -12539,9 +12539,6 @@ bool InitOptionParser(OptionParser& op) {
                         "Disable ArrayBuffer.prototype.transfer() methods") ||
       !op.addBoolOption('\0', "enable-symbols-as-weakmap-keys",
                         "Enable Symbols As WeakMap keys") ||
-      !op.addBoolOption(
-          '\0', "enable-arraybuffer-resizable",
-          "Enable resizable ArrayBuffers and growable SharedArrayBuffers") ||
       !op.addBoolOption('\0', "enable-uint8array-base64",
                         "Enable Uint8Array base64/hex methods") ||
       !op.addBoolOption('\0', "enable-float16array", "Enable Float16Array") ||
@@ -12946,10 +12943,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("disable-well-formed-unicode-strings")) {
     JS::Prefs::setAtStartup_well_formed_unicode_strings(false);
-  }
-  if (op.getBoolOption("enable-arraybuffer-resizable")) {
-    JS::Prefs::setAtStartup_experimental_arraybuffer_resizable(true);
-    JS::Prefs::setAtStartup_experimental_sharedarraybuffer_growable(true);
   }
   if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
     JS::Prefs::setAtStartup_experimental_regexp_duplicate_named_groups(true);

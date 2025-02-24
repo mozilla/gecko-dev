@@ -2252,22 +2252,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
     return true;
   }
 
-  if (key == JSProto_ArrayBuffer &&
-      !JS::Prefs::experimental_arraybuffer_resizable() &&
-      (id == NameToId(cx->names().maxByteLength) ||
-       id == NameToId(cx->names().resizable) ||
-       id == NameToId(cx->names().resize))) {
-    return true;
-  }
-
-  if (key == JSProto_SharedArrayBuffer &&
-      !JS::Prefs::experimental_sharedarraybuffer_growable() &&
-      (id == NameToId(cx->names().maxByteLength) ||
-       id == NameToId(cx->names().growable) ||
-       id == NameToId(cx->names().grow))) {
-    return true;
-  }
-
   if (key == JSProto_ArrayBuffer && !JS::Prefs::arraybuffer_transfer() &&
       (id == NameToId(cx->names().transfer) ||
        id == NameToId(cx->names().transferToFixedLength) ||

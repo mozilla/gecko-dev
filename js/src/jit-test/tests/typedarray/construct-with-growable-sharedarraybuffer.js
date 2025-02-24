@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize||!this.SharedArrayBuffer
-
 // Test TypedArray constructor when called with growable SharedArrayBuffers.
 
 function testSharedArrayBuffer() {

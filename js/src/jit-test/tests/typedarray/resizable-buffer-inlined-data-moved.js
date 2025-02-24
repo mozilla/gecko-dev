@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize
-
 function fillArrayBuffer(rab) {
   let fill = new Int8Array(rab);
   for (let i = 0; i < fill.length; ++i) fill[i] = i + 1;

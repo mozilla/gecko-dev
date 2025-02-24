@@ -139,6 +139,9 @@ skip-if(!xulRuntime.shell) include test262/built-ins/Atomics/wait/jstests.list
 fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/byteLength/this-is-sharedarraybuffer.js
 fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/detached/this-is-sharedarraybuffer-resizable.js
 fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/detached/this-is-sharedarraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/maxByteLength/this-is-sharedarraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/resizable/this-is-sharedarraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/resize/this-is-sharedarraybuffer.js
 fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/slice/this-is-sharedarraybuffer.js
 fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/transfer/this-is-sharedarraybuffer.js
 fails-if(!xulRuntime.shell) script test262/built-ins/ArrayBuffer/prototype/transferToFixedLength/this-is-sharedarraybuffer.js
@@ -263,6 +266,40 @@ fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/this-has-no-typedarrayname-internal.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/this-is-arraybuffer.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/byteLength/this-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/descriptor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/extensible.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/grow-larger-size.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/grow-same-size.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/grow-smaller-size.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/name.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/new-length-excessive.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/new-length-negative.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/new-length-non-number.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/nonconstructor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/this-is-not-arraybuffer-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/this-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/this-is-not-resizable-arraybuffer-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/grow/this-is-sharedarraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/invoked-as-accessor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/invoked-as-func.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/name.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/prop-desc.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/return-growable.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/this-has-no-arraybufferdata-internal.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/this-is-arraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/growable/this-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/invoked-as-accessor.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/invoked-as-func.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/length.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/name.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/prop-desc.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/return-maxbytelength-growable.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/return-maxbytelength-non-growable.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/this-has-no-arraybufferdata-internal.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/this-is-arraybuffer.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/maxByteLength/this-is-not-object.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/context-is-not-arraybuffer-object.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/context-is-not-object.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype/slice/descriptor.js
@@ -305,6 +342,16 @@ fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/length-is
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/length.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/negative-length-throws.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/newtarget-prototype-is-not-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-allocation-limit.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-compared-before-object-creation.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-data-allocation-after-object-creation.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-diminuitive.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-excessive.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-negative.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-object.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-poisoned.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-maxbytelength-undefined.js
+fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/options-non-object.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/proto-from-ctor-realm.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/prototype-from-newtarget.js
 fails-if(!xulRuntime.shell) script test262/built-ins/SharedArrayBuffer/return-abrupt-from-length-symbol.js
@@ -390,7 +437,9 @@ fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/inte
 fails-if(!xulRuntime.shell) script test262/built-ins/TypedArrayConstructors/internals/Delete/indexed-value-sab-strict-strict.js
 fails-if(!xulRuntime.shell) script test262/language/expressions/class/subclass-builtins/subclass-SharedArrayBuffer.js
 fails-if(!xulRuntime.shell) script test262/language/statements/class/subclass-builtins/subclass-SharedArrayBuffer.js
+fails-if(!xulRuntime.shell) script test262/staging/built-ins/Object/preventExtensions/preventExtensions-variable-length-typed-arrays.js
 fails-if(!xulRuntime.shell) script test262/staging/sm/Atomics/cross-compartment.js
+fails-if(!xulRuntime.shell) script test262/staging/built-ins/Reflect/preventExtensions/preventExtensions-variable-length-typed-arrays.js
 
 # https://github.com/tc39/test262/pull/3955
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1892186

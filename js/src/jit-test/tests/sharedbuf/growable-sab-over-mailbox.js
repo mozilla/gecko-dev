@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !this.SharedArrayBuffer?.prototype?.grow
-
 var gsab = new SharedArrayBuffer(4, {maxByteLength: 16});
 
 // Test byte lengths are correct.

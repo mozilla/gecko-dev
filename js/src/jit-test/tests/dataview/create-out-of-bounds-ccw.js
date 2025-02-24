@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable; skip-if: !ArrayBuffer.prototype.resize
-
 // RangeError is from the correct global when resizable ArrayBuffer gets out-of-bounds.
 
 let g = newGlobal();

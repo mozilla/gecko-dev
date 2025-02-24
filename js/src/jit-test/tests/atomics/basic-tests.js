@@ -1,5 +1,3 @@
-// |jit-test| --enable-arraybuffer-resizable
-
 // Basic functional tests for the Atomics primitives.
 //
 // These do not test atomicity, just that calling and coercions and
