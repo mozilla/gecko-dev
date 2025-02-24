@@ -70,7 +70,7 @@ class CollectionTest : TestSetup() {
 
         composeTabDrawer(composeTestRule) {
             verifySnackBarText("Collection saved!")
-            clickSnackbarButton(composeTestRule, "VIEW")
+        }.closeTabDrawer {
         }
 
         homeScreen {

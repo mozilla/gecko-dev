@@ -33,7 +33,6 @@ import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
-import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
@@ -56,6 +55,8 @@ class MainMenuTestCompose : TestSetup() {
                 isMenuRedesignEnabled = true,
                 isMenuRedesignCFREnabled = false,
                 isPageLoadTranslationsPromptEnabled = false,
+                isRecentlyVisitedFeatureEnabled = false,
+                isRecentTabsFeatureEnabled = false,
             ),
         ) { it.activity }
 
@@ -517,9 +518,7 @@ class MainMenuTestCompose : TestSetup() {
         }.clickSaveToCollectionButton {
         }.selectExistingCollection(collectionTitle) {
             verifySnackBarText("Tab saved!")
-            clickSnackbarButton(composeTestRule, "VIEW")
-        }
-        homeScreen {
+        }.goToHomescreenWithRedesignedToolbar {
         }.expandCollection(collectionTitle) {
             verifyTabSavedInCollection(firstTestPage.title)
             verifyTabSavedInCollection(secondTestPage.title)
