@@ -33,19 +33,6 @@ Atomic<uint32_t, MemoryOrdering::Relaxed> sNumLowPhysicalMemEvents;
 namespace {
 
 #if defined(XP_WIN)
-
-#  if defined(__MINGW32__)
-// Definitions for heap optimization that require the Windows SDK to target the
-// Windows 8.1 Update
-static const HEAP_INFORMATION_CLASS HeapOptimizeResources =
-    static_cast<HEAP_INFORMATION_CLASS>(3);
-
-typedef struct _HEAP_OPTIMIZE_RESOURCES_INFORMATION {
-  DWORD Version;
-  DWORD Flags;
-} HEAP_OPTIMIZE_RESOURCES_INFORMATION, *PHEAP_OPTIMIZE_RESOURCES_INFORMATION;
-#  endif
-
 static int64_t LowMemoryEventsPhysicalDistinguishedAmount() {
   return sNumLowPhysicalMemEvents;
 }

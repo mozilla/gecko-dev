@@ -12,17 +12,6 @@
 
 #if defined(__MINGW32__)
 
-// Declarations from Windows SDK specific to Windows 8.1
-
-enum AgileReferenceOptions {
-  AGILEREFERENCE_DEFAULT = 0,
-  AGILEREFERENCE_DELAYEDMARSHAL = 1,
-};
-
-HRESULT WINAPI RoGetAgileReference(AgileReferenceOptions options, REFIID riid,
-                                   IUnknown* pUnk,
-                                   IAgileReference** ppAgileReference);
-
 // Unfortunately, at time of writing, MinGW doesn't know how to statically link
 // to RoGetAgileReference. On these builds only, we substitute a runtime-linked
 // function pointer.
