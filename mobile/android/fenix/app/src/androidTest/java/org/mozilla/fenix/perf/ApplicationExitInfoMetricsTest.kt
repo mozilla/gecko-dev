@@ -94,6 +94,7 @@ class ApplicationExitInfoMetricsTest {
         assertNotNull(AppExitInfo.processExited.testGetValue())
         val recordedEvents = AppExitInfo.processExited.testGetValue()!!
         assertThat(recordedEvents[0].extra!!["process_type"], anyOf(`is`("content"), `is`("gpu")))
+        assertThat(recordedEvents[1].extra!!["process_type"], anyOf(`is`("content"), `is`("gpu")))
         assertEquals(getLastHandledTime(appContext).toSimpleDateFormat(), recordedEvents[0].extra!!["date"])
     }
 
