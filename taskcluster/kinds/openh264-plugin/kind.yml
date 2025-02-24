@@ -20,7 +20,7 @@ task-defaults:
         tier: 2
     run-on-projects: []
     repo: 'https://github.com/cisco/openh264.git'
-    revision: '31c4d2e4a037526fd30d4e5c39f60885986cf865'
+    revision: '652bdb7719f30b52b08e506645a7322ff1b2cc6f'
     use-python: default
     worker:
         chain-of-trust: true
