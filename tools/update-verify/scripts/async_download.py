@@ -209,7 +209,8 @@ async def download_builds(verifyConfig):
                     continue
                 uri = uri.replace("%locale%", locale)
                 # /ja-JP-mac/ locale is replaced with /ja/ for updater packages
-                uri = uri.replace("ja-JP-mac", "ja")
+                if reference == "updater_package":
+                    uri = uri.replace("ja-JP-mac", "ja")
                 updaterUrls.add(f"{ftpServerFrom}{uri}")
 
     log.info(f"About to download {len(updaterUrls)} updater packages")
