@@ -6835,66 +6835,44 @@ AliasSet MMegamorphicLoadSlotByValue::getAliasSet() const {
                         AliasSet::DynamicSlot);
 }
 
+static PropertyKey ToNonIntPropertyKey(MDefinition* idval) {
+  MConstant* constant = idval->maybeConstantValue();
+  if (!constant) {
+    return PropertyKey::Void();
+  }
+  if (constant->type() == MIRType::String) {
+    JSString* str = constant->toString();
+    if (!str->isAtom() || str->asAtom().isIndex()) {
+      return PropertyKey::Void();
+    }
+    return PropertyKey::NonIntAtom(str);
+  }
+  if (constant->type() == MIRType::Symbol) {
+    return PropertyKey::Symbol(constant->toSymbol());
+  }
+  return PropertyKey::Void();
+}
+
 MDefinition* MMegamorphicLoadSlotByValue::foldsTo(TempAllocator& alloc) {
-  MDefinition* input = idVal();
-  if (input->isBox()) {
-    input = input->toBox()->input();
+  PropertyKey id = ToNonIntPropertyKey(idVal());
+  if (id.isVoid()) {
+    return this;
   }
 
-  MDefinition* result = this;
-
-  if (input->isConstant()) {
-    MConstant* constant = input->toConstant();
-    if (constant->type() == MIRType::Symbol) {
-      PropertyKey id = PropertyKey::Symbol(constant->toSymbol());
-      result = MMegamorphicLoadSlot::New(alloc, object(), id);
-    }
-
-    if (constant->type() == MIRType::String) {
-      JSString* str = constant->toString();
-      if (str->isAtom() && !str->asAtom().isIndex()) {
-        PropertyKey id = PropertyKey::NonIntAtom(str);
-        result = MMegamorphicLoadSlot::New(alloc, object(), id);
-      }
-    }
-  }
-
-  if (result != this) {
-    result->setDependency(dependency());
-  }
-
+  auto* result = MMegamorphicLoadSlot::New(alloc, object(), id);
+  result->setDependency(dependency());
   return result;
 }
 
 MDefinition* MMegamorphicLoadSlotByValuePermissive::foldsTo(
     TempAllocator& alloc) {
-  MDefinition* input = idVal();
-  if (input->isBox()) {
-    input = input->toBox()->input();
+  PropertyKey id = ToNonIntPropertyKey(idVal());
+  if (id.isVoid()) {
+    return this;
   }
 
-  MDefinition* result = this;
-
-  if (input->isConstant()) {
-    MConstant* constant = input->toConstant();
-    if (constant->type() == MIRType::Symbol) {
-      PropertyKey id = PropertyKey::Symbol(constant->toSymbol());
-      result = MMegamorphicLoadSlotPermissive::New(alloc, object(), id);
-    }
-
-    if (constant->type() == MIRType::String) {
-      JSString* str = constant->toString();
-      if (str->isAtom() && !str->asAtom().isIndex()) {
-        PropertyKey id = PropertyKey::NonIntAtom(str);
-        result = MMegamorphicLoadSlotPermissive::New(alloc, object(), id);
-      }
-    }
-  }
-
-  if (result != this) {
-    result->toMegamorphicLoadSlotPermissive()->stealResumePoint(this);
-  }
-
+  auto* result = MMegamorphicLoadSlotPermissive::New(alloc, object(), id);
+  result->stealResumePoint(this);
   return result;
 }
 
