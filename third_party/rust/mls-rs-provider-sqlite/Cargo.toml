@@ -29,6 +29,22 @@ keywords = [
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/awslabs/mls-rs"
 
+[features]
+default = ["sqlcipher-bundled"]
+sqlcipher = [
+    "sqlite",
+    "rusqlite/sqlcipher",
+]
+sqlcipher-bundled = [
+    "sqlite",
+    "rusqlite/bundled-sqlcipher",
+]
+sqlite = []
+sqlite-bundled = [
+    "sqlite",
+    "rusqlite/bundled",
+]
+
 [lib]
 name = "mls_rs_provider_sqlite"
 path = "src/lib.rs"
@@ -62,22 +78,6 @@ features = ["zeroize_derive"]
 anyhow = "1"
 assert_matches = "1"
 tempfile = "3"
-
-[features]
-default = ["sqlcipher-bundled"]
-sqlcipher = [
-    "sqlite",
-    "rusqlite/sqlcipher",
-]
-sqlcipher-bundled = [
-    "sqlite",
-    "rusqlite/bundled-sqlcipher",
-]
-sqlite = []
-sqlite-bundled = [
-    "sqlite",
-    "rusqlite/bundled",
-]
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

@@ -41,6 +41,18 @@ targets = [
     "wasm32-unknown-unknown",
 ]
 
+[features]
+counters = []
+default = ["std"]
+fragile-send-sync-non-atomic-wasm = []
+serde = ["dep:serde"]
+std = [
+    "js-sys/std",
+    "web-sys/std",
+    "thiserror/std",
+]
+strict_asserts = []
+
 [lib]
 name = "wgpu_types"
 path = "src/lib.rs"
@@ -73,18 +85,6 @@ default-features = false
 
 [dev-dependencies.serde_json]
 version = "1.0.138"
-
-[features]
-counters = []
-default = ["std"]
-fragile-send-sync-non-atomic-wasm = []
-serde = ["dep:serde"]
-std = [
-    "js-sys/std",
-    "web-sys/std",
-    "thiserror/std",
-]
-strict_asserts = []
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.js-sys]
 version = "0.3.70"

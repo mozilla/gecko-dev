@@ -42,6 +42,12 @@ repository = "https://github.com/mozilla/neqo/"
 [package.metadata.cargo-machete]
 ignored = ["log"]
 
+[features]
+bench = [
+    "neqo-common/bench",
+    "neqo-transport/bench",
+]
+
 [lib]
 name = "neqo_qpack"
 path = "src/lib.rs"
@@ -67,12 +73,6 @@ default-features = false
 
 [dev-dependencies.test-fixture]
 path = "../test-fixture"
-
-[features]
-bench = [
-    "neqo-common/bench",
-    "neqo-transport/bench",
-]
 
 [lints.clippy]
 cfg_not_test = "warn"

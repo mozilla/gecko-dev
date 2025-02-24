@@ -79,16 +79,6 @@ win64-rust-1.83:
             '--target', 'x86_64-pc-windows-msvc',
         ]
 
-linux64-rust-1.84:
-    treeherder:
-        symbol: TL(rust-1.84)
-    run:
-        arguments: [
-            '--channel', '1.84.0',
-            '--host', 'x86_64-unknown-linux-gnu',
-            '--target', 'x86_64-unknown-linux-gnu',
-        ]
-
 linux64-rust-1.85:
     treeherder:
         symbol: TL(rust)

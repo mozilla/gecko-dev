@@ -46,6 +46,24 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/servo/unicode-bidi"
 
+[badges.appveyor]
+repository = "servo/unicode-bidi"
+
+[features]
+bench_it = []
+default = [
+    "std",
+    "hardcoded-data",
+]
+flame_it = [
+    "flame",
+    "flamer",
+]
+hardcoded-data = []
+std = []
+unstable = []
+with_serde = ["serde"]
+
 [lib]
 name = "unicode_bidi"
 path = "src/lib.rs"
@@ -71,21 +89,3 @@ optional = true
 
 [dev-dependencies]
 serde_test = ">=0.8, <2.0"
-
-[features]
-bench_it = []
-default = [
-    "std",
-    "hardcoded-data",
-]
-flame_it = [
-    "flame",
-    "flamer",
-]
-hardcoded-data = []
-std = []
-unstable = []
-with_serde = ["serde"]
-
-[badges.appveyor]
-repository = "servo/unicode-bidi"

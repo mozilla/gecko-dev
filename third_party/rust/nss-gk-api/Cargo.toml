@@ -32,6 +32,11 @@ readme = "README.md"
 license = "MIT/Apache-2.0"
 repository = "https://github.com/mozilla/nss-gk-api"
 
+[features]
+default = ["deny-warnings"]
+deny-warnings = []
+gecko = ["mozbuild"]
+
 [lib]
 name = "nss_gk_api"
 path = "src/lib.rs"
@@ -56,8 +61,3 @@ version = "^0.4.0"
 [build-dependencies.mozbuild]
 version = "0.1"
 optional = true
-
-[features]
-default = ["deny-warnings"]
-deny-warnings = []
-gecko = ["mozbuild"]

@@ -23,6 +23,10 @@ autobenches = false
 readme = false
 license = "MPL-2.0"
 
+[features]
+debug-tools = ["rusqlite/column_decltype"]
+default = []
+
 [lib]
 name = "sql_support"
 path = "src/lib.rs"
@@ -49,7 +53,3 @@ features = [
 [dev-dependencies.env_logger]
 version = "0.10"
 default-features = false
-
-[features]
-debug-tools = ["rusqlite/column_decltype"]
-default = []

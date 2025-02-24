@@ -39,6 +39,21 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
+[features]
+bench = [
+    "neqo-common/bench",
+    "neqo-crypto/bench",
+]
+build-fuzzing-corpus = [
+    "neqo-common/build-fuzzing-corpus",
+    "neqo-crypto/disable-encryption",
+    "neqo-crypto/disable-random",
+    "test-fixture/disable-random",
+]
+disable-encryption = ["neqo-crypto/disable-encryption"]
+draft-29 = []
+gecko = ["mtu/gecko"]
+
 [lib]
 name = "neqo_transport"
 path = "src/lib.rs"
@@ -136,21 +151,6 @@ features = ["draft-29"]
 
 [dev-dependencies.test-fixture]
 path = "../test-fixture"
-
-[features]
-bench = [
-    "neqo-common/bench",
-    "neqo-crypto/bench",
-]
-build-fuzzing-corpus = [
-    "neqo-common/build-fuzzing-corpus",
-    "neqo-crypto/disable-encryption",
-    "neqo-crypto/disable-random",
-    "test-fixture/disable-random",
-]
-disable-encryption = ["neqo-crypto/disable-encryption"]
-draft-29 = []
-gecko = ["mtu/gecko"]
 
 [lints.clippy]
 cfg_not_test = "warn"

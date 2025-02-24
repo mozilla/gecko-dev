@@ -27,8 +27,9 @@ autobenches = false
 readme = "README.md"
 license = "MIT"
 
-[profile.release]
-debug = 2
+[features]
+c_bindings = []
+default = ["c_bindings"]
 
 [lib]
 name = "wpf_gpu_raster"
@@ -42,6 +43,5 @@ euclid = "0.22.6"
 png = "0.17.2"
 usvg = "0.4"
 
-[features]
-c_bindings = []
-default = ["c_bindings"]
+[profile.release]
+debug = 2

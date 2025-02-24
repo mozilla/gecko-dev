@@ -30,6 +30,40 @@ keywords = [
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/awslabs/mls-rs"
 
+[features]
+arbitrary = [
+    "std",
+    "dep:arbitrary",
+]
+default = [
+    "std",
+    "rfc_compliant",
+    "fast_serialize",
+]
+fast_serialize = ["mls-rs-codec/preallocate"]
+ffi = []
+last_resort_key_package_ext = []
+post-quantum = []
+rfc_compliant = ["x509"]
+serde = [
+    "dep:serde",
+    "zeroize/serde",
+    "hex/serde",
+    "dep:serde_bytes",
+]
+std = [
+    "mls-rs-codec/std",
+    "zeroize/std",
+    "dep:thiserror",
+    "serde?/std",
+]
+test_suite = [
+    "serde",
+    "dep:serde_json",
+    "dep:itertools",
+]
+x509 = []
+
 [lib]
 name = "mls_rs_core"
 path = "src/lib.rs"
@@ -87,40 +121,6 @@ default-features = false
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-
-[features]
-arbitrary = [
-    "std",
-    "dep:arbitrary",
-]
-default = [
-    "std",
-    "rfc_compliant",
-    "fast_serialize",
-]
-fast_serialize = ["mls-rs-codec/preallocate"]
-ffi = []
-last_resort_key_package_ext = []
-post-quantum = []
-rfc_compliant = ["x509"]
-serde = [
-    "dep:serde",
-    "zeroize/serde",
-    "hex/serde",
-    "dep:serde_bytes",
-]
-std = [
-    "mls-rs-codec/std",
-    "zeroize/std",
-    "dep:thiserror",
-    "serde?/std",
-]
-test_suite = [
-    "serde",
-    "dep:serde_json",
-    "dep:itertools",
-]
-x509 = []
 
 [target."cfg(mls_build_async)".dependencies]
 async-trait = "^0.1"

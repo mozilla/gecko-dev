@@ -44,6 +44,49 @@ targets = [
     "wasm32-unknown-unknown",
 ]
 
+[features]
+api_log_info = []
+counters = ["wgpu-types/counters"]
+dx12 = ["wgpu-hal/dx12"]
+fragile-send-sync-non-atomic-wasm = [
+    "wgpu-hal/fragile-send-sync-non-atomic-wasm",
+    "wgpu-types/fragile-send-sync-non-atomic-wasm",
+]
+gles = ["wgpu-hal/gles"]
+glsl = ["naga/glsl-in"]
+indirect-validation = ["naga/wgsl-in"]
+metal = ["wgpu-hal/metal"]
+noop = []
+observe_locks = [
+    "dep:ron",
+    "serde/serde_derive",
+]
+raw-window-handle = ["dep:raw-window-handle"]
+renderdoc = ["wgpu-hal/renderdoc"]
+replay = [
+    "serde",
+    "naga/deserialize",
+]
+resource_log_info = []
+serde = [
+    "dep:serde",
+    "wgpu-types/serde",
+    "arrayvec/serde",
+    "hashbrown/serde",
+]
+spirv = [
+    "naga/spv-in",
+    "dep:bytemuck",
+]
+strict_asserts = ["wgpu-types/strict_asserts"]
+trace = [
+    "dep:ron",
+    "serde",
+    "naga/serialize",
+]
+vulkan = ["wgpu-hal/vulkan"]
+wgsl = ["naga/wgsl-in"]
+
 [lib]
 name = "wgpu_core"
 path = "src/lib.rs"
@@ -140,49 +183,6 @@ path = "../wgpu-types"
 
 [build-dependencies.cfg_aliases]
 version = "0.2.1"
-
-[features]
-api_log_info = []
-counters = ["wgpu-types/counters"]
-dx12 = ["wgpu-hal/dx12"]
-fragile-send-sync-non-atomic-wasm = [
-    "wgpu-hal/fragile-send-sync-non-atomic-wasm",
-    "wgpu-types/fragile-send-sync-non-atomic-wasm",
-]
-gles = ["wgpu-hal/gles"]
-glsl = ["naga/glsl-in"]
-indirect-validation = ["naga/wgsl-in"]
-metal = ["wgpu-hal/metal"]
-noop = []
-observe_locks = [
-    "dep:ron",
-    "serde/serde_derive",
-]
-raw-window-handle = ["dep:raw-window-handle"]
-renderdoc = ["wgpu-hal/renderdoc"]
-replay = [
-    "serde",
-    "naga/deserialize",
-]
-resource_log_info = []
-serde = [
-    "dep:serde",
-    "wgpu-types/serde",
-    "arrayvec/serde",
-    "hashbrown/serde",
-]
-spirv = [
-    "naga/spv-in",
-    "dep:bytemuck",
-]
-strict_asserts = ["wgpu-types/strict_asserts"]
-trace = [
-    "dep:ron",
-    "serde",
-    "naga/serialize",
-]
-vulkan = ["wgpu-hal/vulkan"]
-wgsl = ["naga/wgsl-in"]
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

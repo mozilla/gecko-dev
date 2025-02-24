@@ -42,6 +42,14 @@ repository = "https://github.com/mozilla/neqo/"
 [package.metadata.cargo-machete]
 ignored = ["log"]
 
+[features]
+bench = [
+    "neqo-bin/bench",
+    "neqo-http3/bench",
+    "neqo-transport/bench",
+]
+draft-29 = []
+
 [lib]
 name = "neqo_bin"
 path = "src/lib.rs"
@@ -163,14 +171,6 @@ features = ["draft-29"]
 version = "1"
 features = ["sync"]
 default-features = false
-
-[features]
-bench = [
-    "neqo-bin/bench",
-    "neqo-http3/bench",
-    "neqo-transport/bench",
-]
-draft-29 = []
 
 [lints.clippy]
 cfg_not_test = "warn"

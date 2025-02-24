@@ -34,6 +34,16 @@ categories = [
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/awslabs/mls-rs"
 
+[features]
+default = ["std"]
+std = [
+    "mls-rs-core/std",
+    "mls-rs-crypto-traits/std",
+    "dep:thiserror",
+    "zeroize/std",
+]
+test_utils = ["mls-rs-core/test_suite"]
+
 [lib]
 name = "mls_rs_crypto_hpke"
 path = "src/lib.rs"
@@ -83,16 +93,6 @@ features = ["derive"]
 
 [dev-dependencies.serde_json]
 version = "^1.0"
-
-[features]
-default = ["std"]
-std = [
-    "mls-rs-core/std",
-    "mls-rs-crypto-traits/std",
-    "dep:thiserror",
-    "zeroize/std",
-]
-test_utils = ["mls-rs-core/test_suite"]
 
 [target."cfg(mls_build_async)".dependencies]
 async-trait = "^0.1"

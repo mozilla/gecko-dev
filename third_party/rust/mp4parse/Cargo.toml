@@ -38,6 +38,16 @@ categories = ["multimedia::video"]
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/mp4parse-rust"
 
+[badges.travis-ci]
+repository = "https://github.com/mozilla/mp4parse-rust"
+
+[features]
+3gpp = []
+meta-xml = []
+missing-pixi-permitted = []
+mp4v = []
+unstable-api = []
+
 [lib]
 name = "mp4parse"
 path = "src/lib.rs"
@@ -73,13 +83,3 @@ features = ["std_io"]
 criterion = "0.4"
 test-assembler = "0.1.2"
 walkdir = "2.3.1"
-
-[features]
-3gpp = []
-meta-xml = []
-missing-pixi-permitted = []
-mp4v = []
-unstable-api = []
-
-[badges.travis-ci]
-repository = "https://github.com/mozilla/mp4parse-rust"

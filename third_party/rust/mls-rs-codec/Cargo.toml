@@ -29,6 +29,14 @@ keywords = [
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/awslabs/mls-rs"
 
+[features]
+default = [
+    "std",
+    "preallocate",
+]
+preallocate = []
+std = ["dep:thiserror"]
+
 [lib]
 name = "mls_rs_codec"
 path = "src/lib.rs"
@@ -47,14 +55,6 @@ optional = true
 
 [dev-dependencies]
 assert_matches = "1.5.0"
-
-[features]
-default = [
-    "std",
-    "preallocate",
-]
-preallocate = []
-std = ["dep:thiserror"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.wasm-bindgen]
 version = "0.2.79"

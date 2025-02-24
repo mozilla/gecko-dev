@@ -48,6 +48,99 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[features]
+arbitrary = [
+    "std",
+    "dep:arbitrary",
+    "mls-rs-core/arbitrary",
+]
+benchmark_pq_crypto = ["mls-rs-crypto-awslc/post-quantum"]
+benchmark_util = [
+    "test_util",
+    "default",
+    "dep:mls-rs-crypto-openssl",
+]
+by_ref_proposal = []
+custom_proposal = []
+default = [
+    "std",
+    "rayon",
+    "rfc_compliant",
+    "tree_index",
+    "fast_serialize",
+]
+external_client = ["std"]
+fast_serialize = ["mls-rs-core/fast_serialize"]
+ffi = []
+fuzz_util = [
+    "test_util",
+    "default",
+    "dep:once_cell",
+    "dep:mls-rs-crypto-openssl",
+]
+grease = ["std"]
+last_resort_key_package_ext = ["mls-rs-core/last_resort_key_package_ext"]
+non_domain_separated_hpke_encrypt_decrypt = []
+out_of_order = ["private_message"]
+prior_epoch = []
+private_message = []
+psk = []
+rayon = [
+    "std",
+    "dep:rayon",
+]
+rfc_compliant = [
+    "private_message",
+    "custom_proposal",
+    "out_of_order",
+    "psk",
+    "x509",
+    "prior_epoch",
+    "by_ref_proposal",
+    "mls-rs-core/rfc_compliant",
+]
+secret_tree_access = []
+serde = [
+    "mls-rs-core/serde",
+    "zeroize/serde",
+    "dep:serde",
+    "dep:hex",
+]
+sqlcipher = [
+    "sqlite",
+    "mls-rs-provider-sqlite/sqlcipher",
+]
+sqlcipher-bundled = [
+    "sqlite",
+    "mls-rs-provider-sqlite/sqlcipher-bundled",
+]
+sqlite = [
+    "std",
+    "mls-rs-provider-sqlite/sqlite",
+]
+sqlite-bundled = [
+    "sqlite",
+    "mls-rs-provider-sqlite/sqlite-bundled",
+]
+std = [
+    "mls-rs-core/std",
+    "mls-rs-codec/std",
+    "mls-rs-identity-x509?/std",
+    "hex/std",
+    "futures/std",
+    "itertools/use_std",
+    "zeroize/std",
+    "dep:debug_tree",
+    "dep:thiserror",
+    "serde?/std",
+]
+test_util = []
+tree_index = []
+x509 = [
+    "mls-rs-core/x509",
+    "dep:mls-rs-identity-x509",
+]
+
 [lib]
 name = "mls_rs"
 path = "src/lib.rs"
@@ -230,99 +323,6 @@ features = [
     "derive",
 ]
 default-features = false
-
-[features]
-arbitrary = [
-    "std",
-    "dep:arbitrary",
-    "mls-rs-core/arbitrary",
-]
-benchmark_pq_crypto = ["mls-rs-crypto-awslc/post-quantum"]
-benchmark_util = [
-    "test_util",
-    "default",
-    "dep:mls-rs-crypto-openssl",
-]
-by_ref_proposal = []
-custom_proposal = []
-default = [
-    "std",
-    "rayon",
-    "rfc_compliant",
-    "tree_index",
-    "fast_serialize",
-]
-external_client = ["std"]
-fast_serialize = ["mls-rs-core/fast_serialize"]
-ffi = []
-fuzz_util = [
-    "test_util",
-    "default",
-    "dep:once_cell",
-    "dep:mls-rs-crypto-openssl",
-]
-grease = ["std"]
-last_resort_key_package_ext = ["mls-rs-core/last_resort_key_package_ext"]
-non_domain_separated_hpke_encrypt_decrypt = []
-out_of_order = ["private_message"]
-prior_epoch = []
-private_message = []
-psk = []
-rayon = [
-    "std",
-    "dep:rayon",
-]
-rfc_compliant = [
-    "private_message",
-    "custom_proposal",
-    "out_of_order",
-    "psk",
-    "x509",
-    "prior_epoch",
-    "by_ref_proposal",
-    "mls-rs-core/rfc_compliant",
-]
-secret_tree_access = []
-serde = [
-    "mls-rs-core/serde",
-    "zeroize/serde",
-    "dep:serde",
-    "dep:hex",
-]
-sqlcipher = [
-    "sqlite",
-    "mls-rs-provider-sqlite/sqlcipher",
-]
-sqlcipher-bundled = [
-    "sqlite",
-    "mls-rs-provider-sqlite/sqlcipher-bundled",
-]
-sqlite = [
-    "std",
-    "mls-rs-provider-sqlite/sqlite",
-]
-sqlite-bundled = [
-    "sqlite",
-    "mls-rs-provider-sqlite/sqlite-bundled",
-]
-std = [
-    "mls-rs-core/std",
-    "mls-rs-codec/std",
-    "mls-rs-identity-x509?/std",
-    "hex/std",
-    "futures/std",
-    "itertools/use_std",
-    "zeroize/std",
-    "dep:debug_tree",
-    "dep:thiserror",
-    "serde?/std",
-]
-test_util = []
-tree_index = []
-x509 = [
-    "mls-rs-core/x509",
-    "dep:mls-rs-identity-x509",
-]
 
 [target."cfg(mls_build_async)".dependencies]
 async-trait = "^0.1"

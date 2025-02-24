@@ -22,6 +22,9 @@ autobenches = false
 readme = "README.md"
 license = "Apache-2.0 OR MIT"
 
+[features]
+gecko = ["mls-rs-crypto-nss/gecko"]
+
 [lib]
 name = "mls_platform_api"
 path = "src/lib.rs"
@@ -107,6 +110,3 @@ features = [
     "derive",
     "rc",
 ]
-
-[features]
-gecko = ["mls-rs-crypto-nss/gecko"]

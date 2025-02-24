@@ -42,6 +42,47 @@ resolver = "2"
 [package.metadata.docs.rs]
 all-features = true
 
+[features]
+arbitrary = [
+    "dep:arbitrary",
+    "bitflags/arbitrary",
+    "indexmap/arbitrary",
+]
+compact = []
+default = []
+deserialize = [
+    "dep:serde",
+    "bitflags/serde",
+    "hashbrown/serde",
+    "indexmap/serde",
+]
+dot-out = []
+glsl-in = ["dep:pp-rs"]
+glsl-out = []
+hlsl-out = []
+hlsl-out-if-target-windows = []
+msl-out = []
+msl-out-if-target-apple = []
+serialize = [
+    "dep:serde",
+    "bitflags/serde",
+    "hashbrown/serde",
+    "indexmap/serde",
+]
+spv-in = [
+    "dep:petgraph",
+    "dep:spirv",
+]
+spv-out = ["dep:spirv"]
+wgsl-in = [
+    "dep:hexf-parse",
+    "dep:strum",
+    "dep:unicode-xid",
+    "indexmap/std",
+    "compact",
+]
+wgsl-out = []
+
 [lib]
 name = "naga"
 path = "src/lib.rs"
@@ -166,44 +207,3 @@ features = ["deserialize"]
 
 [build-dependencies.cfg_aliases]
 version = "0.2.1"
-
-[features]
-arbitrary = [
-    "dep:arbitrary",
-    "bitflags/arbitrary",
-    "indexmap/arbitrary",
-]
-compact = []
-default = []
-deserialize = [
-    "dep:serde",
-    "bitflags/serde",
-    "hashbrown/serde",
-    "indexmap/serde",
-]
-dot-out = []
-glsl-in = ["dep:pp-rs"]
-glsl-out = []
-hlsl-out = []
-hlsl-out-if-target-windows = []
-msl-out = []
-msl-out-if-target-apple = []
-serialize = [
-    "dep:serde",
-    "bitflags/serde",
-    "hashbrown/serde",
-    "indexmap/serde",
-]
-spv-in = [
-    "dep:petgraph",
-    "dep:spirv",
-]
-spv-out = ["dep:spirv"]
-wgsl-in = [
-    "dep:hexf-parse",
-    "dep:strum",
-    "dep:unicode-xid",
-    "indexmap/std",
-    "compact",
-]
-wgsl-out = []

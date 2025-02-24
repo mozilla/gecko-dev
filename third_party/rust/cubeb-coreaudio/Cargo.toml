@@ -25,6 +25,9 @@ autobenches = false
 readme = "README.md"
 license = "ISC"
 
+[features]
+audio-dump = []
+
 [lib]
 name = "cubeb_coreaudio"
 crate-type = [
@@ -50,6 +53,3 @@ path = "coreaudio-sys-utils"
 
 [dev-dependencies]
 itertools = "0.11"
-
-[features]
-audio-dump = []

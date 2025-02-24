@@ -23,6 +23,9 @@ description = "Cubeb backed for PulseAudio written in Rust"
 readme = "README.md"
 license = "ISC"
 
+[features]
+pulse-dlopen = ["pulse-ffi/dlopen"]
+
 [lib]
 name = "cubeb_pulse"
 crate-type = [
@@ -41,6 +44,3 @@ path = "pulse-rs"
 
 [dependencies.pulse-ffi]
 path = "pulse-ffi"
-
-[features]
-pulse-dlopen = ["pulse-ffi/dlopen"]

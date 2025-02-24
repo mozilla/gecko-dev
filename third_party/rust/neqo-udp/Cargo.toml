@@ -42,6 +42,9 @@ repository = "https://github.com/mozilla/neqo/"
 [package.metadata.cargo-machete]
 ignored = ["log"]
 
+[features]
+bench = ["neqo-common/bench"]
+
 [lib]
 name = "neqo_udp"
 path = "src/lib.rs"
@@ -64,9 +67,6 @@ default-features = false
 
 [build-dependencies]
 cfg_aliases = "0.2"
-
-[features]
-bench = ["neqo-common/bench"]
 
 [lints.clippy]
 cfg_not_test = "warn"

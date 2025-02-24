@@ -23,12 +23,12 @@ description = "FFI for libpulse.so supporting static linking and dynamic loading
 readme = false
 license = "ISC"
 
+[features]
+dlopen = []
+
 [lib]
 name = "pulse_ffi"
 path = "src/lib.rs"
 
 [dependencies]
 libc = "^0.2.20"
-
-[features]
-dlopen = []

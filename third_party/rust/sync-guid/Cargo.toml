@@ -23,6 +23,15 @@ autobenches = false
 readme = false
 license = "MPL-2.0"
 
+[features]
+default = ["serde_support"]
+random = [
+    "rand",
+    "base64",
+]
+rusqlite_support = ["rusqlite"]
+serde_support = ["serde"]
+
 [lib]
 name = "sync_guid"
 path = "src/lib.rs"
@@ -46,12 +55,3 @@ optional = true
 
 [dev-dependencies]
 serde_test = "1"
-
-[features]
-default = ["serde_support"]
-random = [
-    "rand",
-    "base64",
-]
-rusqlite_support = ["rusqlite"]
-serde_support = ["serde"]

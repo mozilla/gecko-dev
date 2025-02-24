@@ -48,6 +48,67 @@ targets = [
     "wasm32-unknown-unknown",
 ]
 
+[features]
+device_lost_panic = []
+dx12 = [
+    "dep:bit-set",
+    "dep:libloading",
+    "dep:range-alloc",
+    "dep:windows-core",
+    "dep:ordered-float",
+    "gpu-allocator/d3d12",
+    "naga/hlsl-out-if-target-windows",
+    "windows/Win32_Graphics_Direct3D_Fxc",
+    "windows/Win32_Graphics_Direct3D_Dxc",
+    "windows/Win32_Graphics_Direct3D",
+    "windows/Win32_Graphics_Direct3D12",
+    "windows/Win32_Graphics_DirectComposition",
+    "windows/Win32_Graphics_Dxgi_Common",
+    "windows/Win32_Security",
+    "windows/Win32_System_Diagnostics_Debug",
+    "windows/Win32_System_Kernel",
+    "windows/Win32_System_Performance",
+    "windows/Win32_System_Threading",
+    "windows/Win32_UI_WindowsAndMessaging",
+]
+fragile-send-sync-non-atomic-wasm = ["wgpu-types/fragile-send-sync-non-atomic-wasm"]
+gles = [
+    "naga/glsl-out",
+    "once_cell/std",
+    "dep:bytemuck",
+    "dep:glow",
+    "dep:glutin_wgl_sys",
+    "dep:khronos-egl",
+    "dep:libloading",
+    "dep:ndk-sys",
+    "dep:once_cell",
+    "windows/Win32_Graphics_OpenGL",
+    "windows/Win32_Graphics_Gdi",
+    "windows/Win32_System_LibraryLoader",
+    "windows/Win32_UI_WindowsAndMessaging",
+]
+internal_error_panic = []
+metal = [
+    "naga/msl-out-if-target-apple",
+    "dep:block",
+]
+oom_panic = []
+renderdoc = [
+    "dep:libloading",
+    "dep:renderdoc-sys",
+]
+static-dxc = ["dep:mach-dxcompiler-rs"]
+vulkan = [
+    "naga/spv-out",
+    "dep:ash",
+    "dep:gpu-alloc",
+    "dep:gpu-descriptor",
+    "dep:libloading",
+    "dep:smallvec",
+    "dep:android_system_properties",
+    "dep:ordered-float",
+]
+
 [lib]
 name = "wgpu_hal"
 path = "src/lib.rs"
@@ -152,67 +213,6 @@ features = ["android-native-activity"]
 
 [build-dependencies.cfg_aliases]
 version = "0.2.1"
-
-[features]
-device_lost_panic = []
-dx12 = [
-    "dep:bit-set",
-    "dep:libloading",
-    "dep:range-alloc",
-    "dep:windows-core",
-    "dep:ordered-float",
-    "gpu-allocator/d3d12",
-    "naga/hlsl-out-if-target-windows",
-    "windows/Win32_Graphics_Direct3D_Fxc",
-    "windows/Win32_Graphics_Direct3D_Dxc",
-    "windows/Win32_Graphics_Direct3D",
-    "windows/Win32_Graphics_Direct3D12",
-    "windows/Win32_Graphics_DirectComposition",
-    "windows/Win32_Graphics_Dxgi_Common",
-    "windows/Win32_Security",
-    "windows/Win32_System_Diagnostics_Debug",
-    "windows/Win32_System_Kernel",
-    "windows/Win32_System_Performance",
-    "windows/Win32_System_Threading",
-    "windows/Win32_UI_WindowsAndMessaging",
-]
-fragile-send-sync-non-atomic-wasm = ["wgpu-types/fragile-send-sync-non-atomic-wasm"]
-gles = [
-    "naga/glsl-out",
-    "once_cell/std",
-    "dep:bytemuck",
-    "dep:glow",
-    "dep:glutin_wgl_sys",
-    "dep:khronos-egl",
-    "dep:libloading",
-    "dep:ndk-sys",
-    "dep:once_cell",
-    "windows/Win32_Graphics_OpenGL",
-    "windows/Win32_Graphics_Gdi",
-    "windows/Win32_System_LibraryLoader",
-    "windows/Win32_UI_WindowsAndMessaging",
-]
-internal_error_panic = []
-metal = [
-    "naga/msl-out-if-target-apple",
-    "dep:block",
-]
-oom_panic = []
-renderdoc = [
-    "dep:libloading",
-    "dep:renderdoc-sys",
-]
-static-dxc = ["dep:mach-dxcompiler-rs"]
-vulkan = [
-    "naga/spv-out",
-    "dep:ash",
-    "dep:gpu-alloc",
-    "dep:gpu-descriptor",
-    "dep:libloading",
-    "dep:smallvec",
-    "dep:android_system_properties",
-    "dep:ordered-float",
-]
 
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.js-sys]
 version = "0.3.70"

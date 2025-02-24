@@ -29,6 +29,18 @@ keywords = [
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/awslabs/mls-rs"
 
+[features]
+default = ["std"]
+gecko = ["nss-gk-api/gecko"]
+std = [
+    "mls-rs-core/std",
+    "mls-rs-crypto-hpke/std",
+    "mls-rs-crypto-traits/std",
+    "getrandom/std",
+    "rand_core/std",
+    "dep:thiserror",
+]
+
 [lib]
 name = "mls_rs_crypto_nss"
 path = "src/lib.rs"
@@ -106,18 +118,6 @@ features = ["derive"]
 
 [dev-dependencies.serde_json]
 version = "^1.0"
-
-[features]
-default = ["std"]
-gecko = ["nss-gk-api/gecko"]
-std = [
-    "mls-rs-core/std",
-    "mls-rs-crypto-hpke/std",
-    "mls-rs-crypto-traits/std",
-    "getrandom/std",
-    "rand_core/std",
-    "dep:thiserror",
-]
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

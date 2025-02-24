@@ -29,6 +29,14 @@ keywords = [
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/awslabs/mls-rs"
 
+[features]
+default = ["std"]
+mock = [
+    "std",
+    "dep:mockall",
+]
+std = ["mls-rs-core/std"]
+
 [lib]
 name = "mls_rs_crypto_traits"
 path = "src/lib.rs"
@@ -44,14 +52,6 @@ default-features = false
 [dependencies.mockall]
 version = "^0.11"
 optional = true
-
-[features]
-default = ["std"]
-mock = [
-    "std",
-    "dep:mockall",
-]
-std = ["mls-rs-core/std"]
 
 [target."cfg(mls_build_async)".dependencies]
 async-trait = "^0.1"

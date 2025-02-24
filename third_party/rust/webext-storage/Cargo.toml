@@ -24,6 +24,9 @@ autobenches = false
 readme = "README.md"
 license = "MPL-2.0"
 
+[features]
+default = []
+
 [lib]
 name = "webext_storage"
 path = "src/lib.rs"
@@ -92,9 +95,6 @@ path = "../support/sql"
 [build-dependencies.uniffi]
 version = "0.28.2"
 features = ["build"]
-
-[features]
-default = []
 
 [lints.clippy]
 empty-line-after-doc-comments = "allow"

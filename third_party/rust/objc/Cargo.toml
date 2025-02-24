@@ -40,6 +40,10 @@ keywords = [
 license = "MIT"
 repository = "http://github.com/SSheldon/rust-objc"
 
+[features]
+exception = ["objc_exception"]
+verify_message = []
+
 [lib]
 name = "objc"
 path = "src/lib.rs"
@@ -54,7 +58,3 @@ malloc_buf = "0.0"
 [dependencies.objc_exception]
 version = "0.1"
 optional = true
-
-[features]
-exception = ["objc_exception"]
-verify_message = []

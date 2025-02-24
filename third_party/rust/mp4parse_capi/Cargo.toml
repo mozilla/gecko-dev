@@ -36,6 +36,15 @@ readme = "README.md"
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/mp4parse-rust"
 
+[badges.travis-ci]
+repository = "https://github.com/mozilla/mp4parse-rust"
+
+[features]
+3gpp = ["mp4parse/3gpp"]
+meta-xml = ["mp4parse/meta-xml"]
+missing-pixi-permitted = ["mp4parse/missing-pixi-permitted"]
+mp4v = ["mp4parse/mp4v"]
+
 [lib]
 name = "mp4parse_capi"
 path = "src/lib.rs"
@@ -88,12 +97,3 @@ features = ["unstable-api"]
 
 [dev-dependencies]
 env_logger = "0.9"
-
-[features]
-3gpp = ["mp4parse/3gpp"]
-meta-xml = ["mp4parse/meta-xml"]
-missing-pixi-permitted = ["mp4parse/missing-pixi-permitted"]
-mp4v = ["mp4parse/mp4v"]
-
-[badges.travis-ci]
-repository = "https://github.com/mozilla/mp4parse-rust"

@@ -31,6 +31,14 @@ description = "A Remote Settings client intended for application layer platforms
 readme = false
 license = "MPL-2.0"
 
+[features]
+default = []
+jexl = ["dep:jexl-eval"]
+signatures = [
+    "dep:canonical_json",
+    "dep:rc_crypto",
+]
+
 [lib]
 name = "remote_settings"
 path = "src/lib.rs"
@@ -96,11 +104,3 @@ path = "../support/viaduct-reqwest"
 [build-dependencies.uniffi]
 version = "0.28.2"
 features = ["build"]
-
-[features]
-default = []
-jexl = ["dep:jexl-eval"]
-signatures = [
-    "dep:canonical_json",
-    "dep:rc_crypto",
-]

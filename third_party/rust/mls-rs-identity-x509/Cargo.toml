@@ -29,6 +29,15 @@ keywords = [
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/awslabs/mls-rs"
 
+[features]
+arbitrary = []
+default = ["std"]
+ffi = []
+std = [
+    "mls-rs-core/std",
+    "dep:thiserror",
+]
+
 [lib]
 name = "mls_rs_identity_x509"
 path = "src/lib.rs"
@@ -50,15 +59,6 @@ optional = true
 assert_matches = "1"
 mockall = "0.12"
 rand = "0.8"
-
-[features]
-arbitrary = []
-default = ["std"]
-ffi = []
-std = [
-    "mls-rs-core/std",
-    "dep:thiserror",
-]
 
 [target."cfg(mls_build_async)".dependencies]
 async-trait = "^0.1"

@@ -39,6 +39,12 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
+[features]
+bench = []
+disable-encryption = []
+disable-random = []
+gecko = ["mozbuild"]
+
 [lib]
 name = "neqo_crypto"
 path = "src/lib.rs"
@@ -111,12 +117,6 @@ default-features = false
 [build-dependencies.toml]
 version = "0.5"
 default-features = false
-
-[features]
-bench = []
-disable-encryption = []
-disable-random = []
-gecko = ["mozbuild"]
 
 [lints.clippy]
 cfg_not_test = "warn"

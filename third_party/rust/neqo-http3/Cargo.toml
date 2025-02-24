@@ -42,6 +42,19 @@ repository = "https://github.com/mozilla/neqo/"
 [package.metadata.cargo-machete]
 ignored = ["log"]
 
+[features]
+bench = [
+    "neqo-common/bench",
+    "neqo-crypto/bench",
+    "neqo-qpack/bench",
+    "neqo-transport/bench",
+]
+disable-encryption = [
+    "neqo-transport/disable-encryption",
+    "neqo-crypto/disable-encryption",
+]
+draft-29 = []
+
 [lib]
 name = "neqo_http3"
 path = "src/lib.rs"
@@ -106,19 +119,6 @@ features = ["draft-29"]
 
 [dev-dependencies.test-fixture]
 path = "../test-fixture"
-
-[features]
-bench = [
-    "neqo-common/bench",
-    "neqo-crypto/bench",
-    "neqo-qpack/bench",
-    "neqo-transport/bench",
-]
-disable-encryption = [
-    "neqo-transport/disable-encryption",
-    "neqo-crypto/disable-encryption",
-]
-draft-29 = []
 
 [lints.clippy]
 cfg_not_test = "warn"

@@ -39,6 +39,15 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/mozilla/neqo/"
 
+[features]
+bench = [
+    "neqo-crypto/bench",
+    "test-fixture/bench",
+]
+build-fuzzing-corpus = ["hex"]
+ci = []
+test-fixture = []
+
 [lib]
 name = "neqo_common"
 path = "src/lib.rs"
@@ -90,15 +99,6 @@ default-features = false
 
 [dev-dependencies.test-fixture]
 path = "../test-fixture"
-
-[features]
-bench = [
-    "neqo-crypto/bench",
-    "test-fixture/bench",
-]
-build-fuzzing-corpus = ["hex"]
-ci = []
-test-fixture = []
 
 [target."cfg(windows)".dependencies.windows]
 version = "0.58"

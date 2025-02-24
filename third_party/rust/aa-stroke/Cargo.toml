@@ -22,6 +22,10 @@ autobenches = false
 readme = "README.md"
 license = "MIT"
 
+[features]
+c_bindings = []
+default = ["c_bindings"]
+
 [lib]
 name = "aa_stroke"
 path = "src/lib.rs"
@@ -35,7 +39,3 @@ euclid = "0.22.7"
 
 [dev-dependencies]
 png = "0.17.7"
-
-[features]
-c_bindings = []
-default = ["c_bindings"]
