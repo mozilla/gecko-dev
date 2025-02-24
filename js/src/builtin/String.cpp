@@ -383,7 +383,6 @@ static const JSFunctionSpec string_functions[] = {
     JS_FN("encodeURI", str_encodeURI, 1, JSPROP_RESOLVING),
     JS_FN("decodeURIComponent", str_decodeURI_Component, 1, JSPROP_RESOLVING),
     JS_FN("encodeURIComponent", str_encodeURI_Component, 1, JSPROP_RESOLVING),
-
     JS_FS_END,
 };
 
@@ -1731,12 +1730,6 @@ static bool str_toWellFormed(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setString(result);
   return true;
 }
-
-static const JSFunctionSpec wellFormed_functions[] = {
-    JS_FN("isWellFormed", str_isWellFormed, 0, 0),
-    JS_FN("toWellFormed", str_toWellFormed, 0, 0),
-    JS_FS_END,
-};
 
 static MOZ_ALWAYS_INLINE bool ToStringIndex(JSContext* cx, Handle<Value> value,
                                             size_t length,
@@ -3949,6 +3942,11 @@ static const JSFunctionSpec string_methods[] = {
     JS_SELF_HOSTED_FN("fontsize", "String_fontsize", 1, 0),
 
     JS_SELF_HOSTED_SYM_FN(iterator, "String_iterator", 0, 0),
+
+    /* well-formed unicode strings */
+    JS_FN("isWellFormed", str_isWellFormed, 0, 0),
+    JS_FN("toWellFormed", str_toWellFormed, 0, 0),
+
     JS_FS_END,
 };
 
@@ -4345,12 +4343,6 @@ static bool StringClassFinish(JSContext* cx, HandleObject ctor,
    * uneval on the global object.
    */
   if (!JS_DefineFunctions(cx, cx->global(), string_functions)) {
-    return false;
-  }
-
-  // Define isWellFormed/toWellFormed functions.
-  if (JS::Prefs::well_formed_unicode_strings() &&
-      !JS_DefineFunctions(cx, nativeProto, wellFormed_functions)) {
     return false;
   }
 
