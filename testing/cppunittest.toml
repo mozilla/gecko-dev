@@ -104,9 +104,6 @@ run-if = ["os == 'win'"]
 ["TestMemoryPressureWatcherLinux"]
 run-if = ["os == 'linux'"]
 
-["TestMozCrash"]
-skip-if = ["os == 'win'"]
-
 ["TestMozJemallocUtils"]
 
 ["TestNativeNt"]
