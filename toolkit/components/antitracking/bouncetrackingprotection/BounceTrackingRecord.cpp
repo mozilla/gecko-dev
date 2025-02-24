@@ -63,9 +63,9 @@ void BounceTrackingRecord::AddStorageAccessHost(const nsACString& aHost) {
 }
 
 void BounceTrackingRecord::AddUserActivationHost(const nsACString& aHost) {
-  MOZ_ASSERT(!aHost.IsEmpty());
-
-  mUserActivationHosts.Insert(aHost);
+  if(!aHost.IsEmpty()) {
+    mUserActivationHosts.Insert(aHost);
+  }
 }
 
 const nsTHashSet<nsCStringHashKey>& BounceTrackingRecord::GetBounceHosts()
