@@ -194,7 +194,14 @@ class AwesomeBarView(
                 limit = 4,
                 engine = engineForSpeculativeConnects,
                 icon = searchBitmap,
-                suggestionsHeader = activity.getString(R.string.trending_searches_header),
+                suggestionsHeader = components.core.store.state.search
+                    .selectedOrDefaultSearchEngine?.name?.let { searchEngineName ->
+                        getString(
+                            activity,
+                            R.string.trending_searches_header_2,
+                            searchEngineName,
+                        )
+                    },
             )
 
         defaultSearchActionProvider =
