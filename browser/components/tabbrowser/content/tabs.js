@@ -479,7 +479,7 @@
 
       if (keyComboForFocusedElement) {
         let ariaFocusedItem = this.ariaFocusedItem;
-        if (ariaFocusedItem && isTabGroupLabel(ariaFocusedItem)) {
+        if (isTabGroupLabel(ariaFocusedItem)) {
           switch (event.keyCode) {
             case KeyEvent.DOM_VK_SPACE:
             case KeyEvent.DOM_VK_RETURN: {
@@ -1474,11 +1474,7 @@
       // while a tab group label has aria focus (as opposed to DOM focus),
       // open the tab group context menu as if the label had DOM focus.
       // The button property is used to differentiate between key and mouse.
-      if (
-        event.button == 0 &&
-        this.ariaFocusedItem &&
-        isTabGroupLabel(this.ariaFocusedItem)
-      ) {
+      if (event.button == 0 && isTabGroupLabel(this.ariaFocusedItem)) {
         gBrowser.tabGroupMenu.openEditModal(
           this.ariaFocusedItem.closest("tab-group")
         );
