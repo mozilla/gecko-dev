@@ -148,6 +148,7 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_Uint16Array:
     case JSProto_Int32Array:
     case JSProto_Uint32Array:
+    case JSProto_Float16Array:
     case JSProto_Float32Array:
     case JSProto_Float64Array:
     case JSProto_Uint8ClampedArray:
@@ -236,9 +237,6 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
 
     case JSProto_ShadowRealm:
       return !JS::Prefs::experimental_shadow_realms();
-
-    case JSProto_Float16Array:
-      return !JS::Prefs::experimental_float16array();
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     case JSProto_SuppressedError:

@@ -39,7 +39,6 @@ FEATURE_CHECK_NEEDED = {
     "Intl.DurationFormat": "!Intl.hasOwnProperty('DurationFormat')",  # Bug 1648139
     "uint8array-base64": "!Uint8Array.fromBase64",  # Bug 1862220
     "json-parse-with-source": "!JSON.hasOwnProperty('isRawJSON')",  # Bug 1658310
-    "Float16Array": "!this.hasOwnProperty('Float16Array')",
     "RegExp.escape": "!RegExp.escape",
     "promise-try": "!Promise.try",
     "explicit-resource-management": "!(this.hasOwnProperty('getBuildConfiguration')&&getBuildConfiguration('explicit-resource-management'))",  # Bug 1569081
@@ -61,7 +60,6 @@ SHELL_OPTIONS = {
     "symbols-as-weakmap-keys": "--enable-symbols-as-weakmap-keys",
     "uint8array-base64": "--enable-uint8array-base64",
     "json-parse-with-source": "--enable-json-parse-with-source",
-    "Float16Array": "--enable-float16array",
     "regexp-duplicate-named-groups": "--enable-regexp-duplicate-named-groups",
     "RegExp.escape": "--enable-regexp-escape",
     "regexp-modifiers": "--enable-regexp-modifiers",
@@ -74,9 +72,7 @@ SHELL_OPTIONS = {
     "Math.sumPrecise": "--enable-math-sumprecise",
 }
 
-INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {
-    "testTypedArray.js": "Float16Array",
-}
+INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {}
 
 
 @contextlib.contextmanager

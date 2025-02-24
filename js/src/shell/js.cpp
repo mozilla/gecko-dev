@@ -12539,7 +12539,6 @@ bool InitOptionParser(OptionParser& op) {
                         "Enable Symbols As WeakMap keys") ||
       !op.addBoolOption('\0', "enable-uint8array-base64",
                         "Enable Uint8Array base64/hex methods") ||
-      !op.addBoolOption('\0', "enable-float16array", "Enable Float16Array") ||
       !op.addBoolOption('\0', "enable-regexp-duplicate-named-groups",
                         "Enable Duplicate Named Capture Groups") ||
       !op.addBoolOption('\0', "enable-regexp-modifiers",
@@ -12944,9 +12943,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-regexp-duplicate-named-groups")) {
     JS::Prefs::setAtStartup_experimental_regexp_duplicate_named_groups(true);
-  }
-  if (op.getBoolOption("enable-float16array")) {
-    JS::Prefs::setAtStartup_experimental_float16array(true);
   }
   if (op.getBoolOption("enable-regexp-modifiers")) {
     JS::Prefs::setAtStartup_experimental_regexp_modifiers(true);
