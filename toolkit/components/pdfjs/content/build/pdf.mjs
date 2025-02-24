@@ -416,26 +416,21 @@ function createValidAbsoluteUrl(url, baseUrl = null, options = null) {
   if (!url) {
     return null;
   }
-  try {
-    if (options && typeof url === "string") {
-      if (options.addDefaultProtocol && url.startsWith("www.")) {
-        const dots = url.match(/\./g);
-        if (dots?.length >= 2) {
-          url = `http://${url}`;
-        }
-      }
-      if (options.tryConvertEncoding) {
-        try {
-          url = stringToUTF8String(url);
-        } catch {}
+  if (options && typeof url === "string") {
+    if (options.addDefaultProtocol && url.startsWith("www.")) {
+      const dots = url.match(/\./g);
+      if (dots?.length >= 2) {
+        url = `http://${url}`;
       }
     }
-    const absoluteUrl = baseUrl ? new URL(url, baseUrl) : new URL(url);
-    if (_isValidProtocol(absoluteUrl)) {
-      return absoluteUrl;
+    if (options.tryConvertEncoding) {
+      try {
+        url = stringToUTF8String(url);
+      } catch {}
     }
-  } catch {}
-  return null;
+  }
+  const absoluteUrl = baseUrl ? URL.parse(url, baseUrl) : URL.parse(url);
+  return _isValidProtocol(absoluteUrl) ? absoluteUrl : null;
 }
 function shadow(obj, prop, value, nonSerializable = false) {
   Object.defineProperty(obj, prop, {
@@ -2986,6 +2981,7 @@ class AnnotationEditorUIManager {
           for (const editor of editors) {
             if (this.#allEditors.has(editor.id)) {
               editor.translateInPage(totalX, totalY);
+              editor.translationDone();
             }
           }
         },
@@ -2993,6 +2989,7 @@ class AnnotationEditorUIManager {
           for (const editor of editors) {
             if (this.#allEditors.has(editor.id)) {
               editor.translateInPage(-totalX, -totalY);
+              editor.translationDone();
             }
           }
         },
@@ -3001,6 +2998,7 @@ class AnnotationEditorUIManager {
     }, TIME_TO_WAIT);
     for (const editor of editors) {
       editor.translateInPage(x, y);
+      editor.translationDone();
     }
   }
   setUpDragSession() {
@@ -3693,6 +3691,7 @@ class AnnotationEditor {
   #prevDragY = 0;
   #telemetryTimeouts = null;
   #touchManager = null;
+  _isCopy = false;
   _editToolbar = null;
   _initialOptions = Object.create(null);
   _initialData = null;
@@ -3909,6 +3908,11 @@ class AnnotationEditor {
     this.y = (y + ty) / height;
     this.fixAndSetPosition();
   }
+  _moveAfterPaste(baseX, baseY) {
+    const [parentWidth, parentHeight] = this.parentDimensions;
+    this.setAt(baseX * parentWidth, baseY * parentHeight, this.width * parentWidth, this.height * parentHeight);
+    this._onTranslated();
+  }
   #translate([width, height], x, y) {
     [x, y] = this.screenToPageTranslation(x, y);
     this.x += x / width;
@@ -3925,6 +3929,9 @@ class AnnotationEditor {
     this.div.scrollIntoView({
       block: "nearest"
     });
+  }
+  translationDone() {
+    this._onTranslated(this.x, this.y);
   }
   drag(tx, ty) {
     this.#initialRect ||= [this.x, this.y, this.width, this.height];
@@ -4712,6 +4719,7 @@ class AnnotationEditor {
     });
     editor.rotation = data.rotation;
     editor.#accessibilityData = data.accessibilityData;
+    editor._isCopy = data.isCopy || false;
     const [pageWidth, pageHeight] = editor.pageDimensions;
     const [x, y, width, height] = editor.getRectInCurrentCoords(data.rect, pageHeight);
     editor.x = x / pageWidth;
@@ -5368,12 +5376,13 @@ class FontLoader {
   }
   async loadSystemFont({
     systemFontInfo: info,
+    disableFontFace,
     _inspectFont
   }) {
     if (!info || this.#systemFonts.has(info.loadedName)) {
       return;
     }
-    assert(!this.disableFontFace, "loadSystemFont shouldn't be called when `disableFontFace` is set.");
+    assert(!disableFontFace, "loadSystemFont shouldn't be called when `disableFontFace` is set.");
     if (this.isFontLoadingAPISupported) {
       const {
         loadedName,
@@ -8079,7 +8088,7 @@ class CanvasGraphics {
     this._cachedGetSinglePixelWidth = null;
     ctx.save();
     ctx.transform(...current.textMatrix);
-    ctx.translate(current.x, current.y);
+    ctx.translate(current.x, current.y + current.textRise);
     ctx.scale(textHScale, fontDirection);
     for (i = 0; i < glyphsLength; ++i) {
       glyph = glyphs[i];
@@ -10172,6 +10181,7 @@ function getDocument(src = {}) {
   const CanvasFactory = src.CanvasFactory || DOMCanvasFactory;
   const FilterFactory = src.FilterFactory || DOMFilterFactory;
   const enableHWA = src.enableHWA === true;
+  const useWasm = src.useWasm !== false;
   const length = rangeTransport ? rangeTransport.length : src.length ?? NaN;
   const useSystemFonts = typeof src.useSystemFonts === "boolean" ? src.useSystemFonts : !isNodeJS && !disableFontFace;
   const useWorkerFetch = typeof src.useWorkerFetch === "boolean" ? src.useWorkerFetch : true;
@@ -10200,7 +10210,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.0.197",
+    apiVersion: "5.0.235",
     data,
     password,
     disableAutoFetch,
@@ -10218,9 +10228,11 @@ function getDocument(src = {}) {
       canvasMaxAreaInBytes,
       fontExtraProperties,
       useSystemFonts,
-      cMapUrl: useWorkerFetch ? cMapUrl : null,
-      standardFontDataUrl: useWorkerFetch ? standardFontDataUrl : null,
-      wasmUrl: useWorkerFetch ? wasmUrl : null
+      useWasm,
+      useWorkerFetch,
+      cMapUrl,
+      standardFontDataUrl,
+      wasmUrl
     }
   };
   const transportParams = {
@@ -11673,9 +11685,10 @@ class PDFObjects {
 }
 class RenderTask {
   #internalRenderTask = null;
+  onContinue = null;
+  onError = null;
   constructor(internalRenderTask) {
     this.#internalRenderTask = internalRenderTask;
-    this.onContinue = null;
   }
   get promise() {
     return this.#internalRenderTask.capability.promise;
@@ -11787,7 +11800,9 @@ class InternalRenderTask {
       this.#rAF = null;
     }
     InternalRenderTask.#canvasInUse.delete(this._canvas);
-    this.callback(error || new RenderingCancelledException(`Rendering cancelled, page ${this._pageIndex + 1}`, extraDelay));
+    error ||= new RenderingCancelledException(`Rendering cancelled, page ${this._pageIndex + 1}`, extraDelay);
+    this.callback(error);
+    this.task.onError?.(error);
   }
   operatorListChanged() {
     if (!this.graphicsReady) {
@@ -11836,8 +11851,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.0.197";
-const build = "34ef74cf0";
+const version = "5.0.235";
+const build = "fef706233";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -15127,7 +15142,7 @@ class FreeTextEditor extends AnnotationEditor {
       return this.div;
     }
     let baseX, baseY;
-    if (this.width) {
+    if (this._isCopy || this.annotationElementId) {
       baseX = this.x;
       baseY = this.y;
     }
@@ -15149,7 +15164,7 @@ class FreeTextEditor extends AnnotationEditor {
     this.overlayDiv.classList.add("overlay", "enabled");
     this.div.append(this.overlayDiv);
     bindEvents(this, this.div, ["dblclick", "keydown"]);
-    if (this.width) {
+    if (this._isCopy || this.annotationElementId) {
       const [parentWidth, parentHeight] = this.parentDimensions;
       if (this.annotationElementId) {
         const {
@@ -15183,7 +15198,7 @@ class FreeTextEditor extends AnnotationEditor {
         }
         this.setAt(posX * parentWidth, posY * parentHeight, tx, ty);
       } else {
-        this.setAt(baseX * parentWidth, baseY * parentHeight, this.width * parentWidth, this.height * parentHeight);
+        this._moveAfterPaste(baseX, baseY);
       }
       this.#setContent();
       this._isDraggable = true;
@@ -15361,6 +15376,7 @@ class FreeTextEditor extends AnnotationEditor {
       structTreeParentId: this._structTreeParentId
     };
     if (isForCopying) {
+      serialized.isCopy = true;
       return serialized;
     }
     if (this.annotationElementId && !this.#hasElementChanged(serialized)) {
@@ -17315,9 +17331,9 @@ class DrawingEditor extends AnnotationEditor {
       bbox: this.#rotateBox()
     }));
   }
-  _onTranslating(x, y) {
+  _onTranslating(_x, _y) {
     this.parent?.drawLayer.updateProperties(this._drawId, {
-      bbox: this.#rotateBox(x, y)
+      bbox: this.#rotateBox()
     });
   }
   _onTranslated() {
@@ -17533,6 +17549,11 @@ class DrawingEditor extends AnnotationEditor {
     if (this.div) {
       return this.div;
     }
+    let baseX, baseY;
+    if (this._isCopy) {
+      baseX = this.x;
+      baseY = this.y;
+    }
     const div = super.render();
     div.classList.add("draw");
     const drawDiv = document.createElement("div");
@@ -17543,6 +17564,9 @@ class DrawingEditor extends AnnotationEditor {
     this.setDims(this.width * parentWidth, this.height * parentHeight);
     this._uiManager.addShouldRescale(this);
     this.disableEditing();
+    if (this._isCopy) {
+      this._moveAfterPaste(baseX, baseY);
+    }
     return div;
   }
   static createDrawerInstance(_x, _y, _parentWidth, _parentHeight, _rotation) {
@@ -18164,7 +18188,7 @@ class InkDrawOutline extends Outline {
         points: rescaleFn(points[i].map(x => x ?? NaN), tx, ty, sx, sy)
       });
     }
-    const outlines = new InkDrawOutline();
+    const outlines = new this.prototype.constructor();
     outlines.build(newLines, pageWidth, pageHeight, 1, rotation, thickness, innerMargin);
     return outlines;
   }
@@ -18609,6 +18633,7 @@ class InkEditor extends DrawingEditor {
       structTreeParentId: this._structTreeParentId
     };
     if (isForCopying) {
+      serialized.isCopy = true;
       return serialized;
     }
     if (this.annotationElementId && !this.#hasElementChanged(serialized)) {
@@ -19369,6 +19394,15 @@ class SignatureEditor extends DrawingEditor {
     if (this.div) {
       return this.div;
     }
+    let baseX, baseY;
+    const {
+      _isCopy
+    } = this;
+    if (_isCopy) {
+      this._isCopy = false;
+      baseX = this.x;
+      baseY = this.y;
+    }
     super.render();
     this.div.setAttribute("role", "figure");
     if (this._drawId === null) {
@@ -19402,6 +19436,10 @@ class SignatureEditor extends DrawingEditor {
         this.div.hidden = true;
         this._uiManager.getSignature(this);
       }
+    }
+    if (_isCopy) {
+      this._isCopy = true;
+      this._moveAfterPaste(baseX, baseY);
     }
     return this.div;
   }
@@ -19588,6 +19626,7 @@ class SignatureEditor extends DrawingEditor {
         points
       };
       serialized.uuid = this.#signatureUUID;
+      serialized.isCopy = true;
     } else {
       serialized.lines = lines;
     }
@@ -19608,7 +19647,7 @@ class SignatureEditor extends DrawingEditor {
   static async deserialize(data, parent, uiManager) {
     const editor = await super.deserialize(data, parent, uiManager);
     editor.#isExtracted = data.areContours;
-    editor.description = data.accessibilityData?.alt || "";
+    editor.#description = data.accessibilityData?.alt || "";
     editor.#signatureUUID = data.uuid;
     return editor;
   }
@@ -19860,7 +19899,7 @@ class StampEditor extends AnnotationEditor {
       return this.div;
     }
     let baseX, baseY;
-    if (this.width) {
+    if (this._isCopy) {
       baseX = this.x;
       baseY = this.y;
     }
@@ -19875,9 +19914,8 @@ class StampEditor extends AnnotationEditor {
         this.#getBitmap();
       }
     }
-    if (this.width && !this.annotationElementId) {
-      const [parentWidth, parentHeight] = this.parentDimensions;
-      this.setAt(baseX * parentWidth, baseY * parentHeight, this.width * parentWidth, this.height * parentHeight);
+    if (this._isCopy) {
+      this._moveAfterPaste(baseX, baseY);
     }
     this._uiManager.addShouldRescale(this);
     return this.div;
@@ -20221,6 +20259,7 @@ class StampEditor extends AnnotationEditor {
     if (isForCopying) {
       serialized.bitmapUrl = this.#serializeBitmap(true);
       serialized.accessibilityData = this.serializeAltText(true);
+      serialized.isCopy = true;
       return serialized;
     }
     const {
@@ -21182,8 +21221,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.0.197";
-const pdfjsBuild = "34ef74cf0";
+const pdfjsVersion = "5.0.235";
+const pdfjsBuild = "fef706233";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

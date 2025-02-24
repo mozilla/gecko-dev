@@ -49,6 +49,9 @@ var gExceptionPaths = [
 
   // toolkit/components/pdfjs/content/build/pdf.js
   "resource://pdf.js/web/images/",
+  // This file is only loaded in using a dynamic import in pdf.js in case wasm
+  // is not available.
+  "resource://pdf.js/web/wasm/openjpeg_nowasm_fallback.js",
 
   // Exclude the form autofill path that has been moved out of the extensions to
   // toolkit, see bug 1691821.

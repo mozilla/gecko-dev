@@ -11,6 +11,7 @@ pdfjs.jar:
  content/web/images/	(content/web/images/annotation-*.svg)
  content/web/images/loading-icon.gif	(content/web/images/loading-icon.gif)
  content/web/wasm/openjpeg.wasm (content/web/wasm/openjpeg.wasm)
+ content/web/wasm/openjpeg_nowasm_fallback.js (content/web/wasm/openjpeg_nowasm_fallback.js)
 #ifdef ANDROID
  content/GeckoViewPdfjsParent.sys.mjs (content/GeckoViewPdfjsParent.sys.mjs)
  content/GeckoViewPdfjsChild.sys.mjs (content/GeckoViewPdfjsChild.sys.mjs)
