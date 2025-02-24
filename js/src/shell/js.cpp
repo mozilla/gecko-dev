@@ -12533,8 +12533,6 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "disable-well-formed-unicode-strings",
                         "Disable String.prototype.{is,to}WellFormed() methods"
                         "(Well-Formed Unicode Strings) (default: Enabled)") ||
-      !op.addBoolOption('\0', "enable-new-set-methods",
-                        "Enable New Set methods") ||
       !op.addBoolOption('\0', "disable-arraybuffer-transfer",
                         "Disable ArrayBuffer.prototype.transfer() methods") ||
       !op.addBoolOption('\0', "enable-symbols-as-weakmap-keys",
@@ -12949,9 +12947,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-float16array")) {
     JS::Prefs::setAtStartup_experimental_float16array(true);
-  }
-  if (op.getBoolOption("enable-new-set-methods")) {
-    JS::Prefs::setAtStartup_experimental_new_set_methods(true);
   }
   if (op.getBoolOption("enable-regexp-modifiers")) {
     JS::Prefs::setAtStartup_experimental_regexp_modifiers(true);
