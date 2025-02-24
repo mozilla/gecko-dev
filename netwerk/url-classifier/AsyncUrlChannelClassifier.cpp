@@ -134,16 +134,11 @@ const nsTArray<nsCString>& URIData::Fragments() {
   MOZ_ASSERT(!NS_IsMainThread());
 
   if (mFragments.IsEmpty()) {
-    nsresult rv;
-
     if (mURIType == nsIUrlClassifierFeature::pairwiseEntitylistURI) {
-      rv = LookupCache::GetLookupEntitylistFragments(mURISpec, &mFragments);
+      LookupCache::GetLookupEntitylistFragments(mURISpec, &mFragments);
     } else {
       LookupCache::GetLookupFragments(mURISpec, &mFragments);
-      rv = NS_OK;
     }
-
-    Unused << NS_WARN_IF(NS_FAILED(rv));
   }
 
   return mFragments;
