@@ -1425,6 +1425,16 @@ bool DocAccessible::PruneOrInsertSubtree(nsIContent* aRoot) {
       return false;
     }
 
+    if (!frame && aRoot->IsElement() &&
+        aRoot->AsElement()->IsDisplayContents() && acc->mOldComputedStyle) {
+      // This element has probably just become display: contents. We won't be
+      // notified of a computed style change in this case. Also, the bounds we
+      // cached previously are now invalid, but our normal bounds change
+      // notifications won't fire either. Therefore, queue cache updates for
+      // both.
+      QueueCacheUpdate(acc, CacheDomain::Style | CacheDomain::Bounds);
+    }
+
     // If the frame is hidden because its ancestor is specified with
     // `content-visibility: hidden`, remove its Accessible.
     if (frame && frame->IsHiddenByContentVisibilityOnAnyAncestor(
