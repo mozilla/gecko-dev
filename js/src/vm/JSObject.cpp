@@ -2270,10 +2270,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
         id == NameToId(cx->names().try_)) {
       return true;
     }
-    if (!JS::Prefs::experimental_regexp_escape() &&
-        id == NameToId(cx->names().escape)) {
-      return true;
-    }
   }
 
 #ifdef JS_HAS_TEMPORAL_API

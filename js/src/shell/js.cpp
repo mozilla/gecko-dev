@@ -12950,9 +12950,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   if (op.getBoolOption("enable-uint8array-base64")) {
     JS::Prefs::setAtStartup_experimental_uint8array_base64(true);
   }
-  if (op.getBoolOption("enable-regexp-escape")) {
-    JS::Prefs::setAtStartup_experimental_regexp_escape(true);
-  }
   if (op.getBoolOption("enable-promise-try")) {
     JS::Prefs::setAtStartup_experimental_promise_try(true);
   }

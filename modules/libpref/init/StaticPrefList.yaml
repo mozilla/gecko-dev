@@ -8460,14 +8460,7 @@
   mirror: always
   set_spidermonkey_pref: startup
 
-# Experimental support for RegExp.escape in JavaScript.
-- name: javascript.options.experimental.regexp_escape
-  type: bool
-  value: true
-  mirror: always
-  set_spidermonkey_pref: startup
-
-  # Experimental support for Math.sumPrecise in JavaScript.
+# Experimental support for Math.sumPrecise in JavaScript.
 - name: javascript.options.experimental.math_sumprecise
   type: bool
   value: true
