@@ -1,4 +1,4 @@
-pub use crate::base::boolean_t;
+pub use base::boolean_t;
 
 #[derive(Default)]
 pub struct ScreenCaptureAccess;
@@ -11,14 +11,14 @@ impl ScreenCaptureAccess {
         unsafe { CGRequestScreenCaptureAccess() == 1 }
     }
 
-    /// Return `true` if has access
+    /// Return true if has access
     #[inline]
     pub fn preflight(&self) -> bool {
         unsafe { CGPreflightScreenCaptureAccess() == 1 }
     }
 }
 
-#[cfg_attr(feature = "link", link(name = "CoreGraphics", kind = "framework"))]
+#[link(name = "CoreGraphics", kind = "framework")]
 extern "C" {
     // Screen Capture Access
     fn CGRequestScreenCaptureAccess() -> boolean_t;

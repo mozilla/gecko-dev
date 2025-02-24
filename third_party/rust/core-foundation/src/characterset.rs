@@ -14,7 +14,7 @@ pub use core_foundation_sys::characterset::*;
 use crate::base::TCFType;
 
 declare_TCFType! {
-    /// An immutable set of Unicode characters.
+    /// An immutable set of Unicde characters.
     CFCharacterSet, CFCharacterSetRef
 }
 impl_TCFType!(CFCharacterSet, CFCharacterSetRef, CFCharacterSetGetTypeID);

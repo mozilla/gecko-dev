@@ -23,13 +23,7 @@
 // https://github.com/rust-lang/lang-team/issues/102
 #[cfg_attr(
     all(
-        any(
-            target_os = "macos",
-            target_os = "ios",
-            target_os = "tvos",
-            target_os = "watchos",
-            target_os = "visionos"
-        ),
+        any(target_os = "macos", target_os = "ios", target_os = "tvos"),
         feature = "link"
     ),
     link(name = "CoreFoundation", kind = "framework")

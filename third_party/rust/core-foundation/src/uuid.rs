@@ -9,13 +9,16 @@
 
 //! Core Foundation UUID objects.
 
+#[cfg(feature = "with-uuid")]
+extern crate uuid;
+
 use core_foundation_sys::base::kCFAllocatorDefault;
 pub use core_foundation_sys::uuid::*;
 
 use crate::base::TCFType;
 
 #[cfg(feature = "with-uuid")]
-use uuid::Uuid;
+use self::uuid::Uuid;
 
 declare_TCFType! {
     /// A UUID.
@@ -48,7 +51,7 @@ impl From<CFUUID> for Uuid {
             b.byte0, b.byte1, b.byte2, b.byte3, b.byte4, b.byte5, b.byte6, b.byte7, b.byte8,
             b.byte9, b.byte10, b.byte11, b.byte12, b.byte13, b.byte14, b.byte15,
         ];
-        Uuid::from_bytes(bytes)
+        Uuid::from_bytes(&bytes).unwrap()
     }
 }
 
