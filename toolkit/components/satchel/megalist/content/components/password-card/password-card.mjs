@@ -224,17 +224,17 @@ export class PasswordCard extends MozLitElement {
         .visible=${!this.password.concealed}
         ?alert=${this.password.vulnerable}
         .onLineClick=${() => {
-          this.reauthCommandHandler(() => {
+          this.#recordInteractionType("copy_password");
+          return this.reauthCommandHandler(() => {
             this.#onCopyButtonClick(this.password.lineIndex);
           });
-          this.#recordInteractionType("copy_password");
         }}
         .onButtonClick=${() => {
           const interactionType = this.password.concealed
             ? "view_password"
             : "hide_password";
           this.#recordInteractionType(interactionType);
-          this.reauthCommandHandler(() =>
+          return this.reauthCommandHandler(() =>
             this.onPasswordRevealClick(
               this.password.concealed,
               this.password.lineIndex
