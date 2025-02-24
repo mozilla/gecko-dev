@@ -1768,10 +1768,10 @@ Value SnapshotIterator::allocationValue(const RValueAllocation& alloc,
     case RValueAllocation::DOUBLE_REG:
       return DoubleValue(fromRegister<double>(alloc.fpuReg()));
 
-    case RValueAllocation::ANY_FLOAT_REG:
+    case RValueAllocation::FLOAT32_REG:
       return Float32Value(fromRegister<float>(alloc.fpuReg()));
 
-    case RValueAllocation::ANY_FLOAT_STACK:
+    case RValueAllocation::FLOAT32_STACK:
       return Float32Value(ReadFrameFloat32Slot(fp_, alloc.stackOffset()));
 
     case RValueAllocation::TYPED_REG:
@@ -2036,8 +2036,8 @@ void SnapshotIterator::writeAllocationValuePayload(
     case RValueAllocation::CST_UNDEFINED:
     case RValueAllocation::CST_NULL:
     case RValueAllocation::DOUBLE_REG:
-    case RValueAllocation::ANY_FLOAT_REG:
-    case RValueAllocation::ANY_FLOAT_STACK:
+    case RValueAllocation::FLOAT32_REG:
+    case RValueAllocation::FLOAT32_STACK:
     case RValueAllocation::INTPTR_CST:
     case RValueAllocation::INTPTR_REG:
     case RValueAllocation::INTPTR_STACK:

@@ -85,7 +85,7 @@ END_TEST(testJitRValueAlloc_Double)
 BEGIN_TEST(testJitRValueAlloc_FloatReg) {
   RValueAllocation s;
   for (uint32_t i = 0; i < FloatRegisters::Total; i++) {
-    s = RValueAllocation::AnyFloat(FloatRegister::FromCode(i));
+    s = RValueAllocation::Float32(FloatRegister::FromCode(i));
     CHECK(s == Read(s));
   }
   return true;
@@ -95,7 +95,7 @@ END_TEST(testJitRValueAlloc_FloatReg)
 BEGIN_TEST(testJitRValueAlloc_FloatStack) {
   RValueAllocation s;
   for (auto i : Fibonacci{}) {
-    s = RValueAllocation::AnyFloat(i);
+    s = RValueAllocation::Float32(i);
     CHECK(s == Read(s));
   }
   return true;

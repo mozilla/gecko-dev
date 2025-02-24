@@ -3435,11 +3435,11 @@ static bool IsResumableMIRType(MIRType type) {
     case MIRType::MagicUninitializedLexical:
     case MIRType::MagicIsConstructing:
     case MIRType::Value:
-    case MIRType::Simd128:
     case MIRType::Int64:
     case MIRType::IntPtr:
       return true;
 
+    case MIRType::Simd128:
     case MIRType::MagicHole:
     case MIRType::None:
     case MIRType::Slots:

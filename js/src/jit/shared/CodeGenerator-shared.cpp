@@ -451,8 +451,7 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       }
       break;
     }
-    case MIRType::Float32:
-    case MIRType::Simd128: {
+    case MIRType::Float32: {
       LAllocation* payload = snapshot->payloadOfSlot(*allocIndex);
       if (payload->isConstant()) {
         MConstant* constant = mir->toConstant();
@@ -465,12 +464,12 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
 
       MOZ_ASSERT(payload->isMemory() || payload->isFloatReg());
       if (payload->isFloatReg()) {
-        alloc = RValueAllocation::AnyFloat(ToFloatRegister(payload));
+        alloc = RValueAllocation::Float32(ToFloatRegister(payload));
       } else {
         MOZ_ASSERT_IF(payload->isStackSlot(),
                       payload->toStackSlot()->width() ==
                           LStackSlot::width(LDefinition::TypeFrom(type)));
-        alloc = RValueAllocation::AnyFloat(ToStackIndex(payload));
+        alloc = RValueAllocation::Float32(ToStackIndex(payload));
       }
       break;
     }
