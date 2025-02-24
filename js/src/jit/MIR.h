@@ -749,7 +749,10 @@ class MDefinition : public MNode {
                 sizeof(MIRTypeEnumSet::serializedType) * CHAR_BIT);
 
   // Return true if the result type is a member of the given types.
-  bool definitelyType(MIRTypeEnumSet types) const;
+  bool typeIsOneOf(MIRTypeEnumSet types) const {
+    MOZ_ASSERT(!types.isEmpty());
+    return types.contains(type());
+  }
 
   // Float32 specialization operations (see big comment in IonAnalysis before
   // the Float32 specialization algorithm).
@@ -3341,9 +3344,9 @@ class MToFPInstruction : public MUnaryInstruction, public ToDoublePolicy::Data {
     setMovable();
 
     // Guard unless the conversion is known to be non-effectful & non-throwing.
-    if (!def->definitelyType({MIRType::Undefined, MIRType::Null,
-                              MIRType::Boolean, MIRType::Int32, MIRType::Double,
-                              MIRType::Float32, MIRType::String})) {
+    if (!def->typeIsOneOf({MIRType::Undefined, MIRType::Null, MIRType::Boolean,
+                           MIRType::Int32, MIRType::Double, MIRType::Float32,
+                           MIRType::String})) {
       setGuard();
     }
   }
@@ -3725,9 +3728,9 @@ class MToNumberInt32 : public MUnaryInstruction, public ToInt32Policy::Data {
     setMovable();
 
     // Guard unless the conversion is known to be non-effectful & non-throwing.
-    if (!def->definitelyType({MIRType::Undefined, MIRType::Null,
-                              MIRType::Boolean, MIRType::Int32, MIRType::Double,
-                              MIRType::Float32, MIRType::String})) {
+    if (!def->typeIsOneOf({MIRType::Undefined, MIRType::Null, MIRType::Boolean,
+                           MIRType::Int32, MIRType::Double, MIRType::Float32,
+                           MIRType::String})) {
       setGuard();
     }
   }
@@ -3789,9 +3792,9 @@ class MTruncateToInt32 : public MUnaryInstruction, public ToInt32Policy::Data {
   TRIVIAL_NEW_WRAPPERS
 
   static bool mightHaveSideEffects(MDefinition* def) {
-    return !def->definitelyType(
-        {MIRType::Undefined, MIRType::Null, MIRType::Boolean, MIRType::Int32,
-         MIRType::Double, MIRType::Float32, MIRType::String});
+    return !def->typeIsOneOf({MIRType::Undefined, MIRType::Null,
+                              MIRType::Boolean, MIRType::Int32, MIRType::Double,
+                              MIRType::Float32, MIRType::String});
   }
 
   MDefinition* foldsTo(TempAllocator& alloc) override;
@@ -3827,7 +3830,7 @@ class MToBigInt : public MUnaryInstruction, public ToBigIntPolicy::Data {
     setMovable();
 
     // Guard unless the conversion is known to be non-effectful & non-throwing.
-    if (!def->definitelyType({MIRType::Boolean, MIRType::BigInt})) {
+    if (!def->typeIsOneOf({MIRType::Boolean, MIRType::BigInt})) {
       setGuard();
     }
   }
@@ -3852,7 +3855,7 @@ class MToInt64 : public MUnaryInstruction, public ToInt64Policy::Data {
     setMovable();
 
     // Guard unless the conversion is known to be non-effectful & non-throwing.
-    if (!def->definitelyType(
+    if (!def->typeIsOneOf(
             {MIRType::Boolean, MIRType::BigInt, MIRType::Int64})) {
       setGuard();
     }
@@ -3995,10 +3998,9 @@ class MToString : public MUnaryInstruction, public ToStringPolicy::Data {
       : MUnaryInstruction(classOpcode, def), sideEffects_(sideEffects) {
     setResultType(MIRType::String);
 
-    if (!def->definitelyType({MIRType::Undefined, MIRType::Null,
-                              MIRType::Boolean, MIRType::Int32, MIRType::Double,
-                              MIRType::Float32, MIRType::String,
-                              MIRType::BigInt})) {
+    if (!def->typeIsOneOf({MIRType::Undefined, MIRType::Null, MIRType::Boolean,
+                           MIRType::Int32, MIRType::Double, MIRType::Float32,
+                           MIRType::String, MIRType::BigInt})) {
       mightHaveSideEffects_ = true;
     }
 

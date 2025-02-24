@@ -516,24 +516,6 @@ bool MDefinition::mightBeMagicType() const {
   return true;
 }
 
-bool MDefinition::definitelyType(MIRTypeEnumSet types) const {
-#ifdef DEBUG
-  // Only support specialized, non-magic types.
-  auto isSpecializedNonMagic = [](MIRType type) {
-    return type <= MIRType::Object;
-  };
-#endif
-
-  MOZ_ASSERT(!types.isEmpty());
-  MOZ_ASSERT(std::all_of(types.begin(), types.end(), isSpecializedNonMagic));
-
-  if (type() == MIRType::Value) {
-    return false;
-  }
-
-  return types.contains(type());
-}
-
 MDefinition* MInstruction::foldsToStore(TempAllocator& alloc) {
   if (!dependency()) {
     return nullptr;
@@ -6611,7 +6593,7 @@ MDefinition* MIsNullOrUndefined::foldsTo(TempAllocator& alloc) {
     input = input->toBox()->input();
   }
 
-  if (input->definitelyType({MIRType::Null, MIRType::Undefined})) {
+  if (input->typeIsOneOf({MIRType::Null, MIRType::Undefined})) {
     return MConstant::New(alloc, BooleanValue(true));
   }
 
@@ -6643,7 +6625,7 @@ MDefinition* MGuardNullOrUndefined::foldsTo(TempAllocator& alloc) {
     input = input->toBox()->input();
   }
 
-  if (input->definitelyType({MIRType::Null, MIRType::Undefined})) {
+  if (input->typeIsOneOf({MIRType::Null, MIRType::Undefined})) {
     return value();
   }
 
