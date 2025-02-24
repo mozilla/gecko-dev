@@ -274,17 +274,16 @@ add_task(async function test_cleanup() {
   // the policy and do not get cleared if there is no ContentAnalysis
   // element - reset them manually here.
   ca.isSetByEnterprisePolicy = false;
-  Services.prefs.setBoolPref(getIndividualPrefName("Enabled"), false);
+  Services.prefs.unlockPref(getIndividualPrefName("Enabled"));
+  Services.prefs.clearUserPref(getIndividualPrefName("Enabled"));
   for (let interceptionPoint of kInterceptionPoints) {
-    Services.prefs.setBoolPref(
-      `browser.contentanalysis.interception_point.${interceptionPoint}.enabled`,
-      true
-    );
+    const prefName = `browser.contentanalysis.interception_point.${interceptionPoint}.enabled`;
+    Services.prefs.unlockPref(prefName);
+    Services.prefs.clearUserPref(prefName);
   }
   for (let interceptionPoint of kInterceptionPointsPlainTextOnly) {
-    Services.prefs.setBoolPref(
-      `browser.contentanalysis.interception_point.${interceptionPoint}.plain_text_only`,
-      true
-    );
+    const prefName = `browser.contentanalysis.interception_point.${interceptionPoint}.plain_text_only`;
+    Services.prefs.unlockPref(prefName);
+    Services.prefs.clearUserPref(prefName);
   }
 });
