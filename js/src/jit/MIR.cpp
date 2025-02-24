@@ -2489,16 +2489,20 @@ bool MPhi::markIteratorPhis(const PhiVector& iterators) {
 bool MPhi::typeIncludes(MDefinition* def) {
   MOZ_ASSERT(!IsMagicType(def->type()));
 
+  if (def->type() == this->type()) {
+    return true;
+  }
+
+  // This phi must be able to be any value.
+  if (this->type() == MIRType::Value) {
+    return true;
+  }
+
   if (def->type() == MIRType::Int32 && this->type() == MIRType::Double) {
     return true;
   }
 
-  if (def->type() == MIRType::Value) {
-    // This phi must be able to be any value.
-    return this->type() == MIRType::Value;
-  }
-
-  return this->mightBeType(def->type());
+  return false;
 }
 
 void MCallBase::addArg(size_t argnum, MDefinition* arg) {
