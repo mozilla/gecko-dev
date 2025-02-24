@@ -1,23 +1,14 @@
-.inline-selection-wrapper {
+.inline-selection-wrapper.ds-section {
   // Maintain the gap between the inline topic picker and the next section
   // in line with how sections are spaced from each other.
-  padding-block-end: var(--space-medium);
 
   @include wallpaper-contrast-fix;
 
-  // The heading for this section matches topic-specific section titles.
-  h2 {
-    font-weight: var(--font-weight-bold);
-    font-size: var(--font-size-xlarge);
-    color: var(--newtab-contextual-text-primary-color);
-    margin-block: 0;
-
-    @media (min-width: $break-point-layout-variant) {
-      font-size: var(--font-size-xxlarge);
-    }
+  .section-heading {
+    margin-block: var(--space-medium);
   }
 
-  .inline-selection-copy {
+  .section-subtitle {
     color: var(--newtab-contextual-text-primary-color);
   }
 
@@ -32,9 +23,10 @@
     list-style: none;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-large);
+    row-gap: calc(1.25 * var(--space-small));
+    column-gap: var(--space-small);
     justify-content: flex-start;
-    margin: var(--space-small) auto var(--space-medium) auto;
+    margin: var(--space-small) auto;
     padding-inline-start: 0;
     width: fit-content;
 
@@ -54,7 +46,7 @@
       border: var(--border-width) solid var(--border-color-interactive);
       border-radius: 40px;
       color: var(--newtab-contextual-text-primary-color);
-      padding: var(--space-small) calc(1.25 * var(--space-small)) var(--space-small) var(--space-small);
+      padding: var(--space-small) calc(1.25 * var(--space-small)) var(--space-small) var(--space-xsmall);
 
       input[type='checkbox'] {
         outline: none;

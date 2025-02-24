@@ -17,7 +17,7 @@ const PREF_VISIBLE_SECTIONS =
  *
  * @returns {React.Element}
  */
-function InterestPicker({ data }) {
+function InterestPicker({ title, subtitle, interests, receivedFeedRank }) {
   const dispatch = useDispatch();
   const focusedRef = useRef(null);
   const focusRef = useRef(null);
@@ -26,10 +26,6 @@ function InterestPicker({ data }) {
   const visibleSections = prefs[PREF_VISIBLE_SECTIONS]?.split(",")
     .map(item => item.trim())
     .filter(item => item);
-
-  const { title, subtitle, receivedFeedRank, sections } = data;
-  // if undefined or null, assign as empty array to avoid an error
-  const interests = sections ?? [];
 
   const following = prefs[PREF_FOLLOWED_SECTIONS]
     ? prefs[PREF_FOLLOWED_SECTIONS].split(",")
@@ -113,14 +109,17 @@ function InterestPicker({ data }) {
   }
   return (
     <section
-      className="inline-selection-wrapper"
+      className="inline-selection-wrapper ds-section"
       ref={el => {
         ref.current = [el];
       }}
     >
-      {/* Will replace copy here to copy sent from over the server */}
-      <h2>{title}</h2>
-      <p className="inline-selection-copy">{subtitle}</p>
+      <div className="section-heading">
+        <div className="section-title-wrapper">
+          <h2 className="section-title">{title}</h2>
+          <p className="section-subtitle">{subtitle}</p>
+        </div>
+      </div>
       <ul
         className="topic-list"
         onFocus={onWrapperFocus}
@@ -131,7 +130,7 @@ function InterestPicker({ data }) {
           const checked = following.includes(interest.sectionId);
           return (
             <li
-              key={interest.id}
+              key={interest.sectionId}
               ref={index === focusedIndex ? focusedRef : null}
             >
               <label>
@@ -147,10 +146,7 @@ function InterestPicker({ data }) {
                     onItemFocus(index);
                   }}
                 />
-                <span
-                  className="topic-item-label"
-                  data-l10n-id={`newtab-topic-label-${interest.sectionId}`}
-                />
+                <span className="topic-item-label">{interest.title || ""}</span>
                 <div
                   className={`topic-item-icon icon ${checked ? "icon-check-filled" : "icon-add-circle-fill"}`}
                 ></div>

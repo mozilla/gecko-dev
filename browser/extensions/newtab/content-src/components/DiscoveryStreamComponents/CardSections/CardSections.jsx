@@ -365,13 +365,23 @@ function CardSections({
     />
   ));
 
-  if (interestPickerEnabled && personalizationEnabled && interestPicker) {
+  // check that the interest picker is enabled and has data needed to render
+  if (
+    interestPickerEnabled &&
+    personalizationEnabled &&
+    interestPicker?.sections
+  ) {
     const index = interestPicker.receivedFeedRank - 1;
 
     sectionsToRender.splice(
       Math.min(sectionsToRender.length - 1, index),
       0,
-      <InterestPicker data={interestPicker} />
+      <InterestPicker
+        title={interestPicker.title}
+        subtitle={interestPicker.subtitle}
+        interests={interestPicker.sections || []}
+        receivedFeedRank={interestPicker.receivedFeedRank}
+      />
     );
   }
 

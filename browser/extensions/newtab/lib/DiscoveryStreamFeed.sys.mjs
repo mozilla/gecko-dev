@@ -1745,6 +1745,22 @@ export class DiscoveryStreamFeed {
           );
         }
 
+        // This assigns the section title to the interestPicker.sections
+        // object to more easily access the title in JSX files
+        if (
+          feedResponse.interestPicker &&
+          feedResponse.interestPicker.sections
+        ) {
+          feedResponse.interestPicker.sections =
+            feedResponse.interestPicker.sections.map(section => {
+              const { sectionId } = section;
+              const title = sections.find(
+                ({ sectionKey }) => sectionKey === sectionId
+              )?.title;
+              return { sectionId, title };
+            });
+        }
+
         // We can cleanup any impressions we have that are old before we rotate.
         // In theory we can do this anywhere, but doing it just before rotate is optimal.
         // Rotate is also the only place that uses these impressions.

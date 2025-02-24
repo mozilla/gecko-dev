@@ -10082,7 +10082,10 @@ const PREF_VISIBLE_SECTIONS = "discoverystream.sections.interestPicker.visibleSe
  * @returns {React.Element}
  */
 function InterestPicker({
-  data
+  title,
+  subtitle,
+  interests,
+  receivedFeedRank
 }) {
   const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
   const focusedRef = (0,external_React_namespaceObject.useRef)(null);
@@ -10090,14 +10093,6 @@ function InterestPicker({
   const [focusedIndex, setFocusedIndex] = (0,external_React_namespaceObject.useState)(0);
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const visibleSections = prefs[PREF_VISIBLE_SECTIONS]?.split(",").map(item => item.trim()).filter(item => item);
-  const {
-    title,
-    subtitle,
-    receivedFeedRank,
-    sections
-  } = data;
-  // if undefined or null, assign as empty array to avoid an error
-  const interests = sections ?? [];
   const following = prefs[PREF_FOLLOWED_SECTIONS] ? prefs[PREF_FOLLOWED_SECTIONS].split(",") : [];
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     dispatch(actionCreators.AlsoToMain({
@@ -10163,13 +10158,19 @@ function InterestPicker({
     dispatch(actionCreators.SetPref(PREF_FOLLOWED_SECTIONS, updatedTopics.join(",")));
   }
   return /*#__PURE__*/external_React_default().createElement("section", {
-    className: "inline-selection-wrapper",
+    className: "inline-selection-wrapper ds-section",
     ref: el => {
       ref.current = [el];
     }
-  }, /*#__PURE__*/external_React_default().createElement("h2", null, title), /*#__PURE__*/external_React_default().createElement("p", {
-    className: "inline-selection-copy"
-  }, subtitle), /*#__PURE__*/external_React_default().createElement("ul", {
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "section-heading"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "section-title-wrapper"
+  }, /*#__PURE__*/external_React_default().createElement("h2", {
+    className: "section-title"
+  }, title), /*#__PURE__*/external_React_default().createElement("p", {
+    className: "section-subtitle"
+  }, subtitle))), /*#__PURE__*/external_React_default().createElement("ul", {
     className: "topic-list",
     onFocus: onWrapperFocus,
     onBlur: onWrapperBlur,
@@ -10177,7 +10178,7 @@ function InterestPicker({
   }, interests.map((interest, index) => {
     const checked = following.includes(interest.sectionId);
     return /*#__PURE__*/external_React_default().createElement("li", {
-      key: interest.id,
+      key: interest.sectionId,
       ref: index === focusedIndex ? focusedRef : null
     }, /*#__PURE__*/external_React_default().createElement("label", null, /*#__PURE__*/external_React_default().createElement("input", {
       type: "checkbox",
@@ -10191,9 +10192,8 @@ function InterestPicker({
         onItemFocus(index);
       }
     }), /*#__PURE__*/external_React_default().createElement("span", {
-      className: "topic-item-label",
-      "data-l10n-id": `newtab-topic-label-${interest.sectionId}`
-    }), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "topic-item-label"
+    }, interest.title || ""), /*#__PURE__*/external_React_default().createElement("div", {
       className: `topic-item-icon icon ${checked ? "icon-check-filled" : "icon-add-circle-fill"}`
     })));
   })), /*#__PURE__*/external_React_default().createElement("p", {
@@ -10516,10 +10516,15 @@ function CardSections({
     ctaButtonVariant: ctaButtonVariant,
     ctaButtonSponsors: ctaButtonSponsors
   }));
-  if (interestPickerEnabled && personalizationEnabled && interestPicker) {
+
+  // check that the interest picker is enabled and has data needed to render
+  if (interestPickerEnabled && personalizationEnabled && interestPicker?.sections) {
     const index = interestPicker.receivedFeedRank - 1;
     sectionsToRender.splice(Math.min(sectionsToRender.length - 1, index), 0, /*#__PURE__*/external_React_default().createElement(InterestPicker, {
-      data: interestPicker
+      title: interestPicker.title,
+      subtitle: interestPicker.subtitle,
+      interests: interestPicker.sections || [],
+      receivedFeedRank: interestPicker.receivedFeedRank
     }));
   }
   const isEmpty = sectionsToRender.length === 0;
