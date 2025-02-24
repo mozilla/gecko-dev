@@ -6,6 +6,7 @@ package org.mozilla.fenix.webcompat.ui
 
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
@@ -25,7 +29,10 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -36,6 +43,7 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
@@ -59,6 +67,7 @@ private const val PROBLEM_DESCRIPTION_MAX_LINES = 6
  *
  * @param store [WebCompatReporterStore] used to manage the state of the Web Compat Reporter feature.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Suppress("LongMethod")
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
@@ -66,6 +75,10 @@ fun WebCompatReporter(
     store: WebCompatReporterStore,
 ) {
     val state by store.observeAsState(store.state) { it }
+
+    val scrollState = rememberScrollState()
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
 
     BackHandler {
         store.dispatch(WebCompatReporterAction.BackPressed)
@@ -82,7 +95,10 @@ fun WebCompatReporter(
         backgroundColor = FirefoxTheme.colors.layer2,
     ) {
         Column(
-            modifier = Modifier.verticalScroll(rememberScrollState())
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(scrollState)
+                .imePadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
             Text(
@@ -141,6 +157,15 @@ fun WebCompatReporter(
 
             TextField(
                 value = state.problemDescription,
+                modifier = Modifier
+                    .bringIntoViewRequester(bringIntoViewRequester)
+                    .onFocusEvent { focusState ->
+                        if (focusState.isFocused) {
+                            coroutineScope.launch {
+                                bringIntoViewRequester.bringIntoView()
+                            }
+                        }
+                    },
                 onValueChange = {
                     store.dispatch(WebCompatReporterAction.ProblemDescriptionChanged(newProblemDescription = it))
                 },
