@@ -35,6 +35,8 @@ add_task(async function () {
     findElementWithSelector,
     createLocation,
     isCm6Enabled,
+    getEditorContent,
+    getCMEditor,
   });
   // ToolboxTask.spawn pass input arguments by stringify them via string concatenation.
   // This mean we have to stringify the input object, but don't have to parse it from the task.
