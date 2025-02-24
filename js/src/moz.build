@@ -398,7 +398,6 @@ UNIFIED_SOURCES += [
     "vm/NativeObject.cpp",
     "vm/ObjectWithStashedPointer.cpp",
     "vm/OffThreadPromiseRuntimeState.cpp",
-    "vm/PIC.cpp",
     "vm/PlainObject.cpp",
     "vm/Prefs.cpp",
     "vm/Printer.cpp",

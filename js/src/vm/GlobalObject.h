@@ -166,9 +166,6 @@ class GlobalObjectData {
   GCPtr<NativeObject*> intrinsicsHolder;
   GCPtr<NativeObject*> computedIntrinsicsHolder;
 
-  // Cache used to optimize certain for-of operations.
-  GCPtr<NativeObject*> forOfPICChain;
-
   // List of source URLs for this realm. This is used by the debugger.
   GCPtr<ArrayObject*> sourceURLsHolder;
 
@@ -1028,10 +1025,6 @@ class GlobalObject : public NativeObject {
     return realm()->getDebuggers(nogc);
   }
   bool hasDebuggers() const { return realm()->hasDebuggers(); }
-
-  inline NativeObject* getForOfPICObject() { return data().forOfPICChain; }
-  static NativeObject* getOrCreateForOfPICObject(JSContext* cx,
-                                                 Handle<GlobalObject*> global);
 
   JSObject* maybeWindowProxy() const { return data().windowProxy; }
 

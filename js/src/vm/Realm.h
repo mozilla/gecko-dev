@@ -863,9 +863,6 @@ class JS::Realm : public JS::shadow::Realm {
   static size_t offsetOfLocalAllocSite() {
     return offsetof(JS::Realm, localAllocSite);
   }
-
- private:
-  void purgeForOfPicChain();
 };
 
 inline js::Handle<js::GlobalObject*> JSContext::global() const {

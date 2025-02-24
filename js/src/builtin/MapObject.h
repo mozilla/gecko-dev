@@ -12,7 +12,6 @@
 #include "builtin/OrderedHashTableObject.h"
 #include "vm/JSObject.h"
 #include "vm/NativeObject.h"
-#include "vm/PIC.h"
 
 namespace js {
 

@@ -69,7 +69,6 @@
 #include "vm/GeneratorObject.h"
 #include "vm/JSContext.h"
 #include "vm/NumberObject.h"
-#include "vm/PIC.h"
 #include "vm/PlainObject.h"
 #include "vm/RegExpObject.h"
 #include "vm/RegExpStatics.h"
@@ -825,23 +824,6 @@ bool js::DefineToStringTag(JSContext* cx, HandleObject obj, JSAtom* tag) {
 }
 
 /* static */
-NativeObject* GlobalObject::getOrCreateForOfPICObject(
-    JSContext* cx, Handle<GlobalObject*> global) {
-  cx->check(global);
-  NativeObject* forOfPIC = global->getForOfPICObject();
-  if (forOfPIC) {
-    return forOfPIC;
-  }
-
-  forOfPIC = ForOfPIC::createForOfPICObject(cx, global);
-  if (!forOfPIC) {
-    return nullptr;
-  }
-  global->data().forOfPICChain.init(forOfPIC);
-  return forOfPIC;
-}
-
-/* static */
 JSObject* GlobalObject::getOrCreateRealmKeyObject(
     JSContext* cx, Handle<GlobalObject*> global) {
   cx->check(global);
@@ -1063,7 +1045,6 @@ void GlobalObjectData::trace(JSTracer* trc, GlobalObject* global) {
   TraceNullableEdge(trc, &intrinsicsHolder, "global-intrinsics-holder");
   TraceNullableEdge(trc, &computedIntrinsicsHolder,
                     "global-computed-intrinsics-holder");
-  TraceNullableEdge(trc, &forOfPICChain, "global-for-of-pic");
   TraceNullableEdge(trc, &sourceURLsHolder, "global-source-urls");
   TraceNullableEdge(trc, &realmKeyObject, "global-realm-key");
   TraceNullableEdge(trc, &throwTypeError, "global-throw-type-error");

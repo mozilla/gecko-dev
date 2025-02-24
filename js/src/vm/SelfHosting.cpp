@@ -89,7 +89,6 @@
 #include "vm/JSFunction.h"
 #include "vm/JSObject.h"
 #include "vm/Logging.h"
-#include "vm/PIC.h"
 #include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Realm.h"
 #include "vm/RegExpObject.h"
