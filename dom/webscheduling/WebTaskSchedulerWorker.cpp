@@ -9,7 +9,6 @@
 #include "mozilla/dom/TimeoutManager.h"
 
 namespace mozilla::dom {
-
 WebTaskWorkerRunnable::WebTaskWorkerRunnable(
     WebTaskSchedulerWorker* aSchedulerWorker)
     : WorkerSameThreadRunnable("WebTaskWorkerRunnable"),
@@ -113,4 +112,16 @@ void WebTaskSchedulerWorker::Disconnect() {
   }
   WebTaskScheduler::Disconnect();
 }
+
+void WebTaskSchedulerWorker::
+    IncreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled() {
+  ++mNumHighPriorityQueuesHaveTaskScheduled;
+}
+
+void WebTaskSchedulerWorker::
+    DecreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled() {
+  MOZ_ASSERT(mNumHighPriorityQueuesHaveTaskScheduled > 0);
+  --mNumHighPriorityQueuesHaveTaskScheduled;
+}
+
 }  // namespace mozilla::dom

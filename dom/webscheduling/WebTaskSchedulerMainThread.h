@@ -32,6 +32,9 @@ class WebTaskSchedulerMainThread final : public WebTaskScheduler {
   explicit WebTaskSchedulerMainThread(nsIGlobalObject* aParent)
       : WebTaskScheduler(aParent) {}
 
+  void IncreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled() override;
+  void DecreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled() override;
+
  private:
   nsresult SetTimeoutForDelayedTask(WebTask* aTask, uint64_t aDelay,
                                     EventQueuePriority aPriority) override;
