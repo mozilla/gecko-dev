@@ -14,7 +14,7 @@ namespace mozilla::dom {
 
 NS_IMETHODIMP WebTaskMainThreadRunnable::Run() {
   if (mScheduler) {
-    RefPtr<WebTask> task = mScheduler->GetNextTask();
+    RefPtr<WebTask> task = mScheduler->GetNextTask(true /* aIsMainThread */);
     if (task) {
       task->Run();
     }
