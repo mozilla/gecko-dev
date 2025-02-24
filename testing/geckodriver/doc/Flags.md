@@ -29,7 +29,7 @@ and port `8080` to access the geckodriver instance.
 
 ## <code>-\\-allow-system-access</code>
 
-A boolean flag required to enable browser UI testing, starting with Firefox 137.
+A boolean flag required to enable browser UI testing, starting with Firefox 138.
 
 This flag allows WebDriver commands to target Firefox's parent process,
 enabling interaction with UI elements and access to elevated Gecko APIs that
