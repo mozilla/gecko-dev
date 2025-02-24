@@ -108,7 +108,6 @@
   "AboutNewTab",
   "AboutReaderParent",
   "AddonManager",
-  "BlockedSiteParent",
   "BrowserTelemetryUtils",
   "BrowserUIUtils",
   "BrowserUsageTelemetry",

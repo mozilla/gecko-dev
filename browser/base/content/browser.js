@@ -23,7 +23,6 @@ ChromeUtils.defineESModuleGetters(this, {
   ActionsProviderContextualSearch:
     "resource:///modules/ActionsProviderContextualSearch.sys.mjs",
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
-  BlockedSiteParent: "resource:///actors/BlockedSiteParent.sys.mjs",
   BrowserTelemetryUtils: "resource://gre/modules/BrowserTelemetryUtils.sys.mjs",
   BrowserUIUtils: "resource:///modules/BrowserUIUtils.sys.mjs",
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
@@ -2678,8 +2677,6 @@ var XULBrowserWindow = {
     gProtectionsHandler.onLocationChange();
 
     BrowserPageActions.onLocationChange();
-
-    BlockedSiteParent.onLocationChange(window, aLocationURI);
 
     SaveToPocket.onLocationChange(window);
 

@@ -16,22 +16,26 @@ ChromeUtils.defineLazyGetter(lazy, "browserBundle", () => {
   );
 });
 
-const SafeBrowsingNotificationBox = {
-  _currentURIBaseDomain: null,
-  async show(browser, title, buttons) {
+class SafeBrowsingNotificationBox {
+  _currentURIBaseDomain = null;
+
+  browser = null;
+
+  constructor(browser, title, buttons) {
+    this.browser = browser;
+
     let uri = browser.currentURI;
-
     // start tracking host so that we know when we leave the domain
-    try {
-      this._currentURIBaseDomain = Services.eTLD.getBaseDomain(uri);
-    } catch (e) {
-      // If we can't get the base domain, fallback to use host instead. However,
-      // host is sometimes empty when the scheme is file. In this case, just use
-      // spec.
-      this._currentURIBaseDomain = uri.asciiHost || uri.asciiSpec;
-    }
+    this._currentURIBaseDomain = this.#getDomainForComparison(uri);
 
-    let notificationBox = browser.ownerGlobal.gBrowser.getNotificationBox();
+    browser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_LOCATION);
+
+    this.show(title, buttons);
+  }
+
+  async show(title, buttons) {
+    let gBrowser = this.browser.getTabBrowser();
+    let notificationBox = gBrowser.getNotificationBox(this.browser);
     let value = "blocked-badware-page";
 
     let previousNotification = notificationBox.getNotificationWithValue(value);
@@ -51,29 +55,58 @@ const SafeBrowsingNotificationBox = {
     // Persist the notification until the user removes so it
     // doesn't get removed on redirects.
     notification.persistence = -1;
-  },
-  onLocationChange(window, aLocationURI) {
-    // take this to represent that you haven't visited a bad place
-    if (!this._currentURIBaseDomain) {
+  }
+
+  onLocationChange(webProgress, request, newURI) {
+    if (webProgress && !webProgress.isTopLevel) {
       return;
     }
+    let newURIBaseDomain = this.#getDomainForComparison(newURI);
 
-    let gBrowser = window.gBrowser;
-    let newURIBaseDomain = Services.eTLD.getBaseDomain(aLocationURI);
+    if (
+      !this._currentURIBaseDomain ||
+      newURIBaseDomain !== this._currentURIBaseDomain
+    ) {
+      this.cleanup();
+    }
+  }
 
-    if (newURIBaseDomain !== this._currentURIBaseDomain) {
-      let notificationBox = gBrowser.getNotificationBox();
+  cleanup() {
+    if (this.browser) {
+      let gBrowser = this.browser.getTabBrowser();
+      let notificationBox = gBrowser.getNotificationBox(this.browser);
       let notification = notificationBox.getNotificationWithValue(
         "blocked-badware-page"
       );
       if (notification) {
         notificationBox.removeNotification(notification, false);
       }
-
-      this._currentURIBaseDomain = null;
+      this.browser.removeProgressListener(
+        this,
+        Ci.nsIWebProgress.NOTIFY_LOCATION
+      );
+      this.browser.safeBrowsingNotification = null;
+      this.browser = null;
     }
-  },
-};
+    this._currentURIBaseDomain = null;
+  }
+
+  #getDomainForComparison(uri) {
+    try {
+      return Services.eTLD.getBaseDomain(uri);
+    } catch (e) {
+      // If we can't get the base domain, fallback to use host instead. However,
+      // host is sometimes empty when the scheme is file. In this case, just use
+      // spec.
+      return uri.asciiHost || uri.asciiSpec;
+    }
+  }
+}
+
+SafeBrowsingNotificationBox.prototype.QueryInterface = ChromeUtils.generateQI([
+  "nsIWebProgressListener",
+  "nsISupportsWeakReference",
+]);
 
 export class BlockedSiteParent extends JSWindowActorParent {
   receiveMessage(msg) {
@@ -237,11 +270,10 @@ export class BlockedSiteParent extends JSWindowActorParent {
       // provide a URL endpoint for these reports.
     }
 
-    if (this.notificationBox) {
-      this.notificationBox.cleanup();
-    }
-    this.notificationBox = SafeBrowsingNotificationBox.show(
-      browsingContext.top.embedderElement,
+    let browser = browsingContext.top.embedderElement;
+    browser.safeBrowsingNotification?.cleanup();
+    browser.safeBrowsingNotification = new SafeBrowsingNotificationBox(
+      browser,
       title,
       buttons
     );
@@ -258,9 +290,5 @@ export class BlockedSiteParent extends JSWindowActorParent {
       triggeringPrincipal,
       loadFlags: Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CLASSIFIER,
     });
-  }
-
-  static onLocationChange(window, currentURI) {
-    SafeBrowsingNotificationBox.onLocationChange(window, currentURI);
   }
 }
