@@ -358,6 +358,11 @@
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla імкнецца збіраць толькі тыя звесткі, якія патрэбны для работы і паляпшэння %1$s для ўсіх.</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preference_daily_usage_ping_title">Пінг штодзённага выкарыстання</string>
+    <string name="preference_daily_usage_ping_description">Гэта дапамагае Mozilla ацэньваць актыўных карыстальнікаў.</string>
+    <string name="preference_daily_usage_ping_learn_more">Падрабязней</string>
+
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Паведамленне аб прыватнасці</string>
 
@@ -366,6 +371,9 @@
 
     <!-- Link to Focus licensing information from other libraries that we use. -->
     <string name="preference_libraries_we_use">Бібліятэкі, якімі мы карыстаемся</string>
+
+    <!-- Link to Focus Crash reports list. -->
+    <string name="preference_crashes">Крахі</string>
 
     <!-- Open Source Licenses page title. The first parameter is the app name -->
     <string name="open_source_licenses_title">%s | Бібліятэкі OSS</string>
