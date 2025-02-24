@@ -369,10 +369,8 @@ export class SidebarState {
     if (!document.documentElement.hasAttribute("inDOMFullscreen")) {
       this.#panelEl.style.maxWidth = `calc(${SIDEBAR_MAXIMUM_WIDTH} - ${width}px)`;
       // Expand the launcher when it gets wide enough.
-      if (lazy.verticalTabsEnabled) {
+      if (this.launcherDragActive) {
         this.launcherExpanded = width >= LAUNCHER_MINIMUM_WIDTH;
-      } else {
-        this.launcherExpanded = false;
       }
     }
   }
