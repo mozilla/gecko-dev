@@ -74,15 +74,15 @@ ADD_TEST_SUPPORTED_SUITES = [
     "mochitest-chrome",
     "mochitest-plain",
     "mochitest-browser-chrome",
-    "web-platform-tests-testharness",
+    "web-platform-tests",
     "web-platform-tests-reftest",
     "xpcshell",
 ]
 ADD_TEST_SUPPORTED_DOCS = ["js", "html", "xhtml", "xul"]
 
 SUITE_SYNONYMS = {
-    "wpt": "web-platform-tests-testharness",
-    "wpt-testharness": "web-platform-tests-testharness",
+    "wpt": "web-platform-tests",
+    "wpt-testharness": "web-platform-tests",
     "wpt-reftest": "web-platform-tests-reftest",
 }
 
@@ -297,7 +297,7 @@ def guess_suite(abs_test):
     )
 
     if in_wpt_folder:
-        guessed_suite = "web-platform-tests-testharness"
+        guessed_suite = "web-platform-tests"
         if "/css/" in abs_test:
             guessed_suite = "web-platform-tests-reftest"
     elif (

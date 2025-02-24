@@ -351,8 +351,7 @@ TEST_CREATORS = {
 
 
 def creator_for_suite(suite):
-    if suite.split("-")[0] == "mochitest":
-        base_suite = "mochitest"
-    else:
-        base_suite = suite.rsplit("-", 1)[0]
-    return TEST_CREATORS.get(base_suite)
+    for key, creator in TEST_CREATORS.items():
+        if suite.startswith(key):
+            return creator
+    return None
