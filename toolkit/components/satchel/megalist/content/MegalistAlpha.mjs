@@ -396,7 +396,6 @@ export class MegalistAlpha extends MozLitElement {
                         ...notification,
                         onButtonClick: handleButtonClick,
                       }}
-                      .onDismiss=${() => (this.viewMode = VIEW_MODES.LIST)}
                       .messageHandler=${(commandId, options) =>
                         this.#sendCommand(commandId, options)}
                     >
