@@ -189,6 +189,11 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
     }
 
     if (MP4Decoder::IsHEVC(mimeType) && !StaticPrefs::media_hevc_enabled()) {
+      MOZ_LOG(
+          sPDMLog, LogLevel::Debug,
+          ("FFmpeg decoder rejects requested type '%s' due to being disabled "
+           "by the pref",
+           mimeType.BeginReading()));
       return media::DecodeSupportSet{};
     }
 
