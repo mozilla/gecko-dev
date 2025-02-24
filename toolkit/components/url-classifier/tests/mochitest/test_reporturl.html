@@ -61,39 +61,35 @@ function setupTestData(data) {
   return Promise.all(promises);
 }
 
-function testOnWindow(aTestData, aCallback, aTestCreater) {
-  return new Promise(resolve => {
-    let win = mainWindow.OpenBrowserWindow();
+async function testOnWindow(aTestData, aCallback, aTestCreater) {
+  let win = mainWindow.OpenBrowserWindow();
 
-    (async function() {
-      await TestUtils.topicObserved("browser-delayed-startup-finished",
-                                    subject => subject == win);
+  await TestUtils.topicObserved("browser-delayed-startup-finished",
+                                subject => subject == win);
 
-      let browser = win.gBrowser.selectedBrowser;
-      aTestCreater(win, browser, aTestData.topUrl, aTestData.testUrl);
+  let browser = win.gBrowser.selectedBrowser;
+  aTestCreater(win, browser, aTestData.topUrl, aTestData.testUrl);
 
-      let notification = await BrowserTestUtils.waitForNotificationBar(win.gBrowser, browser, "blocked-badware-page");
-      ok(notification, "Notification box should be displayed");
+  let notification = await BrowserTestUtils.waitForNotificationBar(win.gBrowser, browser, "blocked-badware-page");
+  ok(notification, "Notification box should be displayed");
 
-      let buttons = notification.buttonContainer.getElementsByTagName("button");
-      let button = buttons[1];
-      if (aTestData.provider != "google" && aTestData.provider != "google4") {
-        is(button, undefined, "Report button should not be showed");
-        win.close();
-        resolve();
-        return;
-      }
+  let buttons = notification.buttonContainer.getElementsByTagName("button");
+  let button = buttons[1];
+  if (aTestData.provider != "google" && aTestData.provider != "google4") {
+    is(button, undefined, "Report button should not be showed");
+    win.close();
+    return;
+  }
 
-      button.click();
 
-      let newTabBrowser = win.gBrowser.selectedTab.linkedBrowser;
-      await BrowserTestUtils.browserLoaded(newTabBrowser);
+  let newTabPromise = BrowserTestUtils.waitForNewTab(win.gBrowser, null, true);
+  info("Clicking and waiting for load");
+  button.click();
 
-      aCallback(newTabBrowser);
-      win.close();
-      resolve();
-    })();
-  });
+  let tab = await newTabPromise;
+
+  aCallback(tab.linkedBrowser);
+  win.close();
 }
 
 var createBlockedIframe = function(aWindow, aBrowser, aTopUrl, aUrl) {
