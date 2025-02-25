@@ -739,6 +739,9 @@ class DebuggerScript::GetPossibleBreakpointsMatcher {
       return false;
     }
     *result->addressOfValueForTranscode() = tmp;
+    if (!result->valid()) {
+      return false;
+    }
     return true;
   }
   bool parseSizeTValue(HandleValue value, size_t* result) {
@@ -867,9 +870,10 @@ class DebuggerScript::GetPossibleBreakpointsMatcher {
       }
 
       if (!parseColumnValue(minColumnValue, &minColumn)) {
-        JS_ReportErrorNumberASCII(
-            cx_, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
-            "getPossibleBreakpoints' 'minColumn'", "not a positive integer");
+        JS_ReportErrorNumberASCII(cx_, GetErrorMessage, nullptr,
+                                  JSMSG_UNEXPECTED_TYPE,
+                                  "getPossibleBreakpoints' 'minColumn'",
+                                  "not a positive integer in valid range");
         return false;
       }
     }
@@ -893,9 +897,10 @@ class DebuggerScript::GetPossibleBreakpointsMatcher {
       }
 
       if (!parseColumnValue(maxColumnValue, &maxColumn)) {
-        JS_ReportErrorNumberASCII(
-            cx_, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
-            "getPossibleBreakpoints' 'maxColumn'", "not a positive integer");
+        JS_ReportErrorNumberASCII(cx_, GetErrorMessage, nullptr,
+                                  JSMSG_UNEXPECTED_TYPE,
+                                  "getPossibleBreakpoints' 'maxColumn'",
+                                  "not a positive integer in valid range");
         return false;
       }
     }
