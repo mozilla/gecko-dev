@@ -623,6 +623,38 @@ void DocumentOrShadowRoot::GetAnimations(
   aAnimations.Sort(AnimationPtrComparator<RefPtr<Animation>>());
 }
 
+struct SheetTreeOrderComparator {
+  nsINode* mNode = nullptr;
+
+  int operator()(StyleSheet* aSheet) const {
+    auto* sheetNode = aSheet->GetOwnerNode();
+    MOZ_ASSERT(sheetNode);
+    MOZ_ASSERT(sheetNode != mNode, "Sheet already in the list?");
+    return nsContentUtils::CompareTreePosition<TreeKind::DOM>(mNode, sheetNode,
+                                                              nullptr);
+  }
+};
+
+size_t DocumentOrShadowRoot::FindSheetInsertionPointInTree(
+    const StyleSheet& aSheet) const {
+  MOZ_ASSERT(!aSheet.IsConstructed());
+  nsINode* owningNode = aSheet.GetOwnerNode();
+  MOZ_ASSERT(owningNode, "Should be a node-owned sheet");
+  MOZ_ASSERT(owningNode->SubtreeRoot() == &AsNode(),
+             "We should insert it somewhere");
+  if (mStyleSheets.IsEmpty()) {
+    return 0;
+  }
+  SheetTreeOrderComparator cmp{owningNode};
+  if (cmp(mStyleSheets.LastElement()) > 0) {
+    // Optimize for append.
+    return mStyleSheets.Length();
+  }
+  size_t idx;
+  BinarySearchIf(mStyleSheets, 0, mStyleSheets.Length(), cmp, &idx);
+  return idx;
+}
+
 size_t DocumentOrShadowRoot::StyleOrderIndexOfSheet(
     const StyleSheet& aSheet) const {
   if (aSheet.IsConstructed()) {
