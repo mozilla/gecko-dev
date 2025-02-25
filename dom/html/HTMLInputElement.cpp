@@ -3323,9 +3323,7 @@ void HTMLInputElement::LegacyPreActivationBehavior(
   }
 
   // out-of-spec legacy pre-activation behavior needed because of bug 1803805
-  if ((mType == FormControlType::InputSubmit ||
-       mType == FormControlType::InputImage) &&
-      mForm) {
+  if (mForm) {
     aVisitor.mItemFlags |= NS_IN_SUBMIT_CLICK;
     aVisitor.mItemData = static_cast<Element*>(mForm);
     // tell the form that we are about to enter a click handler.
@@ -3334,7 +3332,9 @@ void HTMLInputElement::LegacyPreActivationBehavior(
     // handler.
     mForm->OnSubmitClickBegin();
 
-    if (aVisitor.mDOMEvent) {
+    if ((mType == FormControlType::InputSubmit ||
+         mType == FormControlType::InputImage) &&
+        aVisitor.mDOMEvent) {
       if (auto* mouseEvent = aVisitor.mDOMEvent->AsMouseEvent()) {
         const CSSIntPoint pt = RoundedToInt(mouseEvent->OffsetPoint());
         if (auto* imageClickedPoint = static_cast<CSSIntPoint*>(
@@ -4087,10 +4087,7 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
 }
 
 void EndSubmitClick(EventChainPostVisitor& aVisitor) {
-  auto oldType = FormControlType(NS_CONTROL_TYPE(aVisitor.mItemFlags));
-  if ((aVisitor.mItemFlags & NS_IN_SUBMIT_CLICK) &&
-      (oldType == FormControlType::InputSubmit ||
-       oldType == FormControlType::InputImage)) {
+  if (aVisitor.mItemFlags & NS_IN_SUBMIT_CLICK) {
     nsCOMPtr<nsIContent> content(do_QueryInterface(aVisitor.mItemData));
     RefPtr<HTMLFormElement> form = HTMLFormElement::FromNodeOrNull(content);
     // Tell the form that we are about to exit a click handler,
