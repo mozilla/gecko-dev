@@ -628,8 +628,11 @@ struct SheetTreeOrderComparator {
 
   int operator()(StyleSheet* aSheet) const {
     auto* sheetNode = aSheet->GetOwnerNode();
-    MOZ_ASSERT(sheetNode);
     MOZ_ASSERT(sheetNode != mNode, "Sheet already in the list?");
+    if (!sheetNode) {
+      // We go after all the link headers.
+      return 1;
+    }
     return nsContentUtils::CompareTreePosition<TreeKind::DOM>(mNode, sheetNode,
                                                               nullptr);
   }
@@ -639,12 +642,26 @@ size_t DocumentOrShadowRoot::FindSheetInsertionPointInTree(
     const StyleSheet& aSheet) const {
   MOZ_ASSERT(!aSheet.IsConstructed());
   nsINode* owningNode = aSheet.GetOwnerNode();
-  MOZ_ASSERT(owningNode, "Should be a node-owned sheet");
-  MOZ_ASSERT(owningNode->SubtreeRoot() == &AsNode(),
-             "We should insert it somewhere");
+  // We should always have an owning node unless Link: headers are at play.
+  MOZ_ASSERT_IF(!owningNode, AsNode().IsDocument());
+  MOZ_ASSERT_IF(owningNode, owningNode->SubtreeRoot() == &AsNode());
   if (mStyleSheets.IsEmpty()) {
     return 0;
   }
+
+  if (!owningNode) {
+    // We come from a link header, our position is after all the other link
+    // headers, but before any link-owned node.
+    size_t i = 0;
+    for (const auto& sheet : mStyleSheets) {
+      if (sheet->GetOwnerNode()) {
+        break;
+      }
+      i++;
+    }
+    return i;
+  }
+
   SheetTreeOrderComparator cmp{owningNode};
   if (cmp(mStyleSheets.LastElement()) > 0) {
     // Optimize for append.

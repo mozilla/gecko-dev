@@ -1038,11 +1038,12 @@ void Loader::InsertSheetInTree(StyleSheet& aSheet) {
   LOG(("css::Loader::InsertSheetInTree"));
   MOZ_ASSERT(mDocument, "Must have a document to insert into");
 
+  // If our owning node is null, we come from a link header.
   nsINode* owningNode = aSheet.GetOwnerNode();
-  MOZ_ASSERT(owningNode);
+  MOZ_ASSERT_IF(owningNode, owningNode->OwnerDoc() == mDocument);
   DocumentOrShadowRoot* target =
-      owningNode->GetContainingDocumentOrShadowRoot();
-  MOZ_ASSERT(target, "Why would we insert it anywhere?");
+      owningNode ? owningNode->GetContainingDocumentOrShadowRoot() : mDocument;
+  MOZ_ASSERT(target, "Where should we insert it?");
 
   size_t insertionPoint = target->FindSheetInsertionPointInTree(aSheet);
   if (auto* shadow = ShadowRoot::FromNode(target->AsNode())) {
