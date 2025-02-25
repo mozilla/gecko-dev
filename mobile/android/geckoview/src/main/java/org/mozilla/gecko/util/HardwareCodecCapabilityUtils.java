@@ -61,6 +61,7 @@ public final class HardwareCodecCapabilityUtils {
   };
   private static final String H264_MIME_TYPE = "video/avc";
   private static final String HEVC_MIME_TYPE = "video/hevc";
+  private static final String AV1_MIME_TYPE = "video/av01";
   // NV12 color format supported by QCOM codec, but not declared in MediaCodec -
   // see /hardware/qcom/media/mm-core/inc/OMX_QCOMExtns.h
   private static final int COLOR_QCOM_FORMATYUV420PackedSemiPlanar32m = 0x7FA30C04;
@@ -368,7 +369,8 @@ public final class HardwareCodecCapabilityUtils {
           if ((aMimeType.equals(H264_MIME_TYPE)
                   && pl.profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh10)
               || (aMimeType.equals(VP9_MIME_TYPE) && is10BitVP9Profile(pl.profile))
-              || (aMimeType.equals(HEVC_MIME_TYPE) && is10BitHEVCProfile(pl.profile))) {
+              || (aMimeType.equals(HEVC_MIME_TYPE) && is10BitHEVCProfile(pl.profile))
+              || (aMimeType.equals(AV1_MIME_TYPE) && is10BitAV1Profile(pl.profile))) {
             return true;
           }
         }
@@ -412,5 +414,16 @@ public final class HardwareCodecCapabilityUtils {
     // API 29+
     return (profile == MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10)
         || (profile == MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10HDR10Plus);
+  }
+
+  @SuppressLint("NewApi")
+  private static boolean is10BitAV1Profile(final int profile) {
+    if (Build.VERSION.SDK_INT < 29) {
+      // Be conservative when we cannot get supported profile.
+      return false;
+    }
+    return (profile == MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10)
+        || (profile == MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10HDR10)
+        || (profile == MediaCodecInfo.CodecProfileLevel.AV1ProfileMain10HDR10Plus);
   }
 }
