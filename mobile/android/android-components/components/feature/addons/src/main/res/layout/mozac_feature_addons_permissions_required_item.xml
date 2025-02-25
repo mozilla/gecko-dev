@@ -16,8 +16,8 @@
         android:textColor="?android:attr/textColorPrimary"
         android:gravity="center_vertical"
         android:drawablePadding="8dp"
-        app:drawableLeftCompat="@drawable/mozac_ic_checkmark_24"
+        app:drawableStartCompat="@drawable/mozac_ic_checkmark_24"
         app:drawableTint="?android:attr/textColorPrimary"
-        tools:drawableLeft="@drawable/mozac_ic_checkmark_24"
+        tools:drawableStart="@drawable/mozac_ic_checkmark_24"
         tools:drawableTint="?android:attr/textColorPrimary"
         tools:text="Access your data for all websites." />
