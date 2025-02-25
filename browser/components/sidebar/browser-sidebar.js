@@ -457,7 +457,11 @@ var SidebarController = {
       // UI state at this point, load the backup state. (Do not load the backup
       // state if this is a popup, or we are coming from a window of a different
       // privacy level.)
-      if (!this.uiStateInitialized && !isPopup && windowPrivacyMatches) {
+      if (
+        !this.uiStateInitialized &&
+        !isPopup &&
+        (this.sidebarRevampEnabled || windowPrivacyMatches)
+      ) {
         const backupState = this.SidebarManager.getBackupState();
         this.initializeUIState(backupState);
       }
@@ -859,7 +863,8 @@ var SidebarController = {
       if (
         sourceWindow.closed ||
         sourceWindow.location.protocol != "chrome:" ||
-        !this.windowPrivacyMatches(sourceWindow, window)
+        (!this.sidebarRevampEnabled &&
+          !this.windowPrivacyMatches(sourceWindow, window))
       ) {
         return;
       }
