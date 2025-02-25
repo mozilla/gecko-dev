@@ -453,6 +453,9 @@ skip-if = ["true"]
 
 ["test_cache2-33-clear-base-domain.js"]
 
+["test_cache2_clear_with_principal.js"]
+run-sequentially = "httpd server"
+
 ["test_cache2_clear_with_usercontext_oa.js"]
 run-sequentially = "httpd server"
 

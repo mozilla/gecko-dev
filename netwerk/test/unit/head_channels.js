@@ -26,11 +26,12 @@ function read_stream(stream, count) {
   return data.join("");
 }
 
+// CL_ stands for ChannelListener
 const CL_EXPECT_FAILURE = 0x1;
 const CL_EXPECT_GZIP = 0x2;
 const CL_EXPECT_3S_DELAY = 0x4;
 const CL_SUSPEND = 0x8;
-const CL_ALLOW_UNKNOWN_CL = 0x10;
+const CL_ALLOW_UNKNOWN_CL = 0x10; // Response can contain no or invalid content-length header
 const CL_EXPECT_LATE_FAILURE = 0x20;
 const CL_FROM_CACHE = 0x40; // Response must be from the cache
 const CL_NOT_FROM_CACHE = 0x80; // Response must NOT be from the cache
