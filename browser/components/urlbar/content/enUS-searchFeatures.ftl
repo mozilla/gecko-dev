@@ -403,7 +403,7 @@ firefox-suggest-onboarding-main-skip-link = Not now
 urlbar-firefox-suggest-contextual-opt-in-title-1 =
   Find the best of the web, faster
 urlbar-firefox-suggest-contextual-opt-in-description-3 =
-  We’re building a better search experience. When you share search query data with { -vendor-short-name }, we can create more relevant suggestions from { -brand-short-name } and our partners. Privacy-first, always.
+  We’re building a better search experience. When you share search query data with { -vendor-short-name }, we can create more relevant suggestions from { -brand-short-name } and our partners.
   <a data-l10n-name="learn-more-link">Learn more</a>
 urlbar-firefox-suggest-contextual-opt-in-allow = Allow suggestions
 urlbar-firefox-suggest-contextual-opt-in-dismiss = Not now
