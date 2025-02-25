@@ -16,32 +16,9 @@ dnl = Application
 dnl =
 dnl ========================================================
 
-MOZ_BRANDING_DIRECTORY=
-
 dnl ========================================================
 dnl = Trademarked Branding
 dnl ========================================================
-
-# Allow the application to influence configure with a confvars.sh script.
-AC_MSG_CHECKING([if app-specific confvars.sh exists])
-if test -f "${srcdir}/${MOZ_BUILD_APP}/confvars.sh" ; then
-  AC_MSG_RESULT([${srcdir}/${MOZ_BUILD_APP}/confvars.sh])
-  . "${srcdir}/${MOZ_BUILD_APP}/confvars.sh"
-else
-  AC_MSG_RESULT([no])
-fi
-
-if test -n "$MOZ_OFFICIAL_BRANDING"; then
-  if test -z "$MOZ_OFFICIAL_BRANDING_DIRECTORY"; then
-    AC_MSG_ERROR([You must specify MOZ_OFFICIAL_BRANDING_DIRECTORY to use --enable-official-branding.])
-  else
-    MOZ_BRANDING_DIRECTORY=${MOZ_OFFICIAL_BRANDING_DIRECTORY}
-  fi
-fi
-
-MOZ_ARG_WITH_STRING(branding,
-[  --with-branding=dir     Use branding from the specified directory.],
-    MOZ_BRANDING_DIRECTORY=$withval)
 
 REAL_BRANDING_DIRECTORY="${MOZ_BRANDING_DIRECTORY}"
 if test -z "$REAL_BRANDING_DIRECTORY"; then
@@ -51,8 +28,6 @@ fi
 if test -f "${_topsrcdir}/$REAL_BRANDING_DIRECTORY/configure.sh"; then
   . "${_topsrcdir}/$REAL_BRANDING_DIRECTORY/configure.sh"
 fi
-
-AC_SUBST(MOZ_BRANDING_DIRECTORY)
 
 
 dnl ========================================================
