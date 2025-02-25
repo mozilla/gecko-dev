@@ -110,7 +110,9 @@ function parseAttributeValues(attr, doc) {
     parseAndGetNode("<svg " + attr + '"></svg>') ||
     parseAndGetNode("<svg " + attr + "'></svg>");
 
-  const div = doc.createElement("div");
+  // Create <div> in new document to work around CSP blocking inline styles.
+  const htmlDoc = doc.implementation.createHTMLDocument();
+  const div = htmlDoc.createElement("div");
   const attributes = [];
   for (const { name, value } of el.attributes) {
     // Try to set on an element in the document, throws exception on bad input.
