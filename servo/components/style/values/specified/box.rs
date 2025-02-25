@@ -1021,6 +1021,8 @@ bitflags! {
         const FIXPOS_CB_NON_SVG = 1 << 7;
         /// Whether the position property will change.
         const POSITION = 1 << 8;
+        /// Whether the view-transition-name property will change.
+        const VIEW_TRANSITION_NAME = 1 << 9;
     }
 }
 
@@ -1046,6 +1048,7 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
         LonghandId::BackdropFilter | LonghandId::Filter => {
             WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL | WillChangeBits::FIXPOS_CB_NON_SVG
         },
+        LonghandId::ViewTransitionName => WillChangeBits::VIEW_TRANSITION_NAME,
         LonghandId::MixBlendMode |
         LonghandId::Isolation |
         LonghandId::MaskImage |
