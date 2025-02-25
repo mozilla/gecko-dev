@@ -449,6 +449,10 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 null
             }
 
+            resources.getString(R.string.pref_key_link_sharing) -> {
+                SettingsFragmentDirections.actionSettingsFragmentToLinkSharingFragment()
+            }
+
             resources.getString(R.string.pref_key_open_links_in_apps) -> {
                 SettingsFragmentDirections.actionSettingsFragmentToOpenLinksInAppsFragment()
             }
@@ -558,6 +562,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         }
         setupCookieBannerPreference()
         setupInstallAddonFromFilePreference(requireContext().settings())
+        setLinkSharingPreference()
         setupAmoCollectionOverridePreference(requireContext().settings())
         setupGeckoLogsPreference(requireContext().settings())
         setupAllowDomesticChinaFxaServerPreference()
@@ -786,6 +791,13 @@ class SettingsFragment : PreferenceFragmentCompat() {
     internal fun setupInstallAddonFromFilePreference(settings: Settings) {
         with(requirePreference<Preference>(R.string.pref_key_install_local_addon)) {
             isVisible = settings.showSecretDebugMenuThisSession
+        }
+    }
+
+    @VisibleForTesting
+    internal fun setLinkSharingPreference() {
+        with(requirePreference<Preference>(R.string.pref_key_link_sharing)) {
+            isVisible = FxNimbus.features.sentFromFirefox.value().enabled
         }
     }
 

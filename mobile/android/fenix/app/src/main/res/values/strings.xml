@@ -815,6 +815,12 @@
     <string name="preferences_show_nonsponsored_suggestions">Suggestions from %1$s</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">Get suggestions from the web related to your search</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">Link sharing</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">Include %1$s download link on WhatsApp shares</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">Invite your friends to try faster, safer browsing with %1$s every time you share a link on WhatsApp.</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Open links in apps</string>
     <!-- Preference for open links in third party apps always open in apps option -->
