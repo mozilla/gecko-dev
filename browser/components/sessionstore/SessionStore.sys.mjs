@@ -1213,13 +1213,15 @@ var SessionStoreInternal = {
     if (state) {
       try {
         // If we're doing a DEFERRED session, then we want to pull pinned tabs
-        // out so they can be restored.
+        // out so they can be restored, and save any open groups so they are
+        // available to the user.
         if (ss.sessionType == ss.DEFER_SESSION) {
           let [iniState, remainingState] =
             this._prepDataForDeferredRestore(state);
-          // If we have a iniState with windows, that means that we have windows
-          // with pinned tabs to restore.
-          if (iniState.windows.length) {
+          // If we have an iniState with windows, that means that we have windows
+          // with pinned tabs to restore. If we have an iniState with saved
+          // groups, we need to preserve those in the new state.
+          if (iniState.windows.length || iniState.savedGroups) {
             state = iniState;
           } else {
             state = null;
@@ -2524,24 +2526,10 @@ var SessionStoreInternal = {
       }
 
       if (this._shouldSaveTabState(tabState)) {
-        // Ensure the index is in bounds.
-        let activeIndex = tabState.index;
-        activeIndex = Math.min(activeIndex, tabState.entries.length - 1);
-        activeIndex = Math.max(activeIndex, 0);
-        if (!(activeIndex in tabState.entries)) {
+        let tabData = this._formatTabStateForSavedGroup(tabState);
+        if (!tabData) {
           continue;
         }
-        let title =
-          tabState.entries[activeIndex].title ||
-          tabState.entries[activeIndex].url;
-        let tabData = {
-          state: tabState,
-          title,
-          image: tabState.image,
-          pos: tIndex,
-          closedAt: Date.now(),
-          closedId: this._nextClosedId++,
-        };
         newlySavedTabGroups.get(tabState.groupId).tabs.push(tabData);
       }
     }
@@ -2550,6 +2538,32 @@ var SessionStoreInternal = {
     for (let tabGroupToSave of newlySavedTabGroups.values()) {
       this._recordSavedTabGroupState(tabGroupToSave);
     }
+  },
+
+  /**
+   * Convert tab state into a saved group tab state. Used to convert a
+   * closed tab group into a saved tab group.
+   *
+   * @param {TabState} tabState closed tab state
+   */
+  _formatTabStateForSavedGroup(tabState) {
+    // Ensure the index is in bounds.
+    let activeIndex = tabState.index;
+    activeIndex = Math.min(activeIndex, tabState.entries.length - 1);
+    activeIndex = Math.max(activeIndex, 0);
+    if (!(activeIndex in tabState.entries)) {
+      return {};
+    }
+    let title =
+      tabState.entries[activeIndex].title || tabState.entries[activeIndex].url;
+    return {
+      state: tabState,
+      title,
+      image: tabState.image,
+      pos: tabState.pos,
+      closedAt: Date.now(),
+      closedId: this._nextClosedId++,
+    };
   },
 
   /**
@@ -6933,12 +6947,18 @@ var SessionStoreInternal = {
    * SessionStartup.state) and split it into 2 parts. The first part
    * (defaultState) will be a state that should still be restored at startup,
    * while the second part (state) is a state that should be saved for later.
-   * defaultState will be comprised of windows with only pinned tabs, extracted
-   * from a clone of startupState. It will also contain window position information.
+   * defaultState is derived from a clone of startupState,
+   * and will be comprised of:
+   *   - windows with only pinned tabs,
+   *   - window position information, and
+   *   - saved groups, including groups that were open at last shutdown.
    *
    * defaultState will be restored at startup. state will be passed into
    * LastSession and will be kept in case the user explicitly wants
    * to restore the previous session (publicly exposed as restoreLastSession).
+   * Note that restoreLastSession will not restore any grouped tabs that were
+   * present at last shutdown, as they will have been converted to saved
+   * groups.
    *
    * @param state
    *        The startupState, presumably from SessionStartup.state
@@ -6967,14 +6987,6 @@ var SessionStoreInternal = {
       if (PERSIST_SESSIONS) {
         newWindowState._closedTabs = Cu.cloneInto(window._closedTabs, {});
         newWindowState.closedGroups = Cu.cloneInto(window.closedGroups, {});
-
-        // Open groups do not have a tabs list, but closed ones do — we need to
-        // add one here.
-        window.groups?.forEach(group => {
-          group = Cu.cloneInto(group, {});
-          group.tabs = [];
-          newWindowState.closedGroups.push(group);
-        });
       }
 
       // We want to preserve the sidebar if previously open in the window
@@ -6982,6 +6994,7 @@ var SessionStoreInternal = {
         newWindowState.sidebar = window.sidebar;
       }
 
+      let groupsToSave = new Map();
       for (let tIndex = 0; tIndex < window.tabs.length; ) {
         if (window.tabs[tIndex].pinned) {
           // Adjust window.selected
@@ -6996,6 +7009,22 @@ var SessionStoreInternal = {
           newWindowState.tabs = newWindowState.tabs.concat(
             window.tabs.splice(tIndex, 1)
           );
+          // We don't want to increment tIndex here.
+          continue;
+        } else if (window.tabs[tIndex].groupId) {
+          // Convert any open groups into saved groups
+          // and remove them from the session.
+          let groupStateToSave = window.groups.find(
+            groupState => groupState.id == window.tabs[tIndex].groupId
+          );
+          let groupToSave = groupsToSave.get(groupStateToSave.id);
+          if (!groupToSave) {
+            groupToSave =
+              lazy.TabGroupState.savedInClosedWindow(groupStateToSave);
+            groupsToSave.set(groupStateToSave.id, groupToSave);
+          }
+          let [tabToAdd] = window.tabs.splice(tIndex, 1);
+          groupToSave.tabs.push(this._formatTabStateForSavedGroup(tabToAdd));
           // We don't want to increment tIndex here.
           continue;
         } else if (!window.tabs[tIndex].hidden && PERSIST_SESSIONS) {
@@ -7028,19 +7057,17 @@ var SessionStoreInternal = {
 
             if (this._shouldSaveTabState(tabState)) {
               let closedTabsList = newWindowState._closedTabs;
-              let groupId = tabData.state.groupId;
-              if (groupId) {
-                closedTabsList = newWindowState.closedGroups.find(
-                  g => g.id === groupId
-                ).tabs;
-              }
-
               this.saveClosedTabData(window, closedTabsList, tabData, false);
             }
           }
         }
         tIndex++;
       }
+
+      defaultState.savedGroups = startupState.savedGroups || [];
+      groupsToSave.forEach(groupState => {
+        defaultState.savedGroups.push(groupState);
+      });
 
       hasPinnedTabs ||= !!newWindowState.tabs.length;
 
