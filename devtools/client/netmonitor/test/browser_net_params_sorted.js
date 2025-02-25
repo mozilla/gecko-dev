@@ -46,14 +46,14 @@ add_task(async function () {
   //           2: "b"
   //         c: 15
   const expectedKeys = [
-    "watches\t[…]",
+    "watches\t(5)[…]",
     `0\t"hello"`,
     `1\t"how"`,
     `2\t"are"`,
     `3\t"you"`,
     "4\t{…}",
     "a\t10",
-    "b\t[…]",
+    "b\t(3)[…]",
     `0\t"a"`,
     `1\t"c"`,
     `2\t"b"`,

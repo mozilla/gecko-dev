@@ -17,6 +17,9 @@ define(function (require, exports, module) {
   const {
     MODE,
   } = require("resource://devtools/client/shared/components/reps/reps/constants.js");
+  const {
+    lengthBubble,
+  } = require("resource://devtools/client/shared/components/reps/shared/grip-length-bubble.js");
 
   const ModePropType = PropTypes.oneOf(Object.values(MODE));
 
@@ -65,6 +68,12 @@ define(function (require, exports, module) {
         className: "objectBox objectBox-array",
         title: shouldRenderTooltip ? "Array" : null,
       },
+      lengthBubble({
+        object,
+        mode,
+        maxLengthMap,
+        getLength: () => object.length,
+      }),
       span(
         {
           className: "arrayLeftBracket",
