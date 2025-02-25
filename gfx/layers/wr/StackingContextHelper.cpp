@@ -215,7 +215,7 @@ StackingContextHelper::StackingContextHelper(
 
   MOZ_ASSERT(!aParams.clip.IsNone());
   mReferenceFrameId = mBuilder->PushStackingContext(
-      aParams, wr::ToLayoutRect(aBounds), rasterSpace, nullptr);
+      aParams, wr::ToLayoutRect(aBounds), rasterSpace);
 
   if (mReferenceFrameId) {
     mSpaceAndClipChainHelper.emplace(aBuilder, mReferenceFrameId.ref());

@@ -2870,6 +2870,7 @@ pub struct WrStackingContextParams {
     pub animation: *const WrAnimationProperty,
     pub opacity: *const f32,
     pub computed_transform: *const WrComputedTransformData,
+    pub snapshot: *const SnapshotInfo,
     pub transform_style: TransformStyle,
     pub reference_frame_kind: WrReferenceFrameKind,
     pub is_2d_scale_translation: bool,
@@ -2893,7 +2894,6 @@ pub extern "C" fn wr_dp_push_stacking_context(
     filter_datas: *const WrFilterData,
     filter_datas_count: usize,
     glyph_raster_space: RasterSpace,
-    snapshot: Option<&SnapshotInfo>,
 ) -> WrSpatialId {
     debug_assert!(unsafe { !is_in_render_thread() });
 
@@ -3033,7 +3033,7 @@ pub extern "C" fn wr_dp_push_stacking_context(
         &[],
         glyph_raster_space,
         params.flags,
-        snapshot.cloned(),
+        unsafe { params.snapshot.as_ref() }.cloned(),
     );
 
     result
