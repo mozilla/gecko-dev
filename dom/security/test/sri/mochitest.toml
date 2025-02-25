@@ -39,6 +39,8 @@ support-files = [
 
 ["test_bug_1364262.html"]
 
+["test_console_messages.html"]
+
 ["test_script_crossdomain.html"]
 skip-if = [
   "http3",

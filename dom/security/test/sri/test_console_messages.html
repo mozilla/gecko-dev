@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<title>Test for SRI console messages</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script>
+
+SimpleTest.waitForExplicitFinish();
+
+async function testSRIWarnings({ triggerLoad, messages }) {
+  let waitForConsole = new Promise(resolve => {
+    SimpleTest.monitorConsole(resolve, messages);
+  });
+  await triggerLoad();
+  info(`ending monitorConsole`);
+  SimpleTest.endMonitorConsole();
+  info(`waiting for console`);
+  await waitForConsole;
+}
+
+const kTests = [
+  {
+    triggerLoad() {
+      let link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "style1.css";
+      link.integrity = "sha384-invalid";
+
+      return new Promise(r => {
+        link.onerror = r;
+        document.head.appendChild(link);
+      });
+    },
+    messages: [
+      {
+        errorMessage: /The hash contained in the integrity attribute has the wrong length/,
+      },
+      {
+        errorMessage: /None of the “sha384” hashes in the integrity attribute match the content of the subresource/,
+        sourceName: location.href,
+      }
+    ],
+  }
+];
+
+(async function() {
+  let i = 0;
+  for (const test of kTests) {
+    info("Starting test: " + ++i);
+    await testSRIWarnings(test);
+  }
+  SimpleTest.finish();
+}());
+</script>

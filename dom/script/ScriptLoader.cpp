@@ -931,12 +931,8 @@ nsresult ScriptLoader::PrepareIncrementalStreamLoader(
     ScriptLoadRequest* aRequest) {
   UniquePtr<mozilla::dom::SRICheckDataVerifier> sriDataVerifier;
   if (!aRequest->mIntegrity.IsEmpty()) {
-    nsAutoCString sourceUri;
-    if (mDocument->GetDocumentURI()) {
-      mDocument->GetDocumentURI()->GetAsciiSpec(sourceUri);
-    }
     sriDataVerifier = MakeUnique<SRICheckDataVerifier>(aRequest->mIntegrity,
-                                                       sourceUri, mReporter);
+                                                       aChannel, mReporter);
   }
 
   RefPtr<ScriptLoadHandler> handler =
@@ -3837,13 +3833,7 @@ nsresult ScriptLoader::VerifySRI(ScriptLoadRequest* aRequest,
   if (!aRequest->mIntegrity.IsEmpty() && NS_SUCCEEDED((rv = aSRIStatus))) {
     MOZ_ASSERT(aSRIDataVerifier);
     MOZ_ASSERT(mReporter);
-
-    nsAutoCString sourceUri;
-    if (mDocument && mDocument->GetDocumentURI()) {
-      mDocument->GetDocumentURI()->GetAsciiSpec(sourceUri);
-    }
-    rv = aSRIDataVerifier->Verify(aRequest->mIntegrity, channel, sourceUri,
-                                  mReporter);
+    rv = aSRIDataVerifier->Verify(aRequest->mIntegrity, channel, mReporter);
     if (channelRequest) {
       mReporter->FlushReportsToConsole(
           nsContentUtils::GetInnerWindowID(channelRequest));

@@ -1356,7 +1356,7 @@ FetchDriver::OnStartRequest(nsIRequest* aRequest) {
     SRICheck::IntegrityMetadata(mRequest->GetIntegrity(), sourceUri, reporter,
                                 &mSRIMetadata);
     mSRIDataVerifier =
-        MakeUnique<SRICheckDataVerifier>(mSRIMetadata, sourceUri, reporter);
+        MakeUnique<SRICheckDataVerifier>(mSRIMetadata, channel, reporter);
 
     // Do not retarget off main thread when using SRI API.
     return NS_OK;
@@ -1583,14 +1583,7 @@ FetchDriver::OnStopRequest(nsIRequest* aRequest, nsresult aStatusCode) {
         reporter = mObserver->GetReporter();
       }
 
-      nsAutoCString sourceUri;
-      if (mDocument && mDocument->GetDocumentURI()) {
-        mDocument->GetDocumentURI()->GetAsciiSpec(sourceUri);
-      } else if (!mWorkerScript.IsEmpty()) {
-        sourceUri.Assign(mWorkerScript);
-      }
-      nsresult rv =
-          mSRIDataVerifier->Verify(mSRIMetadata, channel, sourceUri, reporter);
+      nsresult rv = mSRIDataVerifier->Verify(mSRIMetadata, channel, reporter);
       if (NS_FAILED(rv)) {
         if (altDataListener) {
           altDataListener->Cancel();

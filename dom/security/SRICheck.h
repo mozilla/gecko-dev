@@ -48,8 +48,7 @@ class SRICheck final {
 //    metadata.
 class SRICheckDataVerifier final {
  public:
-  SRICheckDataVerifier(const SRIMetadata& aMetadata,
-                       const nsACString& aSourceFileURI,
+  SRICheckDataVerifier(const SRIMetadata& aMetadata, nsIChannel* aChannel,
                        nsIConsoleReportCollector* aReporter);
 
   // Append the following bytes to the content used to compute the hash. Once
@@ -59,13 +58,12 @@ class SRICheckDataVerifier final {
 
   // Verify that the computed hash corresponds to the metadata.
   nsresult Verify(const SRIMetadata& aMetadata, nsIChannel* aChannel,
-                  LoadTainting aLoadTainting, const nsACString& aSourceFileURI,
+                  LoadTainting aLoadTainting,
                   nsIConsoleReportCollector* aReporter);
 
   // Like Verify(), but takes the load tainting from the channel's load info
   // (which is main-thread only).
   nsresult Verify(const SRIMetadata& aMetadata, nsIChannel* aChannel,
-                  const nsACString& aSourceFileURI,
                   nsIConsoleReportCollector* aReporter);
 
   bool IsComplete() const { return mComplete; }
@@ -100,8 +98,8 @@ class SRICheckDataVerifier final {
 
   nsresult EnsureCryptoHash();
   nsresult Finish();
-  nsresult VerifyHash(const SRIMetadata& aMetadata, uint32_t aHashIndex,
-                      const nsACString& aSourceFileURI,
+  nsresult VerifyHash(nsIChannel* aChannel, const SRIMetadata& aMetadata,
+                      uint32_t aHashIndex,
                       nsIConsoleReportCollector* aReporter);
 };
 

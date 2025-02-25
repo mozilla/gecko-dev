@@ -626,19 +626,20 @@ NotNull<const Encoding*> SheetLoadData::DetermineNonBOMEncoding(
   return mGuessedEncoding;
 }
 
-static nsresult VerifySheetIntegrity(
-    const SRIMetadata& aMetadata, nsIChannel* aChannel, LoadTainting aTainting,
-    const nsACString& aFirst, const nsACString& aSecond,
-    const nsACString& aSourceFileURI, nsIConsoleReportCollector* aReporter) {
+static nsresult VerifySheetIntegrity(const SRIMetadata& aMetadata,
+                                     nsIChannel* aChannel,
+                                     LoadTainting aTainting,
+                                     const nsACString& aFirst,
+                                     const nsACString& aSecond,
+                                     nsIConsoleReportCollector* aReporter) {
   NS_ENSURE_ARG_POINTER(aReporter);
   MOZ_LOG(SRILogHelper::GetSriLog(), LogLevel::Debug,
           ("VerifySheetIntegrity (unichar stream)"));
 
-  SRICheckDataVerifier verifier(aMetadata, aSourceFileURI, aReporter);
+  SRICheckDataVerifier verifier(aMetadata, aChannel, aReporter);
   MOZ_TRY(verifier.Update(aFirst));
   MOZ_TRY(verifier.Update(aSecond));
-  return verifier.Verify(aMetadata, aChannel, aTainting, aSourceFileURI,
-                         aReporter);
+  return verifier.Verify(aMetadata, aChannel, aTainting, aReporter);
 }
 
 static bool AllLoadsCanceled(const SheetLoadData& aData) {
@@ -780,13 +781,8 @@ nsresult SheetLoadData::VerifySheetReadyToParse(nsresult aStatus,
   SRIMetadata sriMetadata;
   mSheet->GetIntegrity(sriMetadata);
   if (!sriMetadata.IsEmpty()) {
-    nsAutoCString sourceUri;
-    if (nsCOMPtr<nsIURI> uri = mReferrerInfo->GetOriginalReferrer()) {
-      uri->GetAsciiSpec(sourceUri);
-    }
-    nsresult rv =
-        VerifySheetIntegrity(sriMetadata, aChannel, mTainting, aBytes1, aBytes2,
-                             sourceUri, mLoader->mReporter);
+    nsresult rv = VerifySheetIntegrity(sriMetadata, aChannel, mTainting,
+                                       aBytes1, aBytes2, mLoader->mReporter);
     if (NS_FAILED(rv)) {
       LOG(("  Load was blocked by SRI"));
       MOZ_LOG(gSriPRLog, LogLevel::Debug,
