@@ -21,15 +21,11 @@ Where to report bugs
 All bugs should be reported to Bugzilla's ``Third Party Packaging`` component,
 and marked as blocking ``snap`` meta-bug.
 
-Build process
-=============
+Full build process
+==================
 
-While there is an existing ``repackage`` `task
-<https://searchfox.org/mozilla-central/source/taskcluster/docker/firefox-snap>`_,
-is currently is no up-to-date and it is not usable from ``mach`` (work is being
-`tracked in <https://bugzilla.mozilla.org/show_bug.cgi?id=1841370>`_ for this),
-so unfortunately the only way to work right now is a full rebuild using
-upstream tooling.
+There may be a few differences between a simple repack and a real full build of
+the Snap, you can find mention of the repackage usage below.
 
 The following steps should be enough, assuming you have properly setup:
 
