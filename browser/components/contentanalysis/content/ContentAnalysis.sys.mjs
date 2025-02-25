@@ -97,7 +97,7 @@ class RequestInfos {
   getAndRemoveEntriesByUserActionId(aUserActionId) {
     const entries = this.#map
       .values()
-      .filter(entry => entry.request.aUserActionId == aUserActionId)
+      .filter(entry => entry.request.userActionId == aUserActionId)
       .toArray();
     entries.forEach(entry => this.#map.delete(entry.request.requestToken));
     return entries;
@@ -320,6 +320,7 @@ export const ContentAnalysis = {
             windowAndResourceNameOrOperationType.resourceNameOrOperationType,
             windowAndResourceNameOrOperationType.browsingContext,
             response.requestToken,
+            response.userActionId,
             responseResult,
             response.cancelError
           );
@@ -605,11 +606,7 @@ export const ContentAnalysis = {
         // in which case we need to cancel the request.
         if (this.requestTokenToRequestInfo.delete(aRequestToken)) {
           lazy.gContentAnalysis.cancelRequestsByRequestToken(aRequestToken);
-          let dlpBusyView =
-            this.dlpBusyViewsByTopBrowsingContext.getAndRemoveEntry(
-              aBrowsingContext,
-              aRequestToken
-            );
+          let dlpBusyView = this.requestInfos.getAndRemoveEntry(aRequestToken);
           this._disconnectFromView(dlpBusyView);
         }
       });
@@ -628,6 +625,7 @@ export const ContentAnalysis = {
     aResourceNameOrOperationType,
     aBrowsingContext,
     aRequestToken,
+    aUserActionId,
     aCAResult,
     aRequestCancelError
   ) {
@@ -813,6 +811,18 @@ export const ContentAnalysis = {
               );
               messageId = "contentanalysis-unspecified-error-message-content";
               break;
+          }
+          // We got an error with this request, so close any dialogs for any other request
+          // with the same user action id.
+          const otherEntries =
+            this.requestInfos.getAndRemoveEntriesByUserActionId(aUserActionId);
+          otherEntries.forEach(entry => this._disconnectFromView(entry));
+          if (otherEntries.length === 0) {
+            // Only show one error dialog for each userActionId. The call to
+            // getAndRemoveEntriesByUserActionId() ensures that when those entries
+            // error too, there won't be an entry for them in this.requestInfos, so
+            // we won't show another dialog.
+            return null;
           }
           message = await this.l10n.formatValue(messageId, {
             agent: lazy.agentName,
