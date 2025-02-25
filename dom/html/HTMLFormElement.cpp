@@ -287,6 +287,16 @@ void HTMLFormElement::MaybeSubmit(Element* aSubmitter) {
     return;
   }
 
+  // Prepare to run DispatchBeforeSubmitChromeOnlyEvent early before the
+  // scripts on the page get to modify the form data, possibly
+  // throwing off any password manager. (bug 257781)
+  bool cancelSubmit = false;
+  nsresult rv = DispatchBeforeSubmitChromeOnlyEvent(&cancelSubmit);
+  if (NS_SUCCEEDED(rv)) {
+    mNotifiedObservers = true;
+    mNotifiedObserversResult = cancelSubmit;
+  }
+
   RefPtr<PresShell> presShell = doc->GetPresShell();
   if (!presShell) {
     // We need the nsPresContext for dispatching the submit event. In some
@@ -1466,25 +1476,7 @@ already_AddRefed<nsISupports> HTMLFormElement::DoResolveName(
   return result.forget();
 }
 
-void HTMLFormElement::OnSubmitClickBegin() {
-  mDeferSubmission = true;
-
-  // Prepare to run DispatchBeforeSubmitChromeOnlyEvent early before the
-  // scripts on the page get to modify the form data, possibly
-  // throwing off any password manager. (bug 257781)
-  //
-  // Notify observers of submit if the form is valid.
-  // TODO: checking for mInvalidElementsCount is a temporary fix that should be
-  // removed with bug 610402.
-  if (mInvalidElementsCount == 0) {
-    bool cancelSubmit = false;
-    nsresult rv = DispatchBeforeSubmitChromeOnlyEvent(&cancelSubmit);
-    if (NS_SUCCEEDED(rv)) {
-      mNotifiedObservers = true;
-      mNotifiedObserversResult = cancelSubmit;
-    }
-  }
-}
+void HTMLFormElement::OnSubmitClickBegin() { mDeferSubmission = true; }
 
 void HTMLFormElement::OnSubmitClickEnd() { mDeferSubmission = false; }
 
