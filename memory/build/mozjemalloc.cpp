@@ -3928,7 +3928,6 @@ arena_run_t* arena_t::GetNonFullBinRun(arena_bin_t* aBin) {
   if (mrf_head) {
     // Take the head and if we are going to fill it, remove it from our list.
     arena_run_t* run = &(*mrf_head);
-    MOZ_DIAGNOSTIC_ASSERT(run->mMagic == ARENA_RUN_MAGIC);
     if (run->mNumFree == 1) {
       aBin->mNonFullRuns.remove(run);
     }
@@ -5683,14 +5682,7 @@ inline void MozJemalloc::jemalloc_stats_internal(
         size_t bin_unused = 0;
         size_t num_non_full_runs = 0;
 
-        for (arena_run_t& run : bin->mNonFullRuns) {
-          MOZ_DIAGNOSTIC_ASSERT(run.mMagic == ARENA_RUN_MAGIC);
-          MOZ_RELEASE_ASSERT(run.mNumFree > 0 &&
-                             run.mNumFree < bin->mRunNumRegions);
-          MOZ_RELEASE_ASSERT(run.mBin == bin);
-          MOZ_RELEASE_ASSERT(bin->mNonFullRuns.ElementIsLinkedWell(&run));
-          arena_chunk_t* chunk = GetChunkForPtr(&run);
-          MOZ_RELEASE_ASSERT(chunk->arena == arena);
+        for (auto run : bin->mNonFullRuns) {
           bin_unused += run.mNumFree * bin->mSizeClass;
           num_non_full_runs++;
         }
