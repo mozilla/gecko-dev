@@ -61,7 +61,8 @@ let mockCA = {
         this.caShouldAllow
           ? Ci.nsIContentAnalysisResponse.eAllow
           : Ci.nsIContentAnalysisResponse.eBlock,
-        aRequest.requestToken
+        aRequest.requestToken,
+        aRequest.userActionId
       )
     );
   },

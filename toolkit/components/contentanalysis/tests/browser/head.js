@@ -255,7 +255,8 @@ function makeMockContentAnalysis() {
 
         let response = this.realCAService.makeResponseForTest(
           this.getAction(),
-          request.requestToken
+          request.requestToken,
+          request.userActionId
         );
         callback.contentResult(response);
       }, 0);
