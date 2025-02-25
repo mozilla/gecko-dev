@@ -1,14 +1,21 @@
 # JIT Profiling with perf
 
-perf is a performance profiling tool available on Linux that is capable of measuring performance events such as cycles, instructions executed, cache misses, etc and providing assembly and source code annotation.
-It is possible to collect performance profiles of the SpiderMonkey JIT using perf on Linux and also annotate the generated assembly with the IR opcodes that were used during compilation as shown below.
+## Maybe preferable: profiling with `samply`
+
+`samply` makes profiling JIT a lot easier and should be prefered if running
+macOS or Linux. Documentation is at [JIT profiling with
+`samply`](jit_profiling_with_samply.md).
+
+## Introduction
+
+`perf` is a performance profiling tool available on Linux that is
+capable of measuring performance events such as cycles, instructions executed,
+cache misses, etc and providing assembly and source code annotation. It is
+possible to collect performance profiles of the SpiderMonkey JIT using perf on
+Linux and also annotate the generated assembly with the IR opcodes that were
+used during compilation as shown below.
 
 ![](img/annotation.png)
-
-## Profiling with samply
-
-[Samply](https://github.com/mstange/samply) is another profiling tool available that can help simplify a lot of the command line steps required to assemble the jitdump and perf profile output files.
-Samply also has the capability of displaying the profile using the Firefox Profiler front-end.  Further installation and usage instructions can be found at [https://github.com/mstange/samply](https://github.com/mstange/samply).
 
 ## Build setup
 
