@@ -24,7 +24,7 @@
     <string name="mozac_feature_downloads_could_not_open_file">ගොනුව ඇරීමට නොහැකිය</string>
 
     <!-- Message that appears when the downloaded file is a specific type that Android doesn't support opening-->
-    <string name="mozac_feature_downloads_open_not_supported1">%1$s ගොනු විවෘත කිරීමට යෙදුමක් හමු නොවිණි</string>
+    <string name="mozac_feature_downloads_open_not_supported1">%1$s ගොනු ඇරීමට යෙදුමක් හමු නොවුණි</string>
 
     <!-- Button that pauses the download when pressed -->
     <string name="mozac_feature_downloads_button_pause">විරාමයක්</string>
