@@ -2052,11 +2052,7 @@ def select_linker_tmpl(host_or_target):
             and (
                 (
                     target.kernel != "Darwin"
-                    and (
-                        developer_options
-                        or host_or_target_str == "host"
-                        or c_compiler.version >= "15.0"
-                    )
+                    and (developer_options or c_compiler.version >= "15.0")
                 )
                 or (
                     target.kernel == "Darwin"
