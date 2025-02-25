@@ -40,6 +40,7 @@ if CONFIG["MOZ_CRASHREPORTER"]:
     ]
 
     XPCSHELL_TESTS_MANIFESTS += ["tests/xpcshell/xpcshell.toml"]
+    BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
 
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "Crash Reporting")
