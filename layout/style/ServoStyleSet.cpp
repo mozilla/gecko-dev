@@ -25,6 +25,7 @@
 #include "mozilla/StyleAnimationValue.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/dom/AnonymousContent.h"
+#include "mozilla/dom/ViewTransition.h"
 #include "mozilla/dom/CSSBinding.h"
 #include "mozilla/dom/CSSCounterStyleRule.h"
 #include "mozilla/dom/CSSFontFaceRule.h"
@@ -1074,8 +1075,20 @@ bool ServoStyleSet::GetKeyframesForName(
     const StyleComputedTimingFunction& aTimingFunction,
     nsTArray<Keyframe>& aKeyframes) {
   MOZ_ASSERT(!StylistNeedsUpdate());
-  return Servo_StyleSet_GetKeyframesForName(
-      mRawData.get(), &aElement, &aStyle, aName, &aTimingFunction, &aKeyframes);
+  if (Servo_StyleSet_GetKeyframesForName(mRawData.get(), &aElement, &aStyle,
+                                         aName, &aTimingFunction,
+                                         &aKeyframes)) {
+    return true;
+  }
+  if (StringBeginsWith(nsDependentAtomString(aName),
+                       ViewTransition::kGroupAnimPrefix)) {
+    if (auto* vt = mDocument->GetActiveViewTransition()) {
+      if (vt->GetGroupKeyframes(aName, aKeyframes)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 nsTArray<ComputedKeyframeValues> ServoStyleSet::GetComputedKeyframeValuesFor(

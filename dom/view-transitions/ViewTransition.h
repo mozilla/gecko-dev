@@ -17,6 +17,7 @@ class nsITimer;
 namespace mozilla {
 
 class ErrorResult;
+struct Keyframe;
 struct PseudoStyleRequest;
 struct StyleLockedDeclarationBlock;
 
@@ -73,6 +74,11 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   Element* FindPseudo(const PseudoStyleRequest&) const;
 
   const StyleLockedDeclarationBlock* GetDynamicRuleFor(const Element&) const;
+
+  static constexpr nsLiteralString kGroupAnimPrefix = u"-ua-view-transition-group-anim-"_ns;
+
+  [[nodiscard]] bool GetGroupKeyframes(nsAtom* aAnimationName,
+                                       nsTArray<Keyframe>&) const;
 
   nsIGlobalObject* GetParentObject() const;
   JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;

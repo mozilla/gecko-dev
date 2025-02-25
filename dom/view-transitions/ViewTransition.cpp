@@ -126,6 +126,7 @@ struct ViewTransition::CapturedElement {
       : mOldState(aFrame, aSnapshotContainingBlockSize) {}
 
   // https://drafts.csswg.org/css-view-transitions-1/#captured-element-style-definitions
+  nsTArray<Keyframe> mGroupKeyframes;
   // The group animation-name rule and group styles rule, merged into one.
   RefPtr<StyleLockedDeclarationBlock> mGroupRule;
   // The image pair isolation rule.
@@ -383,6 +384,61 @@ static StyleLockedDeclarationBlock* EnsureRule(
   return aRule.get();
 }
 
+// TODO: backdrop-filter support.
+static nsTArray<Keyframe> BuildGroupKeyframes(
+    Document* aDoc, const CSSToCSSMatrix4x4Flagged& aTransform,
+    const nsSize& aSize) {
+  nsTArray<Keyframe> result;
+  auto& firstKeyframe = *result.AppendElement();
+  firstKeyframe.mOffset = Some(0.0);
+  PropertyValuePair transform{
+      AnimatedPropertyID(eCSSProperty_transform),
+      Servo_DeclarationBlock_CreateEmpty().Consume(),
+  };
+  SetProp(transform.mServoDeclarationBlock, aDoc, eCSSProperty_transform,
+          aTransform);
+  PropertyValuePair width{
+      AnimatedPropertyID(eCSSProperty_width),
+      Servo_DeclarationBlock_CreateEmpty().Consume(),
+  };
+  CSSSize cssSize = CSSSize::FromAppUnits(aSize);
+  SetProp(width.mServoDeclarationBlock, aDoc, eCSSProperty_width, cssSize.width,
+          eCSSUnit_Pixel);
+  PropertyValuePair height{
+      AnimatedPropertyID(eCSSProperty_height),
+      Servo_DeclarationBlock_CreateEmpty().Consume(),
+  };
+  SetProp(width.mServoDeclarationBlock, aDoc, eCSSProperty_height,
+          cssSize.height, eCSSUnit_Pixel);
+  firstKeyframe.mPropertyValues.AppendElement(std::move(transform));
+  firstKeyframe.mPropertyValues.AppendElement(std::move(width));
+  firstKeyframe.mPropertyValues.AppendElement(std::move(height));
+
+  auto& lastKeyframe = *result.AppendElement();
+  lastKeyframe.mOffset = Some(1.0);
+  lastKeyframe.mPropertyValues.AppendElement(
+      PropertyValuePair{AnimatedPropertyID(eCSSProperty_transform)});
+  lastKeyframe.mPropertyValues.AppendElement(
+      PropertyValuePair{AnimatedPropertyID(eCSSProperty_width)});
+  lastKeyframe.mPropertyValues.AppendElement(
+      PropertyValuePair{AnimatedPropertyID(eCSSProperty_height)});
+  return result;
+}
+
+bool ViewTransition::GetGroupKeyframes(nsAtom* aAnimationName,
+                                       nsTArray<Keyframe>& aResult) const {
+  MOZ_ASSERT(StringBeginsWith(nsDependentAtomString(aAnimationName),
+                              kGroupAnimPrefix));
+  RefPtr<nsAtom> transitionName = NS_Atomize(Substring(
+      nsDependentAtomString(aAnimationName), kGroupAnimPrefix.Length()));
+  auto* el = mNamedElements.Get(transitionName);
+  if (NS_WARN_IF(!el) || NS_WARN_IF(el->mGroupKeyframes.IsEmpty())) {
+    return false;
+  }
+  aResult = el->mGroupKeyframes.Clone();
+  return true;
+}
+
 // https://drafts.csswg.org/css-view-transitions-1/#setup-transition-pseudo-elements
 void ViewTransition::SetupTransitionPseudoElements() {
   MOZ_ASSERT(!mViewTransitionRoot);
@@ -479,11 +535,13 @@ void ViewTransition::SetupTransitionPseudoElements() {
     // If both of capturedElement's old image and new element are not null,
     // then:
     if (capturedElement.mOldState.mTriedImage && capturedElement.mNewElement) {
-      nsAutoCString dynamicAnimationName;
-      transitionName->ToUTF8String(dynamicAnimationName);
-      dynamicAnimationName.InsertLiteral("-ua-view-transition-group-anim-", 0);
+      NS_ConvertUTF16toUTF8 dynamicAnimationName(
+          kGroupAnimPrefix + nsDependentAtomString(transitionName));
 
-      // TODO(emilio): Group keyframes.
+      capturedElement.mGroupKeyframes =
+          BuildGroupKeyframes(mDocument, capturedElement.mOldState.mTransform,
+                              capturedElement.mOldState.mSize);
+
       // Set capturedElement's group animation name rule to ...
       SetProp(EnsureRule(capturedElement.mGroupRule), mDocument,
               eCSSProperty_animation_name, dynamicAnimationName);
