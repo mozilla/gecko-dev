@@ -3026,3 +3026,28 @@ devtools:
       - jryans@mozilla.com
     expires: never
     telemetry_mirror: DEVTOOLS_CUSTOM_TIME_ACTIVE_SECONDS
+
+  entry_point:
+    type: labeled_counter
+    description: >
+      Records how the user is triggering Developer Tools startup.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram DEVTOOLS_ENTRY_POINT.
+    labels:
+      - KeyShortcut
+      - SystemMenu
+      - HamburgerMenu
+      - ContextMenu
+      - CommandLine
+      - SessionRestore
+      - SlowScript
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1378863
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1378863
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - apoirot@mozilla.com
+    expires: never
+    telemetry_mirror: h#DEVTOOLS_ENTRY_POINT

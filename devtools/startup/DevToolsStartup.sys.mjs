@@ -1210,7 +1210,7 @@ DevToolsStartup.prototype = {
     // won't necessarely start the tool. For example key shortcuts may
     // only change the currently selected tool.
     try {
-      this.telemetry.getHistogramById("DEVTOOLS_ENTRY_POINT").add(reason);
+      Glean.devtools.entryPoint[reason].add(1);
     } catch (e) {
       dump("DevTools telemetry entry point failed: " + e + "\n");
     }

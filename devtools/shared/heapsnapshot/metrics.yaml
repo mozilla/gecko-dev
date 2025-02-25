@@ -1,0 +1,90 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'DevTools :: Memory'
+
+devtools:
+  save_heap_snapshot:
+    type: timing_distribution
+    description: >
+      The time (in milliseconds) that it took to save a heap snapshot in
+      mozilla::devtools::ChromeUtils::SaveHeapSnapshot.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DEVTOOLS_SAVE_HEAP_SNAPSHOT_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    telemetry_mirror: DEVTOOLS_SAVE_HEAP_SNAPSHOT_MS
+
+  read_heap_snapshot:
+    type: timing_distribution
+    description: >
+      The time (in milliseconds) that it took to read a heap snapshot in
+      mozilla::devtools::ChromeUtils::ReadHeapSnapshot.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DEVTOOLS_READ_HEAP_SNAPSHOT_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    telemetry_mirror: DEVTOOLS_READ_HEAP_SNAPSHOT_MS
+
+  heap_snapshot_node_count:
+    type: custom_distribution
+    description: >
+      The number of nodes serialized into a heap snapshot.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram DEVTOOLS_HEAP_SNAPSHOT_NODE_COUNT.
+    range_min: 1
+    range_max: 10000000
+    bucket_count: 10000
+    histogram_type: linear
+    unit: nodes
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    telemetry_mirror: DEVTOOLS_HEAP_SNAPSHOT_NODE_COUNT
+
+  heap_snapshot_edge_count:
+    type: custom_distribution
+    description: >
+      The number of edges serialized into a heap snapshot.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram DEVTOOLS_HEAP_SNAPSHOT_EDGE_COUNT.
+    range_min: 1
+    range_max: 10000000
+    bucket_count: 10000
+    histogram_type: linear
+    unit: edges
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    telemetry_mirror: DEVTOOLS_HEAP_SNAPSHOT_EDGE_COUNT

@@ -31,7 +31,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/HeapSnapshotBinding.h"
 #include "mozilla/RangedPtr.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/DevtoolsSharedHeapsnapshotMetrics.h"
 #include "mozilla/Unused.h"
 
 #include "jsapi.h"
@@ -1513,12 +1513,10 @@ void ChromeUtils::SaveHeapSnapshotShared(
     }
   }
 
-  Telemetry::AccumulateTimeDelta(Telemetry::DEVTOOLS_SAVE_HEAP_SNAPSHOT_MS,
-                                 start);
-  Telemetry::Accumulate(Telemetry::DEVTOOLS_HEAP_SNAPSHOT_NODE_COUNT,
-                        nodeCount);
-  Telemetry::Accumulate(Telemetry::DEVTOOLS_HEAP_SNAPSHOT_EDGE_COUNT,
-                        edgeCount);
+  glean::devtools::save_heap_snapshot.AccumulateRawDuration(TimeStamp::Now() -
+                                                            start);
+  glean::devtools::heap_snapshot_node_count.AccumulateSingleSample(nodeCount);
+  glean::devtools::heap_snapshot_edge_count.AccumulateSingleSample(edgeCount);
 }
 
 /* static */
@@ -1566,8 +1564,8 @@ already_AddRefed<HeapSnapshot> ChromeUtils::ReadHeapSnapshot(
       mm.size(), rv);
 
   if (!rv.Failed())
-    Telemetry::AccumulateTimeDelta(Telemetry::DEVTOOLS_READ_HEAP_SNAPSHOT_MS,
-                                   start);
+    glean::devtools::read_heap_snapshot.AccumulateRawDuration(TimeStamp::Now() -
+                                                              start);
 
   return snapshot.forget();
 }

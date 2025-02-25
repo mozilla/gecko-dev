@@ -49,6 +49,71 @@ devtools.inspector:
     expires: never
     telemetry_mirror: DEVTOOLS_INSPECTOR_NODE_SELECTION_COUNT
 
+  new_root_to_reload_delay:
+    type: timing_distribution
+    description: >
+      Time taken (in ms) to update the inspector during a page reload, starting
+      from new-root event.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram DEVTOOLS_INSPECTOR_NEW_ROOT_TO_RELOAD_DELAY_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1405585
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1566392
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643433
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1405585
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1566392
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1643433
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    telemetry_mirror: DEVTOOLS_INSPECTOR_NEW_ROOT_TO_RELOAD_DELAY_MS
+
+  number_of_css_grids_in_a_page:
+    type: custom_distribution
+    description: >
+      On page load, record the number of CSS Grid elements present on a page
+      when the DevTools is open
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram DEVTOOLS_NUMBER_OF_CSS_GRIDS_IN_A_PAGE.
+    range_min: 1
+    range_max: 30
+    bucket_count: 29
+    histogram_type: linear
+    unit: grid elements
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1373483
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1373483
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    telemetry_mirror: DEVTOOLS_NUMBER_OF_CSS_GRIDS_IN_A_PAGE
+
+  fonteditor_font_type_displayed:
+    type: labeled_counter
+    description: >
+      Indicates if the font editor displayed its UI for a non-variable font or a
+      variable font
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram DEVTOOLS_FONTEDITOR_FONT_TYPE_DISPLAYED.
+    labels:
+      - variable
+      - nonvariable
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1523656
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1523656
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - mbalfanz@mozilla.com
+    expires: never
+    telemetry_mirror: h#DEVTOOLS_FONTEDITOR_FONT_TYPE_DISPLAYED
+
 devtools.layout.flexboxhighlighter:
   opened:
     type: counter

@@ -11,7 +11,6 @@ const SPLITCONSOLE_HEIGHT_PREF = "devtools.toolbox.splitconsoleHeight";
 const DEVTOOLS_ALWAYS_ON_TOP = "devtools.toolbox.alwaysOnTop";
 const DISABLE_AUTOHIDE_PREF = "ui.popup.disable_autohide";
 const PSEUDO_LOCALE_PREF = "intl.l10n.pseudo";
-const HOST_HISTOGRAM = "DEVTOOLS_TOOLBOX_HOST";
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const REGEX_4XX_5XX = /^[4,5]\d\d$/;
 
@@ -1591,9 +1590,9 @@ Toolbox.prototype = {
     Services.prefs.setBoolPref("devtools.everOpened", true);
     this.telemetry.toolOpened("toolbox", this);
 
-    this.telemetry
-      .getHistogramById(HOST_HISTOGRAM)
-      .add(this._getTelemetryHostId());
+    Glean.devtools.toolboxHost.accumulateSingleSample(
+      this._getTelemetryHostId()
+    );
 
     // Log current theme. The question we want to answer is:
     // "What proportion of users use which themes?"
@@ -3408,9 +3407,7 @@ Toolbox.prototype = {
       return;
     }
     const delay = this.win.performance.now() - start;
-
-    const telemetryKey = "DEVTOOLS_TOOLBOX_PAGE_RELOAD_DELAY_MS";
-    this.telemetry.getKeyedHistogramById(telemetryKey).add(toolId, delay);
+    Glean.devtools.toolboxPageReloadDelay[toolId].accumulateSingleSample(delay);
   },
 
   /**
@@ -3864,9 +3861,9 @@ Toolbox.prototype = {
     this.focusTool(this.currentToolId, true);
 
     this.emit("host-changed");
-    this.telemetry
-      .getHistogramById(HOST_HISTOGRAM)
-      .add(this._getTelemetryHostId());
+    Glean.devtools.toolboxHost.accumulateSingleSample(
+      this._getTelemetryHostId()
+    );
 
     this.component.setCurrentHostType(hostType);
   },

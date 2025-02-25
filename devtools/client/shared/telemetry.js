@@ -40,7 +40,6 @@ class Telemetry {
 
     // Bind pretty much all functions so that callers do not need to.
     this.msSystemNow = this.msSystemNow.bind(this);
-    this.getHistogramById = this.getHistogramById.bind(this);
     this.getKeyedHistogramById = this.getKeyedHistogramById.bind(this);
     this.recordEvent = this.recordEvent.bind(this);
     this.preparePendingEvent = this.preparePendingEvent.bind(this);
@@ -80,34 +79,6 @@ class Telemetry {
    */
   msSinceProcessStart() {
     return Services.telemetry.msSinceProcessStart();
-  }
-
-  /**
-   * Log a value to a histogram.
-   *
-   * @param  {String} histogramId
-   *         Histogram in which the data is to be stored.
-   */
-  getHistogramById(histogramId) {
-    let histogram = null;
-
-    if (histogramId) {
-      try {
-        histogram = Services.telemetry.getHistogramById(histogramId);
-      } catch (e) {
-        dump(
-          `Warning: An attempt was made to write to the ${histogramId} ` +
-            `histogram, which is not defined in Histograms.json\n` +
-            `CALLER: ${getCaller()}`
-        );
-      }
-    }
-
-    return (
-      histogram || {
-        add: () => {},
-      }
-    );
   }
 
   /**

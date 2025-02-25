@@ -38,8 +38,6 @@ loader.lazyRequireGetter(
   "resource://devtools/shared/async-storage.js"
 );
 
-const CSS_GRID_COUNT_HISTOGRAM_ID = "DEVTOOLS_NUMBER_OF_CSS_GRIDS_IN_A_PAGE";
-
 const SHOW_GRID_AREAS = "devtools.gridinspector.showGridAreas";
 const SHOW_GRID_LINE_NUMBERS = "devtools.gridinspector.showGridLineNumbers";
 const SHOW_INFINITE_LINES_PREF = "devtools.gridinspector.showInfiniteLines";
@@ -329,9 +327,9 @@ class GridInspector {
 
     // Log how many CSS Grid elements DevTools sees.
     if (currentUrl != this.inspector.previousURL) {
-      this.telemetry
-        .getHistogramById(CSS_GRID_COUNT_HISTOGRAM_ID)
-        .add(gridFronts.length);
+      Glean.devtoolsInspector.numberOfCssGridsInAPage.accumulateSingleSample(
+        gridFronts.length
+      );
       this.inspector.previousURL = currentUrl;
     }
 

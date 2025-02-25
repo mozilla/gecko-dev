@@ -450,8 +450,9 @@ Inspector.prototype = {
       // Only log the timing when inspector is not destroyed and is in foreground.
       if (this.toolbox && this.toolbox.currentToolId == "inspector") {
         const delay = this.panelWin.performance.now() - this._newRootStart;
-        const telemetryKey = "DEVTOOLS_INSPECTOR_NEW_ROOT_TO_RELOAD_DELAY_MS";
-        this.telemetry.getHistogramById(telemetryKey).add(delay);
+        Glean.devtoolsInspector.newRootToReloadDelay.accumulateSingleSample(
+          delay
+        );
       }
       delete this._newRootStart;
     }

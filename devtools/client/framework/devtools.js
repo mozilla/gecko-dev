@@ -689,11 +689,11 @@ DevTools.prototype = {
     const delay = Cu.now() - startTime;
     const panelName = this.makeToolIdHumanReadable(toolId);
 
-    const telemetryKey = this._firstShowToolbox
-      ? "DEVTOOLS_COLD_TOOLBOX_OPEN_DELAY_MS"
-      : "DEVTOOLS_WARM_TOOLBOX_OPEN_DELAY_MS";
-    this._telemetry.getKeyedHistogramById(telemetryKey).add(toolId, delay);
-
+    if (this._firstShowToolbox) {
+      Glean.devtools.coldToolboxOpenDelay[toolId].accumulateSingleSample(delay);
+    } else {
+      Glean.devtools.warmToolboxOpenDelay[toolId].accumulateSingleSample(delay);
+    }
     const browserWin = toolbox.topWindow;
     this._telemetry.addEventProperty(
       browserWin,

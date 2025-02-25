@@ -76,8 +76,6 @@ const REGISTERED_AXES_TO_FONT_PROPERTIES = {
 };
 const REGISTERED_AXES = Object.keys(REGISTERED_AXES_TO_FONT_PROPERTIES);
 
-const HISTOGRAM_FONT_TYPE_DISPLAYED = "DEVTOOLS_FONTEDITOR_FONT_TYPE_DISPLAYED";
-
 class FontInspector {
   constructor(inspector, window) {
     this.cssProperties = inspector.cssProperties;
@@ -665,7 +663,6 @@ class FontInspector {
    */
   logTelemetryProbesOnNewNode() {
     const { fontEditor } = this.store.getState();
-    const { telemetry } = this.inspector;
 
     // Log data about the currently edited font (if any).
     // Note that the edited font is always the first one from the fontEditor.fonts array.
@@ -677,9 +674,9 @@ class FontInspector {
     const nbOfAxes = editedFont.variationAxes
       ? editedFont.variationAxes.length
       : 0;
-    telemetry
-      .getHistogramById(HISTOGRAM_FONT_TYPE_DISPLAYED)
-      .add(!nbOfAxes ? "nonvariable" : "variable");
+    Glean.devtoolsInspector.fonteditorFontTypeDisplayed[
+      !nbOfAxes ? "nonvariable" : "variable"
+    ].add(1);
   }
 
   /**
