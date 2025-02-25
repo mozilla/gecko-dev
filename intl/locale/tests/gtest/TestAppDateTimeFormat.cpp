@@ -99,6 +99,16 @@ TEST(AppDateTimeFormat, FormatPRExplodedTime)
   ASSERT_TRUE(formattedTime.Find(u"2:47:00 PM") != kNotFound ||
               formattedTime.Find(u"2:47:00\u202FPM") != kNotFound ||
               formattedTime.Find(u"14:47:00") != kNotFound);
+
+  ComponentsBag components{};
+  components.weekday = mozilla::Some(DateTimeFormat::Text::Short);
+  components.timeZoneName = mozilla::Some(DateTimeFormat::TimeZoneName::Short);
+  // From above: Wed, 31 Dec 1969 14:47:00 -09:13
+  rv = AppDateTimeFormat::Format(components, &prExplodedTime, formattedTime);
+  ASSERT_NS_SUCCEEDED(rv);
+  ASSERT_TRUE(formattedTime.Find(u"Wed") != kNotFound);
+  ASSERT_TRUE(formattedTime.Find(u"-09:13") != kNotFound ||
+              formattedTime.Find(u"-9:13") != kNotFound);
 }
 
 TEST(AppDateTimeFormat, DateFormatSelectors)
