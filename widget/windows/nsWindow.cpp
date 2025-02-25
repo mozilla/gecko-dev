@@ -8799,6 +8799,7 @@ void nsWindow::FrameState::SetSizeModeInternal(nsSizeMode aMode,
   const auto oldSizeMode = mSizeMode;
   const bool fullscreenChange =
       mSizeMode == nsSizeMode_Fullscreen || aMode == nsSizeMode_Fullscreen;
+  const bool maximized = aMode == nsSizeMode_Maximized;
   const bool fullscreen = aMode == nsSizeMode_Fullscreen;
 
   mSizeMode = aMode;
@@ -8813,6 +8814,8 @@ void nsWindow::FrameState::SetSizeModeInternal(nsSizeMode aMode,
 
   if (fullscreenChange) {
     mWindow->OnFullscreenChanged(oldSizeMode, fullscreen);
+  } else if (maximized) {
+    TaskbarConcealer::OnWindowMaximized(mWindow);
   }
 
   mWindow->OnSizeModeChange();
