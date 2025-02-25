@@ -11,6 +11,7 @@
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/AbortSignal.h"
 #include "mozilla/dom/WebTaskSchedulingBinding.h"
+#include "WebTaskScheduler.h"
 
 namespace mozilla::dom {
 class TaskSignal : public AbortSignal {
@@ -39,9 +40,15 @@ class TaskSignal : public AbortSignal {
     mPriorityChanging = aPriorityChanging;
   }
 
-  void RunPriorityChangeAlgorithms();
+  void SetWebTaskScheduler(WebTaskScheduler* aScheduler) {
+    mSchedulers.AppendElement(aScheduler);
+  }
 
-  void SetWebTaskScheduler(WebTaskScheduler* aScheduler);
+  void RunPriorityChangeAlgorithms() {
+    for (const WeakPtr<WebTaskScheduler>& scheduler : mSchedulers) {
+      scheduler->RunTaskSignalPriorityChange(this);
+    }
+  }
 
  private:
   TaskPriority mPriority;

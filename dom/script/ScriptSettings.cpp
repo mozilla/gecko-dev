@@ -233,13 +233,6 @@ nsIGlobalObject* GetCurrentGlobal() {
   return xpc::NativeGlobal(global);
 }
 
-WebTaskSchedulingState* GetWebTaskSchedulingState() {
-  if (const nsIGlobalObject* global = GetEntryGlobal()) {
-    return global->GetWebTaskSchedulingState();
-  }
-  return nullptr;
-}
-
 nsIPrincipal* GetWebIDLCallerPrincipal() {
   MOZ_ASSERT(NS_IsMainThread());
   ScriptSettingsStackEntry* entry = ScriptSettingsStack::EntryPoint();
