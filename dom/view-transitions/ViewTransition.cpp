@@ -1205,7 +1205,7 @@ void ViewTransition::SkipTransition(
             "Skipped ViewTransition due to another transition starting");
         break;
       case SkipTransitionReason::DocumentHidden:
-        readyPromise->MaybeRejectWithAbortError(
+        readyPromise->MaybeRejectWithInvalidStateError(
             "Skipped ViewTransition due to document being hidden");
         break;
       case SkipTransitionReason::Timeout:
