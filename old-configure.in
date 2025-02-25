@@ -17,20 +17,10 @@ dnl =
 dnl ========================================================
 
 MOZ_BRANDING_DIRECTORY=
-MOZ_OFFICIAL_BRANDING=
 
 dnl ========================================================
 dnl = Trademarked Branding
 dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(official-branding,
-[  --enable-official-branding
-                          Enable Official mozilla.org Branding
-                          Do not distribute builds with
-                          --enable-official-branding unless you have
-                          permission to use trademarks per
-                          http://www.mozilla.org/foundation/trademarks/ .],
-    MOZ_OFFICIAL_BRANDING=1,
-    MOZ_OFFICIAL_BRANDING=)
 
 # Allow the application to influence configure with a confvars.sh script.
 AC_MSG_CHECKING([if app-specific confvars.sh exists])
@@ -41,13 +31,11 @@ else
   AC_MSG_RESULT([no])
 fi
 
-AC_SUBST(MOZ_OFFICIAL_BRANDING)
 if test -n "$MOZ_OFFICIAL_BRANDING"; then
   if test -z "$MOZ_OFFICIAL_BRANDING_DIRECTORY"; then
     AC_MSG_ERROR([You must specify MOZ_OFFICIAL_BRANDING_DIRECTORY to use --enable-official-branding.])
   else
     MOZ_BRANDING_DIRECTORY=${MOZ_OFFICIAL_BRANDING_DIRECTORY}
-    AC_DEFINE(MOZ_OFFICIAL_BRANDING)
   fi
 fi
 

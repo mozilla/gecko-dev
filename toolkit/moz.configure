@@ -3145,6 +3145,21 @@ set_define(
 
 # Branding
 # ==============================================================
+
+option(
+    "--enable-official-branding",
+    help="Enable Official mozilla.org Branding. "
+    "Do not distribute builds with --enable-official-branding unless "
+    "you have permission to use trademarks per "
+    "http://www.mozilla.org/foundation/trademarks/",
+)
+
+with only_when("--enable-official-branding"):
+    set_config("MOZ_OFFICIAL_BRANDING", True)
+    set_define("MOZ_OFFICIAL_BRANDING", True)
+
+    add_old_configure_assignment("MOZ_OFFICIAL_BRANDING", True)
+
 option(
     env="MOZ_APP_REMOTINGNAME",
     nargs=1,
