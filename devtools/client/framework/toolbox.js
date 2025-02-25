@@ -3021,6 +3021,11 @@ Toolbox.prototype = {
     }
 
     return this.loadTool(id, options).then(panel => {
+      // If some other tool started being selected,
+      // cancel any further operation, but still return the panel to the callsite.
+      if (this.currentToolId != id) {
+        return panel;
+      }
       // Only select the panel once it is loaded to prevent showing it
       // while it is bootstrapping and prevent blinks
       const toolboxPanels = this.doc.querySelectorAll(".toolbox-panel");
