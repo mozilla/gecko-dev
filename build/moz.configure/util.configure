@@ -540,6 +540,46 @@ def project_flag(env=None, set_as_define=False, **kwargs):
         set_define(env, option_implementation)
 
 
+# A template providing a shorthand for setting a variable. The created
+# option will only be settable from a confvars.sh file.
+# If required, the set_as_define argument will additionally cause the variable
+# to be set using set_define.
+# Similarly, set_as_config can be set to False if the variable should not be
+# passed to set_config.
+@template
+def confvar(
+    env=None,
+    set_as_config=True,
+    set_as_define=False,
+    allow_implied=False,
+    **kwargs,
+):
+    if not env:
+        configure_error("A project_flag must be passed a variable name to set.")
+
+    if kwargs.get("nargs", 0) not in (0, 1):
+        configure_error("A project_flag must be passed nargs={0,1}.")
+
+    origins = ("confvars",)
+    if allow_implied:
+        origins += ("implied",)
+    opt = option(env=env, possible_origins=origins, **kwargs)
+
+    @depends(opt.option)
+    def option_implementation(value):
+        if value:
+            if len(value) == 1:
+                return value[0]
+            elif len(value):
+                return value
+            return bool(value)
+
+    if set_as_config:
+        set_config(env, option_implementation)
+    if set_as_define:
+        set_define(env, option_implementation)
+
+
 @template
 @imports(_from="mozbuild.configure.constants", _import="RaiseErrorOnUse")
 def obsolete_config(name, *, replacement):

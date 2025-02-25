@@ -1,0 +1,10 @@
+confvar(
+    "CONFVAR",
+    nargs=1,
+    help="Confvar",
+)
+confvar(
+    "OTHER_CONFVAR",
+    nargs=1,
+    help="Other confvar",
+)

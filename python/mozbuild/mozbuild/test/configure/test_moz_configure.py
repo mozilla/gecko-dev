@@ -193,5 +193,20 @@ class TestMozConfigure(BaseConfigureTest):
         self.assertEqual(check_nsis_version("v3.1"), "3.1")
 
 
+class TestConfVars(BaseConfigureTest):
+    def test_loading(self):
+        sandbox = self.get_sandbox(
+            paths={},
+            config={},
+            args=[
+                "--enable-project=python/mozbuild/mozbuild/test/configure/data/confvars"
+            ],
+        )
+        self.assertEqual(
+            list(sandbox._helper),
+            ["CONFVAR= a b c", "OTHER_CONFVAR=d"],
+        )
+
+
 if __name__ == "__main__":
     main()

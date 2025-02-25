@@ -124,7 +124,7 @@ def all_configure_options():
         # defaults.
         if (
             value is not None
-            and value.origin not in ("default", "implied")
+            and value.origin not in ("default", "implied", "confvars")
             and value != option.default
         ):
             result.append(
