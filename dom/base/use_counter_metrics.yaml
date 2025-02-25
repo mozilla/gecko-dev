@@ -107,8 +107,8 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2459 use counter metrics (excludes denominators).
-# Total of 391 'page' use counters.
+# Total of 2383 use counter metrics (excludes denominators).
+# Total of 351 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
     type: counter
@@ -1966,7 +1966,7 @@ use.counter.page:
   htmldocument_caretrangefrompoint:
     type: counter
     description: >
-      Whether a page called called Document.caretRangeFromPoint.
+      Whether a page called called HTMLDocument.caretRangeFromPoint.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -1983,7 +1983,7 @@ use.counter.page:
   htmldocument_exitpictureinpicture:
     type: counter
     description: >
-      Whether a page called called Document.exitPictureInPicture.
+      Whether a page called called HTMLDocument.exitPictureInPicture.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2000,7 +2000,7 @@ use.counter.page:
   htmldocument_featurepolicy:
     type: counter
     description: >
-      Whether a page called called Document.featurePolicy.
+      Whether a page called called HTMLDocument.featurePolicy.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2017,7 +2017,7 @@ use.counter.page:
   htmldocument_onbeforecopy:
     type: counter
     description: >
-      Whether a page called called Document.onbeforecopy.
+      Whether a page called called HTMLDocument.onbeforecopy.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2034,7 +2034,7 @@ use.counter.page:
   htmldocument_onbeforecut:
     type: counter
     description: >
-      Whether a page called called Document.onbeforecut.
+      Whether a page called called HTMLDocument.onbeforecut.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2051,7 +2051,7 @@ use.counter.page:
   htmldocument_onbeforepaste:
     type: counter
     description: >
-      Whether a page called called Document.onbeforepaste.
+      Whether a page called called HTMLDocument.onbeforepaste.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2068,7 +2068,7 @@ use.counter.page:
   htmldocument_oncancel:
     type: counter
     description: >
-      Whether a page called called Document.oncancel.
+      Whether a page called called HTMLDocument.oncancel.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2085,7 +2085,7 @@ use.counter.page:
   htmldocument_onfreeze:
     type: counter
     description: >
-      Whether a page called called Document.onfreeze.
+      Whether a page called called HTMLDocument.onfreeze.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2102,7 +2102,7 @@ use.counter.page:
   htmldocument_onmousewheel:
     type: counter
     description: >
-      Whether a page called called Document.onmousewheel.
+      Whether a page called called HTMLDocument.onmousewheel.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2119,7 +2119,7 @@ use.counter.page:
   htmldocument_onresume:
     type: counter
     description: >
-      Whether a page called called Document.onresume.
+      Whether a page called called HTMLDocument.onresume.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2136,7 +2136,7 @@ use.counter.page:
   htmldocument_onsearch:
     type: counter
     description: >
-      Whether a page called called Document.onsearch.
+      Whether a page called called HTMLDocument.onsearch.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2153,7 +2153,7 @@ use.counter.page:
   htmldocument_onwebkitfullscreenchange:
     type: counter
     description: >
-      Whether a page called called Document.onwebkitfullscreenchange.
+      Whether a page called called HTMLDocument.onwebkitfullscreenchange.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2170,7 +2170,7 @@ use.counter.page:
   htmldocument_onwebkitfullscreenerror:
     type: counter
     description: >
-      Whether a page called called Document.onwebkitfullscreenerror.
+      Whether a page called called HTMLDocument.onwebkitfullscreenerror.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2187,7 +2187,7 @@ use.counter.page:
   htmldocument_pictureinpictureelement:
     type: counter
     description: >
-      Whether a page called called Document.pictureInPictureElement.
+      Whether a page called called HTMLDocument.pictureInPictureElement.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2204,7 +2204,7 @@ use.counter.page:
   htmldocument_pictureinpictureenabled:
     type: counter
     description: >
-      Whether a page called called Document.pictureInPictureEnabled.
+      Whether a page called called HTMLDocument.pictureInPictureEnabled.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2221,7 +2221,7 @@ use.counter.page:
   htmldocument_registerelement:
     type: counter
     description: >
-      Whether a page called called Document.registerElement.
+      Whether a page called called HTMLDocument.registerElement.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2238,7 +2238,7 @@ use.counter.page:
   htmldocument_wasdiscarded:
     type: counter
     description: >
-      Whether a page called called Document.wasDiscarded.
+      Whether a page called called HTMLDocument.wasDiscarded.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2255,7 +2255,7 @@ use.counter.page:
   htmldocument_webkitcancelfullscreen:
     type: counter
     description: >
-      Whether a page called called Document.webkitCancelFullScreen.
+      Whether a page called called HTMLDocument.webkitCancelFullScreen.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2272,7 +2272,7 @@ use.counter.page:
   htmldocument_webkitcurrentfullscreenelement:
     type: counter
     description: >
-      Whether a page called called Document.webkitCurrentFullScreenElement.
+      Whether a page called called HTMLDocument.webkitCurrentFullScreenElement.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2289,7 +2289,7 @@ use.counter.page:
   htmldocument_webkitexitfullscreen:
     type: counter
     description: >
-      Whether a page called called Document.webkitExitFullscreen.
+      Whether a page called called HTMLDocument.webkitExitFullscreen.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2306,7 +2306,7 @@ use.counter.page:
   htmldocument_webkitfullscreenelement:
     type: counter
     description: >
-      Whether a page called called Document.webkitFullscreenElement.
+      Whether a page called called HTMLDocument.webkitFullscreenElement.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2323,7 +2323,7 @@ use.counter.page:
   htmldocument_webkitfullscreenenabled:
     type: counter
     description: >
-      Whether a page called called Document.webkitFullscreenEnabled.
+      Whether a page called called HTMLDocument.webkitFullscreenEnabled.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2340,7 +2340,7 @@ use.counter.page:
   htmldocument_webkithidden:
     type: counter
     description: >
-      Whether a page called called Document.webkitHidden.
+      Whether a page called called HTMLDocument.webkitHidden.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2357,7 +2357,7 @@ use.counter.page:
   htmldocument_webkitisfullscreen:
     type: counter
     description: >
-      Whether a page called called Document.webkitIsFullScreen.
+      Whether a page called called HTMLDocument.webkitIsFullScreen.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2374,7 +2374,7 @@ use.counter.page:
   htmldocument_webkitvisibilitystate:
     type: counter
     description: >
-      Whether a page called called Document.webkitVisibilityState.
+      Whether a page called called HTMLDocument.webkitVisibilityState.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2391,7 +2391,7 @@ use.counter.page:
   htmldocument_xmlencoding:
     type: counter
     description: >
-      Whether a page called called Document.xmlEncoding.
+      Whether a page called called HTMLDocument.xmlEncoding.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2408,7 +2408,7 @@ use.counter.page:
   htmldocument_xmlstandalone:
     type: counter
     description: >
-      Whether a page called called Document.xmlStandalone.
+      Whether a page called called HTMLDocument.xmlStandalone.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -2425,7 +2425,7 @@ use.counter.page:
   htmldocument_xmlversion:
     type: counter
     description: >
-      Whether a page called called Document.xmlVersion.
+      Whether a page called called HTMLDocument.xmlVersion.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -6077,7 +6077,7 @@ use.counter.page:
     send_in_pings:
       - use-counters
 
-# Total of 391 'document' use counters.
+# Total of 351 'document' use counters.
 use.counter.doc:
   svgsvgelement_getelementbyid:
     type: counter
@@ -7935,7 +7935,7 @@ use.counter.doc:
   htmldocument_caretrangefrompoint:
     type: counter
     description: >
-      Whether a document called called Document.caretRangeFromPoint.
+      Whether a document called called HTMLDocument.caretRangeFromPoint.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -7952,7 +7952,7 @@ use.counter.doc:
   htmldocument_exitpictureinpicture:
     type: counter
     description: >
-      Whether a document called called Document.exitPictureInPicture.
+      Whether a document called called HTMLDocument.exitPictureInPicture.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -7969,7 +7969,7 @@ use.counter.doc:
   htmldocument_featurepolicy:
     type: counter
     description: >
-      Whether a document called called Document.featurePolicy.
+      Whether a document called called HTMLDocument.featurePolicy.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -7986,7 +7986,7 @@ use.counter.doc:
   htmldocument_onbeforecopy:
     type: counter
     description: >
-      Whether a document called called Document.onbeforecopy.
+      Whether a document called called HTMLDocument.onbeforecopy.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8003,7 +8003,7 @@ use.counter.doc:
   htmldocument_onbeforecut:
     type: counter
     description: >
-      Whether a document called called Document.onbeforecut.
+      Whether a document called called HTMLDocument.onbeforecut.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8020,7 +8020,7 @@ use.counter.doc:
   htmldocument_onbeforepaste:
     type: counter
     description: >
-      Whether a document called called Document.onbeforepaste.
+      Whether a document called called HTMLDocument.onbeforepaste.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8037,7 +8037,7 @@ use.counter.doc:
   htmldocument_oncancel:
     type: counter
     description: >
-      Whether a document called called Document.oncancel.
+      Whether a document called called HTMLDocument.oncancel.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8054,7 +8054,7 @@ use.counter.doc:
   htmldocument_onfreeze:
     type: counter
     description: >
-      Whether a document called called Document.onfreeze.
+      Whether a document called called HTMLDocument.onfreeze.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8071,7 +8071,7 @@ use.counter.doc:
   htmldocument_onmousewheel:
     type: counter
     description: >
-      Whether a document called called Document.onmousewheel.
+      Whether a document called called HTMLDocument.onmousewheel.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8088,7 +8088,7 @@ use.counter.doc:
   htmldocument_onresume:
     type: counter
     description: >
-      Whether a document called called Document.onresume.
+      Whether a document called called HTMLDocument.onresume.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8105,7 +8105,7 @@ use.counter.doc:
   htmldocument_onsearch:
     type: counter
     description: >
-      Whether a document called called Document.onsearch.
+      Whether a document called called HTMLDocument.onsearch.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8122,7 +8122,7 @@ use.counter.doc:
   htmldocument_onwebkitfullscreenchange:
     type: counter
     description: >
-      Whether a document called called Document.onwebkitfullscreenchange.
+      Whether a document called called HTMLDocument.onwebkitfullscreenchange.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8139,7 +8139,7 @@ use.counter.doc:
   htmldocument_onwebkitfullscreenerror:
     type: counter
     description: >
-      Whether a document called called Document.onwebkitfullscreenerror.
+      Whether a document called called HTMLDocument.onwebkitfullscreenerror.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8156,7 +8156,7 @@ use.counter.doc:
   htmldocument_pictureinpictureelement:
     type: counter
     description: >
-      Whether a document called called Document.pictureInPictureElement.
+      Whether a document called called HTMLDocument.pictureInPictureElement.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8173,7 +8173,7 @@ use.counter.doc:
   htmldocument_pictureinpictureenabled:
     type: counter
     description: >
-      Whether a document called called Document.pictureInPictureEnabled.
+      Whether a document called called HTMLDocument.pictureInPictureEnabled.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8190,7 +8190,7 @@ use.counter.doc:
   htmldocument_registerelement:
     type: counter
     description: >
-      Whether a document called called Document.registerElement.
+      Whether a document called called HTMLDocument.registerElement.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8207,7 +8207,7 @@ use.counter.doc:
   htmldocument_wasdiscarded:
     type: counter
     description: >
-      Whether a document called called Document.wasDiscarded.
+      Whether a document called called HTMLDocument.wasDiscarded.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8224,7 +8224,7 @@ use.counter.doc:
   htmldocument_webkitcancelfullscreen:
     type: counter
     description: >
-      Whether a document called called Document.webkitCancelFullScreen.
+      Whether a document called called HTMLDocument.webkitCancelFullScreen.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8241,7 +8241,7 @@ use.counter.doc:
   htmldocument_webkitcurrentfullscreenelement:
     type: counter
     description: >
-      Whether a document called called Document.webkitCurrentFullScreenElement.
+      Whether a document called called HTMLDocument.webkitCurrentFullScreenElement.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8258,7 +8258,7 @@ use.counter.doc:
   htmldocument_webkitexitfullscreen:
     type: counter
     description: >
-      Whether a document called called Document.webkitExitFullscreen.
+      Whether a document called called HTMLDocument.webkitExitFullscreen.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8275,7 +8275,7 @@ use.counter.doc:
   htmldocument_webkitfullscreenelement:
     type: counter
     description: >
-      Whether a document called called Document.webkitFullscreenElement.
+      Whether a document called called HTMLDocument.webkitFullscreenElement.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8292,7 +8292,7 @@ use.counter.doc:
   htmldocument_webkitfullscreenenabled:
     type: counter
     description: >
-      Whether a document called called Document.webkitFullscreenEnabled.
+      Whether a document called called HTMLDocument.webkitFullscreenEnabled.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8309,7 +8309,7 @@ use.counter.doc:
   htmldocument_webkithidden:
     type: counter
     description: >
-      Whether a document called called Document.webkitHidden.
+      Whether a document called called HTMLDocument.webkitHidden.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8326,7 +8326,7 @@ use.counter.doc:
   htmldocument_webkitisfullscreen:
     type: counter
     description: >
-      Whether a document called called Document.webkitIsFullScreen.
+      Whether a document called called HTMLDocument.webkitIsFullScreen.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8343,7 +8343,7 @@ use.counter.doc:
   htmldocument_webkitvisibilitystate:
     type: counter
     description: >
-      Whether a document called called Document.webkitVisibilityState.
+      Whether a document called called HTMLDocument.webkitVisibilityState.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8360,7 +8360,7 @@ use.counter.doc:
   htmldocument_xmlencoding:
     type: counter
     description: >
-      Whether a document called called Document.xmlEncoding.
+      Whether a document called called HTMLDocument.xmlEncoding.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8377,7 +8377,7 @@ use.counter.doc:
   htmldocument_xmlstandalone:
     type: counter
     description: >
-      Whether a document called called Document.xmlStandalone.
+      Whether a document called called HTMLDocument.xmlStandalone.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -8394,7 +8394,7 @@ use.counter.doc:
   htmldocument_xmlversion:
     type: counter
     description: >
-      Whether a document called called Document.xmlVersion.
+      Whether a document called called HTMLDocument.xmlVersion.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -14755,7 +14755,7 @@ use.counter.worker.service:
     send_in_pings:
       - use-counters
 
-# Total of 55 'deprecated operations (page)' use counters.
+# Total of 57 'deprecated operations (page)' use counters.
 use.counter.deprecated_ops.page:
   domsubtree_modified:
     type: counter
@@ -15695,16 +15695,16 @@ use.counter.deprecated_ops.page:
   before_script_execute_event:
     type: counter
     description: >
-      Whether a page regiested beforescriptexecute event listener.
+      Whether a page used BeforeScriptExecuteEvent.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     notification_emails:
       - dom-core@mozilla.com
-      - echen@mozilla.com
+      - emilio@mozilla.com
     expires: never
     send_in_pings:
       - use-counters
@@ -15712,21 +15712,21 @@ use.counter.deprecated_ops.page:
   after_script_execute_event:
     type: counter
     description: >
-      Whether a page regiested afterscriptexecute event listener.
+      Whether a page used AfterScriptExecuteEvent.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     notification_emails:
       - dom-core@mozilla.com
-      - echen@mozilla.com
+      - emilio@mozilla.com
     expires: never
     send_in_pings:
       - use-counters
 
-# Total of 55 'deprecated operations (document)' use counters.
+# Total of 57 'deprecated operations (document)' use counters.
 use.counter.deprecated_ops.doc:
   domsubtree_modified:
     type: counter
@@ -16666,16 +16666,16 @@ use.counter.deprecated_ops.doc:
   before_script_execute_event:
     type: counter
     description: >
-      Whether a document regiested beforescriptexecute event listener.
+      Whether a document used BeforeScriptExecuteEvent.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     notification_emails:
       - dom-core@mozilla.com
-      - echen@mozilla.com
+      - emilio@mozilla.com
     expires: never
     send_in_pings:
       - use-counters
@@ -16683,16 +16683,16 @@ use.counter.deprecated_ops.doc:
   after_script_execute_event:
     type: counter
     description: >
-      Whether a document regiested afterscriptexecute event listener.
+      Whether a document used AfterScriptExecuteEvent.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949373
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
     notification_emails:
       - dom-core@mozilla.com
-      - echen@mozilla.com
+      - emilio@mozilla.com
     expires: never
     send_in_pings:
       - use-counters
@@ -17281,6 +17281,23 @@ use.counter.css.page:
     type: counter
     description: >
       Whether a page used the CSS property font-style.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  css_font_synthesis_style:
+    type: counter
+    description: >
+      Whether a page used the CSS property font-synthesis-style.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -19198,6 +19215,57 @@ use.counter.css.page:
     send_in_pings:
       - use-counters
 
+  css_font_synthesis_position:
+    type: counter
+    description: >
+      Whether a page used the CSS property font-synthesis-position.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  css_font_synthesis_small_caps:
+    type: counter
+    description: >
+      Whether a page used the CSS property font-synthesis-small-caps.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  css_font_synthesis_weight:
+    type: counter
+    description: >
+      Whether a page used the CSS property font-synthesis-weight.
+      Compare against `use.counter.top_level_content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   css_moz_box_ordinal_group:
     type: counter
     description: >
@@ -19236,74 +19304,6 @@ use.counter.css.page:
     type: counter
     description: >
       Whether a page used the CSS property -x-span.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_font_synthesis_position:
-    type: counter
-    description: >
-      Whether a page used the CSS property font-synthesis-position.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_font_synthesis_small_caps:
-    type: counter
-    description: >
-      Whether a page used the CSS property font-synthesis-small-caps.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_font_synthesis_style:
-    type: counter
-    description: >
-      Whether a page used the CSS property font-synthesis-style.
-      Compare against `use.counter.top_level_content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_font_synthesis_weight:
-    type: counter
-    description: >
-      Whether a page used the CSS property font-synthesis-weight.
       Compare against `use.counter.top_level_content_documents_destroyed`
       to calculate the rate.
     bugs:
@@ -29264,6 +29264,23 @@ use.counter.css.doc:
     send_in_pings:
       - use-counters
 
+  css_font_synthesis_style:
+    type: counter
+    description: >
+      Whether a document used the CSS property font-synthesis-style.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   css_font_variant_caps:
     type: counter
     description: >
@@ -31168,6 +31185,57 @@ use.counter.css.doc:
     send_in_pings:
       - use-counters
 
+  css_font_synthesis_position:
+    type: counter
+    description: >
+      Whether a document used the CSS property font-synthesis-position.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  css_font_synthesis_small_caps:
+    type: counter
+    description: >
+      Whether a document used the CSS property font-synthesis-small-caps.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
+  css_font_synthesis_weight:
+    type: counter
+    description: >
+      Whether a document used the CSS property font-synthesis-weight.
+      Compare against `use.counter.content_documents_destroyed`
+      to calculate the rate.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
+    notification_emails:
+      - dom-core@mozilla.com
+      - emilio@mozilla.com
+    expires: never
+    send_in_pings:
+      - use-counters
+
   css_moz_box_ordinal_group:
     type: counter
     description: >
@@ -31206,74 +31274,6 @@ use.counter.css.doc:
     type: counter
     description: >
       Whether a document used the CSS property -x-span.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_font_synthesis_position:
-    type: counter
-    description: >
-      Whether a document used the CSS property font-synthesis-position.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_font_synthesis_small_caps:
-    type: counter
-    description: >
-      Whether a document used the CSS property font-synthesis-small-caps.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_font_synthesis_style:
-    type: counter
-    description: >
-      Whether a document used the CSS property font-synthesis-style.
-      Compare against `use.counter.content_documents_destroyed`
-      to calculate the rate.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852098
-    notification_emails:
-      - dom-core@mozilla.com
-      - emilio@mozilla.com
-    expires: never
-    send_in_pings:
-      - use-counters
-
-  css_font_synthesis_weight:
-    type: counter
-    description: >
-      Whether a document used the CSS property font-synthesis-weight.
       Compare against `use.counter.content_documents_destroyed`
       to calculate the rate.
     bugs:
