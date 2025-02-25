@@ -836,7 +836,7 @@
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Mostrar em sessões privadas</string>
     <!-- Preference title for switch preference to show trending search suggestions -->
-    <string name="preferences_show_trending_search_suggestions">Mostrar sugestões em tendência</string>
+    <string name="preferences_show_trending_search_suggestions">Mostrar sugestões populares</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Mostrar sugestões da área de transferência</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -2560,7 +2560,7 @@
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Sugestões Firefox</string>
 
     <!-- Search suggestions title for trending searches. -->
-    <string name="trending_searches_header">Pesquisas em tendência</string>
+    <string name="trending_searches_header">Pesquisas populares</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Pesquisa do Google</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
@@ -3021,7 +3021,7 @@
     <!-- Text for when no trackers have been blocked. -->
     <string name="protection_panel_no_trackers_blocked">Não foram encontrados rastreadores</string>
     <!-- Link text to navigate to privacy and security settings from the protection panel. -->
-    <string name="protection_panel_privacy_and_security_settings">Definições de privacidade e segurança</string>
+    <string name="protection_panel_privacy_and_security_settings">Definições de privacidade e de segurança</string>
     <!-- Text for displaying the total number of trackers blocked in the trackers blocked panel.
         %d is a placeholder for the number of trackers blocked. -->
     <string name="trackers_blocked_panel_total_num_trackers_blocked">Rastreadores bloqueados: %d</string>
@@ -3041,7 +3041,7 @@
     <!-- Text for the connection security panel when the site is secure. -->
     <string name="connection_security_panel_secure">Ligação segura</string>
     <!-- Text for the connection security panel when the site is not secure. -->
-    <string name="connection_security_panel_not_secure">Ligação insegura</string>
+    <string name="connection_security_panel_not_secure">Ligação não segura</string>
     <!-- Text for the connection security panel to indicate who the certificate was verified by.
     %s is a placeholder for the name of the certificate authority that verified the ticket -->
     <string name="connection_security_panel_verified_by">Verificado por %s</string>
