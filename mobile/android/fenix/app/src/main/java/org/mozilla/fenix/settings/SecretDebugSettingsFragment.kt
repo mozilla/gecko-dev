@@ -55,11 +55,16 @@ private fun SecretDebugSettingsScreen() {
         map = { it.search.region ?: RegionState.Default },
     )
 
-    DebugInfo(regionState = regionState)
+    val distributionId: String by components.core.store.observeAsState(
+        initialValue = "",
+        map = { it.distributionId ?: "" },
+    )
+
+    DebugInfo(regionState = regionState, distributionId = distributionId)
 }
 
 @Composable
-private fun DebugInfo(regionState: RegionState) {
+private fun DebugInfo(regionState: RegionState, distributionId: String) {
     Column(
         modifier = Modifier
             .padding(8.dp),
@@ -83,6 +88,18 @@ private fun DebugInfo(regionState: RegionState) {
         )
         Text(
             text = regionState.current,
+            color = FirefoxTheme.colors.textPrimary,
+            modifier = Modifier.padding(4.dp),
+        )
+
+        Text(
+            text = stringResource(R.string.debug_info_distribution_id),
+            color = FirefoxTheme.colors.textPrimary,
+            style = FirefoxTheme.typography.headline6,
+            modifier = Modifier.padding(4.dp),
+        )
+        Text(
+            text = distributionId,
             color = FirefoxTheme.colors.textPrimary,
             modifier = Modifier.padding(4.dp),
         )

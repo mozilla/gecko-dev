@@ -50,6 +50,10 @@
     <uses-permission android:name="android.permission.CREDENTIAL_MANAGER_SET_ORIGIN" />
     <uses-permission android:name="android.permission.CREDENTIAL_MANAGER_QUERY_CANDIDATE_CREDENTIALS" />
 
+    <!-- Needed to get distribution information from partners.
+    This is NOT required for the adjust plugin. -->
+    <uses-permission android:name="com.adjust.preinstall.READ_PERMISSION"/>
+
     <application
         android:name=".FenixApplication"
         android:allowBackup="false"

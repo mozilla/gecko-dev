@@ -94,7 +94,7 @@ class FenixApplicationTest {
         val expectedAppInstallSource = "org.mozilla.install.source"
         val settings = spyk(Settings(testContext))
         val application = spyk(application)
-        val packageManager: PackageManager = mockk()
+        val packageManager: PackageManager = mockk(relaxed = true)
 
         every { application.packageManager } returns packageManager
         @Suppress("DEPRECATION")

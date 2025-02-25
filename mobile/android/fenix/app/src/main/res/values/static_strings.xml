@@ -116,6 +116,7 @@
     <!-- Secret debug info strings -->
     <string name="debug_info_region_home" translatable="false">Home region</string>
     <string name="debug_info_region_current" translatable="false">Current region</string>
+    <string name="debug_info_distribution_id" translatable="false">Distribution ID</string>
 
     <!-- Profiler settings -->
     <string name="preferences_start_profiler">Start Profiler</string>

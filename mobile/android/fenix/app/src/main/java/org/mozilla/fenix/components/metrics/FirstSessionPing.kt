@@ -68,7 +68,7 @@ class FirstSessionPing(
         FirstSession.installSource.set(installSourcePackage())
 
         CoroutineScope(Dispatchers.IO).launch {
-            FirstSession.distributionId.set(getDistributionId(browserStore))
+            FirstSession.distributionId.set(getDistributionId(context, browserStore))
 
             Pings.firstSession.submit()
             markAsTriggered()

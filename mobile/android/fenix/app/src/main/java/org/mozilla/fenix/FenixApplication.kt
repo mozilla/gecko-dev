@@ -715,7 +715,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         setPreferenceMetrics(settings)
         with(Metrics) {
             // Set this early to guarantee it's in every ping from here on.
-            distributionId.set(getDistributionId(browserStore))
+            distributionId.set(getDistributionId(this@FenixApplication, browserStore))
 
             defaultBrowser.set(browsersCache.all(applicationContext).isDefaultBrowser)
             mozillaProductDetector.getMozillaBrowserDefault(applicationContext)?.also {
