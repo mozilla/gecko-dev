@@ -288,7 +288,9 @@ def bootstrap_path(path, **kwargs):
                     return None
             except Exception as e:
                 log.error("%s", e)
-                die("If you can't fix the above, retry with --disable-bootstrap.")
+                die(
+                    "If you can't fix the above, retry with --enable-bootstrap=no-update."
+                )
         if enable_bootstrap or enable_bootstrap.origin == "default":
             # We re-test whether the path exists because it may have been created by
             # try_bootstrap. Automation will not have gone through the bootstrap
