@@ -718,3 +718,39 @@ talos-pdfs:
     fetches:
         fetch:
             - mozilla-pdf.js
+
+win64-dxc:
+    description: "DirectX Shader Compiler (x86_64)"
+    attributes:
+        local-toolchain: true
+    treeherder:
+        symbol: TW64(dxc)
+    run:
+        script: build-dxc.sh
+        arguments:
+            - "x86_64"
+        toolchain-artifact: public/build/dxc.tar.zst
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - vs-toolchain
+        fetch:
+            - dxc-src
+
+win64-aarch64-dxc:
+    description: "DirectX Shader Compiler (aarch64)"
+    attributes:
+        local-toolchain: true
+    treeherder:
+        symbol: TWA64(dxc)
+    run:
+        script: build-dxc.sh
+        arguments:
+            - "aarch64"
+        toolchain-artifact: public/build/dxc.tar.zst
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - vs-toolchain
+        fetch:
+            - dxc-src
