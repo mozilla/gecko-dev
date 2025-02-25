@@ -17,11 +17,9 @@ sys.path.insert(0, os.path.join(base_dir, "python", "mach"))
 sys.path.insert(0, os.path.join(base_dir, "python", "mozboot"))
 sys.path.insert(0, os.path.join(base_dir, "python", "mozbuild"))
 sys.path.insert(0, os.path.join(base_dir, "third_party", "python", "packaging"))
-sys.path.insert(0, os.path.join(base_dir, "third_party", "python", "six"))
 sys.path.insert(0, os.path.join(base_dir, "third_party", "python", "looseversion"))
 sys.path.insert(0, os.path.join(base_dir, "third_party", "python", "filelock"))
 import mozpack.path as mozpath
-import six
 from mach.requirements import MachEnvRequirements
 from mach.site import (
     CommandSiteManager,
@@ -177,7 +175,7 @@ def check_unicode(obj):
     """Recursively check that all strings in the object are unicode strings."""
     if isinstance(obj, dict):
         result = True
-        for k, v in six.iteritems(obj):
+        for k, v in obj.items():
             if not check_unicode(k):
                 print("%s key is not unicode." % k, file=sys.stderr)
                 result = False
@@ -187,7 +185,7 @@ def check_unicode(obj):
         return result
     if isinstance(obj, bytes):
         return False
-    if isinstance(obj, six.text_type):
+    if isinstance(obj, str):
         return True
     if isinstance(obj, Iterable):
         return all(check_unicode(o) for o in obj)
@@ -205,14 +203,14 @@ def config_status(config, execute=True):
         if v is False:
             return ""
         # Serialize types that look like lists and tuples as lists.
-        if not isinstance(v, (bytes, six.text_type, dict)) and isinstance(v, Iterable):
+        if not isinstance(v, (bytes, str, dict)) and isinstance(v, Iterable):
             return list(v)
         return v
 
     sanitized_config = {}
     sanitized_config["substs"] = {
         k: sanitize_config(v)
-        for k, v in six.iteritems(config)
+        for k, v in config.items()
         if k
         not in (
             "DEFINES",
@@ -226,7 +224,7 @@ def config_status(config, execute=True):
     for k, v in config["OLD_CONFIGURE_SUBSTS"]:
         sanitized_config["substs"][k] = sanitize_config(v)
     sanitized_config["defines"] = {
-        k: sanitize_config(v) for k, v in six.iteritems(config["DEFINES"])
+        k: sanitize_config(v) for k, v in config["DEFINES"].items()
     }
     for k, v in config["OLD_CONFIGURE_DEFINES"]:
         sanitized_config["defines"][k] = sanitize_config(v)
@@ -253,7 +251,7 @@ def config_status(config, execute=True):
             )
             % {"python": config["PYTHON3"]}
         )
-        for k, v in sorted(six.iteritems(sanitized_config)):
+        for k, v in sorted(sanitized_config.items()):
             fh.write("%s = " % k)
             pprint.pprint(v, stream=fh, indent=4)
         fh.write(
