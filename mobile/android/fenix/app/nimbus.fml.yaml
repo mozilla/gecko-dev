@@ -573,9 +573,22 @@ features:
           Whether or not to enable trending searches.
         type: Boolean
         default: false
-      show-trending-searches-on-homepage:
+
+  recent-searches:
+    description: Enables recent searches.
+    variables:
+      enabled:
         description: >
-          Whether or not to display trending searches on the homepage.
+          Whether or not to enable recent searches.
+        type: Boolean
+        default: false
+
+  search-suggestions-on-homepage:
+    description: Enables search suggestions on homepage.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable search suggestions on homepage.
         type: Boolean
         default: false
 

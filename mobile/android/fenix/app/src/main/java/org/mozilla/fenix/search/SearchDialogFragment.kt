@@ -484,7 +484,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
             view.context.settings().shouldShowTrendingSearchSuggestions(isPrivate) &&
             (
                 store.state.query.isNotEmpty() ||
-                    FxNimbus.features.trendingSearches.value().showTrendingSearchesOnHomepage
+                    FxNimbus.features.searchSuggestionsOnHomepage.value().enabled
                 )
         ) {
             binding.awesomeBar.isVisible = true
