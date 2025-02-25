@@ -1909,6 +1909,7 @@ void SMILTimedElement::SampleFillValue() {
   if (mFillMode != FILL_FREEZE || !mClient) return;
 
   SMILTime activeTime;
+  SMILTimeValue repeatDuration = GetRepeatDuration();
 
   if (mElementState == STATE_WAITING || mElementState == STATE_POSTACTIVE) {
     const SMILInterval* prevInterval = GetPreviousInterval();
@@ -1926,7 +1927,6 @@ void SMILTimedElement::SampleFillValue() {
     // If the interval's repeat duration was shorter than its active duration,
     // use the end of the repeat duration to determine the frozen animation's
     // state.
-    SMILTimeValue repeatDuration = GetRepeatDuration();
     if (repeatDuration.IsDefinite()) {
       activeTime = std::min(repeatDuration.GetMillis(), activeTime);
     }
@@ -1936,12 +1936,12 @@ void SMILTimedElement::SampleFillValue() {
         "Attempting to sample fill value when we're in an unexpected state "
         "(probably STATE_STARTUP)");
 
-    // If we are being asked to sample the fill value while active we *must*
-    // have a repeat duration shorter than the active duration so use that.
-    MOZ_ASSERT(GetRepeatDuration().IsDefinite(),
-               "Attempting to sample fill value of an active animation with "
-               "an indefinite repeat duration");
-    activeTime = GetRepeatDuration().GetMillis();
+    if (!repeatDuration.IsDefinite()) {
+      // Normally we'd expect a definite repeat duration here so presumably
+      // it's only just been set to indefinite.
+      return;
+    }
+    activeTime = repeatDuration.GetMillis();
   }
 
   uint32_t repeatIteration;
