@@ -11,7 +11,7 @@
 let registration;
 
 promise_setup(async () => {
-  registration = await prepareActiveServiceWorker("noop-sw.js");
+  registration = await getActiveServiceWorker("noop-sw.js");
 });
 
 promise_test(async (t) => {

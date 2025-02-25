@@ -9,7 +9,7 @@ let registration;
 
 promise_setup(async () => {
   await trySettingPermission("granted");
-  registration = await prepareActiveServiceWorker("noop-sw.js");
+  registration = await getActiveServiceWorker("noop-sw.js");
 });
 
 const resolvedUrl = new URL("foo.png", location.href).toString();

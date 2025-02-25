@@ -17,7 +17,7 @@ promise_setup(async () => {
   // (The permission test is done in permission.https.html.)
   await trySettingPermission("granted");
   // Get the active service worker because Chrome checks it before key validation
-  registration = await prepareActiveServiceWorker("noop-sw.js");
+  registration = await getActiveServiceWorker("noop-sw.js");
 });
 
 promise_test(async (t) => {
