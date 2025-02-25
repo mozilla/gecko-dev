@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <!-- Address fields (form-less) toggling the visibility state dynamically for some elements on user input -->
+         <div>
+             <label for="name-visibility-change">Name</label>
+             <input type="text" id="name-visibility-change" autocomplete="name">
+
+             <label for="email-visibility-change">Email</label>
+             <input type="email" id="email-visibility-change" autocomplete="email">
+
+             <label for="organization-visibility-change">Phone</label>
+             <input type="tel" id="organization-visibility-change" autocomplete="tel" />
+
+             <label for="country-visibility-change">Country</label>
+             <input type="text" id="country-visibility-change" autocomplete="country">
+
+             <label for="street-address-visibility-change">Street Address</label>
+             <input type="text" id="street-address-visibility-change" autocomplete="street-address" hidden/>
+
+             <label for="address-level1-visibility-change">Address Level 1</label>
+             <input type="text" id="address-level1-visibility-change" autocomplete="address-level1" hidden/>
+
+             <label for="address-level2-visibility-change">Address Level 2</label>
+             <input type="text" id="address-level2-visibility-change" autocomplete="address-level2" hidden/>
+
+             <label for="postal-code-visibility-change">Postal Code</label>
+             <input type="text" id="postal-code-visibility-change" autocomplete="postal-code" hidden/>
+        </div>
+    </body>
+
+    <script>
+        const countryInputVisibilityChange = document.getElementById("country-visibility-change");
+        countryInputVisibilityChange.addEventListener('input', (event) => {
+            if (event.target.value != "") {
+                document.getElementById("street-address-visibility-change").hidden = false;
+                document.getElementById("address-level1-visibility-change").hidden = false;
+                document.getElementById("address-level2-visibility-change").hidden = false;
+                document.getElementById("postal-code-visibility-change").hidden = false;
+            } else {
+                document.getElementById("street-address-visibility-change").hidden = true;
+                document.getElementById("address-level1-visibility-change").hidden = true;
+                document.getElementById("address-level2-visibility-change").hidden = true;
+                document.getElementById("postal-code-visibility-change").hidden = true;
+            }
+        });
+    </script>
+</html>

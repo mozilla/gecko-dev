@@ -84,6 +84,16 @@ const ADDRESS_FORM_WITH_PAGE_NAVIGATION_BUTTONS =
   "address/capture_address_on_page_navigation.html";
 const FORM_IFRAME_SANDBOXED_URL =
   "https://example.org" + HTTP_TEST_PATH + "autocomplete_iframe_sandboxed.html";
+const FORMS_WITH_DYNAMIC_FORM_CHANGE =
+  "https://example.org" + HTTP_TEST_PATH + "dynamic_form_changes.html";
+const FORMLESS_FIELDS_WITH_DYNAMIC_FORM_CHANGE_AFTER_NODE_MUTATIONS =
+  "https://example.org" +
+  HTTP_TEST_PATH +
+  "dynamic_formless_changes_node_mutations.html";
+const FORMLESS_FIELDS_WITH_DYNAMIC_FORM_CHANGE_AFTER_VISIBILITY_STATE_CHANGE =
+  "https://example.org" +
+  HTTP_TEST_PATH +
+  "dynamic_formless_changes_element_visiblity_state.html";
 const CREDITCARD_FORM_URL =
   "https://example.org" +
   HTTP_TEST_PATH +

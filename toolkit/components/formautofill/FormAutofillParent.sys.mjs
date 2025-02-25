@@ -561,6 +561,10 @@ export class FormAutofillParent extends JSWindowActorParent {
     // This is for testing purpose only which sends a notification to indicate that the
     // form has been identified, and ready to open popup.
     this.notifyMessageObservers("fieldsIdentified");
+
+    // This is for testing purposes, to know that the fields were
+    // identified after a form change
+    this.notifyMessageObservers("fieldDetectionCompleted");
   }
 
   /**
