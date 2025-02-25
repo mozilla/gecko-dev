@@ -490,6 +490,14 @@ export class FormAutofillChild extends JSWindowActorChild {
         formRootElementId
       );
 
+    // Not resetting the field state for elements that became invisible because the handler
+    // keeps tracking them if they were previously autocompleted. Their field state
+    // will be updated on a clearing action
+    const removedElements = changes[lazy.FORM_CHANGE_REASON.NODES_REMOVED];
+    removedElements?.forEach(element => {
+      handler.resetFieldStateWhenRemoved(element);
+    });
+
     if (this.#handlerWaitingForDetectedComplete.has(handler)) {
       // The child is still waiting for the parent to complete
       // a previous fields detection
@@ -515,7 +523,6 @@ export class FormAutofillChild extends JSWindowActorChild {
     ) {
       // The detected form fields remain unchanged,
       // so we don't notify the parent and the subtree children
-      this.debug(`fieldDetails remain unchanged after form change.`);
       return;
     }
 

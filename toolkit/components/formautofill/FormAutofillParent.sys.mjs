@@ -1072,17 +1072,19 @@ export class FormAutofillParent extends JSWindowActorParent {
    *        action.
    * @param {string} focusedId
    *        The ID of the element that initially triggers the autofill action.
-   * @param {object} section
-   *        The section that contains fields to be autofilled.
+   * @param {Array<FieldDetails>} fieldDetails
+   *        An array of fieldDetails to be autocompleted/previewed/cleared.
    * @param {object} profile
    *        The profile data used for autofilling the fields.
    */
-  async #triggerAutofillActionInChildren(message, focusedId, section, profile) {
-    const autofillFields = section.getAutofillFields();
+  async #triggerAutofillActionInChildren(
+    message,
+    focusedId,
+    fieldDetails,
+    profile
+  ) {
     const detailsByBC =
-      lazy.FormAutofillSection.groupFieldDetailsByBrowsingContext(
-        autofillFields
-      );
+      lazy.FormAutofillSection.groupFieldDetailsByBrowsingContext(fieldDetails);
 
     const result = new Map();
     const entries = Object.entries(detailsByBC);
@@ -1143,10 +1145,11 @@ export class FormAutofillParent extends JSWindowActorParent {
     }
 
     const msg = "FormAutofill:PreviewFields";
+    const fields = section.getAutofillFields();
     await this.#triggerAutofillActionInChildren(
       msg,
       elementId,
-      section,
+      fields,
       profile
     );
 
@@ -1171,10 +1174,11 @@ export class FormAutofillParent extends JSWindowActorParent {
     }
 
     const msg = "FormAutofill:FillFields";
+    const fields = section.getAutofillFields();
     const result = await this.#triggerAutofillActionInChildren(
       msg,
       elementId,
-      section,
+      fields,
       profile
     );
 
@@ -1204,7 +1208,11 @@ export class FormAutofillParent extends JSWindowActorParent {
     });
 
     const msg = "FormAutofill:ClearFilledFields";
-    await this.#triggerAutofillActionInChildren(msg, elementId, section);
+    // On a form clearing action, we don't use section.getAutofillFields to retrieve
+    // the elements that are about to be cleared, but we consider all fieldDetails regardless
+    // of their visiblity state in order to also clear invisible but previously autocompleted fields
+    const fields = section.fieldDetails;
+    await this.#triggerAutofillActionInChildren(msg, elementId, fields);
 
     // For testing only
     Services.obs.notifyObservers(null, "formautofill-clear-form-complete");

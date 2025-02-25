@@ -312,6 +312,20 @@ export class FormAutofillHandler {
   }
 
   /**
+   * Resetting the state element's fieldDetail after it was removed from the form
+   * Todo: We'll need to update this.filledResult in FormAutofillParent (Bug 1948077).
+   *
+   * @param {HTMLElement} element that was removed
+   */
+  resetFieldStateWhenRemoved(element) {
+    if (this.getFilledStateByElement(element) != FIELD_STATES.AUTO_FILLED) {
+      return;
+    }
+    const fieldDetail = this.getFieldDetailByElement(element);
+    this.#filledStateByElement.delete(fieldDetail);
+  }
+
+  /**
    * Change the state of a field to correspond with different presentations.
    *
    * @param {object} fieldDetail
