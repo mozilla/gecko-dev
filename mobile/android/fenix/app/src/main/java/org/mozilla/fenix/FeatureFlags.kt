@@ -91,5 +91,5 @@ object FeatureFlags {
     /**
      * Enables the tab swipe to dismiss rewrite.
      */
-    val swipeToDismiss2 = Config.channel.isNightlyOrDebug
+    const val swipeToDismiss2 = true
 }
