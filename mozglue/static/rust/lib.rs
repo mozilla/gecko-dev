@@ -13,10 +13,7 @@ use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::os::raw::c_void;
 use std::panic;
-#[cfg(has_panic_hook_info)]
 use std::panic::PanicHookInfo;
-#[cfg(not(has_panic_hook_info))]
-use std::panic::PanicInfo as PanicHookInfo;
 
 #[link(name = "wrappers")]
 extern "C" {
