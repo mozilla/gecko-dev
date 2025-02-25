@@ -13,7 +13,6 @@ const PREF_PREFIX = "app.normandy";
 const LEGACY_PREF_PREFIX = "extensions.shield-recipe-client";
 const PREF_LOGGING_LEVEL = "app.normandy.logging.level";
 const PREF_MIGRATIONS_APPLIED = "app.normandy.migrationsApplied";
-const PREF_OPTOUTSTUDIES_ENABLED = "app.shield.optoutstudies.enabled";
 
 // Logging
 const log = Log.repository.getLogger(BOOTSTRAP_LOGGER_NAME);
@@ -108,26 +107,13 @@ function migrateShieldPrefs() {
   }
 }
 
-/**
- * Migration to handle moving the studies opt-out pref from under the health
- * report upload pref to an independent pref.
- *
- * If the pref was set to true and the health report upload pref was set
- * to true then the pref should stay true. Otherwise set it to false.
- */
 function migrateStudiesEnabledWithoutHealthReporting() {
-  const optOutStudiesEnabled = Services.prefs.getBoolPref(
-    PREF_OPTOUTSTUDIES_ENABLED,
-    false
-  );
-  const healthReportUploadEnabled = Services.prefs.getBoolPref(
-    "datareporting.healthreport.uploadEnabled",
-    false
-  );
-  Services.prefs.setBoolPref(
-    PREF_OPTOUTSTUDIES_ENABLED,
-    optOutStudiesEnabled && healthReportUploadEnabled
-  );
+  // Removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1950452
+  // This migration was in place so that users with telemetry disabled would not receive studies.
+  // However, the result is that a new build in 2025 with telemetry disabled will permanently
+  // disable studies until the user turns on both telemetry *and* studies. There are no longer any
+  // normandy studies and so removing this should have no affect.
+  // This is a hot fix until we remove the rest of normandy.
 }
 
 /**

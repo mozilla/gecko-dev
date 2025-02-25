@@ -792,8 +792,9 @@ add_task(async function test_getStudiesEnabled() {
 
   Assert.equal(
     result,
-    Services.prefs.getBoolPref("app.shield.optoutstudies.enabled"),
-    "about:studies is enabled if the pref is enabled"
+    Services.prefs.getBoolPref("app.shield.optoutstudies.enabled") &&
+      Services.prefs.getBoolPref("datareporting.healthreport.uploadEnabled"),
+    "about:studies is enabled if telemetry and studies are enabled"
   );
 });
 
