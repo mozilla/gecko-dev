@@ -355,12 +355,13 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/1865199
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949776
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1865199#c3
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184#c7
     notification_emails:
       - bvandersloot@mozilla.com
-    expires: 138
+    expires: 147
 
   set_cookie_foreign:
     type: rate
@@ -371,12 +372,13 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/1865199
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949776
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1865199#c3
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184#c7
     notification_emails:
       - bvandersloot@mozilla.com
-    expires: 138
+    expires: 147
     denominator_metric: networking.set_cookie
 
   set_cookie_partitioned:
@@ -387,12 +389,13 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/1865199
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949776
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1865199#c3
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184#c7
     notification_emails:
       - bvandersloot@mozilla.com
-    expires: 138
+    expires: 147
     denominator_metric: networking.set_cookie
 
   set_cookie_foreign_partitioned:
@@ -404,12 +407,13 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/1865199
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1949776
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1865199#c3
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1912184#c7
     notification_emails:
       - bvandersloot@mozilla.com
-    expires: 138
+    expires: 147
     denominator_metric: networking.set_cookie
 
   set_cookie_expired_without_server_time:
