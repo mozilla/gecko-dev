@@ -39,6 +39,8 @@ const ENABLED_AUTOFILL_CAPTURE_ON_PAGE_NAVIGATION_PREF =
   "extensions.formautofill.heuristics.captureOnPageNavigation";
 const ENABLED_AUTOFILL_SAME_ORIGIN_WITH_TOP =
   "extensions.formautofill.heuristics.autofillSameOriginWithTop";
+const ENABLED_AUTOFILL_DETECT_DYNAMIC_FORM_CHANGES_PREF =
+  "extensions.formautofill.heuristics.detectDynamicFormChanges";
 
 export const FormAutofill = {
   ENABLED_AUTOFILL_ADDRESSES_PREF,
@@ -47,6 +49,7 @@ export const FormAutofill = {
   ENABLED_AUTOFILL_CAPTURE_ON_PAGE_NAVIGATION_PREF,
   ENABLED_AUTOFILL_SAME_ORIGIN_WITH_TOP,
   ENABLED_AUTOFILL_CREDITCARDS_PREF,
+  ENABLED_AUTOFILL_DETECT_DYNAMIC_FORM_CHANGES_PREF,
   AUTOFILL_CREDITCARDS_REAUTH_PREF,
   AUTOFILL_CREDITCARDS_AUTOCOMPLETE_OFF_PREF,
   AUTOFILL_ADDRESSES_AUTOCOMPLETE_OFF_PREF,
@@ -334,6 +337,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "MLModelRevision",
   "extensions.formautofill.ml.experiment.modelRevision",
   null
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofill,
+  "detectDynamicFormChanges",
+  "extensions.formautofill.heuristics.detectDynamicFormChanges",
+  false
 );
 
 ChromeUtils.defineLazyGetter(FormAutofill, "countries", () =>
