@@ -102,6 +102,7 @@ gecko_metrics = [
 # Metrics that are sent by Firefox Desktop
 # Order is lexicographical, enforced by t/c/glean/tests/pytest/test_yaml_indices.py
 firefox_desktop_metrics = [
+    "browser/components/asrouter/metrics.yaml",
     "browser/components/backup/metrics.yaml",
     "browser/components/doh/metrics.yaml",
     "browser/components/downloads/metrics.yaml",
@@ -196,6 +197,7 @@ gecko_pings = [
 # Pings that are sent by Firefox Desktop.
 # Order is lexicographical, enforced by t/c/glean/tests/pytest/test_yaml_indices.py
 firefox_desktop_pings = [
+    "browser/components/asrouter/pings.yaml",
     "browser/components/newtab/pings.yaml",
     "browser/components/pocket/pings.yaml",
     "browser/components/search/pings.yaml",
