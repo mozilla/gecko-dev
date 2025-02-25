@@ -2593,7 +2593,6 @@ main section {
   content: "";
   -moz-context-properties: fill;
   fill: var(--icon-color);
-  background: url("chrome://global/skin/icons/plus-20.svg") center no-repeat;
   width: calc(var(--icon-size-default) * 1.25);
   height: calc(var(--icon-size-default) * 1.25);
   display: block;
@@ -2602,9 +2601,8 @@ main section {
   left: 50%;
   transform: translate(-50%, -50%);
 }
-.wallpaper-input.theme-solid-color-picker::-moz-color-swatch {
-  border-color: transparent;
-  border-radius: 8px;
+.wallpaper-input.theme-custom-wallpaper::after {
+  background: url("chrome://global/skin/icons/plus-20.svg") center no-repeat;
 }
 .wallpaper-input.dark-landscape {
   background-image: url("chrome://newtab/content/data/content/assets/wallpapers/dark-landscape.avif");
@@ -2642,12 +2640,52 @@ main section {
 .wallpaper-input.light-sky {
   background-image: url("chrome://newtab/content/data/content/assets/wallpapers/light-sky.avif");
 }
+.wallpaper-input:checked {
+  border-color: transparent;
+  outline-color: var(--color-accent-primary-active);
+  padding: 2px;
+}
 .wallpaper-input:focus-visible {
   outline-color: var(--newtab-primary-action-background);
 }
 .wallpaper-input:hover {
   filter: brightness(55%);
   outline-color: transparent;
+}
+
+.theme-custom-color-picker {
+  position: relative;
+}
+.theme-custom-color-picker::after {
+  background: url("chrome://global/skin/icons/color-picker-20.svg") center no-repeat;
+  content: "";
+  -moz-context-properties: fill;
+  fill: var(--icon-color);
+  width: calc(var(--icon-size-default) * 1.25);
+  height: calc(var(--icon-size-default) * 1.25);
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.theme-custom-color-picker .wallpaper-input {
+  border: 2px dashed var(--border-color-default, #CFCFD8);
+  box-shadow: none;
+}
+.theme-custom-color-picker .wallpaper-input.active {
+  border-color: transparent;
+  outline-color: var(--color-accent-primary-active);
+  padding: 2px;
+}
+.theme-custom-color-picker label {
+  display: inline-block;
+  font-size: var(--font-size-small);
+  text-align: center;
+  width: 100%;
+}
+.theme-custom-color-picker ::-moz-color-swatch {
+  border-color: transparent;
 }
 
 .wallpaper-list {

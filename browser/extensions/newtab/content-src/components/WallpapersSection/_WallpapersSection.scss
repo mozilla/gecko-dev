@@ -65,7 +65,6 @@
       content: '';
       -moz-context-properties: fill;
       fill: var(--icon-color);
-      background: url('chrome://global/skin/icons/plus-20.svg') center no-repeat;
       width: calc(var(--icon-size-default) * 1.25 ); // Custom size: ~20px;
       height: calc(var(--icon-size-default) * 1.25 ); // Custom size: ~20px;
       display: block;
@@ -76,11 +75,9 @@
     }
   }
 
-  &.theme-solid-color-picker {
-    // Used input[type="color"] element
-    &::-moz-color-swatch {
-      border-color: transparent;
-      border-radius: 8px;
+  &.theme-custom-wallpaper {
+    &::after {
+      background: url('chrome://global/skin/icons/plus-20.svg') center no-repeat;
     }
   }
 
@@ -92,6 +89,12 @@
     }
   }
 
+  &:checked {
+    border-color: transparent;
+    outline-color: var(--color-accent-primary-active);
+    padding: 2px;
+  }
+
   &:focus-visible {
     outline-color: var(--newtab-primary-action-background);
   }
@@ -99,6 +102,47 @@
   &:hover {
     filter: brightness(55%);
     outline-color: transparent;
+  }
+}
+
+.theme-custom-color-picker {
+  position: relative;
+
+  // Color Picker Icon
+  &::after {
+    background: url('chrome://global/skin/icons/color-picker-20.svg') center no-repeat;
+    content: '';
+    -moz-context-properties: fill;
+    fill: var(--icon-color);
+    width: calc(var(--icon-size-default) * 1.25); // Custom size: ~20px;
+    height: calc(var(--icon-size-default) * 1.25); // Custom size: ~20px;
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .wallpaper-input {
+    border: 2px dashed var(--border-color-default, #CFCFD8);
+    box-shadow: none;
+
+    &.active {
+      border-color: transparent;
+      outline-color: var(--color-accent-primary-active);
+      padding: 2px;
+    }
+  }
+
+  label {
+    display: inline-block;
+    font-size: var(--font-size-small);
+    text-align: center;
+    width: 100%;
+  }
+
+  ::-moz-color-swatch {
+    border-color: transparent;
   }
 }
 

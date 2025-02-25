@@ -201,6 +201,8 @@ export class WallpaperFeed {
         break;
       case at.PREF_CHANGED:
         if (
+          action.data.name ===
+            "newtabWallpapers.newtabWallpapers.customColor.enabled" ||
           action.data.name === "newtabWallpapers.customWallpaper.enabled" ||
           action.data.name === "newtabWallpapers.enabled" ||
           action.data.name === "newtabWallpapers.v2.enabled"
