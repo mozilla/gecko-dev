@@ -1383,6 +1383,18 @@
   value: ""
   mirror: always
 
+# Control whether we enable the feature of crash pull at all
+- name: browser.crashReports.crashPull
+  type: bool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+# Should we prompt the user to send targetted crash report requested by devs?
+- name: browser.crashReports.requestedNeverShowAgain
+  type: bool
+  value: false
+  mirror: always
+
 # Min font device pixel size at which to turn on high quality.
 - name: browser.display.auto_quality_min_font_size
   type: RelaxedAtomicUint32
