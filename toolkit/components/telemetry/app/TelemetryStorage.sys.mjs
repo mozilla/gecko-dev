@@ -1223,20 +1223,18 @@ var TelemetryStorageImpl = {
     }
 
     // Save the time it takes to check if the pending pings are over-quota.
-    Telemetry.getHistogramById("TELEMETRY_PENDING_CHECKING_OVER_QUOTA_MS").add(
+    Glean.telemetry.pendingCheckingOverQuota.accumulateSingleSample(
       Math.round(Policy.now().getTime() - startTimeStamp)
     );
 
     let recordHistograms = (sizeInMB, evictedPings, elapsedMs) => {
-      Telemetry.getHistogramById("TELEMETRY_PENDING_PINGS_SIZE_MB").add(
-        sizeInMB
+      Glean.telemetry.pendingPingsSize.accumulate(sizeInMB);
+      Glean.telemetry.pendingPingsEvictedOverQuota.accumulateSingleSample(
+        evictedPings
       );
-      Telemetry.getHistogramById(
-        "TELEMETRY_PENDING_PINGS_EVICTED_OVER_QUOTA"
-      ).add(evictedPings);
-      Telemetry.getHistogramById(
-        "TELEMETRY_PENDING_EVICTING_OVER_QUOTA_MS"
-      ).add(elapsedMs);
+      Glean.telemetry.pendingEvictingOverQuota.accumulateSingleSample(
+        elapsedMs
+      );
     };
 
     // Check if we're using too much space. If not, bail out.
@@ -1518,11 +1516,9 @@ var TelemetryStorageImpl = {
     } catch (e) {
       // If we failed to load the ping, check what happened and update the histogram.
       if (e instanceof PingReadError) {
-        Telemetry.getHistogramById("TELEMETRY_PENDING_LOAD_FAILURE_READ").add();
+        Glean.telemetry.pendingLoadFailureRead.add(1);
       } else if (e instanceof PingParseError) {
-        Telemetry.getHistogramById(
-          "TELEMETRY_PENDING_LOAD_FAILURE_PARSE"
-        ).add();
+        Glean.telemetry.pendingLoadFailureParse.add(1);
       }
 
       // Remove the ping from the cache, so we don't try to load it again.

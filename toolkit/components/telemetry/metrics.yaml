@@ -276,6 +276,130 @@ telemetry:
     expires: never
     telemetry_mirror: TELEMETRY_ARCHIVE_EVICTING_OVER_QUOTA_MS
 
+  pending_load_failure_read:
+    type: counter
+    description: >
+      Number of pending Telemetry pings that failed to load from the disk
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram TELEMETRY_PENDING_LOAD_FAILURE_READ.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: h#TELEMETRY_PENDING_LOAD_FAILURE_READ
+
+  pending_load_failure_parse:
+    type: counter
+    description: >
+      Number of pending Telemetry pings that failed to parse once loaded from
+      the disk
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram TELEMETRY_PENDING_LOAD_FAILURE_PARSE.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: h#TELEMETRY_PENDING_LOAD_FAILURE_PARSE
+
+  pending_pings_size:
+    type: memory_distribution
+    description: >
+      The size of the Telemetry pending pings directory (MB). The special value
+      17 is used to indicate over quota pings.
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram TELEMETRY_PENDING_PINGS_SIZE_MB.
+    memory_unit: megabyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_PENDING_PINGS_SIZE_MB
+
+  pending_pings_age:
+    type: timing_distribution
+    description: >
+      The age, in days, of the pending pings.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_PENDING_PINGS_AGE.
+    time_unit: day
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_PENDING_PINGS_AGE
+
+  pending_pings_evicted_over_quota:
+    type: custom_distribution
+    description: >
+      Number of Telemetry pings evicted from the pending pings directory during
+      cleanup, because they were over the quota
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_PENDING_PINGS_EVICTED_OVER_QUOTA.
+    range_min: 1
+    range_max: 100000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: pings
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_PENDING_PINGS_EVICTED_OVER_QUOTA
+
+  pending_evicting_over_quota:
+    type: timing_distribution
+    description: >
+      Time (ms) it takes for evicting over-quota pending pings
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_PENDING_EVICTING_OVER_QUOTA_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_PENDING_EVICTING_OVER_QUOTA_MS
+
+  pending_checking_over_quota:
+    type: timing_distribution
+    description: >
+      Time (ms) it takes for checking if the pending pings are over-quota
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_PENDING_CHECKING_OVER_QUOTA_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_PENDING_CHECKING_OVER_QUOTA_MS
+
 usage:
   profile_id:
     type: uuid

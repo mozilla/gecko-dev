@@ -896,9 +896,7 @@ export var TelemetrySendImpl = {
       const ageInDays = Utils.millisecondsToDays(
         Math.abs(now.getTime() - pingInfo.lastModificationDate)
       );
-      Services.telemetry
-        .getHistogramById("TELEMETRY_PENDING_PINGS_AGE")
-        .add(ageInDays);
+      Glean.telemetry.pendingPingsAge.accumulateSingleSample(ageInDays);
     }
   },
 
