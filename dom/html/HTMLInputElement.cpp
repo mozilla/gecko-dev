@@ -3346,7 +3346,7 @@ void HTMLInputElement::LegacyPreActivationBehavior(
     // that means that if there are scripted submissions, the
     // latest one will be deferred until after the exit point of the
     // handler.
-    mForm->OnSubmitClickBegin(this);
+    mForm->OnSubmitClickBegin();
 
     if (aVisitor.mDOMEvent) {
       if (auto* mouseEvent = aVisitor.mDOMEvent->AsMouseEvent()) {

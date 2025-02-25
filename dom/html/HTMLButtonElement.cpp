@@ -183,7 +183,7 @@ void HTMLButtonElement::LegacyPreActivationBehavior(
     // tell the form that we are about to enter a click handler.
     // that means that if there are scripted submissions, the
     // latest one will be deferred until after the exit point of the handler.
-    mForm->OnSubmitClickBegin(this);
+    mForm->OnSubmitClickBegin();
   }
 }
 

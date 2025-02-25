@@ -828,7 +828,7 @@ nsresult HTMLFormElement::SubmitSubmission(
   if (mNotifiedObservers) {
     cancelSubmit = mNotifiedObserversResult;
   } else {
-    rv = NotifySubmitObservers(actionURI, &cancelSubmit, true);
+    rv = DispatchBeforeSubmitChromeOnlyEvent(&cancelSubmit);
     NS_ENSURE_SUBMIT_SUCCESS(rv);
   }
 
@@ -837,7 +837,7 @@ nsresult HTMLFormElement::SubmitSubmission(
   }
 
   cancelSubmit = false;
-  rv = NotifySubmitObservers(actionURI, &cancelSubmit, false);
+  rv = DoSecureToInsecureSubmitCheck(actionURI, &cancelSubmit);
   NS_ENSURE_SUBMIT_SUCCESS(rv);
 
   if (cancelSubmit) {
@@ -1022,23 +1022,11 @@ nsresult HTMLFormElement::DoSecureToInsecureSubmitCheck(nsIURI* aActionURL,
   return NS_OK;
 }
 
-nsresult HTMLFormElement::NotifySubmitObservers(nsIURI* aActionURL,
-                                                bool* aCancelSubmit,
-                                                bool aEarlyNotify) {
-  if (!aEarlyNotify) {
-    nsresult rv = DoSecureToInsecureSubmitCheck(aActionURL, aCancelSubmit);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-    if (*aCancelSubmit) {
-      return NS_OK;
-    }
-  }
-
+nsresult HTMLFormElement::DispatchBeforeSubmitChromeOnlyEvent(
+    bool* aCancelSubmit) {
   bool defaultAction = true;
   nsresult rv = nsContentUtils::DispatchEventOnlyToChrome(
-      OwnerDoc(), static_cast<nsINode*>(this),
-      aEarlyNotify ? u"DOMFormBeforeSubmit"_ns : u"DOMFormSubmit"_ns,
+      OwnerDoc(), static_cast<nsINode*>(this), u"DOMFormBeforeSubmit"_ns,
       CanBubble::eYes, Cancelable::eYes, &defaultAction);
   *aCancelSubmit = !defaultAction;
   if (*aCancelSubmit) {
@@ -1478,24 +1466,19 @@ already_AddRefed<nsISupports> HTMLFormElement::DoResolveName(
   return result.forget();
 }
 
-void HTMLFormElement::OnSubmitClickBegin(Element* aOriginatingElement) {
+void HTMLFormElement::OnSubmitClickBegin() {
   mDeferSubmission = true;
 
-  // Prepare to run NotifySubmitObservers early before the
+  // Prepare to run DispatchBeforeSubmitChromeOnlyEvent early before the
   // scripts on the page get to modify the form data, possibly
   // throwing off any password manager. (bug 257781)
-  nsCOMPtr<nsIURI> actionURI;
-  nsresult rv;
-
-  rv = GetActionURL(getter_AddRefs(actionURI), aOriginatingElement);
-  if (NS_FAILED(rv) || !actionURI) return;
-
+  //
   // Notify observers of submit if the form is valid.
   // TODO: checking for mInvalidElementsCount is a temporary fix that should be
   // removed with bug 610402.
   if (mInvalidElementsCount == 0) {
     bool cancelSubmit = false;
-    rv = NotifySubmitObservers(actionURI, &cancelSubmit, true);
+    nsresult rv = DispatchBeforeSubmitChromeOnlyEvent(&cancelSubmit);
     if (NS_SUCCEEDED(rv)) {
       mNotifiedObservers = true;
       mNotifiedObserversResult = cancelSubmit;
