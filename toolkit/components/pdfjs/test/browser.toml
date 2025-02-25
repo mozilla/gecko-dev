@@ -102,5 +102,8 @@ support-files = ["moz.png"]
 
 ["browser_pdfjs_views.js"]
 
+["browser_pdfjs_jpeg2000.js"]
+support-files = ["file_pdfjs_jp2_image.pdf"]
+
 ["browser_pdfjs_zoom.js"]
 skip-if = ["verify && debug && os == 'win'"]
