@@ -85,6 +85,197 @@ telemetry:
     expires: never
     telemetry_mirror: TELEMETRY_DATA_UPLOAD_OPTIN
 
+  archive_directories_count:
+    type: custom_distribution
+    description: >
+      Number of directories in the archive at scan
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram TELEMETRY_ARCHIVE_DIRECTORIES_COUNT.
+    range_min: 1
+    range_max: 13
+    bucket_count: 12
+    histogram_type: linear
+    unit: directories
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_DIRECTORIES_COUNT
+
+  archive_oldest_directory_age:
+    type: custom_distribution
+    description: >
+      The age of the oldest Telemetry archive directory in months
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram TELEMETRY_ARCHIVE_OLDEST_DIRECTORY_AGE.
+    range_min: 1
+    range_max: 13
+    bucket_count: 12
+    histogram_type: linear
+    unit: months
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_OLDEST_DIRECTORY_AGE
+
+  archive_scan_ping_count:
+    type: custom_distribution
+    description: >
+      Number of Telemetry pings in the archive at scan
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_ARCHIVE_SCAN_PING_COUNT.
+    range_min: 1
+    range_max: 100000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: telemetry pings
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_SCAN_PING_COUNT
+
+  archive_session_ping_count:
+    type: counter
+    description: >
+      Number of Telemetry pings added to the archive during the session
+
+      This metric was generated to correspond to the Legacy Telemetry count
+      histogram TELEMETRY_ARCHIVE_SESSION_PING_COUNT.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: h#TELEMETRY_ARCHIVE_SESSION_PING_COUNT
+
+  archive_size:
+    type: memory_distribution
+    description: >
+      The size of the Telemetry archive (MB)
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram TELEMETRY_ARCHIVE_SIZE_MB.
+    memory_unit: megabyte
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_SIZE_MB
+
+  archive_evicted_over_quota:
+    type: custom_distribution
+    description: >
+      Number of Telemetry pings evicted from the archive during cleanup, because
+      they were over the quota
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_ARCHIVE_EVICTED_OVER_QUOTA.
+    range_min: 1
+    range_max: 100000
+    bucket_count: 100
+    histogram_type: exponential
+    unit: pings
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_EVICTED_OVER_QUOTA
+
+  archive_evicted_old_dirs:
+    type: custom_distribution
+    description: >
+      Number of Telemetry directories evicted from the archive during cleanup,
+      because they were too old
+
+      This metric was generated to correspond to the Legacy Telemetry linear
+      histogram TELEMETRY_ARCHIVE_EVICTED_OLD_DIRS.
+    range_min: 1
+    range_max: 13
+    bucket_count: 12
+    histogram_type: linear
+    unit: directories
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_EVICTED_OLD_DIRS
+
+  archive_evicting_dirs:
+    type: timing_distribution
+    description: >
+      Time (ms) it takes for evicting old directories
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_ARCHIVE_EVICTING_DIRS_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_EVICTING_DIRS_MS
+
+  archive_checking_over_quota:
+    type: timing_distribution
+    description: >
+      Time (ms) it takes for checking if the archive is over-quota
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_ARCHIVE_CHECKING_OVER_QUOTA_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_CHECKING_OVER_QUOTA_MS
+
+  archive_evicting_over_quota:
+    type: timing_distribution
+    description: >
+      Time (ms) it takes for evicting over-quota pings
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram TELEMETRY_ARCHIVE_EVICTING_OVER_QUOTA_MS.
+    time_unit: millisecond
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1162538
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_ARCHIVE_EVICTING_OVER_QUOTA_MS
+
 usage:
   profile_id:
     type: uuid

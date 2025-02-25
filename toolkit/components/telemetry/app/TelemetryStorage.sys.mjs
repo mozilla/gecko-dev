@@ -707,7 +707,7 @@ var TelemetryStorageImpl = {
       type: internString(ping.type),
     });
 
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_SESSION_PING_COUNT").add();
+    Glean.telemetry.archiveSessionPingCount.add(1);
     return undefined;
   },
 
@@ -973,13 +973,13 @@ var TelemetryStorageImpl = {
     const endTimeStamp = Policy.now().getTime();
 
     // Save the time it takes to evict old directories and the eviction count.
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_EVICTED_OLD_DIRS").add(
+    Glean.telemetry.archiveEvictedOldDirs.accumulateSingleSample(
       evictedDirsCount
     );
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_EVICTING_DIRS_MS").add(
+    Glean.telemetry.archiveEvictingDirs.accumulateSingleSample(
       Math.ceil(endTimeStamp - startTimeStamp)
     );
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_OLDEST_DIRECTORY_AGE").add(
+    Glean.telemetry.archiveOldestDirectoryAge.accumulateSingleSample(
       maxDirAgeInMonths
     );
   },
@@ -1071,18 +1071,18 @@ var TelemetryStorageImpl = {
     }
 
     // Save the time it takes to check if the archive is over-quota.
-    Telemetry.getHistogramById("TELEMETRY_ARCHIVE_CHECKING_OVER_QUOTA_MS").add(
+    Glean.telemetry.archiveCheckingOverQuota.accumulateSingleSample(
       Math.round(Policy.now().getTime() - startTimeStamp)
     );
 
     let submitProbes = (sizeInMB, evictedPings, elapsedMs) => {
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_SIZE_MB").add(sizeInMB);
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_EVICTED_OVER_QUOTA").add(
+      Glean.telemetry.archiveSize.accumulate(sizeInMB);
+      Glean.telemetry.archiveEvictedOverQuota.accumulateSingleSample(
         evictedPings
       );
-      Telemetry.getHistogramById(
-        "TELEMETRY_ARCHIVE_EVICTING_OVER_QUOTA_MS"
-      ).add(elapsedMs);
+      Glean.telemetry.archiveEvictingOverQuota.accumulateSingleSample(
+        elapsedMs
+      );
     };
 
     // Check if we're using too much space. If not, submit the archive size and bail out.
@@ -1330,12 +1330,8 @@ var TelemetryStorageImpl = {
     this._log.trace("_scanArchive");
 
     let submitProbes = (pingCount, dirCount) => {
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_SCAN_PING_COUNT").add(
-        pingCount
-      );
-      Telemetry.getHistogramById("TELEMETRY_ARCHIVE_DIRECTORIES_COUNT").add(
-        dirCount
-      );
+      Glean.telemetry.archiveScanPingCount.accumulateSingleSample(pingCount);
+      Glean.telemetry.archiveDirectoriesCount.accumulateSingleSample(dirCount);
     };
 
     if (!(await IOUtils.exists(lazy.gPingsArchivePath))) {
