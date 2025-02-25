@@ -5,10 +5,12 @@
 package org.mozilla.fenix.share
 
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertTrue
 import org.junit.Test
-import org.mozilla.fenix.share.DefaultSentFromFirefoxFeature.Companion.WHATSAPP_PACKAGE_NAME
+import org.mozilla.fenix.share.DefaultSentFromFirefoxManager.Companion.WHATSAPP_PACKAGE_NAME
 
-class DefaultSentFromFirefoxFeatureTest {
+class DefaultSentFromFirefoxManagerTest {
 
     companion object {
         private const val TEMPLATE_MESSAGE = "%1\$s\n\nSent from %2\$s: %3\$s"
@@ -67,15 +69,52 @@ class DefaultSentFromFirefoxFeatureTest {
         assertEquals(unexpectedTemplate, result)
     }
 
+    @Test
+    fun `WHEN feature is disabled THEN we should not show snackbar`() {
+        val testedFeature = buildDefaultFeature(isFeatureEnabled = false)
+
+        testedFeature.maybeAppendShareText(WHATSAPP_PACKAGE_NAME, SHARE_MESSAGE)
+
+        assertFalse(testedFeature.shouldShowSnackbar)
+    }
+
+    @Test
+    fun `WHEN share link snackbar is disabled THEN we should not show snackbar`() {
+        val testedFeature = buildDefaultFeature(isSnackbarEnabled = false)
+
+        testedFeature.maybeAppendShareText(WHATSAPP_PACKAGE_NAME, SHARE_MESSAGE)
+
+        assertFalse(testedFeature.shouldShowSnackbar)
+    }
+
+    @Test
+    fun `GIVEN feature and snackbar are enabled, snackbar has not been shown WHEN shared message is appended THEN we should show snackbar`() {
+        val testedFeature = buildDefaultFeature(
+            isFeatureEnabled = true,
+            isSnackbarEnabled = true,
+            isLinkSharingSettingsSnackbarShown = false,
+        )
+
+        testedFeature.maybeAppendShareText(WHATSAPP_PACKAGE_NAME, SHARE_MESSAGE)
+
+        assertTrue(testedFeature.shouldShowSnackbar)
+    }
+
     private fun buildDefaultFeature(
         isFeatureEnabled: Boolean = true,
+        isSnackbarEnabled: Boolean = true,
+        isLinkSharingSettingsSnackbarShown: Boolean = false,
         templateMessage: String = TEMPLATE_MESSAGE,
         appName: String = APP_NAME,
         downloadLink: String = DOWNLOAD_LINK,
-    ) = DefaultSentFromFirefoxFeature(
-        isFeatureEnabled = isFeatureEnabled,
+    ) = DefaultSentFromFirefoxManager(
+        snackbarEnabled = isSnackbarEnabled,
         templateMessage = templateMessage,
         appName = appName,
         downloadLink = downloadLink,
+        storage = object : SentFromStorage {
+            override var isLinkSharingSettingsSnackbarShown = isLinkSharingSettingsSnackbarShown
+            override val featureEnabled: Boolean = isFeatureEnabled
+        },
     )
 }

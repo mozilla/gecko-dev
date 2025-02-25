@@ -98,6 +98,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.browsingmode.DefaultBrowsingModeManager
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.appstate.AppAction.ShareAction
 import org.mozilla.fenix.components.appstate.OrientationMode
 import org.mozilla.fenix.components.metrics.BreadcrumbsRecorder
 import org.mozilla.fenix.components.metrics.GrowthDataWorker
@@ -656,6 +657,10 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             if (NotificationManagerCompat.from(applicationContext).areNotificationsEnabled()) {
                 ReEngagementNotificationWorker.setReEngagementNotificationIfNeeded(applicationContext)
                 MessageNotificationWorker.setMessageNotificationWorker(applicationContext)
+            }
+
+            if (components.core.sentFromFirefoxManager.shouldShowSnackbar) {
+                components.appStore.dispatch(ShareAction.ShareToWhatsApp)
             }
         }
 

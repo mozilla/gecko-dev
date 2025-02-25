@@ -29,6 +29,7 @@ import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
 
 const val WEBCOMPAT_SNACKBAR_DURATION_MS = 20000
@@ -139,6 +140,30 @@ class SnackbarBinding(
                             duration = Snackbar.LENGTH_LONG,
                         )
 
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
+                    }
+
+                    is SnackbarState.ShareToWhatsApp -> {
+                        snackbarDelegate.show(
+                            text = R.string.link_shared_snackbar_message,
+                            duration = Snackbar.LENGTH_LONG,
+                            action = R.string.link_shared_snackbar_action,
+                        ) {
+                            // Navigating twice ensures the correct behavior when opening the link
+                            // sharing settings screen. The first navigation scrolls to the link
+                            // sharing section in the settings screen. The second navigation opens
+                            // the dedicated link sharing settings screen.
+                            navController.navigate(
+                                BrowserFragmentDirections.actionBrowserFragmentToSettingsFragment(
+                                    preferenceToScrollTo = context.getString(R.string.pref_key_link_sharing),
+                                ),
+                            )
+                            navController.navigate(
+                                BrowserFragmentDirections.actionGlobalLinkSharingFragment(),
+                            )
+                        }
+
+                        context.settings().linkSharingSettingsSnackbarShown = true
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
 

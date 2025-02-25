@@ -82,7 +82,7 @@ interface ShareController {
  * @param sendTabUseCases Instance of [SendTabUseCases] which allows sending tabs to account devices.
  * @param saveToPdfUseCase Instance of [SessionUseCases.SaveToPdfUseCase] to generate a PDF of a given tab.
  * @param printUseCase Instance of [SessionUseCases.PrintContentUseCase] to print content of a given tab.
- * @param sentFromFirefoxFeature Instance of [SentFromFirefoxFeature] to facilitate "Sent from" nimbus experiment.
+ * @param sentFromFirefoxManager Instance of [SentFromFirefoxManager] to facilitate "Sent from" nimbus experiment.
  * @param navController [NavController] used for navigation.
  * @param recentAppsStorage Instance of [RecentAppsStorage] for storing and retrieving the most recent apps.
  * @param viewLifecycleScope [CoroutineScope] used for retrieving the most recent apps in the background.
@@ -99,7 +99,7 @@ class DefaultShareController(
     private val sendTabUseCases: SendTabUseCases,
     private val saveToPdfUseCase: SessionUseCases.SaveToPdfUseCase,
     private val printUseCase: SessionUseCases.PrintContentUseCase,
-    private val sentFromFirefoxFeature: SentFromFirefoxFeature,
+    private val sentFromFirefoxManager: SentFromFirefoxManager,
     private val navController: NavController,
     private val recentAppsStorage: RecentAppsStorage,
     private val viewLifecycleScope: CoroutineScope,
@@ -134,7 +134,7 @@ class DefaultShareController(
         }
 
         val intent = Intent(ACTION_SEND).apply {
-            val sharedText = sentFromFirefoxFeature.maybeAppendShareText(
+            val sharedText = sentFromFirefoxManager.maybeAppendShareText(
                 packageName = app.packageName,
                 shareText = getShareText(),
             )

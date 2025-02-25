@@ -72,6 +72,11 @@ sealed class SnackbarState {
     data object ShareToAppFailed : SnackbarState()
 
     /**
+     * Display a snackbar after sharing to whatsapp for the first time
+     */
+    data object ShareToWhatsApp : SnackbarState()
+
+    /**
      * Display a snackbar when sharing tabs was successful.
      *
      * @property destination List of device IDs with which tabs were shared.

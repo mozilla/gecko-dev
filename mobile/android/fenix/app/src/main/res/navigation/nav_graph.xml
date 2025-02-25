@@ -123,6 +123,10 @@
         android:id="@+id/action_global_addonsManagementFragment"
         app:destination="@id/addons_management_graph" />
     <action
+        android:id="@+id/action_global_LinkSharingFragment"
+        app:destination="@id/linkSharingFragment"
+        app:popUpToInclusive="true"/>
+    <action
         android:id="@+id/action_loginsListFragment"
         app:destination="@id/savedLogins"
         app:enterAnim="@anim/slide_in_right"

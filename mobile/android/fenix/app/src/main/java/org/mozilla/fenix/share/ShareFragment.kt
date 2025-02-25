@@ -27,7 +27,6 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.FragmentShareBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.requireComponents
-import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
@@ -90,14 +89,7 @@ class ShareFragment : AppCompatDialogFragment() {
                 sendTabUseCases = SendTabUseCases(accountManager),
                 saveToPdfUseCase = requireComponents.useCases.sessionUseCases.saveToPdf,
                 printUseCase = requireComponents.useCases.sessionUseCases.printContent,
-                sentFromFirefoxFeature = with(FxNimbus.features.sentFromFirefox.value()) {
-                    DefaultSentFromFirefoxFeature(
-                        isFeatureEnabled = requireContext().settings().whatsappLinkSharingEnabled,
-                        templateMessage = templateMessage,
-                        appName = getString(R.string.firefox),
-                        downloadLink = downloadLink,
-                    )
-                },
+                sentFromFirefoxManager = requireComponents.core.sentFromFirefoxManager,
                 recentAppsStorage = RecentAppsStorage(requireContext()),
                 viewLifecycleScope = viewLifecycleOwner.lifecycleScope,
             ) { result ->

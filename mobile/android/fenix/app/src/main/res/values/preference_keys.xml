@@ -248,6 +248,7 @@
     <string name="pref_key_open_links_in_a_private_tab" translatable="false">pref_key_open_links_in_a_private_tab</string>
     <string name="pref_key_open_links_in_external_app_old" translatable="false">pref_key_open_links_in_external_app</string>
     <string name="pref_key_link_sharing" translatable="false">pref_key_link_sharing</string>
+    <string name="pref_key_link_sharing_settings_snackbar" translatable="false">pref_key_link_sharing_settings_snackbar</string>
     <string name="pref_key_open_links_in_apps" translatable="false">pref_key_open_links_in_apps</string>
     <string name="pref_key_open_links_in_apps_always" translatable="false">pref_key_open_links_in_apps_always</string>
     <string name="pref_key_open_links_in_apps_ask" translatable="false">pref_key_open_links_in_apps_ask</string>

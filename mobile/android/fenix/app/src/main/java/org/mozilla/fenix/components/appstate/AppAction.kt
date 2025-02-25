@@ -419,6 +419,11 @@ sealed class AppAction : Action {
         data object ShareToAppFailed : ShareAction()
 
         /**
+         * [ShareAction] dispatched when sharing to whatsapp.
+         */
+        data object ShareToWhatsApp : ShareAction()
+
+        /**
          * [ShareAction] dispatched when sharing tabs to other connected devices was successful.
          *
          * @property destination List of device IDs with which tabs were shared.

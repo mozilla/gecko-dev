@@ -17,6 +17,10 @@ internal object ShareActionReducer {
             snackbarState = SnackbarState.ShareToAppFailed,
         )
 
+        is ShareAction.ShareToWhatsApp -> state.copy(
+            snackbarState = SnackbarState.ShareToWhatsApp,
+        )
+
         is ShareAction.SharedTabsSuccessfully -> state.copy(
             snackbarState = SnackbarState.SharedTabsSuccessfully(
                 destination = action.destination,

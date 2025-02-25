@@ -625,6 +625,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = { FxNimbus.features.sentFromFirefox.value().enabled },
     )
 
+    var linkSharingSettingsSnackbarShown by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_link_sharing_settings_snackbar),
+        default = false,
+    )
+
     /**
      * Get the display string for the current open links in apps setting
      */
