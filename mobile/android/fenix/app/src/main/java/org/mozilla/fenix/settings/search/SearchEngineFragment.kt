@@ -70,8 +70,8 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
             requirePreference<CheckBoxPreference>(R.string.pref_key_show_trending_search_suggestions).apply {
                 isVisible = context.settings().isTrendingSearchesVisible
                 isEnabled = requireContext().components.core.store.state.search
-                    .selectedOrDefaultSearchEngine?.trendingUrl != null
-                isChecked = isEnabled && context.settings().trendingSearchSuggestionsEnabled
+                    .selectedOrDefaultSearchEngine?.trendingUrl != null &&
+                    context.settings().shouldShowSearchSuggestions
             }
 
         val autocompleteURLsPreference =
@@ -81,7 +81,7 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
 
         val searchSuggestionsInPrivatePreference =
             requirePreference<CheckBoxPreference>(R.string.pref_key_show_search_suggestions_in_private).apply {
-                isChecked = context.settings().shouldShowSearchSuggestionsInPrivate
+                isEnabled = context.settings().shouldShowSearchSuggestions
             }
 
         val showHistorySuggestions =
@@ -147,16 +147,10 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         autocompleteURLsPreference.onPreferenceChangeListener = SharedPreferenceUpdater()
 
         searchSuggestionsPreference.setOnPreferenceClickListener {
-            if (!searchSuggestionsPreference.isChecked) {
-                searchSuggestionsInPrivatePreference.isChecked = false
-                searchSuggestionsInPrivatePreference.callChangeListener(false)
-                trendingSearchSuggestionsPreference.isChecked = false
-                trendingSearchSuggestionsPreference.callChangeListener(false)
-            } else {
-                trendingSearchSuggestionsPreference.isChecked = true
-                trendingSearchSuggestionsPreference.callChangeListener(true)
-            }
-
+            searchSuggestionsInPrivatePreference.isEnabled = searchSuggestionsPreference.isChecked
+            trendingSearchSuggestionsPreference.isEnabled =
+                requireContext().components.core.store.state.search.selectedOrDefaultSearchEngine
+                    ?.trendingUrl != null && searchSuggestionsPreference.isChecked
             true
         }
 

@@ -1085,13 +1085,18 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the user have enabled trending search in search suggestions.
      */
-    var trendingSearchSuggestionsEnabled by booleanPreference(
+    @VisibleForTesting
+    internal var trendingSearchSuggestionsEnabled by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_show_trending_search_suggestions),
         default = false,
     )
 
-    val shouldShowTrendingSearchSuggestions
-        get() = trendingSearchSuggestionsEnabled && isTrendingSearchesVisible
+    /**
+     * Returns true if trending searches should be shown to the user.
+     */
+    fun shouldShowTrendingSearchSuggestions(isPrivate: Boolean) =
+        trendingSearchSuggestionsEnabled && isTrendingSearchesVisible &&
+            (!isPrivate || shouldShowSearchSuggestionsInPrivate)
 
     var showSearchSuggestionsInPrivateOnboardingFinished by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions_in_private_onboarding),

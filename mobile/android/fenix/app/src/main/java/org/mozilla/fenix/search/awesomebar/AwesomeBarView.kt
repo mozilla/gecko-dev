@@ -299,6 +299,7 @@ class AwesomeBarView(
         state: SearchProviderState,
     ): MutableSet<AwesomeBar.SuggestionProvider> {
         val providersToAdd = mutableSetOf<AwesomeBar.SuggestionProvider>()
+        val isPrivate = activity.browsingModeManager.mode.isPrivate
 
         when (state.searchEngineSource) {
             is SearchEngineSource.History -> {
@@ -314,7 +315,7 @@ class AwesomeBarView(
         if (state.showSearchTermHistory) {
             getSearchTermSuggestionsProvider(
                 state.searchEngineSource,
-                activity.settings().shouldShowTrendingSearchSuggestions,
+                activity.settings().shouldShowTrendingSearchSuggestions(isPrivate),
             )?.let { providersToAdd.add(it) }
         }
 
@@ -402,7 +403,7 @@ class AwesomeBarView(
 
         providersToAdd.add(searchEngineSuggestionProvider)
 
-        if (activity.settings().shouldShowTrendingSearchSuggestions) {
+        if (activity.settings().shouldShowTrendingSearchSuggestions(isPrivate)) {
             providersToAdd.add(defaultTopSitesSuggestionProvider)
             providersToAdd.add(defaultTrendingSearchProvider)
         }

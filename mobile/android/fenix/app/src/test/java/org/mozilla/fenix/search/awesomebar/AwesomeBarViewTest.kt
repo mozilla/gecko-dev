@@ -1453,7 +1453,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN should show trending searches WHEN configuring providers THEN add the trending search provider and top sites suggestion providers`() {
         every { activity.settings() } returns mockk(relaxed = true) {
-            every { shouldShowTrendingSearchSuggestions } returns true
+            every { shouldShowTrendingSearchSuggestions(any()) } returns true
         }
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),
@@ -1467,7 +1467,7 @@ class AwesomeBarViewTest {
     @Test
     fun `GIVEN should not show trending searches WHEN configuring providers THEN don't add the trending search provider`() {
         every { activity.settings() } returns mockk(relaxed = true) {
-            every { shouldShowTrendingSearchSuggestions } returns false
+            every { shouldShowTrendingSearchSuggestions(any()) } returns false
         }
         val state = getSearchProviderState(
             searchEngineSource = SearchEngineSource.Default(mockk(relaxed = true)),

@@ -1153,22 +1153,45 @@ class SettingsTest {
         val settings = spyk(settings)
         every { settings.trendingSearchSuggestionsEnabled } returns true
         every { settings.isTrendingSearchesVisible } returns true
+        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
 
-        assertTrue(settings.shouldShowTrendingSearchSuggestions)
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(true))
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(false))
 
         every { settings.trendingSearchSuggestionsEnabled } returns false
         every { settings.isTrendingSearchesVisible } returns true
+        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
 
-        assertFalse(settings.shouldShowTrendingSearchSuggestions)
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(false))
 
         every { settings.trendingSearchSuggestionsEnabled } returns true
         every { settings.isTrendingSearchesVisible } returns false
+        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
 
-        assertFalse(settings.shouldShowTrendingSearchSuggestions)
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(false))
 
         every { settings.trendingSearchSuggestionsEnabled } returns false
         every { settings.isTrendingSearchesVisible } returns false
+        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
 
-        assertFalse(settings.shouldShowTrendingSearchSuggestions)
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(false))
+    }
+
+    @Test
+    fun `GIVEN is private tab THEN should show trending searches only if allowed`() {
+        val settings = spyk(settings)
+        every { settings.trendingSearchSuggestionsEnabled } returns true
+        every { settings.isTrendingSearchesVisible } returns true
+        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
+
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(true))
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(false))
+
+        every { settings.shouldShowSearchSuggestionsInPrivate } returns false
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true))
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(false))
     }
 }
