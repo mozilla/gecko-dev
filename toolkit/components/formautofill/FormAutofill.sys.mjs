@@ -41,6 +41,10 @@ const ENABLED_AUTOFILL_SAME_ORIGIN_WITH_TOP =
   "extensions.formautofill.heuristics.autofillSameOriginWithTop";
 const ENABLED_AUTOFILL_DETECT_DYNAMIC_FORM_CHANGES_PREF =
   "extensions.formautofill.heuristics.detectDynamicFormChanges";
+const AUTOFILL_FILL_ON_DYNAMIC_FORM_CHANGES_TIMEOUT_PREF =
+  "extensions.formautofill.heuristics.fillOnDynamicFormChanges.timeout";
+const AUTOFILL_FILL_ON_DYNAMIC_FORM_CHANGES_PREF =
+  "extensions.formautofill.heuristics.fillOnDynamicFormChanges";
 
 export const FormAutofill = {
   ENABLED_AUTOFILL_ADDRESSES_PREF,
@@ -53,6 +57,8 @@ export const FormAutofill = {
   AUTOFILL_CREDITCARDS_REAUTH_PREF,
   AUTOFILL_CREDITCARDS_AUTOCOMPLETE_OFF_PREF,
   AUTOFILL_ADDRESSES_AUTOCOMPLETE_OFF_PREF,
+  AUTOFILL_FILL_ON_DYNAMIC_FORM_CHANGES_PREF,
+  AUTOFILL_FILL_ON_DYNAMIC_FORM_CHANGES_TIMEOUT_PREF,
 
   _region: null,
 
@@ -344,6 +350,20 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "detectDynamicFormChanges",
   "extensions.formautofill.heuristics.detectDynamicFormChanges",
   false
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofill,
+  "fillOnDynamicFormChanges",
+  "extensions.formautofill.heuristics.fillOnDynamicFormChanges",
+  false
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofill,
+  "fillOnDynamicFormChangeTimeout",
+  "extensions.formautofill.heuristics.fillOnDynamicFormChanges.timeout",
+  0
 );
 
 ChromeUtils.defineLazyGetter(FormAutofill, "countries", () =>
