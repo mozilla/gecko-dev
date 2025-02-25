@@ -2,5 +2,5 @@
 ./mozbase/mozlog
 ./mozbase/mozprofile
 
-requests==2.22.0
+requests==2.32.3
 pyyaml==5.1.2
