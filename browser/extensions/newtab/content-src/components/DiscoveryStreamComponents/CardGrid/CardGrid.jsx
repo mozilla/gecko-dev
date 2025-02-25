@@ -258,6 +258,7 @@ export function RecentSavesContainer({
         type={source}
         image_src={rec.image_src}
         raw_image_src={rec.raw_image_src}
+        icon_src={rec.icon_src}
         word_count={rec.word_count}
         time_to_read={rec.time_to_read}
         title={rec.title}
@@ -386,6 +387,7 @@ export class _CardGrid extends React.PureComponent {
             flightId={rec.flight_id}
             image_src={rec.image_src}
             raw_image_src={rec.raw_image_src}
+            icon_src={rec.icon_src}
             word_count={rec.word_count}
             time_to_read={rec.time_to_read}
             title={rec.title}

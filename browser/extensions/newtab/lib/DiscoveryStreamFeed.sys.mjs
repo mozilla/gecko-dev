@@ -1638,6 +1638,7 @@ export class DiscoveryStreamFeed {
             raw_image_src: item.imageUrl,
             received_rank: item.receivedRank,
             recommended_at: feedResponse.recommendedAt,
+            icon_src: item.iconUrl,
           }));
           if (feedResponse.feeds && selectedFeedPref && !sectionsEnabled) {
             isFakespot = selectedFeedPref === "fakespot";
@@ -1663,6 +1664,7 @@ export class DiscoveryStreamFeed {
                 // property to determine if rec is used in ListFeed or not
                 feedName: selectedFeedPref,
                 category: item.category,
+                icon_src: item.iconUrl,
               })
             );
 
@@ -1700,6 +1702,7 @@ export class DiscoveryStreamFeed {
                     recommended_at: feedResponse.recommendedAt,
                     // property to determine if rec is used in ListFeed or not
                     section: sectionKey,
+                    icon_src: item.iconUrl,
                   });
                 }
                 sections.push({

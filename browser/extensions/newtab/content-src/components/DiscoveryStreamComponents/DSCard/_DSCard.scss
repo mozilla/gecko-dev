@@ -256,6 +256,12 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       margin-bottom: 2px;
       font-size: 13px;
       color: var(--newtab-text-secondary-color);
+      display: flex;
+      align-items: center;
+
+      img {
+        margin-inline-end: var(--space-small);
+      }
 
       span {
         display: inline-block;

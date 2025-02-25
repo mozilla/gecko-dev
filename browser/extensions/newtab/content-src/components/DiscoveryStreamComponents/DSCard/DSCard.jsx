@@ -38,6 +38,7 @@ export const DSSource = ({
   context,
   sponsor,
   sponsored_by_override,
+  icon_src,
 }) => {
   // First try to display sponsored label or time to read here.
   if (newSponsoredLabel) {
@@ -69,7 +70,12 @@ export const DSSource = ({
   }
 
   // Otherwise display a default source.
-  return <p className="source clamp">{source}</p>;
+  return (
+    <p className="source clamp">
+      {icon_src && <img src={icon_src} height="16" width="16" alt="" />}
+      {source}
+    </p>
+  );
 };
 
 export const DefaultMeta = ({
@@ -96,6 +102,7 @@ export const DefaultMeta = ({
   topic,
   isSectionsCard,
   showTopics,
+  icon_src,
 }) => {
   const shouldHaveThumbs =
     !isListCard &&
@@ -115,6 +122,7 @@ export const DefaultMeta = ({
             context={context}
             sponsor={sponsor}
             sponsored_by_override={sponsored_by_override}
+            icon_src={icon_src}
           />
         )}
         {format !== "rectangle" && (
@@ -673,6 +681,8 @@ export class _DSCard extends React.PureComponent {
     const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
 
     const smartCrop = Prefs.values["images.smart"];
+    const faviconEnabled =
+      Prefs.values["discoverystream.publisherFavicon.enabled"];
     const excerpt = !hideDescriptions ? this.props.excerpt : "";
 
     let timeToRead;
@@ -836,6 +846,7 @@ export class _DSCard extends React.PureComponent {
               }
               format={format}
               topic={this.props.topic}
+              icon_src={faviconEnabled && this.props.icon_src}
             />
           )}
         </SafeAnchor>

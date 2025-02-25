@@ -6270,6 +6270,11 @@ main section {
   margin-bottom: 2px;
   font-size: 13px;
   color: var(--newtab-text-secondary-color);
+  display: flex;
+  align-items: center;
+}
+.ds-card .meta .source img {
+  margin-inline-end: var(--space-small);
 }
 .ds-card .meta .source span {
   display: inline-block;

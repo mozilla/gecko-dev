@@ -3102,7 +3102,8 @@ const DSSource = ({
   newSponsoredLabel,
   context,
   sponsor,
-  sponsored_by_override
+  sponsored_by_override,
+  icon_src
 }) => {
   // First try to display sponsored label or time to read here.
   if (newSponsoredLabel) {
@@ -3135,7 +3136,12 @@ const DSSource = ({
   // Otherwise display a default source.
   return /*#__PURE__*/external_React_default().createElement("p", {
     className: "source clamp"
-  }, source);
+  }, icon_src && /*#__PURE__*/external_React_default().createElement("img", {
+    src: icon_src,
+    height: "16",
+    width: "16",
+    alt: ""
+  }), source);
 };
 const DefaultMeta = ({
   source,
@@ -3160,7 +3166,8 @@ const DefaultMeta = ({
   format,
   topic,
   isSectionsCard,
-  showTopics
+  showTopics,
+  icon_src
 }) => {
   const shouldHaveThumbs = !isListCard && format !== "rectangle" && mayHaveSectionsCards && mayHaveThumbsUpDown;
   const shouldHaveFooterSection = isSectionsCard && (shouldHaveThumbs || showTopics);
@@ -3174,7 +3181,8 @@ const DefaultMeta = ({
     newSponsoredLabel: newSponsoredLabel,
     context: context,
     sponsor: sponsor,
-    sponsored_by_override: sponsored_by_override
+    sponsored_by_override: sponsored_by_override,
+    icon_src: icon_src
   }), format !== "rectangle" && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h3", {
     className: "title clamp"
   }, title), excerpt && /*#__PURE__*/external_React_default().createElement("p", {
@@ -3625,6 +3633,7 @@ class _DSCard extends (external_React_default()).PureComponent {
     const sectionsEnabled = Prefs.values["discoverystream.sections.enabled"];
     const layoutsVariantAorB = layoutsVariantAEnabled || layoutsVariantBEnabled;
     const smartCrop = Prefs.values["images.smart"];
+    const faviconEnabled = Prefs.values["discoverystream.publisherFavicon.enabled"];
     const excerpt = !hideDescriptions ? this.props.excerpt : "";
     let timeToRead;
     if (displayReadTime) {
@@ -3749,7 +3758,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       showTopics: this.props.showTopics,
       isSectionsCard: this.props.mayHaveSectionsCards && this.props.topic && !isListCard,
       format: format,
-      topic: this.props.topic
+      topic: this.props.topic,
+      icon_src: faviconEnabled && this.props.icon_src
     })), /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -4556,6 +4566,7 @@ function RecentSavesContainer({
       type: source,
       image_src: rec.image_src,
       raw_image_src: rec.raw_image_src,
+      icon_src: rec.icon_src,
       word_count: rec.word_count,
       time_to_read: rec.time_to_read,
       title: rec.title,
@@ -4659,6 +4670,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
         flightId: rec.flight_id,
         image_src: rec.image_src,
         raw_image_src: rec.raw_image_src,
+        icon_src: rec.icon_src,
         word_count: rec.word_count,
         time_to_read: rec.time_to_read,
         title: rec.title,
@@ -10423,6 +10435,7 @@ function CardSection({
       flightId: rec.flight_id,
       image_src: rec.image_src,
       raw_image_src: rec.raw_image_src,
+      icon_src: rec.icon_src,
       word_count: rec.word_count,
       time_to_read: rec.time_to_read,
       title: rec.title,
