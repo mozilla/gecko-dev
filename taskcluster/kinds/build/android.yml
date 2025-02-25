@@ -253,7 +253,7 @@ android-arm-lite/opt:
 
 android-arm-shippable/opt:
     description: "Android Arm Shippable"
-    use-pgo: android-x86-shippable/opt
+    use-pgo: android-arm-shippable/opt
     attributes:
         enable-full-crashsymbols: true
         shippable: true
@@ -284,7 +284,7 @@ android-arm-shippable/opt:
 
 android-arm-shippable-lite/opt:
     description: "Android Arm Shippable Lite"
-    use-pgo: android-x86-shippable/opt
+    use-pgo: android-arm-shippable/opt
     attributes:
         enable-full-crashsymbols: true
         shippable: true
