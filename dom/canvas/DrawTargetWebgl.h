@@ -333,6 +333,10 @@ class SharedContextWebgl : public mozilla::RefCounted<SharedContextWebgl>,
   void UnlinkSurfaceTexture(const RefPtr<TextureHandle>& aHandle);
   void UnlinkGlyphCaches();
 
+  void AddHeapData(const void* aBuf);
+  void RemoveHeapData(const void* aBuf);
+  void AddUntrackedTextureMemory(size_t aBytes);
+  void RemoveUntrackedTextureMemory(size_t aBytes);
   template <typename T>
   void AddUntrackedTextureMemory(const RefPtr<T>& aObject, size_t aBytes = 0);
   template <typename T>

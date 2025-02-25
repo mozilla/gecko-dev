@@ -225,9 +225,13 @@ SharedContextWebgl::~SharedContextWebgl() {
     WGR::wgr_builder_release(mWGRPathBuilder);
     mWGRPathBuilder = nullptr;
   }
-  if (mPathVertexCapacity > 0) {
-    mPathVertexCapacity = 0;
-    ResetPathVertexBuffer();
+  if (mWGROutputBuffer) {
+    RemoveHeapData(mWGROutputBuffer.get());
+    mWGROutputBuffer = nullptr;
+  }
+  if (mPathVertexBuffer) {
+    RemoveUntrackedTextureMemory(mPathVertexBuffer);
+    mPathVertexBuffer = nullptr;
   }
   ClearZeroBuffer();
   ClearAllTextures();
@@ -316,11 +320,33 @@ static inline size_t TextureMemoryUsage(WebGLBuffer* aBuffer) {
   return aBuffer->ByteLength();
 }
 
+inline void SharedContextWebgl::AddHeapData(const void* aBuf) {
+  if (aBuf) {
+    gReportedHeapData +=
+        AcceleratedCanvas2DMemoryReporter::MallocSizeOfOnAlloc(aBuf);
+  }
+}
+
+inline void SharedContextWebgl::RemoveHeapData(const void* aBuf) {
+  if (aBuf) {
+    gReportedHeapData -=
+        AcceleratedCanvas2DMemoryReporter::MallocSizeOfOnFree(aBuf);
+  }
+}
+
+inline void SharedContextWebgl::AddUntrackedTextureMemory(size_t aBytes) {
+  gReportedTextureMemory += aBytes;
+}
+
+inline void SharedContextWebgl::RemoveUntrackedTextureMemory(size_t aBytes) {
+  gReportedTextureMemory -= aBytes;
+}
+
 template <typename T>
 inline void SharedContextWebgl::AddUntrackedTextureMemory(
     const RefPtr<T>& aObject, size_t aBytes) {
   size_t usedBytes = aBytes > 0 ? aBytes : TextureMemoryUsage(aObject);
-  gReportedTextureMemory += usedBytes;
+  AddUntrackedTextureMemory(usedBytes);
   gReportedHeapData += aObject->SizeOfIncludingThis(
       AcceleratedCanvas2DMemoryReporter::MallocSizeOfOnAlloc);
 }
@@ -329,7 +355,7 @@ template <typename T>
 inline void SharedContextWebgl::RemoveUntrackedTextureMemory(
     const RefPtr<T>& aObject, size_t aBytes) {
   size_t usedBytes = aBytes > 0 ? aBytes : TextureMemoryUsage(aObject);
-  gReportedTextureMemory -= usedBytes;
+  RemoveUntrackedTextureMemory(usedBytes);
   gReportedHeapData -= aObject->SizeOfIncludingThis(
       AcceleratedCanvas2DMemoryReporter::MallocSizeOfOnFree);
 }
@@ -1300,10 +1326,7 @@ void SharedContextWebgl::ResetPathVertexBuffer() {
   }
 
   size_t oldCapacity = mPathVertexBuffer->ByteLength();
-  if (mWGROutputBuffer) {
-    gReportedHeapData -= oldCapacity;
-  }
-  RemoveUntrackedTextureMemory(mPathVertexBuffer);
+  RemoveUntrackedTextureMemory(oldCapacity);
 
   mWebgl->BindBuffer(LOCAL_GL_ARRAY_BUFFER, mPathVertexBuffer.get());
   mWebgl->UninitializedBufferData_SizeOnly(
@@ -1314,16 +1337,19 @@ void SharedContextWebgl::ResetPathVertexBuffer() {
                         (const uint8_t*)kRectVertexData);
   mPathVertexOffset = sizeof(kRectVertexData);
 
-  AddUntrackedTextureMemory(mPathVertexBuffer);
-  if (mPathVertexCapacity > 0) {
-    size_t newCapacity = mPathVertexBuffer->ByteLength();
-    if (!mWGROutputBuffer || newCapacity != oldCapacity) {
-      mWGROutputBuffer.reset(new (
-          fallible) WGR::OutputVertex[newCapacity / sizeof(WGR::OutputVertex)]);
-    }
-    gReportedHeapData += newCapacity;
-  } else {
+  size_t newCapacity = mPathVertexBuffer->ByteLength();
+  AddUntrackedTextureMemory(newCapacity);
+
+  if (mWGROutputBuffer &&
+      (!mPathVertexCapacity || newCapacity != oldCapacity)) {
+    RemoveHeapData(mWGROutputBuffer.get());
     mWGROutputBuffer = nullptr;
+  }
+
+  if (mPathVertexCapacity > 0 && !mWGROutputBuffer) {
+    mWGROutputBuffer.reset(new (
+        fallible) WGR::OutputVertex[newCapacity / sizeof(WGR::OutputVertex)]);
+    AddHeapData(mWGROutputBuffer.get());
   }
 }
 
@@ -1335,6 +1361,7 @@ bool SharedContextWebgl::CreateShaders() {
   }
   if (!mPathVertexBuffer) {
     mPathVertexBuffer = mWebgl->CreateBuffer();
+    AddUntrackedTextureMemory(mPathVertexBuffer);
     mWebgl->BindVertexArray(mPathVertexArray.get());
     ResetPathVertexBuffer();
     mWebgl->EnableVertexAttribArray(0);
