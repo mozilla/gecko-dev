@@ -3213,6 +3213,16 @@ def moz_branding_directory(
 set_config("MOZ_BRANDING_DIRECTORY", moz_branding_directory)
 add_old_configure_assignment("MOZ_BRANDING_DIRECTORY", moz_branding_directory)
 
+
+@depends(moz_branding_directory, build_project)
+def real_branding_directory(moz_branding_directory, build_project):
+    if moz_branding_directory:
+        return moz_branding_directory
+    return f"{build_project}/branding/nightly"
+
+
+add_old_configure_assignment("REAL_BRANDING_DIRECTORY", real_branding_directory)
+
 option(
     env="MOZ_APP_REMOTINGNAME",
     nargs=1,

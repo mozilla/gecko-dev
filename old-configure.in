@@ -20,15 +20,9 @@ dnl ========================================================
 dnl = Trademarked Branding
 dnl ========================================================
 
-REAL_BRANDING_DIRECTORY="${MOZ_BRANDING_DIRECTORY}"
-if test -z "$REAL_BRANDING_DIRECTORY"; then
-  REAL_BRANDING_DIRECTORY=${MOZ_BUILD_APP}/branding/nightly
-fi
-
 if test -f "${_topsrcdir}/$REAL_BRANDING_DIRECTORY/configure.sh"; then
   . "${_topsrcdir}/$REAL_BRANDING_DIRECTORY/configure.sh"
 fi
-
 
 dnl ========================================================
 dnl = Mac bundle name
