@@ -772,32 +772,25 @@ fn pingsender_failure() {
 fn glean_ping() {
     let mut test = GuiTest::new();
     test.enable_glean_pings();
-    let received_glean_ping = Counter::new();
-    test.mock.set(
-        net::http::MockHttp,
-        Box::new(cc! { (received_glean_ping)
-            move |_request, url| {
-                if url.starts_with("https://incoming.glean.example.com")
-                {
-                    received_glean_ping.inc();
-                    Ok(Ok(vec![]))
-                } else {
-                    net::http::MockHttp::try_others()
-                }
-            }
-        }),
-    );
+    let submitted_glean_ping = Counter::new();
+    cc! { (submitted_glean_ping)
+        test.before_run(move || {
+            crate::glean::crash.test_before_next_submit(move |_| {
+                submitted_glean_ping.inc();
+            });
+        })
+    };
     test.run(|interact| {
         interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
     });
-    received_glean_ping.assert_one();
+    submitted_glean_ping.assert_one();
 }
 
 #[test]
 fn glean_ping_extra_stack_trace_fields() {
     let mut test = GuiTest::new();
     test.enable_glean_pings();
-    let received_glean_ping = Counter::new();
+    let submitted_glean_ping = Counter::new();
 
     const MINIDUMP_EXTRA_CONTENTS: &str = r#"{
                             "Vendor": "FooCorp",
@@ -837,34 +830,23 @@ fn glean_ping_extra_stack_trace_fields() {
         test.mock.set(MockFS, mock_files.clone());
         mock_files
     };
-    test.mock.set(
-        net::http::MockHttp,
-        Box::new(cc! { (received_glean_ping)
-            move |_request, url| {
-                if url.starts_with("https://incoming.glean.example.com")
-                {
-                    received_glean_ping.inc();
-                    Ok(Ok(vec![]))
-                } else {
-                    net::http::MockHttp::try_others()
-                }
-            }
-        }),
-    );
 
-    test.before_run(|| {
-        glean::crash.test_before_next_submit(|_| {
-            assert_eq!(
-                glean::crash::stack_traces.test_get_value(None),
-                Some(serde_json::json! {{"crash_address":"0xcafe"}})
-            );
-        });
-    });
+    cc! { (submitted_glean_ping)
+        test.before_run(move || {
+            glean::crash.test_before_next_submit(move |_| {
+                assert_eq!(
+                    glean::crash::stack_traces.test_get_value(None),
+                    Some(serde_json::json! {{"crash_address":"0xcafe"}})
+                );
+                submitted_glean_ping.inc();
+            });
+        })
+    };
 
     test.run(|interact| {
         interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
     });
-    received_glean_ping.assert_one();
+    submitted_glean_ping.assert_one();
 }
 
 #[test]
