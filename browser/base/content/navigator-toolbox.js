@@ -43,7 +43,7 @@ document.addEventListener(
     function onCommand(event) {
       let element = event.target.closest(`
         #firefox-view-button,
-        #content-analysis-indicator,
+        .content-analysis-indicator,
         #bookmarks-toolbar-button,
         #PlacesToolbar,
         #import-button,
@@ -59,10 +59,6 @@ document.addEventListener(
       switch (element.id) {
         case "firefox-view-button":
           FirefoxViewHandler.openTab();
-          break;
-
-        case "content-analysis-indicator":
-          ContentAnalysis.showPanel(element, PanelUI);
           break;
 
         case "bookmarks-toolbar-button":
@@ -97,7 +93,11 @@ document.addEventListener(
           break;
 
         default:
-          throw new Error(`Missing case for #${element.id}`);
+          if (element.classList.contains("content-analysis-indicator")) {
+            ContentAnalysis.showPanel(element, PanelUI);
+          } else {
+            throw new Error(`Missing case for #${element.id}`);
+          }
       }
     }
     navigatorToolbox.addEventListener("command", onCommand);

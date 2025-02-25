@@ -618,9 +618,11 @@ menupopup::part(drop-indicator) {
 }
 
 /* Content analysis indicator */
-
-:root:not([contentanalysisactive]) #content-analysis-indicator {
-  display: none;
+.content-analysis-indicator {
+  :root:not([contentanalysisactive]) &,
+  #navigator-toolbox:not([tabs-hidden]) > #nav-bar > & {
+    display: none;
+  }
 }
 
 /* Various panels and popup notifications */

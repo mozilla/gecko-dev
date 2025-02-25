@@ -160,11 +160,13 @@ export const ContentAnalysis = {
 
     // Do this even if initialized so the icon shows up on new windows, not just the
     // first one.
-    doc.l10n.setAttributes(
-      doc.getElementById("content-analysis-indicator"),
-      "content-analysis-indicator-tooltip",
-      { agentName: lazy.agentName }
-    );
+    for (let indicator of doc.getElementsByClassName(
+      "content-analysis-indicator"
+    )) {
+      doc.l10n.setAttributes(indicator, "content-analysis-indicator-tooltip", {
+        agentName: lazy.agentName,
+      });
+    }
     doc.documentElement.setAttribute("contentanalysisactive", "true");
   },
 
