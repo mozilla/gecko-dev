@@ -1219,7 +1219,7 @@ void DrawTargetWebgl::MarkSkiaChanged(bool aOverwrite) {
       // Signal that we've hit a complete software fallback.
       mProfile.OnFallback();
     }
-  } else if (mSkiaLayer) {
+  } else if (mSkiaLayer && !mLayerDepth) {
     FlattenSkia();
   }
   mWebglValid = false;
@@ -3913,8 +3913,8 @@ void DrawTargetWebgl::DrawSurface(SourceSurface* aSurface, const Rect& aDest,
                                   const DrawOptions& aOptions) {
   Matrix matrix = Matrix::Scaling(aDest.width / aSource.width,
                                   aDest.height / aSource.height);
-  matrix.PreTranslate(-aSource.x, -aSource.y);
-  matrix.PostTranslate(aDest.x, aDest.y);
+  matrix.PreTranslate(-aSource.TopLeft() + aSurface->GetRect().TopLeft());
+  matrix.PostTranslate(aDest.TopLeft());
   SurfacePattern pattern(aSurface, ExtendMode::CLAMP, matrix,
                          aSurfOptions.mSamplingFilter);
   DrawRect(aDest, pattern, aOptions);
@@ -3943,8 +3943,9 @@ void DrawTargetWebgl::MaskSurface(const Pattern& aSource, SourceSurface* aMask,
     mSkia->MaskSurface(aSource, aMask, aOffset, aOptions);
   } else {
     auto sourceColor = static_cast<const ColorPattern&>(aSource).mColor;
-    SurfacePattern pattern(aMask, ExtendMode::CLAMP,
-                           Matrix::Translation(aOffset));
+    SurfacePattern pattern(
+        aMask, ExtendMode::CLAMP,
+        Matrix::Translation(aOffset + aMask->GetRect().TopLeft()));
     DrawRect(Rect(aOffset, Size(aMask->GetSize())), pattern, aOptions,
              Some(sourceColor));
   }
