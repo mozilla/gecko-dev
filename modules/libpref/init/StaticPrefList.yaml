@@ -4909,6 +4909,12 @@
   value: 10000
   mirror: always
 
+# Whether view transitions remain active indefinitely. Useful for debugging.
+- name: dom.viewTransitions.remain-active
+  type: bool
+  value: false
+  mirror: always
+
 # Is support for WebVR APIs enabled?
 # Disabled everywhere, but not removed.
 - name: dom.vr.enabled
