@@ -183,7 +183,8 @@ var testDatas = [
 SpecialPowers.pushPrefEnv(
   {"set": [["browser.safebrowsing.provider.google.reportPhishMistakeURL", BASE_URL + "action=reporturl&reporturl="],
            ["browser.safebrowsing.provider.google4.reportPhishMistakeURL", BASE_URL + "action=reporturl&reporturl="],
-           ["browser.safebrowsing.phishing.enabled", true]]},
+           ["browser.safebrowsing.phishing.enabled", true],
+           ["browser.safebrowsing.only_top_level", false]]},
   test);
 
 function test() {

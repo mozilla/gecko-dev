@@ -1792,7 +1792,7 @@
 # Whether to only classify top-level channels for safe browsing.
 - name: browser.safebrowsing.only_top_level
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # SessionStore prefs
