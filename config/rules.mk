@@ -890,9 +890,13 @@ endif
 # When you move this out of the tools tier, please remove the corresponding
 # hacks in recursivemake.py that check if Makefile.in sets the variable.
 ifneq ($(XPI_PKGNAME),)
-tools realchrome::
+tools realchrome::$(FINAL_TARGET)/../$(XPI_PKGNAME).xpi
+
+XPI_PKGNAME_DEPS=$(MDDEPDIR)/$(XPI_PKGNAME).d
+EXTRA_MDDEPEND_FILES += $(XPI_PKGNAME_DEPS)
+$(FINAL_TARGET)/../$(XPI_PKGNAME).xpi:
 	@echo 'Packaging $(XPI_PKGNAME).xpi...'
-	$(call py_action,zip $(XPI_PKGNAME).xpi,-C $(FINAL_TARGET) ../$(XPI_PKGNAME).xpi '*')
+	$(call py_action,zip $(XPI_PKGNAME).xpi,-C $(FINAL_TARGET) ../$(XPI_PKGNAME).xpi '*' --dep-target $(FINAL_TARGET)/../$(XPI_PKGNAME).xpi --dep-file $(XPI_PKGNAME_DEPS))
 endif
 
 #############################################################################
