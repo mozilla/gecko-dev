@@ -1,0 +1,19 @@
+[DEFAULT]
+tags = "remote"
+subsuite = "remote"
+support-files = [
+  "head.js",
+  "resources/*"
+]
+prefs = [
+  "remote.messagehandler.modulecache.useBrowserTestRoot=true",
+  "remote.messagehandler.test.command.delay=3000",
+]
+
+["browser_handle_command_timeout.js"]
+skip-if = [
+  "!opt", # This test exercises timeouts and could fail on slow platforms.
+  "asan", # See above
+  "ccov", # See above
+  "tsan", # See above
+]

@@ -37,5 +37,6 @@ ChromeUtils.defineESModuleGetters(modules.windowglobal, {
   eventonprefchange: `${BASE_FOLDER}/windowglobal/eventonprefchange.sys.mjs`,
   retry: `${BASE_FOLDER}/windowglobal/retry.sys.mjs`,
   sessiondataupdate: `${BASE_FOLDER}/windowglobal/sessiondataupdate.sys.mjs`,
+  timeout: `${BASE_FOLDER}/windowglobal/timeout.sys.mjs`,
   windowglobaltoroot: `${BASE_FOLDER}/windowglobal/windowglobaltoroot.sys.mjs`,
 });

@@ -85,6 +85,8 @@ export class MessageHandlerFrameChild extends JSWindowActorChild {
         }
         throw e;
       }
+    } else if (message.name === "MessageHandlerFrameParent:sendPing") {
+      return true;
     }
 
     return null;
