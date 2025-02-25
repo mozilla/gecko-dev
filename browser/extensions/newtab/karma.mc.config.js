@@ -276,7 +276,7 @@ module.exports = function (config) {
               functions: 96,
               branches: 70,
             },
-            "content-src/lib/hooks.jsx": {
+            "content-src/lib/utils.jsx": {
               branches: 60,
             },
             "content-src/components/**/*.jsx": {

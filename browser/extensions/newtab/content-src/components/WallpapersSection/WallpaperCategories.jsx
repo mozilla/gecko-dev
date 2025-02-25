@@ -8,9 +8,32 @@ import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 // eslint-disable-next-line no-shadow
 import { CSSTransition } from "react-transition-group";
 
+const PREF_WALLPAPER_UPLOADED_PREVIOUSLY =
+  "newtabWallpapers.customWallpaper.uploadedPreviously";
+
+// Returns a function will not be continuously triggered when called. The
+// function will be triggered if called again after `wait` milliseconds.
+function debounce(func, wait) {
+  let timer;
+  return (...args) => {
+    if (timer) {
+      return;
+    }
+
+    let wakeUp = () => {
+      timer = null;
+    };
+
+    timer = setTimeout(wakeUp, wait);
+    func.apply(this, args);
+  };
+}
+
 export class _WallpaperCategories extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.handleColorInput = this.handleColorInput.bind(this);
+    this.debouncedHandleChange = debounce(this.handleChange.bind(this), 999);
     this.handleChange = this.handleChange.bind(this);
     this.handleReset = this.handleReset.bind(this);
     this.handleCategory = this.handleCategory.bind(this);
@@ -36,15 +59,29 @@ export class _WallpaperCategories extends React.PureComponent {
     );
   }
 
+  handleColorInput(event) {
+    let { id } = event.target;
+    // Set ID to include hex value of custom color
+    id = `solid-color-picker-${event.target.value}`;
+    const rgbColors = this.getRGBColors(event.target.value);
+
+    // Set background color to custom color
+    event.target.style.backgroundColor = `rgb(${rgbColors.toString()})`;
+    this.setState({ customHexValue: event.target.style.backgroundColor });
+
+    // Setting this now so when we remove v1 we don't have to migrate v1 values.
+    this.props.setPref("newtabWallpapers.wallpaper", id);
+  }
+
+  // Note: There's a separate event (debouncedHandleChange) that fires the handleChange
+  // event but is delayed so that it doesn't fire multiple events when a user
+  // is selecting a custom color background
   handleChange(event) {
     let { id } = event.target;
 
+    // Set ID to include hex value of custom color
     if (id === "solid-color-picker") {
       id = `solid-color-picker-${event.target.value}`;
-      const rgbColors = this.getRGBColors(event.target.value);
-      event.target.style.backgroundColor = `rgb(${rgbColors.toString()})`;
-      event.target.checked = true;
-      this.setState({ customHexValue: event.target.style.backgroundColor });
     }
 
     this.props.setPref("newtabWallpapers.wallpaper", id);
@@ -170,8 +207,20 @@ export class _WallpaperCategories extends React.PureComponent {
 
   handleUpload() {
     // TODO: Bug 1947645: Add custom image upload functionality
-    // TODO: Bug 1943663: Add telemetry
     // TODO: Bug 1947813: Add image upload error states/UI
+
+    // TODO: Once Bug 1947813 has landed, we may need a separate event
+    // for selecting previously uploaded wallpaper, rather than uploading a new one.
+    // The plan would be to reuse at.WALLPAPER_CLICK for this use case
+    const uploadedPreviously =
+      this.props.Prefs.values[PREF_WALLPAPER_UPLOADED_PREVIOUSLY];
+
+    this.handleUserEvent(at.WALLPAPER_UPLOAD, {
+      had_uploaded_previously: !!uploadedPreviously,
+      had_previous_wallpaper: !!this.props.activeWallpaper,
+    });
+
+    this.props.setPref(PREF_WALLPAPER_UPLOADED_PREVIOUSLY, true);
   }
 
   handleBack() {
@@ -252,7 +301,8 @@ export class _WallpaperCategories extends React.PureComponent {
       showColorPicker && activeCategory === "solid-colors" ? (
         <div className="theme-custom-color-picker">
           <input
-            onChange={this.handleChange}
+            onInput={this.handleColorInput}
+            onChange={this.debouncedHandleChange}
             onClick={() => this.setActiveId("solid-color-picker")} //
             type="color"
             name={`wallpaper-solid-color-picker`}
