@@ -282,10 +282,12 @@ class DefaultBrowserToolbarController(
     override fun handleNewTabButtonClick() {
         if (settings.enableHomepageAsNewTab) {
             tabsUseCases.addTab.invoke(
+                url = "about:home",
                 startLoading = false,
                 private = currentSession?.content?.private ?: false,
             )
         }
+
         if (activity.shouldAddNavigationBar()) {
             NavigationBar.browserNewTabTapped.record(NoExtras())
         } else {

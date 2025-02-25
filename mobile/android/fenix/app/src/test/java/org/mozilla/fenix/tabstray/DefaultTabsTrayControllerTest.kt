@@ -165,6 +165,7 @@ class DefaultTabsTrayControllerTest {
         verifyOrder {
             profiler.getProfilerTime()
             tabsUseCases.addTab.invoke(
+                url = "about:home",
                 startLoading = false,
                 private = true,
             )
@@ -213,6 +214,7 @@ class DefaultTabsTrayControllerTest {
         verifyOrder {
             profiler.getProfilerTime()
             tabsUseCases.addTab.invoke(
+                url = "about:home",
                 startLoading = false,
                 private = false,
             )

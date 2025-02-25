@@ -441,6 +441,7 @@ class DefaultBrowserToolbarControllerTest {
 
         verify {
             tabsUseCases.addTab.invoke(
+                url = "about:home",
                 startLoading = false,
                 private = false,
             )

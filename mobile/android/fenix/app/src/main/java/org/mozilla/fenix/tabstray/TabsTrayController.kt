@@ -256,6 +256,7 @@ class DefaultTabsTrayController(
 
         if (settings.enableHomepageAsNewTab) {
             tabsUseCases.addTab.invoke(
+                url = "about:home",
                 startLoading = false,
                 private = isPrivate,
             )
