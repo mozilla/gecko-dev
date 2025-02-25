@@ -1262,11 +1262,11 @@ export var TelemetrySendImpl = {
 
     let time = Utils.monotonicNow() - startTime;
     if (success) {
-      Services.telemetry.getHistogramById("TELEMETRY_SEND_SUCCESS").add(time);
+      Glean.telemetry.sendSuccess.accumulateSingleSample(time);
     } else {
-      Services.telemetry.getHistogramById("TELEMETRY_SEND_FAILURE").add(time);
+      Glean.telemetry.sendFailure.accumulateSingleSample(time);
     }
-    Services.telemetry.getHistogramById("TELEMETRY_SUCCESS").add(success);
+    Glean.telemetry.success[success ? "true" : "false"].add();
 
     if (!success) {
       // Let the scheduler know about send failures for triggering backoff timeouts.
@@ -1356,9 +1356,9 @@ export var TelemetrySendImpl = {
       JSON.stringify(networkPayload)
     );
 
-    Services.telemetry
-      .getHistogramById("TELEMETRY_STRINGIFY")
-      .add(Utils.monotonicNow() - startTime);
+    Glean.telemetry.stringify.accumulateSingleSample(
+      Utils.monotonicNow() - startTime
+    );
 
     let payloadStream = Cc[
       "@mozilla.org/io/string-input-stream;1"
@@ -1376,12 +1376,10 @@ export var TelemetrySendImpl = {
         "_doPing - submitted ping exceeds the size limit, size: " +
           compressedPingSizeBytes
       );
-      Services.telemetry
-        .getHistogramById("TELEMETRY_PING_SIZE_EXCEEDED_SEND")
-        .add();
-      Services.telemetry
-        .getHistogramById("TELEMETRY_DISCARDED_SEND_PINGS_SIZE_MB")
-        .add(Math.floor(compressedPingSizeBytes / 1024 / 1024));
+      Glean.telemetry.pingSizeExceededSend.add(1);
+      Glean.telemetry.discardedSendPingsSize.accumulate(
+        Math.floor(compressedPingSizeBytes / 1024 / 1024)
+      );
       // We don't need to call |request.abort()| as it was not sent yet.
       this._pendingPingRequests.delete(id);
 
@@ -1389,9 +1387,9 @@ export var TelemetrySendImpl = {
       return { promise: lazy.TelemetryStorage.removePendingPing(id) };
     }
 
-    Services.telemetry
-      .getHistogramById("TELEMETRY_COMPRESS")
-      .add(Utils.monotonicNow() - startTime);
+    Glean.telemetry.compress.accumulateSingleSample(
+      Utils.monotonicNow() - startTime
+    );
     request.sendInputStream(payloadStream);
 
     return { payloadStream };
@@ -1409,9 +1407,7 @@ export var TelemetrySendImpl = {
     if (this._tooLateToSend) {
       // Too late to send now. Reject so we pend the ping to send it next time.
       this._log.trace("_doPing - Too late to send ping " + ping.id);
-      Services.telemetry
-        .getHistogramById("TELEMETRY_SEND_FAILURE_TYPE")
-        .add("eTooLate");
+      Glean.telemetry.sendFailureType.eTooLate.add(1);
       Services.telemetry
         .getKeyedHistogramById("TELEMETRY_SEND_FAILURE_TYPE_PER_PING")
         .add(ping.type, "eTooLate");
@@ -1503,9 +1499,7 @@ export var TelemetrySendImpl = {
 
       lazy.TelemetryHealthPing.recordSendFailure(failure);
 
-      Services.telemetry
-        .getHistogramById("TELEMETRY_SEND_FAILURE_TYPE")
-        .add(failure);
+      Glean.telemetry.sendFailureType[failure].add(1);
       Services.telemetry
         .getKeyedHistogramById("TELEMETRY_SEND_FAILURE_TYPE_PER_PING")
         .add(ping.type, failure);
@@ -1535,9 +1529,7 @@ export var TelemetrySendImpl = {
             status +
             " - ping request broken?"
         );
-        Services.telemetry
-          .getHistogramById("TELEMETRY_PING_EVICTED_FOR_SERVER_ERRORS")
-          .add();
+        Glean.telemetry.pingEvictedForServerErrors.add(1);
         // TODO: we should handle this better, but for now we should avoid resubmitting
         // broken requests by pretending success.
         success = true;

@@ -471,9 +471,7 @@ var Impl = {
       this._log.trace(
         "_submitPingLogic - Waiting on client id or profile group id"
       );
-      Services.telemetry
-        .getHistogramById("TELEMETRY_PING_SUBMISSION_WAITING_CLIENTID")
-        .add();
+      Glean.telemetry.pingSubmissionWaitingClientid.add(1);
       // We can safely call |getClientID| here and during initialization: we would still
       // spawn and return one single loading task.
       this._clientID = await lazy.ClientID.getClientID();
@@ -543,9 +541,7 @@ var Impl = {
     const typeUuid = /^[a-z0-9][a-z0-9-]+[a-z0-9]$/i;
     if (!typeUuid.test(aType)) {
       this._log.error("submitExternalPing - invalid ping type: " + aType);
-      Services.telemetry
-        .getKeyedHistogramById("TELEMETRY_INVALID_PING_TYPE_SUBMITTED")
-        .add(aType, 1);
+      Glean.telemetry.invalidPingTypeSubmitted[aType].add(1);
       return Promise.reject(new Error("Invalid type string submitted."));
     }
     // Enforce that the payload is an object.
@@ -557,9 +553,7 @@ var Impl = {
       this._log.error(
         "submitExternalPing - invalid payload type: " + typeof aPayload
       );
-      Services.telemetry
-        .getHistogramById("TELEMETRY_INVALID_PAYLOAD_SUBMITTED")
-        .add(1);
+      Glean.telemetry.invalidPayloadSubmitted.add(1);
       return Promise.reject(new Error("Invalid payload type submitted."));
     }
 

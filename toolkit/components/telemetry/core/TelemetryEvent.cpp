@@ -11,6 +11,7 @@
 #include "jsapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
+#include "mozilla/glean/TelemetryMetrics.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/Services.h"
@@ -38,8 +39,6 @@ using mozilla::TimeStamp;
 using mozilla::UniquePtr;
 using mozilla::Telemetry::ChildEventData;
 using mozilla::Telemetry::EventExtraEntry;
-using mozilla::Telemetry::LABELS_TELEMETRY_EVENT_RECORDING_ERROR;
-using mozilla::Telemetry::LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR;
 using mozilla::Telemetry::ProcessID;
 using mozilla::Telemetry::Common::CanRecordDataset;
 using mozilla::Telemetry::Common::CanRecordInProcess;
@@ -445,8 +444,10 @@ RecordEventResult RecordEvent(const StaticMutexAutoLock& lock,
   // Look up the event id.
   EventKey eventKey;
   if (!GetEventKey(lock, category, method, object, &eventKey)) {
-    mozilla::Telemetry::AccumulateCategorical(
-        LABELS_TELEMETRY_EVENT_RECORDING_ERROR::UnknownEvent);
+    mozilla::glean::telemetry::event_recording_error
+        .EnumGet(
+            mozilla::glean::telemetry::EventRecordingErrorLabel::eUnknownevent)
+        .Add();
     return RecordEventResult::UnknownEvent;
   }
 
@@ -455,15 +456,17 @@ RecordEventResult RecordEvent(const StaticMutexAutoLock& lock,
   // code doesn't have to be removed at a specific time or version. Even logging
   // warnings would become very noisy.
   if (IsExpired(eventKey)) {
-    mozilla::Telemetry::AccumulateCategorical(
-        LABELS_TELEMETRY_EVENT_RECORDING_ERROR::Expired);
+    mozilla::glean::telemetry::event_recording_error
+        .EnumGet(mozilla::glean::telemetry::EventRecordingErrorLabel::eExpired)
+        .Add();
     return RecordEventResult::ExpiredEvent;
   }
 
   // Check whether the extra keys passed are valid.
   if (!CheckExtraKeysValid(eventKey, extra)) {
-    mozilla::Telemetry::AccumulateCategorical(
-        LABELS_TELEMETRY_EVENT_RECORDING_ERROR::ExtraKey);
+    mozilla::glean::telemetry::event_recording_error
+        .EnumGet(mozilla::glean::telemetry::EventRecordingErrorLabel::eExtrakey)
+        .Add();
     return RecordEventResult::InvalidExtraKey;
   }
 
@@ -901,23 +904,27 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
   if (!IsValidIdentifierString(aCategory, 30, true, true)) {
     JS_ReportErrorASCII(
         cx, "Category parameter should match the identifier pattern.");
-    mozilla::Telemetry::AccumulateCategorical(
-        LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Category);
+    mozilla::glean::telemetry::event_registration_error
+        .EnumGet(
+            mozilla::glean::telemetry::EventRegistrationErrorLabel::eCategory)
+        .Add();
     return NS_ERROR_INVALID_ARG;
   }
 
   if (!aEventData.isObject()) {
     JS_ReportErrorASCII(cx, "Event data parameter should be an object");
-    mozilla::Telemetry::AccumulateCategorical(
-        LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+    mozilla::glean::telemetry::event_registration_error
+        .EnumGet(mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+        .Add();
     return NS_ERROR_INVALID_ARG;
   }
 
   JS::Rooted<JSObject*> obj(cx, &aEventData.toObject());
   JS::Rooted<JS::IdVector> eventPropertyIds(cx, JS::IdVector(cx));
   if (!JS_Enumerate(cx, obj, &eventPropertyIds)) {
-    mozilla::Telemetry::AccumulateCategorical(
-        LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+    mozilla::glean::telemetry::event_registration_error
+        .EnumGet(mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+        .Add();
     return NS_ERROR_FAILURE;
   }
 
@@ -930,8 +937,10 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
   for (size_t i = 0, n = eventPropertyIds.length(); i < n; i++) {
     nsAutoJSString eventName;
     if (!eventName.init(cx, eventPropertyIds[i])) {
-      mozilla::Telemetry::AccumulateCategorical(
-          LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+      mozilla::glean::telemetry::event_registration_error
+          .EnumGet(
+              mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+          .Add();
       return NS_ERROR_FAILURE;
     }
 
@@ -939,16 +948,20 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
                                  kMaxMethodNameByteLength, false, true)) {
       JS_ReportErrorASCII(cx,
                           "Event names should match the identifier pattern.");
-      mozilla::Telemetry::AccumulateCategorical(
-          LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Name);
+      mozilla::glean::telemetry::event_registration_error
+          .EnumGet(
+              mozilla::glean::telemetry::EventRegistrationErrorLabel::eName)
+          .Add();
       return NS_ERROR_INVALID_ARG;
     }
 
     JS::Rooted<JS::Value> value(cx);
     if (!JS_GetPropertyById(cx, obj, eventPropertyIds[i], &value) ||
         !value.isObject()) {
-      mozilla::Telemetry::AccumulateCategorical(
-          LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+      mozilla::glean::telemetry::event_registration_error
+          .EnumGet(
+              mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+          .Add();
       return NS_ERROR_FAILURE;
     }
     JS::Rooted<JSObject*> eventObj(cx, &value.toObject());
@@ -962,14 +975,18 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
 
     // The methods & objects properties are required.
     if (!GetArrayPropertyValues(cx, eventObj, "methods", &methods)) {
-      mozilla::Telemetry::AccumulateCategorical(
-          LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+      mozilla::glean::telemetry::event_registration_error
+          .EnumGet(
+              mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+          .Add();
       return NS_ERROR_FAILURE;
     }
 
     if (!GetArrayPropertyValues(cx, eventObj, "objects", &objects)) {
-      mozilla::Telemetry::AccumulateCategorical(
-          LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+      mozilla::glean::telemetry::event_registration_error
+          .EnumGet(
+              mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+          .Add();
       return NS_ERROR_FAILURE;
     }
 
@@ -978,8 +995,10 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
     if (JS_HasProperty(cx, eventObj, "extra_keys", &hasProperty) &&
         hasProperty) {
       if (!GetArrayPropertyValues(cx, eventObj, "extra_keys", &extra_keys)) {
-        mozilla::Telemetry::AccumulateCategorical(
-            LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+        mozilla::glean::telemetry::event_registration_error
+            .EnumGet(
+                mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+            .Add();
         return NS_ERROR_FAILURE;
       }
     }
@@ -989,8 +1008,10 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
       JS::Rooted<JS::Value> temp(cx);
       if (!JS_GetProperty(cx, eventObj, "expired", &temp) ||
           !temp.isBoolean()) {
-        mozilla::Telemetry::AccumulateCategorical(
-            LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+        mozilla::glean::telemetry::event_registration_error
+            .EnumGet(
+                mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+            .Add();
         return NS_ERROR_FAILURE;
       }
 
@@ -1003,8 +1024,10 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
       JS::Rooted<JS::Value> temp(cx);
       if (!JS_GetProperty(cx, eventObj, "record_on_release", &temp) ||
           !temp.isBoolean()) {
-        mozilla::Telemetry::AccumulateCategorical(
-            LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
+        mozilla::glean::telemetry::event_registration_error
+            .EnumGet(
+                mozilla::glean::telemetry::EventRegistrationErrorLabel::eOther)
+            .Add();
         return NS_ERROR_FAILURE;
       }
 
@@ -1017,8 +1040,10 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
                                    true)) {
         JS_ReportErrorASCII(
             cx, "Method names should match the identifier pattern.");
-        mozilla::Telemetry::AccumulateCategorical(
-            LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Method);
+        mozilla::glean::telemetry::event_registration_error
+            .EnumGet(
+                mozilla::glean::telemetry::EventRegistrationErrorLabel::eMethod)
+            .Add();
         return NS_ERROR_INVALID_ARG;
       }
     }
@@ -1029,8 +1054,10 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
                                    true)) {
         JS_ReportErrorASCII(
             cx, "Object names should match the identifier pattern.");
-        mozilla::Telemetry::AccumulateCategorical(
-            LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Object);
+        mozilla::glean::telemetry::event_registration_error
+            .EnumGet(
+                mozilla::glean::telemetry::EventRegistrationErrorLabel::eObject)
+            .Add();
         return NS_ERROR_INVALID_ARG;
       }
     }
@@ -1038,8 +1065,10 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
     // Validate extra keys.
     if (extra_keys.Length() > kMaxExtraKeyCount) {
       JS_ReportErrorASCII(cx, "No more than 10 extra keys can be registered.");
-      mozilla::Telemetry::AccumulateCategorical(
-          LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::ExtraKeys);
+      mozilla::glean::telemetry::event_registration_error
+          .EnumGet(mozilla::glean::telemetry::EventRegistrationErrorLabel::
+                       eExtrakeys)
+          .Add();
       return NS_ERROR_INVALID_ARG;
     }
     for (auto& key : extra_keys) {
@@ -1047,8 +1076,10 @@ nsresult TelemetryEvent::RegisterBuiltinEvents(const nsACString& aCategory,
                                    true)) {
         JS_ReportErrorASCII(
             cx, "Extra key names should match the identifier pattern.");
-        mozilla::Telemetry::AccumulateCategorical(
-            LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::ExtraKeys);
+        mozilla::glean::telemetry::event_registration_error
+            .EnumGet(mozilla::glean::telemetry::EventRegistrationErrorLabel::
+                         eExtrakeys)
+            .Add();
         return NS_ERROR_INVALID_ARG;
       }
     }

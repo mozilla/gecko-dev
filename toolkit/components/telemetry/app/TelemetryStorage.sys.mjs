@@ -10,7 +10,6 @@ import { TelemetryUtils } from "resource://gre/modules/TelemetryUtils.sys.mjs";
 const LOGGER_NAME = "Toolkit.Telemetry";
 const LOGGER_PREFIX = "TelemetryStorage::";
 
-const Telemetry = Services.telemetry;
 const Utils = TelemetryUtils;
 
 // Compute the path of the pings archive on the first use.
@@ -737,12 +736,10 @@ var TelemetryStorageImpl = {
     let checkSize = async function (path) {
       const fileSize = await IOUtils.stat(path).then(info => info.size);
       if (fileSize > PING_FILE_MAXIMUM_SIZE_BYTES) {
-        Telemetry.getHistogramById(
-          "TELEMETRY_DISCARDED_ARCHIVED_PINGS_SIZE_MB"
-        ).add(Math.floor(fileSize / 1024 / 1024));
-        Telemetry.getHistogramById(
-          "TELEMETRY_PING_SIZE_EXCEEDED_ARCHIVED"
-        ).add();
+        Glean.telemetry.discardedArchivedPingsSize.accumulate(
+          Math.floor(fileSize / 1024 / 1024)
+        );
+        Glean.telemetry.pingSizeExceededArchived.add(1);
         await IOUtils.remove(path, { ignoreAbsent: true });
         throw new Error(
           `loadArchivedPing - exceeded the maximum ping size: ${fileSize}`
@@ -1049,12 +1046,10 @@ var TelemetryStorageImpl = {
             "_enforceArchiveQuota - failed to remove archived ping" + ping.id
           )
         );
-        Telemetry.getHistogramById(
-          "TELEMETRY_DISCARDED_ARCHIVED_PINGS_SIZE_MB"
-        ).add(Math.floor(fileSize / 1024 / 1024));
-        Telemetry.getHistogramById(
-          "TELEMETRY_PING_SIZE_EXCEEDED_ARCHIVED"
-        ).add();
+        Glean.telemetry.discardedArchivedPingsSize.accumulate(
+          Math.floor(fileSize / 1024 / 1024)
+        );
+        Glean.telemetry.pingSizeExceededArchived.add(1);
         continue;
       }
 
@@ -1496,10 +1491,10 @@ var TelemetryStorageImpl = {
     // Purge pings which are too big.
     if (fileSize > PING_FILE_MAXIMUM_SIZE_BYTES) {
       await this.removePendingPing(id);
-      Telemetry.getHistogramById(
-        "TELEMETRY_DISCARDED_PENDING_PINGS_SIZE_MB"
-      ).add(Math.floor(fileSize / 1024 / 1024));
-      Telemetry.getHistogramById("TELEMETRY_PING_SIZE_EXCEEDED_PENDING").add();
+      Glean.telemetry.discardedPendingPingsSize.accumulate(
+        Math.floor(fileSize / 1024 / 1024)
+      );
+      Glean.telemetry.pingSizeExceededPending.add(1);
 
       // Currently we don't have the ping type available without loading the ping from disk.
       // Bug 1384903 will fix that.
@@ -1821,12 +1816,10 @@ var TelemetryStorageImpl = {
             ex
           );
         } finally {
-          Telemetry.getHistogramById(
-            "TELEMETRY_DISCARDED_PENDING_PINGS_SIZE_MB"
-          ).add(Math.floor(info.size / 1024 / 1024));
-          Telemetry.getHistogramById(
-            "TELEMETRY_PING_SIZE_EXCEEDED_PENDING"
-          ).add();
+          Glean.telemetry.discardedPendingPingsSize.accumulate(
+            Math.floor(info.size / 1024 / 1024)
+          );
+          Glean.telemetry.pingSizeExceededPending.add(1);
 
           // Currently we don't have the ping type available without loading the ping from disk.
           // Bug 1384903 will fix that.
