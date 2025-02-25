@@ -5,7 +5,6 @@
 "use strict";
 
 const DevToolsUtils = require("resource://devtools/shared/DevToolsUtils.js");
-const JSZip = require("resource://devtools/client/shared/vendor/jszip.js");
 const clipboardHelper = require("resource://devtools/shared/platform/clipboard.js");
 const {
   HarUtils,
@@ -13,6 +12,12 @@ const {
 const {
   HarBuilder,
 } = require("resource://devtools/client/netmonitor/src/har/har-builder.js");
+
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
+});
 
 var uid = 1;
 
@@ -96,19 +101,48 @@ const HarExporter = {
         : ""
     );
 
-    if (compress) {
-      data = await JSZip()
-        .file(fileName, data)
-        .generateAsync({
-          compression: "DEFLATE",
-          platform: Services.appinfo.OS === "WINNT" ? "DOS" : "UNIX",
-          type: "uint8array",
-        });
-    } else {
-      data = new TextEncoder().encode(data);
-    }
+    data = new TextEncoder().encode(data);
 
-    DevToolsUtils.saveAs(window, data, fileName);
+    if (compress) {
+      const file = await DevToolsUtils.showSaveFileDialog(window, fileName, [
+        "*.zip",
+      ]);
+      this._zip(file, fileName.replace(/\.zip$/, ""), data.buffer);
+    } else {
+      DevToolsUtils.saveAs(window, data, fileName);
+    }
+  },
+
+  /**
+   * Helper to save the har file into a .zip file
+   *
+   * @param {nsIFIle} file The final zip file
+   * @param {String} fileName Name of the har file within the zip file
+   * @param {ArrayBuffer} buffer Content of the har file
+   */
+  _zip(file, fileName, buffer) {
+    const ZipWriter = Components.Constructor(
+      "@mozilla.org/zipwriter;1",
+      "nsIZipWriter"
+    );
+    const zipW = new ZipWriter();
+
+    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, lazy.FileUtils.PERMS_FILE);
+
+    // Open the file in write mode only and reset the size of any existing file
+    const MODE_WRONLY = 0x02;
+    const MODE_TRUNCATE = 0x20;
+    zipW.open(file, MODE_WRONLY | MODE_TRUNCATE);
+
+    const stream = Cc[
+      "@mozilla.org/io/arraybuffer-input-stream;1"
+    ].createInstance(Ci.nsIArrayBufferInputStream);
+    stream.setData(buffer, 0, buffer.byteLength);
+
+    // Needs to be in microseconds for some reason.
+    const time = Date.now() * 1000;
+    zipW.addEntryStream(fileName, time, 0, stream, false);
+    zipW.close();
   },
 
   /**
