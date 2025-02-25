@@ -17,9 +17,6 @@ loader.lazyRequireGetter(
   "resource://devtools/client/accessibility/picker.js",
   true
 );
-const {
-  A11Y_SERVICE_DURATION,
-} = require("resource://devtools/client/accessibility/constants.js");
 
 // The panel's window global is an EventEmitter firing the following events:
 const EVENTS = {
@@ -236,9 +233,12 @@ AccessibilityPanel.prototype = {
 
   updateA11YServiceDurationTimer() {
     if (this.accessibilityProxy.enabled) {
-      this._telemetry.start(A11Y_SERVICE_DURATION, this);
-    } else {
-      this._telemetry.finish(A11Y_SERVICE_DURATION, this, true);
+      this._timerID = Glean.devtools.accessibilityServiceTimeActive.start();
+    } else if (this._timerID) {
+      Glean.devtools.accessibilityServiceTimeActive.stopAndAccumulate(
+        this._timerID
+      );
+      this._timerID = null;
     }
   },
 

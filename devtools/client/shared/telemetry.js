@@ -10,7 +10,6 @@
 
 "use strict";
 
-const TelemetryStopwatch = require("TelemetryStopwatch");
 const {
   getNthPathExcluding,
 } = require("resource://devtools/shared/platform/stack.js");
@@ -81,110 +80,6 @@ class Telemetry {
    */
   msSinceProcessStart() {
     return Services.telemetry.msSinceProcessStart();
-  }
-
-  /**
-   * Starts a timer associated with a telemetry histogram. The timer can be
-   * directly associated with a histogram, or with a pair of a histogram and
-   * an object.
-   *
-   * @param {String} histogramId
-   *        A string which must be a valid histogram name.
-   * @param {Object} obj
-   *        The telemetry event or ping is associated with this object, meaning
-   *        that multiple events or pings for the same histogram may be run
-   *        concurrently, as long as they are associated with different objects.
-   * @param {Object}  [options.inSeconds=false]
-   *        Record elapsed time for this histogram in seconds instead of
-   *        milliseconds. Defaults to false.
-   * @returns {Boolean}
-   *          True if the timer was successfully started, false otherwise. If a
-   *          timer already exists, it can't be started again.
-   */
-  start(histogramId, obj, { inSeconds } = {}) {
-    if (TelemetryStopwatch.running(histogramId, obj)) {
-      return false;
-    }
-
-    return TelemetryStopwatch.start(histogramId, obj, { inSeconds });
-  }
-
-  /**
-   * Starts a timer associated with a keyed telemetry histogram. The timer can
-   * be directly associated with a histogram and its key. Similarly to
-   * TelemetryStopwatch.start the histogram and its key can be associated
-   * with an object. Each key may have multiple associated objects and each
-   * object can be associated with multiple keys.
-   *
-   * @param {String} histogramId
-   *        A string which must be a valid histogram name.
-   * @param {String} key
-   *        A string which must be a valid histgram key.
-   * @param {Object} obj
-   *        The telemetry event or ping is associated with this object, meaning
-   *        that multiple events or pings for the same histogram may be run
-   *        concurrently, as long as they are associated with different objects.
-   * @param {Object}  [options.inSeconds=false]
-   *        Record elapsed time for this histogram in seconds instead of
-   *        milliseconds. Defaults to false.
-   *
-   * @returns {Boolean}
-   *          True if the timer was successfully started, false otherwise. If a
-   *          timer already exists, it can't be started again, and the existing
-   *          one will be cleared in order to avoid measurements errors.
-   */
-  startKeyed(histogramId, key, obj, { inSeconds } = {}) {
-    return TelemetryStopwatch.startKeyed(histogramId, key, obj, { inSeconds });
-  }
-
-  /**
-   * Stops the timer associated with the given histogram (and object),
-   * calculates the time delta between start and finish, and adds the value
-   * to the histogram.
-   *
-   * @param {String} histogramId
-   *        A string which must be a valid histogram name.
-   * @param {Object} obj
-   *        The telemetry event or ping is associated with this object, meaning
-   *        that multiple events or pings for the same histogram may be run
-   *        concurrently, as long as they are associated with different objects.
-   * @param {Boolean} canceledOkay
-   *        Optional parameter which will suppress any warnings that normally
-   *        fire when a stopwatch is finished after being canceled.
-   *        Defaults to false.
-   *
-   * @returns {Boolean}
-   *          True if the timer was succesfully stopped and the data was added
-   *          to the histogram, False otherwise.
-   */
-  finish(histogramId, obj, canceledOkay) {
-    return TelemetryStopwatch.finish(histogramId, obj, canceledOkay);
-  }
-
-  /**
-   * Stops the timer associated with the given keyed histogram (and object),
-   * calculates the time delta between start and finish, and adds the value
-   * to the keyed histogram.
-   *
-   * @param {String} histogramId
-   *        A string which must be a valid histogram name.
-   * @param {String} key
-   *        A string which must be a valid histogram key.
-   * @param {Object} obj
-   *        The telemetry event or ping is associated with this object, meaning
-   *        that multiple events or pings for the same histogram may be run
-   *        concurrently, as long as they are associated with different objects.
-   * @param {Boolean} canceledOkay
-   *        Optional parameter which will suppress any warnings that normally
-   *        fire when a stopwatch is finished after being canceled.
-   *        Defaults to false.
-   *
-   * @returns {Boolean}
-   *          True if the timer was succesfully stopped and the data was added
-   *          to the histogram, False otherwise.
-   */
-  finishKeyed(histogramId, key, obj, canceledOkay) {
-    return TelemetryStopwatch.finishKeyed(histogramId, key, obj, canceledOkay);
   }
 
   /**
@@ -522,11 +417,13 @@ class Telemetry {
         this.msSystemNow()
       );
     }
-    if (charts.timerHist) {
-      this.start(charts.timerHist, obj, { inSeconds: true });
-    }
-    if (charts.countHist) {
-      this.getHistogramById(charts.countHist).add(true);
+    if (charts.gleanTimingDist) {
+      if (!obj._timerIDs) {
+        obj._timerIDs = new Map();
+      }
+      if (!obj._timerIDs.has(id)) {
+        obj._timerIDs.set(id, charts.gleanTimingDist.start());
+      }
     }
     if (charts.gleanCounter) {
       charts.gleanCounter.add(1);
@@ -565,8 +462,12 @@ class Telemetry {
       });
     }
 
-    if (charts.timerHist) {
-      this.finish(charts.timerHist, obj, false);
+    if (charts.gleanTimingDist && obj._timerIDs) {
+      const timerID = obj._timerIDs.get(id);
+      if (timerID) {
+        charts.gleanTimingDist.stopAndAccumulate(timerID);
+        obj._timerIDs.delete(id);
+      }
     }
   }
 }
@@ -585,72 +486,69 @@ function getChartsFromToolId(id) {
   }
 
   let useTimedEvent = null;
-  let timerHist = null;
-  let countHist = null;
   let gleanCounter = null;
+  let gleanTimingDist = null;
 
-  id = id.toUpperCase();
-
-  if (id === "PERFORMANCE") {
-    id = "JSPROFILER";
+  if (id === "performance") {
+    id = "jsprofiler";
   }
 
   switch (id) {
-    case "ABOUTDEBUGGING":
-    case "BROWSERCONSOLE":
-    case "DOM":
-    case "INSPECTOR":
-    case "JSBROWSERDEBUGGER":
-    case "JSDEBUGGER":
-    case "JSPROFILER":
-    case "MEMORY":
-    case "NETMONITOR":
-    case "OPTIONS":
-    case "RESPONSIVE":
-    case "STORAGE":
-    case "STYLEEDITOR":
-    case "TOOLBOX":
-    case "WEBCONSOLE":
-      timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
-      countHist = `DEVTOOLS_${id}_OPENED_COUNT`;
+    case "aboutdebugging":
+    case "browserconsole":
+    case "dom":
+    case "inspector":
+    case "jsbrowserdebugger":
+    case "jsdebugger":
+    case "jsprofiler":
+    case "memory":
+    case "netmonitor":
+    case "options":
+    case "responsive":
+    case "storage":
+    case "styleeditor":
+    case "toolbox":
+    case "webconsole":
+      gleanTimingDist = Glean.devtools[`${id}TimeActive`];
+      gleanCounter = Glean.devtools[`${id}OpenedCount`];
       break;
-    case "ACCESSIBILITY":
-      timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
+    case "accessibility":
+      gleanTimingDist = Glean.devtools.accessibilityTimeActive;
       gleanCounter = Glean.devtoolsAccessibility.openedCount;
       break;
-    case "ACCESSIBILITY_PICKER":
-      timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
+    case "accessibility_picker":
+      gleanTimingDist = Glean.devtools.accessibilityPickerTimeActive;
       gleanCounter = Glean.devtoolsAccessibility.pickerUsedCount;
       break;
-    case "CHANGESVIEW":
-      useTimedEvent = true;
-      timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
+    case "changesview":
+      gleanTimingDist = Glean.devtools.changesviewTimeActive;
       gleanCounter = Glean.devtoolsChangesview.openedCount;
       break;
-    case "ANIMATIONINSPECTOR":
-    case "COMPATIBILITYVIEW":
-    case "COMPUTEDVIEW":
-    case "FONTINSPECTOR":
-    case "LAYOUTVIEW":
-    case "RULEVIEW":
+    case "animationinspector":
+    case "compatibilityview":
+    case "computedview":
+    case "fontinspector":
+    case "layoutview":
+    case "ruleview":
       useTimedEvent = true;
-      timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
-      countHist = `DEVTOOLS_${id}_OPENED_COUNT`;
+      gleanTimingDist = Glean.devtools[`${id}TimeActive`];
+      gleanCounter = Glean.devtools[`${id}OpenedCount`];
       break;
-    case "FLEXBOX_HIGHLIGHTER":
-    case "GRID_HIGHLIGHTER":
-      timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
+    case "flexbox_highlighter":
+      gleanTimingDist = Glean.devtools.flexboxHighlighterTimeActive;
+      break;
+    case "grid_highlighter":
+      gleanTimingDist = Glean.devtools.gridHighlighterTimeActive;
       break;
     default:
-      timerHist = `DEVTOOLS_CUSTOM_TIME_ACTIVE_SECONDS`;
-      countHist = `DEVTOOLS_CUSTOM_OPENED_COUNT`;
+      gleanTimingDist = Glean.devtools.customTimeActive;
+      gleanCounter = Glean.devtools.customOpenedCount;
   }
 
   return {
     useTimedEvent,
-    timerHist,
-    countHist,
     gleanCounter,
+    gleanTimingDist,
   };
 }
 

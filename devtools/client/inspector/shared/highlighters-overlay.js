@@ -90,9 +90,9 @@ const HIGHLIGHTER_EVENTS = {
 };
 
 // Tool IDs mapped by highlighter type. Used to log telemetry for opening & closing tools.
-const TELEMETRY_TOOL_IDS = {
-  [TYPES.FLEXBOX]: "FLEXBOX_HIGHLIGHTER",
-  [TYPES.GRID]: "GRID_HIGHLIGHTER",
+const GLEAN_TOOL_IDS = {
+  [TYPES.FLEXBOX]: "flexbox_highlighter",
+  [TYPES.GRID]: "grid_highlighter",
 };
 
 // Glean counter names mapped by highlighter type. Used to log telemetry about highlighter triggers.
@@ -275,7 +275,7 @@ class HighlightersOverlay {
       // Log telemetry for showing the flexbox and grid highlighters.
       case TYPES.FLEXBOX:
       case TYPES.GRID:
-        const toolID = TELEMETRY_TOOL_IDS[type];
+        const toolID = GLEAN_TOOL_IDS[type];
         if (toolID) {
           this.telemetry.toolOpened(toolID, this);
         }
@@ -383,7 +383,7 @@ class HighlightersOverlay {
       // Log telemetry for hiding the flexbox and grid highlighters.
       case TYPES.FLEXBOX:
       case TYPES.GRID:
-        const toolID = TELEMETRY_TOOL_IDS[type];
+        const toolID = GLEAN_TOOL_IDS[type];
         const conditions = {
           [TYPES.FLEXBOX]: () => {
             // always stop the timer when the flexbox highlighter is about to be hidden.

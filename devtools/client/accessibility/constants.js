@@ -112,10 +112,6 @@ exports.ACCESSIBLE_EVENTS = [
   "index-in-parent-change",
 ];
 
-// Telemetry name constants.
-exports.A11Y_SERVICE_DURATION =
-  "DEVTOOLS_ACCESSIBILITY_SERVICE_TIME_ACTIVE_SECONDS";
-
 // URL constants
 exports.A11Y_LEARN_MORE_LINK =
   "https://firefox-source-docs.mozilla.org/devtools-user/accessibility_inspector/";

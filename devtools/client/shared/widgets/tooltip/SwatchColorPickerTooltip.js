@@ -34,8 +34,6 @@ loader.lazyRequireGetter(
   "resource://devtools/shared/picker-constants.js"
 );
 
-const TELEMETRY_PICKER_EYEDROPPER_OPEN_COUNT =
-  "DEVTOOLS_PICKER_EYEDROPPER_OPENED_COUNT";
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 /**
@@ -269,11 +267,9 @@ class SwatchColorPickerTooltip extends SwatchBasedEditorTooltip {
   }
 
   _openEyeDropper() {
-    const { inspectorFront, toolbox, telemetry } = this.inspector;
+    const { inspectorFront, toolbox } = this.inspector;
 
-    telemetry
-      .getHistogramById(TELEMETRY_PICKER_EYEDROPPER_OPEN_COUNT)
-      .add(true);
+    Glean.devtools.pickerEyedropperOpenedCount.add(1);
 
     // cancelling picker(if it is already selected) on opening eye-dropper
     toolbox.nodePicker.stop({ canceled: true });

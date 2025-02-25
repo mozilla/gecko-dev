@@ -4,7 +4,6 @@
 
 "use strict";
 
-const Telemetry = require("resource://devtools/client/shared/telemetry.js");
 const {
   FrontClassWithSpec,
   registerFront,
@@ -25,13 +24,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TYPES: "resource://devtools/shared/highlighters.mjs",
 });
 
-const TELEMETRY_EYEDROPPER_OPENED = "DEVTOOLS_EYEDROPPER_OPENED_COUNT";
-const TELEMETRY_EYEDROPPER_OPENED_MENU =
-  "DEVTOOLS_MENU_EYEDROPPER_OPENED_COUNT";
 const SHOW_ALL_ANONYMOUS_CONTENT_PREF =
   "devtools.inspector.showAllAnonymousContent";
-
-const telemetry = new Telemetry();
 
 /**
  * Client side of the inspector actor, which is used to create
@@ -240,9 +234,9 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
     });
 
     if (options?.fromMenu) {
-      telemetry.getHistogramById(TELEMETRY_EYEDROPPER_OPENED_MENU).add(true);
+      Glean.devtools.menuEyedropperOpenedCount.add(1);
     } else {
-      telemetry.getHistogramById(TELEMETRY_EYEDROPPER_OPENED).add(true);
+      Glean.devtools.eyedropperOpenedCount.add(1);
     }
   }
 
