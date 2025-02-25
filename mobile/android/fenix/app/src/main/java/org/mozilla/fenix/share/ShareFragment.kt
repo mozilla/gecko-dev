@@ -89,6 +89,14 @@ class ShareFragment : AppCompatDialogFragment() {
                 sendTabUseCases = SendTabUseCases(accountManager),
                 saveToPdfUseCase = requireComponents.useCases.sessionUseCases.saveToPdf,
                 printUseCase = requireComponents.useCases.sessionUseCases.printContent,
+                sentFromFirefoxFeature = with(FxNimbus.features.sentFromFirefox.value()) {
+                    DefaultSentFromFirefoxFeature(
+                        isFeatureEnabled = enabled,
+                        templateMessage = templateMessage,
+                        appName = getString(R.string.firefox),
+                        downloadLink = downloadLink,
+                    )
+                },
                 recentAppsStorage = RecentAppsStorage(requireContext()),
                 viewLifecycleScope = viewLifecycleOwner.lifecycleScope,
             ) { result ->
