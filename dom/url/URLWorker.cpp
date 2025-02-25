@@ -108,13 +108,19 @@ class IsValidURLRunnable : public WorkerMainThreadRunnable {
 };
 
 /* static */
-void URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
+void URLWorker::CreateObjectURL(const GlobalObject& aGlobal,
+                                const BlobOrMediaSource& aObj,
                                 nsACString& aResult,
                                 mozilla::ErrorResult& aRv) {
+  if (!aObj.IsBlob()) {
+    MOZ_CRASH("MediaSource is not supported in workers");
+    return;
+  }
+
   JSContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
-  RefPtr<BlobImpl> blobImpl = aBlob.Impl();
+  RefPtr<BlobImpl> blobImpl = aObj.GetAsBlob().Impl();
   MOZ_ASSERT(blobImpl);
 
   RefPtr<CreateURLRunnable> runnable =
