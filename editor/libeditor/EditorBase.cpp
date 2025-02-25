@@ -1615,6 +1615,13 @@ EditorBase::DispatchClipboardEventAndUpdateClipboard(
     DataTransfer* aDataTransfer /* = nullptr */) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
+  // Clipboard events are fired before `beforeinput` event.  Therefore, we
+  // need to forget mLastCollapsibleWhiteSpaceAppendedTextNode here to avoid
+  // infinite loop caused by the hack.
+  if (IsHTMLEditor()) {
+    AsHTMLEditor()->mLastCollapsibleWhiteSpaceAppendedTextNode = nullptr;
+  }
+
   const bool isPasting =
       aEventMessage == ePaste || aEventMessage == ePasteNoFormatting;
   if (isPasting) {
