@@ -330,10 +330,10 @@ try_builder("ios_arm64_rel", "ios")
 try_builder("linux", "linux")
 try_builder("linux_asan", "linux")
 try_builder("linux_gcc", "linux", experiment_percentage = 100)
-try_builder("linux_msan", "linux")
+# TODO(libyuv:388428508): Make linux_msan not experimental.
+try_builder("linux_msan", "linux", experiment_percentage = 100)
 try_builder("linux_rel", "linux")
-# TODO(b/384912633): make this not experimental.
-try_builder("linux_tsan2", "linux", experiment_percentage = 100)
+try_builder("linux_tsan2", "linux")
 try_builder("linux_ubsan", "linux")
 try_builder("linux_ubsan_vptr", "linux")
 try_builder("mac", "mac")

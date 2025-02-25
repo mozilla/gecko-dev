@@ -234,6 +234,70 @@ void Convert8To16Plane(const uint8_t* src_y,
   }
 }
 
+// Convert a plane of 8 bit data to 8 bit
+LIBYUV_API
+void Convert8To8Plane(const uint8_t* src_y,
+                      int src_stride_y,
+                      uint8_t* dst_y,
+                      int dst_stride_y,
+                      int scale,  // 220 for Y, 225 to UV
+                      int bias,   // 16
+                      int width,
+                      int height) {
+  int y;
+  void (*Convert8To8Row)(const uint8_t* src_y, uint8_t* dst_y, int scale,
+                         int bias, int width) = Convert8To8Row_C;
+
+  if (width <= 0 || height == 0) {
+    return;
+  }
+  // Negative height means invert the image.
+  if (height < 0) {
+    height = -height;
+    dst_y = dst_y + (height - 1) * dst_stride_y;
+    dst_stride_y = -dst_stride_y;
+  }
+  // Coalesce rows.
+  if (src_stride_y == width && dst_stride_y == width) {
+    width *= height;
+    height = 1;
+    src_stride_y = dst_stride_y = 0;
+  }
+#if defined(HAS_CONVERT8TO8ROW_NEON)
+  if (TestCpuFlag(kCpuHasNEON)) {
+    Convert8To8Row = Convert8To8Row_Any_NEON;
+    if (IS_ALIGNED(width, 32)) {
+      Convert8To8Row = Convert8To8Row_NEON;
+    }
+  }
+#endif
+#if defined(HAS_CONVERT8TO8ROW_SVE2)
+  if (TestCpuFlag(kCpuHasSVE2)) {
+    Convert8To8Row = Convert8To8Row_SVE2;
+  }
+#endif
+#if defined(HAS_CONVERT8TO8ROW_SME)
+  if (TestCpuFlag(kCpuHasSME)) {
+    Convert8To8Row = Convert8To8Row_SME;
+  }
+#endif
+#if defined(HAS_CONVERT8TO8ROW_AVX2)
+  if (TestCpuFlag(kCpuHasAVX2)) {
+    Convert8To8Row = Convert8To8Row_Any_AVX2;
+    if (IS_ALIGNED(width, 32)) {
+      Convert8To8Row = Convert8To8Row_AVX2;
+    }
+  }
+#endif
+
+  // Convert plane
+  for (y = 0; y < height; ++y) {
+    Convert8To8Row(src_y, dst_y, scale, bias, width);
+    src_y += src_stride_y;
+    dst_y += dst_stride_y;
+  }
+}
+
 // Copy I422.
 LIBYUV_API
 int I422Copy(const uint8_t* src_y,

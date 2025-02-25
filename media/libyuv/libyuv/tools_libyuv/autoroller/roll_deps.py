@@ -48,15 +48,12 @@ DONT_AUTOROLL_THESE = [
 # but we pull it through a subtree mirror, so therefore it isn't listed in
 # Chromium's deps but it is in ours.
 LIBYUV_ONLY_DEPS = [
-    'src/base',
     'src/build',
     'src/buildtools',
     'src/ios',
     'src/testing',
     'src/third_party',
     'src/third_party/android_support_test_runner',
-    'src/third_party/bazel',
-    'src/third_party/bouncycastle',
     'src/third_party/errorprone/lib',
     'src/third_party/findbugs',
     'src/third_party/gson',

@@ -395,6 +395,7 @@ if (libyuv_include_tests) {
 
     if (is_linux || is_chromeos) {
       cflags = [ "-fexceptions" ]
+
       # For enabling ASLR.
       ldflags = [ "-pie" ]
     }
@@ -405,9 +406,6 @@ if (libyuv_include_tests) {
     }
     if (!is_ios && !libyuv_disable_jpeg) {
       defines += [ "HAVE_JPEG" ]
-    }
-    if (is_android) {
-      deps += [ "//testing/android/native_test:native_test_native_code" ]
     }
 
     # TODO(YangZhang): These lines can be removed when high accuracy

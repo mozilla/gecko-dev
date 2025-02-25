@@ -2336,9 +2336,9 @@ int I420Scale(const uint8_t* src_y,
   int dst_halfheight = SUBSAMPLE(dst_height, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2381,9 +2381,9 @@ int I420Scale_16(const uint16_t* src_y,
   int dst_halfheight = SUBSAMPLE(dst_height, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2426,9 +2426,9 @@ int I420Scale_12(const uint16_t* src_y,
   int dst_halfheight = SUBSAMPLE(dst_height, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2470,9 +2470,9 @@ int I444Scale(const uint8_t* src_y,
               enum FilterMode filtering) {
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2511,9 +2511,9 @@ int I444Scale_16(const uint16_t* src_y,
                  enum FilterMode filtering) {
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2552,9 +2552,9 @@ int I444Scale_12(const uint16_t* src_y,
                  enum FilterMode filtering) {
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2598,9 +2598,9 @@ int I422Scale(const uint8_t* src_y,
   int dst_halfwidth = SUBSAMPLE(dst_width, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2641,9 +2641,9 @@ int I422Scale_16(const uint16_t* src_y,
   int dst_halfwidth = SUBSAMPLE(dst_width, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 
@@ -2684,9 +2684,9 @@ int I422Scale_12(const uint16_t* src_y,
   int dst_halfwidth = SUBSAMPLE(dst_width, 1, 1);
   int r;
 
-  if (!src_y || !src_u || !src_v || src_width <= 0 ||
-      src_height == 0 || src_width > 32768 || src_height > 32768 || !dst_y ||
-      !dst_u || !dst_v || dst_width <= 0 || dst_height <= 0) {
+  if (!src_y || !src_u || !src_v || src_width <= 0 || src_height == 0 ||
+      src_width > 32768 || src_height > 32768 || !dst_y || !dst_u || !dst_v ||
+      dst_width <= 0 || dst_height <= 0) {
     return -1;
   }
 

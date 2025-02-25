@@ -2405,6 +2405,159 @@ int ARGBToAR30(const uint8_t* src_argb,
   return 0;
 }
 
+// ARGB little endian (bgra in memory) to J444
+LIBYUV_API
+int ARGBToJ444(const uint8_t* src_argb,
+               int src_stride_argb,
+               uint8_t* dst_y,
+               int dst_stride_y,
+               uint8_t* dst_u,
+               int dst_stride_u,
+               uint8_t* dst_v,
+               int dst_stride_v,
+               int width,
+               int height) {
+  int y;
+  void (*ARGBToYJRow)(const uint8_t* src_argb, uint8_t* dst_y, int width) =
+      ARGBToYJRow_C;
+  void (*ARGBToUVJ444Row)(const uint8_t* src_argb, uint8_t* dst_u,
+                          uint8_t* dst_v, int width) = ARGBToUVJ444Row_C;
+  if (!src_argb || !dst_y || !dst_u || !dst_v || width <= 0 || height == 0) {
+    return -1;
+  }
+  if (height < 0) {
+    height = -height;
+    src_argb = src_argb + (height - 1) * src_stride_argb;
+    src_stride_argb = -src_stride_argb;
+  }
+  // Coalesce rows.
+  if (src_stride_argb == width * 4 && dst_stride_y == width &&
+      dst_stride_u == width && dst_stride_v == width) {
+    width *= height;
+    height = 1;
+    src_stride_argb = dst_stride_y = dst_stride_u = dst_stride_v = 0;
+  }
+#if defined(HAS_ARGBTOUVJ444ROW_SSSE3)
+  if (TestCpuFlag(kCpuHasSSSE3)) {
+    ARGBToUVJ444Row = ARGBToUVJ444Row_Any_SSSE3;
+    if (IS_ALIGNED(width, 16)) {
+      ARGBToUVJ444Row = ARGBToUVJ444Row_SSSE3;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOUVJ444ROW_NEON)
+  if (TestCpuFlag(kCpuHasNEON)) {
+    ARGBToUVJ444Row = ARGBToUVJ444Row_Any_NEON;
+    if (IS_ALIGNED(width, 8)) {
+      ARGBToUVJ444Row = ARGBToUVJ444Row_NEON;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOUVJ444ROW_NEON_I8MM)
+  if (TestCpuFlag(kCpuHasNeonI8MM)) {
+    ARGBToUVJ444Row = ARGBToUVJ444Row_Any_NEON_I8MM;
+    if (IS_ALIGNED(width, 8)) {
+      ARGBToUVJ444Row = ARGBToUVJ444Row_NEON_I8MM;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOUVJ444ROW_MSA)
+  if (TestCpuFlag(kCpuHasMSA)) {
+    ARGBToUVJ444Row = ARGBToUVJ444Row_Any_MSA;
+    if (IS_ALIGNED(width, 16)) {
+      ARGBToUVJ444Row = ARGBToUVJ444Row_MSA;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOUVJ444ROW_LSX)
+  if (TestCpuFlag(kCpuHasLSX)) {
+    ARGBToUVJ444Row = ARGBToUVJ444Row_Any_LSX;
+    if (IS_ALIGNED(width, 16)) {
+      ARGBToUVJ444Row = ARGBToUVJ444Row_LSX;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOUVJ444ROW_LASX)
+  if (TestCpuFlag(kCpuHasLASX)) {
+    ARGBToUVJ444Row = ARGBToUVJ444Row_Any_LASX;
+    if (IS_ALIGNED(width, 32)) {
+      ARGBToUVJ444Row = ARGBToUVJ444Row_LASX;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOYJROW_SSSE3)
+  if (TestCpuFlag(kCpuHasSSSE3)) {
+    ARGBToYJRow = ARGBToYJRow_Any_SSSE3;
+    if (IS_ALIGNED(width, 16)) {
+      ARGBToYJRow = ARGBToYJRow_SSSE3;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOYJROW_AVX2)
+  if (TestCpuFlag(kCpuHasAVX2)) {
+    ARGBToYJRow = ARGBToYJRow_Any_AVX2;
+    if (IS_ALIGNED(width, 32)) {
+      ARGBToYJRow = ARGBToYJRow_AVX2;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOYJROW_NEON)
+  if (TestCpuFlag(kCpuHasNEON)) {
+    ARGBToYJRow = ARGBToYJRow_Any_NEON;
+    if (IS_ALIGNED(width, 16)) {
+      ARGBToYJRow = ARGBToYJRow_NEON;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOYJROW_NEON_DOTPROD)
+  if (TestCpuFlag(kCpuHasNeonDotProd)) {
+    ARGBToYJRow = ARGBToYJRow_Any_NEON_DotProd;
+    if (IS_ALIGNED(width, 16)) {
+      ARGBToYJRow = ARGBToYJRow_NEON_DotProd;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOYJROW_MSA)
+  if (TestCpuFlag(kCpuHasMSA)) {
+    ARGBToYJRow = ARGBToYJRow_Any_MSA;
+    if (IS_ALIGNED(width, 16)) {
+      ARGBToYJRow = ARGBToYJRow_MSA;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOYJROW_LSX)
+  if (TestCpuFlag(kCpuHasLSX)) {
+    ARGBToYJRow = ARGBToYJRow_Any_LSX;
+    if (IS_ALIGNED(width, 16)) {
+      ARGBToYJRow = ARGBToYJRow_LSX;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOYJROW_LASX)
+  if (TestCpuFlag(kCpuHasLASX)) {
+    ARGBToYJRow = ARGBToYJRow_Any_LASX;
+    if (IS_ALIGNED(width, 32)) {
+      ARGBToYJRow = ARGBToYJRow_LASX;
+    }
+  }
+#endif
+#if defined(HAS_ARGBTOYJROW_RVV)
+  if (TestCpuFlag(kCpuHasRVV)) {
+    ARGBToYJRow = ARGBToYJRow_RVV;
+  }
+#endif
+
+  for (y = 0; y < height; ++y) {
+    ARGBToUVJ444Row(src_argb, dst_u, dst_v, width);
+    ARGBToYJRow(src_argb, dst_y, width);
+    src_argb += src_stride_argb;
+    dst_y += dst_stride_y;
+    dst_u += dst_stride_u;
+    dst_v += dst_stride_v;
+  }
+  return 0;
+}
+
 // Convert ARGB to J420. (JPeg full range I420).
 LIBYUV_API
 int ARGBToJ420(const uint8_t* src_argb,

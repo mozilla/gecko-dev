@@ -1075,6 +1075,14 @@ __arm_locally_streaming void InterpolateRow_16To8_SME(uint8_t* dst_ptr,
       : "cc", "memory", "z0", "z1", "z2", "z3", "z4", "z31", "p0");
 }
 
+__arm_locally_streaming void Convert8To8Row_SME(const uint8_t* src_y,
+                                                uint8_t* dst_y,
+                                                int scale,
+                                                int bias,
+                                                int width) {
+  Convert8To8Row_SVE_SC(src_y, dst_y, scale, bias, width);
+}
+
 #endif  // !defined(LIBYUV_DISABLE_SME) && defined(CLANG_HAS_SME) &&
         // defined(__aarch64__)
 

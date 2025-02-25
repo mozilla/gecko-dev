@@ -799,14 +799,13 @@ static __inline uint8_t RGBToYJ(uint8_t r, uint8_t g, uint8_t b) {
 }
 #endif
 
-#if defined(LIBYUV_ARGBTOUV_PAVGB)
 static __inline uint8_t RGBToUJ(uint8_t r, uint8_t g, uint8_t b) {
   return (127 * b - 84 * g - 43 * r + 0x8080) >> 8;
 }
 static __inline uint8_t RGBToVJ(uint8_t r, uint8_t g, uint8_t b) {
   return (127 * r - 107 * g - 20 * b + 0x8080) >> 8;
 }
-#else
+#if !defined(LIBYUV_ARGBTOUV_PAVGB)
 static __inline uint8_t RGB2xToUJ(uint16_t r, uint16_t g, uint16_t b) {
   return ((127 / 2) * b - (84 / 2) * g - (43 / 2) * r + 0x8080) >> 8;
 }
@@ -1224,6 +1223,23 @@ void ARGBToUV444Row_C(const uint8_t* src_argb,
     uint8_t ar = src_argb[2];
     dst_u[0] = RGBToU(ar, ag, ab);
     dst_v[0] = RGBToV(ar, ag, ab);
+    src_argb += 4;
+    dst_u += 1;
+    dst_v += 1;
+  }
+}
+
+void ARGBToUVJ444Row_C(const uint8_t* src_argb,
+                       uint8_t* dst_u,
+                       uint8_t* dst_v,
+                       int width) {
+  int x;
+  for (x = 0; x < width; ++x) {
+    uint8_t ab = src_argb[0];
+    uint8_t ag = src_argb[1];
+    uint8_t ar = src_argb[2];
+    dst_u[0] = RGBToUJ(ar, ag, ab);
+    dst_v[0] = RGBToVJ(ar, ag, ab);
     src_argb += 4;
     dst_u += 1;
     dst_v += 1;
@@ -3237,6 +3253,24 @@ void Convert8To16Row_C(const uint8_t* src_y,
   scale *= 0x0101;  // replicates the byte.
   for (x = 0; x < width; ++x) {
     dst_y[x] = (src_y[x] * scale) >> 16;
+  }
+}
+
+// Use scale to convert J420 to I420
+// scale parameter is 8.8 fixed point but limited to 0 to 255
+// Function is based on DivideRow, but adds a bias
+// Does not clamp
+void Convert8To8Row_C(const uint8_t* src_y,
+                      uint8_t* dst_y,
+                      int scale,
+                      int bias,
+                      int width) {
+  int x;
+  assert(scale >= 0);
+  assert(scale <= 255);
+
+  for (x = 0; x < width; ++x) {
+    dst_y[x] = ((src_y[x] * scale) >> 8) + bias;
   }
 }
 

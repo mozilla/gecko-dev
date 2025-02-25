@@ -9710,6 +9710,45 @@ void ClampFloatToZero_SSE2(const float* src_x, float* dst_y, int width) {
       : "memory", "cc", "xmm0", "xmm1");
 }
 
+#ifdef HAS_CONVERT16TO8ROW_AVX2
+void Convert8To8Row_AVX2(const uint8_t* src_y,
+                         uint8_t* dst_y,
+                         int scale,
+                         int bias,
+                         int width) {
+  asm volatile(
+      "sub         %0,%1                         \n"
+      "vmovd       %3,%%xmm2                     \n"
+      "vmovd       %4,%%xmm3                     \n"
+      "vpbroadcastw %%xmm2,%%ymm2                \n"
+      "vpbroadcastb %%xmm3,%%ymm3                \n"
+      "vpxor       %%ymm4,%%ymm4,%%ymm4          \n"
+      "vpsllw      $8,%%ymm2,%%ymm2              \n"
+
+      // 32 pixels per loop.
+      LABELALIGN
+      "1:                                        \n"
+      "vmovdqu     (%0),%%ymm0                   \n"
+      "vpunpckhbw  %%ymm4,%%ymm0,%%ymm1          \n"  // mutates
+      "vpunpcklbw  %%ymm4,%%ymm0,%%ymm0          \n"
+      "vpmulhuw    %%ymm2,%%ymm0,%%ymm0          \n"
+      "vpmulhuw    %%ymm2,%%ymm1,%%ymm1          \n"
+      "vpackuswb   %%ymm1,%%ymm0,%%ymm0          \n"  // unmutates
+      "vpaddb      %%ymm3,%%ymm0,%%ymm0          \n"
+      "vmovdqu     %%ymm0,(%0,%1)                \n"
+      "add         $0x20,%0                      \n"
+      "sub         $0x20,%2                      \n"
+      "jg          1b                            \n"
+      "vzeroupper                                \n"
+      : "+r"(src_y),  // %0
+        "+r"(dst_y),  // %1
+        "+r"(width)   // %2
+      : "r"(scale),   // %3
+        "r"(bias)     // %4
+      : "memory", "cc", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4");
+}
+#endif  // HAS_CONVERT16TO8ROW_AVX2
+
 #endif  // defined(__x86_64__) || defined(__i386__)
 
 #ifdef __cplusplus

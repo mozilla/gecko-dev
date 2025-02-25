@@ -1237,6 +1237,14 @@ void I212ToARGBRow_SVE2(const uint16_t* src_y,
   I212ToARGBRow_SVE_SC(src_y, src_u, src_v, dst_argb, yuvconstants, width);
 }
 
+void Convert8To8Row_SVE2(const uint8_t* src_y,
+                         uint8_t* dst_y,
+                         int scale,
+                         int bias,
+                         int width) {
+  Convert8To8Row_SVE_SC(src_y, dst_y, scale, bias, width);
+}
+
 #endif  // !defined(LIBYUV_DISABLE_SVE) && defined(__aarch64__)
 
 #ifdef __cplusplus

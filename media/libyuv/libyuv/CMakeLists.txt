@@ -1,6 +1,6 @@
 # CMakeLists for libyuv
 # Originally created for "roxlu build system" to compile libyuv on windows
-# Run with -DTEST=ON to build unit tests
+# Run with -DUNIT_TEST=ON to build unit tests
 
 include(CheckCSourceCompiles)
 

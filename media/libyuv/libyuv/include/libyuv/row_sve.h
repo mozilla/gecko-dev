@@ -1725,6 +1725,60 @@ static inline void I212ToARGBRow_SVE_SC(const uint16_t* src_y,
       : "cc", "memory", YUVTORGB_SVE_REGS);
 }
 
+#define CONVERT8TO8_SVE                                  \
+  "ld1b        {z0.b}, p0/z, [%[src]]                \n" \
+  "ld1b        {z1.b}, p1/z, [%[src], #1, mul vl]    \n" \
+  "incb        %[src], all, mul #2                   \n" \
+  "subs        %w[width], %w[width], %w[vl], lsl #1  \n" \
+  "umulh       z0.b, z0.b, z2.b                      \n" \
+  "umulh       z1.b, z1.b, z2.b                      \n" \
+  "prfm        pldl1keep, [%[src], 448]              \n" \
+  "add         z0.b, z0.b, z3.b                      \n" \
+  "add         z1.b, z1.b, z3.b                      \n" \
+  "st1b        {z0.b}, p0, [%[dst]]                  \n" \
+  "st1b        {z1.b}, p1, [%[dst], #1, mul vl]      \n" \
+  "incb        %[dst], all, mul #2                   \n"
+
+static inline void Convert8To8Row_SVE_SC(const uint8_t* src_y,
+                                         uint8_t* dst_y,
+                                         int scale,
+                                         int bias,
+                                         int width) STREAMING_COMPATIBLE {
+  uint64_t vl;
+  asm volatile(
+      "dup      z2.b, %w[scale]                         \n"
+      "dup      z3.b, %w[bias]                          \n"
+      "cntb     %[vl]                                   \n"
+      "subs     %w[width], %w[width], %w[vl], lsl #1    \n"
+      "b.lt     2f                                      \n"
+
+      // Run bulk of computation with all-true predicates to avoid predicate
+      // generation overhead.
+      "ptrue    p0.b                                    \n"
+      "ptrue    p1.b                                    \n"
+      "1:                                               \n"  //
+      CONVERT8TO8_SVE
+      "b.ge     1b                                      \n"
+
+      "2:                                               \n"
+      "adds     %w[width], %w[width], %w[vl], lsl #1    \n"
+      "b.eq     99f                                     \n"
+
+      // Calculate predicates for the final iteration to deal with the tail.
+      "whilelt     p0.b, wzr, %w2                       \n"
+      "whilelt     p1.b, %w[vl], %w2                    \n"  //
+      CONVERT8TO8_SVE
+
+      "99:                                              \n"
+      : [src] "+r"(src_y),    // %[src]
+        [dst] "+r"(dst_y),    // %[dst]
+        [width] "+r"(width),  // %[width]
+        [vl] "=&r"(vl)        // %[vl]
+      : [scale] "r"(scale),   // %[scale]
+        [bias] "r"(bias)      // %[bias]
+      : "cc", "memory", "z0", "z1", "z2", "z3", "p0", "p1");
+}
+
 #endif  // !defined(LIBYUV_DISABLE_SVE) && defined(__aarch64__)
 
 #ifdef __cplusplus

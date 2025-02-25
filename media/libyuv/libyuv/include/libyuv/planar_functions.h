@@ -78,6 +78,16 @@ void Convert8To16Plane(const uint8_t* src_y,
                        int width,
                        int height);
 
+LIBYUV_API
+void Convert8To8Plane(const uint8_t* src_y,
+                      int src_stride_y,
+                      uint8_t* dst_y,
+                      int dst_stride_y,
+                      int scale,  // 220 for Y, 225 for U,V
+                      int bias,   // 16
+                      int width,
+                      int height);
+
 // Set a plane of data to a 32 bit value.
 LIBYUV_API
 void SetPlane(uint8_t* dst_y,
