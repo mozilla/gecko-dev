@@ -829,6 +829,10 @@ events:
           'com.android.bluetooth', 'com.google.android.gms',
           'org.mozilla.fenix.COPY_LINK_TO_CLIPBOARD
         type: string
+      sent_from_firefox_enabled:
+        type: boolean
+        description: |
+          Indicates whether the sent from Firefox feature is enabled or not.
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/28033
     data_reviews:
@@ -13042,3 +13046,42 @@ home.content.article:
       topic: *topic
     send_in_pings:
       - home
+
+sent_from_firefox:
+  settings_toggled:
+    type: event
+    description: |
+      A user toggled link sharing with whatsapp preference in settings.
+    extra_keys:
+      enabled:
+        description: |
+          Whether or not the preference is enabled
+        type: boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948171
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D238896
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Sharing
+  snackbar_clicked:
+    type: event
+    description: |
+      A user clicked the manage settings snackbar.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948171
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D238896
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+    metadata:
+      tags:
+        - Sharing

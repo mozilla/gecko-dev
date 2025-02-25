@@ -11,6 +11,16 @@ import androidx.annotation.VisibleForTesting
  */
 interface SentFromFirefoxManager {
     /**
+     * Indicates whether the feature is enabled or not.
+     */
+    val featureEnabled: Boolean
+
+    /**
+     * Indicates whether the link sharing snackbar should be shown (once per install).
+     */
+    val shouldShowSnackbar: Boolean
+
+    /**
      * Optionally appends a "Sent from Firefox" message to shared text.
      *
      * @param packageName The package name of the target application receiving the shared text.
@@ -18,11 +28,6 @@ interface SentFromFirefoxManager {
      * @return Either the modified share text including the "Sent from Firefox" message or the original.
      */
     fun maybeAppendShareText(packageName: String, shareText: String): String
-
-    /**
-     * Indicates whether the link sharing snackbar should be shown (once per install).
-     */
-    val shouldShowSnackbar: Boolean
 }
 
 /**
@@ -44,12 +49,15 @@ class DefaultSentFromFirefoxManager(
 
     private var lastShareAppended: Boolean = false
 
+    override val featureEnabled: Boolean
+        get() = storage.featureEnabled
+
     override val shouldShowSnackbar: Boolean
-        get() = storage.featureEnabled && snackbarEnabled && !storage.isLinkSharingSettingsSnackbarShown &&
+        get() = featureEnabled && snackbarEnabled && !storage.isLinkSharingSettingsSnackbarShown &&
             lastShareAppended
 
     override fun maybeAppendShareText(packageName: String, shareText: String): String {
-        val shouldAppendText = packageName == WHATSAPP_PACKAGE_NAME && storage.featureEnabled
+        val shouldAppendText = packageName == WHATSAPP_PACKAGE_NAME && featureEnabled
 
         // remembering state for possibly displaying a snackbar when the user returns to the app.
         lastShareAppended = shouldAppendText

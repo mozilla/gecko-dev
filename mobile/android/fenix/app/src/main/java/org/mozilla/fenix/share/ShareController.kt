@@ -121,7 +121,12 @@ class DefaultShareController(
     }
 
     override fun handleShareToApp(app: AppShareOption) {
-        Events.shareToApp.record(getShareToAppSafeExtra(app.packageName))
+        Events.shareToApp.record(
+            getShareToAppSafeExtra(
+                appPackage = app.packageName,
+                sentFromFirefoxEnabled = sentFromFirefoxManager.featureEnabled,
+            ),
+        )
         if (app.packageName == ACTION_COPY_LINK_TO_CLIPBOARD) {
             copyClipboard()
             dismiss(ShareController.Result.SUCCESS)

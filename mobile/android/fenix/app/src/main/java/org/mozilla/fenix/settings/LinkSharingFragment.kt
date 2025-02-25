@@ -5,8 +5,10 @@
 package org.mozilla.fenix.settings
 
 import android.os.Bundle
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
+import org.mozilla.fenix.GleanMetrics.SentFromFirefox
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
@@ -22,6 +24,19 @@ class LinkSharingFragment : PreferenceFragmentCompat() {
         requirePreference<SwitchPreference>(R.string.pref_key_link_sharing).apply {
             isChecked = context.settings().whatsappLinkSharingEnabled
             onPreferenceChangeListener = SharedPreferenceUpdater()
+
+            onPreferenceChangeListener = object : SharedPreferenceUpdater() {
+                override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                    SentFromFirefox.settingsToggled.record(
+                        SentFromFirefox.SettingsToggledExtra(
+                            enabled = newValue as Boolean,
+                        ),
+                    )
+
+                    return super.onPreferenceChange(preference, newValue)
+                }
+            }
+
             title = getString(
                 R.string.link_sharing_toggle_body,
                 getString(R.string.firefox),
