@@ -463,23 +463,27 @@ class ContentAnalysisResponse final : public nsIContentAnalysisResponse {
   ContentAnalysisResponse(const ContentAnalysisResponse&) = delete;
   ContentAnalysisResponse& operator=(ContentAnalysisResponse&) = delete;
   explicit ContentAnalysisResponse(
-      content_analysis::sdk::ContentAnalysisResponse&& aResponse);
-  ContentAnalysisResponse(Action aAction, const nsACString& aRequestToken);
+      content_analysis::sdk::ContentAnalysisResponse&& aResponse,
+      const nsCString& aUserActionId);
+  ContentAnalysisResponse(Action aAction, const nsACString& aRequestToken,
+                          const nsACString& aUserActionId);
 
   // Use MakeRefPtr as factory.
   template <typename T, typename... Args>
   friend RefPtr<T> mozilla::MakeRefPtr(Args&&...);
 
   static already_AddRefed<ContentAnalysisResponse> FromProtobuf(
-      content_analysis::sdk::ContentAnalysisResponse&& aResponse);
+      content_analysis::sdk::ContentAnalysisResponse&& aResponse,
+      const nsCString& aUserActionId);
 
   void ResolveWarnAction(bool aAllowContent);
 
   // Action requested by the agent
   Action mAction;
 
-  // Identifier for the corresponding nsIContentAnalysisRequest
+  // Identifiers for the corresponding nsIContentAnalysisRequest
   nsCString mRequestToken;
+  nsCString mUserActionId;
 
   // If mAction is eCanceled, this is the error explaining why the request was
   // canceled, or eUserInitiated if the user canceled it.

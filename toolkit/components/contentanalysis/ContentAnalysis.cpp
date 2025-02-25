@@ -813,7 +813,9 @@ static void LogRequest(
 }
 
 ContentAnalysisResponse::ContentAnalysisResponse(
-    content_analysis::sdk::ContentAnalysisResponse&& aResponse) {
+    content_analysis::sdk::ContentAnalysisResponse&& aResponse,
+    const nsCString& aUserActionId)
+    : mUserActionId(aUserActionId) {
   mAction = Action::eUnspecified;
   for (const auto& result : aResponse.results()) {
     if (!result.has_status() ||
@@ -840,16 +842,20 @@ ContentAnalysisResponse::ContentAnalysisResponse(
 }
 
 ContentAnalysisResponse::ContentAnalysisResponse(
-    Action aAction, const nsACString& aRequestToken)
-    : mAction(aAction), mRequestToken(aRequestToken) {
+    Action aAction, const nsACString& aRequestToken,
+    const nsACString& aUserActionId)
+    : mAction(aAction),
+      mRequestToken(aRequestToken),
+      mUserActionId(aUserActionId) {
   MOZ_ASSERT(mAction != Action::eUnspecified);
 }
 
 /* static */
 already_AddRefed<ContentAnalysisResponse> ContentAnalysisResponse::FromProtobuf(
-    content_analysis::sdk::ContentAnalysisResponse&& aResponse) {
+    content_analysis::sdk::ContentAnalysisResponse&& aResponse,
+    const nsCString& aUserActionId) {
   auto ret = RefPtr<ContentAnalysisResponse>(
-      new ContentAnalysisResponse(std::move(aResponse)));
+      new ContentAnalysisResponse(std::move(aResponse), aUserActionId));
 
   if (ret->mAction == Action::eUnspecified) {
     return nullptr;
@@ -861,6 +867,12 @@ already_AddRefed<ContentAnalysisResponse> ContentAnalysisResponse::FromProtobuf(
 NS_IMETHODIMP
 ContentAnalysisResponse::GetRequestToken(nsACString& aRequestToken) {
   aRequestToken = mRequestToken;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ContentAnalysisResponse::GetUserActionId(nsACString& aUserActionId) {
+  aUserActionId = mUserActionId;
   return NS_OK;
 }
 
@@ -1509,7 +1521,8 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
 
   bool calledError = false;
   for (const auto& token : tokens) {
-    auto response = MakeRefPtr<ContentAnalysisResponse>(action, token);
+    auto response =
+        MakeRefPtr<ContentAnalysisResponse>(action, token, aUserActionId);
     response->SetCancelError(cancelError);
     // Alert the UI and (if action is not warn) the callback.  We aren't
     // handling an actual response so we have nothing to acknowledge.
@@ -1773,7 +1786,8 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
             }
 
             RefPtr<ContentAnalysisResponse> response =
-                ContentAnalysisResponse::FromProtobuf(std::move(*aResponse));
+                ContentAnalysisResponse::FromProtobuf(std::move(*aResponse),
+                                                      userActionId);
             if (!response) {
               LOGE("Content analysis got invalid response!");
               return;
@@ -1788,8 +1802,7 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
               // May be shutting down
               return;
             }
-            owner->CancelWithError(std::move(userActionId),
-                                   Some(std::move(requestToken)), rv);
+            owner->CancelWithError(std::move(userActionId), Nothing(), rv);
           });
 
   return NS_OK;
@@ -3019,11 +3032,19 @@ ContentAnalysis::ShowBlockedRequestDialog(nsIContentAnalysisRequest* aRequest) {
     aRequest->SetRequestToken(token);
   }
 
+  nsCString userActionId;
+  MOZ_ALWAYS_SUCCEEDS(aRequest->GetUserActionId(userActionId));
+  if (userActionId.IsEmpty()) {
+    userActionId = GenerateUUID();
+    aRequest->SetUserActionId(userActionId);
+  }
+
   nsCOMPtr<nsIObserverService> obsServ =
       mozilla::services::GetObserverService();
   obsServ->NotifyObservers(aRequest, "dlp-request-made", nullptr);
   auto response = MakeRefPtr<ContentAnalysisResponse>(
-      nsIContentAnalysisResponse::Action::eBlock, std::move(token));
+      nsIContentAnalysisResponse::Action::eBlock, std::move(token),
+      std::move(userActionId));
   response->SetOwner(this);
   obsServ->NotifyObservers(response, "dlp-response", nullptr);
   return NS_OK;
@@ -3587,8 +3608,10 @@ ContentAnalysis::GetURIForDropEvent(dom::DragEvent* aEvent, nsIURI** aURI) {
 
 NS_IMETHODIMP ContentAnalysis::MakeResponseForTest(
     nsIContentAnalysisResponse::Action aAction, const nsACString& aToken,
+    const nsACString& aUserActionId,
     nsIContentAnalysisResponse** aNewResponse) {
-  MakeRefPtr<ContentAnalysisResponse>(aAction, aToken).forget(aNewResponse);
+  MakeRefPtr<ContentAnalysisResponse>(aAction, aToken, aUserActionId)
+      .forget(aNewResponse);
   return NS_OK;
 }
 

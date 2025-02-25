@@ -80,6 +80,7 @@ interface nsIContentAnalysisResponse : nsIContentAnalysisResult
 
   // Identifier for the corresponding nsIContentAnalysisRequest
   readonly attribute ACString requestToken;
+  readonly attribute ACString userActionId;
 
   // Whether this is a cached result that wasn't actually sent to the DLP agent.
   // This indicates that the request was a duplicate of a previously sent one,
@@ -452,12 +453,14 @@ interface nsIContentAnalysis : nsISupports
   /**
    * Make an nsIContentAnalysisResponse object.  For use in tests only.
    *
-   * @param aAction     The response action
-   * @param aToken      The request token
+   * @param aAction        The response action
+   * @param aToken         The request token
+   * @param aUserActionID  The user action ID
    */
   nsIContentAnalysisResponse makeResponseForTest(
       in nsIContentAnalysisResponse_Action aAction,
-      in ACString aToken);
+      in ACString aToken,
+      in ACString aUserActionId);
 
   /**
    * Send CancelRequests to agent on a background thread.
