@@ -3788,6 +3788,10 @@ bool SharedContextWebgl::DrawPathAccel(
   if (aStrokeOptions &&
       intBounds.width * intBounds.height >
           (mViewportSize.width / 2) * (mViewportSize.height / 2)) {
+    // Avoid filling cache with empty entries.
+    if (entry) {
+      entry->Unlink();
+    }
     return false;
   }
 
@@ -3850,11 +3854,9 @@ bool SharedContextWebgl::DrawPathAccel(
       }
     }
     RefPtr<SourceSurface> pathSurface = pathDT->Snapshot();
-    if (pathSurface) {
-      // If the target changed, try to restore it.
-      if (mCurrentTarget != oldTarget && !oldTarget->PrepareContext()) {
-        return false;
-      }
+    // If the target changed, try to restore it.
+    if (pathSurface &&
+        (mCurrentTarget == oldTarget || oldTarget->PrepareContext())) {
       SurfacePattern pathPattern(pathSurface, ExtendMode::CLAMP,
                                  Matrix::Translation(quantBounds.TopLeft()),
                                  filter);
@@ -3875,6 +3877,10 @@ bool SharedContextWebgl::DrawPathAccel(
     }
   }
 
+  // Avoid filling cache with empty entries.
+  if (entry) {
+    entry->Unlink();
+  }
   return false;
 }
 
@@ -4734,6 +4740,9 @@ bool SharedContextWebgl::DrawGlyphsAccel(ScaledFont* aFont,
       }
     }
   }
+
+  // Avoid filling cache with empty entries.
+  entry->Unlink();
   return false;
 }
 
