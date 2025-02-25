@@ -19,7 +19,10 @@ namespace pageload_event {
  *  Features utilized within a document, represented as bitfield in the pageload
  * event.
  */
-enum FeatureBits : uint32_t { FETCH_PRIORITY_IMAGES = 1 << 0 };
+enum FeatureBits : uint32_t {
+  FETCH_PRIORITY_IMAGES = 1 << 0,
+  USING_A11Y = 1 << 1
+};
 }  // namespace pageload_event
 }  // namespace mozilla
 

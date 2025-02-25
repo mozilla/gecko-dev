@@ -128,7 +128,8 @@ perf:
       features:
         description:
           "Bitfield of features in use within this document:
-            1 - fetchpriority applied to images"
+            1 - fetchpriority applied to images
+            2 - assistive technology in use"
         type: quantity
         unit: integer
     send_in_pings:
