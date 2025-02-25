@@ -804,14 +804,15 @@ networking:
     description: >
       The number of times we see the IP address 0.0.0.0 or its IPv6 equivalent.
     bugs:
-    - https://bugzilla.mozilla.org/show_bug.cgi?id=1914583
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1919216
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1949775
     data_reviews:
-    - https://bugzilla.mozilla.org/show_bug.cgi?id=1914583
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1919216
     data_sensitivity:
     - technical
     notification_emails:
     - necko@mozilla.com
-    expires: 138
+    expires: 145
     labels:
     - not_blocked_requests
     - blocked_requests
@@ -822,13 +823,14 @@ networking:
         The number of times we see the IP address 0.0.0.0 or its IPv6 equivalent used as hostnames
     bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1937743
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1949775
     data_reviews:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1937743
     data_sensitivity:
     - technical
     notification_emails:
     - necko@mozilla.com
-    expires: 138
+    expires: 145
     labels:
     - success
     - failure
