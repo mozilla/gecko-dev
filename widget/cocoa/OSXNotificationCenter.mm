@@ -51,7 +51,8 @@ using namespace mozilla;
     additionalActionIndex = [alternateActionIndex unsignedLongLongValue];
   }
   mOSXNC->OnActivate([[notification userInfo] valueForKey:@"name"],
-                     notification.activationType, additionalActionIndex);
+                     notification.activationType, additionalActionIndex,
+                     notification.additionalActivationAction);
 }
 
 - (BOOL)userNotificationCenter:(NSUserNotificationCenter*)center
@@ -92,10 +93,11 @@ class OSXNotificationInfo final : public nsISupports {
 
  public:
   NS_DECL_ISUPPORTS
-  OSXNotificationInfo(NSString* name, nsIObserver* observer,
-                      const nsAString& alertCookie);
+  OSXNotificationInfo(NSString* name, nsIAlertNotification* aAlertNotification,
+                      nsIObserver* observer, const nsAString& alertCookie);
 
   NSString* mName;
+  nsCOMPtr<nsIAlertNotification> mAlertNotification;
   nsCOMPtr<nsIObserver> mObserver;
   nsString mCookie;
   RefPtr<nsICancelable> mIconRequest;
@@ -104,12 +106,14 @@ class OSXNotificationInfo final : public nsISupports {
 
 NS_IMPL_ISUPPORTS0(OSXNotificationInfo)
 
-OSXNotificationInfo::OSXNotificationInfo(NSString* name, nsIObserver* observer,
-                                         const nsAString& alertCookie) {
+OSXNotificationInfo::OSXNotificationInfo(
+    NSString* name, nsIAlertNotification* aAlertNotification,
+    nsIObserver* observer, const nsAString& alertCookie) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
   NS_ASSERTION(name, "Cannot create OSXNotificationInfo without a name!");
   mName = [name retain];
+  mAlertNotification = aAlertNotification;
   mObserver = observer;
   mCookie = alertCookie;
   mPendingNotification = nil;
@@ -281,6 +285,28 @@ OSXNotificationCenter::ShowAlertWithIconData(nsIAlertNotification* aAlert,
                                  forKey:@"_alternateActionButtonTitles"];
     }
   }
+
+  nsTArray<RefPtr<nsIAlertAction>> actions;
+  MOZ_TRY(aAlert->GetActions(actions));
+
+  NSMutableArray* additionalActions = [[NSMutableArray alloc] init];
+  for (const RefPtr<nsIAlertAction>& action : actions) {
+    nsAutoString actionName;
+    MOZ_TRY(action->GetAction(actionName));
+
+    nsAutoString actionTitle;
+    MOZ_TRY(action->GetTitle(actionTitle));
+
+    NSString* actionNameNS = nsCocoaUtils::ToNSString(actionName);
+    NSString* actionTitleNS = nsCocoaUtils::ToNSString(actionTitle);
+    NSUserNotificationAction* notificationAction =
+        [NSUserNotificationAction actionWithIdentifier:actionNameNS
+                                                 title:actionTitleNS];
+    [additionalActions addObject:notificationAction];
+  }
+  notification.additionalActions = additionalActions;
+  [additionalActions release];
+
   nsAutoString name;
   rv = aAlert->GetName(name);
   // Don't let an alert name be more than MAX_NOTIFICATION_NAME_LEN characters.
@@ -304,7 +330,7 @@ OSXNotificationCenter::ShowAlertWithIconData(nsIAlertNotification* aAlert,
   NS_ENSURE_SUCCESS(rv, rv);
 
   OSXNotificationInfo* osxni =
-      new OSXNotificationInfo(alertName, aAlertListener, cookie);
+      new OSXNotificationInfo(alertName, aAlert, aAlertListener, cookie);
 
   // Show the favicon if supported on this version of OS X.
   if (aIconSize > 0 &&
@@ -397,7 +423,8 @@ void OSXNotificationCenter::CloseAlertCocoaString(NSString* aAlertName) {
 
 void OSXNotificationCenter::OnActivate(
     NSString* aAlertName, NSUserNotificationActivationType aActivationType,
-    unsigned long long aAdditionalActionIndex) {
+    unsigned long long aAdditionalActionIndex,
+    NSUserNotificationAction* aAdditionalActivationAction) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
   if (!aAlertName) {
@@ -411,6 +438,17 @@ void OSXNotificationCenter::OnActivate(
         switch ((int)aActivationType) {
           case NSUserNotificationActivationTypeAdditionalActionClicked:
           case NSUserNotificationActivationTypeActionButtonClicked:
+            if (aAdditionalActivationAction) {
+              nsAutoString actionName;
+              nsCocoaUtils::GetStringForNSString(
+                  aAdditionalActivationAction.identifier, actionName);
+              nsCOMPtr<nsIAlertAction> action;
+              osxni->mAlertNotification->GetAction(actionName,
+                                                   getter_AddRefs(action));
+              osxni->mObserver->Observe(action, "alertclickcallback",
+                                        osxni->mCookie.get());
+              break;
+            }
             switch (aAdditionalActionIndex) {
               case OSXNotificationActionDisable:
                 osxni->mObserver->Observe(nullptr, "alertdisablecallback",
