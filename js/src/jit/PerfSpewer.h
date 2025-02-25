@@ -143,6 +143,7 @@ class WasmBaselinePerfSpewer : public PerfSpewer {
   WasmBaselinePerfSpewer(WasmBaselinePerfSpewer&&) = default;
   WasmBaselinePerfSpewer& operator=(WasmBaselinePerfSpewer&&) = default;
 
+  [[nodiscard]] bool needsToRecordInstruction() const;
   void recordInstruction(MacroAssembler& masm, const wasm::OpBytes& op);
   void saveProfile(uintptr_t codeBase, size_t codeSize, JS::UniqueChars& desc);
 };

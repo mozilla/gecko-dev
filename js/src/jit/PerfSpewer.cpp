@@ -481,11 +481,13 @@ static void PrintStackValue(JSContext* maybeCx, StackValue* stackVal,
 }
 #endif
 
+[[nodiscard]] bool WasmBaselinePerfSpewer::needsToRecordInstruction() const {
+  return PerfIREnabled() || PerfSrcEnabled();
+}
+
 void WasmBaselinePerfSpewer::recordInstruction(MacroAssembler& masm,
                                                const wasm::OpBytes& op) {
-  if (!PerfIREnabled() && !PerfSrcEnabled()) {
-    return;
-  }
+  MOZ_ASSERT(needsToRecordInstruction());
 
   if (!opcodes_.emplaceBack(masm.currentOffset() - startOffset_,
                             op.toPacked())) {

@@ -10214,6 +10214,10 @@ bool BaseCompiler::emitBody() {
 
   initControl(controlItem(), ResultType::Empty());
 
+#ifdef JS_ION_PERF
+  bool spewerEnabled = perfSpewer_.needsToRecordInstruction();
+#endif
+
   for (;;) {
     Nothing unused_a, unused_b, unused_c;
     (void)unused_a;
@@ -10371,7 +10375,9 @@ bool BaseCompiler::emitBody() {
     }
 
 #ifdef JS_ION_PERF
-    perfSpewer_.recordInstruction(masm, op);
+    if (MOZ_UNLIKELY(spewerEnabled)) {
+      perfSpewer_.recordInstruction(masm, op);
+    }
 #endif
 
     // Going below framePushedAtEntryToBody would imply that we've
