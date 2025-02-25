@@ -46,7 +46,7 @@
   display: flex;
   gap: var(--space-small);
   min-height: var(--message-bar-container-min-height);
-  padding-inline: var(--space-large) var(--space-small);
+  padding-inline: var(--space-medium) var(--space-small);
   padding-block: var(--space-small);
 }
 
@@ -56,7 +56,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-small) var(--space-medium);
-  margin-inline-start: var(--space-xlarge);
+  margin-inline-start: var(--message-bar-icon-size);
 }
 
 .text-container {
@@ -79,7 +79,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-inline-start: calc(-1 * var(--space-xlarge));
+  margin-inline-start: calc(-1 * var(--message-bar-icon-size));
 }
 
 .icon {
