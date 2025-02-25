@@ -11976,8 +11976,10 @@ int32_t nsContentUtils::CompareTreePosition(const nsINode* aNode1,
     if (aNodeIndex.isSome()) {
       return -1;  // Not a pseudo.
     }
-    MOZ_ASSERT(aNode->IsRootOfNativeAnonymousSubtree(),
-               "What kind of node are we dealing with here?");
+    if (NS_WARN_IF(!aNode->IsRootOfNativeAnonymousSubtree())) {
+      // If aNode is mid unbind, we can reach this.
+      return 0;
+    }
     if (aNode->IsGeneratedContentContainerForMarker()) {
       return -3;
     }
