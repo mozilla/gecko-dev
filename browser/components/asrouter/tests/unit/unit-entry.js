@@ -116,9 +116,6 @@ const TEST_GLOBAL = {
   AppConstants: {
     MOZILLA_OFFICIAL: true,
     MOZ_APP_VERSION: "69.0a1",
-    isChinaRepack() {
-      return false;
-    },
     isPlatformAndVersionAtMost() {
       return false;
     },

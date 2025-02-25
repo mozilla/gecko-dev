@@ -106,9 +106,6 @@ const TEST_GLOBAL = {
   AppConstants: {
     MOZILLA_OFFICIAL: true,
     MOZ_APP_VERSION: "69.0a1",
-    isChinaRepack() {
-      return false;
-    },
     isPlatformAndVersionAtMost() {
       return false;
     },
@@ -134,6 +131,9 @@ const TEST_GLOBAL = {
   BrowserUtils: {
     sendToDeviceEmailsSupported() {
       return true;
+    },
+    isChinaRepack() {
+      return false;
     },
   },
   UpdateUtils: { getUpdateChannel() {} },

@@ -3,8 +3,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const FXA_ENABLED_PREF = "identity.fxaccounts.enabled";
-const DISTRIBUTION_ID_PREF = "distribution.id";
-const DISTRIBUTION_ID_CHINA_REPACK = "MozillaOnline";
 const TOPIC_SELECTION_MODAL_LAST_DISPLAYED_PREF =
   "browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.lastDisplayed";
 const NOTIFICATION_INTERVAL_AFTER_TOPIC_MODAL_MS = 60000; // Assuming avoid notification up to 1 minute after newtab Topic Notification Modal
@@ -44,6 +42,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ASRouterPreferences:
     "resource:///modules/asrouter/ASRouterPreferences.sys.mjs",
   AttributionCode: "resource:///modules/AttributionCode.sys.mjs",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   ClientEnvironment: "resource://normandy/lib/ClientEnvironment.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
@@ -826,12 +825,7 @@ const TargetingGetters = {
     return AppConstants.platform;
   },
   get isChinaRepack() {
-    return (
-      Services.prefs
-        .getDefaultBranch(null)
-        .getCharPref(DISTRIBUTION_ID_PREF, "default") ===
-      DISTRIBUTION_ID_CHINA_REPACK
-    );
+    return lazy.BrowserUtils.isChinaRepack();
   },
   get userId() {
     return lazy.ClientEnvironment.userId;

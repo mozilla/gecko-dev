@@ -559,6 +559,20 @@ export var BrowserUtils = {
   },
 
   /**
+   * Returns whether the build is a China repack.
+   *
+   * @return {boolean} True if the distribution ID is 'MozillaOnline',
+   *                   otherwise false.
+   */
+  isChinaRepack() {
+    return (
+      Services.prefs
+        .getDefaultBranch("")
+        .getCharPref("distribution.id", "default") === "MozillaOnline"
+    );
+  },
+
+  /**
    * An enumeration of the promotion types that can be passed to shouldShowPromo
    */
   PromoType: {

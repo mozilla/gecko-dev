@@ -91,7 +91,7 @@ var gMoreFromMozillaPane = {
           id: "fxMobile",
           type: "link",
           label_string_id: "more-from-moz-learn-more-link",
-          actionURL: AppConstants.isChinaRepack()
+          actionURL: BrowserUtils.isChinaRepack()
             ? "https://www.firefox.com.cn/browsers/mobile/"
             : "https://www.mozilla.org/firefox/browsers/mobile/",
         },
@@ -106,7 +106,7 @@ var gMoreFromMozillaPane = {
             label: {
               string_id: "more-from-moz-qr-code-box-firefox-mobile-button",
             },
-            actionURL: AppConstants.isChinaRepack()
+            actionURL: BrowserUtils.isChinaRepack()
               ? "https://www.firefox.com.cn/mobile/get-app/"
               : "https://www.mozilla.org/firefox/mobile/get-app/?v=mfm",
           },
@@ -241,7 +241,7 @@ var gMoreFromMozillaPane = {
           "-" +
           this.getTemplateName() +
           `${
-            AppConstants.isChinaRepack() &&
+            BrowserUtils.isChinaRepack() &&
             this.getTemplateName().includes("simple")
               ? "-cn"
               : ""

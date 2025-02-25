@@ -1475,7 +1475,7 @@ export const OnboardingMessageProvider = {
         };
       }
       // Update CN specific QRCode url
-      if (AppConstants.isChinaRepack()) {
+      if (lazy.BrowserUtils.isChinaRepack()) {
         mobileContent.hero_image.url = `${mobileContent.hero_image.url.slice(
           0,
           mobileContent.hero_image.url.indexOf(".svg")

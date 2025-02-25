@@ -621,7 +621,7 @@ describe("MultiStageAboutWelcomeProton module", () => {
       ],
     };
     it("should not set url for default qrcode svg", async () => {
-      sandbox.stub(global.AppConstants, "isChinaRepack").returns(false);
+      sandbox.stub(global.BrowserUtils, "isChinaRepack").returns(false);
       const data =
         await AboutWelcomeDefaults.prepareContentForReact(TEST_CONTENT);
       assert.propertyVal(
@@ -631,7 +631,7 @@ describe("MultiStageAboutWelcomeProton module", () => {
       );
     });
     it("should set url for cn qrcode svg", async () => {
-      sandbox.stub(global.AppConstants, "isChinaRepack").returns(true);
+      sandbox.stub(global.BrowserUtils, "isChinaRepack").returns(true);
       const data =
         await AboutWelcomeDefaults.prepareContentForReact(TEST_CONTENT);
       assert.propertyVal(
