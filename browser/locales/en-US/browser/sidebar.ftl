@@ -65,6 +65,9 @@ sidebar-show-on-the-left =
 # hovers over it.
 expand-sidebar-on-hover =
   .label = Expand sidebar on hover
+expand-on-hover-message =
+  .heading = Expand on hover coming soon
+  .message = In a future update, you’ll be able to expand the sidebar on hover.
 
 ## Labels for sidebar context menu items
 

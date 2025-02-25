@@ -254,12 +254,10 @@ export class SidebarCustomize extends SidebarPage {
     if (
       !Services.prefs.getBoolPref(EXPAND_ON_HOVER_MESSAGE_DISMISSED_PREF, false)
     ) {
-      // TODO: Replace the heading and message with fluent strings.
       return html`
         <moz-message-bar
           class="setting-message expand-on-hover-message"
-          heading="We're listening!"
-          message="In a future release, you'll be able to hover on the sidebar to expand it."
+          data-l10n-id="expand-on-hover-message"
           @message-bar:user-dismissed=${this.onExpandOnHoverMessageDismissed}
           dismissable
         ></moz-message-bar>
