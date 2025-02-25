@@ -1,0 +1,101 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: DOM: Editor'
+
+htmleditors:
+  with_beforeinput_listeners:
+    type: labeled_counter
+    description: >
+      Number of HTML editors whose window or a node in it has had beforeinput
+      event listeners
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTMLEDITORS_WITH_BEFOREINPUT_LISTENERS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1665530
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1665530
+    notification_emails:
+      - mnakano.birchill@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTMLEDITORS_WITH_BEFOREINPUT_LISTENERS
+
+  overridden_by_beforeinput_listeners:
+    type: labeled_counter
+    description: >
+      Number of HTML editors whose dispatching beforeinput events are canceled
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTMLEDITORS_OVERRIDDEN_BY_BEFOREINPUT_LISTENERS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1665530
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1665530
+    notification_emails:
+      - mnakano.birchill@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTMLEDITORS_OVERRIDDEN_BY_BEFOREINPUT_LISTENERS
+
+  with_mutation_listeners_without_beforeinput_listeners:
+    type: labeled_counter
+    description: >
+      Number of HTML editors whose window or a node in it has had mutation event
+      listeners, but has not had beforeinput event listeners
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram
+      HTMLEDITORS_WITH_MUTATION_LISTENERS_WITHOUT_BEFOREINPUT_LISTENERS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1665530
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1665530
+    notification_emails:
+      - mnakano.birchill@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTMLEDITORS_WITH_MUTATION_LISTENERS_WITHOUT_BEFOREINPUT_LISTENERS
+
+  with_mutation_observers_without_beforeinput_listeners:
+    type: labeled_counter
+    description: >
+      Number of HTML editors a node in the window has been observed by mutation
+      observers, but has not had beforeinput event listeners
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram
+      HTMLEDITORS_WITH_MUTATION_OBSERVERS_WITHOUT_BEFOREINPUT_LISTENERS.
+    labels:
+      - "false"
+      - "true"
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1665530
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668134
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1665530
+    notification_emails:
+      - mnakano.birchill@mozilla.com
+    expires: never
+    telemetry_mirror: h#HTMLEDITORS_WITH_MUTATION_OBSERVERS_WITHOUT_BEFOREINPUT_LISTENERS

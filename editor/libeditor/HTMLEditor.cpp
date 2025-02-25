@@ -42,7 +42,7 @@
 #include "mozilla/StaticPrefs_editor.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/EditorLibeditorMetrics.h"
 #include "mozilla/TextControlElement.h"
 #include "mozilla/TextEditor.h"
 #include "mozilla/TextEvents.h"
@@ -259,25 +259,33 @@ HTMLEditor::HTMLEditor(const Document& aDocument)
       mDefaultParagraphSeparator(ParagraphSeparator::div) {}
 
 HTMLEditor::~HTMLEditor() {
-  Telemetry::Accumulate(Telemetry::HTMLEDITORS_WITH_BEFOREINPUT_LISTENERS,
-                        MayHaveBeforeInputEventListenersForTelemetry() ? 1 : 0);
-  Telemetry::Accumulate(
-      Telemetry::HTMLEDITORS_OVERRIDDEN_BY_BEFOREINPUT_LISTENERS,
-      mHasBeforeInputBeenCanceled ? 1 : 0);
-  Telemetry::Accumulate(
-      Telemetry::
-          HTMLEDITORS_WITH_MUTATION_LISTENERS_WITHOUT_BEFOREINPUT_LISTENERS,
-      !MayHaveBeforeInputEventListenersForTelemetry() &&
-              MayHaveMutationEventListeners()
-          ? 1
-          : 0);
-  Telemetry::Accumulate(
-      Telemetry::
-          HTMLEDITORS_WITH_MUTATION_OBSERVERS_WITHOUT_BEFOREINPUT_LISTENERS,
-      !MayHaveBeforeInputEventListenersForTelemetry() &&
-              MutationObserverHasObservedNodeForTelemetry()
-          ? 1
-          : 0);
+  glean::htmleditors::with_beforeinput_listeners
+      .EnumGet(static_cast<glean::htmleditors::WithBeforeinputListenersLabel>(
+          MayHaveBeforeInputEventListenersForTelemetry() ? 1 : 0))
+      .Add();
+  glean::htmleditors::overridden_by_beforeinput_listeners
+      .EnumGet(static_cast<
+               glean::htmleditors::OverriddenByBeforeinputListenersLabel>(
+          mHasBeforeInputBeenCanceled ? 1 : 0))
+      .Add();
+  glean::htmleditors::with_mutation_listeners_without_beforeinput_listeners
+      .EnumGet(static_cast<
+               glean::htmleditors::
+                   WithMutationListenersWithoutBeforeinputListenersLabel>(
+          !MayHaveBeforeInputEventListenersForTelemetry() &&
+                  MayHaveMutationEventListeners()
+              ? 1
+              : 0))
+      .Add();
+  glean::htmleditors::with_mutation_observers_without_beforeinput_listeners
+      .EnumGet(static_cast<
+               glean::htmleditors::
+                   WithMutationObserversWithoutBeforeinputListenersLabel>(
+          !MayHaveBeforeInputEventListenersForTelemetry() &&
+                  MutationObserverHasObservedNodeForTelemetry()
+              ? 1
+              : 0))
+      .Add();
 
   mPendingStylesToApplyToNewContent = nullptr;
 
