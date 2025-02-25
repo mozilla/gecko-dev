@@ -77,6 +77,10 @@ add_setup(async function () {
 
   await rps.isInitialized;
 
+  // Make sure we start off "empty". Any RemoteSettings values must be
+  // purged now to comply with test expectations.
+  Services.obs.notifyObservers(null, "testonly-reload-permissions-from-disk");
+
   registerCleanupFunction(async () => {
     info("Cleaning up");
     rps.testAllowedPermissionValues = originalPermissionValues;
