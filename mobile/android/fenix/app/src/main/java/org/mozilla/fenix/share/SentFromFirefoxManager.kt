@@ -6,6 +6,8 @@ package org.mozilla.fenix.share
 
 import androidx.annotation.VisibleForTesting
 
+private const val WHATSAPP_PACKAGE_NAME = "com.whatsapp"
+
 /**
  * Interface encapsulates the "Sent from Firefox" nimbus experiment.
  */
@@ -76,9 +78,4 @@ class DefaultSentFromFirefoxManager(
         appName,
         downloadLink,
     )
-
-    /** A helper object */
-    companion object {
-        const val WHATSAPP_PACKAGE_NAME = "com.whatsapp"
-    }
 }

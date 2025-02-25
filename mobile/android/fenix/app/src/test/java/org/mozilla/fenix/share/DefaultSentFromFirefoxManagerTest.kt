@@ -8,18 +8,16 @@ import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import org.junit.Test
-import org.mozilla.fenix.share.DefaultSentFromFirefoxManager.Companion.WHATSAPP_PACKAGE_NAME
+
+private const val TEMPLATE_MESSAGE = "%1\$s\n\nSent from %2\$s: %3\$s"
+private const val SHARE_MESSAGE = "https://www.mozilla.org"
+private const val APP_NAME = "Firefox"
+private const val DOWNLOAD_LINK = "https://www.mozilla.org/en-US/firefox/download/thanks/"
+private const val EXPECTED_MESSAGE = "$SHARE_MESSAGE\n\nSent from $APP_NAME: $DOWNLOAD_LINK"
+private const val WHATSAPP_PACKAGE_NAME = "com.whatsapp"
+private const val SLACK_PACKAGE_NAME = "com.Slack"
 
 class DefaultSentFromFirefoxManagerTest {
-
-    companion object {
-        private const val TEMPLATE_MESSAGE = "%1\$s\n\nSent from %2\$s: %3\$s"
-        private const val SHARE_MESSAGE = "https://www.mozilla.org"
-        private const val APP_NAME = "Firefox"
-        private const val DOWNLOAD_LINK = "https://www.mozilla.org/en-US/firefox/download/thanks/"
-        private const val EXPECTED_MESSAGE = "$SHARE_MESSAGE\n\nSent from $APP_NAME: $DOWNLOAD_LINK"
-        private const val SLACK_PACKAGE_NAME = "com.Slack"
-    }
 
     @Test
     fun `GIVEN feature is enabled WHEN sharing with WhatsApp THEN message is appended`() {
