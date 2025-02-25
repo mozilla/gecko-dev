@@ -133,7 +133,7 @@ describe("Object - Nested", () => {
     arrProp: [1],
   };
   const defaultOutput =
-    'Object { strProp: "test string", objProp: {…},' + " arrProp: (1)[…] }";
+    'Object { strProp: "test string", objProp: {…},' + " arrProp: […] }";
 
   it("renders nested object as expected", () => {
     expect(
