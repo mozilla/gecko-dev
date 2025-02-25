@@ -892,7 +892,8 @@ fn details_window() {
         assert_eq!(details_visible(), false);
         interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
         assert_eq!(details_text,
-            "BuildID: 1234\n\
+            "AsyncShutdownTimeout: {}\n\
+             BuildID: 1234\n\
              ProductName: Bar\n\
              ReleaseChannel: release\n\
              SomeNestedJson: {\"foo\":\"bar\"}\n\
