@@ -366,6 +366,11 @@ static void ResolveMidpoints(nsTArray<ColorStop>& stops) {
       continue;
     }
 
+    // Calculate the intermediate color stops per the formula of the CSS
+    // images spec. http://dev.w3.org/csswg/css-images/#color-stop-syntax
+    // 9 points were chosen since it is the minimum number of stops that always
+    // give the smoothest appearace regardless of midpoint position and
+    // difference in luminance of the end points.
     float midpoint = (offset - offset1) / (offset2 - offset1);
     ColorStop newStops[9];
     if (midpoint > .5f) {
@@ -383,34 +388,13 @@ static void ResolveMidpoints(nsTArray<ColorStop>& stops) {
         newStops[y + 2].mPosition = offset + (offset2 - offset) * y / 13;
       }
     }
-    // calculate colors
 
+    // calculate colors
     for (auto& newStop : newStops) {
-      // Calculate the intermediate color stops per the formula of the CSS
-      // images spec. http://dev.w3.org/csswg/css-images/#color-stop-syntax 9
-      // points were chosen since it is the minimum number of stops that always
-      // give the smoothest appearace regardless of midpoint position and
-      // difference in luminance of the end points.
       const float relativeOffset =
           (newStop.mPosition - offset1) / (offset2 - offset1);
       const float multiplier = powf(relativeOffset, logf(.5f) / logf(midpoint));
-
-      auto srgb1 = color1.ToColorSpace(StyleColorSpace::Srgb);
-      auto srgb2 = color2.ToColorSpace(StyleColorSpace::Srgb);
-
-      const float red =
-          srgb1.components._0 +
-          multiplier * (srgb2.components._0 - srgb1.components._0);
-      const float green =
-          srgb1.components._1 +
-          multiplier * (srgb2.components._1 - srgb1.components._1);
-      const float blue =
-          srgb1.components._2 +
-          multiplier * (srgb2.components._2 - srgb1.components._2);
-      const float alpha =
-          srgb1.alpha + multiplier * (srgb2.alpha - srgb1.alpha);
-
-      newStop.mColor = StyleAbsoluteColor::SrgbLegacy(red, green, blue, alpha);
+      newStop.mColor = Interpolate(color1, color2, multiplier);
     }
 
     stops.ReplaceElementsAt(x, 1, newStops, 9);
