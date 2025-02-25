@@ -285,6 +285,8 @@ remote-protocol:
         This preset can be filtered down further to limit it to a specific
         platform or to opt/debug tasks only. For example:
         |mach try --preset remote-protocol -xq "'linux 'opt"|
+    env:
+        - MOZ_DEVTOOLS_TEST_SCOPES=1
     query:
         - "'awsy-base"
         - "'firefox-ui"
