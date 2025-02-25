@@ -146,11 +146,12 @@ enum class ScrollFlags : uint8_t {
   ScrollSmooth = 1 << 3,
   ScrollSmoothAuto = 1 << 4,
   TriggeredByScript = 1 << 5,
+  AxesAreLogical = 1 << 6,
   // NOTE: `Anchor` means here is "scrolling to an anchor", not "CSS scroll
   // anchoring".
   AnchorScrollFlags =
       ScrollOverflowHidden | ScrollNoParentFrames | TriggeredByScript,
-  ALL_BITS = (1 << 6) - 1,
+  ALL_BITS = (1 << 7) - 1,
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(ScrollFlags)
