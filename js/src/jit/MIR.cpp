@@ -4604,9 +4604,6 @@ static JSType TypeOfName(const JSLinearString* str) {
   static constexpr std::array types = {
       JSTYPE_UNDEFINED, JSTYPE_OBJECT,  JSTYPE_FUNCTION, JSTYPE_STRING,
       JSTYPE_NUMBER,    JSTYPE_BOOLEAN, JSTYPE_SYMBOL,   JSTYPE_BIGINT,
-#ifdef ENABLE_RECORD_TUPLE
-      JSTYPE_RECORD,    JSTYPE_TUPLE,
-#endif
   };
   static_assert(types.size() == JSTYPE_LIMIT);
 
