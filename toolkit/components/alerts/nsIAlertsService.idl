@@ -244,6 +244,13 @@ interface nsIAlertNotification : nsISupports
   nsICancelable loadImage(in unsigned long aTimeout,
                           in nsIAlertNotificationImageListener aListener,
                           [optional] in nsISupports aUserData);
+
+  /**
+   * Retrieves the action object by the action name or null if not.
+   *
+   * @param aName The action name corresponding to nsIAlertAction.action.
+   */
+  nsIAlertAction getAction(in AString aName);
 };
 
 [scriptable, uuid(f7a36392-d98b-4141-a7d7-4e46642684e3)]

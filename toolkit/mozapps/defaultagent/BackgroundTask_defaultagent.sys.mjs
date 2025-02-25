@@ -346,7 +346,6 @@ function makeAlert(options) {
   let winalert = Cc["@mozilla.org/windows-alert-notification;1"].createInstance(
     Ci.nsIWindowsAlertNotification
   );
-  winalert.handleActions = true;
   winalert.imagePlacement = winalert.eIcon;
 
   let alert = winalert.QueryInterface(Ci.nsIAlertNotification);
@@ -373,6 +372,7 @@ function makeAlert(options) {
 
 function makeObserver(actions) {
   let shownPromise = Promise.withResolvers();
+  let alertShowReceived = false;
 
   // We'll receive multiple callbacks which individually might indicate an
   // interaction. Only log the first one to disambiguate and reduce noise.
@@ -386,51 +386,60 @@ function makeObserver(actions) {
 
   let observer = (subject, topic, data) => {
     switch (topic) {
-      case "alertactioncallback":
-        switch (data) {
-          case actions.yesAction:
-            logFirstInteraction(
-              'Notification "yes" button clicked, setting default browser.'
-            );
-            shownPromise.resolve({
-              shown: kNotificationShown.shown,
-              action: kNotificationAction.makeFirefoxDefaultButton,
-            });
-            break;
-          case actions.noAction:
-            logFirstInteraction("Notification dismissed by button.");
-            shownPromise.resolve({
-              shown: kNotificationShown.shown,
-              action: kNotificationAction.dismissedByButton,
-            });
-            break;
-          default:
-            lazy.log.error(`Unrecognized notification action ${data}`);
-            throw new Error(`Unexpected notification action received: ${data}`);
+      case "alertclickcallback":
+        if (!subject) {
+          logFirstInteraction(
+            "Notification body clicked, setting default browser."
+          );
+          shownPromise.resolve({
+            shown: kNotificationShown.shown,
+            action: kNotificationAction.toastClicked,
+          });
+        } else {
+          let alertAction = subject.QueryInterface(Ci.nsIAlertAction);
+          switch (alertAction.action) {
+            case actions.yesAction:
+              logFirstInteraction(
+                'Notification "yes" button clicked, setting default browser.'
+              );
+              shownPromise.resolve({
+                shown: kNotificationShown.shown,
+                action: kNotificationAction.makeFirefoxDefaultButton,
+              });
+              break;
+            case actions.noAction:
+              logFirstInteraction("Notification dismissed by button.");
+              shownPromise.resolve({
+                shown: kNotificationShown.shown,
+                action: kNotificationAction.dismissedByButton,
+              });
+              break;
+            default:
+              lazy.log.error(`Unrecognized notification action ${data}`);
+              throw new Error(
+                `Unexpected notification action received: ${data}`
+              );
+          }
         }
         break;
-      case "alertclickcallback":
-        logFirstInteraction(
-          "Notification body clicked, setting default browser."
-        );
-        shownPromise.resolve({
-          shown: kNotificationShown.shown,
-          action: kNotificationAction.toastClicked,
-        });
-        break;
-      case "alerterror":
-        lazy.log.error("Error showing notification.");
-        shownPromise.resolve({
-          shown: kNotificationShown.error,
-          action: kNotificationAction.noAction,
-        });
+      case "alertshow":
+        alertShowReceived = true;
         break;
       case "alertfinished":
-        logFirstInteraction("Notification dismissed from action center.");
-        shownPromise.resolve({
-          shown: kNotificationShown.shown,
-          action: kNotificationAction.dismissedToActionCenter,
-        });
+        if (alertShowReceived) {
+          logFirstInteraction("Notification dismissed from action center.");
+          shownPromise.resolve({
+            shown: kNotificationShown.shown,
+            action: kNotificationAction.dismissedToActionCenter,
+          });
+        } else {
+          // Being dismissed without shown means an error occured
+          lazy.log.error("Error showing notification.");
+          shownPromise.resolve({
+            shown: kNotificationShown.error,
+            action: kNotificationAction.noAction,
+          });
+        }
         break;
     }
   };

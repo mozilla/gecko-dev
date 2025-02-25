@@ -275,6 +275,22 @@ AlertNotification::LoadImage(uint32_t aTimeout,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+AlertNotification::GetAction(const nsAString& aName,
+                             nsIAlertAction** aAlertAction) {
+  NS_ENSURE_ARG_POINTER(aAlertAction);
+  for (const auto& action : mActions) {
+    nsString name;
+    MOZ_TRY(action->GetAction(name));
+    if (name.Equals(aName)) {
+      *aAlertAction = action;
+      return NS_OK;
+    }
+  }
+  *aAlertAction = nullptr;
+  return NS_OK;
+}
+
 NS_IMPL_CYCLE_COLLECTION(AlertImageRequest, mURI, mPrincipal, mListener,
                          mUserData)
 

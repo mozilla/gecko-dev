@@ -34,17 +34,18 @@ class ToastNotificationHandler final
   NS_DECL_NSIALERTNOTIFICATIONIMAGELISTENER
 
   ToastNotificationHandler(
-      ToastNotification* backend, const nsAString& aumid,
-      nsIObserver* aAlertListener, const nsAString& aName,
-      const nsAString& aCookie, const nsAString& aTitle, const nsAString& aMsg,
-      const nsAString& aHostPort, bool aClickable, bool aRequireInteraction,
+      ToastNotification* backend, const nsAString& aAumid,
+      nsIAlertNotification* aAlertNotification, nsIObserver* aAlertListener,
+      const nsAString& aName, const nsAString& aCookie, const nsAString& aTitle,
+      const nsAString& aMsg, const nsAString& aHostPort, bool aClickable,
+      bool aRequireInteraction,
       const nsTArray<RefPtr<nsIAlertAction>>& aActions, bool aIsSystemPrincipal,
       const nsAString& aOpaqueRelaunchData, bool aInPrivateBrowsing,
-      bool aIsSilent, bool aHandlesActions = false,
-      ImagePlacement aImagePlacement = ImagePlacement::eInline)
+      bool aIsSilent, ImagePlacement aImagePlacement = ImagePlacement::eInline)
       : mBackend(backend),
-        mAumid(aumid),
+        mAumid(aAumid),
         mHasImage(false),
+        mAlertNotification(aAlertNotification),
         mAlertListener(aAlertListener),
         mName(aName),
         mCookie(aCookie),
@@ -59,10 +60,9 @@ class ToastNotificationHandler final
         mOpaqueRelaunchData(aOpaqueRelaunchData),
         mIsSilent(aIsSilent),
         mSentFinished(!aAlertListener),
-        mHandleActions(aHandlesActions),
         mImagePlacement(aImagePlacement) {}
 
-  nsresult InitAlertAsync(nsIAlertNotification* aAlert);
+  nsresult InitAlertAsync();
 
   void OnWriteImageFinished(nsresult rv);
 
@@ -114,10 +114,11 @@ class ToastNotificationHandler final
   nsString mImageUri;
   bool mHasImage;
 
-  EventRegistrationToken mActivatedToken;
-  EventRegistrationToken mDismissedToken;
-  EventRegistrationToken mFailedToken;
+  EventRegistrationToken mActivatedToken{};
+  EventRegistrationToken mDismissedToken{};
+  EventRegistrationToken mFailedToken{};
 
+  nsCOMPtr<nsIAlertNotification> mAlertNotification;
   nsCOMPtr<nsIObserver> mAlertListener;
   nsString mName;
   nsString mCookie;
@@ -132,7 +133,6 @@ class ToastNotificationHandler final
   nsString mOpaqueRelaunchData;
   bool mIsSilent;
   bool mSentFinished;
-  bool mHandleActions;
   ImagePlacement mImagePlacement;
 
   nsresult TryShowAlert();

@@ -9,13 +9,6 @@
 interface nsIWindowsAlertNotification : nsIAlertNotification
 {
   /**
-   * Boolean to signal that notification button actions will be handled, and the
-   * resulting action should be communicated back on clicks through the
-   * `aData` field.
-   */
-  attribute boolean handleActions;
-
-  /**
    * Image placements corresponding to placements in Windows Toast
    * Notification XML.
    */

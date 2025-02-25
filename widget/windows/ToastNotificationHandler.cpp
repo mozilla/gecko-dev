@@ -298,14 +298,14 @@ void ToastNotificationHandler::UnregisterHandler() {
   SendFinished();
 }
 
-nsresult ToastNotificationHandler::InitAlertAsync(
-    nsIAlertNotification* aAlert) {
-  MOZ_TRY(aAlert->GetId(mWindowsTag));
+nsresult ToastNotificationHandler::InitAlertAsync() {
+  MOZ_TRY(mAlertNotification->GetId(mWindowsTag));
 
 #ifdef MOZ_BACKGROUNDTASKS
   nsAutoString imageUrl;
   if (BackgroundTasks::IsBackgroundTaskMode() &&
-      NS_SUCCEEDED(aAlert->GetImageURL(imageUrl)) && !imageUrl.IsEmpty()) {
+      NS_SUCCEEDED(mAlertNotification->GetImageURL(imageUrl)) &&
+      !imageUrl.IsEmpty()) {
     // Bug 1870750: Image decoding relies on gfx and runs on a thread pool,
     // which expects to have been initialized early and on the main thread.
     // Since background tasks run headless this never occurs. In this case we
@@ -314,8 +314,9 @@ nsresult ToastNotificationHandler::InitAlertAsync(
   }
 #endif
 
-  return aAlert->LoadImage(/* aTimeout = */ 0, this, /* aUserData = */ nullptr,
-                           getter_AddRefs(mImageRequest));
+  return mAlertNotification->LoadImage(/* aTimeout = */ 0, this,
+                                       /* aUserData = */ nullptr,
+                                       getter_AddRefs(mImageRequest));
 }
 
 nsString ToastNotificationHandler::ActionArgsJSONString(
@@ -884,22 +885,28 @@ ToastNotificationHandler::OnActivate(
         }
       }
 
-      if (mHandleActions) {
-        Json::Value jsonData;
-        Json::Reader jsonReader;
+      Json::Value jsonData;
+      Json::Reader jsonReader;
+      Maybe<nsString> actionValue;
+      nsCOMPtr<nsIAlertAction> alertAction;
 
-        if (jsonReader.parse(NS_ConvertUTF16toUTF8(actionString).get(),
-                             jsonData, false)) {
-          char actionKey[] = "action";
-          if (jsonData.isMember(actionKey) && jsonData[actionKey].isString()) {
-            mAlertListener->Observe(
-                nullptr, "alertactioncallback",
-                NS_ConvertUTF8toUTF16(jsonData[actionKey].asCString()).get());
-          }
+      if (jsonReader.parse(NS_ConvertUTF16toUTF8(actionString).get(), jsonData,
+                           false)) {
+        char actionKey[] = "action";
+        if (jsonData.isMember(actionKey) && jsonData[actionKey].isString()) {
+          actionValue.emplace(
+              NS_ConvertUTF8toUTF16(jsonData[actionKey].asCString()));
         }
       }
 
-      mAlertListener->Observe(nullptr, "alertclickcallback", mCookie.get());
+      if (actionValue) {
+        mAlertNotification->GetAction(*actionValue,
+                                      getter_AddRefs(alertAction));
+      }
+
+      // Null subject for the default action or an action object for extra
+      // actions
+      mAlertListener->Observe(alertAction, "alertclickcallback", mCookie.get());
     }
   }
   mBackend->RemoveHandler(mName, this);
@@ -1001,10 +1008,6 @@ ToastNotificationHandler::OnFail(const ComPtr<IToastNotification>& notification,
   aArgs->get_ErrorCode(&err);
   MOZ_LOG(sWASLog, LogLevel::Error,
           ("Error creating notification, error: %ld", err));
-
-  if (mHandleActions) {
-    mAlertListener->Observe(nullptr, "alerterror", mCookie.get());
-  }
 
   SendFinished();
   mBackend->RemoveHandler(mName, this);
