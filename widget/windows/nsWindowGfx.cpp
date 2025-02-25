@@ -188,14 +188,19 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
   // Clear the translucent region if needed.
   if (mTransparencyMode == TransparencyMode::Transparent) {
     auto translucentRegion = GetTranslucentRegion();
-    region.OrWith(translucentRegion);
-    // Clear the parts of the translucent region that aren't clear already.
+    // Clear the parts of the translucent region that aren't clear already or
+    // that Windows has told us to repaint.
+    // NOTE(emilio): Ordering of region ops is a bit subtle to avoid
+    // unnecessary copies, but we want to end up with:
+    //   regionToClear = translucentRegion - (mClearedRegion - region)
+    //   mClearedRegion = translucentRegion;
+    //   And add translucentRegion to region afterwards.
     regionToClear = translucentRegion;
-    if (!didResize && !mClearedRegion.IsEmpty()) {
-      // TODO(emilio): Would be nice to reuse some of the cleared region when
-      // resizing, but it's not trivial.
+    if (!mClearedRegion.IsEmpty()) {
+      mClearedRegion.SubOut(region);
       regionToClear.SubOut(mClearedRegion);
     }
+    region.OrWith(translucentRegion);
     mClearedRegion = std::move(translucentRegion);
   }
   if (mNeedsNCAreaClear) {
