@@ -307,6 +307,33 @@ features:
         type: Boolean
         default: true
 
+  sent-from-firefox:
+    description: A feature that allows the user to add a download firefox footer to a shared link.
+    variables:
+      enabled:
+        description: If true, the feature is available for the user.
+        type: Boolean
+        default: false
+      template-message:
+        description: A template for the shared message, supporting three placeholders. A shared link, the brand name and a store download link.
+        type: Text
+        default: ""
+      download-link:
+        description: A store download link.
+        type: Text
+        default: ""
+      show-snackbar:
+        description: If true, the user will see the snackbar after sharing a link, allowing quick navigation to settings.
+        type: Boolean
+        default: false
+    defaults:
+      - channel: developer
+        value:
+          enabled: true
+          template-message: sent_from_firefox_template
+          download-link: "[Download Link]"
+          show-snackbar: true
+
   search-extra-params:
     description: A feature that provides additional args for search.
     variables:
