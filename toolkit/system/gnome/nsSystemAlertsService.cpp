@@ -51,7 +51,7 @@ NS_IMETHODIMP nsSystemAlertsService::ShowAlert(nsIAlertNotification* aAlert,
   NS_ENSURE_SUCCESS(rv, rv);
 
   RefPtr<nsAlertsIconListener> alertListener =
-      new nsAlertsIconListener(this, alertName);
+      new nsAlertsIconListener(this, aAlert, alertName);
   if (!alertListener) return NS_ERROR_OUT_OF_MEMORY;
 
   if (mSuppressForScreenSharing) {

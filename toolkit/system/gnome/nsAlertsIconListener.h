@@ -29,6 +29,7 @@ class nsAlertsIconListener : public nsIAlertNotificationImageListener,
   NS_DECL_NSIOBSERVER
 
   nsAlertsIconListener(nsSystemAlertsService* aBackend,
+                       nsIAlertNotification* aAlertNotification,
                        const nsAString& aAlertName);
 
   nsresult InitAlertAsync(nsIAlertNotification* aAlert,
@@ -36,6 +37,7 @@ class nsAlertsIconListener : public nsIAlertNotificationImageListener,
   nsresult Close();
 
   void SendCallback();
+  void SendActionCallback(const nsAString& aActionName);
   void SendClosed();
 
  protected:
@@ -76,10 +78,12 @@ class nsAlertsIconListener : public nsIAlertNotificationImageListener,
   nsString mAlertName;
 
   RefPtr<nsSystemAlertsService> mBackend;
+  nsCOMPtr<nsIAlertNotification> mAlertNotification;
 
   bool mAlertHasAction = false;
   bool mAlertIsSilent = false;
   bool mAlertRequiresInteraction = false;
+  nsTArray<RefPtr<nsIAlertAction>> mActions;
 
   static void* libNotifyHandle;
   static bool libNotifyNotAvail;
