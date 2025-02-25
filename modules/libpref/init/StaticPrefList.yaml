@@ -16472,7 +16472,7 @@
 # 3: Consult CRLite and enforce "Not Revoked" results, but defer to OCSP for "Revoked".
 - name: security.pki.crlite_mode
   type: RelaxedAtomicUint32
-#ifdef NIGHTLY_BUILD
+#if defined(EARLY_BETA_OR_EARLIER)
   value: 2
 #else
   value: 3
