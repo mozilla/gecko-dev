@@ -29,8 +29,7 @@ class URLWorker final {
                                                  const nsACString& aBase,
                                                  ErrorResult& aRv);
 
-  static void CreateObjectURL(const GlobalObject& aGlobal,
-                              const BlobOrMediaSource& aObj,
+  static void CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
                               nsACString& aResult, mozilla::ErrorResult& aRv);
   static void RevokeObjectURL(const GlobalObject& aGlobal,
                               const nsACString& aUrl, ErrorResult& aRv);

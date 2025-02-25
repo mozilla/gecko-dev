@@ -48,9 +48,13 @@ interface URL {
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 partial interface URL {
   [Throws]
-  static UTF8String createObjectURL((Blob or MediaSource) obj);
+  static UTF8String createObjectURL(Blob blob);
   [Throws]
   static undefined revokeObjectURL(UTF8String url);
   [ChromeOnly, Throws]
   static boolean isValidObjectURL(UTF8String url);
+
+  // https://dvcs.w3.org/hg/html-media/raw-file/default/media-source/media-source.html
+  [Throws]
+  static UTF8String createObjectURL(MediaSource source);
 };
