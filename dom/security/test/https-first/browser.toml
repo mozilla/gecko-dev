@@ -23,6 +23,10 @@ support-files = [
 
 ["browser_http_scheme_no_upgrade.js"]
 
+["browser_https_rr_no_downgrade.js"]
+support-files = ["file_https_rr_no_downgrade.sjs"]
+skip-if = ["os == 'mac' && os_version == '10.15'"]
+
 ["browser_https_telemetry.js"]
 support-files = [
   "file_https_telemetry_hsts.sjs",
