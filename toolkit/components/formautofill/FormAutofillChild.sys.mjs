@@ -8,6 +8,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   AddressResult: "resource://autofill/ProfileAutoCompleteResult.sys.mjs",
+  AutofillFormFactory:
+    "resource://gre/modules/shared/AutofillFormFactory.sys.mjs",
   AutofillTelemetry: "resource://gre/modules/shared/AutofillTelemetry.sys.mjs",
   CreditCardResult: "resource://autofill/ProfileAutoCompleteResult.sys.mjs",
   GenericAutocompleteItem: "resource://gre/modules/FillHelpers.sys.mjs",
@@ -16,6 +18,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FormAutofill: "resource://autofill/FormAutofill.sys.mjs",
   FormAutofillContent: "resource://autofill/FormAutofillContent.sys.mjs",
   FormAutofillHandler:
+    "resource://gre/modules/shared/FormAutofillHandler.sys.mjs",
+  FORM_CHANGE_REASON:
     "resource://gre/modules/shared/FormAutofillHandler.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
   FormLikeFactory: "resource://gre/modules/FormLikeFactory.sys.mjs",
@@ -66,8 +70,10 @@ export class FormAutofillChild extends JSWindowActorChild {
    *
    * @param {Array<FieldDetail>} fieldDetails
    *        An array of the identified fields.
+   * @param {boolean} isUpdate flags whether the field detection process
+   *                           is run due to a form change
    */
-  onFieldsDetectedComplete(fieldDetails) {
+  onFieldsDetectedComplete(fieldDetails, isUpdate = false) {
     if (!fieldDetails.length) {
       return;
     }
@@ -77,7 +83,13 @@ export class FormAutofillChild extends JSWindowActorChild {
     );
     this.#handlerWaitingForDetectedComplete.delete(handler);
 
+    if (isUpdate) {
+      handler.updateFormIfNeeded(fieldDetails[0].element);
+      this._fieldDetailsManager.addFormHandlerByElementEntries(handler);
+    }
+
     handler.setIdentifiedFieldDetails(fieldDetails);
+    handler.setUpDynamicFormChangeObserver();
 
     let addressFields = [];
     let creditcardFields = [];
@@ -104,10 +116,20 @@ export class FormAutofillChild extends JSWindowActorChild {
     [...addressFields, ...creditcardFields].forEach(fieldDetail => {
       this.#markAsAutofillField(fieldDetail);
 
-      if (fieldDetail.element == lazy.FormAutofillContent.focusedInput) {
+      if (
+        fieldDetail.element == lazy.FormAutofillContent.focusedInput &&
+        !isUpdate
+      ) {
         this.showPopupIfEmpty(fieldDetail.element, fieldDetail.fieldName);
       }
     });
+
+    if (isUpdate) {
+      // The fields detection was re-run because of a form change, this means
+      // FormAutofillChild already registered its interest in form submissions
+      // in the initial field detection process
+      return;
+    }
 
     // Do not need to listen to form submission event because if the address fields do not contain
     // 'street-address' or `address-linx`, we will not save the address.
@@ -364,10 +386,17 @@ export class FormAutofillChild extends JSWindowActorChild {
         this.onFocusIn(evt.target);
         break;
       }
+      case "form-changed": {
+        if (!lazy.FormAutofill.detectDynamicFormChanges) {
+          return;
+        }
+        const { form, changes } = evt.detail;
+        this.onFormChange(form, changes);
+        break;
+      }
       case "form-submission-detected": {
-        const formElement = evt.detail.form;
-        const formSubmissionReason = evt.detail.reason;
-        this.onFormSubmission(formElement, formSubmissionReason);
+        const { form, reason } = evt.detail;
+        this.onFormSubmission(form, reason);
         break;
       }
 
@@ -416,6 +445,80 @@ export class FormAutofillChild extends JSWindowActorChild {
     }
 
     this.identifyFieldsWhenFocused(element);
+  }
+
+  /**
+   * A "form-changed" event was dispatched, because the observed document/form
+   * added or removed child nodes or an observed element changed its visibility state.
+   * A new field detection process will be initiated in the parent, if the collected fieldDetails
+   * from the current form/document differ from the previous state.
+   *
+   * @param {HTMLFormElement|HTMLDocument} form or document (if form-less) that contains the
+   *                                            elements that were added/removed/became (in-)visible
+   * @param {object} changes Change details keyed by lazy.FORM_CHANGE_REASON:
+   *                          - NODES_ADDED: HTMLElement[] - nodes added
+   *                          - NODES_REMOVED: HTMLElement[] - nodes removed
+   *                          - ELEMENT_VISIBLE: HTMLElement[] - elements that became visible
+   *                          - ELEMENT_INVISIBLE: HTMLElement[] - elements that became invisible
+   *                          A form-change event is single-reasoned for visibility changes and can be multi-reasoned for mutations.
+   */
+  onFormChange(form, changes) {
+    this.debug(
+      `Handling form change - infered by reason(s): ${Object.keys(changes)}`
+    );
+
+    // Ignore "form-changed" events with reason "visibile-element-became-invisible" if
+    // the affected element is disconnected. This element change is already handled by a
+    // "form-changed" event with reason "nodes-removed".
+    const invisibleElement =
+      changes[lazy.FORM_CHANGE_REASON.ELEMENT_INVISIBLE]?.[0];
+    if (invisibleElement && !invisibleElement.isConnected) {
+      return;
+    }
+
+    const formRootElementId = lazy.FormAutofillUtils.getElementIdentifier(form);
+    const handler =
+      this._fieldDetailsManager.getFormHandlerByRootElementId(
+        formRootElementId
+      );
+
+    if (this.#handlerWaitingForDetectedComplete.has(handler)) {
+      // The child is still waiting for the parent to complete
+      // a previous fields detection
+      return;
+    }
+
+    // createFromField needs an input, select or iframe element
+    const anchorElement = handler.form.elements.find(
+      element =>
+        HTMLInputElement.isInstance(element) ||
+        HTMLSelectElement.isInstance(element) ||
+        HTMLIFrameElement.isInstance(element)
+    );
+    const currentForm = lazy.AutofillFormFactory.createFromField(anchorElement);
+    const currentFields =
+      lazy.FormAutofillHandler.collectFormFieldDetails(currentForm);
+
+    if (
+      currentFields.length == handler.fieldDetails.length &&
+      currentFields.every(
+        (field, idx) => field.element === handler.fieldDetails[idx].element
+      )
+    ) {
+      // The detected form fields remain unchanged,
+      // so we don't notify the parent and the subtree children
+      this.debug(`fieldDetails remain unchanged after form change.`);
+      return;
+    }
+
+    this._fieldDetailsManager.removeFormHandlerByElementEntries(handler);
+
+    this.sendAsyncMessage(
+      "FormAutofill:OnFieldsUpdated",
+      currentFields.map(field => field.toVanillaObject())
+    );
+
+    this.#handlerWaitingForDetectedComplete.add(handler);
   }
 
   /**
@@ -492,6 +595,15 @@ export class FormAutofillChild extends JSWindowActorChild {
           lazy.FieldDetail.fromVanillaObject(fd)
         );
         this.onFieldsDetectedComplete(fieldDetails);
+        break;
+      }
+      case "FormAutofill:onFieldsUpdatedComplete": {
+        const { fds } = message.data;
+        const fieldDetails = fds.map(fd =>
+          lazy.FieldDetail.fromVanillaObject(fd)
+        );
+        const isUpdate = true;
+        this.onFieldsDetectedComplete(fieldDetails, isUpdate);
         break;
       }
     }

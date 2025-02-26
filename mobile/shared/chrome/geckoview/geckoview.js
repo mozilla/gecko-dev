@@ -794,6 +794,7 @@ function startup() {
               esModuleURI: "resource://autofill/FormAutofillChild.sys.mjs",
               events: {
                 focusin: {},
+                "form-changed": {},
                 "form-submission-detected": {},
               },
             },
