@@ -110,6 +110,7 @@ val darkColorPalette = AcornColors(
     textCriticalButton = PhotonColors.Red20,
     textAccent = PhotonColors.Violet20,
     textAccentDisabled = PhotonColors.Violet20A60,
+    textInverted = PhotonColors.DarkGrey90,
     textOnColorPrimary = PhotonColors.LightGrey05,
     textOnColorSecondary = PhotonColors.LightGrey40,
     textActionPrimary = PhotonColors.LightGrey05,
@@ -193,6 +194,7 @@ val lightColorPalette = AcornColors(
     textCriticalButton = PhotonColors.Red70,
     textAccent = PhotonColors.Violet70,
     textAccentDisabled = PhotonColors.Violet70A80,
+    textInverted = PhotonColors.LightGrey05,
     textOnColorPrimary = PhotonColors.LightGrey05,
     textOnColorSecondary = PhotonColors.LightGrey40,
     textActionPrimary = PhotonColors.LightGrey05,
@@ -293,6 +295,7 @@ class AcornColors(
     textCriticalButton: Color,
     textAccent: Color,
     textAccentDisabled: Color,
+    textInverted: Color,
     textOnColorPrimary: Color,
     textOnColorSecondary: Color,
     textActionPrimary: Color,
@@ -500,6 +503,10 @@ class AcornColors(
 
     // Small heading, Text link
     var textAccentDisabled by mutableStateOf(textAccentDisabled)
+        private set
+
+    // Text Inverted
+    var textInverted by mutableStateOf(textInverted)
         private set
 
     // Text Inverted/On Color
@@ -781,6 +788,7 @@ class AcornColors(
         textCriticalButton: Color = this.textCriticalButton,
         textAccent: Color = this.textAccent,
         textAccentDisabled: Color = this.textAccentDisabled,
+        textInverted: Color = this.textInverted,
         textOnColorPrimary: Color = this.textOnColorPrimary,
         textOnColorSecondary: Color = this.textOnColorSecondary,
         textActionPrimary: Color = this.textActionPrimary,
@@ -862,6 +870,7 @@ class AcornColors(
         textCriticalButton = textCriticalButton,
         textAccent = textAccent,
         textAccentDisabled = textAccentDisabled,
+        textInverted = textInverted,
         textOnColorPrimary = textOnColorPrimary,
         textOnColorSecondary = textOnColorSecondary,
         textActionPrimary = textActionPrimary,

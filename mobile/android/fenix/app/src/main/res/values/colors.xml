@@ -84,6 +84,8 @@
     <color name="fx_mobile_text_color_accent">@color/photonViolet70</color>
     <!-- Small heading, Text link -->
     <color name="fx_mobile_text_color_accent_disabled" tools:ignore="UnusedResources">@color/photonViolet70A80</color>
+    <!-- Text Inverted -->
+    <color name="fx_mobile_text_color_inverted" tools:ignore="UnusedResources">@color/photonLightGrey05</color>
     <!-- Text Inverted/On Color -->
     <color name="fx_mobile_text_color_oncolor_primary">@color/photonLightGrey05</color>
     <!-- Text Inverted/On Color -->
