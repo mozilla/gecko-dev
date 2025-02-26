@@ -11899,6 +11899,16 @@ int32_t nsContentUtils::CompareTreePosition(const nsINode* aNode1,
     return 0;
   }
 
+  // TODO: Maybe handle flat tree too or other common cases?
+  if constexpr (aTreeKind == TreeKind::DOM) {
+    if (aNode1->GetNextSibling() == aNode2) {
+      return -1;
+    }
+    if (aNode1->GetPreviousSibling() == aNode2) {
+      return 1;
+    }
+  }
+
   AutoTArray<const nsINode*, 32> node1Ancestors;
   const nsINode* c1;
   for (c1 = aNode1; c1 && c1 != aCommonAncestor;
