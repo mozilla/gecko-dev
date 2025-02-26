@@ -36,7 +36,7 @@ pub struct ReportCrash {
     memtest: RefCell<Option<Memtest>>,
 }
 
-fn sanitize_extra(extra: &mut serde_json::Value) {
+fn modify_extra_for_report(extra: &mut serde_json::Value) {
     if let Some(map) = extra.as_object_mut() {
         // Remove these entries, they don't need to be sent.
         map.remove("ProfileDirectory");
@@ -46,13 +46,6 @@ fn sanitize_extra(extra: &mut serde_json::Value) {
 
     extra["SubmittedFrom"] = "Client".into();
     extra["Throttleable"] = "1".into();
-}
-
-#[cfg(test)]
-pub mod test {
-    pub fn sanitize_extra(extra: &mut serde_json::Value) {
-        super::sanitize_extra(extra);
-    }
 }
 
 impl ReportCrash {
@@ -92,7 +85,6 @@ impl ReportCrash {
         if let Err(e) = self.update_events_file(hash.as_deref(), ping_uuid) {
             log::warn!("failed to update events file: {e:#}");
         }
-        self.sanitize_extra();
         self.check_eol_version()?;
 
         if !self.config.auto_submit {
@@ -145,12 +137,6 @@ impl ReportCrash {
             pingsender_path: self.config.installation_program_path("pingsender").as_ref(),
         }
         .send()
-    }
-
-    /// Remove unneeded entries from the extra file, and add some that indicate from where the data
-    /// is being sent.
-    fn sanitize_extra(&mut self) {
-        sanitize_extra(&mut self.extra);
     }
 
     /// Update the events file with information about the crash ping, minidump hash, and
@@ -482,7 +468,8 @@ impl ReportCrash {
     pub fn update_details(&self) {
         use crate::std::fmt::Write;
 
-        let extra = self.current_extra_data();
+        let mut extra = self.current_extra_data();
+        modify_extra_for_report(&mut extra);
 
         let mut details = String::new();
         let mut entries: Vec<_> = extra.as_object().unwrap().into_iter().collect();
@@ -557,27 +544,22 @@ impl ReportCrash {
         // Potentially start/stop a memtest now, in case the settings have changed since launch.
         self.memtest_according_to_settings();
 
-        let extra = {
-            // Incorporate user input into the extra data (which is acknowledged by "submit report"
-            // being enabled).
-            let mut extra = self.current_extra_data();
+        // Incorporate user input into the extra data (which is acknowledged by "submit report"
+        // being enabled).
+        let mut extra = self.current_extra_data();
 
-            // Store memtest output. The previous `memtest_according_to_settings()` ensures that we
-            // only add the output if the setting is enabled.
-            if let Some(memtest) = self.memtest.borrow_mut().take() {
-                if let Some(ui) = &self.ui {
-                    ui.push(|r| *r.submit_state.borrow_mut() = SubmitState::WaitingHardwareTests);
-                }
-
-                match memtest.collect_output_for_submission() {
-                    Err(e) => log::error!("couldn't get memtest output: {e:#}"),
-                    Ok(s) => extra["MemtestOutput"] = s.into(),
-                }
+        // Store memtest output. The previous `memtest_according_to_settings()` ensures that we
+        // only add the output if the setting is enabled.
+        if let Some(memtest) = self.memtest.borrow_mut().take() {
+            if let Some(ui) = &self.ui {
+                ui.push(|r| *r.submit_state.borrow_mut() = SubmitState::WaitingHardwareTests);
             }
-            extra
-        };
 
-        // The extra contents cannot change beyond this point.
+            match memtest.collect_output_for_submission() {
+                Err(e) => log::error!("couldn't get memtest output: {e:#}"),
+                Ok(s) => extra["MemtestOutput"] = s.into(),
+            }
+        }
 
         if let Some(ui) = &self.ui {
             ui.push(|r| *r.submit_state.borrow_mut() = SubmitState::InProgress);
@@ -590,6 +572,11 @@ impl ReportCrash {
             // We can proceed in the event of an error; this is best-effort and serves as
             // insurance in case submission fails.
         }
+
+        modify_extra_for_report(&mut extra);
+
+        // The extra contents cannot change beyond this point.
+        let extra = extra;
 
         // TODO? load proxy info from libgconf on linux
 

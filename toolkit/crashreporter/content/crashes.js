@@ -159,7 +159,8 @@ function submitPendingReport(reportId, row, button, buttonText, dateFormatter) {
         showAppropriateSections();
         dispatchCustomEvent("CrashSubmitSucceeded");
       },
-      () => {
+      error => {
+        console.error(error);
         button.classList.remove("submitting");
         button.classList.add("failed-to-submit");
         document.l10n.setAttributes(

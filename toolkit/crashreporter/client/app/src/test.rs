@@ -8,7 +8,6 @@
 
 use super::*;
 use crate::config::{test::MINIDUMP_PRUNE_SAVE_COUNT, Config};
-use crate::logic::test::sanitize_extra;
 use crate::settings::Settings;
 use crate::std::{
     ffi::OsString,
@@ -104,12 +103,6 @@ const MOCK_MINIDUMP_EXTRA: &str = r#"{
         "SomeNestedJson": { "foo": "bar" },
         "URL": "https://url.example.com"
     }"#;
-
-fn sanitized_json(json: &str) -> String {
-    let mut value: serde_json::Value = serde_json::from_str(json).unwrap();
-    sanitize_extra(&mut value);
-    serde_json::to_string(&value).unwrap()
-}
 
 fn compact_json(json: &str) -> String {
     let value: serde_json::Value = serde_json::from_str(json).unwrap();
@@ -371,7 +364,7 @@ impl AssertFiles {
         self.inner
             .check(
                 self.data("pending/minidump.extra"),
-                sanitized_json(MOCK_MINIDUMP_EXTRA),
+                compact_json(MOCK_MINIDUMP_EXTRA),
             )
             .check_bytes(dmp, MOCK_MINIDUMP_FILE);
         self
@@ -612,7 +605,7 @@ fn no_restart_with_windows_error_reporting() {
         let dmp = assert_files.data("pending/minidump.dmp");
         let extra = assert_files.data("pending/minidump.extra");
         assert_files
-            .check(extra, sanitized_json(MINIDUMP_EXTRA_CONTENTS))
+            .check(extra, compact_json(MINIDUMP_EXTRA_CONTENTS))
             .check_bytes(dmp, MOCK_MINIDUMP_FILE);
     }
 
@@ -1075,7 +1068,6 @@ fn add_memtest_output_to_extra() {
     });
 
     let mut value: serde_json::Value = serde_json::from_str(MOCK_MINIDUMP_EXTRA).unwrap();
-    sanitize_extra(&mut value);
     value["MemtestOutput"] = "memtest output".into();
     let new_extra = serde_json::to_string(&value).unwrap();
 
