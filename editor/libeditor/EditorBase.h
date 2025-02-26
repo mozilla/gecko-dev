@@ -1722,17 +1722,42 @@ class EditorBase : public nsIEditor,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   OnInputText(const nsAString& aStringToInsert);
 
+  enum class InsertTextFor {
+    NormalText,
+    CompositionStart,
+    CompositionUpdate,
+    CompositionEnd,
+    CompositionStartAndEnd,
+  };
+  [[nodiscard]] static bool InsertingTextForComposition(
+      InsertTextFor aPurpose) {
+    return aPurpose != InsertTextFor::NormalText;
+  }
+  [[nodiscard]] static bool InsertingTextForExtantComposition(
+      InsertTextFor aPurpose) {
+    return aPurpose == InsertTextFor::CompositionUpdate ||
+           aPurpose == InsertTextFor::CompositionEnd;
+  }
+  [[nodiscard]] static bool InsertingTextForStartingComposition(
+      InsertTextFor aPurpose) {
+    return aPurpose == InsertTextFor::CompositionStart ||
+           aPurpose == InsertTextFor::CompositionStartAndEnd;
+  }
+  [[nodiscard]] static bool NothingToDoIfInsertingEmptyText(
+      InsertTextFor aPurpose) {
+    return aPurpose == InsertTextFor::NormalText ||
+           aPurpose == InsertTextFor::CompositionStartAndEnd;
+  }
+
   /**
    * InsertTextAsSubAction() inserts aStringToInsert at selection.  This
    * should be used for handling it as an edit sub-action.
    *
    * @param aStringToInsert     The string to insert.
-   * @param aSelectionHandling  Specify whether selected content should be
-   *                            deleted or ignored.
+   * @param aPurpose            Specify the purpose to insert text.
    */
-  enum class SelectionHandling { Ignore, Delete };
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertTextAsSubAction(
-      const nsAString& aStringToInsert, SelectionHandling aSelectionHandling);
+      const nsAString& aStringToInsert, InsertTextFor aPurpose);
 
   /**
    * Insert aStringToInsert to aPointToInsert or better insertion point around
@@ -2155,16 +2180,12 @@ class EditorBase : public nsIEditor,
   /**
    * HandleInsertText() handles inserting text at selection.
    *
-   * @param aEditSubAction      Must be EditSubAction::eInsertText or
-   *                            EditSubAction::eInsertTextComingFromIME.
    * @param aInsertionString    String to be inserted at selection.
-   * @param aSelectionHandling  Specify whether selected content should be
-   *                            deleted or ignored.
+   * @param aPurpose            Specify the purpose of inserting text.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT virtual Result<EditActionResult, nsresult>
-  HandleInsertText(EditSubAction aEditSubAction,
-                   const nsAString& aInsertionString,
-                   SelectionHandling aSelectionHandling) = 0;
+  HandleInsertText(const nsAString& aInsertionString,
+                   InsertTextFor aPurpose) = 0;
 
   /**
    * InsertWithQuotationsAsSubAction() inserts aQuotedText with appending ">"

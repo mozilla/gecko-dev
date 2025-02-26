@@ -83,7 +83,7 @@ nsresult TextEditor::InsertTextFromTransferable(
       AutoPlaceholderBatch treatAsOneTransaction(
           *this, ScrollSelectionIntoView::Yes, __FUNCTION__);
       nsresult rv =
-          InsertTextAsSubAction(stuffToPaste, SelectionHandling::Delete);
+          InsertTextAsSubAction(stuffToPaste, InsertTextFor::NormalText);
       if (NS_FAILED(rv)) {
         NS_WARNING("EditorBase::InsertTextAsSubAction() failed");
         return rv;

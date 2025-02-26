@@ -2173,7 +2173,7 @@ nsresult EditorBase::InsertTextAt(
     return rv;
   }
 
-  rv = InsertTextAsSubAction(aStringToInsert, SelectionHandling::Delete);
+  rv = InsertTextAsSubAction(aStringToInsert, InsertTextFor::NormalText);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::InsertTextAsSubAction() failed");
   return rv;
@@ -4115,8 +4115,17 @@ nsresult EditorBase::OnCompositionChange(
         "AutoPlaceholderBatch should've notified the observes of before-edit");
     // If we're updating composition, we need to ignore normal selection
     // which may be updated by the web content.
-    rv = InsertTextAsSubAction(data, wasComposing ? SelectionHandling::Ignore
-                                                  : SelectionHandling::Delete);
+    const auto purpose = [&]() -> InsertTextFor {
+      if (!wasComposing) {
+        return !aCompositionChangeEvent.IsFollowedByCompositionEnd()
+                   ? InsertTextFor::CompositionStart
+                   : InsertTextFor::CompositionStartAndEnd;
+      }
+      return !aCompositionChangeEvent.IsFollowedByCompositionEnd()
+                 ? InsertTextFor::CompositionUpdate
+                 : InsertTextFor::CompositionEnd;
+    }();
+    rv = InsertTextAsSubAction(data, purpose);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "EditorBase::InsertTextAsSubAction() failed");
 
@@ -5498,7 +5507,7 @@ nsresult EditorBase::OnInputText(const nsAString& aStringToInsert) {
   AutoPlaceholderBatch treatAsOneTransaction(*this, *nsGkAtoms::TypingTxnName,
                                              ScrollSelectionIntoView::Yes,
                                              __FUNCTION__);
-  rv = InsertTextAsSubAction(aStringToInsert, SelectionHandling::Delete);
+  rv = InsertTextAsSubAction(aStringToInsert, InsertTextFor::NormalText);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::InsertTextAsSubAction() failed");
   return EditorBase::ToGenericNSResult(rv);
@@ -5644,7 +5653,7 @@ nsresult EditorBase::ReplaceSelectionAsSubAction(const nsAString& aString) {
     return rv;
   }
 
-  nsresult rv = InsertTextAsSubAction(aString, SelectionHandling::Delete);
+  nsresult rv = InsertTextAsSubAction(aString, InsertTextFor::NormalText);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::InsertTextAsSubAction() failed");
   return rv;
@@ -6442,19 +6451,23 @@ nsresult EditorBase::InsertTextAsAction(const nsAString& aStringToInsert,
   }
   AutoPlaceholderBatch treatAsOneTransaction(
       *this, ScrollSelectionIntoView::Yes, __FUNCTION__);
-  rv = InsertTextAsSubAction(stringToInsert, SelectionHandling::Delete);
+  rv = InsertTextAsSubAction(stringToInsert, InsertTextFor::NormalText);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::InsertTextAsSubAction() failed");
   return EditorBase::ToGenericNSResult(rv);
 }
 
-nsresult EditorBase::InsertTextAsSubAction(
-    const nsAString& aStringToInsert, SelectionHandling aSelectionHandling) {
+nsresult EditorBase::InsertTextAsSubAction(const nsAString& aStringToInsert,
+                                           InsertTextFor aPurpose) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(mPlaceholderBatch);
   MOZ_ASSERT(IsHTMLEditor() ||
              aStringToInsert.FindChar(nsCRT::CR) == kNotFound);
-  MOZ_ASSERT_IF(aSelectionHandling == SelectionHandling::Ignore, mComposition);
+  MOZ_ASSERT_IF(aPurpose == InsertTextFor::CompositionStart ||
+                    aPurpose == InsertTextFor::CompositionUpdate ||
+                    aPurpose == InsertTextFor::CompositionEnd ||
+                    aPurpose == InsertTextFor::CompositionStartAndEnd,
+                mComposition);
 
   if (NS_WARN_IF(!mInitSucceeded)) {
     return NS_ERROR_NOT_INITIALIZED;
@@ -6479,7 +6492,7 @@ nsresult EditorBase::InsertTextAsSubAction(
       "TextEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
 
   Result<EditActionResult, nsresult> result =
-      HandleInsertText(editSubAction, aStringToInsert, aSelectionHandling);
+      HandleInsertText(aStringToInsert, aPurpose);
   if (MOZ_UNLIKELY(result.isErr())) {
     NS_WARNING("EditorBase::HandleInsertText() failed");
     return result.unwrapErr();

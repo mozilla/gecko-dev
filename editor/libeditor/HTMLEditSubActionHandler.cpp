@@ -1069,13 +1069,8 @@ nsresult HTMLEditor::PrepareInlineStylesForCaret() {
 }
 
 Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
-    EditSubAction aEditSubAction, const nsAString& aInsertionString,
-    SelectionHandling aSelectionHandling) {
+    const nsAString& aInsertionString, InsertTextFor aPurpose) {
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
-  MOZ_ASSERT(aEditSubAction == EditSubAction::eInsertText ||
-             aEditSubAction == EditSubAction::eInsertTextComingFromIME);
-  MOZ_ASSERT_IF(aSelectionHandling == SelectionHandling::Ignore,
-                aEditSubAction == EditSubAction::eInsertTextComingFromIME);
 
   {
     Result<EditActionResult, nsresult> result = CanHandleHTMLEditSubAction();
@@ -1093,7 +1088,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
   // If the selection isn't collapsed, delete it.  Don't delete existing inline
   // tags, because we're hopefully going to insert text (bug 787432).
   if (!SelectionRef().IsCollapsed() &&
-      aSelectionHandling == SelectionHandling::Delete) {
+      !InsertingTextForExtantComposition(aPurpose)) {
     nsresult rv =
         DeleteSelectionAsSubAction(nsIEditor::eNone, nsIEditor::eNoStrip);
     if (NS_FAILED(rv)) {
@@ -1137,18 +1132,18 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
     }
   }
 
-  const bool isHandlingComposition =
-      aEditSubAction == EditSubAction::eInsertTextComingFromIME;
-  auto pointToInsert = isHandlingComposition
-                           ? GetFirstIMESelectionStartPoint<EditorDOMPoint>()
-                           : GetFirstSelectionStartPoint<EditorDOMPoint>();
-  if (!pointToInsert.IsSet()) {
-    if (MOZ_LIKELY(isHandlingComposition)) {
-      pointToInsert = GetFirstSelectionStartPoint<EditorDOMPoint>();
+  auto pointToInsert = [&]() -> EditorDOMPoint {
+    if (InsertingTextForExtantComposition(aPurpose)) {
+      auto compositionStartPoint =
+          GetFirstIMESelectionStartPoint<EditorDOMPoint>();
+      if (MOZ_LIKELY(compositionStartPoint.IsSet())) {
+        return compositionStartPoint;
+      }
     }
-    if (NS_WARN_IF(!pointToInsert.IsSet())) {
-      return Err(NS_ERROR_FAILURE);
-    }
+    return GetFirstSelectionStartPoint<EditorDOMPoint>();
+  }();
+  if (NS_WARN_IF(!pointToInsert.IsSet())) {
+    return Err(NS_ERROR_FAILURE);
   }
 
   // for every property that is set, insert a new inline style node
@@ -1185,7 +1180,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
     }
   }
 
-  if (isHandlingComposition) {
+  if (InsertingTextForComposition(aPurpose)) {
     if (aInsertionString.IsEmpty()) {
       // Right now the WhiteSpaceVisibilityKeeper code bails on empty strings,
       // but IME needs the InsertTextWithTransaction() call to still happen
@@ -1276,7 +1271,7 @@ Result<EditActionResult, nsresult> HTMLEditor::HandleInsertText(
     return EditActionResult::HandledResult();
   }
 
-  MOZ_ASSERT(aEditSubAction == EditSubAction::eInsertText);
+  MOZ_ASSERT(!InsertingTextForComposition(aPurpose));
 
   // find where we are
   EditorDOMPoint currentPoint(pointToInsert);

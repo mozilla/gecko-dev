@@ -10,6 +10,7 @@
 
 #include "AutoSelectionRestorer.h"
 #include "EditAction.h"
+#include "EditorBase.h"
 #include "EditorDOMPoint.h"
 #include "EditorUtils.h"
 #include "HTMLEditHelpers.h"
@@ -329,7 +330,7 @@ nsresult HTMLEditor::InsertHTMLAsAction(const nsAString& aInString,
     }
     if (MOZ_LIKELY(!plaintextString.IsEmpty())) {
       EnsureAutoPlaceholderBatch();
-      rv = InsertTextAsSubAction(plaintextString, SelectionHandling::Delete);
+      rv = InsertTextAsSubAction(plaintextString, InsertTextFor::NormalText);
       NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                            "EditorBase::InsertTextAsSubAction() failed");
     } else if (!SelectionRef().IsCollapsed()) {
@@ -2182,7 +2183,7 @@ nsresult HTMLEditor::InsertFromTransferableAtSelection(
           AutoPlaceholderBatch treatAsOneTransaction(
               *this, ScrollSelectionIntoView::Yes, __FUNCTION__);
           nsresult rv =
-              InsertTextAsSubAction(stuffToPaste, SelectionHandling::Delete);
+              InsertTextAsSubAction(stuffToPaste, InsertTextFor::NormalText);
           if (NS_FAILED(rv)) {
             NS_WARNING("EditorBase::InsertTextAsSubAction() failed");
             return rv;
@@ -3085,7 +3086,7 @@ nsresult HTMLEditor::InsertWithQuotationsAsSubAction(
     }
   }
 
-  rv = InsertTextAsSubAction(quotedStuff, SelectionHandling::Delete);
+  rv = InsertTextAsSubAction(quotedStuff, InsertTextFor::NormalText);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::InsertTextAsSubAction() failed");
   return rv;
@@ -3204,7 +3205,7 @@ nsresult HTMLEditor::InsertTextWithQuotationsInternal(
                            "HTMLEditor::InsertAsPlaintextQuotation() failed, "
                            "but might be ignored");
     } else {
-      rv = InsertTextAsSubAction(curHunk, SelectionHandling::Delete);
+      rv = InsertTextAsSubAction(curHunk, InsertTextFor::NormalText);
       NS_WARNING_ASSERTION(
           NS_SUCCEEDED(rv),
           "EditorBase::InsertTextAsSubAction() failed, but might be ignored");
@@ -3416,7 +3417,7 @@ nsresult HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
       return rv;
     }
   } else {
-    nsresult rv = InsertTextAsSubAction(aQuotedText, SelectionHandling::Delete);
+    nsresult rv = InsertTextAsSubAction(aQuotedText, InsertTextFor::NormalText);
     if (NS_FAILED(rv)) {
       NS_WARNING("EditorBase::InsertTextAsSubAction() failed");
       return rv;
@@ -3696,7 +3697,7 @@ nsresult HTMLEditor::InsertAsCitedQuotationInternal(
     }
   } else {
     rv = InsertTextAsSubAction(
-        aQuotedText, SelectionHandling::Delete);  // XXX ignore charset
+        aQuotedText, InsertTextFor::NormalText);  // XXX ignore charset
     if (NS_WARN_IF(Destroyed())) {
       return NS_ERROR_EDITOR_DESTROYED;
     }
