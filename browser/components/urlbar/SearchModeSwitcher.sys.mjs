@@ -245,6 +245,7 @@ export class SearchModeSwitcher {
       case "scotchBonnet.enableOverride": {
         if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
           this.#enableObservers();
+          this.updateSearchIcon();
         } else {
           this.#disableObservers();
         }
@@ -493,12 +494,6 @@ export class SearchModeSwitcher {
       "#searchmode-switcher-popup-search-settings-button"
     );
     prefsbutton.addEventListener("command", this);
-
-    this.#input.window.addEventListener(
-      "MozAfterPaint",
-      () => this.updateSearchIcon(),
-      { once: true }
-    );
   }
 
   #disableObservers() {

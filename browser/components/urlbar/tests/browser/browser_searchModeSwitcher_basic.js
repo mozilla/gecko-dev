@@ -809,6 +809,12 @@ add_task(async function test_search_mode_switcher_private_engine_icon() {
     private: true,
   });
 
+  info("Input any text to update the icon");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window: privateWin,
+    value: "abc",
+  });
+
   Assert.equal(
     getSeachModeSwitcherIcon(privateWin),
     defaultPrivateEngineIcon,
@@ -839,5 +845,6 @@ function getSeachModeSwitcherIcon(window) {
 
   // match and capture the URL inside `url("...")`
   let re = /url\("([^"]+)"\)/;
-  return searchModeSwitcherButton.style.listStyleImage.match(re)?.[1] ?? null;
+  let { listStyleImage } = window.getComputedStyle(searchModeSwitcherButton);
+  return listStyleImage.match(re)?.[1] ?? null;
 }

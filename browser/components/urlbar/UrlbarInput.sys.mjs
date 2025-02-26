@@ -3840,7 +3840,7 @@ export class UrlbarInput {
    * confusing the user.
    */
   delayedStartupInit() {
-    this._updatePlaceholderFromDefaultEngine(this.isPrivate, true).then(() => {
+    this._updatePlaceholderFromDefaultEngine(true).then(() => {
       this.#searchInitComplete = true;
     });
   }
@@ -3906,6 +3906,7 @@ export class UrlbarInput {
           // again, so we need to call this function again but with the
           // new engine name.
           // No need to await for this to finish, we're in a listener here anyway.
+          this.searchModeSwitcher.updateSearchIcon();
           this._updatePlaceholderFromDefaultEngine(false);
           this.removeEventListener("input", placeholderUpdateListener);
           this.window.gBrowser.tabContainer.removeEventListener(

@@ -78,11 +78,8 @@ add_task(async function () {
 
   is(win.gBrowser.tabs.length, 3, "The restored window should have 3 tabs");
 
-  // Search mode switcher icon update will trigger twice, once due to
-  // MozAfterPaint when screen is rendered, and once when search mode
-  // is restored and applied. Final icon shown is what matters and
-  // should be checked, so we await both update calls.
-  await BrowserTestUtils.waitForCondition(() => updateCalled == 2);
+  // Search mode switcher icon update will trigger once.
+  await BrowserTestUtils.waitForCondition(() => updateCalled == 1);
 
   let searchModeSwitcherButton = win.document.getElementById(
     "searchmode-switcher-icon"
