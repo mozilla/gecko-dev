@@ -1,0 +1,18 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * omegleapp.me - scrollbars are not hidden, or are too wide.
+ * Bug #1950053 - https://bugzilla.mozilla.org/show_bug.cgi?id=1950053
+ * WebCompat issue #148704 - https://github.com/webcompat/web-bugs/issues/148704
+ *
+ * They are using non-standard webkit-scrollbar CSS to style scrollbars.
+ * We can use scrollbar-width instead to fix them.
+ */
+.chatAndVideo .chatSection .chatBox_messages {
+  scrollbar-width: thin;
+}
+.chatAndVideo .chatSection .chatBox {
+  scrollbar-width: none;
+}
