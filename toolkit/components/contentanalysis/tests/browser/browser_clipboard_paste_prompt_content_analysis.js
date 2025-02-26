@@ -16,21 +16,9 @@ const PAGE_URL =
   "https://example.com/browser/toolkit/components/contentanalysis/tests/browser/clipboard_paste_prompt.html";
 const CLIPBOARD_TEXT_STRING = "Just some text";
 const TEST_MODES = Object.freeze({
-  ALLOW: {
-    caAllow: true,
-    shouldPaste: true,
-    shouldRunCA: true,
-  },
-  BLOCK: {
-    caAllow: false,
-    shouldPaste: false,
-    shouldRunCA: true,
-  },
-  PREFOFF: {
-    caAllow: false,
-    shouldPaste: true,
-    shouldRunCA: false,
-  },
+  ALLOW: { caAllow: true, shouldPaste: true, shouldRunCA: true },
+  BLOCK: { caAllow: false, shouldPaste: false, shouldRunCA: true },
+  PREFOFF: { caAllow: false, shouldPaste: true, shouldRunCA: false },
 });
 
 async function testClipboardPaste(testMode) {
@@ -106,7 +94,7 @@ async function testClipboardPaste(testMode) {
   }
   is(
     mockCA.browsingContextsForURIs.length,
-    testMode.shouldRunCA ? 1 : 0,
+    1,
     "Correct number of calls to getURIForBrowsingContext()"
   );
 
