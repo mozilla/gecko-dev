@@ -898,7 +898,7 @@ void ViewTransition::Setup() {
 // https://drafts.csswg.org/css-view-transitions-1/#handle-transition-frame
 void ViewTransition::HandleFrame() {
   // Steps 1-3: Steps 1-3: Compute active animations.
-  bool hasActiveAnimations = CheckForActiveAnimations();
+  const bool hasActiveAnimations = CheckForActiveAnimations();
 
   // Step 4: If hasActiveAnimations is false:
   if (!hasActiveAnimations) {
@@ -989,6 +989,10 @@ static bool CheckForActiveAnimationsForEachPseudo(
 // if it has active animations.
 bool ViewTransition::CheckForActiveAnimations() const {
   MOZ_ASSERT(mDocument);
+
+  if (StaticPrefs::dom_viewTransitions_remain_active()) {
+    return true;
+  }
 
   const Element* root = mDocument->GetRootElement();
   if (!root) {
