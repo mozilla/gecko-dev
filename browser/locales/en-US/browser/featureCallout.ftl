@@ -68,6 +68,31 @@ sidebar-button-callout-title = Show tab titles in the sidebar
 sidebar-button-callout-subtitle = Use the sidebar button to expand the sidebar, so you can see tab titles.
 sidebar-button-callout-vertical-tabs = To show your tabs, select the sidebar button in the toolbar.
 
+## Sidebar Vertical Tabs Strings
+
+vertical-tabs-callout-1-title = Overwhelmed by too many tabs?
+vertical-tabs-callout-1-subtitle = Try our new vertical tabs layout to quickly scan your list of tabs. Early testers report this layout helps them feel more organized. Switch anytime.
+vertical-tabs-callout-1-cta-button = Try vertical tabs
+vertical-tabs-callout-2-cta-button = Try now
+vertical-tabs-callout-2-title = Keep a lot of tabs open? Try vertical tabs.
+vertical-tabs-callout-2-subtitle = This layout makes it easy to quickly scan your list of tabs. Plus, you can adjust the width to see more or less of your tab titles.
+
+## Sidebar Vertical Tabs Pinning Strings
+
+sidebar-pins-callout-title = Losing track of your important tabs?
+sidebar-pins-callout-subtitle = Try pinning them, which keeps them at the top of your list of tabs. Right-click on a tab you want to pin, then choose Pin Tab.
+sidebar-pins-callout-cta-button = Pin tab
+
+## Sidebar Onboarding Strings
+
+# The "=" here stands for "equals" to convey the meaning "Sidebar is your spot for tools and tabs"
+sidebar-customization-callout-1-title = Sidebar = your spot for tools and tabs
+sidebar-customization-callout-1-subtitle = The { -brand-product-name } sidebar gives you quick access to your browsing history, tabs from other devices, and an AI chatbot — all without leaving your main view.
+sidebar-customization-callout-callout-button = Customize sidebar
+sidebar-customization-callout-dismiss-button = Hide sidebar
+sidebar-customization-callout-2-title = Make the { -brand-product-name } sidebar your own
+sidebar-customization-callout-2-subtitle = Add and remove tools. Place your tabs in the sidebar. Give an AI chatbot a try. How you customize your sidebar is up to you.
+
 ## Sidebar Callout Survey Strings
 
 sidebar-callout-survey-title = Help improve { -brand-short-name }
