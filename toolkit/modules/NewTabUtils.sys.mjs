@@ -2166,21 +2166,12 @@ var Telemetry = {
    * Collects data.
    */
   _collect: function Telemetry_collect() {
-    let probes = [
-      { histogram: "NEWTAB_PAGE_ENABLED", value: AllPages.enabled },
-      {
-        histogram: "NEWTAB_PAGE_PINNED_SITES_COUNT",
-        value: PinnedLinks.links.length,
-      },
-      {
-        histogram: "NEWTAB_PAGE_BLOCKED_SITES_COUNT",
-        value: Object.keys(BlockedLinks.links).length,
-      },
-    ];
-
-    probes.forEach(function Telemetry_collect_forEach(aProbe) {
-      Services.telemetry.getHistogramById(aProbe.histogram).add(aProbe.value);
-    });
+    Glean.newtabPage.pinnedSitesCount.accumulateSingleSample(
+      PinnedLinks.links.length
+    );
+    Glean.newtabPage.blockedSitesCount.accumulateSingleSample(
+      Object.keys(BlockedLinks.links).length
+    );
   },
 
   /**

@@ -274,3 +274,45 @@ region:
     telemetry_mirror: SEARCH_SERVICE_COUNTRY_FETCH_RESULT
     no_lint:
       - COMMON_PREFIX
+
+newtab_page:
+  pinned_sites_count:
+    type: custom_distribution
+    description: >
+      Number of pinned sites on the new tab page.
+
+      This metric was generated to correspond to the Legacy Telemetry enumerated
+      histogram NEWTAB_PAGE_PINNED_SITES_COUNT.
+    range_min: 0
+    range_max: 9
+    bucket_count: 10
+    histogram_type: linear
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - activity-stream@mozilla.com
+    expires: never
+    telemetry_mirror: NEWTAB_PAGE_PINNED_SITES_COUNT
+
+  blocked_sites_count:
+    type: custom_distribution
+    description: >
+      Number of sites blocked from the new tab page.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      exponential histogram NEWTAB_PAGE_BLOCKED_SITES_COUNT.
+    range_min: 1
+    range_max: 100
+    bucket_count: 10
+    histogram_type: exponential
+    unit: sites
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1944631
+    notification_emails:
+      - activity-stream@mozilla.com
+    expires: never
+    telemetry_mirror: NEWTAB_PAGE_BLOCKED_SITES_COUNT
