@@ -22,6 +22,20 @@ MOZ_PKG_DUPEFLAGS = -f $(srcdir)/allowed-dupes.mn
 DEFINES += -DPKG_LOCALE_MANIFEST=$(topobjdir)/mobile/android/installer/locale-manifest.in
 MOZ_CHROME_LOCALE_ENTRIES=@BINPATH@/chrome/
 
+MOZ_PKG_FATAL_WARNINGS = 1
+
+# When packaging an artifact build not all xpt files expected by the
+# packager will be present.
+ifdef MOZ_ARTIFACT_BUILDS
+MOZ_PKG_FATAL_WARNINGS =
+endif
+
+# Toolchain gradle-dependencies tasks use --disable-compile-environment and
+# bin/lib*.so files are missing.
+ifndef COMPILE_ENVIRONMENT
+MOZ_PKG_FATAL_WARNINGS =
+endif
+
 DEFINES += \
   -DMOZ_APP_NAME=$(MOZ_APP_NAME) \
   -DPREF_DIR=$(PREF_DIR) \
