@@ -38,7 +38,7 @@ class MOZ_STACK_CLASS ParallelMarker {
  public:
   explicit ParallelMarker(GCRuntime* gc);
 
-  bool mark(JS::SliceBudget& sliceBudget);
+  bool mark(const JS::SliceBudget& sliceBudget);
 
   using AtomicCount = mozilla::Atomic<uint32_t, mozilla::Relaxed>;
   AtomicCount& waitingTaskCountRef() { return waitingTaskCount; }
@@ -46,7 +46,7 @@ class MOZ_STACK_CLASS ParallelMarker {
   void donateWorkFrom(GCMarker* src);
 
  private:
-  bool markOneColor(MarkColor color, JS::SliceBudget& sliceBudget);
+  bool markOneColor(MarkColor color, const JS::SliceBudget& sliceBudget);
 
   bool hasWork(MarkColor color) const;
 

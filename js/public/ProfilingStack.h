@@ -9,6 +9,7 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/BaseProfilerMarkersPrerequisites.h"
+#include "mozilla/TimeStamp.h"
 
 #include <stdint.h>
 
@@ -365,7 +366,9 @@ JS_PUBLIC_API void EnableContextProfilingStack(JSContext* cx, bool enabled);
 
 JS_PUBLIC_API void RegisterContextProfilingEventMarker(
     JSContext* cx,
-    void (*fn)(mozilla::MarkerCategory, const char*, const char*));
+   void (*mark)(mozilla::MarkerCategory, const char*, const char*),
+   void (*interval)(mozilla::MarkerCategory, const char*, mozilla::TimeStamp,
+                    const char*));
 
 }  // namespace js
 

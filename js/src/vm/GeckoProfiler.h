@@ -125,6 +125,8 @@ class GeckoProfilerRuntime {
   bool slowAssertions;
   uint32_t enabled_;
   void (*eventMarker_)(mozilla::MarkerCategory, const char*, const char*);
+  void (*intervalMarker_)(mozilla::MarkerCategory, const char*,
+                          mozilla::TimeStamp, const char*);
 
  public:
   explicit GeckoProfilerRuntime(JSRuntime* rt);
@@ -137,6 +139,8 @@ class GeckoProfilerRuntime {
 
   void setEventMarker(void (*fn)(mozilla::MarkerCategory, const char*,
                                  const char*));
+  void setIntervalMarker(void (*fn)(mozilla::MarkerCategory, const char*,
+                                    mozilla::TimeStamp, const char*));
 
   static JS::UniqueChars allocProfileString(JSContext* cx, BaseScript* script);
   const char* profileString(JSContext* cx, BaseScript* script);
@@ -145,6 +149,10 @@ class GeckoProfilerRuntime {
 
   void markEvent(
       const char* event, const char* details,
+      JS::ProfilingCategoryPair jsPair = JS::ProfilingCategoryPair::JS);
+
+  void markInterval(
+      const char* event, mozilla::TimeStamp start, const char* details,
       JS::ProfilingCategoryPair jsPair = JS::ProfilingCategoryPair::JS);
 
   ProfileStringMap& strings() { return strings_.ref(); }
