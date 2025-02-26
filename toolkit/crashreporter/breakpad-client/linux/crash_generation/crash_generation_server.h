@@ -33,6 +33,7 @@
 #include <pthread.h>
 
 #include <array>
+#include <functional>
 #include <string>
 
 #include "common/using_std_string.h"
@@ -46,12 +47,8 @@ public:
   // WARNING: callbacks may be invoked on a different thread
   // than that which creates the CrashGenerationServer.  They must
   // be thread safe.
-  typedef void (*OnClientDumpRequestCallback)(void* context,
-                                              const ClientInfo& client_info,
-                                              const string& file_path);
-
-  typedef void (*OnClientExitingCallback)(void* context,
-                                          const ClientInfo& client_info);
+  using OnClientDumpRequestCallback = void (const ClientInfo& client_info,
+                                            const string& file_path);
 
   // Create an instance with the given parameters.
   //
@@ -67,11 +64,7 @@ public:
   // Parameter dump_path: Path for generating dumps; required only if true is
   //     passed for generateDumps parameter; NULL can be passed otherwise.
   CrashGenerationServer(const int listen_fd,
-                        OnClientDumpRequestCallback dump_callback,
-                        void* dump_context,
-                        OnClientExitingCallback exit_callback,
-                        void* exit_context,
-                        bool generate_dumps,
+                        std::function<OnClientDumpRequestCallback> dump_callback,
                         const string* dump_path);
 
   ~CrashGenerationServer();
@@ -89,6 +82,9 @@ public:
   // this class's constructor, and |*client_fd| should be passed to
   // the ExceptionHandler constructor in the client process.
   static bool CreateReportChannel(int* server_fd, int* client_fd);
+
+  CrashGenerationServer(const CrashGenerationServer&) = delete;
+  CrashGenerationServer& operator=(const CrashGenerationServer&) = delete;
 
 private:
   // Run the server's event loop
@@ -110,18 +106,9 @@ private:
   void ReserveFileDescriptors();
   void ReleaseFileDescriptors();
 
-  // Trampoline to |Run()|
-  static void* ThreadMain(void* arg);
-
   int server_fd_;
 
-  OnClientDumpRequestCallback dump_callback_;
-  void* dump_context_;
-
-  OnClientExitingCallback exit_callback_;
-  void* exit_context_;
-
-  bool generate_dumps_;
+  std::function<OnClientDumpRequestCallback> dump_callback_;
 
   string dump_dir_;
 
@@ -133,10 +120,6 @@ private:
 
   static const size_t RESERVED_FDS_NUM = 2;
   std::array<int, RESERVED_FDS_NUM> reserved_fds_;
-
-  // disable these
-  CrashGenerationServer(const CrashGenerationServer&);
-  CrashGenerationServer& operator=(const CrashGenerationServer&);
 };
 
 } // namespace google_breakpad

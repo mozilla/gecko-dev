@@ -1,162 +1,180 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
-extern crate minidump_writer;
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this file,
+// You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use libc::pid_t;
-use minidump_writer::crash_context::CrashContext;
-use minidump_writer::minidump_writer::MinidumpWriter;
-use std::ffi::{CStr, CString};
-use std::mem::{self, MaybeUninit};
-use std::os::raw::c_char;
-use std::ptr::{copy_nonoverlapping, null_mut};
+//! C FFI interface to the rust-minidump crate
 
-// This function will be exposed to C++
-#[no_mangle]
-pub unsafe extern "C" fn write_minidump_linux(
-    dump_path: *const c_char,
-    child: pid_t,
-    child_blamed_thread: pid_t,
-    error_msg: *mut *mut c_char,
-) -> bool {
-    assert!(!dump_path.is_null());
-    let c_path = CStr::from_ptr(dump_path);
-    let path = match c_path.to_str() {
-        Ok(s) => s,
-        Err(x) => {
-            error_message_to_c(
-                error_msg,
-                format!(
-                    "Wrapper error. Path not convertable: {:#}",
-                    anyhow::Error::new(x)
-                ),
-            );
-            return false;
-        }
-    };
-
-    let mut dump_file = match std::fs::OpenOptions::new()
-        .create(true) // Create file if it doesn't exist
-        .write(true) // Truncate file
-        .open(path)
-    {
-        Ok(f) => f,
-        Err(x) => {
-            error_message_to_c(
-                error_msg,
-                format!(
-                    "Wrapper error when opening minidump destination at {:?}: {:#}",
-                    path,
-                    anyhow::Error::new(x)
-                ),
-            );
-            return false;
-        }
-    };
-
-    match MinidumpWriter::new(child, child_blamed_thread).dump(&mut dump_file) {
-        Ok(_) => {
-            return true;
-        }
-        Err(x) => {
-            error_message_to_c(error_msg, format!("{:#}", anyhow::Error::new(x)));
-            return false;
-        }
-    }
-}
+use {
+    anyhow::Context,
+    libc::pid_t,
+    minidump_writer::{crash_context::CrashContext, minidump_writer::MinidumpWriter},
+    std::{
+        ffi::{c_char, CStr, CString},
+        fs::File,
+    },
+};
 
 #[allow(non_camel_case_types)]
 #[cfg(not(target_arch = "arm"))]
 type fpregset_t = crash_context::fpregset_t;
+
+// This structure is absent on ARM.
+// (We use u8 because it has no alignment requirements and zero-sized types are not FFI-safe)
 #[allow(non_camel_case_types)]
 #[cfg(target_arch = "arm")]
-pub struct fpregset_t {}
+type fpregset_t = u8;
 
-// This function will be exposed to C++
+/// Context gatherer for [`MinidumpWriter`]
+///
+/// Creates the target minidump file and gathers any context needed for the minidump generation.
+pub struct MinidumpWriterContext {
+    dump_file: File,
+    writer: MinidumpWriter,
+}
+
+/// Create the [`MinidumpWriterContext`] object through FFI
+///
+/// The [`MinidumpWriterContext`] will create the target file specified by `dump_path` and gather
+/// context needed for [`MinidumpWriter`] to
+/// write the dump.
+///
+/// Additional context can be added to the dump using functions like
+/// [`minidump_writer_set_crash_context()`].
+///
+/// When ready to dump, [`minidump_writer_dump()`] should be called on the returned object. Failure
+/// to do so will result in a memory leak.
+///
+/// # Return value
+///
+/// Remember that `Option<Box<T>>` has the same ABI as a `T*` in C, so this function will return a
+/// valid `MinidumpWriterContext*` on success, and `nullptr` on failure.
+///
+/// An optional `char**` can be passed via the `error_msg` parameter to receive a string
+/// representing the error message on failure. It must be freed with [`free_minidump_error_msg()`].
+///
+/// On success, the caller code owns the object, and [`minidump_writer_dump()`] must eventually be
+/// called with the returned pointer to avoid a memory leak.
+///
+/// # Safety
+///
+/// `dump_path` must be a valid null-terminated C string. `error_msg` must be either a valid
+/// pointer or null.
 #[no_mangle]
-pub unsafe extern "C" fn write_minidump_linux_with_context(
+pub unsafe extern "C" fn minidump_writer_create(
     dump_path: *const c_char,
     child: pid_t,
-    ucontext: *const crash_context::ucontext_t,
-    #[allow(unused)] float_state: *const fpregset_t,
-    siginfo: *const libc::signalfd_siginfo,
-    child_thread: libc::pid_t,
+    child_blamed_thread: pid_t,
+    error_msg: *mut *mut c_char,
+) -> Option<Box<MinidumpWriterContext>> {
+    err_to_error_msg(error_msg, || {
+        let dump_path = CStr::from_ptr(dump_path)
+            .to_str()
+            .context("path not valid UTF-8")?;
+
+        let dump_file = std::fs::OpenOptions::new()
+            .create(true) // Create file if it doesn't exist
+            .truncate(true) // Truncate file
+            .write(true)
+            .open(dump_path)
+            .context("failed to open minidump file")?;
+
+        let writer = MinidumpWriter::new(child, child_blamed_thread);
+
+        Ok(Box::new(MinidumpWriterContext { dump_file, writer }))
+    })
+}
+
+/// Set the "Crash Context" in the given `writer`
+///
+/// Adds the `ucontext`, `float_state` (on non-ARM), and `siginfo` (optional)  to the context
+/// information for the crash.
+///
+/// # Panics
+///
+/// On non-ARM systems, will panic if `float_state` is null. On ARM, will panic if it is non-NULL.
+#[no_mangle]
+pub extern "C" fn minidump_writer_set_crash_context(
+    context: &mut MinidumpWriterContext,
+    ucontext: &crash_context::ucontext_t,
+    float_state: Option<&fpregset_t>,
+    siginfo: Option<&libc::signalfd_siginfo>,
+) {
+    #[cfg(not(target_arch = "arm"))]
+    let float_state = float_state.unwrap().clone();
+
+    #[cfg(target_arch = "arm")]
+    assert!(float_state.is_none());
+
+    context.writer.set_crash_context(CrashContext {
+        inner: crash_context::CrashContext {
+            context: ucontext.clone(),
+            #[cfg(not(target_arch = "arm"))]
+            float_state,
+            siginfo: siginfo
+                .cloned()
+                .unwrap_or_else(|| unsafe { std::mem::zeroed() }),
+            pid: context.writer.process_id,
+            tid: context.writer.blamed_thread,
+        },
+    });
+}
+
+/// Write the minidump to the file
+///
+/// Generates the minidump and writes it out to the file specified when the object was created.
+///
+/// Consumes the given `writer`, so that same object should never be used again after calling this
+/// function.
+///
+/// Returns a boolean indicating success. `error_msg` can be used to get more info when an error
+/// occurs.
+///
+/// # Safety
+///
+/// `error_msg` must be either a valid pointer or null.
+#[no_mangle]
+pub unsafe extern "C" fn minidump_writer_dump(
+    mut context: Box<MinidumpWriterContext>,
     error_msg: *mut *mut c_char,
 ) -> bool {
-    let c_path = CStr::from_ptr(dump_path);
-
-    let mut crash_context: MaybeUninit<crash_context::CrashContext> = mem::MaybeUninit::zeroed();
-    let cc = &mut *crash_context.as_mut_ptr();
-
-    copy_nonoverlapping(ucontext, &mut cc.context, 1);
-    #[cfg(not(target_arch = "arm"))]
-    copy_nonoverlapping(float_state, &mut cc.float_state, 1);
-    copy_nonoverlapping(siginfo, &mut cc.siginfo, 1);
-    cc.pid = child;
-    cc.tid = child_thread;
-
-    let crash_context = crash_context.assume_init();
-    let crash_context = CrashContext {
-        inner: crash_context,
-    };
-
-    let path = match c_path.to_str() {
-        Ok(s) => s,
-        Err(x) => {
-            error_message_to_c(
-                error_msg,
-                format!(
-                    "Wrapper error. Path not convertable: {:#}",
-                    anyhow::Error::new(x)
-                ),
-            );
-            return false;
-        }
-    };
-
-    let mut dump_file = match std::fs::OpenOptions::new()
-        .create(true) // Create file if it doesn't exist
-        .write(true) // Truncate file
-        .open(path)
-    {
-        Ok(f) => f,
-        Err(x) => {
-            error_message_to_c(
-                error_msg,
-                format!(
-                    "Wrapper error when opening minidump destination at {:?}: {:#}",
-                    path,
-                    anyhow::Error::new(x)
-                ),
-            );
-            return false;
-        }
-    };
-
-    match MinidumpWriter::new(child, child_thread)
-        .set_crash_context(crash_context)
-        .dump(&mut dump_file)
-    {
-        Ok(_) => {
-            return true;
-        }
-        Err(x) => {
-            error_message_to_c(error_msg, format!("{:#}", anyhow::Error::new(x)));
-            return false;
-        }
-    }
+    err_to_error_msg(error_msg, || {
+        context
+            .writer
+            .dump(&mut context.dump_file)
+            .context("failed to write dump file")
+    })
+    .is_some()
 }
 
-fn error_message_to_c(c_string_pointer: *mut *mut c_char, error_message: String) {
-    if c_string_pointer != null_mut() {
-        let c_error_message = CString::new(error_message).unwrap_or_default();
-        unsafe { *c_string_pointer = c_error_message.into_raw() };
-    }
-}
-
-// This function will be exposed to C++
+/// Free an error returned by any other function in this API
+///
+/// Failing to call this function on a returned error is a memory leak.
+///
+/// # Safety
+///
+/// `error_msg` must be a valid pointer that was previously returned as the `error_msg` of one of
+/// the other functions in this API.
 #[no_mangle]
-pub unsafe extern "C" fn free_minidump_error_msg(c_string: *mut c_char) {
+pub unsafe extern "C" fn free_minidump_error_msg(error_msg: *mut c_char) {
     // Unused because we just need to drop it
-    let _c_string = unsafe { CString::from_raw(c_string) };
+    let _error_msg = CString::from_raw(error_msg);
+}
+
+/// Runs a closure and converts any error into a C string
+///
+/// Wraps any closure that returns an `anyhow::Result<T>` and converts the error result into a C
+/// string. Will return `None` if an error occurred and `Some<T>` on success.
+unsafe fn err_to_error_msg<F, T>(error_msg: *mut *mut c_char, f: F) -> Option<T>
+where
+    F: FnOnce() -> anyhow::Result<T>,
+{
+    match f() {
+        Ok(t) => Some(t),
+        Err(e) => {
+            if !error_msg.is_null() {
+                *error_msg = CString::new(e.to_string()).unwrap().into_raw();
+            }
+            None
+        }
+    }
 }

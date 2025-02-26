@@ -51,7 +51,6 @@
 
 #if defined(MOZ_OXIDIZED_BREAKPAD)
 #  include "mozilla/toolkit/crashreporter/rust_minidump_writer_linux_ffi_generated.h"
-#  include <sys/signalfd.h>
 #endif
 
 #include "mozilla/Alignment.h"
@@ -62,18 +61,10 @@ namespace google_breakpad {
 
 CrashGenerationServer::CrashGenerationServer(
   const int listen_fd,
-  OnClientDumpRequestCallback dump_callback,
-  void* dump_context,
-  OnClientExitingCallback exit_callback,
-  void* exit_context,
-  bool generate_dumps,
+  std::function<OnClientDumpRequestCallback> dump_callback,
   const string* dump_path) :
     server_fd_(listen_fd),
-    dump_callback_(dump_callback),
-    dump_context_(dump_context),
-    exit_callback_(exit_callback),
-    exit_context_(exit_context),
-    generate_dumps_(generate_dumps),
+    dump_callback_(std::move(dump_callback)),
     started_(false),
     reserved_fds_{-1, -1}
 {
@@ -110,8 +101,11 @@ CrashGenerationServer::Start()
   control_pipe_in_ = control_pipe[0];
   control_pipe_out_ = control_pipe[1];
 
-  if (pthread_create(&thread_, NULL,
-                     ThreadMain, reinterpret_cast<void*>(this)))
+  if (pthread_create(&thread_, nullptr,
+                    [](void* context) -> void* {
+                      reinterpret_cast<CrashGenerationServer*>(context)->Run();
+                      return nullptr;
+                    }, this))
     return false;
 
   started_ = true;
@@ -299,17 +293,25 @@ CrashGenerationServer::ClientEvent(short revents)
       break;
   }
 
-  // Ignoring the return-value here for now.
-  // The function always creates an empty minidump file even in case of an
-  // error. So we'll report that as well via the callback-functions.
-  bool res = write_minidump_linux_with_context(
-      minidump_filename.c_str(), crashing_pid, &breakpad_cc->context,
+  bool res = false;
+
+  MinidumpWriterContext* writer = minidump_writer_create(
+    minidump_filename.c_str(),
+    crashing_pid,
+    breakpad_cc->tid,
+    &error_msg
+  );
+  if (writer) {
+    const fpregset_t *float_state = nullptr;
+
 #  ifndef __arm__
-      reinterpret_cast<const fpregset_t *>(&breakpad_cc->float_state),
-#  else
-      nullptr,
-#  endif  // __arm__
-      &signalfd_si, breakpad_cc->tid, &error_msg);
+    float_state = reinterpret_cast<const fpregset_t *>(&breakpad_cc->float_state);
+#  endif
+
+    minidump_writer_set_crash_context(writer, &breakpad_cc->context, float_state, &signalfd_si);
+
+    res = minidump_writer_dump(writer, &error_msg);
+  }
 #else
   if (!google_breakpad::WriteMinidump(minidump_filename.c_str(),
                                       crashing_pid, crash_context,
@@ -326,16 +328,12 @@ CrashGenerationServer::ClientEvent(short revents)
   }
 #endif
   if (dump_callback_) {
-    dump_callback_(dump_context_, info, minidump_filename);
+    dump_callback_(info, minidump_filename);
   }
 
   // Send the done signal to the process: it can exit now.
   // (Closing this will make the child's sys_read unblock and return 0.)
   close(signal_fd);
-
-  if (exit_callback_) {
-    exit_callback_(exit_context_, info);
-  }
 
   info.set_error_msg(nullptr);
   if (error_msg) {
@@ -407,14 +405,6 @@ CrashGenerationServer::ReleaseFileDescriptors() {
       reserved_fds_[i] = -1;
     }
   }
-}
-
-// static
-void*
-CrashGenerationServer::ThreadMain(void *arg)
-{
-  reinterpret_cast<CrashGenerationServer*>(arg)->Run();
-  return NULL;
 }
 
 }  // namespace google_breakpad

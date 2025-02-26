@@ -873,9 +873,13 @@ bool ExceptionHandler::WriteMinidumpForChild(pid_t child,
   MinidumpDescriptor descriptor(dump_path);
   descriptor.UpdatePath();
 #if defined(MOZ_OXIDIZED_BREAKPAD)
-  char* error_msg;
-  if (!write_minidump_linux(descriptor.path(), child, child_blamed_thread, &error_msg)) {
-      return false;
+  MinidumpWriterContext* minidump_writer =
+    minidump_writer_create(descriptor.path(), child, child_blamed_thread, nullptr);
+  if (!minidump_writer) {
+    return false;
+  }
+  if (!minidump_writer_dump(minidump_writer, nullptr)) {
+    return false;
   }
 #else
   if (!google_breakpad::WriteMinidump(descriptor.path(),

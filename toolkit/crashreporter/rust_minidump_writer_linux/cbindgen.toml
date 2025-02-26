@@ -4,12 +4,11 @@ header = """/* This Source Code Form is subject to the terms of the Mozilla Publ
 autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen. See RunCbindgen.py */
 """
 include_version = true
-braces = "SameLine"
-line_length = 100
-tab_width = 2
-language = "C++"
+language = "C"
+cpp_compat = true
 include_guard = "rust_minidump_writer_linux_ffi_generated_h"
-sys_includes = ["signal.h", "sys/signalfd.h"]
+sys_includes = ["unistd.h", "ucontext.h", "sys/signalfd.h"]
+documentation = false
 
 [export]
 exclude = ["fpregset_t"]

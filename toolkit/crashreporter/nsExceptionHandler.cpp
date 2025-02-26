@@ -3458,9 +3458,12 @@ void OOPInit() {
 
   const std::string dumpPath =
       gExceptionHandler->minidump_descriptor().directory();
-  crashServer =
-      new CrashGenerationServer(serverSocketFd, OnChildProcessDumpRequested,
-                                nullptr, nullptr, nullptr, true, &dumpPath);
+  crashServer = new CrashGenerationServer(
+      serverSocketFd,
+      [](const ClientInfo& aClientInfo, const xpstring& aFilePath) {
+        OnChildProcessDumpRequested(nullptr, aClientInfo, aFilePath);
+      },
+      &dumpPath);
 
 #elif defined(XP_MACOSX)
   childCrashNotifyPipe = mozilla::Smprintf("gecko-crash-server-pipe.%i",
