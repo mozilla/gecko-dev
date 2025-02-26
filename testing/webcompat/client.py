@@ -1179,7 +1179,7 @@ class Client:
         fastclick_preload_script.stop()
 
     async def test_nicochannel_like_site(self, url, shouldPass=True):
-        CONSENT = self.css(".MuiDialog-container button.MuiButton-containedPrimary")
+        CONSENT = self.css("button.MuiButton-containedPrimary")
         BLOCKED = self.text("このブラウザはサポートされていません。")
         PLAY = self.css(".nfcp-overlay-play-lg")
 

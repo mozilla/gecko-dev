@@ -1,9 +1,9 @@
 import pytest
 
-URL = "https://aylak.com/okey-oyna/7"
+URL = "https://chat.babel.com"
 
-SUPPORTED_CSS = "#room"
-UNSUPPORTED_CSS = "applet"
+SUPPORTED_CSS = ".form.login-choice, .button.register"
+UNSUPPORTED_CSS = ".download.chrome"
 
 
 @pytest.mark.asyncio
