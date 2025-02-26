@@ -91,7 +91,6 @@ class TabListener : public nsIDOMEventListener,
   NS_DECL_NSIWEBPROGRESSLISTENER
 
  private:
-  static void TimerCallback(nsITimer* aTimer, void* aClosure);
   void AddTimerForUpdate();
   void StopTimerForUpdate();
   void AddEventListeners();
