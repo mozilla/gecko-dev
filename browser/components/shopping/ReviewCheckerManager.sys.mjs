@@ -26,13 +26,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "hasSeenNewPositionCard",
-  "browser.shopping.experience2023.newPositionCard.hasSeen",
-  null
-);
-
 /**
  * Manages opening and closing the Review Checker in the sidebar.
  * Listens for location changes and will auto-open if enabled.
@@ -41,13 +34,9 @@ export class ReviewCheckerManager {
   static SIDEBAR_ID = "viewReviewCheckerSidebar";
   static SIDEBAR_TOOL = "reviewchecker";
   static SIDEBAR_ENABLED_PREF = "reviewchecker";
-  static SIDEBAR_SETTINGS_ID = "viewCustomizeSidebar";
-  static SHOW_NEW_POSITION_NOTIFICATION_CARD_EVENT_NAME =
-    "ReviewCheckerManager:ShowNewPositionCard";
 
   #enabled = false;
   #hasListeners = null;
-  #didAutoOpenForOptedInUser = false;
 
   /**
    * Creates manager to open and close the review checker sidebar
@@ -88,15 +77,6 @@ export class ReviewCheckerManager {
    */
   uninit() {
     this.#removeListeners();
-    this.#didAutoOpenForOptedInUser = null;
-  }
-
-  get optedIn() {
-    return lazy.optedIn;
-  }
-
-  get hasSeenNewPositionCard() {
-    return lazy.hasSeenNewPositionCard;
   }
 
   #updateSidebarEnabled() {
@@ -118,12 +98,6 @@ export class ReviewCheckerManager {
     this.window.gBrowser.addProgressListener(this);
     this.window.addEventListener("OpenReviewCheckerSidebar", this);
     this.window.addEventListener("CloseReviewCheckerSidebar", this);
-    this.window.addEventListener("DispatchNewPositionCardIfEligible", this);
-    this.window.addEventListener(
-      "ReverseSidebarPositionFromReviewChecker",
-      this
-    );
-    this.window.addEventListener("ShowSidebarSettingsFromReviewChecker", this);
     this.#hasListeners = true;
   }
 
@@ -134,15 +108,6 @@ export class ReviewCheckerManager {
     this.window.gBrowser.removeProgressListener(this);
     this.window.removeEventListener("OpenReviewCheckerSidebar", this);
     this.window.removeEventListener("CloseReviewCheckerSidebar", this);
-    this.window.removeEventListener("DispatchNewPositionCardIfEligible", this);
-    this.window.removeEventListener(
-      "ReverseSidebarPositionFromReviewChecker",
-      this
-    );
-    this.window.removeEventListener(
-      "ShowSidebarSettingsFromReviewChecker",
-      this
-    );
     this.#hasListeners = null;
   }
 
@@ -168,42 +133,9 @@ export class ReviewCheckerManager {
     this.SidebarController.hide();
   }
 
-  /**
-   * Reverses the position of the sidebar. If the sidebar is positioned on the left, it will
-   * move to the right, and vice-versa.
-   */
-  reverseSidebarPositon() {
-    if (
-      !this.SidebarController.isOpen ||
-      this.SidebarController.currentID !== ReviewCheckerManager.SIDEBAR_ID
-    ) {
-      return;
-    }
-
-    this.SidebarController.reversePosition();
-  }
-
-  /**
-   * Displays the sidebar's settings panel.
-   */
-  showSidebarSettings() {
-    if (
-      !this.SidebarController.isOpen ||
-      this.SidebarController.currentID !== ReviewCheckerManager.SIDEBAR_ID
-    ) {
-      return;
-    }
-
-    this.SidebarController.show(ReviewCheckerManager.SIDEBAR_SETTINGS_ID);
-  }
-
   #canAutoOpen() {
     let isEligible = lazy.ShoppingUtils.isAutoOpenEligible();
     return isEligible && this.#enabled;
-  }
-
-  #canShowNewPositionCard() {
-    return this.optedIn && !this.hasSeenNewPositionCard;
   }
 
   /**
@@ -256,8 +188,6 @@ export class ReviewCheckerManager {
       return;
     }
 
-    this.#didAutoOpenForOptedInUser = false;
-
     // Record the location change.
     lazy.ShoppingUtils.onLocationChange(aLocationURI, aFlags);
 
@@ -274,7 +204,7 @@ export class ReviewCheckerManager {
     }
 
     let shouldAutoOpen;
-    if (this.optedIn) {
+    if (lazy.optedIn) {
       shouldAutoOpen = this.#canAutoOpen();
     } else {
       // Check if we should auto-open to allow opting in.
@@ -293,10 +223,6 @@ export class ReviewCheckerManager {
     // auto open is enabled and the RC sidebar is enabled.
     if (!this.SidebarController.isOpen && shouldAutoOpen) {
       this.showSidebar();
-
-      if (this.optedIn) {
-        this.#didAutoOpenForOptedInUser = true;
-      }
     }
 
     // Mark product location as distinct the first time we see it.
@@ -319,36 +245,6 @@ export class ReviewCheckerManager {
             isSidebarVisible: this.SidebarController._state?.launcherVisible,
           },
         });
-        break;
-      }
-      case "ReverseSidebarPositionFromReviewChecker": {
-        this.reverseSidebarPositon();
-        break;
-      }
-      case "ShowSidebarSettingsFromReviewChecker": {
-        this.showSidebarSettings();
-        break;
-      }
-      case "DispatchNewPositionCardIfEligible": {
-        /* Do not show the card if:
-         * - the Review Checker panel was not opened via auto-open on a product page,
-         * - if the user is not opted-in,
-         * - or if the card was already displayed before. */
-        if (
-          !this.#didAutoOpenForOptedInUser ||
-          !this.#canShowNewPositionCard()
-        ) {
-          return;
-        }
-
-        let showNewPositionCardEvent = new CustomEvent(
-          ReviewCheckerManager.SHOW_NEW_POSITION_NOTIFICATION_CARD_EVENT_NAME,
-          {
-            bubbles: true,
-            composed: true,
-          }
-        );
-        this.window.dispatchEvent(showNewPositionCardEvent);
         break;
       }
     }

@@ -23,25 +23,10 @@ const ABOUT_SHOPPING_SIDEBAR = "about:shoppingsidebar";
 export class ReviewCheckerParent extends JSWindowActorParent {
   static SHOPPING_OPTED_IN_PREF = "browser.shopping.experience2023.optedIn";
   static CLOSE_SIDEBAR = "CloseReviewCheckerSidebar";
-  static REVERSE_SIDEBAR = "ReverseSidebarPositionFromReviewChecker";
-  static SHOW_SIDEBAR_SETTINGS = "ShowSidebarSettingsFromReviewChecker";
-  static DISPATCH_NEW_POSITION_CARD_IF_ELIGIBLE =
-    "DispatchNewPositionCardIfEligible";
 
   actorCreated() {
     this.topBrowserWindow = this.browsingContext.topChromeWindow;
     this.topBrowserWindow.gBrowser.addProgressListener(this);
-
-    /* The manager class that tracks auto-open behaviour is likely to be instantiated before ReviewCheckerParent.
-     * Once the parent actor is created, dispatch an event to the manager to see if we
-     * can render the notification for the RC's new sidebar position. Also be sure to set up an
-     * eventListener so that we can hear back from the manager. */
-    this.showNewPositionCard = this.showNewPositionCard.bind(this);
-    this.topBrowserWindow.addEventListener(
-      "ReviewCheckerManager:ShowNewPositionCard",
-      this.showNewPositionCard
-    );
-    this.dispatchNewPositionCardIfEligible();
   }
 
   didDestroy() {
@@ -49,11 +34,8 @@ export class ReviewCheckerParent extends JSWindowActorParent {
       return;
     }
 
-    this.topBrowserWindow.removeEventListener(
-      "ReviewCheckerManager:ShowNewPositionCard",
-      this.showNewPositionCard
-    );
     this.topBrowserWindow.gBrowser.removeProgressListener(this);
+
     this.topBrowserWindow = undefined;
   }
 
@@ -78,10 +60,6 @@ export class ReviewCheckerParent extends JSWindowActorParent {
     return uri.spec;
   }
 
-  showNewPositionCard() {
-    this.sendAsyncMessage("ReviewChecker:ShowNewPositionCard");
-  }
-
   async receiveMessage(message) {
     if (this.browsingContext.usePrivateBrowsing) {
       throw new Error("We should never be invoked in PBM.");
@@ -98,12 +76,6 @@ export class ReviewCheckerParent extends JSWindowActorParent {
         break;
       case "CloseShoppingSidebar":
         this.closeSidebarPanel();
-        break;
-      case "ReverseSidebarPosition":
-        this.reverseSidebarPosition();
-        break;
-      case "ShowSidebarSettings":
-        this.showSidebarSettings();
         break;
     }
     return null;
@@ -130,29 +102,11 @@ export class ReviewCheckerParent extends JSWindowActorParent {
     this.updateCurrentURL(aLocationURI, aFlags);
   }
 
-  dispatchEvent(eventName) {
-    let event = new CustomEvent(eventName, {
+  closeSidebarPanel() {
+    let closeEvent = new CustomEvent(ReviewCheckerParent.CLOSE_SIDEBAR, {
       bubbles: true,
       composed: true,
     });
-    this.topBrowserWindow.dispatchEvent(event);
-  }
-
-  closeSidebarPanel() {
-    this.dispatchEvent(ReviewCheckerParent.CLOSE_SIDEBAR);
-  }
-
-  dispatchNewPositionCardIfEligible() {
-    this.dispatchEvent(
-      ReviewCheckerParent.DISPATCH_NEW_POSITION_CARD_IF_ELIGIBLE
-    );
-  }
-
-  reverseSidebarPosition() {
-    this.dispatchEvent(ReviewCheckerParent.REVERSE_SIDEBAR);
-  }
-
-  showSidebarSettings() {
-    this.dispatchEvent(ReviewCheckerParent.SHOW_SIDEBAR_SETTINGS);
+    this.topBrowserWindow.dispatchEvent(closeEvent);
   }
 }
