@@ -452,6 +452,9 @@ add_task(async function () {
         engineName: SUGGESTIONS_ENGINE_NAME,
         heuristic: true,
       }),
+      makeCalculatorResult(context, {
+        value: (123 / 12).toString(),
+      }),
     ],
   });
 
@@ -464,6 +467,9 @@ add_task(async function () {
       makeSearchResult(context, {
         engineName: SUGGESTIONS_ENGINE_NAME,
         heuristic: true,
+      }),
+      makeCalculatorResult(context, {
+        value: (123.12 / 12.1).toString(),
       }),
     ],
   });

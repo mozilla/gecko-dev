@@ -901,6 +901,30 @@ function makeVisitResult(
 }
 
 /**
+ * Creates a UrlbarResult for a calculator result.
+ *
+ * @param {UrlbarQueryContext} queryContext
+ *   The context that this result will be displayed in.
+ * @param {object} options
+ *   Options for the result.
+ * @param {string} options.value
+ *   The value of the calculator result.
+ * @returns {UrlbarResult}
+ */
+function makeCalculatorResult(queryContext, { value }) {
+  const result = new UrlbarResult(
+    UrlbarUtils.RESULT_TYPE.DYNAMIC,
+    UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
+    {
+      value,
+      input: queryContext.searchString,
+      dynamicType: "calculator",
+    }
+  );
+  return result;
+}
+
+/**
  * Checks that the results returned by a UrlbarController match those in
  * the param `matches`.
  *
