@@ -181,17 +181,6 @@ function Tester(aTests, structuredLogger, aCallback) {
     this.EventUtils
   );
 
-  this._scriptLoader.loadSubScript(
-    "chrome://mochikit/content/tests/SimpleTest/AccessibilityUtils.js",
-    // AccessibilityUtils are integrated with EventUtils to perform additional
-    // accessibility checks for certain user interactions (clicks, etc). Load
-    // them into the EventUtils scope here.
-    this.EventUtils
-  );
-  this.AccessibilityUtils = this.EventUtils.AccessibilityUtils;
-
-  this.AccessibilityUtils.init();
-
   // Make sure our SpecialPowers actor is instantiated, in case it was
   // registered after our DOMWindowCreated event was fired (which it
   // most likely was).
@@ -214,6 +203,17 @@ function Tester(aTests, structuredLogger, aCallback) {
 
   window.SpecialPowers.SimpleTest = this.SimpleTest;
   window.SpecialPowers.setAsDefaultAssertHandler();
+
+  this._scriptLoader.loadSubScript(
+    "chrome://mochikit/content/tests/SimpleTest/AccessibilityUtils.js",
+    // AccessibilityUtils are integrated with EventUtils to perform additional
+    // accessibility checks for certain user interactions (clicks, etc). Load
+    // them into the EventUtils scope here.
+    this.EventUtils
+  );
+  this.AccessibilityUtils = this.EventUtils.AccessibilityUtils;
+
+  this.AccessibilityUtils.init(this.SimpleTest);
 
   var extensionUtilsScope = {
     registerCleanupFunction: fn => {
