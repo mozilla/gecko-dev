@@ -2017,7 +2017,7 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
           memWatcher->AddChildAnnotations(mCrashReporter);
 #endif
 
-          mCrashReporter->GenerateCrashReport(OtherPid());
+          mCrashReporter->GenerateCrashReport();
         }
 
         if (mCrashReporter->HasMinidump()) {
@@ -4398,8 +4398,8 @@ void ContentParent::FriendlyName(nsAString& aName, bool aAnonymize) {
 
 mozilla::ipc::IPCResult ContentParent::RecvInitCrashReporter(
     const NativeThreadId& aThreadId) {
-  mCrashReporter =
-      MakeUnique<CrashReporterHost>(GeckoProcessType_Content, aThreadId);
+  mCrashReporter = MakeUnique<CrashReporterHost>(GeckoProcessType_Content,
+                                                 OtherPid(), aThreadId);
 
   return IPC_OK();
 }

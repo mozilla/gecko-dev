@@ -24,12 +24,14 @@ class MemoryReportRequestHost;
 class RDDProcessHost;
 
 class RDDChild final : public PRDDChild,
-                       public ipc::CrashReporterHelper<GeckoProcessType_RDD>,
+                       public ipc::CrashReporterHelper<RDDChild>,
                        public gfx::gfxVarReceiver,
                        public gfx::GPUProcessListener {
   typedef mozilla::dom::MemoryReportRequestHost MemoryReportRequestHost;
 
  public:
+  static constexpr GeckoProcessType PROCESS_TYPE = GeckoProcessType_RDD;
+
   NS_INLINE_DECL_REFCOUNTING(RDDChild, final)
 
   explicit RDDChild(RDDProcessHost* aHost);

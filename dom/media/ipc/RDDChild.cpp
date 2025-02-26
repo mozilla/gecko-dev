@@ -202,7 +202,7 @@ mozilla::ipc::IPCResult RDDChild::RecvFOGData(ByteBuf&& aBuf) {
 
 void RDDChild::ActorDestroy(ActorDestroyReason aWhy) {
   if (aWhy == AbnormalShutdown) {
-    GenerateCrashReport(OtherPid());
+    GenerateCrashReport();
   }
 
   auto* gpm = gfx::GPUProcessManager::Get();

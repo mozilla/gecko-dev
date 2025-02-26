@@ -85,7 +85,7 @@ void SocketProcessParent::ActorDestroy(ActorDestroyReason aWhy) {
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
   if (aWhy == AbnormalShutdown) {
-    GenerateCrashReport(OtherPid());
+    GenerateCrashReport();
     MaybeTerminateProcess();
   }
 

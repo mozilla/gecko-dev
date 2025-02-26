@@ -20,10 +20,12 @@ class UtilityProcessHost;
 
 class UtilityProcessParent final
     : public PUtilityProcessParent,
-      public ipc::CrashReporterHelper<GeckoProcessType_Utility> {
+      public ipc::CrashReporterHelper<UtilityProcessParent> {
   typedef mozilla::dom::MemoryReportRequestHost MemoryReportRequestHost;
 
  public:
+  static constexpr GeckoProcessType PROCESS_TYPE = GeckoProcessType_Utility;
+
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(UtilityProcessParent, override);
   friend class UtilityProcessHost;
 

@@ -18,14 +18,16 @@ namespace mozilla {
 namespace ipc {
 
 CrashReporterHost::CrashReporterHost(GeckoProcessType aProcessType,
+                                     base::ProcessId aPid,
                                      CrashReporter::ThreadId aThreadId)
     : mProcessType(aProcessType),
+      mPid(aPid),
       mThreadId(aThreadId),
       mStartTime(::time(nullptr)),
       mFinalized(false) {}
 
-bool CrashReporterHost::GenerateCrashReport(base::ProcessId aPid) {
-  if (!TakeCrashedChildMinidump(aPid)) {
+bool CrashReporterHost::GenerateCrashReport() {
+  if (!TakeCrashedChildMinidump()) {
     return false;
   }
 
@@ -34,13 +36,12 @@ bool CrashReporterHost::GenerateCrashReport(base::ProcessId aPid) {
   return true;
 }
 
-RefPtr<nsIFile> CrashReporterHost::TakeCrashedChildMinidump(
-    base::ProcessId aPid) {
+RefPtr<nsIFile> CrashReporterHost::TakeCrashedChildMinidump() {
   CrashReporter::AnnotationTable annotations;
   MOZ_ASSERT(!HasMinidump());
 
   RefPtr<nsIFile> crashDump;
-  if (!CrashReporter::TakeMinidumpForChild(aPid, getter_AddRefs(crashDump),
+  if (!CrashReporter::TakeMinidumpForChild(mPid, getter_AddRefs(crashDump),
                                            annotations)) {
     return nullptr;
   }

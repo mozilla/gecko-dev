@@ -327,7 +327,7 @@ void GPUChild::ActorDestroy(ActorDestroyReason aWhy) {
 
     nsAutoString dumpId;
     if (!mCreatedPairedMinidumps) {
-      GenerateCrashReport(OtherPid(), &dumpId);
+      GenerateCrashReport(&dumpId);
     } else if (mCrashReporter) {
       dumpId = mCrashReporter->MinidumpID();
     }

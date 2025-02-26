@@ -55,12 +55,13 @@ enum class GMPState : uint32_t {
 
 class GMPContentParent;
 
-class GMPParent final
-    : public PGMPParent,
-      public ipc::CrashReporterHelper<GeckoProcessType_GMPlugin> {
+class GMPParent final : public PGMPParent,
+                        public ipc::CrashReporterHelper<GMPParent> {
   friend class PGMPParent;
 
  public:
+  static constexpr GeckoProcessType PROCESS_TYPE = GeckoProcessType_GMPlugin;
+
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GMPParent, final)
 
   GMPParent();

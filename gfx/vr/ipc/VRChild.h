@@ -23,12 +23,14 @@ class VRProcessParent;
 class VRChild;
 
 class VRChild final : public PVRChild,
-                      public ipc::CrashReporterHelper<GeckoProcessType_VR>,
+                      public ipc::CrashReporterHelper<VRChild>,
                       public gfxVarReceiver {
   typedef mozilla::dom::MemoryReportRequestHost MemoryReportRequestHost;
   friend class PVRChild;
 
  public:
+  static constexpr GeckoProcessType PROCESS_TYPE = GeckoProcessType_VR;
+
   NS_INLINE_DECL_REFCOUNTING(VRChild, final)
 
   explicit VRChild(VRProcessParent* aHost);

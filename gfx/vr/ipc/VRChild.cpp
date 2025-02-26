@@ -86,7 +86,7 @@ mozilla::ipc::IPCResult VRChild::RecvAddMemoryReport(
 
 void VRChild::ActorDestroy(ActorDestroyReason aWhy) {
   if (aWhy == AbnormalShutdown) {
-    GenerateCrashReport(OtherPid());
+    GenerateCrashReport();
 
     Telemetry::Accumulate(
         Telemetry::SUBPROCESS_ABNORMAL_ABORT,

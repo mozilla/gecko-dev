@@ -789,7 +789,7 @@ void GMPParent::AddCrashAnnotations() {
 
 void GMPParent::GetCrashID(nsString& aResult) {
   AddCrashAnnotations();
-  GenerateCrashReport(OtherPid(), &aResult);
+  GenerateCrashReport(&aResult);
 }
 
 static void GMPNotifyObservers(const uint32_t aPluginID,

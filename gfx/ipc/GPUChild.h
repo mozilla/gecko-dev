@@ -21,12 +21,14 @@ namespace gfx {
 
 class GPUProcessHost;
 
-class GPUChild final : public ipc::CrashReporterHelper<GeckoProcessType_GPU>,
+class GPUChild final : public ipc::CrashReporterHelper<GPUChild>,
                        public PGPUChild,
                        public gfxVarReceiver {
   typedef mozilla::dom::MemoryReportRequestHost MemoryReportRequestHost;
 
  public:
+  static constexpr GeckoProcessType PROCESS_TYPE = GeckoProcessType_GPU;
+
   NS_INLINE_DECL_REFCOUNTING(GPUChild, final)
 
   explicit GPUChild(GPUProcessHost* aHost);

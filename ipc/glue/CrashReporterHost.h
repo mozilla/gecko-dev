@@ -28,17 +28,17 @@ class CrashReporterHost {
   typedef CrashReporter::AnnotationTable AnnotationTable;
 
  public:
-  CrashReporterHost(GeckoProcessType aProcessType,
+  CrashReporterHost(GeckoProcessType aProcessType, base::ProcessId aPid,
                     CrashReporter::ThreadId aThreadId);
 
   // Helper function for generating a crash report for a process that probably
   // crashed (i.e., had an AbnormalShutdown in ActorDestroy). Returns true if
   // the process has a minidump attached and we were able to generate a report.
-  bool GenerateCrashReport(base::ProcessId aPid);
+  bool GenerateCrashReport();
 
   // Given an existing minidump for a crashed child process, take ownership of
   // it from IPDL. After this, FinalizeCrashReport may be called.
-  RefPtr<nsIFile> TakeCrashedChildMinidump(base::ProcessId aPid);
+  RefPtr<nsIFile> TakeCrashedChildMinidump();
 
   // Replace the stored minidump with a new one. After this,
   // FinalizeCrashReport may be called.
@@ -117,6 +117,7 @@ class CrashReporterHost {
 
  private:
   GeckoProcessType mProcessType;
+  base::ProcessId mPid;
   CrashReporter::ThreadId mThreadId;
   time_t mStartTime;
   AnnotationTable mExtraAnnotations;
