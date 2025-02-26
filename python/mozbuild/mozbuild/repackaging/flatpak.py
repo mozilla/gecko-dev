@@ -5,7 +5,9 @@
 import datetime
 import glob
 import json
+import logging
 import os
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -22,15 +24,27 @@ FIREFOX_BASEAPP = "org.mozilla.firefox.BaseApp"
 FIREFOX_BASEAPP_CHANNEL = "23.08"
 
 
-def _inject_flatpak_distribution_ini(target):
+def run_command(log, *args, **kwargs):
+    log(
+        logging.INFO,
+        "flatpak",
+        {"command": shlex.join(args[0]), "cwd": str(kwargs.get("cwd", os.getcwd()))},
+        "Running: {command} (in {cwd})",
+    )
+    return subprocess.run(*args, **kwargs)
+
+
+def _inject_flatpak_distribution_ini(log, target):
     with tempfile.TemporaryDirectory() as git_clone_dir:
-        subprocess.check_call(
+        run_command(
+            log,
             [
                 "git",
                 "clone",
                 "https://github.com/mozilla-partners/flatpak.git",
                 git_clone_dir,
             ],
+            check=True,
         )
         shutil.copyfile(
             os.path.join(
@@ -86,7 +100,8 @@ def repackage_flatpak(
         lib_dir = app_dir / "lib"
 
         # Fetch and install the base app
-        subprocess.run(
+        run_command(
+            log,
             [
                 "flatpak",
                 "remote-add",
@@ -98,7 +113,8 @@ def repackage_flatpak(
             ],
             check=True,
         )
-        subprocess.run(
+        run_command(
+            log,
             [
                 "flatpak",
                 "install",
@@ -119,12 +135,14 @@ def repackage_flatpak(
 
         # Extract our build to the app dir
         lib_dir.mkdir(exist_ok=True)
-        subprocess.check_call(["tar", "xf", os.path.abspath(infile)], cwd=lib_dir)
+        run_command(
+            log, ["tar", "xf", os.path.abspath(infile)], cwd=lib_dir, check=True
+        )
 
         if release_product == "firefox":
             distribution_ini = lib_dir / "firefox" / "distribution" / "distribution.ini"
             distribution_ini.parent.mkdir(parents=True)
-            _inject_flatpak_distribution_ini(distribution_ini)
+            _inject_flatpak_distribution_ini(log, distribution_ini)
 
         date = datetime.date.today().strftime("%Y-%m-%d")
         variables = {
@@ -176,7 +194,8 @@ def repackage_flatpak(
                 app_dir / f"share/icons/hicolor/{size}x{size}/apps/{flatpak_name}.png",
             )
 
-        subprocess.run(
+        run_command(
+            log,
             [
                 "appstream-compose",
                 f"--prefix={app_dir}",
@@ -186,7 +205,8 @@ def repackage_flatpak(
             ],
             check=True,
         )
-        subprocess.run(
+        run_command(
+            log,
             [
                 "appstream-util",
                 "mirror-screenshots",
@@ -217,7 +237,8 @@ def repackage_flatpak(
                 app_dir / f"lib/{release_product}/distribution/extensions/{name}.xpi",
             )
 
-        subprocess.run(
+        run_command(
+            log,
             [
                 "flatpak",
                 "build-finish",
@@ -250,7 +271,15 @@ def repackage_flatpak(
             cwd=tmpdir,
         )
 
-        subprocess.run(
+        run_command(
+            log,
+            ["find", "build"],
+            check=True,
+            cwd=tmpdir,
+        )
+
+        run_command(
+            log,
             [
                 "flatpak",
                 "build-export",
@@ -264,7 +293,8 @@ def repackage_flatpak(
             check=True,
             cwd=tmpdir,
         )
-        subprocess.run(
+        run_command(
+            log,
             [
                 "flatpak",
                 "build-export",
@@ -279,7 +309,8 @@ def repackage_flatpak(
             check=True,
             cwd=tmpdir,
         )
-        subprocess.run(
+        run_command(
+            log,
             [
                 "ostree",
                 "commit",
@@ -291,14 +322,16 @@ def repackage_flatpak(
             check=True,
             cwd=tmpdir,
         )
-        subprocess.run(
+        run_command(
+            log,
             ["flatpak", "build-update-repo", "--generate-static-deltas", "repo"],
             check=True,
             cwd=tmpdir,
         )
         env = os.environ.copy()
         env["XZ_OPT"] = "-e9"
-        subprocess.run(
+        run_command(
+            log,
             ["tar", "cvfJ", os.path.abspath(output), "repo"],
             check=True,
             env=env,
