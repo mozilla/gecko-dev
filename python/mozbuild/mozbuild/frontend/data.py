@@ -1233,25 +1233,6 @@ class FinalTargetPreprocessedFiles(ContextDerived):
         return basename
 
 
-class MozSrcFiles(FinalTargetFiles):
-    """Sandbox container object for MOZ_SRC_FILES, which is a
-    HierarchicalStringList.
-
-    We need an object derived from ContextDerived for use in the backend, so
-    this object fills that role. It just has a reference to the underlying
-    HierarchicalStringList, which is created when parsing MOZ_SRC_FILES.
-    """
-
-    __slots__ = ("files",)
-
-    @property
-    def install_target(self):
-        # We don't use FINAL_TARGET here because it can include DIST_SUBDIR
-        # and/or XPI_NAME, whereas we want all moz-src content packaged in
-        # the same place.
-        return mozpath.join("dist/bin/moz-src", self._context.relsrcdir)
-
-
 class LocalizedFiles(FinalTargetFiles):
     """Sandbox container object for LOCALIZED_FILES, which is a
     HierarchicalStringList.

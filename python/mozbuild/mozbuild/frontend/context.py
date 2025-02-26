@@ -1686,14 +1686,6 @@ VARIABLES = {
         current locale is ``en-US``.
         """,
     ),
-    "MOZ_SRC_FILES": (
-        ContextDerivedTypedHierarchicalStringList(Path),
-        list,
-        """This variable contains a list of files that need to be accessible
-        under the "moz-src" protocol. They are copied to the moz-src portion
-        of the omni.ja, maintaining the path that they have in the source dir.
-        """,
-    ),
     "OBJDIR_FILES": (
         ContextDerivedTypedHierarchicalStringList(Path),
         list,

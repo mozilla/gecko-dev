@@ -223,7 +223,6 @@ MACH_COMMANDS = {
     "update-glean-tags": MachCommandReference(
         "toolkit/components/glean/build_scripts/mach_commands.py"
     ),
-    "use-moz-src": MachCommandReference("tools/use-moz-src/mach_commands.py"),
     "valgrind-test": MachCommandReference("build/valgrind/mach_commands.py"),
     "vcs-setup": MachCommandReference(
         "python/mozboot/mozboot/mach_commands.py",

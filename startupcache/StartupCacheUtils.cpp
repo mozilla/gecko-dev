@@ -7,7 +7,7 @@
 #include "nsNetUtil.h"
 #include "nsIFileURL.h"
 #include "nsIJARURI.h"
-#include "nsISubstitutingProtocolHandler.h"
+#include "nsIResProtocolHandler.h"
 #include "nsIChromeRegistry.h"
 #include "nsStringStream.h"
 #include "StartupCacheUtils.h"
@@ -136,20 +136,17 @@ static inline bool canonicalizeBase(nsAutoCString& spec, nsACString& out) {
 nsresult ResolveURI(nsIURI* in, nsIURI** out) {
   nsresult rv;
 
-  nsAutoCString scheme;
-  in->GetScheme(scheme);
-
   // Resolve resource:// URIs. At the end of this if/else block, we
   // have both spec and uri variables identifying the same URI.
-  if (scheme.EqualsLiteral("resource") || scheme.EqualsLiteral("moz-src")) {
+  if (in->SchemeIs("resource")) {
     nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIProtocolHandler> ph;
-    rv = ioService->GetProtocolHandler(scheme.get(), getter_AddRefs(ph));
+    rv = ioService->GetProtocolHandler("resource", getter_AddRefs(ph));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsISubstitutingProtocolHandler> irph(do_QueryInterface(ph, &rv));
+    nsCOMPtr<nsIResProtocolHandler> irph(do_QueryInterface(ph, &rv));
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsAutoCString spec;
@@ -158,7 +155,7 @@ nsresult ResolveURI(nsIURI* in, nsIURI** out) {
 
     return ioService->NewURI(spec, nullptr, nullptr, out);
   }
-  if (scheme.EqualsLiteral("chrome")) {
+  if (in->SchemeIs("chrome")) {
     nsCOMPtr<nsIChromeRegistry> chromeReg =
         mozilla::services::GetChromeRegistry();
     if (!chromeReg) return NS_ERROR_UNEXPECTED;

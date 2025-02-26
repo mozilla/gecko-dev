@@ -203,7 +203,6 @@
 ; Modules
 @RESPATH@/browser/modules/*
 @RESPATH@/modules/*
-@RESPATH@/moz-src/*
 @RESPATH@/browser/actors/*
 @RESPATH@/actors/*
 

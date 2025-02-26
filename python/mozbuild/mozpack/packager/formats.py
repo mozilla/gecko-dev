@@ -345,7 +345,6 @@ class OmniJarSubFormatter(PiecemealFormatter):
             return True
         return path[0] in [
             "modules",
-            "moz-src",
             "actors",
             "dictionaries",
             "hyphenation",

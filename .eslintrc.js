@@ -50,10 +50,6 @@ const httpTestingPaths = [
 module.exports = {
   settings: {
     "import/extensions": [".mjs"],
-    "import/resolver": {
-      [path.resolve(__dirname, "srcdir-resolver.js")]: {},
-      node: {},
-    },
   },
   ignorePatterns,
   // Ignore eslint configurations in parent directories.
@@ -112,8 +108,6 @@ module.exports = {
         // *.config.js files are generally assumed to be configuration files
         // based for node.
         "*.config.?(m)js",
-        // The resolver for moz-src for eslint, vscode etc.
-        "srcdir-resolver.js",
       ],
       env: {
         node: true,

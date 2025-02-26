@@ -226,7 +226,7 @@ void ScriptLoadRequest::MarkScriptForBytecodeEncoding(JSScript* aScript) {
 
 static bool IsInternalURIScheme(nsIURI* uri) {
   return uri->SchemeIs("moz-extension") || uri->SchemeIs("resource") ||
-         uri->SchemeIs("moz-src") || uri->SchemeIs("chrome");
+         uri->SchemeIs("chrome");
 }
 
 void ScriptLoadRequest::SetBaseURLFromChannelAndOriginalURI(

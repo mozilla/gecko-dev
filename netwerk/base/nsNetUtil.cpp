@@ -102,7 +102,6 @@
 #endif
 #include "nsAboutProtocolHandler.h"
 #include "nsResProtocolHandler.h"
-#include "mozilla/net/MozSrcProtocolHandler.h"
 #include "mozilla/net/ExtensionProtocolHandler.h"
 #include "mozilla/net/PageThumbProtocolHandler.h"
 #include "mozilla/net/SFVService.h"
@@ -1907,15 +1906,6 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
 
   if (scheme.EqualsLiteral("resource")) {
     RefPtr<nsResProtocolHandler> handler = nsResProtocolHandler::GetSingleton();
-    if (!handler) {
-      return NS_ERROR_NOT_AVAILABLE;
-    }
-    return handler->NewURI(aSpec, aCharset, aBaseURI, aURI);
-  }
-
-  if (scheme.EqualsLiteral("moz-src")) {
-    RefPtr<MozSrcProtocolHandler> handler =
-        MozSrcProtocolHandler::GetSingleton();
     if (!handler) {
       return NS_ERROR_NOT_AVAILABLE;
     }
