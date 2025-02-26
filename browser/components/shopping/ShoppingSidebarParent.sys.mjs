@@ -122,12 +122,12 @@ export class ShoppingSidebarParent extends JSWindowActorParent {
           ShoppingSidebarParent.SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF,
           false
         );
+      } else {
+        Services.prefs.setIntPref(
+          ShoppingSidebarParent.SIDEBAR_CLOSED_COUNT_PREF,
+          sidebarClosedCount + 1
+        );
       }
-
-      Services.prefs.setIntPref(
-        ShoppingSidebarParent.SIDEBAR_CLOSED_COUNT_PREF,
-        sidebarClosedCount + 1
-      );
     }
 
     this.toggleAllSidebars("urlBar");

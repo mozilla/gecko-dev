@@ -42,6 +42,9 @@ const INTEGRATED_SIDEBAR_PREF =
 const HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF =
   "browser.shopping.experience2023.newPositionCard.hasSeen";
 
+const CLOSED_COUNT_PREVIOUS_MIN = 4;
+const CLOSED_COUNT_PREVIOUS_MAX = 6;
+
 export class ShoppingContainer extends MozLitElement {
   static properties = {
     data: { type: Object },
@@ -590,8 +593,7 @@ export class ShoppingContainer extends MozLitElement {
           aria-busy=${!this.data}
         >
           <slot name="multi-stage-message-slot"></slot>
-          ${this.newPositionNotificationCardTemplate()}
-          ${this.keepClosedMessageTemplate()}${sidebarContent}
+          ${this.userInteractionMessageTemplate()}${sidebarContent}
           ${showSettings
             ? this.settingsTemplate(
                 !this.isSupportedSite && !this.isProductPage
@@ -601,24 +603,6 @@ export class ShoppingContainer extends MozLitElement {
             : null}
         </div>
       </div>`;
-  }
-
-  newPositionNotificationCardTemplate() {
-    if (
-      this.autoOpenEnabled &&
-      this.autoOpenEnabledByUser &&
-      this.showNewPositionCard &&
-      this.isSidebarStartPosition &&
-      // Set fallback value to true to prevent weird flickering UI when switching tabs
-      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true)
-    ) {
-      return html`
-        <new-position-notification-card
-          isSidebarStartPosition=${this.isSidebarStartPosition}
-        ></new-position-notification-card>
-      `;
-    }
-    return null;
   }
 
   explainerTemplate({ className = "" } = {}) {
@@ -641,19 +625,53 @@ export class ShoppingContainer extends MozLitElement {
     ></shopping-settings>`;
   }
 
-  keepClosedMessageTemplate() {
-    if (
-      this.autoOpenEnabled &&
-      this.autoOpenEnabledByUser &&
-      this.showingKeepClosedMessage &&
-      RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, true)
-    ) {
-      return html`<shopping-message-bar
-        id="keep-closed-message-bar"
-        type="keep-closed"
-      ></shopping-message-bar>`;
+  userInteractionMessageTemplate() {
+    /**
+     * There are two types of messages about users' interaction with Review Checker that we want to display
+     * when users keep the auto-open setting enabled:
+     * 1. The "Keep closed" message-bar
+     * 2. The "New position" notification card (integratedSidebar only)
+     *
+     * Only one or the other should be rendered at a time, at the same spot. If a user is eligible
+     * to see the notification card, make sure to show that card first. Once the card is dismissed,
+     * we can then check if the user is eligible to see the "Keep closed" message.
+     */
+    if (!this.autoOpenEnabled || !this.autoOpenEnabledByUser) {
+      return null;
     }
+
+    let canShowNotificationCard =
+      RPMGetBoolPref(INTEGRATED_SIDEBAR_PREF, false) &&
+      this.showNewPositionCard &&
+      this.isSidebarStartPosition &&
+      // Set fallback value to true to prevent weird flickering UI when switching tabs
+      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true);
+    let canShowKeepClosedMessage =
+      this.showingKeepClosedMessage &&
+      RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, true);
+
+    if (canShowNotificationCard) {
+      return this.newPositionNotificationCardTemplate();
+    } else if (canShowKeepClosedMessage) {
+      return this.keepClosedMessageTemplate();
+    }
+
     return null;
+  }
+
+  newPositionNotificationCardTemplate() {
+    return html`
+      <new-position-notification-card
+        isSidebarStartPosition=${this.isSidebarStartPosition}
+      ></new-position-notification-card>
+    `;
+  }
+
+  keepClosedMessageTemplate() {
+    return html`<shopping-message-bar
+      id="keep-closed-message-bar"
+      type="keep-closed"
+    ></shopping-message-bar>`;
   }
 
   render() {
@@ -681,31 +699,68 @@ export class ShoppingContainer extends MozLitElement {
   }
 
   handleCloseButtonClick() {
+    let canShowKeepClosedMessage;
+
     if (this.autoOpenEnabled && this.autoOpenEnabledByUser) {
-      let sidebarClosedCount = RPMGetIntPref(SIDEBAR_CLOSED_COUNT_PREF, 0);
-      if (
-        !this.showingKeepClosedMessage &&
-        sidebarClosedCount >= 4 &&
-        RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, true)
-      ) {
-        this.showingKeepClosedMessage = true;
-        return;
-      }
+      canShowKeepClosedMessage =
+        this._canShowKeepClosedMessageOnCloseButtonClick();
+    }
 
-      this.showingKeepClosedMessage = false;
+    if (!canShowKeepClosedMessage) {
+      RPMSetPref(SHOPPING_SIDEBAR_ACTIVE_PREF, false);
+      window.dispatchEvent(
+        new CustomEvent("CloseShoppingSidebar", {
+          bubbles: true,
+          composed: true,
+        })
+      );
+    }
 
-      if (sidebarClosedCount >= 6) {
-        RPMSetPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, false);
-      }
+    Glean.shopping.surfaceClosed.record({ source: "closeButton" });
+  }
 
+  /**
+   * Delaying close is only applicable to the "Keep closed" message.
+   *
+   * We can show the message under these conditions:
+   * - User has already seen the new location notification card
+   * - The message was never seen before
+   * - User clicked the close button at least 5 times in a session (i.e. met the minimum of 4 counts before this point)
+   * - The number of close attempts in a session is less than 7 (i.e. met the maximum of 6 counts before this point)
+   *
+   * Do not show the message again after the 7th close.
+   */
+  _canShowKeepClosedMessageOnCloseButtonClick() {
+    let yetToSeeNotificationCard =
+      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, false) &&
+      RPMGetBoolPref(INTEGRATED_SIDEBAR_PREF, false);
+
+    if (
+      yetToSeeNotificationCard ||
+      !RPMGetBoolPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, false)
+    ) {
+      return false;
+    }
+
+    let sidebarClosedCount = RPMGetIntPref(SIDEBAR_CLOSED_COUNT_PREF, 0);
+    let canShowKeepClosedMessage =
+      !this.showingKeepClosedMessage &&
+      sidebarClosedCount >= CLOSED_COUNT_PREVIOUS_MIN;
+
+    if (canShowKeepClosedMessage) {
+      this.showingKeepClosedMessage = true;
+      return true;
+    }
+
+    this.showingKeepClosedMessage = false;
+
+    if (sidebarClosedCount >= CLOSED_COUNT_PREVIOUS_MAX) {
+      RPMSetPref(SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF, false);
+    } else {
       RPMSetPref(SIDEBAR_CLOSED_COUNT_PREF, sidebarClosedCount + 1);
     }
 
-    RPMSetPref(SHOPPING_SIDEBAR_ACTIVE_PREF, false);
-    window.dispatchEvent(
-      new CustomEvent("CloseShoppingSidebar", { bubbles: true, composed: true })
-    );
-    Glean.shopping.surfaceClosed.record({ source: "closeButton" });
+    return false;
   }
 }
 

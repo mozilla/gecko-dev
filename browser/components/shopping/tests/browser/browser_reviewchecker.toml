@@ -40,6 +40,8 @@ prefs = [
 
 ["browser_reviewchecker_private_mode.js"]
 
+["browser_reviewchecker_show_keep_closed_and_notification_card.js"]
+
 ["browser_reviewchecker_sidebar.js"]
 
 ["browser_reviewchecker_telemetry.js"]
