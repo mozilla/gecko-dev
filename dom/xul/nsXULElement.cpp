@@ -584,29 +584,6 @@ nsresult nsXULElement::BindToTree(BindContext& aContext, nsINode& aParent) {
   }
 #endif
 
-  // Within Bug 1492063 and its dependencies we started to apply a
-  // CSP to system privileged about pages. Since some about: pages
-  // are implemented in *.xul files we added this workaround to
-  // apply a CSP to them. To do so, we check the introduced custom
-  // attribute 'csp' on the root element.
-  if (doc.GetRootElement() == this) {
-    nsAutoString cspPolicyStr;
-    GetAttr(nsGkAtoms::csp, cspPolicyStr);
-
-#ifdef DEBUG
-    {
-      nsCOMPtr<nsIContentSecurityPolicy> docCSP = doc.GetCsp();
-      uint32_t policyCount = 0;
-      if (docCSP) {
-        docCSP->GetPolicyCount(&policyCount);
-      }
-      MOZ_ASSERT(policyCount == 0, "how come we already have a policy?");
-    }
-#endif
-
-    CSP_ApplyMetaCSPToDoc(doc, cspPolicyStr);
-  }
-
   if (NodeInfo()->Equals(nsGkAtoms::keyset, kNameSpaceID_XUL)) {
     // Create our XUL key listener and hook it up.
     XULKeySetGlobalKeyListener::AttachKeyHandler(this);

@@ -53,6 +53,7 @@
 #include "mozilla/dom/ProcessingInstruction.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/txMozillaXSLTProcessor.h"
+#include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/UseCounter.h"
@@ -516,7 +517,9 @@ nsresult nsXMLContentSink::CreateElement(
     // Since we are possibly going to run a script for the custom element
     // constructor, we should first flush any remaining elements.
     FlushTags();
-    { nsAutoMicroTask mt; }
+    {
+      nsAutoMicroTask mt;
+    }
 
     Maybe<AutoCEReaction> autoCEReaction;
     if (auto* docGroup = mDocument->GetDocGroup()) {
@@ -1229,6 +1232,13 @@ nsXMLContentSink::HandleProcessingInstruction(const char16_t* aTarget,
   nsresult rv = AddContentAsLeaf(node);
   NS_ENSURE_SUCCESS(rv, rv);
   DidAddContent();
+
+  // Handles the special chrome-only <?csp ?> PI, which will be handled before
+  // creating any element with potential inline style or scripts.
+  if (mState == eXMLContentSinkState_InProlog && target.EqualsLiteral("csp") &&
+      mDocument->NodePrincipal()->IsSystemPrincipal()) {
+    CSP_ApplyMetaCSPToDoc(*mDocument, data);
+  }
 
   if (linkStyle) {
     // This is an xml-stylesheet processing instruction... but it might not be

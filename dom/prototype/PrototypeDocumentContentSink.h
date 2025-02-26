@@ -233,7 +233,7 @@ class PrototypeDocumentContentSink final : public nsIStreamLoaderObserver,
    * it to the DOM.
    */
   nsresult CreateAndInsertPI(const nsXULPrototypePI* aProtoPI, nsINode* aParent,
-                             nsINode* aBeforeThis);
+                             bool aInProlog);
 
   /**
    * Inserts the passed <?xml-stylesheet ?> PI at the specified
@@ -245,7 +245,7 @@ class PrototypeDocumentContentSink final : public nsIStreamLoaderObserver,
    * loading.
    */
   nsresult InsertXMLStylesheetPI(const nsXULPrototypePI* aProtoPI,
-                                 nsINode* aParent, nsINode* aBeforeThis,
+                                 nsINode* aParent,
                                  XMLStylesheetProcessingInstruction* aPINode);
   void CloseElement(Element* aElement, bool aHadChildren);
 };
