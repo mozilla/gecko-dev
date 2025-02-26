@@ -127,11 +127,6 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
         val view = inflater.inflate(R.layout.fragment_saved_logins, container, false)
 
         _binding = FragmentSavedLoginsBinding.bind(view)
-        setSecureContentVisibility(false)
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
-            true
-        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.authenticationStatus =
-            AuthenticationStatus.NOT_AUTHENTICATED
 
         savedLoginsStore =
             StoreProvider.get(findNavController().getBackStackEntry(R.id.savedLogins)) {
@@ -288,6 +283,7 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
             is SortingStrategy.Alphabetically -> setupMenu(
                 SavedLoginsSortingStrategyMenu.Item.AlphabeticallySort,
             )
+
             is SortingStrategy.LastUsed -> setupMenu(
                 SavedLoginsSortingStrategyMenu.Item.LastUsedSort,
             )
