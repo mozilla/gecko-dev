@@ -8,11 +8,14 @@ try {
   const { BrowserLoader } = ChromeUtils.importESModule(
     "resource://devtools/shared/loader/browser-loader.sys.mjs"
   );
-  const { require } = BrowserLoader({
+  // Expose both `browserLoader` and `Debugger` to panel.js
+  globalThis.browserLoader = BrowserLoader({
     baseURI: "resource://devtools/client/debugger",
     window,
   });
-  globalThis.Debugger = require("devtools/client/debugger/src/main");
+  globalThis.Debugger = globalThis.browserLoader.require(
+    "devtools/client/debugger/src/main"
+  );
 } catch (e) {
   dump("Exception happened while loading the debugger:\n");
   dump(e + "\n");

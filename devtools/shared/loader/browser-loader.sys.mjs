@@ -85,6 +85,7 @@ export function BrowserLoader(options) {
   return {
     loader: browserLoaderBuilder.loader,
     require: browserLoaderBuilder.require,
+    lazyRequireGetter: browserLoaderBuilder.lazyRequireGetter,
   };
 }
 
@@ -190,6 +191,7 @@ function BrowserLoaderBuilder({
     window.getBrowserLoaderForWindow = () => this;
   }
   this.require = BaseLoader.Require(this.loader, mainModule);
+  this.lazyRequireGetter = this.lazyRequireGetter.bind(this);
 }
 
 BrowserLoaderBuilder.prototype = {
