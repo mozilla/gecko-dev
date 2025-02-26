@@ -68,6 +68,22 @@ export class FormAutofillHandler {
   #visibilityStateObserverByElement = new WeakMap();
 
   /**
+   *
+   * fillOnFormChangeData.isWithinDynamicFormChangeThreshold:
+   *              Flags if a "form-change" event is received within the timeout threshold
+   *              (see lazy.FormAutofill.fillOnDynamicFormChangeTimeout), that we set
+   *              in order to consider newly detected fields for filling.
+   * fillOnFormChangeData.previouslyUsedProfile
+   *              The previously used profile from the latest autocompletion.
+   * fillOnFormChangeData.previouslyFocusedId
+   *              The previously focused element id from the latest autocompletion
+   *
+   * This is used for any following form changes and is cleared after a time threshold
+   * set by lazy.FormAutofill.fillOnDynamicFormChangeTimeout.
+   */
+  #fillOnFormChangeData = new Map();
+
+  /**
    * Flag to indicate whethere there is an ongoing autofilling/clearing process.
    */
   #isAutofillInProgress = false;
@@ -95,6 +111,15 @@ export class FormAutofillHandler {
     ChromeUtils.defineLazyGetter(this, "log", () =>
       FormAutofill.defineLogGetter(this, "FormAutofillHandler")
     );
+  }
+
+  get fillOnFormChangeData() {
+    return this.#fillOnFormChangeData;
+  }
+
+  clearFillOnFormChangeData() {
+    this.#fillOnFormChangeData = new Map();
+    this.#fillOnFormChangeData.isWithinDynamicFormChangeThreshold = false;
   }
 
   /**
