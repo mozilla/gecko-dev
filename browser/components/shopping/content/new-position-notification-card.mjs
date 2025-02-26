@@ -39,7 +39,7 @@ class NewPositionNotificationCard extends MozLitElement {
 
   firstUpdated() {
     super.firstUpdated();
-    // TODO: Implement card impression (Bug 1948124)
+    Glean.shopping.surfaceNotificationCardImpression.record();
   }
 
   handleClickSettingsLink(event) {
@@ -47,7 +47,7 @@ class NewPositionNotificationCard extends MozLitElement {
     // Click event listener references get lost if attached to the settings link since it is slotted into the shopping-card.
     // As a workaround, attach the listener to its parent element and only dispatch events if the target is the settings link.
     if (event.target == this.settingsLinkEl) {
-      // TODO: Implement Glean probe (Bug 1948124)
+      Glean.shopping.surfaceNotificationCardSidebarSettingsClicked.record();
       window.dispatchEvent(
         new CustomEvent("ShowSidebarSettings", {
           bubbles: true,
@@ -65,8 +65,8 @@ class NewPositionNotificationCard extends MozLitElement {
   }
 
   handleClickPositionButton() {
-    // TODO: Implement Glean probe (Bug 1948124)
     if (this.isSidebarStartPosition) {
+      Glean.shopping.surfaceNotificationCardMoveRightClicked.record();
       this.isSidebarStartPosition = false;
       window.dispatchEvent(
         new CustomEvent("MoveSidebarToRight", {
@@ -75,7 +75,7 @@ class NewPositionNotificationCard extends MozLitElement {
         })
       );
     } else {
-      // TODO: Implement Glean probe (Bug 1948124)
+      Glean.shopping.surfaceNotificationCardMoveLeftClicked.record();
       this.isSidebarStartPosition = true;
       window.dispatchEvent(
         new CustomEvent("MoveSidebarToLeft", {
@@ -87,7 +87,7 @@ class NewPositionNotificationCard extends MozLitElement {
   }
 
   handleClickDismissButton() {
-    // TODO: Implement Glean probe (Bug 1948124)
+    Glean.shopping.surfaceNotificationCardDismissClicked.record();
     this.dispatchEvent(
       new CustomEvent("HideNewPositionCard", {
         bubbles: true,

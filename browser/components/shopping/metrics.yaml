@@ -786,3 +786,90 @@ shopping:
       - fx-desktop-shopping-eng@mozilla.com
     send_in_pings:
       - events
+
+  surface_notification_card_impression:
+    type: event
+    description: |
+      The notification card for changing left or right sidebar position was
+      visible in the Review Checker sidebar panel.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - betling@mozilla.com
+      - fx-desktop-shopping-eng@mozilla.com
+    send_in_pings:
+      - events
+
+  surface_notification_card_move_right_clicked:
+    type: event
+    description: |
+      The user clicked the 'Move right' button to move the sidebar to the right side.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - betling@mozilla.com
+      - fx-desktop-shopping-eng@mozilla.com
+    send_in_pings:
+      - events
+
+  surface_notification_card_move_left_clicked:
+    type: event
+    description: |
+      The user clicked the 'Move left' button to move the sidebar to the left side.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - betling@mozilla.com
+      - fx-desktop-shopping-eng@mozilla.com
+    send_in_pings:
+      - events
+
+  surface_notification_card_dismiss_clicked:
+    type: event
+    description: |
+      The user clicked the dismiss button to close the notification card.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - betling@mozilla.com
+      - fx-desktop-shopping-eng@mozilla.com
+    send_in_pings:
+      - events
+
+  surface_notification_card_sidebar_settings_clicked:
+    type: event
+    description: |
+      The user clicked the sidebar settings link in the notification card to view
+      the sidebar settings panel.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948124
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - betling@mozilla.com
+      - fx-desktop-shopping-eng@mozilla.com
+    send_in_pings:
+      - events
