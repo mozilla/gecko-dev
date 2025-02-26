@@ -662,3 +662,6 @@ if CONFIG["JS_HAS_INTL_API"]:
         ]
 
     USE_LIBS += ["intlcomponents"]
+
+if CONFIG["USE_LIBZ_RS"]:
+    DEFINES["USE_LIBZ_RS"] = True
