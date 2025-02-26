@@ -23,17 +23,23 @@ add_task(async function test_detected_language() {
     ],
   });
 
-  async function getDetectedLanguagesFor(docLangTag) {
+  async function getDetectedLanguagesFor(langTag) {
     await ContentTask.spawn(
       tab.linkedBrowser,
-      { docLangTag },
-      function changeLanguage({ docLangTag }) {
-        content.document.body.parentNode.setAttribute("lang", docLangTag);
+      { langTag },
+      function changeLanguage({ langTag }) {
+        content.document.body.parentNode.setAttribute("lang", langTag);
       }
     );
     // Clear out the cached values.
     getTranslationsParent().languageState.detectedLanguages = null;
-    return getTranslationsParent().getDetectedLanguages(docLangTag);
+    const { docLangTag, userLangTag, isDocLangTagSupported } =
+      await getTranslationsParent().getDetectedLanguages(langTag);
+    return {
+      docLangTag,
+      userLangTag,
+      isDocLangTagSupported,
+    };
   }
 
   {

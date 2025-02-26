@@ -30,7 +30,13 @@ async function runLangTagsTest(
     "Waiting for a document language tag to be found."
   );
 
-  Assert.deepEqual(actor.languageState.detectedLanguages, langTags);
+  const { docLangTag, userLangTag, isDocLangTagSupported } =
+    actor.languageState.detectedLanguages;
+
+  Assert.deepEqual(
+    { docLangTag, userLangTag, isDocLangTagSupported },
+    langTags
+  );
 
   await cleanupLocales();
   await cleanupTestPage();

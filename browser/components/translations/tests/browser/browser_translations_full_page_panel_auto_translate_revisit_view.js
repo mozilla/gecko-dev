@@ -69,7 +69,6 @@ add_task(
 
     await navigate("Navigate back to the Spanish page.", {
       url: SPANISH_PAGE_URL_DOT_ORG,
-      downloadHandler: resolveDownloads,
     });
 
     await FullPageTranslationsTestUtils.assertPageIsTranslated({

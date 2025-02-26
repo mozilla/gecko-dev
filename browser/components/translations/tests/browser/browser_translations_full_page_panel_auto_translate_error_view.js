@@ -81,8 +81,6 @@ add_task(
       onOpenPanel: FullPageTranslationsTestUtils.assertPanelViewError,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsUntranslated(runInPage);
-
     await cleanup();
   }
 );

@@ -309,7 +309,7 @@ async function navigate(
   // close it when we navigate to a new page.
   await closeAllOpenPanelsAndMenus();
 
-  info(message);
+  info(message + " - " + url);
 
   // Load a blank page first to ensure that tests don't hang.
   // I don't know why this is needed, but it appears to be necessary.

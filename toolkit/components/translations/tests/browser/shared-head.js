@@ -35,26 +35,34 @@ const URL_COM_PREFIX = "https://example.com/browser/";
 const URL_ORG_PREFIX = "https://example.org/browser/";
 const CHROME_URL_PREFIX = "chrome://mochitests/content/browser/";
 const DIR_PATH = "toolkit/components/translations/tests/browser/";
-const ENGLISH_PAGE_URL =
-  URL_COM_PREFIX + DIR_PATH + "translations-tester-en.html";
-const SPANISH_PAGE_URL =
-  URL_COM_PREFIX + DIR_PATH + "translations-tester-es.html";
-const FRENCH_PAGE_URL =
-  URL_COM_PREFIX + DIR_PATH + "translations-tester-fr.html";
-const SPANISH_PAGE_URL_2 =
-  URL_COM_PREFIX + DIR_PATH + "translations-tester-es-2.html";
+
+/**
+ * Use a utility function to make this easier to read.
+ *
+ * @param {string} path
+ * @returns {string}
+ */
+function _url(path) {
+  return URL_COM_PREFIX + DIR_PATH + path;
+}
+
+const SPANISH_PAGE_URL = _url("translations-tester-es.html");
+const SPANISH_PAGE_URL_2 = _url("translations-tester-es-2.html");
+const SPANISH_PAGE_SHORT_URL = _url("translations-tester-es-short.html");
+const SPANISH_PAGE_MISMATCH_URL = _url("translations-tester-es-mismatch.html");
+const SPANISH_PAGE_MISMATCH_SHORT_URL = _url("translations-tester-es-mismatch-short.html"); // prettier-ignore
+const SPANISH_PAGE_UNDECLARED_URL = _url("translations-tester-es-undeclared.html"); // prettier-ignore
+const SPANISH_PAGE_UNDECLARED_SHORT_URL = _url("translations-tester-es-undeclared-short.html"); // prettier-ignore
+const ENGLISH_PAGE_URL = _url("translations-tester-en.html");
+const FRENCH_PAGE_URL = _url("translations-tester-fr.html");
+const NO_LANGUAGE_URL = _url("translations-tester-no-tag.html");
+const PDF_TEST_PAGE_URL = _url("translations-tester-pdf-file.pdf");
+const SELECT_TEST_PAGE_URL = _url("translations-tester-select.html");
+const TEXT_CLEANING_URL = _url("translations-text-cleaning.html");
+const SPANISH_BENCHMARK_PAGE_URL = _url("translations-bencher-es.html");
+
 const SPANISH_PAGE_URL_DOT_ORG =
   URL_ORG_PREFIX + DIR_PATH + "translations-tester-es.html";
-const NO_LANGUAGE_URL =
-  URL_COM_PREFIX + DIR_PATH + "translations-tester-no-tag.html";
-const PDF_TEST_PAGE_URL =
-  URL_COM_PREFIX + DIR_PATH + "translations-tester-pdf-file.pdf";
-const SELECT_TEST_PAGE_URL =
-  URL_COM_PREFIX + DIR_PATH + "translations-tester-select.html";
-const TEXT_CLEANING_URL =
-  URL_COM_PREFIX + DIR_PATH + "translations-text-cleaning.html";
-const SPANISH_BENCHMARK_PAGE_URL =
-  URL_COM_PREFIX + DIR_PATH + "translations-bencher-es.html";
 
 const PIVOT_LANGUAGE = "en";
 const LANGUAGE_PAIRS = [

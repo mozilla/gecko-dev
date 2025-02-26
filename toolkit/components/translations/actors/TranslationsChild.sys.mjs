@@ -39,10 +39,13 @@ export class TranslationsChild extends JSWindowActorChild {
     }
   }
 
-  addProfilerMarker(message) {
+  addProfilerMarker(message, startTime) {
     ChromeUtils.addProfilerMarker(
       "TranslationsChild",
-      { innerWindowId: this.contentWindow.windowGlobalChild.innerWindowId },
+      {
+        innerWindowId: this.contentWindow?.windowGlobalChild.innerWindowId,
+        startTime,
+      },
       message
     );
   }
@@ -96,13 +99,14 @@ export class TranslationsChild extends JSWindowActorChild {
           });
         }
 
-        try {
-          return lazy.LanguageDetector.detectLanguageFromDocument(
-            this.document
-          );
-        } catch (error) {
-          return null;
-        }
+        const startTime = Cu.now();
+        const detectionResult =
+          await lazy.LanguageDetector.detectLanguageFromDocument(this.document);
+        this.addProfilerMarker(
+          `Detect language from document: ${detectionResult.language}`,
+          startTime
+        );
+        return detectionResult;
       }
       case "Translations:AcquirePort": {
         this.addProfilerMarker("Acquired a port, resuming translations");

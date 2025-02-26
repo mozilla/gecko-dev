@@ -97,7 +97,6 @@ add_task(
       "Navigate to a Spanish page with a different content principal",
       {
         url: SPANISH_PAGE_URL_DOT_ORG,
-        downloadHandler: resolveDownloads,
       }
     );
 
