@@ -1416,7 +1416,7 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
   if (auto maybeUserActionData = mUserActionMap.Lookup(aUserActionId)) {
     if (aRequestToken) {
       // We are only cancelling one request.
-      if (maybeUserActionData->mRequestTokens.EnsureRemoved(*aRequestToken)) {
+      if (maybeUserActionData->mRequestTokens.Contains(*aRequestToken)) {
         tokens.AppendElement(*aRequestToken);
       } else {
         MOZ_ASSERT_UNREACHABLE("Request token not found");
@@ -1529,6 +1529,17 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
     NotifyResponseObservers(response, nsCString(aUserActionId),
                             false /* autoAcknowledge */);
     if (action != nsIContentAnalysisResponse::Action::eWarn) {
+      if (aRequestToken && *aRequestToken == token) {
+        // We are actually responding to one request (not "partially-resolving"
+        // it by warning the user and responding later with their answer), so
+        // remove the token to avoid responding to it again.
+        if (auto uaData = mUserActionMap.Lookup(aUserActionId)) {
+          DebugOnly<bool> found = uaData->mRequestTokens.EnsureRemoved(token);
+          MOZ_ASSERT(found);
+        } else {
+          MOZ_ASSERT_UNREACHABLE("UserAction map lost the user action ID?");
+        }
+      }
       if (callback) {
         if (isShutdown) {
           // One Error response call is sufficient to complete the
@@ -1544,13 +1555,13 @@ void ContentAnalysis::CancelWithError(nsCString&& aUserActionId,
     }
   }
 
-  if (aRequestToken) {
+  MOZ_ASSERT(isTimeout || action != nsIContentAnalysisResponse::Action::eWarn);
+
+  if (aRequestToken || action == nsIContentAnalysisResponse::Action::eWarn) {
     // Only remove from the user action map and send cancel to the agent
-    // if we are cancelling all requests.
+    // if we are cancelling all requests, unless our default action is to warn.
     return;
   }
-
-  MOZ_ASSERT(action != nsIContentAnalysisResponse::Action::eWarn);
 
   RemoveFromUserActionMap(nsCString(aUserActionId));
 
@@ -1792,6 +1803,17 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
               LOGE("Content analysis got invalid response!");
               return;
             }
+
+            // Normally, if we timeout/user-cancel a request, we remove the
+            // adjacent entry in mUserActionMap.  However, we don't do that if
+            // the chosen default behavior is to warn.  We don't want to issue
+            // a response in that case.
+            nsCString requestToken;
+            MOZ_ALWAYS_SUCCEEDS(response->GetRequestToken(requestToken));
+            if (owner->mWarnResponseDataMap.Contains(requestToken)) {
+              return;
+            }
+
             owner->NotifyObserversAndMaybeIssueResponse(
                 response, std::move(userActionId), aAutoAcknowledge);
           },
@@ -1867,16 +1889,6 @@ void ContentAnalysis::NotifyResponseObservers(
     // IssueResponse with the result.
     nsCString requestToken;
     MOZ_ALWAYS_SUCCEEDS(aResponse->GetRequestToken(requestToken));
-
-    // We have our response.  Cancelling the timeout timer is normally
-    // done when we issue the response but we don't care how long the user
-    // takes to respond to a warn dialog, so stop it now.
-    if (auto entry = mUserActionMap.Lookup(aUserActionId)) {
-      if (entry->mTimeoutRunnable && !entry->mIsHandlingTimeout) {
-        entry->mTimeoutRunnable->Cancel();
-        entry->mTimeoutRunnable = nullptr;
-      }
-    }
 
     mWarnResponseDataMap.InsertOrUpdate(
         requestToken, WarnResponseData{aResponse, std::move(aUserActionId),
@@ -2344,11 +2356,31 @@ void ContentAnalysis::MultipartRequestCallback::Initialize(
       "ContentAnalysis timeout",
       [userActionId = mUserActionId,
        weakContentAnalysis = mWeakContentAnalysis]() mutable {
-        if (weakContentAnalysis) {
-          if (auto entry =
-                  weakContentAnalysis->mUserActionMap.Lookup(userActionId)) {
-            entry->mIsHandlingTimeout = true;
+        if (!weakContentAnalysis) {
+          return;
+        }
+        // Entries awaiting a warn-dialog-selection should not be
+        // considered as part of timeout.  Ignore timeout if all remaining
+        // requests are awaiting a warn respones.  Otherwise cancel all of
+        // them (including any awaiting a warn response) as timed out.
+        bool found = false;
+        if (auto remainingEntry =
+                weakContentAnalysis->mUserActionMap.Lookup(userActionId)) {
+          MOZ_ASSERT(!remainingEntry->mIsHandlingTimeout);
+          for (const auto& remainingToken : remainingEntry->mRequestTokens) {
+            if (!weakContentAnalysis->mWarnResponseDataMap.Contains(
+                    remainingToken)) {
+              // This request is not awaiting warn so cancel the entire user
+              // action.
+              found = true;
+              // We do not allow calling Cancel() on runnables while they are
+              // running, so this makes sure that CA does not do that.
+              remainingEntry->mIsHandlingTimeout = true;
+              break;
+            }
           }
+        }
+        if (found) {
           weakContentAnalysis->CancelWithError(
               std::move(userActionId), Nothing(), NS_ERROR_DOM_TIMEOUT_ERR);
         }
