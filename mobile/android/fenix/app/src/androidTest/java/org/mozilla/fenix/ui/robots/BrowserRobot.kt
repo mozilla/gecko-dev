@@ -1132,6 +1132,18 @@ class BrowserRobot {
         )
     }
 
+    fun verifyToolsMenuDoesNotExist() {
+        assertUIObjectIsGone(itemWithDescription(getStringResource(R.string.browser_tools_menu_handlebar_content_description)))
+    }
+
+    fun verifySaveMenuDoesNotExist() {
+        assertUIObjectIsGone(itemWithDescription(getStringResource(R.string.browser_save_menu_handlebar_content_description)))
+    }
+
+    fun verifyExtensionsMenuDoesNotExist() {
+        assertUIObjectIsGone(itemWithDescription(getStringResource(R.string.browser_extensions_menu_handlebar_content_description)))
+    }
+
     class Transition {
         fun openThreeDotMenu(interact: ThreeDotMenuMainRobot.() -> Unit): ThreeDotMenuMainRobot.Transition {
             Log.i(TAG, "openThreeDotMenu: Waiting for device to be idle for $waitingTime ms")

@@ -4,6 +4,12 @@
 package org.mozilla.fenix.ui.robots
 
 import android.util.Log
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -170,14 +176,54 @@ class CustomTabRobot {
             itemWithResIdAndText("download", "Download"),
         )
 
-    fun verifyRedesignedCustomTabsMainMenuItems(customMenuItem: String) =
+    fun verifyRedesignedCustomTabsMainMenuItemsExist(customMenuItem: String, exist: Boolean) =
         assertUIObjectExists(
             itemWithDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site)),
             itemWithDescription(getStringResource(R.string.browser_menu_find_in_page_2)),
             itemWithDescription("Open in $appName"),
             itemWithDescription(getStringResource(R.string.browser_menu_share_2)),
             itemContainingText(customMenuItem),
+            exists = exist,
         )
+
+    fun verifySwitchToDesktopSiteButtonIsEnabled(
+        composeTestRule: ComposeTestRule,
+        isEnabled: Boolean,
+    ) {
+        Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Trying to verify that the \"Switch to Desktop Site\" button from the new main menu design is enabled.")
+        if (isEnabled) {
+            composeTestRule.desktopSiteButton().assertIsEnabled()
+            Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Verified that the \"Switch to Desktop Site\" button from the new main menu design is enabled.")
+        } else {
+            Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Trying to verify that the \"Switch to Desktop Site\" button from the new main menu design is disabled.")
+            composeTestRule.desktopSiteButton().assertIsNotEnabled()
+            Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Verified the \"Switch to Desktop Site\" button from the new main menu design is disabled.")
+        }
+    }
+
+    fun verifySwitchToDesktopSiteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifySwitchToDesktopSiteButton: Trying to verify that the \"Switch to desktop site\" button is displayed.")
+        composeTestRule.desktopSiteButton().assertIsDisplayed()
+        Log.i(TAG, "verifySwitchToDesktopSiteButton: Verified that the \"Switch to desktop site\" button is displayed.")
+    }
+
+    fun verifySwitchToMobileSiteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifySwitchToMobileSiteButton: Trying to verify that the \"Switch to mobile site\" button is displayed.")
+        composeTestRule.mobileSiteButton().assertIsDisplayed()
+        Log.i(TAG, "verifySwitchToMobileSiteButton: Verified that the \"Switch to mobile site\" button is displayed.")
+    }
+
+    fun clickSwitchToDesktopSiteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickSwitchToDesktopSiteButton: Trying to click the \"Switch to desktop site\" button.")
+        composeTestRule.desktopSiteButton().performClick()
+        Log.i(TAG, "clickSwitchToDesktopSiteButton: Clicked the \"Switch to desktop site\" button.")
+    }
+
+    fun clickSwitchToMobileSiteButton(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickSwitchToMobileSiteButton: Trying to click the \"Switch to mobile site\" button.")
+        composeTestRule.mobileSiteButton().performClick()
+        Log.i(TAG, "clickSwitchToMobileSiteButton: Clicked the \"Switch to mobile site\" button.")
+    }
 
     class Transition {
         fun openMainMenu(interact: CustomTabRobot.() -> Unit): Transition {
@@ -244,6 +290,24 @@ class CustomTabRobot {
             ShareOverlayRobot().interact()
             return ShareOverlayRobot.Transition()
         }
+
+        fun clickFindInPageButton(composeTestRule: ComposeTestRule, interact: FindInPageRobot.() -> Unit): FindInPageRobot.Transition {
+            Log.i(TAG, "clickFindInPageButton: Trying to click the \"Find In Page\" button from the new main menu design.")
+            composeTestRule.findInPageButton().performClick()
+            Log.i(TAG, "clickFindInPageButton: Clicked the \"Find In Page\" button from the new main menu design.")
+
+            FindInPageRobot().interact()
+            return FindInPageRobot.Transition()
+        }
+
+        fun clickOutsideTheMainMenu(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "clickOutsideTheMainMenu: Trying to click outside the main menu.")
+            itemWithResId("$packageName:id/touch_outside").swipeUp(6)
+            Log.i(TAG, "clickOutsideTheMainMenu: Clicked click outside the main menu.")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
     }
 }
 
@@ -273,3 +337,8 @@ private fun progressBar() =
     mDevice.findObject(
         UiSelector().resourceId("$packageName:id/mozac_browser_toolbar_progress"),
     )
+private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site))
+
+private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_mobile_site))
+
+private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page_2))

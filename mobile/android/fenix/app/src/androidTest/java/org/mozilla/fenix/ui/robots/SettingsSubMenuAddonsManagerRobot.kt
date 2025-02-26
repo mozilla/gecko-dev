@@ -285,6 +285,42 @@ class SettingsSubMenuAddonsManagerRobot {
         Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Verified that that the \"Discover more extensions\" button is displayed")
     }
 
+    fun verifyNoInstalledExtensionsPromotionBanner(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifyNoInstalledExtensionsPromotionBanner: Trying to verify that the \"Make $appName your own\" heading is displayed")
+        composeTestRule.onNode(
+            hasText("Make $appName your own"),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyNoInstalledExtensionsPromotionBanner: Verified that the \"Make $appName your own\" heading is displayed")
+        Log.i(TAG, "verifyNoInstalledExtensionsPromotionBanner: Trying to verify that that the \"Extensions level up your browsing, from changing how $appName looks and performs to boosting privacy and safety.\" message is displayed")
+        composeTestRule.onNode(
+            hasText("Extensions level up your browsing, from changing how $appName looks and performs to boosting privacy and safety."),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyNoInstalledExtensionsPromotionBanner: Verified that that the \"Extensions level up your browsing, from changing how $appName looks and performs to boosting privacy and safety.\" message is displayed")
+        Log.i(TAG, "verifyNoInstalledExtensionsPromotionBanner: Trying to verify that that the \"Learn more\" link is displayed")
+        composeTestRule.onNode(
+            hasContentDescription("Learn more Links available"),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyNoInstalledExtensionsPromotionBanner: Verified that that the \"Learn more\" link is displayed")
+    }
+
+    fun verifyDisabledExtensionsPromotionBanner(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "verifyDisabledExtensionsPromotionBanner: Trying to verify that the \"You have extensions installed, but not enabled\" heading is displayed")
+        composeTestRule.onNode(
+            hasText(getStringResource(R.string.browser_menu_disabled_extensions_banner_onboarding_header)),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyDisabledExtensionsPromotionBanner: Verified that the \"You have extensions installed, but not enabled\" heading is displayed")
+        Log.i(TAG, "verifyDisabledExtensionsPromotionBanner: Trying to verify that that the \"To use extensions, enable them in settings or by selecting “Manage extensions” below.\" message is displayed")
+        composeTestRule.onNode(
+            hasText("To use extensions, enable them in settings or by selecting “Manage extensions” below."),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyDisabledExtensionsPromotionBanner: Verified that that the \"To use extensions, enable them in settings or by selecting “Manage extensions” below.\" message is displayed")
+        Log.i(TAG, "verifyDisabledExtensionsPromotionBanner: Trying to verify that that the \"Learn more\" link is displayed")
+        composeTestRule.onNode(
+            hasContentDescription("Learn more Links available"),
+        ).assertIsDisplayed()
+        Log.i(TAG, "verifyDisabledExtensionsPromotionBanner: Verified that that the \"Learn more\" link is displayed")
+    }
+
     fun verifyTheRecommendedAddons(composeTestRule: ComposeTestRule) {
         var verifiedCount = 0
 
@@ -344,6 +380,15 @@ class SettingsSubMenuAddonsManagerRobot {
             return HomeScreenRobot.Transition()
         }
 
+        fun goBackToBrowser(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "goBackToBrowser: Trying to click navigate up toolbar button")
+            onView(allOf(withContentDescription("Navigate up"))).click()
+            Log.i(TAG, "goBackToBrowser: Clicked the navigate up toolbar button")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
+
         fun openDetailedMenuForAddon(
             addonName: String,
             interact: SettingsSubMenuAddonsManagerAddonDetailedMenuRobot.() -> Unit,
@@ -358,6 +403,26 @@ class SettingsSubMenuAddonsManagerRobot {
 
             SettingsSubMenuAddonsManagerAddonDetailedMenuRobot().interact()
             return SettingsSubMenuAddonsManagerAddonDetailedMenuRobot.Transition()
+        }
+
+        fun clickExtensionsPromotionBannerLearnMoreLink(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "clickExtensionsPromotionBannerLearnMoreLink: Trying to click the \"Learn more\" link")
+            composeTestRule.onNode(
+                hasContentDescription("Learn more Links available"),
+            ).performClick()
+            Log.i(TAG, "clickExtensionsPromotionBannerLearnMoreLink: Clicked the \"Learn more\" link")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
+
+        fun clickDiscoverMoreExtensionsButton(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "clickDiscoverMoreExtensionsButton: Trying to click the \"Discover more extensions\" link")
+            composeTestRule.onNode(hasText(getStringResource(R.string.browser_menu_discover_more_extensions))).performClick()
+            Log.i(TAG, "clickDiscoverMoreExtensionsButton: Clicked the \"Discover more extensions\" link")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
         }
     }
 

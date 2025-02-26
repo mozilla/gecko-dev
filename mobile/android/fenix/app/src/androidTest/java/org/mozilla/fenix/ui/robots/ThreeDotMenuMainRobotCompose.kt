@@ -17,12 +17,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
+import androidx.test.espresso.action.ViewActions.swipeUp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuDialogTestTag.EXTENSIONS
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.packageName
 
 class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule) {
 
@@ -613,7 +616,30 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             ThreeDotMenuMainRobotCompose(composeTestRule).interact()
             return Transition(composeTestRule)
         }
+
+        fun clickOutsideTheMainMenu(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "clickOutsideTheMainMenu: Trying to click outside the main menu.")
+            itemWithResId("$packageName:id/touch_outside").clickTopLeft()
+            Log.i(TAG, "clickOutsideTheMainMenu: Clicked click outside the main menu.")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
+
+        fun clickReportBrokenSiteButton(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            Log.i(TAG, "openReportSiteIssue: Trying to click the \"Report Site Issue\" button")
+            composeTestRule.reportBrokenSiteButton().performClick()
+            Log.i(TAG, "openReportSiteIssue: Clicked the \"Report Site Issue\" button")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
     }
+}
+
+fun mainMenuScreen(composeTestRule: ComposeTestRule, interact: ThreeDotMenuMainRobotCompose.() -> Unit): ThreeDotMenuMainRobotCompose.Transition {
+    ThreeDotMenuMainRobotCompose(composeTestRule).interact()
+    return ThreeDotMenuMainRobotCompose.Transition(composeTestRule)
 }
 
 private fun ComposeTestRule.mainMenuCFRTitle() = onNodeWithText(getStringResource(R.string.menu_cfr_title))

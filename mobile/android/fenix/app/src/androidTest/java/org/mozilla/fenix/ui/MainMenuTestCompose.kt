@@ -9,16 +9,19 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
+import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertNativeAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertYoutubeAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
 import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingResources
+import org.mozilla.fenix.helpers.AppAndSystemHelper.runWithCondition
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.Constants.PackageName.PRINT_SPOOLER
 import org.mozilla.fenix.helpers.DataGenerationHelper.createCustomTabIntent
@@ -34,7 +37,9 @@ import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
+import org.mozilla.fenix.helpers.TestHelper.exitMenu
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.restartApp
 import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
 import org.mozilla.fenix.helpers.TestSetup
@@ -42,6 +47,7 @@ import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.customTabScreen
 import org.mozilla.fenix.ui.robots.homeScreen
+import org.mozilla.fenix.ui.robots.mainMenuScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 
 class MainMenuTestCompose : TestSetup() {
@@ -81,7 +87,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun webpageRedesignedMenuItemsTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -95,7 +101,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheNewTabButtonTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -111,7 +117,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheNewPrivateTabButtonTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -141,7 +147,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun findInPageTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 3)
+        val testPage = getGenericAsset(mockWebServer, 3)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -176,7 +182,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyBookmarksMenuButtonTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -193,7 +199,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyHistoryMenuButtonTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -210,7 +216,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyDownloadsMenuButtonTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -229,7 +235,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyPasswordsMenuButtonTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -252,7 +258,7 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun verifyCustomTabMenuItemsTest() {
         val customMenuItem = "TestMenuItem"
-        val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val customTabPage = getGenericAsset(mockWebServer, 1)
 
         intentReceiverActivityTestRule.launchActivity(
             createCustomTabIntent(
@@ -264,7 +270,7 @@ class MainMenuTestCompose : TestSetup() {
         customTabScreen {
             verifyCustomTabCloseButton()
         }.openMainMenuFromRedesignedToolbar {
-            verifyRedesignedCustomTabsMainMenuItems(customMenuItem)
+            verifyRedesignedCustomTabsMainMenuItemsExist(customMenuItem, true)
         }
     }
 
@@ -273,7 +279,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun openCustomTabInFirefoxTest() {
-        val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val customTabPage = getGenericAsset(mockWebServer, 1)
 
         intentReceiverActivityTestRule.launchActivity(
             createCustomTabIntent(
@@ -293,7 +299,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun shareCustomTabUsingMainMenuButtonTest() {
-        val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val customTabPage = getGenericAsset(mockWebServer, 1)
 
         intentReceiverActivityTestRule.launchActivity(
             createCustomTabIntent(
@@ -317,7 +323,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyRecommendedExtensionsListTest() {
-        val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val genericURL = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
@@ -333,7 +339,7 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun verifyRedesignedMenuAfterRemovingAnExtensionTest() {
         val addonName = "uBlock Origin"
-        val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
@@ -369,7 +375,7 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun verifyTheManageExtensionsSubMenuTest() {
         val addonName = "uBlock Origin"
-        val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
@@ -400,7 +406,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheSaveSubMenuItemsTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -415,7 +421,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheBookmarkThisPageSubMenuItemsTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -443,7 +449,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheAddToShortcutsSubMenuOptionTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -470,7 +476,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheAddToHomeScreenSubMenuOptionTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -497,8 +503,8 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun verifyTheSaveToCollectionSubMenuOptionTest() {
         val collectionTitle = "First Collection"
-        val firstTestPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
-        val secondTestPage = TestAssetHelper.getGenericAsset(mockWebServer, 2)
+        val firstTestPage = getGenericAsset(mockWebServer, 1)
+        val secondTestPage = getGenericAsset(mockWebServer, 2)
 
         composeTestRule.activityRule.applySettingsExceptions {
             // Disabling these features to have better visibility of the Collections view
@@ -531,7 +537,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheSaveAsPDFSubMenuOptionTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -550,7 +556,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheDefaultToolsMenuItemsTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -641,7 +647,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyTheShareButtonTest() {
-        val testPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val testPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
@@ -696,7 +702,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun switchDesktopSiteModeOnOffTest() {
-        val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
@@ -724,7 +730,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyPrintSubMenuOptionTest() {
-        val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
@@ -742,7 +748,7 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun verifyRedesignedMenuAfterDisablingAnExtensionTest() {
         val addonName = "uBlock Origin"
-        val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
         }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
@@ -778,7 +784,7 @@ class MainMenuTestCompose : TestSetup() {
     @SmokeTest
     @Test
     fun verifyExtensionInstallTest() {
-        val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
+        val genericURL = getGenericAsset(mockWebServer, 1)
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
@@ -885,6 +891,285 @@ class MainMenuTestCompose : TestSetup() {
             verifyFindInPageResult("1/1")
         }.closeFindInPageWithBackButton {
             verifyFindInPageBar(false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860854
+    @Test
+    fun verifyTheQuitFirefoxMenuItemTest() {
+        val genericURL = getGenericAsset(mockWebServer, 1)
+
+        homeScreen {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.openSettings {
+        }.openSettingsSubMenuDeleteBrowsingDataOnQuit {
+            verifyDeleteBrowsingOnQuitEnabled(false)
+            clickDeleteBrowsingOnQuitButtonSwitch()
+            verifyDeleteBrowsingOnQuitEnabled(true)
+        }.goBack {
+            verifySettingsOptionSummary("Delete browsing data on quit", "On")
+        }.goBack {
+        }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            clickQuitFirefoxButton()
+            restartApp(composeTestRule.activityRule)
+        }
+        homeScreen {
+            verifyHomeWordmark()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860806
+    @Test
+    fun verifyTheDismissalWhenTappingOutsideTheToolsSubMenuTest() {
+        val genericURL = getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            openToolsMenu()
+        }.clickOutsideTheMainMenu {
+            verifyToolsMenuDoesNotExist()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860819
+    @Test
+    fun verifyTheDismissalWhenTappingOutsideTheSaveSubMenuTest() {
+        val genericURL = getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            clickSaveButton()
+        }.clickOutsideTheMainMenu {
+            verifySaveMenuDoesNotExist()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860759
+    @Test
+    fun verifyEnabledDesktopSiteToggleInCustomTabTest() {
+        val customTabPage = getGenericAsset(mockWebServer, 1)
+
+        intentReceiverActivityTestRule.launchActivity(
+            createCustomTabIntent(
+                customTabPage.url.toString(),
+            ),
+        )
+
+        customTabScreen {
+        }.openMainMenuFromRedesignedToolbar {
+            verifySwitchToDesktopSiteButton(composeTestRule)
+            clickSwitchToDesktopSiteButton(composeTestRule)
+        }.openMainMenuFromRedesignedToolbar {
+            verifySwitchToMobileSiteButton(composeTestRule)
+            clickSwitchToMobileSiteButton(composeTestRule)
+        }.openMainMenuFromRedesignedToolbar {
+            verifySwitchToDesktopSiteButton(composeTestRule)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860760
+    @Test
+    fun customTabsFindInPageTest() {
+        val customTabPage = getGenericAsset(mockWebServer, 3)
+
+        intentReceiverActivityTestRule.launchActivity(
+            createCustomTabIntent(
+                customTabPage.url.toString(),
+            ),
+        )
+
+        customTabScreen {
+        }.openMainMenuFromRedesignedToolbar {
+        }.clickFindInPageButton(composeTestRule) {
+            verifyFindInPageNextButton()
+            verifyFindInPagePrevButton()
+            verifyFindInPageCloseButton()
+            enterFindInPageQuery("a")
+            verifyFindInPageResult("1/3")
+            clickFindInPageNextButton()
+            verifyFindInPageResult("2/3")
+            clickFindInPageNextButton()
+            verifyFindInPageResult("3/3")
+            clickFindInPagePrevButton()
+            verifyFindInPageResult("2/3")
+            clickFindInPagePrevButton()
+            verifyFindInPageResult("1/3")
+        }.closeFindInPageWithCloseButton {
+            verifyFindInPageBar(false)
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+        }.clickFindInPageButton {
+            enterFindInPageQuery("3")
+            verifyFindInPageResult("1/1")
+        }.closeFindInPageWithBackButton {
+            verifyFindInPageBar(false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860765
+    @Test
+    fun verifyTheDismissalWhenTappingOutsideTheCustomTabMainMenuTest() {
+        val customMenuItem = "TestMenuItem"
+        val customTabPage = getGenericAsset(mockWebServer, 1)
+
+        intentReceiverActivityTestRule.launchActivity(
+            createCustomTabIntent(
+                customTabPage.url.toString(),
+            ),
+        )
+
+        customTabScreen {
+        }.openMainMenuFromRedesignedToolbar {
+        }.clickOutsideTheMainMenu {
+        }
+        customTabScreen {
+            verifyRedesignedCustomTabsMainMenuItemsExist(customMenuItem, false)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860770
+    @Test
+    fun noAddonsInstalledExtensionPromotionBannerTest() {
+        val genericURL = getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+            verifyNoInstalledExtensionsPromotionBanner(composeTestRule)
+        }.clickExtensionsPromotionBannerLearnMoreLink(composeTestRule) {
+            verifyUrl("support.mozilla.org/en-US/kb/find-and-install-add-ons-firefox-android?as=u&utm_source=inproduct")
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860781
+    @Test
+    fun disabledAddonsExtensionPromotionBannerTest() {
+        var recommendedExtensionTitle = ""
+        val genericURL = getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+            recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
+            installRecommendedAddon(recommendedExtensionTitle, composeTestRule)
+            acceptPermissionToInstallAddon()
+            verifyAddonInstallCompletedPrompt(recommendedExtensionTitle, composeTestRule.activityRule)
+            closeAddonInstallCompletePrompt()
+            clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
+        }.openDetailedMenuForAddon(recommendedExtensionTitle) {
+            disableExtension()
+            waitUntilSnackbarGone()
+        }.goBack {
+        }.goBackToBrowser {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+            verifyDisabledExtensionsPromotionBanner(composeTestRule)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860785
+    @Test
+    fun verifyTheDiscoverMoreExtensionSubMenuItemTest() {
+        val genericURL = getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+        }.clickDiscoverMoreExtensionsButton(composeTestRule) {
+            verifyUrl("addons.mozilla.org/en-US/android")
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860790
+    @Test
+    fun verifyTheClosingBehaviourWhenTappingOutsideTheExtensionsSubMenuTest() {
+        var recommendedExtensionTitle = ""
+        val genericURL = getGenericAsset(mockWebServer, 1)
+
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+        }
+        mainMenuScreen(composeTestRule) {
+        }.clickOutsideTheMainMenu {
+            verifyExtensionsMenuDoesNotExist()
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+            recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
+            installRecommendedAddon(recommendedExtensionTitle, composeTestRule)
+            acceptPermissionToInstallAddon()
+            verifyAddonInstallCompletedPrompt(recommendedExtensionTitle, composeTestRule.activityRule)
+            closeAddonInstallCompletePrompt()
+        }
+        mainMenuScreen(composeTestRule) {
+        }.clickOutsideTheMainMenu {
+            verifyExtensionsMenuDoesNotExist()
+        }
+        browserScreen {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+            clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
+        }.openDetailedMenuForAddon(recommendedExtensionTitle) {
+            disableExtension()
+            waitUntilSnackbarGone()
+        }.goBack {
+        }.goBackToBrowser {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            expandMainMenu()
+        }.openExtensionsFromMainMenu {
+        }
+        mainMenuScreen(composeTestRule) {
+        }.clickOutsideTheMainMenu {
+            verifyExtensionsMenuDoesNotExist()
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860800
+    @Test
+    fun verifyTheReportBrokenSiteOptionTest() {
+        runWithCondition(
+            // This test will not run on RC builds because the "Report site issue button" is not available.
+            composeTestRule.activity.components.core.engine.version.releaseChannel !== EngineReleaseChannel.RELEASE,
+        ) {
+            val defaultWebPage = getGenericAsset(mockWebServer, 1)
+
+            navigationToolbar {
+            }.enterURLAndEnterToBrowser(defaultWebPage.url) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+                openToolsMenu()
+            }.clickReportBrokenSiteButton {
+                verifyWebCompatReporterViewItems(websiteURL = defaultWebPage.url.toString())
+            }.closeWebCompatReporter {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+            }.openSettings {
+            }.openSettingsSubMenuDataCollection {
+                clickUsageAndTechnicalDataToggle()
+                verifyUsageAndTechnicalDataToggle(enabled = false)
+            }
+
+            exitMenu()
+
+            browserScreen {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
+                openToolsMenu()
+            }.clickReportBrokenSiteButton {
+                verifyUrl("webcompat.com/issues/new")
+            }
         }
     }
 }
