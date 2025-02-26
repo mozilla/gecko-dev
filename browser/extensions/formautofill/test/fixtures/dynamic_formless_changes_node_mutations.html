@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <!-- Address fields (form-less) adding and removing nodes dynamically on user input -->
+         <div>
+             <label for="name-node-addition">Name</label>
+             <input type="text" id="name-node-addition" autocomplete="name">
+
+             <label for="email-node-addition">Email</label>
+             <input type="email" id="email-node-addition" autocomplete="email">
+
+             <label for="phone-node-addition">Phone</label>
+             <input type="tel" id="phone-node-addition" autocomplete="tel">
+
+             <label for="country-node-addition">Country</label>
+             <input type="text" id="country-node-addition" autocomplete="country">
+
+             <div id="address-extra-fields-node-addition"></div>
+        </div>
+
+    </body>
+
+    <script>
+        const addField = (parent, id, labelText, autocomplete) => {
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.textContent = labelText;
+
+            const input = document.createElement('input');
+            input.id = id;
+            input.type = "text";
+            input.autocomplete = autocomplete;
+
+            parent.appendChild(label);
+            parent.appendChild(input);
+
+            return input;
+        }
+
+        const countryInputNodeAddition = document.getElementById("country-node-addition");
+        countryInputNodeAddition.addEventListener('input', (event) => {
+            let addressFields = document.getElementById("address-extra-fields-node-addition");
+            if (event.target.value != "") {
+                addField(addressFields, "street-address-node-addition", "Street Address", "street-address");
+                addField(addressFields, "address-level1-node-addition", "Address Level 1", "address-level1");
+                addField(addressFields, "address-level2-node-addition", "Address Level 2", "address-level2");
+                addField(addressFields, "postal-code-node-addition", "Postal Code", "postal-code");
+            } else {
+                while (addressFields.firstChild) {
+                    addressFields.firstChild.remove()
+                }
+            }
+        });
+    </script>
+</html>

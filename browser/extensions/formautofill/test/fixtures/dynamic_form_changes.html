@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+    </head>
+    <body>
+        <!-- Address form adding and removing nodes dynamically on user input -->
+        <form id="address-form-node-addition">
+            <label for="name-node-addition">Name</label>
+            <input type="text" id="name-node-addition" autocomplete="name">
+
+            <label for="email-node-addition">Email</label>
+            <input type="email" id="email-node-addition" autocomplete="email">
+
+            <label for="phone-node-addition">Phone</label>
+            <input type="tel" id="phone-node-addition" autocomplete="tel">
+
+            <label for="country-node-addition">Country</label>
+            <input type="text" id="country-node-addition" autocomplete="country">
+
+            <div id="address-extra-fields-node-addition"></div>
+        </form>
+
+        <!-- Credit card form adding and removing nodes dynamically on user input -->
+        <form id="cc-form-node-addition">
+            <label for="cc-number-node-addition">Credit Card Number</label>
+            <input id="cc-number-node-addition" autocomplete="cc-number">
+            <div id="cc-extra-fields-node-addition"></div>
+        </form>
+
+        <!-- Address form toggling the visibility state dynamically for some elements on user input -->
+        <form id="address-form-visibility-change">
+            <label for="name-visibility-change">Name</label>
+            <input type="text" id="name-visibility-change" autocomplete="name">
+
+            <label for="email-visibility-change">Email</label>
+            <input type="email" id="email-visibility-change" autocomplete="email">
+
+            <label for="organization-visibility-change">Phone</label>
+            <input type="tel" id="organization-visibility-change" autocomplete="tel" />
+
+            <label for="country-visibility-change">Country</label>
+            <input type="text" id="country-visibility-change" autocomplete="country">
+
+            <label for="street-address-visibility-change">Street Address</label>
+            <input type="text" id="street-address-visibility-change" autocomplete="street-address" hidden/>
+
+            <label for="address-level1-visibility-change">Address Level 1</label>
+            <input type="text" id="address-level1-visibility-change" autocomplete="address-level1" hidden/>
+
+            <label for="address-level2-visibility-change">Address Level 2</label>
+            <input type="text" id="address-level2-visibility-change" autocomplete="address-level2" hidden/>
+
+            <label for="postal-code-visibility-change">Postal Code</label>
+            <input type="text" id="postal-code-visibility-change" autocomplete="postal-code" hidden/>
+        </form>
+
+        <!-- Credit card form toggling the visibility state dynamically for some elements on user input -->
+        <form id="cc-form-visibility-change">
+            <label for="cc-number-visibility-change">Credit Card Number</label>
+            <input id="cc-number-visibility-change" autocomplete="cc-number">
+
+            <label for="cc-name-visibility-change">Cardholder Name</label>
+            <input id="cc-name-visibility-change" autocomplete="cc-name" hidden>
+
+            <label for="cc-exp-month-visibility-change">Expiration Month</label>
+            <input id="cc-exp-month-visibility-change" autocomplete="cc-exp-month" hidden>
+
+            <label for="cc-exp-year-visibility-change">Expiration Year</label>
+            <input id="cc-exp-year-visibility-change" autocomplete="cc-exp-year" hidden>
+        </form>
+    </body>
+
+    <script>
+        const addField = (parent, id, labelText, autocomplete) => {
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.textContent = labelText;
+
+            const input = document.createElement('input');
+            input.id = id;
+            input.type = "text";
+            input.autocomplete = autocomplete;
+
+            parent.appendChild(label);
+            parent.appendChild(input);
+
+            return input;
+        }
+
+        const ccNumberInputNodeAddition = document.getElementById("cc-number-node-addition");
+        ccNumberInputNodeAddition.addEventListener('input', (event) => {
+            let ccFields = document.getElementById("cc-extra-fields-node-addition");
+            if (event.target.value != "") {
+                addField(ccFields, "cc-name-node-addition", "Cardholder Name", "cc-name");
+                addField(ccFields, "cc-exp-month-node-addition", "Expiration Month", "cc-exp-month");
+                addField(ccFields, "cc-exp-year-node-addition", "Expiration Year", "cc-exp-year");
+            } else {
+                while (ccFields.firstChild) {
+                    ccFields.firstChild.remove()
+                }
+            }
+        });
+
+        const countryInputNodeAddition = document.getElementById("country-node-addition");
+        countryInputNodeAddition.addEventListener('input', (event) => {
+            let addressFields = document.getElementById("address-extra-fields-node-addition");
+            if (event.target.value != "") {
+                addField(addressFields, "street-address-node-addition", "Street Address", "street-address");
+                addField(addressFields, "address-level1-node-addition", "Address Level 1", "address-level1");
+                addField(addressFields, "address-level2-node-addition", "Address Level 2", "address-level2");
+                addField(addressFields, "postal-code-node-addition", "Postal Code", "postal-code");
+            } else {
+                while (addressFields.firstChild) {
+                    addressFields.firstChild.remove()
+                }
+            }
+        });
+
+        const countryInputVisibilityChange = document.getElementById("country-visibility-change");
+        countryInputVisibilityChange.addEventListener('input', (event) => {
+            if (event.target.value != "") {
+                document.getElementById("street-address-visibility-change").hidden = false;
+                document.getElementById("address-level1-visibility-change").hidden = false;
+                document.getElementById("address-level2-visibility-change").hidden = false;
+                document.getElementById("postal-code-visibility-change").hidden = false;
+            } else {
+                document.getElementById("street-address-visibility-change").hidden = true;
+                document.getElementById("address-level1-visibility-change").hidden = true;
+                document.getElementById("address-level2-visibility-change").hidden = true;
+                document.getElementById("postal-code-visibility-change").hidden = true;
+            }
+        });
+
+        const ccNumberInputVisibilityChange = document.getElementById("cc-number-visibility-change");
+        ccNumberInputVisibilityChange.addEventListener('input', (event) => {
+            if (event.target.value != "") {
+                document.getElementById("cc-name-visibility-change").hidden = false;
+                document.getElementById("cc-exp-month-visibility-change").hidden = false;
+                document.getElementById("cc-exp-year-visibility-change").hidden = false;
+            } else {
+                document.getElementById("cc-name-visibility-change").hidden = true;
+                document.getElementById("cc-exp-month-visibility-change").hidden = true;
+                document.getElementById("cc-exp-year-visibility-change").hidden = true;
+            }
+        });
+    </script>
+</html>
