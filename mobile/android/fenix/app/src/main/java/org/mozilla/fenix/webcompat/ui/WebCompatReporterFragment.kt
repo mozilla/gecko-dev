@@ -14,6 +14,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.launch
+import mozilla.components.support.ktx.android.view.hideKeyboard
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.lazyStore
@@ -74,6 +75,7 @@ class WebCompatReporterFragment : ComposeFragment() {
                             )
                         }
                         is WebCompatReporterAction.ReportSubmitted -> {
+                            requireView().hideKeyboard()
                             val directions = WebCompatReporterFragmentDirections.actionGlobalBrowser()
                             findNavController().navigate(directions)
                         }
