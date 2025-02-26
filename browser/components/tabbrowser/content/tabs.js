@@ -77,9 +77,7 @@
     init() {
       this.startupTime = Services.startup.getStartupInfo().start.getTime();
 
-      this.arrowScrollbox = document.getElementById(
-        "tabbrowser-arrowscrollbox"
-      );
+      this.arrowScrollbox = this.querySelector("arrowscrollbox");
       this.arrowScrollbox.addEventListener("wheel", this, true);
       this.arrowScrollbox.addEventListener("underflow", this);
       this.arrowScrollbox.addEventListener("overflow", this);
