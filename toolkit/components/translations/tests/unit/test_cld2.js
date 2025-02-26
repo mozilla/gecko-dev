@@ -642,7 +642,7 @@ add_task(async function test_worker_flush() {
   workerManager.IDLE_TIMEOUT = 1000;
 
   equal(
-    workerManager._idleTimeout,
+    workerManager.idleTimeoutId,
     null,
     "Should have no idle timeout to start with"
   );
@@ -654,13 +654,13 @@ add_task(async function test_worker_flush() {
 
   // We should have an idle timeout after processing the string.
   Assert.notEqual(
-    workerManager._idleTimeout,
+    workerManager.idleTimeoutId,
     null,
     "Should have an idle timeout"
   );
-  Assert.notEqual(workerManager._worker, null, "Should have a worker instance");
+  Assert.notEqual(workerManager.worker, null, "Should have a worker instance");
   Assert.notEqual(
-    workerManager._workerReadyPromise,
+    workerManager.workerPromise,
     null,
     "Should have a worker promise"
   );
@@ -670,17 +670,17 @@ add_task(async function test_worker_flush() {
   await new Promise(resolve => setTimeout(resolve, workerManager.IDLE_TIMEOUT));
 
   equal(
-    workerManager._idleTimeout,
+    workerManager.idleTimeoutId,
     null,
     "Should have no idle timeout after it has elapsed"
   );
   equal(
-    workerManager._worker,
+    workerManager.worker,
     null,
     "Should have no worker instance after idle timeout"
   );
   equal(
-    workerManager._workerReadyPromise,
+    workerManager.workerPromise,
     null,
     "Should have no worker promise after idle timeout"
   );
