@@ -1,0 +1,60 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+trust-domain: nss
+
+task-priority: lowest
+
+workers:
+    aliases:
+        images:
+            provisioner: 'nss-{level}'
+            implementation: docker-worker
+            os: linux
+            worker-type: linux-gcp
+        b-linux:
+            provisioner: 'nss-{level}'
+            implementation: docker-worker
+            os: linux
+            worker-type: linux-gcp
+        b-win2022:
+            provisioner: 'nss-{level}'
+            implementation: generic-worker
+            os: windows
+            worker-type: b-win2022
+        b-osx:
+            provisioner: releng-hardware
+            implementation: generic-worker
+            os: macosx
+            worker-type: 'nss-{level}-b-osx-1015'
+        t-linux:
+            provisioner: nss-t
+            implementation: docker-worker
+            os: linux
+            worker-type: t-linux-xlarge-gcp
+
+taskgraph:
+    repositories:
+        nss:
+            name: NSS
+            project-regex: nss
+        nspr:
+            name: NSPR
+            project-regex: nspr
+            default-repository: https://hg.mozilla.org/projects/nspr
+            default-ref: default
+            type: hg
+
+    decision-parameters: 'nss_taskgraph:decision_parameters'
+    register: 'nss_taskgraph:register'
+
+treeherder:
+    group-names:
+        I: Docker image builds
+        Builds: Builds with alternative compilers
+        Cipher: Cipher tests
+        DBM: Legacy (DBM) database
+        FIPS: FIPS
+        SSL: SSL tests
+        TLS: TLS fuzzing

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frida-corpus"
+requires-python = ">=3.9"
+dependencies = [
+    "frida>=16.6.5"
+]
+dynamic = ["version"]
+
+[project.scripts]
+frida-corpus = "cli:main"

@@ -19,6 +19,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   CERTName* certName = CERT_AsciiToName(name.c_str());
   if (certName) {
     char* out;
+    TEST_FUNCTION(CERT_FormatName)
     TEST_FUNCTION(CERT_NameToAscii)
     TEST_FUNCTION(CERT_GetCertEmailAddress)
 
@@ -39,6 +40,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     free(out);
     out = CERT_NameToAsciiInvertible(certName, CERT_N2A_INVERTIBLE);
     free(out);
+
+    (void)CERT_CompareName(certName, certName);
   }
   CERT_DestroyName(certName);
 

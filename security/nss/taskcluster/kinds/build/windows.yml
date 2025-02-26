@@ -1,0 +1,36 @@
+task-defaults:
+    worker-type: b-win2022
+    worker:
+        taskcluster-proxy: true
+        artifacts:
+            - type: directory
+              path: public/build
+    scopes: ["project:releng:services/tooltool/api/download/internal"]
+
+windows2022-64/debug-make:
+    description: "Windows 2022 64 (debug, make)"
+    attributes:
+        make: true
+
+windows2022-32/debug-make:
+    description: "Windows 2022 32 (debug, make)"
+    attributes:
+        make: true
+
+windows2022-64/opt:
+    description: "Windows 2022 64 (opt)"
+
+windows2022-64/debug:
+    description: "Windows 2022 64 (debug)"
+
+windows2022-64/opt-static:
+    description: "Windows 2022 64 Static (opt)"
+    attributes:
+        static: true
+
+windows2022-32/opt:
+    description: "Windows 2022 32 (opt)"
+
+windows2022-32/debug:
+    description: "Windows 2022 32 (debug)"
+

@@ -15,6 +15,11 @@ fi
 wget -t 3 --retry-connrefused -w 5 --random-wait $url -O dist.7z
 7z x dist.7z
 
+export DIST=${PWD}/dist
+# tests write to the source dir (and its parent), so move the source tree to
+# our workspace from the (cached) checkout dir
+cp -a "${VCS_PATH}/nss" .
+
 # Generate certificates.
 NSS_TESTS=cert NSS_CYCLES="standard pkix sharedb" nss/tests/all.sh
 

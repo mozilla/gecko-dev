@@ -8,11 +8,10 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-
 #include "krml/internal/compat.h"
-#include "krml/internal/target.h"
-#include "krml/internal/types.h"
 #include "krml/lowstar_endianness.h"
+#include "krml/internal/types.h"
+#include "krml/internal/target.h"
 
 static inline void store128_le(uint8_t *x0, FStar_UInt128_uint128 x1);
 

@@ -1,0 +1,76 @@
+task-defaults:
+    worker:
+        env:
+            TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+            NSS_TESTS: cipher
+        max-run-time: 7200
+    from-deps:
+        kinds: [certs]
+        with-attributes:
+            nspr: [false]
+            dbm: [false]
+            cc: [false]
+            make-fips: [false]
+
+cipher:
+    description: Cipher tests
+    treeherder:
+        symbol: Cipher(Default)
+
+cipher-noaes:
+    description: Cipher tests, no AES
+    treeherder:
+        symbol: Cipher(NoAES)
+    worker:
+        env:
+            NSS_DISABLE_HW_AES: "1"
+
+cipher-nosha:
+    description: Cipher tests, no SHA
+    treeherder:
+        symbol: Cipher(NoSHA)
+    worker:
+        env:
+            NSS_DISABLE_HW_SHA1: "1"
+            NSS_DISABLE_HW_SHA2: "1"
+
+cipher-nopclmul:
+    description: Cipher tests, no PCLMUL
+    treeherder:
+        symbol: Cipher(NoPCLMUL)
+    worker:
+        env:
+            NSS_DISABLE_PCLMUL: "1"
+
+cipher-noavx:
+    description: Cipher tests, no AVX
+    treeherder:
+        symbol: Cipher(NoAVX)
+    worker:
+        env:
+            NSS_DISABLE_AVX: "1"
+
+cipher-noavx:
+    description: Cipher tests, no AVX2
+    treeherder:
+        symbol: Cipher(NoAVX2)
+    worker:
+        env:
+            NSS_DISABLE_AVX2: "1"
+
+cipher-nossse3:
+    description: Cipher tests, no SSSE3|NEON
+    treeherder:
+        symbol: Cipher(NoSSSE3|NEON)
+    worker:
+        env:
+            NSS_DISABLE_ARM_NEON: "1"
+            NSS_DISABLE_SSSE3: "1"
+
+cipher-nosse41:
+    description: Cipher tests, no SSE4.1
+    treeherder:
+        symbol: Cipher(NoSSE4.1)
+    worker:
+        env:
+            NSS_DISABLE_SSE4_1: "1"

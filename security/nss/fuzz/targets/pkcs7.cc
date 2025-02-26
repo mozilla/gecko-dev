@@ -6,6 +6,7 @@
 #include <cstdint>
 
 #include "cert.h"
+#include "prtypes.h"
 
 #include "asn1/mutators.h"
 #include "base/database.h"
@@ -15,7 +16,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   static NSSDatabase db = NSSDatabase();
 
   CERTCertificate *cert = CERT_DecodeCertFromPackage((char *)data, (int)size);
-  CERT_DestroyCertificate(cert);
+  if (cert) {
+    SECCertificateUsage usage;
+    (void)CERT_VerifyCertificateNow(CERT_GetDefaultCertDB(), cert, PR_TRUE,
+                                    certificateUsageCheckAllUsages, nullptr,
+                                    &usage);
+    (void)CERT_VerifyCertName(cert, "fuzz.host");
+
+    CERT_DestroyCertificate(cert);
+  }
 
   return 0;
 }

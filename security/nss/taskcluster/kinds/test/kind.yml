@@ -1,0 +1,355 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+
+transforms:
+  - taskgraph.transforms.from_deps
+  - nss_taskgraph.transforms.from_deps_task_name
+  - nss_taskgraph.transforms.platforms
+  - nss_taskgraph.transforms.treeherder
+
+kind-dependencies:
+  - build
+  - certs
+
+task-defaults:
+    from-deps:
+        copy-attributes: true
+        set-name: false
+    worker:
+        env:
+            NSS_MAX_MP_PBE_ITERATION_COUNT: "100"
+        max-run-time: 3600
+        taskcluster-proxy:
+            by-platform:
+                win.*: true
+                default: false
+        docker-image: {in-tree: base}
+    run:
+        using: run-task
+        checkout:
+            nss:
+                path: nss
+        command:
+            by-platform:
+                win.*: "${VCS_PATH}/nss/automation/taskcluster/windows/run_tests.sh"
+                default: "${VCS_PATH}/nss/automation/taskcluster/scripts/run_tests.sh"
+    attributes:
+        retrigger: true
+    scopes:
+        by-platform:
+            win.*: ["project:releng:services/tooltool/api/download/internal"]
+            default: []
+    worker-type:
+        by-platform:
+            linux.*: t-linux
+            mac.*: b-osx
+            win.*: b-win2022
+
+tasks-from:
+    - cipher.yml
+
+tasks:
+    # Schedule tests that do NOT need certificates. This is defined as
+    # the test itself not needing certs AND not running under the upgradedb
+    # cycle (which itself needs certs). If cycle is not defined, default is all.
+    gtests:
+        description: Gtests
+        from-deps:
+            kinds: [build]
+            with-attributes:
+                nspr: [false]
+                dbm: [false]
+                cc: [false]
+                modular: [false]
+                fuzz: [false]
+        worker:
+            env:
+                NSS_CYCLES: standard
+                NSS_TESTS: ssl_gtests gtests
+                TC_PARENT_TASK_ID: {task-reference: "<build>"}
+        treeherder:
+            symbol: Gtest
+
+    gtests-tlsfuzz:
+        description: Gtests
+        from-deps:
+            kinds: [build]
+            with-attributes:
+                tlsfuzz: [true]
+        worker:
+            env:
+                NSS_CYCLES: standard
+                NSS_TESTS: ssl_gtests gtests
+                TC_PARENT_TASK_ID: {task-reference: "<build>"}
+                GTESTFILTER: "*Fuzz*"
+            docker-image: {in-tree: fuzz}
+        treeherder:
+            symbol: Gtest
+
+    bogo:
+        description: Bogo tests
+        from-deps:
+            kinds: [build]
+            with-attributes:
+                build_platform:
+                    - linux32
+                    - linux32-make
+                    - linux64
+                    - linux64-make
+                    - linux64-asan
+                nspr: [false]
+                dbm: [false]
+                cc: [false]
+                modular: [false]
+                make-fips: [false]
+                fuzz: [false]
+        worker:
+            docker-image: {in-tree: builds}
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<build>"}
+                NSS_CYCLES: standard
+                NSS_TESTS: bogo
+        treeherder:
+            symbol: Bogo
+
+    tlsfuzzer:
+        description: tlsfuzzer tests
+        from-deps:
+            kinds:
+                - build
+            with-attributes:
+                build_platform:
+                    - linux32
+                    - linux32-make
+                    - linux64
+                    - linux64-make
+                    - linux64-asan
+                nspr: [false]
+                dbm: [false]
+                cc: [false]
+                modular: [false]
+                fuzz: [false]
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<build>"}
+                NSS_CYCLES: standard
+                NSS_TESTS: tlsfuzzer
+        treeherder:
+            symbol: tlsfuzzer
+
+    mpi:
+        description: MPI tests
+        treeherder:
+            symbol: MPI
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<build>"}
+                NSS_CYCLES: standard
+                NSS_TESTS: mpi
+        from-deps:
+            kinds: [build]
+            with-attributes:
+                nspr: [false]
+                dbm: [false]
+                cc: [false]
+                modular: [false]
+                fuzz: [false]
+
+    # Schedule tests that need certificates.
+    chains:
+        description: Chains tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+                # Only old make builds have -Ddisable_libpkix=0 and can run chain tests.
+                make: [true]
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: chains
+            max-run-time:
+                by-platform:
+                    win.*: 7200
+                    default: 3600
+        treeherder:
+            symbol: Chains
+
+    ec:
+        description: EC tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: EC
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: ec
+
+    lowhash:
+        description: Lowhash tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: Lowhash
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: lowhash
+
+    sdr:
+        description: SDR tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: SDR
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: sdr
+
+    policy:
+        description: Policy tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: Policy
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: policy
+
+    crmf:
+        description: CRMF tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: CRMF
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: crmf
+
+    db:
+        description: DB tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: DB
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: dbtests
+
+    merge:
+        description: Merge tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: Merge
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: merge
+
+    smime:
+        description: S/MIME tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: SMIME
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: smime
+
+    tools:
+        description: Tools tests
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: Tools
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: tools
+
+    # SSL tests, need certificates too.
+    ssl-standard:
+        description: SSL tests (standard)
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: SSL(standard)
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: ssl
+                NSS_CYCLES: standard
+                NSS_SSL_TESTS: crl iopr policy normal_normal
+
+    ssl-pkix:
+        description: SSL tests (pkix)
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: SSL(pkix)
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: ssl
+                NSS_CYCLES: pkix
+                NSS_SSL_TESTS: crl iopr policy normal_normal
+
+    ssl-stress:
+        description: SSL tests (stress)
+        from-deps:
+            kinds: [certs]
+            with-attributes:
+                dbm: [false]
+                make-fips: [false]
+        treeherder:
+            symbol: SSL(stress)
+        worker:
+            env:
+                TC_PARENT_TASK_ID: {task-reference: "<certs>"}
+                NSS_TESTS: ssl
+                NSS_CYCLES: sharedb
+                NSS_SSL_RUN: stress
+                NSS_SSL_TESTS: normal_normal

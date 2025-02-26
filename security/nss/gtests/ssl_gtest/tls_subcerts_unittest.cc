@@ -376,6 +376,12 @@ TEST_P(TlsConnectTls13, DCWeakKey) {
                                                 ssl_sig_rsa_pss_pss_sha256};
   client_->SetSignatureSchemes(kSchemes, PR_ARRAY_SIZE(kSchemes));
   server_->SetSignatureSchemes(kSchemes, PR_ARRAY_SIZE(kSchemes));
+  PRInt32 keySizeFlags;
+  ASSERT_EQ(SECSuccess,
+            NSS_OptionGet(NSS_KEY_SIZE_POLICY_FLAGS, &keySizeFlags));
+  // turn off the signing key sizes so we actually test the ssl tests
+  ASSERT_EQ(SECSuccess, NSS_OptionSet(NSS_KEY_SIZE_POLICY_FLAGS,
+                                      NSS_KEY_SIZE_POLICY_SSL_FLAG));
 #if RSA_MIN_MODULUS_BITS > RSA_WEAK_KEY
   // save the MIN POLICY length.
   PRInt32 minRsa;
@@ -413,6 +419,7 @@ TEST_P(TlsConnectTls13, DCWeakKey) {
 #if RSA_MIN_MODULUS_BITS > RSA_WEAK_KEY
   ASSERT_EQ(SECSuccess, NSS_OptionSet(NSS_RSA_MIN_KEY_SIZE, minRsa));
 #endif
+  ASSERT_EQ(SECSuccess, NSS_OptionSet(NSS_KEY_SIZE_POLICY_FLAGS, keySizeFlags));
 }
 
 class ReplaceDCSigScheme : public TlsHandshakeFilter {

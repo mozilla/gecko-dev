@@ -38,6 +38,7 @@
         '<(DEPTH)/lib/nss/nss.gyp:nss_static',
         '<(DEPTH)/lib/pkcs7/pkcs7.gyp:pkcs7',
         '<(DEPTH)/lib/pkcs12/pkcs12.gyp:pkcs12',
+        '<(DEPTH)/lib/smime/smime.gyp:smime',
         # This is a static build of pk11wrap, softoken, and freebl.
         '<(DEPTH)/lib/pk11wrap/pk11wrap.gyp:pk11wrap_static',
         '<(DEPTH)/lib/libpkix/libpkix.gyp:libpkix',
@@ -57,6 +58,19 @@
             'libraries': [ '-lFuzzingEngine' ],
           }
         }]
+      ],
+    },
+    {
+      'target_name': 'nssfuzz-asn1',
+      'type': 'executable',
+      'sources': [
+        'asn1.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        '<(DEPTH)/fuzz/targets/lib/asn1/asn1.gyp:asn1',
+        '<(DEPTH)/fuzz/targets/lib/base/base.gyp:base',
+        'nssfuzz_base',
       ],
     },
     {
@@ -156,6 +170,20 @@
       ],
     },
     {
+      'target_name': 'nssfuzz-smime',
+      'type': 'executable',
+      'sources': [
+        'smime.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/cpputil/cpputil.gyp:cpputil',
+        '<(DEPTH)/exports.gyp:nss_exports',
+        '<(DEPTH)/fuzz/targets/lib/asn1/asn1.gyp:asn1',
+        '<(DEPTH)/fuzz/targets/lib/base/base.gyp:base',
+        'nssfuzz_base',
+      ],
+    },
+    {
       'target_name': 'nssfuzz-tls-client',
       'type': 'executable',
       'sources': [
@@ -187,6 +215,7 @@
       'target_name': 'nssfuzz',
       'type': 'none',
       'dependencies': [
+        'nssfuzz-asn1',
         'nssfuzz-certDN',
         'nssfuzz-dtls-client',
         'nssfuzz-dtls-server',
@@ -194,6 +223,7 @@
         'nssfuzz-pkcs8',
         'nssfuzz-pkcs12',
         'nssfuzz-quickder',
+        'nssfuzz-smime',
         'nssfuzz-tls-client',
         'nssfuzz-tls-server',
       ],

@@ -1,0 +1,66 @@
+task-defaults:
+    run:
+        cwd: /builds/worker/workspace
+    worker-type: b-linux
+    worker:
+        artifacts:
+            - type: directory
+              path: /builds/worker/artifacts
+              name: public
+
+linux32/opt:
+    description: "Linux 32 (opt)"
+
+linux32/debug:
+    description: "Linux 32 (debug)"
+
+linux32/debug-make:
+    description: "Linux 32 (debug, make)"
+    attributes:
+        make: true
+
+linux32/debug-fuzz:
+    description: "Linux 32 (debug, fuzz)"
+    attributes:
+        fuzz: true
+        certs: false
+
+linux64/opt:
+    description: "Linux 64 (opt)"
+
+linux64-asan/debug:
+    description: "Linux 64 (ASan, debug)"
+    worker:
+        env:
+            UBSAN_OPTIONS: "print_stacktrace=1"
+            NSS_DISABLE_ARENA_FREE_LIST: "1"
+            NSS_DISABLE_UNLOAD: "1"
+            CC: "clang"
+            CCC: "clang++"
+        allow-ptrace: true
+    attributes:
+        asan: true
+
+linux64/debug:
+    description: "Linux 64 (debug)"
+
+linux64/debug-make:
+    description: "Linux 64 (debug, make)"
+    attributes:
+        make: true
+
+linux64/opt-make:
+    description: "Linux 64 (opt, make)"
+    attributes:
+        make: true
+
+linux64/opt-fips:
+    description: "Linux 64 (FIPS opt)"
+
+linux64/debug-fuzz:
+    description: "Linux 64 (debug, fuzz)"
+    attributes:
+        fuzz: true
+        certs: false
+    worker:
+        allow-ptrace: true

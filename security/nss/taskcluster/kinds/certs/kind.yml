@@ -1,0 +1,61 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+
+transforms:
+    - taskgraph.transforms.from_deps
+    - nss_taskgraph.transforms.treeherder
+    - nss_taskgraph.transforms.platforms
+
+kind-dependencies:
+    - build
+
+tasks:
+    certs:
+        description: Generate certificates
+        from-deps:
+            copy-attributes: true
+            with-attributes:
+                certs: [true]
+        run:
+            using: run-task
+            checkout:
+                nss:
+                    path: nss
+            command:
+                by-platform:
+                    win.*: $VCS_PATH/nss/automation/taskcluster/windows/gen_certs.sh
+                    default: $VCS_PATH/nss/automation/taskcluster/scripts/gen_certs.sh
+        worker:
+            max-run-time: 3600
+            env:
+                TC_PARENT_TASK_ID: {task-reference: '<build>'}
+            artifacts:
+                by-platform:
+                    linux.*:
+                        - type: directory
+                          path: /builds/worker/artifacts
+                          name: public
+                    win.*:
+                        - type: directory
+                          path: public/build
+                    mac.*:
+                        - type: directory
+                          path: public
+            docker-image: {in-tree: base}
+            taskcluster-proxy:
+                by-platform:
+                    win.*: true
+                    default: false
+        worker-type:
+            by-platform:
+                linux.*: b-linux
+                win.*: b-win2022
+                mac.*: b-osx
+        treeherder:
+            symbol: Certs
+        scopes:
+            by-platform:
+                win.*: ["project:releng:services/tooltool/api/download/internal"]
+                default: []

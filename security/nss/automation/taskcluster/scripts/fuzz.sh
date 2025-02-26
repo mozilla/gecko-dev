@@ -9,6 +9,10 @@ shift 2
 # Fetch artifact if needed.
 fetch_dist
 
+export DIST=${PWD}/dist
+
+cp -a "${VCS_PATH}/nss" .
+
 # Create and change to corpus directory.
 mkdir -p "nss/fuzz/corpus/$corpus"
 pushd "nss/fuzz/corpus/$corpus"

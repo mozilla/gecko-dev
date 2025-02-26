@@ -30,8 +30,11 @@ popd
 
 export PATH="${PATH}:${PWD}/ninja/bin:${PWD}/gyp/test-env/Scripts"
 
-# Clone NSPR.
-hg_clone https://hg.mozilla.org/projects/nspr nspr default
+test -v VCS_PATH
+
+# builds write to the source dir (and its parent), so move the source trees to
+# our workspace from the (cached) checkout dir
+cp -a "${VCS_PATH}/nspr" "${VCS_PATH}/nss" .
 
 pushd nspr
 hg revert --all

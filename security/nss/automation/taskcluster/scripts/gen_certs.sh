@@ -2,8 +2,9 @@
 
 source $(dirname "$0")/tools.sh
 
-# Fetch artifact if needed.
-fetch_dist
+set -e
+
+test -n "${VCS_PATH}"
 
 # Generate certificates.
 NSS_TESTS=cert NSS_CYCLES="standard pkix sharedb" $(dirname $0)/run_tests.sh
@@ -12,10 +13,10 @@ NSS_TESTS=cert NSS_CYCLES="standard pkix sharedb" $(dirname $0)/run_tests.sh
 echo 1 > tests_results/security/localhost
 
 # Package.
-if [[ $(uname) = "Darwin" ]]; then
-  mkdir -p public
-  tar cvfjh public/dist.tar.bz2 dist tests_results
+if [ $(uname) = Linux ]; then
+    artifacts=/builds/worker/artifacts
 else
-  mkdir artifacts
-  tar cvfjh artifacts/dist.tar.bz2 dist tests_results
+    mkdir public
+    artifacts=public
 fi
+tar cvfjh ${artifacts}/dist.tar.bz2 dist tests_results

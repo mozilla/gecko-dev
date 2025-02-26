@@ -1,3 +1,4 @@
+# yamllint disable rule:line-length
 # This file is rendered via JSON-e in a hook with context:
 #   {
 #     tasks_for: 'hg-push',
@@ -9,87 +10,192 @@
 ---
 version: 1
 tasks:
-  - $let:
-      # sometimes the push user is just `ffxbld` or the like, but we want an
-      # email-like field..
-      ownerEmail:
-        $if: '"@" in push.owner'
-        then: '${push.owner}'
-        else: '${push.owner}@noreply.mozilla.org'
-      # ensure there's no trailing `/` on the repo URL
-      repoUrl:
-        $if: 'repository.url[-1] == "/"'
-        then: {$eval: 'repository.url[:-1]'}
-        else: {$eval: 'repository.url'}
-      # scheduler id
-      schedulerId: 'nss-level-${repository.level}'
-    in:
-      taskId: '${ownTaskId}'
-      taskGroupId: '${ownTaskId}'
-      schedulerId: '${schedulerId}'
-      created: {$fromNow: ''}
-      deadline: {$fromNow: '1 day'}
-      expires: {$fromNow: '14 days'}
+  # NOTE: support for actions in ci-admin requires that the `tasks` property be
+  # an array *before* JSON-e rendering takes place.
+  - $if: 'tasks_for in ["hg-push", "action"]'
+    then:
+      $let:
+        # sometimes the push user is just `ffxbld` or the like, but we want an
+        # email-like field..
+        ownerEmail:
+          $if: '"@" in push.owner'
+          then: '${push.owner}'
+          else: '${push.owner}@noreply.mozilla.org'
+        # ensure there's no trailing `/` on the repo URL
+        repoUrl:
+          $if: 'repository.url[-1] == "/"'
+          then: {$eval: 'repository.url[:-1]'}
+          else: {$eval: 'repository.url'}
+        trustDomain: nss
+        treeherder_link: '[Treeherder job](https://treeherder.mozilla.org/#/jobs?repo=${repository.project}&revision=${push.revision}&selectedTaskRun=${ownTaskId})'
+        expires: {$fromNow: '14 days'}
+      in:
+        taskId: {$if: 'tasks_for != "action"', then: '${ownTaskId}'}
+        taskGroupId:
+          $if: 'tasks_for == "action"'
+          then: '${action.taskGroupId}'
+          else: '${ownTaskId}'
+        schedulerId: 'nss-level-${repository.level}'
+        created: {$fromNow: ''}
+        deadline: {$fromNow: '1 day'}
+        expires: {$eval: 'expires'}
 
-      metadata:
-        owner: mozilla-taskcluster-maintenance@mozilla.com
-        source: "${repository.url}"
-        name: "NSS Decision Task"
-        description: |
-            The task that creates all of the other tasks in the task graph
+        metadata:
+          $merge:
+            - owner: mozilla-taskcluster-maintenance@mozilla.com
+              source: "${repoUrl}/raw-file/${push.revision}/.taskcluster.yml"
+            - $if: 'tasks_for == "hg-push"'
+              then:
+                name: "NSS Decision Task"
+                description: The task that creates all of the other tasks in the task graph
+              else:
+                name: "Action: ${action.title}"
+                description: |
+                  ${action.description}
 
-      workerType: "linux-gcp"
-      provisionerId: "nss-${repository.level}"
+                  ${treeherder_link}
 
-      scopes:
-        - 'assume:repo:${repoUrl[8:]}:branch:default'
-      tags:
-        createdForUser: "${ownerEmail}"
+                  Action triggered by clientID `${clientId}`
 
-      routes:
-        - "tc-treeherder-stage.v2.${repository.project}.${push.revision}.${push.pushlog_id}"
-        - "tc-treeherder.v2.${repository.project}.${push.revision}.${push.pushlog_id}"
+        provisionerId: "${trustDomain}-${repository.level}"
+        workerType: "decision-gcp"
 
-      payload:
-        # TODO: use nssdev org , not djmitche, once the image is pushed there
-        image: djmitche/nss-decision:0.0.3
+        tags:
+          $if: 'tasks_for == "hg-push"'
+          then:
+            createdForUser: "${ownerEmail}"
+            kind: decision-task
+          else:
+            createdForUser: '${ownerEmail}'
+            kind: action-callback
 
-        env:
-          TC_OWNER: "${ownerEmail}"
-          TC_SOURCE: "${repository.url}"
-          TC_PROJECT: ${repository.project}
-          TC_SCHEDULER_ID: "${schedulerId}"
-          MOZ_SCM_LEVEL: "${repository.level}"
-          NSS_PUSHLOG_ID: '${push.pushlog_id}'
-          NSS_HEAD_REPOSITORY: '${repository.url}'
-          NSS_HEAD_REVISION: '${push.revision}'
 
-        maxRunTime: 1800
+        routes:
+          $flattenDeep:
+            - "tc-treeherder.v2.${repository.project}.${push.revision}"
+            - $if: 'tasks_for == "hg-push"'
+              then:
+                - "index.${trustDomain}.v2.${repository.project}.latest.taskgraph.decision"
+                - "index.${trustDomain}.v2.${repository.project}.revision.${push.revision}.taskgraph.decision"
+                - "index.${trustDomain}.v2.${repository.project}.pushlog-id.${push.pushlog_id}.decision"
+              else:
+                - "index.${trustDomain}.v2.${repository.project}.revision.${push.revision}.taskgraph.actions.${ownTaskId}"
+                - "index.${trustDomain}.v2.${repository.project}.pushlog-id.${push.pushlog_id}.actions.${ownTaskId}"
 
-        command:
-          - bash
-          - -cx
-          - >
-            bin/checkout.sh &&
-            nss/automation/taskcluster/scripts/extend_task_graph.sh
+        scopes:
+          $if: 'tasks_for == "hg-push"'
+          then:
+            - 'assume:repo:${repoUrl[8:]}:branch:default'
+            - 'in-tree:hook-action:project-${trustDomain}/in-tree-action-${repository.level}-*'
+            - 'index:insert-task:${trustDomain}.v2.${repository.project}.*'
+          else:
+            - '${action.repo_scope}'
 
-        features:
-          taskclusterProxy: true
+        dependencies: []
+        requires: all-completed
 
-        artifacts:
-          'public/docker-contexts':
-            type: 'directory'
-            path: '/home/worker/docker-contexts'
-            # This needs to be at least the deadline of the
-            # decision task + the docker-image task deadlines.
-            # It is set to a week to allow for some time for
-            # debugging, but they are not useful long-term.
-            expires: {$fromNow: '7 day'}
+        priority: low
+        retries: 0
 
-      extra:
-        treeherder:
-          symbol: D
-          build:
-            platform: nss-decision
-          machine:
-            platform: nss-decision
+        payload:
+          image: mozillareleases/taskgraph:decision-v13.0.0@sha256:57e4c2d2ad92cea663dcc02cacbfd88b3506edde80e19fbd8a57b3dfe37ae9bd
+
+          env:
+            $merge:
+              - NSS_BASE_REPOSITORY: 'https://hg.mozilla.org/projects/nss'
+                NSS_REPOSITORY_TYPE: 'hg'
+                NSS_BASE_REV: '${push.base_revision}'
+                NSS_HEAD_REPOSITORY: '${repository.url}'
+                NSS_HEAD_REV: '${push.revision}'
+                HG_STORE_PATH: /builds/worker/checkouts/hg-store
+                TASKCLUSTER_CACHES: /builds/worker/checkouts
+                REPOSITORIES: {$json: {nss: NSS}}
+              - $if: 'tasks_for == "action"'
+                then:
+                  ACTION_TASK_GROUP_ID: '${action.taskGroupId}'
+                  ACTION_TASK_ID: {$json: {$eval: 'taskId'}}
+                  ACTION_INPUT: {$json: {$eval: 'input'}}
+                  ACTION_CALLBACK: '${action.cb_name}'
+
+          cache:
+            "${trustDomain}-level-${repository.level}-checkouts-sparse-v3": /builds/worker/checkouts
+
+          maxRunTime: 1800
+
+          command:
+            - /usr/local/bin/run-task
+            - '--nss-checkout=/builds/worker/checkouts/nss'
+            - '--'
+            - bash
+            - -cx
+            - $if: 'tasks_for == "action"'
+              then: >
+                cd /builds/worker/checkouts/nss &&
+                ln -s /builds/worker/artifacts artifacts &&
+                taskgraph action-callback
+              else: >
+                cd /builds/worker/checkouts/nss &&
+                ln -s /builds/worker/artifacts artifacts &&
+                taskgraph decision
+                --pushlog-id='${push.pushlog_id}'
+                --pushdate='${push.pushdate}'
+                --project='${repository.project}'
+                --owner='${ownerEmail}'
+                --level='${repository.level}'
+                --tasks-for='${tasks_for}'
+                --repository-type=hg
+                --base-repository="$NSS_BASE_REPOSITORY"
+                --base-rev="$NSS_BASE_REV"
+                --head-repository="$NSS_HEAD_REPOSITORY"
+                --head-ref="$NSS_HEAD_REF"
+                --head-rev="$NSS_HEAD_REV"
+
+          features:
+            taskclusterProxy: true
+
+          artifacts:
+            'public':
+              type: 'directory'
+              path: '/builds/worker/artifacts'
+              expires: {$eval: expires}
+            'public/docker-contexts':
+              type: 'directory'
+              path: '/builds/worker/checkouts/nss/docker-contexts'
+              # This needs to be at least the deadline of the
+              # decision task + the docker-image task deadlines.
+              # It is set to a week to allow for some time for
+              # debugging, but they are not useful long-term.
+              expires: {$fromNow: '7 day'}
+
+        extra:
+          $merge:
+            - treeherder:
+                $merge:
+                  - machine:
+                      platform: nss-decision
+                  - $if: 'tasks_for == "hg-push"'
+                    then:
+                      symbol: D
+                    else:
+                      groupName: 'action-callback'
+                      groupSymbol: 'AC'
+                      symbol: "${action.symbol}"
+            - $if: 'tasks_for == "action"'
+              then:
+                parent: '${action.taskGroupId}'
+                action:
+                  name: '${action.name}'
+                  context:
+                    taskGroupId: '${action.taskGroupId}'
+                    taskId: {$eval: 'taskId'}
+                    input: {$eval: 'input'}
+                    clientId: {$eval: 'clientId'}
+            - tasks_for: '${tasks_for}'
+            - $if: 'tasks_for == "hg-push"'
+              then:
+                notify:
+                  email:
+                    $merge:
+                      - link:
+                          text: "Treeherder Jobs"
+                          href: "https://treeherder.mozilla.org/#/jobs?repo=${repository.project}&revision=${push.revision}"

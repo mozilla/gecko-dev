@@ -1,0 +1,17 @@
+task-defaults:
+    worker-type: b-osx
+    worker:
+        artifacts:
+            - type: directory
+              path: public
+
+macosx64/opt:
+    description: "Mac (opt)"
+
+macosx64/opt-static:
+    description: "Mac Static (opt)"
+    attributes:
+        static: true
+
+macosx64/debug:
+    description: "Mac (debug)"

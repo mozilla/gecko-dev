@@ -8,14 +8,9 @@
 
 #include <algorithm>
 #include <cassert>
-#include <fstream>
 #include <iostream>
-#include <iterator>
 #include <memory>
-#include <sstream>
-#include <sys/stat.h>
 
-#include "blapi.h"
 #include "prerror.h"
 #include "prlog.h"
 #include "prthread.h"
@@ -29,45 +24,6 @@ namespace nss_test {
   do {                               \
     if (g_ssl_gtest_verbose) LOG(a); \
   } while (false)
-
-DummyPrSocket::~DummyPrSocket() {
-#ifdef GTESTS_CORPUS
-  if (name_ != "client" && name_ != "server") {
-    return;
-  }
-
-  assert(variant_ == ssl_variant_stream || variant_ == ssl_variant_datagram);
-  assert(name_ == "client" || name_ == "server");
-
-  // We don't care if they already exist, just make sure they do at all.
-  mkdir("dtls-client-corpus", 0775);
-  mkdir("dtls-server-corpus", 0775);
-  mkdir("tls-client-corpus", 0775);
-  mkdir("tls-server-corpus", 0775);
-
-  std::stringstream filepath;
-  filepath << (variant_ == ssl_variant_stream ? "tls" : "dtls") << "-" << name_
-           << "-corpus/";
-
-  unsigned char digest[20];
-  SHA1_HashBuf(digest, receivedData_.data(), receivedData_.size());
-
-  for (unsigned long i = 0; i < sizeof(digest); ++i) {
-    filepath << std::hex << std::setfill('0') << std::setw(2) << (int)digest[i];
-  }
-
-  std::ofstream file;
-  file.open(filepath.str(), std::ios::out | std::ofstream::binary);
-
-  if (file.fail()) {
-    std::cerr << "Failed to open file: " << filepath.str() << "\n";
-    abort();
-  }
-
-  std::copy(receivedData_.begin(), receivedData_.end(),
-            std::ostreambuf_iterator<char>(file));
-#endif  // GTESTS_CORPUS
-}
 
 PRDescIdentity DummyPrSocket::LayerId() {
   static PRDescIdentity id = PR_GetUniqueIdentity("dummysocket");
@@ -93,11 +49,6 @@ void DummyPrSocket::Reset() {
 }
 
 void DummyPrSocket::PacketReceived(const DataBuffer &packet) {
-#ifdef GTESTS_CORPUS
-  receivedData_.reserve(receivedData_.size() + packet.len());
-  std::copy(packet.data(), packet.data() + packet.len(),
-            std::back_inserter(receivedData_));
-#endif  // GTESTS_CORPUS
   input_.push(Packet(packet));
 }
 

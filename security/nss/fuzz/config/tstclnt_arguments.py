@@ -16,7 +16,7 @@ def main():
 
     # Configure a TLS 1.3 External PSK with the given hex string for a key.
     if random.randint(0, 1):
-        print(f"-z 0x{''.join(random.choices(string.hexdigits, k=25))}")
+        print(f"-z 0x{''.join(random.choices(string.hexdigits, k=16))}")
 
     # Enable the session ticket extension.
     if random.randint(0, 1):

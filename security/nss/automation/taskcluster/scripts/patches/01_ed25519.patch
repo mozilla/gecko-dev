@@ -1,0 +1,96 @@
+Bug 1325335
+
+diff --git a/dist/gcc-compatible/Hacl_Ed25519.c b/dist/gcc-compatible/Hacl_Ed25519.c
+index 2f6e0bc3ca..f7a5ea6d75 100644
+--- a/dist/gcc-compatible/Hacl_Ed25519.c
++++ b/dist/gcc-compatible/Hacl_Ed25519.c
+@@ -25,12 +25,13 @@
+ #include "internal/Hacl_Ed25519.h"
+ 
+ #include "internal/Hacl_Krmllib.h"
+-#include "internal/Hacl_Hash_SHA2.h"
+ #include "internal/Hacl_Ed25519_PrecompTable.h"
+ #include "internal/Hacl_Curve25519_51.h"
+ #include "internal/Hacl_Bignum_Base.h"
+ #include "internal/Hacl_Bignum25519_51.h"
+ 
++#include "../Hacl_Hash_SHA2_shim.h"
++
+ static inline void
+ fsum(uint64_t *out, uint64_t *a, uint64_t *b)
+ {
+@@ -1669,50 +1670,6 @@ load_32_bytes(uint64_t *out, uint8_t *b)
+     out[4U] = b41;
+ }
+ 
+-static inline void
+-sha512_pre_msg(uint8_t *hash, uint8_t *prefix, uint32_t len, uint8_t *input)
+-{
+-    uint8_t buf[128U] = { 0U };
+-    uint64_t block_state[8U] = { 0U };
+-    Hacl_Streaming_MD_state_64
+-        s = { .block_state = block_state, .buf = buf, .total_len = (uint64_t)(uint32_t)0U };
+-    Hacl_Streaming_MD_state_64 p = s;
+-    Hacl_SHA2_Scalar32_sha512_init(block_state);
+-    Hacl_Streaming_MD_state_64 *st = &p;
+-    Hacl_Streaming_Types_error_code
+-        err0 = Hacl_Streaming_SHA2_update_512(st, prefix, (uint32_t)32U);
+-    Hacl_Streaming_Types_error_code err1 = Hacl_Streaming_SHA2_update_512(st, input, len);
+-    KRML_HOST_IGNORE(err0);
+-    KRML_HOST_IGNORE(err1);
+-    Hacl_Streaming_SHA2_finish_512(st, hash);
+-}
+-
+-static inline void
+-sha512_pre_pre2_msg(
+-    uint8_t *hash,
+-    uint8_t *prefix,
+-    uint8_t *prefix2,
+-    uint32_t len,
+-    uint8_t *input)
+-{
+-    uint8_t buf[128U] = { 0U };
+-    uint64_t block_state[8U] = { 0U };
+-    Hacl_Streaming_MD_state_64
+-        s = { .block_state = block_state, .buf = buf, .total_len = (uint64_t)(uint32_t)0U };
+-    Hacl_Streaming_MD_state_64 p = s;
+-    Hacl_SHA2_Scalar32_sha512_init(block_state);
+-    Hacl_Streaming_MD_state_64 *st = &p;
+-    Hacl_Streaming_Types_error_code
+-        err0 = Hacl_Streaming_SHA2_update_512(st, prefix, (uint32_t)32U);
+-    Hacl_Streaming_Types_error_code
+-        err1 = Hacl_Streaming_SHA2_update_512(st, prefix2, (uint32_t)32U);
+-    Hacl_Streaming_Types_error_code err2 = Hacl_Streaming_SHA2_update_512(st, input, len);
+-    KRML_HOST_IGNORE(err0);
+-    KRML_HOST_IGNORE(err1);
+-    KRML_HOST_IGNORE(err2);
+-    Hacl_Streaming_SHA2_finish_512(st, hash);
+-}
+-
+ static inline void
+ sha512_modq_pre(uint64_t *out, uint8_t *prefix, uint32_t len, uint8_t *input)
+ {
+diff --git a/dist/gcc-compatible/Hacl_Ed25519.h b/dist/gcc-compatible/Hacl_Ed25519.h
+index 12e16e142c..7d6f87dff2 100644
+--- a/dist/gcc-compatible/Hacl_Ed25519.h
++++ b/dist/gcc-compatible/Hacl_Ed25519.h
+@@ -36,7 +36,6 @@ extern "C" {
+ 
+ #include "Hacl_Streaming_Types.h"
+ #include "Hacl_Krmllib.h"
+-#include "Hacl_Hash_SHA2.h"
+ 
+ /********************************************************************************
+   Verified C library for EdDSA signing and verification on the edwards25519 curve.
+diff --git a/dist/gcc-compatible/internal/Hacl_Ed25519.h b/dist/gcc-compatible/internal/Hacl_Ed25519.h
+index ba77b6dc09..ad36672b92 100644
+--- a/dist/gcc-compatible/internal/Hacl_Ed25519.h
++++ b/dist/gcc-compatible/internal/Hacl_Ed25519.h
+@@ -35,7 +35,6 @@ extern "C" {
+ #include "krml/internal/target.h"
+ 
+ #include "internal/Hacl_Krmllib.h"
+-#include "internal/Hacl_Hash_SHA2.h"
+ #include "internal/Hacl_Ed25519_PrecompTable.h"
+ #include "internal/Hacl_Curve25519_51.h"
+ #include "internal/Hacl_Bignum_Base.h"

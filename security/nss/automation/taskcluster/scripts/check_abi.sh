@@ -2,8 +2,6 @@
 
 set_env()
 {
-  cd /home/worker
-  HGDIR=/home/worker
   OUTPUTDIR=$(pwd)$(echo "/output")
   DATE=$(date "+TB [%Y-%m-%d %H:%M:%S]")
 
@@ -12,79 +10,50 @@ set_env()
     mkdir "${OUTPUTDIR}"
   fi
 
-  if [ ! -d "nspr" ]; then
-    for i in 0 2 5; do
-      sleep $i
-      hg clone -r "default" "https://hg.mozilla.org/projects/nspr" "${HGDIR}/nspr" && break
-      rm -rf nspr
-    done
-  fi
-
+  cp -a ${VCS_PATH}/nss ${VCS_PATH}/nspr .
   pushd nspr
-  hg revert --all
   if [[ -f ../nss/nspr.patch && "$ALLOW_NSPR_PATCH" == "1" ]]; then
     cat ../nss/nspr.patch | patch -p1
   fi
   popd
 
   cd nss
-  ./build.sh -v -c
+  ./build.sh -v -c --python=python3
   cd ..
 }
 
 check_abi()
 {
   set_env
-  set +e #reverses set -e from build.sh to allow possible hg clone failures
   if [[ "$1" != --nobuild ]]; then # Start nobuild block
 
     echo "######## NSS ABI CHECK ########"
     echo "######## creating temporary HG clones ########"
 
-    rm -rf ${HGDIR}/baseline
-    mkdir ${HGDIR}/baseline
-    BASE_NSS=`cat ${HGDIR}/nss/automation/abi-check/previous-nss-release`  #Reads the version number of the last release from the respective file
-    NSS_CLONE_RESULT=0
-    for i in 0 2 5; do
-        sleep $i
-        hg clone -u "${BASE_NSS}" "https://hg.mozilla.org/projects/nss" "${HGDIR}/baseline/nss"
-        if [ $? -eq 0 ]; then
-          NSS_CLONE_RESULT=0
-          break
-        fi
-        rm -rf "${HGDIR}/baseline/nss"
-        NSS_CLONE_RESULT=1
-    done
-    if [ ${NSS_CLONE_RESULT} -ne 0 ]; then
+    rm -rf baseline
+    mkdir baseline
+    BASE_NSS=`cat nss/automation/abi-check/previous-nss-release`  #Reads the version number of the last release from the respective file
+    if ! hg clone -u "${BASE_NSS}" "${VCS_PATH}/nss" baseline/nss; then
       echo "invalid tag in automation/abi-check/previous-nss-release"
       return 1
     fi
 
-    BASE_NSPR=NSPR_$(head -1 ${HGDIR}/baseline/nss/automation/release/nspr-version.txt | cut -d . -f 1-2 | tr . _)_BRANCH
-    hg clone -u "${BASE_NSPR}" "https://hg.mozilla.org/projects/nspr" "${HGDIR}/baseline/nspr"
-    NSPR_CLONE_RESULT=$?
-
-    if [ ${NSPR_CLONE_RESULT} -ne 0 ]; then
-      rm -rf "${HGDIR}/baseline/nspr"
-      for i in 0 2 5; do
-          sleep $i
-          hg clone -u "default" "https://hg.mozilla.org/projects/nspr" "${HGDIR}/baseline/nspr" && break
-          rm -rf "${HGDIR}/baseline/nspr"
-      done
+    BASE_NSPR=NSPR_$(head -1 baseline/nss/automation/release/nspr-version.txt | cut -d . -f 1-2 | tr . _)_BRANCH
+    if ! hg clone -u "${BASE_NSPR}" "${VCS_PATH}/nspr" baseline/nspr; then
+      rm -rf baseline/nspr
+      hg clone -u "default" "${VCS_PATH}/nspr" baseline/nspr
       echo "Nonexisting tag ${BASE_NSPR} derived from ${BASE_NSS} automation/release/nspr-version.txt"
       echo "Using default branch instead."
     fi
 
     echo "######## building baseline NSPR/NSS ########"
-    echo "${HGDIR}/baseline/nss/build.sh"
-    cd ${HGDIR}/baseline/nss
-    ./build.sh -v -c
-    cd ${HGDIR}
+    echo "${PWD}/baseline/nss/build.sh"
+    cd baseline/nss
+    ./build.sh -v -c --python=python3
+    cd -
   else  # Else nobuild block
     echo "######## using existing baseline NSPR/NSS build ########"
   fi # End nobuild block
-
-  set +e #reverses set -e from build.sh to allow abidiff failures
 
   echo "######## Starting abidiff procedure ########"
   abi_diff
@@ -96,24 +65,24 @@ abi_diff()
   ABI_PROBLEM_FOUND=0
   ABI_REPORT=${OUTPUTDIR}/abi-diff.txt
   rm -f ${ABI_REPORT}
-  PREVDIST=${HGDIR}/baseline/dist
-  NEWDIST=${HGDIR}/dist
+  PREVDIST=baseline/dist
+  NEWDIST=dist
   # libnssdbm3.so isn't built by default anymore, skip it.
   ALL_SOs="libfreebl3.so libfreeblpriv3.so libnspr4.so libnss3.so libnssckbi.so libnsssysinit.so libnssutil3.so libplc4.so libplds4.so libsmime3.so libsoftokn3.so libssl3.so"
   for SO in ${ALL_SOs}; do
-      if [ ! -f ${HGDIR}/nss/automation/abi-check/expected-report-$SO.txt ]; then
-          touch ${HGDIR}/nss/automation/abi-check/expected-report-$SO.txt
+      if [ ! -f nss/automation/abi-check/expected-report-$SO.txt ]; then
+          touch nss/automation/abi-check/expected-report-$SO.txt
       fi
       abidiff --hd1 $PREVDIST/public/ --hd2 $NEWDIST/public \
           $PREVDIST/*/lib/$SO $NEWDIST/*/lib/$SO \
-          > ${HGDIR}/nss/automation/abi-check/new-report-temp$SO.txt
+          > nss/automation/abi-check/new-report-temp$SO.txt
       RET=$?
-      cat ${HGDIR}/nss/automation/abi-check/new-report-temp$SO.txt \
+      cat nss/automation/abi-check/new-report-temp$SO.txt \
           | grep -v "^Functions changes summary:" \
           | grep -v "^Variables changes summary:" \
           | sed -e 's/__anonymous_enum__[0-9]*/__anonymous_enum__/g' \
-          > ${HGDIR}/nss/automation/abi-check/new-report-$SO.txt
-      rm -f ${HGDIR}/nss/automation/abi-check/new-report-temp$SO.txt
+          > nss/automation/abi-check/new-report-$SO.txt
+      rm -f nss/automation/abi-check/new-report-temp$SO.txt
 
       ABIDIFF_ERROR=$((($RET & 0x01) != 0))
       ABIDIFF_USAGE_ERROR=$((($RET & 0x02) != 0))
@@ -150,18 +119,18 @@ abi_diff()
 
       if [ $REPORT_RET_AS_FAILURE -ne 0 ]; then
           ABI_PROBLEM_FOUND=1
-          echo "abidiff {$PREVDIST , $NEWDIST} for $SO FAILED with result $RET, or failed writing to ${HGDIR}/nss/automation/abi-check/new-report-$SO.txt"
+          echo "abidiff {$PREVDIST , $NEWDIST} for $SO FAILED with result $RET, or failed writing to nss/automation/abi-check/new-report-$SO.txt"
       fi
-      if [ ! -f ${HGDIR}/nss/automation/abi-check/expected-report-$SO.txt ]; then
+      if [ ! -f nss/automation/abi-check/expected-report-$SO.txt ]; then
           ABI_PROBLEM_FOUND=1
-          echo "FAILED to access report file: ${HGDIR}/nss/automation/abi-check/expected-report-$SO.txt"
+          echo "FAILED to access report file: nss/automation/abi-check/expected-report-$SO.txt"
       fi
 
-      diff -wB -u ${HGDIR}/nss/automation/abi-check/expected-report-$SO.txt \
-              ${HGDIR}/nss/automation/abi-check/new-report-$SO.txt >> ${ABI_REPORT}
+      diff -wB -u nss/automation/abi-check/expected-report-$SO.txt \
+              nss/automation/abi-check/new-report-$SO.txt >> ${ABI_REPORT}
       if [ ! -f ${ABI_REPORT} ]; then
           ABI_PROBLEM_FOUND=1
-          echo "FAILED to compare exepcted and new report: ${HGDIR}/nss/automation/abi-check/new-report-$SO.txt"
+          echo "FAILED to compare exepcted and new report: nss/automation/abi-check/new-report-$SO.txt"
       fi
   done
 

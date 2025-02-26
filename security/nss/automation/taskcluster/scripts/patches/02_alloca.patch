@@ -1,0 +1,15 @@
+Bug 1857190 - include alloca.h on Solaris
+
+diff --git a/dist/karamel/include/krml/internal/builtin.h b/dist/karamel/include/krml/internal/builtin.h
+index f55e5f824e..07ff156788 100644
+--- a/dist/karamel/include/krml/internal/builtin.h
++++ b/dist/karamel/include/krml/internal/builtin.h
+@@ -7,6 +7,8 @@
+ /* For alloca, when using KaRaMeL's -falloca */
+ #if (defined(_WIN32) || defined(_WIN64))
+ #include <malloc.h>
++#elif (defined(sun))
++#include <alloca.h>
+ #endif
+ 
+ /* If some globals need to be initialized before the main, then karamel will

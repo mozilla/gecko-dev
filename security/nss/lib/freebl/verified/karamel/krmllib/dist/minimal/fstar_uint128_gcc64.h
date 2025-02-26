@@ -155,10 +155,10 @@ FStar_UInt128_eq_mask(uint128_t x, uint128_t y)
 inline static uint128_t
 FStar_UInt128_gte_mask(uint128_t x, uint128_t y)
 {
-    uint64_t mask = (FStar_UInt64_gte_mask(x >> 64, y >> 64) &
-                     ~(FStar_UInt64_eq_mask(x >> 64, y >> 64))) |
-                    (FStar_UInt64_eq_mask(x >> 64, y >> 64) &
-                     FStar_UInt64_gte_mask((uint64_t)x, (uint64_t)y));
+    uint64_t mask =
+        (FStar_UInt64_gte_mask(x >> 64, y >> 64) &
+         ~(FStar_UInt64_eq_mask(x >> 64, y >> 64))) |
+        (FStar_UInt64_eq_mask(x >> 64, y >> 64) & FStar_UInt64_gte_mask((uint64_t)x, (uint64_t)y));
     return ((uint128_t)mask) << 64 | mask;
 }
 
@@ -169,8 +169,7 @@ FStar_UInt128___proj__Mkuint128__item__low(uint128_t x)
 }
 
 inline static uint64_t
-FStar_UInt128___proj__Mkuint128__item__high(
-    uint128_t x)
+FStar_UInt128___proj__Mkuint128__item__high(uint128_t x)
 {
     return (uint64_t)(x >> 64);
 }

@@ -4,16 +4,15 @@
 #ifndef __LOWSTAR_ENDIANNESS_H
 #define __LOWSTAR_ENDIANNESS_H
 
-#include <inttypes.h>
 #include <string.h>
+#include <inttypes.h>
 
 /******************************************************************************/
 /* Implementing C.fst (part 2: endian-ness macros)                            */
 /******************************************************************************/
 
 /* ... for Linux */
-#if defined(__linux__) || defined(__CYGWIN__) || \
-    defined(__USE_SYSTEM_ENDIAN_H__) || defined(__GLIBC__)
+#if defined(__linux__) || defined(__CYGWIN__) || defined(__USE_SYSTEM_ENDIAN_H__) || defined(__GLIBC__)
 #include <endian.h>
 
 /* ... for OSX */
@@ -97,10 +96,8 @@
 #define le64toh(x) (x)
 
 /* ... generic big-endian fallback code */
-/* ... AIX doesn't have __BYTE_ORDER__ (with XLC compiler) & is always
- * big-endian */
-#elif (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) || \
-    defined(_AIX)
+/* ... AIX doesn't have __BYTE_ORDER__ (with XLC compiler) & is always big-endian */
+#elif (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) || defined(_AIX)
 
 /* byte swapping code inspired by:
  * https://github.com/rweather/arduinolibs/blob/master/libraries/Crypto/utility/EndianUtil.h

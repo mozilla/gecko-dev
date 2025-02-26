@@ -1,0 +1,89 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+
+task-defaults:
+    treeherder:
+        platform: nss-tools/opt
+        kind: test
+    worker-type: b-linux
+    run:
+        using: run-task
+        checkout:
+            nss:
+                path: nss
+    worker:
+        artifacts:
+            - path: /builds/worker/artifacts
+              type: directory
+              name: public
+        max-run-time: 3600
+
+tasks:
+    abi:
+        description: ABI check
+        treeherder:
+            symbol: abi
+        worker:
+            docker-image: {in-tree: builds}
+        run:
+            command: "${VCS_PATH}/nss/automation/taskcluster/scripts/check_abi.sh"
+            checkout:
+                nspr:
+                    path: nspr
+
+    clang-format:
+        description: Run clang-format
+        treeherder:
+            symbol: clang-format
+        worker:
+            docker-image: {in-tree: clang-format}
+        run:
+            command: "${VCS_PATH}/nss/automation/clang-format/run_clang_format.sh"
+
+    acvp:
+        description: ACVP
+        treeherder:
+            symbol: acvp
+        worker:
+            docker-image: {in-tree: acvp}
+        run:
+            command: "bin/run.sh"
+
+    scan-build:
+        description: Run scan-build
+        treeherder:
+            symbol: scan-build
+        worker:
+            docker-image: {in-tree: fuzz}
+            env:
+                USE_64: "1"
+                CC: clang
+                CCC: clang++
+        run:
+            command: "${VCS_PATH}/nss/automation/taskcluster/scripts/run_scan_build.sh"
+            checkout:
+                nspr:
+                    path: nspr
+
+    hacl:
+        description: HACL checks
+        treeherder:
+            symbol: hacl
+        worker:
+            docker-image: {in-tree: builds}
+        run:
+            command: "${VCS_PATH}/nss/automation/taskcluster/scripts/run_hacl.sh"
+
+    coverage:
+        description: Generate coverage report
+        treeherder:
+            symbol: Coverage
+        worker:
+            docker-image: {in-tree: fuzz}
+        run:
+            command: "${VCS_PATH}/nss/automation/taskcluster/scripts/gen_coverage_report.sh"
+            checkout:
+                nspr:
+                    path: nspr

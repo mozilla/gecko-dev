@@ -3486,12 +3486,13 @@ nsc_CommonInitialize(CK_VOID_PTR pReserved, PRBool isFIPS)
         return crv;
     }
 
-    rv = RNG_RNGInit(); /* initialize random number generator */
+    rv = BL_Init(); /* initialize freebl engine */
     if (rv != SECSuccess) {
         crv = CKR_DEVICE_ERROR;
         return crv;
     }
-    rv = BL_Init(); /* initialize freebl engine */
+
+    rv = RNG_RNGInit(); /* initialize random number generator */
     if (rv != SECSuccess) {
         crv = CKR_DEVICE_ERROR;
         return crv;

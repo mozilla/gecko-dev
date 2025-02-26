@@ -555,6 +555,7 @@ PK11_SignatureLen(SECKEYPrivateKey *key)
 
     switch (key->keyType) {
         case rsaKey:
+        case rsaPssKey:
             val = PK11_GetPrivateModulusLen(key);
             if (val == -1) {
                 return pk11_backupGetSignLength(key);

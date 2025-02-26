@@ -15,5 +15,9 @@ fi
 wget -t 3 --retry-connrefused -w 5 --random-wait $url -O dist.7z
 7z x dist.7z
 
+export DIST=${PWD}/dist
+
+cp -a "${VCS_PATH}/nss" .
+
 # Run tests.
 cd nss/tests && ./all.sh

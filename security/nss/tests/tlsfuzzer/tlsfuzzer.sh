@@ -99,7 +99,7 @@ tlsfuzzer_cleanup()
 tlsfuzzer_run_tests()
 {
   pushd "${HOSTDIR}/tlsfuzzer/${TLSFUZZER}"
-  PYTHONPATH=. python tests/scripts_retention.py config.json "${BINDIR}/selfserv" 512
+  PYTHONPATH=. python3 tests/scripts_retention.py config.json "${BINDIR}/selfserv" 512
   html_msg $? 0 "tlsfuzzer" "Run successfully"
   popd
 }
