@@ -1,0 +1,37 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/global.css");
+
+#notification-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-inline: var(--space-large);
+}
+
+#notification-card-img {
+  max-width: 152px;
+  max-height: 122px;
+}
+
+#notification-card-header {
+  max-width: 300px;
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+#notification-card-body {
+  max-width: 300px;
+  color: var(--text-color-deemphasized);
+  margin-block-end: 24px;
+}
+
+#notification-card-button-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-small);
+}

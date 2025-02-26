@@ -891,6 +891,12 @@ pref("browser.shopping.experience2023.integratedSidebar", false);
 // the Review Checker sidebar panel.
 pref("browser.shopping.experience2023.shoppingSidebar", true);
 
+// If true, users have already seen a card in the Review Checker sidebar panel
+// notifying users of the feature's new location and asking if they want to
+// move the sidebar to the left or right side. Else if false, users are yet to
+// see the card.
+pref("browser.shopping.experience2023.newPositionCard.hasSeen", false);
+
 // Spin the cursor while the page is loading
 pref("browser.spin_cursor_while_busy", false);
 

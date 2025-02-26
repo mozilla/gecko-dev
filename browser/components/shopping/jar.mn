@@ -30,3 +30,5 @@ browser.jar:
     content/browser/shopping/recommended-ad.mjs (content/recommended-ad.mjs)
     content/browser/shopping/assets/ (content/assets/*)
     content/browser/shopping/review-checker.xhtml (content/review-checker.xhtml)
+    content/browser/shopping/new-position-notification-card.css (content/new-position-notification-card.css)
+    content/browser/shopping/new-position-notification-card.mjs (content/new-position-notification-card.mjs)

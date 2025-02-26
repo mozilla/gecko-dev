@@ -71,6 +71,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
     }
   }
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "isSidebarStartPosition",
+  "sidebar.position_start"
+);
 
 /**
  * The ReviewCheckerChild will get the current URL from the parent
@@ -130,6 +135,10 @@ export class ReviewCheckerChild extends RemotePageChild {
     return lazy.autoCloseEnabledByUser;
   }
 
+  get isSidebarStartPosition() {
+    return lazy.isSidebarStartPosition;
+  }
+
   receiveMessage(message) {
     if (this.browsingContext.usePrivateBrowsing) {
       throw new Error("We should never be invoked in PBM.");
@@ -137,6 +146,11 @@ export class ReviewCheckerChild extends RemotePageChild {
     switch (message.name) {
       case "ReviewChecker:UpdateCurrentURL":
         this.locationChanged(message.data);
+        break;
+      case "ReviewChecker:ShowNewPositionCard":
+        this.sendToContent("ShowNewPositionCard", {
+          isSidebarStartPosition: this.isSidebarStartPosition,
+        });
         break;
     }
     return null;
@@ -174,6 +188,15 @@ export class ReviewCheckerChild extends RemotePageChild {
         break;
       case "CloseShoppingSidebar":
         this.sendAsyncMessage("CloseShoppingSidebar");
+        break;
+      case "MoveSidebarToRight":
+        this.sendAsyncMessage("ReverseSidebarPosition");
+        break;
+      case "MoveSidebarToLeft":
+        this.sendAsyncMessage("ReverseSidebarPosition");
+        break;
+      case "ShowSidebarSettings":
+        this.sendAsyncMessage("ShowSidebarSettings");
         break;
     }
   }
@@ -534,6 +557,7 @@ export class ReviewCheckerChild extends RemotePageChild {
       productUrl,
       data,
       showOnboarding: false,
+      isSidebarStartPosition: this.isSidebarStartPosition,
     });
 
     if (!isPolledRequest && !data.error && !data.grade) {
@@ -638,6 +662,7 @@ export class ReviewCheckerChild extends RemotePageChild {
       data: null,
       recommendationData: null,
       focusCloseButton,
+      isSidebarStartPosition: this.isSidebarStartPosition,
     });
   }
 
@@ -701,6 +726,7 @@ export class ReviewCheckerChild extends RemotePageChild {
       isProductPage,
       isSupportedSite,
       supportedDomains,
+      isSidebarStartPosition: this.isSidebarStartPosition,
     });
   }
 
