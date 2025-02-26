@@ -187,6 +187,7 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
 #endif
 #ifdef ENABLE_WASM_JSPI
     case JSProto_WasmSuspending:
+    case JSProto_SuspendError:
 #endif
     case JSProto_WasmException:
       return false;

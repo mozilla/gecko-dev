@@ -92,7 +92,12 @@ static_assert(
         JSProto_Error + int(JSEXN_WASMCOMPILEERROR) == JSProto_CompileError &&
         JSProto_Error + int(JSEXN_WASMLINKERROR) == JSProto_LinkError &&
         JSProto_Error + int(JSEXN_WASMRUNTIMEERROR) == JSProto_RuntimeError &&
+#ifdef ENABLE_WASM_JSPI
+        JSProto_Error + int(JSEXN_WASMSUSPENDERROR) == JSProto_SuspendError &&
+        JSEXN_WASMSUSPENDERROR + 1 == JSEXN_WARN &&
+#else
         JSEXN_WASMRUNTIMEERROR + 1 == JSEXN_WARN &&
+#endif
         JSEXN_WARN + 1 == JSEXN_NOTE && JSEXN_NOTE + 1 == JSEXN_LIMIT,
     "GetExceptionProtoKey and ExnTypeFromProtoKey require that "
     "each corresponding JSExnType and JSProtoKey value be separated "

@@ -85,6 +85,9 @@ const JSClass ErrorObject::protoClasses[JSEXN_ERROR_LIMIT] = {
     IMPLEMENT_ERROR_PROTO_CLASS(CompileError),
     IMPLEMENT_ERROR_PROTO_CLASS(LinkError),
     IMPLEMENT_ERROR_PROTO_CLASS(RuntimeError),
+#ifdef ENABLE_WASM_JSPI
+    IMPLEMENT_ERROR_PROTO_CLASS(SuspendError),
+#endif
 };
 
 static bool exn_toSource(JSContext* cx, unsigned argc, Value* vp);
@@ -139,6 +142,9 @@ IMPLEMENT_NATIVE_ERROR_PROPERTIES(DebuggeeWouldRun)
 IMPLEMENT_NATIVE_ERROR_PROPERTIES(CompileError)
 IMPLEMENT_NATIVE_ERROR_PROPERTIES(LinkError)
 IMPLEMENT_NATIVE_ERROR_PROPERTIES(RuntimeError)
+#ifdef ENABLE_WASM_JSPI
+IMPLEMENT_NATIVE_ERROR_PROPERTIES(SuspendError)
+#endif
 
 #define IMPLEMENT_NATIVE_ERROR_SPEC(name) \
   {ErrorObject::createConstructor,        \
@@ -179,7 +185,11 @@ const ClassSpec ErrorObject::classSpecs[JSEXN_ERROR_LIMIT] = {
     IMPLEMENT_NONGLOBAL_ERROR_SPEC(DebuggeeWouldRun),
     IMPLEMENT_NONGLOBAL_ERROR_SPEC(CompileError),
     IMPLEMENT_NONGLOBAL_ERROR_SPEC(LinkError),
-    IMPLEMENT_NONGLOBAL_ERROR_SPEC(RuntimeError)};
+    IMPLEMENT_NONGLOBAL_ERROR_SPEC(RuntimeError),
+#ifdef ENABLE_WASM_JSPI
+    IMPLEMENT_NONGLOBAL_ERROR_SPEC(SuspendError),
+#endif
+};
 
 #define IMPLEMENT_ERROR_CLASS_CORE(name, reserved_slots) \
   {#name,                                                \
@@ -231,6 +241,9 @@ const JSClass ErrorObject::classes[JSEXN_ERROR_LIMIT] = {
     IMPLEMENT_ERROR_CLASS(CompileError),
     IMPLEMENT_ERROR_CLASS(LinkError),
     IMPLEMENT_ERROR_CLASS_MAYBE_WASM_TRAP(RuntimeError),
+#ifdef ENABLE_WASM_JSPI
+    IMPLEMENT_ERROR_CLASS(SuspendError),
+#endif
 };
 
 static void exn_finalize(JS::GCContext* gcx, JSObject* obj) {

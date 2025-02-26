@@ -5377,6 +5377,9 @@ static bool WebAssemblyClassFinish(JSContext* cx, HandleObject object,
       {"CompileError", GetExceptionProtoKey(JSEXN_WASMCOMPILEERROR)},
       {"LinkError", GetExceptionProtoKey(JSEXN_WASMLINKERROR)},
       {"RuntimeError", GetExceptionProtoKey(JSEXN_WASMRUNTIMEERROR)},
+#ifdef ENABLE_WASM_JSPI
+      {"SuspendError", GetExceptionProtoKey(JSEXN_WASMSUSPENDERROR)},
+#endif
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
       {"Function", JSProto_WasmFunction},
 #endif
