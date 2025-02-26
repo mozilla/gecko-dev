@@ -213,6 +213,13 @@ void TabListener::SetOwnerContent(Element* aElement) {
   AddEventListeners();
 }
 
+/* static */
+void TabListener::TimerCallback(nsITimer* aTimer, void* aClosure) {
+  auto listener = static_cast<TabListener*>(aClosure);
+  listener->UpdateSessionStore();
+  listener->StopTimerForUpdate();
+}
+
 void TabListener::StopTimerForUpdate() {
   if (mUpdatedTimer) {
     mUpdatedTimer->Cancel();
@@ -230,13 +237,9 @@ void TabListener::AddTimerForUpdate() {
     return;
   }
 
-  NS_NewTimerWithCallback(
-      getter_AddRefs(mUpdatedTimer),
-      [self = RefPtr{this}](nsITimer*) {
-        self->UpdateSessionStore();
-        self->StopTimerForUpdate();
-      },
-      mUpdateInterval, nsITimer::TYPE_ONE_SHOT, "TabListener::TimerCallback");
+  NS_NewTimerWithFuncCallback(getter_AddRefs(mUpdatedTimer), TimerCallback,
+                              this, mUpdateInterval, nsITimer::TYPE_ONE_SHOT,
+                              "TabListener::TimerCallback");
 }
 
 NS_IMETHODIMP TabListener::PrivateModeChanged(bool aEnabled) {
