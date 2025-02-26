@@ -40,7 +40,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
     const storageGet = (origin) => {
       const { promise, resolve } = Promise.withResolvers();
       const ids = [];
-      notificationStorage.get(origin, "", {
+      notificationStorage.get(origin, "", "", {
         handle(id) {
           ids.push(id);
         },
