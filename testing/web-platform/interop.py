@@ -10,6 +10,7 @@ import re
 import shutil
 import sys
 import tempfile
+from datetime import datetime
 from typing import Callable, Iterable, List, Mapping, Optional, Set, Tuple
 
 repos = ["autoland", "mozilla-central", "try", "mozilla-central", "mozilla-beta", "wpt"]
@@ -21,7 +22,7 @@ default_interop_task_filters = {
         "web-platform-tests",
         "linux.*-64",
         "/opt",
-        "!-nofis|-headless|-asan|-tsan|-ccov",
+        "!-nofis|-headless|-asan|-tsan|-ccov|wayland",
     ],
 }
 
@@ -50,12 +51,21 @@ def get_parser_fetch_logs() -> argparse.Namespace:
     return parser
 
 
+def get_default_year() -> int:
+    # Simple guess at current Interop year, based on switchover in Feburary
+    now = datetime.now()
+    year = now.year
+    if now.month < 2:
+        year -= 1
+    return year
+
+
 def get_parser_interop_score() -> argparse.Namespace:
     parser = get_parser_fetch_logs()
     parser.add_argument(
         "--year",
         action="store",
-        default=2023,
+        default=get_default_year(),
         type=int,
         help="Interop year to score against",
     )
