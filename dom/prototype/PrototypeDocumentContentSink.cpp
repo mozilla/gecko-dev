@@ -48,6 +48,7 @@
 #include "mozilla/dom/ProcessingInstruction.h"
 #include "mozilla/dom/XMLStylesheetProcessingInstruction.h"
 #include "mozilla/dom/ScriptLoader.h"
+#include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerLabels.h"
@@ -283,6 +284,7 @@ nsresult PrototypeDocumentContentSink::PrepareToWalk() {
 
   // Notify document that the load is beginning
   mDocument->BeginLoad();
+  MOZ_ASSERT(!mDocument->HasChildren());
 
   // Get the prototype's root element and initialize the context
   // stack for the prototype walk.
@@ -303,15 +305,13 @@ nsresult PrototypeDocumentContentSink::PrepareToWalk() {
     return NS_OK;
   }
 
-  nsINode* nodeToInsertBefore = mDocument->GetFirstChild();
-
   const nsTArray<RefPtr<nsXULPrototypePI> >& processingInstructions =
       mCurrentPrototype->GetProcessingInstructions();
 
   uint32_t total = processingInstructions.Length();
   for (uint32_t i = 0; i < total; ++i) {
     rv = CreateAndInsertPI(processingInstructions[i], mDocument,
-                           nodeToInsertBefore);
+                           /* aInProlog */ true);
     if (NS_FAILED(rv)) return rv;
   }
 
@@ -350,7 +350,7 @@ nsresult PrototypeDocumentContentSink::PrepareToWalk() {
 }
 
 nsresult PrototypeDocumentContentSink::CreateAndInsertPI(
-    const nsXULPrototypePI* aProtoPI, nsINode* aParent, nsINode* aBeforeThis) {
+    const nsXULPrototypePI* aProtoPI, nsINode* aParent, bool aInProlog) {
   MOZ_ASSERT(aProtoPI, "null ptr");
   MOZ_ASSERT(aParent, "null ptr");
 
@@ -363,13 +363,17 @@ nsresult PrototypeDocumentContentSink::CreateAndInsertPI(
     MOZ_ASSERT(LinkStyle::FromNode(*node),
                "XML Stylesheet node does not implement LinkStyle!");
     auto* pi = static_cast<XMLStylesheetProcessingInstruction*>(node.get());
-    rv = InsertXMLStylesheetPI(aProtoPI, aParent, aBeforeThis, pi);
+    rv = InsertXMLStylesheetPI(aProtoPI, aParent, pi);
   } else {
+    // Handles the special <?csp ?> PI, which will be handled before
+    // creating any element with potential inline style or scripts.
+    if (aInProlog && aProtoPI->mTarget.EqualsLiteral("csp")) {
+      CSP_ApplyMetaCSPToDoc(*aParent->OwnerDoc(), aProtoPI->mData);
+    }
+
     // No special processing, just add the PI to the document.
     ErrorResult error;
-    aParent->InsertChildBefore(node->AsContent(),
-                               aBeforeThis ? aBeforeThis->AsContent() : nullptr,
-                               false, error);
+    aParent->AppendChildTo(node->AsContent(), false, error);
     rv = error.StealNSResult();
   }
 
@@ -377,7 +381,7 @@ nsresult PrototypeDocumentContentSink::CreateAndInsertPI(
 }
 
 nsresult PrototypeDocumentContentSink::InsertXMLStylesheetPI(
-    const nsXULPrototypePI* aProtoPI, nsINode* aParent, nsINode* aBeforeThis,
+    const nsXULPrototypePI* aProtoPI, nsINode* aParent,
     XMLStylesheetProcessingInstruction* aPINode) {
   // We want to be notified when the style sheet finishes loading, so
   // disable style sheet loading for now.
@@ -385,8 +389,7 @@ nsresult PrototypeDocumentContentSink::InsertXMLStylesheetPI(
   aPINode->OverrideBaseURI(mCurrentPrototype->GetURI());
 
   ErrorResult rv;
-  aParent->InsertChildBefore(
-      aPINode, aBeforeThis ? aBeforeThis->AsContent() : nullptr, false, rv);
+  aParent->AppendChildTo(aPINode, false, rv);
   if (rv.Failed()) {
     return rv.StealNSResult();
   }
@@ -588,22 +591,22 @@ nsresult PrototypeDocumentContentSink::ResumeWalkInternal() {
         case nsXULPrototypeNode::eType_PI: {
           auto* piProto = static_cast<nsXULPrototypePI*>(childproto);
 
-          // <?xml-stylesheet?> doesn't have an effect
-          // outside the prolog, like it used to. Issue a warning.
+          // <?xml-stylesheet?> and <?csp?> don't have an effect
+          // outside the prolog, issue a warning.
 
-          if (piProto->mTarget.EqualsLiteral("xml-stylesheet")) {
+          if (piProto->mTarget.EqualsLiteral("xml-stylesheet") ||
+              piProto->mTarget.EqualsLiteral("csp")) {
             AutoTArray<nsString, 1> params = {piProto->mTarget};
 
             nsContentUtils::ReportToConsole(
                 nsIScriptError::warningFlag, "XUL Document"_ns, nullptr,
-                nsContentUtils::eXUL_PROPERTIES, "PINotInProlog", params,
+                nsContentUtils::eXUL_PROPERTIES, "PINotInProlog2", params,
                 SourceLocation(docURI.get()));
           }
 
-          nsIContent* parent = element.get();
-          if (parent) {
+          if (nsIContent* parent = element.get()) {
             // an inline script could have removed the root element
-            rv = CreateAndInsertPI(piProto, parent, nullptr);
+            rv = CreateAndInsertPI(piProto, parent, /* aInProlog */ false);
             NS_ENSURE_SUCCESS(rv, rv);
           }
         } break;
