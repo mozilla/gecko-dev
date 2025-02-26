@@ -40,11 +40,7 @@ pub extern "C" fn fog_shutdown() {
 
 #[no_mangle]
 pub extern "C" fn fog_register_pings() {
-    #[cfg(not(target_os = "android"))]
-    log::warn!("fog_register_pings on not-Android has no effect.");
-
-    #[cfg(target_os = "android")]
-    pings::register_pings(Some("gecko"));
+    pings::register_pings(None);
 }
 
 // Enough of unstable std::cell::SyncUnsafeCell for our needs, and
