@@ -4,6 +4,8 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
+<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
+
 <window
   id="SiteDataSettingsDialog"
   data-l10n-id="site-data-settings-window"
@@ -12,7 +14,6 @@
   xmlns:html="http://www.w3.org/1999/xhtml"
   style="min-width: 45em"
   persist="width height"
-  csp="default-src chrome:; style-src 'unsafe-inline';"
 >
   <dialog
     buttons="accept,cancel"

@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+<?csp default-src chrome:; img-src chrome: moz-icon: data:; style-src chrome: 'unsafe-inline'; ?>
+
 <!DOCTYPE window>
 
 <window id="places"
@@ -18,8 +20,7 @@
         customtitlebar="true"
 #endif
         toggletoolbar="true"
-        persist="width height screenX screenY sizemode"
-        csp="default-src chrome:; img-src chrome: moz-icon: data:; style-src 'unsafe-inline';">
+        persist="width height screenX screenY sizemode">
 
   <linkset>
     <html:link
