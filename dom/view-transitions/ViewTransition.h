@@ -75,7 +75,8 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
 
   const StyleLockedDeclarationBlock* GetDynamicRuleFor(const Element&) const;
 
-  static constexpr nsLiteralString kGroupAnimPrefix = u"-ua-view-transition-group-anim-"_ns;
+  static constexpr nsLiteralString kGroupAnimPrefix =
+      u"-ua-view-transition-group-anim-"_ns;
 
   [[nodiscard]] bool GetGroupKeyframes(nsAtom* aAnimationName,
                                        nsTArray<Keyframe>&) const;
