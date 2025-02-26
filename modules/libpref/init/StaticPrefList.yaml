@@ -14271,6 +14271,16 @@
   value: ""
   mirror: never
 
+# The idle timeout for the HTTP/3 connection that is used for DoH
+- name: network.trr.idle_timeout_for_http3_conn
+  type: RelaxedAtomicUint32
+#ifdef EARLY_BETA_OR_EARLIER
+  value: 400
+#else
+  value: 30
+#endif
+  mirror: always
+
 # Allow the network changed event to get sent when a network topology or setup
 # change is noticed while running.
 - name: network.notify.changed
@@ -14651,6 +14661,12 @@
 - name: network.http.skip_alt_svc_validation_on_https_rr
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+
+# The idle timeout used for HTTP/3 connection.
+- name: network.http.http3.idle_timeout
+  type: RelaxedAtomicUint32
+  value: 30
   mirror: always
 
 # When true, a http request will be upgraded to https when HTTPS RR is

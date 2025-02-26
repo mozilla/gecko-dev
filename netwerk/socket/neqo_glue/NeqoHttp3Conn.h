@@ -20,12 +20,13 @@ class NeqoHttp3Conn final {
       uint64_t aMaxStreamData, bool aVersionNegotiation, bool aWebTransport,
       const nsACString& aQlogDir, uint32_t aDatagramSize,
       uint32_t aMaxAccumulatedTime, uint32_t aProviderFlags,
-      NeqoHttp3Conn** aConn) {
+      uint32_t aIdleTimeout, NeqoHttp3Conn** aConn) {
     return neqo_http3conn_new_use_nspr_for_io(
         &aOrigin, &aAlpn, &aLocalAddr, &aRemoteAddr, aMaxTableSize,
         aMaxBlockedStreams, aMaxData, aMaxStreamData, aVersionNegotiation,
         aWebTransport, &aQlogDir, aDatagramSize, aMaxAccumulatedTime,
-        aProviderFlags, (const mozilla::net::NeqoHttp3Conn**)aConn);
+        aProviderFlags, aIdleTimeout,
+        (const mozilla::net::NeqoHttp3Conn**)aConn);
   }
 
   static nsresult Init(const nsACString& aOrigin, const nsACString& aAlpn,
@@ -35,12 +36,14 @@ class NeqoHttp3Conn final {
                        bool aVersionNegotiation, bool aWebTransport,
                        const nsACString& aQlogDir, uint32_t aDatagramSize,
                        uint32_t aMaxAccumulatedTime, uint32_t aProviderFlags,
-                       int64_t socket, NeqoHttp3Conn** aConn) {
+                       uint32_t aIdleTimeout, int64_t socket,
+                       NeqoHttp3Conn** aConn) {
     return neqo_http3conn_new(
         &aOrigin, &aAlpn, &aLocalAddr, &aRemoteAddr, aMaxTableSize,
         aMaxBlockedStreams, aMaxData, aMaxStreamData, aVersionNegotiation,
         aWebTransport, &aQlogDir, aDatagramSize, aMaxAccumulatedTime,
-        aProviderFlags, socket, (const mozilla::net::NeqoHttp3Conn**)aConn);
+        aProviderFlags, aIdleTimeout, socket,
+        (const mozilla::net::NeqoHttp3Conn**)aConn);
   }
 
   void Close(uint64_t aError) { neqo_http3conn_close(this, aError); }

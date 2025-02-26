@@ -154,6 +154,7 @@ impl NeqoHttp3Conn {
         webtransport_datagram_size: u32,
         max_accumlated_time_ms: u32,
         provider_flags: u32,
+        idle_timeout: u32,
         socket: Option<i64>,
     ) -> Result<RefPtr<NeqoHttp3Conn>, nsresult> {
         // Nss init.
@@ -229,7 +230,8 @@ impl NeqoHttp3Conn {
             .max_data(max_data)
             .max_stream_data(StreamType::BiDi, false, max_stream_data)
             .grease(static_prefs::pref!("security.tls.grease_http3_enable"))
-            .sni_slicing(static_prefs::pref!("network.http.http3.sni-slicing"));
+            .sni_slicing(static_prefs::pref!("network.http.http3.sni-slicing"))
+            .idle_timeout(Duration::from_secs(idle_timeout.into()));
 
         // Set a short timeout when fuzzing.
         #[cfg(feature = "fuzzing")]
@@ -475,6 +477,7 @@ pub extern "C" fn neqo_http3conn_new(
     webtransport_datagram_size: u32,
     max_accumlated_time_ms: u32,
     provider_flags: u32,
+    idle_timeout: u32,
     socket: i64,
     result: &mut *const NeqoHttp3Conn,
 ) -> nsresult {
@@ -495,6 +498,7 @@ pub extern "C" fn neqo_http3conn_new(
         webtransport_datagram_size,
         max_accumlated_time_ms,
         provider_flags,
+        idle_timeout,
         Some(socket),
     ) {
         Ok(http3_conn) => {
@@ -522,6 +526,7 @@ pub extern "C" fn neqo_http3conn_new_use_nspr_for_io(
     webtransport_datagram_size: u32,
     max_accumlated_time_ms: u32,
     provider_flags: u32,
+    idle_timeout: u32,
     result: &mut *const NeqoHttp3Conn,
 ) -> nsresult {
     *result = ptr::null_mut();
@@ -541,6 +546,7 @@ pub extern "C" fn neqo_http3conn_new_use_nspr_for_io(
         webtransport_datagram_size,
         max_accumlated_time_ms,
         provider_flags,
+        idle_timeout,
         None,
     ) {
         Ok(http3_conn) => {
