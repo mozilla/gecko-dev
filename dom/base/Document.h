@@ -3868,6 +3868,7 @@ class Document : public nsINode,
   void ClearActiveViewTransition();
   void PerformPendingViewTransitionOperations();
   void EnsureViewTransitionOperationsHappen();
+  void MaybeSkipTransitionAfterVisibilityChange();
 
   // Getter for PermissionDelegateHandler. Performs lazy initialization.
   PermissionDelegateHandler* GetPermissionDelegateHandler();

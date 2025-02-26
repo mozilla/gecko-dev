@@ -16179,28 +16179,52 @@ bool Document::SetOrientationPendingPromise(Promise* aPromise) {
   return true;
 }
 
+void Document::MaybeSkipTransitionAfterVisibilityChange() {
+  if (Hidden() && mActiveViewTransition) {
+    mActiveViewTransition->SkipTransition(SkipTransitionReason::DocumentHidden);
+  }
+}
+
+// https://html.spec.whatwg.org/#update-the-visibility-state
 void Document::UpdateVisibilityState(DispatchVisibilityChange aDispatchEvent) {
-  dom::VisibilityState oldState = mVisibilityState;
-  mVisibilityState = ComputeVisibilityState();
-  if (oldState != mVisibilityState) {
-    if (aDispatchEvent == DispatchVisibilityChange::Yes) {
-      nsContentUtils::DispatchTrustedEvent(this, this, u"visibilitychange"_ns,
-                                           CanBubble::eYes, Cancelable::eNo);
-    }
-    NotifyActivityChanged();
-    if (mVisibilityState == dom::VisibilityState::Visible) {
-      MaybeActiveMediaComponents();
-    }
+  const dom::VisibilityState visibilityState = ComputeVisibilityState();
+  if (mVisibilityState == visibilityState) {
+    // 1. If document's visibility state equals visibilityState, then return.
+    return;
+  }
+  // 2. Set document's visibility state to visibilityState.
+  mVisibilityState = visibilityState;
+  if (aDispatchEvent == DispatchVisibilityChange::Yes) {
+    // 3. Fire an event named visibilitychange at document, with its bubbles
+    // attribute initialized to true.
+    nsContentUtils::DispatchTrustedEvent(this, this, u"visibilitychange"_ns,
+                                         CanBubble::eYes, Cancelable::eNo);
+  }
+  // TODO 4. Run the screen orientation change steps with document.
 
-    bool visible = !Hidden();
-    for (auto* listener : mWorkerListeners) {
-      listener->OnVisible(visible);
-    }
+  // 5. Run the view transition page visibility change steps with document.
+  // https://drafts.csswg.org/css-view-transitions/#view-transition-page-visibility-change-steps
+  const bool visible = !Hidden();
+  if (mActiveViewTransition && !visible) {
+    // The mActiveViewTransition check is an optimization: We don't allow
+    // creating transitions while the doc is hidden.
+    Dispatch(
+        NewRunnableMethod("MaybeSkipTransitionAfterVisibilityChange", this,
+                          &Document::MaybeSkipTransitionAfterVisibilityChange));
+  }
 
-    // https://w3c.github.io/screen-wake-lock/#handling-document-loss-of-visibility
-    if (!visible) {
-      UnlockAllWakeLocks(WakeLockType::Screen);
-    }
+  NotifyActivityChanged();
+  if (visible) {
+    MaybeActiveMediaComponents();
+  }
+
+  for (auto* listener : mWorkerListeners) {
+    listener->OnVisible(visible);
+  }
+
+  // https://w3c.github.io/screen-wake-lock/#handling-document-loss-of-visibility
+  if (!visible) {
+    UnlockAllWakeLocks(WakeLockType::Screen);
   }
 }
 
