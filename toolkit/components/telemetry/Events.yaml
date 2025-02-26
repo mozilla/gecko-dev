@@ -4057,3 +4057,22 @@ profiles:
     expiry_version: never
     products:
       - "firefox"
+  selector_window:
+    objects: ["launch", "show_at_startup"]
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+    description: >
+      Recorded when the user launches a profile or toggles the "show at
+      startup" checkbox in the profile selector dialog. See Glean probe
+      definitions for details. The value varies depending on the object.
+    notification_emails:
+      - "cmkm@mozilla.com"
+      - "dtownsend@mozilla.com"
+      - "jhirsch@mozilla.com"
+      - "nbaumgardner@mozilla.com"
+    bug_numbers:
+      - 1927605
+    expiry_version: never
+    products:
+      - "firefox"

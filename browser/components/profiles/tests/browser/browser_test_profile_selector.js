@@ -82,6 +82,15 @@ add_task(async function test_selector_window() {
   let asyncFlushCalled = false;
   gProfileService.asyncFlush = () => (asyncFlushCalled = true);
 
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
+  Services.telemetry.clearEvents();
+  is(
+    null,
+    Glean.profilesSelectorWindow.showAtStartup.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+
   profileSelector.checkbox.click();
   await BrowserTestUtils.waitForCondition(
     () => asyncFlushCalled,
@@ -96,6 +105,13 @@ add_task(async function test_selector_window() {
   Assert.ok(
     !gProfileService.groupProfile.showProfileSelector,
     "Profile selector should be disabled"
+  );
+
+  await assertGlean(
+    "profiles",
+    "selector_window",
+    "show_at_startup",
+    "disabled"
   );
 
   // Simulate matching state.
@@ -123,6 +139,16 @@ add_task(async function test_selector_window() {
     profileSelector.createProfileCard,
     "The create profile card exists"
   );
+
+  await Services.fog.testFlushAllChildren();
+  Services.fog.testResetFOG();
+  Services.telemetry.clearEvents();
+  is(
+    null,
+    Glean.profilesSelectorWindow.launch.testGetValue(),
+    "We have not recorded any Glean data yet"
+  );
+
   profileSelector.profileCards[0].click();
 
   let expected;
@@ -138,6 +164,8 @@ add_task(async function test_selector_window() {
   }
 
   Assert.deepEqual(input[1], expected, "Expected runw arguments");
+
+  await assertGlean("profiles", "selector_window", "launch");
 
   await closed;
 });

@@ -109,7 +109,9 @@ async function initGroupDatabase() {
   await SelectableProfileService.maybeSetupDataStore();
 }
 
-// Usage illustrated by two examples.
+// Verifies Glean probes are recorded as expected. Expects method and object
+// to be passed in as snake_case, and converts to lowerCamelCase internally
+// as expected by Glean code.
 //
 // Example 1. Basic usage.
 //
@@ -125,13 +127,22 @@ async function initGroupDatabase() {
 // pass in the snake-case version,
 //   `assertGlean("profiles", "new", "learn_more")`
 // and snake-case will be auto-converted to camelCase where needed.
+//
+// Example 3. Dealing with snake_case `method`.
+//
+// To verify
+//   `Glean.profilesSelectorWindow.launch.record()`,
+// pass in the snake-case version,
+//   `assertGlean("profiles", "selector_window", "launch")`
+// and snake-case will be auto-converted to camelCase where needed.
 const assertGlean = async (category, method, object, extra) => {
-  // Converts 'profiles' and 'new' to 'profilesNew'.
-  let gleanFn = category + method[0].toUpperCase() + method.substr(1);
-
   // Needed to convert 'learn_more' to 'learnMore'.
   const snakeToCamel = str =>
     str.replace(/_([a-z])/g, (_, nextChar) => nextChar.toUpperCase());
+
+  // Converts 'profiles' and 'new' to 'profilesNew'.
+  let camelMethod = snakeToCamel(method);
+  let gleanFn = category + camelMethod[0].toUpperCase() + camelMethod.substr(1);
 
   await Services.fog.testFlushAllChildren();
   let testEvents = Glean[gleanFn][snakeToCamel(object)].testGetValue();
