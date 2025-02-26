@@ -26,6 +26,7 @@
 #include "mozilla/dom/ServiceWorker.h"
 #include "mozilla/dom/ServiceWorkerContainer.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
+#include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/StorageAccess.h"
@@ -218,23 +219,24 @@ void ClientSource::WorkerExecutionReady(WorkerPrivate* aWorkerPrivate) {
     return;
   }
 
+  // Its safe to store the WorkerPrivate* here because the ClientSource
+  // is explicitly destroyed by WorkerPrivate before exiting its run loop.
+  //
+  // We need to initialize our owner before the call to
+  // ServiceWorkersStorageAllowedForGlobal below which will use SnapshotState to
+  // retrieve our StorageAccess.
+  MOZ_DIAGNOSTIC_ASSERT(mOwner.is<Nothing>());
+  mOwner = AsVariant(aWorkerPrivate);
+
   // A client without access to storage should never be controlled by
   // a service worker.  Check this here in case we were controlled before
   // execution ready.  We can't reliably determine what our storage policy
   // is before execution ready, unfortunately.
   if (mController.isSome()) {
     MOZ_DIAGNOSTIC_ASSERT(
-        aWorkerPrivate->StorageAccess() > StorageAccess::ePrivateBrowsing ||
-        (ShouldPartitionStorage(aWorkerPrivate->StorageAccess()) &&
-         StoragePartitioningEnabled(aWorkerPrivate->StorageAccess(),
-                                    aWorkerPrivate->CookieJarSettings())) ||
+        ServiceWorkersStorageAllowedForGlobal(aWorkerPrivate->GlobalScope()) ||
         StringBeginsWith(aWorkerPrivate->ScriptURL(), u"blob:"_ns));
   }
-
-  // Its safe to store the WorkerPrivate* here because the ClientSource
-  // is explicitly destroyed by WorkerPrivate before exiting its run loop.
-  MOZ_DIAGNOSTIC_ASSERT(mOwner.is<Nothing>());
-  mOwner = AsVariant(aWorkerPrivate);
 
   ClientSourceExecutionReadyArgs args(aWorkerPrivate->GetLocationInfo().mHref,
                                       FrameType::None);
@@ -276,15 +278,11 @@ nsresult ClientSource::WindowExecutionReady(nsPIDOMWindowInner* aInnerWindow) {
   // assertion in this corner case.
 #ifdef DEBUG
   if (mController.isSome()) {
-    auto storageAccess = StorageAllowedForWindow(aInnerWindow);
     bool isAboutBlankURL = spec.LowerCaseEqualsLiteral("about:blank");
     bool isBlobURL = StringBeginsWith(spec, "blob:"_ns);
-    bool isStorageAllowed = storageAccess == StorageAccess::eAllow;
-    bool isPartitionEnabled =
-        StoragePartitioningEnabled(storageAccess, doc->CookieJarSettings());
-    MOZ_ASSERT(isAboutBlankURL || isBlobURL || isStorageAllowed ||
-               (StaticPrefs::privacy_partition_serviceWorkers() &&
-                isPartitionEnabled));
+    bool isStorageAllowed =
+        ServiceWorkersStorageAllowedForGlobal(aInnerWindow->AsGlobal());
+    MOZ_ASSERT(isAboutBlankURL || isBlobURL || isStorageAllowed);
   }
 #endif
 
@@ -402,11 +400,6 @@ void ClientSource::SetController(
   MOZ_RELEASE_ASSERT(ClientMatchPrincipalInfo(mClientInfo.PrincipalInfo(),
                                               aServiceWorker.PrincipalInfo()));
 
-  // A client in private browsing mode should never be controlled by
-  // a service worker.  The principal origin attributes should guarantee
-  // this invariant.
-  MOZ_DIAGNOSTIC_ASSERT(!mClientInfo.IsPrivateBrowsing());
-
   // A client without access to storage should never be controlled a
   // a service worker.  If we are already execution ready with a real
   // window or worker, then verify assert the storage policy is correct.
@@ -416,22 +409,13 @@ void ClientSource::SetController(
   // and about:blank windows.
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   if (GetInnerWindow()) {
-    auto storageAccess = StorageAllowedForWindow(GetInnerWindow());
     bool IsAboutBlankURL = Info().URL().LowerCaseEqualsLiteral("about:blank");
     bool IsBlobURL = StringBeginsWith(Info().URL(), "blob:"_ns);
-    bool IsStorageAllowed = storageAccess == StorageAccess::eAllow;
-    bool IsPartitionEnabled =
-        GetInnerWindow()->GetExtantDoc()
-            ? StoragePartitioningEnabled(
-                  storageAccess,
-                  GetInnerWindow()->GetExtantDoc()->CookieJarSettings())
-            : false;
-    MOZ_DIAGNOSTIC_ASSERT(IsAboutBlankURL || IsBlobURL || IsStorageAllowed ||
-                          (StaticPrefs::privacy_partition_serviceWorkers() &&
-                           IsPartitionEnabled));
+    bool IsStorageAllowed = ServiceWorkersStorageAllowedForGlobal(GetGlobal());
+    MOZ_DIAGNOSTIC_ASSERT(IsAboutBlankURL || IsBlobURL || IsStorageAllowed);
   } else if (GetWorkerPrivate()) {
     MOZ_DIAGNOSTIC_ASSERT(
-        GetWorkerPrivate()->StorageAccess() > StorageAccess::ePrivateBrowsing ||
+        ServiceWorkersStorageAllowedForGlobal(GetGlobal()) ||
         StringBeginsWith(GetWorkerPrivate()->ScriptURL(), u"blob:"_ns));
   }
 #endif
@@ -479,23 +463,14 @@ RefPtr<ClientOpPromise> ClientSource::Control(
   bool controlAllowed = true;
   if (GetInnerWindow()) {
     // Local URL windows and windows with access to storage can be controlled.
-    auto storageAccess = StorageAllowedForWindow(GetInnerWindow());
     bool isAboutBlankURL = Info().URL().LowerCaseEqualsLiteral("about:blank");
     bool isBlobURL = StringBeginsWith(Info().URL(), "blob:"_ns);
-    bool isStorageAllowed = storageAccess == StorageAccess::eAllow;
-    bool isPartitionEnabled =
-        GetInnerWindow()->GetExtantDoc()
-            ? StoragePartitioningEnabled(
-                  storageAccess,
-                  GetInnerWindow()->GetExtantDoc()->CookieJarSettings())
-            : false;
-    controlAllowed =
-        isAboutBlankURL || isBlobURL || isStorageAllowed ||
-        (StaticPrefs::privacy_partition_serviceWorkers() && isPartitionEnabled);
+    bool isStorageAllowed = ServiceWorkersStorageAllowedForGlobal(GetGlobal());
+    controlAllowed = isAboutBlankURL || isBlobURL || isStorageAllowed;
   } else if (GetWorkerPrivate()) {
-    // Local URL workers and workers with access to storage cna be controlled.
+    // Local URL workers and workers with access to storage can be controlled.
     controlAllowed =
-        GetWorkerPrivate()->StorageAccess() > StorageAccess::ePrivateBrowsing ||
+        ServiceWorkersStorageAllowedForGlobal(GetGlobal()) ||
         StringBeginsWith(GetWorkerPrivate()->ScriptURL(), u"blob:"_ns);
   }
 

@@ -1,0 +1,14 @@
+[DEFAULT]
+prefs = [
+  "browser.privatebrowsing.autostart=true",
+  "dom.cache.privateBrowsing.enabled=true",
+  "dom.serviceWorkers.privateBrowsing.enabled=true",
+  # We want partitioning.
+  "network.cookie.cookieBehavior=5",
+]
+dupe-manifest = true
+# we do need to skip xorigin tests because dfpi is on in here too
+skip-if = ["xorigin"]
+tags = "dom-serviceworkers-api dom-serviceworkers-api-private"
+
+["include:mochitest-common.toml"]

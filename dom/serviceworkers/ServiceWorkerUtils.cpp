@@ -16,6 +16,7 @@
 #include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/ClientInfo.h"
+#include "mozilla/dom/ClientIPCTypes.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/ServiceWorkerGlobalScopeBinding.h"
@@ -55,9 +56,12 @@ bool ServiceWorkersEnabled(JSContext* aCx, JSObject* aGlobal) {
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
 
   if (const nsCOMPtr<nsIPrincipal> principal = global->PrincipalOrNull()) {
-    // ServiceWorkers are currently not available in PrivateBrowsing.
-    // Bug 1320796 will change this.
-    if (principal->GetIsInPrivateBrowsing()) {
+    // Only support ServiceWorkers in Private Browsing Mode (PBM) if Cache API
+    // and ServiceWorkers are enabled.  We'll get weird errors without Cache
+    // API.
+    if (principal->GetIsInPrivateBrowsing() &&
+        !(StaticPrefs::dom_cache_privateBrowsing_enabled() &&
+          StaticPrefs::dom_serviceWorkers_privateBrowsing_enabled())) {
       return false;
     }
 
@@ -77,6 +81,58 @@ bool ServiceWorkersEnabled(JSContext* aCx, JSObject* aGlobal) {
 
   return StaticPrefs::dom_serviceWorkers_testing_enabled() ||
          IsServiceWorkersTestingEnabledInGlobal(jsGlobal);
+}
+
+bool ServiceWorkersStorageAllowedForGlobal(nsIGlobalObject* aGlobal) {
+  Maybe<ClientInfo> clientInfo = aGlobal->GetClientInfo();
+  nsICookieJarSettings* cookieJarSettings = aGlobal->GetCookieJarSettings();
+  nsIPrincipal* principal = aGlobal->PrincipalOrNull();
+
+  if (NS_WARN_IF(clientInfo.isNothing() || !cookieJarSettings || !principal)) {
+    return false;
+  }
+
+  // Note that while we could call GetClientState on the global and it has a
+  // StorageAccess value, for non-fully active Window Clients, the storage
+  // access value is set to eDeny when snapshotted so we must not use it because
+  // this method may be called before a window becomes fully active.
+  auto storageAllowed = aGlobal->GetStorageAccess();
+
+  // Allow access if:
+  // - Storage access is explicitly granted.
+  // - We are in private browsing and ServiceWorkers is allowed in PBM.  Note
+  //   that we will also potentially partition in PBM, so we have to do a
+  //   separate PBM check in the partitioned case.
+  // - Partitioned access is granted and partitioning is enabled, plus if our
+  //   principal is in PBM that ServiceWorkers are enabled in PBM.
+  return (storageAllowed == StorageAccess::eAllow ||
+          (storageAllowed == StorageAccess::ePrivateBrowsing &&
+           StaticPrefs::dom_serviceWorkers_privateBrowsing_enabled()) ||
+          (ShouldPartitionStorage(storageAllowed) &&
+           StaticPrefs::privacy_partition_serviceWorkers() &&
+           StoragePartitioningEnabled(storageAllowed, cookieJarSettings) &&
+           (!principal->GetIsInPrivateBrowsing() ||
+            StaticPrefs::dom_serviceWorkers_privateBrowsing_enabled())));
+}
+
+bool ServiceWorkersStorageAllowedForClient(
+    const ClientInfoAndState& aInfoAndState) {
+  ClientInfo info(aInfoAndState.info());
+  ClientState state(ClientState::FromIPC(aInfoAndState.state()));
+
+  auto storageAllowed = state.GetStorageAccess();
+  // This is the same check as in ServiceWorkersStorageAllowedForGlobal except
+  // that because we have no access to a cookie-jar we can't call
+  // StoragePartitioningEnabled.  This isn't a concern in this case because any
+  // partitioning will already be baked into our principal.
+  return (storageAllowed == StorageAccess::eAllow ||
+          (storageAllowed == StorageAccess::ePrivateBrowsing &&
+           StaticPrefs::dom_serviceWorkers_privateBrowsing_enabled()) ||
+          (ShouldPartitionStorage(storageAllowed) &&
+           StaticPrefs::privacy_partition_serviceWorkers() &&
+           /* note: no call to StoragePartitioningEnabled here */
+           (!info.IsPrivateBrowsing() ||
+            StaticPrefs::dom_serviceWorkers_privateBrowsing_enabled())));
 }
 
 bool ServiceWorkerRegistrationDataIsValid(

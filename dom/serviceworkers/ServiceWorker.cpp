@@ -27,7 +27,6 @@
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/StorageAccess.h"
 
 #ifdef XP_WIN
 #  undef PostMessage
@@ -181,21 +180,7 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     return;
   }
 
-  Maybe<ClientInfo> clientInfo = global->GetClientInfo();
-  Maybe<ClientState> clientState = global->GetClientState();
-  if (NS_WARN_IF(clientInfo.isNothing() || clientState.isNothing())) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return;
-  }
-
-  auto storageAllowed = clientState.ref().GetStorageAccess();
-  // This check should be removed as part of bug 1776271 when we should be able
-  // to have a stronger invariant about how content should not be able to see
-  // a ServiceWorker instance if there is no access to storage.  For now we
-  // retain this check as a defense-in-depth mechanism at runtime and a
-  // non-diagnostic assert for test purposes.
-  MOZ_ASSERT(storageAllowed != StorageAccess::eDeny);
-  if (storageAllowed == StorageAccess::eDeny) {
+  if (!ServiceWorkersStorageAllowedForGlobal(global)) {
     ServiceWorkerManager::LocalizeAndReportToAllClients(
         mDescriptor.Scope(), "ServiceWorkerPostMessageStorageError",
         nsTArray<nsString>{NS_ConvertUTF8toUTF16(mDescriptor.Scope())});
@@ -248,6 +233,11 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   if (!data->BuildClonedMessageData(clonedData)) {
     return;
   }
+
+  // ServiceWorkersStorageAllowedForGlobal will have already validated these as
+  // both being isSome().
+  Maybe<ClientInfo> clientInfo = global->GetClientInfo();
+  Maybe<ClientState> clientState = global->GetClientState();
 
   // If this global is a ServiceWorker, we need this global's
   // ServiceWorkerDescriptor.  While we normally try and normalize things

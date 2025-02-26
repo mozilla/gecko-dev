@@ -219,8 +219,6 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == '18.04'"] # B
 
 ["test_async_waituntil.html"]
 
-["test_bad_script_cache.html"]
-
 ["test_bug1151916.html"]
 
 ["test_bug1240436.html"]
@@ -397,6 +395,13 @@ skip-if = [
 ["test_sanitize.html"]
 
 ["test_scopes.html"]
+# Try runs show intermittents when this test file is run under verify that
+# likely relate to the tests using the same scopes every time and the
+# possibility for job coalescing to cause problems.  Because this test uses
+# distinct scopes from other SW tests, it's not expected that loss of "verify"
+# coverage will cause problems since the test only potentially interferes with
+# itself, not other tests.
+skip-if = ["verify"]
 
 ["test_script_loader_intercepted_js_cache.html"]
 disabled = "https://bugzilla.mozilla.org/show_bug.cgi?id=1853173"

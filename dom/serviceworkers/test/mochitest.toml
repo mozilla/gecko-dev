@@ -11,11 +11,16 @@ tags = "condprof"
 # Therefore we need to skip these tests on android.
 skip-if = ["os == 'android'"]
 
+["include:mochitest-common.toml"]
+
+# This test can't work in PBM because of SpecialPowers.createChromeCache not
+# supporting PBM we don't need to validate this in PBM.  So this test is not in
+# mochitest-common.toml.
+["test_bad_script_cache.html"]
+
 # Following tests are not working currently when dFPI is enabled. So, we put
 # these tests here instead of mochitest-common.toml so that these tests won't run
 # when dFPI is enabled.
-
-["include:mochitest-common.toml"]
 
 ["test_cookie_fetch.html"]
 
