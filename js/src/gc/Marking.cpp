@@ -1258,11 +1258,11 @@ static gcstats::PhaseKind GrayMarkingPhaseForCurrentPhase(
   }
 }
 
-void GCMarker::moveWork(GCMarker* dst, GCMarker* src, bool allowDistribute) {
+size_t GCMarker::moveWork(GCMarker* dst, GCMarker* src, bool allowDistribute) {
   MOZ_ASSERT(dst->stack.isEmpty());
   MOZ_ASSERT(src->canDonateWork());
 
-  MarkStack::moveWork(src, dst->stack, src->stack, allowDistribute);
+  return MarkStack::moveWork(src, dst->stack, src->stack, allowDistribute);
 }
 
 bool GCMarker::initStack() {
@@ -1918,8 +1918,8 @@ MOZ_ALWAYS_INLINE bool MarkStack::indexIsEntryBase(size_t index) const {
 }
 
 /* static */
-void MarkStack::moveWork(GCMarker* marker, MarkStack& dst, MarkStack& src,
-                         bool allowDistribute) {
+size_t MarkStack::moveWork(GCMarker* marker, MarkStack& dst, MarkStack& src,
+                           bool allowDistribute) {
   // Move some work from |src| to |dst|. Assumes |dst| is empty.
   //
   // When this method runs during parallel marking, we are on the thread that
@@ -1950,7 +1950,7 @@ void MarkStack::moveWork(GCMarker* marker, MarkStack& dst, MarkStack& src,
   static constexpr size_t MaxWordsToDistribute = 30;
   if (allowDistribute && totalWords <= MaxWordsToDistribute) {
     if (!dst.ensureSpace(totalWords)) {
-      return;
+      return 0;
     }
 
     src.topIndex_ = 0;
@@ -1989,7 +1989,7 @@ void MarkStack::moveWork(GCMarker* marker, MarkStack& dst, MarkStack& src,
       i++;
     }
 
-    return;
+    return totalWords;
   }
 
   size_t targetPos = src.position() - wordsToMove;
@@ -2006,7 +2006,7 @@ void MarkStack::moveWork(GCMarker* marker, MarkStack& dst, MarkStack& src,
   MOZ_ASSERT(wordsToMove == src.position() - targetPos);
 
   if (!dst.ensureSpace(wordsToMove)) {
-    return;
+    return 0;
   }
 
   // TODO: This doesn't have good cache behaviour when moving work between
@@ -2023,6 +2023,7 @@ void MarkStack::moveWork(GCMarker* marker, MarkStack& dst, MarkStack& src,
   src.poisonUnused();
 #endif
   src.peekPtr().assertValid();
+  return wordsToMove;
 }
 
 void MarkStack::clearAndResetCapacity() {

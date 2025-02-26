@@ -332,13 +332,15 @@ void ParallelMarker::donateWorkFrom(GCMarker* src) {
 
   // Move some work from this thread's mark stack to the waiting task.
   MOZ_ASSERT(!waitingTask->hasWork());
-  GCMarker::moveWork(waitingTask->marker, src, true);
+  size_t wordsMoved = GCMarker::moveWork(waitingTask->marker, src, true);
 
   gc->stats().count(gcstats::COUNT_PARALLEL_MARK_INTERRUPTIONS);
 
   GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
   if (profiler.enabled()) {
-    profiler.markEvent("Parallel marking donated work", "",
+    char details[32];
+    SprintfLiteral(details, "words=%zu", wordsMoved);
+    profiler.markEvent("Parallel marking donated work", details,
                        JS::ProfilingCategoryPair::GCCC);
   }
 
