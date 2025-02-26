@@ -7,14 +7,10 @@
 /// <reference no-default-lib="true" />
 /// <reference lib="es2023" />
 
-interface Principal extends nsIPrincipal {}
-interface URI extends nsIURI {}
-interface WindowProxy extends Window {}
-interface MozChannel extends nsIChannel {}
-
 type HTMLCollectionOf<T> = any;
 type IsInstance<T> = (obj: any) => obj is T;
 type NodeListOf<T> = any;
+interface WindowProxy extends Window {}
 
 /////////////////////////////
 /// Window APIs
@@ -6442,9 +6438,6 @@ declare var ContentProcessMessageManager: {
     isInstance: IsInstance<ContentProcessMessageManager>;
 };
 
-interface ContentSecurityPolicy {
-}
-
 interface ContentVisibilityAutoStateChangeEvent extends Event {
     readonly skipped: boolean;
 }
@@ -6465,9 +6458,6 @@ declare var ConvolverNode: {
     new(context: BaseAudioContext, options?: ConvolverOptions): ConvolverNode;
     isInstance: IsInstance<ConvolverNode>;
 };
-
-interface Cookie {
-}
 
 /** Available only in secure contexts. */
 interface CookieChangeEvent extends Event {
@@ -12017,9 +12007,6 @@ declare var InputEvent: {
     isInstance: IsInstance<InputEvent>;
 };
 
-interface InputStream {
-}
-
 interface InspectorCSSParser {
     readonly columnNumber: number;
     readonly lineNumber: number;
@@ -12910,9 +12897,6 @@ interface LinkStyle {
     readonly sheet: StyleSheet | null;
 }
 
-interface LoadContext {
-}
-
 interface LoadContextMixin {
     readonly associatedWindow: WindowProxy | null;
     readonly isContent: boolean;
@@ -12923,9 +12907,6 @@ interface LoadContextMixin {
     readonly useRemoteSubframes: boolean;
     readonly useRemoteTabs: boolean;
     useTrackingProtection: boolean;
-}
-
-interface LoadInfo {
 }
 
 interface Localization {
@@ -13956,9 +13937,6 @@ declare var MozCanvasPrintState: {
     isInstance: IsInstance<MozCanvasPrintState>;
 };
 
-interface MozChannel {
-}
-
 interface MozDocumentMatcher {
     readonly allFrames: boolean;
     readonly checkPermissions: boolean;
@@ -14093,9 +14071,6 @@ declare var MozStorageStatementRow: {
     new(): MozStorageStatementRow;
     isInstance: IsInstance<MozStorageStatementRow>;
 };
-
-interface MozTreeView {
-}
 
 interface MozWritableSharedMap extends MozSharedMap {
     delete(name: string): void;
@@ -14794,9 +14769,6 @@ declare var OscillatorNode: {
     new(context: BaseAudioContext, options?: OscillatorOptions): OscillatorNode;
     isInstance: IsInstance<OscillatorNode>;
 };
-
-interface OutputStream {
-}
 
 interface PageTransitionEvent extends Event {
     readonly inFrameSwap: boolean;
@@ -15763,9 +15735,6 @@ declare var PrecompiledScript: {
     isInstance: IsInstance<PrecompiledScript>;
 };
 
-interface Principal {
-}
-
 /** Available only in secure contexts. */
 interface PrivateAttribution {
     measureConversion(options: PrivateAttributionConversionOptions): void;
@@ -16453,12 +16422,6 @@ declare var ReadableStreamDefaultReader: {
 interface ReadableStreamGenericReader {
     readonly closed: Promise<void>;
     cancel(reason?: any): Promise<void>;
-}
-
-interface ReferrerInfo {
-}
-
-interface RemoteTab {
 }
 
 interface Report {
@@ -19105,9 +19068,6 @@ declare var SpeechSynthesisVoice: {
     isInstance: IsInstance<SpeechSynthesisVoice>;
 };
 
-interface StackFrame {
-}
-
 interface StaticRange extends AbstractRange {
 }
 
@@ -20372,9 +20332,6 @@ declare var UIEvent: {
     readonly SCROLL_PAGE_DOWN: 32768;
     isInstance: IsInstance<UIEvent>;
 };
-
-interface URI {
-}
 
 interface URL {
     readonly URI: URI;
@@ -23577,9 +23534,6 @@ interface WindowOrWorkerGlobalScope {
     structuredClone(value: any, options?: StructuredSerializeOptions): any;
 }
 
-interface WindowProxy {
-}
-
 interface WindowRoot extends EventTarget {
 }
 
@@ -24180,9 +24134,6 @@ declare var XSLTProcessor: {
     isInstance: IsInstance<XSLTProcessor>;
 };
 
-interface XULCommandDispatcher {
-}
-
 interface XULCommandEvent extends UIEvent {
     readonly altKey: boolean;
     readonly button: number;
@@ -24199,9 +24150,6 @@ declare var XULCommandEvent: {
     new(): XULCommandEvent;
     isInstance: IsInstance<XULCommandEvent>;
 };
-
-interface XULControllers {
-}
 
 interface XULElementEventMap extends ElementEventMap, GlobalEventHandlersEventMap, OnErrorEventHandlerForNodesEventMap, TouchEventHandlersEventMap {
 }
@@ -24366,108 +24314,6 @@ declare var XULTreeElement: {
     new(): XULTreeElement;
     isInstance: IsInstance<XULTreeElement>;
 };
-
-interface imgINotificationObserver {
-}
-
-interface imgIRequest {
-}
-
-interface nsIBrowserDOMWindow {
-}
-
-interface nsICookieJarSettings {
-}
-
-interface nsIDOMProcessChild {
-}
-
-interface nsIDOMProcessParent {
-}
-
-interface nsIDOMWindowUtils {
-}
-
-interface nsIDocShell {
-}
-
-interface nsIEditor {
-}
-
-interface nsIEventTarget {
-}
-
-interface nsIFile {
-}
-
-interface nsIGleanPing {
-}
-
-interface nsILoadGroup {
-}
-
-interface nsIMediaDevice {
-}
-
-interface nsIOpenWindowInfo {
-}
-
-interface nsIPermissionDelegateHandler {
-}
-
-interface nsIPrintSettings {
-}
-
-interface nsIRFPTargetSetIDL {
-}
-
-interface nsIReferrerInfo {
-}
-
-interface nsISHEntry {
-}
-
-interface nsISHistory {
-}
-
-interface nsIScreen {
-}
-
-interface nsISecureBrowserUI {
-}
-
-interface nsISelectionListener {
-}
-
-interface nsISessionStoreRestoreData {
-}
-
-interface nsISocketTransport {
-}
-
-interface nsIStreamListener {
-}
-
-interface nsISupports {
-}
-
-interface nsITransportProvider {
-}
-
-interface nsITreeSelection {
-}
-
-interface nsIWebBrowserPersistDocumentReceiver {
-}
-
-interface nsIWebNavigation {
-}
-
-interface nsIWebProgress {
-}
-
-interface nsIWebProgressListener {
-}
 
 declare namespace APZHitResultFlags {
 }
@@ -25574,6 +25420,8 @@ type ConstrainBoolean = boolean | ConstrainBooleanParameters;
 type ConstrainDOMString = string | string[] | ConstrainDOMStringParameters;
 type ConstrainDouble = number | ConstrainDoubleRange;
 type ConstrainLong = number | ConstrainLongRange;
+type ContentSecurityPolicy = nsIContentSecurityPolicy;
+type Cookie = nsICookie;
 type CookieList = CookieListItem[];
 type DOMHighResTimeStamp = number;
 type DOMTimeStamp = number;
@@ -25626,6 +25474,7 @@ type HistogramID = string;
 type HistogramKey = string;
 type ImageBitmapSource = CanvasImageSource | Blob | CanvasRenderingContext2D | ImageData;
 type ImageBufferSource = ArrayBufferView | ArrayBuffer | ReadableStream;
+type InputStream = nsIInputStream;
 type Int32List = Int32Array | GLint[];
 type KeyFormat = string;
 type KeyType = string;
@@ -25633,6 +25482,8 @@ type KeyUsage = string;
 type L10nArgs = Record<string, string | number | null>;
 type L10nKey = string | L10nIdArgs;
 type L10nResourceId = string | ResourceId;
+type LoadContext = nsILoadContext;
+type LoadInfo = nsILoadInfo;
 type MLSBytesOrUint8Array = MLSBytes | Uint8Array;
 type MLSBytesOrUint8ArrayOrUTF8String = MLSBytes | Uint8Array | string;
 type MLSClientId = MLSBytes;
@@ -25643,25 +25494,33 @@ type MLSProposal = MLSBytes;
 type MatchGlobOrString = MatchGlob | string;
 type MatchPatternSetOrStringSequence = MatchPatternSet | string[];
 type MessageEventSource = WindowProxy | MessagePort | ServiceWorker;
+type MozChannel = nsIChannel;
+type MozTreeView = nsITreeView;
 type NodeId = number;
 type NodeSize = number;
 type OffscreenRenderingContext = OffscreenCanvasRenderingContext2D | ImageBitmapRenderingContext | WebGLRenderingContext | WebGL2RenderingContext | GPUCanvasContext;
 type OnBeforeUnloadEventHandler = OnBeforeUnloadEventHandlerNonNull | null;
 type OnErrorEventHandler = OnErrorEventHandlerNonNull | null;
+type OutputStream = nsIOutputStream;
 type PerformanceEntryList = PerformanceEntry[];
+type Principal = nsIPrincipal;
 type PublicKeyCredentialClientCapabilities = Record<string, boolean>;
 type RTCRtpTransform = RTCRtpScriptTransform;
 type ReadableStreamReader = ReadableStreamDefaultReader | ReadableStreamBYOBReader;
+type ReferrerInfo = nsIReferrerInfo;
+type RemoteTab = nsIRemoteTab;
 type ReportList = Report[];
 type RequestInfo = Request | string;
 type SanitizerAttribute = string | SanitizerAttributeNamespace;
 type SanitizerElement = string | SanitizerElementNamespace;
 type SanitizerElementWithAttributes = string | SanitizerElementNamespaceWithAttributes;
 type SanitizerInput = DocumentFragment | Document;
+type StackFrame = nsIStackFrame;
 type StringOrOpenPopupOptions = string | OpenPopupOptions;
 type StructuredClonable = any;
 type TimerHandler = Function | TrustedScript | string;
 type TrustedType = TrustedHTML | TrustedScript | TrustedScriptURL;
+type URI = nsIURI;
 type Uint32List = Uint32Array | GLuint[];
 type UniFFICallbackInterfaceId = number;
 type UniFFICallbackObjectHandle = number;
@@ -25673,6 +25532,8 @@ type VibratePattern = number | number[];
 type XMLHttpRequestBodyInit = Blob | BufferSource | FormData | URLSearchParams | string;
 type XRWebGLRenderingContext = WebGLRenderingContext | WebGL2RenderingContext;
 type XSLTParameterValue = number | boolean | string | Node | Node[] | XPathResult;
+type XULCommandDispatcher = nsIDOMXULCommandDispatcher;
+type XULControllers = nsIControllers;
 type nsContentPolicyType = number;
 type AlignSetting = "center" | "end" | "left" | "right" | "start";
 type AlphaOption = "discard" | "keep";
