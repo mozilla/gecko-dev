@@ -239,7 +239,6 @@ linux64-android-gradle-dependencies:
             - 'mobile/android/gradle.configure'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/DependenciesPlugin.kt'
             - 'mobile/android/android-components/plugins/dependencies/src/main/java/ApplicationServices.kt'
-            - 'mobile/android/fenix/plugins/fenixdependencies/src/main/java/FenixDependenciesPlugin.kt'
         toolchain-artifact: public/build/android-gradle-dependencies.tar.zst
         toolchain-alias: android-gradle-dependencies
     fetches:

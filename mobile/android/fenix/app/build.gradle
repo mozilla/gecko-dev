@@ -708,8 +708,8 @@ dependencies {
     implementation ComponentsDependencies.protobuf_javalite
     implementation ComponentsDependencies.google_material
 
-    implementation FenixDependencies.adjust
-    implementation FenixDependencies.installreferrer // Required by Adjust
+    implementation(libs.adjust)
+    implementation(libs.installreferrer)
 
     // Required for the Google Advertising ID
     implementation ComponentsDependencies.play_services_ads_id

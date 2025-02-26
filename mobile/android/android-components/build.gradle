@@ -25,7 +25,7 @@ buildscript {
     }
 
     // Variables in plugins {} aren't directly supported. Hack around it by setting an
-    // intermediate variable which can pull from FenixDependencies.kt and be used later.
+    // intermediate variable which can pull from DependenciesPlugin.kt and be used later.
     ext {
         detekt_plugin = Versions.detekt
         python_envs_plugin = Versions.python_envs_plugin
@@ -63,8 +63,9 @@ subprojects {
         kotlinOptions.allWarningsAsErrors = true
     }
 
-    // Prevent some dependencies from being used in AC.
+    // Prevent some dependencies used by Fenix/Focus from being used in AC.
     project.configurations.all {
+        exclude group: 'com.adjust.sdk', module: 'adjust-android'
         exclude group: 'io.mockk', module: 'mockk'
     }
 

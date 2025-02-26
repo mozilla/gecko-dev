@@ -1,0 +1,7 @@
+[versions]
+adjust = "4.38.2"
+installreferrer = "2.2"
+
+[libraries]
+adjust = { group = "com.adjust.sdk", name = "adjust-android", version.ref = "adjust" }
+installreferrer = { group = "com.android.installreferrer", name = "installreferrer", version.ref = "installreferrer" }
