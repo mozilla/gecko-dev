@@ -28,6 +28,8 @@
 #include "Pivot.h"
 #include "Relation.h"
 #include "RootAccessible.h"
+#include "TextLeafRange.h"
+#include "UiaTextRange.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
@@ -95,6 +97,28 @@ static void MaybeRaiseUiaLiveRegionEvent(Accessible* aAcc,
     auto* uia = MsaaAccessible::GetFrom(live);
     ::UiaRaiseAutomationEvent(uia, UIA_LiveRegionChangedEventId);
   }
+}
+
+static bool HasTextPattern(Accessible* aAcc) {
+  // Only documents and editable text controls should have the Text pattern.
+  // https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-textpattern-and-embedded-objects-overview#webpage-and-text-input-controls-in-edge
+  constexpr uint64_t editableRootStates = states::EDITABLE | states::FOCUSABLE;
+  return aAcc->IsDoc() ||
+         (aAcc->IsHyperText() &&
+          (aAcc->State() & editableRootStates) == editableRootStates);
+}
+
+static Accessible* GetTextContainer(Accessible* aDescendant) {
+  // "An element that implements the TextChild control pattern must be a child,
+  // or descendent, of an element that supports the Text control pattern."
+  // https://learn.microsoft.com/en-us/windows/win32/api/uiautomationcore/nn-uiautomationcore-itextchildprovider#remarks
+  for (Accessible* ancestor = aDescendant->Parent(); ancestor;
+       ancestor = ancestor->Parent()) {
+    if (HasTextPattern(ancestor)) {
+      return ancestor;
+    }
+  }
+  return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -252,6 +276,8 @@ uiaRawElmProvider::QueryInterface(REFIID aIid, void** aInterface) {
     *aInterface = static_cast<ISelectionItemProvider*>(this);
   } else if (aIid == IID_ISelectionProvider) {
     *aInterface = static_cast<ISelectionProvider*>(this);
+  } else if (aIid == IID_ITextChildProvider) {
+    *aInterface = static_cast<ITextChildProvider*>(this);
   } else if (aIid == IID_IToggleProvider) {
     *aInterface = static_cast<IToggleProvider*>(this);
   } else if (aIid == IID_IValueProvider) {
@@ -429,20 +455,19 @@ uiaRawElmProvider::GetPatternProvider(
         item.forget(aPatternProvider);
       }
       return S_OK;
-    case UIA_TextPatternId: {
-      // Only documents and editable text controls should have the Text pattern.
-      // https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-textpattern-and-embedded-objects-overview#webpage-and-text-input-controls-in-edge
-      constexpr uint64_t editableRootStates =
-          states::EDITABLE | states::FOCUSABLE;
-      if (acc->IsDoc() ||
-          (acc->IsHyperText() &&
-           (acc->State() & editableRootStates) == editableRootStates)) {
+    case UIA_TextChildPatternId:
+      if (GetTextContainer(acc)) {
+        RefPtr<ITextChildProvider> textChild = this;
+        textChild.forget(aPatternProvider);
+      }
+      return S_OK;
+    case UIA_TextPatternId:
+      if (HasTextPattern(acc)) {
         auto text =
             GetPatternFromDerived<ia2AccessibleHypertext, ITextProvider>();
         text.forget(aPatternProvider);
       }
       return S_OK;
-    }
     case UIA_TogglePatternId:
       if (HasTogglePattern()) {
         RefPtr<IToggleProvider> toggle = this;
@@ -1204,6 +1229,43 @@ uiaRawElmProvider::get_SelectionContainer(
   }
   RefPtr<IRawElementProviderSimple> uia = MsaaAccessible::GetFrom(container);
   uia.forget(aRetVal);
+  return S_OK;
+}
+
+// ITextChildProvider methods
+
+STDMETHODIMP
+uiaRawElmProvider::get_TextContainer(
+    __RPC__deref_out_opt IRawElementProviderSimple** aRetVal) {
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  *aRetVal = nullptr;
+  Accessible* acc = Acc();
+  if (!acc) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  if (Accessible* container = GetTextContainer(acc)) {
+    RefPtr<IRawElementProviderSimple> uia = MsaaAccessible::GetFrom(container);
+    uia.forget(aRetVal);
+  }
+  return S_OK;
+}
+
+STDMETHODIMP
+uiaRawElmProvider::get_TextRange(
+    __RPC__deref_out_opt ITextRangeProvider** aRetVal) {
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  *aRetVal = nullptr;
+  Accessible* acc = Acc();
+  if (!acc) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+  TextLeafRange range = TextLeafRange::FromAccessible(acc);
+  RefPtr uiaRange = new UiaTextRange(range);
+  uiaRange.forget(aRetVal);
   return S_OK;
 }
 

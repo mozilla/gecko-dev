@@ -39,7 +39,8 @@ class uiaRawElmProvider : public IAccessibleEx,
                           public IValueProvider,
                           public IRangeValueProvider,
                           public ISelectionProvider,
-                          public ISelectionItemProvider {
+                          public ISelectionItemProvider,
+                          public ITextChildProvider {
  public:
   static constexpr enum ProviderOptions kProviderOptions =
       static_cast<enum ProviderOptions>(ProviderOptions_ServerSideProvider |
@@ -180,6 +181,14 @@ class uiaRawElmProvider : public IAccessibleEx,
   virtual /* [propget] */ HRESULT STDMETHODCALLTYPE get_SelectionContainer(
       /* [retval][out] */ __RPC__deref_out_opt IRawElementProviderSimple**
           aRetVal);
+
+  // ITextChildProvider
+  virtual /* [propget] */ HRESULT STDMETHODCALLTYPE get_TextContainer(
+      /* [retval][out] */ __RPC__deref_out_opt IRawElementProviderSimple**
+          aRetVal);
+
+  virtual /* [propget] */ HRESULT STDMETHODCALLTYPE get_TextRange(
+      /* [retval][out] */ __RPC__deref_out_opt ITextRangeProvider** aRetVal);
 
  private:
   Accessible* Acc() const;

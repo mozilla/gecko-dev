@@ -2398,3 +2398,168 @@ addUiaTask(
   },
   { uiaEnabled: true, uiaDisabled: true }
 );
+
+const textChildSnippet = `
+<p id="p">p</p>
+<a id="a" href="/">a</a>
+<img id="img" src="https://example.com/a11y/accessible/tests/mochitest/moz.png" alt="img">
+<div id="textbox" contenteditable role="textbox">textboxLeaf
+  <p id="textboxP">textboxP</p>
+</div>
+`;
+
+/**
+ * Test the TextChild pattern's TextContainer property.
+ */
+addUiaTask(textChildSnippet, async function testTextChildTextContainer() {
+  ok(
+    await runPython(`
+        global doc, p
+        doc = getDocUia()
+        p = findUiaByDomId(doc, "p")
+        tc = getUiaPattern(p, "TextChild")
+        return uiaClient.CompareElements(tc.TextContainer, doc)
+      `),
+    "p TextContainer is doc"
+  );
+  // The IA2 -> UIA proxy doesn't support the TextChild pattern on text
+  // leaves.
+  if (gIsUiaEnabled) {
+    ok(
+      await runPython(`
+        pLeaf = uiaClient.RawViewWalker.GetFirstChildElement(p)
+        tc = getUiaPattern(pLeaf, "TextChild")
+        return uiaClient.CompareElements(tc.TextContainer, doc)
+      `),
+      "p leaf TextContainer is doc"
+    );
+  }
+  ok(
+    await runPython(`
+        a = findUiaByDomId(doc, "a")
+        tc = getUiaPattern(a, "TextChild")
+        return uiaClient.CompareElements(tc.TextContainer, doc)
+      `),
+    "a TextContainer is doc"
+  );
+  ok(
+    await runPython(`
+        img = findUiaByDomId(doc, "img")
+        tc = getUiaPattern(img, "TextChild")
+        return uiaClient.CompareElements(tc.TextContainer, doc)
+      `),
+    "img TextContainer is doc"
+  );
+  ok(
+    await runPython(`
+        global textbox
+        textbox = findUiaByDomId(doc, "textbox")
+        tc = getUiaPattern(textbox, "TextChild")
+        return uiaClient.CompareElements(tc.TextContainer, doc)
+      `),
+    "textbox TextContainer is doc"
+  );
+  // The IA2 -> UIA proxy doesn't support the TextChild pattern on text
+  // leaves.
+  if (gIsUiaEnabled) {
+    ok(
+      await runPython(`
+        textboxLeaf = uiaClient.RawViewWalker.GetFirstChildElement(textbox)
+        tc = getUiaPattern(textboxLeaf, "TextChild")
+        return uiaClient.CompareElements(tc.TextContainer, textbox)
+      `),
+      "textbox leaf  TextContainer is textbox"
+    );
+  }
+  ok(
+    await runPython(`
+        textboxP = findUiaByDomId(doc, "textboxP")
+        tc = getUiaPattern(textboxP, "TextChild")
+        return uiaClient.CompareElements(tc.TextContainer, textbox)
+      `),
+    "textboxP TextContainer is textbox"
+  );
+});
+
+/**
+ * Test the TextChild pattern's TextRange property.
+ */
+addUiaTask(textChildSnippet, async function testTextChildTextRange() {
+  is(
+    await runPython(`
+        global doc, p
+        doc = getDocUia()
+        p = findUiaByDomId(doc, "p")
+        tc = getUiaPattern(p, "TextChild")
+        return tc.TextRange.GetText(-1)
+      `),
+    "p",
+    "p text correct"
+  );
+  // The IA2 -> UIA proxy doesn't support the TextChild pattern on text
+  // leaves.
+  if (gIsUiaEnabled) {
+    is(
+      await runPython(`
+        pLeaf = uiaClient.RawViewWalker.GetFirstChildElement(p)
+        tc = getUiaPattern(pLeaf, "TextChild")
+        return tc.TextRange.GetText(-1)
+      `),
+      "p",
+      "p leaf  text correct"
+    );
+  }
+  is(
+    await runPython(`
+        a = findUiaByDomId(doc, "a")
+        tc = getUiaPattern(a, "TextChild")
+        return tc.TextRange.GetText(-1)
+      `),
+    "a",
+    "a text correct"
+  );
+  if (gIsUiaEnabled) {
+    // The IA2 -> UIA proxy doesn't expose an embedded object character for
+    // images.
+    is(
+      await runPython(`
+        img = findUiaByDomId(doc, "img")
+        tc = getUiaPattern(img, "TextChild")
+        return tc.TextRange.GetText(-1)
+      `),
+      kEmbedChar,
+      "img text correct"
+    );
+    // The IA2 -> UIA proxy adds spaces between elements that don't exist.
+    is(
+      await runPython(`
+        global textbox
+        textbox = findUiaByDomId(doc, "textbox")
+        tc = getUiaPattern(textbox, "TextChild")
+        return tc.TextRange.GetText(-1)
+      `),
+      "textboxLeaf textboxP",
+      "textbox text correct"
+    );
+    // The IA2 -> UIA proxy doesn't support the TextChild pattern on text
+    // leaves.
+    is(
+      await runPython(`
+        textboxLeaf = uiaClient.RawViewWalker.GetFirstChildElement(textbox)
+        tc = getUiaPattern(textboxLeaf, "TextChild")
+        return tc.TextRange.GetText(-1)
+      `),
+      "textboxLeaf ",
+      "textbox leaf  text correct"
+    );
+  }
+  is(
+    await runPython(`
+        textboxP = findUiaByDomId(doc, "textboxP")
+        tc = getUiaPattern(textboxP, "TextChild")
+        return tc.TextRange.GetText(-1)
+      `),
+    "textboxP",
+    "textboxP text correct"
+  );
+});
