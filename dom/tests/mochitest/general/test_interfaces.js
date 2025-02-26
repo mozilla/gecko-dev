@@ -788,11 +788,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "InputEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  {
-    name: "InstallTrigger",
-    insecureContext: true,
-    disabled: isEarlyBetaOrEarlier,
-  },
+  { name: "InstallTrigger", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "IntersectionObserver", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
