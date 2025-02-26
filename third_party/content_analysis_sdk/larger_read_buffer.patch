@@ -1,0 +1,30 @@
+From 92f174669fc86642d4a8baf4b8d1305dc593eb2c Mon Sep 17 00:00:00 2001
+From: Greg Stoll <gstoll@mozilla.com>
+Date: Wed, 26 Feb 2025 08:04:10 -0600
+Subject: [PATCH] Bug 1948884 - increase Content Analysis client buffer size
+ r=#dlp-reviewers!
+
+It's a bit unclear to me why this helps, since the logic seems to
+indicate that ReadNextMessageFromPipe() will resize the buffer as
+needed. But on my machine this makes a ~100 file upload work
+consistently, where it would freeze sometimes before this change. And
+it seems harmless.
+
+diff --git a/browser/src/client_win.cc b/browser/src/client_win.cc
+index 039946d131398..aaa17d0e051a9 100644
+--- a/browser/src/client_win.cc
++++ b/browser/src/client_win.cc
+@@ -17,7 +17,9 @@
+ namespace content_analysis {
+ namespace sdk {
+ 
+-const DWORD kBufferSize = 4096;
++// Increased to a larger size to help with issues with analyzing a lot of
++// files at once - see bug 1948884.
++const DWORD kBufferSize = 65536;
+ 
+ // Use the same default timeout value (50ms) as CreateNamedPipeA(), expressed
+ // in 100ns intervals.
+-- 
+2.47.1.windows.2
+
