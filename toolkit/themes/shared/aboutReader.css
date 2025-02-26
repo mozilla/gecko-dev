@@ -801,6 +801,10 @@ label[for="text-alignment-buttons"] {
       background-image: url("chrome://global/skin/reader/align-right-20.svg");
     }
 
+    &.justify-align-button {
+      background-image: url("chrome://global/skin/reader/align-justify-20.svg");
+    }
+
     &[checked] {
       background-color: var(--primary-color);
       border: none;

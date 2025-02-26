@@ -305,11 +305,21 @@ export var AboutReader = function (
       value: "right",
       itemClass: "right-align-button",
     },
+    {
+      l10nId: "about-reader-text-alignment-justify",
+      groupName: "text-alignment",
+      value: "justify",
+      itemClass: "justify-align-button",
+    },
   ];
 
   // If the page is rtl, reverse order of text alignment options.
+  // The justify text option remains as the last.
   if (isAppLocaleRTL) {
-    textAlignmentOptions = textAlignmentOptions.reverse();
+    textAlignmentOptions = [
+      ...textAlignmentOptions.slice(0, 3).reverse(),
+      ...textAlignmentOptions.slice(3),
+    ];
   }
 
   let selectorFontTypeValues = ["sans-serif", "serif", "monospace"];
