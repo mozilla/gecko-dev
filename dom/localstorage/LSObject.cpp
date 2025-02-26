@@ -887,7 +887,12 @@ nsresult LSObject::EnsureDatabase() {
     return NS_OK;
   }
 
-  auto latencyTimerId = glean::ls_preparelsdatabase::processing_time.Start();
+  auto timerId = glean::localstorage_database::new_object_setup_time.Start();
+
+  auto autoCancelTimer = MakeScopeExit([&timerId] {
+    glean::localstorage_database::new_object_setup_time.Cancel(
+        std::move(timerId));
+  });
 
   // We don't need this yet, but once the request successfully finishes, it's
   // too late to initialize PBackground child on the owning thread, because
@@ -939,13 +944,15 @@ nsresult LSObject::EnsureDatabase() {
 
   database->SetActor(actor);
 
-  glean::ls_preparelsdatabase::processing_time.StopAndAccumulate(
-      std::move(latencyTimerId));
-
   if (prepareDatastoreResponse.invalidated()) {
     database->RequestAllowToClose();
     return NS_ERROR_ABORT;
   }
+
+  autoCancelTimer.release();
+
+  glean::localstorage_database::new_object_setup_time.StopAndAccumulate(
+      std::move(timerId));
 
   mDatabase = std::move(database);
 

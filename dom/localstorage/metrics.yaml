@@ -10,27 +10,6 @@ $schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
 $tags:
   - 'Core :: Storage: localStorage & sessionStorage'
 
-ls.preparelsdatabase:
-  processing_time:
-    type: timing_distribution
-    time_unit: microsecond
-    description: >
-      Time it took for the content process to fully prepare a new LSDatabase,
-      including any time required to prepare a Datastore in the parent.
-      This duration can be significantly affected by Datastore preloading,
-      which is triggered when a page begins to load.
-      If an error occurs, the time is not recorded.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
-    data_sensitivity:
-      - technical
-    notification_emails:
-      - hsingh@mozilla.com
-      - jvarga@mozilla.com
-      - storage-telemetry@mozilla.com
-    expires: 138
 localstorage.request:
   prepare_datastore_processing_time:
     type: timing_distribution
@@ -89,6 +68,26 @@ localstorage.request:
       - storage-telemetry@mozilla.com
     expires: never
 localstorage.database:
+  new_object_setup_time:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      Measures the time taken for the content process to fully set up a new
+      database, including any time required for datastore preparation in the
+      parent process. This duration can be significantly affected by datastore
+      preloading, which is triggered when a page begins loading. If an error
+      occurs, the time is not recorded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - hsingh@mozilla.com
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: never
   request_allow_to_close_response_time:
     type: timing_distribution
     time_unit: microsecond
