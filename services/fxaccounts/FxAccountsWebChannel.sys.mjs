@@ -338,23 +338,11 @@ FxAccountsWebChannel.prototype = {
         break;
       case COMMAND_PAIR_PREFERENCES:
         if (lazy.pairingEnabled) {
-          let window = browser.ownerGlobal;
-          // We should close the FxA tab after we open our pref page
-          let selectedTab = window.gBrowser.selectedTab;
-          window.switchToTabHavingURI(
+          let win = browser.ownerGlobal;
+          win.openTrustedLinkIn(
             "about:preferences?action=pair#sync",
-            true,
-            {
-              ignoreQueryString: true,
-              replaceQueryString: true,
-              adoptIntoActiveWindow: true,
-              ignoreFragment: "whenComparing",
-              triggeringPrincipal:
-                Services.scriptSecurityManager.getSystemPrincipal(),
-            }
+            "current"
           );
-          // close the tab
-          window.gBrowser.removeTab(selectedTab);
         }
         break;
       case COMMAND_FIREFOX_VIEW:
