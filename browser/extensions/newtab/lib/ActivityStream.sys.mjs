@@ -1018,7 +1018,7 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.publisherFavicon.enabled",
     {
       title: "Enables publihser favicons on recommended stories",
-      value: false
+      value: false,
     },
   ],
   [
