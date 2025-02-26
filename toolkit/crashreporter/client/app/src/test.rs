@@ -154,6 +154,8 @@ fn test_config() -> Config {
     cfg.ping_dir = Some("ping_dir".into());
     cfg.dump_file = Some("minidump.dmp".into());
     cfg.strings = Some(Default::default());
+    // Set delete_dump to true: this matches the default case in practice.
+    cfg.delete_dump = true;
     cfg
 }
 
@@ -384,7 +386,7 @@ impl AssertFiles {
         self
     }
 
-    /// Assert that a crash ping was sent according to the filesystem.
+    /// Assert that a crash ping was created for sending according to the filesystem.
     pub fn ping(&mut self) -> &mut Self {
         self.inner.check(
             format!("ping_dir/{MOCK_PING_UUID}.json"),
@@ -517,7 +519,7 @@ fn auto_submit() {
     test.mock.run(|| {
         assert!(try_run(&mut Arc::new(std::mem::take(&mut test.config))).is_ok());
     });
-    test.assert_files().submitted().pending();
+    test.assert_files().submitted();
 }
 
 #[test]
@@ -540,8 +542,7 @@ fn restart() {
     });
     test.assert_files()
         .saved_settings(Settings::default())
-        .submitted()
-        .pending();
+        .submitted();
     ran_process.assert_one();
 }
 
@@ -550,6 +551,8 @@ fn no_restart_with_windows_error_reporting() {
     let mut test = GuiTest::new();
     test.config.restart_command = Some("my_process".into());
     test.config.restart_args = vec!["a".into(), "b".into()];
+    // Keep the files around so we can ensure they match what we expect.
+    test.config.delete_dump = false;
     // Add the "WindowsErrorReporting" key to the extra file
     const MINIDUMP_EXTRA_CONTENTS: &str = r#"{
                             "Vendor": "FooCorp",
@@ -624,20 +627,20 @@ fn quit() {
     });
     test.assert_files()
         .saved_settings(Settings::default())
-        .submitted()
-        .pending();
+        .submitted();
 }
 
 #[test]
-fn delete_dump() {
+fn no_delete_dump() {
     let mut test = GuiTest::new();
-    test.config.delete_dump = true;
+    test.config.delete_dump = false;
     test.run(|interact| {
         interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
     });
     test.assert_files()
         .saved_settings(Settings::default())
-        .submitted();
+        .submitted()
+        .pending();
 }
 
 #[test]
@@ -705,8 +708,54 @@ fn ping_and_event_files() {
     test.assert_files()
         .saved_settings(Settings::default())
         .submitted()
-        .pending()
         .submission_event(true)
+        .ping()
+        .check(
+            "events_dir/minidump",
+            format!(
+                "1\n\
+                12:34:56\n\
+                e0423878-8d59-4452-b82e-cad9c846836e\n\
+                {}",
+                serde_json::json! {{
+                    "foo": "bar",
+                    "MinidumpSha256Hash": MOCK_MINIDUMP_SHA256,
+                    "CrashPingUUID": MOCK_PING_UUID,
+                    "StackTraces": { "status": "OK" }
+                }}
+            ),
+        );
+}
+
+#[test]
+fn network_failure() {
+    let invoked = Counter::new();
+    let mut test = GuiTest::new();
+    test.files
+        .add_dir("ping_dir")
+        .add_dir("events_dir")
+        .add_file(
+            "events_dir/minidump",
+            "1\n\
+         12:34:56\n\
+         e0423878-8d59-4452-b82e-cad9c846836e\n\
+         {\"foo\":\"bar\"}",
+        );
+    test.mock.set(
+        net::http::MockHttp,
+        Box::new(cc! { (invoked) move |_request, _url| {
+            invoked.inc();
+            Ok(Err(std::io::ErrorKind::HostUnreachable.into()))
+        }}),
+    );
+    test.run(|interact| {
+        interact.element("quit", |_style, b: &model::Button| b.click.fire(&()));
+    });
+    assert!(invoked.count() > 0);
+    test.assert_files()
+        .saved_settings(Settings::default())
+        .pending()
+        .submission_event(false)
         .ping()
         .check(
             "events_dir/minidump",
@@ -748,7 +797,6 @@ fn pingsender_failure() {
     test.assert_files()
         .saved_settings(Settings::default())
         .submitted()
-        .pending()
         .submission_event(true)
         .ping()
         .check(
@@ -861,9 +909,7 @@ fn eol_version() {
         result.expect_err("should fail on EOL version").to_string(),
         "Version end of life: crash reports are no longer accepted."
     );
-    test.assert_files()
-        .pending_unchanged_extra()
-        .ignore("data_dir/EndOfLife100.0");
+    test.assert_files().ignore("data_dir/EndOfLife100.0");
 }
 
 #[test]
@@ -921,8 +967,7 @@ fn data_dir_default() {
     test.assert_files()
         .set_data_dir("data_dir/FooCorp/Bar/Crash Reports")
         .saved_settings(Settings::default())
-        .submitted()
-        .pending();
+        .submitted();
 }
 
 #[test]
@@ -1011,6 +1056,7 @@ fn send_memtest_output() {
 fn add_memtest_output_to_extra() {
     let mut test = GuiTest::new();
     test.config.run_memtest = true;
+    test.config.delete_dump = false;
     test.files.add_dir("data_dir").add_file(
         "data_dir/crashreporter_settings.json",
         Settings {
@@ -1349,7 +1395,6 @@ fn response_view_url() {
 
     test.assert_files()
         .saved_settings(Settings::default())
-        .pending()
         .check(
             format!("data_dir/submitted/{MOCK_REMOTE_CRASH_ID}.txt"),
             format!(
@@ -1381,7 +1426,6 @@ fn response_stop_sending_reports() {
     test.assert_files()
         .saved_settings(Settings::default())
         .submitted()
-        .pending()
         .check_exists("data_dir/EndOfLife100.0");
 }
 
@@ -1394,8 +1438,7 @@ fn rename_failure_uses_copy() {
     });
     test.assert_files()
         .saved_settings(Settings::default())
-        .submitted()
-        .pending();
+        .submitted();
 }
 
 /// A real temporary directory in the host filesystem.
@@ -1533,7 +1576,6 @@ fn real_curl_binary() {
         Box::new(|cmd| cmd.output_from_real_command()),
     );
     test.config.report_url = Some(server.submit_url().into());
-    test.config.delete_dump = true;
 
     // We need the dump file to actually exist since the curl binary is passed the file path.
     // The dump file needs to exist at the pending dir location.
@@ -1573,7 +1615,6 @@ fn real_curl_library() {
         )
         .set(mock::MockHook::new("use_system_libcurl"), true);
     test.config.report_url = Some(server.submit_url().into());
-    test.config.delete_dump = true;
 
     // We need the dump file to actually exist since libcurl is passed the file path.
     // The dump file needs to exist at the pending dir location.
