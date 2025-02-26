@@ -815,17 +815,14 @@ export const ContentAnalysis = {
               break;
           }
           // We got an error with this request, so close any dialogs for any other request
-          // with the same user action id.
+          // with the same user action id and also remove their data so we don't show
+          // any dialogs they might later try to show.
           const otherEntries =
             this.requestInfos.getAndRemoveEntriesByUserActionId(aUserActionId);
-          otherEntries.forEach(entry => this._disconnectFromView(entry));
-          if (otherEntries.length === 0) {
-            // Only show one error dialog for each userActionId. The call to
-            // getAndRemoveEntriesByUserActionId() ensures that when those entries
-            // error too, there won't be an entry for them in this.requestInfos, so
-            // we won't show another dialog.
-            return null;
-          }
+          otherEntries.forEach(entry => {
+            this.requestTokenToRequestInfo.delete(entry.request.requestToken);
+            this._disconnectFromView(entry);
+          });
           message = await this.l10n.formatValue(messageId, {
             agent: lazy.agentName,
             content: this._getErrorDialogMessage(aResourceNameOrOperationType),
