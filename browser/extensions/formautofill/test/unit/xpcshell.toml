@@ -8,7 +8,6 @@ head = "head.js"
 support-files = ["../fixtures/**"]
 prefs = [
   "extensions.formautofill.test.ignoreVisibilityCheck=true",
-  "extensions.formautofill.heuristics.detectDynamicFormChanges=false",
 ]
 
 ["test_activeStatus.js"]

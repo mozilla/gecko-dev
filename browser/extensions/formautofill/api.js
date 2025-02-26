@@ -166,7 +166,6 @@ this.formautofill = class extends ExtensionAPI {
         esModuleURI: "resource://autofill/FormAutofillChild.sys.mjs",
         events: {
           focusin: {},
-          "form-changed": { createActor: false },
           "form-submission-detected": { createActor: false },
         },
       },
