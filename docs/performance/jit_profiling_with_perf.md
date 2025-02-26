@@ -2,7 +2,7 @@
 
 ## Maybe preferable: profiling with `samply`
 
-`samply` makes profiling JIT a lot easier and should be prefered if running
+`samply` makes profiling JIT a lot easier and should be preferred if running
 macOS or Linux. Documentation is at [JIT profiling with
 `samply`](jit_profiling_with_samply.md).
 
