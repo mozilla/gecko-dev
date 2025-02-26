@@ -2,13 +2,15 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<?csp default-src chrome: ?>
+
 <!DOCTYPE window>
 
 <window
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
   id="style-editor-chrome-window"
-  csp="default-src chrome:"
 >
   <linkset>
     <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
