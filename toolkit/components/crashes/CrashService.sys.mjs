@@ -129,12 +129,6 @@ function computeMinidumpHash(minidumpPath) {
   })();
 }
 
-export var CrashServiceUtils = {
-  computeMinidumpHash: async function CrashServiceUtils_computeMinidumpHash(f) {
-    return computeMinidumpHash(f);
-  },
-};
-
 /**
  * Process the given .extra file and return the annotations it contains in an
  * object.

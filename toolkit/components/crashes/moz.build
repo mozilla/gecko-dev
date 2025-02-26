@@ -28,7 +28,6 @@ if CONFIG["MOZ_CRASHREPORTER"]:
     EXTRA_JS_MODULES += [
         "!CrashManager.sys.mjs",
         "CrashService.sys.mjs",
-        "RemoteSettingsCrashPull.sys.mjs",
     ]
 
     XPCOM_MANIFESTS += [
@@ -40,7 +39,6 @@ if CONFIG["MOZ_CRASHREPORTER"]:
     ]
 
     XPCSHELL_TESTS_MANIFESTS += ["tests/xpcshell/xpcshell.toml"]
-    BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
 
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "Crash Reporting")
