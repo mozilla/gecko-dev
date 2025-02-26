@@ -1141,7 +1141,7 @@ RequestHelper::Run() {
       // be destroyed anyway.
       if (mActor && !mActor->Finishing()) {
         if (mActor->SendCancel()) {
-          glean::ls_request::send_cancellation.Add();
+          glean::localstorage_request::send_cancel_counter.Add();
         }
       }
 

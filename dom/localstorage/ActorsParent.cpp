@@ -6574,7 +6574,7 @@ mozilla::ipc::IPCResult LSRequestBase::RecvCancel() {
 
   Log();
 
-  glean::ls_request::recv_cancellation.Add();
+  glean::localstorage_request::recv_cancel_counter.Add();
 
   const char* crashOnCancel = PR_GetEnv("LSNG_CRASH_ON_CANCEL");
   if (crashOnCancel) {
