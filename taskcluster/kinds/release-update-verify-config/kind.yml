@@ -52,8 +52,14 @@ task-defaults:
                 default: beta
         last-watershed:
             by-release-type:
-                beta: "72.0"
-                release(-rc)?: "72.0.2"
+                beta:
+                    by-platform:
+                        linux64-aarch64.*: "136.0b6"
+                        default: "72.0"
+                release(-rc)?:
+                    by-platform:
+                        linux64-aarch64.*: "136.0"
+                        default: "72.0.2"
                 esr115: "68.0esr"
                 esr128: "128.0esr"
                 default: "default"
@@ -95,6 +101,30 @@ tasks:
         extra:
             product: firefox
             platform: linux-x86_64
+            updater-platform: linux-x86_64
+            channel:
+                by-release-type:
+                    beta: "beta-localtest"
+                    release(-rc)?: "release-localtest"
+                    esr.*: "esr-localtest"
+                    default: "default"
+            mar-channel-id-override:
+                by-release-type:
+                    beta: beta
+                    default: null
+
+    firefox-linux64-aarch64:
+        shipping-product: firefox
+        treeherder:
+            symbol: UVC
+            platform: linux64-aarch64-shippable/opt
+            kind: test
+            tier: 1
+        attributes:
+            build_platform: linux64-aarch64-shippable
+        extra:
+            product: firefox
+            platform: linux-aarch64
             updater-platform: linux-x86_64
             channel:
                 by-release-type:
@@ -230,6 +260,21 @@ tasks:
         extra:
             product: firefox
             platform: linux-x86_64
+            updater-platform: linux-x86_64
+            channel: "aurora-localtest"
+
+    devedition-linux64-aarch64:
+        shipping-product: devedition
+        treeherder:
+            symbol: UVC
+            platform: linux64-aarch64-devedition/opt
+            kind: test
+            tier: 1
+        attributes:
+            build_platform: linux64-aarch64-devedition
+        extra:
+            product: firefox
+            platform: linux-aarch64
             updater-platform: linux-x86_64
             channel: "aurora-localtest"
 

@@ -39,6 +39,12 @@ task-defaults:
         chunks: 16
 
 tasks:
+    firefox-linux64-aarch64:
+        description: linux64-aarch64 update verify
+        shipping-product: firefox
+        attributes:
+            build_platform: linux64-aarch64-shippable
+
     firefox-linux64:
         description: linux64 update verify
         shipping-product: firefox
@@ -79,6 +85,12 @@ tasks:
         fetches:
             toolchain:
                 - linux64-libdmg
+
+    devedition-linux64-aarch64:
+        description: linux64-aarch64 update verify
+        shipping-product: devedition
+        attributes:
+            build_platform: linux64-aarch64-devedition
 
     devedition-linux64:
         description: linux64 update verify
