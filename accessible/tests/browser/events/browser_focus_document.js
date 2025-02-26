@@ -40,6 +40,12 @@ addAccessibleTask(
       triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
     });
     await focused;
+    is(Services.focus.focusedElement, browser, "<browser> should be focused");
+    is(
+      Services.focus.focusedWindow,
+      window,
+      "window should be properly focused"
+    );
   },
   { chrome: true, topLevel: false }
 );
