@@ -21,13 +21,14 @@ using mozilla::TimeStamp;
 using JS::SliceBudget;
 
 class AutoAddTimeDuration {
-  TimeStamp start;
-  TimeDuration& result;
+  TimeStamp start_;
+  TimeDuration& result_;
 
  public:
   explicit AutoAddTimeDuration(TimeDuration& result)
-      : start(TimeStamp::Now()), result(result) {}
-  ~AutoAddTimeDuration() { result += TimeSince(start); }
+      : start_(TimeStamp::Now()), result_(result) {}
+  TimeStamp start() const { return start_; }
+  ~AutoAddTimeDuration() { result_ += TimeSince(start_); }
 };
 
 ParallelMarker::ParallelMarker(GCRuntime* gc) : gc(gc) {}
@@ -184,6 +185,12 @@ bool ParallelMarkTask::tryMarking(AutoLockHelperThreadState& lock) {
 
     AutoAddTimeDuration time(markTime.ref());
     finished = marker->markCurrentColorInParallel(budget);
+
+    GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
+    if (profiler.enabled()) {
+      profiler.markInterval("Parallel marking ran", time.start(), nullptr,
+                            JS::ProfilingCategoryPair::GCCC);
+    }
   }
 
   MOZ_ASSERT_IF(finished, !hasWork());
@@ -212,19 +219,13 @@ bool ParallelMarkTask::requestWork(AutoLockHelperThreadState& lock) {
 }
 
 void ParallelMarkTask::waitUntilResumed(AutoLockHelperThreadState& lock) {
-  GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
-  mozilla::TimeStamp startTime;
-  if (profiler.enabled()) {
-    startTime = mozilla::TimeStamp::Now();
-  }
+  AutoAddTimeDuration time(waitTime.ref());
 
   pm->addTaskToWaitingList(this, lock);
 
   // Set isWaiting flag and wait for another thread to clear it and resume us.
   MOZ_ASSERT(!isWaiting);
   isWaiting = true;
-
-  AutoAddTimeDuration time(waitTime.ref());
 
   do {
     MOZ_ASSERT(pm->hasActiveTasks(lock));
@@ -233,10 +234,11 @@ void ParallelMarkTask::waitUntilResumed(AutoLockHelperThreadState& lock) {
 
   MOZ_ASSERT(!pm->isTaskInWaitingList(this, lock));
 
+  GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
   if (profiler.enabled()) {
     char details[32];
     SprintfLiteral(details, "markers=%zu", pm->workerCount());
-    profiler.markInterval("Parallel marking wait", startTime, details,
+    profiler.markInterval("Parallel marking wait", time.start(), details,
                           JS::ProfilingCategoryPair::GCCC);
   }
 }
@@ -311,13 +313,21 @@ void ParallelMarker::decActiveTasks(ParallelMarkTask* task,
 }
 
 void ParallelMarker::donateWorkFrom(GCMarker* src) {
+  GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
+
   if (!gHelperThreadLock.tryLock()) {
+    if (profiler.enabled()) {
+      profiler.markEvent("Parallel marking donate failed", "lock already held");
+    }
     return;
   }
 
   // Check there are tasks waiting for work while holding the lock.
   if (waitingTaskCount == 0) {
     gHelperThreadLock.unlock();
+    if (profiler.enabled()) {
+      profiler.markEvent("Parallel marking donate failed", "no tasks waiting");
+    }
     return;
   }
 
@@ -336,7 +346,6 @@ void ParallelMarker::donateWorkFrom(GCMarker* src) {
 
   gc->stats().count(gcstats::COUNT_PARALLEL_MARK_INTERRUPTIONS);
 
-  GeckoProfilerRuntime& profiler = gc->rt->geckoProfiler();
   if (profiler.enabled()) {
     char details[32];
     SprintfLiteral(details, "words=%zu", wordsMoved);
