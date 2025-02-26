@@ -148,14 +148,10 @@ class ScriptModule extends RootBiDiModule {
     let navigables = null;
 
     if (contextIds !== null) {
-      lazy.assert.array(
+      lazy.assert.isNonEmptyArray(
         contextIds,
-        lazy.pprint`Expected "contexts" to be an array, got ${contextIds}`
+        lazy.pprint`Expected "contexts" to be a non-empty array, got ${contextIds}`
       );
-      lazy.assert.that(
-        ids => !!ids.length,
-        lazy.pprint`Expected "contexts" array to have at least one item, got ${contextIds}`
-      )(contextIds);
 
       for (const contextId of contextIds) {
         lazy.assert.string(
@@ -164,14 +160,10 @@ class ScriptModule extends RootBiDiModule {
         );
       }
     } else if (userContextIds !== null) {
-      lazy.assert.array(
+      lazy.assert.isNonEmptyArray(
         userContextIds,
-        lazy.pprint`Expected "userContexts" to be an array, got ${userContextIds}`
+        lazy.pprint`Expected "userContextIds" to be a non-empty array, got ${userContextIds}`
       );
-      lazy.assert.that(
-        ids => !!ids.length,
-        lazy.pprint`Expected "userContexts" array to have at least one item, got ${userContextIds}`
-      )(userContextIds);
 
       for (const userContextId of userContextIds) {
         lazy.assert.string(

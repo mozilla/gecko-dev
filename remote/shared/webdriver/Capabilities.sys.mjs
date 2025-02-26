@@ -1048,14 +1048,10 @@ export function processCapabilities(params) {
 
   requiredCapabilities = validateCapabilities(requiredCapabilities);
 
-  lazy.assert.array(
+  lazy.assert.isNonEmptyArray(
     allFirstMatchCapabilities,
-    lazy.pprint`Expected "firstMatch" to be an array, got ${allFirstMatchCapabilities}`
+    lazy.pprint`Expected "firstMatch" to be a non-empty array, got ${allFirstMatchCapabilities}`
   );
-  lazy.assert.that(
-    firstMatch => firstMatch.length >= 1,
-    lazy.pprint`Expected "firstMatch" to be an array of length 1 or greater, got ${allFirstMatchCapabilities}`
-  )(allFirstMatchCapabilities);
 
   const validatedFirstMatchCapabilities =
     allFirstMatchCapabilities.map(validateCapabilities);

@@ -406,16 +406,10 @@ class NetworkModule extends RootBiDiModule {
     const { contexts = null, phases, urlPatterns = [] } = options;
 
     if (contexts !== null) {
-      lazy.assert.array(
+      lazy.assert.isNonEmptyArray(
         contexts,
-        `Expected "contexts" to be an array, got ${contexts}`
+        `Expected "contexts" to be a non-empty array, got ${contexts}`
       );
-
-      if (!options.contexts.length) {
-        throw new lazy.error.InvalidArgumentError(
-          `Expected "contexts" to contain at least one item, got an empty array`
-        );
-      }
 
       for (const contextId of contexts) {
         lazy.assert.string(
@@ -431,16 +425,10 @@ class NetworkModule extends RootBiDiModule {
       }
     }
 
-    lazy.assert.array(
+    lazy.assert.isNonEmptyArray(
       phases,
-      `Expected "phases" to be an array, got ${phases}`
+      `Expected "phases" to be a non-empty array, got ${phases}`
     );
-
-    if (!options.phases.length) {
-      throw new lazy.error.InvalidArgumentError(
-        `Expected "phases" to contain at least one phase, got an empty array`
-      );
-    }
 
     const supportedInterceptPhases = Object.values(InterceptPhase);
     for (const phase of phases) {
@@ -1147,16 +1135,10 @@ class NetworkModule extends RootBiDiModule {
       return;
     }
 
-    lazy.assert.array(
+    lazy.assert.isNonEmptyArray(
       contextIds,
-      lazy.pprint`Expected "contexts" to be an array, got ${contextIds}`
+      lazy.pprint`Expected "contexts" to be a non-empty array, got ${contextIds}`
     );
-
-    if (!contextIds.length) {
-      throw new lazy.error.InvalidArgumentError(
-        'Expected "contexts" to contain at least one item, got an empty array'
-      );
-    }
 
     const contexts = new Set();
     for (const contextId of contextIds) {

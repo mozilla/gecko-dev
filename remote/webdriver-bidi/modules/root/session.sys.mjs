@@ -244,15 +244,11 @@ class SessionModule extends RootBiDiModule {
   }
 
   #assertNonEmptyArrayWithStrings(array, variableName) {
-    lazy.assert.array(
+    lazy.assert.isNonEmptyArray(
       array,
-      `Expected "${variableName}" to be an array, ` + lazy.pprint`got ${array}`
-    );
-    lazy.assert.that(
-      arr => !!arr.length,
-      `Expected "${variableName}" array to have at least one item, ` +
+      `Expected "${variableName}" to be a non-empty array, ` +
         lazy.pprint`got ${array}`
-    )(array);
+    );
     array.forEach(item => {
       lazy.assert.string(
         item,

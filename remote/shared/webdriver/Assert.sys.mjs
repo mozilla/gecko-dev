@@ -512,6 +512,27 @@ assert.array = function (obj, msg = "") {
 };
 
 /**
+ * Asserts that <var>obj</var> is a non-empty Array.
+ *
+ * @param {?} obj
+ *     Value to test.
+ * @param {string=} msg
+ *     Custom error message.
+ *
+ * @returns {object}
+ *     <var>obj</var> is returned unaltered.
+ *
+ * @throws {InvalidArgumentError}
+ *     If <var>obj</var> is not a non-empty Array.
+ */
+assert.isNonEmptyArray = function (obj, msg = "") {
+  msg = msg || lazy.pprint`Expected ${obj} to be a non-empty Array`;
+  assert.array(obj, msg);
+  assert.that(assertObj => !!assertObj.length, msg)(obj);
+  return obj;
+};
+
+/**
  * Returns a function that is used to assert the |predicate|.
  *
  * @param {function(?): boolean} predicate
