@@ -399,9 +399,6 @@ pref("signon.firefoxRelay.feature", "not available");
 
 pref("signon.showAutoCompleteFooter", true);
 
-// Delegate autocomplete to GeckoView (bug 1618058)
-pref("toolkit.autocomplete.delegate", true);
-
 // Locked because any other value would break GeckoView
 pref("toolkit.defaultChromeURI", "chrome://geckoview/content/geckoview.xhtml", locked);
 
