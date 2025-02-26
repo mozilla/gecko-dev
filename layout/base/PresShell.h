@@ -606,9 +606,6 @@ class PresShell final : public nsStubDocumentObserver,
    * If ScrollNoParentFrames is set then we only scroll
    * nodes in this document, not in any parent documents which
    * contain this document in a iframe or the like.
-   * If AxesAreLogical is set, then the aVertical param actually refers to the
-   * frame's block axis, and the aHorizontal param to its inline axis, rather
-   * than to physical directions.
    * @return true if any scrolling happened, false if no scrolling happened
    */
   MOZ_CAN_RUN_SCRIPT
@@ -1652,10 +1649,6 @@ class PresShell final : public nsStubDocumentObserver,
    *                      using ScrollContainerFrame::ScrollMode::SMOOTH_MSD;
    *                      otherwise, ScrollContainerFrame::ScrollMode::INSTANT
    *                      will be used.
-   *                      If ScrollFlags::AxesAreLogical is set, then the
-   *                      aVertical param actually refers to the element's
-   *                      block axis, and the aHorizontal param to its inline
-   *                      axis, rather than to physical directions.
    */
   MOZ_CAN_RUN_SCRIPT
   nsresult ScrollContentIntoView(nsIContent* aContent, ScrollAxis aVertical,

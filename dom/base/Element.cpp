@@ -805,15 +805,15 @@ void Element::ScrollIntoView(const ScrollIntoViewOptions& aOptions) {
   const auto block = ToWhereToScroll(aOptions.mBlock);
   const auto inline_ = ToWhereToScroll(aOptions.mInline);
 
-  ScrollFlags scrollFlags = ScrollFlags::ScrollOverflowHidden |
-                            ScrollFlags::TriggeredByScript |
-                            ScrollFlags::AxesAreLogical;
+  ScrollFlags scrollFlags =
+      ScrollFlags::ScrollOverflowHidden | ScrollFlags::TriggeredByScript;
   if (aOptions.mBehavior == ScrollBehavior::Smooth) {
     scrollFlags |= ScrollFlags::ScrollSmooth;
   } else if (aOptions.mBehavior == ScrollBehavior::Auto) {
     scrollFlags |= ScrollFlags::ScrollSmoothAuto;
   }
 
+  // TODO: Propagate whether the axes are logical or not down (via scrollflags).
   presShell->ScrollContentIntoView(
       this, ScrollAxis(block, WhenToScroll::Always),
       ScrollAxis(inline_, WhenToScroll::Always), scrollFlags);

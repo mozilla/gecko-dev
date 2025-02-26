@@ -3849,38 +3849,6 @@ void PresShell::ScrollFrameIntoVisualViewport(Maybe<nsPoint>& aDestination,
 bool PresShell::ScrollFrameIntoView(
     nsIFrame* aTargetFrame, const Maybe<nsRect>& aKnownRectRelativeToTarget,
     ScrollAxis aVertical, ScrollAxis aHorizontal, ScrollFlags aScrollFlags) {
-  // If the AxesAreLogical flag is set, the aVertical and aHorizontal params
-  // actually refer to block and inline axes respectively, so we resolve them
-  // to physical axes/directions here.
-  // XXX Maybe we should convert more of the following code to logical axes,
-  // if it's convenient for more callers to work that way?
-  if (aScrollFlags & ScrollFlags::AxesAreLogical) {
-    // The aVertical parameter actually refers to the element's block axis,
-    // and aHorizontal to its inline axis. Potentially reverse/swap them,
-    // according to its writing mode and directionality.
-    WritingMode wm = aTargetFrame->GetWritingMode();
-    if (wm.IsVerticalRL()) {
-      // Reverse the block-axis percentage.
-      if (aVertical.mWhereToScroll.mPercentage) {
-        aVertical.mWhereToScroll.mPercentage =
-            Some(100 - aVertical.mWhereToScroll.mPercentage.value());
-      }
-    }
-    if (wm.IsInlineReversed()) {
-      // Reverse the inline-axis percentage.
-      if (aHorizontal.mWhereToScroll.mPercentage) {
-        aHorizontal.mWhereToScroll.mPercentage =
-            Some(100 - aHorizontal.mWhereToScroll.mPercentage.value());
-      }
-    }
-    if (wm.IsVertical()) {
-      std::swap(aVertical, aHorizontal);
-    }
-    // Remove the AxesAreLogical flag, to make it clear that methods we call
-    // always get physical axes from here on.
-    aScrollFlags &= ~ScrollFlags::AxesAreLogical;
-  }
-
   // The scroll margin only applies to the whole bounds of the element, so don't
   // apply it if we get an arbitrary rect / point to scroll to.
   const nsMargin scrollMargin =
