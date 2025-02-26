@@ -672,9 +672,6 @@ function makeExpectedDefaultMerinoResult({ suggestion }) {
         : undefined,
       shouldShowUrl: true,
       isBlockable: true,
-      blockL10n: {
-        id: "urlbar-result-menu-dismiss-firefox-suggest",
-      },
       isManageable: true,
     },
   };

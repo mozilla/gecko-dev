@@ -430,9 +430,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
     let payload = {
       url: suggestion.url,
       isBlockable: true,
-      blockL10n: {
-        id: "urlbar-result-menu-dismiss-firefox-suggest",
-      },
       isManageable: true,
     };
 

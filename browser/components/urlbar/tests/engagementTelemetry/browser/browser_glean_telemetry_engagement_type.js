@@ -112,7 +112,6 @@ add_task(async function engagement_type_help() {
         {
           url,
           isBlockable: true,
-          blockL10n: { id: "urlbar-result-menu-dismiss-firefox-suggest" },
           helpUrl,
           helpL10n: {
             id: "urlbar-result-menu-learn-more-about-firefox-suggest",

@@ -191,7 +191,6 @@ add_task(async function firefoxSuggest() {
         {
           url,
           isBlockable: true,
-          blockL10n: { id: "urlbar-result-menu-dismiss-firefox-suggest" },
           helpUrl,
           helpL10n: {
             id: "urlbar-result-menu-learn-more-about-firefox-suggest",

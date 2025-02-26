@@ -419,9 +419,6 @@ add_task(async function bestMatch() {
           qsSuggestion: "full_keyword",
           isSponsored: false,
           isBlockable: true,
-          blockL10n: {
-            id: "urlbar-result-menu-dismiss-firefox-suggest",
-          },
           isManageable: true,
           displayUrl: "url",
           source: "merino",
@@ -486,9 +483,6 @@ async function doUnmanagedTest({ pref, suggestion }) {
       isSponsored: !!suggestion.is_sponsored,
       source: "merino",
       isBlockable: true,
-      blockL10n: {
-        id: "urlbar-result-menu-dismiss-firefox-suggest",
-      },
       isManageable: true,
       shouldShowUrl: true,
     },

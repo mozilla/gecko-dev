@@ -127,9 +127,6 @@ export class AmpSuggestions extends SuggestProvider {
       sponsoredAdvertiser: suggestion.advertiser,
       sponsoredIabCategory: suggestion.iabCategory,
       isBlockable: true,
-      blockL10n: {
-        id: "urlbar-result-menu-dismiss-firefox-suggest",
-      },
       isManageable: true,
     };
 

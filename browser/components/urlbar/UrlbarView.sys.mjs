@@ -3242,7 +3242,9 @@ export class UrlbarView {
     if (result.payload.isBlockable) {
       commands.push({
         name: RESULT_MENU_COMMANDS.DISMISS,
-        l10n: result.payload.blockL10n,
+        l10n: result.payload.blockL10n || {
+          id: "urlbar-result-menu-dismiss-suggestion",
+        },
       });
     }
     if (result.payload.helpUrl) {

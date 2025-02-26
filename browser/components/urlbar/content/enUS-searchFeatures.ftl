@@ -53,22 +53,6 @@ urlbar-group-local =
 urlbar-group-sponsored =
   .label = Sponsored
 
-# Block menu item shown in the result menu of top pick and quick suggest
-# results.
-urlbar-result-menu-dismiss-firefox-suggest =
-    .label = Dismiss this suggestion
-    .accesskey = D
-
-# Learn More menu item shown in the result menu of Firefox Suggest results.
-urlbar-result-menu-learn-more-about-firefox-suggest =
-    .label = Learn more about { -firefox-suggest-brand-name }
-    .accesskey = L
-
-# Manage menu item shown in the result menu of Firefox Suggest results.
-urlbar-result-menu-manage-firefox-suggest =
-    .label = Manage { -firefox-suggest-brand-name }
-    .accesskey = M
-
 # A message shown in a result when the user gives feedback on it.
 firefox-suggest-feedback-acknowledgment = Thanks for your feedback
 
@@ -222,52 +206,12 @@ firefox-suggest-fakespot-rating-and-total-reviews-overflow =
 # sponsored.
 firefox-suggest-fakespot-sponsored = { -fakespot-brand-name } · Sponsored
 
-## These strings are used in the preferences UI (about:preferences). Their names
-## follow the naming conventions of other strings used in the preferences UI.
-
-# When the user is enrolled in a Firefox Suggest rollout, this text replaces
-# the usual addressbar-header string and becomes the text of the address bar
-# section in the preferences UI.
-addressbar-header-firefox-suggest = Address Bar — { -firefox-suggest-brand-name }
-
-# When the user is enrolled in a Firefox Suggest rollout, this text replaces
-# the usual addressbar-suggest string and becomes the text of the description of
-# the address bar section in the preferences UI.
-addressbar-suggest-firefox-suggest = Choose the type of suggestions that appear in the address bar.
-
-# First Firefox Suggest checkbox main label and description. This checkbox
-# controls non-sponsored suggestions related to the user's search string.
-addressbar-locbar-suggest-nonsponsored-option =
-  .label = Suggestions from { -brand-short-name }
-addressbar-locbar-suggest-nonsponsored-desc = Get suggestions from the web related to your search.
-
-# Second Firefox Suggest checkbox main label and description. This checkbox
-# controls sponsored suggestions related to the user's search string.
-addressbar-locbar-suggest-sponsored-option =
-  .label = Suggestions from sponsors
-addressbar-locbar-suggest-sponsored-desc = Support { -brand-short-name } with occasional sponsored suggestions.
-
-# An additional toggle button in the Firefox Suggest settings that controls
-# whether userdata-based suggestions like history and bookmarks should be
-# shown in private windows
-addressbar-firefox-suggest-private =
-  .label = Show suggestions in Private Windows
-
-# Third Firefox Suggest toggle button main label and description. This toggle
-# controls data collection related to the user's search string.
-# .description is transferred into a separate paragraph by the moz-toggle
-# custom element code.
+# These strings are used for a toggle switch in the settings UI that opts the
+# user into "online" Firefox Suggest, allowing them to receive suggestions from
+# Mozilla's Merino server.
 addressbar-firefox-suggest-data-collection =
   .label = Improve the { -firefox-suggest-brand-name } experience
   .description = Share search query data with { -vendor-short-name } to create a richer search experience.
-
-# The "Learn more" link shown in the Firefox Suggest preferences UI.
-addressbar-locbar-firefox-suggest-learn-more = Learn more
-
-addressbar-dismissed-suggestions-label = Dismissed suggestions
-addressbar-restore-dismissed-suggestions-description = Restore dismissed suggestions from sponsors and { -brand-short-name }.
-addressbar-restore-dismissed-suggestions-button =
-  .label = Restore
 
 ## Used as title on the introduction pane. The text can be formatted to span
 ## multiple lines as needed (line breaks are significant).

@@ -514,9 +514,6 @@ function makeOmniboxResult(
     keyword: [keyword, UrlbarUtils.HIGHLIGHT.TYPED],
     icon: [UrlbarUtils.ICON.EXTENSION],
   };
-  if (!heuristic) {
-    payload.blockL10n = { id: "urlbar-result-menu-dismiss-firefox-suggest" };
-  }
   let result = new UrlbarResult(
     UrlbarUtils.RESULT_TYPE.OMNIBOX,
     UrlbarUtils.RESULT_SOURCE.ADDON,

@@ -444,9 +444,6 @@ class _QuickSuggestTestUtils {
         sponsoredAdvertiser: advertiser,
         sponsoredIabCategory: iabCategory,
         isBlockable: true,
-        blockL10n: {
-          id: "urlbar-result-menu-dismiss-firefox-suggest",
-        },
         isManageable: true,
         telemetryType: "adm_sponsored",
       },
@@ -528,9 +525,6 @@ class _QuickSuggestTestUtils {
         sponsoredAdvertiser: "Wikipedia",
         sponsoredIabCategory: "5 - Education",
         isBlockable: true,
-        blockL10n: {
-          id: "urlbar-result-menu-dismiss-firefox-suggest",
-        },
         isManageable: true,
         telemetryType: "adm_nonsponsored",
       },
@@ -571,9 +565,6 @@ class _QuickSuggestTestUtils {
         isSponsored: false,
         qsSuggestion: fullKeyword ?? keyword,
         isBlockable: true,
-        blockL10n: {
-          id: "urlbar-result-menu-dismiss-firefox-suggest",
-        },
         isManageable: true,
         telemetryType: "wikipedia",
       },

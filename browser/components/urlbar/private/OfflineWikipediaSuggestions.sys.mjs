@@ -48,9 +48,6 @@ export class OfflineWikipediaSuggestions extends SuggestProvider {
         sponsoredAdvertiser: "Wikipedia",
         sponsoredIabCategory: "5 - Education",
         isBlockable: true,
-        blockL10n: {
-          id: "urlbar-result-menu-dismiss-firefox-suggest",
-        },
         isManageable: true,
       })
     );

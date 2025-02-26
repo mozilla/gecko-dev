@@ -1235,6 +1235,16 @@ addressbar-header = Address Bar
 
 addressbar-suggest = When using the address bar, suggest
 
+# When Firefox Suggest is enabled, this replaces `addressbar-header`.
+addressbar-header-firefox-suggest = Address Bar — { -firefox-suggest-brand-name }
+
+# When Firefox Suggest is enabled, this replaces `addressbar-suggest`.
+addressbar-suggest-firefox-suggest = Choose the type of suggestions that appear in the address bar.
+
+# When Firefox Suggest is enabled, a "Learn more" link appears at the end of
+# `addressbar-suggest-firefox-suggest`.
+addressbar-locbar-firefox-suggest-learn-more = Learn more
+
 addressbar-locbar-history-option =
     .label = Browsing history
     .accesskey = h
@@ -1267,7 +1277,21 @@ addressbar-locbar-showtrendingsuggestions-option =
     .label = Show trending search suggestions
     .accesskey = t
 
+# Nonsponsored suggestions refers to Firefox Suggest suggestions like Wikipedia.
+addressbar-locbar-suggest-nonsponsored-option =
+  .label = Suggestions from { -brand-short-name }
+addressbar-locbar-suggest-nonsponsored-desc = Get suggestions from the web related to your search.
+
+addressbar-locbar-suggest-sponsored-option =
+  .label = Suggestions from sponsors
+addressbar-locbar-suggest-sponsored-desc = Support { -brand-short-name } with occasional sponsored suggestions.
+
 addressbar-quickactions-learn-more = Learn more
+
+addressbar-dismissed-suggestions-label = Dismissed suggestions
+addressbar-restore-dismissed-suggestions-description = Restore dismissed suggestions from sponsors and { -brand-short-name }.
+addressbar-restore-dismissed-suggestions-button =
+  .label = Restore
 
 ## Privacy Section - Content Blocking
 

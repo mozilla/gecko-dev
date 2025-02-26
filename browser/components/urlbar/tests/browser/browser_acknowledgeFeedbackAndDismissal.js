@@ -50,9 +50,6 @@ add_setup(async function () {
           {
             url: "https://example.com/",
             isBlockable: true,
-            blockL10n: {
-              id: "urlbar-result-menu-dismiss-firefox-suggest",
-            },
           }
         ),
         // This ensures the result is sandwiched between the two history results

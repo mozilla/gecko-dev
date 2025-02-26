@@ -58,9 +58,6 @@ const EXPECTED_SPONSORED_URLBAR_RESULT = {
       id: "urlbar-result-menu-learn-more-about-firefox-suggest",
     },
     isBlockable: true,
-    blockL10n: {
-      id: "urlbar-result-menu-dismiss-firefox-suggest",
-    },
     source: "remote-settings",
     provider: "AdmWikipedia",
   },
@@ -89,9 +86,6 @@ const EXPECTED_NONSPONSORED_URLBAR_RESULT = {
       id: "urlbar-result-menu-learn-more-about-firefox-suggest",
     },
     isBlockable: true,
-    blockL10n: {
-      id: "urlbar-result-menu-dismiss-firefox-suggest",
-    },
     source: "remote-settings",
     provider: "AdmWikipedia",
   },

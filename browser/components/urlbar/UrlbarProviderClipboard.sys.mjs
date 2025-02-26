@@ -122,9 +122,6 @@ class ProviderClipboard extends UrlbarProvider {
         url: [this.#previousClipboard.value, UrlbarUtils.HIGHLIGHT.NONE],
         icon: "chrome://global/skin/icons/clipboard.svg",
         isBlockable: true,
-        blockL10n: {
-          id: "urlbar-result-menu-dismiss-firefox-suggest",
-        },
       })
     );
 
