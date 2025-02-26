@@ -77,16 +77,15 @@ private fun AppState.getSelectableChipColors(): SelectableChipColors {
         SelectableChipColors.buildColors()
 
     wallpaperState.composeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
+        selectedTextColor = FirefoxTheme.colors.textPrimary
+        unselectedTextColor = FirefoxTheme.colors.textInverted
+
         if (isSystemInDarkTheme()) {
             selectedBackgroundColor = cardColorDark
             unselectedBackgroundColor = cardColorLight
-            selectedTextColor = FirefoxTheme.colors.textActionPrimary
-            unselectedTextColor = FirefoxTheme.colors.textActionSecondary
         } else {
             selectedBackgroundColor = cardColorLight
             unselectedBackgroundColor = cardColorDark
-            selectedTextColor = FirefoxTheme.colors.textActionSecondary
-            unselectedTextColor = FirefoxTheme.colors.textActionPrimary
         }
     }
 
