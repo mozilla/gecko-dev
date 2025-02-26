@@ -101,9 +101,9 @@ export class NotificationStorage {
     });
   }
 
-  get(origin, scope, tag, callback) {
+  get(origin, tag, callback) {
     lazy.console.debug(`GET: ${origin} ${tag}`);
-    this.#fetchFromDB(origin, scope, tag, callback);
+    this.#fetchFromDB(origin, tag, callback);
   }
 
   delete(origin, id) {
@@ -151,10 +151,9 @@ export class NotificationStorage {
     return this.#requestCount;
   }
 
-  #fetchFromDB(origin, scope, tag, callback) {
+  #fetchFromDB(origin, tag, callback) {
     var request = {
       origin,
-      scope,
       tag,
       callback,
     };
@@ -162,7 +161,6 @@ export class NotificationStorage {
     this.#requests[requestID] = request;
     Services.cpmm.sendAsyncMessage(this.formatMessageType("GetAll"), {
       origin,
-      scope,
       tag,
       requestID,
     });
@@ -174,8 +172,9 @@ export class NotificationStorage {
     // fetching from the database.
     notifications.forEach(function (notification) {
       try {
-        Services.tm.dispatchToMainThread(() =>
-          callback.handle(
+        Services.tm.dispatchToMainThread(
+          callback.handle.bind(
+            callback,
             notification.id,
             notification.title,
             notification.dir,

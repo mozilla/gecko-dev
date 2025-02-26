@@ -79,16 +79,11 @@ interface nsINotificationStorage : nsISupports
    * Retrieve a list of notifications.
    *
    * @param origin: the origin/app for which to fetch notifications from
-   * @param scope: Used to limit for the specific scope.
-   *               Pass an empty string for unscoped notifications.
-   *               (See bug 1881812 for potential spec changes to how notifications
-   *               are associated with ServiceWorker registrations.)
    * @param tag: used to fetch only a specific tag
    * @param callback: nsINotificationStorageCallback, used for
    *                  returning notifications objects
    */
   void get(in AString origin,
-           in AString scope,
            in AString tag,
            in nsINotificationStorageCallback aCallback);
 

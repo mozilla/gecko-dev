@@ -70,8 +70,12 @@ struct NotificationStrings {
   const nsString mServiceWorkerRegistrationScope;
 };
 
-class GetCallbackBase : public nsINotificationStorageCallback {
+class ScopeCheckingGetCallback : public nsINotificationStorageCallback {
+  const nsString mScope;
+
  public:
+  explicit ScopeCheckingGetCallback(const nsAString& aScope) : mScope(aScope) {}
+
   NS_IMETHOD Handle(const nsAString& aID, const nsAString& aTitle,
                     const nsAString& aDir, const nsAString& aLang,
                     const nsAString& aBody, const nsAString& aTag,
@@ -79,6 +83,11 @@ class GetCallbackBase : public nsINotificationStorageCallback {
                     const nsAString& aServiceWorkerRegistrationScope) final {
     AssertIsOnMainThread();
     MOZ_ASSERT(!aID.IsEmpty());
+
+    // Skip scopes that don't match when called from getNotifications().
+    if (!mScope.IsEmpty() && !mScope.Equals(aServiceWorkerRegistrationScope)) {
+      return NS_OK;
+    }
 
     NotificationStrings strings = {
         nsString(aID),
@@ -99,31 +108,33 @@ class GetCallbackBase : public nsINotificationStorageCallback {
   NS_IMETHOD Done() override = 0;
 
  protected:
-  virtual ~GetCallbackBase() = default;
+  virtual ~ScopeCheckingGetCallback() = default;
 
   nsTArray<NotificationStrings> mStrings;
 };
 
-class NotificationStorageCallback final : public GetCallbackBase {
+class NotificationStorageCallback final : public ScopeCheckingGetCallback {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(NotificationStorageCallback)
 
-  NotificationStorageCallback(nsIGlobalObject* aWindow, Promise* aPromise)
-      : mWindow(aWindow), mPromise(aPromise) {
+  NotificationStorageCallback(nsIGlobalObject* aWindow, const nsAString& aScope,
+                              Promise* aPromise)
+      : ScopeCheckingGetCallback(aScope), mWindow(aWindow), mPromise(aPromise) {
     AssertIsOnMainThread();
     MOZ_ASSERT(aWindow);
     MOZ_ASSERT(aPromise);
   }
 
   NS_IMETHOD Done() final {
-    nsTArray<RefPtr<Notification>> notifications(mStrings.Length());
+    AutoTArray<RefPtr<Notification>, 5> notifications;
 
-    for (const NotificationStrings& strings : mStrings) {
+    for (uint32_t i = 0; i < mStrings.Length(); ++i) {
       auto result = Notification::ConstructFromFields(
-          mWindow, strings.mID, strings.mTitle, strings.mDir, strings.mLang,
-          strings.mBody, strings.mTag, strings.mIcon, strings.mData,
-          strings.mServiceWorkerRegistrationScope);
+          mWindow, mStrings[i].mID, mStrings[i].mTitle, mStrings[i].mDir,
+          mStrings[i].mLang, mStrings[i].mBody, mStrings[i].mTag,
+          mStrings[i].mIcon, mStrings[i].mData,
+          mStrings[i].mServiceWorkerRegistrationScope);
       if (result.isErr()) {
         continue;
       }
@@ -155,19 +166,16 @@ NS_INTERFACE_MAP_END
 class NotificationGetRunnable final : public Runnable {
   bool mIsPrivate;
   const nsString mOrigin;
-  const nsString mScope;
   const nsString mTag;
   nsCOMPtr<nsINotificationStorageCallback> mCallback;
 
  public:
-  NotificationGetRunnable(const nsAString& aOrigin, const nsAString& aScope,
-                          const nsAString& aTag,
+  NotificationGetRunnable(const nsAString& aOrigin, const nsAString& aTag,
                           nsINotificationStorageCallback* aCallback,
                           bool aIsPrivate)
       : Runnable("NotificationGetRunnable"),
         mIsPrivate(aIsPrivate),
         mOrigin(aOrigin),
-        mScope(aScope),
         mTag(aTag),
         mCallback(aCallback) {}
 
@@ -179,7 +187,7 @@ class NotificationGetRunnable final : public Runnable {
       return NS_ERROR_UNEXPECTED;
     }
 
-    nsresult rv = notificationStorage->Get(mOrigin, mScope, mTag, mCallback);
+    nsresult rv = notificationStorage->Get(mOrigin, mTag, mCallback);
     // XXXnsm Is it guaranteed mCallback will be called in case of failure?
     Unused << NS_WARN_IF(NS_FAILED(rv));
     return rv;
@@ -595,7 +603,7 @@ bool Notification::RequestPermissionEnabledForScope(JSContext* aCx,
 // static
 already_AddRefed<Promise> Notification::RequestPermission(
     const GlobalObject& aGlobal,
-    const Optional<OwningNonNull<NotificationPermissionCallback>>& aCallback,
+    const Optional<OwningNonNull<NotificationPermissionCallback> >& aCallback,
     ErrorResult& aRv) {
   AssertIsOnMainThread();
 
@@ -793,10 +801,10 @@ already_AddRefed<Promise> Notification::Get(
   }
 
   nsCOMPtr<nsINotificationStorageCallback> callback =
-      new NotificationStorageCallback(aWindow->AsGlobal(), promise);
+      new NotificationStorageCallback(aWindow->AsGlobal(), aScope, promise);
 
   RefPtr<NotificationGetRunnable> r = new NotificationGetRunnable(
-      origin, aScope, aFilter.mTag, callback, doc->IsInPrivateBrowsing());
+      origin, aFilter.mTag, callback, doc->IsInPrivateBrowsing());
 
   aRv = aWindow->AsGlobal()->Dispatch(r.forget());
   if (NS_WARN_IF(aRv.Failed())) {
@@ -825,15 +833,15 @@ class WorkerGetResultRunnable final : public NotificationWorkerRunnable {
       return;
     }
 
-    nsTArray<RefPtr<Notification>> notifications(mStrings.Length());
-    for (const NotificationStrings& strings : mStrings) {
+    AutoTArray<RefPtr<Notification>, 5> notifications;
+    for (uint32_t i = 0; i < mStrings.Length(); ++i) {
       auto result = Notification::ConstructFromFields(
-          aWorkerPrivate->GlobalScope(), strings.mID, strings.mTitle,
-          strings.mDir, strings.mLang, strings.mBody, strings.mTag,
-          strings.mIcon, strings.mData,
-          /* strings.mBehavior, not
+          aWorkerPrivate->GlobalScope(), mStrings[i].mID, mStrings[i].mTitle,
+          mStrings[i].mDir, mStrings[i].mLang, mStrings[i].mBody,
+          mStrings[i].mTag, mStrings[i].mIcon, mStrings[i].mData,
+          /* mStrings[i].mBehavior, not
            * supported */
-          strings.mServiceWorkerRegistrationScope);
+          mStrings[i].mServiceWorkerRegistrationScope);
       if (result.isErr()) {
         continue;
       }
@@ -846,13 +854,14 @@ class WorkerGetResultRunnable final : public NotificationWorkerRunnable {
   }
 };
 
-class WorkerGetCallback final : public GetCallbackBase {
+class WorkerGetCallback final : public ScopeCheckingGetCallback {
   RefPtr<PromiseWorkerProxy> mPromiseProxy;
 
  public:
   NS_DECL_ISUPPORTS
 
-  WorkerGetCallback(PromiseWorkerProxy* aProxy) : mPromiseProxy(aProxy) {
+  WorkerGetCallback(PromiseWorkerProxy* aProxy, const nsAString& aScope)
+      : ScopeCheckingGetCallback(aScope), mPromiseProxy(aProxy) {
     AssertIsOnMainThread();
     MOZ_ASSERT(aProxy);
   }
@@ -908,7 +917,7 @@ class WorkerGetRunnable final : public Runnable {
     auto isPrivate = principal->GetIsInPrivateBrowsing();
 
     nsCOMPtr<nsINotificationStorageCallback> callback =
-        new WorkerGetCallback(mPromiseProxy);
+        new WorkerGetCallback(mPromiseProxy, mScope);
 
     nsCOMPtr<nsINotificationStorage> notificationStorage =
         GetNotificationStorage(isPrivate);
@@ -923,7 +932,7 @@ class WorkerGetRunnable final : public Runnable {
       return rv;
     }
 
-    rv = notificationStorage->Get(origin, mScope, mTag, callback);
+    rv = notificationStorage->Get(origin, mTag, callback);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       callback->Done();
       return rv;
