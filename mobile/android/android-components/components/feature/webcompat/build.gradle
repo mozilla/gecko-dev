@@ -52,7 +52,7 @@ tasks.register("syncWebcompatExtension", Sync) {
         '**/data/ua_overrides.js'
     ]) {
         filter(ReplaceTokens, beginToken: '', endToken: '', tokens: [
-            '#include data/interventions.json': file("$topsrcdir/browser/extensions/webcompat/data/interventions.json").text.trim(),
+            '#include interventions.json': file("$topsrcdir/browser/extensions/webcompat/data/interventions.json").text.trim(),
         ])
     }
 }
