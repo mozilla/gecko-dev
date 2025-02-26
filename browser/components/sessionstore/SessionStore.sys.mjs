@@ -4507,19 +4507,24 @@ var SessionStoreInternal = {
       }
     }
 
-    // See if the aCloseId matches a closed tab in any window data
+    // See if the aClosedId matches a closed tab in any window data
     for (let winData of sourceWindowsData) {
-      let closedIndex = winData._closedTabs.findIndex(
+      let closedTabs = this._getStateForClosedTabsAndClosedGroupTabs(winData);
+      let closedTabState = closedTabs.find(
         tabData => tabData.closedId == aClosedId
       );
-      if (closedIndex >= 0) {
+
+      if (closedTabState) {
+        let { closedTabSet, closedTabIndex } =
+          this._getClosedTabStateFromUnifiedIndex(winData, closedTabState);
         // remove closed tab from the array
-        this.removeClosedTabData(winData, winData._closedTabs, closedIndex);
+        this.removeClosedTabData(winData, closedTabSet, closedTabIndex);
         // Notify of changes to closed objects.
         this._notifyOfClosedObjectsChange();
         return;
       }
     }
+
     throw Components.Exception(
       "Invalid closedId: not found in the closed tabs of any window",
       Cr.NS_ERROR_INVALID_ARG

@@ -108,6 +108,37 @@ add_task(async function closeAndForgetTabs() {
   );
 });
 
+add_task(async function closeAndForgetTabsFromTabGroups() {
+  const newWin = await BrowserTestUtils.openNewBrowserWindow();
+
+  // sanity check recently-closed tab data
+  Assert.equal(SessionStore.getClosedTabCount(newWin), 0, "No tabs closed");
+
+  let groupedTab = await openTab(newWin, TEST_URLS[1]);
+  let group = newWin.gBrowser.addTabGroup([groupedTab]);
+  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
+  newWin.gBrowser.removeTabGroup(group);
+  await removePromise;
+  await TabStateFlusher.flushWindow(newWin);
+
+  await BrowserTestUtils.waitForCondition(() => {
+    return SessionStore.getClosedTabCount(newWin) == 1;
+  }, "Grouped tab is closed");
+
+  let closedTabs = SessionStore.getClosedTabData(newWin);
+  let sessionStoreUpdated = TestUtils.topicObserved(
+    "sessionstore-closed-objects-changed"
+  );
+  SessionStore.forgetClosedTabById(closedTabs[0].closedId);
+  await sessionStoreUpdated;
+
+  Assert.equal(
+    SessionStore.getClosedTabCount(newWin),
+    0,
+    "Grouped tab was forgotten"
+  );
+});
+
 add_task(async function closeAndForgetWindows() {
   let closedWindows;
   await BrowserTestUtils.closeWindow(window1);
