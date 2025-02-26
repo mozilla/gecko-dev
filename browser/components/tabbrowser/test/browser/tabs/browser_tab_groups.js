@@ -992,21 +992,10 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
     color: "red",
     label: "Test group with label",
   });
-
-  // Make sure the first and second groups have different lastSeenActive times.
-  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
-  await new Promise(resolve => setTimeout(resolve, 1));
-
   let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
   });
   let group2 = gBrowser.addTabGroup([tab2], { color: "blue", label: "" });
-
-  Assert.greater(
-    group2.lastSeenActive,
-    group1.lastSeenActive,
-    "last created group should have higher lastSeenActive time"
-  );
 
   let tabToClick = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
@@ -1026,11 +1015,11 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
       ).children;
 
       // Items 0 and 1 are the "new group" item and a separator respectively
-      // Note that groups should appear in order of most recently used to least
-      const group2Item = submenu[2];
+      // Note that groups should appear in order of most recently created to least
+      const group2Item = submenu[3];
       Assert.equal(
         group2Item.getAttribute("tab-group-id"),
-        group2.id,
+        group2.getAttribute("id"),
         "first group in list is group2"
       );
       Assert.equal(
@@ -1051,10 +1040,10 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
         "group2 menu item chicklet has correct inverted color"
       );
 
-      const group1Item = submenu[3];
+      const group1Item = submenu[2];
       Assert.equal(
         group1Item.getAttribute("tab-group-id"),
-        group1.id,
+        group1.getAttribute("id"),
         "second group in list is group1"
       );
       Assert.equal(
@@ -1201,7 +1190,7 @@ add_task(
       Assert.equal(submenu.length, 3, "only one tab group exists in the list");
       Assert.equal(
         submenu[2].getAttribute("tab-group-id"),
-        group1.id,
+        group1.getAttribute("id"),
         "tab group in the list is not the context menu tab's group"
       );
     });
