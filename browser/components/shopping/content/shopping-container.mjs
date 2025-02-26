@@ -274,19 +274,20 @@ export class ShoppingContainer extends MozLitElement {
   analysisDetailsTemplate() {
     /* At present, en is supported as the default language for reviews. As we support more sites,
      * update `lang` accordingly if highlights need to be displayed in other languages. */
-    let lang;
     let hostname = this.getHostnameFromProductUrl();
 
-    switch (hostname) {
-      case "www.amazon.fr":
-        lang = "fr";
-        break;
-      case "www.amazon.de":
-        lang = "de";
-        break;
-      default:
-        lang = "en";
+    let lang = "en";
+    let isDEFRSupported = RPMGetBoolPref(
+      "toolkit.shopping.experience2023.defr",
+      false
+    );
+
+    if (isDEFRSupported && hostname === "www.amazon.fr") {
+      lang = "fr";
+    } else if (isDEFRSupported && hostname === "www.amazon.de") {
+      lang = "de";
     }
+
     return html`
       <review-reliability letter=${this.data.grade}></review-reliability>
       <adjusted-rating

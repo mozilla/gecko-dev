@@ -120,40 +120,35 @@ class ShoppingSettings extends MozLitElement {
      *
      * Only show if `browser.shopping.experience2023.autoOpen.enabled` is true.
      */
-    let autoOpenDescriptionL10nId;
-    let autoOpenDescriptionL10nArgs;
-    let autoCloseDescriptionL10nId;
-    let autoCloseDescriptionL10nArgs;
+    let autoOpenDescriptionL10nId =
+      "shopping-settings-auto-open-description-three-sites";
+    let autoOpenDescriptionL10nArgs = {
+      firstSite: "Amazon",
+      secondSite: "Best Buy",
+      thirdSite: "Walmart",
+    };
+    let autoCloseDescriptionL10nId =
+      "shopping-settings-auto-close-description-three-sites";
+    let autoCloseDescriptionL10nArgs = {
+      firstSite: "Amazon",
+      secondSite: "Best Buy",
+      thirdSite: "Walmart",
+    };
 
-    switch (this.hostname) {
-      case "www.amazon.fr":
-      case "www.amazon.de":
-        autoOpenDescriptionL10nId =
-          "shopping-settings-auto-open-description-single-site";
-        autoOpenDescriptionL10nArgs = {
-          currentSite: "Amazon",
-        };
-        autoCloseDescriptionL10nId =
-          "shopping-settings-auto-close-description-single-site";
-        autoCloseDescriptionL10nArgs = {
-          currentSite: "Amazon",
-        };
-        break;
-      default:
-        autoOpenDescriptionL10nId =
-          "shopping-settings-auto-open-description-three-sites";
-        autoOpenDescriptionL10nArgs = {
-          firstSite: "Amazon",
-          secondSite: "Best Buy",
-          thirdSite: "Walmart",
-        };
-        autoCloseDescriptionL10nId =
-          "shopping-settings-auto-close-description-three-sites";
-        autoCloseDescriptionL10nArgs = {
-          firstSite: "Amazon",
-          secondSite: "Best Buy",
-          thirdSite: "Walmart",
-        };
+    if (
+      RPMGetBoolPref("toolkit.shopping.experience2023.defr", false) &&
+      (this.hostname === "www.amazon.fr" || this.hostname === "www.amazon.de")
+    ) {
+      autoOpenDescriptionL10nId =
+        "shopping-settings-auto-open-description-single-site";
+      autoOpenDescriptionL10nArgs = {
+        currentSite: "Amazon",
+      };
+      autoCloseDescriptionL10nId =
+        "shopping-settings-auto-close-description-single-site";
+      autoCloseDescriptionL10nArgs = {
+        currentSite: "Amazon",
+      };
     }
 
     let autoOpenToggleMarkup = this.autoOpenEnabled

@@ -278,6 +278,7 @@ export let RemotePageAccessManager = {
         "browser.shopping.experience2023.showKeepSidebarClosedMessage",
         "sidebar.revamp",
         "browser.shopping.experience2023.integratedSidebar",
+        "toolkit.shopping.experience2023.defr",
       ],
     },
     "about:tabcrashed": {

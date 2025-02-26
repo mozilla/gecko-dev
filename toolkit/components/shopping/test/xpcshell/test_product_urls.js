@@ -85,6 +85,22 @@ add_task(function test_product_fromUrl() {
     "Protocol is not checked"
   );
 
+  Services.prefs.setBoolPref("toolkit.shopping.experience2023.defr", false);
+
+  Assert.deepEqual(
+    ShoppingProduct.fromURL(new URL("https://amazon.fr/product/dp/ABCDEFG123")),
+    { host: "amazon.fr", sitename: "amazon", valid: false },
+    "amazon.fr product URL is not valid when DE/FR is disabled"
+  );
+
+  Assert.deepEqual(
+    ShoppingProduct.fromURL(new URL("https://amazon.de/product/dp/ABCDEFG123")),
+    { host: "amazon.de", sitename: "amazon", valid: false },
+    "amazon.de product URL is not valid when DE/FR is disabled"
+  );
+
+  Services.prefs.setBoolPref("toolkit.shopping.experience2023.defr", true);
+
   Assert.deepEqual(
     ShoppingProduct.fromURL(new URL("https://amazon.fr/product/dp/ABCDEFG123")),
     {
@@ -94,7 +110,7 @@ add_task(function test_product_fromUrl() {
       id: "ABCDEFG123",
       valid: true,
     },
-    "Valid French Product Url returns a full result object"
+    "amazon.fr product URL is valid when DE/FR is enabled"
   );
 
   Assert.deepEqual(
@@ -106,8 +122,10 @@ add_task(function test_product_fromUrl() {
       id: "ABCDEFG123",
       valid: true,
     },
-    "Valid German Product Url returns a full result object"
+    "amazon.de product URL is valid when DE/FR is enabled"
   );
+
+  Services.prefs.clearUserPref("toolkit.shopping.experience2023.defr");
 });
 
 add_task(function test_product_isProduct() {

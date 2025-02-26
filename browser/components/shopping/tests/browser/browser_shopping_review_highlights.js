@@ -3,6 +3,23 @@
 
 "use strict";
 
+async function assertLangDefault(browser, data, productUrl) {
+  return SpecialPowers.spawn(browser, [{ data, productUrl }], async args => {
+    let shoppingContainer =
+      content.document.querySelector("shopping-container").wrappedJSObject;
+    shoppingContainer.data = Cu.cloneInto(args.data, content);
+    if (args.productUrl) {
+      shoppingContainer.productUrl = args.productUrl;
+    }
+    await shoppingContainer.updateComplete;
+
+    let reviewHighlights = shoppingContainer.highlightsEl;
+    ok(reviewHighlights, "Got review highlights");
+    await reviewHighlights.updateComplete;
+    is(reviewHighlights.lang, "en", "lang should be set to en by default");
+  });
+}
+
 async function verifyHighlights(
   browser,
   data,
@@ -67,9 +84,13 @@ async function verifyHighlights(
 
 /**
  * Tests that the review highlights custom components are visible on the page
- * if there is valid data.
+ * if there is valid data. Make sure highlights for de/fr are visible when
+ * toolkit.shopping.experience2023.defr is enabled.
  */
-add_task(async function test_review_highlights() {
+add_task(async function test_review_highlights_de_fr_enabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["toolkit.shopping.experience2023.defr", true]],
+  });
   await BrowserTestUtils.withNewTab(
     {
       url: "about:shoppingsidebar",
@@ -112,6 +133,49 @@ add_task(async function test_review_highlights() {
       );
     }
   );
+  await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Tests that the review highlights custom components are visible on the page
+ * if there is valid data. Make sure highlights for de/fr are not visible when
+ * toolkit.shopping.experience2023.defr is disabled.
+ */
+add_task(async function test_review_highlights_de_fr_disabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["toolkit.shopping.experience2023.defr", false]],
+  });
+  await BrowserTestUtils.withNewTab(
+    {
+      url: "about:shoppingsidebar",
+      gBrowser,
+    },
+    async browser => {
+      let data = MOCK_ANALYZED_PRODUCT_RESPONSE;
+      let expectedHighlightTypes = [
+        "price",
+        "quality",
+        "competitiveness",
+        "packaging/appearance",
+      ];
+
+      info("Testing with default en highlights");
+      await verifyHighlights(
+        browser,
+        data,
+        undefined,
+        expectedHighlightTypes,
+        "en"
+      );
+
+      info("Testing with www.amazon.fr");
+      await assertLangDefault(browser, data, "https://www.amazon.fr");
+
+      info("Testing with www.amazon.de");
+      await assertLangDefault(browser, data, "https://www.amazon.de");
+    }
+  );
+  await SpecialPowers.popPrefEnv();
 });
 
 /**

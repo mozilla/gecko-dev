@@ -1131,14 +1131,6 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
       switch (
         productUrl // Insert the productUrl into content
       ) {
-        case "www.amazon.fr":
-        case "www.amazon.de":
-          optInScreen.content.subtitle.string_id =
-            "shopping-onboarding-single-subtitle";
-          optInScreen.content.subtitle.args = {
-            currentSite: "Amazon",
-          };
-          break;
         case "www.amazon.com":
           optInScreen.content.subtitle.args = {
             currentSite: "Amazon",
@@ -1166,6 +1158,17 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
             secondSite: "Walmart",
             thirdSite: "Best Buy",
           };
+      }
+
+      if (
+        Services.prefs.getBoolPref("toolkit.shopping.experience2023.defr") &&
+        (productUrl === "www.amazon.fr" || productUrl === "www.amazon.de")
+      ) {
+        optInScreen.content.subtitle.string_id =
+          "shopping-onboarding-single-subtitle";
+        optInScreen.content.subtitle.args = {
+          currentSite: "Amazon",
+        };
       }
     }
 

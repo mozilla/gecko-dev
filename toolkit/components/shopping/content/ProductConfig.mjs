@@ -103,7 +103,7 @@ const ProductConfig = {
   amazon: {
     productIdFromURLRegex:
       /(?:[\/]|$|%2F)(?<productId>[A-Z0-9]{10})(?:[\/]|$|\#|\?|%2F)/,
-    validTLDs: ["com", "de", "fr"],
+    validTLDs: ["com"],
   },
   walmart: {
     productIdFromURLRegex:
@@ -115,6 +115,9 @@ const ProductConfig = {
     validTLDs: ["com"],
   },
 };
+
+const ProductConfigDEFR = structuredClone(ProductConfig);
+ProductConfigDEFR.amazon.validTLDs = ["com", "de", "fr"];
 
 if (lazy.env == "test") {
   // Also allow example.com to allow for testing.
@@ -135,5 +138,6 @@ export {
   REPORTING_RESPONSE_SCHEMA,
   REPORTING_REQUEST_SCHEMA,
   ProductConfig,
+  ProductConfigDEFR,
   ShoppingEnvironment,
 };

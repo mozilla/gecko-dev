@@ -16,6 +16,7 @@ import {
   REPORTING_RESPONSE_SCHEMA,
   REPORTING_REQUEST_SCHEMA,
   ProductConfig,
+  ProductConfigDEFR,
   ShoppingEnvironment,
 } from "chrome://global/content/shopping/ProductConfig.mjs";
 
@@ -128,6 +129,15 @@ export class ShoppingProduct extends EventEmitter {
   static getSupportedDomains(productConfig = ProductConfig) {
     let supportedSites = {};
     try {
+      if (
+        Services.prefs.getBoolPref(
+          "toolkit.shopping.experience2023.defr",
+          false
+        ) &&
+        productConfig === ProductConfig
+      ) {
+        productConfig = ProductConfigDEFR;
+      }
       Object.keys(productConfig).forEach(sitename => {
         let tldsMap = productConfig[sitename].validTLDs.map(tld => {
           return `https://${sitename}.${tld}`;
@@ -175,6 +185,13 @@ export class ShoppingProduct extends EventEmitter {
 
     // Check if sitename is one the API has products for
     let siteConfig = ProductConfig[sitename];
+
+    if (
+      Services.prefs.getBoolPref("toolkit.shopping.experience2023.defr", false)
+    ) {
+      siteConfig = ProductConfigDEFR[sitename];
+    }
+
     if (!siteConfig) {
       return result;
     }

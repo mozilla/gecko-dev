@@ -548,6 +548,9 @@ pref("toolkit.shopping.ohttpConfigURL", "https://prod.ohttp-gateway.prod.webserv
 pref("toolkit.shopping.ohttpRelayURL", "https://mozilla-ohttp.fastly-edge.com/");
 pref("toolkit.shopping.environment", "prod");
 
+// Determines whether Review Checker is enabled for de and fr domains
+pref("toolkit.shopping.experience2023.defr", false);
+
 // Controls logging for Sqlite.sys.mjs.
 pref("toolkit.sqlitejsm.loglevel", "Error");
 
