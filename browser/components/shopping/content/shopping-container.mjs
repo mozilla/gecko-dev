@@ -23,6 +23,8 @@ import "chrome://browser/content/shopping/shopping-message-bar.mjs";
 import "chrome://browser/content/shopping/unanalyzed.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/shopping/recommended-ad.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/shopping/new-position-notification-card.mjs";
 
 // The number of pixels that must be scrolled from the
 // top of the sidebar to show the header box shadow.
@@ -37,6 +39,8 @@ const SHOPPING_SIDEBAR_ACTIVE_PREF = "browser.shopping.experience2023.active";
 const SIDEBAR_REVAMP_PREF = "sidebar.revamp";
 const INTEGRATED_SIDEBAR_PREF =
   "browser.shopping.experience2023.integratedSidebar";
+const HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF =
+  "browser.shopping.experience2023.newPositionCard.hasSeen";
 
 export class ShoppingContainer extends MozLitElement {
   static properties = {
@@ -62,6 +66,8 @@ export class ShoppingContainer extends MozLitElement {
     supportedDomains: { type: Object },
     formattedDomainList: { type: Object, state: true },
     isHeaderOverflow: { type: Boolean, state: true },
+    isSidebarStartPosition: { type: Boolean },
+    showNewPositionCard: { type: Boolean },
   };
 
   static get queries() {
@@ -83,6 +89,7 @@ export class ShoppingContainer extends MozLitElement {
       emptyStateSupportedListEl: "#shopping-empty-list-of-supported-domains",
       containerContentEl: "#content",
       header: "#shopping-header",
+      newPositionNotificationCardEl: "new-position-notification-card",
     };
   }
 
@@ -108,6 +115,8 @@ export class ShoppingContainer extends MozLitElement {
     window.document.addEventListener("autoCloseEnabledByUserChanged", this);
     window.document.addEventListener("ShowKeepClosedMessage", this);
     window.document.addEventListener("HideKeepClosedMessage", this);
+    window.document.addEventListener("ShowNewPositionCard", this);
+    window.document.addEventListener("HideNewPositionCard", this);
 
     window.dispatchEvent(
       new CustomEvent("ContentReady", {
@@ -145,7 +154,7 @@ export class ShoppingContainer extends MozLitElement {
         this.formattedDomainList = null;
       }
     }
-    // TODO:
+
     if (this.focusCloseButton) {
       this.closeButtonEl.focus();
     }
@@ -167,6 +176,7 @@ export class ShoppingContainer extends MozLitElement {
     isProductPage,
     isSupportedSite,
     supportedDomains,
+    isSidebarStartPosition,
   }) {
     // If we're not opted in or there's no shopping URL in the main browser,
     // the actor will pass `null`, which means this will clear out any existing
@@ -189,6 +199,8 @@ export class ShoppingContainer extends MozLitElement {
     this.isProductPage = isProductPage ?? true;
     this.isSupportedSite = isSupportedSite;
     this.supportedDomains = supportedDomains ?? this.supportedDomains;
+    this.isSidebarStartPosition =
+      isSidebarStartPosition ?? this.isSidebarStartPosition;
   }
 
   _updateRecommendations({ recommendationData }) {
@@ -251,6 +263,12 @@ export class ShoppingContainer extends MozLitElement {
         break;
       case "HideKeepClosedMessage":
         this.showingKeepClosedMessage = false;
+        break;
+      case "ShowNewPositionCard":
+        this.showNewPositionCard = true;
+        break;
+      case "HideNewPositionCard":
+        this.showNewPositionCard = false;
         break;
     }
   }
@@ -544,6 +562,7 @@ export class ShoppingContainer extends MozLitElement {
     </div>`;
   }
 
+  // TODO: (Bug 1949647) do not render "Keep closed" message and notification card simultaneously.
   renderContainer(sidebarContent, { showSettings = false } = {}) {
     /* Empty state styles for users that are not yet opted-in are managed separately
      * by AboutWelcomeChild.sys.mjs and _shopping.scss. To prevent overlap, only apply
@@ -571,6 +590,7 @@ export class ShoppingContainer extends MozLitElement {
           aria-busy=${!this.data}
         >
           <slot name="multi-stage-message-slot"></slot>
+          ${this.newPositionNotificationCardTemplate()}
           ${this.keepClosedMessageTemplate()}${sidebarContent}
           ${showSettings
             ? this.settingsTemplate(
@@ -581,6 +601,24 @@ export class ShoppingContainer extends MozLitElement {
             : null}
         </div>
       </div>`;
+  }
+
+  newPositionNotificationCardTemplate() {
+    if (
+      this.autoOpenEnabled &&
+      this.autoOpenEnabledByUser &&
+      this.showNewPositionCard &&
+      this.isSidebarStartPosition &&
+      // Set fallback value to true to prevent weird flickering UI when switching tabs
+      !RPMGetBoolPref(HAS_SEEN_POSITION_NOTIFICATION_CARD_PREF, true)
+    ) {
+      return html`
+        <new-position-notification-card
+          isSidebarStartPosition=${this.isSidebarStartPosition}
+        ></new-position-notification-card>
+      `;
+    }
+    return null;
   }
 
   explainerTemplate({ className = "" } = {}) {
