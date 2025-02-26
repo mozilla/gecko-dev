@@ -107,7 +107,11 @@ export class MarionetteReftestChild extends JSWindowActorChild {
       documentElement.dispatchEvent(event);
       lazy.logger.info("Emitted TestRendered event");
       await this.reftestWaitRemoved();
-      await this.paintComplete({ useRemote, ignoreThrottledAnimations: false });
+      await this.paintComplete({
+        useRemote,
+        ignoreThrottledAnimations: false,
+        once: true,
+      });
     }
     if (
       options.warnOnOverflow &&
@@ -121,9 +125,10 @@ export class MarionetteReftestChild extends JSWindowActorChild {
     return true;
   }
 
-  paintComplete({ useRemote, ignoreThrottledAnimations }) {
+  paintComplete({ useRemote, ignoreThrottledAnimations, once }) {
     lazy.logger.debug("Waiting for rendering");
     let windowUtils = this.document.defaultView.windowUtils;
+    let painted = false;
     return new Promise(resolve => {
       let maybeResolve = () => {
         this.flushRendering({ ignoreThrottledAnimations });
@@ -133,11 +138,14 @@ export class MarionetteReftestChild extends JSWindowActorChild {
           windowUtils.updateLayerTree();
         }
 
-        if (windowUtils.isMozAfterPaintPending) {
+        if (windowUtils.isMozAfterPaintPending && (!once || !painted)) {
           lazy.logger.debug("isMozAfterPaintPending: true");
           this.document.defaultView.addEventListener(
             "MozAfterPaint",
-            maybeResolve,
+            () => {
+              painted = true;
+              maybeResolve();
+            },
             {
               once: true,
             }
