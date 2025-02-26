@@ -270,8 +270,9 @@ class EventSourceImpl final : public nsIChannelEventSink,
   nsString mLastFieldValue;
 
   // EventSourceImpl internal states.
-  // WorkerRef to keep the worker alive. (accessed on worker thread only)
-  RefPtr<ThreadSafeWorkerRef> mWorkerRef;
+  // WorkerRef to keep the worker alive.
+  DataMutex<RefPtr<ThreadSafeWorkerRef>> mWorkerRef;
+
   // Whether the window is frozen. May be set on main thread and read on target
   // thread.
   Atomic<bool> mFrozen;
@@ -382,6 +383,7 @@ EventSourceImpl::EventSourceImpl(EventSource* aEventSource,
                                  nsICookieJarSettings* aCookieJarSettings)
     : mReconnectionTime(0),
       mStatus(PARSE_STATE_OFF),
+      mWorkerRef(nullptr, "EventSourceImpl::mWorkerRef"),
       mFrozen(false),
       mGoingToDispatchAllMessages(false),
       mIsMainThread(NS_IsMainThread()),
@@ -1130,7 +1132,7 @@ void EventSourceImpl::ResetDecoder() {
 class CallRestartConnection final : public WorkerMainThreadRunnable {
  public:
   explicit CallRestartConnection(RefPtr<EventSourceImpl>&& aEventSourceImpl)
-      : WorkerMainThreadRunnable(aEventSourceImpl->mWorkerRef->Private(),
+      : WorkerMainThreadRunnable(GetCurrentThreadWorkerPrivate(),
                                  "EventSource :: RestartConnection"_ns),
         mESImpl(std::move(aEventSourceImpl)) {
     MOZ_ASSERT(mESImpl);
@@ -1797,7 +1799,8 @@ class WorkerRunnableDispatcher final : public WorkerThreadRunnable {
 }  // namespace
 
 bool EventSourceImpl::CreateWorkerRef(WorkerPrivate* aWorkerPrivate) {
-  MOZ_ASSERT(!mWorkerRef);
+  auto tsWorkerRef = mWorkerRef.Lock();
+  MOZ_ASSERT(!*tsWorkerRef);
   MOZ_ASSERT(aWorkerPrivate);
   aWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -1813,14 +1816,15 @@ bool EventSourceImpl::CreateWorkerRef(WorkerPrivate* aWorkerPrivate) {
     return false;
   }
 
-  mWorkerRef = new ThreadSafeWorkerRef(workerRef);
+  *tsWorkerRef = new ThreadSafeWorkerRef(workerRef);
   return true;
 }
 
 void EventSourceImpl::ReleaseWorkerRef() {
   MOZ_ASSERT(IsClosed());
   MOZ_ASSERT(IsCurrentThreadRunningWorker());
-  mWorkerRef = nullptr;
+  auto workerRef = mWorkerRef.Lock();
+  *workerRef = nullptr;
 }
 
 //-----------------------------------------------------------------------------
@@ -1849,10 +1853,15 @@ EventSourceImpl::Dispatch(already_AddRefed<nsIRunnable> aEvent,
 
   // If the target is a worker, we have to use a custom WorkerRunnableDispatcher
   // runnable.
+  auto workerRef = mWorkerRef.Lock();
+  // Return NS_OK if the worker has already shutdown
+  if (!*workerRef) {
+    return NS_OK;
+  }
   RefPtr<WorkerRunnableDispatcher> event = new WorkerRunnableDispatcher(
-      this, mWorkerRef->Private(), event_ref.forget());
+      this, (*workerRef)->Private(), event_ref.forget());
 
-  if (!event->Dispatch(mWorkerRef->Private())) {
+  if (!event->Dispatch((*workerRef)->Private())) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
