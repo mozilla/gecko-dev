@@ -554,6 +554,9 @@ int StartServer(int argc, char* argv[], SSLSNISocketConfig sniSocketConfig,
     return 1;
   }
 
+  /* Disabling NSS_KEY_SIZE_POLICY as we operate with short keys. */
+  NSS_OptionSet(NSS_KEY_SIZE_POLICY_FLAGS, 0);
+
   if (SSL_ConfigServerSessionIDCache(0, 0, 0, nullptr) != SECSuccess) {
     PrintPRError("SSL_ConfigServerSessionIDCache failed");
     return 1;
