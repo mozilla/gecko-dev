@@ -537,7 +537,6 @@ struct MOZ_STACK_CLASS StackingContextParams : public WrStackingContextParams {
             nullptr,
             nullptr,
             nullptr,
-            nullptr,
             wr::TransformStyle::Flat,
             wr::WrReferenceFrameKind::Transform,
             false,
@@ -596,7 +595,7 @@ class DisplayListBuilder final {
 
   Maybe<wr::WrSpatialId> PushStackingContext(
       const StackingContextParams& aParams, const wr::LayoutRect& aBounds,
-      const wr::RasterSpace& aRasterSpace);
+      const wr::RasterSpace& aRasterSpace, const wr::SnapshotInfo* aSnapshot);
   void PopStackingContext(bool aIsReferenceFrame);
 
   wr::WrClipChainId DefineClipChain(const nsTArray<wr::WrClipId>& aClips,

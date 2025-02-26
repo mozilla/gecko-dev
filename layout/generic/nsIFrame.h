@@ -4504,9 +4504,6 @@ class nsIFrame : public nsQueryFrame {
                                     const nsStyleEffects* aEffects,
                                     const nsSize& aSize) const;
 
-  /** Whether this frame is a stacking context for view transitions purposes */
-  bool ForcesStackingContextForViewTransition() const;
-
   /**
    * Check if this frame is focusable and in the current tab order.
    * Tabbable is indicated by a nonnegative tabindex & is a subset of focusable.

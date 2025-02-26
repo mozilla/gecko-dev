@@ -1909,10 +1909,6 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleUIReset {
 
   mozilla::StyleFieldSizing mFieldSizing;
 
-  bool HasViewTransitionName() const {
-    return !mViewTransitionName._0.AsAtom()->IsEmpty();
-  }
-
   mozilla::StyleViewTransitionName mViewTransitionName;
 };
 

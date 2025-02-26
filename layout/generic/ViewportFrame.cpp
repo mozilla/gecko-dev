@@ -17,7 +17,6 @@
 #include "mozilla/RestyleManager.h"
 #include "mozilla/ScrollContainerFrame.h"
 #include "nsGkAtoms.h"
-#include "mozilla/dom/ViewTransition.h"
 #include "nsAbsoluteContainingBlock.h"
 #include "nsCanvasFrame.h"
 #include "nsLayoutUtils.h"
@@ -164,9 +163,7 @@ nsDisplayWrapList* ViewportFrame::BuildDisplayListForTopLayer(
     nsDisplayListBuilder* aBuilder, bool* aIsOpaque) {
   nsDisplayList topLayerList(aBuilder);
 
-  auto* doc = PresContext()->Document();
-
-  nsTArray<dom::Element*> topLayer = doc->GetTopLayer();
+  nsTArray<dom::Element*> topLayer = PresContext()->Document()->GetTopLayer();
   for (dom::Element* elem : topLayer) {
     nsIFrame* frame = elem->GetPrimaryFrame();
     if (!frame) {
@@ -216,17 +213,6 @@ nsDisplayWrapList* ViewportFrame::BuildDisplayListForTopLayer(
       }
     }
     BuildDisplayListForTopLayerFrame(aBuilder, frame, &topLayerList);
-  }
-
-  if (dom::ViewTransition* vt = doc->GetActiveViewTransition()) {
-    if (dom::Element* root = vt->GetRoot()) {
-      if (nsIFrame* frame = root->GetPrimaryFrame()) {
-        MOZ_ASSERT(frame->StyleDisplay()->mTopLayer != StyleTopLayer::None,
-                   "ua.css should ensure this");
-        MOZ_ASSERT(frame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW));
-        BuildDisplayListForTopLayerFrame(aBuilder, frame, &topLayerList);
-      }
-    }
   }
 
   if (nsCanvasFrame* canvasFrame = PresShell()->GetCanvasFrame()) {

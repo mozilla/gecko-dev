@@ -1037,10 +1037,8 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn inheritance_parent(&self) -> Option<Self> {
-        if let Some(pseudo) = self.implemented_pseudo_element() {
-            if !pseudo.is_part_like() {
-                return self.pseudo_element_originating_element();
-            }
+        if self.is_pseudo_element() {
+            return self.pseudo_element_originating_element();
         }
 
         self.as_node()
