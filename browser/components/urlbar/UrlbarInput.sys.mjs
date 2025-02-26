@@ -141,7 +141,6 @@ export class UrlbarInput {
       "nsIObserver",
       "nsISupportsWeakReference",
     ]);
-    this._addObservers();
 
     // This exists only for tests.
     this._enableAutofillPlaceholder = true;
@@ -2285,12 +2284,12 @@ export class UrlbarInput {
             break;
           }
           case lazy.SearchUtils.MODIFIED_TYPE.DEFAULT:
-            if (this.#searchInitComplete && !this.isPrivate) {
+            if (!this.isPrivate) {
               this._updatePlaceholder(engine.name);
             }
             break;
           case lazy.SearchUtils.MODIFIED_TYPE.DEFAULT_PRIVATE:
-            if (this.#searchInitComplete && this.isPrivate) {
+            if (this.isPrivate) {
               this._updatePlaceholder(engine.name);
             }
             break;
@@ -3839,34 +3838,68 @@ export class UrlbarInput {
    * initPlaceHolder when this is called, the update is delayed to avoid
    * confusing the user.
    */
-  delayedStartupInit() {
-    this._updatePlaceholderFromDefaultEngine(true).then(() => {
-      this.#searchInitComplete = true;
-    });
+  async delayedStartupInit() {
+    // Only delay if requested, and we're not displaying text in the URL bar
+    // currently.
+    if (!this.value) {
+      // Delays changing the URL Bar placeholder and Unified Search Button icon
+      // until the user is not going to be seeing it, e.g. when there is a value
+      // entered in the bar, or if there is a tab switch to a tab which has a url
+      // loaded. We delay the update until the user is out of search mode since
+      // an alternative placeholder is used in search mode.
+      let updateListener = () => {
+        if (this.value && !this.searchMode) {
+          // By the time the user has switched, they may have changed the engine
+          // again, so we need to call this function again but with the
+          // new engine name.
+          // No need to await for this to finish, we're in a listener here anyway.
+          this.searchModeSwitcher.updateSearchIcon();
+          this._updatePlaceholderFromDefaultEngine();
+          this.removeEventListener("input", updateListener);
+          this.window.gBrowser.tabContainer.removeEventListener(
+            "TabSelect",
+            updateListener
+          );
+        }
+      };
+
+      this.addEventListener("input", updateListener);
+      this.window.gBrowser.tabContainer.addEventListener(
+        "TabSelect",
+        updateListener
+      );
+    } else {
+      await this._updatePlaceholderFromDefaultEngine();
+    }
+
+    // If we haven't finished initializing, ensure the placeholder
+    // preference is set for the next startup.
+    lazy.SearchUIUtils.updatePlaceholderNamePreference(
+      await this._getDefaultSearchEngine(),
+      this.isPrivate
+    );
+
+    this._addObservers();
+  }
+
+  /**
+   * Returns a Promise that resolves with default search engine.
+   *
+   * @returns {Promise<nsISearchEngine>}
+   */
+  _getDefaultSearchEngine() {
+    return this.isPrivate
+      ? Services.search.getDefaultPrivate()
+      : Services.search.getDefault();
   }
 
   /**
    * This is a wrapper around '_updatePlaceholder' that uses the appropriate
-   * default engine to get the engine name. This also saves the current engine
-   * name in preferences for the next restart.
-   *
-   * @param {boolean} [delayUpdate]  Set to true, to delay update until the
-   *                                 placeholder is not displayed.
+   * default engine to get the engine name.
    */
-  async _updatePlaceholderFromDefaultEngine(delayUpdate = false) {
-    const getDefault = this.isPrivate
-      ? Services.search.getDefaultPrivate
-      : Services.search.getDefault;
-    let defaultEngine = await getDefault();
-    if (!this.#searchInitComplete) {
-      // If we haven't finished initializing, ensure the placeholder
-      // preference is set for the next startup.
-      lazy.SearchUIUtils.updatePlaceholderNamePreference(
-        defaultEngine,
-        this.isPrivate
-      );
-    }
-    this._updatePlaceholder(defaultEngine.name, delayUpdate);
+  async _updatePlaceholderFromDefaultEngine() {
+    const defaultEngine = await this._getDefaultSearchEngine();
+    this._updatePlaceholder(defaultEngine.name);
   }
 
   /**
@@ -3877,12 +3910,14 @@ export class UrlbarInput {
    * engines, as we know they should have short names.
    *
    * @param {string}  engineName     The search engine name to use for the update.
-   * @param {boolean} [delayUpdate]  Set to true to delay update until the
-   *                                 placeholder is not displayed.
    */
-  _updatePlaceholder(engineName, delayUpdate = false) {
+  _updatePlaceholder(engineName) {
     if (!engineName) {
       throw new Error("Expected an engineName to be specified");
+    }
+
+    if (this.searchMode) {
+      return;
     }
 
     const engine = Services.search.getEngineByName(engineName);
@@ -3892,38 +3927,7 @@ export class UrlbarInput {
       engineName = "";
     }
 
-    // Only delay if requested, and we're not displaying text in the URL bar
-    // currently.
-    if (delayUpdate && !this.value) {
-      // Delays changing the URL Bar placeholder until the user is not going to be
-      // seeing it, e.g. when there is a value entered in the bar, or if there is
-      // a tab switch to a tab which has a url loaded. We delay the update until
-      // the user is out of search mode since an alternative placeholder is used
-      // in search mode.
-      let placeholderUpdateListener = () => {
-        if (this.value && !this.searchMode) {
-          // By the time the user has switched, they may have changed the engine
-          // again, so we need to call this function again but with the
-          // new engine name.
-          // No need to await for this to finish, we're in a listener here anyway.
-          this.searchModeSwitcher.updateSearchIcon();
-          this._updatePlaceholderFromDefaultEngine(false);
-          this.removeEventListener("input", placeholderUpdateListener);
-          this.window.gBrowser.tabContainer.removeEventListener(
-            "TabSelect",
-            placeholderUpdateListener
-          );
-        }
-      };
-
-      this.addEventListener("input", placeholderUpdateListener);
-      this.window.gBrowser.tabContainer.addEventListener(
-        "TabSelect",
-        placeholderUpdateListener
-      );
-    } else if (!this.searchMode) {
-      this._setPlaceholder(engineName);
-    }
+    this._setPlaceholder(engineName);
   }
 
   /**
@@ -4958,12 +4962,6 @@ export class UrlbarInput {
         this._isKeyDownWithMetaAndLeft)
     );
   }
-
-  /**
-   * Whether the search service has initialized and the placeholder
-   * has been update with the correct default engine.
-   */
-  #searchInitComplete = false;
 }
 
 /**

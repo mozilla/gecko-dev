@@ -118,7 +118,7 @@ export var SearchUIUtils = {
 
     for (let openWin of lazy.BrowserWindowTracker.orderedWindows) {
       openWin.gURLBar
-        ?._updatePlaceholderFromDefaultEngine(false)
+        ?._updatePlaceholderFromDefaultEngine()
         .catch(console.error);
     }
   },
