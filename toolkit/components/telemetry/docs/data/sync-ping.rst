@@ -249,15 +249,10 @@ The sync ping includes histograms relating to measurements of password manager u
 These histograms are duplicated in the main ping. Histograms are only included in a ping if they have been set by the pwmgr code.
 Currently, the histograms that can be included are:
 
-PWMGR_BLOCKLIST_NUM_SITES
 PWMGR_FORM_AUTOFILL_RESULT
-PWMGR_LOGIN_LAST_USED_DAYS
 PWMGR_LOGIN_PAGE_SAFETY
-PWMGR_NUM_PASSWORDS_PER_HOSTNAME
-PWMGR_NUM_SAVED_PASSWORDS
 PWMGR_PROMPT_REMEMBER_ACTION
 PWMGR_PROMPT_UPDATE_ACTION
-PWMGR_SAVING_ENABLED
 
 Histograms are objects with the following 6 properties:
 - min - minimum bucket size
