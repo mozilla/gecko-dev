@@ -10,6 +10,25 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 
 class ThreeDotMenuBookmarksRobotCompose() {
     class Transition(private val composeTestRule: ComposeTestRule) {
+
+        fun clickOpenInNewTab(interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
+            Log.i(TAG, "clickOpenInNewTab: Trying to click the \"Open in new tab\" button")
+            composeTestRule.openInNewTabButton().performClick()
+            Log.i(TAG, "clickOpenInNewTab: Clicked the \"Open in new tab\" button")
+
+            TabDrawerRobot(composeTestRule).interact()
+            return TabDrawerRobot.Transition(composeTestRule)
+        }
+
+        fun clickOpenInPrivateTab(interact: TabDrawerRobot.() -> Unit): TabDrawerRobot.Transition {
+            Log.i(TAG, "clickOpenInPrivateTab: Trying to click the \"Open in private tab\" button")
+            composeTestRule.openInPrivateTabButton().performClick()
+            Log.i(TAG, "clickOpenInPrivateTab: Clicked the \"Open in private tab\" button")
+
+            TabDrawerRobot(composeTestRule).interact()
+            return TabDrawerRobot.Transition(composeTestRule)
+        }
+
         fun clickDelete(interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
             Log.i(TAG, "clickDelete: Trying to click the \"Delete\" button")
             composeTestRule.deleteButton().performClick()
@@ -36,11 +55,25 @@ class ThreeDotMenuBookmarksRobotCompose() {
             BookmarksRobotCompose(composeTestRule).interact()
             return BookmarksRobotCompose.Transition(composeTestRule)
         }
+
+        fun clickCopy(interact: BookmarksRobotCompose.() -> Unit): BookmarksRobotCompose.Transition {
+            Log.i(TAG, "clickCopy: Trying to click the \"Copy\" button")
+            composeTestRule.copyButton().performClick()
+            Log.i(TAG, "clickCopy: Clicked the \"Copy\" button")
+
+            BookmarksRobotCompose(composeTestRule).interact()
+            return BookmarksRobotCompose.Transition(composeTestRule)
+        }
     }
 }
+private fun ComposeTestRule.openInNewTabButton() = onNodeWithText(getStringResource(R.string.bookmark_menu_open_in_new_tab_button))
+
+private fun ComposeTestRule.openInPrivateTabButton() = onNodeWithText(getStringResource(R.string.bookmark_menu_open_in_private_tab_button))
 
 private fun ComposeTestRule.editButton() = onNodeWithText(getStringResource(R.string.bookmark_menu_edit_button))
 
 private fun ComposeTestRule.shareButton() = onNodeWithText(getStringResource(R.string.bookmark_menu_share_button))
 
 private fun ComposeTestRule.deleteButton() = onNodeWithText(getStringResource(R.string.bookmark_menu_delete_button))
+
+private fun ComposeTestRule.copyButton() = onNodeWithText(getStringResource(R.string.bookmark_menu_copy_button))

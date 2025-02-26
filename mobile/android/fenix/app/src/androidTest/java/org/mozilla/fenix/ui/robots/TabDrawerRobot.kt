@@ -69,7 +69,7 @@ fun tabDrawer(
 /**
  * Implementation of Robot Pattern for the Tabs Tray.
  */
-class TabDrawerRobot(private val composeTestRule: HomeActivityComposeTestRule) {
+class TabDrawerRobot(private val composeTestRule: ComposeTestRule) {
 
     fun verifyNormalBrowsingButtonIsSelected(isSelected: Boolean = true) {
         if (isSelected) {
@@ -438,7 +438,7 @@ class TabDrawerRobot(private val composeTestRule: HomeActivityComposeTestRule) {
         Log.i(TAG, "closeTabWithTitle: Clicked the close button for tab with title: $title")
     }
 
-    class Transition(private val composeTestRule: HomeActivityComposeTestRule) {
+    class Transition(private val composeTestRule: ComposeTestRule) {
 
         fun openNewTab(interact: SearchRobot.() -> Unit): SearchRobot.Transition {
             Log.i(TAG, "openNewTab: Waiting for device to be idle")
@@ -637,7 +637,7 @@ fun composeTabDrawer(composeTestRule: HomeActivityComposeTestRule, interact: Tab
 /**
  * Clicks on the Collections button in the Tabs Tray banner and opens a transition in the [CollectionRobot].
  */
-private fun clickCollectionsButton(composeTestRule: HomeActivityComposeTestRule, interact: CollectionRobot.() -> Unit): CollectionRobot.Transition {
+private fun clickCollectionsButton(composeTestRule: ComposeTestRule, interact: CollectionRobot.() -> Unit): CollectionRobot.Transition {
     Log.i(TAG, "clickCollectionsButton: Trying to click the collections button")
     composeTestRule.collectionsButton().performClick()
     Log.i(TAG, "clickCollectionsButton: Clicked the collections button")

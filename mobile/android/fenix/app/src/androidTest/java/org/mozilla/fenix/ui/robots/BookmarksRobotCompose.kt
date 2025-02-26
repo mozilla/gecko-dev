@@ -5,6 +5,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onChildAt
@@ -19,6 +20,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.LONG_CLICK_DURATION
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.addBookmarkFolderNameTextField
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemTileTextField
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.editBookmarkedItemURLTextField
@@ -65,6 +67,15 @@ class BookmarksRobotCompose(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "verifyEditBookmarksView: Verified that the edit bookmark view items are displayed")
     }
 
+    fun verifyAddFolderView() {
+        Log.i(TAG, "verifyAddFolderView: Trying to verify that the folder name title field is displayed")
+        composeTestRule.addFolderTitleField().assertIsDisplayed()
+        Log.i(TAG, "verifyAddFolderView: Verified that the folder name title field is displayed")
+        Log.i(TAG, "verifyAddFolderView: Trying to verify that the bookmark folder selector is displayed")
+        composeTestRule.bookmarkFolderSelector().assertIsDisplayed()
+        Log.i(TAG, "verifyAddFolderView: Verified that the bookmark folder selector is displayed")
+    }
+
     fun cancelFolderDeletion() {
         Log.i(TAG, "cancelFolderDeletion: Trying to click \"Cancel\" bookmarks folder deletion dialog button")
         composeTestRule.onNodeWithText(getStringResource(R.string.bookmark_delete_negative).uppercase()).performClick()
@@ -91,6 +102,12 @@ class BookmarksRobotCompose(private val composeTestRule: ComposeTestRule) {
         composeTestRule.addFolderButton().performClick()
         Log.i(TAG, "clickAddFolderButton: Clicked add bookmarks folder button")
         composeTestRule.waitForIdle()
+    }
+
+    fun clickSelectFolderNewFolderButton() {
+        Log.i(TAG, "clickSelectFolderNewFolderButton: Trying to click the select new folder button")
+        composeTestRule.selectFolderNewFolderButton().performClick()
+        Log.i(TAG, "clickSelectFolderNewFolderButton: Clicked the select new folder button")
     }
 
     fun addNewFolderName(name: String) {
@@ -165,6 +182,13 @@ class BookmarksRobotCompose(private val composeTestRule: ComposeTestRule) {
         Log.i(TAG, "confirmDeletion: Clicked \"Delete\" bookmarks deletion button")
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    fun waitForBookmarksSnackBarToBeGone(snackbarText: String) {
+        Log.i(TAG, "waitForBookmarksSnackBarToBeGone: Waiting for $waitingTime for snackbar: $snackbarText to be gone")
+        composeTestRule.waitUntilDoesNotExist(hasText(snackbarText), waitingTime)
+        Log.i(TAG, "waitForBookmarksSnackBarToBeGone: Waited for $waitingTime for snackbar: $snackbarText to be gone")
+    }
+
     class Transition(private val composeTestRule: ComposeTestRule) {
         fun openThreeDotMenu(bookmarkedItem: String, interact: ThreeDotMenuBookmarksRobotCompose.() -> Unit): ThreeDotMenuBookmarksRobotCompose.Transition {
             Log.i(TAG, "openThreeDotMenu: Trying to click three dot button for bookmark item: $bookmarkedItem")
@@ -233,3 +257,6 @@ private fun ComposeTestRule.bookmarkFolderSelector() =
 
 private fun ComposeTestRule.bookmarkURLEditBox() =
     onNodeWithTag(editBookmarkedItemURLTextField).onChildAt(0)
+
+private fun ComposeTestRule.selectFolderNewFolderButton() =
+    onNodeWithText(getStringResource(R.string.bookmark_select_folder_new_folder_button_title))
