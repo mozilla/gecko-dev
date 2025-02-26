@@ -6605,7 +6605,9 @@ PrepareDatastoreOp::PrepareDatastoreOp(
     const LSRequestParams& aParams,
     const Maybe<ContentParentId>& aContentParentId)
     : LSRequestBase(aParams, aContentParentId),
-      mProcessingTimerId(glean::ls_preparedatastore::processing_time.Start()),
+      mProcessingTimerId(
+          glean::localstorage_request::prepare_datastore_processing_time
+              .Start()),
       mLoadDataOp(nullptr),
       mPrivateBrowsingId(0),
       mUsage(0),
@@ -7727,7 +7729,10 @@ void PrepareDatastoreOp::CleanupMetadata() {
   }
 
   if (NS_SUCCEEDED(ResultCode())) {
-    glean::ls_preparedatastore::processing_time.StopAndAccumulate(
+    glean::localstorage_request::prepare_datastore_processing_time
+        .StopAndAccumulate(std::move(mProcessingTimerId));
+  } else {
+    glean::localstorage_request::prepare_datastore_processing_time.Cancel(
         std::move(mProcessingTimerId));
   }
 }
