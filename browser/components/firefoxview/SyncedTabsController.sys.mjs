@@ -137,6 +137,12 @@ export class SyncedTabsController {
           break;
         }
       }
+    } else if (event.type == "click" && event.composedTarget.href) {
+      const { switchToTabHavingURI } =
+        event.view.browsingContext.topChromeWindow;
+      switchToTabHavingURI(event.composedTarget.href, true, {
+        ignoreFragment: true,
+      });
     }
   }
 
