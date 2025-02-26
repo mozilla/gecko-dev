@@ -791,10 +791,7 @@ export const FormAutofillHeuristics = {
       if (
         !HTMLSelectElement.isInstance(element) &&
         !isVisible &&
-        ignoreInvisibleInput &&
-        // Include invisible but previously autocompleted inputs in order
-        // keep track of them. This way they will also be cleared on a form clearing action.
-        element.autofillState != lazy.FormAutofillUtils.FIELD_STATES.AUTO_FILLED
+        ignoreInvisibleInput
       ) {
         continue;
       }

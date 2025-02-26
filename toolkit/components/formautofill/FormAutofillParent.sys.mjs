@@ -328,24 +328,10 @@ export class FormAutofillParent extends JSWindowActorParent {
         break;
 
       case "FormAutofill:OnFieldsDetected":
-        await this.onFieldsDetected(
-          data,
-          "FormAutofill:onFieldsDetectedComplete"
-        );
-        break;
-      case "FormAutofill:OnFieldsUpdated":
-        await this.onFieldsDetected(
-          data,
-          "FormAutofill:onFieldsUpdatedComplete"
-        );
+        await this.onFieldsDetected(data);
         break;
       case "FormAutofill:FieldFilledModified": {
         this.onFieldFilledModified(data);
-        break;
-      }
-      case "FormAutofill:FillFieldsOnFormChange": {
-        const { elementId, profile } = data;
-        this.onFillOnFormChange(elementId, profile);
         break;
       }
 
@@ -505,11 +491,8 @@ export class FormAutofillParent extends JSWindowActorParent {
    *
    * @param {Array} fieldsIncludeIframe
    *        Array of FieldDetail objects of detected fields (include iframes).
-   * @param {string} message that is sent to the children
-   *                          - On initial fields detection: "FormAutofill:onFieldsDetectedComplete"
-   *                          - On dynamic form change detection:  "FormAutofill:onFieldsUpdatedComplete"
    */
-  async onFieldsDetected(fieldsIncludeIframe, message) {
+  async onFieldsDetected(fieldsIncludeIframe) {
     // If the detected fields are not in the top-level, identify the <iframe> in
     // the top-level that contains the detected fields. This is necessary to determine
     // the root element of this form. For non-top-level frames, the focused <iframe>
@@ -552,12 +535,12 @@ export class FormAutofillParent extends JSWindowActorParent {
     for (const [bcId, fds] of Object.entries(detailsByBC)) {
       try {
         const actor = FormAutofillParent.getActor(BrowsingContext.get(bcId));
-        await actor.sendQuery(message, {
+        await actor.sendQuery("FormAutofill:onFieldsDetectedComplete", {
           fds,
         });
       } catch (e) {
         console.error(
-          `There was an error sending ${message} message`,
+          "There was an error sending 'onFieldsDetectedComplete' msg",
           e.message
         );
       }
@@ -566,40 +549,6 @@ export class FormAutofillParent extends JSWindowActorParent {
     // This is for testing purpose only which sends a notification to indicate that the
     // form has been identified, and ready to open popup.
     this.notifyMessageObservers("fieldsIdentified");
-
-    // This is for testing purposes, to know that the fields were
-    // identified after a form change
-    this.notifyMessageObservers("fieldDetectionCompleted");
-  }
-
-  /**
-   * Re-filling fields after a form change occured
-   * immediately after the last filling process
-   *
-   * @param {string} elementId element id of focused element that triggered
-   *                           the initial autocompletion process
-   * @param {object} profile
-   */
-  async onFillOnFormChange(elementId, profile) {
-    const section = this.getSectionByElementId(elementId);
-    const msg = "FormAutofill:FillFieldsOnFormChange";
-    const fields = section.getAutofillFields();
-    const result = await this.#triggerAutofillActionInChildren(
-      msg,
-      elementId,
-      fields,
-      profile
-    );
-
-    // Todo: P7. Add telemetry to capture the fields that were filled on dynamic form change
-
-    result.forEach((value, key) => this.filledResult.set(key, value));
-
-    // For testing only
-    Services.obs.notifyObservers(
-      null,
-      "formautofill-fill-after-form-change-complete"
-    );
   }
 
   /**
@@ -1107,19 +1056,17 @@ export class FormAutofillParent extends JSWindowActorParent {
    *        action.
    * @param {string} focusedId
    *        The ID of the element that initially triggers the autofill action.
-   * @param {Array<FieldDetails>} fieldDetails
-   *        An array of fieldDetails to be autocompleted/previewed/cleared.
+   * @param {object} section
+   *        The section that contains fields to be autofilled.
    * @param {object} profile
    *        The profile data used for autofilling the fields.
    */
-  async #triggerAutofillActionInChildren(
-    message,
-    focusedId,
-    fieldDetails,
-    profile
-  ) {
+  async #triggerAutofillActionInChildren(message, focusedId, section, profile) {
+    const autofillFields = section.getAutofillFields();
     const detailsByBC =
-      lazy.FormAutofillSection.groupFieldDetailsByBrowsingContext(fieldDetails);
+      lazy.FormAutofillSection.groupFieldDetailsByBrowsingContext(
+        autofillFields
+      );
 
     const result = new Map();
     const entries = Object.entries(detailsByBC);
@@ -1180,11 +1127,10 @@ export class FormAutofillParent extends JSWindowActorParent {
     }
 
     const msg = "FormAutofill:PreviewFields";
-    const fields = section.getAutofillFields();
     await this.#triggerAutofillActionInChildren(
       msg,
       elementId,
-      fields,
+      section,
       profile
     );
 
@@ -1209,11 +1155,10 @@ export class FormAutofillParent extends JSWindowActorParent {
     }
 
     const msg = "FormAutofill:FillFields";
-    const fields = section.getAutofillFields();
     const result = await this.#triggerAutofillActionInChildren(
       msg,
       elementId,
-      fields,
+      section,
       profile
     );
 
@@ -1243,11 +1188,7 @@ export class FormAutofillParent extends JSWindowActorParent {
     });
 
     const msg = "FormAutofill:ClearFilledFields";
-    // On a form clearing action, we don't use section.getAutofillFields to retrieve
-    // the elements that are about to be cleared, but we consider all fieldDetails regardless
-    // of their visiblity state in order to also clear invisible but previously autocompleted fields
-    const fields = section.fieldDetails;
-    await this.#triggerAutofillActionInChildren(msg, elementId, fields);
+    await this.#triggerAutofillActionInChildren(msg, elementId, section);
 
     // For testing only
     Services.obs.notifyObservers(null, "formautofill-clear-form-complete");
