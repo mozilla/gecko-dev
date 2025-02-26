@@ -2567,7 +2567,7 @@ void nsFocusManager::FixUpFocusBeforeFrameLoaderChange(Element& aElement,
   }
   LOGFOCUS(("About to swap frame loaders on focused in-process window %p",
             mFocusedWindow.get()));
-  mFocusedWindow = nullptr;
+  mFocusedWindow = GetCurrentWindow(&aElement);
   mFocusedElement = &aElement;
 }
 
