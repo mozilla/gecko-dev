@@ -645,12 +645,14 @@ void ViewTransition::Activate() {
   }
 
   // Step 4: Capture the new state for transition.
+  // Step 5 is done along step 4 for performance.
   if (auto skipReason = CaptureNewState()) {
+    // We clear named elements to not leave lingering "captured in a view
+    // transition" state.
+    ClearNamedElements();
     // If failure is returned, then skip the view transition for transition...
     return SkipTransition(*skipReason);
   }
-
-  // TODO(emilio): Step 5.
 
   // Step 6: Setup transition pseudo-elements for transition.
   SetupTransitionPseudoElements();
@@ -873,27 +875,29 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
           SkipTransitionReason::DuplicateTransitionNameCapturingOldState);
       return false;
     }
-    // TODO: Set element's captured in a view transition to true.
-    // (but note https://github.com/w3c/csswg-drafts/issues/11058).
+    aFrame->AddStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
     captureElements.AppendElement(std::make_pair(aFrame, name));
     return true;
   });
 
   if (result) {
+    for (auto& [f, name] : captureElements) {
+      f->RemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+    }
     return result;
   }
 
   // Step 8: For each element in captureElements:
+  // Step 9: For each element in captureElements, set element's captured
+  // in a view transition to false.
   for (auto& [f, name] : captureElements) {
     MOZ_ASSERT(f);
     MOZ_ASSERT(f->GetContent()->IsElement());
     auto capture =
         MakeUnique<CapturedElement>(f, mInitialSnapshotContainingBlockSize);
     mNamedElements.InsertOrUpdate(name, std::move(capture));
+    f->RemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
   }
-
-  // TODO step 9: For each element in captureElements, set element's captured
-  // in a view transition to false.
 
   return result;
 }
@@ -925,6 +929,7 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
     auto& capturedElement = mNamedElements.LookupOrInsertWith(
         name, [&] { return MakeUnique<CapturedElement>(); });
     capturedElement->mNewElement = aFrame->GetContent()->AsElement();
+    aFrame->AddStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
     return true;
   });
   return result;
@@ -1094,7 +1099,13 @@ bool ViewTransition::CheckForActiveAnimations() const {
 }
 
 void ViewTransition::ClearNamedElements() {
-  // TODO(emilio): TODO: Set element's captured in a view transition to false.
+  for (auto& entry : mNamedElements) {
+    if (auto* element = entry.GetData()->mNewElement.get()) {
+      if (nsIFrame* f = element->GetPrimaryFrame()) {
+        f->RemoveStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION);
+      }
+    }
+  }
   mNamedElements.Clear();
 }
 
