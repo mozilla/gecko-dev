@@ -71,7 +71,19 @@
               hidden="true"
               data-subcategory="locationBar">
       <label><html:h2 id="locationBarGroupHeader" data-l10n-id="addressbar-header"/></label>
-      <label id="locationBarSuggestionLabel" class="description-deemphasized" data-l10n-id="addressbar-suggest"/>
+      <description flex="1">
+        <html:span id="locationBarSuggestionLabel"
+                   class="description-deemphasized"
+                   data-l10n-id="addressbar-suggest"
+        />
+        <html:a hidden="true"
+                is="moz-support-link"
+                id="firefoxSuggestLearnMore"
+                class="learnMore firefoxSuggestLearnMore"
+                data-l10n-id="addressbar-locbar-firefox-suggest-learn-more"
+                support-page="firefox-suggest"
+        />
+      </description>
       <checkbox id="historySuggestion" data-l10n-id="addressbar-locbar-history-option"
                 preference="browser.urlbar.suggest.history"/>
       <checkbox id="bookmarkSuggestion" data-l10n-id="addressbar-locbar-bookmarks-option"
@@ -98,54 +110,32 @@
       </hbox>
       <vbox id="firefoxSuggestContainer" hidden="true">
         <checkbox id="firefoxSuggestNonsponsored"
-                  data-l10n-id="addressbar-firefox-suggest-nonsponsored"
+                  data-l10n-id="addressbar-locbar-suggest-nonsponsored-option"
                   preference="browser.urlbar.suggest.quicksuggest.nonsponsored"
         />
         <description class="indent tip-caption"
-                      data-l10n-id="addressbar-firefox-suggest-nonsponsored-desc"
+                      data-l10n-id="addressbar-locbar-suggest-nonsponsored-desc"
         />
         <checkbox id="firefoxSuggestSponsored"
-                  data-l10n-id="addressbar-firefox-suggest-sponsored"
+                  data-l10n-id="addressbar-locbar-suggest-sponsored-option"
                   preference="browser.urlbar.suggest.quicksuggest.sponsored"
         />
         <description class="indent tip-caption"
-                      data-l10n-id="addressbar-firefox-suggest-sponsored-desc"
+                      data-l10n-id="addressbar-locbar-suggest-sponsored-desc"
         />
-        <hbox id="firefoxSuggestInfoBox" class="info-box-container smaller-font-size" align="start"
-              hidden="true">
-          <html:img class="info-icon"/>
-          <description flex="1">
-            <html:span id="firefoxSuggestInfoText" class="tail-with-learn-more"/>
-            <html:a is="moz-support-link"
-                    id="firefoxSuggestInfoBoxLearnMore"
-                    class="learnMore firefoxSuggestLearnMore"
-                    data-l10n-id="addressbar-locbar-firefox-suggest-learn-more"
-                    support-page="firefox-suggest"
-            />
-          </description>
-        </hbox>
-        <vbox id="firefoxSuggestDataCollectionSearchToggleBox" class="firefoxSuggestOptionBox">
-            <html:moz-toggle id="firefoxSuggestDataCollectionSearchToggle"
-                             preference="browser.urlbar.quicksuggest.dataCollection.enabled"
-                             data-l10n-id="addressbar-firefox-suggest-data-collection"
-                             data-l10n-attrs="label, description"
-                             support-page="firefox-suggest">
-            </html:moz-toggle>
-        </vbox>
+        <html:moz-toggle id="firefoxSuggestDataCollectionSearchToggle"
+                         preference="browser.urlbar.quicksuggest.dataCollection.enabled"
+                         data-l10n-id="addressbar-firefox-suggest-data-collection"
+                         data-l10n-attrs="label, description"
+                         support-page="firefox-suggest#w_what-setting-is-opt-in"
+        />
         <hbox id="dismissedSuggestions" align="center">
           <vbox flex="1">
             <label data-l10n-id="addressbar-dismissed-suggestions-label"/>
-            <description class="tip-caption">
-              <html:span id="dismissedSuggestionsDescription"
-                        class="tail-with-learn-more"
-                        data-l10n-id="addressbar-restore-dismissed-suggestions-description"/>
-              <html:a is="moz-support-link"
-                      id="dismissedSuggestionsLearnMore"
-                      class="learnMore firefoxSuggestLearnMore"
-                      data-l10n-id="addressbar-restore-dismissed-suggestions-learn-more"
-                      support-page="firefox-suggest"
-              />
-            </description>
+            <description id="dismissedSuggestionsDescription"
+                         class="tip-caption"
+                         data-l10n-id="addressbar-restore-dismissed-suggestions-description"
+            />
           </vbox>
           <button id="restoreDismissedSuggestions"
                   is="highlightable-button"

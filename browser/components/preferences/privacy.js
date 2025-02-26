@@ -1165,7 +1165,7 @@ var gPrivacyPane = {
 
     let onNimbus = () => this._updateFirefoxSuggestToggle();
     NimbusFeatures.urlbar.onUpdate(onNimbus);
-    this._updateFirefoxSuggestToggle(true);
+    this._updateFirefoxSuggestToggle();
     window.addEventListener("unload", () => {
       NimbusFeatures.urlbar.offUpdate(onNimbus);
     });
@@ -2659,21 +2659,14 @@ var gPrivacyPane = {
   /**
    * Updates the visibility of the Firefox Suggest Privacy Container
    * based on the user's Quick Suggest settings.
-   *
-   * @param {boolean} [onInit]
-   *   Pass true when calling this when initializing the pane.
    */
-  _updateFirefoxSuggestToggle(onInit = false) {
-    let container = document.getElementById("firefoxSuggestPrivacyContainer");
-
-    if (
-      UrlbarPrefs.get("quickSuggestEnabled") &&
-      UrlbarPrefs.get("quickSuggestSettingsUi") == QuickSuggest.SETTINGS_UI.FULL
-    ) {
-      container.removeAttribute("hidden");
-    } else if (!onInit) {
-      container.setAttribute("hidden", "true");
-    }
+  _updateFirefoxSuggestToggle() {
+    document.getElementById(
+      "firefoxSuggestDataCollectionPrivacyToggle"
+    ).hidden =
+      !UrlbarPrefs.get("quickSuggestEnabled") ||
+      UrlbarPrefs.get("quickSuggestSettingsUi") !=
+        QuickSuggest.SETTINGS_UI.FULL;
   },
 
   // GEOLOCATION

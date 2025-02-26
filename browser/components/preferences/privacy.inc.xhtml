@@ -997,14 +997,13 @@
 #endif # MOZ_CRASHREPORTER
   </vbox>
 #endif MOZ_DATA_REPORTING
-  <vbox class="firefoxSuggestOptionBox" id="firefoxSuggestPrivacyContainer" hidden="true">
-    <html:moz-toggle id="firefoxSuggestDataCollectionPrivacyToggle"
-                     preference="browser.urlbar.quicksuggest.dataCollection.enabled"
-                     data-l10n-id="addressbar-firefox-suggest-data-collection"
-                     data-l10n-attrs="label, description"
-                     support-page="firefox-suggest">
-    </html:moz-toggle>
-  </vbox>
+  <html:moz-toggle hidden="true"
+                   id="firefoxSuggestDataCollectionPrivacyToggle"
+                   preference="browser.urlbar.quicksuggest.dataCollection.enabled"
+                   data-l10n-id="addressbar-firefox-suggest-data-collection"
+                   data-l10n-attrs="label, description"
+                   support-page="firefox-suggest#w_what-setting-is-opt-in"
+  />
   <vbox id="privacySegmentationSection" data-subcategory="privacy-segmentation" hidden="true">
     <label>
       <html:h2 data-l10n-id="privacy-segmentation-section-header"/>

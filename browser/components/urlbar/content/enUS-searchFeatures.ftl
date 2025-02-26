@@ -233,19 +233,19 @@ addressbar-header-firefox-suggest = Address Bar — { -firefox-suggest-brand-nam
 # When the user is enrolled in a Firefox Suggest rollout, this text replaces
 # the usual addressbar-suggest string and becomes the text of the description of
 # the address bar section in the preferences UI.
-addressbar-suggest-firefox-suggest = Choose the type of suggestions that appear in the address bar:
+addressbar-suggest-firefox-suggest = Choose the type of suggestions that appear in the address bar.
 
 # First Firefox Suggest checkbox main label and description. This checkbox
 # controls non-sponsored suggestions related to the user's search string.
-addressbar-firefox-suggest-nonsponsored =
+addressbar-locbar-suggest-nonsponsored-option =
   .label = Suggestions from { -brand-short-name }
-addressbar-firefox-suggest-nonsponsored-desc = Get suggestions from the web related to your search.
+addressbar-locbar-suggest-nonsponsored-desc = Get suggestions from the web related to your search.
 
 # Second Firefox Suggest checkbox main label and description. This checkbox
 # controls sponsored suggestions related to the user's search string.
-addressbar-firefox-suggest-sponsored =
+addressbar-locbar-suggest-sponsored-option =
   .label = Suggestions from sponsors
-addressbar-firefox-suggest-sponsored-desc = Support { -brand-short-name } with occasional sponsored suggestions.
+addressbar-locbar-suggest-sponsored-desc = Support { -brand-short-name } with occasional sponsored suggestions.
 
 # An additional toggle button in the Firefox Suggest settings that controls
 # whether userdata-based suggestions like history and bookmarks should be
@@ -264,50 +264,10 @@ addressbar-firefox-suggest-data-collection =
 # The "Learn more" link shown in the Firefox Suggest preferences UI.
 addressbar-locbar-firefox-suggest-learn-more = Learn more
 
-## The following addressbar-firefox-suggest-info strings are shown in the
-## Firefox Suggest preferences UI in the info box underneath the toggle.
-## Each string is shown when a particular checkbox or toggle combination is active.
-
-# Non-sponsored suggestions: on
-# Sponsored suggestions: on
-# Data collection: on
-addressbar-firefox-suggest-info-all = Based on your selection, you’ll receive suggestions from the web, including sponsored sites. We will process your search query data to develop the { -firefox-suggest-brand-name } feature.
-
-# Non-sponsored suggestions: on
-# Sponsored suggestions: on
-# Data collection: off
-addressbar-firefox-suggest-info-nonsponsored-sponsored = Based on your selection, you’ll receive suggestions from the web, including sponsored sites. We won’t process your search query data.
-
-# Non-sponsored suggestions: on
-# Sponsored suggestions: off
-# Data collection: on
-addressbar-firefox-suggest-info-nonsponsored-data = Based on your selection, you’ll receive suggestions from the web, but no sponsored sites. We will process your search query data to develop the { -firefox-suggest-brand-name } feature.
-
-# Non-sponsored suggestions: on
-# Sponsored suggestions: off
-# Data collection: off
-addressbar-firefox-suggest-info-nonsponsored = Based on your selection, you’ll receive suggestions from the web, but no sponsored sites. We won’t process your search query data.
-
-# Non-sponsored suggestions: off
-# Sponsored suggestions: on
-# Data collection: on
-addressbar-firefox-suggest-info-sponsored-data = Based on your selection, you’ll receive sponsored suggestions. We will process your search query data to develop the { -firefox-suggest-brand-name } feature.
-
-# Non-sponsored suggestions: off
-# Sponsored suggestions: on
-# Data collection: off
-addressbar-firefox-suggest-info-sponsored = Based on your selection, you’ll receive sponsored suggestions. We won’t process your search query data.
-
-# Non-sponsored suggestions: off
-# Sponsored suggestions: off
-# Data collection: on
-addressbar-firefox-suggest-info-data = Based on your selection, you won’t receive suggestions from the web or sponsored sites. We will process your search query data to develop the { -firefox-suggest-brand-name } feature.
-
 addressbar-dismissed-suggestions-label = Dismissed suggestions
 addressbar-restore-dismissed-suggestions-description = Restore dismissed suggestions from sponsors and { -brand-short-name }.
 addressbar-restore-dismissed-suggestions-button =
   .label = Restore
-addressbar-restore-dismissed-suggestions-learn-more = Learn more
 
 ## Used as title on the introduction pane. The text can be formatted to span
 ## multiple lines as needed (line breaks are significant).

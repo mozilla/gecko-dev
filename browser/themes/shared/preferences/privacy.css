@@ -322,21 +322,18 @@
 
 /* Address bar */
 
-.firefoxSuggestOptionBox {
+#firefoxSuggestDataCollectionPrivacyToggle {
   /* With this value we're trying to keep the apparent vertical space between
      option boxes the same as the apparent vertical space between the labels of
-     the checkboxes above the Firefox Suggest subsection. */
+     the checkboxes above this toggle. */
   margin-block-start: 18px;
-}
-
-#firefoxSuggestInfoBox {
-  margin-block-start: 16px;
 }
 
 #openSearchEnginePreferences {
   margin-block-start: .5em;
 }
 
+#firefoxSuggestDataCollectionSearchToggle,
 #dismissedSuggestions,
 #openSearchEnginePreferences.extraMargin {
   margin-block-start: 2em;

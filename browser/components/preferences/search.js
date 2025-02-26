@@ -312,19 +312,6 @@ var gSearchPane = {
       NimbusFeatures.urlbar.offUpdate(onNimbus);
     });
 
-    // The Firefox Suggest info box potentially needs updating when any of the
-    // toggles change.
-    let infoBoxPrefs = [
-      "browser.urlbar.suggest.quicksuggest.nonsponsored",
-      "browser.urlbar.suggest.quicksuggest.sponsored",
-      "browser.urlbar.quicksuggest.dataCollection.enabled",
-    ];
-    for (let pref of infoBoxPrefs) {
-      Preferences.get(pref).on("change", () =>
-        this._updateFirefoxSuggestInfoBox()
-      );
-    }
-
     document.getElementById("clipboardSuggestion").hidden = !UrlbarPrefs.get(
       "clipboard.featureGate"
     );
@@ -358,9 +345,14 @@ var gSearchPane = {
         element.dataset.l10nId = l10nId;
       }
 
-      this._updateFirefoxSuggestInfoBox();
+      // Update the learn more link in the section's description.
+      document
+        .getElementById("locationBarSuggestionLabel")
+        .classList.add("tail-with-learn-more");
+      document.getElementById("firefoxSuggestLearnMore").hidden = false;
+
       document.getElementById(
-        "firefoxSuggestDataCollectionSearchToggleBox"
+        "firefoxSuggestDataCollectionSearchToggle"
       ).hidden =
         UrlbarPrefs.get("quickSuggestSettingsUi") !=
         QuickSuggest.SETTINGS_UI.FULL;
@@ -376,12 +368,16 @@ var gSearchPane = {
         this.restoreDismissedSuggestions()
       );
 
-      container.removeAttribute("hidden");
+      container.hidden = false;
     } else if (!onInit) {
       // Firefox Suggest is not enabled. This is the default, so to avoid
       // accidentally messing anything up, only modify the doc if we're being
       // called due to a change in the rollout-enabled status (!onInit).
-      container.setAttribute("hidden", "true");
+      document
+        .getElementById("locationBarSuggestionLabel")
+        .classList.remove("tail-with-learn-more");
+      document.getElementById("firefoxSuggestLearnMore").hidden = true;
+      container.hidden = true;
       let elementIds = ["locationBarGroupHeader", "locationBarSuggestionLabel"];
       for (let id of elementIds) {
         let element = document.getElementById(id);
@@ -390,67 +386,6 @@ var gSearchPane = {
           delete element.dataset.l10nIdOriginal;
         }
       }
-    }
-  },
-
-  /**
-   * Updates the Firefox Suggest info box (in the address bar section) depending
-   * on the states of the Firefox Suggest toggles.
-   */
-  _updateFirefoxSuggestInfoBox() {
-    let infoBox = document.getElementById("firefoxSuggestInfoBox");
-
-    if (
-      UrlbarPrefs.get("quickSuggestSettingsUi") != QuickSuggest.SETTINGS_UI.FULL
-    ) {
-      infoBox.hidden = true;
-      return;
-    }
-
-    let nonsponsored = Preferences.get(
-      "browser.urlbar.suggest.quicksuggest.nonsponsored"
-    ).value;
-    let sponsored = Preferences.get(
-      "browser.urlbar.suggest.quicksuggest.sponsored"
-    ).value;
-    let dataCollection = Preferences.get(
-      "browser.urlbar.quicksuggest.dataCollection.enabled"
-    ).value;
-
-    // Get the l10n ID of the appropriate text based on the values of the three
-    // prefs.
-    let l10nId;
-    if (nonsponsored && sponsored && dataCollection) {
-      l10nId = "addressbar-firefox-suggest-info-all";
-    } else if (nonsponsored && sponsored && !dataCollection) {
-      l10nId = "addressbar-firefox-suggest-info-nonsponsored-sponsored";
-    } else if (nonsponsored && !sponsored && dataCollection) {
-      l10nId = "addressbar-firefox-suggest-info-nonsponsored-data";
-    } else if (nonsponsored && !sponsored && !dataCollection) {
-      l10nId = "addressbar-firefox-suggest-info-nonsponsored";
-    } else if (!nonsponsored && sponsored && dataCollection) {
-      l10nId = "addressbar-firefox-suggest-info-sponsored-data";
-    } else if (!nonsponsored && sponsored && !dataCollection) {
-      l10nId = "addressbar-firefox-suggest-info-sponsored";
-    } else if (!nonsponsored && !sponsored && dataCollection) {
-      l10nId = "addressbar-firefox-suggest-info-data";
-    }
-
-    let instance = (this._firefoxSuggestInfoBoxInstance = {});
-    if (!l10nId) {
-      infoBox.hidden = true;
-    } else {
-      let infoText = document.getElementById("firefoxSuggestInfoText");
-      infoText.dataset.l10nId = l10nId;
-
-      // If the info box is currently hidden and we unhide it immediately, it
-      // will show its old text until the new text is asyncly fetched and shown.
-      // That's ugly, so wait for the fetch to finish before unhiding it.
-      document.l10n.translateElements([infoText]).then(() => {
-        if (instance == this._firefoxSuggestInfoBoxInstance) {
-          infoBox.hidden = false;
-        }
-      });
     }
   },
 
