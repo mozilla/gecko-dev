@@ -313,8 +313,8 @@ add_task(async function test_groupsViewShowMore() {
   );
   await EventUtils.synthesizeMouseAtCenter(subViewItems[1], {}, window);
   ok(
-    groups[1].tabs[0].selected,
-    "group 1's tab is selected after clicking second item in groups sub view"
+    groups.at(-1).tabs[0].selected,
+    "last created group's tab is selected after clicking second item in groups sub view"
   );
 
   while (groups.length) {

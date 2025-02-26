@@ -180,8 +180,12 @@
       this.dispatchEvent(new CustomEvent(eventName, { bubbles: true }));
     }
 
+    #lastAddedTo = 0;
     get lastSeenActive() {
-      return Math.max(...this.tabs.map(t => t.lastSeenActive));
+      return Math.max(
+        this.#lastAddedTo,
+        ...this.tabs.map(t => t.lastSeenActive)
+      );
     }
 
     async #updateLabelAriaAttributes() {
@@ -235,6 +239,7 @@
               );
         gBrowser.moveTabToGroup(tabToMove, this);
       }
+      this.#lastAddedTo = Date.now();
     }
 
     /**
