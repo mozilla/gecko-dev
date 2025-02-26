@@ -283,6 +283,7 @@ def repackage_flatpak(
             [
                 "flatpak",
                 "build-export",
+                f"--arch={arch}",
                 "--disable-sandbox",
                 "--no-update-summary",
                 "--exclude=/share/runtime/langpack/*/*",
@@ -298,6 +299,7 @@ def repackage_flatpak(
             [
                 "flatpak",
                 "build-export",
+                f"--arch={arch}",
                 "--disable-sandbox",
                 "--no-update-summary",
                 "--metadata=metadata.locale",
@@ -316,7 +318,7 @@ def repackage_flatpak(
                 "commit",
                 "--repo=repo",
                 "--canonical-permissions",
-                "--branch=screenshots/x86_64",
+                f"--branch=screenshots/{arch}",
                 "build/screenshots",
             ],
             check=True,
