@@ -407,6 +407,7 @@ add_test(function test_notification_onDiskPersistence() {
     },
     {
       origin: persistedNotification.origin,
+      scope: persistedNotification.origin,
       requestID: 4,
     }
   );
@@ -420,6 +421,7 @@ add_test(function test_notification_onDiskPersistence() {
     },
     {
       origin: persistedNotification.origin,
+      scope: persistedNotification.origin,
       requestID: 5,
     }
   );

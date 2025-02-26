@@ -339,23 +339,30 @@ export class NotificationDB {
   }
 
   taskGetAll(data) {
-    lazy.console.debug("Task, getting all");
-    var origin = data.origin;
-    var notifications = [];
+    let { origin, scope } = data;
+    lazy.console.debug(
+      `Task, getting all for the origin ${origin} and SWR scope ${scope}`
+    );
+
     // Grab only the notifications for specified origin.
-    if (this.#notifications[origin]) {
-      if (data.tag) {
-        let n;
-        if ((n = this.#byTag[origin][data.tag])) {
-          notifications.push(n);
-        }
-      } else {
-        for (var i in this.#notifications[origin]) {
-          notifications.push(this.#notifications[origin][i]);
-        }
-      }
+    if (!this.#notifications[origin]) {
+      return [];
     }
-    return Promise.resolve(notifications);
+
+    // XXX(krosylight): same-tagged notifications from different SWRs can collide.
+    // See bug 1950159.
+    if (data.tag) {
+      let n = this.#byTag[origin][data.tag];
+      if (n && n.serviceWorkerRegistrationScope === data.scope) {
+        return [n];
+      }
+      return [];
+    }
+
+    let notifications = Object.values(this.#notifications[origin]).filter(
+      n => n.serviceWorkerRegistrationScope === data.scope
+    );
+    return notifications;
   }
 
   taskSave(data) {
