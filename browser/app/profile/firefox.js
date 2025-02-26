@@ -453,7 +453,7 @@ pref("browser.urlbar.suggest.remotetab",            true);
 pref("browser.urlbar.suggest.searches",             true);
 pref("browser.urlbar.suggest.topsites",             true);
 pref("browser.urlbar.suggest.engines",              true);
-pref("browser.urlbar.suggest.calculator",           true);
+pref("browser.urlbar.suggest.calculator",           false);
 pref("browser.urlbar.suggest.recentsearches",       true);
 pref("browser.urlbar.suggest.quickactions",         true);
 
