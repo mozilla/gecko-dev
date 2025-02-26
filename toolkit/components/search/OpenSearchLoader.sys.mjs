@@ -48,7 +48,7 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
  * @typedef {object} OpenSearchProperties
  * @property {string} name
  *   The display name of the engine.
- * @property {nsIURI} installURL
+ * @property {nsIURI} [installURL]
  *   The URL that the engine was initially loaded from.
  * @property {string} [description]
  *   The description of the engine.
@@ -88,8 +88,6 @@ const MOZSEARCH_LOCALNAME = "SearchPlugin";
  * @typedef {object} OpenSearchImage
  * @property {string} url
  *   The source URL of the image.
- * @property {boolean} isPreferred
- *   If this image is of the preferred 16x16 size.
  * @property {number} size
  *   The reported width and height of the image.
  */
@@ -232,7 +230,7 @@ function parseXML(xmlData) {
  *   The properties of the OpenSearch engine.
  */
 function processXMLDocument(xmlDocument) {
-  let result = { urls: [], images: [] };
+  let result = { name: "", urls: [], images: [] };
 
   for (let i = 0; i < xmlDocument.children.length; ++i) {
     var child = xmlDocument.children[i];
@@ -372,7 +370,7 @@ function parseImage(element) {
 /**
  * Confirms if the document has the expected namespace.
  *
- * @param {DOMElement} element
+ * @param {Element} element
  *   The document to check.
  * @returns {boolean}
  *   True if the document matches the namespace.

@@ -517,7 +517,7 @@ export class SearchSuggestionController {
    *
    * @param {object} context
    *   The search context.
-   * @param {Promise} deferredResponse
+   * @param {PromiseWithResolvers} deferredResponse
    *   The promise to resolve when a response is received.
    */
   #onRemoteLoaded(context, deferredResponse) {

@@ -4,6 +4,10 @@
 
 /* eslint no-shadow: error, mozilla/no-aArgs: error */
 
+/**
+ * @typedef {import("resource://services-settings/RemoteSettingsClient.sys.mjs").RemoteSettingsClient} RemoteSettingsClient
+ */
+
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 import {
@@ -373,6 +377,12 @@ class QueryPreferenceParameter extends QueryParameter {
     return prefValue ? encodeURIComponent(prefValue) : null;
   }
 
+  /**
+   * Creates a JavaScript object that represents this parameter.
+   *
+   * @returns {object}
+   *   An object suitable for serialization as JSON.
+   */
   toJSON() {
     lazy.logConsole.warn(
       "QueryPreferenceParameter should only exist for app provided engines which are never saved as JSON"

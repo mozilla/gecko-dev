@@ -26,6 +26,12 @@ const BROWSER_SEARCH_PREF = "browser.search.";
 
 /**
  * Load listener
+ *
+ * @implements {nsIRequestObserver}
+ * @implements {nsIStreamListener}
+ * @implements {nsIChannelEventSink}
+ * @implements {nsIInterfaceRequestor}
+ * @implements {nsIProgressEventSink}
  */
 class LoadListener {
   _bytes = [];
@@ -230,7 +236,7 @@ export var SearchUtils = {
    *
    * @param {string|nsIURI} url
    *   The URL string from which to create an nsIChannel.
-   * @param {nsIContentPolicy} contentPolicyType
+   * @param {nsContentPolicyType} contentPolicyType
    *   The type of document being loaded.
    * @returns {nsIChannel}
    *   an nsIChannel object, or null if the url is invalid.
@@ -527,12 +533,15 @@ export var SearchUtils = {
       if (doc.querySelector("parsererror")) {
         return fallbackSize;
       }
-      let width = doc.documentElement.width.baseVal.value;
-      let height = doc.documentElement.height.baseVal.value;
-      if (width != height) {
-        return fallbackSize;
+      if (SVGSVGElement.isInstance(doc.documentElement)) {
+        let width = doc.documentElement.width.baseVal.value;
+        let height = doc.documentElement.height.baseVal.value;
+        if (width != height) {
+          return fallbackSize;
+        }
+        return width;
       }
-      return width;
+      return fallbackSize;
     }
 
     let imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);

@@ -23,7 +23,7 @@ export class PolicySearchEngine extends SearchEngine {
    *
    * @see browser/components/enterprisepolicies/schemas/policies-schema.json
    */
-  constructor(options = {}) {
+  constructor(options) {
     let id = "policy-" + options.details.Name;
 
     super({

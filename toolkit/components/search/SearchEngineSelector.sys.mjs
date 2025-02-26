@@ -611,7 +611,7 @@ export class SearchEngineSelector {
    * @returns {boolean}
    *   True if the engine config's environment matches the user's environment.
    */
-  #matchesUserEnvironment(config, user = {}) {
+  #matchesUserEnvironment(config, user) {
     if ("experiment" in config.environment) {
       if (user.experiment != config.environment.experiment) {
         return false;

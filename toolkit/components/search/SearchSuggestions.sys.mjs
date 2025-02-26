@@ -12,6 +12,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 /**
  * A search history autocomplete result that implements nsIAutoCompleteResult.
  * Based on FormHistoryAutoCompleteResult.
+ *
+ * @implements {nsIAutoCompleteResult}
  */
 class SearchHistoryResult {
   /**
@@ -288,7 +290,7 @@ class SearchHistoryResult {
  * unique XPCOM Service for every search provider, even if the logic for two
  * providers is identical.
  *
- * @class
+ * @implements {nsIAutoCompleteSearch}
  */
 class SuggestAutoComplete {
   constructor() {
@@ -299,7 +301,7 @@ class SuggestAutoComplete {
   /**
    * Notifies the front end of new results.
    *
-   * @param {FormHistoryAutoCompleteResult} result
+   * @param {nsIAutoCompleteResult} result
    *   Any previous form history result.
    * @private
    */
@@ -325,7 +327,7 @@ class SuggestAutoComplete {
    * @param {object} previousResult
    *   unused, a client-cached store of the previous generated resultset
    *   for faster searching.
-   * @param {object} listener
+   * @param {nsIAutoCompleteObserver} listener
    *   object implementing nsIAutoCompleteObserver which we notify when
    *   results are ready.
    */
@@ -397,7 +399,7 @@ class SuggestAutoComplete {
    * The object implementing nsIAutoCompleteObserver that we notify when
    * we have found results.
    *
-   *  @type {object|null}
+   *  @type {nsIAutoCompleteObserver|null}
    */
   #listener = null;
 
@@ -408,7 +410,7 @@ class SuggestAutoComplete {
    *   The user's query string.
    * @param {string} searchParam
    *   unused
-   * @param {object} listener
+   * @param {nsIAutoCompleteObserver} listener
    *   object implementing nsIAutoCompleteObserver which we notify when
    *   results are ready.
    * @param {boolean} privacyMode

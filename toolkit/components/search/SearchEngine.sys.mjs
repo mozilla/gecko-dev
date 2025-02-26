@@ -4,6 +4,11 @@
 
 /* eslint no-shadow: error, mozilla/no-aArgs: error */
 
+/**
+ * @typedef {import("./AddonSearchEngine.sys.mjs").AddonSearchEngine} AddonSearchEngine
+ * @typedef {import("./OpenSearchEngine.sys.mjs").OpenSearchEngine} OpenSearchEngine
+ */
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -99,6 +104,12 @@ export class QueryParameter {
     return this._value;
   }
 
+  /**
+   * Creates a JavaScript object that represents this parameter.
+   *
+   * @returns {object}
+   *   An object suitable for serialization as JSON.
+   */
   toJSON() {
     return {
       name: this.name,
@@ -419,6 +430,8 @@ export class EngineURL {
 
 /**
  * SearchEngine represents WebExtension based search engines.
+ *
+ * @implements {nsISearchEngine}
  */
 export class SearchEngine {
   QueryInterface = ChromeUtils.generateQI(["nsISearchEngine"]);
@@ -456,6 +469,12 @@ export class SearchEngine {
    * @type {string}
    */
   #id;
+  /**
+   * The URL to report the search to.
+   *
+   * @type {?string}
+   */
+  clickUrl = null;
 
   /**
    *  Creates a Search Engine.
@@ -468,7 +487,7 @@ export class SearchEngine {
    * @param {string} options.loadPath
    *   The path of the engine was originally loaded from. Should be anonymized.
    */
-  constructor(options = {}) {
+  constructor(options) {
     this.#id = options.id ?? this.#uuid();
     if (!("loadPath" in options)) {
       throw new Error("loadPath missing from options.");
@@ -676,7 +695,7 @@ export class SearchEngine {
    *   The name of the engine.
    * @param {string} details.keyword
    *   The keyword for the engine.
-   * @param {string} details.iconURL
+   * @param {string} [details.iconURL]
    *   The url to use for the icon of the engine.
    * @param {string} details.search_url
    *   The search url template for the engine.
@@ -1308,7 +1327,7 @@ export class SearchEngine {
   get searchForm() {
     let url = this._getURLOfType(lazy.SearchUtils.URL_TYPE.SEARCH_FORM);
     if (url) {
-      return url.getSubmission("").uri.spec;
+      return url.getSubmission("", this.queryCharset).uri.spec;
     }
     return this.searchURLWithNoTerms.prePath;
   }
@@ -1375,7 +1394,7 @@ export class SearchEngine {
    *
    * @param {object} options
    *   The options object
-   * @param {DOMWindow} options.window
+   * @param {Window} options.window
    *   The content window for the window performing the search.
    * @param {object} options.originAttributes
    *   The originAttributes for performing the search
@@ -1449,7 +1468,7 @@ export class SearchEngine {
 }
 
 /**
- * Implements nsISearchSubmission.
+ * @implements {nsISearchSubmission}.
  */
 class Submission {
   QueryInterface = ChromeUtils.generateQI(["nsISearchSubmission"]);

@@ -300,7 +300,7 @@ interface nsISearchService : nsISupports
   /**
    * Resets the default engine to its app default engine value.
    */
-  Promise resetToAppDefaultEngine();
+  void resetToAppDefaultEngine();
 
   /**
    * Adds a new Open Search engine from the file at the supplied URI.

@@ -46,6 +46,8 @@ XPCOMUtils.defineLazyServiceGetter(
 );
 
 /**
+ * @typedef {import("AddonSearchEngine.sys.mjs").AddonSearchEngine} AddonSearchEngine
+ * @typedef {import("OpenSearchEngine.sys.mjs").OpenSearchEngine} OpenSearchEngine
  * @typedef {import("SearchEngine.sys.mjs").SearchEngine} SearchEngine
  * @typedef {import("SearchEngineSelector.sys.mjs").RefinedConfig} RefinedConfig
  * @typedef {import("SearchEngineSelector.sys.mjs").SearchEngineSelector} SearchEngineSelector
@@ -1010,7 +1012,7 @@ export class SearchService {
    * Resolved when initalization has successfully finished, and rejected if it
    * has failed.
    *
-   * @type {Promise}
+   * @type {PromiseWithResolvers}
    */
   #initDeferredPromise = Promise.withResolvers();
 
@@ -1210,8 +1212,6 @@ export class SearchService {
    *   Details of the WebExtension.
    * @param {string} details.id
    *   The WebExtension ID
-   * @param {string} details.locale
-   *   The WebExtension locale
    * @returns {nsISearchEngine|null}
    *   The found engine, or null if no engine matched.
    */
@@ -2512,7 +2512,7 @@ export class SearchService {
    * if the supplied engine is a duplicate of it. This should only be called
    * in the case where the engine would become the default engine.
    *
-   * @param {SearchEngine} engine
+   * @param {AddonSearchEngine|OpenSearchEngine} engine
    *   The search engine to check to see if it should override an existing engine.
    * @returns {Promise<boolean>}
    *  True if the default engine was changed.
@@ -3275,7 +3275,6 @@ export class SearchService {
     newEngine,
     changeSource = Ci.nsISearchService.CHANGE_REASON_UNKNOWN
   ) {
-    changeSource = REASON_CHANGE_MAP.get(changeSource) ?? "unknown";
     let telemetryId;
     let engineInfo;
     // If we are toggling the separate private browsing settings, we might not
@@ -3301,7 +3300,7 @@ export class SearchService {
       new_load_path: engineInfo.loadPath,
       // Glean has a limit of 100 characters.
       new_submission_url: submissionURL.slice(0, 100),
-      change_source: changeSource,
+      change_source: REASON_CHANGE_MAP.get(changeSource) ?? "unknown",
     };
     if (isPrivate) {
       Glean.searchEnginePrivate.changed.record(extraArgs);

@@ -637,7 +637,7 @@ export class SearchSettings {
    *
    * @param {string} engineName
    *   The name of the engine.
-   * @returns {SearchEngine}
+   * @returns {nsISearchEngine}
    *   The associated engine if found, null otherwise.
    */
   #getEngineByName(engineName) {
