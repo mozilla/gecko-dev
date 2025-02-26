@@ -23,6 +23,7 @@ export class DeleteProfileCard extends MozLitElement {
 
   static queries = {
     headerAvatar: "#header-avatar",
+    cancelButton: "#cancel-delete",
   };
 
   connectedCallback() {

@@ -230,6 +230,11 @@ export class ProfilesParent extends JSWindowActorParent {
       }
       case "Profiles:CancelDelete": {
         Glean.profilesDelete.cancel.record();
+        if (gBrowser.tabs.length === 1) {
+          // If the profiles tab is the only open tab,
+          // open a new tab first so the browser doesn't close
+          gBrowser.addTrustedTab("about:newtab");
+        }
         gBrowser.removeTab(this.tab);
         break;
       }
@@ -359,6 +364,11 @@ export class ProfilesParent extends JSWindowActorParent {
           Glean.profilesExisting.closed.record({ value: "done_editing" });
         } else if (source === "about:newprofile") {
           Glean.profilesNew.closed.record({ value: "done_editing" });
+        }
+        if (gBrowser.tabs.length === 1) {
+          // If the profiles tab is the only open tab,
+          // open a new tab first so the browser doesn't close
+          gBrowser.addTrustedTab("about:newtab");
         }
         gBrowser.removeTab(this.tab);
         break;
