@@ -959,7 +959,7 @@ class BuildReader(object):
             if "moz.build" in files:
                 yield mozpath.join(relpath, "moz.build")
 
-    def find_variables_from_ast(self, variables, path=None):
+    def find_variables_from_ast(self, variables, path=None, all_relevant_files=True):
         """Finds all assignments to the specified variables by parsing
         moz.build abstract syntax trees.
 
@@ -992,6 +992,10 @@ class BuildReader(object):
             path (str): A path relative to the source dir. If specified, only
                 `moz.build` files relevant to this path will be parsed. Otherwise
                 all `moz.build` files are parsed.
+            all_relevant_files (bool): Whether to look at all relevant paths
+                (the default), or only look at the specific path passed in.
+                If you set this to False, `path` must also be specified and
+                point to a moz.build file.
 
         Returns:
             A generator that generates tuples of the form `(<moz.build path>,
@@ -1013,7 +1017,7 @@ class BuildReader(object):
             else:
                 target = node.target
 
-            if isinstance(target, ast.Subscript):
+            if isinstance(target, (ast.Subscript, ast.Attribute)):
                 if not isinstance(target.value, ast.Name):
                     return None, None
                 name = target.value.id
@@ -1037,6 +1041,9 @@ class BuildReader(object):
                     assert isinstance(target.slice, ast.Index)
                     assert isinstance(target.slice.value, ast.Str)
                     key = target.slice.value.s
+            elif isinstance(target, ast.Attribute):
+                assert isinstance(target.attr, str)
+                key = target.attr
 
             return name, key
 
@@ -1067,7 +1074,13 @@ class BuildReader(object):
             def visit_AugAssign(self, node):
                 self.helper(node)
 
-        if path:
+        if not all_relevant_files:
+            if not path:
+                raise Exception(
+                    "all_relevant_files was set to False but you did not pass a path."
+                )
+            mozbuild_paths = [path]
+        elif path:
             mozbuild_paths = chain(*self._find_relevant_mozbuilds([path]).values())
         else:
             mozbuild_paths = self.all_mozbuild_paths()
