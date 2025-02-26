@@ -76,11 +76,16 @@ ThreadRegistrationData::ThreadRegistrationData(const char* aName,
 
 // This is a simplified version of profiler_add_marker that can be easily passed
 // into the JS engine.
-static void profiler_add_js_marker(const char* aMarkerName,
+static void profiler_add_js_marker(mozilla::MarkerCategory aCategory,
+                                   const char* aMarkerName,
                                    const char* aMarkerText) {
-  PROFILER_MARKER_TEXT(
-      mozilla::ProfilerString8View::WrapNullTerminatedString(aMarkerName), JS,
-      {}, mozilla::ProfilerString8View::WrapNullTerminatedString(aMarkerText));
+#ifdef MOZ_GECKO_PROFILER
+  AUTO_PROFILER_STATS(js_marker);
+  profiler_add_marker(
+      mozilla::ProfilerString8View::WrapNullTerminatedString(aMarkerName),
+      aCategory, {}, ::geckoprofiler::markers::TextMarker{},
+      mozilla::ProfilerString8View::WrapNullTerminatedString(aMarkerText));
+#endif
 }
 
 static void profiler_add_js_allocation_marker(JS::RecordAllocationInfo&& info) {

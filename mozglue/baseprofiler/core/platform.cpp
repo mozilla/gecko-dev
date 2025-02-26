@@ -1050,7 +1050,8 @@ ExtractBaseProfilerChunkManager() {
 
 }  // namespace detail
 
-Atomic<uint32_t, MemoryOrdering::Relaxed> RacyFeatures::sActiveAndFeatures(0);
+MFBT_DATA Atomic<uint32_t, MemoryOrdering::Relaxed>
+    RacyFeatures::sActiveAndFeatures(0);
 
 /* static */
 void RacyFeatures::SetActive(uint32_t aFeatures) {

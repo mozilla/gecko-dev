@@ -340,7 +340,7 @@ class RacyFeatures {
   // We combine the active bit with the feature bits so they can be read or
   // written in a single atomic operation.
   // TODO: Could this be MFBT_DATA for better inlining optimization?
-  static Atomic<uint32_t, MemoryOrdering::Relaxed> sActiveAndFeatures;
+  MFBT_DATA static Atomic<uint32_t, MemoryOrdering::Relaxed> sActiveAndFeatures;
 };
 
 MFBT_API bool IsThreadBeingProfiled();
