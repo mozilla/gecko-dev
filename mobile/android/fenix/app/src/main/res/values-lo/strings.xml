@@ -475,11 +475,20 @@
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">ການທ່ອງເວັບທີ່ປອດໄພມີທາງເລືອກຫຼາຍ</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_3">ບຣາວເຊີທີ່ບໍ່ຫວັງຜົນກຳໄລຂອງພວກເຮົາຊ່ວຍຢຸດບໍລິສັດບໍ່ໃຫ້ຕິດຕາມທ່ານໄປທົ່ວເວັບ.</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">ຫຼາຍກວ່າ 100 ລ້ານຄົນປົກປ້ອງຄວາມເປັນສ່ວນຕົວຂອງເຂົາເຈົ້າໂດຍການເລືອກຕົວທ່ອງເວັບທີ່ສະຫນັບສະຫນູນໂດຍອົງການບໍ່ຫວັງຜົນກໍາໄລ.</string>
+    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+    <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">ຮູ້ຈັກຜູ້ທີ່ຕິດຕາມບໍ່? ບລັອກອັດຕະໂນມັດ. ສ່ວນຂະຫຍາຍ? ພະຍາຍາມທັງຫມົດ 700. PDFs? ຜູ້ອ່ານທີ່ສ້າງຂຶ້ນຂອງພວກເຮົາເຮັດໃຫ້ພວກເຂົາຈັດການໄດ້ງ່າຍ.</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">ຕັ້ງໃຫ້ເປັນບຣາວເຊີຫລັກ</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
 
+    <!-- Title for sign in to sync screen. -->
+    <string name="juno_onboarding_sign_in_title_2">ຢູ່ໃນການເຂົ້າລະຫັດເມືອທ່ານປ່ຽນຈາກອຸປະກອນໜຶ່ງໄປຫາອີກອຸປະກອນໜຶ່ງ</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox ເຂົ້າລະຫັດລັບຂອງທ່ານ, ບຸກມາກສ໌, ແລະ ອື່ນໆອີກເມື່ອທ່ານຖືກຊິງຄ໌.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">ເຂົ້າສູ່ລະບົບ</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -487,6 +496,9 @@
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">ການແຈ້ງເຕືອນຊ່ວຍໃຫ້ທ່ານປອດໄພກວ່າກັບ Firefox</string>
+    <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+       Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">ສົ່ງແຖບຢ່າງປອດໄພລະຫວ່າງອຸປະກອນຂອງທ່ານ ແລະ ຄົ້ນພົບຄຸນສົມບັດຄວາມເປັນສ່ວນຕົວອື່ນໆໃນ Firefox.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">ເປີດການແຈ້ງເຕືອນ</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -496,11 +508,17 @@
         Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">ລອງໃຊ້ວິດເຈັດຄົ້ນຫາຂອງ Firefox</string>
 
+    <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+        Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">ດ້ວຍ Firefox ໃນຫນ້າຈໍເຮືອນຂອງທ່ານ, ທ່ານຈະສາມາດເຂົ້າເຖິງຕົວທ່ອງເວັບຄວາມເປັນສ່ວນຕົວທໍາອິດທີ່ສະກັດຕົວຕິດຕາມຂ້າມເວັບໄຊທ໌.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">ເພີ່ມ widget Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ບໍ່ແມ່ນຕອນນີ້</string>
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">ປັບແຕ່ງ Firefox ຂອງທ່ານດ້ວຍສ່ວນຂະຫຍາຍ</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2">ສຳຫຼວດສ່ວນຂະຫຍາຍເພີ່ມເຕີມ.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->

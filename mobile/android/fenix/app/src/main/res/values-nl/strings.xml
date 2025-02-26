@@ -2562,7 +2562,7 @@
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggesties</string>
 
     <!-- Search suggestions title for trending searches. -->
-    <string name="trending_searches_header">Trending zoekopdrachten</string>
+    <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Trending zoekopdrachten</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google Zoeken</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->

@@ -2601,7 +2601,7 @@
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox 建议</string>
 
     <!-- Search suggestions title for trending searches. -->
-    <string name="trending_searches_header">热门搜索</string>
+    <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">热门搜索</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google 搜索</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->

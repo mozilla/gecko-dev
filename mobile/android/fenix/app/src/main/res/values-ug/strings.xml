@@ -2538,7 +2538,7 @@
     <!-- Search suggestions title for Firefox Suggest. -->
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox تەكلىپى</string>
     <!-- Search suggestions title for trending searches. -->
-    <string name="trending_searches_header">قىزغىن ئىزدەش</string>
+    <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">قىزغىن ئىزدەش</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google ئىزدەش</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->

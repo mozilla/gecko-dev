@@ -2088,6 +2088,99 @@
     Enhanced tracking protection exception preference icon for ETP settings. -->
     <string name="preference_etp_exceptions_icon_description">Икона за предпочитание за изключение с подобрена защита от проследяване</string>
 
+    <!-- DNS Over HTTPS (DoH) -->
+    <!-- Preference title for DNS over HTTPS settings -->
+    <string name="preference_doh_title">DNS през HTTPS</string>
+    <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_summary">Системата за имена на домейни (DNS) през HTTPS изпраща вашата заявка за име на домейн чрез шифрована връзка, осигурявайки сигурен DNS и правейки по-трудно за другите да видят до кой сайт сте на достъп. %1$s</string>
+    <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+    <string name="preference_doh_learn_more">Научете повече</string>
+
+    <!-- Content description for the toolbar "Navigate up" button -->
+    <string name="preference_doh_up_description">Придвижване нагоре</string>
+    <!-- Content description for the "Exceptions" button -->
+    <string name="preference_doh_exceptions_description">Изключения</string>
+    <!-- Content description for the "Info" button -->
+    <string name="preference_doh_info_description">Информация</string>
+    <!-- Content description for the "Add Site" button -->
+    <string name="preference_doh_add_site_description">Добавяне на сайт</string>
+
+    <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection">Защита по подразбиране</string>
+    <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_doh_default_protection_summary">%1$s решава кога да използва защитен DNS, за да защити поверителността ви.</string>
+    <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_1">Използва се избран от вас доставчик</string>
+    <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_2">Използва вашия DNS ресолвер по подразбиране, ако има проблем с доставчика на сигурен DNS</string>
+    <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_3">Използвайте местен доставчик, ако е възможно. %1$s</string>
+    <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_4">Не се ползва, когато има активен VPN, родителски контрол или корпоративни политики</string>
+    <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_5">Изключване, когато мрежа казва на %1$s, че не трябва да използва защитен DNS. %2$s</string>
+
+    <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection">Повишена защита</string>
+    <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_summary">Вие определяте кога да се използва защитен DNS и избирате своя доставчик.</string>
+    <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_info_1">Използва се избран от вас доставчик</string>
+    <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_info_2">Използва се вашият стандартен DNS (от доставчика ви на интернет), само ако има проблем със сигурния DNS.</string>
+
+    <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection">Максимална защита</string>
+    <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_doh_max_protection_summary">%1$s винаги ще използва защитен DNS. Ще видите предупреждение за риск за сигурността, преди да използваме вашия системен DNS.</string>
+    <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection_info_1">Използва се само избраният от вас доставчик</string>
+    <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection_info_2">Винаги да се предупреждава, ако не е наличен защитен DNS</string>
+    <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection_info_3">Ако защитеният DNS не е наличен, сайтовете няма да зареждат или да работят правилно.</string>
+
+    <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+    <string name="preference_doh_off">Изключено</string>
+    <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+    <string name="preference_doh_off_summary">Използва се вашият DNS по подразбиране (от доставчика ви на Интернет).</string>
+
+    <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+    <string name="preference_doh_choose_provider">Изберете доставчик</string>
+    <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+    <string name="preference_doh_provider_default">(по подразбиране)</string>
+    <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+    <string name="preference_doh_provider_custom">По избор</string>
+    <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_title">Персонализиран доставчик</string>
+    <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_textfield">Доставчик</string>
+    <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https"-->
+    <string name="preference_doh_provider_custom_dialog_error_https">URL трябва да започва с „https://“</string>
+    <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+    <string name="preference_doh_provider_custom_dialog_error_invalid">Неправилен адрес</string>
+    <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_cancel">Отказ</string>
+    <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_add">Добавяне</string>
+
+    <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+    <string name="preference_doh_exceptions">Изключения</string>
+    <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+    <string name="preference_doh_exceptions_summary">%1$s няма да използва защитен DNS за тези сайтове и техните поддомейни.</string>
+    <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+    <string name="preference_doh_exceptions_add">Добавяне на сайт</string>
+    <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+    <string name="preference_doh_exceptions_add_site">Сайт</string>
+    <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+    <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+    <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+    <string name="preference_doh_exceptions_add_error">Трябва да е валиден домейн</string>
+    <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+    <string name="preference_doh_exceptions_add_save">Запазване</string>
+    <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+    <string name="preference_doh_exceptions_remove_all_exceptions">Премахване на всички изключения</string>
+
     <!-- About page link text to open support link -->
     <string name="about_support">Поддръжка</string>
     <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2563,7 +2656,10 @@
     <!-- Search suggestions title for Firefox Suggest. -->
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Предложение от Firefox</string>
     <!-- Search suggestions title for trending searches. -->
-    <string name="trending_searches_header">Популярни търсения</string>
+    <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Популярни търсения</string>
+    <!-- Search suggestions title for trending search suggestions.
+        %s is a placeholder for the name of the search engine providing the trending search suggestions. -->
+    <string name="trending_searches_header_2">Набиращ популярност на %s</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Търсене в Гугъл</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
