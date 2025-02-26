@@ -1689,7 +1689,8 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   }
 
   if (iStartIsAuto && iEndIsAuto) {
-    if (cbwm.IsBidiLTR() != hypotheticalPos.mWritingMode.IsBidiLTR()) {
+    if (cbwm.IsInlineReversed() !=
+        hypotheticalPos.mWritingMode.IsInlineReversed()) {
       offsets.IEnd(cbwm) = hypotheticalPos.mIStart;
       iEndIsAuto = false;
     } else {
