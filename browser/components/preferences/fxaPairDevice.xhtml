@@ -5,9 +5,6 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<?csp default-src chrome:; img-src chrome: data:; style-src chrome:
-'unsafe-inline'; ?>
-
 <window
   id="fxaPairDeviceDialog"
   type="child"
@@ -15,6 +12,7 @@
   xmlns:html="http://www.w3.org/1999/xhtml"
   data-l10n-id="fxa-pair-device-dialog-sync2"
   data-l10n-attrs="style"
+  csp="default-src chrome:; img-src chrome: data:; style-src chrome: 'unsafe-inline';"
 >
   <dialog id="fxaPairDeviceDialog1" buttons="accept">
     <linkset>

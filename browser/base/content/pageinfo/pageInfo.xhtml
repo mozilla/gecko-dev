@@ -2,7 +2,6 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-<?csp default-src chrome:; img-src *; media-src *; style-src chrome: 'unsafe-inline'; ?>
 
 <window id="main-window"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -17,7 +16,8 @@
 #endif
   align="stretch"
   screenX="10" screenY="10"
-  persist="screenX screenY width height sizemode">
+  persist="screenX screenY width height sizemode"
+  csp="default-src chrome:; img-src *; media-src *; style-src chrome: 'unsafe-inline';">
 
   <linkset>
     <html:link

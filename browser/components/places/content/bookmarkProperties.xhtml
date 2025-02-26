@@ -4,8 +4,6 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<?csp default-src chrome:; style-src chrome: 'unsafe-inline'; ?>
-
 <!DOCTYPE window>
 
 <window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -13,7 +11,8 @@
         id="bookmarkproperties"
         headerparent="bookmarkpropertiesdialog"
         neediconheader="true"
-        style="min-width: 40em;">
+        style="min-width: 40em;"
+        csp="default-src chrome:; style-src 'unsafe-inline';">
 <dialog id="bookmarkpropertiesdialog"
         buttons="accept, cancel">
 
