@@ -78,9 +78,9 @@ bool ValidateCookieNameAndValue(const nsAString& aName, const nsAString& aValue,
     return false;
   }
 
-  if (aName.Length() + aValue.Length() > 1024) {
+  if (aName.Length() + aValue.Length() > 4096) {
     aPromise->MaybeRejectWithTypeError(
-        "Cookie name and value size cannot be greater than 1024 bytes");
+        "Cookie name and value size cannot be greater than 4096 bytes");
     return false;
   }
 
