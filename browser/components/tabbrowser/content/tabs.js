@@ -2725,12 +2725,14 @@
       };
 
       let addAnimationData = (movingTab, isBeforeSelectedTab) => {
-        if (
-          movingTab.elementIndex + (isBeforeSelectedTab ? 1 : -1) ==
-          tab.elementIndex
-        ) {
-          // movingTab is already at the right position
-          // and thus don't need to be animated.
+        let lowerIndex = Math.min(movingTab.elementIndex, draggedTabIndex) + 1;
+        let higherIndex = Math.max(movingTab.elementIndex, draggedTabIndex);
+        let middleItems = this.ariaFocusableItems
+          .slice(lowerIndex, higherIndex)
+          .filter(item => !item.multiselected);
+        if (!middleItems.length) {
+          // movingTab is already at the right position and thus doesn't need
+          // to be animated.
           return;
         }
 
@@ -2760,21 +2762,16 @@
           movingTab.addEventListener("transitionend", onTransitionEnd);
         }
 
-        // Add animation data for tabs between movingTab (multiselected
-        // tab moving towards the dragged tab) and draggedTab.
-        // Those tabs in the middle should move in
-        // the opposite direction of movingTab.
+        // Add animation data for tabs and tab group labels between movingTab
+        // (multiselected tab moving towards the dragged tab) and draggedTab. Those items
+        // in the middle should move in the opposite direction of movingTab.
 
         let movingTabSize =
           movingTab.getBoundingClientRect()[
             this.verticalMode ? "height" : "width"
           ];
-        let lowerIndex = Math.min(movingTab.elementIndex, draggedTabIndex);
-        let higherIndex = Math.max(movingTab.elementIndex, draggedTabIndex);
 
-        for (let i = lowerIndex + 1; i < higherIndex; i++) {
-          let middleItem = this.ariaFocusableItems[i];
-
+        for (let middleItem of middleItems) {
           if (isTab(middleItem)) {
             if (middleItem.pinned != movingTab.pinned) {
               // Don't mix pinned and unpinned tabs
