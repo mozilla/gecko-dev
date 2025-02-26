@@ -4495,7 +4495,6 @@ modules:
       new translation language models.
     includes:
       - toolkit/components/translations/**/*
-      - toolkit/components/translation/**/*
       - browser/components/translations/**/*
     excludes: []
     owners:

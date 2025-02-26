@@ -76,7 +76,6 @@ DIRS += [
     "startup",
     "statusfilter",
     "telemetry",
-    "translation",
     "translations",
     "thumbnails",
     "timermanager",

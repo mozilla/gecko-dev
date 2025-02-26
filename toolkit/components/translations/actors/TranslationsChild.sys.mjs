@@ -9,7 +9,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LRUCache:
     "chrome://global/content/translations/translations-document.sys.mjs",
   LanguageDetector:
-    "resource://gre/modules/translation/LanguageDetector.sys.mjs",
+    "resource://gre/modules/translations/LanguageDetector.sys.mjs",
 });
 
 /**

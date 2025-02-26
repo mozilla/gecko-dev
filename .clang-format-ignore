@@ -202,7 +202,7 @@ testing/web-platform/tests/tools/third_party/.*
 third_party/.*
 toolkit/components/jsoncpp/.*
 toolkit/components/protobuf/.*
-toolkit/components/translation/cld2/.*
+toolkit/components/translations/cld2/.*
 toolkit/components/url-classifier/chromium/.*
 toolkit/components/url-classifier/protobuf/.*
 toolkit/crashreporter/breakpad-client/.*

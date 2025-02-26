@@ -277,7 +277,7 @@ module.exports = [
   "toolkit/components/reader/Readerable.sys.mjs",
 
   // Generated & special files in cld2
-  "toolkit/components/translation/cld2/",
+  "toolkit/components/translations/cld2/",
 
   // Uses preprocessing
   "toolkit/mozapps/update/tests/data/xpcshellConstantsPP.js",
