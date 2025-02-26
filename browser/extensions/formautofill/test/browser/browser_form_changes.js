@@ -135,8 +135,15 @@ async function checkFormChangeHappened(formId) {
       // Click the first entry of the autocomplete popup and make sure all fields are autofilled
       await checkFieldsAutofilled(browser, formId, MOCK_STORAGE[0]);
 
-      // This is for checking the changes of element count.
+      const filledOnFormChangePromise = TestUtils.topicObserved(
+        "formautofill-fill-after-form-change-complete"
+      );
+
+      // Dynamic form change is detected and added input field is filled on form change
       addInputField(browser, formId, "address-level2");
+
+      await filledOnFormChangePromise;
+
       await openPopupOn(browser, `#${formId} input[name=name]`);
 
       // Click on an autofilled field would show an autocomplete popup with "clear form" entry
@@ -144,14 +151,20 @@ async function checkFormChangeHappened(formId) {
         browser,
         [
           "Clear Autofill Form", // Clear Autofill Form
-          "Manage addresses", // FormAutofill Preferemce
+          "Manage addresses", // FormAutofill Preference
         ],
         0
       );
 
+      const fieldDetectionCompletedPromiseResolver =
+        getFieldDetectionCompletedPromiseResolver();
+
       // This is for checking the changes of element removed and added then.
       removeInputField(browser, `#${formId} input[name=address-level2]`);
       addInputField(browser, formId, "address-level2");
+
+      await fieldDetectionCompletedPromiseResolver;
+
       await openPopupOn(browser, `#${formId} input[name=address-level2]`);
 
       await checkMenuEntries(

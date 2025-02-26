@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Form Autofill Address Demo Page</title>
+</head>
+<body>
+  <h1>Form Autofill Address Demo Page</h1>
+  <form id="address-form-visibility-change">
+    <label for="name-visibility-change">Name</label>
+    <input type="text" id="name-visibility-change" autocomplete="name">
+
+    <label for="email-visibility-change">Email</label>
+    <input type="email" id="email-visibility-change" autocomplete="email">
+
+    <label for="organization-visibility-change">Phone</label>
+    <input type="tel" id="organization-visibility-change" autocomplete="tel" />
+
+    <label for="country-visibility-change">Country</label>
+    <input type="text" id="country-visibility-change" autocomplete="country">
+
+    <label for="street-address-visibility-change">Street Address</label>
+    <input type="text" id="street-address-visibility-change" autocomplete="street-address" style="display:none"/>
+
+    <label for="address-level1-visibility-change">Address Level 1</label>
+    <input type="text" id="address-level1-visibility-change" autocomplete="address-level1" style="display:none"/>
+
+    <label for="address-level2-visibility-change">Address Level 2</label>
+    <input type="text" id="address-level2-visibility-change" autocomplete="address-level2" style="display:none"/>
+
+    <label for="postal-code-visibility-change">Postal Code</label>
+    <input type="text" id="postal-code-visibility-change" autocomplete="postal-code" style="display:none"/>
+
+    <button id="show-fields-btn" type="button">Show fields</button>
+</form>
+  <script>
+    const showFieldButton = document.getElementById("show-fields-btn")
+    showFieldButton.addEventListener("click", () => {
+      document.getElementById("street-address-visibility-change").style.display = "";
+      document.getElementById("address-level1-visibility-change").style.display = "";
+      document.getElementById("address-level2-visibility-change").style.display = "";
+      document.getElementById("postal-code-visibility-change").style.display = "";
+    })
+  </script>
+</body>
+</html>
