@@ -356,7 +356,7 @@ EditorDOMPointType WSRunScanner::GetFirstVisiblePoint(
     const Element* aAncestorLimiter /* = nullptr */) {
   EditorDOMPoint atStartOfTextNode(&aTextNode, 0);
   if (!atStartOfTextNode.IsContainerEmpty() &&
-      atStartOfTextNode.IsCharCollapsibleASCIISpace()) {
+      !atStartOfTextNode.IsCharCollapsibleASCIISpace()) {
     return atStartOfTextNode.To<EditorDOMPointType>();
   }
   const TextFragmentData textFragmentData(
