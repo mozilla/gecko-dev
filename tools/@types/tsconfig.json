@@ -2,6 +2,10 @@
   "compilerOptions": {
     "noEmit": true,
     "target": "es2022",
-    "types": ["gecko"]
+    "types": ["gecko"],
+    "baseUrl": "../../",
+    "paths": {
+      "moz-src:///*": ["./*"]
+    }
   }
 }
