@@ -39,3 +39,36 @@
 #unanalyzed-product-analysis-button {
   width: 100%;
 }
+
+/* stylelint-disable-next-line media-query-no-invalid */
+@media -moz-pref("browser.shopping.experience2023.integratedSidebar") {
+  #unanalyzed-product-icon {
+    max-width: 9em;
+    min-width: 9em;
+    content: url("chrome://browser/content/shopping/assets/unanalyzedRework.svg");
+  }
+
+  #unanalyzed-product-message-content {
+    line-height: inherit;
+
+    > h2 {
+      font-size: var(--font-size-large);
+      margin-block: 0;
+      text-align: center;
+    }
+
+    > p {
+      align-self: center;
+      color: var(--text-color-deemphasized);
+      margin-block: 1rem;
+      text-align: center;
+      max-width: 18em;
+      width: 100%;
+    }
+  }
+
+  #unanalyzed-product-analysis-button {
+    max-width: 80%;
+    width: 14em;
+  }
+}
