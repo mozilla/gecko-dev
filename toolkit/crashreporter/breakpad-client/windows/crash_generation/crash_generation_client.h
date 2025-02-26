@@ -109,6 +109,24 @@ class CrashGenerationClient {
                                              HANDLE hProcess);
 
  private:
+  // Represents the state of this client with regards to the server.
+  enum RegistrationState {
+    // We haven't attempted to register with the server yet.
+    UNREGISTERED,
+
+    // Registration is pending.
+    REGISTERING,
+
+    // We successfully registered with the server
+    REGISTERED,
+
+    // We attempted to register with the server but failed.
+    FAILED,
+  };
+
+  // Registration function that will be run in a separate thread.
+  static DWORD NTAPI AsyncRegister(LPVOID param);
+
   // Connects to the appropriate pipe and sets the pipe handle state.
   //
   // Returns the pipe handle if everything goes well; otherwise Returns NULL.
@@ -123,8 +141,12 @@ class CrashGenerationClient {
   // Validates the given server response.
   bool ValidateResponse(const ProtocolMessage& msg) const;
 
-  // Returns true if the registration step succeeded; false otherwise.
-  bool IsRegistered() const;
+  // Waits until registration is complete and returns true if the registration
+  // step succeeded; false otherwise.
+  bool WaitForRegistration();
+
+  // Thread-safe function to set the registration state.
+  void SetRegistrationState(RegistrationState state);
 
   // Connects to the given named pipe with given parameters.
   //
@@ -135,6 +157,12 @@ class CrashGenerationClient {
 
   // Signals the crash event and wait for the server to generate crash.
   bool SignalCrashEventAndWait();
+
+  // Sync object for thread-safe access to the state.
+  CRITICAL_SECTION sync_;
+
+  // State of the registration process.
+  RegistrationState state_;
 
   // Pipe name to use to talk to server.
   std::wstring pipe_name_;

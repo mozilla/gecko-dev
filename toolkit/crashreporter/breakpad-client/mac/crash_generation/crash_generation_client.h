@@ -32,12 +32,22 @@
 
 #include "common/mac/MachIPC.h"
 
+#include <os/lock.h>
+
+#include <memory>
+#include <string>
+
 namespace google_breakpad {
 
 class CrashGenerationClient {
  public:
   explicit CrashGenerationClient(const char* mach_port_name)
-    : sender_(mach_port_name) {
+    : sync_(OS_UNFAIR_LOCK_INIT),
+      state_(State::Uninitialized),
+      mach_port_name_(mach_port_name),
+      sender_()
+  {
+    AsynchronousInitialization();
   }
 
   // Request the crash server to generate a dump.
@@ -54,7 +64,22 @@ class CrashGenerationClient {
   }
 
  private:
-  MachPortSender sender_;
+  enum State {
+    Uninitialized,
+    Initializing,
+    Initialized,
+    Failed,
+  };
+
+  os_unfair_lock sync_;
+  State state_;
+  std::string mach_port_name_;
+  std::unique_ptr<MachPortSender> sender_;
+
+  void AsynchronousInitialization();
+  static void* AsynchronousInitializationThread(void* arg);
+  void Initialization();
+  bool WaitForInitialization();
 
   // Prevent copy construction and assignment.
   CrashGenerationClient(const CrashGenerationClient&);

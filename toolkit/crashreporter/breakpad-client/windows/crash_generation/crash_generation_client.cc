@@ -94,7 +94,9 @@ CrashGenerationClient::CrashGenerationClient(
     const wchar_t* pipe_name,
     MINIDUMP_TYPE dump_type,
     const CustomClientInfo* custom_info)
-        : pipe_name_(pipe_name),
+        : sync_(),
+          state_(RegistrationState::UNREGISTERED),
+          pipe_name_(pipe_name),
           pipe_handle_(NULL),
           custom_info_(),
           dump_type_(dump_type),
@@ -104,6 +106,7 @@ CrashGenerationClient::CrashGenerationClient(
           server_process_id_(0),
           thread_id_(0),
           exception_pointers_(NULL) {
+  InitializeCriticalSection(&sync_);
   memset(&assert_info_, 0, sizeof(assert_info_));
   if (custom_info) {
     custom_info_ = *custom_info;
@@ -175,21 +178,41 @@ CrashGenerationClient::~CrashGenerationClient() {
 // If any step of the expected behavior mentioned above fails, the
 // registration step is not considered successful and hence out-of-process
 // dump generation service is not available.
-//
-// Returns true if the registration is successful; false otherwise.
-bool CrashGenerationClient::Register() {
-  if (IsRegistered()) {
-    return true;
+DWORD CrashGenerationClient::AsyncRegister(LPVOID param) {
+  CrashGenerationClient* client = static_cast<CrashGenerationClient*>(param);
+  RegistrationState state = RegistrationState::FAILED;
+  HANDLE pipe = client->ConnectToServer();
+  if (pipe) {
+    if (client->RegisterClient(pipe)) {
+      state = RegistrationState::REGISTERED;
+    }
+
+    CloseHandle(pipe);
   }
 
-  HANDLE pipe = ConnectToServer();
-  if (!pipe) {
+  client->SetRegistrationState(state);
+  return 0;
+}
+
+bool CrashGenerationClient::Register() {
+  assert(state_ == RegistrationState::UNREGISTERED);
+
+  state_ = RegistrationState::REGISTERING;
+  HANDLE registration_thread = CreateThread(
+    nullptr, // lpThreadAttributes
+    0, // dwStackSize
+    AsyncRegister,
+    this, // lpParameter
+    0, // dwCreationFlags
+    nullptr // lpThreadid
+  );
+
+  if (!registration_thread) {
+    state_ = RegistrationState::FAILED;
     return false;
   }
 
-  bool success = RegisterClient(pipe);
-  CloseHandle(pipe);
-  return success;
+  return true;
 }
 
 bool CrashGenerationClient::RequestUpload(DWORD crash_id) {
@@ -316,13 +339,36 @@ bool CrashGenerationClient::ValidateResponse(
          (msg.server_alive_handle != NULL);
 }
 
-bool CrashGenerationClient::IsRegistered() const {
-  return crash_event_ != NULL;
+bool CrashGenerationClient::WaitForRegistration() {
+  while (true) {
+    while (!TryEnterCriticalSection(&sync_)) {
+      // Spin until we've entered the critical section. We can't wait because
+      // this could be called from within the exception handler.
+    }
+
+    RegistrationState state = state_;
+    LeaveCriticalSection(&sync_);
+
+    switch (state) {
+      case RegistrationState::REGISTERING:
+        continue; // Still pending, try again
+      case RegistrationState::REGISTERED:
+        return true; // We're done
+      default:
+        return false; // Everything else implies a failure
+    }
+  }
+}
+
+void CrashGenerationClient::SetRegistrationState(RegistrationState state) {
+  EnterCriticalSection(&sync_);
+  state_ = state;
+  LeaveCriticalSection(&sync_);
 }
 
 bool CrashGenerationClient::RequestDump(EXCEPTION_POINTERS* ex_info,
                                         MDRawAssertionInfo* assert_info) {
-  if (!IsRegistered()) {
+  if (!WaitForRegistration()) {
     return false;
   }
 
