@@ -17,7 +17,9 @@
 namespace content_analysis {
 namespace sdk {
 
-const DWORD kBufferSize = 4096;
+// Increased to a larger size to help with issues with analyzing a lot of
+// files at once - see bug 1948884.
+const DWORD kBufferSize = 65536;
 
 // Use the same default timeout value (50ms) as CreateNamedPipeA(), expressed
 // in 100ns intervals.
