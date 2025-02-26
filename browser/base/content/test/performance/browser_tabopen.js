@@ -46,7 +46,6 @@ add_task(async function () {
 
   let tabStripRect =
     gBrowser.tabContainer.arrowScrollbox.getBoundingClientRect();
-
   let firstTabRect = gBrowser.selectedTab.getBoundingClientRect();
   let tabPaddingStart = parseFloat(
     getComputedStyle(gBrowser.selectedTab).paddingInlineStart
