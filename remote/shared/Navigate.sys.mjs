@@ -16,8 +16,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   NavigationListener:
     "chrome://remote/content/shared/listeners/NavigationListener.sys.mjs",
-  PromptListener:
-    "chrome://remote/content/shared/listeners/PromptListener.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
 });
 
@@ -145,7 +143,6 @@ export class ProgressListener {
   #errorName;
   #navigationId;
   #navigationListener;
-  #promptListener;
   #seenStartFlag;
   #targetURI;
   #unloadTimerId;
@@ -211,17 +208,9 @@ export class ProgressListener {
       );
       this.#navigationListener.startListening();
     }
-
-    this.#promptListener = new lazy.PromptListener();
-    this.#promptListener.on("opened", this.#onPromptOpened);
-    this.#promptListener.startListening();
   }
 
   destroy() {
-    this.#promptListener.stopListening();
-    this.#promptListener.off("opened", this.#onPromptOpened);
-    this.#promptListener.destroy();
-
     if (this.#navigationListener) {
       this.#navigationListener.stopListening();
       this.#navigationListener.off(
@@ -371,31 +360,6 @@ export class ProgressListener {
         `Received "navigation-failed" event with error=${errorName}. Stopping the navigation.`
       );
       this.stop({ error: new Error(errorName) });
-    }
-  };
-
-  #onPromptOpened = (eventName, data) => {
-    const { prompt, contentBrowser } = data;
-    const { promptType } = prompt;
-
-    this.#trace(`A prompt of type=${promptType} is open`);
-    // Prompt open events come for top level context,
-    // that's why in case of navigation in iframe we also have to find
-    // top level context to identify if this navigation is affected.
-    const topLevelContext = this.browsingContext.top
-      ? this.browsingContext.top
-      : this.browsingContext;
-    if (
-      topLevelContext === contentBrowser.browsingContext &&
-      promptType === "beforeunload" &&
-      this.#resolveWhenStarted
-    ) {
-      this.#trace(
-        "A beforeunload prompt is open in the context of the navigated context and resolveWhenStarted=true. " +
-          "Stopping the navigation."
-      );
-      this.#seenStartFlag = true;
-      this.stop();
     }
   };
 
