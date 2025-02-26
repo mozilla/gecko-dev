@@ -54,3 +54,14 @@ web_push:
     notification_emails:
       - krosylight@mozilla.com
     expires: never
+  unsubscribed_by_clearing_data:
+    type: counter
+    description: >
+      Counts unsubscriptions triggered by ClearDataService.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948721
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1948721
+    notification_emails:
+      - krosylight@mozilla.com
+    expires: 149
