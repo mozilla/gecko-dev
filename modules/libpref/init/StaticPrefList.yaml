@@ -5600,9 +5600,8 @@
 # used also for UA detection.
 - name: extensions.InstallTrigger.enabled
   type: bool
-  value: @IS_NOT_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
-
 
 # Whether the background.service_worker in the extension manifest.json file
 # is enabled.
