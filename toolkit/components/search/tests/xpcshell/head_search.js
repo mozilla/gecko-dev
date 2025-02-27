@@ -657,7 +657,7 @@ async function assertSelectorEnginesEqualsExpected(
           charset: "UTF-8",
           optional: false,
           partnerCode: "",
-          telemetrySuffix: null,
+          telemetrySuffix: "",
           orderHint: null,
           ...expectedEngines[i],
         };

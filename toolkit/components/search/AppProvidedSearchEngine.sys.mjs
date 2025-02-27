@@ -673,7 +673,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
     if (urlData.params) {
       let isEnterprise = Services.policies.isEnterprise;
       let enterpriseParams = urlData.params
-        .filter(p => "enterpriseValue" in p)
+        .filter(p => p.enterpriseValue != undefined)
         .map(p => p.name);
 
       for (const param of urlData.params) {
