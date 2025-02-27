@@ -832,7 +832,7 @@
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Dangos mewn sesiynau preifat</string>
     <!-- Preference title for switch preference to show trending search suggestions -->
-    <string name="preferences_show_trending_search_suggestions">Dangos awgrymiadau tueddiadau</string>
+    <string name="preferences_show_trending_search_suggestions">Dangos awgrymiadau sy\'n tueddu</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Dangos awgrymiadau o’r clipfwrdd</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -2085,31 +2085,31 @@
     <!-- Content description for the "Exceptions" button -->
     <string name="preference_doh_exceptions_description">Eithriadau</string>
     <!-- Content description for the "Info" button -->
-    <string name="preference_doh_info_description">Gwybodaeth</string>
+    <string name="preference_doh_info_description">Manylion</string>
     <!-- Content description for the "Add Site" button -->
-    <string name="preference_doh_add_site_description">Ychwanegu Safle</string>
+    <string name="preference_doh_add_site_description">Ychwanegu Gwefan</string>
 
     <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
     <string name="preference_doh_default_protection">Diogelu Rhagosodedig</string>
     <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
-    <string name="preference_doh_default_protection_summary">Mae %1$s yn penderfynu pryd i ddefnyddio DNS diogel i amddiffyn eich preifatrwydd.</string>
+    <string name="preference_doh_default_protection_summary">Mae %1$s yn penderfynu pryd i ddefnyddio DNS diogel i ddiogelu eich preifatrwydd.</string>
     <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
-    <string name="preference_doh_default_protection_info_1">Defnyddiwch y darparwr rydych chi\'n ei ddewis</string>
+    <string name="preference_doh_default_protection_info_1">Defnyddio\'r darparwr rydych chi\'n ei ddewis</string>
     <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
     <string name="preference_doh_default_protection_info_2">Defnyddio\'ch datrysiad DNS rhagosodedig os oes problem gyda\'r darparwr DNS diogel</string>
     <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
-    <string name="preference_doh_default_protection_info_3">Defnyddiwch ddarparwr lleol, os yn bosibl. %1$s</string>
+    <string name="preference_doh_default_protection_info_3">Defnyddio darparwr lleol, os yn bosibl. %1$s</string>
     <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
-    <string name="preference_doh_default_protection_info_4">Diffodd pan fydd VPN, rheolaeth rhieni, neu bolisïau menter yn weithredol</string>
+    <string name="preference_doh_default_protection_info_4">Diffodd pan fydd VPN, rheolaeth rhieni neu bolisïau menter yn weithredol</string>
     <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
-    <string name="preference_doh_default_protection_info_5">Diffoddwch pan fydd rhwydwaith yn dweud wrth %1$s na ddylai ddefnyddio DNS diogel. %2$s</string>
+    <string name="preference_doh_default_protection_info_5">Diffodd pan fydd rhwydwaith yn dweud wrth %1$s na ddylai ddefnyddio DNS diogel. %2$s</string>
 
     <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
-    <string name="preference_doh_increased_protection">Rhagor o Ddiogelwch</string>
+    <string name="preference_doh_increased_protection">Diogelwch Ychwanegol</string>
     <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
     <string name="preference_doh_increased_protection_summary">Chi sy\'n rheoli pryd i ddefnyddio DNS diogel a dewis eich darparwr.</string>
     <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
-    <string name="preference_doh_increased_protection_info_1">Defnyddiwch y darparwr rydych chi\'n ei ddewis</string>
+    <string name="preference_doh_increased_protection_info_1">Defnyddio\'r darparwr rydych chi\'n ei ddewis</string>
     <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
     <string name="preference_doh_increased_protection_info_2">Defnyddio\'ch datrysiad DNS rhagosodedig dim ond os oes problem gyda DNS diogel</string>
 
@@ -2136,7 +2136,7 @@
     <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
     <string name="preference_doh_provider_custom">Cyfaddas</string>
     <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
-    <string name="preference_doh_provider_custom_dialog_title">Darparwr personol</string>
+    <string name="preference_doh_provider_custom_dialog_title">Darparwr cyfaddas</string>
     <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
     <string name="preference_doh_provider_custom_dialog_textfield">Darparwr</string>
     <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https"-->
@@ -2153,11 +2153,11 @@
     <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
     <string name="preference_doh_exceptions_summary">Ni fydd %1$s yn defnyddio DNS diogel ar y gwefannau hyn a\'u his-barthau.</string>
     <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
-    <string name="preference_doh_exceptions_add">Ychwanegu safle</string>
+    <string name="preference_doh_exceptions_add">Ychwanegu gwefan</string>
     <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
     <string name="preference_doh_exceptions_add_site">Gwefan</string>
     <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
-    <string name="preference_doh_exceptions_add_placeholder">enghraifft.com</string>
+    <string name="preference_doh_exceptions_add_placeholder">example.com</string>
     <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
     <string name="preference_doh_exceptions_add_error">Rhaid bod yn barth dilys</string>
     <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
