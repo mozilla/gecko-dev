@@ -1612,23 +1612,19 @@
       "1844503": {
         "issue": "firefox-blocked-completely",
         "matches": [
-          "*://*.ado-dokidokihimitsukichi-daigakuimo.com/*",
-          "*://*.canan8181.com/*",
-          "*://*.gs-ch.com/*",
-          "*://*.keisuke-ueda.jp/*",
-          "*://*.kemomimirefle.net/*",
-          "*://*.nicochannel.jp/*",
-          "*://*.p-jinriki-fc.com/*",
-          "*://*.pizzaradio.jp/*",
-          "*://*.rnqq.jp/*",
-          "*://*.ryogomatsumaru.com/*",
-          "*://*.takahashifumiya.com/*",
-          "*://*.yamingfc.net/*"
+          "*://api.ado-dokidokihimitsukichi-daigakuimo.com/fc/video_pages/*",
+          "*://api.canan8181.com/fc/video_pages/*",
+          "*://api.gs-ch.com/fc/video_pages/*",
+          "*://api.keisuke-ueda.jp/fc/video_pages/*",
+          "*://api.kemomimirefle.net/fc/video_pages/*",
+          "*://api.nicochannel.jp/fc/video_pages/*",
+          "*://api.p-jinriki-fc.com/fc/video_pages/*",
+          "*://api.pizzaradio.jp/fc/video_pages/*",
+          "*://api.rnqq.jp/fc/video_pages/*",
+          "*://api.ryogomatsumaru.com/fc/video_pages/*",
+          "*://api.takahashifumiya.com/fc/video_pages/*",
+          "*://api.yamingfc.net/fc/video_pages/*"
         ]
-      },
-      "1948817": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://*.qlover.jp/*"]
       }
     },
     "interventions": [
@@ -1637,26 +1633,7 @@
         "content_scripts": {
           "js": ["bug1849058-nicochannel.jp-picture-in-picture-shim.js"]
         },
-        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
-      }
-    ]
-  },
-  "1845299": {
-    "label": "Google Slides",
-    "bugs": {
-      "1845299": {
-        "issue": "extra-scrollbars",
-        "matches": ["*://docs.google.com/presentation/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "css": [
-            "bug1845299-docs.google.com-hide-extra-scrollbar-on-speaker-notes.css"
-          ]
-        }
+        "ua_string": ["Chrome"]
       }
     ]
   },
@@ -2695,23 +2672,6 @@
       }
     ]
   },
-  "1925937": {
-    "label": "gazetasp.com.br",
-    "bugs": {
-      "1925937": {
-        "issue": "extra-scrollbars",
-        "matches": ["*://www.gazetasp.com.br/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "css": ["bug1925937-gazetasp.com.br-hide-extra-scrollbars.css"]
-        }
-      }
-    ]
-  },
   "1928216": {
     "label": "voice.google.com",
     "bugs": {
@@ -2981,10 +2941,6 @@
   "1945830": {
     "label": "aliexpress.com",
     "bugs": {
-      "1926506": {
-        "issue": "extra-scrollbars",
-        "matches": ["*://*.aliexpress.com/*"]
-      },
       "1945830": {
         "issue": "broken-layout",
         "matches": ["*://*.aliexpress.com/*"]
@@ -2994,10 +2950,7 @@
       {
         "platforms": ["desktop"],
         "content_scripts": {
-          "css": [
-            "bug1926506-aliexpress.com-hide-extra-scrollbars.css",
-            "bug1945830-aliexpress.com-country-flags-fix.css"
-          ]
+          "css": ["bug1945830-aliexpress.com-country-flags-fix.css"]
         }
       }
     ]
@@ -3034,71 +2987,18 @@
       }
     ]
   },
-  "1948047": {
-    "label": "lovers.cacaushow.com.br",
+  "1948723": {
+    "label": "babel.com",
     "bugs": {
-      "1948047": {
-        "issue": "broken-layout",
-        "matches": ["*://lovers.cacaushow.com.br/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": [
-            "bug1948047-lovers.cacaushow.com.br-nudge-login-popup-onscreen.css"
-          ]
-        }
-      }
-    ]
-  },
-  "1947979": {
-    "label": "www.shazam.com",
-    "bugs": {
-      "1947979": {
-        "issue": "extra-scrollbars",
-        "matches": ["*://www.shazam.com/song/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "css": ["bug1947979-shazam.com-hide-extra-scrollbars.css"]
-        }
-      }
-    ]
-  },
-  "1950100": {
-    "label": "aylak.com",
-    "bugs": {
-      "1950100": {
+      "1948723": {
         "issue": "firefox-blocked-completely",
-        "matches": ["*://*.aylak.com/*"]
+        "matches": ["*://*.babel.com/*"]
       }
     },
     "interventions": [
       {
         "platforms": ["all"],
-        "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
-  "1950053": {
-    "label": "omegleapp.me",
-    "bugs": {
-      "1950053": {
-        "issue": "extra-scrollbars",
-        "matches": ["*://omegleapp.me/chat*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "css": ["bug1950053-omegleapp.me-fix-scrollbars.css"]
-        }
+        "ua_string": ["Chrome"]
       }
     ]
   }
