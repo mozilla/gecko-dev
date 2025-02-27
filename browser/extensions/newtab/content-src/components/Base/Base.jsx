@@ -387,6 +387,17 @@ export class BaseContent extends React.PureComponent {
     if (wallpaperList) {
       let wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);
 
+      let lightWallpaper;
+      let darkWallpaper;
+      if (selectedWallpaper) {
+        // if selectedWallpaper exists - we override what light and dark prefs are to match that
+        lightWallpaper = wallpaper;
+        darkWallpaper = wallpaper;
+      } else {
+        lightWallpaper = wallpaperList.find(wp => wp.theme === "light") || "";
+        darkWallpaper = wallpaperList.find(wp => wp.theme === "dark") || "";
+      }
+
       // solid-color-picker-#00d100
       const regexRGB = /#([a-fA-F0-9]{6})/;
 
@@ -421,7 +432,8 @@ export class BaseContent extends React.PureComponent {
         wallpaperTheme = isColorDark ? "dark" : "light";
       } else {
         // Grab the contrast of the currently displayed wallpaper.
-        const { theme } = this.state.colorMode === "light" && selectedWallpaper;
+        const { theme } =
+          this.state.colorMode === "light" ? lightWallpaper : darkWallpaper;
 
         if (theme) {
           wallpaperTheme = theme;

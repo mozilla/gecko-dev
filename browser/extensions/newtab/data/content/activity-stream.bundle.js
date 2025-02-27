@@ -13417,6 +13417,16 @@ class BaseContent extends (external_React_default()).PureComponent {
     } = this.props.Wallpapers;
     if (wallpaperList) {
       let wallpaper = wallpaperList.find(wp => wp.title === selectedWallpaper);
+      let lightWallpaper;
+      let darkWallpaper;
+      if (selectedWallpaper) {
+        // if selectedWallpaper exists - we override what light and dark prefs are to match that
+        lightWallpaper = wallpaper;
+        darkWallpaper = wallpaper;
+      } else {
+        lightWallpaper = wallpaperList.find(wp => wp.theme === "light") || "";
+        darkWallpaper = wallpaperList.find(wp => wp.theme === "dark") || "";
+      }
 
       // solid-color-picker-#00d100
       const regexRGB = /#([a-fA-F0-9]{6})/;
@@ -13444,7 +13454,7 @@ class BaseContent extends (external_React_default()).PureComponent {
         // Grab the contrast of the currently displayed wallpaper.
         const {
           theme
-        } = this.state.colorMode === "light" && selectedWallpaper;
+        } = this.state.colorMode === "light" ? lightWallpaper : darkWallpaper;
         if (theme) {
           wallpaperTheme = theme;
         }
