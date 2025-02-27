@@ -820,6 +820,40 @@ pwmgr:
     no_lint:
       - UNIT_IN_NAME
 
+  num_saved_passwords:
+    type: quantity
+    unit: passwords
+    lifetime: application
+    description: |
+      The number of saved logins, including those that cannot be decrypted.
+      Similar to the legacy telemetry histogram PWMGR_NUM_SAVED_PASSWORDS.
+    bugs:
+      - https://bugzil.la/1937186
+    data_reviews:
+      - https://bugzil.la/1937186
+    notification_emails:
+      - passwords-dev@mozilla.org
+    expires: never
+    no_lint:
+      - UNIT_IN_NAME
+
+  saving_enabled:
+    type: boolean
+    lifetime: application
+    description: |
+      Whether password saving is enabled globally.
+      Tracks the pref `signon.rememberSignons`.
+    metadata:
+      permit_non_commutative_operations_over_ipc: true
+    bugs:
+      - https://bugzil.la/1937186
+    data_reviews:
+      - https://bugzil.la/1937186
+    notification_emails:
+      - passwords-dev@mozilla.org
+    expires: never
+
+
 form_autocomplete:
   show_logins:
     type: event

@@ -9,10 +9,6 @@
 
 // Globals
 
-const { TestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TestUtils.sys.mjs"
-);
-
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // To prevent intermittent failures when the test is executed at a time that is
@@ -73,50 +69,16 @@ const StatisticsTestData = [
   },
 ];
 
-/**
- * Triggers the collection of those statistics that are not accumulated each
- * time an action is taken, but are a static snapshot of the current state.
- */
-async function triggerStatisticsCollection() {
-  Services.obs.notifyObservers(null, "gather-telemetry", "" + gReferenceTimeMs);
-  await TestUtils.topicObserved("passwordmgr-gather-telemetry-complete");
-}
-
-/**
- * Tests the telemetry histogram with the given ID contains only the specified
- * non-zero ranges, expressed in the format { range1: value1, range2: value2 }.
- */
-function testHistogram(histogramId, expectedNonZeroRanges) {
-  let snapshot = Services.telemetry.getHistogramById(histogramId).snapshot();
-
-  // Compute the actual ranges in the format { range1: value1, range2: value2 }.
-  let actualNonZeroRanges = {};
-  for (let [range, value] of Object.entries(snapshot.values)) {
-    if (value > 0) {
-      actualNonZeroRanges[range] = value;
-    }
-  }
-
-  // These are stringified to visualize the differences between the values.
-  info("Testing histogram: " + histogramId);
-  Assert.equal(
-    JSON.stringify(actualNonZeroRanges),
-    JSON.stringify(expectedNonZeroRanges)
-  );
-}
-
 // Tests
 
 /**
- * Enable local telemetry recording for the duration of the tests, and prepare
- * the test data that will be used by the following tests.
+ * Enable FOG and prepare the test data.
  */
 add_setup(async () => {
-  let oldCanRecord = Services.telemetry.canRecordExtended;
-  Services.telemetry.canRecordExtended = true;
-  registerCleanupFunction(function () {
-    Services.telemetry.canRecordExtended = oldCanRecord;
-  });
+  // FOG needs a profile directory to put its data in.
+  do_get_profile();
+  // FOG needs to be initialized, or testGetValue() calls will deadlock.
+  Services.fog.initializeFOG();
 
   let uniqueNumber = 1;
   let logins = [];
@@ -131,71 +93,33 @@ add_setup(async () => {
   await Services.logins.addLogins(logins);
 });
 
-/**
- * Tests the collection of statistics related to login metadata.
+/*
+ * Tests that the number of saved logins is appropriately reported.
  */
-add_task(async function test_logins_statistics() {
-  // Repeat the operation twice to test that histograms are not accumulated.
-  for (let pass of [1, 2]) {
-    info(`pass ${pass}`);
-    await triggerStatisticsCollection();
-
-    // Should record 1 in the bucket corresponding to the number of passwords.
-    testHistogram("PWMGR_NUM_SAVED_PASSWORDS", { 10: 1 });
-
-    // Should record 1 in the bucket corresponding to the number of passwords.
-    testHistogram("PWMGR_NUM_HTTPAUTH_PASSWORDS", { 1: 1 });
-
-    // For each saved login, should record 1 in the bucket corresponding to the
-    // age in days since the login was last used.
-    testHistogram("PWMGR_LOGIN_LAST_USED_DAYS", {
-      0: 1,
-      1: 1,
-      7: 2,
-      29: 2,
-      356: 2,
-      750: 1,
-    });
-
-    // Should record the number of logins without a username in bucket 0, and
-    // the number of logins with a username in bucket 1.
-    testHistogram("PWMGR_USERNAME_PRESENT", { 0: 4, 1: 6 });
-  }
-});
-
-/**
- * Tests the collection of statistics related to hosts for which passowrd saving
- * has been explicitly disabled.
- */
-add_task(async function test_disabledHosts_statistics() {
-  // Should record 1 in the bucket corresponding to the number of sites for
-  // which password saving is disabled.
-  Services.logins.setLoginSavingEnabled("http://www.example.com", false);
-  await triggerStatisticsCollection();
-  testHistogram("PWMGR_BLOCKLIST_NUM_SITES", { 1: 1 });
-
-  Services.logins.setLoginSavingEnabled("http://www.example.com", true);
-  await triggerStatisticsCollection();
-  testHistogram("PWMGR_BLOCKLIST_NUM_SITES", { 0: 1 });
+add_task(function test_logins_count() {
+  Assert.equal(
+    Glean.pwmgr.numSavedPasswords.testGetValue(),
+    StatisticsTestData.length,
+    "We've appropriately counted all the logins"
+  );
 });
 
 /**
  * Tests the collection of statistics related to general settings.
  */
-add_task(async function test_settings_statistics() {
+add_task(function test_settings_statistics() {
   let oldRememberSignons = Services.prefs.getBoolPref("signon.rememberSignons");
   registerCleanupFunction(function () {
     Services.prefs.setBoolPref("signon.rememberSignons", oldRememberSignons);
   });
 
-  // Repeat the operation twice per value to test that histograms are reset.
-  for (let remember of [false, true, false, true]) {
+  for (let remember of [false, true]) {
     // This change should be observed immediately by the login service.
     Services.prefs.setBoolPref("signon.rememberSignons", remember);
-
-    await triggerStatisticsCollection();
-
-    // Should record 1 in either bucket 0 or bucket 1 based on the preference.
-    testHistogram("PWMGR_SAVING_ENABLED", remember ? { 1: 1 } : { 0: 1 });
+    Assert.equal(
+      Glean.pwmgr.savingEnabled.testGetValue(),
+      remember,
+      "The pref is correctly recorded."
+    );
   }
 });

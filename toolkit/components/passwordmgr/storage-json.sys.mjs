@@ -196,7 +196,7 @@ export class LoginManagerStorage_json {
     return !!login?.deleted;
   }
 
-  // Synrhronuously stores encrypted login, returns login clone with upserted
+  // Synchronuously stores encrypted login, returns login clone with upserted
   // uuid and updated timestamps
   #addLogin(login) {
     this._store.ensureDataReady();
@@ -273,6 +273,7 @@ export class LoginManagerStorage_json {
     });
     this._store.saveSoon();
 
+    Glean.pwmgr.numSavedPasswords.set(this.countLogins("", "", ""));
     return loginClone;
   }
 
@@ -347,6 +348,7 @@ export class LoginManagerStorage_json {
       }
     }
 
+    Glean.pwmgr.numSavedPasswords.set(this.countLogins("", "", ""));
     lazy.LoginHelper.notifyStorageChanged("removeLogin", storedLogin);
   }
 

@@ -427,6 +427,7 @@ export const LoginHelper = {
     );
     this.debug = Services.prefs.getBoolPref("signon.debug");
     this.enabled = Services.prefs.getBoolPref("signon.rememberSignons");
+    Glean.pwmgr.savingEnabled.set(this.enabled);
     this.storageEnabled = Services.prefs.getBoolPref(
       "signon.storeSignons",
       true
