@@ -205,7 +205,10 @@ UniquePtr<RenderCompositor> RenderCompositor::Create(
       return RenderCompositorNativeSWGL::Create(aWidget, aError);
     }
 #elif defined(MOZ_WAYLAND)
-    if (gfx::gfxVars::UseWebRenderCompositor()) {
+    // Some widgets on Wayland (D&D popups for instance) can't use native
+    // compositor due to system limitations.
+    if (gfx::gfxVars::UseWebRenderCompositor() &&
+        aWidget->GetCompositorOptions().AllowNativeCompositor()) {
       return RenderCompositorNativeSWGL::Create(aWidget, aError);
     }
 #endif
@@ -231,7 +234,8 @@ UniquePtr<RenderCompositor> RenderCompositor::Create(
 #endif
 
 #if defined(MOZ_WAYLAND)
-  if (gfx::gfxVars::UseWebRenderCompositor()) {
+  if (gfx::gfxVars::UseWebRenderCompositor() &&
+      aWidget->GetCompositorOptions().AllowNativeCompositor()) {
     return RenderCompositorNativeOGL::Create(aWidget, aError);
   }
 #endif

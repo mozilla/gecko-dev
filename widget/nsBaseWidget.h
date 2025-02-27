@@ -280,6 +280,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   }
   bool ComputeShouldAccelerate();
   virtual bool WidgetTypeSupportsAcceleration() { return true; }
+  virtual bool WidgetTypeSupportsNativeCompositing() { return true; }
   [[nodiscard]] nsresult OnDefaultButtonLoaded(
       const LayoutDeviceIntRect& aButtonRect) override {
     return NS_ERROR_NOT_IMPLEMENTED;

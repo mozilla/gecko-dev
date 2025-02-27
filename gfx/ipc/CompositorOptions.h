@@ -42,6 +42,7 @@ class CompositorOptions {
   bool AllowSoftwareWebRenderOGL() const { return mAllowSoftwareWebRenderOGL; }
   bool InitiallyPaused() const { return mInitiallyPaused; }
   bool NeedFastSnaphot() const { return mNeedFastSnaphot; }
+  bool AllowNativeCompositor() const { return mAllowNativeCompositor; }
 
   void SetUseAPZ(bool aUseAPZ) { mUseAPZ = aUseAPZ; }
 
@@ -61,13 +62,18 @@ class CompositorOptions {
     mNeedFastSnaphot = aNeedFastSnaphot;
   }
 
+  void SetAllowNativeCompositor(bool aAllowNativeCompositor) {
+    mAllowNativeCompositor = aAllowNativeCompositor;
+  }
+
   bool EqualsIgnoringApzEnablement(const CompositorOptions& aOther) const {
     return mUseSoftwareWebRender == aOther.mUseSoftwareWebRender &&
            mAllowSoftwareWebRenderD3D11 ==
                aOther.mAllowSoftwareWebRenderD3D11 &&
            mAllowSoftwareWebRenderOGL == aOther.mAllowSoftwareWebRenderOGL &&
            mInitiallyPaused == aOther.mInitiallyPaused &&
-           mNeedFastSnaphot == aOther.mNeedFastSnaphot;
+           mNeedFastSnaphot == aOther.mNeedFastSnaphot &&
+           mAllowNativeCompositor == aOther.mAllowNativeCompositor;
   }
 
   bool operator==(const CompositorOptions& aOther) const {
@@ -83,6 +89,7 @@ class CompositorOptions {
   bool mAllowSoftwareWebRenderOGL = false;
   bool mInitiallyPaused = false;
   bool mNeedFastSnaphot = false;
+  bool mAllowNativeCompositor = true;
 
   // Make sure to add new fields to the ParamTraits implementation
   // in LayersMessageUtils.h

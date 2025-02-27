@@ -432,6 +432,7 @@ class nsWindow final : public nsBaseWidget {
   LayoutDeviceIntMargin GtkBorderToDevicePixels(const GtkBorder&);
 
   bool WidgetTypeSupportsAcceleration() override;
+  bool WidgetTypeSupportsNativeCompositing() override { return !mIsDragPopup; }
 
   nsresult SetSystemFont(const nsCString& aFontName) override;
   nsresult GetSystemFont(nsCString& aFontName) override;

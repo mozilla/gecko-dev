@@ -1011,6 +1011,7 @@ struct ParamTraits<mozilla::layers::CompositorOptions> {
     WriteParam(aWriter, aParam.mAllowSoftwareWebRenderOGL);
     WriteParam(aWriter, aParam.mInitiallyPaused);
     WriteParam(aWriter, aParam.mNeedFastSnaphot);
+    WriteParam(aWriter, aParam.mAllowNativeCompositor);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -1019,7 +1020,8 @@ struct ParamTraits<mozilla::layers::CompositorOptions> {
            ReadParam(aReader, &aResult->mAllowSoftwareWebRenderD3D11) &&
            ReadParam(aReader, &aResult->mAllowSoftwareWebRenderOGL) &&
            ReadParam(aReader, &aResult->mInitiallyPaused) &&
-           ReadParam(aReader, &aResult->mNeedFastSnaphot);
+           ReadParam(aReader, &aResult->mNeedFastSnaphot) &&
+           ReadParam(aReader, &aResult->mAllowNativeCompositor);
   }
 };
 
