@@ -2987,6 +2987,25 @@
       }
     ]
   },
+  "1948047": {
+    "label": "lovers.cacaushow.com.br",
+    "bugs": {
+      "1948047": {
+        "issue": "broken-layout",
+        "matches": ["*://lovers.cacaushow.com.br/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": [
+            "bug1948047-lovers.cacaushow.com.br-nudge-login-popup-onscreen.css"
+          ]
+        }
+      }
+    ]
+  },
   "1948723": {
     "label": "babel.com",
     "bugs": {
