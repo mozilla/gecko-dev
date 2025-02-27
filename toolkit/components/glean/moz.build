@@ -138,7 +138,12 @@ metrics_headers = sorted(
     {
         convert_yaml_path_to_header_name(path) + ".h"
         for path in metrics_yamls
-        if path != "toolkit/components/glean/metrics.yaml"
+        if path
+        not in (
+            "toolkit/components/glean/metrics.yaml",
+            "browser/components/asrouter/metrics.yaml",
+            # TODO: Remove in bug 1899019
+        )
     }
 )
 EXPORTS.mozilla.glean += [("!" + filename) for filename in metrics_headers]
