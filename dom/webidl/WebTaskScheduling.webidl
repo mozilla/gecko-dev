@@ -31,6 +31,9 @@ interface Scheduler {
     SchedulerPostTaskCallback callback,
     optional SchedulerPostTaskOptions options = {}
   );
+
+  [BinaryName="yieldImpl"]
+  Promise<undefined> yield();
 };
 
 dictionary TaskControllerInit {

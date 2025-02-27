@@ -11,7 +11,7 @@
 namespace mozilla::dom {
 
 WebTaskWorkerRunnable::WebTaskWorkerRunnable(
-    WorkerPrivate* aWorkerPrivate, WebTaskSchedulerWorker* aSchedulerWorker)
+    WebTaskSchedulerWorker* aSchedulerWorker)
     : WorkerSameThreadRunnable("WebTaskWorkerRunnable"),
       mSchedulerWorker(aSchedulerWorker) {
   MOZ_ASSERT(mSchedulerWorker);
@@ -54,12 +54,11 @@ bool WebTaskWorkerRunnable::WorkerRun(JSContext* aCx,
   return true;
 }
 
-nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(WebTask* aTask,
-                                                          uint64_t aDelay) {
+nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(
+    WebTask* aTask, uint64_t aDelay, EventQueuePriority aPriority) {
   if (mWorkerIsShuttingDown) {
     return NS_ERROR_ABORT;
   }
-
   if (!mWorkerRef) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -73,7 +72,7 @@ nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(WebTask* aTask,
     return NS_ERROR_UNEXPECTED;
   }
   RefPtr<DelayedWebTaskHandler> handler =
-      new DelayedWebTaskHandler(cx, this, aTask);
+      new DelayedWebTaskHandler(cx, this, aTask, aPriority);
   ErrorResult rv;
 
   int32_t delay = aDelay > INT32_MAX ? INT32_MAX : (int32_t)aDelay;
@@ -83,7 +82,16 @@ nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(WebTask* aTask,
   return rv.StealNSResult();
 }
 
-bool WebTaskSchedulerWorker::DispatchEventLoopRunnable() {
+bool WebTaskSchedulerWorker::DispatchEventLoopRunnable(
+    EventQueuePriority aPriority) {
+  // aPriority is unused at the moment, we can't control
+  // the priorities for runnables on workers at the moment.
+  //
+  // This won't affect the correctness of this API because
+  // WebTaskScheduler maintains its own priority queues.
+  //
+  // It's just that we can't interfere the ordering between
+  // `WebTask` and other runnables.
   if (mWorkerIsShuttingDown) {
     return false;
   }
@@ -94,8 +102,7 @@ bool WebTaskSchedulerWorker::DispatchEventLoopRunnable() {
   MOZ_ASSERT(mWorkerRef->Private());
   mWorkerRef->Private()->AssertIsOnWorkerThread();
 
-  RefPtr<WebTaskWorkerRunnable> runnable =
-      new WebTaskWorkerRunnable(mWorkerRef->Private(), this);
+  RefPtr<WebTaskWorkerRunnable> runnable = new WebTaskWorkerRunnable(this);
   return runnable->Dispatch(mWorkerRef->Private());
 }
 
