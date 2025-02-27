@@ -86,6 +86,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1944727-www.linkedin.com-fix-dark-overlay.css",
     "injections/css/bug1945830-aliexpress.com-country-flags-fix.css",
     "injections/css/bug1947105-pexels.com-nudge-thanks-popup-onscreen.css",
+    "injections/css/bug1948047-lovers.cacaushow.com.br-nudge-login-popup-onscreen.css",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
