@@ -56,6 +56,8 @@ support-files = [
 
 ["browser_editor_find_again.js"]
 
+["browser_editor_find.js"]
+
 ["browser_editor_goto_line.js"]
 
 ["browser_editor_history.js"]

@@ -113,6 +113,29 @@
   background-color: var(--theme-contrast-background-alpha);
 }
 
+/* CodeMirror 5 search addon input */
+.cm5-search-container {
+  display: flex;
+  padding: 4px 2px;
+
+  .CodeMirror-dialog:has(> &) {
+    background-color: var(--theme-body-background);
+    /* remove padding on the dialog so it's easier to style the focus indicator */
+    padding: 0;
+  }
+
+  .cm5-search-input {
+    margin-inline: 1em;
+    flex-grow: 1;
+  }
+
+  &:focus-within {
+    outline: var(--theme-focus-outline);
+    outline-offset: -2px;
+  }
+}
+
+
 /* CodeMirror dialogs styling */
 
 .CodeMirror-dialog {

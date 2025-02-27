@@ -297,6 +297,13 @@ class Editor extends EventEmitter {
     // widely known.
     this.config.extraKeys[Editor.accel("U")] = false;
 
+    if (!config.disableSearchAddon) {
+      // Override the default search shortcut so the built-in UI doesn't get hidden
+      // when hitting Enter (so the user can cycle through results).
+      this.config.extraKeys[Editor.accel("F")] = () =>
+        editors.get(this).execCommand("findPersistent");
+    }
+
     // Disable keys that trigger events with a null-string `which` property.
     // It looks like some of those (e.g. the Function key), can trigger a poll
     // which fails to see that there's a selection, which end up replacing the
@@ -3009,7 +3016,7 @@ class Editor extends EventEmitter {
 
     // need to call it since we prevent the propagation of the event and
     // cancel codemirror's key handling
-    cm.execCommand("find");
+    cm.execCommand("findPersistent");
   }
 
   /**
