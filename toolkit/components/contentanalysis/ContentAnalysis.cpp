@@ -815,7 +815,7 @@ static void LogRequest(
 ContentAnalysisResponse::ContentAnalysisResponse(
     content_analysis::sdk::ContentAnalysisResponse&& aResponse,
     const nsCString& aUserActionId)
-    : mUserActionId(aUserActionId) {
+    : mUserActionId(aUserActionId), mIsAgentResponse(true) {
   mAction = Action::eUnspecified;
   for (const auto& result : aResponse.results()) {
     if (!result.has_status() ||
@@ -954,6 +954,12 @@ ContentAnalysisResponse::GetCancelError(CancelError* aCancelError) {
 NS_IMETHODIMP
 ContentAnalysisResponse::GetIsCachedResponse(bool* aIsCachedResponse) {
   *aIsCachedResponse = mIsCachedResponse;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ContentAnalysisResponse::GetIsAgentResponse(bool* aIsAgentResponse) {
+  *aIsAgentResponse = mIsAgentResponse;
   return NS_OK;
 }
 

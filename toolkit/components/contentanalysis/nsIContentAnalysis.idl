@@ -87,6 +87,12 @@ interface nsIContentAnalysisResponse : nsIContentAnalysisResult
   // so any dialogs (for block/warn) should not be shown.
   [infallible] readonly attribute boolean isCachedResponse;
 
+  // Whether this is a response from an agent or one synthesized by Firefox.
+  // Synthetic responses ignore browser.contentanalysis.show_blocked_result and
+  // always show a blocked result for blocked content, since there is no agent
+  // that could have shown one for us.
+  [infallible] readonly attribute boolean isAgentResponse;
+
   /**
    * Acknowledge receipt of an analysis response.
    * If false is passed for aAutoAcknowledge to AnalyzeContentRequest,

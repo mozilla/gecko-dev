@@ -506,6 +506,12 @@ class ContentAnalysisResponse final : public nsIContentAnalysisResponse {
   // so any dialogs (for block/warn) should not be shown.
   bool mIsCachedResponse = false;
 
+  // Whether this is a response from an agent or one synthesized by Firefox.
+  // Synthetic responses ignore browser.contentanalysis.show_blocked_result and
+  // always show a blocked result for blocked content, since there is no agent
+  // that could have shown one for us.
+  bool mIsAgentResponse = false;
+
   friend class ContentAnalysis;
 };
 

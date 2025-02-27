@@ -324,6 +324,7 @@ export const ContentAnalysis = {
             response.requestToken,
             response.userActionId,
             responseResult,
+            response.isAgentResponse,
             response.cancelError
           );
         }
@@ -394,10 +395,7 @@ export const ContentAnalysis = {
         aBrowsingContext.embedderWindowGlobal.browsingContext.topChromeWindow;
       const notification = new topWindow.Notification(
         this.l10n.formatValueSync("contentanalysis-notification-title"),
-        {
-          body: aMessage,
-          silent: lazy.silentNotifications,
-        }
+        { body: aMessage, silent: lazy.silentNotifications }
       );
 
       if (aTimeout != 0) {
@@ -466,9 +464,7 @@ export const ContentAnalysis = {
         return {
           name: this.l10n.formatValueSync(
             "contentanalysis-customdisplaystring-description",
-            {
-              filename: aRequest.operationDisplayString,
-            }
+            { filename: aRequest.operationDisplayString }
           ),
         };
       }
@@ -511,10 +507,7 @@ export const ContentAnalysis = {
     if (aResourceNameOrOperationType.name) {
       return this.l10n.formatValueSync(
         "contentanalysis-slow-agent-dialog-body-file",
-        {
-          agent: lazy.agentName,
-          filename: aResourceNameOrOperationType.name,
-        }
+        { agent: lazy.agentName, filename: aResourceNameOrOperationType.name }
       );
     }
     let l10nId = undefined;
@@ -536,18 +529,14 @@ export const ContentAnalysis = {
       );
       return "";
     }
-    return this.l10n.formatValueSync(l10nId, {
-      agent: lazy.agentName,
-    });
+    return this.l10n.formatValueSync(l10nId, { agent: lazy.agentName });
   },
 
   _getErrorDialogMessage(aResourceNameOrOperationType) {
     if (aResourceNameOrOperationType.name) {
       return this.l10n.formatValueSync(
         "contentanalysis-error-message-upload-file",
-        {
-          filename: aResourceNameOrOperationType.name,
-        }
+        { filename: aResourceNameOrOperationType.name }
       );
     }
     let l10nId = undefined;
@@ -629,6 +618,7 @@ export const ContentAnalysis = {
     aRequestToken,
     aUserActionId,
     aCAResult,
+    aIsAgentResponse,
     aRequestCancelError
   ) {
     let message = null;
@@ -686,7 +676,7 @@ export const ContentAnalysis = {
         return null;
       }
       case Ci.nsIContentAnalysisResponse.eBlock: {
-        if (!lazy.showBlockedResult) {
+        if (aIsAgentResponse && !lazy.showBlockedResult) {
           // Don't show anything
           return null;
         }
@@ -696,9 +686,7 @@ export const ContentAnalysis = {
           titleId = "contentanalysis-block-dialog-title-upload-file";
           body = this.l10n.formatValueSync(
             "contentanalysis-block-dialog-body-upload-file",
-            {
-              filename: aResourceNameOrOperationType.name,
-            }
+            { filename: aResourceNameOrOperationType.name }
           );
         } else {
           let bodyId = undefined;
@@ -862,10 +850,7 @@ export const ContentAnalysis = {
     }
     return await this.l10n.formatValue(
       "contentanalysis-no-agent-connected-message-content",
-      {
-        agent: lazy.agentName,
-        content: "",
-      }
+      { agent: lazy.agentName, content: "" }
     );
   },
 };
