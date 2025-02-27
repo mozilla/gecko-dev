@@ -57,22 +57,28 @@ CARET_VERSION_RANGE_RE = re.compile(r"^\^((\d+)\.\d+\.\d+)$")
 project_root = None
 
 
-def eslint_maybe_setup():
+def eslint_maybe_setup(package_root=None, package_name=None):
     """Setup ESLint only if it is needed."""
-    has_issues, needs_clobber = eslint_module_needs_setup()
+
+    if package_root is None:
+        package_root = get_project_root()
+    if package_name is None:
+        package_name = "eslint"
+
+    has_issues, needs_clobber = eslint_module_needs_setup(package_root, package_name)
 
     if has_issues:
-        eslint_setup(needs_clobber)
+        eslint_setup(package_root, package_name, needs_clobber)
 
 
-def eslint_setup(should_clobber=False):
+def eslint_setup(package_root, package_name, should_clobber=False):
     """Ensure eslint is optimally configured.
 
     This command will inspect your eslint configuration and
     guide you through an interactive wizard helping you configure
     eslint for optimal use on Mozilla projects.
     """
-    package_setup(get_project_root(), "eslint", should_clobber=should_clobber)
+    package_setup(package_root, package_name, should_clobber=should_clobber)
 
 
 def remove_directory(path):
@@ -199,30 +205,31 @@ def call_process(name, cmd, cwd=None, append_env={}):
     return True
 
 
-def expected_eslint_modules():
+def expected_installed_modules(package_root, package_name):
     # Read the expected version of ESLint and external modules
-    expected_modules_path = os.path.join(get_project_root(), "package.json")
+    expected_modules_path = os.path.join(package_root, "package.json")
     with open(expected_modules_path, encoding="utf-8") as f:
         sections = json.load(f)
         expected_modules = sections.get("dependencies", {})
         expected_modules.update(sections.get("devDependencies", {}))
 
-    # Also read the in-tree ESLint plugin mozilla information, to ensure the
-    # dependencies are up to date.
-    mozilla_json_path = os.path.join(
-        get_eslint_module_path(), "eslint-plugin-mozilla", "package.json"
-    )
-    with open(mozilla_json_path, encoding="utf-8") as f:
-        dependencies = json.load(f).get("dependencies", {})
-        expected_modules.update(dependencies)
+    if package_name == "eslint":
+        # Also read the in-tree ESLint plugin mozilla information, to ensure the
+        # dependencies are up to date.
+        mozilla_json_path = os.path.join(
+            get_eslint_module_path(), "eslint-plugin-mozilla", "package.json"
+        )
+        with open(mozilla_json_path, encoding="utf-8") as f:
+            dependencies = json.load(f).get("dependencies", {})
+            expected_modules.update(dependencies)
 
-    # Also read the in-tree ESLint plugin spidermonkey information, to ensure the
-    # dependencies are up to date.
-    mozilla_json_path = os.path.join(
-        get_eslint_module_path(), "eslint-plugin-spidermonkey-js", "package.json"
-    )
-    with open(mozilla_json_path, encoding="utf-8") as f:
-        expected_modules.update(json.load(f).get("dependencies", {}))
+        # Also read the in-tree ESLint plugin spidermonkey information, to ensure the
+        # dependencies are up to date.
+        mozilla_json_path = os.path.join(
+            get_eslint_module_path(), "eslint-plugin-spidermonkey-js", "package.json"
+        )
+        with open(mozilla_json_path, encoding="utf-8") as f:
+            expected_modules.update(json.load(f).get("dependencies", {}))
 
     return expected_modules
 
@@ -252,13 +259,15 @@ def check_eslint_files(node_modules_path, name):
     return check_file_diffs(dcmp)
 
 
-def eslint_module_needs_setup():
+def eslint_module_needs_setup(package_root, package_name):
     has_issues = False
     needs_clobber = False
-    node_modules_path = os.path.join(get_project_root(), "node_modules")
+    node_modules_path = os.path.join(package_root, "node_modules")
 
-    for name, expected_data in expected_eslint_modules().items():
-        # expected_eslint_modules returns a string for the version number of
+    for name, expected_data in expected_installed_modules(
+        package_root, package_name
+    ).items():
+        # expected_installed_modules package_root, package_namereturns a string for the version number of
         # dependencies for installation of eslint generally, and an object
         # for our in-tree plugins (which contains the entire module info).
         if "version" in expected_data:
@@ -274,9 +283,11 @@ def eslint_module_needs_setup():
             continue
         data = json.load(open(path, encoding="utf-8"))
 
-        if version_range.startswith("file:"):
+        if version_range.startswith("file:") or version_range.startswith("github:"):
             # We don't need to check local file installations for versions, as
             # these are symlinked, so we'll always pick up the latest.
+            # For github versions, these are hard to sync, so we'll assume some other
+            # module gets updated at the same time for now.
             continue
 
         if name == "eslint" and Version("4.0.0") > Version(data["version"]):
