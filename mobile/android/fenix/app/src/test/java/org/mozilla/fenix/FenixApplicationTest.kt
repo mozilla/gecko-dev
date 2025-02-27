@@ -35,6 +35,10 @@ import org.mozilla.fenix.GleanMetrics.SearchDefaultEngine
 import org.mozilla.fenix.GleanMetrics.TopSites
 import org.mozilla.fenix.components.metrics.MozillaProductDetector
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
+import org.mozilla.fenix.distributions.DefaultDistributionBrowserStoreProvider
+import org.mozilla.fenix.distributions.DistributionIdManager
+import org.mozilla.fenix.distributions.DistributionProviderChecker
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
@@ -51,12 +55,21 @@ class FenixApplicationTest {
     private lateinit var mozillaProductDetector: MozillaProductDetector
     private lateinit var browserStore: BrowserStore
 
+    private val testDistributionProviderChecker = object : DistributionProviderChecker {
+        override fun queryProvider(): String? = null
+    }
+
     @Before
     fun setUp() {
         application = ApplicationProvider.getApplicationContext()
         browsersCache = mockk(relaxed = true)
         mozillaProductDetector = mockk(relaxed = true)
         browserStore = BrowserStore()
+        every { testContext.components.distributionIdManager } returns DistributionIdManager(
+            testContext,
+            DefaultDistributionBrowserStoreProvider(browserStore),
+            testDistributionProviderChecker,
+        )
     }
 
     @Test
@@ -94,7 +107,7 @@ class FenixApplicationTest {
         val expectedAppInstallSource = "org.mozilla.install.source"
         val settings = spyk(Settings(testContext))
         val application = spyk(application)
-        val packageManager: PackageManager = mockk(relaxed = true)
+        val packageManager: PackageManager = mockk()
 
         every { application.packageManager } returns packageManager
         @Suppress("DEPRECATION")

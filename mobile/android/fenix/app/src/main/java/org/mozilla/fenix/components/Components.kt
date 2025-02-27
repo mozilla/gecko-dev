@@ -34,6 +34,9 @@ import org.mozilla.fenix.components.metrics.MetricsMiddleware
 import org.mozilla.fenix.crashes.CrashReportingAppMiddleware
 import org.mozilla.fenix.crashes.SettingsCrashReportCache
 import org.mozilla.fenix.datastore.pocketStoriesSelectedCategoriesDataStore
+import org.mozilla.fenix.distributions.DefaultDistributionBrowserStoreProvider
+import org.mozilla.fenix.distributions.DefaultDistributionProviderChecker
+import org.mozilla.fenix.distributions.DistributionIdManager
 import org.mozilla.fenix.ext.asRecentTabs
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.filterState
@@ -245,6 +248,14 @@ class Components(private val context: Context) {
     }
 
     val fxSuggest by lazyMonitored { FxSuggest(context) }
+
+    val distributionIdManager by lazyMonitored {
+        DistributionIdManager(
+            context = context,
+            browserStoreProvider = DefaultDistributionBrowserStoreProvider(core.store),
+            distributionProviderChecker = DefaultDistributionProviderChecker(context),
+        )
+    }
 }
 
 /**
