@@ -24,7 +24,7 @@ add_task(function test_NimbusRolloutMessageProvider() {
       typeof validator !== "undefined",
       typeof validator !== "undefined"
         ? `Schema validator found for ${message.template}`
-        : `No schema validator found for template ${message.template}. Please update this test to add one.`
+        : `No schema validator found for template ${message.template} of message ${message?.id}. Please update this test to add one.`
     );
 
     assertValidates(
