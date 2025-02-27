@@ -367,11 +367,6 @@ class Toolbar extends Component {
   renderSearchButton(toggleSearchPanel) {
     const { networkActionBarOpen, networkActionBarSelectedPanel } = this.props;
 
-    // The search feature is available behind a pref.
-    if (!Services.prefs.getBoolPref("devtools.netmonitor.features.search")) {
-      return null;
-    }
-
     return button({
       className: "devtools-button devtools-search-icon",
       title: TOOLBAR_SEARCH,

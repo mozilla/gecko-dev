@@ -71,9 +71,6 @@ class NetworkActionBar extends Component {
     const showBlockingPanel = Services.prefs.getBoolPref(
       "devtools.netmonitor.features.requestBlocking"
     );
-    const showSearchPanel = Services.prefs.getBoolPref(
-      "devtools.netmonitor.features.search"
-    );
     const showNewCustomRequestPanel = Services.prefs.getBoolPref(
       "devtools.netmonitor.features.newEditAndResend"
     );
@@ -102,15 +99,14 @@ class NetworkActionBar extends Component {
             },
             HTTPCustomRequestPanel({ connector })
           ),
-        showSearchPanel &&
-          TabPanel(
-            {
-              id: PANELS.SEARCH,
-              title: L10N.getStr("netmonitor.actionbar.search"),
-              className: "network-action-bar-search",
-            },
-            SearchPanel({ connector })
-          ),
+        TabPanel(
+          {
+            id: PANELS.SEARCH,
+            title: L10N.getStr("netmonitor.actionbar.search"),
+            className: "network-action-bar-search",
+          },
+          SearchPanel({ connector })
+        ),
         showBlockingPanel &&
           TabPanel(
             {
