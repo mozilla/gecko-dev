@@ -167,24 +167,6 @@ windows10-64-shippable-qr/opt:
     test-sets:
         - browsertime-benchmark
 
-windows11-64-2009-hw-ref-shippable/opt:
-    build-platform: win64-shippable/opt
-    build-signing-label:
-        by-variant:
-            msix: repackage-signing-msix-win64/opt
-            default: build-signing-win64/opt
-    test-sets:
-        - browsertime-ref-hw
-
-windows11-64-2009-hw-ref/opt:
-    build-platform: win64/opt
-    build-signing-label:
-        by-variant:
-            msix: repackage-signing-msix-win64/opt
-            default: build-signing-win64/opt
-    test-sets:
-        - browsertime-ref-hw
-
 windows11-64-24h2-hw-ref-shippable/opt:
     build-platform: win64-shippable/opt
     build-signing-label:
@@ -209,19 +191,12 @@ windows11-64-qr/opt:
     build-platform: win64/opt
     test-sets:
         - windows-talos
-        - browsertime
 
 windows11-64-shippable-qr/opt:
     build-platform: win64-shippable/opt
     test-sets:
         - talos-profiling
         - windows-talos
-        - browsertime
-
-windows11-64-nightlyasrelease-qr/opt:
-    build-platform: win64-nightlyasrelease/opt
-    test-sets:
-        - browsertime
 
 # win10-64 2004
 windows10-64-2009-qr/debug:
