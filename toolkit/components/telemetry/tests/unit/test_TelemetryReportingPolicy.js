@@ -7,6 +7,8 @@
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
+  AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+  ClientEnvironment: "resource://normandy/lib/ClientEnvironment.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
@@ -29,6 +31,30 @@ const TEST_CHANNEL = "TestChannelABC";
 
 const PREF_MINIMUM_CHANNEL_POLICY_VERSION =
   TelemetryUtils.Preferences.MinimumPolicyVersion + ".channel-" + TEST_CHANNEL;
+
+const ON_TRAIN_ROLLOUT_SUPPORTED_PLATFORM =
+  AppConstants.platform == "linux" ||
+  AppConstants.platform == "macosx" ||
+  (AppConstants.platform === "win" &&
+    Services.sysinfo.getProperty("hasWinPackageId", false));
+
+const ON_TRAIN_ROLLOUT_ENABLED_PREF =
+  "browser.preonboarding.onTrainRolloutEnabled";
+
+const ON_TRAIN_ROLLOUT_POPULATION_PREF =
+  "browser.preonboarding.onTrainRolloutPopulation";
+
+const ON_TRAIN_TEST_RECIPE = {
+  slug: "new-onboarding-experience-on-train-rollout-phase-1",
+  bucketConfig: {
+    count: 100,
+    namespace: "firefox-desktop-preonboarding-on-train-rollout-1",
+    randomizationUnit: "normandy_id",
+    start: 0,
+    total: 10000,
+  },
+  branches: [{ slug: "treatment", ratio: 100 }],
+};
 
 function fakeShowPolicyTimeout(set, clear) {
   Policy.setShowInfobarTimeout = set;
@@ -675,5 +701,101 @@ add_task(
       900,
       "After, the user has accepted the experiment/rollout version."
     );
+  }
+);
+
+const getOnTrainRolloutModalStub = async shouldEnroll => {
+  Services.prefs.setBoolPref(ON_TRAIN_ROLLOUT_ENABLED_PREF, true);
+  Services.prefs.setIntPref(
+    ON_TRAIN_ROLLOUT_POPULATION_PREF,
+    ON_TRAIN_TEST_RECIPE.bucketConfig.count
+  );
+  Services.prefs.clearUserPref("browser.preonboarding.enabled");
+
+  const testIDs = await ExperimentManager.generateTestIds(ON_TRAIN_TEST_RECIPE);
+  let experimentId = shouldEnroll ? testIDs.treatment : testIDs.notInExperiment;
+  sinon.stub(ClientEnvironment, "userId").get(() => experimentId);
+  let modalStub = sinon.stub(Policy, "showModal").returns(true);
+
+  fakeResetAcceptedPolicy();
+  TelemetryReportingPolicy.reset();
+  let p = Policy.delayedSetup();
+  Policy.fakeSessionRestoreNotification();
+  fakeInteractWithModal();
+  await p;
+
+  const doCleanup = () => {
+    sinon.restore();
+    fakeResetAcceptedPolicy();
+    Services.prefs.clearUserPref(ON_TRAIN_ROLLOUT_ENABLED_PREF);
+    Services.prefs.clearUserPref(ON_TRAIN_ROLLOUT_POPULATION_PREF);
+  };
+
+  return { modalStub, doCleanup };
+};
+
+add_task(
+  skipIfNotBrowser(),
+  async function test_onTrainRollout_configuration_supportedOS_should_enroll() {
+    if (!ON_TRAIN_ROLLOUT_SUPPORTED_PLATFORM) {
+      info(
+        "Skipping supported OS test because current platform is not Linux, Mac, or Win MSIX"
+      );
+      return;
+    }
+
+    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub(true);
+
+    Assert.equal(
+      modalStub.callCount,
+      1,
+      "showModal is invoked once if enrolled in rollout"
+    );
+
+    doCleanup();
+  }
+);
+
+add_task(
+  skipIfNotBrowser(),
+  async function test_onTrainRollout_configuration_supportedOS_should_not_enroll() {
+    if (!ON_TRAIN_ROLLOUT_SUPPORTED_PLATFORM) {
+      info(
+        "Skipping supported OS test because current platform is not Linux, Mac, or Win MSIX"
+      );
+      return;
+    }
+
+    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub(false);
+
+    Assert.equal(
+      modalStub.callCount,
+      0,
+      "showModal is not invoked if not enrolled in rollout"
+    );
+
+    doCleanup();
+  }
+);
+
+add_task(
+  skipIfNotBrowser(),
+  async function test_onTrainRollout_configuration_unsupportedOS() {
+    if (ON_TRAIN_ROLLOUT_SUPPORTED_PLATFORM) {
+      info(
+        "Skipping unsupported OS test because current platform is supported"
+      );
+      return;
+    }
+
+    const { modalStub, doCleanup } = await getOnTrainRolloutModalStub(true);
+
+    Assert.equal(
+      modalStub.callCount,
+      0,
+      "showModal is not invoked on unsupported OS even if on-train rollouts are enabled and user would otherwise be enrolled"
+    );
+
+    doCleanup();
   }
 );

@@ -1799,6 +1799,10 @@ pref("browser.partnerlink.campaign.topsites", "amzn_2020_a1");
 // Activates preloading of the new tab url.
 pref("browser.newtab.preload", true);
 
+// If an on-train limited rollout of the preonboarding modal is enabled, the
+// percentage of the Mac, Linux, and MSIX population to enroll
+pref("browser.preonboarding.onTrainRolloutPopulation",  0);
+
 // Mozilla Ad Routing Service (MARS) unified ads service
 pref("browser.newtabpage.activity-stream.unifiedAds.tiles.enabled", true);
 pref("browser.newtabpage.activity-stream.unifiedAds.spocs.enabled", true);

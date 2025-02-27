@@ -1367,6 +1367,178 @@ const BASE_MESSAGES = () => [
   },
 ];
 
+const PREONBOARDING_MESSAGES = () => [
+  {
+    id: "ON_TRAIN_ROLLOUT",
+    enabled: true,
+    requireAction: true,
+    currentPolicyVersion: 3,
+    minimumPolicyVersion: 3,
+    firstRunURL: "https://www.mozilla.org/privacy/firefox/",
+    screens: [
+      {
+        id: "TOU_ONBOARDING",
+        content: {
+          action_buttons_above_content: true,
+          screen_style: {
+            overflow: "auto",
+            display: "block",
+            padding: "40px 0 0 0",
+            width: "560px",
+          },
+          logo: {
+            imageURL: "chrome://branding/content/about-logo.png",
+            height: "40px",
+            width: "40px",
+          },
+          title: {
+            string_id: "preonboarding-title",
+          },
+          subtitle: {
+            string_id: "preonboarding-subtitle",
+            paddingInline: "24px",
+          },
+          tiles: [
+            {
+              type: "embedded_browser",
+              id: "terms_of_use",
+              header: {
+                title: {
+                  string_id: "preonboarding-terms-of-use-header-button-title",
+                },
+              },
+              data: {
+                style: {
+                  width: "100%",
+                  height: "200px",
+                },
+                url: "https://mozilla.org/about/legal/terms/firefox/?v=product",
+              },
+            },
+            {
+              type: "embedded_browser",
+              id: "privacy_notice",
+              header: {
+                title: {
+                  string_id: "preonboarding-privacy-notice-header-button-title",
+                },
+              },
+              data: {
+                style: {
+                  width: "100%",
+                  height: "200px",
+                },
+                url: "https://mozilla.org/privacy/firefox/?v=product",
+              },
+            },
+            {
+              type: "multiselect",
+              header: {
+                title: {
+                  string_id: "preonboarding-manage-data-header-button-title",
+                },
+              },
+              data: [
+                {
+                  id: "interaction-data",
+                  type: "checkbox",
+                  defaultValue: true,
+                  label: {
+                    string_id: "preonboarding-checklist-interaction-data-label",
+                  },
+                  description: {
+                    string_id:
+                      "preonboarding-checklist-interaction-data-description",
+                  },
+                  action: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: {
+                        name: "datareporting.healthreport.uploadEnabled",
+                        value: true,
+                      },
+                    },
+                  },
+                  uncheckedAction: {
+                    type: "MULTI_ACTION",
+                    data: {
+                      orderedExecution: true,
+                      actions: [
+                        {
+                          type: "SET_PREF",
+                          data: {
+                            pref: {
+                              name: "datareporting.healthreport.uploadEnabled",
+                              value: false,
+                            },
+                          },
+                        },
+                        {
+                          type: "SUBMIT_ONBOARDING_OPT_OUT_PING",
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  id: "crash-data",
+                  type: "checkbox",
+                  defaultValue: false,
+                  label: {
+                    string_id: "preonboarding-checklist-crash-reports-label",
+                  },
+                  description: {
+                    string_id:
+                      "preonboarding-checklist-crash-reports-description",
+                  },
+                  action: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: {
+                        name: "browser.crashReports.unsubmittedCheck.autoSubmit2",
+                        value: true,
+                      },
+                    },
+                  },
+                  uncheckedAction: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: {
+                        name: "browser.crashReports.unsubmittedCheck.autoSubmit2",
+                        value: false,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+          primary_button: {
+            label: {
+              string_id: "preonboarding-primary-cta",
+              marginBlock: "24px 0",
+            },
+            should_focus_button: true,
+            action: {
+              type: "MULTI_ACTION",
+              collectSelect: true,
+              data: {
+                orderedExecution: true,
+                actions: [
+                  {
+                    type: "DATAREPORTING_NOTIFY_DATA_POLICY_INTERACTED",
+                  },
+                ],
+              },
+              dismiss: true,
+            },
+          },
+        },
+      },
+    ],
+  },
+];
+
 // Eventually, move Feature Callout messages to their own provider
 const ONBOARDING_MESSAGES = () =>
   BASE_MESSAGES().concat(FeatureCalloutMessages.getMessages());
@@ -1379,15 +1551,22 @@ export const OnboardingMessageProvider = {
     ]);
     return { header: header.value, button_label: button_label.value };
   },
+
   async getMessages() {
     const messages = await this.translateMessages(await ONBOARDING_MESSAGES());
     return messages;
   },
+
+  getPreonboardingMessages() {
+    return PREONBOARDING_MESSAGES();
+  },
+
   async getUntranslatedMessages() {
     // This is helpful for jsonSchema testing - since we are localizing in the provider
     const messages = await ONBOARDING_MESSAGES();
     return messages;
   },
+
   async translateMessages(messages) {
     let translatedMessages = [];
     for (const msg of messages) {
@@ -1417,10 +1596,12 @@ export const OnboardingMessageProvider = {
     }
     return translatedMessages;
   },
+
   async _doesAppNeedPin(privateBrowsing = false) {
     const needPin = await lazy.ShellService.doesAppNeedPin(privateBrowsing);
     return needPin;
   },
+
   async _doesAppNeedDefault() {
     let checkDefault = Services.prefs.getBoolPref(
       "browser.shell.checkDefaultBrowser",
@@ -1429,11 +1610,13 @@ export const OnboardingMessageProvider = {
     let isDefault = await lazy.ShellService.isDefaultBrowser();
     return checkDefault && !isDefault;
   },
+
   _shouldShowPrivacySegmentationScreen() {
     return Services.prefs.getBoolPref(
       "browser.privacySegmentation.preferences.show"
     );
   },
+
   _doesHomepageNeedReset() {
     return (
       Services.prefs.prefHasUserValue(HOMEPAGE_PREF) ||
