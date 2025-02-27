@@ -2435,6 +2435,12 @@ networking:
       setPref:
         branch: default
         pref: "network.dnsCacheEntries"
+    http3UseNSPRForIO:
+      description: true by default using legacy UDP IO via NSPR. When set to false, uses new UDP IO via Fast UDP for Firefox project.
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.http.http3.use_nspr_for_io"
 
 disableHttp3:
   description: "Whether HTTP/3 is disabled"
