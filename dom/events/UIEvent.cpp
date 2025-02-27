@@ -158,20 +158,23 @@ nsIntPoint UIEvent::GetLayerPoint() const {
 void UIEvent::DuplicatePrivateData() {
   mLayerPoint = GetLayerPoint();
 
-  // GetScreenPoint converts mEvent->mRefPoint to right coordinates.
+  // GetScreenCoords() converts mEvent->mRefPoint to right coordinates.
   // Note that mPresContext will be cleared by Event::DuplicatePrivateData().
   // Therefore, we need to use mPresContext before calling it.
   const CSSIntPoint screenPoint = RoundedToInt(
       Event::GetScreenCoords(mPresContext, mEvent, mEvent->mRefPoint)
           .valueOr(CSSIntPoint{0, 0}));
-  const CSSToLayoutDeviceScale scale = mPresContext
-                                           ? mPresContext->CSSToDevPixelScale()
-                                           : CSSToLayoutDeviceScale(1);
 
   Event::DuplicatePrivateData();
   MOZ_ASSERT_IF(!mEventIsInternal, !mPresContext);
 
-  mEvent->mRefPoint = RoundedToInt(screenPoint * scale);
+  // GetScreenCoords() has already computed the screen point in CSS pixels which
+  // applied the scale of mPresContext.  Additionally, we don't have the widget
+  // anymore.  Therefore, we need to cache the point as in the screen
+  // coordinates.
+  MOZ_ASSERT(!mEvent || !mEvent->AsGUIEvent() ||
+             !mEvent->AsGUIEvent()->mWidget);
+  mEvent->mRefPoint = RoundedToInt(screenPoint * CSSToLayoutDeviceScale(1));
 }
 
 void UIEvent::Serialize(IPC::MessageWriter* aWriter,

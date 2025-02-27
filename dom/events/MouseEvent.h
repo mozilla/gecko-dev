@@ -159,14 +159,19 @@ class MouseEvent : public UIEvent {
                               EventTarget* aRelatedTarget,
                               const nsAString& aModifiersList);
 
-  // mWidgetRelativePoint  stores the reference point of the event within the
-  // double coordinates.  If this is a trusted event, the values are copied from
-  // mEvent->mRefPoint whose type is LayoutDeviceIntPoint.  Therefore, the
-  // values are always integer.  On the other hand, if this is an untrusted
-  // event, this may store fractional values if and only if the event should
-  // expose fractional coordinates.  Otherwise, this is floored values for the
-  // backward compatibility.
-  LayoutDeviceDoublePoint mWidgetRelativePoint;
+  // mWidgetOrScreenRelativePoint stores the reference point of the event within
+  // the double coordinates until ending of the propagation.  If this is a
+  // trusted event, the values are copied from mEvent->mRefPoint whose type is
+  // LayoutDeviceIntPoint which should be the relative point in the widget.
+  // Therefore, the values are always integer.  However, once the propagation
+  // ends, this starts storing the screen point because mEvent->mWidget is
+  // cleared by Event::DuplicatePrivateData() and we won't be able to compute
+  // screen point from its relative point without the widget.
+  // On the other hand, if this is an untrusted event, this stores a screen
+  // point since there is no widget.  And the values may be fractional values if
+  // and only if the event should expose fractional coordinates.  Otherwise,
+  // this is floored values for the backward compatibility.
+  LayoutDeviceDoublePoint mWidgetOrScreenRelativePoint;
 
   // If this is a trusted event and after dispatching this, mDefaultClientPoint
   // stores the clientX and clientY values at duplicating the data.

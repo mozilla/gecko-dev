@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>screenX and screenY should be kept after ending the propagation in zoomed doc</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  const originalZoom = SpecialPowers.getFullZoom(window);
+  addEventListener("beforeunload", () => {
+    SpecialPowers.setFullZoom(window, originalZoom);
+  }, {once: true});
+  SpecialPowers.setFullZoom(window, 2);
+  const div = document.querySelector("div");
+  for (const type of ["pointermove", "pointerdown", "pointerup", "click"]) {
+    promise_test(async t => {
+      let theEvent;
+      const screenPointDuringPropagation = { x: undefined, y: undefined };
+      function onEvent(event) {
+        screenPointDuringPropagation.x = event.screenX;
+        screenPointDuringPropagation.y = event.screenY;
+        theEvent = event;
+      }
+      div.addEventListener(type, onEvent);
+      await new test_driver.Actions()
+        .pointerMove(1, 1, {origin: "viewport"})
+        .pointerMove(0, 0, {origin: div})
+        .pointerDown()
+        .pointerUp()
+        .send();
+      div.removeEventListener(type, onEvent);
+      assert_equals(
+        theEvent.screenX,
+        screenPointDuringPropagation.x,
+        `screenX of ${type} should not be changed after ending the propagation`
+      );
+      assert_equals(
+        theEvent.screenY,
+        screenPointDuringPropagation.y,
+        `screenY of ${type} should not be changed after ending the propagation`
+      );
+    }, `screenX and screenY of "${type}" should not be changed after ending the propagation`);
+  }
+});
+</script>
+</head>
+<body>
+  <div style="width: 32px; height: 32px;"></div>
+</body>
+</html>
