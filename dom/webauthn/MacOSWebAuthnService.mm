@@ -317,6 +317,7 @@ nsTArray<uint8_t> NSDataToArray(NSData* data) {
     if ([credential isKindOfClass:
                         [ASAuthorizationPlatformPublicKeyCredentialRegistration
                             class]]) {
+      transports.AppendElement(u"hybrid"_ns);
       transports.AppendElement(u"internal"_ns);
 #if defined(MAC_OS_VERSION_13_5) && \
     MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_13_5
@@ -328,7 +329,6 @@ nsTArray<uint8_t> NSDataToArray(NSData* data) {
         switch (platformCredential.attachment) {
           case ASAuthorizationPublicKeyCredentialAttachmentCrossPlatform:
             authenticatorAttachment.emplace(u"cross-platform"_ns);
-            transports.AppendElement(u"hybrid"_ns);
             break;
           case ASAuthorizationPublicKeyCredentialAttachmentPlatform:
             authenticatorAttachment.emplace(u"platform"_ns);
