@@ -216,10 +216,16 @@ interface FeatureCallout {
           // By default, callouts don't hide if the user clicks outside of them.
           // Set this to true to make the callout hide on outside clicks.
           autohide?: boolean;
+          // By default, hitting Escape will dismiss the callout, whether it is
+          // focused or not. Setting this to true will stop keypresses from
+          // dispatching up to the callout from outside it, though they will
+          // still work when the callout is focused. Best to leave this as-is.
+          ignorekeys?: boolean;
           // Callout card width as a CSS value, e.g. "400px" or "min-content".
           // Defaults to "400px".
           width?: string;
-          // Callout card padding in pixels. Defaults to 24.
+          // Callout card padding as a CSS value, e.g. "12px 16px" or "1em".
+          // Defaults to "16px".
           padding?: number;
           // Callouts normally have a vertical layout, with rows of content. If
           // you want a single row with a more inline layout, you can use this
