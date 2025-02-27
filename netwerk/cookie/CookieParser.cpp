@@ -733,17 +733,11 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
 
       PRTime dateHeaderTime;
       if (PR_ParseTimeString(aDateHeader.BeginReading(), true,
-                             &dateHeaderTime) == PR_SUCCESS) {
+                             &dateHeaderTime) == PR_SUCCESS &&
+          StaticPrefs::network_cookie_useServerTime()) {
         int64_t serverTime = dateHeaderTime / int64_t(PR_USEC_PER_SEC);
         int64_t delta = aCurrentTime - serverTime;
-
-        if (StaticPrefs::network_cookie_useServerTime()) {
-          expires += delta;
-        } else if (expires <= aCurrentTime &&
-                   (expires + delta) > aCurrentTime) {
-          mozilla::glean::networking::set_cookie_expired_without_server_time
-              .AddToNumerator(1);
-        }
+        expires += delta;
       }
     }
 
