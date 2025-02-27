@@ -16104,14 +16104,19 @@
   # true means win32k system calls are not permitted.
 -   name: security.sandbox.content.win32k-disable
     type: RelaxedAtomicBool
-    value: true
+    value: @IS_NIGHTLY_BUILD@
     mirror: always
 
-  # Note: win32k is currently _not_ disabled for GMP due to intermittent test
-  # failures, where the GMP process fails very early. See bug 1449348.
+  # Whether win32k is disabled for compatible plugins.
 -   name: security.sandbox.gmp.win32k-disable
     type: RelaxedAtomicBool
-    value: false
+    value: @IS_NIGHTLY_BUILD@
+    mirror: always
+
+  # Whether ACG is enabled (dynamic code blocked) for compatible plugins.
+-   name: security.sandbox.gmp.acg.enabled
+    type: RelaxedAtomicBool
+    value: true
     mirror: always
 
   # Whether win32k is disabled for socket processes.

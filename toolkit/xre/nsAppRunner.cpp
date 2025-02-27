@@ -6272,6 +6272,13 @@ bool XRE_IsE10sParentProcess() {
 #undef GECKO_PROCESS_TYPE
 
 bool XRE_UseNativeEventProcessing() {
+#if defined(XP_WIN)
+  // If win32k is locked down we can't use native event processing.
+  if (IsWin32kLockedDown()) {
+    return false;
+  }
+#endif
+
   switch (XRE_GetProcessType()) {
 #if defined(XP_MACOSX) || defined(XP_WIN)
     case GeckoProcessType_RDD:
