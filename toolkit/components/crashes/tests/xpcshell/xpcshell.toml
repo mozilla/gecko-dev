@@ -1,24 +1,17 @@
 [DEFAULT]
 head = ""
+skip-if = ["os == 'android'"]
 support-files = [
   "crash.dmp",
   "crash.extra",
 ]
 
 ["test_crash_manager.js"]
-skip-if = ["os == 'android'"]
 
 ["test_crash_service.js"]
 run-sequentially = "very high failure rate in parallel"
 skip-if = [
-  "os == 'android'",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov && !fission && socketprocess_networking", # Bug 1933914
 ]
 
 ["test_crash_store.js"]
-skip-if = ["os == 'android'"]
-
-["test_remote_settings_crash_pull.js"]
-support-files = ["../../../../../toolkit/crashreporter/test/browser/head.js"]
-
-["test_remote_settings_crash_pull_nightly.js"]

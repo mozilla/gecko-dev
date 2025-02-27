@@ -130,9 +130,9 @@ function writeCrashReportFile(dir, uuid, suffix, date, data) {
   file.lastModifiedTime = date;
 }
 
-function writeMinidumpFile(dir, uuid, date, payload = "") {
+function writeMinidumpFile(dir, uuid, date) {
   // that's the start of a valid minidump, anyway
-  writeCrashReportFile(dir, uuid, ".dmp", date, `MDMP${payload}`);
+  writeCrashReportFile(dir, uuid, ".dmp", date, "MDMP");
 }
 
 function writeExtraFile(dir, uuid, date, data) {
@@ -144,11 +144,11 @@ function writeMemoryReport(dir, uuid, date) {
   writeCrashReportFile(dir, uuid, ".memory.json.gz", date, data);
 }
 
-function addPendingCrashreport(crD, date, extra, payload = "") {
+function addPendingCrashreport(crD, date, extra) {
   let pendingdir = crD.clone();
   pendingdir.append("pending");
   let uuid = generate_uuid();
-  writeMinidumpFile(pendingdir, uuid, date, payload);
+  writeMinidumpFile(pendingdir, uuid, date);
   writeExtraFile(pendingdir, uuid, date, extra);
   writeMemoryReport(pendingdir, uuid, date);
   return { id: uuid, date, pending: true, extra };
