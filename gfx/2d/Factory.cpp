@@ -59,6 +59,7 @@
 
 #include "DrawTargetOffset.h"
 #include "DrawTargetRecording.h"
+#include "PathRecording.h"
 
 #include "SourceSurfaceRawData.h"
 
@@ -432,6 +433,8 @@ already_AddRefed<PathBuilder> Factory::CreatePathBuilder(BackendType aBackend,
     case BackendType::CAIRO:
       return PathBuilderCairo::Create(aFillRule);
 #endif
+    case BackendType::RECORDING:
+      return do_AddRef(new PathBuilderRecording(BackendType::SKIA, aFillRule));
     default:
       gfxCriticalNote << "Invalid PathBuilder type specified: "
                       << (int)aBackend;

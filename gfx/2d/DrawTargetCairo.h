@@ -128,6 +128,7 @@ class DrawTargetCairo final : public DrawTarget {
   virtual void PushClip(const Path* aPath) override;
   virtual void PushClipRect(const Rect& aRect) override;
   virtual void PopClip() override;
+  virtual bool RemoveAllClips() override;
   virtual void PushLayer(bool aOpaque, Float aOpacity, SourceSurface* aMask,
                          const Matrix& aMaskTransform,
                          const IntRect& aBounds = IntRect(),
@@ -222,6 +223,7 @@ class DrawTargetCairo final : public DrawTarget {
   cairo_surface_t* mSurface;
   IntSize mSize;
   bool mTransformSingular;
+  size_t mClipDepth = 0;
 
   uint8_t* mLockedBits;
 

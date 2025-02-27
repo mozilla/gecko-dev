@@ -1511,7 +1511,8 @@ bool CanvasRenderingContext2D::BorrowTarget(const IntRect& aPersistedRect,
     }
     return false;
   }
-  if (mBufferNeedsClear) {
+  if (!mBufferProvider->PreservesDrawingState() || mBufferNeedsClear ||
+      mTargetNeedsClipsAndTransforms) {
     if (mBufferProvider->PreservesDrawingState()) {
       // If the buffer provider preserves the clip and transform state, then
       // we must ensure it is cleared before reusing the target.
@@ -1521,30 +1522,40 @@ bool CanvasRenderingContext2D::BorrowTarget(const IntRect& aPersistedRect,
       }
       mTarget->SetTransform(Matrix());
     }
+
     // If the canvas was reset, then we need to clear the target in case its
     // contents was somehow preserved. We only need to clear the target if
     // the operation doesn't fill the entire canvas.
-    if (aNeedsClear) {
+    if (mBufferNeedsClear && aNeedsClear) {
       mTarget->ClearRect(gfx::Rect(mTarget->GetRect()));
     }
-  }
-  if (!mBufferProvider->PreservesDrawingState() || mBufferNeedsClear) {
+
     RestoreClipsAndTransformToTarget();
+
+    mBufferNeedsClear = false;
+    mTargetNeedsClipsAndTransforms = false;
   }
-  mBufferNeedsClear = false;
   return true;
 }
 
-bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
-                                            const gfx::Rect* aCoveredRect,
-                                            bool aWillClear,
-                                            bool aSkipTransform) {
+bool CanvasRenderingContext2D::HasAnyClips() const {
+  for (const auto& style : mStyleStack) {
+    for (const auto& clipOrTransform : style.clipsAndTransforms) {
+      if (clipOrTransform.IsClip()) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool CanvasRenderingContext2D::HasErrorState(ErrorResult& aError) {
   if (AlreadyShutDown()) {
     gfxCriticalNoteOnce << "Attempt to render into a Canvas2d after shutdown.";
     SetErrorState();
     aError.ThrowInvalidStateError(
         "Cannot use canvas after shutdown initiated.");
-    return false;
+    return true;
   }
 
   // The spec doesn't say what to do in this case, but Chrome silently fails
@@ -1555,14 +1566,27 @@ bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
       aError.ThrowInvalidStateError(
           "Cannot use canvas as context is lost forever.");
     }
+    return true;
+  }
+
+  if (mTarget && mTarget == sErrorTarget.get()) {
+    aError.ThrowInvalidStateError("Canvas is already in error state.");
+    return true;
+  }
+
+  return false;
+}
+
+bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
+                                            const gfx::Rect* aCoveredRect,
+                                            bool aWillClear,
+                                            bool aSkipTransform) {
+  if (HasErrorState(aError)) {
     return false;
   }
 
+  // If there is an existing target and no error state, just reuse it.
   if (mTarget) {
-    if (mTarget == sErrorTarget.get()) {
-      aError.ThrowInvalidStateError("Canvas is already in error state.");
-      return false;
-    }
     return true;
   }
 
@@ -1582,26 +1606,15 @@ bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
 
   // If the next drawing command covers the entire canvas, we can skip copying
   // from the previous frame and/or clearing the canvas.
+  // If a clip is active we don't know for sure that the next drawing command
+  // will really cover the entire canvas.
   gfx::Rect canvasRect(0, 0, mWidth, mHeight);
   bool canDiscardContent =
       aCoveredRect &&
       (aSkipTransform ? *aCoveredRect
                       : CurrentState().transform.TransformBounds(*aCoveredRect))
-          .Contains(canvasRect);
-
-  // If a clip is active we don't know for sure that the next drawing command
-  // will really cover the entire canvas.
-  for (const auto& style : mStyleStack) {
-    if (!canDiscardContent) {
-      break;
-    }
-    for (const auto& clipOrTransform : style.clipsAndTransforms) {
-      if (clipOrTransform.IsClip()) {
-        canDiscardContent = false;
-        break;
-      }
-    }
-  }
+          .Contains(canvasRect) &&
+      !HasAnyClips();
 
   ScheduleStableStateCallback();
 
@@ -1654,13 +1667,14 @@ bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
 
   // Ensure any Path state is compatible with the type of DrawTarget used. This
   // may require making a copy with the correct type if they (rarely) mismatch.
-  if (mPathBuilder &&
-      mPathBuilder->GetBackendType() != newTarget->GetBackendType()) {
+  mPathType = newTarget->GetBackendType();
+  MOZ_ASSERT(mPathType != BackendType::NONE);
+  if (mPathBuilder && mPathBuilder->GetBackendType() != mPathType) {
     RefPtr<Path> path = mPathBuilder->Finish();
     mPathBuilder = newTarget->CreatePathBuilder(path->GetFillRule());
     path->StreamToSink(mPathBuilder);
   }
-  if (mPath && mPath->GetBackendType() != newTarget->GetBackendType()) {
+  if (mPath && mPath->GetBackendType() != mPathType) {
     RefPtr<PathBuilder> builder =
         newTarget->CreatePathBuilder(mPath->GetFillRule());
     mPath->StreamToSink(builder);
@@ -1670,6 +1684,7 @@ bool CanvasRenderingContext2D::EnsureTarget(ErrorResult& aError,
   mTarget = std::move(newTarget);
   mBufferProvider = std::move(newProvider);
   mBufferNeedsClear = false;
+  mTargetNeedsClipsAndTransforms = false;
 
   RegisterAllocation();
   AddZoneWaitingForGC();
@@ -1698,6 +1713,10 @@ void CanvasRenderingContext2D::SetInitialState() {
   mPathPruned = false;
   mPathTransform = Matrix();
   mPathTransformDirty = false;
+  mPathType =
+      (mTarget ? mTarget : gfxPlatform::ThreadLocalScreenReferenceDrawTarget())
+          ->GetBackendType();
+  MOZ_ASSERT(mPathType != BackendType::NONE);
 
   mStyleStack.Clear();
   ContextState* state = mStyleStack.AppendElement();
@@ -2185,13 +2204,30 @@ SurfaceFormat CanvasRenderingContext2D::GetSurfaceFormat() const {
 // state
 //
 
+Matrix CanvasRenderingContext2D::GetCurrentTransform() const {
+  if (IsTargetValid()) {
+    return mTarget->GetTransform();
+  }
+  for (auto style = mStyleStack.crbegin(); style != mStyleStack.crend();
+       ++style) {
+    const auto& clipsAndTransforms = style->clipsAndTransforms;
+    auto clipOrTransform = clipsAndTransforms.end();
+    while (clipOrTransform != clipsAndTransforms.begin()) {
+      --clipOrTransform;
+      if (!clipOrTransform->IsClip()) {
+        return clipOrTransform->transform;
+      }
+    }
+  }
+  return Matrix();
+}
+
 void CanvasRenderingContext2D::Save() {
-  EnsureTarget();
-  if (MOZ_UNLIKELY(!mTarget || mStyleStack.IsEmpty())) {
+  if (MOZ_UNLIKELY(HasErrorState() || mStyleStack.IsEmpty())) {
     SetErrorState();
     return;
   }
-  mStyleStack[mStyleStack.Length() - 1].transform = mTarget->GetTransform();
+  mStyleStack[mStyleStack.Length() - 1].transform = GetCurrentTransform();
   mStyleStack.SetCapacity(mStyleStack.Length() + 1);
   mStyleStack.AppendElement(CurrentState());
 
@@ -2203,24 +2239,23 @@ void CanvasRenderingContext2D::Save() {
 }
 
 void CanvasRenderingContext2D::Restore() {
-  if (MOZ_UNLIKELY(mStyleStack.Length() < 2)) {
+  if (MOZ_UNLIKELY(HasErrorState() || mStyleStack.Length() < 2)) {
     return;
   }
 
-  EnsureTarget();
-  if (!IsTargetValid()) {
-    return;
-  }
-
-  for (const auto& clipOrTransform : CurrentState().clipsAndTransforms) {
-    if (clipOrTransform.IsClip()) {
-      mTarget->PopClip();
+  if (IsTargetValid()) {
+    for (const auto& clipOrTransform : CurrentState().clipsAndTransforms) {
+      if (clipOrTransform.IsClip()) {
+        mTarget->PopClip();
+      }
     }
+    mTarget->SetTransform(PreviousState().transform);
+  } else {
+    mTargetNeedsClipsAndTransforms = true;
   }
 
   mStyleStack.RemoveLastElement();
 
-  mTarget->SetTransform(CurrentState().transform);
   mPathTransformDirty = true;
 }
 
@@ -2230,37 +2265,28 @@ void CanvasRenderingContext2D::Restore() {
 
 void CanvasRenderingContext2D::Scale(double aX, double aY,
                                      ErrorResult& aError) {
-  if (!EnsureTarget(aError)) {
+  if (HasErrorState(aError)) {
     return;
   }
-
-  MOZ_ASSERT(IsTargetValid());
-
-  Matrix newMatrix = mTarget->GetTransform();
+  Matrix newMatrix = GetCurrentTransform();
   newMatrix.PreScale(aX, aY);
   SetTransformInternal(newMatrix);
 }
 
 void CanvasRenderingContext2D::Rotate(double aAngle, ErrorResult& aError) {
-  if (!EnsureTarget(aError)) {
+  if (HasErrorState(aError)) {
     return;
   }
-
-  MOZ_ASSERT(IsTargetValid());
-
-  Matrix newMatrix = Matrix::Rotation(aAngle) * mTarget->GetTransform();
+  Matrix newMatrix = Matrix::Rotation(aAngle) * GetCurrentTransform();
   SetTransformInternal(newMatrix);
 }
 
 void CanvasRenderingContext2D::Translate(double aX, double aY,
                                          ErrorResult& aError) {
-  if (!EnsureTarget(aError)) {
+  if (HasErrorState(aError)) {
     return;
   }
-
-  MOZ_ASSERT(IsTargetValid());
-
-  Matrix newMatrix = mTarget->GetTransform();
+  Matrix newMatrix = GetCurrentTransform();
   newMatrix.PreTranslate(aX, aY);
   SetTransformInternal(newMatrix);
 }
@@ -2268,14 +2294,11 @@ void CanvasRenderingContext2D::Translate(double aX, double aY,
 void CanvasRenderingContext2D::Transform(double aM11, double aM12, double aM21,
                                          double aM22, double aDx, double aDy,
                                          ErrorResult& aError) {
-  if (!EnsureTarget(aError)) {
+  if (HasErrorState(aError)) {
     return;
   }
-
-  MOZ_ASSERT(IsTargetValid());
-
   Matrix newMatrix(aM11, aM12, aM21, aM22, aDx, aDy);
-  newMatrix *= mTarget->GetTransform();
+  newMatrix *= GetCurrentTransform();
   SetTransformInternal(newMatrix);
 }
 
@@ -2283,14 +2306,8 @@ already_AddRefed<DOMMatrix> CanvasRenderingContext2D::GetTransform(
     ErrorResult& aError) {
   // If we are silently failing, then we still need to return a transform while
   // we are in the process of recovering.
-  Matrix transform;
-  if (EnsureTarget(aError)) {
-    transform = mTarget->GetTransform();
-  } else if (aError.Failed()) {
-    return nullptr;
-  }
-
-  RefPtr<DOMMatrix> matrix = new DOMMatrix(GetParentObject(), transform);
+  RefPtr<DOMMatrix> matrix =
+      new DOMMatrix(GetParentObject(), GetCurrentTransform());
   return matrix.forget();
 }
 
@@ -2298,24 +2315,18 @@ void CanvasRenderingContext2D::SetTransform(double aM11, double aM12,
                                             double aM21, double aM22,
                                             double aDx, double aDy,
                                             ErrorResult& aError) {
-  if (!EnsureTarget(aError)) {
+  if (HasErrorState(aError)) {
     return;
   }
-
-  MOZ_ASSERT(IsTargetValid());
-
   Matrix newMatrix(aM11, aM12, aM21, aM22, aDx, aDy);
   SetTransformInternal(newMatrix);
 }
 
 void CanvasRenderingContext2D::SetTransform(const DOMMatrix2DInit& aInit,
                                             ErrorResult& aError) {
-  if (!EnsureTarget(aError)) {
+  if (HasErrorState(aError)) {
     return;
   }
-
-  MOZ_ASSERT(IsTargetValid());
-
   RefPtr<DOMMatrixReadOnly> matrix =
       DOMMatrixReadOnly::FromMatrix(GetParentObject(), aInit, aError);
   if (!aError.Failed()) {
@@ -2340,7 +2351,11 @@ void CanvasRenderingContext2D::SetTransformInternal(const Matrix& aTransform) {
     clipsAndTransforms.LastElement().transform = aTransform;
   }
 
-  mTarget->SetTransform(aTransform);
+  if (IsTargetValid()) {
+    mTarget->SetTransform(aTransform);
+  } else {
+    mTargetNeedsClipsAndTransforms = true;
+  }
   mPathTransformDirty = true;
 }
 
@@ -3381,7 +3396,7 @@ void CanvasRenderingContext2D::FillImpl(const gfx::Path& aPath) {
 }
 
 void CanvasRenderingContext2D::Fill(const CanvasWindingRule& aWinding) {
-  EnsureUserSpacePath(aWinding);
+  EnsureTargetAndUserSpacePath(aWinding);
   if (!IsTargetValid()) {
     return;
   }
@@ -3444,7 +3459,7 @@ void CanvasRenderingContext2D::StrokeImpl(const gfx::Path& aPath) {
 void CanvasRenderingContext2D::Stroke() {
   mFeatureUsage |= CanvasFeatureUsage::Stroke;
 
-  EnsureUserSpacePath();
+  EnsureTargetAndUserSpacePath();
   if (!IsTargetValid()) {
     return;
   }
@@ -3468,7 +3483,7 @@ void CanvasRenderingContext2D::Stroke(const CanvasPath& aPath) {
 
 void CanvasRenderingContext2D::DrawFocusIfNeeded(
     mozilla::dom::Element& aElement, ErrorResult& aRv) {
-  EnsureUserSpacePath();
+  EnsureTargetAndUserSpacePath();
   if (!mPath) {
     return;
   }
@@ -3529,7 +3544,7 @@ bool CanvasRenderingContext2D::DrawCustomFocusRing(Element& aElement) {
     return false;
   }
 
-  EnsureUserSpacePath();
+  EnsureTargetAndUserSpacePath();
   return true;
 }
 
@@ -3540,24 +3555,34 @@ void CanvasRenderingContext2D::Clip(const CanvasWindingRule& aWinding) {
     return;
   }
 
-  mTarget->PushClip(mPath);
+  if (IsTargetValid()) {
+    mTarget->PushClip(mPath);
+  } else {
+    mTargetNeedsClipsAndTransforms = true;
+  }
   CurrentState().clipsAndTransforms.AppendElement(ClipState(mPath));
 }
 
 void CanvasRenderingContext2D::Clip(const CanvasPath& aPath,
                                     const CanvasWindingRule& aWinding) {
-  EnsureTarget();
-  if (!IsTargetValid()) {
-    return;
+  if (!mBufferProvider) {
+    EnsureTarget();
+    if (!IsTargetValid()) {
+      return;
+    }
   }
 
-  RefPtr<gfx::Path> gfxpath = aPath.GetPath(aWinding, mTarget);
+  RefPtr<gfx::Path> gfxpath = aPath.GetPath(aWinding, mPathType);
 
   if (!gfxpath) {
     return;
   }
 
-  mTarget->PushClip(gfxpath);
+  if (IsTargetValid()) {
+    mTarget->PushClip(gfxpath);
+  } else {
+    mTargetNeedsClipsAndTransforms = true;
+  }
   CurrentState().clipsAndTransforms.AppendElement(ClipState(gfxpath));
 }
 
@@ -3885,23 +3910,25 @@ void CanvasRenderingContext2D::FlushPathTransform() {
   if (!mPathTransformDirty) {
     return;
   }
+  Matrix newTransform = GetCurrentTransform();
   if (mPath || mPathBuilder) {
-    Matrix inverse = mTarget->GetTransform();
+    Matrix inverse = newTransform;
     if (!inverse.ExactlyEquals(mPathTransform) && inverse.Invert()) {
       TransformCurrentPath(mPathTransform * inverse);
     }
   }
-  mPathTransform = mTarget->GetTransform();
+  mPathTransform = newTransform;
   mPathTransformDirty = false;
 }
 
 bool CanvasRenderingContext2D::EnsureWritablePath() {
-  EnsureTarget();
-
-  // NOTE: IsTargetValid() may be false here (mTarget == sErrorTarget) but we
-  // go ahead and create a path anyway since callers depend on that.
-  if (NS_WARN_IF(!mTarget)) {
-    return false;
+  if (!mBufferProvider) {
+    EnsureTarget();
+    // NOTE: IsTargetValid() may be false here (mTarget == sErrorTarget) but we
+    // go ahead and create a path anyway since callers depend on that.
+    if (!mTarget) {
+      return false;
+    }
   }
 
   FillRule fillRule = CurrentState().fillRule;
@@ -3915,11 +3942,23 @@ bool CanvasRenderingContext2D::EnsureWritablePath() {
   }
 
   if (!mPath) {
-    mPathBuilder = mTarget->CreatePathBuilder(fillRule);
+    if (mBufferProvider) {
+      mPathBuilder = Factory::CreatePathBuilder(mPathType, fillRule);
+    } else {
+      mPathBuilder = mTarget->CreatePathBuilder(fillRule);
+    }
   } else {
     mPathBuilder = Path::ToBuilder(mPath.forget(), fillRule);
   }
   return true;
+}
+
+bool CanvasRenderingContext2D::EnsureBufferProvider() {
+  if (mBufferProvider) {
+    return true;
+  }
+  EnsureTarget();
+  return IsTargetValid();
 }
 
 void CanvasRenderingContext2D::EnsureUserSpacePath(
@@ -3929,8 +3968,7 @@ void CanvasRenderingContext2D::EnsureUserSpacePath(
     fillRule = FillRule::FILL_EVEN_ODD;
   }
 
-  EnsureTarget();
-  if (!IsTargetValid()) {
+  if (!EnsureBufferProvider()) {
     return;
   }
 
@@ -3939,7 +3977,7 @@ void CanvasRenderingContext2D::EnsureUserSpacePath(
   }
 
   if (!mPath && !mPathBuilder) {
-    mPathBuilder = mTarget->CreatePathBuilder(fillRule);
+    mPathBuilder = Factory::CreatePathBuilder(mPathType, fillRule);
   }
 
   if (mPathBuilder) {
@@ -3956,11 +3994,6 @@ void CanvasRenderingContext2D::EnsureUserSpacePath(
 }
 
 void CanvasRenderingContext2D::TransformCurrentPath(const Matrix& aTransform) {
-  EnsureTarget();
-  if (!IsTargetValid()) {
-    return;
-  }
-
   if (mPathBuilder) {
     mPathBuilder = Path::ToBuilder(mPathBuilder->Finish(), aTransform);
   } else if (mPath) {
@@ -4913,9 +4946,7 @@ UniquePtr<TextMetrics> CanvasRenderingContext2D::DrawOrMeasureText(
   // If we don't have a target then we don't have a transform. A target won't
   // be needed in the case where we're measuring the text size. This allows
   // to avoid creating a target if it's only being used to measure text sizes.
-  if (mTarget) {
-    processor.mDrawTarget->SetTransform(mTarget->GetTransform());
-  }
+  processor.mDrawTarget->SetTransform(GetCurrentTransform());
   processor.mCtx = this;
   processor.mOp = aOp;
   processor.mBoundingBox = gfxRect(0, 0, 0, 0);
@@ -5244,7 +5275,7 @@ bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx, double aX,
     return false;
   }
 
-  return mPath->ContainsPoint(Point(aX, aY), mTarget->GetTransform());
+  return mPath->ContainsPoint(Point(aX, aY), GetCurrentTransform());
 }
 
 bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx,
@@ -5256,14 +5287,13 @@ bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx,
     return false;
   }
 
-  EnsureTarget();
-  if (!IsTargetValid()) {
+  if (!EnsureBufferProvider()) {
     return false;
   }
 
-  RefPtr<gfx::Path> tempPath = aPath.GetPath(aWinding, mTarget);
+  RefPtr<gfx::Path> tempPath = aPath.GetPath(aWinding, mPathType);
 
-  return tempPath->ContainsPoint(Point(aX, aY), mTarget->GetTransform());
+  return tempPath->ContainsPoint(Point(aX, aY), GetCurrentTransform());
 }
 
 bool CanvasRenderingContext2D::IsPointInStroke(
@@ -5297,7 +5327,7 @@ bool CanvasRenderingContext2D::IsPointInStroke(
                               state.dashOffset);
 
   return mPath->StrokeContainsPoint(strokeOptions, Point(aX, aY),
-                                    mTarget->GetTransform());
+                                    GetCurrentTransform());
 }
 
 bool CanvasRenderingContext2D::IsPointInStroke(
@@ -5307,13 +5337,12 @@ bool CanvasRenderingContext2D::IsPointInStroke(
     return false;
   }
 
-  EnsureTarget();
-  if (!IsTargetValid()) {
+  if (!EnsureBufferProvider()) {
     return false;
   }
 
   RefPtr<gfx::Path> tempPath =
-      aPath.GetPath(CanvasWindingRule::Nonzero, mTarget);
+      aPath.GetPath(CanvasWindingRule::Nonzero, mPathType);
 
   const ContextState& state = CurrentState();
 
@@ -5323,7 +5352,7 @@ bool CanvasRenderingContext2D::IsPointInStroke(
                               state.dashOffset);
 
   return tempPath->StrokeContainsPoint(strokeOptions, Point(aX, aY),
-                                       mTarget->GetTransform());
+                                       GetCurrentTransform());
 }
 
 // Returns a surface that contains only the part needed to draw aSourceRect.
@@ -7066,13 +7095,13 @@ void CanvasPath::AddPath(CanvasPath& aCanvasPath, const DOMMatrix2DInit& aInit,
 }
 
 already_AddRefed<gfx::Path> CanvasPath::GetPath(
-    const CanvasWindingRule& aWinding, const DrawTarget* aTarget) const {
+    const CanvasWindingRule& aWinding, BackendType aBackendType) const {
   FillRule fillRule = FillRule::FILL_WINDING;
   if (aWinding == CanvasWindingRule::Evenodd) {
     fillRule = FillRule::FILL_EVEN_ODD;
   }
 
-  if (mPath && (mPath->GetBackendType() == aTarget->GetBackendType()) &&
+  if (mPath && (mPath->GetBackendType() == aBackendType) &&
       (mPath->GetFillRule() == fillRule)) {
     RefPtr<gfx::Path> path(mPath);
     return path.forget();
@@ -7092,8 +7121,9 @@ already_AddRefed<gfx::Path> CanvasPath::GetPath(
   }
 
   // retarget our backend if we're used with a different backend
-  if (mPath->GetBackendType() != aTarget->GetBackendType()) {
-    RefPtr<PathBuilder> tmpPathBuilder = aTarget->CreatePathBuilder(fillRule);
+  if (mPath->GetBackendType() != aBackendType) {
+    RefPtr<PathBuilder> tmpPathBuilder =
+        Factory::CreatePathBuilder(aBackendType, fillRule);
     mPath->StreamToSink(tmpPathBuilder);
     mPath = tmpPathBuilder->Finish();
   } else if (mPath->GetFillRule() != fillRule) {
