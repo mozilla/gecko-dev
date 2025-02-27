@@ -383,6 +383,7 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   WebTaskScheduler* Scheduler();
   WebTaskScheduler* GetExistingScheduler() const;
   void SetWebTaskSchedulingState(WebTaskSchedulingState* aState) override;
+  bool HasScheduledNormalOrHighPriorityWebTasks() const override;
 
   WebTaskSchedulingState* GetWebTaskSchedulingState() const override {
     return mWebTaskSchedulingState;

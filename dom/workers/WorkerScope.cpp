@@ -771,6 +771,13 @@ int32_t WorkerGlobalScope::SetTimeoutOrInterval(
                                     Timeout::Reason::eTimeoutOrInterval, aRv);
 }
 
+bool WorkerGlobalScope::HasScheduledNormalOrHighPriorityWebTasks() const {
+  if (!mWebTaskScheduler) {
+    return false;
+  }
+  return mWebTaskScheduler->HasScheduledNormalOrHighPriorityWebTasks();
+}
+
 void WorkerGlobalScope::GetOrigin(nsAString& aOrigin) const {
   AssertIsOnWorkerThread();
   nsContentUtils::GetWebExposedOriginSerialization(
