@@ -16956,6 +16956,11 @@
   value: false
   mirror: always
 
+- name: telemetry.fog.init_on_shutdown
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "test."
 #---------------------------------------------------------------------------

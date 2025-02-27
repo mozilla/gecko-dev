@@ -46,6 +46,14 @@ Defaults to 120 (activity), 1200 (inactivity).
 Read-only. This pref is `true` only if `MOZ_ARTIFACT_BUILDS` was set during configure.
 If true, [JOG](./jog) is enabled so that artifact builds will exhibit changes to their Glean metrics.
 
+`telemetry.fog.init_on_shutdown`
+
+Defaults to `true`.
+Controls whether Glean initializes on shutdown if it hasn't been initialized, in order to capture data from very short sessions.
+In case a policy modal needs to be shown to the user, which will delay Glean initialization,
+it's set to `false` until the user has dealt with the modal. It's turned back to `true` afterwards.
+This ensures we don't capture data until the user had the chance to make an explicit choice.
+
 ## Defines
 
 `MOZ_AUTOMATION`
