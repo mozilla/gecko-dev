@@ -7760,6 +7760,10 @@ nsresult HTMLEditor::OnModifyDocument(const DocumentModifiedEvent& aRunner) {
   nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
 
   if (!StaticPrefs::editor_white_space_normalization_blink_compatible()) {
+    // Selection changes caused by the hacks below should not be exposed because
+    // they should occur silently from web apps.
+    AutoHideSelectionChanges hideSelectionChangesCausedByTheHacks(
+        SelectionRef());
     // When this is called, there is no toplevel edit sub-action. Then,
     // InsertNodeWithTransaction() or ReplaceTextWithTransaction() will set it.
     // Then, OnEndHandlingTopLevelEditSubActionInternal() will call
