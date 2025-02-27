@@ -122,6 +122,7 @@ void ContentSessionStore::OnDocumentEnd() {
 }
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TabListener)
+  NS_INTERFACE_MAP_ENTRY_CONCRETE(TabListener)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsIPrivacyTransitionObserver)
@@ -213,13 +214,6 @@ void TabListener::SetOwnerContent(Element* aElement) {
   AddEventListeners();
 }
 
-/* static */
-void TabListener::TimerCallback(nsITimer* aTimer, void* aClosure) {
-  auto listener = static_cast<TabListener*>(aClosure);
-  listener->UpdateSessionStore();
-  listener->StopTimerForUpdate();
-}
-
 void TabListener::StopTimerForUpdate() {
   if (mUpdatedTimer) {
     mUpdatedTimer->Cancel();
@@ -237,9 +231,18 @@ void TabListener::AddTimerForUpdate() {
     return;
   }
 
-  NS_NewTimerWithFuncCallback(getter_AddRefs(mUpdatedTimer), TimerCallback,
-                              this, mUpdateInterval, nsITimer::TYPE_ONE_SHOT,
-                              "TabListener::TimerCallback");
+  // Hold this by `nsWeakPtr`, forcing a SessionStore update when the timer
+  // expires if this object has not yet gone away.
+  nsWeakPtr weakSelf = do_GetWeakReference(this);
+  NS_NewTimerWithCallback(
+      getter_AddRefs(mUpdatedTimer),
+      [weakSelf](nsITimer* aTimer) {
+        if (RefPtr<TabListener> self = do_QueryReferent(weakSelf)) {
+          self->UpdateSessionStore();
+          self->StopTimerForUpdate();
+        }
+      },
+      mUpdateInterval, nsITimer::TYPE_ONE_SHOT, "TabListener::TimerCallback");
 }
 
 NS_IMETHODIMP TabListener::PrivateModeChanged(bool aEnabled) {

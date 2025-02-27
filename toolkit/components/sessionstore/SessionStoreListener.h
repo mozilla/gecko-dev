@@ -61,12 +61,17 @@ class ContentSessionStore {
   bool mSHistoryChanged;
 };
 
+#define NS_TABLISTENER_IID \
+  {0x14426f68, 0x3948, 0x4c18, {0x9c, 0xf6, 0x20, 0x74, 0x37, 0xcb, 0xb9, 0x87}}
+
 class TabListener : public nsIDOMEventListener,
                     public nsIObserver,
                     public nsIPrivacyTransitionObserver,
                     public nsIWebProgressListener,
                     public nsSupportsWeakReference {
  public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_TABLISTENER_IID)
+
   explicit TabListener(nsIDocShell* aDocShell, Element* aElement);
   EventTarget* GetEventTarget();
   nsresult Init();
@@ -91,7 +96,6 @@ class TabListener : public nsIDOMEventListener,
   NS_DECL_NSIWEBPROGRESSLISTENER
 
  private:
-  static void TimerCallback(nsITimer* aTimer, void* aClosure);
   void AddTimerForUpdate();
   void StopTimerForUpdate();
   void AddEventListeners();
@@ -111,6 +115,8 @@ class TabListener : public nsIDOMEventListener,
   int32_t mUpdateInterval;
   uint32_t mEpoch;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(TabListener, NS_TABLISTENER_IID)
 
 }  // namespace mozilla::dom
 
