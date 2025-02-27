@@ -16104,7 +16104,7 @@
   # true means win32k system calls are not permitted.
 -   name: security.sandbox.content.win32k-disable
     type: RelaxedAtomicBool
-    value: @IS_NIGHTLY_BUILD@
+    value: true
     mirror: always
 
   # Whether win32k is disabled for compatible plugins.
@@ -16116,7 +16116,7 @@
   # Whether ACG is enabled (dynamic code blocked) for compatible plugins.
 -   name: security.sandbox.gmp.acg.enabled
     type: RelaxedAtomicBool
-    value: true
+    value: @IS_NIGHTLY_BUILD@
     mirror: always
 
   # Whether win32k is disabled for socket processes.
