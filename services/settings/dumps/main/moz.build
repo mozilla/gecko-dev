@@ -22,6 +22,7 @@ if not CONFIG["MOZ_BUILD_APP"].startswith("mobile/"):
         "devtools-devices.json",
         "example.json",
         "hijack-blocklists.json",
+        "moz-essential-domain-fallbacks.json",
         "password-rules.json",
         "search-config-icons.json",
         "search-config-overrides-v2.json",

@@ -604,6 +604,9 @@ run-sequentially = "node server exceptions dont replay well"
 firefox-appdir = "browser"
 skip-if = ["tsan && socketprocess_networking"] # Bug 1808236
 
+["test_essential_domain_fallback.js"]
+skip-if = ["socketprocess_networking"] # cancel connections doesn't work in socket proc
+
 ["test_event_sink.js"]
 
 ["test_eviction.js"]

@@ -15013,6 +15013,13 @@
   value: false
   mirror: always
 
+# Whether to redirect a failing request to an essential domain
+# to a fallback domain that hosts the same content.
+- name: network.essential_domains_fallback
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "nglayout."
 #---------------------------------------------------------------------------

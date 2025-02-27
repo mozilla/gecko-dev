@@ -92,6 +92,7 @@
 #include "nsISocketTransport.h"
 #include "nsIStreamConverterService.h"
 #include "nsISiteSecurityService.h"
+#include "nsIURIMutator.h"
 #include "nsString.h"
 #include "nsStringStream.h"
 #include "mozilla/dom/PerformanceStorage.h"
@@ -7854,6 +7855,43 @@ void nsHttpChannel::RecordOnStartTelemetry(nsresult aStatus,
   }
 }
 
+static bool hasConnectivity() {
+  if (RefPtr<NetworkConnectivityService> ncs =
+          NetworkConnectivityService::GetSingleton()) {
+    nsINetworkConnectivityService::ConnectivityState state;
+    if (NS_SUCCEEDED(ncs->GetIPv4(&state)) &&
+        state == nsINetworkConnectivityService::OK) {
+      return true;
+    }
+    // We should also check for IPv6 connectivity here, but since
+    // quite a few mozilla domains don't have IPv6 records yet,
+    // we might incorrectly fallback to a backup domain on
+    // IPv6 only networks.
+    // When bug 1665605 gets fixed we can also return true when only IPv6 is OK.
+  }
+
+  return false;
+};
+
+static already_AddRefed<nsIURI> GetFallbackURI(nsIURI* aURI) {
+  nsresult rv;
+  nsAutoCString host;
+  aURI->GetHost(host);
+  nsCOMPtr<nsIURI> backupURI;
+
+  nsAutoCString fallbackDomain;
+  if (!gIOService->GetFallbackDomain(host, fallbackDomain)) {
+    return nullptr;
+  }
+
+  rv = NS_MutateURI(aURI).SetHost(fallbackDomain).Finalize(backupURI);
+  if (NS_FAILED(rv)) {
+    return nullptr;
+  }
+
+  return backupURI.forget();
+}
+
 NS_IMETHODIMP
 nsHttpChannel::OnStartRequest(nsIRequest* request) {
   nsresult rv;
@@ -8030,6 +8068,27 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
     rv =
         StartRedirectChannelToURI(mURI, nsIChannelEventSink::REDIRECT_INTERNAL);
     if (NS_SUCCEEDED(rv)) return NS_OK;
+  }
+
+  // If this is a system principal request to an essential domain and we
+  // currently have connectivity, then check if there's a fallback domain we can
+  // use to retry. If so we redirect to the fallback domain.
+  if (StaticPrefs::network_essential_domains_fallback() && NS_FAILED(mStatus) &&
+      !mCanceled && mLoadInfo->TriggeringPrincipal()->IsSystemPrincipal() &&
+      hasConnectivity()) {
+    if (nsCOMPtr<nsIURI> fallbackURI = GetFallbackURI(mURI)) {
+      rv = StartRedirectChannelToURI(
+          fallbackURI, nsIChannelEventSink::REDIRECT_INTERNAL |
+                           nsIChannelEventSink::REDIRECT_TRANSPARENT);
+      if (NS_SUCCEEDED(rv)) {
+        nsCOMPtr<nsIObserverService> obsService =
+            services::GetObserverService();
+        if (obsService)
+          obsService->NotifyObservers(static_cast<nsIHttpChannel*>(this),
+                                      "httpchannel-fallback", nullptr);
+        return NS_OK;
+      }
+    }
   }
 
   // avoid crashing if mListener happens to be null...
@@ -10492,21 +10551,6 @@ void nsHttpChannel::ReportSystemChannelTelemetry(nsresult status) {
       !StringEndsWith(domain, ".mozilla.com"_ns)) {
     return;
   }
-
-  auto hasConnectivity = []() -> bool {
-    if (RefPtr<NetworkConnectivityService> ncs =
-            NetworkConnectivityService::GetSingleton()) {
-      nsINetworkConnectivityService::ConnectivityState state;
-      if (NS_SUCCEEDED(ncs->GetIPv4(&state)) &&
-          state == nsINetworkConnectivityService::NOT_AVAILABLE &&
-          NS_SUCCEEDED(ncs->GetIPv6(&state)) &&
-          state == nsINetworkConnectivityService::NOT_AVAILABLE) {
-        return false;
-      }
-    }
-
-    return true;
-  };
 
   nsAutoCString label("ok"_ns);
   if (NS_FAILED(status)) {

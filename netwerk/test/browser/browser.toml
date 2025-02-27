@@ -175,11 +175,20 @@ support-files = ["res_hello_h1.sjs"]
 
 ["browser_dns_prefetch_link_header.js"]
 
+["browser_essential_domain_fallbacks.js"]
+
 ["browser_fetch_lnk.js"]
 run-if = ["os == 'win'"]
 support-files = ["file_lnk.lnk",]
 
 ["browser_http_index_format.js"]
+
+["browser_mock_https_rr.js"]
+skip-if = [
+  "http3",
+  "http2",
+  "socketprocess_networking",
+]
 
 ["browser_necko_l10n.js"]
 
@@ -216,10 +225,3 @@ support-files = [
 ["browser_test_file_channel_observer.js"]
 
 ["browser_test_offline_tab.js"]
-
-["browser_mock_https_rr.js"]
-skip-if = [
-  "http3",
-  "http2",
-  "socketprocess_networking",
-]

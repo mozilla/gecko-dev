@@ -361,6 +361,18 @@ interface nsIIOService : nsISupports
      * should use SimpleURI parser instead of defaultURI parser.
      */
     [noscript] Array<ACString> getSimpleURIUnknownRemoteSchemes();
+
+    /**
+     * When a failure is encountered connecting to an essential domain
+     * with a system-principal channel, we may attempt to retry the load
+     * with a fallback domain.
+     */
+     void addEssentialDomainMapping(in ACString aFrom, in ACString aTo);
+
+    /**
+     * Clears the essential domain mapping.
+     */
+    void clearEssentialDomainMapping();
 };
 
 %{C++

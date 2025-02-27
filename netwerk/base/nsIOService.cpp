@@ -2344,5 +2344,30 @@ nsIOService::GetSimpleURIUnknownRemoteSchemes(nsTArray<nsCString>& _retval) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsIOService::AddEssentialDomainMapping(const nsACString& aFrom,
+                                       const nsACString& aTo) {
+  MOZ_ASSERT(NS_IsMainThread());
+  mEssentialDomainMapping.InsertOrUpdate(aFrom, aTo);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsIOService::ClearEssentialDomainMapping() {
+  MOZ_ASSERT(NS_IsMainThread());
+  mEssentialDomainMapping.Clear();
+  return NS_OK;
+}
+
+bool nsIOService::GetFallbackDomain(const nsACString& aDomain,
+                                    nsACString& aFallbackDomain) {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (auto entry = mEssentialDomainMapping.Lookup(aDomain)) {
+    aFallbackDomain = entry.Data();
+    return true;
+  }
+  return false;
+}
+
 }  // namespace net
 }  // namespace mozilla

@@ -294,6 +294,7 @@ else:
     ]
 
 EXTRA_JS_MODULES += [
+    "EssentialDomainsRemoteSettings.sys.mjs",
     "NetUtil.sys.mjs",
     "SimpleURIUnknownSchemesRemoteObserver.sys.mjs",
 ]
