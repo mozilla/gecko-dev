@@ -596,6 +596,12 @@ bool GetTrustedTypeDataForAttribute(const nsAtom* aElementName,
                                     int32_t aAttributeNamespaceID,
                                     TrustedType& aTrustedType,
                                     nsAString& aSink) {
+  if (aElementNamespaceID != kNameSpaceID_XHTML &&
+      aElementNamespaceID != kNameSpaceID_SVG &&
+      aElementNamespaceID != kNameSpaceID_MathML) {
+    return false;
+  }
+
   // The spec is not really clear about which "event handler content attributes"
   // we should consider, so we just include everything but XUL's specific ones.
   // See https://github.com/w3c/trusted-types/issues/520.

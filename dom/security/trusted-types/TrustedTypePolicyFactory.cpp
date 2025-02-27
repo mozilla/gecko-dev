@@ -59,8 +59,8 @@ static CSPViolationData CreateCSPViolationData(JSContext* aJSContext,
 TrustedTypePolicyFactory::~TrustedTypePolicyFactory() = default;
 
 auto TrustedTypePolicyFactory::ShouldTrustedTypePolicyCreationBeBlockedByCSP(
-    JSContext* aJSContext,
-    const nsAString& aPolicyName) const -> PolicyCreation {
+    JSContext* aJSContext, const nsAString& aPolicyName) const
+    -> PolicyCreation {
   // CSP-support for Workers will be added in
   // <https://bugzilla.mozilla.org/show_bug.cgi?id=1901492>.
   // That is, currently only Windows are supported.
@@ -221,13 +221,18 @@ void TrustedTypePolicyFactory::GetAttributeType(const nsAString& aTagName,
     return;
   }
 
-  // GetTrustedTypeDataForAttribute() only test HTML or SVG element namespaces,
-  // for testing event handler attributes the element namespace does not matter.
+  // GetTrustedTypeDataForAttribute() only return true for HTML, SVG or MathML
+  // element namespaces, so don't bother calling it for other namespaces.
   int32_t elementNamespaceID = kNameSpaceID_Unknown;
   if (aElementNs.IsEmpty() || nsGkAtoms::nsuri_xhtml->Equals(aElementNs)) {
     elementNamespaceID = kNameSpaceID_XHTML;
   } else if (nsGkAtoms::nsuri_svg->Equals(aElementNs)) {
     elementNamespaceID = kNameSpaceID_SVG;
+  } else if (nsGkAtoms::nsuri_mathml->Equals(aElementNs)) {
+    elementNamespaceID = kNameSpaceID_MathML;
+  } else {
+    aResult.SetNull();
+    return;
   }
 
   nsAutoString attribute;
