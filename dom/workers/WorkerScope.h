@@ -86,6 +86,7 @@ class WorkerPrivate;
 class VsyncWorkerChild;
 class WebTaskScheduler;
 class WebTaskSchedulerWorker;
+class WebTaskSchedulingState;
 struct RequestInit;
 
 namespace cache {
@@ -381,6 +382,11 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
 
   WebTaskScheduler* Scheduler();
   WebTaskScheduler* GetExistingScheduler() const;
+  void SetWebTaskSchedulingState(WebTaskSchedulingState* aState) override;
+
+  WebTaskSchedulingState* GetWebTaskSchedulingState() const override {
+    return mWebTaskSchedulingState;
+  }
 
   bool WindowInteractionAllowed() const;
 
@@ -417,6 +423,7 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   RefPtr<cache::CacheStorage> mCacheStorage;
   RefPtr<DebuggerNotificationManager> mDebuggerNotificationManager;
   RefPtr<WebTaskSchedulerWorker> mWebTaskScheduler;
+  RefPtr<WebTaskSchedulingState> mWebTaskSchedulingState;
   RefPtr<TrustedTypePolicyFactory> mTrustedTypePolicyFactory;
   uint32_t mWindowInteractionsAllowed = 0;
   bool mIsEligibleForMessaging{true};

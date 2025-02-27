@@ -35,6 +35,7 @@ namespace mozilla {
 namespace dom {
 
 class Document;
+class WebTaskSchedulingState;
 
 /*
  * Per thread setup/teardown routines. Init and Destroy should be invoked
@@ -94,6 +95,8 @@ nsIGlobalObject* GetIncumbentGlobal();
 
 // Returns the global associated with the current compartment. This may be null.
 nsIGlobalObject* GetCurrentGlobal();
+
+WebTaskSchedulingState* GetWebTaskSchedulingState();
 
 // JS-implemented WebIDL presents an interesting situation with respect to the
 // subject principal. A regular C++-implemented API can simply examine the
