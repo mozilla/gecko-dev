@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import json
 import os
+import pathlib
 import sys
 from functools import partial
 
@@ -87,6 +88,10 @@ def run_perftest(command_context, **kwargs):
     if len(kwargs["tests"]) > 1:
         print("\nSorry no support yet for multiple local perftest")
         return
+
+    # Make sure the default artifacts directory exists
+    default_artifact_location = pathlib.Path(command_context.topsrcdir, "artifacts")
+    default_artifact_location.mkdir(parents=True, exist_ok=True)
 
     sel = "\n".join(kwargs["tests"])
     print("\nGood job! Best selection.\n%s" % sel)

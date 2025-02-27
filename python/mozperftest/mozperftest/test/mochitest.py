@@ -156,9 +156,11 @@ class Mochitest(Layer):
                 # Setup where the profile gets saved to so it doesn't get deleted
                 profile_path = os.getenv("MOZ_PROFILER_SHUTDOWN")
                 if not profile_path:
-                    profile_path = (
-                        Path(self.get_arg("output")) / "profile_mochitest.json"
-                    )
+                    output_dir = Path(self.get_arg("output"))
+                    if not output_dir.is_absolute():
+                        output_dir = Path(self.topsrcdir, output_dir)
+                    output_dir.resolve().mkdir(parents=True, exist_ok=True)
+                    profile_path = output_dir / "profile_mochitest.json"
                     os.environ["MOZ_PROFILER_SHUTDOWN"] = str(profile_path)
                 self.info(f"Profile will be saved to: {profile_path}")
 

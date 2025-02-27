@@ -359,3 +359,6 @@ media/libvpx/config/**/config.log
 
 # Ignore generated files resulting from building the minidump analyzer tests.
 toolkit/crashreporter/minidump-analyzer/analyzer-test/target/
+
+# Ignore mozperftest artifacts folder
+/artifacts/
