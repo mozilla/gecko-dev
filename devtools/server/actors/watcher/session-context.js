@@ -27,6 +27,12 @@
 // - supportedResources: Boolean
 //   An object keyed by resource type, whose value indicates if we have watcher support
 //   for the resource.
+// - enableWindowGlobalThreadActors: Boolean
+//   If false (the default), Resource Watchers will avoid spawning the thread actors of
+//   WindowGlobal targets. In such configuration, the WindowGlobal scripts will be
+//   debugged by the Content Process targets.
+//   This is used by the Browser Toolbox, and explicitly not used by VS.Code
+//   which reuse the Browser Toolbox codepath, but doesn't use the Content Process targets.
 
 const Targets = require("resource://devtools/server/actors/targets/index.js");
 const Resources = require("resource://devtools/server/actors/resources/index.js");
@@ -47,8 +53,14 @@ const SESSION_TYPES = {
  * - all processes: parent and content,
  * - all privileges: privileged/chrome and content/web,
  * - all components/targets: HTML documents, processes, workers, add-ons,...
+ *
+ * @param {Object} config
+ *        An object with optional configuration. Only supports "enableWindowGlobalThreadActors" attribute.
+ *        See jsdoc in this file header for more info.
  */
-function createBrowserSessionContext() {
+function createBrowserSessionContext({
+  enableWindowGlobalThreadActors = false,
+} = {}) {
   const type = SESSION_TYPES.ALL;
 
   return {
@@ -58,6 +70,8 @@ function createBrowserSessionContext() {
     isServerTargetSwitchingEnabled: false,
     supportedTargets: getWatcherSupportedTargets(type),
     supportedResources: getWatcherSupportedResources(type),
+
+    enableWindowGlobalThreadActors,
   };
 }
 

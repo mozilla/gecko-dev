@@ -46,12 +46,12 @@ class BreakpointWatcher {
    *          This will be called for each resource.
    */
   async watch(targetActor, { onAvailable }) {
-    // When debugging the whole browser (via the Browser Toolbox), we instantiate both content process and window global (FRAME) targets.
-    // But the debugger will only use the content process target's thread actor.
-    // Thread actor, Sources and Breakpoints have to be only managed for the content process target,
-    // and we should explicitly ignore the window global target.
+    // The Browser Toolbox uses the Content Process target's Thread actor to debug all scripts
+    // running into a given process. This includes WindowGlobal scripts.
+    // Because of this, and in such configuration, we have to ignore the WindowGlobal targets.
     if (
       targetActor.sessionContext.type == "all" &&
+      !targetActor.sessionContext.enableWindowGlobalThreadActors &&
       targetActor.targetType === Targets.TYPES.FRAME &&
       targetActor.typeName != "parentProcessTarget"
     ) {

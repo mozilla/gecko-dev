@@ -185,9 +185,14 @@ class ProcessDescriptorActor extends Actor {
    * already exists or will be created. It also helps knowing when they
    * are destroyed.
    */
-  getWatcher() {
+  getWatcher({ enableWindowGlobalThreadActors = false } = {}) {
     if (!this.watcher) {
-      this.watcher = new WatcherActor(this.conn, createBrowserSessionContext());
+      this.watcher = new WatcherActor(
+        this.conn,
+        createBrowserSessionContext({
+          enableWindowGlobalThreadActors,
+        })
+      );
       this.manage(this.watcher);
     }
     return this.watcher;

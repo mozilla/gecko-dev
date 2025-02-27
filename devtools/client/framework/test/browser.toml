@@ -305,6 +305,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_toolbox_watchedByDevTools.js"]
 
+["browser_toolbox_window_global_debugging.js"]
+
 ["browser_toolbox_window_reload_target.js"]
 
 ["browser_toolbox_window_reload_target_force.js"]

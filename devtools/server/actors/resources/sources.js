@@ -27,10 +27,12 @@ class SourceWatcher {
   }
 
   async watch(targetActor, { onAvailable }) {
-    // When debugging the whole browser, we instantiate both content process and browsing context targets.
-    // But sources will only be debugged the content process target, even browsing context sources.
+    // The Browser Toolbox uses the Content Process target's Thread actor to debug all scripts
+    // running into a given process. This includes WindowGlobal scripts.
+    // Because of this, and in such configuration, we have to ignore the WindowGlobal targets.
     if (
       targetActor.sessionContext.type == "all" &&
+      !targetActor.sessionContext.enableWindowGlobalThreadActors &&
       targetActor.targetType === Targets.TYPES.FRAME &&
       targetActor.typeName != "parentProcessTarget"
     ) {

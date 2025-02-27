@@ -72,15 +72,22 @@ exports.CommandsFactory = {
    * @param {Object} options
    * @param {DevToolsClient} options.client: An optional DevToolsClient. If none is passed,
    *        a new one will be created.
+   * @param {Boolean} enableWindowGlobalThreadActors: An optional boolean for on test.
    * @returns {Object} Commands
    */
-  async forMainProcess({ client } = {}) {
+  async forMainProcess({
+    client,
+    enableWindowGlobalThreadActors = false,
+  } = {}) {
     if (!client) {
       client = await createLocalClient();
     }
 
     const descriptor = await client.mainRoot.getMainProcess();
-    const commands = await createCommandsDictionary(descriptor);
+    const commands = await createCommandsDictionary(
+      descriptor,
+      enableWindowGlobalThreadActors
+    );
     return commands;
   },
 

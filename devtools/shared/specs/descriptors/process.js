@@ -20,7 +20,10 @@ const processDescriptorSpec = generateActorSpec({
       },
     },
     getWatcher: {
-      request: {},
+      request: {
+        // Added in Fx137 for Vs.Code
+        enableWindowGlobalThreadActors: Option(0, "boolean"),
+      },
       response: RetVal("watcher"),
     },
     reloadDescriptor: {
