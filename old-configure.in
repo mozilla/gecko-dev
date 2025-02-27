@@ -84,8 +84,6 @@ AC_SUBST(MOZ_EME_PROCESS_BUNDLEID)
 # - MOZ_APP_DISPLAYNAME: Used in user-visible fields (DLL properties,
 # Mac Bundle name, Updater, Installer), it is typically used for nightly
 # builds (e.g. Aurora for Firefox).
-# - MOZ_APP_PROFILE: When set, used for application.ini's
-# "Profile" field, which controls profile location.
 
 # The following environment variables used to have an effect, but don't anymore:
 # - MOZ_APP_VERSION: Defines the application version number. This was replaced with
@@ -97,7 +95,6 @@ AC_SUBST(MOZ_EME_PROCESS_BUNDLEID)
 # browser/config/version_display.txt.
 
 AC_SUBST(MOZ_APP_DISPLAYNAME)
-AC_SUBST(MOZ_APP_PROFILE)
 AC_DEFINE_UNQUOTED(MOZ_APP_UA_VERSION, "$MOZ_APP_VERSION")
 
 dnl Set various defines and substitutions
