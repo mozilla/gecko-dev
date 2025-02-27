@@ -28,6 +28,10 @@ add_task(async function () {
   await ensureAnimationsFinished();
   await disableFxaBadge();
 
+  // Ensure updating Unified Search Button icon before appmenu test.
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  BrowserTestUtils.removeTab(tab);
+
   let textBoxRect = gURLBar
     .querySelector("moz-input-box")
     .getBoundingClientRect();
