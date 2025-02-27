@@ -23,7 +23,7 @@ ServiceWorkerRegisterJob::ServiceWorkerRegisterJob(
 void ServiceWorkerRegisterJob::AsyncExecute() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  AUTO_PROFILER_MARKER_TEXT("SWRJ AsyncExecute", DOM, {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("SWRJ AsyncExecute", DOM, {});
 
   RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
   if (Canceled() || !swm) {

@@ -1121,7 +1121,7 @@ bool nsPresContext::UpdateContainerQueryStyles() {
   }
 
   AUTO_PROFILER_LABEL_RELEVANT_FOR_JS("Container Query Styles Update", LAYOUT);
-  AUTO_PROFILER_MARKER_TEXT("UpdateContainerQueryStyles", LAYOUT, {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("UpdateContainerQueryStyles", LAYOUT, {});
 
   PresShell()->DoFlushLayout(/* aInterruptible = */ false);
 

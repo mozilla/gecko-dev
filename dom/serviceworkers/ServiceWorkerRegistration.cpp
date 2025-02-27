@@ -214,8 +214,7 @@ ServiceWorkerUpdateViaCache ServiceWorkerRegistration::GetUpdateViaCache(
 }
 
 already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
-  AUTO_PROFILER_MARKER_TEXT("ServiceWorkerRegistration::Update", DOM, {},
-                            ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("ServiceWorkerRegistration::Update", DOM, {});
 
   nsIGlobalObject* global = GetParentObject();
   if (!global) {
@@ -268,8 +267,8 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Update(ErrorResult& aRv) {
       [outer,
        self](const IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult&
                  aResult) {
-        AUTO_PROFILER_MARKER_TEXT("ServiceWorkerRegistration::Update (inner)",
-                                  DOM, {}, ""_ns);
+        AUTO_PROFILER_MARKER_UNTYPED(
+            "ServiceWorkerRegistration::Update (inner)", DOM, {});
 
         if (aResult.type() ==
             IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult::

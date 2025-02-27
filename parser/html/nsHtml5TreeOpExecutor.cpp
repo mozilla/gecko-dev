@@ -626,9 +626,9 @@ void nsHtml5TreeOpExecutor::RunFlushLoop() {
       nsHtml5AutoFlush autoFlush(this);
       // Profiler marker deliberately not counting layout and script
       // execution.
-      AUTO_PROFILER_MARKER_TEXT(
+      AUTO_PROFILER_MARKER_UNTYPED(
           "HTMLParserTreeOps", DOM,
-          MarkerOptions(MarkerInnerWindowIdFromDocShell(mDocShell)), ""_ns);
+          MarkerOptions(MarkerInnerWindowIdFromDocShell(mDocShell)));
 
       nsHtml5TreeOperation* first = mOpQueue.Elements();
       nsHtml5TreeOperation* last = first + mOpQueue.Length() - 1;

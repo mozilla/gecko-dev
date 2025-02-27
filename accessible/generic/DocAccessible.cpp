@@ -1602,8 +1602,8 @@ void DocAccessible::ProcessInvalidationList() {
 }
 
 void DocAccessible::ProcessQueuedCacheUpdates(uint64_t aInitialDomains) {
-  AUTO_PROFILER_MARKER_TEXT("DocAccessible::ProcessQueuedCacheUpdates", A11Y,
-                            {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("DocAccessible::ProcessQueuedCacheUpdates", A11Y,
+                               {});
   PerfStats::AutoMetricRecording<
       PerfStats::Metric::A11Y_ProcessQueuedCacheUpdate>
       autoRecording;
@@ -1712,7 +1712,7 @@ void DocAccessible::NotifyOfLoading(bool aIsReloading) {
 }
 
 void DocAccessible::DoInitialUpdate() {
-  AUTO_PROFILER_MARKER_TEXT("DocAccessible::DoInitialUpdate", A11Y, {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("DocAccessible::DoInitialUpdate", A11Y, {});
   PerfStats::AutoMetricRecording<PerfStats::Metric::A11Y_DoInitialUpdate>
       autoRecording;
   // DO NOT ADD CODE ABOVE THIS BLOCK: THIS CODE IS MEASURING TIMINGS.

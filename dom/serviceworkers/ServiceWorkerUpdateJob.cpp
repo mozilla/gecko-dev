@@ -219,8 +219,7 @@ void ServiceWorkerUpdateJob::FailUpdateJob(nsresult aRv) {
 }
 
 void ServiceWorkerUpdateJob::AsyncExecute() {
-  AUTO_PROFILER_MARKER_TEXT("ServiceWorkerUpdateJob::AsyncExecute", DOM, {},
-                            ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("ServiceWorkerUpdateJob::AsyncExecute", DOM, {});
 
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(GetType() == Type::Update);
@@ -275,7 +274,7 @@ void ServiceWorkerUpdateJob::SetRegistration(
 }
 
 void ServiceWorkerUpdateJob::Update() {
-  AUTO_PROFILER_MARKER_TEXT("ServiceWorkerUpdateJob::Update", DOM, {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("ServiceWorkerUpdateJob::Update", DOM, {});
 
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!Canceled());
@@ -479,7 +478,7 @@ void ServiceWorkerUpdateJob::ContinueUpdateAfterScriptEval(
 }
 
 void ServiceWorkerUpdateJob::Install() {
-  AUTO_PROFILER_MARKER_TEXT("ServiceWorkerUpdateJob::Install", DOM, {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("ServiceWorkerUpdateJob::Install", DOM, {});
 
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(!Canceled());

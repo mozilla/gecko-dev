@@ -424,13 +424,12 @@ bool HangMonitorChild::InterruptCallback() {
     if (browserChild) {
       js::AutoAssertNoContentJS nojs(mContext);
       if (paintWhileInterruptingJS.value()) {
-        AUTO_PROFILER_MARKER_TEXT("InterruptCallback: PaintWhileInterruptingJS",
-                                  DOM, {}, ""_ns);
+        AUTO_PROFILER_MARKER_UNTYPED(
+            "InterruptCallback: PaintWhileInterruptingJS", DOM, {});
         browserChild->PaintWhileInterruptingJS();
       } else {
-        AUTO_PROFILER_MARKER_TEXT(
-            "InterruptCallback: UnloadLayersWhileInterruptingJS", DOM, {},
-            ""_ns);
+        AUTO_PROFILER_MARKER_UNTYPED(
+            "InterruptCallback: UnloadLayersWhileInterruptingJS", DOM, {});
         browserChild->UnloadLayersWhileInterruptingJS();
       }
     }
@@ -597,7 +596,7 @@ mozilla::ipc::IPCResult HangMonitorChild::RecvEndStartingDebugger() {
 
 mozilla::ipc::IPCResult HangMonitorChild::RecvPaintWhileInterruptingJS(
     const TabId& aTabId) {
-  PROFILER_MARKER_TEXT("PaintWhileInterruptingJS", DOM, {}, ""_ns);
+  PROFILER_MARKER_UNTYPED("PaintWhileInterruptingJS", DOM, {});
   MOZ_RELEASE_ASSERT(IsOnThread());
 
   {

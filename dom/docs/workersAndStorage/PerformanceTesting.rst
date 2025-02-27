@@ -47,12 +47,12 @@ succeed.
 Profiler Markers
 ================
 
-Profiler markers can be used to collect timing data.  Markers of known name can be inspected from the perftest.  AUTO_PROFILER_MARKER_TEXT must be used, as we need both the start-time and end-time of the marker.  For example:
+Profiler markers can be used to collect timing data.  Markers of known name can be inspected from the perftest.  AUTO_PROFILER_MARKER_UNTYPED must be used, as we need both the start-time and end-time of the marker.  For example:
 
 .. code-block:: cpp
 
- AUTO_PROFILER_MARKER_TEXT("interesting thing #1", DOM, {}, ""_ns);
- AUTO_PROFILER_MARKER_TEXT("interesting thing #2", DOM, {}, ""_ns);
+ AUTO_PROFILER_MARKER_UNTYPED("interesting thing #1", DOM, {};
+ AUTO_PROFILER_MARKER_UNTYPED("interesting thing #2", DOM, {});
 
 can be inspected from the perftest:
 

@@ -83,7 +83,7 @@ bool ScriptBytecodeCompress(Vector<uint8_t>& aBytecodeBuf,
                             Vector<uint8_t>& aCompressedBytecodeBufOut) {
   // TODO probably need to move this to a helper thread
 
-  AUTO_PROFILER_MARKER_TEXT("ScriptBytecodeCompress", JS, {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("ScriptBytecodeCompress", JS, {});
   PerfStats::AutoMetricRecording<PerfStats::Metric::JSBC_Compression>
       autoRecording;
 
@@ -133,7 +133,7 @@ bool ScriptBytecodeCompress(Vector<uint8_t>& aBytecodeBuf,
 bool ScriptBytecodeDecompress(Vector<uint8_t>& aCompressedBytecodeBuf,
                               size_t aBytecodeOffset,
                               Vector<uint8_t>& aBytecodeBufOut) {
-  AUTO_PROFILER_MARKER_TEXT("ScriptBytecodeDecompress", JS, {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("ScriptBytecodeDecompress", JS, {});
   PerfStats::AutoMetricRecording<PerfStats::Metric::JSBC_Decompression>
       autoRecording;
 

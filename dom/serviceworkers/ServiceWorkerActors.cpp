@@ -32,8 +32,7 @@ void InitServiceWorkerRegistrationParent(
     PServiceWorkerRegistrationParent* aActor,
     const IPCServiceWorkerRegistrationDescriptor& aDescriptor,
     const IPCClientInfo& aForClient) {
-  AUTO_PROFILER_MARKER_TEXT("InitServiceWorkerRegistrationParent", DOM, {},
-                            ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("InitServiceWorkerRegistrationParent", DOM, {});
   auto actor = static_cast<ServiceWorkerRegistrationParent*>(aActor);
   actor->Init(aDescriptor, aForClient);
 }

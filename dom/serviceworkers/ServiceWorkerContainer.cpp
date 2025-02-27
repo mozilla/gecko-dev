@@ -168,7 +168,7 @@ already_AddRefed<Promise> ServiceWorkerContainer::Register(
     const TrustedScriptURLOrUSVString& aScriptURL,
     const RegistrationOptions& aOptions, const CallerType aCallerType,
     ErrorResult& aRv) {
-  AUTO_PROFILER_MARKER_TEXT("SWC Register", DOM, {}, ""_ns);
+  AUTO_PROFILER_MARKER_UNTYPED("SWC Register", DOM, {});
 
   // Note, we can't use GetGlobalIfValid() from the start here.  If we
   // hit a storage failure we want to log a message with the final
@@ -324,7 +324,7 @@ already_AddRefed<Promise> ServiceWorkerContainer::Register(
       [self,
        outer](const IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult&
                   aResult) {
-        AUTO_PROFILER_MARKER_TEXT("SWC Register (inner)", DOM, {}, ""_ns);
+        AUTO_PROFILER_MARKER_UNTYPED("SWC Register (inner)", DOM, {});
 
         if (aResult.type() ==
             IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult::
