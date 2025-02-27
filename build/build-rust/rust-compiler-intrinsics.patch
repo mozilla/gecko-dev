@@ -4,11 +4,71 @@ least some of that to make the version of rustc we landed on work.
 
 See also: <https://github.com/rust-lang/rust/pull/128691>
 
+diff --git a/Cargo.lock b/Cargo.lock
+index 13b8eaea068..c2b8483b5b2 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -739,9 +739,9 @@ checksum = "55b672471b4e9f9e95499ea597ff64941a309b2cdbffcc46f2cc5e2d971fd335"
+ 
+ [[package]]
+ name = "compiler_builtins"
+-version = "0.1.114"
++version = "0.1.123"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "eb58b199190fcfe0846f55a3b545cd6b07a34bdd5930a476ff856f3ebcc5558a"
++checksum = "b47fcbecb558bdad78c7d3a998523c60a50dd6cd046d5fe74163e309e878fff7"
+ dependencies = [
+  "cc",
+  "rustc-std-workspace-core",
+diff --git a/compiler/rustc_codegen_cranelift/patches/stdlib-lock.toml b/compiler/rustc_codegen_cranelift/patches/stdlib-lock.toml
+index 9ea53e8f848..8d577c836d6 100644
+--- a/compiler/rustc_codegen_cranelift/patches/stdlib-lock.toml
++++ b/compiler/rustc_codegen_cranelift/patches/stdlib-lock.toml
+@@ -58,9 +58,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "compiler_builtins"
+-version = "0.1.106"
++version = "0.1.123"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f4ab134a739bafec76aa91ccb15d519a54e569350644a1fea6528d5a0d407e22"
++checksum = "b47fcbecb558bdad78c7d3a998523c60a50dd6cd046d5fe74163e309e878fff7"
+ dependencies = [
+  "cc",
+  "rustc-std-workspace-core",
+diff --git a/compiler/rustc_codegen_gcc/build_system/build_sysroot/Cargo.lock b/compiler/rustc_codegen_gcc/build_system/build_sysroot/Cargo.lock
+index d6ec1f87d01..771f2f18dce 100644
+--- a/compiler/rustc_codegen_gcc/build_system/build_sysroot/Cargo.lock
++++ b/compiler/rustc_codegen_gcc/build_system/build_sysroot/Cargo.lock
+@@ -50,7 +50,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "compiler_builtins"
+-version = "0.1.109"
++version = "0.1.118"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "f11973008a8cf741fe6d22f339eba21fd0ca81e2760a769ba8243ed6c21edd7e"
+ dependencies = [
+diff --git a/compiler/rustc_codegen_gcc/build_system/build_sysroot/Cargo.toml b/compiler/rustc_codegen_gcc/build_system/build_sysroot/Cargo.toml
+index e4669923623..05503128f2a 100644
+--- a/compiler/rustc_codegen_gcc/build_system/build_sysroot/Cargo.toml
++++ b/compiler/rustc_codegen_gcc/build_system/build_sysroot/Cargo.toml
+@@ -6,9 +6,7 @@ resolver = "2"
+ 
+ [dependencies]
+ core = { path = "./sysroot_src/library/core" }
+-# TODO: after the sync, revert to using version 0.1.
+-# compiler_builtins = "0.1"
+-compiler_builtins = "=0.1.109"
++compiler_builtins = "0.1"
+ alloc = { path = "./sysroot_src/library/alloc" }
+ std = { path = "./sysroot_src/library/std", features = ["panic_unwind", "backtrace"] }
+ test = { path = "./sysroot_src/library/test" }
 diff --git a/library/alloc/Cargo.toml b/library/alloc/Cargo.toml
-index 479eb0a2ba..82d5893dc5 100644
+index 479eb0a2ba7..4365bcc4ad0 100644
 --- a/library/alloc/Cargo.toml
 +++ b/library/alloc/Cargo.toml
-@@ -10,10 +10,7 @@
+@@ -10,10 +10,7 @@ edition = "2021"
  
  [dependencies]
  core = { path = "../core" }
@@ -16,20 +76,20 @@ index 479eb0a2ba..82d5893dc5 100644
 -
 -[target.'cfg(not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64")))'.dependencies]
 -compiler_builtins = { version = "0.1.114", features = ["no-f16-f128"] }
-+compiler_builtins = { version = "0.1.117", features = ['rustc-dep-of-std'] }
++compiler_builtins = { version = "0.1.123", features = ['rustc-dep-of-std'] }
  
  [dev-dependencies]
  rand = { version = "0.8.5", default-features = false, features = ["alloc"] }
 diff --git a/library/std/Cargo.toml b/library/std/Cargo.toml
-index fe601855cc..06e818fb7c 100644
+index fe601855cc1..b0462d28237 100644
 --- a/library/std/Cargo.toml
 +++ b/library/std/Cargo.toml
-@@ -17,7 +17,7 @@
+@@ -17,7 +17,7 @@ cfg-if = { version = "1.0", features = ['rustc-dep-of-std'] }
  panic_unwind = { path = "../panic_unwind", optional = true }
  panic_abort = { path = "../panic_abort" }
  core = { path = "../core", public = true }
 -compiler_builtins = { version = "0.1.114" }
-+compiler_builtins = { version = "0.1.117" }
++compiler_builtins = { version = "0.1.123" }
  profiler_builtins = { path = "../profiler_builtins", optional = true }
  unwind = { path = "../unwind" }
  hashbrown = { version = "0.14", default-features = false, features = [
