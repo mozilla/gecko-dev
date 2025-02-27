@@ -843,6 +843,8 @@
     <string name="preferences_show_voice_search">Εμφάνιση φωνητικής αναζήτησης</string>
     <!-- Preference title for switch preference to show search suggestions also in private mode -->
     <string name="preferences_show_search_suggestions_in_private">Εμφάνιση σε ιδιωτικές συνεδρίες</string>
+    <!-- Preference title for switch preference to show trending search suggestions -->
+    <string name="preferences_show_trending_search_suggestions">Εμφάνιση δημοφιλών προτάσεων</string>
     <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
     <string name="preferences_show_clipboard_suggestions">Εμφάνιση προτάσεων προχείρου</string>
     <!-- Preference title for switch preference to suggest browsing history when searching -->
@@ -2575,7 +2577,7 @@
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Προτάσεις Firefox</string>
 
     <!-- Search suggestions title for trending searches. -->
-    <string name="trending_searches_header">Δημοφιλείς αναζητήσεις</string>
+    <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Δημοφιλείς αναζητήσεις</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Αναζήτηση Google</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->

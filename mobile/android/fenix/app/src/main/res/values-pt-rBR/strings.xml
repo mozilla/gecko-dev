@@ -2565,7 +2565,7 @@
     <string name="firefox_suggest_header" tools:ignore="BrandUsage">Sugestões Firefox</string>
 
     <!-- Search suggestions title for trending searches. -->
-    <string name="trending_searches_header">Pesquisas em alta</string>
+    <string name="trending_searches_header" moz:removedIn="137" tools:ignore="UnusedResources">Pesquisas em alta</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Pesquisa do Google</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
