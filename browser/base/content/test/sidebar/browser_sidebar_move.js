@@ -4,8 +4,8 @@ registerCleanupFunction(() => {
 });
 
 const EXPECTED_START_ORDINALS = [
-  ["sidebar-wrapper", ""],
-  ["tabbrowser-tabbox", 6],
+  ["sidebar-wrapper", 1],
+  ["tabbrowser-tabbox", 2],
 ];
 
 const EXPECTED_WRAPPER_START_ORDINALS = [
@@ -17,16 +17,16 @@ const EXPECTED_WRAPPER_START_ORDINALS = [
 ];
 
 const EXPECTED_END_ORDINALS = [
-  ["sidebar-wrapper", ""],
+  ["sidebar-wrapper", 2],
   ["tabbrowser-tabbox", 1],
 ];
 
 const EXPECTED_WRAPPER_END_ORDINALS = [
-  ["sidebar-main", 6],
-  ["sidebar-launcher-splitter", 4],
-  ["sidebar-box", 3],
-  ["sidebar-splitter", 2],
-  ["after-splitter", 5],
+  ["sidebar-main", 7],
+  ["sidebar-launcher-splitter", 6],
+  ["sidebar-box", 5],
+  ["sidebar-splitter", 4],
+  ["after-splitter", 3],
 ];
 
 function getBrowserChildrenWithOrdinals() {

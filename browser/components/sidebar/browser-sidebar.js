@@ -710,57 +710,35 @@ var SidebarController = {
   setPosition() {
     // First reset all ordinals to match DOM ordering.
     let contentArea = document.getElementById("tabbrowser-tabbox");
-    if (this.sidebarRevampVisibility !== "expand-on-hover") {
-      let flattenedSidebarEls = [...this.sidebarWrapper.children, contentArea];
-      flattenedSidebarEls.forEach((node, i) => {
-        if (node.id !== "sidebar-wrapper") {
-          node.style.order = i + 1;
-        }
-      });
-    } else {
-      let browser = document.getElementById("browser");
-      [...browser.children].forEach((node, i) => {
-        node.style.order = i + 1;
-      });
-      [...this.sidebarWrapper.children].forEach((node, i) => {
-        node.style.order = i + 1;
-      });
-    }
+    let browser = document.getElementById("browser");
+    [...browser.children].forEach((node, i) => {
+      node.style.order = i + 1;
+    });
+    [...this.sidebarWrapper.children].forEach((node, i) => {
+      node.style.order = i + 1;
+    });
     let sidebarContainer = document.getElementById("sidebar-main");
     let sidebarMain = document.querySelector("sidebar-main");
     if (!this._positionStart) {
-      // DOM ordering is:     sidebar-main | launcher-splitter | sidebar-box | splitter | after-splitter | tabbrowser-tabbox
-      // Want to display as:  tabbrowser-tabbox | after-splitter |  splitter |  sidebar-box  | launcher-splitter | sidebar-main
-      if (this.sidebarRevampVisibility === "expand-on-hover") {
-        // First switch order of sidebar-wrapper and tabbrowser-tabbox
-        let wrapperOrdinal = this.sidebarWrapper.style.order;
-        this.sidebarWrapper.style.order = contentArea.style.order;
-        contentArea.style.order = wrapperOrdinal;
+      // First switch order of sidebar-wrapper and tabbrowser-tabbox
+      let wrapperOrdinal = this.sidebarWrapper.style.order;
+      this.sidebarWrapper.style.order = contentArea.style.order;
+      contentArea.style.order = wrapperOrdinal;
 
-        // Next swap sidebar-main and after-splitter
-        let afterSplitter = document.getElementById("after-splitter");
-        let mainOrdinal = parseInt(this.sidebarContainer.style.order);
-        this.sidebarContainer.style.order = parseInt(afterSplitter.style.order);
-        afterSplitter.style.order = mainOrdinal;
+      // DOM ordering is:     sidebar-main | launcher-splitter | sidebar-box | splitter | after-splitter |
+      // Want to display as:  after-splitter | splitter |  sidebar-box  | launcher-splitter | sidebar-main
+      // First swap sidebar-box and after-splitter
+      let afterSplitter = document.getElementById("after-splitter");
+      let boxOrdinal = this._box.style.order;
+      this._box.style.order = afterSplitter.style.order;
+      afterSplitter.style.order = boxOrdinal;
 
-        // Then swap launcher-splitter and splitter
-        const launcherSplitterOrdinal = parseInt(
-          this._launcherSplitter.style.order
-        );
-        this._launcherSplitter.style.order = parseInt(
-          this._splitter.style.order
-        );
-        this._splitter.style.order = launcherSplitterOrdinal;
-      } else {
-        // First switch order of sidebar-main and tabbrowser-tabbox
-        let mainOrdinal = this.sidebarContainer.style.order;
-        this.sidebarContainer.style.order = contentArea.style.order;
-        contentArea.style.order = mainOrdinal;
-        // Then swap launcher-splitter and splitter
-        let splitterOrdinal = this._splitter.style.order;
-        this._splitter.style.order = this._launcherSplitter.style.order;
-        this._launcherSplitter.style.order = splitterOrdinal;
-      }
+      // Then move the launcher-splitter to the right of sidebar-box
+      const launcherSplitterOrdinal = parseInt(this._box.style.order) + 1;
+      this._launcherSplitter.style.order = launcherSplitterOrdinal;
+
+      // Finally move the launcher to the right of the launcher-splitter
+      sidebarContainer.style.order = parseInt(launcherSplitterOrdinal) + 1;
 
       // Indicate we've switched ordering to the box
       this._box.toggleAttribute("positionend", true);
@@ -1949,9 +1927,9 @@ var SidebarController = {
   },
 
   async toggleExpandOnHover(isEnabled) {
-    this.setPosition();
     if (isEnabled) {
       this.sidebarWrapper.classList.add("expandOnHover");
+
       if (!this._state) {
         this._state = new this.SidebarState(this);
       }

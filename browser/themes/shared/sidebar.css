@@ -235,11 +235,10 @@ sidebar-main,
 /* Expand on hover */
 
 #sidebar-wrapper {
-  display: contents;
+  position: relative;
 
   &.expandOnHover {
     position: absolute;
-    display: flex;
     inset: 0;
     inset-inline-end: unset;
     z-index: var(--browser-area-z-index-sidebar-wrapper);
