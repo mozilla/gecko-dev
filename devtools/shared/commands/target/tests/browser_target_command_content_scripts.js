@@ -112,3 +112,83 @@ add_task(async function () {
   BrowserTestUtils.removeTab(tab);
   await commands.destroy();
 });
+
+// Cover the special codepath used by VS.Code which listens to CONTENT SCRIPT targets
+// on a parent process watcher.
+add_task(async function () {
+  info("Test TargetCommand against content scripts via multiprocess descriptor");
+
+  await pushPref("devtools.browsertoolbox.scope", "everything");
+
+  const extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      name: "Addon with content script",
+      content_scripts: [
+        {
+          matches: [`https://example.com/*`],
+          js: ["content-script.js"],
+        },
+      ],
+    },
+    files: {
+      "content-script.js": function () {
+        browser.test.notifyPass("contentScriptRan");
+      }
+    }
+  });
+
+  await extension.startup();
+
+  const tab = await addTab(FISSION_TEST_URL);
+
+  await extension.awaitFinish("contentScriptRan");
+
+  info(" ### Listen for content scripts");
+  {
+    // Create a TargetCommand for the tab
+    const commands = await CommandsFactory.forMainProcess();
+    const targetCommand = commands.targetCommand;
+
+    targetCommand.listenForContentScripts = true;
+    await targetCommand.startListening();
+
+    const { TYPES } = targetCommand;
+
+    info("Check that getAllTargets only returns content scripts");
+    const contentScripts = await targetCommand.getAllTargets([
+      TYPES.CONTENT_SCRIPT,
+    ]);
+
+    is(contentScripts.length, 1, "Retrieved the content script");
+    const [contentScript] = contentScripts;
+    Assert.stringContains(contentScript.title, "Addon with content script");
+
+    await commands.destroy();
+  }
+
+  info(" ### Do not listen for content script");
+  {
+    // Create a TargetCommand for the tab
+    const commands = await CommandsFactory.forMainProcess();
+    const targetCommand = commands.targetCommand;
+
+    targetCommand.listenForContentScripts = false;
+    await targetCommand.startListening();
+
+    const { TYPES } = targetCommand;
+
+    info("Check that getAllTargets only returns content scripts");
+    const contentScripts = await targetCommand.getAllTargets([
+      TYPES.CONTENT_SCRIPT,
+    ]);
+
+    is(contentScripts.length, 0, "No content script is retrieved");
+
+    await commands.destroy();
+  }
+
+  await extension.unload();
+
+  BrowserTestUtils.removeTab(tab);
+
+});

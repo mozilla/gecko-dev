@@ -77,8 +77,9 @@ function onNewGlobal(global) {
     CONTENT_SCRIPT
   )) {
     const { sessionContext } = watcherDataObject;
-    const { browserId } = sessionContext;
-    if (browserId != sandboxBrowserId) {
+    const { browserId, type } = sessionContext;
+    // Accept all the content scripts if we are debugging everything (session context type == all)
+    if (type != "all" && browserId != sandboxBrowserId) {
       continue;
     }
     createContentScriptTargetActor(watcherDataObject, {
@@ -122,19 +123,24 @@ function createTargetsForWatcher(watcherDataObject, _isProcessActorStartup) {
   }
 
   const { sessionContext } = watcherDataObject;
-  // Only try spawning Content Script targets when debugging tabs.
-  if (sessionContext.type != "browser-element") {
+  // Only try spawning Content Script targets when debugging tabs or everything.
+  if (
+    sessionContext.type != "browser-element" &&
+    sessionContext.type != "all"
+  ) {
     return;
   }
-  const { browserId } = sessionContext;
+  const { browserId, type } = sessionContext;
 
   const sandboxes = lazy.ExtensionContent.getAllContentScriptGlobals();
   for (const contentScriptSandbox of sandboxes) {
     const metadata = Cu.getSandboxMetadata(contentScriptSandbox);
+    // Accept all the content scripts if we are debugging everything (session context type == all)
+    //
     // Ignore sandboxes without metadata which are related to the hack
     // of bug 1214658, which spawns content script sandboxes in order
     // to expose chrome/browser API to iframes loading extension documents.
-    if (!metadata || metadata["browser-id"] != browserId) {
+    if (type != "all" && (!metadata || metadata["browser-id"] != browserId)) {
       continue;
     }
     createContentScriptTargetActor(watcherDataObject, {
