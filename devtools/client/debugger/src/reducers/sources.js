@@ -33,7 +33,9 @@ export function initialSourcesState() {
     /**
      * List of all breakable lines for original sources only.
      *
-     * Map(source id => array<int : breakable line numbers>)
+     * Map(source id => promise or array<int> : breakable line numbers>)
+     *
+     * The value can be a promise to indicate the lines are being loaded.
      */
     mutableOriginalBreakableLines: new Map(),
 
@@ -203,7 +205,7 @@ function update(state = initialSourcesState(), action) {
     case "SET_ORIGINAL_BREAKABLE_LINES": {
       state.mutableOriginalBreakableLines.set(
         action.source.id,
-        action.breakableLines
+        action.promise || action.breakableLines
       );
 
       return {

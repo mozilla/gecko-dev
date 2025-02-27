@@ -15,8 +15,9 @@ function initialSourceActorsState() {
     // See create.js: `createSourceActor` for the shape of the source actor objects.
     mutableSourceActors: new Map(),
 
-    // Map(Source Actor ID: string => Breakable lines: Array<Number>)
-    // The array is the list of all lines where breakpoints can be set
+    // Map(Source Actor ID: string => Breakable lines: Promise or Array<Number>)
+    // The array is the list of all lines where breakpoints can be set.
+    // The value can be a promise to indicate the lines are being loaded.
     mutableBreakableLines: new Map(),
 
     // Set(Source Actor ID: string)
@@ -71,7 +72,7 @@ export default function update(state = initialSourceActorsState(), action) {
     case "SET_SOURCE_ACTOR_BREAKABLE_LINES":
       state.mutableBreakableLines.set(
         action.sourceActor.id,
-        action.breakableLines
+        action.promise || action.breakableLines
       );
 
       return {

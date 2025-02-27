@@ -30,6 +30,7 @@ import {
   getSourceByActorId,
   getPendingSelectedLocation,
   getPendingBreakpointsForSource,
+  getSelectedLocation,
 } from "../../selectors/index";
 
 import { prefs } from "../../utils/prefs";
@@ -343,22 +344,28 @@ export function newGeneratedSources(sourceResources) {
     (async () => {
       await dispatch(loadSourceMapsForSourceActors(newSourceActors));
 
-      // We would like to sync breakpoints after we are done
-      // loading source maps as sometimes generated and original
-      // files share the same paths.
+      // We have to force fetching the breakable lines for any incoming source actor
+      // related to HTML page as we may have the HTML page selected,
+      // and already fetched its breakable lines and won't try to update
+      // the breakable lines for any late coming inline <script> tag.
+      const selectedLocation = getSelectedLocation(getState());
       for (const sourceActor of newSourceActors) {
-        // For HTML pages, we fetch all new incoming inline script,
-        // which will be related to one dedicated source actor.
-        // Whereas, for regular sources, if we have many source actors,
-        // this is for the same URL. And code expecting to have breakable lines
-        // will request breakable lines for that particular source actor.
-        if (sourceActor.sourceObject.isHTML) {
+        if (
+          selectedLocation?.source == sourceActor.sourceObject &&
+          sourceActor.sourceObject.isHTML
+        ) {
           await dispatch(
             setBreakableLines(
               createLocation({ source: sourceActor.sourceObject, sourceActor })
             )
           );
         }
+      }
+
+      // We would like to sync breakpoints after we are done
+      // loading source maps as sometimes generated and original
+      // files share the same paths.
+      for (const sourceActor of newSourceActors) {
         dispatch(
           checkPendingBreakpoints(sourceActor.sourceObject, sourceActor)
         );

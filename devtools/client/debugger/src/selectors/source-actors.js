@@ -76,8 +76,10 @@ export function getSourceActorsForThread(state, threadActorIDs) {
  * @param {Object} state
  * @param {String} sourceActorId
  *        Source Actor ID
- * @return {AsyncValue<Array<Number>>}
- *        List of all the breakable lines.
+ * @return {Promise<Array<Number>> | <Array<Number> | null}
+ *        - null when the breakable lines have not been requested yet
+ *        - Promise when the breakable lines are in process of being retrieved
+ *        - Array when the breakable lines are available
  */
 export function getSourceActorBreakableLines(state, sourceActorId) {
   return state.sourceActors.mutableBreakableLines.get(sourceActorId);
@@ -104,15 +106,18 @@ export function getSourceActorBreakableLines(state, sourceActorId) {
 export function getBreakableLinesForSourceActors(state, sourceActors, isHTML) {
   const allBreakableLines = [];
   for (const sourceActor of sourceActors) {
-    const breakableLines = state.sourceActors.mutableBreakableLines.get(
-      sourceActor.id
-    );
-    if (breakableLines) {
-      if (isHTML) {
-        allBreakableLines.push(...breakableLines);
-      } else {
-        return breakableLines;
-      }
+    const breakableLines = getSourceActorBreakableLines(state, sourceActor.id);
+
+    // Ignore the source actor if its breakable lines are still being fetched
+    // from the server
+    if (!breakableLines || breakableLines instanceof Promise) {
+      continue;
+    }
+
+    if (isHTML) {
+      allBreakableLines.push(...breakableLines);
+    } else {
+      return breakableLines;
     }
   }
   return allBreakableLines;
