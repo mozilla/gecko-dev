@@ -190,12 +190,12 @@ let DownloadCache = {
       return this._initializePromise;
     }
     this._initializePromise = (async () => {
-      const placesObserver = new PlacesWeakCallbackWrapper(
+      this._placesObserver = new PlacesWeakCallbackWrapper(
         this.handlePlacesEvents.bind(this)
       );
       PlacesObservers.addListener(
         ["history-cleared", "page-removed"],
-        placesObserver
+        this._placesObserver
       );
 
       let pageAnnos = await lazy.PlacesUtils.history.fetchAnnotatedPages([

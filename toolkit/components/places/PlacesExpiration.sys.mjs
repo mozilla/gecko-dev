@@ -528,13 +528,13 @@ nsPlacesExpiration.prototype = {
     } else if (aTopic == TOPIC_TESTING_MODE) {
       this._testingMode = true;
     } else if (aTopic == lazy.PlacesUtils.TOPIC_INIT_COMPLETE) {
-      const placesObserver = new PlacesWeakCallbackWrapper(
+      this._placesObserver = new PlacesWeakCallbackWrapper(
         // History status is clean after a clear history.
         () => {
           this.status = STATUS.CLEAN;
         }
       );
-      PlacesObservers.addListener(["history-cleared"], placesObserver);
+      PlacesObservers.addListener(["history-cleared"], this._placesObserver);
     }
   },
 

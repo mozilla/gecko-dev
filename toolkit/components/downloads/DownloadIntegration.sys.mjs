@@ -1197,12 +1197,12 @@ var DownloadObserver = {
 var DownloadHistoryObserver = function (aList) {
   this._list = aList;
 
-  const placesObserver = new PlacesWeakCallbackWrapper(
+  this._placesObserver = new PlacesWeakCallbackWrapper(
     this.handlePlacesEvents.bind(this)
   );
   PlacesObservers.addListener(
     ["history-cleared", "page-removed"],
-    placesObserver
+    this._placesObserver
   );
 };
 
