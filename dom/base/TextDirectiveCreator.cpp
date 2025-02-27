@@ -860,10 +860,10 @@ TextDirectiveCreator::FindAllMatchingCandidates() {
 
   size_t counter = 0;
   for (const auto& matchStartRange : startRangeMatches) {
-    if (++counter % 100 == 0 && mWatchdog.IsDone()) {
-      return textDirectiveMatches;
-    }
     for (auto* matchEndRange : endRangeMatches) {
+      if (++counter % 100 == 0 && mWatchdog.IsDone()) {
+        return textDirectiveMatches;
+      }
       Maybe<int32_t> compare = nsContentUtils::ComparePoints(
           matchStartRange->EndRef(), matchEndRange->StartRef());
       if (!compare || *compare != -1) {
