@@ -202,7 +202,7 @@
     transition: min-width 100ms ease-out,
                 max-width 100ms ease-out;
 
-    #tabbrowser-tabs[orient="horizontal"] &:not([fadein]) {
+    #tabbrowser-tabs[orient="horizontal"] & {
       min-width: var(--tab-min-width-pref, var(--tab-min-width));
     }
   }
