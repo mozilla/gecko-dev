@@ -90,6 +90,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1947105-pexels.com-nudge-thanks-popup-onscreen.css",
     "injections/css/bug1947979-shazam.com-hide-extra-scrollbars.css",
     "injections/css/bug1948047-lovers.cacaushow.com.br-nudge-login-popup-onscreen.css",
+    "injections/css/bug1950053-omegleapp.me-fix-scrollbars.css",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
