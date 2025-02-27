@@ -470,8 +470,8 @@ export var CrashSubmit = {
   },
 
   /**
-   * Add a .dmg.ignore file along side the .dmp file to indicate that the user
-   * shouldn't be prompted to submit this crash report again.
+   * Add a .dmg.ignore file along side the (existing) .dmp file to indicate
+   * that the user shouldn't be prompted to submit this crash report again.
    *
    * @param id
    *        Filename (minus .dmp extension) of the report to ignore
@@ -481,8 +481,10 @@ export var CrashSubmit = {
    */
   ignore: async function CrashSubmit_ignore(id) {
     let [dump /* , extra, memory */] = getPendingMinidump(id);
-    const ignorePath = `${dump}.ignore`;
-    await IOUtils.writeUTF8(ignorePath, "", { mode: "create" });
+    if (await IOUtils.exists(dump)) {
+      const ignorePath = `${dump}.ignore`;
+      await IOUtils.writeUTF8(ignorePath, "", { mode: "create" });
+    }
   },
 
   /**
