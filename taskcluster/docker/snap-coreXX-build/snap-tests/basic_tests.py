@@ -34,13 +34,32 @@ class SnapTestsBase:
         self._INSTANCE = os.environ.get("TEST_SNAP_INSTANCE", "firefox")
 
         self._PROFILE_PATH = "~/snap/{}/common/.mozilla/firefox/".format(self._INSTANCE)
-        self._EXE_PATH = r"/snap/{}/current/usr/lib/firefox/geckodriver".format(
-            self._INSTANCE
-        )
         self._LIB_PATH = r"/snap/{}/current/usr/lib/firefox/libxul.so".format(
             self._INSTANCE
         )
-        self._BIN_PATH = r"/snap/bin/{}".format(self._INSTANCE)
+        # This needs to be the snap-based symlink geckodriver to properly setup
+        # the Snap environment
+        self._EXE_PATH = r"/snap/bin/{}.geckodriver".format(self._INSTANCE)
+
+        # This needs to be the full path to the binary because at the moment of
+        # its execution it will already be under the Snap environment, and
+        # running "snap" command in this context will fail with Permission denied
+        #
+        # This can be trivially verified by the following shell script being used
+        # as binary_location/_BIN_PATH below:
+        #
+        # 8<-8<-8<-8<-8<-8<-8<-8<-8<-8<-8<-8<-
+        # #!/bin/sh
+        # TMPDIR=${TMPDIR:-/tmp}
+        # env > $TMPDIR/snap-test.txt
+        # 8<-8<-8<-8<-8<-8<-8<-8<-8<-8<-8<-8<-
+        #
+        # One should see output generated in the instance-specific temp dir
+        # /tmp/snap-private-tmp/snap.{}/tmp/snap-test.txt
+        # denoting that everything properly runs under Snap as expected.
+        self._BIN_PATH = r"/snap/{}/current/usr/lib/firefox/firefox".format(
+            self._INSTANCE
+        )
 
         snap_profile_path = tempfile.mkdtemp(
             prefix="snap-tests",
