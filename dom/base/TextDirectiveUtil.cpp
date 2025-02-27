@@ -31,14 +31,30 @@ LazyLogModule gFragmentDirectiveLog("FragmentDirective");
 /* static */
 Result<nsString, ErrorResult> TextDirectiveUtil::RangeContentAsString(
     nsRange* aRange) {
-  ErrorResult rv;
   nsString content;
-  if (!aRange) {
+  if (!aRange || aRange->Collapsed()) {
     return content;
   }
-  aRange->ToString(content, rv);
-  if (rv.Failed()) {
-    return Err(std::move(rv));
+  UnsafePreContentIterator iter;
+  nsresult rv = iter.Init(aRange);
+  if (NS_FAILED(rv)) {
+    return Err(ErrorResult(rv));
+  }
+  for (; !iter.IsDone(); iter.Next()) {
+    nsINode* current = iter.GetCurrentNode();
+    if (!TextDirectiveUtil::NodeIsVisibleTextNode(*current) ||
+        TextDirectiveUtil::NodeIsPartOfNonSearchableSubTree(*current)) {
+      continue;
+    }
+    const uint32_t startOffset =
+        current == aRange->GetStartContainer() ? aRange->StartOffset() : 0;
+    const uint32_t endOffset =
+        std::min(current == aRange->GetEndContainer() ? aRange->EndOffset()
+                                                      : current->Length(),
+                 current->Length());
+    const Text* text = Text::FromNode(current);
+    text->TextFragment().AppendTo(content, startOffset,
+                                  endOffset - startOffset);
   }
   content.CompressWhitespace();
   return content;
@@ -640,34 +656,26 @@ TextDirectiveUtil::CreateTextDirectiveFromRanges(nsRange* aPrefix,
 
   ErrorResult rv;
   TextDirective textDirective;
-
-  aStart->ToString(textDirective.start, rv);
-  if (MOZ_UNLIKELY(rv.Failed())) {
-    return Err(std::move(rv));
-  }
-  textDirective.start.CompressWhitespace();
-
-  if (aPrefix && !aPrefix->Collapsed()) {
-    aPrefix->ToString(textDirective.prefix, rv);
-    if (MOZ_UNLIKELY(rv.Failed())) {
-      return Err(std::move(rv));
-    }
-    textDirective.prefix.CompressWhitespace();
-  }
-  if (aEnd && !aEnd->Collapsed()) {
-    aEnd->ToString(textDirective.end, rv);
-    if (MOZ_UNLIKELY(rv.Failed())) {
-      return Err(std::move(rv));
-    }
-    textDirective.end.CompressWhitespace();
-  }
-  if (aSuffix && !aSuffix->Collapsed()) {
-    aSuffix->ToString(textDirective.suffix, rv);
-    textDirective.suffix.CompressWhitespace();
-    if (MOZ_UNLIKELY(rv.Failed())) {
-      return Err(std::move(rv));
-    }
-  }
+  MOZ_TRY(RangeContentAsString(aStart).andThen(
+      [&textDirective](nsString start) -> Result<Ok, ErrorResult> {
+        textDirective.start = std::move(start);
+        return Ok();
+      }));
+  MOZ_TRY(RangeContentAsString(aPrefix).andThen(
+      [&textDirective](nsString prefix) -> Result<Ok, ErrorResult> {
+        textDirective.prefix = std::move(prefix);
+        return Ok();
+      }));
+  MOZ_TRY(RangeContentAsString(aEnd).andThen(
+      [&textDirective](nsString end) -> Result<Ok, ErrorResult> {
+        textDirective.end = std::move(end);
+        return Ok();
+      }));
+  MOZ_TRY(RangeContentAsString(aSuffix).andThen(
+      [&textDirective](nsString suffix) -> Result<Ok, ErrorResult> {
+        textDirective.suffix = std::move(suffix);
+        return Ok();
+      }));
   return textDirective;
 }
 

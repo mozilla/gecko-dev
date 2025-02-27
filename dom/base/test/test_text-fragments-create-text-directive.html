@@ -24,6 +24,8 @@
   </ul>
   <p id="textWithEmoji"><span>😍😍</span> abc def 😍😍</p>
   <p id="textWithDifferentEmoji"><span>😍😏😍</span> abc def 😍😏</p>
+  <!-- TODO: Add test case with `visibility: hidden` as soon as it's supported (bug 1950707) -->
+  <p id="textWithInvisibleContent">Text with <span style="display: none">display:none </span>content</p>
   <script>
     SimpleTest.waitForExplicitFinish();
     function rAF() {
@@ -202,7 +204,16 @@
           endOffset: 8,
           content: "def",
           textDirective: "text=def,-%F0%9F%98%8D%F0%9F%98%8F"
-        }
+        },
+        {
+          name: "Text directive contains search-invisible content",
+          startContainer: textWithInvisibleContent.firstChild,
+          startOffset: 0,
+          endContainer: textWithInvisibleContent.lastChild,
+          endOffset: textWithInvisibleContent.lastChild.length,
+          content: "Text with display:none content",
+          textDirective: "text=Text%20with%20content"
+        },
       ]) {
         const range = document.createRange();
         range.setStart(testCase.startContainer, testCase.startOffset);
