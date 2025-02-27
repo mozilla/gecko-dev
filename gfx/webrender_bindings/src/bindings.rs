@@ -1565,7 +1565,7 @@ impl LayerCompositor for WrLayerCompositor {
 
                     unsafe {
                         match request.usage {
-                            CompositorSurfaceUsage::Content => {
+                            CompositorSurfaceUsage::Content | CompositorSurfaceUsage::DebugOverlay => {
                                 wr_compositor_create_swapchain_surface(
                                     self.compositor,
                                     id,
@@ -1594,7 +1594,7 @@ impl LayerCompositor for WrLayerCompositor {
             };
 
             match layer.usage {
-                CompositorSurfaceUsage::Content => {
+                CompositorSurfaceUsage::Content | CompositorSurfaceUsage::DebugOverlay => {
                     if layer.size.width != size.width || layer.size.height != size.height {
                         unsafe {
                             wr_compositor_resize_swapchain(

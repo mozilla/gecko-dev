@@ -473,6 +473,7 @@ pub enum CompositorSurfaceUsage {
         external_image_id: ExternalImageId,
         transform_index: CompositorTransformIndex,
     },
+    DebugOverlay,
 }
 
 impl CompositorSurfaceUsage {
@@ -489,6 +490,10 @@ impl CompositorSurfaceUsage {
             (CompositorSurfaceUsage::External { image_key: key1, .. }, CompositorSurfaceUsage::External { image_key: key2, .. }) => {
                 key1 == key2
             }
+
+            (CompositorSurfaceUsage::DebugOverlay, CompositorSurfaceUsage::DebugOverlay) => true,
+
+            (CompositorSurfaceUsage::DebugOverlay, _) | (_, CompositorSurfaceUsage::DebugOverlay) => false,
         }
     }
 }
