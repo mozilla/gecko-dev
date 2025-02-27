@@ -7642,7 +7642,7 @@ Maybe<SnapDestination> ScrollContainerFrame::GetSnapPointForResnap() {
   // While we are reconstructing this scroll container, we might be in the
   // process of restoring the scroll position, we need to respect it.
   nsPoint currentOrRestorePos =
-    NeedRestorePosition() ? mRestorePos : GetScrollPosition();
+      NeedRestorePosition() ? mRestorePos : GetScrollPosition();
   return ScrollSnapUtils::GetSnapPointForResnap(
       ComputeScrollSnapInfo(), GetLayoutScrollRange(), currentOrRestorePos,
       mLastSnapTargetIds, focusedContent);
