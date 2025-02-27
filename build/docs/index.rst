@@ -64,3 +64,13 @@ Snap Package
    :maxdepth: 1
 
    snap
+
+Flatpak Package
+===============
+
+`Flatpak <https://docs.flatpak.org/en/latest/>`_ is a packaging format
+
+.. toctree::
+   :maxdepth: 1
+
+   flatpak
