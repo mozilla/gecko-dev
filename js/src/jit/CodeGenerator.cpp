@@ -14995,7 +14995,7 @@ void CodeGenerator::emitStoreElementHoleOOL(LInstruction* lir) {
 #if defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
     defined(JS_CODEGEN_RISCV64)
   // Had to reimplement for MIPS because there are no flags.
-  bailoutCmp32(Assembler::NotEqual, initLength, index, ins->snapshot());
+  bailoutCmp32(Assembler::NotEqual, initLength, index, lir->snapshot());
 #else
   bailoutIf(Assembler::NotEqual, lir->snapshot());
 #endif
