@@ -363,7 +363,7 @@ fun ContentRecommendation(
  * @param onDiscoverMoreClicked Callback for when the user taps an element which contains an
  */
 @OptIn(ExperimentalComposeUiApi::class)
-@Suppress("LongMethod")
+@Suppress("CyclomaticComplexMethod", "LongMethod")
 @Composable
 fun PocketStories(
     @PreviewParameter(PocketStoryProvider::class) stories: List<PocketStory>,
@@ -495,14 +495,44 @@ fun PocketStories(
                             }
 
                             is SponsoredContent -> {
-                                SponsoredContent(
-                                    sponsoredContent = story,
-                                    backgroundColor = backgroundColor,
+                                val screenBounds = Rect()
+                                    .apply { LocalView.current.getWindowVisibleDisplayFrame(this) }
+                                    .apply {
+                                        // Check if this is in a preview because `settings()` breaks previews
+                                        if (!inComposePreview) {
+                                            val verticalOffset = LocalContext.current.resources.getDimensionPixelSize(
+                                                R.dimen.browser_toolbar_height,
+                                            )
+
+                                            if (LocalContext.current.settings().shouldUseBottomToolbar) {
+                                                bottom -= verticalOffset
+                                            } else {
+                                                top += verticalOffset
+                                            }
+                                        }
+                                    }
+
+                                Box(
+                                    modifier = Modifier.onShown(
+                                        threshold = 0.5f,
+                                        onVisible = {
+                                            onStoryShown(
+                                                story,
+                                                Triple(rowIndex, columnIndex, stories.indexOf(story)),
+                                            )
+                                        },
+                                        screenBounds = screenBounds,
+                                    ),
                                 ) {
-                                    onStoryClicked(
-                                        story,
-                                        Triple(rowIndex, columnIndex, stories.indexOf(story)),
-                                    )
+                                    SponsoredContent(
+                                        sponsoredContent = story,
+                                        backgroundColor = backgroundColor,
+                                    ) {
+                                        onStoryClicked(
+                                            story,
+                                            Triple(rowIndex, columnIndex, stories.indexOf(story)),
+                                        )
+                                    }
                                 }
                             }
                         }
