@@ -69,11 +69,6 @@ object FeatureFlags {
     const val META_ATTRIBUTION_ENABLED = true
 
     /**
-     * Enables the Compose Homepage.
-     */
-    const val COMPOSE_HOMEPAGE = false
-
-    /**
      * Enables Homepage as a New Tab.
      */
     const val HOMEPAGE_AS_NEW_TAB = false
