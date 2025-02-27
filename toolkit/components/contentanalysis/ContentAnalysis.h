@@ -232,7 +232,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
       ContentAnalysisCallback* aResolver, bool aForFullClipboard = false);
   static RefPtr<ContentAnalysis> GetContentAnalysisFromService();
 
-  // Cancel one request (if aRequestToken is set) or all requests (otherwise).
+  // Cancel all outstanding requests for the given user action ID.
   // aResult is used to determine what kind of cancellation this is
   // (user-initiated, timeout, blocked user action, internal error, etc).
   // The cancellation behavior is dependent on that value.  In particular,
@@ -240,8 +240,7 @@ class ContentAnalysis final : public nsIContentAnalysis,
   // browser.contentanalysis.default_result and
   // browser.contentanalysis.timeout_result.  Oothers, like user-initiated
   // and shutdown cancellations, have fixed behavior.
-  void CancelWithError(nsCString&& aUserActionId,
-                       Maybe<nsCString>&& aRequestToken, nsresult aResult);
+  void CancelWithError(nsCString&& aUserActionId, nsresult aResult);
 
   // Duration the cache holds requests for. This holds strong references
   // to the elements of the request, such as the WindowGlobalParent,
