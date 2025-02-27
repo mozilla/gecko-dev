@@ -62,7 +62,7 @@ object Versions {
         const val concurrent = "1.2.0"
         const val constraintlayout = "2.2.1"
         const val constraintlayout_compose = "1.1.1"
-        const val coordinatorlayout = "1.2.0"
+        const val coordinatorlayout = "1.3.0"
         const val core = "1.15.0"
         const val core_splashscreen = "1.0.1"
         const val datastore="1.1.2"
