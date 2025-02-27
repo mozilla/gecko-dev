@@ -5178,7 +5178,7 @@ nsSize ScrollContainerFrame::GetPageScrollAmount() const {
  * when we reach our new position.
  */
 void ScrollContainerFrame::ScrollToRestoredPosition() {
-  if (mRestorePos.y == -1 || mLastPos.x == -1 || mLastPos.y == -1) {
+  if (!NeedRestorePosition()) {
     return;
   }
   // make sure our scroll position did not change for where we last put
@@ -7638,8 +7638,13 @@ Maybe<SnapDestination> ScrollContainerFrame::GetSnapPointForDestination(
 Maybe<SnapDestination> ScrollContainerFrame::GetSnapPointForResnap() {
   nsIContent* focusedContent =
       GetContent()->GetComposedDoc()->GetUnretargetedFocusedContent();
+
+  // While we are reconstructing this scroll container, we might be in the
+  // process of restoring the scroll position, we need to respect it.
+  nsPoint currentOrRestorePos =
+    NeedRestorePosition() ? mRestorePos : GetScrollPosition();
   return ScrollSnapUtils::GetSnapPointForResnap(
-      ComputeScrollSnapInfo(), GetLayoutScrollRange(), GetScrollPosition(),
+      ComputeScrollSnapInfo(), GetLayoutScrollRange(), currentOrRestorePos,
       mLastSnapTargetIds, focusedContent);
 }
 

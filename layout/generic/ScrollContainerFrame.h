@@ -503,6 +503,10 @@ class ScrollContainerFrame : public nsContainerFrame,
    */
   void ScrollToRestoredPosition();
 
+  bool NeedRestorePosition() const {
+    return mRestorePos.y != -1 && mLastPos.x != -1 && mLastPos.y != -1;
+  }
+
   /**
    * Add a scroll position listener. This listener must be removed
    * before it is destroyed.
