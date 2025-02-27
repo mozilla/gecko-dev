@@ -516,7 +516,17 @@ export var CrashSubmit = {
       const ignored = Object.create(null);
 
       for (const child of children) {
-        const info = await IOUtils.stat(child);
+        let info;
+        try {
+          info = await IOUtils.stat(child);
+        } catch (ex) {
+          // File may have disappeared
+          if (ex.result == Cr.NS_ERROR_DOM_NOT_FOUND_ERR) {
+            continue;
+          }
+          console.error(ex);
+          throw ex;
+        }
 
         if (info.type !== "directory") {
           const name = PathUtils.filename(child);
