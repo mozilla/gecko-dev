@@ -13,7 +13,7 @@ enum CompressionFormat {
   "gzip",
 };
 
-[Exposed=*, Pref="dom.compression_streams.enabled"]
+[Exposed=*]
 interface CompressionStream {
   [Throws]
   constructor(CompressionFormat format);

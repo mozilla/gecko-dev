@@ -7,7 +7,7 @@
  * https://wicg.github.io/compression/#decompression-stream
  */
 
-[Exposed=*, Pref="dom.compression_streams.enabled"]
+[Exposed=*]
 interface DecompressionStream {
   [Throws]
   constructor(CompressionFormat format);
