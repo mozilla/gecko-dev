@@ -1612,19 +1612,23 @@
       "1844503": {
         "issue": "firefox-blocked-completely",
         "matches": [
-          "*://api.ado-dokidokihimitsukichi-daigakuimo.com/fc/video_pages/*",
-          "*://api.canan8181.com/fc/video_pages/*",
-          "*://api.gs-ch.com/fc/video_pages/*",
-          "*://api.keisuke-ueda.jp/fc/video_pages/*",
-          "*://api.kemomimirefle.net/fc/video_pages/*",
-          "*://api.nicochannel.jp/fc/video_pages/*",
-          "*://api.p-jinriki-fc.com/fc/video_pages/*",
-          "*://api.pizzaradio.jp/fc/video_pages/*",
-          "*://api.rnqq.jp/fc/video_pages/*",
-          "*://api.ryogomatsumaru.com/fc/video_pages/*",
-          "*://api.takahashifumiya.com/fc/video_pages/*",
-          "*://api.yamingfc.net/fc/video_pages/*"
+          "*://*.ado-dokidokihimitsukichi-daigakuimo.com/*",
+          "*://*.canan8181.com/*",
+          "*://*.gs-ch.com/*",
+          "*://*.keisuke-ueda.jp/*",
+          "*://*.kemomimirefle.net/*",
+          "*://*.nicochannel.jp/*",
+          "*://*.p-jinriki-fc.com/*",
+          "*://*.pizzaradio.jp/*",
+          "*://*.rnqq.jp/*",
+          "*://*.ryogomatsumaru.com/*",
+          "*://*.takahashifumiya.com/*",
+          "*://*.yamingfc.net/*"
         ]
+      },
+      "1948817": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.qlover.jp/*"]
       }
     },
     "interventions": [
@@ -1633,7 +1637,7 @@
         "content_scripts": {
           "js": ["bug1849058-nicochannel.jp-picture-in-picture-shim.js"]
         },
-        "ua_string": ["Chrome"]
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
       }
     ]
   },
