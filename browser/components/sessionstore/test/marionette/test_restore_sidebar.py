@@ -43,14 +43,12 @@ class TestSessionRestore(SessionStoreTestCase):
             1,
             msg="Should have 1 window open.",
         )
-        self.marionette.execute_async_script(
+        self.marionette.execute_script(
             """
-            const resolve = arguments[0];
             let window = BrowserWindowTracker.getTopWindow()
-            window.SidebarController.show("viewHistorySidebar").then(() => {
-              let sidebarBox = window.document.getElementById("sidebar-box")
-              sidebarBox.style.width = "100px";
-            }).then(resolve);
+            window.SidebarController.show("viewHistorySidebar");
+            let sidebarBox = window.document.getElementById("sidebar-box")
+            sidebarBox.style.width = "100px";
             """
         )
 
@@ -112,15 +110,13 @@ class TestSessionRestore(SessionStoreTestCase):
         )
 
     def test_restore_sidebar_closed(self):
-        self.marionette.execute_async_script(
+        self.marionette.execute_script(
             """
-            const resolve = arguments[0];
             let window = BrowserWindowTracker.getTopWindow()
-            window.SidebarController.show("viewHistorySidebar").then(() => {
-             let sidebarBox = window.document.getElementById("sidebar-box")
-             sidebarBox.style.width = "100px";
-             window.SidebarController.toggle();
-            }).then(resolve);
+            window.SidebarController.show("viewHistorySidebar");
+            let sidebarBox = window.document.getElementById("sidebar-box")
+            sidebarBox.style.width = "100px";
+            window.SidebarController.toggle();
             """
         )
 

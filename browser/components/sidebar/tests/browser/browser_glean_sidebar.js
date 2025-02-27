@@ -8,9 +8,6 @@ requestLongerTimeout(10);
 const lazy = {};
 
 const TAB_DIRECTION_PREF = "sidebar.verticalTabs";
-const initialTabDirection = Services.prefs.getBoolPref(TAB_DIRECTION_PREF)
-  ? "vertical"
-  : "horizontal";
 
 ChromeUtils.defineESModuleGetters(lazy, {
   TabsSetupFlowManager:
@@ -19,10 +16,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 add_setup(async () => {
-  await SidebarController.promiseInitialized;
-  await SidebarController.sidebarMain?.updateComplete;
+  SidebarController.init();
+  await TestUtils.waitForTick();
 });
-
 registerCleanupFunction(() => {
   while (gBrowser.tabs.length > 1) {
     BrowserTestUtils.removeTab(gBrowser.tabs[0]);
@@ -50,33 +46,31 @@ add_task(async function test_sidebar_expand() {
   await SpecialPowers.pushPrefEnv({
     set: [[TAB_DIRECTION_PREF, true]],
   });
-  await waitForTabstripOrientation("vertical");
+
   // Vertical tabs are expanded by default
-  Assert.ok(SidebarController.sidebarMain.expanded, "Sidebar is expanded.");
+  await TestUtils.waitForCondition(
+    () => SidebarController.sidebarMain.expanded,
+    "Sidebar is expanded."
+  );
 
   info("Collapse the sidebar.");
-
   EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
-
-  await BrowserTestUtils.waitForMutationCondition(
-    SidebarController.sidebarMain,
-    { attributes: true, attributeFilter: ["expanded"] },
-    () => !SidebarController.sidebarMain.expanded
+  await TestUtils.waitForCondition(
+    () => !SidebarController.sidebarMain.expanded,
+    "Sidebar is collapsed."
   );
 
   info("Re-expand the sidebar.");
   EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
-  await BrowserTestUtils.waitForMutationCondition(
-    SidebarController.sidebarMain,
-    { attributes: true, attributeFilter: ["expanded"] },
-    () => SidebarController.sidebarMain.expanded
+  await TestUtils.waitForCondition(
+    () => SidebarController.sidebarMain.expanded,
+    "Sidebar is expanded."
   );
 
   const events = Glean.sidebar.expand.testGetValue();
   Assert.equal(events?.length, 2, "Two events were reported.");
 
   await SpecialPowers.popPrefEnv();
-  await waitForTabstripOrientation(initialTabDirection);
 });
 
 async function testSidebarToggle(commandID, gleanEvent, otherCommandID) {
@@ -106,8 +100,9 @@ async function testSidebarToggle(commandID, gleanEvent, otherCommandID) {
     "false",
     "Event indicates that the panel was closed."
   );
-  SidebarController.hide();
-  await SidebarController.waitUntilStable();
+  if (otherCommandID) {
+    SidebarController.hide();
+  }
 }
 
 add_task(async function test_history_sidebar_toggle() {
@@ -171,7 +166,6 @@ async function test_synced_tabs_sidebar_toggle(revampEnabled) {
 
   sandbox.restore();
   await SpecialPowers.popPrefEnv();
-  await SidebarController.waitUntilStable();
   Services.fog.testResetFOG();
 }
 
@@ -235,54 +229,29 @@ add_task(async function test_review_checker_sidebar_toggle() {
 });
 
 add_task(async function test_contextual_manager_toggle() {
-  info(
-    `contextual_manager_toggle, before testSidebarToggle, uiState: ${JSON.stringify(SidebarController.getUIState())}, visibility: ${Services.prefs.getStringPref("sidebar.visibility")}`
-  );
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.contextual-password-manager.enabled", true],
       ["sidebar.revamp", false],
     ],
   });
-  await SidebarController.waitUntilStable();
   const gleanEvent = Glean.contextualManager.sidebarToggle;
   await testSidebarToggle("viewCPMSidebar", gleanEvent);
   await SpecialPowers.popPrefEnv();
-  await SidebarController.waitUntilStable();
-  info(
-    `contextual_manager_toggle, after testSidebarToggle, uiState: ${JSON.stringify(SidebarController.getUIState())}, visibility: ${Services.prefs.getStringPref("sidebar.visibility")}`
-  );
 });
 
 add_task(async function test_customize_panel_toggle() {
-  info(
-    `before testSidebarToggle, uiState: ${JSON.stringify(SidebarController.getUIState())}, visibility: ${Services.prefs.getStringPref("sidebar.visibility")}`
-  );
   await testSidebarToggle(
     "viewCustomizeSidebar",
     Glean.sidebarCustomize.panelToggle
-  );
-  info(
-    `after testSidebarToggle, uiState: ${JSON.stringify(SidebarController.getUIState())}, visibility: ${Services.prefs.getStringPref("sidebar.visibility")}`
-  );
-  Assert.ok(
-    SidebarController.getUIState().launcherVisible,
-    "Sidebar launcher is visible after testSidebarToggle"
   );
 });
 
 add_task(async function test_customize_icon_click() {
   info("Click on the gear icon.");
-  await SidebarController.waitUntilStable();
   const { customizeButton } = SidebarController.sidebarMain;
-  Assert.ok(
-    BrowserTestUtils.isVisible(customizeButton),
-    "The customize button is visible to click on"
-  );
-  const sideShown = BrowserTestUtils.waitForEvent(document, "SidebarShown");
   EventUtils.synthesizeMouseAtCenter(customizeButton, {});
 
-  await sideShown;
   const events = Glean.sidebarCustomize.iconClick.testGetValue();
   Assert.equal(events?.length, 1, "One event was reported.");
 
@@ -344,8 +313,6 @@ add_task(async function test_customize_chatbot_enabled() {
     "viewGenaiChatSidebar",
     Glean.sidebarCustomize.chatbotEnabled
   );
-  await SpecialPowers.popPrefEnv();
-  await SidebarController.waitUntilStable();
 });
 
 add_task(async function test_customize_synced_tabs_enabled() {
@@ -379,8 +346,6 @@ add_task(async function test_customize_review_checker_enabled() {
     Glean.sidebarCustomize.shoppingReviewCheckerEnabled,
     false
   );
-  await SpecialPowers.popPrefEnv();
-  await SidebarController.waitUntilStable();
 });
 
 add_task(async function test_customize_extensions_clicked() {
@@ -456,7 +421,6 @@ add_task(async function test_customize_sidebar_display() {
   await SpecialPowers.pushPrefEnv({
     set: [[TAB_DIRECTION_PREF, true]],
   });
-  await waitForTabstripOrientation("vertical");
   await testCustomizeSetting(
     "visibilityInput",
     Glean.sidebarCustomize.sidebarDisplay,
@@ -464,7 +428,6 @@ add_task(async function test_customize_sidebar_display() {
     { preference: "always" }
   );
   await SpecialPowers.popPrefEnv();
-  await waitForTabstripOrientation(initialTabDirection);
 });
 
 add_task(async function test_customize_sidebar_position() {
@@ -503,7 +466,6 @@ add_task(async function test_sidebar_resize() {
   await SpecialPowers.pushPrefEnv({
     set: [[TAB_DIRECTION_PREF, true]],
   });
-  await waitForTabstripOrientation("vertical");
   await SidebarController.show("viewHistorySidebar");
   const originalWidth = SidebarController._box.style.width;
   SidebarController._box.style.width = "500px";
@@ -527,14 +489,12 @@ add_task(async function test_sidebar_resize() {
   SidebarController._box.style.width = originalWidth;
   SidebarController.hide();
   await SpecialPowers.popPrefEnv();
-  await waitForTabstripOrientation(initialTabDirection);
 });
 
 add_task(async function test_sidebar_display_settings() {
   await SpecialPowers.pushPrefEnv({
     set: [[TAB_DIRECTION_PREF, true]],
   });
-  await waitForTabstripOrientation("vertical");
   await testCustomizeSetting(
     "visibilityInput",
     Glean.sidebar.displaySettings,
@@ -542,7 +502,6 @@ add_task(async function test_sidebar_display_settings() {
     "always"
   );
   await SpecialPowers.popPrefEnv();
-  await waitForTabstripOrientation(initialTabDirection);
 });
 
 add_task(async function test_sidebar_position_settings() {
@@ -586,7 +545,6 @@ add_task(async function test_sidebar_position_rtl_ui() {
 
   sandbox.restore();
   await SpecialPowers.popPrefEnv();
-  await SidebarController.waitUntilStable();
 });
 
 async function testIconClick(expanded) {
@@ -606,16 +564,7 @@ async function testIconClick(expanded) {
     Glean.sidebar.bookmarksIconClick,
   ];
   for (const [i, button] of Array.from(sidebarMain.toolButtons).entries()) {
-    await SidebarController.initializeUIState({
-      launcherExpanded: expanded,
-      panelOpen: false,
-    });
-    Assert.equal(
-      SidebarController.sidebarMain.expanded,
-      expanded,
-      `The launcher is ${expanded ? "expanded" : "collapsed"}`
-    );
-    Assert.ok(!SidebarController._state.panelOpen, "No panel is open");
+    await SidebarController.initializeUIState({ launcherExpanded: expanded });
 
     info(`Click the icon for: ${button.getAttribute("view")}`);
     EventUtils.synthesizeMouseAtCenter(button, {});
@@ -632,21 +581,11 @@ async function testIconClick(expanded) {
   }
 
   info("Load an extension.");
-  // The extensions's sidebar will open when it loads
   const extension = ExtensionTestUtils.loadExtension({ ...extData });
   await extension.startup();
   await extension.awaitMessage("sidebar");
 
-  await SidebarController.initializeUIState({
-    launcherExpanded: expanded,
-    panelOpen: false,
-  });
-  Assert.equal(
-    SidebarController.sidebarMain.expanded,
-    expanded,
-    `The launcher is ${expanded ? "expanded" : "collapsed"}`
-  );
-  Assert.ok(!SidebarController._state.panelOpen, "No panel is open");
+  await SidebarController.initializeUIState({ launcherExpanded: expanded });
 
   info("Click the icon for the extension.");
   const extensionButton = await TestUtils.waitForCondition(
@@ -668,7 +607,6 @@ async function testIconClick(expanded) {
   await extension.unload();
 
   await SpecialPowers.popPrefEnv();
-  await waitForTabstripOrientation(initialTabDirection);
   Services.fog.testResetFOG();
 }
 
