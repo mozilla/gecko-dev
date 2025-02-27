@@ -26,6 +26,7 @@
 #include "ExpandedPrincipal.h"
 #include "MainThreadUtils.h"
 #include "MobileViewportManager.h"
+#include "NSSErrorsService.h"
 #include "NodeUbiReporting.h"
 #include "PLDHashTable.h"
 #include "StorageAccessPermissionRequest.h"
@@ -1930,6 +1931,8 @@ void Document::GetFailedCertSecurityInfo(FailedCertSecurityInfo& aInfo,
     aRv.Throw(rv);
     return;
   }
+
+  aInfo.mErrorIsOverridable = mozilla::psm::ErrorIsOverridable(errorCode);
 
   nsCOMPtr<nsINSSErrorsService> nsserr =
       do_GetService("@mozilla.org/nss_errors_service;1");

@@ -124,7 +124,10 @@ NSSErrorsService::GetErrorClass(nsresult aXPCOMErrorCode,
     return NS_ERROR_FAILURE;
   }
 
-  if (mozilla::psm::ErrorIsOverridable(aNSPRCode)) {
+  // All overridable errors are certificate errors, but not all certificate
+  // errors are overridable.
+  if (mozilla::psm::ErrorIsOverridable(aNSPRCode) ||
+      aNSPRCode == SEC_ERROR_REVOKED_CERTIFICATE) {
     *aErrorClass = ERROR_CLASS_BAD_CERT;
   } else {
     *aErrorClass = ERROR_CLASS_SSL_PROTOCOL;

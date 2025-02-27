@@ -18,6 +18,7 @@ enum OverridableErrorCategory {
 
 dictionary FailedCertSecurityInfo {
   DOMString errorCodeString = "";
+  boolean errorIsOverridable = false;
   unsigned long channelStatus = 0;
   OverridableErrorCategory overridableErrorCategory = "unset";
   DOMTimeStamp validNotBefore = 0;

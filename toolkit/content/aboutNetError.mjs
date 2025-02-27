@@ -213,7 +213,8 @@ function disallowCertOverridesIfNeeded() {
   // Disallow overrides if this is a Strict-Transport-Security
   // host and the cert is bad (STS Spec section 7.3) or if the
   // certerror is in a frame (bug 633691).
-  if (gHasSts || window != top) {
+  const failedCertInfo = document.getFailedCertSecurityInfo();
+  if (gHasSts || window != top || !failedCertInfo.errorIsOverridable) {
     document.getElementById("exceptionDialogButton").hidden = true;
   }
   if (gHasSts) {
@@ -1179,6 +1180,16 @@ function setCertErrorDetails() {
         ],
       ];
       break;
+    case "SEC_ERROR_REVOKED_CERTIFICATE":
+      whatToDoParts = [
+        [
+          "p",
+          // This string was added for the certificate transparency error case,
+          // but it applies in other cases as well, such as this one.
+          "cert-error-trust-certificate-transparency-what-can-you-do-about-it",
+        ],
+      ];
+      break;
   }
 
   if (whatToDoParts) {
@@ -1373,6 +1384,11 @@ function setTechnicalDetailsOnCertError(
         addErrorCodeLink();
       });
       break;
+  }
+
+  if (failedCertInfo.errorCodeString == "SEC_ERROR_REVOKED_CERTIFICATE") {
+    addLabel("cert-error-revoked", { hostname });
+    addErrorCodeLink();
   }
 
   getFailedCertificatesAsPEMString().then(pemString => {
