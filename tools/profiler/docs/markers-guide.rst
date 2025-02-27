@@ -222,9 +222,18 @@ when the object is constructed, and later recording the marker when the object i
 of its C++ scope.
 This is especially useful if there are multiple scope exit points.
 
-``AUTO_PROFILER_MARKER_TEXT`` is `the only one implemented <https://searchfox.org/mozilla-central/search?q=id%3AAUTO_PROFILER_MARKER_TEXT>`_ at this time.
+``AUTO_PROFILER_MARKER_UNTYPED`` and ``AUTO_PROFILER_MARKER_TEXT`` are the `only <https://searchfox.org/mozilla-central/search?q=id%3AAUTO_PROFILER_MARKER_UNTYPED>`_
+`ones <https://searchfox.org/mozilla-central/search?q=id%3AAUTO_PROFILER_MARKER_TEXT>`_
+implemented at this time.
 
 .. code-block:: cpp
+
+    void MaybeDoTimedWork(bool aDoIt) {
+      AUTO_PROFILER_MARKER_UNTYPED("Timed work", OTHER);
+      if (!aDoIt) { /* Marker recorded here... */ return; }
+      DoWork();
+      /* ... or here. */
+    }
 
     void MaybeDoTimedWork(bool aDoIt) {
       AUTO_PROFILER_MARKER_TEXT("Timed work", OTHER, "Details");

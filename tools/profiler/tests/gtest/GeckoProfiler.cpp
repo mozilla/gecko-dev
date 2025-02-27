@@ -2307,6 +2307,10 @@ TEST(GeckoProfiler, Markers)
     AUTO_PROFILER_TRACING_MARKER("C", "auto tracing", OTHER);
   }
 
+  {
+    AUTO_PROFILER_MARKER_UNTYPED("D", OTHER, {});
+  }
+
   PROFILER_MARKER_UNTYPED("M1", OTHER, {});
   PROFILER_MARKER_UNTYPED("M3", OTHER, {});
 
@@ -2775,6 +2779,7 @@ TEST(GeckoProfiler, Markers)
     S_tracing_event_with_stack,
     S_tracing_auto_tracing_start,
     S_tracing_auto_tracing_end,
+    S_D,
     S_M1,
     S_M3,
     S_Markers2DefaultEmptyOptions,
@@ -2928,7 +2933,11 @@ TEST(GeckoProfiler, Markers)
               if (marker.size() == SIZE_WITHOUT_PAYLOAD) {
                 // root.threads[0].markers.data[i] is an array with 5 elements,
                 // so there is no payload.
-                if (nameString == "M1") {
+                if (nameString == "D") {
+                  ASSERT_EQ(state, S_D);
+                  state = State(state + 1);
+                  EXPECT_TIMING_INTERVAL;
+                } else if (nameString == "M1") {
                   ASSERT_EQ(state, S_M1);
                   state = State(state + 1);
                 } else if (nameString == "M3") {

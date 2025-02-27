@@ -262,6 +262,48 @@ using Tracing = mozilla::baseprofiler::markers::Tracing;
     }                                                                         \
   } while (false)
 
+// RAII object that adds a PROFILER_MARKER_UNTYPED when destroyed; the marker's
+// timing will be the interval from construction (unless an instant or start
+// time is already specified in the provided options) until destruction.
+class MOZ_RAII AutoProfilerUntypedMarker {
+ public:
+  AutoProfilerUntypedMarker(const char* aMarkerName,
+                            const mozilla::MarkerCategory& aCategory,
+                            mozilla::MarkerOptions&& aOptions)
+      : mMarkerName(aMarkerName),
+        mCategory(aCategory),
+        mOptions(std::move(aOptions)) {
+    MOZ_ASSERT(mOptions.Timing().EndTime().IsNull(),
+               "AutoProfilerUntypedMarker options shouldn't have an end time");
+    if (profiler_is_active_and_unpaused() &&
+        mOptions.Timing().StartTime().IsNull()) {
+      mOptions.Set(mozilla::MarkerTiming::InstantNow());
+    }
+  }
+
+  ~AutoProfilerUntypedMarker() {
+    if (profiler_is_active_and_unpaused()) {
+      AUTO_PROFILER_LABEL("UntypedMarker", PROFILER);
+      mOptions.TimingRef().SetIntervalEnd();
+      AUTO_PROFILER_STATS(AUTO_PROFILER_MARKER_UNTYPED);
+      profiler_add_marker(
+          mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
+          mCategory, std::move(mOptions));
+    }
+  }
+
+ protected:
+  const char* mMarkerName;
+  mozilla::MarkerCategory mCategory;
+  mozilla::MarkerOptions mOptions;
+};
+
+// Creates an AutoProfilerUntypedMarker RAII object. This macro is safe to use
+// even if MOZ_GECKO_PROFILER is not #defined.
+#define AUTO_PROFILER_MARKER_UNTYPED(markerName, categoryName, options) \
+  AutoProfilerUntypedMarker PROFILER_RAII(                              \
+      markerName, ::mozilla::baseprofiler::category::categoryName, options)
+
 // RAII object that adds a PROFILER_MARKER_TEXT when destroyed; the marker's
 // timing will be the interval from construction (unless an instant or start
 // time is already specified in the provided options) until destruction.
