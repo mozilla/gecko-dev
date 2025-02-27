@@ -46,12 +46,12 @@ lazy_static! {
         read_config(&path)
     };
     static ref BINDGEN_FLAGS: Vec<String> = {
-        // Load build-specific config overrides.
-        let path = mozbuild::TOPOBJDIR.join("layout/style/extra-bindgen-flags");
-        println!("cargo:rerun-if-changed={}", path.to_str().unwrap());
-        fs::read_to_string(path).expect("Failed to read extra-bindgen-flags file")
-            .split_whitespace()
-            .map(std::borrow::ToOwned::to_owned)
+        mozbuild::config::BINDGEN_SYSTEM_FLAGS
+            .iter()
+            .chain(&mozbuild::config::NSPR_CFLAGS)
+            .chain(&mozbuild::config::MOZ_PIXMAN_CFLAGS)
+            .chain(&mozbuild::config::MOZ_ICU_CFLAGS)
+            .map(|s| s.to_string())
             .collect()
     };
     static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();

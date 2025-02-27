@@ -23,12 +23,10 @@ const BINDINGS_FILE: &str = "bindings.rs";
 
 lazy_static! {
     static ref BINDGEN_FLAGS: Vec<String> = {
-        // Load build-specific config overrides.
-        let path = mozbuild::TOPOBJDIR.join("tools/profiler/rust-api/extra-bindgen-flags");
-        println!("cargo:rerun-if-changed={}", path.to_str().unwrap());
-        fs::read_to_string(path).expect("Failed to read extra-bindgen-flags file")
-            .split_whitespace()
-            .map(std::borrow::ToOwned::to_owned)
+        mozbuild::config::BINDGEN_SYSTEM_FLAGS
+            .iter()
+            .chain(&mozbuild::config::NSPR_CFLAGS)
+            .map(|s| s.to_string())
             .collect()
     };
     static ref SEARCH_PATHS: Vec<PathBuf> = vec![

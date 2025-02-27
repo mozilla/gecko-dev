@@ -1207,7 +1207,7 @@ def in_tree_icu(system_icu):
 
 
 # Set MOZ_ICU_CFLAGS to an explicit empty value when --with-system-icu is *not* used,
-# for layout/style/extra-bindgen-flags
+# for use for bindgen through the mozbuild crate.
 set_config("MOZ_ICU_CFLAGS", [], when=in_tree_icu)
 
 set_config("MOZ_SYSTEM_ICU", True, when=system_icu)

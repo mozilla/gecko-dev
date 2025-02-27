@@ -123,3 +123,7 @@ def generate(output):
     output.write(generate_string_array("BINDGEN_SYSTEM_FLAGS"))
     output.write(generate_string_array("MOZ_GTK3_CFLAGS"))
     output.write(generate_string_array("MOZ_GTK3_LIBS"))
+    output.write(generate_string_array("NSPR_CFLAGS"))
+    output.write(generate_string_array("NSS_CFLAGS"))
+    output.write(generate_string_array("MOZ_PIXMAN_CFLAGS"))
+    output.write(generate_string_array("MOZ_ICU_CFLAGS"))

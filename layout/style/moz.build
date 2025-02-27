@@ -362,7 +362,3 @@ if CONFIG["COMPILE_ENVIRONMENT"]:
         "ServoStyleConsts.h",
         inputs=["/servo/ports/geckolib", "/servo/components/style"],
     )
-
-    CONFIGURE_SUBST_FILES += [
-        "extra-bindgen-flags",
-    ]

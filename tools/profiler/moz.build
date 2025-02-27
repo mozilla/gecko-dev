@@ -209,11 +209,6 @@ GeneratedFile(
     inputs=["../../mozglue/baseprofiler/build/profiling_categories.yaml"],
 )
 
-CONFIGURE_SUBST_FILES += [
-    "rust-api/extra-bindgen-flags",
-]
-
-
 if CONFIG["COMPILE_ENVIRONMENT"]:
     CbindgenHeader("profiler_ffi_generated.h", inputs=["rust-api"])
 
