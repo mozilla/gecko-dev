@@ -7636,9 +7636,6 @@ Maybe<SnapDestination> ScrollContainerFrame::GetSnapPointForDestination(
 }
 
 Maybe<SnapDestination> ScrollContainerFrame::GetSnapPointForResnap() {
-  // Same as in GetSnapPointForDestination, We can release the strong references
-  // for the previous snap targets here.
-  mSnapTargets.Clear();
   nsIContent* focusedContent =
       GetContent()->GetComposedDoc()->GetUnretargetedFocusedContent();
   return ScrollSnapUtils::GetSnapPointForResnap(
@@ -7647,12 +7644,7 @@ Maybe<SnapDestination> ScrollContainerFrame::GetSnapPointForResnap() {
 }
 
 bool ScrollContainerFrame::NeedsResnap() {
-  nsIContent* focusedContent =
-      GetContent()->GetComposedDoc()->GetUnretargetedFocusedContent();
-  return ScrollSnapUtils::GetSnapPointForResnap(
-             ComputeScrollSnapInfo(), GetLayoutScrollRange(),
-             GetScrollPosition(), mLastSnapTargetIds, focusedContent)
-      .isSome();
+  return GetSnapPointForResnap().isSome();
 }
 
 void ScrollContainerFrame::SetLastSnapTargetIds(
@@ -7703,6 +7695,9 @@ void ScrollContainerFrame::TryResnap() {
     return;
   }
 
+  // Same as in GetSnapPointForDestination, We can release the strong references
+  // for the previous snap targets here.
+  mSnapTargets.Clear();
   if (auto snapDestination = GetSnapPointForResnap()) {
     // We are going to re-snap so that we need to clobber scroll anchoring.
     mAnchor.UserScrolled();
