@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use mozbuild::config::CC_BASE_FLAGS as CFLAGS;
+use mozbuild::config::BINDGEN_SYSTEM_FLAGS as CFLAGS;
 
 const TYPES: &[&str] = &[
     "ActionCell",

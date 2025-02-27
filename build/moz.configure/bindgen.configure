@@ -371,7 +371,7 @@ def bindgen_cflags(base_flags, extra_flags):
     flags = base_flags
     if extra_flags and len(extra_flags):
         flags += extra_flags[0].split()
-    return " ".join(flags)
+    return flags
 
 
 set_config("BINDGEN_SYSTEM_FLAGS", bindgen_cflags)

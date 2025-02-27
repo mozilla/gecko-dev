@@ -117,7 +117,7 @@ fn set_glean_metrics_file() {
 
 /// Generate the buildid section name (we read the buildid at runtime using buildid_reader).
 fn generate_buildid_section() {
-    use mozbuild::config::CC_BASE_FLAGS as CFLAGS;
+    use mozbuild::config::BINDGEN_SYSTEM_FLAGS as CFLAGS;
 
     let defines = if cfg!(target_os = "macos") {
         "#define XP_DARWIN"

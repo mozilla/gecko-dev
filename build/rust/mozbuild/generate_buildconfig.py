@@ -120,6 +120,6 @@ def generate(output):
 
     # Used by toolkit/crashreporter/client
     output.write(generate_bool("MOZ_CRASHREPORTER_MOCK"))
-    output.write(generate_string_array("CC_BASE_FLAGS"))
+    output.write(generate_string_array("BINDGEN_SYSTEM_FLAGS"))
     output.write(generate_string_array("MOZ_GTK3_CFLAGS"))
     output.write(generate_string_array("MOZ_GTK3_LIBS"))

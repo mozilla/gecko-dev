@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use mozbuild::config::{
-    CC_BASE_FLAGS as CFLAGS, MOZ_GTK3_CFLAGS as GTK_CFLAGS, MOZ_GTK3_LIBS as GTK_LIBS,
+    BINDGEN_SYSTEM_FLAGS as CFLAGS, MOZ_GTK3_CFLAGS as GTK_CFLAGS, MOZ_GTK3_LIBS as GTK_LIBS,
 };
 
 const HEADER: &str = r#"
