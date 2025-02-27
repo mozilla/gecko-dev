@@ -42,7 +42,6 @@
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 
-
 // This is defined to something else on Windows
 #ifdef DispatchMessage
 #  undef DispatchMessage
