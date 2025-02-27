@@ -16,6 +16,7 @@ EXPORTS.mozilla.dom += [
 ]
 
 UNIFIED_SOURCES += [
+    "TaskSignal.cpp",
     "WebTaskController.cpp",
     "WebTaskScheduler.cpp",
     "WebTaskSchedulerMainThread.cpp",
