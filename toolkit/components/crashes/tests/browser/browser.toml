@@ -1,0 +1,4 @@
+[DEFAULT]
+prefs = "browser.crashReports.crashPull=true"
+
+["browser_RemoteSettingsCrashPull_notification.js"]
