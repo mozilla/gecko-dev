@@ -783,7 +783,7 @@ export class FeatureCallout {
       return false;
     }
 
-    const { autohide, ignorekeys, padding } = this.currentScreen.content;
+    const { autohide, padding } = this.currentScreen.content;
     const { panel_position, hide_arrow, no_open_on_anchor, arrow_width } =
       anchor;
     const needsPanel =
@@ -800,15 +800,13 @@ export class FeatureCallout {
         let fragment = this.win.MozXULElement.parseXULToFragment(`<panel
             class="panel-no-padding"
             orient="vertical"
+            ignorekeys="true"
             noautofocus="true"
             flip="slide"
             type="arrow"
-            consumeoutsideclicks="never"
-            norolluponanchor="true"
             position="${panel_position.panel_position_string}"
             ${hide_arrow ? "" : 'show-arrow=""'}
             ${autohide ? "" : 'noautohide="true"'}
-            ${ignorekeys ? 'ignorekeys="true"' : ""}
             ${no_open_on_anchor ? 'no-open-on-anchor=""' : ""}
           />`);
         this._container = fragment.firstElementChild;
@@ -817,7 +815,7 @@ export class FeatureCallout {
         this._container = this.doc.createElement("div");
         this._container?.classList.add("hidden");
       }
-      this._container.classList.add("featureCallout");
+      this._container.classList.add("featureCallout", "callout-arrow");
       if (hide_arrow) {
         this._container.setAttribute("hide-arrow", "permanent");
       } else {
@@ -834,21 +832,7 @@ export class FeatureCallout {
         this._container.style.removeProperty("--arrow-width");
       }
       if (padding) {
-        // This property used to accept a number value, either a number or a
-        // string that is a number. It now accepts a standard CSS padding value
-        // (e.g. "10px 12px" or "1em"), but we need to maintain backwards
-        // compatibility with the old number value until there are no more uses
-        // of it across experiments.
-        if (CSS.supports("padding", padding)) {
-          this._container.style.setProperty("--callout-padding", padding);
-        } else {
-          let cssValue = `${padding}px`;
-          if (CSS.supports("padding", cssValue)) {
-            this._container.style.setProperty("--callout-padding", cssValue);
-          } else {
-            this._container.style.removeProperty("--callout-padding");
-          }
-        }
+        this._container.style.setProperty("--callout-padding", `${padding}px`);
       } else {
         this._container.style.removeProperty("--callout-padding");
       }

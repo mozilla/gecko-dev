@@ -301,9 +301,9 @@
           position: relative;
           overflow: hidden;
           border: 1px solid var(--fc-border);
-          box-shadow: 0 2px 5px rgba(0, 0, 0, 15%);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 15%);
           border-radius: 4px;
-          padding: var(--callout-padding, 16px);
+          padding: var(--callout-padding, 24px);
           width: 25em;
           gap: 16px;
           background: var(--fc-background);
@@ -321,10 +321,10 @@
           .steps {
             height: auto;
             position: absolute;
-            // 16px is the callout's default bottom padding. The CTAs are 32px
-            // tall, and the steps are 8px tall. So we need to offset the steps
-            // by half the difference in order to center them. 32/2 - 8/2 = 12.
-            bottom: calc(var(--callout-padding, 16px) + 12px);
+            // 24px is the callout's bottom padding. The CTAs are 32px tall, and
+            // the steps are 8px tall. So we need to offset the steps by half
+            // the difference in order to center them. 32/2 - 8/2 = 12.
+            bottom: calc(var(--callout-padding, 24px) + 12px);
             padding-block: 0;
 
             .indicator {
@@ -673,7 +673,7 @@
   .shadow-arrow {
     background: transparent;
     outline: 1px solid var(--fc-border);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 15%);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 15%);
   }
 
   // the 'filled' arrow box

@@ -397,9 +397,9 @@ div#feature-callout.hidden {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--fc-border);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   border-radius: 4px;
-  padding: var(--callout-padding, 16px);
+  padding: var(--callout-padding, 24px);
   width: 25em;
   gap: 16px;
   background: var(--fc-background);
@@ -413,7 +413,7 @@ div#feature-callout.hidden {
 #feature-callout .screen[pos=callout] .section-main .main-content .steps {
   height: auto;
   position: absolute;
-  bottom: calc(var(--callout-padding, 16px) + 12px);
+  bottom: calc(var(--callout-padding, 24px) + 12px);
   padding-block: 0;
 }
 #feature-callout .screen[pos=callout] .section-main .main-content .steps .indicator {
@@ -695,7 +695,7 @@ panel#feature-callout::part(content) {
 #feature-callout .shadow-arrow {
   background: transparent;
   outline: 1px solid var(--fc-border);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 #feature-callout .background-arrow-box {
   z-index: 1;
