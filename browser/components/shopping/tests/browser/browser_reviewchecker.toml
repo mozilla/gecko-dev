@@ -25,6 +25,7 @@ prefs = [
   "sidebar.revamp=true",
   "browser.shopping.experience2023.shoppingSidebar=false",
   "browser.shopping.experience2023.integratedSidebar=true",
+  "browser.shopping.experience2023.newPositionCard.hasSeen=true",
 ]
 
 ["browser_reviewchecker_empty_states.js"]
@@ -32,6 +33,8 @@ prefs = [
 ["browser_reviewchecker_manager.js"]
 
 ["browser_reviewchecker_messages.js"]
+
+["browser_reviewchecker_new_position_notification_card.js"]
 
 ["browser_reviewchecker_onboarding.js"]
 
