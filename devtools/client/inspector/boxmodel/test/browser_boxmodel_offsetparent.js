@@ -13,6 +13,9 @@ const TEST_URI = `
   <div id="static"></div>
   <div id="no_parent" style="position: absolute"></div>
   <div id="fixed" style="position: fixed"></div>
+  <div id="transform" style="transform: translate(0,0)">
+    <div id="transform-fixed" style="position: fixed"></div>
+  </div>
 `;
 
 const OFFSET_PARENT_SELECTOR =
@@ -38,6 +41,10 @@ const res1 = [
   {
     selector: "#fixed",
     offsetParentValue: null,
+  },
+  {
+    selector: "#transform-fixed",
+    offsetParentValue: "div#transform",
   },
 ];
 

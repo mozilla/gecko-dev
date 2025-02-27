@@ -57,9 +57,14 @@ class BoxModelProperties extends PureComponent {
 
     if (
       propertyName === "position" &&
+      this.props.boxModel.offsetParent &&
       value !== "static" &&
-      value !== "fixed" &&
-      this.props.boxModel.offsetParent
+      // A fixed position element's offsetParent is the <body> element if its
+      // containing block is the viewport. We only show the offsetParent for
+      // fixed position elements if the offsetParent is not the viewport. This
+      // can occur if the element has an ancestor that creates a fixed position
+      // containing block, for instance with a `transform` declaration.
+      (value !== "fixed" || this.props.boxModel.offsetParent.tagName !== "BODY")
     ) {
       return {
         referenceElement: this.props.boxModel.offsetParent,
