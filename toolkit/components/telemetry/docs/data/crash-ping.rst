@@ -77,6 +77,7 @@ Structure:
           LowCommitSpaceEvents: <num>, // Windows-only, present only if >0, number of low commit space events detected by the available memory tracker
           MainThreadRunnableName: <name>, // Optional, Nightly-only, name of the currently executing nsIRunnable on the main thread
           MozCrashReason: <reason>, // Optional, contains the string passed to MOZ_CRASH()
+          NimbusEnrollments: <enrollments>, // Optional, a comma-separated string that specifies the active Nimbus experiments and rollouts, as well as their branches.
           OOMAllocationSize: <size>, // Size of the allocation that caused an OOM
           ProfilerChildShutdownPhase: <string>, // Profiler shutdown phase
           PurgeablePhysicalMemory: <size>, // macOS-only, amount of memory that can be deallocated by the OS in case of memory pressure
@@ -266,3 +267,4 @@ Version History
 - Firefox 103: Removed ContainsMemoryReport (`bug 1776279 <https://bugzilla.mozilla.org/show_bug.cgi?id=1776279>`_).
 - Firefox 107: Added UtilityActorsName (`bug 1788596 <https://bugzilla.mozilla.org/show_bug.cgi?id=1788596>`_).
 - Firefox 119: Added WindowsFileDialogErrorCode (`bug 1837079 <https://bugzilla.mozilla.org/show_bug.cgi?id=1837079>`_)
+- Firefox 137: Added NimbusEnrollments (`bug 1950661 <https://bugzilla.mozilla.org/show_bug.cgi?id=1950661>`_).

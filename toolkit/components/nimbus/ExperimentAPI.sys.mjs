@@ -8,6 +8,7 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  CleanupManager: "resource://normandy/lib/CleanupManager.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -106,11 +107,17 @@ export const ExperimentAPI = {
       } catch (e) {
         lazy.log.error("Failed to enable RemoteSettingsExperimentLoader:", e);
       }
+
+      if (AppConstants.MOZ_CRASHREPORTER) {
+        this._manager.store.on("update", this._annotateCrashReport);
+        this._annotateCrashReport();
+      }
     }
   },
 
   _resetForTests() {
     this._rsLoader.disable();
+    this._manager.store.off("update", this._annotateCrashReport);
     initialized = false;
   },
 
@@ -127,6 +134,30 @@ export const ExperimentAPI = {
    */
   async ready() {
     return this._store.ready();
+  },
+
+  async _annotateCrashReport() {
+    if (!Services.appinfo.crashReporterEnabled) {
+      return;
+    }
+
+    await this.ready();
+    try {
+      await this._rsLoader.finishedUpdating();
+    } catch (ex) {
+      // Studies disabled.
+      return;
+    }
+    const activeEnrollments = this._manager.store
+      .getAll()
+      .filter(e => e.active)
+      .map(e => `${e.slug}:${e.branch.slug}`)
+      .join(",");
+
+    Services.appinfo.annotateCrashReport(
+      "NimbusEnrollments",
+      activeEnrollments
+    );
   },
 
   /**
@@ -685,6 +716,20 @@ export class _ExperimentFeature {
 
     return undefined;
   }
+}
+
+ExperimentAPI._annotateCrashReport =
+  ExperimentAPI._annotateCrashReport.bind(ExperimentAPI);
+
+if (AppConstants.MOZ_CRASHREPORTER) {
+  lazy.CleanupManager.addCleanupHandler(() => {
+    if (initialized) {
+      ExperimentAPI._manager.store.off(
+        "update",
+        ExperimentAPI._annotateCrashReport
+      );
+    }
+  });
 }
 
 ChromeUtils.defineLazyGetter(ExperimentAPI, "_manager", function () {

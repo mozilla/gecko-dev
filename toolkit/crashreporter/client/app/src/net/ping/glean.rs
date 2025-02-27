@@ -112,6 +112,7 @@ pub fn set_crash_ping_metrics(
         }
         environment {
             experimental_features: (string_list ',') = "ExperimentalFeatures"
+            nimbus_enrollments: (string_list ',') = "NimbusEnrollments"
             headless_mode: bool = "HeadlessMode"
             uptime: seconds = "UptimeTS"
         }
