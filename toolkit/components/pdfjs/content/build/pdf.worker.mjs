@@ -23429,7 +23429,7 @@ class Type1Font {
 
 const PRIVATE_USE_AREAS = [[0xe000, 0xf8ff], [0x100000, 0x10fffd]];
 const PDF_GLYPH_SPACE_UNITS = 1000;
-const EXPORT_DATA_PROPERTIES = ["ascent", "bbox", "black", "bold", "charProcOperatorList", "composite", "cssFontInfo", "data", "defaultVMetrics", "defaultWidth", "descent", "fallbackName", "fontMatrix", "isInvalidPDFjsFont", "isType3Font", "italic", "loadedName", "mimetype", "missingFile", "name", "remeasure", "subtype", "systemFontInfo", "type", "vertical"];
+const EXPORT_DATA_PROPERTIES = ["ascent", "bbox", "black", "bold", "charProcOperatorList", "composite", "cssFontInfo", "data", "defaultVMetrics", "defaultWidth", "descent", "disableFontFace", "fallbackName", "fontExtraProperties", "fontMatrix", "isInvalidPDFjsFont", "isType3Font", "italic", "loadedName", "mimetype", "missingFile", "name", "remeasure", "subtype", "systemFontInfo", "type", "vertical"];
 const EXPORT_DATA_EXTRA_PROPERTIES = ["cMap", "defaultEncoding", "differences", "isMonospace", "isSerifFont", "isSymbolicFont", "seacMap", "toFontChar", "toUnicode", "vmetrics", "widths"];
 function adjustWidths(properties) {
   if (!properties.fontMatrix) {
@@ -24000,11 +24000,12 @@ function createNameTable(name, proto) {
   return nameTable;
 }
 class Font {
-  constructor(name, file, properties) {
+  constructor(name, file, properties, evaluatorOptions) {
     this.name = name;
     this.psName = null;
     this.mimetype = null;
-    this.disableFontFace = false;
+    this.disableFontFace = evaluatorOptions.disableFontFace;
+    this.fontExtraProperties = evaluatorOptions.fontExtraProperties;
     this.loadedName = properties.loadedName;
     this.isType3Font = properties.isType3Font;
     this.missingFile = false;
@@ -24128,14 +24129,13 @@ class Font {
     const renderer = FontRendererFactory.create(this, SEAC_ANALYSIS_ENABLED);
     return shadow(this, "renderer", renderer);
   }
-  exportData(extraProperties = false) {
-    const exportDataProperties = extraProperties ? [...EXPORT_DATA_PROPERTIES, ...EXPORT_DATA_EXTRA_PROPERTIES] : EXPORT_DATA_PROPERTIES;
+  exportData() {
+    const exportDataProps = this.fontExtraProperties ? [...EXPORT_DATA_PROPERTIES, ...EXPORT_DATA_EXTRA_PROPERTIES] : EXPORT_DATA_PROPERTIES;
     const data = Object.create(null);
-    let property, value;
-    for (property of exportDataProperties) {
-      value = this[property];
+    for (const prop of exportDataProps) {
+      const value = this[prop];
       if (value !== undefined) {
-        data[property] = value;
+        data[prop] = value;
       }
     }
     return data;
@@ -25866,7 +25866,7 @@ class ErrorFont {
   encodeString(chars) {
     return [chars];
   }
-  exportData(extraProperties = false) {
+  exportData() {
     return {
       error: this.error
     };
@@ -31058,8 +31058,7 @@ class PartialEvaluator {
         translated = new TranslatedFont({
           loadedName: "g_font_error",
           font: new ErrorFont(`Type3 font load error: ${reason}`),
-          dict: translated.font,
-          evaluatorOptions: this.options
+          dict: translated.font
         });
       }
     }
@@ -31072,7 +31071,7 @@ class PartialEvaluator {
     const glyphs = font.charsToGlyphs(chars);
     if (font.data) {
       const isAddToPathSet = !!(state.textRenderingMode & TextRenderingMode.ADD_TO_PATH_FLAG);
-      if (isAddToPathSet || state.fillColorSpace.name === "Pattern" || font.disableFontFace || this.options.disableFontFace) {
+      if (isAddToPathSet || state.fillColorSpace.name === "Pattern" || font.disableFontFace) {
         PartialEvaluator.buildFontPaths(font, glyphs, this.handler, this.options);
       }
     }
@@ -31177,8 +31176,7 @@ class PartialEvaluator {
     const errorFont = async () => new TranslatedFont({
       loadedName: "g_font_error",
       font: new ErrorFont(`Font "${fontName}" is not available.`),
-      dict: font,
-      evaluatorOptions: this.options
+      dict: font
     });
     let fontRef;
     if (font) {
@@ -31265,16 +31263,14 @@ class PartialEvaluator {
       resolve(new TranslatedFont({
         loadedName: font.loadedName,
         font: translatedFont,
-        dict: font,
-        evaluatorOptions: this.options
+        dict: font
       }));
     }).catch(reason => {
       warn(`loadFont - translateFont failed: "${reason}".`);
       resolve(new TranslatedFont({
         loadedName: font.loadedName,
         font: new ErrorFont(reason instanceof Error ? reason.message : reason),
-        dict: font,
-        evaluatorOptions: this.options
+        dict: font
       }));
     });
     return promise;
@@ -33445,7 +33441,7 @@ class PartialEvaluator {
         } else {
           newProperties.widths = this.buildCharCodeToWidth(metrics.widths, newProperties);
         }
-        return new Font(baseFontName, file, newProperties);
+        return new Font(baseFontName, file, newProperties, this.options);
       }
     }
     let fontName = descriptor.get("FontName");
@@ -33588,7 +33584,7 @@ class PartialEvaluator {
     }
     const newProperties = await this.extractDataStructures(dict, properties);
     this.extractWidths(dict, descriptor, newProperties);
-    return new Font(fontName.name, fontFile, newProperties);
+    return new Font(fontName.name, fontFile, newProperties, this.options);
   }
   static buildFontPaths(font, glyphs, handler, evaluatorOptions) {
     function buildPath(fontChar) {
@@ -33627,13 +33623,11 @@ class TranslatedFont {
   constructor({
     loadedName,
     font,
-    dict,
-    evaluatorOptions
+    dict
   }) {
     this.loadedName = loadedName;
     this.font = font;
     this.dict = dict;
-    this._evaluatorOptions = evaluatorOptions || DefaultPartialEvaluatorOptions;
     this.type3Loaded = null;
     this.type3Dependencies = font.isType3Font ? new Set() : null;
     this.sent = false;
@@ -33643,14 +33637,14 @@ class TranslatedFont {
       return;
     }
     this.sent = true;
-    handler.send("commonobj", [this.loadedName, "Font", this.font.exportData(this._evaluatorOptions.fontExtraProperties)]);
+    handler.send("commonobj", [this.loadedName, "Font", this.font.exportData()]);
   }
-  fallback(handler) {
+  fallback(handler, evaluatorOptions) {
     if (!this.font.data) {
       return;
     }
     this.font.disableFontFace = true;
-    PartialEvaluator.buildFontPaths(this.font, this.font.glyphCacheValues, handler, this._evaluatorOptions);
+    PartialEvaluator.buildFontPaths(this.font, this.font.glyphCacheValues, handler, evaluatorOptions);
   }
   loadType3Data(evaluator, resources, task) {
     if (this.type3Loaded) {
@@ -37210,15 +37204,6 @@ class Catalog {
       }
     }
     return shadow(this, "jsActions", actions);
-  }
-  async fontFallback(id, handler) {
-    const translatedFonts = await Promise.all(this.fontCache);
-    for (const translatedFont of translatedFonts) {
-      if (translatedFont.loadedName === id) {
-        translatedFont.fallback(handler);
-        return;
-      }
-    }
   }
   async cleanup(manuallyTriggered = false) {
     clearGlobalCaches();
@@ -53232,7 +53217,12 @@ class CipherTransformFactory {
     if (!encryptionKey) {
       throw new PasswordException("Incorrect Password", PasswordResponses.INCORRECT_PASSWORD);
     }
-    this.encryptionKey = encryptionKey;
+    if (algorithm === 4 && encryptionKey.length < 16) {
+      this.encryptionKey = new Uint8Array(16);
+      this.encryptionKey.set(encryptionKey);
+    } else {
+      this.encryptionKey = encryptionKey;
+    }
     if (algorithm >= 4) {
       const cf = dict.get("CF");
       if (cf instanceof Dict) {
@@ -55293,8 +55283,17 @@ class PDFDocument {
       catalog.setActualNumPages(pagesTree.size);
     }
   }
-  fontFallback(id, handler) {
-    return this.catalog.fontFallback(id, handler);
+  async fontFallback(id, handler) {
+    const {
+      catalog,
+      pdfManager
+    } = this;
+    for (const translatedFont of await Promise.all(catalog.fontCache)) {
+      if (translatedFont.loadedName === id) {
+        translatedFont.fallback(handler, pdfManager.evaluatorOptions);
+        return;
+      }
+    }
   }
   async cleanup(manuallyTriggered = false) {
     return this.catalog ? this.catalog.cleanup(manuallyTriggered) : clearGlobalCaches();
@@ -56572,7 +56571,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.0.235";
+    const workerVersion = "5.0.246";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57104,8 +57103,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.0.235";
-const pdfjsBuild = "fef706233";
+const pdfjsVersion = "5.0.246";
+const pdfjsBuild = "a4fea2daf";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

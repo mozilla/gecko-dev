@@ -5453,17 +5453,11 @@ class FontLoader {
   }
 }
 class FontFaceObject {
-  constructor(translatedData, {
-    disableFontFace = false,
-    fontExtraProperties = false,
-    inspectFont = null
-  }) {
+  constructor(translatedData, inspectFont = null) {
     this.compiledGlyphs = Object.create(null);
     for (const i in translatedData) {
       this[i] = translatedData[i];
     }
-    this.disableFontFace = disableFontFace === true;
-    this.fontExtraProperties = fontExtraProperties === true;
     this._inspectFont = inspectFont;
   }
   createNativeFontFace() {
@@ -10210,7 +10204,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "5.0.235",
+    apiVersion: "5.0.246",
     data,
     password,
     disableAutoFetch,
@@ -10236,8 +10230,6 @@ function getDocument(src = {}) {
     }
   };
   const transportParams = {
-    disableFontFace,
-    fontExtraProperties,
     ownerDocument,
     pdfBug,
     styleElement,
@@ -11371,27 +11363,18 @@ class WorkerTransport {
       }
       switch (type) {
         case "Font":
-          const {
-            disableFontFace,
-            fontExtraProperties,
-            pdfBug
-          } = this._params;
           if ("error" in exportedData) {
             const exportedError = exportedData.error;
             warn(`Error during font loading: ${exportedError}`);
             this.commonObjs.resolve(id, exportedError);
             break;
           }
-          const inspectFont = pdfBug && globalThis.FontInspector?.enabled ? (font, url) => globalThis.FontInspector.fontAdded(font, url) : null;
-          const font = new FontFaceObject(exportedData, {
-            disableFontFace,
-            fontExtraProperties,
-            inspectFont
-          });
+          const inspectFont = this._params.pdfBug && globalThis.FontInspector?.enabled ? (font, url) => globalThis.FontInspector.fontAdded(font, url) : null;
+          const font = new FontFaceObject(exportedData, inspectFont);
           this.fontLoader.bind(font).catch(() => messageHandler.sendWithPromise("FontFallback", {
             id
           })).finally(() => {
-            if (!fontExtraProperties && font.data) {
+            if (!font.fontExtraProperties && font.data) {
               font.data = null;
             }
             this.commonObjs.resolve(id, font);
@@ -11851,8 +11834,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "5.0.235";
-const build = "fef706233";
+const version = "5.0.246";
+const build = "a4fea2daf";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -19381,6 +19364,19 @@ class SignatureEditor extends DrawingEditor {
   static get isDrawer() {
     return false;
   }
+  get telemetryFinalData() {
+    return {
+      type: "signature",
+      hasDescription: !!this.#description
+    };
+  }
+  static computeTelemetryFinalData(data) {
+    const hasDescriptionStats = data.get("hasDescription");
+    return {
+      hasAltText: hasDescriptionStats.get(true) ?? 0,
+      hasNoAltText: hasDescriptionStats.get(false) ?? 0
+    };
+  }
   get isResizable() {
     return true;
   }
@@ -19542,6 +19538,13 @@ class SignatureEditor extends DrawingEditor {
     this.rotate();
     this._uiManager.addToAnnotationStorage(this);
     this.setUuid(uuid);
+    this._reportTelemetry({
+      action: "pdfjs.signature.inserted",
+      data: {
+        hasBeenSaved: !!uuid,
+        hasDescription: !!description
+      }
+    });
     this.div.hidden = false;
   }
   getFromImage(bitmap) {
@@ -21221,8 +21224,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "5.0.235";
-const pdfjsBuild = "fef706233";
+const pdfjsVersion = "5.0.246";
+const pdfjsBuild = "a4fea2daf";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

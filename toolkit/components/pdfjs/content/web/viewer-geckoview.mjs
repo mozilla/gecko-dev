@@ -2087,7 +2087,10 @@ class SignatureStorage {
     return this.#signatures;
   }
   async isFull() {
-    return (await this.getAll()).size === 5;
+    return (await this.size()) === 5;
+  }
+  async size() {
+    return (await this.getAll()).size;
   }
   async create(data) {
     if (await this.isFull()) {
@@ -5184,17 +5187,17 @@ class BasePDFPageView {
       await renderTask.promise;
       this.#showCanvas?.(true);
     } catch (e) {
-      error = e;
-      if (error instanceof RenderingCancelledException) {
+      if (e instanceof RenderingCancelledException) {
         return;
       }
+      error = e;
       this.#showCanvas?.(true);
     } finally {
+      this.#renderError = error;
       if (renderTask === this.renderTask) {
         this.renderTask = null;
       }
     }
-    this.#renderError = error;
     this.renderingState = RenderingStates.FINISHED;
     onFinish(renderTask);
     if (error) {
@@ -7030,7 +7033,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.235";
+    const viewerVersion = "5.0.246";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -10543,8 +10546,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.235";
-const pdfjsBuild = "fef706233";
+const pdfjsVersion = "5.0.246";
+const pdfjsBuild = "a4fea2daf";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
