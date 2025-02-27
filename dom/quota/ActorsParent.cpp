@@ -6464,6 +6464,14 @@ RefPtr<BoolPromise> QuotaManager::InitializeAllTemporaryOrigins() {
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
+  // Ensure the promise holder is initialized (a promise is created). This is
+  // needed because processNextGroup can synchronously attempt to resolve the
+  // promise. Without this, consumers may endlessly wait for an unresolved
+  // promise, and in debug builds, an assertion failure may occur at shutdown,
+  // indicating the promise exists but was never resolved or rejected.
+  RefPtr<BoolPromise> promise =
+      mInitializeAllTemporaryOriginsPromiseHolder.Ensure(__func__);
+
   if (!mInitializingAllTemporaryOrigins) {
     // TODO: make a copy of mUninitializedGroups and use it as the queue.
 
@@ -6502,7 +6510,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeAllTemporaryOrigins() {
     processNextGroup(/* processNextGroupCallback */ processNextGroup);
   }
 
-  return mInitializeAllTemporaryOriginsPromiseHolder.Ensure(__func__);
+  return promise;
 }
 
 RefPtr<OriginUsageMetadataArrayPromise> QuotaManager::GetUsage(
