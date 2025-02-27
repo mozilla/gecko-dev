@@ -28,6 +28,7 @@ if CONFIG["MOZ_CRASHREPORTER"]:
     EXTRA_JS_MODULES += [
         "!CrashManager.sys.mjs",
         "CrashService.sys.mjs",
+        "RemoteSettingsCrashPull.sys.mjs",
     ]
 
     XPCOM_MANIFESTS += [
