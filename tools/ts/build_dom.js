@@ -23,7 +23,7 @@ const HEADER = `/**
  */
 
 /// <reference no-default-lib="true" />
-/// <reference lib="es2023" />
+/// <reference lib="es2024" />
 
 type HTMLCollectionOf<T> = any;
 type IsInstance<T> = (obj: any) => obj is T;

@@ -805,6 +805,7 @@ interface nsIAlertAction extends nsISupports {
 
 interface nsIAlertNotification extends nsISupports {
   init(aName?: string, aImageURL?: string, aTitle?: string, aText?: string, aTextClickable?: boolean, aCookie?: string, aDir?: string, aLang?: string, aData?: string, aPrincipal?: nsIPrincipal, aInPrivateBrowsing?: boolean, aRequireInteraction?: boolean, aSilent?: boolean, aVibrate?: u32[]): void;
+  readonly id: string;
   readonly name: string;
   readonly imageURL: string;
   readonly title: string;
@@ -825,6 +826,7 @@ interface nsIAlertNotification extends nsISupports {
   readonly source: string;
   opaqueRelaunchData: string;
   loadImage(aTimeout: u32, aListener: nsIAlertNotificationImageListener, aUserData?: nsISupports): nsICancelable;
+  getAction(aName: string): nsIAlertAction;
 }
 
 interface nsIAlertsService extends nsISupports {
@@ -3275,7 +3277,7 @@ interface nsINotificationStorageCallback extends nsISupports {
 
 interface nsINotificationStorage extends nsISupports {
   put(origin: string, id: string, title: string, dir: string, lang: string, body: string, tag: string, icon: string, data: string, serviceWorkerRegistrationScope: string): void;
-  get(origin: string, tag: string, aCallback: nsINotificationStorageCallback): void;
+  get(origin: string, scope: string, tag: string, aCallback: nsINotificationStorageCallback): void;
   delete(origin: string, id: string): void;
 }
 
@@ -6139,6 +6141,8 @@ interface nsIIOService extends nsISupports {
   registerProtocolHandler(aScheme: string, aHandler: nsIProtocolHandler, aProtocolFlags: u32, aDefaultPort: i32): void;
   unregisterProtocolHandler(aScheme: string): void;
   setSimpleURIUnknownRemoteSchemes(aRemoteSchemes: string[]): void;
+  addEssentialDomainMapping(aFrom: string, aTo: string): void;
+  clearEssentialDomainMapping(): void;
 }
 
 // https://searchfox.org/mozilla-central/source/netwerk/base/nsIIncrementalDownload.idl
@@ -6567,12 +6571,12 @@ enum ConnectivityState {
 declare global {
 
 interface nsINetworkConnectivityService extends nsISupports, Enums<typeof nsINetworkConnectivityService.ConnectivityState> {
-  readonly DNSv4: nsINetworkConnectivityService.ConnectivityState;
-  readonly DNSv6: nsINetworkConnectivityService.ConnectivityState;
-  readonly DNS_HTTPS: nsINetworkConnectivityService.ConnectivityState;
-  readonly IPv4: nsINetworkConnectivityService.ConnectivityState;
-  readonly IPv6: nsINetworkConnectivityService.ConnectivityState;
-  readonly NAT64: nsINetworkConnectivityService.ConnectivityState;
+  DNSv4: nsINetworkConnectivityService.ConnectivityState;
+  DNSv6: nsINetworkConnectivityService.ConnectivityState;
+  DNS_HTTPS: nsINetworkConnectivityService.ConnectivityState;
+  IPv4: nsINetworkConnectivityService.ConnectivityState;
+  IPv6: nsINetworkConnectivityService.ConnectivityState;
+  NAT64: nsINetworkConnectivityService.ConnectivityState;
   recheckDNS(): void;
   recheckIPConnectivity(): void;
 }
@@ -11027,7 +11031,9 @@ interface nsIContentAnalysisResponse extends nsIContentAnalysisResult, Enums<typ
   readonly action: nsIContentAnalysisResponse.Action;
   readonly cancelError: nsIContentAnalysisResponse.CancelError;
   readonly requestToken: string;
+  readonly userActionId: string;
   readonly isCachedResponse: boolean;
+  readonly isAgentResponse: boolean;
   acknowledge(aCaa: nsIContentAnalysisAcknowledgement): void;
 }
 
@@ -11131,7 +11137,7 @@ interface nsIContentAnalysis extends nsISupports {
   setCachedResponse(aURI: nsIURI, aSequenceNumber: i32, aAction: nsIContentAnalysisResponse.Action): void;
   getCachedResponse(aURI: nsIURI, aSequenceNumber: i32, aAction: OutParam<nsIContentAnalysisResponse.Action>, aIsValid: OutParam<boolean>): void;
   showBlockedRequestDialog(aRequest: nsIContentAnalysisRequest): void;
-  makeResponseForTest(aAction: nsIContentAnalysisResponse.Action, aToken: string): nsIContentAnalysisResponse;
+  makeResponseForTest(aAction: nsIContentAnalysisResponse.Action, aToken: string, aUserActionId: string): nsIContentAnalysisResponse;
   sendCancelToAgent(aUserActionId: string): void;
 }
 
@@ -11380,7 +11386,7 @@ interface nsISearchService extends nsISupports {
   readonly isInitialized: boolean;
   readonly hasSuccessfullyInitialized: boolean;
   runBackgroundChecks(): Promise<any>;
-  resetToAppDefaultEngine(): Promise<any>;
+  resetToAppDefaultEngine(): void;
   addOpenSearchEngine(engineURL: string, iconURL: string): Promise<any>;
   addUserEngine(name: string, url: string, alias?: string): Promise<any>;
   addEnginesFromExtension(extension: any): Promise<any>;

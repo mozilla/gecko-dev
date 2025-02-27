@@ -5,7 +5,7 @@
  */
 
 /// <reference no-default-lib="true" />
-/// <reference lib="es2023" />
+/// <reference lib="es2024" />
 
 type HTMLCollectionOf<T> = any;
 type IsInstance<T> = (obj: any) => obj is T;
@@ -3491,12 +3491,11 @@ interface SanitizerAttributeNamespace {
 interface SanitizerConfig {
     attributes?: SanitizerAttribute[];
     comments?: boolean;
-    customElements?: boolean;
+    dataAttributes?: boolean;
     elements?: SanitizerElementWithAttributes[];
     removeAttributes?: SanitizerAttribute[];
     removeElements?: SanitizerElement[];
     replaceWithChildrenElements?: SanitizerElement[];
-    unknownMarkup?: boolean;
 }
 
 interface SanitizerElementNamespace {
@@ -3558,7 +3557,7 @@ interface ServerSocketOptions {
 }
 
 interface SetHTMLOptions {
-    sanitizer?: SanitizerConfig;
+    sanitizer?: Sanitizer | SanitizerConfig | SanitizerPresets;
 }
 
 interface ShadowRootInit {
@@ -7729,7 +7728,6 @@ interface Element extends Node, ARIAMixin, Animatable, ChildNode, GeometryUtils,
     setAttributeNodeNS(newAttr: Attr): Attr | null;
     setCapture(retargetToElement?: boolean): void;
     setCaptureAlways(retargetToElement?: boolean): void;
-    /** Available only in secure contexts. */
     setHTML(aInnerHTML: string, options?: SetHTMLOptions): void;
     setHTMLUnsafe(html: TrustedHTML | string): void;
     setPointerCapture(pointerId: number): void;
@@ -18388,14 +18386,21 @@ interface SVGZoomAndPan {
     readonly SVG_ZOOMANDPAN_MAGNIFY: 2;
 }
 
-/** Available only in secure contexts. */
 interface Sanitizer {
-    sanitize(input: SanitizerInput): DocumentFragment;
+    allowAttribute(attribute: SanitizerAttribute): void;
+    allowElement(element: SanitizerElementWithAttributes): void;
+    get(): SanitizerConfig;
+    removeAttribute(attribute: SanitizerAttribute): void;
+    removeElement(element: SanitizerElement): void;
+    removeUnsafe(): void;
+    replaceElementWithChildren(element: SanitizerElement): void;
+    setComments(allow: boolean): void;
+    setDataAttributes(allow: boolean): void;
 }
 
 declare var Sanitizer: {
     prototype: Sanitizer;
-    new(sanitizerConfig?: SanitizerConfig): Sanitizer;
+    new(configuration?: SanitizerConfig | SanitizerPresets): Sanitizer;
     isInstance: IsInstance<Sanitizer>;
 };
 
@@ -24342,10 +24347,11 @@ declare namespace ChromeUtils {
     function clearMessagingLayerSecurityStateByPrincipal(principal: Principal): void;
     function clearMessagingLayerSecurityStateBySite(schemelessSite: string, pattern?: OriginAttributesPatternDictionary): void;
     function clearRecentJSDevError(): void;
-    function clearScriptCache(): void;
+    function clearResourceCache(chrome?: boolean): void;
+    function clearScriptCache(chrome?: boolean): void;
     function clearScriptCacheByPrincipal(principal: Principal): void;
     function clearScriptCacheBySite(schemelessSite: string, pattern?: OriginAttributesPatternDictionary): void;
-    function clearStyleSheetCache(): void;
+    function clearStyleSheetCache(chrome?: boolean): void;
     function clearStyleSheetCacheByPrincipal(principal: Principal): void;
     function clearStyleSheetCacheBySite(schemelessSite: string, pattern?: OriginAttributesPatternDictionary): void;
     function collectPerfStats(): Promise<string>;
@@ -24358,6 +24364,7 @@ declare namespace ChromeUtils {
     function defineESModuleGetters(aTarget: any, aModules: any, aOptions?: ImportESModuleOptionsDictionary): void;
     function defineLazyGetter(aTarget: any, aName: any, aLambda: any): void;
     function endWheelTransaction(): void;
+    function ensureHeadlessContentProcess(aRemoteType: string): Promise<nsIContentParentKeepAlive>;
     function ensureJSOracleStarted(): void;
     function fillNonDefaultOriginAttributes(originAttrs?: OriginAttributesDictionary): OriginAttributesDictionary;
     function generateQI(interfaces: any[]): MozQueryInterface;
@@ -25514,7 +25521,6 @@ type RequestInfo = Request | string;
 type SanitizerAttribute = string | SanitizerAttributeNamespace;
 type SanitizerElement = string | SanitizerElementNamespace;
 type SanitizerElementWithAttributes = string | SanitizerElementNamespaceWithAttributes;
-type SanitizerInput = DocumentFragment | Document;
 type StackFrame = nsIStackFrame;
 type StringOrOpenPopupOptions = string | OpenPopupOptions;
 type StructuredClonable = any;
@@ -25746,6 +25752,7 @@ type RequestPriority = "auto" | "high" | "low";
 type RequestRedirect = "error" | "follow" | "manual";
 type ResizeObserverBoxOptions = "border-box" | "content-box" | "device-pixel-content-box";
 type ResponseType = "basic" | "cors" | "default" | "error" | "opaque" | "opaqueredirect";
+type SanitizerPresets = "default";
 type ScreenColorGamut = "p3" | "rec2020" | "srgb";
 type ScrollBehavior = "auto" | "instant" | "smooth";
 type ScrollLogicalPosition = "center" | "end" | "nearest" | "start";

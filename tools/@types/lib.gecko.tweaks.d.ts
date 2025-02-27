@@ -91,15 +91,6 @@ interface nsXPCComponents_Utils {
   waiveXrays<T>(object: T): T;
 }
 
-// TODO: remove after next TS update.
-interface PromiseConstructor {
-  withResolvers<T>(): {
-    promise: Promise<T>;
-    resolve: (value: T | PromiseLike<T>) => void;
-    reject: (reason?: any) => void;
-  };
-}
-
 type Sandbox = typeof globalThis & nsISupports;
 
 // Hand-crafted artisanal types.
