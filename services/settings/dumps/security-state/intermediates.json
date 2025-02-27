@@ -17395,24 +17395,6 @@
       "last_modified": 1666727868458
     },
     {
-      "schema": 1666727416675,
-      "derHash": "p7dwK9Ju9/BnodOXXsFyC0bW4B/RAayTQi7rDW3iXzI=",
-      "subject": "CN=SecureCore RSA DV CA,O=SecureCore,L=OSAKA,ST=OSAKA,C=JP",
-      "subjectDN": "MGExCzAJBgNVBAYTAkpQMQ4wDAYDVQQIEwVPU0FLQTEOMAwGA1UEBxMFT1NBS0ExEzARBgNVBAoTClNlY3VyZUNvcmUxHTAbBgNVBAMTFFNlY3VyZUNvcmUgUlNBIERWIENB",
-      "whitelist": false,
-      "attachment": {
-        "hash": "f15fd61069ce42b4e0909409354fd3b6896dd2506c3543b5ac7676e9004eb6cd",
-        "size": 2113,
-        "filename": "CrV-DCuu__rnw7hOV-VT2e3k97fReT_N7f4coJTynlM=.pem",
-        "location": "security-state-staging/intermediates/745fccff-2cb7-4d96-b214-712bb0212678.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "CrV+DCuu//rnw7hOV+VT2e3k97fReT/N7f4coJTynlM=",
-      "crlite_enrolled": false,
-      "id": "d7b04dda-3aa4-4944-ac29-5b450792ebc4",
-      "last_modified": 1666727868445
-    },
-    {
       "schema": 1666727374818,
       "derHash": "DtmWPhu6BBfh/Be9OOkgYfllETuSHLNX8THxLwhTRVc=",
       "subject": "CN=WoTrus OV Server CA  [Run by the Issuer],O=WoTrus CA Limited,C=CN",
@@ -18403,24 +18385,6 @@
       "last_modified": 1666727867398
     },
     {
-      "schema": 1666727440073,
-      "derHash": "307LFhEO3qq6B6eB7Lk/41SWGzEx0tpQctNKvgt01bg=",
-      "subject": "CN=SecureCore RSA OV CA,O=SecureCore,L=OSAKA,ST=OSAKA,C=JP",
-      "subjectDN": "MGExCzAJBgNVBAYTAkpQMQ4wDAYDVQQIEwVPU0FLQTEOMAwGA1UEBxMFT1NBS0ExEzARBgNVBAoTClNlY3VyZUNvcmUxHTAbBgNVBAMTFFNlY3VyZUNvcmUgUlNBIE9WIENB",
-      "whitelist": false,
-      "attachment": {
-        "hash": "49467151fb7ae2c8a75b0d299a527107ef213c388761d4e23e850365c9378693",
-        "size": 2113,
-        "filename": "i9YotTNYIfvzcEXlwG2eor_v3IOO_LhM0dufRqOf7Dk=.pem",
-        "location": "security-state-staging/intermediates/1a44d6a0-db1a-449c-b613-01d7a5978309.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "i9YotTNYIfvzcEXlwG2eor/v3IOO/LhM0dufRqOf7Dk=",
-      "crlite_enrolled": false,
-      "id": "24044967-2370-4d7a-a62e-5f0e3609ae26",
-      "last_modified": 1666727867385
-    },
-    {
       "schema": 1666727426325,
       "derHash": "cQLZcsJOnKaNDm+f9TxfZYzZuGSfKOrY28M2wt9QSBE=",
       "subject": "CN=CertCloud RSA OV TLS CA,O=CertCloud Pte. Ltd.,C=SG",
@@ -18635,24 +18599,6 @@
       "crlite_enrolled": false,
       "id": "9a9a795e-2c26-43c3-91d2-10d1b807fd5d",
       "last_modified": 1666727867196
-    },
-    {
-      "schema": 1666727341459,
-      "derHash": "+BMqOx0ZAlxebrPBt2tTRljBGlvmkETp1ER7V5Rju0U=",
-      "subject": "CN=SecureCore RSA EV CA,OU=Controlled by COMODO exclusively for SecureCore,O=SecureCore,L=OSAKA,ST=OSAKA,C=JP",
-      "subjectDN": "MIGbMQswCQYDVQQGEwJKUDEOMAwGA1UECBMFT1NBS0ExDjAMBgNVBAcTBU9TQUtBMRMwEQYDVQQKEwpTZWN1cmVDb3JlMTgwNgYDVQQLEy9Db250cm9sbGVkIGJ5IENPTU9ETyBleGNsdXNpdmVseSBmb3IgU2VjdXJlQ29yZTEdMBsGA1UEAxMUU2VjdXJlQ29yZSBSU0EgRVYgQ0E=",
-      "whitelist": false,
-      "attachment": {
-        "hash": "836dc627e14efa5d36dbebd164d0a9ec6864bc30dda700e4a2d1c6776b8f063c",
-        "size": 2227,
-        "filename": "4oLlji5ovjgkWA95bS8h_Ik9hO3Fy_mgx1aM3Jv7Bn0=.pem",
-        "location": "security-state-staging/intermediates/77a6c459-b99e-4d99-b07c-b1c8e90d24c0.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "4oLlji5ovjgkWA95bS8h/Ik9hO3Fy/mgx1aM3Jv7Bn0=",
-      "crlite_enrolled": false,
-      "id": "c982dc65-a605-4303-9f3a-017eed4aa6c6",
-      "last_modified": 1666727867183
     },
     {
       "schema": 1666727433027,
@@ -31021,5 +30967,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1740149822559
+  "timestamp": 1740581822302
 }

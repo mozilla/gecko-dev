@@ -1,6 +1,69 @@
 {
   "data": [
     {
+      "name": "Safari",
+      "schema": 1740474638788,
+      "status": "beta",
+      "version": "18.4",
+      "browserid": "safari",
+      "id": "cf1cd501-f4d5-4d50-8b15-69f542242897",
+      "last_modified": 1740549793884
+    },
+    {
+      "name": "Safari on iOS",
+      "schema": 1740528303220,
+      "status": "beta",
+      "version": "18.4",
+      "browserid": "safari_ios",
+      "id": "5f48eafa-ae46-47e0-b877-2dc787043df2",
+      "last_modified": 1740549793880
+    },
+    {
+      "name": "WebView on iOS",
+      "schema": 1740528303279,
+      "status": "beta",
+      "version": "18.4",
+      "browserid": "webview_ios",
+      "id": "da68f85c-70d1-44fb-803f-f69288964055",
+      "last_modified": 1740549793877
+    },
+    {
+      "name": "Deno",
+      "schema": 1740182702831,
+      "status": "current",
+      "version": "2.2",
+      "browserid": "deno",
+      "id": "9e4229e7-0c63-4134-8dc1-fb52bbb3cf80",
+      "last_modified": 1740474638731
+    },
+    {
+      "name": "Edge",
+      "schema": 1740182703018,
+      "status": "planned",
+      "version": "136",
+      "browserid": "edge",
+      "id": "debb081e-a0a2-45ed-9431-605493ad9400",
+      "last_modified": 1740474638728
+    },
+    {
+      "name": "Edge",
+      "schema": 1740182702958,
+      "status": "nightly",
+      "version": "135",
+      "browserid": "edge",
+      "id": "2966c2e2-2f1a-4ccc-a0e9-5f14fe995f08",
+      "last_modified": 1740474638724
+    },
+    {
+      "name": "Edge",
+      "schema": 1740182702899,
+      "status": "beta",
+      "version": "134",
+      "browserid": "edge",
+      "id": "d23388fd-74d6-41d4-af81-5dbd58e6ca92",
+      "last_modified": 1740474638719
+    },
+    {
       "name": "Firefox",
       "schema": 1738800303165,
       "status": "planned",
@@ -253,33 +316,6 @@
       "last_modified": 1738135954408
     },
     {
-      "name": "Edge",
-      "schema": 1737763503442,
-      "status": "planned",
-      "version": "135",
-      "browserid": "edge",
-      "id": "2966c2e2-2f1a-4ccc-a0e9-5f14fe995f08",
-      "last_modified": 1737958890365
-    },
-    {
-      "name": "Deno",
-      "schema": 1737763503219,
-      "status": "current",
-      "version": "2.1",
-      "browserid": "deno",
-      "id": "d98ddb8c-628b-4769-beb1-c1d91c4879cd",
-      "last_modified": 1737958890362
-    },
-    {
-      "name": "Edge",
-      "schema": 1737763503366,
-      "status": "nightly",
-      "version": "134",
-      "browserid": "edge",
-      "id": "d23388fd-74d6-41d4-af81-5dbd58e6ca92",
-      "last_modified": 1737958890355
-    },
-    {
       "name": "Node.js",
       "schema": 1734480302872,
       "status": "esr",
@@ -334,5 +370,5 @@
       "last_modified": 1665656484764
     }
   ],
-  "timestamp": 1739195819833
+  "timestamp": 1740549793884
 }
