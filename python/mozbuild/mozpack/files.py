@@ -551,10 +551,8 @@ class PreprocessedFile(BaseFile):
         # destination is not a symlink, we leave it alone, since we're going to
         # overwrite its contents anyway.
         # If symlinks aren't supported at all, we can skip this step.
-        # See comment in AbsoluteSymlinkFile about Windows.
-        if hasattr(os, "symlink") and platform.system() != "Windows":
-            if os.path.islink(dest.path):
-                os.remove(dest.path)
+        if hasattr(os, "symlink") and os.path.islink(dest.path):
+            os.remove(dest.path)
 
         pp_deps = set(self.extra_depends)
 
