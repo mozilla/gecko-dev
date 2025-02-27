@@ -41,6 +41,8 @@ run-if = ["os != 'linux'"] # Linux clients cannot remote themselves.
 
 ["browser_test_last_tab.js"]
 
+["browser_test_nimbus_feature.js"]
+
 ["browser_test_profile_selector.js"]
 
 ["browser_update_profile_on_window_switch.js"]

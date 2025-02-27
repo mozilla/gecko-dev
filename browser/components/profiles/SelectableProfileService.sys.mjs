@@ -12,6 +12,7 @@ const lazy = {};
 
 // This is used to keep the icon controllers alive for as long as their windows are alive.
 const TASKBAR_ICON_CONTROLLERS = new WeakMap();
+const PROFILES_PREF_NAME = "browser.profiles.enabled";
 
 ChromeUtils.defineESModuleGetters(lazy, {
   CryptoUtils: "resource://services-crypto/utils.sys.mjs",
@@ -19,6 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
@@ -28,7 +30,7 @@ ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "PROFILES_ENABLED",
-  "browser.profiles.enabled",
+  PROFILES_PREF_NAME,
   false,
   () => SelectableProfileService.updateEnabledState()
 );
@@ -114,6 +116,7 @@ class SelectableProfileServiceClass extends EventEmitter {
   constructor() {
     super();
 
+    this.onNimbusUpdate = this.onNimbusUpdate.bind(this);
     this.themeObserver = this.themeObserver.bind(this);
     this.prefObserver = (subject, topic, prefName) =>
       this.flushSharedPrefToDatabase(prefName);
@@ -268,6 +271,12 @@ class SelectableProfileServiceClass extends EventEmitter {
     );
   }
 
+  onNimbusUpdate() {
+    if (lazy.NimbusFeatures.selectableProfiles.getVariable("enabled")) {
+      Services.prefs.setBoolPref(PROFILES_PREF_NAME, true);
+    }
+  }
+
   /**
    * At startup, store the nsToolkitProfile for the group.
    * Get the groupDBPath from the nsToolkitProfile, and connect to it.
@@ -288,6 +297,8 @@ class SelectableProfileServiceClass extends EventEmitter {
     if (this.#initialized) {
       return;
     }
+
+    lazy.NimbusFeatures.selectableProfiles.onUpdate(this.onNimbusUpdate);
 
     this.#groupToolkitProfile =
       this.#profileService.currentProfile ?? this.#profileService.groupProfile;
@@ -423,6 +434,8 @@ class SelectableProfileServiceClass extends EventEmitter {
       Services.prefs.removeObserver(prefName, this.prefObserver);
     }
     this.#observedPrefs.clear();
+
+    lazy.NimbusFeatures.selectableProfiles.offUpdate(this.onNimbusUpdate);
 
     // During shutdown we don't need to notify ourselves, just other instances
     // so rather than finalizing the task just disarm it and do the notification
