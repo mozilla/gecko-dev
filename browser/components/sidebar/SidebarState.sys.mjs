@@ -40,6 +40,9 @@ XPCOMUtils.defineLazyPreferenceGetter(
 const LAUNCHER_MINIMUM_WIDTH = 100;
 const SIDEBAR_MAXIMUM_WIDTH = "75vw";
 
+const LEGACY_USED_PREF = "sidebar.old-sidebar.has-used";
+const REVAMP_USED_PREF = "sidebar.new-sidebar.has-used";
+
 /**
  * A reactive data store for the sidebar's UI state. Similar to Lit's
  * ReactiveController, any updates to properties can potentially trigger UI
@@ -212,6 +215,10 @@ export class SidebarState {
       // Launcher must be visible to open a panel.
       this.#previousLauncherVisible = this.launcherVisible;
       this.launcherVisible = true;
+      Services.prefs.setBoolPref(
+        this.revampEnabled ? REVAMP_USED_PREF : LEGACY_USED_PREF,
+        true
+      );
     } else if (this.revampVisibility === "hide-sidebar") {
       this.launcherExpanded = lazy.verticalTabsEnabled
         ? this.#previousLauncherVisible

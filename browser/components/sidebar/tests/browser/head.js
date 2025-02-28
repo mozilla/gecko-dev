@@ -19,10 +19,19 @@ const kPrefCustomizationHorizontalTabstrip =
   "browser.uiCustomization.horizontalTabstrip";
 const kPrefCustomizationNavBarWhenVerticalTabs =
   "browser.uiCustomization.navBarWhenVerticalTabs";
-// Ensure we clear any previous uiCustomization pref values
-Services.prefs.clearUserPref(kPrefCustomizationState);
-Services.prefs.clearUserPref(kPrefCustomizationHorizontalTabstrip);
-Services.prefs.clearUserPref(kPrefCustomizationNavBarWhenVerticalTabs);
+const kPrefSidebarTools = "sidebar.main.tools";
+
+const MODIFIED_PREFS = Object.freeze([
+  kPrefCustomizationState,
+  kPrefCustomizationHorizontalTabstrip,
+  kPrefCustomizationNavBarWhenVerticalTabs,
+  kPrefSidebarTools,
+]);
+
+// Ensure we clear any previous pref values
+for (const pref of MODIFIED_PREFS) {
+  Services.prefs.clearUserPref(pref);
+}
 
 /* global browser */
 const extData = {

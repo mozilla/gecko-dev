@@ -3,11 +3,6 @@
 
 "use strict";
 
-Services.prefs.clearUserPref("sidebar.main.tools");
-registerCleanupFunction(() =>
-  Services.prefs.clearUserPref("sidebar.main.tools")
-);
-
 add_task(async function test_tools_prefs() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { document } = win;
@@ -204,4 +199,43 @@ add_task(async function test_flip_revamp_pref() {
 
   ok(true, "The old sidebar is hidden and the new sidebar is shown.");
   await BrowserTestUtils.closeWindow(win);
+});
+
+add_task(async function test_opening_panel_flips_has_used_pref() {
+  Services.prefs.clearUserPref("sidebar.old-sidebar.has-used");
+  Services.prefs.clearUserPref("sidebar.new-sidebar.has-used");
+
+  info("Open a panel from the legacy sidebar.");
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.revamp", false]],
+  });
+  await SidebarController.show("viewHistorySidebar");
+  ok(
+    Services.prefs.getBoolPref("sidebar.old-sidebar.has-used"),
+    "has-used pref enabled for legacy sidebar."
+  );
+  SidebarController.hide();
+  await SpecialPowers.popPrefEnv();
+
+  info("Open a panel from the revamped sidebar.");
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.revamp", true]],
+  });
+  await SidebarController.show("viewHistorySidebar");
+  ok(
+    Services.prefs.getBoolPref("sidebar.new-sidebar.has-used"),
+    "has-used pref enabled for revamped sidebar."
+  );
+  SidebarController.hide();
+  await SpecialPowers.popPrefEnv();
+
+  info("Sanity check: Both prefs should stay enabled.");
+  ok(
+    Services.prefs.getBoolPref("sidebar.old-sidebar.has-used"),
+    "has-used pref enabled for legacy sidebar."
+  );
+  ok(
+    Services.prefs.getBoolPref("sidebar.new-sidebar.has-used"),
+    "has-used pref enabled for revamped sidebar."
+  );
 });

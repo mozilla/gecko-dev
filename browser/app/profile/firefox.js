@@ -2096,6 +2096,8 @@ pref("sidebar.visibility", "always-show");
 // or has history cleared on browser close.
 pref("sidebar.backupState", "{}");
 pref("sidebar.expandOnHover", false);
+pref("sidebar.old-sidebar.has-used", false);
+pref("sidebar.new-sidebar.has-used", false);
 
 pref("browser.ml.chat.enabled", true);
 pref("browser.ml.chat.hideLocalhost", true);
