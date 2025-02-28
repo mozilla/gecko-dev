@@ -2122,6 +2122,91 @@
     Enhanced tracking protection exception preference icon for ETP settings. -->
     <string name="preference_etp_exceptions_icon_description">增强型跟踪保护例外首选项图标</string>
 
+    <!-- DNS Over HTTPS (DoH) -->
+    <!-- Preference title for DNS over HTTPS settings -->
+    <string name="preference_doh_title">基于 HTTPS 的 DNS</string>
+    <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_summary">基于 HTTPS 的 DNS 会通过加密的连接发送您对域名的请求，从而提供安全 DNS，使他人更难得知您要访问的网站。%1$s</string>
+    <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+    <string name="preference_doh_learn_more">详细了解</string>
+
+    <!-- Content description for the toolbar "Navigate up" button -->
+    <string name="preference_doh_up_description">向上导航</string>
+    <!-- Content description for the "Exceptions" button -->
+    <string name="preference_doh_exceptions_description">例外</string>
+    <!-- Content description for the "Info" button -->
+    <string name="preference_doh_info_description">信息</string>
+
+    <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection">默认保护</string>
+    <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_doh_default_protection_summary">由 %1$s 决定何时使用安全 DNS 来保护您的隐私。</string>
+    <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_1">使用您选择的提供方</string>
+    <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_2">若安全 DNS 提供方出现问题则使用默认 DNS 解析器</string>
+    <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_3">尽可能使用本地提供方。%1$s</string>
+    <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_4">当 VPN、家长控制或企业策略生效时关闭</string>
+
+    <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_5">当网络设备告知 %1$s 不应使用安全 DNS 时关闭。%2$s</string>
+
+    <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection">增强保护</string>
+    <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_summary">由您选择安全 DNS 的提供方并决定何时使用。</string>
+    <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_info_1">使用您选择的提供方</string>
+    <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_info_2">只在安全 DNS 出现问题时使用默认 DNS 解析器</string>
+
+    <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection">最大保护</string>
+    <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_doh_max_protection_summary">%1$s 只会使用安全 DNS。如确实需要使用系统 DNS，您将预先收到安全风险警告。</string>
+    <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection_info_1">只使用您选择的提供方</string>
+    <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection_info_2">安全 DNS 不可用时发出警告</string>
+
+    <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection_info_3">在无法使用安全 DNS 的情况下，某些网站可能无法加载或功能异常</string>
+
+    <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+    <string name="preference_doh_off">关</string>
+    <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+    <string name="preference_doh_off_summary">使用默认 DNS 解析器</string>
+
+    <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+    <string name="preference_doh_choose_provider">选择提供方</string>
+    <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+    <string name="preference_doh_provider_default">（默认）</string>
+    <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+    <string name="preference_doh_provider_custom">自定义</string>
+    <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_title">自定义提供方</string>
+    <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_textfield">提供方</string>
+    <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https"-->
+    <string name="preference_doh_provider_custom_dialog_error_https">网址必须以 “https://” 开头</string>
+    <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_cancel">取消</string>
+    <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_add">添加</string>
+
+    <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+    <string name="preference_doh_exceptions">例外</string>
+    <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+    <string name="preference_doh_exceptions_summary">%1$s 将不再使用安全 DNS 解析这些网站及其子域网站。</string>
+    <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+    <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+    <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+    <string name="preference_doh_exceptions_add_save">保存</string>
+    <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+    <string name="preference_doh_exceptions_remove_all_exceptions">移除所有例外</string>
+
     <!-- About page link text to open support link -->
     <string name="about_support">用户支持</string>
     <!-- About page link text to list of past crashes (like about:crashes on desktop) -->

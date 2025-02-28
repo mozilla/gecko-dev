@@ -2086,6 +2086,53 @@
     Enhanced tracking protection exception preference icon for ETP settings. -->
     <string name="preference_etp_exceptions_icon_description">Fokozott követés elleni védelem kivételeinek beállítási ikonja</string>
 
+    <!-- DNS Over HTTPS (DoH) -->
+    <!-- Preference title for DNS over HTTPS settings -->
+    <string name="preference_doh_title">HTTPS feletti DNS</string>
+    <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_summary">A HTTPS feletti domainnév-rendszer (DNS) a domain nevek lekérését titkosított kapcsolaton keresztül küldi el, biztonságos DNS-t biztosítva, így nehezebbé téve mások számára, hogy lássak, hogy melyik weboldalakat éri el. %1$s</string>
+    <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+    <string name="preference_doh_learn_more">További tudnivalók</string>
+
+    <!-- Content description for the toolbar "Navigate up" button -->
+    <string name="preference_doh_up_description">Navigálás fel</string>
+    <!-- Content description for the "Exceptions" button -->
+    <string name="preference_doh_exceptions_description">Kivételek</string>
+    <!-- Content description for the "Info" button -->
+    <string name="preference_doh_info_description">Információk</string>
+    <!-- Content description for the "Add Site" button -->
+    <string name="preference_doh_add_site_description">Webhely hozzáadása</string>
+
+    <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection">Alapértelmezett védelem</string>
+    <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_doh_default_protection_summary">A %1$s dönti el, hogy mikor használ biztonságos DNS-t az adatvédelme érdekében.</string>
+    <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_1">Kiválasztott szolgáltató használata</string>
+    <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_2">Alapértelmezett DNS-feloldó használata, ha probléma van a biztonságos DNS-szolgáltatóval</string>
+    <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_3">Helyi szolgáltató használata, ha lehet. %1$s</string>
+    <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_default_protection_info_4">Kikapcsolás, ha a VPN, a szülői felügyelet vagy a vállalati házirendek aktívak</string>
+
+    <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_5">Kikapcsolás, ha a hálózat azt mondja a %1$s számára, hogy ne használjon biztonságos DNS-t. %2$s</string>
+
+    <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection">Fokozott védelem</string>
+    <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_summary">Ön szabályozza, hogy mikor használ DNS-t, és kiválaszthatja a szolgáltatót.</string>
+    <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_info_1">Kiválasztott szolgáltató használata</string>
+    <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection_info_2">Csak akkor használja az alapértelmezett DNS-feloldót, ha probléma van a biztonságos DNS-sel</string>
+
+    <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection">Maximális védelem</string>
+    <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_doh_max_protection_summary">A %1$s mindig biztonságos DNS-t fog használni. A rendszer DNS-ének használata előtt egy biztonsági kockázati figyelmeztetést fog látni.</string>
+
     <!-- About page link text to open support link -->
     <string name="about_support">Támogatás</string>
     <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
