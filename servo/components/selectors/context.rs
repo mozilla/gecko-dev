@@ -176,6 +176,9 @@ where
     /// Whether there are any rules inside @starting-style.
     pub has_starting_style: bool,
 
+    /// Whether we're currently matching a featureless element.
+    pub featureless: bool,
+
     /// The current nesting level of selectors that we're matching.
     nesting_level: usize,
 
@@ -253,6 +256,7 @@ where
             matching_for_invalidation,
             scope_element: None,
             current_host: None,
+            featureless: false,
             nesting_level: 0,
             in_negation: false,
             pseudo_element_matching_fn: None,
@@ -371,6 +375,31 @@ where
     #[inline]
     pub fn visited_handling(&self) -> VisitedHandlingMode {
         self.visited_handling
+    }
+
+    /// Runs F with a different featureless element flag.
+    #[inline]
+    pub fn with_featureless<F, R>(
+        &mut self,
+        featureless: bool,
+        f: F,
+    ) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        let orig = self.featureless;
+        self.featureless = featureless;
+        let result = f(self);
+        self.featureless = orig;
+        result
+    }
+
+    /// Returns whether the currently matching element is acting as a featureless element (e.g.,
+    /// because we've crossed a shadow boundary). This is used to implement the :host selector
+    /// rules properly.
+    #[inline]
+    pub fn featureless(&self) -> bool {
+        self.featureless
     }
 
     /// Runs F with a different VisitedHandlingMode.

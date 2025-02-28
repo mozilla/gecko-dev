@@ -184,9 +184,8 @@ bitflags! {
         const HAS_SLOTTED = 1 << 1;
         const HAS_PART = 1 << 2;
         const HAS_PARENT = 1 << 3;
-        const HAS_NON_FEATURELESS_COMPONENT = 1 << 4;
-        const HAS_HOST = 1 << 5;
-        const HAS_SCOPE = 1 << 6;
+        const HAS_HOST = 1 << 4;
+        const HAS_SCOPE = 1 << 5;
     }
 }
 
@@ -306,13 +305,10 @@ where
                 }
             },
             Component::LocalName(..) => {
-                flags.insert(SelectorFlags::HAS_NON_FEATURELESS_COMPONENT);
                 specificity.element_selectors += 1
             },
             Component::Slotted(ref selector) => {
-                flags.insert(
-                    SelectorFlags::HAS_SLOTTED | SelectorFlags::HAS_NON_FEATURELESS_COMPONENT,
-                );
+                flags.insert(SelectorFlags::HAS_SLOTTED);
                 if !for_nesting_parent {
                     specificity.element_selectors += 1;
                     // Note that due to the way ::slotted works we only compete with
@@ -331,11 +327,10 @@ where
                 if let Some(ref selector) = *selector {
                     // See: https://github.com/w3c/csswg-drafts/issues/1915
                     *specificity += Specificity::from(selector.specificity());
-                    flags.insert(selector.flags() - SelectorFlags::HAS_NON_FEATURELESS_COMPONENT);
+                    flags.insert(selector.flags());
                 }
             },
             Component::ID(..) => {
-                flags.insert(SelectorFlags::HAS_NON_FEATURELESS_COMPONENT);
                 specificity.id_selectors += 1;
             },
             Component::Class(..) |
@@ -346,7 +341,6 @@ where
             Component::Empty |
             Component::Nth(..) |
             Component::NonTSPseudoClass(..) => {
-                flags.insert(SelectorFlags::HAS_NON_FEATURELESS_COMPONENT);
                 specificity.class_like_selectors += 1;
             },
             Component::Scope | Component::ImplicitScope => {
@@ -365,7 +359,7 @@ where
                 specificity.class_like_selectors += 1;
                 let sf = selector_list_specificity_and_flags(nth_of_data.selectors().iter(), for_nesting_parent);
                 *specificity += Specificity::from(sf.specificity);
-                flags.insert(sf.flags | SelectorFlags::HAS_NON_FEATURELESS_COMPONENT);
+                flags.insert(sf.flags);
             },
             // https://drafts.csswg.org/selectors/#specificity-rules:
             //
@@ -384,7 +378,7 @@ where
             Component::Has(ref relative_selectors) => {
                 let sf = relative_selector_list_specificity_and_flags(relative_selectors, for_nesting_parent);
                 *specificity += Specificity::from(sf.specificity);
-                flags.insert(sf.flags | SelectorFlags::HAS_NON_FEATURELESS_COMPONENT);
+                flags.insert(sf.flags);
             },
             Component::ExplicitUniversalType |
             Component::ExplicitAnyNamespace |
@@ -394,7 +388,6 @@ where
             Component::RelativeSelectorAnchor |
             Component::Invalid(..) => {
                 // Does not affect specificity
-                flags.insert(SelectorFlags::HAS_NON_FEATURELESS_COMPONENT);
             },
         }
     }

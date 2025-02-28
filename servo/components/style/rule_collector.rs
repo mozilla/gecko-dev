@@ -366,7 +366,10 @@ where
             let cascade_level = CascadeLevel::AuthorNormal {
                 shadow_cascade_order,
             };
+            debug_assert!(!collector.context.featureless(), "How?");
+            collector.context.featureless = true;
             collector.collect_rules_in_map(host_rules, cascade_level, style_data);
+            collector.context.featureless = false;
         });
     }
 
