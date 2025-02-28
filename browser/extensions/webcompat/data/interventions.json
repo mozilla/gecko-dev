@@ -3101,5 +3101,20 @@
         }
       }
     ]
+  },
+  "1950282": {
+    "label": "f1tv.formula1.com",
+    "bugs": {
+      "1950282": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://*.formula1.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
   }
 }
