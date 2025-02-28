@@ -9,8 +9,9 @@
 #include "mozilla/dom/TimeoutManager.h"
 
 namespace mozilla::dom {
+
 WebTaskWorkerRunnable::WebTaskWorkerRunnable(
-    WebTaskSchedulerWorker* aSchedulerWorker)
+    WorkerPrivate* aWorkerPrivate, WebTaskSchedulerWorker* aSchedulerWorker)
     : WorkerSameThreadRunnable("WebTaskWorkerRunnable"),
       mSchedulerWorker(aSchedulerWorker) {
   MOZ_ASSERT(mSchedulerWorker);
@@ -45,8 +46,7 @@ bool WebTaskWorkerRunnable::WorkerRun(JSContext* aCx,
   aWorkerPrivate->AssertIsOnWorkerThread();
 
   if (mSchedulerWorker) {
-    RefPtr<WebTask> task =
-        mSchedulerWorker->GetNextTask(false /* aIsMainThread */);
+    RefPtr<WebTask> task = mSchedulerWorker->GetNextTask();
     if (task) {
       task->Run();
     }
@@ -54,11 +54,12 @@ bool WebTaskWorkerRunnable::WorkerRun(JSContext* aCx,
   return true;
 }
 
-nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(
-    WebTask* aTask, uint64_t aDelay, EventQueuePriority aPriority) {
+nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(WebTask* aTask,
+                                                          uint64_t aDelay) {
   if (mWorkerIsShuttingDown) {
     return NS_ERROR_ABORT;
   }
+
   if (!mWorkerRef) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -72,7 +73,7 @@ nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(
     return NS_ERROR_UNEXPECTED;
   }
   RefPtr<DelayedWebTaskHandler> handler =
-      new DelayedWebTaskHandler(cx, this, aTask, aPriority);
+      new DelayedWebTaskHandler(cx, this, aTask);
   ErrorResult rv;
 
   int32_t delay = aDelay > INT32_MAX ? INT32_MAX : (int32_t)aDelay;
@@ -82,16 +83,7 @@ nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(
   return rv.StealNSResult();
 }
 
-bool WebTaskSchedulerWorker::DispatchEventLoopRunnable(
-    EventQueuePriority aPriority) {
-  // aPriority is unused at the moment, we can't control
-  // the priorities for runnables on workers at the moment.
-  //
-  // This won't affect the correctness of this API because
-  // WebTaskScheduler maintains its own priority queues.
-  //
-  // It's just that we can't interfere the ordering between
-  // `WebTask` and other runnables.
+bool WebTaskSchedulerWorker::DispatchEventLoopRunnable() {
   if (mWorkerIsShuttingDown) {
     return false;
   }
@@ -102,7 +94,8 @@ bool WebTaskSchedulerWorker::DispatchEventLoopRunnable(
   MOZ_ASSERT(mWorkerRef->Private());
   mWorkerRef->Private()->AssertIsOnWorkerThread();
 
-  RefPtr<WebTaskWorkerRunnable> runnable = new WebTaskWorkerRunnable(this);
+  RefPtr<WebTaskWorkerRunnable> runnable =
+      new WebTaskWorkerRunnable(mWorkerRef->Private(), this);
   return runnable->Dispatch(mWorkerRef->Private());
 }
 
@@ -112,16 +105,4 @@ void WebTaskSchedulerWorker::Disconnect() {
   }
   WebTaskScheduler::Disconnect();
 }
-
-void WebTaskSchedulerWorker::
-    IncreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled() {
-  ++mNumHighPriorityQueuesHaveTaskScheduled;
-}
-
-void WebTaskSchedulerWorker::
-    DecreaseNumNormalOrHighPriorityQueuesHaveTaskScheduled() {
-  MOZ_ASSERT(mNumHighPriorityQueuesHaveTaskScheduled > 0);
-  --mNumHighPriorityQueuesHaveTaskScheduled;
-}
-
 }  // namespace mozilla::dom

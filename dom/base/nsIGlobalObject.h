@@ -53,7 +53,6 @@ class ServiceWorkerContainer;
 class ServiceWorkerRegistration;
 class ServiceWorkerRegistrationDescriptor;
 class StorageManager;
-class WebTaskSchedulingState;
 enum class CallerType : uint32_t;
 }  // namespace dom
 namespace ipc {
@@ -192,13 +191,6 @@ class nsIGlobalObject : public nsISupports {
 
   virtual mozilla::dom::DebuggerNotificationManager*
   GetExistingDebuggerNotificationManager() {
-    return nullptr;
-  }
-
-  virtual void SetWebTaskSchedulingState(
-      mozilla::dom::WebTaskSchedulingState* aState) {}
-  virtual mozilla::dom::WebTaskSchedulingState* GetWebTaskSchedulingState()
-      const {
     return nullptr;
   }
 
@@ -344,10 +336,6 @@ class nsIGlobalObject : public nsISupports {
   virtual bool HasOpenWebSockets() const { return false; }
 
   virtual bool IsXPCSandbox() { return false; }
-
-  virtual bool HasScheduledNormalOrHighPriorityWebTasks() const {
-    return false;
-  }
 
   /**
    * Report a localized error message to the error console.  Currently this
