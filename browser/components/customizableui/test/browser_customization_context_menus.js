@@ -107,6 +107,8 @@ add_task(async function tabstrip_context() {
     ["#toolbar-context-selectAllTabs", true],
     ["#toolbar-context-undoCloseTab", !closedTabsAvailable],
     ["---"],
+    ["#toolbar-context-toggle-vertical-tabs", true],
+    ["---"],
   ];
   if (!isOSX) {
     expectedEntries.push(["#toggle_toolbar-menubar", true]);
@@ -649,14 +651,19 @@ add_task(async function flexible_space_context_menu() {
   await shownPromise;
 
   let expectedEntries = [
-    ["#toggle_PersonalToolbar", true],
+    ["#toolbar-context-toggle-vertical-tabs", true],
     ["---"],
-    [".viewCustomizeToolbar", true],
   ];
 
   if (!isOSX) {
-    expectedEntries.unshift(["#toggle_toolbar-menubar", true]);
+    expectedEntries.push(["#toggle_toolbar-menubar", true]);
   }
+
+  expectedEntries.push(
+    ["#toggle_PersonalToolbar", true],
+    ["---"],
+    [".viewCustomizeToolbar", true]
+  );
 
   checkContextMenu(contextMenu, expectedEntries);
   contextMenu.hidePopup();
