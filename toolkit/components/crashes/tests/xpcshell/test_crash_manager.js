@@ -980,6 +980,10 @@ add_task(async function test_glean_crash_ping() {
       "feature 2",
     ]);
     Assert.equal(Glean.environment.headlessMode.testGetValue(), true);
+    Assert.deepEqual(Glean.environment.nimbusEnrollments.testGetValue(), [
+      "foo:control",
+      "bar:treatment-a",
+    ]);
     Assert.equal(Glean.environment.uptime.testGetValue(), 3601000);
     Assert.equal(Glean.memory.availableCommit.testGetValue(), 100);
     Assert.equal(Glean.memory.availablePhysical.testGetValue(), 200);
@@ -1027,6 +1031,7 @@ add_task(async function test_glean_crash_ping() {
       LowPhysicalMemoryEvents: 500,
       MainThreadRunnableName: "main thread name",
       MozCrashReason: "MOZ CRASH reason",
+      NimbusEnrollments: "foo:control,bar:treatment-a",
       OOMAllocationSize: 600,
       ProfilerChildShutdownPhase: "profiler shutdown",
       PurgeablePhysicalMemory: 700,

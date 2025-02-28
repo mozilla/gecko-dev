@@ -684,6 +684,13 @@ MozCrashReason:
   type: string
   ping: true
 
+NimbusEnrollments:
+  description: >
+    A comma-separated string that specifies the active Nimbus experiments and
+    rollouts, as well as their branches.
+  type: string
+  ping: true
+
 Notes:
   description: >
     Miscellaneous notes that can be appended to a crash.

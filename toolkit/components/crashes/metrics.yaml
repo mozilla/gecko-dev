@@ -815,6 +815,23 @@ dll_blocklist:
 
 
 environment:
+  nimbus_enrollments:
+    type: string_list
+    description: >
+      The active Nimbus experiments and rollouts, as well as their branches.
+    notification_emails:
+      - crash-reporting-wg@mozilla.org
+      - stability@mozilla.org
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950661
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1950661
+    data_sensitivity:
+      - technical
+    expires: never
+    send_in_pings:
+      - crash
+
   experimental_features:
     type: string_list
     description: >
