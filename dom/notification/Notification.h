@@ -84,11 +84,11 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
    * 2) The default binding requires main thread for parsing the JSON from the
    *    string behavior.
    */
-   static Result<already_AddRefed<Notification>, QMResult> ConstructFromFields(
-    nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
-    const nsAString& aDir, const nsAString& aLang, const nsAString& aBody,
-    const nsAString& aTag, const nsAString& aIcon, const nsAString& aData,
-    const nsAString& aServiceWorkerRegistrationScope);
+  static Result<already_AddRefed<Notification>, QMResult> ConstructFromFields(
+      nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
+      const nsAString& aDir, const nsAString& aLang, const nsAString& aBody,
+      const nsAString& aTag, const nsAString& aIcon, const nsAString& aData,
+      const nsAString& aServiceWorkerRegistrationScope);
 
   /**
    * Used when retrieving notification objects from the parent process.
