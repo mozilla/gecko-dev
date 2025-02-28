@@ -74,7 +74,7 @@ async def test_params_extension_data_archive_path_invalid_webextension(bidi_sess
 async def test_params_extension_data_path_invalid_webextension(bidi_session, extension_data):
     with pytest.raises(error.InvalidWebExtensionException):
         await bidi_session.web_extension.install(
-            extensionData={"type": "path", "path": extension_data["unsigned.xpi"]}
+            extensionData={"type": "path", "path": extension_data["archivePath"]}
         )
 
 
