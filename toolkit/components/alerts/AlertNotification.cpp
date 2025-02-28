@@ -283,7 +283,8 @@ AlertNotification::GetAction(const nsAString& aName,
     nsString name;
     MOZ_TRY(action->GetAction(name));
     if (name.Equals(aName)) {
-      *aAlertAction = action;
+      RefPtr<nsIAlertAction> match = action;
+      match.forget(aAlertAction);
       return NS_OK;
     }
   }
