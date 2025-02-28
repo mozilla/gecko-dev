@@ -103,11 +103,11 @@ interface nsIStandaloneNativeMenu extends nsISupports {
 // https://searchfox.org/mozilla-central/source/widget/nsITaskbarProgress.idl
 
 interface nsITaskbarProgress extends nsISupports {
-  readonly STATE_NO_PROGRESS: 0;
-  readonly STATE_INDETERMINATE: 1;
-  readonly STATE_NORMAL: 2;
-  readonly STATE_ERROR: 3;
-  readonly STATE_PAUSED: 4;
+  readonly STATE_NO_PROGRESS?: 0;
+  readonly STATE_INDETERMINATE?: 1;
+  readonly STATE_NORMAL?: 2;
+  readonly STATE_ERROR?: 3;
+  readonly STATE_PAUSED?: 4;
 
   setProgressState(state: nsTaskbarProgressState, currentValue?: u64, maxValue?: u64): void;
 }

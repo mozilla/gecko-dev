@@ -14,11 +14,11 @@ interface nsIInstalledApplication extends nsISupports {
 }
 
 interface nsIAboutThirdParty extends nsISupports {
-  readonly ModuleType_Unknown: 1;
-  readonly ModuleType_IME: 2;
-  readonly ModuleType_ShellExtension: 4;
-  readonly ModuleType_BlockedByUser: 8;
-  readonly ModuleType_BlockedByUserAtLaunch: 16;
+  readonly ModuleType_Unknown?: 1;
+  readonly ModuleType_IME?: 2;
+  readonly ModuleType_ShellExtension?: 4;
+  readonly ModuleType_BlockedByUser?: 8;
+  readonly ModuleType_BlockedByUserAtLaunch?: 16;
 
   lookupModuleType(aLeafName: string): u32;
   lookupApplication(aModulePath: string): nsIInstalledApplication;
@@ -52,7 +52,6 @@ enum ImagePlacement {
 declare global {
 
 interface nsIWindowsAlertNotification extends nsIAlertNotification, Enums<typeof nsIWindowsAlertNotification.ImagePlacement> {
-  handleActions: boolean;
   imagePlacement: nsIWindowsAlertNotification.ImagePlacement;
 }
 
@@ -215,11 +214,11 @@ interface nsITaskbarPreviewController extends nsISupports {
 // https://searchfox.org/mozilla-central/source/widget/nsITaskbarProgress.idl
 
 interface nsITaskbarProgress extends nsISupports {
-  readonly STATE_NO_PROGRESS: 0;
-  readonly STATE_INDETERMINATE: 1;
-  readonly STATE_NORMAL: 2;
-  readonly STATE_ERROR: 3;
-  readonly STATE_PAUSED: 4;
+  readonly STATE_NO_PROGRESS?: 0;
+  readonly STATE_INDETERMINATE?: 1;
+  readonly STATE_NORMAL?: 2;
+  readonly STATE_ERROR?: 3;
+  readonly STATE_PAUSED?: 4;
 
   setProgressState(state: nsTaskbarProgressState, currentValue?: u64, maxValue?: u64): void;
 }
@@ -235,7 +234,7 @@ interface nsITaskbarTabPreview extends nsITaskbarPreview {
 // https://searchfox.org/mozilla-central/source/widget/nsITaskbarWindowPreview.idl
 
 interface nsITaskbarWindowPreview extends nsITaskbarPreview {
-  readonly NUM_TOOLBAR_BUTTONS: 7;
+  readonly NUM_TOOLBAR_BUTTONS?: 7;
 
   getButton(index: u32): nsITaskbarPreviewButton;
   enableCustomDrawing: boolean;
@@ -280,25 +279,25 @@ interface nsIWindowsPackageManager extends nsISupports {
 // https://searchfox.org/mozilla-central/source/xpcom/ds/nsIWindowsRegKey.idl
 
 interface nsIWindowsRegKey extends nsISupports {
-  readonly ROOT_KEY_CLASSES_ROOT: 2147483648;
-  readonly ROOT_KEY_CURRENT_USER: 2147483649;
-  readonly ROOT_KEY_LOCAL_MACHINE: 2147483650;
-  readonly ACCESS_BASIC: 131072;
-  readonly ACCESS_QUERY_VALUE: 1;
-  readonly ACCESS_SET_VALUE: 2;
-  readonly ACCESS_CREATE_SUB_KEY: 4;
-  readonly ACCESS_ENUMERATE_SUB_KEYS: 8;
-  readonly ACCESS_NOTIFY: 16;
-  readonly ACCESS_READ: 131097;
-  readonly ACCESS_WRITE: 131078;
-  readonly ACCESS_ALL: 131103;
-  readonly WOW64_32: 512;
-  readonly WOW64_64: 256;
-  readonly TYPE_NONE: 0;
-  readonly TYPE_STRING: 1;
-  readonly TYPE_BINARY: 3;
-  readonly TYPE_INT: 4;
-  readonly TYPE_INT64: 11;
+  readonly ROOT_KEY_CLASSES_ROOT?: 2147483648;
+  readonly ROOT_KEY_CURRENT_USER?: 2147483649;
+  readonly ROOT_KEY_LOCAL_MACHINE?: 2147483650;
+  readonly ACCESS_BASIC?: 131072;
+  readonly ACCESS_QUERY_VALUE?: 1;
+  readonly ACCESS_SET_VALUE?: 2;
+  readonly ACCESS_CREATE_SUB_KEY?: 4;
+  readonly ACCESS_ENUMERATE_SUB_KEYS?: 8;
+  readonly ACCESS_NOTIFY?: 16;
+  readonly ACCESS_READ?: 131097;
+  readonly ACCESS_WRITE?: 131078;
+  readonly ACCESS_ALL?: 131103;
+  readonly WOW64_32?: 512;
+  readonly WOW64_64?: 256;
+  readonly TYPE_NONE?: 0;
+  readonly TYPE_STRING?: 1;
+  readonly TYPE_BINARY?: 3;
+  readonly TYPE_INT?: 4;
+  readonly TYPE_INT64?: 11;
 
   close(): void;
   open(rootKey: u32, relPath: string, mode: u32): void;
@@ -372,8 +371,8 @@ type InOutParam<T> = { value: T };
 /** XPCOM out param is written to the passed in object's value property. */
 type OutParam<T> = { value?: T };
 
-/** A named type to enable interfaces to inherit from enums. */
-type Enums<enums> = enums;
+/** Enable interfaces to inherit from enums: pick variants as optional. */
+type Enums<enums> = Partial<Pick<enums, keyof enums>>;
 
 /** Callable accepts either form of a [function] interface. */
 type Callable<iface> = iface | Extract<iface[keyof iface], Function>

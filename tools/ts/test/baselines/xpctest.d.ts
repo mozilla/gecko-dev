@@ -72,7 +72,7 @@ enum testFlagsImplicit {
 declare global {
 
 interface nsIXPCTestCEnums extends nsISupports, Enums<typeof nsIXPCTestCEnums.testFlagsExplicit & typeof nsIXPCTestCEnums.testFlagsImplicit> {
-  readonly testConst: 1;
+  readonly testConst?: 1;
 
   testCEnumInput(abc: nsIXPCTestCEnums.testFlagsExplicit): void;
   testCEnumOutput(): nsIXPCTestCEnums.testFlagsExplicit;
@@ -143,10 +143,10 @@ interface nsIXPCTestReturnCodeParent extends nsISupports {
 }
 
 interface nsIXPCTestReturnCodeChild extends nsISupports {
-  readonly CHILD_SHOULD_THROW: 0;
-  readonly CHILD_SHOULD_RETURN_SUCCESS: 1;
-  readonly CHILD_SHOULD_RETURN_RESULTCODE: 2;
-  readonly CHILD_SHOULD_NEST_RESULTCODES: 3;
+  readonly CHILD_SHOULD_THROW?: 0;
+  readonly CHILD_SHOULD_RETURN_SUCCESS?: 1;
+  readonly CHILD_SHOULD_RETURN_RESULTCODE?: 2;
+  readonly CHILD_SHOULD_NEST_RESULTCODES?: 3;
 
   doIt(behavior: i32): void;
 }
@@ -195,8 +195,8 @@ type InOutParam<T> = { value: T };
 /** XPCOM out param is written to the passed in object's value property. */
 type OutParam<T> = { value?: T };
 
-/** A named type to enable interfaces to inherit from enums. */
-type Enums<enums> = enums;
+/** Enable interfaces to inherit from enums: pick variants as optional. */
+type Enums<enums> = Partial<Pick<enums, keyof enums>>;
 
 /** Callable accepts either form of a [function] interface. */
 type Callable<iface> = iface | Extract<iface[keyof iface], Function>

@@ -18406,6 +18406,7 @@ declare var Sanitizer: {
 
 interface Scheduler {
     postTask(callback: SchedulerPostTaskCallback, options?: SchedulerPostTaskOptions): Promise<any>;
+    yield(): Promise<void>;
 }
 
 declare var Scheduler: {
