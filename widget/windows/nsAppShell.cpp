@@ -464,6 +464,9 @@ WindowsDiagnosticsError CollectUser32SingleStepData(
 //
 /* static */ [[clang::optnone]] MOZ_NEVER_INLINE HWND
 nsAppShell::StaticCreateEventWindow() {
+  // This code path would fail at CreateWindowW under win32k lockdown.
+  MOZ_RELEASE_ASSERT(!IsWin32kLockedDown());
+
   // note the incoming error-state; this may be relevant to errors we get later
   auto _initialErr [[maybe_unused]] = WinErrorState::Get();
   // reset the error-state, to avoid ambiguity below
