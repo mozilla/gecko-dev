@@ -457,9 +457,9 @@ nsresult PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
 
   // We do callback handling on STS instead of main to avoid media jank.
   // Someday, we may have a dedicated thread for this.
-  mTransportHandler = MediaTransportHandler::Create(mSTSThread);
+  RefPtr transportHandler = MediaTransportHandler::Create(mSTSThread);
   if (mPrivateWindow) {
-    mTransportHandler->EnterPrivateMode();
+    transportHandler->EnterPrivateMode();
   }
 
   // Initialize NSS if we are in content process. For chrome process, NSS should
@@ -500,6 +500,10 @@ nsresult PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
   res = PeerConnectionCtx::InitializeGlobal();
   NS_ENSURE_SUCCESS(res, res);
 
+  // Only set mTransportHandler here, after the NS_ENSURE_ exit guards, to not
+  // leave it in an unusable state -- CreateIceCtx must have been called for
+  // other calls to work.
+  mTransportHandler = std::move(transportHandler);
   mTransportHandler->CreateIceCtx("PC:" + GetName());
 
   mJsepSession =
