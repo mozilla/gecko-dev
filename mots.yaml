@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-02-21T14:10:00.703387+00:00'
+updated_at: '2025-02-28T00:54:59.356278+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3403,6 +3403,7 @@ modules:
             - Robert Strong
             - Andrew Swan
             - Kris Maglione
+          review_group: extension-reviewers
         owners:
           - *scaraveo
           - *rpl
@@ -3421,6 +3422,7 @@ modules:
           owners_emeritus:
             - Robert Strong
             - Andrew Swan
+          review_group: extension-reviewers
         owners:
           - *scaraveo
           - *mstriemer
@@ -4479,7 +4481,7 @@ modules:
           peers_emeritus:
             - Andrew Swan
             - Kris Maglione
-          review_group: extensions-reviewers
+          review_group: extension-reviewers
         owners:
           - *scaraveo
           - *zombie
@@ -4559,5 +4561,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: d10cebf1e6370a4fc7b9a3b838cb0014b36bc54a
-  export: bf264580f2d6a069bd9e825c6e7b4c5cf2aa0b7d
+  config: 7f489fb93d3e8078cd43e781b2852c904d074d6f
+  export: 01e64b9b9b1aa9487f8f62638a254573a3dc3927

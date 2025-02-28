@@ -113,6 +113,9 @@ Review groups
    * - #dom-storage-reviewers
      - DOM Storage
      - `Member list <https://phabricator.services.mozilla.com/project/members/147/>`__
+   * - #extension-reviewers
+     - `WebExtensions </mots/index.html#webextensions>`__ and `Toolkit::Add-ons Manager </mots/index.html#add-ons-manager>`__
+     - `Member list <https://phabricator.services.mozilla.com/project/members/130/>`__
    * - #fluent-reviewers
      - Fluent (FTL) files (translation).
      - `Member list <https://phabricator.services.mozilla.com/project/members/105/>`__
