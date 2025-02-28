@@ -2,7 +2,8 @@
  * https://creativecommons.org/publicdomain/zero/1.0/ */
 
 // Test that a favicon with Cache-Control: no-store is not stored in Places.
-// Also tests that favicons added after pageshow are not stored.
+// Also tests that favicons added after pageshow are not stored, unless they
+// are root icons.
 
 const TEST_SITE = "http://example.net";
 const ICON_URL =
@@ -135,6 +136,52 @@ add_task(async function root_icon_stored() {
         return uri?.spec == "http://www.nostore.com/favicon.ico";
       }, "wait for the favicon to be stored");
       Assert.ok(await noStorePromise, "Should have received no-store header");
+    }
+  );
+});
+
+add_task(async function root_icon_after_pageshow_stored() {
+  XPCShellContentUtils.ensureInitialized(this);
+  let server = XPCShellContentUtils.createHttpServer({
+    hosts: ["rootafterpageshow.com"],
+  });
+  server.registerFile(
+    "/favicon.ico",
+    new FileUtils.File(
+      PathUtils.join(
+        Services.dirsvc.get("CurWorkD", Ci.nsIFile).path,
+        "browser",
+        "browser",
+        "base",
+        "content",
+        "test",
+        "favicons",
+        "no-store.png"
+      )
+    )
+  );
+  server.registerPathHandler("/page", (request, response) => {
+    response.write(`<html><body>
+      <link rel="shortcut icon" href="/favicon.ico">
+      A page with root icon in body.
+      </body></html>`);
+  });
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: "http://rootafterpageshow.com/page",
+    },
+    async function () {
+      await TestUtils.waitForCondition(async () => {
+        let uri = await new Promise(resolve =>
+          PlacesUtils.favicons.getFaviconURLForPage(
+            Services.io.newURI("http://rootafterpageshow.com/page"),
+            resolve
+          )
+        );
+        return uri?.spec == "http://rootafterpageshow.com/favicon.ico";
+      }, "wait for the favicon to be stored");
     }
   );
 });
