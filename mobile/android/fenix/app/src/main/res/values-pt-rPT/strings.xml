@@ -859,6 +859,16 @@
     <string name="preferences_show_nonsponsored_suggestions">Sugestões de %1$s</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">Obtenha sugestões da Internet relacionadas com a sua pesquisa</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">Partilha de ligações</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">Incluir ligação de transferência do %1$s nas partilhas do WhatsApp</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">Convide os seus amigos para experimentar uma navegação mais rápida e segura com o %1$s sempre que partilhar uma ligação no WhatsApp.</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">Ligação partilhada</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">Gerir definições</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Abrir ligações em aplicações</string>
     <!-- Preference for open links in third party apps always open in apps option -->
@@ -1759,6 +1769,11 @@
     <string name="sync_add_new_device_learn_button">Aprenda sobre o envio de separadores…</string>
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">Associar outro dispositivo…</string>
+
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nEnviado de %2$s 🦊 Experimente o navegador móvel: %3$s</string>
+    <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nEnviado de %2$s 🦊 %3$s</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->

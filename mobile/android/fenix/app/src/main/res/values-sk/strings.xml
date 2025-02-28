@@ -866,6 +866,16 @@
     <string name="preferences_show_nonsponsored_suggestions">Návrhy od %1$su</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">Získajte návrhy z webu súvisiace s vaším vyhľadávaním</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">Zdieľanie odkazov</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">Zahrnúť odkaz na stiahnutie %1$su pri zdieľaní na WhatsAppe</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">Pozvite svojich priateľov, aby vyskúšali rýchlejšie a bezpečnejšie prehliadanie s prehliadačom %1$s zakaždým, keď zdieľate odkaz cez WhatsApp.</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">Odkaz bol zdieľaný</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">Spravovať nastavenia</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Otvárať odkazy v aplikáciách</string>
 
@@ -1770,6 +1780,11 @@
     <string name="sync_add_new_device_learn_button">Ďalšie informácie o odosielaní kariet…</string>
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">Pripojiť ďalšie zariadenie…</string>
+
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nOdoslané z %2$su 🦊 Vyskúšajte mobilný prehliadač: %3$s</string>
+    <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nOdoslané z %2$su 🦊 %3$s</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->

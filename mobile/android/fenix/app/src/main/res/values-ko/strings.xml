@@ -870,6 +870,16 @@
     <string name="preferences_show_nonsponsored_suggestions">%1$s 제안</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">사용자 검색과 관련된 웹 제안을 받으세요</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">링크 공유</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">WhatsApp 공유에 %1$s 다운로드 링크 포함</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">WhatsApp에서 링크를 공유할 때마다, %1$s로 친구들을 더 빠르고 안전하게 탐색하게 할 수 있습니다.</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">링크 공유됨</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">설정 관리</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">앱에서 링크 열기</string>
 
@@ -1798,6 +1808,11 @@
     <string name="sync_add_new_device_learn_button">탭 보내기에 대해 알아보기…</string>
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">다른 기기 연결…</string>
+
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n%2$s에서 보냄 🦊 모바일 브라우저 사용해보기: %3$s</string>
+    <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n%2$s에서 보냄 🦊 %3$s</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
