@@ -670,10 +670,17 @@ void NativeLayerWayland::RemoveAttachedBufferLocked(
 
 bool NativeLayerWayland::Map(WaylandSurfaceLock* aParentWaylandSurfaceLock) {
   MutexAutoLock lock(mMutex);
+
+  if (mNeedsMainThreadUpdate == MainThreadUpdate::Unmap) {
+    LOG("NativeLayerWayland::Map() waiting to MainThreadUpdate::Unmap");
+    return false;
+  }
+
   LOG("NativeLayerWayland::Map() parent %p", mRootLayer.get());
 
   WaylandSurfaceLock surfaceLock(mSurface);
   MOZ_DIAGNOSTIC_ASSERT(!mSurface->IsMapped());
+  MOZ_DIAGNOSTIC_ASSERT(mNeedsMainThreadUpdate != MainThreadUpdate::Map);
 
   if (!mSurface->MapLocked(surfaceLock, aParentWaylandSurfaceLock,
                            gfx::IntPoint(0, 0))) {
