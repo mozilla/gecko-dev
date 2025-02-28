@@ -3034,23 +3034,6 @@ security.doh.settings:
       - necko@mozilla.com
     products:
       - firefox
-  warn_checkbox:
-    objects: ["checkbox"]
-    bug_numbers:
-      - 1829905
-    description: >
-      User clicked the Warn if a third party actively prevents secure DNS
-      checkbox in about:preferences#privacy.
-      Value is true or false, reflecting if box is checked or unchecked.
-    expiry_version: never
-    record_in_processes:
-      - main
-    release_channel_collection: opt-out
-    notification_emails:
-      - vgosu@mozilla.com
-      - necko@mozilla.com
-    products:
-      - firefox
   provider_choice:
     objects: ["value"]
     bug_numbers:
