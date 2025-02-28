@@ -40,7 +40,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
   add_task(async function runTest() {
     await SpecialPowers.pushPrefEnv({"set": [
       // notificationclick_focus depends on this value
-      ["dom.serviceWorkers.disable_open_click_delay", 1000],
+      ["dom.webnotifications.disable_open_click_delay", 1000],
     ]});
     await NotificationTest.allowNotifications();
     await MockAlertsService.register();

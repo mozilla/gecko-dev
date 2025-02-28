@@ -201,10 +201,6 @@ pref("dom.meta-viewport.enabled", true);
 // subscription, to avoid duplicates for unacknowledged messages (bug 1207743)
 pref("dom.push.maxRecentMessageIDsPerSubscription", 0);
 
-// Allow service workers to open windows for a longer period after a notification
-// click on mobile. This is to account for some devices being quite slow (bug 1409761)
-pref("dom.serviceWorkers.disable_open_click_delay", 5000);
-
 // Enable WebShare support (bug 1402369)
 pref("dom.webshare.enabled", true);
 

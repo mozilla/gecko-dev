@@ -5379,6 +5379,18 @@
   value: Error
   mirror: never
 
+# Allow notificationclick to open window only during the limited timeframe.
+- name: dom.webnotifications.disable_open_click_delay
+  type: RelaxedAtomicUint32
+#if defined(ANDROID)
+  # Allow service workers to open windows for a longer period after a notification
+  # click on mobile. This is to account for some devices being quite slow (bug 1409761)
+  value: 5000
+#else
+  value: 1000
+#endif
+  mirror: always
+
 - name: dom.worker.canceling.timeoutMilliseconds
   type: RelaxedAtomicUint32
   value: 30000    # 30 seconds
