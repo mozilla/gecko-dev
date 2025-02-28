@@ -4,15 +4,12 @@ import { ContentTiles } from "content-src/components/ContentTiles";
 import { ActionChecklist } from "content-src/components/ActionChecklist";
 import { MobileDownloads } from "content-src/components/MobileDownloads";
 import { AboutWelcomeUtils } from "content-src/lib/aboutwelcome-utils.mjs";
-import { GlobalOverrider } from "asrouter/tests/unit/utils";
 
 describe("ContentTiles component", () => {
   let sandbox;
   let wrapper;
   let handleAction;
   let setActiveMultiSelect;
-  let setActiveSingleSelect;
-  let globals;
 
   const CHECKLIST_TILE = {
     type: "action_checklist",
@@ -59,17 +56,6 @@ describe("ContentTiles component", () => {
     },
   };
 
-  const TITLE_TILE = {
-    type: "mobile_downloads",
-    title: "Tile Title",
-    subtitle: "Tile Subtitle",
-    data: {
-      email: {
-        link_text: "Email yourself a link",
-      },
-    },
-  };
-
   const TEST_CONTENT = {
     tiles: [CHECKLIST_TILE, MOBILE_TILE],
   };
@@ -78,11 +64,6 @@ describe("ContentTiles component", () => {
     sandbox = sinon.createSandbox();
     handleAction = sandbox.stub();
     setActiveMultiSelect = sandbox.stub();
-    setActiveSingleSelect = sandbox.stub();
-    globals = new GlobalOverrider();
-    globals.set({
-      AWSendToDeviceEmailsSupported: () => Promise.resolve(),
-    });
     wrapper = shallow(
       <ContentTiles
         content={TEST_CONTENT}
@@ -95,7 +76,6 @@ describe("ContentTiles component", () => {
 
   afterEach(() => {
     sandbox.restore();
-    globals.restore();
   });
 
   it("should render the component when tiles are provided", () => {
@@ -372,99 +352,5 @@ describe("ContentTiles component", () => {
     wrapper.update();
 
     sinon.assert.notCalled(setActiveMultiSelect);
-  });
-
-  it("should render title and subtitle if present", () => {
-    sandbox.stub(window, "AWSendToDeviceEmailsSupported").resolves(true);
-
-    let TEST_TILE_CONTENT = {
-      tiles: [TITLE_TILE],
-    };
-
-    const mountedWrapper = mount(
-      <ContentTiles
-        content={TEST_TILE_CONTENT}
-        handleAction={() => {}}
-        activeMultiSelect={null}
-        setActiveMultiSelect={setActiveMultiSelect}
-      />
-    );
-
-    const tileTitle = mountedWrapper.find(".tile-title");
-    const tileSubtitle = mountedWrapper.find(".tile-subtitle");
-
-    assert.ok(tileTitle.exists(), "Title should render");
-    assert.ok(tileSubtitle.exists(), "Subtitle should render");
-
-    assert.equal(
-      tileTitle.text(),
-      "Tile Title",
-      "Tile title should have correct text"
-    );
-    assert.equal(
-      tileSubtitle.text(),
-      "Tile Subtitle",
-      "Tile subtitle should have correct text"
-    );
-
-    mountedWrapper.unmount();
-  });
-
-  it("should render multiple title and subtitles if multiple tiles contain them", () => {
-    sandbox.stub(window, "AWSendToDeviceEmailsSupported").resolves(true);
-    const SECOND_TITLE_TILE = {
-      type: "mobile_downloads",
-      title: "Tile Title 2",
-      subtitle: "Tile Subtitle 2",
-      data: {
-        email: {
-          link_text: "Email yourself a link",
-        },
-      },
-    };
-
-    let MULTIPLE_TILES_CONTENT = {
-      tiles: [TITLE_TILE, SECOND_TITLE_TILE],
-    };
-
-    const mountedWrapper = mount(
-      <ContentTiles
-        content={MULTIPLE_TILES_CONTENT}
-        handleAction={() => {}}
-        activeMultiSelect={null}
-        setActiveMultiSelect={setActiveMultiSelect}
-        setActiveSingleSelect={setActiveSingleSelect}
-      />
-    );
-
-    const tileTitles = mountedWrapper.find(".tile-title");
-    const tileSubtitles = mountedWrapper.find(".tile-subtitle");
-
-    assert.equal(tileTitles.length, 2, "Should render two tile titles");
-    assert.equal(tileSubtitles.length, 2, "Should render two tile subtitles");
-
-    assert.equal(
-      tileTitles.at(0).text(),
-      "Tile Title",
-      "First tile title should have correct text"
-    );
-    assert.equal(
-      tileSubtitles.at(0).text(),
-      "Tile Subtitle",
-      "First tile subtitle should have correct text"
-    );
-
-    assert.equal(
-      tileTitles.at(1).text(),
-      "Tile Title 2",
-      "Second tile title should have correct text"
-    );
-    assert.equal(
-      tileSubtitles.at(1).text(),
-      "Tile Subtitle 2",
-      "Second tile subtitle should have correct text"
-    );
-
-    mountedWrapper.unmount();
   });
 });

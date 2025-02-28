@@ -558,22 +558,6 @@ html {
         }
       }
 
-      #content-tiles-container {
-        margin: 0;
-
-        .content-tile:not(:only-child) {
-          margin-block: 0 24px;
-        }
-
-        .content-tile:last-child {
-          margin-block: 0 40px;
-        }
-
-        .multi-select-container {
-          padding: 0;
-        }
-      }
-
       .section-secondary,
       .section-main {
         width: $split-section-width;
@@ -2038,28 +2022,6 @@ html {
     }
   }
 
-  .tile-title-container {
-    margin-block: 10px 24px;
-    margin-inline: 0;
-    text-align: start;
-    transition: var(--transition);
-  }
-
-  .tile-title {
-    font-size: 24px;
-    font-weight: 600;
-    margin-block: 0;
-
-    &:not(:last-child) {
-      margin-block-end: 16px;
-    }
-  }
-
-  .tile-subtitle {
-    font-size: 16px;
-    margin-block: 0;
-  }
-
   .dismiss-button {
     position: absolute;
     z-index: 2;
@@ -2501,7 +2463,6 @@ html {
       .cta-link,
       .legal-paragraph,
       migration-wizard,
-      .tile-title-container,
       .steps[above-button]:not(.progress-bar) {
         opacity: 0;
         translate: 0 calc(-1 * var(--translate));
