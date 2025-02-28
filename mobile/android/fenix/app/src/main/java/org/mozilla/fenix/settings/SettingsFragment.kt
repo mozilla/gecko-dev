@@ -752,7 +752,6 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 Engine.DohSettingsMode.OFF -> getString(R.string.preference_doh_off)
                 Engine.DohSettingsMode.INCREASED -> getString(R.string.preference_doh_increased_protection)
                 Engine.DohSettingsMode.MAX -> getString(R.string.preference_doh_max_protection)
-                else -> null
             }
         }
     }
