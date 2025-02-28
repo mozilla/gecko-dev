@@ -1161,8 +1161,15 @@ nsresult ServiceWorkerManager::SendNotificationEvent(
   }
 
   ServiceWorkerPrivate* workerPrivate = info->WorkerPrivate();
-  return workerPrivate->SendNotificationEvent(
-      aEventName, aID, aTitle, aDir, aLang, aBody, aTag, aIcon, aData, aScope);
+
+  NotificationDirection dir = StringToEnum<NotificationDirection>(aDir).valueOr(
+      NotificationDirection::Auto);
+
+  // XXX(krosylight): Some notifications options are missing in SWM
+  IPCNotificationOptions options(
+      nsString(aTitle), dir, nsString(aLang), nsString(aBody), nsString(aTag),
+      nsString(aIcon), false, false, nsTArray<uint32_t>(), nsString(aData));
+  return workerPrivate->SendNotificationEvent(aEventName, aScope, aID, options);
 }
 
 NS_IMETHODIMP

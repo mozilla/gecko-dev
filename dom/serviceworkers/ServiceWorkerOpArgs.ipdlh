@@ -55,15 +55,7 @@ struct ServiceWorkerPushSubscriptionChangeEventOpArgs {
 
 struct ServiceWorkerNotificationEventOpArgs {
   nsString eventName;
-  nsString id;
-  nsString title;
-  nsString dir;
-  nsString lang;
-  nsString body;
-  nsString tag;
-  nsString icon;
-  nsString data;
-  nsString scope;
+  IPCNotification notification;
 };
 
 struct ServiceWorkerExtensionAPIEventOpArgs {

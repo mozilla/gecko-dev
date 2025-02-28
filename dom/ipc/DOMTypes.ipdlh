@@ -354,5 +354,10 @@ struct IPCNotificationOptions {
   nsString dataSerialized;
 };
 
+struct IPCNotification {
+  nsString id;
+  IPCNotificationOptions options;
+};
+
 } // namespace dom
 } // namespace mozilla

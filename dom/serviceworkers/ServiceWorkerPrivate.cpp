@@ -984,10 +984,8 @@ nsresult ServiceWorkerPrivate::SendPushSubscriptionChangeEvent(
 }
 
 nsresult ServiceWorkerPrivate::SendNotificationEvent(
-    const nsAString& aEventName, const nsAString& aID, const nsAString& aTitle,
-    const nsAString& aDir, const nsAString& aLang, const nsAString& aBody,
-    const nsAString& aTag, const nsAString& aIcon, const nsAString& aData,
-    const nsAString& aScope) {
+    const nsAString& aEventName, const nsAString& aScope, const nsAString& aId,
+    const IPCNotificationOptions& aOptions) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!aEventName.EqualsLiteral(NOTIFICATION_CLICK_EVENT_NAME) &&
@@ -998,15 +996,7 @@ nsresult ServiceWorkerPrivate::SendNotificationEvent(
 
   ServiceWorkerNotificationEventOpArgs args;
   args.eventName() = nsString(aEventName);
-  args.id() = nsString(aID);
-  args.title() = nsString(aTitle);
-  args.dir() = nsString(aDir);
-  args.lang() = nsString(aLang);
-  args.body() = nsString(aBody);
-  args.tag() = nsString(aTag);
-  args.icon() = nsString(aIcon);
-  args.data() = nsString(aData);
-  args.scope() = nsString(aScope);
+  args.notification() = IPCNotification(nsString(aId), aOptions);
 
   return ExecServiceWorkerOp(
       std::move(args), ServiceWorkerLifetimeExtension(FullLifetimeExtension{}),

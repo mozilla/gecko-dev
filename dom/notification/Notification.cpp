@@ -503,6 +503,34 @@ Notification::ConstructFromFields(
   return notification.forget();
 }
 
+// static
+Result<already_AddRefed<Notification>, QMResult> Notification::ConstructFromIPC(
+    nsIGlobalObject* aGlobal, const IPCNotification& aIPCNotification,
+    const nsAString& aServiceWorkerRegistrationScope) {
+  MOZ_ASSERT(aGlobal);
+
+  const IPCNotificationOptions& ipcOptions = aIPCNotification.options();
+
+  RootedDictionary<NotificationOptions> options(RootingCx());
+  options.mDir = ipcOptions.dir();
+  options.mLang = ipcOptions.lang();
+  options.mBody = ipcOptions.body();
+  options.mTag = ipcOptions.tag();
+  options.mIcon = ipcOptions.icon();
+  IgnoredErrorResult rv;
+  RefPtr<Notification> notification = CreateInternal(
+      aGlobal, aIPCNotification.id(), ipcOptions.title(), options, rv);
+  if (NS_WARN_IF(rv.Failed())) {
+    return Err(ToQMResult(NS_ERROR_FAILURE));
+  }
+
+  QM_TRY(notification->InitFromBase64(ipcOptions.dataSerialized()));
+
+  notification->SetScope(aServiceWorkerRegistrationScope);
+
+  return notification.forget();
+}
+
 void Notification::MaybeNotifyClose() {
   if (mIsClosed) {
     return;
