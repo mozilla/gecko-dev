@@ -2086,6 +2086,18 @@ html {
       left: 0;
       right: auto;
     }
+
+    &.with-background {
+      background-color: var(--in-content-page-background);
+
+      &:hover {
+        background-color: var(--button-background-color-hover);
+      }
+
+      &:active {
+        background-color: var(--button-background-color-active);
+      }
+    }
   }
 
   @keyframes fadein {

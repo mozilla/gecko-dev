@@ -285,6 +285,9 @@ const MESSAGES = () => {
       skip_in_tests:
         "not tested in automation and might pop up unexpectedly during review checker tests",
     },
+    // Appears the first time a user uses the "save and close" action on a tab group,
+    // anchored to the alltabs-button. Will only show if at least an hour has passed
+    // since the CREATE_TAB_GROUP callout showed.
     {
       id: "SAVE_TAB_GROUP_ONBOARDING_CALLOUT",
       template: "feature_callout",

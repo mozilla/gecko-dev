@@ -307,11 +307,11 @@ export class ProtonScreen extends React.PureComponent {
   }
 
   renderDismissButton() {
-    const { size, marginBlock, marginInline, label } =
+    const { size, marginBlock, marginInline, label, background } =
       this.props.content.dismiss_button;
     return (
       <button
-        className="dismiss-button"
+        className={`dismiss-button ${background ? "with-background" : ""}`}
         onClick={this.props.handleAction}
         value="dismiss_button"
         data-l10n-id={label?.string_id || "spotlight-dialog-close-button"}

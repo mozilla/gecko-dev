@@ -24,6 +24,18 @@
     @include dark-theme;
   }
 
+  @at-root :root[lwt-popup='light'] #{&}:not(.simulateContent) {
+    color-scheme: light;
+
+    @include light-theme;
+  }
+
+  @at-root :root[lwt-popup='dark'] #{&}:not(.simulateContent) {
+    color-scheme: dark;
+
+    @include dark-theme;
+  }
+
   @media (prefers-contrast) {
     @include hcm-theme;
   }
@@ -365,6 +377,18 @@
             width: 24px;
             min-height: 24px;
             min-width: 24px;
+          }
+
+          &.with-background {
+            background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-bg);
+
+            &:hover {
+              background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-bg-hover);
+
+              &:active {
+                background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-bg-active);
+              }
+            }
           }
         }
       }
