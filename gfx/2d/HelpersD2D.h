@@ -27,7 +27,8 @@ namespace gfx {
 
 RefPtr<ID2D1Factory1> D2DFactory();
 
-static inline D2D1_POINT_2F D2DPoint(const Point& aPoint) {
+template <typename T>
+static inline D2D1_POINT_2F D2DPoint(const T& aPoint) {
   return D2D1::Point2F(aPoint.x, aPoint.y);
 }
 

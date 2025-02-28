@@ -558,8 +558,8 @@ void DrawTargetD2D1::CopySurface(SourceSurface* aSurface,
   mDC->SetTransform(D2D1::IdentityMatrix());
   mTransformDirty = true;
 
-  Matrix mat = Matrix::Translation(aDestination.x - aSourceRect.X(),
-                                   aDestination.y - aSourceRect.Y());
+  Matrix mat = Matrix::Translation(aDestination - aSourceRect.TopLeft() +
+                                   aSurface->GetRect().TopLeft());
   RefPtr<ID2D1Image> image =
       GetImageForSurface(aSurface, mat, ExtendMode::CLAMP, nullptr, false);
 
@@ -575,11 +575,9 @@ void DrawTargetD2D1::CopySurface(SourceSurface* aSurface,
     return;
   }
 
-  IntRect sourceRect = aSourceRect;
-  sourceRect.SetLeftEdge(sourceRect.X() + (aDestination.x - aSourceRect.X()) -
-                         mat._31);
-  sourceRect.SetTopEdge(sourceRect.Y() + (aDestination.y - aSourceRect.Y()) -
-                        mat._32);
+  IntRect srcRect(aDestination - IntPoint::Round(mat.GetTranslation()),
+                  aSourceRect.Size());
+  IntRect dstRect(aDestination, aSourceRect.Size());
 
   RefPtr<ID2D1Bitmap> bitmap;
   HRESULT hr = image->QueryInterface((ID2D1Bitmap**)getter_AddRefs(bitmap));
@@ -596,12 +594,6 @@ void DrawTargetD2D1::CopySurface(SourceSurface* aSurface,
     return;
   }
 
-  Rect srcRect(Float(sourceRect.X()), Float(sourceRect.Y()),
-               Float(aSourceRect.Width()), Float(aSourceRect.Height()));
-
-  Rect dstRect(Float(aDestination.x), Float(aDestination.y),
-               Float(aSourceRect.Width()), Float(aSourceRect.Height()));
-
   if (SUCCEEDED(hr) && bitmap) {
     mDC->SetPrimitiveBlend(D2D1_PRIMITIVE_BLEND_COPY);
     mDC->DrawBitmap(bitmap, D2DRect(dstRect), 1.0f,
@@ -611,9 +603,8 @@ void DrawTargetD2D1::CopySurface(SourceSurface* aSurface,
     return;
   }
 
-  mDC->DrawImage(image,
-                 D2D1::Point2F(Float(aDestination.x), Float(aDestination.y)),
-                 D2DRect(srcRect), D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
+  mDC->DrawImage(image, D2DPoint(aDestination), D2DRect(srcRect),
+                 D2D1_INTERPOLATION_MODE_NEAREST_NEIGHBOR,
                  D2D1_COMPOSITE_MODE_BOUNDED_SOURCE_COPY);
 }
 

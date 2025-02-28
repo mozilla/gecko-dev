@@ -1149,7 +1149,7 @@ void DrawTargetCairo::CopySurface(SourceSurface* aSurface,
     return;
   }
 
-  CopySurfaceInternal(surf, aSource, aDest);
+  CopySurfaceInternal(surf, aSource - aSurface->GetRect().TopLeft(), aDest);
   cairo_surface_destroy(surf);
 }
 

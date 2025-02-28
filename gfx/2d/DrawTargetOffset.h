@@ -40,6 +40,9 @@ class SourceSurfaceOffset : public SourceSurface {
   virtual already_AddRefed<SourceSurface> GetUnderlyingSurface() override {
     return mSurface->GetUnderlyingSurface();
   }
+  virtual SurfaceType GetUnderlyingType() const override {
+    return mSurface->GetUnderlyingType();
+  }
 
  private:
   RefPtr<SourceSurface> mSurface;

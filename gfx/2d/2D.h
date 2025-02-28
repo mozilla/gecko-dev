@@ -702,6 +702,9 @@ class SourceSurface : public SupportsThreadSafeWeakPtr<SourceSurface> {
     return surface.forget();
   }
 
+  /** Utility function to quickly determine the underlying surface type. */
+  virtual SurfaceType GetUnderlyingType() const { return GetType(); }
+
   /** Tries to get this SourceSurface's native surface.  This will fail if aType
    * is not the type of this SourceSurface's native surface.
    */

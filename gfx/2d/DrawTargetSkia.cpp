@@ -588,15 +588,17 @@ static void SetPaintPattern(SkPaint& aPaint, const Pattern& aPattern,
     }
     case PatternType::SURFACE: {
       const SurfacePattern& pat = static_cast<const SurfacePattern&>(aPattern);
+      Matrix offsetMatrix = pat.mMatrix;
+      offsetMatrix.PreTranslate(pat.mSurface->GetRect().TopLeft());
       sk_sp<SkImage> image =
-          GetSkImageForSurface(pat.mSurface, &aLock, aBounds, &pat.mMatrix);
+          GetSkImageForSurface(pat.mSurface, &aLock, aBounds, &offsetMatrix);
       if (!image) {
         aPaint.setColor(SK_ColorTRANSPARENT);
         break;
       }
 
       SkMatrix mat;
-      GfxMatrixToSkiaMatrix(pat.mMatrix, mat);
+      GfxMatrixToSkiaMatrix(offsetMatrix, mat);
       if (aMatrix) {
         mat.postConcat(*aMatrix);
       }
@@ -855,10 +857,12 @@ void DrawTargetSkia::FillRect(const Rect& aRect, const Pattern& aPattern,
              kOpaque_SkAlphaType) &&
         !pat.mMatrix.HasNonAxisAlignedTransform()) {
       // Bound the sampling to smaller of the bounds or the sampling rect.
-      IntRect srcRect(IntPoint(0, 0), pat.mSurface->GetSize());
+      IntRect surfaceBounds = pat.mSurface->GetRect();
+      IntRect srcRect(IntPoint(0, 0), surfaceBounds.Size());
       if (!pat.mSamplingRect.IsEmpty()) {
         srcRect = srcRect.Intersect(pat.mSamplingRect);
       }
+      srcRect.MoveBy(surfaceBounds.TopLeft());
       // Transform the destination rectangle by the inverse of the pattern
       // matrix so that it is in pattern space like the source rectangle.
       Rect patRect = aRect - pat.mMatrix.GetTranslation();
@@ -1753,10 +1757,12 @@ void DrawTargetSkia::CopySurface(SourceSurface* aSurface,
   }
 
   // Ensure the source rect intersects the surface bounds.
-  IntRect srcRect = aSourceRect.Intersect(SkIRectToIntRect(srcPixmap.bounds()));
+  IntRect offsetSrcRect = aSourceRect - aSurface->GetRect().TopLeft();
+  IntRect srcRect =
+      offsetSrcRect.Intersect(SkIRectToIntRect(srcPixmap.bounds()));
   // Move the destination offset to match the altered source rect.
   IntPoint dstOffset =
-      aDestination + (srcRect.TopLeft() - aSourceRect.TopLeft());
+      aDestination + (srcRect.TopLeft() - offsetSrcRect.TopLeft());
   // Then ensure the dest rect intersect the canvas bounds.
   IntRect dstRect = IntRect(dstOffset, srcRect.Size()).Intersect(GetRect());
   // Move the source rect to match the altered dest rect.

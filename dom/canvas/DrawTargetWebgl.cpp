@@ -1725,7 +1725,7 @@ void DrawTargetWebgl::CopySurface(SourceSurface* aSurface,
     // source rectangle instead.
     IntRect surfaceRect = aSurface->GetRect();
     if (!srcRect.IsEqualEdges(surfaceRect)) {
-      samplingRect = srcRect.SafeIntersect(surfaceRect);
+      samplingRect = srcRect.SafeIntersect(surfaceRect) - surfaceRect.TopLeft();
     }
   }
 
@@ -1838,7 +1838,7 @@ static inline bool SupportsExtendMode(const SurfacePattern& aPattern) {
     case ExtendMode::REPEAT_X:
     case ExtendMode::REPEAT_Y:
       if ((!aPattern.mSurface ||
-           aPattern.mSurface->GetType() == SurfaceType::WEBGL) &&
+           aPattern.mSurface->GetUnderlyingType() == SurfaceType::WEBGL) &&
           !aPattern.mSamplingRect.IsEmpty()) {
         return false;
       }
@@ -1974,9 +1974,10 @@ void DrawTargetWebgl::DrawRectFallback(const Rect& aRect,
     // No transform nor clipping was requested, so it is essentially just a
     // copy.
     auto surfacePattern = static_cast<const SurfacePattern&>(aPattern);
-    mSkia->CopySurface(surfacePattern.mSurface,
-                       surfacePattern.mSurface->GetRect(),
-                       IntPoint::Round(aRect.TopLeft()));
+    IntRect destRect = RoundedOut(aRect);
+    IntRect srcRect =
+        destRect - IntPoint::Round(surfacePattern.mMatrix.GetTranslation());
+    mSkia->CopySurface(surfacePattern.mSurface, srcRect, destRect.TopLeft());
   } else {
     MOZ_ASSERT(false);
   }
@@ -1984,9 +1985,9 @@ void DrawTargetWebgl::DrawRectFallback(const Rect& aRect,
 
 inline already_AddRefed<WebGLTexture> SharedContextWebgl::GetCompatibleSnapshot(
     SourceSurface* aSurface) const {
-  if (aSurface->GetType() == SurfaceType::WEBGL) {
+  if (aSurface->GetUnderlyingType() == SurfaceType::WEBGL) {
     RefPtr<SourceSurfaceWebgl> webglSurf =
-        static_cast<SourceSurfaceWebgl*>(aSurface);
+        aSurface->GetUnderlyingSurface().downcast<SourceSurfaceWebgl>();
     if (this == webglSurf->mSharedContext) {
       // If there is a snapshot copy in a texture handle, use that.
       if (webglSurf->mHandle) {
@@ -2458,13 +2459,17 @@ bool SharedContextWebgl::DrawRectAccel(
       auto surfacePattern = static_cast<const SurfacePattern&>(aPattern);
       // If a texture handle was supplied, or if the surface already has an
       // assigned texture handle stashed in its used data, try to use it.
+      RefPtr<SourceSurface> underlyingSurface =
+          surfacePattern.mSurface
+              ? surfacePattern.mSurface->GetUnderlyingSurface()
+              : nullptr;
       RefPtr<TextureHandle> handle =
-          aHandle ? aHandle->get()
-                  : (surfacePattern.mSurface
-                         ? static_cast<TextureHandle*>(
-                               surfacePattern.mSurface->GetUserData(
-                                   &mTextureHandleKey))
-                         : nullptr);
+          aHandle
+              ? aHandle->get()
+              : (underlyingSurface
+                     ? static_cast<TextureHandle*>(
+                           underlyingSurface->GetUserData(&mTextureHandleKey))
+                     : nullptr);
       IntSize texSize;
       IntPoint offset;
       SurfaceFormat format;
@@ -2483,13 +2488,13 @@ bool SharedContextWebgl::DrawRectAccel(
         // Otherwise, there is no handle that can be used yet, so extract
         // information from the surface pattern.
         handle = nullptr;
-        if (!surfacePattern.mSurface) {
+        if (!underlyingSurface) {
           // If there was no actual surface supplied, then we tried to draw
           // using a texture handle, but the texture handle wasn't valid.
           break;
         }
-        texSize = surfacePattern.mSurface->GetSize();
-        format = surfacePattern.mSurface->GetFormat();
+        texSize = underlyingSurface->GetSize();
+        format = underlyingSurface->GetFormat();
         if (!surfacePattern.mSamplingRect.IsEmpty()) {
           texSize = surfacePattern.mSamplingRect.Size();
           offset = surfacePattern.mSamplingRect.TopLeft();
@@ -2498,6 +2503,11 @@ bool SharedContextWebgl::DrawRectAccel(
 
       // We need to be able to transform from local space into texture space.
       Matrix invMatrix = surfacePattern.mMatrix;
+      // Determine if the requested surface itself is offset from the underlying
+      // surface.
+      if (surfacePattern.mSurface) {
+        invMatrix.PreTranslate(surfacePattern.mSurface->GetRect().TopLeft());
+      }
       // If drawing a pre-transformed vertex range, then we need to ensure the
       // user-space pattern is still transformed to screen-space.
       if (aVertexRange && !aTransformed) {
@@ -2518,7 +2528,7 @@ bool SharedContextWebgl::DrawRectAccel(
       RefPtr<DataSourceSurface> data;
       if (handle) {
         if (aForceUpdate) {
-          data = surfacePattern.mSurface->GetDataSurface();
+          data = underlyingSurface->GetDataSurface();
           if (!data) {
             break;
           }
@@ -2531,14 +2541,14 @@ bool SharedContextWebgl::DrawRectAccel(
         // If using an existing handle, move it to the front of the MRU list.
         handle->remove();
         mTextureHandles.insertFront(handle);
-      } else if ((tex = GetCompatibleSnapshot(surfacePattern.mSurface))) {
-        backingSize = surfacePattern.mSurface->GetSize();
+      } else if ((tex = GetCompatibleSnapshot(underlyingSurface))) {
+        backingSize = underlyingSurface->GetSize();
         bounds = IntRect(offset, texSize);
         // Count reusing a snapshot texture (no readback) as a cache hit.
         mCurrentTarget->mProfile.OnCacheHit();
       } else {
         // If we get here, we need a data surface for a texture upload.
-        data = surfacePattern.mSurface->GetDataSurface();
+        data = underlyingSurface->GetDataSurface();
         if (!data) {
           break;
         }
@@ -2557,9 +2567,9 @@ bool SharedContextWebgl::DrawRectAccel(
         if (aHandle) {
           *aHandle = handle;
         } else {
-          handle->SetSurface(surfacePattern.mSurface);
-          surfacePattern.mSurface->AddUserData(&mTextureHandleKey, handle.get(),
-                                               nullptr);
+          handle->SetSurface(underlyingSurface);
+          underlyingSurface->AddUserData(&mTextureHandleKey, handle.get(),
+                                         nullptr);
         }
       }
 
@@ -3946,11 +3956,16 @@ void DrawTargetWebgl::DrawSurface(SourceSurface* aSurface, const Rect& aDest,
                                   const DrawOptions& aOptions) {
   Matrix matrix = Matrix::Scaling(aDest.width / aSource.width,
                                   aDest.height / aSource.height);
-  matrix.PreTranslate(-aSource.TopLeft() + aSurface->GetRect().TopLeft());
+  matrix.PreTranslate(-aSource.TopLeft());
   matrix.PostTranslate(aDest.TopLeft());
+
+  // Ensure the source rect is clipped to the surface bounds.
+  Rect src = aSource.Intersect(Rect(aSurface->GetRect()));
+  // Ensure the destination rect does not sample outside the surface bounds.
+  Rect dest = matrix.TransformBounds(src).Intersect(aDest);
   SurfacePattern pattern(aSurface, ExtendMode::CLAMP, matrix,
                          aSurfOptions.mSamplingFilter);
-  DrawRect(aDest, pattern, aOptions);
+  DrawRect(dest, pattern, aOptions);
 }
 
 void DrawTargetWebgl::Mask(const Pattern& aSource, const Pattern& aMask,
@@ -5046,7 +5061,7 @@ DrawTargetWebgl::CreateSourceSurfaceFromNativeSurface(
 
 already_AddRefed<SourceSurface> DrawTargetWebgl::OptimizeSourceSurface(
     SourceSurface* aSurface) const {
-  if (aSurface->GetType() == SurfaceType::WEBGL) {
+  if (aSurface->GetUnderlyingType() == SurfaceType::WEBGL) {
     return do_AddRef(aSurface);
   }
   return mSkia->OptimizeSourceSurface(aSurface);
