@@ -6,8 +6,10 @@ package org.mozilla.fenix.utils
 
 import android.content.Context
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.spyk
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.concept.engine.Engine.HttpsOnlyMode.DISABLED
 import mozilla.components.concept.engine.Engine.HttpsOnlyMode.ENABLED
 import mozilla.components.concept.engine.Engine.HttpsOnlyMode.ENABLED_PRIVATE_ONLY
@@ -1149,49 +1151,66 @@ class SettingsTest {
     }
 
     @Test
-    fun `GIVEN trending searches is enabled and visible THEN should show trending searches`() {
+    fun `GIVEN trending searches is enabled, visible and search engine supports it THEN should show trending searches`() {
         val settings = spyk(settings)
+        val searchEngine: SearchEngine = mockk(relaxed = true)
         every { settings.trendingSearchSuggestionsEnabled } returns true
         every { settings.isTrendingSearchesVisible } returns true
         every { settings.shouldShowSearchSuggestionsInPrivate } returns true
+        every { searchEngine.trendingUrl } returns "https://mozilla.org"
 
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(true))
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(false))
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(true, searchEngine))
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(false, searchEngine))
 
         every { settings.trendingSearchSuggestionsEnabled } returns false
         every { settings.isTrendingSearchesVisible } returns true
         every { settings.shouldShowSearchSuggestionsInPrivate } returns true
 
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(true))
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(false))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true, searchEngine))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(false, searchEngine))
 
         every { settings.trendingSearchSuggestionsEnabled } returns true
         every { settings.isTrendingSearchesVisible } returns false
         every { settings.shouldShowSearchSuggestionsInPrivate } returns true
 
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(true))
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(false))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true, searchEngine))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(false, searchEngine))
 
         every { settings.trendingSearchSuggestionsEnabled } returns false
         every { settings.isTrendingSearchesVisible } returns false
         every { settings.shouldShowSearchSuggestionsInPrivate } returns true
 
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(true))
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(false))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true, searchEngine))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(false, searchEngine))
+    }
+
+    @Test
+    fun `GIVEN search engine does not supports trending search THEN should not show trending searches`() {
+        val settings = spyk(settings)
+        val searchEngine: SearchEngine = mockk(relaxed = true)
+        every { settings.trendingSearchSuggestionsEnabled } returns true
+        every { settings.isTrendingSearchesVisible } returns true
+        every { settings.shouldShowSearchSuggestionsInPrivate } returns true
+        every { searchEngine.trendingUrl } returns null
+
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(false, searchEngine))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true, searchEngine))
     }
 
     @Test
     fun `GIVEN is private tab THEN should show trending searches only if allowed`() {
         val settings = spyk(settings)
+        val searchEngine: SearchEngine = mockk(relaxed = true)
         every { settings.trendingSearchSuggestionsEnabled } returns true
         every { settings.isTrendingSearchesVisible } returns true
         every { settings.shouldShowSearchSuggestionsInPrivate } returns true
+        every { searchEngine.trendingUrl } returns "abc"
 
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(true))
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(false))
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(true, searchEngine))
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(false, searchEngine))
 
         every { settings.shouldShowSearchSuggestionsInPrivate } returns false
-        assertFalse(settings.shouldShowTrendingSearchSuggestions(true))
-        assertTrue(settings.shouldShowTrendingSearchSuggestions(false))
+        assertFalse(settings.shouldShowTrendingSearchSuggestions(true, searchEngine))
+        assertTrue(settings.shouldShowTrendingSearchSuggestions(false, searchEngine))
     }
 }

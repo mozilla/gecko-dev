@@ -15,6 +15,7 @@ import android.view.accessibility.AccessibilityManager
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.lifecycle.LifecycleOwner
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.concept.engine.Engine.HttpsOnlyMode
 import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingMode
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
@@ -1099,15 +1100,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     @VisibleForTesting
     internal var trendingSearchSuggestionsEnabled by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_show_trending_search_suggestions),
-        default = false,
+        default = true,
     )
 
     /**
      * Returns true if trending searches should be shown to the user.
      */
-    fun shouldShowTrendingSearchSuggestions(isPrivate: Boolean) =
+    fun shouldShowTrendingSearchSuggestions(isPrivate: Boolean, searchEngine: SearchEngine?) =
         trendingSearchSuggestionsEnabled && isTrendingSearchesVisible &&
-            (!isPrivate || shouldShowSearchSuggestionsInPrivate)
+            searchEngine?.trendingUrl != null && (!isPrivate || shouldShowSearchSuggestionsInPrivate)
 
     var showSearchSuggestionsInPrivateOnboardingFinished by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_show_search_suggestions_in_private_onboarding),

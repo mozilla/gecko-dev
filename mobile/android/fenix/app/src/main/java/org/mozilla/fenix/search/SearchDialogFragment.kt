@@ -481,8 +481,10 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
 
         val isPrivate = (requireActivity() as HomeActivity).browsingModeManager.mode.isPrivate
         if (
-            view.context.settings().shouldShowTrendingSearchSuggestions(isPrivate) &&
-            (
+            view.context.settings().shouldShowTrendingSearchSuggestions(
+                isPrivate,
+                requireComponents.core.store.state.search.selectedOrDefaultSearchEngine,
+            ) && (
                 store.state.query.isNotEmpty() ||
                     FxNimbus.features.searchSuggestionsOnHomepage.value().enabled
                 )

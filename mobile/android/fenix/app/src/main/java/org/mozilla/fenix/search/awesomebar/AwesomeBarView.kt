@@ -315,7 +315,10 @@ class AwesomeBarView(
         if (state.showSearchTermHistory) {
             getSearchTermSuggestionsProvider(
                 state.searchEngineSource,
-                activity.settings().shouldShowTrendingSearchSuggestions(isPrivate),
+                activity.settings().shouldShowTrendingSearchSuggestions(
+                    isPrivate,
+                    state.searchEngineSource.searchEngine,
+                ),
             )?.let { providersToAdd.add(it) }
         }
 
@@ -403,7 +406,11 @@ class AwesomeBarView(
 
         providersToAdd.add(searchEngineSuggestionProvider)
 
-        if (activity.settings().shouldShowTrendingSearchSuggestions(isPrivate)) {
+        if (activity.settings().shouldShowTrendingSearchSuggestions(
+                isPrivate,
+                state.searchEngineSource.searchEngine,
+            )
+        ) {
             providersToAdd.add(defaultTopSitesSuggestionProvider)
             providersToAdd.add(defaultTrendingSearchProvider)
         }
