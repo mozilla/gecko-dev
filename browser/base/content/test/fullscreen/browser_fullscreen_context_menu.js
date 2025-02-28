@@ -28,7 +28,7 @@ async function testContextMenu() {
       ? [
           ".customize-context-moveToPanel",
           ".customize-context-removeFromToolbar",
-          "#customizationMenuSeparator",
+          "#toolbarItemsMenuSeparator",
           "#toggle_toolbar-menubar",
           "#toggle_PersonalToolbar",
           "#viewToolbarsMenuSeparator",
@@ -37,7 +37,7 @@ async function testContextMenu() {
       : [
           ".customize-context-moveToPanel",
           ".customize-context-removeFromToolbar",
-          "#customizationMenuSeparator",
+          "#toolbarItemsMenuSeparator",
           "#toggle_PersonalToolbar",
           "#viewToolbarsMenuSeparator",
           ".viewCustomizeToolbar",
@@ -69,7 +69,7 @@ async function testContextMenu() {
       ? [
           ".customize-context-moveToPanel",
           ".customize-context-removeFromToolbar",
-          "#customizationMenuSeparator",
+          "#toolbarItemsMenuSeparator",
           "#toggle_toolbar-menubar",
           "#toggle_PersonalToolbar",
           "#viewToolbarsMenuSeparator",
@@ -81,7 +81,7 @@ async function testContextMenu() {
       : [
           ".customize-context-moveToPanel",
           ".customize-context-removeFromToolbar",
-          "#customizationMenuSeparator",
+          "#toolbarItemsMenuSeparator",
           "#toggle_PersonalToolbar",
           "#viewToolbarsMenuSeparator",
           ".viewCustomizeToolbar",

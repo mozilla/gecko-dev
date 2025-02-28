@@ -293,29 +293,7 @@ add_task(async function test_toggle_vertical_tabs() {
     () => {
       ok(
         !document.getElementById("toolbar-context-customize-sidebar").hidden,
-        "Customize sidebar should be visible when sidebar-button is right clicked"
-      );
-    }
-  );
-
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    document.getElementById("tabbrowser-tabs"),
-    () => {
-      ok(
-        !document.getElementById("toolbar-context-customize-sidebar").hidden,
-        "Customize sidebar should be visible when the tab-strip is right clicked"
-      );
-    }
-  );
-
-  await openAndWaitForContextMenu(
-    toolbarContextMenu,
-    document.querySelector("toolbarspring"),
-    () => {
-      ok(
-        document.getElementById("toolbar-context-customize-sidebar").hidden,
-        "Customize sidebar should be hidden when the toolbar is right clicked"
+        "Customize sidebar should be visible"
       );
     }
   );

@@ -107,8 +107,6 @@ add_task(async function tabstrip_context() {
     ["#toolbar-context-selectAllTabs", true],
     ["#toolbar-context-undoCloseTab", !closedTabsAvailable],
     ["---"],
-    ["#toolbar-context-toggle-vertical-tabs", true],
-    ["---"],
   ];
   if (!isOSX) {
     expectedEntries.push(["#toggle_toolbar-menubar", true]);
@@ -651,8 +649,6 @@ add_task(async function flexible_space_context_menu() {
   await shownPromise;
 
   let expectedEntries = [
-    ["#toolbar-context-toggle-vertical-tabs", true],
-    ["---"],
     ["#toggle_PersonalToolbar", true],
     ["---"],
     [".viewCustomizeToolbar", true],
