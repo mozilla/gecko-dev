@@ -50,6 +50,9 @@ support-files = ["file_pdfjs_hcm.pdf"]
 ["browser_pdfjs_highlight_telemetry.js"]
 skip-if = ["true"]
 
+["browser_pdfjs_jpeg2000.js"]
+support-files = ["file_pdfjs_jp2_image.pdf"]
+
 ["browser_pdfjs_js.js"]
 support-files = ["file_pdfjs_js.pdf"]
 
@@ -91,6 +94,8 @@ skip-if = ["verify"]
 
 ["browser_pdfjs_signature_storage.js"]
 
+["browser_pdfjs_signature_telemetry.js"]
+
 ["browser_pdfjs_stamp_telemetry.js"]
 support-files = ["moz.png"]
 
@@ -101,9 +106,6 @@ support-files = ["moz.png"]
 ["browser_pdfjs_update_preferences.js"]
 
 ["browser_pdfjs_views.js"]
-
-["browser_pdfjs_jpeg2000.js"]
-support-files = ["file_pdfjs_jp2_image.pdf"]
 
 ["browser_pdfjs_zoom.js"]
 skip-if = ["verify && debug && os == 'win'"]

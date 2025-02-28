@@ -18,6 +18,7 @@ pdfjs:
       - ink
       - freetext
       - stamp
+      - signature
       - save
       - print
     description: >
@@ -763,4 +764,134 @@ pdfjs.image:
       notification_emails:
         - pdfjs-team@mozilla.com
         - asafko@mozilla.com
+      expires: never
+pdfjs.signature:
+    clear:
+      type: labeled_counter
+      description: >
+        Counts the number of times the user clears the signature while editing it.
+      labels:
+        - type
+        - draw
+        - text
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+      expires: never
+
+    delete_saved:
+      type: event
+      description: >
+        Recorded when a saved signature is deleted.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+      expires: never
+      extra_keys:
+        saved_count:
+          type: quantity
+          description: >
+            Number of saved signatures.
+
+    created:
+      type: event
+      description: >
+        Recorded when the user creates a new signature.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+      expires: never
+      extra_keys:
+        type:
+          type: string
+          description: type, draw, text.
+        saved:
+          type: boolean
+          description: >
+            Indicates if the signature was saved.
+        saved_count:
+          type: quantity
+          description: >
+            Number of saved signatures.
+        description_changed:
+          type: boolean
+          description: >
+            Indicates if the default description was changed.
+
+    added:
+      type: event
+      description: >
+        Recorded when the user print/save a pdf containing some added signatures.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+      expires: never
+      extra_keys:
+        has_alt_text:
+          type: quantity
+          description: >
+            Counts how many used signatures have an alt-text.
+        has_no_alt_text:
+          type: quantity
+          description: >
+            Counts how many used signatures haven't an alt-text.
+
+    inserted:
+      type: event
+      description: >
+        Recorded when the user inserts a signature in a pdf (can be from the UI, copy & paste, ...).
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+      expires: never
+      extra_keys:
+        has_been_saved:
+          type: boolean
+          description: >
+            Indicates if the signature was saved.
+        has_description:
+          type: boolean
+          description: >
+            Indicates if the signature has a description.
+
+    edit_description:
+      type: labeled_counter
+      description: >
+        Counts the number of times the user edit the description of a signature instance.
+      labels:
+        - saved
+        - unsaved
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1945827#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
       expires: never

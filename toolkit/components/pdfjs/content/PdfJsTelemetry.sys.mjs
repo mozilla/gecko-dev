@@ -20,6 +20,18 @@ export class PdfJsTelemetryContent {
 }
 
 export class PdfJsTelemetry {
+  static #fixKeys(data) {
+    for (const [key, values] of Object.entries(data)) {
+      const newKey = key.replaceAll(/([A-Z])/g, c => `_${c.toLowerCase()}`);
+      if (newKey === key) {
+        continue;
+      }
+      data[newKey] = values;
+      delete data[key];
+    }
+    return data;
+  }
+
   static report(aData) {
     const { type } = aData;
     switch (type) {
@@ -85,9 +97,22 @@ export class PdfJsTelemetry {
             action: "pdfjs.image.added",
             data: stats.stamp,
           });
+        } else if (stats.signature) {
+          this.onSignature({
+            action: "pdfjs.signature.added",
+            data: stats.signature,
+          });
         }
         return;
       }
+      case "signature":
+        if (data.action === "added") {
+          Glean.pdfjs.editing.signature.add(1);
+          return;
+        }
+
+        this.onSignature(data);
+        return;
       case "stamp":
         if (data.action.startsWith("pdfjs.image.")) {
           this.onImage(data);
@@ -219,6 +244,34 @@ export class PdfJsTelemetry {
       case "alt_text_edit":
         Glean.pdfjsImage.altTextEdit.ask_to_edit.set(data.ask_to_edit);
         Glean.pdfjsImage.altTextEdit.ai_generation.set(data.ai_generation);
+        break;
+    }
+  }
+
+  static onSignature({ action, data = {} }) {
+    action = action.split(".").pop();
+    data = this.#fixKeys(data);
+
+    switch (action) {
+      case "clear":
+        Glean.pdfjsSignature.clear[data.type].add(1);
+        break;
+      case "delete_saved":
+        Glean.pdfjsSignature.deleteSaved.record(data);
+        break;
+      case "created":
+        Glean.pdfjsSignature.created.record(data);
+        break;
+      case "added":
+        Glean.pdfjsSignature.added.record(data);
+        break;
+      case "inserted":
+        Glean.pdfjsSignature.inserted.record(data);
+        break;
+      case "edit_description":
+        Glean.pdfjsSignature.editDescription[
+          data.has_been_changed ? "saved" : "unsaved"
+        ].add(1);
         break;
     }
   }

@@ -542,3 +542,18 @@ function waitForPreviewVisible() {
     return preview && BrowserTestUtils.isVisible(preview);
   });
 }
+
+function closePreview() {
+  EventUtils.synthesizeKey("KEY_Escape");
+  return BrowserTestUtils.waitForCondition(
+    () => !document.querySelector(".printPreviewBrowser")
+  );
+}
+
+function waitForTimeout(browser, n) {
+  return SpecialPowers.spawn(browser, [n], n => {
+    const { promise, resolve } = Promise.withResolvers();
+    content.setTimeout(resolve, n);
+    return promise;
+  });
+}
