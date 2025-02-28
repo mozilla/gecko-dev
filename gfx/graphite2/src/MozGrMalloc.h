@@ -12,17 +12,8 @@
 
 #include "mozilla/mozalloc.h"
 
-#if defined(XP_LINUX) && !defined(ANDROID)
-
-#define malloc moz_xmalloc
-#define calloc moz_xcalloc
-#define realloc moz_xrealloc
-
-#else
-
 // extern "C" is needed for the Solaris build, while the inline
-// functions are needed for the MinGW build. They break gcc 5.4.0
-// on Linux however, so keep the old #define's above for Linux
+// functions are needed for the MinGW build.
 
 extern "C" inline void* malloc(size_t size)
 {
@@ -38,7 +29,5 @@ extern "C" inline void* realloc(void *ptr, size_t size)
 {
     return moz_xrealloc(ptr, size);
 }
-
-#endif // defined(XP_LINUX)
 
 #endif // MOZ_GR_MALLOC_H
