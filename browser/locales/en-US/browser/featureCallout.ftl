@@ -85,8 +85,7 @@ sidebar-pins-callout-cta-button = Pin tab
 
 ## Sidebar Onboarding Strings
 
-# The "=" here stands for "equals" to convey the meaning "Sidebar is your spot for tools and tabs"
-sidebar-customization-callout-1-title = Sidebar = your spot for tools and tabs
+sidebar-customization-callout-1-title = Sidebar: your spot for tools and tabs
 sidebar-customization-callout-1-subtitle = The { -brand-product-name } sidebar gives you quick access to your browsing history, tabs from other devices, and an AI chatbot — all without leaving your main view.
 sidebar-customization-callout-callout-button = Customize sidebar
 sidebar-customization-callout-dismiss-button = Hide sidebar
