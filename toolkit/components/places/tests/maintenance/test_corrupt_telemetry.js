@@ -12,11 +12,6 @@ add_setup(async function () {
 add_task(async function () {
   await createCorruptDb("places.sqlite");
 
-  let count = Services.telemetry
-    .getHistogramById("PLACES_DATABASE_CORRUPTION_HANDLING_STAGE")
-    .snapshot().values[3];
-  Assert.equal(count, undefined, "There should be no telemetry");
-
   let gleanValue =
     Glean.places.placesDatabaseCorruptionHandlingStage[
       "places.sqlite"
@@ -27,11 +22,6 @@ add_task(async function () {
     PlacesUtils.history.databaseStatus,
     PlacesUtils.history.DATABASE_STATUS_CORRUPT
   );
-
-  count = Services.telemetry
-    .getHistogramById("PLACES_DATABASE_CORRUPTION_HANDLING_STAGE")
-    .snapshot().values[3];
-  Assert.equal(count, 1, "Telemetry should have been added");
 
   gleanValue =
     Glean.places.placesDatabaseCorruptionHandlingStage[

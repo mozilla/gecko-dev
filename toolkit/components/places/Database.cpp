@@ -864,10 +864,6 @@ nsresult Database::BackupAndReplaceDatabaseFile(
         Preferences::SetString(PREF_FORCE_DATABASE_REPLACEMENT, aDbFilename);
       }
       // Report the corruption through telemetry.
-      Telemetry::Accumulate(
-          Telemetry::PLACES_DATABASE_CORRUPTION_HANDLING_STAGE,
-          static_cast<int8_t>(stage));
-
       glean::places::places_database_corruption_handling_stage
           .Get(NS_ConvertUTF16toUTF8(aDbFilename))
           .Set(sCorruptDBStages[stage]);

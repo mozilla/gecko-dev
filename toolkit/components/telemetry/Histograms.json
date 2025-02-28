@@ -5280,17 +5280,6 @@
     "keyed": true,
     "description": "What content type did we upgrade, and did it load successfully?"
   },
-  "PLACES_DATABASE_CORRUPTION_HANDLING_STAGE": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec", "thunderbird"],
-    "alert_emails": ["mbonardo@mozilla.com", "fx-search-telemetry@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 6,
-    "releaseChannelCollection": "opt-out",
-    "bug_numbers": [1356812],
-    "description": "PLACES: stage reached when trying to fix a database corruption , see Places::Database::eCorruptDBReplaceStatus"
-  },
   "PLACES_PAGES_COUNT": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec", "thunderbird"],
