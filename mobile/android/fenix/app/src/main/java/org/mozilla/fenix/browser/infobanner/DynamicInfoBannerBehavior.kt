@@ -21,7 +21,7 @@ import mozilla.components.browser.toolbar.BrowserToolbar
  * - immediately below the toolbar (toolbar fully expanded).
  */
 class DynamicInfoBannerBehavior(
-    context: Context?,
+    context: Context,
     attrs: AttributeSet?,
 ) : CoordinatorLayout.Behavior<View>(context, attrs) {
     @VisibleForTesting

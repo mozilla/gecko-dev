@@ -33,7 +33,7 @@ import kotlin.math.roundToInt
  */
 
 class EngineViewClippingBehavior(
-    context: Context?,
+    context: Context,
     attrs: AttributeSet?,
     private val engineViewParent: View,
     private val topToolbarHeight: Int,
