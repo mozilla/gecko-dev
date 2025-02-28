@@ -610,6 +610,8 @@ struct nsCSSRendering {
     // Baseline offset being applied to this text (block-direction adjustment
     // applied to glyph positions when computing skip-ink intercepts).
     Float baselineOffset = 0.0f;
+    // Whether text-decoration-skip-ink behavior is to be supported.
+    bool allowInkSkipping = true;
   };
 
   /**

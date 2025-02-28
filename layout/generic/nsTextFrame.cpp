@@ -4912,8 +4912,29 @@ void nsTextFrame::GetTextDecorations(
     }
 
     const nsStyleTextReset* const styleTextReset = context->StyleTextReset();
-    const StyleTextDecorationLine textDecorations =
+    StyleTextDecorationLine textDecorations =
         styleTextReset->mTextDecorationLine;
+    bool ignoreSubproperties = false;
+
+    auto lineStyle = styleTextReset->mTextDecorationStyle;
+    if (textDecorations == StyleTextDecorationLine::SPELLING_ERROR ||
+        textDecorations == StyleTextDecorationLine::GRAMMAR_ERROR) {
+      nscolor lineColor;
+      float relativeSize;
+      useOverride = nsTextPaintStyle::GetSelectionUnderline(
+          this, nsTextPaintStyle::SelectionStyleIndex::SpellChecker, &lineColor,
+          &relativeSize, &lineStyle);
+      if (useOverride) {
+        // We don't currently have a SelectionStyleIndex::GrammarChecker; for
+        // now just use SpellChecker and change its color to green.
+        overrideColor =
+            textDecorations == StyleTextDecorationLine::SPELLING_ERROR
+                ? lineColor
+                : NS_RGBA(0, 128, 0, 255);
+        textDecorations = StyleTextDecorationLine::UNDERLINE;
+        ignoreSubproperties = true;
+      }
+    }
 
     if (!useOverride &&
         (StyleTextDecorationLine::COLOR_OVERRIDE & textDecorations)) {
@@ -4961,7 +4982,6 @@ void nsTextFrame::GetTextDecorations(
     physicalBlockStartOffset +=
         vertical ? f->GetNormalPosition().x : f->GetNormalPosition().y;
 
-    const auto style = styleTextReset->mTextDecorationStyle;
     if (textDecorations) {
       nscolor color;
       if (useOverride) {
@@ -4992,23 +5012,29 @@ void nsTextFrame::GetTextDecorations(
                                  : StyleTextDecorationLine::OVERLINE;
 
       const nsStyleText* const styleText = context->StyleText();
+      const auto position = ignoreSubproperties
+                                ? StyleTextUnderlinePosition::AUTO
+                                : styleText->mTextUnderlinePosition;
+      const auto offset = ignoreSubproperties ? LengthPercentageOrAuto::Auto()
+                                              : styleText->mTextUnderlineOffset;
+      const auto thickness = ignoreSubproperties
+                                 ? StyleTextDecorationLength::Auto()
+                                 : styleTextReset->mTextDecorationThickness;
+
       if (textDecorations & kUnderline) {
         aDecorations.mUnderlines.AppendElement(nsTextFrame::LineDecoration(
-            f, baselineOffset, styleText->mTextUnderlinePosition,
-            styleText->mTextUnderlineOffset,
-            styleTextReset->mTextDecorationThickness, color, style));
+            f, baselineOffset, position, offset, thickness, color, lineStyle,
+            !ignoreSubproperties));
       }
       if (textDecorations & kOverline) {
         aDecorations.mOverlines.AppendElement(nsTextFrame::LineDecoration(
-            f, baselineOffset, styleText->mTextUnderlinePosition,
-            styleText->mTextUnderlineOffset,
-            styleTextReset->mTextDecorationThickness, color, style));
+            f, baselineOffset, position, offset, thickness, color, lineStyle,
+            !ignoreSubproperties));
       }
       if (textDecorations & StyleTextDecorationLine::LINE_THROUGH) {
         aDecorations.mStrikes.AppendElement(nsTextFrame::LineDecoration(
-            f, baselineOffset, styleText->mTextUnderlinePosition,
-            styleText->mTextUnderlineOffset,
-            styleTextReset->mTextDecorationThickness, color, style));
+            f, baselineOffset, position, offset, thickness, color, lineStyle,
+            !ignoreSubproperties));
       }
     }
 
@@ -5568,6 +5594,7 @@ struct nsTextFrame::PaintDecorationLineParams
   DecorationType decorationType = DecorationType::Normal;
   DrawPathCallbacks* callbacks = nullptr;
   bool paintingShadows = false;
+  bool allowInkSkipping = true;
 };
 
 void nsTextFrame::PaintDecorationLine(
@@ -5579,6 +5606,7 @@ void nsTextFrame::PaintDecorationLine(
   params.color = aParams.overrideColor ? *aParams.overrideColor : aParams.color;
   params.icoordInFrame = Float(aParams.icoordInFrame);
   params.baselineOffset = Float(aParams.baselineOffset);
+  params.allowInkSkipping = aParams.allowInkSkipping;
   if (aParams.callbacks) {
     Rect path = nsCSSRendering::DecorationLineToPath(params);
     if (aParams.decorationType == DecorationType::Normal) {
@@ -7172,6 +7200,7 @@ void nsTextFrame::DrawTextRunAndDecorations(
         app, dec.mFrame, wm.IsCentralBaseline(), swapUnderline);
 
     params.style = dec.mStyle;
+    params.allowInkSkipping = dec.mAllowInkSkipping;
     PaintDecorationLine(params);
   };
 

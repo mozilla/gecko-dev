@@ -274,7 +274,7 @@ impl ToCss for TextOverflow {
     ToResolvedValue,
     ToShmem,
 )]
-#[css(bitflags(single = "none", mixed = "underline,overline,line-through,blink"))]
+#[css(bitflags(single = "none,spelling-error,grammar-error", mixed = "underline,overline,line-through,blink"))]
 #[repr(C)]
 /// Specified keyword values for the text-decoration-line property.
 pub struct TextDecorationLine(u8);
@@ -290,6 +290,10 @@ bitflags! {
         const LINE_THROUGH = 1 << 2;
         /// blink
         const BLINK = 1 << 3;
+        /// spelling-error
+        const SPELLING_ERROR = 1 << 4;
+        /// grammar-error
+        const GRAMMAR_ERROR = 1 << 5;
         /// Only set by presentation attributes
         ///
         /// Setting this will mean that text-decorations use the color
@@ -298,7 +302,7 @@ bitflags! {
         /// For example, this gives <a href=foo><font color="red">text</font></a>
         /// a red text decoration
         #[cfg(feature = "gecko")]
-        const COLOR_OVERRIDE = 0x10;
+        const COLOR_OVERRIDE = 1 << 7;
     }
 }
 
