@@ -12,8 +12,14 @@
 [package]
 edition = "2018"
 name = "document-features"
-version = "0.2.10"
+version = "0.2.11"
 authors = ["Slint Developers <info@slint.dev>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Extract documentation for the feature flags from comments in Cargo.toml"
 homepage = "https://slint.rs"
 readme = "README.md"
@@ -28,8 +34,13 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/slint-ui/document-features"
 
 [lib]
+name = "document_features"
 path = "lib.rs"
 proc-macro = true
+
+[[test]]
+name = "self-doc"
+path = "tests/self-doc.rs"
 
 [dependencies.litrs]
 version = "0.4.1"

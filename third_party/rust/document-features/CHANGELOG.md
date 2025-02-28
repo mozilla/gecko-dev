@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.11 - 2024-02-16
+
+* Collect defaults recursively (#19)
+
 ## 0.2.1O - 2024-07-12
 
 * Revert parsing of multi-lines string while parsing features

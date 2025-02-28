@@ -721,7 +721,7 @@ pub fn replay_render_pass(
     src_pass: &RecordedRenderPass,
     mut error_buf: crate::error::ErrorBuffer,
 ) {
-    let (mut dst_pass, err) = global.command_encoder_create_render_pass(
+    let (mut dst_pass, err) = global.command_encoder_begin_render_pass(
         id,
         &wgc::command::RenderPassDescriptor {
             label: src_pass.base.label.as_ref().map(|s| s.as_str().into()),
@@ -925,7 +925,7 @@ pub fn replay_compute_pass(
     src_pass: &RecordedComputePass,
     mut error_buf: crate::error::ErrorBuffer,
 ) {
-    let (mut dst_pass, err) = global.command_encoder_create_compute_pass(
+    let (mut dst_pass, err) = global.command_encoder_begin_compute_pass(
         id,
         &wgc::command::ComputePassDescriptor {
             label: src_pass.base.label.as_ref().map(|s| s.as_str().into()),

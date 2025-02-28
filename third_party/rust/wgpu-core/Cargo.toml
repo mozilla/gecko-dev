@@ -45,24 +45,29 @@ targets = [
 ]
 
 [features]
+angle = ["wgpu-core-deps-apple/angle"]
 api_log_info = []
 counters = ["wgpu-types/counters"]
-dx12 = ["wgpu-hal/dx12"]
-fragile-send-sync-non-atomic-wasm = [
-    "wgpu-hal/fragile-send-sync-non-atomic-wasm",
-    "wgpu-types/fragile-send-sync-non-atomic-wasm",
+dx12 = ["wgpu-core-deps-windows-linux-android/dx12"]
+fragile-send-sync-non-atomic-wasm = ["wgpu-hal/fragile-send-sync-non-atomic-wasm"]
+gles = [
+    "wgpu-core-deps-windows-linux-android/gles",
+    "wgpu-core-deps-emscripten/gles",
 ]
-gles = ["wgpu-hal/gles"]
 glsl = ["naga/glsl-in"]
 indirect-validation = ["naga/wgsl-in"]
-metal = ["wgpu-hal/metal"]
+metal = ["wgpu-core-deps-apple/metal"]
 noop = []
 observe_locks = [
     "dep:ron",
     "serde/serde_derive",
 ]
+portable-atomic = [
+    "dep:portable-atomic",
+    "wgpu-hal/portable-atomic",
+]
 raw-window-handle = ["dep:raw-window-handle"]
-renderdoc = ["wgpu-hal/renderdoc"]
+renderdoc = ["wgpu-core-deps-windows-linux-android/renderdoc"]
 replay = [
     "serde",
     "naga/deserialize",
@@ -78,13 +83,16 @@ spirv = [
     "naga/spv-in",
     "dep:bytemuck",
 ]
+static-dxc = ["wgpu-hal/static-dxc"]
 strict_asserts = ["wgpu-types/strict_asserts"]
 trace = [
     "dep:ron",
     "serde",
     "naga/serialize",
 ]
-vulkan = ["wgpu-hal/vulkan"]
+vulkan = ["wgpu-core-deps-windows-linux-android/vulkan"]
+vulkan-portability = ["wgpu-core-deps-apple/vulkan-portability"]
+webgl = ["wgpu-core-deps-wasm/webgl"]
 wgsl = ["naga/wgsl-in"]
 
 [lib]
@@ -106,12 +114,13 @@ version = "2.7"
 version = "1.21"
 features = [
     "derive",
+    "extern_crate_alloc",
     "min_const_generics",
 ]
 optional = true
 
 [dependencies.document-features]
-version = "0.2.10"
+version = "0.2.11"
 
 [dependencies.hashbrown]
 version = "0.14.5"
@@ -183,6 +192,30 @@ path = "../wgpu-types"
 
 [build-dependencies.cfg_aliases]
 version = "0.2.1"
+
+[target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wgpu-core-deps-wasm]
+version = "24.0.0"
+path = "platform-deps/wasm"
+optional = true
+
+[target.'cfg(any(windows, target_os = "linux", target_os = "android"))'.dependencies.wgpu-core-deps-windows-linux-android]
+version = "24.0.0"
+path = "platform-deps/windows-linux-android"
+optional = true
+
+[target.'cfg(not(target_has_atomic = "64"))'.dependencies.portable-atomic]
+version = "1"
+optional = true
+
+[target.'cfg(target_os = "emscripten")'.dependencies.wgpu-core-deps-emscripten]
+version = "24.0.0"
+path = "platform-deps/emscripten"
+optional = true
+
+[target.'cfg(target_vendor = "apple")'.dependencies.wgpu-core-deps-apple]
+version = "24.0.0"
+path = "platform-deps/apple"
+optional = true
 
 [lints.rust.unexpected_cfgs]
 level = "warn"

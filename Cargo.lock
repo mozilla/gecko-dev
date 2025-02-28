@@ -1602,9 +1602,9 @@ dependencies = [
 
 [[package]]
 name = "document-features"
-version = "0.2.10"
+version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb6969eaabd2421f8a2775cfd2471a2b634372b4a25d41e3bd647b79912850a0"
+checksum = "95249b50c6c185bee49034bcb378a49dc2b5dff0be90ff6616d31d64febab05d"
 dependencies = [
  "litrs",
 ]
@@ -3339,16 +3339,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "khronos-egl"
-version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aae1df220ece3c0ada96b8153459b67eebe9ae9212258bb0134ae60416fdf76"
-dependencies = [
- "libc",
- "pkg-config",
-]
-
-[[package]]
 name = "khronos_api"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4432,7 +4422,7 @@ checksum = "a2983372caf4480544083767bf2d27defafe32af49ab4df3a0b7fc90793a3664"
 [[package]]
 name = "naga"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=723abcb1d3d182f9a4bf973f02c6da39a4090f23#723abcb1d3d182f9a4bf973f02c6da39a4090f23"
+source = "git+https://github.com/gfx-rs/wgpu?rev=93f64dc847a0e6788b17b292ae4d7d59361e3be0#93f64dc847a0e6788b17b292ae4d7d59361e3be0"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -4449,7 +4439,7 @@ dependencies = [
  "strum",
  "termcolor",
  "thiserror 2.0.9",
- "unicode-xid",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -5718,9 +5708,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.217"
+version = "1.0.218"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02fc4265df13d6fa1d00ecff087228cc0a2b5f3c0e87e258d8b94a156e984c70"
+checksum = "e8dfc9d19bdbf6d17e22319da49161d5d0108e4188e8b680aef6299eed22df60"
 dependencies = [
  "serde_derive",
 ]
@@ -5746,9 +5736,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.217"
+version = "1.0.218"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a9bf7cf98d04a2b28aead066b7496853d4779c9cc183c440dbac457641e19a0"
+checksum = "f09503e191f4e797cb8aac08e9a4a4695c5edf6a2e70e376d961ddd5c969f82b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6687,12 +6677,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c0edd1e5b14653f783770bce4a4dabb4a5108a5370a5f5d8cfe8710c361f6c8b"
 
 [[package]]
-name = "unicode-xid"
-version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
-
-[[package]]
 name = "uniffi"
 version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7289,7 +7273,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=723abcb1d3d182f9a4bf973f02c6da39a4090f23#723abcb1d3d182f9a4bf973f02c6da39a4090f23"
+source = "git+https://github.com/gfx-rs/wgpu?rev=93f64dc847a0e6788b17b292ae4d7d59361e3be0#93f64dc847a0e6788b17b292ae4d7d59361e3be0"
 dependencies = [
  "arrayvec",
  "bit-vec",
@@ -7308,14 +7292,32 @@ dependencies = [
  "serde",
  "smallvec",
  "thiserror 2.0.9",
+ "wgpu-core-deps-apple",
+ "wgpu-core-deps-windows-linux-android",
  "wgpu-hal",
  "wgpu-types",
 ]
 
 [[package]]
+name = "wgpu-core-deps-apple"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=93f64dc847a0e6788b17b292ae4d7d59361e3be0#93f64dc847a0e6788b17b292ae4d7d59361e3be0"
+dependencies = [
+ "wgpu-hal",
+]
+
+[[package]]
+name = "wgpu-core-deps-windows-linux-android"
+version = "24.0.0"
+source = "git+https://github.com/gfx-rs/wgpu?rev=93f64dc847a0e6788b17b292ae4d7d59361e3be0#93f64dc847a0e6788b17b292ae4d7d59361e3be0"
+dependencies = [
+ "wgpu-hal",
+]
+
+[[package]]
 name = "wgpu-hal"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=723abcb1d3d182f9a4bf973f02c6da39a4090f23#723abcb1d3d182f9a4bf973f02c6da39a4090f23"
+source = "git+https://github.com/gfx-rs/wgpu?rev=93f64dc847a0e6788b17b292ae4d7d59361e3be0#93f64dc847a0e6788b17b292ae4d7d59361e3be0"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7329,8 +7331,6 @@ dependencies = [
  "gpu-allocator",
  "gpu-descriptor",
  "hashbrown 0.14.5",
- "js-sys",
- "khronos-egl",
  "libc",
  "libloading",
  "log",
@@ -7342,11 +7342,8 @@ dependencies = [
  "profiling",
  "range-alloc",
  "raw-window-handle",
- "rustc-hash",
  "smallvec",
  "thiserror 2.0.9",
- "wasm-bindgen",
- "web-sys",
  "wgpu-types",
  "windows",
  "windows-core",
@@ -7355,7 +7352,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "24.0.0"
-source = "git+https://github.com/gfx-rs/wgpu?rev=723abcb1d3d182f9a4bf973f02c6da39a4090f23#723abcb1d3d182f9a4bf973f02c6da39a4090f23"
+source = "git+https://github.com/gfx-rs/wgpu?rev=93f64dc847a0e6788b17b292ae4d7d59361e3be0#93f64dc847a0e6788b17b292ae4d7d59361e3be0"
 dependencies = [
  "bitflags 2.7.0",
  "js-sys",

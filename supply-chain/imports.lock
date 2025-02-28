@@ -592,8 +592,8 @@ user-login = "Amanieu"
 user-name = "Amanieu d'Antras"
 
 [[publisher.serde]]
-version = "1.0.217"
-when = "2024-12-27"
+version = "1.0.218"
+when = "2025-02-20"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -606,8 +606,8 @@ user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.serde_derive]]
-version = "1.0.217"
-when = "2024-12-27"
+version = "1.0.218"
+when = "2025-02-20"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
@@ -706,13 +706,6 @@ user-name = "David Tolnay"
 [[publisher.unicode-width]]
 version = "0.1.10"
 when = "2022-09-13"
-user-id = 1139
-user-login = "Manishearth"
-user-name = "Manish Goregaokar"
-
-[[publisher.unicode-xid]]
-version = "0.2.4"
-when = "2022-09-15"
 user-id = 1139
 user-login = "Manishearth"
 user-name = "Manish Goregaokar"

@@ -49,15 +49,20 @@ targets = [
 ]
 
 [features]
+cargo-clippy = []
 device_lost_panic = []
 dx12 = [
+    "naga/hlsl-out",
+    "dep:arrayvec",
     "dep:bit-set",
+    "dep:hashbrown",
     "dep:libloading",
+    "dep:log",
+    "dep:ordered-float",
+    "dep:profiling",
     "dep:range-alloc",
     "dep:windows-core",
-    "dep:ordered-float",
     "gpu-allocator/d3d12",
-    "naga/hlsl-out-if-target-windows",
     "windows/Win32_Graphics_Direct3D_Fxc",
     "windows/Win32_Graphics_Direct3D_Dxc",
     "windows/Win32_Graphics_Direct3D",
@@ -74,14 +79,20 @@ dx12 = [
 fragile-send-sync-non-atomic-wasm = ["wgpu-types/fragile-send-sync-non-atomic-wasm"]
 gles = [
     "naga/glsl-out",
-    "once_cell/std",
+    "dep:arrayvec",
     "dep:bytemuck",
     "dep:glow",
     "dep:glutin_wgl_sys",
+    "dep:hashbrown",
+    "dep:js-sys",
     "dep:khronos-egl",
     "dep:libloading",
+    "dep:log",
     "dep:ndk-sys",
-    "dep:once_cell",
+    "dep:profiling",
+    "dep:wasm-bindgen",
+    "dep:web-sys",
+    "once_cell/std",
     "windows/Win32_Graphics_OpenGL",
     "windows/Win32_Graphics_Gdi",
     "windows/Win32_System_LibraryLoader",
@@ -89,24 +100,41 @@ gles = [
 ]
 internal_error_panic = []
 metal = [
-    "naga/msl-out-if-target-apple",
+    "naga/msl-out",
+    "dep:arrayvec",
     "dep:block",
+    "dep:core-graphics-types",
+    "dep:hashbrown",
+    "dep:libc",
+    "dep:log",
+    "dep:metal",
+    "dep:objc",
+    "dep:profiling",
 ]
 oom_panic = []
+portable-atomic = ["dep:portable-atomic"]
 renderdoc = [
     "dep:libloading",
     "dep:renderdoc-sys",
+    "dep:log",
 ]
 static-dxc = ["dep:mach-dxcompiler-rs"]
 vulkan = [
     "naga/spv-out",
+    "dep:android_system_properties",
+    "dep:arrayvec",
     "dep:ash",
     "dep:gpu-alloc",
     "dep:gpu-descriptor",
+    "dep:hashbrown",
+    "dep:libc",
     "dep:libloading",
-    "dep:smallvec",
-    "dep:android_system_properties",
+    "dep:log",
     "dep:ordered-float",
+    "dep:profiling",
+    "dep:smallvec",
+    "dep:windows",
+    "windows/Win32",
 ]
 
 [lib]
@@ -128,6 +156,7 @@ path = "examples/ray-traced-triangle/main.rs"
 
 [dependencies.arrayvec]
 version = "0.7.6"
+optional = true
 default-features = false
 
 [dependencies.bitflags]
@@ -137,6 +166,7 @@ version = "2.7"
 version = "1.21"
 features = [
     "derive",
+    "extern_crate_alloc",
     "min_const_generics",
 ]
 optional = true
@@ -151,10 +181,12 @@ features = [
     "ahash",
     "inline-more",
 ]
+optional = true
 default-features = false
 
 [dependencies.log]
 version = "0.4"
+optional = true
 
 [dependencies.naga]
 version = "24.0.0"
@@ -175,6 +207,7 @@ version = "0.12.1"
 
 [dependencies.profiling]
 version = "1"
+optional = true
 default-features = false
 
 [dependencies.raw-window-handle]
@@ -183,6 +216,7 @@ default-features = false
 
 [dependencies.rustc-hash]
 version = "1"
+optional = true
 default-features = false
 
 [dependencies.thiserror]
@@ -217,10 +251,12 @@ version = "0.2.1"
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.js-sys]
 version = "0.3.70"
 features = ["default"]
+optional = true
 default-features = false
 
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.wasm-bindgen]
 version = "0.2.97"
+optional = true
 
 [target.'cfg(all(target_arch = "wasm32", not(target_os = "emscripten")))'.dependencies.web-sys]
 version = "0.3.74"
@@ -231,6 +267,7 @@ features = [
     "WebGl2RenderingContext",
     "OffscreenCanvas",
 ]
+optional = true
 default-features = false
 
 [target.'cfg(all(windows, not(target_arch = "aarch64")))'.dependencies.mach-dxcompiler-rs]
@@ -299,6 +336,10 @@ version = "1"
 features = ["union"]
 optional = true
 
+[target.'cfg(not(target_has_atomic = "64"))'.dependencies.portable-atomic]
+version = "1"
+optional = true
+
 [target.'cfg(target_os = "android")'.dependencies.android_system_properties]
 version = "0.1.1"
 optional = true
@@ -313,6 +354,7 @@ features = [
     "static",
     "no-pkg-config",
 ]
+optional = true
 
 [target.'cfg(target_os = "emscripten")'.dependencies.libloading]
 version = "0.8"
@@ -324,15 +366,19 @@ optional = true
 
 [target.'cfg(target_vendor = "apple")'.dependencies.core-graphics-types]
 version = "0.1"
+optional = true
 
 [target.'cfg(target_vendor = "apple")'.dependencies.metal]
 version = "0.31.0"
+optional = true
 
 [target.'cfg(target_vendor = "apple")'.dependencies.objc]
 version = "0.2.5"
+optional = true
 
 [target."cfg(unix)".dependencies.libc]
 version = "0.2"
+optional = true
 default-features = false
 
 [target."cfg(windows)".dependencies.bit-set]
