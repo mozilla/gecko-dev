@@ -76,7 +76,7 @@ export const ContentTiles = props => {
 
   const renderContentTile = (tile, index = 0) => {
     const isExpanded = expandedTileIndex === index;
-    const { header } = tile;
+    const { header, title, subtitle } = tile;
 
     return (
       <div
@@ -104,6 +104,26 @@ export const ContentTiles = props => {
             </div>
             <div className="arrow-icon"></div>
           </button>
+        )}
+        {(title || subtitle) && (
+          <div
+            className="tile-title-container"
+            id={`tile-title-container-${index}`}
+          >
+            {title && (
+              <Localized text={title}>
+                {/* H1 content is provided by Localized */}
+                {/* eslint-disable-next-line jsx-a11y/heading-has-content */}
+                <h1 className="tile-title" id={`content-tile-title-${index}`} />
+              </Localized>
+            )}
+
+            {subtitle && (
+              <Localized text={subtitle}>
+                <p className="tile-subtitle" />
+              </Localized>
+            )}
+          </div>
         )}
         {isExpanded || !header ? (
           <div className="tile-content" id={`tile-content-${index}`}>

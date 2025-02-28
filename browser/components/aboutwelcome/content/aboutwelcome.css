@@ -1562,6 +1562,18 @@ html {
   margin: auto;
   pointer-events: none;
 }
+.onboardingContainer .screen[pos=split] #content-tiles-container {
+  margin: 0;
+}
+.onboardingContainer .screen[pos=split] #content-tiles-container .content-tile:not(:only-child) {
+  margin-block: 0 24px;
+}
+.onboardingContainer .screen[pos=split] #content-tiles-container .content-tile:last-child {
+  margin-block: 0 40px;
+}
+.onboardingContainer .screen[pos=split] #content-tiles-container .multi-select-container {
+  padding: 0;
+}
 .onboardingContainer .screen[pos=split] .section-secondary,
 .onboardingContainer .screen[pos=split] .section-main {
   width: 400px;
@@ -2988,6 +3000,24 @@ html {
 .onboardingContainer #content-tiles-container .content-tile .multi-select-container .checkbox-container p {
   margin-block: 0.5em 0;
 }
+.onboardingContainer .tile-title-container {
+  margin-inline: 0;
+  margin-block: 10px 24px;
+  text-align: start;
+  transition: var(--transition);
+}
+.onboardingContainer .tile-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-block: 0;
+}
+.onboardingContainer .tile-title:not(:last-child) {
+  margin-block-end: 16px;
+}
+.onboardingContainer .tile-subtitle {
+  font-size: 16px;
+  margin-block: 0;
+}
 .onboardingContainer .dismiss-button {
   position: absolute;
   z-index: 2;
@@ -3358,6 +3388,7 @@ html {
 .onboardingContainer.transition-in .screen .cta-link,
 .onboardingContainer.transition-in .screen .legal-paragraph,
 .onboardingContainer.transition-in .screen migration-wizard,
+.onboardingContainer.transition-in .screen .tile-title-container,
 .onboardingContainer.transition-in .screen .steps[above-button]:not(.progress-bar) {
   opacity: 0;
   translate: 0 calc(-1 * var(--translate));
