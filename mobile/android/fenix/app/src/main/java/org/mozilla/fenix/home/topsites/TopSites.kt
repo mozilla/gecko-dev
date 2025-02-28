@@ -325,7 +325,7 @@ private fun TopSiteItem(
 
             Row(
                 modifier = Modifier.width(TOP_SITES_ITEM_SIZE.dp),
-                horizontalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.Absolute.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (topSite is TopSite.Pinned || topSite is TopSite.Default) {
