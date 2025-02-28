@@ -79,7 +79,6 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_enable_compose_homepage).apply {
-            isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().enableComposeHomepage
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
@@ -97,7 +96,6 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_mars_api_enabled).apply {
-            isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().marsAPIEnabled
             onPreferenceChangeListener = object : SharedPreferenceUpdater() {
                 override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
@@ -108,7 +106,6 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_pocket_content_recommendations).apply {
-            isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().showContentRecommendations
             onPreferenceChangeListener = object : SharedPreferenceUpdater() {
                 override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
