@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-02-28T00:54:59.356278+00:00'
+updated_at: '2025-02-28T14:45:57.795264+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -4269,14 +4269,15 @@ modules:
       - *jmaher
     peers:
       - *ahal
-      - *ato
-      - *bc
       - *jgraham
       - *whimboo
     meta:
       components:
         - 'Testing :: Mozbase'
         - 'Testing :: Mozbase Rust'
+      peers_emeritus:
+        - *ato
+        - *bc
   - machine_name: testing_performance_testing
     name: Performance Testing
     description: >
@@ -4561,5 +4562,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 7f489fb93d3e8078cd43e781b2852c904d074d6f
-  export: 01e64b9b9b1aa9487f8f62638a254573a3dc3927
+  config: 32176ba85f50c207367d5bba928627f0d05cbae5
+  export: 9960fb38fd7ce09737a754985ddbeb3080831001
