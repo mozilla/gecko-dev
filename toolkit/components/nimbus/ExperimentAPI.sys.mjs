@@ -23,6 +23,9 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
   return new Logger("ExperimentAPI");
 });
 
+const CRASHREPORTER_ENABLED =
+  AppConstants.MOZ_CRASHREPORTER && AppConstants.MOZ_APP_NAME !== "thunderbird";
+
 const IS_MAIN_PROCESS =
   Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
 
@@ -108,7 +111,7 @@ export const ExperimentAPI = {
         lazy.log.error("Failed to enable RemoteSettingsExperimentLoader:", e);
       }
 
-      if (AppConstants.MOZ_CRASHREPORTER) {
+      if (CRASHREPORTER_ENABLED) {
         this._manager.store.on("update", this._annotateCrashReport);
         this._annotateCrashReport();
       }
@@ -715,7 +718,7 @@ export class _ExperimentFeature {
 ExperimentAPI._annotateCrashReport =
   ExperimentAPI._annotateCrashReport.bind(ExperimentAPI);
 
-if (AppConstants.MOZ_CRASHREPORTER) {
+if (CRASHREPORTER_ENABLED) {
   lazy.CleanupManager.addCleanupHandler(() => {
     if (initialized) {
       ExperimentAPI._manager.store.off(
