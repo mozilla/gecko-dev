@@ -871,7 +871,6 @@ CrashManager.prototype = Object.freeze({
       environment: {
         experimentalFeatures: t(comma_list, cap),
         headlessMode: t(bool, cap),
-        nimbusEnrollments: t(comma_list, cap),
         uptime: t(seconds, "UptimeTS"),
       },
       memory: {
