@@ -34,6 +34,10 @@ skip-if = [
 ["browser_history_sidebar.js"]
 
 ["browser_resize_sidebar.js"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1946263
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1946263
+]
 
 ["browser_sidebar_collapsed_close_tab_button.js"]
 
