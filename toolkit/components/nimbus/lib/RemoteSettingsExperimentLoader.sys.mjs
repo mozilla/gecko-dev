@@ -176,7 +176,14 @@ export class _RemoteSettingsExperimentLoader {
   async enable(options = {}) {
     const { forceSync = false } = options;
 
-    if (this._enabled || !this.studiesEnabled) {
+    if (this._enabled) {
+      return;
+    }
+
+    if (!this.studiesEnabled) {
+      lazy.log.debug(
+        "Not enabling RemoteSettingsExperimentLoader: studies disabled"
+      );
       return;
     }
 
@@ -375,9 +382,8 @@ export class _RemoteSettingsExperimentLoader {
       );
     } catch (e) {
       lazy.log.debug(
-        `Error getting recipes from Remote Settings collection ${client.collectionName}`
+        `Error getting recipes from Remote Settings collection ${client.collectionName}: ${e}`
       );
-      console.error(e);
 
       return null;
     }

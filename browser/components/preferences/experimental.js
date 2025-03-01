@@ -4,170 +4,223 @@
 
 /* import-globals-from preferences.js */
 
-var gExperimentalPane = {
+ChromeUtils.defineESModuleGetters(this, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  FirefoxLabs: "resource://nimbus/FirefoxLabs.sys.mjs",
+});
+
+const STUDIES_ENABLED_CHANGED = "nimbus:studies-enabled-changed";
+
+const gExperimentalPane = {
   inited: false,
   _featureGatesContainer: null,
-  _boundRestartObserver: null,
-  _observedPrefs: [],
-  _shouldPromptForRestart: true,
-
-  _featureGatePrefTypeToPrefServiceType(featureGatePrefType) {
-    if (featureGatePrefType != "boolean") {
-      throw new Error("Only boolean FeatureGates are supported");
-    }
-    return "bool";
-  },
-
-  async _observeRestart(aSubject, aTopic, aData) {
-    if (!this._shouldPromptForRestart) {
-      return;
-    }
-    let prefValue = Services.prefs.getBoolPref(aData);
-    let buttonIndex = await confirmRestartPrompt(prefValue, 1, true, false);
-    if (buttonIndex == CONFIRM_RESTART_PROMPT_RESTART_NOW) {
-      Services.startup.quit(
-        Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart
-      );
-      return;
-    }
-    this._shouldPromptForRestart = false;
-    Services.prefs.setBoolPref(aData, !prefValue);
-    this._shouldPromptForRestart = true;
-  },
-
-  addPrefObserver(name, fn) {
-    this._observedPrefs.push({ name, fn });
-    Services.prefs.addObserver(name, fn);
-  },
-
-  removePrefObservers() {
-    for (let { name, fn } of this._observedPrefs) {
-      Services.prefs.removeObserver(name, fn);
-    }
-    this._observedPrefs = [];
-  },
-
-  // Reset the features to their default values
-  async resetAllFeatures() {
-    let features = await gExperimentalPane.getFeatures();
-    for (let feature of features) {
-      Services.prefs.setBoolPref(feature.preference, feature.defaultValue);
-    }
-  },
-
-  async getFeatures() {
-    let searchParams = new URLSearchParams(document.documentURIObject.query);
-    let definitionsUrl = searchParams.get("definitionsUrl");
-    let features = await FeatureGate.all(definitionsUrl);
-    return features.filter(f => f.isPublic);
-  },
+  _firefoxLabs: null,
 
   async init() {
     if (this.inited) {
       return;
     }
-    this.inited = true;
 
-    let features = await this.getFeatures();
-    let shouldHide = !features.length;
+    this.inited = true;
+    this._featureGatesContainer = document.getElementById(
+      "pane-experimental-featureGates"
+    );
+
+    this._onCheckboxChanged = this._onCheckboxChanged.bind(this);
+    this._onNimbusUpdate = this._onNimbusUpdate.bind(this);
+    this._onStudiesEnabledChanged = this._onStudiesEnabledChanged.bind(this);
+    this._resetAllFeatures = this._resetAllFeatures.bind(this);
+
+    setEventListener(
+      "experimentalCategory-reset",
+      "click",
+      this._resetAllFeatures
+    );
+
+    Services.obs.addObserver(
+      this._onStudiesEnabledChanged,
+      STUDIES_ENABLED_CHANGED
+    );
+    window.addEventListener("unload", () => this._removeObservers());
+
+    await this._maybeRenderLabsRecipes();
+  },
+
+  async _maybeRenderLabsRecipes() {
+    this._firefoxLabs = await FirefoxLabs.create();
+
+    const shouldHide = this._firefoxLabs.count === 0;
+    this._setCategoryVisibility(shouldHide);
+
+    if (shouldHide) {
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+
+    const groups = new Map();
+    for (const optIn of this._firefoxLabs.all()) {
+      if (!groups.has(optIn.firefoxLabsGroup)) {
+        groups.set(optIn.firefoxLabsGroup, []);
+      }
+
+      groups.get(optIn.firefoxLabsGroup).push(optIn);
+    }
+
+    for (const [group, optIns] of groups) {
+      const card = document.createElement("moz-card");
+      card.classList.add("featureGate");
+
+      const fieldset = document.createElement("moz-fieldset");
+      document.l10n.setAttributes(fieldset, group);
+
+      card.append(fieldset);
+
+      for (const optIn of optIns) {
+        const checkbox = document.createElement("moz-checkbox");
+        checkbox.dataset.nimbusSlug = optIn.slug;
+        checkbox.dataset.nimbusBranchSlug = optIn.branches[0].slug;
+        const description = document.createElement("div");
+        description.slot = "description";
+        description.id = `${optIn.slug}-description`;
+        description.classList.add("featureGateDescription");
+
+        for (const [key, value] of Object.entries(
+          optIn.firefoxLabsDescriptionLinks ?? {}
+        )) {
+          const link = document.createElement("a");
+          link.setAttribute("data-l10n-name", key);
+          link.setAttribute("href", value);
+          link.setAttribute("target", "_blank");
+
+          description.append(link);
+        }
+
+        document.l10n.setAttributes(description, optIn.firefoxLabsDescription);
+        checkbox.id = optIn.slug;
+        checkbox.setAttribute("aria-describedby", description.id);
+        document.l10n.setAttributes(checkbox, optIn.firefoxLabsTitle);
+
+        checkbox.checked =
+          ExperimentAPI._manager.store.get(optIn.slug)?.active ?? false;
+        checkbox.addEventListener("change", this._onCheckboxChanged);
+
+        checkbox.append(description);
+        fieldset.append(checkbox);
+      }
+
+      frag.append(card);
+    }
+
+    this._featureGatesContainer.appendChild(frag);
+
+    ExperimentAPI._manager.store.on("update", this._onNimbusUpdate);
+
+    Services.obs.notifyObservers(window, "experimental-pane-loaded");
+  },
+
+  _removeLabsRecipes() {
+    ExperimentAPI._manager.store.off("update", this._onNimbusUpdate);
+
+    this._featureGatesContainer
+      .querySelectorAll(".featureGate")
+      .forEach(el => el.remove());
+  },
+
+  async _onCheckboxChanged(event) {
+    const target = event.target;
+
+    const slug = target.dataset.nimbusSlug;
+    const branchSlug = target.dataset.nimbusBranchSlug;
+
+    const enrolling = !(
+      ExperimentAPI._manager.store.get(slug)?.active ?? false
+    );
+
+    let shouldRestart = false;
+    if (this._firefoxLabs.get(slug).requiresRestart) {
+      const buttonIndex = await confirmRestartPrompt(enrolling, 1, true, false);
+      shouldRestart = buttonIndex === CONFIRM_RESTART_PROMPT_RESTART_NOW;
+
+      if (!shouldRestart) {
+        // The user declined to restart, so we will not enroll in the opt-in.
+        target.checked = false;
+        return;
+      }
+    }
+
+    // Disable the checkbox so that the user cannot interact with it during enrollment.
+    target.disabled = true;
+
+    if (enrolling) {
+      await this._firefoxLabs.enroll(slug, branchSlug);
+    } else {
+      this._firefoxLabs.unenroll(slug);
+    }
+
+    target.disabled = false;
+
+    if (shouldRestart) {
+      Services.startup.quit(
+        Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart
+      );
+    }
+  },
+
+  _onNimbusUpdate(_event, { slug, active }) {
+    if (this._firefoxLabs.get(slug)) {
+      document.getElementById(slug).checked = active;
+    }
+  },
+
+  async _onStudiesEnabledChanged() {
+    const studiesEnabled = ExperimentAPI._manager.studiesEnabled;
+
+    if (studiesEnabled) {
+      await this._maybeRenderLabsRecipes();
+    } else {
+      this._setCategoryVisibility(true);
+      this._removeLabsRecipes();
+      this._firefoxLabs = null;
+    }
+  },
+
+  _removeObservers() {
+    ExperimentAPI._manager.store.off("update", this._onNimbusUpdate);
+    Services.obs.removeObserver(
+      this._onStudiesEnabledChanged,
+      STUDIES_ENABLED_CHANGED
+    );
+  },
+
+  // Reset the features to their default values
+  async _resetAllFeatures() {
+    for (const optIn of this._firefoxLabs.all()) {
+      const enrolled =
+        (await ExperimentAPI._manager.store.get(optIn.slug)?.active) ?? false;
+      if (enrolled) {
+        this._firefoxLabs.unenroll(optIn.slug);
+      }
+    }
+  },
+
+  _setCategoryVisibility(shouldHide) {
     document.getElementById("category-experimental").hidden = shouldHide;
+    document.getElementById("firefoxExperimentalCategory").hidden = shouldHide;
+
     // Cache the visibility so we can show it quicker in subsequent loads.
     Services.prefs.setBoolPref(
       "browser.preferences.experimental.hidden",
       shouldHide
     );
-    if (shouldHide) {
-      // Remove the 'experimental' category if there are no available features
-      document.getElementById("firefoxExperimentalCategory").remove();
-      if (
-        document.getElementById("categories").selectedItem?.id ==
+
+    if (
+      shouldHide &&
+      document.getElementById("categories").selectedItem?.id ==
         "category-experimental"
-      ) {
-        // Leave the 'experimental' category if there are no available features
-        gotoPref("general");
-        return;
-      }
+    ) {
+      // Leave the 'experimental' category if there are no available features
+      gotoPref("general");
     }
-
-    setEventListener(
-      "experimentalCategory-reset",
-      "click",
-      gExperimentalPane.resetAllFeatures
-    );
-
-    window.addEventListener("unload", () => this.removePrefObservers());
-    this._featureGatesContainer = document.getElementById(
-      "pane-experimental-featureGates"
-    );
-    this._boundRestartObserver = this._observeRestart.bind(this);
-    let frag = document.createDocumentFragment();
-    let groups = new Map();
-    for (let feature of features) {
-      if (!groups.has(feature.group)) {
-        groups.set(feature.group, []);
-      }
-      groups.get(feature.group).push(feature);
-    }
-    for (let [group, groupFeatures] of groups) {
-      let card = document.createElement("moz-card");
-      card.classList.add("featureGate");
-      let fieldset = document.createElement("moz-fieldset");
-      document.l10n.setAttributes(fieldset, group);
-      card.append(fieldset);
-      for (let feature of groupFeatures) {
-        if (Preferences.get(feature.preference)) {
-          console.error(
-            "Preference control already exists for experimental feature '" +
-              feature.id +
-              "' with preference '" +
-              feature.preference +
-              "'"
-          );
-          continue;
-        }
-
-        if (feature.restartRequired) {
-          this.addPrefObserver(feature.preference, this._boundRestartObserver);
-        }
-
-        let checkbox = document.createElement("moz-checkbox");
-        let description = document.createElement("div");
-        description.slot = "description";
-        description.id = feature.id + "-description";
-        description.classList.add("featureGateDescription");
-        checkbox.append(description);
-        fieldset.append(checkbox);
-
-        let descriptionLinks = feature.descriptionLinks || {};
-        for (let [key, value] of Object.entries(descriptionLinks)) {
-          let link = document.createElement("a");
-          link.setAttribute("data-l10n-name", key);
-          link.setAttribute("href", value);
-          link.setAttribute("target", "_blank");
-          description.append(link);
-        }
-        document.l10n.setAttributes(description, feature.description);
-        checkbox.setAttribute("preference", feature.preference);
-        checkbox.id = feature.id;
-        checkbox.setAttribute("aria-describedby", description.id);
-        document.l10n.setAttributes(checkbox, feature.title);
-        let extraTemplate = document.getElementById(`template-${feature.id}`);
-        if (extraTemplate) {
-          fieldset.appendChild(extraTemplate.content.cloneNode(true));
-        }
-        let preference = Preferences.add({
-          id: feature.preference,
-          type: gExperimentalPane._featureGatePrefTypeToPrefServiceType(
-            feature.type
-          ),
-        });
-        preference.setElementValue(checkbox);
-      }
-
-      frag.append(card);
-    }
-    this._featureGatesContainer.appendChild(frag);
-
-    Services.obs.notifyObservers(window, "experimental-pane-loaded");
   },
 };

@@ -105,6 +105,8 @@ fail-if = ["a11y_checks"] # Bug 1854636 clicked treechildren#engineChildren may 
 
 ["browser_experimental_features_resetall.js"]
 
+["browser_experimental_features_studies_disabled.js"]
+
 ["browser_extension_controlled.js"]
 skip-if = [
   "tsan",
