@@ -1,0 +1,62 @@
+.. _mozilla_projects_nss_nss_3_109_release_notes:
+
+NSS 3.109 release notes
+========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.109 was released on *28 February 2024**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_109_RTM. NSS 3.109 requires NSPR 4.35 or newer. The latest version of NSPR is 4.36.
+
+   NSS 3.109 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_109_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.109:
+
+`Changes in NSS 3.109 <#changes_in_nss_3.109>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 1939512 - Call BL_Init before RNG_RNGInit() so that special SHA instructions can be used if available
+   - Bug 1930807 - NSS policy updates - fix inaccurate key policy issues
+   - Bug 1945883 - SMIME fuzz target
+   - Bug 1914256 - ASN1 decoder fuzz target
+   - Bug 1936001 - Part 2: Revert "Extract testcases from ssl gtests for fuzzing"
+   - Bug 1915155 - Add fuzz/README.md
+   - Bug 1936001 - Part 4: Fix tstclnt arguments script
+   - Bug 1944545 - Extend pkcs7 fuzz target
+   - Bug 1912320 - Extend certDN fuzz target
+   - Bug 1854095 - delete old docker image definitions and task scheduling code  
+   - Bug 1854095 - apply nspr patch in acvp script
+   - Bug 1854095 - parse try syntax on pushes to nss-try
+   - Bug 1854095 - add "fuzz" task kind
+   - Bug 1854095 - add "test" task kind
+   - Bug 1854095 - add "certs" task kind
+   - Bug 1854095 - add "build" task kind
+   - Bug 1854095 - add "tools" task kind
+   - Bug 1854095 - add "fuzz" docker image
+   - Bug 1854095 - add "gcc-4.4" docker image
+   - Bug 1854095 - add "clang-format" docker image
+   - Bug 1854095 - add "acvp" docker image
+   - Bug 1854095 - add "builds" docker image
+   - Bug 1854095 - switch .taskcluster.yml to taskgraph
+   - Bug 1944300 - restore alloca.h include
+   - Bug 1944300 - refactor run_hacl.sh slightly
+   - Bug 1944300 - ignore all libcrux files in run_hacl.sh
+   - Bug 1944300 - use `diff -u` in HACL* consistency check
+   - Bug 1944300 - revert changes to HACL* files from bug 1866841
+   - Bug 1936001 - Part 3: Package frida corpus script
