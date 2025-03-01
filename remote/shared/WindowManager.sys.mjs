@@ -202,10 +202,7 @@ class WindowManager {
     // incorrectly reset the position without this check.
     let foundMatch = false;
 
-    // We retry on each iteration because on Linux, when combined with some
-    // sizemode changes (e.g. unmaximizing), the size request might get lost
-    // and we might get resized to the restored size / position.
-    function geometryMatches(retry = false) {
+    function geometryMatches() {
       lazy.logger.trace(
         `Checking window geometry ${win.outerWidth}x${win.outerHeight} @ (${win.screenX}, ${win.screenY})`
       );
@@ -221,9 +218,6 @@ class WindowManager {
         (win.outerWidth !== width || win.outerHeight !== height)
       ) {
         sizeMatches = false;
-        if (retry) {
-          win.resizeTo(width, height);
-        }
       }
       // Wayland doesn't support getting the window position.
       if (
@@ -233,9 +227,6 @@ class WindowManager {
         (win.screenX !== x || win.screenY !== y)
       ) {
         posMatches = false;
-        if (retry) {
-          win.moveTo(x, y);
-        }
       }
       if (sizeMatches && posMatches) {
         lazy.logger.trace(`Requested window geometry matches`);
@@ -250,9 +241,7 @@ class WindowManager {
       // to previous geometry changes, such as from restoreWindow(), so
       // wait longer if window geometry does not match.
       const options = {
-        checkFn() {
-          return geometryMatches(/* retry = */ true);
-        },
+        checkFn: geometryMatches,
         timeout: 500,
       };
       const promises = [];
