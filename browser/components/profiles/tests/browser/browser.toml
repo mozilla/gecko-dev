@@ -46,5 +46,11 @@ run-if = ["os != 'linux'"] # Linux clients cannot remote themselves.
 ["browser_test_profile_selector.js"]
 
 ["browser_update_profile_on_window_switch.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && opt", # Bug 1948374
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1948374
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1948374
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1948374
+]
 
 ["browser_window_title_test.js"]
