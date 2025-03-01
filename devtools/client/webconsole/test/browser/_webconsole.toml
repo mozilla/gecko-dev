@@ -693,6 +693,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_scroll.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1923756
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1923756
+]
 
 ["browser_webconsole_select_all.js"]
 
