@@ -620,6 +620,14 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Kak daty wužywamy</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Wobkšuśiś a pśeglědowaś</string>
+
+    <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Jadna slědna wěc</string>
+    <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Dajśo marketingowym partnarjam Mozilla k wěsći, kak sćo namakał Firefox a až jen wužywaśo. Tos te daty se nigda njepśedawaju.</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Pśizwóliś a pśeglědowanje zachopiś</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Wubjeŕśo poziciju za symbolowu rědku</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

@@ -471,6 +471,7 @@
     <string name="onboarding_term_of_service_line_one_link_text" moz:removedIn="136" tools:ignore="UnusedResources">Умовы абслугоўвання</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
     <string name="onboarding_term_of_service_line_two_link_text">Паведамленнем аб прыватнасці</string>
+
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">Захаваць і працягваць</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->

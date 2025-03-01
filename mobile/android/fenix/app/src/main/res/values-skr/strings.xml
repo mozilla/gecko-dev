@@ -484,6 +484,7 @@
     <string name="onboarding_term_of_service_line_two_link_text">رازداری نوٹس</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">بندوبست کرو</string>
+
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_skip_button" moz:removedIn="135" tools:ignore="UnusedResources">چھوڑو</string>
     <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->

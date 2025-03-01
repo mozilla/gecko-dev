@@ -594,6 +594,7 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Mudd afus i usnerni n Firefox</string>
     <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Amek i nesseqdac isefka</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Fren adeg deg ufeggag n yifecka</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

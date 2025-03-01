@@ -603,6 +603,7 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Evit sikour da wellaat ar merdeer, Firefox a gas roadennoù dielfennañ hag etreoberiañ da vMozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Ardeiñ</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Dibab ul lec’h barrenn-ostilhoù</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

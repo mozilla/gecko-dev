@@ -234,6 +234,7 @@
     <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Firefoxకి స్వాగతం</string>
     <!-- Terms of service onboarding page continue button label. -->
     <string name="onboarding_term_of_service_agree_and_continue_button_label">అంగీకరించి కొనసాగించండి</string>
+
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">భద్రపరచి కొనసాగించు</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->

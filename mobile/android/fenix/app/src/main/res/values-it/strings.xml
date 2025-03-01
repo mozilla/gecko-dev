@@ -624,6 +624,14 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Come utilizziamo i dati</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Conferma e inizia a navigare</string>
+
+    <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Un’ultima cosa</string>
+    <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Condividi come hai scoperto Firefox e il fatto che lo utilizzi con i partner per il marketing di Mozilla. Questi dati non vengono mai venduti.</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Accetta e inizia a navigare</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Scegli la posizione della barra degli strumenti</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -869,6 +877,8 @@
     <string name="preferences_link_sharing">Condivisione link</string>
     <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
     <string name="link_sharing_toggle_title">Includi un link per il download di %1$s nelle condivisioni su WhatsApp</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">Invita i tuoi amici a navigare più velocemente e in modo più sicuro con %1$s ogni volta che condividi un link su WhatsApp.</string>
     <!--Snackbar message shown when user shares a link -->
     <string name="link_shared_snackbar_message">Condiviso link</string>
     <!-- Snackbar action label shown when user shares a link  -->

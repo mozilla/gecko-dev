@@ -13,6 +13,14 @@
     <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
     <string name="mozac_browser_errorpages_security_ssl_title">Faddina in sa connessione segura</string>
 
+    <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[
+      <ul>
+        <li>Sa pàgina chi ses intentende de abèrrere non podet èssere ammustrada ca non podet èssere verificada s’autentitzidade de is datos retzidos.</li>
+        <li>Cuntata is meres de su situ pro informare de custu problema.</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_title">Faddina in sa connessione segura</string>
 

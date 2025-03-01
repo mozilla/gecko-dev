@@ -630,6 +630,14 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">저희가 데이터를 사용하는 방법</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">확인하고 탐색 시작</string>
+
+    <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">마지막으로 한 가지</string>
+    <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Firefox를 발견한 방법과 사용 방법을 Mozilla의 마케팅 파트너들과 공유해보세요. 이 데이터는 판매되지 않습니다.</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">동의 및 탐색 시작</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">도구 모음 위치 선택</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

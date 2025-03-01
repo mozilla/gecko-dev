@@ -22,6 +22,8 @@
      then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
      %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission. -->
     <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Tsáabaltio\'ob áantaj a datos ti\' %1$d asab dominios</string>
+    <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+    <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Tsáabaltio\'ob áantaj a datos uti\'al le ts\'ono\'oto\'ob yaan ti\' %1$d dominios</string>
     <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
     <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d ti\' %3$d</string>
     <!-- Description for tabs add-on permission. -->
@@ -70,8 +72,18 @@
     <string name="mozac_feature_addons_permissions_tab_hide_description">Ta\'akikubáa yéetel we\'esik le fichas le navegador</string>
     <!-- Description for top_sites permission. -->
     <string name="mozac_feature_addons_permissions_top_sites_description">Tsáabaltio\'ob áantaj historial u navegación</string>
+    <!-- Description for trialML permission. -->
+    <string name="mozac_feature_addons_permissions_trial_ml_description">Descargar yéetel ejecutar modelos AI ti\' u dispositivo</string>
+    <!-- Description for userScripts permission. -->
+    <string name="mozac_feature_addons_permissions_user_scripts_description">Cha\' u scripts terceros ma\' verificados u tsáabaltio\'ob áantaj u datos</string>
+    <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+    <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Le scripts ma\' verificados je\'el u páajtal u suponer riesgos ti\' seguridad yéetel yojeta\'al mixba\'al. Chéen ejecutar scripts ti\' extensiones wa fuentes ku confiar.</string>
     <!-- Description for devtools permission. -->
     <string name="mozac_feature_addons_permissions_devtools_description">Ampliar nu\'ukulo\'ob desarrollador utia\'al tsáabaltio\'ob áantaj u datos ti\' fichas abiertas</string>
+    <!-- Description for text button that expands the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_all_sites">We\'esik tuláakal le kúuchilo\'obo\'</string>
+    <!-- Description for text button that hides the majority of the list of domain permissions -->
+    <string name="mozac_feature_addons_permissions_show_fewer_sites">We\'esik menos kúuchilo\'ob</string>
     <!-- The version on of add-on. -->
     <string name="mozac_feature_addons_version">Bersion</string>
     <!-- The author of an add-on. -->
@@ -130,6 +142,8 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">Cha</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">Weet</string>
+    <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
+    <string name="mozac_feature_addons_permissions_dialog_learn_more">K’ajóoltal u yaanali’</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Tuup</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

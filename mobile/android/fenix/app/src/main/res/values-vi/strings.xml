@@ -617,6 +617,7 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Cách chúng tôi sử dụng dữ liệu</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Xác nhận và bắt đầu duyệt web</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Chọn vị trí cho thanh công cụ</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

@@ -620,6 +620,7 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Hogyan használjuk az adatokat</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Megerősítés, és a böngészés megkezdése</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Válassza ki az eszköztár elhelyezését</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
