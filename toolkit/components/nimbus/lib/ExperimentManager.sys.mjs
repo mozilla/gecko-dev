@@ -483,20 +483,23 @@ export class _ExperimentManager {
     // RemoteSettingsExperimentLoader should have finished updating at least
     // once. Prevent concurrent updates while we filter through the list of
     // available opt-in recipes.
-    return lazy.ExperimentAPI._rsLoader.withUpdateLock(async () => {
-      const filtered = [];
+    return lazy.ExperimentAPI._rsLoader.withUpdateLock(
+      async () => {
+        const filtered = [];
 
-      for (const recipe of this.optInRecipes) {
-        if (
-          (await enrollmentsCtx.checkTargeting(recipe)) &&
-          (await this.isInBucketAllocation(recipe.bucketConfig))
-        ) {
-          filtered.push(recipe);
+        for (const recipe of this.optInRecipes) {
+          if (
+            (await enrollmentsCtx.checkTargeting(recipe)) &&
+            (await this.isInBucketAllocation(recipe.bucketConfig))
+          ) {
+            filtered.push(recipe);
+          }
         }
-      }
 
-      return filtered;
-    });
+        return filtered;
+      },
+      { mode: "shared" }
+    );
   }
 
   /**
@@ -970,6 +973,8 @@ export class _ExperimentManager {
     for (const { slug } of this.store.getAllActiveRollouts()) {
       this.unenroll(slug, "studies-opt-out");
     }
+
+    this.optInRecipes = [];
   }
 
   /**

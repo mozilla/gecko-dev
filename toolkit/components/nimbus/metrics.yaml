@@ -693,7 +693,7 @@ nimbus_events:
         description: The branch slug/identifier that was randomly chosen
       experiment_type:
         type: string
-        description: Indicates whether this is an experiemnt or rollout
+        description: Indicates whether this is an experiment or rollout
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1773563
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781953
@@ -950,6 +950,44 @@ nimbus_events:
       - project-nimbus@mozilla.com
     expires: never
     disabled: true
+
+  migration:
+    type: event
+    description: >
+      Triggered whenever a Nimbus migration is attempted, whether or not it succeeds.
+    extra_keys:
+      migration_id:
+        type: string
+        description: >
+          The name of the migration that ran.
+
+      success:
+        type: boolean
+        description: Whether or not the migration succeeded.
+
+      error_reason:
+        type: string
+        description: >
+          A string describing the error that occurred.
+
+          Reasons include:
+
+          - "unknown": an unknown exception occurred.
+
+      enrollments:
+        type: string
+        description: >
+          An optional string that includes any enrollments triggered by this relation
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937169
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1937169
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - beth@mozilla.com
+      - project-nimbus@mozilla.com
+    expires: never
 
 normandy:
   expose_nimbus_experiment:
