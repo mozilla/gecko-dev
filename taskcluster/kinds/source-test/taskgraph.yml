@@ -8,7 +8,7 @@ diff:
     worker-type: t-linux-xlarge-source
     worker:
         docker-image: {in-tree: "lint"}
-        max-run-time: 1800
+        max-run-time: 2400
         # Uncomment to upload logs of the generations as artifacts.
         # env:
         #     XDG_CACHE_HOME: "/builds/worker/artifacts/cache"
