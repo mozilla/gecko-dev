@@ -901,7 +901,9 @@ impl LonghandIdSet {
         ${static_longhand_id_set(
             "BORDER_BACKGROUND_PROPERTIES",
             lambda p: (p.logical_group and p.logical_group.startswith("border")) or \
-                       p.name in ["background-color", "background-image"]
+                        p in data.shorthands_by_name["border"].sub_properties or \
+                        p in data.shorthands_by_name["background"].sub_properties and \
+                        p.name not in ["background-blend-mode", "background-repeat"]
         )}
         &BORDER_BACKGROUND_PROPERTIES
     }
