@@ -865,6 +865,14 @@
     <string name="preferences_show_nonsponsored_suggestions">Suggerimenti da %1$s</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">Ottieni suggerimenti dal Web relativi alla tua ricerca</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">Condivisione link</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">Includi un link per il download di %1$s nelle condivisioni su WhatsApp</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">Condiviso link</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">Gestisci impostazioni</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Apri i link nelle app</string>
 
@@ -1788,6 +1796,12 @@
 
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">Connetti un altro dispositivo…</string>
+
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s \n\nInviato da %2$s 🦊 Prova il browser per dispositivi mobili: %3$s</string>
+
+    <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s Inviato da %2$s 🦊 %3$s</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->

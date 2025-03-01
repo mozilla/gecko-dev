@@ -864,6 +864,12 @@
     <string name="preferences_show_nonsponsored_suggestions">Sugerencias de %1$s</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">Obtener sugerencias de la web relacionadas con tu búsqueda</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">Compartir enlaces</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">Enlace compartido</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">Administrar preferencias</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Abrir enlaces en aplicaciones</string>
 
@@ -2103,6 +2109,8 @@
     <!-- DNS Over HTTPS (DoH) -->
     <!-- Preference title for DNS over HTTPS settings -->
     <string name="preference_doh_title">DNS sobre HTTPS</string>
+    <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_summary">El sistema de nombres de dominio (DNS) sobre HTTPS envía los pedidos de un nombre de dominio a través de una conexión cifrada, proporcionando un DNS seguro y haciendo más difícil que otros vean que sitio web está tratando de acceder. %1$s</string>
     <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
     <string name="preference_doh_learn_more">Conocer más</string>
 
@@ -2117,17 +2125,24 @@
 
     <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
     <string name="preference_doh_default_protection">Protección predeterminada</string>
+    <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_doh_default_protection_summary">%1$s decide cuándo usar DNS seguro para proteger su privacidad.</string>
     <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
     <string name="preference_doh_default_protection_info_1">Usar el proveedor seleccionado</string>
     <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
-    <string name="preference_doh_default_protection_info_2">Use la resolución de DNS predeterminada si hay un problema con el proveedor de DNS seguro</string>
+    <string name="preference_doh_default_protection_info_2">Usá la resolución de DNS predeterminada si hay un problema con el proveedor de DNS seguro</string>
+    <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_3">Usar un proveedor local si es posible. %1$s</string>
     <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
     <string name="preference_doh_default_protection_info_4">Desactivar cuando una VPN, control parental o políticas de empresa estén activas</string>
+
+    <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+    <string name="preference_doh_default_protection_info_5">Desactivar cuando una red informe a %1$s que no debería usar DNS seguro. %2$s</string>
 
     <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
     <string name="preference_doh_increased_protection">Protección aumentada</string>
     <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
-    <string name="preference_doh_increased_protection_summary">Usted controla cuándo usar DNS seguro y elige su proveedor.</string>
+    <string name="preference_doh_increased_protection_summary">Vos controlás cuándo usar DNS seguro y elegís tu proveedor.</string>
     <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
     <string name="preference_doh_increased_protection_info_1">Usar el proveedor seleccionado</string>
     <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
@@ -2135,20 +2150,22 @@
 
     <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
     <string name="preference_doh_max_protection">Protección máxima</string>
+    <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_doh_max_protection_summary">%1$s siempre usará DNS seguro. Se verá una advertencia de riesgo de seguridad antes de que usemos el DNS del sistema.</string>
     <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
     <string name="preference_doh_max_protection_info_1">Solo usar el proveedor seleccionado</string>
     <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
     <string name="preference_doh_max_protection_info_2">Avisar siempre si el DNS seguro no está disponible</string>
     <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
-    <string name="preference_doh_max_protection_info_3">Si el DNS seguro no está disponible los sitios no se cargarán ni funcionarán correctamente.</string>
+    <string name="preference_doh_max_protection_info_3">Si el DNS seguro no está disponible los sitios no se cargarán ni funcionarán correctamente</string>
 
     <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
     <string name="preference_doh_off">Desactivado</string>
     <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
-    <string name="preference_doh_off_summary">Use la resolución de DNS predeterminada</string>
+    <string name="preference_doh_off_summary">Usá la resolución de DNS predeterminada</string>
 
     <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
-    <string name="preference_doh_choose_provider">Elegir proveedor</string>
+    <string name="preference_doh_choose_provider">Seleccionar proveedor</string>
     <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
     <string name="preference_doh_provider_default">(predeterminado)</string>
     <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
@@ -2158,7 +2175,7 @@
     <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
     <string name="preference_doh_provider_custom_dialog_textfield">Proveedor</string>
     <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https"-->
-    <string name="preference_doh_provider_custom_dialog_error_https">La URL debe comenzar con &quot;https: //&quot;</string>
+    <string name="preference_doh_provider_custom_dialog_error_https">La URL debe comenzar con “https://”</string>
     <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
     <string name="preference_doh_provider_custom_dialog_error_invalid">URL inválida</string>
     <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2168,12 +2185,14 @@
 
     <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
     <string name="preference_doh_exceptions">Excepciones</string>
+    <!-- Description of "exceptions" for "DNS over HTTPS". The first parameter is the name of the application. (For example: Fenix) -->
+    <string name="preference_doh_exceptions_summary">%1$s no usará DNS seguro en estos sitios y sus subdominios.</string>
     <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
     <string name="preference_doh_exceptions_add">Agregar sitio</string>
     <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
     <string name="preference_doh_exceptions_add_site">Sitio</string>
     <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
-    <string name="preference_doh_exceptions_add_placeholder">ejemplo.com</string>
+    <string name="preference_doh_exceptions_add_placeholder">example.com</string>
     <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
     <string name="preference_doh_exceptions_add_error">Debe ser un dominio válido</string>
     <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
