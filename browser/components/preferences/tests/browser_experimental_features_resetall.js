@@ -3,77 +3,153 @@
 
 "use strict";
 
-const { FirefoxLabs } = ChromeUtils.importESModule(
-  "resource://nimbus/FirefoxLabs.sys.mjs"
-);
-
-add_setup(async function setup() {
-  const cleanup = await setupLabsTest();
-  registerCleanupFunction(cleanup);
-});
+// It doesn't matter what two preferences are used here, as long as the first is a built-in
+// one that defaults to false and the second defaults to true.
+const KNOWN_PREF_1 = "browser.display.use_system_colors";
+const KNOWN_PREF_2 = "browser.autofocus";
 
 // This test verifies that pressing the reset all button for experimental features
 // resets all of the checkboxes to their default state.
 add_task(async function testResetAll() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.preferences.experimental", true],
+      ["test.featureA", false],
+      ["test.featureB", true],
+      [KNOWN_PREF_1, false],
+      [KNOWN_PREF_2, true],
+    ],
+  });
+
+  // Add a number of test features.
+  const server = new DefinitionServer();
+  let definitions = [
+    {
+      id: "test-featureA",
+      preference: "test.featureA",
+      defaultValueJexl: "false",
+    },
+    {
+      id: "test-featureB",
+      preference: "test.featureB",
+      defaultValueJexl: "true",
+    },
+    {
+      id: "test-featureC",
+      preference: KNOWN_PREF_1,
+      defaultValueJexl: "false",
+    },
+    {
+      id: "test-featureD",
+      preference: KNOWN_PREF_2,
+      defaultValueJexl: "true",
+    },
+  ];
+  for (let { id, preference, defaultValueJexl } of definitions) {
+    server.addDefinition({
+      id,
+      preference,
+      defaultValueJexl,
+      isPublicJexl: "true",
+    });
+  }
+
   await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
-    `about:preferences#paneExperimental`
+    `about:preferences?definitionsUrl=${encodeURIComponent(
+      server.definitionsUrl
+    )}#paneExperimental`
   );
-
-  const doc = gBrowser.contentDocument;
+  let doc = gBrowser.contentDocument;
 
   await TestUtils.waitForCondition(
-    () => doc.querySelector(".featureGate"),
-    "wait for features to be added to the DOM"
+    () => doc.getElementById(definitions[definitions.length - 1].id),
+    "wait for the first public feature to get added to the DOM"
   );
 
-  const qa1El = doc.getElementById("nimbus-qa-1");
-  const qa2El = doc.getElementById("nimbus-qa-2");
-
-  ok(
-    !ExperimentAPI._manager.store.get("nimbus-qa-1")?.active,
-    "Should not enroll in nimbus-qa-1"
-  );
-  ok(
-    !ExperimentAPI._manager.store.get("nimbus-qa-2")?.active,
-    "Should not enroll in nimbus-qa-2"
-  );
-  ok(!qa1El.checked, "nimbus-qa-1 checkbox unchecked");
-  ok(!qa2El.checked, "nimbus-qa-2 checkbox unchecked");
+  // Check the initial state of each feature.
+  ok(!Services.prefs.getBoolPref("test.featureA"), "initial state A");
+  ok(Services.prefs.getBoolPref("test.featureB"), "initial state B");
+  ok(!Services.prefs.getBoolPref(KNOWN_PREF_1), "initial state C");
+  ok(Services.prefs.getBoolPref(KNOWN_PREF_2), "initial state D");
 
   // Modify the state of some of the features.
-  await enrollByClick(qa1El, true);
-  await enrollByClick(qa2El, true);
 
-  ok(
-    ExperimentAPI._manager.store.get("nimbus-qa-1")?.active,
-    "Should enroll in nimbus-qa-1"
+  EventUtils.synthesizeMouseAtCenter(
+    doc.getElementById("test-featureC").inputEl,
+    {},
+    gBrowser.contentWindow
   );
-  ok(
-    ExperimentAPI._manager.store.get("nimbus-qa-2")?.active,
-    "Should enroll in nimbus-qa-2"
+  EventUtils.synthesizeMouseAtCenter(
+    doc.getElementById("test-featureD").labelEl,
+    {},
+    gBrowser.contentWindow
   );
-  ok(qa1El.checked, "nimbus-qa-1 checkbox checked");
-  ok(qa2El.checked, "nimbus-qa-2 checkbox checked");
+  // Verify that clicking the non-interactive description does not
+  // trigger telemetry events.
+  AccessibilityUtils.setEnv({ mustHaveAccessibleRule: false });
+  EventUtils.synthesizeMouseAtCenter(
+    doc.getElementById("test-featureD").descriptionEl,
+    {},
+    gBrowser.contentWindow
+  );
+  AccessibilityUtils.resetEnv();
 
-  const unenrollPromises = [
-    promiseNimbusStoreUpdate("nimbus-qa-1", false),
-    promiseNimbusStoreUpdate("nimbus-qa-2", false),
-  ];
+  // Check the prefs changed
+  ok(!Services.prefs.getBoolPref("test.featureA"), "modified state A");
+  ok(Services.prefs.getBoolPref("test.featureB"), "modified state B");
+  ok(Services.prefs.getBoolPref(KNOWN_PREF_1), "modified state C");
+  ok(!Services.prefs.getBoolPref(KNOWN_PREF_2), "modified state D");
 
+  // Check that telemetry appeared:
+  const { TelemetryTestUtils } = ChromeUtils.importESModule(
+    "resource://testing-common/TelemetryTestUtils.sys.mjs"
+  );
+  let snapshot = TelemetryTestUtils.getProcessScalars("parent", true, true);
+  TelemetryTestUtils.assertKeyedScalar(
+    snapshot,
+    "browser.ui.interaction.preferences_paneExperimental",
+    "test-featureC",
+    1
+  );
+  TelemetryTestUtils.assertKeyedScalar(
+    snapshot,
+    "browser.ui.interaction.preferences_paneExperimental",
+    "test-featureD",
+    1
+  );
+
+  // State after reset.
+  let prefChangedPromise = new Promise(resolve => {
+    Services.prefs.addObserver(KNOWN_PREF_2, function observer() {
+      Services.prefs.removeObserver(KNOWN_PREF_2, observer);
+      resolve();
+    });
+  });
   doc.getElementById("experimentalCategory-reset").click();
-  await Promise.all(unenrollPromises);
+  await prefChangedPromise;
 
+  // The preferences will be reset to the default value for the feature.
+  ok(!Services.prefs.getBoolPref("test.featureA"), "after reset state A");
+  ok(Services.prefs.getBoolPref("test.featureB"), "after reset state B");
+  ok(!Services.prefs.getBoolPref(KNOWN_PREF_1), "after reset state C");
+  ok(Services.prefs.getBoolPref(KNOWN_PREF_2), "after reset state D");
   ok(
-    !ExperimentAPI._manager.store.get("nimbus-qa-1")?.active,
-    "Should unenroll from nimbus-qa-1"
+    !doc.getElementById("test-featureA").checked,
+    "after reset checkbox state A"
   );
   ok(
-    !ExperimentAPI._manager.store.get("nimbus-qa-2")?.active,
-    "Should unenroll from nimbus-qa-2"
+    doc.getElementById("test-featureB").checked,
+    "after reset checkbox state B"
   );
-  ok(!qa1El.checked, "nimbus-qa-1 checkbox unchecked");
-  ok(!qa2El.checked, "nimbus-qa-2 checkbox unchecked");
+  ok(
+    !doc.getElementById("test-featureC").checked,
+    "after reset checkbox state C"
+  );
+  ok(
+    doc.getElementById("test-featureD").checked,
+    "after reset checkbox state D"
+  );
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });

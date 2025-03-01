@@ -6,92 +6,78 @@
 // This test verifies that searching filters the features to just that subset that
 // contains the search terms.
 add_task(async function testFilterFeatures() {
-  const recipes = [
-    {
-      ...DEFAULT_LABS_RECIPES[0],
-      slug: "test-featureA",
-    },
-    {
-      ...DEFAULT_LABS_RECIPES[1],
-      slug: "test-featureB",
-      firefoxLabsGroup: "experimental-features-group-customize-browsing",
-    },
-    {
-      ...DEFAULT_LABS_RECIPES[2],
-      slug: "test-featureC",
-      targeting: "true",
-      firefoxLabsGroup: "experimental-features-group-customize-browsing",
-    },
-    {
-      ...DEFAULT_LABS_RECIPES[3],
-      slug: "test-featureD",
-      bucketConfig: {
-        ...ExperimentFakes.recipe.bucketConfig,
-        count: 1000,
-      },
-    },
-  ];
-  const cleanup = await setupLabsTest(recipes);
-
   await SpecialPowers.pushPrefEnv({
     set: [["browser.preferences.experimental", true]],
   });
 
-  await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "about:preferences#paneExperimental"
-  );
-  const doc = gBrowser.contentDocument;
-
-  await TestUtils.waitForCondition(
-    () => doc.querySelector(".featureGate"),
-    "wait for the first public feature to get added to the DOM"
-  );
-
-  const definitions = [
+  // Add a number of test features.
+  const server = new DefinitionServer();
+  let definitions = [
     {
       id: "test-featureA",
+      preference: "test.featureA",
       title: "Experimental Feature 1",
-      description: "This is a fun experimental feature you can enable",
       group: "experimental-features-group-customize-browsing",
+      description: "This is a fun experimental feature you can enable",
       result: true,
     },
     {
       id: "test-featureB",
+      preference: "test.featureB",
       title: "Experimental Thing 2",
+      group: "experimental-features-group-customize-browsing",
       description: "This is a very boring experimental tool",
-      group: "experimental-features-group-webpage-display",
+      // Visible since it's grouped with other features that match the search.
       result: true,
     },
     {
       id: "test-featureC",
+      preference: "test.featureC",
       title: "Experimental Thing 3",
+      group: "experimental-features-group-customize-browsing",
       description: "This is a fun experimental feature for you can enable",
-      group: "experimental-features-group-developer-tools",
       result: true,
     },
     {
       id: "test-featureD",
+      preference: "test.featureD",
       title: "Experimental Thing 4",
-      description: "This is not a checkbox that you should be enabling",
       group: "experimental-features-group-developer-tools",
+      description: "This is a not a checkbox that you should be enabling",
+      // Doesn't match search and isn't grouped with a matching feature.
       result: false,
     },
   ];
+  for (let { id, preference, group } of definitions) {
+    server.addDefinition({ id, preference, isPublicJexl: "true", group });
+  }
+
+  await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    `about:preferences?definitionsUrl=${encodeURIComponent(
+      server.definitionsUrl
+    )}#paneExperimental`
+  );
+  let doc = gBrowser.contentDocument;
+
+  await TestUtils.waitForCondition(
+    () => doc.getElementById(definitions[definitions.length - 1].id),
+    "wait for the first public feature to get added to the DOM"
+  );
 
   // Manually modify the labels of the features that were just added, so that the test
   // can rely on consistent search terms.
-  for (const definition of definitions) {
-    const mainItem = doc.getElementById(definition.id);
+  for (let definition of definitions) {
+    let mainItem = doc.getElementById(definition.id);
     mainItem.label = definition.title;
     mainItem.removeAttribute("data-l10n-id");
-    const descItem = doc.getElementById(`${definition.id}-description`);
+    let descItem = doc.getElementById(definition.id + "-description");
     descItem.textContent = definition.description;
     descItem.removeAttribute("data-l10n-id");
   }
 
   // First, check that all of the items are visible by default.
-  for (const definition of definitions) {
+  for (let definition of definitions) {
     checkVisibility(
       doc.getElementById(definition.id),
       true,
@@ -102,7 +88,7 @@ add_task(async function testFilterFeatures() {
   // After searching, only a subset should be visible.
   await enterSearch(doc, "feature");
 
-  for (const definition of definitions) {
+  for (let definition of definitions) {
     checkVisibility(
       doc.getElementById(definition.id),
       definition.result,
@@ -110,11 +96,11 @@ add_task(async function testFilterFeatures() {
         definition.result ? "visible" : "hidden"
       } after first search`
     );
-    info(`Text for item was: ${doc.getElementById(definition.id).textContent}`);
+    info("Text for item was: " + doc.getElementById(definition.id).textContent);
   }
 
   // Reset the search entirely.
-  const searchInput = doc.getElementById("searchInput");
+  let searchInput = doc.getElementById("searchInput");
   searchInput.value = "";
   searchInput.doCommand();
 
@@ -125,7 +111,7 @@ add_task(async function testFilterFeatures() {
     gBrowser.contentWindow
   );
 
-  for (const definition of definitions) {
+  for (let definition of definitions) {
     checkVisibility(
       doc.getElementById(definition.id),
       true,
@@ -135,10 +121,10 @@ add_task(async function testFilterFeatures() {
 
   // Simulate entering a search and then clicking one of the category labels. The search
   // should reset each time.
-  for (const category of ["category-search", "category-experimental"]) {
+  for (let category of ["category-search", "category-experimental"]) {
     await enterSearch(doc, "feature");
 
-    for (const definition of definitions) {
+    for (let definition of definitions) {
       checkVisibility(
         doc.getElementById(definition.id),
         definition.result,
@@ -161,8 +147,8 @@ add_task(async function testFilterFeatures() {
     await new Promise(r =>
       requestAnimationFrame(() => requestAnimationFrame(r))
     );
-    const shouldShow = category == "category-experimental";
-    for (const definition of definitions) {
+    let shouldShow = category == "category-experimental";
+    for (let definition of definitions) {
       checkVisibility(
         doc.getElementById(definition.id),
         shouldShow,
@@ -174,8 +160,6 @@ add_task(async function testFilterFeatures() {
   }
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
-
-  await cleanup();
 });
 
 function checkVisibility(element, expected, desc) {

@@ -102,15 +102,6 @@ export class FirefoxLabs {
   }
 
   /**
-   * Return the number of eligible opt-ins.
-   *
-   * @return {number} The number of eligible opt-ins.
-   */
-  get count() {
-    return this.#recipes.size;
-  }
-
-  /**
    * Yield all available opt-ins.
    *
    * @yields {object} The opt-ins.
@@ -119,16 +110,5 @@ export class FirefoxLabs {
     for (const recipe of this.#recipes.values()) {
       yield recipe;
     }
-  }
-
-  /**
-   * Return an opt-in by its slug
-   *
-   * @param {string} slug The slug of the opt-in to return.
-   *
-   * @returns {object} The requested opt-in, if it exists.
-   */
-  get(slug) {
-    return this.#recipes.get(slug);
   }
 }
