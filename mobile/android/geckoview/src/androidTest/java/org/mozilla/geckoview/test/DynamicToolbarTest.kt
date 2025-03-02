@@ -344,6 +344,9 @@ class DynamicToolbarTest : BaseSessionTest() {
         val dynamicToolbarMaxHeight = SCREEN_HEIGHT / 2
         sessionRule.display?.run { setDynamicToolbarMaxHeight(dynamicToolbarMaxHeight) }
 
+        // disabled for frequent failures - on Bug 1855082
+        assumeThat(sessionRule.env.isX86, equalTo(false))
+
         // Set active since setVerticalClipping call affects only for forground tab.
         mainSession.setActive(true)
 
