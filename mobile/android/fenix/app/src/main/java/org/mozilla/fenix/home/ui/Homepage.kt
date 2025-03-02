@@ -178,7 +178,7 @@ internal fun Homepage(
 
                     if (showCustomizeHome) {
                         CustomizeHomeButton(
-                            buttonBackgroundColor = buttonBackgroundColor,
+                            buttonBackgroundColor = customizeHomeButtonBackgroundColor,
                             interactor = interactor,
                         )
                     }
@@ -405,6 +405,7 @@ private fun HomepagePreview() {
                 cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
                 buttonTextColor = WallpaperState.default.buttonTextColor,
                 buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
+                customizeHomeButtonBackgroundColor = FirefoxTheme.colors.actionTertiary,
                 bottomSpacerHeight = 188.dp,
             ),
             interactor = FakeHomepagePreview.homepageInteractor,
@@ -437,6 +438,7 @@ private fun HomepagePreviewCollections() {
                 cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
                 buttonTextColor = WallpaperState.default.buttonTextColor,
                 buttonBackgroundColor = WallpaperState.default.buttonBackgroundColor,
+                customizeHomeButtonBackgroundColor = FirefoxTheme.colors.actionTertiary,
                 bottomSpacerHeight = 188.dp,
             ),
             interactor = FakeHomepagePreview.homepageInteractor,
