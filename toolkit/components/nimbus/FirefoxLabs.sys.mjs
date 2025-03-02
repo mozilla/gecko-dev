@@ -102,6 +102,15 @@ export class FirefoxLabs {
   }
 
   /**
+   * Return the number of eligible opt-ins.
+   *
+   * @return {number} The number of eligible opt-ins.
+   */
+  get count() {
+    return this.#recipes.size;
+  }
+
+  /**
    * Yield all available opt-ins.
    *
    * @yields {object} The opt-ins.

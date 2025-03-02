@@ -13,6 +13,11 @@ ChromeUtils.defineLazyGetter(this, "QuickSuggestTestUtils", () => {
   return module;
 });
 
+ChromeUtils.defineESModuleGetters(this, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
+  ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
+});
+
 const kDefaultWait = 2000;
 
 function is_element_visible(aElement, aMsg) {
@@ -174,60 +179,6 @@ function waitForMutation(target, opts, cb) {
     });
     observer.observe(target, opts);
   });
-}
-
-// Used to add sample experimental features for testing. To use, create
-// a DefinitionServer, then call addDefinition as needed.
-class DefinitionServer {
-  constructor(definitionOverrides = []) {
-    let { HttpServer } = ChromeUtils.importESModule(
-      "resource://testing-common/httpd.sys.mjs"
-    );
-
-    this.server = new HttpServer();
-    this.server.registerPathHandler("/definitions.json", this);
-    this.definitions = {};
-
-    for (const override of definitionOverrides) {
-      this.addDefinition(override);
-    }
-
-    this.server.start();
-    registerCleanupFunction(
-      () => new Promise(resolve => this.server.stop(resolve))
-    );
-  }
-
-  // for nsIHttpRequestHandler
-  handle(request, response) {
-    response.write(JSON.stringify(this.definitions));
-  }
-
-  get definitionsUrl() {
-    const { primaryScheme, primaryHost, primaryPort } = this.server.identity;
-    return `${primaryScheme}://${primaryHost}:${primaryPort}/definitions.json`;
-  }
-
-  addDefinition(overrides = {}) {
-    const definition = {
-      id: "test-feature",
-      // These l10n IDs are just random so we have some text to display
-      title: "experimental-features-media-jxl",
-      group: "experimental-features-group-customize-browsing",
-      description: "pane-experimental-description3",
-      restartRequired: false,
-      type: "boolean",
-      preference: "test.feature",
-      defaultValue: false,
-      isPublic: false,
-      ...overrides,
-    };
-    // convert targeted values, used by fromId
-    definition.isPublic = { default: definition.isPublic };
-    definition.defaultValue = { default: definition.defaultValue };
-    this.definitions[definition.id] = definition;
-    return definition;
-  }
 }
 
 /**
@@ -449,4 +400,163 @@ async function assertSuggestVisibility(expectedByElementId) {
       );
     }
   }
+}
+
+const DEFAULT_LABS_RECIPES = [
+  ExperimentFakes.recipe("nimbus-qa-1", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+    targeting: "true",
+    isRollout: true,
+    isFirefoxLabsOptIn: true,
+    firefoxLabsTitle: "experimental-features-auto-pip",
+    firefoxLabsDescription: "experimental-features-auto-pip-description",
+    firefoxLabsDescriptionLinks: null,
+    firefoxLabsGroup: "experimental-features-group-customize-browsing",
+    requiresRestart: false,
+    branches: [
+      {
+        slug: "control",
+        ratio: 1,
+        features: [
+          {
+            featureId: "nimbus-qa-1",
+            value: {
+              value: "recipe-value-1",
+            },
+          },
+        ],
+      },
+    ],
+  }),
+
+  ExperimentFakes.recipe("nimbus-qa-2", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+    targeting: "true",
+    isRollout: true,
+    isFirefoxLabsOptIn: true,
+    firefoxLabsTitle: "experimental-features-media-jxl",
+    firefoxLabsDescription: "experimental-features-media-jxl-description",
+    firefoxLabsDescriptionLinks: {
+      bugzilla: "https://example.com",
+    },
+    firefoxLabsGroup: "experimental-features-group-webpage-display",
+    branches: [
+      {
+        slug: "control",
+        ratio: 1,
+        features: [
+          {
+            featureId: "nimbus-qa-2",
+            value: {
+              value: "recipe-value-2",
+            },
+          },
+        ],
+      },
+    ],
+  }),
+
+  ExperimentFakes.recipe("targeting-false", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 1000,
+    },
+    targeting: "false",
+    isRollout: true,
+    isFirefoxLabsOptIn: true,
+    firefoxLabsTitle: "experimental-features-ime-search",
+    firefoxLabsDescription: "experimental-features-ime-search-description",
+    firefoxLabsDescriptionLinks: null,
+    firefoxLabsGroup: "experimental-features-group-developer-tools",
+    requiresRestart: false,
+  }),
+
+  ExperimentFakes.recipe("bucketing-false", {
+    bucketConfig: {
+      ...ExperimentFakes.recipe.bucketConfig,
+      count: 0,
+    },
+    targeting: "true",
+    isFirefoxLabsOptIn: true,
+    firefoxLabsTitle: "experimental-features-ime-search",
+    firefoxLabsDescription: "experimental-features-ime-search-description",
+    firefoxLabsDescriptionLinks: null,
+    firefoxLabsGroup: "experimental-features-group-developer-tools",
+    requiresRestart: false,
+  }),
+];
+
+async function setupLabsTest(recipes) {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["app.normandy.run_interval_seconds", 0],
+      ["app.shield.optoutstudies.enabled", true],
+      ["datareporting.healthreport.uploadEnabled", true],
+      ["messaging-system.log", "debug"],
+    ],
+    clear: [
+      ["browser.preferences.experimental"],
+      ["browser.preferences.experimental.hidden"],
+    ],
+  });
+  // Initialize Nimbus and wait for the RemoteSettingsExperimentLoader to finish
+  // updating (with no recipes).
+  await ExperimentAPI.ready();
+  await ExperimentAPI._rsLoader.finishedUpdating();
+
+  // Inject some recipes into the Remote Settings client and call
+  // updateRecipes() so that we have available opt-ins.
+  await ExperimentAPI._rsLoader.remoteSettingsClients.experiments.db.importChanges(
+    {},
+    Date.now(),
+    recipes ?? DEFAULT_LABS_RECIPES,
+    { clear: true }
+  );
+
+  await ExperimentAPI._rsLoader.updateRecipes("test");
+
+  return async function cleanup() {
+    const store = ExperimentAPI._manager.store;
+
+    store._store._saver.disarm();
+    if (store._store._saver.isRunning) {
+      await store._store._saver._runningPromise;
+    }
+
+    await IOUtils.remove(store._store.path);
+
+    await SpecialPowers.popPrefEnv();
+  };
+}
+
+function promiseNimbusStoreUpdate(wantedSlug, wantedActive) {
+  const deferred = Promise.withResolvers();
+  const listener = (_event, { slug, active }) => {
+    info(
+      `promiseNimbusStoreUpdate: received update for ${slug} active=${active}`
+    );
+    if (slug === wantedSlug && active === wantedActive) {
+      ExperimentAPI._manager.store.off("update", listener);
+      deferred.resolve();
+    }
+  };
+
+  ExperimentAPI._manager.store.on("update", listener);
+  return deferred.promise;
+}
+
+function enrollByClick(el, wantedActive) {
+  const slug = el.dataset.nimbusSlug;
+
+  info(`Enrolling in ${slug}:${el.dataset.nimbusBranchSlug}...`);
+
+  const promise = promiseNimbusStoreUpdate(slug, wantedActive);
+  EventUtils.synthesizeMouseAtCenter(el.inputEl, {}, gBrowser.contentWindow);
+  return promise;
 }
