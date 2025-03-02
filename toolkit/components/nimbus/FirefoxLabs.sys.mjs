@@ -111,4 +111,15 @@ export class FirefoxLabs {
       yield recipe;
     }
   }
+
+  /**
+   * Return an opt-in by its slug
+   *
+   * @param {string} slug The slug of the opt-in to return.
+   *
+   * @returns {object} The requested opt-in, if it exists.
+   */
+  get(slug) {
+    return this.#recipes.get(slug);
+  }
 }

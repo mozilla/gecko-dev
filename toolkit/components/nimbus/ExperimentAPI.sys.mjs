@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CleanupManager: "resource://normandy/lib/CleanupManager.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
   FeatureManifest: "resource://nimbus/FeatureManifest.sys.mjs",
+  NimbusMigrations: "resource://nimbus/lib/Migrations.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
@@ -109,6 +110,12 @@ export const ExperimentAPI = {
         await this._rsLoader.enable();
       } catch (e) {
         lazy.log.error("Failed to enable RemoteSettingsExperimentLoader:", e);
+      }
+
+      try {
+        await lazy.NimbusMigrations.applyMigrations();
+      } catch (e) {
+        lazy.log.error("Failed to apply migrations", e);
       }
 
       if (CRASHREPORTER_ENABLED) {

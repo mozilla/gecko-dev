@@ -561,8 +561,14 @@ export class _RemoteSettingsExperimentLoader {
   /**
    * Resolves when the RemoteSettingsExperimentLoader has updated at least once
    * and is not in the middle of an update.
+   *
+   * If studies are disabled, then this will always resolve immediately.
    */
   finishedUpdating() {
+    if (!this.studiesEnabled) {
+      return Promise.resolve();
+    }
+
     return this._updatingDeferred.promise;
   }
 }
