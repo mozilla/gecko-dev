@@ -626,9 +626,9 @@
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirmá y empezá a navegar</string>
 
     <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
-    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Una última cosa</string>
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Una cosa más</string>
     <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
-    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Comparte con los socios de marketing de Mozilla cómo descubriste Firefox y cómo lo usás. Estos datos nunca se venden.</string>
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Compartí con los socios de marketing de Mozilla cómo descubriste Firefox y lo usás. Estos datos nunca serán vendidos.</string>
     <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Aceptar y empezar a navegar</string>
 

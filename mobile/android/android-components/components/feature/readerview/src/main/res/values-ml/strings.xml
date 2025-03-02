@@ -15,7 +15,7 @@
     <!-- Accessible description for increasing the font size -->
     <string name="mozac_feature_readerview_font_size_increase_desc">ഫോണ്ട് വലുപ്പം കൂട്ടുക</string>
     <!-- Color option for the background -->
-    <string name="mozac_feature_readerview_dark">കടും</string>
+    <string name="mozac_feature_readerview_dark">ഇരുണ്ടത്</string>
     <!-- Accessible description for the color option -->
     <string name="mozac_feature_readerview_dark_color_scheme_desc">ഡാർക്ക് കളർ സ്കീം</string>
     <!-- Color option for the background -->
@@ -23,7 +23,7 @@
     <!-- Accessible description for the color option -->
     <string name="mozac_feature_readerview_sepia_color_scheme_desc">സെപിയ കളർ സ്കീം</string>
     <!-- Color option for the background -->
-    <string name="mozac_feature_readerview_light">ലൈറ്റ്</string>
+    <string name="mozac_feature_readerview_light">തെളിച്ചം</string>
     <!-- Accessible description for the color option -->
-    <string name="mozac_feature_readerview_light_color_scheme_desc">ലൈറ്റ് കളർ സ്കീം</string>
+    <string name="mozac_feature_readerview_light_color_scheme_desc">ഇളനിറ അലങ്കാരം</string>
 </resources>

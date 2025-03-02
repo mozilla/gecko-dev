@@ -1044,7 +1044,7 @@
     <!-- Preference for using light theme -->
     <string name="preference_light_theme">ഇളം</string>
     <!-- Preference for using dark theme -->
-    <string name="preference_dark_theme">കടും</string>
+    <string name="preference_dark_theme">ഇരുണ്ടത്</string>
 
     <!-- Preference for using using dark or light theme automatically set by battery -->
     <string name="preference_auto_battery_theme">ബാറ്ററി സേവർ സജ്ജമാക്കിയത്</string>
@@ -1671,6 +1671,9 @@
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">മറ്റൊരു ഉപകരണം ബന്ധിപ്പിക്കുക…</string>
 
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n%2$s-ൽ നിന്നു് അയച്ചു 🦊മൊബൈൽ അന്വേഷിയന്ത്രം ഉപയോഗിച്ചു നോക്കുക: %3$s</string>
+
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">സ്വകാര്യ ടാബുകള്‍ അടയ്ക്കുക</string>
@@ -1978,13 +1981,27 @@
     <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
     <string name="preference_doh_default_protection">തനമിട്ട സംരക്ഷണം</string>
 
+    <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_increased_protection">കൂട്ടിയ സംരക്ഷണം</string>
+
+    <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+    <string name="preference_doh_max_protection">ഉച്ചനില സംരക്ഷണം</string>
+
     <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
     <string name="preference_doh_off">അണച്ചതു്</string>
 
+    <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+    <string name="preference_doh_choose_provider">ദാതാവു് തിരഞ്ഞെടുക്കുക</string>
     <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
     <string name="preference_doh_provider_default">(തനിമട്ടു്)</string>
     <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
     <string name="preference_doh_provider_custom">ഇഷ്ടാനുസൃതം</string>
+    <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_title">ഇഷ്ടാനുസൃത ദാതാവു്</string>
+    <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+    <string name="preference_doh_provider_custom_dialog_textfield">ദാതാവു്</string>
+    <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https"-->
+    <string name="preference_doh_provider_custom_dialog_error_https">യൂ.ആർ.എൽ എല്ലാം “https://”- കൂടെ തുടങ്ങണം</string>
     <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
     <string name="preference_doh_provider_custom_dialog_error_invalid">തെറ്റായ URL</string>
     <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
