@@ -618,6 +618,7 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Nola erabiltzen ditugun datuak</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Berretsi eta hasi nabigatzen</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Hautatu tresna-barraren kokapena</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

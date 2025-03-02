@@ -351,6 +351,11 @@
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
     <string name="preference_mozilla_telemetry_summary2">Mozilla ku kaxantik u molik chen le jach k’áabetaj uti’al u ts’a’ik yéetel u ma’alobtal %1$s ti’ tuláakalilo’ob.</string>
 
+    <!-- Preference switch for daily usage ping data collection -->
+    <string name="preference_daily_usage_ping_title">Ping u búukinta\'al sáansamal</string>
+    <string name="preference_daily_usage_ping_description">Le je\'ela\' ku yáantik Mozilla u estimar le usuarios activos.</string>
+    <string name="preference_daily_usage_ping_learn_more">K’ajóoltal u yaanali’</string>
+
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Ts’áab ojelbil bix u kana’antal ati’alo’</string>
 
@@ -359,6 +364,9 @@
 
     <!-- Link to Focus licensing information from other libraries that we use. -->
     <string name="preference_libraries_we_use">Bibliotecas k meyajtiko\'ob</string>
+
+    <!-- Link to Focus Crash reports list. -->
+    <string name="preference_crashes">Ku lúubul</string>
 
     <!-- Open Source Licenses page title. The first parameter is the app name -->
     <string name="open_source_licenses_title">%s | Bibliotecas OSS</string>

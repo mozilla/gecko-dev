@@ -593,6 +593,7 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Untuk membantu meningkatkan peramban, Firefox mengirimkan data diagnostik dan interaksi ke Mozilla. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Kelola</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Pilih penempatan bilah alat</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

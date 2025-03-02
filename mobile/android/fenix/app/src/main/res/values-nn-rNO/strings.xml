@@ -533,6 +533,7 @@
     <string name="onboarding_term_of_service_line_two_link_text">Personvernerklæring</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Handsam</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Vel plassering for verktøylinja</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

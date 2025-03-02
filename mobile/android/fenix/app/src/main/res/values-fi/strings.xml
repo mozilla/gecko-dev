@@ -623,6 +623,7 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Kuinka käytämme tietoja</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Vahvista ja aloita selaaminen</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Valitse työkalupalkin sijoitus</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -863,6 +864,12 @@
     <string name="preferences_show_nonsponsored_suggestions">Ehdotuksia %1$silta</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">Vastaanota ehdotuksia verkosta hakuusi liittyen</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">Linkin jakaminen</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">Sisällytä %1$s-latauslinkki WhatsApp-jakoihin</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">Linkki jaettu</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Avaa linkit sovelluksissa</string>
 
@@ -2105,6 +2112,8 @@
 
     <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
     <string name="preference_doh_provider_default">(oletus)</string>
+    <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https"-->
+    <string name="preference_doh_provider_custom_dialog_error_https">URL-osoitteen alussa on oltava “https://”</string>
     <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
     <string name="preference_doh_provider_custom_dialog_error_invalid">Virheellinen osoite</string>
     <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->

@@ -617,6 +617,7 @@
     <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Per aiutà à amendà u navigatore, Firefox manda à Mozilla dati di diagnosticu è d’interazzione. %1$s</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Amministrà</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Sciglite a piazza di a barra d’attrezzi</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

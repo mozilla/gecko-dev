@@ -632,6 +632,7 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">我们如何使用您的数据</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">确认并开始浏览</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">选取工具栏位置</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -872,6 +873,10 @@
     <string name="preferences_show_nonsponsored_suggestions">来自 %1$s 的建议</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">从网络上获取与您的搜索关键词相关的建议</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">已分享链接</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">管理设置</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">用外部应用打开链接</string>
 
@@ -1798,6 +1803,9 @@
     <string name="sync_add_new_device_learn_button">了解发送标签页…</string>
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">连接其他设备…</string>
+
+    <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n发自 %2$s 🦊 %3$s</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->

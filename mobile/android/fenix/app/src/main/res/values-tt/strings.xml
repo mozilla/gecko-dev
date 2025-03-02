@@ -438,6 +438,7 @@
     <string name="onboarding_term_of_service_line_two_link_text">Хосусыйлык аңлатмасы</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">Идарә итү</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Кораллар панеленең урнашуын сайлагыз</string>
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->

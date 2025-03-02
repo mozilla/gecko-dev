@@ -492,6 +492,7 @@
     <string name="onboarding_term_of_service_line_two_link_text">රහස්‍යතා දැන්වීම</string>
     <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
     <string name="onboarding_term_of_service_line_three_link_text">කළමනාකරණය</string>
+
     <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
     <string name="onboarding_save_and_continue_button">සුරකින්න සහ ඉදිරියට</string>
     <!-- Onboarding toolbar selection card label for 'skip' button, used by Nimbus experiments. -->

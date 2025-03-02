@@ -624,6 +624,14 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Como usamos los datos</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Confirmá y empezá a navegar</string>
+
+    <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Una última cosa</string>
+    <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Comparte con los socios de marketing de Mozilla cómo descubriste Firefox y cómo lo usás. Estos datos nunca se venden.</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Aceptar y empezar a navegar</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Elegí la ubicación de la barra de herramientas</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -866,6 +874,10 @@
     <string name="preferences_show_nonsponsored_suggestions_summary">Obtener sugerencias de la web relacionadas con tu búsqueda</string>
     <!-- Preference for link sharing -->
     <string name="preferences_link_sharing">Compartir enlaces</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">Incluir enlace de descarga de %1$s en compartidos de WhatsApp</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">Invitá a tus amigos a probar una navegación más rápida y segura con %1$s cada vez que compartás un enlace en WhatsApp.</string>
     <!--Snackbar message shown when user shares a link -->
     <string name="link_shared_snackbar_message">Enlace compartido</string>
     <!-- Snackbar action label shown when user shares a link  -->
@@ -1788,6 +1800,11 @@
     <string name="sync_add_new_device_learn_button">Conocer sobre enviar pestañas…</string>
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">Conectar otro dispositivo…</string>
+
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nEnviado desde %2$s 🦊 Probá el navegador móvil: %3$s</string>
+    <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nEnviado desde %2$s 🦊 %3$s</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->

@@ -622,6 +622,7 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Bu verileri nasıl kullanıyoruz?</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Onayla ve gezinmeye başla</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Araç çubuğu konumunu seçin</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

@@ -625,6 +625,14 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">我們會如何使用該資料</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">確認並開始上網</string>
+
+    <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">還有一件事</string>
+    <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">與 Mozilla 的行銷夥伴分享您如何發現 Firefox 以及是如何使用的，我們絕不會販售此資料。</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">同意並開始上網</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">挑選工具列要放置的位置</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -866,6 +874,16 @@
     <string name="preferences_show_nonsponsored_suggestions">來自 %1$s 的建議</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">取得您搜尋內容的相關建議</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">鏈結分享</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">在 WhatsApp 分享內容中加入 %1$s 的下載鏈結</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">當您每次在 WhatsApp 分享鏈結時，都邀請朋友使用 %1$s 更快、更安全地上網。</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">已分享鏈結</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">管理設定</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">用 App 開啟鏈結</string>
 
@@ -1785,6 +1803,11 @@
     <string name="sync_add_new_device_learn_button">了解傳送分頁…</string>
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">連結其他裝置…</string>
+
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n此訊息是使用 %2$s 🦊傳送。來試用行動瀏覽器：%3$s</string>
+    <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n此訊息是使用 %2$s 🦊傳送 %3$s</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->

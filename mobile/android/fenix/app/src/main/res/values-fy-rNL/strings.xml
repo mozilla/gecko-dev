@@ -623,6 +623,7 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Hoe’t wy gegevens brûke</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Befêstigje en begjinne mei sneupen</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Kies in arkbalkepleatsing</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->

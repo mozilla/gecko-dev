@@ -629,6 +629,14 @@
     <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Как мы используем данные</string>
     <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
     <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Подтвердить и начать веб-сёрфинг</string>
+
+    <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+    <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">И ещё одно</string>
+    <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+    <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Расскажите маркетинговым партнерам Mozilla о том, как вы открыли для себя Firefox и о том, что вы его используете. Эти данные никогда не продаются.</string>
+    <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+    <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Согласиться и начать веб-сёрфинг</string>
+
     <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
     <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">Выберите размещение панели инструментов</string>
     <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -868,6 +876,16 @@
     <string name="preferences_show_nonsponsored_suggestions">Предложения от %1$s</string>
     <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
     <string name="preferences_show_nonsponsored_suggestions_summary">Получать предложения из сети на основе вашего поиска</string>
+    <!-- Preference for link sharing -->
+    <string name="preferences_link_sharing">Передача ссылок</string>
+    <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_title">Включить ссылку на загрузку %1$s для передачи в WhatsApp</string>
+    <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox).  -->
+    <string name="link_sharing_toggle_body">Пригласите своих друзей, чтобы попробовать более быстрый и безопасный веб-сёрфинг с %1$s каждый раз, когда вы делитесь ссылкой в WhatsApp.</string>
+    <!--Snackbar message shown when user shares a link -->
+    <string name="link_shared_snackbar_message">Ссылка отправлена</string>
+    <!-- Snackbar action label shown when user shares a link  -->
+    <string name="link_shared_snackbar_action">Управление настройками</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Открывать ссылки в приложениях</string>
 
@@ -1785,6 +1803,11 @@
     <string name="sync_add_new_device_learn_button">Узнать больше об отправке вкладок…</string>
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">Подключить другое устройство…</string>
+
+    <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nОтправлено с %2$s 🦊 Попробуйте мобильный браузер: %3$s</string>
+    <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+    <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nОтправлено с %2$s 🦊 %3$s</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
