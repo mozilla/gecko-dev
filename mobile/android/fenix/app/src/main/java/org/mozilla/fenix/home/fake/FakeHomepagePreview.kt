@@ -6,6 +6,7 @@ package org.mozilla.fenix.home.fake
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.recover.RecoverableTab
@@ -15,14 +16,19 @@ import mozilla.components.feature.tab.collections.Tab
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
+import mozilla.components.service.nimbus.messaging.MessageData
+import mozilla.components.service.nimbus.messaging.StyleData
 import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.ContentRecommendation
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryCaps
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStoryShim
+import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.compose.MessageCardColors
+import org.mozilla.fenix.compose.MessageCardState
 import org.mozilla.fenix.compose.SelectableChipColors
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
@@ -41,6 +47,7 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHigh
 import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
+import org.mozilla.fenix.home.store.NimbusMessageState
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.WallpaperState
@@ -196,6 +203,35 @@ internal object FakeHomepagePreview {
 
             override fun onRemoveCollectionsPlaceholder() { /* no op */ }
         }
+
+    @Composable
+    internal fun nimbusMessageState() = NimbusMessageState(
+        cardState = messageCardState(),
+        message = message(),
+    )
+
+    @Composable
+    internal fun messageCardState() = MessageCardState(
+        messageText = stringResource(id = R.string.default_browser_experiment_card_text),
+        titleText = stringResource(id = R.string.default_browser_experiment_card_title),
+        buttonText = "",
+        messageColors = MessageCardColors.buildMessageCardColors(),
+    )
+
+    internal fun message() = Message(
+        id = "id",
+        data = MessageData(),
+        style = StyleData(),
+        action = "action",
+        triggerIfAll = emptyList(),
+        excludeIfAny = emptyList(),
+        metadata = Message.Metadata(
+            id = "id",
+            displayCount = 0,
+            pressed = false,
+            dismissed = false,
+        ),
+    )
 
     internal fun topSites(
         pinnedCount: Int = 2,

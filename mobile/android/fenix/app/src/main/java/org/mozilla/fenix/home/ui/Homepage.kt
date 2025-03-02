@@ -27,6 +27,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.RecentlyVisitedHomepage
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.MessageCard
 import org.mozilla.fenix.compose.button.TertiaryButton
 import org.mozilla.fenix.compose.home.HomeSectionHeader
 import org.mozilla.fenix.home.bookmarks.Bookmark
@@ -51,9 +52,11 @@ import org.mozilla.fenix.home.recentvisits.view.RecentVisitMenuItem
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.CustomizeHomeIteractor
+import org.mozilla.fenix.home.sessioncontrol.MessageCardInteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
 import org.mozilla.fenix.home.store.HomepageState
+import org.mozilla.fenix.home.store.NimbusMessageState
 import org.mozilla.fenix.home.topsites.TopSiteColors
 import org.mozilla.fenix.home.topsites.TopSites
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -100,6 +103,13 @@ internal fun Homepage(
                 }
 
                 is HomepageState.Normal -> {
+                    nimbusMessage?.let {
+                        NimbusMessageCardSection(
+                            nimbusMessage = nimbusMessage,
+                            interactor = interactor,
+                        )
+                    }
+
                     if (showTopSites) {
                         TopSites(
                             topSites = topSites,
@@ -177,6 +187,21 @@ internal fun Homepage(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NimbusMessageCardSection(
+    nimbusMessage: NimbusMessageState,
+    interactor: MessageCardInteractor,
+) {
+    with(nimbusMessage) {
+        MessageCard(
+            messageCardState = cardState,
+            modifier = Modifier.padding(horizontal = 16.dp),
+            onClick = { interactor.onMessageClicked(message) },
+            onCloseButtonClick = { interactor.onMessageClosedClicked(message) },
+        )
     }
 }
 
@@ -358,6 +383,7 @@ private fun HomepagePreview() {
     FirefoxTheme {
         Homepage(
             HomepageState.Normal(
+                nimbusMessage = FakeHomepagePreview.nimbusMessageState(),
                 topSites = FakeHomepagePreview.topSites(),
                 recentTabs = FakeHomepagePreview.recentTabs(),
                 syncedTab = FakeHomepagePreview.recentSyncedTab(),
@@ -389,6 +415,7 @@ private fun HomepagePreviewCollections() {
     FirefoxTheme {
         Homepage(
             HomepageState.Normal(
+                nimbusMessage = null,
                 topSites = FakeHomepagePreview.topSites(),
                 recentTabs = FakeHomepagePreview.recentTabs(),
                 syncedTab = FakeHomepagePreview.recentSyncedTab(),

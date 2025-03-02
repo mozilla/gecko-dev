@@ -53,6 +53,7 @@ internal sealed class HomepageState {
     /**
      * State corresponding with the homepage in normal browsing mode.
      *
+     * @property nimbusMessage Optional message to display.
      * @property topSites List of [TopSite] to display.
      * @property recentTabs List of [RecentTab] to display.
      * @property syncedTab The [RecentSyncedTab] to display.
@@ -74,6 +75,7 @@ internal sealed class HomepageState {
      * what's currently visible on the screen.
      */
     internal data class Normal(
+        val nimbusMessage: NimbusMessageState?,
         val topSites: List<TopSite>,
         val recentTabs: List<RecentTab>,
         val syncedTab: RecentSyncedTab?,
@@ -130,6 +132,7 @@ internal sealed class HomepageState {
                     )
                 } else {
                     Normal(
+                        nimbusMessage = NimbusMessageState.build(appState),
                         topSites = topSites,
                         recentTabs = recentTabs,
                         syncedTab = when (recentSyncedTabState) {
