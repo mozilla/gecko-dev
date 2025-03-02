@@ -1892,6 +1892,9 @@ class GeckoSessionTestRuleTest : BaseSessionTest(noErrorCollector = true) {
         mainSession.loadTestPath(HELLO_HTML_PATH)
         mainSession.waitForPageStop()
 
+        // disabled for frequent failures - on Bug 1933390
+        assumeThat(sessionRule.env.isX86, equalTo(false))
+
         // Trigger navigation and try again
         mainSession.loadTestPath(HELLO2_HTML_PATH)
         mainSession.waitForPageStop()
