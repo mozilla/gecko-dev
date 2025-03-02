@@ -32,6 +32,7 @@ import org.mozilla.fenix.compose.MessageCardState
 import org.mozilla.fenix.compose.SelectableChipColors
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
+import org.mozilla.fenix.home.collections.CollectionColors
 import org.mozilla.fenix.home.collections.CollectionsState
 import org.mozilla.fenix.home.interactor.HomepageInteractor
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
@@ -347,6 +348,12 @@ internal object FakeHomepagePreview {
         collections = listOf(collection(tabs = listOf(tab()))),
         expandedCollections = setOf(),
         showSaveTabsToCollection = true,
+    )
+
+    @Composable
+    internal fun collectionsPlaceholder() = CollectionsState.Placeholder(
+        showSaveTabsToCollection = true,
+        colors = CollectionColors.colors(),
     )
 
     internal fun collection(tabs: List<Tab> = emptyList()): TabCollection {

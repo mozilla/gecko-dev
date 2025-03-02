@@ -20,6 +20,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.PlaceholderCard
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.home.collections.CollectionColors
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -34,6 +36,26 @@ import org.mozilla.fenix.theme.FirefoxTheme
 @Composable
 internal fun CollectionsPlaceholder(
     showAddTabsToCollection: Boolean,
+    colors: CollectionColors,
+    interactor: CollectionInteractor,
+) = with(colors) {
+    CollectionsPlaceholder(
+        showAddTabsToCollection = showAddTabsToCollection,
+        buttonBackgroundColor = buttonBackgroundColor,
+        buttonTextColor = buttonTextColor,
+        titleTextColor = titleTextColor,
+        descriptionTextColor = descriptionTextColor,
+        interactor = interactor,
+    )
+}
+
+@Composable
+internal fun CollectionsPlaceholder(
+    showAddTabsToCollection: Boolean,
+    buttonBackgroundColor: Color,
+    buttonTextColor: Color,
+    titleTextColor: Color,
+    descriptionTextColor: Color,
     interactor: CollectionInteractor,
 ) {
     PlaceholderCard(
@@ -47,7 +69,7 @@ internal fun CollectionsPlaceholder(
             ) {
                 Text(
                     text = stringResource(R.string.collections_header),
-                    color = FirefoxTheme.colors.textPrimary,
+                    color = titleTextColor,
                     style = FirefoxTheme.typography.headline7,
                 )
 
@@ -60,7 +82,7 @@ internal fun CollectionsPlaceholder(
                         contentDescription = stringResource(
                             R.string.remove_home_collection_placeholder_content_description,
                         ),
-                        tint = FirefoxTheme.colors.textPrimary,
+                        tint = titleTextColor,
                     )
                 }
             }
@@ -68,7 +90,7 @@ internal fun CollectionsPlaceholder(
         description = {
             Text(
                 text = stringResource(R.string.no_collections_description2),
-                color = FirefoxTheme.colors.textSecondary,
+                color = descriptionTextColor,
                 style = FirefoxTheme.typography.body2,
             )
 
@@ -82,6 +104,9 @@ internal fun CollectionsPlaceholder(
                         .wrapContentHeight(),
                     icon = painterResource(R.drawable.ic_tab_collection),
                     onClick = interactor::onAddTabsToCollectionTapped,
+                    textColor = buttonTextColor,
+                    backgroundColor = buttonBackgroundColor,
+                    iconTint = buttonTextColor,
                 )
             }
         },
@@ -97,6 +122,7 @@ private fun CollectionsPlaceholderPreview() {
                 CollectionsPlaceholder(
                     interactor = FakeHomepagePreview.collectionInteractor,
                     showAddTabsToCollection = true,
+                    colors = CollectionColors.colors(),
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -104,6 +130,7 @@ private fun CollectionsPlaceholderPreview() {
                 CollectionsPlaceholder(
                     interactor = FakeHomepagePreview.collectionInteractor,
                     showAddTabsToCollection = false,
+                    colors = CollectionColors.colors(),
                 )
             }
         }

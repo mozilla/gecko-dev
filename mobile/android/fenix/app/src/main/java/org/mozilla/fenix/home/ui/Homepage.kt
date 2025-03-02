@@ -357,7 +357,11 @@ private fun CollectionsSection(
                     bottom = 12.dp,
                 ),
             ) {
-                CollectionsPlaceholder(collectionsState.showSaveTabsToCollection, interactor)
+                CollectionsPlaceholder(
+                    showAddTabsToCollection = collectionsState.showSaveTabsToCollection,
+                    colors = collectionsState.colors,
+                    interactor = interactor,
+                )
             }
         }
     }
@@ -389,7 +393,7 @@ private fun HomepagePreview() {
                 syncedTab = FakeHomepagePreview.recentSyncedTab(),
                 bookmarks = FakeHomepagePreview.bookmarks(),
                 recentlyVisited = FakeHomepagePreview.recentHistory(),
-                collectionsState = CollectionsState.Placeholder(true),
+                collectionsState = FakeHomepagePreview.collectionsPlaceholder(),
                 pocketState = FakeHomepagePreview.pocketState(),
                 showTopSites = true,
                 showRecentTabs = true,
@@ -421,7 +425,7 @@ private fun HomepagePreviewCollections() {
                 syncedTab = FakeHomepagePreview.recentSyncedTab(),
                 bookmarks = FakeHomepagePreview.bookmarks(),
                 recentlyVisited = FakeHomepagePreview.recentHistory(),
-                collectionsState = CollectionsState.Placeholder(showSaveTabsToCollection = false),
+                collectionsState = FakeHomepagePreview.collectionState(),
                 pocketState = FakeHomepagePreview.pocketState(),
                 showTopSites = false,
                 showRecentTabs = false,
