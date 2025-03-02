@@ -316,10 +316,7 @@ StorageAccess StorageAllowedForWindow(nsPIDOMWindowInner* aWindow,
 
 StorageAccess StorageAllowedForDocument(const Document* aDoc) {
   StorageAccess cookieAllowed = CookieAllowedForDocument(aDoc);
-  // If this isn't a top-level window, check if we should apply the policy to
-  // always partition non-cookie storage.
-  if (!aDoc->IsTopLevelContentDocument() &&
-      StaticPrefs::
+  if (StaticPrefs::
           privacy_partition_always_partition_third_party_non_cookie_storage() &&
       cookieAllowed > StorageAccess::eDeny) {
     return StorageAccess::ePartitionForeignOrDeny;

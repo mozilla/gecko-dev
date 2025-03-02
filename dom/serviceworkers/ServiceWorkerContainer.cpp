@@ -22,6 +22,7 @@
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/StaticPrefs_privacy.h"
+#include "mozilla/StorageAccess.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/dom/ClientIPCTypes.h"
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
@@ -34,13 +35,15 @@
 #include "mozilla/dom/ServiceWorkerContainerBinding.h"
 #include "mozilla/dom/ServiceWorkerContainerChild.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
-#include "mozilla/dom/ServiceWorkerRegistration.h"
-#include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/TrustedTypeUtils.h"
 #include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
+
+#include "ServiceWorker.h"
+#include "ServiceWorkerRegistration.h"
+#include "ServiceWorkerUtils.h"
 
 // This is defined to something else on Windows
 #ifdef DispatchMessage
@@ -634,7 +637,11 @@ nsIGlobalObject* ServiceWorkerContainer::GetGlobalIfValid(
   // from a global with storage disabled.  If these globals can access
   // the registration it increases the chance they can bypass the storage
   // block via postMessage(), etc.
-  if (NS_WARN_IF(!ServiceWorkersStorageAllowedForGlobal(global))) {
+  auto storageAllowed = global->GetStorageAccess();
+  if (NS_WARN_IF(storageAllowed != StorageAccess::eAllow &&
+                 (!StaticPrefs::privacy_partition_serviceWorkers() ||
+                  !StoragePartitioningEnabled(
+                      storageAllowed, global->GetCookieJarSettings())))) {
     if (aStorageFailureCB) {
       aStorageFailureCB(global);
     }

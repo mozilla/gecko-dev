@@ -6,16 +6,10 @@ PartitionedStorageHelper.runTest(
     // Partitioned serviceWorkers are disabled in third-party context.
     await win3rdParty.navigator.serviceWorker.register("empty.js").then(
       _ => {
-        ok(
-          allowed,
-          "Success: ServiceWorker cannot be used unless storage access is granted"
-        );
+        ok(allowed, "Success: ServiceWorker cannot be used!");
       },
       _ => {
-        ok(
-          !allowed,
-          "Failed: ServiceWorker cannot be used unless storage access is granted"
-        );
+        ok(!allowed, "Failed: ServiceWorker cannot be used!");
       }
     );
 
@@ -92,7 +86,7 @@ PartitionedStorageHelper.runTest(
   ]
 );
 
-PartitionedStorageHelper.runTestInNormalAndPrivateMode(
+PartitionedStorageHelper.runTest(
   "ServiceWorkers - MatchAll",
   async (win3rdParty, win1stParty) => {
     if (!win1stParty.sw) {
@@ -126,8 +120,6 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],
@@ -136,7 +128,7 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   ]
 );
 
-PartitionedStorageHelper.runTestInNormalAndPrivateMode(
+PartitionedStorageHelper.runTest(
   "ServiceWorkers - Partition ScriptContext",
   async (win3rdParty, win1stParty) => {
     // Register service worker for the first-party window.
@@ -212,8 +204,6 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],
@@ -222,7 +212,7 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   ]
 );
 
-PartitionedStorageHelper.runTestInNormalAndPrivateMode(
+PartitionedStorageHelper.runTest(
   "ServiceWorkers - Partition DOM Cache",
   async (win3rdParty, win1stParty) => {
     // Register service worker for the first-party window.
@@ -316,8 +306,6 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],
@@ -326,7 +314,7 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   ]
 );
 
-PartitionedStorageHelper.runTestInNormalAndPrivateMode(
+PartitionedStorageHelper.runTest(
   "ServiceWorkers - Partition IndexedDB",
   async (win3rdParty, win1stParty) => {
     // Register service worker for the first-party window.
@@ -402,8 +390,6 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],
@@ -412,7 +398,7 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   ]
 );
 
-PartitionedStorageHelper.runTestInNormalAndPrivateMode(
+PartitionedStorageHelper.runTest(
   "ServiceWorkers - Partition Intercept",
   async (win3rdParty, win1stParty) => {
     // Register service worker for the first-party window.
@@ -491,8 +477,6 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],
@@ -503,7 +487,7 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
 
 // Bug1743236 - Verify the content process won't crash if we create a dedicated
 // worker in a service worker controlled third-party page with Storage Access.
-PartitionedStorageHelper.runTestInNormalAndPrivateMode(
+PartitionedStorageHelper.runTest(
   "ServiceWorkers - Create Dedicated Worker",
   async (win3rdParty, win1stParty, allowed) => {
     // We only do this test when the storage access is granted.
@@ -570,8 +554,6 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],
@@ -582,7 +564,7 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
 
 // Bug1768193 - Verify the parent process won't crash if we create a shared
 // worker in a service worker controlled third-party page with Storage Access.
-PartitionedStorageHelper.runTestInNormalAndPrivateMode(
+PartitionedStorageHelper.runTest(
   "ServiceWorkers - Create Shared Worker",
   async (win3rdParty, win1stParty, allowed) => {
     // We only do this test when the storage access is granted.
@@ -634,8 +616,6 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],
@@ -645,95 +625,9 @@ PartitionedStorageHelper.runTestInNormalAndPrivateMode(
 );
 
 PartitionedStorageHelper.runTest(
-  "ServiceWorkers - Private Browsing with partitioning disabled with SW PBM disabled",
+  "ServiceWorkers - Private Browsing with partitioning disabled",
   async (win3rdParty, win1stParty) => {
-    ok(
-      !win3rdParty.navigator.serviceWorker,
-      "ServiceWorker should not be available in PBM with SW PBM pref set to false"
-    );
-    ok(
-      !win1stParty.navigator.serviceWorker,
-      "ServiceWorker should not be available in PBM with SW PBM pref set to false"
-    );
-  },
-
-  async _ => {
-    await new Promise(resolve => {
-      Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, () =>
-        resolve()
-      );
-    });
-  },
-
-  [
-    ["dom.serviceWorkers.privateBrowsing.enabled", false],
-    ["dom.serviceWorkers.exemptFromPerDomainMax", true],
-    ["dom.ipc.processCount", 1],
-    ["dom.serviceWorkers.enabled", true],
-    ["dom.serviceWorkers.testing.enabled", true],
-    ["privacy.partition.serviceWorkers", false],
-  ],
-
-  {
-    runInPrivateWindow: true,
-  }
-);
-
-PartitionedStorageHelper.runTest(
-  "ServiceWorkers - Private Browsing with partitioning disabled with SW PBM enabled",
-  async (win3rdParty, win1stParty, allowed) => {
     // Partitioned serviceWorkers are disabled in third-party context.
-    await win3rdParty.navigator.serviceWorker.register("empty.js").then(
-      _ => {
-        ok(
-          allowed,
-          `Success: ServiceWorker cannot be used unless storage access is granted (allowed: ${allowed})`
-        );
-      },
-      _ => {
-        ok(
-          !allowed,
-          `Success: ServiceWorker cannot be used unless storage access is granted (allowed: ${allowed})`
-        );
-      }
-    );
-
-    await win1stParty.navigator.serviceWorker.register("empty.js").then(
-      _ => {
-        ok(true, "Success: ServiceWorker should be available!");
-      },
-      _ => {
-        ok(false, "Failed: ServiceWorker should be available!");
-      }
-    );
-  },
-
-  async _ => {
-    await new Promise(resolve => {
-      Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, () =>
-        resolve()
-      );
-    });
-  },
-
-  [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
-    ["dom.serviceWorkers.exemptFromPerDomainMax", true],
-    ["dom.ipc.processCount", 1],
-    ["dom.serviceWorkers.enabled", true],
-    ["dom.serviceWorkers.testing.enabled", true],
-    ["privacy.partition.serviceWorkers", false],
-  ],
-
-  {
-    runInPrivateWindow: true,
-  }
-);
-
-PartitionedStorageHelper.runTest(
-  "ServiceWorkers - Private Browsing with partitioning enabled with SW PBM disabled",
-  async (win3rdParty, win1stParty) => {
     ok(
       !win3rdParty.navigator.serviceWorker,
       "ServiceWorker should not be available"
@@ -753,12 +647,11 @@ PartitionedStorageHelper.runTest(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", false],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
-    ["privacy.partition.serviceWorkers", true],
+    ["privacy.partition.serviceWorkers", false],
   ],
 
   {
@@ -767,31 +660,16 @@ PartitionedStorageHelper.runTest(
 );
 
 PartitionedStorageHelper.runTest(
-  "ServiceWorkers - Private Browsing with partitioning enabled with SW PBM enabled",
+  "ServiceWorkers - Private Browsing with partitioning enabled",
   async (win3rdParty, win1stParty) => {
-    // Partitioned serviceWorkers are enabled in third-party context.
-    await win3rdParty.navigator.serviceWorker.register("empty.js").then(
-      _ => {
-        ok(
-          true,
-          "Success: ServiceWorker should be available in third parties."
-        );
-      },
-      _ => {
-        ok(
-          false,
-          "Failed: ServiceWorker should be available in third parties."
-        );
-      }
+    // Partitioned serviceWorkers are disabled in third-party context.
+    ok(
+      !win3rdParty.navigator.serviceWorker,
+      "ServiceWorker should not be available"
     );
-
-    await win1stParty.navigator.serviceWorker.register("empty.js").then(
-      _ => {
-        ok(true, "Success: ServiceWorker should be available!");
-      },
-      _ => {
-        ok(false, "Failed: ServiceWorker should be available!");
-      }
+    ok(
+      !win1stParty.navigator.serviceWorker,
+      "ServiceWorker should not be available"
     );
   },
 
@@ -804,8 +682,6 @@ PartitionedStorageHelper.runTest(
   },
 
   [
-    ["dom.serviceWorkers.privateBrowsing.enabled", true],
-    ["dom.cache.privateBrowsing.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.ipc.processCount", 1],
     ["dom.serviceWorkers.enabled", true],

@@ -83,10 +83,10 @@
     }
 
     let chromeScript = SpecialPowers.loadChromeScript(chromeScriptSource);
-    let docOrigin = SpecialPowers.wrap(document).nodePrincipal.origin;
+    let docPrincipal = SpecialPowers.wrap(document).nodePrincipal.spec;
 
     getScope = async (path) => {
-      let rv = await chromeScript.sendQuery("getScope", { principal: docOrigin, path });
+      let rv = await chromeScript.sendQuery("getScope", { principal: docPrincipal, path });
       if (rv.exception)
         throw rv.exception;
       return rv.scope;

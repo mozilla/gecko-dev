@@ -640,6 +640,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
     }
   }
 
+  // Firefox doesn't support service workers in PBM.
   bool isPBM = principal->GetIsInPrivateBrowsing();
   if (ContentBlockingAllowList::Check(principal, isPBM)) {
     net::CookieJarSettings::Cast(cookieJarSettings)
