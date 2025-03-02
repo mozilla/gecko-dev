@@ -8,14 +8,6 @@ const HOST_PREFIX =
 
 const CLUSTERING_TEST_IDS = ["pgh_trip", "gen_set_2", "animal"];
 
-const {
-  getBestAnchorClusterInfo,
-  SmartTabGroupingManager,
-  CLUSTER_METHODS,
-  DIM_REDUCTION_METHODS,
-  ANCHOR_METHODS,
-} = ChromeUtils.importESModule("resource:///modules/SmartTabGrouping.sys.mjs");
-
 async function getGroupScore(
   clusterMethod,
   umapMethod,
@@ -40,56 +32,6 @@ async function getGroupScore(
     total_score += score;
   }
   return total_score / iterations;
-}
-
-async function testAugmentGroup(
-  clusterMethod,
-  umapMethod,
-  tabs,
-  embeddings,
-  iterations = 1,
-  preGroupedTabIndices,
-  anchorMethod = ANCHOR_METHODS.FIXED,
-  silBoost = undefined
-) {
-  const groupManager = new SmartTabGroupingManager();
-  groupManager.setAnchorMethod(anchorMethod);
-  if (silBoost !== undefined) {
-    groupManager.setSilBoost(silBoost);
-  }
-  const randFunc = simpleNumberSequence();
-  groupManager.setDataTitleKey("title");
-  groupManager.setClusteringMethod(clusterMethod);
-  groupManager.setDimensionReductionMethod(umapMethod);
-  const allScores = [];
-  for (let i = 0; i < iterations; i++) {
-    const groupingResult = await groupManager.generateClusters(
-      tabs,
-      embeddings,
-      0,
-      randFunc,
-      preGroupedTabIndices
-    );
-    const titleKey = "title";
-    const centralClusterTitles = new Set(
-      groupingResult.getAnchorCluster().tabs.map(a => a[titleKey])
-    );
-    groupingResult.getAnchorCluster().print();
-    const anchorTitleSet = new Set(
-      preGroupedTabIndices.map(a => tabs[a][titleKey])
-    );
-    Assert.equal(
-      centralClusterTitles.intersection(anchorTitleSet).size,
-      anchorTitleSet.size,
-      `All anchor indices in target cluster`
-    );
-    const scoreInfo = groupingResult.getAccuracyStatsForCluster(
-      "smart_group_label",
-      groupingResult.getAnchorCluster().tabs[0].smart_group_label
-    );
-    allScores.push(scoreInfo);
-  }
-  return averageStatsValues(allScores);
 }
 
 async function runClusteringTest(data, precomputedEmbeddings = null) {
@@ -118,36 +60,6 @@ async function runClusteringTest(data, precomputedEmbeddings = null) {
   return 1;
 }
 
-async function runAnchorTabTest(
-  data,
-  precomputedEmbeddings = null,
-  anchorGroupIndices,
-  anchorMethod = ANCHOR_METHODS.FIXED,
-  silBoost = undefined
-) {
-  const testParams = [[CLUSTER_METHODS.KMEANS]];
-  let scoreInfo;
-  for (let testP of testParams) {
-    scoreInfo = await testAugmentGroup(
-      testP[0],
-      testP[1],
-      data,
-      precomputedEmbeddings,
-      1,
-      anchorGroupIndices,
-      anchorMethod,
-      silBoost
-    );
-  }
-  if (testParams.length === 1) {
-    return scoreInfo;
-  }
-  console.warn(
-    "Test checks on score not enabled because we are testing multiple methods"
-  );
-  return null;
-}
-
 async function setup({ disabled = false, prefs = [] } = {}) {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -157,45 +69,6 @@ async function setup({ disabled = false, prefs = [] } = {}) {
       ["browser.ml.modelCacheTimeout", 1000],
       ...prefs,
     ],
-  });
-}
-
-function parseTsvStructured(tsvString) {
-  const rows = tsvString.trim().split("\n");
-  const keys = rows[0].split("\t");
-  const arrayOfDicts = rows.slice(1).map(row => {
-    const values = row.split("\t");
-    // Map keys to corresponding values
-    const dict = {};
-    keys.forEach((key, index) => {
-      dict[key] = values[index];
-    });
-    return dict;
-  });
-  return arrayOfDicts;
-}
-
-function parseTsvEmbeddings(tsvString) {
-  const rows = tsvString.trim().split("\n");
-  return rows.map(row => {
-    return row.split("\t").map(value => parseFloat(value));
-  });
-}
-
-function fetchFile(filename) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const url = `${HOST_PREFIX}${filename}`;
-    xhr.open("GET", url, true);
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        resolve(xhr.responseText);
-      } else {
-        reject(new Error(`Failed to fetch data: ${xhr.statusText}`));
-      }
-    };
-    xhr.onerror = () => reject(new Error(`Network error getting ${url}`));
-    xhr.send();
   });
 }
 
@@ -224,9 +97,9 @@ add_task(async function testClustering() {
     `${test_id}_labels.tsv`,
   ]);
   for (const test of testSets) {
-    const rawEmbeddings = await fetchFile(test[0]);
+    const rawEmbeddings = await fetchFile(HOST_PREFIX, test[0]);
     const embeddings = parseTsvEmbeddings(rawEmbeddings);
-    const rawLabels = await fetchFile(test[1]);
+    const rawLabels = await fetchFile(HOST_PREFIX, test[1]);
     const labels = parseTsvStructured(rawLabels);
     const score = await runClusteringTest(labels, embeddings);
     Assert.greater(score, 0.5, `Clustering ok for dataset ${test[0]}`);
@@ -289,9 +162,9 @@ add_task(async function testAnchorClustering() {
   const scoreInfo = [];
 
   for (const test of testSets) {
-    const rawEmbeddings = await fetchFile(test[0]);
+    const rawEmbeddings = await fetchFile(HOST_PREFIX, test[0]);
     const embeddings = parseTsvEmbeddings(rawEmbeddings);
-    const rawLabels = await fetchFile(test[1]);
+    const rawLabels = await fetchFile(HOST_PREFIX, test[1]);
     const labels = parseTsvStructured(rawLabels);
     const labelClusterList = labels.map(a => a[LABEL_DICT_KEY]);
     const uniqueLabels = Array.from(new Set(labelClusterList));

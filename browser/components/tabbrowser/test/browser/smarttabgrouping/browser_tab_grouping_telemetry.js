@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { SmartTabGroupingManager } = ChromeUtils.importESModule(
-  "resource:///modules/SmartTabGrouping.sys.mjs"
-);
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -218,7 +215,7 @@ add_task(async function test_pref_off_should_not_create_events() {
   Assert.equal(
     Glean.browserMlInteraction.smartTabTopic.testGetValue() ?? "none",
     "none",
-    "No event if feature is off"
+    "No event if the feature is off"
   );
   cleanup();
 });
