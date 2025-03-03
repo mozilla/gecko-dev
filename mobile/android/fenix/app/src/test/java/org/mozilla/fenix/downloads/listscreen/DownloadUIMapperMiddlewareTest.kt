@@ -14,10 +14,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
+import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
+import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
+import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import java.io.File
 
 @RunWith(AndroidJUnit4::class)
-class DownloadFragmentDataMiddlewareTest {
+class DownloadUIMapperMiddlewareTest {
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
@@ -67,10 +71,10 @@ class DownloadFragmentDataMiddlewareTest {
         file1.createNewFile()
         file3.createNewFile()
 
-        val downloadsStore = DownloadFragmentStore(
-            initialState = DownloadFragmentState.INITIAL,
+        val downloadsStore = DownloadUIStore(
+            initialState = DownloadUIState.INITIAL,
             middleware = listOf(
-                DownloadFragmentDataMiddleware(
+                DownloadUIMapperMiddleware(
                     browserStore = browserStore,
                     scope = scope,
                     ioDispatcher = dispatcher,
@@ -82,7 +86,7 @@ class DownloadFragmentDataMiddlewareTest {
         downloadsStore.waitUntilIdle()
 
         val expectedList = listOf(
-            DownloadItem(
+            FileItem(
                 id = "3",
                 url = "url",
                 fileName = "3.pdf",
@@ -91,7 +95,7 @@ class DownloadFragmentDataMiddlewareTest {
                 contentType = "text/plain",
                 status = DownloadState.Status.COMPLETED,
             ),
-            DownloadItem(
+            FileItem(
                 id = "1",
                 url = "url",
                 fileName = "1.pdf",
@@ -141,10 +145,10 @@ class DownloadFragmentDataMiddlewareTest {
         val file1 = File("downloads/1.pdf")
         file1.createNewFile()
 
-        val downloadsStore = DownloadFragmentStore(
-            initialState = DownloadFragmentState.INITIAL,
+        val downloadsStore = DownloadUIStore(
+            initialState = DownloadUIState.INITIAL,
             middleware = listOf(
-                DownloadFragmentDataMiddleware(
+                DownloadUIMapperMiddleware(
                     browserStore = browserStore,
                     scope = scope,
                     ioDispatcher = dispatcher,
@@ -156,7 +160,7 @@ class DownloadFragmentDataMiddlewareTest {
         downloadsStore.waitUntilIdle()
 
         val expectedList = listOf(
-            DownloadItem(
+            FileItem(
                 id = "1",
                 url = "url",
                 fileName = "1.pdf",

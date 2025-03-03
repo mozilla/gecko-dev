@@ -42,21 +42,24 @@ import org.mozilla.fenix.compose.list.SelectableListItem
 import org.mozilla.fenix.compose.snackbar.AcornSnackbarHostState
 import org.mozilla.fenix.compose.snackbar.SnackbarHost
 import org.mozilla.fenix.compose.snackbar.SnackbarState
-import org.mozilla.fenix.ext.getIcon
+import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
+import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
+import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
+import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * Downloads screen that displays the list of downloads.
  *
- * @param downloadsStore The [DownloadFragmentStore] used to manage and access the state of download items.
+ * @param downloadsStore The [DownloadUIStore] used to manage and access the state of download items.
  * @param onItemClick Invoked when a download item is clicked.
  * @param onItemDeleteClick Invoked when delete icon button is clicked.
  */
 @Composable
 fun DownloadsScreen(
-    downloadsStore: DownloadFragmentStore,
-    onItemClick: (DownloadItem) -> Unit,
-    onItemDeleteClick: (DownloadItem) -> Unit,
+    downloadsStore: DownloadUIStore,
+    onItemClick: (FileItem) -> Unit,
+    onItemDeleteClick: (FileItem) -> Unit,
 ) {
     val uiState by downloadsStore.observeAsState(initialValue = downloadsStore.state) { it }
 
@@ -74,9 +77,9 @@ fun DownloadsScreen(
                 onClick = onItemClick,
                 onSelectionChange = { item, isSelected ->
                     if (isSelected) {
-                        downloadsStore.dispatch(DownloadFragmentAction.AddItemForRemoval(item))
+                        downloadsStore.dispatch(DownloadUIAction.AddItemForRemoval(item))
                     } else {
-                        downloadsStore.dispatch(DownloadFragmentAction.RemoveItemForRemoval(item))
+                        downloadsStore.dispatch(DownloadUIAction.RemoveItemForRemoval(item))
                     }
                 },
                 onDeleteClick = onItemDeleteClick,
@@ -91,10 +94,10 @@ fun DownloadsScreen(
 @Composable
 @OptIn(ExperimentalFoundationApi::class)
 private fun DownloadsContent(
-    state: DownloadFragmentState,
-    onClick: (DownloadItem) -> Unit,
-    onSelectionChange: (DownloadItem, Boolean) -> Unit,
-    onDeleteClick: (DownloadItem) -> Unit,
+    state: DownloadUIState,
+    onClick: (FileItem) -> Unit,
+    onSelectionChange: (FileItem, Boolean) -> Unit,
+    onDeleteClick: (FileItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val haptics = LocalHapticFeedback.current
@@ -164,13 +167,13 @@ private fun NoDownloadsText(modifier: Modifier = Modifier) {
 }
 
 private class DownloadsScreenPreviewModelParameterProvider :
-    PreviewParameterProvider<DownloadFragmentState> {
-    override val values: Sequence<DownloadFragmentState>
+    PreviewParameterProvider<DownloadUIState> {
+    override val values: Sequence<DownloadUIState>
         get() = sequenceOf(
-            DownloadFragmentState.INITIAL,
-            DownloadFragmentState(
+            DownloadUIState.INITIAL,
+            DownloadUIState(
                 items = listOf(
-                    DownloadItem(
+                    FileItem(
                         id = "1",
                         fileName = "File 1",
                         url = "https://example.com/file1",
@@ -179,7 +182,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         status = DownloadState.Status.COMPLETED,
                         filePath = "/path/to/file1",
                     ),
-                    DownloadItem(
+                    FileItem(
                         id = "2",
                         fileName = "File 2",
                         url = "https://example.com/file2",
@@ -188,7 +191,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         status = DownloadState.Status.COMPLETED,
                         filePath = "/path/to/file1",
                     ),
-                    DownloadItem(
+                    FileItem(
                         id = "3",
                         fileName = "File 3",
                         url = "https://example.com/file3",
@@ -198,7 +201,7 @@ private class DownloadsScreenPreviewModelParameterProvider :
                         filePath = "/path/to/file1",
                     ),
                 ),
-                mode = DownloadFragmentState.Mode.Normal,
+                mode = DownloadUIState.Mode.Normal,
                 pendingDeletionIds = emptySet(),
                 isDeletingItems = false,
             ),
@@ -208,9 +211,9 @@ private class DownloadsScreenPreviewModelParameterProvider :
 @Composable
 @FlexibleWindowLightDarkPreview
 private fun DownloadsScreenPreviews(
-    @PreviewParameter(DownloadsScreenPreviewModelParameterProvider::class) state: DownloadFragmentState,
+    @PreviewParameter(DownloadsScreenPreviewModelParameterProvider::class) state: DownloadUIState,
 ) {
-    val store = remember { DownloadFragmentStore(initialState = state) }
+    val store = remember { DownloadUIStore(initialState = state) }
     val snackbarHostState = remember { AcornSnackbarHostState() }
     val scope = rememberCoroutineScope()
     FirefoxTheme {
@@ -225,7 +228,7 @@ private fun DownloadsScreenPreviews(
                     }
                 },
                 onItemDeleteClick = {
-                    store.dispatch(DownloadFragmentAction.UpdateDownloadItems(store.state.items - it))
+                    store.dispatch(DownloadUIAction.UpdateFileItems(store.state.items - it))
                     scope.launch {
                         snackbarHostState.showSnackbar(
                             SnackbarState(

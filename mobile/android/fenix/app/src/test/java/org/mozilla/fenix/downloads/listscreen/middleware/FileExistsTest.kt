@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.downloads.listscreen
+package org.mozilla.fenix.downloads.listscreen.middleware
 
 import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.state.content.DownloadState
@@ -10,9 +10,10 @@ import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.mozilla.fenix.downloads.listscreen.store.FileItem
 import java.io.File
 
-class DownloadItemTest {
+class FileExistsTest {
 
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
@@ -29,7 +30,7 @@ class DownloadItemTest {
         file1.createNewFile()
         file3.createNewFile()
 
-        val item1 = DownloadItem(
+        val item1 = FileItem(
             id = "71",
             url = "url",
             fileName = "filepath.txt",
@@ -38,7 +39,7 @@ class DownloadItemTest {
             contentType = "Image/png",
             status = DownloadState.Status.COMPLETED,
         )
-        val item2 = DownloadItem(
+        val item2 = FileItem(
             id = "71",
             url = "url",
             fileName = "filepath2.txt",
@@ -47,7 +48,7 @@ class DownloadItemTest {
             contentType = "Image/png",
             status = DownloadState.Status.COMPLETED,
         )
-        val item3 = DownloadItem(
+        val item3 = FileItem(
             id = "71",
             url = "url",
             fileName = "filepath3.txt",
@@ -58,7 +59,7 @@ class DownloadItemTest {
         )
 
         val testList = mutableListOf(item1, item2, item3)
-        val comparisonList: MutableList<DownloadItem> = mutableListOf(item1, item3)
+        val comparisonList: MutableList<FileItem> = mutableListOf(item1, item3)
 
         val resultList = testList.filterExistsOnDisk(coroutinesTestRule.testDispatcher)
 
@@ -84,7 +85,7 @@ class DownloadItemTest {
         file2.createNewFile()
         file3.createNewFile()
 
-        val item1 = DownloadItem(
+        val item1 = FileItem(
             id = "71",
             url = "url",
             fileName = "filepath.txt",
@@ -93,7 +94,7 @@ class DownloadItemTest {
             contentType = "text/plain",
             status = DownloadState.Status.COMPLETED,
         )
-        val item2 = DownloadItem(
+        val item2 = FileItem(
             id = "72",
             url = "url",
             fileName = "filepath2.txt",
@@ -102,7 +103,7 @@ class DownloadItemTest {
             contentType = "text/plain",
             status = DownloadState.Status.COMPLETED,
         )
-        val item3 = DownloadItem(
+        val item3 = FileItem(
             id = "73",
             url = "url",
             fileName = "filepath3.txt",
@@ -113,7 +114,7 @@ class DownloadItemTest {
         )
 
         val testList = mutableListOf(item1, item2, item3)
-        val comparisonList: MutableList<DownloadItem> = mutableListOf(item1, item2, item3)
+        val comparisonList: MutableList<FileItem> = mutableListOf(item1, item2, item3)
 
         val resultList = testList.filterExistsOnDisk(coroutinesTestRule.testDispatcher)
 

@@ -12,13 +12,17 @@ import org.junit.Assert.assertNotSame
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
+import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
+import org.mozilla.fenix.downloads.listscreen.store.DownloadUIStore
+import org.mozilla.fenix.downloads.listscreen.store.FileItem
 
 @RunWith(AndroidJUnit4::class)
-class DownloadFragmentStoreTest {
+class DownloadUIStoreTest {
     @get:Rule
     val coroutineTestRule = MainCoroutineRule()
 
-    private val downloadItem = DownloadItem(
+    private val fileItem = FileItem(
         id = "0",
         url = "url",
         fileName = "title",
@@ -27,7 +31,7 @@ class DownloadFragmentStoreTest {
         contentType = "jpg",
         status = DownloadState.Status.COMPLETED,
     )
-    private val newDownloadItem = DownloadItem(
+    private val newFileItem = FileItem(
         id = "1",
         url = "url",
         fileName = "title",
@@ -40,41 +44,41 @@ class DownloadFragmentStoreTest {
     @Test
     fun exitEditMode() {
         val initialState = oneItemEditState()
-        val store = DownloadFragmentStore(initialState)
+        val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadFragmentAction.ExitEditMode)
+        store.dispatch(DownloadUIAction.ExitEditMode)
         assertNotSame(initialState, store.state)
-        assertEquals(store.state.mode, DownloadFragmentState.Mode.Normal)
+        assertEquals(store.state.mode, DownloadUIState.Mode.Normal)
     }
 
     @Test
     fun itemAddedForRemoval() {
         val initialState = emptyDefaultState()
-        val store = DownloadFragmentStore(initialState)
+        val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadFragmentAction.AddItemForRemoval(newDownloadItem))
+        store.dispatch(DownloadUIAction.AddItemForRemoval(newFileItem))
         assertNotSame(initialState, store.state)
         assertEquals(
             store.state.mode,
-            DownloadFragmentState.Mode.Editing(setOf(newDownloadItem)),
+            DownloadUIState.Mode.Editing(setOf(newFileItem)),
         )
     }
 
     @Test
     fun allItemsAddedForRemoval() {
-        val initialState = DownloadFragmentState(
-            items = listOf(downloadItem, newDownloadItem),
-            mode = DownloadFragmentState.Mode.Normal,
+        val initialState = DownloadUIState(
+            items = listOf(fileItem, newFileItem),
+            mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
             isDeletingItems = false,
         )
-        val store = DownloadFragmentStore(initialState)
+        val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadFragmentAction.AddAllItemsForRemoval)
+        store.dispatch(DownloadUIAction.AddAllItemsForRemoval)
 
-        val expected = DownloadFragmentState(
-            items = listOf(downloadItem, newDownloadItem),
-            mode = DownloadFragmentState.Mode.Editing(setOf(downloadItem, newDownloadItem)),
+        val expected = DownloadUIState(
+            items = listOf(fileItem, newFileItem),
+            mode = DownloadUIState.Mode.Editing(setOf(fileItem, newFileItem)),
             pendingDeletionIds = emptySet(),
             isDeletingItems = false,
         )
@@ -85,30 +89,30 @@ class DownloadFragmentStoreTest {
     @Test
     fun removeItemForRemoval() {
         val initialState = twoItemEditState()
-        val store = DownloadFragmentStore(initialState)
+        val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadFragmentAction.RemoveItemForRemoval(newDownloadItem))
+        store.dispatch(DownloadUIAction.RemoveItemForRemoval(newFileItem))
         assertNotSame(initialState, store.state)
-        assertEquals(store.state.mode, DownloadFragmentState.Mode.Editing(setOf(downloadItem)))
+        assertEquals(store.state.mode, DownloadUIState.Mode.Editing(setOf(fileItem)))
     }
 
-    private fun emptyDefaultState(): DownloadFragmentState = DownloadFragmentState(
+    private fun emptyDefaultState(): DownloadUIState = DownloadUIState(
         items = listOf(),
-        mode = DownloadFragmentState.Mode.Normal,
+        mode = DownloadUIState.Mode.Normal,
         pendingDeletionIds = emptySet(),
         isDeletingItems = false,
     )
 
-    private fun oneItemEditState(): DownloadFragmentState = DownloadFragmentState(
+    private fun oneItemEditState(): DownloadUIState = DownloadUIState(
         items = listOf(),
-        mode = DownloadFragmentState.Mode.Editing(setOf(downloadItem)),
+        mode = DownloadUIState.Mode.Editing(setOf(fileItem)),
         pendingDeletionIds = emptySet(),
         isDeletingItems = false,
     )
 
-    private fun twoItemEditState(): DownloadFragmentState = DownloadFragmentState(
+    private fun twoItemEditState(): DownloadUIState = DownloadUIState(
         items = listOf(),
-        mode = DownloadFragmentState.Mode.Editing(setOf(downloadItem, newDownloadItem)),
+        mode = DownloadUIState.Mode.Editing(setOf(fileItem, newFileItem)),
         pendingDeletionIds = emptySet(),
         isDeletingItems = false,
     )

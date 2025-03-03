@@ -2,12 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.downloads.listscreen
+package org.mozilla.fenix.downloads.listscreen.store
 
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.state.content.DownloadState
-import java.io.File
 
 /**
  * Class representing a downloads entry
@@ -20,7 +17,7 @@ import java.io.File
  * @property contentType The type of file the download is
  * @property status The status that represents every state that a download can be in
  */
-data class DownloadItem(
+data class FileItem(
     val id: String,
     val url: String,
     val fileName: String?,
@@ -29,14 +26,3 @@ data class DownloadItem(
     val contentType: String?,
     val status: DownloadState.Status,
 )
-
-/**
- * Returns a filtered list of [DownloadItem]s containing only items that are present on the disk.
- * If a user has deleted the downloaded item it should not show on the downloaded list.
- */
-suspend fun List<DownloadItem>.filterExistsOnDisk(dispatcher: CoroutineDispatcher): List<DownloadItem> =
-    withContext(dispatcher) {
-        filter {
-            File(it.filePath).exists()
-        }
-    }
