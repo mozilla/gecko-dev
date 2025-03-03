@@ -4,7 +4,7 @@
 "use strict";
 
 let { AboutHomeStartupCache } = ChromeUtils.importESModule(
-  "resource:///modules/BrowserGlue.sys.mjs"
+  "resource:///modules/AboutHomeStartupCache.sys.mjs"
 );
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"

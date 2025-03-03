@@ -22,8 +22,6 @@ The official documentation for the HTTP cache [can be found here](https://firefo
 
 ### `AboutHomeStartupCache`
 
-This singleton component lives inside of `BrowserGlue` to avoid having to load yet another JSM out of the `omni.ja` file in the parent process during startup.
-
 `AboutHomeStartupCache` is responsible for feeding the "privileged about content process" with the `nsIInputStream`'s that it needs to present the initial `about:home` document. It is also responsible for populating the cache with updated versions of `about:home` that are sent by the "privileged about content process".
 
 Since accessing the HTTP cache is asynchronous, there is an opportunity for a race, where the cache can either be accessed and available before the initial `about:home` is requested, or after. To accommodate for both cases, the `AboutHomeStartupCache` constructs `nsIPipe` instances, which it sends down to the "privileged about content process" as soon as one launches.
@@ -48,7 +46,7 @@ When the `AboutRedirector` in the "privileged about content process" notices tha
 
 If, at this point, nothing has been streamed from the parent, we fall back to loading the dynamic `about:home` document. This might occur if the cache doesn't exist yet, or if we were too slow to pull it off of the disk. Subsequent attempts to load `about:home` will bypass the cache and load the dynamic document instead. This is true even if the privileged about content process crashes and a new one is created.
 
-The `AboutHomeStartupCacheChild` will also be responsible for generating the cache periodically. Periodically, the `AboutNewTabService` will send down the most up-to-date state for `about:home` from the parent process, and then the `AboutHomeStartupCacheChild` will generate document markup using ReactDOMServer within a `ChromeWorker`. After that's generated, the "privileged about content process" will send up `nsIInputStream` instances for both the markup and the script for the initial page state. The `AboutHomeStartupCache` singleton inside of `BrowserGlue` is responsible for receiving those `nsIInputStream`'s and persisting them in the HTTP cache for the next start.
+The `AboutHomeStartupCacheChild` will also be responsible for generating the cache periodically. Periodically, the `AboutNewTabService` will send down the most up-to-date state for `about:home` from the parent process, and then the `AboutHomeStartupCacheChild` will generate document markup using ReactDOMServer within a `ChromeWorker`. After that's generated, the "privileged about content process" will send up `nsIInputStream` instances for both the markup and the script for the initial page state. The `AboutHomeStartupCache` singleton is responsible for receiving those `nsIInputStream`'s and persisting them in the HTTP cache for the next start.
 
 ## What is cached?
 

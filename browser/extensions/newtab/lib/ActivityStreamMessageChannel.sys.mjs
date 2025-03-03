@@ -5,7 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  AboutHomeStartupCache: "resource:///modules/BrowserGlue.sys.mjs",
+  AboutHomeStartupCache: "resource:///modules/AboutHomeStartupCache.sys.mjs",
   AboutNewTabParent: "resource:///actors/AboutNewTabParent.sys.mjs",
 });
 

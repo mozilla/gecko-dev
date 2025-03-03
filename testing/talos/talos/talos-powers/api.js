@@ -9,7 +9,7 @@ const { ComponentUtils } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
-  AboutHomeStartupCache: "resource:///modules/BrowserGlue.sys.mjs",
+  AboutHomeStartupCache: "resource:///modules/AboutHomeStartupCache.sys.mjs",
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   PerTestCoverageUtils:
