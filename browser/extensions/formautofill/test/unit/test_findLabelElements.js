@@ -12,8 +12,7 @@ const TESTCASES = [
                    <input id="typeA" type="text">
                  </label>
                </form>`,
-    inputId: "typeA",
-    expectedLabelIds: ["labelA"],
+    expectedLabelIds: [["labelA"]],
   },
   {
     description: "Input contains in a label element.",
@@ -23,14 +22,14 @@ const TESTCASES = [
                  </div>
                </label>`,
     inputId: "typeB",
-    expectedLabelIds: ["labelB"],
+    expectedLabelIds: [["labelB"]],
   },
   {
     description: '"for" attribute used to indicate input by one label.',
     document: `<label id="labelC" for="typeC">label type C</label>
                <input id="typeC" type="text">`,
     inputId: "typeC",
-    expectedLabelIds: ["labelC"],
+    expectedLabelIds: [["labelC"]],
   },
   {
     description: '"for" attribute used to indicate input by multiple labels.',
@@ -41,7 +40,7 @@ const TESTCASES = [
                  <input id="typeD" type="text">
                </form>`,
     inputId: "typeD",
-    expectedLabelIds: ["labelD1", "labelD2", "labelD3"],
+    expectedLabelIds: [["labelD1", "labelD2", "labelD3"]],
   },
   {
     description:
@@ -52,7 +51,7 @@ const TESTCASES = [
                <label id="labelE4" for="  typeE  ">label type E4</label>
                <input id="   typeE  " type="text">`,
     inputId: "   typeE  ",
-    expectedLabelIds: [],
+    expectedLabelIds: [[]],
   },
   {
     description: "Input contains in a label element.",
@@ -63,7 +62,7 @@ const TESTCASES = [
                  </div>
                </label>`,
     inputId: "typeF",
-    expectedLabelIds: ["labelF"],
+    expectedLabelIds: [["labelF"], [""]],
   },
   {
     description:
@@ -75,7 +74,77 @@ const TESTCASES = [
                </form>
                <label id="labelG3" for="typeG">label type G3</label>`,
     inputId: "typeG",
-    expectedLabelIds: ["labelG1", "labelG2", "labelG3"],
+    expectedLabelIds: [["labelG1", "labelG2", "labelG3"]],
+  },
+  {
+    description:
+      "labels with no for attribute or child with one input at a different level",
+    document: `<form>
+                 <label id="labelH1">label H1</label>
+                 <input>
+                 <label id="labelH2">label H2</label>
+                 <div><span><input></span></div>
+               </form>`,
+    inputId: "labelH1",
+    expectedLabelIds: [["labelH1"], ["labelH2"]],
+  },
+  {
+    description:
+      "labels with no for attribute or child with an input and button",
+    document: `<form>
+                 <label id="labelI1">label I1</label>
+                 <input>
+                 <label id="labelI2">label I2</label>
+                 <button>
+                 <input>
+               </form>`,
+    inputId: "labelI1",
+    expectedLabelIds: [["labelI1"], []],
+  },
+  {
+    description: "three labels with no for attribute or child.",
+    document: `<form>
+                 <button>
+                 <label id="labelJ1">label J1</label>
+                 <label id="labelJ2">label J2</label>
+                 <input>
+                 <label id="labelJ3">label J3</label>
+                 <meter>
+                 <input>
+               </form>`,
+    inputId: "labelJ1",
+    expectedLabelIds: [["labelJ2"], []],
+  },
+  {
+    description: "four labels with no for attribute or child.",
+    document: `<form>
+                 <input>
+                 <fieldset>
+                   <label id="labelK1">label K1</label>
+                   <label id="labelK2">label K2</label>
+                   <input>
+                   <label id="labelK3">label K3</label>
+                   <div><b><input></b></div>
+                   <label id="labelK4">label K4</label>
+                 </fieldset>
+                 <input>
+               </form>`,
+    inputId: "labelK1",
+    expectedLabelIds: [[], ["labelK2"], ["labelK3"], []],
+  },
+  {
+    description:
+      "labels with no for attribute or child and inputs at different level.",
+    document: `<form>
+                 <input>
+                 <div><span><input></span></div>
+                 <label id="labelL1">label L1</label>
+                 <label id="labelL2">label L2</label>
+                 <div><span><input></span></div>
+                 </input>
+               </form>`,
+    inputId: "labelK1",
+    expectedLabelIds: [[], [], ["labelL2"], []],
   },
 ];
 
@@ -88,13 +157,16 @@ TESTCASES.forEach(testcase => {
       testcase.document
     );
 
-    let input = doc.getElementById(testcase.inputId);
-    let labels = LabelUtils.findLabelElements(input);
+    let formElements = doc.querySelectorAll("input", "select");
+    let labelsIndex = 0;
+    for (let formElement of formElements) {
+      let labels = LabelUtils.findLabelElements(formElement);
+      Assert.deepEqual(
+        labels.map(l => l.id),
+        testcase.expectedLabelIds[labelsIndex++]
+      );
+    }
 
-    Assert.deepEqual(
-      labels.map(l => l.id),
-      testcase.expectedLabelIds
-    );
     LabelUtils.clearLabelMap();
   });
 });
