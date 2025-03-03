@@ -329,6 +329,7 @@ add_task(async function test_manually_installed_builtin_addon_upgrades() {
 
   await _test_builtin_addon_override();
 
+  // cleanup the builtin addon manually installed in the builtin location.
   let addon = await AddonManager.getAddonByID(ADDON_ID);
   await addon.uninstall();
   await AddonTestUtils.promiseShutdownManager();
@@ -366,8 +367,9 @@ add_task(async function test_auto_installed_builtin_addon_upgrades() {
 
   await _test_builtin_addon_override();
 
-  let addon = await AddonManager.getAddonByID(ADDON_ID);
-  await addon.uninstall();
+  // cleanup the system addon auto-installed in the locked system builtin location
+  await AddonTestUtils.overrideBuiltIns({ system: [], builtins: [] });
+  await AddonTestUtils.promiseRestartManager();
   await AddonTestUtils.promiseShutdownManager();
   BootstrapMonitor.clear(ADDON_ID);
 });
