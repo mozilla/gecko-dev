@@ -9,10 +9,10 @@
 #include <unordered_map>
 
 #include "mozilla/WeakPtr.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "mozilla/webgpu/PWebGPUParent.h"
 #include "mozilla/webrender/WebRenderAPI.h"
-#include "mozilla/ipc/RawShmem.h"
 #include "WebGPUTypes.h"
 #include "base/timer.h"
 
@@ -56,9 +56,9 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   ipc::IPCResult RecvAdapterDrop(RawId aAdapterId);
   ipc::IPCResult RecvDeviceDestroy(RawId aDeviceId);
   ipc::IPCResult RecvDeviceDrop(RawId aDeviceId);
-  ipc::IPCResult RecvDeviceCreateBuffer(RawId aDeviceId, RawId aBufferId,
-                                        dom::GPUBufferDescriptor&& aDesc,
-                                        ipc::UnsafeSharedMemoryHandle&& aShmem);
+  ipc::IPCResult RecvDeviceCreateBuffer(
+      RawId aDeviceId, RawId aBufferId, dom::GPUBufferDescriptor&& aDesc,
+      ipc::MutableSharedMemoryHandle&& aShmem);
   ipc::IPCResult RecvBufferMap(RawId aDeviceId, RawId aBufferId, uint32_t aMode,
                                uint64_t aOffset, uint64_t size,
                                BufferMapResolver&& aResolver);
@@ -83,7 +83,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
       RawId aQueueId, std::function<void(mozilla::void_t)>&& aResolver);
   ipc::IPCResult RecvQueueWriteAction(RawId aQueueId, RawId aDeviceId,
                                       const ipc::ByteBuf& aByteBuf,
-                                      ipc::UnsafeSharedMemoryHandle&& aShmem);
+                                      ipc::MutableSharedMemoryHandle&& aShmem);
   ipc::IPCResult RecvBindGroupLayoutDrop(RawId aBindGroupLayoutId);
   ipc::IPCResult RecvPipelineLayoutDrop(RawId aPipelineLayoutId);
   ipc::IPCResult RecvBindGroupDrop(RawId aBindGroupId);
@@ -141,7 +141,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
   struct BufferMapData {
-    ipc::WritableSharedMemoryMapping mShmem;
+    ipc::SharedMemoryMapping mShmem;
     // True if buffer's usage has MAP_READ or MAP_WRITE set.
     bool mHasMapFlags;
     uint64_t mMappedOffset;

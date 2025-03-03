@@ -20,6 +20,8 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/WebGLTexelConversions.h"
 #include "mozilla/dom/WebGLTypes.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "nsLayoutUtils.h"
 #include "Utility.h"
 
@@ -118,16 +120,17 @@ void Queue::WriteBuffer(const Buffer& aBuffer, uint64_t aBufferOffset,
           return;
         }
 
-        auto alloc = mozilla::ipc::UnsafeSharedMemoryHandle::CreateAndMap(size);
-        if (alloc.isNothing()) {
-          aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-          return;
+        mozilla::ipc::MutableSharedMemoryHandle handle;
+        if (size != 0) {
+          handle = mozilla::ipc::shared_memory::Create(size);
+          auto mapping = handle.Map();
+          if (!handle || !mapping) {
+            aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+            return;
+          }
+
+          memcpy(mapping.DataAs<uint8_t>(), aData.Elements() + offset, size);
         }
-
-        auto handle = std::move(alloc.ref().first);
-        auto mapping = std::move(alloc.ref().second);
-
-        memcpy(mapping.Bytes().data(), aData.Elements() + offset, size);
         ipc::ByteBuf bb;
         ffi::wgpu_queue_write_buffer(aBuffer.mId, aBufferOffset, ToFFI(&bb));
         mBridge->SendQueueWriteAction(mId, mParent->mId, std::move(bb),
@@ -161,17 +164,18 @@ void Queue::WriteTexture(const dom::GPUTexelCopyTextureInfo& aDestination,
     }
     const auto size = checkedSize.value();
 
-    auto alloc = mozilla::ipc::UnsafeSharedMemoryHandle::CreateAndMap(size);
-    if (alloc.isNothing()) {
-      aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return;
+    mozilla::ipc::MutableSharedMemoryHandle handle;
+    if (size != 0) {
+      handle = mozilla::ipc::shared_memory::Create(size);
+      auto mapping = handle.Map();
+      if (!handle || !mapping) {
+        aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+        return;
+      }
+
+      memcpy(mapping.DataAs<uint8_t>(), aData.Elements() + aDataLayout.mOffset,
+             size);
     }
-
-    auto handle = std::move(alloc.ref().first);
-    auto mapping = std::move(alloc.ref().second);
-
-    memcpy(mapping.Bytes().data(), aData.Elements() + aDataLayout.mOffset,
-           size);
 
     ipc::ByteBuf bb;
     ffi::wgpu_queue_write_texture(copyView, dataLayout, extent, ToFFI(&bb));
@@ -395,18 +399,15 @@ void Queue::CopyExternalImageToTexture(
     return;
   }
 
-  auto alloc = mozilla::ipc::UnsafeSharedMemoryHandle::CreateAndMap(
-      dstByteLength.value());
-  if (alloc.isNothing()) {
+  auto handle = mozilla::ipc::shared_memory::Create(dstByteLength.value());
+  auto mapping = handle.Map();
+  if (!handle || !mapping) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
-  auto handle = std::move(alloc.ref().first);
-  auto mapping = std::move(alloc.ref().second);
-
   const int32_t pixelSize = gfx::BytesPerPixel(surfaceFormat);
-  auto* dstBegin = mapping.Bytes().data();
+  auto* dstBegin = mapping.DataAs<uint8_t>();
   const auto* srcBegin =
       map.GetData() + srcOriginX * pixelSize + srcOriginY * map.GetStride();
   const auto srcOriginPos = gl::OriginPos::TopLeft;

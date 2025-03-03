@@ -8,10 +8,10 @@
 
 #include "js/RootingAPI.h"
 #include "mozilla/dom/Nullable.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
 #include "nsTArray.h"
 #include "ObjectModel.h"
-#include "mozilla/ipc/RawShmem.h"
 #include <memory>
 
 namespace mozilla {
@@ -112,7 +112,7 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
 
  private:
   Buffer(Device* const aParent, RawId aId, BufferAddress aSize, uint32_t aUsage,
-         ipc::WritableSharedMemoryMapping&& aShmem);
+         ipc::SharedMemoryMapping&& aShmem);
   virtual ~Buffer();
   Device& GetDevice() { return *mParent; }
   void Cleanup();
@@ -143,10 +143,10 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
   // and destroyed when we first unmap the buffer, by clearing this
   // `shared_ptr`.
   //
-  // Otherwise, this points to `WritableSharedMemoryMapping()` (the
-  // default constructor), a zero-length mapping that doesn't point to
-  // any shared memory.
-  std::shared_ptr<ipc::WritableSharedMemoryMapping> mShmem;
+  // Otherwise, this points to `SharedMemoryMapping()` (the default
+  // constructor), a zero-length mapping that doesn't point to any shared
+  // memory.
+  std::shared_ptr<ipc::SharedMemoryMapping> mShmem;
 };
 
 }  // namespace webgpu
