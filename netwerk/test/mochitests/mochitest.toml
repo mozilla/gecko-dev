@@ -59,10 +59,7 @@ support-files = [
   "test2.css",
   "test2.css^headers^",
 ]
-prefs = [
-  "javascript.options.large_arraybuffers=true",
-  "javascript.options.experimental.import_attributes=true",
-]
+prefs = [ "javascript.options.large_arraybuffers=true" ]
 
 ["test_1331680.html"]
 skip-if = ["xorigin"]
