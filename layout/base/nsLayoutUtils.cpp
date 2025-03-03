@@ -4813,7 +4813,10 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         // things like buttons or table cells may have to explicitly provide
         // sizes rather than expecting intrinsic sizing to work "perfectly" in
         // underspecified cases.
-        result = aFrame->BSize();
+        // We subtract border and padding amounts from BSize here, since those
+        // will be accounted for by AddIntrinsicSizeOffset below.
+        result = aFrame->BSize() - offsetInRequestedAxis.border -
+                 offsetInRequestedAxis.padding;
       }
     } else {
       // To resolve aFrame's intrinsic inline size, we first check if we can
