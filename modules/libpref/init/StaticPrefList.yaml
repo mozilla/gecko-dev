@@ -8568,7 +8568,7 @@
 
 - name: javascript.options.experimental.import_attributes
   type: bool
-  value: false
+  value: true
   mirror: always
   set_spidermonkey_pref: always
 
