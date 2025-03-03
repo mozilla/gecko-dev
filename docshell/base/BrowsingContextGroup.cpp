@@ -588,11 +588,18 @@ void BrowsingContextGroup::NotifyFocusedOrActiveBrowsingContextToProcess(
   }
 }
 
+// Non-http(s) principals always use origin agent clusters.
+static bool AlwaysUseOriginAgentCluster(nsIPrincipal* aPrincipal) {
+  return !aPrincipal->GetIsContentPrincipal() ||
+         (!aPrincipal->SchemeIs("http") && !aPrincipal->SchemeIs("https"));
+}
+
 Maybe<bool> BrowsingContextGroup::UsesOriginAgentCluster(
     nsIPrincipal* aPrincipal) {
   // Check if agent clusters (DocGroups) for aPrincipal should be origin-keyed.
   // https://html.spec.whatwg.org/#origin-keyed-agent-clusters
-  return Some(IsPotentiallyCrossOriginIsolated());
+  return Some(AlwaysUseOriginAgentCluster(aPrincipal) ||
+              IsPotentiallyCrossOriginIsolated());
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(BrowsingContextGroup, mContexts,
