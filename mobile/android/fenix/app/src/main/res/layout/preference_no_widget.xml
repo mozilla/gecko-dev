@@ -7,14 +7,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:paddingTop="6dp"
-    android:paddingBottom="6dp"
+    android:minHeight="48dp"
     tools:ignore="UseCompoundDrawables">
 
     <ImageView
         android:id="@android:id/icon"
         android:layout_width="24dp"
         android:layout_height="24dp"
+        android:layout_gravity="center"
         android:layout_marginStart="16dp"
         android:contentDescription="@string/preference_etp_exceptions_icon_description"
         tools:srcCompat="@drawable/ic_internet" />
@@ -24,6 +24,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="40dp"
+        android:layout_gravity="center"
         android:gravity="center_vertical"
         android:letterSpacing="0.01"
         android:lineSpacingExtra="5sp"
