@@ -134,7 +134,7 @@ ifeq ($(MOZ_BUILD_APP),mobile/android)
 recurse_android-stage-package: stage-package
 
 recurse_android-archive-geckoview:
-	GRADLE_INVOKED_WITHIN_MACH_BUILD=1 $(topsrcdir)/mach --log-no-times android archive-geckoview
+	GRADLE_INVOKED_WITHIN_MACH_BUILD=1 $(topsrcdir)/mach --log-no-times android archive-geckoview  $(if $(MOZ_AUTOMATION),--no-configuration-cache)
 endif
 
 ifdef MOZ_WIDGET_TOOLKIT

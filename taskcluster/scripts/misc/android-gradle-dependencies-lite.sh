@@ -15,7 +15,7 @@ export PATH=$MOZ_FETCHES_DIR/jdk-8/bin:$PATH
 
 export MOZCONFIG=mobile/android/config/mozconfigs/android-arm-gradle-dependencies/nightly-lite
 ./mach build
-./mach gradle downloadDependencies
-./mach android gradle-dependencies
+./mach gradle downloadDependencies --no-configuration-cache
+./mach android gradle-dependencies --no-configuration-cache
 
 . taskcluster/scripts/misc/android-gradle-dependencies/after.sh
