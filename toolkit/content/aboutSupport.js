@@ -331,6 +331,7 @@ var snapshotFormatters = {
           $.new("td", addon.type),
           $.new("td", addon.version),
           $.new("td", addon.isActive),
+          $.new("td", addon.locationName),
           $.new("td", addon.id),
         ]);
       })
@@ -347,19 +348,6 @@ var snapshotFormatters = {
     $("security-software-antivirus").textContent = data.registeredAntiVirus;
     $("security-software-antispyware").textContent = data.registeredAntiSpyware;
     $("security-software-firewall").textContent = data.registeredFirewall;
-  },
-
-  features(data) {
-    $.append(
-      $("features-tbody"),
-      data.map(function (feature) {
-        return $.new("tr", [
-          $.new("td", feature.name),
-          $.new("td", feature.version),
-          $.new("td", feature.id),
-        ]);
-      })
-    );
   },
 
   async processes(data) {
