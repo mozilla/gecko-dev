@@ -1086,7 +1086,9 @@ bool CodeBlock::lookupCallSite(void* pc, CallSite* callSite) const {
 }
 
 const StackMap* CodeBlock::lookupStackMap(uint8_t* pc) const {
-  return stackMaps.findMap(pc);
+  // We need to subtract the offset from the beginning of the codeblock.
+  uint32_t offsetInCodeBlock = pc - base();
+  return stackMaps.lookup(offsetInCodeBlock);
 }
 
 const wasm::TryNote* CodeBlock::lookupTryNote(const void* pc) const {

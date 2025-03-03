@@ -16284,7 +16284,7 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
     MOZ_ASSERT(functionEntryStackMap);
 
     if (functionEntryStackMap &&
-        !stackMaps->add((uint8_t*)(uintptr_t)trapInsnOffset.offset(),
+        !stackMaps->add(trapInsnOffset.offset(),
                         functionEntryStackMap)) {
       functionEntryStackMap->destroy();
       return false;
@@ -16339,7 +16339,7 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
       continue;
     }
 
-    if (!stackMaps->add((uint8_t*)(uintptr_t)index.displacement(), stackMap)) {
+    if (!stackMaps->add(index.displacement(), stackMap)) {
       stackMap->destroy();
       return false;
     }
