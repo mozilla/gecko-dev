@@ -54,6 +54,13 @@
 #  define PNG_ARM_NEON_OPT 0
 #endif
 
+#ifdef MOZ_PNG_USE_LOONGARCH_LSX
+#  undef PNG_LOONGARCH_LSX_OPT /* Let libpng decide */
+#  define PNG_ALIGNED_MEMORY_SUPPORTED
+#else
+#  define PNG_LOONGARCH_LSX_OPT 0
+#endif
+
 #ifdef MOZ_PNG_USE_MIPS_MSA
 #  undef PNG_MIPS_MSA_OPT
 #  define PNG_ALIGNED_MEMORY_SUPPORTED

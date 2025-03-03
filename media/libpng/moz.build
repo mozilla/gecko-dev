@@ -72,7 +72,12 @@ if CONFIG['HAVE_ALTIVEC']:
     ]
 
 if CONFIG['TARGET_CPU'] == 'loongarch64':
-    CFLAGS += ['-mno-lsx']
+    DEFINES['MOZ_PNG_USE_LOONGARCH_LSX'] = True
+    CFLAGS += ['-mlsx']
+    UNIFIED_SOURCES += [
+        'loongarch/filter_lsx_intrinsics.c',
+        'loongarch/loongarch_lsx_init.c',
+    ]
 
 if CONFIG['MOZ_TREE_FREETYPE']:
     DEFINES['FT_CONFIG_OPTION_USE_PNG'] = True
