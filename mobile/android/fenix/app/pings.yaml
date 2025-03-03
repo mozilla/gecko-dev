@@ -33,6 +33,30 @@ first-session:
   notification_emails:
     - android-probes@mozilla.com
 
+play-store-attribution:
+  description: |
+    This ping captures the install referrer attribution data.
+  include_client_id: true
+  send_if_empty: true
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1947786
+  data_reviews:
+    - https://phabricator.services.mozilla.com/D238284
+  notification_emails:
+    - android-probes@mozilla.com
+
+adjust-attribution:
+  description: |
+    This ping captures the Adjust attribution data.
+  include_client_id: true
+  send_if_empty: true
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1947786
+  data_reviews:
+    - https://phabricator.services.mozilla.com/D238284
+  notification_emails:
+    - android-probes@mozilla.com
+
 home:
   description: |
     Homepage new tab related instrumentation.

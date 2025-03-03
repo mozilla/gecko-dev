@@ -7,7 +7,7 @@ package org.mozilla.fenix.components.metrics
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
-import android.util.Log
+import androidx.annotation.VisibleForTesting
 import com.adjust.sdk.Adjust
 import com.adjust.sdk.AdjustConfig
 import com.adjust.sdk.AdjustEvent
@@ -18,10 +18,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.lib.crash.CrashReporter
+import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
-import org.mozilla.fenix.GleanMetrics.FirstSession
-import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.GleanMetrics.AdjustAttribution
+import org.mozilla.fenix.GleanMetrics.Pings
+import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.utils.Settings
 
 class AdjustMetricsService(
     private val application: Application,
@@ -30,15 +33,22 @@ class AdjustMetricsService(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : MetricsService {
     override val type = MetricServiceType.Marketing
+    private val logger = Logger("AdjustMetricsService")
 
     override fun start() {
+        val settings = application.components.settings
         if ((BuildConfig.ADJUST_TOKEN.isNullOrBlank())) {
-            Log.i(LOGTAG, "No adjust token defined")
+            logger.info("No adjust token defined")
 
             if (Config.channel.isReleased) {
                 throw IllegalStateException("No adjust token defined for release build")
             }
 
+            return
+        }
+
+        if (alreadyKnown(settings)) {
+            logger.info("Attribution already retrieved")
             return
         }
 
@@ -52,34 +62,28 @@ class AdjustMetricsService(
         )
         config.setPreinstallTrackingEnabled(true)
 
-        val installationPing = FirstSessionPing(application)
-
-        FirstSession.adjustAttributionTimespan.start()
-        val timerId = FirstSession.adjustAttributionTime.start()
+        val timerId = AdjustAttribution.adjustAttributionTime.start()
         config.setOnAttributionChangedListener {
-            if (!installationPing.wasAlreadyTriggered()) {
-                FirstSession.adjustAttributionTimespan.stop()
-            }
+            AdjustAttribution.adjustAttributionTime.stopAndAccumulate(timerId)
 
-            FirstSession.adjustAttributionTime.stopAndAccumulate(timerId)
             if (!it.network.isNullOrEmpty()) {
-                application.applicationContext.settings().adjustNetwork =
-                    it.network
+                settings.adjustNetwork = it.network
+                AdjustAttribution.network.set(it.network)
             }
             if (!it.adgroup.isNullOrEmpty()) {
-                application.applicationContext.settings().adjustAdGroup =
-                    it.adgroup
+                settings.adjustAdGroup = it.adgroup
+                AdjustAttribution.adgroup.set(it.adgroup)
             }
             if (!it.creative.isNullOrEmpty()) {
-                application.applicationContext.settings().adjustCreative =
-                    it.creative
+                settings.adjustCreative = it.creative
+                AdjustAttribution.creative.set(it.creative)
             }
             if (!it.campaign.isNullOrEmpty()) {
-                application.applicationContext.settings().adjustCampaignId =
-                    it.campaign
+                settings.adjustCampaignId = it.campaign
+                AdjustAttribution.campaign.set(it.campaign)
             }
 
-            installationPing.checkAndSend()
+            triggerPing()
         }
 
         config.setLogLevel(LogLevel.SUPRESS)
@@ -89,7 +93,6 @@ class AdjustMetricsService(
     }
 
     override fun stop() {
-        FirstSession.adjustAttributionTimespan.cancel()
         Adjust.setEnabled(false)
         Adjust.gdprForgetMe(application.applicationContext)
     }
@@ -116,7 +119,17 @@ class AdjustMetricsService(
         event is Event.GrowthData
 
     companion object {
-        private const val LOGTAG = "AdjustMetricsService"
+        @VisibleForTesting
+        internal fun alreadyKnown(settings: Settings): Boolean {
+            return settings.adjustCampaignId.isNotEmpty() || settings.adjustNetwork.isNotEmpty() ||
+                settings.adjustCreative.isNotEmpty() || settings.adjustAdGroup.isNotEmpty()
+        }
+
+        private fun triggerPing() {
+            CoroutineScope(Dispatchers.IO).launch {
+                Pings.adjustAttribution.submit()
+            }
+        }
     }
 
     private class AdjustLifecycleCallbacks : Application.ActivityLifecycleCallbacks {
