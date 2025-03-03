@@ -4,56 +4,18 @@
 package org.mozilla.focus.browser
 
 import android.content.Context
-import android.content.pm.PackageManager
 import android.view.View
 import androidx.collection.ArrayMap
-import mozilla.components.support.utils.ext.getPackageInfoCompat
 import org.mozilla.focus.R
 import org.mozilla.focus.locale.Locales
 import org.mozilla.focus.utils.HtmlLoader
-import org.mozilla.focus.utils.SupportUtils.manifestoURL
-import org.mozilla.geckoview.BuildConfig
-import java.util.Locale
 
 object LocalizedContent {
     // We can't use "about:" because webview silently swallows about: pages, hence we use
     // a custom scheme.
-    const val URL_ABOUT = "focus:about"
     const val URL_RIGHTS = "focus:rights"
     const val URL_GPL = "focus:gpl"
     const val URL_LICENSES = "focus:licenses"
-
-    /**
-     * Load the content for focus:about
-     */
-    fun loadAbout(context: Context): String {
-        val resources = Locales.getLocalizedResources(context)
-        val substitutionMap: MutableMap<String, String> = ArrayMap()
-        val appName = context.resources.getString(R.string.app_name)
-        val learnMoreURL = manifestoURL
-        var aboutVersion = ""
-        try {
-            val engineIndicator = " \uD83E\uDD8E " + BuildConfig.MOZ_APP_VERSION + "-" +
-                BuildConfig.MOZ_APP_BUILDID
-            val packageInfo = context.packageManager.getPackageInfoCompat(context.packageName, 0)
-            @Suppress("DEPRECATION")
-            aboutVersion = String.format(
-                Locale.US,
-                "%s (Build #%s)",
-                packageInfo.versionName,
-                packageInfo.versionCode.toString() + engineIndicator,
-            )
-        } catch (e: PackageManager.NameNotFoundException) {
-            // Nothing to do if we can't find the package name.
-        }
-        substitutionMap["%about-version%"] = aboutVersion
-        val aboutContent = resources.getString(R.string.about_content, appName, learnMoreURL)
-        substitutionMap["%about-content%"] = aboutContent
-        val wordmark = HtmlLoader.loadPngAsDataURI(context, R.drawable.wordmark2)
-        substitutionMap["%wordmark%"] = wordmark
-        putLayoutDirectionIntoMap(substitutionMap, context)
-        return HtmlLoader.loadResourceFile(context, R.raw.about, substitutionMap)
-    }
 
     /**
      * Load the content for focus:rights
