@@ -30,11 +30,15 @@ let gAddEngineDialog = {
     let url = document
       .getElementById("engineUrl")
       .value.replace(/%s/, "{searchTerms}");
-    await Services.search.wrappedJSObject.addUserEngine(
-      this._name.value,
+    let suggestUrl = document
+      .getElementById("suggestUrl")
+      .value.replace(/%s/, "{searchTerms}");
+    await Services.search.addUserEngine({
+      name: this._name.value,
       url,
-      this._alias.value
-    );
+      alias: this._alias.value,
+      suggestUrl,
+    });
   },
 
   async onNameInput() {
