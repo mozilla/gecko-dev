@@ -1776,8 +1776,8 @@ class ArenaCollection {
   // (except for the short, controlled moment during MayPurgeStep).
   DoublyLinkedList<arena_t> mOutstandingPurges MOZ_GUARDED_BY(mPurgeListLock);
   // Flag if we should defer purge to later. Only ever set when holding the
-  // collection lock.
-  Atomic<bool, Relaxed> mIsDeferredPurgeEnabled;
+  // collection lock. Read only during arena_t ctor.
+  Atomic<bool> mIsDeferredPurgeEnabled;
 };
 
 MOZ_RUNINIT static ArenaCollection gArenas;
