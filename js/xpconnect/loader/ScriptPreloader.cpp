@@ -558,7 +558,7 @@ Result<Ok, nsresult> ScriptPreloader::InitCacheInternal(
 
     LinkedList<CachedStencil> scripts;
 
-    Range<const uint8_t> header(data, data + headerSize);
+    Range<uint8_t> header(data, data + headerSize);
     data += headerSize;
 
     // Reconstruct alignment padding if required.

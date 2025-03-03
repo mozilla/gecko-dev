@@ -16,7 +16,7 @@
 #else
 #  include <pthread.h>
 #  include <semaphore.h>
-#  include "mozilla/ipc/SharedMemoryMapping.h"
+#  include "mozilla/ipc/SharedMemory.h"
 #  include "mozilla/Atomics.h"
 #endif
 
@@ -41,7 +41,13 @@ typedef mozilla::UniqueFileHandle CrossProcessSemaphoreHandle;
 #elif defined(XP_DARWIN)
 typedef mozilla::UniqueMachSendRight CrossProcessSemaphoreHandle;
 #else
-typedef mozilla::ipc::MutableSharedMemoryHandle CrossProcessSemaphoreHandle;
+typedef mozilla::ipc::SharedMemory::Handle CrossProcessSemaphoreHandle;
+
+template <>
+inline bool IsHandleValid<CrossProcessSemaphoreHandle>(
+    const CrossProcessSemaphoreHandle& handle) {
+  return !(handle == mozilla::ipc::SharedMemory::NULLHandle());
+}
 #endif
 
 class CrossProcessSemaphore {
@@ -102,8 +108,7 @@ class CrossProcessSemaphore {
 
   CrossProcessSemaphoreHandle mSemaphore;
 #else
-  mozilla::ipc::MutableSharedMemoryHandle mHandle;
-  mozilla::ipc::SharedMemoryMapping mSharedBuffer;
+  RefPtr<mozilla::ipc::SharedMemory> mSharedBuffer;
   sem_t* mSemaphore;
   mozilla::Atomic<int32_t>* mRefCount;
 #endif

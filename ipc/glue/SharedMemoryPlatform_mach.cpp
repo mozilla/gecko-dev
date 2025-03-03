@@ -30,7 +30,6 @@
 
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Printf.h"
-#include "nsDebug.h"
 
 #ifdef DEBUG
 #  define LOG_ERROR(str, args...)                                  \
@@ -70,10 +69,10 @@ static Maybe<PlatformHandle> CreateImpl(size_t aSize, bool aFreezable) {
   return Some(std::move(handle));
 }
 
-bool Platform::Create(MutableHandle& aHandle, size_t aSize) {
+bool Platform::Create(Handle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, false)) {
     aHandle.mHandle = std::move(*ph);
-    aHandle.SetSize(aSize);
+    aHandle.mSize = aSize;
     return true;
   }
   return false;
@@ -82,7 +81,7 @@ bool Platform::Create(MutableHandle& aHandle, size_t aSize) {
 bool Platform::CreateFreezable(FreezableHandle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, true)) {
     aHandle.mHandle = std::move(*ph);
-    aHandle.SetSize(aSize);
+    aHandle.mSize = aSize;
     return true;
   }
   return false;

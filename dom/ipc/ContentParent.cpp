@@ -152,7 +152,7 @@
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/FileDescriptorUtils.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
-#include "mozilla/ipc/SharedMemoryHandle.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/layers/ImageBridgeParent.h"
@@ -1536,8 +1536,9 @@ void ContentParent::BroadcastStringBundle(
     const StringBundleDescriptor& aBundle) {
   for (auto* cp : AllProcesses(eLive)) {
     AutoTArray<StringBundleDescriptor, 1> array;
-    array.AppendElement(StringBundleDescriptor(aBundle.bundleURL(),
-                                               aBundle.mapHandle().Clone()));
+    array.AppendElement(StringBundleDescriptor(
+        aBundle.bundleURL(), SharedMemory::CloneHandle(aBundle.mapHandle()),
+        aBundle.mapSize()));
     Unused << cp->SendRegisterStringBundles(std::move(array));
   }
 }
@@ -1546,9 +1547,9 @@ void ContentParent::BroadcastShmBlockAdded(uint32_t aGeneration,
                                            uint32_t aIndex) {
   auto* pfl = gfxPlatformFontList::PlatformFontList();
   for (auto* cp : AllProcesses(eLive)) {
-    ReadOnlySharedMemoryHandle handle =
+    SharedMemory::Handle handle =
         pfl->ShareShmBlockToProcess(aIndex, cp->Pid());
-    if (!handle.IsValid()) {
+    if (handle == SharedMemory::NULLHandle()) {
       // If something went wrong here, we just skip it; the child will need to
       // request the block as needed, at some performance cost.
       continue;
@@ -2810,7 +2811,7 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
 
   // If the shared fontlist is in use, collect its shmem block handles to pass
   // to the child.
-  nsTArray<ReadOnlySharedMemoryHandle> sharedFontListBlocks;
+  nsTArray<SharedMemoryHandle> sharedFontListBlocks;
   gfxPlatformFontList::PlatformFontList()->ShareFontListToProcess(
       &sharedFontListBlocks, OtherPid());
 
@@ -2849,10 +2850,10 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
   screenManager.CopyScreensToRemote(this);
 
   // Send the UA sheet shared memory buffer and the address it is mapped at.
-  Maybe<ReadOnlySharedMemoryHandle> sharedUASheetHandle;
+  Maybe<SharedMemoryHandle> sharedUASheetHandle;
   uintptr_t sharedUASheetAddress = sheetCache->GetSharedMemoryAddress();
 
-  if (ReadOnlySharedMemoryHandle handle = sheetCache->CloneHandle()) {
+  if (SharedMemoryHandle handle = sheetCache->CloneHandle()) {
     sharedUASheetHandle.emplace(std::move(handle));
   } else {
     sharedUASheetAddress = 0;
@@ -5627,7 +5628,7 @@ mozilla::ipc::IPCResult ContentParent::RecvShutdownPerfStats(
 
 mozilla::ipc::IPCResult ContentParent::RecvGetFontListShmBlock(
     const uint32_t& aGeneration, const uint32_t& aIndex,
-    ReadOnlySharedMemoryHandle* aOut) {
+    SharedMemory::Handle* aOut) {
   auto* fontList = gfxPlatformFontList::PlatformFontList();
   MOZ_RELEASE_ASSERT(fontList, "gfxPlatformFontList not initialized?");
   fontList->ShareFontListShmBlockToProcess(aGeneration, aIndex, Pid(), aOut);
@@ -5679,12 +5680,12 @@ mozilla::ipc::IPCResult ContentParent::RecvStartCmapLoading(
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvGetHyphDict(
-    nsIURI* aURI, ReadOnlySharedMemoryHandle* aOutHandle) {
+    nsIURI* aURI, SharedMemory::Handle* aOutHandle, uint32_t* aOutSize) {
   if (!aURI) {
     return IPC_FAIL(this, "aURI must not be null.");
   }
-  nsHyphenationManager::Instance()->ShareHyphDictToProcess(aURI, Pid(),
-                                                           aOutHandle);
+  nsHyphenationManager::Instance()->ShareHyphDictToProcess(
+      aURI, Pid(), aOutHandle, aOutSize);
   return IPC_OK();
 }
 

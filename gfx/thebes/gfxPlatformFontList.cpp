@@ -3111,7 +3111,7 @@ void gfxPlatformFontList::CancelInitOtherFamilyNamesTask() {
 
 void gfxPlatformFontList::ShareFontListShmBlockToProcess(
     uint32_t aGeneration, uint32_t aIndex, base::ProcessId aPid,
-    mozilla::ipc::ReadOnlySharedMemoryHandle* aOut) {
+    mozilla::ipc::SharedMemory::Handle* aOut) {
   auto list = SharedFontList();
   if (!list) {
     return;
@@ -3119,12 +3119,12 @@ void gfxPlatformFontList::ShareFontListShmBlockToProcess(
   if (!aGeneration || list->GetGeneration() == aGeneration) {
     list->ShareShmBlockToProcess(aIndex, aPid, aOut);
   } else {
-    *aOut = nullptr;
+    *aOut = mozilla::ipc::SharedMemory::NULLHandle();
   }
 }
 
 void gfxPlatformFontList::ShareFontListToProcess(
-    nsTArray<mozilla::ipc::ReadOnlySharedMemoryHandle>* aBlocks,
+    nsTArray<mozilla::ipc::SharedMemory::Handle>* aBlocks,
     base::ProcessId aPid) {
   auto list = SharedFontList();
   if (list) {
@@ -3132,16 +3132,15 @@ void gfxPlatformFontList::ShareFontListToProcess(
   }
 }
 
-mozilla::ipc::ReadOnlySharedMemoryHandle
-gfxPlatformFontList::ShareShmBlockToProcess(uint32_t aIndex,
-                                            base::ProcessId aPid) {
+mozilla::ipc::SharedMemory::Handle gfxPlatformFontList::ShareShmBlockToProcess(
+    uint32_t aIndex, base::ProcessId aPid) {
   MOZ_RELEASE_ASSERT(SharedFontList());
   return SharedFontList()->ShareBlockToProcess(aIndex, aPid);
 }
 
 void gfxPlatformFontList::ShmBlockAdded(
     uint32_t aGeneration, uint32_t aIndex,
-    mozilla::ipc::ReadOnlySharedMemoryHandle aHandle) {
+    mozilla::ipc::SharedMemory::Handle aHandle) {
   if (SharedFontList()) {
     AutoLock lock(mLock);
     SharedFontList()->ShmBlockAdded(aGeneration, aIndex, std::move(aHandle));

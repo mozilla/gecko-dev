@@ -7,14 +7,12 @@
 #ifndef mozilla_ipc_DataPipe_h
 #define mozilla_ipc_DataPipe_h
 
-#include "mozilla/ipc/SharedMemoryHandle.h"
-#include "mozilla/ipc/SharedMemoryMapping.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/ipc/NodeController.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
 #include "nsIIPCSerializableInputStream.h"
 #include "nsISupports.h"
-#include <memory>
 
 namespace mozilla {
 namespace ipc {
@@ -32,8 +30,7 @@ class DataPipeBase {
  protected:
   explicit DataPipeBase(bool aReceiverSide, nsresult aError);
   DataPipeBase(bool aReceiverSide, ScopedPort aPort,
-               MutableSharedMemoryHandle&& aShmemHandle,
-               const std::shared_ptr<SharedMemoryMapping>& aShmem,
+               SharedMemory::Handle aShmemHandle, SharedMemory* aShmem,
                uint32_t aCapacity, nsresult aPeerStatus, uint32_t aOffset,
                uint32_t aAvailable);
 
@@ -102,10 +99,9 @@ class DataPipeSender final : public nsIAsyncOutputStream,
 
   explicit DataPipeSender(nsresult aError)
       : data_pipe_detail::DataPipeBase(/* aReceiverSide */ false, aError) {}
-  DataPipeSender(ScopedPort aPort, MutableSharedMemoryHandle&& aShmemHandle,
-                 const std::shared_ptr<SharedMemoryMapping>& aShmem,
-                 uint32_t aCapacity, nsresult aPeerStatus, uint32_t aOffset,
-                 uint32_t aAvailable)
+  DataPipeSender(ScopedPort aPort, SharedMemory::Handle aShmemHandle,
+                 SharedMemory* aShmem, uint32_t aCapacity, nsresult aPeerStatus,
+                 uint32_t aOffset, uint32_t aAvailable)
       : data_pipe_detail::DataPipeBase(
             /* aReceiverSide */ false, std::move(aPort),
             std::move(aShmemHandle), aShmem, aCapacity, aPeerStatus, aOffset,
@@ -139,10 +135,9 @@ class DataPipeReceiver final : public nsIAsyncInputStream,
 
   explicit DataPipeReceiver(nsresult aError)
       : data_pipe_detail::DataPipeBase(/* aReceiverSide */ true, aError) {}
-  DataPipeReceiver(ScopedPort aPort, MutableSharedMemoryHandle&& aShmemHandle,
-                   const std::shared_ptr<SharedMemoryMapping>& aShmem,
-                   uint32_t aCapacity, nsresult aPeerStatus, uint32_t aOffset,
-                   uint32_t aAvailable)
+  DataPipeReceiver(ScopedPort aPort, SharedMemory::Handle aShmemHandle,
+                   SharedMemory* aShmem, uint32_t aCapacity,
+                   nsresult aPeerStatus, uint32_t aOffset, uint32_t aAvailable)
       : data_pipe_detail::DataPipeBase(
             /* aReceiverSide */ true, std::move(aPort), std::move(aShmemHandle),
             aShmem, aCapacity, aPeerStatus, aOffset, aAvailable) {}

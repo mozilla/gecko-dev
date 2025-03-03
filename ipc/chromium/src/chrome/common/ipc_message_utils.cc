@@ -73,7 +73,7 @@ MessageBufferReader::MessageBufferReader(MessageReader* reader,
       return;
     }
     if (shmem_ok) {
-      mozilla::ipc::shared_memory::MutableHandle handle;
+      mozilla::ipc::shared_memory::Handle handle;
       if (!IPC::ReadParam(reader, &handle)) {
         reader->FatalError("failed to read shared memory handle");
         return;

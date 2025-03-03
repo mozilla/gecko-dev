@@ -11,7 +11,8 @@
 #include <stdint.h>  // for uint32_t
 #include "gfxTypes.h"
 #include "mozilla/dom/ipc/IdType.h"
-#include "mozilla/gfx/Point.h"  // for IntSize
+#include "mozilla/gfx/Point.h"         // for IntSize
+#include "mozilla/ipc/SharedMemory.h"  // for SharedMemory, etc
 #include "mozilla/RefPtr.h"
 #include "nsIMemoryReporter.h"              // for nsIMemoryReporter
 #include "mozilla/Atomics.h"                // for Atomic

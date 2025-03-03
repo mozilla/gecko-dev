@@ -4,8 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/MathAlgorithms.h"
-#include "nsDebug.h"
 #include "SharedMemoryCursor.h"
 
 namespace mozilla::ipc::shared_memory {
@@ -29,7 +27,7 @@ void Cursor::Seek(uint64_t aOffset) {
   }
 }
 
-MutableHandle Cursor::TakeHandle() {
+Handle Cursor::TakeHandle() {
   mMapping = nullptr;
   return std::move(mHandle);
 }
@@ -64,7 +62,7 @@ bool Cursor::Consume(void* aBuffer, size_t aCount, bool aWriteToShmem) {
     size_t mappingRemaining = mMapping.Size() - mappingOffset;
     size_t toCopy = std::min<size_t>(mappingRemaining, aCount - consumed);
 
-    void* shmemPtr = mMapping.DataAs<char>() + mappingOffset;
+    void* shmemPtr = static_cast<char*>(mMapping.Data()) + mappingOffset;
     void* bufferPtr = static_cast<char*>(aBuffer) + consumed;
     if (aWriteToShmem) {
       memcpy(shmemPtr, bufferPtr, toCopy);

@@ -14,8 +14,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/ThreadLocal.h"
-#include "mozilla/ipc/SharedMemoryHandle.h"
-#include "mozilla/ipc/SharedMemoryMapping.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/layers/LayersTypes.h"
 
 #include <vector>
@@ -382,13 +381,12 @@ class DrawTargetWebgl : public DrawTarget, public SupportsWeakPtr {
   RefPtr<DrawTargetSkia> mSkia;
   // Skia DT pointing to the same pixel data, but without any applied clips.
   RefPtr<DrawTargetSkia> mSkiaNoClip;
-  // A Shmem read-only handle to the same memory as mShmem, to be consumed by
-  // TakeShmemHandle().
-  mozilla::ipc::ReadOnlySharedMemoryHandle mShmemHandle;
   // The Shmem backing the Skia DT, if applicable.
-  mozilla::ipc::SharedMemoryMapping mShmem;
+  RefPtr<mozilla::ipc::SharedMemory> mShmem;
   // The currently cached snapshot of the WebGL context
   RefPtr<SourceSurfaceWebgl> mSnapshot;
+  // The mappable size of mShmem.
+  uint32_t mShmemSize = 0;
   // Whether the framebuffer is still in the initially clear state.
   bool mIsClear = true;
   // Whether or not the Skia target has valid contents and is being drawn to
@@ -607,9 +605,12 @@ class DrawTargetWebgl : public DrawTarget, public SupportsWeakPtr {
     return stream.str();
   }
 
-  mozilla::ipc::ReadOnlySharedMemoryHandle TakeShmemHandle() {
-    return std::move(mShmemHandle);
+  mozilla::ipc::SharedMemory::Handle TakeShmemHandle() const {
+    return mShmem ? mShmem->TakeHandle()
+                  : mozilla::ipc::SharedMemory::NULLHandle();
   }
+
+  uint32_t GetShmemSize() const { return mShmemSize; }
 
  private:
   bool SupportsPattern(const Pattern& aPattern) {

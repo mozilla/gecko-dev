@@ -12,8 +12,7 @@
 
 #include "mozilla/GeckoArgs.h"
 #include "mozilla/ipc/FileDescriptor.h"
-#include "mozilla/ipc/SharedMemoryHandle.h"
-#include "mozilla/ipc/SharedMemoryMapping.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
@@ -37,21 +36,22 @@ class SharedPreferenceSerializer final {
   bool SerializeToSharedMemory(const GeckoProcessType aDestinationProcessType,
                                const nsACString& aDestinationRemoteType);
 
-  const ReadOnlySharedMemoryHandle& GetPrefsHandle() const {
-    return mPrefsHandle;
-  }
+  size_t GetPrefMapSize() const { return mPrefMapSize; }
+  size_t GetPrefsLength() const { return mPrefsLength; }
 
-  const ReadOnlySharedMemoryHandle& GetPrefMapHandle() const {
-    return mPrefMapHandle;
-  }
+  const SharedMemoryHandle& GetPrefsHandle() const { return mPrefsHandle; }
+
+  const SharedMemoryHandle& GetPrefMapHandle() const { return mPrefMapHandle; }
 
   void AddSharedPrefCmdLineArgs(GeckoChildProcessHost& procHost,
                                 geckoargs::ChildProcessArgs& aExtraOpts) const;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(SharedPreferenceSerializer);
-  ReadOnlySharedMemoryHandle mPrefMapHandle;
-  ReadOnlySharedMemoryHandle mPrefsHandle;
+  size_t mPrefMapSize;
+  size_t mPrefsLength;
+  SharedMemoryHandle mPrefMapHandle;
+  SharedMemoryHandle mPrefsHandle;
 };
 
 class SharedPreferenceDeserializer final {
@@ -59,13 +59,18 @@ class SharedPreferenceDeserializer final {
   SharedPreferenceDeserializer();
   ~SharedPreferenceDeserializer();
 
-  bool DeserializeFromSharedMemory(ReadOnlySharedMemoryHandle&& aPrefsHandle,
-                                   ReadOnlySharedMemoryHandle&& aPrefMapHandle);
+  bool DeserializeFromSharedMemory(SharedMemoryHandle aPrefsHandle,
+                                   SharedMemoryHandle aPrefMapHandle,
+                                   uint64_t aPrefsLen, uint64_t aPrefMapSize);
+
+  const SharedMemoryHandle& GetPrefMapHandle() const;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(SharedPreferenceDeserializer);
-  ReadOnlySharedMemoryHandle mPrefMapHandle;
-  ReadOnlySharedMemoryMapping mShmem;
+  Maybe<SharedMemoryHandle> mPrefMapHandle;
+  Maybe<size_t> mPrefsLen;
+  Maybe<size_t> mPrefMapSize;
+  RefPtr<SharedMemory> mShmem = MakeRefPtr<SharedMemory>();
 };
 
 // Generate command line argument to spawn a child process. If the shared memory
@@ -75,7 +80,7 @@ void ExportSharedJSInit(GeckoChildProcessHost& procHost,
 
 // Initialize the content used by the JS engine during the initialization of a
 // JS::Runtime.
-bool ImportSharedJSInit(ReadOnlySharedMemoryHandle&& aJsInitHandle);
+bool ImportSharedJSInit(SharedMemoryHandle aJsInitHandle, uint64_t aJsInitLen);
 
 }  // namespace ipc
 }  // namespace mozilla

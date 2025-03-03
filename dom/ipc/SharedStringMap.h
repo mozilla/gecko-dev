@@ -9,8 +9,7 @@
 
 #include "mozilla/Result.h"
 #include "mozilla/dom/ipc/StringTable.h"
-#include "mozilla/ipc/SharedMemoryHandle.h"
-#include "mozilla/ipc/SharedMemoryMapping.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "nsTHashMap.h"
 
 namespace mozilla::dom::ipc {
@@ -89,7 +88,7 @@ class SharedStringMap {
   // Note: These constructors are infallible on the premise that this class
   // is used primarily in cases where it is critical to platform
   // functionality.
-  explicit SharedStringMap(const mozilla::ipc::ReadOnlySharedMemoryHandle&);
+  explicit SharedStringMap(const mozilla::ipc::SharedMemoryHandle&, size_t);
   explicit SharedStringMap(SharedStringMapBuilder&&);
 
   /**
@@ -152,7 +151,7 @@ class SharedStringMap {
    * used to construct new instances of SharedStringMap with the same data as
    * this instance.
    */
-  mozilla::ipc::ReadOnlySharedMemoryHandle CloneHandle() const;
+  mozilla::ipc::SharedMemoryHandle CloneHandle() const;
 
   size_t MapSize() const { return mMappedMemory.size(); }
 
@@ -173,23 +172,21 @@ class SharedStringMap {
 
   StringTable<nsCString> KeyTable() const {
     const auto& header = GetHeader();
-    return {
-        {const_cast<uint8_t*>(&mMappedMemory.data()[header.mKeyStringsOffset]),
-         header.mKeyStringsSize}};
+    return {{&mMappedMemory.data()[header.mKeyStringsOffset],
+             header.mKeyStringsSize}};
   }
 
   StringTable<nsString> ValueTable() const {
     const auto& header = GetHeader();
-    return {{const_cast<uint8_t*>(
-                 &mMappedMemory.data()[header.mValueStringsOffset]),
+    return {{&mMappedMemory.data()[header.mValueStringsOffset],
              header.mValueStringsSize}};
   }
 
-  mozilla::ipc::ReadOnlySharedMemoryHandle mHandle;
+  mozilla::ipc::SharedMemoryHandle mHandle;
   // This is a leaked shared memory mapping (see the constructor definition for
   // an explanation). It replaces AutoMemMap::setPersistent behavior as part of
   // bug 1454816.
-  mozilla::ipc::shared_memory::LeakedReadOnlyMapping mMappedMemory;
+  Span<uint8_t> mMappedMemory;
 };
 
 /**
@@ -208,9 +205,10 @@ class MOZ_RAII SharedStringMapBuilder {
 
   /**
    * Finalizes the binary representation of the map, writes it to a shared
-   * memory region, and then returns a read-only handle to it.
+   * memory region, and then initializes the given SharedMemory with a reference
+   * to the read-only copy of it.
    */
-  Result<mozilla::ipc::ReadOnlySharedMemoryHandle, nsresult> Finalize();
+  Result<Ok, nsresult> Finalize(RefPtr<mozilla::ipc::SharedMemory>& aMap);
 
  private:
   using Entry = SharedStringMap::Entry;

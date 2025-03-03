@@ -294,7 +294,7 @@ Result<Ok, nsresult> StartupCache::LoadArchive() {
     return Err(NS_ERROR_UNEXPECTED);
   }
 
-  Range<const uint8_t> header(data, data + headerSize);
+  Range<uint8_t> header(data, data + headerSize);
   data += headerSize;
 
   mCacheEntriesBaseOffset = sizeof(MAGIC) + sizeof(headerSize) + headerSize;

@@ -21,27 +21,28 @@ namespace mozilla {
 namespace layers {
 
 struct ShmemAndHandle {
-  ipc::SharedMemoryMapping shmem;
-  ipc::MutableSharedMemoryHandle handle;
+  RefPtr<ipc::SharedMemory> shmem;
+  Handle handle;
 };
 
 static Maybe<ShmemAndHandle> CreateAndMapShmem(size_t aSize) {
-  auto handle = ipc::shared_memory::Create(aSize);
-  if (!handle) {
-    return Nothing();
-  }
-  auto mapping = handle.Map();
-  if (!mapping) {
+  auto shmem = MakeRefPtr<ipc::SharedMemory>();
+  if (!shmem->Create(aSize) || !shmem->Map(aSize)) {
     return Nothing();
   }
 
-  return Some(ShmemAndHandle{std::move(mapping), std::move(handle)});
+  auto shmemHandle = shmem->TakeHandle();
+  if (!shmemHandle) {
+    return Nothing();
+  }
+
+  return Some(ShmemAndHandle{shmem.forget(), std::move(shmemHandle)});
 }
 
 CanvasDrawEventRecorder::CanvasDrawEventRecorder(
     dom::ThreadSafeWorkerRef* aWorkerRef)
     : mWorkerRef(aWorkerRef), mIsOnWorker(!!aWorkerRef) {
-  mDefaultBufferSize = ipc::shared_memory::PageAlignedSize(
+  mDefaultBufferSize = ipc::SharedMemory::PageAlignedSize(
       StaticPrefs::gfx_canvas_remote_default_buffer_size());
   mMaxDefaultBuffers = StaticPrefs::gfx_canvas_remote_max_default_buffers();
   mMaxSpinCount = StaticPrefs::gfx_canvas_remote_max_spin_count();
@@ -65,7 +66,7 @@ bool CanvasDrawEventRecorder::Init(TextureType aTextureType,
     return false;
   }
 
-  mHeader = header->shmem.DataAs<Header>();
+  mHeader = static_cast<Header*>(header->shmem->Memory());
   mHeader->eventCount = 0;
   mHeader->writerWaitCount = 0;
   mHeader->writerState = State::Processing;
@@ -75,20 +76,20 @@ bool CanvasDrawEventRecorder::Init(TextureType aTextureType,
   // We always keep at least two buffers. This means that when we
   // have to add a new buffer, there is at least a full buffer that requires
   // translating while the handle is sent over.
-  AutoTArray<ipc::ReadOnlySharedMemoryHandle, 2> bufferHandles;
+  AutoTArray<Handle, 2> bufferHandles;
   auto buffer = CreateAndMapShmem(mDefaultBufferSize);
   if (NS_WARN_IF(buffer.isNothing())) {
     return false;
   }
   mCurrentBuffer = CanvasBuffer(std::move(buffer->shmem));
-  bufferHandles.AppendElement(std::move(buffer->handle).ToReadOnly());
+  bufferHandles.AppendElement(std::move(buffer->handle));
 
   buffer = CreateAndMapShmem(mDefaultBufferSize);
   if (NS_WARN_IF(buffer.isNothing())) {
     return false;
   }
-  mRecycledBuffers.emplace(std::move(buffer->shmem), 0);
-  bufferHandles.AppendElement(std::move(buffer->handle).ToReadOnly());
+  mRecycledBuffers.emplace(buffer->shmem.forget(), 0);
+  bufferHandles.AppendElement(std::move(buffer->handle));
 
   mWriterSemaphore.reset(CrossProcessSemaphore::Create("CanvasRecorder", 0));
   auto writerSem = mWriterSemaphore->CloneHandle();
@@ -106,13 +107,13 @@ bool CanvasDrawEventRecorder::Init(TextureType aTextureType,
 
   if (!mHelpers->InitTranslator(aTextureType, aWebglTextureType, aBackendType,
                                 std::move(header->handle),
-                                std::move(bufferHandles), std::move(readerSem),
-                                std::move(writerSem))) {
+                                std::move(bufferHandles), mDefaultBufferSize,
+                                std::move(readerSem), std::move(writerSem))) {
     return false;
   }
 
   mTextureType = aTextureType;
-  mHeaderShmem = std::move(header->shmem);
+  mHeaderShmem = header->shmem;
   return true;
 }
 
@@ -245,7 +246,7 @@ gfx::ContiguousBuffer& CanvasDrawEventRecorder::GetContiguousBuffer(
   }
 
   size_t bufferSize = std::max(mDefaultBufferSize,
-                               ipc::shared_memory::PageAlignedSize(aSize + 1));
+                               ipc::SharedMemory::PageAlignedSize(aSize + 1));
   auto newBuffer = CreateAndMapShmem(bufferSize);
   if (NS_WARN_IF(newBuffer.isNothing())) {
     mHeader->writerState = State::Failed;
@@ -253,7 +254,7 @@ gfx::ContiguousBuffer& CanvasDrawEventRecorder::GetContiguousBuffer(
     return mCurrentBuffer;
   }
 
-  if (!mHelpers->AddBuffer(std::move(newBuffer->handle).ToReadOnly())) {
+  if (!mHelpers->AddBuffer(std::move(newBuffer->handle), bufferSize)) {
     mHeader->writerState = State::Failed;
     mCurrentBuffer = CanvasBuffer();
     return mCurrentBuffer;

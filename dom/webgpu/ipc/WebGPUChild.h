@@ -12,6 +12,9 @@
 #include "mozilla/webgpu/ffi/wgpu.h"
 
 namespace mozilla {
+namespace ipc {
+class UnsafeSharedMemoryHandle;
+}  // namespace ipc
 namespace dom {
 struct GPURequestAdapterOptions;
 }  // namespace dom

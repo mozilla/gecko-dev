@@ -18,7 +18,6 @@
 #include "base/pickle.h"
 #include "chrome/common/ipc_message.h"
 #include "mozilla/CheckedInt.h"
-#include "mozilla/ipc/SharedMemoryMapping.h"
 
 #if defined(XP_WIN)
 #  include <windows.h>
@@ -33,6 +32,7 @@ namespace mozilla::ipc {
 class IProtocol;
 template <typename P>
 struct IPDLParamTraits;
+class SharedMemory;
 namespace shared_memory {
 class Cursor;
 }

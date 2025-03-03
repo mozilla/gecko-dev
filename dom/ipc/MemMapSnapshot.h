@@ -12,7 +12,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/RangedPtr.h"
 #include "mozilla/Result.h"
-#include "mozilla/ipc/SharedMemoryMapping.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "ErrorList.h"
 
 namespace mozilla::ipc {
@@ -23,7 +23,7 @@ namespace mozilla::ipc {
  * The Init() method initializes a read-write memory mapped region of the given
  * size, which can be initialized with arbitrary data. The Finalize() method
  * remaps that region as read-only (and backs it with a read-only file
- * descriptor), and returns a handle to it.
+ * descriptor), and initializes an AutoMemMap with the new contents.
  *
  * The file descriptor for the resulting AutoMemMap can be shared among
  * processes, to safely access a shared, read-only copy of the data snapshot.
@@ -31,17 +31,16 @@ namespace mozilla::ipc {
 class MOZ_RAII MemMapSnapshot {
  public:
   Result<Ok, nsresult> Init(size_t aSize);
-  Result<ReadOnlySharedMemoryHandle, nsresult> Finalize();
+  Result<Ok, nsresult> Finalize(RefPtr<SharedMemory>& aMem);
 
   template <typename T>
   RangedPtr<T> Get() {
     MOZ_ASSERT(mMem);
-    auto span = mMem.DataAsSpan<T>();
-    return {span.data(), span.size()};
+    return {static_cast<T*>(mMem->Memory()), mMem->MaxSize() / sizeof(T)};
   }
 
  private:
-  FreezableSharedMemoryMapping mMem;
+  RefPtr<SharedMemory> mMem;
 };
 
 }  // namespace mozilla::ipc

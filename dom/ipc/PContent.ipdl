@@ -139,7 +139,7 @@ using mozilla::dom::BrowsingContextInitializer from "mozilla/dom/BrowsingContext
 using mozilla::dom::PermitUnloadResult from "nsIDocumentViewer.h";
 using mozilla::dom::MaybeDiscardedWindowContext from "mozilla/dom/WindowContext.h";
 using mozilla::dom::WindowContextTransaction from "mozilla/dom/WindowContext.h";
-[MoveOnly] using mozilla::ipc::ReadOnlySharedMemoryHandle from "mozilla/ipc/SharedMemoryHandle.h";
+[MoveOnly] using mozilla::ipc::SharedMemoryHandle from "mozilla/ipc/SharedMemory.h";
 using gfxSparseBitSet from "gfxFontUtils.h";
 using FontVisibility from "gfxFontEntry.h";
 using mozilla::dom::MediaControlAction from "mozilla/dom/MediaControlKeySource.h";
@@ -400,7 +400,8 @@ struct VisitedQueryResult
 struct StringBundleDescriptor
 {
     nsCString bundleURL;
-    ReadOnlySharedMemoryHandle mapHandle;
+    SharedMemoryHandle mapHandle;
+    uint32_t mapSize;
 };
 
 struct IPCURLClassifierFeature
@@ -714,7 +715,7 @@ child:
      * should map the new block and add to its index.
      */
     async FontListShmBlockAdded(uint32_t aGeneration, uint32_t aIndex,
-                                ReadOnlySharedMemoryHandle aHandle);
+                                SharedMemoryHandle aHandle);
 
     async UpdateAppLocales(nsCString[] appLocales);
     async UpdateRequestedLocales(nsCString[] requestedLocales);
@@ -731,7 +732,7 @@ child:
 
     async SimpleURIUnknownRemoteSchemes(nsCString[] remoteSchemes);
 
-    async UpdateSharedData(ReadOnlySharedMemoryHandle aMapHandle,
+    async UpdateSharedData(SharedMemoryHandle aMapHandle, uint32_t aSize,
                            IPCBlob[] blobs,
                            nsCString[] changedKeys);
 
@@ -802,9 +803,9 @@ child:
                                     FullLookAndFeel lookAndFeeldata,
                                     /* used on MacOSX/Linux/Android only: */
                                     SystemFontList systemFontList,
-                                    ReadOnlySharedMemoryHandle? sharedUASheetHandle,
+                                    SharedMemoryHandle? sharedUASheetHandle,
                                     uintptr_t sharedUASheetAddress,
-                                    ReadOnlySharedMemoryHandle[] sharedFontListBlocks,
+                                    SharedMemoryHandle[] sharedFontListBlocks,
                                     bool aIsStartingUp);
 
     // Notify child that last-pb-context-exited notification was observed
@@ -1376,7 +1377,7 @@ parent:
      * until it has mapped the font-list memory.
      */
     sync GetFontListShmBlock(uint32_t aGeneration, uint32_t aIndex)
-        returns (ReadOnlySharedMemoryHandle aHandle);
+        returns (SharedMemoryHandle aHandle);
 
     /**
      * Ask the parent to initialize a given font family, so that face metadata
@@ -1494,7 +1495,7 @@ parent:
      * @param aLoaded
      *   Returns the size in bytes of the resource.
      */
-    sync GetHyphDict(nullable nsIURI aURI) returns (ReadOnlySharedMemoryHandle aHandle);
+    sync GetHyphDict(nullable nsIURI aURI) returns (SharedMemoryHandle aHandle, uint32_t aSize);
 
     async CreateWindow(PBrowser aThisTab,
                        MaybeDiscardedBrowsingContext aParent,

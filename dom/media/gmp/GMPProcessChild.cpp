@@ -18,9 +18,11 @@ void GMPProcessChild::InitStatics(int aArgc, char* aArgv[]) {
   Maybe<bool> nativeEvent = geckoargs::sPluginNativeEvent.Get(aArgc, aArgv);
   sUseNativeEventProcessing = nativeEvent.isSome() && *nativeEvent;
 
-  auto prefsHandlePresent = geckoargs::sPrefsHandle.IsPresent(aArgc, aArgv);
-  auto prefMapHandlePresent = geckoargs::sPrefMapHandle.IsPresent(aArgc, aArgv);
-  sUseXpcom = prefsHandlePresent && prefMapHandlePresent;
+  Maybe<uint64_t> prefsLen =
+      geckoargs::sPrefsLen.Get(aArgc, aArgv, CheckArgFlag::None);
+  Maybe<uint64_t> prefMapSize =
+      geckoargs::sPrefMapSize.Get(aArgc, aArgv, CheckArgFlag::None);
+  sUseXpcom = prefsLen.isSome() && prefMapSize.isSome();
 }
 
 GMPProcessChild::~GMPProcessChild() = default;

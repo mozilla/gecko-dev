@@ -8,7 +8,6 @@
 #define mozilla_ipc_SharedMemoryMapping_h
 
 #include <tuple>
-#include <type_traits>
 #include <utility>
 #include "mozilla/Assertions.h"
 #include "mozilla/Span.h"
@@ -23,18 +22,9 @@ namespace shared_memory {
  *
  * This memory will never be unmapped.
  */
-template <Type T>
 struct LeakedMapping : Span<uint8_t> {
   using Span::Span;
 };
-
-template <>
-struct LeakedMapping<Type::ReadOnly> : Span<const uint8_t> {
-  using Span::Span;
-};
-
-using LeakedMutableMapping = LeakedMapping<Type::Mutable>;
-using LeakedReadOnlyMapping = LeakedMapping<Type::ReadOnly>;
 
 class MappingBase {
  public:
@@ -46,7 +36,24 @@ class MappingBase {
   /**
    * The pointer to the mapping in memory.
    */
-  void* Address() const;
+  void* Data() const;
+
+  /**
+   * Get a `Span<T>` over the mapping.
+   *
+   * The mapping data must meet the alignment requirements of @p T.
+   *
+   * @tparam T The type of data in the mapping.
+   *
+   * @return A span of type @p T covering as much of the mapping as possible.
+   */
+  template <typename T>
+  Span<T> DataAsSpan() const {
+    MOZ_ASSERT((reinterpret_cast<uintptr_t>(Data()) % alignof(T)) == 0,
+               "memory map does not meet alignment requirements of type");
+    size_t count = Size() / sizeof(T);
+    return {static_cast<T*>(Data()), count};
+  }
 
   /**
    * Whether this shared memory mapping is valid.
@@ -83,82 +90,11 @@ class MappingBase {
                     void* aFixedAddress, bool aReadOnly);
   void Unmap();
 
-  template <Type T, Type S>
-  static Mapping<T> ConvertMappingTo(Mapping<S>&& from) {
-    Mapping<T> to;
-    static_cast<MappingBase&>(to) = std::move(from);
-    return to;
-  }
-
-  std::tuple<void*, size_t> Release() &&;
-
- private:
-  void* mMemory = nullptr;
-  size_t mSize = 0;
-};
-
-template <bool CONST_MEMORY>
-struct MappingData : MappingBase {
- private:
-  template <typename T>
-  using DataType =
-      std::conditional_t<CONST_MEMORY, std::add_const_t<std::remove_const_t<T>>,
-                         T>;
-
- protected:
-  MappingData() = default;
-  explicit MappingData(MappingBase&& aOther) : MappingBase(std::move(aOther)) {}
-
- public:
-  /**
-   * Get a pointer to the data in the mapping as a type T.
-   *
-   * The mapping data must meet the alignment requirements of @p T.
-   *
-   * @tparam T The type of data in the mapping.
-   *
-   * @return A pointer of type @p T*.
-   */
-  template <typename T>
-  DataType<T>* DataAs() const {
-    MOZ_ASSERT((reinterpret_cast<uintptr_t>(Address()) % alignof(T)) == 0,
-               "memory map does not meet alignment requirements of type");
-    return static_cast<DataType<T>*>(Address());
-  }
-
-  /**
-   * Get a `Span<T>` over the mapping.
-   *
-   * The mapping data must meet the alignment requirements of @p T.
-   *
-   * @tparam T The type of data in the mapping.
-   *
-   * @return A span of type @p T covering as much of the mapping as possible.
-   */
-  template <typename T>
-  Span<DataType<T>> DataAsSpan() const {
-    return {DataAs<T>(), Size() / sizeof(T)};
-  }
-};
-
-/**
- * A shared memory mapping.
- */
-template <Type T>
-struct Mapping<T> : MappingData<T == Type::ReadOnly> {
-  /**
-   * Create an empty Mapping.
-   */
-  Mapping() = default;
-  MOZ_IMPLICIT Mapping(std::nullptr_t) {}
-
-  explicit Mapping(const Handle<T>& aHandle, void* aFixedAddress = nullptr) {
-    MappingBase::Map(aHandle, aFixedAddress, T == Type::ReadOnly);
-  }
-  Mapping(const Handle<T>& aHandle, uint64_t aOffset, size_t aSize,
-          void* aFixedAddress = nullptr) {
-    MappingBase::MapSubregion(aHandle, aOffset, aSize, aFixedAddress,
-                              T == Type::ReadOnly);
+  template <typename Derived>
+  Derived ConvertTo() && {
+    Derived d;
+    static_cast<MappingBase&>(d) = std::move(*this);
+    return d;
   }
 
   /**
@@ -166,49 +102,55 @@ struct Mapping<T> : MappingData<T == Type::ReadOnly> {
    *
    * This will cause the memory to be mapped until the process exits.
    */
-  LeakedMapping<T> Release() && {
-    auto [ptr, size] = std::move(*this).MappingBase::Release();
-    return LeakedMapping<T>{
-        static_cast<typename LeakedMapping<T>::pointer>(ptr), size};
-  }
+  LeakedMapping release() &&;
+
+ private:
+  void* mMemory = nullptr;
+  size_t mSize = 0;
 };
 
 /**
- * A shared memory mapping which has runtime-stored mutability.
+ * A shared memory mapping.
  */
-template <>
-struct Mapping<Type::MutableOrReadOnly> : MappingData<true> {
+struct Mapping : MappingBase {
   /**
-   * Create an empty MutableOrReadOnlyMapping.
+   * Create an empty Mapping.
    */
   Mapping() = default;
   MOZ_IMPLICIT Mapping(std::nullptr_t) {}
 
-  explicit Mapping(const ReadOnlyHandle& aHandle,
-                   void* aFixedAddress = nullptr);
-  explicit Mapping(const MutableHandle& aHandle, void* aFixedAddress = nullptr);
-  MOZ_IMPLICIT Mapping(ReadOnlyMapping&& aMapping);
-  MOZ_IMPLICIT Mapping(MutableMapping&& aMapping);
+  explicit Mapping(const Handle& aHandle, void* aFixedAddress = nullptr);
+  Mapping(const Handle& aHandle, uint64_t aOffset, size_t aSize,
+          void* aFixedAddress = nullptr);
 
+  using MappingBase::release;
+};
+
+/**
+ * A read-only shared memory mapping.
+ */
+struct ReadOnlyMapping : MappingBase {
   /**
-   * Return whether the mapping is read-only.
+   * Create an empty ReadOnlyMapping.
    */
-  bool IsReadOnly() const { return mReadOnly; }
+  ReadOnlyMapping() = default;
+  MOZ_IMPLICIT ReadOnlyMapping(std::nullptr_t) {}
 
- private:
-  bool mReadOnly = false;
+  explicit ReadOnlyMapping(const ReadOnlyHandle& aHandle,
+                           void* aFixedAddress = nullptr);
+  ReadOnlyMapping(const ReadOnlyHandle& aHandle, uint64_t aOffset, size_t aSize,
+                  void* aFixedAddress = nullptr);
 };
 
 /**
  * A freezable shared memory mapping.
  */
-template <>
-struct Mapping<Type::Freezable> : MappingData<false> {
+struct FreezableMapping : MappingBase {
   /**
    * Create an empty FreezableMapping.
    */
-  Mapping() = default;
-  MOZ_IMPLICIT Mapping(std::nullptr_t) {}
+  FreezableMapping() = default;
+  MOZ_IMPLICIT FreezableMapping(std::nullptr_t) {}
 
   /**
    * Freezable mappings take ownership of a handle to ensure there is only one
@@ -216,9 +158,10 @@ struct Mapping<Type::Freezable> : MappingData<false> {
    *
    * Call `Unmap()` to get the handle back.
    */
-  explicit Mapping(FreezableHandle&& aHandle, void* aFixedAddress = nullptr);
-  Mapping(FreezableHandle&& aHandle, uint64_t aOffset, size_t aSize,
-          void* aFixedAddress = nullptr);
+  explicit FreezableMapping(FreezableHandle&& aHandle,
+                            void* aFixedAddress = nullptr);
+  FreezableMapping(FreezableHandle&& aHandle, uint64_t aOffset, size_t aSize,
+                   void* aFixedAddress = nullptr);
 
   /**
    * Freeze the shared memory region.
@@ -226,7 +169,7 @@ struct Mapping<Type::Freezable> : MappingData<false> {
    * The returned Mapping will still be valid and writable until it is deleted,
    * however no new writable mappings can be created.
    */
-  std::tuple<MutableMapping, ReadOnlyHandle> Freeze() &&;
+  std::tuple<Mapping, ReadOnlyHandle> Freeze() &&;
 
   /**
    * Unmap the shared memory, returning the freezable handle.
@@ -236,34 +179,9 @@ struct Mapping<Type::Freezable> : MappingData<false> {
    */
   FreezableHandle Unmap() &&;
 
- protected:
+ private:
   FreezableHandle mHandle;
 };
-
-template <Type T>
-struct Mapping<T, true> : public Mapping<T> {
-  Mapping() {}
-  MOZ_IMPLICIT Mapping(std::nullptr_t) : Mapping<T>(nullptr) {}
-
-  explicit Mapping(Handle<T>&& aHandle, void* aFixedAddress = nullptr)
-      : Mapping<T>(aHandle, aFixedAddress), mHandle(std::move(aHandle)) {}
-
-  const Handle<T>& Handle() const { return mHandle; };
-
-  std::tuple<shared_memory::Handle<T>, Mapping<T>> Split() && {
-    auto handle = std::move(mHandle);
-    return std::make_tuple(std::move(handle), std::move(*this));
-  }
-
- private:
-  shared_memory::Handle<T> mHandle;
-};
-
-// To uphold the guarantees of freezable mappings, we do not allow access to the
-// handle (and since this should never be used in this way, we make it a useless
-// type).
-template <>
-struct Mapping<Type::Freezable, true>;
 
 // The access level permitted for memory protection.
 enum Access {
@@ -320,15 +238,9 @@ size_t PageAlignedSize(size_t aMinimum);
 
 }  // namespace shared_memory
 
-using SharedMemoryMapping = shared_memory::MutableMapping;
+using SharedMemoryMapping = shared_memory::Mapping;
 using ReadOnlySharedMemoryMapping = shared_memory::ReadOnlyMapping;
-using MutableOrReadOnlySharedMemoryMapping =
-    shared_memory::MutableOrReadOnlyMapping;
 using FreezableSharedMemoryMapping = shared_memory::FreezableMapping;
-
-using SharedMemoryMappingWithHandle = shared_memory::MutableMappingWithHandle;
-using ReadOnlySharedMemoryMappingWithHandle =
-    shared_memory::ReadOnlyMappingWithHandle;
 
 }  // namespace mozilla::ipc
 

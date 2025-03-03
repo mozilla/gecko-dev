@@ -652,9 +652,9 @@ NS_INTERFACE_MAP_END
 mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
     XPCOMInitData&& aXPCOMInit, const StructuredCloneData& aInitialData,
     FullLookAndFeel&& aLookAndFeelData, dom::SystemFontList&& aFontList,
-    Maybe<mozilla::ipc::ReadOnlySharedMemoryHandle>&& aSharedUASheetHandle,
+    Maybe<SharedMemoryHandle>&& aSharedUASheetHandle,
     const uintptr_t& aSharedUASheetAddress,
-    nsTArray<mozilla::ipc::ReadOnlySharedMemoryHandle>&& aSharedFontListBlocks,
+    nsTArray<SharedMemoryHandle>&& aSharedFontListBlocks,
     const bool& aIsReadyForBackgroundProcessing) {
   if (!sShutdownCanary) {
     return IPC_OK();
@@ -1332,9 +1332,8 @@ void ContentChild::InitGraphicsDeviceData(const ContentDeviceData& aData) {
   gfxPlatform::InitChild(aData);
 }
 
-void ContentChild::InitSharedUASheets(
-    Maybe<mozilla::ipc::ReadOnlySharedMemoryHandle>&& aHandle,
-    uintptr_t aAddress) {
+void ContentChild::InitSharedUASheets(Maybe<SharedMemoryHandle>&& aHandle,
+                                      uintptr_t aAddress) {
   MOZ_ASSERT_IF(!aHandle, !aAddress);
 
   if (!aAddress) {
@@ -2350,7 +2349,7 @@ mozilla::ipc::IPCResult ContentChild::RecvRegisterStringBundles(
 
   for (auto& descriptor : aDescriptors) {
     stringBundleService->RegisterContentBundle(
-        descriptor.bundleURL(), std::move(descriptor.mapHandle()));
+        descriptor.bundleURL(), descriptor.mapHandle(), descriptor.mapSize());
   }
 
   return IPC_OK();
@@ -2370,7 +2369,7 @@ mozilla::ipc::IPCResult ContentChild::RecvUpdateL10nFileSources(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvUpdateSharedData(
-    mozilla::ipc::ReadOnlySharedMemoryHandle&& aMapHandle,
+    SharedMemoryHandle&& aMapHandle, const uint32_t& aMapSize,
     nsTArray<IPCBlob>&& aBlobs, nsTArray<nsCString>&& aChangedKeys) {
   nsTArray<RefPtr<BlobImpl>> blobImpls(aBlobs.Length());
   for (auto& ipcBlob : aBlobs) {
@@ -2378,12 +2377,12 @@ mozilla::ipc::IPCResult ContentChild::RecvUpdateSharedData(
   }
 
   if (mSharedData) {
-    mSharedData->Update(std::move(aMapHandle), std::move(blobImpls),
+    mSharedData->Update(std::move(aMapHandle), aMapSize, std::move(blobImpls),
                         std::move(aChangedKeys));
   } else {
     mSharedData =
         new SharedMap(ContentProcessMessageManager::Get()->GetParentObject(),
-                      std::move(aMapHandle), std::move(blobImpls));
+                      std::move(aMapHandle), aMapSize, std::move(blobImpls));
   }
 
   return IPC_OK();
@@ -2444,7 +2443,7 @@ mozilla::ipc::IPCResult ContentChild::RecvRebuildFontList(
 
 mozilla::ipc::IPCResult ContentChild::RecvFontListShmBlockAdded(
     const uint32_t& aGeneration, const uint32_t& aIndex,
-    mozilla::ipc::ReadOnlySharedMemoryHandle&& aHandle) {
+    SharedMemoryHandle&& aHandle) {
   if (gfxPlatform::Initialized()) {
     gfxPlatformFontList::PlatformFontList()->ShmBlockAdded(aGeneration, aIndex,
                                                            std::move(aHandle));

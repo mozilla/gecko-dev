@@ -41,8 +41,7 @@ bool IsSectionSafeToMap(HANDLE aHandle) {
   static NtQuerySectionType nt_query_section_func =
       reinterpret_cast<NtQuerySectionType>(
           ::GetProcAddress(::GetModuleHandle(L"ntdll.dll"), "NtQuerySection"));
-  MOZ_DIAGNOSTIC_ASSERT(nt_query_section_func,
-                        "NtQuerySection function not found in ntdll.dll");
+  DCHECK(nt_query_section_func);
 
   // The handle must have SECTION_QUERY access for this to succeed.
   SECTION_BASIC_INFORMATION basic_information = {};
@@ -157,10 +156,10 @@ static Maybe<PlatformHandle> CreateImpl(size_t aSize, bool aFreezable) {
   }
 }
 
-bool Platform::Create(MutableHandle& aHandle, size_t aSize) {
+bool Platform::Create(Handle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, false)) {
     aHandle.mHandle = std::move(*ph);
-    aHandle.SetSize(aSize);
+    aHandle.mSize = aSize;
     return true;
   }
   return false;
@@ -169,7 +168,7 @@ bool Platform::Create(MutableHandle& aHandle, size_t aSize) {
 bool Platform::CreateFreezable(FreezableHandle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, true)) {
     aHandle.mHandle = std::move(*ph);
-    aHandle.SetSize(aSize);
+    aHandle.mSize = aSize;
     return true;
   }
   return false;

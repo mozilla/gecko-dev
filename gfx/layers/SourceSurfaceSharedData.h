@@ -10,8 +10,7 @@
 #include "base/process.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Mutex.h"
-#include "mozilla/ipc/SharedMemoryHandle.h"
-#include "mozilla/ipc/SharedMemoryMapping.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "nsExpirationTracker.h"
 
 namespace mozilla {
@@ -35,6 +34,8 @@ class SourceSurfaceSharedData;
  * mapped in the given shared memory handle as read only memory.
  */
 class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
+  typedef mozilla::ipc::SharedMemory SharedMemory;
+
  public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SourceSurfaceSharedDataWrapper,
                                           override)
@@ -42,8 +43,7 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
   SourceSurfaceSharedDataWrapper() = default;
 
   void Init(const IntSize& aSize, int32_t aStride, SurfaceFormat aFormat,
-            mozilla::ipc::ReadOnlySharedMemoryHandle aHandle,
-            base::ProcessId aCreatorPid);
+            SharedMemory::Handle aHandle, base::ProcessId aCreatorPid);
 
   void Init(SourceSurfaceSharedData* aSurface);
 
@@ -57,11 +57,7 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
   IntSize GetSize() const override { return mSize; }
   SurfaceFormat GetFormat() const override { return mFormat; }
 
-  uint8_t* GetData() override {
-    // Cast away const-ness of shared memory to match the
-    // `DataSourceSurface::GetData` interface. The data will not be written to.
-    return mBuf ? const_cast<uint8_t*>(mBuf->DataAs<uint8_t>()) : nullptr;
-  }
+  uint8_t* GetData() override { return static_cast<uint8_t*>(mBuf->Memory()); }
 
   bool OnHeap() const override { return false; }
 
@@ -101,7 +97,7 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
   }
 
   size_t GetAlignedDataLength() const {
-    return mozilla::ipc::shared_memory::PageAlignedSize(GetDataLength());
+    return mozilla::ipc::SharedMemory::PageAlignedSize(GetDataLength());
   }
 
   bool EnsureMapped(size_t aLength);
@@ -112,9 +108,7 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
   int32_t mStride = 0;
   uint32_t mConsumers = 1;
   IntSize mSize;
-  // This is only used to support EnsureMapped if we fail initially.
-  mozilla::ipc::ReadOnlySharedMemoryHandle mBufHandle;
-  std::shared_ptr<mozilla::ipc::MutableOrReadOnlySharedMemoryMapping> mBuf;
+  RefPtr<SharedMemory> mBuf;
   SurfaceFormat mFormat = SurfaceFormat::UNKNOWN;
   base::ProcessId mCreatorPid = 0;
   bool mCreatorRef = true;
@@ -125,6 +119,8 @@ class SourceSurfaceSharedDataWrapper final : public DataSourceSurface {
  * source surface.
  */
 class SourceSurfaceSharedData : public DataSourceSurface {
+  typedef mozilla::ipc::SharedMemory SharedMemory;
+
  public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(SourceSurfaceSharedData, override)
 
@@ -201,7 +197,7 @@ class SourceSurfaceSharedData : public DataSourceSurface {
    *   NS_ERROR_NOT_AVAILABLE -- handle was closed, need to reallocate.
    *   NS_ERROR_FAILURE -- failed to create a handle to share.
    */
-  nsresult CloneHandle(mozilla::ipc::ReadOnlySharedMemoryHandle& aHandle);
+  nsresult CloneHandle(SharedMemory::Handle& aHandle);
 
   /**
    * Indicates the buffer is not expected to be shared with any more processes.
@@ -318,7 +314,7 @@ class SourceSurfaceSharedData : public DataSourceSurface {
   }
 
   size_t GetAlignedDataLength() const {
-    return mozilla::ipc::shared_memory::PageAlignedSize(GetDataLength());
+    return mozilla::ipc::SharedMemory::PageAlignedSize(GetDataLength());
   }
 
   /**
@@ -332,11 +328,8 @@ class SourceSurfaceSharedData : public DataSourceSurface {
   int32_t mHandleCount;
   Maybe<IntRect> mDirtyRect;
   IntSize mSize;
-  mozilla::ipc::MutableSharedMemoryHandle mBufHandle;
-  // This class always has mutable mappings, however we need to share them with
-  // the wrapper which may be read-only, so we use MutableOrReadOnly.
-  std::shared_ptr<mozilla::ipc::MutableOrReadOnlySharedMemoryMapping> mBuf;
-  std::shared_ptr<mozilla::ipc::MutableOrReadOnlySharedMemoryMapping> mOldBuf;
+  RefPtr<SharedMemory> mBuf;
+  RefPtr<SharedMemory> mOldBuf;
   SurfaceFormat mFormat;
   bool mClosed : 1;
   bool mFinalized : 1;

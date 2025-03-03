@@ -443,28 +443,25 @@ bool DrawTargetWebgl::Init(const IntSize& size, const SurfaceFormat format,
     return false;
   }
 
-  size_t shmemSize = mozilla::ipc::shared_memory::PageAlignedSize(byteSize);
+  size_t shmemSize = mozilla::ipc::SharedMemory::PageAlignedSize(byteSize);
   if (NS_WARN_IF(shmemSize > UINT32_MAX)) {
     MOZ_ASSERT_UNREACHABLE("Buffer too big?");
     return false;
   }
 
-  auto handle = mozilla::ipc::shared_memory::Create(shmemSize);
-  if (NS_WARN_IF(!handle)) {
-    return false;
-  }
-  auto mapping = handle.Map();
-  if (NS_WARN_IF(!mapping)) {
+  auto shmem = MakeRefPtr<mozilla::ipc::SharedMemory>();
+  if (NS_WARN_IF(!shmem->Create(shmemSize)) ||
+      NS_WARN_IF(!shmem->Map(shmemSize))) {
     return false;
   }
 
-  mShmemHandle = std::move(handle).ToReadOnly();
-  mShmem = std::move(mapping);
+  mShmem = std::move(shmem);
+  mShmemSize = shmemSize;
 
   mSkia = new DrawTargetSkia;
   auto stride = layers::ImageDataSerializer::ComputeRGBStride(
       SurfaceFormat::B8G8R8A8, size.width);
-  if (!mSkia->Init(mShmem.DataAs<uint8_t>(), size, stride,
+  if (!mSkia->Init(reinterpret_cast<uint8_t*>(mShmem->Memory()), size, stride,
                    SurfaceFormat::B8G8R8A8, true)) {
     return false;
   }

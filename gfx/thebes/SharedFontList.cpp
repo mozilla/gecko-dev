@@ -6,6 +6,7 @@
 #include "gfxPlatformFontList.h"
 #include "gfxFontUtils.h"
 #include "gfxFont.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "nsReadableUtils.h"
 #include "prerror.h"
 #include "mozilla/dom/ContentChild.h"
@@ -740,21 +741,25 @@ FontList::FontList(uint32_t aGeneration) {
     // SetXPCOMProcessAttributes.
     auto& blocks = dom::ContentChild::GetSingleton()->SharedFontListBlocks();
     for (auto& handle : blocks) {
-      if (!handle) {
+      auto newShm = MakeRefPtr<ipc::SharedMemory>();
+      if (!newShm->IsHandleValid(handle)) {
         // Bail out and let UpdateShmBlocks try to do its thing below.
         break;
       }
-      if (handle.Size() < SHM_BLOCK_SIZE) {
+      if (!newShm->SetHandle(std::move(handle),
+                             ipc::SharedMemory::OpenRights::RightsReadOnly)) {
+        MOZ_CRASH("failed to set shm handle");
+      }
+      if (!newShm->Map(SHM_BLOCK_SIZE) || !newShm->Memory()) {
         MOZ_CRASH("failed to map shared memory");
       }
-      auto newShm = handle.Map();
-      if (!newShm || !newShm.Address()) {
-        MOZ_CRASH("failed to map shared memory");
-      }
-      uint32_t size = newShm.DataAs<BlockHeader>()->mBlockSize;
+      uint32_t size = static_cast<BlockHeader*>(newShm->Memory())->mBlockSize;
       MOZ_ASSERT(size >= SHM_BLOCK_SIZE);
-      if (newShm.Size() < size) {
-        MOZ_CRASH("failed to map shared memory");
+      if (size != SHM_BLOCK_SIZE) {
+        newShm->Unmap();
+        if (!newShm->Map(size) || !newShm->Memory()) {
+          MOZ_CRASH("failed to map shared memory");
+        }
       }
       mBlocks.AppendElement(new ShmBlock(std::move(newShm)));
     }
@@ -799,17 +804,17 @@ FontList::Header& FontList::GetHeader() const MOZ_NO_THREAD_SAFETY_ANALYSIS {
 bool FontList::AppendShmBlock(uint32_t aSizeNeeded) {
   MOZ_ASSERT(XRE_IsParentProcess());
   uint32_t size = std::max(aSizeNeeded, SHM_BLOCK_SIZE);
-  auto handle = ipc::shared_memory::CreateFreezable(size);
-  if (!handle) {
+  auto newShm = MakeRefPtr<ipc::SharedMemory>();
+  if (!newShm->CreateFreezable(size)) {
     MOZ_CRASH("failed to create shared memory");
     return false;
   }
-  auto [newShm, readOnly] = std::move(handle).Map().Freeze();
-  if (!newShm || !newShm.Address()) {
+  if (!newShm->Map(size) || !newShm->Memory()) {
     MOZ_CRASH("failed to map shared memory");
     return false;
   }
-  if (!readOnly) {
+  auto readOnly = MakeRefPtr<ipc::SharedMemory>();
+  if (!newShm->ReadOnlyCopy(readOnly.get())) {
     MOZ_CRASH("failed to create read-only copy");
     return false;
   }
@@ -843,13 +848,19 @@ bool FontList::AppendShmBlock(uint32_t aSizeNeeded) {
 }
 
 void FontList::ShmBlockAdded(uint32_t aGeneration, uint32_t aIndex,
-                             ipc::ReadOnlySharedMemoryHandle aHandle) {
+                             ipc::SharedMemory::Handle aHandle) {
   MOZ_ASSERT(!XRE_IsParentProcess());
   MOZ_ASSERT(mBlocks.Length() > 0);
 
-  if (!aHandle) {
+  auto newShm = MakeRefPtr<ipc::SharedMemory>();
+  if (!newShm->IsHandleValid(aHandle)) {
     return;
   }
+  if (!newShm->SetHandle(std::move(aHandle),
+                         ipc::SharedMemory::RightsReadOnly)) {
+    MOZ_CRASH("failed to set shm handle");
+  }
+
   if (aIndex != mBlocks.Length()) {
     return;
   }
@@ -857,15 +868,17 @@ void FontList::ShmBlockAdded(uint32_t aGeneration, uint32_t aIndex,
     return;
   }
 
-  auto newShm = aHandle.Map();
-  if (!newShm || !newShm.Address() || newShm.Size() < SHM_BLOCK_SIZE) {
+  if (!newShm->Map(SHM_BLOCK_SIZE) || !newShm->Memory()) {
     MOZ_CRASH("failed to map shared memory");
   }
 
-  uint32_t size = newShm.DataAs<BlockHeader>()->mBlockSize;
+  uint32_t size = static_cast<BlockHeader*>(newShm->Memory())->mBlockSize;
   MOZ_ASSERT(size >= SHM_BLOCK_SIZE);
-  if (newShm.Size() < size) {
-    MOZ_CRASH("failed to map shared memory");
+  if (size != SHM_BLOCK_SIZE) {
+    newShm->Unmap();
+    if (!newShm->Map(size) || !newShm->Memory()) {
+      MOZ_CRASH("failed to map shared memory");
+    }
   }
 
   mBlocks.AppendElement(new ShmBlock(std::move(newShm)));
@@ -873,7 +886,7 @@ void FontList::ShmBlockAdded(uint32_t aGeneration, uint32_t aIndex,
 
 void FontList::DetachShmBlocks() {
   for (auto& i : mBlocks) {
-    i->Clear();
+    i->mShmem = nullptr;
   }
   mBlocks.Clear();
   mReadOnlyShmems.Clear();
@@ -884,22 +897,29 @@ FontList::ShmBlock* FontList::GetBlockFromParent(uint32_t aIndex) {
   // If we have no existing blocks, we don't want a generation check yet;
   // the header in the first block will define the generation of this list
   uint32_t generation = aIndex == 0 ? 0 : GetGeneration();
-  ipc::ReadOnlySharedMemoryHandle handle;
+  ipc::SharedMemory::Handle handle = ipc::SharedMemory::NULLHandle();
   if (!dom::ContentChild::GetSingleton()->SendGetFontListShmBlock(
           generation, aIndex, &handle)) {
     return nullptr;
   }
-  if (!handle) {
+  auto newShm = MakeRefPtr<ipc::SharedMemory>();
+  if (!newShm->IsHandleValid(handle)) {
     return nullptr;
   }
-  auto newShm = handle.Map();
-  if (!newShm || !newShm.Address() || newShm.Size() < SHM_BLOCK_SIZE) {
+  if (!newShm->SetHandle(std::move(handle),
+                         ipc::SharedMemory::RightsReadOnly)) {
+    MOZ_CRASH("failed to set shm handle");
+  }
+  if (!newShm->Map(SHM_BLOCK_SIZE) || !newShm->Memory()) {
     MOZ_CRASH("failed to map shared memory");
   }
-  uint32_t size = newShm.DataAs<BlockHeader>()->mBlockSize;
+  uint32_t size = static_cast<BlockHeader*>(newShm->Memory())->mBlockSize;
   MOZ_ASSERT(size >= SHM_BLOCK_SIZE);
-  if (newShm.Size() < size) {
-    MOZ_CRASH("failed to map shared memory");
+  if (size != SHM_BLOCK_SIZE) {
+    newShm->Unmap();
+    if (!newShm->Map(size) || !newShm->Memory()) {
+      MOZ_CRASH("failed to map shared memory");
+    }
   }
   return new ShmBlock(std::move(newShm));
 }
@@ -927,10 +947,10 @@ bool FontList::UpdateShmBlocks(bool aMustLock) MOZ_NO_THREAD_SAFETY_ANALYSIS {
 }
 
 void FontList::ShareBlocksToProcess(
-    nsTArray<ipc::ReadOnlySharedMemoryHandle>* aBlocks, base::ProcessId aPid) {
+    nsTArray<ipc::SharedMemory::Handle>* aBlocks, base::ProcessId aPid) {
   MOZ_RELEASE_ASSERT(mReadOnlyShmems.Length() == mBlocks.Length());
   for (auto& shmem : mReadOnlyShmems) {
-    auto handle = shmem.Clone();
+    auto handle = shmem->CloneHandle();
     if (!handle) {
       // If something went wrong here, we just bail out; the child will need to
       // request the blocks as needed, at some performance cost. (Although in
@@ -943,13 +963,13 @@ void FontList::ShareBlocksToProcess(
   }
 }
 
-ipc::ReadOnlySharedMemoryHandle FontList::ShareBlockToProcess(
-    uint32_t aIndex, base::ProcessId aPid) {
+ipc::SharedMemory::Handle FontList::ShareBlockToProcess(uint32_t aIndex,
+                                                        base::ProcessId aPid) {
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
   MOZ_RELEASE_ASSERT(mReadOnlyShmems.Length() == mBlocks.Length());
   MOZ_RELEASE_ASSERT(aIndex < mReadOnlyShmems.Length());
 
-  return mReadOnlyShmems[aIndex].Clone();
+  return mReadOnlyShmems[aIndex]->CloneHandle();
 }
 
 Pointer FontList::Alloc(uint32_t aSize) {
@@ -1390,7 +1410,7 @@ size_t FontList::SizeOfExcludingThis(
     mozilla::MallocSizeOf aMallocSizeOf) const {
   size_t result = mBlocks.ShallowSizeOfExcludingThis(aMallocSizeOf);
   for (const auto& b : mBlocks) {
-    result += aMallocSizeOf(b.get());
+    result += aMallocSizeOf(b.get()) + aMallocSizeOf(b->mShmem.get());
   }
   return result;
 }

@@ -175,7 +175,7 @@ static Maybe<unsigned> HaveMemfd() {
 #endif  // USE_MEMFD_CREATE
 }
 
-bool AppendPosixShmPrefix(std::string* aStr, pid_t aPid) {
+static bool AppendPosixShmPrefix(std::string* aStr, pid_t aPid) {
   if (HaveMemfd()) {
     return false;
   }
@@ -325,12 +325,10 @@ static Maybe<PlatformHandle> CreateImpl(size_t aSize,
   return Some(std::move(fd));
 }
 
-bool UsingPosixShm() { return !HaveMemfd(); }
-
-bool Platform::Create(MutableHandle& aHandle, size_t aSize) {
+bool Platform::Create(Handle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, nullptr)) {
     aHandle.mHandle = std::move(*ph);
-    aHandle.SetSize(aSize);
+    aHandle.mSize = aSize;
     return true;
   }
   return false;
@@ -339,7 +337,7 @@ bool Platform::Create(MutableHandle& aHandle, size_t aSize) {
 bool Platform::CreateFreezable(FreezableHandle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, &aHandle.mFrozenFile)) {
     aHandle.mHandle = std::move(*ph);
-    aHandle.SetSize(aSize);
+    aHandle.mSize = aSize;
     return true;
   }
   return false;

@@ -10,6 +10,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Types.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/layers/TextureClient.h"
 
 namespace mozilla {

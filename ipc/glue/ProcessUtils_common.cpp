@@ -19,7 +19,8 @@
 namespace mozilla {
 namespace ipc {
 
-SharedPreferenceSerializer::SharedPreferenceSerializer() {
+SharedPreferenceSerializer::SharedPreferenceSerializer()
+    : mPrefMapSize(0), mPrefsLength(0) {
   MOZ_COUNT_CTOR(SharedPreferenceSerializer);
 }
 
@@ -29,7 +30,9 @@ SharedPreferenceSerializer::~SharedPreferenceSerializer() {
 
 SharedPreferenceSerializer::SharedPreferenceSerializer(
     SharedPreferenceSerializer&& aOther)
-    : mPrefMapHandle(std::move(aOther.mPrefMapHandle)),
+    : mPrefMapSize(aOther.mPrefMapSize),
+      mPrefsLength(aOther.mPrefsLength),
+      mPrefMapHandle(std::move(aOther.mPrefMapHandle)),
       mPrefsHandle(std::move(aOther.mPrefsHandle)) {
   MOZ_COUNT_CTOR(SharedPreferenceSerializer);
 }
@@ -37,7 +40,7 @@ SharedPreferenceSerializer::SharedPreferenceSerializer(
 bool SharedPreferenceSerializer::SerializeToSharedMemory(
     const GeckoProcessType aDestinationProcessType,
     const nsACString& aDestinationRemoteType) {
-  mPrefMapHandle = Preferences::EnsureSnapshot();
+  mPrefMapHandle = Preferences::EnsureSnapshot(&mPrefMapSize);
 
   bool destIsWebContent =
       aDestinationProcessType == GeckoProcessType_Content &&
@@ -47,38 +50,40 @@ bool SharedPreferenceSerializer::SerializeToSharedMemory(
   // Serialize the early prefs.
   nsAutoCStringN<1024> prefs;
   Preferences::SerializePreferences(prefs, destIsWebContent);
-  auto prefsLength = prefs.Length();
+  mPrefsLength = prefs.Length();
 
+  RefPtr<SharedMemory> shm = MakeRefPtr<SharedMemory>();
   // Set up the shared memory.
-  auto handle = shared_memory::Create(prefsLength);
-  if (!handle) {
+  if (!shm->Create(prefs.Length())) {
     NS_ERROR("failed to create shared memory in the parent");
     return false;
   }
-  auto mapping = handle.Map();
-  if (!mapping) {
+  if (!shm->Map(prefs.Length())) {
     NS_ERROR("failed to map shared memory in the parent");
     return false;
   }
 
   // Copy the serialized prefs into the shared memory.
-  memcpy(mapping.DataAs<char>(), prefs.get(), prefsLength);
+  memcpy(static_cast<char*>(shm->Memory()), prefs.get(), mPrefsLength);
 
-  mPrefsHandle = std::move(handle).ToReadOnly();
+  mPrefsHandle = shm->TakeHandleAndUnmap();
   return true;
 }
 
 void SharedPreferenceSerializer::AddSharedPrefCmdLineArgs(
     mozilla::ipc::GeckoChildProcessHost& procHost,
     geckoargs::ChildProcessArgs& aExtraOpts) const {
-  auto prefsHandle = GetPrefsHandle().Clone();
-  MOZ_RELEASE_ASSERT(prefsHandle, "failed to clone prefs handle");
-  auto prefMapHandle = GetPrefMapHandle().Clone();
-  MOZ_RELEASE_ASSERT(prefMapHandle, "failed to clone pref map handle");
+  SharedMemoryHandle prefsHandle = SharedMemory::CloneHandle(GetPrefsHandle());
+  MOZ_RELEASE_ASSERT(prefsHandle, "failed to duplicate prefs handle");
+  SharedMemoryHandle prefMapHandle =
+      SharedMemory::CloneHandle(GetPrefMapHandle());
+  MOZ_RELEASE_ASSERT(prefMapHandle, "failed to duplicate pref map handle");
 
-  // Pass the handles via command line flags.
+  // Pass the handles and lengths via command line flags.
   geckoargs::sPrefsHandle.Put(std::move(prefsHandle), aExtraOpts);
+  geckoargs::sPrefsLen.Put((uintptr_t)(GetPrefsLength()), aExtraOpts);
   geckoargs::sPrefMapHandle.Put(std::move(prefMapHandle), aExtraOpts);
+  geckoargs::sPrefMapSize.Put((uintptr_t)(GetPrefMapSize()), aExtraOpts);
 }
 
 SharedPreferenceDeserializer::SharedPreferenceDeserializer() {
@@ -90,56 +95,79 @@ SharedPreferenceDeserializer::~SharedPreferenceDeserializer() {
 }
 
 bool SharedPreferenceDeserializer::DeserializeFromSharedMemory(
-    ReadOnlySharedMemoryHandle&& aPrefsHandle,
-    ReadOnlySharedMemoryHandle&& aPrefMapHandle) {
-  if (!aPrefsHandle || !aPrefMapHandle) {
+    SharedMemoryHandle aPrefsHandle, SharedMemoryHandle aPrefMapHandle,
+    uint64_t aPrefsLen, uint64_t aPrefMapSize) {
+  if (!aPrefsHandle || !aPrefMapHandle || !aPrefsLen || !aPrefMapSize) {
     return false;
   }
 
-  mPrefMapHandle = std::move(aPrefMapHandle);
+  mPrefMapHandle.emplace(std::move(aPrefMapHandle));
+
+  mPrefsLen = Some((uintptr_t)(aPrefsLen));
+
+  mPrefMapSize = Some((uintptr_t)(aPrefMapSize));
 
   // Init the shared-memory base preference mapping first, so that only changed
   // preferences wind up in heap memory.
-  Preferences::InitSnapshot(mPrefMapHandle);
+  Preferences::InitSnapshot(mPrefMapHandle.ref(), *mPrefMapSize);
 
   // Set up early prefs from the shared memory.
-  mShmem = aPrefsHandle.Map();
-  if (!mShmem) {
+  if (!mShmem->SetHandle(std::move(aPrefsHandle),
+                         SharedMemory::RightsReadOnly)) {
+    NS_ERROR("failed to open shared memory in the child");
+    return false;
+  }
+  if (!mShmem->Map(*mPrefsLen)) {
     NS_ERROR("failed to map shared memory in the child");
     return false;
   }
-  Preferences::DeserializePreferences(mShmem.DataAs<char>(), mShmem.Size());
+  Preferences::DeserializePreferences(static_cast<char*>(mShmem->Memory()),
+                                      *mPrefsLen);
 
   return true;
+}
+
+const SharedMemoryHandle& SharedPreferenceDeserializer::GetPrefMapHandle()
+    const {
+  MOZ_ASSERT(mPrefMapHandle.isSome());
+
+  return mPrefMapHandle.ref();
 }
 
 void ExportSharedJSInit(mozilla::ipc::GeckoChildProcessHost& procHost,
                         geckoargs::ChildProcessArgs& aExtraOpts) {
   auto& shmem = xpc::SelfHostedShmem::GetSingleton();
-  auto handle = shmem.Handle().Clone();
+  SharedMemoryHandle handle = SharedMemory::CloneHandle(shmem.Handle());
+  size_t len = shmem.Content().Length();
 
   // If the file is not found or the content is empty, then we would start the
   // content process without this optimization.
-  if (!handle) {
+  if (!SharedMemory::IsHandleValid(handle) || !len) {
     NS_ERROR("Can't use SelfHosted shared memory handle.");
     return;
   }
 
-  // command line: -jsInitHandle handle
+  // command line: -jsInitHandle handle -jsInitLen length
   geckoargs::sJsInitHandle.Put(std::move(handle), aExtraOpts);
+  geckoargs::sJsInitLen.Put((uintptr_t)(len), aExtraOpts);
 }
 
-bool ImportSharedJSInit(ReadOnlySharedMemoryHandle&& aJsInitHandle) {
+bool ImportSharedJSInit(SharedMemoryHandle aJsInitHandle, uint64_t aJsInitLen) {
   // This is an optimization, and as such we can safely recover if the command
   // line argument are not provided.
-  if (!aJsInitHandle) {
+  if (!aJsInitLen || !aJsInitHandle) {
     return true;
+  }
+
+  size_t len = (uintptr_t)(aJsInitLen);
+  if (!len) {
+    return false;
   }
 
   // Initialize the shared memory with the file handle and size of the content
   // of the self-hosted Xdr.
   auto& shmem = xpc::SelfHostedShmem::GetSingleton();
-  if (!shmem.InitFromChild(std::move(aJsInitHandle))) {
+  if (!shmem.InitFromChild(std::move(aJsInitHandle), len)) {
     NS_ERROR("failed to open shared memory in the child");
     return false;
   }

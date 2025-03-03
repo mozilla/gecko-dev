@@ -28,17 +28,16 @@ namespace mozilla {
 /* static */
 CrossProcessSemaphore* CrossProcessSemaphore::Create(const char*,
                                                      uint32_t aInitialValue) {
-  auto handle = ipc::shared_memory::Create(sizeof(SemaphoreData));
-  if (!handle) {
+  RefPtr<ipc::SharedMemory> sharedBuffer = new ipc::SharedMemory;
+  if (!sharedBuffer->Create(sizeof(SemaphoreData))) {
     return nullptr;
   }
 
-  auto mapping = handle.Map();
-  if (!mapping) {
+  if (!sharedBuffer->Map(sizeof(SemaphoreData))) {
     return nullptr;
   }
 
-  SemaphoreData* data = mapping.DataAs<SemaphoreData>();
+  SemaphoreData* data = static_cast<SemaphoreData*>(sharedBuffer->Memory());
 
   if (!data) {
     return nullptr;
@@ -49,8 +48,7 @@ CrossProcessSemaphore* CrossProcessSemaphore::Create(const char*,
   }
 
   CrossProcessSemaphore* sem = new CrossProcessSemaphore;
-  sem->mHandle = std::move(handle);
-  sem->mSharedBuffer = std::move(mapping);
+  sem->mSharedBuffer = sharedBuffer;
   sem->mSemaphore = &data->mSemaphore;
   sem->mRefCount = &data->mRefCount;
   *sem->mRefCount = 1;
@@ -63,14 +61,24 @@ CrossProcessSemaphore* CrossProcessSemaphore::Create(const char*,
 /* static */
 CrossProcessSemaphore* CrossProcessSemaphore::Create(
     CrossProcessSemaphoreHandle aHandle) {
-  auto mapping = aHandle.Map();
-  if (!mapping) {
+  RefPtr<ipc::SharedMemory> sharedBuffer = new ipc::SharedMemory;
+
+  if (!sharedBuffer->IsHandleValid(aHandle)) {
     return nullptr;
   }
 
-  aHandle = nullptr;
+  if (!sharedBuffer->SetHandle(std::move(aHandle),
+                               ipc::SharedMemory::RightsReadWrite)) {
+    return nullptr;
+  }
 
-  SemaphoreData* data = mapping.DataAs<SemaphoreData>();
+  if (!sharedBuffer->Map(sizeof(SemaphoreData))) {
+    return nullptr;
+  }
+
+  sharedBuffer->CloseHandle();
+
+  SemaphoreData* data = static_cast<SemaphoreData*>(sharedBuffer->Memory());
 
   if (!data) {
     return nullptr;
@@ -87,7 +95,7 @@ CrossProcessSemaphore* CrossProcessSemaphore::Create(
   }
 
   CrossProcessSemaphore* sem = new CrossProcessSemaphore;
-  sem->mSharedBuffer = std::move(mapping);
+  sem->mSharedBuffer = sharedBuffer;
   sem->mSemaphore = &data->mSemaphore;
   sem->mRefCount = &data->mRefCount;
   return sem;
@@ -139,16 +147,18 @@ void CrossProcessSemaphore::Signal() {
 }
 
 CrossProcessSemaphoreHandle CrossProcessSemaphore::CloneHandle() {
+  CrossProcessSemaphoreHandle result = ipc::SharedMemory::NULLHandle();
+
   if (mSharedBuffer) {
-    auto handle = mHandle.Clone();
-    if (!handle) {
+    result = mSharedBuffer->CloneHandle();
+    if (!result) {
       MOZ_CRASH();
     }
-    return handle;
   }
-  return nullptr;
+
+  return result;
 }
 
-void CrossProcessSemaphore::CloseHandle() { mHandle = nullptr; }
+void CrossProcessSemaphore::CloseHandle() { mSharedBuffer->CloseHandle(); }
 
 }  // namespace mozilla

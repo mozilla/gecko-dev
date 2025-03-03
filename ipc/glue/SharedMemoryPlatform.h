@@ -10,7 +10,6 @@
 #include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/Logging.h"
-#include "mozilla/Maybe.h"
 
 namespace mozilla::ipc::shared_memory {
 
@@ -34,7 +33,7 @@ class Platform {
    *
    * @returns Whether the handle was successfully created.
    */
-  static bool Create(MutableHandle& aHandle, size_t aSize);
+  static bool Create(Handle& aHandle, size_t aSize);
 
   /**
    * Create a new freezable shared memory handle.

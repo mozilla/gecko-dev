@@ -17,7 +17,6 @@
 #include "mozilla/Hal.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "mozilla/ipc/ProtocolUtils.h"
-#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "nsClassHashtable.h"
@@ -120,9 +119,8 @@ class ContentChild final : public PContentChild,
                  const mozilla::dom::ipc::StructuredCloneData& aInitialData,
                  bool aIsReadyForBackgroundProcessing);
 
-  void InitSharedUASheets(
-      Maybe<mozilla::ipc::ReadOnlySharedMemoryHandle>&& aHandle,
-      uintptr_t aAddress);
+  void InitSharedUASheets(Maybe<SharedMemoryHandle>&& aHandle,
+                          uintptr_t aAddress);
 
   void InitGraphicsDeviceData(const ContentDeviceData& aData);
 
@@ -311,7 +309,7 @@ class ContentChild final : public PContentChild,
       nsTArray<L10nFileSourceDescriptor>&& aDescriptors);
 
   mozilla::ipc::IPCResult RecvUpdateSharedData(
-      mozilla::ipc::ReadOnlySharedMemoryHandle&& aMapHandle,
+      SharedMemoryHandle&& aMapHandle, const uint32_t& aMapSize,
       nsTArray<IPCBlob>&& aBlobs, nsTArray<nsCString>&& aChangedKeys);
 
   mozilla::ipc::IPCResult RecvForceGlobalReflow(
@@ -331,7 +329,7 @@ class ContentChild final : public PContentChild,
   mozilla::ipc::IPCResult RecvRebuildFontList(const bool& aFullRebuild);
   mozilla::ipc::IPCResult RecvFontListShmBlockAdded(
       const uint32_t& aGeneration, const uint32_t& aIndex,
-      mozilla::ipc::ReadOnlySharedMemoryHandle&& aHandle);
+      SharedMemoryHandle&& aHandle);
 
   mozilla::ipc::IPCResult RecvUpdateAppLocales(
       nsTArray<nsCString>&& aAppLocales);
@@ -505,10 +503,9 @@ class ContentChild final : public PContentChild,
   mozilla::ipc::IPCResult RecvSetXPCOMProcessAttributes(
       XPCOMInitData&& aXPCOMInit, const StructuredCloneData& aInitialData,
       FullLookAndFeel&& aLookAndFeelData, SystemFontList&& aFontList,
-      Maybe<mozilla::ipc::ReadOnlySharedMemoryHandle>&& aSharedUASheetHandle,
+      Maybe<SharedMemoryHandle>&& aSharedUASheetHandle,
       const uintptr_t& aSharedUASheetAddress,
-      nsTArray<mozilla::ipc::ReadOnlySharedMemoryHandle>&&
-          aSharedFontListBlocks,
+      nsTArray<SharedMemoryHandle>&& aSharedFontListBlocks,
       const bool& aIsReadyForBackgroundProcessing);
 
   mozilla::ipc::IPCResult RecvProvideAnonymousTemporaryFile(
@@ -538,7 +535,7 @@ class ContentChild final : public PContentChild,
   // for use during gfx initialization.
   SystemFontList& SystemFontList() { return mFontList; }
 
-  nsTArray<mozilla::ipc::ReadOnlySharedMemoryHandle>& SharedFontListBlocks() {
+  nsTArray<SharedMemoryHandle>& SharedFontListBlocks() {
     return mSharedFontListBlocks;
   }
 
@@ -837,7 +834,7 @@ class ContentChild final : public PContentChild,
   // Temporary storage for look and feel data.
   FullLookAndFeel mLookAndFeelData;
   // Temporary storage for list of shared-fontlist memory blocks.
-  nsTArray<mozilla::ipc::ReadOnlySharedMemoryHandle> mSharedFontListBlocks;
+  nsTArray<SharedMemoryHandle> mSharedFontListBlocks;
 
   AppInfo mAppInfo;
 

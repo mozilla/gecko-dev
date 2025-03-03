@@ -22,31 +22,38 @@ static inline size_t GetAlignmentOffset(size_t aOffset, size_t aAlign) {
   return mod ? aAlign - mod : 0;
 }
 
-SharedPrefMap::SharedPrefMap(const ReadOnlySharedMemoryHandle& aMapHandle) {
-  auto map = aMapHandle.Map();
-  MOZ_RELEASE_ASSERT(map);
+SharedPrefMap::SharedPrefMap(const SharedMemoryHandle& aMapHandle,
+                             size_t aMapSize) {
+  auto map = MakeRefPtr<SharedMemory>();
+  {
+    auto result = map->SetHandle(SharedMemory::CloneHandle(aMapHandle),
+                                 SharedMemory::OpenRights::RightsReadOnly);
+    MOZ_RELEASE_ASSERT(result);
+  }
+  {
+    auto result = map->Map(aMapSize);
+    MOZ_RELEASE_ASSERT(result);
+  }
 
-  mHandle = aMapHandle.Clone();
   // We return literal nsCStrings pointing to the mapped data for preference
   // names and string values, which means that we may still have references to
   // the mapped data even after this instance is destroyed. That means that we
   // need to keep the mapping alive until process shutdown, in order to be safe.
-  mMappedMemory = std::move(map).Release();
+  mMappedMemory = map->TakeMapping();
+  mHandle = map->TakeHandle();
 }
 
 SharedPrefMap::SharedPrefMap(SharedPrefMapBuilder&& aBuilder) {
-  ReadOnlySharedMemoryMappingWithHandle mapWithHandle;
-  auto result = aBuilder.Finalize();
-  MOZ_RELEASE_ASSERT(result.isOk());
-  mHandle = result.unwrap();
-  auto map = mHandle.Map();
-  MOZ_RELEASE_ASSERT(map.IsValid());
-  mMappedMemory = std::move(map).Release();
+  RefPtr<SharedMemory> map;
+  auto result = aBuilder.Finalize(map);
+  MOZ_RELEASE_ASSERT(result.isOk() && map);
+
+  mMappedMemory = map->TakeMapping();
+  mHandle = map->TakeHandle();
 }
 
-mozilla::ipc::ReadOnlySharedMemoryHandle SharedPrefMap::CloneHandle() const {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  return mHandle.Clone();
+mozilla::ipc::SharedMemoryHandle SharedPrefMap::CloneHandle() const {
+  return SharedMemory::CloneHandle(mHandle);
 }
 
 bool SharedPrefMap::Has(const char* aKey) const {
@@ -141,7 +148,8 @@ void SharedPrefMapBuilder::Add(const nsCString& aKey, const Flags& aFlags,
   });
 }
 
-Result<ReadOnlySharedMemoryHandle, nsresult> SharedPrefMapBuilder::Finalize() {
+Result<Ok, nsresult> SharedPrefMapBuilder::Finalize(
+    RefPtr<SharedMemory>& aMap) {
   using Header = SharedPrefMap::Header;
 
   // Create an array of entry pointers for the entry array, and sort it by
@@ -236,7 +244,7 @@ Result<ReadOnlySharedMemoryHandle, nsresult> SharedPrefMapBuilder::Finalize() {
   mStringValueTable.Clear();
   mEntries.Clear();
 
-  return mem.Finalize();
+  return mem.Finalize(aMap);
 }
 
 }  // namespace mozilla

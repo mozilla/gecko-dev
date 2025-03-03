@@ -6,7 +6,6 @@
 
 #include "CrossProcessMutex.h"
 #include "mozilla/Unused.h"
-#include "mozilla/ipc/SharedMemoryHandle.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
 
@@ -44,12 +43,16 @@ CrossProcessMutex::CrossProcessMutex(const char*)
   // they specifically are not on Linux.
   MOZ_RELEASE_ASSERT(false);
 #endif
-  mSharedBuffer = ipc::shared_memory::Create(sizeof(MutexData)).MapWithHandle();
-  if (!mSharedBuffer) {
+  mSharedBuffer = new ipc::SharedMemory;
+  if (!mSharedBuffer->Create(sizeof(MutexData))) {
     MOZ_CRASH();
   }
 
-  MutexData* data = mSharedBuffer.DataAs<MutexData>();
+  if (!mSharedBuffer->Map(sizeof(MutexData))) {
+    MOZ_CRASH();
+  }
+
+  MutexData* data = static_cast<MutexData*>(mSharedBuffer->Memory());
 
   if (!data) {
     MOZ_CRASH();
@@ -66,12 +69,22 @@ CrossProcessMutex::CrossProcessMutex(const char*)
 
 CrossProcessMutex::CrossProcessMutex(CrossProcessMutexHandle aHandle)
     : mMutex(nullptr), mCount(nullptr) {
-  mSharedBuffer = std::move(aHandle).MapWithHandle();
-  if (!mSharedBuffer) {
+  mSharedBuffer = new ipc::SharedMemory;
+
+  if (!mSharedBuffer->IsHandleValid(aHandle)) {
     MOZ_CRASH();
   }
 
-  MutexData* data = mSharedBuffer.DataAs<MutexData>();
+  if (!mSharedBuffer->SetHandle(std::move(aHandle),
+                                ipc::SharedMemory::RightsReadWrite)) {
+    MOZ_CRASH();
+  }
+
+  if (!mSharedBuffer->Map(sizeof(MutexData))) {
+    MOZ_CRASH();
+  }
+
+  MutexData* data = static_cast<MutexData*>(mSharedBuffer->Memory());
 
   if (!data) {
     MOZ_CRASH();
@@ -112,14 +125,16 @@ void CrossProcessMutex::Unlock() {
 }
 
 CrossProcessMutexHandle CrossProcessMutex::CloneHandle() {
+  CrossProcessMutexHandle result = ipc::SharedMemory::NULLHandle();
+
   if (mSharedBuffer) {
-    auto handle = mSharedBuffer.Handle().Clone();
-    if (!handle) {
+    result = mSharedBuffer->CloneHandle();
+    if (!result) {
       MOZ_CRASH();
     }
-    return handle;
   }
-  return nullptr;
+
+  return result;
 }
 
 }  // namespace mozilla

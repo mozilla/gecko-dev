@@ -66,18 +66,12 @@ class OutputBuffer {
 
 class InputBuffer {
  public:
-  explicit InputBuffer(const Range<const uint8_t>& buffer) : data(buffer) {}
-
-  // Since the other constructor stores `buffer` by reference, we must ensure
-  // no implicit conversions occur (which would result in a reference to a
-  // temporary being stored).
-  template <typename T>
-  explicit InputBuffer(T) = delete;
+  explicit InputBuffer(const Range<uint8_t>& buffer) : data(buffer) {}
 
   const uint8_t* read(size_t size) {
     MOZ_ASSERT(checkCapacity(size));
 
-    const auto* buf = &data[cursor_];
+    auto buf = &data[cursor_];
     cursor_ += size;
     return buf;
   }
@@ -144,7 +138,7 @@ class InputBuffer {
   bool error_ = false;
 
  public:
-  const Range<const uint8_t>& data;
+  const Range<uint8_t>& data;
   size_t cursor_ = 0;
 };
 

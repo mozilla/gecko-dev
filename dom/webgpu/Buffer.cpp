@@ -42,10 +42,11 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(Buffer)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 Buffer::Buffer(Device* const aParent, RawId aId, BufferAddress aSize,
-               uint32_t aUsage, ipc::SharedMemoryMapping&& aShmem)
+               uint32_t aUsage, ipc::WritableSharedMemoryMapping&& aShmem)
     : ChildOf(aParent), mId(aId), mSize(aSize), mUsage(aUsage) {
   mozilla::HoldJSObjects(this);
-  mShmem = std::make_shared<ipc::SharedMemoryMapping>(std::move(aShmem));
+  mShmem =
+      std::make_shared<ipc::WritableSharedMemoryMapping>(std::move(aShmem));
   MOZ_ASSERT(mParent);
 }
 
@@ -62,14 +63,14 @@ already_AddRefed<Buffer> Buffer::Create(Device* aDevice, RawId aDeviceId,
 
   if (!aDevice->IsBridgeAlive()) {
     // Create and return an invalid Buffer.
-    RefPtr<Buffer> buffer =
-        new Buffer(aDevice, bufferId, aDesc.mSize, 0, nullptr);
+    RefPtr<Buffer> buffer = new Buffer(aDevice, bufferId, aDesc.mSize, 0,
+                                       ipc::WritableSharedMemoryMapping());
     buffer->mValid = false;
     return buffer.forget();
   }
 
-  ipc::MutableSharedMemoryHandle handle;
-  ipc::SharedMemoryMapping mapping;
+  auto handle = ipc::UnsafeSharedMemoryHandle();
+  auto mapping = ipc::WritableSharedMemoryMapping();
 
   bool hasMapFlags = aDesc.mUsage & (dom::GPUBufferUsage_Binding::MAP_WRITE |
                                      dom::GPUBufferUsage_Binding::MAP_READ);
@@ -84,18 +85,17 @@ already_AddRefed<Buffer> Buffer::Create(Device* aDevice, RawId aDeviceId,
       size_t size = checked.value();
 
       if (size > 0 && size < maxSize) {
-        handle = ipc::shared_memory::Create(size);
-        mapping = handle.Map();
-        if (handle && mapping) {
+        auto maybeShmem = ipc::UnsafeSharedMemoryHandle::CreateAndMap(size);
+
+        if (maybeShmem.isSome()) {
           allocSucceeded = true;
+          handle = std::move(maybeShmem.ref().first);
+          mapping = std::move(maybeShmem.ref().second);
 
           MOZ_RELEASE_ASSERT(mapping.Size() >= size);
 
           // zero out memory
-          memset(mapping.Address(), 0, size);
-        } else {
-          handle = nullptr;
-          mapping = nullptr;
+          memset(mapping.Bytes().data(), 0, size);
         }
       }
 
@@ -259,7 +259,8 @@ already_AddRefed<dom::Promise> Buffer::MapAsync(
 
 static void ExternalBufferFreeCallback(void* aContents, void* aUserData) {
   Unused << aContents;
-  auto shm = static_cast<std::shared_ptr<ipc::SharedMemoryMapping>*>(aUserData);
+  auto shm = static_cast<std::shared_ptr<ipc::WritableSharedMemoryMapping>*>(
+      aUserData);
   delete shm;
 }
 
@@ -352,8 +353,8 @@ void Buffer::GetMappedRange(JSContext* aCx, uint64_t aOffset,
   // unfortunately necessary: `JS::BufferContentsDeleter` requires that its
   // `userData` be a `void*`, and while `shared_ptr` can't be inter-converted
   // with `void*` (it's actually two pointers), `shared_ptr*` obviously can.
-  std::shared_ptr<ipc::SharedMemoryMapping>* data =
-      new std::shared_ptr<ipc::SharedMemoryMapping>(mShmem);
+  std::shared_ptr<ipc::WritableSharedMemoryMapping>* data =
+      new std::shared_ptr<ipc::WritableSharedMemoryMapping>(mShmem);
 
   // 4. Let `view` be (potentially fallible operation follows) create an
   //    `ArrayBuffer` of size `rangeSize`, but with its pointer mutably
@@ -365,8 +366,7 @@ void Buffer::GetMappedRange(JSContext* aCx, uint64_t aOffset,
   // range for `size_t` before any conversion is performed.
   const auto checkedSize = CheckedInt<size_t>(rangeSize.value()).value();
   const auto checkedOffset = CheckedInt<size_t>(offset.value()).value();
-  const auto span =
-      (*data)->DataAsSpan<uint8_t>().Subspan(checkedOffset, checkedSize);
+  const auto span = (*data)->Bytes().Subspan(checkedOffset, checkedSize);
   UniquePtr<void, JS::BufferContentsDeleter> contents{
       span.data(), {&ExternalBufferFreeCallback, data}};
   JS::Rooted<JSObject*> view(
@@ -431,7 +431,7 @@ void Buffer::Unmap(JSContext* aCx, ErrorResult& aRv) {
     // We get here if the buffer was mapped at creation without map flags.
     // It won't be possible to map the buffer again so we can get rid of
     // our shmem on this side.
-    mShmem = std::make_shared<ipc::SharedMemoryMapping>();
+    mShmem = std::make_shared<ipc::WritableSharedMemoryMapping>();
   }
 
   if (!GetDevice().IsLost()) {
