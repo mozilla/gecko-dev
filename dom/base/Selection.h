@@ -546,16 +546,10 @@ class Selection final : public nsSupportsWeakReference,
    * @param direction can be one of { "forward", "backward", "left", "right" }
    * @param granularity can be one of { "character", "word",
    *                                    "line", "lineboundary" }
-   *
-   * @throws NS_ERROR_NOT_IMPLEMENTED if the granularity is "sentence",
-   * "sentenceboundary", "paragraph", "paragraphboundary", or
-   * "documentboundary".  Throws NS_ERROR_INVALID_ARG if alter, direction,
-   * or granularity has an unrecognized value.
    */
   MOZ_CAN_RUN_SCRIPT void Modify(const nsAString& aAlter,
                                  const nsAString& aDirection,
-                                 const nsAString& aGranularity,
-                                 mozilla::ErrorResult& aRv);
+                                 const nsAString& aGranularity);
 
   MOZ_CAN_RUN_SCRIPT
   void SetBaseAndExtentJS(nsINode& aAnchorNode, uint32_t aAnchorOffset,
