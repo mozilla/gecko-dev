@@ -84,6 +84,11 @@ class InstallIntent(Enum):
     NO = 2
 
 
+class UninstallIntent(Enum):
+    YES = 1
+    NO = 2
+
+
 class AvdInfo(object):
     """
     Simple class to contain an AVD description.
@@ -331,6 +336,7 @@ def metadata_for_app(app, aab=False):
 def verify_android_device(
     build_obj,
     install=InstallIntent.NO,
+    uninstall=UninstallIntent.YES,
     xre=False,
     debugger=False,
     network=False,
@@ -365,9 +371,18 @@ def verify_android_device(
         _log_info(
             "*********************************************************************\n"
             "Neither the MOZ_DISABLE_ADB_INSTALL environment variable nor the\n"
-            "--no-install flag was found. The code will now uninstall the current\n"
-            "app then re-install the android app from a different source. If you\n"
-            "don't want this set your local env so that\n"
+            "--no-install flag was found."
+        )
+
+        if uninstall == UninstallIntent.YES:
+            _log_info(
+                "The code will now uninstall the current app then re-install the\n"
+                "android app from a different source. If you want to avoid unintalling\n"
+                "the current app, set the --no-uninstall flag."
+            )
+
+        _log_info(
+            "If you don't want this set your local env so that\n"
             "MOZ_DISABLE_ADB_INSTALL=True or pass the --no-install flag\n"
             "*********************************************************************"
         )
@@ -427,11 +442,11 @@ def verify_android_device(
                 % metadata.package_name
             )
 
-        if metadata.subcommand and installed:
+        if metadata.subcommand and installed and uninstall == UninstallIntent.YES:
             device.uninstall_app(metadata.package_name)
 
         if metadata.activity_name == "org.mozilla.gecko.BrowserApp":
-            if installed:
+            if installed and uninstall == UninstallIntent.YES:
                 device.uninstall_app(metadata.package_name)
             _log_info("Installing Firefox...")
             build_obj._run_make(directory=".", target="install", ensure_exit_code=False)

@@ -1360,6 +1360,13 @@ def _get_android_run_parser():
         "(default: False)",
     )
     group.add_argument(
+        "--no-uninstall",
+        action="store_true",
+        default=False,
+        help="Do not try to uninstall application on device before reinstalling"
+        "(default: False)",
+    )
+    group.add_argument(
         "--no-wait",
         action="store_true",
         default=False,
@@ -1607,6 +1614,7 @@ def _run_android(
     url=None,
     aab=False,
     no_install=None,
+    no_uninstall=None,
     no_wait=None,
     fail_if_running=None,
     restart=None,
@@ -1619,6 +1627,7 @@ def _run_android(
 ):
     from mozrunner.devices.android_device import (
         InstallIntent,
+        UninstallIntent,
         _get_device,
         metadata_for_app,
         verify_android_device,
@@ -1642,6 +1651,7 @@ def _run_android(
         aab=aab,
         debugger=debug,
         install=InstallIntent.NO if no_install else InstallIntent.YES,
+        uninstall=UninstallIntent.NO if no_uninstall else UninstallIntent.YES,
     )
     device_serial = os.environ.get("DEVICE_SERIAL")
     if not device_serial:
