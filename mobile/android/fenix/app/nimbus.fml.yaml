@@ -599,7 +599,7 @@ features:
         description: >
           When the feature is enabled then microsurveys can be used.
         type: Boolean
-        default: true
+        default: false
 
   trending-searches:
     description: Enables trending searches.
