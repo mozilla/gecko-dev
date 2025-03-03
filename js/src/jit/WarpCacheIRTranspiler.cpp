@@ -515,6 +515,12 @@ bool WarpCacheIRTranspiler::emitGuardFuse(RealmFuses::FuseIndex fuseIndex) {
                               CompilationDependency::Type::GetIterator>;
       return mirGen().tracker.addDependency(Dependency());
     }
+    case RealmFuses::FuseIndex::OptimizeArraySpeciesFuse: {
+      using Dependency =
+          RealmFuseDependency<&RealmFuses::optimizeArraySpeciesFuse,
+                              CompilationDependency::Type::ArraySpecies>;
+      return mirGen().tracker.addDependency(Dependency());
+    }
     default:
       MOZ_ASSERT(!RealmFuses::isInvalidatingFuse(fuseIndex));
       auto* ins = MGuardFuse::New(alloc(), fuseIndex);

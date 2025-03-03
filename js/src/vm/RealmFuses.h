@@ -144,7 +144,7 @@ struct ObjectPrototypeHasNoReturnProperty final
 //   the builtin `Array` constructor.
 // - This `Array` constructor has a `Symbol.species` property that's the
 //   original accessor.
-struct OptimizeArraySpeciesFuse final : public RealmFuse {
+struct OptimizeArraySpeciesFuse final : public InvalidatingRealmFuse {
   virtual const char* name() override { return "OptimizeArraySpeciesFuse"; }
   virtual bool checkInvariant(JSContext* cx) override;
 };
