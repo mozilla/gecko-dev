@@ -4860,12 +4860,12 @@ class ColorSpace {
   get usesZeroToOneRange() {
     return shadow(this, "usesZeroToOneRange", true);
   }
-  static _cache(cacheKey, xref, localColorSpaceCache, parsedColorSpace) {
-    if (!localColorSpaceCache) {
-      throw new Error('ColorSpace._cache - expected "localColorSpaceCache" argument.');
+  static #cache(cacheKey, xref, globalColorSpaceCache, localColorSpaceCache, parsedCS) {
+    if (!globalColorSpaceCache || !localColorSpaceCache) {
+      throw new Error('ColorSpace.#cache - expected "globalColorSpaceCache"/"localColorSpaceCache" argument.');
     }
-    if (!parsedColorSpace) {
-      throw new Error('ColorSpace._cache - expected "parsedColorSpace" argument.');
+    if (!parsedCS) {
+      throw new Error('ColorSpace.#cache - expected "parsedCS" argument.');
     }
     let csName, csRef;
     if (cacheKey instanceof Ref) {
@@ -4876,17 +4876,20 @@ class ColorSpace {
       csName = cacheKey.name;
     }
     if (csName || csRef) {
-      localColorSpaceCache.set(csName, csRef, parsedColorSpace);
+      localColorSpaceCache.set(csName, csRef, parsedCS);
+      if (csRef) {
+        globalColorSpaceCache.set(null, csRef, parsedCS);
+      }
     }
   }
-  static getCached(cacheKey, xref, localColorSpaceCache) {
-    if (!localColorSpaceCache) {
-      throw new Error('ColorSpace.getCached - expected "localColorSpaceCache" argument.');
+  static getCached(cacheKey, xref, globalColorSpaceCache, localColorSpaceCache) {
+    if (!globalColorSpaceCache || !localColorSpaceCache) {
+      throw new Error('ColorSpace.getCached - expected "globalColorSpaceCache"/"localColorSpaceCache" argument.');
     }
     if (cacheKey instanceof Ref) {
-      const localColorSpace = localColorSpaceCache.getByRef(cacheKey);
-      if (localColorSpace) {
-        return localColorSpace;
+      const cachedCS = globalColorSpaceCache.getByRef(cacheKey) || localColorSpaceCache.getByRef(cacheKey);
+      if (cachedCS) {
+        return cachedCS;
       }
       try {
         cacheKey = xref.fetch(cacheKey);
@@ -4897,10 +4900,7 @@ class ColorSpace {
       }
     }
     if (cacheKey instanceof Name) {
-      const localColorSpace = localColorSpaceCache.getByName(cacheKey.name);
-      if (localColorSpace) {
-        return localColorSpace;
-      }
+      return localColorSpaceCache.getByName(cacheKey.name) || null;
     }
     return null;
   }
@@ -4909,28 +4909,30 @@ class ColorSpace {
     xref,
     resources = null,
     pdfFunctionFactory,
+    globalColorSpaceCache,
     localColorSpaceCache
   }) {
-    const parsedColorSpace = this._parse(cs, xref, resources, pdfFunctionFactory);
-    this._cache(cs, xref, localColorSpaceCache, parsedColorSpace);
-    return parsedColorSpace;
+    const parsedCS = this.#parse(cs, xref, resources, pdfFunctionFactory);
+    this.#cache(cs, xref, globalColorSpaceCache, localColorSpaceCache, parsedCS);
+    return parsedCS;
   }
   static parse({
     cs,
     xref,
     resources = null,
     pdfFunctionFactory,
+    globalColorSpaceCache,
     localColorSpaceCache
   }) {
-    const cachedColorSpace = this.getCached(cs, xref, localColorSpaceCache);
-    if (cachedColorSpace) {
-      return cachedColorSpace;
+    const cachedCS = this.getCached(cs, xref, globalColorSpaceCache, localColorSpaceCache);
+    if (cachedCS) {
+      return cachedCS;
     }
-    const parsedColorSpace = this._parse(cs, xref, resources, pdfFunctionFactory);
-    this._cache(cs, xref, localColorSpaceCache, parsedColorSpace);
-    return parsedColorSpace;
+    const parsedCS = this.#parse(cs, xref, resources, pdfFunctionFactory);
+    this.#cache(cs, xref, globalColorSpaceCache, localColorSpaceCache, parsedCS);
+    return parsedCS;
   }
-  static _parse(cs, xref, resources = null, pdfFunctionFactory) {
+  static #parse(cs, xref, resources = null, pdfFunctionFactory) {
     cs = xref.fetchIfRef(cs);
     if (cs instanceof Name) {
       switch (cs.name) {
@@ -4954,7 +4956,7 @@ class ColorSpace {
               const resourcesCS = colorSpaces.get(cs.name);
               if (resourcesCS) {
                 if (resourcesCS instanceof Name) {
-                  return this._parse(resourcesCS, xref, resources, pdfFunctionFactory);
+                  return this.#parse(resourcesCS, xref, resources, pdfFunctionFactory);
                 }
                 cs = resourcesCS;
                 break;
@@ -4997,7 +4999,7 @@ class ColorSpace {
           numComps = dict.get("N");
           const alt = dict.get("Alternate");
           if (alt) {
-            const altCS = this._parse(alt, xref, resources, pdfFunctionFactory);
+            const altCS = this.#parse(alt, xref, resources, pdfFunctionFactory);
             if (altCS.numComps === numComps) {
               return altCS;
             }
@@ -5014,12 +5016,12 @@ class ColorSpace {
         case "Pattern":
           baseCS = cs[1] || null;
           if (baseCS) {
-            baseCS = this._parse(baseCS, xref, resources, pdfFunctionFactory);
+            baseCS = this.#parse(baseCS, xref, resources, pdfFunctionFactory);
           }
           return new PatternCS(baseCS);
         case "I":
         case "Indexed":
-          baseCS = this._parse(cs[1], xref, resources, pdfFunctionFactory);
+          baseCS = this.#parse(cs[1], xref, resources, pdfFunctionFactory);
           const hiVal = Math.max(0, Math.min(xref.fetchIfRef(cs[2]), 255));
           const lookup = xref.fetchIfRef(cs[3]);
           return new IndexedCS(baseCS, hiVal, lookup);
@@ -5027,7 +5029,7 @@ class ColorSpace {
         case "DeviceN":
           const name = xref.fetchIfRef(cs[1]);
           numComps = Array.isArray(name) ? name.length : 1;
-          baseCS = this._parse(cs[2], xref, resources, pdfFunctionFactory);
+          baseCS = this.#parse(cs[2], xref, resources, pdfFunctionFactory);
           const tintFn = pdfFunctionFactory.create(cs[3]);
           return new AlternateCS(numComps, baseCS, tintFn);
         case "Lab":
@@ -17592,6 +17594,37 @@ const getGlyphMapForStandardFonts = getLookupTableFactory(function (t) {
   t[337] = 9552;
   t[493] = 1039;
   t[494] = 1040;
+  t[570] = 1040;
+  t[571] = 1041;
+  t[572] = 1042;
+  t[573] = 1043;
+  t[574] = 1044;
+  t[575] = 1045;
+  t[576] = 1046;
+  t[577] = 1047;
+  t[578] = 1048;
+  t[579] = 1049;
+  t[580] = 1050;
+  t[581] = 1051;
+  t[582] = 1052;
+  t[583] = 1053;
+  t[584] = 1054;
+  t[585] = 1055;
+  t[586] = 1056;
+  t[587] = 1057;
+  t[588] = 1058;
+  t[589] = 1059;
+  t[590] = 1060;
+  t[591] = 1061;
+  t[592] = 1062;
+  t[593] = 1063;
+  t[594] = 1064;
+  t[595] = 1065;
+  t[596] = 1066;
+  t[597] = 1067;
+  t[598] = 1068;
+  t[599] = 1069;
+  t[600] = 1070;
   t[672] = 1488;
   t[673] = 1489;
   t[674] = 1490;
@@ -23429,8 +23462,8 @@ class Type1Font {
 
 const PRIVATE_USE_AREAS = [[0xe000, 0xf8ff], [0x100000, 0x10fffd]];
 const PDF_GLYPH_SPACE_UNITS = 1000;
-const EXPORT_DATA_PROPERTIES = ["ascent", "bbox", "black", "bold", "charProcOperatorList", "composite", "cssFontInfo", "data", "defaultVMetrics", "defaultWidth", "descent", "disableFontFace", "fallbackName", "fontExtraProperties", "fontMatrix", "isInvalidPDFjsFont", "isType3Font", "italic", "loadedName", "mimetype", "missingFile", "name", "remeasure", "subtype", "systemFontInfo", "type", "vertical"];
-const EXPORT_DATA_EXTRA_PROPERTIES = ["cMap", "defaultEncoding", "differences", "isMonospace", "isSerifFont", "isSymbolicFont", "seacMap", "toFontChar", "toUnicode", "vmetrics", "widths"];
+const EXPORT_DATA_PROPERTIES = ["ascent", "bbox", "black", "bold", "charProcOperatorList", "cssFontInfo", "data", "defaultVMetrics", "defaultWidth", "descent", "disableFontFace", "fallbackName", "fontExtraProperties", "fontMatrix", "isInvalidPDFjsFont", "isType3Font", "italic", "loadedName", "mimetype", "missingFile", "name", "remeasure", "systemFontInfo", "vertical"];
+const EXPORT_DATA_EXTRA_PROPERTIES = ["cMap", "composite", "defaultEncoding", "differences", "isMonospace", "isSerifFont", "isSymbolicFont", "seacMap", "subtype", "toFontChar", "toUnicode", "type", "vmetrics", "widths"];
 function adjustWidths(properties) {
   if (!properties.fontMatrix) {
     return;
@@ -25891,19 +25924,19 @@ class Pattern {
   constructor() {
     unreachable("Cannot initialize Pattern.");
   }
-  static parseShading(shading, xref, res, pdfFunctionFactory, localColorSpaceCache) {
+  static parseShading(shading, xref, res, pdfFunctionFactory, globalColorSpaceCache, localColorSpaceCache) {
     const dict = shading instanceof BaseStream ? shading.dict : shading;
     const type = dict.get("ShadingType");
     try {
       switch (type) {
         case ShadingType.AXIAL:
         case ShadingType.RADIAL:
-          return new RadialAxialShading(dict, xref, res, pdfFunctionFactory, localColorSpaceCache);
+          return new RadialAxialShading(dict, xref, res, pdfFunctionFactory, globalColorSpaceCache, localColorSpaceCache);
         case ShadingType.FREE_FORM_MESH:
         case ShadingType.LATTICE_FORM_MESH:
         case ShadingType.COONS_PATCH_MESH:
         case ShadingType.TENSOR_PATCH_MESH:
-          return new MeshShading(shading, xref, res, pdfFunctionFactory, localColorSpaceCache);
+          return new MeshShading(shading, xref, res, pdfFunctionFactory, globalColorSpaceCache, localColorSpaceCache);
         default:
           throw new FormatError("Unsupported ShadingType: " + type);
       }
@@ -25923,7 +25956,7 @@ class BaseShading {
   }
 }
 class RadialAxialShading extends BaseShading {
-  constructor(dict, xref, resources, pdfFunctionFactory, localColorSpaceCache) {
+  constructor(dict, xref, resources, pdfFunctionFactory, globalColorSpaceCache, localColorSpaceCache) {
     super();
     this.shadingType = dict.get("ShadingType");
     let coordsLen = 0;
@@ -25941,6 +25974,7 @@ class RadialAxialShading extends BaseShading {
       xref,
       resources,
       pdfFunctionFactory,
+      globalColorSpaceCache,
       localColorSpaceCache
     });
     this.bbox = lookupNormalRect(dict.getArray("BBox"), null);
@@ -26168,7 +26202,7 @@ class MeshShading extends BaseShading {
   static MIN_SPLIT_PATCH_CHUNKS_AMOUNT = 3;
   static MAX_SPLIT_PATCH_CHUNKS_AMOUNT = 20;
   static TRIANGLE_DENSITY = 20;
-  constructor(stream, xref, resources, pdfFunctionFactory, localColorSpaceCache) {
+  constructor(stream, xref, resources, pdfFunctionFactory, globalColorSpaceCache, localColorSpaceCache) {
     super();
     if (!(stream instanceof BaseStream)) {
       throw new FormatError("Mesh data is not a stream");
@@ -26181,6 +26215,7 @@ class MeshShading extends BaseShading {
       xref,
       resources,
       pdfFunctionFactory,
+      globalColorSpaceCache,
       localColorSpaceCache
     });
     this.background = dict.has("Background") ? cs.getRgb(dict.get("Background"), 0) : null;
@@ -27310,6 +27345,25 @@ class RegionalImageCache extends BaseLocalCache {
       return;
     }
     this._imageCache.put(ref, data);
+  }
+}
+class GlobalColorSpaceCache extends BaseLocalCache {
+  constructor(options) {
+    super({
+      onlyRefs: true
+    });
+  }
+  set(name = null, ref, data) {
+    if (!ref) {
+      throw new Error('GlobalColorSpaceCache.set - expected "ref" argument.');
+    }
+    if (this._imageCache.has(ref)) {
+      return;
+    }
+    this._imageCache.put(ref, data);
+  }
+  clear() {
+    this._imageCache.clear();
   }
 }
 class GlobalImageCache {
@@ -29617,6 +29671,7 @@ class PDFImage {
     mask = null,
     isMask = false,
     pdfFunctionFactory,
+    globalColorSpaceCache,
     localColorSpaceCache
   }) {
     this.image = image;
@@ -29707,6 +29762,7 @@ class PDFImage {
         xref,
         resources: isInline ? res : null,
         pdfFunctionFactory,
+        globalColorSpaceCache,
         localColorSpaceCache
       });
       this.numComps = this.colorSpace.numComps;
@@ -29737,6 +29793,7 @@ class PDFImage {
         image: smask,
         isInline,
         pdfFunctionFactory,
+        globalColorSpaceCache,
         localColorSpaceCache
       });
     } else if (mask) {
@@ -29753,6 +29810,7 @@ class PDFImage {
             isInline,
             isMask: true,
             pdfFunctionFactory,
+            globalColorSpaceCache,
             localColorSpaceCache
           });
         }
@@ -29767,6 +29825,7 @@ class PDFImage {
     image,
     isInline = false,
     pdfFunctionFactory,
+    globalColorSpaceCache,
     localColorSpaceCache
   }) {
     const imageData = image;
@@ -29795,6 +29854,7 @@ class PDFImage {
       smask: smaskData,
       mask: maskData,
       pdfFunctionFactory,
+      globalColorSpaceCache,
       localColorSpaceCache
     });
   }
@@ -30485,6 +30545,7 @@ class PartialEvaluator {
     fontCache,
     builtInCMapCache,
     standardFontDataCache,
+    globalColorSpaceCache,
     globalImageCache,
     systemFontCache,
     options = null
@@ -30496,6 +30557,7 @@ class PartialEvaluator {
     this.fontCache = fontCache;
     this.builtInCMapCache = builtInCMapCache;
     this.standardFontDataCache = standardFontDataCache;
+    this.globalColorSpaceCache = globalColorSpaceCache;
     this.globalImageCache = globalImageCache;
     this.systemFontCache = systemFontCache;
     this.options = options || DefaultPartialEvaluatorOptions;
@@ -30685,7 +30747,7 @@ class PartialEvaluator {
         groupOptions.knockout = group.get("K") || false;
         if (group.has("CS")) {
           const cs = group.getRaw("CS");
-          const cachedColorSpace = ColorSpace.getCached(cs, this.xref, localColorSpaceCache);
+          const cachedColorSpace = ColorSpace.getCached(cs, this.xref, this.globalColorSpaceCache, localColorSpaceCache);
           if (cachedColorSpace) {
             colorSpace = cachedColorSpace;
           } else {
@@ -30849,6 +30911,7 @@ class PartialEvaluator {
           image,
           isInline,
           pdfFunctionFactory: this._pdfFunctionFactory,
+          globalColorSpaceCache: this.globalColorSpaceCache,
           localColorSpaceCache
         });
         imgData = await imageObj.createImageData(true, false);
@@ -30914,6 +30977,7 @@ class PartialEvaluator {
       image,
       isInline,
       pdfFunctionFactory: this._pdfFunctionFactory,
+      globalColorSpaceCache: this.globalColorSpaceCache,
       localColorSpaceCache
     }).then(async imageObj => {
       imgData = await imageObj.createImageData(false, this.options.isOffscreenCanvasSupported);
@@ -31049,18 +31113,9 @@ class PartialEvaluator {
   }
   async handleSetFont(resources, fontArgs, fontRef, operatorList, task, state, fallbackFontDict = null, cssFontInfo = null) {
     const fontName = fontArgs?.[0] instanceof Name ? fontArgs[0].name : null;
-    let translated = await this.loadFont(fontName, fontRef, resources, fallbackFontDict, cssFontInfo);
+    const translated = await this.loadFont(fontName, fontRef, resources, task, fallbackFontDict, cssFontInfo);
     if (translated.font.isType3Font) {
-      try {
-        await translated.loadType3Data(this, resources, task);
-        operatorList.addDependencies(translated.type3Dependencies);
-      } catch (reason) {
-        translated = new TranslatedFont({
-          loadedName: "g_font_error",
-          font: new ErrorFont(`Type3 font load error: ${reason}`),
-          dict: translated.font
-        });
-      }
+      operatorList.addDependencies(translated.type3Dependencies);
     }
     state.font = translated.font;
     translated.send(this.handler);
@@ -31172,7 +31227,7 @@ class PartialEvaluator {
       localGStateCache.set(cacheKey, gStateRef, gStateObj);
     }
   }
-  loadFont(fontName, font, resources, fallbackFontDict = null, cssFontInfo = null) {
+  loadFont(fontName, font, resources, task, fallbackFontDict = null, cssFontInfo = null) {
     const errorFont = async () => new TranslatedFont({
       loadedName: "g_font_error",
       font: new ErrorFont(`Font "${fontName}" is not available.`),
@@ -31259,17 +31314,25 @@ class PartialEvaluator {
       this.fontCache.put(font.cacheKey, promise);
     }
     font.loadedName = `${this.idFactory.getDocId()}_${fontID}`;
-    this.translateFont(preEvaluatedFont).then(translatedFont => {
-      resolve(new TranslatedFont({
+    this.translateFont(preEvaluatedFont).then(async translatedFont => {
+      const translated = new TranslatedFont({
         loadedName: font.loadedName,
         font: translatedFont,
         dict: font
-      }));
+      });
+      if (translatedFont.isType3Font) {
+        try {
+          await translated.loadType3Data(this, resources, task);
+        } catch (reason) {
+          throw new Error(`Type3 font load error: ${reason}`);
+        }
+      }
+      resolve(translated);
     }).catch(reason => {
       warn(`loadFont - translateFont failed: "${reason}".`);
       resolve(new TranslatedFont({
         loadedName: font.loadedName,
-        font: new ErrorFont(reason instanceof Error ? reason.message : reason),
+        font: new ErrorFont(reason?.message),
         dict: font
       }));
     });
@@ -31338,6 +31401,7 @@ class PartialEvaluator {
       xref: this.xref,
       resources,
       pdfFunctionFactory: this._pdfFunctionFactory,
+      globalColorSpaceCache: this.globalColorSpaceCache,
       localColorSpaceCache
     }).catch(reason => {
       if (reason instanceof AbortException) {
@@ -31362,7 +31426,7 @@ class PartialEvaluator {
     }
     let patternIR;
     try {
-      const shadingFill = Pattern.parseShading(shading, this.xref, resources, this._pdfFunctionFactory, localColorSpaceCache);
+      const shadingFill = Pattern.parseShading(shading, this.xref, resources, this._pdfFunctionFactory, this.globalColorSpaceCache, localColorSpaceCache);
       patternIR = shadingFill.getIR();
     } catch (reason) {
       if (reason instanceof AbortException) {
@@ -31721,7 +31785,7 @@ class PartialEvaluator {
             break;
           case OPS.setFillColorSpace:
             {
-              const cachedColorSpace = ColorSpace.getCached(args[0], xref, localColorSpaceCache);
+              const cachedColorSpace = ColorSpace.getCached(args[0], xref, self.globalColorSpaceCache, localColorSpaceCache);
               if (cachedColorSpace) {
                 stateManager.state.fillColorSpace = cachedColorSpace;
                 continue;
@@ -31737,7 +31801,7 @@ class PartialEvaluator {
             }
           case OPS.setStrokeColorSpace:
             {
-              const cachedColorSpace = ColorSpace.getCached(args[0], xref, localColorSpaceCache);
+              const cachedColorSpace = ColorSpace.getCached(args[0], xref, self.globalColorSpaceCache, localColorSpaceCache);
               if (cachedColorSpace) {
                 stateManager.state.strokeColorSpace = cachedColorSpace;
                 continue;
@@ -32165,12 +32229,7 @@ class PartialEvaluator {
       };
     }
     async function handleSetFont(fontName, fontRef) {
-      const translated = await self.loadFont(fontName, fontRef, resources);
-      if (translated.font.isType3Font) {
-        try {
-          await translated.loadType3Data(self, resources, task);
-        } catch {}
-      }
+      const translated = await self.loadFont(fontName, fontRef, resources, task);
       textState.loadedName = translated.loadedName;
       textState.font = translated.font;
       textState.fontMatrix = translated.font.fontMatrix || FONT_IDENTITY_MATRIX;
@@ -33620,6 +33679,8 @@ class PartialEvaluator {
   }
 }
 class TranslatedFont {
+  #sent = false;
+  #type3Loaded = null;
   constructor({
     loadedName,
     font,
@@ -33628,15 +33689,13 @@ class TranslatedFont {
     this.loadedName = loadedName;
     this.font = font;
     this.dict = dict;
-    this.type3Loaded = null;
     this.type3Dependencies = font.isType3Font ? new Set() : null;
-    this.sent = false;
   }
   send(handler) {
-    if (this.sent) {
+    if (this.#sent) {
       return;
     }
-    this.sent = true;
+    this.#sent = true;
     handler.send("commonobj", [this.loadedName, "Font", this.font.exportData()]);
   }
   fallback(handler, evaluatorOptions) {
@@ -33647,12 +33706,14 @@ class TranslatedFont {
     PartialEvaluator.buildFontPaths(this.font, this.font.glyphCacheValues, handler, evaluatorOptions);
   }
   loadType3Data(evaluator, resources, task) {
-    if (this.type3Loaded) {
-      return this.type3Loaded;
+    if (this.#type3Loaded) {
+      return this.#type3Loaded;
     }
-    if (!this.font.isType3Font) {
-      throw new Error("Must be a Type3 font.");
-    }
+    const {
+      font,
+      type3Dependencies
+    } = this;
+    assert(font.isType3Font, "Must be a Type3 font.");
     const type3Evaluator = evaluator.clone({
       ignoreErrors: false
     });
@@ -33661,13 +33722,11 @@ class TranslatedFont {
       type3FontRefs.put(this.dict.objId);
     }
     type3Evaluator.type3FontRefs = type3FontRefs;
-    const translatedFont = this.font,
-      type3Dependencies = this.type3Dependencies;
     let loadCharProcsPromise = Promise.resolve();
     const charProcs = this.dict.get("CharProcs");
     const fontResources = this.dict.get("Resources") || resources;
     const charProcOperatorList = Object.create(null);
-    const fontBBox = Util.normalizeRect(translatedFont.bbox || [0, 0, 0, 0]),
+    const fontBBox = Util.normalizeRect(font.bbox || [0, 0, 0, 0]),
       width = fontBBox[2] - fontBBox[0],
       height = fontBBox[3] - fontBBox[1];
     const fontBBoxSize = Math.hypot(width, height);
@@ -33682,7 +33741,7 @@ class TranslatedFont {
           operatorList
         }).then(() => {
           if (operatorList.fnArray[0] === OPS.setCharWidthAndBounds) {
-            this._removeType3ColorOperators(operatorList, fontBBoxSize);
+            this.#removeType3ColorOperators(operatorList, fontBBoxSize);
           }
           charProcOperatorList[key] = operatorList.getIR();
           for (const dependency of operatorList.dependencies) {
@@ -33695,16 +33754,16 @@ class TranslatedFont {
         });
       });
     }
-    this.type3Loaded = loadCharProcsPromise.then(() => {
-      translatedFont.charProcOperatorList = charProcOperatorList;
+    this.#type3Loaded = loadCharProcsPromise.then(() => {
+      font.charProcOperatorList = charProcOperatorList;
       if (this._bbox) {
-        translatedFont.isCharBBox = true;
-        translatedFont.bbox = this._bbox;
+        font.isCharBBox = true;
+        font.bbox = this._bbox;
       }
     });
-    return this.type3Loaded;
+    return this.#type3Loaded;
   }
-  _removeType3ColorOperators(operatorList, fontBBoxSize = NaN) {
+  #removeType3ColorOperators(operatorList, fontBBoxSize = NaN) {
     const charBBox = Util.normalizeRect(operatorList.argsArray[0].slice(2)),
       width = charBBox[2] - charBBox[0],
       height = charBBox[3] - charBBox[1];
@@ -34415,11 +34474,12 @@ function parseDefaultAppearance(str) {
   return new DefaultAppearanceEvaluator(str).parse();
 }
 class AppearanceStreamEvaluator extends EvaluatorPreprocessor {
-  constructor(stream, evaluatorOptions, xref) {
+  constructor(stream, evaluatorOptions, xref, globalColorSpaceCache) {
     super(stream);
     this.stream = stream;
     this.evaluatorOptions = evaluatorOptions;
     this.xref = xref;
+    this.globalColorSpaceCache = globalColorSpaceCache;
     this.resources = stream.dict?.get("Resources");
   }
   parse() {
@@ -34477,6 +34537,7 @@ class AppearanceStreamEvaluator extends EvaluatorPreprocessor {
               xref: this.xref,
               resources: this.resources,
               pdfFunctionFactory: this._pdfFunctionFactory,
+              globalColorSpaceCache: this.globalColorSpaceCache,
               localColorSpaceCache: this._localColorSpaceCache
             });
             break;
@@ -34520,8 +34581,8 @@ class AppearanceStreamEvaluator extends EvaluatorPreprocessor {
     return shadow(this, "_pdfFunctionFactory", pdfFunctionFactory);
   }
 }
-function parseAppearanceStream(stream, evaluatorOptions, xref) {
-  return new AppearanceStreamEvaluator(stream, evaluatorOptions, xref).parse();
+function parseAppearanceStream(stream, evaluatorOptions, xref, globalColorSpaceCache) {
+  return new AppearanceStreamEvaluator(stream, evaluatorOptions, xref, globalColorSpaceCache).parse();
 }
 function getPdfColor(color, isFill) {
   if (color[0] === color[1] && color[1] === color[2]) {
@@ -36336,6 +36397,7 @@ class Catalog {
     this.fontCache = new RefSetCache();
     this.builtInCMapCache = new Map();
     this.standardFontDataCache = new Map();
+    this.globalColorSpaceCache = new GlobalColorSpaceCache();
     this.globalImageCache = new GlobalImageCache();
     this.pageKidsCountCache = new RefSetCache();
     this.pageIndexCache = new RefSetCache();
@@ -37207,15 +37269,15 @@ class Catalog {
   }
   async cleanup(manuallyTriggered = false) {
     clearGlobalCaches();
+    this.globalColorSpaceCache.clear();
     this.globalImageCache.clear(manuallyTriggered);
     this.pageKidsCountCache.clear();
     this.pageIndexCache.clear();
     this.pageDictCache.clear();
     this.nonBlendModesSet.clear();
-    const translatedFonts = await Promise.all(this.fontCache);
     for (const {
       dict
-    } of translatedFonts) {
+    } of await Promise.all(this.fontCache)) {
       delete dict.cacheKey;
     }
     this.fontCache.clear();
@@ -48497,13 +48559,14 @@ class XFAFactory {
 
 class AnnotationFactory {
   static createGlobals(pdfManager) {
-    return Promise.all([pdfManager.ensureCatalog("acroForm"), pdfManager.ensureDoc("xfaDatasets"), pdfManager.ensureCatalog("structTreeRoot"), pdfManager.ensureCatalog("baseUrl"), pdfManager.ensureCatalog("attachments")]).then(([acroForm, xfaDatasets, structTreeRoot, baseUrl, attachments]) => ({
+    return Promise.all([pdfManager.ensureCatalog("acroForm"), pdfManager.ensureDoc("xfaDatasets"), pdfManager.ensureCatalog("structTreeRoot"), pdfManager.ensureCatalog("baseUrl"), pdfManager.ensureCatalog("attachments"), pdfManager.ensureCatalog("globalColorSpaceCache")]).then(([acroForm, xfaDatasets, structTreeRoot, baseUrl, attachments, globalColorSpaceCache]) => ({
       pdfManager,
       acroForm: acroForm instanceof Dict ? acroForm : Dict.empty,
       xfaDatasets,
       structTreeRoot,
       baseUrl,
-      attachments
+      attachments,
+      globalColorSpaceCache
     }), reason => {
       warn(`createGlobals: "${reason}".`);
       return null;
@@ -50946,6 +51009,7 @@ class FreeTextAnnotation extends MarkupAnnotation {
     this.data.isEditable = !this.data.noHTML;
     this.data.noHTML = false;
     const {
+      annotationGlobals,
       evaluatorOptions,
       xref
     } = params;
@@ -50956,7 +51020,7 @@ class FreeTextAnnotation extends MarkupAnnotation {
       const {
         fontColor,
         fontSize
-      } = parseAppearanceStream(this.appearance, evaluatorOptions, xref);
+      } = parseAppearanceStream(this.appearance, evaluatorOptions, xref, annotationGlobals.globalColorSpaceCache);
       this.data.defaultAppearanceData.fontColor = fontColor;
       this.data.defaultAppearanceData.fontSize = fontSize || 10;
     } else {
@@ -54080,6 +54144,7 @@ class Page {
     fontCache,
     builtInCMapCache,
     standardFontDataCache,
+    globalColorSpaceCache,
     globalImageCache,
     systemFontCache,
     nonBlendModesSet,
@@ -54093,6 +54158,7 @@ class Page {
     this.fontCache = fontCache;
     this.builtInCMapCache = builtInCMapCache;
     this.standardFontDataCache = standardFontDataCache;
+    this.globalColorSpaceCache = globalColorSpaceCache;
     this.globalImageCache = globalImageCache;
     this.systemFontCache = systemFontCache;
     this.nonBlendModesSet = nonBlendModesSet;
@@ -54252,6 +54318,7 @@ class Page {
       fontCache: this.fontCache,
       builtInCMapCache: this.builtInCMapCache,
       standardFontDataCache: this.standardFontDataCache,
+      globalColorSpaceCache: this.globalColorSpaceCache,
       globalImageCache: this.globalImageCache,
       systemFontCache: this.systemFontCache,
       options: this.evaluatorOptions
@@ -54289,6 +54356,7 @@ class Page {
       fontCache: this.fontCache,
       builtInCMapCache: this.builtInCMapCache,
       standardFontDataCache: this.standardFontDataCache,
+      globalColorSpaceCache: this.globalColorSpaceCache,
       globalImageCache: this.globalImageCache,
       systemFontCache: this.systemFontCache,
       options: this.evaluatorOptions
@@ -54330,6 +54398,7 @@ class Page {
       fontCache: this.fontCache,
       builtInCMapCache: this.builtInCMapCache,
       standardFontDataCache: this.standardFontDataCache,
+      globalColorSpaceCache: this.globalColorSpaceCache,
       globalImageCache: this.globalImageCache,
       systemFontCache: this.systemFontCache,
       options: this.evaluatorOptions
@@ -54472,6 +54541,7 @@ class Page {
       fontCache: this.fontCache,
       builtInCMapCache: this.builtInCMapCache,
       standardFontDataCache: this.standardFontDataCache,
+      globalColorSpaceCache: this.globalColorSpaceCache,
       globalImageCache: this.globalImageCache,
       systemFontCache: this.systemFontCache,
       options: this.evaluatorOptions
@@ -54526,6 +54596,7 @@ class Page {
           fontCache: this.fontCache,
           builtInCMapCache: this.builtInCMapCache,
           standardFontDataCache: this.standardFontDataCache,
+          globalColorSpaceCache: this.globalColorSpaceCache,
           globalImageCache: this.globalImageCache,
           systemFontCache: this.systemFontCache,
           options: this.evaluatorOptions
@@ -55195,6 +55266,7 @@ class PDFDocument {
       fontCache: catalog.fontCache,
       builtInCMapCache: catalog.builtInCMapCache,
       standardFontDataCache: catalog.standardFontDataCache,
+      globalColorSpaceCache: catalog.globalColorSpaceCache,
       globalImageCache: catalog.globalImageCache,
       systemFontCache: catalog.systemFontCache,
       nonBlendModesSet: catalog.nonBlendModesSet,
@@ -55272,6 +55344,7 @@ class PDFDocument {
             fontCache: catalog.fontCache,
             builtInCMapCache: catalog.builtInCMapCache,
             standardFontDataCache: catalog.standardFontDataCache,
+            globalColorSpaceCache: this.globalColorSpaceCache,
             globalImageCache: catalog.globalImageCache,
             systemFontCache: catalog.systemFontCache,
             nonBlendModesSet: catalog.nonBlendModesSet,
@@ -56571,7 +56644,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.0.246";
+    const workerVersion = "5.0.264";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57103,8 +57176,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.0.246";
-const pdfjsBuild = "a4fea2daf";
+const pdfjsVersion = "5.0.264";
+const pdfjsBuild = "89ccc3a52";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

@@ -745,6 +745,10 @@ const defaultOptions = {
     value: 1,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
   },
+  viewerCssTheme: {
+    value: 0,
+    kind: OptionKind.VIEWER + OptionKind.PREFERENCE
+  },
   viewOnLoad: {
     value: 0,
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE
@@ -1492,6 +1496,7 @@ class BasePreferences {
     scrollModeOnLoad: -1,
     spreadModeOnLoad: -1,
     textLayerMode: 1,
+    viewerCssTheme: 0,
     viewOnLoad: 0,
     disableAutoFetch: false,
     disableFontFace: false,
@@ -6869,7 +6874,7 @@ class PDFPageView extends BasePDFPageView {
       const textLayerPromise = this.#renderTextLayer();
       if (this.annotationLayer) {
         await this.#renderAnnotationLayer();
-        if (this.#enableAutoLinking && this.annotationLayer) {
+        if (this.#enableAutoLinking && this.annotationLayer && this.textLayer) {
           await this.#injectLinkAnnotations(textLayerPromise);
         }
       }
@@ -7033,7 +7038,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.0.246";
+    const viewerVersion = "5.0.264";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -7614,6 +7619,7 @@ class PDFViewer {
     this.viewer.removeAttribute("lang");
     this.#hiddenCopyElement?.remove();
     this.#hiddenCopyElement = null;
+    this.#cleanupTimeouts();
     this.#cleanupSwitchAnnotationEditorMode();
   }
   #ensurePageViewVisible() {
@@ -8431,6 +8437,16 @@ class PDFViewer {
   get containerTopLeft() {
     return this.#containerTopLeft ||= [this.container.offsetTop, this.container.offsetLeft];
   }
+  #cleanupTimeouts() {
+    if (this.#scaleTimeoutId !== null) {
+      clearTimeout(this.#scaleTimeoutId);
+      this.#scaleTimeoutId = null;
+    }
+    if (this.#scrollTimeoutId !== null) {
+      clearTimeout(this.#scrollTimeoutId);
+      this.#scrollTimeoutId = null;
+    }
+  }
   #cleanupSwitchAnnotationEditorMode() {
     this.#switchAnnotationEditorModeAC?.abort();
     this.#switchAnnotationEditorModeAC = null;
@@ -8521,14 +8537,7 @@ class PDFViewer {
     for (const pageView of this._pages) {
       pageView.update(updateArgs);
     }
-    if (this.#scaleTimeoutId !== null) {
-      clearTimeout(this.#scaleTimeoutId);
-      this.#scaleTimeoutId = null;
-    }
-    if (this.#scrollTimeoutId !== null) {
-      clearTimeout(this.#scrollTimeoutId);
-      this.#scrollTimeoutId = null;
-    }
+    this.#cleanupTimeouts();
     if (!noUpdate) {
       this.update();
     }
@@ -8777,6 +8786,18 @@ const PDFViewerApplication = {
     if (AppOptions.get("pdfBugEnabled")) {
       await this._parseHashParams();
     }
+    let mode;
+    switch (AppOptions.get("viewerCssTheme")) {
+      case 1:
+        mode = "is-light";
+        break;
+      case 2:
+        mode = "is-dark";
+        break;
+    }
+    if (mode) {
+      document.documentElement.classList.add(mode);
+    }
     if (AppOptions.get("enableAltText")) {
       this.mlManager = new MLManager({
         enableGuessAltText: AppOptions.get("enableGuessAltText"),
@@ -8873,11 +8894,13 @@ const PDFViewerApplication = {
     const {
       appConfig,
       externalServices,
-      l10n
+      l10n,
+      mlManager
     } = this;
+    const abortSignal = this._globalAbortController.signal;
     const eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
     this.eventBus = AppOptions.eventBus = eventBus;
-    this.mlManager?.setEventBus(eventBus, this._globalAbortController.signal);
+    mlManager?.setEventBus(eventBus, abortSignal);
     this.overlayManager = new OverlayManager();
     const pdfRenderingQueue = new PDFRenderingQueue();
     pdfRenderingQueue.onIdle = this._cleanup.bind(this);
@@ -8918,7 +8941,7 @@ const PDFViewerApplication = {
     if (appConfig.editorUndoBar) {
       this.editorUndoBar = new EditorUndoBar(appConfig.editorUndoBar, eventBus);
     }
-    const signatureManager = AppOptions.get("enableSignatureEditor") && appConfig.addSignatureDialog ? new SignatureManager(appConfig.addSignatureDialog, appConfig.editSignatureDialog, appConfig.annotationEditorParams?.editorSignatureAddSignature || null, this.overlayManager, l10n, externalServices.createSignatureStorage(eventBus, this._globalAbortController.signal), eventBus) : null;
+    const signatureManager = AppOptions.get("enableSignatureEditor") && appConfig.addSignatureDialog ? new SignatureManager(appConfig.addSignatureDialog, appConfig.editSignatureDialog, appConfig.annotationEditorParams?.editorSignatureAddSignature || null, this.overlayManager, l10n, externalServices.createSignatureStorage(eventBus, abortSignal), eventBus) : null;
     const enableHWA = AppOptions.get("enableHWA");
     const pdfViewer = new PDFViewer({
       container,
@@ -8946,8 +8969,8 @@ const PDFViewerApplication = {
       enableDetailCanvas: AppOptions.get("enableDetailCanvas"),
       enablePermissions: AppOptions.get("enablePermissions"),
       pageColors,
-      mlManager: this.mlManager,
-      abortSignal: this._globalAbortController.signal,
+      mlManager,
+      abortSignal,
       enableHWA,
       supportsPinchToZoom: this.supportsPinchToZoom,
       enableAutoLinking: AppOptions.get("enableAutoLinking")
@@ -8963,7 +8986,7 @@ const PDFViewerApplication = {
         renderingQueue: pdfRenderingQueue,
         linkService: pdfLinkService,
         pageColors,
-        abortSignal: this._globalAbortController.signal,
+        abortSignal,
         enableHWA
       });
       pdfRenderingQueue.setThumbnailViewer(this.pdfThumbnailViewer);
@@ -8991,8 +9014,8 @@ const PDFViewerApplication = {
         }
       }
     }
-    if (this.mlManager && appConfig.secondaryToolbar?.imageAltTextSettingsButton) {
-      this.imageAltTextSettings = new ImageAltTextSettings(appConfig.altTextSettingsDialog, this.overlayManager, eventBus, this.mlManager);
+    if (mlManager && appConfig.secondaryToolbar?.imageAltTextSettingsButton) {
+      this.imageAltTextSettings = new ImageAltTextSettings(appConfig.altTextSettingsDialog, this.overlayManager, eventBus, mlManager);
     }
     if (appConfig.documentProperties) {
       this.pdfDocumentProperties = new PDFDocumentProperties(appConfig.documentProperties, this.overlayManager, eventBus, l10n, () => this._docFilename);
@@ -10546,8 +10569,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.0.246";
-const pdfjsBuild = "a4fea2daf";
+const pdfjsVersion = "5.0.264";
+const pdfjsBuild = "89ccc3a52";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

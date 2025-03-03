@@ -54,5 +54,6 @@ pref("pdfjs.sidebarViewOnLoad", -1);
 pref("pdfjs.spreadModeOnLoad", -1);
 pref("pdfjs.textLayerMode", 1);
 pref("pdfjs.viewOnLoad", 0);
+pref("pdfjs.viewerCssTheme", 0);
 
 #include PdfJsOverridePrefs.js
