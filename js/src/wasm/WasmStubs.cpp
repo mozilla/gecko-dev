@@ -1892,8 +1892,7 @@ static bool AddStackCheckForImportFunctionEntry(jit::MacroAssembler& masm,
   // In debug builds, we'll always have a stack map, even if there are no
   // refs to track.
   MOZ_ASSERT(stackMap);
-  if (stackMap &&
-      !stackMaps->add(trapInsnOffset.offset(), stackMap)) {
+  if (stackMap && !stackMaps->add(trapInsnOffset.offset(), stackMap)) {
     stackMap->destroy();
     return false;
   }

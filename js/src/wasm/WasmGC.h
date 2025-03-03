@@ -247,29 +247,28 @@ struct StackMap final {
 static_assert(sizeof(StackMap) == 12, "wasm::StackMap has unexpected size");
 
 // A map from an offset relative to the beginning of a code block to a StackMap
-using StackMapHashMap = HashMap<uint32_t, StackMap*, DefaultHasher<uint32_t>, SystemAllocPolicy>;
+using StackMapHashMap =
+    HashMap<uint32_t, StackMap*, DefaultHasher<uint32_t>, SystemAllocPolicy>;
 
 class StackMaps {
-private:
- // Map for finding a stack map at a specific code offset.
- StackMapHashMap mapping_;
+ private:
+  // Map for finding a stack map at a specific code offset.
+  StackMapHashMap mapping_;
 
-public:
- StackMaps() {}
- ~StackMaps() {
-   for (auto iter = mapping_.modIter(); !iter.done(); iter.next()) {
-     StackMap* stackmap = iter.getMutable().value();
-     stackmap->destroy();
-   }
-   mapping_.clear();
+ public:
+  StackMaps() {}
+  ~StackMaps() {
+    for (auto iter = mapping_.modIter(); !iter.done(); iter.next()) {
+      StackMap* stackmap = iter.getMutable().value();
+      stackmap->destroy();
+    }
+    mapping_.clear();
   }
 
   [[nodiscard]] bool add(uint32_t codeOffset, StackMap* map) {
     return mapping_.put(codeOffset, map);
   }
-  void clear() {
-    mapping_.clear();
-  }
+  void clear() { mapping_.clear(); }
   bool empty() const { return mapping_.empty(); }
   // Return the number of stack maps contained in this.
   size_t length() const { return mapping_.count(); }
