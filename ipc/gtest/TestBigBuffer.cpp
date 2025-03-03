@@ -60,7 +60,9 @@ TEST(BigBuffer, SmallSize)
 
 TEST(BigBuffer, BigSize)
 {
-  size_t size = BigBuffer::kShmemThreshold * 2;
+  // Use something that's unlikely to be a multiple of the page size to ensure
+  // that the requested size is retained (versus the allocated shmem size).
+  size_t size = BigBuffer::kShmemThreshold * 2 + 41;
   // Generate a large block of random data which will be serialized in a shmem.
   nsTArray<uint8_t> data(size);
   for (size_t i = 0; i < size; ++i) {
@@ -69,7 +71,7 @@ TEST(BigBuffer, BigSize)
   BigBuffer in{Span(data)};
   EXPECT_NE(in.GetSharedMemory(), nullptr);
   EXPECT_EQ(in.Size(), size);
-  EXPECT_EQ(in.GetSharedMemory()->Memory(), in.Data());
+  EXPECT_EQ(in.GetSharedMemory()->DataAs<uint8_t>(), in.Data());
 
   BigBuffer out;
   ASSERT_TRUE(SerializeAndDeserialize(std::move(in), &out));
@@ -78,7 +80,7 @@ TEST(BigBuffer, BigSize)
   EXPECT_EQ(in.Size(), 0u);
   EXPECT_NE(out.GetSharedMemory(), nullptr);
   EXPECT_EQ(out.Size(), size);
-  EXPECT_EQ(out.GetSharedMemory()->Memory(), out.Data());
+  EXPECT_EQ(out.GetSharedMemory()->DataAs<uint8_t>(), out.Data());
 
   EXPECT_TRUE(out.AsSpan() == Span(data));
 }
