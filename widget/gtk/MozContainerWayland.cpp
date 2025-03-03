@@ -239,8 +239,7 @@ static bool moz_container_wayland_ensure_surface(MozContainer* container,
     subsurfacePosition = gfx::IntPoint(x, y);
   }
 
-  if (!surface->MapLocked(lock, parentSurface, subsurfacePosition,
-                          MOZ_WL_CONTAINER(container)->commit_to_parent)) {
+  if (!surface->MapLocked(lock, parentSurface, subsurfacePosition)) {
     return false;
   }
 
@@ -332,15 +331,6 @@ gboolean moz_container_wayland_can_draw(MozContainer* container) {
 double moz_container_wayland_get_scale(MozContainer* container) {
   nsWindow* window = moz_container_get_nsWindow(container);
   return window ? window->FractionalScaleFactor() : 1.0;
-}
-
-void moz_container_wayland_set_commit_to_parent(MozContainer* container) {
-  MOZ_DIAGNOSTIC_ASSERT(!MOZ_WL_SURFACE(container)->IsMapped());
-  MOZ_WL_CONTAINER(container)->commit_to_parent = true;
-}
-
-bool moz_container_wayland_is_commiting_to_parent(MozContainer* container) {
-  return MOZ_WL_CONTAINER(container)->commit_to_parent;
 }
 
 bool moz_container_wayland_is_waiting_to_show(MozContainer* container) {

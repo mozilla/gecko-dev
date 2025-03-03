@@ -43,7 +43,6 @@ struct MozContainerWayland {
       : mSurface(aSurface) {}
 
   RefPtr<mozilla::widget::WaylandSurface> mSurface;
-  gboolean commit_to_parent = false;
   gboolean opaque_region_needs_updates = false;
   gboolean before_first_size_alloc = false;
   gboolean waiting_to_show = false;
@@ -65,8 +64,6 @@ wl_surface* moz_gtk_widget_get_wl_surface(GtkWidget* aWidget);
 void moz_container_wayland_update_opaque_region(MozContainer* container);
 gboolean moz_container_wayland_can_draw(MozContainer* container);
 double moz_container_wayland_get_scale(MozContainer* container);
-void moz_container_wayland_set_commit_to_parent(MozContainer* container);
-bool moz_container_wayland_is_commiting_to_parent(MozContainer* container);
 bool moz_container_wayland_is_waiting_to_show(MozContainer* container);
 void moz_container_wayland_clear_waiting_to_show_flag(MozContainer* container);
 
