@@ -1215,22 +1215,22 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   }
 }
 
-.searchmode-switcher-addEngine::before {
-  content: "";
-  position: relative;
-  display: flex;
-  background: url(chrome://browser/skin/search-indicator-badge-add.svg) no-repeat center;
-  height: 11px;
-  width: 11px;
-  margin-inline: 10px -21px;
-  margin-top: -13px;
-}
-
 #searchmode-switcher-popup {
   --panel-padding: 4px 0;
 
   > menuitem {
     margin-inline: 4px;
+
+    &.searchmode-switcher-addEngine::before {
+      content: "";
+      position: relative;
+      display: flex;
+      background: url(chrome://browser/skin/search-indicator-badge-add.svg) no-repeat center;
+      height: 11px;
+      width: 11px;
+      margin-inline: 10px -21px;
+      margin-top: -13px;
+    }
   }
 }
 
