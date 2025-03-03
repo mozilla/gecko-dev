@@ -619,6 +619,15 @@ features:
         type: Boolean
         default: false
 
+  top-sites-suggestions:
+    description: Enables top sites suggestions.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable top sites suggestions.
+        type: Boolean
+        default: false
+
   search-suggestions-on-homepage:
     description: Enables search suggestions on homepage.
     variables:
