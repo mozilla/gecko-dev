@@ -16,6 +16,11 @@ gdbg.executeInGlobal(`
 // Built-in native function.
 [1, 2, 3].map(Array.prototype.push, Array.prototype);
 
+// Built-in native function with non-optimized species lookup in 'map'.
+var arr = [1, 2, 3];
+Object.setPrototypeOf(arr, Object.create(Array.prototype));
+arr.map(Array.prototype.push, Array.prototype);
+
 // Self-hosted function.
 [1, 2, 3].map(String.prototype.padStart, "");
 
@@ -26,9 +31,10 @@ gdbg.executeInGlobal(`
 "abc".match(/a./);
 `);
 assertEqArray(rv, [
-  "map", "get [Symbol.species]", "push", "push", "push",
-  "map", "get [Symbol.species]", "padStart", "padStart", "padStart",
-  "map", "get [Symbol.species]", "dateNow", "dateNow", "dateNow",
+  "map", "push", "push", "push",
+  "create", "setPrototypeOf", "map", "get [Symbol.species]", "push", "push", "push",
+  "map", "padStart", "padStart", "padStart",
+  "map", "dateNow", "dateNow", "dateNow",
   "match", "[Symbol.match]",
 ]);
 

@@ -1124,6 +1124,30 @@ static MOZ_ALWAYS_INLINE bool IsArraySpecies(JSContext* cx,
   return IsSelfHostedFunctionWithName(getter, cx->names().dollar_ArraySpecies_);
 }
 
+bool js::intrinsic_CanOptimizeArraySpecies(JSContext* cx, unsigned argc,
+                                           Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+
+  JSObject* obj = &args[0].toObject();
+
+  // Return `true` if this is a plain array with the original array shape and
+  // an intact array-species fuse. This is the case for at least 98% of all
+  // calls on Speedometer 3 and JetStream 2. This condition is also simple
+  // enough to inline efficiently in JIT code.
+  //
+  // The shape check implies:
+  // - The object is an array object.
+  // - The array belongs to the current realm.
+  // - The array has (the current realm's) `Array.prototype` as prototype.
+  // - The array does not define an own `constructor` property.
+  bool optimizable =
+      obj->shape() == cx->global()->maybeArrayShapeWithDefaultProto() &&
+      cx->realm()->realmFuses.optimizeArraySpeciesFuse.intact();
+  args.rval().setBoolean(optimizable);
+  return true;
+}
+
 static bool ArraySpeciesCreate(JSContext* cx, HandleObject origArray,
                                uint64_t length, MutableHandleObject arr) {
   MOZ_ASSERT(length < DOUBLE_INTEGRAL_PRECISION_LIMIT);

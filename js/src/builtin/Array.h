@@ -181,6 +181,8 @@ extern ArraySortResult ArraySortFromJit(
 
 bool IsArrayConstructor(const JSObject* obj);
 
+bool intrinsic_CanOptimizeArraySpecies(JSContext* cx, unsigned argc, Value* vp);
+
 } /* namespace js */
 
 #endif /* builtin_Array_h */
