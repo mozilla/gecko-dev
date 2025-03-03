@@ -808,7 +808,8 @@ void nsWindow::RegisterTouchWindow() {
 
 LayoutDeviceIntPoint nsWindow::GetScreenEdgeSlop() {
   if (DrawsToCSDTitlebar()) {
-    return GetClientOffset();
+    return {std::max(mClientMargin.left, mClientMargin.right),
+            std::max(mClientMargin.top, mClientMargin.bottom)};
   }
   return {};
 }
