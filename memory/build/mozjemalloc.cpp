@@ -635,7 +635,7 @@ END_GLOBALS
 static const size_t gRecycleLimit = 128_MiB;
 
 // The current amount of recycled bytes, updated atomically.
-static Atomic<size_t, ReleaseAcquire> gRecycledSize;
+static Atomic<size_t> gRecycledSize;
 
 // Maximum number of dirty pages per arena.
 #define DIRTY_MAX_DEFAULT (1U << 8)
