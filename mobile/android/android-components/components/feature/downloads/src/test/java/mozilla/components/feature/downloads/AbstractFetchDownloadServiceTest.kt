@@ -767,6 +767,23 @@ class AbstractFetchDownloadServiceTest {
     }
 
     @Test
+    fun `WHEN a failed download is tried again, created time is updated`() =
+        runTest(testsDispatcher) {
+            val downloadId = "cakes"
+            val downloadJobState = DownloadJobState(
+                state = DownloadState(url = "", id = downloadId),
+                status = FAILED,
+                createdTime = 0,
+            )
+            service.downloadJobs[downloadId] = downloadJobState
+            val tryAgainIntent = Intent(ACTION_TRY_AGAIN).apply {
+                putExtra(DownloadNotification.EXTRA_DOWNLOAD_ID, downloadId)
+            }
+            service.broadcastReceiver.onReceive(testContext, tryAgainIntent)
+            assertTrue(downloadJobState.createdTime > 0)
+        }
+
+    @Test
     fun `onStartCommand must change status of INITIATED downloads to DOWNLOADING`() = runTest(testsDispatcher) {
         val download = DownloadState("https://example.com/file.txt", "file.txt", status = INITIATED)
 
