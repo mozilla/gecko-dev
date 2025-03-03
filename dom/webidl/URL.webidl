@@ -51,6 +51,10 @@ partial interface URL {
   static UTF8String createObjectURL((Blob or MediaSource) obj);
   [Throws]
   static undefined revokeObjectURL(UTF8String url);
+};
+
+[Exposed=(Window,DedicatedWorker,SharedWorker)]
+partial interface URL {
   [ChromeOnly, Throws]
-  static boolean isValidObjectURL(UTF8String url);
+  static boolean isBoundToBlob(UTF8String url);
 };

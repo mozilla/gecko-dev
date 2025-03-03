@@ -65,8 +65,8 @@ class URL final : public URLSearchParamsObserver, public nsWrapperCache {
   static void RevokeObjectURL(const GlobalObject& aGlobal,
                               const nsACString& aURL, ErrorResult& aRv);
 
-  static bool IsValidObjectURL(const GlobalObject& aGlobal,
-                               const nsACString& aURL, ErrorResult& aRv);
+  static bool IsBoundToBlob(const GlobalObject& aGlobal, const nsACString& aURL,
+                            ErrorResult& aRv);
 
   static already_AddRefed<URL> Parse(const GlobalObject& aGlobal,
                                      const nsACString& aURL,

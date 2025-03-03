@@ -712,10 +712,15 @@ void BlobURLProtocolHandler::RemoveDataEntries() {
 }
 
 /* static */
-bool BlobURLProtocolHandler::HasDataEntry(const nsACString& aUri) {
+bool BlobURLProtocolHandler::HasDataEntryTypeBlob(const nsACString& aUri) {
   MOZ_ASSERT(NS_IsMainThread(),
              "without locking gDataTable is main-thread only");
-  return !!GetDataInfo(aUri);
+  DataInfo* info = GetDataInfo(aUri);
+  if (!info) {
+    return false;
+  }
+
+  return info->mObjectType == DataInfo::eBlobImpl;
 }
 
 /* static */

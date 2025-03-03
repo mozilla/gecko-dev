@@ -104,12 +104,12 @@ void URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsACString& aURL,
   }
 }
 
-bool URL::IsValidObjectURL(const GlobalObject& aGlobal, const nsACString& aURL,
-                           ErrorResult& aRv) {
+bool URL::IsBoundToBlob(const GlobalObject& aGlobal, const nsACString& aURL,
+                        ErrorResult& aRv) {
   if (NS_IsMainThread()) {
-    return URLMainThread::IsValidObjectURL(aGlobal, aURL, aRv);
+    return URLMainThread::IsBoundToBlob(aGlobal, aURL, aRv);
   }
-  return URLWorker::IsValidObjectURL(aGlobal, aURL, aRv);
+  return URLWorker::IsBoundToBlob(aGlobal, aURL, aRv);
 }
 
 already_AddRefed<nsIURI> URL::ParseURI(const nsACString& aURL,

@@ -366,6 +366,7 @@ add_task(async function register_and_update_all_values() {
   const blobUrls = currentJsPaths.filter(url => url.startsWith("blob:"));
   for (const blobUrl of blobUrls) {
     info(`Confirming that the URLs are resolved`);
+    equal(URL.isBoundToBlob(blobUrl), true, `Valid URL: ${blobUrl}`);
     let res = await fetch(blobUrl);
     let txt = await res.text();
     // We are just doing a prefix check here as a sanity check. The main thing
@@ -376,14 +377,14 @@ add_task(async function register_and_update_all_values() {
   await extension.unload();
 
   for (const blobUrl of blobUrls) {
-    equal(URL.isValidObjectURL(blobUrl), false, `Revoked URL: ${blobUrl}`);
+    equal(URL.isBoundToBlob(blobUrl), false, `Revoked URL: ${blobUrl}`);
     if (AppConstants.platform == "android") {
       // On Android, unlike desktop, revoked blob:-URLs can still be loaded by
       // the system principal: https://searchfox.org/mozilla-central/rev/fcf53e1685bfb990b5abc7312ac1daf617f0991f/dom/file/uri/BlobURLChannel.cpp#62-69
       // The rationale for that logic is at https://bugzilla.mozilla.org/show_bug.cgi?id=1432949
       // The URL will eventually be revoked (after 5 seconds), but we are not
       // going to pause the test for 5 seconds, and instead rely on the
-      // isValidObjectURL check above.
+      // isBoundToBlob check above.
       continue;
     }
     await Assert.rejects(

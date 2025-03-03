@@ -34,8 +34,8 @@ class URLWorker final {
                               nsACString& aResult, mozilla::ErrorResult& aRv);
   static void RevokeObjectURL(const GlobalObject& aGlobal,
                               const nsACString& aUrl, ErrorResult& aRv);
-  static bool IsValidObjectURL(const GlobalObject& aGlobal,
-                               const nsACString& aUrl, ErrorResult& aRv);
+  static bool IsBoundToBlob(const GlobalObject& aGlobal, const nsACString& aURL,
+                            ErrorResult& aRv);
 };
 
 }  // namespace dom

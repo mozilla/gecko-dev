@@ -479,7 +479,7 @@ export class ContextMenuChild extends JSWindowActorChild {
 
   _isMediaURLReusable(aURL) {
     if (aURL.startsWith("blob:")) {
-      return URL.isValidObjectURL(aURL);
+      return URL.isBoundToBlob(aURL);
     }
 
     return true;
