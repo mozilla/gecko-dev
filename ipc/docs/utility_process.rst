@@ -2,9 +2,7 @@ Utility Process
 ===============
 
 .. warning::
-  As of january 2022, this process is under heavy work, and many things can
-  evolve. Documentation might not always be as accurate as it should be.
-  Please reach to #ipc if you intent to add a new utility.
+  Please reach out to #ipc on https://chat.mozilla.org/ if you intent to add a new utility.
 
 The utility process is used to provide a simple way to implement IPC actor with
 some more specific sandboxing properties, in case where you don't need or want
@@ -30,17 +28,17 @@ implementing the trivial example visible in `EmptyUtil
     performing the heavy lifting of starting your process, you can take
     inspiration from ``StartEmptyUtil()`` in the sample.
 
-  - Ideally, this starting method should rely on `StartUtility() <https://searchfox.org/mozilla-central/rev/fb511723f821ceabeea23b123f1c50c9e93bde9d/ipc/glue/UtilityProcessManager.cpp#210-258,266>`_
+  - Ideally, this starting method should rely on `StartUtility() <https://searchfox.org/mozilla-central/rev/f9f9b422f685244dcd3f6826b70d34a496ce5853/ipc/glue/UtilityProcessManager.cpp#238-318,347>`_
 
   - To use ``StartUtility()`` mentioned above, please ensure that you provide
     a ``nsresult BindToUtilityProcess(RefPtr<UtilityProcessParent>
     aUtilityParent)``. Usually, it should be in charge of creating a set of
-    endpoints and performing ``Bind()`` to setup the IPC. You can see some example for `Utility AudioDecoder <https://searchfox.org/mozilla-central/rev/4b3039b48c3cb67774270ebcc2a7d8624d888092/ipc/glue/UtilityAudioDecoderChild.h#31-51>`_
+    endpoints and performing ``Bind()`` to setup the IPC. You can see some example for `Utility AudioDecoder <https://searchfox.org/mozilla-central/rev/f9f9b422f685244dcd3f6826b70d34a496ce5853/ipc/glue/UtilityAudioDecoderChild.cpp#60-92>`_
 
   - For proper user-facing exposition in ``about:processes`` you will have to also provide an actor
     name via a method ``UtilityActorName GetActorName() { return UtilityActorName::EmptyUtil; }``
 
-    + Add member within `enum WebIDLUtilityActorName in <https://searchfox.org/mozilla-central/rev/fb511723f821ceabeea23b123f1c50c9e93bde9d/dom/chrome-webidl/ChromeUtils.webidl#686-689>`_
+    + Add member within `enum WebIDLUtilityActorName in <https://searchfox.org/mozilla-central/rev/f9f9b422f685244dcd3f6826b70d34a496ce5853/dom/chrome-webidl/ChromeUtils.webidl#852-866>`_
 
   - Handle reception of ``StartEmptyUtilService`` on the child side of
     ``UtilityProcess`` within ``RecvStartEmptyUtilService()``
@@ -67,3 +65,5 @@ implementing the trivial example visible in `EmptyUtil
 
     + ``SandboxTestingChild`` to run your test
       `<https://searchfox.org/mozilla-central/source/security/sandbox/common/test/SandboxTestingChild.cpp>`_
+
+  - Please also consider having a look at :ref:`Process Bookkeeping <process-bookkeeping>` for anything you may want to ensure is supported by your new process, like e.g. profiler, crash reporting, etc.

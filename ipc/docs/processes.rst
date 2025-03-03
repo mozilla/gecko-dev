@@ -212,6 +212,7 @@ integrate them with Gecko.
 
 Process Bookkeeping
 ~~~~~~~~~~~~~~~~~~~
+.. _process-bookkeeping:
 
 To begin with, look at the `geckoprocesstypes generator
 <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/xpcom/geckoprocesstypes_generator/geckoprocesstypes/__init__.py>`_
