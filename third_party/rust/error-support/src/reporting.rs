@@ -4,6 +4,7 @@
 
 use parking_lot::RwLock;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{Arc, Mutex};
 
 /// Counter for breadcrumb messages
 ///
@@ -68,4 +69,60 @@ pub fn report_breadcrumb(message: String, module: String, line: u32, column: u32
     APPLICATION_ERROR_REPORTER
         .read()
         .report_breadcrumb(message, module, line, column);
+}
+
+// Test error reporter that captures reported errors
+// You should use this when you want to validate that `report_error` actually reports what you
+// epect and
+#[derive(Default)]
+pub struct TestErrorReporter {
+    errors: Mutex<Vec<(String, String)>>,
+}
+
+impl TestErrorReporter {
+    pub fn new() -> Self {
+        Self {
+            errors: Mutex::new(Vec::new()),
+        }
+    }
+
+    pub fn get_errors(&self) -> Vec<(String, String)> {
+        self.errors.lock().unwrap().clone()
+    }
+}
+
+impl ApplicationErrorReporter for TestErrorReporter {
+    fn report_error(&self, type_name: String, message: String) {
+        if let Ok(mut errors) = self.errors.lock() {
+            errors.push((type_name, message));
+        }
+    }
+
+    fn report_breadcrumb(&self, _message: String, _module: String, _line: u32, _column: u32) {}
+}
+
+/// An adapter that implements `ApplicationErrorReporter` and
+/// delegates all calls to an `Arc<TestErrorReporter>`.
+///
+/// Because `set_application_error_reporter` requires a
+/// `Box<dyn ApplicationErrorReporter>`, we can't directly pass
+/// an `Arc<TestErrorReporter>`; this adapter solves the mismatch.
+pub struct ArcReporterAdapter {
+    inner: Arc<TestErrorReporter>,
+}
+
+impl ArcReporterAdapter {
+    pub fn new(inner: Arc<TestErrorReporter>) -> Self {
+        Self { inner }
+    }
+}
+
+impl ApplicationErrorReporter for ArcReporterAdapter {
+    fn report_error(&self, type_name: String, message: String) {
+        self.inner.report_error(type_name, message)
+    }
+
+    fn report_breadcrumb(&self, message: String, module: String, line: u32, column: u32) {
+        self.inner.report_breadcrumb(message, module, line, column)
+    }
 }

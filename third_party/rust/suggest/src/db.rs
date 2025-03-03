@@ -11,9 +11,9 @@ use remote_settings::RemoteSettingsResponse;
 use rusqlite::{
     named_params,
     types::{FromSql, ToSql},
-    Connection, OpenFlags, OptionalExtension,
+    Connection, OptionalExtension,
 };
-use sql_support::{open_database::open_database_with_flags, repeat_sql_vars, ConnExt};
+use sql_support::{open_database, repeat_sql_vars, ConnExt};
 
 use crate::{
     config::{SuggestGlobalConfig, SuggestProviderConfig},
@@ -53,24 +53,6 @@ pub(crate) enum ConnectionType {
     ReadWrite,
 }
 
-impl From<ConnectionType> for OpenFlags {
-    fn from(type_: ConnectionType) -> Self {
-        match type_ {
-            ConnectionType::ReadOnly => {
-                OpenFlags::SQLITE_OPEN_URI
-                    | OpenFlags::SQLITE_OPEN_NO_MUTEX
-                    | OpenFlags::SQLITE_OPEN_READ_ONLY
-            }
-            ConnectionType::ReadWrite => {
-                OpenFlags::SQLITE_OPEN_URI
-                    | OpenFlags::SQLITE_OPEN_NO_MUTEX
-                    | OpenFlags::SQLITE_OPEN_CREATE
-                    | OpenFlags::SQLITE_OPEN_READ_WRITE
-            }
-        }
-    }
-}
-
 #[derive(Default, Clone)]
 pub struct Sqlite3Extension {
     pub library: String,
@@ -98,9 +80,12 @@ impl SuggestDb {
         extensions_to_load: &[Sqlite3Extension],
         type_: ConnectionType,
     ) -> Result<Self> {
-        let conn = open_database_with_flags(
+        let conn = open_database::open_database_with_flags(
             path,
-            type_.into(),
+            match type_ {
+                ConnectionType::ReadWrite => open_database::read_write_flags(),
+                ConnectionType::ReadOnly => open_database::read_only_flags(),
+            },
             &SuggestConnectionInitializer::new(extensions_to_load),
         )?;
         Ok(Self::with_connection(conn))

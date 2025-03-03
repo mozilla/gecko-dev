@@ -10,7 +10,7 @@
 
 use url::Url;
 
-use crate::{ApiResult, Error, Result};
+use crate::{ApiResult, Error, RemoteSettingsContext, Result};
 
 /// Remote settings configuration
 ///
@@ -25,6 +25,9 @@ pub struct RemoteSettingsConfig2 {
     /// Bucket name to use, defaults to "main".  Use "main-preview" for a preview bucket
     #[uniffi(default = None)]
     pub bucket_name: Option<String>,
+    /// App context to use for JEXL filtering (when the `jexl` feature is present).
+    #[uniffi(default = None)]
+    pub app_context: Option<RemoteSettingsContext>,
 }
 
 /// Custom configuration for the client.

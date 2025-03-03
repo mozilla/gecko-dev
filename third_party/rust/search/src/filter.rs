@@ -10,6 +10,8 @@ use crate::{
     JSONEngineUrls, JSONEngineVariant, JSONSearchConfigurationRecords, RefinedSearchConfig,
     SearchEngineDefinition, SearchEngineUrl, SearchEngineUrls, SearchUserEnvironment,
 };
+use crate::{sort_helpers, JSONEngineOrdersRecord};
+use remote_settings::RemoteSettingsRecord;
 
 impl From<JSONEngineUrl> for SearchEngineUrl {
     fn from(url: JSONEngineUrl) -> Self {
@@ -22,17 +24,19 @@ impl From<JSONEngineUrl> for SearchEngineUrl {
     }
 }
 
-impl JSONEngineUrl {
-    /// Merges two `JSONEngineUrl` objects, preferring the values from the
-    /// `preferred` object.
-    fn merge(original: Self, preferred: Self) -> Self {
-        Self {
-            base: preferred.base.or(original.base),
-            method: preferred.method.or(original.method),
-            params: preferred.params.or(original.params),
-            search_term_param_name: preferred
-                .search_term_param_name
-                .or(original.search_term_param_name),
+impl SearchEngineUrl {
+    fn merge(&mut self, preferred: &JSONEngineUrl) {
+        if let Some(base) = &preferred.base {
+            self.base = base.clone();
+        }
+        if let Some(method) = &preferred.method {
+            self.method = method.as_str().to_string();
+        }
+        if let Some(params) = &preferred.params {
+            self.params = params.clone();
+        }
+        if let Some(search_term_param_name) = &preferred.search_term_param_name {
+            self.search_term_param_name = Some(search_term_param_name.clone());
         }
     }
 }
@@ -40,53 +44,63 @@ impl JSONEngineUrl {
 impl From<JSONEngineUrls> for SearchEngineUrls {
     fn from(urls: JSONEngineUrls) -> Self {
         Self {
-            search: urls.search.into(),
+            search: urls.search.unwrap_or_default().into(),
             suggestions: urls.suggestions.map(|suggestions| suggestions.into()),
             trending: urls.trending.map(|trending| trending.into()),
+            search_form: urls.search_form.map(|search_form| search_form.into()),
         }
     }
 }
 
-impl JSONEngineUrls {
-    fn maybe_merge_urls(
-        original_url: Option<JSONEngineUrl>,
-        preferred_url: Option<JSONEngineUrl>,
-    ) -> Option<JSONEngineUrl> {
-        match (&original_url, &preferred_url) {
-            (Some(original), Some(preferred)) => {
-                Some(JSONEngineUrl::merge(original.clone(), preferred.clone()))
-            }
-            (None, Some(preferred)) => Some(preferred.clone()),
-            _ => original_url.clone(),
+impl SearchEngineUrls {
+    fn merge(&mut self, preferred: &JSONEngineUrls) {
+        if let Some(search_url) = &preferred.search {
+            self.search.merge(search_url);
         }
-    }
-
-    /// Merges two `JSONEngineUrl` objects, preferring the values from the
-    /// `preferred` object.
-    fn merge(original: Self, preferred: JSONEngineUrls) -> Self {
-        Self {
-            search: JSONEngineUrl::merge(original.search, preferred.search),
-            suggestions: JSONEngineUrls::maybe_merge_urls(
-                original.suggestions,
-                preferred.suggestions,
-            ),
-            trending: JSONEngineUrls::maybe_merge_urls(original.trending, preferred.trending),
+        if let Some(suggestions_url) = &preferred.suggestions {
+            match &mut self.suggestions {
+                Some(suggestion) => suggestion.merge(suggestions_url),
+                None => self.suggestions = Some(suggestions_url.clone().into()),
+            };
+        }
+        if let Some(trending_url) = &preferred.trending {
+            match &mut self.trending {
+                Some(trend) => trend.merge(trending_url),
+                None => self.trending = Some(trending_url.clone().into()),
+            };
+        }
+        if let Some(search_form_url) = &preferred.search_form {
+            match &mut self.search_form {
+                Some(search_form) => search_form.merge(search_form_url),
+                None => self.search_form = Some(search_form_url.clone().into()),
+            };
         }
     }
 }
 
 impl SearchEngineDefinition {
+    fn merge_variant(&mut self, variant: &JSONEngineVariant) {
+        if !self.optional {
+            self.optional = variant.optional;
+        }
+        if let Some(partner_code) = &variant.partner_code {
+            self.partner_code = partner_code.clone();
+        }
+        if let Some(telemetry_suffix) = &variant.telemetry_suffix {
+            self.telemetry_suffix = telemetry_suffix.clone();
+        }
+        if let Some(urls) = &variant.urls {
+            self.urls.merge(urls);
+        }
+    }
+
     pub(crate) fn from_configuration_details(
         identifier: &str,
         base: JSONEngineBase,
-        variant: JSONEngineVariant,
+        variant: &JSONEngineVariant,
+        sub_variant: &Option<JSONEngineVariant>,
     ) -> SearchEngineDefinition {
-        let urls: JSONEngineUrls = match variant.urls {
-            Some(urls) => JSONEngineUrls::merge(base.urls, urls),
-            None => base.urls,
-        };
-
-        SearchEngineDefinition {
+        let mut engine_definition = SearchEngineDefinition {
             aliases: base.aliases.unwrap_or_default(),
             charset: base.charset.unwrap_or_else(|| "UTF-8".to_string()),
             classification: base.classification,
@@ -94,54 +108,154 @@ impl SearchEngineDefinition {
             name: base.name,
             optional: variant.optional,
             order_hint: None,
-            partner_code: variant
-                .partner_code
-                .or(base.partner_code)
-                .unwrap_or_default(),
-            telemetry_suffix: variant.telemetry_suffix,
-            urls: urls.into(),
+            partner_code: base.partner_code.unwrap_or_default(),
+            telemetry_suffix: String::new(),
+            urls: base.urls.into(),
+        };
+
+        engine_definition.merge_variant(variant);
+        if let Some(sub_variant) = sub_variant {
+            engine_definition.merge_variant(sub_variant);
         }
+
+        engine_definition
     }
 }
 
-pub(crate) fn filter_engine_configuration(
-    user_environment: SearchUserEnvironment,
-    configuration: Vec<JSONSearchConfigurationRecords>,
-) -> Result<RefinedSearchConfig, Error> {
-    let mut engines = Vec::new();
+pub(crate) struct FilterRecordsResult {
+    engines: Vec<SearchEngineDefinition>,
+    default_engines_record: Option<JSONDefaultEnginesRecord>,
+    engine_orders_record: Option<JSONEngineOrdersRecord>,
+}
 
+pub(crate) trait Filter {
+    fn filter_records(
+        &self,
+        user_environment: &SearchUserEnvironment,
+    ) -> Result<FilterRecordsResult, Error>;
+}
+
+impl Filter for Vec<RemoteSettingsRecord> {
+    fn filter_records(
+        &self,
+        user_environment: &SearchUserEnvironment,
+    ) -> Result<FilterRecordsResult, Error> {
+        let mut engines = Vec::new();
+        let mut default_engines_record = None;
+        let mut engine_orders_record = None;
+
+        for record in self {
+            // TODO: Bug 1947241 - Find a way to avoid having to serialise the records
+            // back to strings and then deserilise them into the records that we want.
+            let stringified = serde_json::to_string(&record.fields)?;
+            match record.fields.get("recordType") {
+                Some(val) if *val == "engine" => {
+                    let engine_config: Option<JSONEngineRecord> =
+                        serde_json::from_str(&stringified)?;
+                    if let Some(engine_config) = engine_config {
+                        let result =
+                            maybe_extract_engine_config(user_environment, Box::new(engine_config));
+                        engines.extend(result);
+                    }
+                }
+                Some(val) if *val == "defaultEngines" => {
+                    default_engines_record = serde_json::from_str(&stringified)?;
+                }
+                Some(val) if *val == "engineOrders" => {
+                    engine_orders_record = serde_json::from_str(&stringified)?;
+                }
+                // These cases are acceptable - we expect the potential for new
+                // record types/options so that we can be flexible.
+                Some(_val) => {}
+                None => {}
+            }
+        }
+
+        Ok(FilterRecordsResult {
+            engines,
+            default_engines_record,
+            engine_orders_record,
+        })
+    }
+}
+
+impl Filter for Vec<JSONSearchConfigurationRecords> {
+    fn filter_records(
+        &self,
+        user_environment: &SearchUserEnvironment,
+    ) -> Result<FilterRecordsResult, Error> {
+        let mut engines = Vec::new();
+        let mut default_engines_record = None;
+        let mut engine_orders_record = None;
+
+        for record in self {
+            match record {
+                JSONSearchConfigurationRecords::Engine(engine) => {
+                    let result = maybe_extract_engine_config(user_environment, engine.clone());
+                    engines.extend(result);
+                }
+                JSONSearchConfigurationRecords::DefaultEngines(default_engines) => {
+                    default_engines_record = Some(default_engines);
+                }
+                JSONSearchConfigurationRecords::EngineOrders(engine_orders) => {
+                    engine_orders_record = Some(engine_orders)
+                }
+                JSONSearchConfigurationRecords::Unknown => {
+                    // Prevents panics if a new record type is added in future.
+                }
+            }
+        }
+
+        Ok(FilterRecordsResult {
+            engines,
+            default_engines_record: default_engines_record.cloned(),
+            engine_orders_record: engine_orders_record.cloned(),
+        })
+    }
+}
+
+pub(crate) fn filter_engine_configuration_impl(
+    user_environment: SearchUserEnvironment,
+    configuration: &impl Filter,
+) -> Result<RefinedSearchConfig, Error> {
     let mut user_environment = user_environment.clone();
     user_environment.locale = user_environment.locale.to_lowercase();
     user_environment.region = user_environment.region.to_lowercase();
     user_environment.version = user_environment.version.to_lowercase();
 
-    let mut default_engines_record = None;
+    let filtered_result = configuration.filter_records(&user_environment);
 
-    for record in configuration {
-        match record {
-            JSONSearchConfigurationRecords::Engine(engine) => {
-                let result = maybe_extract_engine_config(&user_environment, engine);
-                engines.extend(result);
-            }
-            JSONSearchConfigurationRecords::DefaultEngines(default_engines) => {
-                default_engines_record = Some(default_engines);
-            }
-            JSONSearchConfigurationRecords::EngineOrders(_engine_orders) => {
-                // TODO: Implementation.
-            }
-            JSONSearchConfigurationRecords::Unknown => {
-                // Prevents panics if a new record type is added in future.
+    filtered_result.map(|result| {
+        let (default_engine_id, default_private_engine_id) = determine_default_engines(
+            &result.engines,
+            result.default_engines_record,
+            &user_environment,
+        );
+
+        let mut engines = result.engines.clone();
+
+        if let Some(orders_record) = result.engine_orders_record {
+            for order_data in &orders_record.orders {
+                if matches_user_environment(&order_data.environment, &user_environment) {
+                    sort_helpers::set_engine_order(&mut engines, &order_data.order);
+                }
             }
         }
-    }
 
-    let (default_engine_id, default_private_engine_id) =
-        determine_default_engines(&engines, default_engines_record, &user_environment);
+        engines.sort_by(|a, b| {
+            sort_helpers::sort(
+                default_engine_id.as_ref(),
+                default_private_engine_id.as_ref(),
+                a,
+                b,
+            )
+        });
 
-    Ok(RefinedSearchConfig {
-        engines,
-        app_default_engine_id: default_engine_id,
-        app_private_default_engine_id: default_private_engine_id,
+        RefinedSearchConfig {
+            engines,
+            app_default_engine_id: default_engine_id,
+            app_private_default_engine_id: default_private_engine_id,
+        }
     })
 }
 
@@ -159,8 +273,23 @@ fn maybe_extract_engine_config(
         .rev()
         .find(|r| matches_user_environment(&r.environment, user_environment));
 
+    let mut matching_sub_variant = None;
+    if let Some(variant) = &matching_variant {
+        matching_sub_variant = variant
+            .sub_variants
+            .iter()
+            .rev()
+            .find(|r| matches_user_environment(&r.environment, user_environment))
+            .cloned();
+    }
+
     matching_variant.map(|variant| {
-        SearchEngineDefinition::from_configuration_details(&identifier, base, variant)
+        SearchEngineDefinition::from_configuration_details(
+            &identifier,
+            base,
+            &variant,
+            &matching_sub_variant,
+        )
     })
 }
 
@@ -184,11 +313,13 @@ fn determine_default_engines(
             if let Some(specific_default) = specific_default {
                 // Check the engine is present in the list of engines before
                 // we return it as default.
-                if let Some(engine_id) = find_engine_with_match(engines, specific_default.default) {
+                if let Some(engine_id) =
+                    find_engine_id_with_match(engines, specific_default.default)
+                {
                     default_engine_id.replace(engine_id);
                 }
                 if let Some(private_engine_id) =
-                    find_engine_with_match(engines, specific_default.default_private)
+                    find_engine_id_with_match(engines, specific_default.default_private)
                 {
                     default_engine_private_id.replace(private_engine_id);
                 }
@@ -221,7 +352,7 @@ fn find_engine_id(engines: &[SearchEngineDefinition], engine_id: String) -> Opti
     }
 }
 
-fn find_engine_with_match(
+fn find_engine_id_with_match(
     engines: &[SearchEngineDefinition],
     engine_id_match: String,
 ) -> Option<String> {
@@ -264,17 +395,18 @@ mod tests {
                 name: "Test".to_string(),
                 partner_code: None,
                 urls: JSONEngineUrls {
-                    search: JSONEngineUrl {
+                    search: Some(JSONEngineUrl {
                         base: Some("https://example.com".to_string()),
                         method: None,
                         params: None,
                         search_term_param_name: None,
-                    },
+                    }),
                     suggestions: None,
                     trending: None,
+                    search_form: None,
                 },
             },
-            JSONEngineVariant {
+            &JSONEngineVariant {
                 environment: JSONVariantEnvironment {
                     all_regions_and_locales: true,
                     ..Default::default()
@@ -283,7 +415,9 @@ mod tests {
                 partner_code: None,
                 telemetry_suffix: None,
                 urls: None,
+                sub_variants: vec![],
             },
+            &None,
         );
 
         assert_eq!(
@@ -297,7 +431,7 @@ mod tests {
                 name: "Test".to_string(),
                 optional: false,
                 order_hint: None,
-                telemetry_suffix: None,
+                telemetry_suffix: String::new(),
                 urls: SearchEngineUrls {
                     search: SearchEngineUrl {
                         base: "https://example.com".to_string(),
@@ -306,7 +440,8 @@ mod tests {
                         search_term_param_name: None,
                     },
                     suggestions: None,
-                    trending: None
+                    trending: None,
+                    search_form: None
                 }
             }
         )
@@ -319,22 +454,32 @@ mod tests {
         name: "Test".to_string(),
         partner_code: Some("firefox".to_string()),
         urls: JSONEngineUrls {
-            search: JSONEngineUrl {
+            search: Some(JSONEngineUrl {
                 base: Some("https://example.com".to_string()),
                 method: Some(crate::JSONEngineMethod::Post),
-                params: Some(vec![SearchUrlParam {
-                    name: "param".to_string(),
-                    value: Some("test param".to_string()),
-                    experiment_config: None,
-                }]),
+                params: Some(vec![
+                    SearchUrlParam {
+                        name: "param".to_string(),
+                        value: Some("test param".to_string()),
+                        enterprise_value: None,
+                        experiment_config: None,
+                    },
+                    SearchUrlParam {
+                        name: "enterprise-name".to_string(),
+                        value: None,
+                        enterprise_value: Some("enterprise-value".to_string()),
+                        experiment_config: None,
+                    },
+                ]),
                 search_term_param_name: Some("baz".to_string()),
-            },
+            }),
             suggestions: Some(JSONEngineUrl {
                 base: Some("https://example.com/suggestions".to_string()),
                 method: Some(crate::JSONEngineMethod::Get),
                 params: Some(vec![SearchUrlParam {
                     name: "suggest-name".to_string(),
                     value: None,
+                    enterprise_value: None,
                     experiment_config: Some("suggest-experiment-value".to_string()),
                 }]),
                 search_term_param_name: Some("suggest".to_string()),
@@ -345,6 +490,18 @@ mod tests {
                 params: Some(vec![SearchUrlParam {
                     name: "trend-name".to_string(),
                     value: Some("trend-value".to_string()),
+                    enterprise_value: None,
+                    experiment_config: None,
+                }]),
+                search_term_param_name: None,
+            }),
+            search_form: Some(JSONEngineUrl {
+                base: Some("https://example.com/search_form".to_string()),
+                method: Some(crate::JSONEngineMethod::Get),
+                params: Some(vec![SearchUrlParam {
+                    name: "search-form-name".to_string(),
+                    value: Some("search-form-value".to_string()),
+                    enterprise_value: None,
                     experiment_config: None,
                 }]),
                 search_term_param_name: None,
@@ -357,7 +514,7 @@ mod tests {
         let result = SearchEngineDefinition::from_configuration_details(
             "test",
             Lazy::force(&ENGINE_BASE).clone(),
-            JSONEngineVariant {
+            &JSONEngineVariant {
                 environment: JSONVariantEnvironment {
                     all_regions_and_locales: true,
                     ..Default::default()
@@ -366,7 +523,9 @@ mod tests {
                 partner_code: None,
                 telemetry_suffix: None,
                 urls: None,
+                sub_variants: vec![],
             },
+            &None,
         );
 
         assert_eq!(
@@ -380,16 +539,25 @@ mod tests {
                 name: "Test".to_string(),
                 optional: false,
                 order_hint: None,
-                telemetry_suffix: None,
+                telemetry_suffix: String::new(),
                 urls: SearchEngineUrls {
                     search: SearchEngineUrl {
                         base: "https://example.com".to_string(),
                         method: "POST".to_string(),
-                        params: vec![SearchUrlParam {
-                            name: "param".to_string(),
-                            value: Some("test param".to_string()),
-                            experiment_config: None,
-                        }],
+                        params: vec![
+                            SearchUrlParam {
+                                name: "param".to_string(),
+                                value: Some("test param".to_string()),
+                                enterprise_value: None,
+                                experiment_config: None,
+                            },
+                            SearchUrlParam {
+                                name: "enterprise-name".to_string(),
+                                value: None,
+                                enterprise_value: Some("enterprise-value".to_string()),
+                                experiment_config: None,
+                            },
+                        ],
                         search_term_param_name: Some("baz".to_string()),
                     },
                     suggestions: Some(SearchEngineUrl {
@@ -398,6 +566,7 @@ mod tests {
                         params: vec![SearchUrlParam {
                             name: "suggest-name".to_string(),
                             value: None,
+                            enterprise_value: None,
                             experiment_config: Some("suggest-experiment-value".to_string()),
                         }],
                         search_term_param_name: Some("suggest".to_string()),
@@ -408,10 +577,22 @@ mod tests {
                         params: vec![SearchUrlParam {
                             name: "trend-name".to_string(),
                             value: Some("trend-value".to_string()),
+                            enterprise_value: None,
                             experiment_config: None,
                         }],
                         search_term_param_name: None,
-                    })
+                    }),
+                    search_form: Some(SearchEngineUrl {
+                        base: "https://example.com/search_form".to_string(),
+                        method: "GET".to_string(),
+                        params: vec![SearchUrlParam {
+                            name: "search-form-name".to_string(),
+                            value: Some("search-form-value".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }],
+                        search_term_param_name: None,
+                    }),
                 }
             }
         )
@@ -422,7 +603,7 @@ mod tests {
         let result = SearchEngineDefinition::from_configuration_details(
             "test",
             Lazy::force(&ENGINE_BASE).clone(),
-            JSONEngineVariant {
+            &JSONEngineVariant {
                 environment: JSONVariantEnvironment {
                     all_regions_and_locales: true,
                     ..Default::default()
@@ -431,22 +612,24 @@ mod tests {
                 partner_code: Some("trek".to_string()),
                 telemetry_suffix: Some("star".to_string()),
                 urls: Some(JSONEngineUrls {
-                    search: JSONEngineUrl {
+                    search: Some(JSONEngineUrl {
                         base: Some("https://example.com/variant".to_string()),
                         method: Some(JSONEngineMethod::Get),
                         params: Some(vec![SearchUrlParam {
                             name: "variant".to_string(),
                             value: Some("test variant".to_string()),
+                            enterprise_value: None,
                             experiment_config: None,
                         }]),
                         search_term_param_name: Some("ship".to_string()),
-                    },
+                    }),
                     suggestions: Some(JSONEngineUrl {
                         base: Some("https://example.com/suggestions-variant".to_string()),
                         method: Some(JSONEngineMethod::Get),
                         params: Some(vec![SearchUrlParam {
                             name: "suggest-variant".to_string(),
                             value: Some("sugg test variant".to_string()),
+                            enterprise_value: None,
                             experiment_config: None,
                         }]),
                         search_term_param_name: Some("variant".to_string()),
@@ -457,12 +640,26 @@ mod tests {
                         params: Some(vec![SearchUrlParam {
                             name: "trend-variant".to_string(),
                             value: Some("trend test variant".to_string()),
+                            enterprise_value: None,
                             experiment_config: None,
                         }]),
                         search_term_param_name: Some("trend".to_string()),
                     }),
+                    search_form: Some(JSONEngineUrl {
+                        base: Some("https://example.com/search_form".to_string()),
+                        method: Some(crate::JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "search-form-name".to_string(),
+                            value: Some("search-form-value".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: None,
+                    }),
                 }),
+                sub_variants: vec![],
             },
+            &None,
         );
 
         assert_eq!(
@@ -476,7 +673,7 @@ mod tests {
                 name: "Test".to_string(),
                 optional: true,
                 order_hint: None,
-                telemetry_suffix: Some("star".to_string()),
+                telemetry_suffix: "star".to_string(),
                 urls: SearchEngineUrls {
                     search: SearchEngineUrl {
                         base: "https://example.com/variant".to_string(),
@@ -484,6 +681,7 @@ mod tests {
                         params: vec![SearchUrlParam {
                             name: "variant".to_string(),
                             value: Some("test variant".to_string()),
+                            enterprise_value: None,
                             experiment_config: None,
                         }],
                         search_term_param_name: Some("ship".to_string()),
@@ -494,6 +692,7 @@ mod tests {
                         params: vec![SearchUrlParam {
                             name: "suggest-variant".to_string(),
                             value: Some("sugg test variant".to_string()),
+                            enterprise_value: None,
                             experiment_config: None,
                         }],
                         search_term_param_name: Some("variant".to_string()),
@@ -504,10 +703,207 @@ mod tests {
                         params: vec![SearchUrlParam {
                             name: "trend-variant".to_string(),
                             value: Some("trend test variant".to_string()),
+                            enterprise_value: None,
                             experiment_config: None,
                         }],
                         search_term_param_name: Some("trend".to_string()),
-                    })
+                    }),
+                    search_form: Some(SearchEngineUrl {
+                        base: "https://example.com/search_form".to_string(),
+                        method: "GET".to_string(),
+                        params: vec![SearchUrlParam {
+                            name: "search-form-name".to_string(),
+                            value: Some("search-form-value".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }],
+                        search_term_param_name: None,
+                    }),
+                }
+            }
+        )
+    }
+
+    #[test]
+    fn test_from_configuration_details_merges_sub_variants() {
+        let result = SearchEngineDefinition::from_configuration_details(
+            "test",
+            Lazy::force(&ENGINE_BASE).clone(),
+            &JSONEngineVariant {
+                environment: JSONVariantEnvironment {
+                    all_regions_and_locales: true,
+                    ..Default::default()
+                },
+                optional: true,
+                partner_code: Some("trek".to_string()),
+                telemetry_suffix: Some("star".to_string()),
+                urls: Some(JSONEngineUrls {
+                    search: Some(JSONEngineUrl {
+                        base: Some("https://example.com/variant".to_string()),
+                        method: Some(JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "variant".to_string(),
+                            value: Some("test variant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: Some("ship".to_string()),
+                    }),
+                    suggestions: Some(JSONEngineUrl {
+                        base: Some("https://example.com/suggestions-variant".to_string()),
+                        method: Some(JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "suggest-variant".to_string(),
+                            value: Some("sugg test variant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: Some("variant".to_string()),
+                    }),
+                    trending: Some(JSONEngineUrl {
+                        base: Some("https://example.com/trending-variant".to_string()),
+                        method: Some(JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "trend-variant".to_string(),
+                            value: Some("trend test variant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: Some("trend".to_string()),
+                    }),
+                    search_form: Some(JSONEngineUrl {
+                        base: Some("https://example.com/search-form-variant".to_string()),
+                        method: Some(crate::JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "search-form-variant".to_string(),
+                            value: Some("search form variant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: None,
+                    }),
+                }),
+                // This would be the list of sub-variants for this part of the
+                // configuration, however it is not used as the actual sub-variant
+                // to be merged is passed as the third argument to
+                // `from_configuration_details`.
+                sub_variants: vec![],
+            },
+            &Some(JSONEngineVariant {
+                environment: JSONVariantEnvironment {
+                    all_regions_and_locales: true,
+                    ..Default::default()
+                },
+                optional: true,
+                partner_code: Some("trek2".to_string()),
+                telemetry_suffix: Some("star2".to_string()),
+                urls: Some(JSONEngineUrls {
+                    search: Some(JSONEngineUrl {
+                        base: Some("https://example.com/subvariant".to_string()),
+                        method: Some(JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "subvariant".to_string(),
+                            value: Some("test subvariant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: Some("shuttle".to_string()),
+                    }),
+                    suggestions: Some(JSONEngineUrl {
+                        base: Some("https://example.com/suggestions-subvariant".to_string()),
+                        method: Some(JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "suggest-subvariant".to_string(),
+                            value: Some("sugg test subvariant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: Some("subvariant".to_string()),
+                    }),
+                    trending: Some(JSONEngineUrl {
+                        base: Some("https://example.com/trending-subvariant".to_string()),
+                        method: Some(JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "trend-subvariant".to_string(),
+                            value: Some("trend test subvariant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: Some("subtrend".to_string()),
+                    }),
+                    search_form: Some(JSONEngineUrl {
+                        base: Some("https://example.com/search-form-subvariant".to_string()),
+                        method: Some(crate::JSONEngineMethod::Get),
+                        params: Some(vec![SearchUrlParam {
+                            name: "search-form-subvariant".to_string(),
+                            value: Some("search form subvariant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }]),
+                        search_term_param_name: None,
+                    }),
+                }),
+                sub_variants: vec![],
+            }),
+        );
+
+        assert_eq!(
+            result,
+            SearchEngineDefinition {
+                aliases: vec!["foo".to_string(), "bar".to_string()],
+                charset: "ISO-8859-15".to_string(),
+                classification: SearchEngineClassification::Unknown,
+                identifier: "test".to_string(),
+                partner_code: "trek2".to_string(),
+                name: "Test".to_string(),
+                optional: true,
+                order_hint: None,
+                telemetry_suffix: "star2".to_string(),
+                urls: SearchEngineUrls {
+                    search: SearchEngineUrl {
+                        base: "https://example.com/subvariant".to_string(),
+                        method: "GET".to_string(),
+                        params: vec![SearchUrlParam {
+                            name: "subvariant".to_string(),
+                            value: Some("test subvariant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }],
+                        search_term_param_name: Some("shuttle".to_string()),
+                    },
+                    suggestions: Some(SearchEngineUrl {
+                        base: "https://example.com/suggestions-subvariant".to_string(),
+                        method: "GET".to_string(),
+                        params: vec![SearchUrlParam {
+                            name: "suggest-subvariant".to_string(),
+                            value: Some("sugg test subvariant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }],
+                        search_term_param_name: Some("subvariant".to_string()),
+                    }),
+                    trending: Some(SearchEngineUrl {
+                        base: "https://example.com/trending-subvariant".to_string(),
+                        method: "GET".to_string(),
+                        params: vec![SearchUrlParam {
+                            name: "trend-subvariant".to_string(),
+                            value: Some("trend test subvariant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }],
+                        search_term_param_name: Some("subtrend".to_string()),
+                    }),
+                    search_form: Some(SearchEngineUrl {
+                        base: "https://example.com/search-form-subvariant".to_string(),
+                        method: "GET".to_string(),
+                        params: vec![SearchUrlParam {
+                            name: "search-form-subvariant".to_string(),
+                            value: Some("search form subvariant".to_string()),
+                            enterprise_value: None,
+                            experiment_config: None,
+                        }],
+                        search_term_param_name: None,
+                    }),
                 }
             }
         )

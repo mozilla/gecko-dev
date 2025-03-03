@@ -340,11 +340,11 @@ impl TabsStorage {
             .into_iter()
             .map(|mut crt| {
                 crt.remote_tabs.retain(|tab| {
+                    // The top level in the url_history is the "active" tab, which we should use
+                    // TODO: probably not the best way to url check
                     !pending_closures
                         .get(&crt.client_id)
-                        // The top level in the url_history is the "active" tab, which we should use
-                        // TODO: probably not the best way to url check
-                        .map_or(false, |urls| urls.contains(&tab.url_history[0]))
+                        .is_some_and(|urls| urls.contains(&tab.url_history[0]))
                 });
                 crt
             })

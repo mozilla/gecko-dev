@@ -8,6 +8,8 @@
 /// exposed to your application, which should handle them as needed.
 use error_support::{ErrorHandling, GetErrorHandling};
 
+use remote_settings::RemoteSettingsError;
+
 /// A list of errors that are internal to the component. This is the error
 /// type for private and crate-internal methods, and is never returned to the
 /// application.
@@ -15,8 +17,12 @@ use error_support::{ErrorHandling, GetErrorHandling};
 pub enum Error {
     #[error("Search configuration not specified")]
     SearchConfigNotSpecified,
+    #[error("No records received from remote settings")]
+    SearchConfigNoRecords,
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("Remote Settings error: {0}")]
+    RemoteSettings(#[from] RemoteSettingsError),
 }
 
 // #[non_exhaustive]

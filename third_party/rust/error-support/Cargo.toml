@@ -24,6 +24,9 @@ autobenches = false
 readme = "README.md"
 license = "MPL-2.0"
 
+[features]
+backtrace = ["dep:backtrace"]
+
 [lib]
 name = "error_support"
 path = "src/lib.rs"

@@ -438,7 +438,7 @@ export class RelevancyStore {
      * This is non-blocking since databases and other resources are lazily opened.
      * @returns {RelevancyStore}
      */
-    static init(dbPath) {
+    static init(dbPath,remoteSettingsService = null) {
         const liftResult = (result) => FfiConverterTypeRelevancyStore.lift(result);
         const liftError = null;
         const functionCall = () => {
@@ -450,9 +450,18 @@ export class RelevancyStore {
                 }
                 throw e;
             }
+            try {
+                FfiConverterOptionalTypeRemoteSettingsService.checkType(remoteSettingsService)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("remoteSettingsService");
+                }
+                throw e;
+            }
             return UniFFIScaffolding.callSync(
                 12, // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
                 FfiConverterString.lower(dbPath),
+                FfiConverterOptionalTypeRemoteSettingsService.lower(remoteSettingsService),
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -1865,6 +1874,43 @@ export class FfiConverterTypeRelevancyApiError extends FfiConverterArrayBuffer {
 }
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterOptionalTypeRemoteSettingsService extends FfiConverterArrayBuffer {
+    static checkType(value) {
+        if (value !== undefined && value !== null) {
+            FfiConverterTypeRemoteSettingsService.checkType(value)
+        }
+    }
+
+    static read(dataStream) {
+        const code = dataStream.readUint8(0);
+        switch (code) {
+            case 0:
+                return null
+            case 1:
+                return FfiConverterTypeRemoteSettingsService.read(dataStream)
+            default:
+                throw new UniFFIError(`Unexpected code: ${code}`);
+        }
+    }
+
+    static write(dataStream, value) {
+        if (value === null || value === undefined) {
+            dataStream.writeUint8(0);
+            return;
+        }
+        dataStream.writeUint8(1);
+        FfiConverterTypeRemoteSettingsService.write(dataStream, value)
+    }
+
+    static computeSize(value) {
+        if (value === null || value === undefined) {
+            return 1;
+        }
+        return 1 + FfiConverterTypeRemoteSettingsService.computeSize(value)
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterSequencestring extends FfiConverterArrayBuffer {
     static read(dataStream) {
         const len = dataStream.readInt32();
@@ -1951,6 +1997,14 @@ export class FfiConverterSequenceTypeInterest extends FfiConverterArrayBuffer {
         })
     }
 }
+
+import {
+  FfiConverterTypeRemoteSettingsService,
+  RemoteSettingsService,
+} from "resource://gre/modules/RustRemoteSettings.sys.mjs";
+
+// Export the FFIConverter object to make external types work.
+export { FfiConverterTypeRemoteSettingsService, RemoteSettingsService };
 
 
 

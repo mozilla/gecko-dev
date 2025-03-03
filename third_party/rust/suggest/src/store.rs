@@ -12,7 +12,7 @@ use std::{
 use error_support::{breadcrumb, handle_error};
 use once_cell::sync::OnceCell;
 use parking_lot::Mutex;
-use remote_settings::{self, RemoteSettingsConfig, RemoteSettingsServer};
+use remote_settings::{self, RemoteSettingsConfig, RemoteSettingsServer, RemoteSettingsService};
 
 use serde::de::DeserializeOwned;
 
@@ -77,6 +77,15 @@ impl SuggestStoreBuilder {
 
     pub fn remote_settings_bucket_name(self: Arc<Self>, bucket_name: String) -> Arc<Self> {
         self.0.lock().remote_settings_bucket_name = Some(bucket_name);
+        self
+    }
+
+    pub fn remote_settings_service(
+        self: Arc<Self>,
+        _rs_service: Arc<RemoteSettingsService>,
+    ) -> Arc<Self> {
+        // When #6607 lands, this will set the remote settings service.
+        // For now, it just exists so we can move consumers over to the new API ahead of time.
         self
     }
 

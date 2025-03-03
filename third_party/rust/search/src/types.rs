@@ -92,10 +92,15 @@ pub struct SearchUserEnvironment {
 pub struct SearchUrlParam {
     /// The name of the parameter in the url.
     pub name: String,
+
     /// The parameter value, this may be a static value, or additionally contain
     /// a parameter replacement, e.g. `{inputEncoding}`. For the partner code
     /// parameter, this field should be `{partnerCode}`.
     pub value: Option<String>,
+
+    /// Same as value but only used if Services.polices.isEnterprise is true. Overrides other parameters of the same name.
+    pub enterprise_value: Option<String>,
+
     /// The value for the parameter will be derived from the equivalent experiment
     /// configuration value.
     /// Only desktop uses this currently.
@@ -134,6 +139,9 @@ pub struct SearchEngineUrls {
 
     /// The URL to use for trending suggestions.
     pub trending: Option<SearchEngineUrl>,
+
+    /// The URL of the search engine homepage.
+    pub search_form: Option<SearchEngineUrl>,
 }
 
 /// The list of acceptable classifications for a search engine.
@@ -188,8 +196,9 @@ pub struct SearchEngineDefinition {
     pub partner_code: String,
 
     /// Optional suffix that is appended to the search engine identifier
-    /// following a dash, i.e. `<identifier>-<suffix>`
-    pub telemetry_suffix: Option<String>,
+    /// following a dash, i.e. `<identifier>-<suffix>`. If it is an empty string
+    /// no dash should be appended.
+    pub telemetry_suffix: String,
 
     /// The URLs associated with the search engine.
     pub urls: SearchEngineUrls,
@@ -199,7 +208,7 @@ pub struct SearchEngineDefinition {
     /// The higher the number, the nearer to the front it should be.
     /// If the number is not specified, other methods of sorting may be relied
     /// upon (e.g. alphabetical).
-    pub order_hint: Option<u8>,
+    pub order_hint: Option<u32>,
 }
 
 /// Details of the search engines to display to the user, generated as a result
