@@ -759,9 +759,13 @@ DocumentOrShadowRoot* nsINode::GetUncomposedDocOrConnectedShadowRoot() const {
   return nullptr;
 }
 
-mozilla::SafeDoublyLinkedList<nsIMutationObserver>*
-nsINode::GetMutationObservers() {
-  return HasSlots() ? &GetExistingSlots()->mMutationObservers : nullptr;
+SafeDoublyLinkedList<nsIMutationObserver>* nsINode::GetMutationObservers() {
+  if (auto* slots = GetExistingSlots()) {
+    if (!slots->mMutationObservers.isEmpty()) {
+      return &slots->mMutationObservers;
+    }
+  }
+  return nullptr;
 }
 
 void nsINode::LastRelease() {
