@@ -1756,7 +1756,10 @@ class ArenaCollection {
   // the lock, see GetById().
   Tree mMainThreadArenas MOZ_GUARDED_BY(mLock);
 
-  Atomic<int32_t, MemoryOrdering::Relaxed> mDefaultMaxDirtyPageModifier;
+  // Set only rarely and then propagated on the same thread to all arenas via
+  // UpdateMaxDirty(). But also read in ExtraCommitPages on arbitrary threads.
+  // TODO: Could ExtraCommitPages use arena_t::mMaxDirty instead ?
+  Atomic<int32_t> mDefaultMaxDirtyPageModifier;
   // This is never changed except for forking, and it does not need mLock.
   Maybe<ThreadId> mMainThreadId;
 
