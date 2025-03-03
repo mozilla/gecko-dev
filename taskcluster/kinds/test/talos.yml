@@ -38,6 +38,7 @@ talos-bcv:
                 by-test-platform:
                     (linux1804|macosx.*|windows11)-64-shippable(-qr)?/opt: [trunk]
                     (windows11-64|macosx).*(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -203,6 +204,7 @@ talos-g1:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?.*: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -243,6 +245,7 @@ talos-g3:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -277,6 +280,7 @@ talos-g4:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -320,6 +324,7 @@ talos-g5:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -418,6 +423,7 @@ talos-other:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -452,6 +458,7 @@ talos-sessionrestore-many-windows:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk-only]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -486,6 +493,7 @@ talos-perf-reftest:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -546,6 +554,7 @@ talos-svgr:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -580,6 +589,7 @@ talos-tp5o:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
@@ -638,10 +648,12 @@ talos-webgl:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable.*: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
     max-run-time: 2100
     mozharness:
@@ -702,7 +714,7 @@ talos-realworld-webextensions:
         by-test-platform:
             windows.*-32.*: []
             (linux|windows11-64|macosx)(?!.*shippable).*: []
-            (linux|windows11-64|macosx)(?!.*-qr).*: []
+            (linux|windows11-64-2009|macosx)(?!.*-qr).*: []
             default: [trunk]
     max-run-time: 1500
     mozharness:
@@ -732,6 +744,7 @@ talos-pdfpaint:
             webrender-sw:
                 by-test-platform:
                     (linux1804|windows11|macosx.*)-64-shippable(-qr)?/opt: [trunk]
+                    windows11-64-24h2-shippable/opt: [trunk]
                     default: []
             default:
                 by-test-platform:

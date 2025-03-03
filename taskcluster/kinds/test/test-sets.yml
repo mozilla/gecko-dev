@@ -343,6 +343,9 @@ mingwclang-tests-opt:
     - mochitest-chrome-gpu
     - mochitest-plain-gpu
 
+windows-talos-webgl:
+    - talos-webgl
+
 windows-talos:
     - talos-bcv
     - talos-chrome
@@ -361,9 +364,7 @@ windows-talos:
     - talos-tp5o
     - talos-tabswitch
     - talos-realworld-webextensions
-    - talos-webgl
     - talos-pdfpaint
-    # - talos-h1 Bug 1487031 - Disabled for not finding actionable regressions
 
 windows-ref-hw-tests:
     - browsertime-video-playback-latency

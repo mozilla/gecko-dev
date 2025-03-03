@@ -191,12 +191,14 @@ windows11-64-qr/opt:
     build-platform: win64/opt
     test-sets:
         - windows-talos
+        - windows-talos-webgl
 
 windows11-64-shippable-qr/opt:
     build-platform: win64-shippable/opt
     test-sets:
         - talos-profiling
         - windows-talos
+        - windows-talos-webgl
 
 # win10-64 2004
 windows10-64-2009-qr/debug:
@@ -281,7 +283,7 @@ windows11-64-24h2/opt:
         - web-platform-tests-backlog
         - windows11-24h2-tests
         - talos-xperf
-        # - windows-talos
+        - windows-talos
         - browsertime
 
 windows11-64-24h2-shippable/opt:
@@ -297,8 +299,8 @@ windows11-64-24h2-shippable/opt:
         - web-platform-tests-backlog
         - windows11-24h2-tests
         - talos-xperf
-        # - talos-profiling
-        # - windows-talos
+        - talos-profiling
+        - windows-talos
         - browsertime
 
 windows11-64-24h2-devedition/opt:
