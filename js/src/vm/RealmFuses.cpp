@@ -257,6 +257,14 @@ bool js::ObjectPrototypeHasNoReturnProperty::checkInvariant(JSContext* cx) {
   return HasNoReturnName(cx, proto);
 }
 
+void js::OptimizeArraySpeciesFuse::popFuse(JSContext* cx,
+                                           RealmFuses& realmFuses) {
+  InvalidatingRealmFuse::popFuse(cx, realmFuses);
+  MOZ_ASSERT(cx->global());
+  cx->runtime()->setUseCounter(cx->global(),
+                               JSUseCounter::OPTIMIZE_ARRAY_SPECIES_FUSE);
+}
+
 bool js::OptimizeArraySpeciesFuse::checkInvariant(JSContext* cx) {
   // Prototype must be Array.prototype.
   auto* proto = cx->global()->maybeGetArrayPrototype();

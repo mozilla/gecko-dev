@@ -147,6 +147,7 @@ struct ObjectPrototypeHasNoReturnProperty final
 struct OptimizeArraySpeciesFuse final : public InvalidatingRealmFuse {
   virtual const char* name() override { return "OptimizeArraySpeciesFuse"; }
   virtual bool checkInvariant(JSContext* cx) override;
+  virtual void popFuse(JSContext* cx, RealmFuses& realmFuses) override;
 };
 
 #define FOR_EACH_REALM_FUSE(FUSE)                                              \

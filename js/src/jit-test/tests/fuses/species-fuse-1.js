@@ -15,5 +15,7 @@ function test() {
     delete Array[Symbol.species];
     assertEq(getFuseState().OptimizeArraySpeciesFuse.intact, false);
   `);
+
+  assertEq(getUseCounterResults().OptimizeArraySpeciesFuse, 2);
 }
 test();
