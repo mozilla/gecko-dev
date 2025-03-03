@@ -457,7 +457,7 @@ Possible regression causes
 xperf
 =====
 
--  contact: fx-perf@mozilla.com
+-  contact: perftest team
 -  source: `xperf
    instrumentation <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/xtalos>`__
 -  type: `Page load`_ (tp5n) / Startup_

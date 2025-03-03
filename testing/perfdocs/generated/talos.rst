@@ -7649,7 +7649,7 @@ For the sample commands found below, note that the capitalization used is import
 
       ./mach talos-test -a tp5n
 
-   * contact: fx-perf@mozilla.com
+   * contact: perftest team
    * description:
       | The tp5 is an updated web page test set to 100 pages from April 8th, 2011. Effort was made for the pages to no longer be splash screens/login pages/home pages but to be pages that better reflect the actual content of the site in question.
    * cleanup: ${talos}/xtalos/parse_xperf.py -c ${talos}/bcontroller.json
@@ -9764,7 +9764,7 @@ Possible regression causes
 xperf
 =====
 
--  contact: fx-perf@mozilla.com
+-  contact: perftest team
 -  source: `xperf
    instrumentation <https://dxr.mozilla.org/mozilla-central/source/testing/talos/talos/xtalos>`__
 -  type: `Page load`_ (tp5n) / Startup_

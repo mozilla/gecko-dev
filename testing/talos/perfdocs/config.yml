@@ -934,7 +934,7 @@ suites:
                     * 28;newtab-open-preload-yes.all.TART;5.10;4.60;4.63;8.94;5.01;4.69;4.63;4.67;4.93;5.43;4.78;5.12;4.77;4.65;4.50;4.78;4.75;4.63;4.76;4.45;4.86;4.88;4.69;4.86;4.92
                     * 29;newtab-open-preload-yes.error.TART;35.90;37.24;38.57;40.60;36.04;38.12;38.78;36.73;36.91;36.69;38.12;36.69;37.79;35.80;36.11;38.01;36.59;38.85;37.14;37.30;38.02;38.95;37.64;37.86;36.43
             tp5n: >
-                - contact: fx-perf@mozilla.com
+                - contact: perftest team
                 - description:
                       | The tp5 is an updated web page test set to 100 pages from April 8th, 2011. Effort was made for the pages to no longer be splash screens/login pages/home pages but to be pages that better reflect the actual content of the site in question.
             tp5: >
