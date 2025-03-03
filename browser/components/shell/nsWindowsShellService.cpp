@@ -1629,9 +1629,10 @@ static nsresult PinShortcutToTaskbarImpl(bool aCheckOnly,
   // during install or runtime - causes a race between it propagating to the
   // virtual `shell:appsfolder` and attempts to pin via `ITaskbarManager`,
   // resulting in pin failures when the latter occurs before the former. We can
-  // skip this when we're only checking whether we're pinned.
-  if (!aCheckOnly && !PollAppsFolderForShortcut(
-                         aAppUserModelId, TimeDuration::FromSeconds(15))) {
+  // skip this when we're in a MSIX build or only checking whether we're pinned.
+  if (!widget::WinUtils::HasPackageIdentity() && !aCheckOnly &&
+      !PollAppsFolderForShortcut(aAppUserModelId,
+                                 TimeDuration::FromSeconds(15))) {
     return NS_ERROR_FILE_NOT_FOUND;
   }
 
