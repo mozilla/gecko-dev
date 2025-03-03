@@ -17,7 +17,7 @@ from mach.mixin.logging import LoggingMixin
 from mozpack.chrome.manifest import Manifest
 
 from mozbuild.base import ExecutionSummary
-from mozbuild.util import memoize
+from mozbuild.util import HierarchicalStringList, memoize
 
 from ..testing import REFTEST_FLAVORS, TEST_MANIFESTS, SupportFilesConverter
 from .context import Context, ObjDirPath, Path, SourcePath, SubContext
@@ -50,6 +50,7 @@ from .data import (
     LocalInclude,
     LocalizedFiles,
     LocalizedPreprocessedFiles,
+    MozSrcFiles,
     ObjdirFiles,
     ObjdirPreprocessedFiles,
     PerSourceFlag,
@@ -1438,6 +1439,18 @@ class TreeMetadataEmitter(LoggingMixin):
             ]
         )
 
+        processed_moz_src_files = None
+        if "MOZ_SRC_FILES" in context:
+            # We process MOZ_SRC_FILES separately such that any items in the
+            # list that are in subdirectories automatically get installed to
+            # the same subdirectories in the objdir.
+            processed_moz_src_files = HierarchicalStringList()
+            for file in context.get("MOZ_SRC_FILES"):
+                if "/" in file:
+                    processed_moz_src_files[mozpath.dirname(file)] += [file]
+                else:
+                    processed_moz_src_files += [file]
+
         components = []
         for var, cls in (
             ("EXPORTS", Exports),
@@ -1445,11 +1458,15 @@ class TreeMetadataEmitter(LoggingMixin):
             ("FINAL_TARGET_PP_FILES", FinalTargetPreprocessedFiles),
             ("LOCALIZED_FILES", LocalizedFiles),
             ("LOCALIZED_PP_FILES", LocalizedPreprocessedFiles),
+            ("MOZ_SRC_FILES", MozSrcFiles),
             ("OBJDIR_FILES", ObjdirFiles),
             ("OBJDIR_PP_FILES", ObjdirPreprocessedFiles),
             ("TEST_HARNESS_FILES", TestHarnessFiles),
         ):
-            all_files = context.get(var)
+            if var == "MOZ_SRC_FILES":
+                all_files = processed_moz_src_files
+            else:
+                all_files = context.get(var)
             if not all_files:
                 continue
             if dist_install is False and var != "TEST_HARNESS_FILES":

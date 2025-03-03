@@ -1249,6 +1249,24 @@ class LocalizedPreprocessedFiles(FinalTargetPreprocessedFiles):
     pass
 
 
+class MozSrcFiles(FinalTargetFiles):
+    """Sandbox container object for MOZ_SRC_FILES, which is a
+    ContextDerivedTypedList.
+
+    This is similar to FinalTargetFiles, but always installs into
+    dist/bin/moz-src . Contents are derived from MOZ_SRC_FILES in the emitter.
+    """
+
+    __slots__ = ("files",)
+
+    @property
+    def install_target(self):
+        # We don't use FINAL_TARGET here because it can include DIST_SUBDIR
+        # and/or XPI_NAME, whereas we want all moz-src content packaged in
+        # the same place.
+        return mozpath.join("dist/bin/moz-src", self._context.relsrcdir)
+
+
 class ObjdirFiles(FinalTargetFiles):
     """Sandbox container object for OBJDIR_FILES, which is a
     HierarchicalStringList.
