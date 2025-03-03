@@ -7,6 +7,7 @@
 #include "mozilla/dom/BrowserHost.h"
 
 #include "mozilla/Unused.h"
+#include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/CancelContentJSOptionsBinding.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/WindowGlobalParent.h"
@@ -259,6 +260,12 @@ BrowserHost::CreateAboutBlankDocumentViewer(
   if (NS_FAILED(rv)) {
     return rv;
   }
+
+  // Ensure that UsesOriginAgentCluster has been initialized for this
+  // BrowsingContextGroup/principal pair before creating the document in
+  // content.
+  mRoot->GetBrowsingContext()->Group()->EnsureUsesOriginAgentClusterInitialized(
+      aPrincipal);
 
   Unused << mRoot->SendCreateAboutBlankDocumentViewer(aPrincipal,
                                                       aPartitionedPrincipal);

@@ -6441,6 +6441,13 @@ nsresult nsDocShell::CreateAboutBlankDocumentViewer(
   // mDocumentViewer->PermitUnload may release |this| docshell.
   nsCOMPtr<nsIDocShell> kungFuDeathGrip(this);
 
+  // Ensure that UsesOriginAgentCluster has been initialized for this
+  // BrowsingContextGroup/principal pair before creating the document.
+  if (aPrincipal) {
+    mBrowsingContext->Group()->EnsureUsesOriginAgentClusterInitialized(
+        aPrincipal);
+  }
+
   AutoRestore<bool> creatingDocument(mCreatingDocument);
   mCreatingDocument = true;
 

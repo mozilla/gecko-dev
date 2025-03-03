@@ -225,17 +225,19 @@ class BrowsingContextGroup final : public nsWrapperCache {
   // process isolation.
   // The relevant subset of this mapping is mirrored to content processes, to be
   // used when determining DocGroup keying.
-  // UsesOriginAgentCluster returns `Nothing()` if whether or not to origin
-  // isolate a given principal is unknown. This should never happen in the
-  // content process, as all navigations resulting in http(s) document loads
-  // should originate in the parent process, or occur within a
-  // BrowsingContextGroup which has already loaded documents with the given
-  // principal.
   void SetUseOriginAgentClusterFromNetwork(nsIPrincipal* aPrincipal,
                                            bool aUseOriginAgentCluster);
   void SetUseOriginAgentClusterFromIPC(nsIPrincipal* aPrincipal,
                                        bool aUseOriginAgentCluster);
   Maybe<bool> UsesOriginAgentCluster(nsIPrincipal* aPrincipal);
+
+  // Ensures that the given principal will return `Some(...)` from
+  // `UsesOriginAgentCluster` going forward, setting it to a default value if no
+  // value is set.
+  // As the map can only be modified in the parent process, this method will
+  // crash if there is no CrossOriginIsolatedStatus for the principal when
+  // called in a content process.
+  void EnsureUsesOriginAgentClusterInitialized(nsIPrincipal* aPrincipal);
 
   void ChildDestroy();
 
