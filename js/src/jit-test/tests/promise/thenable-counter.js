@@ -21,4 +21,4 @@ Array.prototype.then = () => { console.log("hello"); };
 test_thenable([], ["ThenableUse", "ThenableUseProto", "ThenableUseStandardProto"]);
 
 Object.prototype.then = () => { console.log("then"); }
-test_thenable({}, ["ThenableUse", "ThenableUseProto", "ThenableUseStandardProto"]);
+test_thenable({}, ["ThenableUse", "ThenableUseProto", "ThenableUseStandardProto", "ThenableUseObjectProto"]);
