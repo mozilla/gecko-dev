@@ -150,8 +150,6 @@ class WaylandSurfaceLock;
 }  // namespace widget
 }  // namespace mozilla
 
-class gfxImageSurface;
-
 class nsWindow final : public nsBaseWidget {
  public:
   typedef mozilla::gfx::DrawTarget DrawTarget;
@@ -501,9 +499,6 @@ class nsWindow final : public nsBaseWidget {
 
   void GtkWidgetDestroyHandler(GtkWidget* aWidget);
 
-  void SetDragPopupSurface(RefPtr<gfxImageSurface> aDragPopupSurface,
-                           const LayoutDeviceIntRegion& aInvalidRegion);
-
  protected:
   virtual ~nsWindow();
 
@@ -582,8 +577,6 @@ class nsWindow final : public nsBaseWidget {
 #ifdef MOZ_WAYLAND
   RefPtr<mozilla::widget::WaylandSurface> mSurface;
 #endif
-  RefPtr<gfxImageSurface> mDragPopupSurface;
-  LayoutDeviceIntRegion mDragPopupSurfaceRegion;
 
   PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate = nullptr;
 
@@ -1024,8 +1017,6 @@ class nsWindow final : public nsBaseWidget {
   void EmulateResizeDrag(GdkEventMotion* aEvent);
 
   void RequestRepaint(LayoutDeviceIntRegion& aRepaintRegion);
-
-  bool DrawDragPopupSurface(cairo_t* cr);
 
 #ifdef MOZ_X11
   typedef enum {

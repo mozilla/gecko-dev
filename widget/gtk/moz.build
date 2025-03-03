@@ -115,7 +115,6 @@ if CONFIG["MOZ_WAYLAND"]:
         "nsWaylandDisplay.cpp",
         "WaylandBuffer.cpp",
         "WaylandSurface.cpp",
-        "WindowSurfaceCairo.cpp",
         "WindowSurfaceWaylandMultiBuffer.cpp",
     ]
     EXPORTS.mozilla.widget += [
