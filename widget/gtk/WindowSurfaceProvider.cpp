@@ -213,24 +213,6 @@ void WindowSurfaceProvider::EndRemoteDrawingInRegion(
     if (!mWidget || !mWidget->IsMapped()) {
       return;
     }
-    if (moz_container_wayland_is_commiting_to_parent(
-            mWidget->GetMozContainer())) {
-      // If we're drawing directly to wl_surface owned by Gtk we need to use it
-      // in main thread to sync with Gtk access to it.
-      NS_DispatchToMainThread(NS_NewRunnableFunction(
-          "WindowSurfaceProvider::EndRemoteDrawingInRegion",
-          [widget = RefPtr{mWidget}, this, aInvalidRegion]() {
-            if (!widget->IsMapped()) {
-              return;
-            }
-            MutexAutoLock lock(mMutex);
-            // Commit to mWindowSurface only when we have a valid one.
-            if (mWindowSurface && mWindowSurfaceValid) {
-              mWindowSurface->Commit(aInvalidRegion);
-            }
-          }));
-      return;
-    }
   }
 #endif
   mWindowSurface->Commit(aInvalidRegion);
