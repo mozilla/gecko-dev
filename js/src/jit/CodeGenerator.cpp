@@ -16505,23 +16505,23 @@ struct EmulatesUndefinedDependency final : public CompilationDependency {
       : CompilationDependency(CompilationDependency::Type::EmulatesUndefined) {
         };
 
-  virtual bool operator==(CompilationDependency& dep) {
+  virtual bool operator==(const CompilationDependency& dep) const override {
     // Since the emulates undefined fuse is runtime wide, they are all equal
     return dep.type == type;
   }
 
-  virtual bool checkDependency(JSContext* cx) {
+  virtual bool checkDependency(JSContext* cx) override {
     return cx->runtime()->hasSeenObjectEmulateUndefinedFuse.ref().intact();
   }
 
-  virtual bool registerDependency(JSContext* cx, HandleScript script) {
+  virtual bool registerDependency(JSContext* cx, HandleScript script) override {
     MOZ_ASSERT(checkDependency(cx));
     return cx->runtime()
         ->hasSeenObjectEmulateUndefinedFuse.ref()
         .addFuseDependency(cx, script);
   }
 
-  virtual UniquePtr<CompilationDependency> clone() {
+  virtual UniquePtr<CompilationDependency> clone() const override {
     return MakeUnique<EmulatesUndefinedDependency>();
   }
 };

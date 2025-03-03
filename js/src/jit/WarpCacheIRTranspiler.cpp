@@ -482,9 +482,9 @@ bool WarpCacheIRTranspiler::emitGuardShape(ObjOperandId objId,
   return true;
 }
 
-template <auto FuseMember>
+template <auto FuseMember, CompilationDependency::Type DepType>
 struct RealmFuseDependency final : public CompilationDependency {
-  RealmFuseDependency();
+  RealmFuseDependency() : CompilationDependency(DepType) {}
 
   virtual bool registerDependency(JSContext* cx, HandleScript script) override {
     MOZ_ASSERT(checkDependency(cx));
@@ -492,35 +492,35 @@ struct RealmFuseDependency final : public CompilationDependency {
     return (cx->realm()->realmFuses.*FuseMember).addFuseDependency(cx, script);
   }
 
-  virtual UniquePtr<CompilationDependency> clone() override {
-    return MakeUnique<RealmFuseDependency<FuseMember>>();
+  virtual UniquePtr<CompilationDependency> clone() const override {
+    return MakeUnique<RealmFuseDependency<FuseMember, DepType>>();
   }
 
   virtual bool checkDependency(JSContext* cx) override {
     return (cx->realm()->realmFuses.*FuseMember).intact();
   }
 
-  virtual bool operator==(CompilationDependency& dep) override {
+  virtual bool operator==(const CompilationDependency& dep) const override {
     return dep.type == type;
   }
 };
 
-using GetIteratorDependency =
-    RealmFuseDependency<&RealmFuses::optimizeGetIteratorFuse>;
-template <>
-GetIteratorDependency::RealmFuseDependency()
-    : CompilationDependency(CompilationDependency::Type::GetIterator) {}
-
 bool WarpCacheIRTranspiler::emitGuardFuse(RealmFuses::FuseIndex fuseIndex) {
-  if (fuseIndex != RealmFuses::FuseIndex::OptimizeGetIteratorFuse) {
-    auto* ins = MGuardFuse::New(alloc(), fuseIndex);
-    add(ins);
-    return true;
+  // Register a compilation dependency (for invalidating realm fuses) or add a
+  // fuse guard (for other fuses).
+  switch (fuseIndex) {
+    case RealmFuses::FuseIndex::OptimizeGetIteratorFuse: {
+      using Dependency =
+          RealmFuseDependency<&RealmFuses::optimizeGetIteratorFuse,
+                              CompilationDependency::Type::GetIterator>;
+      return mirGen().tracker.addDependency(Dependency());
+    }
+    default:
+      MOZ_ASSERT(!RealmFuses::isInvalidatingFuse(fuseIndex));
+      auto* ins = MGuardFuse::New(alloc(), fuseIndex);
+      add(ins);
+      return true;
   }
-
-  // Register the compilation dependency.
-  GetIteratorDependency dep;
-  return mirGen().tracker.addDependency(dep);
 }
 
 bool WarpCacheIRTranspiler::emitGuardMultipleShapes(ObjOperandId objId,

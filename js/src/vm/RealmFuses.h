@@ -208,6 +208,23 @@ struct RealmFuses {
 
   static int32_t offsetOfFuseWordRelativeToRealm(FuseIndex index);
   static const char* getFuseName(FuseIndex index);
+
+#ifdef DEBUG
+  static bool isInvalidatingFuse(FuseIndex index) {
+    switch (index) {
+#  define FUSE(Name, LowerName)                                      \
+    case FuseIndex::Name:                                            \
+      static_assert(std::is_base_of_v<RealmFuse, Name> ||            \
+                    std::is_base_of_v<InvalidatingRealmFuse, Name>); \
+      return std::is_base_of_v<InvalidatingRealmFuse, Name>;
+      FOR_EACH_REALM_FUSE(FUSE)
+#  undef FUSE
+      default:
+        break;
+    }
+    MOZ_CRASH("Fuse Not Found");
+  }
+#endif
 };
 
 }  // namespace js

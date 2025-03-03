@@ -23,7 +23,7 @@ struct CompilationDependency {
   Type type;
 
   CompilationDependency(Type type) : type(type) {}
-  virtual bool operator==(CompilationDependency& other) = 0;
+  virtual bool operator==(const CompilationDependency& other) const = 0;
 
   // Return true iff this dependency still holds. May only be called on main
   // thread.
@@ -31,7 +31,7 @@ struct CompilationDependency {
   [[nodiscard]] virtual bool registerDependency(JSContext* cx,
                                                 HandleScript script) = 0;
 
-  virtual UniquePtr<CompilationDependency> clone() = 0;
+  virtual UniquePtr<CompilationDependency> clone() const = 0;
   virtual ~CompilationDependency() = default;
 };
 
@@ -42,7 +42,7 @@ struct CompilationDependencyTracker {
   mozilla::Vector<UniquePtr<CompilationDependency>, 8, SystemAllocPolicy>
       dependencies;
 
-  [[nodiscard]] bool addDependency(CompilationDependency& dep) {
+  [[nodiscard]] bool addDependency(const CompilationDependency& dep) {
     // Ensure we don't add duplicates. We expect this list to be short,
     // and so iteration is preferred over a more costly hashset.
     MOZ_ASSERT(dependencies.length() <= 32);
