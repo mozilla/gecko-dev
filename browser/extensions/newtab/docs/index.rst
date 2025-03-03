@@ -51,11 +51,18 @@ To build assets and run Firefox, run the following from the root of the mozilla-
 
 Continuous development / debugging
 ----------------------------------
-Running ``./mach npm run watchmc --prefix=browser/extensions/newtab`` will start a process that watches files in
-``activity-stream`` and rebuilds the bundled files when JS or CSS files change.
 
-**IMPORTANT NOTE**: This task will add inline source maps to help with debugging, which changes the memory footprint.
-Do not use the ``watchmc`` task for profiling or performance testing!
+For near real-time reloading, run the following commands in separate terminals to automatically rebuild bundled files whenever JSX or SCSS files change. After making a change, `restart your local instance </devtools-user/browser_console/index.html#controlling-the-browser>`_ to apply the updates.
+
+.. code-block:: shell
+
+  ./mach npm run watchmc --prefix=browser/extensions/newtab
+  ./mach run
+  ./mach watch
+
+
+**IMPORTANT NOTE**: This task will add inline source maps to help with debugging, which changes the memory footprint. Do not use the ``watchmc`` task for profiling or performance testing! After finalizing your changes, be sure to run `the bundle command <./index.html#building-assets-and-running-firefox>`_ again before committing to remove the inline source maps.
+
 
 Running tests
 -------------
