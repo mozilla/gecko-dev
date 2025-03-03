@@ -810,14 +810,17 @@ static vpx_codec_err_t encoder_set_config(vpx_codec_alg_priv_t *ctx,
     // Note: function encoder_set_config() is allowed to be called multiple
     // times. However, when the original frame width or height is less than two
     // times of the new frame width or height, a forced key frame should be
-    // used. To make sure the correct detection of a forced key frame, we need
+    // used (for the case of single spatial layer, since otherwise a previous
+    //  encoded frame at a lower layer may be the desired reference). To make
+    //  sure the correct detection of a forced key frame, we need
     // to update the frame width and height only when the actual encoding is
     // performed. cpi->last_coded_width and cpi->last_coded_height are used to
     // track the actual coded frame size.
     if ((ctx->cpi->last_coded_width && ctx->cpi->last_coded_height &&
-         !valid_ref_frame_size(ctx->cpi->last_coded_width,
-                               ctx->cpi->last_coded_height, cfg->g_w,
-                               cfg->g_h)) ||
+         (!valid_ref_frame_size(ctx->cpi->last_coded_width,
+                                ctx->cpi->last_coded_height, cfg->g_w,
+                                cfg->g_h) &&
+          ctx->cpi->svc.number_spatial_layers == 1)) ||
         (ctx->cpi->initial_width && (int)cfg->g_w > ctx->cpi->initial_width) ||
         (ctx->cpi->initial_height &&
          (int)cfg->g_h > ctx->cpi->initial_height)) {
@@ -1465,22 +1468,13 @@ static vpx_codec_err_t encoder_encode(vpx_codec_alg_priv_t *ctx,
           timebase_units_to_ticks(timebase_in_ts, pts_end);
       res = image2yuvconfig(img, &sd);
 
-      if (sd.y_width != ctx->cfg.g_w || sd.y_height != ctx->cfg.g_h) {
-        /* from vpx_encoder.h for g_w/g_h:
-           "Note that the frames passed as input to the encoder must have this
-           resolution"
-        */
-        ctx->base.err_detail = "Invalid input frame resolution";
-        res = VPX_CODEC_INVALID_PARAM;
-      } else {
-        // Store the original flags in to the frame buffer. Will extract the
-        // key frame flag when we actually encode this frame.
-        if (vp9_receive_raw_frame(cpi, flags | ctx->next_frame_flags, &sd,
+      // Store the original flags in to the frame buffer. Will extract the
+      // key frame flag when we actually encode this frame.
+      if (vp9_receive_raw_frame(cpi, flags | ctx->next_frame_flags, &sd,
                                 dst_time_stamp, dst_end_time_stamp)) {
-          res = update_error_state(ctx, &cpi->common.error);
-        }
-        ctx->next_frame_flags = 0;
+        res = update_error_state(ctx, &cpi->common.error);
       }
+      ctx->next_frame_flags = 0;
     }
 
     cx_data = ctx->cx_data;
