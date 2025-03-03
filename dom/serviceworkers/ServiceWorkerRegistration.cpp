@@ -415,28 +415,85 @@ already_AddRefed<Promise> ServiceWorkerRegistration::ShowNotification(
   return p.forget();
 }
 
+// https://notifications.spec.whatwg.org/#dom-serviceworkerregistration-getnotifications
 already_AddRefed<Promise> ServiceWorkerRegistration::GetNotifications(
     const GetNotificationOptions& aOptions, ErrorResult& aRv) {
-  nsIGlobalObject* global = GetParentObject();
+  // Step 1: Let global be this’s relevant global object.
+  // Step 2: Let realm be this’s relevant Realm.
+  nsCOMPtr<nsIGlobalObject> global = GetParentObject();
   if (!global) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return nullptr;
   }
 
-  NS_ConvertUTF8toUTF16 scope(mDescriptor.Scope());
+  // Step 3: Let origin be this’s relevant settings object’s origin.
+  // (Done in ServiceWorkerRegistrationProxy::GetNotifications)
 
-  if (NS_IsMainThread()) {
-    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(global);
-    if (NS_WARN_IF(!window)) {
-      aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-      return nullptr;
-    }
-    return Notification::Get(window, aOptions, scope, aRv);
+  // Step 4: Let promise be a new promise in realm.
+  RefPtr<Promise> promise = Promise::CreateInfallible(global);
+
+  // Step 5: Run these steps in parallel:
+  // Step 5.1: Let tag be filter["tag"].
+  // Step 5.2: Let notifications be a list of all notifications in the list of
+  // notifications whose origin is same origin with origin, whose service worker
+  // registration is this, and whose tag, if tag is not the empty string, is
+  // tag.
+
+  if (!mActor) {
+    // While it's not clear from the current spec, it's fair to say that
+    // unregistered registrations cannot have a match in the step 5.2. See also
+    // bug 1881812.
+    // One could also say we should throw here, but no browsers throw.
+    promise->MaybeResolve(nsTArray<RefPtr<Notification>>());
+    return promise.forget();
   }
 
-  WorkerPrivate* worker = GetCurrentThreadWorkerPrivate();
-  worker->AssertIsOnWorkerThread();
-  return Notification::WorkerGet(worker, aOptions, scope, aRv);
+  // Step 5.3: Queue a global task on the DOM manipulation task source
+  // given global to run these steps:
+  mActor->SendGetNotifications(aOptions.mTag)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [promise, scope = NS_ConvertUTF8toUTF16(mDescriptor.Scope())](
+                 const PServiceWorkerRegistrationChild::
+                     GetNotificationsPromise::ResolveOrRejectValue&& aValue) {
+               if (aValue.IsReject()) {
+                 // An unregistered registration
+                 promise->MaybeResolve(nsTArray<RefPtr<Notification>>());
+                 return;
+               }
+
+               if (aValue.ResolveValue().type() ==
+                   IPCNotificationsOrError::Tnsresult) {
+                 // An active registration but had some internal error
+                 promise->MaybeRejectWithInvalidStateError(
+                     "Could not retrieve notifications"_ns);
+                 return;
+               }
+
+               const nsTArray<IPCNotification>& notifications =
+                   aValue.ResolveValue().get_ArrayOfIPCNotification();
+
+               // Step 5.3.1: Let objects be a list.
+               nsTArray<RefPtr<Notification>> objects(notifications.Length());
+
+               // Step 5.3.2: For each notification in notifications, in
+               // creation order, create a new Notification object with realm
+               // representing notification, and append it to objects.
+               for (const IPCNotification& ipcNotification : notifications) {
+                 auto result = Notification::ConstructFromIPC(
+                     promise->GetParentObject(), ipcNotification, scope);
+                 if (result.isErr()) {
+                   continue;
+                 }
+                 RefPtr<Notification> n = result.unwrap();
+                 objects.AppendElement(n.forget());
+               }
+
+               // Step 5.3.3: Resolve promise with objects.
+               promise->MaybeResolve(std::move(objects));
+             });
+
+  // Step 6: Return promise.
+  return promise.forget();
 }
 
 void ServiceWorkerRegistration::SetNavigationPreloadEnabled(

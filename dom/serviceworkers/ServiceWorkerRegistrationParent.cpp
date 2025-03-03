@@ -126,6 +126,23 @@ IPCResult ServiceWorkerRegistrationParent::RecvGetNavigationPreloadState(
   return IPC_OK();
 }
 
+IPCResult ServiceWorkerRegistrationParent::RecvGetNotifications(
+    const nsAString& aTag, GetNotificationsResolver&& aResolver) {
+  if (!mProxy) {
+    aResolver(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return IPC_OK();
+  }
+
+  mProxy->GetNotifications(aTag)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [aResolver](const CopyableTArray<IPCNotification>& aNotifications) {
+        aResolver(aNotifications);
+      },
+      [aResolver](nsresult) { aResolver(NS_ERROR_DOM_INVALID_STATE_ERR); });
+
+  return IPC_OK();
+}
+
 ServiceWorkerRegistrationParent::ServiceWorkerRegistrationParent()
     : mDeleteSent(false) {}
 

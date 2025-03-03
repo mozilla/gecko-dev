@@ -8,14 +8,17 @@
 
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/dom/notification/NotificationUtils.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "ServiceWorkerManager.h"
 #include "ServiceWorkerRegistrationParent.h"
 #include "ServiceWorkerUnregisterCallback.h"
+#include "nsINotificationStorage.h"
 
 namespace mozilla::dom {
 
 using mozilla::ipc::AssertIsOnBackgroundThread;
+using namespace mozilla::dom::notification;
 
 class ServiceWorkerRegistrationProxy::DelayedUpdate final
     : public nsITimerCallback,
@@ -482,6 +485,88 @@ ServiceWorkerRegistrationProxy::GetNavigationPreloadState() {
   MOZ_ALWAYS_SUCCEEDS(SchedulerGroup::Dispatch(r.forget()));
 
   return promise;
+}
+
+// TODO(krosylight): Ideally this callback shouldn't be needed, see bug 1950116.
+class NotificationsCallback : public nsINotificationStorageCallback {
+ public:
+  NS_DECL_ISUPPORTS
+
+  already_AddRefed<NotificationsPromise> Promise() {
+    return mPromiseHolder.Ensure(__func__);
+  }
+
+  NS_IMETHOD Handle(const nsAString& aID, const nsAString& aTitle,
+                    const nsAString& aDir, const nsAString& aLang,
+                    const nsAString& aBody, const nsAString& aTag,
+                    const nsAString& aIcon, const nsAString& aData,
+                    const nsAString& aServiceWorkerRegistrationScope) final {
+    AssertIsOnMainThread();
+    MOZ_ASSERT(!aID.IsEmpty());
+
+    NotificationDirection dir =
+        StringToEnum<NotificationDirection>(aDir).valueOr(
+            NotificationDirection::Auto);
+
+    // XXX(krosylight): we don't store all notification options
+    IPCNotification notification(
+        nsString(aID),
+        IPCNotificationOptions(nsString(aTitle), dir, nsString(aLang),
+                               nsString(aBody), nsString(aTag), nsString(aIcon),
+                               false, false, nsTArray<uint32_t>(),
+                               nsString(aData)));
+
+    mNotifications.AppendElement(std::move(notification));
+    return NS_OK;
+  }
+
+  NS_IMETHOD Done() final {
+    mPromiseHolder.Resolve(std::move(mNotifications), __func__);
+    return NS_OK;
+  }
+
+ protected:
+  virtual ~NotificationsCallback() = default;
+
+  nsTArray<IPCNotification> mNotifications;
+  MozPromiseHolder<NotificationsPromise> mPromiseHolder;
+};
+
+NS_IMPL_ISUPPORTS(NotificationsCallback, nsINotificationStorageCallback)
+
+RefPtr<NotificationsPromise> ServiceWorkerRegistrationProxy::GetNotifications(
+    const nsAString& aTag) {
+  AssertIsOnBackgroundThread();
+
+  RefPtr<ServiceWorkerRegistrationProxy> self = this;
+  return InvokeAsync(
+      GetMainThreadSerialEventTarget(), __func__,
+      [self, tag = nsString(aTag)]() {
+        Result<nsCOMPtr<nsIPrincipal>, nsresult> principalResult =
+            self->mListeningClientInfo.GetPrincipal();
+        if (principalResult.isErr()) {
+          return NotificationsPromise::CreateAndReject(
+              NS_ERROR_DOM_INVALID_STATE_ERR, __func__);
+        }
+
+        nsCOMPtr<nsIPrincipal> principal = principalResult.unwrap();
+        nsString origin;
+        GetOrigin(principal, origin);
+
+        RefPtr<NotificationsCallback> callback = new NotificationsCallback();
+        RefPtr<NotificationsPromise> promise = callback->Promise();
+
+        nsCOMPtr<nsINotificationStorage> notificationStorage =
+            GetNotificationStorage(
+                self->mListeningClientInfo.IsPrivateBrowsing());
+
+        nsString scope;
+        self->GetScope(scope);
+
+        notificationStorage->Get(origin, scope, tag, callback);
+
+        return promise;
+      });
 }
 
 }  // namespace mozilla::dom

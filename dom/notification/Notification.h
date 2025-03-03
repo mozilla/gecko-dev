@@ -75,22 +75,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
       const NotificationOptions& aOption, ErrorResult& aRv);
 
   /**
-   * Used when dispatching the ServiceWorkerEvent.
-   *
-   * Does not initialize the Notification's behavior.
-   * This is because:
-   * 1) The Notification is not shown to the user and so the behavior
-   *    parameters don't matter.
-   * 2) The default binding requires main thread for parsing the JSON from the
-   *    string behavior.
-   */
-  static Result<already_AddRefed<Notification>, QMResult> ConstructFromFields(
-      nsIGlobalObject* aGlobal, const nsAString& aID, const nsAString& aTitle,
-      const nsAString& aDir, const nsAString& aLang, const nsAString& aBody,
-      const nsAString& aTag, const nsAString& aIcon, const nsAString& aData,
-      const nsAString& aServiceWorkerRegistrationScope);
-
-  /**
    * Used when retrieving notification objects from the parent process.
    */
   static Result<already_AddRefed<Notification>, QMResult> ConstructFromIPC(
@@ -123,15 +107,6 @@ class Notification : public DOMEventTargetHelper, public SupportsWeakPtr {
 
   static NotificationPermission GetPermission(const GlobalObject& aGlobal,
                                               ErrorResult& aRv);
-
-  static already_AddRefed<Promise> Get(nsPIDOMWindowInner* aWindow,
-                                       const GetNotificationOptions& aFilter,
-                                       const nsAString& aScope,
-                                       ErrorResult& aRv);
-
-  static already_AddRefed<Promise> WorkerGet(
-      WorkerPrivate* aWorkerPrivate, const GetNotificationOptions& aFilter,
-      const nsAString& aScope, ErrorResult& aRv);
 
   // Notification implementation of
   // ServiceWorkerRegistration.showNotification.

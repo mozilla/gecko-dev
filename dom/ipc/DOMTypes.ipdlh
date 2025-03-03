@@ -359,5 +359,10 @@ struct IPCNotification {
   IPCNotificationOptions options;
 };
 
+union IPCNotificationsOrError {
+  IPCNotification[];
+  nsresult;
+};
+
 } // namespace dom
 } // namespace mozilla

@@ -86,6 +86,8 @@ class ServiceWorkerRegistrationProxy final
 
   RefPtr<NavigationPreloadStatePromise> GetNavigationPreloadState();
 
+  RefPtr<NotificationsPromise> GetNotifications(const nsAString& aTag);
+
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ServiceWorkerRegistrationProxy,
                                         override);
 };

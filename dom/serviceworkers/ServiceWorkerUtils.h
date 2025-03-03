@@ -7,6 +7,7 @@
 #define _mozilla_dom_ServiceWorkerUtils_h
 
 #include "mozilla/MozPromise.h"
+#include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/IPCNavigationPreloadState.h"
 #include "mozilla/dom/ServiceWorkerRegistrationDescriptor.h"
 #include "nsTArray.h"
@@ -35,6 +36,9 @@ using ServiceWorkerRegistrationListPromise =
 
 using NavigationPreloadStatePromise =
     MozPromise<IPCNavigationPreloadState, CopyableErrorResult, false>;
+
+using NotificationsPromise =
+    MozPromise<CopyableTArray<IPCNotification>, nsresult, false>;
 
 using ServiceWorkerRegistrationCallback =
     std::function<void(const ServiceWorkerRegistrationDescriptor&)>;

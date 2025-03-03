@@ -5,6 +5,7 @@
 include protocol PBackground;
 
 include ClientIPCTypes;
+include DOMTypes;
 include IPCNavigationPreloadState;
 include IPCServiceWorkerRegistrationDescriptor;
 
@@ -24,6 +25,7 @@ parent:
   async Unregister() returns (bool aSuccess, CopyableErrorResult aRv);
   async Update(nsCString aNewestWorkerScriptUrl) returns (
     IPCServiceWorkerRegistrationDescriptorOrCopyableErrorResult aResult);
+  async GetNotifications(nsString aTag) returns (IPCNotificationsOrError aResult);
 
   // For NavigationPreload interface
   async SetNavigationPreloadEnabled(bool aEnabled) returns (bool aSuccess);
