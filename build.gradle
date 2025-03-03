@@ -226,37 +226,19 @@ class TaggedLogOutputStream extends org.apache.commons.exec.LogOutputStream {
     }
 }
 
-ext.geckoBinariesOnlyIf = { task ->
-    // Never when Gradle was invoked within `mach build`.
-    if ('1' == System.env.GRADLE_INVOKED_WITHIN_MACH_BUILD) {
-        rootProject.logger.lifecycle("Skipping task ${task.path} because: within `mach build`")
-        return false
+
+import  org.gradle.api.services.BuildServiceParameters
+abstract class MozconfigService implements BuildService<MozconfigService.Params>, AutoCloseable {
+    interface Params extends BuildServiceParameters {
+        MapProperty<String, Object> getMozconfigParam()
     }
 
-    // Never for official builds.
-    if (mozconfig.substs.MOZILLA_OFFICIAL) {
-        rootProject.logger.lifecycle("Skipping task ${task.path} because: MOZILLA_OFFICIAL")
-        return false
+    void close() {
     }
 
-    // Multi-l10n builds set `AB_CD=multi`, which isn't a valid locale, and
-    // `MOZ_CHROME_MULTILOCALE`.  To avoid failures, if Gradle is invoked with
-    // either, we don't invoke Make at all; this allows a multi-locale omnijar
-    // to be consumed without modification.
-    if ('multi' == System.env.AB_CD || System.env.MOZ_CHROME_MULTILOCALE) {
-        rootProject.logger.lifecycle("Skipping task ${task.path} because: AB_CD=multi")
-        return false
+    Object getMozconfig() {
+        return parameters.mozconfigParam.get()
     }
-
-    // Single-locale l10n repacks set `IS_LANGUAGE_REPACK=1` and handle resource
-    // and code generation themselves.
-    if ('1' == System.env.IS_LANGUAGE_REPACK) {
-        rootProject.logger.lifecycle("Skipping task ${task.path} because: IS_LANGUAGE_REPACK")
-        return false
-    }
-
-    rootProject.logger.lifecycle("Executing task ${task.path}")
-    return true
 }
 
 // Non-official versions are like "61.0a1" or "61.0b1", where "a1" and "b1"
@@ -340,10 +322,47 @@ class MachExec extends Exec {
         environment project.ext.mozconfig.orig_mozconfig.env.unmodified
         environment 'MOZCONFIG', project.ext.mozconfig.substs.MOZCONFIG
     }
+
+    static def geckoBinariesOnlyIf(task, mozconfig) {
+        // Never when Gradle was invoked within `mach build`.
+        if ('1' == System.env.GRADLE_INVOKED_WITHIN_MACH_BUILD) {
+            task.logger.lifecycle("Skipping task ${task.path} because: within `mach build`")
+            return false
+        }
+
+        // Never for official builds.
+        if (mozconfig.substs.MOZILLA_OFFICIAL) {
+            task.logger.lifecycle("Skipping task ${task.path} because: MOZILLA_OFFICIAL")
+            return false
+        }
+
+        // Multi-l10n builds set `AB_CD=multi`, which isn't a valid locale, and
+        // `MOZ_CHROME_MULTILOCALE`.  To avoid failures, if Gradle is invoked with
+        // either, we don't invoke Make at all; this allows a multi-locale omnijar
+        // to be consumed without modification.
+        if ('multi' == System.env.AB_CD || System.env.MOZ_CHROME_MULTILOCALE) {
+            task.logger.lifecycle("Skipping task ${task.path} because: AB_CD=multi")
+            return false
+        }
+
+        // Single-locale l10n repacks set `IS_LANGUAGE_REPACK=1` and handle resource
+        // and code generation themselves.
+        if ('1' == System.env.IS_LANGUAGE_REPACK) {
+            task.logger.lifecycle("Skipping task ${task.path} because: IS_LANGUAGE_REPACK")
+            return false
+        }
+
+        task.logger.lifecycle("Executing task ${task.path}")
+        return true
+    }
 }
 
 task machBuildFaster(type: MachExec) {
-    onlyIf rootProject.ext.geckoBinariesOnlyIf
+    def mozconfigProvider = gradle.sharedServices.registerIfAbsent("mozconfig", MozconfigService) {
+        parameters.mozconfigParam.set(project.ext.mozconfig)
+    }
+    usesService(mozconfigProvider)
+    onlyIf { task -> MachExec.geckoBinariesOnlyIf(task, mozconfigProvider.get().getMozconfig()) }
 
     workingDir "${topsrcdir}"
 
@@ -363,8 +382,11 @@ task machBuildFaster(type: MachExec) {
 }
 
 task machStagePackage(type: MachExec) {
-    onlyIf rootProject.ext.geckoBinariesOnlyIf
-
+    def mozconfigProvider = gradle.sharedServices.registerIfAbsent("mozconfig", MozconfigService) {
+        parameters.mozconfigParam.set(project.ext.mozconfig)
+    }
+    usesService(mozconfigProvider)
+    onlyIf { task -> MachExec.geckoBinariesOnlyIf(task, mozconfigProvider.get().getMozconfig()) }
     dependsOn rootProject.machBuildFaster
 
     workingDir "${topobjdir}"
