@@ -788,11 +788,11 @@ var loadManifestFromFile = async function (aFile, aLocation, aOldAddon) {
  * this.
  */
 function syncLoadManifest(state, location, oldAddon) {
-  const { KEY_APP_BUILTINS, KEY_APP_SYSTEM_BUILTINS, awaitPromise } =
-    XPIExports.XPIInternal;
-  if ([KEY_APP_BUILTINS, KEY_APP_SYSTEM_BUILTINS].includes(location.name)) {
+  if (location.name == "app-builtin") {
     let pkg = builtinPackage(Services.io.newURI(state.rootURI));
-    return awaitPromise(loadManifest(pkg, location, oldAddon));
+    return XPIExports.XPIInternal.awaitPromise(
+      loadManifest(pkg, location, oldAddon)
+    );
   }
 
   let file = new nsIFile(state.path);
@@ -4338,13 +4338,12 @@ export var XPIInstall = {
       return;
     }
 
-    // If this matches the current set in the default locations then reset the
+    // If this matches the current set in the default location then reset the
     // updated set.
     let defaultAddons = addonMap(
-      await XPIExports.XPIDatabase.getAddonsInLocations([
-        XPIExports.XPIInternal.KEY_APP_SYSTEM_DEFAULTS,
-        XPIExports.XPIInternal.KEY_APP_SYSTEM_BUILTINS,
-      ])
+      await XPIExports.XPIDatabase.getAddonsInLocation(
+        XPIExports.XPIInternal.KEY_APP_SYSTEM_DEFAULTS
+      )
     );
     if (setMatches(addonList, defaultAddons)) {
       logger.info("Resetting system add-ons.");

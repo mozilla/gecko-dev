@@ -2298,6 +2298,25 @@ BrowserGlue.prototype = {
     });
   },
 
+  async _setupSearchDetection() {
+    // There is no pref for this add-on because it shouldn't be disabled.
+    const ID = "addons-search-detection@mozilla.com";
+
+    let addon = await lazy.AddonManager.getAddonByID(ID);
+
+    // first time install of addon and install on firefox update
+    addon =
+      (await lazy.AddonManager.maybeInstallBuiltinAddon(
+        ID,
+        "2.0.0",
+        "resource://builtin-addons/search-detection/"
+      )) || addon;
+
+    if (!addon.isActive) {
+      addon.enable();
+    }
+  },
+
   _monitorHTTPSOnlyPref() {
     const PREF_ENABLED = "dom.security.https_only_mode";
     const PREF_WAS_ENABLED = "dom.security.https_only_mode_ever_enabled";
@@ -2442,6 +2461,7 @@ BrowserGlue.prototype = {
 
     this._monitorWebcompatReporterPref();
     this._monitorHTTPSOnlyPref();
+    this._setupSearchDetection();
 
     this._monitorGPCPref();
 
