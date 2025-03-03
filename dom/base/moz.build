@@ -282,7 +282,6 @@ EXPORTS.mozilla.dom += [
     "TestUtils.h",
     "Text.h",
     "Timeout.h",
-    "TimeoutBudgetManager.h",
     "TimeoutHandler.h",
     "TimeoutManager.h",
     "TreeIterator.h",

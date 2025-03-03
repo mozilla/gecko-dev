@@ -6274,8 +6274,8 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout) {
   // timeouts from repeatedly opening poups.
   timeout->mPopupState = PopupBlocker::openAbused;
 
-  uint32_t nestingLevel = mTimeoutManager->GetNestingLevelForWindow();
-  mTimeoutManager->SetNestingLevelForWindow(timeout->mNestingLevel);
+  uint32_t nestingLevel = mTimeoutManager->GetNestingLevel();
+  mTimeoutManager->SetNestingLevel(timeout->mNestingLevel);
 
   const char* reason = GetTimeoutReasonString(timeout);
 
@@ -6326,7 +6326,7 @@ bool nsGlobalWindowInner::RunTimeoutHandler(Timeout* aTimeout) {
   // point anyway, and the script context should have already reported
   // the script error in the usual way - so we just drop it.
 
-  mTimeoutManager->SetNestingLevelForWindow(nestingLevel);
+  mTimeoutManager->SetNestingLevel(nestingLevel);
 
   mTimeoutManager->EndRunningTimeout(last_running_timeout);
   timeout->mRunning = false;

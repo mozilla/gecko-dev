@@ -10,7 +10,6 @@
 #include "mozilla/dom/Timeout.h"
 #include "nsTArray.h"
 #include "nsISerialEventTarget.h"
-#include "mozilla/dom/TimeoutBudgetManager.h"
 
 class nsIEventTarget;
 class nsITimer;
@@ -37,23 +36,16 @@ class TimeoutManager final {
 
   bool IsRunningTimeout() const;
 
-  uint32_t GetNestingLevelForWorker() {
-    MOZ_DIAGNOSTIC_ASSERT(!NS_IsMainThread());
-    return mNestingLevel;
-  }
-  uint32_t GetNestingLevelForWindow() {
-    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
-    return sNestingLevel;
+  uint32_t GetNestingLevel() {
+    return mGlobalObject.GetAsInnerWindow() ? sNestingLevel : mNestingLevel;
   }
 
-  void SetNestingLevelForWorker(uint32_t aLevel) {
-    MOZ_DIAGNOSTIC_ASSERT(!NS_IsMainThread());
-    mNestingLevel = aLevel;
-  }
-
-  void SetNestingLevelForWindow(uint32_t aLevel) {
-    MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
-    sNestingLevel = aLevel;
+  void SetNestingLevel(uint32_t aLevel) {
+    if (mGlobalObject.GetAsInnerWindow()) {
+      sNestingLevel = aLevel;
+    } else {
+      mNestingLevel = aLevel;
+    }
   }
 
   bool HasTimeouts() const {
@@ -269,11 +261,7 @@ class TimeoutManager final {
   nsCOMPtr<nsISerialEventTarget> mEventTarget;
 
   uint32_t mNestingLevel{0};
-
   static uint32_t sNestingLevel;
-
-  TimeoutBudgetManager mBudgetManager;
-  static TimeoutBudgetManager sBudgetManager;
 };
 
 }  // namespace dom

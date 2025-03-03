@@ -8,18 +8,22 @@
 #define mozilla_dom_timeoutbudgetmanager_h
 
 #include "mozilla/TimeStamp.h"
-#include "mozilla/dom/Timeout.h"
 
 namespace mozilla::dom {
 
+class Timeout;
+
 class TimeoutBudgetManager {
  public:
+  static TimeoutBudgetManager& Get();
   void StartRecording(const TimeStamp& aNow);
   void StopRecording();
   TimeDuration RecordExecution(const TimeStamp& aNow, const Timeout* aTimeout);
 
  private:
-  TimeStamp mStart{};
+  TimeoutBudgetManager() = default;
+
+  TimeStamp mStart;
 };
 
 }  // namespace mozilla::dom

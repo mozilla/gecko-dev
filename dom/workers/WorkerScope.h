@@ -206,10 +206,6 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
     return mWorkerPrivate->IsFrozenForWorkerThread();
   }
 
-  void TriggerUpdateCCFlag() override {
-    mWorkerPrivate->UpdateCCFlag(WorkerPrivate::CCFlag::EligibleForTimeout);
-  }
-
   static WorkerGlobalScopeBase* Cast(nsIGlobalObject* obj) {
     return static_cast<WorkerGlobalScopeBase*>(obj);
   }
