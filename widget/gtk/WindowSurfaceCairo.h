@@ -4,36 +4,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef _MOZILLA_WIDGET_WINDOW_SURFACE_X11_SHM_H
-#define _MOZILLA_WIDGET_WINDOW_SURFACE_X11_SHM_H
+#ifndef _MOZILLA_WIDGET_GTK_WINDOW_SURFACE_CAIRO_H
+#define _MOZILLA_WIDGET_GTK_WINDOW_SURFACE_CAIRO_H
 
-#ifdef MOZ_X11
+#include "mozilla/widget/WindowSurface.h"
+#include "mozilla/gfx/Types.h"
+#include <glib.h>
+#include "gfxImageSurface.h"
 
-#  include "mozilla/widget/WindowSurface.h"
-#  include "nsShmImage.h"
-
-#  include <X11/Xlib.h>
-#  include "X11UndefineNone.h"
+class nsWindow;
 
 namespace mozilla {
 namespace widget {
 
-class WindowSurfaceX11SHM : public WindowSurface {
+class WindowSurfaceCairo : public WindowSurface {
  public:
-  WindowSurfaceX11SHM(Display* aDisplay, Drawable aWindow, Visual* aVisual,
-                      unsigned int aDepth);
+  explicit WindowSurfaceCairo(nsWindow* aWidget);
+  ~WindowSurfaceCairo();
 
   already_AddRefed<gfx::DrawTarget> Lock(
       const LayoutDeviceIntRegion& aRegion) override;
   void Commit(const LayoutDeviceIntRegion& aInvalidRegion) override;
+  bool IsFallback() const override { return true; }
 
  private:
-  RefPtr<nsShmImage> mFrontImage;
-  RefPtr<nsShmImage> mBackImage;
+  RefPtr<gfxImageSurface> mImageSurface;
+  RefPtr<nsWindow> mWidget;
 };
 
 }  // namespace widget
 }  // namespace mozilla
 
-#endif  // MOZ_X11
-#endif  // _MOZILLA_WIDGET_WINDOW_SURFACE_X11_SHM_H
+#endif  // _MOZILLA_WIDGET_GTK_WINDOW_SURFACE_X11_IMAGE_H

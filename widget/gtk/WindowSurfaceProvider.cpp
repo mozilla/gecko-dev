@@ -16,6 +16,7 @@
 
 #ifdef MOZ_WAYLAND
 #  include "mozilla/StaticPrefs_widget.h"
+#  include "WindowSurfaceCairo.h"
 #  include "WindowSurfaceWaylandMultiBuffer.h"
 #endif
 #ifdef MOZ_X11
@@ -113,6 +114,9 @@ RefPtr<WindowSurface> WindowSurfaceProvider::CreateWindowSurface() {
     // We're called too early or we're unmapped.
     if (!mWidget) {
       return nullptr;
+    }
+    if (mWidget->IsDragPopup()) {
+      return MakeRefPtr<WindowSurfaceCairo>(mWidget);
     }
     return MakeRefPtr<WindowSurfaceWaylandMB>(mWidget, mCompositorWidget);
   }
