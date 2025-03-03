@@ -11242,6 +11242,17 @@ void nsHttpChannel::PerformBackgroundCacheRevalidationNow() {
     return;
   }
 
+  nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(validatingChannel));
+  MOZ_ASSERT(httpChannel);
+  nsCOMPtr<nsIHttpHeaderVisitor> visitor =
+      new CopyNonDefaultHeaderVisitor(httpChannel);
+  rv = VisitNonDefaultRequestHeaders(visitor);
+  if (NS_FAILED(rv)) {
+    LOG(("failed to copy headers to the validating channel, rv=0x%08x",
+         static_cast<uint32_t>(rv)));
+    return;
+  }
+
   nsCOMPtr<nsISupportsPriority> priority(do_QueryInterface(validatingChannel));
   if (priority) {
     priority->SetPriority(nsISupportsPriority::PRIORITY_LOWEST);
