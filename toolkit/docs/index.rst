@@ -13,6 +13,7 @@ This is the nascent documentation of the Toolkit code that is shared across Fire
    components/crashes/crash-manager/index
    crashreporter/crashreporter/index
    components/featuregates/featuregates/index
+   internal-urls
    search/index
    components/normandy/normandy/index
    components/nimbus/docs/index
