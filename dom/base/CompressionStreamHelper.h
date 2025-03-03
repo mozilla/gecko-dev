@@ -4,15 +4,35 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef DOM_ZLIBHELPER_H_
-#define DOM_ZLIBHELPER_H_
+#ifndef DOM_COMPRESSION_STREAM_HELPER_H_
+#define DOM_COMPRESSION_STREAM_HELPER_H_
 
 #include "js/TypeDecls.h"
 #include "zlib.h"
 
 #include "mozilla/dom/CompressionStreamBinding.h"
 
-namespace mozilla::dom {
+namespace mozilla::dom::compression {
+
+// A top-level, library-agnostic flush enum that should be converted
+// into the native flush values for a given (de)compression library
+// with a function defined below.
+enum class Flush : bool { No, Yes };
+
+inline uint8_t intoZLibFlush(Flush aFlush) {
+  switch (aFlush) {
+    case Flush::No: {
+      return Z_NO_FLUSH;
+    }
+    case Flush::Yes: {
+      return Z_FINISH;
+    }
+    default: {
+      MOZ_ASSERT_UNREACHABLE("Unknown flush mode");
+      return Z_NO_FLUSH;
+    }
+  }
+}
 
 // From the docs in
 // https://searchfox.org/mozilla-central/source/modules/zlib/src/zlib.h
@@ -39,8 +59,6 @@ inline int8_t ZLibWindowBits(CompressionFormat format) {
   }
 }
 
-enum ZLibFlush : uint8_t { No = Z_NO_FLUSH, Yes = Z_FINISH };
+}  // namespace mozilla::dom::compression
 
-}  // namespace mozilla::dom
-
-#endif  // DOM_ZLIBHELPER_H_
+#endif  // DOM_COMPRESSION_STREAM_HELPER_H_
