@@ -33,15 +33,6 @@
     "scopes": ["addon_parent"],
     "paths": [["contentScripts"]]
   },
-  "contextualIdentities": {
-    "url": "chrome://extensions/content/parent/ext-contextualIdentities.js",
-    "schema": "chrome://extensions/content/schemas/contextual_identities.json",
-    "scopes": ["addon_parent"],
-    "settings": true,
-    "events": ["startup"],
-    "permissions": ["contextualIdentities"],
-    "paths": [["contextualIdentities"]]
-  },
   "cookies": {
     "url": "chrome://extensions/content/parent/ext-cookies.js",
     "schema": "chrome://extensions/content/schemas/cookies.json",

@@ -14,7 +14,9 @@ toolkit.jar:
 #endif
     content/extensions/schemas/clipboard.json
     content/extensions/schemas/content_scripts.json
+#ifndef ANDROID
     content/extensions/schemas/contextual_identities.json
+#endif
     content/extensions/schemas/cookies.json
     content/extensions/schemas/declarative_net_request.json
     content/extensions/schemas/dns.json

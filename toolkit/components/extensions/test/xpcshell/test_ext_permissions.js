@@ -736,7 +736,6 @@ const GRANTED_WITHOUT_USER_PROMPT = [
   "activeTab",
   "activityLog",
   "alarms",
-  "contextualIdentities",
   "cookies",
   "declarativeNetRequestWithHostAccess",
   "dns",
@@ -766,6 +765,7 @@ if (AppConstants.platform == "android") {
   GRANTED_WITHOUT_USER_PROMPT.push(
     "captivePortal",
     "contextMenus",
+    "contextualIdentities",
     "geckoProfiler",
     "identity",
     "menus",

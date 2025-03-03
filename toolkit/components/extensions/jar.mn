@@ -16,7 +16,9 @@ toolkit.jar:
     content/extensions/parent/ext-captivePortal.js (parent/ext-captivePortal.js)
 #endif
     content/extensions/parent/ext-contentScripts.js (parent/ext-contentScripts.js)
+#ifndef ANDROID
     content/extensions/parent/ext-contextualIdentities.js (parent/ext-contextualIdentities.js)
+#endif
     content/extensions/parent/ext-clipboard.js (parent/ext-clipboard.js)
     content/extensions/parent/ext-cookies.js (parent/ext-cookies.js)
     content/extensions/parent/ext-declarativeNetRequest.js (parent/ext-declarativeNetRequest.js)

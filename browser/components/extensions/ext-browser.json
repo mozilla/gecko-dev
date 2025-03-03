@@ -41,6 +41,15 @@
     "manifest": ["commands"],
     "paths": [["commands"]]
   },
+  "contextualIdentities": {
+    "url": "chrome://extensions/content/parent/ext-contextualIdentities.js",
+    "schema": "chrome://extensions/content/schemas/contextual_identities.json",
+    "scopes": ["addon_parent"],
+    "settings": true,
+    "events": ["startup"],
+    "permissions": ["contextualIdentities"],
+    "paths": [["contextualIdentities"]]
+  },
   "devtools": {
     "url": "chrome://browser/content/parent/ext-devtools.js",
     "schema": "chrome://browser/content/schemas/devtools.json",
