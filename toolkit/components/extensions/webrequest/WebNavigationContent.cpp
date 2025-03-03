@@ -197,14 +197,14 @@ WebNavigationContent::OnStateChange(nsIWebProgress* aWebProgress,
   nsCOMPtr<nsIURI> uri;
   MOZ_TRY(channel->GetURI(getter_AddRefs(uri)));
 
-  // Prevents "about", "chrome", "resource" and "moz-extension" URI schemes to
-  // be reported with the resolved "file" or "jar" URIs (see bug 1246125)
+  // Prevent "about", "chrome", "resource", "moz-src", and "moz-extension" URIs
+  // being reported with the resolved "file" or "jar" URIs (see bug 1246125).
   if (uri->SchemeIs("file") || uri->SchemeIs("jar")) {
     nsCOMPtr<nsIURI> originalURI;
     MOZ_TRY(channel->GetOriginalURI(getter_AddRefs(originalURI)));
     // FIXME: We probably actually want NS_GetFinalChannelURI here.
     if (originalURI->SchemeIs("about") || originalURI->SchemeIs("chrome") ||
-        originalURI->SchemeIs("resource") ||
+        originalURI->SchemeIs("resource") || originalURI->SchemeIs("moz-src") ||
         originalURI->SchemeIs("moz-extension")) {
       uri = originalURI.forget();
     }

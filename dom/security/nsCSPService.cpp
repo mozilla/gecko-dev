@@ -89,7 +89,7 @@ bool subjectToCSP(nsIURI* aURI, nsContentPolicyType aContentType) {
   if (aURI->SchemeIs("chrome") && !isImgOrStyleOrDTD) {
     return true;
   }
-  if (aURI->SchemeIs("moz-icon")) {
+  if (aURI->SchemeIs("moz-icon") || aURI->SchemeIs("moz-src")) {
     return true;
   }
   bool match;

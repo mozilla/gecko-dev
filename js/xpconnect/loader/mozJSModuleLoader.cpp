@@ -1039,7 +1039,8 @@ nsresult mozJSModuleLoader::GetModuleImportStack(const nsACString& aLocation,
 
 /* static */
 bool mozJSModuleLoader::IsTrustedScheme(nsIURI* aURI) {
-  return aURI->SchemeIs("resource") || aURI->SchemeIs("chrome");
+  return aURI->SchemeIs("resource") || aURI->SchemeIs("chrome") ||
+         aURI->SchemeIs("moz-src");
 }
 
 nsresult mozJSModuleLoader::ImportESModule(
