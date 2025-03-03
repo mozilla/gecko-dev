@@ -37,6 +37,7 @@ vendoring:
     - arm
     - contrib/arm-neon/linux.c
     - intel
+    - loongarch
     - mips
     - powerpc
     - ANNOUNCE
