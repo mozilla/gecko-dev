@@ -204,10 +204,11 @@ class TestJarMaker(unittest.TestCase):
         for attr in ("topsourcedir", "sourcedirs"):
             if attr in kwargs:
                 setattr(jm, attr, kwargs[attr])
-        jm.makeJar(infile, self.builddir)
         cwd = os.getcwd()
         os.chdir(self.builddir)
         try:
+            jm.makeJar(infile, self.builddir)
+
             # expand build to stage
             for path, dirs, files in os.walk("."):
                 stagedir = os.path.join(self.stagedir, path)

@@ -35,7 +35,7 @@ with Files("docs/**"):
 with Files("mach*"):
     BUG_COMPONENT = ("Firefox Build System", "Mach Core")
 
-with Files("pyproject.toml"):
+with Files("pyproject.toml", "srcdir-resolver.js"):
     BUG_COMPONENT = ("Developer Infrastructure", "Lint and Formatting")
 
 with Files("*moz*"):
