@@ -5,18 +5,18 @@ from support.addons import (
     is_addon_temporary_installed,
 )
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import get_addon_path
+from tests.support.helpers import get_extension_path
 
 from . import ADDON_ID, install_addon, uninstall_addon
 
 
 def test_install_invalid_addon(session):
-    response = install_addon(session, "path", get_addon_path("firefox/invalid.xpi"))
+    response = install_addon(session, "path", get_extension_path("firefox/invalid.xpi"))
     assert_error(response, "unknown error")
 
 
 def test_install_nonexistent_addon(session):
-    response = install_addon(session, "path", get_addon_path("does-not-exist.xpi"))
+    response = install_addon(session, "path", get_extension_path("does-not-exist.xpi"))
     assert_error(response, "unknown error")
 
 
@@ -27,7 +27,7 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
     use_pref("xpinstall.signatures.required", value)
 
     response = install_addon(
-        session, "path", get_addon_path("firefox/unsigned.xpi"), False
+        session, "path", get_extension_path("firefox/unsigned.xpi"), False
     )
 
     if value is True:
@@ -48,7 +48,7 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
 
 def test_temporary_install_unsigned_addon(session):
     response = install_addon(
-        session, "path", get_addon_path("firefox/unsigned.xpi"), True
+        session, "path", get_extension_path("firefox/unsigned.xpi"), True
     )
     addon_id = assert_success(response)
 
@@ -66,7 +66,7 @@ def test_temporary_install_unsigned_addon(session):
 @pytest.mark.parametrize("temporary", [True, False])
 def test_install_signed_addon(session, temporary):
     response = install_addon(
-        session, "path", get_addon_path("firefox/signed.xpi"), temporary
+        session, "path", get_extension_path("firefox/signed.xpi"), temporary
     )
     addon_id = assert_success(response)
 
@@ -87,7 +87,7 @@ def test_install_mixed_separator_windows(session):
     # Only makes sense to test on Windows.
     if os == "windows":
         # Ensure the base path has only \
-        addon_path = get_addon_path("firefox").replace("/", "\\")
+        addon_path = get_extension_path("firefox").replace("/", "\\")
         addon_path += "/signed.xpi"
 
         response = install_addon(session, "path", addon_path, False)
@@ -109,7 +109,7 @@ def test_install_addon_with_private_browsing(session, allow_private_browsing):
     response = install_addon(
         session,
         "path",
-        get_addon_path("firefox/signed.xpi"),
+        get_extension_path("firefox/signed.xpi"),
         False,
         allow_private_browsing,
     )

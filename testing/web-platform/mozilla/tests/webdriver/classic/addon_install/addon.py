@@ -5,7 +5,7 @@ from support.addons import (
     is_addon_temporary_installed,
 )
 from tests.support.asserts import assert_error, assert_success
-from tests.support.helpers import get_base64_for_addon_file
+from tests.support.helpers import get_base64_for_extension_file
 
 from . import ADDON_ID, install_addon, uninstall_addon
 
@@ -22,7 +22,7 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
     use_pref("xpinstall.signatures.required", value)
 
     response = install_addon(
-        session, "addon", get_base64_for_addon_file("firefox/unsigned.xpi"), False
+        session, "addon", get_base64_for_extension_file("firefox/unsigned.xpi"), False
     )
 
     if value is True:
@@ -43,7 +43,7 @@ def test_install_unsigned_addon_with_signature(session, use_pref, value):
 
 def test_install_unsigned_addon_temporarily(session):
     response = install_addon(
-        session, "addon", get_base64_for_addon_file("firefox/unsigned.xpi"), True
+        session, "addon", get_base64_for_extension_file("firefox/unsigned.xpi"), True
     )
     addon_id = assert_success(response)
 
@@ -61,7 +61,7 @@ def test_install_unsigned_addon_temporarily(session):
 @pytest.mark.parametrize("temporary", [True, False])
 def test_install_signed_addon(session, temporary):
     response = install_addon(
-        session, "addon", get_base64_for_addon_file("firefox/signed.xpi"), temporary
+        session, "addon", get_base64_for_extension_file("firefox/signed.xpi"), temporary
     )
     addon_id = assert_success(response)
 
@@ -81,7 +81,7 @@ def test_install_addon_with_private_browsing(session, allow_private_browsing):
     response = install_addon(
         session,
         "addon",
-        get_base64_for_addon_file("firefox/signed.xpi"),
+        get_base64_for_extension_file("firefox/signed.xpi"),
         False,
         allow_private_browsing,
     )
