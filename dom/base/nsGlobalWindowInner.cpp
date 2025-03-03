@@ -2721,6 +2721,13 @@ bool nsGlobalWindowInner::CrossOriginIsolated() const {
   return bc->CrossOriginIsolated();
 }
 
+bool nsGlobalWindowInner::OriginAgentCluster() const {
+  if (DocGroup* docGroup = GetDocGroup()) {
+    return docGroup->IsOriginKeyed();
+  }
+  return false;
+}
+
 WindowContext* TopWindowContext(nsPIDOMWindowInner& aWindow) {
   WindowContext* wc = aWindow.GetWindowContext();
   if (!wc) {

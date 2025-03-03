@@ -5499,6 +5499,12 @@
   value: true
   mirror: always
 
+# Whether or not the `Origin-Agent-Cluster` HTTP header is enabled.
+- name: dom.origin_agent_cluster.enabled
+  type: bool
+  value: true
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "editor"
 #---------------------------------------------------------------------------

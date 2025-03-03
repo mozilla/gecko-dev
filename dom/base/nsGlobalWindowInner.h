@@ -959,6 +959,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   // https://whatpr.org/html/4734/structured-data.html#cross-origin-isolated
   bool CrossOriginIsolated() const override;
+  bool OriginAgentCluster() const;
 
   mozilla::dom::WebTaskScheduler* Scheduler();
 

@@ -812,3 +812,8 @@ dictionary WindowPostMessageOptions : StructuredSerializeOptions {
 partial interface Window {
   [SameObject, Pref="dom.cookieStore.enabled"] readonly attribute CookieStore cookieStore;
 };
+
+// https://html.spec.whatwg.org/multipage/browsers.html#origin-keyed-agent-clusters
+partial interface Window {
+  [Pref="dom.origin_agent_cluster.enabled"] readonly attribute boolean originAgentCluster;
+};
