@@ -23,13 +23,13 @@
 
 namespace mozilla::dom {
 
-class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
+class ZLibDecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
  public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DecompressionStreamAlgorithms,
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ZLibDecompressionStreamAlgorithms,
                                            TransformerAlgorithmsBase)
 
-  explicit DecompressionStreamAlgorithms(CompressionFormat format) {
+  explicit ZLibDecompressionStreamAlgorithms(CompressionFormat format) {
     int8_t err = inflateInit2(&mZStream, ZLibWindowBits(format));
     if (err == Z_MEM_ERROR) {
       MOZ_CRASH("Out of memory");
@@ -38,7 +38,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
   }
 
   // Step 3 of
-  // https://wicg.github.io/compression/#dom-compressionstream-compressionstream
+  // https://wicg.github.io/compression/#dom-decompressionstream-decompressionstream
   // Let transformAlgorithm be an algorithm which takes a chunk argument and
   // runs the compress and enqueue a chunk algorithm with this and chunk.
   MOZ_CAN_RUN_SCRIPT
@@ -52,7 +52,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
     }
     JSContext* cx = jsapi.cx();
 
-    // https://wicg.github.io/compression/#compress-and-enqueue-a-chunk
+    // https://compression.spec.whatwg.org/#decompress-and-enqueue-a-chunk
 
     // Step 1: If chunk is not a BufferSource type, then throw a TypeError.
     RootedUnion<OwningArrayBufferViewOrArrayBuffer> bufferSource(cx);
@@ -64,7 +64,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
 
     // Step 2: Let buffer be the result of decompressing chunk with ds's format
     // and context. If this results in an error, then throw a TypeError.
-    // Step 3 - 5: (Done in CompressAndEnqueue)
+    // Step 3 - 5: (Done in DecompressAndEnqueue)
     ProcessTypedArraysFixed(
         bufferSource,
         [&](const Span<uint8_t>& aData) MOZ_CAN_RUN_SCRIPT_BOUNDARY {
@@ -73,7 +73,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
   }
 
   // Step 4 of
-  // https://wicg.github.io/compression/#dom-compressionstream-compressionstream
+  // https://compression.spec.whatwg.org/#dom-decompressionstream-decompressionstream
   // Let flushAlgorithm be an algorithm which takes no argument and runs the
   // compress flush and enqueue algorithm with this.
   MOZ_CAN_RUN_SCRIPT void FlushCallbackImpl(
@@ -90,7 +90,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
 
     // Step 1: Let buffer be the result of decompressing an empty input with
     // ds's format and context, with the finish flag.
-    // Step 2 - 4: (Done in CompressAndEnqueue)
+    // Step 2 - 4: (Done in DecompressAndEnqueue)
     DecompressAndEnqueue(cx, Span<const uint8_t>(), ZLibFlush::Yes, aController,
                          aRv);
   }
@@ -223,7 +223,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
       return;
     }
 
-    // Step 5: For each Uint8Array array, enqueue array in cs's transform.
+    // Step 5: For each Uint8Array array, enqueue array in ds's transform.
     for (const auto& view : array) {
       JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*view));
       aController.Enqueue(aCx, value, aRv);
@@ -233,19 +233,19 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
     }
   }
 
-  ~DecompressionStreamAlgorithms() override { inflateEnd(&mZStream); };
+  ~ZLibDecompressionStreamAlgorithms() override { inflateEnd(&mZStream); };
 
   z_stream mZStream = {};
   bool mObservedStreamEnd = false;
 };
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED(DecompressionStreamAlgorithms,
+NS_IMPL_CYCLE_COLLECTION_INHERITED(ZLibDecompressionStreamAlgorithms,
                                    TransformerAlgorithmsBase)
-NS_IMPL_ADDREF_INHERITED(DecompressionStreamAlgorithms,
+NS_IMPL_ADDREF_INHERITED(ZLibDecompressionStreamAlgorithms,
                          TransformerAlgorithmsBase)
-NS_IMPL_RELEASE_INHERITED(DecompressionStreamAlgorithms,
+NS_IMPL_RELEASE_INHERITED(ZLibDecompressionStreamAlgorithms,
                           TransformerAlgorithmsBase)
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DecompressionStreamAlgorithms)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ZLibDecompressionStreamAlgorithms)
 NS_INTERFACE_MAP_END_INHERITING(TransformerAlgorithmsBase)
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(DecompressionStream, mGlobal, mStream)
@@ -274,13 +274,13 @@ already_AddRefed<DecompressionStream> DecompressionStream::Constructor(
   // TypeError.
   // XXX: Skipped as we are using enum for this
 
-  // Step 2 - 4: (Done in DecompressionStreamAlgorithms)
+  // Step 2 - 4: (Done in ZLibDecompressionStreamAlgorithms)
 
   // Step 5: Set this's transform to a new TransformStream.
 
   // Step 6: Set up this's transform with transformAlgorithm set to
   // transformAlgorithm and flushAlgorithm set to flushAlgorithm.
-  auto algorithms = MakeRefPtr<DecompressionStreamAlgorithms>(aFormat);
+  auto algorithms = MakeRefPtr<ZLibDecompressionStreamAlgorithms>(aFormat);
 
   RefPtr<TransformStream> stream =
       TransformStream::CreateGeneric(aGlobal, *algorithms, aRv);
