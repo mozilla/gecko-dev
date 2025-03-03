@@ -9,7 +9,6 @@
 
 #include "mozilla/dom/WorkletImpl.h"
 #include "mozilla/dom/AudioWorkletGlobalScope.h"
-#include "mozilla/dom/MessagePort.h"
 
 namespace mozilla {
 
@@ -17,14 +16,13 @@ class AudioNodeTrack;
 
 namespace dom {
 class AudioContext;
-class AudioWorklet;
-}  // namespace dom
+}
 
 class AudioWorkletImpl final : public WorkletImpl {
  public:
   // Methods for parent thread only:
 
-  static already_AddRefed<dom::AudioWorklet> CreateWorklet(
+  static already_AddRefed<dom::Worklet> CreateWorklet(
       dom::AudioContext* aContext, ErrorResult& aRv);
 
   JSObject* WrapWorklet(JSContext* aCx, dom::Worklet* aWorklet,
@@ -50,17 +48,14 @@ class AudioWorkletImpl final : public WorkletImpl {
 
  protected:
   // Execution thread only.
-  already_AddRefed<dom::WorkletGlobalScope> ConstructGlobalScope(
-      JSContext* aCx) override;
+  already_AddRefed<dom::WorkletGlobalScope> ConstructGlobalScope() override;
 
  private:
   AudioWorkletImpl(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal,
-                   AudioNodeTrack* aDestinationTrack,
-                   dom::UniqueMessagePortId&& aPortIdentifier);
+                   AudioNodeTrack* aDestinationTrack);
   ~AudioWorkletImpl();
 
   const RefPtr<AudioNodeTrack> mDestinationTrack;
-  dom::UniqueMessagePortId mGlobalScopePortIdentifier;
 };
 
 }  // namespace mozilla

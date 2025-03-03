@@ -50,7 +50,6 @@ class AudioBufferSourceNode;
 class AudioDestinationNode;
 class AudioListener;
 class AudioNode;
-class AudioWorklet;
 class BiquadFilterNode;
 class BrowsingContext;
 class ChannelMergerNode;
@@ -73,6 +72,7 @@ class PannerNode;
 class ScriptProcessorNode;
 class StereoPannerNode;
 class WaveShaperNode;
+class Worklet;
 class PeriodicWave;
 struct PeriodicWaveConstraints;
 class Promise;
@@ -202,7 +202,7 @@ class AudioContext final : public DOMEventTargetHelper,
 
   void GetOutputTimestamp(AudioTimestamp& aTimeStamp);
 
-  AudioWorklet* GetAudioWorklet(ErrorResult& aRv);
+  Worklet* GetAudioWorklet(ErrorResult& aRv);
 
   bool IsRunning() const;
 
@@ -393,7 +393,7 @@ class AudioContext final : public DOMEventTargetHelper,
   AudioContextState mAudioContextState;
   RefPtr<AudioDestinationNode> mDestination;
   RefPtr<AudioListener> mListener;
-  RefPtr<AudioWorklet> mWorklet;
+  RefPtr<Worklet> mWorklet;
   nsTArray<UniquePtr<WebAudioDecodeJob>> mDecodeJobs;
   // This array is used to keep the suspend/close promises alive until
   // they are resolved, so we can safely pass them accross threads.

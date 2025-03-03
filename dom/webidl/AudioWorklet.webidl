@@ -12,5 +12,4 @@
 
 [Exposed=Window, SecureContext]
 interface AudioWorklet : Worklet {
-  readonly attribute MessagePort port;
 };

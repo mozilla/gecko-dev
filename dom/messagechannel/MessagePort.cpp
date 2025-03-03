@@ -821,8 +821,7 @@ void MessagePort::ForceClose(const MessagePortIdentifier& aIdentifier) {
   mozilla::ipc::PBackgroundChild* actorChild =
       mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
   if (NS_WARN_IF(!actorChild)) {
-    // We are shutting down this process. This port will be leaked.
-    return;
+    MOZ_CRASH("Failed to create a PBackgroundChild actor!");
   }
 
   Unused << actorChild->SendMessagePortForceClose(aIdentifier.uuid(),

@@ -103,8 +103,7 @@ class WorkletImpl {
   WorkletImpl(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal);
   virtual ~WorkletImpl();
 
-  virtual already_AddRefed<dom::WorkletGlobalScope> ConstructGlobalScope(
-      JSContext* aCx) = 0;
+  virtual already_AddRefed<dom::WorkletGlobalScope> ConstructGlobalScope() = 0;
 
   // Modified only in constructor.
   ipc::PrincipalInfo mPrincipalInfo;

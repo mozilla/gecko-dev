@@ -32,5 +32,3 @@ class PortProcessor extends AudioWorkletProcessor {
 }
 
 registerProcessor('port-processor', PortProcessor);
-
-port.onmessage = (event) => port.postMessage(event.data);
