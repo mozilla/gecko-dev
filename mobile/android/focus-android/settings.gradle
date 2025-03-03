@@ -26,7 +26,6 @@ pluginManagement {
 }
 
 plugins {
-    id "mozac.ConfigPlugin"
     id 'mozac.DependenciesPlugin'
 }
 

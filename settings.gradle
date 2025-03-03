@@ -26,9 +26,7 @@ pluginManagement {
 }
 
 plugins {
-    id "mozac.ConfigPlugin"
     id 'mozac.DependenciesPlugin'
-    id 'ApkSizePlugin'
 }
 
 // You might think topsrcdir is '.', but that's not true when the Gradle build

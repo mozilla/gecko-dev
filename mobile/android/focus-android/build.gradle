@@ -38,6 +38,7 @@ buildscript {
 }
 
 plugins {
+    id "mozac.ConfigPlugin"
     alias(libs.plugins.detekt)
     alias(libs.plugins.ksp)
 }

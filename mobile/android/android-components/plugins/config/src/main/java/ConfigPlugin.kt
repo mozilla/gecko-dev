@@ -4,18 +4,15 @@
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.initialization.Settings
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.process.ExecOutput
-import java.io.File
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
-class ConfigPlugin : Plugin<Settings> {
-    override fun apply(settings: Settings) = Unit
+class ConfigPlugin : Plugin<Project> {
+    override fun apply(project: Project) = Unit
 }
 
 object Config {

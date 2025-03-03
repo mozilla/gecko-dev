@@ -27,8 +27,6 @@ pluginManagement {
 }
 
 plugins {
-    id 'ApkSizePlugin'
-    id "mozac.ConfigPlugin"
     id 'mozac.DependenciesPlugin'
 }
 

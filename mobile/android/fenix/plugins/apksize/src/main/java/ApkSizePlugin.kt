@@ -4,7 +4,7 @@
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
-import org.gradle.api.initialization.Settings
+import org.gradle.api.Project
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 import org.json.JSONArray
@@ -14,8 +14,8 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 
-class ApkSizePlugin : Plugin<Settings> {
-    override fun apply(settings: Settings) = Unit
+class ApkSizePlugin : Plugin<Project> {
+    override fun apply(project: Project) = Unit
 }
 
 /**

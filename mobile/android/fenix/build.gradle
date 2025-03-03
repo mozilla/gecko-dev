@@ -44,6 +44,8 @@ buildscript {
 }
 
 plugins {
+    id 'ApkSizePlugin'
+    id "mozac.ConfigPlugin"
     alias(libs.plugins.detekt)
     alias(libs.plugins.ksp)
 }
