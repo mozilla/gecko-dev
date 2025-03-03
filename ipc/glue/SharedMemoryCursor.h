@@ -30,7 +30,7 @@ class Cursor {
 
   // Construct a new Cursor which can be used to read from or write to the
   // shared memory region indicated by aHandle.
-  explicit Cursor(Handle&& aHandle) : mHandle(std::move(aHandle)) {}
+  explicit Cursor(MutableHandle&& aHandle) : mHandle(std::move(aHandle)) {}
 
   bool IsValid() const { return mHandle.IsValid(); }
   uint64_t Size() const { return mHandle.Size(); }
@@ -50,7 +50,7 @@ class Cursor {
   void Seek(uint64_t aOffset);
 
   // Invalidate the Cursor, and return the underlying handle.
-  Handle TakeHandle();
+  MutableHandle TakeHandle();
 
   // Set the ChunkSize for the shared memory regions in this chunk. This is
   // intended to be used for testing purposes.
@@ -76,9 +76,9 @@ class Cursor {
   bool EnsureMapping();
 
   // Shared memory handle this Cursor allows accessing.
-  Handle mHandle;
+  MutableHandle mHandle;
   // Memory map for the currently active chunk. Lazily initialized.
-  Mapping mMapping;
+  MutableMapping mMapping;
   // Absolute offset into the shared memory handle.
   uint64_t mOffset = 0;
   // Current size of each chunk. Always a power of two. May be reduced in
