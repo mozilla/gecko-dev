@@ -561,21 +561,20 @@ class CodeBlock {
 
   // The code segment our JIT code is within.
   SharedCodeSegment segment;
-  // The sub-range of the code segment our JIT code is within.
-  const uint8_t* codeBase;
+
+  // Pointer to the beginning of the CodeBlock.
+  uint8_t* codeBase;
   size_t codeLength;
 
   // Metadata about the code we have contributed to the segment.
   //
   // * `funcToCodeRange` does not involve code locations.
   //
-  // * `stackMaps` specifies code locations directly, in
-  //   StackMaps::Maplet::nextInsnAddr.
+  // * `stackMaps` specifies code locations directly, in nextInsnAddr.
   //
   // * All 6 other fields specify a code locations in by carrying an offset
   //   which is interpreted to be relative to the start of the containing
-  //   segment, *not* relative to `CodeBlock::codeBase`.  That is, the denoted
-  //   address is `segment->base() + ..offset...`.
+  //   CodeBlock::codeBase.
   //
   FuncToCodeRangeMap funcToCodeRange;
   CodeRangeVector codeRanges;
@@ -637,10 +636,7 @@ class CodeBlock {
            kind == CodeBlockKind::OptimizedTier;
   }
 
-  // Add an offset to the metadata.  See comment above.
-  void offsetMetadataBy(uint32_t delta);
-
-  const uint8_t* base() const { return codeBase; }
+  uint8_t* base() const { return codeBase; }
   uint32_t length() const { return codeLength; }
   bool containsCodePC(const void* pc) const {
     return pc >= base() && pc < (base() + length());
@@ -1170,7 +1166,7 @@ class Code : public ShareableBase<Code> {
                      uint8_t** codeBase) const {
     const CodeBlock& codeBlock = funcCodeBlock(funcIndex);
     *range = &codeBlock.codeRanges[codeBlock.funcToCodeRange[funcIndex]];
-    *codeBase = codeBlock.segment->base();
+    *codeBase = codeBlock.base();
   }
 
   const LinkData* codeBlockLinkData(const CodeBlock& block) const;
