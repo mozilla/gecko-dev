@@ -63,6 +63,10 @@ export function getClassSymbols(location) {
   return async ({ parserWorker, dispatch }) => {
     // See  comment in getFunctionSymbols
     await dispatch(loadSourceText(location.source, location.sourceActor));
-    return parserWorker.getClassSymbols(location.source.id);
+
+    const editor = getEditor();
+    return features.codemirrorNext && editor
+      ? editor.getClassSymbols()
+      : parserWorker.getClassSymbols(location.source.id);
   };
 }

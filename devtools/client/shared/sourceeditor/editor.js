@@ -2215,6 +2215,37 @@ class Editor extends EventEmitter {
   }
 
   /**
+   * Get the class symbols for the current source loaded in the the editor.
+   *
+   * @returns
+   */
+  async getClassSymbols() {
+    const cm = editors.get(this);
+    const { codemirrorLanguage } = this.#CodeMirror6;
+
+    const classSymbols = [];
+    await lezerUtils.walkTree(cm, codemirrorLanguage, {
+      filterSet: lezerUtils.nodeTypeSets.classes,
+      enterVisitor: node => {
+        const classVarDefNode = node.node.firstChild.nextSibling;
+        classSymbols.push({
+          name: cm.state.doc.sliceString(
+            classVarDefNode.from,
+            classVarDefNode.to
+          ),
+          location: {
+            start: this.#posToLineColumn(node.from),
+            end: this.#posToLineColumn(node.to),
+          },
+        });
+      },
+      forceParseTo: cm.state.doc.length,
+    });
+
+    return classSymbols;
+  }
+
+  /**
    * Traverse the syntaxTree and return expressions
    * which best match the specified token location is on our
    * list of accepted symbol types.

@@ -11,6 +11,8 @@ const nodeTypes = {
   FunctionDeclaration: "FunctionDeclaration",
   ArrowFunction: "ArrowFunction",
   MethodDeclaration: "MethodDeclaration",
+  ClassDeclaration: "ClassDeclaration",
+  ClassExpression: "ClassExpression",
   Property: "Property",
   PropertyDeclaration: "PropertyDeclaration",
   PropertyDefinition: "PropertyDefinition",
@@ -63,6 +65,7 @@ const nodeTypeSets = {
   variableDefinition: new Set([nodeTypes.VariableDefinition]),
   numberAndProperty: new Set([nodeTypes.PropertyDefinition, nodeTypes.Number]),
   memberExpression: new Set([nodeTypes.MemberExpression]),
+  classes: new Set([nodeTypes.ClassDeclaration, nodeTypes.ClassExpression]),
 };
 
 /**
