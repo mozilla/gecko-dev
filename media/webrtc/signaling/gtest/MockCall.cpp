@@ -33,4 +33,11 @@ void MockVideoSendStream::ReconfigureVideoEncoder(
   ReconfigureVideoEncoder(std::move(config));
 }
 
+void MockVideoSendStream::SetSource(
+    rtc::VideoSourceInterface<webrtc::VideoFrame>* source,
+    const webrtc::DegradationPreference& degradation_preference) {
+  mCallWrapper->GetMockCall()->mConfiguredDegradationPreference =
+      degradation_preference;
+}
+
 }  // namespace test

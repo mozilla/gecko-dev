@@ -2384,4 +2384,132 @@ TEST_F(VideoConduitTest, TestVideoConfigurationAV1) {
   }
 }
 
+TEST_F(VideoConduitTest, TestDegradationPreferences) {
+  // Verify default value returned is MAINTAIN_FRAMERATE.
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+
+  // Verify that setting a degradation preference overrides default behavior.
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoDegradationPreference =
+        webrtc::DegradationPreference::MAINTAIN_RESOLUTION;
+    VideoCodecConfig codecConfig(120, "VP8", EncodingConstraints());
+    codecConfig.mEncodings.emplace_back();
+    aControl.mVideoSendCodec = Some(codecConfig);
+    aControl.mVideoSendRtpRtcpConfig =
+        Some(RtpRtcpConfig(webrtc::RtcpMode::kCompound));
+    aControl.mReceiving = true;
+    aControl.mTransmitting = true;
+  });
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::MAINTAIN_RESOLUTION);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::MAINTAIN_RESOLUTION);
+
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoDegradationPreference =
+        webrtc::DegradationPreference::BALANCED;
+  });
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::BALANCED);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::BALANCED);
+
+  // Verify removing degradation preference returns default.
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoDegradationPreference =
+        webrtc::DegradationPreference::DISABLED;
+  });
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+
+  // Verify with no degradation preference set changing codec mode to screen
+  // sharing changes degradation to MAINTAIN_RESOLUTION.
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoCodecMode = webrtc::VideoCodecMode::kScreensharing;
+  });
+  ASSERT_EQ(Call()->mVideoSendEncoderConfig->content_type,
+            VideoEncoderConfig::ContentType::kScreen);
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::MAINTAIN_RESOLUTION);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::MAINTAIN_RESOLUTION);
+
+  // Verify that setting a degradation preference overrides screen share
+  // degradation value.
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoDegradationPreference =
+        webrtc::DegradationPreference::MAINTAIN_FRAMERATE;
+  });
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoDegradationPreference =
+        webrtc::DegradationPreference::BALANCED;
+  });
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::BALANCED);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::BALANCED);
+
+  // Verify removing degradation preference returns to screen sharing
+  // degradation value.
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoDegradationPreference =
+        webrtc::DegradationPreference::DISABLED;
+  });
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::MAINTAIN_RESOLUTION);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::MAINTAIN_RESOLUTION);
+
+  // Verify changing codec mode back to real time with no degradation
+  // preference set returns degradation to MAINTAIN_FRAMERATE.
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoCodecMode = webrtc::VideoCodecMode::kRealtimeVideo;
+  });
+  ASSERT_EQ(Call()->mVideoSendEncoderConfig->content_type,
+            VideoEncoderConfig::ContentType::kRealtimeVideo);
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+
+  // Verify that if a degradation preference was set changing mode does not
+  // override the set preference.
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoDegradationPreference =
+        webrtc::DegradationPreference::BALANCED;
+  });
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::BALANCED);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::BALANCED);
+
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoCodecMode = webrtc::VideoCodecMode::kScreensharing;
+  });
+  ASSERT_EQ(Call()->mVideoSendEncoderConfig->content_type,
+            VideoEncoderConfig::ContentType::kScreen);
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::BALANCED);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::BALANCED);
+
+  mControl.Update([&](auto& aControl) {
+    aControl.mVideoCodecMode = webrtc::VideoCodecMode::kRealtimeVideo;
+  });
+  ASSERT_EQ(Call()->mVideoSendEncoderConfig->content_type,
+            VideoEncoderConfig::ContentType::kRealtimeVideo);
+  ASSERT_EQ(mVideoConduit->DegradationPreference(),
+            webrtc::DegradationPreference::BALANCED);
+  ASSERT_EQ(Call()->mConfiguredDegradationPreference,
+            webrtc::DegradationPreference::BALANCED);
+}
+
 }  // End namespace test.

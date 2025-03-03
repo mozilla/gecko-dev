@@ -37,8 +37,9 @@ class ConcreteCanonicals {
         INIT_CANONICAL(mVideoSendCodec, Nothing()),
         INIT_CANONICAL(mVideoRecvRtpRtcpConfig, Nothing()),
         INIT_CANONICAL(mVideoSendRtpRtcpConfig, Nothing()),
-        INIT_CANONICAL(mVideoCodecMode,
-                       webrtc::VideoCodecMode::kRealtimeVideo) {}
+        INIT_CANONICAL(mVideoCodecMode, webrtc::VideoCodecMode::kRealtimeVideo),
+        INIT_CANONICAL(mVideoDegradationPreference,
+                       webrtc::DegradationPreference::DISABLED) {}
 
   Canonical<bool> mReceiving;
   Canonical<bool> mTransmitting;
@@ -63,6 +64,7 @@ class ConcreteCanonicals {
   Canonical<Maybe<RtpRtcpConfig>> mVideoRecvRtpRtcpConfig;
   Canonical<Maybe<RtpRtcpConfig>> mVideoSendRtpRtcpConfig;
   Canonical<webrtc::VideoCodecMode> mVideoCodecMode;
+  Canonical<webrtc::DegradationPreference> mVideoDegradationPreference;
 };
 #undef INIT_CANONICAL
 
@@ -142,6 +144,10 @@ class ConcreteControl : public AudioConduitControlInterface,
   }
   Canonical<webrtc::VideoCodecMode>& CanonicalVideoCodecMode() override {
     return mVideoCodecMode;
+  }
+  Canonical<webrtc::DegradationPreference>&
+  CanonicalVideoDegradationPreference() override {
+    return mVideoDegradationPreference;
   }
 };
 

@@ -61,6 +61,8 @@ dictionary RTCRtpParameters {
 dictionary RTCRtpSendParameters : RTCRtpParameters {
   DOMString transactionId;
   required sequence<RTCRtpEncodingParameters> encodings;
+  // https://w3c.github.io/mst-content-hint/
+  RTCDegradationPreference                  degradationPreference;
 };
 
 dictionary RTCRtpReceiveParameters : RTCRtpParameters {

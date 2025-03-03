@@ -120,7 +120,7 @@ class MockVideoSendStream : public webrtc::VideoSendStream {
 
   void SetSource(
       rtc::VideoSourceInterface<webrtc::VideoFrame>* source,
-      const webrtc::DegradationPreference& degradation_preference) override {}
+      const webrtc::DegradationPreference& degradation_preference) override;
 
   void ReconfigureVideoEncoder(webrtc::VideoEncoderConfig config) override;
 
@@ -310,7 +310,6 @@ class MockCall : public webrtc::Call {
   int FeedbackAccordingToRfc8888Count() override { return 0; }
   int FeedbackAccordingToTransportCcCount() override { return 0; }
 
-
   std::vector<webrtc::VideoStream> CreateEncoderStreams(int width, int height) {
     mVideoSendEncoderConfig->video_stream_factory->SetEncoderInfo(mEncoderInfo);
     return mVideoSendEncoderConfig->video_stream_factory->CreateEncoderStreams(
@@ -342,6 +341,7 @@ class MockCall : public webrtc::Call {
   webrtc::Call::Stats mStats;
   webrtc::MozTrialsConfig mUnusedConfig;
   webrtc::VideoEncoder::EncoderInfo mEncoderInfo;
+  webrtc::DegradationPreference mConfiguredDegradationPreference;
 };
 
 class MockCallWrapper : public mozilla::WebrtcCallWrapper {
@@ -358,8 +358,7 @@ class MockCallWrapper : public mozilla::WebrtcCallWrapper {
       : mozilla::WebrtcCallWrapper(
             std::move(aSharedState), std::move(aVideoBitrateAllocatorFactory),
             mozilla::WebrtcEnvironmentWrapper::Create(aTimestampMaker),
-            aTimestampMaker,
-            std::move(aShutdownTicket)) {}
+            aTimestampMaker, std::move(aShutdownTicket)) {}
 
   static RefPtr<MockCallWrapper> Create() {
     auto state = mozilla::MakeRefPtr<mozilla::SharedWebrtcState>(

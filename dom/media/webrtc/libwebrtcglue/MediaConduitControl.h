@@ -17,6 +17,7 @@
 #include "api/rtp_parameters.h"            // For webrtc::RtpExtension
 #include "api/video_codecs/video_codec.h"  // For webrtc::VideoCodecMode
 #include "FrameTransformerProxy.h"
+#include "mozilla/dom/RTCRtpParametersBinding.h"
 
 namespace mozilla {
 
@@ -72,6 +73,8 @@ class VideoConduitControlInterface : public MediaConduitControlInterface {
   virtual Canonical<Maybe<RtpRtcpConfig>>&
   CanonicalVideoRecvRtpRtcpConfig() = 0;
   virtual Canonical<webrtc::VideoCodecMode>& CanonicalVideoCodecMode() = 0;
+  virtual Canonical<webrtc::DegradationPreference>&
+  CanonicalVideoDegradationPreference() = 0;
 };
 
 }  // namespace mozilla

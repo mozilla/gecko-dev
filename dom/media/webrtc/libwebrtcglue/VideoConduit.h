@@ -302,6 +302,7 @@ class WebrtcVideoConduit : public VideoSessionConduit,
     Mirror<webrtc::VideoCodecMode> mCodecMode;
     Mirror<RefPtr<FrameTransformerProxy>> mFrameTransformerProxySend;
     Mirror<RefPtr<FrameTransformerProxy>> mFrameTransformerProxyRecv;
+    Mirror<webrtc::DegradationPreference> mVideoDegradationPreference;
 
     // For caching mRemoteSsrc and mRemoteRtxSsrc, since another caller may
     // change the remote ssrc in the stream config directly.
@@ -313,6 +314,8 @@ class WebrtcVideoConduit : public VideoSessionConduit,
     // For tracking changes to mRecvCodecs and mRecvRtpRtcpConfig.
     std::vector<VideoCodecConfig> mConfiguredRecvCodecs;
     Maybe<RtpRtcpConfig> mConfiguredRecvRtpRtcpConfig;
+    // For tracking changes to mVideoDegradationPreference
+    webrtc::DegradationPreference mConfiguredDegradationPreference;
 
     // For change tracking. Callthread only.
     RefPtr<FrameTransformerProxy> mConfiguredFrameTransformerProxySend;

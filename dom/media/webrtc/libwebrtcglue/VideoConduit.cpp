@@ -386,7 +386,9 @@ WebrtcVideoConduit::Control::Control(const RefPtr<AbstractThread>& aCallThread)
       INIT_MIRROR(mRecvRtpRtcpConfig, Nothing()),
       INIT_MIRROR(mCodecMode, webrtc::VideoCodecMode::kRealtimeVideo),
       INIT_MIRROR(mFrameTransformerProxySend, nullptr),
-      INIT_MIRROR(mFrameTransformerProxyRecv, nullptr) {}
+      INIT_MIRROR(mFrameTransformerProxyRecv, nullptr),
+      INIT_MIRROR(mVideoDegradationPreference,
+                  webrtc::DegradationPreference::DISABLED) {}
 #undef INIT_MIRROR
 
 WebrtcVideoConduit::WebrtcVideoConduit(
@@ -469,6 +471,8 @@ void WebrtcVideoConduit::InitControl(VideoConduitControlInterface* aControl) {
           mControl.mFrameTransformerProxySend);
   CONNECT(aControl->CanonicalFrameTransformerProxyRecv(),
           mControl.mFrameTransformerProxyRecv);
+  CONNECT(aControl->CanonicalVideoDegradationPreference(),
+          mControl.mVideoDegradationPreference);
 }
 
 #undef CONNECT
@@ -845,6 +849,15 @@ void WebrtcVideoConduit::OnControlConfigChange() {
       }
     }
 
+    if (mControl.mConfiguredDegradationPreference !=
+        mControl.mVideoDegradationPreference) {
+      mControl.mConfiguredDegradationPreference =
+          mControl.mVideoDegradationPreference.Ref();
+      if (mSendStream) {
+        mSendStream->SetSource(mTrackSource, DegradationPreference());
+      }
+    }
+
     {
       const auto& mode = mControl.mCodecMode.Ref();
       MOZ_ASSERT(mode == webrtc::VideoCodecMode::kRealtimeVideo ||
@@ -858,6 +871,7 @@ void WebrtcVideoConduit::OnControlConfigChange() {
       if (contentType != mEncoderConfig.content_type) {
         encoderReconfigureNeeded = true;
         sendSourceUpdateNeeded = true;
+        mEncoderConfig.content_type = contentType;
       }
     }
 
@@ -1353,6 +1367,7 @@ RefPtr<GenericPromise> WebrtcVideoConduit::Shutdown() {
         mControl.mCodecMode.DisconnectIfConnected();
         mControl.mFrameTransformerProxySend.DisconnectIfConnected();
         mControl.mFrameTransformerProxyRecv.DisconnectIfConnected();
+        mControl.mVideoDegradationPreference.DisconnectIfConnected();
         mWatchManager.Shutdown();
 
         if (mTrackSource) {
@@ -1380,6 +1395,11 @@ webrtc::VideoCodecMode WebrtcVideoConduit::CodecMode() const {
 webrtc::DegradationPreference WebrtcVideoConduit::DegradationPreference()
     const {
   MOZ_ASSERT(mCallThread->IsOnCurrentThread());
+  if (mControl.mConfiguredDegradationPreference !=
+      webrtc::DegradationPreference::DISABLED) {
+    return mControl.mConfiguredDegradationPreference;
+  }
+
   if (mLockScaling || CodecMode() == webrtc::VideoCodecMode::kScreensharing) {
     return webrtc::DegradationPreference::MAINTAIN_RESOLUTION;
   }

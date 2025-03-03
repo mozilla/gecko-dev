@@ -137,6 +137,11 @@ class RTCRtpSender : public nsISupports,
     return mFrameTransformerProxy;
   }
 
+  Canonical<webrtc::DegradationPreference>&
+  CanonicalVideoDegradationPreference() {
+    return mVideoDegradationPreference;
+  }
+
   bool HasPendingSetParameters() const { return mPendingParameters.isSome(); }
   void InvalidateLastReturnedParameters() {
     mLastReturnedParameters = Nothing();
@@ -274,6 +279,7 @@ class RTCRtpSender : public nsISupports,
   Canonical<std::string> mCname;
   Canonical<bool> mTransmitting;
   Canonical<RefPtr<FrameTransformerProxy>> mFrameTransformerProxy;
+  Canonical<webrtc::DegradationPreference> mVideoDegradationPreference;
 };
 
 }  // namespace dom

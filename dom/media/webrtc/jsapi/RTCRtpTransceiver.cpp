@@ -170,10 +170,13 @@ struct ConduitControlState : public AudioConduitControlInterface,
       override {
     return mSender->CanonicalFrameTransformerProxy();
   }
-
   Canonical<RefPtr<FrameTransformerProxy>>& CanonicalFrameTransformerProxyRecv()
       override {
     return mReceiver->CanonicalFrameTransformerProxy();
+  }
+  Canonical<webrtc::DegradationPreference>&
+  CanonicalVideoDegradationPreference() override {
+    return mSender->CanonicalVideoDegradationPreference();
   }
 };
 }  // namespace
