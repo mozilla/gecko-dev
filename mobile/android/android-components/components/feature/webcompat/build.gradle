@@ -47,15 +47,11 @@ tasks.register("syncWebcompatExtension", Sync) {
     // webcompat adopted #include directives in Bug 1936031, which are only
     // processed for Desktop builds. The filter below pre-processes the files
     // that include these directives.
-
-    // configuration-cache doesn't allow calling file() from a groovy closure,
-    // in this case filesMatching callback, so we call file before the closure.
-    def interventionsJson = file("$topsrcdir/browser/extensions/webcompat/data/interventions.json")
     filesMatching([
         '**/run.js',
     ]) {
         filter(ReplaceTokens, beginToken: '', endToken: '', tokens: [
-            '#include data/interventions.json': interventionsJson.text.trim(),
+            '#include data/interventions.json': file("$topsrcdir/browser/extensions/webcompat/data/interventions.json").text.trim(),
         ])
     }
 }

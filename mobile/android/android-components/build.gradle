@@ -117,36 +117,38 @@ subprojects {
 
                 testLogging.events = []
 
+                def out = services.get(StyledTextOutputFactory).create("an-ouput")
+
                 beforeSuite { descriptor ->
                     if (descriptor.getClassName() != null) {
-                        println("\nSUITE: " + descriptor.getClassName())
+                        out.style(Style.Header).println("\nSUITE: " + descriptor.getClassName())
                     }
                 }
 
                 beforeTest { descriptor ->
-                    println("  TEST: " + descriptor.getName())
+                    out.style(Style.Description).println("  TEST: " + descriptor.getName())
                 }
 
                 onOutput { descriptor, event ->
-                    it.logger.lifecycle("    " + event.message.trim())
+                    logger.lifecycle("    " + event.message.trim())
                 }
 
                 afterTest { descriptor, result ->
                     switch (result.getResultType()) {
                         case ResultType.SUCCESS:
-                            println("  SUCCESS")
+                            out.style(Style.Success).println("  SUCCESS")
                             break
 
                         case ResultType.FAILURE:
                             def testId = descriptor.getClassName() + "." + descriptor.getName()
-                            println("  TEST-UNEXPECTED-FAIL | " + testId + " | " + result.getException())
+                            out.style(Style.Failure).println("  TEST-UNEXPECTED-FAIL | " + testId + " | " + result.getException())
                             break
 
                         case ResultType.SKIPPED:
-                            println("  SKIPPED")
+                            out.style(Style.Info).println("  SKIPPED")
                             break
                     }
-                    it.logger.lifecycle("")
+                    logger.lifecycle("")
                 }
             }
 

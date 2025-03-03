@@ -212,6 +212,23 @@ allprojects {
 
 buildDir "${topobjdir}/gradle/build"
 
+// A stream that processes bytes line by line, prepending a tag before sending
+// each line to Gradle's logging.
+class TaggedLogOutputStream extends org.apache.commons.exec.LogOutputStream {
+    String tag
+    Logger logger
+
+    TaggedLogOutputStream(tag, logger) {
+        this.tag = tag
+        this.logger = logger
+    }
+
+    void processLine(String line, int level) {
+        logger.lifecycle("${this.tag} ${line}")
+    }
+}
+
+
 import  org.gradle.api.services.BuildServiceParameters
 abstract class MozconfigService implements BuildService<MozconfigService.Params>, AutoCloseable {
     interface Params extends BuildServiceParameters {
@@ -361,8 +378,9 @@ task machBuildFaster(type: MachExec) {
         args '-v'
     }
 
-    standardOutput = System.out
-    errorOutput = System.err
+    // `path` is like `:machBuildFaster`.
+    standardOutput = new TaggedLogOutputStream("${path}>", logger)
+    errorOutput = standardOutput
 }
 
 task machStagePackage(type: MachExec) {
@@ -390,8 +408,9 @@ task machStagePackage(type: MachExec) {
     // Force running `stage-package`.
     outputs.upToDateWhen { false }
 
-    standardOutput = System.out
-    errorOutput = System.err
+    // `path` is like `:machStagePackage`.
+    standardOutput = new TaggedLogOutputStream("${path}>", logger)
+    errorOutput = standardOutput
 }
 
 afterEvaluate {

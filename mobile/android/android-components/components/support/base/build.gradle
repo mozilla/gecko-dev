@@ -100,7 +100,6 @@ preBuild.finalizedBy("generateComponentEnum")
  * Generates a "Components" enum listing all published components.
  */
 tasks.register("generateComponentEnum") {
-    def buildConfigCache = buildConfig
     doLast {
         generatedSrcDir.mkdirs()
 
@@ -114,7 +113,7 @@ tasks.register("generateComponentEnum") {
         file << "\n"
         file << "enum class Component {" << "\n"
 
-        file << buildConfigCache.projects.findAll { project ->
+        file << buildConfig.projects.findAll { project ->
             project.value.publish
         }.collect { project ->
             "    " + project.key.replace("-", "_").toUpperCase(Locale.US)
