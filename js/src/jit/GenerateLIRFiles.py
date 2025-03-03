@@ -499,7 +499,7 @@ def generate_lir_header(c_out, yaml_path, mir_yaml_path):
             call_instruction = op.get("possibly_calls", None)
             assert isinstance(call_instruction, (type(None), bool))
 
-            mir_op = None
+            mir_op = True
 
             extra_name = False
 

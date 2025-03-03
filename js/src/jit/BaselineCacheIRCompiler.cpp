@@ -1489,6 +1489,23 @@ bool BaselineCacheIRCompiler::emitHasClassResult(ObjOperandId objId,
   return true;
 }
 
+bool BaselineCacheIRCompiler::emitHasShapeResult(ObjOperandId objId,
+                                                 uint32_t shapeOffset) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoOutputRegister output(*this);
+  Register obj = allocator.useRegister(masm, objId);
+  AutoScratchRegisterMaybeOutput scratch(allocator, masm, output);
+
+  // Note: no Spectre mitigations are needed here because this shape check only
+  // affects correctness.
+  Address shapeAddr(stubAddress(shapeOffset));
+  masm.loadObjShapeUnsafe(obj, scratch);
+  masm.cmpPtrSet(Assembler::Equal, shapeAddr, scratch.get(), scratch);
+  masm.tagValue(JSVAL_TYPE_BOOLEAN, scratch, output.valueReg());
+  return true;
+}
+
 void BaselineCacheIRCompiler::emitAtomizeString(Register str, Register temp,
                                                 Label* failure) {
   Label isAtom, notCachedAtom;

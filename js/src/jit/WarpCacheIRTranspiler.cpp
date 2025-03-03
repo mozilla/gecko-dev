@@ -4203,6 +4203,18 @@ bool WarpCacheIRTranspiler::emitHasClassResult(ObjOperandId objId,
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitHasShapeResult(ObjOperandId objId,
+                                               uint32_t shapeOffset) {
+  MDefinition* obj = getOperand(objId);
+  Shape* shape = shapeStubField(shapeOffset);
+
+  auto* hasShape = MHasShape::New(alloc(), obj, shape);
+  add(hasShape);
+
+  pushResult(hasShape);
+  return true;
+}
+
 bool WarpCacheIRTranspiler::emitCallRegExpMatcherResult(
     ObjOperandId regexpId, StringOperandId inputId, Int32OperandId lastIndexId,
     uint32_t stubOffset) {

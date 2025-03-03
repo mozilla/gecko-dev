@@ -19485,6 +19485,17 @@ void CodeGenerator::visitHasClass(LHasClass* ins) {
                  output);
 }
 
+void CodeGenerator::visitHasShape(LHasShape* ins) {
+  Register obj = ToRegister(ins->object());
+  Register output = ToRegister(ins->output());
+
+  // Note: no Spectre mitigations are needed here because this shape check only
+  // affects correctness.
+  masm.loadObjShapeUnsafe(obj, output);
+  masm.cmpPtrSet(Assembler::Equal, output, ImmGCPtr(ins->mir()->shape()),
+                 output);
+}
+
 void CodeGenerator::visitGuardToClass(LGuardToClass* ins) {
   Register lhs = ToRegister(ins->lhs());
   Register temp = ToRegister(ins->temp0());

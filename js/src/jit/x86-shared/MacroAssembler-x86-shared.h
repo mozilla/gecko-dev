@@ -932,9 +932,11 @@ class MacroAssemblerX86Shared : public Assembler {
     } else if constexpr (std::is_base_of_v<ValueOperand, T>) {
       return src.aliases(dest);
     } else {
+      // Immediates don't contain any registers that might alias `dest`.
       static_assert(
           std::is_base_of_v<Imm32, T> || std::is_base_of_v<Imm64, T> ||
-              std::is_base_of_v<ImmPtr, T> || std::is_base_of_v<ImmWord, T>,
+              std::is_base_of_v<ImmPtr, T> || std::is_base_of_v<ImmGCPtr, T> ||
+              std::is_base_of_v<ImmWord, T>,
           "unhandled operand");
       return false;
     }

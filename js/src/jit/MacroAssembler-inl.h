@@ -1066,6 +1066,10 @@ void MacroAssembler::loadObjClassUnsafe(Register obj, Register dest) {
   loadPtr(Address(dest, BaseShape::offsetOfClasp()), dest);
 }
 
+void MacroAssembler::loadObjShapeUnsafe(Register obj, Register dest) {
+  loadPtr(Address(obj, JSObject::offsetOfShape()), dest);
+}
+
 template <typename EmitPreBarrier>
 void MacroAssembler::storeObjShape(Register shape, Register obj,
                                    EmitPreBarrier emitPreBarrier) {

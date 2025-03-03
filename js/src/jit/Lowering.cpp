@@ -6415,6 +6415,12 @@ void LIRGenerator::visitHasClass(MHasClass* ins) {
   define(new (alloc()) LHasClass(useRegister(ins->object())), ins);
 }
 
+void LIRGenerator::visitHasShape(MHasShape* ins) {
+  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
+  MOZ_ASSERT(ins->type() == MIRType::Boolean);
+  define(new (alloc()) LHasShape(useRegister(ins->object())), ins);
+}
+
 void LIRGenerator::visitGuardToClass(MGuardToClass* ins) {
   MOZ_ASSERT(ins->object()->type() == MIRType::Object);
   MOZ_ASSERT(ins->type() == MIRType::Object);

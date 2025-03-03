@@ -6711,6 +6711,20 @@ AliasSet MGuardShape::getAliasSet() const {
   return AliasSet::Load(AliasSet::ObjectFields);
 }
 
+bool MHasShape::congruentTo(const MDefinition* ins) const {
+  if (!ins->isHasShape()) {
+    return false;
+  }
+  if (shape() != ins->toHasShape()->shape()) {
+    return false;
+  }
+  return congruentIfOperandsEqual(ins);
+}
+
+AliasSet MHasShape::getAliasSet() const {
+  return AliasSet::Load(AliasSet::ObjectFields);
+}
+
 MDefinition::AliasType MGuardShape::mightAlias(const MDefinition* store) const {
   // These instructions only modify object elements, but not the shape.
   if (store->isStoreElementHole() || store->isArrayPush()) {

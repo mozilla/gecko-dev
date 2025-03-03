@@ -4760,6 +4760,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Unsafe here means the caller is responsible for Spectre mitigations if
   // needed. Prefer branchTestObjClass or one of the other masm helpers!
   inline void loadObjClassUnsafe(Register obj, Register dest);
+  inline void loadObjShapeUnsafe(Register obj, Register dest);
 
   template <typename EmitPreBarrier>
   inline void storeObjShape(Register shape, Register obj,
