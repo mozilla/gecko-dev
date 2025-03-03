@@ -2957,16 +2957,22 @@ bool nsContentUtils::ContentIsHostIncludingDescendantOf(
   MOZ_ASSERT(aPossibleDescendant, "The possible descendant is null!");
   MOZ_ASSERT(aPossibleAncestor, "The possible ancestor is null!");
 
-  do {
-    if (aPossibleDescendant == aPossibleAncestor) return true;
-    if (aPossibleDescendant->IsDocumentFragment()) {
-      aPossibleDescendant =
-          aPossibleDescendant->AsDocumentFragment()->GetHost();
-    } else {
-      aPossibleDescendant = aPossibleDescendant->GetParentNode();
+  while (true) {
+    if (aPossibleDescendant == aPossibleAncestor) {
+      return true;
     }
-  } while (aPossibleDescendant);
-
+    if (nsINode* parent = aPossibleDescendant->GetParentNode()) {
+      aPossibleDescendant = parent;
+      continue;
+    }
+    if (auto* df = DocumentFragment::FromNode(aPossibleDescendant)) {
+      if (nsINode* host = df->GetHost()) {
+        aPossibleDescendant = host;
+        continue;
+      }
+    }
+    break;
+  }
   return false;
 }
 
