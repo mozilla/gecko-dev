@@ -45,30 +45,27 @@ Atomic<uint64_t> AllocationReporter::allocated;
 
 NS_IMPL_ISUPPORTS(AllocationReporter, nsIMemoryReporter)
 
-static void RegisterMemoryReporter() {
+static void RegisterAllocationMemoryReporter() {
   static Atomic<bool> registered;
   if (registered.compareExchange(false, true)) {
     RegisterStrongMemoryReporter(new AllocationReporter());
   }
 }
 
-HandleBase::HandleBase() { RegisterMemoryReporter(); }
+HandleBase::HandleBase() = default;
 
 HandleBase::~HandleBase() {
-  MOZ_ASSERT(AllocationReporter::allocated >= mSize,
-             "Can't destroy more than allocated");
-  AllocationReporter::allocated -= mSize;
+  if (mSize > 0) {
+    MOZ_ASSERT(AllocationReporter::allocated >= mSize,
+               "Can't destroy more than allocated");
+    SetSize(0);
+  }
   mHandle = nullptr;
-  mSize = 0;
 }
 
 HandleBase& HandleBase::operator=(HandleBase&& aOther) {
-  MOZ_ASSERT(AllocationReporter::allocated >= mSize,
-             "Can't destroy more than allocated");
-  AllocationReporter::allocated -= mSize;
-
   mHandle = std::move(aOther.mHandle);
-  mSize = std::exchange(aOther.mSize, 0);
+  SetSize(std::exchange(aOther.mSize, 0));
   return *this;
 }
 
@@ -76,36 +73,49 @@ HandleBase HandleBase::Clone() const {
   HandleBase hb;
   hb.mHandle = Platform::CloneHandle(mHandle);
   if (hb.mHandle) {
-    hb.mSize = mSize;
-    // TODO more intelligently handle clones to not count as addition
+    // TODO more intelligently handle clones to not count as additional
     // allocations?
-    AllocationReporter::allocated += mSize;
+    hb.SetSize(mSize);
   }
   return hb;
 }
 
 void HandleBase::ToMessageWriter(IPC::MessageWriter* aWriter) && {
-  MOZ_ASSERT(AllocationReporter::allocated >= mSize,
-             "Can't destroy more than allocated");
-  AllocationReporter::allocated -= mSize;
   WriteParam(aWriter, std::move(mHandle));
-  WriteParam(aWriter, std::exchange(mSize, 0));
+  WriteParam(aWriter, mSize);
+  SetSize(0);
 }
 
 bool HandleBase::FromMessageReader(IPC::MessageReader* aReader) {
   mozilla::ipc::shared_memory::PlatformHandle handle;
   if (!ReadParam(aReader, &handle)) {
+    aReader->FatalError("Failed to read shared memory PlatformHandle");
     return false;
   }
   if (handle && !Platform::IsSafeToMap(handle)) {
+    aReader->FatalError("Shared memory PlatformHandle is not safe to map");
+    return false;
+  }
+  uint64_t size = 0;
+  if (!ReadParam(aReader, &size)) {
+    aReader->FatalError("Failed to read shared memory handle size");
+    return false;
+  }
+  if (handle && !size) {
+    aReader->FatalError(
+        "Unexpected PlatformHandle for zero-sized shared memory handle");
     return false;
   }
   mHandle = std::move(handle);
-  if (!ReadParam(aReader, &mSize)) {
-    return false;
-  }
-  mozilla::ipc::shared_memory::AllocationReporter::allocated += mSize;
+  SetSize(size);
   return true;
+}
+
+void HandleBase::SetSize(uint64_t aSize) {
+  RegisterAllocationMemoryReporter();
+  mozilla::ipc::shared_memory::AllocationReporter::allocated -= mSize;
+  mSize = aSize;
+  mozilla::ipc::shared_memory::AllocationReporter::allocated += mSize;
 }
 
 Mapping Handle::Map(void* aFixedAddress) const {
@@ -115,6 +125,15 @@ Mapping Handle::Map(void* aFixedAddress) const {
 Mapping Handle::MapSubregion(uint64_t aOffset, size_t aSize,
                              void* aFixedAddress) const {
   return Mapping(*this, aOffset, aSize, aFixedAddress);
+}
+
+ReadOnlyHandle Handle::ToReadOnly() && {
+  return std::move(*this).ConvertTo<ReadOnlyHandle>();
+}
+
+const ReadOnlyHandle& Handle::AsReadOnly() const {
+  static_assert(sizeof(ReadOnlyHandle) == sizeof(Handle));
+  return reinterpret_cast<const ReadOnlyHandle&>(*this);
 }
 
 ReadOnlyMapping ReadOnlyHandle::Map(void* aFixedAddress) const {
@@ -158,7 +177,6 @@ Handle Create(uint64_t aSize) {
   MOZ_ASSERT(success == h.IsValid());
   if (success) {
     MOZ_ASSERT(aSize == h.Size());
-    AllocationReporter::allocated += h.Size();
   }
   return h;
 }
@@ -169,7 +187,6 @@ FreezableHandle CreateFreezable(uint64_t aSize) {
   MOZ_ASSERT(success == h.IsValid());
   if (success) {
     MOZ_ASSERT(aSize == h.Size());
-    AllocationReporter::allocated += h.Size();
   }
   return h;
 }

@@ -45,14 +45,14 @@ Atomic<size_t> MappingReporter::mapped;
 
 NS_IMPL_ISUPPORTS(MappingReporter, nsIMemoryReporter)
 
-static void RegisterMemoryReporter() {
+static void RegisterMappingMemoryReporter() {
   static Atomic<bool> registered;
   if (registered.compareExchange(false, true)) {
     RegisterStrongMemoryReporter(new MappingReporter());
   }
 }
 
-MappingBase::MappingBase() { RegisterMemoryReporter(); }
+MappingBase::MappingBase() = default;
 
 MappingBase& MappingBase::operator=(MappingBase&& aOther) {
   // Swap members with `aOther`, and unmap that mapping.
@@ -62,7 +62,7 @@ MappingBase& MappingBase::operator=(MappingBase&& aOther) {
   return *this;
 }
 
-void* MappingBase::Data() const {
+void* MappingBase::Address() const {
 #ifdef FUZZING
   return SharedMemoryFuzzer::MutateSharedMemory(mMemory, mSize);
 #else
@@ -70,7 +70,7 @@ void* MappingBase::Data() const {
 #endif
 }
 
-LeakedMapping MappingBase::release() && {
+LeakedMapping MappingBase::ReleaseMapping() && {
   // NOTE: this doesn't reduce gShmemMapped since it _is_ still mapped memory
   // (and will be until the process terminates).
   return LeakedMapping{static_cast<uint8_t*>(std::exchange(mMemory, nullptr)),
@@ -79,6 +79,10 @@ LeakedMapping MappingBase::release() && {
 
 bool MappingBase::Map(const HandleBase& aHandle, void* aFixedAddress,
                       bool aReadOnly) {
+  // Invalid handles will fail and result in an invalid mapping.
+  if (!aHandle) {
+    return false;
+  }
   // Verify that the handle size can be stored as a mapping size first
   // (otherwise it won't be possible to map in the address space and the Map
   // call will fail).
@@ -103,6 +107,8 @@ bool MappingBase::MapSubregion(const HandleBase& aHandle, uint64_t aOffset,
                 "cannot map region exceeding aHandle.Size()");
     return false;
   }
+
+  RegisterMappingMemoryReporter();
 
   if (auto mem =
           Platform::Map(aHandle, aOffset, aSize, aFixedAddress, aReadOnly)) {
@@ -146,11 +152,13 @@ ReadOnlyMapping::ReadOnlyMapping(const ReadOnlyHandle& aHandle,
   MapSubregion(aHandle, aOffset, aSize, aFixedAddress, true);
 }
 
+// We still store the handle if `Map` fails: the user may want to get it back
+// (for instance, if fixed-address mapping doesn't work they may try mapping
+// without one).
 FreezableMapping::FreezableMapping(FreezableHandle&& aHandle,
-                                   void* aFixedAddress) {
-  if (Map(aHandle, aFixedAddress, false)) {
-    mHandle = std::move(aHandle);
-  }
+                                   void* aFixedAddress)
+    : mHandle(std::move(aHandle)) {
+  Map(mHandle, aFixedAddress, false);
 }
 
 FreezableMapping::FreezableMapping(FreezableHandle&& aHandle, uint64_t aOffset,
@@ -172,6 +180,10 @@ FreezableHandle FreezableMapping::Unmap() && {
   return handle;
 }
 
+bool LocalProtect(char* aAddr, size_t aSize, Access aAccess) {
+  return Platform::Protect(aAddr, aSize, aAccess);
+}
+
 void* FindFreeAddressSpace(size_t aSize) {
   return Platform::FindFreeAddressSpace(aSize);
 }
@@ -186,10 +198,6 @@ size_t PageAlignedSize(size_t aMinimum) {
   const size_t pageSize = Platform::PageSize();
   size_t nPagesNeeded = size_t(ceil(double(aMinimum) / double(pageSize)));
   return pageSize * nPagesNeeded;
-}
-
-bool Protect(char* aAddr, size_t aSize, Access aAccess) {
-  return Platform::Protect(aAddr, aSize, aAccess);
 }
 
 }  // namespace mozilla::ipc::shared_memory

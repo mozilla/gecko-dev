@@ -9,8 +9,19 @@
 
 #include <utility>
 
-#include "chrome/common/ipc_message_utils.h"
 #include "mozilla/UniquePtrExtensions.h"
+
+namespace IPC {
+template <class P>
+struct ParamTraits;
+class MessageWriter;
+class MessageReader;
+}  // namespace IPC
+
+namespace mozilla::geckoargs {
+template <typename T>
+struct CommandLineArg;
+}
 
 namespace mozilla::ipc {
 
@@ -47,9 +58,19 @@ class HandleBase {
    */
   explicit operator bool() const { return (bool)mHandle; }
 
+  /**
+   * Take the platform handle.
+   *
+   * This should be used with caution, as it drops all of the guarantees of the
+   * shared memory handle classes.
+   */
+  PlatformHandle TakePlatformHandle() && { return std::move(mHandle); }
+
   friend class Platform;
   friend struct IPC::ParamTraits<mozilla::ipc::shared_memory::Handle>;
   friend struct IPC::ParamTraits<mozilla::ipc::shared_memory::ReadOnlyHandle>;
+  friend struct mozilla::geckoargs::CommandLineArg<
+      mozilla::ipc::shared_memory::ReadOnlyHandle>;
 
  protected:
   HandleBase();
@@ -83,6 +104,14 @@ class HandleBase {
   bool FromMessageReader(IPC::MessageReader* aReader);
 
  private:
+  /**
+   * Set the size of the handle.
+   *
+   * This method must be used rather than setting `mSize` directly, as there is
+   * additional bookkeeping that goes along with this value.
+   */
+  void SetSize(uint64_t aSize);
+
   PlatformHandle mHandle = nullptr;
   uint64_t mSize = 0;
 };
@@ -101,6 +130,22 @@ struct Handle : HandleBase {
    * Clone the handle.
    */
   Handle Clone() const { return CloneAs<Handle>(); }
+
+  /**
+   * Convert the handle to a read-only handle.
+   *
+   * Note that this doesn't enforce any sort of security or guarantees on the
+   * underlying shared memory.
+   */
+  ReadOnlyHandle ToReadOnly() &&;
+
+  /**
+   * Use the handle as a read-only handle.
+   *
+   * Note that this doesn't enforce any sort of security or guarantees on the
+   * underlying shared memory.
+   */
+  const ReadOnlyHandle& AsReadOnly() const;
 
   /**
    * Map the shared memory region into memory.
@@ -202,6 +247,17 @@ Handle Create(uint64_t aSize);
  * mappings.
  */
 FreezableHandle CreateFreezable(uint64_t aSize);
+
+#if defined(XP_LINUX)
+// If named POSIX shm is being used, append the prefix (including
+// the leading '/') that would be used by a process with the given
+// pid to the given string and return true.  If not, return false.
+// (This is public so that the Linux sandboxing code can use it.)
+bool AppendPosixShmPrefix(std::string* str, pid_t pid);
+
+// Returns whether POSIX shm is in use.
+bool UsingPosixShm();
+#endif
 
 }  // namespace shared_memory
 

@@ -41,10 +41,13 @@ static Maybe<PlatformHandle> CreateImpl(size_t aSize, bool aFreezable) {
   return Some(fd);
 }
 
+bool AppendPosixShmPrefix(std::string* str, pid_t pid) { return false; }
+bool UsingPosixShm() { return false; }
+
 bool Platform::Create(Handle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, false)) {
     aHandle.mHandle = std::move(*ph);
-    aHandle.mSize = aSize;
+    aHandle.SetSize(aSize);
     return true;
   }
   return false;
@@ -53,7 +56,7 @@ bool Platform::Create(Handle& aHandle, size_t aSize) {
 bool Platform::CreateFreezable(FreezableHandle& aHandle, size_t aSize) {
   if (auto ph = CreateImpl(aSize, true)) {
     aHandle.mHandle = std::move(*ph);
-    aHandle.mSize = aSize;
+    aHandle.SetSize(aSize);
     return true;
   }
   return false;
