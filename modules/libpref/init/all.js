@@ -4037,6 +4037,10 @@ pref("extensions.formautofill.loglevel", "Warn");
 pref("extensions.formautofill.heuristics.captureOnFormRemoval", true);
 pref("extensions.formautofill.heuristics.captureOnPageNavigation", true);
 
+#ifdef NIGHTLY_BUILD
+pref("extensions.formautofill.heuristics.detectDynamicFormChanges", true);
+#endif
+
 pref("extensions.formautofill.heuristics.autofillSameOriginWithTop", true);
 
 #ifdef NIGHTLY_BUILD

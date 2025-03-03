@@ -328,7 +328,16 @@ export class FormAutofillParent extends JSWindowActorParent {
         break;
 
       case "FormAutofill:OnFieldsDetected":
-        await this.onFieldsDetected(data);
+        await this.onFieldsDetected(
+          data,
+          "FormAutofill:onFieldsDetectedComplete"
+        );
+        break;
+      case "FormAutofill:OnFieldsUpdated":
+        await this.onFieldsDetected(
+          data,
+          "FormAutofill:onFieldsUpdatedComplete"
+        );
         break;
       case "FormAutofill:FieldFilledModified": {
         this.onFieldFilledModified(data);
@@ -491,8 +500,11 @@ export class FormAutofillParent extends JSWindowActorParent {
    *
    * @param {Array} fieldsIncludeIframe
    *        Array of FieldDetail objects of detected fields (include iframes).
+   * @param {string} message that is sent to the children
+   *                          - On initial fields detection: "FormAutofill:onFieldsDetectedComplete"
+   *                          - On dynamic form change detection:  "FormAutofill:onFieldsUpdatedComplete"
    */
-  async onFieldsDetected(fieldsIncludeIframe) {
+  async onFieldsDetected(fieldsIncludeIframe, message) {
     // If the detected fields are not in the top-level, identify the <iframe> in
     // the top-level that contains the detected fields. This is necessary to determine
     // the root element of this form. For non-top-level frames, the focused <iframe>
@@ -535,12 +547,12 @@ export class FormAutofillParent extends JSWindowActorParent {
     for (const [bcId, fds] of Object.entries(detailsByBC)) {
       try {
         const actor = FormAutofillParent.getActor(BrowsingContext.get(bcId));
-        await actor.sendQuery("FormAutofill:onFieldsDetectedComplete", {
+        await actor.sendQuery(message, {
           fds,
         });
       } catch (e) {
         console.error(
-          "There was an error sending 'onFieldsDetectedComplete' msg",
+          `There was an error sending ${message} message`,
           e.message
         );
       }
