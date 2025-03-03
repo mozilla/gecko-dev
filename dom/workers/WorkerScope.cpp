@@ -308,8 +308,8 @@ bool WorkerGlobalScopeBase::RunTimeoutHandler(mozilla::dom::Timeout* aTimeout) {
   Timeout* last_running_timeout = mTimeoutManager->BeginRunningTimeout(timeout);
   timeout->mRunning = true;
 
-  uint32_t nestingLevel = mTimeoutManager->GetNestingLevel();
-  mTimeoutManager->SetNestingLevel(timeout->mNestingLevel);
+  uint32_t nestingLevel = mTimeoutManager->GetNestingLevelForWorker();
+  mTimeoutManager->SetNestingLevelForWorker(timeout->mNestingLevel);
 
   const char* reason = workerinternals::GetTimeoutReasonString(timeout);
 
@@ -343,7 +343,7 @@ bool WorkerGlobalScopeBase::RunTimeoutHandler(mozilla::dom::Timeout* aTimeout) {
   // point anyway, and the script context should have already reported
   // the script error in the usual way - so we just drop it.
 
-  mTimeoutManager->SetNestingLevel(nestingLevel);
+  mTimeoutManager->SetNestingLevelForWorker(nestingLevel);
 
   mTimeoutManager->EndRunningTimeout(last_running_timeout);
   timeout->mRunning = false;
