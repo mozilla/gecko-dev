@@ -8298,9 +8298,12 @@ var TabBarVisibility = {
 
   update(force = false) {
     let isPopup = !window.toolbar.visible;
+    let isTaskbarTab = document.documentElement.hasAttribute("taskbartab");
+    let isSingleTabWindow = isPopup || isTaskbarTab;
 
     let hasVerticalTabs =
-      !isPopup && Services.prefs.getBoolPref("sidebar.verticalTabs", false);
+      !isSingleTabWindow &&
+      Services.prefs.getBoolPref("sidebar.verticalTabs", false);
 
     // When `gBrowser` has not been initialized, we're opening a new window and
     // assume only a single tab is loading.
@@ -8308,7 +8311,8 @@ var TabBarVisibility = {
 
     // To prevent tabs being lost, hiding the tabs toolbar should only work
     // when only a single tab is visible or tabs are displayed elsewhere.
-    let hideTabsToolbar = (isPopup && hasSingleTab) || hasVerticalTabs;
+    let hideTabsToolbar =
+      (isSingleTabWindow && hasSingleTab) || hasVerticalTabs;
 
     // We only want a non-customized titlebar for popups. It should not be the
     // case, but if a popup window contains more than one tab we re-enable
