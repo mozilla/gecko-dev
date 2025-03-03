@@ -926,7 +926,7 @@ class SelectableProfileServiceClass extends EventEmitter {
    *
    * @param {boolean} shouldShow Whether or not we should show the profile selector
    */
-  async setShowProfileSelectorWindow(shouldShow) {
+  async showProfileSelectorWindow(shouldShow) {
     this.groupToolkitProfile.showProfileSelector = shouldShow;
     await this.#attemptFlushProfileService();
   }
@@ -1128,7 +1128,7 @@ class SelectableProfileServiceClass extends EventEmitter {
       this.#currentProfile = await this.#createProfile(path);
 
       // And also set the profile selector window to show at startup (bug 1933911).
-      this.setShowProfileSelectorWindow(true);
+      this.showProfileSelectorWindow(true);
     }
   }
 
@@ -1218,16 +1218,19 @@ class SelectableProfileServiceClass extends EventEmitter {
   }
 
   /**
+   * Close all active instances running the current profile
+   */
+  closeActiveProfileInstances() {}
+
+  /**
    * Schedule deletion of the current SelectableProfile as a background task.
    */
   async deleteCurrentProfile() {
     let profiles = await this.getAllProfiles();
 
+    // Refuse to delete the last profile.
     if (profiles.length <= 1) {
-      await this.createNewProfile();
-      await this.setShowProfileSelectorWindow(false);
-
-      profiles = await this.getAllProfiles();
+      return;
     }
 
     // TODO: (Bug 1923980) How should we choose the new default profile?
