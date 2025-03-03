@@ -95,10 +95,17 @@ const KEY_APP_DISTRIBUTION = "XREAppDist";
 const KEY_APP_FEATURES = "XREAppFeat";
 
 const KEY_APP_PROFILE = "app-profile";
-const KEY_APP_SYSTEM_BUILTINS = "app-system-builtins";
+// Location of add-ons included in the omni jar and listed in built_in_addons.json.
+// TODO: consider renaming to `KEY_APP_BUILTIN_ADDONS` when `KEY_APP_BUILTINS`
+// has been removed (since it would be confusing to have two similar `KEY_APP_`
+// constants while `KEY_APP_BUILTINS` is still defined).
+const KEY_APP_SYSTEM_BUILTINS = "app-builtin-addons";
 const KEY_APP_SYSTEM_PROFILE = "app-system-profile";
+// Location of add-on xpi files signed with a system signature downloaded from balrog.
 const KEY_APP_SYSTEM_ADDONS = "app-system-addons";
+// Location of add-on xpi files part of the application directry and listed in built_in_addons.json.
 const KEY_APP_SYSTEM_DEFAULTS = "app-system-defaults";
+// Location of add-ons included in the omni jar and manually installed through maybeInstallBuiltinAddon method.
 const KEY_APP_BUILTINS = "app-builtin";
 const KEY_APP_GLOBAL = "app-global";
 const KEY_APP_SYSTEM_LOCAL = "app-system-local";
@@ -3468,11 +3475,12 @@ export var XPIInternal = {
   DB_SCHEMA,
   DIR_STAGE,
   DIR_TRASH,
+  KEY_APP_BUILTINS,
   KEY_APP_PROFILE,
-  KEY_APP_SYSTEM_PROFILE,
   KEY_APP_SYSTEM_ADDONS,
   KEY_APP_SYSTEM_BUILTINS,
   KEY_APP_SYSTEM_DEFAULTS,
+  KEY_APP_SYSTEM_PROFILE,
   PREF_BRANCH_INSTALLED_ADDON,
   PREF_SYSTEM_ADDON_SET,
   SystemAddonLocation,
