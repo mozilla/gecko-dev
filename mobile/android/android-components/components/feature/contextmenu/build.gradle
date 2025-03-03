@@ -39,14 +39,14 @@ dependencies {
     implementation project(':feature-search')
     implementation project(':ui-widgets')
 
-    implementation ComponentsDependencies.google_material
-    implementation ComponentsDependencies.androidx_constraintlayout
-    implementation ComponentsDependencies.androidx_core_ktx
+    implementation libs.google.material
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.core.ktx
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.coroutines
+    testImplementation libs.testing.robolectric
 
     testImplementation project(':support-test')
     testImplementation project(':support-test-libstate')

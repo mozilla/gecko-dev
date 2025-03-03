@@ -23,12 +23,12 @@ android {
 }
 
 // Define library names and version constants.
-String GLEAN_LIBRARY = "org.mozilla.telemetry:glean:${Versions.mozilla_glean}"
-String GLEAN_LIBRARY_FORUNITTESTS = "org.mozilla.telemetry:glean-native-forUnitTests:${Versions.mozilla_glean}"
+String GLEAN_LIBRARY = "org.mozilla.telemetry:glean:${libs.versions.mozilla.glean.get()}"
+String GLEAN_LIBRARY_FORUNITTESTS = "org.mozilla.telemetry:glean-native-forUnitTests:${libs.versions.mozilla.glean.get()}"
 
 dependencies {
-    implementation ComponentsDependencies.kotlin_coroutines
-    implementation ComponentsDependencies.androidx_work_runtime
+    implementation libs.kotlin.coroutines
+    implementation libs.androidx.work.runtime
     
     api GLEAN_LIBRARY
 
@@ -39,12 +39,12 @@ dependencies {
     implementation project(':support-base')
     implementation project(':support-utils')
 
-    testImplementation ComponentsDependencies.androidx_test_core
+    testImplementation libs.androidx.test.core
 
-    testImplementation ComponentsDependencies.junit_vintage
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_mockwebserver
-    testImplementation ComponentsDependencies.androidx_work_testing
+    testImplementation libs.junit.vintage
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.mockwebserver
+    testImplementation libs.androidx.work.testing
 
     testImplementation project(':support-test')
     testImplementation project(':lib-fetch-httpurlconnection')

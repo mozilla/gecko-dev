@@ -7,9 +7,9 @@ dependencies {
     compileOnly "com.google.code.findbugs:jsr305:3.0.2"
     compileOnly "org.checkerframework:checker-compat-qual:2.5.0"
     compileOnly "org.checkerframework:checker-qual:2.5.0"
-    compileOnly "org.jetbrains.kotlin:kotlin-annotations-jvm:${Versions.kotlin}"
+    compileOnly libs.kotlin.annotations.jvm
 
-    implementation ComponentsDependencies.androidx_annotation
+    implementation libs.androidx.annotation
 }
 
 android {

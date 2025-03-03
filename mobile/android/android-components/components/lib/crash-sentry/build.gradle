@@ -31,13 +31,13 @@ dependencies {
     implementation project(':support-utils')
     implementation project(':lib-crash')
 
-    implementation ComponentsDependencies.thirdparty_sentry
-    testImplementation ComponentsDependencies.thirdparty_sentry
+    implementation libs.thirdparty.sentry
+    testImplementation libs.thirdparty.sentry
 
     testImplementation project(':support-test')
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
 }
 
 apply from: '../../../android-lint.gradle'

@@ -54,34 +54,34 @@ dependencies {
     implementation project(':ui-icons')
     implementation project(':ui-widgets')
 
-    implementation ComponentsDependencies.androidx_constraintlayout
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation ComponentsDependencies.androidx_lifecycle_livedata
-    implementation ComponentsDependencies.androidx_localbroadcastmanager
-    implementation ComponentsDependencies.androidx_paging
-    implementation ComponentsDependencies.androidx_recyclerview
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.lifecycle.livedata
+    implementation libs.androidx.localbroadcastmanager
+    implementation libs.androidx.paging
+    implementation libs.androidx.recyclerview
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
-    implementation ComponentsDependencies.androidx_room_runtime
-    ksp ComponentsDependencies.androidx_room_compiler
+    implementation libs.androidx.room.runtime
+    ksp libs.androidx.room.compiler
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.coroutines
+    testImplementation libs.testing.robolectric
     testImplementation project(':concept-engine')
     testImplementation project(':support-test')
     testImplementation project(':support-test-libstate')
 
     androidTestImplementation project(':support-android-test')
 
-    androidTestImplementation ComponentsDependencies.androidx_room_testing
-    androidTestImplementation ComponentsDependencies.androidx_arch_core_testing
-    androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
-    androidTestImplementation ComponentsDependencies.testing_coroutines
+    androidTestImplementation libs.androidx.room.testing
+    androidTestImplementation libs.androidx.arch.core.testing
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.testing.coroutines
 
 }
 

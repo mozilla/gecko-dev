@@ -17,12 +17,12 @@ repositories {
 }
 
 dependencies {
-    compileOnly ComponentsDependencies.tools_lintapi
-    compileOnly ComponentsDependencies.tools_lintchecks
+    compileOnly libs.tools.lintapi
+    compileOnly libs.tools.lintchecks
 
-    testImplementation ComponentsDependencies.junit_vintage
-    testImplementation ComponentsDependencies.tools_lint
-    testImplementation ComponentsDependencies.tools_linttests
+    testImplementation libs.junit.vintage
+    testImplementation libs.tools.lint
+    testImplementation libs.tools.linttests
 }
 
 jar {

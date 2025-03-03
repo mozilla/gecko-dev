@@ -15,34 +15,34 @@ buildscript {
     }
 
     ext {
-        detekt_plugin = Versions.detekt
-        python_envs_plugin = Versions.python_envs_plugin
-        ksp_plugin = Versions.ksp_plugin
+        detekt_plugin = libs.versions.detekt.get()
+        python_envs_plugin = libs.versions.python.envs.plugin.get()
+        ksp_plugin = libs.versions.ksp.plugin.get()
 
         // Used in mobile/android/fenix/app/build.gradle
-        protobuf_plugin = Versions.protobuf_plugin
+        protobuf_plugin = libs.versions.protobuf.plugin.get()
     }
 
     dependencies {
         classpath 'org.mozilla.apilint:apilint:0.5.3'
-        classpath ComponentsDependencies.tools_androidgradle
+        classpath libs.tools.androidgradle
         classpath 'org.apache.commons:commons-exec:1.3'
         classpath 'com.diffplug.spotless:spotless-plugin-gradle:6.25.0'
         classpath 'org.tomlj:tomlj:1.1.0'
-        classpath ComponentsDependencies.tools_kotlingradle
+        classpath libs.tools.kotlingradle
 
         // Used in mobile/android/fenix/app/build.gradle
-        classpath ComponentsDependencies.androidx_navigation_safeargs
-        classpath ComponentsDependencies.osslicenses_plugin
-        classpath ComponentsDependencies.tools_benchmarkgradle
-        classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
+        classpath libs.androidx.navigation.safeargs
+        classpath libs.osslicenses.plugin
+        classpath libs.tools.benchmarkgradle
+        classpath libs.glean.gradle.plugin
         classpath "${ApplicationServicesConfig.groupId}:tooling-nimbus-gradle:${ApplicationServicesConfig.version}"
     }
 }
 
 plugins {
-    id("io.gitlab.arturbosch.detekt").version("$detekt_plugin")
-    id("com.google.devtools.ksp").version("$ksp_plugin")
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.ksp)
 }
 
 def tryInt = { string ->
@@ -60,7 +60,7 @@ abstract class VerifyGleanVersionTask extends DefaultTask {
     final RegularFileProperty source = project.objects.fileProperty().convention(project.layout.projectDirectory.file("Cargo.lock"))
 
     @Input
-    String expectedVersion = Versions.mozilla_glean
+    String expectedVersion = project.ext.gleanVersion
 
     @OutputFiles
     FileCollection outputFiles = project.objects.fileCollection()
@@ -103,7 +103,7 @@ allprojects {
         topsrcdir = gradle.mozconfig.topsrcdir
         topobjdir = gradle.mozconfig.topobjdir
 
-        gleanVersion = Versions.mozilla_glean // Verification done in verifyGleanVersion task
+        gleanVersion = libs.versions.mozilla.glean.get() // Verification done in verifyGleanVersion task
 
         artifactSuffix = getArtifactSuffix()
         versionName = getVersionName()
@@ -429,13 +429,13 @@ afterEvaluate {
                 if (details.requested.group == 'org.mozilla.telemetry'
                         && details.requested.name.contains('glean') ) {
                     def requested = details.requested.version.tokenize(".")
-                        def defined = Versions.mozilla_glean.tokenize(".")
+                        def defined = libs.versions.mozilla.glean.get().tokenize(".")
                         // Check the major version
                         if (requested[0] != defined[0]) {
-                            throw new AssertionError("Cannot resolve to a single Glean version. Requested: ${details.requested.version}, A-C uses: ${Versions.mozilla_glean}")
+                            throw new AssertionError("Cannot resolve to a single Glean version. Requested: ${details.requested.version}, A-C uses: ${libs.mozilla.glean}")
                         } else {
                             // Enforce that all (transitive) dependencies are using the defined Glean version
-                            details.useVersion Versions.mozilla_glean
+                            details.useVersion libs.versions.mozilla.glean.get()
                         }
                 }
             }

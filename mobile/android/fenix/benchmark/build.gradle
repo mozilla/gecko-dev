@@ -62,10 +62,10 @@ configurations.configureEach {
 }
 
 dependencies {
-    implementation ComponentsDependencies.androidx_test_junit
-    implementation ComponentsDependencies.androidx_espresso_core
-    implementation ComponentsDependencies.androidx_test_uiautomator
-    implementation ComponentsDependencies.androidx_benchmark_macro_junit4
+    implementation libs.androidx.test.junit
+    implementation libs.androidx.espresso.core
+    implementation libs.androidx.test.uiautomator
+    implementation libs.androidx.benchmark.macro.junit4
 }
 
 androidComponents {

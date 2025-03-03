@@ -30,6 +30,14 @@ plugins {
     id 'mozac.DependenciesPlugin'
 }
 
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            from(files("../../../gradle/libs.versions.toml"))
+        }
+    }
+}
+
 ext.topsrcdir = rootProject.projectDir.absolutePath.minus("mobile/android/focus-android")
 
 apply from: file('../shared-settings.gradle')

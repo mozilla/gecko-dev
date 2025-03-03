@@ -26,10 +26,10 @@ android {
 dependencies {
     implementation project(':support-ktx')
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
-    implementation ComponentsDependencies.androidx_annotation
-    implementation ComponentsDependencies.androidx_paging
+    implementation libs.androidx.annotation
+    implementation libs.androidx.paging
 
     // We expose this as API because we are using Observable in our public API and do not want every
     // consumer to have to manually import "base".
@@ -39,10 +39,10 @@ dependencies {
     api project(':concept-fetch')
 
     testImplementation project(':support-utils')
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.kotlin_reflect
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.kotlin.reflect
 
     testImplementation project(':support-test')
 }

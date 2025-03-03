@@ -213,29 +213,29 @@ configurations {
 }
 
 dependencies {
-    implementation ComponentsDependencies.androidx_annotation
-    implementation ComponentsDependencies.androidx_collection
-    implementation ComponentsDependencies.androidx_core
+    implementation libs.androidx.annotation
+    implementation libs.androidx.collection
+    implementation libs.androidx.core
 
-    implementation ComponentsDependencies.play_services_fido
+    implementation libs.play.services.fido
     implementation "org.yaml:snakeyaml:2.2"
     implementation 'androidx.core:core:1.12.0'
 
-    implementation ComponentsDependencies.androidx_lifecycle_common
-    implementation ComponentsDependencies.androidx_lifecycle_process
+    implementation libs.androidx.lifecycle.common
+    implementation libs.androidx.lifecycle.process
 
     if (mozconfig.substs.MOZ_ANDROID_HLS_SUPPORT) {
         implementation project(":exoplayer2")
     }
 
-    testImplementation ComponentsDependencies.junit_vintage
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.junit.vintage
+    testImplementation libs.testing.robolectric
 
-    androidTestImplementation ComponentsDependencies.testing_coroutines
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
-    androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_espresso_core
+    androidTestImplementation libs.testing.coroutines
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.espresso.core
 
     androidTestImplementation 'com.koushikdutta.async:androidasync:3.1.0'
 }

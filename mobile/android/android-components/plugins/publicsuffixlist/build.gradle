@@ -18,8 +18,8 @@ repositories {
 }
 
 dependencies {
-    implementation ComponentsDependencies.thirdparty_okhttp
-    implementation ComponentsDependencies.thirdparty_okio
+    implementation libs.thirdparty.okhttp
+    implementation libs.thirdparty.okio
 }
 
 gradlePlugin {

@@ -25,21 +25,21 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_core_ktx
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.core.ktx
 
     implementation project(':support-ktx')
     implementation project(':support-base')
 
-    implementation ComponentsDependencies.thirdparty_zxing
-    testImplementation ComponentsDependencies.thirdparty_zxing
+    implementation libs.thirdparty.zxing
+    testImplementation libs.thirdparty.zxing
 
     testImplementation project(':support-test')
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
 }
 
 apply from: '../../../android-lint.gradle'

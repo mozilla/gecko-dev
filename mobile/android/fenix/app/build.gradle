@@ -14,7 +14,7 @@ buildscript {
     }
 
     dependencies {
-        classpath ComponentsDependencies.plugin_serialization
+        classpath libs.plugin.serialization
     }
 }
 
@@ -301,7 +301,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     namespace 'org.mozilla.fenix'
@@ -557,15 +557,15 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 dependencies {
-    implementation ComponentsDependencies.kotlin_json
+    implementation libs.kotlin.json
 
     implementation project(':browser-engine-gecko')
 
-    implementation ComponentsDependencies.kotlin_coroutines
-    testImplementation ComponentsDependencies.testing_coroutines
-    implementation ComponentsDependencies.accompanist_drawablepainter
+    implementation libs.kotlin.coroutines
+    testImplementation libs.testing.coroutines
+    implementation libs.accompanist.drawablepainter
 
-    implementation ComponentsDependencies.thirdparty_sentry
+    implementation libs.thirdparty.sentry
 
     implementation project(':compose-awesomebar')
     implementation project(':compose-base')
@@ -634,7 +634,7 @@ dependencies {
     implementation project(':service-sync-logins')
     implementation project(':service-firefox-accounts')
     implementation project(':service-glean')
-    implementation ComponentsDependencies.mozilla_glean
+    implementation libs.mozilla.glean
     implementation project(':service-location')
     implementation project(':service-nimbus')
 
@@ -660,98 +660,98 @@ dependencies {
     implementation project(':lib-dataprotect')
     testImplementation project(':support-test-fakes')
 
-    debugImplementation ComponentsDependencies.leakcanary
-    debugImplementation ComponentsDependencies.androidx_compose_ui_tooling
+    debugImplementation libs.leakcanary
+    debugImplementation libs.androidx.compose.ui.tooling
 
-    implementation ComponentsDependencies.androidx_activity
-    implementation ComponentsDependencies.androidx_activity_ktx
-    implementation ComponentsDependencies.androidx_annotation
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_biometric
+    implementation libs.androidx.activity
+    implementation libs.androidx.activity.ktx
+    implementation libs.androidx.annotation
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.biometric
 
-    implementation platform(ComponentsDependencies.androidx_compose_bom)
-    androidTestImplementation platform(ComponentsDependencies.androidx_compose_bom)
-    implementation ComponentsDependencies.androidx_compose_animation
-    implementation ComponentsDependencies.androidx_compose_foundation
-    implementation ComponentsDependencies.androidx_compose_material
-    implementation ComponentsDependencies.androidx_compose_ui
-    implementation ComponentsDependencies.androidx_compose_ui_tooling_preview
+    implementation platform(libs.androidx.compose.bom)
+    androidTestImplementation platform(libs.androidx.compose.bom)
+    implementation libs.androidx.compose.animation
+    implementation libs.androidx.compose.foundation
+    implementation libs.androidx.compose.material
+    implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.ui.tooling.preview
 
-    implementation ComponentsDependencies.androidx_constraintlayout
-    implementation ComponentsDependencies.androidx_coordinatorlayout
-    implementation ComponentsDependencies.androidx_core
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation ComponentsDependencies.androidx_core_splashscreen
-    implementation ComponentsDependencies.androidx_datastore
-    implementation ComponentsDependencies.androidx_datastore_preferences
-    implementation ComponentsDependencies.androidx_fragment
-    implementation ComponentsDependencies.androidx_lifecycle_common
-    implementation ComponentsDependencies.androidx_lifecycle_livedata
-    implementation ComponentsDependencies.androidx_lifecycle_process
-    implementation ComponentsDependencies.androidx_lifecycle_runtime
-    implementation ComponentsDependencies.androidx_lifecycle_service
-    implementation ComponentsDependencies.androidx_lifecycle_viewmodel
-    implementation ComponentsDependencies.androidx_navigation_compose
-    implementation ComponentsDependencies.androidx_navigation_fragment
-    implementation ComponentsDependencies.androidx_navigation_ui
-    implementation ComponentsDependencies.androidx_paging
-    implementation ComponentsDependencies.androidx_preferences
-    implementation ComponentsDependencies.androidx_profileinstaller
-    implementation ComponentsDependencies.androidx_recyclerview
-    implementation ComponentsDependencies.androidx_swiperefreshlayout
-    implementation ComponentsDependencies.androidx_transition
-    implementation ComponentsDependencies.androidx_viewpager2
-    implementation ComponentsDependencies.androidx_work_runtime
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.coordinatorlayout
+    implementation libs.androidx.core
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.core.splashscreen
+    implementation libs.androidx.datastore
+    implementation libs.androidx.datastore.preferences
+    implementation libs.androidx.fragment
+    implementation libs.androidx.lifecycle.common
+    implementation libs.androidx.lifecycle.livedata
+    implementation libs.androidx.lifecycle.process
+    implementation libs.androidx.lifecycle.runtime
+    implementation libs.androidx.lifecycle.service
+    implementation libs.androidx.lifecycle.viewmodel
+    implementation libs.androidx.navigation.compose
+    implementation libs.androidx.navigation.fragment
+    implementation libs.androidx.navigation.ui
+    implementation libs.androidx.paging
+    implementation libs.androidx.preferences
+    implementation libs.androidx.profileinstaller
+    implementation libs.androidx.recyclerview
+    implementation libs.androidx.swiperefreshlayout
+    implementation libs.androidx.transition
+    implementation libs.androidx.viewpager2
+    implementation libs.androidx.work.runtime
 
-    implementation ComponentsDependencies.protobuf_javalite
-    implementation ComponentsDependencies.google_material
+    implementation libs.protobuf.javalite
+    implementation libs.google.material
 
     implementation(libs.adjust)
     implementation(libs.installreferrer)
 
     // Required for the Google Advertising ID
-    implementation ComponentsDependencies.play_services_ads_id
+    implementation libs.play.services.ads.id
 
     // Required for in-app reviews
-    implementation ComponentsDependencies.play_review
-    implementation ComponentsDependencies.play_review_ktx
+    implementation libs.play.review
+    implementation libs.play.review.ktx
 
-    androidTestImplementation ComponentsDependencies.testing_fastlane
-    androidTestImplementation ComponentsDependencies.testing_falcon
+    androidTestImplementation libs.testing.fastlane
+    androidTestImplementation libs.testing.falcon
 
-    androidTestImplementation(ComponentsDependencies.androidx_espresso_contrib) {
+    androidTestImplementation(libs.androidx.espresso.contrib) {
         exclude module: 'protobuf-lite'
     }
-    androidTestImplementation ComponentsDependencies.androidx_espresso_core
-    androidTestImplementation ComponentsDependencies.androidx_espresso_idling_resource
-    androidTestImplementation ComponentsDependencies.androidx_espresso_intents
-    androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_test_monitor
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
-    androidTestUtil ComponentsDependencies.androidx_test_orchestrator
-    androidTestImplementation ComponentsDependencies.testing_leakcanary
+    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation libs.androidx.espresso.idling.resource
+    androidTestImplementation libs.androidx.espresso.intents
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.test.monitor
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.uiautomator
+    androidTestUtil libs.androidx.test.orchestrator
+    androidTestImplementation libs.testing.leakcanary
 
-    androidTestImplementation ComponentsDependencies.androidx_benchmark_junit4
-    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test
-    androidTestImplementation ComponentsDependencies.androidx_work_testing
-    androidTestImplementation ComponentsDependencies.testing_mockwebserver
+    androidTestImplementation libs.androidx.benchmark.junit4
+    androidTestImplementation libs.androidx.compose.ui.test
+    androidTestImplementation libs.androidx.work.testing
+    androidTestImplementation libs.testing.mockwebserver
     testImplementation project(':support-test')
     testImplementation project(':support-test-libstate')
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.androidx_work_testing
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.androidx.work.testing
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
-    testImplementation (ComponentsDependencies.testing_robolectric) {
+    testImplementation (libs.testing.robolectric) {
         exclude group: 'org.apache.maven'
     }
 
-    testImplementation ComponentsDependencies.testing_maven_ant_tasks
+    testImplementation libs.testing.maven.ant.tasks
     implementation project(':support-rusthttp')
 
-    androidTestImplementation ComponentsDependencies.testing_mockk_android
-    testImplementation ComponentsDependencies.testing_mockk
+    androidTestImplementation libs.testing.mockk.android
+    testImplementation libs.testing.mockk
 
     // For the initial release of Glean 19, we require consumer applications to
     // depend on a separate library for unit tests. This will be removed in future releases.
@@ -763,7 +763,7 @@ dependencies {
 
 protobuf {
     protoc {
-        artifact = ComponentsDependencies.protobuf_compiler
+        artifact = libs.protobuf.compiler.get()
     }
 
     // Generates the java Protobuf-lite code for the Protobufs in this project. See
@@ -787,7 +787,7 @@ if (project.hasProperty("coverage")) {
     }
 
     jacoco {
-        toolVersion = Versions.jacoco
+        toolVersion = libs.versions.jacoco.get()
     }
 
     android.applicationVariants.configureEach { variant ->

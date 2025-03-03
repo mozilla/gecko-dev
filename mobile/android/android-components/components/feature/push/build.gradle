@@ -31,16 +31,16 @@ dependencies {
     // Remove when the MessageBus is implemented somewhere else.
     implementation project(':support-base')
 
-    implementation ComponentsDependencies.kotlin_coroutines
-    implementation ComponentsDependencies.androidx_work_runtime
-    implementation ComponentsDependencies.androidx_lifecycle_runtime
+    implementation libs.kotlin.coroutines
+    implementation libs.androidx.work.runtime
+    implementation libs.androidx.lifecycle.runtime
 
     testImplementation project(':support-test')
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
 }
 
 apply from: '../../../android-lint.gradle'

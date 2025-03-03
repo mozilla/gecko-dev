@@ -47,25 +47,25 @@ dependencies {
     implementation project(':support-ktx')
     implementation project(':support-base')
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
-    implementation ComponentsDependencies.androidx_lifecycle_runtime
-    implementation ComponentsDependencies.androidx_room_runtime
-    ksp ComponentsDependencies.androidx_room_compiler
+    implementation libs.androidx.lifecycle.runtime
+    implementation libs.androidx.room.runtime
+    ksp libs.androidx.room.compiler
 
     testImplementation project(':support-test')
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.junit_vintage
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
+    testImplementation libs.androidx.test.core
+    testImplementation libs.junit.vintage
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
 
     androidTestImplementation project(':support-android-test')
 
-    androidTestImplementation ComponentsDependencies.androidx_room_testing
-    androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
+    androidTestImplementation libs.androidx.room.testing
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
 }
 
 apply from: '../../../android-lint.gradle'

@@ -3,6 +3,6 @@ buildDir "${topobjdir}/gradle/build/mobile/android/annotations"
 apply plugin: 'java'
 
 dependencies {
-    implementation ComponentsDependencies.tools_lint
-    implementation ComponentsDependencies.tools_lintchecks
+    implementation libs.tools.lint
+    implementation libs.tools.lintchecks
 }

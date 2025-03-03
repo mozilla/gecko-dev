@@ -33,11 +33,11 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.androidx_arch_core_common
-    implementation ComponentsDependencies.androidx_espresso_core
-    implementation ComponentsDependencies.androidx_test_core
-    implementation ComponentsDependencies.testing_leakcanary
-    implementation ComponentsDependencies.testing_mockwebserver
+    implementation libs.androidx.arch.core.common
+    implementation libs.androidx.espresso.core
+    implementation libs.androidx.test.core
+    implementation libs.testing.leakcanary
+    implementation libs.testing.mockwebserver
 }
 
 apply from: '../../../android-lint.gradle'

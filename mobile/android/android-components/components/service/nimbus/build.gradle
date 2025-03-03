@@ -16,7 +16,7 @@ buildscript {
 
     dependencies {
         classpath "${ApplicationServicesConfig.groupId}:tooling-nimbus-gradle:${ApplicationServicesConfig.version}"
-        classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
+        classpath "org.mozilla.telemetry:glean-gradle-plugin:${libs.versions.mozilla.glean.get()}"
     }
 }
 
@@ -62,13 +62,13 @@ dependencies {
         exclude group: 'org.mozilla.telemetry', module: 'glean'
     }
 
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation ComponentsDependencies.androidx_constraintlayout
-    implementation ComponentsDependencies.androidx_coordinatorlayout
-    implementation ComponentsDependencies.androidx_recyclerview
-    implementation ComponentsDependencies.androidx_work_runtime
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.coordinatorlayout
+    implementation libs.androidx.recyclerview
+    implementation libs.androidx.work.runtime
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
     implementation ComponentsDependencies.mozilla_appservices_nimbus
 
@@ -79,18 +79,18 @@ dependencies {
 
     // We only compile against GeckoView and Glean. It's up to the app to add those dependencies if it wants to
     // send crash reports to Socorro (GV).
-    compileOnly ComponentsDependencies.mozilla_glean
+    compileOnly libs.mozilla.glean
 
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_mockwebserver
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.mozilla_glean_forUnitTests
-    testImplementation ComponentsDependencies.androidx_work_testing
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.mockwebserver
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
+    testImplementation libs.mozilla.glean.forUnitTests
+    testImplementation libs.androidx.work.testing
     testImplementation project(':support-test')
-    testImplementation ComponentsDependencies.mozilla_glean
+    testImplementation libs.mozilla.glean
 }
 
 apply from: '../../../android-lint.gradle'

@@ -29,11 +29,11 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.androidx_annotation
-    implementation ComponentsDependencies.androidx_core
-    implementation ComponentsDependencies.androidx_fragment
+    implementation libs.androidx.annotation
+    implementation libs.androidx.core
+    implementation libs.androidx.fragment
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 }
 
 apply from: '../../../android-lint.gradle'

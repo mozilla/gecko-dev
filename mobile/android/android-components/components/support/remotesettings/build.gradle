@@ -13,7 +13,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath  ComponentsDependencies.plugin_serialization
+        classpath  libs.plugin.serialization
     }
 }
 
@@ -45,12 +45,12 @@ dependencies {
     implementation project(':support-ktx')
     implementation project(':support-base')
     implementation ComponentsDependencies.mozilla_remote_settings
-    implementation ComponentsDependencies.kotlin_json
+    implementation libs.kotlin.json
 
-    testImplementation ComponentsDependencies.testing_mockito
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.testing.mockito
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.coroutines
+    testImplementation libs.testing.robolectric
     testImplementation ComponentsDependencies.mozilla_remote_settings
 }
 

@@ -37,18 +37,18 @@ dependencies {
     implementation project(':support-ktx')
 
 
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation ComponentsDependencies.androidx_swiperefreshlayout
-    implementation ComponentsDependencies.google_material
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.swiperefreshlayout
+    implementation libs.google.material
 
     testImplementation project(':support-test')
     testImplementation project(':support-test-fakes')
     testImplementation project(':support-test-libstate')
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.androidx_browser
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
+    testImplementation libs.androidx.browser
 }
 
 apply from: '../../../android-lint.gradle'

@@ -16,7 +16,7 @@ buildscript {
 
     dependencies {
         classpath "${ApplicationServicesConfig.groupId}:tooling-nimbus-gradle:${ApplicationServicesConfig.version}"
-        classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
+        classpath libs.glean.gradle.plugin
     }
 }
 
@@ -68,7 +68,7 @@ dependencies {
     implementation(project(':service-nimbus')) {
         exclude group: 'org.mozilla.telemetry', module: 'glean-native'
     }
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
     if (findProject(":geckoview") != null) {
         api project(':geckoview')
@@ -76,28 +76,28 @@ dependencies {
         api getGeckoViewDependency()
     }
 
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation ComponentsDependencies.androidx_paging
-    implementation ComponentsDependencies.androidx_datastore_preferences
-    implementation ComponentsDependencies.androidx_lifecycle_livedata
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.paging
+    implementation libs.androidx.datastore.preferences
+    implementation libs.androidx.lifecycle.livedata
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.testing_mockwebserver
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
+    testImplementation libs.testing.mockwebserver
     testImplementation project(':support-test')
     testImplementation project(':tooling-fetch-tests')
 
     // We only compile against Glean. It's up to the app to add those dependencies
     // if it wants to collect GeckoView telemetry through the Glean SDK.
-    compileOnly ComponentsDependencies.mozilla_glean
-    testImplementation ComponentsDependencies.mozilla_glean
-    testImplementation ComponentsDependencies.androidx_work_testing
+    compileOnly libs.mozilla.glean
+    testImplementation libs.mozilla.glean
+    testImplementation libs.androidx.work.testing
 
-    androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
     androidTestImplementation project(':tooling-fetch-tests')
 }
 

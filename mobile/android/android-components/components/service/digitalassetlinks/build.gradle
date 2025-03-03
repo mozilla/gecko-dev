@@ -23,17 +23,17 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.androidx_core_ktx
+    implementation libs.androidx.core.ktx
 
     implementation project(':concept-fetch')
     implementation project(':support-base')
     implementation project(':support-ktx')
     implementation project(':support-utils')
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.junit_vintage
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.junit.vintage
+    testImplementation libs.testing.robolectric
     testImplementation project(':support-test')
 }
 

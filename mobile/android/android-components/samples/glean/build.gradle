@@ -14,7 +14,7 @@ buildscript {
         }
 
         dependencies {
-            classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
+            classpath "org.mozilla.telemetry:glean-gradle-plugin:${libs.versions.mozilla.glean.get()}"
         }
     }
 }
@@ -57,7 +57,7 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.mozilla_glean
+    implementation libs.mozilla.glean
     implementation project(':service-glean')
     implementation project(':service-nimbus')
     implementation project(':support-base')
@@ -65,22 +65,22 @@ dependencies {
     implementation project(':support-rustlog')
     implementation project(':lib-fetch-httpurlconnection')
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_browser
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.browser
 
     implementation project(':samples-glean-library')
 
-    androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation ComponentsDependencies.androidx_test_monitor
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
-    androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
-    androidTestImplementation ComponentsDependencies.androidx_espresso_core
-    androidTestImplementation ComponentsDependencies.androidx_work_testing
-    androidTestImplementation ComponentsDependencies.testing_mockwebserver
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.monitor
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.test.uiautomator
+    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation libs.androidx.work.testing
+    androidTestImplementation libs.testing.mockwebserver
 }
 
 ext {

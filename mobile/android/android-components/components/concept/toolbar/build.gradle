@@ -23,14 +23,14 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.androidx_annotation
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_core_ktx
+    implementation libs.androidx.annotation
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.core.ktx
     api project(':support-base')
     implementation project(':support-ktx')
 
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
     testImplementation project(':support-test')
 }
 

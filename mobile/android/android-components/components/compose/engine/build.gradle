@@ -26,7 +26,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     namespace 'mozilla.components.compose.engine'
@@ -37,23 +37,23 @@ dependencies {
     implementation project(":concept-engine")
     implementation project(":support-ktx")
 
-    implementation ComponentsDependencies.androidx_compose_ui
-    implementation ComponentsDependencies.androidx_compose_ui_tooling_preview
-    implementation ComponentsDependencies.androidx_compose_foundation
-    implementation ComponentsDependencies.androidx_compose_material
+    implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.ui.tooling.preview
+    implementation libs.androidx.compose.foundation
+    implementation libs.androidx.compose.material
 
-    debugImplementation ComponentsDependencies.androidx_compose_ui_tooling
+    debugImplementation libs.androidx.compose.ui.tooling
 
     testImplementation project(':support-test')
-    testImplementation ComponentsDependencies.androidx_compose_ui_test
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.compose.ui.test
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
 
-    androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test_manifest
-    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test
-    androidTestImplementation ComponentsDependencies.testing_mockito
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.compose.ui.test.manifest
+    androidTestImplementation libs.androidx.compose.ui.test
+    androidTestImplementation libs.testing.mockito
 }
 
 apply from: '../../../android-lint.gradle'

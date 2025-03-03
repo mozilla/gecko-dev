@@ -30,7 +30,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     packagingOptions {
@@ -50,7 +50,7 @@ tasks.withType(KotlinCompile).configureEach {
 dependencies {
     api project(':lib-state')
 
-    implementation platform(ComponentsDependencies.androidx_compose_bom)
+    implementation platform(libs.androidx.compose.bom)
     implementation project(':concept-awesomebar')
     implementation project(':concept-engine')
     implementation project(':concept-storage')
@@ -61,20 +61,20 @@ dependencies {
     // consumer to have to manually import "concept-fetch".
     api project(':concept-fetch')
 
-    implementation ComponentsDependencies.androidx_browser
-    implementation ComponentsDependencies.androidx_compose_ui
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.androidx.browser
+    implementation libs.androidx.compose.ui
+    implementation libs.kotlin.coroutines
 
     testImplementation project(':support-test')
     testImplementation project(':support-test-libstate')
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.junit_vintage
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.junit.vintage
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
 
-    androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test_manifest
-    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.compose.ui.test.manifest
+    androidTestImplementation libs.androidx.compose.ui.test
 }
 
 apply from: '../../../android-lint.gradle'

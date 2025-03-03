@@ -39,34 +39,34 @@ dependencies {
     implementation project(':support-utils')
     implementation project(':support-ktx')
 
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.androidx.core.ktx
+    implementation libs.kotlin.coroutines
 
-    implementation ComponentsDependencies.androidx_browser
-    implementation ComponentsDependencies.androidx_drawerlayout
-    implementation ComponentsDependencies.androidx_lifecycle_runtime
-    implementation ComponentsDependencies.androidx_lifecycle_process
+    implementation libs.androidx.browser
+    implementation libs.androidx.drawerlayout
+    implementation libs.androidx.lifecycle.runtime
+    implementation libs.androidx.lifecycle.process
 
     testImplementation project(':support-test')
     testImplementation project(':support-test-fakes')
     testImplementation project(':support-test-libstate')
     testImplementation project(':feature-tabs')
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
 
     androidTestImplementation project(':browser-engine-gecko')
     androidTestImplementation project(':support-android-test')
     androidTestImplementation project(':feature-tabs')
-    androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
-    androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
-    androidTestImplementation ComponentsDependencies.androidx_espresso_core
-    androidTestImplementation ComponentsDependencies.testing_leakcanary
-    androidTestImplementation ComponentsDependencies.testing_mockwebserver
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.test.uiautomator
+    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation libs.testing.leakcanary
+    androidTestImplementation libs.testing.mockwebserver
 }
 
 apply from: '../../../android-lint.gradle'

@@ -23,7 +23,7 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
     implementation project(':concept-fetch')
     implementation project(':support-ktx')
@@ -31,10 +31,10 @@ dependencies {
     implementation project(':support-base')
 
     testImplementation project(':support-test')
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_mockwebserver
-    testImplementation ComponentsDependencies.testing_coroutines
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.mockwebserver
+    testImplementation libs.testing.coroutines
 
     testImplementation project(':lib-fetch-httpurlconnection')
 }

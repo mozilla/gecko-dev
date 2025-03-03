@@ -32,11 +32,11 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
     implementation project(':lib-state')
 
-    testImplementation ComponentsDependencies.androidx_core
-    testImplementation ComponentsDependencies.androidx_test_junit
+    testImplementation libs.androidx.core
+    testImplementation libs.androidx.test.junit
 }
 
 apply from: '../../../android-lint.gradle'

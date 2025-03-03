@@ -28,7 +28,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     namespace 'mozilla.components.lib.state'
@@ -41,28 +41,28 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 dependencies {
-    implementation platform(ComponentsDependencies.androidx_compose_bom)
-    implementation ComponentsDependencies.kotlin_coroutines
-    implementation ComponentsDependencies.androidx_compose_runtime_saveable
-    implementation ComponentsDependencies.androidx_fragment
-    implementation ComponentsDependencies.androidx_lifecycle_compose
-    implementation ComponentsDependencies.androidx_lifecycle_process
+    implementation platform(libs.androidx.compose.bom)
+    implementation libs.kotlin.coroutines
+    implementation libs.androidx.compose.runtime.saveable
+    implementation libs.androidx.fragment
+    implementation libs.androidx.lifecycle.compose
+    implementation libs.androidx.lifecycle.process
 
     implementation project(':support-base')
     implementation project(':support-ktx')
 
-    testImplementation platform(ComponentsDependencies.androidx_compose_bom)
+    testImplementation platform(libs.androidx.compose.bom)
     testImplementation project(':support-test')
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.androidx_compose_ui_test
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.androidx.compose.ui.test
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
 
-    androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test_manifest
-    androidTestImplementation ComponentsDependencies.androidx_compose_ui_test
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.compose.ui.test.manifest
+    androidTestImplementation libs.androidx.compose.ui.test
 }
 
 apply from: '../../../android-lint.gradle'

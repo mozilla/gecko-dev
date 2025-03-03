@@ -52,7 +52,7 @@ dependencies {
     implementation project(':lib-fetch-httpurlconnection')
     implementation project(':lib-dataprotect')
 
-    implementation ComponentsDependencies.kotlin_reflect
-    implementation ComponentsDependencies.androidx_fragment
-    implementation ComponentsDependencies.androidx_recyclerview
+    implementation libs.kotlin.reflect
+    implementation libs.androidx.fragment
+    implementation libs.androidx.recyclerview
 }

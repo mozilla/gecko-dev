@@ -28,8 +28,8 @@ dependencies {
     implementation project(':support-ktx')
     implementation project(':lib-dataprotect')
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_recyclerview
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.recyclerview
 }

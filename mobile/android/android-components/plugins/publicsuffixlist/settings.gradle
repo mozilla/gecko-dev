@@ -28,3 +28,11 @@ pluginManagement {
 plugins {
     id "mozac.DependenciesPlugin"
 }
+
+dependencyResolutionManagement {
+    versionCatalogs {
+        libs {
+            from(files("../../../../../gradle/libs.versions.toml"))
+        }
+    }
+}

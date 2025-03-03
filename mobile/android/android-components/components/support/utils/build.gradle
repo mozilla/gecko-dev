@@ -26,21 +26,21 @@ android {
 dependencies {
     implementation project(':support-base')
 
-    implementation ComponentsDependencies.kotlin_coroutines
-    implementation ComponentsDependencies.androidx_activity
-    implementation ComponentsDependencies.androidx_annotation
-    implementation ComponentsDependencies.androidx_core
-    implementation ComponentsDependencies.androidx_core_ktx
+    implementation libs.kotlin.coroutines
+    implementation libs.androidx.activity
+    implementation libs.androidx.annotation
+    implementation libs.androidx.core
+    implementation libs.androidx.core.ktx
 
     // We expose the app-compat as API so that consumers get access to the Lifecycle classes automatically
-    api ComponentsDependencies.androidx_appcompat
+    api libs.androidx.appcompat
 
     testImplementation project(":support-test")
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.coroutines
+    testImplementation libs.testing.robolectric
 }
 
 apply from: '../../../android-lint.gradle'

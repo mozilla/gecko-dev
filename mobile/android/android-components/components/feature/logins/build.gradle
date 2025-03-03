@@ -44,28 +44,28 @@ dependencies {
     implementation project(':support-base')
     implementation project(':feature-prompts')
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 
-    implementation ComponentsDependencies.androidx_paging
-    implementation ComponentsDependencies.androidx_lifecycle_livedata
+    implementation libs.androidx.paging
+    implementation libs.androidx.lifecycle.livedata
 
-    implementation ComponentsDependencies.androidx_room_runtime
-    ksp ComponentsDependencies.androidx_room_compiler
+    implementation libs.androidx.room.runtime
+    ksp libs.androidx.room.compiler
 
     testImplementation project(':support-test')
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.junit_vintage
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.kotlin_coroutines
+    testImplementation libs.androidx.test.core
+    testImplementation libs.junit.vintage
+    testImplementation libs.testing.robolectric
+    testImplementation libs.kotlin.coroutines
 
     androidTestImplementation project(':support-android-test')
 
-    androidTestImplementation ComponentsDependencies.androidx_room_testing
-    androidTestImplementation ComponentsDependencies.androidx_arch_core_testing
-    androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
+    androidTestImplementation libs.androidx.room.testing
+    androidTestImplementation libs.androidx.arch.core.testing
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
 }
 
 apply from: '../../../android-lint.gradle'

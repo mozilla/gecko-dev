@@ -24,15 +24,15 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     namespace 'mozilla.components.ui.colors'
 }
 
 dependencies {
-    implementation platform(ComponentsDependencies.androidx_compose_bom)
-    implementation ComponentsDependencies.androidx_compose_ui
+    implementation platform(libs.androidx.compose.bom)
+    implementation libs.androidx.compose.ui
 }
 
 apply from: '../../../android-lint.gradle'

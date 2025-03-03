@@ -26,7 +26,7 @@ android {
 
 dependencies {
     // These dependencies are part of this module's public API.
-    api (ComponentsDependencies.mozilla_appservices_places) {
+    api(ComponentsDependencies.mozilla_appservices_places) {
         // Use our own version of the Glean dependency,
         // which might be different from the version declared by A-S.
         exclude group: 'org.mozilla.telemetry', module: 'glean'
@@ -39,24 +39,24 @@ dependencies {
     implementation project(':concept-toolbar')
     implementation project(':support-utils')
 
-    implementation ComponentsDependencies.androidx_work_runtime
+    implementation libs.androidx.work.runtime
     implementation ComponentsDependencies.mozilla_appservices_syncmanager
 
     testImplementation project(':support-test')
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.androidx_work_testing
-    testImplementation ComponentsDependencies.kotlin_reflect
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.coroutines
+    testImplementation libs.androidx.work.testing
+    testImplementation libs.kotlin.reflect
 
     testImplementation ComponentsDependencies.mozilla_appservices_places
     testImplementation ComponentsDependencies.mozilla_appservices_tabs
-    testImplementation ComponentsDependencies.testing_mockwebserver
+    testImplementation libs.testing.mockwebserver
 
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
-    testImplementation ComponentsDependencies.mozilla_glean_forUnitTests
+    testImplementation libs.mozilla.glean.forUnitTests
 }
 
 apply from: '../../../android-lint.gradle'

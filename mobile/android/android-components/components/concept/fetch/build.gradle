@@ -29,12 +29,12 @@ android {
 }
 
 dependencies {
-    testImplementation ComponentsDependencies.kotlin_coroutines
+    testImplementation libs.kotlin.coroutines
 
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_mockwebserver
-    testImplementation ComponentsDependencies.testing_coroutines
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.mockwebserver
+    testImplementation libs.testing.coroutines
 
     testImplementation project(':support-test')
 }

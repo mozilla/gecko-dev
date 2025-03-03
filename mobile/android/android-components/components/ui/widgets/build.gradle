@@ -25,7 +25,7 @@ android {
 }
 
 dependencies {
-    implementation platform(ComponentsDependencies.androidx_compose_bom)
+    implementation platform(libs.androidx.compose.bom)
     implementation project(':concept-base')
     implementation project(':concept-engine')
     implementation project(':ui-colors')
@@ -33,17 +33,17 @@ dependencies {
     implementation project(':support-ktx')
     implementation project(':concept-toolbar')
 
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_constraintlayout
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation ComponentsDependencies.google_material
-    implementation ComponentsDependencies.androidx_swiperefreshlayout
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.core.ktx
+    implementation libs.google.material
+    implementation libs.androidx.swiperefreshlayout
 
     testImplementation project(":support-test")
     testImplementation project(':support-test-fakes')
 
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
 }
 
 apply from: '../../../android-lint.gradle'

@@ -14,7 +14,7 @@ buildscript {
         }
 
         dependencies {
-            classpath "org.mozilla.telemetry:glean-gradle-plugin:${Versions.mozilla_glean}"
+            classpath "org.mozilla.telemetry:glean-gradle-plugin:${libs.versions.mozilla.glean.get()}"
         }
     }
 }
@@ -48,7 +48,7 @@ android {
 }
 
 dependencies {
-    implementation ComponentsDependencies.mozilla_glean
+    implementation libs.mozilla.glean
 }
 
 ext {

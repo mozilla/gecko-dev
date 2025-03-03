@@ -26,7 +26,7 @@ dependencies {
     // Necessary because we use 'suspend'. Fun fact: this module will compile just fine without this
     // dependency, but it will crash at runtime.
     // Included via 'api' because this module is unusable without coroutines.
-    api ComponentsDependencies.kotlin_coroutines
+    api libs.kotlin.coroutines
 
     // Observables are part of the public API of this module.
     api project(':support-base')

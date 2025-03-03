@@ -25,7 +25,7 @@ android {
 dependencies {
     implementation project(':support-base')
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
 }
 
 apply from: '../../../android-lint.gradle'

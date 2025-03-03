@@ -31,7 +31,7 @@ android {
 dependencies {
     implementation ComponentsDependencies.mozilla_appservices_errorsupport
 
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.kotlin.coroutines
     implementation project(':support-base')
 }
 

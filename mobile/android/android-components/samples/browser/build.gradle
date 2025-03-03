@@ -57,7 +57,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
     }
 
     namespace 'org.mozilla.samples.browser'
@@ -72,7 +72,7 @@ tasks.register("updateTestExtensionVersion", Copy) { task ->
 }
 
 dependencies {
-    implementation platform(ComponentsDependencies.androidx_compose_bom)
+    implementation platform(libs.androidx.compose.bom)
     implementation project(':concept-awesomebar')
     implementation project(':concept-fetch')
     implementation project(':concept-engine')
@@ -130,7 +130,7 @@ dependencies {
     // for engineers that want to test Gecko metrics exfiltrated via the Glean
     // SDK. See bug 1592935 for more context.
     implementation project(":service-glean")
-    implementation ComponentsDependencies.mozilla_glean
+    implementation libs.mozilla.glean
     
     implementation project(':service-location')
     implementation project(':service-digitalassetlinks')
@@ -146,35 +146,35 @@ dependencies {
 
     geckoImplementation project(':browser-engine-gecko')
 
-    implementation ComponentsDependencies.google_material
+    implementation libs.google.material
 
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_compose_ui_tooling
-    implementation ComponentsDependencies.androidx_compose_foundation
-    implementation ComponentsDependencies.androidx_compose_material
-    implementation ComponentsDependencies.androidx_core_ktx
-    implementation ComponentsDependencies.androidx_constraintlayout
-    implementation ComponentsDependencies.androidx_swiperefreshlayout
-    implementation ComponentsDependencies.androidx_localbroadcastmanager
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.compose.ui.tooling
+    implementation libs.androidx.compose.foundation
+    implementation libs.androidx.compose.material
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.swiperefreshlayout
+    implementation libs.androidx.localbroadcastmanager
 
-    debugImplementation ComponentsDependencies.leakcanary
+    debugImplementation libs.leakcanary
 
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_robolectric
-    testImplementation ComponentsDependencies.testing_mockito
-    testImplementation ComponentsDependencies.testing_coroutines
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.testing.robolectric
+    testImplementation libs.testing.mockito
+    testImplementation libs.testing.coroutines
 
     androidTestImplementation project(':support-android-test')
-    androidTestImplementation ComponentsDependencies.androidx_test_core
-    androidTestImplementation ComponentsDependencies.androidx_test_monitor
-    androidTestImplementation ComponentsDependencies.androidx_test_runner
-    androidTestImplementation ComponentsDependencies.androidx_test_rules
-    androidTestImplementation ComponentsDependencies.androidx_test_junit
-    androidTestImplementation ComponentsDependencies.androidx_test_uiautomator
-    androidTestImplementation ComponentsDependencies.androidx_espresso_core
-    androidTestImplementation ComponentsDependencies.testing_leakcanary
-    androidTestImplementation ComponentsDependencies.testing_mockwebserver
+    androidTestImplementation libs.androidx.test.core
+    androidTestImplementation libs.androidx.test.monitor
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.test.uiautomator
+    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation libs.testing.leakcanary
+    androidTestImplementation libs.testing.mockwebserver
 }
 
 preBuild.dependsOn updateBorderifyExtensionVersion

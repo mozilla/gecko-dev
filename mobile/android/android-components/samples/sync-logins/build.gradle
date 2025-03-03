@@ -44,7 +44,7 @@ dependencies {
     implementation project(':lib-dataprotect')
     implementation project(':lib-fetch-httpurlconnection')
 
-    implementation ComponentsDependencies.androidx_appcompat
-    implementation ComponentsDependencies.androidx_browser
-    implementation ComponentsDependencies.androidx_recyclerview
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.browser
+    implementation libs.androidx.recyclerview
 }

@@ -35,23 +35,23 @@ dependencies {
     implementation project(':concept-fetch')
     implementation project(':support-base')
 
-    implementation ComponentsDependencies.kotlin_coroutines
-    implementation ComponentsDependencies.kotlin_reflect
+    implementation libs.kotlin.coroutines
+    implementation libs.kotlin.reflect
 
-    implementation ComponentsDependencies.androidx_test_junit
-    api ComponentsDependencies.testing_mockito
-    implementation ComponentsDependencies.testing_coroutines
-    implementation ComponentsDependencies.androidx_fragment
-    implementation  (ComponentsDependencies.testing_robolectric) {
+    implementation libs.androidx.test.junit
+    api libs.testing.mockito
+    implementation libs.testing.coroutines
+    implementation libs.androidx.fragment
+    implementation  (libs.testing.robolectric) {
         exclude group: 'org.apache.maven'
     }
 
-    testImplementation ComponentsDependencies.testing_maven_ant_tasks
+    testImplementation libs.testing.maven.ant.tasks
 
-    implementation ComponentsDependencies.androidx_test_core
+    implementation libs.androidx.test.core
 
-    testImplementation ComponentsDependencies.androidx_core
-    testImplementation ComponentsDependencies.androidx_test_junit
+    testImplementation libs.androidx.core
+    testImplementation libs.androidx.test.junit
     testImplementation project(':support-ktx')
 }
 

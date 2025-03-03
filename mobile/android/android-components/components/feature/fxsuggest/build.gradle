@@ -52,19 +52,20 @@ dependencies {
     implementation project(':support-base')
     implementation project(':support-ktx')
 
-    implementation ComponentsDependencies.androidx_work_runtime
-    implementation ComponentsDependencies.kotlin_coroutines
+    implementation libs.androidx.work.runtime
+    implementation libs.kotlin.coroutines
+
     implementation ComponentsDependencies.mozilla_appservices_suggest
 
     testImplementation project(':support-test')
 
-    testImplementation ComponentsDependencies.androidx_concurrent
-    testImplementation ComponentsDependencies.androidx_test_core
-    testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.androidx_work_testing
+    testImplementation libs.androidx.concurrent
+    testImplementation libs.androidx.test.core
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.androidx.work.testing
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
-    testImplementation ComponentsDependencies.testing_coroutines
-    testImplementation ComponentsDependencies.testing_robolectric
+    testImplementation libs.testing.coroutines
+    testImplementation libs.testing.robolectric
 }
 
 apply from: '../../../android-lint.gradle'

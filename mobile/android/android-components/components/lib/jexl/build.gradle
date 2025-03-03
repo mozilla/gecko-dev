@@ -25,8 +25,8 @@ android {
 }
 
 dependencies {
-    testImplementation ComponentsDependencies.junit_vintage
-    testImplementation ComponentsDependencies.testing_mockito
+    testImplementation libs.junit.vintage
+    testImplementation libs.testing.mockito
 }
 
 apply from: '../../../android-lint.gradle'
