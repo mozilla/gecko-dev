@@ -15167,7 +15167,7 @@
 # Max difference allowed between a visit and an interaction.
 - name: places.frecency.pages.alternative.interactions.maxVisitGapSeconds
   type: uint32_t
-  value: 20 * 60
+  value: 2 * 60
   mirror: once
 
 # Minimum time required to upgrade a visit score.
