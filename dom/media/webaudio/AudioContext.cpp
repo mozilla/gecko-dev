@@ -19,6 +19,7 @@
 #include "mozilla/dom/AnalyserNodeBinding.h"
 #include "mozilla/dom/AudioBufferSourceNodeBinding.h"
 #include "mozilla/dom/AudioContextBinding.h"
+#include "mozilla/dom/AudioWorklet.h"
 #include "mozilla/dom/BaseAudioContextBinding.h"
 #include "mozilla/dom/BiquadFilterNodeBinding.h"
 #include "mozilla/dom/BrowsingContext.h"
@@ -43,7 +44,6 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/StereoPannerNodeBinding.h"
 #include "mozilla/dom/WaveShaperNodeBinding.h"
-#include "mozilla/dom/Worklet.h"
 
 #include "AudioBuffer.h"
 #include "AudioBufferSourceNode.h"
@@ -594,7 +594,7 @@ void AudioContext::GetOutputTimestamp(AudioTimestamp& aTimeStamp) {
   }
 }
 
-Worklet* AudioContext::GetAudioWorklet(ErrorResult& aRv) {
+AudioWorklet* AudioContext::GetAudioWorklet(ErrorResult& aRv) {
   if (!mWorklet) {
     mWorklet = AudioWorkletImpl::CreateWorklet(this, aRv);
   }

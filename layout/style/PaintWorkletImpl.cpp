@@ -31,7 +31,7 @@ PaintWorkletImpl::PaintWorkletImpl(nsPIDOMWindowInner* aWindow,
 PaintWorkletImpl::~PaintWorkletImpl() = default;
 
 already_AddRefed<dom::WorkletGlobalScope>
-PaintWorkletImpl::ConstructGlobalScope() {
+PaintWorkletImpl::ConstructGlobalScope(JSContext* aCx) {
   dom::WorkletThread::AssertIsOnWorkletThread();
 
   return MakeAndAddRef<dom::PaintWorkletGlobalScope>(this);

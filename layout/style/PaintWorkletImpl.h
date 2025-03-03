@@ -24,7 +24,8 @@ class PaintWorkletImpl final : public WorkletImpl {
 
  protected:
   // Execution thread only.
-  already_AddRefed<dom::WorkletGlobalScope> ConstructGlobalScope() override;
+  already_AddRefed<dom::WorkletGlobalScope> ConstructGlobalScope(
+      JSContext* aCx) override;
 
  private:
   PaintWorkletImpl(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal);

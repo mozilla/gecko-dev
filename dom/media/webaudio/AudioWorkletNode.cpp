@@ -8,6 +8,7 @@
 
 #include "AudioNodeEngine.h"
 #include "AudioParamMap.h"
+#include "AudioWorklet.h"
 #include "AudioWorkletImpl.h"
 #include "js/Array.h"  // JS::{Get,Set}ArrayLength, JS::NewArrayLength
 #include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable

@@ -91,7 +91,7 @@ dom::WorkletGlobalScope* WorkletImpl::GetGlobalScope() {
   jsapi.Init();
   JSContext* cx = jsapi.cx();
 
-  mGlobalScope = ConstructGlobalScope();
+  mGlobalScope = ConstructGlobalScope(cx);
 
   JS::Rooted<JSObject*> global(cx);
   NS_ENSURE_TRUE(mGlobalScope->WrapGlobalObject(cx, &global), nullptr);

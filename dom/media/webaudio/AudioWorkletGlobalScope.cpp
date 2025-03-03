@@ -26,7 +26,7 @@
 namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(AudioWorkletGlobalScope, WorkletGlobalScope,
-                                   mNameToProcessorMap);
+                                   mNameToProcessorMap, mPort);
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AudioWorkletGlobalScope)
 NS_INTERFACE_MAP_END_INHERITING(WorkletGlobalScope)

@@ -27,7 +27,7 @@ class WorkletScriptHandler;
 struct WorkletOptions;
 enum class CallerType : uint32_t;
 
-class Worklet final : public nsISupports, public nsWrapperCache {
+class Worklet : public nsISupports, public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(Worklet)
@@ -54,9 +54,10 @@ class Worklet final : public nsISupports, public nsWrapperCache {
     return mLocalizedStrings;
   }
 
- private:
-  ~Worklet();
+ protected:
+  virtual ~Worklet();
 
+ private:
   WorkletFetchHandler* GetImportFetchHandler(const nsACString& aURI);
 
   void AddImportFetchHandler(const nsACString& aURI,
