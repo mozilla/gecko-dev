@@ -6,6 +6,9 @@ support-files = [
   "../fixtures/autocomplete_iframe.html",
   "../fixtures/autocomplete_iframe_sandboxed.html",
   "../fixtures/autocomplete_simple_basic.html",
+  "../fixtures/dynamic_form_changes.html",
+  "../fixtures/dynamic_formless_changes_node_mutations.html",
+  "../fixtures/dynamic_formless_changes_element_visiblity_state.html",
   "../fixtures/page_navigation.html",
   "./empty.html",
   "../fixtures/**",
@@ -56,6 +59,8 @@ skip-if = [
 ["browser_collectFormFields.js"]
 
 ["browser_dropdown_layout.js"]
+
+["browser_dynamic_form_change_detection.js"]
 
 ["browser_editAddressDialog.js"]
 skip-if = [
