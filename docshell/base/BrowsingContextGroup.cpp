@@ -217,8 +217,19 @@ void BrowsingContextGroup::Subscribe(ContentParent* aProcess) {
   nsTArray<SyncedContextInitializer> inits(mContexts.Count());
   CollectContextInitializers(mToplevels, inits);
 
+  nsTArray<OriginAgentClusterInitializer> useOriginAgentCluster;
+  for (auto& entry : mUseOriginAgentCluster) {
+    if (!aProcess->ValidatePrincipal(entry.GetKey())) {
+      continue;
+    }
+
+    useOriginAgentCluster.AppendElement(OriginAgentClusterInitializer(
+        WrapNotNull(RefPtr{entry.GetKey()}), entry.GetData()));
+  }
+
   // Send all of our contexts to the target content process.
-  Unused << aProcess->SendRegisterBrowsingContextGroup(Id(), inits);
+  Unused << aProcess->SendRegisterBrowsingContextGroup(Id(), inits,
+                                                       useOriginAgentCluster);
 }
 
 void BrowsingContextGroup::Unsubscribe(ContentParent* aProcess) {
@@ -468,8 +479,9 @@ already_AddRefed<DocGroup> BrowsingContextGroup::AddDocument(
 
   nsCOMPtr<nsIPrincipal> principal = aDocument->NodePrincipal();
 
-  // Determine the key to use for this principal. This depends on
-  // `UsesOriginAgentCluster`.
+  // Determine the DocGroup (agent cluster) key to use for this principal.
+  //
+  // https://html.spec.whatwg.org/#obtain-similar-origin-window-agent
   DocGroupKey key;
   if (auto originKeyed = UsesOriginAgentCluster(principal)) {
     key.mOriginKeyed = *originKeyed;
@@ -594,12 +606,58 @@ static bool AlwaysUseOriginAgentCluster(nsIPrincipal* aPrincipal) {
          (!aPrincipal->SchemeIs("http") && !aPrincipal->SchemeIs("https"));
 }
 
+void BrowsingContextGroup::SetUseOriginAgentClusterFromNetwork(
+    nsIPrincipal* aPrincipal, bool aUseOriginAgentCluster) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  // Ignore this set call if it will have no effect on loads in this BCG (e.g.
+  // because the BCG is cross-origin isolated or the origin will always be
+  // origin-keyed).
+  if (AlwaysUseOriginAgentCluster(aPrincipal) ||
+      IsPotentiallyCrossOriginIsolated()) {
+    return;
+  }
+
+  MOZ_ASSERT(!mUseOriginAgentCluster.Contains(aPrincipal));
+  mUseOriginAgentCluster.InsertOrUpdate(aPrincipal, aUseOriginAgentCluster);
+
+  // Tell any content processes subscribed to this BrowsingContextGroup about
+  // the new flag.
+  EachParent([&](ContentParent* aContentParent) {
+    // If this ContentParent can never load this principal, don't send it the
+    // information.
+    if (!aContentParent->ValidatePrincipal(aPrincipal)) {
+      return;
+    }
+
+    Unused << aContentParent->SendSetUseOriginAgentCluster(
+        Id(), WrapNotNull(aPrincipal), aUseOriginAgentCluster);
+  });
+}
+
+void BrowsingContextGroup::SetUseOriginAgentClusterFromIPC(
+    nsIPrincipal* aPrincipal, bool aUseOriginAgentCluster) {
+  MOZ_ASSERT(!AlwaysUseOriginAgentCluster(aPrincipal));
+  MOZ_ASSERT(!IsPotentiallyCrossOriginIsolated());
+  MOZ_ASSERT(!mUseOriginAgentCluster.Contains(aPrincipal));
+  mUseOriginAgentCluster.InsertOrUpdate(aPrincipal, aUseOriginAgentCluster);
+}
+
 Maybe<bool> BrowsingContextGroup::UsesOriginAgentCluster(
     nsIPrincipal* aPrincipal) {
   // Check if agent clusters (DocGroups) for aPrincipal should be origin-keyed.
   // https://html.spec.whatwg.org/#origin-keyed-agent-clusters
-  return Some(AlwaysUseOriginAgentCluster(aPrincipal) ||
-              IsPotentiallyCrossOriginIsolated());
+  if (AlwaysUseOriginAgentCluster(aPrincipal) ||
+      IsPotentiallyCrossOriginIsolated()) {
+    return Some(true);
+  }
+
+  // NOTE: An in-content equivalent to `ValidatePrincipal`, should probably be
+  // asserted here.
+
+  if (auto entry = mUseOriginAgentCluster.Lookup(aPrincipal)) {
+    return Some(entry.Data());
+  }
+  return Nothing();
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(BrowsingContextGroup, mContexts,

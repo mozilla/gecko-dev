@@ -260,10 +260,14 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   // Internal method to change which process a BrowsingContext is being loaded
   // in. The returned promise will resolve when the process switch is completed.
+  // The returned CanonicalBrowsingContext may be different than |this| if a BCG
+  // switch was performed.
   //
   // A NOT_REMOTE_TYPE aRemoteType argument will perform a process switch into
   // the parent process, and the method will resolve with a null BrowserParent.
-  using RemotenessPromise = MozPromise<RefPtr<BrowserParent>, nsresult, false>;
+  using RemotenessPromise = MozPromise<
+      std::pair<RefPtr<BrowserParent>, RefPtr<CanonicalBrowsingContext>>,
+      nsresult, false>;
   MOZ_CAN_RUN_SCRIPT
   RefPtr<RemotenessPromise> ChangeRemoteness(
       const NavigationIsolationOptions& aOptions, uint64_t aPendingSwitchId);

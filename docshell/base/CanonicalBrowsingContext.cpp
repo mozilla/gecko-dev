@@ -1932,7 +1932,10 @@ nsresult CanonicalBrowsingContext::PendingRemotenessChange::FinishTopContent() {
     newBrowser->ResumeLoad(mPendingSwitchId);
   }
 
-  mPromise->Resolve(newBrowser, __func__);
+  mPromise->Resolve(
+      std::pair{newBrowser,
+                RefPtr{frameLoader->GetBrowsingContext()->Canonical()}},
+      __func__);
   return NS_OK;
 }
 
@@ -2007,7 +2010,7 @@ nsresult CanonicalBrowsingContext::PendingRemotenessChange::FinishSubframe() {
 
     target->SetCurrentBrowserParent(embedderBrowser);
     Unused << embedderWindow->SendMakeFrameLocal(target, mPendingSwitchId);
-    mPromise->Resolve(embedderBrowser, __func__);
+    mPromise->Resolve(std::pair{embedderBrowser, target}, __func__);
     return NS_OK;
   }
 
@@ -2077,7 +2080,7 @@ nsresult CanonicalBrowsingContext::PendingRemotenessChange::FinishSubframe() {
   }
 
   // We did it! The process switch is complete.
-  mPromise->Resolve(newBrowser, __func__);
+  mPromise->Resolve(std::pair{newBrowser, target}, __func__);
   return NS_OK;
 }
 
@@ -3130,10 +3133,15 @@ void CanonicalBrowsingContext::CloneDocumentTreeInto(
               GetMainThreadSerialEventTarget(), __func__,
               [source = MaybeDiscardedBrowsingContext{aSource},
                data = std::move(aPrintData)](
-                  BrowserParent* aBp) -> RefPtr<GenericNonExclusivePromise> {
+                  const std::pair<RefPtr<BrowserParent>,
+                                  RefPtr<CanonicalBrowsingContext>>& aResult)
+                  -> RefPtr<GenericNonExclusivePromise> {
+                const auto& [browserParent, browsingContext] = aResult;
+
                 RefPtr<BrowserBridgeParent> bridge =
-                    aBp->GetBrowserBridgeParent();
-                return aBp->SendCloneDocumentTreeIntoSelf(source, data)
+                    browserParent->GetBrowserBridgeParent();
+                return browserParent
+                    ->SendCloneDocumentTreeIntoSelf(source, data)
                     ->Then(
                         GetMainThreadSerialEventTarget(), __func__,
                         [bridge](

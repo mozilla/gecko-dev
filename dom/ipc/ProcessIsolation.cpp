@@ -816,6 +816,17 @@ Result<NavigationIsolationOptions, nsresult> IsolationOptionsForNavigation(
     options.mReplaceBrowsingContext = true;
   }
 
+  // NOTE: Currently we always perform process isolation based on the
+  // siteOrigin, not based on the full origin, even if the
+  // `Origin-Agent-Cluster` header is provided and we are keying DocGroups
+  // by-origin.
+  //
+  // If in the future we want to start keying based on full origin in some
+  // cases, the logic below will need to be updated to handle this. Note that
+  // the UseOriginAgentCluster bit may not have been set on the
+  // BrowsingContextGroup when this check is being evaluated (as it is set after
+  // process selection, which may cause a BrowsingContextGroup switch).
+
   nsAutoCString siteOriginNoSuffix;
   MOZ_TRY(resultOrPrecursor->GetSiteOriginNoSuffix(siteOriginNoSuffix));
 

@@ -644,8 +644,12 @@ class ContentChild final : public PContentChild,
       DiscardBrowsingContextResolver&& aResolve);
 
   mozilla::ipc::IPCResult RecvRegisterBrowsingContextGroup(
-      uint64_t aGroupId, nsTArray<SyncedContextInitializer>&& aInits);
+      uint64_t aGroupId, nsTArray<SyncedContextInitializer>&& aInits,
+      nsTArray<OriginAgentClusterInitializer>&& aUseOriginAgentCluster);
   mozilla::ipc::IPCResult RecvDestroyBrowsingContextGroup(uint64_t aGroupId);
+
+  mozilla::ipc::IPCResult RecvSetUseOriginAgentCluster(
+      uint64_t aGroupId, nsIPrincipal* aPrincipal, bool aUseOriginAgentCluster);
 
   mozilla::ipc::IPCResult RecvWindowClose(
       const MaybeDiscarded<BrowsingContext>& aContext, bool aTrustedCaller);

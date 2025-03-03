@@ -431,6 +431,12 @@ union SyncedContextInitializer
     WindowContextInitializer;
 };
 
+struct OriginAgentClusterInitializer
+{
+    nsIPrincipal principal;
+    bool useOriginAgentCluster;
+};
+
 union BlobURLDataRequestResult
 {
   IPCBlob;
@@ -975,7 +981,9 @@ child:
 
     // Begin subscribing to a new BrowsingContextGroup, sending down the current
     // value for every individual BrowsingContext.
-    async RegisterBrowsingContextGroup(uint64_t aGroupId, SyncedContextInitializer[] aInits);
+    async RegisterBrowsingContextGroup(uint64_t aGroupId,
+                                       SyncedContextInitializer[] aInits,
+                                       OriginAgentClusterInitializer[] aUseOriginAgentCluster);
 
     // The BrowsingContextGroup has been destroyed in the parent process. The
     // content process won't destroy the group until it receives this message or
@@ -984,6 +992,11 @@ child:
     // When the content process receives this message, all contexts in the group
     // should have already been destroyed.
     async DestroyBrowsingContextGroup(uint64_t aGroupId);
+
+    // Set the "use origin agent cluster" flag on the given BrowsingContextGroup
+    // for the given principal.
+    async SetUseOriginAgentCluster(uint64_t aGroupId, nsIPrincipal aPrincipal,
+                                   bool aUseOriginAgentCluster);
 
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
     // Initialize top-level actor for testing content process sandbox.

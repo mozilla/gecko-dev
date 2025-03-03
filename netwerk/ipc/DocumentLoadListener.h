@@ -353,6 +353,7 @@ class DocumentLoadListener : public nsIInterfaceRequestor,
   // channel, and ensures that RedirectToRealChannelFinished is called when
   // this is complete.
   void TriggerRedirectToRealChannel(
+      dom::CanonicalBrowsingContext* aDestinationBrowsingContext,
       const Maybe<dom::ContentParent*>& aDestinationProcess,
       nsTArray<StreamFilterRequest> aStreamFilterRequests);
 

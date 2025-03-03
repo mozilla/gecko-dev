@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_BrowsingContextGroup_h
 #define mozilla_dom_BrowsingContextGroup_h
 
+#include "mozilla/PrincipalHashKey.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/FunctionRef.h"
 #include "nsRefPtrHashtable.h"
@@ -218,6 +219,22 @@ class BrowsingContextGroup final : public nsWrapperCache {
   void IncInputEventSuspensionLevel();
   void DecInputEventSuspensionLevel();
 
+  // As documents are loaded, whether or not each origin is origin-keyed is
+  // recorded within the BrowsingContextGroup. This in turn controls whether
+  // document.domain can be used, as well as the options available to us for
+  // process isolation.
+  // The relevant subset of this mapping is mirrored to content processes, to be
+  // used when determining DocGroup keying.
+  // UsesOriginAgentCluster returns `Nothing()` if whether or not to origin
+  // isolate a given principal is unknown. This should never happen in the
+  // content process, as all navigations resulting in http(s) document loads
+  // should originate in the parent process, or occur within a
+  // BrowsingContextGroup which has already loaded documents with the given
+  // principal.
+  void SetUseOriginAgentClusterFromNetwork(nsIPrincipal* aPrincipal,
+                                           bool aUseOriginAgentCluster);
+  void SetUseOriginAgentClusterFromIPC(nsIPrincipal* aPrincipal,
+                                       bool aUseOriginAgentCluster);
   Maybe<bool> UsesOriginAgentCluster(nsIPrincipal* aPrincipal);
 
   void ChildDestroy();
@@ -274,6 +291,12 @@ class BrowsingContextGroup final : public nsWrapperCache {
   // host process may not yet be subscribed, and a subscriber need not be a host
   // process.
   nsRefPtrHashtable<nsCStringHashKey, ContentParent> mHosts;
+
+  // Whether or not a given http(s) origin uses origin or siteOrigin-keyed
+  // DocGroups/AgentClusters. Only contains entries for http(s) origins.
+  //
+  // https://html.spec.whatwg.org/#historical-agent-cluster-key-map
+  nsTHashMap<PrincipalHashKey, bool> mUseOriginAgentCluster;
 
   nsTHashSet<nsRefPtrHashKey<ContentParent>> mSubscribers;
 

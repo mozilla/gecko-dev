@@ -5505,6 +5505,13 @@
   value: true
   mirror: always
 
+# Whether or not agent clusters are origin-keyed by default, blocking the use of
+# `document.domain`.
+- name: dom.origin_agent_cluster.default
+  type: bool
+  value: false
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "editor"
 #---------------------------------------------------------------------------

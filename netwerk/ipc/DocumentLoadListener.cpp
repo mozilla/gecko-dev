@@ -58,6 +58,7 @@
 #include "nsQueryObject.h"
 #include "nsRedirectHistoryEntry.h"
 #include "nsSandboxFlags.h"
+#include "nsScriptSecurityManager.h"
 #include "nsSHistory.h"
 #include "nsStringStream.h"
 #include "nsURILoader.h"
@@ -2145,11 +2146,15 @@ void DocumentLoadListener::TriggerProcessSwitch(
       ->Then(
           GetMainThreadSerialEventTarget(), __func__,
           [self = RefPtr{this}, requests = std::move(streamFilterRequests)](
-              BrowserParent* aBrowserParent) mutable {
+              const std::pair<RefPtr<BrowserParent>,
+                              RefPtr<CanonicalBrowsingContext>>&
+                  aResult) mutable {
             MOZ_ASSERT(self->mChannel,
                        "Something went wrong, channel got cancelled");
+            const auto& [browserParent, browsingContext] = aResult;
             self->TriggerRedirectToRealChannel(
-                Some(aBrowserParent ? aBrowserParent->Manager() : nullptr),
+                browsingContext,
+                Some(browserParent ? browserParent->Manager() : nullptr),
                 std::move(requests));
           },
           [self = RefPtr{this}](nsresult aStatusCode) {
@@ -2298,12 +2303,17 @@ DocumentLoadListener::RedirectToRealChannel(
 }
 
 void DocumentLoadListener::TriggerRedirectToRealChannel(
+    CanonicalBrowsingContext* aDestinationBrowsingContext,
     const Maybe<ContentParent*>& aDestinationProcess,
     nsTArray<StreamFilterRequest> aStreamFilterRequests) {
-  LOG((
-      "DocumentLoadListener::TriggerRedirectToRealChannel [this=%p] "
-      "aDestinationProcess=%" PRId64,
-      this, aDestinationProcess ? int64_t(*aDestinationProcess) : int64_t(-1)));
+  LOG(
+      ("DocumentLoadListener::TriggerRedirectToRealChannel [this=%p] "
+       "aDestinationBrowsingContext=%" PRIx64 " aDestinationProcess=%" PRId64,
+       this, aDestinationBrowsingContext->Id(),
+       aDestinationProcess ? int64_t((*aDestinationProcess)->ChildID())
+                           : int64_t(-1)));
+  MOZ_ASSERT(aDestinationBrowsingContext);
+
   // This initiates replacing the current DocumentChannel with a
   // protocol specific 'real' channel, maybe in a different process than
   // the current DocumentChannelChild, if aDestinationProces is set.
@@ -2315,10 +2325,13 @@ void DocumentLoadListener::TriggerRedirectToRealChannel(
   // the registrar and copy across any needed state to the replacing
   // IPDL parent object.
 
+  RefPtr<ContentParent> contentParent =
+      aDestinationProcess.valueOr(mContentParent);
+
   nsTArray<ParentEndpoint> parentEndpoints(aStreamFilterRequests.Length());
   if (!aStreamFilterRequests.IsEmpty()) {
-    ContentParent* cp = aDestinationProcess.valueOr(mContentParent);
-    base::ProcessId pid = cp ? cp->OtherPid() : base::ProcessId{0};
+    base::ProcessId pid =
+        contentParent ? contentParent->OtherPid() : base::ProcessId{0};
 
     for (StreamFilterRequest& request : aStreamFilterRequests) {
       if (!pid) {
@@ -2337,6 +2350,49 @@ void DocumentLoadListener::TriggerRedirectToRealChannel(
         parentEndpoints.AppendElement(std::move(parent));
       }
     }
+  }
+
+  // Ensure that the BrowsingContextGroup which will finish this load has the
+  // UseOriginAgentCluster flag set to a value. We'll try to base it on
+  // `mChannel` if it has the appropriate header.
+  //
+  // This needs to be set such that we can perform correct DocGroup keying in
+  // the content process.
+  //
+  // In effect, this is performing the side-effect component of "obtain a
+  // similar-origin window agent", leading to the historical agent cluster key
+  // map being populated in the BrowsingContextGroup.
+  //
+  // https://html.spec.whatwg.org/#obtain-similar-origin-window-agent
+  nsCOMPtr<nsIPrincipal> unsandboxedPrincipal;
+  nsresult rv = nsScriptSecurityManager::GetScriptSecurityManager()
+                    ->GetChannelResultPrincipalIfNotSandboxed(
+                        mChannel, getter_AddRefs(unsandboxedPrincipal));
+  if (NS_SUCCEEDED(rv) && aDestinationBrowsingContext->Group()
+                              ->UsesOriginAgentCluster(unsandboxedPrincipal)
+                              .isNothing()) {
+    // UseOriginAgentCluster requires a secure context, so never origin key
+    // unless we're a potentially-trustworthy origin.
+    //
+    // We don't handle this within BrowsingContextGroup, as the set of URIs
+    // which are considered "potentially trustworthy" can change at runtime, so
+    // we want to cache the decision at the time we make it.
+    bool isSecureContext =
+        unsandboxedPrincipal->GetIsOriginPotentiallyTrustworthy();
+    bool hasOriginAgentCluster =
+        StaticPrefs::dom_origin_agent_cluster_default() && isSecureContext;
+    if (nsCOMPtr<nsIHttpChannelInternal> httpChannel =
+            do_QueryInterface(mChannel);
+        httpChannel && isSecureContext &&
+        StaticPrefs::dom_origin_agent_cluster_enabled()) {
+      bool headerValue = false;
+      if (NS_SUCCEEDED(
+              httpChannel->GetOriginAgentClusterHeader(&headerValue))) {
+        hasOriginAgentCluster = headerValue;
+      }
+    }
+    aDestinationBrowsingContext->Group()->SetUseOriginAgentClusterFromNetwork(
+        unsandboxedPrincipal, hasOriginAgentCluster);
   }
 
   // If we didn't have any redirects, then we pass the REDIRECT_INTERNAL flag
@@ -2730,10 +2786,11 @@ nsresult DocumentLoadListener::DoOnStartRequest(nsIRequest* aRequest) {
 
       // Use the current process ID to run the 'process switch' path and connect
       // the channel into the current process.
-      TriggerRedirectToRealChannel(Some(mContentParent),
+      TriggerRedirectToRealChannel(loadingContext, Some(mContentParent),
                                    std::move(streamFilterRequests));
     } else {
-      TriggerRedirectToRealChannel(Nothing(), std::move(streamFilterRequests));
+      TriggerRedirectToRealChannel(loadingContext, Nothing(),
+                                   std::move(streamFilterRequests));
     }
 
     // If we're not switching, then check if we're currently remote.
