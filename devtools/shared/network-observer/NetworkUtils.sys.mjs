@@ -681,6 +681,10 @@ function getBlockedReason(channel, fromCache = false) {
     "NS_BINDING_REDIRECTED",
     // E.g Emited by send beacon requests.
     "NS_ERROR_ABORT",
+    // This is emmited when browser.http.blank_page_with_error_response.enabled
+    // is set to false, and a 404 or 500 request has no content.
+    // They are shown as 404 or 500 requests.
+    "NS_ERROR_NET_EMPTY_RESPONSE",
   ];
 
   // NS_BINDING_ABORTED are emmited when request are abruptly halted, these are valid and should not be ignored.

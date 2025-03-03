@@ -428,6 +428,8 @@ skip-if = [
 
 ["browser_net_req-resp-bodies.js"]
 
+["browser_net_requests_with_empty_response.js"]
+
 ["browser_net_resend.js"]
 
 ["browser_net_resend_cors.js"]
