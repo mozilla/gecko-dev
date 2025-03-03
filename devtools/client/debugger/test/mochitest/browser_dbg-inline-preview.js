@@ -8,7 +8,6 @@
 
 add_task(async function testInlinePreviews() {
   await pushPref("devtools.debugger.features.inline-preview", true);
-  await pushPref("javascript.options.experimental.import_attributes", true);
 
   const dbg = await initDebugger(
     "doc-inline-preview.html",
@@ -53,7 +52,6 @@ add_task(async function testInlinePreviews() {
   // Check inline previews for values within a module script
   await checkInlinePreview(dbg, "runInModule", [
     { identifier: "val:", value: "4" },
-    { identifier: "ids:", value: "Array [ 1, 2 ]" },
   ]);
 
   // Checks that open in inspector button works in inline preview

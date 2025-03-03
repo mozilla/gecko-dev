@@ -42,7 +42,6 @@ module.exports = {
         "@babel/plugin-proposal-private-methods",
         "@babel/plugin-proposal-private-property-in-object",
         "@babel/plugin-proposal-unicode-sets-regex",
-        "@babel/plugin-syntax-import-attributes",
         [
           "module-resolver",
           {
