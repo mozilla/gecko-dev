@@ -4,7 +4,9 @@ title: Changelog
 permalink: /changelog/
 ---
 
-# 137.0 (In Development)
+# 138.0 (In Development)
+
+# 137.0
 * **support-ktx**
   * 🌟 Added `String.isContentUrl` method that checks if the string is a content URL. [Bug 1944084](https://bugzilla.mozilla.org/show_bug.cgi?id=1944084).
   * 🌟 Added `String.isAboutUrl` method that checks if the string is an about URL. [Bug 1944084](https://bugzilla.mozilla.org/show_bug.cgi?id=1944084).
