@@ -1436,15 +1436,21 @@ bool WebSocketChannel::UpdateReadBuffer(uint8_t* buffer, uint32_t count,
     mFramePtr = mBuffer + accumulatedFragments;
   } else {
     // existing buffer is not sufficient, extend it
-    mBufferSize += count + 8192 + mBufferSize / 3;
-    LOG(("WebSocketChannel: update read buffer extended to %u\n", mBufferSize));
-    uint8_t* old = mBuffer;
-    mBuffer = (uint8_t*)realloc(mBuffer, mBufferSize);
-    if (!mBuffer) {
-      mBuffer = old;
+    uint32_t newBufferSize = mBufferSize;
+    newBufferSize += count + 8192 + mBufferSize / 3;
+    ptrdiff_t frameIndex = mFramePtr - mBuffer;
+    LOG(("WebSocketChannel: update read buffer extended to %u\n",
+         newBufferSize));
+    uint8_t* newBuffer = (uint8_t*)realloc(mBuffer, newBufferSize);
+    if (!newBuffer) {
+      // Reallocation failed.
       return false;
     }
-    mFramePtr = mBuffer + (mFramePtr - old);
+    mBuffer = newBuffer;
+    mBufferSize = newBufferSize;
+
+    // mBuffer was reallocated, so we need to update mFramePtr
+    mFramePtr = mBuffer + frameIndex;
   }
 
   ::memcpy(mBuffer + mBuffered, buffer, count);
