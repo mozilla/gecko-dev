@@ -866,9 +866,9 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
   // moves the boxes to the end of the line, and 'inlineEnd' moves the
   // boxes to the start of the line. The computed values are always:
   // inlineStart=-inlineEnd
-  const auto& inlineStart = position->GetAnchorResolvedInset(
+  const auto inlineStart = position->GetAnchorResolvedInset(
       LogicalSide::IStart, aWM, positionProperty);
-  const auto& inlineEnd = position->GetAnchorResolvedInset(
+  const auto inlineEnd = position->GetAnchorResolvedInset(
       LogicalSide::IEnd, aWM, positionProperty);
   bool inlineStartIsAuto = inlineStart->IsAuto();
   bool inlineEndIsAuto = inlineEnd->IsAuto();
@@ -889,7 +889,9 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
           inlineEnd->IsAuto()
               ? 0
               : nsLayoutUtils::ComputeCBDependentValue(
-                    aCBSize.ISize(aWM), inlineEnd->AsLengthPercentage());
+                    aCBSize.ISize(aWM),
+                    ToStylePhysicalAxis(aWM.PhysicalAxis(LogicalAxis::Inline)),
+                    positionProperty, inlineEnd);
 
       // Computed value for 'inlineStart' is minus the value of 'inlineEnd'
       offsets.IStart(aWM) = -offsets.IEnd(aWM);
@@ -900,7 +902,9 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
 
     // 'InlineStart' isn't 'auto' so compute its value
     offsets.IStart(aWM) = nsLayoutUtils::ComputeCBDependentValue(
-        aCBSize.ISize(aWM), inlineStart->AsLengthPercentage());
+        aCBSize.ISize(aWM),
+        ToStylePhysicalAxis(aWM.PhysicalAxis(LogicalAxis::Inline)),
+        positionProperty, inlineStart);
 
     // Computed value for 'inlineEnd' is minus the value of 'inlineStart'
     offsets.IEnd(aWM) = -offsets.IStart(aWM);
@@ -910,10 +914,10 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
   // and 'blockEnd' properties move relatively positioned elements in
   // the block progression direction. They also must be each other's
   // negative
-  const auto& blockStart = position->GetAnchorResolvedInset(
+  const auto blockStart = position->GetAnchorResolvedInset(
       LogicalSide::BStart, aWM, positionProperty);
-  const auto& blockEnd = position->GetAnchorResolvedInset(
-      LogicalSide::BEnd, aWM, positionProperty);
+  const auto blockEnd = position->GetAnchorResolvedInset(LogicalSide::BEnd, aWM,
+                                                         positionProperty);
   bool blockStartIsAuto = blockStart->IsAuto();
   bool blockEndIsAuto = blockEnd->IsAuto();
 
@@ -943,7 +947,9 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
           blockEnd->IsAuto()
               ? 0
               : nsLayoutUtils::ComputeCBDependentValue(
-                    aCBSize.BSize(aWM), blockEnd->AsLengthPercentage());
+                    aCBSize.BSize(aWM),
+                    ToStylePhysicalAxis(aWM.PhysicalAxis(LogicalAxis::Block)),
+                    positionProperty, blockEnd);
 
       // Computed value for 'blockStart' is minus the value of 'blockEnd'
       offsets.BStart(aWM) = -offsets.BEnd(aWM);
@@ -954,7 +960,9 @@ LogicalMargin ReflowInput::ComputeRelativeOffsets(WritingMode aWM,
 
     // 'blockStart' isn't 'auto' so compute its value
     offsets.BStart(aWM) = nsLayoutUtils::ComputeCBDependentValue(
-        aCBSize.BSize(aWM), blockStart->AsLengthPercentage());
+        aCBSize.BSize(aWM),
+        ToStylePhysicalAxis(aWM.PhysicalAxis(LogicalAxis::Block)),
+        positionProperty, blockStart);
 
     // Computed value for 'blockEnd' is minus the value of 'blockStart'
     offsets.BEnd(aWM) = -offsets.BStart(aWM);
@@ -1582,13 +1590,13 @@ void ReflowInput::InitAbsoluteConstraints(const ReflowInput* aCBReflowInput,
   NS_ASSERTION(mFrame->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW),
                "Why are we here?");
 
-  const auto& iStartOffset = mStylePosition->GetAnchorResolvedInset(
+  const auto iStartOffset = mStylePosition->GetAnchorResolvedInset(
       LogicalSide::IStart, cbwm, StylePositionProperty::Absolute);
-  const auto& iEndOffset = mStylePosition->GetAnchorResolvedInset(
+  const auto iEndOffset = mStylePosition->GetAnchorResolvedInset(
       LogicalSide::IEnd, cbwm, StylePositionProperty::Absolute);
-  const auto& bStartOffset = mStylePosition->GetAnchorResolvedInset(
+  const auto bStartOffset = mStylePosition->GetAnchorResolvedInset(
       LogicalSide::BStart, cbwm, StylePositionProperty::Absolute);
-  const auto& bEndOffset = mStylePosition->GetAnchorResolvedInset(
+  const auto bEndOffset = mStylePosition->GetAnchorResolvedInset(
       LogicalSide::BEnd, cbwm, StylePositionProperty::Absolute);
   bool iStartIsAuto = iStartOffset->IsAuto();
   bool iEndIsAuto = iEndOffset->IsAuto();
