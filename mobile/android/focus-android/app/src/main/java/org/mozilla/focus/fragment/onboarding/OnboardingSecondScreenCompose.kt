@@ -7,12 +7,12 @@ package org.mozilla.focus.fragment.onboarding
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Text
@@ -56,17 +56,20 @@ fun OnBoardingSecondScreenCompose(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .gradientBackground(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        Spacer(modifier = Modifier.systemBarsPadding())
+
         Image(
             painter = painterResource(R.drawable.onboarding_second_screen_icon),
             contentDescription = LocalContext.current.getString(R.string.app_name),
             modifier = Modifier
-                .size(200.dp, 300.dp),
+                .size(200.dp, 300.dp)
+                .weight(1f, false),
         )
+
         Text(
             text = stringResource(
                 R.string.onboarding_second_screen_title,
@@ -77,6 +80,7 @@ fun OnBoardingSecondScreenCompose(
             textAlign = TextAlign.Center,
             style = focusTypography.onboardingTitle,
         )
+
         Text(
             text = stringResource(
                 R.string.onboarding_second_screen_subtitle_one,
@@ -86,6 +90,7 @@ fun OnBoardingSecondScreenCompose(
             textAlign = TextAlign.Center,
             style = focusTypography.onboardingSubtitle,
         )
+
         Text(
             text = stringResource(
                 R.string.onboarding_second_screen_subtitle_two,
@@ -96,6 +101,7 @@ fun OnBoardingSecondScreenCompose(
             textAlign = TextAlign.Center,
             style = focusTypography.onboardingSubtitle,
         )
+
         ComponentOnBoardingSecondScreenButtons(setAsDefaultBrowser, skipScreen)
     }
 }
