@@ -5,6 +5,7 @@ skip-if = [
   "asan", # Frequent failures when opening tabs due to OOM issues, bug 1760260
 ]
 support-files = [
+  "data.json",
   "examples/*",
   "integration-tests/*",
   "head.js",
