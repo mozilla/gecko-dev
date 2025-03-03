@@ -32,6 +32,16 @@ let version;
 let generate_response = ver => `response version=${ver}`;
 
 function test_handler(metadata, response) {
+  // ensures initial network request and background revalidation request sends custom headers
+  // See Bug 1893842
+  if (
+    !metadata.hasHeader("X-Custom-header") ||
+    metadata.getHeader("X-Custom-header") != "custom-value"
+  ) {
+    response.setStatusLine(metadata.httpVersion, 400, "OK");
+    return;
+  }
+
   const originalBody = generate_response(version);
   response.setHeader("Content-Type", "text/html", false);
   response.setHeader(
@@ -39,15 +49,18 @@ function test_handler(metadata, response) {
     `max-age=${max_age}, stale-while-revalidate=9999`,
     false
   );
+
   response.setStatusLine(metadata.httpVersion, 200, "OK");
   response.bodyOutputStream.write(originalBody, originalBody.length);
 }
 
 function make_channel(url) {
-  return NetUtil.newChannel({
+  var chan = NetUtil.newChannel({
     uri: url,
     loadUsingSystemPrincipal: true,
   }).QueryInterface(Ci.nsIHttpChannel);
+  chan.setRequestHeader("X-Custom-header", "custom-value", false);
+  return chan;
 }
 
 async function get_response(channel, fromCache) {
