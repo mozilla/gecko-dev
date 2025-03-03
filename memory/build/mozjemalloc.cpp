@@ -684,7 +684,11 @@ static void* base_alloc(size_t aSize);
 // threads are created.
 static bool malloc_initialized;
 #else
-static Atomic<bool, MemoryOrdering::ReleaseAcquire> malloc_initialized;
+// We can rely on Relaxed here because this variable is only ever set when
+// holding gInitLock. A thread that still sees it false while another sets it
+// true will enter the same lock, synchronize with the former and check the
+// flag again under the lock.
+static Atomic<bool, MemoryOrdering::Relaxed> malloc_initialized;
 #endif
 
 // This lock must be held while bootstrapping us.
