@@ -64,7 +64,8 @@ class WaylandBuffer {
 
   bool IsAttachedToSurface(WaylandSurface* aWaylandSurface);
 
-  bool Matches(wl_buffer* aBuffer) { return aBuffer == mWLBuffer; }
+  bool Matches(uintptr_t aWlBufferID) { return aWlBufferID == mWLBufferID; }
+  uintptr_t GetWlBufferID() { return mWLBufferID; }
 
   // Lend wl_buffer to WaylandSurface to attach.
   wl_buffer* BorrowBuffer(WaylandSurfaceLock& aSurfaceLock);
@@ -95,6 +96,7 @@ class WaylandBuffer {
   // wl_buffer is a wayland object that encapsulates the shared/dmabuf memory
   // and passes it to wayland compositor by wl_surface object.
   wl_buffer* mWLBuffer = nullptr;
+  uintptr_t mWLBufferID = 0;
 
   // Wayland buffer is tied to WaylandSurface.
   // We keep reference to WaylandSurface until WaylandSurface returns the

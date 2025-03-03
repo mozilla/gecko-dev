@@ -153,8 +153,8 @@ static void BufferDeleteSyncFinished(void* aData, struct wl_callback* callback,
       ref->mSurface.get(), ref->mBuffer.get());
 
   ref->mBuffer->ClearSyncHandler();
-  ref->mSurface->BufferFreeCallbackHandler(ref->mBuffer,
-                                           /* wl_buffer */ nullptr);
+  ref->mSurface->BufferFreeCallbackHandler(ref->mBuffer->GetWlBufferID(),
+                                           /* aWlBufferDelete */ true);
 }
 
 static const struct wl_callback_listener sBufferDeleteSyncListener = {
@@ -233,10 +233,13 @@ bool WaylandBufferSHM::CreateWlBuffer() {
   if (mWLBuffer) {
     return true;
   }
-  LOGWAYLAND("WaylandBufferSHM::CreateWlBuffer() [%p]", (void*)this);
   mWLBuffer = wl_shm_pool_create_buffer(mShmPool->GetShmPool(), 0, mSize.width,
                                         mSize.height, mSize.width * BUFFER_BPP,
                                         WL_SHM_FORMAT_ARGB8888);
+  mWLBufferID = reinterpret_cast<uintptr_t>(mWLBuffer);
+  LOGWAYLAND("WaylandBufferSHM::CreateWlBuffer() [%p] wl_buffer [%p]",
+             (void*)this, mWLBuffer);
+
   return !!mWLBuffer;
 }
 
@@ -335,10 +338,12 @@ bool WaylandBufferDMABUF::CreateWlBuffer() {
     return mWLBuffer;
   }
 
-  LOGWAYLAND("WaylandBufferDMABUF::CreateWlBuffer() [%p] UID %d", (void*)this,
-             mDMABufSurface->GetUID());
-
   mWLBuffer = mDMABufSurface->CreateWlBuffer();
+  mWLBufferID = reinterpret_cast<uintptr_t>(mWLBuffer);
+
+  LOGWAYLAND("WaylandBufferDMABUF::CreateWlBuffer() [%p] UID %d wl_buffer [%p]",
+             (void*)this, mDMABufSurface->GetUID(), mWLBuffer);
+
   return !!mWLBuffer;
 }
 
