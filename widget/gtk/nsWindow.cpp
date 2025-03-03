@@ -731,7 +731,7 @@ DesktopToLayoutDeviceScale nsWindow::GetDesktopToDeviceScaleByScreen() {
 }
 
 bool nsWindow::WidgetTypeSupportsAcceleration() {
-  if (IsSmallPopup()) {
+  if (IsSmallPopup() || mIsDragPopup) {
     return false;
   }
   if (mWindowType == WindowType::Popup) {
@@ -6013,6 +6013,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   // recent popup config (Bug 1728952).
   mNoAutoHide = aInitData && aInitData->mNoAutoHide;
   mIsAlert = aInitData && aInitData->mIsAlert;
+  mIsDragPopup = aInitData && aInitData->mIsDragPopup;
 
   // Popups that are not noautohide are only temporary. The are used
   // for menus and the like and disappear when another window is used.
@@ -6150,9 +6151,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
 #endif
     }
 
-    if (aInitData->mIsDragPopup) {
+    if (mIsDragPopup) {
       gtk_window_set_type_hint(GTK_WINDOW(mShell), GDK_WINDOW_TYPE_HINT_DND);
-      mIsDragPopup = true;
       LOG("  nsWindow::Create() Drag popup\n");
     } else if (GdkIsX11Display()) {
       // Set the window hints on X11 only. Wayland popups are configured
