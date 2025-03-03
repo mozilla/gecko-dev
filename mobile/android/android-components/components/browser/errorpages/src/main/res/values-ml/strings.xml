@@ -51,6 +51,10 @@
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">കൂടുതൽ…</string>
 
+    <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2"><![CDATA[
+        <label><b>%1$s</b>-നു് HTTP Strict Transport Security (HSTS) പേരുള്ള ഒരു സംരക്ഷണ നയമുണ്ടു്. ഇതുകൊണ്ടു് <b>%2$s</b>-നെ സുരക്ഷിത വഴിയിൽ മാത്രം ബന്ധപ്പെടാം. താങ്ങൾക്കു് ഈ വെബിടത്തിലോട്ടു് ചെല്ലാൻ വേണ്ടി ഒരു വിട്ടുവീഴ്ച ചേൎക്കാൻ പറ്റത്തില്ല.</label>
+            ]]></string>
     <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">തിരിച്ചു് പോവുക</string>
 
