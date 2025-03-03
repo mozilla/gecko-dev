@@ -219,7 +219,7 @@ class Editor extends PureComponent {
   };
 
   setupEditor() {
-    const editor = getEditor(features.codemirrorNext);
+    const editor = getEditor();
 
     // disables the default search shortcuts
     editor._initShortcuts = () => {};

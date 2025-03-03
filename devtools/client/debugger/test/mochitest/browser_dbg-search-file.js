@@ -38,8 +38,8 @@ add_task(async function () {
     42,
     // constructor (in Klass)
     55,
-    // console.log
-    62,
+    // const bla
+    78,
   ];
 
   await waitForCursorPosition(dbg, linesWithResults[0]);

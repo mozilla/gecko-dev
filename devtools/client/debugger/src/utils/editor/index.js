@@ -14,12 +14,12 @@ import { features } from "../prefs";
 
 let editor;
 
-export function getEditor(useCm6) {
+export function getEditor() {
   if (editor) {
     return editor;
   }
 
-  editor = createEditor({ cm6: useCm6 });
+  editor = createEditor({ cm6: features.codemirrorNext });
   return editor;
 }
 

@@ -28,7 +28,7 @@ add_task(async function () {
   );
 
   info("Clicking an empty line in the editor should unfocus the outline");
-  await clickAtPos(dbg, { line: 13, column: 3 });
+  await clickAtPos(dbg, { line: 12, column: 3 });
   // Wait for the node to be unfocused
   await waitFor(() => !getFocusedNode(dbg));
   is(getFocusedNode(dbg), null, "should not exist");
@@ -49,6 +49,16 @@ add_task(async function () {
     "λdoNamedEval()",
     // evaledFunc is set twice
     "λevaledFunc()",
+    "λnormalFunction(foo)",
+    "λletFunction(a)",
+    "λconstFunction(x)",
+    "λProtoClass(a)",
+    "λprotoFoo(foo)",
+    "λprotoBar(x, y)",
+    "λprotoBoo(x)",
+    "λ1234()",
+    "λmemFoo(a, b)",
+    "λarrFoo(c)",
     "class MyClass",
     "λconstructor(a, b)",
     "λtest()",
@@ -56,6 +66,8 @@ add_task(async function () {
     "class Klass",
     "λconstructor()",
     "λtest()",
+    "λbar()",
+    "λboo(a)",
   ]);
 
   info("Click an item in outline panel");
