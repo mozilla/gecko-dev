@@ -2485,9 +2485,23 @@ class GeckoEngineSessionTest {
         val nonMobileUrl = "https://example.com"
         val engineSession = spy(GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider))
         engineSession.currentUrl = mobileUrl
+        engineSession.pageLoadingUrl = "https://before-redirection.com"
 
         engineSession.toggleDesktopMode(true, reload = true)
         verify(engineSession, atLeastOnce()).loadUrl(nonMobileUrl, null, LoadUrlFlags.select(LoadUrlFlags.LOAD_FLAGS_REPLACE_HISTORY), null)
+
+        engineSession.toggleDesktopMode(false, reload = true)
+        verify(engineSession, atLeastOnce()).reload()
+    }
+
+    @Test
+    fun `toggleDesktopMode should reload a pageLoadingUrl when set to desktop mode if it is different from currentUrl`() {
+        val engineSession = spy(GeckoEngineSession(runtime, geckoSessionProvider = geckoSessionProvider))
+        engineSession.currentUrl = "https://redirected.com"
+        engineSession.pageLoadingUrl = "https://example.com"
+
+        engineSession.toggleDesktopMode(true, reload = true)
+        verify(engineSession, atLeastOnce()).loadUrl("https://example.com", null, LoadUrlFlags.select(LoadUrlFlags.LOAD_FLAGS_REPLACE_HISTORY), null)
 
         engineSession.toggleDesktopMode(false, reload = true)
         verify(engineSession, atLeastOnce()).reload()

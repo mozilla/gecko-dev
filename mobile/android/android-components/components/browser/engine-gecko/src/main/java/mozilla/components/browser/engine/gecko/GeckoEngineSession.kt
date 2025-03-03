@@ -459,6 +459,9 @@ class GeckoEngineSession(
 
         val newViewportMode = if (enable) {
             overrideUrl = currentUrl?.let { checkForMobileSite(it) }
+            if (overrideUrl == null && pageLoadingUrl != currentUrl) {
+                overrideUrl = pageLoadingUrl
+            }
             GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
         } else {
             GeckoSessionSettings.VIEWPORT_MODE_MOBILE
