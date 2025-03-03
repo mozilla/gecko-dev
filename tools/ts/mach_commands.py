@@ -120,7 +120,7 @@ def update(ctx):
 
 
 @SubCommand("ts", "glean", description="Build Glean bindings.")
-@CommandArgument("path", help="Path to a (dir with) metrics.yaml.")
+@CommandArgument("path", help="Path to a metrics.yaml or pings.yaml file.")
 def glean(ctx, path):
     maybe_setup(ctx)
     return node(ctx, "build_glean", ctx.topsrcdir, path, "tools/@types")
