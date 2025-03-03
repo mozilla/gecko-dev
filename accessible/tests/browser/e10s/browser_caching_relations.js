@@ -289,3 +289,22 @@ addAccessibleTask(
   },
   { topLevel: true, chrome: true }
 );
+
+/*
+ * Test relation caching for LABELLED_BY and LABEL_FOR with legend/fieldset.
+ */
+addAccessibleTask(
+  `
+  <fieldset id="fs">
+    <legend id="leg">legend</legend>
+    inner content
+  </fieldset>`,
+  async function testFieldsetLegendLabels(browser, accDoc) {
+    const fs = findAccessibleChildByID(accDoc, "fs");
+    const leg = findAccessibleChildByID(accDoc, "leg");
+
+    await testCachedRelation(fs, RELATION_LABELLED_BY, leg);
+    await testCachedRelation(leg, RELATION_LABEL_FOR, fs);
+  },
+  { chrome: true, iframe: true, remoteIframe: true }
+);
