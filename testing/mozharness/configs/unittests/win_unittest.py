@@ -321,6 +321,28 @@ config = {
             "enabled": True,
         },
         {
+            "name": "enable microphone access for msix (beta)",
+            "cmd": [
+                "powershell",
+                "-command",
+                r'New-Item -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\ -Name "Mozilla.MozillaFirefoxBeta_jag0gd4e3s9p2" -Force',
+            ],
+            "architectures": ["32bit", "64bit"],
+            "halt_on_failure": True,
+            "enabled": True,
+        },
+        {
+            "name": "enable microphone access for msix, add allow key (beta)",
+            "cmd": [
+                "powershell",
+                "-command",
+                r'New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone\Mozilla.MozillaFirefoxBeta_jag0gd4e3s9p2 -Name "Value" -Value "Allow" -Force',
+            ],
+            "architectures": ["32bit", "64bit"],
+            "halt_on_failure": True,
+            "enabled": True,
+        },
+        {
             "name": "enable microphone access for msix (release)",
             "cmd": [
                 "powershell",
