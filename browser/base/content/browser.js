@@ -46,11 +46,13 @@ ChromeUtils.defineESModuleGetters(this, {
   LoginManagerParent: "resource://gre/modules/LoginManagerParent.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
-  NewTabPagePreloading: "resource:///modules/NewTabPagePreloading.sys.mjs",
+  NewTabPagePreloading:
+    "moz-src:///browser/components/tabbrowser/NewTabPagePreloading.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   nsContextMenu: "chrome://browser/content/nsContextMenu.sys.mjs",
-  OpenInTabsUtils: "resource:///modules/OpenInTabsUtils.sys.mjs",
+  OpenInTabsUtils:
+    "moz-src:///browser/components/tabbrowser/OpenInTabsUtils.sys.mjs",
   OpenSearchManager: "resource:///modules/OpenSearchManager.sys.mjs",
   PageActions: "resource:///modules/PageActions.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",

@@ -408,7 +408,7 @@
         ? "chrome://global/skin/icons/highlights.svg"
         : "";
       const { SmartTabGroupingManager } = ChromeUtils.importESModule(
-        "resource:///modules/SmartTabGrouping.sys.mjs"
+        "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs"
       );
       this.#smartTabGroupingManager = new SmartTabGroupingManager();
 

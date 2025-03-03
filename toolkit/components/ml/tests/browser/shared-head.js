@@ -7,7 +7,9 @@ const {
   CLUSTER_METHODS,
   ANCHOR_METHODS,
   getBestAnchorClusterInfo,
-} = ChromeUtils.importESModule("resource:///modules/SmartTabGrouping.sys.mjs");
+} = ChromeUtils.importESModule(
+  "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs"
+);
 
 /**
  * Checks if numbers are close up to decimalPoints decimal points

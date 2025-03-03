@@ -106,9 +106,11 @@
       );
 
       ChromeUtils.defineESModuleGetters(this, {
-        AsyncTabSwitcher: "resource:///modules/AsyncTabSwitcher.sys.mjs",
+        AsyncTabSwitcher:
+          "moz-src:///browser/components/tabbrowser/AsyncTabSwitcher.sys.mjs",
         PictureInPicture: "resource://gre/modules/PictureInPicture.sys.mjs",
-        SmartTabGroupingManager: "resource:///modules/SmartTabGrouping.sys.mjs",
+        SmartTabGroupingManager:
+          "moz-src:///browser/components/tabbrowser/SmartTabGrouping.sys.mjs",
         UrlbarProviderOpenTabs:
           "resource:///modules/UrlbarProviderOpenTabs.sys.mjs",
       });

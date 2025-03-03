@@ -20,14 +20,14 @@ category browser-window-delayed-startup resource:///modules/ReportBrokenSite.sys
 category browser-window-delayed-startup resource:///modules/SearchUIUtils.sys.mjs SearchUIUtils.init
 
 category browser-window-unload resource:///modules/BrowserDOMWindow.sys.mjs BrowserDOMWindow.teardownInWindow
-category browser-window-unload resource:///modules/NewTabPagePreloading.sys.mjs NewTabPagePreloading.removePreloadedBrowser
+category browser-window-unload moz-src:///browser/components/tabbrowser/NewTabPagePreloading.sys.mjs NewTabPagePreloading.removePreloadedBrowser
 
 # App startup consumers
 category browser-idle-startup resource:///modules/PlacesUIUtils.sys.mjs PlacesUIUtils.unblockToolbars
 category browser-idle-startup resource:///modules/BuiltInThemes.sys.mjs BuiltInThemes.ensureBuiltInThemes
 category browser-idle-startup resource://gre/modules/RFPHelper.sys.mjs RFPHelper.init
 category browser-idle-startup resource://gre/modules/Blocklist.sys.mjs Blocklist.loadBlocklistAsync
-category browser-idle-startup resource:///modules/TabUnloader.sys.mjs TabUnloader.init
+category browser-idle-startup moz-src:///browser/components/tabbrowser/TabUnloader.sys.mjs TabUnloader.init
 category browser-idle-startup resource:///modules/GenAI.sys.mjs GenAI.init
 category browser-idle-startup resource:///modules/QuickSuggest.sys.mjs QuickSuggest.init
 category browser-idle-startup resource:///modules/UrlbarSearchTermsPersistence.sys.mjs UrlbarSearchTermsPersistence.init

@@ -4,7 +4,7 @@
 "use strict";
 
 const { TabUnloader } = ChromeUtils.importESModule(
-  "resource:///modules/TabUnloader.sys.mjs"
+  "moz-src:///browser/components/tabbrowser/TabUnloader.sys.mjs"
 );
 
 let TestTabUnloaderMethods = {

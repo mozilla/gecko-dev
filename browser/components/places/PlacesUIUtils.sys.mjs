@@ -15,7 +15,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
-  OpenInTabsUtils: "resource:///modules/OpenInTabsUtils.sys.mjs",
+  OpenInTabsUtils:
+    "moz-src:///browser/components/tabbrowser/OpenInTabsUtils.sys.mjs",
   PlacesTransactions: "resource://gre/modules/PlacesTransactions.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",

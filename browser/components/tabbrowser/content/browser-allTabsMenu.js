@@ -7,9 +7,9 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.sys.mjs",
-  GroupsPanel: "resource:///modules/GroupsList.sys.mjs",
+  GroupsPanel: "moz-src:///browser/components/tabbrowser/GroupsList.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  TabsPanel: "resource:///modules/TabsList.sys.mjs",
+  TabsPanel: "moz-src:///browser/components/tabbrowser/TabsList.sys.mjs",
 });
 
 var gTabsPanel = {
