@@ -270,6 +270,14 @@ JSObject* DecompressionStream::WrapObject(JSContext* aCx,
 // https://wicg.github.io/compression/#dom-decompressionstream-decompressionstream
 already_AddRefed<DecompressionStream> DecompressionStream::Constructor(
     const GlobalObject& aGlobal, CompressionFormat aFormat, ErrorResult& aRv) {
+  if (aFormat == CompressionFormat::Zstd &&
+      aGlobal.CallerType() != CallerType::System) {
+    aRv.ThrowTypeError(
+        "'zstd' (value of argument 1) is not a valid value for enumeration "
+        "CompressionFormat.");
+    return nullptr;
+  }
+
   // Step 1: If format is unsupported in DecompressionStream, then throw a
   // TypeError.
   // XXX: Skipped as we are using enum for this
