@@ -137,14 +137,14 @@ VarComponent::get_path_at (hb_font_t *font,
 			   hb_decycler_t *decycler,
 			   signed *edges_left,
 			   signed depth_left,
+			   hb_glyf_scratch_t &scratch,
 			   VarRegionList::cache_t *cache) const
 {
   const unsigned char *end = total_record.arrayZ + total_record.length;
   const unsigned char *record = total_record.arrayZ;
 
-  auto &VARC = *font->face->table.VARC;
+  auto &VARC = *font->face->table.VARC->table;
   auto &varStore = &VARC+VARC.varStore;
-  auto instancer = MultiItemVarStoreInstancer(&varStore, nullptr, coords, cache);
 
 #define READ_UINT32VAR(name) \
   HB_STMT_START { \
@@ -187,22 +187,25 @@ VarComponent::get_path_at (hb_font_t *font,
     unsigned conditionIndex;
     READ_UINT32VAR (conditionIndex);
     const auto &condition = (&VARC+VARC.conditionList)[conditionIndex];
+    auto instancer = MultiItemVarStoreInstancer(&varStore, nullptr, coords, cache);
     show = condition.evaluate (coords.arrayZ, coords.length, &instancer);
   }
 
   // Axis values
 
-  hb_vector_t<unsigned> axisIndices;
-  hb_vector_t<float> axisValues;
+  auto &axisIndices = scratch.axisIndices;
+  axisIndices.clear ();
+  auto &axisValues = scratch.axisValues;
+  axisValues.clear ();
   if (flags & (unsigned) flags_t::HAVE_AXES)
   {
     unsigned axisIndicesIndex;
     READ_UINT32VAR (axisIndicesIndex);
-    axisIndices = (&VARC+VARC.axisIndicesList)[axisIndicesIndex];
+    axisIndices.extend ((&VARC+VARC.axisIndicesList)[axisIndicesIndex]);
     axisValues.resize (axisIndices.length);
     const HBUINT8 *p = (const HBUINT8 *) record;
     TupleValues::decompile (p, axisValues, (const HBUINT8 *) end);
-    record += (const unsigned char *) p - record;
+    record = (const unsigned char *) p;
   }
 
   // Apply variations if any
@@ -319,7 +322,8 @@ VarComponent::get_path_at (hb_font_t *font,
     VARC.get_path_at (font, gid,
 		      draw_session, component_coords, total_transform,
 		      parent_gid,
-		      decycler, edges_left, depth_left - 1);
+		      decycler, edges_left, depth_left - 1,
+		      scratch);
   }
 
 #undef PROCESS_TRANSFORM_COMPONENTS
@@ -337,7 +341,8 @@ VARC::get_path_at (hb_font_t *font,
 		   hb_codepoint_t parent_glyph,
 		   hb_decycler_t *decycler,
 		   signed *edges_left,
-		   signed depth_left) const
+		   signed depth_left,
+		   hb_glyf_scratch_t &scratch) const
 {
   // Don't recurse on the same glyph.
   unsigned idx = glyph == parent_glyph ?
@@ -354,7 +359,7 @@ VARC::get_path_at (hb_font_t *font,
     hb_draw_session_t transformer_session {transformer_funcs, &context};
     hb_draw_session_t &shape_draw_session = transform.is_identity () ? draw_session : transformer_session;
 
-    if (!font->face->table.glyf->get_path_at (font, glyph, shape_draw_session, coords))
+    if (!font->face->table.glyf->get_path_at (font, glyph, shape_draw_session, coords, scratch))
 #ifndef HB_NO_CFF
     if (!font->face->table.cff2->get_path_at (font, glyph, shape_draw_session, coords))
     if (!font->face->table.cff1->get_path (font, glyph, shape_draw_session)) // Doesn't have variations
@@ -376,9 +381,8 @@ VARC::get_path_at (hb_font_t *font,
 
   hb_ubytes_t record = (this+glyphRecords)[idx];
 
-  VarRegionList::cache_t *cache = record.length >= 64 ? // Heuristic
-				 (this+varStore).create_cache ()
-				 : nullptr;
+  float static_cache[sizeof (void *) * 16];
+  VarRegionList::cache_t *cache = (this+varStore).create_cache (hb_array (static_cache));
 
   transform.scale (font->x_multf, font->y_multf);
 
@@ -386,9 +390,10 @@ VARC::get_path_at (hb_font_t *font,
 				  draw_session, coords, transform,
 				  record,
 				  decycler, edges_left, depth_left,
+				  scratch,
 				  cache);
 
-  (this+varStore).destroy_cache (cache);
+  (this+varStore).destroy_cache (cache, hb_array (static_cache));
 
   return true;
 }
