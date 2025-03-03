@@ -610,10 +610,49 @@ async function testIconClick(expanded) {
   Services.fog.testResetFOG();
 }
 
+async function testIconClickReviewChecker(expanded) {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "sidebar.main.tools",
+        "aichat,syncedtabs,history,bookmarks,reviewchecker",
+      ],
+    ],
+  });
+
+  const { sidebarMain } = SidebarController;
+
+  await SidebarController.initializeUIState({ launcherExpanded: expanded });
+
+  let reviewCheckerButton = sidebarMain.shadowRoot.querySelector(
+    "moz-button[view='viewReviewCheckerSidebar']"
+  );
+  EventUtils.synthesizeMouseAtCenter(reviewCheckerButton, {});
+
+  let event = Glean.sidebar.shoppingReviewCheckerIconClick.testGetValue();
+  Assert.equal(event?.length, 1, "One event was reported.");
+  Assert.deepEqual(
+    event?.[0].extra,
+    { sidebar_open: `${expanded}` },
+    `Event indicates the sidebar was ${expanded ? "expanded" : "collapsed"}.`
+  );
+
+  await SpecialPowers.popPrefEnv();
+  Services.fog.testResetFOG();
+}
+
 add_task(async function test_icon_click_collapsed_sidebar() {
   await testIconClick(false);
 });
 
 add_task(async function test_icon_click_expanded_sidebar() {
   await testIconClick(true);
+});
+
+add_task(async function test_review_checker_icon_click_collapsed_sidebar() {
+  await testIconClickReviewChecker(false);
+});
+
+add_task(async function test_review_checker_icon_click_expanded_sidebar() {
+  await testIconClickReviewChecker(true);
 });
