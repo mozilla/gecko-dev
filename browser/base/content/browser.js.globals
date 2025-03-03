@@ -159,6 +159,7 @@
   "SubDialogManager",
   "TabCrashHandler",
   "TabsSetupFlowManager",
+  "TaskbarTabUI",
   "TelemetryEnvironment",
   "TranslationsParent",
   "UITour",
