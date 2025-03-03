@@ -6432,6 +6432,38 @@ HttpBaseChannel::HasCrossOriginOpenerPolicyMismatch(bool* aIsMismatch) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::GetOriginAgentClusterHeader(bool* aValue) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  if (!mResponseHead) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  nsAutoCString content;
+  nsresult rv = mResponseHead->GetHeader(nsHttp::OriginAgentCluster, content);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  // Origin-Agent-Cluster = <boolean>
+  nsCOMPtr<nsISFVService> sfv = GetSFVService();
+  nsCOMPtr<nsISFVItem> item;
+  rv = sfv->ParseItem(content, getter_AddRefs(item));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  nsCOMPtr<nsISFVBareItem> value;
+  rv = item->GetValue(getter_AddRefs(value));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  nsCOMPtr<nsISFVBool> flag = do_QueryInterface(value);
+  if (!flag) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  return flag->GetValue(aValue);
+}
+
 void HttpBaseChannel::MaybeFlushConsoleReports() {
   // Flush if we have a known window ID.
   if (mLoadInfo->GetInnerWindowID() > 0) {

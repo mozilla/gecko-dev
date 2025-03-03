@@ -347,6 +347,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   NS_IMETHOD GetResponseEmbedderPolicy(
       bool aIsOriginTrialCoepCredentiallessEnabled,
       nsILoadInfo::CrossOriginEmbedderPolicy* aOutPolicy) override;
+  NS_IMETHOD GetOriginAgentClusterHeader(bool* aValue) override;
 
   inline void CleanRedirectCacheChainIfNecessary() {
     auto redirectedCachekeys = mRedirectedCachekeys.Lock();

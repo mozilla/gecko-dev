@@ -468,6 +468,12 @@ interface nsIHttpChannelInternal : nsISupports
     [noscript]
     nsILoadInfo_CrossOriginEmbedderPolicy getResponseEmbedderPolicy(in boolean aIsOriginTrialCoepCredentiallessEnabled);
 
+    /**
+     * Returns the parsed boolean value of the "Origin-Agent-Cluster" header.
+     * @throws NS_ERROR_NOT_AVAILABLE if the header is not present.
+     */
+    [noscript] boolean getOriginAgentClusterHeader();
+
     [noscript, notxpcom, nostdcall]
     void DoDiagnosticAssertWhenOnStopNotCalledOnDestroy();
 
