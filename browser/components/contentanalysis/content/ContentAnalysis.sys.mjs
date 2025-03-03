@@ -104,12 +104,15 @@ class RequestInfos {
   }
 
   /**
-   * Gets all requests across all browsing contexts
+   * Gets all requests.
    *
    * @returns {Array<object>} all the requests
    */
   getAllRequests() {
-    return this.#map.values();
+    return this.#map
+      .values()
+      .map(entry => entry.request)
+      .toArray();
   }
 }
 
