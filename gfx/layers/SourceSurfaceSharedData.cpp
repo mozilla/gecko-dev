@@ -9,6 +9,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/StaticPrefs_image.h"
 #include "mozilla/Types.h"  // for decltype
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/layers/SharedSurfacesChild.h"
 #include "mozilla/layers/SharedSurfacesParent.h"
 #include "nsDebug.h"  // for NS_ABORT_OOM
@@ -30,10 +31,9 @@ using namespace mozilla::layers;
 namespace mozilla {
 namespace gfx {
 
-void SourceSurfaceSharedDataWrapper::Init(const IntSize& aSize, int32_t aStride,
-                                          SurfaceFormat aFormat,
-                                          SharedMemory::Handle aHandle,
-                                          base::ProcessId aCreatorPid) {
+void SourceSurfaceSharedDataWrapper::Init(
+    const IntSize& aSize, int32_t aStride, SurfaceFormat aFormat,
+    ipc::ReadOnlySharedMemoryHandle aHandle, base::ProcessId aCreatorPid) {
   MOZ_ASSERT(!mBuf);
   mSize = aSize;
   mStride = aStride;
@@ -41,8 +41,8 @@ void SourceSurfaceSharedDataWrapper::Init(const IntSize& aSize, int32_t aStride,
   mCreatorPid = aCreatorPid;
 
   size_t len = GetAlignedDataLength();
-  mBuf = MakeAndAddRef<SharedMemory>();
-  if (!mBuf->SetHandle(std::move(aHandle), ipc::SharedMemory::RightsReadOnly)) {
+  mBufHandle = std::move(aHandle);
+  if (!mBufHandle) {
     MOZ_CRASH("Invalid shared memory handle!");
   }
 
@@ -63,7 +63,7 @@ void SourceSurfaceSharedDataWrapper::Init(const IntSize& aSize, int32_t aStride,
     // We don't support unmapping for this surface, and we failed to map it.
     NS_ABORT_OOM(len);
   } else {
-    mBuf->CloseHandle();
+    mBufHandle = nullptr;
   }
 }
 
@@ -80,14 +80,19 @@ void SourceSurfaceSharedDataWrapper::Init(SourceSurfaceSharedData* aSurface) {
 bool SourceSurfaceSharedDataWrapper::EnsureMapped(size_t aLength) {
   MOZ_ASSERT(!GetData());
 
-  while (!mBuf->Map(aLength)) {
+  auto mapping = mBufHandle.Map();
+  while (!mapping) {
     nsTArray<RefPtr<SourceSurfaceSharedDataWrapper>> expired;
     if (!SharedSurfacesParent::AgeOneGeneration(expired)) {
       return false;
     }
     MOZ_ASSERT(!expired.Contains(this));
     SharedSurfacesParent::ExpireMap(expired);
+    mapping = mBufHandle.Map();
   }
+
+  mBuf = std::make_shared<ipc::MutableOrReadOnlySharedMemoryMapping>(
+      std::move(mapping));
 
   return true;
 }
@@ -143,7 +148,8 @@ void SourceSurfaceSharedDataWrapper::Unmap() {
 void SourceSurfaceSharedDataWrapper::ExpireMap() {
   MutexAutoLock lock(*mHandleLock);
   if (mMapCount == 0) {
-    mBuf->Unmap();
+    // This unmaps the stored memory mapping.
+    *mBuf = nullptr;
   }
 }
 
@@ -155,9 +161,10 @@ bool SourceSurfaceSharedData::Init(const IntSize& aSize, int32_t aStride,
   mFormat = aFormat;
 
   size_t len = GetAlignedDataLength();
-  mBuf = new SharedMemory();
-  if (NS_WARN_IF(!mBuf->Create(len)) || NS_WARN_IF(!mBuf->Map(len))) {
-    mBuf = nullptr;
+  mBufHandle = ipc::shared_memory::Create(len);
+  mBuf = std::make_shared<ipc::MutableOrReadOnlySharedMemoryMapping>(
+      mBufHandle.Map());
+  if (NS_WARN_IF(!mBufHandle) || NS_WARN_IF(!mBuf || !*mBuf)) {
     return false;
   }
 
@@ -187,17 +194,23 @@ void SourceSurfaceSharedData::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
 uint8_t* SourceSurfaceSharedData::GetDataInternal() const {
   mMutex.AssertCurrentThreadOwns();
 
+  // This class's mappings are always mutable, so we can safely cast away the
+  // const in the values returned here (see the comment above the `mBuf`
+  // declaration).
+
   // If we have an old buffer lingering, it is because we get reallocated to
   // get a new handle to share, but there were still active mappings.
   if (MOZ_UNLIKELY(mOldBuf)) {
     MOZ_ASSERT(mMapCount > 0);
     MOZ_ASSERT(mFinalized);
-    return static_cast<uint8_t*>(mOldBuf->Memory());
+    return const_cast<uint8_t*>(mOldBuf->DataAs<uint8_t>());
   }
-  return static_cast<uint8_t*>(mBuf->Memory());
+  // Const cast to match `GetData()`.
+  return const_cast<uint8_t*>(mBuf->DataAs<uint8_t>());
 }
 
-nsresult SourceSurfaceSharedData::CloneHandle(SharedMemory::Handle& aHandle) {
+nsresult SourceSurfaceSharedData::CloneHandle(
+    ipc::ReadOnlySharedMemoryHandle& aHandle) {
   MutexAutoLock lock(mMutex);
   MOZ_ASSERT(mHandleCount > 0);
 
@@ -205,7 +218,7 @@ nsresult SourceSurfaceSharedData::CloneHandle(SharedMemory::Handle& aHandle) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  aHandle = mBuf->CloneHandle();
+  aHandle = mBufHandle.Clone().ToReadOnly();
   if (MOZ_UNLIKELY(!aHandle)) {
     return NS_ERROR_FAILURE;
   }
@@ -223,7 +236,7 @@ void SourceSurfaceSharedData::CloseHandleInternal() {
   }
 
   if (mShared) {
-    mBuf->CloseHandle();
+    mBufHandle = nullptr;
     mClosed = true;
   }
 }
@@ -242,21 +255,25 @@ bool SourceSurfaceSharedData::ReallocHandle() {
   }
 
   size_t len = GetAlignedDataLength();
-  RefPtr<SharedMemory> buf = new SharedMemory();
-  if (NS_WARN_IF(!buf->Create(len)) || NS_WARN_IF(!buf->Map(len))) {
+  auto handle = ipc::shared_memory::Create(len);
+  auto mapping = handle.Map();
+  if (NS_WARN_IF(!handle) || NS_WARN_IF(!mapping)) {
     return false;
   }
 
   size_t copyLen = GetDataLength();
-  memcpy(buf->Memory(), mBuf->Memory(), copyLen);
+  memcpy(mapping.Address(), mBuf->Address(), copyLen);
 #ifdef SHARED_SURFACE_PROTECT_FINALIZED
-  buf->Protect(static_cast<char*>(buf->Memory()), len, RightsRead);
+  ipc::shared_memory::LocalProtect(mapping.DataAs<char>(), len,
+                                   ipc::shared_memory::AccessRead);
 #endif
 
   if (mMapCount > 0 && !mOldBuf) {
     mOldBuf = std::move(mBuf);
   }
-  mBuf = std::move(buf);
+  mBufHandle = std::move(handle);
+  mBuf = std::make_shared<ipc::MutableOrReadOnlySharedMemoryMapping>(
+      std::move(mapping));
   mClosed = false;
   mShared = false;
   return true;
@@ -268,7 +285,10 @@ void SourceSurfaceSharedData::Finalize() {
 
 #ifdef SHARED_SURFACE_PROTECT_FINALIZED
   size_t len = GetAlignedDataLength();
-  mBuf->Protect(static_cast<char*>(mBuf->Memory()), len, RightsRead);
+  // This class's mappings are always mutable, so we can safely cast away the
+  // const (see the comment above the `mBuf` declaration).
+  ipc::shared_memory::LocalProtect(const_cast<char*>(mBuf->DataAs<char>()), len,
+                                   ipc::shared_memory::AccessRead);
 #endif
 
   mFinalized = true;

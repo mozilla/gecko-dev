@@ -9,7 +9,6 @@
 
 #include "mozilla/gfx/2D.h"
 #include "mozilla/ipc/Shmem.h"
-#include "mozilla/ipc/SharedMemory.h"
 
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"
@@ -33,7 +32,6 @@ extern const cairo_user_data_key_t SHM_KEY;
 
 template <typename Base, typename Sub>
 class gfxBaseSharedMemorySurface : public Base {
-  typedef mozilla::ipc::SharedMemory SharedMemory;
   typedef mozilla::ipc::Shmem Shmem;
 
  protected:

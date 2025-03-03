@@ -10,7 +10,8 @@
 #include "DMABufSurface.h"
 #include "GLContext.h"
 #include "MozFramebuffer.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Types.h"
 #include "mozilla/Mutex.h"
@@ -37,9 +38,8 @@ class WaylandShmPool {
   ~WaylandShmPool();
 
   wl_shm_pool* mShmPool = nullptr;
-  void* mImageData = nullptr;
-  RefPtr<ipc::SharedMemory> mShm;
-  int mSize = 0;
+  ipc::MutableSharedMemoryHandle mShmHandle;
+  ipc::SharedMemoryMapping mShm;
 };
 
 class WaylandBuffer {

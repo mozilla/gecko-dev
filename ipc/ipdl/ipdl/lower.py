@@ -3378,7 +3378,6 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             Typedef(Type("IPC::Message"), "Message"),
             Typedef(Type("base::ProcessHandle"), "ProcessHandle"),
             Typedef(Type("mozilla::ipc::MessageChannel"), "MessageChannel"),
-            Typedef(Type("mozilla::ipc::SharedMemory"), "SharedMemory"),
         ]
 
     def visitTranslationUnit(self, tu):

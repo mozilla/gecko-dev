@@ -72,10 +72,9 @@ void ContentProcess::InfallibleInit(int aArgc, char* aArgv[]) {
   Maybe<const char*> parentBuildID =
       geckoargs::sParentBuildID.Get(aArgc, aArgv);
 
-  // command line: -jsInitHandle handle -jsInitLen length
-  Maybe<mozilla::ipc::SharedMemoryHandle> jsInitHandle =
+  // command line: -jsInitHandle handle
+  Maybe<mozilla::ipc::ReadOnlySharedMemoryHandle> jsInitHandle =
       geckoargs::sJsInitHandle.Get(aArgc, aArgv);
-  Maybe<uint64_t> jsInitLen = geckoargs::sJsInitLen.Get(aArgc, aArgv);
 
   nsCOMPtr<nsIFile> appDirArg;
   Maybe<const char*> appDir = geckoargs::sAppDir.Get(aArgc, aArgv);
@@ -131,8 +130,8 @@ void ContentProcess::InfallibleInit(int aArgc, char* aArgv[]) {
     MOZ_CRASH("InitPrefs failed");
   }
 
-  if (jsInitHandle && jsInitLen &&
-      !::mozilla::ipc::ImportSharedJSInit(jsInitHandle.extract(), *jsInitLen)) {
+  if (jsInitHandle &&
+      !::mozilla::ipc::ImportSharedJSInit(jsInitHandle.extract())) {
     MOZ_CRASH("ImportSharedJSInit failed");
   }
 

@@ -5,7 +5,7 @@
 
 include protocol PBackground;
 using mozilla::TimeDuration from "mozilla/TimeStamp.h";
-[MoveOnly] using mozilla::ipc::SharedMemoryHandle from "mozilla/ipc/SharedMemory.h";
+[MoveOnly] using mozilla::ipc::MutableSharedMemoryHandle from "mozilla/ipc/SharedMemoryHandle.h";
 namespace mozilla {
 namespace ipc {
 
@@ -39,7 +39,7 @@ child:
   async IdleTime(uint64_t id, TimeDuration budget);
 
 parent:
-  async InitForIdleUse() returns (SharedMemoryHandle? state, uint32_t childId);
+  async InitForIdleUse() returns (MutableSharedMemoryHandle? state, uint32_t childId);
   async RequestIdleTime(uint64_t id, TimeDuration budget);
   async IdleTimeUsed(uint64_t id);
 

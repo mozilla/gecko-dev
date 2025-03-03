@@ -12,7 +12,8 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/Span.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "nsIMemoryReporter.h"
 #include "nsIObserver.h"
 #include "nsIThread.h"
@@ -48,14 +49,14 @@ class SelfHostedShmem final : public nsIMemoryReporter {
   //
   // This function is not thread-safe and should be call at most once and from
   // the main thread.
-  [[nodiscard]] bool InitFromChild(mozilla::ipc::SharedMemoryHandle aHandle,
-                                   size_t aLen);
+  [[nodiscard]] bool InitFromChild(
+      mozilla::ipc::ReadOnlySharedMemoryHandle aHandle);
 
   // Return a span over the read-only XDR content of the self-hosted stencil.
   ContentType Content() const;
 
   // Return the file handle which is under which the content is mapped.
-  const mozilla::ipc::SharedMemoryHandle& Handle() const;
+  const mozilla::ipc::ReadOnlySharedMemoryHandle& Handle() const;
 
   // Register this class to the memory reporter service.
   void InitMemoryReporter();
@@ -74,15 +75,9 @@ class SelfHostedShmem final : public nsIMemoryReporter {
 
   static mozilla::StaticRefPtr<SelfHostedShmem> sSelfHostedXdr;
 
-  // read-only file Handle used to transfer from the parent process to content
-  // processes.
-  mozilla::ipc::SharedMemoryHandle mHandle;
-
-  // Shared memory used by JS runtime initialization.
-  RefPtr<mozilla::ipc::SharedMemory> mMem;
-
-  // Length of the content within the shared memory.
-  size_t mLen = 0;
+  // Read-only shared memory used by JS runtime initialization.
+  mozilla::ipc::ReadOnlySharedMemoryHandle mHandle;
+  mozilla::ipc::ReadOnlySharedMemoryMapping mMem;
 };
 
 }  // namespace xpc

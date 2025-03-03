@@ -313,7 +313,7 @@ Result<Ok, nsresult> URLPreloader::ReadCache(
       mCachedURLs.Clear();
     });
 
-    Range<uint8_t> header(data, data + headerSize);
+    Range<const uint8_t> header(data, data + headerSize);
     data += headerSize;
 
     InputBuffer buf(header);

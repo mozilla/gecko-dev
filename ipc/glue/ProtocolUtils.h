@@ -26,7 +26,6 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/ipc/MessageChannel.h"
 #include "mozilla/ipc/MessageLink.h"
-#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/ipc/Shmem.h"
 #include "nsPrintfCString.h"
 #include "nsTHashMap.h"

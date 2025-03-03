@@ -8,7 +8,6 @@
 #include <string.h>
 #include <algorithm>
 #include "mozilla/Maybe.h"
-#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/layers/PTextureChild.h"
 #include "mozilla/layers/WebRenderBridgeChild.h"
 

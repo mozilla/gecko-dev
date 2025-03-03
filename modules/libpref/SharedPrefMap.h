@@ -11,7 +11,8 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Result.h"
 #include "mozilla/dom/ipc/StringTable.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "nsTHashMap.h"
 
 namespace mozilla {
@@ -419,7 +420,7 @@ class SharedPrefMap {
 
   // Note: These constructors are infallible, because the preference database is
   // critical to platform functionality, and we cannot operate without it.
-  SharedPrefMap(const mozilla::ipc::SharedMemoryHandle&, size_t);
+  explicit SharedPrefMap(const mozilla::ipc::ReadOnlySharedMemoryHandle&);
   explicit SharedPrefMap(SharedPrefMapBuilder&&);
 
   // Searches for the given preference in the map, and returns true if it
@@ -502,7 +503,7 @@ class SharedPrefMap {
   // memory region for this map. The handle may be passed between processes, and
   // used to construct new instances of SharedPrefMap with the same data as this
   // instance.
-  mozilla::ipc::SharedMemoryHandle CloneHandle() const;
+  mozilla::ipc::ReadOnlySharedMemoryHandle CloneHandle() const;
 
   // Returns the size of the mapped memory region. This size must be passed to
   // the constructor when mapping the shared region in another process.
@@ -528,8 +529,8 @@ class SharedPrefMap {
 
   template <typename T>
   RangedPtr<const T> GetBlock(const DataBlock& aBlock) const {
-    return RangedPtr<uint8_t>(&mMappedMemory.data()[aBlock.mOffset],
-                              aBlock.mSize)
+    return RangedPtr<const uint8_t>(&mMappedMemory.data()[aBlock.mOffset],
+                                    aBlock.mSize)
         .ReinterpretCast<const T>();
   }
 
@@ -549,19 +550,19 @@ class SharedPrefMap {
 
   StringTable<nsCString> KeyTable() const {
     auto& block = GetHeader().mKeyStrings;
-    return {{&mMappedMemory.data()[block.mOffset], block.mSize}};
+    return {{(uint8_t*)&mMappedMemory.data()[block.mOffset], block.mSize}};
   }
 
   StringTable<nsCString> ValueTable() const {
     auto& block = GetHeader().mValueStrings;
-    return {{&mMappedMemory.data()[block.mOffset], block.mSize}};
+    return {{(uint8_t*)&mMappedMemory.data()[block.mOffset], block.mSize}};
   }
 
-  mozilla::ipc::SharedMemoryHandle mHandle;
+  mozilla::ipc::ReadOnlySharedMemoryHandle mHandle;
   // This is a leaked shared memory mapping (see the constructor definition for
   // an explanation). It replaces AutoMemMap::setPersistent behavior as part of
   // bug 1454816.
-  Span<uint8_t> mMappedMemory;
+  mozilla::ipc::shared_memory::LeakedReadOnlyMapping mMappedMemory;
 };
 
 // A helper class which builds the contiguous look-up table used by
@@ -591,13 +592,13 @@ class MOZ_RAII SharedPrefMapBuilder {
            const nsCString& aDefaultValue, const nsCString& aUserValue);
 
   // Finalizes the binary representation of the map, writes it to a shared
-  // memory region, and then initializes the given SharedMemory with a reference
-  // to the read-only copy of it.
+  // memory region, and then initializes the given ReadOnlySharedMemoryMapping
+  // with a reference to the read-only copy of it.
   //
   // This should generally not be used directly by callers. The
   // SharedPrefMapBuilder instance should instead be passed to the SharedPrefMap
   // constructor as a move reference.
-  Result<Ok, nsresult> Finalize(RefPtr<mozilla::ipc::SharedMemory>& aMap);
+  Result<mozilla::ipc::ReadOnlySharedMemoryHandle, nsresult> Finalize();
 
  private:
   using StringTableEntry = mozilla::dom::ipc::StringTableEntry;

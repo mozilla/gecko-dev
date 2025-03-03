@@ -55,22 +55,18 @@ void ProcessChild::AddPlatformBuildID(geckoargs::ChildProcessArgs& aExtraArgs) {
 
 /* static */
 bool ProcessChild::InitPrefs(int aArgc, char* aArgv[]) {
-  Maybe<SharedMemoryHandle> prefsHandle =
+  Maybe<ReadOnlySharedMemoryHandle> prefsHandle =
       geckoargs::sPrefsHandle.Get(aArgc, aArgv);
-  Maybe<SharedMemoryHandle> prefMapHandle =
+  Maybe<ReadOnlySharedMemoryHandle> prefMapHandle =
       geckoargs::sPrefMapHandle.Get(aArgc, aArgv);
-  Maybe<uint64_t> prefsLen = geckoargs::sPrefsLen.Get(aArgc, aArgv);
-  Maybe<uint64_t> prefMapSize = geckoargs::sPrefMapSize.Get(aArgc, aArgv);
 
-  if (prefsLen.isNothing() || prefMapSize.isNothing() ||
-      prefsHandle.isNothing() || prefMapHandle.isNothing()) {
+  if (prefsHandle.isNothing() || prefMapHandle.isNothing()) {
     return false;
   }
 
   SharedPreferenceDeserializer deserializer;
   return deserializer.DeserializeFromSharedMemory(std::move(*prefsHandle),
-                                                  std::move(*prefMapHandle),
-                                                  *prefsLen, *prefMapSize);
+                                                  std::move(*prefMapHandle));
 }
 
 #ifdef ENABLE_TESTS

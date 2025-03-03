@@ -220,7 +220,6 @@
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/Types.h"
 #include "mozilla/ipc/ProtocolUtils.h"
-#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/net/UrlClassifierCommon.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/widget/IMEData.h"

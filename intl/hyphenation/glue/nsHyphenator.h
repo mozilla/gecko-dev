@@ -6,8 +6,10 @@
 #ifndef nsHyphenator_h__
 #define nsHyphenator_h__
 
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryHandle.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/Span.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Variant.h"
 #include "nsCOMPtr.h"
@@ -42,8 +44,7 @@ class nsHyphenator {
 
   nsresult Hyphenate(const nsAString& aText, nsTArray<bool>& aHyphens);
 
-  void CloneHandle(mozilla::ipc::SharedMemory::Handle* aOutHandle,
-                   uint32_t* aOutSize);
+  mozilla::ipc::ReadOnlySharedMemoryHandle CloneHandle();
 
  private:
   ~nsHyphenator() = default;
@@ -51,12 +52,13 @@ class nsHyphenator {
   void HyphenateWord(const nsAString& aString, uint32_t aStart, uint32_t aLimit,
                      nsTArray<bool>& aHyphens);
 
-  mozilla::Variant<const void*,  // raw pointer to uncompressed omnijar data
-                   RefPtr<mozilla::ipc::SharedMemory>,  // shmem block
-                   mozilla::UniquePtr<const HyphDic>    // loaded by mapped_hyph
-                   >
+  mozilla::Variant<
+      mozilla::Span<const uint8_t>,  // raw pointer to uncompressed omnijar data
+      mozilla::ipc::ReadOnlySharedMemoryHandle,   // shmem handle, in the parent
+      mozilla::ipc::ReadOnlySharedMemoryMapping,  // mapped shmem, in the child
+      mozilla::UniquePtr<const HyphDic>           // loaded by mapped_hyph
+      >
       mDict;
-  uint32_t mDictSize;  // size of mDict data (not used if type is HyphDic)
   bool mHyphenateCapitalized;
 };
 

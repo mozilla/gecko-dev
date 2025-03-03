@@ -13,7 +13,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ipc/PIdleSchedulerParent.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include <bitset>
 
 #define NS_IDLE_SCHEDULER_COUNTER_ARRAY_LENGHT 1024
@@ -82,14 +82,6 @@ class IdleSchedulerParent final
   bool IsDoingIdleTask() const { return !isInList() && mRequestedIdleBudget; }
   bool IsNotDoingIdleTask() const { return !mRequestedIdleBudget; }
 
-  // Shared memory for counting how many child processes are running
-  // tasks. This memory is shared across all the child processes.
-  // The [0] is used for counting all the processes and
-  // [childId] is for counting per process activity.
-  // This way the global activity can be checked in a fast way by just looking
-  // at [0] value.
-  // [1] is used for cpu count for child processes.
-  static RefPtr<SharedMemory> sActiveChildCounter;
   // A bit is set if there is a child with child Id as the offset.
   // The bit is used to check per child specific activity counters in
   // sActiveChildCounter.

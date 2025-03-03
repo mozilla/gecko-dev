@@ -9,6 +9,7 @@
 
 #include "mozilla/gfx/RecordedEvent.h"
 #include "mozilla/ipc/CrossProcessSemaphore.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/layers/PCanvasChild.h"
 #include "mozilla/layers/SourceSurfaceSharedData.h"
 #include "mozilla/WeakPtr.h"
@@ -56,9 +57,10 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
   ipc::IPCResult RecvNotifyRequiresRefresh(
       const RemoteTextureOwnerId aTextureOwnerId);
 
-  ipc::IPCResult RecvSnapshotShmem(const RemoteTextureOwnerId aTextureOwnerId,
-                                   Handle&& aShmemHandle, uint32_t aShmemSize,
-                                   SnapshotShmemResolver&& aResolve);
+  ipc::IPCResult RecvSnapshotShmem(
+      const RemoteTextureOwnerId aTextureOwnerId,
+      ipc::ReadOnlySharedMemoryHandle&& aShmemHandle,
+      SnapshotShmemResolver&& aResolve);
 
   ipc::IPCResult RecvNotifyTextureDestruction(
       const RemoteTextureOwnerId aTextureOwnerId);
@@ -162,7 +164,7 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
   bool RequiresRefresh(const RemoteTextureOwnerId aTextureOwnerId) const;
 
   void ReturnDataSurfaceShmem(
-      already_AddRefed<ipc::SharedMemory> aDataSurfaceShmem);
+      std::shared_ptr<ipc::ReadOnlySharedMemoryMapping>&& aDataSurfaceShmem);
 
  protected:
   void ActorDestroy(ActorDestroyReason aWhy) final;
@@ -185,12 +187,12 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
   RefPtr<dom::ThreadSafeWorkerRef> mWorkerRef;
   RefPtr<CanvasDrawEventRecorder> mRecorder;
 
-  RefPtr<ipc::SharedMemory> mDataSurfaceShmem;
+  std::shared_ptr<ipc::ReadOnlySharedMemoryMapping> mDataSurfaceShmem;
   bool mDataSurfaceShmemAvailable = false;
   int64_t mLastWriteLockCheckpoint = 0;
   uint32_t mTransactionsSinceGetDataSurface = kCacheDataSurfaceThreshold;
   struct TextureInfo {
-    RefPtr<mozilla::ipc::SharedMemory> mSnapshotShmem;
+    std::shared_ptr<mozilla::ipc::ReadOnlySharedMemoryMapping> mSnapshotShmem;
     bool mRequiresRefresh = false;
   };
   std::unordered_map<RemoteTextureOwnerId, TextureInfo,

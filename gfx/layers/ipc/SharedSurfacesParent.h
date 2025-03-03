@@ -12,7 +12,6 @@
 #include "mozilla/StaticMutex.h"            // for StaticMutex
 #include "mozilla/StaticPtr.h"              // for StaticAutoPtr
 #include "mozilla/RefPtr.h"                 // for already_AddRefed
-#include "mozilla/ipc/SharedMemory.h"       // for SharedMemory, etc
 #include "mozilla/gfx/2D.h"                 // for SurfaceFormat
 #include "mozilla/gfx/Point.h"              // for IntSize
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptorShared

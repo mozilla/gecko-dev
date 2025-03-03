@@ -7,6 +7,7 @@
 #include "ImageMemoryReporter.h"
 #include "Image.h"
 #include "base/process_util.h"
+#include "mozilla/ipc/SharedMemoryMapping.h"
 #include "mozilla/layers/SharedSurfacesParent.h"
 #include "mozilla/StaticPrefs_image.h"
 #include "nsIMemoryReporter.h"
@@ -113,7 +114,7 @@ void ImageMemoryReporter::ReportSharedSurface(
   path.AppendInt(aEntry.mCreatorRef);
   path.AppendLiteral(")/decoded-");
 
-  size_t surfaceSize = mozilla::ipc::SharedMemory::PageAlignedSize(
+  size_t surfaceSize = mozilla::ipc::shared_memory::PageAlignedSize(
       aEntry.mSize.height * aEntry.mStride);
 
   // If this memory has already been reported elsewhere (e.g. as part of our

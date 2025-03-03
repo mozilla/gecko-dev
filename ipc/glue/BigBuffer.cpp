@@ -7,16 +7,15 @@
 #include "mozilla/ipc/BigBuffer.h"
 
 #include "chrome/common/ipc_message_utils.h"
-#include "mozilla/ipc/SharedMemory.h"
 #include "nsDebug.h"
 
 namespace mozilla::ipc {
 
-BigBuffer::BigBuffer(Adopt, SharedMemory* aSharedMemory, size_t aSize)
-    : mSize(aSize), mData(AsVariant(RefPtr{aSharedMemory})) {
-  MOZ_RELEASE_ASSERT(aSharedMemory && aSharedMemory->Memory(),
-                     "shared memory must be non-null and mapped");
-  MOZ_RELEASE_ASSERT(mSize <= aSharedMemory->Size(),
+BigBuffer::BigBuffer(Adopt, SharedMemoryMappingWithHandle&& aSharedMemory,
+                     size_t aSize)
+    : mSize(aSize), mData(AsVariant(std::move(aSharedMemory))) {
+  MOZ_RELEASE_ASSERT(mData.as<1>(), "shared memory must be valid");
+  MOZ_RELEASE_ASSERT(mSize <= mData.as<1>().Size(),
                      "shared memory region isn't large enough");
 }
 
@@ -24,13 +23,11 @@ BigBuffer::BigBuffer(Adopt, uint8_t* aData, size_t aSize)
     : mSize(aSize), mData(AsVariant(UniqueFreePtr<uint8_t[]>{aData})) {}
 
 uint8_t* BigBuffer::Data() {
-  return mData.is<0>() ? mData.as<0>().get()
-                       : reinterpret_cast<uint8_t*>(mData.as<1>()->Memory());
+  return mData.is<0>() ? mData.as<0>().get() : mData.as<1>().DataAs<uint8_t>();
 }
 const uint8_t* BigBuffer::Data() const {
-  return mData.is<0>()
-             ? mData.as<0>().get()
-             : reinterpret_cast<const uint8_t*>(mData.as<1>()->Memory());
+  return mData.is<0>() ? mData.as<0>().get()
+                       : mData.as<1>().DataAs<const uint8_t>();
 }
 
 auto BigBuffer::TryAllocBuffer(size_t aSize) -> Maybe<Storage> {
@@ -41,12 +38,12 @@ auto BigBuffer::TryAllocBuffer(size_t aSize) -> Maybe<Storage> {
     return Some(AsVariant(std::move(mem)));
   }
 
-  RefPtr<SharedMemory> shmem = new SharedMemory();
-  size_t capacity = SharedMemory::PageAlignedSize(aSize);
-  if (!shmem->Create(capacity) || !shmem->Map(capacity)) {
+  size_t capacity = shared_memory::PageAlignedSize(aSize);
+  auto mapping = shared_memory::Create(capacity).MapWithHandle();
+  if (!mapping) {
     return {};
   }
-  return Some(AsVariant(shmem));
+  return Some(AsVariant(std::move(mapping)));
 }
 
 }  // namespace mozilla::ipc
@@ -62,8 +59,11 @@ void IPC::ParamTraits<mozilla::ipc::BigBuffer>::Write(MessageWriter* aWriter,
   WriteParam(aWriter, isShmem);
 
   if (isShmem) {
-    if (!data.as<1>()->WriteHandle(aWriter)) {
+    auto handle = data.as<1>().Handle().Clone();
+    if (!handle) {
       aWriter->FatalError("Failed to write data shmem");
+    } else {
+      WriteParam(aWriter, std::move(handle));
     }
   } else {
     aWriter->WriteBytes(data.as<0>().get(), size);
@@ -81,13 +81,18 @@ bool IPC::ParamTraits<mozilla::ipc::BigBuffer>::Read(MessageReader* aReader,
   }
 
   if (isShmem) {
-    RefPtr<SharedMemory> shmem = new SharedMemory();
-    size_t capacity = SharedMemory::PageAlignedSize(size);
-    if (!shmem->ReadHandle(aReader) || !shmem->Map(capacity)) {
+    MutableSharedMemoryHandle handle;
+    size_t expected_size = shared_memory::PageAlignedSize(size);
+    if (!ReadParam(aReader, &handle) || !handle) {
       aReader->FatalError("Failed to read data shmem");
       return false;
     }
-    *aResult = BigBuffer(BigBuffer::Adopt{}, shmem, size);
+    auto mapping = std::move(handle).MapWithHandle();
+    if (!mapping || mapping.Size() != expected_size) {
+      aReader->FatalError("Failed to map data shmem");
+      return false;
+    }
+    *aResult = BigBuffer(BigBuffer::Adopt{}, std::move(mapping), size);
     return true;
   }
 
