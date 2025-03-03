@@ -29,7 +29,7 @@ explains how to use the Gecko profiler.
 ## Profiling and performance tools
 
 * [JIT Profiling with perf](jit_profiling_with_perf.md) Using perf to collect JIT profiles.
-* [JIT Profiling with samply]jit_profiling_with_samply.md) Using samply to collect JIT profiles
+* [JIT Profiling with samply](jit_profiling_with_samply.md) Using samply to collect JIT profiles
 * [Profiling with simpleperf](profiling_with_simpleperf.md) `simpleperf` is the Android equivalent of Linux's `perf`
 * [Profiling with Instruments](profiling_with_instruments.md) How to use Apple's Instruments tool to profile Mozilla code.
 * [Profiling with xperf](profiling_with_xperf.md) How to use Microsoft's Xperf tool to profile Mozilla code.
