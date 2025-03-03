@@ -463,11 +463,33 @@ void BrowsingContextGroup::GetDocGroups(nsTArray<DocGroup*>& aDocGroups) {
 }
 
 already_AddRefed<DocGroup> BrowsingContextGroup::AddDocument(
-    const nsACString& aKey, Document* aDocument) {
+    Document* aDocument) {
   MOZ_ASSERT(NS_IsMainThread());
 
+  nsCOMPtr<nsIPrincipal> principal = aDocument->NodePrincipal();
+
+  // Determine the key to use for this principal. This depends on
+  // `UsesOriginAgentCluster`.
+  DocGroupKey key;
+  if (auto originKeyed = UsesOriginAgentCluster(principal)) {
+    key.mOriginKeyed = *originKeyed;
+  } else {
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    MOZ_CRASH(
+        "Document loading without first determining origin keying for origin!");
+#endif
+    key.mOriginKeyed = false;
+  }
+  if (key.mOriginKeyed) {
+    nsresult rv = principal->GetOrigin(key.mKey);
+    NS_ENSURE_SUCCESS(rv, nullptr);
+  } else {
+    nsresult rv = principal->GetSiteOrigin(key.mKey);
+    NS_ENSURE_SUCCESS(rv, nullptr);
+  }
+
   RefPtr<DocGroup>& docGroup = mDocGroups.LookupOrInsertWith(
-      aKey, [&] { return DocGroup::Create(this, aKey); });
+      key, [&] { return DocGroup::Create(this, key); });
 
   docGroup->AddDocument(aDocument);
   return do_AddRef(docGroup);
@@ -564,6 +586,13 @@ void BrowsingContextGroup::NotifyFocusedOrActiveBrowsingContextToProcess(
           fm->GetActionIdForActiveBrowsingContextInChrome());
     }
   }
+}
+
+Maybe<bool> BrowsingContextGroup::UsesOriginAgentCluster(
+    nsIPrincipal* aPrincipal) {
+  // Check if agent clusters (DocGroups) for aPrincipal should be origin-keyed.
+  // https://html.spec.whatwg.org/#origin-keyed-agent-clusters
+  return Some(IsPotentiallyCrossOriginIsolated());
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(BrowsingContextGroup, mContexts,

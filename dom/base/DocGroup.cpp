@@ -49,22 +49,36 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 /* static */
 already_AddRefed<DocGroup> DocGroup::Create(
-    BrowsingContextGroup* aBrowsingContextGroup, const nsACString& aKey) {
+    BrowsingContextGroup* aBrowsingContextGroup, const DocGroupKey& aKey) {
   return do_AddRef(new DocGroup(aBrowsingContextGroup, aKey));
 }
 
-/* static */
-nsresult DocGroup::GetKey(nsIPrincipal* aPrincipal, bool aCrossOriginIsolated,
-                          nsACString& aKey) {
-  // Use GetBaseDomain() to handle things like file URIs, IP address URIs,
-  // etc. correctly.
-  nsresult rv = aCrossOriginIsolated ? aPrincipal->GetOrigin(aKey)
-                                     : aPrincipal->GetSiteOrigin(aKey);
-  if (NS_FAILED(rv)) {
-    aKey.Truncate();
-  }
+void DocGroup::AssertMatches(const Document* aDocument) const {
+  nsCOMPtr<nsIPrincipal> principal = aDocument->NodePrincipal();
 
-  return rv;
+  // Ensure that this DocGroup is correctly origin keyed / non-origin-keyed.
+  Maybe<bool> usesOriginAgentCluster =
+      mBrowsingContextGroup->UsesOriginAgentCluster(principal);
+  MOZ_RELEASE_ASSERT(
+      usesOriginAgentCluster.isSome(),
+      "Document principal with unknown OriginAgentCluster behaviour");
+  MOZ_RELEASE_ASSERT(*usesOriginAgentCluster == mKey.mOriginKeyed,
+                     "DocGroup origin keying does not match Principal");
+
+  // Ensure that the origin is as expected. Note that `GetSiteOrigin` can fail
+  // after the TLD service is shut down, and we don't want to assert in that
+  // case.
+  nsresult rv = NS_ERROR_FAILURE;
+  nsAutoCString key;
+  if (mKey.mOriginKeyed) {
+    rv = principal->GetOrigin(key);
+  } else {
+    rv = principal->GetSiteOrigin(key);
+  }
+  if (NS_SUCCEEDED(rv)) {
+    MOZ_RELEASE_ASSERT(key == mKey.mKey,
+                       "DocGroup Key does not match Document");
+  }
 }
 
 void DocGroup::SetExecutionManager(JSExecutionManager* aManager) {
@@ -107,7 +121,7 @@ void DocGroup::RemoveDocument(Document* aDocument) {
 }
 
 DocGroup::DocGroup(BrowsingContextGroup* aBrowsingContextGroup,
-                   const nsACString& aKey)
+                   const DocGroupKey& aKey)
     : mKey(aKey),
       mBrowsingContextGroup(aBrowsingContextGroup),
       mAgentClusterId(nsID::GenerateUUID()) {

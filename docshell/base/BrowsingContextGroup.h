@@ -30,6 +30,18 @@ class WindowContext;
 class ContentParent;
 class DocGroup;
 
+struct DocGroupKey {
+  nsCString mKey;
+  bool mOriginKeyed = false;
+
+  bool operator==(const DocGroupKey& aOther) const {
+    return mKey == aOther.mKey && mOriginKeyed == aOther.mOriginKeyed;
+  };
+  PLDHashNumber Hash() const {
+    return mozilla::HashGeneric(mozilla::HashString(mKey), mOriginKeyed);
+  }
+};
+
 // A BrowsingContextGroup represents the Unit of Related Browsing Contexts in
 // the standard.
 //
@@ -157,8 +169,7 @@ class BrowsingContextGroup final : public nsWrapperCache {
   void GetDocGroups(nsTArray<DocGroup*>& aDocGroups);
 
   // Called by Document when a Document needs to be added to a DocGroup.
-  already_AddRefed<DocGroup> AddDocument(const nsACString& aKey,
-                                         Document* aDocument);
+  already_AddRefed<DocGroup> AddDocument(Document* aDocument);
 
   // Called by Document when a Document needs to be removed from a DocGroup.
   // aDocGroup should be from aDocument. This is done to avoid the assert
@@ -207,6 +218,8 @@ class BrowsingContextGroup final : public nsWrapperCache {
   void IncInputEventSuspensionLevel();
   void DecInputEventSuspensionLevel();
 
+  Maybe<bool> UsesOriginAgentCluster(nsIPrincipal* aPrincipal);
+
   void ChildDestroy();
 
  private:
@@ -252,7 +265,7 @@ class BrowsingContextGroup final : public nsWrapperCache {
   // but we still keep strong pointers. When all Documents are removed
   // from DocGroup (by the BrowsingContextGroup), the DocGroup is
   // removed from here.
-  nsRefPtrHashtable<nsCStringHashKey, DocGroup> mDocGroups;
+  nsRefPtrHashtable<nsGenericHashKey<DocGroupKey>, DocGroup> mDocGroups;
 
   // The content process which will host documents in this BrowsingContextGroup
   // which need to be loaded with a given remote type.

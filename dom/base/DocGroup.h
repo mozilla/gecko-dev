@@ -43,18 +43,13 @@ class DocGroup final {
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(DocGroup)
 
   static already_AddRefed<DocGroup> Create(
-      BrowsingContextGroup* aBrowsingContextGroup, const nsACString& aKey);
+      BrowsingContextGroup* aBrowsingContextGroup, const DocGroupKey& aKey);
 
-  // Returns NS_ERROR_FAILURE and sets |aString| to an empty string if the TLD
-  // service isn't available. Returns NS_OK on success, but may still set
-  // |aString| may still be set to an empty string.
-  [[nodiscard]] static nsresult GetKey(nsIPrincipal* aPrincipal,
-                                       bool aCrossOriginIsolated,
-                                       nsACString& aKey);
+  void AssertMatches(const Document* aDocument) const;
 
-  bool MatchesKey(const nsACString& aKey) { return aKey == mKey; }
+  const DocGroupKey& GetKey() const { return mKey; }
 
-  const nsACString& GetKey() const { return mKey; }
+  bool IsOriginKeyed() const { return mKey.mOriginKeyed; }
 
   JSExecutionManager* GetExecutionManager() const { return mExecutionManager; }
   void SetExecutionManager(JSExecutionManager*);
@@ -109,11 +104,13 @@ class DocGroup final {
   bool IsEmpty() const { return mDocuments.IsEmpty(); }
 
  private:
-  DocGroup(BrowsingContextGroup* aBrowsingContextGroup, const nsACString& aKey);
+  DocGroup(BrowsingContextGroup* aBrowsingContextGroup,
+           const DocGroupKey& aKey);
 
   ~DocGroup();
 
-  nsCString mKey;
+  DocGroupKey mKey;
+
   nsTArray<Document*> mDocuments;
   RefPtr<mozilla::dom::CustomElementReactionsStack> mReactionsStack;
   nsTArray<RefPtr<HTMLSlotElement>> mSignalSlotList;
