@@ -15,27 +15,28 @@ if (!ext.hasProperty("topsrcdir")) {
     ext.topsrcdir = file(buildscript.getSourceFile()).getParentFile().getParentFile().getParentFile().getParentFile().absolutePath
 }
 
-def commandLine = ["${topsrcdir}/mach", "environment", "--format", "json", "--verbose"]
+def command = ["${topsrcdir}/mach", "environment", "--format", "json", "--verbose"]
 if (System.env.GRADLE_MACH_PYTHON) {
-    commandLine.addAll(0, [System.env.GRADLE_MACH_PYTHON])
+    command.addAll(0, [System.env.GRADLE_MACH_PYTHON])
 } else if (System.properties["os.name"].contains("Windows")) {
-    commandLine.addAll(0, ["python"])
+    command.addAll(0, ["python"])
 }
 
-def proc = commandLine.execute(machEnv(topsrcdir), new File(topsrcdir))
-def standardOutput = new ByteArrayOutputStream()
-def standardError = new ByteArrayOutputStream()
-proc.consumeProcessOutput(standardOutput, standardError)
-proc.waitFor()
+def proc = providers.exec {
+    commandLine(command)
+    ignoreExitValue = true
+}
 
+def result = proc.result.get().exitValue
+def standardOutput = proc.standardOutput.asText.get()
 // Only show the output if something went wrong.
-if (proc.exitValue() != 0) {
+if (result != 0) {
     logger.info("mozconfig.gradle> Error running ./mach environment: \n\n"
-            + "Process '${commandLine}' finished with non-zero exit value ${proc.exitValue()}:\n\n"
+            + "Process '${commandLine}' finished with non-zero exit value ${result}:\n\n"
             + "stdout:\n"
-            + "${standardOutput.toString()}\n\n"
+            + "${standardOutput}\n\n"
             + "stderr:\n"
-            + "${standardError.toString()}")
+            + "${proc.standardError.asText.get()}")
     throw new StopExecutionException(
             "Could not run ./mach environment. Try running ./mach build first.")
 }

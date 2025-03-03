@@ -5,6 +5,8 @@
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.initialization.Settings
+import org.gradle.api.provider.ProviderFactory
+import org.gradle.process.ExecOutput
 import java.io.File
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
@@ -18,8 +20,7 @@ class ConfigPlugin : Plugin<Settings> {
 
 object Config {
 
-    @JvmStatic
-    val vcsHash by lazy { readVcsHash() }
+    var vcsHash: String? = null
 
     @JvmStatic
     private fun generateDebugVersionName(): String {
@@ -174,51 +175,29 @@ object Config {
      * Returns the git or hg hash of the currently checked out revision. If there are uncommitted changes,
      * a "+" will be appended to the hash, e.g. "c8ba05ad0+".
      */
-    private fun readVcsHash(): String {
-        val gitRevision: String
-        try {
-            val revisionCmd = arrayOf("git", "rev-parse", "--short", "HEAD")
-            gitRevision = execReadStandardOutOrThrow(revisionCmd)
-        } catch (e: IllegalStateException) {
-            // hg id already appends "+" if the working directory isn't clean
-            val revisionCmd = arrayOf("hg", "id", "--id")
-            val hgRevision = execReadStandardOutOrThrow(revisionCmd)
-            return "hg-$hgRevision"
-        }
-        // Append "+" if there are uncommitted changes in the working directory.
-        val statusCmd = arrayOf("git", "status", "--porcelain=v2")
-        val status = execReadStandardOutOrThrow(statusCmd)
-        val hasUnstagedChanges = status.isNotBlank()
-        val statusSuffix = if (hasUnstagedChanges) "+" else ""
-        return "git-$gitRevision$statusSuffix"
+    @JvmStatic
+    fun getVcsHash(project: Project): String {
+        return vcsHash ?: readVcsHash(project).also { vcsHash = it }
     }
 
-    /**
-     * Executes the given command with [Runtime.exec], throwing if the command returns a non-zero exit
-     * code or times out. If successful, returns the command's stdout.
-     *
-     * @return stdout of the command
-     * @throws [IllegalStateException] if the command returns a non-zero exit code or times out.
-     */
-    private fun execReadStandardOutOrThrow(cmd: Array<String>, timeoutSeconds: Long = 30): String {
-        val process = Runtime.getRuntime().exec(cmd)
-
-        check(
-            process.waitFor(
-                timeoutSeconds,
-                TimeUnit.SECONDS,
-            ),
-        ) { "command unexpectedly timed out: `$cmd`" }
-        check(process.exitValue() == 0) {
-            val stderr = process.errorStream.bufferedReader().readText().trim()
-
-            """command exited with non-zero exit value: ${process.exitValue()}.
-           |cmd: ${cmd.joinToString(separator = " ")}
-           |stderr:
-           |$stderr"""
-                .trimMargin()
+    private fun readVcsHash(project: Project): String {
+        val proc = project.providers.execute("git", "rev-parse", "--short", "HEAD")
+        if (proc.result.get().exitValue != 0) {
+            // hg id already appends "+" if the working directory isn't clean
+            val hgRevision = project.providers.execute("hg", "id", "--id")
+                .standardOutput.asText.get().trim()
+            return "hg-${hgRevision}"
         }
+        // Append "+" if there are uncommitted changes in the working directory.
+        val status = project.providers.execute("git", "status", "--porcelain=v2")
+            .standardOutput.asText.get().trim()
+        val hasUnstagedChanges = status.isNotBlank()
+        val statusSuffix = if (hasUnstagedChanges) "+" else ""
+        return "git-${proc.standardOutput.asText.get().trim()}$statusSuffix"
+    }
 
-        return process.inputStream.bufferedReader().readText().trim()
+    private fun ProviderFactory.execute(vararg args: String): ExecOutput = exec {
+        commandLine(*args)
+        isIgnoreExitValue = true
     }
 }

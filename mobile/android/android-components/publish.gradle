@@ -17,19 +17,19 @@ static def getLocalPublicationTimestamp() {
 
 // This vcsHash functionality is duplicated in :support-base build.gradle.
 @Memoized
-static def getVcsHash() {
-    String[] cmd = ['git', 'rev-parse', '--verify', 'HEAD'] // via https://stackoverflow.com/a/949391/2219998
-    def process = Runtime.getRuntime().exec(cmd)
-    process.waitFor()
-    if (process.exitValue() == 0) {
-        return process.inputStream.getText().trim()
+def getVcsHash() {
+    def proc = providers.exec {
+        commandLine('git', 'rev-parse', '--verify', 'HEAD') // via https://stackoverflow.com/a/949391/2219998
+        ignoreExitValue = true
     }
-    cmd = ['hg', 'id', '--id']
-    ProcessBuilder pb = new ProcessBuilder(cmd)
-    pb.environment().put("HGPLAIN", "1")
-    process = pb.start(cmd)
-    process.waitFor()
-    return process.inputStream.getText().trim()
+    if (proc.result.get().exitValue != 0) {
+        return providers.exec {
+            commandLine('hg', 'id', '--id')
+            environment('HGPLAIN', '1')
+            ignoreExitValue = true
+        }.standardOutput.asText.get().trim()
+    }
+    return proc.standardOutput.asText.get().trim()
 }
 
 

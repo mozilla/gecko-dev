@@ -9,22 +9,18 @@ def generatedSrcDir = new File(layout.buildDirectory.get().asFile, "generated/co
 
 // This vcsHash functionality is duplicated in publish.gradle.
 def getVcsHash = { ->
-    def stdout = new ByteArrayOutputStream()
-    def stderr = new ByteArrayOutputStream()
-    try {
-        exec {
-            commandLine 'git', 'rev-parse', '--short', 'HEAD'
-            standardOutput = stdout
-            errorOutput = stderr
-        }
-    } catch (Exception e) {
-        exec {
-            commandLine 'hg', 'id', '--id'
-            environment 'HGPLAIN', '1'
-            standardOutput = stdout
-        }
+    def proc = providers.exec {
+        commandLine('git', 'rev-parse', '--short', 'HEAD')
+        ignoreExitValue = true
     }
-    return stdout.toString().trim()
+    if (proc.result.get().exitValue != 0) {
+        return providers.exec {
+            commandLine('hg', 'id', '--id')
+            environment('HGPLAIN', '1')
+            ignoreExitValue = true
+        }.standardOutput.asText.get().trim()
+    }
+    return proc.standardOutput.asText.get().trim()
 }
 
 android {
