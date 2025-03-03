@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { EventEmitter } from "resource://gre/modules/EventEmitter.sys.mjs";
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
 
@@ -33,13 +32,6 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", () =>
   })
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "SHOW_FULL_DOMAINS_LIST",
-  "extensions.ui.installDialogFullDomains",
-  true
-);
-
 const DEFAULT_EXTENSION_ICON =
   "chrome://mozapps/skin/extensions/extensionGeneric.svg";
 
@@ -64,10 +56,6 @@ export var ExtensionsUI = {
   sideloadListener: null,
 
   pendingNotifications: new WeakMap(),
-
-  get SHOW_FULL_DOMAINS_LIST() {
-    return lazy.SHOW_FULL_DOMAINS_LIST;
-  },
 
   async init() {
     Services.obs.addObserver(this, "webextension-permission-prompt");
@@ -376,12 +364,9 @@ export var ExtensionsUI = {
 
   // Create a set of formatted strings for a permission prompt
   _buildStrings(info) {
-    const strings = lazy.ExtensionData.formatPermissionStrings(
-      info,
-      this.SHOW_FULL_DOMAINS_LIST
-        ? { fullDomainsList: true }
-        : { collapseOrigins: true }
-    );
+    const strings = lazy.ExtensionData.formatPermissionStrings(info, {
+      fullDomainsList: true,
+    });
     strings.addonName = info.addon.name;
     return strings;
   },

@@ -56,11 +56,11 @@ async function getManifestPermissions(extensionData) {
 }
 
 function getPermissionWarnings(permissions, options) {
-  let { msgs } = ExtensionData.formatPermissionStrings(
+  let { msgs, fullDomainsList } = ExtensionData.formatPermissionStrings(
     { permissions },
     options
   );
-  return msgs;
+  return { warnings: msgs, fullDomainsList };
 }
 
 async function getPermissionWarningsForUpdate(
@@ -134,7 +134,7 @@ webext-perms-description-test-proxy = Custom description for the proxy permissio
     "Custom description for the downloads permission",
     "Custom description for the proxy permission",
   ];
-  const warnings = getPermissionWarnings(manifestPermissions);
+  const { warnings } = getPermissionWarnings(manifestPermissions);
   deepEqual(
     warnings,
     expectedWarnings,
@@ -279,7 +279,10 @@ add_task(async function host_permissions() {
       ]),
     },
     {
-      description: "many host permission",
+      // This test covers the expected strings for many host permissions
+      // as shown in permissions dialog (install, update or optional
+      // permission requests).
+      description: "many host permission (as shown in install dialog)",
       manifest: {
         permissions: [
           "http://a/",
@@ -305,45 +308,17 @@ add_task(async function host_permissions() {
         "http://*.4/",
       ],
       expectedWarnings: l10n.formatValuesSync([
-        // Wildcard hosts take precedence in the permission list.
         {
-          id: "webext-perms-host-description-wildcard",
-          args: { domain: "1" },
-        },
-        {
-          id: "webext-perms-host-description-wildcard",
-          args: { domain: "2" },
-        },
-        {
-          id: "webext-perms-host-description-wildcard",
-          args: { domain: "3" },
-        },
-        {
-          id: "webext-perms-host-description-wildcard",
-          args: { domain: "4" },
-        },
-        {
-          id: "webext-perms-host-description-one-site",
-          args: { domain: "a" },
-        },
-        {
-          id: "webext-perms-host-description-one-site",
-          args: { domain: "b" },
-        },
-        {
-          id: "webext-perms-host-description-one-site",
-          args: { domain: "c" },
-        },
-        {
-          id: "webext-perms-host-description-too-many-sites",
-          args: { domainCount: 2 },
+          id: "webext-perms-host-description-multiple-domains",
+          args: { domainCount: 9 },
         },
       ]),
-      options: {
-        collapseOrigins: true,
-      },
+      expectedDomainsList: ["1", "2", "3", "4", "a", "b", "c", "d", "e"],
+      options: { fullDomainsList: true },
     },
     {
+      // This test covers the expected strings for many host permissions
+      // as shown in about:addons addon card permissions view.
       description:
         "many host permissions without item limit in the warning list",
       manifest: {
@@ -392,6 +367,7 @@ add_task(async function host_permissions() {
       manifest,
       expectedOrigins,
       expectedWarnings,
+      expectedDomainsList,
       options,
     } of permissionTestCases) {
       manifest = Object.assign({}, manifest, { manifest_version });
@@ -413,12 +389,35 @@ add_task(async function host_permissions() {
         `Expected no non-host permissions (${description})`
       );
 
-      let warnings = getPermissionWarnings(manifestPermissions, options);
+      let { warnings, fullDomainsList } = getPermissionWarnings(
+        manifestPermissions,
+        options
+      );
       deepEqual(
         warnings,
         expectedWarnings,
         `Expected warnings (${description})`
       );
+      if (fullDomainsList) {
+        deepEqual(
+          Array.from(fullDomainsList.domainsSet),
+          expectedDomainsList,
+          `Expected full domains list (${description})`
+        );
+        // Verify also that the warning message at the fullDomainsList.msgIdIndex
+        // position is the one expected to be associated to the list of domains
+        // in fullDomainsList.domainsSet.
+        equal(
+          warnings[fullDomainsList.msgIdIndex],
+          l10n.formatValueSync(
+            "webext-perms-host-description-multiple-domains",
+            {
+              domainCount: expectedDomainsList.length,
+            }
+          ),
+          "Got warning associated to the full domains list set to the expected fluent string."
+        );
+      }
     }
   }
 });
@@ -451,7 +450,7 @@ add_task(async function api_permissions() {
   );
 
   deepEqual(
-    getPermissionWarnings(manifestPermissions),
+    getPermissionWarnings(manifestPermissions).warnings,
     l10n.formatValuesSync([
       // Host permissions first, with wildcards on top.
       { id: "webext-perms-host-description-wildcard", args: { domain: "x" } },
@@ -514,7 +513,7 @@ add_task(
     );
 
     deepEqual(
-      getPermissionWarnings(manifestPermissions),
+      getPermissionWarnings(manifestPermissions).warnings,
       l10n.formatValuesSync([
         "webext-perms-description-declarativeNetRequest",
         "webext-perms-description-declarativeNetRequestFeedback",
@@ -540,7 +539,11 @@ add_task(
       "Expected origins and permissions"
     );
 
-    deepEqual(getPermissionWarnings(manifestPermissions), [], "No warnings");
+    deepEqual(
+      getPermissionWarnings(manifestPermissions).warnings,
+      [],
+      "No warnings"
+    );
   }
 );
 
@@ -571,7 +574,7 @@ add_task(async function privileged_with_mozillaAddons() {
   );
 
   deepEqual(
-    getPermissionWarnings(manifestPermissions),
+    getPermissionWarnings(manifestPermissions).warnings,
     [l10n.formatValueSync("webext-perms-host-description-all-urls")],
     "Expected warnings for privileged add-on with mozillaAddons permission."
   );
@@ -602,7 +605,7 @@ add_task(async function unprivileged_with_mozillaAddons() {
   );
 
   deepEqual(
-    getPermissionWarnings(manifestPermissions),
+    getPermissionWarnings(manifestPermissions).warnings,
     [
       l10n.formatValueSync("webext-perms-host-description-one-site", {
         domain: "a",
@@ -614,7 +617,7 @@ add_task(async function unprivileged_with_mozillaAddons() {
 
 // Tests that an update with less permissions has no warning.
 add_task(async function update_drop_permission() {
-  let warnings = await getPermissionWarningsForUpdate(
+  let { warnings } = await getPermissionWarningsForUpdate(
     {
       manifest: {
         permissions: ["<all_urls>", "https://a/", "http://b/"],
@@ -640,7 +643,7 @@ add_task(async function update_drop_permission() {
 // Tests that an update that switches from "*://*/*" to "<all_urls>" does not
 // result in additional permission warnings.
 add_task(async function update_all_urls_permission() {
-  let warnings = await getPermissionWarningsForUpdate(
+  let { warnings } = await getPermissionWarningsForUpdate(
     {
       manifest: {
         permissions: ["*://*/*"],
@@ -662,7 +665,7 @@ add_task(async function update_all_urls_permission() {
 // Tests that an update where a new permission whose domain overlaps with
 // an existing permission does not result in additional permission warnings.
 add_task(async function update_change_permissions() {
-  let warnings = await getPermissionWarningsForUpdate(
+  let { warnings } = await getPermissionWarningsForUpdate(
     {
       manifest: {
         permissions: ["https://a/", "http://*.b/", "http://c/", "http://f/"],
@@ -705,7 +708,7 @@ add_task(async function update_change_permissions() {
 // Tests that a privileged extension with the mozillaAddons permission can be
 // updated without errors.
 add_task(async function update_privileged_with_mozillaAddons() {
-  let warnings = await getPermissionWarningsForUpdate(
+  let { warnings } = await getPermissionWarningsForUpdate(
     {
       isPrivileged: true,
       manifest: {
@@ -734,7 +737,7 @@ add_task(async function update_privileged_with_mozillaAddons() {
 // through an update.
 add_task(async function update_unprivileged_with_mozillaAddons() {
   // Unprivileged
-  let warnings = await getPermissionWarningsForUpdate(
+  let { warnings } = await getPermissionWarningsForUpdate(
     {
       manifest: {
         permissions: ["mozillaAddons", "resource://a/"],
