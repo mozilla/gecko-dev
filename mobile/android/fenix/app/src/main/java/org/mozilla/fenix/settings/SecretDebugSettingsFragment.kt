@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
@@ -60,11 +62,33 @@ private fun SecretDebugSettingsScreen() {
         map = { it.distributionId ?: "" },
     )
 
-    DebugInfo(regionState = regionState, distributionId = distributionId)
+    val settings = components.settings
+
+    val playInstallReferrer: String by remember {
+        mutableStateOf(
+            """
+                utmTerm: ${settings.utmTerm}
+                utmMedium: ${settings.utmMedium}
+                utmSource: ${settings.utmSource}
+                utmContent: ${settings.utmContent}
+                utmCampaign: ${settings.utmCampaign}
+            """.trimIndent(),
+        )
+    }
+
+    DebugInfo(
+        regionState = regionState,
+        distributionId = distributionId,
+        playInstallReferrer = playInstallReferrer,
+    )
 }
 
 @Composable
-private fun DebugInfo(regionState: RegionState, distributionId: String) {
+private fun DebugInfo(
+    regionState: RegionState,
+    distributionId: String,
+    playInstallReferrer: String,
+) {
     Column(
         modifier = Modifier
             .padding(8.dp),
@@ -100,6 +124,18 @@ private fun DebugInfo(regionState: RegionState, distributionId: String) {
         )
         Text(
             text = distributionId,
+            color = FirefoxTheme.colors.textPrimary,
+            modifier = Modifier.padding(4.dp),
+        )
+
+        Text(
+            text = stringResource(R.string.debug_info_play_referrer),
+            color = FirefoxTheme.colors.textPrimary,
+            style = FirefoxTheme.typography.headline6,
+            modifier = Modifier.padding(4.dp),
+        )
+        Text(
+            text = playInstallReferrer,
             color = FirefoxTheme.colors.textPrimary,
             modifier = Modifier.padding(4.dp),
         )
