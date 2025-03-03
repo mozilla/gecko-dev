@@ -8549,7 +8549,7 @@
 
 - name: javascript.options.experimental.error_capture_stack_trace
   type: bool
-  value: false
+  value: true
   mirror: always
   set_spidermonkey_pref: always
 

@@ -278,6 +278,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
     gConstructorProperties.Error.push("isError");
   }
 
+  gConstructorProperties.Error.push("captureStackTrace");
+
   // toString and toSource only live on the parent proto (Error.prototype).
   gPrototypeProperties.Error.push('toString');
   gPrototypeProperties.Error.push('toSource');
