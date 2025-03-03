@@ -4390,8 +4390,7 @@ void Document::SetPrincipals(nsIPrincipal* aNewPrincipal,
   RecomputeResistFingerprinting();
 
 #ifdef DEBUG
-  // Validate that the docgroup is set correctly by calling its getter and
-  // triggering its sanity check.
+  // Validate that the docgroup is set correctly.
   //
   // If we're setting the principal to null, we don't want to perform the check,
   // as the document is entering an intermediate state where it does not have a
@@ -4399,7 +4398,7 @@ void Document::SetPrincipals(nsIPrincipal* aNewPrincipal,
   // check. It's not unsafe to have a document which has a null principal in the
   // same docgroup as another document, so this should not be a problem.
   if (aNewPrincipal) {
-    GetDocGroup();
+    AssertDocGroupMatchesKey();
   }
 #endif
 }
@@ -4407,7 +4406,9 @@ void Document::SetPrincipals(nsIPrincipal* aNewPrincipal,
 #ifdef DEBUG
 void Document::AssertDocGroupMatchesKey() const {
   // Sanity check that we have an up-to-date and accurate docgroup
-  // We only check if the principal when we can get the browsing context.
+  // We only check if the principal when we can get the browsing context, as
+  // documents without a BrowsingContext do not need to have a matching
+  // principal to their DocGroup.
 
   // Note that we can be invoked during cycle collection, so we need to handle
   // the browsingcontext being partially unlinked - normally you shouldn't
@@ -7912,58 +7913,37 @@ void Document::SetScopeObject(nsIGlobalObject* aGlobal) {
       return;
     }
 
-    // Same origin data documents should have the same docGroup as their scope
-    // window.
-    if (mLoadedAsData && window->GetExtantDoc() &&
-        window->GetExtantDoc() != this &&
-        window->GetExtantDoc()->NodePrincipal() == NodePrincipal()) {
-      DocGroup* docGroup = window->GetExtantDoc()->GetDocGroup();
+    // Attempt to join a DocGroup based on our global and container now that our
+    // principal is locked in (due to being added to a window).
+    DocGroup* docGroup = GetDocGroupOrCreate();
+    if (!docGroup) {
+      // If we failed to join a DocGroup, inherit from our parent window.
+      //
+      // NOTE: It is possible for Document to be cross-origin to window while
+      // loading a cross-origin data document over XHR with CORS. In that case,
+      // the DocGroup can have a key which does not match NodePrincipal().
+      MOZ_ASSERT(!mDocumentContainer,
+                 "Must have DocGroup if loaded in a DocShell");
+      mDocGroup = window->GetDocGroup();
+      mDocGroup->AddDocument(this);
+    }
 
-      if (docGroup) {
-        if (!mDocGroup) {
-          mDocGroup = docGroup;
-          mDocGroup->AddDocument(this);
-        } else {
-          MOZ_ASSERT(mDocGroup == docGroup,
-                     "Data document has a mismatched doc group?");
-        }
 #ifdef DEBUG
-        AssertDocGroupMatchesKey();
+    AssertDocGroupMatchesKey();
 #endif
-
-        // Update data document's mMutationEventsEnabled early on so that
-        // we can avoid extra IsURIInPrefList calls.
-        if (mMutationEventsEnabled.isNothing()) {
-          mMutationEventsEnabled.emplace(
-              window->GetExtantDoc()->MutationEventsEnabled());
-        }
-
-        return;
-      }
-
-      MOZ_ASSERT_UNREACHABLE(
-          "Scope window doesn't have DocGroup when creating data document?");
-      // ... but fall through to be safe.
-    }
-
-    BrowsingContextGroup* browsingContextGroup =
-        window->GetBrowsingContextGroup();
-
-    // We should already have the principal, and now that we have been added
-    // to a window, we should be able to join a DocGroup!
-    if (mDocGroup) {
-      MOZ_RELEASE_ASSERT(mDocGroup->GetBrowsingContextGroup() ==
-                         browsingContextGroup);
-      mDocGroup->AssertMatches(this);
-    } else {
-      mDocGroup = browsingContextGroup->AddDocument(this);
-
-      MOZ_ASSERT(mDocGroup);
-    }
-
     MOZ_ASSERT_IF(
         mNodeInfoManager->GetArenaAllocator(),
         mNodeInfoManager->GetArenaAllocator() == mDocGroup->ArenaAllocator());
+
+    // Update data document's mMutationEventsEnabled early on so that we can
+    // avoid extra IsURIInPrefList calls.
+    if (mLoadedAsData && window->GetExtantDoc() &&
+        window->GetExtantDoc() != this &&
+        window->GetExtantDoc()->NodePrincipal() == NodePrincipal() &&
+        mMutationEventsEnabled.isNothing()) {
+      mMutationEventsEnabled.emplace(
+          window->GetExtantDoc()->MutationEventsEnabled());
+    }
   }
 }
 
